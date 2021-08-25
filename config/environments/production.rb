@@ -79,7 +79,7 @@ Rails.application.configure do
   # cf. https://altalogy.com/blog/rails-6-user-accounts-with-3-types-of-roles/
   config.action_mailer.perform_deliveries = true
   config.action_mailer.delivery_method = :smtp
-  config.action_mailer.default_options = {from: 'no-reply@music-i18n.org'}
+  config.action_mailer.default_options = {from: ENV['DEF_EMAIL_FROM']} if !ENV['DEF_EMAIL_FROM'].blank?
 
   mypasswd = (ENV['MAILERTOGO_MANUAL_PASSWD'].blank? ? mailertogo.password : ENV['MAILERTOGO_MANUAL_PASSWD'])
   config.action_mailer.smtp_settings = {
