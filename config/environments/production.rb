@@ -1,3 +1,4 @@
+require 'uri'
 require "active_support/core_ext/integer/time"
 
 Rails.application.configure do
@@ -68,9 +69,23 @@ Rails.application.configure do
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.
   # config.action_mailer.raise_delivery_errors = false
 
+  mailertogo        = URI.parse ENV['MAILERTOGO_URL']
+  mailertogo_domain = ENV.fetch("MAILERTOGO_DOMAIN", "harami.music-i18n.org")
+
   # Added by User for Devise - this must be machine's IP and true port number.
-  config.action_mailer.default_url_options = { host: ENV['SERVER_URL'], port: ENV['SERVER_PORT'] }
+  #config.action_mailer.default_url_options = { host: ENV['SERVER_URL'], port: ENV['SERVER_PORT'] }
+  config.action_mailer.default_url_options = { host: mailertogo.host, port: mailertogo.port }
   ## up to here
+
+  config.action_mailer.smtp_settings = {
+    :address              => mailertogo.host,
+    :port                 => mailertogo.port,
+    :user_name            => mailertogo.user,
+    :password             => mailertogo.password,
+    :domain               => mailertogo_domain,
+    :authentication       => :plain,
+    :enable_starttls_auto => true,
+  }
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).
