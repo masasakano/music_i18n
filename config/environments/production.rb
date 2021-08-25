@@ -75,7 +75,7 @@ Rails.application.configure do
   # Added by User for Devise - this must be machine's IP and true port number.
   #config.action_mailer.default_url_options = { host: ENV['SERVER_URL'], port: ENV['SERVER_PORT'] }
   #config.action_mailer.default_url_options = { host: mailertogo.host, port: mailertogo.port.to_s }
-  config.action_mailer.default_url_options = { host: 'smtp.gmail.com', port: '587' }
+  config.action_mailer.default_url_options = { host: 'harami.music-i18n.org' }
   ## up to here
 
   # cf. https://altalogy.com/blog/rails-6-user-accounts-with-3-types-of-roles/
