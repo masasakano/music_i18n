@@ -89,6 +89,9 @@ Rails.application.configure do
   config.action_mailer.perform_deliveries = true
   config.action_mailer.delivery_method = :smtp
   config.action_mailer.default_options = {from: 'no-reply@example.com'}
+  ## NOTE:
+  # Gmail accepts any email addresses, but the From address of the sent emails
+  # is that of the login account, whereas Reply-To is set to the provided From address.
 
   # For google Gmail, you may get "Net::SMTPAuthenticationError (534-5.7.14)" or similar.
   # Chaning a password(!) may do the trick.

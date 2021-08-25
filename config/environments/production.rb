@@ -79,15 +79,15 @@ Rails.application.configure do
   # cf. https://altalogy.com/blog/rails-6-user-accounts-with-3-types-of-roles/
   config.action_mailer.perform_deliveries = true
   config.action_mailer.delivery_method = :smtp
-  config.action_mailer.default_options = {from: ENV['DEF_EMAIL_FROM']} if !ENV['DEF_EMAIL_FROM'].blank?
+  config.action_mailer.default_options = {from: ENV['DEF_EMAIL_FROM']} if !ENV['DEF_EMAIL_FROM'].blank? # if contains a space, that is NOT blank.
+  ## NOTE:
+  # Gmail accepts any email addresses, but the From address of the sent emails
+  # is that of the login account, whereas Reply-To is set to the provided From address.
+  # MAILERTOGO accepts the email addresses only from the registered exact domain,
+  # not including even the parent domain if the registered domain is a sub-domain.
 
   mypasswd = (ENV['MAILERTOGO_MANUAL_PASSWD'].blank? ? mailertogo.password : ENV['MAILERTOGO_MANUAL_PASSWD'])
   config.action_mailer.smtp_settings = {
-    #user_name:      Rails.application.credentials.mail_username,
-    #password:       Rails.application.credentials.mail_password,
-    #domain:         'gmail.com',
-    #address:       'smtp.gmail.com',
-    #port:          '587',
     :address              => mailertogo.host,
     :port                 => mailertogo.port,
     :user_name            => mailertogo.user,
@@ -96,6 +96,12 @@ Rails.application.configure do
     :domain               => mailertogo_domain,
     :authentication       => :plain,
     :enable_starttls_auto => true,
+    ### if using Gmail
+    #user_name:      Rails.application.credentials.mail_username,
+    #password:       Rails.application.credentials.mail_password,
+    #domain:         'gmail.com',
+    #address:       'smtp.gmail.com',
+    #port:          '587',
   }
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
