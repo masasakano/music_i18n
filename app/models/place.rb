@@ -51,8 +51,8 @@ class Place < BaseWithTranslation
     country = pref.country
     s_country = country.iso3166_a3_code
     s_country = country.title if s_country.blank?
-    s_pref = pref.title
-    super.sub(/, prefecture_id: \d+/, '\0'+sprintf("(%s < %s)", s_pref.inspect, s_country))
+    s_pref = pref.title(langcode: 'en', lang_fallback: true)
+    super.sub(/, prefecture_id: \d+/, '\0'+sprintf("(%s < %s)", s_pref, s_country))
   end
 
   # Modifying {BaseWithTranslation.[]}

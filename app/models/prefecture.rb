@@ -52,7 +52,7 @@ class Prefecture < BaseWithTranslation
   # @return [String]
   def inspect
     s_country = country.iso3166_a3_code
-    s_country = country.title if s_country.blank?
+    s_country = country.title(langcode: 'en', lang_fallback: true) if s_country.blank?
     super.sub(/, country_id: \d+/, '\0'+sprintf("(%s)", s_country))
   end
 
