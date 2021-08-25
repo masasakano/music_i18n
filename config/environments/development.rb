@@ -39,6 +39,8 @@ Rails.application.configure do
   config.action_mailer.perform_caching = false
 
   # Added by User for Devise
+  # In production, the host (and port) has to be the actual web server one like 'my-app-XYZ.herokuapp.com',
+  # regardless of action_mailer.smtp_settings[:address] (or :domain).
   config.action_mailer.default_url_options = { host: 'localhost', port: 3000 }
   ## up to here
 
@@ -87,7 +89,13 @@ Rails.application.configure do
   config.action_mailer.perform_deliveries = true
   config.action_mailer.delivery_method = :smtp
   config.action_mailer.default_options = {from: 'no-reply@example.com'}
+  ## NOTE:
+  # Gmail accepts any email addresses, but the From address of the sent emails
+  # is that of the login account, whereas Reply-To is set to the provided From address.
 
+  # For google Gmail, you may get "Net::SMTPAuthenticationError (534-5.7.14)" or similar.
+  # Chaning a password(!) may do the trick.
+  # cf. https://stackoverflow.com/a/63141980/3577922
   config.action_mailer.smtp_settings = {
     user_name:      Rails.application.credentials.mail_username,
     password:       Rails.application.credentials.mail_password,

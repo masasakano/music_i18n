@@ -1,3 +1,4 @@
+require 'uri'
 require "active_support/core_ext/integer/time"
 
 Rails.application.configure do
@@ -69,8 +70,29 @@ Rails.application.configure do
   # config.action_mailer.raise_delivery_errors = false
 
   # Added by User for Devise - this must be machine's IP and true port number.
-  config.action_mailer.default_url_options = { host: ENV['SERVER_URL'], port: ENV['SERVER_PORT'] }
+  config.action_mailer.default_url_options = { host: ENV['SERVER_URL'], port: (ENV['SERVER_PORT'] || '80') }
   ## up to here
+
+  # cf. https://altalogy.com/blog/rails-6-user-accounts-with-3-types-of-roles/
+  config.action_mailer.perform_deliveries = true
+  config.action_mailer.delivery_method = :smtp
+  config.action_mailer.default_options = {from: ENV['DEF_EMAIL_FROM']} if !ENV['DEF_EMAIL_FROM'].blank? # if contains a space, that is NOT blank.
+  ## NOTE:
+  # Gmail accepts any email addresses, but the From address of the sent emails
+  # is that of the login account, whereas Reply-To is set to the provided From address.
+  # MAILERTOGO accepts the email addresses only from the registered exact domain,
+  # not including even the parent domain if the registered domain is a sub-domain.
+
+  config.action_mailer.smtp_settings = {
+    :authentication       => :plain,
+    :enable_starttls_auto => true,
+    ### if using Gmail
+    #user_name:      Rails.application.credentials.mail_username,
+    #password:       Rails.application.credentials.mail_password,
+    #domain:         'gmail.com',
+    #address:       'smtp.gmail.com',
+    #port:          '587',
+  }
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).
