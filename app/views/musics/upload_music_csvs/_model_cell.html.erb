@@ -1,0 +1,23 @@
+        <td class="<%= class_prefix %><%= attr.to_s %>">
+          <% csvval = @csv[iline][attr]; %> <% "# Converted CSV value" if false %>
+          <% csvval = csvval.title(langcode: 'ja') if csvval.respond_to?(:title) %>
+          <% if @changes[iline].send(attr).respond_to?(:[]) %>
+            <% s = @changes[iline].send(attr)[1] %>
+            <% if csvval && s && csvval == s %>
+              <%= curval.respond_to?(:id) ? link_to(csvval, curval) : csvval %>
+            <% else %>
+              <%= csvval ? csvval : 'nil' %> &rarr;
+              <%= curval.respond_to?(:id) ? link_to(s, curval) : s %>
+            <% end %>
+          <% else %>
+            <%= csvval %>
+            <% if /^(music|artist)_/ =~ attr.to_s %>
+            <% elsif curval %>
+              &rarr; <%= curval.respond_to?(:title) ? curval.title(langcode: 'ja') : curval %>
+            <% else %>
+              <% if current_user.sysadmin? %>
+                &rarr; [Admin] changes=<%= @changes[iline].send(attr).inspect %>
+              <% end %>
+            <% end %>
+          <% end %>
+        </td>

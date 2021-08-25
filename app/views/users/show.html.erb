@@ -1,0 +1,101 @@
+<p id="notice"><%= notice %></p>
+
+<h1>User profile: <%= @user.display_name %></h1>
+
+<dl>
+<% if current_user && current_user.sysadmin? %>
+      <dt>id</dt>
+        <dd><%= @user.id %></dd>
+<% end %>
+      <dt>Name</dt>
+        <dd><%= (@user.display_name || '').html_safe %></dd>
+      <dt>External Account</dt>
+        <dd><%= (@user.ext_account_name || '').html_safe %></dd>
+<% if current_user && current_user.sysadmin? || @user == current_user %>
+      <dt>Email</dt>
+        <dd><%= (@user.email || '').html_safe %></dd>
+<% end %>
+<% if current_user && current_user.moderator? && can?(:update, Users::Confirm) && !@user.confirmed? %>
+      <dt>Confirmed?</dt>
+        <dd>No <%= button_to('Confirm', users_confirm_path(@user), method: :patch) %></dd>
+<% end %>
+      <dt>Numbers of Created(Updated)/Total Entries</dt>
+        <dd><%= @user.created_translations.size %> (<%= @user.updated_translations.size %>) / <%= Translation.count %></dd>
+<% if current_user && current_user.moderator? %>
+      <dt>Role(s)</dt>
+        <dd><%= @user.roles_inspect.map{|i| h(i)}.join('<br />').html_safe %></dd>
+<% end %>
+</dl>
+<% if @user == current_user %>
+  <%= link_to 'Edit', edit_user_registration_path %>
+<% end %>
+<% if current_user && current_user.moderator? %>
+<%= ((@user == current_user) ? "/" : "") %> <%= link_to 'Index', users_path %>
+<% end %>
+<% if current_user && current_user.abs_superior_to?(@user) %>
+/ <%= label_str = ((current_user == @user) ? 'Cancel' : 'Deactivate'); link_to label_str, users_edit_deactivate_users_path(@user) %>
+  <%= ((current_user == @user) ? 'my' : 'this') %> account
+<% end %>
+<% if current_user && current_user.roles.exists? %>
+  <h3>Roles</h3>
+  <%  if ! @roletree %>
+    <p>None.</p>
+  <% else %>
+    <%= form_with(method: :patch, url: users_edit_role_path(@user), data: { confirm: 'Are you sure?' }) do |form| %>
+      <% cur_node_depth = -1 %>
+      <% @roletree.each do |node| %>
+        <% if node.node_depth != cur_node_depth %>
+          <% mul = (cur_node_depth-node.node_depth).abs %>
+          <%= (((node.node_depth > cur_node_depth) ? "<dl>" : "</dl>")*mul).html_safe %>
+        <% end %>
+        <% cur_node_depth = node.node_depth %>
+        <dt>&lt;<%= node.name %>&gt;</dt>
+        <% next if !node.content || node.content[:forms].empty? %> <%# should never be empty? but to play safe %>
+        <% ehs = node.content %> <%# Hash %>
+        <dd>
+          <% ehs[:forms].each do |efopt| %> <%# UsersController::FormOpts %>
+            <%= form.radio_button(ehs[:id_name], efopt.role.id, checked: efopt.checked?, disabled: efopt.disabled?) %>
+            <%= form.label ehs[:id_name], efopt.role.inspect(brief: true, with_role_category: false), :value => efopt.role.id %>
+          <% end %>
+          <% if !ehs[:delete_disabled] %>
+            <%= form.radio_button(ehs[:id_name], '-1') %>
+            <%= form.label ehs[:id_name], 'None', :value => '-1' %>
+          <% end %>
+        </dd>
+      <% end %>
+      <%= ("</dl>"*(cur_node_depth+1)).html_safe %>
+
+      <% if current_user.moderator? || current_user == @user %>
+        <div class="actions">
+          <%= form.submit "Update Roles" %>
+          <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+        </div>
+      <% end %>
+    <% end %> <%# end of Form %>
+    <% if current_user.moderator? %>
+      <h4>Moderation policy (for moderators)</h4>
+      <div class="show_or_hide" style="display: none;">
+        <ul>
+          <li>A user can have multiple roles, though they have up to only 1 role in each category (here, a category is like a department in real-life organizations).</li>
+          <li>If a user has a role in an upper category, the role precedes any roles s/he may have in any of the lower categories.</li>
+          <li>A user with a role can demote themselves from the role.</li>
+          <li>A moderator of a category can promote a user in a lower-rank role in the category or no rank to a role in the category up to the same-rank role as the moderator.</li>
+          <li>A moderator of a category can demote a user from a role in the category if the moderator is senior to the user in the category.</li>
+          <li>The above-described clauses mean, as a logical conclusion:
+            <ol>
+              <li>once a user has demoted themselves, the action cannot be undone by her/himself, that is, s/he is not authorized to promote herself/himself back to the role s/he used to have,</li>
+              <li>once a moderator has promoted someone to the moderator role in the category, s/he cannot retract the decision, that is, no moderator is authorized to demote any moderator-role users in the category. Assign a role with caution.</li>
+            </ol>
+          </li>
+        </ul>
+      </div>
+      (……<a id="Link_show_or_hide" title="Show or hide" href="#">Show</a>)
+
+      <%= javascript_pack_tag 'show_or_hide' %>
+    <% end %>
+  <% end %>
+<% end %>
+
+<br>
+<%= link_to 'Back to Home', root_path, data: { turbolinks: false } %>
+

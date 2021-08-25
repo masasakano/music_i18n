@@ -1,0 +1,43 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Genres</h1>
+
+<table>
+  <thead>
+    <tr>
+      <% if current_user.moderator? %>
+        <th>ID</th>
+      <% end %>
+      <th>和名 [フリガナ|ローマ字]</th>
+      <th>別名</th>
+      <th>英語名 [英語別名]</th>
+      <th><%= link_to '登録曲', musics_url %>数</th>
+      <th>Weight</th>
+      <th>Note</th>
+      <th colspan="3"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @genres.each do |genre| %>
+      <tr>
+        <% if current_user.moderator? %>
+          <td><%= genre.id %></td>
+        <% end %>
+        <td><%= sprintf '%s [%s | %s]', *(%i(title ruby romaji).map{|i| genre.send(i, langcode: 'ja') || ''}) %></td>
+        <td><%= sprintf '%s [%s | %s]', *(%i(alt_title alt_ruby alt_romaji).map{|i| genre.send(i, langcode: 'ja') || ''}) %></td>
+        <td><%= sprintf '%s [%s]', *(%i(title alt_title).map{|i| genre.send(i, langcode: 'en') || ''}) %></td>
+        <td><%= genre.musics.count %></td>
+        <td><%= genre.weight %></td>
+        <td><%= genre.note %></td>
+        <td><%= link_to 'Show', genre %></td>
+        <td><%= link_to 'Edit', edit_genre_path(genre) %></td>
+        <td><%= link_to 'Destroy', genre, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New Genre', new_genre_path %>

@@ -1,0 +1,123 @@
+# == Schema Information
+#
+# Table name: roles
+#
+#  id                      :bigint           not null, primary key
+#  name                    :string           not null
+#  note                    :text
+#  uname(Unique role name) :string
+#  weight                  :float
+#  created_at              :datetime         not null
+#  updated_at              :datetime         not null
+#  role_category_id        :bigint           not null
+#
+# Indexes
+#
+#  index_roles_on_name                         (name)
+#  index_roles_on_name_and_role_category_id    (name,role_category_id) UNIQUE
+#  index_roles_on_role_category_id             (role_category_id)
+#  index_roles_on_uname                        (uname) UNIQUE
+#  index_roles_on_weight_and_role_category_id  (weight,role_category_id) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (role_category_id => role_categories.id) ON DELETE => cascade
+#
+
+admin:
+  id: 1
+  name: admin
+  role_category_id: 1
+  weight: 1
+  note: 
+
+syshelper:
+  name: syshelper
+  role_category_id: 1
+  weight: 2
+  note: 
+
+moderator:
+  name: moderator
+  uname: harami_moderator
+  role_category: rolecattwo
+  weight: 100
+  note: 
+
+editor:
+  name: editor
+  uname: harami_editor
+  role_category: rolecattwo
+  weight: 1000
+  note: 
+
+helper10000000:
+  name: $LABEL
+  uname: harami_$LABEL
+  role_category: rolecattwo
+  weight: 10000000
+  note: 
+
+helper:
+  name: $LABEL
+  uname: harami_$LABEL
+  role_category: rolecattwo
+  weight: 100000
+  note: 
+
+role_captain:
+  name: captain
+  uname: club_captain
+  role_category: club
+  weight: 100
+  note: 
+
+lowly1:
+  name: lowly1
+  uname: club_$LABEL
+  role_category: club
+  weight: 10000
+  note: 
+
+lowly2:
+  name: lowly2
+  uname: club_$LABEL
+  role_category: club
+  weight: 11111
+  note: 
+
+trans_moderator:
+  name: moderator
+  uname: translation_moderator
+  role_category: rc_translation
+  weight: 100
+  note: 
+
+translator:
+  name: editor
+  uname: translator
+  role_category: rc_translation
+  weight: 1000
+  note: 
+
+translation_helper:
+  name: $LABEL
+  uname: translation_helper
+  role_category: rc_translation
+  weight: 100000
+  note: 
+
+general_ja_moderator:
+  name: moderator
+  uname: general_ja_moderator
+  role_category: rc_general_ja
+  weight: 100
+  note: 
+
+general_ja_editor:
+  name: editor
+  uname: general_ja_editor
+  role_category: rc_general_ja
+  weight: 1000
+  note: 
+

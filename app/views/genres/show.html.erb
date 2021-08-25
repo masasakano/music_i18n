@@ -1,0 +1,20 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Genre: <%= @genre.title_or_alt %></h1>
+
+<hr>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @genre} %>
+<hr>
+
+<p>
+  <strong>Weight:</strong>
+  <%= @genre.weight %>
+</p>
+
+<p>
+  <strong>Note:</strong>
+  <%= @genre.note %>
+</p>
+
+<%= link_to 'Edit', edit_genre_path(@genre) %> |
+<%= link_to 'Back', genres_path %>

@@ -1,0 +1,31 @@
+<p id="notice"><%= notice %></p>
+
+<% country_name = @prefecture.country.title_or_alt %>
+<h1>Prefecture: <%= @prefecture.title_or_alt %> (&lt; <%= country_name %>)</h1>
+
+<hr>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @prefecture} %>
+<hr>
+
+<dl>
+  <% if current_user && current_user.moderator? %>
+    <dt>ID (Prefecture)</dt>
+    <dd> <%= @prefecture.id %></dd>
+  <% end %>
+  <dt><strong>Country:</strong></dt>
+  <dd><%= link_to country_name, country_path(@prefecture.country_id) %></dd>
+
+  <dt>start_date</dt>
+  <dd> <%= @prefecture.start_date %></dd>
+  <dt>end_date</dt>
+  <dd> <%= @prefecture.end_date %></dd>
+  <dt>iso3166_loc_code (ISO 3166-2:JP (etc) code (JIS X 0401:1973))</dt>
+  <dd> <%= @prefecture.iso3166_loc_code %></dd>
+  <dt>orig_note (Remarks by HirMtsd)</dt>
+  <dd> <%= @prefecture.orig_note %></dd>
+  <dt>note</dt>
+  <dd><%= @prefecture.note %></dd>
+</dl>
+
+<%= link_to 'Edit', edit_prefecture_path(@prefecture) %> |
+<%= link_to 'Back', prefectures_path %>

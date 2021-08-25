@@ -1,0 +1,27 @@
+
+<%= simple_form_for(@country_master) do |f| %>
+  <%= f.error_notification %>
+  <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
+
+  <div class="form-inputs">
+    <%= f.input :code_a2 %>
+    <%= f.input :code_a3 %>
+    <%= f.input :code_n3 %>
+    <%= f.input :name_ja_full %>
+    <%= f.input :name_ja_short %>
+    <%= f.input :name_en_full %>
+    <%= f.input :name_en_short %>
+    <%= f.input :name_fr_full %>
+    <%= f.input :name_fr_short %>
+    <%= f.input :independent %>
+    <%= f.input :territory %>
+    <%= f.input :remark %>
+    <%= f.input :note %>
+    <%= f.input :start_date %>
+    <%= f.input :end_date %>
+  </div>
+
+  <div class="form-actions">
+    <%= f.button :submit %>
+  </div>
+<% end %>

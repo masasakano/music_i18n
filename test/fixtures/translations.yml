@@ -1,0 +1,1267 @@
+# == Schema Information
+#
+# Table name: translations
+#
+#  id                :bigint           not null, primary key
+#  alt_romaji        :text
+#  alt_ruby          :text
+#  alt_title         :text
+#  is_orig           :boolean
+#  langcode          :string           not null
+#  note              :text
+#  romaji            :text
+#  ruby              :text
+#  title             :text
+#  translatable_type :string           not null
+#  weight            :float
+#  created_at        :datetime         not null
+#  updated_at        :datetime         not null
+#  create_user_id    :bigint
+#  translatable_id   :bigint           not null
+#  update_user_id    :bigint
+#
+# Indexes
+#
+#  index_translations_on_9_cols                                 (translatable_id,translatable_type,langcode,title,alt_title,ruby,alt_ruby,romaji,alt_romaji) UNIQUE
+#  index_translations_on_create_user_id                         (create_user_id)
+#  index_translations_on_create_user_id_and_update_user_id      (create_user_id,update_user_id)
+#  index_translations_on_translatable_type_and_translatable_id  (translatable_type,translatable_id)
+#  index_translations_on_update_user_id                         (update_user_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (create_user_id => users.id)
+#  fk_rails_...  (update_user_id => users.id)
+#
+
+sextrans0ja:
+  translatable_id: 0
+  translatable_type: Sex
+  title: 不明
+  ruby: フメイ
+  alt_title: 
+  langcode: ja
+  romaji: fumei
+  alt_ruby: 
+  alt_romaji: 
+  is_orig: false
+  weight: 0
+  note: 
+  create_user_id: 1
+  update_user_id: 1
+
+#  ref1: ja.wikipedia.org/wiki/ISO_5218
+
+sextrans1ja:
+  translatable_id: 1
+  translatable_type: Sex
+  title: 男
+  ruby: オトコ
+  alt_title: 
+  langcode: ja
+  romaji: otoko
+  alt_ruby: 
+  alt_romaji: 
+  is_orig: false
+  weight: 0
+  note: 
+  create_user_id: 1
+  update_user_id: 1
+#  ref1: ja.wikipedia.org/wiki/ISO_5218
+
+sextrans2ja:
+  translatable_id: 2
+  translatable_type: Sex
+  title: 女
+  ruby: オンナ
+  alt_title: 
+  langcode: ja
+  romaji: onna
+  alt_ruby: 
+  alt_romaji: 
+  is_orig: false
+  weight: 0
+  note: 
+  create_user_id: 1
+  update_user_id: 1
+#  ref1: ja.wikipedia.org/wiki/ISO_5218
+
+sextrans9ja:
+  translatable_id: 9
+  translatable_type: Sex
+  title: 適用不能
+  ruby: テキヨウフノウ
+  alt_title: 
+  langcode: ja
+  romaji: tekiyoufunou
+  alt_ruby: 
+  alt_romaji: 
+  is_orig: false
+  weight: 0
+  note: 
+  create_user_id: 1
+  update_user_id: 1
+#  ref1: ja.wikipedia.org/wiki/ISO_5218
+
+sextrans0en:
+  translatable_id: 0
+  translatable_type: Sex
+  title: not known
+  ruby: 
+  alt_title: Unknown
+  langcode: en
+  romaji: 
+  alt_ruby: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  note: 
+  create_user_id: 1
+  update_user_id: 1
+#  ref1: en.wikipedia.org/wiki/ISO/IEC_5218
+
+sextrans1en:
+  translatable_id: 1
+  translatable_type: Sex
+  title: male
+  ruby: 
+  alt_title: M
+  langcode: en
+  romaji: 
+  alt_ruby: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  note: 
+  create_user_id: 1
+  update_user_id: 1
+#  ref1: en.wikipedia.org/wiki/ISO/IEC_5218
+
+sextrans2en:
+  translatable_id: 2
+  translatable_type: Sex
+  title: female
+  ruby: 
+  alt_title: F
+  langcode: en
+  romaji: 
+  alt_ruby: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  note: 
+  create_user_id: 1
+  update_user_id: 1
+#  ref1: en.wikipedia.org/wiki/ISO/IEC_5218
+
+sextrans9en:
+  translatable_id: 9
+  translatable_type: Sex
+  title: not applicable
+  ruby: 
+  alt_title: N/A
+  langcode: en
+  romaji: tekiyoufunou
+  alt_ruby: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  note: 
+  create_user_id: 1
+  update_user_id: 1
+#  ref1: en.wikipedia.org/wiki/ISO/IEC_5218
+
+country_world_en:
+  translatable: country_world
+  translatable_type: Country
+  langcode: en
+  title: World
+  alt_title: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: CountryWorldEn
+
+country_world_ja:
+  translatable: country_world
+  translatable_type: Country
+  langcode: ja
+  title: 世界
+  ruby: セカイ
+  romaji: sekai
+  is_orig: false
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: CountryWorldJa
+
+country_world_fr:
+  translatable: country_world
+  translatable_type: Country
+  langcode: fr
+  title: Monde
+  is_orig: false
+  weight: 10
+  create_user_id: 1
+  update_user_id: 1
+  note: CountryWorldFr
+
+unknown_prefecture_world_en:
+  translatable: unknown_prefecture_world
+  translatable_type: Prefecture
+  langcode: en
+  title: UnknownPrefecture
+  create_user_id: 1
+  update_user_id: 1
+  note: UnknownPrefectureWorldEn
+
+unknown_place_unknown_prefecture_world_en:
+  translatable: unknown_place_unknown_prefecture_world
+  translatable_type: Place
+  langcode: en
+  title: UnknownPlace
+  create_user_id: 1
+  update_user_id: 1
+  note: UnknownPlaceUnknownPrefectureWorldEn
+
+japan_ja:
+  translatable: japan
+  translatable_type: Country
+  langcode: ja
+  title: 日本
+  alt_title: 
+  ruby: ニッポン
+  alt_ruby: 
+  romaji: Nippon
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: JapanJa
+
+japan_en:
+  translatable: japan
+  translatable_type: Country
+  langcode: en
+  title: Japan
+  alt_title: 
+  ruby: ジャパン
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: false
+  weight: 0
+  create_user_id: 1
+  update_user: user_two
+  note: JapanEn
+
+unknown_prefecture_japan_ja:
+  translatable: unknown_prefecture_japan
+  translatable_type: Prefecture
+  langcode: ja
+  title: どこかの都道府県
+  create_user_id: 1
+  update_user_id: 1
+  note: UnknownPrefectureJapanEn
+
+unknown_prefecture_japan_en:
+  translatable: unknown_prefecture_japan
+  translatable_type: Prefecture
+  langcode: en
+  title: UnknownPrefecture
+  create_user_id: 1
+  update_user_id: 1
+  note: UnknownPrefectureJapanEn
+
+unknown_prefecture_japan_fr:
+  translatable: unknown_prefecture_japan
+  translatable_type: Prefecture
+  langcode: fr
+  title: ComtéInconnu
+  create_user_id: 1
+  update_user_id: 1
+  note: UnknownPrefectureJapanfr
+
+unknown_place_unknown_prefecture_japan_ja:
+  translatable: unknown_place_unknown_prefecture_japan
+  translatable_type: Place
+  langcode: ja
+  title: どこかの場所
+  create_user_id: 1
+  update_user_id: 1
+  note: UnknownPlaceUnknownPrefectureJapanJa
+
+unknown_place_unknown_prefecture_japan_en:
+  translatable: unknown_place_unknown_prefecture_japan
+  translatable_type: Place
+  langcode: en
+  title: UnknownPlace
+  create_user_id: 1
+  update_user_id: 1
+  note: UnknownPlaceUnknownPrefectureJapanEn
+
+unknown_place_tokyo_japan_en:
+  translatable: unknown_place_tokyo_japan
+  translatable_type: Place
+  langcode: en
+  title: UnknownPlace
+  create_user_id: 1
+  update_user_id: 1
+  note: UnknownPlaceTokyoJapanEn
+
+unknown_place_kagawa_japan_en:
+  translatable: unknown_place_kagawa_japan
+  translatable_type: Place
+  langcode: en
+  title: UnknownPlace
+  create_user_id: 1
+  update_user_id: 1
+  note: UnknownPlaceKagawaJapanEn
+
+uk_en:
+  translatable: uk
+  translatable_type: Country
+  langcode: en
+  title: United Kingdom
+  alt_title: UK
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user: user_two
+  note: UkEn
+
+unkown_prefecture_uk_en:
+  translatable: unknown_prefecture_uk
+  translatable_type: Prefecture
+  langcode: en
+  title: UnknownPrefecture
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user: user_two
+  note: UnknownPrefectureUkEn
+
+unknown_place_unknown_prefecture_uk_en:
+  translatable: unknown_place_unknown_prefecture_uk
+  translatable_type: Place
+  langcode: en
+  title: UnknownPlace
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user: user_two
+  note: UnknownPlaceUnknownPrefectureUkEn
+
+unkown_prefecture_aus_en:
+  translatable: unknown_prefecture_aus
+  translatable_type: Prefecture
+  langcode: en
+  title: UnknownPrefecture
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user: user_two
+  note: UnknownPrefectureAusEn
+
+unknown_place_unknown_prefecture_aus_en:
+  translatable: unknown_place_unknown_prefecture_aus
+  translatable_type: Place
+  langcode: en
+  title: UnknownPlace
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user: user_two
+  note: UnknownPlaceUnknownPrefectureAusEn
+
+prefecture_tokyo_in_world_en:
+  translatable: prefecture_tokyo_in_world
+  translatable_type: Prefecture
+  langcode: en
+  title: Tokyo
+  alt_title: Tôkyô
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: false
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: TokyoInWorldEn
+
+tokyo_ja:
+  translatable: tokyo
+  translatable_type: Prefecture
+  langcode: ja
+  title: 東京都
+  alt_title: 
+  ruby: トウキョウト
+  alt_ruby: 
+  romaji: Tokyo-to
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: TokyoJa
+
+tokyo_en:
+  translatable: tokyo
+  translatable_type: Prefecture
+  langcode: en
+  title: Tokyo
+  alt_title: Tôkyô
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: false
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: TokyoEn
+
+kagawa_ja:
+  translatable: kagawa
+  translatable_type: Prefecture
+  langcode: ja
+  title: 香川県
+  alt_title: 
+  ruby: カガワケン
+  alt_ruby: 
+  romaji: Kagawa-ken
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: KagawaJa
+
+kagawa_en:
+  translatable: kagawa
+  translatable_type: Prefecture
+  langcode: en
+  title: 
+  alt_title: Kagawa
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: false
+  weight: 0
+  create_user_id:
+  update_user_id:
+  note: KagawaEn
+
+liverpool_en:
+  translatable: liverpool
+  translatable_type: Prefecture
+  langcode: en
+  title: Liverpool
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: Libapuuru
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: LiverpoolEn
+
+tocho_ja:
+  translatable: tocho
+  translatable_type: Place
+  langcode: ja
+  title: 
+  alt_title: 都庁
+  ruby: 
+  alt_ruby: トチョウ
+  romaji: 
+  alt_romaji: Tocho
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: TochoJa
+
+shinagawa_station_ja:
+  translatable: shinagawa_station
+  translatable_type: Place
+  langcode: ja
+  title: 品川駅
+  alt_title: 
+  ruby: シナガワエキ
+  alt_ruby: 
+  romaji: shinagawa eki
+  alt_romaji: ShinagawaStation
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: ShinagawaStationJa
+
+takamatsu_station_ja:
+  translatable: takamatsu_station
+  translatable_type: Place
+  langcode: ja
+  title: 高松駅
+  alt_title: 
+  ruby: タカマツエキ
+  alt_ruby: 
+  romaji: Takamatsu Eki
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: TakamatsuStationJa
+
+liverpool_street_en:
+  translatable: liverpool_street
+  translatable_type: Place
+  langcode: en
+  title: Liverpool Street
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: Libapuuru sutoriito
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: LiverpoolStreetEn
+
+aus_en:
+  translatable: aus
+  translatable_type: Country
+  langcode: en
+  title: 
+  alt_title: Australia
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: AusEn
+
+aus_ja:
+  translatable: aus
+  translatable_type: Country
+  langcode: ja
+  title: オーストラリア連邦
+  alt_title: オーストラリア
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: AusJa
+
+perth_aus_en:
+  translatable: perth_aus
+  translatable_type: Place
+  langcode: en
+  title: Perth
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: PerthAusEn
+
+perth_uk_en:
+  translatable: perth_uk
+  translatable_type: Place
+  langcode: en
+  title: Perth
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: PerthAusEn
+
+music_unknown_en:
+  translatable: music_unknown
+  translatable_type: Music
+  langcode: en
+  title: UnknownMusic
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: MusicUnknownEn
+
+music1_en:
+  translatable: music1
+  translatable_type: Music
+  langcode: en
+  title: Music1 by Madonna
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: Music1En
+
+music2_en:
+  translatable: music2
+  translatable_type: Music
+  langcode: en
+  title: Give Peace a Chance Music2
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: Music2En
+
+music_how_en:
+  translatable: music_how
+  translatable_type: Music
+  langcode: en
+  title: "How?"
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: MusicHowEn
+
+music_story_en:
+  translatable: music_story
+  translatable_type: Music
+  langcode: en
+  title: Story
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: MusicStoryEn
+
+music_kampai_ja1:
+  translatable: music_kampai
+  translatable_type: Music
+  langcode: ja
+  title: 乾杯
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user: user_editor
+  update_user: user_editor
+  note: MusicKampaiJa1
+
+music_kampai_en1:
+  translatable: music_kampai
+  translatable_type: Music
+  langcode: en
+  title: Cheers
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: false
+  weight: 99
+  create_user: user_translator
+  update_user: user_translator
+  note: MusicKampaiEn1
+
+music_kampai_en2:
+  translatable: music_kampai
+  translatable_type: Music
+  langcode: en
+  title: Kanpai
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: false
+  weight: 100
+  create_user: user_translator
+  update_user: user_moderator_translation
+  note: MusicKampaiEn2
+
+music_kampai_en3:
+  translatable: music_kampai
+  translatable_type: Music
+  langcode: en
+  title: Toast to you
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: false
+  weight: 10
+  create_user: user_moderator_translation
+  update_user: user_moderator_translation
+  note: MusicKampaiEn3
+
+music_kampai_en4:
+  translatable: music_kampai
+  translatable_type: Music
+  langcode: en
+  title: My toast
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: false
+  weight: 
+  create_user: user_translator
+  update_user: user_translator
+  note: "MusicKampaiEn4 with weight=nil"
+
+music_light_en:
+  translatable: music_light
+  translatable_type: Music
+  langcode: en
+  title: "Light, The"
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: MusicLightEn
+# create_user: user_sysadmin   not working....
+    
+artist_unknown_en:
+  translatable: artist_unknown
+  translatable_type: Artist
+  langcode: en
+  title: UnknownArtist
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: ArtistUnknownEn
+
+artist1_en:
+  translatable: artist1
+  translatable_type: Artist
+  langcode: en
+  title: Madonna
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: Madonna
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: MadonnaEn
+
+artist2_en:
+  translatable: artist2
+  translatable_type: Artist
+  langcode: en
+  title: John Lennon
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: Artist2En
+
+artist3_ja:
+  translatable: artist3
+  translatable_type: Artist
+  langcode: ja
+  title: ハラミちゃん
+  alt_title: 
+  ruby: ハラミチャン
+  alt_ruby:
+  romaji: haramichan
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: Artist3JaHarami
+
+artist_rcsuccession_ja:
+  translatable: artist_rcsuccession
+  translatable_type: Artist
+  langcode: ja
+  title: RCサクセション
+  alt_title: 
+  ruby: 
+  alt_ruby:
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 100
+  create_user: user_editor
+  update_user: 
+  note: Artist3JaHarami
+
+artist_ai:
+  translatable: artist_ai
+  translatable_type: Artist
+  langcode: ja
+  title: Ai
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user: user_translator
+  update_user: user_moderator_translation
+  note: ArtistAiJa
+
+artist_ai_en:
+  translatable: artist_ai
+  translatable_type: Artist
+  langcode: en
+  title: Ai
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: false
+  weight: 0
+  create_user: user_translator
+  update_user: user_moderator_translation
+  note: ArtistAiEn
+
+artist_proclaimers_en:
+  translatable: artist_proclaimers
+  translatable_type: Artist
+  langcode: en
+  title: "Proclaimers, The"
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: ArtistProclaimers
+
+harami_vid1_ja:
+  translatable: harami_vid1
+  translatable_type: HaramiVid
+  langcode: ja
+  title: ハラミのテストVideo 1
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user: user_editor
+  update_user_id: 1
+  note: HaramiVid1Ja
+
+harami_vid2_ja:
+  translatable: harami_vid2
+  translatable_type: HaramiVid
+  langcode: ja
+  title: ハラミのテストVideo 2
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user: user_two
+  update_user: user_moderator
+  note: HaramiVid2Ja
+
+harami_vid_50anni_ja:
+  translatable: harami_vid_50anni
+  translatable_type: HaramiVid
+  langcode: ja
+  title: (modified_for_test)【生配信】ありがとう!50曲ピアノ【50万人突破した!!!!】
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user: user_two
+  update_user: user_moderator
+  note: HaramiVid50AnniJa title modified for testing
+
+engage_how_unknown_en:
+  translatable: engage_how_unknown
+  translatable_type: EngageHow
+  langcode: en
+  title: UnknownEngaging
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowUnknownEn
+
+engage_how_unknown_ja:
+  translatable: engage_how_unknown
+  translatable_type: EngageHow
+  langcode: ja
+  title: 関与形態不明
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowUnknownJa
+
+engage_how_singer_original_en:
+  translatable: engage_how_singer_original
+  translatable_type: EngageHow
+  langcode: en
+  title: Singer (Original)
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowSingerOriginalEn
+
+engage_how_singer_original_ja:
+  translatable: engage_how_singer_original
+  translatable_type: EngageHow
+  langcode: ja
+  title: 歌手(オリジナル)
+  alt_title: 
+  ruby: カシュ(オリジナル)
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowSingerOriginalJa
+
+engage_how_singer_cover_en:
+  translatable: engage_how_singer_cover
+  translatable_type: EngageHow
+  langcode: en
+  title: Singer (Cover)
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowSingerCoverEn
+
+engage_how_singer_cover_ja:
+  translatable: engage_how_singer_cover
+  translatable_type: EngageHow
+  langcode: ja
+  title: 歌手(カバー)
+  alt_title: 
+  ruby: カシュ(カバー)
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowSingerCoverJa
+
+engage_how_composer_en:
+  translatable: engage_how_composer
+  translatable_type: EngageHow
+  langcode: en
+  title: Composer
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowComposerEn
+
+engage_how_composer_ja:
+  translatable: engage_how_composer
+  translatable_type: EngageHow
+  langcode: ja
+  title: 作曲
+  alt_title: 
+  ruby: サッキョク
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowComposerJa
+
+engage_how_player_en:
+  translatable: engage_how_player
+  translatable_type: EngageHow
+  langcode: en
+  title: Player
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowPlayerEn
+
+engage_how_player_ja:
+  translatable: engage_how_player
+  translatable_type: EngageHow
+  langcode: ja
+  title: 演奏
+  alt_title: 
+  ruby: エンソウ
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowPlayerJa
+
+engage_other_en:
+  translatable: engage_other
+  translatable_type: EngageHow
+  langcode: en
+  title: Other
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageOtherEn
+
+engage_other_ja:
+  translatable: engage_other
+  translatable_type: EngageHow
+  langcode: ja
+  title: その他
+  alt_title: 
+  ruby: ソノタ
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageOtherJa
+
+genre_unknown_en:
+  translatable: genre_unknown
+  translatable_type: Genre
+  langcode: en
+  title: UnknownGenre
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: GenreUnknownEn
+
+genre_unknown_ja:
+  translatable: genre_unknown
+  translatable_type: Genre
+  langcode: ja
+  title: ジャンル不明
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: GenreUnknownJa
+
+genre_pop_en:
+  translatable: genre_pop
+  translatable_type: Genre
+  langcode: en
+  title: Pop
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 10
+  create_user: 
+  update_user: 
+  note: GenrePopEn
+
+genre_pop_ja:
+  translatable: genre_pop
+  translatable_type: Genre
+  langcode: ja
+  title: ポップス
+  alt_title: 
+  ruby: ポップス
+  alt_ruby: 
+  romaji: poppusu
+  alt_romaji:
+  is_orig:
+  weight: 10
+  create_user: 
+  update_user: 
+  note: GenrePopJa
+
+genre_classic_en:
+  translatable: genre_classic
+  translatable_type: Genre
+  langcode: en
+  title: Classic
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 10
+  create_user: 
+  update_user: 
+  note: GenreClassicEn
+
+genre_classic_ja:
+  translatable: genre_classic
+  translatable_type: Genre
+  langcode: ja
+  title: クラシック
+  alt_title: 
+  ruby: クラシック
+  alt_ruby: 
+  romaji: poppusu
+  alt_romaji:
+  is_orig:
+  weight: 10
+  create_user: 
+  update_user: 
+  note: GenreClassicJa
+

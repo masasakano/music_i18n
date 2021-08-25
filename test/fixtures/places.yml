@@ -1,0 +1,75 @@
+# == Schema Information
+#
+# Table name: places
+#
+#  id            :bigint           not null, primary key
+#  note          :text
+#  created_at    :datetime         not null
+#  updated_at    :datetime         not null
+#  prefecture_id :bigint           not null
+#
+# Indexes
+#
+#  index_places_on_prefecture_id  (prefecture_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (prefecture_id => prefectures.id) ON DELETE => cascade
+#
+
+unknown_place_unknown_prefecture_earth:
+  prefecture: unknown_prefecture_earth
+  note: MyTextUnknownPlaceEarth
+
+unknown_place_unknown_prefecture_world:
+  prefecture: unknown_prefecture_world
+  note: MyTextUnknownPlaceWorld
+
+unknown_place_unknown_prefecture_japan:
+  prefecture: unknown_prefecture_japan
+  note: MyTextUnknownPlaceJapan
+
+unknown_place_unknown_prefecture_uk:
+  prefecture: unknown_prefecture_uk
+  note: MyTextUnknownPlaceUk
+
+unknown_place_unknown_prefecture_aus:
+  prefecture: unknown_prefecture_aus
+  note: MyTextUnknownPlaceAus
+
+unknown_place_tokyo_japan:
+  prefecture: tokyo
+  note: MyTextTokyo
+
+tocho:
+  prefecture: tokyo
+  note: MyTextTocho
+
+shinagawa_station:
+  prefecture: tokyo
+  note: MyTextShinagawa
+
+unknown_place_kagawa_japan:
+  prefecture: kagawa
+  note: MyTextKagawa
+
+takamatsu_station:
+  prefecture: kagawa
+  note: MyTextTakamatsuStation
+
+unknown_place_liverpool_uk:
+  prefecture: liverpool
+  note: MyTextTochoUnknownPlaceLiverpoolUk
+
+liverpool_street:
+  prefecture: liverpool 
+  note: MyTextLiverpoolStreet
+
+perth_uk:
+  prefecture: unknown_prefecture_uk
+  note: MyTextPerthUk
+
+perth_aus:
+  prefecture: unknown_prefecture_aus
+  note: MyTextPerthAus
+

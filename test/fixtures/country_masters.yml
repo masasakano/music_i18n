@@ -1,0 +1,74 @@
+# == Schema Information
+#
+# Table name: country_masters
+#
+#  id                                                  :bigint           not null, primary key
+#  end_date                                            :date
+#  independent(Flag in ISO-3166)                       :boolean
+#  iso3166_a2_code(ISO 3166-1 alpha-2, JIS X 0304)     :string
+#  iso3166_a3_code(ISO 3166-1 alpha-3, JIS X 0304)     :string
+#  iso3166_n3_code(ISO 3166-1 numeric-3, JIS X 0304)   :integer
+#  iso3166_remark(Remarks in ISO-3166-1, 2, 3 in Hash) :json
+#  name_en_full                                        :string
+#  name_en_short                                       :string
+#  name_fr_full                                        :string
+#  name_fr_short                                       :string
+#  name_ja_full                                        :string
+#  name_ja_short                                       :string
+#  note                                                :text
+#  orig_note(Remarks by HirMtsd)                       :text
+#  start_date                                          :date
+#  territory(Territory names in ISO-3166-1 in Array)   :json
+#  created_at                                          :datetime         not null
+#  updated_at                                          :datetime         not null
+#
+# Indexes
+#
+#  index_country_masters_on_iso3166_a2_code  (iso3166_a2_code) UNIQUE
+#  index_country_masters_on_iso3166_a3_code  (iso3166_a3_code) UNIQUE
+#  index_country_masters_on_iso3166_n3_code  (iso3166_n3_code) UNIQUE
+#
+
+japan_master:
+  iso3166_a2_code: JP
+  iso3166_a3_code: JPN
+  iso3166_n3_code: 392
+  independent: true
+  name_en_full: Japan
+  name_en_short:
+  name_fr_full:
+  name_fr_short:
+  name_ja_full: 日本
+  name_ja_short:
+  note: MyTextJapan
+
+uk_master:
+  iso3166_a2_code: GB
+  iso3166_a3_code: GBR
+  iso3166_n3_code: 826
+  name_en_full: United Kingdom
+  name_en_short: UK
+  name_fr_full:
+  name_fr_short:
+  name_ja_full:
+  name_ja_short:
+  independent: true
+  territory:
+  orig_note: 
+  note: MyTextUK
+  iso3166_remark: {"part2": "BS 6879 gives alternative name forms in ..."}
+
+aus_master:
+  iso3166_a2_code: AU
+  iso3166_a3_code: AUS
+  iso3166_n3_code: 36
+  name_en_full:
+  name_en_short: Australia
+  name_fr_full:
+  name_fr_short:
+  name_ja_full: オーストラリア連邦
+  name_ja_short: オーストラリア
+  independent: true
+  territory: ["Ashmore and Cartier Islands", "Coral Sea Islands", "Lord Howe Island", "Macquarie Island"]
+  note: MyTextAUS
+

@@ -1,0 +1,72 @@
+# == Schema Information
+#
+# Table name: user_role_assocs
+#
+#  id         :bigint           not null, primary key
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
+#  role_id    :bigint           not null
+#  user_id    :bigint           not null
+#
+# Indexes
+#
+#  index_user_role_assocs_on_role_id              (role_id)
+#  index_user_role_assocs_on_user_id              (user_id)
+#  index_user_role_assocs_on_user_id_and_role_id  (user_id,role_id) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (role_id => roles.id) ON DELETE => cascade
+#  fk_rails_...  (user_id => users.id) ON DELETE => cascade
+#
+
+user_role_assoc_sysadmin:
+  user_id: 1
+  role_id: 1
+# Note: "user: one" did not work. It has to be "user_id" apparently.
+
+user_role_assoc_syshelper:
+  user: user_syshelper
+  role: syshelper
+
+## Suppose it has no assigned roles.
+#user_role_assoc_user_two:
+#  user: user_two
+#  role: helper10000
+
+user_role_assoc_moderator:
+  user: user_moderator
+  role: moderator
+
+user_role_assoc_editor:
+  user: user_editor
+  role: editor
+
+user_role_assoc_captain:
+  user: user_captain
+  role: role_captain
+
+user_role_assoc_moderator_translation:
+  user: user_moderator_translation
+  role: trans_moderator
+
+user_role_assoc_translator:
+  user: user_translator
+  role: translator
+
+user_role_assoc_translator2:
+  user: user_translator2
+  role: translator
+
+user_role_assoc_general_ja_moderator:
+  user: user_moderator_general_ja
+  role: general_ja_moderator
+
+user_role_assoc_general_ja_editor:
+  user: user_editor_general_ja
+  role: general_ja_editor
+
+user_role_assoc_general_ja_editor2:
+  user: user_editor_general_ja2
+  role: general_ja_editor
+

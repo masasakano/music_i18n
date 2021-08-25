@@ -1,0 +1,82 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Code a2:</strong>
+  <%= @country_master.iso3166_a2_code %>
+</p>
+
+<p>
+  <strong>Code a3:</strong>
+  <%= @country_master.iso3166_a3_code %>
+</p>
+
+<p>
+  <strong>Code n3:</strong>
+  <%= @country_master.iso3166_n3_code %>
+</p>
+
+<p>
+  <strong>Name ja full:</strong>
+  <%= @country_master.name_ja_full %>
+</p>
+
+<p>
+  <strong>Name ja short:</strong>
+  <%= @country_master.name_ja_short %>
+</p>
+
+<p>
+  <strong>Name en full:</strong>
+  <%= @country_master.name_en_full %>
+</p>
+
+<p>
+  <strong>Name en short:</strong>
+  <%= @country_master.name_en_short %>
+</p>
+
+<p>
+  <strong>Name fr full:</strong>
+  <%= @country_master.name_fr_full %>
+</p>
+
+<p>
+  <strong>Name fr short:</strong>
+  <%= @country_master.name_fr_short %>
+</p>
+
+<p>
+  <strong>Independent:</strong>
+  <%= @country_master.independent %>
+</p>
+
+<p>
+  <strong>Territory:</strong>
+  <%= @country_master.territory %>
+</p>
+
+<p>
+  <strong>Remark:</strong>
+  <%= @country_master.iso3166_remark %>
+</p>
+
+<p>
+  <strong>Note:</strong>
+  <%= @country_master.note %>
+</p>
+
+<p>
+  <strong>Start date:</strong>
+  <%= @country_master.start_date %>
+</p>
+
+<p>
+  <strong>End date:</strong>
+  <%= @country_master.end_date %>
+</p>
+
+<% if current_user.an_admin? %>
+  <%= link_to 'Edit', edit_country_master_path(@country_master) %> (Admin only) |
+<% end %>
+<%= link_to 'Back', country_masters_path %>
+

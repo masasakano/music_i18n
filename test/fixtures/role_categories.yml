@@ -1,0 +1,54 @@
+# == Schema Information
+#
+# Table name: role_categories
+#
+#  id          :bigint           not null, primary key
+#  mname       :string           not null
+#  note        :text
+#  created_at  :datetime         not null
+#  updated_at  :datetime         not null
+#  superior_id :bigint
+#
+# Indexes
+#
+#  index_role_categories_on_mname        (mname) UNIQUE
+#  index_role_categories_on_superior_id  (superior_id)
+#
+
+rolecatone:
+  id: 1
+  mname: ROOT
+  note: 
+
+rolecattwo:
+  mname: harami
+  superior_id: 1
+
+rc_translation:
+  mname: translation
+  superior_id: 1
+
+rc_general_ja:
+  mname: general_ja
+  superior_id: 1
+
+club:
+  mname: club
+  superior_id: 1
+
+subsystem:
+  mname: subsystem
+  superior_id: 1
+
+subsubsystem:
+  mname: subsubsystem
+  superior: subsystem
+
+sub2system:
+  mname: sub2system
+  superior: subsystem
+
+subclub:
+  mname: subclub
+  superior: club
+

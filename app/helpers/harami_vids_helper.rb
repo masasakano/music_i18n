@@ -1,0 +1,2 @@
+module HaramiVidsHelper
+end

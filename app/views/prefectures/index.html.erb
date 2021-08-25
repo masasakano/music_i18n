@@ -1,0 +1,45 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Prefectures</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Country-pID(alt名称)</th>
+      <th>Name (ja)</th>
+      <th>Name (en)</th>
+      <th title="(ISO 3166-2:JP (etc) code (JIS X 0401:1973))">ISO3166</th>
+      <th title="(Remarks by HirMtsd)">Remark<br>(by HirMtsd)</th>
+      <th>Start date</th>
+      <th>End date</th>
+      <th>Note</th>
+      <th colspan="3"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @prefectures.each do |prefecture| %>
+      <tr>
+        <td><%= prefecture.id %></td>
+        <td><%= cntr=prefecture.country; link_to(sprintf('%d', cntr.id), cntr)+sprintf('(%s)', cntr.title_or_alt(langcode: 'ja', prefer_alt: true)) %></td>
+        <% btr = prefecture.best_translations %>
+        <% %w(ja en).each do |lc| %>
+        <td><%= %w(title alt_title).map{|i| tra=btr[lc]; s=(tra && h(tra.send(i))); s.blank? ? '&mdash;' : s}.join(' | ').html_safe %></td>
+        <% end %>
+        <td><%= prefecture.iso3166_loc_code %></td>
+        <td><%= prefecture.orig_note %></td>
+        <td><%= prefecture.start_date %></td>
+        <td><%= prefecture.end_date %></td>
+        <td><%= prefecture.note %></td>
+        <td><%= link_to 'Show', prefecture %></td>
+        <td><%= link_to 'Edit', edit_prefecture_path(prefecture) %></td>
+        <td><%= link_to 'Destroy', prefecture, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New Prefecture', new_prefecture_path %>

@@ -1,0 +1,53 @@
+<h3>Corresponding (donwloaded) Harami1129s for HaramiVid (<%= harami_vid.release_date %>)</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th></th>
+      <%= sprintf('<th title="Summary status. See Harami1129 for detail. %s">St</th>', Harami1129::TABLE_STATUS_MARKER_DESCRIPTION.map{|k,v| sprintf("'%s': %s", Harami1129::TABLE_STATUS_MARKER[k], v)}.join('; ')).html_safe %>
+      <th>Title</th>
+      <th>Date</th>
+      <th>Song</th>
+      <th>Singer</th>
+      <th>Timing [s]</th>
+      <th>Confirmed</th>
+      <th>Engage</th>
+      <th colspan="2">Harami1129</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% harami_vid.harami1129s.order(:link_time).each_with_index do |harami1129, i1129| %>
+      <% pstat = harami1129.populate_status %>
+
+      <% harami_vid = harami1129.harami_vid %>
+      <tr>
+        <td><%= i1129+1 %>
+        <td><%= '['+pstat.sorted_status(return_markers: true).first+']' %>
+        <td><%= pstat.marker(:ins_title).html_safe+link_to_youtube(harami1129.title, harami1129.link_root, harami1129.link_time) %></td>
+        <td><%= pstat.marker(:ins_release_date).html_safe+harami1129.release_date %></td>
+        <td><%= pstat.marker(:ins_song).html_safe+harami1129.song %></td>
+        <td><%= pstat.marker(:ins_singer).html_safe+harami1129.singer %></td>
+        <td><%= pstat.marker(:ins_link_time).html_safe+link_to_youtube(harami1129.link_time.to_s, harami1129.link_root, harami1129.link_time) %></td>
+        <td><%= harami1129.checked_at %></td>
+        <td><%= eng = harami1129.engage; (eng ? link_to('['+eng.engage_how.title(langcode: 'ja')+']', eng) : '') %></td>
+        <td><%= link_to 'Show', harami1129 %></td>
+        <td>
+<% if false %>
+        <% if can? :update, harami_vid %>
+          <%= link_to 'Edit', edit_harami_vid_music_assoc_path(assoc) %> <%# ########## Edit ######### %>
+        <% end %>
+<% end %>
+        </td>
+      </tr>
+    <% end %>
+<% if false %>
+    <% if defined?(add_buttons) && add_buttons %>
+      <tr><td colspan="7">
+      <%= button_to 'HaramiVid追加', new_harami_vid_music_assoc_path, method: :get, params: { a_token: nil, music_id: music.id } %>
+      </td></tr>
+    <% end %>
+<% end %>
+  </tbody>
+</table>
+

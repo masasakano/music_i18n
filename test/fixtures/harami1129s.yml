@@ -1,0 +1,176 @@
+# == Schema Information
+#
+# Table name: harami1129s
+#
+#  id                                                    :bigint           not null, primary key
+#  checked_at(Insertion validity manually confirmed at)  :datetime
+#  id_remote(Row number of the table on the remote URI)  :bigint
+#  ins_at                                                :datetime
+#  ins_link_root                                         :string
+#  ins_link_time                                         :integer
+#  ins_release_date                                      :date
+#  ins_singer                                            :string
+#  ins_song                                              :string
+#  ins_title                                             :string
+#  last_downloaded_at(Last-checked/downloaded timestamp) :datetime
+#  link_root                                             :string
+#  link_time                                             :integer
+#  not_music(TRUE if not for music but announcement etc) :boolean
+#  note                                                  :text
+#  orig_modified_at(Any downloaded column modified at)   :datetime
+#  release_date                                          :date
+#  singer                                                :string
+#  song                                                  :string
+#  title                                                 :string
+#  created_at                                            :datetime         not null
+#  updated_at                                            :datetime         not null
+#  engage_id                                             :bigint
+#  harami_vid_id                                         :bigint
+#
+# Indexes
+#
+#  index_harami1129s_on_checked_at                        (checked_at)
+#  index_harami1129s_on_engage_id                         (engage_id)
+#  index_harami1129s_on_harami_vid_id                     (harami_vid_id)
+#  index_harami1129s_on_id_remote                         (id_remote)
+#  index_harami1129s_on_id_remote_and_last_downloaded_at  (id_remote,last_downloaded_at) UNIQUE
+#  index_harami1129s_on_ins_link_root_and_ins_link_time   (ins_link_root,ins_link_time) UNIQUE
+#  index_harami1129s_on_ins_singer                        (ins_singer)
+#  index_harami1129s_on_ins_song                          (ins_song)
+#  index_harami1129s_on_link_root_and_link_time           (link_root,link_time) UNIQUE
+#  index_harami1129s_on_orig_modified_at                  (orig_modified_at)
+#  index_harami1129s_on_singer                            (singer)
+#  index_harami1129s_on_song                              (song)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (engage_id => engages.id) ON DELETE => restrict
+#  fk_rails_...  (harami_vid_id => harami_vids.id)
+#
+
+harami1129_ewf:
+  singer: Earth, Wind & Fire
+  song: Boogie Wonderland
+  release_date: 2019-09-22
+  title: 【即興ピアノ】第3回即興ライブ！！🐏🌙【即興ピアノ】(with Emojis)
+  link_root: QqIpP456
+  link_time: 3250
+  ins_singer: 
+  ins_song: 
+  ins_release_date: 
+  ins_title: 
+  ins_link_root: 
+  ins_link_time: 
+  ins_at: 
+  note: Harami1129_ewf, not internally inserted, yet.
+  id_remote: 20
+  last_downloaded_at: 2020-10-25 21:46:00
+  orig_modified_at: 2020-10-25 21:46:00
+  checked_at:
+  engage_id:
+
+harami1129_rcsuccession:
+  singer: RCサクセション
+  song: 雨上がりの夜空に
+  release_date: 2019-09-22
+  title: 【都庁ピアノ】都庁で弾いたら、自己最多の方が聴いてくれた!!【ストリートピアノ】
+  link_root: SqIpP982
+  link_time: 0
+  ins_singer: RCサクセション
+  ins_song: 雨上がりの夜空に
+  ins_release_date: 2019-09-22
+  ins_title: 【都庁ピアノ】都庁で弾いたら、自己最多の方が聴いてくれた!!【ストリートピアノ】
+  ins_link_root: youtu.be/SqIpP982
+  ins_link_time: 0
+  ins_at: 
+  note: Harami1129_rcsuccession, internally inserted, but not injected to others. Artist exists.
+  id_remote: 21
+  last_downloaded_at: 2020-10-25 21:46:00
+  orig_modified_at: 2020-10-25 21:46:00
+  checked_at:
+  engage_id:
+
+harami1129_ai:
+  singer: AI
+  song: Story
+  release_date: 2020-10-29
+  title: 【生配信】ありがとう！50曲ピアノ【５０万人突破した！！！！】
+  link_root: RrJqQ789
+  link_time: 2095
+  ins_singer: AI
+  ins_song: Story
+  ins_release_date: 2020-10-29
+  ins_title: 【生配信】ありがとう!50曲ピアノ【50万人突破した!!!!】
+  ins_link_root: youtu.be/RrJqQ789
+  ins_link_time: 2095
+  ins_at: 2020-10-26 22:46:00
+  note: Harami1129_1i, internally inserted and injected
+  id_remote: 25
+  last_downloaded_at: 2020-10-25 21:46:00
+  orig_modified_at: 2020-10-25 21:46:00
+  checked_at:
+  engage: engage_ai_story
+
+harami1129one:
+  singer: harami1129one sing
+  song: harami1129one music
+  release_date: 2020-10-25
+  title: harami1129one-title
+  link_root: XYZ
+  link_time: 1
+  ins_singer: 
+  ins_song: 
+  ins_release_date: 
+  ins_title: 
+  ins_link_root: 
+  ins_link_time: 
+  ins_at: 
+  note: Harami1129One
+  id_remote: 11
+  last_downloaded_at: 2020-10-25 21:46:00
+  orig_modified_at: 2020-10-25 21:46:00
+  checked_at:
+  engage_id:
+
+harami1129two:
+  singer: harami1129two sing
+  song: harami1129two music
+  release_date: 2020-10-25
+  title: harami1129two-title
+  link_root: ABCD
+  link_time: 1
+  ins_singer: 
+  ins_song: 
+  ins_release_date: 2020-10-25
+  ins_title: 
+  ins_link_root: 
+  ins_link_time: 12345
+  ins_at: 2020-10-25 21:46:00
+  note: Harami1129Two
+  id_remote: 12
+  last_downloaded_at: 2020-10-25 21:46:00
+  orig_modified_at: 2020-10-25 21:46:00
+  checked_at:
+  engage_id:
+
+harami1129_3:
+  singer: harami1129three sing
+  song: harami1129three music
+  release_date: 2020-10-25
+  title: harami1129three-title
+  link_root: ABCD
+  link_time: 3
+  ins_singer: harami1129three sing
+  ins_song: harami1129three music
+  ins_release_date: 2020-10-26
+  ins_title: harami1129three-title
+  ins_link_root: youtu.be/ABCD
+  ins_link_time: 3
+  ins_at: 2020-10-26 21:46:00
+  note: Harami1129Three
+  id_remote: 13
+  last_downloaded_at: 2020-10-26 21:46:00
+  orig_modified_at: 2020-10-26 20:30:00
+  checked_at:
+  engage_id:
+

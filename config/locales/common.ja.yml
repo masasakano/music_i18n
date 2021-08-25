@@ -1,0 +1,11 @@
+ja:
+  display_name: 表示名
+  accept_terms: 利用規約
+  detail: 詳細
+  Harami: ハラミちゃん
+  log_out: ログアウト
+  or: または
+  read_agree_terms_html: "%{link2term}に同意します"
+  s_time: "秒"
+  terms_of_service: 利用規約
+

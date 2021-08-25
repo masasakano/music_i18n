@@ -1,0 +1,47 @@
+# == Schema Information
+#
+# Table name: engage_hows
+#
+#  id         :bigint           not null, primary key
+#  note       :text
+#  weight     :float            default(999.0)
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
+#
+
+engage_how_1:
+  weight: 310
+  note: EngageHow1
+
+engage_how_2:
+  weight: 320
+  note: EngageHow2
+
+engage_how_3:
+  weight: 330
+  note: EngageHow3
+
+engage_how_unknown:
+  weight: 99999
+  note: UnknownEngageHow
+
+engage_how_singer_original:
+  weight: 10
+  note: EngageHowSingerOriginal
+
+engage_how_singer_cover:
+  weight: 20
+  note: EngageHowSingerCover
+
+engage_how_composer:
+  weight: 50
+  note: EngageHowComposer
+
+engage_how_player:
+  weight: 80
+  note: EngageHowPlayer
+
+engage_other:
+  weight: 500
+  note: EngageHowOther
+

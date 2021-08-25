@@ -1,0 +1,70 @@
+
+  <% modelname = model.class.name %>
+
+  <div class="field">
+    <span><%= modelname %>名の言語 (本来の言語で。翻訳は後で追加)</span>
+    <% BaseWithTranslation::AVAILABLE_LOCALES.each do |es| %>
+      <% lc = trans.orig_langcode %>
+      <%= form.radio_button(:langcode, es, checked: (es.to_s == (lc || 'ja'))) %>
+      <%= form.label :langcode, BaseWithTranslation::LANGUAGE_TITLES[:ja][es.to_s], value: es %>
+    <% end %>
+  </div>
+
+  <% if !disable_is_orig %>
+  <div class="field">
+    <%= form.radio_button(:is_orig, true, checked: trans.is_orig) %>
+    <%= form.label :is_orig, '原語', :value => true %>
+    <%= form.radio_button(:is_orig, false, checked: (trans.is_orig == false)) %>
+    <%= form.label :is_orig, '翻訳', :value => false %>
+    <%= form.radio_button(:is_orig, "nil", checked: trans.is_orig.nil?) %>
+    <%= form.label :is_orig, '定義不能(例:「空気」)', :value => "nil" %>
+  </div>
+  <% end %>
+
+  <div class="field">
+    <%= form.label :title, modelname+'正式名称'+(('Artist'==model.class.name) ? '(グループの場合はグループ名)' : '') %>
+    <%= form.text_field :title, value: trans.title, placeholder: '例: The '+(('Artist'==model.class.name) ? 'Beatles' : 'Ocean') %>
+  </div>
+
+  <div class="field">
+    <%= form.label :ruby, modelname+'正式名称フリガナ' %>
+    <%= form.text_field :ruby, value: trans.ruby, placeholder: '(全角片仮名で)例: '+(('Artist'==model.class.name) ? 'ザ・ビートルズ' : 'ジ・オーシャン') %>
+  </div>
+
+  <div class="field">
+    <%= form.label :romaji, modelname+'正式名称ローマ字' %>
+    <%= form.text_field :romaji, value: trans.romaji, placeholder: '(ヘボン式推奨: chi, shi等)' %>
+  </div>
+
+  <div class="field">
+    <%= form.label :alt_title, modelname+'略称・別名' %>
+    <%= form.text_field :alt_title, value: trans.alt_title %>
+  </div>
+
+  <div class="field">
+    <%= form.label :alt_ruby, modelname+'略称・別名フリガナ' %>
+    <%= form.text_field :alt_ruby, value: trans.alt_ruby, placeholder: '(全角片仮名で)' %>
+  </div>
+
+  <div class="field">
+    <%= form.label :alt_romaji, modelname+'略称・別名ローマ字' %>
+    <%= form.text_field :alt_romaji, value: trans.alt_romaji, placeholder: '(ヘボン式推奨: chi, shi等)' %>
+  </div>
+
+<% if false %>
+    <% # name="translation[langcode]" => params(:translation => {})
+     %>
+      <% collec = [] %>
+      <% BaseWithTranslation::AVAILABLE_LOCALES.each do |es| %>
+        <% lc = trans.orig_langcode; form.radio_button('langcode', es, checked: (es.to_s == (lc || 'ja'))) %>
+        <% collec.push [BaseWithTranslation::LANGUAGE_TITLES[:ja][es.to_s], es] %>
+      <% end %>
+    <%= form.input :langcode, label: modelname+'名の言語 (本来の言語で。翻訳は後で追加)', required: true, collection: collec, prompt: "Please select", selected: 'ja' %>
+    <%= form.input :is_orig, label: 'これが原語か? (注: 「冷蔵庫」などの一般名詞はUndefined)', required: true, as: :radio_buttons, collection: [['Yes', '1'], ['No', '0'], ['Undefined', '-99']], checked: '-99' %>
+    <%= form.input :title, label: modelname+'正式名称', value: trans.title, required: true, as: :text %>
+    <%= form.input :ruby, label: modelname+'正式名称フリガナ (片仮名で)', value: trans.ruby, as: :text %>
+    <%= form.input :romaji, label: modelname+'正式名称ローマ字', value: trans.romaji, as: :text %>
+    <%= form.input :alt_title, label: modelname+'正式略称・別名', value: trans.alt_title, as: :text %>
+    <%= form.input :alt_ruby, label: modelname+'正式略称・別名名称 (片仮名で)', value: trans.alt_ruby, as: :text %>
+    <%= form.input :alt_romaji, label: modelname+'正式略称・別名', value: trans.alt_romaji, as: :text %>
+<% end %>

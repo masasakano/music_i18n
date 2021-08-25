@@ -1,0 +1,60 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Country Masters</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Code a2</th>
+      <th>Code a3</th>
+      <th>Code n3</th>
+      <th>Name ja full</th>
+      <th>Name ja short</th>
+      <th>Name en full</th>
+      <th>Name en short</th>
+      <th>Name fr full</th>
+      <th>Name fr short</th>
+      <th>Independent</th>
+      <th>Territory</th>
+      <th>Remark</th>
+      <th>Note</th>
+      <th>Start date</th>
+      <th>End date</th>
+      <th colspan="3"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @country_masters.each do |country_master| %>
+      <tr>
+        <td><%= country_master.iso3166_a2_code %></td>
+        <td><%= country_master.iso3166_a3_code %></td>
+        <td><%= country_master.iso3166_n3_code %></td>
+        <td><%= country_master.name_ja_full %></td>
+        <td><%= country_master.name_ja_short %></td>
+        <td><%= country_master.name_en_full %></td>
+        <td><%= country_master.name_en_short %></td>
+        <td><%= country_master.name_fr_full %></td>
+        <td><%= country_master.name_fr_short %></td>
+        <td><%= country_master.independent %></td>
+        <td><%= country_master.territory %></td>
+        <td><%= country_master.iso3166_remark %></td>
+        <td><%= country_master.note %></td>
+        <td><%= country_master.start_date %></td>
+        <td><%= country_master.end_date %></td>
+        <td><%= link_to 'Show', country_master %></td>
+        <% if can? :manage, country_master %>
+          <td><%= link_to 'Edit', edit_country_master_path(country_master) %></td>
+          <td><%= link_to 'Destroy', country_master, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<% if can? :manage, CountryMaster %>
+  <%= link_to 'New Country Master', new_country_master_path %> (Admin only. Why do you need to create one, <strong>CountryMaster?</strong>)
+<% end %>
+

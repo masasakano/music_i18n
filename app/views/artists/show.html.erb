@@ -1,0 +1,95 @@
+<p id="notice"><%= notice %></p>
+
+<% my_title = @artist.title_or_alt %>
+<h1>Artist: <%= my_title %></h1>
+
+<hr>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @artist, add_buttons: true} %>
+<hr>
+
+<p>
+  <strong>県・場所 (国):</strong>
+  <%= ar = @artist.place.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true);
+      sprintf '%s %s(%s)', ar[1], (ar[0].blank? ? '' : '— '+ar[0]+' '), ar[2] %>
+</p>
+
+<p>
+  <strong>誕生日:</strong>
+  <%= sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
+                  i = @artist.send m; (i.blank? ? '——' : i.to_s)}) %>
+</p>
+
+<p>
+  <strong>性別:</strong>
+  <%= @artist.sex.title langcode: 'ja' %>
+</p>
+
+<p>
+  <strong>Wikipedia:</strong>
+  <%= %w(ja en).map{|m| uri=@artist.wiki_uri(m); uri.blank? ? '——' : link_to(((m == 'ja') ? '日本語' : '英語'), uri)}.join(' / ').html_safe %>
+</p>
+
+<p>
+  <strong>Note:</strong>
+  <%= @artist.note %>
+</p>
+
+<% if can? :update, @artist  %>
+  <%= link_to 'Edit', edit_artist_path(@artist) %> |
+<% end %>
+<%= link_to 'Back', artists_path %>
+<% if can? :destroy, @artist %>
+  <br>
+  <%= link_to 'Destroy', @artist, method: :delete, data: { confirm: 'Are you sure?' } %>
+<% end %>
+
+<hr>
+
+<h2>Musics by <%= my_title %></h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>和名</th>
+      <th>別名</th>
+      <th>英語名</th>
+      <th>Year</th>
+      <th>Genre</th>
+      <th>How?</th>
+      <th>Harami vids</th>
+      <th>Note</th>
+      <% if can? :edit, Music %>
+        <th colspan="2">Music</th>
+        <th>Engage</th>
+      <% else %>
+        <th>Music</th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @artist.musics.uniq.each do |music| %>
+      <tr>
+        <td><%= (music.title langcode: 'ja') || '' %></td>
+        <td><%= sprintf '%s [%s/%s]', *(%i(alt_title alt_ruby alt_romaji).map{|i| music.send(i, langcode: 'ja') || ''}) %></td>
+        <td><%= sprintf '%s [%s]', *(%i(title alt_title).map{|i| music.send(i, langcode: 'en') || ''}) %></td>
+        <td><%= music.year %></td>
+        <td><%= music.genre.title_or_alt(langcode: 'ja') %></td>
+        <td><%= s=@artist.engage_how_titles(music, year: music.year).join(', '); (/\d/ =~ s) ? s : s+'('+(music.year || '年不明').to_s+')' %></td>
+        <td><%= music.harami_vids.count.to_s+'回' %></td>
+        <td><%= music.note %></td>
+        <td><%= link_to 'Show', music %></td>
+        <% if can? :update, music %>
+          <td><%= link_to 'Edit', edit_music_path(music) %></td>
+          <td><%= link_to 'Edit', edit_engage_multi_how_path(@artist.engages.where(music: music).first) %></td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+<% if can? :create, Music %>
+<p>
+  <%= link_to sprintf('Associate a new Music to Artist %s', my_title), musics_path(music: {artist_id: @artist.id}) %>
+</p>
+<% end %>
+<hr>

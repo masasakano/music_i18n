@@ -1,0 +1,59 @@
+<h3>Musics for HaramiVid (<%= harami_vid.release_date %>)</h3>
+
+<table id="music_table_for_hrami_vid">
+  <thead>
+    <tr>
+      <th></th>
+      <th>Title</th>
+      <th>Year</th>
+      <th>
+      <% if can? :read, Genre %>
+        <%= link_to 'Genre', genres_url %>
+      <% else %>
+        Genre
+      <% end %>
+      </th>
+      <th>
+      <% if can? :read, Place %>
+        <%= link_to 'Place', places_url %>
+      <% else %>
+        Place
+      <% end %>
+      </th>
+      <th><%= link_to 'Artists', artists_url %></th>
+      <th>Timing</th>
+      <th colspan="2">Music</th>
+      <th>動画数</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% harami_vid.musics.order(:timing).each_with_index do |music, i_mus| %>
+      <tr>
+        <td><%= i_mus+1 %>
+        <td><%= t = music.title_or_alt; t ? link_to(t, music) : '' %></td>
+        <td><%= music.year %></td>
+        <td><%= music.genre.title_or_alt(langcode: 'ja') %></td>
+        <td><%= ar = music.place.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true);
+                sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture['ja'] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2] %></td>
+        <td><%= music.artists.uniq.map{|i| sprintf '%s [%s]', link_to(i.title_or_alt, i), h(i.engage_how_titles(music).join(', '))}.join(', ').html_safe %></td>
+        <td><%= harami_vid.harami_vid_music_assocs.where(music: music).pluck(:timing).map{|i| link_to_youtube(i, @harami_vid.uri, i) }.join(', ').html_safe %></td>
+        <td><%= link_to 'Show', music %></td>
+        <td>
+        <% if can? :update, music %>
+          <%= link_to 'Edit', edit_music_path(music) %>
+        <% end %>
+        </td>
+        <td><%= music.harami_vids.count.to_s %></td>
+      </tr>
+    <% end %>
+<% if false %>
+    <% if defined?(add_buttons) && add_buttons %>
+      <tr><td colspan="7">
+      <%= button_to 'HaramiVid追加', new_harami_vid_music_assoc_path, method: :get, params: { a_token: nil, music_id: music.id } %>
+      </td></tr>
+    <% end %>
+<% end %>
+  </tbody>
+</table>
+

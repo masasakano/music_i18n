@@ -1,0 +1,26 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Engage_how: <%= @engage_how.title_or_alt %></h1>
+
+<hr>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @engage_how} %>
+<hr>
+
+<p>
+  <strong>Id (EngageHow):</strong>
+  <%= @engage_how.id %>
+</p>
+
+<p>
+  <strong>Weight:</strong>
+  <%= w = @engage_how.weight; ((w == w.to_i) ? w.to_i : w) %>
+</p>
+
+<p>
+  <strong>Note:</strong>
+  <%= @engage_how.note %>
+</p>
+
+
+<%= link_to 'Edit', edit_engage_how_path(@engage_how) %> |
+<%= link_to 'Back', engage_hows_path %>

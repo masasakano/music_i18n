@@ -1,0 +1,21 @@
+<p id="notice"><%= notice %></p>
+
+<dl>
+  <dt>pID</dt>
+  <dd><%= @engage.id %></dd>
+  <dt>Artist</dt>
+  <dd><%= artist = @engage.artist; link_to artist.title_or_alt, artist %></dd>
+  <dt>Music</dt>
+  <dd><%= music = @engage.music; link_to music.title_or_alt, music %></dd>
+  <dt>How?</dt>
+  <dd><%= @engage_how = @engage.engage_how; link_to @engage_how.title_or_alt, @engage_how %></dd>
+  <dt>Year</dt>
+  <dd><%= @engage.year ? @engage.year : '&mdash;'.html_safe %></dd>
+  <dt>Contribution</dt>
+  <dd><%= @engage.contribution ? @engage.contribution : '&mdash;'.html_safe %></dd>
+  <dt>Note</dt>
+  <dd><%= @engage.note %></dd>
+</dl>
+
+<%= link_to 'Edit', edit_engage_multi_how_path(@engage) %> |
+<%= link_to 'Back', engages_path %>

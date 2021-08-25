@@ -1,0 +1,33 @@
+# Custom translations for Views in this project (Japanese)
+ja:
+  application:
+    about_us: '本サイトについて'
+    others: 'その他'
+
+  layouts:
+    add_translation: '翻訳追加'
+    editing_guideline: '編集方針'
+
+  devise:
+    registrations:
+      new:
+       used_to_confirm_registration: "登録確認メールが送信されます。モデレーターまで含めて誰にも非公開です(管理者は除く)" 
+       public_name: '公開登録名'
+
+  home:
+    index:
+      first_line_html: 'ポップスピアニスト、<a href="https://harami-piano.com/" title="Harami-chan Website">ハラミちゃん</a>のファン(お米)有志による音楽(Music)国際化(i18n = internationalization)プロジェクト♪'
+      second_line: "ハラミちゃんが演奏公開したJ-POPとアニメ曲およびアーティストの翻訳(英訳)を中心に構成されています。"
+      third_line: "“お米さん”はもちろんのことどなたでも音楽の国境を取り払うことに意欲ある方の参加を大歓迎します!"
+      fourth_line1: "お気軽に"
+      fourth_line2: "してみてください。ご連絡をお待ちしています!"
+      h3_table: "ハラミちゃんの最新YouTube演奏動画"
+      youtube_channel: "YouTubeチャンネル"
+      harami_vids_index: "全動画リスト"
+      musics_index: "演奏曲翻訳リスト"
+      artists_index: "演奏曲の音楽家の翻訳リスト"
+
+  datagrid:
+    form:
+      search: "適用"
+      reset: "リセット"

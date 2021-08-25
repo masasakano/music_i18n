@@ -1,0 +1,33 @@
+
+redirect_rule_one:
+  id: 1
+  source: ^(/[a-z][a-z])?/one
+  source_is_regex: true
+  source_is_case_sensitive: true
+  destination: $1/static_pages/<%= ActiveRecord::FixtureSet.identify('static_one') %>
+  active: true
+
+#redirect_rule_one:
+#  id: 1
+#  source: /one
+#  source_is_regex: false
+#  source_is_case_sensitive: false
+#  destination: /static_pages/<%= ActiveRecord::FixtureSet.identify('static_one') %>
+#  active: true
+
+#redirect_rule_one_en:
+#  id: 2
+#  source: /en/one
+#  source_is_regex: false
+#  source_is_case_sensitive: false
+#  destination: /en/static_pages/<%= ActiveRecord::FixtureSet.identify('static_one') %>
+#  active: true
+#
+#redirect_rule_one_ja:
+#  id: 3
+#  source: /ja/one
+#  source_is_regex: false
+#  source_is_case_sensitive: false
+#  destination: /ja/static_pages/<%= ActiveRecord::FixtureSet.identify('static_one') %>
+#  active: true
+

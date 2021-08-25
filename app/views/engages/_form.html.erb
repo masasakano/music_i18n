@@ -1,0 +1,40 @@
+<p id="notice"><%= notice %></p>
+<p id="alert"><%= alert %></p>
+
+  <% if engage.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(engage.errors.count, "error") %> prohibited this engage from being saved:</h2>
+
+      <ul>
+        <% engage.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+<hr>
+<h3>Existing Engages</h3>
+<dl id="engage_new_existing_engages">
+<% @music.artists.uniq.each do |artist| %>
+  <dt><%= artist.title %></dt>
+  <dd><%= s=artist.engage_how_titles(@music, year: @music.year).join(', '); link_to ((/\d/ =~ s) ? s : s+'('+(@music.year || '年不明').to_s+')'), edit_engage_multi_how_path(artist.engages.where(music: @music).first) %></dd>
+<% end %>
+</dl>
+
+<hr>
+  <p><em>Note</em>: The Artist to specify must be already registered. Candidates will be auto-suggested as you type (n.b., the suggestion ignores hankaku-kana and zenkaku-alphanumeric characters). See <%= link_to 'Artist table', artists_url %> to check out the list of the existing records.</p>
+  
+<%= simple_form_for @engage do |form| %>
+  <%= form.hidden_field :music_id,  :value => @music.id %>
+  <%= form.input :artist, label: 'Artist name (e.g., "欅坂46", "The Beatles", "Beatles, The")', required: true %>
+    <%= content_tag :div, '', id: 'suggestions', data: {items: Artist.titles_for_form} %>
+  <%= form.input :engage_how, label: 'EngageHow(複数可)', collection: EngageHow.all.map{|i| [i.title(langcode: 'ja'), i.id]}, required: false, prompt: "Please select", input_html: { multiple: true } %>
+  <%= form.input :year, required: false %>
+  <%= form.input :contribution, label: 'Contribution(0.0-1.0)', required: false %>
+  <%= form.input :note %>
+  <%= form.submit "Submit"%>
+<% end %>
+
+<%= javascript_pack_tag 'autocomplete_engage_artist' %>
+

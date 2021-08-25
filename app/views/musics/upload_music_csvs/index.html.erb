@@ -1,0 +1,107 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Musics/Artists uploaded</h1>
+
+<table>
+  <thead>
+    <tr>
+  <th title="Line number (starting from 1)">行</th>
+  <th title="row header (just for the sake of human readability)">row</th>
+  <th title="If Music is new?">Music</th>
+  <th title="If Artist is new?">Artist</th>
+  <th title="Engage">Engage</th>
+  <th title="Music title in Japanese">music_ja</th>
+  <th title="Ruby of the Japanese Music title (片仮名ルビ)">ruby</th>
+  <th title="Romaji of the Japanese Music title (ローマ字表記)">romaji</th>
+  <th title="Music title in English">music_en</th>
+  <th title="曲の発表年; ただし曲名がない時は、音楽家(グループ)の誕生年あるいは結成年">year</th>
+  <th title="国名あるいは日本の県名">country</th>
+  <th title="音楽家日本語名">artist_ja</th>
+  <th title="音楽家英語名">artist_en</th>
+  <th title="名前が日本語(ja)か英語(en)か?">langcode</th>
+  <th title="曲のカテゴリ">genre</th>
+  <th title="音楽家と曲の関係">how</th>
+  <th title="コメント欄 (新規項目の場合は、曲名(曲名がない場合は音楽家名)にそえて記録される)">memo</th>
+  <th title="Errors">Error</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% class_prefix = 'upload_music_csvs-' %>
+    <% @csv.each_with_index do |csv, iline| %>
+      <% next if iline == 0 %>
+      <tr id="<%= sprintf '%srow-%d', class_prefix, iline %>">
+        <td class="upload_music_csvs-no"><%= iline %></td>
+
+        <% if !@csv[iline] %>
+          <td>Comment</td>
+          <td rowspan="14"><%= @input_lines %></td>
+          <% next %>
+        <% end %>
+
+        <td class="<%= class_prefix %>head"><%= @csv[iline][:row] %></td>
+        <td class="<%= class_prefix %>music-new">
+          <% if @musics[iline] && !@musics[iline].new_record?  %>
+            <%= (@changes[iline].music_ja  || @changes[iline].music_en)  ? link_to('New', @musics[iline])  : link_to('Existing', @musics[iline]) %>
+          <% else %>
+            &mdash;
+          <% end %>
+        </td>
+        <td class="<%= class_prefix %>artist-new">
+          <% if @artists[iline] && !@artists[iline].new_record?  %>
+            <%= (@changes[iline].artist_ja || @changes[iline].artist_en)  ? link_to('New', @artists[iline])  : link_to('Existing', @artists[iline]) %>
+          <% else %>
+            &mdash;
+          <% end %>
+        </td>
+        <td class="<%= class_prefix %>engage-new">
+          <% if @engages[iline] && !@engages[iline].new_record?  %>
+            <%= link_to('Engage', @engages[iline]) %>
+          <% else %>
+            &mdash;
+          <% end %>
+        </td>
+
+        <%= render 'model_cell', attr: :music_ja, class_prefix: class_prefix, iline: iline, curval: @musics[iline] %>
+        <% %i(ruby romaji).each do |attr| %>
+          <td class="<%= class_prefix %><%= attr.to_s %>"><%= @csv[iline][attr] if @csv[iline][attr] %></td>
+        <% end %>
+        <%= render 'model_cell', attr: :music_en, class_prefix: class_prefix, iline: iline, curval: @musics[iline] %>
+        <% attr = :year %>
+        <td class="<%= class_prefix %><%= attr.to_s %>"><%= @csv[iline][attr] if @csv[iline][attr] %> </td>
+        <% model = (@musics[iline] || @artists[iline])
+           if model
+             pref = model.prefecture
+             curval = (pref.unknown? ? pref.country : pref)
+           end
+           curval ||= ''
+        %>
+        <%= render 'model_cell', attr: :country, class_prefix: class_prefix, iline: iline, curval: curval %>
+
+        <%= render 'model_cell', attr: :artist_ja, class_prefix: class_prefix, iline: iline, curval: @artists[iline] %>
+        <%= render 'model_cell', attr: :artist_en, class_prefix: class_prefix, iline: iline, curval: @artists[iline] %>
+        <% attr = :langcode %>
+        <td class="<%= class_prefix %><%= attr.to_s %>"><%= @csv[iline][attr] if @csv[iline][attr] %> </td>
+        <% model = @musics[iline]
+           curval = model.genre if model
+           curval ||= ''
+        %>
+        <%= render 'model_cell', attr: :genre, class_prefix: class_prefix, iline: iline, curval: curval %>
+        <% model = @engages[iline]
+           curval = model.engage_how if model
+           curval ||= ''
+        %>
+        <%= render 'model_cell', attr: :how, class_prefix: class_prefix, iline: iline, curval: curval %>
+        <% attr = :memo %>
+        <td class="<%= class_prefix %><%= attr.to_s %>"><%= @csv[iline][attr] if @csv[iline][attr] %> </td>
+        <td><%= @errors[iline] %></td>
+
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'Back to Index', musics_url %>
+

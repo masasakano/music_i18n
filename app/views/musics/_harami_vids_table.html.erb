@@ -1,0 +1,57 @@
+<h3>Harami Vids for Music: <%= music.title_or_alt %></h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Title</th>
+      <th>Timing</th>
+      <th>Completeness</th>
+      <% if can? :update, HaramiVid %>
+        <th colspan="2">HaramiVid</th>
+        <th colspan="2">HaramiVidMusicAssoc</th>
+      <% else %>
+        <th>HaramiVid</th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% music.harami_vid_music_assocs.each do |assoc| %>
+      <% harami_vid = assoc.harami_vid %>
+      <tr>
+        <td><%= harami_vid.release_date %></td>
+        <td><%= link_to(harami_vid.title(langcode: 'ja'), harami_vid) %></td>
+        <td><%= assoc.timing %></td>
+        <td><%= assoc.completeness %></td>
+        <td><%= link_to 'Show', harami_vid %></td>
+        <% if can? :update, harami_vid %>
+        <td>
+          <%= link_to 'Edit', edit_harami_vid_path(harami_vid) %>
+        </td>
+        <% end %>
+<% if false %>
+        <td><%= link_to 'Show', assoc %></td>
+<% end %>
+        <% if can? :update, harami_vid %>
+          <td><%= 'Show' %></td>
+          <td>
+<% if false %>
+          <% if current_user && current_user.editor? %>
+            <%= link_to 'Edit', edit_harami_vid_music_assoc_path(assoc) %>
+          <% end %>
+<% end %>
+          </td>
+        <% end %>
+      </tr>
+    <% end %>
+<% if false %>
+    <% if defined?(add_buttons) && add_buttons %>
+      <tr><td colspan="7">
+      <%= button_to 'HaramiVid追加', new_harami_vid_music_assoc_path, method: :get, params: { a_token: nil, music_id: music.id } %>
+      </td></tr>
+    <% end %>
+<% end %>
+  </tbody>
+</table>
+

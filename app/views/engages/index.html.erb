@@ -1,0 +1,42 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Engages</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>pID</th>
+      <th>Artist</th>
+      <th>Music</th>
+      <th>How?</th>
+      <th>Year</th>
+      <th>Contribution</th>
+      <th>Note</th>
+      <th colspan="3"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @engages.each do |engage| %>
+      <tr>
+        <td><%= engage.id %></td>
+        <td><%= artist = engage.artist; link_to artist.title_or_alt, artist %></td>
+        <td><%= music = engage.music; link_to music.title_or_alt, music %></td>
+        <td><%= engage_how = engage.engage_how; link_to engage_how.title_or_alt, engage_how %></td>
+        <td><%= engage.year ? engage.year : '&mdash;'.html_safe %></td>
+        <td><%= engage.contribution ? engage.contribution : '&mdash;'.html_safe %></td>
+        <td><%= engage.note %></td>
+        <td><%= link_to 'Show', engage %></td>
+        <td><%= link_to 'Edit', edit_engage_multi_how_path(engage) %></td>
+        <td><%= link_to 'Destroy', engage, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<p>
+  To add a new association, go to either
+  <%= link_to 'Music', musics_path %> or <%= link_to 'Artist', artists_path %>
+</p>

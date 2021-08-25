@@ -1,0 +1,74 @@
+<p id="notice"><%= notice %></p>
+
+<h1>User list</h1>
+
+<p>Total entries: <%= @users.size %></p>
+
+<table>
+  <thead>
+    <tr>
+<% if current_user && current_user.sysadmin? %>
+<% end %>
+      <th>id</th>
+      <th>Name</th>
+      <th>Ext Acc</th>
+<% if current_user && current_user.an_admin? %>
+      <th>Email</th>
+<% end %>
+      <th>Role [uname] (Category)</th>
+<% if false %>
+  <!-- Confirmation token is mandatory -->
+<% end %>
+      <th>Created_at</th>
+      <th>TokenDefined?</th>
+      <th>Confirmed?</th>
+      <th colspan="2">Num_Entries<br>(Create/Update)</th>
+<% if (current_user && current_user.an_admin?) %>
+      <th colspan="2"></th>
+<% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @users.each do |user| %>
+      <tr>
+        <td><%= user.id %></td>
+        <td><%= link_to (user.display_name || ''), user_path(user) %></td>
+        <td><%= link_to (user.ext_account_name || ''), user_path(user) %></td>
+<% if current_user && current_user.sysadmin? %>
+        <td><%= (user.email || '').html_safe %></td>
+<% end %>
+        <td><%= user.roles_inspect.join('<br />').html_safe %></td>
+        <td><%= user.created_at %></td>
+        <td><%= (!user.confirmation_token.blank?).inspect %></td>
+        <td><%= (!user.confirmed_at.blank?).inspect %>
+<% if can?(:update, Users::Confirm) && !user.confirmed? %>
+          (<%= link_to('Confirm', users_confirm_path(user), method: :patch) %>)
+<% end %>
+        </td>
+        <td><%= user.created_translations.size %></td>
+        <td><%= user.updated_translations.size %></td>
+<% if current_user && current_user.moderator? %>
+        <td><%= link_to 'Show/Edit', user_path(user) %></td>
+<% end %>
+<% if current_user && current_user.abs_superior_to?(user) %>
+        <td><%= link_to 'Deactivate', users_edit_deactivate_users_path(user) %>
+<% end %>
+<% if false %>
+        <td><%= link_to 'Edit', edit_user_path(user) %></td>
+        <td><%= link_to 'Destroy', user, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+<% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+<br>
+
+<% if false %>
+<% if current_user && current_user.sysadmin? %>
+  <%= link_to 'New User entry', new_user_path %>
+<% end %>
+<% end %>
+
+<%= link_to 'Back to Home', root_path, data: { turbolinks: false } %>
+

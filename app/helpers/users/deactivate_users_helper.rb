@@ -1,0 +1,2 @@
+module Users::DeactivateUsersHelper
+end

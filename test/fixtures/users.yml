@@ -1,0 +1,141 @@
+# == Schema Information
+#
+# Table name: users
+#
+#  id                     :bigint           not null, primary key
+#  confirmation_sent_at   :datetime
+#  confirmation_token     :string
+#  confirmed_at           :datetime
+#  current_sign_in_at     :datetime
+#  current_sign_in_ip     :inet
+#  display_name           :string           default(""), not null
+#  email                  :string           default(""), not null
+#  encrypted_password     :string           default(""), not null
+#  ext_account_name       :string
+#  ext_uid                :string
+#  last_sign_in_at        :datetime
+#  last_sign_in_ip        :inet
+#  provider               :string
+#  remember_created_at    :datetime
+#  reset_password_sent_at :datetime
+#  reset_password_token   :string
+#  sign_in_count          :integer          default(0), not null
+#  unconfirmed_email      :string
+#  created_at             :datetime         not null
+#  updated_at             :datetime         not null
+#
+# Indexes
+#
+#  index_users_on_confirmation_token    (confirmation_token) UNIQUE
+#  index_users_on_email                 (email) UNIQUE
+#  index_users_on_reset_password_token  (reset_password_token) UNIQUE
+#
+
+# This model initially had no columns defined. If you add columns to the
+# model remove the '{}' from the fixture names and add the columns immediately
+# below each fixture, per the syntax in the comments below
+#
+
+# Superuser
+user_sysadmin:
+  id: 1
+  email: a@example.com
+  encrypted_password: <%= User.new.send(:password_digest, '123456') %>
+  display_name: Sysadmin
+  confirmation_token: abcdefg
+  confirmed_at: <%= Time.now %>
+  confirmation_sent_at: <%= Time.now %>
+
+user_two:
+  email: b@example.com
+  display_name: UserTwo
+  encrypted_password: <%= User.new.send(:password_digest, '123456') %>
+
+user_syshelper:
+  email: $LABEL@example.com
+  encrypted_password: <%= User.new.send(:password_digest, '123456') %>
+  display_name: Syshelper
+  confirmation_token: user_syshelper
+  confirmed_at: <%= Time.now %>
+  confirmation_sent_at: <%= Time.now %>
+
+user_no_role:
+  email: $LABEL@example.com
+  display_name: UserNoRole
+  encrypted_password: <%= User.new.send(:password_digest, '123456') %>
+  confirmation_token: user_no_role
+  confirmed_at: <%= Time.now %>
+  confirmation_sent_at: <%= Time.now %>
+
+user_moderator:
+  email: user_moderator@example.com
+  display_name: UserModeratorHarami
+  encrypted_password: <%= User.new.send(:password_digest, '123456') %>
+  confirmation_token: user_moderator
+  confirmed_at: <%= Time.now %>
+  confirmation_sent_at: <%= Time.now %>
+
+user_editor:
+  email: user_editor@example.com
+  encrypted_password: <%= User.new.send(:password_digest, '123456') %>
+  display_name: UserEditorHarami
+  confirmation_token: user_editor
+  confirmed_at: <%= Time.now %>
+  confirmation_sent_at: <%= Time.now %>
+
+user_captain:
+  email: user_captain@example.com
+  encrypted_password: <%= User.new.send(:password_digest, '123456') %>
+  display_name: UserCaptain
+  confirmation_token: user_captain
+  confirmed_at: <%= Time.now %>
+  confirmation_sent_at: <%= Time.now %>
+
+user_moderator_translation:
+  email: user_moderator_translation@example.com
+  display_name: UserModeratorTranslation
+  encrypted_password: <%= User.new.send(:password_digest, '123456') %>
+  confirmation_token: user_moderator_translation
+  confirmed_at: <%= Time.now %>
+  confirmation_sent_at: <%= Time.now %>
+
+user_translator:
+  email: user_translator@example.com
+  encrypted_password: <%= User.new.send(:password_digest, '123456') %>
+  display_name: UserTranslator
+  confirmation_token: user_translator
+  confirmed_at: <%= Time.now %>
+  confirmation_sent_at: <%= Time.now %>
+
+user_translator2:
+  email: $LABEL@example.com
+  encrypted_password: <%= User.new.send(:password_digest, '123456') %>
+  display_name: $LABEL
+  confirmation_token: $LABEL
+  confirmed_at: <%= Time.now %>
+  confirmation_sent_at: <%= Time.now %>
+
+user_moderator_general_ja:
+  email: user_general_ja_moderator@example.com
+  encrypted_password: <%= User.new.send(:password_digest, '123456') %>
+  display_name: UserGeneralJaModerator
+  confirmation_token: UserGeneralJaModerator
+  confirmed_at: <%= Time.now %>
+  confirmation_sent_at: <%= Time.now %>
+
+user_editor_general_ja:
+  email: user_general_ja_editor@example.com
+  encrypted_password: <%= User.new.send(:password_digest, '123456') %>
+  display_name: UserGeneralJaEditor1
+  confirmation_token: UserGeneralJaEditor
+  confirmed_at: <%= Time.now %>
+  confirmation_sent_at: <%= Time.now %>
+
+user_editor_general_ja2:
+  email: user_general_ja_editor2@example.com
+  encrypted_password: <%= User.new.send(:password_digest, '123456') %>
+  display_name: UserGeneralJaEditor2
+  confirmation_token: UserGeneralJaEditor2
+  confirmed_at: <%= Time.now %>
+  confirmation_sent_at: <%= Time.now %>
+

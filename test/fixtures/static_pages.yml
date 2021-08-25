@@ -1,0 +1,59 @@
+# == Schema Information
+#
+# Table name: static_pages
+#
+#  id                       :bigint           not null, primary key
+#  content                  :text
+#  langcode                 :string           not null
+#  mname(machine name)      :string           not null
+#  note(Remark for editors) :text
+#  summary                  :text
+#  title                    :string           not null
+#  created_at               :datetime         not null
+#  updated_at               :datetime         not null
+#  page_format_id           :bigint           not null
+#
+# Indexes
+#
+#  index_static_pages_on_langcode_and_mname  (langcode,mname) UNIQUE
+#  index_static_pages_on_langcode_and_title  (langcode,title) UNIQUE
+#  index_static_pages_on_page_format_id      (page_format_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (page_format_id => page_formats.id) ON DELETE => restrict
+#
+
+static_one:
+  langcode: en
+  mname: one
+  title: One Static Page
+  page_format: page_format_full_html
+  summary: Summary one
+  content: MyText one
+  note: Used for testing redirector
+
+static_about_us:
+  langcode: en
+  mname: about_us
+  title: About Us
+  page_format: page_format_full_html
+  content: We are music-i18n.org.
+
+static_terms_conditions:
+  langcode: en
+  mname: terms_conditions
+  title: Terms and Conditions
+  page_format: page_format_full_html
+  summary: Our Terms and Conditions are as follows.
+  content: "<h1>AGREEMENT TO TERMS</h1>"
+  note: 
+
+static_terms_conditions:
+  langcode: en
+  mname: editing_policy
+  title: Editing Policy
+  page_format: page_format_markdown
+  content: 'Our *editing* policy is [found](/testlink) below.'
+  note: 
+

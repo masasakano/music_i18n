@@ -1,0 +1,70 @@
+# == Schema Information
+#
+# Table name: engages
+#
+#  id            :bigint           not null, primary key
+#  contribution  :float
+#  note          :text
+#  year          :integer
+#  created_at    :datetime         not null
+#  updated_at    :datetime         not null
+#  artist_id     :bigint           not null
+#  engage_how_id :bigint           not null
+#  music_id      :bigint           not null
+#
+# Indexes
+#
+#  index_engages_on_4_combinations          (artist_id,music_id,engage_how_id,year) UNIQUE
+#  index_engages_on_artist_id               (artist_id)
+#  index_engages_on_engage_how_id           (engage_how_id)
+#  index_engages_on_music_id                (music_id)
+#  index_engages_on_music_id_and_artist_id  (music_id,artist_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (artist_id => artists.id) ON DELETE => cascade
+#  fk_rails_...  (engage_how_id => engage_hows.id) ON DELETE => restrict
+#  fk_rails_...  (music_id => musics.id) ON DELETE => cascade
+#
+
+engage1:
+  music: music1
+  artist: artist1
+  engage_how: engage_how_1
+  contribution: 
+  year: 1999
+  note: MyText
+
+engage2:
+  music: music2
+  artist: artist2
+  engage_how: engage_how_2
+  contribution: 1.5
+  year: 
+  note: MyText
+
+engage_ai_story:
+  music: music_story
+  artist: artist_ai
+  engage_how: engage_how_unknown
+  contribution: 
+  year: 
+  note: Ai's music at 50 anniversary
+
+engage_artist2_music_how:
+  music: music_how
+  artist: artist2
+  engage_how: engage_how_unknown
+  contribution: 
+  year: 
+  note: Lennon's How?
+
+engage_proclaimers_light:
+  music: music_light
+  artist: artist_proclaimers
+  engage_how: engage_how_singer_original
+  contribution: 
+  year: 1994
+  note: proclaimers's The Light
+
+

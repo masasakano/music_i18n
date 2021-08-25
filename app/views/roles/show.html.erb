@@ -1,0 +1,29 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Name (unique within RoleCategory):</strong>
+  <%= @role.name %>
+</p>
+
+<p>
+  <strong>uname (unique in all Roles):</strong>
+  <%= @role.uname %>
+</p>
+
+<p>
+  <strong>Role category:</strong>
+  <%= sprintf '%d (%s)', @role.role_category_id, @role.role_category.mname %>
+</p>
+
+<p>
+  <strong>Weight:</strong>
+  <%= @role.weight %>
+</p>
+
+<p>
+  <strong>Note:</strong>
+  <%= @role.note %>
+</p>
+
+<%= link_to 'Edit', edit_role_path(@role) %> |
+<%= link_to 'Back', roles_path %>

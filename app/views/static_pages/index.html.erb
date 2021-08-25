@@ -1,0 +1,47 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Static Pages</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Langcode</th>
+      <th>Mname</th>
+      <th>Title</th>
+      <th>Page format</th>
+      <th>Summary</th>
+      <th>Content</th>
+      <th title="Remarks for Editors">Note</th>
+      <th colspan="4"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @static_pages.each do |static_page| %>
+      <tr>
+        <td><%= static_page.langcode %></td>
+        <td><%= static_page.mname %></td>
+        <td><%= static_page.title %></td>
+        <td><%= link_to static_page.page_format.mname, static_page.page_format %></td>
+        <td><%= static_page.summary %></td>
+        <td><%= static_page.content ? static_page.content[0..200] : nil %></td>
+        <td><%= static_page.note %></td>
+        <td><%= link_to 'Public', StaticPagesController.public_path(static_page) %></td>
+        <td><%= link_to 'Show', static_page %></td>
+        <% if can? :update, static_page %>
+          <td><%= link_to 'Edit', edit_static_page_path(static_page) %></td>
+        <% end %>
+        <% if can? :destroy, static_page %>
+          <td><%= link_to 'Destroy', static_page, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<% if can? :create, StaticPage %>
+  <%= link_to 'New Static Page', new_static_page_path %>
+<% end %>
+

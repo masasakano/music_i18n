@@ -1,0 +1,393 @@
+# coding: utf-8
+# == Schema Information
+#
+# Table name: musics
+#
+#  id         :bigint           not null, primary key
+#  note       :text
+#  year       :integer
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
+#  genre_id   :bigint           not null
+#  place_id   :bigint           not null
+#
+# Indexes
+#
+#  index_musics_on_genre_id  (genre_id)
+#  index_musics_on_place_id  (place_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (genre_id => genres.id)
+#  fk_rails_...  (place_id => places.id)
+#
+require 'test_helper'
+
+class MusicTest < ActiveSupport::TestCase
+  include Devise::Test::IntegrationHelpers
+
+  setup do
+    @artist = artists(:artist1)
+    @editor = roles(:general_ja_editor).users.first  # Editor can manage.
+  end
+
+  test "CHECK constraints and on_delete dependency" do
+    placei = Place.create!(prefecture: Prefecture.last)
+    genrei = Genre.create!()
+    obj = Music.new(place: placei, genre: genrei)
+
+    ## Check constraints
+    
+    obj.year = -1
+    assert_raises(ActiveRecord::RecordInvalid, ActiveRecord::StatementInvalid){ obj.save! }
+    # DRb::DRbRemoteError: PG::CheckViolation: ERROR:  new row for relation "musics" violates check constraint "check_musics_on_year"
+
+    obj.year = nil
+    assert_nothing_raised{ obj.save! }
+
+    assert_raises(ActiveRecord::DeleteRestrictionError, ActiveRecord::InvalidForeignKey){ placei.destroy }
+    # DRb::DRbRemoteError: PG::ForeignKeyViolation: ERROR:  update or delete on table "places" violates foreign key constraint "fk_rails_2b42755a33" on table "musics"
+
+    assert_raises(ActiveRecord::DeleteRestrictionError, ActiveRecord::InvalidForeignKey){ genrei.destroy }
+
+    assert_difference('Engage.count', -1) do
+      musics(:music2).destroy
+    end
+
+  end
+
+  test "unknown" do
+    assert Music.unknown
+    assert_operator 0, '<', Music.unknown.id
+    obj = Music[/UnknownMus/i, 'en']
+    assert_equal obj, Music.unknown
+    assert obj.unknown?
+  end
+
+  test "self.find_all_by_title_plus" do
+    music_light = musics :music_light
+    music_light_en = translations :music_light_en
+    place_uk_unknown = places :unknown_place_unknown_prefecture_uk
+    genre_pop = genres :genre_pop
+
+    ## sanity checks of the fixture
+    assert_equal 1994,             music_light.year
+    assert_equal place_uk_unknown, music_light.place
+    assert_equal genre_pop,        music_light.genre
+
+    rela = Music.find_all_by_title_plus(["The Light"])
+    assert_operator 1, '<=', rela.count
+    assert_equal    1,       rela.count
+    music =                   Music.find_by_title_plus(["The Light"])
+    assert_equal music_light, music
+    assert_equal :exact,       music.match_method
+    assert_equal "Light, The", music.matched_string # Definite article moved in the matched string
+    assert_equal music_light, Music.find_by_title_plus(["the light"])
+
+    assert_equal music_light, Music.find_by_title_plus(["Light, The"])
+    assert_equal music_light, Music.find_by_title_plus(["light, the"], match_method_upto: :exact_ilike)
+    assert_nil                Music.find_by_title_plus(["light, the"], match_method_upto: :exact)
+    assert_nil                Music.find_by_title_plus(["light"],      match_method_upto: :exact_ilike)
+    assert_equal music_light, Music.find_by_title_plus(["light"]) #Def:match_method_upto: :optional_article_ilike,
+
+    moderator_tr  = users(:user_moderator_translation)
+    tr_kampai_en3 = translations(:music_kampai_en3)
+    assert_equal moderator_tr.id, tr_kampai_en3.create_user_id, sprintf('moderator ID=%d is not assigned to create_id=%d.', moderator_tr.id, tr_kampai_en3.create_user_id)
+
+    sysadmin = users( :user_sysadmin )
+    tra_en = music_light.translations.first
+    assert_equal music_light_en, tra_en             # sanity check of Fixture
+    assert_equal 'en',        tra_en.langcode       # sanity check of Fixture
+    assert_equal sysadmin.id, tra_en.create_user_id # sanity check of Fixture
+    tra_jp = tra_en.dup
+    tra_jp.langcode = 'ja'
+    assert_difference('Translation.count', 1) do
+      tra_jp.save!
+    end
+    # Now there are 2 Translations (en and ja) with identical information.
+
+    #sign_in @editor
+    rela = Music.find_all_by_title_plus(["The Light"])
+    assert_equal    2,       rela.count
+    rela = Music.find_all_by_title_plus(["The Light"], uniq: true)
+    assert_equal    1,       rela.count
+
+    assert_equal music_light, Music.find_by_title_plus(["The Light"])
+    assert_nil                Music.find_by_title_plus(["naiyo"*3, "光１２３"])
+    tra_jp.alt_title = '光123'
+    tra_jp.save!
+    assert_equal music_light, Music.find_by_title_plus(["The Light"]) # Existing one still matches.
+    music =                   Music.find_by_title_plus(["naiyo"*3, "光１２３"])
+    assert_equal music_light, music
+    assert_equal '光123',     music.matched_string  # This time, matched_string changed
+    assert_nil                Music.find_by_title_plus(["naiyo"*3, "光"])
+    assert_equal music_light, Music.find_by_title_plus(["naiyo"*3, "光"], match_method_upto: :include)
+
+    # With a different place from the existing, nothing is matched, depending where.
+    # The existing is UnknownPrefecture_in_UK, hence anywhere in the UK should match.
+    perth_uk  = places( :perth_uk )
+    perth_aus = places( :perth_aus )
+    assert_equal music_light, Music.find_by_title_plus(["naiyo"*3, "光123"])  # Template
+    assert_equal music_light, Music.find_by_title_plus(["naiyo"*3, "光123"], place: nil)
+    assert_equal music_light, Music.find_by_title_plus(["naiyo"*3, "光123"], place: Place.unknown)
+    assert_equal music_light, Music.find_by_title_plus(["naiyo"*3, "光123"], place:    perth_uk)
+    assert_equal music_light, Music.find_by_title_plus(["naiyo"*3, "光123"], place_id: perth_uk.id)
+    assert_nil                Music.find_by_title_plus(["naiyo"*3, "光123"], place:    perth_aus)
+    assert_nil                Music.find_by_title_plus(["naiyo"*3, "光123"], place_id: perth_aus.id)
+
+    # With a different year from the existing, nothing is matched.
+    assert_equal music_light, Music.find_by_title_plus(["naiyo"*3, "光123"], year: nil)
+    assert_nil                Music.find_by_title_plus(["naiyo"*3, "光123"], year: 1877)
+
+    # With a different Genre from the existing, it still matches.
+    genre_classic = genres( :genre_classic )
+    assert_equal music_light, Music.find_by_title_plus(["naiyo"*3, "光123"], genre: nil)
+    assert_equal music_light, Music.find_by_title_plus(["naiyo"*3, "光123"], genre: Genre.unknown)
+    assert_equal music_light, Music.find_by_title_plus(["naiyo"*3, "光123"], genre: genre_classic)
+    assert_equal music_light, Music.find_by_title_plus(["naiyo"*3, "光123"], genre_id: genre_classic.id)
+  end
+
+  test "self.find_all_by_title_plus with joins" do
+    art_pro = artists :artist_proclaimers
+    music_light = musics :music_light
+    music_light_en = translations :music_light_en
+    place_uk_unknown = places :unknown_place_unknown_prefecture_uk
+    genre_pop = genres :genre_pop
+
+    music =                   Music.find_by_title_plus(["Light"], artists: art_pro, match_method_upto: :include)
+    assert_equal music_light, music
+    rela = Music.find_all_by_title_plus(["Light"], artists: art_pro, match_method_upto: :include)
+    assert_equal    1,       rela.count
+    rela = Music.find_all_by_title_plus(["Ligh"],  artists: art_pro, match_method_upto: :include)
+    assert_equal    1,       rela.count
+
+    tra_new = Translation.new(langcode: 'en', title: 'Lighting, The')
+    mu_new = Music.new
+    mu_new.unsaved_translations << tra_new
+    mu_new.save!
+    mu_new.artists << artists( :artist2 )
+    assert_equal    2, Translation.select_regex(:title, /Light/, translatable_type: 'Music').size # Providing there are no new Fixtures that contain this name!
+    rela = Music.find_all_by_title_plus(["Lighting"],                match_method_upto: :include)
+    assert_equal    1,       rela.count
+    rela = Music.find_all_by_title_plus(["Light"],                   match_method_from: :include, match_method_upto: :include)
+    assert_equal    2,       rela.count
+    rela = Music.find_all_by_title_plus(["Light"], [:title, :alt_title, :ruby], artists: art_pro, match_method_from: :include, match_method_upto: :include)
+    assert_equal    1,       rela.count
+    assert_equal music_light, rela.first
+    assert_nil Music.find_by_title_plus(["Light"], [:ruby, :alt_romaji], artists: art_pro, match_method_from: :include, match_method_upto: :include)
+  end
+
+  test "populate_csv" do
+    strin = <<EOF
+ # comment
+1:1/20[20th],糸,,Ito,Thread,1992,,,Miyuki Nakajima,ja,クラシック,compo,one of the longest hits of J-Pop
+2:2/20[19th],Shake,,,Shake,1996,,,SMAP,en
+3,子守唄,コモリウタ,Komoriuta,,,香川県,,,en,
+# ja-title with no en-title but with "en" means ja-title has is_orig=false.
+   
+EOF
+
+    assert       artists(:artist_unknown).id
+    assert_equal artists(:artist_unknown), Artist.unknown
+    reths = nil
+    mus_ito = nil
+    mus_shake = nil
+    art_nakajima = nil
+    assert_difference('Translation.count*1000 + Music.count*100 + Artist.count*10 + Engage.count*1', 7323) do # Because the 3rd row is Artist.unknown, which already exists.
+      reths = Music.populate_csv(strin)
+    end
+    begin
+      assert_equal 3, reths[:musics].compact.size
+      assert_equal 3, reths[:artists].compact.size
+      assert_equal 3, reths[:engages].compact.size
+
+      mus = reths[:musics][1]
+      mus_ito = mus
+      assert_equal 'Thread', mus.title(langcode: 'en')
+      assert_equal '糸',     mus.title(langcode: 'ja')
+      assert_equal 'Ito',    mus.romaji(langcode: 'ja')
+      assert_equal 'one of the longest hits of J-Pop', mus.note
+      assert_equal genres(:genre_classic), mus.genre, 'Regexp match should work for Genre, but?'
+      mus.reload  # Essential!
+      tras = mus.best_translations
+      assert_equal true,  tras['ja'].is_orig
+      assert_equal false, tras['en'].is_orig
+      assert_equal places(:unknown_place_unknown_prefecture_japan), mus.place
+
+      art = reths[:artists][1]
+      art_nakajima = art
+      assert_equal 'Miyuki Nakajima', art.title(langcode: 'en')
+      assert_equal places(:unknown_place_unknown_prefecture_japan), art.place
+      assert_nil   art.note
+
+      eng = reths[:engages][1]
+      assert_equal engage_hows(:engage_how_composer), eng.engage_how, 'Regexp match should work for EngageHow, but?'
+
+      mus = reths[:musics][2]
+      mus_shake = mus
+      assert_equal 'Shake', mus.title(langcode: 'en')
+      assert_equal 'Shake', mus.title(langcode: 'ja')
+      assert_nil            mus.romaji(langcode: 'ja')
+      assert_nil   mus.note
+      mus.reload  # Essential!
+      tras = mus.best_translations
+      assert_equal false, tras['ja'].is_orig
+      assert_equal true,  tras['en'].is_orig
+      assert_equal Place.unknown, mus.place
+
+      art = reths[:artists][2]
+      assert_equal 'SMAP', art.title(langcode: 'en')
+      assert_equal Place.unknown, art.place
+
+      ### Row 3 (0th line is skipped)
+      art = reths[:artists][3]
+      assert_equal Artist.unknown, art
+
+      mus = reths[:musics][3]
+      mus.reload
+      assert_nil   mus.title(langcode: 'en')
+      assert_equal '子守唄', mus.title(langcode: 'ja')
+      assert_equal '子守唄', mus.title
+      tras = mus.best_translations
+      assert_equal false,  tras['ja'].is_orig
+      assert_equal 'コモリウタ', tras['ja'].ruby
+      assert_equal 'Komoriuta',  tras['ja'].romaji
+      assert_equal genres(:genre_pop),  mus.genre
+      assert_equal places(:unknown_place_kagawa_japan), mus.place
+      assert_nil   mus.year
+      engs = mus.engages
+      assert_equal 1, engs.count
+      assert_nil      engs[0].year
+      assert_equal EngageHow.unknown, engs[0].engage_how
+    end
+
+    # Second time with "basically" the same file.
+    assert_difference('Translation.count*1000 + Music.count*100 + Artist.count*10 + Engage.count*1', 0) do
+      mus_ito.reload
+      mus_ito.place = Place.unknown
+      mus_ito.save!
+      mus_ito.reload
+      assert_equal Place.unknown, mus_ito.place
+      mus_shake.reload
+      mus_shake.best_translations['en'].destroy!
+
+      reths = Music.populate_csv(strin.sub(/Thread/, 'The thread'))
+      mus_ito.reload
+      assert_equal 'Thread', mus_ito.title(langcode: 'en'), 'Title should not be updated, but?'
+      assert_equal places(:unknown_place_unknown_prefecture_japan), mus_ito.place, 'World-Unknown place should be updated, but?'
+      mus = reths[:musics][2]
+      mus.reload
+      tra = mus.best_translations['en']
+      assert_equal 'Shake', tra.title
+      assert_equal false,   tra.is_orig, 'is_orig should not be updated, but?'
+    end
+
+    assert_difference('Translation.count*1000 + Music.count*100 + Artist.count*10 + Engage.count*1', 1101) do
+      new_strin = ",てきとう1,\n" # (1st) ruby is added; (3rd) an English title is added
+      reths = Music.populate_csv(new_strin)
+    end
+
+    ##### Test: If a line contains invalid characters, the DB should roll back.
+    ##
+    ## Music.populate_csv() handles such CSV without trouble up to the line before
+    ## the problematic line (String#each_line does not raise an Exception
+    ## due to invalid encoding).
+    ## So, some data before the line are saved in the DB even in such cases,
+    ## where an Exception is raised.
+    ## If everything was inside a transaction, everything should rollback
+    ## even in such cases, leaving no changes in the DB. However,
+    ## for some reason, "transaction" does not work well here in Rails 6.1
+    ## (see comment lines in music.rb for detail).  Therefore
+    ## I leave it; n.b., the records before the problematic lines are saved
+    ## regardless what happens later in processing.
+    ##
+    ## Note that the invalid encoding is checked in the Controller.
+    ## So, the lack of this safety-net may cause a trouble only when
+    ## an unexpected Exception is encountered.
+    ##
+    #assert_difference('Translation.count*1000 + Music.count*100 + Artist.count*10 + Engage.count*1', 0) do
+    #  str_invalid = (",Tekito2,\n"+[0x80, 0x81].pack('C*')+','+"\n").force_encoding('UTF-8')
+    #  assert_not str_invalid.valid_encoding?
+    #  begin
+    #    reths = Music.populate_csv(str_invalid)
+    #  rescue
+    #  end
+    #end
+
+    # Third time with an added Translation to an existing row
+    assert_difference('Translation.count*1000 + Music.count*100 + Artist.count*10 + Engage.count*1', 2000) do
+      new_strin = strin.sub(/Komoriuta,/, '\&Lullaby').sub(/糸,/, '\&イト').sub(/,SMAP/, 'SMAP\&') # (1st) ruby is added; (2nd) a Ja artist is added, (3rd) an English title is added
+      reths = Music.populate_csv(new_strin)
+      assert_equal 'Lullaby', Music['子守唄'].title(langcode: 'en')
+    end
+  end
+
+  test "populate_csv erroneous cases" do
+    strin = <<EOF
+ # comment
+1,,,Ito,Thread,,,,It is英語であるべきArtist,ja,,,Music is not processed b/c Artist is invalid
+2,,,,Shake,should be a number,,SMAP男,,,wrong-Genre,wrong-How,
+3,,,Ito,En Title contains 日本語,,,,,ja,,,Music is tried to be processed but invalid
+EOF
+
+    reths = nil
+    # guess_sex(instr)??
+    mus_wrong = nil
+    mus_shake = nil
+    art_wrong = nil
+    assert_difference('Translation.count*1000 + Music.count*100 + Artist.count*10 + Engage.count*1', 2111) do
+      # For the second row (Shake/SMAP男), Artist/Music/Engage are craeted. That is it.
+      reths = Music.populate_csv(strin)
+    end
+    begin
+      ### Row 1 (0th line is skipped)
+      art = reths[:artists][1]
+      assert  art.new_record?, "art="+art.inspect
+      assert_match(/Asian char/,  art.errors.full_messages_for(:title)[0]) # "Translation(1st): contains Asian characters (英語であるべき)"
+      assert_nil reths[:musics][1] # b/c Artist raises an Error
+
+      ### Row 2 (0th line is skipped)
+      art = reths[:artists][2]
+      assert_not   art.errors.present?
+      assert_nil   art.title(langcode: 'en')
+      assert_equal 'SMAP男', art.title(langcode: 'ja')
+      assert_equal 'SMAP男', art.title
+      assert_equal 'ja',     art.orig_langcode
+      art.reload
+      assert_equal places(:unknown_place_unknown_prefecture_japan), art.place
+      assert_equal Sex[:male], art.sex, 'Sex should be guessed to be male but'
+
+      mus = reths[:musics][2]
+      assert_equal 'Shake', mus.title(langcode: 'en')
+      assert_equal 'Shake', mus.title
+      mus.reload
+      tras = mus.best_translations
+      assert_equal true,  tras['en'].is_orig
+      assert_equal Genre.unknown,  mus.genre
+      assert_equal places(:unknown_place_unknown_prefecture_world), mus.place
+      assert_nil   mus.year
+      engs = mus.engages
+      assert_equal 1, engs.count
+      assert_nil      engs[0].year
+      assert_equal EngageHow.unknown, engs[0].engage_how
+
+      ### Row 3 (0th line is skipped)
+      art = reths[:artists][3]
+      assert_equal Artist.unknown, art
+
+      mus = reths[:musics][3]
+      assert  mus.errors.present?
+      assert_match(/Asian char/,  mus.errors.full_messages_for(:title)[0]) # "Translation(1st): contains Asian characters (英語であるべき)"
+      assert_nil   mus.title(langcode: 'en')
+
+      assert_equal 2, reths[:musics].compact.size
+      assert_equal 3, reths[:artists].compact.size
+      assert_equal 1, reths[:engages].compact.size
+    end
+
+    assert_raises(CSV::MalformedCSVError){
+      reths = Music.populate_csv('a, bcd "ef" g, hi') } # wrong double quotations
+  end
+
+end
+

@@ -1,0 +1,62 @@
+# == Schema Information
+#
+# Table name: prefectures
+#
+#  id                                                           :bigint           not null, primary key
+#  end_date                                                     :date
+#  iso3166_loc_code(ISO 3166-2:JP (etc) code (JIS X 0401:1973)) :integer
+#  note                                                         :text
+#  orig_note(Remarks by HirMtsd)                                :text
+#  start_date                                                   :date
+#  created_at                                                   :datetime         not null
+#  updated_at                                                   :datetime         not null
+#  country_id                                                   :bigint           not null
+#
+# Indexes
+#
+#  index_prefectures_on_country_id        (country_id)
+#  index_prefectures_on_iso3166_loc_code  (iso3166_loc_code) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (country_id => countries.id) ON DELETE => cascade
+#
+
+unknown_prefecture_earth:
+  country: earth
+  note: NoteEarth
+
+unknown_prefecture_world:
+  country: country_world
+  note: UnknownPrefectureWorld
+
+prefecture_tokyo_in_world:
+  country: country_world
+  note: TokyoInWorld ie NotInJapan
+
+unknown_prefecture_japan:
+  country: japan
+  note: NoteJapan
+
+tokyo:
+  country: japan
+  note: NoteTokyo
+  iso3166_loc_code: 13
+
+kagawa:
+  country: japan
+  note: NoteKagawa
+  iso3166_loc_code: 37
+
+unknown_prefecture_uk:
+  country: uk
+  note: NoteUk
+
+unknown_prefecture_aus:
+  country: aus
+  note: NoteAus
+
+liverpool:
+  country: uk
+  note: NoteLiverpool
+

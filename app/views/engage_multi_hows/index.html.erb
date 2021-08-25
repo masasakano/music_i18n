@@ -1,0 +1,124 @@
+<p id="notice"><%= notice %></p>
+
+<% if @engage.errors.any? %>
+  <div id="error_explanation">
+    <h2><%= pluralize(@engage.errors.count, "error") %> prohibited an Engage(s) from being saved:</h2>
+
+    <ul>
+      <% @engage.errors.each do |error| %>
+        <li><%= error.full_message %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+
+<% artist_title = @artist.title_or_alt %>
+<h1>Engages for Music=(<%= link_to @music.title_or_alt, @music %>) by <%= link_to artist_title, @artist %></h1>
+
+<% n_engages = @engages.count %>
+<% n_engage_others = @engage_others.count %>
+
+<%= simple_form_for @engage, url: engage_multi_hows_url do |form| %>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Artist</th>
+        <th>How?</th>
+        <th>Year</th>
+        <th>Contribution</th>
+        <th>Note</th>
+        <th title="Number of associations to Harami1129">NumLinks</th>
+        <th title="Check this (or these) and submit to destroy (or replace) the record. Note if a dependent (=NumLinks) exists and when an Engage(s) is deleted, the association will be replaced with another one.">Destroy</th>
+              <% msg = +((n_engages > 0) ? 'this' : 'another')+'Artist' %>
+        <th>Engage</th>
+        <th></th>
+      </tr>
+    </thead>
+  
+    <tbody>
+      <% @engages.each do |engage| %>
+        <tr>
+          <td><%= engage.id %></td>
+          <td><%= artist_title %></td>
+          <td><%= engage_how = engage.engage_how; link_to engage_how.title_or_alt, engage_how %></td>
+          <% %i(year contribution note).each do |kwd| %>
+            <td><%= form.input kwd, label: false, required: false, input_html: {id: ['engage', kwd, engage.id].join('_'), name: sprintf('engage[%s_%d]', kwd.to_s, engage.id), value: engage.send(kwd)} %></td>
+          <% end %>
+          <td><%= engage.harami1129s.count %>
+            <% if current_user.moderator? %>
+              (<%= engage.harami1129s.map.with_index{|h, i| link_to i+1, harami1129_path(h)+'#harami1129_show_Engage', title: sprintf('ID=%d', h.id)}.join(', ').html_safe %>)
+            <% end %>
+          </td>
+          <td>
+              <% kwd = :to_destroy %>
+              <%= form.input kwd, label: false, required: false, as: :boolean, checked_value: true, unchecked_value: false, checked: false, input_html: {id: ['engage', kwd, engage.id].join('_'), name: sprintf('engage[%s_%d]', kwd.to_s, engage.id)} %>
+          </td>
+          <td><%= link_to 'Show', engage %></td>
+          <% if current_user.sysadmin? %>
+          <td>
+            <% if engage.harami1129s.exists? && (n_engages + n_engage_others > 1) %>
+              <% msg = 'Will be replaced with another one of '+((n_engages > 0) ? 'this' : 'another')+'Artist' %>
+              <%= link_to 'Destroy(Admin-only)', engage, method: :delete, url: engage_url(engage), data: { confirm: 'Are you sure?' } %>
+            <% else %>
+              <span title="Cannot be destroyed because this entry has a dependent Harami1129(s) and there are no other Engages.">Destroy(Admin-only)</span>
+            <% end %>
+          </td>
+          <% end %>
+        </tr>
+      <% end %>
+
+      <tr>
+        <td colspan="8"><strong>New engagement (if any)</strong></td>
+      </tr>
+      <tr>
+        <td></td>
+        <td><%= artist_title %></td>
+        <td><%= form.input :engage_how, label: 'EngageHow(複数可)', collection: EngageHow.all.order(:weight).map{|i| [i.title(langcode: 'ja'), i.id]}, required: false, prompt: "Please select", input_html: { multiple: true } %></td>
+        <td><%= form.input :year, required: false %></td>
+        <td><%= form.input :contribution, label: 'Contribution(0.0-1.0)', required: false %></td>
+        <td><%= form.input :note %></td>
+      </tr>
+  
+      <tr>
+        <td colspan="8"><strong>Engagement by other artists</strong></td>
+      </tr>
+      <% @engage_others.each do |engage| %>
+        <tr>
+          <td><%= engage.id %></td>
+          <td><%= link_to engage.artist.title_or_alt, engage.artist %></td>
+          <td><%= engage_how = engage.engage_how; link_to engage_how.title_or_alt, engage_how %></td>
+          <td><%= engage.year ? engage.year : '&mdash;'.html_safe %></td>
+          <td><%= engage.contribution ? engage.contribution : '&mdash;'.html_safe %></td>
+          <td><%= engage.note %></td>
+          <td><%= engage.harami1129s.count %></td>
+          <td></td>
+          <td><%= link_to 'Show', engage %></td>
+          <% if current_user.sysadmin? %>
+            <td><%= link_to 'Destroy(Admin)', engage, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+          <% end %>
+        </tr>
+      <% end %>
+      <% if !@engage_others.exists? %>
+      <tr>
+        <td></td>
+        <td colspan="7">None</td>
+      </tr>
+      <% end %>
+      <tr>
+        <td></td>
+        <td colspan="7">Or, <%= link_to 'create an association', new_engage_path(music_id: @music.id) %> for another Artist.</td>
+      </tr>
+    </tbody>
+  </table>
+  <%= form.hidden_field :artist_id, :value => @artist.id %>
+  <%= form.hidden_field :music_id,  :value => @music.id %>
+  <%= form.submit "Submit"%>
+<% end %>
+<% if (n_engages == 1) && (n_engage_others == 0) && @engages[0] && @engages[0].harami1129s.exists? %>
+  <p>
+    <em>Note</em>: If you want to destroy the (sole) Engage, you must first create another Engage, because the existing one has a dependent Harami1129(s).
+      If you are sure the Harami1129(s) should have no Engage whatsoever, meaning neither Artist nor Music, go to <%= link_to 'Harami1129', edit_harami1129_url(@engages[0].harami1129s[0]) %> and destroy it (first).
+  </p>
+<% end %>
+

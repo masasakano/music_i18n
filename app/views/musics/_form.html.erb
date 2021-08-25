@@ -1,0 +1,112 @@
+  <% if music.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(music.errors.count, "error") %> prohibited this music from being saved:</h2>
+
+      <ul>
+        <% music.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+<% if ! music.new_record? %>
+<hr>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: music, add_buttons: true} %>
+<hr>
+
+<h2>Unique parameters</h2>
+<% end %>
+
+<%= form_with(model: music, local: true) do |form| %>
+
+  <% if music.new_record? %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: form, model: music, trans: Translation.new, disable_is_orig: true} %>
+  <% end %>
+
+  <div class="field" id="div_select_country">
+    <%= form.label 'place.prefecture_id.country_id', 'Country'%>
+    <% country = music.country %>
+    <%= form.collection_select 'place.prefecture_id.country_id', @countries, :id, Proc.new{|i| i.title_or_alt(langcode: 'ja', prefer_alt: true)}, {include_blank: !country, selected: (country ? country.id : nil)} %>
+  </div>
+
+  <div class="field" id="div_select_prefecture">
+    <%= form.label 'place.prefecture_id' %>
+    <% prefecture = music.prefecture %>
+    <%= form.grouped_collection_select 'place.prefecture_id', @countries, :prefectures, Proc.new{|i| i.title_or_alt(langcode: 'ja', prefer_alt: true)}, :id, Proc.new{|i| i.title_or_alt(langcode: 'ja', prefer_alt: true)}, {include_blank: true, selected: (prefecture ? prefecture.id : nil)} %>
+  </div>
+
+  <div class="field" id="div_select_place">
+    <%= form.label :place_id %>
+    <% place = music.place %>
+    <%= form.grouped_collection_select 'place', @prefectures, :places, Proc.new{|pref| a=pref.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true); a[0]+'/'+a[1]}, :id, Proc.new{|plac| plac.title_or_alt(langcode: 'ja', prefer_alt: true)}, {include_blank: true, selected: (place ? place.id : nil)} %>
+  </div>
+
+  <div class="field">
+    <%= form.label :genre, 'ジャンル' %>
+    <%= form.collection_select :genre_id, Genre.all.order(:weight), :id, Proc.new{|i| i.title(langcode: 'ja')}, include_blank: true %>
+  </div>
+
+  <div class="field">
+    <%= form.label :year %>
+    <%= form.number_field :year %>
+  </div>
+
+  <div class="field">
+    <%= form.label :note %>
+    <%= form.text_area :note %>
+  </div>
+
+  <% if music.new_record? %>
+    <div class="field">
+      <% label_artist = sprintf 'Associated Artist name %s', (music.new_record? ? '' : 'to add ')%>
+      <%= form.label 'artist_name', label_artist %>
+      <% if @artist_name  %>
+        <%= form.text_field 'artist_name', value: @artist_name, disabled: true %>
+      <% else %>
+        <%= form.text_field 'artist_name', placeholder: 'eg., "欅坂46", "Beatles, The", "The Beatles"' %>
+        <%= content_tag :div, '', id: 'suggestions', data: {items: Artist.titles_for_form} %>
+      <% end%>
+    </div>
+
+    <div class="field">
+      <%= form.label :engage_hows, label: 'EngageHow(複数可)' %>
+      <%= form.collection_select :engage_hows, EngageHow.all.order(:weight), :id, Proc.new{|i| i.title(langcode: 'ja')}, {include_blank: true}, {multiple: true} %>
+    </div>
+
+    <div class="field">
+      <%= form.label :year_engage, 'Year of engagement', title: 'Year (In default, set the same as Year for Music)' %>
+      <%= form.number_field :year_engage %>
+    </div>
+
+    <div class="field">
+      <%= form.label :contribution, 'Contribution(0.0-1.0)' %>
+      <%= form.text_field :contribution %>
+    </div>
+  <% end %>
+
+  <div class="actions">
+    <%= form.submit %>
+  </div>
+  <div class="actions">
+  <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  </div>
+<% end %>
+
+<p>
+<%= link_to 'Show', @music %> |
+<%= link_to 'Back', musics_path %>
+</p>
+
+<% if ! music.new_record? %>
+  <hr>
+  <%= render partial: 'artists_table', locals: {music: @music, add_buttons: true} %>
+  
+  <hr>
+  <%= render partial: 'harami_vids_table', locals: {music: music, add_buttons: true} %>
+  <hr>
+<% end %>
+
+<%= javascript_pack_tag 'dropdown_music' %>
+<%= javascript_pack_tag 'autocomplete_music_artist' %>
+

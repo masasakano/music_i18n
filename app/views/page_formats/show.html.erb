@@ -1,0 +1,19 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Mname:</strong>
+  <%= @page_format.mname %>
+</p>
+
+<p>
+  <strong>Description:</strong>
+  <%= @page_format.description %>
+</p>
+
+<p>
+  <strong>Note:</strong>
+  <%= @page_format.note %>
+</p>
+
+<%= link_to 'Edit', edit_page_format_path(@page_format) %> |
+<%= link_to 'Back', page_formats_path %>

@@ -1,0 +1,57 @@
+# == Schema Information
+#
+# Table name: harami_vids
+#
+#  id                                                                                     :bigint           not null, primary key
+#  duration(Total duration in seconds)                                                    :float
+#  flag_by_harami(True if published/owned by Harami)                                      :boolean
+#  note                                                                                   :text
+#  release_date(Published date of the video)                                              :date
+#  uri((YouTube) URI of the video)                                                        :text
+#  uri_playlist_en(URI option part for the YouTube comment of the music list in English)  :string
+#  uri_playlist_ja(URI option part for the YouTube comment of the music list in Japanese) :string
+#  created_at                                                                             :datetime         not null
+#  updated_at                                                                             :datetime         not null
+#  place_id(The main place where the video was set in)                                    :bigint
+#
+# Indexes
+#
+#  index_harami_vids_on_place_id      (place_id)
+#  index_harami_vids_on_release_date  (release_date)
+#  index_harami_vids_on_uri           (uri) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (place_id => places.id)
+#
+
+harami_vid1:
+  release_date: 2020-10-29
+  duration: 
+  uri: youtu.be/harami_vid1
+  place: 
+  flag_by_harami: true
+  uri_playlist_ja: MyString
+  uri_playlist_en: MyString
+  note: HaramiVid1
+
+harami_vid2:
+  release_date: 2020-10-30
+  duration: 180.0
+  uri: youtu.be/harami_vid2
+  place: tocho
+  flag_by_harami: true
+  uri_playlist_ja: MyString
+  uri_playlist_en: MyString
+  note: HaramiVid2
+
+harami_vid_50anni:
+  release_date: 
+  duration: 
+  uri: youtu.be/RrJqQ789
+  place: 
+  flag_by_harami: true
+  uri_playlist_ja: 
+  uri_playlist_en: 
+  note: HaramiVid50anniversary, title modified
+

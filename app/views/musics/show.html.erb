@@ -1,0 +1,64 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Music: <%= @music.title_or_alt %> (by <%= @music.artists.first.title_or_alt rescue 'Unknown' %><%= sprintf(", %d年", @music.year) if @music.year %>)</h1>
+
+<hr>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @music} %>
+<hr>
+
+<% if current_user && current_user.an_admin? %>
+<p>
+  <strong>ID(Admin):</strong>
+  <%= @music.id %>
+</p>
+<% end %>
+
+<p>
+  <strong>Year:</strong>
+  <%= @music.year %>
+</p>
+
+<p>
+  <strong>県・場所 (国):</strong>
+  <%= ar = @music.place.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true);
+      sprintf '%s %s(%s)', ar[1], (ar[0].blank? ? '' : '— '+ar[0]+' '), ar[2] %>
+</p>
+
+<p>
+  <strong><%= can?(:update, Genre) ? (link_to 'Genre', genres_url) : 'Genre' %>:</strong>
+  <%= sprintf('%s [%s]', *(%w(ja en).map{|i| @music.genre.title(langcode: i) || ''})) rescue 'nil' %>
+</p>
+
+<p>
+  <strong><%= link_to 'Harami Vids', harami_vids_url %>:</strong>
+  <%= sprintf '%d回', @music.harami_vids.count %>
+  <% if false %>
+  <%= hs = @music.harami_vids.map{|i| [i.id, i.release_date]}.to_h;
+        sprintf('%d回 [%s]', hs.size, hs.map{|k,v| link_to v, harami_vid_url(k)}.join(', ')).html_safe %>
+  <% end %>
+</p>
+
+<p>
+  <strong>Note:</strong>
+  <%= @music.note %>
+</p>
+
+<% if can? :update, @music %>
+  <%= link_to 'Edit', edit_music_path(@music) %> |
+<% end %>
+<%= link_to 'Back', musics_path %>
+<% if can? :destroy, @music %>
+  <br>
+  <%= link_to 'Destroy', @music, method: :delete, data: { confirm: 'Are you sure?' } %>
+<% end %>
+
+<hr>
+
+<%= render partial: 'artists_table', locals: {music: @music, add_buttons: true} %>
+
+<hr>
+
+<%= render partial: 'harami_vids_table', locals: {music: @music, add_buttons: true} %>
+
+<hr>
+

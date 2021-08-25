@@ -1,0 +1,120 @@
+<p id="alert"><%= alert %></p>
+<p id="notice"><%= notice %></p>
+
+<h1>Harami1129s</h1>
+
+<% if Harami1129sController::URI2FETCH.blank? %>
+  <span style="color: red">WARNING: Remote Server is not defined. The data cannot be refreshed. Contact the site administrator.</span>
+<% end %>
+
+<% if false %>
+  NOTE to Developer:
+  This section should be rewritten, taking into consideration @alert and Flash messages.
+<% end %>
+<% if @msg %>
+  <% if !@num_errors %>
+    <div id="error_explanation">
+      <h2>Complete failure in downloading:</h2>
+      <div id="error_explanation_content">
+      <p><%= sanitize @msg %></p>
+      </div>
+    </div>
+  <% else %>
+    <div id="harami1129_remote_data_fetching">
+      <h2>Data fetched from the
+        <% if Harami1129sController::URI2FETCH.blank?  %>
+          [NO DEFINED SERVER]
+        <% else %>
+          <%= link_to 'remote server', Harami1129sController::URI2FETCH %>
+        <% end %>:</h2>
+      <div id="harami1129_remote_data_fetching_content">
+      <p><% "abcdefefghik" %></p>
+      <p><%= sanitize @msg %></p>
+      </div>
+    <% if @last_err %>
+      <div id="error_explanation">
+        <h2>Something wrong in downloading happened:</h2>
+        <div id="error_explanation_content">
+        <h3>Last error:</h3>
+        <p><%= sanitize @last_err %></p>
+        </div>
+      </div>
+    <% end %>
+    </div>
+  <% end %>
+<% end %>
+
+<% if user_signed_in? %> <%# should be redundant %>
+  <hr>
+<div id="form_download_data">
+  <h3>Update the data by downloading</h3>
+<div id="inside_form_download_data">
+<%= form_with(url: new_harami1129s_download_harami1129s_path, method: 'GET') do |form| %>
+  <div class="actions">
+    <% if current_user.an_admin? %>
+      <div class="form_download_data_options">
+        DEBUG?
+      <%= form.radio_button(:debug, '1', checked: false) %>
+      <%= form.label        :debug, 'Yes', value: '1' %>
+      <%= form.radio_button(:debug, '0', checked: true) %>
+      <%= form.label        :debug, 'No',  value: '0' %>
+    <% end %>
+    <%= form.label      :max_entries_fetch, 'Max number of entries to download (Def: -99 meaning all)' %>
+    <%= form.text_field :max_entries_fetch,  value: -99 %><br>
+    <%= form.radio_button(:step_to, Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_STEP[:download], checked: false) %>
+    <%= s = Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_STEP[:download]; form.label :step_to, s.capitalize, value: s %>
+    <%= form.radio_button(:step_to, Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_STEP[:internal_insert], checked: false) %>
+    <%= s = Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_STEP[:internal_insert]; form.label :step_to, s.capitalize, value: s %>
+    <%= form.radio_button(:step_to, Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_STEP[:populate], checked: true) %>
+    <%= s = Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_STEP[:populate]; form.label :step_to, s.capitalize, value: s %>
+    </div>
+    <%= submit_tag "Download data", :name => Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_SUBMIT_NAME, :class => "btn btn-info"%>  (For some reason, this button does not refresh the page (so you have to reload it manually, which reverts the Download parameters back to the default)... Try <%= link_to 'this link', new_harami1129s_download_harami1129s_path+'?debug=true&max_entries_fetch=-99' %> instead (to download all)?   Or, <%= link_to 'Back to Home', root_path, data: { turbolinks: false } %>)
+  </div>
+<% end %>
+<% if false %>
+  NOTE to Developer:
+  Options may be given for the user (admin): Download, Download+Insert_within, Download+Insert_within+Inject_all.
+  Maybe the selection is passed to GET/params and Controllers will redirect_to a different destination according to it.
+<% end %>
+</div>
+</div>
+
+<div id="form_insert_data">
+<div id="inside_form_insert_data">
+<%= form_with(model: @harami1129s, url: harami1129s_internal_insertions_path) do |form| %>
+  <div class="actions">
+    <%= submit_tag "Insert within Table", :name => Harami1129sController::FORM_SUBMIT_INSERTION_WITHIN_NAME, :class => "btn btn-info", title: 'Fill the imported columns with the downloaded data.' %> (This makes sense only after you have chosen and done &quot;download&quot; above but nothing else.)
+  </div>
+<% end %>
+</div>
+</div>
+<hr>
+<% end %>
+
+<p><strong>Notations of the table below</strong></p>
+
+<ul>
+  <% Harami1129::TABLE_STATUS_MARKER_DESCRIPTION.each_pair do |ek, desc| %>
+    <li><%= Harami1129::TABLE_STATUS_MARKER[ek].inspect+': '+desc %></li>
+  <% end %>
+</ul>
+<p>
+  The status is defined in each cell in each row; the first column shows the representative one (basically the worst one) of the row.
+</p>
+<p>
+  When there is an indication somthing is wrong in a row, the best way to check is to click <strong>Show</strong> from the right-most column to jump to the detailed information of each entry, where editing options are available.
+</p>
+
+<%= datagrid_form_for @grid, :method => :get, :url => harami1129s_path %>
+
+<%= paginate(@grid.assets) %>
+<%= datagrid_table @grid %>
+<%= paginate(@grid.assets) %>
+
+<p>Total entries: <%= @harami1129s.size %></p>
+
+<br>
+
+<% if current_user && current_user.sysadmin? %>
+  <%= link_to 'New Harami1129 entry', new_harami1129_path %>
+<% end %>

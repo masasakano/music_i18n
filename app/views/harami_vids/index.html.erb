@@ -1,0 +1,63 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Harami Vids</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Published date</th>
+      <th>Title</th>
+      <th>Uri</th>
+      <th>Duration</th>
+      <th>Place</th>
+      <th>Flag by harami</th>
+      <th>Uri playlist ja</th>
+      <th>Uri playlist en</th>
+      <th>n_Musics</th>
+      <th>Note</th>
+      <% if can? :update, HaramiVid %>
+        <th colspan="3"></th>
+      <% else %>
+        <th></th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @harami_vids.each do |harami_vid| %>
+      <tr>
+        <td><%= harami_vid.release_date %></td>
+        <td><%= harami_vid.title %></td>
+        <td><%= link_to_youtube harami_vid.uri %></td>
+        <td><%= harami_vid.duration %></td>
+        <td><%= ar = harami_vid.place
+                if !ar
+                  ""  # should not happen
+                else
+                  ar = ar.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true);
+                  sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture['ja'] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2]
+                end %>
+             </td>
+        <td><%= harami_vid.flag_by_harami %></td>
+        <td><%= harami_vid.uri_playlist_ja %></td>
+        <td><%= harami_vid.uri_playlist_en %></td>
+        <td><%= harami_vid.musics.count %></td>
+        <td><%= harami_vid.note %></td>
+        <td><%= link_to 'Show', harami_vid %></td>
+        <% if can? :update, harami_vid  %>
+          <td><%= link_to 'Edit', edit_harami_vid_path(harami_vid) %></td>
+        <% end %>
+        <% if can? :destroy, harami_vid %>
+          <td><%= link_to 'Destroy', harami_vid, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<% if can? :create, HaramiVid %>
+  <%= link_to 'New Harami Vid', new_harami_vid_path %>
+<% end %>
+

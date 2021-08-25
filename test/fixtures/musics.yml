@@ -1,0 +1,77 @@
+# == Schema Information
+#
+# Table name: musics
+#
+#  id         :bigint           not null, primary key
+#  note       :text
+#  year       :integer
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
+#  genre_id   :bigint           not null
+#  place_id   :bigint           not null
+#
+# Indexes
+#
+#  index_musics_on_genre_id  (genre_id)
+#  index_musics_on_place_id  (place_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (genre_id => genres.id)
+#  fk_rails_...  (place_id => places.id)
+#
+
+music1:
+  year: 
+  place: unknown_place_unknown_prefecture_japan
+  genre: genre_pop
+  note: Music1
+
+music2:
+  year: 1
+  place: unknown_place_unknown_prefecture_uk
+  genre: genre_classic
+  note: Music2
+
+music99:
+  year: 99
+  place: unknown_place_unknown_prefecture_uk
+  genre: genre_unknown
+  note: Music99
+
+music999:
+  year: 
+  place: unknown_place_unknown_prefecture_world
+  genre: genre_unknown
+  note: in UnknownPlace
+
+music_unknown:
+  year: 
+  place: unknown_place_unknown_prefecture_world
+  genre: genre_unknown
+  note: MusicUnknown
+
+music_how:
+  year: 1971
+  place: unknown_place_unknown_prefecture_world
+  genre: genre_pop
+  note: MusicHow
+
+music_story:
+  year: 
+  place: unknown_place_unknown_prefecture_world
+  genre: genre_unknown
+  note: Story by AI
+
+music_kampai:
+  year: 
+  place: unknown_place_unknown_prefecture_japan
+  genre: genre_pop
+  note: MusicKampai
+
+music_light:
+  year: 1994
+  place: unknown_place_unknown_prefecture_uk
+  genre: genre_pop
+  note: MusicLight
+

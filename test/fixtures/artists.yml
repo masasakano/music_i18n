@@ -1,0 +1,89 @@
+# == Schema Information
+#
+# Table name: artists
+#
+#  id          :bigint           not null, primary key
+#  birth_day   :integer
+#  birth_month :integer
+#  birth_year  :integer
+#  note        :text
+#  wiki_en     :text
+#  wiki_ja     :text
+#  created_at  :datetime         not null
+#  updated_at  :datetime         not null
+#  place_id    :bigint           not null
+#  sex_id      :bigint           not null
+#
+# Indexes
+#
+#  index_artists_birthdate    (birth_year,birth_month,birth_day)
+#  index_artists_on_place_id  (place_id)
+#  index_artists_on_sex_id    (sex_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (place_id => places.id)
+#  fk_rails_...  (sex_id => sexes.id)
+#
+
+artist1:
+  sex_id: 1
+  place: unknown_place_unknown_prefecture_japan
+  birth_year: 1
+  birth_month: 1
+  birth_day: 1
+  wiki_ja: MyText
+  wiki_en: MyText
+  note: Artist-1-UnknownPlaceUnknownPrefectureJapan
+
+artist2:
+  sex_id: 2
+  place: unknown_place_unknown_prefecture_uk
+  birth_year: 
+  birth_month: 12
+  birth_day: 25
+  wiki_ja: 
+  wiki_en: 
+  note: Artist-2-UnknownPlaceUnknownPrefectureUk-Lennon
+
+artist3:
+  sex_id: 2
+  place: unknown_place_unknown_prefecture_japan
+  birth_year: 
+  birth_month: 1
+  birth_day: 21
+  wiki_ja: ja.wikipedia.org/wiki/%E3%83%8F%E3%83%A9%E3%83%9F%E3%81%A1%E3%82%83%E3%82%93
+  wiki_en: 
+  note: Artist-3-UnknownPlaceUnknownPrefectureJapan-Harami
+
+artist99:
+  sex_id: 9
+  place: unknown_place_unknown_prefecture_uk
+  note: Artist-99-UnknownPlaceUnknownPrefectureUk
+
+artist_unknown:
+  birth_year:
+  birth_month:
+  birth_day: 
+  wiki_ja:
+  wiki_en:
+  sex_id: 0
+  place: unknown_place_unknown_prefecture_world
+  note: ArtistUnknown
+
+artist_ai:
+  sex_id: 9
+  place: unknown_place_unknown_prefecture_world
+  note: Artist-AI
+
+artist_rcsuccession:
+  sex_id: 9
+  place: unknown_place_unknown_prefecture_japan
+  note: Artist-RCサクセション
+
+artist_proclaimers:
+  sex_id: 9
+  birth_year: 1983
+  place: unknown_place_unknown_prefecture_uk
+  note: Artist-The-Proclaimers
+

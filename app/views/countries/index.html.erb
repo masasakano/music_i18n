@@ -1,0 +1,68 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Countries</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Name (ja)</th>
+      <th>Name (en)</th>
+      <th>Name (fr)</th>
+      <th title="ISO-3166-1 Alpha 2 code, JIS X 0304">A2</th>
+      <th title="ISO-3166-1 Alpha 3 code, JIS X 0304">A3</th>
+      <th title="ISO-3166-1 Numeric code, JIS X 0304">N3</th>
+      <% if can? :read, CountryMaster %>
+        <th title="Link to CountryMaster, the original record; if all the JA/EN (but ignoring FR) translations are the same, except for potentially added ones in Country, it is marked as Same, else Differ">Master</th>
+      <% end %>
+      <th title="Independent in ISO-3166-1">Independent?</th>
+      <th title="Territory name in ISO-3166-1">Territory</th>
+      <th title="Remarks in ISO-3166-1, 2, 3">Remark<br>(ISO3166-1,2,3)</th>
+      <th title="Remarks by HirMtsd">Remark<br>(by HirMtsd)</th>
+      <th>Start date</th>
+      <th>End date</th>
+      <th title="Note in this DB">Note</th>
+      <% if can? :update, Country %>
+        <th colspan="3"></th>
+      <% else %>
+        <th></th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @countries.each do |country| %>
+      <tr>
+        <td><%= country.id %></td>
+        <% btr = country.best_translations %>
+        <% %w(ja en fr).each do |lc| %>
+        <td><%= %w(title alt_title).map{|i| tra=btr[lc]; s=(tra && h(tra.send(i))); s.blank? ? '&mdash;' : s}.join(' | ').html_safe %></td>
+        <% end %>
+        <td><%= country.iso3166_a2_code %></td>
+        <td><%= country.iso3166_a3_code %></td>
+        <td><%= country.iso3166_n3_code %></td>
+        <% if can? :read, CountryMaster %>
+          <td><%= country.link_to_master %>
+        <% end %>
+        <td><%= country.independent.inspect %></td>
+        <td><%= country.territory %></td>
+        <td><%= country.iso3166_remark %></td>
+        <td><%= country.orig_note %></td>
+        <td><%= country.start_date %></td>
+        <td><%= country.end_date %></td>
+        <td><%= country.note %></td>
+        <td><%= link_to 'Show', country %></td>
+        <% if can? :update, country  %>
+          <td><%= link_to 'Edit', edit_country_path(country) %></td>
+        <% end %>
+        <% if can? :destroy, country %>
+          <td><%= link_to 'Destroy', country, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New Country', new_country_path %>

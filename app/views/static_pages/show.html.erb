@@ -1,0 +1,45 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Langcode:</strong>
+  <%= @static_page.langcode %>
+</p>
+
+<p>
+  <strong>Mname:</strong>
+  <%= @static_page.mname %>
+</p>
+
+<p>
+  <strong>Title:</strong>
+  <%= @static_page.title %>
+</p>
+
+<p>
+  <strong>Page format:</strong>
+  <%= link_to @static_page.page_format.mname, @static_page.page_format %>
+</p>
+
+<p>
+  <strong>Summary:</strong>
+  <%= @static_page.summary %>
+</p>
+
+<p>
+  <strong>Content:</strong>
+  <%= @static_page.content %>
+</p>
+
+<p>
+  <strong>Note:</strong>
+  <%= @static_page.note %>
+</p>
+
+Show Translation(<% %w(ja en).map{ |ea_lc|
+  model = StaticPage.find_by(langcode: ea_lc, mname: @static_page.mname)
+  model ? link_to(ea_lc, static_page_path(model)) : ea_lc }.join(' | ').html_safe %>) |
+<% if can? :update, @static_page %>
+  <%= button_to 'Edit', edit_static_page_path(@static_page), method: :get %>
+<% end %>
+<%= link_to 'Public view', StaticPagesController.public_path(@static_page) %> | 
+<%= link_to 'Back', static_pages_path %>

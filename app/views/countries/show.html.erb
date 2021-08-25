@@ -1,0 +1,60 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Country: <%= @country.title_or_alt %></h1>
+
+<hr>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @country} %>
+
+<% cm = @country.country_master %>
+<div class="show_or_hide" style="display: none;">
+  <h4>master names</h4>
+  <dl>
+    <% %w(ja en fr).each do |lcode| %>
+      <dt><%= BaseWithTranslation::LANGUAGE_TITLES[lcode.to_sym][lcode] || lcode %></dt>
+      <dd><%= [cm.send('name_'+lcode+'_full'), cm.send('name_'+lcode+'_short')].compact.join(' | ') %></dd>
+    <% end %>
+  </dl>
+  <p>
+  (……<a id="Link_show_or_hide" title="Show or hide" href="#">Show</a>)
+  </p>
+</div>
+<% if can? :show, cm %>
+  <p><%= link_to 'Show CountryMaster', country_master_path(cm) %></p>
+<% end %>
+<%= javascript_pack_tag 'show_or_hide' %>
+<hr>
+
+<dl>
+  <dt>ID</dt>
+        <dd><%= @country.id %></dd>
+  <dt>A2 (ISO-3166-1 Alpha 2 code, JIS X 0304)</dt>
+        <dd><%= @country.iso3166_a2_code %></dd>
+  <dt>A3 (ISO-3166-1 Alpha 3 code, JIS X 0304)</dt>
+        <dd><%= @country.iso3166_a3_code %></dd>
+  <dt>N3 (ISO-3166-1 Numeric code, JIS X 0304)</dt>
+        <dd><%= @country.iso3166_n3_code %></dd>
+  <% if can? :read, CountryMaster %>
+    <dt>CountryMaster (if all the JA/EN (but ignoring FR) translations are the same, except for potentially added ones in Country, it is marked as Same, else Differ)</dt>
+        <dd><%= @country.link_to_master %></dd>
+  <% end %>
+  <dt>Independent? (Independent in ISO-3166-1)</dt>
+        <dd><%= @country.independent.inspect %></dd>
+  <dt>Territory (Territory name in ISO-3166-1)</dt>
+        <dd><%= @country.territory %></dd>
+  <dt>Remark (ISO-3166-1, 2, 3)</dt>
+        <dd><%= @country.iso3166_remark %></dd>
+  <dt>Remarks by HirMtsd</dt>
+        <dd><%= @country.orig_note %></dd>
+  <dt>Start date</dt>
+        <dd><%= @country.start_date %></dd>
+  <dt>End date</dt>
+        <dd><%= @country.end_date %></dd>
+  <dt>Note:</dt>
+  <dd><%= @country.note %></dd>
+</dl>
+
+<% if can? :update, CountryMaster %>
+  <%= button_to 'Edit', edit_country_path(@country) %>
+  <br>
+<% end %>
+<%= link_to 'Back', countries_path %>

@@ -1,0 +1,2 @@
+module Harami1129sHelper
+end

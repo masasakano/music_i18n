@@ -1,0 +1,111 @@
+<%= form_with(model: translation, local: true) do |form| %>
+  <% if translation.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(translation.errors.count, "error") %> prohibited this translation from being saved:</h2>
+
+      <ul>
+        <% translation.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <% if ! @translation.new_record? %>
+    <p>
+      ID=<%= @translation.id %>
+    </p>
+  <% end %>
+
+  <div class="field">
+    <%= form.label :translatable_type %>
+    <%= form.text_field :translatable_type, readonly: !!@translation.translatable_type %>
+  </div>
+
+  <div class="field">
+    <%= form.label :translatable_id %>
+    <%= form.text_field :translatable_id, readonly: !!@translation.translatable_id %>
+  </div>
+
+  <div class="field">
+    <%= form.label :langcode %>
+    <%= form.text_field :langcode %>
+  </div>
+
+  <div class="field">
+    <%= form.label :title %>
+    <%= form.text_area :title %>
+  </div>
+
+  <div class="field">
+    <%= form.label :ruby %>
+    <%= form.text_area :ruby %>
+  </div>
+
+  <div class="field">
+    <%= form.label :romaji %>
+    <%= form.text_area :romaji %>
+  </div>
+
+  <div class="field">
+    <%= form.label :alt_title %>
+    <%= form.text_area :alt_title %>
+  </div>
+
+  <div class="field">
+    <%= form.label :alt_ruby %>
+    <%= form.text_area :alt_ruby %>
+  </div>
+
+  <div class="field">
+    <%= form.label :alt_romaji %>
+    <%= form.text_area :alt_romaji %>
+  </div>
+
+  <div class="field">
+    <%= form.radio_button(:is_orig, true, checked: translation.is_orig) %>
+    <%= form.label :is_orig, '原語', :value => true %>
+    <%= form.radio_button(:is_orig, false, checked: (translation.is_orig == false)) %>
+    <%= form.label :is_orig, '翻訳', :value => false %>
+    <%= form.radio_button(:is_orig, "nil", checked: translation.is_orig.nil?) %>
+    <%= form.label :is_orig, '定義不能 (例:「太陽⇔Sun」)', :value => "nil" %>
+  </div>
+
+  <% if (user_signed_in? && current_user.qualified_as?(:moderator, RoleCategory[RoleCategory::MNAME_TRANSLATION])) %>
+  <div class="field">
+    <% str_table = (@translation.translatable.respond_to?(:translations) ? 'See table below for reference. ' : '') %>
+    <%= form.label :weight, "Weight (#{str_table}Set it under 100 to promote this permanently, 0 for the definitive word like the original one.)" %>
+    <%= form.text_field :weight %>
+  </div>
+  <% end %>
+
+  <% if user_signed_in? && current_user.an_admin? %>
+  <div class="field">
+    <%= form.label :create_user_id %>
+    <%= form.text_field :create_user_id %>
+  </div>
+
+  <div class="field">
+    <%= form.label :update_user_id %>
+    <%= form.text_field :update_user_id %>
+  </div>
+  <% end %>
+
+  <div class="field">
+    <%= form.label :note %>
+    <%= form.text_area :note %>
+  </div>
+
+  <div class="actions">
+    <%= form.submit %>
+  </div>
+<% end %>
+<p>
+  <%= link_to 'Destroy', @translation, method: :delete, data: { confirm: 'Are you sure?' } %>
+</p>
+
+<% if @translation.translatable.respond_to? :translations %>
+  <%= render partial: 'layouts/all_registered_translations', locals: {model: @translation.translatable, add_buttons: false, myself: @translation} %>
+  <hr>
+<% end %>
+

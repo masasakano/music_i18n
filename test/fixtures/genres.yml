@@ -1,0 +1,27 @@
+# == Schema Information
+#
+# Table name: genres
+#
+#  id                                        :bigint           not null, primary key
+#  note                                      :text
+#  weight(Smaller means higher in priority.) :float
+#  created_at                                :datetime         not null
+#  updated_at                                :datetime         not null
+#
+
+genre_pop:
+  weight: 10
+  note: "Pop, 例 広瀬香美『ロマンスの神様』, Queen『Bohemian Rhapsody』"
+
+genre_classic:
+  weight: 100
+  note: Classic 
+
+genre_modern_inst:
+  weight: 200
+  note: Modern instrumental
+
+genre_unknown:
+  weight: 99999
+  note: UnknownGenre
+

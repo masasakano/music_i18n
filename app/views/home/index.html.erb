@@ -1,0 +1,71 @@
+<h1>Music-i18n.org for Harami-chan (ハラミちゃん)</h1>
+<p><%= t('.first_line_html') %><br>
+   <%= t('.second_line') %></p>
+<p><%= t('.third_line') %>
+  <% if !user_signed_in? %>
+    <%= t('.fourth_line1') %><%= link_to new_user_registration_path, class: 'register-button' do %><%= t("devise.registrations.new.sign_up") %><% end %><%= t('.fourth_line2') %>
+  <% end %>
+</p>
+
+<p><%= @message %></p>
+
+<p><%= link_to t('.harami_vids_index'), harami_vids_path %> | <%= link_to t('.musics_index'), musics_path %> | <%= link_to t('.artists_index'), artists_path %>
+  <% if current_user && current_user.qualified_as?(:editor, RoleCategory[RoleCategory::MNAME_TRANSLATION]) %>
+    | <%= link_to 'Translations', translations_path %>
+  <% end %>
+</p>
+
+<h3><%= t('.h3_table') %></h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Video date</th>
+      <th>Title</th>
+      <th title="English name of the original Artists of the played music; if the English name is not available, the Japanese name may be displayed">Artists (EN)</th>
+      <th>Musics (EN)</th>
+      <th>Musics (JA)</th>
+      <th>Duration</th>
+      <th>Place</th>
+      <th title="Internal link to the content">Detail</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @home_hvs.each do |home_hv| %>
+      <tr>
+        <td><%= home_hv.release_date %></td>
+        <td><%= link_to_youtube home_hv.title(langcode: 'ja'), home_hv.uri %></td>
+        <td><%= home_hv.view_home_artist 'en' %></td>
+        <td><%= home_hv.view_home_music 'en' %></td>
+        <td><%= home_hv.view_home_music 'ja' %></td>
+        <td><%= home_hv.duration || "" %></td>
+        <td><%= pla = home_hv.place
+                if !pla
+                  ''  # This should not happen...
+                else
+                  ar = pla.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true);
+                  sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture[I18n.locale] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2]
+                end
+            %></td>
+        <td><%= link_to 'Detail', home_hv %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+<hr>
+
+<p><%= link_to t('.harami_vids_index'), harami_vids_path %> | <%= link_to t('.musics_index'), musics_path %> | <%= link_to t('.artists_index'), artists_path %>
+  <% if current_user && current_user.qualified_as?(:editor, RoleCategory[RoleCategory::MNAME_TRANSLATION]) %>
+    | <%= link_to 'Translations', translations_path %>
+  <% end %>
+</p>
+<p>
+  <a href="https://harami-piano.com/"><%= t('Harami') %> Website</a> | <a href="https://www.youtube.com/channel/UCr4fZBNv69P-09f98l7CshA" title="Harami-chan's YouTube channel"><%= t('.youtube_channel') %></a> | @harami_piano <a href="https://twitter.com/harami_piano">Twitter</a> | <a href="https://www.instagram.com/harami_piano">Instagram</a> | <a href="https://www.tiktok.com/@haramipiano">TikTok</a> | <%= art = Artist['ハラミちゃん']; art.link_to_wikipedia('Wikipedia') if art %>
+</p>
+
+<% if user_signed_in? %>
+    <%= link_to destroy_user_session_path, method: :delete do %><%= t('log_out') %><% end %>
+<% else %>
+    <%= link_to new_user_session_path, class: 'login-button' do %><%= t("devise.sessions.new.sign_in") %><% end %> (<%= t('or') %> <%= link_to new_user_registration_path, class: 'register-button' do %><%= t("devise.registrations.new.sign_up") %><% end %>)
+<% end %>

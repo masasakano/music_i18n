@@ -1,0 +1,56 @@
+<%= form_with(model: genre, local: true) do |form| %>
+  <% if genre.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(genre.errors.count, "error") %> prohibited this genre from being saved:</h2>
+
+      <ul>
+        <% genre.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= form.label :weight %>
+    <%= form.text_field :weight %>
+  </div>
+
+  <div class="field">
+    <%= form.label :note %>
+    <%= form.text_area :note %>
+  </div>
+
+  <div class="actions">
+    <%= form.submit %>
+  </div>
+<% end %>
+
+<hr>
+
+<h3>All Genres</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Weight</th>
+      <th>和名</th>
+      <th>英語名</th>
+      <th>Note</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% Genre.order(:weight).each do |eg| %>
+      <tr>
+        <td><%= eg.weight %></td>
+        <td><%= eg.title_or_alt langcode: 'ja' %></td>
+        <td><%= eg.title_or_alt langcode: 'en' %></td>
+        <td><%= eg.note %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+<hr>
+
+

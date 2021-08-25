@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>HaramiMultilingual <%= get_html_head_title %></title>
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= stylesheet_link_tag 'application', media: 'all', 'data-turbolinks-track': 'reload' %>  <%# using app/assets/stylesheets/application.scss %>
+    <%# = stylesheet_pack_tag 'application', media: 'all', 'data-turbolinks-track': 'reload' %>  <%# using app/javascript/stylesheets/application.scss %>
+    <%= stylesheet_link_tag 'bootstrap_quarts.min', media: 'all', 'data-turbolinks-track': 'reload' %>  <%# using app/assets/stylesheets/bootstrap_quarts.min.css %>
+    <%= javascript_pack_tag 'application', 'data-turbolinks-track': 'reload' %>
+    <%= favicon_link_tag 'favicon.ico' %>
+    <%= favicon_link_tag 'favicon.png', rel: 'apple-touch-icon', type: 'image/png' %>
+  </head>
+  <body>
+
+    <% if user_signed_in? %>
+      <div id="navbar_top">
+        (<%= link_to 'Home', root_path %>
+        <% if current_user.an_admin? %>
+          / <%= link_to 'Admin_panel', rails_admin.dashboard_path, class: 'login-button' %>
+        <% end %>
+        / User=<strong><%= link_to current_user.display_name, user_path(current_user) %></strong>
+        / <%= link_to destroy_user_session_path, method: :delete do %><%= t('log_out') %><% end %>)
+      </div>
+    <% end %>
+
+  <% if user_signed_in? && current_user.roles.exists?  %>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">Editor-Menu</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarColor03" aria-controls="navbarColor03" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarColor02">
+        <ul class="navbar-nav me-auto">
+        <% Rails.application.eager_load! %>
+        <% ActiveRecord::Base.descendants.select{|i| !i.abstract_class? && !i.name.include?('::') && i.table_name == i.name.underscore.pluralize}.sort{|a,b| a.name <=> b.name}.each do |model| %>
+          <% next if !can?(:read, model) %>
+          <% link_str = link_to(model.name.pluralize, send(model.table_name+'_path'), class: 'nav-link') rescue next %>
+          <li class="nav-item"> <%= link_str %> </li>
+          <% if 'StaticPages' == model.name.pluralize && can?(:index, StaticPage) %>
+            <li class="nav-item" style="margin-left: -0.7rem"> <%= link_to '(Index)', static_page_publics_path, class: 'nav-link' %> </li>
+          <% end %>
+        <% end %>
+        </ul>
+      </div>
+    </div>
+    </nav>
+
+    <% if false %> <%# ## legacy %>
+    (User: <strong><%= link_to current_user.display_name, user_path(current_user) %></strong>)
+    <%= link_to('Edit registration', edit_user_registration_path) %> /
+    <%= link_to destroy_user_session_path, method: :delete do %><%= t('log_out') %><% end %><%# log_out: custom yml %>
+    <% if current_user.an_admin? %>
+    / (<%= link_to('User-list', users_index_path) %>)
+    / (<%= link_to('Admin-panel', rails_admin.dashboard_path) %>)
+    <% end %>
+    <% end %>
+  <% end %>
+
+    <% str_lsl = language_switcher_link %>
+    <p style="text-align: right;"><%= str_lsl %>
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid">
+      <%# <a class="navbar-brand" href="#">Menu</a>%>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarColor03" aria-controls="navbarColor03" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarColor03">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="<%= root_path %>">Home
+              <%# class may include "active" to emphasize it %>
+              <%# <span class="visually-hidden">(current)</span> %>
+            </a>
+          </li>
+          <li class="nav-item">
+          </li>
+          <li class="nav-item">
+            <%= link_to t('application.about_us'), StaticPagesController.public_path('about_us'), class: "nav-link" %>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false"><%= t('application.others') %></a>
+            <div class="dropdown-menu">
+              <% if user_signed_in? %>
+                <%= link_to t('layouts.editing_guideline'), StaticPagesController.public_path('editing_guideline'), class: "dropdown-item" %>
+              <% end %>
+              <%= link_to 'Terms of Service', StaticPagesController.public_path('terms_service'), class: "dropdown-item" %>
+              <%= link_to 'Privacy Policy', StaticPagesController.public_path('privacy_policy'), class: "dropdown-item" %>
+              <% if false %>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" href="#">Separated link</a>
+              <% end %>
+            </div>
+          </li>
+        </ul>
+        <% if false %>
+          <form class="d-flex">
+            <input class="form-control me-sm-2" type="text" placeholder="Search">
+            <button class="btn btn-secondary my-2 my-sm-0" type="submit">Search</button>
+          </form>
+        <% end %>
+      </div>
+    </div>
+    </nav>
+
+    <%= yield %>
+
+    <% if notice %>
+      <p class="notice"><%= notice %></p>
+    <% end %>
+    <% if alert %>
+      <p class="alert"><%= alert %></p>
+    <% end %>
+    <% toastr_flash  # defined in /app/helpers/application_helper.rb
+    %>
+    <hr>
+    <p><%= str_lsl %>
+  </body>
+</html>
+

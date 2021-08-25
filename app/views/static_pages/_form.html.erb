@@ -1,0 +1,20 @@
+
+<%= simple_form_for(@static_page) do |f| %>
+  <%= f.error_notification %>
+  <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
+
+  <div class="form-inputs">
+    <%= f.input :langcode %>
+    <%= f.input :mname %>
+    <%= f.input :title %>
+    <%= f.input :page_format_id, collection: PageFormat.all, label_method: :mname, prompt: "Select page-format" %> <%# selected: 21 %>
+    <%= f.input :summary, as: :text, input_html: { 'rows' => 8 } %>
+    <%= f.input :content, as: :text, input_html: { 'rows' => 30 } %>
+    <%= f.input :note, as: :text %>
+    <%= f.input :commit_message, as: :text, required: true %>
+  </div>
+
+  <div class="form-actions">
+    <%= f.button :submit %>
+  </div>
+<% end %>

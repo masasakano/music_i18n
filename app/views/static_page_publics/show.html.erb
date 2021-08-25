@@ -1,0 +1,14 @@
+<p id="alert"><%= alert %></p>
+<p id="notice"><%= notice %></p>
+
+<h1><%= @static_page.title %></h1>
+
+<%= @static_page.render %>
+
+<p>
+<%= link_to 'Home', root_url %>
+</p>
+
+<% if can? :update, @static_page %>
+  <p>(Admin only) <%= link_to 'Index', static_pages_path %> | <%= link_to 'Show', static_page_path(@static_page) %> | <%= link_to 'Edit', edit_static_page_path(@static_page) %></p>
+<% end %>

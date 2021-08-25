@@ -1,0 +1,152 @@
+  <% if artist.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(artist.errors.count, "error") %> prohibited this artist from being saved:</h2>
+
+      <ul>
+        <% artist.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+<% if ! @artist.new_record? %>
+
+<hr>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @artist, add_buttons: true} %>
+<hr>
+<% end %>
+
+<%= form_with(model: artist, local: true) do |form| %>
+
+<% if @artist.new_record? %>
+  <div class="field">
+    <em>アーティスト名の言語 (本来の言語で。翻訳は後で追加):</em>
+    <% BaseWithTranslation::AVAILABLE_LOCALES.each do |es| %>
+      <%= lc = @artist.orig_langcode; form.radio_button('langcode', es, checked: (es.to_s == (lc || 'ja'))) %>
+      <%= form.label 'langcode', BaseWithTranslation::LANGUAGE_TITLES[:ja][es.to_s], :value => es %>
+    <% end %>
+  </div>
+
+  <div class="field">
+    <%= form.label :title, 'アーティスト正式名称 (グループの場合はグループ名)' %>
+    <%= form.text_field :title, value: @artist.title %>
+  </div>
+ 
+  <div class="field">
+    <%= form.label :ruby, 'アーティスト正式名称フリガナ (片仮名で)' %>
+    <%= form.text_field :ruby, value: @artist.ruby %>
+  </div>
+ 
+  <div class="field">
+    <%= form.label :romaji, 'アーティスト正式名称ローマ字' %>
+    <%= form.text_field :romaji, value: @artist.romaji %>
+  </div>
+ 
+  <div class="field">
+    <%= form.label :alt_title, 'アーティスト略称・別名' %>
+    <%= form.text_field :alt_title, value: @artist.alt_title %>
+  </div>
+ 
+  <div class="field">
+    <%= form.label :alt_ruby, 'アーティスト略称・別名フリガナ (片仮名で)' %>
+    <%= form.text_field :alt_ruby, value: @artist.alt_ruby %>
+  </div>
+ 
+  <div class="field">
+    <%= form.label :alt_romaji, 'アーティスト略称・別名ローマ字' %>
+    <%= form.text_field :alt_romaji, value: @artist.alt_romaji %>
+  </div>
+ 
+<% end %>
+
+  <div class="field" id="div_select_country">
+    <%= form.label 'place.prefecture_id.country_id', 'Country'%>
+    <% country = artist.country %>
+    <%= form.collection_select 'place.prefecture_id.country_id', @countries, :id, Proc.new{|i| i.title_or_alt(langcode: 'ja', prefer_alt: true)}, {include_blank: !country, selected: (country ? country.id : nil)} %>
+  </div>
+
+  <div class="field" id="div_select_prefecture">
+    <%= form.label 'place.prefecture_id' %>
+    <% prefecture = artist.prefecture %>
+    <%= form.grouped_collection_select 'place.prefecture_id', @countries, :prefectures, Proc.new{|i| i.title_or_alt(langcode: 'ja', prefer_alt: true)}, :id, Proc.new{|i| i.title_or_alt(langcode: 'ja', prefer_alt: true)}, {include_blank: true, selected: (prefecture ? prefecture.id : nil)} %>
+  </div>
+
+  <div class="field" id="div_select_place">
+    <%= form.label :place_id %>
+    <% place = artist.place %>
+    <%= form.grouped_collection_select 'place', @prefectures, :places, Proc.new{|pref| a=pref.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true); a[0]+'/'+a[1]}, :id, Proc.new{|plac| plac.title_or_alt(langcode: 'ja', prefer_alt: true)}, {include_blank: true, selected: (place ? place.id : nil)} %>
+  </div>
+
+  <div class="field">
+    <em>性別:</em>
+    <% Sex.all.each do |es| %>
+      <%= form.radio_button(:sex_id, es.id, checked: (es.id == 0)) %>
+      <%= form.label :sex_id, es.title(langcode: 'ja'), :value => es.id %>
+    <% end %>
+  </div>
+
+  <div class="field">
+    <%= form.label :birth_year, '誕生(グループの場合は結成)年' %>
+    <%= form.text_field :birth_year, value: @artist.birth_year, placeholder: 'e.g., 1999' %>
+  </div>
+
+  <div class="field">
+    <%= form.label :birth_month, '誕生月 (1——12) (0 means undefined)' %>
+    <%= form.number_field :birth_month, in: 0..12 %>
+  </div>
+
+  <div class="field">
+    <%= form.label :birth_day, '誕生日 (1——31) (0 means undefined)' %>
+    <%= form.number_field :birth_day, in: 0..31 %>
+  </div>
+
+  <div class="field">
+    <%= form.label :wiki_en, 'Wikipedia (英語版) URI' %>
+    <%= form.text_field :wiki_en %>
+  </div>
+
+  <div class="field">
+    <%= form.label :wiki_ja, 'Wikipedia (日本語版) URI' %>
+    <%= form.text_field :wiki_ja %>
+  </div>
+
+  <div class="field">
+    <%= form.label :note %>
+    <%= form.text_area :note %>
+  </div>
+
+  <div class="actions">
+    <%= form.submit %>
+  </div>
+  <div class="actions">
+  <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  </div>
+<% end %>
+
+<p>
+<% if @artist.new_record? %>
+(Please add a Music(s) once you have created an Artist.)
+<% else %>
+  <%= link_to 'Associate a new Music to Artist '+@artist.title_or_alt, musics_path(music: {artist_id: @artist.id}) %>
+<% end %>
+</p>
+
+<%= javascript_pack_tag 'dropdown_artist' %>
+
+<script>
+// $(dropdown_hv)
+
+// // autocomplete
+// $(function(){
+//    // Plain jquery
+//    $('#text_field_duration').fadeOut(5000);
+//
+//    // jquery-ui
+//    const availableCities = ['Baltimore', 'New York'];
+//    console.log($('#harami_vid_music').html()); // .autocomplete( { source: availableCities } );
+//    //$('#calendarField').datepicker( { dateFormat: 'yy-mm-dd' } );
+//})
+
+ // console.log(states);
+</script>

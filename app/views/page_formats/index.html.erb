@@ -1,0 +1,31 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Page Formats</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Mname</th>
+      <th>Description</th>
+      <th>Note</th>
+      <th colspan="3"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @page_formats.each do |page_format| %>
+      <tr>
+        <td><%= page_format.mname %></td>
+        <td><%= page_format.description %></td>
+        <td><%= page_format.note %></td>
+        <td><%= link_to 'Show', page_format %></td>
+        <td><%= link_to 'Edit', edit_page_format_path(page_format) %></td>
+        <td><%= link_to 'Destroy', page_format, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New Page Format', new_page_format_path %>

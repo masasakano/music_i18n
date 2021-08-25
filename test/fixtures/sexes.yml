@@ -1,0 +1,33 @@
+# == Schema Information
+#
+# Table name: sexes
+#
+#  id         :bigint           not null, primary key
+#  iso5218    :integer          not null
+#  note       :text
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
+#
+# Indexes
+#
+#  index_sexes_on_iso5218  (iso5218) UNIQUE
+#
+
+sex0:
+  id: 0
+  iso5218: 0
+
+sex1:
+  id: 1
+  iso5218: 1
+  note: 
+
+sex2:
+  id: 2
+  iso5218: 2
+
+sex9:
+  id: 9
+  iso5218: 9
+
+

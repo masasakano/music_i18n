@@ -1,0 +1,27 @@
+<p id="notice"><%= notice %></p>
+
+<% country_name = @place.country.title_or_alt %>
+<% prefecture_name = @place.prefecture.title_or_alt %>
+<h1>Place: <%= @place.title_or_alt %> (&lt; <%= prefecture_name %> &lt; <%= country_name %>)</h1>
+
+<hr>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @place} %>
+<hr>
+
+<dl>
+  <% if current_user && current_user.moderator? %>
+    <dt>ID (Place)</dt>
+    <dd> <%= @place.id %></dd>
+  <% end %>
+  <dt><strong>Country:</strong></dt>
+  <dd><%= link_to country_name, country_path(@place.country) %></dd>
+  <dt><strong>Prefecture:</strong></dt>
+  <dd><%= link_to prefecture_name, prefecture_path(@place.prefecture_id) %></dd>
+  <dt>note</dt>
+  <dd><%= @place.note %></dd>
+  <dt>updated_at</dt>
+  <dd><%= @place.updated_at %></dd>
+</dl>
+
+<%= link_to 'Edit', edit_place_path(@place) %> |
+<%= link_to 'Back', places_path %>

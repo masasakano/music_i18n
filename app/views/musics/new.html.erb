@@ -1,0 +1,96 @@
+<h1>New Music <%= @artist_title ? 'for Artist '+@artist_title : '' %></h1>
+
+<%= render 'form', music: @music %>
+
+<%= link_to 'Back', musics_path %>
+
+<hr>
+
+<h2>CSV file upload</h2>
+
+Altenatively, upload a CSV file (the suffix must be &quot;.csv&quot;):
+
+<%= form_tag(:musics_upload_music_csvs, multipart: true) do |form| %>
+  <%= file_field_tag 'file', accept: 'text/csv' %>
+  <div class="actions">
+    <%= submit_tag "Upload", :name => nil %>
+  </div>
+<% end %>
+
+<h3>CSV file format</h3>
+
+<p>
+If you use a spreadsheet software (such as Google-Sheet, LibreOffice/Calc, MicroSoft/Excel, Apple/Numbers), you can choose &quot;CSV&quot; in exporting. Just make sure to choose the newline of LF and delimter of a comma.
+</p>
+<p>
+(なお、ここでは(CSV標準から外れるが)、「#」から始まる行は自動的にコメント行として無視されることと定義する。)
+</p>
+<p>
+<strong>Our format</strong>: (<%= Music::MUSIC_CSV_FORMAT.map(&:to_s).join(', ') %>)
+</p>
+
+<div class="show_or_hide" style="display: none;">
+
+<ol>
+  <li><strong>row</strong>: row header (just for the sake of human readability)</li>
+  <li><strong>music_ja</strong>: Music title in Japanese</li>
+  <li><strong>ruby</strong>: Ruby of the Japanese Music title (片仮名ルビ)</li>
+  <li><strong>romaji</strong>: Romaji of the Japanese Music title (ヘボン式ローマ字表記)</li>
+  <li><strong>music_en</strong>: Music title in English
+    <% if current_user.qualified_as?(:editor, RoleCategory::MNAME_TRANSLATION) %>
+      (maybe your own translation)
+    <% end %>
+  </li>
+  <li><strong>year</strong>: Year (曲の発表年; ただし曲名がない時は、音楽家(グループ)の誕生年あるいは結成年)</li>
+  <li><strong>country</strong>: 国名(正式名あるいは2文字あるいは3文字のアルファベット表記: JPN(日本), KOR(韓国), USA(米国), GBR(英国), FRA(フランス)他全世界対応)もしくは都道府県名(例: 東京, 東京都)</li>
+  <li><strong>artist_ja</strong>: 音楽家日本語名</li>
+  <li><strong>artist_en</strong>: 音楽家英語名 
+    <% if current_user.qualified_as?(:editor, RoleCategory::MNAME_TRANSLATION)%>
+      (maybe your own translation)
+    <% end %>
+  </li>
+  <li><strong>langcode</strong>: 名前が日本語(ja)か英語(en)か?</li>
+  <li><strong>genre</strong>: 曲のカテゴリ(一意に決まる文字列があれば十分): ポップス [Pop], 劇場・映画・アニメ・ゲーム曲 [Theatrical/Movie/Game], 近世歌謡曲・唱歌・童謡 [Modern classic/kids], 伝統・民謡・賛美歌 [Traditional/Folk/Hymn], ジャズ [Jazz], クラシック [Classic], 現代器楽曲 [Modern instrumental], その他 [Other]</li>
+  <li><strong>how</strong>: 音楽家と曲の関係(一意に決まる文字列があれば十分): 歌手(オリジナル) [Singer (Original)], 歌手(カバー) [Singer (Cover)], 作詞 [Lyricist], 訳詞 [Translator], 作曲 [Composer], 編曲 [Arranger], 指揮 [Conductor], 演奏 [Player], 伴奏 [Accompanist], プロデュース [Producer], アシスタント [Assistant], その他 [Other]</li>
+  <li><strong>memo</strong>: コメント欄 (新規項目の場合は、曲名(曲名がない場合は音楽家名)にそえて記録される)</li>
+</ol>
+
+<h4>例</h4>
+
+<pre>
+ # abc.csv これはコメント行です。
+1:1/20,糸,イト,Ito,Thread,1992,日本,中島みゆき,Miyuki Nakajima,ja,Pop,Original,one of the longest hits of J-Pop
+2:2/20,Shake,シェイク,sheiku,Shake,1996,日本,SMAP,SMAP,en,Pop,Original
+3,よさこい節,ヨサコイブシ,Yosakoibushi,Yosakoi-bushi,,高知県,,,ja,民謡
+4,レット・イット・ビー,レット・イット・ビー,retto itto bii,Let it be,1969,GBR,ザ・ビートルズ,&quot;Beatles, The&quot;,en,Pop,Original
+
+</pre>
+
+<h4>注意点</h4>
+
+<ol>
+  <li>ルビやローマ字をつける時は、必ず日本語曲名を記載すること。</li>
+  <li>日本語名称は、原則として空白は入れない。姓名の間にも空白なし(例: 「広瀬香美」)。英語など欧州言語の空白に対応するのは「・」(なかぐろ)(例: 「ザ・タイマーズ」)。アラビア語の「al-」は「アル=」。</li>
+  <li>日本語仮名はいわゆる全角カナ。半角カナは使用しない。数字とアルファベットはASCII(アクセント付きアルファベットの場合はUTF-8: 例「fhána」)、すなわち全角数字や全角アルファベットは使用しない。</li>
+  <li>音楽家と曲の関係は、後で追加や編集可能(作詞作曲や共同作曲など)。ここでは上のうちで一つだけ指定すること。</li>
+  <li>欧州言語での定冠詞(The や Lesなど)は。普通に表記しても、コンマに続いて後置しても良い(例: 「Les Misérables」「&quot;Misérables, Les&quot;」)。後者の場合は、二重引用符で括ることを忘れずに。日本語化してカタカナ表記する場合は前者に限る。</li>
+</ol> 
+
+<h4>Detail</h4>
+
+The CSV is a file format of (strictly speaking, there are a few variants in the CSV formats, but this is the accepted format here):
+
+<ol>
+  <li>each line ending with a newline (LF) represents a record,</li>
+  <li>each line contains an arbitrary number of items, the meaning of each item of which depends on the interpreter,</li>
+  <li>items in each line is separated by a single ASCII comma &ldquo;,&rdquo;,</li>
+  <li>each item may be enclosed within a pair of ASCII double quotation marks &ldquo;&quot;&rdquo;, but to do that you must enclose the entire item, that is, you cannot enclose only a part of the item with a pair of double quatation mark</li>
+  <li>to include a comma in an item, you must enclose the entire item with a pair of ASCII double quotation marks &ldquo;&quot;&rdquo;,</li>
+  <li>to escape a double quotation mark character, i.e., to include a double quotation mark character in an item, doulbe it, i.e., any two consequtive double quotation marks &ldquo;&quot;&quot;&rdquo; is interpreted as a single double quotation in the.</li>
+  <li>(though it is not in the CSV standard) any line beginning with a &ldquo;#&rdquo; (possibly preceding with whitespaces) is interpreted as a comment and is ignored.</li>
+</ol>
+</div>
+
+(……<a id="Link_show_or_hide" title="Show or hide" href="#">Show</a>)
+<%= javascript_pack_tag 'show_or_hide' %>
+

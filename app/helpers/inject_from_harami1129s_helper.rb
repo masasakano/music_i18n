@@ -1,0 +1,2 @@
+module InjectFromHarami1129sHelper
+end

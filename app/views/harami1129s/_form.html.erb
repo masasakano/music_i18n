@@ -1,0 +1,154 @@
+<%= form_with(model: harami1129, local: true) do |form| %>
+  <% if harami1129.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(harami1129.errors.count, "error") %> prohibited this harami1129 from being saved:</h2>
+
+      <ul>
+        <% harami1129.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <% if @harami1129.new_record? %>
+      <%= form.label :id_remote %>
+      <%= form.number_field :id_remote %>
+    <% else %>
+      IDs-local/remote: <%= harami1129.id %>/<%= harami1129.id_remote %>
+    <% end %>
+  </div>
+
+  <div class="field">
+    <%= form.label :singer %>
+    <%= form.text_field :singer %>
+  </div>
+
+  <div class="field">
+    <%= form.label :song %>
+    <%= form.text_field :song %>
+  </div>
+
+  <div class="field">
+    <%= form.label :release_date %>
+    <%= form.date_select :release_date %>
+  </div>
+
+  <div class="field">
+    <%= form.label :title %>
+    <%= form.text_field :title %>
+  </div>
+
+  <div class="field">
+    <%= form.label(:link_root, "Link root (e.g., hJuX0X5FlXk)") %>
+    <%= form.text_field :link_root %>
+  </div>
+
+  <div class="field">
+    <%= form.label :link_time %>
+    <%= form.number_field :link_time %>
+  </div>
+
+  <div class="field">
+    <%= form.label :ins_singer %>
+    <%= form.text_field :ins_singer %>
+  </div>
+
+  <div class="field">
+    <%= form.label :ins_song %>
+    <%= form.text_field :ins_song %>
+  </div>
+
+  <div class="field">
+    <%= form.label :ins_release_date %>
+    <%= form.date_select :ins_release_date %>
+  </div>
+
+  <div class="field">
+    <%= form.label :ins_title %>
+    <%= form.text_field :ins_title %>
+  </div>
+
+  <div class="field">
+    <%= form.label :ins_link_root, "Ins link root (e.g., youtu.be/hJuX0X5FlXk)" %>
+    <%= form.text_field :ins_link_root %>
+  </div>
+
+  <div class="field">
+    <%= form.label :ins_link_time %>
+    <%= form.number_field :ins_link_time %>
+  </div>
+
+  <div class="field">
+    <%= form.label :ins_at %>
+    <%= form.datetime_select :ins_at, include_seconds: true %>
+  </div>
+
+  <div class="field">
+    <strong>Not music: </strong><%= form.label :not_music, 'Check if this video contains no songs' %>
+    <%= form.check_box :not_music %>
+  </div>
+
+  <div class="field">
+    <strong>Engage:</strong>
+    <% engage = @harami1129.engage %>
+    <% if engage %>
+      <%= link_to(sprintf('%s by %s [%s]%s',
+                          (engage.music ? engage.music.title_or_alt : ''),
+                          (engage.artist ? engage.artist.title_or_alt : ''),
+                          (engage.engage_how ? engage.engage_how.title(langcode: 'ja') : ''),
+                          (engage.year ? sprintf(' (%d)', engage.year) : '')),
+                  engage,
+                  title: sprintf('ID=%d', engage.id)) %>
+      <br>&rarr; <%= link_to('Edit', edit_engage_multi_how_url(engage)) %> (or
+          <%= form.label :destroy_engage, "Destroy" %>
+            <%= form.check_box :destroy_engage, checked: false, title: "If the video contains a song, an association is required and so you should 'edit' this Engage, rather than destroying it." %> <span title="If the video contains a song, an association is required and so you should 'edit' this Engage, rather than destroying it.">(<em>if</em> the video contains no songs)</span>)
+    <% else %>
+      nil
+      <p>(To create one, (re)populate areter finishing creating/editing, making sure the song (and singer) is defined.)</p>
+    <% end %>
+  </div>
+
+  <div class="field">
+    <%= form.label :note %>
+    <%= form.text_area :note %>
+  </div>
+
+  <div class="field">
+    <% if !@harami1129.new_record? %>
+      <% if !@harami1129.checked_at || @harami1129.orig_modified_at && (@harami1129.checked_at < @harami1129.orig_modified_at) %>
+        <%= form.check_box :human_check, checked: false %>
+        <%= form.label :human_check, 'Check if everything is OK (consistent with HaramiVid, Artist, Music).' %>
+        <% if @harami1129.checked_at %>
+          <br>(Although it has been eyc-checked, the downloaded data have been modified since.)
+        <% end %>
+      <% else %>
+        The consistency has been confirmed. If you want to undo the confirmation, <%= form.label :human_uncheck, 'Check and Submit:' %>
+        <%= form.check_box :human_uncheck, checked: false %>
+      <% end %>
+    <% end %>
+  </div>
+
+  <div class="field">
+    <strong>HaramiVid (in our DB):</strong>
+    <% hv = @harami1129.harami_vid %>
+    <%= hv ? link_to(sprintf('(ID=%d) %s', hv.id, hv.title), hv) : 'nil' %>
+  </div>
+
+  <p>
+    <strong>Time-related table columns:</strong>
+    <table>
+      <tbody>
+        <tr><th title="Oldest first.">Order</th><th>Column</th><th>Value</th></tr>
+        <% @harami1129.time_attrs_with_order.each_pair do |ek, eh| %>
+          <tr><td><%= eh[:order] %></td><td><strong><%= ek.to_s%></strong></td><td><%= eh[:value]%></td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </p>
+
+  <div class="actions">
+    <%= form.submit %>
+  </div>
+<% end %>

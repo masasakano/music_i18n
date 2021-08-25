@@ -1,0 +1,60 @@
+<p id="notice"><%= notice %></p>
+
+<h2>A Translation for an <%= @translation.translatable_type %>
+  <% if user_signed_in? && current_user.moderator? %>
+    (Translation ID=<%= @translation.id %>)
+  <% end %>
+</h2>
+
+<dl>
+  <dt>Translatable:</dt>
+  <dd><%= link_to @translation.translatable_type, @translation.translatable %></dd>
+
+  <dt> Langcode:</dt>
+  <dd><%= @translation.langcode %></dd>
+
+  <dt> Title:</dt>
+  <dd><%= @translation.title %></dd>
+
+  <dt> Alt title:</dt>
+  <dd><%= @translation.alt_title %></dd>
+
+  <dt> Ruby:</dt>
+  <dd><%= @translation.ruby %></dd>
+
+  <dt> Alt ruby:</dt>
+  <dd><%= @translation.alt_ruby %></dd>
+
+  <dt> Romaji:</dt>
+  <dd><%= @translation.romaji %></dd>
+
+  <dt> Alt romaji:</dt>
+  <dd><%= @translation.alt_romaji %></dd>
+
+  <dt> これが原語か?:</dt>
+  <dd><%= @translation.is_orig %></dd>
+
+  <dt> Weight:</dt>
+  <dd><%= @translation.weight %></dd>
+
+  <dt> Create user:</dt>
+  <dd><%= user = @translation.create_user; user ? link_to(user.display_name, user_path(user)) : nil %></dd>
+
+  <dt> Update user:</dt>
+  <dd><%= user = @translation.update_user; user ? link_to(user.display_name, user_path(user)) : nil %></dd>
+
+  <dt> Note:</dt>
+  <dd><%= @translation.note %></dd>
+
+</dl>
+
+<% if user_signed_in? && @translation.editable?(user: current_user) %>
+  <%= button_to 'Edit', edit_translation_path(@translation), method: :get %>
+<br>
+<% end %>
+<%= link_to 'Back', translations_path %>
+
+<hr>
+
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @translation.translatable, myself: @translation, add_buttons: true} %>
+

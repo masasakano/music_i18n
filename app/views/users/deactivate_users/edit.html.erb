@@ -1,0 +1,62 @@
+<h1>Delete (=deactivate) a user? (<%= @user.display_name %>)</h1>
+
+<p id="notice"><%= notice %></p>
+
+<p>
+Number of <%= link_to 'Translations created/updated by the user', translations_path+sprintf('?user_id=%d', @user.id) %>: <%= (@user.created_translations + @user.updated_translations).uniq.count %>
+</p>
+
+<h2>How?</h2>
+
+<%= form_with(model: @user, url: users_do_deactivate_users_path, :html => { :onsubmit => "CheckValidation()" }) do |form| %>
+
+  <% if @user.errors.any? %>
+    <div id="error_explanation">
+      <h2>
+        <%= pluralize(@user.errors.count, "error") %> the operation was prohibited:
+      </h2>
+      <ul>
+        <% @user.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <p>
+  <% User::DEACTIVATE_METHOD.each_pair do |ek, ev| %>
+    <%= form.radio_button(User::DEACTIVATE_METHOD_FORM_NAME, ek, checked: (ek == :rename)) %>
+    <%= form.label User::DEACTIVATE_METHOD_FORM_NAME, ev, :value => ek %>
+  <% end %>
+  </p>
+  <% if false %>
+  <!--  % = form.submit "Submit" % -->
+  <% end %>
+  <p> <button type="button" onclick="CheckValidation()">Submit</button> </p>
+<% end %>
+
+<script>
+function CheckValidation(){
+  var doDestroy = false;
+
+  //if(document.querySelectorAll('input[name="user[<%= User::DEACTIVATE_METHOD_FORM_NAME %>]"]')[0].value != 'rename'){
+  if(!(document.querySelectorAll('input[name="user[<%= User::DEACTIVATE_METHOD_FORM_NAME %>]"]')[0].checked)){
+    doDestroy = true;
+  }
+
+  // Final confirmation with JavaScript
+  if ((!doDestroy) || (confirm("Are you sure to destroy the user completely?") == true)) {
+    document.querySelectorAll('form')[0].submit();
+  } else {
+    // alert('Cancelled.');
+    return false;
+  }
+}
+</script>
+
+<%= link_to 'Back', user_path(@user) %>
+<% if current_user && current_user.sysadmin? %>
+/ <%= link_to 'Index', users_path %>
+<% end %>
+
+

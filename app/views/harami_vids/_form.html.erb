@@ -1,0 +1,127 @@
+  <% if harami_vid.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(harami_vid.errors.count, "error") %> prohibited this harami_vid from being saved:</h2>
+
+      <ul>
+        <% harami_vid.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+<% if ! @harami_vid.new_record? %>
+
+<hr>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @harami_vid, add_buttons: true} %>
+<hr>
+<%= render partial: 'harami1129_table', locals: {harami_vid: @harami_vid, add_buttons: true} %>
+<hr>
+<%= render partial: 'music_table', locals: {harami_vid: @harami_vid, add_buttons: true} %>
+<hr>
+<% end %>
+
+<%= form_with(model: harami_vid, local: true) do |form| %>
+
+  <div class="field">
+    <%= form.label :uri, 'URI (e.g., "3CjLiqDJ0C4" with or without youtu.be/)' %>
+    <%= form.text_field :uri %>
+  </div>
+
+  <div class="field">
+    <%= form.label :uri_playlist_ja %>
+    <%= form.text_field :uri_playlist_ja %>
+  </div>
+
+  <div class="field">
+    <%= form.label :uri_playlist_en %>
+    <%= form.text_field :uri_playlist_en %>
+  </div>
+
+  <div class="field">
+    <%= form.label :release_date %>
+    <%= form.date_select :release_date %>
+  </div>
+
+  <div class="field" id="text_field_duration">
+    <%= form.label :duration, 'Duration (s)' %>
+    <%= form.text_field :duration %>
+  </div>
+
+  <div class="field" id="div_select_country">
+    <%= form.label 'place.prefecture_id.country_id', 'Country'%>
+    <% country = harami_vid.country %>
+    <%= form.collection_select 'place.prefecture_id.country_id', @countries, :id, Proc.new{|i| i.title_or_alt(langcode: 'ja', prefer_alt: true)}, {include_blank: !country, selected: (country ? country.id : nil)} %>
+  </div>
+
+  <div class="field" id="div_select_prefecture">
+    <%= form.label 'place.prefecture_id' %>
+    <% prefecture = harami_vid.prefecture %>
+    <%= form.grouped_collection_select 'place.prefecture_id', @countries, :prefectures, Proc.new{|i| i.title_or_alt(langcode: 'ja', prefer_alt: true)}, :id, Proc.new{|i| i.title_or_alt(langcode: 'ja', prefer_alt: true)}, {include_blank: true, selected: (prefecture ? prefecture.id : nil)} %>
+  </div>
+
+  <div class="field" id="div_select_place">
+    <%= form.label :place_id %>
+    <% place = harami_vid.place %>
+    <%= form.grouped_collection_select 'place', @prefectures, :places, Proc.new{|pref| a=pref.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true); a[0]+'/'+a[1]}, :id, Proc.new{|plac| plac.title_or_alt(langcode: 'ja', prefer_alt: true)}, {include_blank: true, selected: (place ? place.id : nil)} %>
+  </div>
+
+  <div class="field">
+    <%= form.label :flag_by_harami, "Uploaded by Harami?" %>
+    <%= form.check_box :flag_by_harami %>
+  </div>
+ 
+  <div class="field">
+    <%= form.label :artist, (@harami_vid.new_record? ? '曲の' : '追加曲の')+'歌手 (または作曲家。一名あるいは一グループ名のみ。必要に応じて後で追加可能)' %>
+    <%= form.text_field :artist %>
+  </div>
+ 
+  <div class="field">
+    <%= form.label :engage_how, '音楽家の関わり方 (複数選択可能)' %>
+    <%= form.select(:engage_how2,
+                    EngageHow.order(:weight).all.map{|i| [i.title(langcode: 'ja'), i.id]},
+                    { :prompt => "Please select"},
+                    { :multiple => true, :size => 12 }) %>
+  </div>
+ 
+  <div class="field">
+    <%= form.label :music, (@harami_vid.new_record? ? '' : '追加')+'曲名 (一曲のみ。必要に応じて後で追加可能)' %>
+    <%= form.text_field :music %>
+  </div>
+ 
+  <div class="field">
+    <%= form.label :music_timing, (@harami_vid.new_record? ? '' : '追加')+'曲の動画中でのタイミング [秒]' %>
+    <%= form.text_field :music_timing %>
+  </div>
+
+  <div class="field">
+    <%= form.label :note %>
+    <%= form.text_area :note %>
+  </div>
+
+  <div class="actions">
+    <%= form.submit %>
+  </div>
+  <div class="actions">
+  <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  </div>
+<% end %>
+
+<%= javascript_pack_tag 'dropdown_harami_vid' %>
+
+<script>
+// $(dropdown_hv)
+
+// // autocomplete
+// $(function(){
+//    // Plain jquery
+//    $('#text_field_duration').fadeOut(5000);
+//
+//    // jquery-ui
+//    const availableCities = ['Baltimore', 'New York'];
+//    console.log($('#harami_vid_music').html()); // .autocomplete( { source: availableCities } );
+//    //$('#calendarField').datepicker( { dateFormat: 'yy-mm-dd' } );
+//})
+
+ // console.log(states);
+</script>

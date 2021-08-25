@@ -1,0 +1,199 @@
+<p id="notice"><%= notice %></p>
+<p id="alert"><%= alert %></p>
+
+<% st = @harami1129.populate_status %>
+<% engage = @harami1129.engage %>
+
+<dl>
+  <dt>ID:</dt>
+  <dd>
+  <%= @harami1129.id %>
+  </dd>
+
+  <dt>Row number in Remote (id_remote):</dt>
+  <dd>
+  <%= @harami1129.id_remote %>
+  </dd>
+
+  <dt>Title [<%= st.marker(:ins_title) %>]:</dt>
+  <dd>
+  <table>
+    <tbody>
+      <tr><td>Downloaded</td><td><%= @harami1129.title %></td></tr>
+      <tr><td>Internally inserted</td><td><%= @harami1129.ins_title %></td></tr>
+      <tr><td><%= s='Current Destination'; @harami1129.harami_vid ? link_to(s, @harami1129.harami_vid) : s %></td><td><%= st.dest_current(:ins_title) %></td></tr>
+      <% if @harami1129.ins_title.blank? && !@harami1129.title.blank?  %>
+      <tr><td>(Downloaded → ins_title)</td><td><%= st.ins_to_be(:ins_title) %></td></tr>
+      <% end %>
+      <tr><td>(Downloaded → Destination)</td><td><%= st.dest_to_be(:ins_title) %></td></tr>
+    </tbody>
+  </table>
+  </dd>
+
+  <dt>Release date [<%= st.marker(:ins_release_date) %>]:</dt>
+  <dd>
+  <table>
+    <tbody>
+      <tr><td>Downloaded</td><td><%= @harami1129.release_date %></td></tr>
+      <tr><td>Internally inserted</td><td><%= @harami1129.ins_release_date %></td></tr>
+      <tr><td><%= s='Current Destination'; @harami1129.harami_vid ? link_to(s, @harami1129.harami_vid) : s %></td><td><%= st.dest_current(:ins_release_date) %></td></tr>
+      <tr><td>(Downloaded → Destination)</td><td><%= st.ins_to_be(:ins_release_date) %></td></tr>
+    </tbody>
+  </table>
+  </dd>
+
+  <dt>Link_root [<%= st.marker(:ins_link_root) %>]:</dt>
+  <dd>
+  <table>
+    <tbody>
+      <tr><th></td><td></td><th>Full link</th></tr>
+      <tr><td>Downloaded</td><td><%= @harami1129.link_root %></td><td><cite><%= lin = @harami1129.link_root; lin ? link_to_youtube(:uri, lin, @harami1129.link_time) : lin %></cite></td></tr>
+      <tr><td>Internally inserted</td><td><%= @harami1129.ins_link_root %></td><td><cite><%= lin = @harami1129.ins_link_root; lin ? link_to_youtube(:uri, lin, @harami1129.ins_link_time) : lin %></cite></td></tr>
+      <tr><td><%= s='Current Destination'; @harami1129.harami_vid ? link_to(s, @harami1129.harami_vid) : s %></td><td><%= st.dest_current(:ins_link_root) %></td><td><cite><%= lin = st.dest_current(:ins_link_root); lin ? link_to_youtube(:uri, lin, st.dest_current(:ins_link_time)) : lin %></cite></td></tr>
+      <tr><td>(Downloaded → Destination)</td><td><%= st.ins_to_be(:ins_link_root) %></td><td><cite><%= lin = st.ins_to_be(:ins_link_root); lin ? link_to_youtube(:uri, lin, st.ins_to_be(:ins_link_time)) : lin %></cite></td></tr></tr>
+    </tbody>
+  </table>
+  </dd>
+
+  <dt>Link_time [sec] [<%= st.marker(:ins_link_time) %>]:</dt>
+  <dd>
+  <table>
+    <tbody>
+      <tr><td>Downloaded</td><td><%= @harami1129.link_time %></td></tr>
+      <tr><td>Internally inserted</td><td><%= @harami1129.ins_link_time %></td></tr>
+      <tr><td>Current Destination</td><td><%= st.dest_current(:ins_link_time) %></td></tr>
+      <tr><td>(Downloaded → Destination)</td><td><%= st.ins_to_be(:ins_link_time) %></td></tr>
+    </tbody>
+  </table>
+  </dd>
+
+  <dt>Singer [<%= st.marker(:ins_singer) %>]:</dt>
+  <dd>
+  <table>
+    <tbody>
+      <tr><td>Downloaded</td><td><%= @harami1129.singer %></td></tr>
+      <tr><td>Internally inserted</td><td><%= @harami1129.ins_singer %></td></tr>
+      <tr><td><%= s='Current Destination'; (engage && engage.artist ? link_to(s, engage.artist) : s) %></td><td><%= st.dest_current(:ins_singer) %></td><td><%= engage ? ('['.html_safe+link_to((engage.engage_how ? engage.engage_how.title(langcode: 'ja') : 'nil')+(engage.year ? sprintf(' (%d)', engage.year) : ''), engage, title: 'Way of engagement between the singer/artist and song/music and its year')+']') : '' %></td></tr>
+      <% if @harami1129.ins_singer.blank? && !@harami1129.singer.blank?  %>
+      <tr><td>(Downloaded → ins_singer)</td><td><%= st.ins_to_be(:ins_singer) %></td></tr>
+      <% end %>
+      <tr><td>(Downloaded → Destination)</td><td><%= st.dest_to_be(:ins_singer) %></td></tr>
+    </tbody>
+  </table>
+  </dl>
+
+  <dt>Song [<%= st.marker(:ins_song) %>]:</dt>
+  <dd>
+  <table>
+    <tbody>
+      <tr><td>Downloaded</td><td><%= @harami1129.song %></td></tr>
+      <tr><td>Internally inserted</td><td><%= @harami1129.ins_song %></td></tr>
+      <% s='Current Destination'; mu = (engage && engage.music ? engage.music : nil) %>
+      <tr><td><%= (mu ? link_to(s, mu) : s) %></td><td><%= st.dest_current(:ins_song) %><%= (mu && mu.year ? sprintf(' (<span title="Year of this music/song">%d</span>)', mu.year).html_safe : '') %></td></tr>
+      <% if @harami1129.ins_song.blank? && !@harami1129.song.blank?  %>
+      <tr><td>(Downloaded → ins_song)</td><td><%= st.ins_to_be(:ins_song) %></td></tr>
+      <% end %>
+      <tr><td>(Downloaded → Destination)</td><td><%= st.dest_to_be(:ins_song) %></td></tr>
+    </tbody>
+  </table>
+  </dd>
+
+  <dt>Time-related table columns:</dt>
+  <dd>
+  <table>
+    <tbody>
+      <tr><th title="Oldest first.">Order</th><th>Column</th><th>Value</th></tr>
+      <% @harami1129.time_attrs_with_order.each_pair do |ek, eh| %>
+        <tr><td><%= eh[:order] %></td><td><strong><%= ek.to_s%></strong></td><td><%= eh[:value]%></td></tr>
+      <% end %>
+    </tbody>
+  </table>
+  </dd>
+
+  <dt>NOT music video?:</dt>
+  <dd>
+      <%= @harami1129.not_music ? 'True' : (@harami1129.not_music.nil? ? 'nil' : 'False') %>
+  </dd>
+
+  <dt id="harami1129_show_HaramiVid">HaramiVid (in our DB, for Title, Date, Link):</dt>
+  <dd>
+    <% hv = @harami1129.harami_vid %>
+    <%= hv ? link_to(sprintf('(ID=%d) %s', hv.id, hv.title), hv) : 'nil' %>
+  </dd>
+
+  <dt id="harami1129_show_Engage" title="Table of the association for Engagement of Song(Music)-Singer(Artist)">Engage (in our DB, for Singer and Song):</dt>
+  <dd>
+    <%= engage ? link_to(sprintf('(ID=%d) %s by %s [%s]', engage.id, engage.music.title, engage.artist.title, engage.engage_how.title(langcode: 'ja')), engage) : 'nil' %>
+  </dd>
+
+  <dt>Note:</dt>
+  <dd>
+  <%= @harami1129.note %>
+  </dd>
+
+</dl>
+    
+<h3>Summary</h3>
+<table>
+  <thead>
+    <tr>
+      <td>Singer</td>
+      <td>Song</td>
+      <td>Release date</td>
+      <td>Title</td>
+      <td>Link_root</td>
+      <td>Link_time</td>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><%= st.marker(:ins_singer) %></td>
+      <td><%= st.marker(:ins_song) %></td>
+      <td><%= st.marker(:ins_release_date) %></td>
+      <td><%= st.marker(:ins_title) %></td>
+      <td><%= st.marker(:ins_link_root) %></td>
+      <td><%= st.marker(:ins_link_time) %></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>
+<%= link_to 'Edit', edit_harami1129_path(@harami1129) %> |
+<%= link_to 'Back', harami1129s_path %>
+<br />
+</p>
+
+
+<% if current_user.editor? %>
+<p>
+  <% if :checked == st.sorted_status.first %>
+    Everything looks OK. If you want to <it>undo</it> confirmation (in order to properly edit and fix it later), go to <%= link_to 'Edit', edit_harami1129_path(@harami1129) %> page.
+  <% else %>
+    <% if :no_insert != st.sorted_status.first %>
+      Please insert within the table (or go to <%= link_to 'Edit', edit_harami1129_path(@harami1129) %> page).
+    <% end %>
+    <div id="form_insert_data">
+    <div id="inside_form_insert_data">
+    <%= form_with(model: @harami1129, url: harami1129_internal_insertions_path(harami1129_id: @harami1129.id)) do |form| %>
+      <div class="actions">
+        <%= submit_tag "Insert within Table", :name => Harami1129sController::FORM_SUBMIT_INSERTION_WITHIN_NAME, :class => "btn btn-info", title: 'Fill the imported columns with the downloaded data.' %>
+      </div>
+    <% end %>
+    </div>
+    </div>
+
+    <% if :no_insert != st.sorted_status.first %>
+      <%= button_to 'Populate', harami1129_populate_url(harami1129_id: @harami1129.id), method: :patch  %>
+    <% end %>
+    <% if :no_insert != st.sorted_status.first %>
+      Check it out (and you may go to <%= link_to 'Edit', edit_harami1129_path(@harami1129) %> page).
+      If everything looks OK<%= ' (<em>unlikely</em> as Title in HaramiVid is blank)'.html_safe if st.dest_current(:ins_title).blank? %>, please
+      <%= button_to 'Confirm', harami1129_url, method: :patch, params: { harami1129: {a_token: nil, human_check: "1"} } %>
+    <% end %>
+  <% end %>
+</p>
+<% end %>
+
+<p>
+<%= link_to 'Back', harami1129s_path %>
+</p>

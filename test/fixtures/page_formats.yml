@@ -1,0 +1,41 @@
+# == Schema Information
+#
+# Table name: page_formats
+#
+#  id                       :bigint           not null, primary key
+#  description              :text
+#  mname(unique identifier) :string           not null
+#  note                     :text
+#  created_at               :datetime         not null
+#  updated_at               :datetime         not null
+#
+# Indexes
+#
+#  index_page_formats_on_mname  (mname) UNIQUE
+#
+
+one:
+  mname: MyStringOne
+  description: MyText
+  note: MyText
+
+two:
+  mname: MyString
+  description: MyText
+  note: MyText
+
+page_format_full_html:
+  mname: full_html
+  description: This is full_html
+  note: PageFormatFullHtml
+
+page_format_filtered_html:
+  mname: filtered_html
+  description: This is filtered_html
+  note: PageFormatFilteredHtml
+
+page_format_markdown:
+  mname: markdown
+  description: This is markdown
+  note: PageFormatMarkdown
+
