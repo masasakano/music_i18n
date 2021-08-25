@@ -107,7 +107,7 @@ class Ability
       can :read,   Sex
       can :manage, Prefecture          # can :destroy in addition to Editors
       can :manage, [Genre, EngageHow]  # can :update :destroy in addition to Editors
-      can [:index, :show, :update], User
+      can [:read, :update], User
       can :update, Users::EditRolesController
       can :update, Users::Confirm  # Moderators can "confirm" users.
       #can(:edit,   Users::DeactivateUser){ |i| user.abs_superior_to?(i) }  # => NoMethodError: undefined method `roles' for #<Users::DeactivateUser
