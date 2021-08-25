@@ -77,6 +77,11 @@ Rails.application.configure do
   config.action_mailer.default_url_options = { host: mailertogo.host, port: mailertogo.port }
   ## up to here
 
+  # cf. https://altalogy.com/blog/rails-6-user-accounts-with-3-types-of-roles/
+  config.action_mailer.perform_deliveries = true
+  config.action_mailer.delivery_method = :smtp
+  config.action_mailer.default_options = {from: 'no-reply@harami.music-i18n.org'}
+
   config.action_mailer.smtp_settings = {
     :address              => mailertogo.host,
     :port                 => mailertogo.port,
