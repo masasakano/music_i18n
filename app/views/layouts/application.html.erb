@@ -27,6 +27,7 @@
     <% end %>
 
   <% if user_signed_in? && current_user.roles.exists?  %>
+    <div id="navbar_upper_user">
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
       <a class="navbar-brand" href="#">Editor-Menu</a>
@@ -48,21 +49,15 @@
       </div>
     </div>
     </nav>
-
-    <% if false %> <%# ## legacy %>
-    (User: <strong><%= link_to current_user.display_name, user_path(current_user) %></strong>)
-    <%= link_to('Edit registration', edit_user_registration_path) %> /
-    <%= link_to destroy_user_session_path, method: :delete do %><%= t('log_out') %><% end %><%# log_out: custom yml %>
-    <% if current_user.an_admin? %>
-    / (<%= link_to('User-list', users_index_path) %>)
-    / (<%= link_to('Admin-panel', rails_admin.dashboard_path) %>)
-    <% end %>
-    <% end %>
+    </div>
   <% end %>
 
-    <% str_lsl = language_switcher_link %>
-    <p style="text-align: right;"><%= str_lsl %>
+    <div id="language_switcher_top">
+      <% str_lsl = language_switcher_link %>
+      <p style="text-align: right;"><%= str_lsl %></p>
+    </div>
 
+    <div id="navbar_upper_any">
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container-fluid">
       <%# <a class="navbar-brand" href="#">Menu</a>%>
@@ -78,6 +73,15 @@
             </a>
           </li>
           <li class="nav-item">
+          </li>
+          <li class="nav-item">
+            <%= link_to t('application.menu_harami_vids'), harami_vids_path, class: "nav-link" %>
+          </li>
+          <li class="nav-item">
+            <%= link_to t('application.menu_musics'), musics_path, class: "nav-link" %>
+          </li>
+          <li class="nav-item">
+            <%= link_to t('application.menu_artists'), artists_path, class: "nav-link" %>
           </li>
           <li class="nav-item">
             <%= link_to t('application.about_us'), StaticPagesController.public_path('about_us'), class: "nav-link" %>
@@ -106,7 +110,9 @@
       </div>
     </div>
     </nav>
+    </div>
 
+    <div id="body_main">
     <%= yield %>
 
     <% if notice %>
@@ -117,8 +123,12 @@
     <% end %>
     <% toastr_flash  # defined in /app/helpers/application_helper.rb
     %>
+    </div>
     <hr>
-    <p><%= str_lsl %>
+
+    <div id="footer">
+    <p><%= str_lsl %></p>
+    </div>
   </body>
 </html>
 

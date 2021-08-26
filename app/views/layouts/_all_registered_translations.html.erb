@@ -1,7 +1,15 @@
 <h2>All registered <%= defined?(myself) ? 'translations' : 'translated names' %></h2>
 
 <table>
-  <% is_moderator = (user_signed_in? && current_user.qualified_as?(:moderator, RoleCategory[RoleCategory::MNAME_TRANSLATION])) %>
+  <% colspan =
+       if can? :crud, Translation
+         9
+       elsif can? :show, Translation
+         8
+       else
+         6
+       end
+   %>
   <thead>
     <tr>
       <th></th>
@@ -11,7 +19,7 @@
       <th>Alt title</th>
       <th>[Ruby/Romaji]</th>
       <% if can? :show, Translation %>
-        <% if is_moderator %>
+        <% if can? :crud, Translation %>
           <th>Weight</th>
         <% end %>
         <th colspan="2">Translation</th>
@@ -25,7 +33,7 @@
     <% add_tra_button = defined?(add_buttons) && add_buttons if add_tra_button.nil? %>
     <% alltra = model.translations_with_lang(langcode: lcode) %>
     <% next if !%w(ja en).include?(lcode) && alltra.empty? %>
-    <tr><th colspan="12" class="middle_row"><%= BaseWithTranslation::LANGUAGE_TITLES[lcode.to_sym][lcode] || lcode %>
+    <tr><th colspan="<%= colspan %>" class="middle_row"><%= BaseWithTranslation::LANGUAGE_TITLES[lcode.to_sym][lcode] || lcode %>
       <% if add_tra_button && (tra1 && tra1.creatable_other?(user: current_user, langcode: lcode) || (!tra1 && can?(:destroy, Translation))) %>
         <%= button_to t('layouts.add_translation'), new_translation_path, form_class: "inline_form button_to", method: :get, params: { a_token: nil, langcode: lcode, translatable_type: model.class.name, translatable_id: model.id } %>
       <% end %>
@@ -38,7 +46,7 @@
       <td>[<%= (tra.ruby || '') + ' | ' + (tra.romaji || '') %>]</td>
       <td><%= tra.alt_title %></td>
       <td>[<%= (tra.alt_ruby || '') +  ' | ' + (tra.alt_romaji || '') %>]</td>
-      <% if is_moderator %>
+      <% if can? :crud, Translation %>
         <td><%= tra.weight%></td>
       <% end %>
       <% if defined?(myself) && tra == myself %>
@@ -47,11 +55,11 @@
         <% if can? :show, tra %>
           <td style="border-right-style: none;"><%= link_to 'Show', tra %></td>
         <% end %>
-        <% if tra.editable?(user: current_user) %>
         <td style="border-left-style: none;">
+        <% if tra.editable?(user: current_user) %>
           <%= link_to 'Edit', edit_translation_path(tra) %>
-        </td>
         <% end %>
+        </td>
       <% end %>
 
     </tr>

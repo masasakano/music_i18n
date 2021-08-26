@@ -1,6 +1,6 @@
 <p id="notice"><%= notice %></p>
 
-<h2>A Translation for an <%= @translation.translatable_type %>
+<h2>A Translation for <%= @translation.translatable_type %>
   <% if user_signed_in? && current_user.moderator? %>
     (Translation ID=<%= @translation.id %>)
   <% end %>
@@ -34,8 +34,10 @@
   <dt> これが原語か?:</dt>
   <dd><%= @translation.is_orig %></dd>
 
-  <dt> Weight:</dt>
-  <dd><%= @translation.weight %></dd>
+  <% if can? :crud, Translation %>
+    <dt> Weight:</dt>
+    <dd><%= @translation.weight %></dd>
+  <% end %>
 
   <dt> Create user:</dt>
   <dd><%= user = @translation.create_user; user ? link_to(user.display_name, user_path(user)) : nil %></dd>

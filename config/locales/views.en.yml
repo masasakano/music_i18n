@@ -1,6 +1,9 @@
 # Custom translations for Views in this project (English)
 en:
   application:
+    menu_harami_vids: "Harami's Movies"
+    menu_musics: "Musics"
+    menu_artists: "Artists"
     about_us: 'About Us'
     others: 'Others'
 

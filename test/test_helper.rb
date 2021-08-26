@@ -1,6 +1,7 @@
 ENV['RAILS_ENV'] ||= 'test'
 require_relative '../config/environment'
 require 'rails/test_help'
+require 'w3c_validators'
 
 class ActiveSupport::TestCase
   # Run tests in parallel with specified workers
@@ -113,4 +114,31 @@ class ActiveSupport::TestCase
     hsout.merge ardts.inject({}, &:merge)
   end
 
+
+  # Validate HTML with W3C
+  #
+  # If environmental variable SKIP_W3C_VALIDATE is set and not '0' or 'false',
+  # validation is skipped.
+  #
+  # The caller information is printed if fails.
+  #
+  # If the error message is insufficient, you may simply print out 'response.body' in the caller,
+  # or better
+  #
+  #   @validator.validate_text(response.body).debug_messages.each do |key, value|
+  #     puts "#{key}: #{value}"
+  #   end
+  #
+  # @param name [String] Identifier for the error message.
+  def w3c_validate(name="caller")
+    return if ENV.keys.include?('SKIP_W3C_VALIDATE') && !%w(0 false FALSE).include?(ENV.keys.include?('SKIP_W3C_VALIDATE'))
+
+    bind = caller_locations(1,1)[0]  # Ruby 2.0+
+    caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
+    # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
+
+    ## W3C HTML validation (Costly operation)
+    arerr = @validator.validate_text(response.body).errors
+    assert_equal 0, arerr.size, "Failed for #{name} (#{caller_info}): W3C-HTML-validation-Errors(Size=#{arerr.size}): ("+arerr.map(&:to_s).join(") (")+")"
+  end
 end

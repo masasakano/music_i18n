@@ -35,13 +35,8 @@ class Musics::UploadMusicCsvsIntegrationTest < ActionDispatch::IntegrationTest
     
 #print "DEBUG:tbody:"; puts css_select('tbody')[0].to_s
 
-    #### W3C HTML validation (Costly operation!) ##########################
-    arerr = @validator.validate_text(response.body).errors
-    assert_equal 0, arerr.size, "W3C-HTML-validation-Errors(Size=#{arerr.size}): ("+arerr.map(&:to_s).join(") (")+")"
-    ## For debugging
-    #@validator.validate_text(response.body).debug_messages.each do |key, value|
-    #  puts "#{key}: #{value}"
-    #end
+    ## W3C HTML validation (Costly and can be disabled with SKIP_W3C_VALIDATE)
+    w3c_validate(name="after-create")  # defined in test_helper.rb (see for debuggin help)
 
     prefix = 'upload_music_csvs-'
 

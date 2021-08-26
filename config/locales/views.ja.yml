@@ -1,6 +1,9 @@
 # Custom translations for Views in this project (Japanese)
 ja:
   application:
+    menu_harami_vids: "ハラミちゃん動画"
+    menu_musics: "楽曲"
+    menu_artists: "アーティスト"
     about_us: '本サイトについて'
     others: 'その他'
 

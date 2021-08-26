@@ -1,4 +1,5 @@
 <h1>Music-i18n.org for Harami-chan (ハラミちゃん)</h1>
+<div id="home-intro">
 <p><%= t('.first_line_html') %><br>
    <%= t('.second_line') %></p>
 <p><%= t('.third_line') %>
@@ -6,6 +7,7 @@
     <%= t('.fourth_line1') %><%= link_to new_user_registration_path, class: 'register-button' do %><%= t("devise.registrations.new.sign_up") %><% end %><%= t('.fourth_line2') %>
   <% end %>
 </p>
+</div>
 
 <p><%= @message %></p>
 
@@ -55,6 +57,7 @@
 </table>
 <hr>
 
+<div id="home_bottom">
 <p><%= link_to t('.harami_vids_index'), harami_vids_path %> | <%= link_to t('.musics_index'), musics_path %> | <%= link_to t('.artists_index'), artists_path %>
   <% if current_user && current_user.qualified_as?(:editor, RoleCategory[RoleCategory::MNAME_TRANSLATION]) %>
     | <%= link_to 'Translations', translations_path %>
@@ -69,3 +72,5 @@
 <% else %>
     <%= link_to new_user_session_path, class: 'login-button' do %><%= t("devise.sessions.new.sign_in") %><% end %> (<%= t('or') %> <%= link_to new_user_registration_path, class: 'register-button' do %><%= t("devise.registrations.new.sign_up") %><% end %>)
 <% end %>
+</div>
+
