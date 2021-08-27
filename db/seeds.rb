@@ -209,7 +209,7 @@ else
   hsworld = {
     ja: {title: '世界',  ruby: 'セカイ', romaji: 'sekai', weight: 0},
     en: {title: 'World', is_orig: true, weight: 0},
-    fr: {title: 'Monde', weight: 10},
+    fr: {title: 'Monde', weight: 0},
   }
   world.reload.with_translations(**hsworld)
   # ret ||= (flag_world = true)
@@ -383,8 +383,8 @@ nrec += n_placs*3  # Place + 2 languages
 
 artrans = [
   { weight: 99999, :note => nil, translations:
-   {'ja' => {title: Genre::UnknownGenre['ja'], ruby: 'ジャンルフメイ', romaji: 'janrufumei', weight: 10},
-    'en' => {title: Genre::UnknownGenre['en'], weight: 10, }}},
+   {'ja' => {title: Genre::UnknownGenre['ja'], ruby: 'ジャンルフメイ', romaji: 'janrufumei', weight: 0},
+    'en' => {title: Genre::UnknownGenre['en'], weight: 0, }}},
   { weight: 10, :note => '例: 広瀬香美『ロマンスの神様』, Queen『Bohemian Rhapsody』', translations:
    {'ja' => {title: 'ポップス', ruby: 'ポップス', romaji: 'poppusu', weight: 10},
     'en' => {title: 'Pop', weight: 10,}}},
@@ -429,8 +429,8 @@ nrec += n_genres*3  # Genre + 2 languages (In fact, this is not accurate... no c
 
 artrans = [
   { weight: 99999, note: nil, translations:
-   {'ja' => {title: EngageHow::UnknownEngageHow['ja'], ruby: 'カンヨケイタイフメイ', weight: 10},
-    'en' => {title: EngageHow::UnknownEngageHow['en'], weight: 10, }}},
+   {'ja' => {title: EngageHow::UnknownEngageHow['ja'], ruby: 'カンヨケイタイフメイ', weight: 0},
+    'en' => {title: EngageHow::UnknownEngageHow['en'], weight: 0, }}},
   { weight: 10, note: nil, translations:
    {'ja' => {title: '歌手(オリジナル)', ruby: 'カシュ(オリジナル)', weight: 10},
     'en' => {title: 'Singer (Original)', weight: 10, }}},

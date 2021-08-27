@@ -202,7 +202,7 @@ country_world_fr:
   langcode: fr
   title: Monde
   is_orig: false
-  weight: 10
+  weight: 0
   create_user_id: 1
   update_user_id: 1
   note: CountryWorldFr
@@ -212,18 +212,40 @@ unknown_prefecture_world_en:
   translatable_type: Prefecture
   langcode: en
   title: UnknownPrefecture
+  weight: 0
   create_user_id: 1
   update_user_id: 1
   note: UnknownPrefectureWorldEn
+
+unknown_prefecture_world_ja:
+  translatable: unknown_prefecture_world
+  translatable_type: Prefecture
+  langcode: ja
+  title: 'どこかの都道府県'
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: UnknownPrefectureWorldJa
 
 unknown_place_unknown_prefecture_world_en:
   translatable: unknown_place_unknown_prefecture_world
   translatable_type: Place
   langcode: en
   title: UnknownPlace
+  weight: 0
   create_user_id: 1
   update_user_id: 1
   note: UnknownPlaceUnknownPrefectureWorldEn
+
+unknown_place_unknown_prefecture_world_ja:
+  translatable: unknown_place_unknown_prefecture_world
+  translatable_type: Place
+  langcode: ja
+  title: どこかの場所
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: UnknownPlaceUnknownPrefectureWorldJa
 
 japan_ja:
   translatable: japan
@@ -262,6 +284,7 @@ unknown_prefecture_japan_ja:
   translatable_type: Prefecture
   langcode: ja
   title: どこかの都道府県
+  weight: 0
   create_user_id: 1
   update_user_id: 1
   note: UnknownPrefectureJapanEn
@@ -271,6 +294,7 @@ unknown_prefecture_japan_en:
   translatable_type: Prefecture
   langcode: en
   title: UnknownPrefecture
+  weight: 0
   create_user_id: 1
   update_user_id: 1
   note: UnknownPrefectureJapanEn
@@ -280,6 +304,7 @@ unknown_prefecture_japan_fr:
   translatable_type: Prefecture
   langcode: fr
   title: ComtéInconnu
+  weight: 0
   create_user_id: 1
   update_user_id: 1
   note: UnknownPrefectureJapanfr
@@ -289,6 +314,7 @@ unknown_place_unknown_prefecture_japan_ja:
   translatable_type: Place
   langcode: ja
   title: どこかの場所
+  weight: 0
   create_user_id: 1
   update_user_id: 1
   note: UnknownPlaceUnknownPrefectureJapanJa
@@ -298,6 +324,7 @@ unknown_place_unknown_prefecture_japan_en:
   translatable_type: Place
   langcode: en
   title: UnknownPlace
+  weight: 0
   create_user_id: 1
   update_user_id: 1
   note: UnknownPlaceUnknownPrefectureJapanEn
@@ -307,6 +334,7 @@ unknown_place_tokyo_japan_en:
   translatable_type: Place
   langcode: en
   title: UnknownPlace
+  weight: 0
   create_user_id: 1
   update_user_id: 1
   note: UnknownPlaceTokyoJapanEn
@@ -316,6 +344,7 @@ unknown_place_kagawa_japan_en:
   translatable_type: Place
   langcode: en
   title: UnknownPlace
+  weight: 0
   create_user_id: 1
   update_user_id: 1
   note: UnknownPlaceKagawaJapanEn

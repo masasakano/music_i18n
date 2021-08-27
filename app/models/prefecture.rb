@@ -226,7 +226,8 @@ class Prefecture < BaseWithTranslation
       hs2pass[lc] = {
         title: ea_title,
         langcode: lc,
-        is_orig:  (hstrans.key?(lc) && hstrans[lc].respond_to?(:is_orig) ? hstrans[lc].is_orig : nil)
+        is_orig:  (hstrans.key?(lc) && hstrans[lc].respond_to?(:is_orig) ? hstrans[lc].is_orig : nil),
+        weight: 0,
       }
     end
 

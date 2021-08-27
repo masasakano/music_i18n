@@ -82,6 +82,8 @@ class PlaceTest < ActiveSupport::TestCase
     plau0 = Place.unknown
     assert_equal Place::UnknownPlace['en'], plau0.title
     assert plau0.unknown?
+    assert_equal 0, plau0.best_translations['en'].weight
+    assert_equal 0, plau0.best_translations['ja'].weight
 
     ## Test of unknown
     plau0 = Place.unknown

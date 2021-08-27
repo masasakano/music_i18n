@@ -126,6 +126,7 @@ class CountryTest < ActiveSupport::TestCase
     assert_equal 'UnknownPrefecture', prefecture_trans.title
     assert_equal 'en',                prefecture_trans.langcode
     assert                            prefecture_trans.original?
+    assert_equal 0,                   prefecture_trans.weight
 
     newc = Country.new
     newc.save!
@@ -144,6 +145,7 @@ class CountryTest < ActiveSupport::TestCase
     assert_equal 'どこかの場所',     place_trans.title
     assert_equal 'ja',               place_trans.langcode
     assert                           place_trans.original?
+    assert_equal 0,                  place_trans.weight
 
     newc.reload
     child_prefecture.reload
@@ -192,6 +194,8 @@ class CountryTest < ActiveSupport::TestCase
     plau0 = Country.unknown
     assert_equal Country::UnknownCountry['en'], plau0.title
     assert plau0.unknown?
+    assert_equal 0, plau0.best_translations['en'].weight
+    assert_equal 0, plau0.best_translations['ja'].weight
 
     ## encompass? covered_by? ##########
     con3 = Country.third

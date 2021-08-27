@@ -101,6 +101,7 @@ class PrefectureTest < ActiveSupport::TestCase
     assert_equal 'UnknownPlace', place_trans.title
     assert_equal 'en',           place_trans.langcode
     assert                       place_trans.original?
+    assert_equal 0,              place_trans.weight
 
     newp = Prefecture.new(country: countries(:japan))
     newp.save!
@@ -112,6 +113,7 @@ class PrefectureTest < ActiveSupport::TestCase
     assert_equal 'どこかの場所', place_trans.title
     assert_equal 'ja',           place_trans.langcode
     assert                       place_trans.original?
+    assert_equal 0,              place_trans.weight
 
     ## Test of unknown
     plau0 = Prefecture.unknown
@@ -121,6 +123,8 @@ class PrefectureTest < ActiveSupport::TestCase
     assert_equal Prefecture::UnknownPrefecture['en'], plauj.title(langcode: 'en')
     assert plauj.unknown?
     assert_not_equal plau0, plauj
+    assert_equal 0, plau0.best_translations['en'].weight
+    assert_equal 0, plau0.best_translations['ja'].weight
 
     ## encompass? covered_by? ##########
     cnt_unk = Country.unknown
