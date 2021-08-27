@@ -41,7 +41,16 @@
         <td><%= (artist.title langcode: 'ja') || '' %><%= (orig_lc == 'ja') ? '*' : '' %></td>
         <td><%= sprintf '%s [%s/%s]', *(%i(alt_title alt_ruby alt_romaji).map{|i| artist.send(i, langcode: 'ja') || ''}) %></td>
         <td><%= tits = %i(title alt_title).map{|i| artist.send(i, langcode: 'en') || ''}; sprintf '%s%s [%s]', tits[0], ((orig_lc == 'en') ? '*' : ''), tits[2] %></td>
-        <td><%= s=artist.engage_how_titles(music, year: music.year).join(', '); link_to ((/\d/ =~ s) ? s : s+'('+(music.year || '年不明').to_s+')'), edit_engage_multi_how_path(artist.engages.where(music: music).first) %></td>
+        <% s = artist.engage_how_titles(music, year: music.year).join(', ') %>
+        <% label_str = ((/\d/ =~ s) ? s : s+'('+(music.year || '年不明').to_s+')') %>
+        <% engage = artist.engages.where(music: music).first %>
+        <td>
+        <% if can? :read, engage %>
+          <%= link_to label_str, edit_engage_multi_how_path(engage) %>
+        <% else %>
+          label_str %>
+        <% end %>
+        </td>
         <td><%= ar = artist.place.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true);
                 sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture['ja'] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2] %></td>
         <td><%= sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
