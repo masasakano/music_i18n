@@ -662,6 +662,16 @@ end
 
 
 ################################
+# Auto loading
+
+seed_files = %w(users.rb *.rb)  # all files but ensures users.rb is run first.
+seed_files.map{|i| Dir[File.join(Rails.root, 'db', 'seeds', i)]}.flatten.sort.uniq.each do |seed|
+  puts "loading #{seed.sub(%r@.*(/db/seeds/)@, '\1')}"
+  load seed
+end
+
+################################
+
 
 if !ret || nrec <= 0
   warn "WARNING: All the seeds have been already implemented."
