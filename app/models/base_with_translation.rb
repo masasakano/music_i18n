@@ -1940,7 +1940,7 @@ class BaseWithTranslation < ApplicationRecord
       else
         [the+" "+root, root, root+", "+the]
       end
-    }.flatten
+    }.flatten.uniq
   end
 
   ######################

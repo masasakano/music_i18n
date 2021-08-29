@@ -86,7 +86,7 @@ class ApplicationController < ActionController::Base
 
     # From https://guides.rubyonrails.org/i18n.html#managing-the-locale-across-requests
     def switch_locale(&action)
-      locale = params[:locale] || I18n.default_locale
+      locale = (params[:locale].blank? ? I18n.default_locale : params[:locale])
       I18n.with_locale(locale, &action)
     end
 end
