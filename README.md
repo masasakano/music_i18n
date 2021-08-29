@@ -63,3 +63,16 @@ To achieve these:
      3. Pre-defined methods of `StaticPage`, maybe.
      4. eval as ERB (risky!)
 
+## JavaScript/jQuery ##
+
+For jQuery, jquery-ui-dist-1.12.1 is used at the time of writing, whereas the most recent stable version is 
+jQuery-3.5.1.
+
+The reason is simply because use of jquery-ui-dist-1.12.1 was the only way I found to work with Rails 6…  It is not ideal. But so far, I do not know how to make the standard jQuery work.
+
+This difference in the versions, should you decide to upgrade it, may affect
+
+* all the JavaScript files
+* `/app/assets/stylesheets/application.scss`
+* `/test/system/engages_test.rb`
+

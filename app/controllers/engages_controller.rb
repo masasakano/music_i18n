@@ -29,13 +29,13 @@ class EngagesController < ApplicationController
     artist =
       if !hsbase[:artist_id].blank?
         Artist.find(hsbase[:artist_id])
-      elsif hsbase[:artist].blank?
+      elsif hsbase[:artist_name].blank?
         nil
       else
-        Artist.find_by_name(hsbase[:artist])
+        Artist.find_by_name(hsbase[:artist_name])
       end
-    artist = (hsbase[:artist_id] ? Artist.find(hsbase[:artist_id]) : Artist.find_by_name(hsbase[:artist]))
-    @engage.errors.add :artist, "with the name #{hsbase[:artist].inspect} does not exist." if !artist
+    artist = (hsbase[:artist_id] ? Artist.find(hsbase[:artist_id]) : Artist.find_by_name(hsbase[:artist_name]))
+    @engage.errors.add :artist_name, "with the name #{hsbase[:artist_name].inspect} does not exist." if !artist
 
     # Multiple EngageHow IDs
     specified_engage_how_ids = (hsbase[:engage_how].blank? ? [] : hsbase[:engage_how].map{|i| i.blank? ? nil : i}.compact)
@@ -117,7 +117,7 @@ class EngagesController < ApplicationController
     # Only allow a list of trusted parameters through. create only (NOT update)
     def engage_params
       params.permit!
-      params.require(:engage).permit(:contribution, :year, :artist, :artist_id, :engage_how, :music_id, :note)
+      params.require(:engage).permit(:contribution, :year, :artist_name, :artist_id, :engage_how, :music_id, :note)
       # For some reason, only :engage_how is NOT permitted...
     end
 end

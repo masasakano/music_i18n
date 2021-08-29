@@ -31,11 +31,18 @@
 
 en:
   accept_terms: Terms of Service
+  Country: Country
   detail: Detail
+  Genre: Genre
   Harami: "Harami-chan"
   log_out: Log out
   or: or
+  Prefecture: Prefecture
+  Place: Place
   read_agree_terms_html: "I have read and agreed with the %{link2term}."
+  romaji: romaji
+  ruby: ruby
   s_time: "s"
   terms_of_service: Terms of Service
+  Year_Title: Year
 

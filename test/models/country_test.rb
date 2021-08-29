@@ -198,7 +198,7 @@ class CountryTest < ActiveSupport::TestCase
     assert_equal 0, plau0.best_translations['ja'].weight
 
     ## encompass? covered_by? ##########
-    con3 = Country.third
+    con3 = countries(:japan)
     assert     plau0.encompass?(plau0)
     assert_not plau0.encompass_strictly?(plau0)
     assert_not plau0.coarser_than?(plau0)

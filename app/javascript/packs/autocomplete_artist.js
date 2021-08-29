@@ -12,7 +12,7 @@ export function autocompleteArtist(model){
   $(function(){
   	// jquery-ui-dist
   	//const availableCities = ['foo', 'food', 'four'];
-  	$('#'+model+'_artist').autocomplete( { source: $('#suggestions').data('items') } );  // autocomplete in the client side
+    $('#'+model+'_artist_name').autocomplete( { source: $('#suggestions').data('items') } );  // autocomplete in the client side
   })
 }
 

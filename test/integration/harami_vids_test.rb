@@ -3,7 +3,7 @@ require "test_helper"
 #Rails.application.config.middleware.insert_before Warden::Manager, ActionDispatch::Cookies
 #Rails.application.config.middleware.insert_before Warden::Manager, ActionDispatch::Session::CookieStore
 
-class HaramiVidsTest < ActionDispatch::IntegrationTest
+class HaramiVidsIntegrationTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
   # called after every single test

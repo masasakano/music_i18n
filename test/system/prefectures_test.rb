@@ -1,45 +1,45 @@
 require "application_system_test_case"
 
 class PrefecturesTest < ApplicationSystemTestCase
-  setup do
-    @prefecture = prefectures(:one)
-  end
+  #setup do
+  #  @prefecture = prefectures(:one)
+  #end
 
-  test "visiting the index" do
-    visit prefectures_url
-    assert_selector "h1", text: "Prefectures"
-  end
+  #test "visiting the index" do
+  #  visit prefectures_url
+  #  assert_selector "h1", text: "Prefectures"
+  #end
 
-  test "creating a Prefecture" do
-    visit prefectures_url
-    click_on "New Prefecture"
+  #test "creating a Prefecture" do
+  #  visit prefectures_url
+  #  click_on "New Prefecture"
 
-    fill_in "Country", with: @prefecture.country_id
-    fill_in "Note", with: @prefecture.note
-    click_on "Create Prefecture"
+  #  fill_in "Country", with: @prefecture.country_id
+  #  fill_in "Note", with: @prefecture.note
+  #  click_on "Create Prefecture"
 
-    assert_text "Prefecture was successfully created"
-    click_on "Back"
-  end
+  #  assert_text "Prefecture was successfully created"
+  #  click_on "Back"
+  #end
 
-  test "updating a Prefecture" do
-    visit prefectures_url
-    click_on "Edit", match: :first
+  #test "updating a Prefecture" do
+  #  visit prefectures_url
+  #  click_on "Edit", match: :first
 
-    fill_in "Country", with: @prefecture.country_id
-    fill_in "Note", with: @prefecture.note
-    click_on "Update Prefecture"
+  #  fill_in "Country", with: @prefecture.country_id
+  #  fill_in "Note", with: @prefecture.note
+  #  click_on "Update Prefecture"
 
-    assert_text "Prefecture was successfully updated"
-    click_on "Back"
-  end
+  #  assert_text "Prefecture was successfully updated"
+  #  click_on "Back"
+  #end
 
-  test "destroying a Prefecture" do
-    visit prefectures_url
-    page.accept_confirm do
-      click_on "Destroy", match: :first
-    end
+  #test "destroying a Prefecture" do
+  #  visit prefectures_url
+  #  page.accept_confirm do
+  #    click_on "Destroy", match: :first
+  #  end
 
-    assert_text "Prefecture was successfully destroyed"
-  end
+  #  assert_text "Prefecture was successfully destroyed"
+  #end
 end

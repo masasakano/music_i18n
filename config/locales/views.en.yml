@@ -10,6 +10,12 @@ en:
   layouts:
     add_translation: 'Add translation'
     editing_guideline: 'Editing Guideline'
+    new_translations:
+      model_language: "(Original) Language of Title of %{model}"
+      translations_can_be_added_later: "translations can be added later"
+      title: "Full Title"
+      note_re_group: "or Group name"
+      alt_title: "Alternative/Commonly-known Title"
 
   devise:
     registrations:

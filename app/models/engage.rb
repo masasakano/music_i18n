@@ -48,6 +48,9 @@ class Engage < ApplicationRecord
   # for simple_form; meant to be boolean
   attr_accessor :to_destroy
 
+  # for simple_form; meant to be String
+  attr_accessor :artist_name
+
   # Returns the potentially unsaved version of "unknown"
   def self.find_or_initialize_unknown
     find_or_initialize_by(music: Music.unknown, artist: Artist.unknown)

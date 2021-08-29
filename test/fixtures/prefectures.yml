@@ -22,10 +22,6 @@
 #  fk_rails_...  (country_id => countries.id) ON DELETE => cascade
 #
 
-unknown_prefecture_earth:
-  country: earth
-  note: NoteEarth
-
 unknown_prefecture_world:
   country: country_world
   note: UnknownPrefectureWorld

@@ -25,17 +25,35 @@ ul.ui-autocomplete {
   border: solid 1px #999;
   cursor: default;
   li {
-    background-color: #FFF;
+    background-color: #222; /* original #fff */
     border-top: solid 1px #DDD;
     margin: 0;
     padding: 0;
     a {
-      color: #000;
+      color: #eee;  /* original 000 */
       display: block;
       padding: 3px;
     }
     a.ui-state-hover, a.ui-state-active {
-      background-color: #FFFCB2;
+      background-color: #333388; /* original #FFFCB2; */
+    }
+
+    /* In this version (jquery-ui-dist-1.12.1), it seems div is used as opposed to a:
+     *
+     *  <li class="ui-menu-item">
+     *    <div id="ui-id-2" tabindex="-1" class="ui-menu-item-wrapper">OneCandidate</div>
+     *  </li>
+     *
+     * Note that the current jQuery version is 3.5.1, whereas jquery-ui-dist-1.12.1 is used
+     * on this site so far.
+     */
+    div.ui-menu-item-wrapper {
+      color: #eee;
+      display: block;
+      padding: 3px;
+    }
+    div.ui-state-hover, a.ui-state-active {
+      background-color: #333388;
     }
   }
 }

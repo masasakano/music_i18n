@@ -33,13 +33,41 @@ engage_how_singer_cover:
   weight: 20
   note: EngageHowSingerCover
 
+engage_how_lyricist:
+  weight: 30
+  note: EngageHowLyricist
+
+engage_how_translator:
+  weight: 40
+  note: EngageHowTranslator
+
 engage_how_composer:
   weight: 50
   note: EngageHowComposer
 
+engage_how_arranger:
+  weight: 60
+  note: EngageHowArranger
+
+engage_how_conductor:
+  weight: 70
+  note: EngageHowConductor
+
 engage_how_player:
   weight: 80
   note: EngageHowPlayer
+
+engage_how_accompanist:
+  weight: 90
+  note: EngageHowAccompanist
+
+engage_how_producer:
+  weight: 100
+  note: EngageHowProducer
+
+engage_how_assistant:
+  weight: 110
+  note: EngageHowAssistant
 
 engage_other:
   weight: 500

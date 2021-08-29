@@ -141,4 +141,39 @@ class ActiveSupport::TestCase
     arerr = @validator.validate_text(response.body).errors
     assert_equal 0, arerr.size, "Failed for #{name} (#{caller_info}): W3C-HTML-validation-Errors(Size=#{arerr.size}): ("+arerr.map(&:to_s).join(") (")+")"
   end
+
+  # @see https://stackoverflow.com/questions/13187753/rails3-jquery-autocomplete-how-to-test-with-rspec-and-capybara
+  # No need of sleep!
+  #
+  # CSS looks different from the above URI:
+  #   <li class="ui-menu-item">
+  #     <div id="ui-id-2" tabindex="-1" class="ui-menu-item-wrapper">OneCandidate</div>
+  #   </li>
+  def fill_autocomplete(field, **options)
+    fill_in field, with: options[:with]
+
+    page.execute_script %Q{ $('##{field}').trigger('focus') }
+    page.execute_script %Q{ $('##{field}').trigger('keydown') }
+
+    selector = %Q{ul.ui-autocomplete li.ui-menu-item:contains("#{options[:select]}")}  # has to be double quotations (b/c of the sentence below)
+    ## Or, more strictly,
+    #selector = %Q{ul.ui-autocomplete li.ui-menu-item div.ui-menu-item-wrapper:contains("#{options[:select]}")}  # has to be double quotations (b/c of the sentence below)
+
+    bind = caller_locations(1,1)[0]  # Ruby 2.0+
+    caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
+    # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
+
+    # page.should have_selector selector  # I think this is for RSpec only. # This ensures to wait for the popup to appear.
+    #print "DEBUG: "; p page.find('ul.ui-autocomplete div.ui-menu-item-wrapper')['innerHTML']
+    ## assert page.has_selector? selector  # Does not work (maybe b/c it is valid only for jQuery; officially CSS does not support "contains" selector, which is deprecated): Selenium::WebDriver::Error::InvalidSelectorError: invalid selector: An invalid or illegal selector was specified
+    begin
+      assert_selector selector.sub(/:contains.*/, '')  # This MAY ensure to wait for the popup to appear??
+      flag = true
+    ensure
+      warn "ERROR: Failed when called from (#{caller_info})" if !flag
+    end
+
+    page.execute_script %Q{ $('#{selector}').trigger('mouseenter').click() }
+  end
+
 end

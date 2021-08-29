@@ -1,12 +1,12 @@
 
   <% modelname = model.class.name %>
 
-  <div class="field">
-    <span><%= modelname %>名の言語 (本来の言語で。翻訳は後で追加)</span>
+  <div class="field radio_langcode">
+    <span><%= t('layouts.new_translations.model_language', model: modelname) %> (<%= t('layouts.new_translations.translations_can_be_added_later') %>)</span>
     <% BaseWithTranslation::AVAILABLE_LOCALES.each do |es| %>
       <% lc = trans.orig_langcode %>
       <%= form.radio_button(:langcode, es, checked: (es.to_s == (lc || 'ja'))) %>
-      <%= form.label :langcode, BaseWithTranslation::LANGUAGE_TITLES[:ja][es.to_s], value: es %>
+      <%= form.label :langcode, BaseWithTranslation::LANGUAGE_TITLES[I18n.locale.to_sym][es.to_s], value: es %>
     <% end %>
   </div>
 
@@ -22,32 +22,32 @@
   <% end %>
 
   <div class="field">
-    <%= form.label :title, modelname+'正式名称'+(('Artist'==model.class.name) ? '(グループの場合はグループ名)' : '') %>
+    <%= form.label :title, t('layouts.new_translations.title', model: modelname)+(('Artist'==model.class.name) ? ' ('+t('layouts.new_translations.note_re_group')+')' : '') %>
     <%= form.text_field :title, value: trans.title, placeholder: '例: The '+(('Artist'==model.class.name) ? 'Beatles' : 'Ocean') %>
   </div>
 
   <div class="field">
-    <%= form.label :ruby, modelname+'正式名称フリガナ' %>
+    <%= form.label :ruby, t('layouts.new_translations.title', model: modelname)+' - '+t('ruby') %>
     <%= form.text_field :ruby, value: trans.ruby, placeholder: '(全角片仮名で)例: '+(('Artist'==model.class.name) ? 'ザ・ビートルズ' : 'ジ・オーシャン') %>
   </div>
 
   <div class="field">
-    <%= form.label :romaji, modelname+'正式名称ローマ字' %>
+    <%= form.label :romaji, t('layouts.new_translations.title', model: modelname)+' - '+t('romaji') %>
     <%= form.text_field :romaji, value: trans.romaji, placeholder: '(ヘボン式推奨: chi, shi等)' %>
   </div>
 
   <div class="field">
-    <%= form.label :alt_title, modelname+'略称・別名' %>
+    <%= form.label :alt_title, t('layouts.new_translations.alt_title', model: modelname) %>
     <%= form.text_field :alt_title, value: trans.alt_title %>
   </div>
 
   <div class="field">
-    <%= form.label :alt_ruby, modelname+'略称・別名フリガナ' %>
+    <%= form.label :alt_ruby, t('layouts.new_translations.alt_title', model: modelname)+' - '+t('ruby') %>
     <%= form.text_field :alt_ruby, value: trans.alt_ruby, placeholder: '(全角片仮名で)' %>
   </div>
 
   <div class="field">
-    <%= form.label :alt_romaji, modelname+'略称・別名ローマ字' %>
+    <%= form.label :alt_romaji, t('layouts.new_translations.alt_title', model: modelname)+' - '+t('romaji') %>
     <%= form.text_field :alt_romaji, value: trans.alt_romaji, placeholder: '(ヘボン式推奨: chi, shi等)' %>
   </div>
 

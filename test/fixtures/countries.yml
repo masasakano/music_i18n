@@ -29,12 +29,13 @@
 #  fk_rails_...  (country_master_id => country_masters.id) ON DELETE => restrict
 #
 
-earth:
-  note: MyTextEarth
-
 country_world:
   iso3166_n3_code: 0
   note: MyTextWorld
+
+### This would interfere Dropdown menu selection.
+#earth:
+#  note: MyTextEarth
 
 japan:
   iso3166_a2_code: JP

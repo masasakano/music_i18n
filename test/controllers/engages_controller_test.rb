@@ -24,7 +24,7 @@ class EngagesControllerTest < ActionDispatch::IntegrationTest
   test "should create" do
     # Creation unauthorized
     assert_no_difference('Engage.count') do
-      post engages_url, params: { engage: { artist: translations(:artist_rcsuccession_ja).title, music_id: @engage.music.id, engage_how: [engage_hows(:engage_how_composer).id, engage_hows(:engage_how_player).id], year: 1234 } }
+      post engages_url, params: { engage: { artist_name: translations(:artist_rcsuccession_ja).title, music_id: @engage.music.id, engage_how: [engage_hows(:engage_how_composer).id, engage_hows(:engage_how_player).id], year: 1234 } }
       assert_response :redirect
       assert_redirected_to new_user_session_url
     end
@@ -39,7 +39,7 @@ class EngagesControllerTest < ActionDispatch::IntegrationTest
     sign_in users(:user_two)
     # Creation unauthorized
     assert_no_difference('Engage.count') do
-      post engages_url, params: { engage: { artist: translations(:artist_rcsuccession_ja).title, music_id: @engage.music.id, engage_how: [engage_hows(:engage_how_composer).id, engage_hows(:engage_how_player).id], year: 1234 } }
+      post engages_url, params: { engage: { artist_name: translations(:artist_rcsuccession_ja).title, music_id: @engage.music.id, engage_how: [engage_hows(:engage_how_composer).id, engage_hows(:engage_how_player).id], year: 1234 } }
       assert_response :redirect
       assert_redirected_to new_user_session_url
     end
@@ -48,14 +48,14 @@ class EngagesControllerTest < ActionDispatch::IntegrationTest
 
     # Creation success
     assert_difference('Engage.count', 2) do
-      post engages_url, params: { engage: { artist: translations(:artist_rcsuccession_ja).title, music_id: @engage.music.id, engage_how: [engage_hows(:engage_how_composer).id, engage_hows(:engage_how_player).id], year: 1234 } }
+      post engages_url, params: { engage: { artist_name: translations(:artist_rcsuccession_ja).title, music_id: @engage.music.id, engage_how: [engage_hows(:engage_how_composer).id, engage_hows(:engage_how_player).id], year: 1234 } }
       assert_response :redirect
       assert_redirected_to music_url(@engage.music) # Redirected to Music#show page
     end
 
     # Adding 'The' (which does not exist in DB) is accepted
     assert_difference('Engage.count', 1) do
-      post engages_url, params: { engage: { artist: 'The '+translations(:artist_rcsuccession_ja).title, music_id: @engage.music.id, engage_how: [engage_hows(:engage_how_singer_cover).id], year: 1234 } }
+      post engages_url, params: { engage: { artist_name: 'The '+translations(:artist_rcsuccession_ja).title, music_id: @engage.music.id, engage_how: [engage_hows(:engage_how_singer_cover).id], year: 1234 } }
     end
 
     # Delete success

@@ -17,10 +17,6 @@
 #  fk_rails_...  (prefecture_id => prefectures.id) ON DELETE => cascade
 #
 
-unknown_place_unknown_prefecture_earth:
-  prefecture: unknown_prefecture_earth
-  note: MyTextUnknownPlaceEarth
-
 unknown_place_unknown_prefecture_world:
   prefecture: unknown_prefecture_world
   note: MyTextUnknownPlaceWorld

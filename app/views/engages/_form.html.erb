@@ -27,9 +27,9 @@
   
 <%= simple_form_for @engage do |form| %>
   <%= form.hidden_field :music_id,  :value => @music.id %>
-  <%= form.input :artist, label: 'Artist name (e.g., "欅坂46", "The Beatles", "Beatles, The")', required: true %>
+  <%= form.input :artist_name, label: 'Artist name (e.g., "欅坂46", "The Beatles", "Beatles, The")', required: true %>
     <%= content_tag :div, '', id: 'suggestions', data: {items: Artist.titles_for_form} %>
-  <%= form.input :engage_how, label: 'EngageHow(複数可)', collection: EngageHow.all.map{|i| [i.title(langcode: 'ja'), i.id]}, required: false, prompt: "Please select", input_html: { multiple: true } %>
+  <%= form.input :engage_how, label: 'EngageHow(複数可)', collection: EngageHow.all.map{|i| [i.title(langcode: I18n.locale), i.id]}, required: false, prompt: "Please select", input_html: { multiple: true } %>
   <%= form.input :year, required: false %>
   <%= form.input :contribution, label: 'Contribution(0.0-1.0)', required: false %>
   <%= form.input :note %>

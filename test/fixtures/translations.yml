@@ -1102,6 +1102,70 @@ engage_how_singer_cover_ja:
   update_user: 
   note: EngageHowSingerCoverJa
 
+engage_how_lyricist_en:
+  translatable: engage_how_lyricist
+  translatable_type: EngageHow
+  langcode: en
+  title: Lyricist
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowLyricistEn
+
+engage_how_lyricist_ja:
+  translatable: engage_how_lyricist
+  translatable_type: EngageHow
+  langcode: ja
+  title: 作詞
+  alt_title: 
+  ruby: サクシ
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowLyricistJa
+
+engage_how_translator_en:
+  translatable: engage_how_translator
+  translatable_type: EngageHow
+  langcode: en
+  title: Translator
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowTranslatorEn
+
+engage_how_translator_ja:
+  translatable: engage_how_translator
+  translatable_type: EngageHow
+  langcode: ja
+  title: 訳詞
+  alt_title: 
+  ruby: ヤクシ
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowTranslatorJa
+
 engage_how_composer_en:
   translatable: engage_how_composer
   translatable_type: EngageHow
@@ -1134,6 +1198,70 @@ engage_how_composer_ja:
   update_user: 
   note: EngageHowComposerJa
 
+engage_how_arranger_en:
+  translatable: engage_how_arranger
+  translatable_type: EngageHow
+  langcode: en
+  title: Arranger
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowArrangerEn
+
+engage_how_arranger_ja:
+  translatable: engage_how_arranger
+  translatable_type: EngageHow
+  langcode: ja
+  title: 編曲
+  alt_title: 
+  ruby: ヘンキョク
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowArrangerJa
+
+engage_how_conductor_en:
+  translatable: engage_how_conductor
+  translatable_type: EngageHow
+  langcode: en
+  title: Conductor
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowConductorEn
+
+engage_how_conductor_ja:
+  translatable: engage_how_conductor
+  translatable_type: EngageHow
+  langcode: ja
+  title: 指揮
+  alt_title: 
+  ruby: シキ
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowConductorJa
+
 engage_how_player_en:
   translatable: engage_how_player
   translatable_type: EngageHow
@@ -1165,6 +1293,102 @@ engage_how_player_ja:
   create_user: 
   update_user: 
   note: EngageHowPlayerJa
+
+engage_how_accompanist_en:
+  translatable: engage_how_accompanist
+  translatable_type: EngageHow
+  langcode: en
+  title: Accompanist
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowAccompanistEn
+
+engage_how_accompanist_ja:
+  translatable: engage_how_accompanist
+  translatable_type: EngageHow
+  langcode: ja
+  title: 伴奏
+  alt_title: 
+  ruby: バンソウ
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowAccompanistJa
+
+engage_how_producer_en:
+  translatable: engage_how_producer
+  translatable_type: EngageHow
+  langcode: en
+  title: Producer
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowProducerEn
+
+engage_how_producer_ja:
+  translatable: engage_how_producer
+  translatable_type: EngageHow
+  langcode: ja
+  title: プロデュース
+  alt_title: 
+  ruby: プロデュース
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowProducerJa
+
+engage_how_assistant_en:
+  translatable: engage_how_assistant
+  translatable_type: EngageHow
+  langcode: en
+  title: Assistant
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowAssistantEn
+
+engage_how_assistant_ja:
+  translatable: engage_how_assistant
+  translatable_type: EngageHow
+  langcode: ja
+  title: アシスタント
+  alt_title: 
+  ruby: アシスタント
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: EngageHowAssistantJa
 
 engage_other_en:
   translatable: engage_other
