@@ -3,6 +3,7 @@
 <h1>Musics <%= @artist_title ? "to newly associate with Artist "+@artist_title : '' %></h1>
 <% artist_id = (@artist ? @artist.id : nil) %>
 
+<% if false %>
 <% n_entries = 0 %>
 <table>
   <thead>
@@ -75,9 +76,16 @@
     <% end %>
   </tbody>
 </table>
+<% end %>
+
+<%= datagrid_form_for @grid, :method => :get, :url => musics_path %>
+
+<%= paginate(@grid.assets) %>
+<%= datagrid_table @grid %>
+<%= paginate(@grid.assets) %>
 
 <p>
-  Total entries: <%= n_entries %>
+  Total number of entries of Musics (without filters): <%= Music.count + ((current_user && current_user.moderator?) ? 1 : 0) %>
 </p>
 
 <% if can? :create, Music %>

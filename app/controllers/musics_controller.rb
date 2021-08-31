@@ -14,6 +14,15 @@ class MusicsController < ApplicationController
     @musics = Music.all
     set_artist_prms  # set @artist, @artist_name, @artist_title
     @artist_music_ids = (@artist ? @artist.musics.distinct.pluck(:id) : nil)
+    
+    # May raise ActiveModel::UnknownAttributeError if malicious params are given.
+    # It is caught in application_controller.rb
+    MusicsGrid.current_user = current_user
+    MusicsGrid.is_current_user_moderator = (current_user && current_user.moderator?)
+logger.debug "DEBUG:moderator?=#{MusicsGrid.is_current_user_moderator.inspect}"
+    @grid = MusicsGrid.new(grid_params) do |scope|
+      scope.page(params[:page])
+    end
   end
 
   # GET /musics/1
@@ -122,6 +131,10 @@ class MusicsController < ApplicationController
   end
 
   private
+    def grid_params
+      params.fetch(:musics_grid, {}).permit!
+    end
+
     # Use callbacks to share common setup or constraints between actions.
     def set_music
       @music = Music.find(params[:id])

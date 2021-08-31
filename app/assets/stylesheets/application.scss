@@ -93,6 +93,12 @@ table.datagrid {
   tbody {
       background-color: #dd9999;
   }
+  tr th.ordered {
+      background-color: #ffaaaa;
+  }
+  tr td.ordered {
+      background-color: #ffaaaa;
+  }
 }
 
 form {
