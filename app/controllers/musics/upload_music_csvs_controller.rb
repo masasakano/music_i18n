@@ -11,13 +11,24 @@ class Musics::UploadMusicCsvsController < ApplicationController
     params.permit!
     uploaded_io = params[:file]
 
+    if uploaded_io.blank?
+      csv_str = nil
+      msg_alert = 'No CSV file is specified.' 
+      respond_to do |format|
+        format.html { redirect_to new_music_url, alert: msg_alert } # , notice: msg_alert
+        format.json { head :no_content }
+      end
+      return
+    end
+
     csv_str = uploaded_io.read.force_encoding('UTF-8')
     msg = sprintf "CSV file (Size=%d[bytes]) uploaded by User(ID=%d): (%s)", csv_str.bytesize, current_user.id, uploaded_io.original_filename
     logger.info msg
 
     if !csv_str.valid_encoding?
+      msg_alert ||= 'Uploaded file contains an invalid sequence as UTF-8 encoding.'
       respond_to do |format|
-        format.html { redirect_to musics_url, notice: 'Uploaded file contains an invalid sequence as UTF-8 encoding.', alert: 'Uploaded file contains an invalid sequence as UTF-8 encoding.' }
+        format.html { redirect_to musics_url, notice: msg_alert, alert: msg_alert }
         format.json { head :no_content }
       end
       return

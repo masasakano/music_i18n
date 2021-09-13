@@ -124,16 +124,15 @@
     </div>
 
     <div id="body_main">
-    <%= yield %>
-
-    <% if notice %>
-      <p class="notice"><%= notice %></p>
-    <% end %>
     <% if alert %>
       <p class="alert"><%= alert %></p>
     <% end %>
+    <% if notice %>
+      <p class="notice"><%= notice %></p>
+    <% end %>
     <% toastr_flash  # defined in /app/helpers/application_helper.rb
     %>
+    <%= yield %>
     </div>
     <hr>
 

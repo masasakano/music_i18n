@@ -36,6 +36,16 @@ class Musics::UploadMusicCsvsControllerTest < ActionDispatch::IntegrationTest
     }
   end
 
+  test "should not create when no file is specified" do
+    sign_in @editor
+
+    assert_difference('Translation.count*1000 + Music.count*100 + Artist.count*10 + Engage.count*1', 0) do
+      post musics_upload_music_csvs_url, params: { }
+      assert_response :redirect
+      assert_redirected_to new_music_url
+    end
+  end
+
   test "should create" do
     sign_in @editor
 
