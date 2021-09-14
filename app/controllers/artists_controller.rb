@@ -12,6 +12,15 @@ class ArtistsController < ApplicationController
   # GET /artists.json
   def index
     @artists = Artist.all
+
+    # May raise ActiveModel::UnknownAttributeError if malicious params are given.
+    # It is caught in application_controller.rb
+    ArtistsGrid.current_user = current_user
+    ArtistsGrid.is_current_user_moderator = (current_user && current_user.moderator?)
+logger.debug "DEBUG:moderator?=#{ArtistsGrid.is_current_user_moderator.inspect}"
+    @grid = ArtistsGrid.new(grid_params) do |scope|
+      scope.page(params[:page])
+    end
   end
 
   # GET /artists/1
@@ -99,6 +108,10 @@ class ArtistsController < ApplicationController
   end
 
   private
+    def grid_params
+      params.fetch(:artists_grid, {}).permit!
+    end
+
     # Use callbacks to share common setup or constraints between actions.
     def set_artist
       @artist = Artist.find(params[:id])
