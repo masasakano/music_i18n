@@ -1,4 +1,3 @@
-<%= form_with(model: place, local: true) do |form| %>
   <% if place.errors.any? %>
     <div id="error_explanation">
       <h2><%= pluralize(place.errors.count, "error") %> prohibited this place from being saved:</h2>
@@ -11,6 +10,31 @@
     </div>
   <% end %>
 
+<% if ! @place.new_record? %>
+
+<hr>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @place, add_buttons: true} %>
+<hr>
+<% end %>
+
+<%= form_with(model: place, local: true) do |form| %>
+
+  <% if place.new_record? %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: form, model: place, trans: Translation.new, disable_is_orig: true} %>
+  <% end %>
+
+  <div class="field" id="div_select_country">
+    <%= form.label 'place.prefecture_id.country_id', t('Country')%>
+    <% country = place.country %>
+    <%= form.collection_select 'place.prefecture_id.country_id', @countries, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true)}, {include_blank: !country, selected: (country ? country.id : nil)} %>
+  </div>
+
+  <div class="field" id="div_select_prefecture">
+    <%= form.label 'place.prefecture_id', t('Prefecture') %>
+    <% prefecture = place.prefecture %>
+    <%= form.grouped_collection_select 'place.prefecture_id', @countries, :prefectures, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true)}, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true)}, {include_blank: true, selected: (prefecture ? prefecture.id : nil)} %>
+  </div>
+  
   <div class="field">
     <%= form.label :prefecture_id %>
     <%= form.text_field :prefecture_id %>
@@ -24,4 +48,17 @@
   <div class="actions">
     <%= form.submit %>
   </div>
+  <div class="actions">
+  <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  </div>
 <% end %>
+
+<p>
+  <% if ! @place.new_record? %>
+    <%= link_to 'Show', @place %> |
+  <% end %>
+  <%= link_to 'Back to Index', places_path %>
+</p>
+
+<%= javascript_pack_tag 'dropdown_place' %>
+

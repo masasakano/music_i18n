@@ -1,5 +1,21 @@
 # Custom translations for Views in this project (English)
 en:
+  tables:
+    title_ja: "Title (Ja)"
+    alt_title_ja: "Alt-Title (Ja)"
+    ruby_romaji: "Ruby/Romaji"
+    title_en:  "Title (En)"
+    year: Year
+    place: Place
+    wiki_ja: "Wikipedia (Ja)"
+    wiki_en: "Wikipedia (En)"
+    n_musics: "# of Musics"
+    n_harami_vids: "# of HaramiVids"
+    note: Note
+    updated_at: "Last updated at"
+    created_at: "Created at"
+    actions: "Actions"
+
   application:
     menu_harami_vids: "Harami's Movies"
     menu_musics: "Musics"

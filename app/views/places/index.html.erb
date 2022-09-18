@@ -42,4 +42,8 @@
 
 <br>
 
-<%= link_to 'New Place', new_place_path %>
+<% if can? :create, Place %>
+  <%= button_to 'Create New Place', new_place_path, method: :get %>
+  <%# link_to 'New Place', new_place_path %>
+<% end %>
+

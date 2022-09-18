@@ -40,4 +40,8 @@
 
 <br>
 
-<%= link_to 'New Genre', new_genre_path %>
+<% if can? :create, Genre %>
+  <%= button_to 'Create New Genre', new_genre_path, method: :get %>
+  <%# link_to 'New Genre', new_genre_path %>
+<% end %>
+

@@ -22,6 +22,7 @@ class Place < BaseWithTranslation
   include Translatable
   belongs_to :prefecture
   has_one :country, through: :prefecture
+  has_many :harami_vids
   has_many :artists, dependent: :restrict_with_exception
   has_many :musics,  dependent: :restrict_with_exception
 

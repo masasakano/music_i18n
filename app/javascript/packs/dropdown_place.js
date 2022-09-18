@@ -1,4 +1,4 @@
-// Dropdown menu for Music
+// Dropdown menu for Place
 //
 // change() functions are defined.
 
@@ -10,6 +10,6 @@ import $ from 'jquery'
 
 import {dropdownCountry2Place} from './dropdown_country2place.js';
 
-var model = 'music';
+var model = 'place';
 $(dropdownCountry2Place(model));
 

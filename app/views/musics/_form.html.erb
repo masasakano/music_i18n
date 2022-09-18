@@ -94,8 +94,10 @@
 <% end %>
 
 <p>
-<%= link_to 'Show', @music %> |
-<%= link_to 'Back', musics_path %>
+  <% if ! @music.new_record? %>
+    <%= link_to 'Show', @music %> |
+    <%= link_to 'Back to Index', musics_path %>
+  <% end %>
 </p>
 
 <% if ! music.new_record? %>

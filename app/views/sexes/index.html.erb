@@ -26,4 +26,8 @@
 
 <br>
 
-<%= link_to 'New Sex', new_sex_path %>
+<% if can? :create, Sex %>
+  <%= button_to 'Create New Sex', new_sex_path, method: :get %>
+  <%# link_to 'New Sex', new_sex_path %>
+<% end %>
+

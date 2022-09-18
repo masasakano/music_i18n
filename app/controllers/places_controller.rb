@@ -6,6 +6,8 @@ class PlacesController < ApplicationController
   # GET /places.json
   def index
     @places = Place.all
+    @countries = Country.all
+    @prefectures = Prefecture.all
   end
 
   # GET /places/1
@@ -16,10 +18,14 @@ class PlacesController < ApplicationController
   # GET /places/new
   def new
     @place = Place.new
+    @countries = Country.all
+    @prefectures = Prefecture.all
   end
 
   # GET /places/1/edit
   def edit
+    @countries = Country.all
+    @prefectures = Prefecture.all
   end
 
   # POST /places

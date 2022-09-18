@@ -30,4 +30,8 @@
 
 <br>
 
-<%= link_to 'New EngageHow', new_engage_how_path %>
+<% if can? :create, EngageHow %>
+  <%= button_to 'Create New EngageHow', new_engage_how_path, method: :get %>
+  <%# link_to 'New EngageHow', new_engage_how_path %>
+<% end %>
+

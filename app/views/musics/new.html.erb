@@ -2,7 +2,7 @@
 
 <%= render 'form', music: @music %>
 
-<%= link_to 'Back', musics_path %>
+<%= link_to 'Back to Index', musics_path %>
 
 <hr>
 
@@ -93,4 +93,9 @@ The CSV is a file format of (strictly speaking, there are a few variants in the 
 
 (……<a id="Link_show_or_hide" title="Show or hide" href="#">Show</a>)
 <%= javascript_pack_tag 'show_or_hide' %>
+
+<p>
+  <br>
+  <%= link_to 'Back to Index', musics_path %>
+</p>
 

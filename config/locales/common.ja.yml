@@ -12,6 +12,7 @@ ja:
   read_agree_terms_html: "%{link2term}に同意します"
   romaji: ローマ字
   ruby: フリガナ
+  Sex: "性別"
   s_time: "秒"
   terms_of_service: 利用規約
   Year_Title: 西暦年

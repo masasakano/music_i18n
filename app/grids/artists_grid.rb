@@ -44,70 +44,77 @@ class ArtistsGrid < BaseGrid
     column(:id)
   #end
 
-  column(:title_ja, :mandatory => true, :order => proc { |scope|
+  column(:title_ja, header: I18n.t('tables.title_ja'), mandatory: true, order: proc { |scope|
     #order_str = Arel.sql("convert_to(title, 'UTF8')")
     order_str = Arel.sql('title COLLATE "ja-x-icu"')
     scope.joins(:translations).where("langcode = 'ja'").order(order_str) #.order("title")
   }) do |record|
     record.title langcode: 'ja'
   end
-  column(:ruby_romaji_ja, :order => proc { |scope|
+  column(:ruby_romaji_ja, header: I18n.t('tables.ruby_romaji'), order: proc { |scope|
     order_str = Arel.sql('ruby COLLATE "ja-x-icu", romaji COLLATE "ja-x-icu"')
     scope.joins(:translations).where("langcode = 'ja'").order(order_str) #order("ruby").order("romaji")
   }) do |record|
     s = sprintf '[%s/%s]', *(%i(ruby romaji).map{|i| record.send(i, langcode: 'ja') || ''})
     s.sub(%r@/\]\z@, ']').sub(/\A\[\]\z/, '')  # If NULL, nothing is displayed.
   end
-  column(:alt_title_ja, :mandatory => true, :order => proc { |scope|
+  column(:alt_title_ja, header: I18n.t('tables.alt_title_ja'), mandatory: true, order: proc { |scope|
     order_str = Arel.sql('alt_title COLLATE "ja-x-icu"')
     scope.joins(:translations).where("langcode = 'ja'").order(order_str)
   }) do |record|
     s = sprintf '%s [%s/%s]', *(%i(alt_title alt_ruby alt_romaji).map{|i| record.send(i, langcode: 'ja') || ''})
     s.sub(%r@ +\[/\]\z@, '')  # If NULL, nothing is displayed.
   end
-  column(:title_en, :mandatory => true, :order => proc { |scope|
+  column(:title_en, header: I18n.t('tables.title_en'), mandatory: true, order: proc { |scope|
     scope.joins(:translations).where("langcode = 'en'").order("title")
   }) do |record|
     s = sprintf '%s [%s]', *(%i(title alt_title).map{|i| record.send(i, langcode: 'en') || ''})
     s.sub(%r@ +\[\]\z@, '')   # If NULL, nothing is displayed.
   end
 
-  column(:sex, :mandatory => true) do |record|
+  column(:sex, header: I18n.t(:Sex), mandatory: true) do |record|
     record.sex.title(langcode: I18n.locale)
   end
 
-  column(:year, :mandatory => false) do |record|
+  column(:year, header: I18n.t('tables.year'), :mandatory => false) do |record|
     sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
                                 i = record.send m
                                 (i.blank? ? '——' : i.to_s)
                               })
   end
 
-  column(:place) do |record|
+  column(:place, header: I18n.t('tables.place')) do |record|
     ar = record.place.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true);
     sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture[I18n.locale] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2]
   end
 
   %w(ja en).each do |elc|
-    column('wiki_'+elc, :mandatory => false) do |record|
+    kwd = 'wiki_'+elc
+    column(kwd, header: I18n.t('tables.'+kwd), :mandatory => false) do |record|
       uri = record.wiki_uri(elc)
-      uri.blank? ? '——' : ActionController::Base.helpers.link_to(((elc == 'ja') ? '日本語' : '英語'), uri).html_safe
+      if uri.blank?
+        '——'
+      else
+        str_link = File.basename(uri)
+        str_link = CGI.unescape(str_link) if str_link.include? '%'
+        ActionController::Base.helpers.link_to(str_link, uri).html_safe
+      end
     end
   end
 
-  column(:n_musics) do |record|
+  column(:n_musics, header: I18n.t('tables.n_musics')) do |record|
     record.musics.uniq.count
   end
 
-  column(:n_harami_vids) do |record|
-    record.harami_vids.uniq.count.to_s+'回'
+  column(:n_harami_vids, header: I18n.t('tables.n_harami_vids')) do |record|
+    record.harami_vids.uniq.count.to_s
   end
 
-  column(:note)
+  column(:note, header: I18n.t('tables.note'))
 
-  column(:updated_at)
-  column(:created_at)
-  column(:actions, :html => true, :mandatory => true) do |record|
+  column(:updated_at, header: I18n.t('tables.updated_at'))
+  column(:created_at, header: I18n.t('tables.created_at'))
+  column(:actions, header: I18n.t('tables.actions'), :html => true, :mandatory => true) do |record|
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
     ar = [ActionController::Base.helpers.link_to('Show', Rails.application.routes.url_helpers.artist_path(record), data: { turbolinks: false })]
     if can? :update, record

@@ -1,5 +1,21 @@
 # Custom translations for Views in this project (Japanese)
 ja:
+  tables:
+    title_ja: 日本語名称
+    alt_title_ja: 日本語別称
+    ruby_romaji: "フリガナ/ローマ字"
+    title_en: 英語名称
+    year: 年
+    place: 場所
+    wiki_ja: "Wikipedia日本語"
+    wiki_en: "Wikipedia英語"
+    n_musics: 登録曲数
+    n_harami_vids: 登録ハラミ動画数
+    note: 注記
+    updated_at: 最終更新日時
+    created_at: 生成日時
+    actions: "詳細(リンク)"
+
   application:
     menu_harami_vids: "ハラミちゃん動画"
     menu_musics: "楽曲"
@@ -40,3 +56,7 @@ ja:
     form:
       search: "適用"
       reset: "リセット"
+    table:
+      order:
+        asc: "↑"
+        desc: "↓"

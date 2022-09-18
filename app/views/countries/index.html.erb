@@ -65,4 +65,7 @@
 
 <br>
 
-<%= link_to 'New Country', new_country_path %>
+<% if can? :create, Country %>
+  <%= button_to 'Create New Country', new_country_path, method: :get %>
+  <%# link_to 'New Country', new_country_path %>
+<% end %>
