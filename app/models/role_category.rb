@@ -240,6 +240,10 @@ class RoleCategory < ApplicationRecord
   MNAME_TRANSLATION = 'translation'
   MNAME_GENERAL_JA  = 'general_ja'
 
+  RNAME_MODERATOR = 'moderator'
+  RNAME_EDITOR    = 'editor'
+  RNAME_HELPER    = 'helper'
+
   # Returns the {RoleCategory} for the given mname (machine-name)
   #
   # It is the *first* one, but mname is unique, so should be fine.

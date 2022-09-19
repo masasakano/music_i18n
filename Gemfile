@@ -1,10 +1,12 @@
 source 'https://rubygems.org'
 git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
-ruby '3.0.2'
+ruby '3.1.2'
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
-gem 'rails', '~> 6.1.4', '>= 6.1.4'
+#gem 'rails', '~> 6.1.4', '>= 6.1.4'
+gem 'rails', '~> 6.1.7', '>= 6.1.7'
+
 # Use pg as the database for Active Record
 gem 'pg', '>= 0.18', '< 2.0'
 # Use Puma as the app server
@@ -26,7 +28,8 @@ gem 'jbuilder', '~> 2.7'
 # gem 'image_processing', '~> 1.2'
 
 # Reduces boot times through caching; required in config/boot.rb
-gem 'bootsnap', '>= 1.4.2', require: false
+#gem 'bootsnap', '>= 1.4.2', require: false
+gem 'bootsnap', '~> 1.8', require: false  # This was necessary to avoid: realpath_cache.rb:17:in `dirname': no implicit conversion of nil into String (TypeError)
 
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console
@@ -68,15 +71,23 @@ gem 'rails_admin', '~> 2.0'
 gem 'cancancan'
 # gem 'active_record-postgres-constraints' # Valid up to Rails 6.0 but obsolete (not work) at 6.1.
 gem 'datagrid', '~> 1.4', '>= 1.4.4'
-gem 'rubytree', '~> 1', '>= 1.0.0'
+gem 'rubytree', '~> 2', '>= 2.0.0'
 gem 'slim_string', '~> 1', '>= 1.0.1'
 gem 'simple_form', '~> 5', '>= 5.1.0'
-gem 'paper_trail', '~> 12.0', '>= 12.0'
+gem 'paper_trail', '~> 12.3', '>= 12.3'  # used to use 12.0 up to Rails 6.0 (which causes error in Rails 6.1); recommended to update to 13.0 with the condition to switch the column type: @see my comment about "yaml" in config/application.rb
 # gem 'high_voltage', '~> 3.1', '>= 3.1.2'
 # gem 'routing-filter', '~> 0', '>= 0.6.3' # Only git HEAD works with Rails 6.1.
 gem 'routing-filter', '~> 0', '>= 0.6.3', git: 'https://github.com/svenfuchs/routing-filter'
 gem 'redirector', '~> 1.1', '>= 1.1.2'
 gem 'redcarpet', '~> 3', '>= 3.3.4'
+
+# Necessary in Ruby 3.1
+gem 'net-smtp', '~> 0.3', '>= 0.3.1'
+gem 'matrix', '~> 0.4'  # This may not be necessary in other than test, but is included anyway.
+group :test do
+  # Necessary in Ruby 3.1
+  #gem 'matrix', '~> 0.4'
+end
 
 group :development do
   gem 'annotate'

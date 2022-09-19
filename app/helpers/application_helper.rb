@@ -73,6 +73,7 @@ module ApplicationHelper
   #
   # @see https://stackoverflow.com/a/68129947/3577922
   #
+  # @note +Tree::TreeNode+ has the method of the same name: {http://rubytree.anupamsg.me/rdoc/Tree/TreeNode.html#children%3F-instance_method}
   def has_children?
     ## This would be simpler though may initiate more SQL calls:
     #  self.class.reflect_on_all_associations.map{ |a| self.send(a.name).any? }.any?

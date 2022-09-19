@@ -101,7 +101,7 @@ class UsersController < ApplicationController
       }
       hs_content[:forms] = artmp.compact
 
-      # if !etree.is_leaf? || by_user.moderator? || (!hs_content[:delete_disabled] || (hs_content[:forms][0] && hs_content[:forms][0].checked?))
+      # if !etree.leaf? || by_user.moderator? || (!hs_content[:delete_disabled] || (hs_content[:forms][0] && hs_content[:forms][0].checked?))
       if by_user.moderator? || (!hs_content[:delete_disabled] || (hs_content[:forms][0] && hs_content[:forms][0].checked?))
         etree.content = hs_content
       else
@@ -111,7 +111,7 @@ class UsersController < ApplicationController
 
     roletree.compact! # defined in RoleCategoryNode in /lib/role_category_node.rb
 
-    (roletree.is_leaf? && !roletree.content) ? nil : roletree
+    (roletree.leaf? && !roletree.content) ? nil : roletree
   end
 end
 

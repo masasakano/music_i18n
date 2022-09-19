@@ -22,11 +22,14 @@ module RoleCategoriesHelper
   #
   # @param alldb [Array<Object>] If nil, all the records in the model class.
   # @param klass: [Class] The class to be returned. {Tree::TreeNode} (Default) or its subclass.
-  # @return [Array<Tree::TreeNode>]
-  def trees(alldb=nil, klass: Tree::TreeNode)
-    tmprootnode = klass.new(:TmpRootNode)
+  # @param strict [Boolean] If true, and if there is no node that has a superior_id referred to another one, this raises an Exception.
+  # @return [Array<Tree::TreeNode>] the class of elements is klass
+  def trees(alldb=nil, klass: Tree::TreeNode, strict: false)
     alldb = (alldb ? alldb.uniq : self.all.order(:id))
+    return [] if alldb.empty?
+    return trees_reorganize_on_superior(alldb, klass, strict: strict) if alldb[0].respond_to? :superior_id
 
+    tmprootnode = klass.new(:TmpRootNode)
     alldb.each do |erc_db| # Each-Role-Category_from_DB
       node2add = klass.new(erc_db.mname, erc_db)  # name=mname, content=RoleCategory
       is_added = false
@@ -47,6 +50,34 @@ module RoleCategoriesHelper
     tmprootnode.children.map{|i| i.remove_from_parent!}
   end
 
+  # Returns reorganized trees (Array) based on superior_id
+  #
+  # @param alldb [Array<Object>] Should be an Array (or equivalent) of model class-es.
+  # @param klass [Class] The class to be returned. {Tree::TreeNode} (Default) or its subclass.
+  # @param strict [Boolean] If true, and if there is no node that has a superior_id referred to another one, this raises an Exception.
+  # @return [Array<Tree::TreeNode>] the class of elements is klass
+  def trees_reorganize_on_superior(alldb, klass, strict: false)
+    tmprootnode = klass.new(:TmpRootNode)
+    allnodes = alldb.map{|erc_db| klass.new(erc_db.mname, erc_db) }
+    alldb.zip(allnodes).each do |ea| # [[Model1, Node1], ...]
+      mdl, node = ea
+      suid = mdl.superior_id
+      next if !suid
+      parent_ind = alldb.find_index{|ea_m| ea_m.id == suid}
+      if !parent_ind
+        raise "ERROR: Strangely no has superior_id=#{suid}, referred from model.id=#{mdl.id} in the given models: #{alldb.inspect}" if strict
+        next
+      end
+      if node == allnodes[parent_ind]
+        warn "Node is the child of self, which should never happen."
+        next
+      end
+      allnodes[parent_ind] << node
+    end
+    allnodes.select{|i| i.root?}
+  end
+  private :trees_reorganize_on_superior
+
   # Adds a new {RoleCategory} to a Tree as a node
   #
   # If the given {RoleCategory} is not related to the given {Tree::TreeNode},
@@ -64,7 +95,7 @@ module RoleCategoriesHelper
     when nil
       return nil
     when -1  # newnode-RoleCategory is the parent
-      if !enode.is_root?
+      if !enode.root?
         enode.parent << newnode
         enode.remove_from_parent!
       end
@@ -81,7 +112,7 @@ module RoleCategoriesHelper
         ret = send(__method__, ea_ch, newnode)
         return enode if ret  # non-nil means newnode was added to one of the descendants.
       end
-      return enode << newnode #if enode.is_leaf?
+      return enode << newnode #if enode.leaf?
     else
       warn "ERROR: Should never come here - the identical one is attempted to be added?: [cmp=#{cmp.inspect}][names(enode/new)="+enode.name+"/#{newnode.name}]"
     end

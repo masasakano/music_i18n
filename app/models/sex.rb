@@ -81,8 +81,10 @@ class Sex < BaseWithTranslation
         1
       when :female
         2
+      when :'not applicable'
+        9
       when Symbol
-        raise ArgumentError, "contct the code developer. Symbol given (#{value}) is invalid."
+        raise ArgumentError, "contact the code developer. Symbol given (#{value}) is invalid."
       else
         value
       end

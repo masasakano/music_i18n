@@ -9,7 +9,7 @@ Bundler.require(*Rails.groups)
 module HaramiMusicI18n
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
-    config.load_defaults 6.0
+    config.load_defaults 6.1
 
     # Configuration for the application, engines, and railties goes here.
     #
@@ -28,6 +28,11 @@ module HaramiMusicI18n
     # This usually depends on the environment and so is set in /config/environments/YOUR_ENVIRONMENT.rb
     #
     #config.i18n.fallbacks = [:en, :ja]
+
+    # @see https://github.com/paper-trail-gem/paper_trail/blob/master/doc/pt_13_yaml_safe_load.md
+    # @see https://stackoverflow.com/questions/72970170/upgrading-to-rails-6-1-6-1-causes-psychdisallowedclass-tried-to-load-unspecif
+    config.active_record.yaml_column_permitted_classes = [ActiveSupport::TimeWithZone]
+    #config.active_record.use_yaml_unsafe_load = true  # The last resort
   end
 end
 
@@ -46,4 +51,5 @@ I18n.available_locales = [:ja, :en, :fr]  # ko, zh, ...
 ## Masa added
 require "multi_translation_error"
 require 'role_category_node'  # load class RoleCategoryNode < Tree::TreeNode
+require 'local/tree/tree_node'  # modifies Tree::TreeNode#<=>
 
