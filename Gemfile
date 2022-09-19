@@ -83,6 +83,8 @@ gem 'redcarpet', '~> 3', '>= 3.3.4'
 
 # Necessary in Ruby 3.1
 gem 'net-smtp', '~> 0.3', '>= 0.3.1'
+gem 'net-imap', require: false #
+gem 'net-pop', require: false  # needs in production in Rails-6.1 Ruby-3.1: https://stackoverflow.com/a/72474475/3577922
 gem 'matrix', '~> 0.4'  # This may not be necessary in other than test, but is included anyway.
 group :test do
   # Necessary in Ruby 3.1
