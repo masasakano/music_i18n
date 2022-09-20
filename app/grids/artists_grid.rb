@@ -29,7 +29,16 @@ class ArtistsGrid < BaseGrid
 
   filter(:year, :integer, :range => true) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
 
-  sex_titles = Sex::ISO5218S.map{|i| word = Sex[i].title(langcode: I18n.locale)}
+  begin
+    sex_titles = Sex::ISO5218S.map{|i|
+      se = Sex[i]
+      Rails.logger.error "(#{__FILE__}): It seems ISO5218 in Sex.all have been modified: Sex[i=#{i.inspect}]==#{se.inspect}; Sex.all=#{Sex.all.inspect}" if !se
+      word = se.title(langcode: I18n.locale)  # See log if this raises an ActionView::Template::Error, searching for "It seems ISO5218"
+    }
+  rescue #rescue ActionView::Template::Error  does not work for some reason!
+    ## ISO5218 in one of Sexes must be modified.
+    sex_titles = Sex.order(:iso5218).pluck(:iso5218).map(&:to_i).map{|i| word = Sex[i].title(langcode: I18n.locale)}
+  end
   filter(:sex, :enum, checkboxes: true, select: sex_titles) # , default: sex_titles) # allow_blank: false (Default; so if nothing is checked, this filter is ignored)
   # <https://github.com/bogdan/datagrid/wiki/Filters>
   #  (In Dynamic select option)

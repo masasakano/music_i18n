@@ -107,7 +107,7 @@ class RoleCategoryTest < ActiveSupport::TestCase
     # +---+ club
     #     +---> subclub
 
-    assert_operator tree.size, :>=, 7, "tree should have more than 6 nodes: "+tree.inspect
+    assert_operator tree.size, :>=, 7, "NOTE: tree should have more than 6 nodes but only #{tree.size}: tree=#{tree.inspect} (id=#{tree.content.id rescue tree.content.inspect}); role_categories(:club).superior=#{sup=role_categories(:club).superior; sprintf('%s, superior-mname=%s, (superior-id=%s)', sup.inspect, sup.mname, (sup.content.id rescue sup.id))}"
     assert_equal 2, tree['club'].size
     assert_equal 0, tree.node_depth
     assert_equal 1, tree['club'].node_depth

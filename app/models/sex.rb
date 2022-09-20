@@ -41,7 +41,7 @@ class Sex < BaseWithTranslation
   # this constant should be true (for example, {Music#title}).
   ARTICLE_TO_TAIL = true
 
-  # All possible ISO5218 numbers
+  # All possible ISO5218 numbers (the constant name is ISO5218+"capital-S")
   ISO5218S = [0, 1, 2, 9]
 
   UnknownSex = {

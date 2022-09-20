@@ -23,12 +23,18 @@ logger.debug "DEBUG:her000:User ID=#{@user.id} (#{@user.display_name}): #{(@user
     tgt_role_unames = @user.roles.map{|i| (i.uname || i.name)}
     alert = nil
     ActiveRecord::Base.transaction do
-      RoleCategory.tree.each do |ea_rct|
+      RoleCategory.tree(force_update: true).each do |ea_rct|
+      #RoleCategory.tree.each do |ea_rct|
         eak = User::ROLE_FORM_RADIO_PREFIX+ea_rct.name
         next if !params[eak].present? || params[eak].blank?
         next if tgt_role_unames.include? params[eak]
 
         category = ea_rct.content
+        if !category  # should never happen
+          raise "NOTE: A category is nil. For some reason, in testing, sometimes the RoleCategory.tree returns a single node (root only)  eak=#{eak.inspect}, params=#{params.inspect}, tgt_role_unames=#{tgt_role_unames.inspect} for ea_rct=#{ea_rct.inspect}, trees.size=#{si=RoleCategory.trees.size; (si==1) ? si.to_s : 'and tree='+RoleCategory.tree.inspect}"
+        elsif !category.respond_to? :lowest_role  # should never happen
+          raise "NOTE: A category(=ea_rct.content) is not RoleCategory. tree_each=#{ea_rct.inspect}"
+        end
         if params[eak].downcase == 'none' 
           alert = cancel_role_in_category(category)
 #print "DEBUG:her123:#{alert}\n"

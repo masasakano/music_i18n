@@ -283,6 +283,13 @@ class RoleCategory < ApplicationRecord
   #
   # == Caching mechanism ==
   #
+  # **NOTE**: This caching mechanism does not seem to work well
+  # according to tests (+test_editor_should_get_update_for_himself+ in
+  # +test/controllers/user_role_assoc_controller_test.rb+).
+  # As a result {UserRoleAssocController#update} now does NOT use cache,
+  # specifying +force_update=true+ .  Note that there is a good chance
+  # that it may happen only during testing.
+  #
   # Once this has been called a class instance {RoleCategory.tree_root} is set and
   # in any subsequent calls, the (practically cached) class instance is returned,
   # unless force_update is given true in calling.

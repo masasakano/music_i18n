@@ -125,7 +125,7 @@ class UserRoleAssocControllerTest < ActionDispatch::IntegrationTest
     patch user_role_assoc_url(user), params: {role_harami: 'none'}
     assert_response :redirect, "response: 302 !== #{response.code.inspect} for path=#{path}"
     user.reload
-    assert_empty user.roles  # self's role has been cancelled.
+    assert_empty user.roles, "(NOTE) user=#{user.inspect} user.roles=#{user.roles.inspect}"  # self's role has been cancelled.
   end
 
 

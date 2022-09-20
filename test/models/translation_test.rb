@@ -177,9 +177,11 @@ class TranslationTest < ActiveSupport::TestCase
     }
     sex5.create_translations!(**hs)
     assert_equal 'new', sex5.orig_translation.title
-    assert_equal '新規', sex5.translations_with_lang('ja')[1].title
-    assert_equal Float::INFINITY, sex5.translations_with_lang('ja')[1].weight
     assert_equal 'new', sex5.title
+    ja_trans = sex5.translations_with_lang('ja')
+    assert_equal Float::INFINITY, ja_trans.find{|i| '新規' == i.title}.weight, "(NOTE: It seems sometimes current_user is set non-nil while executing this in model-testing and as a result the weight for Translation['新規'] is set less than 4 because the user has a high-rank role!): weight=#{ja_trans.find{|i| '新規' == i.title}.weight} User.display_name=#{Translation.whodunnit.display_name rescue Translation.whodunnit.inspect}, translations_with_lang('ja'): #{ja_trans.inspect}"
+    assert_equal '新規', ja_trans[1].title, "(NOTE: For some reason, incorrect) translations_with_lang('ja'): #{ja_trans.inspect}"
+    assert_equal Float::INFINITY, ja_trans[1].weight
     assert_equal 'テスト', sex5.title(langcode: 'ja')
   end
 

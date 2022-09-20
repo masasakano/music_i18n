@@ -21,14 +21,16 @@ module RoleCategoriesHelper
   # are returned as an Array with their parents all detached.
   #
   # @param alldb [Array<Object>] If nil, all the records in the model class.
-  # @param klass: [Class] The class to be returned. {Tree::TreeNode} (Default) or its subclass.
+  # @param klass: [Class] The class to be returned. +Tree::TreeNode+ (Default) or its subclass.
   # @param strict [Boolean] If true, and if there is no node that has a superior_id referred to another one, this raises an Exception.
-  # @return [Array<Tree::TreeNode>] the class of elements is klass
+  # @return [Array<Tree::TreeNode>] the class of elements is klass, likely {RoleCategoryNode}
   def trees(alldb=nil, klass: Tree::TreeNode, strict: false)
     alldb = (alldb ? alldb.uniq : self.all.order(:id))
     return [] if alldb.empty?
     return trees_reorganize_on_superior(alldb, klass, strict: strict) if alldb[0].respond_to? :superior_id
 
+#raise "alldb does not respond to superior_id: alldb[0]=#{alldb[0].inspect}"
+    ## the following is obsolete (because elements of alldb must have superior_id)
     tmprootnode = klass.new(:TmpRootNode)
     alldb.each do |erc_db| # Each-Role-Category_from_DB
       node2add = klass.new(erc_db.mname, erc_db)  # name=mname, content=RoleCategory
@@ -57,8 +59,7 @@ module RoleCategoriesHelper
   # @param strict [Boolean] If true, and if there is no node that has a superior_id referred to another one, this raises an Exception.
   # @return [Array<Tree::TreeNode>] the class of elements is klass
   def trees_reorganize_on_superior(alldb, klass, strict: false)
-    tmprootnode = klass.new(:TmpRootNode)
-    allnodes = alldb.map{|erc_db| klass.new(erc_db.mname, erc_db) }
+    allnodes = alldb.map{|erc_db| klass.new(erc_db.mname, erc_db) } # To get id (in DB) of the corresponding object, #content.id should do.
     alldb.zip(allnodes).each do |ea| # [[Model1, Node1], ...]
       mdl, node = ea
       suid = mdl.superior_id
