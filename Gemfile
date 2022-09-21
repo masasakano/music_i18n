@@ -4,8 +4,8 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 ruby '3.1.2'
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
-#gem 'rails', '~> 7.0'
-gem 'rails', '~>6.1'
+#gem 'rails', '~>6.1'
+gem 'rails', '~> 7.0', '>= 7.0.4'
 
 # Use pg as the database for Active Record
 gem 'pg', '>= 0.18', '< 2.0'
@@ -39,11 +39,12 @@ gem 'dotenv-rails', groups: [:development, :test]  # User-added; this may need t
 
 group :development do
   # Access an interactive console on exception pages or by calling 'console' anywhere in the code.
-  gem 'web-console', '>= 3.3.0'
-  gem 'listen', '~> 3.2'
+  #gem 'web-console', '>= 3.3.0'
+  gem 'web-console', '~> 4.2'
+  gem 'listen', '~> 3' #, '~> 3.2'
   # Spring speeds up development by keeping your application running in the background. Read more: https://github.com/rails/spring
-  gem 'spring'
-  gem 'spring-watcher-listen', '~> 2.0.0'
+  #gem 'spring', '~> 4.0'  # >= 3.0 for Rails-7 (or you can remove it)
+  #gem 'spring-watcher-listen', '~> 2.0' # This depends on spring (>= 1.2, < 3.0), whereas Rails-7 requires spring >= 3
 end
 
 group :test do
@@ -61,13 +62,13 @@ gem 'tzinfo-data', platforms: [:mingw, :mswin, :x64_mingw, :jruby]
 gem 'rexml', '~> 3.2', '>= 3.2.5'
 
 ### User-added
-gem 'rails-i18n', '~> 6.0' # For 6.0 or higher
+gem 'rails-i18n', '~> 7.0.0' # For 7.0.0
 gem 'i18n-timezones'
 gem 'devise'
 gem 'devise-i18n'
 gem 'jquery-rails'  # required for toastr
 gem 'toastr-rails'
-gem 'rails_admin', '~> 2.0'
+gem 'rails_admin', '~> 3.0'  # For Rails-7; need run:  DISABLE_SPRING=1 bin/rails g rails_admin:install  cf. https://stackoverflow.com/a/72674116
 gem 'cancancan'
 # gem 'active_record-postgres-constraints' # Valid up to Rails 6.0 but obsolete (not work) at 6.1.
 gem 'datagrid', '~> 1.4', '>= 1.4.4'
@@ -82,7 +83,7 @@ gem 'redirector', '~> 1.1', '>= 1.1.2'
 gem 'redcarpet', '~> 3', '>= 3.3.4'
 
 # Necessary in Ruby 3.1
-gem 'net-smtp', '~> 0.3', '>= 0.3.1'
+gem 'net-smtp', require: false #, '~> 0.3', '>= 0.3.1'
 gem 'net-imap', require: false #
 gem 'net-pop', require: false  # needs in production in Rails-6.1 Ruby-3.1: https://stackoverflow.com/a/72474475/3577922
 gem 'matrix', '~> 0.4'  # This may not be necessary in other than test, but is included anyway.
