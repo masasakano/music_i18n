@@ -33,8 +33,14 @@ capybara-*.html
 # Ignore uploaded files in development.
 /storage/*
 !/storage/.keep
+/tmp/storage/*
+!/tmp/storage/
+!/tmp/storage/.keep
 
 /public/assets
+
+# Maybe Rails 6 only?
+/public/uploads
 
 # if using bower-rails ignore default bower_components path bower.json files
 /vendor/assets/bower_components
@@ -49,6 +55,10 @@ bower.json
 
 # Ignore master key for decrypting credentials and more.
 /config/master.key
+
+# Rails 7
+/app/assets/builds/*
+!/app/assets/builds/.keep
 
 # dotenv, dotenv-rails
 # TODO Comment out these rules if environment variables can be committed
@@ -66,11 +76,6 @@ bower.json
 /yarn-error.log
 yarn-debug.log*
 .yarn-integrity
-
-# Ignore uploaded files in development
-/storage/*
-!/storage/.keep
-/public/uploads
 
 .DS_Store
 *.[oa]

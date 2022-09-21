@@ -15,8 +15,8 @@
  *= require_self
  */
 
-//@import "bootstrap/scss/bootstrap";
-@import "bootstrap";
+//@import 'bootstrap/scss/bootstrap';
+// In Rails-7, this is moved to (followed by another line) app/assets/stylesheets/application.bootstrap.scss
 
 ul.ui-autocomplete {
   position: absolute;
