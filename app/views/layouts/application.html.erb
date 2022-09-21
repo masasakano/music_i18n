@@ -6,9 +6,11 @@
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
-    <%= stylesheet_link_tag 'application', media: 'all', 'data-turbolinks-track': 'reload' %>  <%# using app/assets/stylesheets/application.scss %>
+    <%= stylesheet_link_tag 'application', media: 'all', 'data-turbo-track': 'reload' %>  <%# using app/assets/stylesheets/application.scss %>
+    <%# = stylesheet_link_tag 'application', media: 'all', 'data-turbolinks-track': 'reload' %>  <%# using app/assets/stylesheets/application.scss %>
     <%# = stylesheet_pack_tag 'application', media: 'all', 'data-turbolinks-track': 'reload' %>  <%# using app/javascript/stylesheets/application.scss %>
-    <%= stylesheet_link_tag 'bootstrap_quarts.min', media: 'all', 'data-turbolinks-track': 'reload' %>  <%# using app/assets/stylesheets/bootstrap_quarts.min.css %>
+    <%= stylesheet_link_tag 'bootstrap_quarts.min', media: 'all', 'data-turbo-track': 'reload' %>  <%# using app/assets/stylesheets/bootstrap_quarts.min.css %>
+    <%# = stylesheet_link_tag 'bootstrap_quarts.min', media: 'all', 'data-turbolinks-track': 'reload' %>  <%# using app/assets/stylesheets/bootstrap_quarts.min.css %>
     <%= javascript_pack_tag 'application', 'data-turbolinks-track': 'reload' %>
     <% if Rails.env.development? %>
       <%= favicon_link_tag 'favicon_invert.png' %>
