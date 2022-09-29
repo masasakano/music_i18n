@@ -7,16 +7,16 @@
     "@popperjs/core": "^2.11.6",
     "bootstrap": "^5.2.1",
     "bootstrap-icons": "^1.9.1",
-    "esbuild": "^0.15.8",
-    "sass": "^1.54.9",
+    "esbuild": "^0.15.9",
     "jquery": "^3.6.1",
     "jquery-ui-dist": "^1.13.2",
     "rails_admin": "3.0.0",
+    "sass": "^1.54.9",
     "toastr": "^2.1.4",
     "turbolinks": "^5.2.0"
   },
   "scripts": {
-    "build": "esbuild app/javascript/*.* --bundle --sourcemap --outdir=app/assets/builds --public-path=assets",
+    "build": "esbuild app/javascript/*.js --bundle --sourcemap --outdir=app/assets/builds --public-path=assets",
     "build:css": "sass ./app/assets/stylesheets/application.bootstrap.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules"
   },
   "version": "0.2.0"

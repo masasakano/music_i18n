@@ -13,10 +13,16 @@
  *= require_tree .
  *= require datagrid
  *= require_self
+ *
+ * NOTE: In toastr_rails from https://github.com/d4be4st/toastr_rails
+ *   it tells you to write "require toastr_rails", but it raises an Error (not finding CSS-type file)
+ *   Instead, write @import in the main code as follows, referring to https://stackoverflow.com/a/59347044/3577922
  */
 
 //@import 'bootstrap/scss/bootstrap';
 // In Rails-7, this is moved to (followed by another line) app/assets/stylesheets/application.bootstrap.scss
+
+@import "toastr/toastr";
 
 ul.ui-autocomplete {
   position: absolute;

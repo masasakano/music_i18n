@@ -4,13 +4,13 @@
 // The link as follows should be put. For example, if it is hidden when first loaded:
 //    <div class="show_or_hide" style="display: none;">
 //    (……<a id="Link_show_or_hide" title="Show or hide" href="#">Show</a>)
-// along with
+// along with, if with Webpacker,
 //    <%= javascript_pack_tag 'show_or_hide' %>
 
 // console.log('a JS file is going to be read.');
 
-require("jquery")
-require("jquery-ui-dist/jquery-ui")  // AFTER: yarn add jquery-ui-dist
+//require("jquery")
+//require("jquery-ui-dist/jquery-ui")  // AFTER: yarn add jquery-ui-dist
 import $ from 'jquery'
 
 $('#Link_show_or_hide').click(function(){

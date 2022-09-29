@@ -41,7 +41,7 @@ gem 'bootsnap', require: false  # NOTE: This was necessary to avoid: realpath_ca
 
 gem 'listen', '~> 3' #, '~> 3.2'  # This seems necessary from bootsnap (for booting, i.e., ./bin/dev) despite the fact it is not included in Rails 7 default Gemfile...
 
-######### Rails 7 default
+######### Rails 7 default with --css=bootstrap
 # Bundle and transpile JavaScript [https://github.com/rails/jsbundling-rails]
 gem "jsbundling-rails"
 
