@@ -9,10 +9,6 @@
 
 // console.log('a JS file is going to be read.');
 
-//require("jquery")
-//require("jquery-ui-dist/jquery-ui")  // AFTER: yarn add jquery-ui-dist
-import $ from 'jquery'
-
 $('#Link_show_or_hide').click(function(){
   if ($('#Link_show_or_hide').text() == "Hide") {
     $('.show_or_hide').hide();

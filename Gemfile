@@ -138,3 +138,4 @@ group :development, :test do
   gem 'w3c_validators', '~> 1', '>= 1.3.6'
 end
 
+gem "sassc-rails"
