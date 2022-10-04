@@ -11,8 +11,8 @@ import * as bootstrap from "bootstrap"
 //import './src/application.scss'  // according to https://gorails.com/forum/install-bootstrap-with-webpack-with-rails-6-beta  but is it necessary??
 import Rails from "@rails/ujs"
 ////import Turbolinks from "turbolinks"  # Webpacker only.
-import * as ActiveStorage from "@rails/activestorage"  // [ERROR] Could not resolve "@rails/activestorage"
-//import "./channels"
+import * as ActiveStorage from "@rails/activestorage"
+//import "./channels"  // raises JS error in Rails 7
 
 //// The following is from Rails 6.
 Rails.start()
@@ -34,6 +34,7 @@ ActiveStorage.start()
 
 // Added by User  // => In Rails 7, manually moved (and modified) to a new file: /app/javascript/jquery.js
 import "./jquery"
+import "jquery-ui-dist/jquery-ui"
 //require("jquery")
 //require("jquery_ujs")  // obsolete in Rails 6?
 //require("jquery-ui-dist/jquery-ui")  // AFTER: yarn add jquery-ui-dist
@@ -89,12 +90,12 @@ import toastr from 'toastr/toastr';  // https://stackoverflow.com/a/59347044/357
 
 // User files
 import "./show_or_hide.js"
-//import "./autocomplete_artist.js"
-//import "./autocomplete_engage_artist.js"
-//import "./autocomplete_music_artist.js"
-//import "./dropdown_artist.js"
-//import "./dropdown_country2place.js"
-//import "./dropdown_harami_vid.js"
-//import "./dropdown_music.js"
-//import "./dropdown_place.js"
+import "./autocomplete_artist.js"
+import "./autocomplete_engage_artist.js"
+import "./autocomplete_music_artist.js"
+import "./dropdown_artist.js"
+import "./dropdown_country2place.js"
+import "./dropdown_harami_vid.js"
+import "./dropdown_music.js"
+import "./dropdown_place.js"
 

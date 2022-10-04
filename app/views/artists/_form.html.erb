@@ -61,19 +61,19 @@
 <% end %>
 
   <div class="field" id="div_select_country">
-    <%= form.label 'place.prefecture_id.country_id', 'Country'%>
+    <%= form.label 'place.prefecture_id.country_id', t('Country')%>
     <% country = artist.country %>
     <%= form.collection_select 'place.prefecture_id.country_id', @countries, :id, Proc.new{|i| i.title_or_alt(langcode: 'ja', prefer_alt: true)}, {include_blank: !country, selected: (country ? country.id : nil)} %>
   </div>
 
   <div class="field" id="div_select_prefecture">
-    <%= form.label 'place.prefecture_id' %>
+    <%= form.label 'place.prefecture_id', t('Prefecture') %>
     <% prefecture = artist.prefecture %>
     <%= form.grouped_collection_select 'place.prefecture_id', @countries, :prefectures, Proc.new{|i| i.title_or_alt(langcode: 'ja', prefer_alt: true)}, :id, Proc.new{|i| i.title_or_alt(langcode: 'ja', prefer_alt: true)}, {include_blank: true, selected: (prefecture ? prefecture.id : nil)} %>
   </div>
 
   <div class="field" id="div_select_place">
-    <%= form.label :place_id %>
+    <%= form.label :place_id, t('Place') %>
     <% place = artist.place %>
     <%= form.grouped_collection_select 'place', @prefectures, :places, Proc.new{|pref| a=pref.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true); a[0]+'/'+a[1]}, :id, Proc.new{|plac| plac.title_or_alt(langcode: 'ja', prefer_alt: true)}, {include_blank: true, selected: (place ? place.id : nil)} %>
   </div>
