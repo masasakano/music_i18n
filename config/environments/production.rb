@@ -98,7 +98,10 @@ Rails.application.configure do
   config.i18n.fallbacks = [:en, :ja]
 
   # Send deprecation notices to registered listeners.
+  # I _think_ this is insufficient. See <https://www.fastruby.io/blog/rails/upgrades/deprecation-warnings-rails-guide.html> for example settings.
   config.active_support.deprecation = :notify
+  # Don't log any deprecations.
+  #config.active_support.report_deprecations = false  # Rails 7 default
 
   # Log disallowed deprecations.
   config.active_support.disallowed_deprecation = :log

@@ -10,14 +10,14 @@
     </div>
   <% end %>
 
-<% if ! @harami_vid.new_record? %>
+<% if ! harami_vid.new_record? %>
 
 <hr>
-<%= render partial: 'layouts/all_registered_translations', locals: {model: @harami_vid, add_buttons: true} %>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: harami_vid, add_buttons: true} %>
 <hr>
-<%= render partial: 'harami1129_table', locals: {harami_vid: @harami_vid, add_buttons: true} %>
+<%= render partial: 'harami1129_table', locals: {harami_vid: harami_vid, add_buttons: true} %>
 <hr>
-<%= render partial: 'music_table', locals: {harami_vid: @harami_vid, add_buttons: true} %>
+<%= render partial: 'music_table', locals: {harami_vid: harami_vid, add_buttons: true} %>
 <hr>
 <% end %>
 
@@ -72,7 +72,7 @@
   </div>
  
   <div class="field">
-    <%= form.label :artist, (@harami_vid.new_record? ? '曲の' : '追加曲の')+'歌手 (または作曲家。一名あるいは一グループ名のみ。必要に応じて後で追加可能)' %>
+    <%= form.label :artist, (harami_vid.new_record? ? '曲の' : '追加曲の')+'歌手 (または作曲家。一名あるいは一グループ名のみ。必要に応じて後で追加可能)' %>
     <%= form.text_field :artist %>
   </div>
  
@@ -85,12 +85,12 @@
   </div>
  
   <div class="field">
-    <%= form.label :music, (@harami_vid.new_record? ? '' : '追加')+'曲名 (一曲のみ。必要に応じて後で追加可能)' %>
+    <%= form.label :music, (harami_vid.new_record? ? '' : '追加')+'曲名 (一曲のみ。必要に応じて後で追加可能)' %>
     <%= form.text_field :music %>
   </div>
  
   <div class="field">
-    <%= form.label :music_timing, (@harami_vid.new_record? ? '' : '追加')+'曲の動画中でのタイミング [秒]' %>
+    <%= form.label :music_timing, (harami_vid.new_record? ? '' : '追加')+'曲の動画中でのタイミング [秒]' %>
     <%= form.text_field :music_timing %>
   </div>
 

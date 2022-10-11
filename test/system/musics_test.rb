@@ -25,6 +25,10 @@ class MusicsTest < ApplicationSystemTestCase
     assert_selector "h1", text: "Musics"
     click_on "Create New Music"
 
+    # Test of dropdown-menu
+    assert_selector 'div#div_select_country', text: "Country"
+    assert_selector 'div#div_select_prefecture', visible: :hidden
+
     # Music#new page
     assert_selector "h1", text: "New Music"
 

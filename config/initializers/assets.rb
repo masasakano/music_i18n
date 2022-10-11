@@ -7,6 +7,7 @@ Rails.application.config.assets.version = '1.0'
 # Rails.application.config.assets.paths << Emoji.images_path
 # Add Yarn node_modules folder to the asset load path.
 Rails.application.config.assets.paths << Rails.root.join('node_modules')
+# Rails.application.config.assets.paths << Rails.root.join("node_modules/bootstrap-icons/font")  # Rails 7 default, but this would raise: #<ActionView::Template::Error: Error: File to import not found or unreadable: bootstrap/scss/bootstrap on line 1:1 of app/assets/stylesheets/application.bootstrap.scss >> @import 'bootstrap/scss/bootstrap';
 
 # Precompile additional assets.
 # application.js, application.css, and all non-JS/CSS in the app/assets

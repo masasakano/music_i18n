@@ -1,5 +1,11 @@
 // Entry point for the build script in your package.json
-import "@hotwired/turbo-rails"
+//import "@hotwired/turbo-rails"  // Rails 7 default
+// But I change it so that JavaScript is activated in default every time a page is loaded; see
+//   https://github.com/hotwired/turbo-rails#navigate-with-turbo-drive
+//   https://stackoverflow.com/a/71140352/3577922
+// Without this, the JavaScript is fired only when a page is reloaded.
+import { Turbo } from "@hotwired/turbo-rails"
+Turbo.session.drive = false
 import "./controllers"
 import * as bootstrap from "bootstrap"
 
