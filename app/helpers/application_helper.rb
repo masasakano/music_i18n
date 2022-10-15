@@ -236,13 +236,54 @@ module ApplicationHelper
     locale_links = %w(en ja).map{ |elc|
       # Maybe replaced with: I18n.available_locales
       lc2display = BaseWithTranslation::LANGUAGE_TITLES[elc.to_sym][elc]
+      cssklass = "lang_switcher_"+elc
       if locale_cur.to_s == elc
-        lc2display
+        content_tag(:span, lc2display, class: cssklass)
       else
-        link_to lc2display, url_for(locale: elc)  # Rails.application.routes.url_helpers.
+        #link_to lc2display, url_for(locale: elc)  # Rails.application.routes.url_helpers.
+        begin
+          str_link = link_to(lc2display, url_for(locale: elc, params: params_hash_without_locale))
+        rescue ActionController::UnfilteredParameters #=> err
+          # When a submitted form results in "422 Unprocessable Entity",
+          # the params would include lots of parameters that are not allowed
+          # in the original URL.  For example, if an erroneous content is submitted from `new`,
+          # it shows back the `new` page with `params` containing loads of data
+          # that are *not permitted* in `url_for` for :new, hence raising
+          # ActionController::UnfilteredParameters .
+          # In such a case, this uses just explicit GET parameters in the following.
+          #
+          # NOTE that this would be insufficient when `new` (or `edit`) accepts GET query parameters,
+          # which is probably not included as the GET parameters in the "SUBMIT" of new or edit.
+          # In such a case, `request.query_parameters` would be empty, despite that
+          # the original URL may have contained GET query parameters.
+          # But I *think* the root of the problem is the submission from `new` or `edit`
+          # would not preserve the passed GET parameters; thus, whenever 
+          # "422 Unprocessable Entity" happens from "new?prm1=5", it would cause
+          # a trouble, regardless of this routine!
+          # So, the solution would be, submission from `new` with query parameters
+          # should preserve the given GET parameters.  It is perhaps the case for Engage.
+          # Check it out.
+          str_link = link_to(lc2display, url_for(locale: elc, params: request.query_parameters))
+
+          #logger.info "ERROR01: (#{err.class.name}) #{err}"
+          #logger.info "ERROR02: query=#{request.query_parameters.inspect}"
+        end
+        content_tag(:span, str_link, class: cssklass)   # Rails.application.routes.url_helpers.
       end
     }
     ("["+locale_links.join("|")+"]").html_safe
+  end
+
+  # @return [Hash] equivalent to params, excluding action, controller, and locale
+  def params_hash_without_locale
+    # hsret = {}.merge params  # => (in some cases; see above (language_switcher_link)) ActionController::UnfilteredParameters or ActionView::Template::Error: unable to convert unpermitted parameters to hash
+    hsret = {}
+    ignores = %w(action commit controller locale)
+    params.each_pair do |ek, ev|
+      next if ignores.include? ek
+      hsret[ek] = ev
+    end
+    hsret
   end
 
   # to suppress warning, mainly that in Ruby-2.7.0:

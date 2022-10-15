@@ -1,6 +1,3 @@
-<p id="notice"><%= notice %></p>
-<p id="alert"><%= alert %></p>
-
   <% if engage.errors.any? %>
     <div id="error_explanation">
       <h2><%= pluralize(engage.errors.count, "error") %> prohibited this engage from being saved:</h2>
@@ -18,7 +15,7 @@
 <dl id="engage_new_existing_engages">
 <% @music.artists.uniq.each do |artist| %>
   <dt><%= artist.title %></dt>
-  <dd><%= s=artist.engage_how_titles(@music, year: @music.year).join(', '); link_to ((/\d/ =~ s) ? s : s+'('+(@music.year || '年不明').to_s+')'), edit_engage_multi_how_path(artist.engages.where(music: @music).first) %></dd>
+  <dd><%= s=artist.engage_how_titles(@music, year: @music.year, langcode: I18n.locale).join(', '); link_to ((/\d/ =~ s) ? s : s+'('+(@music.year || t(year_unknown)).to_s+')'), edit_engage_multi_how_path(artist.engages.where(music: @music).first) %></dd>
 <% end %>
 </dl>
 

@@ -114,6 +114,6 @@ logger.info "DEBUG: redirected..."
       params.require([:translation, :engage_how])
       # params[:translation].require([:title]) # raises, if title is left empty, which can happen, ActionController::ParameterMissing: param is missing or the value is empty: title
 
-      params.permit([translation: [:langcode, :is_orig, :title, :alt_title, :ruby, :alt_ruby, :romaji, :alt_romaji], engage_how: [:note]])
+      params.permit([translation: [:langcode, :is_orig, :title, :alt_title, :ruby, :alt_ruby, :romaji, :alt_romaji], engage_how: [:weight, :note]])
     end
 end

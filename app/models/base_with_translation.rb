@@ -1638,9 +1638,11 @@ class BaseWithTranslation < ApplicationRecord
     begin
       langcode = (langcodearg || langcode || orig_translation.langcode).to_s
     rescue NoMethodError
-      msg = "(#{__method__}) Failed to determine langcode for self=#{self.inspect} ; continue with a random language."
-      logger.warn msg
-      # warn msg
+      if self.id  # If not, self may be a new one and certainly has no translations.
+        msg = "(#{__method__}) Failed to determine langcode for self=#{self.inspect} ; continue with a random language."
+        logger.warn msg
+        # warn msg
+      end
       return Translation.sort(translations)
     end
 

@@ -34,6 +34,15 @@ class EngagesTest < ApplicationSystemTestCase
 
     # Engage#new page
     assert_selector "h1", text: "New Engage"
+
+    # Language switcher test for Engage#new
+    click_on "日本語", match: :first
+    assert_selector "h1", text: "New Engage"
+
+    within find("#language_switcher_top") do
+      find(".lang_switcher_en").click
+      # click_on "English", match: :first  # Equivalent in practice but more ambiguous.
+    end
     assert_selector "h1", text: @music.title
     assert_equal @music.year, find_field('Year').value.to_i
     fill_autocomplete('Artist name', with: 'RCサクセ', select: 'RCサクセション')  # defined in test_helper.rb
