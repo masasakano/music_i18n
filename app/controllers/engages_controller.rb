@@ -58,10 +58,10 @@ class EngagesController < ApplicationController
         end
       end
     rescue => err
-      msg = sprintf "(%s#%s) Engage failed to be updated by User(ID=%s) with error: %s", self.class.name, __method__, current_user.id, err.message
+      msg = sprintf "(%s#%s) Engage for Music(ID=%s) failed to be updated by User(ID=%s) with error: %s", self.class.name, __method__, current_user.id, @engage.music_id, err.message
       logger.debug msg
-      respond_to do |format|
-        format.html { render :new }
+      return respond_to do |format|
+        format.html { render :new, music_id: @engage.music_id }  # music_id (as an argument for render) is probably redundant
         format.json { render json: @engage.errors, status: :unprocessable_entity }
       end
     end

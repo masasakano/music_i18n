@@ -68,6 +68,6 @@
 </table>
 
 <% if can? :create, Artist %>
-  <p>Add a <%= link_to "new Artist engage", new_engage_path(music_id: @music.id) %>.</p>
+  <p>Add a <span class="lead"><%= link_to "new Artist-Engage", new_engage_path(music_id: music.id) %></span>.</p>
 <% end %>
 

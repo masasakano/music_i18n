@@ -263,7 +263,7 @@ module ApplicationHelper
           # So, the solution would be, submission from `new` with query parameters
           # should preserve the given GET parameters.  It is perhaps the case for Engage.
           # Check it out.
-          str_link = link_to(lc2display, url_for(locale: elc, params: request.query_parameters))
+          str_link = link_to(lc2display, url_for(locale: elc, params: request.query_parameters.except("locale")))
 
           #logger.info "ERROR01: (#{err.class.name}) #{err}"
           #logger.info "ERROR02: query=#{request.query_parameters.inspect}"
@@ -278,7 +278,7 @@ module ApplicationHelper
   def params_hash_without_locale
     # hsret = {}.merge params  # => (in some cases; see above (language_switcher_link)) ActionController::UnfilteredParameters or ActionView::Template::Error: unable to convert unpermitted parameters to hash
     hsret = {}
-    ignores = %w(action commit controller locale)
+    ignores = %w(authenticity_token action commit controller locale)
     params.each_pair do |ek, ev|
       next if ignores.include? ek
       hsret[ek] = ev

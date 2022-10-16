@@ -23,6 +23,7 @@
   <p><em>Note</em>: The Artist to specify must be already registered. Candidates will be auto-suggested as you type (n.b., the suggestion ignores hankaku-kana and zenkaku-alphanumeric characters). See <%= link_to 'Artist table', artists_url %> to check out the list of the existing records.</p>
   
 <%= simple_form_for @engage do |form| %>
+  <%= form.hidden_field :get_params, :value => [:music_id, :random] %>
   <%= form.hidden_field :music_id,  :value => @music.id %>
   <%= form.input :artist_name, label: 'Artist name (e.g., "欅坂46", "The Beatles", "Beatles, The")', required: true %>
     <%= content_tag :div, '', id: 'suggestions', data: {items: Artist.titles_for_form} %>
