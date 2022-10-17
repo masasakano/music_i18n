@@ -88,17 +88,17 @@
 
   <div class="field">
     <%= form.label :birth_year, '誕生(グループの場合は結成)年' %>
-    <%= form.text_field :birth_year, value: artist.birth_year, placeholder: 'e.g., 1999' %>
+    <%= form.number_field :birth_year, value: artist.birth_year, placeholder: 'e.g., 1999', class: 'input_year' %>
   </div>
 
   <div class="field">
     <%= form.label :birth_month, '誕生月 (1——12) (0 means undefined)' %>
-    <%= form.number_field :birth_month, in: 0..12 %>
+    <%= form.number_field :birth_month, in: 0..12, class: 'input_year' %>
   </div>
 
   <div class="field">
     <%= form.label :birth_day, '誕生日 (1——31) (0 means undefined)' %>
-    <%= form.number_field :birth_day, in: 0..31 %>
+    <%= form.number_field :birth_day, in: 0..31, class: 'input_year' %>
   </div>
 
   <div class="field">

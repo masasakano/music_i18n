@@ -1,5 +1,9 @@
 # Custom translations for Views in this project (Japanese)
 ja:
+  attr:
+    contribution: '貢献度'
+    contribution_hint: '0が0%、1.0が100%'
+
   tables:
     title_ja: 日本語名称
     alt_title_ja: 日本語別称
@@ -32,6 +36,15 @@ ja:
       title: "%{model}正式名称"
       note_re_group: "グループの場合はグループ名"
       alt_title: "%{model}略称・別名"
+      alt_title_hint: "%{model}略称・別名"
+    new_musics:
+      associated_artist_name: '主アーティスト名'
+      allow_multi: '複数可'
+      year_engagement: 'その西暦年'
+      year_engagement_hint: 'デフォルトは上記の音楽の年に同じ'
+      note_new_artist: 'アーティストが登録されていない場合は、'
+      create_new_artist: '新規登録してください'
+      assoc_artist_head: 関連アーティスト情報
 
   devise:
     registrations:

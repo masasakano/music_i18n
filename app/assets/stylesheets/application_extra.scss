@@ -120,6 +120,46 @@ form.inline_form {
   display: inline;
 }
 
+form div.field input[type="text"] {
+  min-width: 40em;
+}
+
+form div.field textarea {
+  min-width: 99%;
+}
+
+form input.input_year {
+  min-width: 9em;
+  max-width: 10em;
+}
+
+form div.field input[type="text"].input_float {
+  min-width: 10em;
+  max-width: 15em;
+}
+
+input[type="radio"] {
+  margin-left: 0.8em;
+}
+
+form div.register_assoc_artist h4 {
+  margin-top: 0.4em;
+  margin-bottom: 0.1em;
+}
+
+form div.register_assoc_artist div.new_artist_link p {
+  margin-left: 1em;
+  padding-bottom: 0em;
+  margin-bottom: 0em;
+  font-size: smaller;
+  text-color: red;
+}
+
+form div.register_assoc_artist_field {
+  margin-left: 1em;
+  margin-bottom: 1em;
+}
+
 dl {
     margin-left: 1rem;
     dd {

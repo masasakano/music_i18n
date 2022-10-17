@@ -49,7 +49,7 @@
 
   <div class="field">
     <%= form.label :year, t('Year_Title') %>
-    <%= form.number_field :year %>
+    <%= form.number_field :year, class: 'input_year' %>
   </div>
 
   <div class="field">
@@ -58,8 +58,14 @@
   </div>
 
   <% if music.new_record? %>
+    <div class="register_assoc_artist">
+    <h4><%= t('layouts.new_musics.assoc_artist_head') %></h4>
+      <% if !@artist_name  %>
+        <div class="new_artist_link"><p>(<%= t('layouts.new_musics.note_new_artist') %><%= link_to(t('layouts.new_musics.create_new_artist'), new_artist_path, target: "_blank") %>) </p></div>
+      <% end%>
+    <div class="register_assoc_artist_field">
     <div class="field">
-      <% label_artist = sprintf 'Associated Artist name %s', (music.new_record? ? '' : 'to add ')%>
+      <% label_artist = sprintf '%s %s', t('layouts.new_musics.associated_artist_name'), (music.new_record? ? '' : 'to add ')%>
       <%= form.label 'artist_name', label_artist %>
       <% if @artist_name  %>
         <%= form.text_field 'artist_name', value: @artist_name, disabled: true %>
@@ -70,18 +76,20 @@
     </div>
 
     <div class="field">
-      <%= form.label :engage_hows, label: 'EngageHow(複数可)' %>
+      <%= form.label :engage_hows, 'EngageHow('+t('layouts.new_musics.allow_multi')+'複数可)' %>
       <%= form.collection_select :engage_hows, EngageHow.all.order(:weight), :id, Proc.new{|i| i.title(langcode: I18n.locale)}, {include_blank: true}, {multiple: true} %>
     </div>
 
     <div class="field">
-      <%= form.label :year_engage, 'Year of engagement', title: 'Year (In default, set the same as Year for Music)' %>
-      <%= form.number_field :year_engage %>
+      <%= s_help = t('layouts.new_musics.year_engagement_hint'); form.label :year_engage, t('layouts.new_musics.year_engagement'), title: s_help %>
+      <%= form.number_field :year_engage, class: 'input_year', title: s_help %>
     </div>
 
     <div class="field">
-      <%= form.label :contribution, 'Contribution(0.0-1.0)' %>
-      <%= form.text_field :contribution %>
+      <%= s_help = t('attr.contribution_hint'); form.label :contribution, t('attr.contribution')+'(0.0-1.0)', title: s_help %>
+      <%= form.text_field :contribution, placeholder: s_help, class: 'input_float' %>
+    </div>
+    </div>
     </div>
   <% end %>
 

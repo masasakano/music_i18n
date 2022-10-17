@@ -1,5 +1,9 @@
 # Custom translations for Views in this project (English)
 en:
+  attr:
+    contribution: 'contribution'
+    contribution_hint: '0 for 0% & 1.0 for 100%'
+
   tables:
     title_ja: "Title (Ja)"
     alt_title_ja: "Alt-Title (Ja)"
@@ -29,9 +33,18 @@ en:
     new_translations:
       model_language: "(Original) Language of Title of %{model}"
       translations_can_be_added_later: "translations can be added later"
-      title: "Full Title"
+      title: "%{model} Full Title"
       note_re_group: "or Group name"
-      alt_title: "Alternative/Commonly-known Title"
+      alt_title: "%{model} Alt-Title"
+      alt_title_hint: "%{model} Alternative/Commonly-known Title"
+    new_musics:
+      associated_artist_name: 'Associated Artist name'
+      allow_multi: 's'
+      year_engagement: 'Year of engagement'
+      year_engagement_hint: 'Year (Leave it if the same as Year for Music)'
+      note_new_artist: 'If not yet registered, '
+      create_new_artist: 'create a new record'
+      assoc_artist_head: 'Associated Artist information'
 
   devise:
     registrations:

@@ -27,7 +27,7 @@
   </div>
 
   <div class="field">
-    <%= form.label :ruby, t('layouts.new_translations.title', model: modelname)+' - '+t('ruby') %>
+    <%= form.label :ruby, t('layouts.new_translations.title', model: modelname)+' - '+t('ruby'), title: t('layouts.new_translations.title', model: modelname) %>
     <%= form.text_field :ruby, value: trans.ruby, placeholder: '(全角片仮名で)例: '+(('Artist'==model.class.name) ? 'ザ・ビートルズ' : 'ジ・オーシャン') %>
   </div>
 
@@ -37,17 +37,17 @@
   </div>
 
   <div class="field">
-    <%= form.label :alt_title, t('layouts.new_translations.alt_title', model: modelname) %>
-    <%= form.text_field :alt_title, value: trans.alt_title %>
+    <%= altlabels=["", "_hint"].map{|i| t('layouts.new_translations.alt_title'+i, model: modelname)}; form.label :alt_title, altlabels[0], title: altlabels[1] %>
+    <%= form.text_field :alt_title, value: trans.alt_title, placeholder: '(通称・別名) 例: ユーミン' %>
   </div>
 
   <div class="field">
-    <%= form.label :alt_ruby, t('layouts.new_translations.alt_title', model: modelname)+' - '+t('ruby') %>
+    <%= form.label :alt_ruby, altlabels[0]+' - '+t('ruby'), title: altlabels[1] %>
     <%= form.text_field :alt_ruby, value: trans.alt_ruby, placeholder: '(全角片仮名で)' %>
   </div>
 
   <div class="field">
-    <%= form.label :alt_romaji, t('layouts.new_translations.alt_title', model: modelname)+' - '+t('romaji') %>
+    <%= form.label :alt_romaji, altlabels[0]+' - '+t('romaji'), title: altlabels[1] %>
     <%= form.text_field :alt_romaji, value: trans.alt_romaji, placeholder: '(ヘボン式推奨: chi, shi等)' %>
   </div>
 
