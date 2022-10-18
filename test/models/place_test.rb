@@ -122,6 +122,8 @@ class PlaceTest < ActiveSupport::TestCase
     assert     plac_unk.encompass?(plac_tok)
     assert     plac_unk.encompass?(plac_pek)
 
+    assert     plac_tok.covered_by?(jp_orig)
+    assert     plac_tok.covered_by?(pref_tok)
     assert     plac_unk.covered_by?(cnt_unk)
     assert_not plac_unk.covered_by?(jp_orig)
 #p plac_unk

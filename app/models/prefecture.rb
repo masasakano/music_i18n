@@ -145,21 +145,24 @@ class Prefecture < BaseWithTranslation
   # @param other [Place, Prefecture, Country]
   # @raise [TypeError] if other is none of {Country}, {Prefecture}, {Place}
   def encompass?(other)
-    raise TypeError, "(#{self.class.name}.#{__method__}) Contact the code developer. Argument has to one of Country, Prefecture, Place. but #{other.class.name}: other=#{other.inspect}" if !other.respond_to? :unknown?
+    errmsg = "(#{self.class.name}.#{__method__}) Contact the code developer. Argument has to one of Country, Prefecture, Place. but #{other.class.name}: other=#{other.inspect}"
+    raise TypeError, errmsg if !other.respond_to? :unknown?
     if other == self
       true
     elsif other.respond_to? :prefectures
       false  # other is Country
     elsif unknown? && self.country.encompass?(other)
-      true  # self is Prefecture(country: Country.unknown), other is either Prefecture or Place
-    elsif other.respond_to? :country
+      true  # self is Prefecture.unknown? and other is either Prefecture or Place
+    elsif other.respond_to? :prefecture_id
+      # other is Place (self is not "unknown")
+      # NOTE: if self is Kagawa, and the prefecture of other (Place) is unknown?, this returns false.
+      other.prefecture == self
+    elsif other.respond_to? :country_id
       # other is Prefecture and is not self (and self is not "unknown")
       # NOTE: if self is Kagawa, and if other satisfies Prefecture.unknown?, this returns false.
       false
     else
-      # other is Place (self is not "unknown")
-      # NOTE: if self is Kagawa, and the prefecture of other (Place) is unknown?, this returns false.
-      other.prefecture == self
+      raise TypeError, errmsg  # Other has the method :unknown? but not Country-Place-type.
     end
   end
 

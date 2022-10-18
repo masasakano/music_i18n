@@ -48,11 +48,14 @@ class Place < BaseWithTranslation
   # Information of "(Prefecture < Country-Code)" is added.
   # @return [String]
   def inspect
+    return(super) if !prefecture
     pref = prefecture
-    country = pref.country
-    s_country = country.iso3166_a3_code
-    s_country = country.title if s_country.blank?
     s_pref = pref.title(langcode: 'en', lang_fallback: true)
+    country = pref.country
+    if country
+      s_country = country.iso3166_a3_code
+      s_country = country.title if s_country.blank?
+    end
     super.sub(/, prefecture_id: \d+/, '\0'+sprintf("(%s < %s)", s_pref, s_country))
   end
 

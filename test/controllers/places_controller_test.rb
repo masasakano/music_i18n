@@ -1,3 +1,4 @@
+# coding: utf-8
 require 'test_helper'
 
 class PlacesControllerTest < ActionDispatch::IntegrationTest
@@ -6,6 +7,7 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @place = places(:tocho)
+    @editor = roles(:general_ja_editor).users.first  # (General) Editor can manage.
   end
 
   teardown do
@@ -43,23 +45,81 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
   #  assert_response :success
   #end
 
-  #test "should create place" do
-  #  assert_difference('Place.count') do
-  #    post places_url, params: { place: { note: @place.note, prefecture_id: @place.prefecture_id } }
-  #  end
+  test "should NOT create if not privileged" do
+    hs2pass = {
+      "langcode"=>"en",
+      "title"=>"The Tｅst",
+      "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
+      "prefecture.country_id"=>Country['JPN'].id.to_s,
+      "prefecture"=>prefectures(:kagawa).id.to_s,
+      "note"=>"test-create-place"}
 
-  #  assert_redirected_to place_url(Place.last)
-  #end
+    post places_url, params: { place: hs2pass }
+    assert_response :redirect
+    assert_redirected_to new_user_session_path
+  end
 
-  #test "should show place" do
-  #  get place_url(@place)
-  #  assert_response :success
-  #end
+  test "should create" do
+    hs2pass = {
+      "langcode"=>"en",
+      "title"=>"The Tｅst",
+      "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
+      "prefecture.country_id"=>Country['JPN'].id.to_s,
+      "prefecture"=>prefectures(:kagawa).id.to_s,
+      "note"=>"test-create-place"}
 
-  #test "should get edit" do
-  #  get edit_place_url(@place)
-  #  assert_response :success
-  #end
+    sign_in @editor
+
+    # Creation success
+    place = nil
+    assert_difference('Place.count', 1) do
+      post places_url, params: { place: hs2pass }
+      assert_response :redirect #, "message is : "+flash.inspect
+      place = Place.order(:created_at).last
+      assert_redirected_to place_url(place)
+    end
+
+    assert_equal 'Test, The', place.title
+    assert_equal 'en', place.orig_langcode
+    assert place.covered_by? Country['JPN']
+    assert place.covered_by?(prefectures(:kagawa)), "place #{place.inspect} should be covered by #{prefectures(:kagawa).inspect}"
+    assert_equal "test-create-place", place.note
+
+    # Creation fails because Prefecture is not specified.
+    place = nil
+    assert_difference('Place.count', 0) do
+      post places_url, params: { place: hs2pass.merge({"prefecture"=>""})}
+      assert_response :unprocessable_entity #, "message is : "+flash.inspect
+    end
+
+    # Creation fails because no Translation (or name) is specified.
+    place = nil
+    assert_difference('Place.count', 0) do
+      post places_url, params: { place: hs2pass.merge({"title"=>""})}
+      assert_response :unprocessable_entity #, "message is : "+flash.inspect
+    end
+  end
+
+  test "should show place" do
+    # show is NOT activated for non-logged-in user (or non-editor?).
+    get place_url(@place)
+    assert_response :redirect
+    assert_redirected_to new_user_session_path
+
+    sign_in @editor
+    get place_url(@place)
+    assert_response :success
+  end
+
+  test "should fail/succeed to get edit" do
+    get edit_place_url(@place)
+    assert_response :redirect
+    assert_redirected_to new_user_session_path
+
+    sign_in @editor
+    get edit_place_url(@place)
+    assert_response :success
+  end
 
   #test "should update place" do
   #  patch place_url(@place), params: { place: { note: @place.note, prefecture_id: @place.prefecture_id } }

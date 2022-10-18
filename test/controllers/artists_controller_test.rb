@@ -56,7 +56,7 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
       post artists_url, params: { artist: hs }
       assert_response :redirect
       artist = Artist.last
-      assert_redirected_to artist_url artist
+      assert_redirected_to artist_url(artist)
     end
 
     assert_equal 'Test, The', artist.title

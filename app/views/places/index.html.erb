@@ -43,7 +43,9 @@
 <br>
 
 <% if can? :create, Place %>
-  <%= button_to 'Create New Place', new_place_path, method: :get %>
+  <div id="button_create_new_place">
+  <%= button_to 'Create new Place', new_place_path, method: :get %>
+  </div>
   <%# link_to 'New Place', new_place_path %>
 <% end %>
 

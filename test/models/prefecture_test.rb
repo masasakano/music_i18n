@@ -150,7 +150,13 @@ class PrefectureTest < ActiveSupport::TestCase
     assert     pref_wor.encompass?(plac_unk)
     assert     pref_wor.encompass?(plac_unj)
     assert     pref_wor.encompass?(plac_tok)
+    assert     pref_wor.encompass?(plac_toc)
     assert     pref_wor.encompass?(plac_pek)
+
+    assert     pref_tok.encompass?(plac_tok)
+    assert     pref_tok.encompass?(plac_toc)
+    assert_not pref_tok.encompass?(plac_unj)
+    assert_not pref_tok.encompass?(plac_pek)
 
     assert     pref_wor.covered_by?(cnt_unk)
     assert     pref_wor.covered_by_permissively?(pref_wor)

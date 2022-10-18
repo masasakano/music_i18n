@@ -24,15 +24,13 @@
   <% end %>
 
   <div class="field" id="div_select_country">
-    <%= form.label 'place.prefecture_id.country_id', t('Country')%>
-    <% country = place.country %>
-    <%= form.collection_select 'place.prefecture_id.country_id', @countries, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true)}, {include_blank: !country, selected: (country ? country.id : nil)} %>
+    <%= form.label 'prefecture.country_id', t('Country')%>
+    <%= form.collection_select 'prefecture.country_id', @countries, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true)}, {include_blank: false,  selected: Country.unknown.id } %>
   </div>
 
   <div class="field" id="div_select_prefecture">
-    <%= form.label 'place.prefecture_id', t('Prefecture') %>
-    <% prefecture = place.prefecture %>
-    <%= form.grouped_collection_select 'place.prefecture_id', @countries, :prefectures, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true)}, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true)}, {include_blank: true, selected: (prefecture ? prefecture.id : nil)} %>
+    <%= form.label :prefecture_id, t('Prefecture') %>
+    <%= form.grouped_collection_select 'prefecture', @countries, :prefectures, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true)}, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true)}, {include_blank: true, selected: false} %>
   </div>
   
   <div class="field">

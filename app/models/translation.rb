@@ -434,7 +434,7 @@ class Translation < ApplicationRecord
     end
     # return false if !(%i(title alt_title).any?{|i| hs_param.keys.include?(i)})
     if !(%i(title alt_title).any?{|i| hs_param.keys.include?(i)})
-      messages.push 'At least either of Title and AltTitle must exist.'
+      messages.push 'At least either Title or AltTitle must exist.'
       return false
     end
     if hs_param[:title] == hs_param[:alt_title]

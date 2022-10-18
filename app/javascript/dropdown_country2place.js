@@ -5,14 +5,19 @@
 
 export function dropdownCountry2Place(model){
 	// Dynamic dropdown menu - Country-Prefecture
-	var contsel = "#" + $.escapeSelector(model+'_place.prefecture_id.country_id');
-	var prefsel = "#" + $.escapeSelector(model+'_place.prefecture_id');
+	var with_place = ('place' != model);  // true if Place-Dropdown is present, i.e., UNLESS model is Place
+	var stmp = (with_place ? '_place.prefecture_id' : '_prefecture');
+	var contsel = "#" + $.escapeSelector(model+stmp+'.country_id');
+	var prefsel = "#" + $.escapeSelector(model+stmp);
 	var prefsel_nil = ($(prefsel).val() === "");
 	if (prefsel_nil) {
   	$(prefsel).parent().hide();
 	}
 	ddCountryPrefecture(model, !prefsel_nil);  // For the initial load only.
 	$(contsel).change(function(){ddCountryPrefecture(model)});
+	if (with_place){
+		return;
+	}
 
 	var placesel = "#" + $.escapeSelector(model+'_place');
 	var placesel_nil = ($(placesel).val() === "");
@@ -26,11 +31,16 @@ export function dropdownCountry2Place(model){
 function ddCountryPrefecture(model, selected = false){
 	// Every time change fires, selected should become false (Default).
 	// For initial load, selected may remain true.
-	var placesel = "#" + $.escapeSelector(model+'_place');
-  $(placesel).hide();  // Hide Place whenever Country changes.
-  $(placesel).parent().hide();
-  var prefsel = "#" + $.escapeSelector(model+'_place.prefecture_id');
-  var contsel = "#" + $.escapeSelector(model+'_place.prefecture_id.country_id');
+	var with_place = ('place' != model);  // true if Place-Dropdown is present, i.e., UNLESS model is Place
+	if (with_place){
+		var placesel = "#" + $.escapeSelector(model+'_place');
+		$(placesel).hide();  // Hide Place whenever Country changes.
+		$(placesel).parent().hide();
+	}
+	var stmp = (with_place ? '_place.prefecture_id' : '_prefecture');
+	var contsel = "#" + $.escapeSelector(model+stmp+'.country_id');
+	var prefsel = "#" + $.escapeSelector(model+stmp);
+	
   var country = $.escapeSelector($(contsel + ' :selected').text());
   var prefs = $(prefsel).html();
   var options = $(prefs).filter("optgroup[label='" + country + "']").html();

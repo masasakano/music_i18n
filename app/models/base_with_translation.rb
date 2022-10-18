@@ -250,7 +250,9 @@ class BaseWithTranslation < ApplicationRecord
       record.unsaved_translations.each do |tra|
         msg = []
         if !tra.valid_main_params? messages: msg
-          record.errors.add :base, msg
+          msg.each do |em|
+            record.errors.add :base, em
+          end
         end
       end
     end
