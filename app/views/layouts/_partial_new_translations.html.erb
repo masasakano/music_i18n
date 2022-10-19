@@ -2,7 +2,7 @@
   <% modelname = model.class.name %>
 
   <div class="field radio_langcode">
-    <span><%= t('layouts.new_translations.model_language', model: modelname) %> (<%= t('layouts.new_translations.translations_can_be_added_later') %>)</span>
+    <span><%= t('layouts.new_translations.model_language', model: modelname) %> (<%= t('layouts.new_translations.translations_can_be_added_later') %>)</span><br>
     <% BaseWithTranslation::AVAILABLE_LOCALES.each do |es| %>
       <% lc = trans.orig_langcode %>
       <%= form.radio_button(:langcode, es, checked: (es.to_s == (lc || 'ja'))) %>

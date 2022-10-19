@@ -11,6 +11,13 @@ class ApplicationController < ActionController::Base
 
   around_action :switch_locale
 
+  # In addition to the defaul "notice" and "alert".
+  #
+  # I assume "notice" => "alert-info", "alert" => "alert-danger" in Bootstrap.
+  # @see https://api.rubyonrails.org/classes/ActionController/Flash/ClassMethods.html#method-i-add_flash_types
+  # @see https://getbootstrap.com/docs/4.0/components/alerts/
+  add_flash_types :success, :warning  # Rails 4+
+
   def default_url_options(options={})
     #Rails.application.default_url_options = Rails.application.routes.default_url_options = { locale: I18n.locale }
     { locale: I18n.locale }.merge options

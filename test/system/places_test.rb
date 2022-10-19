@@ -67,7 +67,7 @@ class PlacesTest < ApplicationSystemTestCase
     find_field('Note').fill_in with: 'Note place 2-A'
     click_on "Create Place"
 
-    assert_text "Place was successfully created"
+    assert_text "Place was successfully created", maximum: 1
   end
 
   #test "updating a Place" do

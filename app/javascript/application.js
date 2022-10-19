@@ -95,6 +95,7 @@ import toastr from 'toastr/toastr';  // https://stackoverflow.com/a/59347044/357
 // import $ from 'jquery'  // required to use jquery-ui-dist in this file.
 
 // User files
+import "./manage_toastr.js"
 import "./show_or_hide.js"
 import "./autocomplete_artist.js"
 import "./autocomplete_engage_artist.js"

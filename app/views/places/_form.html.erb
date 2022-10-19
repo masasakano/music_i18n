@@ -1,5 +1,5 @@
   <% if place.errors.any? %>
-    <div id="error_explanation">
+    <div id="error_explanation" class="alert alert-danger">
       <h2><%= pluralize(place.errors.count, "error") %> prohibited this place from being saved:</h2>
 
       <ul>
