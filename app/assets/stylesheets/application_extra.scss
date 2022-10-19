@@ -24,6 +24,14 @@
 
 @import "toastr/toastr";
 
+/**
+div.toast-error {
+  margin-left: 1em;
+  margin-right: 1em;
+  width: 98%;
+}
+**/
+
 ul.ui-autocomplete {
   position: absolute;
   list-style: none;
