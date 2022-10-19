@@ -26,30 +26,15 @@ class SexesController < ApplicationController
   # POST /sexes.json
   def create
     @sex = Sex.new(sex_params)
-
-    respond_to do |format|
-      if @sex.save
-        format.html { redirect_to @sex, notice: 'Sex was successfully created.' }
-        format.json { render :show, status: :created, location: @sex }
-      else
-        format.html { render :new, status: :unprocessable_entity }
-        format.json { render json: @sex.errors, status: :unprocessable_entity }
-      end
-    end
+    def_respond_to_format(@sex)  # defined in application_controller.rb
   end
 
   # PATCH/PUT /sexes/1
   # PATCH/PUT /sexes/1.json
   def update
-    respond_to do |format|
-      if @sex.update(sex_params)
-        format.html { redirect_to @sex, notice: 'Sex was successfully updated.' }
-        format.json { render :show, status: :ok, location: @sex }
-      else
-        format.html { render :edit, status: :unprocessable_entity }
-        format.json { render json: @sex.errors, status: :unprocessable_entity }
-      end
-    end
+    def_respond_to_format(@sex, :updated){ 
+      @sex.update(sex_params)
+    } # defined in application_controller.rb
   end
 
   # DELETE /sexes/1

@@ -49,15 +49,9 @@ class Harami1129sController < ApplicationController
     @harami1129 = Harami1129.new
     load_harami1129_from_form
 
-    respond_to do |format|
-      if @harami1129.errors.full_messages.empty? && @harami1129.save
-        format.html { redirect_to @harami1129, notice: 'Harami1129 was successfully created.' }
-        format.json { render :show, status: :created, location: @harami1129 }
-      else
-        format.html { render :new }
-        format.json { render json: @harami1129.errors, status: :unprocessable_entity }
-      end
-    end
+    def_respond_to_format(@harami1129){ 
+      @harami1129.errors.full_messages.empty? && @harami1129.save
+    } # defined in application_controller.rb
   end
 
   # PATCH/PUT /harami1129s/1
@@ -65,16 +59,9 @@ class Harami1129sController < ApplicationController
   def update
     load_harami1129_from_form
 
-    respond_to do |format|
-      #if @harami1129.update(harami1129_params)
-      if @harami1129.errors.full_messages.empty? && @harami1129.save
-        format.html { redirect_to @harami1129, notice: 'Harami1129 was successfully updated.' }
-        format.json { render :show, status: :ok, location: @harami1129 }
-      else
-        format.html { render :edit }
-        format.json { render json: @harami1129.errors, status: :unprocessable_entity }
-      end
-    end
+    def_respond_to_format(@harami1129, :updated){ 
+      @harami1129.errors.full_messages.empty? && @harami1129.save
+    } # defined in application_controller.rb
   end
 
   # DELETE /harami1129s/1

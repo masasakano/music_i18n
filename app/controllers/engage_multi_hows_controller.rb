@@ -114,7 +114,7 @@ class EngageMultiHowsController < ApplicationController
     else
       respond_to do |format|
         msg = sprintf "Updated %d, destroyed %d, and created %d Engages successfully.", n_updated, n_destroyed, n_new
-        format.html { redirect_to engage_multi_hows_path(artist_id: newhs['artist_id'], music_id: newhs['music_id']), notice: msg }
+        format.html { redirect_to engage_multi_hows_path(artist_id: newhs['artist_id'], music_id: newhs['music_id']), success: msg } # "success" defined in /app/controllers/application_controller.rb
       end
     end
   end

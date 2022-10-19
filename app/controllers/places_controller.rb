@@ -41,36 +41,25 @@ class PlacesController < ApplicationController
     # pref = (pref_id_str.blank? ? nil : Prefecture.find(params[:place][:prefecture].to_i))
     @place = Place.new(**(hsmain.merge({prefecture_id: params[:place][:prefecture].to_i})))
 
-    hsprm_tra, _ = split_hash_with_keys(
-                 params[:place],
-                 %w(langcode title ruby romaji alt_title alt_ruby alt_romaji))
-    tra = Translation.preprocessed_new(**(hsprm_tra.merge({is_orig: true, translatable_type: Place.name})))
-
-    @place.unsaved_translations << tra
-
-    respond_to do |format|
-      if @place.save
-        format.html { redirect_to @place, success: 'Place was successfully created.' } # "success" defined in /app/controllers/application_controller.rb
-        format.json { render :show, status: :created, location: @place }
-      else
-        format.html { render :new, status: :unprocessable_entity }
-        format.json { render json: @place.errors, status: :unprocessable_entity }
-      end
-    end
+    add_unsaved_trans_to_model(@place) # defined in application_controller.rb
+    def_respond_to_format(@place)      # defined in application_controller.rb
   end
 
   # PATCH/PUT /places/1
   # PATCH/PUT /places/1.json
   def update
-    respond_to do |format|
-      if @place.update(place_params)
-        format.html { redirect_to @place, notice: 'Place was successfully updated.' }
-        format.json { render :show, status: :ok, location: @place }
-      else
-        format.html { render :edit, status: :unprocessable_entity }
-        format.json { render json: @place.errors, status: :unprocessable_entity }
-      end
-    end
+    def_respond_to_format(@place, :updated){
+      @place.update(place_params)
+    } # defined in application_controller.rb
+    #respond_to do |format|
+    #  if @place.update(place_params)
+    #    format.html { redirect_to @place, notice: 'Place was successfully updated.' }
+    #    format.json { render :show, status: :ok, location: @place }
+    #  else
+    #    format.html { render :edit, status: :unprocessable_entity }
+    #    format.json { render json: @place.errors, status: :unprocessable_entity }
+    #  end
+    #end
   end
 
   # DELETE /places/1
@@ -99,6 +88,6 @@ class PlacesController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def place_params
-      params.require(:place).permit(:prefecture_id, :note)
+      params.require(:place).permit(:prefecture_id, :note)  # adding "prefecture.country_id" would cause <400: Bad Request>
     end
 end

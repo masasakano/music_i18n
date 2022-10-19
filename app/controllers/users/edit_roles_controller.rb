@@ -65,10 +65,12 @@ class Users::EditRolesController < ApplicationController
     respond_to do |format|
       if n_changes
         msg = sprintf '%s for User=(%s) %s successfully updated.', view_context.pluralize(n_changes, 'Role'), @user.display_name, ((n_changes==1) ? 'was' : 'were')
+        hsmsg = { notice: msg }
       else
         msg = 'You are not allowed to perform the operation.'
+        hsmsg = { alert: msg }
       end
-      format.html { redirect_to @user, notice: msg }
+      format.html { redirect_to @user, **hsmsg }
       format.json { render :show, status: :ok, location: @sex }
     end
   end

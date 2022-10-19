@@ -68,7 +68,7 @@ class EngagesController < ApplicationController
 
     respond_to do |format|
       msg = sprintf 'Engage for Artist=%s (Engaged in %d) was successfully created.', artist.title.inspect, @engage.year
-      format.html { redirect_to @engage.music, notice: msg }
+      format.html { redirect_to @engage.music, success: msg } # "success" defined in /app/controllers/application_controller.rb
       format.json { render :show, status: :created, location: @engage }
     end
   end
@@ -78,7 +78,7 @@ class EngagesController < ApplicationController
     @engage = Engage.find(params[:id])
     @engage.destroy
     respond_to do |format|
-      format.html { redirect_to engages_url, notice: "Engage was successfully destroyed." }
+      format.html { redirect_to engages_url, success: "Engage was successfully destroyed." } # "success" defined in /app/controllers/application_controller.rb
       format.json { head :no_content }
     end
   end

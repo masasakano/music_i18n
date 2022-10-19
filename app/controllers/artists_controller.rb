@@ -57,22 +57,8 @@ logger.debug "DEBUG:moderator?=#{ArtistsGrid.is_current_user_moderator.inspect}"
     hsmain = params[:artist].slice(*MAIN_FORM_KEYS)
     @artist = Artist.new(**(hsmain.merge({place_id: helpers.get_place_from_params(hsprm).id})))
 
-    hsprm_tra, resths = split_hash_with_keys(
-                 params[:artist],
-                 %w(langcode title ruby romaji alt_title alt_ruby alt_romaji))
-    tra = Translation.preprocessed_new(**(hsprm_tra.merge({is_orig: true, translatable_type: Artist.name})))
-
-    @artist.unsaved_translations << tra
-
-    respond_to do |format|
-      if @artist.save
-        format.html { redirect_to @artist, notice: 'Artist was successfully created.' }
-        format.json { render :show, status: :created, location: @artist }
-      else
-        format.html { render :new }
-        format.json { render json: @artist.errors, status: :unprocessable_entity }
-      end
-    end
+    add_unsaved_trans_to_model(@artist) # defined in application_controller.rb
+    def_respond_to_format(@artist)      # defined in application_controller.rb
   end
 
   # PATCH/PUT /artists/1
@@ -86,15 +72,9 @@ logger.debug "DEBUG:moderator?=#{ArtistsGrid.is_current_user_moderator.inspect}"
     hsmain = params[:artist].slice(*MAIN_FORM_KEYS)
     hs2pass = hsmain.merge({place_id: helpers.get_place_from_params(hsprm).id})
 
-    respond_to do |format|
-      if @artist.update(hs2pass)
-        format.html { redirect_to @artist, notice: 'Artist was successfully updated.' }
-        format.json { render :show, status: :ok, location: @artist }
-      else
-        format.html { render :edit }
-        format.json { render json: @artist.errors, status: :unprocessable_entity }
-      end
-    end
+    def_respond_to_format(@artist, :updated){
+      @artist.update(hs2pass)
+    } # defined in application_controller.rb
   end
 
   # DELETE /artists/1

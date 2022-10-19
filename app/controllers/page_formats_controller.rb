@@ -24,28 +24,14 @@ class PageFormatsController < ApplicationController
   def create
     @page_format = PageFormat.new(page_format_params)
 
-    respond_to do |format|
-      if @page_format.save
-        format.html { redirect_to @page_format, notice: "Page format was successfully created." }
-        format.json { render :show, status: :created, location: @page_format }
-      else
-        format.html { render :new, status: :unprocessable_entity }
-        format.json { render json: @page_format.errors, status: :unprocessable_entity }
-      end
-    end
+    def_respond_to_format(@page_format)      # defined in application_controller.rb
   end
 
   # PATCH/PUT /page_formats/1 or /page_formats/1.json
   def update
-    respond_to do |format|
-      if @page_format.update(page_format_params)
-        format.html { redirect_to @page_format, notice: "Page format was successfully updated." }
-        format.json { render :show, status: :ok, location: @page_format }
-      else
-        format.html { render :edit, status: :unprocessable_entity }
-        format.json { render json: @page_format.errors, status: :unprocessable_entity }
-      end
-    end
+    def_respond_to_format(@page_format, :updated){ 
+      @page_format.update(page_format_params)
+    } # defined in application_controller.rb
   end
 
   # DELETE /page_formats/1 or /page_formats/1.json

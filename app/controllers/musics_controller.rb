@@ -109,15 +109,9 @@ logger.debug "DEBUG:moderator?=#{MusicsGrid.is_current_user_moderator.inspect}"
     hsmain = params[:music].slice(*MAIN_FORM_KEYS)
     hs2pass = hsmain.merge({place_id: helpers.get_place_from_params(hsprm).id})
 
-    respond_to do |format|
-      if @music.update(hs2pass)
-        format.html { redirect_to @music, notice: 'Music was successfully updated.' }
-        format.json { render :show, status: :ok, location: @music }
-      else
-        format.html { render :edit }
-        format.json { render json: @music.errors, status: :unprocessable_entity }
-      end
-    end
+    def_respond_to_format(@music, :updated){
+      @music.update(hs2pass)
+    } # defined in application_controller.rb
   end
 
   # DELETE /musics/1

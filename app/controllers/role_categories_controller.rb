@@ -26,30 +26,15 @@ class RoleCategoriesController < ApplicationController
   # POST /role_categories.json
   def create
     @role_category = RoleCategory.new(role_category_params)
-
-    respond_to do |format|
-      if @role_category.save
-        format.html { redirect_to @role_category, notice: 'Role category was successfully created.' }
-        format.json { render :show, status: :created, location: @role_category }
-      else
-        format.html { render :new }
-        format.json { render json: @role_category.errors, status: :unprocessable_entity }
-      end
-    end
+    def_respond_to_format(@role_category)  # defined in application_controller.rb
   end
 
   # PATCH/PUT /role_categories/1
   # PATCH/PUT /role_categories/1.json
   def update
-    respond_to do |format|
-      if @role_category.update(role_category_params)
-        format.html { redirect_to @role_category, notice: 'Role category was successfully updated.' }
-        format.json { render :show, status: :ok, location: @role_category }
-      else
-        format.html { render :edit }
-        format.json { render json: @role_category.errors, status: :unprocessable_entity }
-      end
-    end
+    def_respond_to_format(@role_category, :updated){ 
+      @role_category.update(role_category_params)
+    } # defined in application_controller.rb
   end
 
   # DELETE /role_categories/1

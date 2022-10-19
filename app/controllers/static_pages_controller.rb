@@ -38,15 +38,7 @@ class StaticPagesController < ApplicationController
     @static_page = StaticPage.new(hs_params)
     @static_page.commit_message = hs_uniq["commit_message"]
 
-    respond_to do |format|
-      if @static_page.save
-        format.html { redirect_to @static_page, notice: "Static page was successfully created." }
-        format.json { render :show, status: :created, location: @static_page }
-      else
-        format.html { render :new, status: :unprocessable_entity }
-        format.json { render json: @static_page.errors, status: :unprocessable_entity }
-      end
-    end
+    def_respond_to_format(@static_page)  # defined in application_controller.rb
   end
 
   # PATCH/PUT /static_pages/1 or /static_pages/1.json
@@ -57,16 +49,9 @@ class StaticPagesController < ApplicationController
     end
     @static_page.commit_message = hs_uniq["commit_message"]
 
-    respond_to do |format|
-      # if @static_page.update(static_page_params)
-      if @static_page.save
-        format.html { redirect_to @static_page, notice: "Static page was successfully updated." }
-        format.json { render :show, status: :ok, location: @static_page }
-      else
-        format.html { render :edit, status: :unprocessable_entity }
-        format.json { render json: @static_page.errors, status: :unprocessable_entity }
-      end
-    end
+    def_respond_to_format(@static_page, :updated){ 
+      @static_page.save
+    } # defined in application_controller.rb
   end
 
   # DELETE /static_pages/1 or /static_pages/1.json

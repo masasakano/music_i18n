@@ -48,6 +48,66 @@ class ApplicationController < ActionController::Base
     # head 400  # => blank page (Rails 5)
   end
 
+  # Retrieve an translation from params and add it to the model (for Place, Artist, etc)
+  #
+  # The contents of the given model are modified.
+  #
+  # @example
+  #   hsmain = params[:place].slice('note')
+  #   @place = Place.new(**(hsmain.merge({prefecture_id: params[:place][:prefecture].to_i})))
+  #   add_unsaved_trans_to_model(@place)
+  #
+  # @param mdl [ApplicationRecord]
+  # @return [void]
+  def add_unsaved_trans_to_model(mdl)
+    mdl_name = mdl.class.name
+    hsprm_tra, _ = split_hash_with_keys(
+                 params[mdl_name.downcase],  # e.g., params["place"]
+                 %w(langcode title ruby romaji alt_title alt_ruby alt_romaji))
+    tra = Translation.preprocessed_new(**(hsprm_tra.merge({is_orig: true, translatable_type: mdl_name})))
+
+    mdl.unsaved_translations << tra
+  end
+
+  # Default respond_to to format algorithm
+  #
+  # If the block is given, it should include a save-attempt.
+  #
+  # @example create
+  #   def_respond_to_format(@article)  # defined in application_controller.rb
+  #
+  # @example update
+  #   def_respond_to_format(@page_format, :updated){ 
+  #     @page_format.update(page_format_params)
+  #   } # defined in application_controller.rb
+  #
+  # @param mdl [ApplicationRecord]
+  # @param created_updated [Symbol] Either :created(Def) or :updated
+  # @return [void]
+  # @yield [] If given, this is called instead of simple @model.save
+  def def_respond_to_format(mdl, created_updated=:created)
+    ret_status, render_err =
+      case created_updated.to_sym
+      when :created
+        [:created, :new]
+      when :updated
+        [:ok, :edit]
+      else
+        raise 'Contact the code developer.'
+      end
+
+    respond_to do |format|
+      if (block_given? ? yield : mdl.save)
+        msg = sprintf '%s was successfully %s.', mdl.class.name, created_updated.to_s  # e.g., Article was successfully created.
+        format.html { redirect_to mdl, success: msg } # "success" defined in /app/controllers/application_controller.rb
+        format.json { render :show, status: ret_status, location: mdl }
+      else
+        format.html { render render_err,       status: :unprocessable_entity }
+        format.json { render json: mdl.errors, status: :unprocessable_entity }
+      end
+    end
+  end
+
   # Retunrs a hash where boolean (and nil) values in the specified keys are converetd from String to true/false/nil
   #
   # Note so far this handles only a 1-layer Hash.

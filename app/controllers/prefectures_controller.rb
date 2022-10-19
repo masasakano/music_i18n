@@ -26,30 +26,15 @@ class PrefecturesController < ApplicationController
   # POST /prefectures.json
   def create
     @prefecture = Prefecture.new(prefecture_params)
-
-    respond_to do |format|
-      if @prefecture.save
-        format.html { redirect_to @prefecture, notice: 'Prefecture was successfully created.' }
-        format.json { render :show, status: :created, location: @prefecture }
-      else
-        format.html { render :new }
-        format.json { render json: @prefecture.errors, status: :unprocessable_entity }
-      end
-    end
+    def_respond_to_format(@prefecture)  # defined in application_controller.rb
   end
 
   # PATCH/PUT /prefectures/1
   # PATCH/PUT /prefectures/1.json
   def update
-    respond_to do |format|
-      if @prefecture.update(prefecture_params)
-        format.html { redirect_to @prefecture, notice: 'Prefecture was successfully updated.' }
-        format.json { render :show, status: :ok, location: @prefecture }
-      else
-        format.html { render :edit }
-        format.json { render json: @prefecture.errors, status: :unprocessable_entity }
-      end
-    end
+    def_respond_to_format(@prefecture, :updated){ 
+      @prefecture.update(prefecture_params)
+    } # defined in application_controller.rb
   end
 
   # DELETE /prefectures/1

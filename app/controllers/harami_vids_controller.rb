@@ -34,29 +34,15 @@ class HaramiVidsController < ApplicationController
   def create
     @harami_vid = HaramiVid.new(harami_vid_params)
 
-    respond_to do |format|
-      if @harami_vid.save
-        format.html { redirect_to @harami_vid, notice: 'Harami vid was successfully created.' }
-        format.json { render :show, status: :created, location: @harami_vid }
-      else
-        format.html { render :new }
-        format.json { render json: @harami_vid.errors, status: :unprocessable_entity }
-      end
-    end
+    def_respond_to_format(@harami_vid)      # defined in application_controller.rb
   end
 
   # PATCH/PUT /harami_vids/1
   # PATCH/PUT /harami_vids/1.json
   def update
-    respond_to do |format|
-      if @harami_vid.update(harami_vid_params)
-        format.html { redirect_to @harami_vid, notice: 'Harami vid was successfully updated.' }
-        format.json { render :show, status: :ok, location: @harami_vid }
-      else
-        format.html { render :edit }
-        format.json { render json: @harami_vid.errors, status: :unprocessable_entity }
-      end
-    end
+    def_respond_to_format(@harami_vid, :updated){
+      @harami_vid.update(harami_vid_params)
+    } # defined in application_controller.rb
   end
 
   # DELETE /harami_vids/1

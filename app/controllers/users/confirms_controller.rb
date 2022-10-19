@@ -22,14 +22,14 @@ class Users::ConfirmsController < ApplicationController
     if @user.save
       logger.info "(#{self.class}) User ID=#{@user.id} (#{@user.display_name}) was successfully confirmed (requested by User-ID=#{current_user.id})."
       if current_user && current_user.moderator?  # redundant because it is controlled in /app/models/ability.rb
-        redirect_to users_path, notice: "User (#{@user.display_name}) was successfully confirmed."
+        redirect_to users_path, success: "User (#{@user.display_name}) was successfully confirmed."
         ## NOTE: Without format.html{}, it would result in ActionController::UnknownFormat ??
       else
-        redirect_to root_path, notice: "User account was successfully confirmed."
+        redirect_to root_path, success: "User account was successfully confirmed."
       end
     else
       logger.error "(#{self.class}) FAIL in confirm-ing a user (#{@user.display_name}; ID=#{@user.id})): Messages: "+@user.errors.full_messages.inspect
-      redirect_to root_path, notice: "Failed in confirming (#{@user.display_name}) for an unknown reason."
+      redirect_to root_path, alert: "Failed in confirming (#{@user.display_name}) for an unknown reason."
     end
   end
 

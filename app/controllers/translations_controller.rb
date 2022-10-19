@@ -34,17 +34,9 @@ class TranslationsController < ApplicationController
     @translation = Translation.new hsparam
     # @translation = Translation.new(translation_params)
 
-    respond_to do |format|
-      if @translation.save
-        format.html { redirect_to @translation, notice: 'Translation was successfully created.' }
-        # format.html { redirect_back fallback_location: translations_url, notice: 'Translation was successfully created.' }
-        #### This is wrong because in this case it goes back to "new" page with the original parameters.
-        format.json { render :show, status: :created, location: @translation }
-      else
-        format.html { render :new, status: :unprocessable_entity }
-        format.json { render json: @translation.errors, status: :unprocessable_entity }
-      end
-    end
+    def_respond_to_format(@translation)  # defined in application_controller.rb
+    #    # format.html { redirect_back fallback_location: translations_url, success: 'Translation was successfully created.' }
+    #    #### This is wrong because in this case it goes back to "new" page with the original parameters.
   end
 
   # PATCH/PUT /translations/1
@@ -55,8 +47,8 @@ class TranslationsController < ApplicationController
 
     respond_to do |format|
       if @translation.update(hsparam)
-        ########################## redirect_back???
-        format.html { redirect_to @translation, notice: 'Translation was successfully updated.' }
+        ########################## redirect_back???  # So far, the following is the same as def_respond_to_format() in application_controller.rb
+        format.html { redirect_to @translation, success: 'Translation was successfully updated.' }
         format.json { render :show, status: :ok, location: @translation }
       else
         format.html { render :edit, status: :unprocessable_entity }

@@ -26,30 +26,15 @@ class GenresController < ApplicationController
   # POST /genres.json
   def create
     @genre = Genre.new(genre_params)
-
-    respond_to do |format|
-      if @genre.save
-        format.html { redirect_to @genre, notice: 'Genre was successfully created.' }
-        format.json { render :show, status: :created, location: @genre }
-      else
-        format.html { render :new }
-        format.json { render json: @genre.errors, status: :unprocessable_entity }
-      end
-    end
+    def_respond_to_format(@genre)  # defined in application_controller.rb
   end
 
   # PATCH/PUT /genres/1
   # PATCH/PUT /genres/1.json
   def update
-    respond_to do |format|
-      if @genre.update(genre_params)
-        format.html { redirect_to @genre, notice: 'Genre was successfully updated.' }
-        format.json { render :show, status: :ok, location: @genre }
-      else
-        format.html { render :edit }
-        format.json { render json: @genre.errors, status: :unprocessable_entity }
-      end
-    end
+    def_respond_to_format(@genre, :updated){
+      @genre.update(genre_params)
+    } # defined in application_controller.rb
   end
 
   # DELETE /genres/1

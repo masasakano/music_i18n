@@ -151,16 +151,16 @@ class Users::DeactivateUsersController < ApplicationController
         if @user.save
           logger.info "User ID=#{@user.id} (#{orgname}) was successfully deactivated (Now, Display_name=#{@user.display_name})."
           if current_user && current_user.sysadmin?
-            format.html {redirect_to users_path, notice: "User (#{orgname}) was successfully deactivated (Now, Display_name=#{@user.display_name})."}
+            format.html {redirect_to users_path, success: "User (#{orgname}) was successfully deactivated (Now, Display_name=#{@user.display_name})."}
             ## NOTE: Without format.html{}, it would result in ActionController::UnknownFormat
           else
-            redirect_to root_path, notice: "User account was successfully cancelled."
+            redirect_to root_path, success: "User account was successfully cancelled."
           end
           #format.json { render :show, status: :ok, location: @user }
 
         else
           logger.error "FAIL in save (to deactivate a user (#{orgname}; ID=#{@user.id})): Messages: "+@user.errors.full_messages.inspect
-          format.html { render :edit, notice: "Failed in processing (#{orgname}) for an unknown reason." }
+          format.html { render :edit, alert: "Failed in processing (#{orgname}) for an unknown reason." }
           format.json { render json: @user.errors, status: :unprocessable_entity }
         end
       end
@@ -174,7 +174,7 @@ class Users::DeactivateUsersController < ApplicationController
       # @user.anonymize_all_my_trans! if @user.has_undestroyable_children?  # Redundant
       @user.destroy
       respond_to do |format|
-        format.html { redirect_to users_path, notice: "User (#{orgname}) was successfully removed from the DB." }
+        format.html { redirect_to users_path, success: "User (#{orgname}) was successfully removed from the DB." }
         #format.json { head :no_content }
       end
     end
