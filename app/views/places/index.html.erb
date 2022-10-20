@@ -34,7 +34,14 @@
         <td><%= place.note %></td>
         <td><%= link_to 'Show', place %></td>
         <td><%= link_to 'Edit', edit_place_path(place) %></td>
-        <td><%= link_to 'Destroy', place, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+        <td><% if place.has_children? %>
+          <span class="text_thinner1"><%= 'Destroy' %></span>
+          <% elsif place.unknown? %>
+          <span class="text_thinner2"><%= 'Destroy' %></span>
+          <% else %>
+          <%= link_to 'Destroy', place, method: :delete, data: { confirm: 'Are you sure?' } %>
+          <% end %>
+          </td>
       </tr>
     <% end %>
   </tbody>

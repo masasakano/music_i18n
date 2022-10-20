@@ -45,6 +45,21 @@ class Place < BaseWithTranslation
     (hash.keys.include? key.to_s) ? hash[key.to_s] : nil  # Symbol keys (langcode) are acceptable.
   end
 
+  # Returns String names of the classes of instances that depend on this instance.
+  #
+  # @return [Array<String>]
+  def children_class_names
+    %i(harami_vids artists musics).map{ |eam|
+      send(eam).empty? ? nil : eam.to_s.classify
+    }.compact
+  end
+
+  # Returns true if this has any dependent child instances
+  #
+  def has_children?
+    !children_class_names.empty?
+  end
+
   # Information of "(Prefecture < Country-Code)" is added.
   # @return [String]
   def inspect

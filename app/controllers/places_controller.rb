@@ -51,21 +51,23 @@ class PlacesController < ApplicationController
     def_respond_to_format(@place, :updated){
       @place.update(place_params)
     } # defined in application_controller.rb
-    #respond_to do |format|
-    #  if @place.update(place_params)
-    #    format.html { redirect_to @place, notice: 'Place was successfully updated.' }
-    #    format.json { render :show, status: :ok, location: @place }
-    #  else
-    #    format.html { render :edit, status: :unprocessable_entity }
-    #    format.json { render json: @place.errors, status: :unprocessable_entity }
-    #  end
-    #end
   end
 
   # DELETE /places/1
   # DELETE /places/1.json
   def destroy
-    @place.destroy
+    if !(s=@place.children_class_names).empty?
+      return _respond_destroy_fail("Cannot destroy Place because it has one or more dependent children of "+s.join(" and "))
+    end
+
+    begin
+      @place.destroy
+    rescue ActiveRecord::InvalidForeignKey => err
+      # This should not happen...
+      logger.error sprintf("(DELETE Place: %s) Place(ID=%d, title_or_alt=%s) has uncaught dependent children: error-message=%s", err.class.name, @place.id, @place.title_or_alt.inspect, err.message)
+      return _respond_destroy_fail("Cannot destroy Place because it seems to have one or more dependent children.")
+    end
+
     respond_to do |format|
       format.html { redirect_to places_url, notice: 'Place was successfully destroyed.' }
       format.json { head :no_content }
@@ -89,5 +91,19 @@ class PlacesController < ApplicationController
     # Only allow a list of trusted parameters through.
     def place_params
       params.require(:place).permit(:prefecture_id, :note)  # adding "prefecture.country_id" would cause <400: Bad Request>
+    end
+
+    def _respond_destroy_fail(msg)
+      respond_to do |format|
+        case request.path  # Go back to the original page...
+        when edit_place_path(@place.id)
+          format.html { render :edit, status: :unprocessable_entity, alert: msg }
+        when      place_path(@place.id)
+          format.html { render :show, status: :unprocessable_entity, alert: msg }
+        else
+          format.html { redirect_to places_url, alert: msg }
+        end
+        format.json { render json: mdl.errors, status: :unprocessable_entity }
+      end
     end
 end

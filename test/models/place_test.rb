@@ -182,5 +182,14 @@ class PlaceTest < ActiveSupport::TestCase
     assert_not unk_japan.not_disagree?(perth_aus)
   end
 
+  test "dependent children" do
+    tocho = places(:tocho)
+    assert_equal %w(HaramiVid), tocho.children_class_names.sort
+    assert tocho.has_children?
+
+    perth_aus = places(:perth_aus)
+    assert_empty perth_aus.children_class_names.sort
+    assert_not   perth_aus.has_children?
+  end
 end
 

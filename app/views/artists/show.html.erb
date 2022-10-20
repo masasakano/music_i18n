@@ -93,3 +93,53 @@
 </p>
 <% end %>
 <hr>
+
+<h3>Harami Vids for Artist <%= @artist.title_or_alt %></h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Title</th>
+      <% if can? :update, HaramiVid %>
+        <th colspan="2">Action</th>
+      <% else %>
+        <th>Action</th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @artist.harami_vids.order(:release_date).uniq.each do |harami_vid| %>
+      <tr>
+        <td><%= harami_vid.release_date %></td>
+        <td><%= link_to(harami_vid.title(langcode: 'ja'), harami_vid) %></td>
+        <td><%= link_to 'Show', harami_vid %></td>
+        <% if can? :update, harami_vid %>
+        <td>
+          <%= link_to 'Edit', edit_harami_vid_path(harami_vid) %>
+        </td>
+        <% end %>
+<% if false %>
+        <% if can? :update, harami_vid %>
+          <td><%= 'Show' %></td>
+          <td>
+          <% if current_user && current_user.editor? %>
+            <%= link_to 'Edit', edit_harami_vid_music_assoc_path(assoc) %>
+          <% end %>
+          </td>
+        <% end %>
+<% end %>
+      </tr>
+    <% end %>
+<% if false %>
+    <% if defined?(add_buttons) && add_buttons %>
+      <tr><td colspan="7">
+      <%= button_to 'HaramiVid追加', harami_vids_path, method: :get, params: { a_token: nil, artist_id: @artist.id } %>
+      </td></tr>
+    <% end %>
+<% end %>
+
+  </tbody>
+</table>
+

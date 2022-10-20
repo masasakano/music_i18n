@@ -60,4 +60,55 @@ class PlacesIntegrationTest < ActionDispatch::IntegrationTest
     # csssel = css_select('p.alert-success')
     assert_select ".alert-success", {count: 1, text: "Place was successfully created."}, "Wrong flash message or 0 or more than 1 flash-success"
   end
+
+  test "can edit" do
+    hs2pass = {
+      "langcode"=>"en",
+      "title"=>"The Tｅst",
+      "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
+      "prefecture.country_id"=>Country['JPN'].id.to_s,
+      "prefecture"=>prefectures(:kagawa).id.to_s,
+      "note"=>"test-create-place",
+    }
+
+    tocho = places(:tocho)
+
+    sign_in( users(:user_editor_general_ja) )
+    get edit_place_url(tocho)
+    assert_response :success
+    assert_equal 'Japan', css_select('select[id="place_prefecture.country_id"] option[selected=selected]').text
+    assert_equal 'Tôkyô', css_select('select#place_prefecture option[selected=selected]').text
+  end
+
+  test "can update" do
+    hs2pass = {
+      #"prefecture.country_id"=>Country['JPN'].id.to_s,
+      "prefecture"=>prefectures(:kagawa).id.to_s,
+      "note"=>"test-create-place",
+    }
+    note2 = 'Edited new place note'
+    tocho = places(:tocho)
+    tocho_id   = tocho.id
+    pref_orig = tocho.prefecture
+
+    sign_in( users(:user_editor_general_ja) )
+    get edit_place_url(tocho)
+    assert_difference('Place.count', 0) do
+      patch place_url(tocho), params: { place: { note: note2, prefecture_id: prefectures(:kagawa).id.to_s } }
+    end
+    assert_response :redirect
+    assert_redirected_to place_url(tocho)
+
+    follow_redirect!
+    assert_response :success
+    # csssel = css_select('p.alert-success')
+    assert_select ".alert-success", {count: 1, text: "Place was successfully updated."}, "Wrong flash message or 0 or more than 1 flash-success"
+
+    tocho.reload
+    assert_equal tocho_id, tocho.id
+    assert_not_equal pref_orig,        tocho.prefecture
+    assert_equal prefectures(:kagawa), tocho.prefecture
+    assert_equal note2, tocho.note
+  end
+
 end

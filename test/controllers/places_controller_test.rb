@@ -40,10 +40,11 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  #test "should get new" do
-  #  get new_place_url
-  #  assert_response :success
-  #end
+  test "should fail to get new if not logged in" do
+    get new_place_url
+    assert_response :redirect
+    assert_redirected_to new_user_session_path
+  end
 
   test "should NOT create if not privileged" do
     hs2pass = {
@@ -121,16 +122,52 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  #test "should update place" do
-  #  patch place_url(@place), params: { place: { note: @place.note, prefecture_id: @place.prefecture_id } }
-  #  assert_redirected_to place_url(@place)
-  #end
+  test "should update place" do
+    updated_at_orig = @place.updated_at
+    pref_orig = @place.prefecture
+    note2 = 'Edited new place note'
+    patch place_url(@place), params: { place: { note: note2, prefecture_id: prefectures(:kagawa).id.to_s } }
 
-  #test "should destroy place" do
-  #  assert_difference('Place.count', -1) do
-  #    delete place_url(@place)
-  #  end
+    assert_response :redirect
+    assert_redirected_to new_user_session_path
 
-  #  assert_redirected_to places_url
-  #end
+    sign_in @editor
+    patch place_url(@place), params: { place: { note: note2, prefecture_id: prefectures(:kagawa).id.to_s } }
+    assert_response :redirect
+    assert_redirected_to place_url(@place)
+
+    @place.reload
+    assert_operator updated_at_orig, :<, @place.updated_at
+    assert_equal note2, @place.note
+    assert_not_equal pref_orig, @place.prefecture
+    assert_equal prefectures(:kagawa), @place.prefecture
+  end
+
+  test "should fail/succeed to destroy place" do
+    # Fail: No privilege
+    assert_difference('Place.count', 0) do
+      delete place_url(@place)
+      assert_response :redirect
+      assert_redirected_to new_user_session_path
+    end
+
+    # Fail: Cannot destroy Place because it has one or more dependent children of HaramiVid
+    assert_difference('Place.count', 0) do
+      sign_in @editor
+      delete place_url(@place)
+      assert_response :redirect
+      assert_redirected_to places_path  # Because no current page is given.
+      #assert_response :unprocessable_entity
+    end
+
+    # Success: Successful deletion
+    perth_aus = places(:perth_aus)
+    assert_difference('Place.count', -1) do
+      delete place_url(perth_aus)
+    end
+
+    assert_response :redirect
+    assert_redirected_to places_url
+    assert_raises(ActiveRecord::RecordNotFound){ perth_aus.reload }
+  end
 end

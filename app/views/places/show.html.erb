@@ -25,3 +25,156 @@
 
 <%= link_to 'Edit', edit_place_path(@place) %> |
 <%= link_to 'Back', places_path %>
+
+<hr>
+
+<h3>Artists at Place: <%= @place.title_or_alt %></h3>
+
+<table>
+  <thead>
+    <tr>
+      <th title="'*' indicates the original name">和名</th>
+      <th>別名</th>
+      <th title="'*' indicates the original name">英語名</th>
+      <th title="Birthday of the artist (person or group)">誕生日</th>
+      <% if can? :update, Sex %>
+        <th><%= link_to '性別', sexes_url %></th>
+      <% else %>
+        <th>性別</th>
+      <% end %>
+      <th>Note</th>
+      <% if can? :update, Artist %>
+        <th colspan="2" title="Show/Edit Artist">Action</th>
+      <% else %>
+        <th title="Show Artist">Action</th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @place.artists.uniq.each do |artist| %>
+      <tr>
+        <% orig_lc = artist.orig_langcode %>
+        <td><%= (artist.title langcode: 'ja') || '' %><%= (orig_lc == 'ja') ? '*' : '' %></td>
+        <td><%= sprintf '%s [%s/%s]', *(%i(alt_title alt_ruby alt_romaji).map{|i| artist.send(i, langcode: 'ja') || ''}) %></td>
+        <td><%= tits = %i(title alt_title).map{|i| artist.send(i, langcode: 'en') || ''}; sprintf '%s%s [%s]', tits[0], ((orig_lc == 'en') ? '*' : ''), tits[2] %></td>
+        <td><%= sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
+                  i = artist.send m; (i.blank? ? '——' : i.to_s)}) %></td>
+        <td><%= artist.sex.title langcode: 'ja' %></td>
+        <td><%= artist.note %></td>
+        <td><%= link_to 'Show', artist %></td>
+        <% if can? :update, artist %>
+          <td><%= link_to 'Edit', edit_artist_path(artist) %></td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<% if false %>
+<% if can? :create, Artist %>
+  <%= button_to 'Artist追加', artists_path, method: :get, params: { a_token: nil, place_id: @place.id } %>
+<% end %>
+<% end %>
+
+
+<hr>
+
+<h3>Musics at Place <%= @place.title_or_alt %></h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>曲名</th>
+      <th>英語名</th>
+      <th>Year</th>
+      <th>Genre</th>
+      <th>Artist</th>
+      <th>Harami vids</th>
+      <th>Note</th>
+      <% if can? :edit, Music %>
+        <th colspan="2" title="Show/Edit Artist">Action</th>
+      <% else %>
+        <th title="Show Artist">Action</th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @place.musics.uniq.each do |music| %>
+      <tr>
+        <td><%= music.title_or_alt %></td>
+        <td><%= sprintf '%s [%s]', *(%i(title alt_title).map{|i| music.send(i, langcode: 'en') || ''}) %></td>
+        <td><%= music.year %></td>
+        <td><%= music.genre.title_or_alt(langcode: 'ja') %></td>
+        <td><%= music.engages.joins(:engage_how).order('engage_hows.weight').pluck(:artist_id).uniq.map{|i| art = Artist.find(i); sprintf '%s [%s]', link_to(art.title_or_alt, art), h(art.engage_how_titles(music).join(', '))}.join(', ').html_safe %></td>
+        <td><%= music.harami_vids.count.to_s+'回' %></td>
+        <td><%= music.note %></td>
+        <td><%= link_to 'Show', music %></td>
+        <% if can? :update, music %>
+          <td><%= link_to 'Edit', edit_music_path(music) %></td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+<% if false %>
+  <% if can? :create, Music %>
+    <% if defined?(add_buttons) && add_buttons %>
+      <tr><td colspan="7">
+      <%= button_to 'Music追加', musics_path, method: :get, params: { a_token: nil, place_id: @place.id } %>
+      </td></tr>
+    <% end %>
+  <% end %>
+<% end %>
+
+<hr>
+<h3>Harami Vids at Place <%= @place.title_or_alt %></h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Title</th>
+      <% if can? :update, HaramiVid %>
+        <th colspan="2">Action</th>
+      <% else %>
+        <th>Action</th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @place.harami_vids.order(:release_date).each do |harami_vid| %>
+      <tr>
+        <td><%= harami_vid.release_date %></td>
+        <td><%= link_to(harami_vid.title(langcode: 'ja'), harami_vid) %></td>
+        <td><%= link_to 'Show', harami_vid %></td>
+        <% if can? :update, harami_vid %>
+        <td>
+          <%= link_to 'Edit', edit_harami_vid_path(harami_vid) %>
+        </td>
+        <% end %>
+        <% if can? :update, harami_vid %>
+          <td><%= 'Show' %></td>
+          <td>
+<% if false %>
+          <% if current_user && current_user.editor? %>
+            <%= link_to 'Edit', edit_harami_vid_music_assoc_path(assoc) %>
+          <% end %>
+<% end %>
+          </td>
+        <% end %>
+      </tr>
+    <% end %>
+<% if false %>
+    <% if defined?(add_buttons) && add_buttons %>
+      <tr><td colspan="7">
+      <%= button_to 'HaramiVid追加', harami_vids_path, method: :get, params: { a_token: nil, place_id: @place.id } %>
+      </td></tr>
+    <% end %>
+<% end %>
+  </tbody>
+</table>
+
+
