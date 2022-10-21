@@ -10,8 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2022_09_20_235358) do
-
+ActiveRecord::Schema[7.0].define(version: 2022_09_20_235358) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -20,7 +19,7 @@ ActiveRecord::Schema.define(version: 2022_09_20_235358) do
     t.string "record_type", null: false
     t.bigint "record_id", null: false
     t.bigint "blob_id", null: false
-    t.datetime "created_at", null: false
+    t.datetime "created_at", precision: nil, null: false
     t.index ["blob_id"], name: "index_active_storage_attachments_on_blob_id"
     t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
   end
@@ -33,7 +32,7 @@ ActiveRecord::Schema.define(version: 2022_09_20_235358) do
     t.string "service_name", null: false
     t.bigint "byte_size", null: false
     t.string "checksum", null: false
-    t.datetime "created_at", null: false
+    t.datetime "created_at", precision: nil, null: false
     t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
   end
 
@@ -52,20 +51,20 @@ ActiveRecord::Schema.define(version: 2022_09_20_235358) do
     t.text "wiki_ja"
     t.text "wiki_en"
     t.text "note"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["birth_year", "birth_month", "birth_day"], name: "index_artists_birthdate"
     t.index ["place_id"], name: "index_artists_on_place_id"
     t.index ["sex_id"], name: "index_artists_on_sex_id"
-    t.check_constraint "(birth_day IS NULL) OR ((birth_day >= 1) AND (birth_day <= 31))", name: "check_artists_on_birth_day"
-    t.check_constraint "(birth_month IS NULL) OR ((birth_month >= 1) AND (birth_month <= 12))", name: "check_artists_on_birth_month"
-    t.check_constraint "(birth_year IS NULL) OR (birth_year > 0)", name: "check_artists_on_birth_year"
+    t.check_constraint "birth_day IS NULL OR birth_day >= 1 AND birth_day <= 31", name: "check_artists_on_birth_day"
+    t.check_constraint "birth_month IS NULL OR birth_month >= 1 AND birth_month <= 12", name: "check_artists_on_birth_month"
+    t.check_constraint "birth_year IS NULL OR birth_year > 0", name: "check_artists_on_birth_year"
   end
 
   create_table "countries", force: :cascade do |t|
     t.text "note"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.string "iso3166_a2_code", comment: "ISO-3166-1 Alpha 2 code, JIS X 0304"
     t.string "iso3166_a3_code", comment: "ISO-3166-1 Alpha 3 code, JIS X 0304"
     t.integer "iso3166_n3_code", comment: "ISO-3166-1 Numeric code, JIS X 0304"
@@ -99,8 +98,8 @@ ActiveRecord::Schema.define(version: 2022_09_20_235358) do
     t.date "start_date"
     t.date "end_date"
     t.text "note"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["iso3166_a2_code"], name: "index_country_masters_on_iso3166_a2_code", unique: true
     t.index ["iso3166_a3_code"], name: "index_country_masters_on_iso3166_a3_code", unique: true
     t.index ["iso3166_n3_code"], name: "index_country_masters_on_iso3166_n3_code", unique: true
@@ -108,8 +107,8 @@ ActiveRecord::Schema.define(version: 2022_09_20_235358) do
 
   create_table "engage_hows", force: :cascade do |t|
     t.text "note"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.float "weight", default: 999.0
   end
 
@@ -119,21 +118,21 @@ ActiveRecord::Schema.define(version: 2022_09_20_235358) do
     t.float "contribution"
     t.integer "year"
     t.text "note"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.bigint "engage_how_id", null: false
     t.index ["artist_id", "music_id", "engage_how_id", "year"], name: "index_engages_on_4_combinations", unique: true
     t.index ["artist_id"], name: "index_engages_on_artist_id"
     t.index ["engage_how_id"], name: "index_engages_on_engage_how_id"
     t.index ["music_id", "artist_id"], name: "index_engages_on_music_id_and_artist_id"
     t.index ["music_id"], name: "index_engages_on_music_id"
-    t.check_constraint "(year IS NULL) OR (year > 0)", name: "check_engages_on_year"
+    t.check_constraint "year IS NULL OR year > 0", name: "check_engages_on_year"
   end
 
   create_table "genres", force: :cascade do |t|
     t.text "note"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.float "weight", comment: "Smaller means higher in priority."
   end
 
@@ -150,17 +149,17 @@ ActiveRecord::Schema.define(version: 2022_09_20_235358) do
     t.string "ins_title"
     t.string "ins_link_root"
     t.integer "ins_link_time"
-    t.datetime "ins_at"
+    t.datetime "ins_at", precision: nil
     t.text "note"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.bigint "id_remote", comment: "Row number of the table on the remote URI"
-    t.datetime "last_downloaded_at", comment: "Last-checked/downloaded timestamp"
+    t.datetime "last_downloaded_at", precision: nil, comment: "Last-checked/downloaded timestamp"
     t.boolean "not_music", comment: "TRUE if not for music but announcement etc"
     t.bigint "harami_vid_id"
     t.bigint "engage_id"
-    t.datetime "orig_modified_at", comment: "Any downloaded column modified at"
-    t.datetime "checked_at", comment: "Insertion validity manually confirmed at"
+    t.datetime "orig_modified_at", precision: nil, comment: "Any downloaded column modified at"
+    t.datetime "checked_at", precision: nil, comment: "Insertion validity manually confirmed at"
     t.index ["checked_at"], name: "index_harami1129s_on_checked_at"
     t.index ["engage_id"], name: "index_harami1129s_on_engage_id"
     t.index ["harami_vid_id"], name: "index_harami1129s_on_harami_vid_id"
@@ -173,7 +172,7 @@ ActiveRecord::Schema.define(version: 2022_09_20_235358) do
     t.index ["orig_modified_at"], name: "index_harami1129s_on_orig_modified_at"
     t.index ["singer"], name: "index_harami1129s_on_singer"
     t.index ["song"], name: "index_harami1129s_on_song"
-    t.check_constraint "(id_remote IS NULL) OR (id_remote > 0)", name: "check_positive_id_remote_on_harami1129s"
+    t.check_constraint "id_remote IS NULL OR id_remote > 0", name: "check_positive_id_remote_on_harami1129s"
   end
 
   create_table "harami_vid_music_assocs", force: :cascade do |t|
@@ -183,8 +182,8 @@ ActiveRecord::Schema.define(version: 2022_09_20_235358) do
     t.float "completeness", comment: "The ratio of the completeness in duration of the played music"
     t.boolean "flag_collab", comment: "False if it is not a solo playing"
     t.text "note"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["harami_vid_id", "music_id"], name: "index_unique_harami_vid_music", unique: true
     t.index ["harami_vid_id"], name: "index_harami_vid_music_assocs_on_harami_vid_id"
     t.index ["music_id"], name: "index_harami_vid_music_assocs_on_music_id"
@@ -199,8 +198,8 @@ ActiveRecord::Schema.define(version: 2022_09_20_235358) do
     t.string "uri_playlist_ja", comment: "URI option part for the YouTube comment of the music list in Japanese"
     t.string "uri_playlist_en", comment: "URI option part for the YouTube comment of the music list in English"
     t.text "note"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["place_id"], name: "index_harami_vids_on_place_id"
     t.index ["release_date"], name: "index_harami_vids_on_release_date"
     t.index ["uri"], name: "index_harami_vids_on_uri", unique: true
@@ -211,34 +210,34 @@ ActiveRecord::Schema.define(version: 2022_09_20_235358) do
     t.bigint "place_id", null: false
     t.bigint "genre_id", null: false
     t.text "note"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["genre_id"], name: "index_musics_on_genre_id"
     t.index ["place_id"], name: "index_musics_on_place_id"
-    t.check_constraint "(year IS NULL) OR (year > 0)", name: "check_musics_on_year"
+    t.check_constraint "year IS NULL OR year > 0", name: "check_musics_on_year"
   end
 
   create_table "page_formats", comment: "Format of posts like StaticPage", force: :cascade do |t|
     t.string "mname", null: false, comment: "unique identifier"
     t.text "description"
     t.text "note"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["mname"], name: "index_page_formats_on_mname", unique: true
   end
 
   create_table "places", force: :cascade do |t|
     t.text "note"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.bigint "prefecture_id", null: false
     t.index ["prefecture_id"], name: "index_places_on_prefecture_id"
   end
 
   create_table "prefectures", force: :cascade do |t|
     t.text "note"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.bigint "country_id", null: false
     t.integer "iso3166_loc_code", comment: "ISO 3166-2:JP (etc) code (JIS X 0401:1973)"
     t.date "start_date"
@@ -254,8 +253,8 @@ ActiveRecord::Schema.define(version: 2022_09_20_235358) do
     t.boolean "source_is_case_sensitive", default: false, null: false, comment: "Is the source regex cas sensitive or not"
     t.string "destination", null: false
     t.boolean "active", default: false, comment: "Should this rule be applied or not"
-    t.datetime "created_at"
-    t.datetime "updated_at"
+    t.datetime "created_at", precision: nil
+    t.datetime "updated_at", precision: nil
     t.index ["active"], name: "index_redirect_rules_on_active"
     t.index ["source"], name: "index_redirect_rules_on_source"
     t.index ["source_is_case_sensitive"], name: "index_redirect_rules_on_source_is_case_sensitive"
@@ -268,8 +267,8 @@ ActiveRecord::Schema.define(version: 2022_09_20_235358) do
     t.string "environment_value", null: false, comment: "What to match the value of the specified environment attribute against"
     t.boolean "environment_value_is_regex", default: false, null: false, comment: "Is the value match a regex or not"
     t.boolean "environment_value_is_case_sensitive", default: true, null: false, comment: "is the value regex case sensitive or not"
-    t.datetime "created_at"
-    t.datetime "updated_at"
+    t.datetime "created_at", precision: nil
+    t.datetime "updated_at", precision: nil
     t.index ["redirect_rule_id"], name: "index_request_environment_rules_on_redirect_rule_id"
   end
 
@@ -277,8 +276,8 @@ ActiveRecord::Schema.define(version: 2022_09_20_235358) do
     t.string "mname", null: false
     t.text "note"
     t.bigint "superior_id"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["mname"], name: "index_role_categories_on_mname", unique: true
     t.index ["superior_id"], name: "index_role_categories_on_superior_id"
   end
@@ -288,8 +287,8 @@ ActiveRecord::Schema.define(version: 2022_09_20_235358) do
     t.bigint "role_category_id", null: false
     t.float "weight"
     t.text "note"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.string "uname", comment: "Unique role name"
     t.index ["name", "role_category_id"], name: "index_roles_on_name_and_role_category_id", unique: true
     t.index ["name"], name: "index_roles_on_name"
@@ -301,8 +300,8 @@ ActiveRecord::Schema.define(version: 2022_09_20_235358) do
   create_table "sexes", force: :cascade do |t|
     t.integer "iso5218", null: false
     t.text "note"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["iso5218"], name: "index_sexes_on_iso5218", unique: true
   end
 
@@ -313,8 +312,8 @@ ActiveRecord::Schema.define(version: 2022_09_20_235358) do
     t.text "summary"
     t.text "content"
     t.text "note", comment: "Remark for editors"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.bigint "page_format_id", null: false
     t.index ["langcode", "mname"], name: "index_static_pages_on_langcode_and_mname", unique: true
     t.index ["langcode", "title"], name: "index_static_pages_on_langcode_and_title", unique: true
@@ -336,8 +335,8 @@ ActiveRecord::Schema.define(version: 2022_09_20_235358) do
     t.bigint "create_user_id"
     t.bigint "update_user_id"
     t.text "note"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["create_user_id", "update_user_id"], name: "index_translations_on_create_user_id_and_update_user_id"
     t.index ["create_user_id"], name: "index_translations_on_create_user_id"
     t.index ["translatable_id", "translatable_type", "langcode", "title", "alt_title", "ruby", "alt_ruby", "romaji", "alt_romaji"], name: "index_translations_on_9_cols", unique: true
@@ -348,8 +347,8 @@ ActiveRecord::Schema.define(version: 2022_09_20_235358) do
   create_table "user_role_assocs", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.bigint "role_id", null: false
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["role_id"], name: "index_user_role_assocs_on_role_id"
     t.index ["user_id", "role_id"], name: "index_user_role_assocs_on_user_id_and_role_id", unique: true
     t.index ["user_id"], name: "index_user_role_assocs_on_user_id"
@@ -359,19 +358,19 @@ ActiveRecord::Schema.define(version: 2022_09_20_235358) do
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
     t.string "reset_password_token"
-    t.datetime "reset_password_sent_at"
-    t.datetime "remember_created_at"
+    t.datetime "reset_password_sent_at", precision: nil
+    t.datetime "remember_created_at", precision: nil
     t.integer "sign_in_count", default: 0, null: false
-    t.datetime "current_sign_in_at"
-    t.datetime "last_sign_in_at"
+    t.datetime "current_sign_in_at", precision: nil
+    t.datetime "last_sign_in_at", precision: nil
     t.inet "current_sign_in_ip"
     t.inet "last_sign_in_ip"
     t.string "confirmation_token"
-    t.datetime "confirmed_at"
-    t.datetime "confirmation_sent_at"
+    t.datetime "confirmed_at", precision: nil
+    t.datetime "confirmation_sent_at", precision: nil
     t.string "unconfirmed_email"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.string "display_name", default: "", null: false
     t.string "ext_account_name"
     t.string "ext_uid"
@@ -388,7 +387,7 @@ ActiveRecord::Schema.define(version: 2022_09_20_235358) do
     t.string "event", null: false
     t.string "whodunnit"
     t.text "object"
-    t.datetime "created_at"
+    t.datetime "created_at", precision: nil
     t.text "object_changes"
     t.text "commit_message", comment: "user-added meta data"
     t.index ["item_type", "item_id"], name: "index_versions_on_item_type_and_item_id"
