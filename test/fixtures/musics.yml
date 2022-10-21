@@ -33,6 +33,12 @@ music2:
   genre: genre_classic
   note: Music2
 
+music3:
+  year: 1
+  place: unknown_place_unknown_prefecture_uk
+  genre: genre_classic
+  note: Music3
+
 music99:
   year: 99
   place: unknown_place_unknown_prefecture_uk

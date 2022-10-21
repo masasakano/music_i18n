@@ -43,6 +43,22 @@ engage2:
   year: 
   note: MyText
 
+engage3_3:
+  music: music3
+  artist: artist3
+  engage_how: engage_how_2
+  contribution: 0.5
+  year: 
+  note: Engage3-Music3-Artist3-EngageHow2
+
+engage3_4:
+  music: music3
+  artist: artist4
+  engage_how: engage_how_2
+  contribution: 1.5
+  year: 
+  note: Engage3-Music3-Artist4-EngageHow2
+
 engage_ai_story:
   music: music_story
   artist: artist_ai

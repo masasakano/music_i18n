@@ -102,5 +102,36 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1950,        @artist.birth_year
   end
 
+  test "should destroy artist if privileged" do
+    artist3 = artists(:artist3)
+
+    # Fail: No privilege
+    assert_difference('Artist.count', 0) do
+      delete artist_url(artist3)
+      assert_response :redirect
+      assert_redirected_to new_user_session_path
+    end
+
+    sign_in @editor
+
+    # Success: Successful deletion
+    assert_difference('Artist.count', -1) do
+      assert_difference('Translation.count', -1) do
+        assert_difference('HaramiVidMusicAssoc.count', 0) do
+          assert_difference('Engage.count', -1) do
+            assert_difference('Music.count', 0) do
+              assert_difference('Place.count', 0) do
+                delete artist_url(artist3)
+              end
+            end
+          end
+        end
+      end
+    end
+
+    assert_response :redirect
+    assert_redirected_to artists_url
+    assert_raises(ActiveRecord::RecordNotFound){ artist3.reload }
+  end
 end
 

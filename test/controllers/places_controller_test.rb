@@ -152,18 +152,22 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
     end
 
     # Fail: Cannot destroy Place because it has one or more dependent children of HaramiVid
+    sign_in @editor
     assert_difference('Place.count', 0) do
-      sign_in @editor
-      delete place_url(@place)
-      assert_response :redirect
-      assert_redirected_to places_path  # Because no current page is given.
-      #assert_response :unprocessable_entity
+      assert_difference('Translation.count', 0) do
+        delete place_url(@place)
+        #assert_response :unprocessable_entity
+        assert_response :redirect
+        assert_redirected_to places_path  # Because no current page is given.
+      end
     end
 
     # Success: Successful deletion
     perth_aus = places(:perth_aus)
     assert_difference('Place.count', -1) do
-      delete place_url(perth_aus)
+      assert_difference('Translation.count', -1) do
+        delete place_url(perth_aus)
+      end
     end
 
     assert_response :redirect

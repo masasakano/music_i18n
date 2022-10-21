@@ -6,6 +6,7 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @harami_vid = harami_vids(:harami_vid1)
+    @editor = roles(:general_ja_editor).users.first  # Editor can manage.
   end
 
   teardown do
@@ -49,11 +50,24 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_user_session_path
   end
 
-  test "should fail to destroy harami_vid" do
+  test "should destroy harami_vid if privileged" do
     assert_no_difference('HaramiVid.count') do
       delete harami_vid_url(@harami_vid)
+      assert_response :redirect
     end
     assert_redirected_to new_user_session_path
+
+    sign_in @editor
+    assert_difference('HaramiVid.count', -1) do
+      assert_difference('HaramiVidMusicAssoc.count', -1) do
+        assert_difference('Music.count', 0) do
+          assert_difference('Place.count', 0) do
+            delete harami_vid_url(@harami_vid)
+          end
+        end
+      end
+    end
   end
+
 end
 

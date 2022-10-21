@@ -45,6 +45,16 @@ harami_vid2:
   uri_playlist_en: MyString
   note: HaramiVid2
 
+harami_vid3:
+  release_date: 2020-10-31
+  duration: 180.0
+  uri: youtu.be/harami_vid3
+  place: place_harami_vid3
+  flag_by_harami: true
+  uri_playlist_ja: 
+  uri_playlist_en: 
+  note: HaramiVid3
+
 harami_vid_50anni:
   release_date: 
   duration: 

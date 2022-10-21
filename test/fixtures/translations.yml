@@ -541,6 +541,22 @@ tocho_ja:
   update_user_id: 1
   note: TochoJa
 
+place_harami_vid3_ja:
+  translatable: place_harami_vid3
+  translatable_type: Place
+  langcode: ja
+  title: ハラミVid3Place
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: PlaceHaramiVid3Ja
+
 shinagawa_station_ja:
   translatable: shinagawa_station
   translatable_type: Place
@@ -700,6 +716,22 @@ music2_en:
   create_user_id: 1
   update_user_id: 1
   note: Music2En
+
+music3_en:
+  translatable: music3
+  translatable_type: Music
+  langcode: en
+  title: Give Peace a Chance Music3
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: Music3En
 
 music_how_en:
   translatable: music_how
@@ -989,6 +1021,22 @@ harami_vid2_ja:
   create_user: user_two
   update_user: user_moderator
   note: HaramiVid2Ja
+
+harami_vid3_ja:
+  translatable: harami_vid3
+  translatable_type: HaramiVid
+  langcode: ja
+  title: ハラミのテストVideo 3
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user: user_two
+  update_user: user_moderator
+  note: HaramiVid3Ja
 
 harami_vid_50anni_ja:
   translatable: harami_vid_50anni

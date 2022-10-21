@@ -130,11 +130,35 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
   #  assert_response :success
   #end
 
-  #test "should destroy music" do
-  #  assert_difference('Music.count', -1) do
-  #    delete music_url(@music)
-  #  end
+  test "should destroy music if privileged" do
+    music3 = musics(:music3)
 
-  #  assert_redirected_to musics_url
-  #end
+    # Fail: No privilege
+    assert_difference('Music.count', 0) do
+      delete music_url(music3)
+      assert_response :redirect
+      assert_redirected_to new_user_session_path
+    end
+
+    sign_in @editor
+
+    # Success: Successful deletion
+    assert_difference('Music.count', -1) do
+      assert_difference('Translation.count', -1) do
+        assert_difference('HaramiVidMusicAssoc.count', -1) do
+          assert_difference('Engage.count', -2) do # engage3_3 and engage3_4 deleted
+            assert_difference('Artist.count', 0) do
+              assert_difference('Place.count', 0) do
+                delete music_url(music3)
+              end
+            end
+          end
+        end
+      end
+    end
+
+    assert_response :redirect
+    assert_redirected_to musics_url
+    assert_raises(ActiveRecord::RecordNotFound){ music3.reload }
+  end
 end

@@ -40,6 +40,14 @@ harami_vid_music_assoc2:
   flag_collab: false
   note: MyText
 
+harami_vid_music_assoc3:
+  harami_vid: harami_vid3
+  music: music3
+  timing: 
+  completeness: 0.5
+  flag_collab: false
+  note: HaramiVidMusicAssoc3
+
 harami_vid_music_50anni_story:
   harami_vid: harami_vid_50anni
   music: music_story

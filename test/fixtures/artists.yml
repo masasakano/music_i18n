@@ -56,6 +56,16 @@ artist3:
   wiki_en: 
   note: Artist-3-UnknownPlaceUnknownPrefectureJapan-Harami
 
+artist4:
+  sex_id: 9
+  place: unknown_place_unknown_prefecture_japan
+  birth_year: 
+  birth_month: 1
+  birth_day: 24
+  wiki_ja: ja.wikipedia.org/wiki/Artist4
+  wiki_en: 
+  note: Artist-4-UnknownPlaceUnknownPrefectureJapan-Harami
+
 artist99:
   sex_id: 9
   place: unknown_place_unknown_prefecture_uk

@@ -41,6 +41,10 @@ tocho:
   prefecture: tokyo
   note: MyTextTocho
 
+place_harami_vid3:
+  prefecture: tokyo
+  note: PlaceHaramiVid3
+
 shinagawa_station:
   prefecture: tokyo
   note: MyTextShinagawa
