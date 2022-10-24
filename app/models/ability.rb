@@ -139,6 +139,9 @@ class Ability
     if user.qualified_as? RoleCategory[RoleCategory::MNAME_ROOT]
       can :manage, StaticPage
       can :manage, CountryMaster
+      #can :manage_iso3166_jp, Prefecture  # redundant
+    else
+      cannot :manage_prefecture_jp, Prefecture
     end
   end
 end

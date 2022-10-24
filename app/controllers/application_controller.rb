@@ -83,9 +83,13 @@ class ApplicationController < ActionController::Base
   #
   # @param mdl [ApplicationRecord]
   # @param created_updated [Symbol] Either :created(Def) or :updated
+  # @param failed [Boolean] if true (Def: false), it has already failed.
+  # @param alert [String, NilClass] alert message if any
+  # @param warning [String, NilClass] warning message if any
+  # @param notice [String, NilClass] notice message if any
   # @return [void]
   # @yield [] If given, this is called instead of simple @model.save
-  def def_respond_to_format(mdl, created_updated=:created)
+  def def_respond_to_format(mdl, created_updated=:created, failed: false, alert: nil, **inopts)
     ret_status, render_err =
       case created_updated.to_sym
       when :created
@@ -97,15 +101,43 @@ class ApplicationController < ActionController::Base
       end
 
     respond_to do |format|
-      if (block_given? ? yield : mdl.save)
+      #if !failed && (block_given? ? yield : mdl.save)
+      result = (!failed && (block_given? ? yield : mdl.save))
+      inopts = inopts.map{|k,v| [k, (v.respond_to?(:call) ? v.call(mdl) : v)]}.to_h
+      alert = (alert.respond_to?(:call) ? alert.call(mdl) : alert)
+      if result
         msg = sprintf '%s was successfully %s.', mdl.class.name, created_updated.to_s  # e.g., Article was successfully created.
-        format.html { redirect_to mdl, success: msg } # "success" defined in /app/controllers/application_controller.rb
+        opts = { success: msg }.merge(inopts) # "success" defined in /app/controllers/application_controller.rb
+        opts[:alert]  = alert if alert
+        format.html { redirect_to mdl, **opts }
         format.json { render :show, status: ret_status, location: mdl }
       else
-        format.html { render render_err,       status: :unprocessable_entity }
-        format.json { render json: mdl.errors, status: :unprocessable_entity }
+        mdl.errors.add :base, alert  # alert is included in the instance
+        hsstatus = {status: :unprocessable_entity}
+        format.html { render render_err,       **(hsstatus.merge inopts) } # notice (and/or warning) is, if any, passed as an option.
+        format.json { render json: mdl.errors, **hsstatus }
       end
     end
+  end
+
+  # Returns a warning message, if there is difference between original and updated
+  #
+  # @param mdl [ApplicationRecord] a model instance
+  # @param created_updated [Symbol] Either :created(Def) or :updated
+  # @param excepts [Array] Symbols of the model attribute that are exempts of the warning
+  # @param extra_note [String, NilClass] e.g., " in Japan" (make sure it precedes with a space)
+  # @return [String, NilClass] nil if no differences are found.
+  def get_created_warning_msg(mdl, created_updated=:created, excepts: [], extra_note: "")
+    hsdiff = mdl.saved_changes.slice!(:updated_at, :excepts)
+    return if hsdiff.empty?
+    sprintf(
+      "Object %s for %s(ID=%s)%s. Make sure that is what you intended: %s",
+      created_updated.to_s,
+      mdl.class.name,
+      mdl.id.inspect,
+      extra_note.to_s,
+      hsdiff.inspect
+    )
   end
 
   # Retunrs a hash where boolean (and nil) values in the specified keys are converetd from String to true/false/nil
