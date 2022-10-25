@@ -1,6 +1,10 @@
 class PrefecturesController < ApplicationController
   before_action :set_prefecture, only: [:show, :edit, :update, :destroy]
+  before_action :set_cp_all, only: [:index, :new, :edit, :create, :update]
   load_and_authorize_resource
+
+  # String of the main parameters in the Form (except place-related)
+  MAIN_FORM_KEYS = %w(note)
 
   # GET /prefectures
   # GET /prefectures.json
@@ -27,8 +31,17 @@ class PrefecturesController < ApplicationController
   # POST /prefectures
   # POST /prefectures.json
   def create
-    @prefecture = Prefecture.new(prefecture_params)
-    def_respond_to_format(@prefecture)  # defined in application_controller.rb
+    params.permit!
+    params.require(:prefecture).permit(
+      :note,
+      :country, :country_id,  # **NOTE**: redundant...
+      *Translation::TRANSLATION_PARAM_KEYS)
+      # :langcode, :is_orig, :title, :ruby, :romaji, :alt_title, :alt_ruby, :alt_romaji,
+
+    hsmain = params[:prefecture].slice(*MAIN_FORM_KEYS)
+    @prefecture = Prefecture.new(**(hsmain.merge({country_id: params[:prefecture][:country_id].to_i})))
+    add_unsaved_trans_to_model(@prefecture) # defined in application_controller.rb
+    def_respond_to_format(@prefecture)      # defined in application_controller.rb
   end
 
   # PATCH/PUT /prefectures/1
@@ -54,6 +67,13 @@ class PrefecturesController < ApplicationController
     # Use callbacks to share common setup or constraints between actions.
     def set_prefecture
       @prefecture = Prefecture.find(params[:id])
+    end
+
+    # Use callbacks to set all for Countries
+    #
+    # Necessary for the candidates for HTML select (even for index and show in case of error)
+    def set_cp_all
+      @countries = Country.all
     end
 
     # Only allow a list of trusted parameters through.

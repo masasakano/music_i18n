@@ -146,7 +146,7 @@ class Country < BaseWithTranslation
     'ja' => '世界',
     'en' => 'World',
     'fr' => 'Monde',
-  }
+  }.with_indifferent_access
   UnknownCountry.default_proc = proc do |hash, key|
     (hash.keys.include? key.to_s) ? hash[key.to_s] : nil  # Symbol keys (langcode) are acceptable.
   end

@@ -40,7 +40,7 @@ class Place < BaseWithTranslation
     "ja" => 'どこかの場所',
     "en" => 'UnknownPlace',
     "fr" => 'PlaceInconnue',
-  }
+  }.with_indifferent_access
   UnknownPlace.default_proc = proc do |hash, key|
     (hash.keys.include? key.to_s) ? hash[key.to_s] : nil  # Symbol keys (langcode) are acceptable.
   end

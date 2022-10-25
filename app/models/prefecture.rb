@@ -43,7 +43,7 @@ class Prefecture < BaseWithTranslation
     'ja' => 'どこかの都道府県',
     'en' => 'UnknownPrefecture',
     'fr' => 'ComtéInconnu',
-  }
+  }.with_indifferent_access
   UnknownPrefecture.default_proc = proc do |hash, key|
     (hash.keys.include? key.to_s) ? hash[key.to_s] : nil  # Symbol keys (langcode) are acceptable.
   end
@@ -51,8 +51,12 @@ class Prefecture < BaseWithTranslation
   # Information of "(Country-Code)" is added.
   # @return [String]
   def inspect
-    s_country = country.iso3166_a3_code
-    s_country = country.title(langcode: 'en', lang_fallback: true) if s_country.blank?
+    if country
+      s_country = country.iso3166_a3_code
+      s_country = country.title(langcode: 'en', lang_fallback: true) if s_country.blank?
+    else
+      s_country = 'nil'
+    end
     super.sub(/, country_id: \d+/, '\0'+sprintf("(%s)", s_country))
   end
 
@@ -242,7 +246,7 @@ class Prefecture < BaseWithTranslation
   # Called by a validation in {Translation}
   #
   # In short, if {Translation#title} (or {Translation#alt_tiele} if title is nil)
-  # is not unique within the same 
+  # is not unique within the same country.
   #
   # Note: {Translation}.joins(:translatable) would lead to ActiveRecord::EagerLoadPolymorphicError
   #  as of Ruby 6.0.

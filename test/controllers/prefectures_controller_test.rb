@@ -1,6 +1,9 @@
+# coding: utf-8
 require 'test_helper'
+require_relative 'translation_common'
 
 class PrefecturesControllerTest < ActionDispatch::IntegrationTest
+  include ActionDispatch::IntegrationTest::TranslationCommon # from translation_common.rb
   # add this
   include Devise::Test::IntegrationHelpers
 
@@ -45,15 +48,71 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
     get new_prefecture_url
     assert_response :redirect
     assert_redirected_to new_user_session_path
+
+    sign_in @editor
+    get new_prefecture_url
+    assert_response :success
   end
 
-  #test "should create prefecture" do
-  #  assert_difference('Prefecture.count') do
-  #    post prefectures_url, params: { prefecture: { country_id: @prefecture.country_id, note: @prefecture.note } }
-  #  end
+  test "should create prefecture" do
+    note1 = "test-create-prefecture"
+    hs2pass = {
+      "langcode"=>"en",
+      "title"=>"The Tｅst",
+      "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
+      "country_id"=>countries(:uk).id.to_s,
+      "note"=>note1}
 
-  #  assert_redirected_to prefecture_url(Prefecture.last)
-  #end
+    assert_no_difference('Prefecture.count') do
+      #post prefectures_url, params: { prefecture: { country_id: Country['AUS'].id.to_s, note: note1 } }
+      post prefectures_url, params: { prefecture: hs2pass }
+      assert_response :redirect
+      assert_redirected_to new_user_session_path
+    end
+
+    sign_in @editor
+
+    # Creation success
+    assert_difference('Prefecture.count') do
+      post prefectures_url, params: { prefecture: hs2pass }
+      assert_response :redirect #, "message is : "+flash.inspect
+    end
+
+    pref = Prefecture.order(:created_at).last # Prefecture.last
+    assert_redirected_to prefecture_url(pref)
+    title_test = 'Test, The'
+    assert_equal title_test, pref.title
+    assert_equal 'en', pref.orig_langcode
+    assert pref.covered_by? countries(:uk)
+    assert_equal note1, pref.note
+
+    # Translation-related tests (duplication etc)
+    controller_trans_common(:prefecture, hs2pass)  # defined in translation_common.rb
+  end
+
+  test "should create prefecture with an existing name in a different country" do
+    note1 = "test-create-prefecture"
+    hs2pass = {
+      "langcode"=>"en",
+      "title"=>"The Tｅst",
+      "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
+      "country_id"=>countries(:uk).id.to_s,
+      "note"=>note1}
+
+    sign_in @editor
+
+    # Creation success for a Prefecture name that exists in a different country.
+    # Tokyo[title, alt_title]: (ja)["東京都", nil], (en)["Tokyo", "Tôkyô"]
+    assert_difference('Prefecture.count') do
+      assert_difference('Place.count') do
+        ntrans_unknown = Prefecture::UnknownPrefecture.size
+        assert_difference('Translation.count', 1+ntrans_unknown) do  # 4 = 1 Trans(En) and 3 UnknownPlace-s(En,Ja,Fr)
+          post prefectures_url, params: { prefecture: hs2pass.merge({"title" => prefectures(:tokyo).title(langcode: 'en')}) }
+          assert_response :redirect, sprintf("Expected response to be a <3XX: redirect>, but was <%s> with flash message: %s", response.code, flash.inspect)
+        end
+      end
+    end
+  end
 
   test "should show prefecture" do
     # show is NOT activated for non-logged-in user (or non-editor?).

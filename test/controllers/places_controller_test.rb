@@ -1,7 +1,9 @@
 # coding: utf-8
 require 'test_helper'
+require_relative 'translation_common'
 
 class PlacesControllerTest < ActionDispatch::IntegrationTest
+  include ActionDispatch::IntegrationTest::TranslationCommon # from translation_common.rb
   # add this
   include Devise::Test::IntegrationHelpers
 
@@ -61,43 +63,61 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should create" do
+    note1 = "test-create-place"
     hs2pass = {
       "langcode"=>"en",
       "title"=>"The Tｅst",
       "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
       "prefecture.country_id"=>Country['JPN'].id.to_s,
       "prefecture"=>prefectures(:kagawa).id.to_s,
-      "note"=>"test-create-place"}
+      "note"=>note1}
 
     sign_in @editor
 
     # Creation success
-    place = nil
     assert_difference('Place.count', 1) do
       post places_url, params: { place: hs2pass }
       assert_response :redirect #, "message is : "+flash.inspect
-      place = Place.order(:created_at).last
-      assert_redirected_to place_url(place)
     end
 
+    place = Place.order(:created_at).last
+    assert_redirected_to place_url(place)
     assert_equal 'Test, The', place.title
     assert_equal 'en', place.orig_langcode
     assert place.covered_by? Country['JPN']
     assert place.covered_by?(prefectures(:kagawa)), "place #{place.inspect} should be covered by #{prefectures(:kagawa).inspect}"
-    assert_equal "test-create-place", place.note
+    assert_equal note1, place.note
 
     # Creation fails because Prefecture is not specified.
     place = nil
     assert_difference('Place.count', 0) do
-      post places_url, params: { place: hs2pass.merge({"prefecture"=>""})}
+      post places_url, params: { place: hs2pass.merge({"title"=>"test2", "prefecture"=>""})}
       assert_response :unprocessable_entity #, "message is : "+flash.inspect
     end
 
-    # Creation fails because no Translation (or name) is specified.
-    place = nil
-    assert_difference('Place.count', 0) do
-      post places_url, params: { place: hs2pass.merge({"title"=>""})}
-      assert_response :unprocessable_entity #, "message is : "+flash.inspect
+    # Translation-related tests
+    controller_trans_common(:place, hs2pass)  # defined in translation_common.rb
+  end
+
+  test "should create with the same name if Country is different" do
+    note1 = "test-create-place"
+    hs2pass = {
+      "langcode"=>"en",
+      "title"=>"The Tｅst",
+      "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
+      "prefecture.country_id"=>Country['JPN'].id.to_s,
+      "prefecture"=>prefectures(:kagawa).id.to_s,
+      "note"=>note1}
+
+    sign_in @editor
+
+    # Creation success for a Place name that exists in a different country (or prefecture).
+    # Tokyo[title, alt_title]: (ja)["東京都", nil], (en)["Tokyo", "Tôkyô"]
+    assert_difference('Place.count') do
+      assert_difference('Translation.count') do
+        post places_url, params: { place: hs2pass.merge({"title" => places(:liverpool_street).title(langcode: 'en')}) }
+        assert_response :redirect, sprintf("Expected response to be a <3XX: redirect>, but was <%s> with flash message: %s", response.code, flash.inspect)
+      end
     end
   end
 

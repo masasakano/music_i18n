@@ -125,7 +125,42 @@ class PrefectureTest < ActiveSupport::TestCase
     assert_not_equal plau0, plauj
     assert_equal 0, plau0.best_translations['en'].weight
     assert_equal 0, plau0.best_translations['ja'].weight
+  end
 
+  test "translation at save" do
+    perth = "Perthshiretest"
+    hsprm = {
+      translatable_type: Prefecture.name,
+      langcode: 'en',
+      is_orig: true,
+      title: perth,
+    }
+
+    new1 = Prefecture.new(country: countries(:uk))
+    tra1 = Translation.preprocessed_new(**hsprm)
+    new1.unsaved_translations << tra1
+    assert new1.save, 'save with unsaved_translations should succeed, but.'
+    assert_equal perth, new1.title(langcode: 'en')
+
+    new2 = Prefecture.new(country: countries(:aus))
+    tra2 = Translation.preprocessed_new(**hsprm)
+    new2.unsaved_translations << tra2
+    assert new2.save, 'save with unsaved_translations should succeed, but.'
+    assert_equal perth, new2.title(langcode: 'en')
+
+    new3 = Prefecture.new(country: countries(:uk))
+    tra3 = Translation.preprocessed_new(**hsprm)
+    new3.unsaved_translations << tra3
+    refute new3.save, 'save with unsaved_translations should fail (same translation, same country, same language), but.'
+
+    new3.unsaved_translations.pop
+    tra4 = Translation.preprocessed_new(**(hsprm.merge({langcode: 'ja'})))
+    new3.unsaved_translations << tra4
+    assert new3.save, 'save with unsaved_translations should succeed (same translation, same country, but different language), but.'
+    assert_equal perth, new2.title
+  end
+
+  test "encompass? and covered_by?" do
     ## encompass? covered_by? ##########
     cnt_unk = Country.unknown
     jp_orig = countries(:japan)

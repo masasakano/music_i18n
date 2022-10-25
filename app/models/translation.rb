@@ -107,6 +107,9 @@ class Translation < ApplicationRecord
   # Column names (Symbols) of the translation String
   TRANSLATED_KEYS = %i(title alt_title ruby alt_ruby romaji alt_romaji)
 
+  # Column names (Symbols) of the translation String
+  TRANSLATION_PARAM_KEYS = %i(langcode is_orig) + TRANSLATED_KEYS
+
   # Match method lists. Usually examined in this order.
   # For example, if there is an exact match, :exact.
   # Note the DB converts "The Beatles" into "Beatles, The" when save.
@@ -370,7 +373,7 @@ class Translation < ApplicationRecord
   def self.preprocessed_6params_both(*args, article_to_tail: nil, **opts)
     ar = 
       if args.size == 1 && args[0].respond_to?(:each_pair)
-        [preprocessed_6params(article_to_tail, article_to_tail, **(args[0]))]
+        [preprocessed_6params(article_to_tail, **(args[0]))]
       else
         args
       end

@@ -34,8 +34,9 @@ class PlacesController < ApplicationController
     #hsprm = params.require(:place).permit(
     params.require(:place).permit(
       :note,
-      :langcode, :is_orig, :title, :ruby, :romaji, :alt_title, :alt_ruby, :alt_romaji,
-      :"prefecture.country_id", :prefecture, :prefecture_id )  # **NOTE**: redundant...
+      :"prefecture.country_id", :prefecture, :prefecture_id,  # **NOTE**: redundant...
+      *Translation::TRANSLATION_PARAM_KEYS)
+      # :langcode, :is_orig, :title, :ruby, :romaji, :alt_title, :alt_ruby, :alt_romaji,
 
     hsmain = params[:place].slice(*MAIN_FORM_KEYS)
     # pref = (pref_id_str.blank? ? nil : Prefecture.find(params[:place][:prefecture].to_i))
@@ -82,7 +83,7 @@ class PlacesController < ApplicationController
 
     # Use callbacks to set all for Country and Prefecture
     #
-    # Necessary for the candidates for HTML select (even for create and update in case of error)
+    # Necessary for the candidates for HTML select (even for index and show in case of error)
     def set_cp_all
       @countries = Country.all
       @prefectures = Prefecture.all
