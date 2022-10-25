@@ -88,6 +88,42 @@ class PrefectureTest < ActiveSupport::TestCase
     assert_raises(ActiveRecord::RecordInvalid,
                  "French translated title for Japan exists and hence it should not be allowed") {
       p p22.with_translation(title: '江戸城下', langcode: 'ko') }
+
+    ## Test of destroy
+    newp.reload
+    newp_id = newp.id
+    assert_equal 1, newp.places.size, 'Sanity check'
+    pla = Place.create!(prefecture_id: newp.id, note: 'Test new place')
+    pla_id = pla.id
+    assert           newp.places[0].unknown?, "Sanity check - it should be unknown: #{newp.places[0].inspect}"  # NOTE: if this sentence was placed 3 lines above, the following "assert_equal 2" would fail, perhaps because of the caching mechanism...
+    pla_unknown_id = newp.places[0].id
+    assert_equal 2, newp.places.size, "Sanity check: newp=#{newp.inspect}; pla=#{pla.inspect}"
+    assert_raises(ActiveRecord::RecordNotDestroyed, "Should not be destoryed because significant child Places exist."){
+      newp.destroy! }
+    refute newp.destroy
+    assert_match(/\bchild Places?\b/i, newp.errors[:base][0]) # "Destroy failed. Prefecture has significant non-unknown child Places. Delete them first."
+
+    newp.force_destroy = true
+    assert newp.destroy, "Should be successfully destoryed because #force_destroy==true"
+    refute Prefecture.exists? newp_id
+    #refute Place.exists? pla_unknown_id
+    refute Place.exists? pla_id
+
+    ## Test of destroy (if a significant place is gone (destroyed), Prefecture can be destroyed)
+    #new2 = newp.dup  # id is not copied (Rails-3.1+)
+    #new2.save!  # the following tests would not pass for some reason...
+    new2 = Prefecture.create!(country: jp_orig.country)
+    new2_id = new2.id
+    assert_equal 0, new2.places.size, 'Sanity check'
+    new2.with_translation(title: '江戸城下2', langcode: 'ko')
+    assert_equal 1, new2.places.size, 'After the first translation, Place.unknown should be added.'
+    pla = Place.create!(prefecture_id: new2_id, note: 'Test new place')
+    assert_equal 2, new2.places.size
+    refute new2.destroy, "new2=#{new2.inspect}; new2.places=#{new2.places.inspect}"
+    assert_match(/\bchild Places?\b/i, new2.errors[:base][0]) # "Destroy failed. Prefecture has significant non-unknown child Places. Delete them first."
+    assert pla.destroy, "Should be successfully destroyed."
+    assert new2.destroy
+    refute Prefecture.exists? new2_id
   end
 
   test "hook after new entry" do

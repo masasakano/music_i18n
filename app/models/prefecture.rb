@@ -25,9 +25,16 @@
 #
 class Prefecture < BaseWithTranslation
   include Translatable
+
+  around_destroy :assess_destroy
+
   belongs_to :country
   has_many :places, dependent: :destroy
   validates_uniqueness_of :iso3166_loc_code, allow_nil: true
+
+  # If true, children Places are cascade-destroyed.  Otherwise, self is not
+  # destroyed unless {Place.unknown} is the sole child {Place}.
+  attr_accessor :force_destroy
 
   # For the translations to be unique.
   MAIN_UNIQUE_COLS = [:country, :country_id, :iso3166_loc_code]
@@ -324,6 +331,32 @@ class Prefecture < BaseWithTranslation
       return [msg]
     end
     return []
+  end
+
+  private
+
+  # Callback to assess if {#destory} can be executed
+  #
+  # {#destory} is executed by the Controller only when
+  #
+  # 1. {#force_destroy} is set true,
+  # 2. self has only one child ({Place.unknown}) or zero children, the latter of which should not happen.
+  #
+  # This method assesses it and if the second case is the case, set {#force_destroy=} true.
+  #
+  # Note that when self has only 1 {Place} child, it should be in principle
+  # {Place.unknown} but there is no database-level restriction to
+  # guarantee it and hence the child {Place} could be something else.
+  # This routine does not check {Place#unknown}
+  def assess_destroy
+    if force_destroy || places.size <= 1
+      yield
+      self.force_destroy = true
+      return true
+    else
+      errors.add :base, "Destroy failed. Prefecture has significant non-unknown child Places. Delete them first."
+      return false
+    end
   end
 
 end

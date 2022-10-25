@@ -142,6 +142,10 @@ class Ability
       #can :manage_iso3166_jp, Prefecture  # redundant
     else
       cannot :manage_prefecture_jp, Prefecture
+      cannot(:ud, Prefecture){|i| i.unknown?}
+      cannot(:ud, Prefecture){|i| i.country == Country['JPN']}
+      cannot(:ud, Place){|i| i.unknown?}
+      cannot(:ud, Place){|i| i.country == Country['JPN']}
     end
   end
 end
