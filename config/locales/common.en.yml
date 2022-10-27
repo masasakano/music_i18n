@@ -31,8 +31,10 @@
 
 en:
   accept_terms: Terms of Service
+  are_you_sure: "Are you sure?"
   Country: Country
   detail: Detail
+  display_name: Display Name
   Genre: Genre
   Harami: "Harami-chan"
   log_out: Log out

@@ -65,9 +65,9 @@ class Ability
       can :destroy, Users::DeactivateUser, id: user.id
       can :update, UserRoleAssoc, user: user
       can :manage, Place
-      can :crud, [Artist, Music, Engage]
+      #can :cru,  [Prefecture]
+      can :crud, [Artist, Music, Engage, Prefecture]
       can :create, Musics::UploadMusicCsvsController
-      can :cru,  [Prefecture]
       can :read, [Country, EngageHow, Genre]
       can :show,  Translation
       can [:new, :create], Translation # only for 'ja' and if they can edit translatable; judged in other places
@@ -105,7 +105,7 @@ class Ability
     ## Higher rank
     if user.moderator?  # Harami manager OR HIGHER (but sysadmin)
       can :read,   Sex
-      can :manage, Prefecture          # can :destroy in addition to Editors
+      #can :manage, Prefecture          # can :destroy in addition to Editors
       can :manage, [Genre, EngageHow]  # can :update :destroy in addition to Editors
       can [:read, :update], User
       can :update, Users::EditRolesController
@@ -137,15 +137,16 @@ class Ability
 
     ## Highest rank (but sysadmin)
     if user.qualified_as? RoleCategory[RoleCategory::MNAME_ROOT]
+      can :manage_prefecture_jp, Prefecture
       can :manage, StaticPage
       can :manage, CountryMaster
       #can :manage_iso3166_jp, Prefecture  # redundant
     else
-      cannot :manage_prefecture_jp, Prefecture
+      cannot :manage_prefecture_jp, Prefecture  # cannot edit Country in Prefecture to Japan
       cannot(:ud, Prefecture){|i| i.unknown?}
       cannot(:ud, Prefecture){|i| i.country == Country['JPN']}
       cannot(:ud, Place){|i| i.unknown?}
-      cannot(:ud, Place){|i| i.country == Country['JPN']}
+      #cannot(:ud, Place){|i| i.country == Country['JPN']}
     end
   end
 end

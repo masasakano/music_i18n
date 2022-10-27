@@ -53,6 +53,10 @@ unknown_place_kagawa_japan:
   prefecture: kagawa
   note: MyTextKagawa
 
+unknown_place_shimane_japan:
+  prefecture: shimane
+  note: MyTextShimane
+
 takamatsu_station:
   prefecture: kagawa
   note: MyTextTakamatsuStation

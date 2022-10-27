@@ -72,6 +72,9 @@ class ApplicationController < ActionController::Base
   # Default respond_to to format algorithm
   #
   # If the block is given, it should include a save-attempt.
+  # For alert/warning etc messages, you can specify a Proc
+  # that takesthe model instance as an argument, which will
+  # be evaluated after save.
   #
   # @example create
   #   def_respond_to_format(@article)  # defined in application_controller.rb
@@ -79,6 +82,15 @@ class ApplicationController < ActionController::Base
   # @example update
   #   def_respond_to_format(@page_format, :updated){ 
   #     @page_format.update(page_format_params)
+  #   } # defined in application_controller.rb
+  #
+  # @example update with Proc (mdl is evaluated after @prefecture.update)
+  #   opts = { failed: false,
+  #            warning: Proc.new{|mdl|
+  #              get_created_warning_msg(mdl, :update, extra_note: " in Japan")}
+  #          }
+  #   def_respond_to_format(@prefecture, :updated, **opts){
+  #     @prefecture.update(prefecture_params)
   #   } # defined in application_controller.rb
   #
   # @param mdl [ApplicationRecord]
@@ -128,7 +140,7 @@ class ApplicationController < ActionController::Base
   # @param extra_note [String, NilClass] e.g., " in Japan" (make sure it precedes with a space)
   # @return [String, NilClass] nil if no differences are found.
   def get_created_warning_msg(mdl, created_updated=:created, excepts: [], extra_note: "")
-    hsdiff = mdl.saved_changes.slice!(:updated_at, :excepts)
+    hsdiff = mdl.saved_changes.slice!(:updated_at, *excepts)
     return if hsdiff.empty?
     sprintf(
       "Object %s for %s(ID=%s)%s. Make sure that is what you intended: %s",

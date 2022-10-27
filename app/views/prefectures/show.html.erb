@@ -1,7 +1,7 @@
 <p id="notice"><%= notice %></p>
 
 <% country_name = @prefecture.country.title_or_alt %>
-<h1>Prefecture: <%= @prefecture.title_or_alt %> (&lt; <%= country_name %>)</h1>
+<h1>Prefecture: <%= my_title = @prefecture.title_or_alt %> (&lt; <%= country_name %>)</h1>
 
 <hr>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: @prefecture} %>
@@ -27,5 +27,60 @@
   <dd><%= @prefecture.note %></dd>
 </dl>
 
-<%= link_to 'Edit', edit_prefecture_path(@prefecture) %> |
-<%= link_to 'Back', prefectures_path %>
+<p>
+<% if can? :update, @prefecture %>
+  <%= link_to 'Edit', edit_prefecture_path(@prefecture) %> |
+<% end %>
+<%= link_to 'Back to Index', prefectures_path %>
+</p>
+
+<hr>
+
+<h2>Places in Prefecture <%= my_title %></h2>
+
+<table id="places_in_prefecture">
+  <thead>
+    <tr>
+      <th>和名</th>
+      <th>別名</th>
+      <th>英語名 [別名]</th>
+      <th>N_Musics</th>
+      <th>N_Artists</th>
+      <th>N_HaramiVids</th>
+      <th>Note</th>
+      <% if can? :edit, Place %>
+        <th colspan="2">Action</th>
+      <% else %>
+        <th>Action</th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% (@places || @prefecture.places).uniq.each do |place| %>
+      <tr>
+        <td><%= (place.title langcode: 'ja') || '' %></td>
+        <td><%= sprintf '%s', (place.alt_title(langcode: 'ja') || '') %></td>
+        <td><%= sprintf '%s [%s]', *(%i(title alt_title).map{|i| place.send(i, langcode: 'en') || ''}) %></td>
+        <td><%= place.musics.count.to_s %></td>
+        <td><%= place.artists.count.to_s %></td>
+        <td><%= place.harami_vids.count.to_s %></td>
+        <td><%= place.note %></td>
+        <td><%= link_to 'Show', place %></td>
+        <% if can? :update, place %>
+          <td><%= link_to 'Edit', edit_place_path(place) %></td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+<% if can? :create, Place %>
+<p>
+  <%= link_to sprintf('Create a new Place in Prefecture %s', my_title), new_place_path(place: {prefecture_id: @prefecture.id}) %>
+</p>
+<% end %>
+
+<p>
+<%= link_to 'Back to Index', prefectures_path %>
+</p>
+

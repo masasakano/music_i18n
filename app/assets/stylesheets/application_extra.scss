@@ -195,3 +195,7 @@ div#navbar_top {
 .text_thinner2 {
   color: #cccccc;
 }
+
+table#places_in_prefecture td:nth-child(4), table#places_in_prefecture td:nth-child(5), table#places_in_prefecture td:nth-child(6) {
+  text-align: right;
+}

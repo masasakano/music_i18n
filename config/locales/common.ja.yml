@@ -1,8 +1,9 @@
 ja:
-  display_name: 表示名
   accept_terms: 利用規約
+  are_you_sure: "実行していいですか?"
   Country: 国名
   detail: 詳細
+  display_name: 表示名
   Genre: ジャンル
   Harami: ハラミちゃん
   log_out: ログアウト

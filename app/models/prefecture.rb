@@ -26,7 +26,7 @@
 class Prefecture < BaseWithTranslation
   include Translatable
 
-  around_destroy :assess_destroy
+  before_destroy :assess_destroy
 
   belongs_to :country
   has_many :places, dependent: :destroy
@@ -38,6 +38,9 @@ class Prefecture < BaseWithTranslation
 
   # For the translations to be unique.
   MAIN_UNIQUE_COLS = [:country, :country_id, :iso3166_loc_code]
+
+  # Countries whose Prefectures are complete. Their Prefectures cannot be destroyed in default.
+  COUNTRIES_WITH_COMPLETE_PREFECTURES = %w(JPN)
 
   # Each subclass of {BaseWithTranslation} should define this constant; if this is true,
   # the definite article in each {Translation} is moved to the tail when saved in the DB,
@@ -64,7 +67,7 @@ class Prefecture < BaseWithTranslation
     else
       s_country = 'nil'
     end
-    super.sub(/, country_id: \d+/, '\0'+sprintf("(%s)", s_country))
+    super.sub(/, country_id: \d+/, '\0'+sprintf("(%s), force_destroy: %s", s_country, force_destroy.inspect))  # n.b., in an unlikely case where country_id is nil, force_destroy is not printed.
   end
 
   # Modifying {BaseWithTranslation.[]}
@@ -333,29 +336,58 @@ class Prefecture < BaseWithTranslation
     return []
   end
 
-  private
-
-  # Callback to assess if {#destory} can be executed
+  # true if it can be destroyed (if with a sufficient privilege)
   #
-  # {#destory} is executed by the Controller only when
+  # {#destroy} is executed by the Controller only when
   #
-  # 1. {#force_destroy} is set true,
-  # 2. self has only one child ({Place.unknown}) or zero children, the latter of which should not happen.
+  # 1. {#force_destroy} is set true (n.b., there is no circumstances where this is used at the time of writing),
+  #    * In this case, all associated Places and Translations would be cascade-destroyed
+  # 2. self has only zero or one child ({Place.unknown})
+  #    * This should not happen over the web interface but could happen with manualmanipulations
+  #      when a new {Prefecture} is just created with no associated {Translation}
+  #      because the associated {Place.unknown} is created (automatically with
+  #      {#after_first_translation_hook}) only when the first {Translation} is
+  #      assigned to the new {Prefecture}.
   #
-  # This method assesses it and if the second case is the case, set {#force_destroy=} true.
+  # This method assesses it.
+  #
+  # If it is not destroyable, a message is added to {#errors}, unless +with_msg: false+ is specified (n.b., I cannot think of any cases where the option is absolutely necessary in fact, though errors are certainly *unnecessary* in some cases like in Views).
   #
   # Note that when self has only 1 {Place} child, it should be in principle
   # {Place.unknown} but there is no database-level restriction to
   # guarantee it and hence the child {Place} could be something else.
   # This routine does not check {Place#unknown}
+  #
+  # All places in a country in {COUNTRIES_WITH_COMPLETE_PREFECTURES} should
+  # not be easily destroyed. However, the controls is delegated to the Controller.
+  #
+  # @param with_msg [Boolean] if true (Def), an error message is added.
+  def destroyable?(with_msg: true)
+    return true if force_destroy
+
+    countries = COUNTRIES_WITH_COMPLETE_PREFECTURES.map{|i| Country[i]}.compact
+    return true if (places.size <= 1)
+
+    errors.add :base, "Destroy failed. Prefecture has significant non-unknown child Places. Delete them first." if with_msg
+    false
+  end
+
+  # Returns true if the set of all Prefectures that belong to the same {Country} is complete.
+  def all_prefectures_fixed?
+    COUNTRIES_WITH_COMPLETE_PREFECTURES.map{|i| Country[i]}.compact.any?{|i| i == country}
+  end
+
+  private
+
+  # Callback to assess if {#destroy} can be executed
+  #
+  # abort +destroy+ with {#errors} set if {#destroyable?} is false.
+  #
   def assess_destroy
-    if force_destroy || places.size <= 1
-      yield
-      self.force_destroy = true
+    if destroyable?
       return true
     else
-      errors.add :base, "Destroy failed. Prefecture has significant non-unknown child Places. Delete them first."
-      return false
+      throw :abort
     end
   end
 

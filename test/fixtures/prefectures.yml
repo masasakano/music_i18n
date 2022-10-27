@@ -44,6 +44,11 @@ kagawa:
   note: NoteKagawa
   iso3166_loc_code: 37
 
+shimane:
+  country: japan
+  note: NoteShimane
+  iso3166_loc_code: 32
+
 unknown_prefecture_uk:
   country: uk
   note: NoteUk

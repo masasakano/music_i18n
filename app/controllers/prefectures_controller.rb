@@ -15,7 +15,7 @@ class PrefecturesController < ApplicationController
   # GET /prefectures/1
   # GET /prefectures/1.json
   def show
-    @places = @prefecture.places
+    @places = @prefecture.places  # redundant as Views now takes care of it.
   end
 
   # GET /prefectures/new
@@ -55,11 +55,31 @@ class PrefecturesController < ApplicationController
 
   # DELETE /prefectures/1
   # DELETE /prefectures/1.json
+  #
+  # In default, {Prefecture} with significant non-{Place.unknown} child Places
+  # are not destroyed.  To destroy it, set
+  #
+  #    @prefecture.force_destroy = true
+  #
+  # before +@prefecture.destroy+
+  # Ability prohibits non-admin from destroying (and even editing)
+  # any Prefectures in Japan or any country in
+  # {Prefecture::COUNTRIES_WITH_COMPLETE_PREFECTURES}, in which case
+  # the control is redirected to Index.
+  #
+  # Note that even admin should not easily destroy Prefectures in Japan,
+  # but it is handled in the UI before this {#destroy} is called.
+  #
   def destroy
-    @prefecture.destroy
     respond_to do |format|
-      format.html { redirect_to prefectures_url, notice: 'Prefecture was successfully destroyed.' }
-      format.json { head :no_content }
+      if @prefecture.destroy  # true (if successfully deleted) or false
+        format.html { redirect_to prefectures_url, notice: 'Prefecture was successfully destroyed.' }
+        format.json { head :no_content }
+      else
+        @places = @prefecture.places  # as in "show"
+        format.html { render :show, status: :unprocessable_entity }
+        format.json { render json: @prefecture.errors, status: :unprocessable_entity }
+      end
     end
   end
 
@@ -91,7 +111,7 @@ class PrefecturesController < ApplicationController
          ((jpn == @prefecture.country) || (jpn.id == prefecture_params[:country_id].to_i))
         if can?(:manage_prefecture_jp, Prefecture)
           # an admin is allowed to alter parameters for/to Prefectures in Japan, though warning is issued.
-          { failed: false, warning: get_created_warning_msg(@prefecture, created_updated, extra_note: " in Japan") } # defined in application_controller.rb
+          { failed: false, warning: Proc.new{|mdl| get_created_warning_msg(mdl, created_updated, extra_note: " in Japan")} } # defined in application_controller.rb
         else
           { failed: true, alert: "information is not allowed to be altered for/to Prefectures in Japan." }
         end

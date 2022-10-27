@@ -349,6 +349,16 @@ unknown_place_kagawa_japan_en:
   update_user_id: 1
   note: UnknownPlaceKagawaJapanEn
 
+unknown_place_shimane_japan_en:
+  translatable: unknown_place_shimane_japan
+  translatable_type: Place
+  langcode: en
+  title: UnknownPlace
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: UnknownPlaceShimaneJapanEn
+
 uk_en:
   translatable: uk
   translatable_type: Country
@@ -396,6 +406,22 @@ unknown_place_unknown_prefecture_uk_en:
   create_user_id: 1
   update_user: user_two
   note: UnknownPlaceUnknownPrefectureUkEn
+
+unknown_place_liverpool_uk_en:
+  translatable: unknown_place_liverpool_uk
+  translatable_type: Place
+  langcode: en
+  title: UnknownPlace
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user: user_two
+  note: UnknownPlaceLiverpoolUkEn
 
 unkown_prefecture_aus_en:
   translatable: unknown_prefecture_aus
@@ -508,6 +534,38 @@ kagawa_en:
   create_user_id:
   update_user_id:
   note: KagawaEn
+
+shimane_ja:
+  translatable: shimane
+  translatable_type: Prefecture
+  langcode: ja
+  title: 島根県
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: ShimaneJa
+
+shimane_en:
+  translatable: shimane
+  translatable_type: Prefecture
+  langcode: en
+  title: Shimane
+  alt_title: Simane
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: false
+  weight: 0
+  create_user_id:
+  update_user_id:
+  note: ShimaneEn
 
 liverpool_en:
   translatable: liverpool

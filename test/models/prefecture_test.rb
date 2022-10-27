@@ -88,9 +88,13 @@ class PrefectureTest < ActiveSupport::TestCase
     assert_raises(ActiveRecord::RecordInvalid,
                  "French translated title for Japan exists and hence it should not be allowed") {
       p p22.with_translation(title: '江戸城下', langcode: 'ko') }
+  end
+
+  test "can destroy" do
+    newp = Prefecture.create!(country: countries(:aus))
+    newp.with_orig_translation(title: 'NewTestDestroy', langcode: 'en')
 
     ## Test of destroy
-    newp.reload
     newp_id = newp.id
     assert_equal 1, newp.places.size, 'Sanity check'
     pla = Place.create!(prefecture_id: newp.id, note: 'Test new place')
@@ -108,22 +112,38 @@ class PrefectureTest < ActiveSupport::TestCase
     refute Prefecture.exists? newp_id
     #refute Place.exists? pla_unknown_id
     refute Place.exists? pla_id
+    assert_raises(ActiveRecord::RecordNotFound){ #Couldn't find Place with 'id'=1040129588
+      pla.reload }
 
     ## Test of destroy (if a significant place is gone (destroyed), Prefecture can be destroyed)
     #new2 = newp.dup  # id is not copied (Rails-3.1+)
     #new2.save!  # the following tests would not pass for some reason...
-    new2 = Prefecture.create!(country: jp_orig.country)
+    new2 = Prefecture.create!(country: countries(:aus))
     new2_id = new2.id
     assert_equal 0, new2.places.size, 'Sanity check'
-    new2.with_translation(title: '江戸城下2', langcode: 'ko')
+    new2.with_orig_translation(title: 'NewTestDestroy', langcode: 'en')
     assert_equal 1, new2.places.size, 'After the first translation, Place.unknown should be added.'
     pla = Place.create!(prefecture_id: new2_id, note: 'Test new place')
     assert_equal 2, new2.places.size
     refute new2.destroy, "new2=#{new2.inspect}; new2.places=#{new2.places.inspect}"
     assert_match(/\bchild Places?\b/i, new2.errors[:base][0]) # "Destroy failed. Prefecture has significant non-unknown child Places. Delete them first."
+    assert_raises(ActiveRecord::RecordNotDestroyed){ new2.destroy! }
     assert pla.destroy, "Should be successfully destroyed."
     assert new2.destroy
+    assert new2.destroyed?
     refute Prefecture.exists? new2_id
+
+    ## Test of destroy with only Place.unknown (of a prefecture in Japan); This test is redundant now -- it has once made sense as Prefectures in Japan were treated differently.
+    new3 = Prefecture.create!(country: countries(:japan))
+    new3_id = new3.id
+    new3.with_orig_translation(title: 'NewTestDestroy', langcode: 'en')
+    assert_equal 1, new3.places.size, 'After the first translation, Place.unknown should be added.'
+    #refute new3.destroy, "Prefecture in Japan should not be destroyed: new3=#{new3.inspect}; new3.places=#{new3.places.inspect}"
+    #assert_match(/\bCountry\b.+Japan\b/i, new3.errors[:base][0]) # "Destroy failed. Prefecture is in Country (Japan)."
+    assert new3.places.first.destroy, "Associated Unknwon Place should be destroyed without a trouble."
+    assert new3.destroy, "Prefecture with absolutely no associated Place including unknown should be successfully destroyed."
+    assert new3.destroyed?
+    refute Prefecture.exists? new3_id
   end
 
   test "hook after new entry" do

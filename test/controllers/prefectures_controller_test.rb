@@ -9,7 +9,7 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @prefecture = prefectures(:tokyo)
-    @moderator = roles(:general_ja_moderator).users.first  # (General) Editor can manage some of them.
+    @moderator = roles(:general_ja_moderator).users.first  # (General) Moderator can manage some of them.
     @editor = roles(:general_ja_editor).users.first  # (General) Editor can manage some of them.
     @syshelper = users(:user_syshelper) #User.roots.first   # an admin can manage.
   end
@@ -128,11 +128,20 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
   test "should fail/succeed to get edit" do
     get edit_prefecture_url(@prefecture)
     assert_response :redirect
-    assert_redirected_to new_user_session_path
+    assert_redirected_to new_user_session_path, "Should be redirected to Sign-in"
+
+    sign_in @moderator
+    get edit_prefecture_url(@prefecture)
+    assert_response :redirect, "Even moderator should not be able to edit Prefectures in Japan"
+    assert_redirected_to root_path, "Should be redirected Root"
 
     sign_in @editor
+    get edit_prefecture_url(prefectures(:liverpool))
+    assert_response :success, "Editor should be able to edit Prefectures in UK"
+
+    sign_in @syshelper
     get edit_prefecture_url(@prefecture)
-    assert_response :success
+    assert_response :success, "Syshelper should be able to edit Prefectures in Japan"
   end
 
   test "should update prefecture if editor" do
@@ -162,21 +171,25 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
     note2 = 'Edited new prefecture note'
     sign_in @moderator # Even moderator is not allowed to change parameters for prefectures in Japan.
 
-    patch prefecture_url(@prefecture), params: { prefecture: { note: note2, country_id: Country['AUS'].id.to_s, iso3166_loc_code: 9998 } }
-    assert_response :unprocessable_entity
+    patch prefecture_url(@prefecture), params: { prefecture: { note: note2, iso3166_loc_code: 9998 } }
+    assert_response :redirect, "Even moderator should not be able to edit Prefectures in Japan" # due to "ability"-level check
+    assert_redirected_to root_path, "Should be redirected Root"
 
     patch prefecture_url(@prefecture), params: { prefecture: { country_id: Country['AUS'].id.to_s } }
-    assert_response :unprocessable_entity, "moderatora cannot change a JPN prefecure to another country"
+    assert_response :redirect, "Even moderator should not be able to edit Prefectures in Japan" # due to "ability"-level check
+    #assert_response :unprocessable_entity, "moderatora cannot change a JPN prefecure to another country"
 
     patch prefecture_url(@prefecture), params: { prefecture: { iso3166_loc_code: 9998 } }
-    assert_response :unprocessable_entity, "moderatora cannot change iso3166_loc_code of a JPN prefecure"
+    assert_response :redirect, "Even moderator should not be able to edit Prefectures in Japan" # due to "ability"-level check
+    #assert_response :unprocessable_entity, "moderatora cannot change iso3166_loc_code of a JPN prefecure"
 
     patch prefecture_url(@prefecture), params: { prefecture: { note: note2 } }
-    assert_response :unprocessable_entity, "moderatora cannot change note of a JPN prefecure"
+    assert_response :redirect, "Even moderator should not be able to edit Prefectures in Japan" # due to "ability"-level check
+    #assert_response :unprocessable_entity, "moderatora cannot change note of a JPN prefecure"
 
     pref_liverpool = prefectures(:liverpool)
     patch prefecture_url(pref_liverpool), params: { prefecture: { country_id: Country['JPN'].id.to_s } }
-    assert_response :unprocessable_entity, "moderatora cannot change the country of a non-JPN prefecure to Japan"
+    assert_response :unprocessable_entity, "moderatora cannot change the country of a non-JPN prefecure to Japan" # due to Controller-level check (see _get_warning_msg())
   end
 
   test "syshelper should update for prefecture in Japan" do
@@ -198,6 +211,14 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
     assert_not_equal pref_orig.country, @prefecture.country
     assert_equal Country['AUS'], @prefecture.country
 
+    # warning should be printed as Country(Australia) is changed into Japan.
+    follow_redirect!
+    assert_response :success  # redirect success
+    assert_select 'p.alert-success', text: "Prefecture was successfully updated."
+    assert_equal 1, css_select('p.alert-warning').size
+    assert_match(/Make sure that is what you intended/, css_select('p.alert-warning')[0].text)
+    #assert_select 'p.alert-warning', text: "Make sure that is what you intended"  ## Exact match...
+
     orig_updated_at2 = @prefecture.updated_at
     patch prefecture_url(@prefecture), params: { prefecture: { note: "", country_id: Country['JPN'].id.to_s, iso3166_loc_code: pref_orig.iso3166_loc_code } }
     assert_response :redirect
@@ -210,11 +231,84 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "",                         @prefecture.note
   end
 
-  #test "should destroy prefecture" do
-  #  assert_difference('Prefecture.count', -1) do
-  #    delete prefecture_url(@prefecture)
-  #  end
+  test "should destroy prefecture" do
+    liverpool = prefectures(:liverpool)
+    assert_equal 2, liverpool.places.size, 'Sanity check: Liverpool should have 2 Places including Place.unknown'
+    assert_equal 1, liverpool.translations.size
+    assert_equal 1, liverpool.places[0].translations.size
 
-  #  assert_redirected_to prefectures_url
-  #end
+    assert_no_difference('Prefecture.count') do
+      delete prefecture_url(liverpool)
+      assert_response :redirect
+    end
+
+    sign_in @editor
+    assert_difference('Prefecture.count', 0) do
+      assert_no_difference('Translation.count') do
+        delete prefecture_url(liverpool)
+        assert_response :unprocessable_entity  #, "Prefecture with significant Places should not be destroyed"
+        assert_equal URI.parse(prefecture_path(liverpool)).path, request.path
+      end
+    end
+
+    assert_difference('Place.count', -1) do
+      assert_difference('Translation.count', -1) do
+        delete place_url(liverpool.places[-1])
+        assert_response :redirect
+        assert_redirected_to places_url
+      end
+    end
+    assert_difference('Prefecture.count', -1) do
+      assert_difference('Translation.count', -2, "Translations of Prefecture and Place.unknown should be destroyed") do
+        delete prefecture_url(liverpool)
+        assert_response :redirect #, "Prefecture with no significant Places should be destroyed"
+        assert_redirected_to prefectures_url
+      end
+    end
+
+    shimane = prefectures(:shimane)
+    assert_equal 2, shimane.translations.size, 'Sanity check: shimane should have 1 translation'
+    assert_equal 1, shimane.places.size, 'Sanity check: shimane should not have any significant Places but Place.unknown'
+
+    sign_in @moderator
+    assert_no_difference('Prefecture.count') do
+      assert_no_difference('Translation.count') do
+        delete prefecture_url(shimane)
+        assert_response :redirect #, "Prefecture in Japan should not be destroyed by a moderator due to ability"
+      end
+    end
+
+    sign_in @syshelper
+    pla = Place.create!(prefecture_id: shimane.id, note: 'Test new place in Shimane')
+    pla.with_orig_translation(title: 'NewShimanePlaceTestDestroy', langcode: 'en')
+    assert_equal 2, shimane.places.size, 'Sanity check: shimane should have 1 significant Place and Place.unknown'
+
+    assert_no_difference('Prefecture.count') do
+      assert_no_difference('Translation.count') do
+        delete prefecture_url(shimane)
+        assert_response :unprocessable_entity #, "Prefecture with significant child Places should not be destroyed" # in Japan or elsewhere evey by an admin at the Controller level (though possible in the Model level; see models/prefecture.rb).
+        assert_equal URI.parse(prefecture_path(shimane)).path, request.path
+      end
+    end
+
+    # destroy the child Place first.
+    assert_difference('Place.count', -1) do
+      assert_difference('Translation.count', -1) do
+        delete place_url(shimane.places[-1])
+        assert_response :redirect
+        assert_redirected_to places_url
+      end
+    end
+
+    # Now the Prefecture has only Place.unknown. Hence an admin can destroy it, even though it is in Japan.
+    assert_difference('Prefecture.count', -1) do
+      assert_difference('Place.count', -1) do
+        assert_difference('Translation.count', -3) do
+          delete prefecture_url(shimane), params: { prefecture: { force_destroy: "1" } }
+          assert_response :redirect #, "Prefecture should be forcibly destroyed by an admin"
+          assert_redirected_to prefectures_url
+        end
+      end
+    end
+  end
 end

@@ -1521,12 +1521,17 @@ class BaseWithTranslation < ApplicationRecord
   #
   # If neither is found, an empty string "" is returned.
   #
+  # @note An edge case is not tested (+base_with_translation_test.rb+) where Translations have
+  #   (title, alt_title)=(ja)['あ', 'い'], (en)[nil, "abc"]
+  #   and ja is for +is_orig=true+ and +title_or_alt(langcode: 'en')+
+  #   is requested. Does it return 'あ' or "abc"?
+  #
   # @param langcode: [String, NilClass] like 'ja'
   # @param lang_fallback_option: [Symbol] (:both|:either|:never) if :both,
   #    (lang_fallback: true) is passed to both {#title} and {#alt_title}.
-  #    If :either, if either of {#title} and {#alt_title} is significant,
-  #    the other may remain nil. If :never, [nil, nil] may be returned
-  #    (which is also the case where no tranlsations are found in any languages).
+  #    If :either (Default), if either of {#title} and {#alt_title} is significant,
+  #    the other may remain nil. If :never, "" is returned unless
+  #    a title or alt_title in the specified langcode is found.
   # @param prefer_alt: [Boolean] if true (Def: false), alt_title is preferably
   #    returned as long as it exists.
   # @return [String]

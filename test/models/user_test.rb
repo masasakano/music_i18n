@@ -60,23 +60,31 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "confirm fixtures" do
-    user = users(:user_moderator)
-    assert_not user.an_admin?
+    user = users(:user_syshelper)
     assert_not user.sysadmin?
+    assert     user.an_admin?
+    assert     user.moderator?
+    assert     user.editor?
+    assert     user.qualified_as?(:moderator)
+    assert     user.qualified_as?(:captain)
+
+    user = users(:user_moderator)
+    assert_not user.sysadmin?
+    assert_not user.an_admin?
     assert     user.moderator?
     assert     user.editor?
     assert     user.qualified_as?(:moderator)
 
     user = users(:user_editor)
-    assert_not user.an_admin?
     assert_not user.sysadmin?
+    assert_not user.an_admin?
     assert_not user.moderator?
     assert     user.editor?
     assert_not user.qualified_as?(:moderator)
 
     user = users(:user_captain)
-    assert_not user.an_admin?
     assert_not user.sysadmin?
+    assert_not user.an_admin?
     assert_not user.moderator?
     assert_not user.editor?
     assert_not user.qualified_as?(:moderator)
