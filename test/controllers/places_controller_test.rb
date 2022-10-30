@@ -42,7 +42,7 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "should fail to get new if not logged in but succeed if logged in" do
+  test "should get new only if logged in" do
     get new_place_url
     assert_response :redirect
     assert_redirected_to new_user_session_path
@@ -69,6 +69,8 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
     get new_place_url(place: {prefecture_id: prefecture_id}) # e.g., new?place[prefecture_id]=5
     assert_response :success
     assert_equal 'selected', csssel[0]['selected'], "CSS="+csssel[0].inspect
+    assert_equal 'Prefecture',  css_select("input#place_prev_model_name")[0]["value"]
+    assert_equal prefecture_id, css_select("input#place_prev_model_id")[0]["value"].to_i
 
     ## Specify a Country
     get new_place_url(country_id: country_id) # e.g., new?country_id=5
@@ -134,13 +136,17 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
 
   test "should create with the same name if Country is different" do
     note1 = "test-create-place"
+    prefecture = prefectures(:kagawa)
     hs2pass = {
       "langcode"=>"en",
       "title"=>"The Tｅst",
       "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
       "prefecture.country_id"=>Country['JPN'].id.to_s,
-      "prefecture"=>prefectures(:kagawa).id.to_s,
-      "note"=>note1}
+      "prefecture"=>prefecture.id.to_s,
+      "note"=>note1,
+      "place_prev_model_name"=>'Prefecture',  # suppose the prefecture value is already given.
+      "place_prev_model_id"=>prefecture.id.to_s,
+    }
 
     sign_in @editor
 
@@ -152,6 +158,7 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
         assert_response :redirect, sprintf("Expected response to be a <3XX: redirect>, but was <%s> with flash message: %s", response.code, flash.inspect)
       end
     end
+    assert_redirected_to prefecture_url(prefecture)
   end
 
   test "should show place" do

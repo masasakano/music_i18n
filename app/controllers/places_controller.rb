@@ -42,9 +42,12 @@ class PlacesController < ApplicationController
     hsmain = params[:place].slice(*MAIN_FORM_KEYS)
     # pref = (pref_id_str.blank? ? nil : Prefecture.find(params[:place][:prefecture].to_i))
     @place = Place.new(**(hsmain.merge({prefecture_id: params[:place][:prefecture].to_i})))
+    %w(prev_model_name prev_model_id).each do |metho|
+      @place.send( metho+"=", params.require(:place).permit('place_'+metho)['place_'+metho] )
+    end
 
     add_unsaved_trans_to_model(@place) # defined in application_controller.rb
-    def_respond_to_format(@place)      # defined in application_controller.rb
+    def_respond_to_format(@place, redirected_path: get_prev_redirect_url(@place)) # both defined in application_controller.rb
   end
 
   # PATCH/PUT /places/1
@@ -92,7 +95,7 @@ class PlacesController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def place_params
-      params.require(:place).permit(:prefecture_id, :note)  # adding "prefecture.country_id" would cause <400: Bad Request>
+      params.require(:place).permit(:prefecture_id, :note, :prev_model_name, :prev_model_id)  # adding "prefecture.country_id" would cause <400: Bad Request>
     end
 
     # set @country and @place.prefecture from a given URL parameter
@@ -127,6 +130,14 @@ class PlacesController < ApplicationController
           flash[:warning] = msg + " This should not happen. Contact the administrator."
           logger.warn "(Place#new) "+msg+" params="+params.inspect
         end
+      end
+
+      # Sets the information for the URL to return.
+      [@place.prefecture, @country].each do |klass|
+        next if !klass
+        @place.prev_model_name = klass.class.name
+        @place.prev_model_id   = klass.id
+        break
       end
     end
 

@@ -10,10 +10,10 @@
     </div>
   <% end %>
 
-<% if ! @place.new_record? %>
+<% if ! place.new_record? %>
 
 <hr>
-<%= render partial: 'layouts/all_registered_translations', locals: {model: @place, add_buttons: true} %>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: place, add_buttons: true} %>
 <hr>
 <% end %>
 
@@ -39,6 +39,12 @@
     <%= form.text_area :note %>
   </div>
 
+  <% %i(prev_model_name prev_model_id).each do |metho| %>
+    <% if place.send(metho) %>
+      <%= hidden_field(:place, metho) %>
+    <% end %>
+  <% end %>
+
   <div class="actions">
     <%= form.submit %>
   </div>
@@ -48,8 +54,8 @@
 <% end %>
 
 <p>
-  <% if ! @place.new_record? %>
-    <%= link_to 'Show', @place %> |
+  <% if ! place.new_record? %>
+    <%= link_to 'Show', place %> |
   <% end %>
   <%= link_to 'Back to Index', places_path %>
 </p>

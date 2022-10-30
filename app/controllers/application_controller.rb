@@ -96,12 +96,13 @@ class ApplicationController < ActionController::Base
   # @param mdl [ApplicationRecord]
   # @param created_updated [Symbol] Either :created(Def) or :updated
   # @param failed [Boolean] if true (Def: false), it has already failed.
+  # @param redirected_path [String, NilClass] Path to be redirected if successful, or nil (Default)
   # @param alert [String, NilClass] alert message if any
   # @param warning [String, NilClass] warning message if any
   # @param notice [String, NilClass] notice message if any
   # @return [void]
   # @yield [] If given, this is called instead of simple @model.save
-  def def_respond_to_format(mdl, created_updated=:created, failed: false, alert: nil, **inopts)
+  def def_respond_to_format(mdl, created_updated=:created, failed: false, redirected_path: nil, alert: nil, **inopts)
     ret_status, render_err =
       case created_updated.to_sym
       when :created
@@ -121,7 +122,7 @@ class ApplicationController < ActionController::Base
         msg = sprintf '%s was successfully %s.', mdl.class.name, created_updated.to_s  # e.g., Article was successfully created.
         opts = { success: msg }.merge(inopts) # "success" defined in /app/controllers/application_controller.rb
         opts[:alert]  = alert if alert
-        format.html { redirect_to mdl, **opts }
+        format.html { redirect_to (redirected_path || mdl), **opts }
         format.json { render :show, status: ret_status, location: mdl }
       else
         mdl.errors.add :base, alert  # alert is included in the instance
@@ -130,6 +131,41 @@ class ApplicationController < ActionController::Base
         format.json { render json: mdl.errors, **hsstatus }
       end
     end
+  end
+
+  # Returns either :show or :index path to return, or nil
+  #
+  # Based on the form/model parameters of {#prev_model_name} and {#prev_model_id}
+  #
+  # IF THIS WAS PLACED in /app/helpers/application_helper.rb and if it is called
+  # from inside a Controller, you would need to call this like
+  #    view_context.get_prev_redirect_url()
+  #
+  # In a +new+ page, e.g., +new_place_url+, write in the ERB view:
+  #   <%= hidden_field(:place, :prev_model_name) %>
+  # This will be passed to +params+ as
+  #   params[:place]["place_prev_model_name"]
+  # (Notice the prefix +place_+)
+  # Then, in +PlacesController+, you can set
+  #   @place.prev_model_name = params.require(:place).permit("place_prev_model_name")["place_prev_model_name"]
+  #
+  # @example PlacesController
+  #    get_prev_redirect_url(@place)
+  #    # => /musics     (if @place.prev_model_name == 'music')
+  #    # => /music/123  (if @place.prev_model_id == 123)
+  #
+  #
+  # @param mdl [ActiveRecord]
+  # @return [String, NilClass] the path to redirect or nil
+  def get_prev_redirect_url(mdl)
+    return if mdl.prev_model_name.blank?
+    mdl_name = mdl.prev_model_name.underscore
+    path =
+      if mdl.prev_model_id.blank?
+        send(mdl_name.pluralize + '_path')
+      else
+        send(mdl_name + '_path', mdl.prev_model_id)
+      end
   end
 
   # Returns a warning message, if there is difference between original and updated
