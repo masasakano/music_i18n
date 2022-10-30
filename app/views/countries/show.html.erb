@@ -1,6 +1,6 @@
 <p id="notice"><%= notice %></p>
 
-<h1>Country: <%= @country.title_or_alt %></h1>
+<h1>Country: <%= my_title = @country.title_or_alt %></h1>
 
 <hr>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: @country} %>
@@ -58,3 +58,15 @@
   <br>
 <% end %>
 <%= link_to 'Back', countries_path %>
+<% if can?(:create, Prefecture) || can?(:create, Place) %>
+<p>
+<% if can?(:create, Prefecture) %>
+  <%= link_to(sprintf('Create new Prefecture in Country "%s"', my_title), new_prefecture_path(prefecture: {country_id: @country.id})) %>
+  <br>
+<% end %>
+<% if can?(:create, Place) %>
+  <%= link_to(sprintf('Create new Place in Country "%s"', my_title), new_place_path(place: {country_id: @country.id})) %>
+<% end %>
+</p>
+<% end %>
+

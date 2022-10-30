@@ -20,6 +20,7 @@ class PlacesController < ApplicationController
   # GET /places/new
   def new
     @place = Place.new
+    set_prefecture_prms  # set prefecture in @place, maybe @country
   end
 
   # GET /places/1/edit
@@ -92,6 +93,51 @@ class PlacesController < ApplicationController
     # Only allow a list of trusted parameters through.
     def place_params
       params.require(:place).permit(:prefecture_id, :note)  # adding "prefecture.country_id" would cause <400: Bad Request>
+    end
+
+    # set @country and @place.prefecture from a given URL parameter
+    #
+    # Note that @country is always set (though maybe nil) if @place.prefecture exists.
+    #
+    # Formats of +new?prefecture_id=5+ and +new?place[prefecture_id]=5+ or +new?place%5Bprefecture_id%5D=5+ are allowed.
+    def set_prefecture_prms
+      nested_prms = params.permit(place: [:country_id, :prefecture_id])[:place]  # => usually nil
+      direct_prms = params.permit(:country_id, :prefecture_id) 
+      country_id_str, prefecture_id_str = %i(country_id prefecture_id).map{|ek|
+        (!direct_prms[ek].blank? && direct_prms[ek]) || nested_prms && nested_prms[ek]
+      }
+
+      if prefecture_id_str.blank?
+        @prefecture = nil
+        _set_country_from_params(country_id_str)
+        # If invalid Country is specified (and no Prefecture is specified), it is silently ignored.
+      else
+        prefecture = Prefecture.find(prefecture_id_str.to_i)
+        @place.prefecture = prefecture
+        @country = prefecture.country
+        if prefecture 
+          if !country_id_str.blank? && prefecture.country_id != country_id_str.to_i
+            msg = sprintf("Inconsistent Prefecture (ID=%s) and Country (ID=%s) are specified. Country is Ignored.", prefecture_id_str, country_id_str)
+          end
+        else
+          _set_country_from_params(country_id_str)  # @country is set nonetheless.
+          msg = sprintf("Invalid Prefecture (ID=%s) is specified. Ignored.", prefecture_id_str)
+        end
+        if msg
+          flash[:warning] = msg + " This should not happen. Contact the administrator."
+          logger.warn "(Place#new) "+msg+" params="+params.inspect
+        end
+      end
+    end
+
+    # Set +@country+ from params
+    #
+    # This is placed as a separate routine so as to eliminate potentially unnecessary DB accesses
+    #
+    # @param country_id_str [String] from params
+    # @return [Country, NilClass] not meant to be used.
+    def _set_country_from_params(country_id_str)
+      @country = (country_id_str.blank? ? nil : Country.find(country_id_str.to_i))
     end
 
     def _respond_destroy_fail(msg)

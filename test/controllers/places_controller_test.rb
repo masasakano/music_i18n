@@ -42,10 +42,43 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "should fail to get new if not logged in" do
+  test "should fail to get new if not logged in but succeed if logged in" do
     get new_place_url
     assert_response :redirect
     assert_redirected_to new_user_session_path
+
+    sign_in @editor
+    get new_place_url
+    assert_response :success
+  
+    ## Specify a Prefecture
+    country_id    = @place.prefecture.country_id
+    prefecture_id = @place.prefecture_id
+    get new_place_url(prefecture_id: prefecture_id) # e.g., new?prefecture_id=5
+    assert_response :success
+
+    csssel = css_select("select#place_prefecture\\.country_id option[value=#{country_id}]")
+    assert_equal 'selected', csssel[0]['selected'], "CSS="+csssel[0].inspect
+
+    csssel = css_select("select#place_prefecture optgroup[label=Japan] option[selected=selected]")
+    assert_equal 1, csssel.size, "A Prefecture in Japan should be selected, but... csssel="+csssel.inspect
+
+    csssel = css_select("select#place_prefecture option[value=#{prefecture_id}]")
+    assert_equal 'selected', csssel[0]['selected'], "CSS="+csssel[0].inspect
+
+    get new_place_url(place: {prefecture_id: prefecture_id}) # e.g., new?place[prefecture_id]=5
+    assert_response :success
+    assert_equal 'selected', csssel[0]['selected'], "CSS="+csssel[0].inspect
+
+    ## Specify a Country
+    get new_place_url(country_id: country_id) # e.g., new?country_id=5
+    assert_response :success
+
+    csssel = css_select("select#place_prefecture\\.country_id option[value=#{country_id}]")
+    assert_equal 'selected', csssel[0]['selected'], "CSS="+csssel[0].inspect
+
+    csssel = css_select("select#place_prefecture option[selected=selected]")
+    assert_empty  csssel, "No Prefecture should be selected, but... csssel="+csssel.inspect
   end
 
   test "should NOT create if not privileged" do

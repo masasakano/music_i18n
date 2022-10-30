@@ -76,7 +76,7 @@
 </table>
 <% if can? :create, Place %>
 <p>
-  <%= link_to sprintf('Create a new Place in Prefecture %s', my_title), new_place_path(place: {prefecture_id: @prefecture.id}) %>
+  <%= link_to sprintf('Create a new Place in Prefecture "%s"', my_title), new_place_path(place: {prefecture_id: @prefecture.id}) %>
 </p>
 <% end %>
 

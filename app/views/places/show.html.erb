@@ -25,6 +25,11 @@
 
 <%= link_to 'Edit', edit_place_path(@place) %> |
 <%= link_to 'Back', places_path %>
+<% if can? :create, Place %>
+<p>
+  <%= link_to(sprintf('Create another Place in the same Prefecture "%s"', @place.prefecture.title_or_alt), new_place_path(place: {prefecture_id: @place.prefecture_id})) if @place.prefecture_id %>
+</p>
+<% end %>
 
 <hr>
 
