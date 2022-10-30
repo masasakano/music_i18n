@@ -44,7 +44,7 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "should fail to get new if not logged in" do
+  test "should fail to get new if not logged in but succeed if logged in" do
     get new_prefecture_url
     assert_response :redirect
     assert_redirected_to new_user_session_path
@@ -52,6 +52,21 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
     sign_in @editor
     get new_prefecture_url
     assert_response :success
+  
+    ## Specify a Country
+    country_id = @prefecture.country_id
+    get new_prefecture_url(country_id: country_id) # e.g., new?country_id=5
+    assert_response :success
+
+    csssel = css_select("select#prefecture_country_id option[selected=selected]")
+    assert_equal 1, csssel.size, "A Country (Japan) should be selected, but... csssel="+csssel.inspect
+
+    csssel = css_select("select#prefecture_country_id option[value=#{country_id}]")
+    assert_equal 'selected', csssel[0]['selected'], "CSS="+csssel[0].inspect
+
+    get new_prefecture_url(prefecture: {country_id: country_id}) # e.g., new?prefecture[country_id]=5
+    assert_response :success
+    assert_equal 'selected', csssel[0]['selected'], "CSS="+csssel[0].inspect
   end
 
   test "should create prefecture" do

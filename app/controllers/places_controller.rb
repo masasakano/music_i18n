@@ -20,7 +20,7 @@ class PlacesController < ApplicationController
   # GET /places/new
   def new
     @place = Place.new
-    set_prefecture_prms  # set prefecture in @place, maybe @country
+    set_prefecture_prms  # set @place.prefecture, maybe also @country
   end
 
   # GET /places/1/edit

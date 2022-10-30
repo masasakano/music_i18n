@@ -21,6 +21,7 @@ class PrefecturesController < ApplicationController
   # GET /prefectures/new
   def new
     @prefecture = Prefecture.new
+    set_country_prms  # set @prefecture.country
   end
 
   # GET /prefectures/1/edit
@@ -99,6 +100,29 @@ class PrefecturesController < ApplicationController
     # Only allow a list of trusted parameters through.
     def prefecture_params
       params.require(:prefecture).permit(:country_id, :note, :iso3166_loc_code, :start_date, :end_date) # :orig_note (Remarks by HirMtsd) exists in DB.
+    end
+
+    # set @prefecture.country from a given URL parameter
+    #
+    # Formats of +new?country_id=5+ and +new?prefecture[country_id]=5+ or +new?prefecture%5Bcountry_id%5D=5+ are allowed.
+    def set_country_prms
+      nested_prms = params.permit(prefecture: [:country_id, :prefecture_id])[:prefecture]  # => usually nil
+      direct_prms = params.permit(:country_id) 
+      country_id_str = %i(country_id).map{|ek|
+        (!direct_prms[ek].blank? && direct_prms[ek]) || nested_prms && nested_prms[ek]
+      }.first
+
+      return if country_id_str.blank?
+
+      country = Country.find(country_id_str.to_i)
+      if country 
+        @prefecture.country = country
+        return
+      end
+
+      msg = sprintf("Invalid Country (ID=%s) is specified. Ignored.", country_id_str)
+      flash[:warning] = msg + " This should not happen. Contact the administrator."
+      logger.warn "(Place#new) "+msg+" params="+params.inspect
     end
 
     # Get Hash for warning message in case it fails.

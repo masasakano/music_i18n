@@ -267,6 +267,11 @@ class Country < BaseWithTranslation
     end
   end
 
+  # Returns true if the set of all Prefectures that belong to the Country is complete.
+  def all_prefectures_fixed?
+    Prefecture::COUNTRIES_WITH_COMPLETE_PREFECTURES.include? iso3166_a3_code
+  end
+
   # Adds Prefecture(UnknownPrefectureXxx) after the first Translation creation of Country
   #
   # Called by an after_create callback in {Translation}

@@ -63,7 +63,7 @@ takamatsu_station:
 
 unknown_place_liverpool_uk:
   prefecture: liverpool
-  note: MyTextTochoUnknownPlaceLiverpoolUk
+  note: MyTextUnknownPlaceLiverpoolUk
 
 liverpool_street:
   prefecture: liverpool 

@@ -57,10 +57,53 @@
   <%= button_to 'Edit', edit_country_path(@country) %>
   <br>
 <% end %>
-<%= link_to 'Back', countries_path %>
+<%= link_to 'Back to Index', countries_path %>
+
+<hr>
+
+<h2>Prefectures <%= sprintf("(n=%d)", (@prefectures || @country.prefectures).count) if can?(:create, Prefecture) %> in Country <%= my_title %></h2>
+
+<table id="prefectures_in_country">
+  <thead>
+    <tr>
+      <th>和名</th>
+      <th>別名</th>
+      <th>英語名 [別名]</th>
+      <th>N_Places</th>
+      <th>N_Musics</th>
+      <th>N_Artists</th>
+      <th>N_HaramiVids</th>
+      <th>Note</th>
+      <% if can? :edit, Prefecture %>
+        <th colspan="2">Action</th>
+      <% else %>
+        <th>Action</th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% (@prefectures || @country.prefectures).uniq.each do |prefecture| %>
+      <tr>
+        <td><%= (prefecture.title langcode: 'ja') || '' %></td>
+        <td><%= sprintf '%s', (prefecture.alt_title(langcode: 'ja') || '') %></td>
+        <td><%= sprintf '%s [%s]', *(%i(title alt_title).map{|i| prefecture.send(i, langcode: 'en') || ''}) %></td>
+        <td><%= prefecture.places.count.to_s %></td>
+        <td><%= prefecture.musics.count.to_s %></td>
+        <td><%= prefecture.artists.count.to_s %></td>
+        <td><%= prefecture.harami_vids.count.to_s %></td>
+        <td><%= prefecture.note %></td>
+        <td><%= link_to 'Show', prefecture %></td>
+        <% if can? :update, prefecture %>
+          <td><%= link_to 'Edit', edit_prefecture_path(prefecture) %></td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
 <% if can?(:create, Prefecture) || can?(:create, Place) %>
 <p>
-<% if can?(:create, Prefecture) %>
+<% if can?(:create, Prefecture) && (!@country.all_prefectures_fixed? || can?(:manage_prefecture_jp, Prefecture)) %>
   <%= link_to(sprintf('Create new Prefecture in Country "%s"', my_title), new_prefecture_path(prefecture: {country_id: @country.id})) %>
   <br>
 <% end %>

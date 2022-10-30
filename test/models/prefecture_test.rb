@@ -29,6 +29,51 @@ class PrefectureTest < ActiveSupport::TestCase
   test "has_many and belongs_to" do
     assert_equal 'MyTextJapan', prefectures(:tokyo).country.note
     assert_equal 1,             prefectures(:tokyo).places.where(note: 'MyTextTocho').size
+
+    liverpool = prefectures(:liverpool)
+    liverpool_st = places(:liverpool_street)
+    assert_equal 0,  liverpool.musics.size
+
+    music2 = musics(:music2)
+    assert_difference('liverpool_st.musics.count', 1, "Sanity check failed in diff") do
+      music2.update!(place: liverpool_st)
+    end
+    music2.reload
+    liverpool_st.reload
+
+    assert_equal liverpool_st, music2.place, "Sanity check failed"
+    music3 = musics(:music3)
+    pla3 = Place.create!(prefecture: liverpool)
+    music3.update!(place: pla3)
+
+    # tests whether it can be destoryed
+    liverpool.reload
+    assert_equal 3,  liverpool.places.size, "Prefecture 'Liverpool' should have 3 Places (1 was just created), but... Places="+liverpool.places.inspect
+    assert_equal 1,  liverpool.places.last.musics.size
+    assert_equal 2,  liverpool.musics.size, "should have 2, but... musics="+liverpool.musics.inspect # "SQL="+liverpool.musics.to_sql
+
+    assert_raises(ActiveRecord::RecordNotDestroyed, "destroy should raise Error because Prefecture have significant places"){
+      liverpool.destroy!}  # p liverpool.errors.details # p liverpool.errors.full_messages
+    refute liverpool.destroyed?
+    refute liverpool_st.destroyed?
+    refute music2.destroyed?
+
+    assert_raises(ActiveRecord::DeleteRestrictionError, "Should be 'Cannot delete record because of dependent musics', but...") {
+      refute pla3.destroy }
+
+    music2.destroy!  # "liverpool_st" now has no dependent Musics
+    music3.update!(place: nil)
+    assert pla3.destroy  # b/c music3 does not depend on it anymore.
+    assert pla3.destroyed?
+    assert_equal 2,  liverpool.places.size, "Prefecture 'Liverpool' should have 2 Places, but... Places="+liverpool.places.inspect
+    
+    #liverpool.reload
+    refute liverpool.destroy, "destroy should fail because Prefecture have a significant place: places="+liverpool.places.inspect
+
+    liverpool_st.destroy!
+    assert liverpool.destroy, "destroy should succeed because Prefecture have only an unknown Place"
+    assert liverpool.destroyed?
+    assert liverpool_st.destroyed?
   end
 
   test "unique constraint by Rails" do

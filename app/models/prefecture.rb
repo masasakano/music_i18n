@@ -29,7 +29,10 @@ class Prefecture < BaseWithTranslation
   before_destroy :assess_destroy
 
   belongs_to :country
-  has_many :places, dependent: :destroy
+  has_many :places, dependent: :destroy # However, see {#assess_destroy}; in short, as long as there are non-unknown child Places, it cannot be destroyed unless force_destroy==true. Also, raise ActiveRecord::RecordNotDestroyed if any of the child places have Music or Artist.
+  has_many :artists,     through: :places, dependent: :restrict_with_exception # as per place.rb
+  has_many :musics,      through: :places, dependent: :restrict_with_exception # as per place.rb
+  has_many :harami_vids, through: :places
   validates_uniqueness_of :iso3166_loc_code, allow_nil: true
 
   # If true, children Places are cascade-destroyed.  Otherwise, self is not
@@ -39,7 +42,7 @@ class Prefecture < BaseWithTranslation
   # For the translations to be unique.
   MAIN_UNIQUE_COLS = [:country, :country_id, :iso3166_loc_code]
 
-  # Countries whose Prefectures are complete. Their Prefectures cannot be destroyed in default.
+  # iso3166_a3_code of Countries whose Prefectures are complete. Their Prefectures cannot be destroyed in default.
   COUNTRIES_WITH_COMPLETE_PREFECTURES = %w(JPN)
 
   # Each subclass of {BaseWithTranslation} should define this constant; if this is true,
@@ -359,16 +362,18 @@ class Prefecture < BaseWithTranslation
   # This routine does not check {Place#unknown}
   #
   # All places in a country in {COUNTRIES_WITH_COMPLETE_PREFECTURES} should
-  # not be easily destroyed. However, the controls is delegated to the Controller.
+  # not be easily destroyed. However, model does not care about it and
+  # the control is delegated to the Controller.
   #
   # @param with_msg [Boolean] if true (Def), an error message is added.
   def destroyable?(with_msg: true)
     return true if force_destroy
 
-    countries = COUNTRIES_WITH_COMPLETE_PREFECTURES.map{|i| Country[i]}.compact
+    #countries = COUNTRIES_WITH_COMPLETE_PREFECTURES.map{|i| Country[i]}.compact
     return true if (places.size <= 1)
 
-    errors.add :base, "Destroy failed. Prefecture has significant non-unknown child Places. Delete them first." if with_msg
+    # errors.add :base, "Destroy failed. Prefecture has significant non-unknown child Places. Delete them first." if with_msg
+    errors.add :base, "Destroy failed. Prefecture has significant non-unknown child Places. Delete them first. #{places.inspect}" if with_msg
     false
   end
 
