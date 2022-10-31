@@ -239,6 +239,14 @@ class Place < BaseWithTranslation
     [title_or_alt(**kwd), prefecture.public_send(__method__, **kwd)].flatten
   end
 
+  # true if it has any desendants/children
+  def has_descendants?
+    return true if !artists.empty?
+    return true if !musics.empty?
+    return true if !harami_vids.empty?
+    false
+  end
+
   # Validates translation immediately before it is added.
   #
   # Called by a validation in {Translation}

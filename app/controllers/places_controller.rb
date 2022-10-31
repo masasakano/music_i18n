@@ -33,21 +33,26 @@ class PlacesController < ApplicationController
     # Parameters: {"authenticity_token"=>"[FILTERED]", "place"=>{"langcode"=>"ja", "title"=>"", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "prefecture.country_id"=>"5798", "prefecture"=>"", "note"=>""}, "commit"=>"Create Place", "controller"=>"places", "action"=>"create", "locale"=>"en"}
     params.permit!
     #hsprm = params.require(:place).permit(
-    params.require(:place).permit(
-      :note,
-      :"prefecture.country_id", :prefecture, :prefecture_id,  # **NOTE**: redundant...
-      *Translation::TRANSLATION_PARAM_KEYS)
-      # :langcode, :is_orig, :title, :ruby, :romaji, :alt_title, :alt_ruby, :alt_romaji,
+    #  :note,
+    #  :"prefecture.country_id", :prefecture, :prefecture_id,  # **NOTE**: redundant...
+    #  *Translation::TRANSLATION_PARAM_KEYS)
+    #  # :langcode, :is_orig, :title, :ruby, :romaji, :alt_title, :alt_ruby, :alt_romaji,
 
     hsmain = params[:place].slice(*MAIN_FORM_KEYS)
     # pref = (pref_id_str.blank? ? nil : Prefecture.find(params[:place][:prefecture].to_i))
     @place = Place.new(**(hsmain.merge({prefecture_id: params[:place][:prefecture].to_i})))
     %w(prev_model_name prev_model_id).each do |metho|
-      @place.send( metho+"=", params.require(:place).permit('place_'+metho)['place_'+metho] )
+      @place.send( metho+"=", params.require(:place).permit(metho)[metho] )
     end
 
     add_unsaved_trans_to_model(@place) # defined in application_controller.rb
-    def_respond_to_format(@place, redirected_path: get_prev_redirect_url(@place)) # both defined in application_controller.rb
+    def_respond_to_format(@place, back_html: prev_redirect_str(@place, get_link: true)) # both defined in application_controller.rb
+  end
+
+  # Get HTML-link statement for returning
+  #
+  # @return [String]
+  def _get_back_html
   end
 
   # PATCH/PUT /places/1

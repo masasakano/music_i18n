@@ -18,6 +18,14 @@ class ApplicationController < ActionController::Base
   # @see https://getbootstrap.com/docs/4.0/components/alerts/
   add_flash_types :success, :warning  # Rails 4+
 
+  # HTML/CSS Class for flash messages
+  FLASH_CSS_CLASSES = {
+    alert:          "alert alert-danger",
+    warning:        "alert alert-warning",
+    success:        "alert alert-success",
+    notice:  "notice alert alert-info",
+  }.with_indifferent_access
+
   def default_url_options(options={})
     #Rails.application.default_url_options = Rails.application.routes.default_url_options = { locale: I18n.locale }
     { locale: I18n.locale }.merge options
@@ -76,6 +84,13 @@ class ApplicationController < ActionController::Base
   # that takesthe model instance as an argument, which will
   # be evaluated after save.
   #
+  # Also, this routine properly evaluates +String#html_safe+
+  # for flash messages. So, you can pass HTML messages to flash
+  # by converting it +html_safe+, like
+  #   def_respond_to_format(@article, notice: "My notice".html_safe)
+  #
+  # See /app/views/layouts/application.html.erb for implementation in View.
+  #
   # @example create
   #   def_respond_to_format(@article)  # defined in application_controller.rb
   #
@@ -97,12 +112,14 @@ class ApplicationController < ActionController::Base
   # @param created_updated [Symbol] Either :created(Def) or :updated
   # @param failed [Boolean] if true (Def: false), it has already failed.
   # @param redirected_path [String, NilClass] Path to be redirected if successful, or nil (Default)
+  # @param back_html [String, NilClass] If the path specified (Def: nil) and if successful, HTML (likely a link to return) preceded with "Return to" is added to a Flash mesage; e.g., '<a href="/musics/5">Music</a>'
   # @param alert [String, NilClass] alert message if any
   # @param warning [String, NilClass] warning message if any
   # @param notice [String, NilClass] notice message if any
+  # @param success [String, NilClass] success message if any. Default is "%s was successfully %s." but it is overwritten if specified.
   # @return [void]
   # @yield [] If given, this is called instead of simple @model.save
-  def def_respond_to_format(mdl, created_updated=:created, failed: false, redirected_path: nil, alert: nil, **inopts)
+  def def_respond_to_format(mdl, created_updated=:created, failed: false, redirected_path: nil, back_html: nil, alert: nil, **inopts)
     ret_status, render_err =
       case created_updated.to_sym
       when :created
@@ -120,17 +137,50 @@ class ApplicationController < ActionController::Base
       alert = (alert.respond_to?(:call) ? alert.call(mdl) : alert)
       if result
         msg = sprintf '%s was successfully %s.', mdl.class.name, created_updated.to_s  # e.g., Article was successfully created.
-        opts = { success: msg }.merge(inopts) # "success" defined in /app/controllers/application_controller.rb
-        opts[:alert]  = alert if alert
+        msg << sprintf('  Return to %s.', back_html) if back_html
+        #opts = { success: msg.html_safe, flash: {}}.merge(inopts) # "success" defined in /app/controllers/application_controller.rb
+        opts = flash_html_safe(success: msg.html_safe, alert: alert, **inopts)
+        #opts[:alert]  = alert if alert
+        #opts[:flash][:html_safe] ||= {}
+        #%i(alert warning notice success).each do |ek|
+        #  opts[:flash][:html_safe][ek] = true if opts[ek].html_safe?
+        #end
         format.html { redirect_to (redirected_path || mdl), **opts }
         format.json { render :show, status: ret_status, location: mdl }
       else
         mdl.errors.add :base, alert  # alert is included in the instance
+        opts = flash_html_safe(alert: alert, **inopts)
+        opts.delete :alert  # because alert is contained in the model itself.
         hsstatus = {status: :unprocessable_entity}
-        format.html { render render_err,       **(hsstatus.merge inopts) } # notice (and/or warning) is, if any, passed as an option.
+        format.html { render render_err,       **(hsstatus.merge opts) } # notice (and/or warning) is, if any, passed as an option.
         format.json { render json: mdl.errors, **hsstatus }
       end
     end
+  end
+
+  # Make flash messages in Hash html_safe if they are already so.
+  #
+  # Basically, this defines
+  #   { flash: {html_safe: {alert: true, notice: false}} }
+  # where +false+ is not explicitly defined in this routine,
+  # i.e., if they are not html_safe, they are not set in the Hash
+  # in this routine (i.e., the input Hash is unchanged).
+  #
+  # In View (/app/views/layouts/application.html.erb),
+  #   flash[:html_safe][...]
+  # is evaluated and +html_safe+ will be added on the spot if so.
+  #
+  # The argument is basically a Hash, which may contain arbitrary keys
+  # including (though not limited to) +:alert+, +:notice+ etc.
+  #
+  # @return [Hash]
+  def flash_html_safe(**inopts)
+    opts = { flash: {} }.merge(inopts)
+    opts[:flash][:html_safe] ||= {}
+    %i(alert warning notice success).each do |ek|
+      opts[:flash][:html_safe][ek] = true if opts[ek].html_safe?
+    end
+    opts
   end
 
   # Returns either :show or :index path to return, or nil
@@ -139,7 +189,7 @@ class ApplicationController < ActionController::Base
   #
   # IF THIS WAS PLACED in /app/helpers/application_helper.rb and if it is called
   # from inside a Controller, you would need to call this like
-  #    view_context.get_prev_redirect_url()
+  #    view_context.prev_redirect_str()
   #
   # In a +new+ page, e.g., +new_place_url+, write in the ERB view:
   #   <%= hidden_field(:place, :prev_model_name) %>
@@ -150,22 +200,28 @@ class ApplicationController < ActionController::Base
   #   @place.prev_model_name = params.require(:place).permit("place_prev_model_name")["place_prev_model_name"]
   #
   # @example PlacesController
-  #    get_prev_redirect_url(@place)
+  #    prev_redirect_url(@place)
   #    # => /musics     (if @place.prev_model_name == 'music')
   #    # => /music/123  (if @place.prev_model_id == 123)
   #
-  #
   # @param mdl [ActiveRecord]
+  # @param get_link [Boolean] if true (Def: false), return an HTML containing a link (assuming the same HOST).
+  # @param langcode [String, NilClass] for HTML-link label
   # @return [String, NilClass] the path to redirect or nil
-  def get_prev_redirect_url(mdl)
+  # @see https://stackoverflow.com/questions/74256169/how-to-get-rails-path-url-dinamically-from-a-model-controller/74256692  (for url_for)
+  def prev_redirect_str(mdl, get_link: false, langcode: nil)
     return if mdl.prev_model_name.blank?
-    mdl_name = mdl.prev_model_name.underscore
-    path =
-      if mdl.prev_model_id.blank?
-        send(mdl_name.pluralize + '_path')
-      else
-        send(mdl_name + '_path', mdl.prev_model_id)
-      end
+    opts = { controller: mdl.prev_model_name.underscore.pluralize, only_path: true }
+    if mdl.prev_model_id.blank?
+      path = url_for(action: :index, **opts)
+      get_link ? view_context.link_to(sprintf("%s index", mdl.prev_model_name), path) : path
+    else
+      path = url_for(action: :show, id: mdl.prev_model_id.to_i, **opts)
+      return path if !get_link
+      lang = (langcode || I18n.locale).to_s
+      my_title = mdl.prev_model_name.constantize.find(mdl.prev_model_id.to_i).title_or_alt(langcode: lang)
+      sprintf "%s (%s)", mdl.prev_model_name, view_context.link_to(my_title, path).html_safe
+    end
   end
 
   # Returns a warning message, if there is difference between original and updated

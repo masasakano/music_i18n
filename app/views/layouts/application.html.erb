@@ -124,18 +124,9 @@
     </div>
 
     <div id="body_main">
-    <% if alert %> <%# manage_toastr.js wrap the contents  # toastr_flash in /app/helpers/application_helper.rb is not used anymore %>
-      <p class="alert alert-danger"><%= alert %></p>
-    <% end %>
-    <% if warning.present? %>
-      <p class="alert alert-warning"><%= warning %></p>
-    <% end %>
-    <% if success.present? %>
-      <p class="alert alert-success"><%= success %></p>
-    <% end %>
-    <% if notice %>
-      <p class="notice alert alert-info"><%= notice %></p>
-    <% end %>
+      <% [alert && 'alert', warning.present? && 'warning', success.present? && 'success', notice && 'notice'].compact.each do |ek| %>
+        <p class="<%= ApplicationController::FLASH_CSS_CLASSES[ek] %>"><%= (flash[:html_safe] && flash[:html_safe][ek]) ? flash[ek].html_safe : flash[ek] %></p>
+      <% end %> <%# manage_toastr.js wrap the contents  # toastr_flash in /app/helpers/application_helper.rb is not used anymore %>
     <%= yield %>
     </div>
     <hr>

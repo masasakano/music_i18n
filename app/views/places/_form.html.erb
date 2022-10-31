@@ -52,6 +52,18 @@
   <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
   </div>
 <% end %>
+<% if ! place.new_record? && can?(:destroy, place) %>
+  <div class="actions-destroy" style="margin-right: 1em;">
+   <div class="actions" style="text-align: right">
+     <% if ! place.has_descendants? %>
+       <%= button_to 'Destroy', place, method: :delete, data: { confirm: t('are_you_sure') } %>
+     <% else %>
+       <form class="button_to"><input disabled="disabled" type="submit" value="Destroy"></form>
+       (Place has descendants and so cannot be destroyed.)
+     <% end %>
+   </div>
+  </div>
+<% end %>
 
 <p>
   <% if ! place.new_record? %>

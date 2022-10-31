@@ -144,8 +144,8 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
       "prefecture.country_id"=>Country['JPN'].id.to_s,
       "prefecture"=>prefecture.id.to_s,
       "note"=>note1,
-      "place_prev_model_name"=>'Prefecture',  # suppose the prefecture value is already given.
-      "place_prev_model_id"=>prefecture.id.to_s,
+      "prev_model_name"=>'Prefecture',  # suppose the prefecture value is already given.
+      "prev_model_id"=>prefecture.id.to_s,
     }
 
     sign_in @editor
@@ -158,7 +158,15 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
         assert_response :redirect, sprintf("Expected response to be a <3XX: redirect>, but was <%s> with flash message: %s", response.code, flash.inspect)
       end
     end
-    assert_redirected_to prefecture_url(prefecture)
+    assert_redirected_to place_url(Place.last)
+    #assert_redirected_to prefecture_url(prefecture)
+
+    ## It displays Place#show, with a flash message containing a link to the original Prefecture
+    follow_redirect!
+    assert_response :success
+    assert_match(/Prefecture \(<a.+>Kagawa\b<\/a>\)/, css_select("p.alert-success").inner_html)
+    assert_match(%r@\A/prefectures/#{prefecture.id}\b@, css_select("p.alert-success a")[0]["href"], "Failed: Flash-success="+css_select("p.alert-success")[0].to_html)
+    assert_match(/\AKagawa\z/, css_select("p.alert-success a")[0].text)
   end
 
   test "should show place" do

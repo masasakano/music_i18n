@@ -43,21 +43,17 @@
 <% if ! prefecture.new_record? && can?(:destroy, prefecture) %>
   <div class="actions-destroy" style="margin-right: 1em;">
    <div class="actions" style="text-align: right">
-  <% check_box_tag('force_destroy', "1", false, title: "This should not be destroyed because it either has significant child Places or the set of Prefecture in the country should be already complete. If you are sure you want to proceed, check this.") %><br>
-  <% check_box_tag('force_destroy2') %><br>
-     <form action="/dev/null">
+  <%# check_box_tag('force_destroy', "1", false, title: "This should not be destroyed because it either has significant child Places or the set of Prefecture in the country should be already complete. If you are sure you want to proceed, check this.") %>
+  <%# check_box_tag('force_destroy2') %>
        <% msg = nil
           if !prefecture.destroyable?(with_msg: false)
             msg = sprintf("it has significant child Places (n=%d)", prefecture.places.size)
           elsif prefecture.all_prefectures_fixed?
             msg = sprintf("the set of Prefecture in the country (%s) should be already complete", prefecture.country.title_or_alt)
           end
+          msg = "This should not be destroyed because #{msg}. If you are sure you want to proceed, check this:"
        %>
-       <% if msg %>
-         <label for="force_destroy">This should not be destroyed because <%= msg %>. If you are sure you want to proceed, check this:</label>
-         <input id="force_destroy" type="checkbox" name="force_destroy" value="1" />
-       <% end %>
-     </form>
+         <!-- input id="force_destroy" type="checkbox" name="force_destroy" value="1" / -->
      <%= button_to 'Destroy', prefecture, method: :delete, data: { confirm: t('common.are_you_sure') } %>
    </div>
   </div>
