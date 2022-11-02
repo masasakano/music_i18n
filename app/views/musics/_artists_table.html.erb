@@ -48,7 +48,7 @@
         <% if can? :read, engage %>
           <%= link_to label_str, edit_engage_multi_how_path(engage) %>
         <% else %>
-          label_str %>
+          <%= label_str %>
         <% end %>
         </td>
         <td><%= ar = artist.place.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true);

@@ -141,8 +141,8 @@ class MusicsGrid < BaseGrid
           ar.push '(Moderator only)'
         end
       end
-      ar.compact.join(' / ').html_safe
     end
+    ar.compact.join(' / ').html_safe
   end
 
 end
