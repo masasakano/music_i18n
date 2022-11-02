@@ -15,7 +15,10 @@ gem 'pg', '>= 0.18', '< 2.0'
 # Use the Puma web server [https://github.com/puma/puma]
 #gem 'puma', '~> 4.1'  # Rails 6
 gem 'puma', '~> 5.0'   # Rails 7.0 default
-## Use SCSS for stylesheets
+## Use SCSS for stylesheets (obsolete as of 2019)
+#  https://sass-lang.com/ruby-sass
+#  https://github.com/rails/sass-rails
+#  https://rubygems.org/gems/sass-rails
 #gem 'sass-rails', '>= 6'
 ## Transpile app-like JavaScript. Read more: https://github.com/rails/webpacker
 #gem 'webpacker', '~> 5.0'  # Rails 6.1 default (was 4.0 in Rails 6.0)
@@ -55,6 +58,14 @@ gem "stimulus-rails"
 gem "cssbundling-rails"
 
 # Use Sass to process CSS
+# This is commented out in Rails-7+bootstrap default.
+# However, in this environment, this seems essential.  Without this, Sever returns an Error, demanding `sassc` .
+# If you use this, the develope says: make sure to include in /config/environments/development.rb
+# the line:  config.sass.inline_source_maps = true
+# although in reality it seems to work even without the line in development.rb
+# When something goes wrong, you may encounter errors in "./bin/dev" like:  `method_missing': undefined method `sass'
+# Or it may prompt you to install Gem sass (but don't, because it became obsolete in 2019).
+# NOTE: sass is defined in package.json (in the same way as in Rails-7+bootstrap default)
 gem "sassc-rails"
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]

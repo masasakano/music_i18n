@@ -97,6 +97,11 @@ Rails.application.configure do
   # Gmail accepts any email addresses, but the From address of the sent emails
   # is that of the login account, whereas Reply-To is set to the provided From address.
 
+  ## In Rails 7, if you use  sassc-rails  (to handle Sass), i.e., defined in in Gemfile,
+  ## activate this line (although it seems to work even without this line...).
+  ## cf. <https://github.com/sass/sassc-rails>
+  config.sass.inline_source_maps = true
+
   # For google Gmail, you may get "Net::SMTPAuthenticationError (534-5.7.14)" or similar.
   # Chaning a password(!) may do the trick.
   # cf. https://stackoverflow.com/a/63141980/3577922
