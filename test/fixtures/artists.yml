@@ -91,6 +91,11 @@ artist_rcsuccession:
   place: unknown_place_unknown_prefecture_japan
   note: Artist-RCサクセション
 
+artist_saki_kubota:
+  sex_id: 2
+  place: unknown_place_unknown_prefecture_japan
+  note: Artist-SakiKubota
+
 artist_proclaimers:
   sex_id: 9
   birth_year: 1983

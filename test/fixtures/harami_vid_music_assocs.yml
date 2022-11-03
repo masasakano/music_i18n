@@ -48,6 +48,22 @@ harami_vid_music_assoc3:
   flag_collab: false
   note: HaramiVidMusicAssoc3
 
+harami_vid_music_assoc_3_ihojin1:
+  harami_vid: harami_vid3
+  music: music_ihojin1
+  timing: 
+  completeness: 0.8
+  flag_collab: false
+  note: HaramiVidMusicAssoc Vid3 and Ihojin1
+
+harami_vid_music_assoc_4_ihojin2:
+  harami_vid: harami_vid4
+  music: music_ihojin2
+  timing: 2222
+  completeness: 1.0
+  flag_collab:
+  note: HaramiVidMusicAssoc Vid4 and Ihojin2
+
 harami_vid_music_50anni_story:
   harami_vid: harami_vid_50anni
   music: music_story

@@ -55,6 +55,16 @@ harami_vid3:
   uri_playlist_en: 
   note: HaramiVid3
 
+harami_vid4:
+  release_date: 2022-01-23
+  duration: 400.0
+  uri: youtu.be/harami_vid4
+  place: tocho
+  flag_by_harami: true
+  uri_playlist_ja: 
+  uri_playlist_en: 
+  note: HaramiVid4
+
 harami_vid_50anni:
   release_date: 
   duration: 

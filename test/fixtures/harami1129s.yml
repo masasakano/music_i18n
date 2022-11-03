@@ -68,6 +68,7 @@ harami1129_ewf:
   orig_modified_at: 2020-10-25 21:46:00
   checked_at:
   engage_id:
+  harami_vid_id:
 
 harami1129_rcsuccession:
   singer: RCサクセション
@@ -89,6 +90,7 @@ harami1129_rcsuccession:
   orig_modified_at: 2020-10-25 21:46:00
   checked_at:
   engage_id:
+  harami_vid_id:
 
 harami1129_ai:
   singer: AI
@@ -110,6 +112,7 @@ harami1129_ai:
   orig_modified_at: 2020-10-25 21:46:00
   checked_at:
   engage: engage_ai_story
+  harami_vid_id:
 
 harami1129one:
   singer: harami1129one sing
@@ -131,6 +134,7 @@ harami1129one:
   orig_modified_at: 2020-10-25 21:46:00
   checked_at:
   engage_id:
+  harami_vid_id:
 
 harami1129two:
   singer: harami1129two sing
@@ -152,6 +156,7 @@ harami1129two:
   orig_modified_at: 2020-10-25 21:46:00
   checked_at:
   engage_id:
+  harami_vid_id:
 
 harami1129_3:
   singer: harami1129three sing
@@ -173,4 +178,5 @@ harami1129_3:
   orig_modified_at: 2020-10-26 20:30:00
   checked_at:
   engage_id:
+  harami_vid_id: harami_vid3
 

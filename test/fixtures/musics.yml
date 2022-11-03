@@ -75,6 +75,18 @@ music_kampai:
   genre: genre_pop
   note: MusicKampai
 
+music_ihojin1:
+  year: 1969
+  place: unknown_place_unknown_prefecture_japan
+  genre: genre_unknown
+  note: MusicIhojin
+
+music_ihojin2:
+  year: 1981
+  place: unknown_place_kagawa_japan
+  genre: genre_pop
+  note: MusicIhojin2
+
 music_light:
   year: 1994
   place: unknown_place_unknown_prefecture_uk

@@ -75,6 +75,38 @@ engage_artist2_music_how:
   year: 
   note: Lennon's How?
 
+engage_kubota_ihojin1_1:
+  music: music_ihojin1
+  artist: artist_saki_kubota
+  engage_how: engage_how_composer
+  contribution: 1.0
+  year: 1970
+  note: Engage-Kubota-Ihojin1-Composer
+
+engage_kubota_ihojin1_2:
+  music: music_ihojin1
+  artist: artist_saki_kubota
+  engage_how: engage_how_singer_original
+  contribution: 1.0
+  year: 1970
+  note: Engage-Kubota-Ihojin1-Singer
+
+engage_kubota_ihojin2_1:
+  music: music_ihojin2
+  artist: artist4
+  engage_how: engage_how_lyricist
+  contribution: 0.5
+  year: 1980
+  note: Engage-Random-Ihojin2-Lyricist
+
+engage_kubota_ihojin2_2:
+  music: music_ihojin2
+  artist: artist_saki_kubota
+  engage_how: engage_how_lyricist
+  contribution: 0.5
+  year: 1980
+  note: Engage-Kubota-Ihojin2-Lyricist
+
 engage_proclaimers_light:
   music: music_light
   artist: artist_proclaimers

@@ -903,6 +903,88 @@ music_kampai_en4:
   update_user: user_translator
   note: "MusicKampaiEn4 with weight=nil"
 
+music_ihojin1_ja1:
+  translatable: music_ihojin1
+  translatable_type: Music
+  langcode: ja
+  title: 異邦人
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user: user_translator
+  update_user: user_translator
+  note: MusicIhojinJa1
+
+music_ihojin1_en1:
+  translatable: music_ihojin1
+  translatable_type: Music
+  langcode: en
+  title: Alien person
+  is_orig: false
+  weight: 10
+  create_user: user_moderator_translation
+  update_user: user_moderator_translation
+  note: MusicIhojin1En1-Moderator
+
+music_ihojin1_en2:
+  translatable: music_ihojin1
+  translatable_type: Music
+  langcode: en
+  title: Alien People
+  is_orig: false
+  weight: 100
+  create_user: user_translator
+  update_user: user_translator
+  note: MusicIhojin1En2-Translator
+
+music_ihojin1_en3:
+  translatable: music_ihojin1
+  translatable_type: Music
+  langcode: en
+  title: Alien woman
+  is_orig: false
+  weight: 10
+  create_user: user_translator2
+  update_user: user_translator2
+  note: MusicIhojin1En3-Translator2
+
+music_ihojin2_en1:
+  translatable: music_ihojin2
+  translatable_type: Music
+  langcode: en
+  title: Aliens
+  is_orig: false
+  weight: 10
+  create_user: user_moderator_translation
+  update_user: user_moderator_translation
+  note: MusicIhojin2En1-Moderator
+
+music_ihojin2_en2:
+  translatable: music_ihojin2
+  translatable_type: Music
+  langcode: en
+  title: "Aliens!!"
+  is_orig: false
+  weight: 40
+  create_user: user_moderator_translation
+  update_user: user_moderator_translation
+  note: MusicIhojin2En1-Moderator
+
+music_ihojin2_en3:
+  translatable: music_ihojin2
+  translatable_type: Music
+  langcode: en
+  title: Alien People
+  is_orig: false
+  weight: 100
+  create_user: user_translator
+  update_user: user_translator
+  note: MusicIhojin1En3-Translator
+
 music_light_en:
   translatable: music_light
   translatable_type: Music
@@ -1046,7 +1128,40 @@ artist_proclaimers_en:
   weight: 0
   create_user_id: 1
   update_user_id: 1
-  note: ArtistProclaimers
+  note: ArtistProclaimersEn
+
+artist_saki_kubota_ja:
+  translatable: artist_saki_kubota
+  translatable_type: Artist
+  langcode: ja
+  title: "久保田早紀"
+  is_orig: true
+  weight: 0
+  create_user_id: user_translator
+  update_user_id: user_translator
+  note: Artist-SakiKubotaJa
+
+artist_saki_kubota_en1:
+  translatable: artist_saki_kubota
+  translatable_type: Artist
+  langcode: en
+  title: "Saki Kubota"
+  is_orig: false
+  weight: 100
+  create_user_id: user_translator
+  update_user_id: user_translator
+  note: Artist-SakiKubotaEn1
+
+artist_saki_kubota_en2:
+  translatable: artist_saki_kubota
+  translatable_type: Artist
+  langcode: en
+  title: "Saaaki Kubota"
+  is_orig: false
+  weight: 100
+  create_user_id: user_translator2
+  update_user_id: user_translator2
+  note: Artist-SakiKubotaEn2-Saaki
 
 harami_vid1_ja:
   translatable: harami_vid1
