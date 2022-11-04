@@ -67,8 +67,8 @@ harami1129_ewf:
   last_downloaded_at: 2020-10-25 21:46:00
   orig_modified_at: 2020-10-25 21:46:00
   checked_at:
-  engage_id:
-  harami_vid_id:
+  engage:
+  harami_vid:
 
 harami1129_rcsuccession:
   singer: RCサクセション
@@ -89,8 +89,8 @@ harami1129_rcsuccession:
   last_downloaded_at: 2020-10-25 21:46:00
   orig_modified_at: 2020-10-25 21:46:00
   checked_at:
-  engage_id:
-  harami_vid_id:
+  engage:
+  harami_vid:
 
 harami1129_ai:
   singer: AI
@@ -112,7 +112,7 @@ harami1129_ai:
   orig_modified_at: 2020-10-25 21:46:00
   checked_at:
   engage: engage_ai_story
-  harami_vid_id:
+  harami_vid:
 
 harami1129one:
   singer: harami1129one sing
@@ -133,8 +133,8 @@ harami1129one:
   last_downloaded_at: 2020-10-25 21:46:00
   orig_modified_at: 2020-10-25 21:46:00
   checked_at:
-  engage_id:
-  harami_vid_id:
+  engage:
+  harami_vid:
 
 harami1129two:
   singer: harami1129two sing
@@ -155,8 +155,8 @@ harami1129two:
   last_downloaded_at: 2020-10-25 21:46:00
   orig_modified_at: 2020-10-25 21:46:00
   checked_at:
-  engage_id:
-  harami_vid_id:
+  engage:
+  harami_vid:
 
 harami1129_3:
   singer: harami1129three sing
@@ -177,6 +177,28 @@ harami1129_3:
   last_downloaded_at: 2020-10-26 21:46:00
   orig_modified_at: 2020-10-26 20:30:00
   checked_at:
-  engage_id:
-  harami_vid_id: harami_vid3
+  engage:
+  harami_vid: harami_vid3
+
+harami1129_ihojin1:
+  singer: "久保田早紀"
+  song: 異邦人
+  release_date: 2022-01-07
+  title: ハラミの異邦人1
+  link_root: ABCD_iho
+  link_time: 3
+  ins_singer: "久保田早紀"
+  ins_song: 異邦人
+  ins_release_date: 2022-01-07
+  ins_title: ハラミの異邦人1
+  ins_link_root: youtu.be/ABCD_iho
+  ins_link_time: 3
+  ins_at: 2022-02-26 18:00:01
+  note: Harami1129Ihojin1
+  id_remote: 14
+  last_downloaded_at: 2022-02-26 21:46:44
+  orig_modified_at: 2022-02-26 20:30:33
+  checked_at: 2022-02-26 18:11:22
+  engage: engage_kubota_ihojin1_1
+  harami_vid: harami_vid_ihojin1
 

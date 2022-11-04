@@ -65,6 +65,16 @@ harami_vid4:
   uri_playlist_en: 
   note: HaramiVid4
 
+harami_vid_ihojin1:
+  release_date: 2022-01-07
+  duration: 170.0
+  uri: youtu.be/ABCD_iho
+  place: place_harami_vid3
+  flag_by_harami: true
+  uri_playlist_ja: 
+  uri_playlist_en: 
+  note: HaramiVidIhojin1
+
 harami_vid_50anni:
   release_date: 
   duration: 

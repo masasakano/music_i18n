@@ -29,6 +29,10 @@ class Musics::MergesControllerTest < ActionDispatch::IntegrationTest
   # ---------------------------------------------
 
   test "should get new" do
+    assert_raise(ActionController::UrlGenerationError){
+      get musics_new_merge_users_url  # ID must be given for this :new
+    }
+
     # Fail: No privilege
     get musics_new_merge_users_url(@music)
     assert_response :redirect
@@ -41,6 +45,10 @@ class Musics::MergesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should get edit" do
+    assert_raise(ActionController::UrlGenerationError){
+      get musics_edit_merge_users_url  # ID must be given for this :edit
+    }
+
     get musics_edit_merge_users_url(@music)
     assert_response :redirect
     assert_redirected_to new_user_session_path
@@ -95,6 +103,7 @@ class Musics::MergesControllerTest < ActionDispatch::IntegrationTest
     engage2remain = engages(:engage_kubota_ihojin2_2)
     assert_equal engage2delete.artist, engage2remain.artist, 'sanity-check'
     assert_equal engage2delete.engage_how, engage2remain.engage_how, 'sanity-check'
+    assert Harami1129.where(engage: engage2delete).exists?
 
     trans2delete  = translations(:music_ihojin1_ja1)
     trans2is_orig = translations(:music_ihojin2_ja1)

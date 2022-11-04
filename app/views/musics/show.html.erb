@@ -6,9 +6,9 @@
 <%= render partial: 'layouts/all_registered_translations', locals: {model: @music} %>
 <hr>
 
-<% if current_user && current_user.an_admin? %>
+<% if can? :update, Musics::MergesController %>
 <p>
-  <strong>ID(Admin):</strong>
+  <strong>Internal ID:</strong>
   <%= @music.id %>
 </p>
 <% end %>
@@ -44,13 +44,16 @@
 </p>
 
 <% if can? :update, @music %>
-  <%= link_to 'Edit', edit_music_path(@music) %> |
+  <%= link_to 'Edit', edit_music_path(@music) %>
 <% end %>
-<%= link_to 'Back', musics_path %>
+<% if can? :update, Musics::MergesController %>
+  &nbsp;&nbsp; / <%= link_to 'Merge with another Music', musics_new_merge_users_path(@music) %>
+<% end %>
 <% if can? :destroy, @music %>
-  <br>
-  <%= link_to 'Destroy', @music, method: :delete, data: { confirm: 'Are you sure?' } %>
+  &nbsp;&nbsp; / <%= link_to 'Destroy', @music, method: :delete, data: { confirm: 'Are you sure?' } %>
 <% end %>
+<br>
+<%= link_to 'Back to Index', musics_path %>
 
 <hr>
 
@@ -60,5 +63,23 @@
 
 <%= render partial: 'harami_vids_table', locals: {music: @music, add_buttons: true} %>
 
+<% if can? :read, Harami1129 %>
+  <hr>
+  <%= render partial: 'harami1129s_table', locals: {music: @music} %>
+<% end %>
+
 <hr>
+<% if can? :update, @music %>
+  <%= link_to 'Edit this Music', edit_music_path(@music) %>
+<% end %>
+<% if can? :update, Musics::MergesController %>
+  &nbsp;&nbsp; / <%= link_to 'Merge with another Music', musics_new_merge_users_path(@music) %>
+<% end %>
+<% if false %>
+  <% if can? :destroy, @music %>
+    &nbsp;&nbsp; / <%= link_to 'Destroy', @music, method: :delete, data: { confirm: 'Are you sure?' } %>
+  <% end %>
+<% end %>
+<br>
+<%= link_to 'Back to Index', musics_path %>
 

@@ -6,6 +6,13 @@
 <%= render partial: 'layouts/all_registered_translations', locals: {model: @artist, add_buttons: true} %>
 <hr>
 
+<% if can? :update, @artist %>
+<p>
+  <strong>Internal ID:</strong>
+  <%= @artist.id %>
+</p>
+<% end %>
+
 <p>
   <strong>県・場所 (国):</strong>
   <%= ar = @artist.place.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true);

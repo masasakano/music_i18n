@@ -1,4 +1,5 @@
 class Musics::MergesController < ApplicationController
+  before_action :set_music,  only: [:new]
   before_action :set_musics, only: [:edit, :update]
 
   FORM_MERGE = {
@@ -13,10 +14,12 @@ class Musics::MergesController < ApplicationController
     note: 'note',
   }.with_indifferent_access
 
+  # @raise [ActionController::UrlGenerationError] if no Music ID is found in the path.
   def new
   end
 
-  # @raise [ActionController::ParameterMissing] if the other Music ID is not specified.
+  # @raise [ActionController::UrlGenerationError] if no Music ID is found in the path.
+  # @raise [ActionController::ParameterMissing] if the other Music ID is not specified (as GET).
   def edit
   end
 
@@ -26,7 +29,7 @@ class Musics::MergesController < ApplicationController
       ActiveRecord::Base.transaction do
         merge_lang_orig
         merge_lang_trans
-        merge_engage
+        merge_engage_harami1129
         %i(prefecture_place genre year).each do |metho| 
           merge_overwrite metho
         end
@@ -73,7 +76,7 @@ class Musics::MergesController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
+    # Use callback for setup for new
     def set_music
       @music = Music.find(params[:id])
     end
@@ -199,7 +202,12 @@ class Musics::MergesController < ApplicationController
       end
     end
 
-    def merge_engage
+    # Merge Engage and adjust dependent Harami1129
+    #
+    # Some Engages will have different {Engage#music} and contribution.
+    # Some (rare) Engages that belong to Music to be deleted remain unchanged
+    # and as a result will be cascade-deleted.
+    def merge_engage_harami1129
       index2use = merge_param_int(:engage)
       engages_to_copy =       @musics[index2use].engages
       engages_to_supplement = @musics[other_index(index2use)].engages
@@ -212,7 +220,15 @@ class Musics::MergesController < ApplicationController
         hows = engages_to_copy.where(engage_how: eng.engage_how)
         if hows.exists?
           if hows.where(artist: eng.artist).exists?
-            # The same Artist with the same EngageHow exists. So, this record is deleted. As a result, year and note in this record are discarded.
+            # The same Artist with the same EngageHow exists. So, this record will be
+            # cascade-deleted when the Music is deleted. As a result, year and note
+            # in this record are discarded.
+            #
+            # If it has dependent Harami1129(s), its deletion would raise an Error.
+            eng_to_switch_to = hows.where(artist: eng.artist).first
+            eng.harami1129s.each do |harami1129|
+              harami1129.update!(engage: eng_to_switch_to)
+            end
             next
           else
             eng.contribution = nil
@@ -240,8 +256,12 @@ class Musics::MergesController < ApplicationController
       @musics[@to_index].send(attr+"=", content)
     end
 
+    # notes are, unlike other parameters, simply merged.
+    #
+    # The note for the preferred comes first.
+    # In an unlikely case of both notes being identical, one of them is discarded.
     def merge_note
-      @musics[@to_index].note = [@musics[@to_index], @musics[other_index(@to_index)]].map{|i| i.note || ""}.join(" ")
+      @musics[@to_index].note = [@musics[@to_index], @musics[other_index(@to_index)]].map{|i| i.note || ""}.uniq.join(" ")
     end
 
     def merge_harami_vid_music_assoc

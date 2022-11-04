@@ -1249,6 +1249,17 @@ harami_vid3_ja:
   update_user: user_moderator
   note: HaramiVid3Ja
 
+harami_vid_ihojin1_ja:
+  translatable: harami_vid_ihojin1
+  translatable_type: HaramiVid
+  langcode: ja
+  title: ハラミの異邦人1
+  is_orig: true
+  weight: 0
+  create_user: user_two
+  update_user: user_moderator
+  note: HaramiVidIhojin1Ja
+
 harami_vid_50anni_ja:
   translatable: harami_vid_50anni
   translatable_type: HaramiVid

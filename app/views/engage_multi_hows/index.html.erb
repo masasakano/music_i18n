@@ -20,7 +20,9 @@
 <% n_engage_others = @engage_others.count %>
 
 <%= simple_form_for @engage, url: engage_multi_hows_url do |form| %>
-  <table>
+  <%= form.hidden_field :artist_id, :value => @artist.id %>
+  <%= form.hidden_field :music_id,  :value => @music.id %>
+  <table style="border: none;">
     <thead>
       <tr>
         <th>ID</th>
@@ -76,7 +78,7 @@
         <th colspan="<%= n_cols %>"><strong>New engagement (if any)</strong></th>
       </tr>
       <tr>
-        <td></td>
+        <td>NEW</td>
         <td><%= artist_title %></td>
         <td><%= form.input :engage_how, label: 'EngageHow(複数可)', collection: EngageHow.all.order(:weight).map{|i| [i.title(langcode: I18n.locale), i.id]}, required: false, prompt: "Please select", input_html: { multiple: true } %></td>
         <td><%= form.input :year, required: false %></td>
@@ -84,9 +86,10 @@
         <td><%= form.input :note, input_html: { 'rows' => 4 } %></td>
         <td colspan="<%= n_cols-6 %>"></td>
       </tr>
+      <tr><td colspan="<%= n_cols %>" style="background-color: rgb(0,0,0); border-color: black; border-top: none; border-bottom: none; padding-bottom: 0.5em;">  <%= form.submit "Submit"%> </td></tr>
   
       <tr>
-        <th colspan="<%= n_cols %>"><strong>Engagement by other artists</strong></th>
+        <th colspan="<%= n_cols %>"><strong>Engages for Music by other artists</strong></th>
       </tr>
       <% @engage_others.each do |engage| %>
         <tr>
@@ -110,11 +113,10 @@
         <td colspan="<%= n_cols-1 %>">None</td>
       </tr>
       <% end %>
+      <tr><td colspan="<%= n_cols %>" style="background-color: rgb(0,0,0); border-color: black; border-top: none;> <%= button_to 'create a new Engage', new_engage_path, method: :get, params: { music_id: @music.id } %> with another Artist for <em><%= music_name %></em>. <%# button_to/link_to title tested in /system/engages_test.rb; if it is link_to, the path should be new_engage_path(music_id: @music.id) %>
+      </td></tr>
     </tbody>
   </table>
-  <%= form.hidden_field :artist_id, :value => @artist.id %>
-  <%= form.hidden_field :music_id,  :value => @music.id %>
-  <%= form.submit "Submit"%>
 <% end %>
 <% if (n_engages == 1) && (n_engage_others == 0) && @engages[0] && @engages[0].harami1129s.exists? %>
   <p>
@@ -123,4 +125,3 @@
   </p>
 <% end %>
 
-Or, <%= button_to 'create a new Engage', new_engage_path, method: :get, params: { music_id: @music.id } %> with another Artist for <em><%= music_name %></em>. <%# button_to/link_to title tested in /system/engages_test.rb; if it is link_to, the path should be new_engage_path(music_id: @music.id) %>

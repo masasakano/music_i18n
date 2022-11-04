@@ -100,21 +100,41 @@
   <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
   </div>
 <% end %>
+<% if can?(:destroy, music) || can?(:update, Musics::MergesController) %>
+  <div class="actions-destroy" style="margin-right: 1em;">
+   <div class="actions" style="text-align: right">
+     <% if can? :update, Musics::MergesController %>
+       <%= button_to 'Merge with another Music', musics_new_merge_users_path(@music), method: :get, title: 'You will be asked to select Music to merge this one with.' %>
+     <% end %>
+
+     <% if !music.harami_vids.exists? && !music.harami1129s.exists? %>
+       <%= button_to 'Destroy', music, method: :delete, data: { confirm: t('are_you_sure') } %>
+     <% else %>
+       <form class="button_to"><input disabled="disabled" type="submit" value="Destroy"></form>
+       (Music has dependent HaramiVids and/or Harami1129s and so cannot be destroyed.)
+     <% end %>
+   </div>
+  </div>
+<% end %>
 
 <p>
-  <% if ! @music.new_record? %>
-    <%= link_to 'Show', @music %> |
+  <% if ! music.new_record? %>
+    <%= link_to 'Show', music %> |
     <%= link_to 'Back to Index', musics_path %>
   <% end %>
 </p>
 
 <% if ! music.new_record? %>
   <hr>
-  <%= render partial: 'artists_table', locals: {music: @music, add_buttons: true} %>
+  <%= render partial: 'artists_table', locals: {music: music, add_buttons: true} %>
   
   <hr>
   <%= render partial: 'harami_vids_table', locals: {music: music, add_buttons: true} %>
+
+  <% if can? :read, Harami1129 %>
   <hr>
+  <%= render partial: 'harami1129s_table', locals: {music: music} %>
+  <% end %>
 <% end %>
 
 <%# javascript_pack_tag 'dropdown_music' %>
