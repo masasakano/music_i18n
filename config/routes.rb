@@ -7,6 +7,9 @@ Rails.application.routes.draw do
   resources :static_pages
   resources :country_masters
   namespace :musics do
+    get    ':id/merges/new',  to: 'merges#new',     as: :new_merge_users  # => musics_new_merge_path(:id)  => /musics/:id/merges/new
+    get    ':id/merges/edit', to: 'merges#edit',    as: :edit_merge_users # => musics_edit_merge_path(:id) => /musics/:id/merges/edit
+    match  ':id/merges',      to: 'merges#update',  as: :update_merge_users, via: [:put, :patch]
     resources :upload_music_csvs, only: [:create]
   end
   resources :engage_multi_hows, only: [:index, :show, :edit, :create]

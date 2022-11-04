@@ -84,6 +84,7 @@ class Ability
     ## General-JA editor only
     rc_general_ja = RoleCategory[RoleCategory::MNAME_GENERAL_JA]
     if user.qualified_as?(:editor, rc_general_ja)
+      can :manage, Musics::MergesController 
     end
 
     ## HaramiVid editor
@@ -100,6 +101,8 @@ class Ability
       cannot(:create, Translation){|trans| !trans.translatable_type || !trans.translatable_type.constantize || Ability.new(user).cannot?(:create, trans.translatable_type.constantize) }
       can(:new, Translation){|trans| !trans.translatable_type || !trans.translatable_type.constantize || Ability.new(user).can?(:create, trans.translatable_type.constantize) }
       #cannot(:ud,  Translation){|trans| !trans.translatable || Ability.new(user).cannot?(:update, trans.translatable)}  # I think "can?" statement does not work.
+      can(:ud, Translation){|trans| trans.create_user == user }  # Can edit/update/delete their own Translations.
+      can :manage, Musics::MergesController 
     end
 
     ## Higher rank
@@ -132,7 +135,8 @@ class Ability
 
     ## Translation moderator only
     if user.qualified_as?(:moderator, rc_trans)
-      can :crud,   Translation  # except when they cannot update translatable
+      can :crud, Translation  # except when they cannot update translatable
+      can(  :ud, Translation){|trans| !trans.translatable || can?(:update, trans.translatable) && can?(:destroy, trans.translatable)}  # Seems this is needed in addition to :crud; Also, even when this is true, can?(:ud, trans.translatable) may return false!
     end
 
     ## Highest rank (but sysadmin)

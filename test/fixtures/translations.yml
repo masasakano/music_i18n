@@ -917,7 +917,18 @@ music_ihojin1_ja1:
   weight: 0
   create_user: user_translator
   update_user: user_translator
-  note: MusicIhojinJa1
+  note: MusicIhojin1Ja1
+
+music_ihojin1_ja2:
+  translatable: music_ihojin1
+  translatable_type: Music
+  langcode: ja
+  title: 異邦人
+  is_orig: false
+  weight: 1.0
+  create_user: user_translator
+  update_user: user_translator
+  note: MusicIhojin1Ja2
 
 music_ihojin1_en1:
   translatable: music_ihojin1
@@ -947,10 +958,26 @@ music_ihojin1_en3:
   langcode: en
   title: Alien woman
   is_orig: false
-  weight: 10
+  weight: 17.5
   create_user: user_translator2
   update_user: user_translator2
   note: MusicIhojin1En3-Translator2
+
+music_ihojin2_ja1:
+  translatable: music_ihojin2
+  translatable_type: Music
+  langcode: ja
+  title: 異邦人や
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 1
+  create_user: user_translator2
+  update_user: user_translator2
+  note: MusicIhojin2Ja1
 
 music_ihojin2_en1:
   translatable: music_ihojin2
@@ -984,6 +1011,17 @@ music_ihojin2_en3:
   create_user: user_translator
   update_user: user_translator
   note: MusicIhojin1En3-Translator
+
+music_ihojin2_en4:
+  translatable: music_ihojin2
+  translatable_type: Music
+  langcode: en
+  title: Alien woman
+  is_orig: false
+  weight: 500
+  create_user: user_translator2
+  update_user: user_translator2
+  note: MusicIhojin2En4-Translator
 
 music_light_en:
   translatable: music_light

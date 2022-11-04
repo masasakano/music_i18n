@@ -1,0 +1,129 @@
+  <% if musics[0].errors.any? || musics[1].errors.any? %>
+    <div id="error_explanation">
+      <h2>merging failed:</h2>
+
+      <ul>
+        <% musics.each do |eam| %>
+          <li><%= errors.full_messages %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+<%= form_with(model: musics[0], url: musics_update_merge_users_path(musics[0].id), method: "patch") do |form| %>
+<table>
+  <thead>
+    <tr><th></th>
+      <% musics.each do |em| %>
+      <th>ID=<%= link_to em.id, music_path(em.id) %><br><%= em.title_or_alt %></th>
+      <% end %>
+  </thead>
+  <tbody>
+    <tr><th>Merge to</th>
+      <% musics.each_index do |i| %>
+      <td style="text-align: center;"><%= form.radio_button(Musics::MergesController::FORM_MERGE[:to_index], i, checked: (i==0)) %>
+      </td>
+      <% end %>
+    </tr>
+    <tr><th>Orig-Language</th>
+      <% musics.each_with_index do |em, i| %>
+      <td>
+        <% labe = Musics::MergesController::FORM_MERGE[:lang_orig] %>
+        <%= form.radio_button(labe, i, checked: (i==0)) %>
+        <% trans = em.orig_translation %>
+        <% arstr = %i(title ruby romaji alt_title alt_ruby alt_romaji).map{|et| h(trans.send(et))} %>
+        <% str = sprintf("%s<br>(%s | %s)<br>%s<br>(%s | %s)", *arstr).html_safe %>
+        <%= form.label labe, str, :value => i %>
+      </td>
+      <% end %>
+    </tr>
+    <tr><th><%= t(:Translation, count: 2, default: 'Translations') %></th>
+      <% musics.each_with_index do |em, i| %>
+      <td>
+        <% labe = Musics::MergesController::FORM_MERGE[:lang_trans] %>
+        <% orig_trans = em.orig_translation %>
+        <% exist_editable = em.translations.any?{|et| (et != orig_trans) && can?(:ud, Translation)} %>
+        <% exist_editable = em.translations.any?{|et| (et != orig_trans) && can?(:ud, et)} %>
+        <% if exist_editable %>
+          <%= form.radio_button(labe, i, checked: (i==0)) %>
+        <% end %>
+        <% arstr = [] %>
+        <% em.translations.sort{|a, b|
+            (I18n.available_locales.find_index(a.langcode) || Float::INFINITY)
+           }.each do |et| %>
+          <% next if et.langcode == orig_trans.langcode %>
+          <% arstr << sprintf("%s / %s", h(et.title), h(et.alt_title)) %>
+        <% end %>
+        <% str = arstr.join("<br>").html_safe %>
+        <% if exist_editable %>
+          <%= form.label labe, str, :value => i %>
+        <% else %>
+          <span style="padding-left: 2em;"><%= str %></span>
+        <% end %>
+      </td>
+      <% end %>
+    </tr>
+    <tr><th>Engage-Artists</th>
+      <% musics.each_with_index do |em, i| %>
+      <td>
+        <% labe = Musics::MergesController::FORM_MERGE[:engage] %>
+        <%= form.radio_button(labe, i, checked: (i==0)) %>
+        <% str = em.engages.map{ |een|
+             sprintf(
+                "%s (%s[%s] %s)",
+                link_to(een.artist.title_or_alt, artist_path(een.artist)),
+                h(een.engage_how.title_or_alt(langcode: I18n.locale)),
+                h(short_float_str(een.contribution, maxlength: 4, str_nil: "")),
+                h(een.year.inspect)
+             )
+           }.join("<br>").html_safe %>
+        <%= form.label labe, str, :value => i %>
+      </td>
+      <% end %>
+    </tr>
+    <tr><th>Prefecture (Country)</th>
+      <% musics.each_with_index do |em, i| %>
+      <td>
+        <% labe = Musics::MergesController::FORM_MERGE[:prefecture_place] %>
+        <%= form.radio_button(labe, i, checked: (i==0)) %>
+        <% str = sprintf("%s (%s)", h(em.place.prefecture.title_or_alt(langcode: I18n.locale)), h(em.place.country.title_or_alt(langcode: I18n.locale))).html_safe %>
+        <%= form.label labe, str, :value => i %>
+      </td>
+      <% end %>
+    </tr>
+    <tr><th>Genre</th>
+      <% musics.each_with_index do |em, i| %>
+      <td>
+        <% labe = Musics::MergesController::FORM_MERGE[:genre] %>
+        <%= form.radio_button(labe, i, checked: (i==0)) %>
+        <%= form.label labe, em.genre.title_or_alt(langcode: I18n.locale), :value => i %>
+      </td>
+      <% end %>
+    </tr>
+    <tr><th>Year</th>
+      <% musics.each_with_index do |em, i| %>
+      <td>
+        <% labe = Musics::MergesController::FORM_MERGE[:year] %>
+        <%= form.radio_button(labe, i, checked: (i==0)) %>
+        <%= form.label labe, em.year.inspect, :value => i %>
+      </td>
+      <% end %>
+    </tr>
+    <tr><th>Note</th>
+      <% musics.each_with_index do |em, i| %>
+      <td>
+        <%= em.note %>
+      </td>
+      <% end %>
+    </tr>
+  </tbody>
+</table>
+
+  <div class="actions">
+    <%= form.submit t("Submit", default: "Submit") %>
+  </div>
+  <div class="actions">
+  <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  </div>
+<% end %>
+

@@ -85,6 +85,14 @@ engage_kubota_ihojin1_1:
 
 engage_kubota_ihojin1_2:
   music: music_ihojin1
+  artist: artist_unknown
+  engage_how: engage_how_composer
+  contribution: 0.1
+  year: 1970
+  note: Engage-UnknownArtist-Ihojin1-Composer
+
+engage_kubota_ihojin1_3:
+  music: music_ihojin1
   artist: artist_saki_kubota
   engage_how: engage_how_singer_original
   contribution: 1.0
@@ -94,18 +102,18 @@ engage_kubota_ihojin1_2:
 engage_kubota_ihojin2_1:
   music: music_ihojin2
   artist: artist4
-  engage_how: engage_how_lyricist
+  engage_how: engage_how_composer
   contribution: 0.5
   year: 1980
-  note: Engage-Random-Ihojin2-Lyricist
+  note: Engage-Anonymous4-Ihojin2-Composer
 
 engage_kubota_ihojin2_2:
   music: music_ihojin2
   artist: artist_saki_kubota
-  engage_how: engage_how_lyricist
+  engage_how: engage_how_composer
   contribution: 0.5
   year: 1980
-  note: Engage-Kubota-Ihojin2-Lyricist
+  note: Engage-Kubota-Ihojin2-Composer
 
 engage_proclaimers_light:
   music: music_light

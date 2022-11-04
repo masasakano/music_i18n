@@ -83,6 +83,7 @@ table {
       border: 1px solid white;
   }
   th {
+      text-align: center;
       background-color: #ff6666;
   }
   th.middle_row {
@@ -166,6 +167,17 @@ form div.register_assoc_artist div.new_artist_link p {
 form div.register_assoc_artist_field {
   margin-left: 1em;
   margin-bottom: 1em;
+}
+
+form table tr td input[type="radio"] {
+  /* display: table-cell; */
+  /* display: inline-flex; */
+  /* text-align: center; */      /* this does nothing (but that for <td> is critical) */
+  /* vertical-align: middle; */  /* this does nothing (but that for label is critical) */
+}
+
+form table tr td label {
+  vertical-align: middle;  /* with this, the radio button is placed vertically in the middle. */
 }
 
 dl {

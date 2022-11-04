@@ -11,6 +11,28 @@ module ApplicationHelper
     end.join("\n").html_safe
   end
 
+  # Returns a shortest-possible String expression of a float
+  #
+  # Note that if the number is larger than the maxlength,
+  # the returned String length is as such.
+  #
+  # @example
+  #    short_float_str(1.340678, maxlength: 4)  # => "1.34"
+  #    short_float_str(7,        maxlength: 4)  # => "7"
+  #    short_float_str(12345.78, maxlength: 4)  # => "12345.7" (or something like that! not verified.)
+  #    short_float_str(12.40678, maxlength: 4)  # => "12.4"
+  #
+  # @param num [Numeric] Number
+  # @param maxlength [Integer] Maximum length
+  # @param str_nil [String] what to return when nil
+  def short_float_str(num, maxlength: 4, str_nil: "nil")
+    return str_nil if !num
+    num_s = num.to_s
+    return num_s if num <= maxlength
+    length_int = num_s.sub(/\..+/, "").length
+    sprintf "%#{maxlength}.#{maxlength-length_int-1}", num_s
+  end
+
   # Returns <title> for HTML from Path
   #
   # This assumes the langcode is 2-characters and no Models are 2-character long.
