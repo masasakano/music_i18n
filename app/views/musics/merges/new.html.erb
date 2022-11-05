@@ -14,6 +14,18 @@
     </div>
   <% end %>
 
+<%= form_with(model: @music, url: musics_edit_merge_users_path(@music), method: "get") do |form| %>
+  <div class="field">
+    <%= form.label :other_music_id, "Music-ID (to merge this with)" %>
+    <%= form.text_area :other_music_id %>
+  </div>
+
+  <div class="field field-note">
+    <%= form.label :other_music_title %>
+    <%= form.text_area :other_music_title %>
+  </div>
+<% end %>
+
 <%= link_to "Back to Music ID="+@music.id.to_s, music_path(@music) %>: (<%= mu_title %>) |
 <%= link_to 'Music Index', musics_path %>
 

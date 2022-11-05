@@ -210,6 +210,26 @@ class ActiveSupport::TestCase
     end
   end
 
+
+  # Validate if Flash message matches the given Regexp
+  #
+  # Search is based on CSS classes.
+  #
+  # See {ApplicationController::FLASH_CSS_CLASSES} for CSS classes in this app.
+  #
+  # @param regex [Regexp] 
+  # @param msg [String] 
+  # @param type [Symbol] :notice, :alert, :warning etc.
+  def flash_regex_assert(regex, msg=nil, type: nil)
+    bind = caller_locations(1,1)[0]  # Ruby 2.0+
+    caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
+    # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
+    css2search = "p."+["alert", "alert-"+type.to_s].join(".")
+    csstext = css_select("div#body_main "+css2search).text
+    msg2pass = (msg || sprintf("Fails in flash(%s)-message regexp matching for: ", (type || "ALL")))+csstext.inspect
+    assert_match(regex, csstext, "(#{caller_info}): "+msg2pass)
+  end
+
   # @see https://stackoverflow.com/questions/13187753/rails3-jquery-autocomplete-how-to-test-with-rspec-and-capybara
   # No need of sleep!
   #

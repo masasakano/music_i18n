@@ -1030,6 +1030,12 @@ class BaseWithTranslation < ApplicationRecord
     Translation.find_by_regex(*args, translatable_type: self.name, **restkeys)
   end
 
+  # Wrapper of {Translation.select_partial_str}, returning {Translation}-s of only this class
+  #
+  # Not particularly first because Ruby engine as opposed to SQL is used in general.
+  def self.select_translations_partial_str(*args, **restkeys)
+  end
+
   # Wrapper of {Translation.select_regex}, returning {Translation}-s of only this class
   #
   # Search {Translation} to find matching {BaseWithTranslation}-s.

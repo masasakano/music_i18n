@@ -64,6 +64,11 @@ class Musics::MergesControllerTest < ActionDispatch::IntegrationTest
  
     get musics_edit_merge_users_url(@music, params: {music: {other_music_id: musics(:music_ihojin1).id}})
     assert_response :success
+ 
+    Music.create_with_orig_translation!(note: 'MergesController-temp-creation', translation: {title: "異邦人でっしゃろ", langcode: 'ja'})  # Create another Music containing "異邦人" in the title
+    get musics_edit_merge_users_url(@music, params: {music: {other_music_id: nil, other_music_title: "異邦人" }})
+    assert_response :success
+    flash_regex_assert(/found more than 1 Music/i, type: :warning)
   end
 
   test "should update1" do

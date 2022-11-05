@@ -4,6 +4,7 @@ class Musics::MergesController < ApplicationController
 
   FORM_MERGE = {
     other_music_id: 'other_music',
+    other_music_title: 'other_music_title',
     to_index: 'to_index',
     lang_orig: 'lang_orig',
     lang_trans: 'lang_trans',
@@ -13,6 +14,35 @@ class Musics::MergesController < ApplicationController
     year: 'year',
     note: 'note',
   }.with_indifferent_access
+
+  # @return [Array<Music>] e.g., ["Proclaimers, The [en] [ID=123]"] or ["AI", "Beatles, The"]
+  def self.autocomplete_music_models(str, except_id: nil, with_langcode: false, with_id: false)
+    search_str, opts = prepare_autocomplete_musics(str, except_id: except_id)
+    Music.select_regex(:titles, /#{search_str}/, **opts).uniq
+  end
+
+  # @return [Array<String>] e.g., ["Proclaimers, The [en] [ID=123]"] or ["AI", "Beatles, The"]
+  def self.autocomplete_musics(str, except_id: nil, with_langcode: false, with_id: false)
+    search_str, opts = prepare_autocomplete_musics(str, except_id: except_id)
+    results = Music.select_translations_regex(:titles, search_str, **opts)
+    results.map{|i|
+      str_lc = (with_langcode ? sprintf(" [%s]", i.langcode) : "")
+      str_id = (with_id ? sprintf("[ID=%d]", i.translatable_id) : "")
+      i + str_lc + str_id
+    }.uniq
+  end
+
+  # Preparation routine.
+  # @return [Array<String, Hash>] e.g., ["Queen", {lang: "en", where: ['id <> ?', 123]}]
+  def self.prepare_autocomplete_musics(str, except_id: nil)
+    re_locales = I18n.available_locales.map(&:to_s).join("|")
+    lang = nil
+    search_str = str.sub(/\s*\[(?:#{re_locales})\]\s*(?:\[ID=[^\]]*\]\s*)\Z/m){ lang = $1; "" }
+    opts = {}
+    opts[:lang] = lang if lang
+    opts[:where] = ['id <> ?', (except_id.respond_to?(:id) ? except_id.id : except_id)] if except_id
+    [search_str, opts]
+  end
 
   # @raise [ActionController::UrlGenerationError] if no Music ID is found in the path.
   def new
@@ -85,7 +115,7 @@ class Musics::MergesController < ApplicationController
     def set_musics
       @musics = []
       @musics << Music.find(params[:id])
-      @musics << Music.find(get_other_music_id)
+      @musics << get_other_music
     end
 
     # Only allow a list of trusted parameters through.
@@ -109,10 +139,33 @@ class Musics::MergesController < ApplicationController
     # Gets the other Music ID, which is either
     # params[:other_music_id] or params[:music][:other_music_id]
     #
+    # @return [Music]
     # @raise [ActionController::ParameterMissing] if neither exists.
-    def get_other_music_id
+    # @raise [ActiveRecord::RecordNotFound] if :other_music_id is not given and no Music matches :other_music_title
+    def get_other_music
       key = :other_music_id
-      params.permit(key)[key] || params.require(:music).permit(key)[key]
+      other_id = (params.permit(key)[key] || params.require(:music).permit(key)[key])
+      return Music.find(other_id) if !other_id.blank?
+
+      key = :other_music_title
+      mu_title = params.require(:music).permit(key)[key]
+      return Music.find(nil) if mu_title.blank?  # raises ActiveRecord::RecordNotFound
+
+      if /\[ID=(\d+)\]\s*\Z/m =~ mu_title
+        return Music.find($1)
+      end
+
+      musics = self.class.autocomplete_music_models(mu_title, except_id: params[:id], with_langcode: true, with_id: true)
+      return Music.find(nil) if musics.empty?  # raises ActiveRecord::RecordNotFound
+      if musics.size > 1
+        if flash[:warning]
+          flash[:warning] << "  " 
+        else
+          flash[:warning] = ""
+        end
+        flash[:warning] << sprintf("Found more than 1 Music for word=(%s).", mu_title)
+      end
+      musics.first
     end
 
     # @return [Integer] 1 if 0 is given, or vice versa

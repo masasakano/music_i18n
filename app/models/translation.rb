@@ -793,6 +793,30 @@ class Translation < ApplicationRecord
   end
 
 
+  # wrapper of {Translation.select_regex}
+  #
+  # The search word is String, as given by a human over a UI.
+  # Unlike {Translation.select_regex}, this runs {ModuleCommon#preprocess_space_zenkaku}.
+  # All spaces, including newlines, are ignored (both in query string and DB).
+  # Also, this deals with definite articles, i.e., both "The Beat" and "Beatles, Th" match
+  # "Beatles, The".
+  #
+  # @param kwd [Symbol, String, Array<String>, NilClass] See {Translation.select_regex}
+  # @param value [String] e.g., "The Beat" and "Beatles, Th"
+  #   Preprocessed with {ModuleCommon#preprocess_space_zenkaku}
+  # @param ignore_case [Boolean] if true (Def), case-insensitive search
+  # @param restkeys [Array] See {Translation.select_regex}
+  def self.select_partial_str(kwd, value, ignore_case: true, **restkeys)
+    str2re = preprocess_space_zenkaku(value).gsub(/\s+/m, " ").strip
+    _, rootstr, article = definite_article_with_or_not_at_tail_regexp(str2re) # in ModuleCommon
+
+    str2re = Regexp.quote(rootstr.gsub(/\s/, ""))#.gsub(/(?<!\\)((?:\\\\)*)\\ /, '\1 ')  # "\ " => " "
+    str2re << ".*," << article if !article.blank?
+    regex = Regexp.new(str2re, Regexp::MULTILINE | (ignore_case ? Regexp::IGNORECASE : 0))
+    #regex = Regexp.new(str2re, Regexp::EXTENDED | Regexp::MULTILINE | (ignore_case ? Regexp::IGNORECASE : 0))
+    select_regex(kwd, regex, sql_regexp: true, **restkeys)
+  end
+
   # Gets an array of {Translation}
   #
   # Search for matching {Translation}-s.
@@ -833,17 +857,18 @@ class Translation < ApplicationRecord
   #       joins: 'INNER JOIN engages ON translations.translatable_id = engages.music_id'
   # @param not_clause: [String, Array<String, Hash, Array>, NilClass] Rails where.not clause.
   #    See "where" for detail.
+  # @param sql_regexp [Boolean] If true (Def: false), and if value is Regexp, PostgreSQL +regexp_matches()+ is used. Efficient!
   # @param langcode: [String, NilClass] Optional argument, e.g., 'ja'. If nil, all languages.
   # @param translatable_type: [Class, String] Corresponding Class of the translation.
   # @param **restkeys: [Hash] Any other (exact) constraints to pass to {Translation}
   #    For example,  is_orig: true
   # @return [Translation::ActiveRecord_Relation, Array<Translation>]
   #def self.select_regex(kwd, value, langcode: nil, translatable_type: nil, where: nil, joins: nil, not_clause: nil, **restkeys)
-  def self.select_regex(kwd, value, where: nil, joins: nil, not_clause: nil, **restkeys)
+  def self.select_regex(kwd, value, where: nil, joins: nil, not_clause: nil, sql_regexp: false, **restkeys)
     allkeys = get_allkeys_for_select_regex(kwd)
     common_opts = init_common_opts_for_select(**restkeys)
 
-    if allkeys.empty? || value.blank? || value.respond_to?(:gsub)
+    if allkeys.empty? || value.blank? || value.respond_to?(:gsub) || (sql_regexp && value.respond_to?(:named_captures))
       select_regex_string(common_opts, allkeys, value, where, joins, not_clause, **restkeys) # => Translation::ActiveRecord_Relation
     elsif value.respond_to?(:named_captures)
       select_regex_regex( common_opts, allkeys, value, where, joins, not_clause, **restkeys) # => Array<Translation>
@@ -998,7 +1023,9 @@ class Translation < ApplicationRecord
   #
   # @param common_opts [Hash<Symbol, Object>] e.g., {:langcode=>"en", :translatable_type=>"Country"}
   # @param allkeys [Array<Symbol>] %i(title alt_title) etc
-  # @param value [Regexp] e.g., 'female'
+  # @param value [String, Regexp] e.g., 'female', /ab.*kg/. If Regexp, PostgreSQL Regexp is used (experimental!)
+  #    Note that PostgreSQL does NOT support the full power of Ruby Regexp!
+  #    Make sure your Regexp is PostgreSQL compatible!
   # @param where: [String, Array<String, Hash, Array>, NilClass] See {Translation.select_regex} for detail.
   # @param joins: [String, Array<String, Hash, Array>, NilClass] See {Translation.select_regex} for detail.
   # @param not_clause: [String, Array<String, Hash, Array>, NilClass]
@@ -1009,18 +1036,29 @@ class Translation < ApplicationRecord
       if allkeys.empty? || value.blank?
         {}
       else
-        mainkey = allkeys.shift  # the 1st element of allkeys is removed now!
-        {mainkey => value}
+        mainkey = allkeys.shift  # the 1st element of allkeys is removed now! (if String, NOT Regexp)
+        if value.respond_to?(:named_captures)
+          {}
+        else
+          {mainkey => value}
+        end
       end
 
     # The first title-related constraint is incorporated (to common_opts constraints like "translatable_type"):
     hs2pass = common_opts.merge(hstmp)
 
-    return make_joins_where(where, joins, not_clause) if hs2pass.empty?
-    # Note that if hs2pass.empty, any subsequent chain-action will result in NoMethodError
+    if value.respond_to?(:named_captures)
+    else
+      return make_joins_where(where, joins, not_clause) if hs2pass.empty?
+      # Note that if hs2pass.empty, any subsequent chain-action will result in NoMethodError
+    end
 
 begin
     alltrans = make_joins_where(where, joins, not_clause).where(**hs2pass)
+    if value.respond_to?(:named_captures)
+      re_str, reopts = regexp_ruby_to_postgres(value)
+      alltrans = _psql_where_regexp(alltrans, mainkey, re_str, reopts)
+    end
 rescue
   # This is reached when the app is run even for console before the first migration or seeded (for some reason).
   print "DEBUG-trans2(after-error)(#{__method__}): hs2pass=";p hs2pass
@@ -1032,12 +1070,46 @@ end
       # ActiveRecord converts "(A && B && C) || (A && B && D)"
       #                  into "A && B && (C || D)"
       # where "A && B" corresponds to "common_opts"
-      alltrans = alltrans.or(self.where(common_opts.merge({ek => value})))
+      tr2 =
+        if value.respond_to?(:named_captures)
+          _psql_where_regexp(self.where(common_opts), ek, re_str, reopts)
+        else
+          self.where(common_opts.merge({ek => value}))
+        end
+
+      alltrans = alltrans.or(
+        tr2
+      )
     end
 
     alltrans
   end
   private_class_method :select_regex_string
+
+  # Core routine for searching with PostgreSQL (this will be OR-ed)
+  #
+  # @return [Translation::ActiveRecord_Relation]
+  def self._psql_where_regexp(alltrans, key, re_str, reopts)
+    alltrans.where("regexp_match(translate(#{key.to_s}, ' ', ''), ?, ?) IS NOT NULL", re_str, reopts)
+  end
+  private_class_method :_psql_where_regexp
+
+  # Returns PostgreSQL Regexp String converted from Ruby Regexp
+  #
+  # Experimental. Multiline etc are not supported.
+  #
+  # @return [Array<String, String>] Regexp.to_s, Option-String for PostgreSQL
+  def self.regexp_ruby_to_postgres(regex)
+    mat = /\A\(\?([a-z]*)(?:\-([a-z]*))?:(.+)\)\z/.match regex.to_s
+    raise "Contact the code developer: regex=#{regex.inspect}" if !mat
+    opts = ""
+    %w(i m x).each do |ec|
+      opts << ec if mat[1].include? ec
+    end
+    opts.sub!(/m/, "n")
+    return [mat[3], opts] 
+  end
+  private_class_method :regexp_ruby_to_postgres
 
   # Core routine for {Translation.select_regex} for Regexp input
   #

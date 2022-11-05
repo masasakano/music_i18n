@@ -226,6 +226,28 @@ class TranslationTest < ActiveSupport::TestCase
     assert_equal 'male', trans.matched_string  # Now matched_attribute is set.
   end
 
+  test "Translation.select_partial_str" do
+    defopts = {ignore_case: true, translatable_type: Artist}
+    proclaimers = translations(:artist_proclaimers_en)
+    assert_equal "Proclaimers, The", proclaimers.title, "Sanity check"
+    assert_equal "en",               proclaimers.langcode, "Sanity check"
+    str = "proc"
+    assert_equal 1, Translation.select_partial_str(:title,  "Proclaimers, The", **defopts).count, 'Sanity check for fixtures'
+    assert_equal 0, Translation.select_partial_str(:titles, "proclaimers, The", **(defopts.merge({ignore_case: false}))).count, 'ignore_case should ignore, but...'
+    male = Sex['male']
+    process    = Artist.create_with_orig_translation!({sex: male, note: 'TransModel-temp-creation1'}, translation: {title: "Process, The", langcode: 'en'})
+    proc_space = Artist.create_with_orig_translation!({sex: male, note: 'TransModel-temp-creation2'}, translation: {title: "Proc Espace, The", langcode: 'en'})
+
+    str = "proc"
+    assert_equal 3, Translation.select_partial_str(:titles, str, **defopts).count
+    str = "pr\u3000oc"
+    assert_equal 3, Translation.select_partial_str(:titles, str, **defopts).count
+    str = "ＰＲoce"
+    assert_equal 2, Translation.select_partial_str(:titles, str, **defopts).count
+    str = "The Pro"
+    assert_equal 3, Translation.select_partial_str(:titles, str, **defopts).count, "'The Pro' should be converted into /pro.*,the/i"
+  end
+
   test "update_or_create_regex! (and _by!)" do
     trans_tmpl = translations :artist1_en
     tid = trans_tmpl.id
