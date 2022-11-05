@@ -663,6 +663,32 @@ module ModuleCommon
     end
   end
 
+  # Returns 2-element Array of PostgreSQL Regexp String and Options converted from Ruby Regexp
+  #
+  # Experimental.
+  # Ruby-specific expressions are not supported. Note +\Z+ is supported in Potgres
+  # but +\z+ is NOT (but +\z+ is converted in most obvious cases only).
+  #
+  # In PostgreSQL, *ARE* (Advanced Regexp) is assumed to be used.
+  #
+  # Another important point is the behaviour of +Regexp::MULTILINE+ is very different!
+  # There is no option in Ruby corresponding to the PostgreSQL default ("s").
+  # Ruby Regexp **without** +Regexp::MULTILINE+ (Ruby Default) is
+  # PostgreSQL "n" (=non-newline-sensitive; alias is "m") option, whereas the Ruby with "m" is
+  # PostgreSQL "w" (=weird!) option.
+  # PostgreSQL has another "p" option (which Ruby does not have), which is the reverse of "w".
+  #
+  # @return [Array<String, String>] Regexp.to_s, Option-String for PostgreSQL
+  def regexp_ruby_to_postgres(regex)
+    mat = /\A\(\?([a-z]*)(?:\-([a-z]*))?:(.+)\)\z/.match regex.to_s
+    raise "Contact the code developer: regex=#{regex.inspect}" if !mat
+    opts = ""
+    opts << ?i if  mat[1].include? ?i
+    opts << ((mat[1].include?(?m)) ? ?w : ?n)  # the meanings are very different!
+    opts << ?x if  mat[1].include? ?x
+    return [mat[3].gsub(/(?<!\\)((?:\\\\)*)(\\)z\z/, '\1\2Z(?!\n)'), opts] 
+  end
+
   # Returns a reversed Hash for the given Array
   #
   # Keyas a content points to the index of the Array.

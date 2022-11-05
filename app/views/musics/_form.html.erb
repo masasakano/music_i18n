@@ -103,8 +103,8 @@
 <% if can?(:destroy, music) || can?(:update, Musics::MergesController) %>
   <div class="actions-destroy" style="margin-right: 1em;">
    <div class="actions" style="text-align: right">
-     <% if can? :update, Musics::MergesController %>
-       <%= button_to 'Merge with another Music', musics_new_merge_users_path(@music), method: :get, title: 'You will be asked to select Music to merge this one with.' %>
+     <% if !music.new_record? && can?(:update, Musics::MergesController) %>
+       <%= button_to 'Merge with another Music', musics_new_merge_users_path(music), method: :get, title: 'You will be asked to select Music to merge this one with.' %>
      <% end %>
 
      <% if !music.harami_vids.exists? && !music.harami1129s.exists? %>

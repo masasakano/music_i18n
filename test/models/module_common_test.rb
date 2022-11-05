@@ -121,5 +121,34 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_equal(/^xYz?/i,  remove_az_from_regexp(/^xYz?\z/i, remove_first: false, remove_last: true))
   end
 
+  test "regexp_ruby_to_postgres" do
+    assert_equal ["abc+d", "n"], regexp_ruby_to_postgres(/abc+d/)
+    conn = ActiveRecord::Base.connection
+    assert     _get_rows00(_res_postgres(conn, /abc+d/,   "abcccd"))
+    assert_nil _get_rows00(_res_postgres(conn, /abc+d/,   "Abcccd"))
+    assert     _get_rows00(_res_postgres(conn, /abc+d/im, "Abcccd"))
+    assert_nil _get_rows00(_res_postgres(conn, /\Ac.d/xi,   "c\nd"))
+    assert     _get_rows00(_res_postgres(conn, /\Ac.d/mi,   "c\nd"))
+    assert_nil _get_rows00(_res_postgres(conn, /\Ac.d/mi, "\nc\nd"))
+    assert     _get_rows00(_res_postgres(conn, /^c.d/mi,  "\nc\nd"))
+  end
+
+  private
+    # @return [ActiveRecord::Result] PostgreSQL Regexp result. +.rows[0][0]+ always exists but may be nil.
+    def _res_postgres(conn, re_ruby, str)
+      re_psql, re_opts = regexp_ruby_to_postgres(re_ruby)
+      # print "DEBUG(#{__method__}): ary=";p [re_psql, re_opts]
+      conn.exec_query("SELECT REGEXP_MATCHES('#{str}', '#{re_psql}', '#{re_opts}');") 
+    end
+
+    # `ActiveRecord::Result.rows` is sometimes `[]` and sometimes `[[nil]]` when empty.
+    # This returns nil in either case.
+    #
+    # @param res [ActiveRecord::Result]
+    # @return [String, NilClass]
+    def _get_rows00(res)
+      return nil if res.rows.empty?
+      res.rows[0][0]
+    end
 end
 

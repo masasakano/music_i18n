@@ -812,9 +812,9 @@ class Translation < ApplicationRecord
 
     str2re = Regexp.quote(rootstr.gsub(/\s/, ""))#.gsub(/(?<!\\)((?:\\\\)*)\\ /, '\1 ')  # "\ " => " "
     str2re << ".*," << article if !article.blank?
-    regex = Regexp.new(str2re, Regexp::MULTILINE | (ignore_case ? Regexp::IGNORECASE : 0))
+    regex = Regexp.new(str2re, (ignore_case ? Regexp::IGNORECASE : 0))
     #regex = Regexp.new(str2re, Regexp::EXTENDED | Regexp::MULTILINE | (ignore_case ? Regexp::IGNORECASE : 0))
-    select_regex(kwd, regex, sql_regexp: true, **restkeys)
+    select_regex(kwd, regex, sql_regexp: true, space_sensitive: false, **restkeys)
   end
 
   # Gets an array of {Translation}
@@ -857,19 +857,26 @@ class Translation < ApplicationRecord
   #       joins: 'INNER JOIN engages ON translations.translatable_id = engages.music_id'
   # @param not_clause: [String, Array<String, Hash, Array>, NilClass] Rails where.not clause.
   #    See "where" for detail.
-  # @param sql_regexp [Boolean] If true (Def: false), and if value is Regexp, PostgreSQL +regexp_matches()+ is used. Efficient!
+  # @param sql_regexp [Boolean] If true (Def: false), and if value is Regexp, PostgreSQL +regexp_match()+ is used. Efficient!
+  # @param space_sensitive [Boolean] This is referred to ONLY WHEN +value+ is Regexp and +sql_regexp+ is true.
+  #    If true (Def; n.b., the default in {Translation.select_regex_string} is false!),
+  #    spaces in DB entries are significant.
+  #    Note that even if false (Def), this method does nothing to the input +value+ (Regexp)
+  #    and so it is the caller's responsibility to set the Regexp +value+ accordingly.
   # @param langcode: [String, NilClass] Optional argument, e.g., 'ja'. If nil, all languages.
   # @param translatable_type: [Class, String] Corresponding Class of the translation.
   # @param **restkeys: [Hash] Any other (exact) constraints to pass to {Translation}
   #    For example,  is_orig: true
   # @return [Translation::ActiveRecord_Relation, Array<Translation>]
+  # @note To developers. Technically, option +space_sensitive+ can be taken into account
+  #    for any Regexp +value+, regardless of +sql_regexp+
   #def self.select_regex(kwd, value, langcode: nil, translatable_type: nil, where: nil, joins: nil, not_clause: nil, **restkeys)
-  def self.select_regex(kwd, value, where: nil, joins: nil, not_clause: nil, sql_regexp: false, **restkeys)
+  def self.select_regex(kwd, value, where: nil, joins: nil, not_clause: nil, sql_regexp: false, space_sensitive: true, **restkeys)
     allkeys = get_allkeys_for_select_regex(kwd)
     common_opts = init_common_opts_for_select(**restkeys)
 
     if allkeys.empty? || value.blank? || value.respond_to?(:gsub) || (sql_regexp && value.respond_to?(:named_captures))
-      select_regex_string(common_opts, allkeys, value, where, joins, not_clause, **restkeys) # => Translation::ActiveRecord_Relation
+      select_regex_string(common_opts, allkeys, value, where, joins, not_clause, space_sensitive: space_sensitive, **restkeys) # => Translation::ActiveRecord_Relation
     elsif value.respond_to?(:named_captures)
       select_regex_regex( common_opts, allkeys, value, where, joins, not_clause, **restkeys) # => Array<Translation>
     else
@@ -1029,9 +1036,13 @@ class Translation < ApplicationRecord
   # @param where: [String, Array<String, Hash, Array>, NilClass] See {Translation.select_regex} for detail.
   # @param joins: [String, Array<String, Hash, Array>, NilClass] See {Translation.select_regex} for detail.
   # @param not_clause: [String, Array<String, Hash, Array>, NilClass]
-  # @param **restkeys: [Hash] Any other (exact) constraints to pass to {Translation}
+  # @param space_sensitive [Boolean] This is referred to ONLY WHEN +value+ is Regexp.
+  #    If true (Def: false), spaces in DB entries are significant.
+  #    Note that even if false (Def), this method does nothing to the input +value+
+  #    and so it is the caller's responsibility to adjust Regexp +value+ accordingly.
+  # @param **restkeys [Hash] Any other (exact) constraints to pass to {Translation}
   # @return [Translation::ActiveRecord_Relation]
-  def self.select_regex_string(common_opts, allkeys, value, where, joins, not_clause=nil, **restkeys)
+  def self.select_regex_string(common_opts, allkeys, value, where, joins, not_clause=nil, space_sensitive: false, **restkeys)
     hstmp =
       if allkeys.empty? || value.blank?
         {}
@@ -1056,8 +1067,8 @@ class Translation < ApplicationRecord
 begin
     alltrans = make_joins_where(where, joins, not_clause).where(**hs2pass)
     if value.respond_to?(:named_captures)
-      re_str, reopts = regexp_ruby_to_postgres(value)
-      alltrans = _psql_where_regexp(alltrans, mainkey, re_str, reopts)
+      re_str, reopts = regexp_ruby_to_postgres(value) # defined in ./module_common.rb
+      alltrans = _psql_where_regexp(alltrans, mainkey, re_str, reopts, space_sensitive: space_sensitive)
     end
 rescue
   # This is reached when the app is run even for console before the first migration or seeded (for some reason).
@@ -1072,7 +1083,7 @@ end
       # where "A && B" corresponds to "common_opts"
       tr2 =
         if value.respond_to?(:named_captures)
-          _psql_where_regexp(self.where(common_opts), ek, re_str, reopts)
+          _psql_where_regexp(self.where(common_opts), ek, re_str, reopts, space_sensitive: space_sensitive)
         else
           self.where(common_opts.merge({ek => value}))
         end
@@ -1088,28 +1099,19 @@ end
 
   # Core routine for searching with PostgreSQL (this will be OR-ed)
   #
+  # All spaces are removed from the DB entries, *unless* space_sensitive is
+  # true (Def: false).
+  #
+  # @param space_sensitive [Boolean] If true (Def: false), spaces in DB entries are significant.
   # @return [Translation::ActiveRecord_Relation]
-  def self._psql_where_regexp(alltrans, key, re_str, reopts)
-    alltrans.where("regexp_match(translate(#{key.to_s}, ' ', ''), ?, ?) IS NOT NULL", re_str, reopts)
+  def self._psql_where_regexp(alltrans, key, re_str, reopts, space_sensitive: false)
+    if space_sensitive
+      alltrans.where("regexp_match(#{key.to_s}, ?, ?) IS NOT NULL", re_str, reopts)
+    else
+      alltrans.where("regexp_match(translate(#{key.to_s}, ' ', ''), ?, ?) IS NOT NULL", re_str, reopts)
+    end
   end
   private_class_method :_psql_where_regexp
-
-  # Returns PostgreSQL Regexp String converted from Ruby Regexp
-  #
-  # Experimental. Multiline etc are not supported.
-  #
-  # @return [Array<String, String>] Regexp.to_s, Option-String for PostgreSQL
-  def self.regexp_ruby_to_postgres(regex)
-    mat = /\A\(\?([a-z]*)(?:\-([a-z]*))?:(.+)\)\z/.match regex.to_s
-    raise "Contact the code developer: regex=#{regex.inspect}" if !mat
-    opts = ""
-    %w(i m x).each do |ec|
-      opts << ec if mat[1].include? ec
-    end
-    opts.sub!(/m/, "n")
-    return [mat[3], opts] 
-  end
-  private_class_method :regexp_ruby_to_postgres
 
   # Core routine for {Translation.select_regex} for Regexp input
   #
