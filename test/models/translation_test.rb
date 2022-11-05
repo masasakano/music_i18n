@@ -228,18 +228,28 @@ class TranslationTest < ActiveSupport::TestCase
 
   test "Translation.select_partial_str" do
     defopts = {ignore_case: true, translatable_type: Artist}
-    proclaimers = translations(:artist_proclaimers_en)
-    assert_equal "Proclaimers, The", proclaimers.title, "Sanity check"
-    assert_equal "en",               proclaimers.langcode, "Sanity check"
+    proclaimers_en = translations(:artist_proclaimers_en)
+    assert_equal "Proclaimers, The", proclaimers_en.title, "Sanity check"
+    assert_equal "en",               proclaimers_en.langcode, "Sanity check"
     str = "proc"
     assert_equal 1, Translation.select_partial_str(:title,  "Proclaimers, The", **defopts).count, 'Sanity check for fixtures'
     assert_equal 0, Translation.select_partial_str(:titles, "proclaimers, The", **(defopts.merge({ignore_case: false}))).count, 'ignore_case should ignore, but...'
     male = Sex['male']
-    process    = Artist.create_with_orig_translation!({sex: male, note: 'TransModel-temp-creation1'}, translation: {title: "Process, The", langcode: 'en'})
-    proc_space = Artist.create_with_orig_translation!({sex: male, note: 'TransModel-temp-creation2'}, translation: {title: "Proc Espace, The", langcode: 'en'})
+    process    = Artist.create_with_orig_translation!({sex: male, note: 'TransModel-temp-creation1'}, translation: {title: "Process, The", langcode: 'en'})  # Artist
+    #proc_space = Artist.create_with_orig_translation!({sex: male, note: 'TransModel-temp-creation2'}, translation: {title: "Proc Espace, The", langcode: 'en'})  # Artist
+    proc_space = Artist.create_with_orig_translation!({sex: male, note: 'TransModel-temp-creation2'}, translation: {title: "tekitogokko", alt_title: "Proc Espace, The", langcode: 'en'})  # Artist
 
     str = "proc"
     assert_equal 3, Translation.select_partial_str(:titles, str, **defopts).count
+
+    # checking SQL to confirm the OR clause is enclosed with parentheses
+    # so AND-OR conditions are correct.
+    rela = Translation.select_partial_str(:titles, str, not_clause: {id: [proclaimers_en.id, process.translations.first.id]}, **defopts)
+    str_after_or = /.*?(?=\(regexp_match)/.match(rela.to_sql).post_match  # "(regexp_match(translate(title, ' ', ''), 'proc', 'in') IS NOT NULL OR regexp_match(translate(alt_title, ' ', ''), 'proc', 'in') IS NOT NULL)"
+    mat = /(\((?>[^()]+|(\g<1>))*\))/.match(str_after_or)  # matching strings inside matched parentheses
+    assert_equal str_after_or.length, mat[0].length, "the entier OR clause should be inside the parentheses, but..."
+    assert_equal 1, rela.count, "NOT clause should work, but..."
+
     str = "pr\u3000oc"
     assert_equal 3, Translation.select_partial_str(:titles, str, **defopts).count
     str = "ＰＲoce"

@@ -119,6 +119,7 @@ table.datagrid {
 
 form {
     margin-left: 1rem;
+    padding-bottom: 1rem;
 }
 
 form.datagrid-form {
@@ -140,6 +141,11 @@ form div.field textarea {
 form input.input_year {
   min-width: 9em;
   max-width: 10em;
+}
+
+form div.field input[type="text"].input_int {
+  min-width: 10em;
+  max-width: 12em;
 }
 
 form div.field input[type="text"].input_float {

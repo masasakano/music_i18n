@@ -1032,8 +1032,45 @@ class BaseWithTranslation < ApplicationRecord
 
   # Wrapper of {Translation.select_partial_str}, returning {Translation}-s of only this class
   #
-  # Not particularly first because Ruby engine as opposed to SQL is used in general.
+  # Using SQL directly.
+  #
+  # @param *args: [Array]
+  # @param **restkeys: [Hash] 
+  # @return [Translation::ActiveRecord_Relation]
   def self.select_translations_partial_str(*args, **restkeys)
+    Translation.select_partial_str(*args, translatable_type: self.name, **restkeys)
+  end
+
+  # Wrapper of {BaseWithTranslation.select_translations_partial_str}, returning models
+  #
+  # Using SQL directly.
+  #
+  # @param *args: [Array]
+  # @param **restkeys: [Hash] 
+  # @return [Array<BaseWithTranslation>]
+  def self.select_partial_str(*args, **restkeys)
+    select_translations_partial_str(*args, **restkeys).map{|i| i.translatable}.uniq
+  end
+
+  # Wrapper of {BaseWithTranslation.select_translations_partial_str}, exceptint {Translation}s of self
+  #
+  # @param *args: [Array]
+  # @param **restkeys: [Hash] 
+  # @return [Translation::ActiveRecord_Relation]
+  def select_translations_partial_str_except_self(*args, **restkeys)
+    ids = translations.pluck(:id)
+    self.class.select_translations_partial_str(*args, not_clause: {id: ids}, **restkeys)
+  end
+
+  # Wrapper of {#select_translations_partial_str_except_self}, returning
+  #
+  # @param *args: [Array]
+  # @param **restkeys: [Hash] 
+  # @return [Array<String>]
+  def select_titles_partial_str_except_self(*args, **restkeys)
+    select_translations_partial_str_except_self(*args, **restkeys).map{|i| i.translatable}.uniq.map{|em|
+      em.title_or_alt
+    }
   end
 
   # Wrapper of {Translation.select_regex}, returning {Translation}-s of only this class

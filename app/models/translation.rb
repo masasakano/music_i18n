@@ -82,7 +82,7 @@ class Translation < ApplicationRecord
       hs2pass = %i(title alt_title langcode translatable_type translatable_id).map{|i| [i, record.send(i)]}.to_h
       cmped = hs2pass.values_at(:title, :alt_title)
       if !cmped.compact.empty?
-        rel = record.class.where(**hs2pass)
+        rel = record.class.where(hs2pass)
         rel = rel.where.not(id: record.id) unless record.new_record?  # For update
         if rel.count > 0
           record.errors.add :base, "Combination of (title, alt_title) must be unique: #{cmped.inspect}" # i.e., no two identical translations should associate a single entity.
@@ -801,6 +801,9 @@ class Translation < ApplicationRecord
   # Also, this deals with definite articles, i.e., both "The Beat" and "Beatles, Th" match
   # "Beatles, The".
   #
+  # @example Returning Translations containing "procla" excluding IDs of 5 or 8.
+  #    Translation.select_partial_str(:titles, 'Procla', not_clause: [{id: [5, 8]}])
+  #
   # @param kwd [Symbol, String, Array<String>, NilClass] See {Translation.select_regex}
   # @param value [String] e.g., "The Beat" and "Beatles, Th"
   #   Preprocessed with {ModuleCommon#preprocess_space_zenkaku}
@@ -1043,54 +1046,27 @@ class Translation < ApplicationRecord
   # @param **restkeys [Hash] Any other (exact) constraints to pass to {Translation}
   # @return [Translation::ActiveRecord_Relation]
   def self.select_regex_string(common_opts, allkeys, value, where, joins, not_clause=nil, space_sensitive: false, **restkeys)
-    hstmp =
-      if allkeys.empty? || value.blank?
-        {}
-      else
-        mainkey = allkeys.shift  # the 1st element of allkeys is removed now! (if String, NOT Regexp)
-        if value.respond_to?(:named_captures)
-          {}
-        else
-          {mainkey => value}
-        end
-      end
+    base_rela = make_joins_where(where, joins, not_clause, parent: self.where(common_opts))
+    return base_rela if (allkeys.empty? || value.blank?)
 
-    # The first title-related constraint is incorporated (to common_opts constraints like "translatable_type"):
-    hs2pass = common_opts.merge(hstmp)
-
-    if value.respond_to?(:named_captures)
-    else
-      return make_joins_where(where, joins, not_clause) if hs2pass.empty?
-      # Note that if hs2pass.empty, any subsequent chain-action will result in NoMethodError
-    end
-
-begin
-    alltrans = make_joins_where(where, joins, not_clause).where(**hs2pass)
     if value.respond_to?(:named_captures)
       re_str, reopts = regexp_ruby_to_postgres(value) # defined in ./module_common.rb
-      alltrans = _psql_where_regexp(alltrans, mainkey, re_str, reopts, space_sensitive: space_sensitive)
     end
-rescue
-  # This is reached when the app is run even for console before the first migration or seeded (for some reason).
-  print "DEBUG-trans2(after-error)(#{__method__}): hs2pass=";p hs2pass
-  logger.debug "DEBUG-trans2(after-error)(#{__method__}): hs2pass="+hs2pass.inspect
-raise
-end
 
-    allkeys.each do |ek|
-      # ActiveRecord converts "(A && B && C) || (A && B && D)"
-      #                  into "A && B && (C || D)"
-      # where "A && B" corresponds to "common_opts"
-      tr2 =
-        if value.respond_to?(:named_captures)
-          _psql_where_regexp(self.where(common_opts), ek, re_str, reopts, space_sensitive: space_sensitive)
-        else
-          self.where(common_opts.merge({ek => value}))
-        end
+    rela2ors = allkeys.map{ |ek|
+      if value.respond_to?(:named_captures)
+        _psql_where_regexp(base_rela, ek, re_str, reopts, space_sensitive: space_sensitive)
+      else
+        base_rela.where({ek => value})
+      end
+    }
 
-      alltrans = alltrans.or(
-        tr2
-      )
+    # ActiveRecord converts "(A && B && C) || (A && B && D)"
+    #                  into "A && B && (C || D)"
+    # where "A && B" corresponds to "common_opts"
+    alltrans = rela2ors.shift
+    rela2ors.each do |ei|
+      alltrans = alltrans.or(ei)
     end
 
     alltrans
@@ -1102,16 +1078,33 @@ end
   # All spaces are removed from the DB entries, *unless* space_sensitive is
   # true (Def: false).
   #
+  # @param key [Symbol, String]
+  # @param re_str [String] of PostgreSQL Regexp expressions
+  # @param reopts [String] of PostgreSQL Regexp options
   # @param space_sensitive [Boolean] If true (Def: false), spaces in DB entries are significant.
   # @return [Translation::ActiveRecord_Relation]
   def self._psql_where_regexp(alltrans, key, re_str, reopts, space_sensitive: false)
-    if space_sensitive
-      alltrans.where("regexp_match(#{key.to_s}, ?, ?) IS NOT NULL", re_str, reopts)
-    else
-      alltrans.where("regexp_match(translate(#{key.to_s}, ' ', ''), ?, ?) IS NOT NULL", re_str, reopts)
-    end
+    expre = _psql_where_regexp_core(key, space_sensitive: space_sensitive)
+    alltrans.where(expre, re_str, reopts)
   end
   private_class_method :_psql_where_regexp
+
+  # Returns the String expressoin for Regexp where
+  #
+  # All spaces are removed from the DB entries, *unless* space_sensitive is
+  # true (Def: false).
+  #
+  # @param key [Symbol, String]
+  # @param space_sensitive [Boolean] If true (Def: false), spaces in DB entries are significant.
+  # @return [String]
+  def self._psql_where_regexp_core(key, space_sensitive: false)
+    if space_sensitive
+      "regexp_match(#{key.to_s}, ?, ?) IS NOT NULL"
+    else
+      "regexp_match(translate(#{key.to_s}, ' ', ''), ?, ?) IS NOT NULL"
+    end
+  end
+  private_class_method :_psql_where_regexp_core
 
   # Core routine for {Translation.select_regex} for Regexp input
   #
@@ -1151,9 +1144,10 @@ end
   # @param where: [String, Array<String, Hash, Array>, NilClass]
   # @param joins: [String, Array<String, Hash, Array>, NilClass]
   # @param not_clause: [String, Array<String, Hash, Array>, NilClass]
-  # @return [Translation, Translation::ActiveRecord_Relation]
-  def self.make_joins_where(where, joins, not_clause=nil)
-    ret = self
+  # @param parent [Translation::ActiveRecord_Relation, NilClass]
+  # @return [Translation::ActiveRecord_Relation]
+  def self.make_joins_where(where, joins, not_clause=nil, parent: nil)
+    ret = (parent || self.where('true'))
     ret = make_joins_where_core(ret, :joins, joins) if joins
     ret = make_joins_where_core(ret, :where, where) if where
     ret = make_joins_where_core(ret, :not  , not_clause) if not_clause
@@ -1170,8 +1164,8 @@ end
   # @return [Translation, Translation::ActiveRecord_Relation]
   def self.make_joins_where_core(obj, kind, clause)
     return obj if clause.blank?
-    return make_where_not(obj, kind,   clause) if clause.respond_to?(:gsub)
-    return make_where_not(obj, kind, **clause) if clause.respond_to?(:each_pair)
+    return make_where_not(obj, kind, clause) if clause.respond_to?(:gsub)
+    return make_where_not(obj, kind, clause) if clause.respond_to?(:each_pair)
 
     # now, Array === clause
     if clause.size == 2 && clause[0].respond_to?(:gsub) && clause[1].respond_to?(:each_pair)
@@ -1200,7 +1194,7 @@ end
   # @param **opts [Hash] parameters to passs to where etc.
   # @return [Translation, Translation::ActiveRecord_Relation]
   def self.make_where_not(obj, kind, *args, **opts)
-    obj = obj.where if kind == :not
+    return obj.where.not(*args, **opts) if kind == :not
     obj.send(kind, *args, **opts)
   end
   private_class_method :make_where_not
@@ -1441,7 +1435,7 @@ end
   def self.find_all_by_mains(nkeys=:auto, **inprms)
     arkeys = keys_to_identify(inprms.keys, nkeys)
     firstprms, _ = split_hash_with_keys(inprms, arkeys+%i(langcode translatable translatable_type translatable_id))
-    Translation.where(**firstprms)
+    Translation.where(firstprms)
   end
 
   # Wrapper of {Translation.find_all_by_mains} but returns the first element.

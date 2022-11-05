@@ -17,16 +17,23 @@
 <%= form_with(model: @music, url: musics_edit_merge_users_path(@music), method: "get") do |form| %>
   <div class="field">
     <%= form.label :other_music_id, "Music-ID (to merge this with)" %>
-    <%= form.text_area :other_music_id %>
+    <%= form.text_field :other_music_id, class: "input_int" %>
   </div>
 
   <div class="field field-note">
     <%= form.label :other_music_title %>
-    <%= form.text_area :other_music_title %>
+    <%= form.text_field :other_music_title, id: "music_with_id" %>
+  </div>
+
+  <div class="actions">
+    <%= form.submit 'Proceed' %> (to specify the details)
+  </div>
+  <div class="actions">
+  <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
   </div>
 <% end %>
 
-<%= link_to "Back to Music ID="+@music.id.to_s, music_path(@music) %>: (<%= mu_title %>) |
-<%= link_to 'Music Index', musics_path %>
+<%= link_to "Back to Music ID="+@music.id.to_s, music_path(@music) %>: (<%= mu_title %>)<br>
+<%= link_to 'Musics Index', musics_path %>
 
 
