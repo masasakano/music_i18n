@@ -36,8 +36,10 @@ class Ability
     alias_action :create, :read,                    to: :cr
     alias_action :update, :destroy,                 to: :ud   # including :edit
 
+    can :index, Musics::Merges::MusicWithIdsController
+
     # user ||= User.new # Providing an unlogged-in user is created with User.new
-    return if !user   # to prohibit everything needing authorization (but :read) from not-logged in users.
+return if !user   # to prohibit everything needing authorization (but :read) from not-logged in users.
 
     can :manage, :session
     can :read, [HaramiVid, Music, Artist]

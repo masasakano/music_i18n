@@ -15,34 +15,17 @@ class Musics::MergesController < ApplicationController
     note: 'note',
   }.with_indifferent_access
 
-  # @return [Array<Music>] e.g., ["Proclaimers, The [en] [ID=123]"] or ["AI", "Beatles, The"]
-  def self.autocomplete_music_models(str, except_id: nil, with_langcode: false, with_id: false)
-    search_str, opts = prepare_autocomplete_musics(str, except_id: except_id)
-    Music.select_regex(:titles, /#{search_str}/, **opts).uniq
-  end
-
-  # @return [Array<String>] e.g., ["Proclaimers, The [en] [ID=123]"] or ["AI", "Beatles, The"]
-  def self.autocomplete_musics(str, except_id: nil, with_langcode: false, with_id: false)
-    search_str, opts = prepare_autocomplete_musics(str, except_id: except_id)
-    results = Music.select_translations_regex(:titles, search_str, **opts)
-    results.map{|i|
-      str_lc = (with_langcode ? sprintf(" [%s]", i.langcode) : "")
-      str_id = (with_id ? sprintf("[ID=%d]", i.translatable_id) : "")
-      i + str_lc + str_id
-    }.uniq
-  end
-
   # Preparation routine.
-  # @return [Array<String, Hash>] e.g., ["Queen", {lang: "en", where: ['id <> ?', 123]}]
-  def self.prepare_autocomplete_musics(str, except_id: nil)
+  # @return [Array<String, String, Integer>] e.g., ["Queen", "en", 123]
+  def self.prepare_autocomplete_musics(str)
     re_locales = I18n.available_locales.map(&:to_s).join("|")
-    lang = nil
-    search_str = str.sub(/\s*\[(?:#{re_locales})\]\s*(?:\[ID=[^\]]*\]\s*)\Z/m){ lang = $1; "" }
-    opts = {}
-    opts[:lang] = lang if lang
-    opts[:where] = ['id <> ?', (except_id.respond_to?(:id) ? except_id.id : except_id)] if except_id
-    [search_str, opts]
+    lcode = nil
+    model_id = nil
+    search_str = str.sub(/(?:\s*\[(#{re_locales})\]\s*)(?:\[ID=(\d+)*\]\s*)\z/m){ lcode = $1; model_id = $2; "" }
+    model_id = (model_id.blank? ? nil : model_id.to_i)  # nil or Integer
+    [search_str, lcode, model_id] 
   end
+
 
   # @raise [ActionController::UrlGenerationError] if no Music ID is found in the path.
   def new
@@ -51,9 +34,17 @@ class Musics::MergesController < ApplicationController
   # @raise [ActionController::UrlGenerationError] if no Music ID is found in the path.
   # @raise [ActionController::ParameterMissing] if the other Music ID is not specified (as GET).
   def edit
+    if @musics.size != 2
+      msg = 'No Music matches the given one. Try a different title.'
+      respond_to do |format|
+        format.html { redirect_to musics_new_merge_users_path(@musics[0]), alert: msg }
+        format.json { render json: {error: msg}, status: :unprocessable_entity }
+      end
+    end
   end
 
   def update
+    raise 'This should never happen - necessary parameter is missing.' if @musics.size != 2
     @to_index = merge_params[:to_index].to_i
     begin
       ActiveRecord::Base.transaction do
@@ -115,7 +106,12 @@ class Musics::MergesController < ApplicationController
     def set_musics
       @musics = []
       @musics << Music.find(params[:id])
-      @musics << get_other_music
+      begin
+        @musics << get_other_music
+      rescue ActiveRecord::RecordNotFound
+        # Specified Title for Edit is not found.  For update, this should never happen.
+        # As a result, @musics.size == 1
+      end
     end
 
     # Only allow a list of trusted parameters through.
@@ -149,23 +145,26 @@ class Musics::MergesController < ApplicationController
 
       key = :other_music_title
       mu_title = params.require(:music).permit(key)[key]
-      return Music.find(nil) if mu_title.blank?  # raises ActiveRecord::RecordNotFound
+      return Music.find(nil) if !mu_title || mu_title.strip.blank?  # raises ActiveRecord::RecordNotFound
 
-      if /\[ID=(\d+)\]\s*\Z/m =~ mu_title
-        return Music.find($1)
-      end
+      search_str, lcode, model_id = self.class.prepare_autocomplete_musics(mu_title)
+      return Music.find(model_id) if model_id
 
-      musics = self.class.autocomplete_music_models(mu_title, except_id: params[:id], with_langcode: true, with_id: true)
-      return Music.find(nil) if musics.empty?  # raises ActiveRecord::RecordNotFound
-      if musics.size > 1
+      armusic = @musics[0].select_translations_partial_str_except_self(
+        :titles, search_str,
+        langcode: lcode
+      ).map{|i| i.translatable}.uniq
+
+      return Music.find(nil) if armusic.empty?  # raises ActiveRecord::RecordNotFound
+      if armusic.size > 1
         if flash[:warning]
           flash[:warning] << "  " 
         else
           flash[:warning] = ""
         end
-        flash[:warning] << sprintf("Found more than 1 Music for word=(%s).", mu_title)
+        flash[:warning] << sprintf("Found more than 1 Music for word=(%s).", mu_title.strip)
       end
-      musics.first
+      armusic.first
     end
 
     # @return [Integer] 1 if 0 is given, or vice versa

@@ -1052,24 +1052,37 @@ class BaseWithTranslation < ApplicationRecord
     select_translations_partial_str(*args, **restkeys).map{|i| i.translatable}.uniq
   end
 
-  # Wrapper of {BaseWithTranslation.select_translations_partial_str}, exceptint {Translation}s of self
+  # Wrapper of {BaseWithTranslation.select_translations_partial_str}, excepting {Translation}s of self
   #
   # @param *args: [Array]
-  # @param **restkeys: [Hash] 
+  # @param **restkeys: [Hash] should not include the key +not_clause+, unless you know what you're doing!!
   # @return [Translation::ActiveRecord_Relation]
   def select_translations_partial_str_except_self(*args, **restkeys)
     ids = translations.pluck(:id)
-    self.class.select_translations_partial_str(*args, not_clause: {id: ids}, **restkeys)
+    notclause = {}
+    if !restkeys.key?(:not_clause) || restkeys[:not_clause].blank?
+      restkeys.merge!({not_clause: {id: ids}})
+      # Users should not specify/use not_clause option for this method.
+    end
+    self.class.select_translations_partial_str(*args, **restkeys)
   end
 
-  # Wrapper of {#select_translations_partial_str_except_self}, returning
+  # Wrapper of {#select_translations_partial_str_except_self}, returning String (title)
+  #
+  # titles for self are excluded for the candidates.
+  #
+  # Note the displayed langcode may be empty, if {Translation#is_orig} is true
+  # for none of the associated Translations.
   #
   # @param *args: [Array]
+  # @param display_id [Boolean] If true (Def: false), locale and ID are also printed at the tail.
   # @param **restkeys: [Hash] 
   # @return [Array<String>]
-  def select_titles_partial_str_except_self(*args, **restkeys)
+  def select_titles_partial_str_except_self(*args, display_id: false, **restkeys)
     select_translations_partial_str_except_self(*args, **restkeys).map{|i| i.translatable}.uniq.map{|em|
-      em.title_or_alt
+      tit = em.title_or_alt
+      tail = (display_id ? sprintf(" [%s] [ID=%s]", tit.lcode, em.id) : "")  # tit.lcode == em.orig_langcode  in most cases, but orig_langcode may not be defined.
+      tit + tail
     }
   end
 
@@ -1521,6 +1534,8 @@ class BaseWithTranslation < ApplicationRecord
   # Note the alorithm is implemented specifically for this method,
   # instead of calling {#get_a_title}, to avoid too many queries to the DB.
   #
+  # Note that singleton method String#lcode is defined for each of the returned String title/alt_title
+  #
   # @example Suppose no translations for Italian exist. Forces the return to be Italian.
   #   place1.titles(langcode: 'it', lang_fallback_option: :never)
   #     # => [nil, nil]
@@ -1543,12 +1558,17 @@ class BaseWithTranslation < ApplicationRecord
     arret = [nil, nil]
 
     # Fallback
-    sorted_langs = self.class.sorted_langcodes(first_lang: langcode, hstrans: hstrans)
+    sorted_langs = self.class.sorted_langcodes(first_lang: langcode, hstrans: hstrans) # ["ja", "en"] etc.
     sorted_langs.each do |ecode|
       artmp = (hstrans[ecode] && hstrans[ecode].titles)
       if !artmp
         return arret if lang_fallback_option == :never
         next
+      end
+      artmp.each do |str|
+        next if !str
+        str.instance_eval{singleton_class.class_eval { attr_accessor "lcode" }}
+        str.lcode = ecode  # Define Singleton method String#lcode
       end
       arret.each_index do |i|
         arret[i] ||= artmp[i]
@@ -1586,6 +1606,8 @@ class BaseWithTranslation < ApplicationRecord
 
   # Core method for title, alt_title, alt_ruby, etc
   #
+  # Similarly to {#titles}, singleton method String#lcode is defined for the returned String.
+  #
   # @param method [Symbol] one of %i(title alt_title ruby alt_ruby romaji alt_romaji)
   # @param langcode: [String, NilClass] like 'ja'
   # @param lang_fallback: [Boolean] if true, when no translation is found
@@ -1600,7 +1622,11 @@ class BaseWithTranslation < ApplicationRecord
     hstrans = best_translations
     hstrans.each_pair do |ek, ev|
       ret = ev.public_send(method)
-      return ret if !ret.blank?
+      if !ret.blank?
+        ret.instance_eval{singleton_class.class_eval { attr_accessor "lcode" }}
+        ret.lcode = ek  # Define Singleton method String#lcode
+        return ret
+      end
     end
     nil
   end

@@ -65,10 +65,26 @@ class Musics::MergesControllerTest < ActionDispatch::IntegrationTest
     get musics_edit_merge_users_url(@music, params: {music: {other_music_id: musics(:music_ihojin1).id}})
     assert_response :success
  
-    Music.create_with_orig_translation!(note: 'MergesController-temp-creation', translation: {title: "異邦人でっしゃろ", langcode: 'ja'})  # Create another Music containing "異邦人" in the title
+    titnew = "異邦人でっしゃろ"
+    mu2 = Music.create_with_orig_translation!(note: 'MergesController-temp-creation', translation: {title: titnew, langcode: 'ja'})  # Create another Music containing "異邦人" in the title
     get musics_edit_merge_users_url(@music, params: {music: {other_music_id: nil, other_music_title: "異邦人" }})
     assert_response :success
     flash_regex_assert(/found more than 1 Music/i, type: :warning)
+ 
+    strin = sprintf("%s   [%s] [%d] ", titnew, "ja", mu2.id)
+    get musics_edit_merge_users_url(@music, params: {music: {other_music_id: nil, other_music_title: titnew }})
+    assert_response :success
+    assert css_select('table th').text.include? titnew
+ 
+    strin = sprintf("%s   [%s] ", titnew, "ja")
+    get musics_edit_merge_users_url(@music, params: {music: {other_music_id: nil, other_music_title: titnew }})
+    assert_response :success
+    assert css_select('table th').text.include? titnew
+ 
+    get musics_edit_merge_users_url(@music, params: {music: {other_music_id: nil, other_music_title: "こんな曲はきっとないことでしょう、どうするかな" }})
+    assert_response :redirect
+    follow_redirect!
+    assert css_select('p.alert').text.include? 'No Music matches'
   end
 
   test "should update1" do

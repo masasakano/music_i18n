@@ -11,6 +11,9 @@ Rails.application.routes.draw do
     get    ':id/merges/edit', to: 'merges#edit',    as: :edit_merge_users # => musics_edit_merge_path(:id) => /musics/:id/merges/edit
     match  ':id/merges',      to: 'merges#update',  as: :update_merge_users, via: [:put, :patch]
     resources :upload_music_csvs, only: [:create]
+    namespace :merges do
+      get 'music_with_ids',   to: 'music_with_ids#index'  # => musics_merges_music_with_ids_path => /musics/merges/music_with_ids#index
+    end
   end
   resources :engage_multi_hows, only: [:index, :show, :edit, :create]
   resources :engages, only: [:index, :show, :new, :create, :destroy]
