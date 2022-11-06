@@ -118,6 +118,12 @@ class ActiveSupport::TestCase
 
   # Validate HTML with W3C
   #
+  # To call this method, you need to put the following in your caller:
+  #
+  #   setup do
+  #     @validator = W3CValidators::NuValidator.new
+  #   end
+  # 
   # If environmental variable SKIP_W3C_VALIDATE is set and not '0' or 'false',
   # validation is skipped.
   #

@@ -1,19 +1,6 @@
-class Musics::MergesController < ApplicationController
+class Musics::MergesController < BaseMergesController
   before_action :set_music,  only: [:new]
   before_action :set_musics, only: [:edit, :update]
-
-  FORM_MERGE = {
-    other_music_id: 'other_music',
-    other_music_title: 'other_music_title',
-    to_index: 'to_index',
-    lang_orig: 'lang_orig',
-    lang_trans: 'lang_trans',
-    engage: 'engage',
-    prefecture_place: 'prefecture_place',
-    genre: 'genre',
-    year: 'year',
-    note: 'note',
-  }.with_indifferent_access
 
   # Preparation routine.
   # @return [Array<String, String, Integer>] e.g., ["Queen", "en", 123]
@@ -124,8 +111,10 @@ class Musics::MergesController < ApplicationController
     # If the parameter is nil (which happens when the user has no priviledge over
     # Translations), the default value is that of +:to_index+
     #
-    # Note that +merge_params[:lang_trans].to_i+ returns 0 when (1) it is indeed 0,
-    # and (2) it is nil; therefore it is not appropriate.
+    # Note that +merge_params[:to_index].to_i+ returns 0 when either
+    # (1) it is indeed 0,
+    # (2) it is nil;
+    # hence it is necessary to evaluate +merge_params[:to_index]+ as this method does.
     #
     # @param key [Symbol] Parameters for params. See the constant {FORM_MERGE}.
     def merge_param_int(key)

@@ -1788,3 +1788,35 @@ genre_classic_ja:
   update_user: 
   note: GenreClassicJa
 
+genre_modern_inst_en:
+  translatable: genre_modern_inst
+  translatable_type: Genre
+  langcode: en
+  title: Modern instrumental
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 10
+  create_user: user_moderator
+  update_user: user_moderator
+  note: GenreModernInstEn
+
+genre_modern_inst_ja:
+  translatable: genre_modern_inst
+  translatable_type: Genre
+  langcode: ja
+  title: 現代インスト
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji:
+  alt_romaji:
+  is_orig:
+  weight: 10
+  create_user: user_moderator
+  update_user: user_moderator
+  note: GenreModernInstJa
+

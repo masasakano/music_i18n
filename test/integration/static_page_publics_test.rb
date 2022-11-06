@@ -6,6 +6,10 @@ require "test_helper"
 class StaticPagePublicsIntegrationTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
+  setup do
+    @validator = W3CValidators::NuValidator.new
+  end
+
   # called after every single test
   teardown do
     # when controller is using cache it may be a good idea to reset it afterwards
@@ -22,6 +26,8 @@ class StaticPagePublicsIntegrationTest < ActionDispatch::IntegrationTest
 
     csssel = css_select('body')
     assert  csssel.first.text.include? static_page.content
+
+    w3c_validate("public static_page")  # defined in test_helper.rb (see for debugging help)
   end
 
   test "admin can see the index page" do

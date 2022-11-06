@@ -29,7 +29,11 @@ ja:
 
   layouts:
     add_translation: '翻訳追加'
+    create_model: "%{model}新規作成"
+    destroy_button: '削除実行'
     editing_guideline: '編集方針'
+    reset_button: "リセット (やり直し)"
+    submit_button: '送信'
     new_translations:
       model_language: "%{model}名の(原語の)言語"
       translations_can_be_added_later: "翻訳は後で追加"
@@ -73,3 +77,8 @@ ja:
       order:
         asc: "↑"
         desc: "↓"
+
+  engage_multi_hows:
+    index:
+      assoc_engage: "(他のArtistとこの曲「%{music_title}」)"
+

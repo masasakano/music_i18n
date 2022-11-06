@@ -29,20 +29,35 @@ class EngagesTest < ApplicationSystemTestCase
     sel = "//tr[td//text()[contains(., 'Proclaimers')]]"  # in table
     page.find(:xpath, sel).click_link("Edit", match: :first)
 
-    # EngageMultiHows#edit page
-    click_on "create a new Engage"
-
-    # Engage#new page
-    assert_selector "h1", text: "New Engage"
+    txt_create_en = "Create a new Engage"
+    str = page.find(:css, 'form.button_to.inline_form input')["value"]
+    assert_equal txt_create_en, str, "button text is wrong: "+str.inspect
 
     # Language switcher test for Engage#new
     click_on "日本語", match: :first
-    assert_selector "h1", text: "New Engage"
+    txt_create_ja = "Engage新規作成"
+    str = page.find(:css, 'form.button_to.inline_form input')["value"]
+    assert_equal txt_create_ja, str, "button text is wrong: "+str.inspect
 
+    # EngageMultiHows#edit page
+    click_on txt_create_ja  # "Engage新規作成"
+
+    str = page.find(:css, 'h1').text
+    # assert_match(/^New Engage for Music\b/, str, "H1 is wrong: "+str.inspect)  # Japanese text should be set!
+
+    # Language switcher test for Engage#new
     within find("#language_switcher_top") do
       find(".lang_switcher_en").click
       # click_on "English", match: :first  # Equivalent in practice but more ambiguous.
     end
+
+    # Engage#new page
+    str = page.find(:css, 'h1').text
+    assert_match(/^New Engage for Music\b/, str, "H1 is wrong: "+str.inspect)
+    str = page.find(:css, 'form#new_engage input[type="submit"]')["value"]
+    assert_equal "Submit", str, "button text is wrong: "+str.inspect
+    #assert_selector "h1", text: "New Engage"
+
     assert_selector "h1", text: @music.title
     assert_equal @music.year, find_field('Year').value.to_i
     fill_autocomplete('Artist name', with: 'RCサクセ', select: 'RCサクセション')  # defined in test_helper.rb

@@ -1545,17 +1545,22 @@ class BaseWithTranslation < ApplicationRecord
   #     # => ['ローマ', nil]
   #
   # @param langcode: [String, NilClass] like 'ja'
-  # @param lang_fallback_option: [Symbol] (:both|:either|:never) if :both,
+  # @param lang_fallback_option: [Symbol] (:both|:either|:never(Def)) if :both,
   #    (lang_fallback: true) is passed to both {#title} and {#alt_title}.
   #    If :either, if either of {#title} and {#alt_title} is significant,
-  #    the other may remain nil. If :never, [nil, nil] may be returned
+  #    the other may remain nil. If :never, +[nil, str_fallback]+ may be returned
   #    (which is also the case where no tranlsations are found in any languages).
-  # @return [Array<String, String>] if there are no translations for the langcode, [nil, nil]
-  def titles(langcode: nil, lang_fallback_option: :never)
+  #    NOTE the similar option in {#get_a_title} differs in name: +lang_fallback+.
+  #    NOTE also the same-name option in {#title_or_alt} differs in meaning.
+  # @param str_fallback [String, NilClass] similar to that of {#get_a_title}. If none is found,
+  #   and if this is non-nil, the second element of the returned Array is
+  #   this value, like +[nil, "NONE"]+. Default is nil.
+  # @return [Array<String, String>] if there are no translations for the langcode, +[nil, Option(str_fallback)]+
+  def titles(langcode: nil, lang_fallback_option: :never, str_fallback: nil)
     raise ArgumentError, "(#{__method__}) Wrong option (lang_fallback_option=#{lang_fallback_option}). Contact the code developer."  if !(%i(both either never).include? lang_fallback_option)
 
     hstrans = best_translations
-    arret = [nil, nil]
+    arret = [nil, str_fallback]
 
     # Fallback
     sorted_langs = self.class.sorted_langcodes(first_lang: langcode, hstrans: hstrans) # ["ja", "en"] etc.
@@ -1589,34 +1594,46 @@ class BaseWithTranslation < ApplicationRecord
   #   and ja is for +is_orig=true+ and +title_or_alt(langcode: 'en')+
   #   is requested. Does it return 'あ' or "abc"?
   #
+  # @param prefer_alt: [Boolean] if true (Def: false), alt_title is preferably
+  #    returned as long as it exists.
   # @param langcode: [String, NilClass] like 'ja'
-  # @param lang_fallback_option: [Symbol] (:both|:either|:never) if :both,
-  #    (lang_fallback: true) is passed to both {#title} and {#alt_title}.
+  # @param lang_fallback_option: [Symbol] (:both|:either(Def)|:never) Similar to {#titles} but has a different meaning. If :both,
+  #    +(lang_fallback: true)+ is passed to both {#title} and {#alt_title}.
   #    If :either (Default), if either of {#title} and {#alt_title} is significant,
   #    the other may remain nil. If :never, "" is returned unless
   #    a title or alt_title in the specified langcode is found.
-  # @param prefer_alt: [Boolean] if true (Def: false), alt_title is preferably
-  #    returned as long as it exists.
+  #    NOTE the default value differs from {#titles} and the meanings differ anyway!
+  #    NOTE also the similar option in {#get_a_title} differs in name: +lang_fallback+.
+  # @param str_fallback [String, NilClass] Returned Object (String or nil) in case neither "title" is found.
+  #    Unlike {#get_a_title} and {#titles}, the default is +""+, meaning this method
+  #    never returns +nil+ in default, unless explicitly specified so.
   # @return [String]
-  def title_or_alt(langcode: nil, lang_fallback_option: :either, prefer_alt: false)
-    cands = titles(langcode: langcode, lang_fallback_option: lang_fallback_option)
+  def title_or_alt(prefer_alt: false, lang_fallback_option: :either, str_fallback: "", **opts)
+    cands = titles(lang_fallback_option: lang_fallback_option, str_fallback: nil, **opts) # nil is wanted when no translations are found.
     cands.reverse! if prefer_alt
-    cands.compact.first || ""
+    cands.compact.first || str_fallback
   end
 
   # Core method for title, alt_title, alt_ruby, etc
   #
   # Similarly to {#titles}, singleton method String#lcode is defined for the returned String.
   #
+  # Option +str_fallback+ is useful for Views. In Dropdown menu, for example,
+  # if one of them is left empty (instead of "NONE" or some significant string),
+  # it would violate the HTML spec:
+  #    Element “option” without attribute “label” must not be empty.
+  #
   # @param method [Symbol] one of %i(title alt_title ruby alt_ruby romaji alt_romaji)
-  # @param langcode: [String, NilClass] like 'ja'
+  # @param langcode: [String, NilClass] like 'ja'. If nil, original language for the Translation is assumed.
   # @param lang_fallback: [Boolean] if true, when no translation is found
   #    for the specified language, that of another language is returned
   #    unless none exists.
+  # @param str_fallback [String, NilClass] Returned Object (String or nil) in case no "a title" is found.
   # @return [String, NilClass] nil if there are no translations for the langcode
-  def get_a_title(method, langcode: nil, lang_fallback: false)
+  def get_a_title(method, langcode: nil, lang_fallback: false, str_fallback: nil)
     ret = (translations_with_lang(langcode)[0].public_send(method) rescue nil)
-    return ret if ret || !lang_fallback
+    return ret if ret
+    return str_fallback if !lang_fallback
 
     ## Falback after no translations are found for the specified language.
     hstrans = best_translations
@@ -1628,7 +1645,7 @@ class BaseWithTranslation < ApplicationRecord
         return ret
       end
     end
-    nil
+    str_fallback
   end
   private :get_a_title
 
@@ -1708,6 +1725,16 @@ class BaseWithTranslation < ApplicationRecord
   #
   # The highest-rank one (lowest in score) comes first (index=0).
   #
+  # Language selection priority:
+  #
+  # 1. langcodearg (main argument)
+  # 2. langcode (optional argument)
+  # 3. {Translation#is_orig?} is true, if there is any.
+  # 4. All existing translations
+  #
+  # This method never returns nil, though may return an empty Array.
+  #
+  # @param langcodearg [String, NilClass] Same as the optional argument and has a higher priority.
   # @param langcode [String, NilClass] if nil, the same as the entry of is_orig==TRUE
   # @return [ActiveRecord::AssociationRelation, Array]
   def translations_with_lang(langcodearg=nil, langcode: nil)  # langcode given both in the main argument and option to be in line with {#titles} etc.

@@ -29,7 +29,11 @@ en:
 
   layouts:
     add_translation: 'Add translation'
+    create_model: "Create a new %{model}"
+    destroy_button: 'Commit Destroy'
     editing_guideline: 'Editing Guideline'
+    reset_button: "Reset (Start Over)"
+    submit_button: 'Submit'
     new_translations:
       model_language: "(Original) Language of Title of %{model}"
       translations_can_be_added_later: "translations can be added later"
@@ -64,4 +68,8 @@ en:
       harami_vids_index: "All videos"
       musics_index: "Music list"
       artists_index: "Artist list"
+
+  engage_multi_hows:
+    index:
+      assoc_engage: "with another Artist for %{music_title}."
 

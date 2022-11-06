@@ -33,14 +33,14 @@ class TranslationIntegrationTest < ActionDispatch::IntegrationTest
     get translation_url(trans)
     assert_response :success
 
-    w3c_validate(user.display_name)  # defined in test_helper.rb (see for debuggin help)
-
     csssel = css_select('div#body_main dl')
     css2 = csssel[0].css('dt')
     assert_not css2.any?{|i| i.text.include? 'Weight'}
 
     csssel = css_select('div#body_main table thead tr')
     assert_not csssel.any?{|i| i.text.include? 'Weight'}
+
+    w3c_validate(user.display_name)  # defined in test_helper.rb (see for debugging help)
   end
 
   test "editor can view all of a page in show" do
@@ -51,7 +51,6 @@ class TranslationIntegrationTest < ActionDispatch::IntegrationTest
     sign_in(user)
     get translation_url(trans)
     assert_response :success
-    w3c_validate(user.display_name)  # defined in test_helper.rb (see for debuggin help)
 
     csssel = css_select('div#body_main dl')
     css2 = csssel[0].css('dt')
@@ -59,6 +58,8 @@ class TranslationIntegrationTest < ActionDispatch::IntegrationTest
 
     csssel = css_select('div#body_main table thead tr')
     assert csssel.any?{|i| i.text.include? 'Weight'}
+
+    w3c_validate(user.display_name)  # defined in test_helper.rb (see for debugging help)
   end
 end
 

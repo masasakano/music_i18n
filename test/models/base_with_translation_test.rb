@@ -4,6 +4,35 @@ require 'test_helper'
 class BaseWithTranslationTest < ActiveSupport::TestCase
   include ApplicationHelper # for suppress_ruby270_warnings()
 
+  test "title aka the private method get_a_title" do
+    # Gets Music with some translations with "title" for the original-language but no French translation
+    music = nil
+    Music.all.each do |mu|
+      lcs = mu.translations.pluck(:langcode)
+      next if lcs.empty? || lcs.include?("fr")
+      tran = mu.orig_translation
+      next if tran.blank? || tran.title.blank?
+      music = mu
+      break
+    end
+    raise "should found one at least." if !music
+
+    assert_nil music.title(langcode: "fr", lang_fallback: false, str_fallback: nil)
+    assert_nil music.title(langcode: "fr", lang_fallback: false)  # Default for lang_fallback
+    assert     music.title(langcode: "fr", lang_fallback: true)
+    assert_equal "Nothing", music.title(langcode: "fr", lang_fallback: false, str_fallback: "Nothing")
+    assert_equal "Nothing", music.title(langcode: "fr",                       str_fallback: "Nothing")
+
+    # {#titles} are separately implemented.
+    assert_empty music.titles(langcode: "fr", lang_fallback_option: :never, str_fallback: nil).compact
+    assert_empty music.titles(langcode: "fr", lang_fallback_option: :never).compact  # Default for lang_fallback
+    refute_empty music.titles(langcode: "fr", lang_fallback_option: :either).compact
+    assert_equal "Nothing", music.titles(langcode: "fr", lang_fallback_option: :never, str_fallback: "Nothing")[1]
+    assert_equal "Nothing", music.titles(langcode: "fr",                               str_fallback: "Nothing")[1]
+    assert_equal "Nothing", music.title_or_alt(langcode: "fr", lang_fallback_option: :never, str_fallback: "Nothing")
+    refute_equal "Nothing", music.title_or_alt(langcode: "fr",                               str_fallback: "Nothing"), "Default lang_fallback_option for title_or_alt is :either. as oppposed to :never in titles, and hence this should find matched title/alt_title, I think, but it failed..." 
+  end
+
   # Using the subclass Sex
   test "select_regex and [] in BaseWithTranslation" do
     ar = Sex.select_regex(:title,  'male')

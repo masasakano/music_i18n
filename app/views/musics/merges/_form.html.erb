@@ -21,14 +21,14 @@
   <tbody>
     <tr><th>Merge to</th>
       <% musics.each_index do |i| %>
-      <td style="text-align: center;"><%= form.radio_button(Musics::MergesController::FORM_MERGE[:to_index], i, checked: (i==0)) %>
+      <td style="text-align: center;"><%= form.radio_button(BaseMergesController::FORM_MERGE[:to_index], i, checked: (i==0)) %>
       </td>
       <% end %>
     </tr>
     <tr><th>Orig-Language</th>
       <% musics.each_with_index do |em, i| %>
       <td>
-        <% labe = Musics::MergesController::FORM_MERGE[:lang_orig] %>
+        <% labe = BaseMergesController::FORM_MERGE[:lang_orig] %>
         <%= form.radio_button(labe, i, checked: (i==0)) %>
         <% trans = em.orig_translation %>
         <% arstr = %i(title ruby romaji alt_title alt_ruby alt_romaji).map{|et| h(trans.send(et))} %>
@@ -40,7 +40,7 @@
     <tr><th><%= t(:Translation, count: 2, default: 'Translations') %></th>
       <% musics.each_with_index do |em, i| %>
       <td>
-        <% labe = Musics::MergesController::FORM_MERGE[:lang_trans] %>
+        <% labe = BaseMergesController::FORM_MERGE[:lang_trans] %>
         <% orig_trans = em.orig_translation %>
         <% exist_editable = em.translations.any?{|et| (et != orig_trans) && can?(:ud, Translation)} %>
         <% exist_editable = em.translations.any?{|et| (et != orig_trans) && can?(:ud, et)} %>
@@ -66,7 +66,7 @@
     <tr><th>Engage-Artists</th>
       <% musics.each_with_index do |em, i| %>
       <td>
-        <% labe = Musics::MergesController::FORM_MERGE[:engage] %>
+        <% labe = BaseMergesController::FORM_MERGE[:engage] %>
         <%= form.radio_button(labe, i, checked: (i==0)) %>
         <% str = em.engages.map{ |een|
              sprintf(
@@ -84,7 +84,7 @@
     <tr><th>Prefecture (Country)</th>
       <% musics.each_with_index do |em, i| %>
       <td>
-        <% labe = Musics::MergesController::FORM_MERGE[:prefecture_place] %>
+        <% labe = BaseMergesController::FORM_MERGE[:prefecture_place] %>
         <%= form.radio_button(labe, i, checked: (i==0)) %>
         <% str = sprintf("%s (%s)", h(em.place.prefecture.title_or_alt(langcode: I18n.locale)), h(em.place.country.title_or_alt(langcode: I18n.locale))).html_safe %>
         <%= form.label labe, str, :value => i %>
@@ -94,7 +94,7 @@
     <tr><th>Genre</th>
       <% musics.each_with_index do |em, i| %>
       <td>
-        <% labe = Musics::MergesController::FORM_MERGE[:genre] %>
+        <% labe = BaseMergesController::FORM_MERGE[:genre] %>
         <%= form.radio_button(labe, i, checked: (i==0)) %>
         <%= form.label labe, em.genre.title_or_alt(langcode: I18n.locale), :value => i %>
       </td>
@@ -103,7 +103,7 @@
     <tr><th>Year</th>
       <% musics.each_with_index do |em, i| %>
       <td>
-        <% labe = Musics::MergesController::FORM_MERGE[:year] %>
+        <% labe = BaseMergesController::FORM_MERGE[:year] %>
         <%= form.radio_button(labe, i, checked: (i==0)) %>
         <%= form.label labe, em.year.inspect, :value => i %>
       </td>

@@ -18,6 +18,8 @@
 
 <% n_engages = @engages.count %>
 <% n_engage_others = @engage_others.count %>
+<% n_cols = (current_user.sysadmin? ? 10 : 9) %>
+<% val_klasses = { year: 'input_year', contribution: 'input_float' } %>
 
 <%= simple_form_for @engage, url: engage_multi_hows_url do |form| %>
   <%= form.hidden_field :artist_id, :value => @artist.id %>
@@ -41,14 +43,14 @@
     </thead>
   
     <tbody>
-      <% n_cols = (current_user.sysadmin? ? 10 : 9) %>
       <% @engages.each do |engage| %>
         <tr>
           <td><%= engage.id %></td>
           <td><%= artist_title %></td>
           <td><%= engage_how = engage.engage_how; link_to engage_how.title_or_alt(langcode: I18n.locale), engage_how %></td>
           <% %i(year contribution note).each do |kwd| %>
-            <td><%= form.input kwd, label: false, required: false, input_html: {id: ['engage', kwd, engage.id].join('_'), name: sprintf('engage[%s_%d]', kwd.to_s, engage.id), value: engage.send(kwd)} %></td>
+            <% hs_klass = ((:note != kwd.to_sym) ? { class: val_klasses[kwd.to_sym] } : {}) %>
+            <td><%= form.input kwd, label: false, required: false, input_html: {id: ['engage', kwd, engage.id].join('_'), name: sprintf('engage[%s_%d]', kwd.to_s, engage.id), value: engage.send(kwd)}.merge(hs_klass) %></td>
           <% end %>
           <td><%= engage.harami1129s.count %>
             <% if can? :read, Harami1129 %>
@@ -80,13 +82,34 @@
       <tr>
         <td>NEW</td>
         <td><%= artist_title %></td>
-        <td><%= form.input :engage_how, label: 'EngageHow(複数可)', collection: EngageHow.all.order(:weight).map{|i| [i.title(langcode: I18n.locale), i.id]}, required: false, prompt: "Please select", input_html: { multiple: true } %></td>
-        <td><%= form.input :year, required: false %></td>
-        <td><%= form.input :contribution, label: 'Contribution(0.0-1.0)', required: false %></td>
+        <td><%= form.input :engage_how, label: 'EngageHow(複数可)', collection: EngageHow.all.order(:weight).map{|i| [i.title_or_alt(langcode: I18n.locale, str_fallback: "NONE"), i.id]}, required: false, prompt: "Please select", input_html: { multiple: true } %></td>
+        <td><%= form.input :year, required: false, input_html: { class: val_klasses[:year] } %></td>
+        <td><%= form.input :contribution, label: 'Contribution(0.0-1.0)', required: false, input_html: { class:  val_klasses[:contribution] } %></td>
         <td><%= form.input :note, input_html: { 'rows' => 4 } %></td>
         <td colspan="<%= n_cols-6 %>"></td>
       </tr>
-      <tr><td colspan="<%= n_cols %>" style="background-color: rgb(0,0,0); border-color: black; border-top: none; border-bottom: none; padding-bottom: 0.5em;">  <%= form.submit "Submit"%> </td></tr>
+    </tbody>
+  </table>
+  <%= form.submit t("layouts.submit_button")%>
+<% end %>
+  
+  <table style="border: none; margin-left: 1em;">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Artist</th>
+        <th>How?</th>
+        <th>Year</th>
+        <th>Contribution</th>
+        <th>Note</th>
+        <th title="Number of associations to Harami1129">NumLinks</th>
+        <th title="Check this (or these) and submit to destroy (or replace) the record. Note if a dependent (=NumLinks) exists and when an Engage(s) is deleted, the association will be replaced with another one.">Destroy</th>
+        <th>Engage</th>
+        <% if current_user.sysadmin? %>
+        <th></th>
+        <% end %>
+      </tr>
+    </thead>
   
       <tr>
         <th colspan="<%= n_cols %>"><strong>Engages for Music by other artists</strong></th>
@@ -113,11 +136,11 @@
         <td colspan="<%= n_cols-1 %>">None</td>
       </tr>
       <% end %>
-      <tr><td colspan="<%= n_cols %>" style="background-color: rgb(0,0,0); border-color: black; border-top: none;> <%= button_to 'create a new Engage', new_engage_path, method: :get, params: { music_id: @music.id } %> with another Artist for <em><%= music_name %></em>. <%# button_to/link_to title tested in /system/engages_test.rb; if it is link_to, the path should be new_engage_path(music_id: @music.id) %>
-      </td></tr>
     </tbody>
   </table>
-<% end %>
+  <% assoc_text = t(".assoc_engage", music_title: music_name, default: "with another Artist for #{music_name}") %>
+  <%= button_to t('layouts.create_model', model: @engages.first.class.name, default: 'Create a new Engage'), new_engage_path, method: :get, params: { music_id: @music.id }, form_class: "button_to inline_form" %> <%# button_to HTML-class is Default.%>
+  <%= t(".assoc_engage", music_title: music_name, default: "with another Artist for #{music_name}") %> <%# button_to/link_to title tested in /system/engages_test.rb; if it is link_to, the path should be new_engage_path(music_id: @music.id) %>
 <% if (n_engages == 1) && (n_engage_others == 0) && @engages[0] && @engages[0].harami1129s.exists? %>
   <p>
     <em>Note</em>: If you want to destroy the (sole) Engage, you must first create another Engage, because the existing one has a dependent Harami1129(s).

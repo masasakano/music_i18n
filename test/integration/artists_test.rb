@@ -9,6 +9,7 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
 
   setup do
     @artist_ai = artists(:artist_ai)
+    @validator = W3CValidators::NuValidator.new
   end
 
   # called after every single test
@@ -41,6 +42,7 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     assert_not   csssel[1].css('td a').empty?
     assert_includes csssel[1].css('td a').text, 'Edit'  # Japanese
     assert_includes csssel[3].css('td a').text, 'Edit'  # English
+    w3c_validate("Edit Artist")  # defined in test_helper.rb (see for debugging help)
   end
 
   test "can edit an artist as an editor and moderator" do

@@ -89,7 +89,7 @@ class EngagesController < ApplicationController
       authorize! action_name.to_sym, Engage
     end
 
-    # Use callbacks to share common setup or constraints between actions.
+    # Use callbacks only for :new
     def set_engage
       # @engage = Engage.find(params[:id])
 
@@ -108,7 +108,19 @@ class EngagesController < ApplicationController
       hskwd.select!{|k,v| !v.nil?}
       hskwd = hskwd.map{|k,v| [k, (v.blank? ? nil : v)]}.to_h
 
-      @music  = Music.find  hskwd[:music_id]
+      # In future, new Engage should be able to be accessed from Artist, too?
+      if hskwd[:music_id].blank?
+        msg = "Music-ID is for some reason not specified but should be." 
+        logger.error "ERROR: "+msg+" params="+params.inspect
+        raise msg
+      end
+      begin
+        @music  = Music.find  hskwd[:music_id]
+      rescue ActiveRecord::RecordNotFound
+        msg = "Music-ID is for some reason invalid." 
+        logger.error "ERROR: "+msg+" params="+params.inspect
+        raise msg
+      end
       hskwd[:year] ||= @music.year
 
       @engage  = Engage.new(**(hskwd.slice(*(%i(music_id year contribution note)))))

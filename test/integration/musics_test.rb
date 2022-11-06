@@ -6,6 +6,10 @@ require "test_helper"
 class MusicsIntegrationTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
+  setup do
+    @validator = W3CValidators::NuValidator.new
+  end
+
   # called after every single test
   teardown do
     # when controller is using cache it may be a good idea to reset it afterwards
@@ -35,5 +39,7 @@ class MusicsIntegrationTest < ActionDispatch::IntegrationTest
     artist_title = artist_ai.title_or_alt
     assert_match(/.*[a-z]+.* \(ID=#{artist_ai.id}\)\z/i, csssel.first.attributes['value'].value) # value="AI (ID=7)"
     assert_select "h1", 'New Music for Artist '+artist_title
+
+    w3c_validate("New music")  # defined in test_helper.rb (see for debugging help)
   end
 end
