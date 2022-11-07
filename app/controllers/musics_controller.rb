@@ -19,9 +19,9 @@ class MusicsController < ApplicationController
     # It is caught in application_controller.rb
     MusicsGrid.current_user = current_user
     MusicsGrid.is_current_user_moderator = (current_user && current_user.moderator?)
-logger.debug "DEBUG:moderator?=#{MusicsGrid.is_current_user_moderator.inspect}"
     @grid = MusicsGrid.new(grid_params) do |scope|
-      scope.page(params[:page])
+      nmax = BaseGrid.get_max_per_page(grid_params[:max_per_page])
+      scope.page(params[:page]).per(nmax)
     end
   end
 

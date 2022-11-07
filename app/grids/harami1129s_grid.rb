@@ -27,7 +27,10 @@ class Harami1129sGrid < BaseGrid
   filter_split_ilike(:title, header: 'Title (sep: ",") ILIKE')
   filter(:release_date, :date, :range => true) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
   filter(:link_time, :integer, header: 'Link time (eg, 0 [s])')
-  column_names_filter(:header => "Extra Columns", checkboxes: true)
+
+  filter(:max_per_page, :enum, select: MAX_PER_PAGES, default: 25, multiple: false, dummy: true, header: I18n.t("datagrid.form.max_per_page", default: "Max entries per page"))
+
+  column_names_filter(header: I18n.t("datagrid.form.extra_columns", default: "Extra Columns"), checkboxes: true)
 
   column("✅".html_safe, :mandatory => true) do |record|
     record.populate_status.sorted_status(return_markers: true).first

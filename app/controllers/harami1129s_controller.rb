@@ -25,7 +25,8 @@ class Harami1129sController < ApplicationController
     # May raise ActiveModel::UnknownAttributeError if malicious params are given.
     # It is caught in application_controller.rb
     @grid = Harami1129sGrid.new(grid_params) do |scope|
-      scope.page(params[:page])
+      nmax = BaseGrid.get_max_per_page(grid_params[:max_per_page])
+      scope.page(params[:page]).per(nmax)
     end
   end
 

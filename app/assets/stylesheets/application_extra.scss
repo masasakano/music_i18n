@@ -217,3 +217,19 @@ div#navbar_top {
 table#places_in_prefecture td:nth-child(4), table#places_in_prefecture td:nth-child(5), table#places_in_prefecture td:nth-child(6) {
   text-align: right;
 }
+
+/* datagrid */
+div.datagrid-filter {
+  input[type="checkbox"] {
+    margin-left: 0.7em;
+  }
+}
+
+/* pagination */
+nav.pagination {
+  span.page, span.first, span.prev, span.next, span.last, {
+    padding-left: 3px;
+    padding-right: 3px;
+  }
+}
+

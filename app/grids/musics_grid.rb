@@ -11,7 +11,7 @@ class MusicsGrid < BaseGrid
   #end
 
   scope do
-    Music
+    Music  # Music.order(updated_at: :desc)
   end
 
   ### Taken from harami1129s_grid.rb
@@ -42,15 +42,15 @@ class MusicsGrid < BaseGrid
   ####### Filters #######
 
   #if MusicsGrid.is_current_user_moderator  # This does now work because the method is not defined when this line is executed (even if it did, the value would not be set at this stage!).
-    filter(:id, :integer)
+    filter(:id, :integer, header: "ID")
   #end
 
-  filter_include_ilike(:title_ja, header: 'Title (ja+en) (partial)')
-  filter_include_ilike(:title_en, langcode: 'en', header: 'Title (en) (partial)')
+  filter_include_ilike(:title_ja, header: I18n.t("datagrid.form.title_ja_en", default: "Title [ja+en] (partial-match)"))
+  filter_include_ilike(:title_en, langcode: 'en', header: I18n.t("datagrid.form.title_en", default: "Title [en] (partial-match)"))
 
-  filter(:year, :integer, :range => true) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
+  filter(:year, :integer, range: true, header: I18n.t('tables.year')) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
 
-  filter(:artists, :string, header: 'Artist (partial)') do |value|  # Only for PostgreSQL!
+  filter(:artists, :string, header: I18n.t("datagrid.form.artists", default: "Artist (partial-match)")) do |value|  # Only for PostgreSQL!
     str = preprocess_space_zenkaku(value, article_to_tail=true)
     trans_opts = {accept_match_methods: [:include_ilike], translatable_type: 'Artist'}
     arts = Artist.find Translation.find_all_by_a_title(:titles, value, **trans_opts).uniq.map(&:translatable_id)
@@ -59,55 +59,57 @@ class MusicsGrid < BaseGrid
     self.where id: ids
   end
 
-  column_names_filter(:header => "Extra Columns", checkboxes: true)
+  filter(:max_per_page, :enum, select: MAX_PER_PAGES, default: 25, multiple: false, dummy: true, header: I18n.t("datagrid.form.max_per_page", default: "Max entries per page"))
+
+  column_names_filter(header: I18n.t("datagrid.form.extra_columns", default: "Extra Columns"), checkboxes: true)
 
   ####### Columns #######
 
   #if MusicsGrid.is_current_user_moderator  # This does not work; see above
-    column(:id)
+    column(:id, header: "ID")
   #end
 
-  column(:title_ja, :mandatory => true, :order => proc { |scope|
+  column(:title_ja, header: I18n.t('tables.title_ja'), mandatory: true, order: proc { |scope|
     #order_str = Arel.sql("convert_to(title, 'UTF8')")
     order_str = Arel.sql('title COLLATE "ja-x-icu"')
     scope.joins(:translations).where("langcode = 'ja'").order(order_str) #.order("title")
   }) do |record|
     record.title langcode: 'ja'
   end
-  column(:ruby_romaji_ja, :order => proc { |scope|
+  column(:ruby_romaji_ja, header: I18n.t('tables.ruby_romaji'), order: proc { |scope|
     order_str = Arel.sql('ruby COLLATE "ja-x-icu", romaji COLLATE "ja-x-icu"')
     scope.joins(:translations).where("langcode = 'ja'").order(order_str) #order("ruby").order("romaji")
   }) do |record|
     s = sprintf '[%s/%s]', *(%i(ruby romaji).map{|i| record.send(i, langcode: 'ja') || ''})
     s.sub(%r@/\]\z@, ']').sub(/\A\[\]\z/, '')  # If NULL, nothing is displayed.
   end
-  column(:alt_title_ja, :mandatory => true, :order => proc { |scope|
+  column(:alt_title_ja, header: I18n.t('tables.alt_title_ja'), mandatory: true, order: proc { |scope|
     order_str = Arel.sql('alt_title COLLATE "ja-x-icu"')
     scope.joins(:translations).where("langcode = 'ja'").order(order_str)
   }) do |record|
     s = sprintf '%s [%s/%s]', *(%i(alt_title alt_ruby alt_romaji).map{|i| record.send(i, langcode: 'ja') || ''})
     s.sub(%r@ +\[/\]\z@, '')  # If NULL, nothing is displayed.
   end
-  column(:title_en, :mandatory => true, :order => proc { |scope|
+  column(:title_en, header: I18n.t('tables.title_en'), mandatory: true, order: proc { |scope|
     scope.joins(:translations).where("langcode = 'en'").order("title")
   }) do |record|
     s = sprintf '%s [%s]', *(%i(title alt_title).map{|i| record.send(i, langcode: 'en') || ''})
     s.sub(%r@ +\[\]\z@, '')   # If NULL, nothing is displayed.
   end
 
-  column(:year, :mandatory => true)
+  column(:year, header: I18n.t('tables.year'), mandatory: true)
 
-  column(:genre) do |record|
+  column(:genre, header: I18n.t('tables.genre')) do |record|
     record.genre.title_or_alt(langcode: I18n.locale)
   end
-  column(:place) do |record|
+  column(:place, header: I18n.t('tables.place')) do |record|
     ar = record.place.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true);
     sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture['ja'] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2]
   end
 
   # Valid only for PostgreSQL
   # To make it applicable for other DBs, see  https://stackoverflow.com/a/68998474/3577922)
-  column(:artists, :mandatory => true, :order => proc { |scope|
+  column(:artists, header: I18n.t("datagrid.form.artists", default: "Artist (partial-match)"), mandatory: true, order: proc { |scope|
     #order_str = Arel.sql("convert_to(title, 'UTF8'), convert_to(alt_title, 'UTF8')")
     #order_str = Arel.sql('title COLLATE "ja_JP", alt_title COLLATE "ja_JP"')
     #order_str = Arel.sql('title COLLATE "C", alt_title COLLATE "C"')
@@ -121,15 +123,15 @@ class MusicsGrid < BaseGrid
     #record.engages.joins(:engage_how).order('engage_hows.weight').pluck(:artist_id).uniq.map{|i| art = Artist.find(i); sprintf '%s [%s]', ActionController::Base.helpers.link_to(art.title_or_alt, art), h(art.engage_how_titles(record).join(', '))}.join(', ').html_safe
     record.engages.joins(:engage_how).order('engage_hows.weight').pluck(:artist_id).uniq.map{|i| art = Artist.find(i); sprintf '%s [%s]', ActionController::Base.helpers.link_to(art.title_or_alt, Rails.application.routes.url_helpers.artist_path(art)), ERB::Util.html_escape(art.engage_how_titles(record).join(', '))}.join(', ').html_safe
   end
-  column(:n_harami_vids) do |record|
+  column(:n_harami_vids, header: I18n.t("tables.n_harami_vids", default: "# of HaramiVids")) do |record|
     record.harami_vids.count.to_s+'回'
   end
 
-  column(:note)
+  column(:note, header: I18n.t("tables.note", default: "Note"))
 
-  column(:updated_at)
-  column(:created_at)
-  column(:actions, :html => true, :mandatory => true) do |record|
+  column(:updated_at, header: I18n.t("tables.updated_at", default: "Updated at"))
+  column(:created_at, header: I18n.t("tables.created_at", default: "Created at"))
+  column(:actions, :html => true, :mandatory => true, header: I18n.t("tables.actions", default: "Actions")) do |record|
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
     ar = [ActionController::Base.helpers.link_to('Show', Rails.application.routes.url_helpers.music_path(record), data: { turbolinks: false })]
     if can? :update, record

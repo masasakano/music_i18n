@@ -71,7 +71,7 @@
         <% if can? :destroy, music %>
           <td><%= link_to 'Destroy', music, method: :delete, data: { confirm: 'Are you sure?' } %></td>
         <% end %>
-        <%= "<td>(Moderator only)</td>".html_safe if music == unknown_music %>
+        <%= "<td>(Moderator<br>only)</td>".html_safe if music == unknown_music %>
       </tr>
     <% end %>
   </tbody>

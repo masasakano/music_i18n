@@ -10,7 +10,11 @@ ja:
     ruby_romaji: "フリガナ/ローマ字"
     title_en: 英語名称
     year: 年
+    sex: 性別
     place: 場所
+    prefecture: 県/州
+    country: 国
+    genre: 音楽種別
     wiki_ja: "Wikipedia日本語"
     wiki_en: "Wikipedia英語"
     n_musics: 登録曲数
@@ -73,6 +77,11 @@ ja:
     form:
       search: "適用"
       reset: "リセット"
+      max_per_page: "最大行数/頁"
+      extra_columns: 追加カラム
+      title_ja_en: "名前 [日英] (部分一致)"
+      title_en: "名前 [英] (部分一致)"
+      artists: "アーティスト名 (部分一致)"
     table:
       order:
         asc: "↑"

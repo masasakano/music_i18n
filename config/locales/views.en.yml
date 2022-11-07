@@ -10,7 +10,11 @@ en:
     ruby_romaji: "Ruby/Romaji"
     title_en:  "Title (En)"
     year: Year
+    sex: Sex
     place: Place
+    prefecture: Prefecture
+    country: Country
+    genre: Genre
     wiki_ja: "Wikipedia (Ja)"
     wiki_en: "Wikipedia (En)"
     n_musics: "# of Musics"
@@ -68,6 +72,20 @@ en:
       harami_vids_index: "All videos"
       musics_index: "Music list"
       artists_index: "Artist list"
+
+  datagrid:
+    form:
+      search: "Apply"
+      reset: "Reset"
+      max_per_page: "Max entries per page"
+      extra_columns: "Extra Columns"
+      title_ja_en: "Title [ja+en] (partial-match)"
+      title_en: "Title [en] (partial-match)"
+      artists: "Artist (partial-match)"
+    table:
+      order:
+        asc: "↑"
+        desc: "↓"
 
   engage_multi_hows:
     index:

@@ -21,13 +21,13 @@ class ArtistsGrid < BaseGrid
   ####### Filters #######
 
   #if ArtistsGrid.is_current_user_moderator  # This does now work because the method is not defined when this line is executed (even if it did, the value would not be set at this stage!).
-    filter(:id, :integer)
+    filter(:id, :integer, header: "ID")
   #end
 
-  filter_include_ilike(:title_ja, header: 'Title (ja+en) (partial)')
-  filter_include_ilike(:title_en, langcode: 'en', header: 'Title (en) (partial)')
+  filter_include_ilike(:title_ja, header: I18n.t("datagrid.form.title_ja_en", default: "Title [ja+en] (partial-match)"))
+  filter_include_ilike(:title_en, langcode: 'en', header: I18n.t("datagrid.form.title_en", default: "Title [en] (partial-match)"))
 
-  filter(:year, :integer, :range => true) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
+  filter(:year, :integer, range: true, header: I18n.t('tables.year')) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
 
   begin
     sex_titles = Sex::ISO5218S.map{|i|
@@ -39,21 +39,23 @@ class ArtistsGrid < BaseGrid
     ## ISO5218 in one of Sexes must be modified.
     sex_titles = Sex.order(:iso5218).pluck(:iso5218).map(&:to_i).map{|i| word = Sex[i].title(langcode: I18n.locale)}
   end
-  filter(:sex, :enum, checkboxes: true, select: sex_titles) # , default: sex_titles) # allow_blank: false (Default; so if nothing is checked, this filter is ignored)
+  filter(:sex, :enum, checkboxes: true, select: sex_titles, header: I18n.t('tables.sex')) # , default: sex_titles) # allow_blank: false (Default; so if nothing is checked, this filter is ignored)
   # <https://github.com/bogdan/datagrid/wiki/Filters>
   #  (In Dynamic select option)
   #  IMPORTANT: Always wrap dynamic :select option with proc, so that datagrid fetch it from database each time when it renders the form.
   # NOTE: However, in this case, the contetns of Sex should not change, so it is not wrapped with Proc.
 
-  column_names_filter(:header => "Extra Columns", checkboxes: true)
+  filter(:max_per_page, :enum, select: MAX_PER_PAGES, default: 25, multiple: false, dummy: true, header: I18n.t("datagrid.form.max_per_page", default: "Max entries per page"))  # "default" is not working...
+
+  column_names_filter(header: I18n.t("datagrid.form.extra_columns", default: "Extra Columns"), checkboxes: true)
 
   ####### Columns #######
 
   #if ArtistsGrid.is_current_user_moderator  # This does not work; see above
-    column(:id)
+    column(:id, header: "ID")
   #end
 
-  column(:title_ja, header: I18n.t('tables.title_ja'), mandatory: true, order: proc { |scope|
+  column(:title_ja, mandatory: true, header: I18n.t('tables.title_ja'), order: proc { |scope|
     #order_str = Arel.sql("convert_to(title, 'UTF8')")
     order_str = Arel.sql('title COLLATE "ja-x-icu"')
     scope.joins(:translations).where("langcode = 'ja'").order(order_str) #.order("title")
@@ -67,25 +69,25 @@ class ArtistsGrid < BaseGrid
     s = sprintf '[%s/%s]', *(%i(ruby romaji).map{|i| record.send(i, langcode: 'ja') || ''})
     s.sub(%r@/\]\z@, ']').sub(/\A\[\]\z/, '')  # If NULL, nothing is displayed.
   end
-  column(:alt_title_ja, header: I18n.t('tables.alt_title_ja'), mandatory: true, order: proc { |scope|
+  column(:alt_title_ja, mandatory: true, header: I18n.t('tables.alt_title_ja'), order: proc { |scope|
     order_str = Arel.sql('alt_title COLLATE "ja-x-icu"')
     scope.joins(:translations).where("langcode = 'ja'").order(order_str)
   }) do |record|
     s = sprintf '%s [%s/%s]', *(%i(alt_title alt_ruby alt_romaji).map{|i| record.send(i, langcode: 'ja') || ''})
     s.sub(%r@ +\[/\]\z@, '')  # If NULL, nothing is displayed.
   end
-  column(:title_en, header: I18n.t('tables.title_en'), mandatory: true, order: proc { |scope|
+  column(:title_en, mandatory: true, header: I18n.t('tables.title_en'), order: proc { |scope|
     scope.joins(:translations).where("langcode = 'en'").order("title")
   }) do |record|
     s = sprintf '%s [%s]', *(%i(title alt_title).map{|i| record.send(i, langcode: 'en') || ''})
     s.sub(%r@ +\[\]\z@, '')   # If NULL, nothing is displayed.
   end
 
-  column(:sex, header: I18n.t(:Sex), mandatory: true) do |record|
+  column(:sex, mandatory: true, header: I18n.t('tables.sex')) do |record|
     record.sex.title(langcode: I18n.locale)
   end
 
-  column(:year, header: I18n.t('tables.year'), :mandatory => false) do |record|
+  column(:year, mandatory: false, header: I18n.t('tables.year')) do |record|
     sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
                                 i = record.send m
                                 (i.blank? ? '——' : i.to_s)
@@ -99,7 +101,7 @@ class ArtistsGrid < BaseGrid
 
   %w(ja en).each do |elc|
     kwd = 'wiki_'+elc
-    column(kwd, header: I18n.t('tables.'+kwd), :mandatory => false) do |record|
+    column(kwd, mandatory: false, header: I18n.t('tables.'+kwd)) do |record|
       uri = record.wiki_uri(elc)
       if uri.blank?
         '——'
