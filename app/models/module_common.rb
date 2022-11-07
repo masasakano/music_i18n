@@ -33,6 +33,36 @@ module ModuleCommon
 
   DEFINITE_ARTICLES_REGEXP_STR = DEFINITE_ARTICLES.join '|'
 
+  # For model that has the method +place+
+  #
+  # @return [String] "県 — 場所 (国)"
+  def txt_place_pref_ctry(langcode: I18n.locale, prefer_alt: true, **opts)
+    ar = place.title_or_alt_ascendants(langcode: langcode, prefer_alt: prefer_alt, **opts);
+    sprintf '%s %s(%s)', ar[1], (ar[0].blank? ? '' : '— '+ar[0]+' '), ar[2]
+  end
+
+  # Returns I18n Date-string from Date with potentiallyy unknown elements
+  #
+  # The nil part is displayed in either '——' or '??' (or '????' for the year)
+  #
+  # @param year  [Integer, NilClass]
+  # @param month [Integer, NilClass]
+  # @param day   [Integer, NilClass]
+  # @return [String]
+  def date2text(year, month, day)
+    case I18n.locale.to_s
+    when "ja"
+      sprintf("%s年%s月%s日", *([year, month, day].map{|i| (i.blank? ? '——' : i.to_s)}))
+    else
+      if year || !month
+        sprintf('%s-%s-%s', (year.blank? ? '????' : sprintf("%4d", year)), *([month, day].map{|i| (i.blank? ? '??' : sprintf("%2d", i))}))
+      elsif day
+        I18n.l(Date.new(9999,month,day), format: :long, locale: "en").sub(/9999/, '????')
+      else  # only month is significant.
+        I18n.l(Date.new(9999,month,28), format: :long, locale: "en").sub(/9999/, '????').sub(/28/, '??')
+      end
+    end
+  end
 
   # Returns HTML <a> string from a root string like either '"w.wiki/3JVi' or 'http://w.wiki/3JVi'
   #

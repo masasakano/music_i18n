@@ -2,15 +2,21 @@
 # Superclass of Musics::MergesController etc
 class BaseMergesController < ApplicationController
   FORM_MERGE = {
-    other_music_id: 'other_music',
-    other_music_title: 'other_music_title',
+    other_music_id:     'other_music',
+    other_music_title:  'other_music_title',
+    other_artist_id:    'other_artist',
+    other_artist_title: 'other_artist_title',
     to_index: 'to_index',
     lang_orig: 'lang_orig',
     lang_trans: 'lang_trans',
     engage: 'engage',
     prefecture_place: 'prefecture_place',
-    genre: 'genre',
-    year: 'year',
+    genre: 'genre',  # Music only
+    year: 'year',    # Music only
+    sex: 'sex',           # Artist only
+    birthday: 'birthday', # Artist only
+    wiki_en: 'wiki_en',   # Artist only
+    wiki_ja: 'wiki_ja',   # Artist only
     note: 'note',
   }.with_indifferent_access
 

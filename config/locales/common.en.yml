@@ -31,6 +31,7 @@
 
 en:
   accept_terms: "Terms of Service"
+  alt_title: common name
   are_you_sure: "Are you sure?"
   are_you_sure_but_merge: "You may consider merging for duplication, instead."
   Country: Country
@@ -45,9 +46,11 @@ en:
   read_agree_terms_html: "I have read and agreed with the %{link2term}."
   romaji: romaji
   ruby: ruby
+  ruby_short: ruby
   Sex: "Sex"
   s_time: "s"
   terms_of_service: Terms of Service
+  title: name
   Year_Title: Year
   year_unknown: Year_Unknown
 

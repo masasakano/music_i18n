@@ -1493,8 +1493,8 @@ class Translation < ApplicationRecord
     return nil if !same_parent?(other)
 
     # Note that if langcode is not among the registered one, their order is undefined.
-    lang_order_a = (I18n.available_locales.find_index( self.langcode) || Float::INFINITY)
-    lang_order_b = (I18n.available_locales.find_index(other.langcode) || Float::INFINITY)
+    lang_order_a = ( self.langcode && I18n.available_locales.find_index( self.langcode.to_sym) || Float::INFINITY)
+    lang_order_b = (other.langcode && I18n.available_locales.find_index(other.langcode.to_sym) || Float::INFINITY)
 
     [( self.is_orig ? 0 : 1), lang_order_a, ( self.weight || Float::INFINITY)] <=> \
     [(other.is_orig ? 0 : 1), lang_order_b, (other.weight || Float::INFINITY)]

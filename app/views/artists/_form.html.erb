@@ -19,7 +19,12 @@
 
 <%= form_with(model: artist, local: true) do |form| %>
 
-<% if artist.new_record? %>
+  <% if artist.new_record? %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: form, model: artist, trans: Translation.new, disable_is_orig: true} %>
+  <% end %>
+
+<%# if artist.new_record? ################################### %>
+<% if false %> <%# ################################### %>
   <div class="field">
     <em>アーティスト名の言語 (本来の言語で。翻訳は後で追加):</em>
     <% BaseWithTranslation::AVAILABLE_LOCALES.each do |es| %>
@@ -79,7 +84,7 @@
   </div>
 
   <div class="field">
-    <em>性別:</em>
+    <%= t('Sex')%>
     <% Sex.all.each do |es| %>
       <%= form.radio_button(:sex_id, es.id, checked: (es.id == 0)) %>
       <%= form.label :sex_id, es.title(langcode: 'ja'), :value => es.id %>
@@ -124,29 +129,13 @@
   </div>
 <% end %>
 
+<%= render partial: 'layouts/link_merge_destroy', locals: {model: artist } %>
+
 <p>
-<% if artist.new_record? %>
-(Please add a Music(s) once you have created an Artist.)
-<% else %>
+<% if !artist.new_record? %>
   <%= link_to 'Associate a new Music to Artist '+artist.title_or_alt, musics_path(music: {artist_id: artist.id}) %>
 <% end %>
 </p>
 
 <%# javascript_pack_tag 'dropdown_artist' %>
 
-<script>
-// $(dropdown_hv)
-
-// // autocomplete
-// $(function(){
-//    // Plain jquery
-//    $('#text_field_duration').fadeOut(5000);
-//
-//    // jquery-ui
-//    const availableCities = ['Baltimore', 'New York'];
-//    console.log($('#harami_vid_music').html()); // .autocomplete( { source: availableCities } );
-//    //$('#calendarField').datepicker( { dateFormat: 'yy-mm-dd' } );
-//})
-
- // console.log(states);
-</script>

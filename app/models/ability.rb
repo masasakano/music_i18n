@@ -36,7 +36,9 @@ class Ability
     alias_action :create, :read,                    to: :cr
     alias_action :update, :destroy,                 to: :ud   # including :edit
 
+    # These lines are probably wrong??
     can :index, Musics::Merges::MusicWithIdsController
+    can :index, Artists::Merges::ArtistWithIdsController
 
     # user ||= User.new # Providing an unlogged-in user is created with User.new
 return if !user   # to prohibit everything needing authorization (but :read) from not-logged in users.
@@ -86,7 +88,7 @@ return if !user   # to prohibit everything needing authorization (but :read) fro
     ## General-JA editor only
     rc_general_ja = RoleCategory[RoleCategory::MNAME_GENERAL_JA]
     if user.qualified_as?(:editor, rc_general_ja)
-      can :manage, Musics::MergesController 
+      can :manage, [Musics::MergesController, Artists::MergesController]
     end
 
     ## HaramiVid editor
@@ -104,7 +106,7 @@ return if !user   # to prohibit everything needing authorization (but :read) fro
       can(:new, Translation){|trans| !trans.translatable_type || !trans.translatable_type.constantize || Ability.new(user).can?(:create, trans.translatable_type.constantize) }
       #cannot(:ud,  Translation){|trans| !trans.translatable || Ability.new(user).cannot?(:update, trans.translatable)}  # I think "can?" statement does not work.
       can(:ud, Translation){|trans| trans.create_user == user }  # Can edit/update/delete their own Translations.
-      can :manage, Musics::MergesController 
+      can :manage, [Musics::MergesController, Artists::MergesController]
     end
 
     ## Higher rank

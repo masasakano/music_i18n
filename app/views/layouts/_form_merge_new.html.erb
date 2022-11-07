@@ -1,0 +1,45 @@
+<%# NOTE: Argument "model" should be the base model (Music or Artist) %>
+
+<% model_underscore = model.class.name.underscore %>
+
+<% mo_title = model.title_or_alt %>
+<h1>Merge <%= model_underscore.camelize.pluralize %> (<%= mo_title %>)</h1> <%# e.g., Musics (Let It Be) %>
+
+  <% if model.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(model.errors.count, "error") %> prohibited merging:</h2>
+
+      <ul>
+        <% model.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+<% path_edit = send(model_underscore.pluralize + "_edit_merge_users_path", model) %> <%# e.g., musics_edit_merge_users_path() %>
+<%= form_with(model: model, url: path_edit, method: "get") do |form| %>
+  <% other_str = "other_"+model_underscore %>
+  <div class="field">
+    <%= form.label      other_str+"_id", model_underscore.camelize+"-ID (to merge this with)" %>
+    <%= form.text_field other_str+"_id", class: "input_int" %>
+  </div>
+
+  <div class="field field-note">
+    <%= form.label      other_str+"_title" %>
+    <%= form.text_field other_str+"_title", id: model_underscore+"_with_id" %> <%# id is used in JS autocomplete_model_with_id.js %>
+  </div>
+
+  <div class="actions">
+    <%= form.submit 'Proceed' %> (to specify the details)
+  </div>
+  <div class="actions">
+  <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  </div>
+<% end %>
+
+<% path_show = send(model_underscore + "_path", model) %>
+<%= link_to "Back to "+model_underscore.camelize+" ID="+model.id.to_s, path_show %>: (<%= mo_title %>)<br>
+<%= link_to model_underscore.camelize.pluralize+' Index', send(model_underscore.pluralize + "_path") %> <%# e.g., musics_path %>
+
+

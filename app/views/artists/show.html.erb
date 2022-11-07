@@ -15,14 +15,12 @@
 
 <p>
   <strong>県・場所 (国):</strong>
-  <%= ar = @artist.place.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true);
-      sprintf '%s %s(%s)', ar[1], (ar[0].blank? ? '' : '— '+ar[0]+' '), ar[2] %>
+  <%= @artist.txt_place_pref_ctry %> 
 </p>
 
 <p>
   <strong>誕生日:</strong>
-  <%= sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
-                  i = @artist.send m; (i.blank? ? '——' : i.to_s)}) %>
+  <%= @artist.birthday_string %>
 </p>
 
 <p>
@@ -40,14 +38,7 @@
   <%= @artist.note %>
 </p>
 
-<% if can? :update, @artist  %>
-  <%= link_to 'Edit', edit_artist_path(@artist) %> |
-<% end %>
-<%= link_to 'Back', artists_path %>
-<% if can? :destroy, @artist %>
-  <br>
-  <%= link_to 'Destroy', @artist, method: :delete, data: { confirm: 'Are you sure?' } %>
-<% end %>
+<%= render partial: 'layouts/link_merge_destroy', locals: {model: @artist} %>
 
 <hr>
 

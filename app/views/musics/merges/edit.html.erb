@@ -1,7 +1,7 @@
 <h1>Merge Musics <% "("+@musics.map{|em| em.title_or_alt}.join(")+(")+")" %></h1>
 <%# Find me in app/views/musics/merges/edit.html.erb %>
 
-<%= render 'form', musics: @musics %>
+<%= render 'layouts/form_merge', models: @musics %>
 
 <%= link_to "Back to Music ID="+@musics[0].id.to_s, music_path(@musics[0]) %>: (<%= @musics[0].title_or_alt %>) |
 <%= link_to 'Music Index', musics_path %>

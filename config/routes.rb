@@ -1,4 +1,12 @@
 Rails.application.routes.draw do
+  namespace :artists do
+    get    ':id/merges/new',  to: 'merges#new',     as: :new_merge_users  # => artists_new_merge_path(:id)  => /artists/:id/merges/new
+    get    ':id/merges/edit', to: 'merges#edit',    as: :edit_merge_users # => artists_edit_merge_path(:id) => /artists/:id/merges/edit
+    match  ':id/merges',      to: 'merges#update',  as: :update_merge_users, via: [:put, :patch]
+    namespace :merges do
+      get 'artist_with_ids',   to: 'artist_with_ids#index'  # => artists_merges_artist_with_ids_path => /artists/merges/artist_with_ids#index
+    end
+  end
   resources :page_formats
   #filter :extension #, :exclude => %r(^admin/)
   filter :locale#,    :exclude => /^\/admin/

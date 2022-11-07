@@ -88,6 +88,10 @@ ja:
         asc: "↑"
         desc: "↓"
 
+  artists:
+    new:
+      please_add_music: "Artistを登録した後、Music登録も忘れずお願いします。"
+
   musics:
     index:
 

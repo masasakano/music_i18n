@@ -1,44 +1,51 @@
-  <% if musics[0].errors.any? || musics[1].errors.any? %>
+<%# NOTE: Argument "models" should be an 2-element Array of base-model and merge-model %>
+
+  <% if models[0].errors.any? || models[1].errors.any? %>
     <div id="error_explanation">
       <h2>merging failed:</h2>
 
       <ul>
-        <% musics.each do |eam| %>
+        <% models.each do |eam| %>
           <li><%= errors.full_messages %></li>
         <% end %>
       </ul>
     </div>
   <% end %>
 
-<%= form_with(model: musics[0], url: musics_update_merge_users_path(musics[0].id), method: "patch") do |form| %>
+<% is_music = (models[0].class == Music) %>
+<% model_underscore = models[0].class.name.underscore %>
+<% path_update = send(model_underscore.pluralize + "_update_merge_users_path", models[0]) %> <%# e.g., musics_update_merge_users_path() %>
+<%= form_with(model: models[0], url: path_update, method: "patch") do |form| %>
 <table>
   <thead>
     <tr><th></th>
-      <% musics.each do |em| %>
-      <th>ID=<%= link_to em.id, music_path(em.id) %><br><%= em.title_or_alt %></th>
+      <% models.each do |em| %>
+      <th>ID=<%= link_to em.id, send(model_underscore+"_path", em.id) %><br><%= em.title_or_alt %></th>
       <% end %>
   </thead>
   <tbody>
     <tr><th>Merge to</th>
-      <% musics.each_index do |i| %>
+      <% models.each_index do |i| %>
       <td style="text-align: center;"><%= form.radio_button(BaseMergesController::FORM_MERGE[:to_index], i, checked: (i==0)) %>
       </td>
       <% end %>
     </tr>
     <tr><th>Orig-Language</th>
-      <% musics.each_with_index do |em, i| %>
+      <% models.each_with_index do |em, i| %>
       <td>
         <% labe = BaseMergesController::FORM_MERGE[:lang_orig] %>
         <%= form.radio_button(labe, i, checked: (i==0)) %>
         <% trans = em.orig_translation %>
-        <% arstr = %i(title ruby romaji alt_title alt_ruby alt_romaji).map{|et| h(trans.send(et))} %>
-        <% str = sprintf("%s<br>(%s | %s)<br>%s<br>(%s | %s)", *arstr).html_safe %>
+        <% arstr = %i(title ruby romaji alt_title alt_ruby alt_romaji).map{|et| h(trans.send(et) || "?")} %>
+        <% alt_head = '<span class="font-smaller">['+h(t(:alt_title).capitalize)+']</span>' %>
+        <% ruby_head = '<span class="font-smaller">'+h(t(:ruby_short).capitalize)+'</span>' %>
+        <% str = sprintf("%s<br>#{ruby_head}(%s | %s)<br>#{alt_head} %s<br>#{ruby_head}(%s | %s)", *arstr).html_safe %>
         <%= form.label labe, str, :value => i %>
       </td>
       <% end %>
     </tr>
     <tr><th><%= t(:Translation, count: 2, default: 'Translations') %></th>
-      <% musics.each_with_index do |em, i| %>
+      <% models.each_with_index do |em, i| %>
       <td>
         <% labe = BaseMergesController::FORM_MERGE[:lang_trans] %>
         <% orig_trans = em.orig_translation %>
@@ -49,7 +56,7 @@
         <% end %>
         <% arstr = [] %>
         <% em.translations.sort{|a, b|
-            (I18n.available_locales.find_index(a.langcode) || Float::INFINITY)
+            (I18n.available_locales.find_index(a.langcode.to_sym) || Float::INFINITY)
            }.each do |et| %>
           <% next if et.langcode == orig_trans.langcode %>
           <% arstr << sprintf("%s / %s", h(et.title), h(et.alt_title)) %>
@@ -63,17 +70,20 @@
       </td>
       <% end %>
     </tr>
-    <tr><th>Engage-Artists</th>
-      <% musics.each_with_index do |em, i| %>
+    <% engage_other_underscore = (is_music ? 'Artist' : 'Music').underscore %>
+    <tr><th>Engage-<%= engage_other_underscore.camelize.pluralize %></th>
+      <% models.each_with_index do |em, i| %>
       <td>
         <% labe = BaseMergesController::FORM_MERGE[:engage] %>
         <%= form.radio_button(labe, i, checked: (i==0)) %>
         <% str = em.engages.map{ |een|
+             linkmodel = een.send(engage_other_underscore)
+             linkpath = send(engage_other_underscore+"_path", linkmodel)
              sprintf(
                 "%s (%s[%s] %s)",
-                link_to(een.artist.title_or_alt, artist_path(een.artist)),
+                link_to(linkmodel.title_or_alt, linkpath),
                 h(een.engage_how.title_or_alt(langcode: I18n.locale)),
-                h(short_float_str(een.contribution, maxlength: 4, str_nil: "")),
+                h(short_float_str(een.contribution, maxlength: 4, str_nil: "?")),
                 h(een.year.inspect)
              )
            }.join("<br>").html_safe %>
@@ -82,7 +92,7 @@
       <% end %>
     </tr>
     <tr><th>Prefecture (Country)</th>
-      <% musics.each_with_index do |em, i| %>
+      <% models.each_with_index do |em, i| %>
       <td>
         <% labe = BaseMergesController::FORM_MERGE[:prefecture_place] %>
         <%= form.radio_button(labe, i, checked: (i==0)) %>
@@ -91,8 +101,9 @@
       </td>
       <% end %>
     </tr>
+  <% if is_music %>
     <tr><th>Genre</th>
-      <% musics.each_with_index do |em, i| %>
+      <% models.each_with_index do |em, i| %>
       <td>
         <% labe = BaseMergesController::FORM_MERGE[:genre] %>
         <%= form.radio_button(labe, i, checked: (i==0)) %>
@@ -101,7 +112,7 @@
       <% end %>
     </tr>
     <tr><th>Year</th>
-      <% musics.each_with_index do |em, i| %>
+      <% models.each_with_index do |em, i| %>
       <td>
         <% labe = BaseMergesController::FORM_MERGE[:year] %>
         <%= form.radio_button(labe, i, checked: (i==0)) %>
@@ -109,8 +120,46 @@
       </td>
       <% end %>
     </tr>
+  <% else %>
+    <tr><th>Sex</th>
+      <% models.each_with_index do |em, i| %>
+      <td>
+        <% labe = BaseMergesController::FORM_MERGE[:sex] %>
+        <%= form.radio_button(labe, i, checked: (i==0)) %>
+        <%= form.label labe, em.sex.title_or_alt(langcode: I18n.locale), :value => i %>
+      </td>
+      <% end %>
+    </tr>
+    <tr><th>Birthday</th>
+      <% models.each_with_index do |em, i| %>
+      <td>
+        <% labe = BaseMergesController::FORM_MERGE[:birthday] %>
+        <%= form.radio_button(labe, i, checked: (i==0)) %>
+        <%= form.label labe, em.birthday_string, :value => i %>
+      </td>
+      <% end %>
+    </tr>
+    <tr><th>Wikipedia[en]</th>
+      <% models.each_with_index do |em, i| %>
+      <td>
+        <% labe = BaseMergesController::FORM_MERGE[:wiki_en] %>
+        <%= form.radio_button(labe, i, checked: (i==0)) %>
+        <%= form.label labe, em.wiki_en, :value => i %>
+      </td>
+      <% end %>
+    </tr>
+    <tr><th>Wikipedia[ja]</th>
+      <% models.each_with_index do |em, i| %>
+      <td>
+        <% labe = BaseMergesController::FORM_MERGE[:wiki_ja] %>
+        <%= form.radio_button(labe, i, checked: (i==0)) %>
+        <%= form.label labe, em.wiki_ja, :value => i %>
+      </td>
+      <% end %>
+    </tr>
+  <% end %>
     <tr><th title="Notes are merged (combined).">Note</th>
-      <% musics.each_with_index do |em, i| %>
+      <% models.each_with_index do |em, i| %>
       <td>
         <%= em.note %>
       </td>

@@ -88,6 +88,10 @@ en:
         asc: "↑"
         desc: "↓"
 
+  artists:
+    new:
+      please_add_music: "Please add a Music(s) once you have created an Artist."
+
   musics:
     index:
 

@@ -197,6 +197,13 @@ class Artist < BaseWithTranslation
   end
 
 
+  # Returns string expression of birthday
+  #
+  # @return [String]
+  def birthday_string
+    date2text(birth_year, birth_month, birth_day)  # defined in module_common.rb
+  end
+
   # Returns an Array of title or alt_title-s of {EngageHow} for the given {Music}
   #
   # Convenience tool for views.

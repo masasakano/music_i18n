@@ -265,24 +265,24 @@ class BaseWithTranslation < ApplicationRecord
   ## to update.  For example, [:country, :country_id] for Prefercture
   # MAIN_UNIQUE_COLS = []
 
-  AVAILABLE_LOCALES = I18n.available_locales  # ko, zh, ...
+  AVAILABLE_LOCALES = I18n.available_locales  # :ko, :zh, ...
   LANGUAGE_TITLES = {
     ja: {
       'ja' => '日本語',
       'en' => '英語',
       'fr' => '仏語',
-    },
+    }.with_indifferent_access,
     en: {
       'ja' => 'Japanese',
       'en' => 'English',
       'fr' => 'French',
-    },
+    }.with_indifferent_access,
     fr: {
       'ja' => 'Japonais',
       'en' => 'Anglais',
       'fr' => 'Français',
-    },
-  }
+    }.with_indifferent_access,
+  }.with_indifferent_access
 
   # Hash to specify the priority among the available locales
   HS_LOCALE_PRIORITY = AVAILABLE_LOCALES.map.with_index{|lc, i| [lc, i]}.to_h # Index mapping
