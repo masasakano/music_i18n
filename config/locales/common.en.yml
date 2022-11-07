@@ -30,8 +30,9 @@
 # available at https://guides.rubyonrails.org/i18n.html.
 
 en:
-  accept_terms: Terms of Service
+  accept_terms: "Terms of Service"
   are_you_sure: "Are you sure?"
+  are_you_sure_but_merge: "You may consider merging for duplication, instead."
   Country: Country
   detail: Detail
   display_name: Display Name

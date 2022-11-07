@@ -3,6 +3,15 @@ class BaseGrid
 
   include Datagrid
 
+  # User-added! To make path-helpers available across Datagrid classes
+  # However, in some context, you still have to write like (for some reason):
+  #   Rails.application.routes.url_helpers.places_path
+  # It seems this is irrelevant after all...
+  #include Rails.application.routes.url_helpers
+
+  extend ApplicationHelper  # I suppose this is a key (to include path/url helpers and url_for helpers)?
+  extend ModuleCommon  # My module
+
   # Datagrid enum for the max entries per page for pegination
   MAX_PER_PAGES = {
     10 => 10,

@@ -48,7 +48,7 @@
           <td><%= link_to 'Edit', edit_harami_vid_path(harami_vid) %></td>
         <% end %>
         <% if can? :destroy, harami_vid %>
-          <td><%= link_to 'Destroy', harami_vid, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+          <td><%= link_to 'Destroy', harami_vid, method: :delete, data: { confirm: t('are_you_sure') } %></td>
         <% end %>
       </tr>
     <% end %>

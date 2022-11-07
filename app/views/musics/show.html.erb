@@ -43,7 +43,7 @@
   <%= @music.note %>
 </p>
 
-<%= render partial: 'link_merge_destroy', locals: {music: @music,  is_to_edit: false} %>
+<%= render partial: 'link_merge_destroy', locals: {model: @music,  is_to_edit: false} %>
 
 <hr>
 
@@ -60,5 +60,5 @@
 
 <hr>
 
-<%= render partial: 'link_merge_destroy', locals: {music: @music,  is_to_edit: false} %>
+<%= render partial: 'link_merge_destroy', locals: {model: @music,  is_to_edit: false} %>
 

@@ -22,7 +22,7 @@
         <td><%= engage_how.note %></td>
         <td><%= link_to 'Show', engage_how %></td>
         <td><%= link_to 'Edit', edit_engage_how_path(engage_how) %></td>
-        <td><%= link_to 'Destroy', engage_how, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+        <td><%= link_to 'Destroy', engage_how, method: :delete, data: { confirm: t('are_you_sure') } %></td>
       </tr>
     <% end %>
   </tbody>

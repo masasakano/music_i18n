@@ -1,9 +1,6 @@
 # coding: utf-8
 class ArtistsGrid < BaseGrid
 
-  extend ApplicationHelper
-  extend ModuleCommon
-
   scope do
     Artist
   end
@@ -127,16 +124,15 @@ class ArtistsGrid < BaseGrid
   column(:created_at, header: I18n.t('tables.created_at'))
   column(:actions, html: true, mandatory: true, header: I18n.t("tables.actions", default: "Actions")) do |record|
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
-    ar = [ActionController::Base.helpers.link_to('Show', Rails.application.routes.url_helpers.artist_path(record), data: { turbolinks: false })]
+    ar = [link_to('Show', artist_path(record), data: { turbolinks: false })]
     if can? :update, record
-      ar.push ActionController::Base.helpers.link_to('Edit', Rails.application.routes.url_helpers.edit_artist_path(record))
-      if can? :destroy, record
-        #ar.push ActionController::Base.helpers.link_to('Destroy', record, method: :delete, data: { confirm: 'Are you sure?' })
-        ar.push ActionController::Base.helpers.link_to('Destroy', Rails.application.routes.url_helpers.artist_path(record), method: :delete, data: { confirm: 'Are you sure?' })
-        #if record == Artist.unknown && ArtistsGrid.is_current_user_moderator
-        #  ar.push '(Moderator only)'
-        #end
-      end
+      ar.push link_to('Edit', edit_artist_path(record))
+      #if can?(:update, Artists::MergesController)
+      #  ar.push ActionController::Base.helpers.link_to('Merge', artists_new_merge_users_path(record))
+        if can? :destroy, record
+          ar.push link_to('Destroy', artist_path(record), method: :delete, data: { confirm: (t('are_you_sure')+" "+t("are_you_sure.merge")).html_safe })
+        end
+      #end
     end
     ar.compact.join(' / ').html_safe
   end

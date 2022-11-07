@@ -18,7 +18,7 @@
         <td><%= sex.note %></td>
         <td><%= link_to 'Show', sex %></td>
         <td><%= link_to 'Edit', edit_sex_path(sex) %></td>
-        <td><%= link_to 'Destroy', sex, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+        <td><%= link_to 'Destroy', sex, method: :delete, data: { confirm: t('are_you_sure') } %></td>
       </tr>
     <% end %>
   </tbody>

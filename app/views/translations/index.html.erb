@@ -50,7 +50,7 @@
           <% if can? :edit, translation %>
             <td class="cell_edit"><%= link_to 'Edit', edit_translation_path(translation) %></td>
             <% if can? :destroy, translation %>
-              <td class="cell_destroy"><%= link_to 'Destroy', translation, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+              <td class="cell_destroy"><%= link_to 'Destroy', translation, method: :delete, data: { confirm: t('are_you_sure') } %></td>
             <% end %>
           <% end %>
         <% end %>

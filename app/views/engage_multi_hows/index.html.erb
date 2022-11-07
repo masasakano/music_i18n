@@ -67,7 +67,7 @@
             <% if engage.harami1129s.exists? && (n_engages + n_engage_others > 1) %>
               <% msg = 'Will be replaced with another one of '+((n_engages > 0) ? 'this' : 'another')+'Artist' %>
               <%# This msg can be used (thougt not yet implmented) like:  "title: msg" %>
-              <%= link_to 'Destroy(Admin-only)', engage, method: :delete, url: engage_url(engage), data: { confirm: 'Are you sure?' } %>
+              <%= link_to 'Destroy(Admin-only)', engage, method: :delete, url: engage_url(engage), data: { confirm: t('are_you_sure') } %>
             <% else %>
               <span title="Cannot be destroyed because this entry has a dependent Harami1129(s) and there are no other Engages.">Destroy(Admin-only)</span>
             <% end %>
@@ -126,7 +126,7 @@
           <td></td>
           <td><%= link_to 'Show', engage %></td>
           <% if current_user.sysadmin? %>
-            <td><%= link_to 'Destroy(Admin)', engage, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+            <td><%= link_to 'Destroy(Admin)', engage, method: :delete, data: { confirm: t('are_you_sure') } %></td>
           <% end %>
         </tr>
       <% end %>

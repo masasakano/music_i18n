@@ -41,7 +41,7 @@
   <%  if ! @roletree %>
     <p>None.</p>
   <% else %>
-    <%= form_with(method: :patch, url: users_edit_role_path(@user), data: { confirm: 'Are you sure?' }) do |form| %>
+    <%= form_with(method: :patch, url: users_edit_role_path(@user), data: { confirm: t('are_you_sure') }) do |form| %>
       <% cur_node_depth = -1 %>
       <% @roletree.each do |node| %>
         <% if node.node_depth != cur_node_depth %>

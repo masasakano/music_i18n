@@ -34,7 +34,7 @@
         <td><%= prefecture.note %></td>
         <td><%= link_to 'Show', prefecture %></td>
         <td><%= link_to('Edit', edit_prefecture_path(prefecture)) if (can? :update, prefecture) %></td>
-        <td><%= link_to('Destroy', prefecture, method: :delete, data: { confirm: 'Are you sure?' }) if (can?(:destroy, prefecture) && prefecture.destroyable?(with_msg: false)) %></td>
+        <td><%= link_to('Destroy', prefecture, method: :delete, data: { confirm: t('are_you_sure') }) if (can?(:destroy, prefecture) && prefecture.destroyable?(with_msg: false)) %></td>
       </tr>
     <% end %>
   </tbody>

@@ -2,63 +2,6 @@
 
 <h1>Artists</h1>
 
-<% if false %>
-<table>
-  <thead>
-    <tr>
-      <th>和名 [フリガナ/ローマ字]</th>
-      <th>別名</th>
-      <th>英語名</th>
-      <% if can? :update, Place %>
-        <th><%= link_to '県', prefectures_url %>・<%= link_to '場所', places_url %> (<%= link_to '国', countries_url %>)</th>
-      <% else %>
-        <th>県・場所 (国)</th>
-      <% end %>
-      <th>誕生日</th>
-      <% if can? :update, Sex %>
-        <th><%= link_to '性別', sexes_url %></th>
-      <% else %>
-        <th>性別</th>
-      <% end %>
-      <th>Wikipedia</th>
-      <th><%= link_to '登録曲', musics_url %>数</th>
-      <th>Note</th>
-      <% if can? :update, Artist %>
-        <th colspan="3"></th>
-      <% else %>
-        <th></th>
-      <% end %>
-    </tr>
-  </thead>
-
-  <tbody>
-    <% unknown_artist = Artist.unknown %>
-    <% @artists.each do |artist| %>
-      <tr>
-        <td><%= sprintf '%s [%s/%s]', *(%i(title ruby romaji).map{|i| artist.send(i, langcode: 'ja') || ''}) %></td>
-        <td><%= sprintf '%s [%s/%s]', *(%i(alt_title alt_ruby alt_romaji).map{|i| artist.send(i, langcode: 'ja') || ''}) %></td>
-        <td><%= sprintf '%s [%s]', *(%i(title alt_title).map{|i| artist.send(i, langcode: 'en') || ''}) %></td>
-        <td><%= ar = artist.place.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true);
-                sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture['ja'] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2] %></td>
-        <td><%= sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
-                  i = artist.send m; (i.blank? ? '——' : i.to_s)}) %></td>
-        <td><%= artist.sex.title langcode: 'ja' %></td>
-        <td><%= %w(ja en).map{|m| uri=artist.wiki_uri(m); uri.blank? ? '——' : link_to(((m == 'ja') ? '日本語' : '英語'), uri)}.join(' / ').html_safe %></td>
-        <td><%= artist.musics.uniq.count %></td>
-        <td><%= artist.note %></td>
-        <td><%= link_to 'Show', artist %></td>
-        <% if can? :update, artist  %>
-          <td><%= link_to 'Edit', edit_artist_path(artist) %></td>
-        <% end %>
-        <% if can? :destroy, artist %>
-          <td><%= link_to 'Destroy', artist, method: :delete, data: { confirm: 'Are you sure?' } %></td>
-        <% end %>
-      </tr>
-    <% end %>
-  </tbody>
-</table>
-<% end %>
-
 <%= datagrid_form_for @grid, :method => :get, :url => artists_path %>
 
 <%= paginate(@grid.assets) %>

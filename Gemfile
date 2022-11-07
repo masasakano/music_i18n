@@ -132,7 +132,7 @@ gem 'paper_trail', '~> 12.3', '>= 12.3'  # used to use 12.0 up to Rails 6.0 (whi
 gem 'routing-filter', '~> 0', '>= 0.6.3', git: 'https://github.com/svenfuchs/routing-filter'
 gem 'redirector', '~> 1.1', '>= 1.1.2'
 gem 'redcarpet', '~> 3', '>= 3.3.4'
-gem 'kaminari-i18n'
+gem 'kaminari-i18n'  # https://github.com/tigrish/kaminari-i18n
 
 # Necessary in Ruby 3.1
 gem 'net-smtp', require: false #, '~> 0.3', '>= 0.3.1'

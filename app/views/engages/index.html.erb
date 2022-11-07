@@ -28,7 +28,7 @@
         <td><%= engage.note %></td>
         <td><%= link_to 'Show', engage %></td>
         <td><%= link_to 'Edit', edit_engage_multi_how_path(engage) %></td>
-        <td><%= link_to 'Destroy', engage, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+        <td><%= link_to 'Destroy', engage, method: :delete, data: { confirm: t('are_you_sure') } %></td>
       </tr>
     <% end %>
   </tbody>

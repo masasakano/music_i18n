@@ -18,7 +18,7 @@
         <td><%= role_category.note %></td>
         <td><%= link_to 'Show', role_category %></td>
         <td><%= link_to 'Edit', edit_role_category_path(role_category) %></td>
-        <td><%= link_to 'Destroy', role_category, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+        <td><%= link_to 'Destroy', role_category, method: :delete, data: { confirm: t('are_you_sure') } %></td>
       </tr>
     <% end %>
   </tbody>

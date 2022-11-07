@@ -1,8 +1,6 @@
 # coding: utf-8
 class Harami1129sGrid < BaseGrid
 
-  extend ApplicationHelper
-
   scope do
     Harami1129
   end
@@ -99,7 +97,7 @@ class Harami1129sGrid < BaseGrid
     [link_to('Show', record, data: { turbolinks: false }),
      (record.harami_vid ? link_to('HVid', harami_vid_path(record.harami_vid), title: 'HaramiVid imported from this record (and possibly also from other records)') : nil),
      link_to('Edit', edit_harami1129_path(record)),
-     link_to('Destroy', record, method: :delete, data: { confirm: 'Are you sure?' }),
+     link_to('Destroy', record, method: :delete, data: { confirm: t('are_you_sure') }),
      ((record.ins_at && !record.ins_title.blank? && (record.ins_song.blank? || !record.ins_song.blank?) && (record.ins_singer.blank? || !record.ins_singer.blank?) && !record.ins_link_root.blank? && !record.ins_release_date.blank?) ? nil : link_to('InsertToInsCols', harami1129_internal_insertions_path(harami1129_id: record.id), method: :patch, title: 'Perform insertion to ins_* columns within the table row.')),
      (%i(checked consistent no_insert).include?(record.populate_status.sorted_status.first) ? nil :
         button_to('Populate', harami1129_populate_url(harami1129_id: record.id), method: :patch))
@@ -108,3 +106,10 @@ class Harami1129sGrid < BaseGrid
   end
 
 end
+
+class << Harami1129sGrid
+  # Setter/getter of {Harami1129sGrid.current_user}
+  attr_accessor :current_user
+  attr_accessor :is_current_user_moderator
+end
+

@@ -56,7 +56,7 @@
           <td><%= link_to 'Edit', edit_country_path(country) %></td>
         <% end %>
         <% if can? :destroy, country %>
-          <td><%= link_to 'Destroy', country, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+          <td><%= link_to 'Destroy', country, method: :delete, data: { confirm: t('are_you_sure') } %></td>
         <% end %>
       </tr>
     <% end %>

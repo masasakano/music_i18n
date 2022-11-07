@@ -101,7 +101,7 @@
   </div>
 <% end %>
 <p>
-  <%= link_to 'Destroy', @translation, method: :delete, data: { confirm: 'Are you sure?' } %>
+  <%= link_to 'Destroy', @translation, method: :delete, data: { confirm: t('are_you_sure') } %>
 </p>
 
 <% if @translation.translatable.respond_to? :translations %>
