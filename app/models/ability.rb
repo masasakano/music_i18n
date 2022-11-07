@@ -127,7 +127,7 @@ return if !user   # to prohibit everything needing authorization (but :read) fro
 
     ## General-JA moderator only
     if user.qualified_as?(:moderator,rc_general_ja)
-      can :read, CountryMaster
+      can :read, [CountryMaster]
     end
 
     ## HaramiVid moderator only
@@ -149,9 +149,9 @@ return if !user   # to prohibit everything needing authorization (but :read) fro
       #can :manage_iso3166_jp, Prefecture  # redundant
     else
       cannot :manage_prefecture_jp, Prefecture  # cannot edit Country in Prefecture to Japan
-      cannot(:ud, Prefecture){|i| i.unknown?}
-      cannot(:ud, Prefecture){|i| i.country == Country['JPN']}
-      cannot(:ud, Place){|i| i.unknown?}
+      cannot(:ud, [Prefecture]){|i| i.unknown?}
+      cannot(:ud, [Prefecture]){|i| i.country == Country['JPN']}
+      cannot(:ud, [Artist, Music, Place]){|i| i.unknown?}
       #cannot(:ud, Place){|i| i.country == Country['JPN']}
     end
   end

@@ -32,6 +32,7 @@
   </thead>
 
   <tbody>
+    <% unknown_artist = Artist.unknown %>
     <% @artists.each do |artist| %>
       <tr>
         <td><%= sprintf '%s [%s/%s]', *(%i(title ruby romaji).map{|i| artist.send(i, langcode: 'ja') || ''}) %></td>
@@ -63,6 +64,10 @@
 <%= paginate(@grid.assets) %>
 <%= datagrid_table @grid %>
 <%= paginate(@grid.assets) %>
+
+<p>
+  <%= t("tables.total_n_entries_is", model: "Artists", default: "Total number of entries of Artists (without filters)") %>: <%= Artist.count %> <%# including Artist.unknown %>
+</p>
 
 <br>
 

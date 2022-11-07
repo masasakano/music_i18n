@@ -131,7 +131,7 @@ class MusicsGrid < BaseGrid
 
   column(:updated_at, header: I18n.t("tables.updated_at", default: "Updated at"))
   column(:created_at, header: I18n.t("tables.created_at", default: "Created at"))
-  column(:actions, :html => true, :mandatory => true, header: I18n.t("tables.actions", default: "Actions")) do |record|
+  column(:actions, html: true, mandatory: true, header: I18n.t("tables.actions", default: "Actions")) do |record|
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
     ar = [ActionController::Base.helpers.link_to('Show', Rails.application.routes.url_helpers.music_path(record), data: { turbolinks: false })]
     if can? :update, record
@@ -139,9 +139,9 @@ class MusicsGrid < BaseGrid
       if can? :destroy, record
         #ar.push ActionController::Base.helpers.link_to('Destroy', record, method: :delete, data: { confirm: 'Are you sure?' })
         ar.push ActionController::Base.helpers.link_to('Destroy', Rails.application.routes.url_helpers.music_path(record), method: :delete, data: { confirm: 'Are you sure?' })
-        if record == Music.unknown && MusicsGrid.is_current_user_moderator
-          ar.push '(Moderator only)'
-        end
+        #if record == Music.unknown && MusicsGrid.is_current_user_moderator
+        #  ar.push '(Moderator only)'
+        #end
       end
     end
     ar.compact.join(' / ').html_safe

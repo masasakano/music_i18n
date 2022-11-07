@@ -43,17 +43,7 @@
   <%= @music.note %>
 </p>
 
-<% if can? :update, @music %>
-  <%= link_to 'Edit', edit_music_path(@music) %>
-<% end %>
-<% if can? :update, Musics::MergesController %>
-  &nbsp;&nbsp; / <%= link_to 'Merge with another Music', musics_new_merge_users_path(@music) %>
-<% end %>
-<% if can? :destroy, @music %>
-  &nbsp;&nbsp; / <%= link_to 'Destroy', @music, method: :delete, data: { confirm: 'Are you sure?' } %>
-<% end %>
-<br>
-<%= link_to 'Back to Index', musics_path %>
+<%= render partial: 'link_merge_destroy', locals: {music: @music,  is_to_edit: false} %>
 
 <hr>
 
@@ -69,17 +59,6 @@
 <% end %>
 
 <hr>
-<% if can? :update, @music %>
-  <%= link_to 'Edit this Music', edit_music_path(@music) %>
-<% end %>
-<% if can? :update, Musics::MergesController %>
-  &nbsp;&nbsp; / <%= link_to 'Merge with another Music', musics_new_merge_users_path(@music) %>
-<% end %>
-<% if false %>
-  <% if can? :destroy, @music %>
-    &nbsp;&nbsp; / <%= link_to 'Destroy', @music, method: :delete, data: { confirm: 'Are you sure?' } %>
-  <% end %>
-<% end %>
-<br>
-<%= link_to 'Back to Index', musics_path %>
+
+<%= render partial: 'link_merge_destroy', locals: {music: @music,  is_to_edit: false} %>
 

@@ -71,7 +71,7 @@
         <% if can? :destroy, music %>
           <td><%= link_to 'Destroy', music, method: :delete, data: { confirm: 'Are you sure?' } %></td>
         <% end %>
-        <%= "<td>(Moderator<br>only)</td>".html_safe if music == unknown_music %>
+        <%= "<td>(Moderator<br>only)</td>".html_safe if music == unknown_music && (!current_user || !current_user.moderator?) %>
       </tr>
     <% end %>
   </tbody>
@@ -85,7 +85,7 @@
 <%= paginate(@grid.assets) %>
 
 <p>
-  Total number of entries of Musics (without filters): <%= Music.count + ((current_user && current_user.moderator?) ? 1 : 0) %>
+  <%= t("tables.total_n_entries_is", model: "Musics", default: "Total number of entries of Musics (without filters)") %>: <%= Music.count %> <%# including Music.unknown %>
 </p>
 
 <% if can? :create, Music %>

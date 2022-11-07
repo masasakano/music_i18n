@@ -156,6 +156,9 @@ GEM
       activerecord
       kaminari-core (= 1.2.2)
     kaminari-core (1.2.2)
+    kaminari-i18n (0.5.0)
+      kaminari
+      rails
     kramdown (2.4.0)
       rexml
     listen (3.7.1)
@@ -343,6 +346,7 @@ DEPENDENCIES
   jbuilder
   jquery-rails
   jsbundling-rails
+  kaminari-i18n
   kramdown
   listen (~> 3)
   matrix

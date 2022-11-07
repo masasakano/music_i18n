@@ -1,0 +1,48 @@
+<%# taking variables: music and is_to_edit (true for "edit" and false for "show") %>
+
+<% if !is_to_edit && can?(:update, @music) %>
+  <div class="link-edit-destroy">
+    <%= link_to 'Edit', edit_music_path(@music) %> <%# -------- show only %>
+<% end %>
+<% if !music.new_record? && (can?(:destroy, music) || can?(:update, music) && can?(:update, Musics::MergesController)) %>
+  <% if is_to_edit && can?(:update, @music) %>
+  <div class="actions-destroy" style="margin-right: 1em;">
+   <div class="actions" style="text-align: right">
+  <% end %>
+     <% if can?(:update, music) && can?(:update, Musics::MergesController) %>
+       <% if is_to_edit  %>
+       <%= button_to 'Merge with another Music', musics_new_merge_users_path(music), method: :get, title: 'You will be asked to select Music to merge this one with.' %>
+       <% else %>
+  &nbsp;&nbsp; / <%= link_to 'Merge with another Music', musics_new_merge_users_path(@music) %>
+       <% end %>
+     <% end %>
+
+     <% if can?(:destroy, music) && !music.harami_vids.exists? && !music.harami1129s.exists? %>
+      <% if is_to_edit %>
+       <%= button_to 'Destroy', music, method: :delete, data: { confirm: t('are_you_sure') } %>
+      <% else %>
+  &nbsp;&nbsp; / <%= link_to 'Destroy', @music, method: :delete, data: { confirm: t('are_you_sure') } %>
+      <% end %>
+     <% else %>
+      <% if is_to_edit %> <%# ----- In "show", nothing related to "Destroy" is shown. %>
+       <form class="button_to"><input disabled="disabled" type="submit" value="Destroy"></form>
+       (Music has dependent HaramiVids and/or Harami1129s and so cannot be destroyed.)
+      <% end %>
+     <% end %>
+  <% if is_to_edit && can?(:update, @music) %>
+   </div>
+  <% end %>
+  </div>
+<% end %>
+
+<% if is_to_edit && ! music.new_record? %>
+  <p>
+    <%= link_to 'Show', music %> |
+    <%= link_to 'Back to Index', musics_path %>
+  </p>
+<% else %>
+<br>
+<%= link_to 'Back to Index', musics_path %>
+<% end %>
+
+

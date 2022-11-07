@@ -23,6 +23,7 @@ en:
     updated_at: "Last updated at"
     created_at: "Created at"
     actions: "Actions"
+    total_n_entries_is: "Total number of entries of %{model} (without filters)"
 
   application:
     menu_harami_vids: "Harami's Movies"
@@ -86,6 +87,9 @@ en:
       order:
         asc: "↑"
         desc: "↓"
+
+  musics:
+    index:
 
   engage_multi_hows:
     index:

@@ -23,6 +23,7 @@ ja:
     updated_at: 最終更新日時
     created_at: 生成日時
     actions: "詳細(リンク)"
+    total_n_entries_is: "%{model}の全登録数(フィルターなし)"
 
   application:
     menu_harami_vids: "ハラミちゃん動画"
@@ -86,6 +87,9 @@ ja:
       order:
         asc: "↑"
         desc: "↓"
+
+  musics:
+    index:
 
   engage_multi_hows:
     index:
