@@ -16,7 +16,7 @@
    <div class="actions" style="text-align: right">
   <% end %>
      <% if can?(:update, model) && can?(:update, klass_merge) %>
-       <% path_new = send(model_underscore.pluralize + "_new_merge_users_path", model) %>
+       <% path_new = send(model_underscore.pluralize + "_new_merges_path", model) %>
        <% link_txt = "Merge with another #{model_name}" %>
        <% if !model.new_record? %>
        <%= button_to         link_txt, path_new, method: :get, title: "You will be asked to select #{model_name} to merge this one with." %>

@@ -1,8 +1,8 @@
 Rails.application.routes.draw do
   namespace :artists do
-    get    ':id/merges/new',  to: 'merges#new',     as: :new_merge_users  # => artists_new_merge_path(:id)  => /artists/:id/merges/new
-    get    ':id/merges/edit', to: 'merges#edit',    as: :edit_merge_users # => artists_edit_merge_path(:id) => /artists/:id/merges/edit
-    match  ':id/merges',      to: 'merges#update',  as: :update_merge_users, via: [:put, :patch]
+    get    ':id/merges/new',  to: 'merges#new',     as: :new_merges  # => artists_new_merge_path(:id)  => /artists/:id/merges/new
+    get    ':id/merges/edit', to: 'merges#edit',    as: :edit_merges # => artists_edit_merge_path(:id) => /artists/:id/merges/edit
+    match  ':id/merges',      to: 'merges#update',  as: :update_merges, via: [:put, :patch]
     namespace :merges do
       get 'artist_with_ids',   to: 'artist_with_ids#index'  # => artists_merges_artist_with_ids_path => /artists/merges/artist_with_ids#index
     end
@@ -15,9 +15,9 @@ Rails.application.routes.draw do
   resources :static_pages
   resources :country_masters
   namespace :musics do
-    get    ':id/merges/new',  to: 'merges#new',     as: :new_merge_users  # => musics_new_merge_path(:id)  => /musics/:id/merges/new
-    get    ':id/merges/edit', to: 'merges#edit',    as: :edit_merge_users # => musics_edit_merge_path(:id) => /musics/:id/merges/edit
-    match  ':id/merges',      to: 'merges#update',  as: :update_merge_users, via: [:put, :patch]
+    get    ':id/merges/new',  to: 'merges#new',     as: :new_merges  # => musics_new_merge_path(:id)  => /musics/:id/merges/new
+    get    ':id/merges/edit', to: 'merges#edit',    as: :edit_merges # => musics_edit_merge_path(:id) => /musics/:id/merges/edit
+    match  ':id/merges',      to: 'merges#update',  as: :update_merges, via: [:put, :patch]
     resources :upload_music_csvs, only: [:create]
     namespace :merges do
       get 'music_with_ids',   to: 'music_with_ids#index'  # => musics_merges_music_with_ids_path => /musics/merges/music_with_ids#index

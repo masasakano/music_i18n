@@ -137,7 +137,7 @@ class MusicsGrid < BaseGrid
     if can? :update, record
       ar.push link_to('Edit', edit_music_path(record))
       if can?(:update, Musics::MergesController)
-        ar.push link_to('Merge', musics_new_merge_users_path(record))
+        ar.push link_to('Merge', musics_new_merges_path(record))
         if can? :destroy, record
           ar.push link_to('Destroy', music_path(record), method: :delete, data: { confirm: (t('are_you_sure')+" "+t("are_you_sure.merge")).html_safe })
         end

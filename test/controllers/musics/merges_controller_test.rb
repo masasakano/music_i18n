@@ -30,17 +30,17 @@ class Musics::MergesControllerTest < ActionDispatch::IntegrationTest
 
   test "should get new" do
     assert_raise(ActionController::UrlGenerationError){
-      get musics_new_merge_users_url  # ID must be given for this :new
+      get musics_new_merges_url  # ID must be given for this :new
     }
 
     # Fail: No privilege
-    get musics_new_merge_users_url(@music)
+    get musics_new_merges_url(@music)
     assert_response :redirect
     assert_redirected_to new_user_session_path
 
     sign_in @editor
 
-    get musics_new_merge_users_url(@music)
+    get musics_new_merges_url(@music)
     assert_response :success
 
     assert_match(/Other music/i, css_select('form div.field label').text)
@@ -48,42 +48,42 @@ class Musics::MergesControllerTest < ActionDispatch::IntegrationTest
 
   test "should get edit" do
     assert_raise(ActionController::UrlGenerationError){
-      get musics_edit_merge_users_url  # ID must be given for this :edit
+      get musics_edit_merges_url  # ID must be given for this :edit
     }
 
-    get musics_edit_merge_users_url(@music)
+    get musics_edit_merges_url(@music)
     assert_response :redirect
     assert_redirected_to new_user_session_path
 
     sign_in @editor
     assert_raise(ActionController::ParameterMissing){
-      get musics_edit_merge_users_url(@music)
+      get musics_edit_merges_url(@music)
     } # This deactivates sign_in !!
     
     sign_in @editor
-    get musics_edit_merge_users_url(@music, params: {other_music_id: musics(:music_ihojin1).id})
+    get musics_edit_merges_url(@music, params: {other_music_id: musics(:music_ihojin1).id})
     assert_response :success
  
-    get musics_edit_merge_users_url(@music, params: {music: {other_music_id: musics(:music_ihojin1).id}})
+    get musics_edit_merges_url(@music, params: {music: {other_music_id: musics(:music_ihojin1).id}})
     assert_response :success
  
     titnew = "異邦人でっしゃろ"
     mu2 = Music.create_with_orig_translation!(note: 'MergesController-temp-creation', translation: {title: titnew, langcode: 'ja'})  # Create another Music containing "異邦人" in the title
-    get musics_edit_merge_users_url(@music, params: {music: {other_music_id: nil, other_music_title: "異邦人" }})
+    get musics_edit_merges_url(@music, params: {music: {other_music_id: nil, other_music_title: "異邦人" }})
     assert_response :success
     flash_regex_assert(/found more than 1 Music/i, type: :warning)
  
     strin = sprintf("%s   [%s] [%d] ", titnew, "ja", mu2.id)
-    get musics_edit_merge_users_url(@music, params: {music: {other_music_id: nil, other_music_title: titnew }})
+    get musics_edit_merges_url(@music, params: {music: {other_music_id: nil, other_music_title: titnew }})
     assert_response :success
     assert css_select('table th').text.include? titnew
  
     strin = sprintf("%s   [%s] ", titnew, "ja")
-    get musics_edit_merge_users_url(@music, params: {music: {other_music_id: nil, other_music_title: titnew }})
+    get musics_edit_merges_url(@music, params: {music: {other_music_id: nil, other_music_title: titnew }})
     assert_response :success
     assert css_select('table th').text.include? titnew
  
-    get musics_edit_merge_users_url(@music, params: {music: {other_music_id: nil, other_music_title: "こんな曲はきっとないことでしょう、どうするかな" }})
+    get musics_edit_merges_url(@music, params: {music: {other_music_id: nil, other_music_title: "こんな曲はきっとないことでしょう、どうするかな" }})
     assert_response :redirect
     follow_redirect!
     assert css_select('p.alert').text.include? 'No Music matches'
@@ -141,7 +141,7 @@ class Musics::MergesControllerTest < ActionDispatch::IntegrationTest
     trans2change2_weight = trans2change2.weight
     assert_equal @music.id, trans2change2.translatable_id, "sanity-check"
 
-    patch musics_update_merge_users_url(@music), params: { music: prm_music }
+    patch musics_update_merges_url(@music), params: { music: prm_music }
     assert_response :redirect
     assert_redirected_to new_user_session_path
 
@@ -154,7 +154,7 @@ class Musics::MergesControllerTest < ActionDispatch::IntegrationTest
           assert_difference('Engage.count', -1) do # engage_kubota_ihojin1_1 deleted
             assert_difference('Artist.count', 0) do
               assert_difference('Place.count', 0) do
-                patch musics_update_merge_users_url(@music), params: { music: prm_music }
+                patch musics_update_merges_url(@music), params: { music: prm_music }
               end
             end
           end

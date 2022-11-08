@@ -17,7 +17,7 @@
     </div>
   <% end %>
 
-<% path_edit = send(model_underscore.pluralize + "_edit_merge_users_path", model) %> <%# e.g., musics_edit_merge_users_path() %>
+<% path_edit = send(model_underscore.pluralize + "_edit_merges_path", model) %> <%# e.g., musics_edit_merges_path() %>
 <%= form_with(model: model, url: path_edit, method: "get") do |form| %>
   <% other_str = "other_"+model_underscore %>
   <div class="field">

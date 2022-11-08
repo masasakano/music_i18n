@@ -127,12 +127,12 @@ class ArtistsGrid < BaseGrid
     ar = [link_to('Show', artist_path(record), data: { turbolinks: false })]
     if can? :update, record
       ar.push link_to('Edit', edit_artist_path(record))
-      #if can?(:update, Artists::MergesController)
-      #  ar.push ActionController::Base.helpers.link_to('Merge', artists_new_merge_users_path(record))
+      if can?(:update, Artists::MergesController)
+        ar.push ActionController::Base.helpers.link_to('Merge', artists_new_merges_path(record))
         if can? :destroy, record
           ar.push link_to('Destroy', artist_path(record), method: :delete, data: { confirm: (t('are_you_sure')+" "+t("are_you_sure.merge")).html_safe })
         end
-      #end
+      end
     end
     ar.compact.join(' / ').html_safe
   end

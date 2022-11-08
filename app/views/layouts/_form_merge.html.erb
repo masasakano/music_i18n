@@ -14,7 +14,7 @@
 
 <% is_music = (models[0].class == Music) %>
 <% model_underscore = models[0].class.name.underscore %>
-<% path_update = send(model_underscore.pluralize + "_update_merge_users_path", models[0]) %> <%# e.g., musics_update_merge_users_path() %>
+<% path_update = send(model_underscore.pluralize + "_update_merges_path", models[0]) %> <%# e.g., musics_update_merges_path() %>
 <%= form_with(model: models[0], url: path_update, method: "patch") do |form| %>
 <table>
   <thead>

@@ -16,7 +16,7 @@ class Artists::MergesController < BaseMergesController
     if @artists.size != 2
       msg = 'No Artist matches the given one. Try a different title.'
       return respond_to do |format|
-        format.html { redirect_to artists_new_merge_users_path(@artists[0]), alert: msg }
+        format.html { redirect_to artists_new_merges_path(@artists[0]), alert: msg }
         format.json { render json: {error: msg}, status: :unprocessable_entity }
       end
     end

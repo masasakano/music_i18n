@@ -34,17 +34,17 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
 
   test "should get new" do
     assert_raise(ActionController::UrlGenerationError){
-      get artists_new_merge_users_url  # ID must be given for this :new
+      get artists_new_merges_url  # ID must be given for this :new
     }
 
     # Fail: No privilege
-    get artists_new_merge_users_url(@artist)
+    get artists_new_merges_url(@artist)
     assert_response :redirect
     assert_redirected_to new_user_session_path
 
     sign_in @editor
 
-    get artists_new_merge_users_url(@artist)
+    get artists_new_merges_url(@artist)
     assert_response :success
 
     assert_match(/Other artist/i, css_select('form div.field label').text)
@@ -52,54 +52,54 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
 
   test "should get edit" do
     assert_raise(ActionController::UrlGenerationError){
-      get artists_edit_merge_users_url  # ID must be given for this :edit
+      get artists_edit_merges_url  # ID must be given for this :edit
     }
 
-    get artists_edit_merge_users_url(@artist)
+    get artists_edit_merges_url(@artist)
     assert_response :redirect
     assert_redirected_to new_user_session_path
 
     sign_in @editor
     assert_raise(ActionController::ParameterMissing){
-      get artists_edit_merge_users_url(@artist)
+      get artists_edit_merges_url(@artist)
     } # This deactivates sign_in !!
     
     sign_in @editor
-    get artists_edit_merge_users_url(@artist, params: {other_artist_id: @other.id})
+    get artists_edit_merges_url(@artist, params: {other_artist_id: @other.id})
     assert_response :success
  
-    get artists_edit_merge_users_url(@artist, params: {artist: {other_artist_id: @other.id}})
+    get artists_edit_merges_url(@artist, params: {artist: {other_artist_id: @other.id}})
     assert_response :success
 
-    get artists_edit_merge_users_url(@artist, params: {artist: {other_artist_title: "久保田" }})
+    get artists_edit_merges_url(@artist, params: {artist: {other_artist_title: "久保田" }})
     assert_response :redirect
-    assert_redirected_to artists_new_merge_users_url(@artist)
+    assert_redirected_to artists_new_merges_url(@artist)
     follow_redirect!
     flash_regex_assert(/No Artist match/i, type: :alert) # because the current Artist is excluded.
  
     asex = Sex.first
     titnew = "久保田違う人だよ"
     mu2 = Artist.create_with_orig_translation!({sex: asex, note: 'MergesController-temp-creation'}, translation: {title: titnew, langcode: 'ja'})  # Create another Artist containing "久保田" in the title
-    get artists_edit_merge_users_url(@artist, params: {artist: {other_artist_id: nil, other_artist_title: "久保田" }})
+    get artists_edit_merges_url(@artist, params: {artist: {other_artist_id: nil, other_artist_title: "久保田" }})
     assert_response :success
 
     titnew3 = "久保だけ一緒の人"
     mu3 = Artist.create_with_orig_translation!({sex: asex, note: 'MergesController-temp-creation'}, translation: {title: titnew3, langcode: 'ja'})  # Create another Artist containing "久保田" in the title
-    get artists_edit_merge_users_url(@artist, params: {artist: {other_artist_id: nil, other_artist_title: "久保" }})
+    get artists_edit_merges_url(@artist, params: {artist: {other_artist_id: nil, other_artist_title: "久保" }})
     assert_response :success
     flash_regex_assert(/found more than 1 Artist/i, type: :warning)
  
     strin = sprintf("%s   [%s] [%d] ", titnew, "ja", mu2.id)
-    get artists_edit_merge_users_url(@artist, params: {artist: {other_artist_id: nil, other_artist_title: titnew }})
+    get artists_edit_merges_url(@artist, params: {artist: {other_artist_id: nil, other_artist_title: titnew }})
     assert_response :success
     assert css_select('table th').text.include? titnew
  
     strin = sprintf("%s   [%s] ", titnew, "ja")
-    get artists_edit_merge_users_url(@artist, params: {artist: {other_artist_id: nil, other_artist_title: "久保田" }}) # there should be two 久保田s and one of them is the ID, hence there should be only 1 (== mu2).
+    get artists_edit_merges_url(@artist, params: {artist: {other_artist_id: nil, other_artist_title: "久保田" }}) # there should be two 久保田s and one of them is the ID, hence there should be only 1 (== mu2).
     assert_response :success
     assert css_select('table th').text.include? titnew
  
-    get artists_edit_merge_users_url(@artist, params: {artist: {other_artist_id: nil, other_artist_title: "こんな曲はきっとないことでしょう、どうするかな" }})
+    get artists_edit_merges_url(@artist, params: {artist: {other_artist_id: nil, other_artist_title: "こんな曲はきっとないことでしょう、どうするかな" }})
     assert_response :redirect
     follow_redirect!
     assert css_select('p.alert').text.include? 'No Artist matches'
@@ -153,7 +153,7 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
     assert_equal @artist, trans2delete1.translatable, 'sanity-check'
     assert_equal trans2delete1.translatable_id, trans2remain2.translatable_id, 'sanity-check'
 
-    patch artists_update_merge_users_url(@artist), params: { artist: prm_artist }
+    patch artists_update_merges_url(@artist), params: { artist: prm_artist }
     assert_response :redirect
     assert_redirected_to new_user_session_path
 
@@ -166,7 +166,7 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
           assert_difference('Engage.count', 0) do
             assert_difference('Music.count', 0) do
               assert_difference('Place.count', 0) do
-                patch artists_update_merge_users_url(@artist), params: { artist: prm_artist }
+                patch artists_update_merges_url(@artist), params: { artist: prm_artist }
               end
             end
           end
