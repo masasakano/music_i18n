@@ -13,9 +13,41 @@ class Artists::MergesController < BaseMergesController
   # @raise [ActionController::UrlGenerationError] if no Artist ID is found in the path.
   # @raise [ActionController::ParameterMissing] if the other Artist ID is not specified (as GET).
   def edit
+    if @artists.size != 2
+      msg = 'No Artist matches the given one. Try a different title.'
+      return respond_to do |format|
+        format.html { redirect_to artists_new_merge_users_path(@artists[0]), alert: msg }
+        format.json { render json: {error: msg}, status: :unprocessable_entity }
+      end
+    end
+    @trans_prms = non_orig_translations_prms(@artists)
   end
 
   def update
+    raise 'This should never happen - necessary parameter is missing.' if @artists.size != 2
+    @to_index = merge_params[FORM_MERGE[:to_index]].to_i  # defined in base_merges_controller.rb
+    begin
+      ActiveRecord::Base.transaction do
+        merge_lang_orig(@artists)   # defined in base_merges_controller.rb
+        merge_lang_trans(@artists)  # defined in base_merges_controller.rb
+        merge_engage_harami1129(@artists)  # defined in base_merges_controller.rb
+        %i(prefecture_place sex wiki_en wiki_ja).each do |metho| 
+          merge_overwrite(@artists, metho) # defined in base_merges_controller.rb
+        end
+        merge_birthday
+        merge_note(@artists)  # defined in base_merges_controller.rb
+        merge_created_at(@artists)  # defined in base_merges_controller.rb
+
+        @artists[@to_index].save!
+        @artists[other_index(@to_index)].reload  # Without this HaramiVidArtistAssoc is cascade-destroyed!
+        @artists[other_index(@to_index)].destroy!
+        #raise ActiveRecord::Rollback, "Force rollback." if ...
+      end
+    rescue
+      raise ## Transaction failed!  Rolled back.
+    end
+
+    _update_render(@artists)  # defined in base_merges_controller.rb
   end
 
   private
@@ -33,6 +65,25 @@ class Artists::MergesController < BaseMergesController
       rescue ActiveRecord::RecordNotFound
         # Specified Title for Edit is not found.  For update, this should never happen through UI.
         # As a result, @artists.size == 1
+      end
+    end
+
+    # Overwrite the Birthday-related columns of the model, unless it is all nil (in which case the other is used).
+    # @artist is modified but not saved in this routine.
+    #
+    # @return [void]
+    def merge_birthday
+      bday_attrs = %i(birth_year birth_month birth_day)
+      bday3s = {}
+      index2use = merge_param_int(:birthday)  # defined in base_merges_controller.rb
+      [index2use, other_index(index2use)].each do |ind|
+        bday_attrs.each do |attr|
+          bday3s[attr] = @artists[ind].send(attr)
+        end
+        break if !bday3s.values.compact.empty?
+      end
+      bday3s.each_pair do |attr, val|
+        @artists[@to_index].send(attr.to_s+"=", val)
       end
     end
 

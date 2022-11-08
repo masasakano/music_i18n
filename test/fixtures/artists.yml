@@ -84,6 +84,9 @@ artist_unknown:
 artist_ai:
   sex_id: 9
   place: unknown_place_unknown_prefecture_world
+  birth_year: 1990
+  birth_month: 2
+  birth_day: 3
   note: Artist-AI
 
 artist_rcsuccession:
@@ -94,6 +97,7 @@ artist_rcsuccession:
 artist_saki_kubota:
   sex_id: 2
   place: unknown_place_unknown_prefecture_japan
+  birth_month: 9
   note: Artist-SakiKubota
 
 artist_proclaimers:

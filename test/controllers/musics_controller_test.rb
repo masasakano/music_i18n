@@ -115,20 +115,34 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     assert_equal genre_c,     @music.genre
   end
 
-  #test "should get new" do
-  #  get new_music_url
-  #  assert_response :success
-  #end
+  test "should get new" do
+    get new_music_url
+    sign_in @editor
+    assert_response :redirect
+    assert_redirected_to new_user_session_path
 
-  #test "should show music" do
-  #  get music_url(@music)
-  #  assert_response :success
-  #end
+    get new_music_url
+    assert_response :success
+  end
 
-  #test "should get edit" do
-  #  get edit_music_url(@music)
-  #  assert_response :success
-  #end
+  test "should show music" do
+    get music_url(@music)
+    assert_response :success
+    #refute css_select('div.link-edit-destroy a')[0].text.include? "Edit"
+  end
+
+  test "should get edit" do
+    get edit_music_url(@music)
+    assert_response :redirect
+    assert_redirected_to new_user_session_path
+
+    sign_in @editor
+    get edit_music_url(@music)
+    assert_response :success
+    assert css_select('a').any?{|i| /\AShow\b/ =~ i.text.strip}  # More fine-tuning for CSS-selector is needed!
+    css = css_select('div.link-edit-destroy a')
+    assert(css.empty? || !css[0].text.include?("Edit"))
+  end
 
   test "should destroy music if privileged" do
     music3 = musics(:music3)

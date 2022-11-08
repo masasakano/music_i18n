@@ -89,6 +89,7 @@ class Musics::MergesControllerTest < ActionDispatch::IntegrationTest
     assert css_select('p.alert').text.include? 'No Music matches'
   end
 
+  ## @music is merged into @other
   test "should update1" do
     prm_music = @def_prm_music.merge({})
     #  other_music_id: @other.id.to_s,
@@ -109,6 +110,7 @@ class Musics::MergesControllerTest < ActionDispatch::IntegrationTest
     # translations(:music_ihojin2_en3) # weight: 100
     # translations(:music_ihojin2_en4) # weight: 500
 
+    @music.update!(created_at: DateTime.new(1))  # very old creation.
     music_bkup = @music.dup
     other_bkup = @other.dup
     refute @music.destroyed?, 'sanity check-mu'
@@ -139,7 +141,7 @@ class Musics::MergesControllerTest < ActionDispatch::IntegrationTest
     trans2change2_weight = trans2change2.weight
     assert_equal @music.id, trans2change2.translatable_id, "sanity-check"
 
-    patch place_url(@music), params: { music: prm_music }
+    patch musics_update_merge_users_url(@music), params: { music: prm_music }
     assert_response :redirect
     assert_redirected_to new_user_session_path
 
@@ -165,6 +167,9 @@ class Musics::MergesControllerTest < ActionDispatch::IntegrationTest
     refute Music.exists?(@music.id)  # refute @music.destroyed?  ;;; does not work
     assert Music.exists?(@other.id)
     @other.reload
+
+    # created_at is adjusted to the older one.
+    assert_equal @music.created_at, @other.created_at
 
     # Translation is_orig=true
     refute Translation.exists?(trans2delete.id)

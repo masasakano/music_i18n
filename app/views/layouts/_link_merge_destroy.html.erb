@@ -2,14 +2,16 @@
 
 <% model_name = model.class.name %>
 <% model_underscore = model_name.underscore %>
-<% if !model.new_record? && can?(:update, model) %>
+<% can_update = (!model.new_record? && can?(:update, model)) %>
+<% can_update_in_show = (can_update && !is_to_edit) %>
+<% if can_update_in_show %>
   <div class="link-edit-destroy">
     <% path_edit = send("edit_"+model_underscore+"_path", model) %> <%# e.g., edit_music_path(model) %>
     <%= link_to 'Edit', path_edit %> <%# -------- show only %>
 <% end %>
 <% klass_merge = model_name.pluralize.constantize::MergesController %>
 <% if !model.new_record? && (can?(:destroy, model) || can?(:update, model) && can?(:update, klass_merge)) %>
-  <% if !model.new_record? && can?(:update, model) %>
+  <% if can_update %>
   <div class="actions-destroy" style="margin-right: 1em;">
    <div class="actions" style="text-align: right">
   <% end %>
@@ -31,29 +33,32 @@
   &nbsp;&nbsp; / <%= link_to 'Destroy', model, method: :delete, data: { confirm: msg2confirm } %>
       <% end %>
      <% else %>
-      <% if !model.new_record? %> <%# ----- In "show", nothing related to "Destroy" is shown. %>
+      <% if !model.new_record? %> <%# ----- In "show", nothing related to "Destroy" is shown. %> <%# I think this is redundant and unnecessary, because when it is a new record, this point should not be reached in the first place. %>
        <form class="button_to"><input disabled="disabled" type="submit" value="Destroy"></form>
        (<%= model_name %> has dependent HaramiVids and/or Harami1129s and so cannot be destroyed.)
       <% end %>
      <% end %>
-  <% if !model.new_record? && can?(:update, model) %>
+  <% if can_update %>
    </div>
+  </div>
   <% end %>
+<% end %>
+<% if can_update_in_show %>
   </div>
 <% end %>
 
 <% linkhtml = link_to 'Back to Index', model_underscore.pluralize+"_path" %>
-<% if model.new_record? %>
- <% if "Artist" == model_name %>
+<% if is_to_edit %>
+  <% if can_update && "Artist" == model_name %>
   (<%= t("artists.new.please_add_music", default: "Please add a Music(s) once you have created an Artist." ) %>)
   <br>
  <% end %>
-  <%= linkhtml %>
-<% else %>
   <p>
     <%= link_to 'Show', model %> |
     <%= linkhtml %>
   </p>
+<% else %>
+  <%= linkhtml %>
 <% end %>
 
 

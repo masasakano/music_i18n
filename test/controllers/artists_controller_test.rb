@@ -25,6 +25,7 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
   test "should show artist" do
     get artist_url(@artist)
     assert_response :success
+    #refute css_select('div.link-edit-destroy a')[0].text.include? "Edit"
   end
 
   test "should fail/succeed to get edit" do
@@ -35,6 +36,9 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     sign_in @editor
     get edit_artist_url(@artist)
     assert_response :success
+    assert css_select('a').any?{|i| /\AShow\b/ =~ i.text.strip}  # More fine-tuning for CSS-selector is needed!
+    css = css_select('div.link-edit-destroy a')
+    assert(css.empty? || !css[0].text.include?("Edit"))
   end
 
   test "should create" do

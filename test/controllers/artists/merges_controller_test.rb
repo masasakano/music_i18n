@@ -19,8 +19,10 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
       lang_trans: nil,
       engage: '1',
       prefecture_place: '0',
-      genre: '1',
-      year: '0',
+      sex: '1',
+      birthday: '0',
+      wiki_en: '1',
+      wiki_ja: '0',
     }
   end
 
@@ -68,11 +70,22 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
  
     get artists_edit_merge_users_url(@artist, params: {artist: {other_artist_id: @other.id}})
     assert_response :success
+
+    get artists_edit_merge_users_url(@artist, params: {artist: {other_artist_title: "久保田" }})
+    assert_response :redirect
+    assert_redirected_to artists_new_merge_users_url(@artist)
+    follow_redirect!
+    flash_regex_assert(/No Artist match/i, type: :alert) # because the current Artist is excluded.
  
-return  ################################################################################
-    titnew = "異邦人でっしゃろ"
-    mu2 = Artist.create_with_orig_translation!(note: 'MergesController-temp-creation', translation: {title: titnew, langcode: 'ja'})  # Create another Artist containing "異邦人" in the title
-    get artists_edit_merge_users_url(@artist, params: {artist: {other_artist_id: nil, other_artist_title: "異邦人" }})
+    asex = Sex.first
+    titnew = "久保田違う人だよ"
+    mu2 = Artist.create_with_orig_translation!({sex: asex, note: 'MergesController-temp-creation'}, translation: {title: titnew, langcode: 'ja'})  # Create another Artist containing "久保田" in the title
+    get artists_edit_merge_users_url(@artist, params: {artist: {other_artist_id: nil, other_artist_title: "久保田" }})
+    assert_response :success
+
+    titnew3 = "久保だけ一緒の人"
+    mu3 = Artist.create_with_orig_translation!({sex: asex, note: 'MergesController-temp-creation'}, translation: {title: titnew3, langcode: 'ja'})  # Create another Artist containing "久保田" in the title
+    get artists_edit_merge_users_url(@artist, params: {artist: {other_artist_id: nil, other_artist_title: "久保" }})
     assert_response :success
     flash_regex_assert(/found more than 1 Artist/i, type: :warning)
  
@@ -82,7 +95,7 @@ return  ########################################################################
     assert css_select('table th').text.include? titnew
  
     strin = sprintf("%s   [%s] ", titnew, "ja")
-    get artists_edit_merge_users_url(@artist, params: {artist: {other_artist_id: nil, other_artist_title: titnew }})
+    get artists_edit_merge_users_url(@artist, params: {artist: {other_artist_id: nil, other_artist_title: "久保田" }}) # there should be two 久保田s and one of them is the ID, hence there should be only 1 (== mu2).
     assert_response :success
     assert css_select('table th').text.include? titnew
  
@@ -92,57 +105,55 @@ return  ########################################################################
     assert css_select('p.alert').text.include? 'No Artist matches'
   end
 
+  ## @artist is merged into @other
   test "should update1" do
     prm_artist = @def_prm_artist.merge({})
     #  other_artist_id: @other.id.to_s,
-    #  to: '1',
-    #  lang_orig: '1',
-    #  lang_trans: nil,
-    #  engage: '1'
-    #  prefecture_place: '0',
-    #  genre: '1',
-    #  year: '0',
-    # translations(:music_ihojin1_ja1) # weight:  0
-    # translations(:music_ihojin1_en1) # weight: 10
-    # translations(:music_ihojin1_en2) # weight: 100
-    # translations(:music_ihojin1_en3) # weight: 17.5
-    # translations(:music_ihojin2_ja1) # weight: 1
-    # translations(:music_ihojin2_en1) # weight: 10
-    # translations(:music_ihojin2_en2) # weight: 40
-    # translations(:music_ihojin2_en3) # weight: 100
-    # translations(:music_ihojin2_en4) # weight: 500
+    #  to: '1',            # => @other
+    #  lang_orig: '1',        # => @other
+    #  lang_trans: nil,       # => @other
+    #  engage: '1'            # => @other
+    #  prefecture_place: '0', # => @artist
+    #  sex: '1',
+    #  birthday: '0',
+    #  wiki_en: '1',
+    #  wiki_ja: '0',
 
+    @artist.update!(created_at: DateTime.new(1))  # very old creation.
+    @artist.update!(wiki_en: "abc", wiki_ja: '日本00')
+    @other.update!( wiki_en: nil,   wiki_ja: '日本other')  # testing nil (so, the other one is adopted)
+    @artist.update!(birth_year:  nil, birth_month: 9, birth_day: nil) # this will be chosen b/c at least one of them is non-nil.
+    @other.update!( birth_year: 1990, birth_month: 2, birth_day: 3)
+    @other.update!( wiki_en: nil,   wiki_ja: '日本other')  # testing nil (so, the other one is adopted)
     artist_bkup = @artist.dup
     other_bkup = @other.dup
-    refute @artist.destroyed?, 'sanity check-mu'
-    refute @other.destroyed?, 'sanity check-ot'
-    artist_hvma_last = @artist.harami_vid_artist_assocs.last
-    assert_equal harami_vid_music_assocs(:harami_vid_music_assoc_3_ihojin1), artist_hvma_last # sanity check
-    assert_equal @artist, artist_hvma_last.artist # 'sanity check-hvma'
-    timing_hvma_bkup = artist_hvma_last.timing
+    refute @artist.destroyed?, 'sanity check-artist-kubota'
+    refute @other.destroyed?, 'sanity check-other'
+    
+    hvma_bkup = harami_vid_music_assocs(:harami_vid_music_assoc_3_ihojin1)
+    assert  hvma_bkup.music.artists.include?(@artist), 'sanity-check'
     place_bkup0 = @artist.place
-    genre_bkup1 = @other.genre
-    year_bkup0  = @artist.year
+    sex_bkup1   = @other.sex
+    birthday_bkup0 = [@artist.birth_year, @artist.birth_month, @artist.birth_day]
+    wikien_bkup1   = @artist.wiki_en  # because @other.wiki_en.nil?
+    wikija_bkup1   = @artist.wiki_ja
 
-    engage2delete = engages(:engage_kubota_ihojin1_1)  # will be delted because Composer-Kubota combination exists both 0 and 1 and Artist[1] has a priority.
-    engage2change = engages(:engage_kubota_ihojin1_2)  # contribution will be nullified because Composer exist in Artist[1] which has a priority over this (Artist[0])
-    engage2remain = engages(:engage_kubota_ihojin2_2)
-    assert_equal engage2delete.artist, engage2remain.artist, 'sanity-check'
-    assert_equal engage2delete.engage_how, engage2remain.engage_how, 'sanity-check'
-    assert Harami1129.where(engage: engage2delete).exists?
+    # These tests do not cover many potentials, to be honest!
+    engage2change11 = engages(:engage_kubota_ihojin1_1) # changed to belong to AI (no change in other parameters)
+    engage2change13 = engages(:engage_kubota_ihojin1_3) # changed to belong to AI (no change in other parameters)
+    engage2change22 = engages(:engage_kubota_ihojin2_2) # changed to belong to AI (no change in other parameters)
+    assert_equal @artist, engage2change11.artist, 'sanity-check'
+    assert_equal engage2change13.artist, engage2change22.artist, 'sanity-check'
 
-    trans2delete  = translations(:music_ihojin1_ja1)
-    trans2is_orig = translations(:music_ihojin2_ja1)
-    assert trans2is_orig.is_orig
-    trans2remain  = translations(:music_ihojin2_en1)
-    trans2remain_weight = trans2remain.weight
-    trans2change  = translations(:music_ihojin1_en1)
-    trans2change_weight = trans2change.weight
-    trans2change2 = translations(:music_ihojin1_en3)
-    trans2change2_weight = trans2change2.weight
-    assert_equal @artist.id, trans2change2.translatable_id, "sanity-check"
+    trans2delete1 = translations(:artist_saki_kubota_ja)
+    assert trans2delete1.is_orig, 'sanity-check: because of is_orit=true, this will be deleted.'
+    trans2remain1 = translations(:artist_saki_kubota_en1)
+    trans2remain2 = translations(:artist_saki_kubota_en2)
+    assert_operator 2, :<, @artist.translations.count, 'sanity-check of fixtures' # should be 3 so far.
+    assert_equal @artist, trans2delete1.translatable, 'sanity-check'
+    assert_equal trans2delete1.translatable_id, trans2remain2.translatable_id, 'sanity-check'
 
-    patch place_url(@artist), params: { artist: prm_artist }
+    patch artists_update_merge_users_url(@artist), params: { artist: prm_artist }
     assert_response :redirect
     assert_redirected_to new_user_session_path
 
@@ -150,10 +161,10 @@ return  ########################################################################
 
     sign_in @editor
     assert_difference('Artist.count', -1) do
-      assert_difference('Translation.count', -3) do # ja(is_orig), "Alien woman", "Alien People" (duplications)
+      assert_difference('Translation.count', -1) do # 
         assert_difference('HaramiVidMusicAssoc.count', 0) do
-          assert_difference('Engage.count', -1) do # engage_kubota_ihojin1_1 deleted
-            assert_difference('Artist.count', 0) do
+          assert_difference('Engage.count', 0) do
+            assert_difference('Music.count', 0) do
               assert_difference('Place.count', 0) do
                 patch artists_update_merge_users_url(@artist), params: { artist: prm_artist }
               end
@@ -168,47 +179,39 @@ return  ########################################################################
     refute Artist.exists?(@artist.id)  # refute @artist.destroyed?  ;;; does not work
     assert Artist.exists?(@other.id)
     @other.reload
-return  ################################################################################
 
-    # Translation is_orig=true
-    refute Translation.exists?(trans2delete.id)
-    assert Translation.exists?(trans2is_orig.id)
-    assert_operator 0.6, :<, trans2is_orig.weight
-    trans2is_orig.reload
-    assert_operator 0.6, :>, trans2is_orig.weight
+    # created_at is adjusted to the older one.
+    assert_equal @artist.created_at, @other.created_at
+
+    # Translations deleted/remain
+    refute Translation.exists?(trans2delete1.id)
+    assert Translation.exists?(trans2remain1.id)
+    assert Translation.exists?(trans2remain2.id)
 
     # Translations
-    trans2remain.reload
-    assert_equal trans2remain_weight, trans2remain.weight
-    trans2change.reload
-    refute_equal trans2change_weight, trans2change.weight
-    assert_equal 13, trans2change.weight, "Should be ((17.5-10)/2).to_i == 13, but...(#{trans2change.weight})"
-    assert_equal @other.id, trans2change.translatable_id, "Associated Artist should have changed"
-    trans2change2.reload
-    assert_equal trans2change2_weight, trans2change2.weight
-    assert_equal @other.id, trans2change2.translatable_id, "Associated Artist should have changed"
+    user_assert_updated?(trans2remain1)  # defined in test_helper.rb
+    user_assert_updated?(trans2remain2)  # defined in test_helper.rb
 
     # HaramiVidMusicAssoc
-    artist_hvma_last.reload
-    assert_equal @other, artist_hvma_last.artist  # Overwritten (harami_vid_music_assoc)
-    assert_equal timing_hvma_bkup, artist_hvma_last.timing  # no change
+    user_refute_updated?(hvma_bkup, 'HaramiVidMusicAssoc should not change')  # defined in test_helper.rb
 
     # Engage
-    refute Engage.exists?(engage2delete.id)
-    assert Engage.exists?(engage2remain.id)
-    assert engage2change.contribution
-    assert_equal @artist.id, engage2change.artist_id
-    engage2change.reload
-    assert_equal @other.id, engage2change.artist_id
-    refute engage2change.contribution, 'Contribution should be nullified, because Composers exist in Artist[1] which has a priority over this (Artist[0]).'
-    tmp_contri = engage2remain.contribution
-    engage2remain.reload
-    assert_equal tmp_contri, engage2remain.contribution
+    assert Engage.exists?(engage2change11.id)
+    assert Engage.exists?(engage2change13.id)
+    assert Engage.exists?(engage2change22.id)
+    cont_old = engage2change11.contribution
+    [engage2change11, engage2change13,  engage2change22]. each do |i|
+      user_assert_updated_attr?(i, :artist)  # defined in test_helper.rb
+    end
+    assert_equal @other,   engage2change11.artist  # it was just reloaded in the method above.
+    assert_equal cont_old, engage2change11.contribution  # no change
 
-    # Place, Genre, year
+    # Place, Sex, birthday
     assert_equal place_bkup0, @other.place
-    assert_equal genre_bkup1, @other.genre
-    assert_equal  year_bkup0, @other.year
+    assert_equal sex_bkup1, @other.sex
+    assert_equal birthday_bkup0, [@other.birth_year, @other.birth_month, @other.birth_day]
+    assert_equal wikien_bkup1, @other.wiki_en
+    assert_equal wikija_bkup1, @other.wiki_ja
 
     # note
     str = other_bkup.note+" "+artist_bkup.note

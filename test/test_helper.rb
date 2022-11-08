@@ -217,24 +217,96 @@ class ActiveSupport::TestCase
   end
 
 
-  # Validate if Flash message matches the given Regexp
+  # Validate if Flash message matches the given Regexp (called from Controller tests)
   #
   # Search is based on CSS classes.
   #
   # See {ApplicationController::FLASH_CSS_CLASSES} for CSS classes in this app.
   #
+  # *Tip*: If the type is in suspect, pass nil to type (Default).
+  #
   # @param regex [Regexp] 
   # @param msg [String] 
-  # @param type [Symbol] :notice, :alert, :warning etc.
+  # @param type [Symbol, Array<Symbol>, NilClass] :notice, :alert, :warning, :success or their array.
+  #    If nil, everything defined in {ApplicationController::FLASH_CSS_CLASSES}
+  #    Note that the actual CSS is "alert-danger" (Bootstrap) for :alert, etc.
   def flash_regex_assert(regex, msg=nil, type: nil)
     bind = caller_locations(1,1)[0]  # Ruby 2.0+
     caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
     # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
-    css2search = "p."+["alert", "alert-"+type.to_s].join(".")
-    csstext = css_select("div#body_main "+css2search).text
+
+    all_flash_types = ApplicationController::FLASH_CSS_CLASSES.keys.map(&:to_s) # String
+    types = type && [type.to_s].flatten || all_flash_types
+    if types.any?{|i| !ApplicationController::FLASH_CSS_CLASSES.keys.include?(i)}
+      raise "(#{caller_info}) (#{__FILE__}) Flash type (#{types.inspect}) must be included in ApplicationController::FLASH_CSS_CLASSES="+ApplicationController::FLASH_CSS_CLASSES.keys.map(&:to_sym).inspect
+    end
+    cond = types.map{|i| "div#body_main "+"p."+ApplicationController::FLASH_CSS_CLASSES[i].strip.split.join(".")}.join(", ")  # "div#body_main p.alert.alert-danger div#body_main p.alert.alert-warning" etc
+    csstext = css_select(cond).text
     msg2pass = (msg || sprintf("Fails in flash(%s)-message regexp matching for: ", (type || "ALL")))+csstext.inspect
     assert_match(regex, csstext, "(#{caller_info}): "+msg2pass)
   end
+
+  # assert if the attribute of the instance is updated
+  #
+  # @param model [Model]
+  # @param attr [String, Symbol] Attribute
+  # @param msg [String] message parameter for assert
+  # @param inspect [Boolean] if true, the difference would be printed if failed.
+  def user_assert_updated_attr?(model, attr, msg=nil, inspect: true)
+    bind = caller_locations(1,1)[0]  # Ruby 2.0+
+    caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
+    # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
+
+    upd, msg2pass = _reload_and_get_message(model, msg, inspect, attr, caller_info)
+    refute_equal upd, model.send(attr), msg2pass
+  end
+
+  # assert if the instance is updated, checking updated_at 
+  #
+  # @param model [Model]
+  # @param msg [String] message parameter for assert
+  # @param inspect [Boolean] if true, the difference would be printed if failed.
+  def user_assert_updated?(model, msg=nil, inspect: true)
+    bind = caller_locations(1,1)[0]  # Ruby 2.0+
+    caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
+    # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
+
+    upd, msg2pass = _reload_and_get_message(model, msg, inspect, :updated_at, caller_info)
+    assert_operator upd, :<, model.updated_at, msg2pass
+  end
+
+  # refute if the instance is updated, checking updated_at 
+  #
+  # i.e., true if instance is NOT updated.
+  #
+  # @param model [Model]
+  # @param msg [String] message parameter for assert/refute
+  # @param inspect [Boolean] if true, the difference would be printed if failed.
+  def user_refute_updated?(model, msg=nil, inspect: true)
+    bind = caller_locations(1,1)[0]  # Ruby 2.0+
+    caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
+    # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
+
+    upd, msg2pass = _reload_and_get_message(model, msg, inspect, :updated_at, caller_info)
+    assert_equal upd, model.updated_at, msg2pass
+  end
+
+  # Internal common routine.
+  #
+  # @param model [Model]
+  # @param msg [String] message parameter for assert
+  # @param inspect [Boolean] if true, the difference would be printed if failed.
+  # @param attr [Symbol] Attribute
+  # @param caller_info [String]
+  # @return [Object, String] Old object and Error message to pass
+  def _reload_and_get_message(model, msg, inspect, attr, caller_info)
+    old = model.inspect if inspect
+    upd = model.send(attr)
+    model.reload
+    msg2pass = "(#{caller_info}): "+(msg || "")+(inspect ? ":(Old|New) \n#{old} => \n#{model.inspect}" : "")
+    [upd, msg2pass]
+  end
+  private :_reload_and_get_message
 
   # @see https://stackoverflow.com/questions/13187753/rails3-jquery-autocomplete-how-to-test-with-rspec-and-capybara
   # No need of sleep!

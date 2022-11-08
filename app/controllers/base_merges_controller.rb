@@ -220,6 +220,174 @@ class BaseMergesController < ApplicationController
       end
     end
 
+
+    # Merge Engage and adjust dependent Harami1129
+    #
+    # Some Engages will have different {Engage#music}, {Engage#artist} and contribution.
+    # Some (rare) Engages that belong to Music to be deleted remain unchanged
+    # and as a result will be cascade-deleted.
+    #
+    # @param models [Array<BaseWithTranslation>] 2-element Array. Index of +@to_index+ remains
+    #   and the other will be destroyed.
+    def merge_engage_harami1129(models)
+      model_underscore = models[0].class.name.underscore
+      index2use = merge_param_int(:engage)  # defined in base_merges_controller.rb
+      engages_to_copy =       models[index2use].engages
+      engages_to_supplement = models[other_index(index2use)].engages
+
+      engages_to_copy.each do |eng|
+        eng.update!(model_underscore.to_sym => models[@to_index])
+      end
+
+      engages_to_supplement.each do |eng|
+        hows = engages_to_copy.where(engage_how: eng.engage_how)
+        if hows.exists?
+          hs_other = 
+            if "music" == model_underscore
+              {artist: eng.artist}
+            else
+              {music:  eng.music}
+            end
+          if hows.where(hs_other).exists?
+            # The same Artist (if processing for Music) with the same EngageHow exists.
+            # So, this record will be cascade-deleted when the Music/Artist is deleted.
+            # As a result, year and note in this record are discarded.
+            #
+            # If it has dependent Harami1129(s), its deletion would raise an Error.
+            eng_to_switch_to = hows.where(hs_other).first
+            eng.harami1129s.each do |harami1129|
+              harami1129.update!(engage: eng_to_switch_to)
+            end
+            next
+          else
+            eng.contribution = nil
+          end
+        end
+        eng.send(model_underscore+"=", models[@to_index])
+        eng.save!
+      end
+    end
+
+    # Overwrite the one of attributes of model, unless it is nil (in which case the other is used).
+    #
+    # * prefecture_place: 'prefecture_place',
+    # * genre: 'genre',
+    # * year: 'year',
+    #
+    # @param models [Array<BaseWithTranslation>] 2-element Array. Index of +@to_index+ remains
+    #   and the other will be destroyed.
+    # @param metho [Symbol]
+    def merge_overwrite(models, metho)
+      attr = ((metho == :prefecture_place) ? :place : metho).to_s
+      content = nil
+      index2use = merge_param_int(metho)
+      [index2use, other_index(index2use)].each do |ind|
+        (content = models[ind].send(attr)) && break
+      end
+      models[@to_index].send(attr+"=", content)
+    end
+
+    # notes are, unlike other parameters, simply merged.
+    #
+    # The note for the preferred comes first.
+    # In an unlikely case of both notes being identical, one of them is discarded.
+    #
+    # @param models [Array<BaseWithTranslation>] 2-element Array. Index of +@to_index+ remains
+    #   and the other will be destroyed.
+    def merge_note(models)
+      models[@to_index].note = [models[@to_index], models[other_index(@to_index)]].map{|i| i.note || ""}.uniq.join(" ")
+    end
+
+    # Older one is adopted
+    #
+    # @param models [Array<BaseWithTranslation>] 2-element Array. Index of +@to_index+ remains
+    #   and the other will be destroyed.
+    def merge_created_at(models)
+      models[@to_index].created_at = models.map(&:created_at).min
+    end
+
+    # rendering for update
+    #
+    # @param models [Array<BaseWithTranslation>] 2-element Array. Index of +@to_index+ remains
+    #   and the other will be destroyed.
+    def _update_render(models)
+      model_name = models[0].class.name
+      model_underscore = model_name.underscore
+      path_show = model_underscore+"_path"  # music_path etc
+
+      mu_to = models[@to_index]
+      mu_other = models[other_index(@to_index)]
+      if !mu_to.errors.any? && mu_other.destroyed?
+        return respond_to do |format|
+          msg = sprintf "#{model_name.pluralize} was successfully merged."
+          format.html { redirect_to send(path_show, mu_to), success: msg }
+          format.json { render :show, status: :ok, location: mu_to }
+        end
+      end
+
+      ## Somehow merging failed!  Error...
+      errmsgs = []
+      [@to_index, other_index(@to_index)].each do |ind|
+        errmsgs += models[ind].errors.full_messages if !models[ind].destroyed?
+      end
+      logger.error "ERROR: Merge-#{model_name.pluralize} somehow failed with errors.full_messages="+errmsgs.inspect
+
+      errmsgs_safe = errmsgs.map{|i| ERB::Util.html_escape(i)}.join("  ")
+      msg0 = "Failed to merge #{model_name.pluralize}"
+      if !mu_other.destroyed?
+        msg0 << " with " + view_context.link_to("ID=#{mu_other.id}", send(path_show, mu_other))
+      end
+      msg1 = (msg0 + '.  ' + errmsgs_safe).html_safe
+      opts = flash_html_safe(alert: msg1)  # defined in /app/controllers/application_controller.rb
+
+      respond_to do |format|
+        hsstatus = {status: :unprocessable_entity}
+        format.html { redirect_to send(path_show, mu_to), **(hsstatus.merge opts) }
+        format.json { render json: errmsgs, **hsstatus }
+      end
+    end
+
+    # Helper method for "edit" Form
+    #
+    # @param models [Array<BaseWithTranslation>] 2-element Array. Index of +@to_index+ remains
+    #   and the other will be destroyed.
+    # @return [Array<Hash>] :checked, :label_str, :exist, :disabled
+    def non_orig_translations_prms(models)
+      arret = []
+      n_exists = 0
+      models.each_with_index do |em, i|
+        arret[i] = {
+          checked: false,
+          label_str: "",
+          exist: nil,
+          disabled: false,
+        }
+        orig_trans = em.orig_translation
+        arret[i][:exist] = em.translations.any?{|et| (et != orig_trans) && can?(:ud, et)}
+        n_exists += 1 if arret[i][:exist]
+        arstr = []
+        em.translations.sort{|a, b|
+          (I18n.available_locales.find_index(a.langcode.to_sym) || Float::INFINITY)
+        }.each do |et|
+          next if et.langcode == orig_trans.langcode
+          arstr << ERB::Util.html_escape(sprintf("%s / %s", et.title, et.alt_title))
+        end
+        arret[i][:label_str] = arstr.join("<br>").html_safe
+      end
+
+      ichecked = arret.each_with_index do |hs, i|
+        if hs[:exist]
+          hs[:checked] = true
+          hs[:disabled] = true if n_exists == 1
+          break i
+        end
+      end
+      if !ichecked.respond_to? :divmod  # None of them is valid.
+        arret[0][:checked] = true  # Default.
+      end
+      arret
+    end
+
     # @return [Integer] 1 if 0 is given, or vice versa
     def other_index(my_index)
       my_index ^ 1   # ((my_index.to_i == 0) ? 1 : 0)
