@@ -169,13 +169,14 @@ class TranslationTest < ActiveSupport::TestCase
     assert_not tra.valid?
   end
 
-  test "create_translations" do
+  test "create_translations (also testing title)" do
     sex5 = Sex.create!(iso5218: 55)
     hs = {
       en: {title: 'new', is_orig: true},
       ja: [{title: '新規', is_orig: false}, {title: 'テスト', is_orig: false, weight: 4},],
     }
     sex5.create_translations!(**hs)
+    # sex5.reload  # somehow worked without, but should be ncecessary (upto Ver.0.6)...
     assert_equal 'new', sex5.orig_translation.title
     assert_equal 'new', sex5.title
     ja_trans = sex5.translations_with_lang('ja')
@@ -183,6 +184,21 @@ class TranslationTest < ActiveSupport::TestCase
     assert_equal '新規', ja_trans[1].title, "(NOTE: For some reason, incorrect) translations_with_lang('ja'): #{ja_trans.inspect}"
     assert_equal Float::INFINITY, ja_trans[1].weight
     assert_equal 'テスト', sex5.title(langcode: 'ja')
+
+   sex6 = Sex.create!(iso5218: 66)
+    assert_raise(ActiveRecord::RecordInvalid, "should be Validation failed: title|alt_title=('new') ('en') already exists in Translation") { #  followed by: [(new, )(ID=1060188813)] for Sex(ID=12)
+      sex6.create_translations!(**hs) }
+
+    lalala = "La La La Age"
+    hs2 = {
+      en: {title: 'The Age', is_orig: true, weight: 1},
+      fr: {title: lalala, is_orig: false},
+    }
+    sex6.create_translations!(**hs2)
+    # sex6.reload  # key!!
+    bests = sex6.best_translations  # => empty...
+    assert_equal "Age, The", bests['en'].title
+    assert_equal lalala,     bests['fr'].title, "special case"
   end
 
   test "Rails-level unique constraints on title*alt_title" do

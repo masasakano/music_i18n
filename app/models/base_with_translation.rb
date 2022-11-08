@@ -428,12 +428,16 @@ class BaseWithTranslation < ApplicationRecord
   #   {Translation::TRANSLATED_KEYS}.
   #   For example, if nkeys==2, and inkeys==[:romaji, :alt_title, :ruby, :naiyo]
   #   [:alt_title, :ruby] is returned.
+  # @param reload [Boolean] If true (Def), self is reloaded after Creation.
+  #   One more DB query is incurred, but recommended!
   # @param **hs_trans [Hash<Symbol>] Hash for multiple {Translation}-s
   #   Must contain the optional key :translations
   #   May include slim_opts (Hash).  Default: {COMMON_DEF_SLIM_OPTIONS}
   # @return [BaseWithTranslation]
-  def self.create_with_translations!(hsmain={}, unique_trans_keys=nil, *args, **hs_trans)
-    update_or_create_with_translations_core!(:translations, hsmain, unique_trans_keys, nil, false, *args, **hs_trans)
+  def self.create_with_translations!(hsmain={}, unique_trans_keys=nil, *args, reload: true, **hs_trans)
+    ret = update_or_create_with_translations_core!(:translations, hsmain, unique_trans_keys, nil, false, *args, **hs_trans)
+    ret.reload if reload
+    ret
   end
 
   # update an exisiting {BaseWithTranslation} if exists, or creates one
@@ -465,13 +469,17 @@ class BaseWithTranslation < ApplicationRecord
   #   {Translation::TRANSLATED_KEYS}.
   #   For example, if nkeys==2, and inkeys==[:romaji, :alt_title, :ruby, :naiyo]
   #   [:alt_title, :ruby] is returned.
+  # @param reload [Boolean] If true (Def), self is reloaded after Creation.
+  #   One more DB query is incurred, but recommended!
   # @param **hs_trans [Hash<Symbol>] Hash for multiple {Translation}-s
   #   Must contain the optional key :translations
   #   May include slim_opts (Hash).  Default: {COMMON_DEF_SLIM_OPTIONS}
   # @return [BaseWithTranslation]
   # @raise [ActiveRecord::RecordInvalid, ActiveModel::UnknownAttributeError] etc
-  def self.update_or_create_with_translations!(hsmain={}, unique_trans_keys=nil, mainkeys=nil, *args, **hs_trans)
-    update_or_create_with_translations_core!(:translations, hsmain, unique_trans_keys, mainkeys, true, *args, **hs_trans)
+  def self.update_or_create_with_translations!(hsmain={}, unique_trans_keys=nil, mainkeys=nil, *args, reload: true, **hs_trans)
+    ret = update_or_create_with_translations_core!(:translations, hsmain, unique_trans_keys, mainkeys, true, *args, **hs_trans)
+    ret.reload if reload
+    ret
   end
 
   # Sorts the translation part in the argument so the one with
@@ -548,12 +556,16 @@ class BaseWithTranslation < ApplicationRecord
   #   {Translation::TRANSLATED_KEYS}.
   #   For example, if nkeys==2, and inkeys==[:romaji, :alt_title, :ruby, :naiyo]
   #   [:alt_title, :ruby] is returned.
+  # @param reload [Boolean] If true (Def), self is reloaded after Creation.
+  #   One more DB query is incurred, but recommended!
   # @param **hs_trans [Hash<Symbol>] Hash for a single {Translation}
   #   Must contain the key :translation
   #   May include slim_opts (Hash).  Default: {COMMON_DEF_SLIM_OPTIONS}
   # @return [BaseWithTranslation]
-  def self.create_with_translation!(hsmain={}, unique_trans_keys=nil, *args, **hs_trans)
-    update_or_create_with_translations_core!(:translation, hsmain, unique_trans_keys, false, *args, **hs_trans)
+  def self.create_with_translation!(hsmain={}, unique_trans_keys=nil, *args, reload: true, **hs_trans)
+    ret = update_or_create_with_translations_core!(:translation, hsmain, unique_trans_keys, false, *args, **hs_trans)
+    ret.reload if reload   # For some reason, the (optional) argument is not recognized...
+    ret
   end
 
   # Same as {BaseWithTranslation.create_with_translation!} but may update
@@ -564,9 +576,11 @@ class BaseWithTranslation < ApplicationRecord
   #
   # @param (see BaseWithTranslation.create_with_translation!)
   # @return [BaseWithTranslation]
-  def self.update_or_create_with_translation!(hsmain={}, unique_trans_keys=nil, mainkeys=nil, *args, **hs_trans)
+  def self.update_or_create_with_translation!(hsmain={}, unique_trans_keys=nil, mainkeys=nil, *args, reload: true, **hs_trans)
 #print "DEBUG:update1st:hsmain=#{hsmain.inspect}, s_trans="; p hs_trans
-    update_or_create_with_translations_core!(:translation, hsmain, unique_trans_keys, mainkeys, true, *args, **hs_trans)
+    ret = update_or_create_with_translations_core!(:translation, hsmain, unique_trans_keys, mainkeys, true, *args, **hs_trans)
+    ret.reload if reload
+    ret
   end
 
   # Same as {BaseWithTranslation#create_with_translation!} but a single original
@@ -576,8 +590,10 @@ class BaseWithTranslation < ApplicationRecord
   #
   # @param (see BaseWithTranslation.create_with_translation!)
   # @return [BaseWithTranslation]
-  def self.create_with_orig_translation!(hsmain={}, unique_trans_keys=nil, *args, **hs_trans)
-    update_or_create_with_translations_core!(:orig_translation, hsmain, unique_trans_keys, nil, false, *args, **hs_trans)
+  def self.create_with_orig_translation!(hsmain={}, unique_trans_keys=nil, *args, reload: true, **hs_trans)
+    ret = update_or_create_with_translations_core!(:orig_translation, hsmain, unique_trans_keys, nil, false, *args, **hs_trans)
+    ret.reload if reload
+    ret
   end
 
   # Same as {BaseWithTranslation.create_with_orig_translation!} but may update
@@ -586,9 +602,11 @@ class BaseWithTranslation < ApplicationRecord
   #
   # @param (see BaseWithTranslation.create_with_translation!)
   # @return [BaseWithTranslation]
-  def self.update_or_create_with_orig_translation!(hsmain={}, unique_trans_keys=nil, mainkeys=nil, *args, **hs_trans)
+  def self.update_or_create_with_orig_translation!(hsmain={}, unique_trans_keys=nil, mainkeys=nil, *args, reload: true, **hs_trans)
 #print "DEBUG:orig:hs_trans:"; p [hsmain, hs_trans]
-    update_or_create_with_translations_core!(:orig_translation, hsmain, unique_trans_keys, mainkeys, true, *args, **hs_trans)
+    ret = update_or_create_with_translations_core!(:orig_translation, hsmain, unique_trans_keys, mainkeys, true, *args, **hs_trans)
+    ret.reload if reload
+    ret
   end
 
   # Core routine for 
@@ -1761,7 +1779,7 @@ class BaseWithTranslation < ApplicationRecord
   #
   # @return [Hash] like {'ja': <Translation>, 'en': <Translation>}
   def best_translations
-    hsret = {}
+    hsret = {}.with_indifferent_access
     translations.each do |ea_t|
       hsret[ea_t.langcode] ||= []
       hsret[ea_t.langcode].push(ea_t)
@@ -1786,10 +1804,14 @@ class BaseWithTranslation < ApplicationRecord
   #   trim: [Boolean] if True (Default), all multiple spaces are trimmed to a single space.
   # @param unique_trans_keys [Array] If given, the keys (like [:ruby, :romaji]) is used
   #   to identify the {Translation}. Else {Translation.keys_to_identify} is called
+  # @param reload [Boolean] If true (Def), self is reloaded after Creation.
+  #   One more DB query is incurred, but recommended!
   # @param **kwds [Hash<Symbol, Hash, Array<Hash>>] to pass to {Translation}.new
   # @return [Array<Translation>]
-  def create_translations!(slim_opts={}, unique_trans_keys=nil, **kwds) ## convert_spaces: true, convert_blanks: true, strip: true, trim: true, **kwds)  ###############
-    update_or_create_translations_core(:create!, slim_opts, unique_trans_keys, **kwds)
+  def create_translations!(slim_opts={}, unique_trans_keys=nil, reload: true, **kwds) ## convert_spaces: true, convert_blanks: true, strip: true, trim: true, **kwds)  ###############
+    ret = update_or_create_translations_core(:create!, slim_opts, unique_trans_keys, **kwds)
+    self.reload if reload
+    ret
   end
 
   # Same as {#create_translations!} but it may update! instead of create!
@@ -1798,9 +1820,13 @@ class BaseWithTranslation < ApplicationRecord
   # @param slim_opts [Hash] Options to trim {Translation}.  Default: {COMMON_DEF_SLIM_OPTIONS}
   # @param unique_trans_keys [Array] If given, the keys (like [:ruby, :romaji]) is used
   #   to identify the {Translation}. Else {Translation.keys_to_identify} is called
+  # @param reload [Boolean] If true (Def), self is reloaded after Creation.
+  #   One more DB query is incurred, but recommended!
   # @return [Array<Translation>]
-  def update_or_create_translations!(slim_opts={}, unique_trans_keys=nil, **kwds)
-    update_or_create_translations_core(:update_or_create_by!, slim_opts, unique_trans_keys, **kwds)
+  def update_or_create_translations!(slim_opts={}, unique_trans_keys=nil, reload: true, **kwds)
+    ret = update_or_create_translations_core(:update_or_create_by!, slim_opts, unique_trans_keys, **kwds)
+    self.reload if reload
+    ret
   end
 
   # Core routine for {#create_translations!} and {#update_or_create_translations!}
@@ -1821,12 +1847,7 @@ class BaseWithTranslation < ApplicationRecord
     arret = []
     kwds.each_pair do |ek, ev|
       (ev.respond_to?(:rotate!) ? ev : [ev]).each do |ea_hs_lang|
-#begin
         hstmp = ea_hs_lang.merge({langcode: ek.to_s})
-#rescue
-#  print "DEBUG:core1:kwds=";p kwds
-#  raise
-#end
         arret.push update_or_create_translation_core(method, slim_opts, unique_trans_keys, **hstmp)
       end
     end
@@ -1847,6 +1868,7 @@ class BaseWithTranslation < ApplicationRecord
   def with_translations(**kwds)
     create_translations!(**kwds)
     self.reload  # Without reload, {#translations} may return nil.
+    self
   end
 
   # Same as {#with_translations} but may update the record.
@@ -1856,6 +1878,7 @@ class BaseWithTranslation < ApplicationRecord
   def with_updated_translations(**kwds)
     update_or_create_translations!(**kwds)
     self.reload  # Without reload, {#translations} may return nil.
+    self
   end
 
 
@@ -1870,23 +1893,31 @@ class BaseWithTranslation < ApplicationRecord
   #
   # Note that you probably want to include for the first one:  is_orig: true
   #
+  # @param reload [Boolean] If true (Def), self is reloaded after Creation.
+  #   One more DB query is incurred, but recommended!
   # @param convert_spaces: [Boolean] if True (Default), all blanks+returns are converted to ASCII spaces.
   # @param convert_blanks: [Boolean] if True (Default), all blanks (spaces or tabs) are converted to ASCII spaces.
   # @param strip: [Boolean] if True (Default), all strings are stripped with initial and trailing spaces.
   # @param trim: [Boolean] if True (Default), all multiple spaces are trimmed to a single space.
   # @param **kwds [Hash<Symbol>] to pass to {Translation}.new
   # @return [Translation]
-  def create_translation!(**kwds)
-    update_or_create_translation_core(:create!, **kwds)
+  def create_translation!(reload: true, **kwds)
+    ret = update_or_create_translation_core(:create!, **kwds)
+    self.reload if reload
+    ret
   end
 
 
   # Same as {#create_translation!} but it may update! instead of create!
   #
+  # @param reload [Boolean] If true (Def), self is reloaded after Creation.
+  #   One more DB query is incurred, but recommended!
   # @param (see BaseWithTranslation#create_translation!)
   # @return [Translation]
-  def update_or_create_translation!(**kwds)
-    update_or_create_translation_core(:update_or_create_by!, **kwds)
+  def update_or_create_translation!(reload: true, **kwds)
+    ret = update_or_create_translation_core(:update_or_create_by!, **kwds)
+    self.reload if reload
+    ret
   end
 
 
@@ -1935,6 +1966,7 @@ class BaseWithTranslation < ApplicationRecord
   def with_translation(**kwds)
     create_translation!(**kwds)
     self.reload
+    self
   end
 
   # Same as {#with_translation} but may update the record.
@@ -1944,6 +1976,7 @@ class BaseWithTranslation < ApplicationRecord
   def with_updated_translation(**kwds)
     update_or_create_translation!(**kwds)
     self.reload
+    self
   end
 
 
@@ -1963,6 +1996,7 @@ class BaseWithTranslation < ApplicationRecord
   def with_orig_translation(**kwds)
     create_translation!(**({is_orig: true}.merge(kwds)))
     self.reload
+    self
   end
 
   # Same as {#with_orig_translation} but may update the record.
@@ -1972,6 +2006,7 @@ class BaseWithTranslation < ApplicationRecord
   def with_orig_updated_translation(**kwds)
     update_or_create_translation!(**({is_orig: true}.merge(kwds)))
     self.reload
+    self
   end
 
 

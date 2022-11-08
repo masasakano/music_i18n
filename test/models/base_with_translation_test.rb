@@ -104,6 +104,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     artist = artists( :artist_proclaimers )
     art = Artist.find_by_a_title :titles, 'proclaimers'
     assert_equal artist.best_translations['en'], art.matched_translation
+    assert_equal artist.best_translations[:en], art.matched_translation  # .with_indifferent_access activated (after v.0.6)
     assert_equal :title,   art.matched_attribute
     assert_equal artist.best_translations['en'].title, art.matched_string
     assert_equal :optional_article_ilike, art.match_method

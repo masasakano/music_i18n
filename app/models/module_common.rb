@@ -31,7 +31,15 @@ module ModuleCommon
   # though German "die" is not considered.
   DEFINITE_ARTICLES = %w(the l' le la les el los las lo der das des dem den)
 
-  DEFINITE_ARTICLES_REGEXP_STR = DEFINITE_ARTICLES.join '|'
+  # Regular expression. Name "La La xyz" is a special case, where "la" is NOT an article.
+  #
+  # @note This is used for both Ruby and PostgreSQL!  For Ruby, it is preferrable
+  #   to appern "\b" (i.e., a word boundary, *except* inside a range) at the tail.
+  #   However, "\b" means a backspace in PostgreSQL! Therefore, it is not included.
+  #   Technically, {#regexp_ruby_to_postgres} can deal with it (n.b., "\b" in Ruby is
+  #   equivalent to "\y" in PostgreSQL).
+  # @see https://www.postgresql.org/docs/current/functions-matching.html#POSIX-ESCAPE-SEQUENCES
+  DEFINITE_ARTICLES_REGEXP_STR = "(?:"+DEFINITE_ARTICLES.reject{|i| i == "la"}.join('|')+"|la(?! +la +))"
 
   # For model that has the method +place+
   #
@@ -48,14 +56,18 @@ module ModuleCommon
   # @param year  [Integer, NilClass]
   # @param month [Integer, NilClass]
   # @param day   [Integer, NilClass]
+  # @param langcode [String, Symbol] Default: +I18n.locale+
   # @return [String]
-  def date2text(year, month, day)
-    case I18n.locale.to_s
+  def date2text(year, month, day, langcode: I18n.locale)
+    year  = nil if year.blank?
+    month = nil if month.blank?
+    day   = nil if day.blank?
+    case langcode.to_s
     when "ja"
-      sprintf("%s年%s月%s日", *([year, month, day].map{|i| (i.blank? ? '——' : i.to_s)}))
+      sprintf("%s年%s月%s日", *([year, month, day].map{|i| (i ? i : '——')}))
     else
       if year || !month
-        sprintf('%s-%s-%s', (year.blank? ? '????' : sprintf("%4d", year)), *([month, day].map{|i| (i.blank? ? '??' : sprintf("%2d", i))}))
+        sprintf('%s-%s-%s', (year ? sprintf("%4d", year) : '????'), *([month, day].map{|i| (i ? sprintf("%02d", i) : '??')}))
       elsif day
         I18n.l(Date.new(9999,month,day), format: :long, locale: "en").sub(/9999/, '????')
       else  # only month is significant.
@@ -173,9 +185,9 @@ module ModuleCommon
   # Assumes the DB entry-style, namely the article comes at the tail.
   #
   # @param instr [String]
-  # @return [String]
+  # @return [String] never includes nil
   def partition_root_article(instr)
-    mat = /,\s+(#{DEFINITE_ARTICLES_REGEXP_STR})\Z/i.match instr
+    mat = /,\s+(#{DEFINITE_ARTICLES_REGEXP_STR})\Z/i.match instr  # In the DB, a space follows a comma!
     mat ? [mat.pre_match, mat[1]] : [instr, ""]
   end
 
@@ -183,10 +195,12 @@ module ModuleCommon
   #
   # The article may be at the head or tail.
   #
+  # String is assumed to have been already stripped.
+  #
   # @param instr [String]
   # @return [String]
   def definite_article_stripped(instr)
-    instr.sub(/\A(#{DEFINITE_ARTICLES_REGEXP_STR})\b\s*(\S)/i, '\2').sub(/,\s+(#{DEFINITE_ARTICLES_REGEXP_STR})\Z/i, '')
+    instr.sub(/\A(#{DEFINITE_ARTICLES_REGEXP_STR})\b\s*(\S)/i, '\2').sub(/,\s*(#{DEFINITE_ARTICLES_REGEXP_STR})\Z/i, '')
   end
 
   # Move a definite article to the head
@@ -194,31 +208,43 @@ module ModuleCommon
   # In the DB entry, the definite article is placed at the tail.
   # This routine returns the string in the "normal" order.
   #
+  # String is assumed to have been already stripped.
+  # A space between the final comma and an article is not mandatory.
+  #
   # @example
   #   definite_article_to_head("Beatles, The") # => "The Beatles"
   #
   # @param instr [String]
   # @return [String]
   def definite_article_to_head(instr)
-    instr.sub(/\A(.+), (#{DEFINITE_ARTICLES_REGEXP_STR})\z/i){$2+" "+$1}
+    instr.sub(/\A(.+),\s*(#{DEFINITE_ARTICLES_REGEXP_STR})\z/i){$2+" "+$1}
   end
 
   # Move a definite article to the tail
   #
   # String is assumed to have been already stripped.
   #
+  # If an article is already at the tail, the spaces (or no spaces)
+  # before the article are unchanged; e.g.,  "ab,  the" => "ab,  the".
+  #
   # @example
   #   definite_article_to_tail("The Beatles") # => "Beatles, The"
+  #
+  # @example not doubly moved to the tail.
+  #   definite_article_to_tail("the abc, La") # => "the abc, La"
   #
   # @param instr [String]
   # @return [String]
   def definite_article_to_tail(instr)
+    return instr if /\A(.+),\s*(#{DEFINITE_ARTICLES_REGEXP_STR})\z/i =~ instr
     instr.sub(/\A(#{DEFINITE_ARTICLES_REGEXP_STR})\b\s*(\S.*)/i){$2+", "+$1}
   end
 
   # Returns matching Regexp for DB and root-part of user-string
   #
-  # String is assumed to have been already stripped.
+  # String is 
+  #
+  # Return is as follows:
   # The 1st element is Regexp to suit the Regexp in DB.
   # The 2nd element is String in the format of String in DB,
   # namely, the article part comes at the tail.
@@ -230,22 +256,30 @@ module ModuleCommon
   # To reproduce the DB-formated String (with the article
   # placed at the tail: ret[1]+", "+ret[2]
   #
+  # @note The input String is assumed to be UTF-8 normalized and
+  #   UTF-8 space characters are normalized to ASCII spaces
+  #   AND all those whitespace characters are assumed to have been
+  #   already stripped; i.e.,
+  #   Zenkaku-Spaces (+\u3000) etc are not recognized as spaces
+  #   and hence, for example, "abc,\u3000 The" is interpreted as
+  #   a string without an article.
+  #
   # @example With a definite article
   #   definite_article_with_or_not_at_tail_regexp("tHe Beatles")
-  #   # => [/\A(Beatles)(, (tHe))?\z/i, "Beatles, tHe"]
+  #   # => [/\A(Beatles)(,\s*(tHe))?\z/i, "Beatles", "tHe"]
   #
   # @example With no definite article
   #   definite_article_with_or_not_at_tail_regexp("Beatles")
-  #   # => [/\A(Beatles)(, (the|le|la|les|el|los|las|lo|der|das|des|dem|den))?\z/i, 'Beatles', ""]
+  #   # => [/\A(Beatles)(,\s*((?:the|l'|le|les|el|los|las|lo|der|das|des|dem|den|la(?! +la +))\b))?\z/i, 'Beatles', ""]
   #
   # @param instr [String]
   # @return [Array<Regexp, String, String>] Regexp to match DB, root-String, article-String
   def definite_article_with_or_not_at_tail_regexp(instr)
     mat1 = /\A(#{DEFINITE_ARTICLES_REGEXP_STR})\b\s*(\S.*)\z/i.match instr
-    mat2 = /\A(.+), (#{DEFINITE_ARTICLES_REGEXP_STR})\z/i.match instr
+    mat2 = /\A(.+),\s*(#{DEFINITE_ARTICLES_REGEXP_STR})\z/i.match instr
     ret3 = (mat1 && mat1[1] || mat2 && mat2[2] || "")
     ret2 = (mat1 && mat1[2] || mat2 && mat2[1] || instr)
-    ret1 = (ret3.empty? ? /\A(#{Regexp.quote ret2})(, (#{DEFINITE_ARTICLES_REGEXP_STR}))?\z/i : /\A(#{Regexp.quote ret2})(, (#{ret3}))?\z/i)
+    ret1 = (ret3.empty? ? /\A(#{Regexp.quote ret2})(,\s*(#{DEFINITE_ARTICLES_REGEXP_STR}))?\z/i : /\A(#{Regexp.quote ret2})(,\s*(#{ret3}))?\z/i)
     [ret1, ret2, ret3]
   end
 
@@ -695,28 +729,37 @@ module ModuleCommon
 
   # Returns 2-element Array of PostgreSQL Regexp String and Options converted from Ruby Regexp
   #
-  # Experimental.
-  # Ruby-specific expressions are not supported. Note +\Z+ is supported in Potgres
-  # but +\z+ is NOT (but +\z+ is converted in most obvious cases only).
+  # In PostgreSQL, *ARE* (Advanced Regexp) is assumed to be used in default.
   #
-  # In PostgreSQL, *ARE* (Advanced Regexp) is assumed to be used.
-  #
-  # Another important point is the behaviour of +Regexp::MULTILINE+ is very different!
+  # An important point is the behaviour of +Regexp::MULTILINE+ is very different!
   # There is no option in Ruby corresponding to the PostgreSQL default ("s").
   # Ruby Regexp **without** +Regexp::MULTILINE+ (Ruby Default) is
   # PostgreSQL "n" (=non-newline-sensitive; alias is "m") option, whereas the Ruby with "m" is
   # PostgreSQL "w" (=weird!) option.
   # PostgreSQL has another "p" option (which Ruby does not have), which is the reverse of "w".
   #
+  # == Experimental
+  #
+  # Ruby-specific expressions are not supported. Note +\z+ in Ruby is equivalent to
+  # +\Z+ in PostgreSQL and +\Z+ in Ruby has no simple counterpart in PostgreSQL.
+  # However, +\z+ and +\Z+ are converted in most cases (I think
+  # they cover almost all cases, unless they are used in a lookahead/lookbehind feature?).
+  #
   # @return [Array<String, String>] Regexp.to_s, Option-String for PostgreSQL
   def regexp_ruby_to_postgres(regex)
-    mat = /\A\(\?([a-z]*)(?:\-([a-z]*))?:(.+)\)\z/.match regex.to_s
-    raise "Contact the code developer: regex=#{regex.inspect}" if !mat
+    mat = /\A\(\?([a-z]*)(?:\-([a-z]*))?:(.+)\)\z/.match regex.to_s # separate Regexp options and contents.
+    raise "Contact the code developer: regex=#{regex.inspect}" if !mat # sanity check
     opts = ""
     opts << ?i if  mat[1].include? ?i
     opts << ((mat[1].include?(?m)) ? ?w : ?n)  # the meanings are very different!
     opts << ?x if  mat[1].include? ?x
-    return [mat[3].gsub(/(?<!\\)((?:\\\\)*)(\\)z\z/, '\1\2Z(?!\n)'), opts] 
+    restr = mat[3].gsub(/(?<!\\)((?:\\\\)*)(\\)z/, '\1'+"\uFFFD").  # \z => \uFFFD
+                   gsub(/(?<!\\)((?:\\\\)*)(\\)Z/, '\1\s*\2Z').     # \Z => \Z ish
+                   gsub(/\uFFFD/, '\Z').                            # original(\z) => \Z
+                   gsub(/(?<!\\)((?:\\\\)*)\[((?:(?<!\\)(?:\\\\)*(?:\\)\]|[^\]])*)(?<!\\)((?:\\\\)*)(\\)b/, '\1[\2\3'+"\uFFFD").  # [qq\b_] => [qq\uFFFD_];  \[aa\b\_] remains.
+                   gsub(/(?<!\\)((?:\\\\)*)(\\)b/, '\1\y').  # other(\b) => \y
+                   gsub(/\uFFFD/, '\b')  # replaces back [\b] (i.e., \b inside Range)
+    return [restr, opts] 
   end
 
   # Returns a reversed Hash for the given Array

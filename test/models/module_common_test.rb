@@ -5,6 +5,13 @@ require 'test_helper'
 class ModuleCommonTest < ActiveSupport::TestCase
   include ModuleCommon
 
+  test "date2text" do
+    assert_equal '——年8月——日', date2text(nil,  8, "", langcode: "ja")
+    assert_equal '2001-08-??', date2text(2001, 8, "", langcode: "en")
+    assert_match(/\bAugust\b/, date2text(nil,  8, 28, langcode: "en"))
+    assert_match(/\bAugust\b/, date2text(nil,  8, "", langcode: "en"))
+  end
+
   test "zenkaku_to_ascii with emojis" do
     # Without emojis
     instr = '寝落ち用ＢＧＭ弾きます【高音質】【ハラミナイト】！!!！！'
@@ -121,19 +128,96 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_equal(/^xYz?/i,  remove_az_from_regexp(/^xYz?\z/i, remove_first: false, remove_last: true))
   end
 
+  test "definite articles handling" do
+    ## partition_root_article
+    assert_equal %w(abc La),  partition_root_article("abc,  La")
+    assert_equal %w(abc tHe), partition_root_article("abc, tHe")
+    assert_equal ["abc,the", ""],  partition_root_article("abc,the"),  "DB-entry style should be assumed"
+    assert_equal ["the  abc", ""], partition_root_article("the  abc"), "DB-entry style should be assumed"
+    assert_equal ["La La La", ""], partition_root_article("La La La"), "should be empty-String, not nil"
+
+    ## definite_article_stripped
+    assert_equal "abc",    definite_article_stripped("abc,  La")
+    assert_equal "abc",    definite_article_stripped("abc,the"), "space should not be mandatory after ','"
+    assert_equal "abc",    definite_article_stripped("La  abc")
+    assert_equal "abc",    definite_article_stripped("L'abc")
+    assert_equal "La  La La", definite_article_stripped("La  La La"), "should be a special case"
+
+    ## definite_article_to_head
+    assert_equal "The Beatles", definite_article_to_head("Beatles, The") # in @example
+    assert_equal "La abc",    definite_article_to_head("abc,  La")
+    assert_equal "the abc",   definite_article_to_head("abc,the")
+    assert_equal "La  abc",   definite_article_to_head("La  abc")
+    assert_equal "L'abc",     definite_article_to_head("L'abc")
+    assert_equal "La  La La", definite_article_to_head("La  La La")
+
+    ## definite_article_to_tail
+    assert_equal "Beatles, The", definite_article_to_tail("The Beatles") # in @example
+    assert_equal "abc,  La",  definite_article_to_tail("abc,  La")
+    assert_equal "abc,the",   definite_article_to_tail("abc,the")
+    assert_equal "abc, La",   definite_article_to_tail("La  abc")
+    assert_equal "abc, L'",   definite_article_to_tail("L'abc")
+    assert_equal "the abc, La",  definite_article_to_tail("the abc, La"), "should not be doubly tailed." # in @example 
+    assert_equal "La  La La", definite_article_to_tail("La  La La"), "should be a special case"
+
+    ## definite_article_with_or_not_at_tail_regexp
+    exp = [/\A(Beatles)(,\s*(tHe))?\z/i, "Beatles", "tHe"]
+     assert_equal exp, definite_article_with_or_not_at_tail_regexp("tHe Beatles") # in @example
+    exp = [/\A(Beatles)(,\s*(#{DEFINITE_ARTICLES_REGEXP_STR}))?\z/i, "Beatles", ""]
+     assert_equal exp, definite_article_with_or_not_at_tail_regexp("Beatles") # in @example
+    exp = [/\A(abc)(,\s*(La))?\z/i, "abc", "La"]
+     assert_equal exp, definite_article_with_or_not_at_tail_regexp("abc,  La")
+    exp = [/\A(abc)(,\s*(the))?\z/i, "abc", "the"]
+     assert_equal exp, definite_article_with_or_not_at_tail_regexp("abc,the")
+    exp = [/\A(abc)(,\s*(La))?\z/i, "abc", "La"]
+     assert_equal exp, definite_article_with_or_not_at_tail_regexp("La  abc")
+    exp = [/\A(abc)(,\s*(L'))?\z/i, "abc", "L'"]
+     assert_equal exp, definite_article_with_or_not_at_tail_regexp("L'abc")
+    exp = [/\A(La\ \ La\ La)(,\s*(#{DEFINITE_ARTICLES_REGEXP_STR}))?\z/i, "La  La La", ""]
+     assert_equal exp, definite_article_with_or_not_at_tail_regexp("La  La La"), "should be a special case"
+  end
+
   test "regexp_ruby_to_postgres" do
     assert_equal ["abc+d", "n"], regexp_ruby_to_postgres(/abc+d/)
+    assert_equal ['^ab\Z', 'in'], regexp_ruby_to_postgres(/^ab\z/i)
+    assert_match(/^ab\\z/i, 'ab\zxyz')  # sanity check
+    assert_equal ["^ab\\\\z", 'in'], regexp_ruby_to_postgres(/^ab\\z/i)  # independent backslash
+    assert_equal ['\Aab\s*\Z', 'iw'], regexp_ruby_to_postgres(/\Aab\Z/im)
+    assert_equal ['ab\yx$', 'in'], regexp_ruby_to_postgres(/ab\bx$/i)
+    assert_equal ["ab\\\\bx$", 'in'], regexp_ruby_to_postgres(/ab\\bx$/i)
+
+    # \b in Range remains, \b elsewhere including "(\[\b\])" is replaced to "\y".
+    # In the example below, the second "\b" should remain as it is.
+    rexb = /\\\[b\b,m\][a\]b\bc]+d\\be:\bf/  # \b in Range and "\\b" remain, \b elsewhere including "(\[\b\])" are replaced
+    assert_equal ["\\\\\\[b\\y,m\\][a\\]b\\bc]+d\\\\be:\\yf", 'n'], regexp_ruby_to_postgres(rexb)
+
     conn = ActiveRecord::Base.connection
-    assert     _get_rows00(_res_postgres(conn, /abc+d/,   "abcccd"))
-    assert_nil _get_rows00(_res_postgres(conn, /abc+d/,   "Abcccd"))
-    assert     _get_rows00(_res_postgres(conn, /abc+d/im, "Abcccd"))
-    assert_nil _get_rows00(_res_postgres(conn, /\Ac.d/xi,   "c\nd"))
-    assert     _get_rows00(_res_postgres(conn, /\Ac.d/mi,   "c\nd"))
-    assert_nil _get_rows00(_res_postgres(conn, /\Ac.d/mi, "\nc\nd"))
-    assert     _get_rows00(_res_postgres(conn, /^c.d/mi,  "\nc\nd"))
+    assert _match_rb_psql_regexp?(conn, /abc+d/,   "abcccd")
+    assert _match_rb_psql_regexp?(conn, /abc+d/,   "Abcccd", false)
+    assert _match_rb_psql_regexp?(conn, /abc+d/im, "Abcccd")
+    assert _match_rb_psql_regexp?(conn, /\Ac.d/xi,   "c\nd", false)
+    assert _match_rb_psql_regexp?(conn, /\Ac.d/mi,   "c\nd")
+    assert _match_rb_psql_regexp?(conn, /\Ac.d/mi, "\nc\nd", false)
+    assert _match_rb_psql_regexp?(conn, /^c.d/mi,  "\nc\nd")
+    assert _match_rb_psql_regexp?(conn, /\Aab\z|cd\z/im,  "ab"), "Ruby(\\z) == PostgreSQL(\\Z)"
+    assert _match_rb_psql_regexp?(conn, /\Aab\\z|cd\z/im, "ab", false)
+    assert _match_rb_psql_regexp?(conn, /\Aab\z/im, "ab\n", false)
+    assert _match_rb_psql_regexp?(conn, /\Aab\Z/im, "ab"),  "Ruby(\\Z) != PostgreSQL(\\Z)"
+    assert _match_rb_psql_regexp?(conn, /ab\Z|cd\Z/im,  "aB\n")
+    assert _match_rb_psql_regexp?(conn, /ab\\Z|cd\Z/im, "aB\n", false)
+    assert _match_rb_psql_regexp?(conn, /ab\b/i,  "Ab cd")
+    assert _match_rb_psql_regexp?(conn, /ab\b/i,  "Abcd", false)
+    assert _match_rb_psql_regexp?(conn, rexb, "\\[b,m]cd\\be:f")
   end
 
   private
+    # Returns true if Ruby and PosgreSQL results match.
+    def _match_rb_psql_regexp?(conn, re_ruby, str, regexp_should_succed=true)
+      result_psql = _get_rows00(_res_postgres(conn, re_ruby, str))
+      result_rb   = re_ruby.match(str)
+      (!!result_psql == !!result_rb) && (!!result_rb == regexp_should_succed)
+    end
+
     # @return [ActiveRecord::Result] PostgreSQL Regexp result. +.rows[0][0]+ always exists but may be nil.
     def _res_postgres(conn, re_ruby, str)
       re_psql, re_opts = regexp_ruby_to_postgres(re_ruby)

@@ -600,7 +600,7 @@ class Translation < ApplicationRecord
   end
 
 
-  # Run a SQL query
+  # Build a SQL query for a combination of columns for a specific query method ("=", ILIKE, etc)
   #
   # @param method [Symbol] (:exact_absolute, :exact, :exact_ilike, :optional_article, :optional_article_ilike, :include, :include_ilike)
   # @param key [Symbol, String] (:title, :alt_title, :ruby, ...)
@@ -617,7 +617,7 @@ class Translation < ApplicationRecord
   end
   private_class_method :build_sql_match
 
-  # Run a SQL query
+  # Build a SQL query for a specific column (:title, :romaji etc) for a specific query method ("=", ILIKE, etc)
   #
   # @param method [Symbol] (:exact_absolute, :exact_absolute, :exact, :exact_ilike, :optional_article, :optional_article_ilike, :include, :include_ilike)
   # @param key [Symbol, String] (:title, :alt_title, :ruby, ...)
@@ -633,32 +633,29 @@ class Translation < ApplicationRecord
       sprintf("%s.%s = '%s'", tbl, key.to_s, definite_article_to_tail(value))
     when :exact_ilike
       sprintf("%s.%s ILIKE '%s'", tbl, key.to_s, definite_article_to_tail(value).gsub(/([%_])/, '\1'*2))
-    when :optional_article, :optional_article_ilike
-      #regex = '^'+Regexp.quote(value)+"(, ("+ModuleCommon::DEFINITE_ARTICLES_REGEXP_STR.gsub(/'/, "''")+'))?$'
-      #operator = ((method == :optional_article) ? '~' : '~*')
-      #sprintf("%s.%s %s '%s'", tbl, key.to_s, operator, regex)
-      operator = ((method == :optional_article) ? 'LIKE' : 'ILIKE')
-      sprintf("regexp_replace(%s.%s, '%s', '') %s '%s'",
+    when :optional_article, :optional_article_ilike, :include, :include_ilike
+      re_core = regexp_ruby_to_postgres(ModuleCommon::DEFINITE_ARTICLES_REGEXP_STR)[0].gsub(/'/, "''") # defined in module_common.rb
+      re_str = '(?i)(, ('+re_core+'))?$'
+      s_stripped = definite_article_stripped(value).gsub(/([%_])/, '\1'*2)
+      case method
+      when :optional_article, :optional_article_ilike
+        operator = ((method == :optional_article) ? 'LIKE' : 'ILIKE')
+        sprintf("regexp_replace(%s.%s, '%s', '') %s '%s'",
               tbl,
               key.to_s,
-              '(?i)(, ('+ModuleCommon::DEFINITE_ARTICLES_REGEXP_STR.gsub(/'/, "''")+'))?$',
+              re_str,
               operator,
-              definite_article_stripped(value).gsub(/([%_])/, '\1'*2) )
-    when :include, :include_ilike
-      # Strip definite articles from both the test and DB strings.
-      operator = ((method == :include) ? 'LIKE' : 'ILIKE')
-      #sprintf("regexp_replace(%s.%s, '%s', '') %s '%%%s%%'",
-      #        tbl,
-      #        key.to_s,
-      #        '(?i)(, ('+ModuleCommon::DEFINITE_ARTICLES_REGEXP_STR.gsub(/'/, "''")+'))?$',
-      #        operator,
-      #        definite_article_stripped(value).gsub(/([%_])/, '\1'*2) )
-      sprintf("regexp_replace(%s.%s, '%s', '') %s '%%%s%%'",
+              s_stripped )
+      when :include, :include_ilike
+        # Strip definite articles from both the test and DB strings.
+        operator = ((method == :include) ? 'LIKE' : 'ILIKE')
+        sprintf("regexp_replace(%s.%s, '%s', '') %s '%%%s%%'",
               tbl,
               key.to_s,
-              '(?i)(, ('+ModuleCommon::DEFINITE_ARTICLES_REGEXP_STR.gsub(/'/, "''")+'))?$',
+              re_str,
               operator,
-              definite_article_stripped(value).gsub(/([%_])/, '\1'*2) )
+              s_stripped )
+      end
     else
       raise
     end
@@ -834,6 +831,8 @@ class Translation < ApplicationRecord
   # If it is limited to a set of {Translation}s for a single object,
   # it will be sortable.
   #
+  # @see Translation.find_all_by_a_title
+  #
   # @example
   #   Translation.select_regex(:all, /male/, langcode: 'ja', translatable_type: Sex,
   #                                           where: ['id <> ?', pid], is_orig: true)
@@ -903,38 +902,6 @@ class Translation < ApplicationRecord
     common_opts
   end
   private_class_method :init_common_opts_for_select
-
-  # # Returns the matched String (title, alt_title etc) in the first result of {Translation.select_regex} (or the directly specified {Translation})
-  # #
-  # # @param example
-  # #   female_id = Sex['female'].id  # or Sex[2].id
-  # #   rela = Translation.select_regex(:all, /aLe/i, langcode: 'en', translatable_type: Sex,
-  # #                                           where: ['id <> ?', female_id])
-  # #   Translation.matched_string_in_relation(:all, /aLe/i, rela)  # => 'male'
-  # #
-  # # @param kwd [Symbol, String, Array<String>, NilClass] (title|alt_title|ruby|alt_ruby|romaji|alt_romaji|titles|all)
-  # #    or Array of Symbol|String to evaluate. Note :titles is the alias
-  # #    for [:title, :alt_title], and :all means all the 6 columns.
-  # #    If nil, this parameter, as well as value, is not used.
-  # # @param value [Regexp, String, NilClass] e.g., 'male' and /male\z/
-  # # @param rela [Translation::ActiveRecord_Relation, Array<Translation>, Translation] perhaps the result of {Translation.select_regex}
-  # # @return [String, NilClass] nil if not found (basically when rela is blank? or the combination of [kwd, value] is inconsistent with those used to create "rela")
-  # def self.matched_string_in_relation(kwd, value, *args)
-  #   trans = (rela.respond_to?(:first) ? rela.first : rela) || return
-  #   if trans
-  #     return trans.send(trans.get_matched_attribute(kwd, value))
-  #   end
-
-  #   msg = sprintf "(%s(%s, %s, rela)) Contact the code developer. In a normal use of this method, a match should be found but was not (maybe because the arguments are inconsistent with what they should be?) for Translation(ID=%d) for methods %s for Regexp: %s",
-  #                 __method__,
-  #                 kwd.inspect,
-  #                 value.inspect,
-  #                 trans.id,
-  #                 allkeys.inspect,
-  #                 value.inspect
-  #   logger.error msg
-  #   return nil
-  # end
 
   # Wrapper of {#get_matched_attribute}. Set {#matched_attribute}.
   #
@@ -1099,9 +1066,9 @@ class Translation < ApplicationRecord
   # @return [String]
   def self._psql_where_regexp_core(key, space_sensitive: false)
     if space_sensitive
-      "regexp_match(#{key.to_s}, ?, ?) IS NOT NULL"
+      "regexp_match(#{table_name}.#{key.to_s}, ?, ?) IS NOT NULL"
     else
-      "regexp_match(translate(#{key.to_s}, ' ', ''), ?, ?) IS NOT NULL"
+      "regexp_match(translate(#{table_name}.#{key.to_s}, ' ', ''), ?, ?) IS NOT NULL"
     end
   end
   private_class_method :_psql_where_regexp_core
