@@ -88,6 +88,11 @@ en:
         asc: "↑"
         desc: "↓"
 
+  merges:
+    edit: 
+      merge_if_possible: "This row is automatically merged except for conflicting records."
+      merge_always: "This row is automatically merged."
+
   artists:
     new:
       please_add_music: "Please add a Music(s) once you have created an Artist."

@@ -88,6 +88,11 @@ ja:
         asc: "↑"
         desc: "↓"
 
+  merges:
+    edit: 
+      merge_if_possible: "この行は衝突する項目を除いて自動的にマージされます"
+      merge_always: "この行は自動的にマージされます"
+
   artists:
     new:
       please_add_music: "Artistを登録した後、Music登録も忘れずお願いします。"

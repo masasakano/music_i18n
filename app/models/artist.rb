@@ -204,6 +204,12 @@ class Artist < BaseWithTranslation
     date2text(birth_year, birth_month, birth_day)  # defined in module_common.rb
   end
 
+  # true if one of birth_SOMETHING is defined.
+  #
+  def any_birthdate_defined?
+    !(birth_year.blank? && birth_month.blank? && birth_day.blank?)
+  end
+
   # Returns an Array of title or alt_title-s of {EngageHow} for the given {Music}
   #
   # Convenience tool for views.

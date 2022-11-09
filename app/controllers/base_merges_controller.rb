@@ -370,7 +370,7 @@ class BaseMergesController < ApplicationController
           (I18n.available_locales.find_index(a.langcode.to_sym) || Float::INFINITY)
         }.each do |et|
           next if et.langcode == orig_trans.langcode
-          arstr << ERB::Util.html_escape(sprintf("%s / %s", et.title, et.alt_title))
+          arstr << ERB::Util.html_escape(sprintf("[%s] %s / %s", et.langcode, et.title, et.alt_title))
         end
         arret[i][:label_str] = arstr.join("<br>").html_safe
       end

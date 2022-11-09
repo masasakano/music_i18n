@@ -247,6 +247,41 @@ class Place < BaseWithTranslation
     false
   end
 
+  # Used in the class {CheckedDisabled}
+  #
+  # Return {CheckedDisabled}.
+  # If one of them is {#covered_by?} the other, the index is used.
+  # If there is none, returns nil.
+  #
+  # So far, accepts 2 elements only.
+  #
+  # @param sexes [Array<Sex, NilClass>]
+  # @param defcheck_index [Integer] Default.
+  # @return [CheckedDisabled, NilClass]
+  def self.index_boss(places, defcheck_index: CheckedDisabled::DEFCHECK_INDEX)
+    raise "Unsupported size=#{places.size}" if places.size != 2
+
+    case places.compact.size
+    when 0
+      return nil
+    when 1
+      return CheckedDisabled.new(disabled: true, checked_index: places.find_index{|i| i})
+    end
+
+    disabled = true
+    if places[0].covered_by? places[1]
+      iret = 0
+    elsif places[1].covered_by? places[0]
+      iret = 1
+    else
+      # 2 places are unrelated.
+      iret = defcheck_index
+      disabled = false
+    end
+
+    CheckedDisabled.new disabled: disabled, checked_index: iret
+  end
+
   # Validates translation immediately before it is added.
   #
   # Called by a validation in {Translation}

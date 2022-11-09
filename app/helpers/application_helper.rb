@@ -11,29 +11,6 @@ module ApplicationHelper
     end.join("\n").html_safe
   end
 
-  # If all the contents are equal, they are disabled.
-  #
-  # The first one with a non-nil element is checked. Else defcheck_index.
-  # If all of them are the same, disabled is true.
-  # In default, only one of them is non-nil, disabled is true.
-  #
-  # Used in /app/views/layouts/_form_merge.html.erb
-  #
-  # @param models [Array<ActiveRecord>]
-  # @param attr [Symbol] attribute method
-  # @return [Hash] :disabled? => Boolean, :checked_index => Index
-  def checked_disabled(models, attr, defcheck_index: 0, disable_if_nil: true)
-    reths = {disabled?: false, checked_index: nil}
-    contents = models.map{|em| em.send(attr)}
-    if contents.uniq.size <= 1
-      reths[:disabled?] = true
-    elsif disable_if_nil && contents.map{|i| i.blank? ? nil : i }.compact.size <= 1
-      reths[:disabled?] = true
-    end
-    reths[:checked_index] = (contents.find_index{|em| !em.blank?} || defcheck_index)
-    reths
-  end
-
   # Returns a shortest-possible String expression of a float
   #
   # Note that if the number is larger than the maxlength,

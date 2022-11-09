@@ -108,6 +108,30 @@ class Sex < BaseWithTranslation
      iso5218 == 0
   end
 
+  # Used in the class {CheckedDisabled}
+  #
+  # Return {CheckedDisabled} if the index that is the first significant one,
+  # (preferably defcheck_index if that is OK), i.e., not unknown.
+  # If there is none, returns nil.
+  #
+  # @param sexes [Array<Sex, NilClass>]
+  # @param defcheck_index [Integer] Default.
+  # @return [CheckedDisabled, NilClass]
+  def self.index_boss(sexes, defcheck_index: CheckedDisabled::DEFCHECK_INDEX)
+    significants = sexes.map.with_index{ |es, i|
+      next nil if !es
+      es.unknown? ? nil : i
+    }.compact
+
+    disabled = (1 == significants.size)
+    if significants.empty?
+      nil
+    else
+      iret = (significants.include?(defcheck_index) ? defcheck_index : significants.first)
+      CheckedDisabled.new disabled: disabled, checked_index: iret
+    end
+  end
+
   # If allow_nil=true this returns false only when one is a male
   # and the other is a female. Else, this returns false also if other
   # is nil.

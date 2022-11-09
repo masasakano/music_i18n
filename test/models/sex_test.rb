@@ -42,6 +42,23 @@ class SexTest < ActiveSupport::TestCase
     assert_raises(ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique){ Sex.create!(iso5218: 1) }  # PG::UniqueViolation => "Validation failed: Iso5218 has already been taken"
   end
 
+  test "index_boss" do
+    sex0 = sexes(:sex0)
+    sex1 = sexes(:sex1)
+    sex2 = sexes(:sex2)
+    sex9 = sexes(:sex9)
+
+    cd = Sex.index_boss([sex0, sex9, sex0, nil])
+    assert cd.disabled?
+    assert_equal 1, cd.checked_index
+
+    cd = Sex.index_boss([sex0, sex0, sex1, sex2])
+    refute cd.disabled?
+    assert_equal 2, cd.checked_index
+
+    assert_nil Sex.index_boss([sex0, sex0])
+  end
+
   test "not_disagree?" do
     [:unknown, 9].each do |i_first|  # unknown: iso5218=0
       sex = Sex[i_first]
