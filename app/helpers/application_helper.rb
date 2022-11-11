@@ -11,6 +11,11 @@ module ApplicationHelper
     end.join("\n").html_safe
   end
 
+  # true if the environmental variable is set and non-false
+  def is_env_set_positive?(key)
+    ENV.keys.include?(key.to_s) && !%w(0 false FALSE).include?(ENV.keys.include?(key.to_s))
+  end
+
   # Returns a shortest-possible String expression of a float
   #
   # Note that if the number is larger than the maxlength,

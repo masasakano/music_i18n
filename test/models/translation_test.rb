@@ -89,6 +89,28 @@ class TranslationTest < ActiveSupport::TestCase
     assert_raises(ActiveRecord::RecordInvalid){
       p Translation.create!(translatable: countries(:japan), **hs)
     }  # PG::NotNullViolation (ActiveRecord::RecordNotUnique) is NEVER RAISED because the record contains nil (which could be validated with the DB by setting a partial unique indexes in PostgreSQL).
+
+    # Unique violation
+    artist = Artist.first
+    hsbase = { langcode: "en", translatable: artist }
+    tit     = 'Abc'
+    alt_tit = 'Xyz'
+    trans1 = Translation.create!(title: tit, alt_title: alt_tit, **hsbase)
+    Translation.create!(title: "", alt_title: nil, romaji: "something", **hsbase)
+    assert_raises(ActiveRecord::RecordInvalid){
+      Translation.create!(title: tit, alt_title: alt_tit, romaji: "something", **hsbase)
+    }
+    assert_raises(ActiveRecord::RecordInvalid, "Reverse Translation pair should fail, but..."){
+      Translation.create!(title: alt_tit, alt_title: tit, romaji: "different", **hsbase)
+    }
+
+#if is_env_set_positive?('TEST_STRICT')
+    # nil and empty string "" should be treated as identical.
+    trans1.update!(alt_title: nil) 
+    assert_raises(ActiveRecord::RecordInvalid, "Reverse Translation pair should fail, but..."){
+      Translation.create!(title: "", alt_title: tit, romaji: "different", **hsbase)
+    }
+#end
   end
 
   test "class method preprocessed_6params" do

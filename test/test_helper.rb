@@ -5,6 +5,8 @@ require 'rails/test_help'
 require 'w3c_validators'
 
 class ActiveSupport::TestCase
+  include ApplicationHelper
+
   # Run tests in parallel with specified workers
   parallelize(workers: :number_of_processors)
 
@@ -138,7 +140,8 @@ class ActiveSupport::TestCase
   #
   # @param name [String] Identifier for the error message.
   def w3c_validate(name="caller")
-    return if ENV.keys.include?('SKIP_W3C_VALIDATE') && !%w(0 false FALSE).include?(ENV.keys.include?('SKIP_W3C_VALIDATE'))
+    return if is_env_set_positive?('SKIP_W3C_VALIDATE')
+    #ENV.keys.include?('SKIP_W3C_VALIDATE') && !%w(0 false FALSE).include?(ENV.keys.include?('SKIP_W3C_VALIDATE'))
 
     bind = caller_locations(1,1)[0]  # Ruby 2.0+
     caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno

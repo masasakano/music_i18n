@@ -79,15 +79,7 @@ class Translation < ApplicationRecord
     def validate(record)
       # return if !record.translatable_type || !record.translatable_id
 
-      hs2pass = %i(title alt_title langcode translatable_type translatable_id).map{|i| [i, record.send(i)]}.to_h
-      cmped = hs2pass.values_at(:title, :alt_title)
-      if !cmped.compact.empty?
-        rel = record.class.where(hs2pass)
-        rel = rel.where.not(id: record.id) unless record.new_record?  # For update
-        if rel.count > 0
-          record.errors.add :base, "Combination of (title, alt_title) must be unique: #{cmped.inspect}" # i.e., no two identical translations should associate a single entity.
-        end
-      end
+      _validate_unique_tit_alt_tit_pair(record)
 
       ## Custom callback of the parent
       parent = (record.translatable || (record.translatable_type.constantize rescue nil)) # This returns either a model OR for a new record, a model class.  For the latter, validate_translation_callback must be defined as a class method in the model class to be executed.
@@ -100,6 +92,41 @@ class Translation < ApplicationRecord
         [parent.validate_translation_callback(record)].flatten.compact.each do |msg|
           record.errors.add :base, msg
         end
+      end
+    end
+
+    # A(title, alt_title) should not be B(title, alt_title) or its reverse.
+    #
+    # This validation allows for a single {Translation} with title and alt_title both being blank?
+    # (either nil or empty string) for a translatable, not multiple ones.
+    #
+    # This works on nil and empty string, treating them identical.
+    #
+    # @see https://stackoverflow.com/questions/74403065/how-to-find-records-in-postgresql-matching-a-combination-of-a-pair-of-nullable-s
+    def _validate_unique_tit_alt_tit_pair(record)
+      title, alt_title = %i(title alt_title).map{|i| record.send(i).to_s}
+      hsbase = %i(langcode translatable_type translatable_id).map{|i| [i, record.send(i)]}.to_h
+
+      rel = record.class.where(hsbase)
+      rel = rel.where.not(id: record.id) unless record.new_record?  # For update
+      raise if "translations" != Translation.table_name  # sanity check.
+
+      ## An attempt of direct "single" query to the database, which is still not right.  Too complicated and not worth it...
+      ## See the @see (link to Stackoverflow) for detail.
+      # rel = rel.joins("JOIN translations translationsb ON translations.id <> translationsb.id")
+      # s1 = "COALESCE(translations.title, '') = COALESCE(translationsb.title, '') AND COALESCE(translations.alt_title, '') =  COALESCE(translationsb.alt_title, '')"
+      # s2 = s1.gsub(/b\.alt_title/, "\uFFFD").gsub(/b\.title/, "b.alt_title").gsub(/\uFFFD/, "b.title")
+      # relcombi = rel.where(s1).or(rel.where(s2))
+
+      s1 = "COALESCE(#{Translation.table_name}.title, '') = ? AND COALESCE(#{Translation.table_name}.alt_title, '') = ?"
+      relcombi = rel.where(s1, title, alt_title).or(rel.where(s1, alt_title, title))
+      if relcombi.count > 0
+        msg = "Combination of (title, alt_title) must be unique: #{[title, alt_title]}"
+        if Rails.env.development? ||  Rails.env.test?
+          trans = relcombi.first
+          msg << sprintf(" [Development/Test] ID=%s Other(1)(ID=%s)[title/alt_title]=%s", record.id.inspect, trans.id.inspect, [trans.title, trans.alt_title].inspect)
+        end
+        record.errors.add :base, msg # i.e., no two identical translations (in terms of title/alt_title combinations, including its reverse) should associate a single entity.
       end
     end
   end
@@ -209,7 +236,7 @@ class Translation < ApplicationRecord
     return true if user.qualified_as? :editor, rc_tra
 
     # Edge cases
-    olc = original_langcode
+    #olc = original_langcode
     return true if lc == 'ja' && translatable && Ability.new(user).can?(:create, translatable.class)
     return true if siblings(lc).pluck(:create_user_id).include? user.id
     false
