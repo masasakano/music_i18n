@@ -41,6 +41,19 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     assert(css.empty? || !css[0].text.include?("Edit"))
   end
 
+  test "should fail/succeed to get new" do
+    get new_artist_url(@artist)
+    assert_response 401  # Somehow, not  :redirect
+    #assert_redirected_to new_user_session_path
+
+    sign_in @editor
+    get new_artist_url
+    css = css_select('p.navigate-link-below-form a')
+    assert_equal 1, css.size
+    assert_match(/\bindex$/i,   css.first.text)
+    assert_match(%r@^(/en)?/artists(\?locale=en)?$@, css.first['href'])
+  end
+
   test "should create" do
     sign_in @editor
 

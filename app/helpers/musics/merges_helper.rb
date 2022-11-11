@@ -1,2 +1,0 @@
-module Musics::MergesHelper
-end

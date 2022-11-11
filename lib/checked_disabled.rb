@@ -8,6 +8,9 @@ class CheckedDisabled
   # Index to be "checked" for a set of radio buttons (or checkboxes)
   attr_reader :checked_index
 
+  # The values of +model.attr+ or something specified by the user, maybe in initialization.
+  attr_accessor :contents
+
   # If all the contents are equal, they are disabled.
   #
   # The first one with a non-nil element is checked. Else defcheck_index.
@@ -16,7 +19,7 @@ class CheckedDisabled
   #
   # Used in /app/views/layouts/_form_merge.html.erb
   #
-  # Note if both parameters are specified, this class works just as a container.
+  # Note if arguments +disabled+ is true and +checked_index+ is significant, this class works just as a container.
   #
   # Note if blank?, it is regarded as being nil.
   #
@@ -27,34 +30,40 @@ class CheckedDisabled
   # @param disable_if_nil [Boolean] If true (Def) and if there is no significant one, return disabled? == true
   # @param disabled [Boolean, NilClass] If non-nil, this value is used for {#disabled?}
   # @param checked_index [Integer, NilClass] if non-nil, this value is simply used for {#checked_index}
+  # @param contents [Array<Object>] Basically, the values of +model.attr+ and retrieved with {#contents}.
+  #    If non-nil elements are specified, it is not overwritten.
   # @return [Hash] :disabled? => Boolean, :checked_index => Index
-  def initialize(models=nil, attr=nil, refute: false, defcheck_index: DEFCHECK_INDEX, disable_if_nil: true, disabled: nil, checked_index: nil)
+  def initialize(models=nil, attr=nil, refute: false, defcheck_index: DEFCHECK_INDEX, disable_if_nil: true, disabled: nil, checked_index: nil, contents: [])
     @disabled = disabled
     @checked_index = checked_index
+    @contents = contents
     return if !@disabled.nil? && checked_index  # Already set
 
-    contents = (attr ? models.map{|em| em.send(attr)} : models.dup)
-    contents.map!{|i| !i} if attr && refute
+    arres = (attr ? models.map{|em| em.send(attr)} : models.dup)
+    arres.map!{|i| !i} if attr && refute
+    arres.each_with_index do |ec, i|
+      @contents[i] ||= ec
+    end
 
     should_disabled = @disabled
     if @disabled.nil?
       @disabled = should_disabled = false
-      if contents.uniq.size <= 1
+      if arres.uniq.size <= 1
         @disabled = should_disabled = true
-      elsif contents.map{|i| i.blank? ? nil : i }.compact.size <= 1
+      elsif arres.map{|i| i.blank? ? nil : i }.compact.size <= 1
         should_disabled = true
         @disabled = true if disable_if_nil
       end
     end
 
     return if checked_index  # given as an argument.
-    @checked_index = (contents.find_index{|em| !em.blank?} || defcheck_index)
+    @checked_index = (arres.find_index{|em| !em.blank?} || defcheck_index)
 
-    return if should_disabled || !contents[@checked_index].class.respond_to?(:index_boss)
+    return if should_disabled || !arres[@checked_index].class.respond_to?(:index_boss)
 
     ## The model class has a method to select the index of the boss to check
     # The :index_boss method should return an index or nil if none of them have a priority.
-    obj = contents[@checked_index].class.index_boss(contents, defcheck_index: defcheck_index)
+    obj = arres[@checked_index].class.index_boss(arres, defcheck_index: defcheck_index)
 
     if obj.respond_to?(:checked_index)
       # Basically, if the object is this class's instance.

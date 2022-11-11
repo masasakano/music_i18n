@@ -1,4 +1,4 @@
-<%# taking variables: model %>
+<%# taking variables: model and is_to_edit %>
 
 <% model_name = model.class.name %>
 <% model_underscore = model_name.underscore %>
@@ -12,8 +12,8 @@
 <% klass_merge = model_name.pluralize.constantize::MergesController %>
 <% if !model.new_record? && (can?(:destroy, model) || can?(:update, model) && can?(:update, klass_merge)) %>
   <% if can_update %>
-  <div class="actions-destroy" style="margin-right: 1em;">
-   <div class="actions" style="text-align: right">
+  <div class="actions-destroy actions-destroy-align-r">
+   <div class="actions">
   <% end %>
      <% if can?(:update, model) && can?(:update, klass_merge) %>
        <% path_new = send(model_underscore.pluralize + "_new_merges_path", model) %>
@@ -47,18 +47,19 @@
   </div>
 <% end %>
 
-<% linkhtml = link_to 'Back to Index', model_underscore.pluralize+"_path" %>
+<% linkhtml = link_to 'Back to Index', send(model_underscore.pluralize+"_path") %>
 <% if is_to_edit %>
-  <% if can_update && "Artist" == model_name %>
+  <% if"Artist" == model_name && model.new_record? && can_update %>
+  <p class="artist-caution-in-add-music-below-form">
   (<%= t("artists.new.please_add_music", default: "Please add a Music(s) once you have created an Artist." ) %>)
-  <br>
+  </p>
  <% end %>
-  <p>
+  <p class="navigate-link-below-form">
     <%= link_to 'Show', model %> |
     <%= linkhtml %>
-  </p>
 <% else %>
-  <%= linkhtml %>
+  <p class="navigate-link-below-form">
+    <%= linkhtml %>
 <% end %>
-
+  </p>
 

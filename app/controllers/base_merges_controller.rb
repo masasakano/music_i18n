@@ -1,6 +1,15 @@
 
 # Superclass of Musics::MergesController etc
+#
+# {CheckedDisabled} defined in +/lib/checked_disabled.rb+ is a key helper class.
+#
+# Child classes are so far {Musics::MergesController} and {Artists::MergesController} .
 class BaseMergesController < ApplicationController
+  # Symbol-Key to the actual Form parameter key
+  #
+  # In each subclass, make sure to define
+  #   MODEL_SYM = :music  # if for Music::MergesController class
+  #   FORM_MERGE_KEYS     # Array of used keys in the form of the class like :other_music_id (or :other_artist_id)
   FORM_MERGE = {
     other_music_id:     'other_music',
     other_music_title:  'other_music_title',
@@ -71,23 +80,32 @@ class BaseMergesController < ApplicationController
     def get_other_model(model)
       mo_class = model.class
       mo_name = mo_class.name.underscore
-      key = "other_"+mo_name +"_id"
-      other_id = (params.permit(key)[key] || params.require(mo_name).permit(key)[key])
+      key_i = "other_"+mo_name+"_id"
+      other_id   = params.has_key?(key_i) && params.permit(key_i)[key_i] || nil
+      other_id ||= params.require(mo_name).permit(key_i)[key_i]  # it should never be nil, if through UI
+      logger.info "(#{File.basename __FILE__}:#{__method__}): #{key_i.to_sym.inspect} is missing in params. Now searching for its 'title' counterpart" if Rails.env.development? && !other_id
+      other_id = (params.permit(key_i)[key_i] || params.require(mo_name).permit(key_i)[key_i])
       return mo_class.find(other_id) if !other_id.blank?
 
-      key = "other_"+mo_name+"_title"
-      mo_title = params.require(mo_name).permit(key)[key]
-      return mo_class.find(nil) if !mo_title || mo_title.strip.blank?  # raises ActiveRecord::RecordNotFound
+      key_t = "other_"+mo_name+"_title"
+      mo_title = params.require(mo_name).permit(key_t)[key_t]
+      if !mo_title || mo_title.strip.blank?  # raises ActiveRecord::RecordNotFound
+        logger.error "(#{File.basename __FILE__}:#{__method__}): Neither #{key_i.to_sym.inspect} nor #{key_t.to_sym.inspect} is found, which should never happen through UI: params=#{params}"
+        return mo_class.find(nil) if !mo_title || mo_title.strip.blank?  # raises ActiveRecord::RecordNotFound
+      end
 
       search_str, lcode, model_id = prepare_autocomplete_model(mo_title)
       return mo_class.find(model_id) if model_id
 
       armodel = model.select_translations_partial_str_except_self(
-        :titles, search_str,
-        langcode: lcode
+        :titles, search_str, langcode: lcode
       ).map{|i| i.translatable}.uniq
 
-      return mo_class.find(nil) if armodel.empty?  # raises ActiveRecord::RecordNotFound
+      if armodel.empty?  # raises ActiveRecord::RecordNotFound
+        logger.error "ERROR(#{__method__}): Neither #{key_i.to_sym.inspect} nor the matching content for #{key_t.to_sym.inspect} is found, which should never happen through UI: params=#{params}"
+        return mo_class.find(nil)  # raises ActiveRecord::RecordNotFound
+      end
+
       if armodel.size > 1
         if flash[:warning]
           flash[:warning] << "  " 
@@ -97,6 +115,46 @@ class BaseMergesController < ApplicationController
         flash[:warning] << sprintf("Found more than 1 %s for word=(%s).", mo_class.name, mo_title.strip)
       end
       armodel.first
+    end
+
+    # Returns Hash of {CheckedDisabled} with keys included in constant +FORM_MERGE_KEYS+
+    # defined in each subclass.
+    #
+    # Note that when {CheckedDisabled#disabled?} is false, one or both of the elements
+    # can be nil and the View will display nothing for them, as opposed to a radiob button
+    # with spaces (which I don't think would be a valid HTML). {CheckedDisabled#disabled?} of true
+    # means any of the HTML +input+ tags for the element (or row) is disabled, if there is any.
+    #
+    # @param model [Array<ActiveRecord>]
+    # @return [Hash<CheckedDisabled>] e.g., +{lang_trans: CheckedDisabled.new(contents: _to_print_on_form, ...}+
+    def all_checked_disabled(models)
+      self.class::FORM_MERGE_KEYS.map{ |ea_fmk|
+        [ea_fmk, 
+           case ea_fmk
+           when :to_index, :lang_orig
+             CheckedDisabled.new(checked_index: 0, disabled: false)
+           when :lang_trans
+             _non_orig_translations_checked_disabled(models)
+           when :engage
+             torfs = models.map{|em| em.engages.exists? ? true : nil }
+             CheckedDisabled.new(checked_index: torfs.find_index{|tf| tf}, disabled: (1 == torfs.compact.size))
+           when :prefecture_place
+             CheckedDisabled.new(models, :place)
+           when :genre, :year, :sex, :wiki_en, :wiki_ja
+             CheckedDisabled.new(models, ea_fmk)
+           when :birthday
+             CheckedDisabled.new(models, :any_birthdate_defined?)
+           when :note
+             next  # ignoredd!
+           when :other_music_id, :other_music_title, :other_artist_id, :other_artist_title
+             next  # ignoredd!
+           else
+             logger.warning "Unexpected key (#{ea_fmk}). Contact the code developer."
+             #next
+             raise
+           end
+        ]
+      }.compact.to_h
     end
 
     # Preparation routine.
@@ -146,6 +204,7 @@ class BaseMergesController < ApplicationController
           [metho, origs[other_index(index2use)].send(metho)]
         }.to_h
       end
+      id_destroyed = origs[other_index(index2use)].id
       origs[other_index(index2use)].destroy!
 
       # alt_title etc are copied.
@@ -160,14 +219,19 @@ class BaseMergesController < ApplicationController
         if artrans[0].id != origs[index2use]
           # The weight of is_orig=true is not the lowest.
           # If the smallest weight among others is 0, adjusts it.
-          if artrans[0].weight && artrans[0].weight <= 0
+          if artrans[0].weight && artrans[0].weight <= 0 && artrans[0].id != id_destroyed  # id-check is necessary; otherwise caching may do something unexpected!
             artrans[0].weight =
               if artrans[1] && artrans[1].weight
                 artrans[1].weight.quo(2)
               else
                 100
               end
+begin
             artrans[0].save!
+rescue ActiveRecord::RecordInvalid
+  logger.error "(#{__method__}) ERROR(ActiveRecord::RecordInvalid): DEBUG: org=#{origs[index2use]}, artrans=#{artrans.inspect}"
+  raise
+end
           end
 
           origs[index2use].weight = artrans[0].weight.quo(2)
@@ -319,7 +383,7 @@ class BaseMergesController < ApplicationController
       mu_other = models[other_index(@to_index)]
       if !mu_to.errors.any? && mu_other.destroyed?
         return respond_to do |format|
-          msg = sprintf "#{model_name.pluralize} was successfully merged."
+          msg = sprintf "#{model_name.pluralize} were successfully merged."
           format.html { redirect_to send(path_show, mu_to), success: msg }
           format.json { render :show, status: :ok, location: mu_to }
         end
@@ -347,45 +411,34 @@ class BaseMergesController < ApplicationController
       end
     end
 
+
     # Helper method for "edit" Form
     #
     # @param models [Array<BaseWithTranslation>] 2-element Array. Index of +@to_index+ remains
     #   and the other will be destroyed.
-    # @return [Array<Hash>] :checked, :label_str, :exist, :disabled
-    def non_orig_translations_prms(models)
-      arret = []
+    # @return [CheckedDisabled] {CheckedDisabled#contents} is a 2-element Array of the String to print.
+    def _non_orig_translations_checked_disabled(models)
       n_exists = 0
-      models.each_with_index do |em, i|
-        arret[i] = {
-          checked: false,
-          label_str: "",
-          exist: nil,
-          disabled: false,
-        }
-        orig_trans = em.orig_translation
-        arret[i][:exist] = em.translations.any?{|et| (et != orig_trans) && can?(:ud, et)}
-        n_exists += 1 if arret[i][:exist]
+      contents = models.map do |em, i|
+        # exist_editable = em.translations.where.not(id: em.orig_translation.id).any?{|et| can?(:ud, et)}
+        ### I have decided not to check ability... too complicated!
         arstr = []
-        em.translations.sort{|a, b|
-          (I18n.available_locales.find_index(a.langcode.to_sym) || Float::INFINITY)
+        em.translations.where(is_orig: false).or(em.translations.where(is_orig: nil)).sort{|a, b|
+          # Sorted in the order of Language (langcode/locale) and weight
+          w = ((I18n.available_locales.find_index(a.langcode.to_sym) || Float::INFINITY) <=>
+               (I18n.available_locales.find_index(b.langcode.to_sym) || Float::INFINITY))
+          next w if w != 0
+          (a.weight || Float::INFINITY) <=> (b.weight || Float::INFINITY)
         }.each do |et|
-          next if et.langcode == orig_trans.langcode
+          # next if et.langcode == orig_trans.langcode
           arstr << ERB::Util.html_escape(sprintf("[%s] %s / %s", et.langcode, et.title, et.alt_title))
         end
-        arret[i][:label_str] = arstr.join("<br>").html_safe
+        arstr.join("&nbsp;&nbsp;<br>").html_safe
       end
 
-      ichecked = arret.each_with_index do |hs, i|
-        if hs[:exist]
-          hs[:checked] = true
-          hs[:disabled] = true if n_exists == 1
-          break i
-        end
-      end
-      if !ichecked.respond_to? :divmod  # None of them is valid.
-        arret[0][:checked] = true  # Default.
-      end
-      arret
+      i_checked = (contents.find_index{|i| !i.blank?} || -1)
+      disabled  = (1 == contents.find_all{|i| !i.blank?}.size)
+      CheckedDisabled.new(checked_index: i_checked, disabled: disabled, contents: contents)
     end
 
     # @return [Integer] 1 if 0 is given, or vice versa

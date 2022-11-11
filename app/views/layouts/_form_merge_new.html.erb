@@ -26,8 +26,8 @@
   </div>
 
   <div class="field field-note">
-    <%= form.label      other_str+"_title" %>
-    <%= form.text_field other_str+"_title", id: model_underscore+"_with_id" %> <%# id is used in JS autocomplete_model_with_id.js %>
+    <%= form.label "with_id", 'Other '+model_underscore+' title' %> <%# (other_str+"_title") %>
+    <%= form.text_field other_str+"_title", id: model_underscore+"_with_id" %> <%# id is used in JS autocomplete_model_with_id.js %> <%# However it seems it messes up the relation between this line and form.label... that is why I adjusted the form.label argument with a weird string %>
   </div>
 
   <div class="actions">

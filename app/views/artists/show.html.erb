@@ -30,7 +30,7 @@
 
 <p>
   <strong>Wikipedia:</strong>
-  <%= %w(ja en).map{|m| uri=@artist.wiki_uri(m); uri.blank? ? '——' : link_to(((m == 'ja') ? '日本語' : '英語'), uri)}.join(' / ').html_safe %>
+  <%= %w(ja en).map{|m| uri=@artist.wiki_uri(m); sprintf("[%s] ", t("locale.capital."+m, default: m.upcase))+(uri.blank? ? '——' : link_to(h(uri.sub(%r@^https?://@, "")), uri))}.join(' / ').html_safe %>
 </p>
 
 <p>

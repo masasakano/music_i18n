@@ -923,7 +923,7 @@ music_ihojin1_ja2:
   translatable: music_ihojin1
   translatable_type: Music
   langcode: ja
-  title: 異邦人
+  title: 異邦人のもう一つの日本語
   is_orig: false
   weight: 1.0
   create_user: user_translator

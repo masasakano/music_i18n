@@ -48,6 +48,8 @@ logger.debug "DEBUG:moderator?=#{ArtistsGrid.is_current_user_moderator.inspect}"
   # POST /artists
   # POST /artists.json
   def create
+    @countries = Country.all
+    @prefectures = Prefecture.all
     # Parameters: {"authenticity_token"=>"[FILTERED]", "artist"=>{"langcode"=>"en", "title"=>"AI", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "place.prefecture_id.country_id"=>"3153", "place.prefecture_id"=>"", "place_id"=>"", "sex_id"=>"0", "birth_year"=>"", "birth_month"=>"", "birth_day"=>"", "wiki_en"=>"", "wiki_ja"=>"", "note"=>""}, "commit"=>"Create Artist"}
     params.permit!
     hsprm = params.require(:artist).permit(
@@ -65,6 +67,8 @@ logger.debug "DEBUG:moderator?=#{ArtistsGrid.is_current_user_moderator.inspect}"
   # PATCH/PUT /artists/1
   # PATCH/PUT /artists/1.json
   def update
+    @countries = Country.all
+    @prefectures = Prefecture.all
     params.permit!
     hsprm = params.require(:artist).permit(
       :sex_id, :birth_year, :birth_month, :birth_day, :wiki_ja, :wiki_en, :note,

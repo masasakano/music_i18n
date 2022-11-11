@@ -54,3 +54,13 @@ en:
   Year_Title: Year
   year_unknown: Year_Unknown
 
+  locale:
+    lowercase:
+      en: en
+      ja: ja
+    capital:
+      en: EN
+      ja: JA
+    long:
+      en: English
+      ja: Japanese

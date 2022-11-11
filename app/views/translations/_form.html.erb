@@ -19,17 +19,17 @@
 
   <div class="field">
     <%= form.label :translatable_type %>
-    <%= form.text_field :translatable_type, readonly: !!@translation.translatable_type %>
+    <%= form.text_field :translatable_type, readonly: !!@translation.translatable_type, class: "input_middle" %>
   </div>
 
   <div class="field">
     <%= form.label :translatable_id %>
-    <%= form.text_field :translatable_id, readonly: !!@translation.translatable_id %>
+    <%= form.text_field :translatable_id, readonly: !!@translation.translatable_id, class: "input_int" %>
   </div>
 
   <div class="field">
     <%= form.label :langcode %>
-    <%= form.text_field :langcode %>
+    <%= form.text_field :langcode, class: "input_shortest" %>
   </div>
 
   <div class="field">
@@ -75,7 +75,7 @@
   <div class="field">
     <% str_table = (@translation.translatable.respond_to?(:translations) ? 'See table below for reference. ' : '') %>
     <%= form.label :weight, "Weight (#{str_table}Set it under 100 to promote this permanently, 0 for the definitive word like the original one.)" %>
-    <%= form.text_field :weight %>
+    <%= form.text_field :weight, class: "input_float" %>
   </div>
   <% end %>
 

@@ -100,15 +100,16 @@ class Musics::MergesControllerTest < ActionDispatch::IntegrationTest
     #  prefecture_place: '0',
     #  genre: '1',
     #  year: '0',
-    # translations(:music_ihojin1_ja1) # weight:  0
-    # translations(:music_ihojin1_en1) # weight: 10
-    # translations(:music_ihojin1_en2) # weight: 100
-    # translations(:music_ihojin1_en3) # weight: 17.5
-    # translations(:music_ihojin2_ja1) # weight: 1
-    # translations(:music_ihojin2_en1) # weight: 10
-    # translations(:music_ihojin2_en2) # weight: 40
-    # translations(:music_ihojin2_en3) # weight: 100
-    # translations(:music_ihojin2_en4) # weight: 500
+    # translations(:music_ihojin1_ja1) # weight:  0   # 異邦人 (orig) => destroed
+    # translations(:music_ihojin1_ja2) # weight:  1   # 異邦人のもう一つの日本語 (weight changes)
+    # translations(:music_ihojin1_en1) # weight: 10   # Alien person
+    # translations(:music_ihojin1_en2) # weight: 100  # Alien People => destroed
+    # translations(:music_ihojin1_en3) # weight: 17.5 # Alien woman  => destroed
+    # translations(:music_ihojin2_ja1) # weight: 1    # 異邦人や (orig)
+    # translations(:music_ihojin2_en1) # weight: 10   # Aliens (weight changes)
+    # translations(:music_ihojin2_en2) # weight: 40   # "Aliens!!"
+    # translations(:music_ihojin2_en3) # weight: 100  # Alien People
+    # translations(:music_ihojin2_en4) # weight: 500  # Alien woman
 
     @music.update!(created_at: DateTime.new(1))  # very old creation.
     music_bkup = @music.dup

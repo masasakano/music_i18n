@@ -371,7 +371,7 @@ class Artist < BaseWithTranslation
         }
         if birth_day_not_disagree?(*prms) && ecan.place.not_disagree?(place)
           # Violation of the custom unique constraint.
-          msg = "Artist is not unique in the combination of Title/AltTitle, BirthDate, and Place."
+          msg = ": Artist is not unique in the combination of Title/AltTitle, BirthDate, and Place."
           errors.add(:unique_combination, msg)
           return false
         end

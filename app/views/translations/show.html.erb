@@ -1,6 +1,6 @@
 <p id="notice"><%= notice %></p>
 
-<h2>A Translation for <%= @translation.translatable_type %>
+<h2>A Translation for <%= link_to @translation.translatable_type, @translation.translatable %>
   <% if user_signed_in? && current_user.moderator? %>
     (Translation ID=<%= @translation.id %>)
   <% end %>

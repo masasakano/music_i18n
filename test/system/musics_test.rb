@@ -14,6 +14,11 @@ class MusicsTest < ApplicationSystemTestCase
   end
 
   test "visiting the index and then new" do
+    # Music#index
+    visit musics_url
+    assert_selector "h1", text: "Musics"
+    assert_no_selector 'form.button_to'  # No button if not logged-in.
+
     visit new_user_session_path
     fill_in "Email", with: @moderator.email
     fill_in "Password", with: '123456'  # from users.yml

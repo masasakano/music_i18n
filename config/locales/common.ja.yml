@@ -23,3 +23,14 @@ ja:
   Year_Title: 西暦年
   year_unknown: 年不明
 
+  locale:
+    lowercase:
+      en: en
+      ja: ja
+    capital:
+      en: 英語
+      ja: 日本語
+    long:
+      en: 英語
+      ja: 日本語
+

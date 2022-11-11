@@ -3,6 +3,9 @@ class Artists::MergesController < BaseMergesController
   # to indicate the mandatory parameter name for +params+
   MODEL_SYM = :artist
 
+  # Array of used keys in the form of the class like :other_music_id (or :other_artist_id)
+  FORM_MERGE_KEYS = %i(other_artist_id other_artist_title to_index lang_orig lang_trans engage prefecture_place sex birthday wiki_en wiki_ja note)
+
   before_action :set_artist,  only: [:new]
   before_action :set_artists, only: [:edit, :update]
 
@@ -14,18 +17,19 @@ class Artists::MergesController < BaseMergesController
   # @raise [ActionController::ParameterMissing] if the other Artist ID is not specified (as GET).
   def edit
     if @artists.size != 2
-      msg = 'No Artist matches the given one. Try a different title.'
+      msg = 'No Artist matches the given one. Try a different title or ID.'
       return respond_to do |format|
         format.html { redirect_to artists_new_merges_path(@artists[0]), alert: msg }
         format.json { render json: {error: msg}, status: :unprocessable_entity }
       end
     end
-    @trans_prms = non_orig_translations_prms(@artists)
+    @all_checked_disabled = all_checked_disabled(@artists) # defined in base_merges_controller.rb
   end
 
   def update
-    raise 'This should never happen - necessary parameter is missing.' if @artists.size != 2
-    @to_index = merge_params[FORM_MERGE[:to_index]].to_i  # defined in base_merges_controller.rb
+    raise 'This should never happen - necessary parameter is missing. params='+params.inspect if @artists.size != 2
+    @to_index = merge_params[FORM_MERGE[:to_index]].to_i   # defined in base_merges_controller.rb
+    @all_checked_disabled = all_checked_disabled(@artists) # defined in base_merges_controller.rb
     begin
       ActiveRecord::Base.transaction do
         merge_lang_orig(@artists)   # defined in base_merges_controller.rb
