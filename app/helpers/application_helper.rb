@@ -65,16 +65,19 @@ module ApplicationHelper
   #    If the special symbol :uri, the raw URI. Otherwise it must be String.
   # @param root_kwd [String, NilClass] if nil, word is used. This can be omitted.
   # @param timing [Integer, NilClass] in second
-  # @param long: [Boolean] if false (Def), youtu.be, else www.youtube.com
+  # @param long [Boolean] if false (Def), youtu.be, else www.youtube.com
+  # @param target [Boolean] if true (Def), +target="_blank"+ is added.
   # @return [String] HTML of <a> for YouTube link
-  def link_to_youtube(word, root_kwd=nil, timing=nil, long: false)
+  def link_to_youtube(word, root_kwd=nil, timing=nil, long: false, target: true)
     return '' if word.blank?
     word = ((word == :uri) ? nil : word.to_s)
     root_kwd ||= word if word
     root_kwd = word if root_kwd.respond_to?(:divmod) && !timing && word
     uri = self.method(:link_to_youtube).owner.uri_youtube(root_kwd, timing, long: long, with_http: true) # <= ApplicationHelper.uri_youtube()
     word = sprintf("%s", uri) if !word
-    ActionController::Base.helpers.link_to word, uri 
+    opts = {}
+    opts[:target] = "_blank" if target
+    ActionController::Base.helpers.link_to word, uri, **opts
   end
 
   # Returns a YouTube URI with/without the preceeding "https//"

@@ -6,6 +6,16 @@ class HaramiVidsController < ApplicationController
   # GET /harami_vids.json
   def index
     @harami_vids = HaramiVid.all
+
+    # May raise ActiveModel::UnknownAttributeError if malicious params are given.
+    # It is caught in application_controller.rb
+    HaramiVidsGrid.current_user = current_user
+    HaramiVidsGrid.is_current_user_moderator = (current_user && current_user.moderator?)
+#logger.debug "DEBUG:moderator?=#{HaramiVidsGrid.is_current_user_moderator.inspect}"
+    @grid = HaramiVidsGrid.new(grid_params) do |scope|
+      nmax = BaseGrid.get_max_per_page(grid_params[:max_per_page])
+      scope.page(params[:page]).per(nmax)
+    end
   end
 
   # GET /harami_vids/1
@@ -56,6 +66,10 @@ class HaramiVidsController < ApplicationController
   end
 
   private
+    def grid_params
+      params.fetch(:harami_vids_grid, {}).permit!
+    end
+
     # Use callbacks to share common setup or constraints between actions.
     def set_harami_vid
       @harami_vid = HaramiVid.find(params[:id])

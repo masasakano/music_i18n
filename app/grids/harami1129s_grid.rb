@@ -5,19 +5,19 @@ class Harami1129sGrid < BaseGrid
     Harami1129
   end
 
-  def self.filter_split_ilike(col, type=:string, **kwd)
-    filter(col, type, **kwd) do |value|  # Only for PostgreSQL!
-      arval = value.strip.split(/\s*,\s*/)
-      break nil if arval.size == 0
-      ret = self.where(col.to_s+" ILIKE ?", '%'+arval[0]+'%')
-      if arval.size > 1
-        arval[1..-1].each do |es|
-          ret = ret.or(self.where(col.to_s+' ILIKE ?', '%'+es+'%'))
-        end
-      end
-      ret
-    end
-  end
+  #def self.filter_split_ilike(col, type=:string, **kwd)
+  #  filter(col, type, **kwd) do |value|  # Only for PostgreSQL!
+  #    arval = value.strip.split(/\s*,\s*/)
+  #    break nil if arval.size == 0
+  #    ret = self.where(col.to_s+" ILIKE ?", '%'+arval[0]+'%')
+  #    if arval.size > 1
+  #      arval[1..-1].each do |es|
+  #        ret = ret.or(self.where(col.to_s+' ILIKE ?', '%'+es+'%'))
+  #      end
+  #    end
+  #    ret
+  #  end
+  #end
 
   filter(:id_remote, :integer)
   filter_split_ilike(:singer,  header: 'Singer (sep: ",") ILIKE')

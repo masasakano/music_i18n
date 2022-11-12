@@ -24,9 +24,11 @@ en:
     created_at: "Created at"
     actions: "Actions"
     total_n_entries_is: "Total number of entries of %{model} (without filters)"
+    release_date: "Date"
+    duration: "Length[s]"
 
   application:
-    menu_harami_vids: "Harami's Movies"
+    menu_harami_vids: "Haramichan's Videos"
     menu_musics: "Musics"
     menu_artists: "Artists"
     about_us: 'About Us'
@@ -75,6 +77,7 @@ en:
       artists_index: "Artist list"
 
   datagrid:
+    # no_results (Default): ――
     form:
       search: "Apply"
       reset: "Reset"
@@ -83,6 +86,12 @@ en:
       title_ja_en: "Title [ja+en] (partial-match)"
       title_en: "Title [en] (partial-match)"
       artists: "Artist (partial-match)"
+      artists_multi: 'Artists (partial match)'
+      musics_multi: 'Musics (partial match)'
+      n_musics_general: "# of Musics"
+      by_harami: "By Harami?"
+      by_harami_full: "Produced by Haramichan?"
+      uri_playlist: "Comment URI list [%{langcode}]"
     table:
       order:
         asc: "↑"

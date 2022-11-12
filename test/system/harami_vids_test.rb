@@ -21,9 +21,9 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_selector "h1", text: "Harami-chan"
 
     visit harami_vids_url
-    assert_selector "h1", text: "Harami Vids"
+    assert_selector "h1", text: "Haramichan's Videos"
 
-    click_on "New Harami Vid"
+    click_on "Create a new HaramiVid"
 
     # print "DEBUG:html=";puts page.find('div#div_select_country')['outerHTML']
     assert_selector 'div#div_select_country', text: "Country"

@@ -24,6 +24,8 @@ ja:
     created_at: 生成日時
     actions: "詳細(リンク)"
     total_n_entries_is: "%{model}の全登録数(フィルターなし)"
+    release_date: "出版日"
+    duration: "長さ[秒]"
 
   application:
     menu_harami_vids: "ハラミちゃん動画"
@@ -75,6 +77,7 @@ ja:
       artists_index: "演奏曲の音楽家の翻訳リスト"
 
   datagrid:
+    no_results: ――
     form:
       search: "適用"
       reset: "リセット"
@@ -83,6 +86,12 @@ ja:
       title_ja_en: "名前 [日英] (部分一致)"
       title_en: "名前 [英] (部分一致)"
       artists: "アーティスト名 (部分一致)"
+      artists_multi: 'アーティスト(部分一致)'
+      musics_multi: '曲(部分一致)'
+      n_musics_general: "曲数"
+      by_harami: "本人動画?"
+      by_harami_full: "本人制作動画か?"
+      uri_playlist: "セトリURI [%{langcode}]"
     table:
       order:
         asc: "↑"

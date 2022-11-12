@@ -14,36 +14,9 @@ class MusicsGrid < BaseGrid
     Music  # Music.order(updated_at: :desc)
   end
 
-  ### Taken from harami1129s_grid.rb
-  #def self.filter_split_ilike(col, type=:string, **kwd)
-  #  filter(col, type, **kwd) do |value|  # Only for PostgreSQL!
-  #    arval = value.strip.split(/\s*,\s*/)
-  #    break nil if arval.size == 0
-  #    ret = self.where(col.to_s+" ILIKE ?", '%'+arval[0]+'%')
-  #    if arval.size > 1
-  #      arval[1..-1].each do |es|
-  #        ret = ret.or(self.where(col.to_s+' ILIKE ?', '%'+es+'%'))
-  #      end
-  #    end
-  #    ret
-  #  end
-  #end
-
-  def self.filter_include_ilike(col, type=:string, langcode: nil, **kwd)
-    filter(col, type, **kwd) do |value|  # Only for PostgreSQL!
-      str = preprocess_space_zenkaku(value, article_to_tail=true)
-      trans_opts = {accept_match_methods: [:include_ilike]}
-      trans_opts[:langcode] = langcode if langcode
-      ids = self.find_all_by_a_title(:titles, str, uniq: true, **trans_opts).map(&:id)
-      self.where id: ids
-    end
-  end
-
   ####### Filters #######
 
-  #if MusicsGrid.is_current_user_moderator  # This does now work because the method is not defined when this line is executed (even if it did, the value would not be set at this stage!).
-    filter(:id, :integer, header: "ID")
-  #end
+  filter(:id, :integer, header: "ID")  # displayed only for editors
 
   filter_include_ilike(:title_ja, header: I18n.t("datagrid.form.title_ja_en", default: "Title [ja+en] (partial-match)"))
   filter_include_ilike(:title_en, langcode: 'en', header: I18n.t("datagrid.form.title_en", default: "Title [en] (partial-match)"))
@@ -65,9 +38,7 @@ class MusicsGrid < BaseGrid
 
   ####### Columns #######
 
-  #if MusicsGrid.is_current_user_moderator  # This does not work; see above
-    column(:id, header: "ID")
-  #end
+  column(:id, header: "ID", if: Proc.new{current_user && current_user.editor?}) # NOT: if MusicsGrid.is_current_user_moderator  # This does not work; see above
 
   column(:title_ja, header: I18n.t('tables.title_ja'), mandatory: true, order: proc { |scope|
     #order_str = Arel.sql("convert_to(title, 'UTF8')")
@@ -129,8 +100,8 @@ class MusicsGrid < BaseGrid
 
   column(:note, header: I18n.t("tables.note", default: "Note"))
 
-  column(:updated_at, header: I18n.t("tables.updated_at", default: "Updated at"))
-  column(:created_at, header: I18n.t("tables.created_at", default: "Created at"))
+  column(:updated_at, header: I18n.t("tables.updated_at", default: "Updated at"), if: Proc.new{current_user && current_user.editor?})
+  column(:created_at, header: I18n.t("tables.created_at", default: "Created at"), if: Proc.new{current_user && current_user.editor?})
   column(:actions, html: true, mandatory: true, header: I18n.t("tables.actions", default: "Actions")) do |record|
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
     ar = [link_to('Show', music_path(record), data: { turbolinks: false })]

@@ -61,6 +61,32 @@ class BaseGrid
       end
     end
   end
+
+  # Used in Harami1129
+  def self.filter_split_ilike(col, type=:string, **kwd)
+    filter(col, type, **kwd) do |value|  # Only for PostgreSQL!
+      arval = value.strip.split(/\s*,\s*/)
+      break nil if arval.size == 0
+      ret = self.where(col.to_s+" ILIKE ?", '%'+arval[0]+'%')
+      if arval.size > 1
+        arval[1..-1].each do |es|
+          ret = ret.or(self.where(col.to_s+' ILIKE ?', '%'+es+'%'))
+        end
+      end
+      ret
+    end
+  end
+
+  # Used in Artist, Music, HaramiVid etc
+  def self.filter_include_ilike(col, type=:string, langcode: nil, **kwd)
+    filter(col, type, **kwd) do |value|  # Only for PostgreSQL!
+      str = preprocess_space_zenkaku(value, article_to_tail=true)
+      trans_opts = {accept_match_methods: [:include_ilike]}
+      trans_opts[:langcode] = langcode if langcode
+      ids = self.find_all_by_a_title(:titles, str, uniq: true, **trans_opts).map(&:id)
+      self.where id: ids
+    end
+  end
 end
 
 #### Does not work: 
