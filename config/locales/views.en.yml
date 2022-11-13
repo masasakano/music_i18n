@@ -23,7 +23,9 @@ en:
     updated_at: "Last updated at"
     created_at: "Created at"
     actions: "Actions"
+    grand_total_entries: "Grand total"
     total_n_entries_is: "Total number of entries of %{model} (without filters)"
+    Page_n: "Page %{count}"
     release_date: "Date"
     duration: "Length[s]"
 

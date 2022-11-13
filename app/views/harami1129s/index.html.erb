@@ -111,7 +111,9 @@
 <%= datagrid_table @grid %>
 <%= paginate(@grid.assets) %>
 
-<p>Total entries: <%= @harami1129s.size %></p>
+<p>
+  <%= ApplicationController.str_info_entry_page_numbers(@grid, Harami1129) %>
+</p>
 
 <br>
 

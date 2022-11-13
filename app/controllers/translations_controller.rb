@@ -8,6 +8,18 @@ class TranslationsController < ApplicationController
   def index
     @translations = Translation.all.order(:translatable_type, :translatable_id)
     @hsuser = User.all.pluck(:id, :display_name).to_h.map{|k,v| [k, ((v.length < 17) ? v : sprintf("%s…%d",v[0..16],k))]}.to_h
+
+    # May raise ActiveModel::UnknownAttributeError if malicious params are given.
+    # It is caught in application_controller.rb
+    TranslationsGrid.current_user = current_user
+    TranslationsGrid.is_current_user_moderator = (current_user && current_user.moderator?)
+    @n_rows = nil
+    @cur_page = nil
+    @grid = TranslationsGrid.new(grid_params) do |scope|
+      nmax = BaseGrid.get_max_per_page(grid_params[:max_per_page])
+      @n_rows = scope.count
+      @cur_page = scope.page(params[:page]).per(nmax)
+    end
   end
 
   # GET /translations/1
@@ -69,6 +81,10 @@ class TranslationsController < ApplicationController
   end
 
   private
+    def grid_params
+      params.fetch(:translations_grid, {}).permit!
+    end
+
     # Use callbacks to share common setup or constraints between actions.
     def set_translation
       @translation = Translation.find(params[:id])

@@ -2,6 +2,7 @@
 
 <h1>Translations</h1>
 
+<% if false %>
 <table>
   <thead>
     <tr>
@@ -58,6 +59,18 @@
     <% end %>
   </tbody>
 </table>
+<% end %>
+
+<%= datagrid_form_for @grid, :method => :get, :url => translations_path %>
+<% nrows = @grid.assets.count %>
+
+<%= paginate(@grid.assets) %>
+<%= datagrid_table @grid %>
+<%= paginate(@grid.assets) %>
+
+<p>
+  <%= ApplicationController.str_info_entry_page_numbers(@grid, Translation) %>
+</p>
 
 <br>
 

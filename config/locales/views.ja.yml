@@ -23,7 +23,9 @@ ja:
     updated_at: 最終更新日時
     created_at: 生成日時
     actions: "詳細(リンク)"
+    grand_total_entries: "全登録数"
     total_n_entries_is: "%{model}の全登録数(フィルターなし)"
+    Page_n: "第%{count}頁 "
     release_date: "出版日"
     duration: "長さ[秒]"
 
@@ -76,8 +78,20 @@ ja:
       musics_index: "演奏曲翻訳リスト"
       artists_index: "演奏曲の音楽家の翻訳リスト"
 
+  # cf. /datagrid*/lib/datagrid/locale/en.yml
   datagrid:
     no_results: ――
+    filters:
+      xboolean:
+        "yes": "はい"
+        "no": "いいえ"
+
+      dynamic:
+        operations:
+          ">=": "≥"
+          "<=": "≤"
+          "=": "="
+          "=~": "≈"
     form:
       search: "適用"
       reset: "リセット"
@@ -96,6 +110,7 @@ ja:
       order:
         asc: "↑"
         desc: "↓"
+      no_columns: "選択されていません"
 
   merges:
     edit: 

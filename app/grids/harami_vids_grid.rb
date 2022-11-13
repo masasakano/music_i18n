@@ -7,26 +7,18 @@ class HaramiVidsGrid < BaseGrid
 
   ####### Filters #######
 
-  filter(:id, :integer, header: "ID")  # displayed only for editors
+  filter(:id, :integer, header: "ID", if: Proc.new{current_user && current_user.editor?})  # displayed only for editors
 
   filter_include_ilike(:title_ja, header: I18n.t("datagrid.form.title_ja_en", default: "Title [ja+en] (partial-match)"))
   filter_include_ilike(:title_en, langcode: 'en', header: I18n.t("datagrid.form.title_en", default: "Title [en] (partial-match)"))
 
   filter(:duration, :integer, range: true, header: I18n.t('tables.duration')) # float in DB # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
   filter(:release_date, :date, range: true, header: I18n.t('tables.release_date')) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
-  # filter(:release_date, :date, range: true, header: I18n.t('tables.release_date')) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
 
-  filter(:flag_by_harami, :boolean, header: I18n.t('datagrid.form.by_harami_full', default: "Produced by Haramichan?"))  # or :xboolean (to select T/F/nil)?
+  filter(:flag_by_harami, :xboolean, header: I18n.t('datagrid.form.by_harami_full', default: "Produced by Haramichan?"))
 
-  filter(:artists, header: I18n.t('datagrid.form.artists_multi')) do |value|
-    ids = self.select_partial_str(:titles, value, ignore_case: true).map(&:id)  # Only for PostgreSQL!
-    self.where(id: ids)
-  end
-
-  filter(:musics, header: I18n.t('datagrid.form.musics_multi')) do |value|
-    ids = self.select_partial_str(:titles, value, ignore_case: true).map(&:id)  # Only for PostgreSQL!
-    self.where(id: ids)
-  end
+  filter_partial_str(:artists, header: I18n.t('datagrid.form.artists_multi'))
+  filter_partial_str(:musics,  header: I18n.t('datagrid.form.musics_multi'))
 
   filter(:max_per_page, :enum, select: MAX_PER_PAGES, default: 25, multiple: false, dummy: true, header: I18n.t("datagrid.form.max_per_page", default: "Max entries per page"))
 
@@ -98,7 +90,7 @@ class HaramiVidsGrid < BaseGrid
     if can? :update, record
       ar.push link_to('Edit', edit_harami_vid_path(record))
       if can? :destroy, record
-        ar.push link_to('Destroy', harami_vid_path(record), method: :delete, data: { confirm: (t('are_you_sure')+" "+t("are_you_sure.merge")).html_safe })
+        ar.push link_to('Destroy', harami_vid_path(record), method: :delete, data: { confirm: t('are_you_sure').html_safe })  # confirm: (t('are_you_sure')+" "+t("are_you_sure.merge")).html_safe
       end
     end
     ar.compact.join(' / ').html_safe

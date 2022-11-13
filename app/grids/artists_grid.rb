@@ -7,7 +7,7 @@ class ArtistsGrid < BaseGrid
 
   ####### Filters #######
 
-  filter(:id, :integer, header: "ID")  # displayed only for editors
+  filter(:id, :integer, header: "ID", if: Proc.new{current_user && current_user.editor?})  # displayed only for editors
 
   filter_include_ilike(:title_ja, header: I18n.t("datagrid.form.title_ja_en", default: "Title [ja+en] (partial-match)"))
   filter_include_ilike(:title_en, langcode: 'en', header: I18n.t("datagrid.form.title_en", default: "Title [en] (partial-match)"))

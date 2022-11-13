@@ -10,7 +10,7 @@
 <%= paginate(@grid.assets) %>
 
 <p>
-  <%= t("tables.total_n_entries_is", model: "Musics", default: "Total number of entries of Musics (without filters)") %>: <%= Music.count %> <%# including Music.unknown %>
+  <%= ApplicationController.str_info_entry_page_numbers(@grid, Music) %>
 </p>
 
 <% if can? :create, Music %>

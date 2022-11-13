@@ -77,7 +77,7 @@ class BaseGrid
     end
   end
 
-  # Used in Artist, Music, HaramiVid etc
+  # Used in Artist, Music etc
   def self.filter_include_ilike(col, type=:string, langcode: nil, **kwd)
     filter(col, type, **kwd) do |value|  # Only for PostgreSQL!
       str = preprocess_space_zenkaku(value, article_to_tail=true)
@@ -85,6 +85,28 @@ class BaseGrid
       trans_opts[:langcode] = langcode if langcode
       ids = self.find_all_by_a_title(:titles, str, uniq: true, **trans_opts).map(&:id)
       self.where id: ids
+    end
+  end
+
+  # Used in HaramiVid
+  def self.filter_partial_str(col, type=:string, titles: :titles, **kwd)
+    filter(col, type, **kwd) do |value|  # Only for PostgreSQL!
+      ids = col.to_s.singularize.classify.constantize.select_partial_str(:titles, value, ignore_case: true).map{|eobj| eobj.harami_vids}.flatten.map(&:id)
+      self.where(id: ids)
+    end
+  end
+
+  # column displaying either SELF or user-name
+  #
+  # @example
+  #    column_display_user(:create_user, header: I18n.t("datagrid.some_name", default: "Lover's Name"))
+  #
+  # @param col [Symbol] e.g., :create_user
+  def self.column_display_user(col, **kwd)
+    column(col, **kwd) do |record|
+      user = record.send(col)
+      next nil if !user
+      (current_user && current_user == user) ? "<strong>SELF</strong>".html_safe : user.display_name
     end
   end
 end

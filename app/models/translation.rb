@@ -832,6 +832,7 @@ class Translation < ApplicationRecord
   # @param value [String] e.g., "The Beat" and "Beatles, Th"
   #   Preprocessed with {ModuleCommon#preprocess_space_zenkaku}
   # @param ignore_case [Boolean] if true (Def), case-insensitive search
+  # @param scope [Relation, NilClass] scope (Relation) of {Translation} if any
   # @param restkeys [Array] See {Translation.select_regex}
   def self.select_partial_str(kwd, value, ignore_case: true, **restkeys)
     str2re = preprocess_space_zenkaku(value).gsub(/\s+/m, " ").strip
@@ -892,6 +893,7 @@ class Translation < ApplicationRecord
   #    spaces in DB entries are significant.
   #    Note that even if false (Def), this method does nothing to the input +value+ (Regexp)
   #    and so it is the caller's responsibility to set the Regexp +value+ accordingly.
+  # @param scope [Relation, Class] scope (Relation) of {Translation} if any
   # @param langcode: [String, NilClass] Optional argument, e.g., 'ja'. If nil, all languages.
   # @param translatable_type: [Class, String] Corresponding Class of the translation.
   # @param **restkeys: [Hash] Any other (exact) constraints to pass to {Translation}
@@ -1037,10 +1039,11 @@ class Translation < ApplicationRecord
   #    If true (Def: false), spaces in DB entries are significant.
   #    Note that even if false (Def), this method does nothing to the input +value+
   #    and so it is the caller's responsibility to adjust Regexp +value+ accordingly.
+  # @param scope [Relation, Class] scope (Relation) of {Translation} if any
   # @param **restkeys [Hash] Any other (exact) constraints to pass to {Translation}
   # @return [Translation::ActiveRecord_Relation]
-  def self.select_regex_string(common_opts, allkeys, value, where, joins, not_clause=nil, space_sensitive: false, **restkeys)
-    base_rela = make_joins_where(where, joins, not_clause, parent: self.where(common_opts))
+  def self.select_regex_string(common_opts, allkeys, value, where, joins, not_clause=nil, space_sensitive: false, scope: nil, **restkeys)
+    base_rela = make_joins_where(where, joins, not_clause, parent: (scope || self).where(common_opts))
     return base_rela if (allkeys.empty? || value.blank?)
 
     if value.respond_to?(:named_captures)
@@ -1109,18 +1112,21 @@ class Translation < ApplicationRecord
   # @param common_opts [Hash<Symbol, Object>] e.g., {:langcode=>"en", :translatable_type=>"Country"}
   # @param allkeys [Array<Symbol>] %i(title alt_title) etc
   # @param regex [Regexp] e.g., /male\z/ (which would match 'female')
-  # @param where: [String, Array<String, Hash, Array>, NilClass] See {Translation.select_regex} for detail.
-  # @param joins: [String, Array<String, Hash, Array>, NilClass] See {Translation.select_regex} for detail.
-  # @param not_clause: [String, Array<String, Hash, Array>, NilClass]
+  # @param where [String, Array<String, Hash, Array>, NilClass] See {Translation.select_regex} for detail.
+  # @param joins [String, Array<String, Hash, Array>, NilClass] See {Translation.select_regex} for detail.
+  # @param not_clause [String, Array<String, Hash, Array>, NilClass]
+  # @param scope [Relation, Class] scope (Relation) of {Translation} if any
   # @param **restkeys: [Hash] Any other (exact) constraints to pass to {Translation}
   # @return [Array<BaseWithTranslation>]
-  def self.select_regex_regex(common_opts, allkeys, regex, where, joins, not_clause=nil, **restkeys)
-    alltrans =
-      if common_opts.empty?
-        make_joins_where(where, joins, not_clause).all
-      else
-        make_joins_where(where, joins, not_clause).where(common_opts)
-      end
+  def self.select_regex_regex(common_opts, allkeys, regex, where, joins, not_clause=nil, scope: nil, **restkeys)
+    
+    alltrans = make_joins_where(where, joins, not_clause, parent: (scope || self).where(common_opts))
+    #alltrans = 
+    #  if common_opts.empty?
+    #    make_joins_where(where, joins, not_clause, parent: scope).all
+    #  else
+    #    make_joins_where(where, joins, not_clause, parent: scope).where(common_opts)
+    #  end
 
     alltrans.select{ |ea_tr|
       allkeys.any?{ |ea_k|
