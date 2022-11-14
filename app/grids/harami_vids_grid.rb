@@ -67,13 +67,13 @@ class HaramiVidsGrid < BaseGrid
     sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture[I18n.locale] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2]
   end
 
-  column(:uri, mandatory: true) do |record|
+  column(:uri, mandatory: true, order: false) do |record|
     link_to_youtube record.uri, record.uri
   end
-  column(:uri_playlist_ja, mandatory: false, header: Proc.new{I18n.t('datagrid.form.uri_playlist', langcode: "ja")}) do |record|
+  column(:uri_playlist_ja, mandatory: false, order: false, header: Proc.new{I18n.t('datagrid.form.uri_playlist', langcode: "ja")}) do |record|
     link_to_youtube record.uri_playlist_ja, record.uri_playlist_ja
   end
-  column(:uri_playlist_en, mandatory: false, header: Proc.new{I18n.t('datagrid.form.uri_playlist', langcode: "en")}) do |record|
+  column(:uri_playlist_en, mandatory: false, order: false, header: Proc.new{I18n.t('datagrid.form.uri_playlist', langcode: "en")}) do |record|
     link_to_youtube record.uri_playlist_en, record.uri_playlist_en
   end
 
@@ -81,11 +81,11 @@ class HaramiVidsGrid < BaseGrid
     (record ? "Y" : (record.nil? ? "" : "N"))
   end
 
-  column(:note, header: Proc.new{I18n.t('tables.note')})
+  column(:note, order: false, header: Proc.new{I18n.t('tables.note')})
 
   column(:updated_at, header: Proc.new{I18n.t('tables.updated_at')}, if: Proc.new{current_user && current_user.editor?})
   column(:created_at, header: Proc.new{I18n.t('tables.created_at')}, if: Proc.new{current_user && current_user.editor?})
-  column(:actions, html: true, mandatory: true, header: Proc.new{I18n.t("tables.actions", default: "Actions")}) do |record|
+  column(:actions, html: true, mandatory: true, order: false, header: Proc.new{I18n.t("tables.actions", default: "Actions")}) do |record|
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
     ar = [link_to('Show', harami_vid_path(record), data: { turbolinks: false })]
     if can? :update, record

@@ -93,7 +93,7 @@ class ArtistsGrid < BaseGrid
 
   %w(ja en).each do |elc|
     kwd = 'wiki_'+elc
-    column(kwd, mandatory: false, header: Proc.new{I18n.t('tables.'+kwd)}) do |record|
+    column(kwd, mandatory: false, order: false, header: Proc.new{I18n.t('tables.'+kwd)}) do |record|
       uri = record.wiki_uri(elc)
       if uri.blank?
         '——'
@@ -113,7 +113,7 @@ class ArtistsGrid < BaseGrid
     record.harami_vids.uniq.count.to_s
   end
 
-  column(:note, header: Proc.new{I18n.t('tables.note')})
+  column(:note, order: false, header: Proc.new{I18n.t('tables.note')})
 
   column(:updated_at, header: Proc.new{I18n.t('tables.updated_at')}, if: Proc.new{current_user && current_user.editor?})
   column(:created_at, header: Proc.new{I18n.t('tables.created_at')}, if: Proc.new{current_user && current_user.editor?})

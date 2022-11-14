@@ -1,15 +1,6 @@
 # coding: utf-8
 class MusicsGrid < BaseGrid
 
-  #extend ApplicationHelper
-  #extend ModuleCommon
-
-  #alias_method :initialize_orig, :initialize if ! self.method_defined?(:initialize_old)
-  #def initialize(params = {}, user: nil)
-  #  @current_user = user
-  #  initialize_orig(params)
-  #end
-
   scope do
     Music.all
     #Music.order(updated_at: :desc)  # This will mess up all subsequent sorting attempts!
@@ -99,7 +90,7 @@ class MusicsGrid < BaseGrid
     record.harami_vids.count.to_s+'回'
   end
 
-  column(:note, header: Proc.new{I18n.t("tables.note", default: "Note")})
+  column(:note, order: false, header: Proc.new{I18n.t("tables.note", default: "Note")})
 
   column(:updated_at, header: Proc.new{I18n.t("tables.updated_at", default: "Updated at")}, if: Proc.new{current_user && current_user.editor?})
   column(:created_at, header: Proc.new{I18n.t("tables.created_at", default: "Created at")}, if: Proc.new{current_user && current_user.editor?})
