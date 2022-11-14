@@ -9,6 +9,7 @@ ja:
     alt_title_ja: 日本語別称
     ruby_romaji: "フリガナ/ローマ字"
     title_en: 英語名称
+    title_en_alt: "英語名称 [別称]"
     year: 年
     sex: 性別
     place: 場所
@@ -111,6 +112,11 @@ ja:
         asc: "↑"
         desc: "↓"
       no_columns: "選択されていません"
+    artist:
+      filters:
+        title_ja: "名前 [日英] (部分一致)"
+      columns:
+        title_ja: 日本語名称
 
   merges:
     edit: 

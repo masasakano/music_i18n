@@ -99,7 +99,7 @@ class BaseGrid
   # column displaying either SELF or user-name
   #
   # @example
-  #    column_display_user(:create_user, header: I18n.t("datagrid.some_name", default: "Lover's Name"))
+  #    column_display_user(:create_user, header: Proc.new{I18n.t("datagrid.some_name", default: "Lover's Name")})
   #
   # @param col [Symbol] e.g., :create_user
   def self.column_display_user(col, **kwd)
@@ -108,6 +108,66 @@ class BaseGrid
       next nil if !user
       (current_user && current_user == user) ? "<strong>SELF</strong>".html_safe : user.display_name
     end
+  end
+
+  # Returns a scope so that entries are sorted according to {Translation} of English title&alt_title.
+  #
+  # Sorted according to title+alt_title or alt_title for those without a title and then {Translation#weight}.
+  #
+  # In fact, this is still insufficient... For example, suppose an Artist has two Translations of
+  # "+Zombies, The+" and "TheZombies" and the former has a better score. Ideally, the name shoulc
+  # have a very low priority because it begins with +Z+. However, in this algorithm, "The Zombies"
+  # has a higher priority!
+  #
+  # == Algorithm
+  #
+  # Basic sorting is done by PostgreSQL.  The record is a joined table of
+  # {BaseWithTranslation} and {Translation}, where the number of rows are
+  # larger than the original {BaseWithTranslation} because of multiple
+  # translations.  For each {BaseWithTranslation}, the best (=lowest) weight
+  # translation only should be adopted.
+  #
+  # This Ruby routine does the process. Basically, "pluck" only {BaseWithTranslation}-ID
+  # and {Translation} weight. And this selects the best Translation only.
+  # For example, if an Artist has two names of "ZZZ" and "AAA" and if the former has
+  # the lower weight than the latter, the Artist must come after any other Artists.
+  #
+  # @param scope [Relation] 
+  # @param klass [Class<ActiveRecord>] like Artist
+  # @param langcode [String] like "en"
+  def self.scope_with_trans_order(scope, klass, langcode=nil)
+    model_plural = klass.name.underscore.pluralize
+    sql = "LEFT OUTER JOIN translations ON translations.translatable_type = '#{klass.name}' AND translations.translatable_id = #{model_plural}.id" + (langcode ? " AND translations.langcode = '#{langcode.to_s}'" : "")
+    #ids = scope.joins(sql).order(Arel.sql("CONCAT(title, alt_title)")).pluck("#{model_plural}.id", :weight).sort{|a,b| ((cmp=a[0]<=>b[0]) != 0) ? cmp : a[1]<=>b[1]}.map(&:first).uniq  # title or alt_title !
+#puts "DEBUG: scope-sql="+scope.joins(sql).order(Arel.sql("CONCAT(title, alt_title)")).to_sql
+    ids = scope.joins(sql).order(Arel.sql("CONCAT(title, alt_title)")).pluck("#{model_plural}.id", :weight) #, "translations.id")
+#print "DEBUG:ids=";p ids.map{|i| [i, Artist.find(i[0]).title, Translation.find(i[2]).title]}
+
+    hs_weight = {}  # weights[id] = {id: i, weight: w}  # to temporarily record the sorted-positional-index i and weight for BestWithTranslation.
+    ids.each_with_index do |eaiw, i|
+      id, we = *eaiw
+      if !we  # weight is nil
+        ids[i][1] = we = Float::INFINITY
+      end
+
+      if !hs_weight[id]  # This BestWithTranslation appears for the first time in the title-sorted-Array.
+        hs_weight[id] = {i: i, weight: we}
+        next
+      end
+
+      # Now, either the current one is higher in weight and should disappear or vice versa.
+      if hs_weight[id][:weight] <= we
+        # Current one should be discarded.
+        ids[i] = nil
+      else
+        # The one that has already appeared should be discarded.
+        ids[hs_weight[id][:i]] = nil
+      end
+    end
+    uniqqed_ids = ids.compact.map(&:first)
+#print "DEBUG:rev=";p uniqqed_ids+uniqqed_ids.map{|i| Artist.find(i).title}
+    
+    ids.empty? ? scope : scope.order(Arel.sql("array_position(array#{uniqqed_ids}, id)")) #.order(:id)  # The last one should be redundant b/c LEFT OUTER JOIN was used!
   end
 end
 

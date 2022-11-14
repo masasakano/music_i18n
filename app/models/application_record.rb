@@ -1,3 +1,4 @@
+
 class ApplicationRecord < ActiveRecord::Base
   self.abstract_class = true
 
@@ -8,3 +9,4 @@ class ApplicationRecord < ActiveRecord::Base
   # ID of the Model corresponding to {#prev_model_name}
   attr_accessor :prev_model_id
 end
+require "reverse_sql_order"   # A user monkey patch to modify reverse_sql_order() in ActiveRecord::QueryMethods::WhereChain

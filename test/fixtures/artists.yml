@@ -106,3 +106,15 @@ artist_proclaimers:
   place: unknown_place_unknown_prefecture_uk
   note: Artist-The-Proclaimers
 
+artist_zombies:
+  sex_id: 9
+  birth_year: 
+  place: unknown_place_unknown_prefecture_uk
+  note: Artist-The-Zombies
+
+artist_zedd:
+  sex_id: 0
+  birth_year: 
+  place: unknown_place_unknown_prefecture_uk
+  note: Artist-Zedd
+

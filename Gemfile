@@ -133,6 +133,7 @@ gem 'routing-filter', '~> 0', '>= 0.6.3', git: 'https://github.com/svenfuchs/rou
 gem 'redirector', '~> 1.1', '>= 1.1.2'
 gem 'redcarpet', '~> 3', '>= 3.3.4'
 gem 'kaminari-i18n'  # https://github.com/tigrish/kaminari-i18n
+gem 'plain_text'     # used in /lib/reverse_sql_order.rb
 
 # Necessary in Ruby 3.1
 gem 'net-smtp', require: false #, '~> 0.3', '>= 0.3.1'

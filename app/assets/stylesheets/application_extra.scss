@@ -77,6 +77,23 @@ ul.ui-autocomplete {
   font-size: smaller;
 }
 
+.align-c {
+  text-align: center;
+}
+.align-r {
+  text-align: right;
+}
+
+th.align-cr {
+  text-align: center;
+}
+td.align-cr {
+  text-align: right;
+}
+td.align-r-padding3 { /* Use when the <td> cell is likely to be much wider than the right-aligned content */
+  padding-right: 0.3em;
+}
+
 table {
   /* Default */
   /* color: black; */
@@ -242,6 +259,10 @@ nav.pagination {
     padding-left: 3px;
     padding-right: 3px;
   }
+}
+
+div.pagenation_stats, p.pagenation_stats { 
+    /* e.g.,  第1頁 (1—10)/224 [全登録数: 224] */
 }
 
 div.actions-destroy-align-r {

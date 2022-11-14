@@ -85,6 +85,7 @@ class Harami1129 < ApplicationRecord
       # `checked_at` && `checked_at` >= `orig_modified_at`
   }
 
+  # Used in Harami1129 index Views
   TABLE_STATUS_MARKER_DESCRIPTION = {
     no_insert: "Within-table insertion to the corresponding ins_* cell has not been conducted.",
     org_inconsistent: "Since the last 'Confirm', the downloaded original has been updated and it differs from that in the corresponding destination table. Check out ins_* and destination. To jump to Singer/Song in the DB entry, open the Engage column for the link, and to Title/URL/Date, open the Vid column.",
@@ -92,6 +93,11 @@ class Harami1129 < ApplicationRecord
     consistent: "Original, ins_* and destination are all consistent. You may 'Confirm'.",
     checked: "No update has been made since this row was 'Confirm'-ed by a moderator.",
   }
+
+  # Order of "INS" Columns displayed in Views index table
+  TABLE_INS_COLUMNS_ORDER = [
+    :ins_title, :ins_singer, :ins_song, :ins_release_date, :ins_link_root, :ins_link_time,
+  ]
 
   ## Insertion/populaiton status of each row (for use of cache)
   #HS_STATUS_ROW = {}
@@ -166,7 +172,17 @@ class Harami1129 < ApplicationRecord
 
     # Returns a sorted Array of status or markers
     #
-    # Sorted in the order of the worst first. It is uniq-qed
+    # Sorted in the order of the worst first according to {Harami1129::TABLE_STATUS_MARKER}.
+    # The result is uniq-qed.
+    #
+    # This method is helps the caller easily identify the worst-possible status.
+    #
+    # @example
+    #   h1129.populate_status.status_cols
+    #   # => {ins_title: consistent, ins_singer: consistent, ins_song: org_inconsistent,
+    #         ins_release_date: consistent, ins_link_root: consistent, ins_link_time: consistent}
+    #   h1129.populate_status.status_cols.sorted_status
+    #   # => [:org_inconsistent, :consistent]
     #
     # @param return_markers [Boolean] if true (Def: false), returns an Array of {#marker}
     # @return [Array<Symbol, String>]
@@ -177,8 +193,30 @@ class Harami1129 < ApplicationRecord
       }
       return_markers ? ret.map{|i| Harami1129::TABLE_STATUS_MARKER[i]} : ret
     end
-  end # class PopulateStatus
 
+    # Returns the problematic column names
+    #
+    # Problematic statuses are (cf., {Harami1129::TABLE_STATUS_MARKER}:
+    #
+    # * no_insert
+    # * org_inconsistent
+    # * ins_inconsistent
+    #
+    # The results is sorted according to {Harami1129::TABLE_INS_COLUMNS_ORDER},
+    # converted into a string as appearing in the table header, e.g.,
+    # "+Ins link time+" from "+ins_link_time+".
+    #
+    # @return [Array<String>]
+    def problematic_column_names
+      status_cols.map{|k, v|
+        # These are regarded as "problematic"
+        %i(no_insert org_inconsistent ins_inconsistent).include?(v) ? k : nil
+      }.compact.sort{|a, b|
+        Harami1129::TABLE_INS_COLUMNS_ORDER.find_index{|i| i == a} <=>
+        Harami1129::TABLE_INS_COLUMNS_ORDER.find_index{|i| i == b}
+      }.map{|i| i.to_s.capitalize.tr("_", " ")}
+    end
+  end # class PopulateStatus
 
   # Perform the {#populate_status} check of self and cache it.
   #

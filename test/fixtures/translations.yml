@@ -1056,6 +1056,38 @@ artist_unknown_en:
   update_user: 
   note: ArtistUnknownEn
 
+artist_unknown_ja:
+  translatable: artist_unknown
+  translatable_type: Artist
+  langcode: en
+  title: "不明の音楽家"
+  alt_title:
+  ruby: "フメイノオンガクカ"
+  alt_ruby:
+  romaji: "fumei no ongakuka"
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: ArtistUnknownJa
+
+artist_unknown_fr:
+  translatable: artist_unknown
+  translatable_type: Artist
+  langcode: en
+  title: ArtisteInconnu
+  alt_title:
+  ruby: 
+  alt_ruby:
+  romaji: 
+  alt_romaji: 
+  is_orig:
+  weight: 0
+  create_user: 
+  update_user: 
+  note: ArtistUnknownFr
+
 artist1_en:
   translatable: artist1
   translatable_type: Artist
@@ -1200,6 +1232,39 @@ artist_saki_kubota_en2:
   create_user_id: user_translator2
   update_user_id: user_translator2
   note: Artist-SakiKubotaEn2-Saaki
+
+artist_zombies_en1:
+  translatable: artist_zombies
+  translatable_type: Artist
+  langcode: en
+  title: "Zombies, The"
+  is_orig: true
+  weight: 0
+  create_user_id: user_translator
+  update_user_id: user_translator
+  note: Artist-Zombies-En1
+
+artist_zombies_en2:
+  translatable: artist_zombies
+  translatable_type: Artist
+  langcode: en
+  title: "TheZombies"
+  is_orig: false
+  weight: 100
+  create_user_id: user_translator2
+  update_user_id: user_translator2
+  note: Artist-Zombies-En2
+
+artist_zedd_en1:
+  translatable: artist_zedd
+  translatable_type: Artist
+  langcode: en
+  title: Zedd
+  is_orig: true
+  weight: 0
+  create_user_id: user_translator
+  update_user_id: user_translator
+  note: Artist-Zed-En1
 
 harami_vid1_ja:
   translatable: harami_vid1

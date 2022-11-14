@@ -9,6 +9,7 @@ en:
     alt_title_ja: "Alt-Title (Ja)"
     ruby_romaji: "Ruby/Romaji"
     title_en:  "Title (En)"
+    title_en_alt: "Title [Alt] (En)"
     year: Year
     sex: Sex
     place: Place
@@ -55,7 +56,7 @@ en:
       allow_multi: 's'
       year_engagement: 'Year of engagement'
       year_engagement_hint: 'Year (Leave it if the same as Year for Music)'
-      note_new_artist: 'If not yet registered, '
+      note_new_artist: "If not yet registered, "
       create_new_artist: 'create a new record'
       assoc_artist_head: 'Associated Artist information'
 
@@ -98,6 +99,11 @@ en:
       order:
         asc: "↑"
         desc: "↓"
+    artist:
+      filters:
+        title_ja: "Title [ja+en] (partial-match)"
+      columns:
+        title_ja: "Title (Ja)"
 
   merges:
     edit: 

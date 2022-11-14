@@ -8,7 +8,7 @@
 <%= datagrid_table @grid %>
 <%= paginate(@grid.assets) %>
 
-<p>
+<p class="pagenation_stats">
   <%= ApplicationController.str_info_entry_page_numbers(@grid, Artist) %>
 </p>
 

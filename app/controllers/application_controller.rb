@@ -285,21 +285,21 @@ class ApplicationController < ActionController::Base
   #    
   # @return [String]
   def self.str_info_entry_page_numbers(grid, klass)
-  asset = grid.assets
-  tot_count = asset.total_count
-  cur_page = asset.current_page
-  n_per_page = asset.limit_value
-  n_selected_pages = [(cur_page-1)*n_per_page+asset.size, tot_count].min  # playing safe though it should be: ((cur_page-1)*n_per_page+asset.size == tot_count)
-
-  sprintf(
-    "%s (%d—%d)/%d [%s: %d]",
-    I18n.t("tables.Page_n", count: cur_page, default: "Page "+cur_page.to_s),
-    [(cur_page-1)*n_per_page+1, n_selected_pages].min,  # maybe 0
-    n_selected_pages,  
-    tot_count,
-    I18n.t("tables.grand_total_entries", default: "Grand total"),
-    klass.count
-  )
+    asset = grid.assets
+    tot_count = asset.total_count
+    cur_page = asset.current_page
+    n_per_page = asset.limit_value
+    n_selected_pages = [(cur_page-1)*n_per_page+asset.size, tot_count].min  # playing safe though it should be: ((cur_page-1)*n_per_page+asset.size == tot_count)
+  
+    sprintf(
+      "%s (%d—%d)/%d [%s: %d]",
+      I18n.t("tables.Page_n", count: cur_page, default: "Page "+cur_page.to_s),
+      [(cur_page-1)*n_per_page+1, n_selected_pages].min,  # maybe 0
+      n_selected_pages,  
+      tot_count,
+      I18n.t("tables.grand_total_entries", default: "Grand total"),
+      klass.count
+    )
   end
 
   # Callback

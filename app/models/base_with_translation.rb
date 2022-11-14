@@ -366,6 +366,15 @@ class BaseWithTranslation < ApplicationRecord
   # In short, this method is useful for debugging and testing, but 
   # should not be used in the production code.
   #
+  # Note that this does in practice (when "value" is String, not Regexp), in the case of Artist, for example:
+  #   Artist.select_regex(:title, 'ハラミちゃん', langcode: 'ja').first.translatable
+  # which is slightly different but in practice very similar to (because it is only *first*)
+  #   Artist.select_translations_regex(:title, 'Queen', langcode: 'en').first.translatable
+  # both of which sends 2 SQL queries.
+  # Technically, you can make it to only 1 SQL query.
+  #   Artist.joins(:translations).where("translations.title = 'Queen' AND translations.langcode = 'en'").first
+  # However, it is too complicated and is not worth it as a general method.
+  #
   # @param value [Regexp, String] e.g., 'male'
   # @param langcode [String, NilClass] like 'ja'. If nil, all languages
   # @param with_alt [Boolean] if TRUE (Def: False), alt_title is ALSO searched.

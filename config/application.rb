@@ -53,4 +53,5 @@ require "multi_translation_error"
 require 'role_category_node'  # load class RoleCategoryNode < Tree::TreeNode
 require 'local/tree/tree_node'  # modifies Tree::TreeNode#<=>
 require "checked_disabled"    # A general class used for Form
+#require "reverse_sql_order"   # A monkey patch to modify reverse_sql_order() in ActiveRecord::QueryMethods::WhereChain
 
