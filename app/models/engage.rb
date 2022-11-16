@@ -89,7 +89,7 @@ class Engage < ApplicationRecord
   # @param updates [Array<Symbol>] Array of Symbol<ins_*> to update.
   # @param messages: [Array<String>] (intent: out) messages to be returned
   # @param dryrun: [Boolean] If true (Def: false), nothing is saved but {Engage#different_columns_for_harami1129} for the returned value is set.
-  # @return [Engage] {Translation} is associated via either {#translations} or {#unsaved_translations}
+  # @return [Engage] {Translation} is associated via {#translations}, or maybe {#unsaved_translations} if dryrun and the return is {Engage#new_record?}
   def self.find_and_set_one_harami1129(harami1129, updates: [], messages: [], dryrun: false)
     ret = harami1129.engage # || find_or_initialize_unknown)
 
@@ -167,28 +167,63 @@ class Engage < ApplicationRecord
   # manually modified and so there is no guarantee.
   # This is just a best-effort-based method.
   #
+  # == Algorithm
+  #
+  # If there is an Engage that
+  #
+  # 1. has at least one {Harami1129}
+  # 2. has either Engage#artist or one of Harami1129#ins_singer agrees with the given ins_singer (if given),
+  # 3. has either Engage#music  or one of Harami1129#ins_song agrees with the given ins_song (if given),
+  #
+  # then the {Engage} with the highest priority of {EngageHow} is returned. 
+  # Basically, an {Artist#title} in the DB may be systematically different
+  # from {Harami1129#ins_singer} (because either may be wrong).
+  # So, entries that match just {Harami1129#ins_singer} should be accepted.
+  # In most cases, {Artist#title} and {Harami1129#ins_singer} should agree
+  # in the first place, such as "Queen", though! But there are non-trivial cases
+  # like a "Group feat. Mr X".
+  #
   # @param harami1129 [Harami1129]
   # @return [Engage, NilClass] if nothing matching is found
   def self.find_identical_engage_for_harami1129(harami1129, messages: [])
     my_ins_song   = harami1129.ins_song
     my_ins_singer = harami1129.ins_singer
-    return nil if my_ins_song.blank? && my_ins_singer.blank?
-    if !harami1129.ins_song.blank? && !harami1129.ins_singer.blank?
-      h1129s = Harami1129.where(ins_song: my_ins_song, ins_singer: my_ins_singer).where.not(engage_id: nil)
-      return nil if !h1129s.exists?
-      return h1129s.joins(engage: :engage_how).order('engage_hows.id').first.engage ################## Should be weight!!!
-    end
 
-    if !harami1129.ins_song.blank?
-      h1129s = Harami1129.where(ins_song: my_ins_song).where.not(engage_id: nil)
-      return nil if !h1129s.exists?
-      return h1129s.joins(engage: :engage_how).order('engage_hows.id').first.engage ################## Should be weight!!!
+    str_where_song   = "harami1129s.ins_song = ?"
+    str_where_singer = "harami1129s.ins_singer = ?"
+    str_trans_song   = "transm.translatable_type = 'Music'  AND (transm.title = ? OR transm.alt_title = ?)"
+    str_trans_singer = "transa.translatable_type = 'Artist' AND (transa.title = ? OR transa.alt_title = ?)"
+    if    !my_ins_song.blank? && !my_ins_singer.blank?
+      base1 = _get_joins.where(str_trans_singer, my_ins_singer, my_ins_singer)
+      con1  = base1.where(str_trans_song, my_ins_song, my_ins_song).or(base1.where(str_where_song, my_ins_song))
+      base2 = _get_joins.where(str_where_singer, my_ins_singer)
+      con2  = base2.where(str_trans_song, my_ins_song, my_ins_song).or(base2.where(str_where_song, my_ins_song))
+      con1.or(con2).first
+    elsif !my_ins_song.blank?
+      _get_joins.where(str_trans_song, my_ins_song, my_ins_song).or(
+      _get_joins.where(str_where_song, my_ins_song)).first
+    elsif !my_ins_singer.blank?
+      _get_joins.where(str_trans_singer, my_ins_singer, my_ins_singer).or(
+      _get_joins.where(str_where_singer, my_ins_singer)).first
+    else
+      nil
     end
-
-    h1129s = Harami1129.where(ins_singer: my_ins_singer).where.not(engage_id: nil)
-    return nil if !h1129s.exists?
-    return h1129s.joins(engage: :engage_how).order('engage_hows.id').first.engage ################## Should be weight!!!
   end
+
+  # @note {Translation} has to be joined twice because of the potential condition of 
+  #    BOTH Artist and Music in Engage having to agree given String.
+  # @return [Engage, NilClass] nil if nothing matching is found
+  def self._get_joins
+    Engage.all.joins(:engage_how).
+      joins("INNER JOIN harami1129s ON harami1129s.engage_id = engages.id").
+      joins("INNER JOIN artists ON engages.artist_id = artists.id").
+      joins("INNER JOIN musics  ON engages.music_id  = musics.id").
+      joins("INNER JOIN translations transa ON transa.translatable_type = 'Artist' AND transa.translatable_id = artists.id").
+      joins("INNER JOIN translations transm ON transm.translatable_type = 'Music'  AND transm.translatable_id = musics.id").
+      order("engage_hows.weight")
+  end
+  private_class_method :_get_joins
+
 
   # Returns an existing or new {Artist} that matches a Harami1129 record
   #
@@ -221,7 +256,7 @@ class Engage < ApplicationRecord
   # @param harami1129 [Harami1129]
   # @param artist: [Artist]
   # @param messages: [Array<String>] (intent: out) messages to be returned
-  # @return [Music] {Translation} is associated via {#translations}
+  # @return [Music] {Translation} is associated via {#translations}, or if new_record?, via {BaseWithTranslation#unsaved_translations}
   def self.find_and_set_music_for_one_harami1129(harami1129, artist: nil, messages: [])
     music_tit  = harami1129.ins_song
     return Music.unknown if music_tit.blank?

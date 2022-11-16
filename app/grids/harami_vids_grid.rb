@@ -21,9 +21,9 @@ class HaramiVidsGrid < BaseGrid
   filter_partial_str(:artists, header: Proc.new{I18n.t('datagrid.form.artists_multi')})
   filter_partial_str(:musics,  header: Proc.new{I18n.t('datagrid.form.musics_multi')})
 
-  filter(:max_per_page, :enum, select: MAX_PER_PAGES, default: 25, multiple: false, dummy: true, header: Proc.new{I18n.t("datagrid.form.max_per_page", default: "Max entries per page")})
-
-  column_names_filter(header: Proc.new{I18n.t("datagrid.form.extra_columns", default: "Extra Columns")}, checkboxes: true)
+  column_names_max_per_page_filters  # defined in base_grid.rb
+  # column_names_filter(header: Proc.new{I18n.t("datagrid.form.extra_columns", default: "Extra Columns")}, checkboxes: true)
+  # filter(:max_per_page, :enum, select: MAX_PER_PAGES, default: 25, multiple: false, dummy: true, header: Proc.new{I18n.t("datagrid.form.max_per_page", default: "Max entries per page")})
 
   ####### Columns #######
 

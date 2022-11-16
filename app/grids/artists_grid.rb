@@ -36,9 +36,7 @@ class ArtistsGrid < BaseGrid
   #  IMPORTANT: Always wrap dynamic :select option with proc, so that datagrid fetch it from database each time when it renders the form.
   # NOTE: However, in this case, the contetns of Sex should not change, so it is not wrapped with Proc.
 
-  filter(:max_per_page, :enum, select: MAX_PER_PAGES, default: 25, multiple: false, dummy: true, header: Proc.new{I18n.t("datagrid.form.max_per_page", default: "Max entries per page")})  # "default" is not working...
-
-  column_names_filter(header: Proc.new{I18n.t("datagrid.form.extra_columns", default: "Extra Columns")}, checkboxes: true)
+  column_names_max_per_page_filters  # defined in base_grid.rb
 
   ####### Columns #######
 

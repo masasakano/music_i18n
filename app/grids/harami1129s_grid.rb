@@ -13,9 +13,9 @@ class Harami1129sGrid < BaseGrid
   filter(:release_date, :date, range: true) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
   filter(:link_time, :integer, header: 'Link time (eg, 0 [s])')
 
-  filter(:max_per_page, :enum, select: MAX_PER_PAGES, default: 25, multiple: false, dummy: true, header: Proc.new{I18n.t("datagrid.form.max_per_page", default: "Max entries per page")})
+  column_names_max_per_page_filters(with_i_page: true)  # defined in base_grid.rb
 
-  column_names_filter(header: Proc.new{I18n.t("datagrid.form.extra_columns", default: "Extra Columns")}, checkboxes: true)
+  ####### Columns #######
 
   column("✅".html_safe, mandatory: true) do |record|
     record.populate_status.sorted_status(return_markers: true).first

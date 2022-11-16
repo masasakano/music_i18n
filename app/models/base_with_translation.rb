@@ -790,7 +790,7 @@ class BaseWithTranslation < ApplicationRecord
       tra = find_translation_by_regex(:titles, str_or_re)
       break if tra
     end
-    tra ||= (best_translations['ja'] || best_translations['en'] || best_translations['en'].first) 
+    tra ||= (best_translations['ja'] || best_translations['en'] || best_translations.first) 
     if !tra.matched_attribute
       # NOTE: this happens basically when tra is from best_translations rather than 
       # find_translation_by_regex(), which happens when no Translation

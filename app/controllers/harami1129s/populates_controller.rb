@@ -13,8 +13,8 @@ class Harami1129s::PopulatesController < ApplicationController
       i = params[:id] || params[:harami1129_id]
       @harami1129 = Harami1129.find(i)
       msg = []
-      @harami1129.populate_ins_cols_default(messages: msg)
-      format.html { redirect_to @harami1129, notice: msg }
+      @harami1129.populate_ins_cols_default(messages: msg)  # msg may be updated (it is intent(out)!).
+      format.html { redirect_to @harami1129, notice: (msg.empty? ? "Successfully populated." : msg)}
       format.json { render :show, status: :ok, location: @harami1129 }
     end
   end

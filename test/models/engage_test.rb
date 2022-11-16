@@ -1,3 +1,4 @@
+# coding: utf-8
 # == Schema Information
 #
 # Table name: engages
@@ -96,6 +97,134 @@ class EngageTest < ActiveSupport::TestCase
     obj = Engage.create!(music:  musics(:music99), artist: artists(:artist99))
     assert_match( /Unknown/i, obj.engage_how.titles(langcode: 'en')[0] )
   end
+
+  test "self.find_and_set_one_harami1129" do
+    artist0    = artists(:artist_rcsuccession)
+    artist0_ja = translations(:artist_rcsuccession_ja)
+    h1129_rc0  = harami1129s(:harami1129_rcsuccession) # 雨上がりの夜空に, RCサクセション
+
+    assert_equal artist0.title, artist0_ja.title, 'sanity test'
+    assert_equal artist0.title, h1129_rc0.singer, 'sanity test'
+
+    ## :harami1129_rcsuccession is already internally inserted, but not populated, so it is populated here.
+    # h1129_rc0.fill_ins_column!
+    assert_difference('HaramiVid.count', 1) do
+      assert_difference('Artist.count', 0) do
+        assert_difference('Music.count + Engage.count', 2) do
+          # Should create a new HaramiVid, Music, and thus Engage, but not Artist
+          h1129_rc0.populate_ins_cols_default(messages: [], dryrun: false)
+        end
+      end
+    end
+    engage0 = h1129_rc0.engage
+    assert_equal artist0, engage0.artist, 'sanity test'
+    music0 = engage0.music  # should be a new one, i.e., it does not exist in Fixtures.
+    assert_equal 1,               music0.translations.count
+    refute       h1129_rc0.song.blank?
+    assert_equal h1129_rc0.song, music0.title
+
+    music_ja1 = "僕の好きな先生"
+    h1129 = Harami1129.create!(
+      singer: h1129_rc0.singer+" ",  # "RCサクセション "
+      song: music_ja1,               # "僕の好きな先生"
+      release_date: "2020-09-22",
+      title: "【テストピアノ】僕の好きな先生弾いた【RCサクセション】",
+      link_root: "RC999999",
+      link_time: "0",
+      #ins_singer: 
+      #ins_song: 
+      #ins_release_date: 2019-09-22
+      #ins_title: 【都庁ピアノ】都庁で弾いたら、自己最多の方が聴いてくれた!!【ストリートピアノ】
+      #ins_link_root: youtu.be/RC999999
+      #ins_link_time: 0
+      #ins_at: 
+      note: "test of 僕の好きな先生 Harami1129",
+      id_remote: Harami1129.where.not(id_remote: nil).order(id_remote: :desc).first.id_remote.to_i+1,
+      last_downloaded_at: Time.now-10,
+      #orig_modified_at: 2020-10-25 21:46:00
+      #checked_at:
+      #engage:
+      #harami_vid:
+    )
+
+    h1129.fill_ins_column!  # internally inserted.
+    h1129.save!  # not sure if necessary
+
+    # When Music/Artist already exists with no Engage with Harami1129
+    music_boku = Music.create_with_orig_translation!(artist: artist0, translation: {title: music_ja1, langcode: 'ja'})
+    #music_boku = Music.create_with_orig_translation!(artist: artist0, translation: {title: 'Dummy', alt_title: music_ja1, langcode: 'ja'})
+    assert_equal music_ja1, music_boku.title_or_alt(prefer_alt: true), 'sanity check'
+
+    # Test of find_identical_engage_for_harami1129()
+    eng11 = Engage.find_identical_engage_for_harami1129(h1129, messages: [])
+    assert_nil  eng11, "No Engage with Singer/Song WITH Harami1129, hence it should be nil, but: "+eng11.inspect
+
+    # If there is a matching Engage:
+    begin
+      eng_tmp = Engage.create!(artist: artist0, music: music_boku, engage_how: EngageHow.first)
+      h1129one = harami1129s(:harami1129one)
+      h1129one.engage = eng_tmp
+      h1129one.save!
+      assert_equal 1, eng_tmp.harami1129s.count, 'sanity check'
+      eng_tmp.reload
+
+      eng12 = Engage.find_identical_engage_for_harami1129(h1129, messages: [])
+      refute_nil  eng12, "An Engage with Singer/Song WITH Harami1129 exists, hence it should exist, but: "+eng12.inspect
+      assert_equal artist0,    eng12.artist
+      assert_equal music_boku, eng12.music
+    ensure
+      h1129one.engage = nil
+      h1129one.save!
+      eng_tmp && eng_tmp.destroy!
+    end
+
+    # Test of dryrun: true
+    eng13 = Engage.find_and_set_one_harami1129(h1129, updates: [], dryrun: true)
+    assert eng13.new_record?
+    assert_equal artist0,    eng13.artist  # RCサクセション
+    assert_equal music_ja1,  eng13.music.unsaved_translations.first.title
+
+    music_boku.destroy!  ## Matching Music "僕の好きな先生" completely destroyed
+
+    # Test for a proper run (populate a Harami1129 with a new song)
+    eng21 = nil
+    assert_difference('HaramiVid.count', 0) do
+      assert_difference('Artist.count', 0) do
+        assert_difference('Music.count + Engage.count', 2) do
+          # Should create a new HaramiVid, Music, and thus Engage, but not Artist
+          eng21 = Engage.find_and_set_one_harami1129(h1129, updates: [], dryrun: false)
+        end
+      end
+    end
+    assert_equal artist0, eng21.artist  # RCサクセション
+    assert_equal music_ja1, eng21.music.title  # "僕の好きな先生"
+
+    # Populate another Harami1129 with same Singer & Song
+    h112b = h1129.dup
+    h112b.title = "Temporary"
+    h112b.link_root = "newLink888"
+    h112b.id_remote += 1
+    h112b.ins_title = nil
+    h112b.ins_link_root = nil
+    h112b.engage_id = nil
+    h112b.harami_vid_id = nil
+    h112b.save!
+    h112b.fill_ins_column!  # internally inserted.
+    h112b.save!  # not sure if necessary
+
+    eng31 = nil
+    assert_difference('HaramiVid.count', 0) do
+      assert_difference('Artist.count', 0) do
+        assert_difference('Music.count + Engage.count', 0) do  # no difference!
+          eng31 = Engage.find_and_set_one_harami1129(h112b, updates: [], dryrun: false)
+        end
+      end
+    end
+    assert_equal artist0, eng31.artist  # RCサクセション
+    assert_equal music_ja1, eng31.music.title  # "僕の好きな先生"
+    assert_equal eng21, eng31
+  end  # test "self.find_and_set_one_harami1129" do
+
 
   test "pupulating at the model level" do
     # harami1129s(:harami1129_rcsuccession)

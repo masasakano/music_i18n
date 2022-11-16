@@ -24,9 +24,7 @@ class MusicsGrid < BaseGrid
     self.where id: ids
   end
 
-  filter(:max_per_page, :enum, select: MAX_PER_PAGES, default: 25, multiple: false, dummy: true, header: Proc.new{I18n.t("datagrid.form.max_per_page", default: "Max entries per page")})
-
-  column_names_filter(header: Proc.new{I18n.t("datagrid.form.extra_columns", default: "Extra Columns")}, checkboxes: true)
+  column_names_max_per_page_filters  # defined in base_grid.rb
 
   ####### Columns #######
 

@@ -120,6 +120,9 @@ table {
   td.cell_destroy {
       border-left-style: none;
   }
+  td.checkbox_destroy {
+      text-align: center;  /* not work (with Firefox at least) */
+  }
 }
 
 table.datagrid {

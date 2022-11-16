@@ -99,6 +99,16 @@ class Harami1129 < ApplicationRecord
     :ins_title, :ins_singer, :ins_song, :ins_release_date, :ins_link_root, :ins_link_time,
   ]
 
+  # Order of the default time-related columns (in case some of them are the same)
+  DEF_TIME_COLUMN_ORDERS = [
+    :created_at,
+    :last_downloaded_at,
+    :orig_modified_at,
+    :ins_at,
+    :checked_at,
+    :updated_at,
+  ]
+
   ## Insertion/populaiton status of each row (for use of cache)
   #HS_STATUS_ROW = {}
 
@@ -120,8 +130,9 @@ class Harami1129 < ApplicationRecord
     # @param sym_or_hs [Symbol, Hash] if Hash, {SymColumnName => SymbolStatus}; if Symbol, all the columns have the same status.
     # @param h1129_ins [Harami1129] Unsaved and only ins_* are filled; they are the current ins_* if unmodified, or ins_* inserted from the current original if modified.
     # @param dest [Hash] current String repretentation of the destination as Hash
+    # @param dest_to_be [Hash] 
     # @param updated_at: [Time] updated_at of the corresponding record.
-    def initialize(sym_or_hs, h1129_ins, dest=nil, dest_to_be=nil, updated_at: Time.now)
+    def initialize(sym_or_hs, h1129_ins, dest: nil, dest_to_be: nil, updated_at: Time.now)
       @status_cols = (sym_or_hs.respond_to?(:merge) ? sym_or_hs : Harami1129::ALL_INS_COLS.map{|i| [i, sym_or_hs]}.to_h).with_sym_keys
       @h1129_ins = h1129_ins
       @dest       = (dest && dest.with_sym_keys)  # destination (current status)
@@ -252,7 +263,7 @@ class Harami1129 < ApplicationRecord
       populate_ins_cols(updates: ALL_INS_COLS, messages: messages, dryrun: true) # sets @columns_at_destination
       #self.reload
 
-      return(ret = PopulateStatus.new(:checked, h1129_ins_to_be, columns_at_destination[:be4].dup, columns_at_destination[:aft].dup, updated_at: updated_at)) if checked_at && orig_modified_at <= checked_at  # Already eye-checked
+      return(ret = PopulateStatus.new(:checked, h1129_ins_to_be, dest: columns_at_destination[:be4].dup, dest_to_be: columns_at_destination[:aft].dup, updated_at: updated_at)) if checked_at && orig_modified_at <= checked_at  # Already eye-checked
 
       hs2pass = {}
       ALL_INS_COLS.each do |col|
@@ -265,7 +276,7 @@ class Harami1129 < ApplicationRecord
             :consistent
           end
       end
-      return(ret = PopulateStatus.new(hs2pass, h1129_ins_to_be, columns_at_destination[:be4].dup, columns_at_destination[:aft].dup, updated_at: updated_at))
+      return(ret = PopulateStatus.new(hs2pass, h1129_ins_to_be, dest: columns_at_destination[:be4].dup, dest_to_be: columns_at_destination[:aft].dup, updated_at: updated_at))
     ensure
       @populate_status = ret
     end
@@ -733,7 +744,7 @@ class Harami1129 < ApplicationRecord
   #
   # @param updates: [Array<Symbol>] Column names (Symbols) like :ins_singer which has been updated/created (and hence they may be reflected in the populated tables).
   # @param dryrun: [Boolean] If true (Def: false), nothing is saved but {Harami1229#columns_at_destination} for the returned value is set.
-  # @return [self]
+  # @return [self, NilClass] nil if dryrun or something goes wrong.
   def populate_ins_cols(updates: [], messages: [], dryrun: false)
     self.columns_at_destination = {:be4 => {}, :aft => {}}
     begin
@@ -966,9 +977,15 @@ class Harami1129 < ApplicationRecord
   #
   # @return [Hash]
   def time_attrs_with_order
+    references = DEF_TIME_COLUMN_ORDERS.map(&:to_s)
     hs = slice(*(%i(created_at checked_at ins_at orig_modified_at last_downloaded_at updated_at)))
     numbers = number_ordered_keys(hs)
-    hs.map{|k,v| [k, {value: v, order: numbers[k]}]}.sort{|a,b| b[1][:order] <=> a[1][:order]}.to_h
+    hs.map{|k,v| [k, {value: v, order: numbers[k]}]}.sort{|a,b|
+      cmp = (b[1][:order] <=> a[1][:order])
+      next cmp if cmp != 0
+      (references.find_index{|ib| ib == b[0].to_s} || Float::INFINITY) <=>
+      (references.find_index{|ia| ia == a[0].to_s} || Float::INFINITY)  # Reverse order re time!
+    }.to_h
   end
 
 

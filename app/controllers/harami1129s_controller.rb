@@ -26,7 +26,9 @@ class Harami1129sController < ApplicationController
     # It is caught in application_controller.rb
     @grid = Harami1129sGrid.new(grid_params) do |scope|
       nmax = BaseGrid.get_max_per_page(grid_params[:max_per_page])
-      scope.page(params[:page]).per(nmax)
+      curpage = grid_params[:i_page].to_i
+      curpage = params[:page] if curpage < 1
+      scope.page(curpage).per(nmax)
     end
   end
 

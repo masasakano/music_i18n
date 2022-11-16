@@ -31,17 +31,18 @@ class BaseGrid
 
   # Get the max value
   #
-  # @note In terms of the security, it would be marginally better to check with
-  #    the allowed values of {MAX_PER_PAGES}. However, since "ALL" is allowed,
-  #    there is not much point for that for now.
+  # @note Only a loose check with the allowed values of {MAX_PER_PAGES} is in place.
+  #    After all, "ALL" is allowed at the moment, and so more strict checks
+  #    are unnecessary.
   #
   # @param nmax [String, NilClass] usually +grid_params[:max_per_page]+ (to permit), where +grid_params+ should be defined in the caller (controller).
   #   nil is allowed — it would be the case when the page is first loaded.
   # @return [Integer] max entries to show per page.
   def self.get_max_per_page(nmax)
     nmax = ((("all" == nmax.downcase) ? HARD_MAX_PER_PAGE : nmax.to_i) rescue DEF_MAX_PER_PAGE)  # if nmax is nil, rescue is called.
+    nmax = DEF_MAX_PER_PAGE  if nmax > MAX_PER_PAGES.values.max  # An artificially large value is not allowed for the security reason.
+    nmax = DEF_MAX_PER_PAGE  if nmax < 1  # if smaller than 1 (maybe 0 because of String?), something goes wrong.
     nmax = HARD_MAX_PER_PAGE if nmax < 0 || nmax > HARD_MAX_PER_PAGE
-    nmax = DEF_MAX_PER_PAGE  if nmax < 2  # if smaller than 2 (maybe 0 because of String?), something goes wrong.
     nmax
   end
 
@@ -94,6 +95,22 @@ class BaseGrid
       ids = col.to_s.singularize.classify.constantize.select_partial_str(:titles, value, ignore_case: true).map{|eobj| eobj.harami_vids}.flatten.map(&:id)
       self.where(id: ids)
     end
+  end
+
+  # Common filters at the tail: column_names_filter() and filter(:max_per_page)
+  # 
+  # @param with_i_page [Boolean] If true (Def: false), i_page filter is activated.
+  def self.column_names_max_per_page_filters(with_i_page: false)
+    column_names_filter(header: Proc.new{I18n.t("datagrid.form.extra_columns", default: "Extra Columns")}, checkboxes: true)
+    filter(:max_per_page, :enum, select: Proc.new{
+            if current_user && current_user.moderator? || Rails.env.development?  ####### User-condition not working...
+              {"1(Dev)" => 1, "4(Dev)" => 4}.merge(MAX_PER_PAGES)
+            else
+              MAX_PER_PAGES
+            end
+           }, default: 25, multiple: false, include_blank: false, dummy: true, header: Proc.new{I18n.t("datagrid.form.max_per_page", default: "Max entries per page")})
+    filter(:i_page, :integer, dummy: true, default: 1, class: "input_year", header: Proc.new{I18n.t("datagrid.form.i_page", default: "i-th page")}) if with_i_page
+       # NOT: Option "class" not working.
   end
 
   # column displaying either SELF or user-name
