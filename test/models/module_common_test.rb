@@ -41,6 +41,13 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_equal true, preprocess_space_zenkaku(true)
     assert_equal({x: 'abc'}, preprocess_space_zenkaku({x: 'abc'}))
     assert_equal ['abc'],    preprocess_space_zenkaku(['abc'])
+
+    # "FULLWIDTH TILDE" => "wave dash"
+    s_tilde = "あsjis(\uff5e) jis(\u301c)"  # SJIS(\uFF5E)(～)(UTF8: "FULLWIDTH TILDE") and JIS(\u301C)(〜)(UTF8: "wave dash")
+    refute_equal s_tilde, preprocess_space_zenkaku(s_tilde)
+    s = s_tilde.gsub(/\uFF5E/, "\u301C")
+    assert_equal s,        preprocess_space_zenkaku(s_tilde)
+    assert_equal '(あ)〜', preprocess_space_zenkaku("（あ）～")  # @example in comment in convert_ja_chars()
   end
 
   test "definite_article_to_tail" do

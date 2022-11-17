@@ -41,6 +41,21 @@ module ModuleCommon
   # @see https://www.postgresql.org/docs/current/functions-matching.html#POSIX-ESCAPE-SEQUENCES
   DEFINITE_ARTICLES_REGEXP_STR = "(?:"+DEFINITE_ARTICLES.reject{|i| i == "la"}.join('|')+"|la(?! +la +))"
 
+  # Mapping between each destination correct characters and unstandard ones.
+  # 
+  # Retrieve the value with {#chars_ja_char_mappings}
+  # for the given destination characters for a given level
+  # so that the fallback routine works.
+  # 
+  # The keys for each element should be one of [:conservative, :standard, :aggressive]
+  JA_CHAR_MAPPINGS = {
+    "\u301C" => {  # wave dash "波ダッシュ" (JIS X 0213: 1-1-33 "〜")
+      conservative: ["\uFF5E"], # FULLWIDTH TILDE "全角チルダ"(SJIS) (JIS X 0213: 1-2-18 "～")
+      standard:     ["\uFF5E", "\u223C", "\u2053"], # TILDE OPERATOR (∼), SWUNG DASH (⁓)
+      aggressive:   nil,  # fallback to :standard
+    }
+  }
+
   # For model that has the method +place+
   #
   # @return [String] "県 — 場所 (国)"
@@ -171,11 +186,12 @@ module ModuleCommon
   # @param article_to_tail [Boolean] If true, the definite article, if exists, is moved to the tail.
   # @param opts: [Hash] Options to pass to {SlimString.slim_string}. See above.
   # @return [Object] If String, {String#preprocessed} is set to true.
-  def preprocess_space_zenkaku(inobj, article_to_tail=false, **opts)
+  def preprocess_space_zenkaku(inobj, article_to_tail=false, sym_level: :standard, mappings: {}, **opts)
     return inobj if !inobj.respond_to? :gsub
 
     newopts = COMMON_DEF_SLIM_OPTIONS.merge opts
     ret = zenkaku_to_ascii(SlimString.slim_string(inobj, **newopts), Z: 1)
+    ret = converted_ja_chars(ret, sym_level: sym_level, mappings: mappings, zenkaku_to_ascii: false)
     ret = (article_to_tail ? definite_article_to_tail(ret) : ret)
     ret
   end
@@ -281,6 +297,58 @@ module ModuleCommon
     ret2 = (mat1 && mat1[2] || mat2 && mat2[1] || instr)
     ret1 = (ret3.empty? ? /\A(#{Regexp.quote ret2})(,\s*(#{DEFINITE_ARTICLES_REGEXP_STR}))?\z/i : /\A(#{Regexp.quote ret2})(,\s*(#{ret3}))?\z/i)
     [ret1, ret2, ret3]
+  end
+
+  # Method to convert strange Japanise characters to standard ones
+  #
+  # This is a wrapper for {#zenkaku_to_ascii} and more.
+  # Note {#zenkaku_to_ascii} is not called if :zenkaku_to_ascii is given false.
+  #
+  # For example, in default, this converts a FULLWIDTH TILDE (\uFF5E),
+  # a SJIS-specific character, to a wave dash (\u301C), the original JIS
+  # character.
+  #
+  # The conversion rule It is defined in {ModuleCommon::JA_CHAR_MAPPINGS}
+  # but you can overwrite any of the components in the argument.
+  #
+  # Unfortunately NKF does not handle emojis very well.
+  # So, this routine excludes emoji parts during processing,
+  # and recover (i.e., concat) the whole string in the end.
+  #
+  # @example
+  #   convert_ja_chars("（あ）～", Z: 1)  # => '(あ)〜'
+  #
+  # @param instr [String] input String
+  # @param sym_level [Symbol] One of :conservative, :standard (Default), :aggressive
+  # @param zenkaku_to_ascii [Boolean] if false (Def: true), {#zenkaku_to_ascii} is not called.
+  # @param mappings [Hash<Hash<Array<String>>>] Def: {ModuleCommon::JA_CHAR_MAPPINGS}
+  # @param opts [Hash] passed to {#zenkaku_to_ascii}
+  # @return [String] String where dubious characters are replaced with standard ones.
+  def converted_ja_chars(instr, sym_level: :standard, mappings: {}, zenkaku_to_ascii: true, **opts)
+    mappings = JA_CHAR_MAPPINGS.merge(mappings || {})
+    ret = instr.clone
+    mappings.each_key do |dest_char|
+      ary_char = chars_ja_char_mappings(dest_char, sym_level: sym_level.to_sym, mappings: mappings)
+      next if ary_char.blank?
+      ary_char.each do |ec|
+        ret.tr!(ec, dest_char)
+      end
+    end
+    ret = zenkaku_to_ascii(ret, **opts) if zenkaku_to_ascii
+    ret
+  end
+
+  # @param skey [String] (usually a single) destination character
+  # @param sym_level [Symbol] One of :conservative, :standard (Default), :aggressive
+  # @param mappings [Hash<Hash<Array<String>>>] Def: {ModuleCommon::JA_CHAR_MAPPINGS}
+  # @return [Array, NilClass] Always Array of characters (maybe empty), unless skey is invalid.
+  def chars_ja_char_mappings(skey, sym_level: :standard, mappings: JA_CHAR_MAPPINGS)
+    return nil if !mappings[skey]
+    [sym_level, :standard, :conservative, :aggressive].uniq.compact.each do |ek|
+      ar = mappings[skey][ek]
+      return ar if ar.respond_to?(:flatten)
+    end
+    []
   end
 
   # Wrapper of {#zenkaku_to_ascii} with :Z=>1, accepting any Object as the input.

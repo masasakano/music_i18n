@@ -2,3 +2,7 @@
 
 <%= render 'form', artist: @artist %>
 
+<% if can? :create, Translation %>
+  <p>Link to bulk <%= link_to "CSV upload", new_music_path+"#csv_file_upload" %> for Music/Artist combinations</p>
+<% end %>
+
