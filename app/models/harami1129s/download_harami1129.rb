@@ -26,7 +26,7 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
 
     def initialize
       @last_err = nil
-      @msg = ""
+      @msg = []
       @alert = ""
       @num_errors = nil
       @harami1129 = nil
@@ -57,8 +57,8 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
     end
     max_entries_fetch = max_entries_fetch.to_i if max_entries_fetch
 
-    if debug || max_entries_fetch
-      logger.info "(#{__method__}) DEBUG-mode: max_entries_fetch=(#{max_entries_fetch})."
+    if debug #|| max_entries_fetch
+      logger.info "(#{__method__}) [DEBUG-mode]: max_entries_fetch=(#{max_entries_fetch})."
     end
 
 # max_entries_fetch = 23 if !max_entries_fetch   # for DEBUG-ging
@@ -95,6 +95,15 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
       return ret
     end
 
+    n_alltrs  = trs.size
+    n_entries = n_alltrs - 1  # Except for a single header line
+    if debug #|| max_entries_fetch
+      str_entry = ActionController::Base.helpers.pluralize([(max_entries_fetch || Float::INFINITY), n_alltrs].min, "entry", locale: :en)
+      msg = "[DEBUG-mode](#{__method__}): processing #{str_entry} out of #{n_entries} entries."
+      logger.info msg
+      ret.msg << msg
+    end
+
     n_before = Harami1129.count
     n_success = 0
     i_sigificant = 0  # Ignores an empty row (or table header <th>) in the fetched table.
@@ -105,6 +114,9 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
       i_sigificant += 1
       break if max_entries_fetch && i_sigificant > max_entries_fetch
 
+      if debug && i%100 == 0
+        logger.debug "[DEBUG-mode](#{__method__}): #{i}-th (#{i_sigificant}th significant row, out of #{n_entries}) remote-Harami1129 table row being processed..."
+      end
       entry = { id_remote: i_sigificant } # %i(singer song release_date title link_time link_root)
 
       # First 3 columns
@@ -144,11 +156,11 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
     end  # trs.each_with_index do |ea_tr, i|
 
     n_after = Harami1129.count
-    n_entries = trs.size
+    #n_entries = trs.size
     ret.num_errors = n_entries - n_success
     armsg = ["Harami1129 table updated with the data from #{Harami1129sController::URI_ROOT};"]
     # armsg.push view_context.pluralize(n_success, "entry") # How to use pluralize in Controller
-    armsg.push ActionController::Base.helpers.pluralize(n_success, "entry")
+    armsg.push ActionController::Base.helpers.pluralize(n_success, "entry", locale: :en)
     armsg.push sprintf("were inserted out of %d received. The number of the DB entries", n_entries)
     if n_before == n_after
       armsg.push sprintf("unchanged at %d (new entries: 0).", n_before)
@@ -157,7 +169,7 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
     end
 
     ret.msg << armsg.join(" ")
-    logger.info ret.msg
+    logger.info armsg.join(" ")
     ret
   end
 

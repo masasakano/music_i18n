@@ -125,7 +125,10 @@
 
     <div id="body_main">
       <% [alert && 'alert', warning.present? && 'warning', success.present? && 'success', notice && 'notice'].compact.each do |ek| %>
-        <p class="<%= ApplicationController::FLASH_CSS_CLASSES[ek] %>"><%= (flash[:html_safe] && flash[:html_safe][ek]) ? flash[ek].html_safe : flash[ek] %></p>
+        <% next if flash[ek].blank? %>
+        <p class="<%= ApplicationController::FLASH_CSS_CLASSES[ek] %>">
+          <%= [flash[ek]].flatten.map{|i| (flash[:html_safe] && flash[:html_safe][ek]) ? i : h(i)}.join("<br>").html_safe %>
+        </p>
       <% end %> <%# manage_toastr.js wrap the contents  # toastr_flash in /app/helpers/application_helper.rb is not used anymore %>
     <%= yield %>
     </div>
@@ -133,6 +136,12 @@
 
     <div id="footer">
     <p><%= str_lsl %></p>
+    <% if !user_signed_in? && !request.path.sub(%r@\A/((#{I18n.available_locales.map(&:to_s).join("|")})(?:/|\z|(?=\?)))?@, "").sub(%r@\Ausers/sign_in/?@, "").sub(/\?.*/, "").empty? %>
+      <%# Except for the top page and sign_in page, Log-in link is displayed. %>
+      <p id="footer_login">
+      <%= link_to new_user_session_path, class: 'login-button' do %><%= t("devise.sessions.new.sign_in") %><% end %>
+      </p>
+    <% end %>
     </div>
   </body>
 </html>

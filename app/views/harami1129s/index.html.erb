@@ -1,5 +1,3 @@
-<p id="alert"><%= alert %></p>
-<p id="notice"><%= notice %></p>
 
 <h1>Harami1129s</h1>
 
@@ -53,11 +51,12 @@
   <div class="actions">
     <% if current_user.an_admin? %>
       <div class="form_download_data_options">
-        DEBUG?
+      <%= form.label :debug, '[Admin] DEBUG?' %>
       <%= form.radio_button(:debug, '1', checked: false) %>
       <%= form.label        :debug, 'Yes', value: '1' %>
       <%= form.radio_button(:debug, '0', checked: true) %>
       <%= form.label        :debug, 'No',  value: '0' %>
+        <br>
     <% end %>
     <%= form.label      :max_entries_fetch, 'Max number of entries to download (Def: -99 meaning all)' %>
     <%= form.text_field :max_entries_fetch,  value: -99 %><br>

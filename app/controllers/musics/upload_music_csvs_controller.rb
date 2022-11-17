@@ -42,7 +42,7 @@ class Musics::UploadMusicCsvsController < ApplicationController
     rescue => er
       # Without rescuing, the error message might not be recorded anywhere.
       msg = "ERROR in Music.populate_csv: err="+er.inspect
-      debug.error msg
+      logger.error msg
       warn msg
       raise
     end

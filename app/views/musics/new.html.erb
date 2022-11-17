@@ -8,7 +8,7 @@
 
 <h2 id="csv_file_upload">CSV file upload</h2>
 
-Altenatively, upload a CSV file (the suffix must be &quot;.csv&quot;):
+Altenatively, upload a CSV file (the suffix must be &quot;.csv&quot;; 250 lines at maximum):
 
 <%= form_tag(:musics_upload_music_csvs, multipart: true) do |form| %>
   <%= file_field_tag 'file', accept: 'text/csv' %>

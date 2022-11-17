@@ -34,7 +34,8 @@ class Harami1129s::DownloadHarami1129sController < ApplicationController
       instance_variable_set('@'+es, var6.send(es))
     end
     #download_put_harami1129s(max_entries_fetch: params[:max_entries_fetch], debug: (params[:debug].to_i > 0))
-    @msg = "Downloaded #{var6.harami1129s.size} (max specified: #{max_n.inspect})"
+    @msg = [@msg].flatten
+    @msg.unshift "Downloaded #{var6.harami1129s.size} (max specified: #{max_n || 'nil'})."
 #puts "DEBUG-download11:harami1129s="+@harami1129s.map{|i| [i.singer, i.song]}.inspect if (params[:debug].to_i > 0)
     messages = []
     if params[:step_to] != DOWNLOAD_FORM_STEP[:download]
