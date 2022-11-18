@@ -40,6 +40,16 @@ class SexTest < ActiveSupport::TestCase
 
   test "unique" do
     assert_raises(ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique){ Sex.create!(iso5218: 1) }  # PG::UniqueViolation => "Validation failed: Iso5218 has already been taken"
+    
+    tit = 'a new gender'
+    assert_raises(ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique){ Sex.create_with_orig_translation!({iso5218: 1}, translation: {title: tit, langcode: 'en'}) }
+    bwt_new = Sex.create_with_orig_translation!({iso5218: 999}, translation: {title: tit, langcode: 'en'})
+    assert_equal tit, bwt_new.title
+
+    male = Sex.where(iso5218: 1).first
+    title_existing = male.best_translations['en']
+    assert_raises(ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique, "Title should be unique."){
+      Sex.create_with_orig_translation!({iso5218: 1}, translation: {title: title_existing, langcode: 'en'}) }
   end
 
   test "index_boss" do

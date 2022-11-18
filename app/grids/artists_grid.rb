@@ -3,19 +3,16 @@ class ArtistsGrid < BaseGrid
 
   scope do
     Artist.all
-    #harami = Artist['ハラミちゃん', "ja"]  # Haramichan always comes first!
-    #Artist.order(Arel.sql("CASE artists.id WHEN #{harami.id rescue 0} THEN 0 ELSE 1 END"))  # This work OK, surprisingly!
   end
 
   ####### Filters #######
 
   filter(:id, :integer, header: "ID", if: Proc.new{current_user && current_user.editor?})  # displayed only for editors
 
-  #filter_include_ilike(:title_ja, header: Proc.new{I18n.t("datagrid.form.title_ja_en", default: "Title [ja+en] (partial-match)")})
-  filter_include_ilike(:title_ja) #, header: Proc.new{I18n.t("datagrid.form.title_ja_en", default: "Title [ja+en] (partial-match)")}) #################################################
+  filter_include_ilike(:title_ja, header: Proc.new{I18n.t("datagrid.form.title_ja_en", default: "Title [ja+en] (partial-match)")})
   filter_include_ilike(:title_en, langcode: 'en', header: Proc.new{I18n.t("datagrid.form.title_en", default: "Title [en] (partial-match)")})
 
-  filter(:year, :integer, range: true, header: Proc.new{I18n.t('tables.year')}) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
+  filter(:birth_year, :integer, range: true, header: Proc.new{I18n.t('tables.year')}) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
 
   def self.sex_titles
     begin
@@ -76,7 +73,7 @@ class ArtistsGrid < BaseGrid
     record.sex.title(langcode: I18n.locale)
   end
 
-  column(:year, class: ["align-cr"], mandatory: false, header: Proc.new{I18n.t('tables.year')}) do |record|
+  column(:birth_year, class: ["align-cr"], mandatory: false, header: Proc.new{I18n.t('tables.year')}) do |record|
     sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
                                 i = record.send m
                                 (i.blank? ? '——' : i.to_s)

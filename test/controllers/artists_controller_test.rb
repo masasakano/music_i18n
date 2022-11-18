@@ -133,7 +133,7 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
 
     # Success: Successful deletion
     assert_difference('Artist.count', -1) do
-      assert_difference('Translation.count', -1) do
+      assert_difference('Translation.count', -2) do  # artist3 (ハラミちゃん) has 2 translations.
         assert_difference('HaramiVidMusicAssoc.count', 0) do
           assert_difference('Engage.count', -1) do
             assert_difference('Music.count', 0) do

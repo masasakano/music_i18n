@@ -21,6 +21,15 @@
 require 'test_helper'
 
 class PlaceTest < ActiveSupport::TestCase
+  test "create with translation" do
+    tit = 'a random new place'
+    #assert_raises(ActiveRecord::RecordInvalid, ActiveRecord::NotNullViolation){ # the latter for DB level.
+    assert_raises(ActiveRecord::RecordInvalid){
+      Place.create_with_orig_translation!({}, translation: {title: tit, langcode: 'en'})}
+    bwt_new = Place.create_with_orig_translation!({prefecture: Prefecture.first}, translation: {title: tit, langcode: 'en'})
+    assert_equal tit, bwt_new.title
+  end
+
   test "unique constraint by Rails" do
     jp_orig = places(:shinagawa_station)
     tocho = places(:tocho)

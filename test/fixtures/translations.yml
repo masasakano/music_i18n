@@ -1136,6 +1136,22 @@ artist3_ja:
   update_user_id: 1
   note: Artist3JaHarami
 
+artist3_en:
+  translatable: artist3
+  translatable_type: Artist
+  langcode: en
+  title: Haramichan
+  alt_title: Harami-chan
+  ruby: 
+  alt_ruby:
+  romaji: 
+  alt_romaji: harami chan
+  is_orig: false
+  weight: 10
+  create_user_id: 1
+  update_user_id: 1
+  note: Artist3EnHarami
+
 artist_rcsuccession_ja:
   translatable: artist_rcsuccession
   translatable_type: Artist

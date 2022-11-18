@@ -114,6 +114,40 @@ end
     i_zombies = page.all("table.artists_grid tbody tr").find_index{|nok| nok.all("td")[2].text == zombies} # No <td> in <thead>, but all should have <td> in <tbody>
     i_zedd    = page.all("table.artists_grid tbody tr").find_index{|nok| nok.all("td")[2].text == zedd}
     assert_operator i_zedd, :>, i_zombies, "Should be reverse-sorted, but... text="+page.all("table.artists_grid tbody tr").map{|m| m.all("td").map(&:text)}.inspect
+
+    ## transits to Japanese
+    assert_equal "日本語",  page.find(@css_swithcer_ja).text
+    assert_equal "日本語",  page.find(@css_swithcer_ja+" a").text
+    page.find(@css_swithcer_ja+" a").click
+    refute_selector                   @css_swithcer_ja+" a"
+    assert_equal "English", page.find(@css_swithcer_en).text
+
+    ## Test of sorting. In the initial state, Haramichan should come first. 
+    #  In any subsequent sorting, the initial condition should be ignored.
+    title_newest_ja = "最新"
+    title_newest_en = "A"  # should come first in English-title sorting
+    tnow = Time.now
+    artist_newest = Artist.create_with_orig_translation!({sex: Sex.first, created_at: tnow}, translation: {title: title_newest_ja, langcode: 'ja'})
+    artist_newest.create_translation!(title: title_newest_en, is_orig: false, langcode: 'en')
+    artist_newest.reload
+    Artist.create_with_orig_translation!({sex: Sex.first, created_at: Time.at(1)}, translation: {title: "B", langcode: 'en'})  # This one (newest ID, old created_at) is created in order to properly test "created_id DESC" condition in ArtistsController#index; otherwise there is a chance artist_newest would come first right after Haramichan anyway simply because of its ID (to be fair, usually youngest ID comes first and so this artist would not do much in fact, as I realised later).
+    assert_equal tnow, artist_newest.created_at, "sanity check fails: "+artist_newest.inspect
+    assert_equal artist_newest, Artist.order(created_at: :desc).first, "sanity check fails [first, last]: "+[Artist.order(created_at: :desc).first, Artist.order(created_at: :desc).last].inspect
+
+    ## Reset
+    page.find("form#new_artists_grid div.datagrid-actions a.datagrid-reset").click
+    assert_empty page.find("form#new_artists_grid div.datagrid-filter input#artists_grid_title_en").text, 'sanity check'
+
+    assert_equal "ハラミちゃん",  page.all("table.artists_grid tbody tr td.title_ja")[0].text.strip
+    assert_equal title_newest_ja, page.all("table.artists_grid tbody tr td.title_ja")[1].text.strip
+
+    page.find('table thead tr th.title_en div.order a.asc').click
+    first_non_null_en_text = page.all("table.artists_grid tbody tr td.title_en").find{|i| !i.text.strip.empty?}.text.strip
+    assert_equal title_newest_en, first_non_null_en_text
+
+    page.find('table thead tr th.title_en div.order a.desc').click  # entry with NULL may come first, but at least this operation should succeed
+    first_non_null_en_text = page.all("table.artists_grid tbody tr td.title_en").find{|i| !i.text.strip.empty?}.text.strip
+    refute_equal title_newest_en, first_non_null_en_text
   end
 end
 

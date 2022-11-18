@@ -56,6 +56,16 @@ class MusicTest < ActiveSupport::TestCase
 
   end
 
+  test "create with translation" do
+    title_existing = Translation.where(translatable_type: "Music", langcode: "en", is_orig: true).first.title_or_alt
+    bwt_new = Music.create_with_orig_translation!({}, translation: {title: title_existing, langcode: 'en'})
+    assert_equal title_existing, bwt_new.title, "Music can have an existing title, as long as the Artist differs, but..."
+
+    tit = 'a random new music'
+    bwt_new = Music.create_with_orig_translation!({}, translation: {title: tit, langcode: 'en'})
+    assert_equal tit, bwt_new.title
+  end
+
   test "unknown" do
     assert Music.unknown
     assert_operator 0, '<', Music.unknown.id

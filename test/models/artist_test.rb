@@ -81,6 +81,19 @@ class ArtistTest < ActiveSupport::TestCase
 
   end
 
+  test "create with translation" do
+    tit = 'a random new music'
+    #assert_raises(ActiveRecord::RecordInvalid, ActiveRecord::NotNullViolation){ # the latter for DB level.
+    assert_raises(ActiveRecord::RecordInvalid, "Sex must exist"){
+      Artist.create_with_orig_translation!({}, translation: {title: tit, langcode: 'en'})}
+    bwt_new = Artist.create_with_orig_translation!({sex: Sex.first}, translation: {title: tit, langcode: 'en'})
+    assert_equal tit, bwt_new.title
+
+    title_existing = Translation.where(translatable_type: "Artist", langcode: "en", is_orig: true).first.title_or_alt
+    bwt_new = Artist.create_with_orig_translation!({sex: Sex.first}, translation: {title: title_existing, langcode: 'en'})
+    assert_equal title_existing, bwt_new.title, "Artist can have an existing title, as long as the Place differs, but..."
+  end
+
   test "custom unique constraints" do
     art1 = artists( :artist1 )
 

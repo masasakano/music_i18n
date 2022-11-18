@@ -18,12 +18,12 @@ class ArtistsController < ApplicationController
     # It is caught in application_controller.rb
     ArtistsGrid.current_user = current_user
     ArtistsGrid.is_current_user_moderator = (current_user && current_user.moderator?)
-#logger.debug "DEBUG:moderator?=#{ArtistsGrid.is_current_user_moderator.inspect}"
-    #harami = Artist['ハラミちゃん', "ja"]  # Haramichan always comes first!
-    #sql_order = Arel.sql("CASE artists.id WHEN #{harami.id rescue 0} THEN 0 ELSE 1 END, created_at DESC")
-    #@grid = MusicsGrid.new(order: sql_order, **grid_params) do |scope|  ## Does NOT work.
-    @grid = ArtistsGrid.new(order: :created_at, descending: true, **grid_params) do |scope|
+    @grid = ArtistsGrid.new(**grid_params) do |scope|
       nmax = BaseGrid.get_max_per_page(grid_params[:max_per_page])
+      if grid_params[:order].blank?
+        harami = Artist['ハラミちゃん', "ja"]  # Haramichan always comes first!
+        scope = scope.order(Arel.sql("CASE artists.id WHEN #{harami.id rescue 0} THEN 0 ELSE 1 END, created_at DESC"))
+      end
       scope.page(params[:page]).per(nmax)
     end
   end
