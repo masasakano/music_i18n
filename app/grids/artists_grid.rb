@@ -2,10 +2,9 @@
 class ArtistsGrid < BaseGrid
 
   scope do
-    #Artist.all
-    #Artist.order(updated_at: :desc)  # This will mess up all subsequent sorting attempts!
-    harami = Artist['ハラミちゃん', "ja"]  # Haramichan always comes first!
-    Artist.order(Arel.sql("CASE artists.id WHEN #{harami.id rescue 0} THEN 0 ELSE 1 END"))  # This work OK, surprisingly!
+    Artist.all
+    #harami = Artist['ハラミちゃん', "ja"]  # Haramichan always comes first!
+    #Artist.order(Arel.sql("CASE artists.id WHEN #{harami.id rescue 0} THEN 0 ELSE 1 END"))  # This work OK, surprisingly!
   end
 
   ####### Filters #######

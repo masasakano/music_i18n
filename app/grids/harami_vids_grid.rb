@@ -3,7 +3,6 @@ class HaramiVidsGrid < BaseGrid
 
   scope do
     HaramiVid.all
-    #HaramiVid.order(updated_at: :desc)  # This will mess up all subsequent sorting attempts!
   end
 
   ####### Filters #######

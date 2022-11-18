@@ -5,7 +5,7 @@ class TranslationsGrid < BaseGrid
   Translator     = Role['editor',    'translation']
 
   scope do
-    Translation
+    Translation.all
   end
 
   ####### Filters #######

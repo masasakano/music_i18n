@@ -3,7 +3,6 @@ class MusicsGrid < BaseGrid
 
   scope do
     Music.all
-    #Music.order(updated_at: :desc)  # This will mess up all subsequent sorting attempts!
   end
 
   ####### Filters #######

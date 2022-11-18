@@ -3,7 +3,6 @@ class Harami1129sGrid < BaseGrid
 
   scope do
     Harami1129.all
-    # Harami1129.order(created_at: :desc)
   end
 
   filter(:id_remote, :integer)
@@ -17,7 +16,7 @@ class Harami1129sGrid < BaseGrid
 
   ####### Columns #######
 
-  column("✅".html_safe, mandatory: true) do |record|
+  column(:status_mark, mandatory: true, header: Harami1129::TABLE_STATUS_MARKER[:ins_inconsistent]) do |record|
     record.populate_status.sorted_status(return_markers: true).first
   end
   column(:id) do |record|

@@ -12,7 +12,7 @@ class HaramiVidsController < ApplicationController
     HaramiVidsGrid.current_user = current_user
     HaramiVidsGrid.is_current_user_moderator = (current_user && current_user.moderator?)
 #logger.debug "DEBUG:moderator?=#{HaramiVidsGrid.is_current_user_moderator.inspect}"
-    @grid = HaramiVidsGrid.new(grid_params) do |scope|
+    @grid = HaramiVidsGrid.new(order: :release_date, descending: true, **grid_params) do |scope|
       nmax = BaseGrid.get_max_per_page(grid_params[:max_per_page])
       scope.page(params[:page]).per(nmax)
     end

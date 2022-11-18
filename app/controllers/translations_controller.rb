@@ -13,11 +13,9 @@ class TranslationsController < ApplicationController
     # It is caught in application_controller.rb
     TranslationsGrid.current_user = current_user
     TranslationsGrid.is_current_user_moderator = (current_user && current_user.moderator?)
-    @n_rows = nil
     @cur_page = nil
-    @grid = TranslationsGrid.new(grid_params) do |scope|
+    @grid = TranslationsGrid.new(order: :updated_at, descending: true, **grid_params) do |scope|
       nmax = BaseGrid.get_max_per_page(grid_params[:max_per_page])
-      @n_rows = scope.count
       @cur_page = scope.page(params[:page]).per(nmax)
     end
   end
