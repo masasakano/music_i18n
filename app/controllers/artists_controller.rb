@@ -3,7 +3,8 @@ class ArtistsController < ApplicationController
   include ModuleCommon # for split_hash_with_keys
 
   skip_before_action :authenticate_user!, :only => [:index, :show]
-  before_action :set_artist, only: [:show, :edit, :update, :destroy]
+  before_action :set_artist,    only: [:show, :edit, :update, :destroy]
+  before_action :set_countries, only: [:new, :create, :edit, :update] # defined in application_controller.rb
   load_and_authorize_resource except: [:index, :show]
 
   # String of the main parameters in the Form (except "place_id")
@@ -37,23 +38,16 @@ class ArtistsController < ApplicationController
   def new
     @artist = Artist.new
     params.permit(:sex_id, :place_id, :birth_year, :birth_month, :birth_day, :wiki_ja, :wiki_en, :note)
-    @countries = Country.all
-    @prefectures = Prefecture.all
     #@places = Place.all
   end
 
   # GET /artists/1/edit
   def edit
-    @countries = Country.all
-    @prefectures = Prefecture.all
-    @places = Place.all
   end
 
   # POST /artists
   # POST /artists.json
   def create
-    @countries = Country.all
-    @prefectures = Prefecture.all
     # Parameters: {"authenticity_token"=>"[FILTERED]", "artist"=>{"langcode"=>"en", "title"=>"AI", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "place.prefecture_id.country_id"=>"3153", "place.prefecture_id"=>"", "place_id"=>"", "sex_id"=>"0", "birth_year"=>"", "birth_month"=>"", "birth_day"=>"", "wiki_en"=>"", "wiki_ja"=>"", "note"=>""}, "commit"=>"Create Artist"}
     params.permit!
     hsprm = params.require(:artist).permit(
@@ -71,8 +65,6 @@ class ArtistsController < ApplicationController
   # PATCH/PUT /artists/1
   # PATCH/PUT /artists/1.json
   def update
-    @countries = Country.all
-    @prefectures = Prefecture.all
     params.permit!
     hsprm = params.require(:artist).permit(
       :sex_id, :birth_year, :birth_month, :birth_day, :wiki_ja, :wiki_en, :note,
@@ -110,5 +102,4 @@ class ArtistsController < ApplicationController
     def artist_params
       params.require(:artist).permit(:sex_id, :place_id, :birth_year, :birth_month, :birth_day, :wiki_ja, :wiki_en, :note)
     end
-
 end

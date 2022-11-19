@@ -3,6 +3,7 @@ class MusicsController < ApplicationController
 
   skip_before_action :authenticate_user!, :only => [:index, :show]
   before_action :set_music, only: [:show, :edit, :update, :destroy]
+  before_action :set_countries, only: [:new, :create, :edit, :update] # defined in application_controller.rb
   load_and_authorize_resource except: [:index, :show]
 
   # String of the main parameters in the Form (except "place_id")
@@ -33,17 +34,11 @@ class MusicsController < ApplicationController
   # GET /musics/new
   def new
     @music = Music.new
-    @countries = Country.all
-    @prefectures = Prefecture.all
-    #@places = Place.all
     set_artist_prms  # set @artist, @artist_name, @artist_title
   end
 
   # GET /musics/1/edit
   def edit
-    @countries = Country.all
-    @prefectures = Prefecture.all
-    #@places = Place.all
   end
 
   # POST /musics
@@ -88,8 +83,6 @@ class MusicsController < ApplicationController
         end
         format.json { render :show, status: :created, location: @music }
       else
-        @countries = Country.all
-        @prefectures = Prefecture.all
         format.html { render :new }
         format.json { render json: @music.errors, status: :unprocessable_entity }
       end

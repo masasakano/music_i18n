@@ -61,7 +61,7 @@ module ModuleCommon
   # @return [String] "県 — 場所 (国)"
   def txt_place_pref_ctry(langcode: I18n.locale, prefer_alt: true, **opts)
     ar = place.title_or_alt_ascendants(langcode: langcode, prefer_alt: prefer_alt, **opts);
-    sprintf '%s %s(%s)', ar[1], (ar[0].blank? ? '' : '— '+ar[0]+' '), ar[2]
+    sprintf '%s %s(%s)', definite_article_to_head(ar[1]), (ar[0].blank? ? '' : '— '+definite_article_to_head(ar[0])+' '), definite_article_to_head(ar[2])
   end
 
   # Returns I18n Date-string from Date with potentiallyy unknown elements
@@ -227,12 +227,15 @@ module ModuleCommon
   # String is assumed to have been already stripped.
   # A space between the final comma and an article is not mandatory.
   #
+  # If nil is given, returns nil.
+  #
   # @example
   #   definite_article_to_head("Beatles, The") # => "The Beatles"
   #
-  # @param instr [String]
-  # @return [String]
+  # @param instr [String, NilClass]
+  # @return [String, NilClass]
   def definite_article_to_head(instr)
+    return instr if !instr
     instr.sub(/\A(.+),\s*(#{DEFINITE_ARTICLES_REGEXP_STR})\z/i){$2+" "+$1}
   end
 

@@ -113,6 +113,10 @@ en:
   artists:
     new:
       please_add_music: "Please add a Music(s) once you have created an Artist."
+    _form:
+      birth_year: "Birth year (maybe of Group)"
+      birth_month: "Birth month (0 means unknown)"
+      birth_day: "Birth day (0 means unknown)"
 
   musics:
     index:

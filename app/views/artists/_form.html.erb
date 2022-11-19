@@ -75,56 +75,56 @@
   <div class="field" id="div_select_country">
     <%= form.label 'place.prefecture_id.country_id', t('Country')%>
     <% country = artist.country %>
-    <%= form.collection_select 'place.prefecture_id.country_id', @countries, :id, Proc.new{|i| i.title_or_alt(langcode: 'ja', prefer_alt: true, str_fallback: "NONE")}, {include_blank: !country, selected: (country ? country.id : nil)} %> <%# If no translation exists and left empty (instead of "NONE"), it would violate the HTML spec: Element “option” without attribute “label” must not be empty. %>
+    <%= form.collection_select 'place.prefecture_id.country_id', @countries, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, {include_blank: !country, selected: (country ? country.id : nil)} %> <%# If no translation exists and left empty (instead of "NONE"), it would violate the HTML spec: Element “option” without attribute “label” must not be empty. %>
   </div>
 
   <div class="field" id="div_select_prefecture">
     <%= form.label 'place.prefecture_id', t('Prefecture') %>
     <% prefecture = artist.prefecture %>
-    <%= form.grouped_collection_select 'place.prefecture_id', @countries, :prefectures, Proc.new{|i| i.title_or_alt(langcode: 'ja', prefer_alt: true, str_fallback: "NONE")}, :id, Proc.new{|i| i.title_or_alt(langcode: 'ja', prefer_alt: true)}, {include_blank: true, selected: (prefecture ? prefecture.id : nil)} %>
+    <%= form.grouped_collection_select 'place.prefecture_id', @countries, :prefectures, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true)}, {include_blank: true, selected: (prefecture ? prefecture.id : nil)} %>
   </div>
 
   <div class="field" id="div_select_place">
     <%= form.label :place, t('Place') %>
     <% place = artist.place %>
-    <%= form.grouped_collection_select 'place', @prefectures, :places, Proc.new{|pref| a=pref.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true); a[0]+'/'+a[1]}, :id, Proc.new{|plac| plac.title_or_alt(langcode: 'ja', prefer_alt: true)}, {include_blank: true, selected: (place ? place.id : nil)} %>
+    <%= form.grouped_collection_select 'place', @prefectures, :places, Proc.new{|pref| a=pref.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true); a[0]+'/'+a[1]}, :id, Proc.new{|plac| plac.title_or_alt(langcode: I18n.locale, prefer_alt: true)}, {include_blank: true, selected: (place ? place.id : nil)} %>
   </div>
 
   <div class="field">
     <%= t('Sex')%>
     <% Sex.all.each do |es| %>
       <%= form.radio_button(:sex_id, es.id, checked: (es.id == 0)) %>
-      <%= form.label :sex_id, es.title(langcode: 'ja'), :value => es.id %>
+      <%= form.label :sex_id, es.title(langcode: I18n.locale), :value => es.id %>
     <% end %>
   </div>
 
   <div class="field">
-    <%= form.label :birth_year, '誕生(グループの場合は結成)年' %>
+    <%= form.label :birth_year, t("artists._form.birth_year") %>
     <%= form.number_field :birth_year, value: artist.birth_year, placeholder: 'e.g., 1999', class: 'input_year' %>
   </div>
 
   <div class="field">
-    <%= form.label :birth_month, '誕生月 (1——12) (0 means undefined)' %>
+    <%= form.label :birth_month, t("artists._form.birth_month") %>
     <%= form.number_field :birth_month, in: 0..12, class: 'input_year' %>
   </div>
 
   <div class="field">
-    <%= form.label :birth_day, '誕生日 (1——31) (0 means undefined)' %>
+    <%= form.label :birth_day, t("artists._form.birth_day") %>
     <%= form.number_field :birth_day, in: 0..31, class: 'input_year' %>
   </div>
 
   <div class="field">
-    <%= form.label :wiki_en, 'Wikipedia (英語版) URI' %>
+    <%= form.label :wiki_en, 'Wikipedia ('+t("locale.long.en")+') URI' %>
     <%= form.text_field :wiki_en %>
   </div>
 
   <div class="field">
-    <%= form.label :wiki_ja, 'Wikipedia (日本語版) URI' %>
+    <%= form.label :wiki_ja, 'Wikipedia ('+t("locale.long.ja")+') URI' %>
     <%= form.text_field :wiki_ja %>
   </div>
 
   <div class="field">
-    <%= form.label :note %>
+    <%= form.label :note, t("tables.note") %>
     <%= form.text_area :note %>
   </div>
 
@@ -132,7 +132,7 @@
     <%= form.submit %>
   </div>
   <div class="actions">
-  <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
   </div>
 <% end %>
 

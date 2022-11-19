@@ -255,7 +255,7 @@ allcnts.each do |ea_cnt|
   sym = :iso3166_a2_code  # a2 is used b/c neither iso3166_n3_code nor iso3166_a3_code is defined for "the Republic of Kosovo".
   if !ENV['LOAD_COUNTRIES'].blank?
     # Limit the countries to load
-    valids = ENV['LOAD_COUNTRIES'].strip.split(/\s*,\s*/)
+    valids = ENV['LOAD_COUNTRIES'].strip.split(/\s*,\s*/).map{|i| i.blank? ? nil : i}.compact
     next if !valids.include? hstmp[sym].to_s
   end
   if !Country.find_by(sym => hstmp[sym])

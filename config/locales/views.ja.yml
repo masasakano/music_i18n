@@ -126,6 +126,10 @@ ja:
   artists:
     new:
       please_add_music: "Artistを登録した後、Music登録も忘れずお願いします。"
+    _form:
+      birth_year: "誕生(グループの場合は結成)年"
+      birth_month: "誕生月 (1——12) (0は未定義の意味)"
+      birth_day: "誕生日 (1——31) (0は未定義の意味)"
 
   musics:
     index:

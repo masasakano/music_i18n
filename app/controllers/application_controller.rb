@@ -318,6 +318,12 @@ class ApplicationController < ActionController::Base
       locale = (params[:locale].blank? ? I18n.default_locale : params[:locale])
       I18n.with_locale(locale, &action)
     end
+
+    def set_countries
+      sql = "CASE countries.id WHEN #{Country.unknown.id rescue 9} THEN 0 WHEN #{Country['JP'].id rescue 9} THEN 1 ELSE 9 END, name_en_short"
+      @countries = Country.left_joins(:country_master).order(Arel.sql(sql))
+      @prefectures = Prefecture.all
+    end
 end
 
 Devise::ParameterSanitizer::DEFAULT_PERMITTED_ATTRIBUTES[:sign_up] << :accept_terms

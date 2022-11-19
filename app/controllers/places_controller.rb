@@ -1,6 +1,6 @@
 class PlacesController < ApplicationController
   before_action :set_place, only: [:show, :edit, :update, :destroy]
-  before_action :set_cp_all, only: [:index, :new, :edit, :create, :update]
+  before_action :set_countries, only: [:index, :new, :create, :edit, :update] # defined in application_controller.rb
   load_and_authorize_resource
 
   # String of the main parameters in the Form (except place-related)
@@ -88,14 +88,6 @@ class PlacesController < ApplicationController
     # Use callbacks to share common setup or constraints between actions.
     def set_place
       @place = Place.find(params[:id])
-    end
-
-    # Use callbacks to set all for Country and Prefecture
-    #
-    # Necessary for the candidates for HTML select (even for index and show in case of error)
-    def set_cp_all
-      @countries = Country.all
-      @prefectures = Prefecture.all
     end
 
     # Only allow a list of trusted parameters through.
