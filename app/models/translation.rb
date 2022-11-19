@@ -155,6 +155,12 @@ class Translation < ApplicationRecord
   # All the accepted {Translation::MATCH_METHODS}
   ACCEPTED_MATCH_METHODS = [:exact_absolute] + MATCH_METHODS
 
+  # Default weight increment for a new Translation
+  DEF_WEIGHT_INCREMENT_NEGATIVE = -8
+
+  # Default weight increment for a demoted Translation (+4)
+  DEF_WEIGHT_INCREMENT_POSITIVE = DEF_WEIGHT_INCREMENT_NEGATIVE.abs.quo(2)
+
   validates :title, uniqueness: { scope: [:alt_title, :ruby, :alt_ruby, :romaji, :alt_romaji, :langcode, :translatable_type, :translatable_id] }
   # NOTE: PostgreSQL does not validate the values when one of any values (whether
   #   existing or new) is null.  But Rails does.
@@ -246,10 +252,32 @@ class Translation < ApplicationRecord
   #
   # Tries to use the DB.  But in failing, Array is returned.
   #
+  # As for {#is_orig}, nil and false are regarded identical, because
+  # users are anticipated to be careless about the difference and
+  # anyway nil and false should not coexist. Only 2 choices are;
+  #
+  # 1. Only one of them is true, and the rest are false.
+  # 2. All of them are nil (e.g., "fish" and "魚").
+  #
+  # For the weight, the order is normal positive numbers, Infinity,
+  # and nil. The normal positive numbers should be unique but Infinity
+  # and nil may not be. They are sorted in the reverse order of `created_at`,
+  # i.e., the oldest comes last. In fact, a create callback ({#set_create_user})
+  # converts nil to Infinity automatically, and so nil is unlikely for weight
+  # (though not impossible to set)...
+  # In summary,
+  #
+  # 1. normal numbers
+  # 2. Infinity (most recent)
+  # 3. Infinity (oldest)
+  # 4. nil (most recent)
+  # 5. nil (oldest)
+  #
   # @return [ActiveRecord::AssociationRelation, Array]
   def self.sort(rela)
     begin
-      rela.order(Arel.sql('CASE WHEN is_orig IS NULL THEN 1 ELSE 0 END, is_orig DESC')).order(Arel.sql('CASE WHEN weight IS NULL THEN 1 ELSE 0 END, weight'))  # regardless of DBs; cf. https://stackoverflow.com/a/68698547/3577922
+      rela.order(Arel.sql("CASE WHEN is_orig IS NOT TRUE THEN 1 ELSE 0 END")).order(Arel.sql("CASE WHEN weight IS NULL THEN 2 WHEN weight = 'inf' THEN 1 ELSE 0 END, weight")).order(created_at: :desc)  # regardless of DBs; cf. https://stackoverflow.com/a/68698547/3577922
+      #rela.order(Arel.sql('CASE WHEN is_orig IS NULL THEN 1 ELSE 0 END, is_orig DESC')).order(Arel.sql('CASE WHEN weight IS NULL THEN 1 ELSE 0 END, weight'))  # regardless of DBs; cf. https://stackoverflow.com/a/68698547/3577922
     rescue NoMethodError
       rela.sort
     end
@@ -1677,16 +1705,70 @@ class Translation < ApplicationRecord
     return Float::INFINITY if !user
     role = user.highest_role_in(RoleCategory[RoleCategory::MNAME_TRANSLATION])
     return Float::INFINITY if !role
-    return role.weight if !translatable  # only possible when this is a new_record
+    return Float::INFINITY if !translatable  # only possible when this is a new_record. This used to be role.weight but then it may violate the unique constraint.
 
     immediate_superior = role.superiors[-1]  # If current_user is sysadmin, it is nil
     higher_than = (immediate_superior ? immediate_superior.weight : 0)  # returned weight is guaranteed to be higher than this value
-    best_trans = self.class.sort(self.class.where(translatable: translatable, langcode: langcode).where('weight > ?', higher_than).where.not(id: id)).first
+    best_trans = self.class.sort(self.class.where(translatable: translatable, langcode: langcode).where('weight > ?', higher_than).where.not(id: id)).first   ############## This should be simplified with method siblings()
     if !best_trans  # i.e., if there are no other translations for the term in the language by people including current_user at the same rank as current_user
-      return ((role.weight > 0) ? role.weight : 1) # the latter is for sysadmin only (role.weight == 0).
+      return ((role.weight > 0) ? role.weight : 1) # the latter is for sysadmin only (role.weight might be 0).
     end
-    btw = (best_trans.weight ? best_trans.weight : 0)
-    ((btw-1 > higher_than) ? [role.weight, (btw-1)].min : (higher_than + btw).quo(2))
+    btw =
+      case best_trans.weight
+      when nil, Float::INFINITY
+        role.weight
+      else
+        best_trans.weight
+      end
+
+    # Note: DEF_WEIGHT_INCREMENT_NEGATIVE is a negative value.
+    ((btw+DEF_WEIGHT_INCREMENT_NEGATIVE > higher_than) ? [role.weight, (btw+DEF_WEIGHT_INCREMENT_NEGATIVE)].min : (higher_than + btw).quo(2))
+  end
+
+  # Get the weight after the one immediately higher than that of self.
+  #
+  # Assumed to be called from {Translations::DemotesController#update}
+  #
+  # == Algorithm
+  #
+  # Returns a weight constant (Integer) offset from the next higher weight.
+  # However, that is not always aplicable. So, some amount of adjustment
+  # is required.
+  #
+  # @note
+  #   It should be guaranteed that there is a sibling(s) whose weight is larger than self
+  #   and {#is_orig} is not true.
+  #
+  # @return [Array<Float, Hash<Symbol>>, NilClass] returns nil if the next weight will be invalid,
+  #    such as Infinity.
+  #    The caller should deal with it. Else, returns 2-element Array: the first one is the new weight
+  #    and second, Hash containing info of the current best Translation (for Flash message).
+  def weight_after_next
+    dbkeys = [:id, :title, :alt_title, :weight]
+    hsi_pluck = self.class.array_to_hash(dbkeys).with_indifferent_access  # HaSh-Index_PLUCK
+    arpluck = siblings.pluck(*dbkeys)
+    i_mine = arpluck.find_index{|ea| ea[hsi_pluck[:id]] == id}
+
+    raise "This should never happen... arpluck=#{arpluck.inspect}; self={@translation.inspect}" if i_mine >= arpluck.size-1 || is_orig # should have been caught and raised CanCanCan::AccessDenied
+
+    next_weight = arpluck[i_mine+1][hsi_pluck[:weight]] 
+    if !next_weight || Float::INFINITY == next_weight
+      return nil
+    end
+
+    new_weight = next_weight+Translation::DEF_WEIGHT_INCREMENT_POSITIVE
+    new_weight =
+      if i_mine < arpluck.size-2
+        [new_weight, (next_weight + arpluck[i_mine+2][hsi_pluck[:weight]])/2.0].min  # The latter (i.e., weight of the second next weighty Translation) may be Infinity.
+      else
+        new_weight
+      end
+    hsbest = {
+      id: arpluck[0][hsi_pluck[:id]],
+      title: (arpluck[i_mine][hsi_pluck[:title]].blank? ? arpluck[i_mine][hsi_pluck[:alt_title]] : arpluck[0][hsi_pluck[:title]]),
+      weight: arpluck[0][hsi_pluck[:weight]],
+    }
+    [new_weight, hsbest]
   end
 
   # Callback before_validation and before_save

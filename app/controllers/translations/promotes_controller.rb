@@ -16,8 +16,8 @@ class Translations::PromotesController < ApplicationController
   # and nothing in between, although admin's default Translation weight is 1.
   def self.allowed?(tra)
     # return false if !can?(:update, Translations::PromotesController)  # This check should be done in UI (View). Besides, it is a bit awkward to use "can?" here.
-    return false if tra.weight && tra.weight <= 0
-    return true  if tra.is_orig
+    return false if tra.weight  && tra.weight <= 0
+    return true  if tra.is_orig && (!tra.weight || tra.weight > 0)
 
     # If the sibling of the same langcode has is_orig==true
     # and if this translation has the second highest weight,
@@ -28,33 +28,30 @@ class Translations::PromotesController < ApplicationController
     return false if best_tra.is_orig && tra == tra.siblings[1]
 
     return true
-    #role = user.highest_role_in(RoleCategory[RoleCategory::MNAME_TRANSLATION])
-    #return false if !tra.slation.create_user
-    #other_role = tra.slation.create_user.highest_role_in(RoleCategory[RoleCategory::MNAME_TRANSLATION])
-    #return true if !other_role.superior_to?(role) || (tra.slation.is_orig? && tra.slation.weight > 0)
   end
 
   def update
     authorize! :update, Translations::PromotesController
 
     if !self.class.allowed?(@translation)
+      # The UI should be designed not to reach this point.
       raise CanCanCan::AccessDenied.new("Not authorized to promote Translation=#{@translation.title_or_alt.inspect}", :update, Translations::PromotesController)
     end
 
     best_tra, best_weight = @translation.best_translation_with_weight
-    weight = (@translation.is_orig ? 0 : @translation.def_weight(current_user))
+    new_weight = (@translation.is_orig ? 0 : @translation.def_weight(current_user))
 
     opts = {}
-    if @translation.weight && weight >= @translation.weight
+    if @translation.weight && new_weight >= @translation.weight
       msg = "The weight (=#{@translation.weight}) of the Translation is already as best (low) as it can be."
       opts[:warning] = msg
     end
 
-    if opts.empty? && @translation.update(weight: weight)
-      msg1 = "Successfully promoted the Translation (title_or_alt=#{@translation.title_or_alt.inspect}) with a new weight of #{weight}."
+    if opts.empty? && @translation.update(weight: new_weight)
+      msg1 = "Successfully promoted the Translation (title_or_alt=#{@translation.title_or_alt.inspect}) with a new weight of #{new_weight}."
       opts[:success] = msg1
       msg2 = nil
-      if best_weight < weight
+      if best_weight < new_weight
         msg2 = "Note this is not the best weight among siblings; the best weight for lang=#{@translation.langcode} is #{best_weight} (title_or_alt=#{best_tra.title_or_alt.inspect})."
         opts[:warning] = msg2  # success and warning messages will be displayed
       end

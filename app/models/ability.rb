@@ -107,6 +107,7 @@ return if !user   # to prohibit everything needing authorization (but :read) fro
       #cannot(:ud,  Translation){|trans| !trans.translatable || Ability.new(user).cannot?(:update, trans.translatable)}  # I think "can?" statement does not work.
       can(:ud, Translation){|trans| trans.create_user == user }  # Can edit/update/delete their own Translations.
       can :manage, [Musics::MergesController, Artists::MergesController]
+      can(:update, Translations::DemotesController)
     end
 
     ## Higher rank

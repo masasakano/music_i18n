@@ -631,6 +631,34 @@ class TranslationTest < ActiveSupport::TestCase
     ts[10].update! is_orig: false, weight: 0
     tra = Translation.find_by_a_title(:titles, 'T', translatable: sex)
     assert_equal     ts[10], tra
+
+    # infinity and nil weight 
+    kampai = musics(:music_kampai)
+    entrans = kampai.translations_with_lang(langcode: "en")
+    assert_operator entrans.count, :>, 3, 'sanity check'
+    kampai_worst = entrans.last
+    assert_nil     kampai_worst.weight, 'sanity check'
+
+    # for testing sake, no other weight=nil in the siblings
+    kampai_worst.update!(weight: 10e5)
+    entrans = kampai.translations_with_lang(langcode: "en")
+    assert_operator entrans.second.weight, :<, kampai_worst.weight, 'sanity check'
+
+    ts[21] = Translation.create!(translatable: sex, langcode: 'en', is_orig: nil, title: 'W', weight: Float::INFINITY)
+    ts[22] = Translation.create!(translatable: sex, langcode: 'en', is_orig: nil, title: 'X', weight: nil)
+    ts[22].reload
+    assert_equal Float::INFINITY, ts[22].weight  # because of set_create_user callback
+    ts[22].weight = nil
+    ts[22].save!(validate: false)
+    assert_nil ts[22].weight
+    ts[23] = Translation.create!(translatable: sex, langcode: 'en', is_orig: nil, title: 'Y', weight: nil)
+    ts[24] = Translation.create!(translatable: sex, langcode: 'en', is_orig: nil, title: 'Z', weight: Float::INFINITY)
+    t_sibs = ts[20].siblings
+    assert_equal 25, t_sibs.count
+    assert_equal ts[22], t_sibs[-1] # X
+    assert_equal ts[21], t_sibs[-2] # Y
+    assert_equal ts[23], t_sibs[-3] # W
+    assert_equal ts[24], t_sibs[-4] # Z
   end
 end
 

@@ -5,11 +5,16 @@
      allcolspan += (can?(:index, Translation) ? 1 : 0)
      action_colspan = (can?(:show, Translation)  ? 2 : 0)
      allcolspan += action_colspan
-     increment =  (can?(:crud, Translation)  ? 1 : 0)  # showing a weight column
-     #increment += (can?(:update, Translations::DemotesController) ? 1 : 0)
-     increment += (can?(:update, Translations::PromotesController) ? 1 : 0)
-     allcolspan     += increment 
-     action_colspan += increment
+     increment1 =  (can?(:crud, Translation)  ? 1 : 0)  # showing a weight column
+
+     hsflag = {
+       demotable:  can?(:update, Translations::DemotesController),
+       promotable: can?(:update, Translations::PromotesController),
+     }
+     
+     increment2 = (hsflag[:demotable] ? 1 : 0) + (hsflag[:promotable] ? 1 : 0)
+     allcolspan     += increment1 +  increment2
+     action_colspan += increment1 +  increment2
    %>
   <thead>
     <tr>
@@ -57,24 +62,30 @@
         <td class="align-r"><%= tra.weight%></td>
       <% end %>
       <% if defined?(myself) && tra == myself %>
-        <td colspan="2"><strong>SELF</strong></td>  <%# Called from Translation-Edit %>
+        <td colspan="2" class="align-c" style="<%= (hsflag[:demotable] || hsflag[:promotable]) ? 'border-right-style: none;' : ''  %>"><strong>SELF</strong></td>  <%# Called from Translation-Edit %>
       <% else %>
         <% if can? :show, tra %>
           <td style="border-right-style: none;"><%= link_to 'Show', tra %></td>
         <% end %>
-        <td style="border-left-style: none;">
+        <td style="border-left-style: none;<%= (hsflag[:demotable] || hsflag[:promotable]) ? 'border-right-style: none;' : ''  %>">
         <% if tra.editable?(user: current_user) %>
-          <%= link_to 'Edit', edit_translation_path(tra) %>
+          / <%= link_to 'Edit', edit_translation_path(tra) %>
         <% end %>
         </td>
       <% end %>
-      <%# if can?(:update, Translations::DemotesController) %>
-      <%# end %>
+      <% if can?(:update, Translations::DemotesController) %>
+        <td style="border-left-style: none;<%= hsflag[:promotable] ? 'border-right-style: none;' : ''  %>">
+          <% if Translations::DemotesController.allowed?(tra) %>
+            <%  strlink = "Demote↓" %>
+             / <%= link_to strlink, translations_update_demotes_path(tra) %>
+          <% end %>
+        </td>
+      <% end %>
       <% if can?(:update, Translations::PromotesController) %>
         <td style="border-left-style: none;">
           <% if Translations::PromotesController.allowed?(tra) %>
-            <%  strlink = (tra.is_orig ? '<span title="Weight should be zero because this is the original. Please promote it.">Promote</span>'.html_safe : "Promote") %>
-            <%= link_to strlink, translations_update_promotes_path(tra) %>
+            <%  strlink = (tra.is_orig ? '<span title="Weight should be zero because this is the original. Please promote it.">Promote↑</span>'.html_safe : "Promote↑") %>
+            / <%= link_to strlink, translations_update_promotes_path(tra) %>
           <% end %>
         </td>
       <% end %>
