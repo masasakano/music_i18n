@@ -138,3 +138,7 @@ ja:
     index:
       assoc_engage: "(他のArtistとこの曲「%{music_title}」)"
 
+  translations:
+    show:
+      is_orig: "これが原語か?"
+

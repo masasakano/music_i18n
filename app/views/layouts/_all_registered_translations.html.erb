@@ -1,14 +1,15 @@
 <h2>All registered <%= defined?(myself) ? 'translations' : 'translated names' %></h2>
 
 <table>
-  <% colspan =
-       if can? :crud, Translation
-         9
-       elsif can? :show, Translation
-         8
-       else
-         6
-       end
+  <% allcolspan = 6
+     allcolspan += (can?(:index, Translation) ? 1 : 0)
+     action_colspan = (can?(:show, Translation)  ? 2 : 0)
+     allcolspan += action_colspan
+     increment =  (can?(:crud, Translation)  ? 1 : 0)  # showing a weight column
+     #increment += (can?(:update, Translations::DemotesController) ? 1 : 0)
+     increment += (can?(:update, Translations::PromotesController) ? 1 : 0)
+     allcolspan     += increment 
+     action_colspan += increment
    %>
   <thead>
     <tr>
@@ -18,11 +19,14 @@
       <th>[Ruby|Romaji]</th>
       <th>Alt title</th>
       <th>[Ruby/Romaji]</th>
+      <% if can? :index, Translation %>
+        <th>You?</th>
+      <% end %>
       <% if can? :show, Translation %>
         <% if can? :crud, Translation %>
           <th>Weight</th>
         <% end %>
-        <th colspan="2">Translation</th>
+        <th colspan="<%= action_colspan %>">Action</th>
       <% end %>
     </tr>
   </thead>
@@ -33,7 +37,7 @@
     <% add_tra_button = defined?(add_buttons) && add_buttons if add_tra_button.nil? %>
     <% alltra = model.translations_with_lang(langcode: lcode) %>
     <% next if !%w(ja en).include?(lcode) && alltra.empty? %>
-    <tr><th colspan="<%= colspan %>" class="middle_row"><%= BaseWithTranslation::LANGUAGE_TITLES[lcode.to_sym][lcode] || lcode %>
+    <tr><th colspan="<%= allcolspan %>" class="middle_row"><%= BaseWithTranslation::LANGUAGE_TITLES[lcode.to_sym][lcode] || lcode %>
       <% if add_tra_button && (tra1 && tra1.creatable_other?(user: current_user, langcode: lcode) || (!tra1 && can?(:destroy, Translation))) %>
         <%= button_to t('layouts.add_translation'), new_translation_path, form_class: "inline_form button_to", method: :get, params: { a_token: nil, langcode: lcode, translatable_type: model.class.name, translatable_id: model.id } %>
       <% end %>
@@ -46,8 +50,11 @@
       <td>[<%= (tra.ruby || '') + ' | ' + (tra.romaji || '') %>]</td>
       <td><%= tra.alt_title %></td>
       <td>[<%= (tra.alt_ruby || '') +  ' | ' + (tra.alt_romaji || '') %>]</td>
+      <% if can?(:index, Translation) %>
+        <td class="align-c"><%= [tra.create_user_id, tra.update_user_id].include?(current_user.id) ? "Yes" : "" %></td>
+      <% end %>
       <% if can? :crud, Translation %>
-        <td><%= tra.weight%></td>
+        <td class="align-r"><%= tra.weight%></td>
       <% end %>
       <% if defined?(myself) && tra == myself %>
         <td colspan="2"><strong>SELF</strong></td>  <%# Called from Translation-Edit %>
@@ -61,7 +68,16 @@
         <% end %>
         </td>
       <% end %>
-
+      <%# if can?(:update, Translations::DemotesController) %>
+      <%# end %>
+      <% if can?(:update, Translations::PromotesController) %>
+        <td style="border-left-style: none;">
+          <% if Translations::PromotesController.allowed?(tra) %>
+            <%  strlink = (tra.is_orig ? '<span title="Weight should be zero because this is the original. Please promote it.">Promote</span>'.html_safe : "Promote") %>
+            <%= link_to strlink, translations_update_promotes_path(tra) %>
+          <% end %>
+        </td>
+      <% end %>
     </tr>
     <% end %>
   <% end %>

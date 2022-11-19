@@ -164,6 +164,13 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_equal 'en',   bests['en'].langcode
     assert_equal s3name, bests['en'].title
     assert               bests['en'].is_orig
+    assert_equal s3.best_translation('ja'), bests['ja']
+    assert_equal s3.best_translation('en'), bests['en']
+    assert_equal s3.best_translation(),     bests['en']  # is_orig == true
+    assert_equal s3.best_translation(:all), bests['en']
+    assert_equal s3.best_translation('kr'), bests['en']
+    assert_nil   s3.best_translation('kr', fallback: false)
+    assert_equal s3.best_translation('kr', fallback: ['ja']), bests['ja']
 
     ## Error testing
     s4name = 'f4'

@@ -1555,10 +1555,13 @@ class Translation < ApplicationRecord
     cands.compact.first || ""
   end
 
-  # Get the sorted {Translation} Array belonging to the same parent for the language
+  # Get the sorted {Translation} Relation belonging to the same parent for the language
   #
   # If langcode is nil, the same as the langcode of self.
+  # If langcode is :all, langcode is not considered.
   # If exclude_self: is true, self will be excluded in the returned Array.
+  #
+  # @todo Refactor with {BaseWithTranslation#best_translation} and {BaseWithTranslation#translations_with_lang}
   #
   # @param lcode [String, NilClass] The redundant (same-meaning) argument to "langcode:"
   # @param langcode: [String, NilClass] e.g., 'ja'
@@ -1566,8 +1569,9 @@ class Translation < ApplicationRecord
   # @return [ActiveRecord::AssociationRelation]
   def siblings(lcode=nil, langcode: nil, exclude_self: false)
     lcode = (lcode || langcode || self.langcode).to_s
-    return [] if !translatable.respond_to? :translations  # Practically: translatable.nil?
-    ret = translatable.translations.where(langcode: lcode)
+    return self.class.none if !translatable.respond_to? :translations  # Practically: translatable.nil?
+    ret = translatable.translations
+    ret = ret.where(langcode: lcode) if !lcode.blank? || :all == lcode
     ret = ret.where.not(id: id) if exclude_self
     ret = self.class.sort(ret)
   end
@@ -1581,6 +1585,17 @@ class Translation < ApplicationRecord
     translatable.send __method__
   end
   alias_method :original_translation, :orig_translation if ! self.method_defined?(:original_translation)
+
+  # Wrapper for {#orig_translation}
+  #
+  # @param locale [String, Symbol, NilClass] if specified, search only for the langcode
+  def orig_translation_exists?(locale: nil)
+    return(is_orig || !!(translatable && translatable.send(orig_translation))) if !locale
+    return true if (langcode == locale.to_s && is_orig)
+    return false if !translatable
+    tra_orig = translatable.send(orig_translation)
+    tra_orig && tra_orig.langcode == locale.to_s
+  end
 
   # Wrapper for {BaseWithTranslation:orig_langcode}
   #
@@ -1606,6 +1621,44 @@ class Translation < ApplicationRecord
     end
   end
 
+  # Returns weight only, a wrapper of {#best_translation_with_weight}
+  #
+  # @param #see best_translation_with_weight}
+  def best_weight(**opts)
+    best_translation_with_weight(**opts)[1]
+  end
+
+  # Returns a two-element Array of [best-weight {Translation}, {#weight}]
+  #
+  # A wrapper of {#best_translation}
+  #
+  # @param locale [String, Symbol, NilClass] search only for the langcode. If unspecified, {#langcode} is used. If :all, langcode is not considered. 
+  # @param raw_weight [Boolean] If true (Def: false), when the {#is_orig} of the best {Translation} is true, its {#weight} on the DB is returned, whatever it is.  Otherwise, in such a case, 0 is returned.
+  # @param fallback [Boolean, Array] See {BaseWithTranslation#best_translation}
+  # @return [Float] 0 if {#is_orig} of true exists in one of the Translation-s AND raw_weight is false (Def), Float::INFINITY if translatable is not defined (which may happen only in an unsaved new record of Translation)
+  def best_translation_with_weight(locale: nil, raw_weight: false, fallback: false)
+    tra = best_translation(locale: locale, fallback: fallback) # if locale is nil, fallback is ignored.
+    return [tra, Float::INFINITY] if !tra
+    [tra, (tra ? ((!raw_weight && tra.is_orig) ? 0 : tra.weight) : nil)]
+  end
+
+  # Returns a the best-weight {Translation} for the same {#translatable}
+  #
+  # Internally uses {BaseWithTranslation#best_translation}, which uses
+  # {Translation.sort}
+  #
+  # This could be better written with direct use of {#siblings}, though
+  # implementation of +fallback+ needs thinking.
+  #
+  # @param locale [String, Symbol, NilClass] search only for the langcode. If unspecified, {#langcode} is used. If :all, langcode is not considered. 
+  # @param fallback [Boolean, Array] See {BaseWithTranslation#best_translation}
+  # @return [Translation, NilClass] nil if translatable is not defined (which may happen only in an unsaved new record of Translation)
+  def best_translation(locale: nil, fallback: false)
+    locale ||= langcode
+    return nil if !translatable
+    translatable.best_translation(locale, fallback: fallback) # if locale is nil, fallback is ignored.
+  end
+
   # Returns the {Translation#weight} to set in create.
   #
   # It is the current best-score {Translation} in current_user's role minus 1.
@@ -1613,12 +1666,11 @@ class Translation < ApplicationRecord
   # If the value-1 violates it, a middle (Float) value between the current lowest
   # of current_user's {Role} and the highest of the immediate senior Role.
   #
-  # For sysadmin, since the {Role#weight} is zero, which is the lowest value,
+  # This method consider the possibility that {Role#weight} is zero for sysadmin,
+  # which is not the case anymore (it is 1).  But if it aws zero, it is the lowest value,
   # and since there is a unique constraint (that all the {Translation#weight}
   # must be unique), any new translation is given a positive but very small value of weight.
-  #
-  # @note
-  # Maybe the admin's {Role#weight} is set 1. Then it would be simpler.
+  # Agian, it should not be the case anymore!
   #
   # @return [Numeric] Default weight for the user. Float::INFINITY if no user or if user has no {Role} for Translation.
   def def_weight(user=Translation.whodunnit)
@@ -1629,7 +1681,7 @@ class Translation < ApplicationRecord
 
     immediate_superior = role.superiors[-1]  # If current_user is sysadmin, it is nil
     higher_than = (immediate_superior ? immediate_superior.weight : 0)  # returned weight is guaranteed to be higher than this value
-    best_trans = self.class.sort(self.class.where(translatable: translatable, langcode: langcode).where('weight > ?', higher_than)).first
+    best_trans = self.class.sort(self.class.where(translatable: translatable, langcode: langcode).where('weight > ?', higher_than).where.not(id: id)).first
     if !best_trans  # i.e., if there are no other translations for the term in the language by people including current_user at the same rank as current_user
       return ((role.weight > 0) ? role.weight : 1) # the latter is for sysadmin only (role.weight == 0).
     end

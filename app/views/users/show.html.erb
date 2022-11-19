@@ -19,7 +19,7 @@
       <dt>Confirmed?</dt>
         <dd>No <%= button_to('Confirm', users_confirm_path(@user), method: :patch) %></dd>
 <% end %>
-      <dt>Numbers of Created(Updated)/Total Entries</dt>
+      <dt>Numbers of Created(Updated)/Total Entries (of Translations)</dt>
         <dd><%= @user.created_translations.size %> (<%= @user.updated_translations.size %>) / <%= Translation.count %></dd>
 <% if current_user && current_user.moderator? %>
       <dt>Role(s)</dt>
@@ -42,6 +42,7 @@
     <p>None.</p>
   <% else %>
     <%= form_with(method: :patch, url: users_edit_role_path(@user), data: { confirm: t('are_you_sure') }) do |form| %>
+      <% n_editable = 0 %>
       <% cur_node_depth = -1 %>
       <% @roletree.each do |node| %>
         <% if node.node_depth != cur_node_depth %>
@@ -54,6 +55,7 @@
         <% ehs = node.content %> <%# Hash %>
         <dd>
           <% ehs[:forms].each do |efopt| %> <%# UsersController::FormOpts %>
+            <% n_editable += 1 if !efopt.disabled? %>
             <%= form.radio_button(ehs[:id_name], efopt.role.id, checked: efopt.checked?, disabled: efopt.disabled?) %>
             <%= form.label ehs[:id_name], efopt.role.inspect(brief: true, with_role_category: false), :value => efopt.role.id %>
           <% end %>
@@ -65,7 +67,7 @@
       <% end %>
       <%= ("</dl>"*(cur_node_depth+1)).html_safe %>
 
-      <% if current_user.moderator? || current_user == @user %>
+      <% if n_editable > 0 %>  <%# current_user.moderator? || current_user == @user %>
         <div class="actions">
           <%= form.submit "Update Roles" %>
           <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>

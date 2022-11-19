@@ -1761,8 +1761,10 @@ class BaseWithTranslation < ApplicationRecord
   #
   # This method never returns nil, though may return an empty Array.
   #
-  # @param langcodearg [String, NilClass] Same as the optional argument and has a higher priority.
-  # @param langcode [String, NilClass] if nil, the same as the entry of is_orig==TRUE
+  # @todo Refactor with {best_translation} and {Translation#siblings}
+  #
+  # @param langcodearg [String, Symbol, NilClass] Same as the optional argument and has a higher priority.
+  # @param langcode [String, Symbol, NilClass] if nil, the same as the entry of is_orig==TRUE
   # @return [ActiveRecord::AssociationRelation, Array]
   def translations_with_lang(langcodearg=nil, langcode: nil)  # langcode given both in the main argument and option to be in line with {#titles} etc.
     begin
@@ -1782,6 +1784,41 @@ class BaseWithTranslation < ApplicationRecord
     end
 
     Translation.sort(translations.where(langcode: langcode.to_s))
+  end
+
+  # Best {Translation} for a specific language.
+  #
+  # If langcode is nil, the standard sorting/ordering (based on is_orig
+  # and weight) regardless of langcode is applied and fallback is ignored.
+  #
+  # If fallback==false (Def: true), the result is the same as
+  # {#best_translations}(langcode: your_langcode)
+  # though this is less heavy on DB-accesses.
+  #
+  # @param langcodearg [String, Symbol, NilClass] Same as the optional argument and has a higher priority.
+  # @param langcode [String, Symbol, NilClass] if nil or :all, langcode is not considered.
+  # @param fallback [Boolean, Array] if true (Def) and if no translations are found for the specified langcode, translations in other langcode is searched for according to the priority of original language and then I18n.available_locales . Or, you can specify an Array like ["fr", "en"] to specify the order of fallback. This is ignored if langcode is nil.
+  # @return [BaseWithTranslation, NilClass] nil if not found.
+  def best_translation(langcodearg=nil, langcode: nil, fallback: true)  # langcode given both in the main argument and option to be in line with {#titles} etc.
+    langcode = (langcodearg || langcode).to_s
+    langcode = "" if "all" == langcode
+    return Translation.sort(translations).first if langcode.blank?
+
+    tra = translations_with_lang(langcode: langcode)
+    return tra.first if !fallback || tra.exists?
+
+    langs2try =
+      if fallback.respond_to?(:map)
+        fallback
+      else
+        ([orig_translation.langcode]+I18n.available_locales.map(&:to_s)).reject{|i| i == langcode}
+      end
+
+    langs2try.each do |lc|
+      tra = translations_with_lang(langcode: lc)
+      return tra.first if tra.exists?
+    end
+    nil
   end
 
   # Gets Hash of best {Translation}-s with keys of langcodes

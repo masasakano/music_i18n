@@ -207,7 +207,7 @@ class TranslationTest < ActiveSupport::TestCase
     assert_equal Float::INFINITY, ja_trans[1].weight
     assert_equal 'テスト', sex5.title(langcode: 'ja')
 
-   sex6 = Sex.create!(iso5218: 66)
+    sex6 = Sex.create!(iso5218: 66)
     assert_raise(ActiveRecord::RecordInvalid, "should be Validation failed: title|alt_title=('new') ('en') already exists in Translation") { #  followed by: [(new, )(ID=1060188813)] for Sex(ID=12)
       sex6.create_translations!(**hs) }
 
@@ -426,6 +426,13 @@ class TranslationTest < ActiveSupport::TestCase
     assert_equal [tra_en3, tra_en2, tra_en4], ar.to_a
     assert_equal [tra_ja1], tra_en1.siblings(langcode: 'ja').to_a
     assert_equal 4, tra_en1.siblings.size
+    assert_equal [tra_ja1, 0],              tra_ja1.best_translation_with_weight
+    assert_equal [tra_en3, tra_en3.weight], tra_en1.best_translation_with_weight
+    assert_equal [tra_ja1, 0],              tra_en1.best_translation_with_weight(locale: 'ja')
+    assert_equal [tra_ja1, 0],              tra_en1.best_translation_with_weight(locale: :all)
+    tra_ja1.update!(weight: Float::INFINITY)
+    assert_equal [tra_ja1, 0],              tra_en1.best_translation_with_weight(locale: :all)
+    assert_equal [tra_ja1, Float::INFINITY],tra_en1.best_translation_with_weight(locale: :all, raw_weight: true)
   end
 
   test "valid_main_params?" do

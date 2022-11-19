@@ -141,6 +141,7 @@ return if !user   # to prohibit everything needing authorization (but :read) fro
     if user.qualified_as?(:moderator, rc_trans)
       can :crud, Translation  # except when they cannot update translatable
       can(  :ud, Translation){|trans| !trans.translatable || can?(:update, trans.translatable) && can?(:destroy, trans.translatable)}  # Seems this is needed in addition to :crud; Also, even when this is true, can?(:ud, trans.translatable) may return false!
+      can(:update, Translations::PromotesController)
     end
 
     ## Highest rank (but sysadmin)

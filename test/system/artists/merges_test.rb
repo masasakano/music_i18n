@@ -72,7 +72,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
 
     choose '不明'  # Sex  # a name, id, or label text matching
     wiki_new = "Wiki_Aya_Kubota"
-    fill_in "Wikipedia (英語版) URI", with: wiki_new # <label for="artist_wiki_en">/label>
+    fill_in "Wikipedia (英語) URI", with: wiki_new # <label for="artist_wiki_en">/label>
     ##find_field('Year').fill_in with: '2001'
     testnote1 = "my test note for kubota new"
     find_field('artist_note').fill_in with: testnote1

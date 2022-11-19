@@ -22,10 +22,10 @@
       <th>Created_at</th>
       <th>TokenDefined?</th>
       <th>Confirmed?</th>
-      <th colspan="2">Num_Entries<br>(Create/Update)</th>
-<% if (current_user && current_user.an_admin?) %>
-      <th colspan="2"></th>
-<% end %>
+      <th colspan="2"># of Entries<br>(Create/Update)</th>
+<%# if (current_user && current_user.an_admin?) # Those who can view this table should view this %>
+      <th colspan="2">Actions</th>
+<%# end %>
     </tr>
   </thead>
 

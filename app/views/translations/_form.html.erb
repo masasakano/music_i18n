@@ -11,20 +11,20 @@
     </div>
   <% end %>
 
-  <% if ! @translation.new_record? %>
+  <% if ! translation.new_record? %>
     <p>
-      ID=<%= @translation.id %>
+      ID=<%= translation.id %>
     </p>
   <% end %>
 
   <div class="field">
     <%= form.label :translatable_type %>
-    <%= form.text_field :translatable_type, readonly: !!@translation.translatable_type, class: "input_middle" %>
+    <%= form.text_field :translatable_type, readonly: !!translation.translatable_type, class: "input_middle" %>
   </div>
 
   <div class="field">
     <%= form.label :translatable_id %>
-    <%= form.text_field :translatable_id, readonly: !!@translation.translatable_id, class: "input_int" %>
+    <%= form.text_field :translatable_id, readonly: !!translation.translatable_id, class: "input_int" %>
   </div>
 
   <div class="field">
@@ -63,17 +63,30 @@
   </div>
 
   <div class="field">
-    <%= form.radio_button(:is_orig, true, checked: translation.is_orig) %>
+    <% if translation.is_orig
+         checked = :original
+       else
+         translat = translation.translatable
+         checked =
+           if translat && translat.translations.where(is_orig: true).exists?
+             :translation
+           else
+             :undefined
+           end
+       end
+      %>
+    <%= form.label :is_orig, 'Translation category' %>
+    <%= form.radio_button(:is_orig, true, checked: (:original == checked)) %>
     <%= form.label :is_orig, '原語', :value => true %>
-    <%= form.radio_button(:is_orig, false, checked: (translation.is_orig == false)) %>
+    <%= form.radio_button(:is_orig, false, checked: (:translation == checked)) %>
     <%= form.label :is_orig, '翻訳', :value => false %>
-    <%= form.radio_button(:is_orig, "nil", checked: translation.is_orig.nil?) %>
+    <%= form.radio_button(:is_orig, "nil", checked: (:undefined == checked)) %>
     <%= form.label :is_orig, '定義不能 (例:「太陽⇔Sun」)', :value => "nil" %>
   </div>
 
   <% if (user_signed_in? && current_user.qualified_as?(:moderator, RoleCategory[RoleCategory::MNAME_TRANSLATION])) %>
   <div class="field">
-    <% str_table = (@translation.translatable.respond_to?(:translations) ? 'See table below for reference. ' : '') %>
+    <% str_table = (translation.translatable.respond_to?(:translations) ? 'See table below for reference. ' : '') %>
     <%= form.label :weight, "Weight (#{str_table}Set it under 100 to promote this permanently, 0 for the definitive word like the original one.)" %>
     <%= form.text_field :weight, class: "input_float" %>
   </div>
@@ -100,12 +113,33 @@
     <%= form.submit %>
   </div>
 <% end %>
+
+<% if ! translation.new_record? && can?(:destroy, translation) %>
+  <div class="actions-destroy" style="margin-right: 1em;">
+   <div class="actions" style="text-align: right">
+     <% if translation.translatable.translations.count > 1 && !translation.is_orig %>
+       <%= button_to 'Destroy', translation, method: :delete, data: { confirm: t('are_you_sure') } %>
+     <% else %>
+       <form class="button_to"><input disabled="disabled" type="submit" value="Destroy"></form>
+      <% if translation.is_orig %>
+       (This is the original Translation for the instance and so cannot be destroyed.)
+      <% else %>
+       (This is the only Translation for the instance and so cannot be destroyed.)
+      <% end %>
+     <% end %>
+   </div>
+  </div>
+<% end %>
+
 <p>
-  <%= link_to 'Destroy', @translation, method: :delete, data: { confirm: t('are_you_sure') } %>
+  <% if ! translation.new_record? %>
+    <%= link_to 'Show', translation %> |
+  <% end %>
+  <%= link_to 'Back to Index', translations_path %>
 </p>
 
-<% if @translation.translatable.respond_to? :translations %>
-  <%= render partial: 'layouts/all_registered_translations', locals: {model: @translation.translatable, add_buttons: false, myself: @translation} %>
+<% if translation.translatable.respond_to? :translations %>
+  <%= render partial: 'layouts/all_registered_translations', locals: {model: translation.translatable, add_buttons: false, myself: translation} %>
   <hr>
 <% end %>
 

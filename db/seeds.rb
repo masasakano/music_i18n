@@ -7,6 +7,11 @@
 #   movies = Movie.create([{ name: 'Star Wars' }, { name: 'Lord of the Rings' }])
 #   Character.create(name: 'Luke', movie: movies.first)
 
+# NOTE: Once the superuser has been created (the first registered user is automatically promoted
+#  to the superuser!), run the following to prevent them from being overwritten:
+#
+#     Translation.update_all(create_user_id: myself.id, update_user_id: myself.id)
+
 include ModuleCommon  # for split_hash_with_keys
 
 ### Model: Sex ###

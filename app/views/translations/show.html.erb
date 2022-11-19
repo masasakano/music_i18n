@@ -1,7 +1,6 @@
-<p id="notice"><%= notice %></p>
-
 <h2>A Translation for <%= link_to @translation.translatable_type, @translation.translatable %>
-  <% if user_signed_in? && current_user.moderator? %>
+  <% if can? :crud, Translation %>
+    ID=<%= @translation.translatable.id %>
     (Translation ID=<%= @translation.id %>)
   <% end %>
 </h2>
@@ -31,7 +30,7 @@
   <dt> Alt romaji:</dt>
   <dd><%= @translation.alt_romaji %></dd>
 
-  <dt> これが原語か?:</dt>
+  <dt><%= t(".is_orig") %>:</dt>
   <dd><%= @translation.is_orig %></dd>
 
   <% if can? :crud, Translation %>
@@ -39,11 +38,11 @@
     <dd><%= @translation.weight %></dd>
   <% end %>
 
-  <dt> Create user:</dt>
-  <dd><%= user = @translation.create_user; user ? link_to(user.display_name, user_path(user)) : nil %></dd>
+  <dt> Create user and when:</dt>
+  <dd><%= user = @translation.create_user; user ? link_to(user.display_name, user_path(user)) : nil %> at <%= @translation.created_at %></dd>
 
-  <dt> Update user:</dt>
-  <dd><%= user = @translation.update_user; user ? link_to(user.display_name, user_path(user)) : nil %></dd>
+  <dt> Last-update user and when:</dt>
+  <dd><%= user = @translation.update_user; user ? link_to(user.display_name, user_path(user)) : nil %> at <%= @translation.updated_at %></dd>
 
   <dt> Note:</dt>
   <dd><%= @translation.note %></dd>
@@ -54,7 +53,7 @@
   <%= button_to 'Edit', edit_translation_path(@translation), method: :get %>
 <br>
 <% end %>
-<%= link_to 'Back', translations_path %>
+<%= link_to 'Back to Index', translations_path %>
 
 <hr>
 

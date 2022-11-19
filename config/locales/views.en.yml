@@ -125,3 +125,7 @@ en:
     index:
       assoc_engage: "with another Artist for %{music_title}."
 
+  translations:
+    show:
+      is_orig: "Is this the original language?"
+
