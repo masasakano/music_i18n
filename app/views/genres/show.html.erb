@@ -16,5 +16,7 @@
   <%= @genre.note %>
 </p>
 
-<%= link_to 'Edit', edit_genre_path(@genre) %> |
+<% if can?(:update, @genre) %>
+  <%= link_to 'Edit', edit_genre_path(@genre) %> |
+<% end %>
 <%= link_to 'Back', genres_path %>

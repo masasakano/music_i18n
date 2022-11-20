@@ -105,13 +105,13 @@ end
 
     # ascending order
     page.find('table thead tr th.title_en div.order a.asc').click
-    i_zombies = page.all("table.artists_grid tbody tr").find_index{|nok| nok.all("td")[2].text == zombies} # No <td> in <thead>, but all should have <td> in <tbody>
+    i_zombies = page.all("table.artists_grid tbody tr").find_index{|nok| nok.all("td")[2].text[0, zombies.size] == zombies} # No <td> in <thead>, but all should have <td> in <tbody>
     i_zedd    = page.all("table.artists_grid tbody tr").find_index{|nok| nok.all("td")[2].text == zedd}
     assert_operator i_zedd, :<, i_zombies, "Should be normal-sorted, but... text="+page.all("table.artists_grid tbody tr").map{|m| m.all("td").map(&:text)}.inspect
 
     # descending order
     page.find('table thead tr th.title_en div.order a.desc').click
-    i_zombies = page.all("table.artists_grid tbody tr").find_index{|nok| nok.all("td")[2].text == zombies} # No <td> in <thead>, but all should have <td> in <tbody>
+    i_zombies = page.all("table.artists_grid tbody tr").find_index{|nok| nok.all("td")[2].text[0, zombies.size] == zombies} # No <td> in <thead>, but all should have <td> in <tbody>
     i_zedd    = page.all("table.artists_grid tbody tr").find_index{|nok| nok.all("td")[2].text == zedd}
     assert_operator i_zedd, :>, i_zombies, "Should be reverse-sorted, but... text="+page.all("table.artists_grid tbody tr").map{|m| m.all("td").map(&:text)}.inspect
 

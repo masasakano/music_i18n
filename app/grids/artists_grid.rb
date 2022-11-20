@@ -44,7 +44,8 @@ class ArtistsGrid < BaseGrid
     scope.left_joins(:translations).where("langcode = 'ja'").order(order_str) #.order("title")
     #scope.left_joins("LEFT OUTER JOIN translations ON translations.translatable_type = 'Artist' AND translations.translatable_id = artists.id AND translations.langcode = 'ja'").order(order_str) #.order("title")
   }) do |record|
-    record.title langcode: 'ja'
+    # record.title langcode: 'ja'
+    html_titles(record, col: :title, langcode: "ja") # defined in base_grid.rb
   end
   column(:ruby_romaji_ja, header: Proc.new{I18n.t('tables.ruby_romaji')}, order: proc { |scope|
     order_str = Arel.sql('ruby COLLATE "ja-x-icu", romaji COLLATE "ja-x-icu"')
@@ -65,8 +66,7 @@ class ArtistsGrid < BaseGrid
   column(:title_en, mandatory: true, header: Proc.new{I18n.t('tables.title_en_alt')}, order: proc { |scope|
     scope_with_trans_order(scope, Artist, langcode="en")  # defined in base_grid.rb
   }) do |record|
-    s = sprintf '%s [%s]', *(%i(title alt_title).map{|i| record.send(i, langcode: 'en') || ''})
-    s.sub(%r@ +\[\]\z@, '')   # If NULL, nothing is displayed.
+    html_title_alts(record)  # defined in base_grid.rb
   end
 
   column(:sex, class: ["align-cr"], mandatory: true, header: Proc.new{I18n.t('tables.sex')}) do |record|

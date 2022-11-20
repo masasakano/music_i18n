@@ -186,6 +186,31 @@ class BaseGrid
     
     ids.empty? ? scope : scope.order(Arel.sql("array_position(array#{uniqqed_ids}, id)")) #.order(:id)  # The last one should be redundant b/c LEFT OUTER JOIN was used!
   end
+
+  # Returns the multi-HTML-line text to list (maybe all) Englisht translations of title and alt_title
+  #
+  # @param record [BaseWithTranslation]
+  # @param col [Symbol, String] Column name in {Translation} DB (usually :title or :alt_title)
+  # @param langcode [String, Symbol, NilClass] Def: "en". if nil, the same as the entry of is_orig==TRUE
+  # @return [String] html_safe-ed
+  def self.html_titles(record, col: :title, langcode: "en")
+    artit = record.translations_with_lang(langcode.to_s).pluck(col).flatten
+    artit.map{|tit| ERB::Util.html_escape(tit)}.join("<br>").html_safe
+  end
+
+  # Returns the multi-HTML-line text to list (maybe all) Englisht translations of title and alt_title
+  #
+  # @param record [BaseWithTranslation]
+  # @param langcode [String, Symbol, NilClass] if nil, the same as the entry of is_orig==TRUE
+  # @return [String] html_safe-ed
+  def self.html_title_alts(record, langcode: "en")
+    artit2 = record.translations_with_lang(langcode.to_s).pluck(:title, :alt_title)
+    artit2.map{|earow|
+      s = sprintf('%s [%s]', *(earow.map{|i| i ? i : ''}))
+      s.sub!(%r@ +\[\]\z@, '')   # If NULL, nothing is displayed.
+      ERB::Util.html_escape(s)
+    }.join("<br>").html_safe
+  end
 end
 
 #### Does not work: 

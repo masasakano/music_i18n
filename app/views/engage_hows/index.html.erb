@@ -2,6 +2,10 @@
 
 <h1>EngageHows</h1>
 
+<% allcolspan = 1
+   allcolspan += 1 if can?(:update,  EngageHow)
+   allcolspan += 1 if can?(:destroy, EngageHow)
+%>
 <table>
   <thead>
     <tr>
@@ -9,7 +13,7 @@
       <th>En</th>
       <th>Weight</th>
       <th>Note</th>
-      <th colspan="3"></th>
+      <th colspan="<%= allcolspan %>"></th>
     </tr>
   </thead>
 
@@ -18,11 +22,15 @@
       <tr>
         <td><%= engage_how.translations_with_lang('ja').map(&:title).join(' | ') %></td>
         <td><%= engage_how.translations_with_lang('en').map(&:title).join(' | ') %></td>
-        <td><%= w = engage_how.weight; ((w == w.to_i) ? w.to_i : w) %></td>
+        <td class="align-r"><%= w = engage_how.weight; ((w == w.to_i) ? w.to_i : w) %></td>
         <td><%= engage_how.note %></td>
         <td><%= link_to 'Show', engage_how %></td>
-        <td><%= link_to 'Edit', edit_engage_how_path(engage_how) %></td>
-        <td><%= link_to 'Destroy', engage_how, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+        <% if can?(:update, engage_how) %>
+          <td><%= link_to 'Edit', edit_engage_how_path(engage_how) %></td>
+        <% end %>
+        <% if can?(:destory, engage_how) %>
+          <td><%= link_to 'Destroy', engage_how, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+        <% end %>
       </tr>
     <% end %>
   </tbody>

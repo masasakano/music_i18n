@@ -22,5 +22,7 @@
 </p>
 
 
-<%= link_to 'Edit', edit_engage_how_path(@engage_how) %> |
+<% if can?(:update, @engage_how) %>
+  <%= link_to 'Edit', edit_engage_how_path(@engage_how) %> |
+<% end %>
 <%= link_to 'Back', engage_hows_path %>

@@ -52,6 +52,7 @@ class TranslationsGrid < BaseGrid
     ).html_safe
   end
 
+  column(:langcode, mandatory: true, header: "lc")
   column(:title, mandatory: true)
   column(:ruby)
   column(:romaji)

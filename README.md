@@ -63,16 +63,10 @@ To achieve these:
      3. Pre-defined methods of `StaticPage`, maybe.
      4. eval as ERB (risky!)
 
-## JavaScript/jQuery ##
+## Asset pipeline and JavaScript ##
 
-For jQuery, jquery-ui-dist-1.12.1 is used at the time of writing, whereas the most recent stable version is 
-jQuery-3.5.1.
+As of Version "v.0.11.0" (or "v.0.3" and onwards), this application adopts Rails 7.0 with esbuild and Sprockets in conjunction with Bootstrap, using occasionally jQuery (*jquery-ui-dist*).
+In the earlier versions with Rails 6, it used to use Rails-6 + webpacker up to Version "v.0.2.1".
 
-The reason is simply because use of jquery-ui-dist-1.12.1 was the only way I found to work with Rails 6…  It is not ideal. But so far, I do not know how to make the standard jQuery work.
-
-This difference in the versions, should you decide to upgrade it, may affect
-
-* all the JavaScript files
-* `/app/assets/stylesheets/application.scss`
-* `/test/system/engages_test.rb`
+----------
 
