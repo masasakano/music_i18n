@@ -225,6 +225,14 @@ end
 
 require Rails.root.to_s+'/lib/tasks/lib/read_country_list.rb'
 
+valids = nil
+if ENV['LOAD_COUNTRIES'].blank?
+  printf("NOTE: All countries are imported from CountryMaster (unless specifying LOAD_COUNTRIES='JP,KR,GB'] etc).\n")
+else
+  valids = ENV['LOAD_COUNTRIES'].strip.split(/\s*,\s*/).map{|i| i.blank? ? nil : i}.compact
+  printf("NOTE: LOAD_COUNTRIES=%s\n", ENV['LOAD_COUNTRIES'].inspect)
+end
+
 n_cnts = 0
 allcnts = read_country_list
 allcnts.each do |ea_cnt|
@@ -258,21 +266,22 @@ allcnts.each do |ea_cnt|
   #   CountryMaster.find_by(iso3166_a3_code: 'ASM').slice(:name_ja_full, :name_en_short, :name_fr_full, :territory, :iso3166_remark)
 
   sym = :iso3166_a2_code  # a2 is used b/c neither iso3166_n3_code nor iso3166_a3_code is defined for "the Republic of Kosovo".
-  if !ENV['LOAD_COUNTRIES'].blank?
+  if valids  # i.e., !ENV['LOAD_COUNTRIES'].blank?
     # Limit the countries to load
-    valids = ENV['LOAD_COUNTRIES'].strip.split(/\s*,\s*/).map{|i| i.blank? ? nil : i}.compact
     next if !valids.include? hstmp[sym].to_s
   end
-  if !Country.find_by(sym => hstmp[sym])
-    # Country.create_with_translations!(**(hstmp.merge({translations: trans})))
-    begin
-      Country.create_with_translations!(hstmp.merge({country_master_id: cm.id}), translations: trans) # {country_master: cm} is not accepted, likely due to a problem in create_with_translations!()
-    rescue ActiveRecord::RecordInvalid
-      print "ERROR in the input Country, maybe in Translations. Contact the code developer: [Hash, Trans]="; p [hstmp, trans]
-      raise
-    end
-    n_cnts += 1
+
+  trans = Country.modify_masters_trans(trans) # title/alt_title modified, e.g., => UK
+
+  next if Country.find_by(sym => hstmp[sym])  # Already defined.
+
+  begin
+    Country.create_with_translations!(hstmp.merge({country_master_id: cm.id}), translations: trans) # {country_master: cm} is not accepted, likely due to a problem in create_with_translations!()
+  rescue ActiveRecord::RecordInvalid
+    print "ERROR in the input Country, maybe in Translations. Contact the code developer: [Hash, Trans]="; p [hstmp, trans]
+    raise
   end
+  n_cnts += 1
 end
 ret ||= (n_cnts > 0)
 

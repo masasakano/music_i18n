@@ -260,5 +260,17 @@ class CountryTest < ActiveSupport::TestCase
     assert_not jp_orig.covered_by?(plac_toc)
     assert_not jp_orig.covered_by?(plac_pek)
   end
+
+  test "Country.modify_masters_trans" do
+    hsin = {
+      fr: {title: "France (la)"},
+      en: {title: "Kingdom of Spain, the", alt_title: "United Kingdom of Great Britain and Northern Ireland (the)"},
+    }
+    hsexp = {
+      fr: {title: "France, la"},
+      en: {title: "Kingdom of Spain, the", alt_title: "UK"},
+    }
+    assert_equal hsexp, Country.modify_masters_trans(hsin)
+  end
 end
 

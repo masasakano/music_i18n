@@ -192,6 +192,44 @@ class Country < BaseWithTranslation
     title(langcode: 'en') == UnknownCountry['en']
   end
 
+  # Modify the parameters inherited from {CountryMaster}
+  #
+  # @example France
+  #    self.modify_masters_trans({fr: {title: "France (la)"}})
+  #     # => {fr: {title: "France, la"}})
+  #
+  # @example Spain
+  #    self.modify_masters_trans({en: {title: "the Kingdom of Spain"}})
+  #     # => {en: {title: "Kingdom of Spain, the"}})
+  #
+  # @example UK/GBR
+  #    self.modify_masters_trans({en: {alt_title: "United Kingdom of Great Britain and Northern Ireland (the)"}})
+  #     # => {en: {alt_title: "UK"}})
+  #
+  # @param hstrans [Hash<Symbol=>Hash<Symbol=>String>>]  en: {title: "Some"}, ja: {alt_title: "other"}
+  # @return [Hash<Symbol=>Hash<Symbol=>String>>] Nothe the original is also destructively modified!
+  def self.modify_masters_trans(hstrans)
+    hstrans.map{|lc, content|
+      %i(title alt_title).each do |ekey|
+        next if !content[ekey]
+        content[ekey] =
+          case content[ekey] 
+          when "Korea (the Republic of)"
+            "South Korea"
+          when "Russian Federation (the)"
+            "Russia"
+          when "United Kingdom of Great Britain and Northern Ireland (the)"
+            "UK"
+          when "United States of America (the)"
+            "USA"
+          else
+            content[ekey]
+          end
+        content[ekey] = definite_article_to_tail(content[ekey].sub(/ +\((#{DEFINITE_ARTICLES_REGEXP_STR})\)\s*\z/, ', \1'))
+      end
+      [lc, content]
+    }.to_h
+  end
 
   # Similar to #{encompass?} but returns false if self==other
   #
