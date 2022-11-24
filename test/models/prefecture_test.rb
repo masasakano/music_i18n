@@ -215,6 +215,9 @@ class PrefectureTest < ActiveSupport::TestCase
     assert_equal 'ja',           place_trans.langcode
     assert                       place_trans.original?
     assert_equal 0,              place_trans.weight
+    assert_equal newp.places[0], newp.unknown_place
+    assert_equal places(:unknown_place_tokyo_japan), prefectures(:tokyo).unknown_place, "Test of unknown_place where Prefecture has more than one Places"
+    assert_equal prefectures(:unknown_prefecture_japan), prefectures(:tokyo).unknown_sibling
 
     ## Test of unknown
     plau0 = Prefecture.unknown

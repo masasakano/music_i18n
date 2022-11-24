@@ -139,6 +139,19 @@ class Prefecture < BaseWithTranslation
     title(langcode: 'en') == UnknownPrefecture['en']
   end
 
+  # Unknown {Place} belonging to self
+  #
+  # @return [Place]
+  def unknown_place
+    places.joins(:translations).where("translations.langcode='en' AND translations.title = ?", Place::UnknownPlace['en']).first
+  end
+
+  # Unknown {Prefecture} belonging to self
+  #
+  # @return [Prefecture]
+  def unknown_sibling
+    self.country.unknown_prefecture
+  end
 
   # Similar to #{encompass?} but returns false if self==other
   #

@@ -9,7 +9,8 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @place = places(:tocho)
-    @editor = roles(:general_ja_editor).users.first  # (General) Editor can manage.
+    @editor    = roles(:general_ja_editor).users.first     # (General) Editor can manage.
+    @moderator = roles(:general_ja_moderator).users.first  # (General) Moderator can manage.
   end
 
   teardown do
@@ -211,6 +212,20 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
     assert_equal prefectures(:kagawa), @place.prefecture
   end
 
+  test "even a moderator should fail to update an unknown place" do
+    sign_in @moderator
+
+    place1 = places(:unknown_place_tokyo_japan)
+    note, updated_at = [place1.note, place1.updated_at]
+    patch place_url(place1), params: { place: { note: "tekito" } }
+
+    assert_response :redirect
+    assert_redirected_to root_path
+    place1.reload
+    assert_equal note,      place1.note
+    assert_equal updated_at, place1.updated_at
+  end
+  
   test "should fail/succeed to destroy place" do
     # Fail: No privilege
     assert_difference('Place.count', 0) do

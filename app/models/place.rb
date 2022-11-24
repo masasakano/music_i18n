@@ -149,6 +149,13 @@ class Place < BaseWithTranslation
     title(langcode: 'en') == UnknownPlace['en']
   end
 
+  # Unknown {Place} belonging to self
+  #
+  # @return [Place]
+  def unknown_sibling
+    self.prefecture.unknown_place
+  end
+
   # Similar to #{encompass?} but returns false if self==other
   #
   # @param other [Place, Prefecture, Country]

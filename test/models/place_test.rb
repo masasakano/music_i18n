@@ -104,6 +104,8 @@ class PlaceTest < ActiveSupport::TestCase
     assert_not_equal plau0, plauj
 
     assert_equal places(:unknown_place_kagawa_japan), Place.unknown(prefecture: Prefecture['香川県', Country['JPN']])
+    assert_equal places(:unknown_place_tokyo_japan), tocho.unknown_sibling
+
 
     ## encompass? covered_by? ##########
     cnt_unk = Country.unknown
@@ -149,10 +151,10 @@ class PlaceTest < ActiveSupport::TestCase
 
   test "title_or_alt_ascendants" do
     pla1 = places(:takamatsu_station)
-    assert_equal ['高松駅', '香川県', '日本'], pla1.title_or_alt_ascendants
-    assert_equal ['高松駅', '香川県', '日本'], pla1.title_or_alt_ascendants(langcode: 'ja')
-    assert_equal ['高松駅', 'Kagawa', 'Japan'], pla1.title_or_alt_ascendants(langcode: 'en')
-    assert_equal ['',       'Kagawa', 'Japan'], pla1.title_or_alt_ascendants(langcode: 'en', lang_fallback_option: :never)
+    assert_equal ['高松駅', '香川県', '日本国'], pla1.title_or_alt_ascendants
+    assert_equal ['高松駅', '香川県', '日本'],   pla1.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true)
+    assert_equal ['高松駅', 'Kagawa', 'Japan'],  pla1.title_or_alt_ascendants(langcode: 'en')
+    assert_equal ['',       'Kagawa', 'Japan'],  pla1.title_or_alt_ascendants(langcode: 'en', lang_fallback_option: :never)
   end
 
   test "brackets" do

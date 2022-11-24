@@ -52,10 +52,10 @@ class CountryTest < ActiveSupport::TestCase
   test "unique constraint by Rails" do
     jp_orig = countries(:japan)
     assert_raises(ActiveRecord::RecordInvalid, 'Same-name translation is banned to add for the identical Country.'){
-      jp_orig.with_translations(**({ja: {title: " 日本\u3000\n", langcode: 'ja'}})) }
+      jp_orig.with_translations(**({ja: {title: " 日本国\u3000\n", langcode: 'ja'}})) }
 
     assert_raises(ActiveRecord::RecordInvalid, 'No two countries should have the identical name...'){
-      Country.create!().with_orig_translation(title: '日本', langcode: 'ja') }
+      Country.create!().with_orig_translation(title: '日本国', langcode: 'ja') }
 
     # Even if alt_title differs, the same title should not be allowed for Country's translation
     # (though it does not apply to Translation in general).
@@ -108,7 +108,8 @@ class CountryTest < ActiveSupport::TestCase
     c3 = Country[/Australia/, 'en', true]
     t3 = c3.translations_with_lang('en')[0]
     t3.romaji='oosutoraria'
-    t3.title = 'United Kingdom'  # an existing record
+    uk_title = "United Kingdom of Great Britain and Northern Ireland, the"
+    t3.title = uk_title  # an existing record
     assert_not t3.valid?
     t3.title = 'Australia'  # Australia#title wasl nil (but alt_title=='Australia'). But it is allowed to add it to title in update, whereas any other Translation record for Country should be banned.
     #assert     t3.valid?
@@ -146,6 +147,9 @@ class CountryTest < ActiveSupport::TestCase
     assert_equal 'ja',               place_trans.langcode
     assert                           place_trans.original?
     assert_equal 0,                  place_trans.weight
+    assert_equal child_prefecture, newc.unknown_prefecture
+    assert_equal prefectures(:unknown_prefecture_japan), countries(:japan).unknown_prefecture, "Test of unknown_prefecture where Country has more than one Prefectures"
+    assert_equal Country.unknown, countries(:japan).unknown_sibling
 
     newc.reload
     child_prefecture.reload

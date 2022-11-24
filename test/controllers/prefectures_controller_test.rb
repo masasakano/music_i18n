@@ -182,6 +182,20 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
     assert_equal Country['AUS'], pref_liverpool.country
   end
 
+  test "even a moderator should fail to update an unknown prefecture" do
+    sign_in @moderator
+
+    prefecture1 = prefectures(:unknown_prefecture_uk)
+    note, updated_at = [prefecture1.note, prefecture1.updated_at]
+    patch prefecture_url(prefecture1), params: { prefecture: { note: "tekito" } }
+
+    assert_response :redirect
+    assert_redirected_to root_path
+    prefecture1.reload
+    assert_equal note,      prefecture1.note
+    assert_equal updated_at, prefecture1.updated_at
+  end
+
   test "should update nothing for prefecture in Japan" do
     note2 = 'Edited new prefecture note'
     sign_in @moderator # Even moderator is not allowed to change parameters for prefectures in Japan.

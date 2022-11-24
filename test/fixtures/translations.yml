@@ -47,8 +47,8 @@ sextrans0ja:
   is_orig: false
   weight: 0
   note: 
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
 
 #  ref1: ja.wikipedia.org/wiki/ISO_5218
 
@@ -65,8 +65,8 @@ sextrans1ja:
   is_orig: false
   weight: 0
   note: 
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
 #  ref1: ja.wikipedia.org/wiki/ISO_5218
 
 sextrans2ja:
@@ -82,8 +82,8 @@ sextrans2ja:
   is_orig: false
   weight: 0
   note: 
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
 #  ref1: ja.wikipedia.org/wiki/ISO_5218
 
 sextrans9ja:
@@ -99,8 +99,8 @@ sextrans9ja:
   is_orig: false
   weight: 0
   note: 
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
 #  ref1: ja.wikipedia.org/wiki/ISO_5218
 
 sextrans0en:
@@ -116,8 +116,8 @@ sextrans0en:
   is_orig: true
   weight: 0
   note: 
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
 #  ref1: en.wikipedia.org/wiki/ISO/IEC_5218
 
 sextrans1en:
@@ -133,8 +133,8 @@ sextrans1en:
   is_orig: true
   weight: 0
   note: 
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
 #  ref1: en.wikipedia.org/wiki/ISO/IEC_5218
 
 sextrans2en:
@@ -150,8 +150,8 @@ sextrans2en:
   is_orig: true
   weight: 0
   note: 
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
 #  ref1: en.wikipedia.org/wiki/ISO/IEC_5218
 
 sextrans9en:
@@ -167,8 +167,8 @@ sextrans9en:
   is_orig: true
   weight: 0
   note: 
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
 #  ref1: en.wikipedia.org/wiki/ISO/IEC_5218
 
 country_world_en:
@@ -179,8 +179,8 @@ country_world_en:
   alt_title: 
   is_orig: true
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: CountryWorldEn
 
 country_world_ja:
@@ -192,8 +192,8 @@ country_world_ja:
   romaji: sekai
   is_orig: false
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: CountryWorldJa
 
 country_world_fr:
@@ -203,8 +203,8 @@ country_world_fr:
   title: Monde
   is_orig: false
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: CountryWorldFr
 
 unknown_prefecture_world_en:
@@ -213,8 +213,8 @@ unknown_prefecture_world_en:
   langcode: en
   title: UnknownPrefecture
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: UnknownPrefectureWorldEn
 
 unknown_prefecture_world_ja:
@@ -223,8 +223,8 @@ unknown_prefecture_world_ja:
   langcode: ja
   title: 'どこかの都道府県'
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: UnknownPrefectureWorldJa
 
 unknown_place_unknown_prefecture_world_en:
@@ -233,8 +233,8 @@ unknown_place_unknown_prefecture_world_en:
   langcode: en
   title: UnknownPlace
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: UnknownPlaceUnknownPrefectureWorldEn
 
 unknown_place_unknown_prefecture_world_ja:
@@ -243,24 +243,24 @@ unknown_place_unknown_prefecture_world_ja:
   langcode: ja
   title: どこかの場所
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: UnknownPlaceUnknownPrefectureWorldJa
 
 japan_ja:
   translatable: japan
   translatable_type: Country
   langcode: ja
-  title: 日本
-  alt_title: 
-  ruby: ニッポン
-  alt_ruby: 
-  romaji: Nippon
-  alt_romaji: 
+  title: 日本国
+  alt_title: 日本
+  ruby: ニホンコク
+  alt_ruby: ニッポン
+  romaji: Nihonkoku
+  alt_romaji: Nippon
   is_orig: true
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: JapanJa
 
 japan_en:
@@ -285,8 +285,8 @@ unknown_prefecture_japan_ja:
   langcode: ja
   title: どこかの都道府県
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: UnknownPrefectureJapanEn
 
 unknown_prefecture_japan_en:
@@ -295,8 +295,8 @@ unknown_prefecture_japan_en:
   langcode: en
   title: UnknownPrefecture
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: UnknownPrefectureJapanEn
 
 unknown_prefecture_japan_fr:
@@ -305,8 +305,8 @@ unknown_prefecture_japan_fr:
   langcode: fr
   title: ComtéInconnu
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: UnknownPrefectureJapanfr
 
 unknown_place_unknown_prefecture_japan_ja:
@@ -315,8 +315,8 @@ unknown_place_unknown_prefecture_japan_ja:
   langcode: ja
   title: どこかの場所
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: UnknownPlaceUnknownPrefectureJapanJa
 
 unknown_place_unknown_prefecture_japan_en:
@@ -325,8 +325,8 @@ unknown_place_unknown_prefecture_japan_en:
   langcode: en
   title: UnknownPlace
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: UnknownPlaceUnknownPrefectureJapanEn
 
 unknown_place_tokyo_japan_en:
@@ -335,8 +335,8 @@ unknown_place_tokyo_japan_en:
   langcode: en
   title: UnknownPlace
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: UnknownPlaceTokyoJapanEn
 
 unknown_place_kagawa_japan_en:
@@ -345,8 +345,8 @@ unknown_place_kagawa_japan_en:
   langcode: en
   title: UnknownPlace
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: UnknownPlaceKagawaJapanEn
 
 unknown_place_shimane_japan_en:
@@ -355,15 +355,15 @@ unknown_place_shimane_japan_en:
   langcode: en
   title: UnknownPlace
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: UnknownPlaceShimaneJapanEn
 
 uk_en:
   translatable: uk
   translatable_type: Country
   langcode: en
-  title: United Kingdom
+  title: "United Kingdom of Great Britain and Northern Ireland, the"
   alt_title: UK
   ruby: 
   alt_ruby: 
@@ -371,8 +371,8 @@ uk_en:
   alt_romaji: 
   is_orig: true
   weight: 0
-  create_user_id: 1
-  update_user: user_two
+  create_user_id: 
+  update_user: 
   note: UkEn
 
 unkown_prefecture_uk_en:
@@ -387,8 +387,8 @@ unkown_prefecture_uk_en:
   alt_romaji: 
   is_orig: true
   weight: 0
-  create_user_id: 1
-  update_user: user_two
+  create_user_id: 
+  update_user: 
   note: UnknownPrefectureUkEn
 
 unknown_place_unknown_prefecture_uk_en:
@@ -403,8 +403,8 @@ unknown_place_unknown_prefecture_uk_en:
   alt_romaji: 
   is_orig: true
   weight: 0
-  create_user_id: 1
-  update_user: user_two
+  create_user_id: 
+  update_user: 
   note: UnknownPlaceUnknownPrefectureUkEn
 
 unknown_place_liverpool_uk_en:
@@ -419,8 +419,8 @@ unknown_place_liverpool_uk_en:
   alt_romaji: 
   is_orig: true
   weight: 0
-  create_user_id: 1
-  update_user: user_two
+  create_user_id: 
+  update_user: 
   note: UnknownPlaceLiverpoolUkEn
 
 unkown_prefecture_aus_en:
@@ -435,8 +435,8 @@ unkown_prefecture_aus_en:
   alt_romaji: 
   is_orig: true
   weight: 0
-  create_user_id: 1
-  update_user: user_two
+  create_user_id: 
+  update_user: 
   note: UnknownPrefectureAusEn
 
 unknown_place_unknown_prefecture_aus_en:
@@ -451,8 +451,8 @@ unknown_place_unknown_prefecture_aus_en:
   alt_romaji: 
   is_orig: true
   weight: 0
-  create_user_id: 1
-  update_user: user_two
+  create_user_id: 
+  update_user: 
   note: UnknownPlaceUnknownPrefectureAusEn
 
 prefecture_tokyo_in_world_en:
@@ -483,8 +483,8 @@ tokyo_ja:
   alt_romaji: 
   is_orig: true
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: TokyoJa
 
 tokyo_en:
@@ -499,8 +499,8 @@ tokyo_en:
   alt_romaji: 
   is_orig: false
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: TokyoEn
 
 kagawa_ja:
@@ -515,8 +515,8 @@ kagawa_ja:
   alt_romaji: 
   is_orig: true
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: KagawaJa
 
 kagawa_en:
@@ -547,8 +547,8 @@ shimane_ja:
   alt_romaji: 
   is_orig: true
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: ShimaneJa
 
 shimane_en:
@@ -587,7 +587,7 @@ tocho_ja:
   translatable: tocho
   translatable_type: Place
   langcode: ja
-  title: 
+  title: "東京都本庁舎"
   alt_title: 都庁
   ruby: 
   alt_ruby: トチョウ
@@ -595,8 +595,8 @@ tocho_ja:
   alt_romaji: Tocho
   is_orig: true
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: TochoJa
 
 place_harami_vid3_ja:
@@ -643,8 +643,8 @@ takamatsu_station_ja:
   alt_romaji: 
   is_orig: true
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: TakamatsuStationJa
 
 liverpool_street_en:
@@ -675,8 +675,8 @@ aus_en:
   alt_romaji: 
   is_orig: true
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: AusEn
 
 aus_ja:
@@ -689,11 +689,27 @@ aus_ja:
   alt_ruby: 
   romaji: 
   alt_romaji: 
-  is_orig: true
+  is_orig: false
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: AusJa
+
+aus_fr:
+  translatable: aus
+  translatable_type: Country
+  langcode: fr
+  title: "Australie (l')"
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: false
+  weight: 0
+  create_user_id: 
+  update_user_id: 
+  note: AusFr
 
 perth_aus_en:
   translatable: perth_aus
@@ -1036,7 +1052,7 @@ music_light_en:
   is_orig: true
   weight: 0
   create_user_id: 1
-  update_user_id: 1
+  update_user: user_two
   note: MusicLightEn
 # create_user: user_sysadmin   not working....
     
@@ -1132,8 +1148,8 @@ artist3_ja:
   alt_romaji: 
   is_orig: true
   weight: 0
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: Artist3JaHarami
 
 artist3_en:
@@ -1148,8 +1164,8 @@ artist3_en:
   alt_romaji: harami chan
   is_orig: false
   weight: 10
-  create_user_id: 1
-  update_user_id: 1
+  create_user_id: 
+  update_user_id: 
   note: Artist3EnHarami
 
 artist_rcsuccession_ja:
@@ -1881,8 +1897,8 @@ genre_modern_inst_en:
   alt_romaji: 
   is_orig:
   weight: 10
-  create_user: user_moderator
-  update_user: user_moderator
+  create_user_id: 
+  update_user_id: 
   note: GenreModernInstEn
 
 genre_modern_inst_ja:
@@ -1897,7 +1913,7 @@ genre_modern_inst_ja:
   alt_romaji:
   is_orig:
   weight: 10
-  create_user: user_moderator
-  update_user: user_moderator
+  create_user_id: 
+  update_user_id: 
   note: GenreModernInstJa
 
