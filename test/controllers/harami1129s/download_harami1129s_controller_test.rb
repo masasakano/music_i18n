@@ -71,6 +71,7 @@ class DownloadHarami1129sControllerTest < ActionDispatch::IntegrationTest
       assert_equal    'youtu.be/'+h1129.link_root, h1129.ins_link_root
       assert_nil  Artist['aiko']
 
+      artists_prev = Artist.all.map{|i| i.title} #;print "DEBUG10:Artist=";p(artists_prev)
       Harami1129.delete_all
       n_downloaded = 15  # more download
       n_artists = Artist.count
@@ -81,11 +82,13 @@ class DownloadHarami1129sControllerTest < ActionDispatch::IntegrationTest
       ## Artist=["Madonna", "John Lennon", "ハラミちゃん", nil, "UnknownArtist", "Ai", "RCサクセション"]
       ## Music=["Music1 by Madonna", "Give Peace a Chance Music2", nil, nil, "UnknownMusic", "How?", "Story", "乾杯"]
       assert_difference('Harami1129.count', n_downloaded) do
+       #assert_difference('Artist.count', 3) do
         formprm = Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_STEP[:populate]
         PARAMS2SEND[:step_to] = formprm
         get new_harami1129s_download_harami1129s_url, params: PARAMS2SEND.merge({max_entries_fetch: n_downloaded})
         assert_response :redirect
         assert_redirected_to harami1129s_url
+       #end
       end
       h1129 = Harami1129.first
       assert_operator h1129.title.size, '>', 0
@@ -95,7 +98,9 @@ class DownloadHarami1129sControllerTest < ActionDispatch::IntegrationTest
       assert_equal    h1129.singer, h1129.engage.artist.title
       assert_equal    h1129.song,   h1129.engage.music.title
 
+      artists_now = Artist.all.map{|i| i.title} #;print "DEBUG70:Artist=";p(artists_now-artists_prev)
       artist_aiko = Artist['aiko']
+      refute_nil artist_aiko, "For some reason, Artists are not always updated... Usually, if you test just this file, it is fine! Artist-Diff=(exp:[\"Earth, Wind & Fire\", \"aiko\", \"あいみょん\"])=(act)#{(artists_now-artists_prev).inspect}"
       assert_equal 'aiko', artist_aiko.title
       assert_operator Harami1129.where(ins_singer: 'aiko').count, '>', 0
 

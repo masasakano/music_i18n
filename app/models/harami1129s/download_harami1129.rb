@@ -9,6 +9,8 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
 
   # Main selector to get a row in the downloaded HTML
   # to give to Nokogiri::HTML(my_string).css(my_selector)
+  #
+  # This used to be valid up to mid(?)-2022 only!
   CSS_TABLE_SELECTOR = 'div.entry-content table tr'
 
   # Regexp to match a YouTube String
@@ -89,7 +91,8 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
     end
 
     # tbody = page.css('div.entry-content table tbody')  # Does not work...
-    trs = page.css(CSS_TABLE_SELECTOR)
+    # trs = page.css(CSS_TABLE_SELECTOR)
+    trs = get_trs(page)
     if !trs.respond_to? :each_with_index
       ret.alert << "HTML rendering failed completely, perhaps because of a null response from the remote server. Try again later."
       return ret
@@ -138,7 +141,7 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
         entry[:release_date] = Date.new(*(ar_date_str.map(&:to_i)))
       end
 
-      # The 4th column:
+      # The 5th column (used to be 4th till mid(?)-2022):
       # URI (and start-time) and Video title
       uri_nk = row[-1].css('a')
       entry[:title] = (uri_nk.text rescue '').strip.sub(/\s*\([\d:]+～?\)$/, '')
@@ -200,28 +203,45 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
   # Returns a HTML table that can be read by {DownloadHarami1129.download_put_harami1129s}
   #
   # @example raw input 1
-  #    "嵐","Happiness","2020/1/2","Link→【嵐メドレー】神曲7曲繋げて弾いたらファンの方が…!!【都庁ピアノ】(0:3:3～) https://youtu.be/EjG9phmijIg?t=183s"
+  #    "嵐","Happiness","2020/1/2","【嵐メドレー】神曲7曲繋げて弾いたらファンの方が…!!【都庁ピアノ】(0:3:3～) https://youtu.be/EjG9phmijIg?t=183s"
   #
   # @example raw input 2
-  #    あいみょん,マリーゴールド,2019/7/20,Link→【即興ピアノ】ハラミのピアノ即興生ライブ❗️vol.1【ピアノ】(1:20:16～) https://youtu.be/N9YpRzfjCW4?t=4816s
+  #    あいみょん,マリーゴールド,2019/7/20,【即興ピアノ】ハラミのピアノ即興生ライブ❗️vol.1【ピアノ】(1:20:16～) https://youtu.be/N9YpRzfjCW4?t=4816s
   #
   # @example output
-  #    <tr><td>あいみょん</td><td>マリーゴールド</td><td>2019/7/20</td><td><font color="red">Link→</font><a rel="noopener" target="_blank" href="https://youtu.be/N9YpRzfjCW4?t=4816s">【即興ピアノ】ハラミのピアノ即興生ライブ❗️vol.1【ピアノ】(1:20:16～)</a><br/>https://youtu.be/N9YpRzfjCW4?t=4816s</td></tr>
+  #    <tr><td>あいみょん</td><td>マリーゴールド</td><td>2019/7/20</td><td></td><td><a href="https://youtu.be/N9YpRzfjCW4?t=4816s" target="_blank">【即興ピアノ】ハラミのピアノ即興生ライブ❗️vol.1【ピアノ】(1:20:16～)</a></td></tr>
   #
   # @param css_csv [String] in CSV format
+  # @param url [String] URL, which used to be included in the last column of CSV. A botch job!! (needs reviewing!!!!!!!!!)
   # @return [String] of a HTML table
-  def self.generate_sample_html_table(css_csv)
-    tag_i, tag_f = get_pair_tags_from_css CSS_TABLE_SELECTOR
+  def self.generate_sample_html_table(css_csv, url: nil)
+    tag_i, tag_f = get_pair_tags_from_css CSS_TABLE_SELECTOR  # This should not work, either!!! See the definition of CSS_TABLE_SELECTOR
     contents = []
     regex = remove_az_from_regexp RE_YOUTUBE
     CSV.parse(css_csv).each do |ea_row|
       ea_row[3] = ea_row[3].sub(/\b(Link\s*→)/, '<font color="red">\1</font>')
       mat = regex.match ea_row[3]
-      ea_row[3] = ea_row[3].sub(/(\A|\/font>)([^<>]+) (#{Regexp.quote mat[0]})/, sprintf('%s<a rel="noopener" target="_blank" href="%s">%s</a><br/>%s', '\1', mat[0], '\2', '\3'))
+      ea_row[3] = ea_row[3].sub(/(\A|\/font>)([^<>]+) (#{Regexp.quote mat[0]})/, sprintf('%s<a href="%s" target="_blank">%s</a><br/>%s', '\1', mat[0], '\2', '\3')) if mat
+      ea_row[3] = sprintf('<a href="%s" target="_blank">%s</a>', url, ea_row[3].strip) if url && /\bhttp:/ !~ ea_row[3]
+      ea_row[3] = '</td><td>' + ea_row[3] # for "Memo" in the original remote Harami1129
       contents << '<td>'+ea_row.join('</td><td>')+'</td>' if !ea_row.empty?
     end
     tag_i + contents.join("</tr>\n<tr>") + tag_f
   end
+
+  ## private class methods
+
+    # Get all the <tr> of the main table
+    #
+    # From mid-2022, there is an advert <table> at the top. Nothing at the bottom.
+    #
+    # @param page [Nokogiri]
+    # @return [Nokogiri]
+    def self.get_trs(page)
+      # trs = page.css(CSS_TABLE_SELECTOR)  # up to mid(?)-2022
+      trs = page.css("table")[-1].css("tr") # from mid-2022
+    end
+    private_class_method :get_trs
 
 end
 
