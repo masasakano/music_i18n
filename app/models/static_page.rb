@@ -1,5 +1,6 @@
 # coding: utf-8
 
+require 'net/http'  # for Net::HTTP
 include StaticPagesHelper
 
 # == Schema Information
