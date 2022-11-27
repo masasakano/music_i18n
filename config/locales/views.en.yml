@@ -59,6 +59,8 @@ en:
       note_new_artist: "If not yet registered, "
       create_new_artist: 'create a new record'
       assoc_artist_head: 'Associated Artist information'
+    devise:
+      footer_from_admin: "Administrator at %{domain}"
 
   devise:
     registrations:

@@ -5,3 +5,5 @@
 <% else %>
   <p><%= t('.message', email: @resource.email) %></p>
 <% end %>
+
+<%= render partial: 'layouts/mailer_footer_from_admin' %>
