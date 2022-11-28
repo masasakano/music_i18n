@@ -46,13 +46,15 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
   # all four of them are significant.
   # In normal end, all of them but @last_err are significant.
   #
+  # @param init_entry_fetch: [Integer, NilClass] 1 if nil.
   # @param max_entries_fetch: [Integer, NilClass] if nil, no limit.
   # @param html_str: [String, NilClass] Direct HTML String. If nil, read from the default URI.
   # @param debug: [Boolean]
   # @return [Harami1129s::DownloadHarami1129::Ret] where 6 instance variables are set.
-  def self.download_put_harami1129s(max_entries_fetch: nil, html_str: nil, debug: false)
+  def self.download_put_harami1129s(init_entry_fetch: 1, max_entries_fetch: nil, html_str: nil, debug: false)
     ret = self::Ret.new
 
+    init_entry_fetch = 1 if init_entry_fetch < 1
     if debug && !max_entries_fetch
       logger.warn "(#{__method__}) When params[:debug] is true, max_entries_fetch should not be nil. It is reset to 3."
       max_entries_fetch = 3
@@ -60,7 +62,7 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
     max_entries_fetch = max_entries_fetch.to_i if max_entries_fetch
 
     if debug #|| max_entries_fetch
-      logger.info "(#{__method__}) [DEBUG-mode]: max_entries_fetch=(#{max_entries_fetch})."
+      logger.info "(#{__method__}) [DEBUG-mode]: init_entry_fetch=#{init_entry_fetch.inspect}, max_entries_fetch=(#{max_entries_fetch})."
     end
 
 # max_entries_fetch = 23 if !max_entries_fetch   # for DEBUG-ging
@@ -102,7 +104,7 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
     n_entries = n_alltrs - 1  # Except for a single header line
     if debug #|| max_entries_fetch
       str_entry = ActionController::Base.helpers.pluralize([(max_entries_fetch || Float::INFINITY), n_alltrs].min, "entry", locale: :en)
-      msg = "[DEBUG-mode](#{__method__}): processing #{str_entry} out of #{n_entries} entries."
+      msg = "[DEBUG-mode](#{__method__}): processing #{str_entry} out of #{n_entries} entries, starting from #{init_entry_fetch.inspect}."
       logger.info msg
       ret.msg << msg
     end
@@ -115,7 +117,9 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
       next if !row || row.size < 1
 
       i_sigificant += 1
-      break if max_entries_fetch && i_sigificant > max_entries_fetch
+      next if init_entry_fetch > i_sigificant
+
+      break if max_entries_fetch && (i_sigificant - init_entry_fetch + 1 > max_entries_fetch)
 
       if debug && i%100 == 0
         logger.debug "[DEBUG-mode](#{__method__}): #{i}-th (#{i_sigificant}th significant row, out of #{n_entries}) remote-Harami1129 table row being processed..."
