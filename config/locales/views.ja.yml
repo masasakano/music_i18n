@@ -37,6 +37,9 @@ ja:
     about_us: '本サイトについて'
     others: 'その他'
 
+  mail:
+    Link_handled_by: "リンクは、%{mail_distributor}経由で%{domain}にて処理されます"
+
   layouts:
     add_translation: '翻訳追加'
     create_model: "%{model}新規作成"
@@ -63,6 +66,8 @@ ja:
       footer_from_admin: "%{domain} 管理者拝"
 
   devise:
+    confirmations:
+      confirmed: "メールアドレスが確認できました。ログインできます! 管理者に連絡を取って、役割をもらうのを忘れないようにお願いします。役割なしにはアカウントはほぼ意味がありませんので……。"
     registrations:
       new:
        used_to_confirm_registration: "登録確認メールが送信されます。モデレーターまで含めて誰にも非公開です(管理者は除く)" 

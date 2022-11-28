@@ -316,6 +316,19 @@ module ApplicationHelper
     hsret
   end
 
+  # Used for emails sent from the server (esp. by Devise)
+  #
+  # When the link sent from the server is intercepted by the distributor
+  # and if the linke is modified to them
+  #
+  # @return [Hash] may or may not include key :title
+  def self.opts_title_re_mail_distributor
+    return {} if ENV['MAIL_DISTRIBUTOR'].blank? || ENV['MAIL_DISTRIBUTOR'].strip.blank?
+    domain = (Rails.application.config.action_mailer.smtp_settings[:domain].strip rescue nil)
+    return {} if domain.blank?
+    {title: I18n.t("mail.Link_handled_by", mail_distributor: ENV['MAIL_DISTRIBUTOR'].strip, domain: domain)}
+  end
+
   # to suppress warning, mainly that in Ruby-2.7.0:
   #   "Passing the keyword argument as the last hash parameter is deprecated"
   #

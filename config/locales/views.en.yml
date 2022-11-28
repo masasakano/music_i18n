@@ -37,6 +37,9 @@ en:
     about_us: 'About Us'
     others: 'Others'
 
+  mail:
+    Link_handled_by: "Link handled by %{mail_distributor} on behalf of %{domain}"
+
   layouts:
     add_translation: 'Add translation'
     create_model: "Create a new %{model}"
