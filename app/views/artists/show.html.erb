@@ -28,10 +28,13 @@
   <%= @artist.sex.title langcode: 'ja' %>
 </p>
 
-<p>
-  <strong>Wikipedia:</strong>
-  <%= %w(ja en).map{|m| uri=@artist.wiki_uri(m); sprintf("[%s] ", t("locale.capital."+m, default: m.upcase))+(uri.blank? ? '——' : link_to(h(uri.sub(%r@^https?://@, "")), uri))}.join(' / ').html_safe %>
+<% %w(ja en).each do |lcode| %>
+<p id="show_wikipedia_<%= lcode %>">
+  <strong>Wikipedia <%= sprintf("[%s]", t("locale.capital."+lcode, default: lcode.upcase)) %>:</strong>
+  <%= uri=@artist.wiki_uri(lcode);
+      (uri.blank? ? '——' : link_to_from_root_str(h(CGI.unescape(uri.sub(%r@^https?://@, ""))), uri).html_safe) %>
 </p>
+<% end %>
 
 <p>
   <strong>Note:</strong>

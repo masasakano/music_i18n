@@ -1,5 +1,7 @@
 module ApplicationHelper
 
+  include ModuleCommon
+
   # For toastr Gem. From
   # <https://stackoverflow.com/a/58778188/3577922>
   def toastr_flash
