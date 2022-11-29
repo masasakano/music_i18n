@@ -15,6 +15,7 @@ en:
     place: Place
     prefecture: Prefecture
     country: Country
+    place_country: "Prefecture - Place (Country)"
     genre: Genre
     wiki_ja: "Wikipedia (Ja)"
     wiki_en: "Wikipedia (En)"
@@ -42,6 +43,10 @@ en:
 
   layouts:
     add_translation: 'Add translation'
+    all_registered: 'All registered '
+    translations: translations
+    translated_names: translated names
+    back_to_index: 'Back to Index'
     create_model: "Create a new %{model}"
     destroy_button: 'Commit Destroy'
     editing_guideline: 'Editing Guideline'

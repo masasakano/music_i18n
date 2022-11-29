@@ -15,6 +15,7 @@ ja:
     place: 場所
     prefecture: 県/州
     country: 国
+    place_country: "県・場所 (国)"
     genre: 音楽種別
     wiki_ja: "Wikipedia日本語"
     wiki_en: "Wikipedia英語"
@@ -42,6 +43,10 @@ ja:
 
   layouts:
     add_translation: '翻訳追加'
+    all_registered: 'すべての登録'
+    translations: '訳語'
+    translated_names: '翻訳名称'
+    back_to_index: '一覧に戻る'
     create_model: "%{model}新規作成"
     destroy_button: '削除実行'
     editing_guideline: '編集方針'

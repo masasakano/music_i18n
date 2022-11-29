@@ -15,7 +15,7 @@ export function dropdownCountry2Place(model){
 	}
 	ddCountryPrefecture(model, !prefsel_nil);  // For the initial load only.
 	$(contsel).change(function(){ddCountryPrefecture(model)});
-	if (with_place){
+	if (! with_place){
 		return;
 	}
 
@@ -82,10 +82,4 @@ function ddPrefecturePlace(model, selected = false){
     $(placesel).parent().hide();
   }
 }
-
-// console.log('dropdown JS file was read.');
-
-//  var states = $("#harami_vid_place\\.prefecture_id\\.country_id").html();
-//  console.log(states);
-// $( "#myDiv" ).css( "border", "3px solid red" ); // Even this does not work.
 
