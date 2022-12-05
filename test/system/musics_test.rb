@@ -23,7 +23,7 @@ class MusicsTest < ApplicationSystemTestCase
     fill_in "Email", with: @moderator.email
     fill_in "Password", with: '123456'  # from users.yml
     click_on "Log in"
-    assert_selector "h1", text: "Harami-chan"
+    assert_selector "h1", text: "HARAMIchan"
 
     # Music#index
     visit musics_url
