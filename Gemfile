@@ -105,8 +105,6 @@ group :test do
   # Adds support for Capybara system testing and selenium driver
   gem 'capybara' #, '>= 2.15'
   gem 'selenium-webdriver'
-  # Easy installation and use of web drivers to run system tests with browsers
-  gem 'webdrivers'
 end
 
 ### Ruby 3 requirement
@@ -150,4 +148,4 @@ group :development, :test do
   gem 'minitest-reporters', '~> 1', '>= 1.4.3'  # depending on rubocop
   gem 'w3c_validators', '~> 1', '>= 1.3.6'
 end
-
+gem "sassc-rails"
