@@ -13,7 +13,6 @@
 #  email                  :string           default(""), not null
 #  encrypted_password     :string           default(""), not null
 #  ext_account_name       :string
-#  ext_uid                :string
 #  last_sign_in_at        :datetime
 #  last_sign_in_ip        :inet
 #  provider               :string
@@ -21,6 +20,7 @@
 #  reset_password_sent_at :datetime
 #  reset_password_token   :string
 #  sign_in_count          :integer          default(0), not null
+#  uid                    :string
 #  unconfirmed_email      :string
 #  created_at             :datetime         not null
 #  updated_at             :datetime         not null
