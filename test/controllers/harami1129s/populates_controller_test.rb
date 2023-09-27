@@ -58,7 +58,14 @@ class PopulatesControllerTest < ActionDispatch::IntegrationTest
   test "should update with a new Harami1129 with a Japanese singer from internal_insertion to populate" do
     sign_in @moderator
 
-    sample = '"嵐","Happiness","2020/1/2","Link→【嵐メドレー】神曲7曲繋げて弾いたらファンの方が…!!【都庁ピアノ】(0:3:3～) https://youtu.be/EjG9phmijIg?t=183s"'
+    sample =
+      case Harami1129s::DownloadHarami1129::HARAMI1129_HTML_FMT.strip
+      when "2022"
+        '"嵐","Happiness","2020/1/2","Link→【嵐メドレー】神曲7曲繋げて弾いたらファンの方が…!!【都庁ピアノ】(0:3:3～) https://youtu.be/EjG9phmijIg?t=183s"'
+      else
+        '"嵐","Happiness","2020/1/2","追記だよ","【嵐メドレー】神曲7曲繋げて弾いたらファンの方が…!!【都庁ピアノ】(0:3:3～) https://youtu.be/EjG9phmijIg?t=183s"'
+      end
+
     html_in = Harami1129s::DownloadHarami1129.generate_sample_html_table(sample)
     h1129 = nil
     assert_difference('Harami1129.count', 1) do

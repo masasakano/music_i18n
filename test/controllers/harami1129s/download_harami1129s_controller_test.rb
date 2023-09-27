@@ -7,11 +7,14 @@ class DownloadHarami1129sControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
   setup do
-    #if !ENV['URI_HARAMI1129'] || /\.(com|org|net)$/ =~ URI.parse(ENV['URI_HARAMI1129']).host.downcase
-    #  raise 'Environmental variable URI_HARAMI1129 should be specified for testing.'
-    #end
-    #ENV['URI_HARAMI1129'] = 'file://'+(Rails.root+'test/controllers/harami1129s/data/harami1129_sample.html').to_s
-    ENV['URI_HARAMI1129'] = (Rails.root+'test/controllers/harami1129s/data/harami1129_sample.html').to_s
+    ##if !ENV['URI_HARAMI1129'] || /\.(com|org|net)$/ =~ URI.parse(ENV['URI_HARAMI1129']).host.downcase
+    ##  raise 'Environmental variable URI_HARAMI1129 should be specified for testing.'
+    ##end
+    ##ENV['URI_HARAMI1129'] = 'file://'+(Rails.root+'test/controllers/harami1129s/data/harami1129_sample.html').to_s
+    #ENV['URI_HARAMI1129'] = (Rails.root+'test/controllers/harami1129s/data/harami1129_sample.html').to_s
+
+    # Reset ENV['URI_HARAMI1129'] for local-testing. Default: DEF_RELPATH_HARAMI1129_LOCALTEST in test_helper.rb
+    set_uri_harami1129_localtest  # defined in test_helper.rb
 
     get '/users/sign_in'
     sign_in users(:user_sysadmin)
@@ -72,7 +75,7 @@ class DownloadHarami1129sControllerTest < ActionDispatch::IntegrationTest
       assert_nil  Artist['aiko']
 
       Harami1129.delete_all
-      n_downloaded = 15  # more download
+      n_downloaded = 25  # NOTE: Increase this for more downloading, which would be necessary unless the environmental var URI_HARAMI1129 is specified to point to a small HTML file.
       n_artists = Artist.count
       n_musics  = Music.count
       artists_orig_ids = Artist.pluck :id
@@ -96,7 +99,8 @@ class DownloadHarami1129sControllerTest < ActionDispatch::IntegrationTest
       assert_equal    h1129.song,   h1129.engage.music.title
 
       artist_aiko = Artist['aiko']
-      assert_equal 'aiko', artist_aiko.title
+      warn "Warning: (#{__FILE__}: #{__method__}) 'Seemingly 'aiko' has not been downloaded maybe because n_downloaded' above is too small for the given sample HTML, which can be checked in the log with 'Opening'." if !artist_aiko.respond_to? :title
+      assert_equal 'aiko', artist_aiko.title, "NOTE: if this goes wrong, "
       assert_operator Harami1129.where(ins_singer: 'aiko').count, '>', 0
 
       # In DB, it has been 'Ai', whereas in the downloaded it is 'AI'

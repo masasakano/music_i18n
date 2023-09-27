@@ -647,7 +647,7 @@ class TranslationTest < ActiveSupport::TestCase
     ts[21] = Translation.create!(translatable: sex, langcode: 'en', is_orig: nil, title: 'W', weight: Float::INFINITY)
     ts[22] = Translation.create!(translatable: sex, langcode: 'en', is_orig: nil, title: 'X', weight: nil)
     ts[22].reload
-    assert_equal Float::INFINITY, ts[22].weight  # because of set_create_user callback
+    assert_equal Float::INFINITY, ts[22].weight, 'NOTE: This only sometimes fails for an unknown reason. ts[22]='+ts[22].inspect  # because of set_create_user callback
     ts[22].weight = nil
     ts[22].save!(validate: false)
     assert_nil ts[22].weight

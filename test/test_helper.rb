@@ -7,6 +7,8 @@ require 'w3c_validators'
 class ActiveSupport::TestCase
   include ApplicationHelper
 
+  DEF_RELPATH_HARAMI1129_LOCALTEST = 'test/controllers/harami1129s/data/harami1129_sample.html'
+
   # Run tests in parallel with specified workers
   parallelize(workers: :number_of_processors)
 
@@ -345,4 +347,31 @@ class ActiveSupport::TestCase
     page.execute_script %Q{ $('#{selector}').trigger('mouseenter').click() }
   end
 
+  # Set ENV['URI_HARAMI1129'] for local model/controller tests
+  #
+  # If ENV['URI_HARAMI1129_LOCALTEST'] is set as either the local-file full path or
+  # a path below Rails.root like 'test/my_data/x.html', it is used
+  # (Default: DEF_RELPATH_HARAMI1129_LOCALTEST)
+  def set_uri_harami1129_localtest
+    ENV['URI_HARAMI1129'] = 
+      if ENV['URI_HARAMI1129_LOCALTEST'].blank? || %r@\A[^/]*:/@ =~ ENV['URI_HARAMI1129_LOCALTEST']
+        if !ENV['URI_HARAMI1129_LOCALTEST'].blank?
+          msg = "WARNING: Ignored and reset to Default (should be either the local absolute path or relative path beggining with 'test/': ENV['URI_HARAMI1129_LOCALTEST']=#{ENV['URI_HARAMI1129_LOCALTEST']}"
+          Rails.logger.warn msg
+          $stderr.puts msg
+        end
+        (Rails.root+DEF_RELPATH_HARAMI1129_LOCALTEST).to_s
+      elsif %r@\A/@ =~ ENV['URI_HARAMI1129_LOCALTEST']
+        ENV['URI_HARAMI1129_LOCALTEST']
+      else
+        (Rails.root+ENV['URI_HARAMI1129_LOCALTEST']).to_s
+      end
+
+    if !File.exist? ENV['URI_HARAMI1129']
+      msg = "ERROR: Local test file (#{ENV['URI_HARAMI1129']}) not exist, maybe because ENV['URI_HARAMI1129_LOCALTEST']=(#{ENV['URI_HARAMI1129_LOCALTEST']}) is invalid."
+      Rails.logger.error msg
+      $stderr.puts msg
+    end
+    Rails.logger.info "INFO: to read Local test data file: #{ENV['URI_HARAMI1129']}"
+  end
 end
