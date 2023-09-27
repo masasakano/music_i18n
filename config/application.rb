@@ -31,7 +31,9 @@ module HaramiMusicI18n
 
     # @see https://github.com/paper-trail-gem/paper_trail/blob/master/doc/pt_13_yaml_safe_load.md
     # @see https://stackoverflow.com/questions/72970170/upgrading-to-rails-6-1-6-1-causes-psychdisallowedclass-tried-to-load-unspecif
-    config.active_record.yaml_column_permitted_classes = [ActiveSupport::TimeWithZone]
+    config.active_record.yaml_column_permitted_classes = [
+      # ActiveSupport::TimeWithZone
+    ]
     #config.active_record.use_yaml_unsafe_load = true  # The last resort
   end
 end

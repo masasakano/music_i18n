@@ -14,7 +14,7 @@ gem "sprockets-rails"
 gem 'pg', '>= 0.18', '< 2.0'
 # Use the Puma web server [https://github.com/puma/puma]
 #gem 'puma', '~> 4.1'  # Rails 6
-gem 'puma', '~> 5.0'   # Rails 7.0 default
+gem 'puma', '~> 6.4'   # >=5.0 for Rails 7.0 default
 ## Use SCSS for stylesheets (obsolete as of 2019)
 #  https://sass-lang.com/ruby-sass
 #  https://github.com/rails/sass-rails
@@ -27,7 +27,7 @@ gem 'puma', '~> 5.0'   # Rails 7.0 default
 # Build JSON APIs with ease. Read more: https://github.com/rails/jbuilder
 gem 'jbuilder' #, '~> 2.7'
 # Use Redis adapter to run Action Cable in production
-gem 'redis', '~> 4.0'
+gem 'redis', '~> 5.0'
 
 # Use Kredis to get higher-level data types in Redis [https://github.com/rails/kredis]
 # gem "kredis"
@@ -124,7 +124,7 @@ gem 'datagrid', '~> 1.4', '>= 1.4.4'
 gem 'rubytree', '~> 2', '>= 2.0.0'
 gem 'slim_string', '~> 1', '>= 1.0.1'
 gem 'simple_form', '~> 5', '>= 5.1.0'
-gem 'paper_trail', '~> 12.3', '>= 12.3'  # used to use 12.0 up to Rails 6.0 (which causes error in Rails 6.1); recommended to update to 13.0 with the condition to switch the column type: @see my comment about "yaml" in config/application.rb
+gem 'paper_trail', '~> 15', '>= 15.0.0'  # used to use 12.0 up to Rails 6.0 (which causes error in Rails 6.1); recommended to update to 13.0 with the condition to switch the column type: @see my comment about "yaml" in config/application.rb
 # gem 'high_voltage', '~> 3.1', '>= 3.1.2'
 # gem 'routing-filter', '~> 0', '>= 0.6.3' # Only git HEAD works with Rails 6.1.
 gem 'routing-filter', '~> 0', '>= 0.6.3', git: 'https://github.com/svenfuchs/routing-filter'
