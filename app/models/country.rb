@@ -192,6 +192,88 @@ class Country < BaseWithTranslation
     title(langcode: 'en') == UnknownCountry['en']
   end
 
+  # Unknown {Prefecture} belonging to self
+  #
+  # @return [Prefecture]
+  def unknown_prefecture
+    prefectures.joins(:translations).where("translations.langcode='en' AND translations.title = ?", Prefecture::UnknownPrefecture['en']).first
+  end
+
+  # Unknown {Country} belonging to self
+  #
+  # @return [Country]
+  def unknown_sibling
+    self.class.unknown
+  end
+
+  # Modify the parameters inherited from {CountryMaster}
+  # Modify the parameters inherited from {CountryMaster}
+  #
+  # @example France
+  #    self.modify_masters_trans({fr: {title: "France (la)"}})
+  #     # => {fr: {title: "France, la"}})
+  #
+  # @example Spain
+  #    self.modify_masters_trans({en: {title: "the Kingdom of Spain"}})
+  #     # => {en: {title: "Kingdom of Spain, the"}})
+  #
+  # @example UK/GBR
+  #    self.modify_masters_trans({en: {alt_title: "United Kingdom of Great Britain and Northern Ireland (the)"}})
+  #     # => {en: {alt_title: "UK"}})
+  #
+  # @param hstrans [Hash<Symbol=>Hash<Symbol=>String>>]  en: {title: "Some"}, ja: {alt_title: "other"}
+  # @return [Hash<Symbol=>Hash<Symbol=>String>>] Nothe the original is also destructively modified!
+  def self.modify_masters_trans(hstrans)
+    hstrans.map{|lc, content|
+      case content[:title]
+      when "日本国"
+        content[:ruby] = "ニホンコク"
+        content[:romaji] = "Nihonkoku"
+        content[:alt_title] = "日本"
+        content[:alt_ruby] = "ニッポン"
+        content[:alt_romaji] = "Nippon"
+      when "大韓民国"
+        content[:alt_title] = "韓国"
+        content[:ruby] = "カンコク"
+        content[:romaji] = "Kankoku"
+      when "北朝鮮=朝鮮民主主義人民共和国"
+        content[:alt_title] = "北朝鮮"
+      when "中華人民共和国"
+        content[:alt_title] = "中国"
+      when "ホンコン(香港)特別行政区"
+        content[:alt_title] = "香港"
+        content[:alt_ruby] = "ホンコン"
+        content[:alt_romaji] = "Honkon"
+      when "アメリカ合衆国"
+        content[:alt_title] = "アメリカ(米国)"
+      else
+        # do nothing
+      end
+
+      %i(title alt_title).each do |ekey|
+        next if !content[ekey]
+        content[ekey] =
+          case content[ekey] 
+          when "Korea (the Republic of)"
+            "South Korea"
+          when "Russian Federation (the)"
+            "Russia"
+          when "United Kingdom of Great Britain and Northern Ireland (the)"
+            "UK"
+          when "United States of America (the)"
+            "USA"
+          when "台湾(タイワン)"
+            "台湾"
+          when "英国"
+            "イギリス(英国)"
+          else
+            content[ekey]
+          end
+        content[ekey] = definite_article_to_tail(content[ekey].sub(/ +\((#{DEFINITE_ARTICLES_REGEXP_STR})\)\s*\z/, ', \1'))
+      end
+      [lc, content]
+    }.to_h
+  end
 
   # Similar to #{encompass?} but returns false if self==other
   #

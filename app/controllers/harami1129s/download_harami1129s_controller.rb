@@ -11,7 +11,8 @@ class Harami1129s::DownloadHarami1129sController < ApplicationController
     internal_insert: 'internal_insert',
     populate: 'populate',
   }
-  PERMITTED_COLUMNS = [DOWNLOAD_FORM_SUBMIT_NAME.to_sym]+%i(debug max_entries_fetch step_to)
+  PERMITTED_COLUMNS = [DOWNLOAD_FORM_SUBMIT_NAME.to_sym]+%i(debug init_entry_fetch max_entries_fetch step_to)
+  MAX_ENTRIES = 500
 
   # GET /harami1129s/download_harami1129s/new
   def new
@@ -26,9 +27,13 @@ class Harami1129s::DownloadHarami1129sController < ApplicationController
 #puts "DEBUG-download02:"+params[:max_entries_fetch].inspect
 #logger.debug "DEBUG-download01:"+params.inspect
     # This sets @harami1129s
+    ini_n = params[:init_entry_fetch]
+    ini_n = 1 if ini_n.blank? || ini_n && ini_n.to_i < 1
+    ini_n = ini_n.to_i
     max_n = params[:max_entries_fetch]
     max_n = nil if max_n.blank? || max_n && max_n.to_i < 0
-    var6 = Harami1129s::DownloadHarami1129.download_put_harami1129s(max_entries_fetch: max_n, debug: (params[:debug].to_i > 0))  # var6 < Harami1129s::DownloadHarami1129::Ret (defined in /app/models/harami1129s/download_harami1129.rb)
+    max_n = MAX_ENTRIES if !max_n && !(current_user && current_user.an_admin?)
+    var6 = Harami1129s::DownloadHarami1129.download_put_harami1129s(init_entry_fetch: ini_n, max_entries_fetch: max_n, debug: (params[:debug].to_i > 0))  # var6 < Harami1129s::DownloadHarami1129::Ret (defined in /app/models/harami1129s/download_harami1129.rb)
     %w(last_err msg alert num_errors harami1129 harami1129s).each do |es|
       # Sets @harami1129s, @alert etc.
       instance_variable_set('@'+es, var6.send(es))

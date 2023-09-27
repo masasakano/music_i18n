@@ -26,6 +26,28 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     get artist_url(@artist)
     assert_response :success
     #refute css_select('div.link-edit-destroy a')[0].text.include? "Edit"
+
+    sign_in @editor
+
+    # tests of display of wiki
+    wiki_en_root = "en.wikipedia.org/wiki/Ben_E._King"
+    hs = {
+      "wiki_en"=>"https://"+wiki_en_root,
+      "wiki_ja"=>"%E3%83%99%E3%83%B3%E3%83%BBE%E3%83%BB%E3%82%AD%E3%83%B3%E3%82%B0",
+      }
+    patch artist_url @artist, params: { artist: hs }
+    assert_response :redirect
+    assert_redirected_to artist_url @artist
+
+    follow_redirect!
+    assert_equal 1, css_select('p#show_wikipedia_ja').size
+    #puts "DEBUG: HTML:\n"+css_select('p#show_wikipedia').to_html
+    css = css_select('p#show_wikipedia_ja a')
+    assert_equal "https://ja.wikipedia.org/wiki/"+hs["wiki_ja"], css[0]["href"]
+    assert_equal "ja.wikipedia.org/wiki/ベン・E・キング",        css[0].text
+    css = css_select('p#show_wikipedia_en a')
+    assert_equal "https://en.wikipedia.org/wiki/Ben_E._King", CGI.unescape(css[0]["href"])
+    assert_equal wiki_en_root, css[0].text
   end
 
   test "should fail/succeed to get edit" do

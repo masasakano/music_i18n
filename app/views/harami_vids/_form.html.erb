@@ -15,10 +15,6 @@
 <hr>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: harami_vid, add_buttons: true} %>
 <hr>
-<%= render partial: 'harami1129_table', locals: {harami_vid: harami_vid, add_buttons: true} %>
-<hr>
-<%= render partial: 'music_table', locals: {harami_vid: harami_vid, add_buttons: true} %>
-<hr>
 <% end %>
 
 <%= form_with(model: harami_vid, local: true) do |form| %>
@@ -51,19 +47,19 @@
   <div class="field" id="div_select_country">
     <%= form.label 'place.prefecture_id.country_id', 'Country'%>
     <% country = harami_vid.country %>
-    <%= form.collection_select 'place.prefecture_id.country_id', @countries, :id, Proc.new{|i| i.title_or_alt(langcode: 'ja', prefer_alt: true, str_fallback: "NONE")}, {include_blank: !country, selected: (country ? country.id : nil)} %> <%# If no translation exists and left empty (instead of "NONE"), it would violate the HTML spec: Element “option” without attribute “label” must not be empty. %>
+    <%= form.collection_select 'place.prefecture_id.country_id', @countries, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, {include_blank: !country, selected: (country ? country.id : nil)} %> <%# If no translation exists and left empty (instead of "NONE"), it would violate the HTML spec: Element “option” without attribute “label” must not be empty. %>
   </div>
 
   <div class="field" id="div_select_prefecture">
-    <%= form.label 'place.prefecture_id' %>
+    <%= form.label 'place.prefecture_id', t('Prefecture') %>
     <% prefecture = harami_vid.prefecture %>
-    <%= form.grouped_collection_select 'place.prefecture_id', @countries, :prefectures, Proc.new{|i| i.title_or_alt(langcode: 'ja', prefer_alt: true, str_fallback: "NONE")}, :id, Proc.new{|i| i.title_or_alt(langcode: 'ja', prefer_alt: true)}, {include_blank: true, selected: (prefecture ? prefecture.id : nil)} %>
+    <%= form.grouped_collection_select 'place.prefecture_id', @countries, :prefectures, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true)}, {include_blank: true, selected: (prefecture ? prefecture.id : nil)} %>
   </div>
 
   <div class="field" id="div_select_place">
-    <%= form.label :place_id %>
+    <%= form.label :place, t('Place') %>
     <% place = harami_vid.place %>
-    <%= form.grouped_collection_select 'place', @prefectures, :places, Proc.new{|pref| a=pref.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true); a[0]+'/'+a[1]}, :id, Proc.new{|plac| plac.title_or_alt(langcode: 'ja', prefer_alt: true)}, {include_blank: true, selected: (place ? place.id : nil)} %>
+    <%= form.grouped_collection_select 'place', @prefectures, :places, Proc.new{|pref| a=pref.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true); a[0]+'/'+a[1]}, :id, Proc.new{|plac| plac.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, {include_blank: true, selected: (place ? place.id : nil)} %>
   </div>
 
   <div class="field">
@@ -73,7 +69,7 @@
  
   <div class="field">
     <%= form.label :artist, (harami_vid.new_record? ? '曲の' : '追加曲の')+'歌手 (または作曲家。一名あるいは一グループ名のみ。必要に応じて後で追加可能)' %>
-    <%= form.text_field :artist %>
+    <%= form.text_field :artist, disabled: true %>
   </div>
  
   <div class="field">
@@ -81,17 +77,17 @@
     <%= form.select(:engage_how2,
                     EngageHow.order(:weight).all.map{|i| [i.title(langcode: 'ja'), i.id]},
                     { :prompt => "Please select"},
-                    { :multiple => true, :size => 12 }) %>
+                    { :multiple => true, :size => 12, disabled: true }) %>
   </div>
  
   <div class="field">
     <%= form.label :music, (harami_vid.new_record? ? '' : '追加')+'曲名 (一曲のみ。必要に応じて後で追加可能)' %>
-    <%= form.text_field :music %>
+    <%= form.text_field :music, disabled: true %>
   </div>
  
   <div class="field">
     <%= form.label :music_timing, (harami_vid.new_record? ? '' : '追加')+'曲の動画中でのタイミング [秒]' %>
-    <%= form.text_field :music_timing %>
+    <%= form.text_field :music_timing, value: 0, disabled: true %>
   </div>
 
   <div class="field">
@@ -107,21 +103,11 @@
   </div>
 <% end %>
 
-<%# javascript_pack_tag 'dropdown_harami_vid' %>
+<% if ! harami_vid.new_record? %>
+<hr>
+<%= render partial: 'harami1129_table', locals: {harami_vid: harami_vid, add_buttons: true} %>
+<hr>
+<%= render partial: 'music_table', locals: {harami_vid: harami_vid, add_buttons: true} %>
+<hr>
+<% end %>
 
-<script>
-// $(dropdown_hv)
-
-// // autocomplete
-// $(function(){
-//    // Plain jquery
-//    $('#text_field_duration').fadeOut(5000);
-//
-//    // jquery-ui
-//    const availableCities = ['Baltimore', 'New York'];
-//    console.log($('#harami_vid_music').html()); // .autocomplete( { source: availableCities } );
-//    //$('#calendarField').datepicker( { dateFormat: 'yy-mm-dd' } );
-//})
-
- // console.log(states);
-</script>

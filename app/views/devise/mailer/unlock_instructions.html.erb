@@ -4,4 +4,6 @@
 
 <p><%= t('.instruction') %></p>
 
-<p><%= link_to t('.action'), unlock_url(@resource, unlock_token: @token) %></p>
+<p><%= link_to t('.action'), unlock_url(@resource, unlock_token: @token), **(ApplicationHelper.opts_title_re_mail_distributor) %></p>
+
+<%= render partial: 'layouts/mailer_footer_from_admin' %>

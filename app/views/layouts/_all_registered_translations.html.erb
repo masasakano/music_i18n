@@ -1,4 +1,4 @@
-<h2>All registered <%= defined?(myself) ? 'translations' : 'translated names' %></h2>
+<h2><%= t("layouts.all_registered") %><%= t("layouts."+(defined?(myself) ? 'translations' : 'translated_names')) %></h2>
 
 <table>
   <% allcolspan = 6

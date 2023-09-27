@@ -15,6 +15,7 @@ en:
     place: Place
     prefecture: Prefecture
     country: Country
+    place_country: "Prefecture - Place (Country)"
     genre: Genre
     wiki_ja: "Wikipedia (Ja)"
     wiki_en: "Wikipedia (En)"
@@ -31,14 +32,21 @@ en:
     duration: "Length[s]"
 
   application:
-    menu_harami_vids: "Haramichan's Videos"
+    menu_harami_vids: "HARAMIchan's Videos"
     menu_musics: "Musics"
     menu_artists: "Artists"
     about_us: 'About Us'
     others: 'Others'
 
+  mail:
+    Link_handled_by: "Link handled by %{mail_distributor} on behalf of %{domain}"
+
   layouts:
     add_translation: 'Add translation'
+    all_registered: 'All registered '
+    translations: translations
+    translated_names: translated names
+    back_to_index: 'Back to Index'
     create_model: "Create a new %{model}"
     destroy_button: 'Commit Destroy'
     editing_guideline: 'Editing Guideline'
@@ -59,6 +67,8 @@ en:
       note_new_artist: "If not yet registered, "
       create_new_artist: 'create a new record'
       assoc_artist_head: 'Associated Artist information'
+    devise:
+      footer_from_admin: "Administrator at %{domain}"
 
   devise:
     registrations:
@@ -68,12 +78,12 @@ en:
 
   home:
     index:
-      first_line_html: 'Music i18n (=internationalization) project by fans of the pop pianist <a href="https://harami-piano.com/" title="Harami-chan Website">Harami-chan</a>♪'
-      second_line: "with the main focus on translations of J-POP and animé music Harami-chan has played, and related artist names."
+      first_line_html: 'Music i18n (=internationalization) project by fans of the pop pianist <a href="https://harami-piano.com/" title="HARAMIchan Website">HARAMIchan</a>♪'
+      second_line: "with the main focus on translations of J-POP and animé music HARAMIchan has played, and related artist names."
       third_line: "We welcome any one who has enthusiasm to realize the borderless world of music to join our project! Get in touch!"
       fourth_line1: "If you haven't, why don't you "
       fourth_line2: " and get in touch with us?!"
-      h3_table: "Harami-chan's latest YouTube videos"
+      h3_table: "HARAMIchan's latest YouTube videos"
       youtube_channel: "YouTube Channel"
       harami_vids_index: "All videos"
       musics_index: "Music list"
@@ -93,7 +103,7 @@ en:
       musics_multi: 'Musics (partial match)'
       n_musics_general: "# of Musics"
       by_harami: "By Harami?"
-      by_harami_full: "Produced by Haramichan?"
+      by_harami_full: "Produced by HARAMIchan?"
       uri_playlist: "Comment URI list [%{langcode}]"
     table:
       order:

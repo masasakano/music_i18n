@@ -510,10 +510,15 @@ module ModuleCommon
 
   # Returns a Wikipedia URI for the specified language
   #
+  # Note that wiki_en may already contain a Spanish or German link etc.
+  # In that case, langcode is ignored.
+  #
   # @param langcode [String] e.g., 'ja'
   # @param term [String] e.g., 'w.wiki/3cyo', 'Kohmi_Hirose'
   # @return [String] e.g., 'https://w.wiki/3cyo', 'https://en.wikipedia.org/wiki/Kohmi_Hirose'
   def get_wiki_uri(langcode, term)
+    return term if %r@\Ahttps?://@ =~ term
+    return 'https://'+term if %r@\A[a-z]{2}\.wikipedia\.org/@ =~ term
     'https://' + ((%r(\.wiki/) =~ term) ? "" : langcode + '.wikipedia.org/wiki/') + term
   end
   private :get_wiki_uri

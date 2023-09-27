@@ -1,3 +1,4 @@
+# coding: utf-8
 # == Schema Information
 #
 # Table name: users
@@ -192,10 +193,10 @@ class UserTest < ActiveSupport::TestCase
 
   test "translation create and update" do
     user = User.find(1)
-    assert_equal 'Nippon', user.created_translations.where(langcode: 'ja', translatable_type: 'Country', romaji: 'Nippon')[0].romaji  # created_translations list does include Nippon.
+    assert_equal 'Perth', user.created_translations.where(langcode: 'en', translatable_type: 'Place', title: "Perth")[0].title
     user = users(:user_two)
-    assert_equal 'Japan',  user.updated_translations[0].title
-    assert_equal 'Japan',  user.touched_translations.where(langcode: 'en')[0].title
+    assert_equal "Light, The",  user.updated_translations.where(translatable_type: "Music")[0].title
+    assert_equal "Light, The",  user.touched_translations.where(translatable_type: "Music", langcode: 'en')[0].title
   end
 
   test "abs superior to" do

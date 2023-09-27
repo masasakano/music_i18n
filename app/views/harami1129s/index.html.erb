@@ -58,8 +58,11 @@
       <%= form.label        :debug, 'No',  value: '0' %>
         <br>
     <% end %>
-    <%= form.label      :max_entries_fetch, 'Max number of entries to download (Def: -99 meaning all)' %>
-    <%= form.text_field :max_entries_fetch,  value: -99 %><br>
+    <%= form.label      :init_entry_fetch, 'Initial entry number to download (Def: 1)' %>
+    <%= form.text_field :init_entry_fetch,  value: 1 %><br>
+    <%  msgplus = " (-99 means all: admin only)" if current_user && current_user.an_admin? %>
+    <%= form.label      :max_entries_fetch, "Number of entries to download (Max: #{Harami1129s::DownloadHarami1129sController::MAX_ENTRIES})" %>
+    <%= form.text_field :max_entries_fetch,  value: Harami1129s::DownloadHarami1129sController::MAX_ENTRIES %><br>
     <%= form.radio_button(:step_to, Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_STEP[:download], checked: false) %>
     <%= s = Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_STEP[:download]; form.label :step_to, s.capitalize, value: s %>
     <%= form.radio_button(:step_to, Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_STEP[:internal_insert], checked: false) %>

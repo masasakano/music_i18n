@@ -5,6 +5,9 @@ class Musics::UploadMusicCsvsController < ApplicationController
  
   before_action :authorize_for_edit, only: [:create]
 
+  # Allowed maximum lines (including blank lines!)
+  MAX_LINES = 250
+
   # POST /musics/upload_music_csvs
   # POST /musics/upload_music_csvs.json (???)
   def create
@@ -34,10 +37,14 @@ class Musics::UploadMusicCsvsController < ApplicationController
       return
     end
 
-    msg = sprintf "CSV file (%s): nLines=%d, nChars=%d", uploaded_io.original_filename, csv_str.chomp.split.size, csv_str.size
+    nlines = csv_str.chomp.split.size
+    msg = sprintf "CSV file (%s): nLines=%d, nChars=%d", uploaded_io.original_filename, nlines, csv_str.size
     logger.info msg
 
     begin
+      if nlines > MAX_LINES
+        csv_str = csv_str.chomp.split[0, MAX_LINES].join("\n")
+      end
       hsret = Music.populate_csv(csv_str)
     rescue => er
       # Without rescuing, the error message might not be recorded anywhere.

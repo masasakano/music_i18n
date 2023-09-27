@@ -56,6 +56,15 @@ class Musics::UploadMusicCsvsControllerTest < ActionDispatch::IntegrationTest
       post musics_upload_music_csvs_url, params: { file: fixture_file_upload('music_artists_3rows.csv', 'text/csv') }
       assert_response :success
     end
+    trans_last = Translation.order(created_at: :desc).first
+    assert_equal '子守唄',     trans_last.title
+    assert_equal 'コモリウタ', trans_last.ruby
+    assert_equal 'Komoriuta',  trans_last.romaji
+    assert_equal '香川県',     Music.order(created_at: :desc).first.place.prefecture.title(langcode: "ja")
+    assert_equal 'ja',         trans_last.langcode
+    assert_equal false,        trans_last.is_orig, 'ja-title with no en-title but with "en" means ja-title should be is_orig=false, but...'
+    assert_equal @editor,      trans_last.create_user
+    assert_equal Float::INFINITY, trans_last.weight
 
     # Repeated "creation" success, doing nothing
     assert_difference('Translation.count*1000 + Music.count*100 + Artist.count*10 + Engage.count*1', 0) do

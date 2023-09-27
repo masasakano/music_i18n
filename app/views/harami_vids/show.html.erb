@@ -1,27 +1,19 @@
-<p id="notice"><%= notice %></p>
 
-<h1>HaramiVid (<%= @harami_vid.release_date %>)</h1>
+<h1><%= t("HaramiVid")%> <%= "[HaramiVid]" if can?(:edit, @harami_vid) %> (<%= @harami_vid.release_date %>)</h1>
 
 <hr>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: @harami_vid, add_buttons: false} %>
-<% if can? :read, Harami1129 %>
-  <hr>
-  <%= render partial: 'harami1129_table', locals: {harami_vid: @harami_vid, add_buttons: true} %>
-<% end %>
-<hr>
-<%= render partial: 'music_table', locals: {harami_vid: @harami_vid, add_buttons: true} %>
-<hr>
 <dl>
-  <dt> Release date:</dt>
+  <dt> <%= t("tables.release_date") %>:</dt>
   <dd><%= @harami_vid.release_date %></dd>
 
-  <dt> Duration:</dt>
+  <dt> <%= t("tables.duration") %>:</dt>
   <dd><%= @harami_vid.duration %></dd>
 
-  <dt> Uri:</dt>
+  <dt> URI:</dt>
   <dd><%= link_to_youtube(@harami_vid.uri, @harami_vid.uri) %></dd>
 
-  <dt> 県・場所 (国):</dt>
+  <dt> <%= t("tables.place_country") %>県・場所 (国):</dt>
   <dd><%= pla = @harami_vid.place
       if pla
         ar = pla.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true);
@@ -30,16 +22,16 @@
         ""
       end %></dd>
 
-  <dt> Flag by harami:</dt>
+  <dt> <%= t("datagrid.form.by_harami_full") %>:</dt>
   <dd><%= @harami_vid.flag_by_harami %></dd>
 
-  <dt> Uri playlist ja:</dt>
+  <dt> <%= t("datagrid.form.uri_playlist", langcode: t("locale.long.ja")) %>:</dt>
   <dd><%= uri=@harami_vid.uri_playlist_ja; (uri.blank? ? '' : link_to_youtube(uri, uri)) %></dd>
 
-  <dt> Uri playlist en:</dt>
+  <dt> <%= t("datagrid.form.uri_playlist", langcode: t("locale.long.en")) %>:</dt>
   <dd><%= uri=@harami_vid.uri_playlist_en; (uri.blank? ? '' : link_to_youtube(uri, uri)) %></dd>
 
-  <dt> Note:</dt>
+  <dt> <%= t("tables.note") %>:</dt>
   <dd><%= @harami_vid.note %></dd>
 </dl>
 
@@ -47,4 +39,13 @@
   <%= button_to 'Edit', edit_harami_vid_path(@harami_vid), method: :get %>
 <br>
 <% end %>
-<%= link_to 'Back', harami_vids_path %>
+<%= link_to t("layouts.back_to_index"), harami_vids_path %>
+
+<% if can? :read, Harami1129 %>
+  <hr>
+  <%= render partial: 'harami1129_table', locals: {harami_vid: @harami_vid, add_buttons: true} %>
+<% end %>
+<hr>
+<%= render partial: 'music_table', locals: {harami_vid: @harami_vid, add_buttons: true} %>
+<hr>
+

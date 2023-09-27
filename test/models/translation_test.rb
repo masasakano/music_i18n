@@ -45,7 +45,8 @@ class TranslationTest < ActiveSupport::TestCase
     assert_equal countries(:japan).id, translations(:japan_ja).translatable_id
     assert_equal 'MyTextJapan',        translations(:japan_ja).translatable.note
     assert_equal 'b@example.com', translations(:japan_en).update_user.email
-    assert_equal 1,               translations(:japan_ja).create_user.id
+    assert_nil                    translations(:japan_ja).create_user
+    assert_equal 1,               translations(:perth_aus_en).create_user.id
   end
 
   test "constraints various" do
@@ -411,8 +412,9 @@ class TranslationTest < ActiveSupport::TestCase
   end
 
   test "titles" do
-    assert_equal ['United Kingdom', 'UK'], translations(:uk_en).titles
-    assert_equal 'United Kingdom', translations(:uk_en).title_or_alt
+    uk_title = "United Kingdom of Great Britain and Northern Ireland, the"
+    assert_equal [uk_title, 'UK'], translations(:uk_en).titles
+    assert_equal uk_title,         translations(:uk_en).title_or_alt
     assert_equal 'UK',             translations(:uk_en).title_or_alt(prefer_alt: true)
   end
 

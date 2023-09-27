@@ -1638,7 +1638,8 @@ class BaseWithTranslation < ApplicationRecord
   def title_or_alt(prefer_alt: false, lang_fallback_option: :either, str_fallback: "", **opts)
     cands = titles(lang_fallback_option: lang_fallback_option, str_fallback: nil, **opts) # nil is wanted when no translations are found.
     cands.reverse! if prefer_alt
-    cands.compact.first || str_fallback
+    cands.map{|i| (i.blank? || i.strip.blank?) ? nil : i}.compact.first || str_fallback
+    ## NOTE: Do NOT modify i (like i.strip) because "i" has a Singleton method #lcode
   end
 
   # Core method for title, alt_title, alt_ruby, etc

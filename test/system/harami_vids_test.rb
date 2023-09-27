@@ -18,10 +18,10 @@ class HaramiVidsTest < ApplicationSystemTestCase
     fill_in "Password", with: '123456'  # from users.yml
     click_on "Log in"
     # assert_response :redirect  # NoMethodError
-    assert_selector "h1", text: "Harami-chan"
+    assert_selector "h1", text: "HARAMIchan"
 
     visit harami_vids_url
-    assert_selector "h1", text: "Haramichan's Videos"
+    assert_selector "h1", text: "HARAMIchan's Videos"
 
     click_on "Create a new HaramiVid"
 

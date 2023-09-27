@@ -1,0 +1,5 @@
+<% domain = (Rails.application.config.action_mailer.smtp_settings[:domain].strip rescue "")
+   warn "Domain for Mailer is not set for the Mailer footer. Contact the administrator." if domain.empty?
+%>
+<p><%= t('layouts.devise.footer_from_admin', domain: domain) %></p>
+

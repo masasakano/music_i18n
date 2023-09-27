@@ -245,53 +245,53 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     ar = []
 
     assert_raises(ActiveRecord::RecordInvalid){  # Default
-      ar = jp_orig.create_translations!(**({ja: {title: "日本", langcode: 'ja'}})) }
+      ar = jp_orig.create_translations!(**({ja: {title: "日本国", langcode: 'ja'}})) }
 
     # Trailing spaces are insignificant in default, but specified as significant in this case.
     assert_nothing_raised(){
-      ar = jp_orig.create_translations!(hsopt_false, **{ja: {title: " 日本\n", langcode: 'ja'}}) }
-    tr2s = jp_orig.update_or_create_translations!(hsopt_false, **{ja: {title: " 日本\n", langcode: 'ja', note: 'tr02note'}})
-    tr2s = jp_orig.update_or_create_translations!(hsopt_false, **{ja: {title: " 日本\n", langcode: 'ja', note: 'tr02note'}}) # twice
+      ar = jp_orig.create_translations!(hsopt_false, **{ja: {title: " 日本国\n", langcode: 'ja'}}) }
+    tr2s = jp_orig.update_or_create_translations!(hsopt_false, **{ja: {title: " 日本国\n", langcode: 'ja', note: 'tr02note'}})
+    tr2s = jp_orig.update_or_create_translations!(hsopt_false, **{ja: {title: " 日本国\n", langcode: 'ja', note: 'tr02note'}}) # twice
     assert_equal ar[0].id,   tr2s[0].id
     assert_equal 'tr02note', tr2s[0].note
     ar[0].destroy
     tr2s[0].destroy
 
     assert_raises(ActiveRecord::RecordInvalid){  # Default
-      ar = jp_orig.create_translations!(hsopt_false.merge({strip: true}), **{ja: {title: " 日本\n", langcode: 'ja'}}) }
+      ar = jp_orig.create_translations!(hsopt_false.merge({strip: true}), **{ja: {title: " 日本国\n", langcode: 'ja'}}) }
 
     assert_nothing_raised{                       # Japanese zenkaku space
-      ar = jp_orig.create_translations!(hsopt_false.merge({strip: true}), **{ja: {title: " 日本"+"\u3000"*3, langcode: 'ja'}}) }
+      ar = jp_orig.create_translations!(hsopt_false.merge({strip: true}), **{ja: {title: " 日本国"+"\u3000"*3, langcode: 'ja'}}) }
     ar[0].destroy
 
     assert_raises(ActiveRecord::RecordInvalid){  # Japanese zenkaku space converted
-      ar = jp_orig.create_translations!(hsopt_false.merge({strip: true, convert_blanks: true}), **{ja: {title: " 日本"+"\u3000"*3, langcode: 'ja'}}) }
+      ar = jp_orig.create_translations!(hsopt_false.merge({strip: true, convert_blanks: true}), **{ja: {title: " 日本国"+"\u3000"*3, langcode: 'ja'}}) }
 
     # Registers one with a space in the middle to the translation set.
-      _  = jp_orig.create_translations!(hsopt_false, **{ja: {title: "日 本", langcode: 'ja'}})
+      _  = jp_orig.create_translations!(hsopt_false, **{ja: {title: "日 本国", langcode: 'ja'}})
 
     assert_raises(ActiveRecord::RecordInvalid){  # trim
-      ar = jp_orig.create_translations!(hsopt_false.merge({trim: true}), **{ja: {title: "日  本", langcode: 'ja'}}) }
+      ar = jp_orig.create_translations!(hsopt_false.merge({trim: true}), **{ja: {title: "日  本国", langcode: 'ja'}}) }
 
     assert_nothing_raised{  # Japanese zenkaku space is regarded significant
-      ar = jp_orig.create_translations!(hsopt_false.merge({trim: true, convert_blanks: false, truncate_blanks: false}), **{ja: {title: "日 "+"\u3000"*3+" 本", langcode: 'ja'}}) }
+      ar = jp_orig.create_translations!(hsopt_false.merge({trim: true, convert_blanks: false, truncate_blanks: false}), **{ja: {title: "日 "+"\u3000"*3+" 本国", langcode: 'ja'}}) }
     ar[0].destroy
 
     assert_raises(ActiveRecord::RecordInvalid){  # Japanese zenkaku space converted in default
-      ar = jp_orig.create_translations!(hsopt_false.merge({trim: true}), **{ja: {title: "日 "+"\u3000"*3+" 本", langcode: 'ja'}}) }
+      ar = jp_orig.create_translations!(hsopt_false.merge({trim: true}), **{ja: {title: "日 "+"\u3000"*3+" 本国", langcode: 'ja'}}) }
 
     assert_nothing_raised{  # \n is significant
-      ar = jp_orig.create_translations!(hsopt_false.merge({trim: true, convert_blanks: false, truncate_blanks: false}), **{ja: {title: "日 \n"+"\u3000"*3+" 本", langcode: 'ja'}}) }
+      ar = jp_orig.create_translations!(hsopt_false.merge({trim: true, convert_blanks: false, truncate_blanks: false}), **{ja: {title: "日 \n"+"\u3000"*3+" 本国", langcode: 'ja'}}) }
     ar[0].destroy
 
     assert_raises(ActiveRecord::RecordInvalid){  # \n and Japanese zenkaku space converted
-      ar = jp_orig.create_translations!(hsopt_false.merge({trim: true, convert_spaces: true}), **{ja: {title: "日 \n"+"\u3000"*3+" 本", langcode: 'ja'}}) }
+      ar = jp_orig.create_translations!(hsopt_false.merge({trim: true, convert_spaces: true}), **{ja: {title: "日 \n"+"\u3000"*3+" 本国", langcode: 'ja'}}) }
 
     assert_raises(ActiveRecord::RecordInvalid){  # Reproduces Default
-      ar = jp_orig.create_translations!(hsopt, **{ja: {title: "日 \n"+"\u3000"*3+" 本\n\n", langcode: 'ja'}}) }
+      ar = jp_orig.create_translations!(hsopt, **{ja: {title: "日 \n"+"\u3000"*3+" 本国\n\n", langcode: 'ja'}}) }
 
     assert_raises(ActiveRecord::RecordInvalid){  # Default (convert_spaces (hence, blanks), truncate_spaces, strip, trim)
-      ar = jp_orig.create_translation!( title: "\u3000 \n日 \n"+"\u3000"*3+" 本\n\n", langcode: 'ja') }
+      ar = jp_orig.create_translation!( title: "\u3000 \n日 \n"+"\u3000"*3+" 本国\n\n", langcode: 'ja') }
   end
 
   test "update_or_create_ ..." do
@@ -427,8 +427,8 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     # Tests of title_or_alt
     assert_equal 'Liverpool', prefectures(:liverpool).title_or_alt(langcode: 'en')
     assert_equal 'Liverpool', prefectures(:liverpool).title_or_alt(langcode: 'en', prefer_alt: true)
-    assert_equal '都庁', places(:tocho).title_or_alt(langcode: 'ja')
-    assert_equal '都庁', places(:tocho).title_or_alt(langcode: 'ja', prefer_alt: true)
+    assert_equal "東京都本庁舎", places(:tocho).title_or_alt(langcode: 'ja')
+    assert_equal '都庁',         places(:tocho).title_or_alt(langcode: 'ja', prefer_alt: true)
     assert_equal 'male', sexes(:sex1).title_or_alt(langcode: 'en')
     assert_equal 'M',    sexes(:sex1).title_or_alt(langcode: 'en', prefer_alt: true)
 

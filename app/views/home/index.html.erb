@@ -1,4 +1,4 @@
-<h1>Music-i18n.org for Harami-chan (ハラミちゃん)</h1>
+<h1>Music-i18n.org for HARAMIchan (ハラミちゃん)</h1>
 <div id="home-intro">
 <p><%= t('.first_line_html') %><br>
    <%= t('.second_line') %></p>
@@ -47,7 +47,7 @@
                   ''  # This should not happen...
                 else
                   ar = pla.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true);
-                  sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture[I18n.locale] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2]
+                  sprintf '%s %s(%s)', ar[1], ((ar[0] == Place::UnknownPlace[I18n.locale] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2]
                 end
             %></td>
         <td><%= link_to 'Detail', home_hv %></td>

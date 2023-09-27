@@ -56,13 +56,15 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
   # all four of them are significant.
   # In normal end, all of them but @last_err are significant.
   #
+  # @param init_entry_fetch: [Integer, NilClass] 1 if nil.
   # @param max_entries_fetch: [Integer, NilClass] if nil, no limit.
   # @param html_str: [String, NilClass] Direct HTML String. If nil, read from the default URI.
   # @param debug: [Boolean]
   # @return [Harami1129s::DownloadHarami1129::Ret] where 6 instance variables are set.
-  def self.download_put_harami1129s(max_entries_fetch: nil, html_str: nil, debug: false)
+  def self.download_put_harami1129s(init_entry_fetch: 1, max_entries_fetch: nil, html_str: nil, debug: false)
     ret = self::Ret.new
 
+    init_entry_fetch = 1 if init_entry_fetch < 1
     if debug && !max_entries_fetch
       logger.warn "(#{__method__}) When params[:debug] is true, max_entries_fetch should not be nil. It is reset to 3."
       max_entries_fetch = 3
@@ -70,7 +72,7 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
     max_entries_fetch = max_entries_fetch.to_i if max_entries_fetch
 
     if debug #|| max_entries_fetch
-      logger.info "(#{__method__}) [DEBUG-mode]: max_entries_fetch=(#{max_entries_fetch})."
+      logger.info "(#{__method__}) [DEBUG-mode]: init_entry_fetch=#{init_entry_fetch.inspect}, max_entries_fetch=(#{max_entries_fetch})."
     end
 
 # max_entries_fetch = 23 if !max_entries_fetch   # for DEBUG-ging
@@ -90,7 +92,7 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
     if debug #|| max_entries_fetch
       logger.debug "[DEBUG-mode]: hash_column_numbers=#{hscolnos.inspect}"
       str_entry = ActionController::Base.helpers.pluralize([(max_entries_fetch || Float::INFINITY), n_alltrs].min, "entry", locale: :en)
-      msg = "[DEBUG-mode](#{__method__}): processing #{str_entry} out of #{n_entries} entries."
+      msg = "[DEBUG-mode](#{__method__}): processing #{str_entry} out of #{n_entries} entries, starting from #{init_entry_fetch.inspect}."
       logger.info msg
       ret.msg << msg
     end
@@ -103,7 +105,9 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
       next if !row || row.size < 1
 
       i_sigificant += 1
-      break if max_entries_fetch && i_sigificant > max_entries_fetch
+      next if init_entry_fetch > i_sigificant
+
+      break if max_entries_fetch && (i_sigificant - init_entry_fetch + 1 > max_entries_fetch)
 
       if debug && i%100 == 0
         logger.debug "[DEBUG-mode](#{__method__}): #{i}-th (#{i_sigificant}th significant row, out of #{n_entries}) remote-Harami1129 table row being processed..."
@@ -347,10 +351,10 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
   # Returns a HTML table that can be read by {DownloadHarami1129.download_put_harami1129s}
   #
   # @example raw input 1
-  #    "嵐","Happiness","2020/1/2","Link→【嵐メドレー】神曲7曲繋げて弾いたらファンの方が…!!【都庁ピアノ】(0:3:3～) https://youtu.be/EjG9phmijIg?t=183s"
+  #    "嵐","Happiness","2020/1/2","【嵐メドレー】神曲7曲繋げて弾いたらファンの方が…!!【都庁ピアノ】(0:3:3～) https://youtu.be/EjG9phmijIg?t=183s"
   #
   # @example raw input 2
-  #    あいみょん,マリーゴールド,2019/7/20,Link→【即興ピアノ】ハラミのピアノ即興生ライブ❗️vol.1【ピアノ】(1:20:16～) https://youtu.be/N9YpRzfjCW4?t=4816s
+  #    あいみょん,マリーゴールド,2019/7/20,【即興ピアノ】ハラミのピアノ即興生ライブ❗️vol.1【ピアノ】(1:20:16～) https://youtu.be/N9YpRzfjCW4?t=4816s
   #
   # @example raw input 3
   #    あいみょん,マリーゴールド,2019/7/20,追記だよ,【即興ピアノ】ハラミのピアノ即興生ライブ❗️vol.1【ピアノ】(1:20:16～) https://youtu.be/N9YpRzfjCW4?t=4816s
@@ -405,6 +409,20 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
 
     tag_i + contents.join("</tr>\n<tr>") + tag_f
   end
+
+  ## private class methods
+
+    # Get all the <tr> of the main table
+    #
+    # From mid-2022, there is an advert <table> at the top. Nothing at the bottom.
+    #
+    # @param page [Nokogiri]
+    # @return [Nokogiri]
+    def self.get_trs(page)
+      # trs = page.css(CSS_TABLE_SELECTOR)  # up to mid(?)-2022
+      trs = page.css("table")[-1].css("tr") # from mid-2022
+    end
+    private_class_method :get_trs
 
 end
 

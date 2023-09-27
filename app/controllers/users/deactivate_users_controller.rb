@@ -138,7 +138,7 @@ class Users::DeactivateUsersController < ApplicationController
       @user.confirmation_sent_at = nil
       # @user.unconfirmed_email    = nil
       @user.ext_account_name     = nil
-      @user.ext_uid              = nil
+      @user.uid                  = nil
       @user.provider             = nil
 
       @user.skip_confirmation_notification!
