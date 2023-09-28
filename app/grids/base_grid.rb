@@ -55,8 +55,8 @@ class BaseGrid
   # Enable forbidden attributes protection
   # self.forbidden_attributes_protection = true
 
-  def self.date_column(name, *args)
-    column(name, *args) do |model|
+  def self.date_column(name, *args, **opts)
+    column(name, *args, **opts) do |model|
       format(block_given? ? yield : model.send(name)) do |date|
         date ? date.strftime("%Y-%m-%d") : ''
       end
