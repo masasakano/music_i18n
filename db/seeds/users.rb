@@ -99,6 +99,7 @@ module SeedsUsers
       eh_user.each_pair do |ek, ehs|
         ehs[:user] = User.find_by(email: ehs[:hs][:email])
         next if ehs[:user]  # User already exists. Still, Roles may be added.
+        next if User.find_by(display_name: ehs[:hs][:display_name])  # User with the same display_name is counted as a duplication in seeding.
         ehs[:user] = user = User.create!(**(ehs[:hs]))
         user.skip_confirmation_notification!
         user.skip_confirmation!

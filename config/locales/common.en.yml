@@ -33,7 +33,7 @@ en:
   accept_terms: "Terms of Service"
   alt_title: common name
   are_you_sure: "Are you sure?"
-  are_you_sure_but_merge: "You may consider merging for duplication, instead."
+  are_you_sure_but_merge: "You can merge for duplication instead if you want?"
   Country: Country
   detail: Detail
   display_name: Display Name

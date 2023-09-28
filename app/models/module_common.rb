@@ -628,17 +628,46 @@ module ModuleCommon
   #
   # This method accepts all the parameters to update/create, together
   # with the keywords to get a potential existing one, and also accepts
-  # a block, where {ApplicationRecord} is passed as the parameter,
-  # the result of which does not change the updated_at column
-  # (though a user could change it inside the block if they dared).
+  # a block, where {ApplicationRecord} is passed as the parameter.
   #
-  # There is a chance the final save! raises an Exception,
-  # mainly because the given parameters are invalid, but potentially
+  # There is a chance the record to save is {#invalid?}
+  # mainly because the given parameter combination is invalid, but potentially
   # because a competing process writes a record in between the process.
-  # If an error is raised, the DB rollbacks and exception is raised.
+  # In this case, if the optional key-value Hash +if_needed+ is given,
+  # the key-value pairs are inserted to the record before {#save!}.
   #
-  # Unless an Exception is raised, the new record (not reloaded, but
-  # id and updated_at are filled) is returned.
+  # If the {#save!} still raises an Exception,
+  # the DB rollbacks and the standard exception is raised.
+  #
+  # After the first {#save!} (which updates +updated_at+ as long as
+  # there are any changes), if a block is given, {ApplicationRecord}
+  # is passed as the parameter, and the record can be further modified
+  # in the block (n.b., the return value of the block is simply discarded)
+  # and then it {#save!}+(touch: false)+; i.e., any change inside the block
+  # would not affect +updated_at+ of the record
+  # (obviously, a caller could save the record or explicitly change +updated_at+
+  #  inside the block if they dared).
+  #
+  # If an Exception is raised, complete rollback is guaranteed.
+  # Otherwise, the new record (not reloaded, but id and updated_at are filled)
+  # is returned.
+  #
+  # == Workflow summary
+  #
+  # 1. An (maybe first?) existing record having +uniques+ is identified.
+  #    1. If not found, a new record is created (not yet saved).
+  # 2. The record is updated according to +prms+
+  # 3. If the record is invalid, the record is further modified according to +if_needed+ is given.
+  # 4. {#save!}.
+  #    1. If still fails, (usually; i.e., +if record.changed?+) this raises an Exception, with rollback.
+  # 5. If +block_given?+, the record is passed to the block.
+  #    1. {#save!}+(touch: false)+ (i.e., `updated_at+ unchanges)
+  #    2. If the save fails, raises an Exception accordingly (with complete rollback)
+  # 6. Returns the record
+  #
+  # See @example below for a working example.
+  #
+  # == Use
   #
   # Use by extend-ing it in the class.
   #   extend ModuleCommon
@@ -663,6 +692,7 @@ module ModuleCommon
   #
   # @param prms [Hash] The data to insert
   # @param uniques [Symbol, Array] Unique key words to find an existing record
+  # @param if_needed: [Hash] Hash of Key=>Value to rescue an invalid save.
   # @return [ActiveRecord] nil if failed. Otherwise {Harami1129} instance (you need to "reload")
   # @raise [ActiveRecord::RecordInvalid, ActiveModel::UnknownAttributeError] etc
   def update_or_create_by_with_notouch!(prms, uniques, if_needed: {})
@@ -699,7 +729,7 @@ module ModuleCommon
       end
     end
 
-    raise err if err
+    raise err if err  # StandardError raised after all if any error has been raised.
     record
   end
   private :update_or_create_by_with_notouch!

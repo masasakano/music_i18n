@@ -26,7 +26,7 @@
      <% end %>
 
      <% if can?(:destroy, model) && !model.harami_vids.exists? && !model.harami1129s.exists? %>
-      <% msg2confirm = (t('are_you_sure')+" "+t("are_you_sure.merge")).html_safe %>
+      <% msg2confirm = (t('are_you_sure')+" "+t("are_you_sure_but_merge")).html_safe %>
       <% if !model.new_record? %>
        <%= button_to 'Destroy', model, method: :delete, data: { confirm: msg2confirm } %>
       <% else %>

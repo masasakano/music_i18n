@@ -505,7 +505,7 @@ artrans = [
   { note: nil, birth_day: 21, birth_month: 1,
     wiki_ja: 'w.wiki/3JVi', sex: female, place: Place.unknown(country: japan), translations:
    {'ja' => {title: 'ハラミちゃん', ruby: 'ハラミチャン', romaji: 'Haramichan', weight: 0, is_orig: true},
-    'en' => {title: 'Haramichan', alt_title: 'Harami-chan', weight: 10, is_orig: false, }}},
+    'en' => {title: 'HARAMIchan', alt_title: 'Harami-chan', weight: 10, is_orig: false, }}},
   { note: nil, birth_day: 12, birth_month: 4, birth_year: 1966,
     wiki_ja: 'w.wiki/3cyo', wiki_en: 'Kohmi_Hirose', sex: female, place: Place.unknown(country: japan), translations:
    {'ja' => {title: '広瀬香美', ruby: 'ヒロセコウミ', romaji: 'HIROSE Kohmi', weight: 0, is_orig: true},
@@ -529,6 +529,10 @@ artrans.each do |ea_hs|
   hs_main, hs_trans = split_hash_with_keys(ea_hs, %i(note birth_day birth_month birth_year wiki_ja wiki_en sex place))
   begin
     record = Artist.update_or_create_with_translations!(hs_main, nil, mainkeys=%i(birth_day birth_month birth_year), **hs_trans)
+  rescue MultiTranslationError::AmbiguousError => er
+    # Skip, because at least one entry already exists.
+    warn "WARNING: Multiple entries for a seeded Artist are found. Your existing record may have duplications: "+er.message
+    next
   rescue ActiveRecord::RecordInvalid => er
     if er.message.include? 'not unique in the combination'
       warn "WARNING: The following is not processed as an error is raised (which should not happen!), for Hash=#{ea_hs.inspect}: "+er.message
@@ -536,6 +540,11 @@ artrans.each do |ea_hs|
     end
   end
 
+  if !record
+    # maybe if a seeded-record has changed since?
+    warn "WARNING(#{File.basename __FILE__}): seeding an Artist failed: Parameters=#{hs_main.inspect}, Translations=#{hs_trans}"
+    next
+  end
   n_artists += 1 if record.saved_changes?
 end
 nrec += n_artists*2  # Artist + 2 languages (In fact, this is not accurate... no changes in Translation are not considered.)
@@ -578,8 +587,13 @@ artrans = [
 n_musics = 0
 artrans.each do |ea_hs|
   hs_main, hs_trans = split_hash_with_keys(ea_hs, %i(note year genre place))
-  record = Music.update_or_create_with_translations!(hs_main, nil, mainkeys=%i(year), **hs_trans)
-  n_musics += 1 if record.saved_changes?
+  begin
+    record = Music.update_or_create_with_translations!(hs_main, nil, mainkeys=%i(year), **hs_trans)
+    n_musics += 1 if record.saved_changes?
+  rescue MultiTranslationError::AmbiguousError => er
+    # Skip, because at least one entry already exists.
+    warn "WARNING: Multiple entries for a seeded Music are found. Your existing record may have duplications: "+er.message
+  end
 end
 nrec += n_musics*2  # Music + 2 languages (In fact, this is not accurate... no changes in Translation are not considered.)
 
