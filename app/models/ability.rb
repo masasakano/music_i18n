@@ -83,6 +83,7 @@ return if !user   # to prohibit everything needing authorization (but :read) fro
       #cannot(:ud,  Translation){|trans| true}
 #    cannot :show, Users::DeactivateUser, id: user.id
 #canedit, Users::DeactivateUser, id: user.id
+      can :index,  ModelSummary  # Index only
     end
 
     ## General-JA editor only
@@ -156,6 +157,11 @@ return if !user   # to prohibit everything needing authorization (but :read) fro
       cannot(:ud, [Prefecture]){|i| i.country == Country['JPN']}
       cannot(:ud, [Artist, Music, Prefecture, Place]){|i| i.unknown?}
       #cannot(:ud, Place){|i| i.country == Country['JPN']}
+    end
+
+    ## Admin rank
+    if user.an_admin?  # Harami admin
+      can :manage, ModelSummary
     end
   end
 end

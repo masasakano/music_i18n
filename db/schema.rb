@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2022_11_27_104645) do
+ActiveRecord::Schema[7.0].define(version: 2023_09_28_190223) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -203,6 +203,14 @@ ActiveRecord::Schema[7.0].define(version: 2022_11_27_104645) do
     t.index ["place_id"], name: "index_harami_vids_on_place_id"
     t.index ["release_date"], name: "index_harami_vids_on_release_date"
     t.index ["uri"], name: "index_harami_vids_on_uri", unique: true
+  end
+
+  create_table "model_summaries", force: :cascade do |t|
+    t.string "modelname", null: false
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["modelname"], name: "index_model_summaries_on_modelname", unique: true
   end
 
   create_table "musics", force: :cascade do |t|

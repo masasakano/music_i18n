@@ -1,0 +1,67 @@
+# == Schema Information
+#
+# Table name: model_summaries
+#
+#  id         :bigint           not null, primary key
+#  modelname  :string           not null
+#  note       :text
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
+#
+# Indexes
+#
+#  index_model_summaries_on_modelname  (modelname) UNIQUE
+#
+
+# Created with
+# % bin/rails r 'File.open("#{Rails.root}/test/fixtures/tmp4.yml", "w"){|file| file.write ModelSummary.all.map{ |m| m.attributes.except("created_at", "updated_at")}.to_yaml}'
+
+modelsummary_Artist:
+  modelname: Artist
+  note:
+
+modelsummary_Country:
+  modelname: Country
+
+modelsummary_CountryMaster:
+  modelname: CountryMaster
+
+modelsummary_Engage:
+  modelname: Engage
+  note: Association
+
+modelsummary_EngageHow:
+  modelname: EngageHow
+
+modelsummary_Genre:
+  modelname: Genre
+
+modelsummary_Harami1129:
+  modelname: Harami1129
+
+modelsummary_HaramiVid:
+  modelname: HaramiVid
+
+modelsummary_Music:
+  modelname: Music
+
+modelsummary_Place:
+  modelname: Place
+  note:
+
+modelsummary_Prefecture:
+  modelname: Prefecture
+  note:
+
+modelsummary_Sex:
+  modelname: Sex
+  note:
+
+modelsummary_Translation:
+  modelname: Translation
+  note:
+
+modelsummary_User:
+  modelname: User
+  note:
+

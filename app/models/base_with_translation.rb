@@ -2,6 +2,18 @@
 
 # Abstract base Class for any class that is associated with a Translation class
 #
+# == Usage
+#
+# The child model of this class should be like this:
+#
+#   class MyChildKlass < BaseWithTranslation
+#     include Translatable
+#
+#     MAIN_UNIQUE_COLS = []
+#     ARTICLE_TO_TAIL = true
+#
+# See below for the descriptions of the Constants
+#
 # == Update (or create)
 #
 # Whether to update or create a record, the first step is to identify
@@ -1932,7 +1944,7 @@ class BaseWithTranslation < ApplicationRecord
   # Creates a {Translation} which is assciated to self.
   #
   # The argument must be a Hash with keys of langcodes, e.g.,
-  #   a.create_translation!(langcode: en, title: 'Imagine', is_orig: true)
+  #   a.create_translation!(langcode: "en", title: 'Imagine', is_orig: true)
   #
   # Keywords langcode and title must be specified at least.
   # title can be nil, as long as at least one of the other 5 keywords

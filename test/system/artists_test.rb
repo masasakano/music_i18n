@@ -7,7 +7,7 @@ class ArtistsTest < ApplicationSystemTestCase
     @moderator = users(:user_moderator_general_ja)
     @css_swithcer_ja = 'div#language_switcher_top span.lang_switcher_ja'
     @css_swithcer_en = 'div#language_switcher_top span.lang_switcher_en'
-end
+  end
 
   # called after every single test
   teardown do

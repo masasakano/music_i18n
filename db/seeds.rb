@@ -690,10 +690,18 @@ end
 
 
 ################################
-# Auto loading
+# Auto loading external seed files
 
-seed_files = %w(users.rb *.rb)  # all files but ensures users.rb is run first.
-seed_files.map{|i| Dir[File.join(Rails.root, 'db', 'seeds', i)]}.flatten.sort.uniq.each do |seed|
+#seed_files = %w(*.rb)
+%w(*.rb).map{|i| Dir[File.join(Rails.root, 'db', 'seeds', i)]}.flatten.sort{|a, b|
+  if    Pathname.new(a).basename.to_s == "users.rb"
+    -1
+  elsif Pathname.new(b).basename.to_s == "users.rb"
+    1
+  else
+    a <=> b
+  end
+}.uniq.each do |seed|
   puts "loading #{seed.sub(%r@.*(/db/seeds/)@, '\1')}"
   load seed
 end

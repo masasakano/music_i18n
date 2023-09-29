@@ -1,0 +1,14 @@
+<h1>ModelSummary: <%= @model_summary.modelname %></h1>
+
+<hr>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @model_summary} %>
+<%= render partial: 'model_summary', locals: {model_summary: @model_summary} %>
+
+<hr>
+
+<div>
+  <%= link_to "Edit this ModelSummary", edit_model_summary_path(@model_summary) %> |
+  <%= link_to "Back to Index", model_summaries_path %>
+
+  <%= button_to "Destroy this ModelSummary", @model_summary, method: :delete %>
+</div>

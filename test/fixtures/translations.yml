@@ -1917,3 +1917,67 @@ genre_modern_inst_ja:
   update_user_id: 
   note: GenreModernInstJa
 
+modelsummary_Artist_ja:
+  translatable: modelsummary_Artist
+  translatable_type: ModelSummary
+  langcode: ja
+  title: アーティスト集合
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji:
+  alt_romaji:
+  is_orig:
+  weight: 
+  create_user_id: 
+  update_user_id: 
+  note: modelsummaryArtistJa
+
+modelsummary_Artist_en:
+  translatable: modelsummary_Artist
+  translatable_type: ModelSummary
+  langcode: en
+  title: Artist collection
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji:
+  alt_romaji:
+  is_orig:
+  weight: 
+  create_user_id: 
+  update_user_id: 
+  note: modelsummaryArtistEn
+
+modelsummary_Harami1129_ja:
+  translatable: modelsummary_Harami1129
+  translatable_type: ModelSummary
+  langcode: ja
+  title: ハラミサーバー動画
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji:
+  alt_romaji:
+  is_orig:
+  weight: 
+  create_user_id: 
+  update_user_id: 
+  note: modelsummaryHarami1129Ja
+
+modelsummary_Harami1129_en:
+  translatable: modelsummary_Harami1129
+  translatable_type: ModelSummary
+  langcode: en
+  title: Harami server video
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji:
+  alt_romaji:
+  is_orig:
+  weight: 
+  create_user_id: 
+  update_user_id: 
+  note: modelsummaryHarami1129En
+
