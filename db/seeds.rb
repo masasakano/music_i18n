@@ -691,6 +691,16 @@ end
 
 
 ################################
+# Final comment (because results of external seeding files cannot be retrieved...)
+
+if nrec <= 0
+  warn "WARNING: All the seeds have been already implemented. No change."
+else
+  printf "Successfully seeded: %d entries in total.\n", nrec
+end
+
+
+################################
 # Auto loading external seed files
 
 #seed_files = %w(*.rb)
@@ -707,11 +717,3 @@ end
   load seed
 end
 
-################################
-
-
-if nrec <= 0
-  warn "WARNING: All the seeds have been already implemented. No change."
-else
-  printf "Successfully seeded: %d entries in total.\n", nrec
-end

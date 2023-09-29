@@ -9,7 +9,11 @@
     <% Rails.application.eager_load! %>
     <% ActiveRecord::Base.descendants.select{|i| !i.abstract_class? && !i.name.include?('::') && i.table_name == i.name.underscore.pluralize}.sort{|a,b| a.name <=> b.name}.each do |model| %>
       <% next if !can?(:read, model) %>
-      <dt><%= link_to(model.name, send(model.table_name+'_path')) rescue next %></dt>
+      <dt><%= link_to(model.name, send(model.table_name+'_path')) rescue next %>
+        <% if 'StaticPage' == model.name %>
+          (Custom <%= link_to 'Index', static_page_publics_path %>)
+        <% end %>
+      </dt>
       <dd>
         <% if (model_summary = @model_summaries.find_by_modelname(model.name)) %>
           <% displayed_ids << model_summary.id %>
