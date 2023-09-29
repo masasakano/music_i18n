@@ -575,6 +575,14 @@ artrans = [
     place: Place.unknown(country: japan), translations:
    {'ja' => {title: '雨', ruby: 'アメ', romaji: 'Ame', weight: 0, is_orig: true},
     'en' => {title: 'Rain', weight: 100, }}},
+  { note: nil, year: 2021, genre: gen_inst,
+    place: Place.unknown(country: japan), translations:
+   {'ja' => {title: '947', ruby: '947', romaji: '947', weight: 0, is_orig: true},
+    'en' => {title: '947', weight: 100, }}},
+  { note: nil, year: 2022, genre: gen_inst,
+    place: Place.unknown(country: japan), translations:
+   {'ja' => {title: 'ひとり', ruby: 'ヒトリ', romaji: 'Hitori', weight: 0, is_orig: true},
+    'en' => {title: 'Alone', weight: 100, }}},
   { note: nil, year: 1993, genre: gen_pop,
     place: Place.unknown(country: japan), translations:
    {'ja' => {title: 'ロマンスの神様', ruby: 'ロマンスノカミサマ', romaji: 'Romansu no kamisama', weight: 0, is_orig: true},
@@ -601,35 +609,50 @@ nrec += n_musics*2  # Music + 2 languages (In fact, this is not accurate... no c
 ################################
 # Load some engages
 
-art_harami = Artist[/ハラミちゃん/, 'ja']
-art_kohmi  = Artist[/広瀬\s*香美/, 'ja']
-art_aimyon = Artist[/あいみょん/, 'ja']
-eh_sing    = EngageHow[/singer.*origin/, 'en']
-eh_lyric   = EngageHow[/lyric/i, 'en']
-eh_compose = EngageHow[/compose/i, 'en']
-eh_play    = EngageHow[/player/i, 'en']
-mu_fanfare = Music[/ファンファーレ/, 'ja']
-mu_rain    = Music[/雨/, 'ja']
-mu_harami  = Music[/ハラミ体操/, 'ja']
-mu_romance = Music[/ロマンスの神様/, 'ja']
-mu_naked   = Music[/裸の心/, 'ja']
-arengages = [
-  [eh_compose, eh_play].map{|eeh|
-    { note: nil, artist: art_harami, engage_how: eeh,
-      year: mu_harami.year, music: mu_harami} },
-  [eh_compose, eh_play].map{|eeh|
-    { note: nil, artist: art_harami, engage_how: eeh,
-      year: mu_fanfare.year, music: mu_fanfare} },
-  [eh_compose, eh_play].map{|eeh|
-    { note: nil, artist: art_harami, engage_how: eeh,
-      year: mu_rain.year,    music: mu_rain} },
-  [eh_sing, eh_lyric, eh_compose].map{|eeh|
-    { note: nil, artist: art_kohmi,  engage_how: eeh,
-      year: mu_romance.year, music: mu_romance} },
-  [eh_sing, eh_lyric, eh_compose].map{|eeh|
-    { note: nil, artist: art_aimyon, engage_how: eeh,
-      year: mu_naked.year,   music: mu_naked} },
-].flatten
+art = {}
+enh = {}
+mu  = {}
+art[:harami] = Artist["ハラミちゃん", 'ja']
+art[:kohmi]  = Artist[/広瀬\s*香美/, 'ja']
+art[:aimyon] = Artist["あいみょん", 'ja']
+enh[:sing]    = EngageHow[/singer.*origin/, 'en']
+enh[:lyric]   = EngageHow[/lyric/i, 'en']
+enh[:compose] = EngageHow[/compose/i, 'en']
+enh[:play]    = EngageHow[/player/i, 'en']
+# mu[:harami]  = Music["ハラミ体操", 'ja']
+# mu[:fanfare] = Music["ファンファーレ", 'ja']
+# mu[:rain]    = Music["雨", 'ja']
+# mu[:nine47]  = Music["947", 'ja']
+# mu[:hitori]  = Music["ひとり", 'ja']
+{harami: "ハラミ体操", fanfare: "ファンファーレ", rain: "雨", nine47: "947", hitori: "ひとり",}.each_pair do |ek, ev|
+  mu[ek] = (art[:harami].musics.joins(:translations).where("translations.title": ev).first || Music[ev, 'ja'])
+end  # A way to prevent a song with the identical title by another artist from being picked up in repeated seeding.
+mu[:romance] = Music["ロマンスの神様", 'ja']
+mu[:naked]   = Music["裸の心", 'ja']
+arengages = %i(harami fanfare rain nine47 hitori).map{|i|
+  %i(compose play).map{|ek|
+    { note: nil, artist: art[:harami], engage_how: enh[ek],
+      year: mu[i].year, music: mu[i]}
+  }
+}
+  #%i(compose play).map{|ek|
+  #  { note: nil, artist: art[:harami], engage_how: eeh[ek],
+  #    year: mu[:harami].year, music: mu[:harami]} },
+  #%i(compose play).map{|ek|
+  #  { note: nil, artist: art[:harami], engage_how: eeh[ek],
+  #    year: mu[:fanfare].year, music: mu[:fanfare]} },
+  #%i(compose play).map{|ek|
+  #  { note: nil, artist: art[:harami], engage_how: eeh[ek],
+  #    year: mu[:rain].year,    music: mu[:rain]} },
+arengages += [
+  %i(sing lyric compose).map{|ek|
+    { note: nil, artist: art[:kohmi],  engage_how: enh[ek],
+      year: mu[:romance].year, music: mu[:romance]} },
+  %i(sing lyric compose).map{|ek|
+    { note: nil, artist: art[:aimyon], engage_how: enh[ek],
+      year: mu[:naked].year,   music: mu[:naked]} },
+]
+arengages.flatten!
 
 n_engages = 0
 arengages.each do |ea_hs|
@@ -694,7 +717,7 @@ end
 # Final comment (because results of external seeding files cannot be retrieved...)
 
 if nrec <= 0
-  warn "WARNING: All the seeds have been already implemented. No change."
+  warn "WARNING: All the seeds have already been implemented. No change."
 else
   printf "Successfully seeded: %d entries in total.\n", nrec
 end

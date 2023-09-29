@@ -38,11 +38,13 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     user = users(:user_moderator) # Harami moderator (not translator)
     _can_view_core(user)
     csssel = css_select('div#navbar_upper_user')
+    assert_includes csssel[0].text, 'Engages'
     assert_includes csssel[0].text, 'Places'
     assert_includes csssel[0].text, 'HaramiVids'
     assert_includes csssel[0].text, 'Harami1129s'
+    assert_includes csssel[0].text, 'Others'  # from v.0.17.1
     assert_not_includes csssel[0].text, 'Translations'
-    assert_includes csssel[0].text, 'Users'
+    assert_not_includes csssel[0].text, 'Users'
     assert_not_includes csssel[0].text, 'StaticPages'
   end
 
@@ -54,7 +56,8 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     # assert_not_includes csssel[0].text, 'HaramiVids'  ############## This should be the case. Check it out!
     assert_not_includes csssel[0].text, 'Harami1129s'
     assert_includes csssel[0].text, 'Translations'
-    assert_includes csssel[0].text, 'Users'
+    assert_includes csssel[0].text, 'Others'  # from v.0.17.1
+    assert_not_includes csssel[0].text, 'Users'
     assert_not_includes csssel[0].text, 'StaticPages'
   end
 
@@ -64,12 +67,14 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     csssel = css_select('div#navbar_top')
     assert_includes csssel[0].text, 'Admin' # Admin_panel
     csssel = css_select('div#navbar_upper_user')
+    assert_includes csssel[0].text, 'Engages'
     assert_includes csssel[0].text, 'Places'
     assert_includes csssel[0].text, 'HaramiVids'
     assert_includes csssel[0].text, 'Harami1129s'
     assert_includes csssel[0].text, 'Translations'
-    assert_includes csssel[0].text, 'Users'
-    assert_includes csssel[0].text, 'StaticPages'
+    assert_includes csssel[0].text, 'Others'  # from v.0.17.1
+    assert_not_includes csssel[0].text, 'Users'
+    assert_not_includes csssel[0].text, 'StaticPages'
   end
 
   def _can_view_core(user=nil)

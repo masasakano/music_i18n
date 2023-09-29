@@ -229,6 +229,10 @@
 #   b.with_orig_updated_translation(langcode: en, title: 'Imagine')
 #     # =>  BWT  # calling create, with NO update
 #
+#   # Filtered by both Artist and Music names
+#   Artist[/Lennon/, "en"].musics.joins(:translations).where("translations.title": "Imagine").first
+#     # =>  Music "Imagine" by John Lennon.
+#
 # Each subclass should define this constant; a list of the default unique keys
 # required to narrows down the selections for searching for the candidates
 # to update.  For example, [:country, :country_id] for Prefercture.
