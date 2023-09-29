@@ -1,10 +1,15 @@
 # coding: utf-8
 
-include ModuleCommon  # for split_hash_with_keys
+include ModuleCommon  # for seed_fname2print
 
-puts "DEBUG: start /seeds/users.rb" if $DEBUG
-return if !Rails.env.development?
-return if !User.exists?  # Administrator must exist for this script to be run.
+puts "DEBUG: start "+seed_fname2print(__FILE__) if $DEBUG
+if !Rails.env.development?
+  puts "  NOTE(#{seed_fname2print(__FILE__)}): skipped because it is not in Development environment."
+  return 
+elsif !User.exists?  # Administrator must exist for this script to be run.
+  puts "  NOTE(#{seed_fname2print(__FILE__)}): skipped because no users exist. Once the sysadmin is created, run this (i.e., bin/rails db:seed) again."
+  return 
+end
 
 # Models: User and UserRoleAssoc
 #
@@ -132,6 +137,6 @@ entries = SeedsUsers.users_main
 
 diff_entries = %i(user assoc).map{|i| entries[:fini][i] - entries[:init][i]}
 if diff_entries.any?{|i| i > 0} || $DEBUG
-  printf("/seeds/users.rb: %s Users and %s UserRoleAssocs are created.\n", *diff_entries)
+  printf("  %s: %s Users and %s UserRoleAssocs are created.\n", seed_fname2print(__FILE__), *diff_entries)
 end
 

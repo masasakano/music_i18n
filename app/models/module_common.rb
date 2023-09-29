@@ -886,5 +886,18 @@ module ModuleCommon
   def single_quoted_or_str_nil(s)
     s ? s.inspect.sub(/\A"(.*)"\z/, "'"+'\1'+"'") : s.inspect
   end
+
+  # Returns "/db/seeds/users.rb" etc. from __FILE__
+  #
+  # Used in /db/seeds.rb and /db/seeds/*.rb
+  #
+  # @example
+  #   seed_fname2print(__FILE__)
+  #
+  # @param fullpath [String] Perhaps give __FILE__
+  # @return [String]
+  def seed_fname2print(fullpath)
+    fullpath.sub(%r@.*(/db/seeds/)@, '\1')
+  end
 end
 

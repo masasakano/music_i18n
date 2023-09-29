@@ -1,11 +1,11 @@
 # coding: utf-8
 
-#include ModuleCommon  # for split_hash_with_keys
+include ModuleCommon  # for seed_fname2print
 
-puts "DEBUG: start /seeds/model_summaries.rb" if $DEBUG
-return if !Rails.env.development?
+puts "DEBUG: start "+seed_fname2print(__FILE__) if $DEBUG
+# This seed script can run in any environment or condition (see /seeds/users.rb for an environment-specific one).
 
-# Models: User and UserRoleAssoc
+# Model: ModelSummary
 #
 module SeedsModelSummaries
   # Everything is a function
@@ -71,6 +71,8 @@ module SeedsModelSummaries
       en: "Registered User",
     },
   } 
+  # Missing:
+  # ModelSummary PageFormat Role RoleCategory StaticPage
 
   # Main routine to seed.
   def model_summaries_main
@@ -103,6 +105,6 @@ end    # module SeedsModelSummaries
 n_entries = SeedsModelSummaries.model_summaries_main
 
 if n_entries > 0 || $DEBUG
-  printf("/seeds/#{File.basename __FILE__}: %s ModelSummaries are created/updated.\n", n_entries)
+  printf("  %s: %s ModelSummaries are created/updated.\n", seed_fname2print(__FILE__), n_entries)
 end
 

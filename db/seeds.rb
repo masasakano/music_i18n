@@ -12,9 +12,10 @@
 #
 #     Translation.update_all(create_user_id: myself.id, update_user_id: myself.id)
 
-include ModuleCommon  # for split_hash_with_keys
+include ModuleCommon  # for split_hash_with_keys, seed_fname2print
 
-### Model: Sex ###
+################################
+# Load Model: Sex
 
 nrec = 0  # Number of updated records.
 ret = false
@@ -92,7 +93,8 @@ def rescue_cre(obj, **kwd)
   raise "ERROR: Strange. Unique error but cannot find the right one. kwd=#{kwd.inspect}"
 end
 
-### Model: RoleCategory ###
+################################
+# Load Model: RoleCategory
 
 # To set a series of objects (if not set) and returns them as an Array
 #
@@ -106,7 +108,6 @@ end
 #    For the Hash part (2nd element) Key is an Integer taken from indices.
 #    Say, if indices are [1, 2, 5], ret = { 1 => ret1, 2 => ret2, 5 => ret3 }
 def get_set_arobj(model, indices=false, update=true, **contents)
-  ret = false
   nrec = 0
   specify_index = indices
   indices = ((1..contents.first[1].size).to_a rescue []) if !indices || (indices == true)
@@ -116,21 +117,20 @@ def get_set_arobj(model, indices=false, update=true, **contents)
       [cid, prev]
     else
       if prev
-        updating = true
         ep = prev
       else
-        ret = true
         ep = model.new
       end
 
       ep.id = cid if specify_index
       contents.each_pair do |k, v|
-        ret = true if (!ret && updating && ep.send(k) != v[ii])
         ep.send(k.to_s+'=', v[ii])
       end
       begin
-        ep.save!
-        nrec += 1
+        if ep.changed?
+          ep.save!
+          nrec += 1
+        end
       rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique => er
         s = contents.map{|k, v| k.to_s+": "+v[ii].inspect}.join ", "
         warn "ERROR: "+er.message
@@ -142,12 +142,11 @@ def get_set_arobj(model, indices=false, update=true, **contents)
     end
   }.to_h
   [nrec, hsret]
-end
+end  # def get_set_arobj
 
 if Object.const_defined? :RoleCategory
   mnames = %i(MNAME_ROOT MNAME_HARAMI MNAME_TRANSLATION MNAME_GENERAL_JA).map{|i| RoleCategory.const_get i}
   nrectmp, hsrc = get_set_arobj(RoleCategory, (1..mnames.size).to_a, mname: mnames, superior_id: [nil]+[1]*(mnames.size-1)) # superior_id: [nil, 1, 1, 1]
-  #ret ||= rettmp
   nrec += nrectmp
   # hsrc[1] => RoleCategory('ROOT')
   # hsrc[2] => RoleCategory('harami')
@@ -155,7 +154,10 @@ if Object.const_defined? :RoleCategory
   # hsrc[4] => RoleCategory('general_ja')
 end
 
-### Model: Role ###
+################################
+# Load Model: Role
+#
+# NOTE: No user is created in this seed. First-created user is automatically a sysadmin.
 
 if hsrc && (Object.const_defined? :Role)  # hsrc: HaSh-RoleCategory
   names =  [Role::RNAME_SYSADMIN]+[Role::RNAME_MODERATOR, Role::RNAME_EDITOR, Role::RNAME_HELPER]*3  # 3 as in the number of RoleCategory-s except ROOT (== [RoleCategory::MNAME_HARAMI, MNAME_TRANSLATION, MNAME_GENERAL_JA])
@@ -173,24 +175,7 @@ end
 
 nrectmp, _ = get_set_arobj(Role, (1..names.size).to_a, **hs2pass) 
 nrec += nrectmp
-#ret ||= rettmp
 
-# # Initialize root (superuser) account:
-# if ! User.find_by(id: 1)
-#   warn "WARNING: First User (User-ID=1) is not found."
-# elsif ! Role.find_by(id: 1)
-#   warn "WARNING: Strange! Superuser role (Role-ID=1) is not found, and hence the role is not given to any user."
-#   warn "Role.all="+Role.all.inspect
-# elsif UserRoleAssoc.where(user_id: 1, role_id: 1).empty?
-#   UserRoleAssoc.new do |obj|
-#     obj.user_id = 1
-#     obj.role_id = 1
-#     obj.save!
-#   end
-#   puts "NOTE: First User (email: #{User.find_by(id: 1).email}) is given a role of Superuser (Role-ID=1)."
-# else
-#   # The record already exists.
-# end
 
 ################################
 # Load the countries
@@ -205,6 +190,7 @@ if Country.find_by(iso3166_n3_code: 0)  # Skip if already exists.
 elsif Country['世界', 'ja'] || Country['World', 'en']
   warn "WARNING: Country['世界', 'ja'] or Country['World', 'en'] exists whereas Country.find_by(iso3166_n3_code: 0) is nil. It should not be."
 else
+  flag_world = true
   if Country.find_by(id: 0)
     warn "WARNING: id=0 for Country is already taken but it is not 'World'."
     world = Country.create!(iso3166_n3_code: 0)
@@ -217,7 +203,6 @@ else
     fr: {title: 'Monde', weight: 0},
   }
   world.reload.with_translations(**hsworld)
-  # ret ||= (flag_world = true)
   nrec += 12  # Country, Unknown-Prefecture/Place + 3 languages
 end
 
@@ -283,7 +268,6 @@ allcnts.each do |ea_cnt|
   end
   n_cnts += 1
 end
-ret ||= (n_cnts > 0)
 
 
 if n_cnts > 0
@@ -333,7 +317,6 @@ allprefs.each do |ea_cnt|
     n_prefs += 1
   end
 end
-ret ||= (n_prefs > 0)
 
 if n_prefs > 0
   #now_prefs = Prefecture.count
@@ -345,52 +328,70 @@ end
 ################################
 # Load some places
 
+# Create a Place and its 2 Translation-s if not present.
+#
+# Bug: If the Place does not exist in the specified Prefecture but does
+#  in another Prefecture, this does not work correctly.
+#
+# @param pref [Prefecture]
+# @param trans [Hash] e.g. {'ja' => {title: '東', ruby: 'アズマ', is_orig: true, weight: 10}, 'en' =>{...}}
+# @return [Integer] Created number of objects
+def seed_create_place(pref, trans)
+  if !pref
+    warn "WARNING: prefecture for Place (#{trans['ja'][:title]}) does not exist; hence the Place is not seeded. Strange."
+    return 0
+  end
+
+  places = %w(ja en).map{|i| Place[trans[i][:title], i, true]}
+  return 0 if places.all?{|i| i}
+
+  if places.all?{|i| !i}
+    Place.update_or_create_with_translations!({prefecture: pref}, translations: trans)
+    return 3
+  end
+
+  if places[0]  # Japanese Translation exists
+    return 0 if places[0].title(  langcode: "en")  # Skip b/c an English translation exists.
+    places[0].create_translation!(langcode: "en", **(trans["en"]))
+    return 1
+  else  # places[1] (derived from the given English Translation) should be Place
+    return 0 if places[1].title(  langcode: "ja")  # Skip b/c a Japanese translation exists.
+    places[1].create_translation!(langcode: "ja", **(trans["ja"]))
+    return 1
+  end
+end
+
 n_placs = 0
 
 pref = Prefecture['東京都']
-if pref  # Place['都庁', 'ja', true]
-  trans = {'ja' => {title: '東京都本庁舎', alt_title: '都庁', alt_ruby: 'トチョウ', alt_romaji: 'Tocho', is_orig: true, weight: 10},
-           'en' => {title: 'Tokyo Metropolitan Government Building', alt_title: 'Tokyo Met. Gov. Build.', weight: 10}}
-  Place.update_or_create_with_translations!({prefecture: pref}, translations: trans)
-  n_placs += 1
-end
+trans = {'ja' => {title: '東京都本庁舎', alt_title: '都庁', alt_ruby: 'トチョウ', alt_romaji: 'Tocho', is_orig: true, weight: 10},
+         'en' => {title: 'Tokyo Metropolitan Government Building', alt_title: 'Tokyo Met. Gov. Build.', weight: 10}}
+n_placs += seed_create_place(pref, trans)
 
 pref = Prefecture['香川県']
-if pref  # Place['高松駅']
-  trans = {'ja' => {title: '高松駅', ruby: 'タカマツエキ', romaji: 'Takamatsu Eki', is_orig: true, weight: 10},
-           'en' => {title: 'Takamatsu Station'}}
-  Place.update_or_create_with_translations!({prefecture: pref}, translations: trans, weight: 10)
-  n_placs += 1
-end
+trans = {'ja' => {title: '高松駅', ruby: 'タカマツエキ', romaji: 'Takamatsu Eki', is_orig: true, weight: 10},
+         'en' => {title: 'Takamatsu Station'}}
+n_placs += seed_create_place(pref, trans)
 
 pref = Prefecture['神奈川県']
-if pref  # Place['']
-  trans = {'ja' => {title: '横浜BMIストリートピアノ(関内マリナード広場)', ruby: 'ヨコハマビーエムアイストリートピアノ(カンナイマリナードヒロバ)', romaji: "Yokohama BMI sutoriitopiano (Kan'nai Marinaado Hiroba)", is_orig: true, weight: 10},
-           'en' => {title: "Yokohama BMI Streetpiano (Kan'nai Marinard Square)", note: '@YokohamaStPiano English name reference: https://hamarepo.com/story.php?story_id=1777', weight: 10}}
-  Place.update_or_create_with_translations!({prefecture: pref}, translations: trans)
-  n_placs += 1
+trans = {'ja' => {title: '横浜BMIストリートピアノ(関内マリナード広場)', ruby: 'ヨコハマビーエムアイストリートピアノ(カンナイマリナードヒロバ)', romaji: "Yokohama BMI sutoriitopiano (Kan'nai Marinaado Hiroba)", is_orig: true, weight: 10},
+         'en' => {title: "Yokohama BMI Streetpiano (Kan'nai Marinard Square)", note: '@YokohamaStPiano English name reference: https://hamarepo.com/story.php?story_id=1777', weight: 10}}
+n_placs += seed_create_place(pref, trans)
 
-  trans = {'ja' => {title: '横浜BMIストリートピアノ(馬車道駅)', ruby: 'ヨコハマビーエムアイストリートピアノ(バシャミチエキ)', romaji: "Yokohama BMI sutoriitopiano (Bashamichi Eki)", is_orig: true, weight: 10},
-           'en' => {title: "Yokohama BMI Streetpiano (Bashamichi Station)", note: "Installed months after Kan'nai's sister streetpiano. @YokohamaStPiano", weight: 10}}
-  Place.update_or_create_with_translations!({prefecture: pref}, translations: trans)
-  n_placs += 1
-end
+trans = {'ja' => {title: '横浜BMIストリートピアノ(馬車道駅)', ruby: 'ヨコハマビーエムアイストリートピアノ(バシャミチエキ)', romaji: "Yokohama BMI sutoriitopiano (Bashamichi Eki)", is_orig: true, weight: 10},
+         'en' => {title: "Yokohama BMI Streetpiano (Bashamichi Station)", note: "Installed months after Kan'nai's sister streetpiano. @YokohamaStPiano", weight: 10}}
+n_placs += seed_create_place(pref, trans)
 
 pref = Prefecture['どこかの都道府県','ja',false,Country['Japan','en',true]] # equivalent to Prefecture['どこかの都道府県','ja',Country['日本国']] # or Country[/^日本/]
-if pref  # Place['']
-  trans = {'ja' => {title: 'ハラミ自宅', ruby: 'ハラミジタク', romaji: "Harami jitaku", is_orig: true, weight: 10},
-           'en' => {title: "Harami's home", weight: 10, }}
-  Place.update_or_create_with_translations!({prefecture: pref}, translations: trans)
-  n_placs += 1
+trans = {'ja' => {title: 'ハラミ自宅', ruby: 'ハラミジタク', romaji: "Harami jitaku", is_orig: true, weight: 10},
+         'en' => {title: "HARAMIchan's home", weight: 10, }}
+n_placs += seed_create_place(pref, trans)
 
-  trans = {'ja' => {title: 'どこかのスタジオ', ruby: 'ドコカノスタジオ', romaji: "Dokokano sutazio", weight: 10},
-           'en' => {title: "random music studio", weight: 10, }}
-  Place.update_or_create_with_translations!({prefecture: pref}, translations: trans)
-  n_placs += 1
-end
+trans = {'ja' => {title: 'どこかのスタジオ', ruby: 'ドコカノスタジオ', romaji: "Dokokano sutazio", weight: 10},
+         'en' => {title: "random music studio", weight: 10, }}
+n_placs += seed_create_place(pref, trans)
 
-ret = true if n_placs > 0
-nrec += n_placs*3  # Place + 2 languages
+nrec += n_placs
 
 ################################
 # Load some genres
@@ -702,15 +703,15 @@ end
     a <=> b
   end
 }.uniq.each do |seed|
-  puts "loading #{seed.sub(%r@.*(/db/seeds/)@, '\1')}"
+  puts "loading "+seed_fname2print(seed)  # defined in ModuleCommon
   load seed
 end
 
 ################################
 
 
-if !ret || nrec <= 0
-  warn "WARNING: All the seeds have been already implemented."
+if nrec <= 0
+  warn "WARNING: All the seeds have been already implemented. No change."
 else
-  printf "Successfully seeded: %d entries in total.\n", nrec  # 32 may include those not updated.
+  printf "Successfully seeded: %d entries in total.\n", nrec
 end
