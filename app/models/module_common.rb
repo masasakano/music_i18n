@@ -759,64 +759,6 @@ module ModuleCommon
   end
   private :_getNkfRelatedOptions
 
-  # Validates translation immediately before it is saved/updated.
-  #
-  # Validation of {Translation} fails if any of to-be-saved
-  # title and alt_title matches an existing title or alt_title
-  # of any {Translation} belonging to the same {Translation#translatable} class.
-  #
-  # == Usage
-  #
-  # In a model (a child of BaseWithTranslation), define a public method:
-  #
-  #   def validate_translation_callback(record)
-  #     validate_translation_neither_title_nor_alt_exist(record)
-  #   end
-  #
-  # @param record [Translation]
-  # @return [Array] of Error messages, or empty Array if everything passes
-  def validate_translation_neither_title_nor_alt_exist(record)
-    msg = msg_validate_double_nulls(record) # defined in app/models/concerns/translatable.rb
-    return [msg] if msg
-
-    tit     = record.title
-    alt_tit = record.alt_title
-    tit     = nil if tit.blank?
-    alt_tit = nil if alt_tit.blank?
-
-    options = {}
-    options[:langcode] = record.langcode if record.langcode
-
-    wherecond = []
-    wherecond.push ['id != ?', record.id] if record.id  # All the Translation of Country but the one for self (except in create)
-    vars = ([tit]*2+[alt_tit]*2).compact
-    sql = 
-      if vars.size == 4
-        '((title = ?) OR (alt_title = ?) OR (title = ?) OR (alt_title = ?))'
-      else
-        '((title = ?) OR (alt_title = ?))'
-      end
-    wherecond.push [sql, *vars]
-
-    alltrans = self.class.select_translations_regex(nil, nil, where: wherecond, **options)
-
-    if !alltrans.empty?
-      tra = alltrans.first
-      msg = sprintf("%s=(%s) (%s) already exists in %s [(%s, %s)(ID=%d)] for %s(ID=%d)",
-                    'title|alt_title',
-                    [tit, alt_tit].compact.map{|i| single_quoted_or_str_nil i}.join("|"),
-                    single_quoted_or_str_nil(record.langcode),
-                    record.class.name,
-                    tra.title,
-                    tra.alt_title,
-                    tra.id,
-                    self.class.name,
-                    tra.translatable_id
-                   )
-      return [msg]
-    end
-    return []
-  end
 
   # Transfer Errors from "other" model to self
   #

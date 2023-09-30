@@ -35,6 +35,12 @@
 #  fk_rails_...  (create_user_id => users.id)
 #  fk_rails_...  (update_user_id => users.id)
 #
+#
+# == NOTE
+#
+# Each Translatable class may implement +validate_translation_callback+
+# for Translation-related validation.  See ModuleCommon and Place for example.
+#
 class Translation < ApplicationRecord
   extend ModuleCommon
   using ModuleHashExtra  # for extra methods, e.g., Hash#values_blank_to_nil
@@ -62,16 +68,35 @@ class Translation < ApplicationRecord
     end
   end
 
+  # Custom Validations
   class UniqueCombiValidator < ActiveModel::Validator
-    # Unless both title and alt_title are nil, the pair should be unique within the same Parent object and language.
+
+    # Translation-specific custom validation
     #
-    # Cases:
+    # This calls a callback: +validate_translation_callback+
     #
-    # (1) BAD if ((Either new.(title||alt_title) exists in Either new.(title||alt_title)) in the entire translatable class (e.g., Country)
-    # (2) BAD if ((Either new.(title||alt_title) exists in Either new.(title||alt_title)) except blank
+    # title and alt_title should be unique in general withing a Parent class and a language
+    # in many cases.  So this validates the situation.
+    #
+    # In reality, it is fairly complex.  For example, in Music, famously there are two songs, "M".
+    # In Place, many place names are identical.  Threfore, perhpas it should be unique within
+    # a Prefecture.
+    #
+    # Possible scenarioses (one or more of them are applicable, depending on the Parent):
+    #
+    # (1) BAD if (Either new.(title||alt_title) exists in either of (title||alt_title)) in the entire translatable class (e.g., Country)
+    # (2) BAD if ((Either new.(title||alt_title) exists in either of (title||alt_title)) except blank
     # (3) BAD if ((new.title exists in titles) && (either(new.alt_title || existing alt_titles).blank?)
     # (4) BAD if ((new.title exists in titles) && (new.alt_title exists in alt_titles))
     # (5) others: e.g., BAD if in Music, (2) and if Composer-Artist and Year exist.
+    #
+    # {Country} implements its unique +validate_translation_callback+
+    # which is called from this method.
+    # {BaseWithTranslation} contains helper methods for +validate_translation_callback+
+    # which are used in {Place}, {Sex} etc, wrapped inside +validate_translation_callback+:
+    #
+    # * +validate_translation_neither_title_nor_alt_exist+
+    # * +validate_translation_unique_within_parent+
     #
     # This somehow validates as long as translatable_type is significant even if
     # translatable_id is not.

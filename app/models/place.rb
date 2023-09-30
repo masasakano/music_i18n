@@ -289,85 +289,11 @@ class Place < BaseWithTranslation
     CheckedDisabled.new disabled: disabled, checked_index: iret
   end
 
-  # Validates translation immediately before it is added.
+
+  # Validates if a {Translation} is unique within the parent ({Prefecture})
   #
-  # Called by a validation in {Translation}
-  #
-  # In short, if {Translation#title} (or {Translation#alt_tiele} if title is nil)
-  # is not unique within the same 
-  #
-  # Note: {Translation}.joins(:translatable) would lead to ActiveRecord::EagerLoadPolymorphicError
-  #  as of Ruby 6.0.
-  #
-  # @param record [Translation]
-  # @return [Array] of Error messages, or empty Array if everything passes
+  # Fired from {Translation}
   def validate_translation_callback(record)
-    msg = msg_validate_double_nulls(record)
-    return [msg] if msg
-
-    ### To achieve with a single SQL query, the following is the one??
-    ### It is too much (and Rails does not support RIGHT JOIN)
-    ### and hence 2 SQL queries are used in this method.
-    #
-    # SELECT t1.id as tid, t2.id as tid2, t1.translatable_type, t1.langcode,
-    #        t2.title as title2, p2.note as note2, p1.prefecture_id as pcid1, p2.prefecture_id as pcid2
-    #  FROM translations t1
-    #  INNER JOIN places p1 ON (t1.translatable_id = p1.id)
-    #  RIGHT JOIN translations t2 ON t1.translatable_type = t2.translatable_type
-    #  RIGHT JOIN places p2 ON (t2.translatable_id = p2.id)
-    #  WHERE t1.translatable_type = 'Place' AND t1.id = 566227874 AND p1.prefecture_id = p2.prefecture_id;
-    #
-    ### The 1st process of the following is to get prefecture_id in Place from record (Translation):
-    ###   record.translatable.prefecture_id
-    ### The 2nd process would produce a SQL something similar to
-    #
-    # SELECT t.id as tid, p.id as pid, t.translatable_type, t.langcode,
-    #        t.title, p.note as note, p.prefecture_id as pcid1
-    #   FROM translations t
-    #   INNER JOIN places p ON translations.translatable_id = places.id
-    #   WHERE translations.translatable_type = 'Place' AND places.prefecture_id = :prefectureid AND
-    #         translations.id <> :translationid" AND translations.langcode = :lang
-    #   {prefectureid: record.translatable.prefecture_id, translationid: record.id, lang: record.langcode}
-    #
-    ### In Rails console (irb),
-    #
-    # Translation.joins('INNER JOIN places ON translations.translatable_id = places.id').
-    #   where(translatable_type: 'Place').
-    #   where(langcode: record.langcode).
-    #   where("places.prefecture_id = :prefectureid AND translations.id <> :translationid",
-    #          prefectureid: record.translatable.id, translationid: record.id)
-    #
-
-    # Gets all the Translation of Place belonging to the same Prefecture but the one for self
-    joinscond = "INNER JOIN places ON translations.translatable_id = places.id"
-    whereconds = []
-    whereconds << ["places.prefecture_id = ?", record.translatable.prefecture_id]
-    whereconds << [(record.id ? ['translations.id <> ?', record.id] : nil)]
-    alltrans = self.class.select_translations_regex(
-      nil,
-      nil,
-      where: whereconds,
-      joins: joinscond,
-      langcode: record.langcode
-    )
-
-    tit     = record.title
-    alt_tit = record.alt_title
-    method  = (tit ? :title : :alt_title) # The method Symbol to check out (usually :title, unless nil)
-    current = (tit ?  tit   :  alt_tit)   # The method name
-
-    if alltrans.any?{|i| i.send(method) == current}
-      klasses = self.class.reflect_on_all_associations(:belongs_to).map{|i| i.klass.name}  # => "Prefecture"
-      logger.warning "(#{__method__}) More than one class to belong to from #{self.class}" if klasses.size > 1
-      msg = sprintf("%s=%s (%s) already exists in %s for %s in %s.",
-                    method.to_s,
-                    current.inspect,
-                    record.langcode,
-                    record.class.name,
-                    self.class.name,
-                    klasses[0])
-      return [msg]
-    end
-    return []
+    validate_translation_unique_within_parent(record)
   end
 end

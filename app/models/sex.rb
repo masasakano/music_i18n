@@ -28,7 +28,7 @@ class Sex < BaseWithTranslation
   # @param record [Translation]
   # @return [Array] of Error messages, or empty Array if everything passes
   def validate_translation_callback(record)
-    validate_translation_neither_title_nor_alt_exist(record)
+    validate_translation_neither_title_nor_alt_exist(record)  # defined in BaseWithTranslation
   end
 
   # For the translations to be unique.

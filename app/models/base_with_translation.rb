@@ -12,6 +12,23 @@
 #     MAIN_UNIQUE_COLS = []
 #     ARTICLE_TO_TAIL = true
 #
+# Add the following if the class should not allow multiple identical title/alt_title
+# Music does NOT include this (famously there are two songs, "M").
+#
+#     def validate_translation_callback(record)
+#       validate_translation_neither_title_nor_alt_exist(record)  # defined in ModuleCommon included in this file.
+#     end
+#
+# Alternatively, add the following to validate the uniquness of translations 
+# against its parent (like Place and Prefecture; +Place.unknown+ have many identical titles for different {Prefecture}).
+#
+#     # Validates if a {Translation} is unique within the parent
+#     #
+#     # Fired from {Translation}
+#     def validate_translation_callback(record)
+#       validate_translation_unique_within_parent(record)
+#     end
+#
 # See below for the descriptions of the Constants
 #
 # == Update (or create)
@@ -266,8 +283,10 @@
 #
 # which returns at least one String (n.b., either title or alt_title should be defined
 # for at least one language in normal circumstances and therefore this should usually
-# returnn a non-empty String. In default, nil is never returned (Default +str_fallback+
-# is +""+). You may also specify +prefer_alt: true+ in some cases like Country.
+# returnn a non-empty String; strictly speaking, +Translation::UniqueCombiValidator+
+# allows for a single object with both title and alt_title being nil per Parent class
+# and so it might happen). In default, nil is never returned (Default +str_fallback+ is +""+).
+# You may also specify +prefer_alt: true+ in some cases like Country.
 #
 # If you do want +title+ only, you are recommended to add +lang_fallback+ option
 # (otherwise, it may be nil):
@@ -1050,7 +1069,7 @@ class BaseWithTranslation < ApplicationRecord
     mainprms.each_pair do |ek, ev|
       begin
         model.send(ek.to_s+'=', ev) if model.send(ek).blank?  # if the existing is null
-      rescue ActiveModel::UnknownAttributeError => er
+      rescue ActiveModel::UnknownAttributeError #=> er
         msg = "ERROR(#{self.name}.#{__method__}): provided mainprms="+mainprms.inspect+" Contact the code devloper."
         logger.error msg
         warn msg
@@ -1154,7 +1173,6 @@ class BaseWithTranslation < ApplicationRecord
   # @return [Translation::ActiveRecord_Relation]
   def select_translations_partial_str_except_self(*args, **restkeys)
     ids = translations.pluck(:id)
-    notclause = {}
     if !restkeys.key?(:not_clause) || restkeys[:not_clause].blank?
       restkeys.merge!({not_clause: {id: ids}})
       # Users should not specify/use not_clause option for this method.
@@ -1749,7 +1767,7 @@ class BaseWithTranslation < ApplicationRecord
   #    NOTE also the similar option in {#get_a_title} differs in name: +lang_fallback+.
   # @param str_fallback [String, NilClass] Returned Object (String or nil) in case neither "title" is found.
   #    Unlike {#get_a_title} and {#titles}, the default is +""+, meaning this method
-  #    never returns +nil+ in default, unless explicitly specified so.
+  #    never returns +nil+ in default, unless explicitly specified so with this option.
   # @param langcode: [String, NilClass] like 'ja' (directly passed to the parent method)
   # @return [String] Singleton method of +lcode+ is available.
   def title_or_alt(prefer_alt: false, lang_fallback_option: :either, str_fallback: "", **opts)
@@ -2388,6 +2406,163 @@ class BaseWithTranslation < ApplicationRecord
       translation.save!
       @unsaved_translations.pop
     end
+  end
+
+  # Validates translation immediately before it is saved/updated.
+  #
+  # Validation of {Translation} fails if any of to-be-saved
+  # title and alt_title matches an existing title or alt_title
+  # of any {Translation} belonging to the same {Translation#translatable} class.
+  #
+  # == Usage
+  #
+  # In a model (a child of BaseWithTranslation), define a public method:
+  #
+  #   def validate_translation_callback(record)
+  #     validate_translation_neither_title_nor_alt_exist(record)
+  #   end
+  #
+  # @param record [Translation]
+  # @return [Array] of Error messages, or empty Array if everything passes
+  def validate_translation_neither_title_nor_alt_exist(record)
+    msg = msg_validate_double_nulls(record) # defined in app/models/concerns/translatable.rb
+    return [msg] if msg
+
+    tit     = record.title
+    alt_tit = record.alt_title
+    tit     = nil if tit.blank?
+    alt_tit = nil if alt_tit.blank?
+
+    options = {}
+    options[:langcode] = record.langcode if record.langcode
+
+    wherecond = []
+    wherecond.push ['id != ?', record.id] if record.id  # All the Translation of Country but the one for self (except in create)
+    vars = ([tit]*2+[alt_tit]*2).compact
+    sql = 
+      if vars.size == 4
+        '((title = ?) OR (alt_title = ?) OR (title = ?) OR (alt_title = ?))'
+      else
+        '((title = ?) OR (alt_title = ?))'
+      end
+    wherecond.push [sql, *vars]
+
+    alltrans = self.class.select_translations_regex(nil, nil, where: wherecond, **options)
+
+    if !alltrans.empty?
+      tra = alltrans.first
+      msg = sprintf("%s=(%s) (%s) already exists in %s [(%s, %s)(ID=%d)] for %s(ID=%d)",
+                    'title|alt_title',
+                    [tit, alt_tit].compact.map{|i| single_quoted_or_str_nil i}.join("|"),
+                    single_quoted_or_str_nil(record.langcode),
+                    record.class.name,
+                    tra.title,
+                    tra.alt_title,
+                    tra.id,
+                    self.class.name,
+                    tra.translatable_id
+                   )
+      return [msg]
+    end
+    return []
+  end
+
+  # Utility for Callback/hook to validate translation immediately before it is added.
+  #
+  # Call this inside the validation callback that is called in validation by {Translation}
+  #
+  # In short, this validation means:
+  # if {Translation#title} (or {Translation#alt_tiele} if title is nil)
+  # is not unique within the same parent, it is not valid.
+  #
+  # Note: {Translation}.joins(:translatable) would lead to ActiveRecord::EagerLoadPolymorphicError
+  #  as of Ruby 6.0.
+  #
+  # @example for model Place
+  #   class Place
+  #     def validate_translation_callback(record)
+  #       validate_translation_unique_within_parent(record)
+  #     end
+  #   end
+  #
+  # @param record [Translation]
+  # @param parent_klass: [BaseWithTranslation, NilClass] parent class that self belongs_to. Unless self has multiple parents, this can be guessed.
+  # @return [Array] of Error messages, or empty Array if everything passes
+  def validate_translation_unique_within_parent(record, parent_klass: nil)
+    msg = msg_validate_double_nulls(record)
+    return [msg] if msg
+
+    ### To achieve with a single SQL query, the following is the one (for Prefecture)??
+    ### It is too much (and Rails does not support RIGHT JOIN)
+    ### and hence 2 SQL queries are used in this method.
+    #
+    # SELECT t1.id as tid, t2.id as tid2, t1.translatable_type, t1.langcode,
+    #        t2.title as title2, p2.note as note2, p1.prefecture_id as pcid1, p2.prefecture_id as pcid2
+    #  FROM translations t1
+    #  INNER JOIN places p1 ON (t1.translatable_id = p1.id)
+    #  RIGHT JOIN translations t2 ON t1.translatable_type = t2.translatable_type
+    #  RIGHT JOIN places p2 ON (t2.translatable_id = p2.id)
+    #  WHERE t1.translatable_type = 'Place' AND t1.id = 566227874 AND p1.prefecture_id = p2.prefecture_id;
+    #
+    ### The 1st process of the following is to get prefecture_id in Place from record (Translation):
+    ###   record.translatable.prefecture_id
+    ### The 2nd process would produce a SQL something similar to
+    #
+    # SELECT t.id as tid, p.id as pid, t.translatable_type, t.langcode,
+    #        t.title, p.note as note, p.prefecture_id as pcid1
+    #   FROM translations t
+    #   INNER JOIN places p ON translations.translatable_id = places.id
+    #   WHERE translations.translatable_type = 'Place' AND places.prefecture_id = :prefectureid AND
+    #         translations.id <> :translationid" AND translations.langcode = :lang
+    #   {prefectureid: record.translatable.prefecture_id, translationid: record.id, lang: record.langcode}
+    #
+    ### In Rails console (irb),
+    #
+    # Translation.joins('INNER JOIN places ON translations.translatable_id = places.id').
+    #   where(translatable_type: 'Place').
+    #   where(langcode: record.langcode).
+    #   where("places.prefecture_id = :prefectureid AND translations.id <> :translationid",
+    #          prefectureid: record.translatable.id, translationid: record.id)
+    #
+
+    my_tblname = self.class.table_name
+    parent_klass ||= self.class.reflect_on_all_associations(:belongs_to).map{|i| i.klass.name}[0].constantize
+    # If self.class has multiple belongs_to, the guessed class may be wrong (the Array has more than one element).
+
+    parent_col = parent_klass.table_name.singularize + "_id"
+
+    # Gets all the Translation of this class belonging to the same parent class except oneself.
+    joinscond = "INNER JOIN #{my_tblname} ON translations.translatable_id = #{my_tblname}.id"
+    whereconds = []
+    whereconds << [my_tblname+"."+parent_col+" = ?", record.translatable.send(parent_col)]
+    whereconds << [(record.id ? ['translations.id <> ?', record.id] : nil)]
+    alltrans = self.class.select_translations_regex(
+      nil,
+      nil,
+      where: whereconds,
+      joins: joinscond,
+      langcode: record.langcode
+    )
+
+    tit     = record.title
+    alt_tit = record.alt_title
+    method  = (tit ? :title : :alt_title) # The method Symbol to check out (usually :title, unless nil)
+    current = (tit ?  tit   :  alt_tit)   # The method name
+
+    if alltrans.any?{|i| i.send(method) == current}
+      parent_obj = record.translatable.send(parent_klass.table_name.singularize)
+      msg = sprintf("%s=%s (%s) already exists in %s for %s in %s (%s).",
+                    method.to_s,
+                    current.inspect,
+                    record.langcode,
+                    record.class.name,
+                    self.class.name,
+                    parent_klass.class.name,  # == parent_klass.name
+                    (parent_obj.titles.compact[0].inspect rescue '"No titles"')
+                   )
+      return [msg]
+    end
+    return []
   end
 
   private
