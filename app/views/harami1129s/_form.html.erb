@@ -97,7 +97,7 @@
       <%= link_to(sprintf('%s by %s [%s]%s',
                           (engage.music ? engage.music.title_or_alt : ''),
                           (engage.artist ? engage.artist.title_or_alt : ''),
-                          (engage.engage_how ? engage.engage_how.title(langcode: 'ja') : ''),
+                          (engage.engage_how ? engage.engage_how.title(langcode: I18n.locale, lang_fallback: true) : ''),
                           (engage.year ? sprintf(' (%d)', engage.year) : '')),
                   engage,
                   title: sprintf('ID=%d', engage.id)) %>

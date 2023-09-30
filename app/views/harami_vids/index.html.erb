@@ -35,7 +35,7 @@
                 if !ar
                   ""  # should not happen
                 else
-                  ar = ar.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true);
+                  ar = ar.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true);
                   sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture['ja'] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2]
                 end %>
              </td>

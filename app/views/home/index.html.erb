@@ -37,7 +37,7 @@
     <% @home_hvs.each do |home_hv| %>
       <tr>
         <td><%= home_hv.release_date %></td>
-        <td><%= link_to_youtube home_hv.title(langcode: 'ja'), home_hv.uri %></td>
+        <td><%= link_to_youtube home_hv.title(langcode: I18n.locale, lang_fallback: true), home_hv.uri %></td>
         <td><%= home_hv.view_home_artist 'en' %></td>
         <td><%= home_hv.view_home_music 'en' %></td>
         <td><%= home_hv.view_home_music 'ja' %></td>

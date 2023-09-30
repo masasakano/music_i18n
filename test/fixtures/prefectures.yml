@@ -53,6 +53,10 @@ unknown_prefecture_uk:
   country: uk
   note: NoteUk
 
+unknown_prefecture_france:
+  country: france
+  note: PrefFrance
+
 unknown_prefecture_aus:
   country: aus
   note: NoteAus

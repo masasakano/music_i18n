@@ -423,6 +423,89 @@ unknown_place_liverpool_uk_en:
   update_user: 
   note: UnknownPlaceLiverpoolUkEn
 
+# orig=false (true for "fr"). No Japanese Translation
+france_en:
+  translatable: france
+  translatable_type: Country
+  langcode: en
+  title: "French Republic, The"
+  alt_title: France
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: false
+  weight: 0
+  create_user_id: 
+  update_user: 
+  note: FranceEn
+
+# orig=true. No Japanese Translation
+france_fr:
+  translatable: france
+  translatable_type: Country
+  langcode: fr
+  title: "France, La"
+  alt_title:
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 
+  update_user: 
+  note: FranceFr
+
+unkown_prefecture_france_en:
+  translatable: unknown_prefecture_france
+  translatable_type: Prefecture
+  langcode: en
+  title: UnknownPrefecture
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 
+  update_user: 
+  note: UnknownPrefectureFranceEn
+
+unknown_place_unknown_prefecture_france_en:
+  translatable: unknown_place_unknown_prefecture_france
+  translatable_type: Place
+  langcode: en
+  title: UnknownPlace
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 
+  update_user: 
+  note: UnknownPlaceUnknownPrefectureFranceEn
+
+montparnasse_france_fr:
+  translatable: montparnasse_france
+  translatable_type: Place
+  langcode: fr
+  title: Gare Montparnasse
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 10
+  create_user_id: 
+  update_user: 
+  note: PlaceMontparnasseFranceFr
+  # No Ja/En Translation for Gare Montparnasse
+
 unkown_prefecture_aus_en:
   translatable: unknown_prefecture_aus
   translatable_type: Prefecture
@@ -1156,7 +1239,7 @@ artist3_en:
   translatable: artist3
   translatable_type: Artist
   langcode: en
-  title: Haramichan
+  title: HARAMIchan
   alt_title: Harami-chan
   ruby: 
   alt_ruby:
@@ -1372,6 +1455,22 @@ harami_vid_50anni_ja:
   create_user: user_two
   update_user: user_moderator
   note: HaramiVid50AnniJa title modified for testing
+
+harami_vid_paris1_ja:
+  translatable: harami_vid_paris1
+  translatable_type: HaramiVid
+  langcode: ja
+  title: パリの最初
+  alt_title: 
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user: user_two
+  update_user: user_moderator
+  note: HaramiVidParis1_titleJa
 
 engage_how_unknown_en:
   translatable: engage_how_unknown

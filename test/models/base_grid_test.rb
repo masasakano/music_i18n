@@ -22,7 +22,6 @@ class BaseGridTest < ActiveSupport::TestCase
     scope_desc = BaseGrid.scope_with_trans_order(scope, Artist, "en").reverse_order  # redefined in /lib/reverse_sql_order.rb
     assert_equal zombies.id, scope_desc.first.id, "wrong... SQL=#{scope_desc.to_sql}"
   end
-
 end
 
 

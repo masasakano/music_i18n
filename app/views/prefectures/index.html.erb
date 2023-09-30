@@ -22,7 +22,7 @@
     <% @prefectures.each do |prefecture| %>
       <tr>
         <td><%= prefecture.id %></td>
-        <td><%= cntr=prefecture.country; link_to(sprintf('%d', cntr.id), cntr)+sprintf('(%s)', cntr.title_or_alt(langcode: 'ja', prefer_alt: true)) %></td>
+        <td><%= cntr=prefecture.country; link_to(sprintf('%d', cntr.id), cntr)+sprintf('(%s)', cntr.title_or_alt(langcode: I18n.locale, prefer_alt: true)) %></td>
         <% btr = prefecture.best_translations %>
         <% %w(ja en).each do |lc| %>
         <td><%= %w(title alt_title).map{|i| tra=btr[lc]; s=(tra && h(tra.send(i))); s.blank? ? '&mdash;' : s}.join(' | ').html_safe %></td>

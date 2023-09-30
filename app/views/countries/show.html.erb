@@ -1,6 +1,6 @@
 <p id="notice"><%= notice %></p>
 
-<h1>Country: <%= my_title = @country.title_or_alt %></h1>
+<h1>Country: <%= my_title = @country.title_or_alt_tuple_str(langcode: I18n.locale) %></h1>
 
 <hr>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: @country} %>

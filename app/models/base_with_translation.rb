@@ -201,7 +201,9 @@
 #
 #   b.select_translations_regex(  :titles, /^Aus/i, where: ['id <> ?', abc.id])
 #     # => [Translation, [Translation, ...]]  (searching only those related to self; in practice, useful only when self has multiple translations in a language)
-#   b.title
+#   b.titles(langcode: nil, lang_fallback_option: :never, str_fallback: nil)
+#   b.title_or_alt(prefer_alt: false, langcode: nil lang_fallback_option: :either, str_fallback: "")
+#   b.title(langcode: nil, lang_fallback: false, str_fallback: nil) # See below re fallback
 #   b.ruby
 #   b.romaji
 #   b.alt_title
@@ -211,7 +213,7 @@
 #   b.orig_langcode     # Original language code
 #   b.translations_with_lang(langcode=nil)  # Sorted {Translation}-s of a specific (or original) language
 #   b.best_translations                          # => {'ja': <Translation>, 'en': <Translation>}
-#   b.all_best_titles(attr=:title, safe: false)  # => {'ja': 'イマジン', 'en': 'Imagine'}
+#   b.all_best_titles(attr=:title, safe: false)  # => {'ja': 'イマジン', 'en': 'Imagine'} (with_indifferent_access)
 #  
 #   b.create_translations!(          ja: [{title: 'イマジン'}], en: {title: 'Imagine', is_orig: true})
 #   b.update_or_create_translations!(ja: [{title: 'イマジン'}], en: {title: 'Imagine', is_orig: true})
@@ -232,6 +234,56 @@
 #   # Filtered by both Artist and Music names
 #   Artist[/Lennon/, "en"].musics.joins(:translations).where("translations.title": "Imagine").first
 #     # =>  Music "Imagine" by John Lennon.
+#
+# === fallback
+#
+# Language priority and fallback are not trivial.
+#
+# The core alrorithm to determine the priority is #{BaseWithTranslation.sorted_langcodes}.
+# In short,
+#
+# 1. Caller-specified (NOT WEB-browser's implicit request)
+# 2. Translation with +is_orig+ of true, if there is any
+# 3. Hard-coded order in this app.
+#
+# Notice the priorities of 1 and 2.
+# In many of the methods in this class, the following options are available.
+#
+# * +langcode+: highest-priority locale (usually String).
+#   * In default, it is a hard-coded one, hence NOT user-specified.  You may specify +langcode: I18n.locale+
+# * +fallback+ or +lang_fallback+ or +lang_fallback_option+: controls how fallback is handled.
+#   * For methods that return a single value (but +title_or_alt+), either of the formers (Boolean) is specified. Default is false (no fallback!).
+#   * For the others, the latter (Symbol) is specified. Default is +:either+, meaning only one of them follows +lang_fallback=true+ and the other just follows it.
+# * +str_fallback+: What object is returned when everything fails.
+#   * Default is nil for most of them, but an empty string "" for +titles+ and +title_or_alt+
+#
+# In short, if you simply want the (best-translation) String for any language
+# but preferably the user's choice, specify one of the following:
+#
+#   b.title_or_alt(langcode: I18n.locale)
+#   b.title_or_alt(langcode: I18n.locale, prioritize_orig: true)
+#   b.title_or_alt_tuple_str(langcode: I18n.locale)  # => "The Beatles (ザ・ビートルズ)"
+#
+# which returns at least one String (n.b., either title or alt_title should be defined
+# for at least one language in normal circumstances and therefore this should usually
+# returnn a non-empty String. In default, nil is never returned (Default +str_fallback+
+# is +""+). You may also specify +prefer_alt: true+ in some cases like Country.
+#
+# If you do want +title+ only, you are recommended to add +lang_fallback+ option
+# (otherwise, it may be nil):
+#
+#   b.title(langcode: I18n.locale, lang_fallback: true)
+#
+# Note that a Translation is required to have *EITHER* +title+ or +alt_title+,
+# meaning it may not have +title+.
+#
+# === Troubleshooting
+#
+# * If a link-String like "ja/artists/123" is visible on the website, this may be because of
+#   the lack of the link String; e.g., the link String in +link_to(a.title, new_b_path)+
+#   may be nil, in which case output String of +new_b_path()+ is displayed!
+#
+# === Essential settings in Child classes
 #
 # Each subclass should define this constant; a list of the default unique keys
 # required to narrows down the selections for searching for the candidates
@@ -1533,39 +1585,87 @@ class BaseWithTranslation < ApplicationRecord
   end
 
 
-  # Returns the Array of sorted langcodes in order of priority
+  # Returns the Array of sorted langcodes (String) in order of priority
   #
   # A user-specified langcode if any, {Translation#is_orig}, and
   # {BaseWithTranslation::AVAILABLE_LOCALES}, and any other langcodes
   # that the given Hash has are all considered.
+  #
+  # The default priority is
+  #
+  # 1. Caller-specified (NOT WEB-browser's implicit request)
+  # 2. Translation with +is_orig+ of true, if there is any
+  # 3. Hard-coded order in this app.
+  #
+  # where (1) and (2) are swapped if +prioritize_orig+ is true.
+  # This is useful, when, for example, you want to select "Queen" over "クイーン" for
+  # an artist (group), providing it is the original language,
+  # whereas you may prefer "犬" to "dog" for a general noun,
+  # for which no "original" language can be defined.
+  #
+  # In the real world, it is more complicated; for example, you may want
+  # to choose the alphabet spelling in English for American Artists,
+  # whereas you may not wish the same for the Greek alphabet spelling
+  # in Greek for Greek artists or Thai characters for Thai artists.
+  # How about Chinese artist names?  Do you prefer simplified Chinese characters,
+  # traditional ones, Japanese kanjis, or Japanese katakanas, or even alphabet letters?
   #
   # @example
   #   Country.sorted_langcodes(first_lang: nil,  hstrans: cntr.best_translations)
   #     #=> ['en', 'ja', 'fr']
   #   Country.sorted_langcodes(first_lang: 'it', hstrans: cntr.best_translations)
   #     #=> ['it', 'en', 'ja', 'fr', 'kr'] (providing hstrans has 'kr' with is_orig=false)
+  #     # NOTE: hstrans may not include Translation in "it".  This method does not care
+  #     #       in default unless +remove_invalid: true+ is specified.
   #
-  # @param first_lang: [String, NilClass] user-specified langcode that has the highest priority
   # @param hstrans: [Hash<String => Translation>] Returns of {#best_translations}
+  # @param first_lang: [String, NilClass] user-specified langcode that has the highest priority
+  # @param prioritize_orig: [Boolean] If true, is_orig has a higher priority than first_lang (Def: false)
+  # @param remove_invalid: [Boolean] If true (Def: false), langcode-s that do not have Translation are removed in the returne Array. {Place#title_or_alt_ascendants}, which is widely used in the app, depends on this default setting. Specifically, the option +lang_fallback_option: :never+ would not work well if +remove_invalid+ here was true (because the method's behaviour of potentially returning nil depends on it?).
   # @return [Array<String>]
-  def self.sorted_langcodes(hstrans: , first_lang: nil)
+  def self.sorted_langcodes(hstrans: , first_lang: nil, prioritize_orig: false, remove_invalid: false)
     first_lang = first_lang.to_s if first_lang
     def_locales = AVAILABLE_LOCALES.map{|i| i.to_s}
-    ([first_lang]+hstrans.keys).compact.uniq.sort{ |a,b|
-      if    a == first_lang
-        -1
-      elsif b == first_lang
-         1
-      elsif hstrans[a].is_orig
-        -1
-      elsif hstrans[b].is_orig
-         1
+    hsind = 
+      if prioritize_orig
+        { user: 1, orig: 0, sys: 2 }
       else
-         (def_locales.index(a) || Float::INFINITY) <=> 
-         (def_locales.index(b) || Float::INFINITY)
+        { user: 0, orig: 1, sys: 2 }
       end
-    }
+    
+    # Convert to Array [Orig?, User? (or reverse), System-No, lcode] and perform simple sort
+    ([first_lang]+hstrans.keys).compact.uniq.map{ |lcode|
+      next nil if remove_invalid && !hstrans[lcode].respond_to?(:is_orig)
+      ar = []
+      ar[hsind[:user]] = ((first_lang.to_s == lcode) ? 0 : 1)
+      ar[hsind[:orig]] = ((hstrans[lcode].respond_to?(:is_orig) && hstrans[lcode].is_orig) ? 0 : 1)
+      ar[hsind[:sys]]  = (def_locales.index(lcode) || Float::INFINITY)
+      ar[3] = lcode
+      ar
+    }.compact.sort.map{|i| i[3]}
   end
+    ### Original, more intuitive sorting algorithm
+    #
+    #uniqqed = ([first_lang]+hstrans.keys).compact.uniq
+    #if prioritize_orig
+    #  uniqqed.sort{ |a,b|
+    #  ....}
+    #else
+    #  uniqqed.sort{ |a,b|
+    #    if    a == first_lang
+    #      -1
+    #    elsif b == first_lang
+    #       1
+    #    elsif hstrans[a].is_orig
+    #      -1
+    #    elsif hstrans[b].is_orig
+    #       1
+    #    else
+    #       (def_locales.index(a) || Float::INFINITY) <=> 
+    #       (def_locales.index(b) || Float::INFINITY)
+    #    end
+    #  }
+    #end
 
 
   ###################################
@@ -1598,15 +1698,16 @@ class BaseWithTranslation < ApplicationRecord
   # @param str_fallback [String, NilClass] similar to that of {#get_a_title}. If none is found,
   #   and if this is non-nil, the second element of the returned Array is
   #   this value, like +[nil, "NONE"]+. Default is nil.
-  # @return [Array<String, String>] if there are no translations for the langcode, +[nil, Option(str_fallback)]+
-  def titles(langcode: nil, lang_fallback_option: :never, str_fallback: nil)
+  # @param prioritize_orig: [Boolean] If true, is_orig has a higher priority than first_lang (Def: false)
+  # @return [Array<String, String>] if there are no translations for the langcode, +[nil, Option(str_fallback)]+.  Singleton method of +lcode+ is available.
+  def titles(langcode: nil, lang_fallback_option: :never, str_fallback: nil, prioritize_orig: false)
     raise ArgumentError, "(#{__method__}) Wrong option (lang_fallback_option=#{lang_fallback_option}). Contact the code developer."  if !(%i(both either never).include? lang_fallback_option)
 
     hstrans = best_translations
     arret = [nil, str_fallback]
 
     # Fallback
-    sorted_langs = self.class.sorted_langcodes(first_lang: langcode, hstrans: hstrans) # ["ja", "en"] etc.
+    sorted_langs = self.class.sorted_langcodes(first_lang: langcode, hstrans: hstrans, prioritize_orig: prioritize_orig, remove_invalid: false) # ["ja", "en"] etc.
     sorted_langs.each do |ecode|
       artmp = (hstrans[ecode] && hstrans[ecode].titles)
       if !artmp
@@ -1633,13 +1734,12 @@ class BaseWithTranslation < ApplicationRecord
   # If neither is found, an empty string "" is returned.
   #
   # @note An edge case is not tested (+base_with_translation_test.rb+) where Translations have
-  #   (title, alt_title)=(ja)['あ', 'い'], (en)[nil, "abc"]
-  #   and ja is for +is_orig=true+ and +title_or_alt(langcode: 'en')+
-  #   is requested. Does it return 'あ' or "abc"?
+  #  (title, alt_title)=(ja)['あ', 'い'], (en)[nil, "abc"]
+  #  and ja is for +is_orig=true+ and +title_or_alt(langcode: 'en')+
+  #  is requested. Does it return 'あ' or "abc"?
   #
   # @param prefer_alt: [Boolean] if true (Def: false), alt_title is preferably
   #    returned as long as it exists.
-  # @param langcode: [String, NilClass] like 'ja'
   # @param lang_fallback_option: [Symbol] (:both|:either(Def)|:never) Similar to {#titles} but has a different meaning. If :both,
   #    +(lang_fallback: true)+ is passed to both {#title} and {#alt_title}.
   #    If :either (Default), if either of {#title} and {#alt_title} is significant,
@@ -1650,12 +1750,64 @@ class BaseWithTranslation < ApplicationRecord
   # @param str_fallback [String, NilClass] Returned Object (String or nil) in case neither "title" is found.
   #    Unlike {#get_a_title} and {#titles}, the default is +""+, meaning this method
   #    never returns +nil+ in default, unless explicitly specified so.
-  # @return [String]
+  # @param langcode: [String, NilClass] like 'ja' (directly passed to the parent method)
+  # @return [String] Singleton method of +lcode+ is available.
   def title_or_alt(prefer_alt: false, lang_fallback_option: :either, str_fallback: "", **opts)
     cands = titles(lang_fallback_option: lang_fallback_option, str_fallback: nil, **opts) # nil is wanted when no translations are found.
     cands.reverse! if prefer_alt
     cands.map{|i| (i.blank? || i.strip.blank?) ? nil : i}.compact.first || str_fallback
     ## NOTE: Do NOT modify i (like i.strip) because "i" has a Singleton method #lcode
+  end
+
+  # Array of either 1 or 2 elements of String (title)
+  #
+  # NOTE: This method makes sense only when both +langcode+ and +prioritize_orig+
+  #  are specified like +langcode: I18n.locale, prioritize_orig: true+
+  #
+  # Wrapper of {#title_or_alt}.  If the language of the returned one
+  # differs from the specified language AND if +prioritize_orig+ is true,
+  # you may not even read the returned String (characters).  In such a case,
+  # this method returns the second element in the specified language,
+  # providing a Translation in the language exists.
+  #
+  # If the specified +langcode+ is blank or +prioritize_orig+ is not true,
+  # this returns the same as {#title_or_alt}, except in the form of Array.
+  #
+  # @param langcode: [String, NilClass] like 'ja' (directly passed to the parent method)
+  # @param prioritize_orig: [Boolean] If true, is_orig has a higher priority than first_lang (Def: false)
+  # @param #see title_or_alt
+  # @return [Array<String>] Singleton method of +lcode+ is available. In no associated Translation is found (which realistically can happen only when +lang_fallback_option: :never+), this returns the Array with the value of +str_fallback+ (Def: "", meaning returning +[""]+) (see {#title_or_alt}).
+  def title_or_alt_tuple(langcode: nil, prioritize_orig: false, **opts)
+    retstr = title_or_alt(langcode: langcode, prioritize_orig: prioritize_orig, **opts)
+    return [retstr] if !(langcode.present? &&
+                         prioritize_orig &&
+                         (!retstr.respond_to?(:lcode) || retstr.lcode != langcode.to_s))  # if lcode is not defined, it should be the +str_fallback+ character (Def: "")
+    ret2 = title_or_alt(langcode: langcode, prioritize_orig: false, **(opts.merge({lang_fallback_option: :never})))
+    ret2.blank? ? [retstr] : [retstr, ret2]
+  end
+
+  # Wrapper of {#title_or_alt_tuple} to return a formatted String
+  #
+  # NOTE: This method makes sense only when +langcode+ is explicitly specified
+  #  like +langcode: I18n.locale+.  Unlike {#title_or_alt_tuple}, +prioritize_orig+
+  #  does not need to be specified.
+  #
+  # @example
+  #    s = b.title_or_alt_tuple_str("[和名: ", "]", langcode: I18n.locale)
+  #    #=> "Queen [和名: クイーン]"  (if I18n.locale == "ja")
+  #    #=> "Queen"  (if no JA-translation is found)
+  #
+  # @param open_para [String]
+  # @param close_para [String]
+  # @param definite_article_to_head: [Boolean]
+  # @param #see title_or_alt_tuple
+  # @return [String] Either "Queen" (maybe empty) or "Queen (クイーン)". Guaranteed to return String.
+  def title_or_alt_tuple_str(open_pare="(", close_pare=")", normalize_definite_article: true, **opts)
+    arret = title_or_alt_tuple(prioritize_orig: true, **opts)
+    return "" if arret[0].blank?
+    arret.map!{|i| (i && normalize_definite_article) ? definite_article_to_head(i) : i}
+    return arret[0] if arret.size == 1
+    sprintf("%s "+open_pare+"%s"+close_pare, *arret)
   end
 
   # Core method for title, alt_title, alt_ruby, etc
@@ -1669,7 +1821,7 @@ class BaseWithTranslation < ApplicationRecord
   #
   # @param method [Symbol] one of %i(title alt_title ruby alt_ruby romaji alt_romaji)
   # @param langcode: [String, NilClass] like 'ja'. If nil, original language for the Translation is assumed.
-  # @param lang_fallback: [Boolean] if true, when no translation is found
+  # @param lang_fallback: [Boolean] if true (Def: false), when no translation is found
   #    for the specified language, that of another language is returned
   #    unless none exists.
   # @param str_fallback [String, NilClass] Returned Object (String or nil) in case no "a title" is found.
@@ -1696,9 +1848,8 @@ class BaseWithTranslation < ApplicationRecord
   # Gets the best-score title
   #
   # @param langcode: [String, NilClass] like 'ja'
-  # @param lang_fallback: [Boolean] if true, when no translation is found
-  #    for the specified language, that of another language is returned
-  #    unless none exists.
+  # @param lang_fallback: [Boolean] See {#get_a_title}
+  # @param str_fallback [String, NilClass] See {#get_a_title}
   # @return [String, NilClass] nil if there are no translations for the langcode
   def title(**kwd)
     get_a_title(__method__, **kwd)
@@ -1707,6 +1858,8 @@ class BaseWithTranslation < ApplicationRecord
   # Gets the best-score ruby
   #
   # @param langcode: [String, NilClass] like 'ja'
+  # @param lang_fallback: [Boolean] See {#get_a_title}
+  # @param str_fallback [String, NilClass] See {#get_a_title}
   # @return [String, NilClass] nil if there are no translations for the langcode
   def ruby(**kwd)
     get_a_title(__method__, **kwd)
@@ -1715,6 +1868,8 @@ class BaseWithTranslation < ApplicationRecord
   # Gets the best-score romaji
   #
   # @param langcode: [String, NilClass] like 'ja'
+  # @param lang_fallback: [Boolean] See {#get_a_title}
+  # @param str_fallback [String, NilClass] See {#get_a_title}
   # @return [String, NilClass] nil if there are no translations for the langcode
   def romaji(**kwd)
     get_a_title(__method__, **kwd)
@@ -1723,6 +1878,8 @@ class BaseWithTranslation < ApplicationRecord
   # Gets the best-score alt_title
   #
   # @param langcode: [String, NilClass] like 'ja'
+  # @param lang_fallback: [Boolean] See {#get_a_title}
+  # @param str_fallback [String, NilClass] See {#get_a_title}
   # @return [String, NilClass] nil if there are no translations for the langcode
   def alt_title(**kwd)
     get_a_title(__method__, **kwd)
@@ -1731,6 +1888,8 @@ class BaseWithTranslation < ApplicationRecord
   # Gets the best-score alt_ruby
   #
   # @param langcode: [String, NilClass] like 'ja'
+  # @param lang_fallback: [Boolean] See {#get_a_title}
+  # @param str_fallback [String, NilClass] See {#get_a_title}
   # @return [String, NilClass] nil if there are no translations for the langcode
   def alt_ruby(**kwd)
     get_a_title(__method__, **kwd)
@@ -1739,6 +1898,8 @@ class BaseWithTranslation < ApplicationRecord
   # Gets the best-score alt_romaji
   #
   # @param langcode: [String, NilClass] like 'ja'
+  # @param lang_fallback: [Boolean] See {#get_a_title}
+  # @param str_fallback [String, NilClass] See {#get_a_title}
   # @return [String, NilClass] nil if there are no translations for the langcode
   def alt_romaji(**kwd)
     get_a_title(__method__, **kwd)
@@ -2077,13 +2238,13 @@ class BaseWithTranslation < ApplicationRecord
   #
   # @param attr [String, Symbol] method name
   # @param safe: [Boolean] if true, this returns '' instead of nil.
-  # @return [Hash] key(langcode) => word (maybe nil)
+  # @return [Hash] key(langcode) => word (maybe nil) (n.b., with_indifferent_access)
   def all_best_titles(attr=:title, safe: false)
     AVAILABLE_LOCALES.map{ |ec|
       val = send(attr, langcode: ec.to_s) 
       val = '' if !val && safe
       [ec.to_s, val]
-    }.to_h
+    }.to_h.with_indifferent_access
   end
 
   # Get an object based on the given "name" (title etc)

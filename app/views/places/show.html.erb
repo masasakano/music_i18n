@@ -64,7 +64,7 @@
         <td><%= tits = %i(title alt_title).map{|i| artist.send(i, langcode: 'en') || ''}; sprintf '%s%s [%s]', tits[0], ((orig_lc == 'en') ? '*' : ''), tits[2] %></td>
         <td><%= sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
                   i = artist.send m; (i.blank? ? '——' : i.to_s)}) %></td>
-        <td><%= artist.sex.title langcode: 'ja' %></td>
+        <td><%= artist.sex.title langcode: I18n.locale, lang_fallback: true %></td>
         <td><%= artist.note %></td>
         <td><%= link_to 'Show', artist %></td>
         <% if can? :update, artist %>
@@ -152,7 +152,7 @@
     <% @place.harami_vids.order(:release_date).each do |harami_vid| %>
       <tr>
         <td><%= harami_vid.release_date %></td>
-        <td><%= link_to(harami_vid.title(langcode: 'ja'), harami_vid) %></td>
+        <td><%= link_to(harami_vid.title_or_alt(langcode: I18n.locale), harami_vid) %></td>
         <td><%= link_to 'Show', harami_vid %></td>
         <% if can? :update, harami_vid %>
         <td>

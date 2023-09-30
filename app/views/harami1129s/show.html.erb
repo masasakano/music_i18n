@@ -71,7 +71,7 @@
     <tbody>
       <tr><td>Downloaded</td><td><%= @harami1129.singer %></td></tr>
       <tr><td>Internally inserted</td><td><%= @harami1129.ins_singer %></td></tr>
-      <tr><td><%= s='Current Destination'; (engage && engage.artist ? link_to(s, engage.artist) : s) %></td><td><%= st.dest_current(:ins_singer) %></td><td><%= engage ? ('['.html_safe+link_to((engage.engage_how ? engage.engage_how.title(langcode: 'ja') : 'nil')+(engage.year ? sprintf(' (%d)', engage.year) : ''), engage, title: 'Way of engagement between the singer/artist and song/music and its year')+']') : '' %></td></tr>
+      <tr><td><%= s='Current Destination'; (engage && engage.artist ? link_to(s, engage.artist) : s) %></td><td><%= st.dest_current(:ins_singer) %></td><td><%= engage ? ('['.html_safe+link_to((engage.engage_how ? engage.engage_how.title(langcode: I18n.locale) : 'nil')+(engage.year ? sprintf(' (%d)', engage.year) : ''), engage, title: 'Way of engagement between the singer/artist and song/music and its year')+']') : '' %></td></tr>
       <% if @harami1129.ins_singer.blank? && !@harami1129.singer.blank?  %>
       <tr><td>(Downloaded → ins_singer)</td><td><%= st.ins_to_be(:ins_singer) %></td></tr>
       <% end %>
@@ -121,7 +121,7 @@
 
   <dt id="harami1129_show_Engage" title="Table of the association for Engagement of Song(Music)-Singer(Artist)">Engage (in our DB, for Singer and Song):</dt>
   <dd>
-    <%= engage ? link_to(sprintf('(ID=%d) %s by %s [%s]', engage.id, engage.music.title, engage.artist.title, engage.engage_how.title(langcode: 'ja')), engage) : 'nil' %>
+    <%= engage ? link_to(sprintf('(ID=%d) %s by %s [%s]', engage.id, engage.music.title, engage.artist.title, engage.engage_how.title(langcode: I18n.locale, lang_fallback: true)), engage) : 'nil' %>
   </dd>
 
   <dt>Note:</dt>

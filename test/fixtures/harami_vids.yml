@@ -85,3 +85,13 @@ harami_vid_50anni:
   uri_playlist_en: 
   note: HaramiVid50anniversary, title modified
 
+harami_vid_paris1:
+  release_date: 2023-02-28
+  duration: 
+  uri: youtu.be/xxx_harami_vid_paris_pirates
+  place: montparnasse_france
+  flag_by_harami: true
+  uri_playlist_ja: 
+  uri_playlist_en: 
+  note: HaramiVidInParis1
+

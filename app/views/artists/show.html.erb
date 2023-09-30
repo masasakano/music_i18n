@@ -1,6 +1,6 @@
 
-<% my_title = @artist.title_or_alt %>
-<h1>Artist: <%= BaseWithTranslation.definite_article_to_head(my_title) %></h1>
+<% my_title = @artist.title_or_alt_tuple_str(langcode: I18n.locale) %>
+<h1>Artist: <%= my_title %></h1>
 
 <hr>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: @artist, add_buttons: true} %>
@@ -25,7 +25,7 @@
 
 <p>
   <strong>性別:</strong>
-  <%= @artist.sex.title langcode: 'ja' %>
+  <%= @artist.sex.title langcode: I18n.locale, lang_fallback: true %>
 </p>
 
 <% %w(ja en).each do |lcode| %>
@@ -84,9 +84,9 @@
         <td><%= sprintf '%s [%s/%s]', *(%i(alt_title alt_ruby alt_romaji).map{|i| music.send(i, langcode: 'ja') || ''}) %></td>
         <td><%= sprintf '%s [%s]', *(%i(title alt_title).map{|i| music.send(i, langcode: 'en') || ''}) %></td>
         <td><%= music.year %></td>
-        <td><%= music.genre.title_or_alt(langcode: 'ja') %></td>
+        <td><%= music.genre.title_or_alt(langcode: I18n.locale) %></td>
         <td><%= s=@artist.engage_how_titles(music, year: music.year).join(', '); (/\d/ =~ s) ? s : s+'('+(music.year || '年不明').to_s+')' %></td>
-        <td><%= music.harami_vids.count.to_s+'回' %></td>
+        <td><%= music.harami_vids.count.to_s+'本' %></td>
         <td><%= music.note %></td>
         <td><%= link_to 'Show', music %></td>
         <% if can? :update, music %>
@@ -123,7 +123,7 @@
     <% @artist.harami_vids.order(:release_date).uniq.each do |harami_vid| %>
       <tr>
         <td><%= harami_vid.release_date %></td>
-        <td><%= link_to(harami_vid.title(langcode: 'ja'), harami_vid) %></td>
+        <td><%= link_to(harami_vid.title_or_alt(langcode: I18n.locale), harami_vid) %></td>
         <td><%= link_to 'Show', harami_vid %></td>
         <% if can? :update, harami_vid %>
         <td>

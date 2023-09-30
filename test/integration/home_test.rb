@@ -122,6 +122,25 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     assert css2.any?{|i| i.text.include? 'Title'}
     assert css2.any?{|i| i.text.include? 'Artists'}
     assert css2.any?{|i| i.text.include? 'Musics'}
+    assert css2.any?{|i| i.text.include? 'Place'}
+
+    # Testing Place language-fallback
+    hvparis = harami_vids(:harami_vid_paris1)
+    hvparis_tit = hvparis.title(langcode: "en", lang_fallback: true).strip
+    hvparis_place = hvparis.place
+    hvparis_place_tra = hvparis_place.best_translation.title.strip
+    i_title = css2.find_index{|i| "Title" == i.text.strip}
+    i_place = css2.find_index{|i| "Place" == i.text.strip}
+    trows = css_select('div#body_main table tbody tr')
+    flag_found = false
+    trows.each do |etr|
+      if etr.css('td')[i_title].text == hvparis_tit
+        assert_includes etr.css('td')[i_place].text.strip, hvparis_place_tra, "Place for HaramiVidParis 1 looks wrong."
+        flag_found = true
+        break
+      end
+    end
+    assert flag_found, "Row containing Title=(#{hvparis_tit}) is not found. trows=#{trows.inner_html}"
 
     csssel = css_select('div#home_bottom')
     assert_equal 1, csssel.size

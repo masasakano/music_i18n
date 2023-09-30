@@ -35,3 +35,15 @@ ja:
       en: 英語
       ja: 日本語
 
+  # https://github.com/rails/rails/blob/main/activesupport/lib/active_support/locale/en.yml#L15
+  date:
+    formats:
+      # Use the strftime parameters for formats.
+      # When no format has been given, it uses default.
+      # You can provide other formats here if you like!
+      #default: "%Y-%m-%d"
+      #short: "%b %d"
+      #long: "%B %d, %Y"
+      year: "%Y年"
+      year_comma: " %Y年"
+      # Use it like I18n.l(Date.new(1983), format: :year_comma) => (en) ", 1983"

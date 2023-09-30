@@ -16,7 +16,7 @@
   <dt> <%= t("tables.place_country") %>県・場所 (国):</dt>
   <dd><%= pla = @harami_vid.place
       if pla
-        ar = pla.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true);
+        ar = pla.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true);
         sprintf '%s %s(%s)', ar[1], (ar[0].blank? ? '' : '— '+ar[0]+' '), ar[2]
       else
         ""

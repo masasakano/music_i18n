@@ -30,7 +30,7 @@
         <td><%= pstat.marker(:ins_singer).html_safe+harami1129.singer %></td>
         <td><%= pstat.marker(:ins_link_time).html_safe+link_to_youtube(harami1129.link_time.to_s, harami1129.link_root, harami1129.link_time) %></td>
         <td><%= harami1129.checked_at %></td>
-        <td><%= eng = harami1129.engage; (eng ? link_to('['+eng.engage_how.title(langcode: 'ja')+']', eng) : '') %></td>
+        <td><%= eng = harami1129.engage; (eng ? link_to('['+eng.engage_how.title(langcode: I18n.locale)+']', eng) : '') %></td>
         <td><%= link_to 'Show', harami1129 %></td>
         <td>
 <% if false %>

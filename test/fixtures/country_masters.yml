@@ -58,6 +58,22 @@ uk_master:
   note: MyTextUK
   iso3166_remark: {"part2": "BS 6879 gives alternative name forms in ..."}
 
+france_master:
+  iso3166_a2_code: FR
+  iso3166_a3_code: FRA
+  iso3166_n3_code: 250
+  name_en_full: the French Republic
+  name_en_short: France
+  name_fr_full: France (la)
+  name_fr_short:
+  name_ja_full: フランス共和国
+  name_ja_short: フランス
+  independent: true
+  territory:
+  orig_note: 
+  iso3166_remark: "{\"part1\":\"Comprises: Metropolitan France, French Guiana, Guadeloupe, Martinique, La Réunion, Mayotte, Saint Barthélemy, Saint Martin, Saint Pierre and Miquelon, French Polynesia, French Southern Territories, New Caledonia, Wallis and Futuna. Includes: Clipperton Island.\",\"part3\":\"Metropolitan France (FX, FXX, 249) is now incorporated into the entry for France (FR, FRA, 250). See also code element FXFR.\"}"
+  note: MyTextFr
+
 aus_master:
   iso3166_a2_code: AU
   iso3166_a3_code: AUS

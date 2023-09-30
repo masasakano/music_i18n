@@ -1,6 +1,6 @@
 
-<% country_name = @prefecture.country.title_or_alt %>
-<h1>Prefecture: <%= my_title = @prefecture.title_or_alt %> (&lt; <%= country_name %>)</h1>
+<% country_name = @prefecture.country.title_or_alt(langcode: I18n.locale) %>
+<h1>Prefecture: <%= my_title = @prefecture.title_or_alt_tuple_str("[", "]", langcode: I18n.locale) %> (&lt; <%= country_name %>)</h1>
 
 <hr>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: @prefecture} %>

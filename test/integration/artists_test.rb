@@ -18,6 +18,26 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     Rails.cache.clear
   end
 
+  test "can show an artist" do
+    haramichan = Artist["ハラミちゃん"]
+    tra_en = haramichan.best_translation langcode: "en"
+
+    path = artist_path(haramichan) # as in /en/artists/XXX
+    assert_equal :en, I18n.locale
+
+    get path
+    assert_response :success
+    exp = sprintf "Artist: %s (%s)", "ハラミちゃん", tra_en.title
+    assert_equal exp, css_select('h1')[0].text
+
+    art = artists(:artist_proclaimers)  # "Proclaimers, The"
+    path = artist_path(art)
+    get path
+    assert_response :success
+    exp = sprintf "Artist: %s", "The Proclaimers"  # "The" should be moved to the head
+    assert_equal exp, css_select('h1')[0].text
+  end
+
   test "can edit an artist as superuser" do
     path = edit_artist_path(@artist_ai) # as in /en/artists/XXX/edit
 

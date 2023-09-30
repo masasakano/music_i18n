@@ -75,7 +75,7 @@
   <div class="field">
     <%= form.label :engage_how, '音楽家の関わり方 (複数選択可能)' %>
     <%= form.select(:engage_how2,
-                    EngageHow.order(:weight).all.map{|i| [i.title(langcode: 'ja'), i.id]},
+                    EngageHow.order(:weight).all.map{|i| [i.title(langcode: I18n.locale), i.id]},
                     { :prompt => "Please select"},
                     { :multiple => true, :size => 12, disabled: true }) %>
   </div>

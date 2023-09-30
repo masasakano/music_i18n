@@ -33,10 +33,10 @@
         <td><%= i_mus+1 %>
         <td><%= t = music.title_or_alt; t ? link_to(t, music) : '' %></td>
         <td><%= music.year %></td>
-        <td><%= music.genre.title_or_alt(langcode: 'ja') %></td>
-        <td><%= ar = music.place.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true);
+        <td><%= music.genre.title_or_alt(langcode: I18n.locale) %></td>
+        <td><%= ar = music.place.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true);
                 sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture['ja'] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2] %></td>
-        <td><%= music.artists.uniq.map{|i| sprintf '%s [%s]', link_to(i.title_or_alt, i), h(i.engage_how_titles(music).join(', '))}.join(', ').html_safe %></td>
+        <td><%= music.artists.uniq.map{|i| sprintf '%s [%s]', link_to(i.title_or_alt(langcode: I18n.locale), i), h(i.engage_how_titles(music).join(', '))}.join(', ').html_safe %></td>
         <td><%= harami_vid.harami_vid_music_assocs.where(music: music).pluck(:timing).map{|i| link_to_youtube(i, @harami_vid.uri, i) }.join(', ').html_safe %></td>
         <td><%= link_to 'Show', music %></td>
         <td>

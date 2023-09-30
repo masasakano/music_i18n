@@ -29,6 +29,10 @@ unknown_place_unknown_prefecture_uk:
   prefecture: unknown_prefecture_uk
   note: MyTextUnknownPlaceUk
 
+unknown_place_unknown_prefecture_france:
+  prefecture: unknown_prefecture_france
+  note: MyTextUnknownPlaceFrance
+
 unknown_place_unknown_prefecture_aus:
   prefecture: unknown_prefecture_aus
   note: MyTextUnknownPlaceAus
@@ -76,4 +80,8 @@ perth_uk:
 perth_aus:
   prefecture: unknown_prefecture_aus
   note: MyTextPerthAus
+
+montparnasse_france:
+  prefecture: unknown_prefecture_france
+  note: MyTextMontparnasse
 

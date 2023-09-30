@@ -1,4 +1,4 @@
-<h3>Artists for Music: <%= music.title_or_alt %></h3>
+<h3>Artists for Music: <%= music.title_or_alt_tuple_str(langcode: I18n.locale) %></h3>
 
 <table>
   <thead>
@@ -51,11 +51,11 @@
           <%= label_str %>
         <% end %>
         </td>
-        <td><%= ar = artist.place.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true);
+        <td><%= ar = artist.place.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true);
                 sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture['ja'] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2] %></td>
         <td><%= sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
                   i = artist.send m; (i.blank? ? '——' : i.to_s)}) %></td>
-        <td><%= artist.sex.title langcode: 'ja' %></td>
+        <td><%= artist.sex.title langcode: I18n.locale, lang_fallback: true %></td>
         <td><%= artist.note %></td>
         <td><%= link_to 'Show', artist %></td>
         <% if can? :update, artist %>

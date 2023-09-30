@@ -65,3 +65,15 @@ en:
     long:
       en: English
       ja: Japanese
+
+  # https://github.com/rails/rails/blob/main/activesupport/lib/active_support/locale/en.yml#L15
+  date:
+    formats:
+      # Use the strftime parameters for formats.
+      # When no format has been given, it uses default.
+      # You can provide other formats here if you like!
+      #default: "%Y-%m-%d"
+      #short: "%b %d"
+      #long: "%B %d, %Y"
+      year: "%Y"
+      year_comma: ", %Y"

@@ -413,8 +413,26 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     hs = {"fr" => tfr, "en" => ten, "ja" => tja}
     assert_equal %w(en ja fr), BaseWithTranslation.sorted_langcodes(hstrans: hs, first_lang: nil)
     assert_equal %w(ja en fr), BaseWithTranslation.sorted_langcodes(hstrans: hs, first_lang: 'ja')
-    assert_equal %w(it en ja fr), BaseWithTranslation.sorted_langcodes(hstrans: hs, first_lang: 'it')
-    assert_equal %w(it en ja fr kr), BaseWithTranslation.sorted_langcodes(hstrans: hs.merge({'kr'=>TmpObj.new(false)}), first_lang: 'it')
+    assert_equal %w(en fr ja), BaseWithTranslation.sorted_langcodes(hstrans: hs, first_lang: 'fr', prioritize_orig: true)
+    assert_equal %w(it en ja fr), BaseWithTranslation.sorted_langcodes(hstrans: hs, first_lang: 'it', remove_invalid: false)
+    assert_equal %w(en it ja fr), BaseWithTranslation.sorted_langcodes(hstrans: hs, first_lang: 'it', remove_invalid: false, prioritize_orig: true)
+    assert_equal %w(it en ja fr kr), BaseWithTranslation.sorted_langcodes(hstrans: hs.merge({'kr'=>TmpObj.new(false)}), first_lang: 'it', remove_invalid: false)
+    assert_equal    %w(en ja fr kr), BaseWithTranslation.sorted_langcodes(hstrans: hs.merge({'kr'=>TmpObj.new(false)}), first_lang: 'it', remove_invalid: true)
+
+    male = Sex['male']
+    assert_equal "male",      male.title_or_alt_tuple_str
+    assert_equal "male",      male.title_or_alt_tuple_str(langcode: "naiyo")
+    assert_equal "male (男)", male.title_or_alt_tuple_str(langcode: "ja") # No need of prioritize_orig
+    assert_equal %w(男),      male.title_or_alt_tuple(    langcode: "ja") # Would Need prioritize_orig
+    assert_equal %w(male 男), male.title_or_alt_tuple(    langcode: "ja", prioritize_orig: true)
+    assert_equal "male (男)", male.title_or_alt_tuple_str(langcode: "ja")
+    assert_equal  "",   male.title_or_alt(      langcode: "zo", prioritize_orig: false, lang_fallback_option: :never)
+    assert_equal [""],  male.title_or_alt_tuple(langcode: "zo", prioritize_orig: false, lang_fallback_option: :never)
+    assert_equal [nil], male.title_or_alt_tuple(langcode: "zo", prioritize_orig: false, lang_fallback_option: :never, str_fallback: nil)
+
+    art = artists(:artist_proclaimers)  # "Proclaimers, The"
+    assert_equal "The Proclaimers",  art.title_or_alt_tuple_str(langcode: "ja")
+    assert_equal "Proclaimers, The", art.title_or_alt_tuple_str(langcode: "ja", normalize_definite_article: false), "'The' should be placed at the end only when explicitly specified."
   end
 
   test "no translations in titles etc" do
@@ -500,5 +518,18 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_nil                       Music.of_title('how?', exact: true, scoped: lennon.musics).first
   end
 
+  test "orig-prioritized-find" do
+    france = countries(:france)
+    france_en = translations(:france_en)
+    france_fr = translations(:france_fr)
+    assert_equal ["French Republic, The", "France"], france_en.titles
+    #assert_equal "France", france.title_or_alt
+    assert_equal france_en.title, france.title_or_alt(langcode: "en")
+    assert_equal "France",        france.title_or_alt(langcode: "en", prefer_alt: true)
+    assert_equal "France, La", france_fr.title
+    assert_equal "France, La", france.title_or_alt(langcode: "fr")
+    assert_equal "France, La", france.title_or_alt(langcode: "ja")
+    assert_equal "fr",         france.title_or_alt(langcode: "ja").lcode
+  end
 end
 
