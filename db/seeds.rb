@@ -721,9 +721,16 @@ ar_priority = %w(user event_group).map{|i| File.join(Rails.root, 'db', 'seeds', 
   puts "loading "+seed_fname2print(seed) if $DEBUG  # defined in ModuleCommon
   require seed
   camel = File.basename(seed, ".rb").camelize
-  klass = camel.constantize
-  next if !klass.respond_to? :load_seeds 
-  puts "DEBUG: skip running "+seed_fname2print(seed) if $DEBUG
+  begin
+    klass = camel.constantize
+  rescue NameError
+    # maybe seeds_user.rb in the production environment, where SeedsUser is deliberately undefined.
+    puts "DEBUG: skip running "+seed_fname2print(seed) if $DEBUG
+    next
+  end
+  if !klass.respond_to? :load_seeds 
+    raise sprintf("ERROR(%s): In (%s), %s.%s is not defined.", File.basename(__FILE__), seed_fname2print(seed), camel, "load_seeds")
+  end
   increment = klass.load_seeds  # execute the method in an external file
   nrec += increment 
   if (increment > 0 || $DEBUG) && (camel != "User")  # This has been already printed in seeds_user.rb

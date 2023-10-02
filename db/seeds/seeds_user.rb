@@ -2,21 +2,17 @@
 
 include ModuleCommon  # for seed_fname2print
 
-puts "Starting...: #{__FILE__}"
-do_run = true
 puts "DEBUG: start "+seed_fname2print(__FILE__) if $DEBUG
 if !Rails.env.development?
   puts "  NOTE(#{seed_fname2print(__FILE__)}): skipped because it is not in Development environment."
-  do_run = false
   return 
 elsif !User.exists?  # Administrator must exist for this script to be run.
   puts "  NOTE(#{seed_fname2print(__FILE__)}): skipped because no users exist. Once the sysadmin is created, run this (i.e., bin/rails db:seed) again."
-  do_run = false
   return 
 end
 
-puts "Reading... user-module"
-if do_run  # to play safe
+# The following would not be read in Production/Test environments, meaning the module SeedsUser is not defined.
+
 # Models: User and UserRoleAssoc
 #
 # Creates (if not exists) 13 users (3 {RoleCategory} x (1 all-mighty + 3 roles x single-role)) + NoRole
@@ -152,5 +148,4 @@ module SeedsUser
     diff_entries.sum
   end
 end    # module SeedsUser
-end  # if do_run  # to play safe
 
