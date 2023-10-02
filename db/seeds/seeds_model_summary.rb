@@ -7,7 +7,7 @@ puts "DEBUG: start "+seed_fname2print(__FILE__) if $DEBUG
 
 # Model: ModelSummary
 #
-module SeedsModelSummaries
+module SeedsModelSummary
   # Everything is a function
   module_function
 
@@ -90,7 +90,9 @@ module SeedsModelSummaries
   # ModelSummary PageFormat Role RoleCategory StaticPage
 
   # Main routine to seed.
-  def load_model_summaries
+  #
+  # @return [Integer] Number of created/updated entries
+  def load_seeds
     n_changed = 0
 
     SEED_DATA.each_pair do |modelname, ehs|
@@ -110,16 +112,10 @@ module SeedsModelSummaries
           model.create_translation!(langcode: langcode.to_s, title: ehs[langcode]) # not specifying is_orig
         end
       end
-      n_changed += 1 if is_increased
+      n_changed += 1 if is_increased  # +3 rows: one main + two translations
     end
     n_changed
-  end
-  
-end    # module SeedsModelSummaries
+  end  # def load_seeds
 
-n_entries = SeedsModelSummaries.load_model_summaries
-
-if n_entries > 0 || $DEBUG
-  printf("  %s: %s ModelSummaries are created/updated.\n", seed_fname2print(__FILE__), n_entries)
-end
+end    # module SeedsModelSummary
 

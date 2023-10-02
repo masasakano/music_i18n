@@ -2,15 +2,19 @@
 
 include ModuleCommon  # for seed_fname2print
 
+do_run = true
 puts "DEBUG: start "+seed_fname2print(__FILE__) if $DEBUG
 if !Rails.env.development?
   puts "  NOTE(#{seed_fname2print(__FILE__)}): skipped because it is not in Development environment."
+  do_run = false
   return 
 elsif !User.exists?  # Administrator must exist for this script to be run.
   puts "  NOTE(#{seed_fname2print(__FILE__)}): skipped because no users exist. Once the sysadmin is created, run this (i.e., bin/rails db:seed) again."
+  do_run = false
   return 
 end
 
+if do_run  # to play safe
 # Models: User and UserRoleAssoc
 #
 # Creates (if not exists) 13 users (3 {RoleCategory} x (1 all-mighty + 3 roles x single-role)) + NoRole
@@ -31,7 +35,7 @@ end
 #
 # If $DEBUG is set, more information is printed.
 #
-module SeedsUsers
+module SeedsUser
   # Everything is a function
   module_function
 
@@ -131,12 +135,20 @@ module SeedsUsers
     entries[:fini] = {user: User.count, assoc: UserRoleAssoc.count}
     entries
   end  # def users_main
-end    # module SeedsUsers
 
-entries = SeedsUsers.users_main
+  # Main routine to seed.
+  #
+  # @return [Integer] Number of created/updated entries
+  def load_seeds
+    entries = users_main()
 
-diff_entries = %i(user assoc).map{|i| entries[:fini][i] - entries[:init][i]}
-if diff_entries.any?{|i| i > 0} || $DEBUG
-  printf("  %s: %s Users and %s UserRoleAssocs are created.\n", seed_fname2print(__FILE__), *diff_entries)
-end
+    diff_entries = %i(user assoc).map{|i| entries[:fini][i] - entries[:init][i]}
+    if diff_entries.any?{|i| i > 0} || $DEBUG
+      printf("(%s): %s Users and %s UserRoleAssocs are created.\n", seed_fname2print(__FILE__), *diff_entries)
+    end
+
+    diff_entries.sum
+  end
+end    # module SeedsUser
+end  # if do_run  # to play safe
 

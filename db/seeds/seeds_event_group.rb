@@ -176,7 +176,10 @@ module SeedsEventGroup
           next
         end
         model.with_translation(langcode: lcode.to_s, title: ehs[lcode], is_orig: nil, weight: 90)
-        n_changed += 1 if model.new_record?  # +1 for Translation
+        if n_changed_cand == 0
+          n_changed_cand = 1
+          n_changed += 1   # +1 because of Translation update/creation (for an existing record)
+        end
       end
       if !is_orig_existing && ehs[:orig_langcode]
         # is_orig is defined above and none

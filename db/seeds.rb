@@ -716,43 +716,27 @@ end
 # Auto loading external seed files
 
 # Some files depend on other files, which must be run before them.
-ar_priority = %w(event_group).map{|i| File.join(Rails.root, 'db', 'seeds', 'seeds_'+i+'.rb')}
+ar_priority = %w(user event_group).map{|i| File.join(Rails.root, 'db', 'seeds', 'seeds_'+i+'.rb')}
 (ar_priority + Dir[File.join(Rails.root, 'db', 'seeds', 'seeds_*.rb')]).uniq.each do |seed|
   puts "loading "+seed_fname2print(seed) if $DEBUG  # defined in ModuleCommon
   require seed
   camel = File.basename(seed, ".rb").camelize
-  increment = camel.constantize.load_seeds
-  if increment > 0
+  klass = camel.constantize
+  next if !klass.respond_to? :load_seeds 
+  puts "DEBUG: skip running "+seed_fname2print(seed) if $DEBUG
+  increment = klass.load_seeds  # execute the method in an external file
+  nrec += increment 
+  if (increment > 0 || $DEBUG) && (camel != "User")  # This has been already printed in seeds_user.rb
     printf "(%s): %s %s are created/updated.\n", seed_fname2print(seed), increment, camel.sub(/^Seeds/, "").pluralize
-    nrec += increment 
   end
 end
 
 ################################
-# Final comment (because results of external seeding files cannot be retrieved...)
+# Final comment
 
 if nrec <= 0
   warn "WARNING: All the seeds have already been implemented. No change."
 else
   printf "Successfully seeded: %d entries in total.\n", nrec
-end
-
-
-################################
-# Auto loading external seed files
-
-#seed_files = %w(*.rb)
-%w(*.rb).map{|i| Dir[File.join(Rails.root, 'db', 'seeds', i)]}.flatten.sort{|a, b|
-  if    Pathname.new(a).basename.to_s == "users.rb"
-    -1
-  elsif Pathname.new(b).basename.to_s == "users.rb"
-    1
-  else
-    a <=> b
-  end
-}.uniq.each do |seed|
-  next if File.basename(seed) == "seeds_event_group.rb"
-  puts "loading "+seed_fname2print(seed)  # defined in ModuleCommon
-  load seed
 end
 
