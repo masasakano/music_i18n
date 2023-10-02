@@ -1,0 +1,59 @@
+<%= notice %>
+
+<h1>EventGroups</h1>
+
+<div id="event_groups">
+<table id="event_groups_index_table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Name (ja)</th>
+      <th>Name (en)</th>
+      <th title="n-th one in a series of Event Group">#num</th>
+      <th>From YYYY-MM-DD</th>
+      <th>To YYYY-MM-DD</th>
+      <th>Place</th>
+      <th title="Note in this DB">Note</th>
+      <% if can? :update, EventGroup %>
+        <th colspan="3"></th>
+      <% else %>
+        <th></th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @event_groups.each do |event_group| %>
+      <tr>
+        <td><%= event_group.id %></td>
+        <% btr = event_group.best_translations %>
+        <% %w(ja en).each do |lc| %> <%# no "fr" so far %>
+        <td><%= %w(title alt_title).map{|i| tra=btr[lc]; s=(tra && h(tra.send(i))); s.blank? ? '&mdash;' : s}.join(' | ').html_safe %></td>
+        <% end %>
+
+        <td><%= event_group.order_no %></td>
+        <td><%= date2text(event_group.start_year, event_group.start_month, event_group.start_day) %></td>
+        <td><%= date2text(event_group.end_year, event_group.end_month, event_group.end_day) %></td>
+        <td><%= event_group.place ? h(event_group.txt_place_pref_ctry) : "" %></td>
+        <td><%= h(event_group.note) %></td>
+
+        <td><%= link_to "Show", event_group %></td>
+        <% if can? :update, event_group  %>
+          <td><%= link_to 'Edit', edit_event_group_path(event_group) %></td>
+        <% end %>
+        <% if can? :destroy, event_group %>
+          <td><%= link_to 'Destroy', event_group, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+</div>
+
+<br>
+
+<% if can? :create, EventGroup %>
+  <%= button_to 'Create EventGroup', new_event_group_path, method: :get %>
+<% end %>
+
+

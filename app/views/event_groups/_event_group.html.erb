@@ -1,0 +1,47 @@
+<div id="<%= dom_id event_group %>">
+  <p>
+    <strong>Serial Number:</strong>
+    <%= event_group.order_no %>
+  </p>
+
+  <p>
+    <strong>From year:</strong>
+    <%= event_group.start_year %>
+  </p>
+
+  <p>
+    <strong>From month:</strong>
+    <%= event_group.start_month %>
+  </p>
+
+  <p>
+    <strong>From day:</strong>
+    <%= event_group.start_day %>
+  </p>
+
+  <p>
+    <strong>To year:</strong>
+    <%= event_group.end_year %>
+  </p>
+
+  <p>
+    <strong>To month:</strong>
+    <%= event_group.end_month %>
+  </p>
+
+  <p>
+    <strong>To day:</strong>
+    <%= event_group.end_day %>
+  </p>
+
+  <p>
+    <strong>Place:</strong>
+    <%= event_group.place ? h(event_group.txt_place_pref_ctry) : "" %>
+  </p>
+
+  <p>
+    <strong>Note:</strong>
+    <%= event_group.note %>
+  </p>
+
+</div>

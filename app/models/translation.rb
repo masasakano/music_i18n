@@ -35,12 +35,6 @@
 #  fk_rails_...  (create_user_id => users.id)
 #  fk_rails_...  (update_user_id => users.id)
 #
-#
-# == NOTE
-#
-# Each Translatable class may implement +validate_translation_callback+
-# for Translation-related validation.  See ModuleCommon and Place for example.
-#
 class Translation < ApplicationRecord
   extend ModuleCommon
   using ModuleHashExtra  # for extra methods, e.g., Hash#values_blank_to_nil

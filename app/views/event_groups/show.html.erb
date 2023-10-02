@@ -1,0 +1,15 @@
+<% my_title = @event_group.title_or_alt_tuple_str(langcode: I18n.locale) %>
+<h1>EventGroup: <%= my_title %></h1>
+
+<hr>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @event_group, add_buttons: true} %>
+<hr>
+
+<%= render @event_group %>
+
+<div>
+  <%= link_to "Edit this EventGroup", edit_event_group_path(@event_group) %> |
+  <%= link_to "Back to index", event_groups_path %>
+
+  <%= button_to "Destroy this EventGroup", @event_group, method: :delete %>
+</div>

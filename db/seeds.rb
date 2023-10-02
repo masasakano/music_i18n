@@ -712,6 +712,21 @@ else
   nrec += n_static_pages  # StaticPage
 end
 
+################################
+# Auto loading external seed files
+
+# Some files depend on other files, which must be run before them.
+ar_priority = %w(event_group).map{|i| File.join(Rails.root, 'db', 'seeds', 'seeds_'+i+'.rb')}
+(ar_priority + Dir[File.join(Rails.root, 'db', 'seeds', 'seeds_*.rb')]).uniq.each do |seed|
+  puts "loading "+seed_fname2print(seed) if $DEBUG  # defined in ModuleCommon
+  require seed
+  camel = File.basename(seed, ".rb").camelize
+  increment = camel.constantize.load_seeds
+  if increment > 0
+    printf "(%s): %s %s are created/updated.\n", seed_fname2print(seed), increment, camel.sub(/^Seeds/, "").pluralize
+    nrec += increment 
+  end
+end
 
 ################################
 # Final comment (because results of external seeding files cannot be retrieved...)
@@ -736,6 +751,7 @@ end
     a <=> b
   end
 }.uniq.each do |seed|
+  next if File.basename(seed) == "seeds_event_group.rb"
   puts "loading "+seed_fname2print(seed)  # defined in ModuleCommon
   load seed
 end

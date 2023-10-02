@@ -12,6 +12,8 @@
 #     MAIN_UNIQUE_COLS = []
 #     ARTICLE_TO_TAIL = true
 #
+# See below for the descriptions of the Constants
+#
 # Add the following if the class should not allow multiple identical title/alt_title
 # Music does NOT include this (famously there are two songs, "M").
 #
@@ -25,11 +27,18 @@
 #     # Validates if a {Translation} is unique within the parent
 #     #
 #     # Fired from {Translation}
+#     #
+#     # @param record [Translation]
 #     def validate_translation_callback(record)
 #       validate_translation_unique_within_parent(record)
 #     end
 #
-# See below for the descriptions of the Constants
+# To Create in the UI is tricky.  You would want a Translation as an input
+# (n.b., for Update, it can be simply handled by the Transation model).
+# That means +params+ to give to the Model contains unusual parameters,
+# which would mess up +permit+, especially with authorization (with CanCanCan).
+# Consult EventGroup Controller and views for how to do it. Both Controller and
+# Views should be carefully adjusted.  There are several helper methods.
 #
 # == Update (or create)
 #
@@ -1127,12 +1136,31 @@ class BaseWithTranslation < ApplicationRecord
   # Note that the result is not "sorted", as there is
   # no general way to know whether the result is actually sotable.
   #
+  # @note
+  #  Elements of the returned Relation from {Translation.select_regex} may be nil
+  #  only when {Translation#translatable_id} does not have the corresponding
+  #  {BaseWithTranslation}; it should never happen because such {Translation} must
+  #  have been destroyed whenever {BaseWithTranslation} is destroyed. However,
+  #  if the records are destroyed through direct DB manipulation like DB-migration,
+  #  it can happen!  This method sanitize such elements, leaving ERROR in Logfile.
+  #
   # @param *args [Array<Symbol, String, Array<String>, Regexp>] Symbol, String|Regexp. See {Translation.select_regex}. 
   # @param **restkeys: [Hash] Any other (exact) constraints to pass to {Translation}
   #    For example,  is_orig: true
   # @return [Array<BaseWithTranslation>]
   def self.select_regex(*args, **restkeys)
-    select_translations_regex(*args, **restkeys).map{|i| i.translatable}.uniq
+    select_translations_regex(*args, **restkeys).map{|tr|
+      if (j=tr.translatable)
+        j
+      else
+        s = sprintf(
+          'WARNING: Translation (ID=%s: translatable_type="%s" translatable_id=%d) has no live counterpart and is a zombie Translation. Clean it.',
+          tr.id, tr.translatable_type, tr.translatable_id
+        )
+        logger.warn s
+        j
+      end
+    }.uniq.compact
   end
 
   # Wrapper of {Translation.find_by_regex}, returning {Translation}-s of only this class
@@ -2380,7 +2408,7 @@ class BaseWithTranslation < ApplicationRecord
   def save_unsaved_translations
     return if new_record? || changed?
 
-    # This should be redundant as self.translations for new_record
+    # This should be redundant as self.translations for new_record (but changed)
     # should always return an empty relation [].
     translations.each do |ea_t|
       ea_t.save! if ea_t.new_record? || ea_t.changed?

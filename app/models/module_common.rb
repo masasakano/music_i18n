@@ -56,6 +56,12 @@ module ModuleCommon
     }
   }
 
+  # Default start_year of {EventGroup} etc
+  DEF_EVENT_START_YEAR = 1
+
+  # Default end_year of {EventGroup} etc
+  DEF_EVENT_END_YEAR = 9999
+
   # For model that has the method +place+
   #
   # @return [String] "県 — 場所 (国)"
@@ -618,6 +624,7 @@ module ModuleCommon
   # @param inhash [Hash]
   # @param arkey [Array] Array of keys to separate from inhash. This may include non-existent keys.
   # @return [Array<Hash, Hash>] 1st element is Hash with the keys contained in arkey, the 2nd is the rest.
+  # @raise [NoMethodError] if inhash is nil or not Hash
   def split_hash_with_keys(inhash, arkey)
     [inhash.select{|k,_|  arkey.include? k}.to_h,
      inhash.select{|k,_| !arkey.include? k}.to_h]

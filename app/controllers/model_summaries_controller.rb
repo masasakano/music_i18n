@@ -18,7 +18,6 @@ class ModelSummariesController < ApplicationController
 
   # GET /model_summaries/new
   def new
-    logger.debug "DEBUG: params="+params.inspect
     params.permit!
     @model_summary = ModelSummary.new(modelname: params[:modelname])
   end

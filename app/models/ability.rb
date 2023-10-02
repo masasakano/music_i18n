@@ -31,6 +31,11 @@ class Ability
     # See the wiki for details:
     # https://github.com/CanCanCommunity/cancancan/blob/develop/docs/Defining-Abilities.md
 
+    user_defined = user.present?
+    user ||= User.new # Providing an unlogged-in user is created with User.new
+    # user ||= User.new # Providing an unlogged-in user is created with User.new
+#return if !user   # to prohibit everything needing authorization (but :read) from not-logged in users.
+
     alias_action :create, :read, :update, :destroy, to: :crud # including :edit
     alias_action :create, :read, :update,           to: :cru  # including :edit
     alias_action :create, :read,                    to: :cr
@@ -40,17 +45,16 @@ class Ability
     can :index, Musics::Merges::MusicWithIdsController
     can :index, Artists::Merges::ArtistWithIdsController
 
-    # user ||= User.new # Providing an unlogged-in user is created with User.new
-return if !user   # to prohibit everything needing authorization (but :read) from not-logged in users.
-
     can :manage, :session
     can :read, [HaramiVid, Music, Artist]
+    can :read, [EventGroup]
     #can :read, :all   # permissions for every user, even if not logged in
     #can :read, [Artist, Music, Country, Prefecture, Place, Genre]
     cannot :read, Harami1129
     cannot :manage, Harami1129
 
-    return if !user.present?  # additional permissions for logged in users (they can manage their posts)
+    #return if !user.present?  # additional permissions for logged in users (they can manage their posts)
+    return if !user_defined  # additional permissions for logged in users (they can manage their posts)
 
     if user.sysadmin?  # sysadmin is almighty.
       can :manage, :all
@@ -72,7 +76,7 @@ return if !user   # to prohibit everything needing authorization (but :read) fro
       #can :cru,  [Prefecture]
       can :crud, [Artist, Music, Engage, Prefecture]
       can :create, Musics::UploadMusicCsvsController
-      can :read, [Country, EngageHow, Genre]
+      can :read, [Country, EngageHow, Genre, EventGroup]
       can :show,  Translation
       can [:new, :create], Translation # only for 'ja' and if they can edit translatable; judged in other places
       can :ud,     Translation, create_user_id: user.id #, update_user_id: user.id
@@ -111,7 +115,7 @@ return if !user   # to prohibit everything needing authorization (but :read) fro
       can(:update, Translations::DemotesController)
     end
 
-    ## Higher rank
+    ## Higher rank (moderator)
     if user.moderator?  # Harami manager OR HIGHER (but sysadmin)
       can :read,   Sex
       #can :manage, Prefecture          # can :destroy in addition to Editors
@@ -126,17 +130,23 @@ return if !user   # to prohibit everything needing authorization (but :read) fro
         uhrc = user.highest_role_in(hrc);
 #           print "DEBUG:abi01: ";p(i)
 #           print "DEBUG:abi03: ";p(i.user.an_admin? && (!uhrc || uhrc && i.user.highest_role_in(hrc) < uhrc))
-        i.user.an_admin? && (uhrc = user.highest_role_in(hrc); !uhrc || uhrc && i.user.highest_role_in(hrc) < uhrc)}
+        i.user.an_admin? && (uhrc = user.highest_role_in(hrc); !uhrc || uhrc && i.user.highest_role_in(hrc) < uhrc)
+      }
     end
 
     ## General-JA moderator only
-    if user.qualified_as?(:moderator,rc_general_ja)
+    if user.qualified_as?(:moderator, rc_general_ja)
       can :read, [CountryMaster]
     end
 
     ## HaramiVid moderator only
     if user.qualified_as?(:moderator, rc_harami)
       can :crud, [HaramiVid, Harami1129]
+    end
+
+    ## General-JA or HaramiVid moderator only
+    if user.qualified_as?(:moderator, rc_general_ja) || user.qualified_as?(:moderator, rc_harami)
+      can :crud, [EventGroup]  # later excluded for "unknown?"
     end
 
     ## Translation moderator only
@@ -147,21 +157,19 @@ return if !user   # to prohibit everything needing authorization (but :read) fro
     end
 
     ## Highest rank (but sysadmin)
-    if user.qualified_as? RoleCategory[RoleCategory::MNAME_ROOT]
+    if user.an_admin?
+      #if user.qualified_as? RoleCategory[RoleCategory::MNAME_ROOT]  # Same meaning as user.an_admin?
       can :manage_prefecture_jp, Prefecture
       can :manage, StaticPage
       can :manage, CountryMaster
       #can :manage_iso3166_jp, Prefecture  # redundant
+      can :manage, ModelSummary
     else
+      #can(:update, Country)  # There is nothing (but note) to update in Country as the ISO-numbers are definite. Translation for Country is a different story, though.
       cannot :manage_prefecture_jp, Prefecture  # cannot edit Country in Prefecture to Japan
       cannot(:ud, [Prefecture]){|i| i.country == Country['JPN']}
-      cannot(:ud, [Artist, Music, Prefecture, Place]){|i| i.unknown?}
+      cannot(:ud, [Artist, Music, Prefecture, Place, EventGroup]){|i| i.unknown?}
       #cannot(:ud, Place){|i| i.country == Country['JPN']}
-    end
-
-    ## Admin rank
-    if user.an_admin?  # Harami admin
-      can :manage, ModelSummary
     end
   end
 end

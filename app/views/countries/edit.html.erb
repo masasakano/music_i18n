@@ -1,4 +1,4 @@
-<h1>Editing Country</h1>
+<h1>Editing Country: <%= @country.title_or_alt(langcode: I18n.locale) %></h1>
 
 <%= render 'form', country: @country %>
 

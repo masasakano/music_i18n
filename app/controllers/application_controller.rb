@@ -5,11 +5,15 @@ class ApplicationController < ActionController::Base
 
   protect_from_forgery with: :exception
 
+  ## Uncomment this (as well as the method below) to investigate problems related to params()
+  #before_action :debug_ctrl_print1
   before_action :authenticate_user!
 
   before_action :configure_permitted_parameters, if: :devise_controller?
   before_action :set_paper_trail_whodunnit
   before_action :set_translation_whodunnit
+  ## Uncomment this (as well as the method below) to investigate problems related to params()
+  #before_action :debug_ctrl_print2
 
   around_action :switch_locale
 
@@ -71,9 +75,14 @@ class ApplicationController < ActionController::Base
   # @return [void]
   def add_unsaved_trans_to_model(mdl)
     mdl_name = mdl.class.name
-    hsprm_tra, _ = split_hash_with_keys(
-                 params[mdl_name.downcase],  # e.g., params["place"]
-                 %w(langcode title ruby romaji alt_title alt_ruby alt_romaji))
+    begin
+      hsprm_tra, _ = split_hash_with_keys(
+                   params[mdl_name.underscore],  # e.g., params["event_group"]
+                   %w(langcode title ruby romaji alt_title alt_ruby alt_romaji))
+    rescue NoMethodError => err
+      logger.error("ERROR(#{File.basename __FILE__}): params['#{mdl_name.downcase}'] seems not correct: params=#{params.inspect}")
+      raise
+    end
     tra = Translation.preprocessed_new(**(hsprm_tra.merge({is_orig: true, translatable_type: mdl_name})))
 
     mdl.unsaved_translations << tra
@@ -324,6 +333,14 @@ class ApplicationController < ActionController::Base
       @countries = Country.left_joins(:country_master).order(Arel.sql(sql))
       @prefectures = Prefecture.all
     end
+
+    ## for DEBUG (corresponding to the commented calls above)
+    #def debug_ctrl_print1
+    #  logger.debug("DEBUG(#{File.basename __FILE__})(1:Before-everything): "+params.inspect)
+    #end
+    #def debug_ctrl_print2
+    #  logger.debug("DEBUG(#{File.basename __FILE__})(2:After-befo_action): "+params.inspect)
+    #end
 end
 
 Devise::ParameterSanitizer::DEFAULT_PERMITTED_ATTRIBUTES[:sign_up] << :accept_terms

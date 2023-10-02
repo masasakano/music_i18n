@@ -66,7 +66,6 @@ class EngageHowsController < ApplicationController
 
     respond_to do |format|
       if result_save
-logger.info "DEBUG: redirected..."
         format.html { redirect_to @engage_how, success: "EngageHow was successfully created." } # "success" defined in /app/controllers/application_controller.rb
         format.json { render :show, status: :created, location: @engage_how }
       else
@@ -76,7 +75,6 @@ logger.info "DEBUG: redirected..."
         format.html { render :new, status: :unprocessable_entity } # NOTE: alert: messages[0] does not work.
         format.json { render json: @engage_how.errors, status: :unprocessable_entity }
       end
-#logger.debug "DEBUG:Finish: EngageHow.count="+EngageHow.count.to_s
     end
   end
 

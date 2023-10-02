@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2023_09_28_190223) do
+ActiveRecord::Schema[7.0].define(version: 2023_09_30_213002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -127,6 +127,25 @@ ActiveRecord::Schema[7.0].define(version: 2023_09_28_190223) do
     t.index ["music_id", "artist_id"], name: "index_engages_on_music_id_and_artist_id"
     t.index ["music_id"], name: "index_engages_on_music_id"
     t.check_constraint "year IS NULL OR year > 0", name: "check_engages_on_year"
+  end
+
+  create_table "event_groups", comment: "Event Group, mutually exclusive, typically lasting less than a year", force: :cascade do |t|
+    t.integer "order_no", comment: "Serial number for a series of Event Group, e.g., 5(-th)"
+    t.integer "start_year"
+    t.integer "start_month"
+    t.integer "start_day"
+    t.integer "end_year"
+    t.integer "end_month"
+    t.integer "end_day"
+    t.bigint "place_id"
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["order_no"], name: "index_event_groups_on_order_no"
+    t.index ["place_id"], name: "index_event_groups_on_place_id"
+    t.index ["start_day"], name: "index_event_groups_on_start_day"
+    t.index ["start_month"], name: "index_event_groups_on_start_month"
+    t.index ["start_year"], name: "index_event_groups_on_start_year"
   end
 
   create_table "genres", force: :cascade do |t|
@@ -409,6 +428,7 @@ ActiveRecord::Schema[7.0].define(version: 2023_09_28_190223) do
   add_foreign_key "engages", "artists", on_delete: :cascade
   add_foreign_key "engages", "engage_hows", on_delete: :restrict
   add_foreign_key "engages", "musics", on_delete: :cascade
+  add_foreign_key "event_groups", "places", on_delete: :nullify
   add_foreign_key "harami1129s", "engages", on_delete: :restrict
   add_foreign_key "harami1129s", "harami_vids"
   add_foreign_key "harami_vid_music_assocs", "harami_vids", on_delete: :cascade

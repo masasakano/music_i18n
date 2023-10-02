@@ -1,0 +1,10 @@
+<h1>Editing EventGroup: <%= @event_group.title_or_alt(langcode: I18n.locale) %></h1>
+
+<%= render "form", event_group: @event_group %>
+
+<br>
+
+<div>
+  <%= link_to "Show this EventGroup", @event_group %> |
+  <%= link_to "Back to Index", event_groups_path %>
+</div>

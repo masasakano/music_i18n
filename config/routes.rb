@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  resources :event_groups
   resources :model_summaries
   namespace :translations do  # "update" is used so that it can be handled with Ability
     get ':id/promotes/update', to: 'promotes#update', as: :update_promotes # => translations_update_promote_path(:id) => /translations/:id/promotes/update

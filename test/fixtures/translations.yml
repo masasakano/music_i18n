@@ -2080,3 +2080,33 @@ modelsummary_Harami1129_en:
   update_user_id: 
   note: modelsummaryHarami1129En
 
+evgr_unknown_en:
+  translatable: evgr_unknown
+  translatable_type: EventGroup
+  langcode: en
+  title: UncategorizedEventGroup
+  weight: 0
+  create_user_id: 
+  update_user_id: 
+  note: UncategorizedEventGroupEn
+
+evgr_unknown_ja:
+  translatable: evgr_unknown
+  translatable_type: EventGroup
+  langcode: ja
+  title: その他のイベント類
+  weight: 0
+  create_user_id: 
+  update_user_id: 
+  note: UncategorizedEventGroupJa
+
+evgr_lucky2023own_en:
+  translatable: evgr_lucky2023
+  translatable_type: EventGroup
+  langcode: en
+  title: LuckyFes 2023
+  weight: 100
+  create_user_id: 
+  update_user_id: 
+  note: EventGroupLucky23En
+
