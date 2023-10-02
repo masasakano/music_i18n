@@ -7,7 +7,7 @@ class ArtistsGrid < BaseGrid
 
   ####### Filters #######
 
-  filter(:id, :integer, header: "ID", if: Proc.new{current_user && current_user.editor?})  # displayed only for editors
+  filter(:id, :integer, header: "ID", if: Proc.new{CURRENT_USER && CURRENT_USER.editor?})  # displayed only for editors
 
   filter_include_ilike(:title_ja, header: Proc.new{I18n.t("datagrid.form.title_ja_en", default: "Title [ja+en] (partial-match)")})
   filter_include_ilike(:title_en, langcode: 'en', header: Proc.new{I18n.t("datagrid.form.title_en", default: "Title [en] (partial-match)")})
@@ -36,7 +36,7 @@ class ArtistsGrid < BaseGrid
 
   ####### Columns #######
 
-  column(:id, class: ["align-cr"], header: "ID", if: Proc.new{current_user && current_user.editor?}) # NOT: if ArtistsGrid.is_current_user_moderator
+  column(:id, class: ["align-cr"], header: "ID", if: Proc.new{CURRENT_USER && CURRENT_USER.editor?}) # NOT: if ArtistsGrid.is_current_user_moderator
 
   column(:title_ja, mandatory: true, header: Proc.new{I18n.t('tables.title_ja')}, order: proc { |scope|
     #order_str = Arel.sql("convert_to(title, 'UTF8')")
@@ -45,7 +45,7 @@ class ArtistsGrid < BaseGrid
     #scope.left_joins("LEFT OUTER JOIN translations ON translations.translatable_type = 'Artist' AND translations.translatable_id = artists.id AND translations.langcode = 'ja'").order(order_str) #.order("title")
   }) do |record|
     # record.title langcode: 'ja'
-    html_titles(record, col: :title, langcode: "ja") # defined in base_grid.rb
+    html_titles(record, col: :title, langcode: "ja", is_orig_char: "*") # defined in base_grid.rb
   end
   column(:ruby_romaji_ja, header: Proc.new{I18n.t('tables.ruby_romaji')}, order: proc { |scope|
     order_str = Arel.sql('ruby COLLATE "ja-x-icu", romaji COLLATE "ja-x-icu"')
@@ -66,7 +66,7 @@ class ArtistsGrid < BaseGrid
   column(:title_en, mandatory: true, header: Proc.new{I18n.t('tables.title_en_alt')}, order: proc { |scope|
     scope_with_trans_order(scope, Artist, langcode="en")  # defined in base_grid.rb
   }) do |record|
-    html_title_alts(record)  # defined in base_grid.rb
+    html_title_alts(record, is_orig_char: "*")  # defined in base_grid.rb
   end
 
   column(:sex, class: ["align-cr"], mandatory: true, header: Proc.new{I18n.t('tables.sex')}) do |record|
@@ -109,8 +109,8 @@ class ArtistsGrid < BaseGrid
 
   column(:note, order: false, header: Proc.new{I18n.t('tables.note')})
 
-  column(:updated_at, header: Proc.new{I18n.t('tables.updated_at')}, if: Proc.new{current_user && current_user.editor?})
-  column(:created_at, header: Proc.new{I18n.t('tables.created_at')}, if: Proc.new{current_user && current_user.editor?})
+  column(:updated_at, header: Proc.new{I18n.t('tables.updated_at')}, if: Proc.new{CURRENT_USER && CURRENT_USER.editor?})
+  column(:created_at, header: Proc.new{I18n.t('tables.created_at')}, if: Proc.new{CURRENT_USER && CURRENT_USER.editor?})
   column(:actions, html: true, mandatory: true, header: Proc.new{I18n.t("tables.actions", default: "Actions")}) do |record|
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
     ar = [link_to('Show', artist_path(record), data: { turbolinks: false })]
@@ -126,11 +126,5 @@ class ArtistsGrid < BaseGrid
     ar.compact.join(' / ').html_safe
   end
 
-end
-
-class << ArtistsGrid
-  # Setter/getter of {ArtistsGrid.current_user}
-  attr_accessor :current_user
-  attr_accessor :is_current_user_moderator
 end
 

@@ -14,16 +14,16 @@ class TranslationsGrid < BaseGrid
     self.select_partial_str(:all, value, ignore_case: true)  # Only for PostgreSQL!
   end
 
-  filter(:id, :integer, header: "ID", if: Proc.new{current_user && current_user.editor?})  # displayed only for editors
+  filter(:id, :integer, header: "ID", if: Proc.new{CURRENT_USER && CURRENT_USER.editor?})  # displayed only for editors
 
   filter(:translatable_type, :enum, header: "Class", checkboxes: true, select: Proc.new{ Translation.all.map{|c| [c.translatable_type, c.translatable_type]}.uniq })
   filter(:langcode, :enum, header: "Locale", checkboxes: true, select: Proc.new{ I18n.available_locales.map{|c| [c, c.to_s]} })
 
   filter(:is_orig, :xboolean, header: 'Orig?')
-  filter(:weight, range: true, if: Proc.new{current_user && current_user.qualified_as?(TransModerator)})
+  filter(:weight, range: true, if: Proc.new{CURRENT_USER && CURRENT_USER.qualified_as?(TransModerator)})
 
   filter(:create_user, header: 'Create/Update User ("SELF" for yourself)') do |value|
-    cuser = ((defined?(current_user) && current_user) || TranslationsGrid.current_user)  # Former is invalid and so the latter is accepted!
+    cuser = ((defined?(CURRENT_USER) && CURRENT_USER) || TranslationsGrid.CURRENT_USER)  # Former is invalid and so the latter is accepted!
     value = cuser.display_name if cuser && 'SELF' == value.strip.upcase
     self.joins("JOIN users ON users.id = translations.create_user_id OR users.id = translations.update_user_id").where('users.display_name = ?', value.strip)
   end
@@ -39,7 +39,7 @@ class TranslationsGrid < BaseGrid
 
   ####### Columns #######
 
-  column(:id, header: "ID", if: Proc.new{current_user && current_user.editor?}) do |record|
+  column(:id, header: "ID", if: Proc.new{CURRENT_USER && CURRENT_USER.editor?}) do |record|
     to_path = Rails.application.routes.url_helpers.harami1129_url(record, {only_path: true}.merge(ApplicationController.new.default_url_options))
     ActionController::Base.helpers.link_to record.id, to_path
   end
@@ -64,12 +64,12 @@ class TranslationsGrid < BaseGrid
     record ? 'T' : (record.nil? ? '' : 'F')
   end
 
-  column(:weight, mandatory: true, if: Proc.new{current_user && current_user.qualified_as?(TransModerator)})
+  column(:weight, mandatory: true, if: Proc.new{CURRENT_USER && CURRENT_USER.qualified_as?(TransModerator)})
 
   column_display_user(:create_user)
   column_display_user(:update_user)
   #column(:create_user) do |record|
-  #  is_me = (current_user && current_user == record)
+  #  is_me = (CURRENT_USER && CURRENT_USER == record)
   #  is_me ? "<strong>SELF</strong>".html_safe : record.display_name
   #end
   #column(:update_user) do |record|
@@ -78,8 +78,8 @@ class TranslationsGrid < BaseGrid
 
   column(:note, mandatory: true, header: I18n.t('tables.note'))
 
-  column(:updated_at, header: I18n.t('tables.updated_at'), if: Proc.new{current_user && current_user.editor?})
-  column(:created_at, header: I18n.t('tables.created_at'), if: Proc.new{current_user && current_user.editor?})
+  column(:updated_at, header: I18n.t('tables.updated_at'), if: Proc.new{CURRENT_USER && CURRENT_USER.editor?})
+  column(:created_at, header: I18n.t('tables.created_at'), if: Proc.new{CURRENT_USER && CURRENT_USER.editor?})
   column(:actions, html: true, mandatory: true, header: I18n.t("tables.actions", default: "Actions")) do |record|
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
     ar = [link_to('Show', translation_path(record), data: { turbolinks: false })]
@@ -91,11 +91,5 @@ class TranslationsGrid < BaseGrid
     end
     ar.compact.join(' / ').html_safe
   end
-end
-
-class << TranslationsGrid
-  # Setter/getter of {TranslationsGrid.current_user}
-  attr_accessor :current_user  # This is used above!
-  attr_accessor :is_current_user_moderator
 end
 

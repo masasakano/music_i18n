@@ -17,8 +17,6 @@ class ArtistsController < ApplicationController
 
     # May raise ActiveModel::UnknownAttributeError if malicious params are given.
     # It is caught in application_controller.rb
-    ArtistsGrid.current_user = current_user
-    ArtistsGrid.is_current_user_moderator = (current_user && current_user.moderator?)
     @grid = ArtistsGrid.new(**grid_params) do |scope|
       nmax = BaseGrid.get_max_per_page(grid_params[:max_per_page])
       if grid_params[:order].blank?

@@ -129,6 +129,8 @@ ja:
         title_ja: "名前 [日英] (部分一致)"
       columns:
         title_ja: 日本語名称
+    footnote:
+      is_original: "原語"
 
   merges:
     edit: 

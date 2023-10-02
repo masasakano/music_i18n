@@ -19,6 +19,7 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
       "end_year"=>"1999", "end_month"=>"", "end_day"=>"",
       "note"=>""
     }
+    @validator = W3CValidators::NuValidator.new
   end
 
   teardown do
@@ -30,6 +31,7 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
   test "should get index" do
     get event_groups_url
     assert_response :success
+    w3c_validate "EventGroup index"  # defined in test_helper.rb (see for debugging help)
   end
 
   test "should get new" do
@@ -73,6 +75,7 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     sign_in @trans_moderator
     get event_group_url(@event_group)
     assert_response :success
+    w3c_validate "EventGroup index"  # defined in test_helper.rb (see for debugging help)
   end
 
   test "should get edit" do

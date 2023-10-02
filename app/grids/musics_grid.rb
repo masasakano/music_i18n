@@ -7,7 +7,7 @@ class MusicsGrid < BaseGrid
 
   ####### Filters #######
 
-  filter(:id, :integer, header: "ID", if: Proc.new{current_user && current_user.editor?})  # displayed only for editors
+  filter(:id, :integer, header: "ID", if: Proc.new{CURRENT_USER && CURRENT_USER.editor?})  # displayed only for editors
 
   filter_include_ilike(:title_ja, header: Proc.new{I18n.t("datagrid.form.title_ja_en", default: "Title [ja+en] (partial-match)")})
   filter_include_ilike(:title_en, langcode: 'en', header: Proc.new{I18n.t("datagrid.form.title_en", default: "Title [en] (partial-match)")})
@@ -27,7 +27,7 @@ class MusicsGrid < BaseGrid
 
   ####### Columns #######
 
-  column(:id, class: ["align-cr"], header: "ID", if: Proc.new{current_user && current_user.editor?}) # NOT: if MusicsGrid.is_current_user_moderator  # This does not work; see above
+  column(:id, class: ["align-cr"], header: "ID", if: Proc.new{CURRENT_USER && CURRENT_USER.editor?}) # NOT: if MusicsGrid.current_user.moderator?  # This does not work; see above
 
   column(:title_ja, header: Proc.new{I18n.t('tables.title_ja')}, mandatory: true, order: proc { |scope|
     #order_str = Arel.sql("convert_to(title, 'UTF8')")
@@ -35,7 +35,7 @@ class MusicsGrid < BaseGrid
     scope.joins(:translations).where("langcode = 'ja'").order(order_str) #.order("title")
   }) do |record|
     #record.title langcode: 'ja'
-    html_titles(record, col: :title, langcode: "ja") # defined in base_grid.rb
+    html_titles(record, col: :title, langcode: "ja", is_orig_char: "*") # defined in base_grid.rb
   end
   column(:ruby_romaji_ja, header: Proc.new{I18n.t('tables.ruby_romaji')}, order: proc { |scope|
     order_str = Arel.sql('ruby COLLATE "ja-x-icu", romaji COLLATE "ja-x-icu"')
@@ -54,7 +54,7 @@ class MusicsGrid < BaseGrid
   column(:title_en, mandatory: true, header: Proc.new{I18n.t('tables.title_en_alt')}, order: proc { |scope| #, grid|  # add grid to get a filter to use like:  grid.trans_display_preferance
     scope_with_trans_order(scope, Music, langcode="en")  # defined in base_grid.rb
   }) do |record|
-    html_title_alts(record)  # defined in base_grid.rb
+    html_title_alts(record, is_orig_char: "*")  # defined in base_grid.rb
   end
 
   column(:year, class: ["align-cr"], header: Proc.new{I18n.t('tables.year')}, mandatory: true)
@@ -89,8 +89,8 @@ class MusicsGrid < BaseGrid
 
   column(:note, order: false, header: Proc.new{I18n.t("tables.note", default: "Note")})
 
-  column(:updated_at, header: Proc.new{I18n.t("tables.updated_at", default: "Updated at")}, if: Proc.new{current_user && current_user.editor?})
-  column(:created_at, header: Proc.new{I18n.t("tables.created_at", default: "Created at")}, if: Proc.new{current_user && current_user.editor?})
+  column(:updated_at, header: Proc.new{I18n.t("tables.updated_at", default: "Updated at")}, if: Proc.new{CURRENT_USER && CURRENT_USER.editor?})
+  column(:created_at, header: Proc.new{I18n.t("tables.created_at", default: "Created at")}, if: Proc.new{CURRENT_USER && CURRENT_USER.editor?})
   column(:actions, html: true, mandatory: true, header: Proc.new{I18n.t("tables.actions", default: "Actions")}) do |record|
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
     ar = [link_to('Show', music_path(record), data: { turbolinks: false })]
@@ -106,11 +106,5 @@ class MusicsGrid < BaseGrid
     ar.compact.join(' / ').html_safe
   end
 
-end
-
-class << MusicsGrid
-  # Setter/getter of {MusicsGrid.current_user}
-  attr_accessor :current_user
-  attr_accessor :is_current_user_moderator
 end
 

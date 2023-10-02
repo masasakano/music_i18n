@@ -7,7 +7,7 @@ class HaramiVidsGrid < BaseGrid
 
   ####### Filters #######
 
-  filter(:id, :integer, header: "ID", if: Proc.new{current_user && current_user.editor?})  # displayed only for editors
+  filter(:id, :integer, header: "ID", if: Proc.new{CURRENT_USER && CURRENT_USER.editor?})  # displayed only for editors
 
   filter_include_ilike(:title_ja, header: Proc.new{I18n.t("datagrid.form.title_ja_en", default: "Title [ja+en] (partial-match)")})
   filter_include_ilike(:title_en, langcode: 'en', header: Proc.new{I18n.t("datagrid.form.title_en", default: "Title [en] (partial-match)")})
@@ -26,7 +26,7 @@ class HaramiVidsGrid < BaseGrid
 
   ####### Columns #######
 
-  column(:id, class: ["align-cr"], header: "ID", if: Proc.new{current_user && current_user.editor?}) do |record|
+  column(:id, class: ["align-cr"], header: "ID", if: Proc.new{CURRENT_USER && CURRENT_USER.editor?}) do |record|
     to_path = Rails.application.routes.url_helpers.harami1129_url(record, {only_path: true}.merge(ApplicationController.new.default_url_options))
     ActionController::Base.helpers.link_to record.id, to_path
   end
@@ -82,8 +82,8 @@ class HaramiVidsGrid < BaseGrid
 
   column(:note, order: false, header: Proc.new{I18n.t('tables.note')})
 
-  column(:updated_at, header: Proc.new{I18n.t('tables.updated_at')}, if: Proc.new{current_user && current_user.editor?})
-  column(:created_at, header: Proc.new{I18n.t('tables.created_at')}, if: Proc.new{current_user && current_user.editor?})
+  column(:updated_at, header: Proc.new{I18n.t('tables.updated_at')}, if: Proc.new{CURRENT_USER && CURRENT_USER.editor?})
+  column(:created_at, header: Proc.new{I18n.t('tables.created_at')}, if: Proc.new{CURRENT_USER && CURRENT_USER.editor?})
   column(:actions, html: true, mandatory: true, order: false, header: Proc.new{I18n.t("tables.actions", default: "Actions")}) do |record|
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
     ar = [link_to('Show', harami_vid_path(record), data: { turbolinks: false })]
@@ -96,11 +96,5 @@ class HaramiVidsGrid < BaseGrid
     ar.compact.join(' / ').html_safe
   end
 
-end
-
-class << HaramiVidsGrid
-  # Setter/getter of {HaramiVidsGrid.current_user}
-  attr_accessor :current_user
-  attr_accessor :is_current_user_moderator
 end
 

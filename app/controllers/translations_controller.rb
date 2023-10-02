@@ -11,8 +11,6 @@ class TranslationsController < ApplicationController
 
     # May raise ActiveModel::UnknownAttributeError if malicious params are given.
     # It is caught in application_controller.rb
-    TranslationsGrid.current_user = current_user
-    TranslationsGrid.is_current_user_moderator = (current_user && current_user.moderator?)
     @cur_page = nil
     @grid = TranslationsGrid.new(order: :updated_at, descending: true, **grid_params) do |scope|
       nmax = BaseGrid.get_max_per_page(grid_params[:max_per_page])

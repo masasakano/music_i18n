@@ -99,9 +99,3 @@ class Harami1129sGrid < BaseGrid
 
 end
 
-class << Harami1129sGrid
-  # Setter/getter of {Harami1129sGrid.current_user}
-  attr_accessor :current_user
-  attr_accessor :is_current_user_moderator
-end
-

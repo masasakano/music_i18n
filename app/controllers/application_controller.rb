@@ -12,6 +12,7 @@ class ApplicationController < ActionController::Base
   before_action :configure_permitted_parameters, if: :devise_controller?
   before_action :set_paper_trail_whodunnit
   before_action :set_translation_whodunnit
+  before_action :set_current_user_for_grid, except: [:destroy]
   ## Uncomment this (as well as the method below) to investigate problems related to params()
   #before_action :debug_ctrl_print2
 
@@ -332,6 +333,13 @@ class ApplicationController < ActionController::Base
       sql = "CASE countries.id WHEN #{Country.unknown.id rescue 9} THEN 0 WHEN #{Country['JP'].id rescue 9} THEN 1 ELSE 9 END, name_en_short"
       @countries = Country.left_joins(:country_master).order(Arel.sql(sql))
       @prefectures = Prefecture.all
+    end
+
+    # To use +CURRENT_USER+ (instead of +current_user+) inside Grids
+    #
+    def set_current_user_for_grid
+      BaseGrid.send(:remove_const, :CURRENT_USER) if BaseGrid.const_defined?(:CURRENT_USER)  # because this may be called multiple times in (only) tests
+      BaseGrid.const_set(:CURRENT_USER, current_user)
     end
 
     ## for DEBUG (corresponding to the commented calls above)

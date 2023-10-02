@@ -15,7 +15,7 @@ module ApplicationHelper
 
   # true if the environmental variable is set and non-false
   def is_env_set_positive?(key)
-    ENV.keys.include?(key.to_s) && !%w(0 false FALSE).include?(ENV.keys.include?(key.to_s))
+    ENV.keys.include?(key.to_s) && !(%w(0 false FALSE f F)<<"").include?(ENV[key])
   end
 
   # Returns a shortest-possible String expression of a float

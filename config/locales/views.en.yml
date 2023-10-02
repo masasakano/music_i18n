@@ -114,6 +114,8 @@ en:
         title_ja: "Title [ja+en] (partial-match)"
       columns:
         title_ja: "Title (Ja)"
+    footnote:
+      is_original: "Original language."
 
   merges:
     edit: 

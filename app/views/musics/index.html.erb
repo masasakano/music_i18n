@@ -12,6 +12,11 @@
 <p>
   <%= ApplicationController.str_info_entry_page_numbers(@grid, Music) %>
 </p>
+<% if current_user && current_user.editor? %>
+  <p>[*] <%= t("datagrid.footnote.is_original", default: "Original language.") %>
+    <%= "(editor-only footnote)" if current_user.an_admin? %>
+  </p>
+<% end %>
 
 <% if can? :create, Music %>
   <% if @artist_title %>

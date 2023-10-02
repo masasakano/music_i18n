@@ -11,6 +11,11 @@
 <p class="pagenation_stats">
   <%= ApplicationController.str_info_entry_page_numbers(@grid, Artist) %>
 </p>
+<% if current_user && current_user.editor? %>
+  <p>[*] <%= t("datagrid.footnote.is_original", default: "Original language.") %>
+    <%= "(editor-only footnote)" if current_user.an_admin? %>
+  </p>
+<% end %>
 
 <br>
 

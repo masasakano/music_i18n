@@ -103,7 +103,7 @@ class BaseGrid
   def self.column_names_max_per_page_filters(with_i_page: false)
     column_names_filter(header: Proc.new{I18n.t("datagrid.form.extra_columns", default: "Extra Columns")}, checkboxes: true)
     filter(:max_per_page, :enum, select: Proc.new{
-            if current_user && current_user.moderator? || Rails.env.development?  ####### User-condition not working...
+            if CURRENT_USER && CURRENT_USER.moderator? || Rails.env.development?  ####### User-condition not working...
               {"1(Dev)" => 1, "4(Dev)" => 4}.merge(MAX_PER_PAGES)
             else
               MAX_PER_PAGES
@@ -123,7 +123,8 @@ class BaseGrid
     column(col, **kwd) do |record|
       user = record.send(col)
       next nil if !user
-      (current_user && current_user == user) ? "<strong>SELF</strong>".html_safe : user.display_name
+      #(current_user && current_user == user) ? "<strong>SELF</strong>".html_safe : user.display_name
+      (CURRENT_USER && CURRENT_USER == user) ? "<strong>SELF</strong>".html_safe : user.display_name
     end
   end
 
@@ -192,9 +193,14 @@ class BaseGrid
   # @param record [BaseWithTranslation]
   # @param col [Symbol, String] Column name in {Translation} DB (usually :title or :alt_title)
   # @param langcode [String, Symbol, NilClass] Def: "en". if nil, the same as the entry of is_orig==TRUE
+  # @param is_orig_char [String, NilClass] Unless nil, title in a language of is_orig is ticked with this char (Def: nil)
   # @return [String] html_safe-ed
-  def self.html_titles(record, col: :title, langcode: "en")
-    artit = record.translations_with_lang(langcode.to_s).pluck(col).flatten
+  def self.html_titles(record, col: :title, langcode: "en", is_orig_char: nil)
+    # artit = record.translations_with_lang(langcode.to_s).pluck(col).flatten
+    rela = record.translations_with_lang(langcode.to_s)
+    artit = rela.pluck(col).flatten
+    #artit[0] << is_orig_char if is_orig_char && rela[0] && rela[0].is_orig && current_user && current_user.editor? # Ability is not used as it would be too DB-heavy.
+    artit[0] << is_orig_char if is_orig_char && rela[0] && rela[0].is_orig && CURRENT_USER && CURRENT_USER.editor? # Ability is not used as it would be too DB-heavy.
     artit.map{|tit| ERB::Util.html_escape(tit)}.join("<br>").html_safe
   end
 
@@ -202,9 +208,12 @@ class BaseGrid
   #
   # @param record [BaseWithTranslation]
   # @param langcode [String, Symbol, NilClass] if nil, the same as the entry of is_orig==TRUE
+  # @param is_orig_char [String, NilClass] Unless nil, title in a language of is_orig is ticked with this char (Def: nil)
   # @return [String] html_safe-ed
-  def self.html_title_alts(record, langcode: "en")
-    artit2 = record.translations_with_lang(langcode.to_s).pluck(:title, :alt_title)
+  def self.html_title_alts(record, langcode: "en", is_orig_char: nil)
+    rela = record.translations_with_lang(langcode.to_s)
+    artit2 = rela.pluck(:title, :alt_title)
+    artit2[0][0] << is_orig_char if is_orig_char && rela[0] && rela[0].is_orig && CURRENT_USER && CURRENT_USER.editor?
     artit2.map{|earow|
       s = sprintf('%s [%s]', *(earow.map{|i| i ? i : ''}))
       s.sub!(%r@ +\[\]\z@, '')   # If NULL, nothing is displayed.
