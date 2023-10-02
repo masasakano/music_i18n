@@ -183,7 +183,8 @@ module SeedsEventGroup
       end
       if !is_orig_existing && ehs[:orig_langcode]
         # is_orig is defined above and none
-        model.best_translation(langcode: ehs[:orig_langcode]).is_orig = true
+        t = model.best_translation(langcode: ehs[:orig_langcode])
+        t.update!(is_orig: true)
       end
     end
 
