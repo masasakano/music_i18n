@@ -2,6 +2,7 @@
 
 include ModuleCommon  # for seed_fname2print
 
+puts "Starting...: #{__FILE__}"
 do_run = true
 puts "DEBUG: start "+seed_fname2print(__FILE__) if $DEBUG
 if !Rails.env.development?
@@ -14,6 +15,7 @@ elsif !User.exists?  # Administrator must exist for this script to be run.
   return 
 end
 
+puts "Reading... user-module"
 if do_run  # to play safe
 # Models: User and UserRoleAssoc
 #
