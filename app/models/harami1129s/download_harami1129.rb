@@ -291,7 +291,7 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
     #end
 
     if entry[:song].blank?
-      msg = "An entry (#{i.ordinalize} tds) fetched from #{Harami1129sController::URI2FETCH.split('/')[2]} contains no song: "+tr_this.text
+      msg = "An entry (#{2.ordinalize} tds) fetched from #{Harami1129sController::URI2FETCH.split('/')[2]} contains no song: "+tr_this.text
       logger.info msg
       ret.msg << "INFO: "+msg+"\n" if debug
       return ret
