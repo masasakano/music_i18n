@@ -12,8 +12,8 @@
 <p><%= @message %></p>
 
 <p><%= link_to t('.harami_vids_index'), harami_vids_path %> | <%= link_to t('.musics_index'), musics_path %> | <%= link_to t('.artists_index'), artists_path %>
-  <% if current_user && current_user.qualified_as?(:editor, RoleCategory[RoleCategory::MNAME_TRANSLATION]) %>
-    | <%= link_to 'Translations', translations_path %>
+  <% if can? :index, Translation %>
+    | <%= link_to 'Translations/翻訳', translations_path %>
   <% end %>
 </p>
 
@@ -22,14 +22,14 @@
 <table>
   <thead>
     <tr>
-      <th>Video date</th>
-      <th>Title</th>
-      <th title="English name of the original Artists of the played music; if the English name is not available, the Japanese name may be displayed">Artists (EN)</th>
-      <th>Musics (EN)</th>
-      <th>Musics (JA)</th>
-      <th>Duration</th>
-      <th>Place</th>
-      <th title="Internal link to the content">Detail</th>
+      <th><%= t('tables.release_date', default: "Date") %></th>
+      <th><%= t('.vid_title', default: "Video Title") %></th>
+      <th title="English name of the original Artists of the played music; if the English name is not available, the Japanese name may be displayed"><%= t('application.menu_artists', default: "Artists") %> (<%= t('locale.capital.en', default: "EN") %>)</th>
+      <th><%= t('.musics_title', default: "Songs") %> [<%= t('locale.capital.en', default: "EN") %>] (Youtube)</th>
+      <th><%= t('.musics_title', default: "Songs") %> [<%= t('locale.capital.ja', default: "JA") %>] (Youtube)</th>
+      <th><%= t('.length_sec', default: "Length [s]") %></th>
+      <th><%= t('Place', default: "Place") %></th>
+      <th></th>
     </tr>
   </thead>
 
@@ -50,7 +50,7 @@
                   sprintf '%s %s(%s)', ar[1], ((ar[0] == Place::UnknownPlace[I18n.locale] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2]
                 end
             %></td>
-        <td><%= link_to 'Detail', home_hv %></td>
+        <td><%= link_to t('detail', default: "Detail"), home_hv, title: "Internal link to the content" %></td>
       </tr>
     <% end %>
   </tbody>
@@ -59,8 +59,8 @@
 
 <div id="home_bottom">
 <p><%= link_to t('.harami_vids_index'), harami_vids_path %> | <%= link_to t('.musics_index'), musics_path %> | <%= link_to t('.artists_index'), artists_path %>
-  <% if current_user && current_user.qualified_as?(:editor, RoleCategory[RoleCategory::MNAME_TRANSLATION]) %>
-    | <%= link_to 'Translations', translations_path %>
+  <% if can? :index, Translation %>
+    | <%= link_to 'Translations/翻訳', translations_path %>
   <% end %>
 </p>
 <p>

@@ -235,8 +235,10 @@ class HaramiVid < BaseWithTranslation
         tit = ea_mu.romaji(langcode: 'ja')  # English fallback => Romaji in JA
         tit &&= '['+tit+']'
       end
-      link_str = (tit.blank? ? '' : ActionController::Base.helpers.link_to(tit, music_path(ea_mu)))
-      ylink_en = link_to_youtube sprintf('%d'+I18n.t('s_time')+'—', (timing || 0)), uri, timing
+      link_str = (tit.blank? ? '&mdash;' : ActionController::Base.helpers.link_to(tit, music_path(ea_mu)))
+      hms_or_ms = sec2hms_or_ms(timing)
+      ylink_en = link_to_youtube(hms_or_ms, uri, timing)  # defined in application_helper.rb
+#ylink_en = link_to_youtube sprintf('%d'+I18n.t('s_time')+'—', (timing || 0)), uri, timing  # defined in application_helper.rb
       sprintf "%s (%s)", link_str, ylink_en
     }.join('<br>').html_safe
   end

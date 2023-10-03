@@ -40,6 +40,18 @@ module ApplicationHelper
     sprintf "%#{maxlength}.#{maxlength-length_int-1}", num_s
   end
 
+  # Returns String "01:23:45" or "23:45" from second
+  #
+  # @param sec  [Integer, NilClass]
+  # @return [String]
+  def sec2hms_or_ms(sec)
+    sec = 0 if sec.blank?
+    sec = sec.to_i
+    fmt = ((sec <= 3599) ? "%M:%S" : "%H:%M:%S")
+    
+    Time.at(sec).utc.strftime(fmt)
+  end
+
   # Returns <title> for HTML from Path
   #
   # This assumes the langcode is 2-characters and no Models are 2-character long.
@@ -77,7 +89,7 @@ module ApplicationHelper
     root_kwd = word if root_kwd.respond_to?(:divmod) && !timing && word
     uri = self.method(:link_to_youtube).owner.uri_youtube(root_kwd, timing, long: long, with_http: true) # <= ApplicationHelper.uri_youtube()
     word = sprintf("%s", uri) if !word
-    opts = {}
+    opts = { title: "Youtube" }
     opts[:target] = "_blank" if target
     ActionController::Base.helpers.link_to word, uri, **opts
   end

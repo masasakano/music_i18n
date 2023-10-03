@@ -28,7 +28,7 @@ ja:
     grand_total_entries: "全登録数"
     total_n_entries_is: "%{model}の全登録数(フィルターなし)"
     Page_n: "第%{count}頁 "
-    release_date: "出版日"
+    release_date: "公開日"
     duration: "長さ[秒]"
 
   application:
@@ -86,6 +86,9 @@ ja:
       fourth_line1: "お気軽に"
       fourth_line2: "してみてください。ご連絡をお待ちしています!"
       h3_table: "ハラミちゃんの最新YouTube演奏動画"
+      vid_title: "動画題名"
+      musics_title: "曲名"
+      length_sec: "長さ[秒]"
       youtube_channel: "YouTubeチャンネル"
       harami_vids_index: "全動画リスト"
       musics_index: "演奏曲翻訳リスト"

@@ -121,7 +121,7 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     css2 = csssel[0].css('th')
     assert css2.any?{|i| i.text.include? 'Title'}
     assert css2.any?{|i| i.text.include? 'Artists'}
-    assert css2.any?{|i| i.text.include? 'Musics'}
+    assert css2.any?{|i| i.text.include? 'Songs'}
     assert css2.any?{|i| i.text.include? 'Place'}
 
     # Testing Place language-fallback
@@ -129,7 +129,7 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     hvparis_tit = hvparis.title(langcode: "en", lang_fallback: true).strip
     hvparis_place = hvparis.place
     hvparis_place_tra = hvparis_place.best_translation.title.strip
-    i_title = css2.find_index{|i| "Title" == i.text.strip}
+    i_title = css2.find_index{|i| "Video Title" == i.text.strip}
     i_place = css2.find_index{|i| "Place" == i.text.strip}
     trows = css_select('div#body_main table tbody tr')
     flag_found = false
