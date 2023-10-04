@@ -62,13 +62,26 @@ class MusicsController < ApplicationController
 
     @music.unsaved_translations << tra
 
+    # @music.errors would be added if something goes wrong.
     artist = helpers.get_artist_from_params hsprm['artist_name'], @music
 
+    # IF nothing has gone wrong in finding an Artist if specified,
+    # here we save @music as well as its main Translation.
     @msg_alerts = []
     if !@music.errors.present?  # Not even attempt to save if artist does not exist at ll.
       save_return = @music.save
       #save_engages(hsprm, artist) if save_return && artist  # not run if artist is not specified.  ## With this, engage_hows are not permitted.
-      save_engages(params[:music], artist) if save_return && artist  # not run if artist is not specified.
+      begin
+        # This may add an Error to @msg_alerts
+        save_engages(params[:music], artist) if save_return && artist  # not run if artist is not specified.
+      rescue => err
+        # Something goes seriously wrong (which should never happen when called from UI).
+        respond_to do |format|
+          msg = flash[:alert]+" "+@msg_alerts.join(" ")+" Consequently, although Music was successfully created, the creation of one (or more) of Music-Artist links failed for an unknown reason. You may try again later. If the problem persists, contact the site administrator."
+          format.html { redirect_to @music, notice: msg, alert: msg }
+        end
+        return
+      end
     end
 
     respond_to do |format|

@@ -261,7 +261,7 @@ module ApplicationHelper
     artist = 
       case artist_name.strip
       when /\A\?(\d+)\z/, /\(ID=(\d+)\)|\?(\d+)\z/i
-        Artist.find ($1 || $2).to_i
+        Artist.find ($1 || $2).to_i  # "$3" is also desirably OR-ed?
       else
         opts = {match_method_upto: :optional_article_ilike} # See Translation::MATCH_METHODS for the other options
         opts.merge!({langcode: langcode})
