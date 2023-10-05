@@ -93,7 +93,7 @@
   <div class="field">
     <%= t('Sex')%>
     <% Sex.all.each do |es| %>
-      <%= form.radio_button(:sex_id, es.id, checked: (es.id == 0)) %>
+      <%= form.radio_button(:sex_id, es.id, checked: (es.id == ((sex = artist.sex) ? sex.id : Sex.unknown.id))) %>
       <%= form.label :sex_id, es.title(langcode: I18n.locale, lang_fallback: true), :value => es.id %>
     <% end %>
   </div>
