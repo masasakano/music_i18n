@@ -434,5 +434,82 @@ class Harami1129Test < ActiveSupport::TestCase
     assert_equal h1129.ins_singer, pstat.dest_to_be(:ins_singer)
     assert_equal mu1tit,  pstat.dest_to_be(:ins_song)
   end
+
+  test "create_manual" do
+    ms = __method__.to_s
+    assert_raises(RuntimeError){
+      Harami1129.create_manual()}
+    assert_raises(RuntimeError){
+      Harami1129.create_manual(title: ms, singer: ms, song: ms, release_date: Date.today)}  # making sure they never happen to exist.
+
+    hscorrect = {title: ms, singer: ms, song: ms, release_date: Date.today, link_root: "youtu.be/"+ms, link_time: 777, id_remote: _get_unique_id_remote, last_downloaded_at: DateTime.now}
+    assert_equal Integer, Harami1129.create_manual( **hscorrect).id.class
+    assert_raises(ActiveRecord::RecordInvalid, "Should fail in unique validation but..."){
+                          Harami1129.create_manual!(**hscorrect)}
+    assert_nil            Harami1129.create_manual( **hscorrect).id
+  end
+
+  test "insert_populate_true_dryrun" do
+    ms = __method__.to_s
+    hscorrect = {title: ms+"t", singer: ms+"a", song: ms+"m", release_date: Date.today, link_root: "youtu.be/"+ms, link_time: 778, id_remote: _get_unique_id_remote, last_downloaded_at: DateTime.now}
+    h1129 = Harami1129.create_manual!(**hscorrect)
+    assert h1129.valid?
+    assert h1129.created_at
+
+    model_symbols = [:Artist, :Engage, :Harami1129, :HaramiVid, :HaramiVidMusicAssoc, :Music, :Translation]
+    hsary = h1129.insert_populate_true_dryrun(messages: [], dryrun: nil)
+    assert_equal model_symbols, hsary.keys.sort
+    assert_operator 0, :<, hsary[:Artist].size
+    assert_equal 1, hsary[:Artist].size
+    assert_equal 1, hsary[:Music].size
+    assert_equal 3, hsary[:Translation].size
+    assert_equal ms+"t", hsary[:Harami1129][0].ins_title
+    assert_equal ms+"t", hsary[:Translation].find{|i| i.translatable_type == "HaramiVid"}.title
+    assert_equal ms+"a", hsary[:Translation].find{|i| i.translatable_type == "Artist"}.title
+    assert_equal ms+"m", hsary[:Translation].find{|i| i.translatable_type == "Music"}.title
+    assert_equal hsary[:Artist].first.id,    hsary[:Engage].first.artist_id
+    assert_equal hsary[:Music].first.id,     hsary[:Engage].first.music_id
+    assert_equal hsary[:Music].first.id,     hsary[:HaramiVidMusicAssoc].first.music_id
+#puts "DEBUG:532:+hsary[:HaramiVid]=#{hsary[:HaramiVid].inspect}"
+#    assert_equal hsary[:HaramiVid].first.id, hsary[:HaramiVidMusicAssoc].first.harami_vid_id, "Strangely, not working...the former is nil despite it was non-nil in the method itself: hsary[:HaramiVid]=#{hsary[:HaramiVid].inspect}"
+    assert_equal hscorrect[:link_time],      hsary[:HaramiVidMusicAssoc].first.timing
+    assert_empty hsary[:Music].first.translations
+    assert_raises(ActiveRecord::RecordNotFound){
+      hsary[:HaramiVidMusicAssoc].first.music.reload }  # ".music" works perhaps due to cache, but reload does not.
+
+    #
+    # Another Harmai1129 with an identical set of Music and Artist (but different link_root & id_remote)
+    #
+    h1129_ai = harami1129s(:harami1129_ai)  # already populated.
+    hsanother = {}
+    %i(last_downloaded_at release_date singer song).each do |i|
+      hsanother[i] = h1129_ai[i]
+    end
+
+    hsanother.merge!({
+      id_remote: _get_unique_id_remote,
+      title: h1129_ai[:title]+"t",
+      link_root: h1129_ai[:link_root]+"2",
+      link_time: h1129_ai[:link_time]+1,
+    })
+    h1129_2 = Harami1129.create_manual!(**hsanother)
+    assert h1129_2.valid?
+    assert h1129_2.created_at
+
+    hsar2 = h1129_2.insert_populate_true_dryrun(messages: [], dryrun: nil)
+    assert_equal model_symbols, hsar2.keys.sort
+    assert_equal 1, hsar2[:Artist].size
+    assert_equal 1, hsar2[:Music].size
+    assert  hsar2[:Artist].first.valid?
+    assert  hsar2[:Music ].first.valid?
+    assert_equal h1129_ai.engage.artist, hsar2[:Artist].first
+    assert_equal h1129_ai.engage.music,  hsar2[:Music].first
+  end
+
+  private
+
+  def _get_unique_id_remote
+    Harami1129.all.pluck(:id_remote).compact.sort.last.to_i + 1
+  end
 end
 

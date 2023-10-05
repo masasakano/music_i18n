@@ -229,6 +229,7 @@ class Harami1129 < ApplicationRecord
     end
   end # class PopulateStatus
 
+
   # Perform the {#populate_status} check of self and cache it.
   #
   # cache is implemented as this will be called repeatedly
@@ -255,9 +256,7 @@ class Harami1129 < ApplicationRecord
       h1129_ins_to_be = get_h1129_ins_to_be
       return(ret = PopulateStatus.new(:no_insert, h1129_ins_to_be, updated_at: updated_at)) if ins_at.blank?
 
-      dest_now = nil
-
-      stat_sym = ((ins_at < (orig_modified_at || updated_at || Time.new(0))) ? :updated : :inconsistent)
+      #stat_sym = ((ins_at < (orig_modified_at || updated_at || Time.new(0))) ? :updated : :inconsistent)
 
       messages = []
       populate_ins_cols(updates: ALL_INS_COLS, messages: messages, dryrun: true) # sets @columns_at_destination
@@ -318,6 +317,42 @@ class Harami1129 < ApplicationRecord
   validates_numericality_of :id_remote, greater_than: 0, allow_nil: false
   validates                 :last_downloaded_at, presence: true
   validates_uniqueness_of   :id_remote, scope: :last_downloaded_at
+
+  # Manual version of {#Harmai1129.create} to make sure all the necessary columns are specified
+  #
+  # Use it as a substitute of Harami1129.create (especially in testing)
+  #
+  # For most columns, the standard Model validations should take care of.
+  # But some of them can be nil; if they are deliberately specified to be nil
+  # in manual creation, that is fine.  But if not, it would be unintentional
+  # and might be just forgotten. The purpose of this method is to check the possibility.
+  #
+  # @note Type of each column etc is not checked, which should be validated by the model.
+  #   In reality, you'd need last_downloaded_at which is not checked in this routine.
+  #   Also, Integer id_remote is required.
+  #
+  # @return [Harami1129] Model#create always returns a model, whose id would be nil if validation has failed.
+  def self.create_manual(**opts)
+    arkey = opts.keys.map(&:to_sym)
+    missings = []
+    ALL_DOWNLOADED_COLS.each do |colname|
+      missings.push colname.to_s if !arkey.include? colname
+    end
+    raise "ERROR(#{__FILE__}:#{__method__}): Missing column names in #{self.name}.create: #{missings.inspect}" if !missings.empty?
+    create(**opts)
+  end
+
+  # Destructive version of {#Harmai1129.create_manual}
+  #
+  # Use it as a substitute of Harami1129.create!
+  #
+  # @return [Harami1129]
+  def self.create_manual!(**opts)
+    mdl = create(**opts)
+    mdl.save!
+    mdl
+  end
+
 
   # Create/update the record, along with last_downloaded_at.
   #
@@ -495,6 +530,87 @@ class Harami1129 < ApplicationRecord
 
     populate_ins_cols_default(messages: messages, dryrun: dryrun)
     self
+  end
+
+  # Dryrun {#insert_populate} and returns a Hash to point Array of each Models
+  #
+  # Returned models are invalid if they are to be newly created. They are valid
+  # if they have already existed before this method is run, in which case {#changed?}
+  # in the returned model may be true.
+  #
+  # Different from {#insert_populate} with (+dryrun: true+) in the sense actual DB insertion
+  # is performed in this method. The +dryrun+ option in this method is always ignored.
+  #
+  # Returns a Hash of Array of models like {:Artist => [artist1, artist2, ...]}.
+  # In reality, all the Array elements should have only 1 model (Translation may have 2 in the future, if the algorithm changes).
+  #
+  # Note that no association works between the returned models, because they do not
+  # exist on the DB anymore.  For example, for the returned Hash of Array +hsary+,
+  #   hsary[:Music].translations+   # => an empty Relation.
+  #   hsary[:Translation].find{|i| i.translatable_type == "Music"}        # => Music model
+  #   hsary[:Translation].find{|i| i.translatable_type == "Music"}.music  # => nil
+  #
+  # Alternative algorithm that works only when all the linked models are created with this method.
+  #
+  #   ActiveRecord::Base.descendants.select{|i| !i.abstract_class? && !i.name.include?('::')}.each do |model|  # Exclusion of "::" is needed to filter out schema_migrations etc.
+  #     mdls = model.where('updated_at > ?', t_before)
+  #     allmodels.push mdls.to_a.sort{|a,b| a.created_at <=> b.created_at} if !mdls.empty?
+  #   end
+  #
+  # @param allow_null_engage: [Boolean] if true (Def), it is possible either or both of Engage and HaramiVidMusicAssoc do not exist.
+  # @return [Hash<Symbol => Array<ApplicationRecord>>] Symbol is Model name like :EventGroup
+  def insert_populate_true_dryrun(messages: [], allow_null_engage: true, dryrun: nil)
+    # Returns a propagated Translation from Harami1129. If there are multiple ones, the English one has a priority.
+    # @return [Translation, NilClass]
+    def model_trans_same_title(model)
+      model.translations.where(title: ins_title).order(Arel.sql("CASE WHEN #{model.class.table_name}.langcode = 'en' THEN 0 ELSE 1 END")).first
+    end
+
+    reths = {self.class.name.to_sym => [self]} # Hash of Arrays
+    begin
+      Rails.application.eager_load!
+      ActiveRecord::Base.transaction do
+        t_before = DateTime.now
+        insert_populate(messages: messages, dryrun: false)
+        raise "Harami1129#harami_vid is nil: #{self.inspect}" if !harami_vid
+        hv = harami_vid
+        reths[hv.class.name.to_sym] = [hv.reload]
+        reths[:Translation] = hv.translations.where(title: ins_title).order(:created_at).to_a.map{|em| em.reload}
+
+        raise(ActiveRecord::Rollback, "Force rollback.") if not_music
+
+        ar_where = [(ins_link_time ? "timing IS NULL OR " : "")+"timing = ?", ins_link_time]
+        assoc_musics = hv.harami_vid_music_assocs.where(*ar_where)
+        if !ins_song.blank?
+          reths[:HaramiVidMusicAssoc] = assoc_musics.to_a.map{|em| em.reload}  # Append [HaramiVidMusicAssoc]
+        end
+
+        if !(engage)
+          raise "Engage does not exist: #{self.inspect}" if !allow_null_engage
+          raise "Engage does not exist despite existences of ins_singer and ins_artist: #{self.inspect}" if !ins_song.blank? && !ins_singer.blank?
+          raise ActiveRecord::Rollback, "Force rollback."
+        end
+
+        if !assoc_musics.first.music == engage.music
+          raise "Musics in harami_vid_music_assocs (#{assoc_musics.to_a.inspect}) is inconsistent with engage.music (#{engage.music.inspect})."
+        end
+
+        reths[engage.class.name.to_sym] = [engage.reload]
+        reths[:Music ] = [engage.music.reload]
+        reths[:Artist] = [engage.artist.reload]
+
+        # Pick up the consistent Translation with Harami1129 only.
+        reths[:Translation] += engage.music.translations.where( title: ins_song  ).order(:created_at).to_a.map{|em| em.reload}
+        reths[:Translation] += engage.artist.translations.where(title: ins_singer).order(:created_at).to_a.map{|em| em.reload}
+
+        raise ActiveRecord::Rollback, "Force rollback."
+      end
+    end
+
+    #allmodels.each do |em|
+    #  reths[em.first.class.name.to_sym] = em
+    #end
+    reths
   end
 
   # Wrapper of {#populate_ins_cols} where the columns to update
