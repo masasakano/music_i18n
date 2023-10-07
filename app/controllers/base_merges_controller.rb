@@ -34,6 +34,29 @@ class BaseMergesController < ApplicationController
 
   private
 
+    # @param models [Array<BaseWithTranslation>] 2-element Array. Index of +@to_index+ remains
+    #   and the other will be destroyed.
+    def _translations_htmls(models)
+      contents = models.map do |em, i|
+        # exist_editable = em.translations.where.not(id: em.orig_translation.id).any?{|et| can?(:ud, et)}
+        ### I have decided not to check ability... too complicated!
+        arstr = []
+        em.translations.where(is_orig: false).or(em.translations.where(is_orig: nil)).sort{|a, b|
+          # Sorted in the order of Language (langcode/locale) and weight
+          w = ((I18n.available_locales.find_index(a.langcode.to_sym) || Float::INFINITY) <=>
+               (I18n.available_locales.find_index(b.langcode.to_sym) || Float::INFINITY))
+          next w if w != 0
+          (a.weight || Float::INFINITY) <=> (b.weight || Float::INFINITY)
+        }.each do |et|
+          # next if et.langcode == orig_trans.langcode
+          arstr << ERB::Util.html_escape(sprintf("[%s] %s / %s", et.langcode, et.title, et.alt_title))
+        end
+        arstr.join("&nbsp;&nbsp;<br>").html_safe
+      end
+    end
+
+  private
+
     # Only allow a list of trusted parameters through.
     #
     # @param fallback [Class, BaseWithTranslation, String, Symbol] like +:music+
@@ -117,6 +140,37 @@ class BaseMergesController < ApplicationController
       armodel.first
     end
 
+
+    # Returns the merged model based on the given two models
+    #
+    # For {Music}, for example, the ID is taken from +params[:other_music_id]+
+    # or +params[:music][:other_music_id]+
+    #
+    # @example
+    #   @musics = []
+    #   @musics << Music.find(params[:id])
+    #   begin
+    #     @musics << get_other_model(@musics[0])  # defined in base_merges_controller.rb
+    #   rescue ActiveRecord::RecordNotFound
+    #   end
+    #
+    # @param [Array<BaseWithTranslation>] two-element Array.
+    # @return [BaseWithTranslation] the reference instance
+    # @raise [ActionController::ParameterMissing] if neither exists (which should never happen through UI).
+    # @raise [ActiveRecord::RecordNotFound] if +:other_{model}_id+ is not given and no +Model+ matches +:other_{model}_title+
+    def get_merged_model(models, to_id: nil)
+      to_id ||= models[0].id
+      merged = models[0].class.new(models[0].attributes)
+      merged.id = to_id
+      merged.instance_variable_set(:@id_backup, to_id)
+      merged.define_singleton_method(:id_backup){@id_backup}
+      merged.unsaved_translations = models[0].translations
+      merged.note = [models[0].note, models[1].note].compact.join(" ").strip
+      merged.note = nil if merged.note.blank?
+      merged
+    end
+
+
     # Returns Hash of {CheckedDisabled} with keys included in constant +FORM_MERGE_KEYS+
     # defined in each subclass.
     #
@@ -128,22 +182,23 @@ class BaseMergesController < ApplicationController
     # @param model [Array<ActiveRecord>]
     # @return [Hash<CheckedDisabled>] e.g., +{lang_trans: CheckedDisabled.new(contents: _to_print_on_form, ...}+
     def all_checked_disabled(models)
+      chkmodels = models[0..1]
       self.class::FORM_MERGE_KEYS.map{ |ea_fmk|
         [ea_fmk, 
            case ea_fmk
            when :to_index, :lang_orig
              CheckedDisabled.new(checked_index: 0, disabled: false)
            when :lang_trans
-             _non_orig_translations_checked_disabled(models)
+             _non_orig_translations_checked_disabled(chkmodels)
            when :engage
-             torfs = models.map{|em| em.engages.exists? ? true : nil }
+             torfs = chkmodels.map{|em| em.engages.exists? ? true : nil }
              CheckedDisabled.new(checked_index: torfs.find_index{|tf| tf}, disabled: (1 == torfs.compact.size))
            when :prefecture_place
-             CheckedDisabled.new(models, :place)
+             CheckedDisabled.new(chkmodels, :place)
            when :genre, :year, :sex, :wiki_en, :wiki_ja
-             CheckedDisabled.new(models, ea_fmk)
+             CheckedDisabled.new(chkmodels, ea_fmk)
            when :birthday
-             CheckedDisabled.new(models, :any_birthdate_defined?)
+             CheckedDisabled.new(chkmodels, :any_birthdate_defined?)
            when :note
              next  # ignoredd!
            when :other_music_id, :other_music_title, :other_artist_id, :other_artist_title
@@ -411,31 +466,13 @@ end
       end
     end
 
-
     # Helper method for "edit" Form
     #
     # @param models [Array<BaseWithTranslation>] 2-element Array. Index of +@to_index+ remains
     #   and the other will be destroyed.
     # @return [CheckedDisabled] {CheckedDisabled#contents} is a 2-element Array of the String to print.
     def _non_orig_translations_checked_disabled(models)
-      n_exists = 0
-      contents = models.map do |em, i|
-        # exist_editable = em.translations.where.not(id: em.orig_translation.id).any?{|et| can?(:ud, et)}
-        ### I have decided not to check ability... too complicated!
-        arstr = []
-        em.translations.where(is_orig: false).or(em.translations.where(is_orig: nil)).sort{|a, b|
-          # Sorted in the order of Language (langcode/locale) and weight
-          w = ((I18n.available_locales.find_index(a.langcode.to_sym) || Float::INFINITY) <=>
-               (I18n.available_locales.find_index(b.langcode.to_sym) || Float::INFINITY))
-          next w if w != 0
-          (a.weight || Float::INFINITY) <=> (b.weight || Float::INFINITY)
-        }.each do |et|
-          # next if et.langcode == orig_trans.langcode
-          arstr << ERB::Util.html_escape(sprintf("[%s] %s / %s", et.langcode, et.title, et.alt_title))
-        end
-        arstr.join("&nbsp;&nbsp;<br>").html_safe
-      end
-
+      contents = _translations_htmls(models)
       i_checked = (contents.find_index{|i| !i.blank?} || -1)
       disabled  = (1 == contents.find_all{|i| !i.blank?}.size)
       CheckedDisabled.new(checked_index: i_checked, disabled: disabled, contents: contents)

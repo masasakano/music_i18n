@@ -16,7 +16,7 @@ class Artists::MergesController < BaseMergesController
   # @raise [ActionController::UrlGenerationError] if no Artist ID is found in the path.
   # @raise [ActionController::ParameterMissing] if the other Artist ID is not specified (as GET).
   def edit
-    if @artists.size != 2
+    if !(2..3).cover?(@artists.size)
       msg = 'No Artist matches the given one. Try a different title or ID.'
       return respond_to do |format|
         format.html { redirect_to artists_new_merges_path(@artists[0]), alert: msg } # status: redirect
@@ -27,7 +27,7 @@ class Artists::MergesController < BaseMergesController
   end
 
   def update
-    raise 'This should never happen - necessary parameter is missing. params='+params.inspect if @artists.size != 2
+    raise 'This should never happen - necessary parameter is missing. params='+params.inspect if !(2..3).cover?(@artists.size)
     @to_index = merge_params[FORM_MERGE[:to_index]].to_i   # defined in base_merges_controller.rb
     @all_checked_disabled = all_checked_disabled(@artists) # defined in base_merges_controller.rb
     begin
@@ -66,6 +66,7 @@ class Artists::MergesController < BaseMergesController
       @artists << Artist.find(params[:id])
       begin
         @artists << get_other_model(@artists[0])  # defined in base_merges_controller.rb
+        @artists << get_merged_model(@artists)    # defined in base_merges_controller.rb
       rescue ActiveRecord::RecordNotFound
         # Specified Title for Edit is not found.  For update, this should never happen through UI.
         # As a result, @artists.size == 1
