@@ -531,5 +531,190 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_equal "France, La", france.title_or_alt(langcode: "ja")
     assert_equal "fr",         france.title_or_alt(langcode: "ja").lcode
   end
+
+  test "merge_other overwrite, note, created_at" do
+    iho1 = musics(:music_ihojin1) # year: 1969
+    iho2 = musics(:music_ihojin2) # year: 1981
+    m_un = musics(:music_unknown)
+
+    iho1_year_orig = iho1.year
+    iho2_year_orig = iho2.year
+
+    iho1.send(:_merge_overwrite, iho2, :naiyo)
+    assert_equal iho1_year_orig, iho1.year, ":naiyo should be skipped."
+    iho1.reload
+
+    iho1.send(:_merge_overwrite, iho2, :year, priority: :self)
+    assert_equal iho1_year_orig, iho1.year, "Test of priority: :self."
+    assert_equal iho2_year_orig, iho2.year
+    iho1.reload
+
+    iho1.send(:_merge_overwrite, iho2, :year, priority: :other)
+    assert_equal iho2.year,      iho1.year, "Test of priority: :other."
+    assert_equal iho2_year_orig, iho2.year
+    iho1.reload
+
+    iho1.send(:_merge_overwrite, m_un, :year, priority: :other)
+    assert_equal iho1_year_orig, iho1.year, "nil should have the lowest priority (1)"
+    assert_nil  m_un.year
+    iho1.reload
+
+    m_un.send(:_merge_overwrite, iho2, :year, priority: :self)
+    assert_equal iho2_year_orig, m_un.year, "nil should have the lowest priority (2)"
+    assert_equal iho2_year_orig, iho2.year
+    m_un.reload
+
+    ## merge-note
+
+    iho1_note_orig = iho1.note
+    iho2_note_orig = iho2.note
+
+    iho1.note = "  " + iho1_note_orig + "  "  # should be stripped.
+    iho1.send(:_merge_note, iho2, priority: :self)
+    assert_equal iho1_note_orig+" "+iho2_note_orig, iho1.note
+    assert_equal iho2_note_orig,                    iho2.note
+    iho1.reload
+
+    iho1.send(:_merge_note, iho2, priority: :other)
+    assert_equal iho2_note_orig+" "+iho1_note_orig, iho1.note
+    assert_equal iho2_note_orig,                    iho2.note
+    iho1.reload
+
+    m_un.note = nil
+    iho1.send(:_merge_note, m_un, priority: :other)
+    assert_equal iho1_note_orig, iho1.note, "if one of them is blank, it should be ignored (1)"
+    iho1.reload
+    m_un.reload
+
+    m_un.note = nil
+    m_un.send(:_merge_note, iho2, priority: :self)
+    assert_equal iho2_note_orig, m_un.note, "if one of them is blank, it should be ignored (2)"
+    m_un.reload
+
+    m_un.note = nil
+    iho2.note = ""
+    m_un.send(:_merge_note, iho2, priority: :self)
+    assert  m_un.note.blank?, "if both are blank, the result should be blank, too"
+    m_un.reload
+    iho2.reload
+
+    ## created_at
+
+    iho1.created_at = DateTime.now
+    iho1_created_at_orig = iho1.created_at
+    iho2_created_at_orig = iho2.created_at
+    iho1.send(:_merge_created_at, iho2)
+    assert_equal iho2_created_at_orig, iho1.created_at
+    assert_equal iho2_created_at_orig, iho2.created_at
+    iho1.reload
+
+    iho2.created_at = DateTime.now
+    iho1_created_at_orig = iho1.created_at
+    iho2_created_at_orig = iho2.created_at
+    iho1.send(:_merge_created_at, iho2)
+    assert_equal iho1_created_at_orig, iho1.created_at
+    assert_equal iho2_created_at_orig, iho2.created_at
+    iho1.reload
+    iho2.reload
+  end
+
+  test "merge_birthday" do
+    art2 = artists(:artist2)
+    art3 = artists(:artist3)
+
+    art2.birth_year  = 1980
+    art2.birth_month =   12
+    art2.birth_day   =  nil
+    art3.birth_year  =  nil
+    art3.birth_month =    9
+    art3.birth_day   =  nil
+
+    art2.send(:_merge_birthday, art3, priority: :self)
+    assert_equal 1980, art2.birth_year
+    assert_equal   12, art2.birth_month
+    assert_nil         art2.birth_day
+    art2.reload
+
+    art2.birth_year  = 1980
+    art2.birth_month =   12
+    art2.birth_day   =  nil
+    art2.send(:_merge_birthday, art3, priority: :other)
+    assert_equal 1980, art2.birth_year
+    assert_equal    9, art2.birth_month
+    assert_nil         art2.birth_day
+    art2.reload
+  end
+
+  test "merge_other all" do
+    iho1 = musics(:music_ihojin1) # year: 1969
+    iho2 = musics(:music_ihojin2) # year: 1981
+    m_un = musics(:music_unknown)
+
+    iho1_year_orig = iho1.year
+    iho2_year_orig = iho2.year
+
+    #puts ""
+    #puts "DEBUG-oj1="+iho1.harami_vid_music_assocs.inspect
+    #puts "DEBUG-oj2="+iho2.harami_vid_music_assocs.inspect
+
+    iho1_hvmas_size = iho1.harami_vid_music_assocs.count
+    iho2_hvmas_size = iho2.harami_vid_music_assocs.count
+    assert_operator iho1_hvmas_size, '>', 0, 'Sanity check failed...'
+    assert_operator iho2_hvmas_size, '>', 0, 'Sanity check failed...'
+    iho1_hvma1 = iho1.harami_vid_music_assocs.first
+    assert_not iho2.harami_vid_music_assocs.include?(iho1_hvma1), 'Sanity check failed...'
+
+    ActiveRecord::Base.transaction do
+      hspri = {default: :self, year: :self, note: :self}
+      iho1.update!(created_at: DateTime.now)
+      iho1.merge_other iho2, priorities: hspri, save_destroy: false
+      assert_equal iho1_year_orig, iho1.year, "Test of _merge_overwrite with 'priority: :self'."
+      assert_equal iho2_year_orig, iho2.year
+      assert_equal iho1_hvmas_size+iho2_hvmas_size, iho1.ar_assoc[:harami_vid_music_assocs].size, "Failed: #{iho1.ar_assoc[:harami_vid_music_assocs].inspect}"
+      assert_equal iho2.created_at, iho1.created_at, "Test of _merge_created_at"
+      assert     Music.exists?(iho2.id)
+      raise ActiveRecord::Rollback, "Force rollback."
+    end
+    iho1.reload
+    iho2.reload
+
+    ## Test of updating "timing" only, where both Musics have a similar HaramiVidMusicAssoc with
+    ## a only difference of timing.  A positive timing would be always adopted.
+    ActiveRecord::Base.transaction do
+      hspri = {default: :self, year: :self, note: :self}
+      # Check of updating "timing"
+      iho1_hvma1.reload  # This does not exist in iho2 (according to Fixture; see a sanity check above)
+      hvma_collide = HaramiVidMusicAssoc.new(iho1_hvma1.attributes)
+      hvma_collide.music = iho2
+      hvma_collide.id = nil
+      hvma_collide.timing = 77
+      hvma_collide.save!
+      iho2.save!
+      iho2.reload
+      assert_equal iho2_hvmas_size+1, iho2.harami_vid_music_assocs.count, 'Sanity check failed...'
+
+      iho1_hvma1.timing = nil
+      iho1_hvma1.save!
+      iho1.merge_other iho2, priorities: hspri, save_destroy: true
+
+      assert_equal iho1_hvmas_size+iho2_hvmas_size, iho1.ar_assoc[:harami_vid_music_assocs].size, "Failed: #{iho1.ar_assoc[:harami_vid_music_assocs].inspect}"
+      
+      assert_equal 77, iho1_hvma1.reload.timing
+      assert_not Music.exists?(iho2.id)
+      raise ActiveRecord::Rollback, "Force rollback."
+    end
+    iho1.reload
+    iho2.reload
+
+    ActiveRecord::Base.transaction do
+      hspri = {default: :other, year: :other, note: :other}
+      iho1.merge_other iho2, priorities: hspri
+      assert_equal iho2.year,      iho1.year, "Test of priority: :other."
+      assert_equal iho2_year_orig, iho2.year
+      raise ActiveRecord::Rollback, "Force rollback."
+    end
+    iho1.reload
+    iho2.reload
+  end
 end
 

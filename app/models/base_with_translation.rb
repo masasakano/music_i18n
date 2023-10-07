@@ -2355,6 +2355,161 @@ class BaseWithTranslation < ApplicationRecord
 
   ######################
   
+  # Returns the merged self (either Artist or Music)
+  #
+  # If an error raises in any of the save, it rollbacks.
+  # Even if +save_destroy: false+, the related models like {Translation} are STILL updated!
+  # So, for a test run, the caller must make sure to contain the calling routine inside a transaction.
+  #
+  # @param other [BaseWithTranslation] of the same class
+  # @param priorities: [Hash<Symbol => Symbol>] e.g., :year => :other (or :self). A key may be :default
+  # @param save_destroy: [Boolean] If true (Def), self is saved and the other is destroyed. If one fails, it rollbacks.
+  # @return [self]
+  def merge_other(other, priorities: {}, save_destroy: true)
+    ActiveRecord::Base.transaction do
+      instance_variable_set( :@ar_assoc, {})
+      define_singleton_method(:ar_assoc){@ar_assoc}  # self.ar_assoc => Hash<harami_vid_music_assocs: Array|nil>
+
+      #   _merge_lang_orig(other)   # defined in base_merges_controller.rb  #######
+      #   _merge_lang_trans(other)  # defined in base_merges_controller.rb  #######
+      #   _merge_engage_harami1129(other)  # defined in base_merges_controller.rb  #######
+      %i(prefecture_place genre year sex wiki_en wiki_ja).each do |metho| 
+        next if !priorities.has_key?(metho)
+        _merge_overwrite(other, metho, priority: (priorities[metho] || priorities[:default]))
+      end
+      _merge_birthday(other, priority: (priorities[:note] || priorities[:default]))
+      self.ar_assoc[:harami_vid_music_assocs] = 
+        _merge_harami_vid_music_assocs(other, priority: (priorities[:harami_vid_music_assocs] || priorities[:default]))
+      _merge_note(other, priority: (priorities[:note] || priorities[:default]))
+      _merge_created_at(other)
+
+      if save_destroy
+        self.save!
+        other.destroy
+      end
+    end
+    self
+  end
+
+  # Overwrite a simple attribute of model, unless it is nil (in which case the other is used).
+  #
+  # * prefecture_place: 'prefecture_place',
+  # * genre: 'genre',
+  # * year: 'year',
+  # * sex: 'sex_id',
+  #
+  # @param other [BaseWithTranslation] of the same class as self
+  # @param metho [Symbol]
+  # @param priority: [Symbol] (:self(Def)|:other)
+  # @return [Object] the updated value (like Place)
+  def _merge_overwrite(other, metho, priority: :self)
+    attrstr = ((metho == :prefecture_place) ? :place_id : metho).to_s
+    return if !respond_to?(attrstr)
+    attrstr += "_id" if respond_to?(attrstr+"_id")  # eg., Uses sex_id instead of "sex"
+
+    _prioritized_models(other, priority, __method__).each do |mdl|
+      content = mdl.send(attrstr)
+      next if content.blank?
+      return send(attrstr+"=", content)
+    end
+    nil
+  end
+  private :_merge_overwrite
+
+
+  # Overwrite/merge the Birthday-related columns of the model.
+  #
+  # If one of them misses birth_year and if the other has one,
+  # then the significant one is adopted.
+  #
+  # @param other [BaseWithTranslation] of the same class as self
+  # @param priority: [Symbol] (:self(Def)|:other)
+  # @return [Hash<Integer>] {birth_year: 1980, ...}
+  def _merge_birthday(other, priority: :self)
+    return if !respond_to?(:birth_year)
+    bday_attrs = %i(birth_year birth_month birth_day)
+    bday3s = {}
+    _prioritized_models(other, priority, __method__).each do |mdl|
+      bday_attrs.each do |attrsym|
+        bday3s[attrsym] ||= mdl.send(attrsym)
+        next if bday3s[attrsym].blank?
+        send(attrsym.to_s+"=", bday3s[attrsym])
+      end
+    end
+
+    return bday3s
+  end
+
+  # notes are, unlike other parameters, simply merged.
+  #
+  # The note for the preferred comes first.
+  # In an unlikely case of both notes being identical, one of them is discarded.
+  #
+  # As a retult of this, {#note} becomes non-nil but maybe blank.
+  #
+  # @param other [BaseWithTranslation] of the same class as self
+  # @param priority: [Symbol] (:self(Def)|:other)
+  # @return [String]
+  def _merge_note(other, priority: :self)
+    self.note = _prioritized_models(other, priority, __method__).map{|i| (i.note.strip rescue nil)}.compact.uniq.join(" ")
+  end
+  private :_merge_note
+
+  # merging HaramiVidMusicAssoc
+  #
+  # Many HaramiVidMusicAssoc may be updated in DB.
+  #
+  # @param other [BaseWithTranslation] of the same class as self
+  # @param priority: [Symbol] (:self(Def)|:other)
+  # @return [Array<HaramiVidMusicAssoc>, NilClass] nil only if it is not Music
+  def _merge_harami_vid_music_assocs(other, priority: :self)
+    return if !respond_to?(:harami_vid_music_assocs)
+    #_prioritized_models(other, priority, __method__).reverse.map{ |emdl|
+    _prioritized_models(other, priority, __method__).map{ |emdl|
+      emdl.harami_vid_music_assocs.map{ |hvma|
+        mdl = (HaramiVidMusicAssoc.where(harami_vid: hvma.harami_vid, music: self).first || hvma)
+        mdl.music = self  # if hvma.music != self
+        mdl.flag_collab ||= hvma.flag_collab
+        mdl.completeness = hvma.completeness if !mdl.completeness || mdl.completeness <= 0
+        mdl.timing       = hvma.timing       if !mdl.timing       || mdl.timing <= 0
+        if mdl.note.blank?
+          mdl.note = hvma.note.strip
+        elsif !hvma.note.blank? && !mdl.note.include?(hvma.note)
+          mdl.note = mdl.note.strip + " " + hvma.note.strip
+        end
+        mdl.save!
+        mdl
+      }
+    }.flatten.uniq
+  end
+  private :_merge_harami_vid_music_assocs
+
+  # Older one is adopted
+  #
+  # @param other [BaseWithTranslation] of the same class as self
+  # @return [Object] the updated value (like Place)
+  def _merge_created_at(other)
+    self.created_at = [self, other].map(&:created_at).min
+  end
+  private :_merge_created_at
+
+  # Returns ordered models according to the given priority
+  #
+  # @example
+  #    _prioritized_models(other, priority, __method__)
+  #
+  # @param other [BaseWithTranslation] of the same class as self
+  # @param priority [Symbol] (:self(Def)|:other)
+  # @param caller_method [String] Caller's name for error output
+  # @return [Array<BaseWithTranslation>] [self, other] or [other, self]
+  def _prioritized_models(other, priority, caller_method)
+    #raise "(#{caller_method}) Wrong other (#{other.inspect}). Contact the code developer." if self.class != other.class
+    raise "(#{caller_method}) Wrong priority (#{priority.inspect}). Contact the code developer." if ![:self, :other].include?(priority)
+    return ((:other == priority) ? [other, self] :[self, other])
+  end
+
+  ######################
+
   # Logs a warning if is_orig is undefined in any of them.
   #
   # @param ar_trans [ActiveRecord::Associations::CollectionProxy] practially an Array
