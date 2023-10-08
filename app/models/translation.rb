@@ -271,6 +271,7 @@ class Translation < ApplicationRecord
   #
   # Tries to use the DB.  But in failing, Array is returned.
   #
+  # {#is_orig} is considered when +consider_is_orig: true+ (Default).
   # As for {#is_orig}, nil and false are regarded identical, because
   # users are anticipated to be careless about the difference and
   # anyway nil and false should not coexist. Only 2 choices are;
@@ -292,10 +293,12 @@ class Translation < ApplicationRecord
   # 4. nil (most recent)
   # 5. nil (oldest)
   #
+  # @param consider_is_orig: [Symbol] if true (Def), is_orig is considered.
   # @return [ActiveRecord::AssociationRelation, Array]
-  def self.sort(rela)
+  def self.sort(rela, consider_is_orig: true)
     begin
-      rela.order(Arel.sql("CASE WHEN is_orig IS NOT TRUE THEN 1 ELSE 0 END")).order(Arel.sql("CASE WHEN weight IS NULL THEN 2 WHEN weight = 'inf' THEN 1 ELSE 0 END, weight")).order(created_at: :desc)  # regardless of DBs; cf. https://stackoverflow.com/a/68698547/3577922
+      rela2 = (consider_is_orig ? rela.order(Arel.sql("CASE WHEN is_orig IS NOT TRUE THEN 1 ELSE 0 END")) : rela)
+      rela2.order(Arel.sql("CASE WHEN is_orig IS NOT TRUE THEN 1 ELSE 0 END")).order(Arel.sql("CASE WHEN weight IS NULL THEN 2 WHEN weight = 'inf' THEN 1 ELSE 0 END, weight")).order(created_at: :desc)  # regardless of DBs; cf. https://stackoverflow.com/a/68698547/3577922
       #rela.order(Arel.sql('CASE WHEN is_orig IS NULL THEN 1 ELSE 0 END, is_orig DESC')).order(Arel.sql('CASE WHEN weight IS NULL THEN 1 ELSE 0 END, weight'))  # regardless of DBs; cf. https://stackoverflow.com/a/68698547/3577922
     rescue NoMethodError
       rela.sort

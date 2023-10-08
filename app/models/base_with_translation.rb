@@ -2355,11 +2355,48 @@ class BaseWithTranslation < ApplicationRecord
 
   ######################
   
+  # Returns a unique weight
+  #
+  # @param tra_other [Translation]
+  # @param priority: [Symbol] :highest, :high (Def), :low, :lowest in assigning a new weight
+  #          :highest and :lowest guarantee the new weight will be highest/lowest, respectively.
+  #          :high and :low means unless there is a collision in weight, you leave it.
+  def get_unique_weight(tra_other, priority: :high)
+    sorted_tras = nil
+    loop {
+      # Maybe there is a collision in weight.
+      sorted_tras = Translation.sort(translations.where(langcode: tra_other.langcode), consider_is_orig: false)
+
+      # For is_orig, if there is a Translation of weight=0, it must be destroyed.
+      break if !(sorted_tras.exists? && sorted_tras.first.weight <= 0 && %i(highest high).include?(priority))
+      sorted_tras.first.destroy
+    }
+
+    ## returns a new weight
+    if %i(lowest low).include?(priority) && sorted_tras.pluck(:weight).compact.select{|i| i != Float::INFINITY}.include?(tra_other.weight)
+      # No conflict (:high or :low only, because :highest/:lowest likely needs a new one)
+      tra_other.weight 
+    else
+      case priority
+      when :highest, :high
+        weight_cand = (sorted_tras.empty? ? 100   : (sorted_tras.first.weight || 200).abs.quo(2))
+        [(tra_other.weight || Float::INFINITY), weight_cand].min
+      when :lowest, :low
+        weight_cand = (sorted_tras.empty? ? 10000 : (sorted_tras.last.weight || Float::INFINITY).abs*2)
+        [(tra_other.weight || Float::INFINITY), weight_cand].max
+      else
+        raise
+      end
+    end
+  end
+
   # Returns the merged self (either Artist or Music)
   #
   # If an error raises in any of the save, it rollbacks.
   # Even if +save_destroy: false+, the related models like {Translation} are STILL updated!
   # So, for a test run, the caller must make sure to contain the calling routine inside a transaction.
+  #
+  # originally exited in app/controllers/base_merges_controller.rb
   #
   # @param other [BaseWithTranslation] of the same class
   # @param priorities: [Hash<Symbol => Symbol>] e.g., :year => :other (or :self). A key may be :default
@@ -2370,14 +2407,14 @@ class BaseWithTranslation < ApplicationRecord
       instance_variable_set( :@ar_assoc, {})
       define_singleton_method(:ar_assoc){@ar_assoc} if !respond_to?(:ar_assoc)  # self.ar_assoc => Hash<harami_vid_music_assocs: Array|nil>
 
-      #   _merge_lang_orig(other)   # defined in base_merges_controller.rb  #######
-      #   _merge_lang_trans(other)  # defined in base_merges_controller.rb  #######
-      _merge_engages(other)  # updates Harami1129#engage_id, too
+      _merge_lang_orig( other, priority: (priorities[:lang_orig]  || priorities[:default]))
+      _merge_lang_trans(other, priority: (priorities[:lang_trans] || priorities[:default]))
+      _merge_engages(   other, priority: (priorities[:engages]  || priorities[:default]))  # updates Harami1129#engage_id, too
+      _merge_birthday(  other, priority: (priorities[:birthday] || priorities[:default]))
       %i(prefecture_place genre year sex wiki_en wiki_ja).each do |metho| 
         next if !priorities.has_key?(metho)
         _merge_overwrite(other, metho, priority: (priorities[metho] || priorities[:default]))
       end
-      _merge_birthday(other, priority: (priorities[:note] || priorities[:default]))
       self.ar_assoc[:harami_vid_music_assocs] = 
         _merge_harami_vid_music_assocs(other, priority: (priorities[:harami_vid_music_assocs] || priorities[:default]))
       _merge_note(other, priority: (priorities[:note] || priorities[:default]))
@@ -2426,14 +2463,43 @@ class BaseWithTranslation < ApplicationRecord
     attrstr = ((metho == :prefecture_place) ? :place_id : metho).to_s
     return if !respond_to?(attrstr)
     raise "Should not happen Contact the code developer." if !other.respond_to?(attrstr)
-    attrstr += "_id" if respond_to?(attrstr+"_id")  # eg., Uses sex_id instead of "sex"
+    #attrstr += "_id" if respond_to?(attrstr+"_id")  # eg., Uses sex_id instead of "sex"
+    contents = _prioritized_models(other, priority, __method__).map{|mdl| mdl.send(attrstr)}.sort{|a, b|
+      if a == b
+        0
+      elsif a.nil?
+        b.nil? ? 0 : 1
+      elsif b.nil?
+        -1
+      elsif a.blank?
+        b.blank? ? 0 : 1
+      elsif b.blank?
+        -1
+      elsif a.respond_to?(:encompass_strictly?) && a.encompass_strictly?(b)
+        # This has to come before checking unknown? b/c Place has many unknown-s.
+        -1
+      elsif b.respond_to?(:encompass_strictly?) && b.encompass_strictly?(a)
+        1
+      elsif a.respond_to?(:unknown?) && a.unknown?
+        (b.respond_to?(:unknown?) && b.unknown?) ? 0 : 1
+      elsif b.respond_to?(:unknown?) && b.unknown?
+        -1
+      elsif a.respond_to?(:default?) && a.default?
+        (b.respond_to?(:default?) && b.default?) ? 0 : 1
+      elsif b.respond_to?(:default?) && b.default?
+        -1
+      else
+        0
+      end
+    }.compact
+    send(attrstr+"=", contents.first)
 
-    _prioritized_models(other, priority, __method__).each do |mdl|
-      content = mdl.send(attrstr)
-      next if content.blank?
-      return send(attrstr+"=", content)
-    end
-    nil
+    #_prioritized_models(other, priority, __method__).each do |mdl|
+    #  content = mdl.send(attrstr)
+    #  next if content.blank?  # Never overwritten with a blank value.
+    #  return send(attrstr+"=", content)
+    #end
+    #return send(attrstr)
   end
   private :_merge_overwrite
 
@@ -2495,6 +2561,93 @@ class BaseWithTranslation < ApplicationRecord
   private :_append_note!
 
 
+  # Merge Translations with is_orig=true
+  #
+  # 1. If the languages are the same, the unselected one is deleted (title, alt_title, and all).
+  #    1. However, if the unselected one has both `title` and `alt_title`, and the selected one has only `title`, the `alt_title` is transferred to `alt_title` of the selected one.
+  # 2. If the languages are different, the unselected one is ignored.
+  #
+  # @param other [BaseWithTranslation] of the same class as self
+  # @param priority: [Symbol] (:self(Def)|:other)
+  # @param orig_valid: [Symbol] If false, is_orig in any of them is nil.
+  # @return [Hash<Array<Engage>>, NilClass] nil only if it is not Music/Artist; else {remain: [Engage...], destroy: [...]}
+  def _merge_lang_orig(other, priority: :self, orig_valid: true)
+    transs = _prioritized_models(other, priority, __method__).map(&:orig_translation).compact
+    raise if transs.size > 2  # play safe
+
+    case transs.size
+    when 0   # None has is_orig=true
+      return {remained: [], destroy: []}
+    when 1   # Only one of them has is_orig=true
+      tra_orig = transs.first
+      tra_orig.is_orig = nil if !orig_valid
+      raise "Contact the code developer (translatalbe mismatch)." if tra_orig.translatalbe.class != self.class
+      if tra_orig.translatable == self  # self.orig_translation is the only one with is_orig==true
+        tra_orig.save! if tra_orig.changed?
+        return {remained: [tra_orig], destroy: []} if tra_orig.translatable == self  # self.orig_translation is the only one with is_orig==true
+      end
+      return _reassign_translation(tra_orig, priority: :highest, force: true)
+    end
+
+    # Both have orig_translation
+    raise "Contact the code developer (translatalbe mismatch: #{transs.map(&:translatable_type).inspect})." if transs.map(&:translatable_type).uniq.size > 1
+
+    (tra_orig, tra_other) = transs
+    if transs.map(&:langcode).uniq.size != 1 # langcode-s are different
+      return _reassign_translation(tra_orig, priority: :highest, force: true)
+    end
+
+    # langcode-s are common
+    # alt_title can be copied if existent. note-s are merged.
+    if tra_orig.alt_title.blank? && tra_other.title.present? && tra_other.alt_title.present? 
+      tra_orig.alt_title = tra_other.alt_title
+      _append_note!(tra_orig, tra_other)
+      tra_orig.created_at = _older_created_at(tra_orig, tra_other)
+    end
+
+    tra_other.destroy  # has to be destroyed before the new one is assigned.
+    reths = _reassign_translation(tra_orig, priority: :highest, force: true)
+    reths[:destroy].push tra_other
+    return reths
+  end
+  private :_merge_lang_orig
+
+  # Merge Translations from other to self
+  #
+  # If two of them have same weights and langcode (it should never happen
+  # between the Translations for the same {BaseWithTranslation}, but because we are
+  # handling two {BaseWithTranslation}-s, it can happen), one of the weights
+  # must be adjusted before merging multiple {Translation}, that is,
+  # unifying their parent into one {BaseWithTranslation}.
+  #
+  # {#_merge_lang_orig} should be called before this method, though technically not mandatory.
+  #
+  # @param other [BaseWithTranslation] of the same class as self
+  # @param priority: [Symbol] (:self(Def)|:other)
+  # @param orig_valid: [Symbol] If false, is_orig in any of them is nil.
+  # @return [Hash<Array<Engage>>, NilClass] nil only if it is not Music/Artist; else {remain: [Engage...], destroy: [...]}
+  def _merge_lang_trans(other, priority: :self, orig_valid: true)
+    prio = ((:self == priority) ? :low : :high)
+    reths = {remained: [], destroy: []}
+    (self.translations.pluck(:langcode)+other.translations.pluck(:langcode)).uniq.each do |lcode|
+      artrans = Translation.sort(translations.where(langcode: lcode), consider_is_orig: false)
+
+      prev = nil
+      artrans.each_with_index do |etra, ind|  # etra: Each_TRAnslation
+        hs = _reassign_translation(etra, priority: prio)
+        reths[:remained].concat hs[:remained]
+        reths[:destroy ].concat hs[:destroy]
+      end
+    end
+
+    reths[:remained].uniq!
+    reths[:destroy ].uniq!
+    reths[:remained].map(&:reload)  # Is it needed??
+    reths
+  end
+  private :_merge_lang_trans
+
+
   # merging Engage, handling Harami1129s, where Engage-s may be merged or possibly just one of them is modified (like music_id).
   #
   # If there are multiple Engages related to self (either Music/Artist) that have the same
@@ -2523,7 +2676,7 @@ class BaseWithTranslation < ApplicationRecord
   #
   # @param other [BaseWithTranslation] of the same class as self. This method makes sense only for Music/Artist (not Harami1129)
   # @param priority: [Symbol] (:self(Def)|:other)
-  # @return [Hash<Array<Engage>>, NilClass] nil only if it is not Music/Artist; else {remain: [Engage...], to_destroy: [...]}
+  # @return [Hash<Array<Engage>>, NilClass] nil only if it is not Music/Artist; else {remain: [Engage...], destroy: [...]}
   def _merge_engages(other, priority: :self)
     return if !respond_to?(:engages)
     raise "Should not happen Contact the code developer." if !other.respond_to?(:engages)
@@ -2666,6 +2819,52 @@ class BaseWithTranslation < ApplicationRecord
     raise "(#{caller_method}) Wrong priority (#{priority.inspect}). Contact the code developer." if ![:self, :other].include?(priority)
     return ((:other == priority) ? [other, self] :[self, other])
   end
+
+
+  # Assign a Translation to self, which belonged to another.
+  #
+  # @param tra_other [Translation]
+  # @param priority: [Symbol] :highest, :high (Def), :low, :lowest in assigning a new weight
+  #          :highest and :lowest guarantee the new weight will be highest/lowest, respectively.
+  #          :high and :low means unless there is a collision in weight, you leave it.
+  # @param force: [Symbol] if true (Def: false), the given tra_other has a higher priority than others (like is_orig==true).
+  #     Else, if the first attempt to save tra_other fails, tra_other is destroyed.
+  # @return [Hash<Array<Engage>>, NilClass] nil only if it is not Music/Artist; else {remain: [Engage...], destroy: [...]}
+  def _reassign_translation(tra_other, priority: :high, force: false)
+    tra_other.translatable_id = self.id
+    tra_other.weight = get_unique_weight(tra_other, priority: priority)
+
+    if tra_other.valid?
+      tra_other.save!  # may raise an Error, if validation misses a DB-level validation and if it fails at DB.
+      return {remained: [tra_other], destroy: []}
+    end
+
+    if !force
+      # tra_other.destroy  # Destroy tra_other  --- it will be cascade-destroyed.
+      return {remained: [], destroy: [tra_other]}
+    end
+
+    # Now, Translation validation has failed maybe because, such as, a (title, alt_title) combination already exists.
+    logger.info "(#{__FILE__}:#{__method__}) Handling a rare case of translaiton validation failure during merging due to similar ones: other-other=#{tra_other.inspect} self.translations=#{translations.inspect}"
+
+    destroyed = []
+    translations.where(langcode: tra_other.langcode).each do |etra|
+      # Destroy self.translations with the same langcode one by one. When the "tra_orig" to save becomes valid, do it.
+      # NOTE: Some Translations that are unrelated to the validation failure may be destroyed.
+      #   However, given this situation rarely happens anyway, I ignore the downsides.
+      #   I note, as for the original language, it is debatable whether you allow multiple Translation-s,
+      #   because you may as well delete all of them except for the best one.
+      destroyed.push etra
+      etra.destroy  # Destroy one of self.translations
+      if tra_other.valid?
+        tra_other.save!  # may raise an Error, if validation misses a DB-level validation and if it fails at DB.
+        return {remained: [tra_other], destroy: destroyed}
+      end
+    end
+    logger.error "ERROR: (#{__FILE__}:#{__method__}) tra_other=#{tra_other.inspect} self.translations=#{translations.inspect}"
+    raise "Contact the code developer (translation reassigment error)."
+  end
+  private :_reassign_translation
 
   ######################
 

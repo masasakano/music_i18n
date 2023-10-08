@@ -929,16 +929,25 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     ActiveRecord::Base.transaction do
       h1129_prms, assc_prms, hsmdl = _prepare_h1129s1
       assert_equal Place.unknown, hsmdl[:artists][0].place, 'Sanity check...'
+      assert_equal h1129_prms[:song][0],    hsmdl[:musics][0].title, 'Sanity check...'
+      assert_equal "en", hsmdl[:musics][0].best_translation.langcode, 'Sanity check...'
+      assert_equal "en", hsmdl[:musics][1].best_translation.langcode, 'Sanity check...'
 
       ActiveRecord::Base.transaction do
         genre_org = hsmdl[:musics][0].genre
-        hspri = {default: :other, year: :other, note: :other}
-        hsmdl[:musics][0].merge_other(hsmdl[:musics][1], priorities: hspri, save_destroy: true)
+        hspri = {default: :other, genre: :self, year: :other, note: :other}
+        ## Run
+        _ = hsmdl[:musics][0].merge_other(hsmdl[:musics][1], priorities: hspri, save_destroy: true)
 
         assert_equal assc_prms[:mu_year][0],  hsmdl[:musics][0].year
-#### Check out!
+        assert_equal genres(:genre_classic),  assc_prms[:mu_genre][1], 'Sanity check'
+        assert_equal genres(:genre_classic),  hsmdl[:musics][1].genre, 'Sanity check'
         hsmdl[:musics][0].reload
-        assert_equal genre_org,               hsmdl[:musics][0].genre
+        assert_equal h1129_prms[:song][1],    hsmdl[:musics][0].title
+        assert_not_equal           genre_org, hsmdl[:musics][0].genre, "Genre changed"
+        assert_equal hsmdl[:musics][1].genre, hsmdl[:musics][0].genre, "Genre sorted"
+        assert_equal assc_prms[:mu_place][0], hsmdl[:musics][0].place, "b/c Place encompass-ing despite priority=:other"
+
         raise ActiveRecord::Rollback, "Force rollback."
       end
 
@@ -969,7 +978,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       eng_year: [1994, nil],
       eng_contribution: [0, 0.9],
       mu_year:  [1994, nil],
-      mu_genre: [nil, Genre.default],  # Default genre: Pops (nil means unchange, i.e., Pops)  genres(:genre_classic)
+      mu_genre: [nil, genres(:genre_classic)],  # Genre.default: Pops (nil means unchange, i.e., Pops)
       mu_place: [places(:unknown_place_liverpool_uk),              places(:unknown_place_unknown_prefecture_uk)],
       mu_note: ['mu-note0', 'mu-note1'],
       art_sex: [Sex[:male], nil],
