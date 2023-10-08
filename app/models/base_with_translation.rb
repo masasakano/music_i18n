@@ -2368,11 +2368,11 @@ class BaseWithTranslation < ApplicationRecord
   def merge_other(other, priorities: {}, save_destroy: true)
     ActiveRecord::Base.transaction do
       instance_variable_set( :@ar_assoc, {})
-      define_singleton_method(:ar_assoc){@ar_assoc}  # self.ar_assoc => Hash<harami_vid_music_assocs: Array|nil>
+      define_singleton_method(:ar_assoc){@ar_assoc} if !respond_to?(:ar_assoc)  # self.ar_assoc => Hash<harami_vid_music_assocs: Array|nil>
 
       #   _merge_lang_orig(other)   # defined in base_merges_controller.rb  #######
       #   _merge_lang_trans(other)  # defined in base_merges_controller.rb  #######
-      #   _merge_engage_harami1129(other)  # defined in base_merges_controller.rb  #######
+      _merge_engages(other)  # updates Harami1129#engage_id, too
       %i(prefecture_place genre year sex wiki_en wiki_ja).each do |metho| 
         next if !priorities.has_key?(metho)
         _merge_overwrite(other, metho, priority: (priorities[metho] || priorities[:default]))
@@ -2384,19 +2384,39 @@ class BaseWithTranslation < ApplicationRecord
       _merge_created_at(other)
 
       if save_destroy
-        self.save!
-        other.destroy
+        merge_save_destroy(other)
       end
     end
     self
   end
 
-  # Overwrite a simple attribute of model, unless it is nil (in which case the other is used).
+  # Save&Destroy for #{merge_other}
+  #
+  # @param other [BaseWithTranslation] of the same class
+  # @return [self]
+  def merge_save_destroy(other)
+    self.save!
+    ar_assoc[:harami_vid_music_assocs][:destroy].each do |mdl|
+      mdl.destroy
+    end
+
+    self.ar_assoc[:harami_vid_music_assocs] = {
+      remained:    ar_assoc[:harami_vid_music_assocs][:remain],
+      n_destroyed: ar_assoc[:harami_vid_music_assocs][:destroy].size,
+      destroy: []
+    }
+    other.reload
+    other.destroy
+  end
+
+  # Overwrite a simple attribute of model, according to the priority, unless it is nil (in which case the other is used).
   #
   # * prefecture_place: 'prefecture_place',
   # * genre: 'genre',
   # * year: 'year',
   # * sex: 'sex_id',
+  #
+  # @todo  genre has Genre.default, place has Place.unknown
   #
   # @param other [BaseWithTranslation] of the same class as self
   # @param metho [Symbol]
@@ -2405,6 +2425,7 @@ class BaseWithTranslation < ApplicationRecord
   def _merge_overwrite(other, metho, priority: :self)
     attrstr = ((metho == :prefecture_place) ? :place_id : metho).to_s
     return if !respond_to?(attrstr)
+    raise "Should not happen Contact the code developer." if !other.respond_to?(attrstr)
     attrstr += "_id" if respond_to?(attrstr+"_id")  # eg., Uses sex_id instead of "sex"
 
     _prioritized_models(other, priority, __method__).each do |mdl|
@@ -2427,6 +2448,7 @@ class BaseWithTranslation < ApplicationRecord
   # @return [Hash<Integer>] {birth_year: 1980, ...}
   def _merge_birthday(other, priority: :self)
     return if !respond_to?(:birth_year)
+    raise "Should not happen Contact the code developer." if !other.respond_to?(:birth_year)
     bday_attrs = %i(birth_year birth_month birth_day)
     bday3s = {}
     _prioritized_models(other, priority, __method__).each do |mdl|
@@ -2455,43 +2477,180 @@ class BaseWithTranslation < ApplicationRecord
   end
   private :_merge_note
 
-  # merging HaramiVidMusicAssoc
+  # Append note to Model
   #
-  # Many HaramiVidMusicAssoc may be updated in DB.
+  # @param mdl   [BaseWithTranslation] note to append to
+  # @param other [BaseWithTranslation] of the same class as mdl
+  # @return [String] the updated value
+  def _append_note!(mdl, other)
+    if !other.note.blank?
+      if mdl.note.blank?
+        mdl.note = other.note.strip
+      elsif !mdl.note.include?(other.note)
+        mdl.note = mdl.note.strip + " " + other.note.strip
+      end
+    end
+    mdl.note
+  end
+  private :_append_note!
+
+
+  # merging Engage, handling Harami1129s, where Engage-s may be merged or possibly just one of them is modified (like music_id).
   #
-  # @param other [BaseWithTranslation] of the same class as self
+  # If there are multiple Engages related to self (either Music/Artist) that have the same
+  # Music/Artist/EngageHow, then they will be merged.  If one of them that is merged to something else
+  # is referred to from Harami1129, then {Harami1129#engage_id} must change, too, which
+  # this method handles.  Otherwise, Engage-s would not disappear and hence no change
+  # in Harmai1129.
+  #
+  # For example, if only the Engages for Music_1a/1b are
+  # Engage(Composer-Music_1a) and Engage(Lyricist-Music_1b), they would survive
+  # after Music_1a and 1b are merged.
+  #
+  # In practice, most of EngageHows are default semi-automatically ones imported from Harami1129.
+  # Therefore, modification in Harami1129 frequently happens after merging Music or Artist.
+  #
+  # With this routine, many Engage may be updated in DB.
+  # This may update Harami1129 in DB, too.
+  # However, this does not destroy Engages to discard. They should be cascade-deleted when
+  # an Artist/Music is destroyed (which should be done shortly after this method is called).
+  # If you want to destroy them explicitly, do:
+  #
+  #   hs = _merge_engages(other, priority: :self)
+  #   hs[:destroy].each do |em|
+  #     em.destroy
+  #   end
+  #
+  # @param other [BaseWithTranslation] of the same class as self. This method makes sense only for Music/Artist (not Harami1129)
   # @param priority: [Symbol] (:self(Def)|:other)
-  # @return [Array<HaramiVidMusicAssoc>, NilClass] nil only if it is not Music
-  def _merge_harami_vid_music_assocs(other, priority: :self)
-    return if !respond_to?(:harami_vid_music_assocs)
-    #_prioritized_models(other, priority, __method__).reverse.map{ |emdl|
-    _prioritized_models(other, priority, __method__).map{ |emdl|
-      emdl.harami_vid_music_assocs.map{ |hvma|
-        mdl = (HaramiVidMusicAssoc.where(harami_vid: hvma.harami_vid, music: self).first || hvma)
-        mdl.music = self  # if hvma.music != self
-        mdl.flag_collab ||= hvma.flag_collab
-        mdl.completeness = hvma.completeness if !mdl.completeness || mdl.completeness <= 0
-        mdl.timing       = hvma.timing       if !mdl.timing       || mdl.timing <= 0
-        if mdl.note.blank?
-          mdl.note = hvma.note.strip
-        elsif !hvma.note.blank? && !mdl.note.include?(hvma.note)
-          mdl.note = mdl.note.strip + " " + hvma.note.strip
+  # @return [Hash<Array<Engage>>, NilClass] nil only if it is not Music/Artist; else {remain: [Engage...], to_destroy: [...]}
+  def _merge_engages(other, priority: :self)
+    return if !respond_to?(:engages)
+    raise "Should not happen Contact the code developer." if !other.respond_to?(:engages)
+    all_engages = []
+    is_music = !respond_to?(:musics)
+    remains = _prioritized_models(other, priority, __method__).map.with_index{ |emdl, ind|
+      all_engages.push emdl.engages
+      all_engages[-1].map{ |eng|
+        hsprm = (is_music ? {artist: eng.artist, music: self} : {artist: self, music: eng.music})
+        mdl = (Engage.where(hsprm).where(engage_how: eng.engage_how).first || eng)  # If one of self.engages has the same Artist & Music & EngageHow, it is used.
+        if is_music 
+          mdl.music  = self
+        else
+          mdl.artist = self
         end
+
+        # Following is updated only when Music, Artist, and EngageHow all agree
+        mdl.year = eng.year if ind == 0 && eng.year
+        mdl.year ||= eng.year
+        if eng.contribution && eng.contribution > 0
+           mdl.contribution = eng.contribution if ind == 0
+           mdl.contribution = eng.contribution if (!mdl.contribution || mdl.contribution <= 0)
+        end
+
+        _append_note!(mdl, eng)
+        mdl.created_at = _older_created_at(mdl, eng)
+
         mdl.save!
         mdl
       }
     }.flatten.uniq
+
+    to_destroys = all_engages.flatten.uniq.select{|mdl| !remains.include?(mdl) }
+
+    ## Register to destroy EngageHow.unknown-s if there is another one for the same Music and Artist. 
+    if remains.size > 1
+      eng_unknowns = remains.select{|eng| eng.engage_how.unknown?}
+      tmp2destroy = eng_unknowns.map{ |engkn|
+        remains.any?{ |em|
+          em.id != engkn.id &&
+          em.music  == engkn.music &&
+          em.artist == engkn.artist
+        }
+      }.compact
+      to_destroys.concat tmp2destroy
+      remains.delete_if{|em| tmp2destroy.include?(em)} 
+    end
+
+    ## Update dependent Harami1129
+    to_destroys.each do |eng|
+      hsprm = (is_music ? {artist: eng.artist, music: self} : {artist: self, music: eng.music})
+      eng.harami1129s.each do |harami1129|
+        new_eng = Engage.where(hsprm).joins(:engage_how).order(:weight).first  # There may be multiple candidates. Picks one of the least-weight one (in terms of EngageHow).
+        harami1129.update!(engage: new_eng)
+        remains.push harami1129
+      end
+    end
+
+    remains.map(&:reload)  # I do not know why this is required...
+    {remained: remains, destroy: to_destroys}
+  end
+  private :_merge_engages
+
+
+  # merging HaramiVidMusicAssoc
+  #
+  # Many HaramiVidMusicAssoc may be updated in DB.
+  # However, this does not destroy HaramiVidMusicAssoc to discard. To do that,
+  # They should be cascade-deleted when a Music/HaramiVid is destroyed.
+  # If you want to do it explicitly, do:
+  #
+  #   hs = _merge_harami_vid_music_assocs(other, priority: :self)
+  #   hs[:destroy].each do |em|
+  #     em.destroy
+  #   end
+  #
+  # @param other [BaseWithTranslation] of the same class as self. This method makes sense only for Music and HaramiVid
+  # @param priority: [Symbol] (:self(Def)|:other)
+  # @return [Hash<Array<HaramiVidMusicAssoc>>, NilClass] nil only if it is not Music/HaramiVid; else {remain: [HaramiVidMusicAssoc...], to_destroy: [...]}
+  def _merge_harami_vid_music_assocs(other, priority: :self)
+    return if !respond_to?(:harami_vid_music_assocs)
+    raise "Should not happen Contact the code developer." if !other.respond_to?(:harami_vid_music_assocs)
+    all_hvmas = []
+    remains = _prioritized_models(other, priority, __method__).map{ |emdl|
+      all_hvmas.push emdl.harami_vid_music_assocs
+      all_hvmas[-1].map{ |hvma|
+        is_music = !respond_to?(:musics)
+        hsprm = (is_music ? {harami_vid: hvma.harami_vid, music: self} : {harami_vid: self, music: hvma.music})
+        mdl = (HaramiVidMusicAssoc.where(hsprm).first || hvma)
+        if is_music 
+          mdl.music      = self
+        else
+          mdl.harami_vid = self
+        end
+        mdl.flag_collab ||= hvma.flag_collab
+        mdl.completeness = hvma.completeness if !mdl.completeness || mdl.completeness <= 0
+        mdl.timing       = hvma.timing       if !mdl.timing       || mdl.timing <= 0
+        _append_note!(mdl, hvma)
+        mdl.created_at = _older_created_at(mdl, hvma)
+
+        mdl.save!
+        mdl
+      }
+    }.flatten.uniq
+    to_destroys = all_hvmas.flatten.uniq.select{|mdl| !remains.include?(mdl) }
+    {remained: remains, destroy: to_destroys}
   end
   private :_merge_harami_vid_music_assocs
 
   # Older one is adopted
   #
   # @param other [BaseWithTranslation] of the same class as self
-  # @return [Object] the updated value (like Place)
+  # @return [DateTime] 
   def _merge_created_at(other)
-    self.created_at = [self, other].map(&:created_at).min
+    self.created_at = _older_created_at(self, other)
   end
   private :_merge_created_at
+
+  # Returns the older created_at
+  #
+  # @param mdl   [BaseWithTranslation]
+  # @param other [BaseWithTranslation] of the same class as mdl
+  # @return [DateTime] 
+  def _older_created_at(mdl, other)
+    [mdl, other].map(&:created_at).min
+  end
+  private :_older_created_at
 
   # Returns ordered models according to the given priority
   #

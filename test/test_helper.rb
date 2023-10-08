@@ -374,4 +374,12 @@ class ActiveSupport::TestCase
     end
     Rails.logger.info "INFO: to read Local test data file: #{ENV['URI_HARAMI1129']}"
   end
+
+  # Get a unique id_remote for Harami1129
+  #
+  # @param *rest [Integer] (Multiple) integer that should be avoided (maybe the previous yet-unsaved outputs of this method)
+  # @return [Integer]
+  def _get_unique_id_remote(*rest)
+    (Harami1129.all.pluck(:id_remote).compact+rest).sort.last.to_i + 1
+  end
 end

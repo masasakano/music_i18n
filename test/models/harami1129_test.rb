@@ -442,7 +442,7 @@ class Harami1129Test < ActiveSupport::TestCase
     assert_raises(RuntimeError){
       Harami1129.create_manual(title: ms, singer: ms, song: ms, release_date: Date.today)}  # making sure they never happen to exist.
 
-    hscorrect = {title: ms, singer: ms, song: ms, release_date: Date.today, link_root: "youtu.be/"+ms, link_time: 777, id_remote: _get_unique_id_remote, last_downloaded_at: DateTime.now}
+    hscorrect = {title: ms, singer: ms, song: ms, release_date: Date.today, link_root: "youtu.be/"+ms, link_time: 777, id_remote: _get_unique_id_remote, last_downloaded_at: DateTime.now}  # defined in test_helper.rb
     assert_equal Integer, Harami1129.create_manual( **hscorrect).id.class
     assert_raises(ActiveRecord::RecordInvalid, "Should fail in unique validation but..."){
                           Harami1129.create_manual!(**hscorrect)}
@@ -451,7 +451,7 @@ class Harami1129Test < ActiveSupport::TestCase
 
   test "insert_populate_true_dryrun" do
     ms = __method__.to_s
-    hscorrect = {title: ms+"t", singer: ms+"a", song: ms+"m", release_date: Date.today, link_root: "youtu.be/"+ms, link_time: 778, id_remote: _get_unique_id_remote, last_downloaded_at: DateTime.now}
+    hscorrect = {title: ms+"t", singer: ms+"a", song: ms+"m", release_date: Date.today, link_root: "youtu.be/"+ms, link_time: 778, id_remote: _get_unique_id_remote, last_downloaded_at: DateTime.now}  # defined in test_helper.rb
     h1129 = Harami1129.create_manual!(**hscorrect)
     assert h1129.valid?
     assert h1129.created_at
@@ -487,7 +487,7 @@ class Harami1129Test < ActiveSupport::TestCase
     end
 
     hsanother.merge!({
-      id_remote: _get_unique_id_remote,
+      id_remote: _get_unique_id_remote,  # defined in test_helper.rb
       title: h1129_ai[:title]+"t",
       link_root: h1129_ai[:link_root]+"2",
       link_time: h1129_ai[:link_time]+1,
@@ -506,10 +506,5 @@ class Harami1129Test < ActiveSupport::TestCase
     assert_equal h1129_ai.engage.music,  hsar2[:Music].first
   end
 
-  private
-
-  def _get_unique_id_remote
-    Harami1129.all.pluck(:id_remote).compact.sort.last.to_i + 1
-  end
 end
 

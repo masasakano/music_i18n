@@ -46,6 +46,10 @@ class Genre < BaseWithTranslation
     @genre_default ||= Genre.all.order(Arel.sql('CASE WHEN genres.weight IS NULL THEN 1 ELSE 0 END, genres.weight')).first  # NULLS LAST (in PostgreSQL)
   end
 
+  # Returns true if self is one of the unknown genre
+  def default?
+    self == self.class.default
+  end
 
   # If allow_nil=true this returns false when other is nil.
   # Else, this returns true when other is nil.

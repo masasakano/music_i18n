@@ -295,7 +295,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
   end
 
   test "update_or_create_ ..." do
-    cj = countries(:japan)
+    #cj = countries(:japan)
     tj = translations(:japan_ja)
     assert_raises(ActiveRecord::RecordInvalid){  # Unique constraint
       p  Country.create_with_orig_translation!({note: 'n1'}, translation: {title: tj.title, langcode: 'ja'}) }
@@ -645,17 +645,222 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     art2.reload
   end
 
+  test "merge_engages" do
+    # cf. test "create_manual"  in harami1129_test.rb
+
+    ## Test of "priority: :self"
+    ActiveRecord::Base.transaction do
+      h1129_prms, assc_prms, hsmdl = _prepare_h1129s1
+      # Sanity checks...
+      assert_equal 2, hsmdl[:engages].map{|em| em ? em.id : nil}.compact.uniq.size, 'Sanity check...'
+      assert_equal hsmdl[:musics][0], hsmdl[:engages][0].music, 'Sanity check.'
+      assert_equal hsmdl[:musics][1], hsmdl[:engages][1].music, 'Sanity check.'
+      assert_equal h1129_prms[:song][0], hsmdl[:engages][0].music.best_translation.title
+      assert_equal h1129_prms[:song][1], hsmdl[:engages][1].music.best_translation.title
+      assert       assc_prms[:mu_year][0], 'Sanity check.'
+      assert_equal assc_prms[:mu_year][0],  hsmdl[:musics][0].year
+      assert_nil   hsmdl[:musics][1].year
+      assert_nil   assc_prms[:mu_genre][0], 'Sanity check.'
+      assert_equal Genre.default,  hsmdl[:musics][0].genre
+      assert_equal assc_prms[:eng_contribution][0], hsmdl[:engages][0].contribution
+
+      # Adjust created_at for Engage to destroy eventually
+      new_time = DateTime.now - 1000
+      hsmdl[:engages][1].update!(created_at: new_time)
+
+      ## merge Engage for Music
+      hsret = hsmdl[:musics][0].send(:_merge_engages, hsmdl[:musics][1], priority: :self)
+
+      assert_equal 2, hsret[:remained].size
+      assert_empty    hsret[:destroy]
+      assert_equal Engage, hsret[:remained].first.class
+      assert_equal 2, hsret[:remained].size
+      assert_equal 0, hsret[:destroy].size
+
+      #assert_equal assc_prms[:mu_genre][1], hsmdl[:musics][0].genre, 'should have been merged.'
+      #assert_equal assc_prms[:mu_place][0], hsmdl[:musics][0].place, 'should stay the same.'
+      hsmdl[:engages][0].reload
+      assert_equal hsmdl[:musics][0],  hsmdl[:engages][0].music
+      assert_equal hsmdl[:artists][0], hsmdl[:engages][0].artist, 'Sanity check.'
+      hsmdl[:engages][1].reload
+      assert_equal hsmdl[:musics][0],  hsmdl[:engages][1].music, 'Engage#music_id should have been merged. eng_id='+hsmdl[:engages].map(&:id).inspect
+      assert_equal hsmdl[:artists][1], hsmdl[:engages][1].artist, 'Sanity check. no change.'
+      assert_equal assc_prms[:eng_contribution][0], hsmdl[:engages][0].contribution
+
+      ## Further, merge Engage for Artist  -- this should merge Engage
+      hsret = hsmdl[:artists][0].send(:_merge_engages, hsmdl[:artists][1], priority: :self)
+
+      assert_equal 2, hsret[:remained].size, "engages="+hsret[:remained].inspect
+      eng_remains = hsret[:remained].select{|i| "Engage" == i.class.name}
+      assert_equal 1, eng_remains.size, "engages="+hsret[:remained].inspect
+      assert_equal 1, hsret[:destroy].size
+
+      assert_equal hsret[:destroy].first.id, hsmdl[:engages][1].id
+      assert_equal  new_time, hsret[:destroy].first.created_at
+      eng_remains.first.reload
+      assert_equal     assc_prms[:eng_contribution][1], eng_remains.first.contribution
+      assert_not_equal assc_prms[:eng_contribution][1], hsmdl[:engages][0].contribution
+      hsmdl[:engages][0].reload
+      assert_equal     assc_prms[:eng_contribution][1], hsmdl[:engages][0].contribution, "Engage#contribution should have changed."
+      assert_equal  new_time, hsmdl[:engages][0].created_at
+
+      hsmdl[:h1129s][1].reload
+      assert_equal  hsmdl[:artists][0], hsmdl[:h1129s][1].engage.artist
+      assert_equal  hsmdl[:musics][0],  hsmdl[:h1129s][1].engage.music
+
+      raise ActiveRecord::Rollback, "Force rollback."
+    end
+
+    ## Test of "priority: :other"
+    ActiveRecord::Base.transaction do
+      h1129_prms, assc_prms, hsmdl = _prepare_h1129s1
+
+      # Adjust year for Engage
+      new_year = 1945
+      hsmdl[:engages][1].update!(year: new_year)
+
+      # Adjust created_at for Engage to destroy eventually
+      new_time = DateTime.now - 1000
+      hsmdl[:engages][1].update!(created_at: new_time)
+
+      ## merge Engage for Music,  priority: :other
+      hsret = hsmdl[:musics][0].send(:_merge_engages, hsmdl[:musics][1], priority: :other)
+
+      assert_equal 2, hsret[:remained].size
+      assert_empty    hsret[:destroy]
+      assert_equal Engage, hsret[:remained].first.class
+      assert_equal 2, hsret[:remained].size
+      assert_equal 0, hsret[:destroy].size
+
+      hsmdl[:engages][0].reload
+      assert_equal hsmdl[:musics][0],  hsmdl[:engages][0].music
+      assert_equal hsmdl[:artists][0], hsmdl[:engages][0].artist, 'Sanity check.'
+      hsmdl[:engages][1].reload
+      assert_equal hsmdl[:musics][0],  hsmdl[:engages][1].music, 'Engage#music_id should have been merged. eng_id='+hsmdl[:engages].map(&:id).inspect
+      assert_equal hsmdl[:artists][1], hsmdl[:engages][1].artist, 'Sanity check. no change.'
+      assert_equal assc_prms[:eng_contribution][0], hsmdl[:engages][0].contribution
+      assert_equal assc_prms[:eng_year][0],         hsmdl[:engages][0].year  # 1994
+
+      ## Further, merge Engage for Artist  -- this should merge Engage
+      hsret = hsmdl[:artists][0].send(:_merge_engages, hsmdl[:artists][1], priority: :other)
+
+      assert_equal 2, hsret[:remained].size, "engages="+hsret[:remained].inspect
+      eng_remains = hsret[:remained].select{|i| "Engage" == i.class.name}
+      assert_equal 1, eng_remains.size, "engages="+hsret[:remained].inspect
+      assert_equal 1, hsret[:destroy].size
+
+      assert_equal hsret[:destroy].first.id, hsmdl[:engages][1].id
+      assert_equal  new_time, hsret[:destroy].first.created_at
+      eng_remains.first.reload
+      assert_equal     assc_prms[:eng_contribution][1], eng_remains.first.contribution
+      assert_not_equal assc_prms[:eng_contribution][1], hsmdl[:engages][0].contribution
+      hsmdl[:engages][0].reload
+      assert_equal     assc_prms[:eng_contribution][1], hsmdl[:engages][0].contribution, "Engage#contribution should have changed."
+      assert_equal  new_year, hsmdl[:engages][0].year  # 1945
+      assert_equal  new_time, hsmdl[:engages][0].created_at
+
+      hsmdl[:h1129s][1].reload
+      assert_equal  hsmdl[:artists][0], hsmdl[:h1129s][1].engage.artist
+      assert_equal  hsmdl[:musics][0],  hsmdl[:h1129s][1].engage.music
+
+      raise ActiveRecord::Rollback, "Force rollback."
+    end
+
+    ## Test of different EngageHow: both Engages should survive.
+    ActiveRecord::Base.transaction do
+      h1129_prms, assc_prms, hsmdl = _prepare_h1129s1
+
+      # Adjust created_at for Engage to destroy eventually
+      new_time = DateTime.now - 1000
+      hsmdl[:engages][1].update!(engage_how: engage_hows(:engage_how_assistant))
+
+      ## RUN: merge Engage for Music
+      hsret = hsmdl[:musics][0].send(:_merge_engages, hsmdl[:musics][1], priority: :self)
+
+      # Sanity check
+      engage_how0_orig = hsmdl[:engages][0].engage_how
+      assert_equal engage_hows(:engage_how_singer_original), engage_how0_orig
+
+      hsmdl[:engages][0].reload
+      assert_equal hsmdl[:musics][0],  hsmdl[:engages][0].music
+      hsmdl[:engages][1].reload
+      assert_equal hsmdl[:musics][0],  hsmdl[:engages][1].music, 'Engage#music_id should have been merged. eng_id='+hsmdl[:engages].map(&:id).inspect
+      assert_equal assc_prms[:eng_contribution][0], hsmdl[:engages][0].contribution
+
+      ## RUN: Further, merge Engage for Artist  -- this still will not merge Engage
+      hsret = hsmdl[:artists][0].send(:_merge_engages, hsmdl[:artists][1], priority: :self)
+
+      assert_equal 2, hsret[:remained].size, "No change in Harami1129 b/c no Engages disappear. engages="+hsret[:remained].inspect
+      eng_remains = hsret[:remained].select{|i| "Engage" == i.class.name}
+      assert_equal 2, eng_remains.size, "engages="+hsret[:remained].inspect
+      assert_equal 0, hsret[:destroy].size
+
+      hsmdl[:engages][0].reload
+      assert_not_equal assc_prms[:eng_contribution][1], hsmdl[:engages][0].contribution, "Engage#contribution should not change."
+      assert_not_equal new_time, hsmdl[:engages][0].created_at
+      assert_equal engage_how0_orig, hsmdl[:engages][0].engage_how
+
+      hsmdl[:h1129s][1].reload
+      assert_equal  hsmdl[:artists][0], hsmdl[:h1129s][1].engage.artist
+      assert_equal  hsmdl[:musics][0],  hsmdl[:h1129s][1].engage.music
+
+      raise ActiveRecord::Rollback, "Force rollback."
+    end
+
+    ## Test of multiple EngageHow: one of them disappear.
+    ActiveRecord::Base.transaction do
+      h1129_prms, assc_prms, hsmdl = _prepare_h1129s1
+
+      # Adjust created_at for Engage to destroy eventually
+      new_time = DateTime.now - 1000
+      hsmdl[:engages][1].update!(created_at: new_time)
+
+      # Adjusts EngageHow. Also adds another Engage
+      # The first two should be merged
+      # Harami1129 that now belong_to the second one should come to belong_to the third one
+      # (because of EngageHow#weight).
+      hsmdl[:engages][0].update!(engage_how: engage_hows(:engage_how_producer))
+      hsmdl[:engages][1].update!(engage_how: engage_hows(:engage_how_producer))
+      hsmdl[:engages][2] = Engage.create!(music: hsmdl[:engages][1].music, artist: hsmdl[:engages][1].artist, engage_how: engage_hows(:engage_how_composer), contribution: 0.4)
+
+      ## RUN: merge Engage for Music
+      hsret = hsmdl[:musics][0].send(:_merge_engages, hsmdl[:musics][1], priority: :self)
+
+      hsmdl[:engages][0].reload
+      assert_equal hsmdl[:musics][0],  hsmdl[:engages][0].music
+      hsmdl[:engages][1].reload
+      assert_equal hsmdl[:musics][0],  hsmdl[:engages][1].music, 'Engage#music_id should have been merged. eng_id='+hsmdl[:engages].map(&:id).inspect
+      assert_equal assc_prms[:eng_contribution][0], hsmdl[:engages][0].contribution
+
+      ## RUN: Further, merge Engage for Artist  -- this still will not merge Engage
+      hsret = hsmdl[:artists][0].send(:_merge_engages, hsmdl[:artists][1], priority: :self)
+
+      assert_equal 3, hsret[:remained].size, "No change in Harami1129 b/c no Engages disappear. engages="+hsret[:remained].inspect
+      eng_remains = hsret[:remained].select{|i| "Engage" == i.class.name}
+      assert_equal 2, eng_remains.size, "engages="+hsret[:remained].inspect
+      assert_equal 1, hsret[:destroy].size
+
+      assert_equal hsmdl[:engages][1].id, hsret[:destroy].first.id
+      hsmdl[:engages][0].reload
+      assert_equal assc_prms[:eng_contribution][1], hsmdl[:engages][0].contribution, "Engage#contribution should be updated."
+      assert_equal new_time, hsmdl[:engages][0].created_at, "created_at should be updated."
+      hsmdl[:h1129s][1].reload
+      assert_equal hsmdl[:engages][2], hsmdl[:h1129s][1].engage, "exp(#{hsmdl[:engages][2].engage_how.title}) <=> act(#{hsmdl[:h1129s][1].engage.engage_how.title})"
+
+      hsmdl[:h1129s][1].reload
+      assert_equal  hsmdl[:artists][0], hsmdl[:h1129s][1].engage.artist
+      assert_equal  hsmdl[:musics][0],  hsmdl[:h1129s][1].engage.music
+
+      raise ActiveRecord::Rollback, "Force rollback."
+    end
+  end
+
   test "merge_other all" do
     iho1 = musics(:music_ihojin1) # year: 1969
     iho2 = musics(:music_ihojin2) # year: 1981
-    m_un = musics(:music_unknown)
 
     iho1_year_orig = iho1.year
     iho2_year_orig = iho2.year
-
-    #puts ""
-    #puts "DEBUG-oj1="+iho1.harami_vid_music_assocs.inspect
-    #puts "DEBUG-oj2="+iho2.harami_vid_music_assocs.inspect
 
     iho1_hvmas_size = iho1.harami_vid_music_assocs.count
     iho2_hvmas_size = iho2.harami_vid_music_assocs.count
@@ -670,7 +875,8 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       iho1.merge_other iho2, priorities: hspri, save_destroy: false
       assert_equal iho1_year_orig, iho1.year, "Test of _merge_overwrite with 'priority: :self'."
       assert_equal iho2_year_orig, iho2.year
-      assert_equal iho1_hvmas_size+iho2_hvmas_size, iho1.ar_assoc[:harami_vid_music_assocs].size, "Failed: #{iho1.ar_assoc[:harami_vid_music_assocs].inspect}"
+      hsarys = iho1.ar_assoc[:harami_vid_music_assocs]
+      assert_equal iho1_hvmas_size+iho2_hvmas_size, hsarys[:remained].size+hsarys[:destroy].size, "Failed: #{iho1.ar_assoc[:harami_vid_music_assocs].inspect}"
       assert_equal iho2.created_at, iho1.created_at, "Test of _merge_created_at"
       assert     Music.exists?(iho2.id)
       raise ActiveRecord::Rollback, "Force rollback."
@@ -715,6 +921,121 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     end
     iho1.reload
     iho2.reload
+  end
+
+  test "merge_other trans-engage" do
+    # cf. test "create_manual"  in harami1129_test.rb
+
+    ActiveRecord::Base.transaction do
+      h1129_prms, assc_prms, hsmdl = _prepare_h1129s1
+      assert_equal Place.unknown, hsmdl[:artists][0].place, 'Sanity check...'
+
+      ActiveRecord::Base.transaction do
+        genre_org = hsmdl[:musics][0].genre
+        hspri = {default: :other, year: :other, note: :other}
+        hsmdl[:musics][0].merge_other(hsmdl[:musics][1], priorities: hspri, save_destroy: true)
+
+        assert_equal assc_prms[:mu_year][0],  hsmdl[:musics][0].year
+#### Check out!
+        hsmdl[:musics][0].reload
+        assert_equal genre_org,               hsmdl[:musics][0].genre
+        raise ActiveRecord::Rollback, "Force rollback."
+      end
+
+      raise ActiveRecord::Rollback, "Force rollback."
+    end
+  end
+
+  private
+
+  # Prepare Array of Harami1129
+  #
+  # @example
+  #   h1129_prms, assc_prms, hsmdl = _prepare_h1129s1
+  #   # hsmdl.keys == %i(h1129s musics artists hvmas engages)
+  #
+  # @return [Array] h1129_prms(Hash(Array[0..1])), assc_prms(Hash(Array[0..1])), hsmdl(Hash(Array[0..1]))
+  def _prepare_h1129s1
+    # cf. test "create_manual"  in harami1129_test.rb
+    h1129_prms = {
+      title:  ["A video 0", "A video 1"],
+      singer: ["OasIs", "OasYs"],
+      song:   ["Digsy's Dinner0", "Digsy's Dinner1"],
+      release_date: [Date.new(2010, 2, 5), Date.new(2011, 3, 6)],
+      link_root:    ["youtu.be/oasis_0", "youtu.be/oasis_1"],
+      link_time:    [nil, 134],
+    }
+    assc_prms = {
+      eng_year: [1994, nil],
+      eng_contribution: [0, 0.9],
+      mu_year:  [1994, nil],
+      mu_genre: [nil, Genre.default],  # Default genre: Pops (nil means unchange, i.e., Pops)  genres(:genre_classic)
+      mu_place: [places(:unknown_place_liverpool_uk),              places(:unknown_place_unknown_prefecture_uk)],
+      mu_note: ['mu-note0', 'mu-note1'],
+      art_sex: [Sex[:male], nil],
+      art_place: [places(:unknown_place_unknown_prefecture_world), places(:unknown_place_unknown_prefecture_uk)],
+      art_birth_year:  [1975, nil],
+      art_birth_month: [nil, 11],
+      art_birth_day:   [nil, nil],
+      art_wiki_en: ["en.wikipedia.org/wiki/Oasis_%28band%29", nil],
+      art_wiki_ja: [nil, nil],
+      art_note: [nil, nil],
+    }
+
+    arprev = []
+    arhsin = (0..1).map{|i|
+      idr = _get_unique_id_remote(*arprev)   # defined in test_helper.rb
+      arprev.push idr
+      hs = {
+        id_remote: idr,
+        last_downloaded_at: DateTime.now-1000,
+      }
+      h1129_prms.each_pair do |ek, ea|
+        hs[ek] = ea[i]
+      end
+      hs
+    }  # Array of Hash
+
+    hsmdl = {
+      h1129s: [],
+      musics:  [],
+      artists: [],
+      hvmas: [],
+      engages: [],
+    }
+      
+    # Create two Harami1129
+    hsmdl[:h1129s] = (0..1).map{|i|
+      Harami1129.create_manual!(**(arhsin[i]))
+    }
+
+    (0..1).each do |i|
+      msg = []
+      hsmdl[:h1129s][i].insert_populate(messages: msg, dryrun: false)
+      # insert_populate_true_dryrun(messages: [], allow_null_engage: true, dryrun: nil)
+    end
+
+    hsmdl[:h1129s].each_with_index do |eh, i|
+      hsmdl[:engages][i] = eh.engage
+      %w(year contribution).each do |es|
+        val = assc_prms[("eng_"+es).to_sym][i]
+        hsmdl[:engages][i].update!(es => val) if val
+      end
+      hsmdl[:musics][i]  = hsmdl[:engages][i].music
+      hsmdl[:artists][i] = hsmdl[:engages][i].artist
+      hsmdl[:hvmas][i] = eh.harami_vid.musics.find(hsmdl[:musics][i].id)
+
+      %w(year genre place note).each do |es|
+        val = assc_prms[("mu_"+es).to_sym][i]
+        hsmdl[:musics][i].update!(es => val) if val
+      end
+      %w(sex place birth_year birth_month birth_day wiki_en wiki_ja note).each do |es|
+        val = assc_prms[("art_"+es).to_sym][i]
+        hsmdl[:artists][i].update!(es => val) if val
+      end
+    end
+
+    [h1129_prms, assc_prms, hsmdl]
   end
 end
 
