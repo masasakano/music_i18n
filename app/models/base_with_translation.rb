@@ -130,9 +130,17 @@
 # One way:
 #
 #   if person.empty?  # no existing (Artist) records.
-#     person = Artist.create_with_translations!(
-#       note: 'Added/updated translations.',
-#       translations: {ja: t_ja, en: t_en, fr: t_fr})   # Collision of a translation is possible.
+#     person1 = Artist.create_with_translation!(
+#        sex: Sex.find(0), note: 'With added/updated translations.',
+#       translation: {title: 'p1-title--jaaa', langcode: 'ja', is_orig: true, weight: 1000})
+#     person2 = Artist.create_with_translations!(
+#       {sex: Sex.find(0), note: 'With added/updated translations.'},
+#       translations: {ja: {title: 'p2-title--jaaa', is_orig: false}, en: {title: 'p2-title--ennn', is_orig: true}})
+#     person3 = Artist.create!(sex: Sex.find(0), note: "My-note").with_translation(title: 'p3-title--jaaa', langcode: 'ja', is_orig: true)
+#     person4 = Artist.create!(sex: Sex.find(0), note: "My-note").with_translations(ja: {title: 'p4-title--jaaa', langcode: 'ja', is_orig: true})
+#     person5 = Artist.new(sex: Sex.find(0), note: 'ABC'};
+#       person5.unsaved_translations << Translation.new(title: 'p5-title--jaaa', langcode: 'ja', is_orig: true);
+#       person5.save!
 #   else  # To edit an existing Artist record.
 #      ActiveRecord::Base.transaction do  # person is not saved if Translation fails to be saved.
 #        person.note = 'Added/updated translations.'
@@ -503,7 +511,7 @@ class BaseWithTranslation < ApplicationRecord
   # similar to {#create_translations!} but returns self) to return {BaseWithTranslation}.
   # Basically the following two are *nearly* equivalent, e.g.,
   #   Music.create_with_translations!(note: 1950, translations: {ja: [{title: 'イマジン'}]})
-  #   Music.create!(note: 1950).with_translations!(ja: [{title: 'イマジン'}])
+  #   Music.create!(note: 1950).with_translations(ja: [{title: 'イマジン'}])
   #
   # If something goes wrong, it raises an Error and the database rolls back
   # so no {BaseWithTranslation} is created (that is the major difference of
@@ -634,7 +642,7 @@ class BaseWithTranslation < ApplicationRecord
   # Basically the following three are *nearly* equivalent, e.g.,
   #   Music.create_with_translations!(note: 1950, translations: {ja: {title: 'イマジン'}})
   #   Music.create_with_translation!( note: 1950, translation:       {title: 'イマジン', langcode: 'ja'})
-  #   Music.create!(note: 1950).with_translation!(title: 'イマジン', langcode: 'ja')
+  #   Music.create!(note: 1950).with_translation(title: 'イマジン', langcode: 'ja')
   #
   # If something goes wrong, the former two raise an Error and the database rolls back
   # so no {BaseWithTranslation} is created, whereas the last one does not
@@ -1972,6 +1980,39 @@ class BaseWithTranslation < ApplicationRecord
   end
   alias_method :original_langcode, :orig_langcode if ! self.method_defined?(:original_langcode)
 
+  # Reset the original langcode
+  #
+  # All the other {Translation#is_orig} becomes false.
+  #
+  # @param langcodearg [String, Symbol, NilClass] Same as the optional argument and has a higher priority.
+  # @param langcode [String, Symbol, NilClass] if nil, the same as the entry of is_orig==TRUE
+  # @return [Translation, NilClass] Original Tanslation. If no Translation is found for the langcode, nil is returned, in which case is_orig of any of {Translation} is not modified at all.
+  def reset_orig_langcode(langcodearg=nil, langcode: nil)  # langcode given both in the main argument and option to be in line with {#titles} etc.
+    langcode = (langcodearg || langcode).to_s
+    raise ArgumentError, "No langcode specified" if !langcode
+
+    origtran = nil
+    best_translations.each_pair do |lcode, trans|
+      if lcode.to_s == langcode
+        trans.update!(is_orig: true)
+        origtran = trans
+        break
+      end
+    end
+
+    if !origtran
+      logger.warn "(#{__FILE__}:#{__method__}) No Translation if found for langcode=#{langcode} for #{self.class.name}: #{self.inspect}"
+      return
+    end
+
+    translations.each do |trans|
+      next if trans == origtran
+      trans.update!(is_orig: false)
+    end
+    origtran
+  end
+  alias_method :reset_is_orig, :reset_orig_langcode if ! self.method_defined?(:reset_is_orig)
+
   # Gets the sorted {Translation}-s of a specific language
   #
   # The highest-rank one (lowest in score) comes first (index=0).
@@ -2076,7 +2117,7 @@ class BaseWithTranslation < ApplicationRecord
   #   to identify the {Translation}. Else {Translation.keys_to_identify} is called
   # @param reload [Boolean] If true (Def), self is reloaded after Creation.
   #   One more DB query is incurred, but recommended!
-  # @param **kwds [Hash<Symbol, Hash, Array<Hash>>] to pass to {Translation}.new
+  # @param **kwds [Hash<Symbol, Hash, Array<Hash>>] to pass to {Translation}.new with keys like :ja and :en
   # @return [Array<Translation>]
   def create_translations!(slim_opts={}, unique_trans_keys=nil, reload: true, **kwds) ## convert_spaces: true, convert_blanks: true, strip: true, trim: true, **kwds)  ###############
     ret = update_or_create_translations_core(:create!, slim_opts, unique_trans_keys, **kwds)
@@ -2357,36 +2398,68 @@ class BaseWithTranslation < ApplicationRecord
   
   # Returns a unique weight
   #
+  # If (:priority == :highest) or (:priority == :high and tra_other.weight is 0),
+  # existing Translations (there should be at most one but there is no validation for it so far)
+  # with weight=0 if any are set in the given Array +to_destroy+.  The caller may destroy them.
+  #
   # @param tra_other [Translation]
   # @param priority: [Symbol] :highest, :high (Def), :low, :lowest in assigning a new weight
-  #          :highest and :lowest guarantee the new weight will be highest/lowest, respectively.
-  #          :high and :low means unless there is a collision in weight, you leave it.
-  def get_unique_weight(tra_other, priority: :high)
-    sorted_tras = nil
-    loop {
-      # Maybe there is a collision in weight.
-      sorted_tras = Translation.sort(translations.where(langcode: tra_other.langcode), consider_is_orig: false)
+  #    :highest and :lowest guarantee the new weight will be lowest/highest, respectively
+  #    (NOTE: when +priority+ is high, +weight+ is low!  So it is reversed).
+  #    :high and :low means unless there is a collision in weight, you leave it;
+  #    otherwise the returned weight is shifted slightly.
+  # @param to_destroy: [Array] For returning. Existing Translations with weight=0 if (:priority is :highest or :high). They are set.
+  # @return [Float] unique weight
+  def get_unique_weight(tra_other, priority: :high, to_destroy: [])
+    weight_def = Role::DEF_WEIGHT.values.max
+    weight_t = tra_other.weight 
 
-      # For is_orig, if there is a Translation of weight=0, it must be destroyed.
-      break if !(sorted_tras.exists? && sorted_tras.first.weight <= 0 && %i(highest high).include?(priority))
-      sorted_tras.first.destroy
-    }
+    # Maybe there is a collision in weight.
+    sorted_tras = Translation.sort(translations.where(langcode: tra_other.langcode), consider_is_orig: false)
 
-    ## returns a new weight
-    if %i(lowest low).include?(priority) && sorted_tras.pluck(:weight).compact.select{|i| i != Float::INFINITY}.include?(tra_other.weight)
-      # No conflict (:high or :low only, because :highest/:lowest likely needs a new one)
-      tra_other.weight 
-    else
+    if (:highest == priority || (:high == priority && weight_t && weight_t <= 0)) && (origs = sorted_tras.where('weight <= 0')).exists?
+      to_destroy.concat origs
+      return 0
+    end
+
+    # there should be no nil, as Translation#weight should be always defined.
+    # uniq is necessary to eliminate multiple Float::INFINITY
+    arweight = sorted_tras.pluck(:weight).compact.uniq
+
+    case priority
+    when :high, :low
+      index = arweight.find_index(weight_t)
+      return weight_t if !index  # There is no existing weight that agrees with
+
       case priority
-      when :highest, :high
-        weight_cand = (sorted_tras.empty? ? 100   : (sorted_tras.first.weight || 200).abs.quo(2))
-        [(tra_other.weight || Float::INFINITY), weight_cand].min
-      when :lowest, :low
-        weight_cand = (sorted_tras.empty? ? 10000 : (sorted_tras.last.weight || Float::INFINITY).abs*2)
-        [(tra_other.weight || Float::INFINITY), weight_cand].max
-      else
-        raise
+      when :high
+        if 0 == index 
+          if Float::INFINITY == weight_t
+            weight_def  # If only the existing weight is Infinity and my weight is also Infinity.
+          else
+            weight_t.quo(2)
+          end
+        elsif Float::INFINITY == weight_t
+          arweight[index-1]*2 # ==arweight[-2]*2  # twice as the largest existing weight except Infinity.
+        else
+          (arweight[index]+arweight[index-1]).quo(2)
+        end
+      when :low
+        if arweight.size - 1 == index 
+          weight_t*2 
+        else
+          (Float::INFINITY == arweight[index+1]) ? arweight[index]*2 : (arweight[index]+arweight[index+1]).quo(2)
+        end
       end
+    when :highest
+      weight_cand = (arweight.empty? ? weight_def    : (arweight[0] || weight_def*2).abs.quo(2))
+      weight_cand = weight_def if Float::INFINITY == weight_cand
+      [(weight_t || Float::INFINITY), weight_cand].min
+    when :lowest
+      weight_cand = (arweight.empty? ? weight_def*10 : (arweight[-1] || Float::INFINITY).abs*2)
+      [(weight_t || Float::INFINITY), weight_cand].max
+    else
+      raise
     end
   end
 
@@ -2594,7 +2667,12 @@ class BaseWithTranslation < ApplicationRecord
 
     (tra_orig, tra_other) = transs
     if transs.map(&:langcode).uniq.size != 1 # langcode-s are different
-      return _reassign_translation(tra_orig, priority: :highest, force: true)
+      if tra_orig.translatable == self
+        # Basically does nothing.
+        return {remained: [tra_orig], destroy: []}
+      else
+        return _reassign_translation(tra_orig, priority: :highest, force: true)
+      end 
     end
 
     # langcode-s are common
@@ -2606,9 +2684,13 @@ class BaseWithTranslation < ApplicationRecord
     end
 
     tra_other.destroy  # has to be destroyed before the new one is assigned.
-    reths = _reassign_translation(tra_orig, priority: :highest, force: true)
-    reths[:destroy].push tra_other
-    return reths
+    if tra_orig.translatable == self
+      return {remained: [tra_orig], destroy: [tra_other]}
+    else
+      reths = _reassign_translation(tra_orig, priority: :highest, force: true)
+      reths[:destroy].push tra_other
+      return reths
+    end
   end
   private :_merge_lang_orig
 
@@ -2632,9 +2714,13 @@ class BaseWithTranslation < ApplicationRecord
     (self.translations.pluck(:langcode)+other.translations.pluck(:langcode)).uniq.each do |lcode|
       artrans = Translation.sort(translations.where(langcode: lcode), consider_is_orig: false)
 
-      prev = nil
       artrans.each_with_index do |etra, ind|  # etra: Each_TRAnslation
-        hs = _reassign_translation(etra, priority: prio)
+        hs =
+          if etra.translatable == self
+            {remained: [etra], destroy: []}
+          else
+            _reassign_translation(etra, priority: prio)
+          end
         reths[:remained].concat hs[:remained]
         reths[:destroy ].concat hs[:destroy]
       end
@@ -2817,7 +2903,7 @@ class BaseWithTranslation < ApplicationRecord
   def _prioritized_models(other, priority, caller_method)
     #raise "(#{caller_method}) Wrong other (#{other.inspect}). Contact the code developer." if self.class != other.class
     raise "(#{caller_method}) Wrong priority (#{priority.inspect}). Contact the code developer." if ![:self, :other].include?(priority)
-    return ((:other == priority) ? [other, self] :[self, other])
+    return ((:other == priority) ? [other, self] : [self, other])
   end
 
 
@@ -2831,17 +2917,23 @@ class BaseWithTranslation < ApplicationRecord
   #     Else, if the first attempt to save tra_other fails, tra_other is destroyed.
   # @return [Hash<Array<Engage>>, NilClass] nil only if it is not Music/Artist; else {remain: [Engage...], destroy: [...]}
   def _reassign_translation(tra_other, priority: :high, force: false)
+    destroyed_first = []
     tra_other.translatable_id = self.id
-    tra_other.weight = get_unique_weight(tra_other, priority: priority)
+    tra_other.weight = get_unique_weight(tra_other, priority: priority, to_destroy: destroyed_first)
+
+    # destroyed_first was set above only when they have to be destroyed before self.save!
+    destroyed_first.each do |et|
+      et.destroy
+    end
 
     if tra_other.valid?
       tra_other.save!  # may raise an Error, if validation misses a DB-level validation and if it fails at DB.
-      return {remained: [tra_other], destroy: []}
+      return {remained: [tra_other], destroy: destroyed_first}
     end
 
     if !force
       # tra_other.destroy  # Destroy tra_other  --- it will be cascade-destroyed.
-      return {remained: [], destroy: [tra_other]}
+      return {remained: [], destroy: destroyed_first+[tra_other]}
     end
 
     # Now, Translation validation has failed maybe because, such as, a (title, alt_title) combination already exists.
@@ -2858,7 +2950,7 @@ class BaseWithTranslation < ApplicationRecord
       etra.destroy  # Destroy one of self.translations
       if tra_other.valid?
         tra_other.save!  # may raise an Error, if validation misses a DB-level validation and if it fails at DB.
-        return {remained: [tra_other], destroy: destroyed}
+        return {remained: [tra_other], destroy: destroyed_first+destroyed}
       end
     end
     logger.error "ERROR: (#{__FILE__}:#{__method__}) tra_other=#{tra_other.inspect} self.translations=#{translations.inspect}"

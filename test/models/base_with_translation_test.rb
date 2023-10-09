@@ -532,6 +532,218 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_equal "fr",         france.title_or_alt(langcode: "ja").lcode
   end
 
+  test "get_unique_weight" do
+    # For Artist, Sex is mandatory. As long as birth_year or place differ, identical Translation-s are allowed.
+    tras_orig = [
+      [
+       Translation.new(title: "b0", is_orig: true,  langcode: "en", weight: 0),
+       Translation.new(title: "b1", is_orig: true,  langcode: "en", weight: 0),  # This may fail in validate in future.
+       Translation.new(title: "b2", is_orig: false, langcode: "en", weight: 98),
+       Translation.new(title: "b3", is_orig: false, langcode: "en", weight: 104),
+       Translation.new(title: "b4", is_orig: false, langcode: "en", weight: 1104),
+       Translation.new(title: "b5", is_orig: false, langcode: "en", weight: Float::INFINITY),
+       Translation.new(title: "b6", is_orig: false, langcode: "en", weight: Float::INFINITY),
+       Translation.new(title: "b7", is_orig: false, langcode: "en", weight: nil),
+       Translation.new(title: "f0", is_orig: false, langcode: "fr", weight: 700),  # to ensure there is at least 1 Translation remaining
+      ].shuffle,  # the order is deliberately mixed up.
+      [Translation.new(title: "x1", is_orig: false, langcode: "en")]
+    ]
+    art0 = Artist.new(sex: Sex[0], birth_year: 1999)
+    art0.unsaved_translations = tras_orig[0]
+    art0.save!  # See a comment above for potential future failure in validate
+    art1 = Artist.new(sex: Sex[1], birth_year: 2000)
+    art1.unsaved_translations = tras_orig[1]
+    art1.save!
+
+    assert_equal 9, art0.translations.count, 'Sanity check.'
+    assert_equal 8, art0.translations.where(langcode: "en").count, 'Sanity check.'
+    assert_equal 2, art0.translations.where(weight: 0).count, 'Sanity check.'
+    assert_equal 3, art0.translations.where(weight: Float::INFINITY).count  # weight==nil => Float::INFINITY
+
+    weight_def = Role::DEF_WEIGHT.values.max  # see get_unique_weight (base_with_translation.rb)
+
+    trao = art1.best_translation("en")
+    assert_equal Float::INFINITY, trao.weight  # weight==nil => Float::INFINITY
+
+    trao.update!(weight: Float::INFINITY)  # redundant
+    assert_equal Float::INFINITY, art0.get_unique_weight(trao, priority: :lowest)
+    assert_equal Float::INFINITY, art0.get_unique_weight(trao, priority: :low)
+    assert_equal 2208, art0.get_unique_weight(trao, priority: :high)
+    assert_equal    0, art0.get_unique_weight(trao, priority: :highest)
+
+    trao.update!(weight: 2000)
+    assert_equal Float::INFINITY, art0.get_unique_weight(trao, priority: :lowest)
+    assert_equal 2000, art0.get_unique_weight(trao, priority: :low)
+    assert_equal 2000, art0.get_unique_weight(trao, priority: :high)
+
+    trao.update!(weight: 1104)
+    assert_equal 2208, art0.get_unique_weight(trao, priority: :low)
+    assert_equal  604, art0.get_unique_weight(trao, priority: :high)
+
+    trao.update!(weight: 1000)
+    assert_equal 1000, art0.get_unique_weight(trao, priority: :low)
+    assert_equal 1000, art0.get_unique_weight(trao, priority: :high)
+
+    trao.update!(weight: 104)
+    assert_equal  604, art0.get_unique_weight(trao, priority: :low)
+    assert_equal  101, art0.get_unique_weight(trao, priority: :high)
+
+    artra = []
+    assert_equal  0, art0.get_unique_weight(trao, priority: :highest,  to_destroy: artra)
+    assert_equal  2, artra.size  # Two Trans-weight=0 are destroyed.
+    assert_equal  0, artra[-1].weight
+
+    artra = []
+    trao.update!(weight: 0)  # for :high
+    assert_equal  0, art0.get_unique_weight(trao, priority: :high,   to_destroy: artra)
+    assert_equal  2, artra.size  # Two Trans-weight=0 are destroyed.
+    assert_equal  0, artra[-1].weight
+
+    art0.translations.where(weight: 0, langcode: "en").each do |et|
+      et.destroy
+    end
+    art0.reload
+    assert_equal  7, art0.translations.count, "should have decreased by 2."
+
+    trao.update!(weight: 50)
+    artra = []
+    assert_equal 50, art0.get_unique_weight(trao, priority: :low,     to_destroy: artra)
+    assert_equal 50, art0.get_unique_weight(trao, priority: :high,    to_destroy: artra)
+    assert      [49, 50].include?(art0.get_unique_weight(trao, priority: :highest, to_destroy: artra))
+    assert_empty artra
+
+    trao.update!(weight: 98)
+    assert_equal 101, art0.get_unique_weight(trao, priority: :low,   )
+    assert_equal  49, art0.get_unique_weight(trao, priority: :high,  )
+    assert_equal  49, art0.get_unique_weight(trao, priority: :highest)
+    assert_empty artra
+
+    ## In the existing, no Infinity, no 0, but normal weights only
+    art0.translations.where(weight: Float::INFINITY, langcode: "en").each do |et|
+      et.destroy
+    end
+    art0.reload
+    assert_equal  4, art0.translations.count, "should have decreased by 3."
+
+    trao.update!(weight: 1104)
+    assert_equal 2208, art0.get_unique_weight(trao, priority: :lowest)
+    assert_equal 2208, art0.get_unique_weight(trao, priority: :low)
+    assert_equal  604, art0.get_unique_weight(trao, priority: :high,  )
+    assert_equal   49, art0.get_unique_weight(trao, priority: :highest)
+
+    trao.update!(weight: 1500)
+    assert_equal 2208, art0.get_unique_weight(trao, priority: :lowest)
+    assert_equal 1500, art0.get_unique_weight(trao, priority: :low)
+    assert_equal 1500, art0.get_unique_weight(trao, priority: :high,  )
+    assert_equal   49, art0.get_unique_weight(trao, priority: :highest)
+
+    ## only the existing weight is Infinity (for 2 Translations)
+    tmp_tras = art0.translations.where(langcode: "en")
+    tmp_tras[1..].each do |et|
+      et.destroy
+    end
+    tmp_tras = art0.translations.where(langcode: "en")  # Without this, FrozenError would be raised below.
+    tmp_tras[0..1].each do |et|
+      et.update!(weight: Float::INFINITY)  # only the existing weight is Infinity (for 2 Translations)
+    end
+    art0.reload
+
+    trao.update!(weight: Float::INFINITY)
+    assert_equal Float::INFINITY, art0.get_unique_weight(trao, priority: :lowest)
+    assert_equal Float::INFINITY, art0.get_unique_weight(trao, priority: :low)
+    assert_equal weight_def, art0.get_unique_weight(trao, priority: :high)
+    assert_equal weight_def, art0.get_unique_weight(trao, priority: :highest)
+
+    tmp_tras[0..1].each do |et|
+      et.destroy # no existing Translation (for the langcode)
+    end
+    assert_not art0.translations.where(langcode: "en").exists?, 'Sanity check'
+
+    trao.update!(weight: Float::INFINITY)
+    assert_equal Float::INFINITY, art0.get_unique_weight(trao, priority: :lowest)
+    assert_equal Float::INFINITY, art0.get_unique_weight(trao, priority: :low)
+    assert_equal Float::INFINITY, art0.get_unique_weight(trao, priority: :high)
+    assert_equal weight_def,    art0.get_unique_weight(trao, priority: :highest)
+
+    trao.update!(weight: 88)
+    assert_equal weight_def*10, art0.get_unique_weight(trao, priority: :lowest)
+    assert_equal 88, art0.get_unique_weight(trao, priority: :low)
+    assert_equal 88, art0.get_unique_weight(trao, priority: :high)
+    assert_equal 88, art0.get_unique_weight(trao, priority: :highest)
+  end  # test "get_unique_weight" do
+
+  def _prepare_artists_with_trans
+    # For Artist, Sex is mandatory. As long as birth_year or place differ, identical Translation-s are allowed.
+    tras = [
+      {ja: Translation.new(title: "何か000",         is_orig: false, langcode: "ja"),
+       en: Translation.new(title: "Something000",    is_orig: true,  langcode: "en")},
+      {ja: Translation.new(title: "何か001",         is_orig: false, langcode: "ja"),
+       en: Translation.new(title: "Something001",    is_orig: true,  langcode: "en"),
+       fr: Translation.new(title: "Quelquechose001", is_orig: false, langcode: "fr")}
+    ]
+    art0 = Artist.new(sex: Sex[0], birth_year: 1999)
+    art0.unsaved_translations = tras[0].values
+    art0.save!
+    art1 = Artist.new(sex: Sex[1], birth_year: 2000)
+    art1.unsaved_translations = tras[1].values
+    art1.save!
+
+    art0_org = art0.dup
+    art0.reload
+    art1_org = art1.dup
+    art1.reload
+
+    [art0, art1, tras]
+  end
+
+  test "merge_orig_tr" do
+    ## Test of "priority: :self". Both have is_orig=true(en)
+    ActiveRecord::Base.transaction do
+      art0, art1, tras = _prepare_artists_with_trans
+      assert_equal 2, art0.translations.size
+      assert_equal 3, art1.translations.size
+      assert_equal 1, art1.translations.where(langcode: "en").count
+      assert_equal Float::INFINITY, art0.orig_translation.weight  # nil weight is automatically reset at Infinity
+
+      art0.send(:_merge_lang_orig, art1, priority: :self)
+
+      art0.reload
+      art1.reload
+      assert_equal 2, art0.translations.size  # only orig-translation is transferred.
+      assert_equal 2, art1.translations.size, "Should have decreased by 1, becoming 3-1=2"
+      assert_equal 0, art1.translations.where(langcode: "en").count
+      assert_equal tras[0][:en].title, art0.orig_translation.title
+      assert_equal Float::INFINITY, art0.orig_translation.weight
+      assert_nil                       art1.orig_translation  # orig_translation has been transferred and disappeared.
+
+      raise ActiveRecord::Rollback, "Force rollback."
+    end
+
+    ## Test of "priority: :self". art0:(ja)is_orig), art1:(en)is_orig
+    ActiveRecord::Base.transaction do
+      art0, art1, tras = _prepare_artists_with_trans
+      art0.reset_orig_langcode("ja")
+
+      assert_equal 2, art0.translations.size
+      assert_equal 3, art1.translations.size
+      assert_equal 1, art1.translations.where(langcode: "en").count
+      assert_equal Float::INFINITY, art0.orig_translation.weight  # nil weight is automatically reset at Infinity
+
+      art0.send(:_merge_lang_orig, art1, priority: :self)
+
+      art0.reload
+      art1.reload
+      assert_equal 2, art0.translations.size  # only orig-translation is transferred.
+      assert_equal 3, art1.translations.size, "No change"
+      assert_equal 1, art1.translations.where(langcode: "en").count
+      assert_equal tras[0][:ja].title, art0.orig_translation.title
+      assert_equal Float::INFINITY, art0.orig_translation.weight
+      assert                           art1.orig_translation  # orig_translation has unchanged.
+
+      raise ActiveRecord::Rollback, "Force rollback."
+    end
+  end
+
   test "merge_other overwrite, note, created_at" do
     iho1 = musics(:music_ihojin1) # year: 1969
     iho2 = musics(:music_ihojin2) # year: 1981
