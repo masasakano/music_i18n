@@ -676,10 +676,10 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     # For Artist, Sex is mandatory. As long as birth_year or place differ, identical Translation-s are allowed.
     tras = [
       {ja: Translation.new(title: "何か000",         is_orig: false, langcode: "ja"),
-       en: Translation.new(title: "Something000",    is_orig: true,  langcode: "en")},
+       en: Translation.new(title: "Something000",    is_orig: true,  langcode: "en")}.with_indifferent_access,
       {ja: Translation.new(title: "何か001",         is_orig: false, langcode: "ja"),
        en: Translation.new(title: "Something001",    is_orig: true,  langcode: "en"),
-       fr: Translation.new(title: "Quelquechose001", is_orig: false, langcode: "fr")}
+       fr: Translation.new(title: "Quelquechose001", is_orig: false, langcode: "fr")}.with_indifferent_access
     ]
     art0 = Artist.new(sex: Sex[0], birth_year: 1999)
     art0.unsaved_translations = tras[0].values
@@ -696,10 +696,12 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     [art0, art1, tras]
   end
 
-  test "merge_orig_tr" do
-    ## Test of "priority: :self". Both have is_orig=true(en)
+  test "_merge_lang_orig" do
+    ## Test of "priority: :self". Both have identical ja&en, is_orig=true(en)
     ActiveRecord::Base.transaction do
       art0, art1, tras = _prepare_artists_with_trans
+      art1.best_translation("fr").update!(is_orig: nil)
+      assert_equal 1, art1.translations.where(is_orig: nil).count
       assert_equal 2, art0.translations.size
       assert_equal 3, art1.translations.size
       assert_equal 1, art1.translations.where(langcode: "en").count
@@ -711,23 +713,50 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       art1.reload
       assert_equal 2, art0.translations.size  # only orig-translation is transferred.
       assert_equal 2, art1.translations.size, "Should have decreased by 1, becoming 3-1=2"
-      assert_equal 0, art1.translations.where(langcode: "en").count
+      assert_equal 0, art1.translations.where(langcode: "en").count  # en in art1 has disappeared.
       assert_equal tras[0][:en].title, art0.orig_translation.title
       assert_equal Float::INFINITY, art0.orig_translation.weight
-      assert_nil                       art1.orig_translation  # orig_translation has been transferred and disappeared.
+      assert_nil                       art1.orig_translation  # en translation (orig_translation) in art1 has disappeared.
+      assert_empty    art1.translations.where(is_orig: nil)
 
       raise ActiveRecord::Rollback, "Force rollback."
     end
 
-    ## Test of "priority: :self". art0:(ja)is_orig), art1:(en)is_orig
+    ## Same as above but for "priority: :other".
     ActiveRecord::Base.transaction do
       art0, art1, tras = _prepare_artists_with_trans
+      art1.best_translation("fr").update!(is_orig: nil)
+      tras0_ids = tras.map{|i| i[:en].id}  # English(is_orig=true) translation IDs
+
+      art0.send(:_merge_lang_orig, art1, priority: :other)
+
+      art0.reload
+      art1.reload
+      assert_equal false, Translation.exists?(tras0_ids[0]), "The original translation in self should have disappeared b/c of priority=:other."
+      assert_equal tras0_ids[1], art0.orig_translation.id
+      assert_equal 2, art0.translations.size, "Though the original EN has disappeared, a new one is transferred from other (is_rig=true)"  # only orig-translation is transferred.
+      assert_equal 2, art1.translations.size, "Should have decreased by 1, becoming 3-1=2"
+      assert_equal 0, art1.translations.where(langcode: "en").count  # en in art1 has disappeared (transferred).
+      assert_equal tras[1][:en].title, art0.orig_translation.title, "orig-trans should have been transferred"
+      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset"  # See get_unique_weight() for the number (where priority==:highest is given, because of orig_translation): = 100000
+      assert_nil                       art1.orig_translation  # en translation (orig_translation) in art1 has disappeared.
+      assert_empty    art1.translations.where(is_orig: nil)
+
+      raise ActiveRecord::Rollback, "Force rollback."
+    end
+
+    ## Test of "priority: :self". art0:(ja)is_orig, art1:(en)is_orig, different ja&en
+    ActiveRecord::Base.transaction do
+      art0, art1, tras = _prepare_artists_with_trans
+      art1.best_translation("fr").update!(is_orig: nil)
       art0.reset_orig_langcode("ja")
+      art1_orig_tr = art1.orig_translation 
 
       assert_equal 2, art0.translations.size
       assert_equal 3, art1.translations.size
       assert_equal 1, art1.translations.where(langcode: "en").count
       assert_equal Float::INFINITY, art0.orig_translation.weight  # nil weight is automatically reset at Infinity
+      assert_equal true, art1_orig_tr.is_orig
 
       art0.send(:_merge_lang_orig, art1, priority: :self)
 
@@ -738,11 +767,128 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_equal 1, art1.translations.where(langcode: "en").count
       assert_equal tras[0][:ja].title, art0.orig_translation.title
       assert_equal Float::INFINITY, art0.orig_translation.weight
-      assert                           art1.orig_translation  # orig_translation has unchanged.
+      assert_nil                       art1.orig_translation  # is_orig becomes false.
+      art1_orig_tr.reload
+      assert_equal false,  art1_orig_tr.is_orig
+      assert_empty    art1.translations.where(is_orig: nil)
 
       raise ActiveRecord::Rollback, "Force rollback."
     end
   end
+
+  test "_merge_lang_orig2" do
+
+    ## Same as above but for "priority: :other".
+    ActiveRecord::Base.transaction do
+      art0, art1, tras = _prepare_artists_with_trans
+      art1.best_translation("fr").update!(is_orig: nil)
+      art0.reset_orig_langcode("ja")
+
+      art0.send(:_merge_lang_orig, art1, priority: :other)
+
+      art0.reload
+      art1.reload
+      assert_equal 3, art0.translations.size, "Should have increased by 1"
+      assert_equal 2, art1.translations.size, "Should have decreased by 1, becoming 3-1=2"
+      assert_equal 0, art1.translations.where(langcode: "en").count
+      assert_equal 1, art0.translations.where(is_orig: true).count
+      assert_equal tras[1][:en].title, art0.orig_translation.title, "inspect="+art0.translations.where(is_orig: true).inspect
+      assert_equal false, art0.best_translations[:ja].is_orig
+      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset"  # See above
+      assert_nil                       art1.orig_translation  # orig_translation should have disappeared
+      assert_empty    art1.translations.where(is_orig: nil)
+
+      raise ActiveRecord::Rollback, "Force rollback."
+    end
+
+    ## Test where none has is_orig=true
+    ActiveRecord::Base.transaction do
+      art0, art1, tras = _prepare_artists_with_trans
+      art0.translations.update_all(is_orig: false)
+      art1.translations.update_all(is_orig: false)
+      art1.best_translation("fr").update!(is_orig: nil)
+
+      ret = art0.send(:_merge_lang_orig, art1, priority: :other)
+
+      art0.reload
+      art1.reload
+      assert_empty    ret.values.flatten.compact
+      assert_empty    art0.translations.where(is_orig: true)
+      assert_empty    art1.translations.where(is_orig: nil)
+
+      raise ActiveRecord::Rollback, "Force rollback."
+    end
+
+    ## Test of "priority: :self". self has no is_orig=true but other has. :other has multiple is_orig=true (it is uncertain which of the is_orig=true Translations is selected; the following test takes it into account).
+    ActiveRecord::Base.transaction do
+      art0, art1, tras = _prepare_artists_with_trans
+      art0.translations.update_all(is_orig: false)
+      art1.best_translation("fr").update!(is_orig: nil)
+      art1.orig_translation.update!(weight: 67)
+      art1.with_translation(langcode: "en", title: "Something011", is_orig: true, weight: 89)
+      art1.reload
+      assert_equal 1, art1.translations.where(is_orig: nil).count
+      assert_equal 2, art0.translations.size
+      assert_equal 4, art1.translations.size
+      assert_equal 2, art1.translations.where(langcode: "en").count
+      assert_equal 1, art0.translations.where(langcode: "en").count
+      assert_equal 0, art0.translations.where(is_orig: true).count
+
+      art0.send(:_merge_lang_orig, art1, priority: :self)
+
+      art0.reload
+      art1.reload
+      assert_equal 3, art0.translations.size  # 2+1
+      assert_equal 3, art1.translations.size, "Should have decreased by 1, becoming 4-1=2"
+      assert_equal 1, art1.translations.where(langcode: "en").count  # An en in art1 has disappeared.
+      assert([tras[1][:en].title, "Something011"].include?(art0.orig_translation.title))  # It is uncertain which Translation is selected, the original is_orig=true one or a new duplicate.
+      assert([67, 89].include?(art0.orig_translation.weight))
+      assert_equal 2, art0.translations.where(langcode: "en").count
+      assert_equal 1, art0.translations.where(is_orig: true).count
+      assert_nil                       art1.orig_translation  # en translation (orig_translation) in art1 has disappeared.
+      assert_empty    art1.translations.where.not(is_orig: false)
+
+      raise ActiveRecord::Rollback, "Force rollback."
+    end
+
+    ## Test of "priority: :other". self has is_orig=true for ja&en and other has it for two en. (it is uncertain which of the is_orig=true Translations is selected; the following test takes it into account).
+    ## In base_with_translation.rb: "# Condition: Both have orig && langcode-s differ && priority==:other"
+    ActiveRecord::Base.transaction do
+      art0, art1, tras = _prepare_artists_with_trans
+      art0.best_translations["ja"].update!(is_orig: true)
+      art0.best_translations["en"].update!(is_orig: true)
+      art1.best_translation("fr").update!(is_orig: nil)
+      art1.orig_translation.update!(weight: 67)  # :en
+      art1.with_translation(langcode: "en", title: "Something011", is_orig: true, weight: 89)
+
+      ## Sanity checks
+      art0.reload
+      art1.reload
+      assert_equal 1, art1.translations.where(is_orig: nil).count
+      assert_equal 2, art0.translations.size
+      assert_equal 4, art1.translations.size
+      assert_equal 2, art1.translations.where(langcode: "en").count
+      assert_equal 1, art0.translations.where(langcode: "en").count
+      assert_equal 2, art0.translations.where(is_orig: true).count
+
+      # Run
+      art0.send(:_merge_lang_orig, art1, priority: :other)
+
+      art0.reload
+      art1.reload
+#      assert_equal 3, art0.translations.size, "art0.trans="+art0.translations.inspect   # 2+1
+      assert_equal 3, art1.translations.size, "Should have decreased by 1, becoming 4-1=2"
+      assert_equal 1, art1.translations.where(langcode: "en").count  # An en in art1 has disappeared.
+      assert([tras[1][:en].title, "Something011"].include?(art0.orig_translation.title))  # It is uncertain which Translation is selected, the original is_orig=true one or a new duplicate.
+      assert([67, 89].include?(art0.orig_translation.weight))
+#      assert_equal 2, art0.translations.where(langcode: "en").count
+      assert_equal 1, art0.translations.where(is_orig: true).count
+      assert_nil                       art1.orig_translation  # en translation-s (orig_translation) in art1 have disappeared.
+      assert_empty    art1.translations.where.not(is_orig: false)
+
+      raise ActiveRecord::Rollback, "Force rollback."
+    end
+  end  # test "_merge_lang_orig" do
 
   test "merge_other overwrite, note, created_at" do
     iho1 = musics(:music_ihojin1) # year: 1969

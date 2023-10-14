@@ -1961,6 +1961,9 @@ class BaseWithTranslation < ApplicationRecord
 
   # Gets the original {Translation}, meaning the original word(s)
   #
+  # In the case (which should never happen) of multiple Translations having is_orig=true,
+  # a single arbitrary one among them is returned.
+  #
   # @example to get the language of the original word
   #   obj.orig_translation.langcode  # => 'ja'
   #   # == obj.orig_langcode
@@ -1982,12 +1985,19 @@ class BaseWithTranslation < ApplicationRecord
 
   # Reset the original langcode
   #
+  # If there are multiple candidates for the given langcode, that of the best (=lowest)
+  # weight is chosen.  To eliminate the uncertainty, give a {Translation} as the 1st arg.
+  #
   # All the other {Translation#is_orig} becomes false.
   #
-  # @param langcodearg [String, Symbol, NilClass] Same as the optional argument and has a higher priority.
+  # @param langcodearg [Translation, String, Symbol, NilClass] Orig Translation. Alternatively, same as the optional argument and has a higher priority.
   # @param langcode [String, Symbol, NilClass] if nil, the same as the entry of is_orig==TRUE
-  # @return [Translation, NilClass] Original Tanslation. If no Translation is found for the langcode, nil is returned, in which case is_orig of any of {Translation} is not modified at all.
-  def reset_orig_langcode(langcodearg=nil, langcode: nil)  # langcode given both in the main argument and option to be in line with {#titles} etc.
+  # @param to_nil: [Symbol] If true (Def: false), is_orig in any of them is nil. In some method, "orig_valid" is the opposit option name.
+  # @return [Translation, NilClass] Original Tanslation. If to_nil==true, nil is returned. Or, if no Translation is found for the langcode, nil is returned, in which case is_orig of any of {Translation} is not modified at all. Or, if 
+  def reset_orig_langcode(langcodearg=nil, langcode: nil, to_nil: false)  # langcode given both in the main argument and option to be in line with {#titles} etc.
+    return  reset_orig_langcode_to_nil if to_nil
+    return _reset_orig_langcode_to_trans(langcodearg) if langcodearg.respond_to?(:is_orig)
+
     langcode = (langcodearg || langcode).to_s
     raise ArgumentError, "No langcode specified" if !langcode
 
@@ -2005,13 +2015,68 @@ class BaseWithTranslation < ApplicationRecord
       return
     end
 
-    translations.each do |trans|
-      next if trans == origtran
-      trans.update!(is_orig: false)
-    end
-    origtran
+    _reset_orig_langcode_to_trans(origtran, set_true: false)
   end
   alias_method :reset_is_orig, :reset_orig_langcode if ! self.method_defined?(:reset_is_orig)
+
+  # Reset orig_langcode to nil (or false if specified so) for all {#translations}
+  #
+  # @param to_value [NilClass, FalseClass] is_orig is set to either nil (Def) or false.
+  # @return [NilClass]
+  def reset_orig_langcode_to_nil(to_value: nil)
+    translations.update_all(is_orig: to_value)
+    return
+  end
+
+  # Reset orig_langcode to the given {Translation}
+  #
+  # @param origtran [Translation] Translation whose is_orig is (going to be) set true.
+  # @param set_true: [Boolean] if true (Def), is_orig is set true. False can be specified just to avoid the unnecessary update action.
+  # @return [Translation] Original Tanslation.
+  def _reset_orig_langcode_to_trans(origtran, set_true: true)
+    translations.where.not(id: origtran).update!(is_orig: false)
+    origtran.update!(is_orig: true) if !set_true
+    origtran
+  end
+  private :_reset_orig_langcode_to_trans
+
+  # Reset orig_langcode for both self and other
+  #
+  # Wrapper method for internal use.
+  #
+  # @param other [BaseWithTranslation]
+  # @param trans [Translation] original one
+  # @param priority: [Symbol] eithr :self or :other
+  # @return [void]
+  def _reset_orig_langcode_self_other(other, trans, priority: )
+    raise if ![:self, :other].include? priority
+    case priority 
+    when :self
+        reset_orig_langcode(trans)  # In case there are multiple Translations of is_orig=true for a single BaseWithTranslation, i.e., self.
+        other.reset_orig_langcode_to_nil(to_value: false)
+    when :other
+        reset_orig_langcode_to_nil(to_value: false)
+        other.reset_orig_langcode(trans)
+    else
+      raise
+    end
+  end
+  private :_reset_orig_langcode_self_other
+
+
+  # Reset orig_langcode for both self and other and also reassign orig to self
+  #
+  # Wrapper method for internal use.
+  #
+  # @param other [BaseWithTranslation]
+  # @param trans [Translation] original one
+  # @param priority: [Symbol] eithr :self or :other
+  # @return [Hash<Array<Engage>>, NilClass] nil only if it is not Music/Artist; else {remain: [Engage...], destroy: [...]}
+  def _reset_reassign_orig_langcode_self_other(other, trans, priority: )
+    _reset_orig_langcode_self_other(other, trans, priority: priority)
+    _reassign_translation(trans, priority: :highest, force: true)
+  end
+  private :_reset_reassign_orig_langcode_self_other
 
   # Gets the sorted {Translation}-s of a specific language
   #
@@ -2638,41 +2703,53 @@ class BaseWithTranslation < ApplicationRecord
   #
   # 1. If the languages are the same, the unselected one is deleted (title, alt_title, and all).
   #    1. However, if the unselected one has both `title` and `alt_title`, and the selected one has only `title`, the `alt_title` is transferred to `alt_title` of the selected one.
-  # 2. If the languages are different, the unselected one is ignored.
+  # 2. If the languages are different, the unselected one is ignored, except its is_orig is set false
+  #
+  # If there are multiple is_orig=true, those except for the true one are set false.
   #
   # @param other [BaseWithTranslation] of the same class as self
   # @param priority: [Symbol] (:self(Def)|:other)
-  # @param orig_valid: [Symbol] If false, is_orig in any of them is nil.
+  # @param orig_valid: [Symbol] If false (Def: true), is_orig in any of them is nil.
   # @return [Hash<Array<Engage>>, NilClass] nil only if it is not Music/Artist; else {remain: [Engage...], destroy: [...]}
   def _merge_lang_orig(other, priority: :self, orig_valid: true)
+    reset_orig_langcode_to_nil if !orig_valid
     transs = _prioritized_models(other, priority, __method__).map(&:orig_translation).compact
-    raise if transs.size > 2  # play safe
 
     case transs.size
     when 0   # None has is_orig=true
+      if orig_valid
+        reset_orig_langcode_to_nil(to_value: false)
+        other.reset_orig_langcode_to_nil(to_value: false)
+      end
       return {remained: [], destroy: []}
     when 1   # Only one of them has is_orig=true
       tra_orig = transs.first
-      tra_orig.is_orig = nil if !orig_valid
-      raise "Contact the code developer (translatalbe mismatch)." if tra_orig.translatalbe.class != self.class
+      raise "Contact the code developer (translatable mismatch)." if tra_orig.translatable.class != self.class
       if tra_orig.translatable == self  # self.orig_translation is the only one with is_orig==true
-        tra_orig.save! if tra_orig.changed?
-        return {remained: [tra_orig], destroy: []} if tra_orig.translatable == self  # self.orig_translation is the only one with is_orig==true
+        _reset_orig_langcode_self_other(other, tra_orig, priority: :self)
+        return {remained: [tra_orig], destroy: []}
       end
-      return _reassign_translation(tra_orig, priority: :highest, force: true)
+      return _reset_reassign_orig_langcode_self_other(other, tra_orig, priority: :other)
+    when 2
+      # skip
+    else
+      raise  # this should never happen as orig_translation() should return a single Translation
     end
 
     # Both have orig_translation
-    raise "Contact the code developer (translatalbe mismatch: #{transs.map(&:translatable_type).inspect})." if transs.map(&:translatable_type).uniq.size > 1
+    raise "Contact the code developer (translatable_type mismatch: #{transs.map(&:translatable_type).inspect})." if transs.map(&:translatable_type).uniq.size > 1
 
-    (tra_orig, tra_other) = transs
+    (tra_orig, tra_other) = transs  # tra_orig is the new original Translation (it may belong to self or other!)
+
     if transs.map(&:langcode).uniq.size != 1 # langcode-s are different
       if tra_orig.translatable == self
-        # Basically does nothing.
+        # Basically does nothing but adjusts is_orig .
+        _reset_orig_langcode_self_other(other, tra_orig, priority: :self)
         return {remained: [tra_orig], destroy: []}
       else
-        return _reassign_translation(tra_orig, priority: :highest, force: true)
-      end 
+        # Condition: Both have orig && langcode-s differ && priority==:other
+        return _reset_reassign_orig_langcode_self_other(other, tra_orig, priority: :other)
+      end
     end
 
     # langcode-s are common
@@ -2685,9 +2762,10 @@ class BaseWithTranslation < ApplicationRecord
 
     tra_other.destroy  # has to be destroyed before the new one is assigned.
     if tra_orig.translatable == self
+      _reset_orig_langcode_self_other(other, tra_orig, priority: :self)
       return {remained: [tra_orig], destroy: [tra_other]}
     else
-      reths = _reassign_translation(tra_orig, priority: :highest, force: true)
+      reths = _reset_reassign_orig_langcode_self_other(other, tra_orig, priority: :other)
       reths[:destroy].push tra_other
       return reths
     end
