@@ -708,7 +708,7 @@ module ModuleCommon
     record = find_or_initialize_by(**unique_opts)
 
     err = nil
-    ActiveRecord::Base.transaction do
+    ActiveRecord::Base.transaction(requires_new: true) do
       begin
         if !new_opts.empty?
           begin

@@ -142,7 +142,7 @@
 #       person5.unsaved_translations << Translation.new(title: 'p5-title--jaaa', langcode: 'ja', is_orig: true);
 #       person5.save!
 #   else  # To edit an existing Artist record.
-#      ActiveRecord::Base.transaction do  # person is not saved if Translation fails to be saved.
+#      ActiveRecord::Base.transaction(requires_new: true) do  # person is not saved if Translation fails to be saved.
 #        person.note = 'Added/updated translations.'
 #        person.save!
 #
@@ -165,7 +165,7 @@
 # Another way:
 #
 #    trans = {ja: t_ja, en: t_en, fr: t_fr}
-#    ActiveRecord::Base.transaction do  # person is not saved if Translation fails to be saved.
+#    ActiveRecord::Base.transaction(requires_new: true) do  # person is not saved if Translation fails to be saved.
 #      person.note = 'Added/updated translations.'
 #      person.save!.with_updated_translations(trans)
 #      ## or
@@ -791,7 +791,7 @@ class BaseWithTranslation < ApplicationRecord
 
     obj = nil
     method = ('with_' + (updated ? 'updated_' : '') + 'translations').to_sym
-    ActiveRecord::Base.transaction do
+    ActiveRecord::Base.transaction(requires_new: true) do  # "requires_new" option necessary for testing.
       obj, msg_opts2pass =
         if updated && !existings.empty? 
           # logger.info "(#{__FILE__}:#{__method__}) for update: hsmain=#{hsmain.inspect}, mainkeys=#{mainkeys}" if updating_cols.empty?
@@ -1081,8 +1081,6 @@ class BaseWithTranslation < ApplicationRecord
       **(mainprms.merge(prms_to_find).merge(opts))
     ).first || self.new
 
-#print "DEBUG:base:m:";p mainprms
-#print "DEBUG:base:p:";p prms_to_find
     mainprms.each_pair do |ek, ev|
       begin
         model.send(ek.to_s+'=', ev) if model.send(ek).blank?  # if the existing is null
@@ -2541,12 +2539,13 @@ class BaseWithTranslation < ApplicationRecord
   # @param save_destroy: [Boolean] If true (Def), self is saved and the other is destroyed. If one fails, it rollbacks.
   # @return [self]
   def merge_other(other, priorities: {}, save_destroy: true)
-    ActiveRecord::Base.transaction do
+    ActiveRecord::Base.transaction(requires_new: true) do  # "requires_new" option necessary for testing.
       instance_variable_set( :@ar_assoc, {})
       define_singleton_method(:ar_assoc){@ar_assoc} if !respond_to?(:ar_assoc)  # self.ar_assoc => Hash<harami_vid_music_assocs: Array|nil>
 
-      _merge_lang_orig( other, priority: (priorities[:lang_orig]  || priorities[:default]))
-      _merge_lang_trans(other, priority: (priorities[:lang_trans] || priorities[:default]))
+      _merge_trans(other, priority_orig: (priorities[:lang_orig]  || priorities[:default]), priority_others: (priorities[:lang_trans] || priorities[:default])) # , orig_valid: true)
+      #_merge_lang_orig( other, priority: (priorities[:lang_orig]  || priorities[:default]))
+      #_merge_lang_trans(other, priority: (priorities[:lang_trans] || priorities[:default]))
       _merge_engages(   other, priority: (priorities[:engages]  || priorities[:default]))  # updates Harami1129#engage_id, too
       _merge_birthday(  other, priority: (priorities[:birthday] || priorities[:default]))
       %i(prefecture_place genre year sex wiki_en wiki_ja).each do |metho| 
@@ -2758,6 +2757,7 @@ class BaseWithTranslation < ApplicationRecord
       tra_orig.alt_title = tra_other.alt_title
       _append_note!(tra_orig, tra_other)
       tra_orig.created_at = _older_created_at(tra_orig, tra_other)
+tra_orig.save!
     end
 
     tra_other.destroy  # has to be destroyed before the new one is assigned.
@@ -2780,27 +2780,47 @@ class BaseWithTranslation < ApplicationRecord
   # must be adjusted before merging multiple {Translation}, that is,
   # unifying their parent into one {BaseWithTranslation}.
   #
+  # This ignores any Translation with is_orig=true. So,
   # {#_merge_lang_orig} should be called before this method, though technically not mandatory.
   #
   # @param other [BaseWithTranslation] of the same class as self
   # @param priority: [Symbol] (:self(Def)|:other)
   # @param orig_valid: [Symbol] If false, is_orig in any of them is nil.
-  # @return [Hash<Array<Engage>>, NilClass] nil only if it is not Music/Artist; else {remain: [Engage...], destroy: [...]}
+  # @return [Hash<Array<Engage>>, NilClass] nil only if it is not Music/Artist; else {remained: [Engage...], destroy: [...]}
   def _merge_lang_trans(other, priority: :self, orig_valid: true)
     prio = ((:self == priority) ? :low : :high)
-    reths = {remained: [], destroy: []}
+    reths = {remained: [], destroy: [], errors: []}
     (self.translations.pluck(:langcode)+other.translations.pluck(:langcode)).uniq.each do |lcode|
-      artrans = Translation.sort(translations.where(langcode: lcode), consider_is_orig: false)
+      artrans_self  = Translation.sort(translations.where(langcode: lcode))
+      artrans_other = Translation.sort(other.translations.where(langcode: lcode))
+      artrans = ((:self == priority) ? artrans_self+artrans_other : artrans_other+artrans_self)
 
       artrans.each_with_index do |etra, ind|  # etra: Each_TRAnslation
-        hs =
-          if etra.translatable == self
-            {remained: [etra], destroy: []}
+        next if etra.is_orig  # ignores any Translation with is_orig=true
+        if etra.translatable == self
+          hscand = {remained: [], destroy: []}
+          hscand[:remained] << etra if Translation.exists?(etra.id)  # Only if it is present; the Translation may have already been destroyed (in order to add a conflicting one from other). Note "etra.present?" is affected by cache and so is unsuitable.
+        else
+          if (hscand = _attempt_add_other_trans(etra, prio: prio, other_comes_first: (:other == priority)))
+            # skip
           else
-            _reassign_translation(etra, priority: prio)
+            hscand = nil
+            translations.where(langcode: etra.langcode).where.not(is_orig: true).each do |etra_self|
+              hscand = _attempt_add_other_trans(etra, tra_self: etra_self, prio: prio, other_comes_first: (:other == priority))
+              break if hscand
+            end
           end
-        reths[:remained].concat hs[:remained]
-        reths[:destroy ].concat hs[:destroy]
+        end
+
+        if hscand
+          reths[:remained].concat hscand[:remained]
+          reths[:destroy ].concat hscand[:destroy]
+        else
+          # All attempts to try to add a Translation to self have failed.
+          # This would happen when other's candidate (is_orig=false) is (almost) identical to self's is_orig=true.
+          reths[:destroy ].push etra
+          reths[:errors].push sprintf("Translation (%s|%s) (ID=%d) failed to be merged probably because of the original language constraint.", etra.title, etra.alt_title, etra.id)
+        end
       end
     end
 
@@ -2810,6 +2830,52 @@ class BaseWithTranslation < ApplicationRecord
     reths
   end
   private :_merge_lang_trans
+
+  # core routine to attempt to add a Translation from other to self
+  #
+  # If other_comes_first is false (Default) and if it fails, other is included in :destroy Array in the returned Hash.
+  #
+  # If not, a Translation for self is destroyed first (if specified), and adding a new one (from other) is attempted.
+  # If successful, return the standard Hash(:remained, :destroy), else nil.
+  #
+  # @param other_comes_first: [Boolean] If true, a Translation in self is attempeted to be destroeyd, before a new one is added
+  # @return [Hash, NilClass]
+  def _attempt_add_other_trans(tra_other, tra_self: nil, prio: :low, other_comes_first: false)
+    hsret = nil
+    ActiveRecord::Base.transaction(requires_new: true) do  # "requires_new" option necessary for testing; otherwise testing would not properly handle rollbacks. Also, don't return from inside the transaction as it would rollback!
+      tra_self.destroy if tra_self && other_comes_first
+      hsret = _reassign_translation(tra_other, priority: prio, force: false)
+      if !other_comes_first
+        # Skip  # Don't return from inside Transactino.
+      elsif !hsret[:destroy].include? tra_other
+        hsret[:destroy].push(tra_self.destroy) if tra_self
+      else
+        hsret = nil
+        raise ActiveRecord::Rollback, "Force rollback."  # failed to add the Translation.
+      end
+    end
+    return hsret if hsret
+
+    tra_self.reload if tra_self
+    nil
+  end
+  private :_attempt_add_other_trans
+
+  # Merge Translations from other to self (both original-language and others)
+  #
+  # @param other [BaseWithTranslation] of the same class as self
+  # @param priority_orig: [Symbol] (:self(Def)|:other)
+  # @param priority_others: [Symbol] (:self(Def)|:other)
+  # @param orig_valid: [Symbol] If false, is_orig in any of them is nil.
+  # @return [Hash<Array<Engage>>, NilClass] nil only if it is not Music/Artist; else {remained: [Engage...], destroy: [...]}
+  #    Also, it contains the key :original with the value of the original Translation if any.
+  #    The same Translation is also contained in the :remained Array.
+  def _merge_trans(other, priority_orig: :self, priority_others: :self, orig_valid: true)
+    reths_orig   = _merge_lang_orig(other, priority: priority_orig, orig_valid: orig_valid)
+    reths_others = _merge_lang_trans(other, priority: priority_others)
+    reths_orig.merge(reths_others).merge({original: reths_orig[:remained].first})
+  end
+  private :_merge_trans
 
 
   # merging Engage, handling Harami1129s, where Engage-s may be merged or possibly just one of them is modified (like music_id).
