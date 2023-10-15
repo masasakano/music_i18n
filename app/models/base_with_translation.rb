@@ -1988,7 +1988,7 @@ class BaseWithTranslation < ApplicationRecord
   #
   # All the other {Translation#is_orig} becomes false.
   #
-  # @param langcodearg [Translation, String, Symbol, NilClass] Orig Translation. Alternatively, same as the optional argument and has a higher priority.
+  # @param langcodearg [Translation, String, Symbol, NilClass] Translation to become Original. Alternatively, same as the optional argument and has a higher priority.
   # @param langcode [String, Symbol, NilClass] if nil, the same as the entry of is_orig==TRUE
   # @param to_nil: [Symbol] If true (Def: false), is_orig in any of them is nil. In some method, "orig_valid" is the opposit option name.
   # @return [Translation, NilClass] Original Tanslation. If to_nil==true, nil is returned. Or, if no Translation is found for the langcode, nil is returned, in which case is_orig of any of {Translation} is not modified at all. Or, if 
@@ -2534,53 +2534,122 @@ class BaseWithTranslation < ApplicationRecord
   #
   # originally exited in app/controllers/base_merges_controller.rb
   #
+  # == Returned Hash
+  #
+  #   trans:  Hash{remained: [Translation...], destroy: [Translation...], original: Translation}
+  #     n.b., remained Array includes the original-Translation, too.
+  #   engage: Hash{remained: [Engage...],      destroy: [Engage...]}
+  #   bday3s: Hash{birth_year: Integer, birth_month: Integer, birth_day: Integer}
+  #     n.b., Missing Birthday part in one is ALWAYS supplemented by the other if there is any.
+  #     e.g., (Y,M,S)=(1999,nil,3)&(2000,5,nil) => (1999,5,3) or (2000,5,3)
+  #   prefecture_place: Place
+  #   genre: Genre
+  #   year: Integer
+  #   sex: Sex
+  #   wiki_en: String
+  #   wiki_ja: String
+  #   harami_vid_music_assocs: Hash{remained: [HaramiVidMusicAssocs...], destroy: [HaramiVidMusicAssocs...], n_destroyed: Integer}
+  #   note: String
+  #   created_at: DateTime(?)
+  #   destroyed: Array[Model, ...]
+  #
+  # If (save_destroy: true), all :destroy Arrays should be empty and instead :destroyed contain destroyed Models.
+  # If (save_destroy: false), :destroy Arrays contain Models to be destroyed AND those that have been already destroyed. The :destroyed Array should be empty.
+  #
+  # @example Standard execution (in one go)
+  #    ActiveRecord::Base.transaction(requires_new: true) do
+  #      hsret = music_to_merge.merge_other(other, priorities: {default: :other, lang_orig: :other}, save_destroy: true)
+  #      # => self is updated. other is destroyed.
+  #    end
+  #
+  # @example separate execution (watch out for "other")
+  #    ActiveRecord::Base.transaction(requires_new: true) do
+  #      hsret = music_to_merge.merge_other(other, priorities: {default: :other, lang_orig: :other}, save_destroy: false)
+  #      # ...
+  #      music_to_merge.merge_save_destroy(hsret[:other], hsret)
+  #    end
+  #
   # @param other [BaseWithTranslation] of the same class
   # @param priorities: [Hash<Symbol => Symbol>] e.g., :year => :other (or :self). A key may be :default
   # @param save_destroy: [Boolean] If true (Def), self is saved and the other is destroyed. If one fails, it rollbacks.
-  # @return [self]
+  # @return [Hash<Object, Hash<Array, Integer>>] See above.
   def merge_other(other, priorities: {}, save_destroy: true)
+    hsmodel = {}
     ActiveRecord::Base.transaction(requires_new: true) do  # "requires_new" option necessary for testing.
-      instance_variable_set( :@ar_assoc, {})
-      define_singleton_method(:ar_assoc){@ar_assoc} if !respond_to?(:ar_assoc)  # self.ar_assoc => Hash<harami_vid_music_assocs: Array|nil>
-
-      _merge_trans(other, priority_orig: (priorities[:lang_orig]  || priorities[:default]), priority_others: (priorities[:lang_trans] || priorities[:default])) # , orig_valid: true)
-      #_merge_lang_orig( other, priority: (priorities[:lang_orig]  || priorities[:default]))
-      #_merge_lang_trans(other, priority: (priorities[:lang_trans] || priorities[:default]))
-      _merge_engages(   other, priority: (priorities[:engages]  || priorities[:default]))  # updates Harami1129#engage_id, too
-      _merge_birthday(  other, priority: (priorities[:birthday] || priorities[:default]))
+      hsmodel[:trans]  = _merge_trans(other, priority_orig: (priorities[:lang_orig]  || priorities[:default]), priority_others: (priorities[:lang_trans] || priorities[:default])) # , orig_valid: true)
+      hsmodel[:engage] = _merge_engages(   other, priority: (priorities[:engages]  || priorities[:default]))  # updates Harami1129#engage_id, too
+      hsmodel[:bday3s] = _merge_birthday(  other, priority: (priorities[:birthday] || priorities[:default]))
       %i(prefecture_place genre year sex wiki_en wiki_ja).each do |metho| 
-        next if !priorities.has_key?(metho)
-        _merge_overwrite(other, metho, priority: (priorities[metho] || priorities[:default]))
+        #next if !priorities.has_key?(metho)
+        hsmodel[metho] = _merge_overwrite(other, metho, priority: (priorities[metho] || priorities[:default]))
       end
-      self.ar_assoc[:harami_vid_music_assocs] = 
+      hsmodel[:harami_vid_music_assocs] = 
         _merge_harami_vid_music_assocs(other, priority: (priorities[:harami_vid_music_assocs] || priorities[:default]))
-      _merge_note(other, priority: (priorities[:note] || priorities[:default]))
-      _merge_created_at(other)
+      hsmodel[:note]   = _merge_note(other, priority: (priorities[:note] || priorities[:default]))
+      hsmodel[:created_at] = _merge_created_at(other)
 
+      hsmodel[:destroyed] ||= []
+      hsmodel[:other] = other
       if save_destroy
-        merge_save_destroy(other)
+        hsmodel = merge_save_destroy(other, hsmodel)
       end
     end
-    self
+    _uniq_hsmodel!(hsmodel)
   end
+
+  # run unique for child/grand-child components
+  #
+  # @param hsmodel [Hash]
+  # @return [Hash]
+  def _uniq_hsmodel!(hsmodel)
+    hsmodel.each_value do |ev1|
+      if ev1.respond_to? :uniq!
+        ev1.uniq!
+      elsif ev1.respond_to? :each_value
+        ev1.each_value do |ev2|
+          if ev2.respond_to? :uniq!
+            ev2.uniq!
+          end
+        end
+      end
+    end
+    hsmodel
+  end
+  private :_uniq_hsmodel!
 
   # Save&Destroy for #{merge_other}
   #
   # @param other [BaseWithTranslation] of the same class
+  # @param hsmodel [Hash] See merge_other for description
   # @return [self]
-  def merge_save_destroy(other)
+  def merge_save_destroy(other, hsmodel)
+    # HaramiVidMusicAssocs
     self.save!
-    ar_assoc[:harami_vid_music_assocs][:destroy].each do |mdl|
-      mdl.destroy
+    if hsmodel[:harami_vid_music_assocs] && hsmodel[:harami_vid_music_assocs].respond_to?(:keys)
+      hsmodel[:harami_vid_music_assocs][:destroy].each do |mdl|
+        # This is probably not needed... cascade-destroyed?
+        hsmodel[:destroyed] << mdl
+        mdl.destroy
+      end
+      hsmodel[:harami_vid_music_assocs][:n_destroyed] = hsmodel[:harami_vid_music_assocs][:destroy].size
+      hsmodel[:harami_vid_music_assocs][:destroy] = []  # reset
     end
 
-    self.ar_assoc[:harami_vid_music_assocs] = {
-      remained:    ar_assoc[:harami_vid_music_assocs][:remain],
-      n_destroyed: ar_assoc[:harami_vid_music_assocs][:destroy].size,
-      destroy: []
-    }
+    # Engage
+    if hsmodel[:engage] && hsmodel[:engage].respond_to?(:keys)
+      hsmodel[:destroyed].concat hsmodel[:engage][:destroy]  # This should be cascade-destroyed.
+      hsmodel[:engage][:destroy] = []  # reset
+    end
+
+    # Translation
+    hsmodel[:destroyed].concat hsmodel[:trans][:destroy]  # This should be cascade-destroyed.  Some of them should have been already destroyed anyway!
+    hsmodel[:trans][:destroy] = []  # reset
+
     other.reload
     other.destroy
+    hsmodel[:other] = other
+    hsmodel[:destroyed] << other
+    hsmodel
   end
 
   # Overwrite a simple attribute of model, according to the priority, unless it is nil (in which case the other is used).
@@ -2597,7 +2666,7 @@ class BaseWithTranslation < ApplicationRecord
   # @param priority: [Symbol] (:self(Def)|:other)
   # @return [Object] the updated value (like Place)
   def _merge_overwrite(other, metho, priority: :self)
-    attrstr = ((metho == :prefecture_place) ? :place_id : metho).to_s
+    attrstr = ((metho == :prefecture_place) ? :place : metho).to_s
     return if !respond_to?(attrstr)
     raise "Should not happen Contact the code developer." if !other.respond_to?(attrstr)
     #attrstr += "_id" if respond_to?(attrstr+"_id")  # eg., Uses sex_id instead of "sex"
@@ -2614,9 +2683,9 @@ class BaseWithTranslation < ApplicationRecord
         -1
       elsif a.respond_to?(:encompass_strictly?) && a.encompass_strictly?(b)
         # This has to come before checking unknown? b/c Place has many unknown-s.
-        -1
-      elsif b.respond_to?(:encompass_strictly?) && b.encompass_strictly?(a)
         1
+      elsif b.respond_to?(:encompass_strictly?) && b.encompass_strictly?(a)
+        -1
       elsif a.respond_to?(:unknown?) && a.unknown?
         (b.respond_to?(:unknown?) && b.unknown?) ? 0 : 1
       elsif b.respond_to?(:unknown?) && b.unknown?
@@ -2630,13 +2699,6 @@ class BaseWithTranslation < ApplicationRecord
       end
     }.compact
     send(attrstr+"=", contents.first)
-
-    #_prioritized_models(other, priority, __method__).each do |mdl|
-    #  content = mdl.send(attrstr)
-    #  next if content.blank?  # Never overwritten with a blank value.
-    #  return send(attrstr+"=", content)
-    #end
-    #return send(attrstr)
   end
   private :_merge_overwrite
 
@@ -2644,7 +2706,8 @@ class BaseWithTranslation < ApplicationRecord
   # Overwrite/merge the Birthday-related columns of the model.
   #
   # If one of them misses birth_year and if the other has one,
-  # then the significant one is adopted.
+  # then the significant one is adopted;
+  # e.g., (Y,M,S)=(1999,nil,3)&(2000,5,nil) => (1999,5,3) or (2000,5,3)
   #
   # @param other [BaseWithTranslation] of the same class as self
   # @param priority: [Symbol] (:self(Def)|:other)
@@ -2658,7 +2721,7 @@ class BaseWithTranslation < ApplicationRecord
       bday_attrs.each do |attrsym|
         bday3s[attrsym] ||= mdl.send(attrsym)
         next if bday3s[attrsym].blank?
-        send(attrsym.to_s+"=", bday3s[attrsym])
+        send(attrsym.to_s+"=", bday3s[attrsym])  # self.birth_year(etc) may be overwritten (before the next loop)
       end
     end
 
@@ -2709,7 +2772,7 @@ class BaseWithTranslation < ApplicationRecord
   # @param other [BaseWithTranslation] of the same class as self
   # @param priority: [Symbol] (:self(Def)|:other)
   # @param orig_valid: [Symbol] If false (Def: true), is_orig in any of them is nil.
-  # @return [Hash<Array<Engage>>, NilClass] nil only if it is not Music/Artist; else {remain: [Engage...], destroy: [...]}
+  # @return [Hash<Array<Translation>>, NilClass] nil only if it is not Music/Artist; else {remain: [Translation...], destroy: [...]}
   def _merge_lang_orig(other, priority: :self, orig_valid: true)
     reset_orig_langcode_to_nil if !orig_valid
     transs = _prioritized_models(other, priority, __method__).map(&:orig_translation).compact
@@ -2786,7 +2849,7 @@ tra_orig.save!
   # @param other [BaseWithTranslation] of the same class as self
   # @param priority: [Symbol] (:self(Def)|:other)
   # @param orig_valid: [Symbol] If false, is_orig in any of them is nil.
-  # @return [Hash<Array<Engage>>, NilClass] nil only if it is not Music/Artist; else {remained: [Engage...], destroy: [...]}
+  # @return [Hash<Array<Translation>>, NilClass] nil only if it is not Music/Artist; else {remained: [Translation...], destroy: [...]}
   def _merge_lang_trans(other, priority: :self, orig_valid: true)
     prio = ((:self == priority) ? :low : :high)
     reths = {remained: [], destroy: [], errors: []}
@@ -2839,7 +2902,7 @@ tra_orig.save!
   # If successful, return the standard Hash(:remained, :destroy), else nil.
   #
   # @param other_comes_first: [Boolean] If true, a Translation in self is attempeted to be destroeyd, before a new one is added
-  # @return [Hash, NilClass]
+  # @return [Hash<Array<Translation>>, NilClass] nil only if it is not Music/Artist; else {remained: [Translation...], destroy: [...]}
   def _attempt_add_other_trans(tra_other, tra_self: nil, prio: :low, other_comes_first: false)
     hsret = nil
     ActiveRecord::Base.transaction(requires_new: true) do  # "requires_new" option necessary for testing; otherwise testing would not properly handle rollbacks. Also, don't return from inside the transaction as it would rollback!
@@ -2867,16 +2930,33 @@ tra_orig.save!
   # @param priority_orig: [Symbol] (:self(Def)|:other)
   # @param priority_others: [Symbol] (:self(Def)|:other)
   # @param orig_valid: [Symbol] If false, is_orig in any of them is nil.
-  # @return [Hash<Array<Engage>>, NilClass] nil only if it is not Music/Artist; else {remained: [Engage...], destroy: [...]}
+  # @return [Hash<Array<Translation>>, NilClass] nil only if it is not Music/Artist; else {remained: [Translation...], destroy: [...], original: Translation}
   #    Also, it contains the key :original with the value of the original Translation if any.
   #    The same Translation is also contained in the :remained Array.
   def _merge_trans(other, priority_orig: :self, priority_others: :self, orig_valid: true)
     reths_orig   = _merge_lang_orig(other, priority: priority_orig, orig_valid: orig_valid)
     reths_others = _merge_lang_trans(other, priority: priority_others)
-    reths_orig.merge(reths_others).merge({original: reths_orig[:remained].first})
+    _hash_array_merge(reths_orig, reths_others).merge({original: reths_orig[:remained].first})
   end
   private :_merge_trans
 
+  # Returns a merged Hash of two Hash of Arrays. The values have to be Arrays.
+  #
+  # @param hs1 [Hash]
+  # @param hs2 [Hash]
+  # @return [Hash]
+  def _hash_array_merge(hs1, hs2)
+    hsret = hs1.merge({})
+    (hs1.keys + hs2.keys).each do |ek|
+      if hsret[ek]
+        hsret[ek].concat hs2[ek]
+      else
+        hsret[ek] = hs2[ek]
+      end
+    end
+    hsret
+  end
+  private :_hash_array_merge
 
   # merging Engage, handling Harami1129s, where Engage-s may be merged or possibly just one of them is modified (like music_id).
   #
@@ -2906,7 +2986,7 @@ tra_orig.save!
   #
   # @param other [BaseWithTranslation] of the same class as self. This method makes sense only for Music/Artist (not Harami1129)
   # @param priority: [Symbol] (:self(Def)|:other)
-  # @return [Hash<Array<Engage>>, NilClass] nil only if it is not Music/Artist; else {remain: [Engage...], destroy: [...]}
+  # @return [Hash<Array<Engage>>, NilClass] nil only if it is not Music/Artist; else {remained: [Engage...], destroy: [...]}
   def _merge_engages(other, priority: :self)
     return if !respond_to?(:engages)
     raise "Should not happen Contact the code developer." if !other.respond_to?(:engages)
@@ -2985,7 +3065,7 @@ tra_orig.save!
   #
   # @param other [BaseWithTranslation] of the same class as self. This method makes sense only for Music and HaramiVid
   # @param priority: [Symbol] (:self(Def)|:other)
-  # @return [Hash<Array<HaramiVidMusicAssoc>>, NilClass] nil only if it is not Music/HaramiVid; else {remain: [HaramiVidMusicAssoc...], to_destroy: [...]}
+  # @return [Hash<Array<HaramiVidMusicAssoc>>, NilClass] nil only if it is not Music/HaramiVid; else {remained: [HaramiVidMusicAssoc...], destroy: [...]}
   def _merge_harami_vid_music_assocs(other, priority: :self)
     return if !respond_to?(:harami_vid_music_assocs)
     raise "Should not happen Contact the code developer." if !other.respond_to?(:harami_vid_music_assocs)

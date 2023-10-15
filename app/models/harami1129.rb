@@ -308,6 +308,10 @@ class Harami1129 < ApplicationRecord
 
   belongs_to :harami_vid, optional: true
   belongs_to :engage,     optional: true
+  # NOTE: There are technically two ways to get Music (but use the former!):
+  #   * self.engage.music
+  #   * self.harami_vid_music_assoc.music
+  # where the latter internally calls the former (and therefore must be consistent with the former).
 
   validate :at_least_one_entry
   validates_uniqueness_of     :link_root, scope:     :link_time, allow_nil: true
@@ -317,6 +321,16 @@ class Harami1129 < ApplicationRecord
   validates_numericality_of :id_remote, greater_than: 0, allow_nil: false
   validates                 :last_downloaded_at, presence: true
   validates_uniqueness_of   :id_remote, scope: :last_downloaded_at
+
+  # Get HaramiVidMusicAssoc
+  #
+  # @todo This calls SQL twice.
+  #
+  # @return [HaramiVidMusicAssoc, NilClass] nil if this is not Music or has no HaramiVid associated.
+  def harami_vid_music_assoc
+    harami_vid.harami_vid_music_assocs.where(music: engage.music).first
+  end
+
 
   # Manual version of {#Harmai1129.create} to make sure all the necessary columns are specified
   #

@@ -797,7 +797,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_equal 1, art0.translations.where(is_orig: true).count
       assert_equal tras[1][:en].title, art0.orig_translation.title, "inspect="+art0.translations.where(is_orig: true).inspect
       assert_equal false, art0.best_translations[:ja].is_orig
-      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset"  # See above
+      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset.  For some reason, this sometimes fails but only sometimes....."  # See above
       assert_nil                       art1.orig_translation  # orig_translation should have disappeared
       assert_empty    art1.translations.where(is_orig: nil)
 
@@ -849,7 +849,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_equal 3, art1.translations.size, "Should have decreased by 1, becoming 4-1=2"
       assert_equal 1, art1.translations.where(langcode: "en").count  # An en in art1 has disappeared.
       assert([tras[1][:en].title, "Something011"].include?(art0.orig_translation.title))  # It is uncertain which Translation is selected, the original is_orig=true one or a new duplicate.
-      assert([67, 89].include?(art0.orig_translation.weight))
+      assert([67, 89].include?(art0.orig_translation.weight), "For some reason, this sometimes fails but only sometimes.....")
       assert_equal 2, art0.translations.where(langcode: "en").count
       assert_equal 1, art0.translations.where(is_orig: true).count
       assert_nil                       art1.orig_translation  # en translation (orig_translation) in art1 has disappeared.
@@ -1457,11 +1457,11 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     ActiveRecord::Base.transaction(requires_new: true) do
       hspri = {default: :self, year: :self, note: :self}
       iho1.update!(created_at: DateTime.now)
-      iho1.merge_other iho2, priorities: hspri, save_destroy: false
+      hsmodel = iho1.merge_other iho2, priorities: hspri, save_destroy: false
       assert_equal iho1_year_orig, iho1.year, "Test of _merge_overwrite with 'priority: :self'."
       assert_equal iho2_year_orig, iho2.year
-      hsarys = iho1.ar_assoc[:harami_vid_music_assocs]
-      assert_equal iho1_hvmas_size+iho2_hvmas_size, hsarys[:remained].size+hsarys[:destroy].size, "Failed: #{iho1.ar_assoc[:harami_vid_music_assocs].inspect}"
+      hsarys = hsmodel[:harami_vid_music_assocs]
+      assert_equal iho1_hvmas_size+iho2_hvmas_size, hsarys[:remained].size+hsarys[:destroy].size, "Failed: #{hsmodel[:harami_vid_music_assocs].inspect}"
       assert_equal iho2.created_at, iho1.created_at, "Test of _merge_created_at"
       assert     Music.exists?(iho2.id)
       raise ActiveRecord::Rollback, "Force rollback."
@@ -1486,9 +1486,9 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
 
       iho1_hvma1.timing = nil
       iho1_hvma1.save!
-      iho1.merge_other iho2, priorities: hspri, save_destroy: true
+      hsmodel = iho1.merge_other iho2, priorities: hspri, save_destroy: true
 
-      assert_equal iho1_hvmas_size+iho2_hvmas_size, iho1.ar_assoc[:harami_vid_music_assocs].size, "Failed: #{iho1.ar_assoc[:harami_vid_music_assocs].inspect}"
+      assert_equal iho1_hvmas_size+iho2_hvmas_size, hsmodel[:harami_vid_music_assocs].size, "Failed: #{hsmodel[:harami_vid_music_assocs].inspect}"
       
       assert_equal 77, iho1_hvma1.reload.timing
       assert_not Music.exists?(iho2.id)
@@ -1508,21 +1508,63 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     iho2.reload
   end
 
-  test "merge_other trans-engage" do
+  test "merge_other music trans-engage01" do
     # cf. test "create_manual"  in harami1129_test.rb
 
-    ActiveRecord::Base.transaction(requires_new: true) do
+    #ActiveRecord::Base.transaction(requires_new: true) do
       h1129_prms, assc_prms, hsmdl = _prepare_h1129s1
       assert_equal Place.unknown, hsmdl[:artists][0].place, 'Sanity check...'
       assert_equal h1129_prms[:song][0],    hsmdl[:musics][0].title, 'Sanity check...'
-      assert_equal "en", hsmdl[:musics][0].best_translation.langcode, 'Sanity check...'
-      assert_equal "en", hsmdl[:musics][1].best_translation.langcode, 'Sanity check...'
+      tras = [0, 1].map{|i| hsmdl[:musics][i].best_translation}
+      engss= [0, 1].map{|i| hsmdl[:musics][i].engages}
+      assert_equal [true, true], tras.map(&:is_orig), 'Sanity check...'
+      assert_equal [1, 1],      engss.map(&:size), 'Sanity check...'
+      engs = engss.map(&:first)
+      arts = [0, 1].map{|i| hsmdl[:musics][i].artists}
+      assert_equal "en", tras[0].best_translation.langcode, 'Sanity check...'
+      assert_equal "en", tras[1].best_translation.langcode, 'Sanity check...'
+      refute_equal hsmdl[:hvmas][0].music, hsmdl[:hvmas][1].music, 'Sanity check...'
+      assert_equal hsmdl[:musics][1],      hsmdl[:hvmas][1].music, 'Sanity check...'
 
-      ActiveRecord::Base.transaction(requires_new: true) do
+    #  ActiveRecord::Base.transaction(requires_new: true) do
         genre_org = hsmdl[:musics][0].genre
         hspri = {default: :other, genre: :self, year: :other, note: :other}
         ## Run
-        _ = hsmdl[:musics][0].merge_other(hsmdl[:musics][1], priorities: hspri, save_destroy: true)
+        hsret = hsmdl[:musics][0].merge_other(hsmdl[:musics][1], priorities: hspri, save_destroy: true)
+        new_mu = hsmdl[:musics][0].reload
+#puts "DEBUG(orig901): music-ID="+new_mu.id.to_s
+
+        assert_equal 1, hsret[:destroyed].find_all{|i| Translation === i}.size
+        assert_equal 1, hsret[:destroyed].find_all{|i| Music === i}.size
+        assert_equal 2, hsret[:destroyed].size, '1 Music and 1 Translation destroyed'
+        assert_equal 1, hsret[:trans][ :remained].size,     '1 Translation remains'
+        assert_equal 2, hsret[:engage][:remained].size
+        assert_equal 2, hsret[:harami_vid_music_assocs][ :remained].size
+        assert_equal hsret[:trans][:remained].first, hsret[:trans][:original]
+        assert_equal tras[1],                        hsret[:trans][:original]
+        assert_empty hsret[:trans][:destroy]
+        assert_empty hsret[:engage][:destroy]
+        refute  hsmdl[:musics][0].db_destroyed?  # db_destroyed? defined in application_record.rb
+        assert  hsmdl[:musics][1].db_destroyed?
+        assert  tras[0].db_destroyed?, "is_orig=true for the same language should have been destroyed."
+        refute  tras[1].db_destroyed?, "tras="+tras.inspect
+        tras[1].reload
+        assert_equal new_mu, tras[1].translatable, "Translation should have been transferred."
+        engs[0].reload
+        engs[1].reload
+        assert_equal 2, new_mu.engages.size,       "Engage should have been merged."
+        assert_equal new_mu, engs[0].music
+        assert_equal new_mu, engs[1].music,   "This Engage should have been merged."
+        refute_equal engs[0].artist, engs[1].artist,  "Now Music should have two Artists."
+        hsmdl[:hvmas][1].reload
+        assert_equal new_mu, hsmdl[:hvmas][1].music,  "Now HaramiVidMusicAssoc should have been updated (its Music should have been transferred)."
+
+        ## The two association of Harami1129, which should have not changed (in terms of ID)
+        [0,1].each do |i|
+          hsmdl[:h1129s][i].reload
+          assert_equal engs[i],          hsmdl[:h1129s][i].engage, "Went wrong in #{i}."
+          assert_equal hsmdl[:hvmas][i], hsmdl[:h1129s][i].harami_vid_music_assoc, "Went wrong in #{i}."
+        end
 
         assert_equal assc_prms[:mu_year][0],  hsmdl[:musics][0].year
         assert_equal genres(:genre_classic),  assc_prms[:mu_genre][1], 'Sanity check'
@@ -1533,12 +1575,136 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
         assert_equal hsmdl[:musics][1].genre, hsmdl[:musics][0].genre, "Genre sorted"
         assert_equal assc_prms[:mu_place][0], hsmdl[:musics][0].place, "b/c Place encompass-ing despite priority=:other"
 
-        raise ActiveRecord::Rollback, "Force rollback."
-      end
-
-      raise ActiveRecord::Rollback, "Force rollback."
-    end
+        #raise ActiveRecord::Rollback, "Force rollback."
+    #  end
+      #raise ActiveRecord::Rollback, "Force rollback."
+    #end
   end
+
+  # Testing merging two Artists associated to separate Music-s, where orig-translations differ in language,
+  # and they have identical non-original-language Translations.
+  #
+  # @todo Try merging two Musics associated to the same Artist.  You can continue merging Musics after all the processes of this test!
+  test "merge_other Artist trans-engage01" do
+    # cf. test "create_manual"  in harami1129_test.rb
+
+    h1129_prms, assc_prms, hsmdl = _prepare_h1129s1
+    assert_equal h1129_prms[:singer][0], hsmdl[:artists][0].title, 'Sanity check...'
+
+    # Modifying some associated records
+    hsmdl[:artists][0].update!(sex: Sex[1], birth_year: 1990, birth_month:   5, place: places(:liverpool_street))
+    hsmdl[:artists][1].update!(sex: Sex[0], birth_year: 1985, birth_month: nil, place: places(:perth_uk))
+
+    assert_equal 1985, hsmdl[:artists][1].birth_year
+    assert_nil hsmdl[:artists][1].birth_day, 'Sanity check...'
+    assert                                   hsmdl[:artists][0].wiki_en, 'Sanity check...'
+    assert_equal assc_prms[:art_wiki_en][0], hsmdl[:artists][0].wiki_en, 'Sanity check...'
+    assert_nil hsmdl[:artists][1].wiki_ja,   'Sanity check...'
+    assert_nil hsmdl[:artists][1].birth_day, 'Sanity check...'
+
+    # Initial values
+    [0, 1].each do |i|
+      %w(sex birth_year birth_month birth_day place wiki_en wiki_ja).each do |ek|
+        # e.g., hsmdl[:sexes][0-1],  hsmdl[:places][0-1] 
+        hsmdl[ek.pluralize.to_sym] ||= []
+        hsmdl[ek.pluralize.to_sym][i] = hsmdl[:artists][i].send ek
+      end
+    end
+
+    # Modifying Translations
+    #
+    # Artist0: 1ja, is_orig=ja, different-En     (2ja, 1en)
+    # Artist1:      Same ja(0), is_orig=en,  1fr (1ja, 1en, 1fr)
+    assert_equal(%w(en en), [0, 1].map{|i| hsmdl[:artists][i].best_translation.langcode}, 'Sanity check...')
+    hsmdl[:artists][0].with_translation(title: "オーーア", langcode: "ja", weight: 22, note: "Added dummy Japanese Trans for 0")
+    t0_0 = hsmdl[:artists][0].translations.find_by(title: "オーーア")
+    hsmdl[:artists][0].with_translation(title: "オアシス", langcode: "ja", note: "Added Japanese Trans for 0")
+    t0_1 = hsmdl[:artists][0].translations.find_by(title: "オアシス")
+    hsmdl[:artists][1].with_translation(title: "オアシス", langcode: "ja", is_orig: false, weight: 11, note: "Added Japanese Trans for 1")
+    t1_1 = hsmdl[:artists][1].translations.find_by(title: "オアシス")  # => will be destroyed
+    hsmdl[:artists][0].reset_orig_langcode(t0_1)
+    hsmdl[:artists][1].with_translation(title: "Oaiis", langcode: "fr", note: "Added French Trans for 1")
+    assert_equal(%w(ja en), [0, 1].map{|i| hsmdl[:artists][i].best_translation.langcode}, 'Sanity check...')
+
+    e1_1 = Engage.create!(artist: hsmdl[:artists][1], music: hsmdl[:musics][1], engage_how: engage_hows(:engage_how_arranger), contribution: 0.55, year: 1999)
+    e1_2 = Engage.create!(artist: hsmdl[:artists][1], music: musics(:music_light), engage_how: engage_hows(:engage_how_singer_original), contribution: 0.6, year: 1950)
+
+    best_tras = [0, 1].map{|i| hsmdl[:artists][i].best_translation}
+    trass= [0, 1].map{|i| hsmdl[:artists][i].translations.to_a}  # to_a so that Models are loaded.
+    engss= [0, 1].map{|i| hsmdl[:artists][i].engages.to_a}
+    assert_equal [3, 3],      trass.map(&:size), 'Sanity check...'
+    assert_equal [1, 3],      engss.map(&:size), 'Sanity check...'
+
+    hsmdl[:artists][0].reload
+    hsmdl[:artists][1].reload
+
+    hspri = {default: :other, lang_orig: :other, lang_trans: :self, engages: :self, sex: :self, prefecture_place: :self, note: :other}
+      # =>Selected: Orig(:other(Specified)), Trans(:self(Def)), engage(:self(Def)), sex(:self(Forced)), birth(:other(Def)), place(:self(Specified)), wiki_en(:self(Forced)), wiki_ja(None)
+
+    ## Run (dryrun)
+    hsret = nil
+    #ActiveRecord::Base.transaction(requires_new: true) do
+      hsret = hsmdl[:artists][0].merge_other(hsmdl[:artists][1], priorities: hspri, save_destroy: false)
+
+      new_art = hsmdl[:artists][0] #.reload  # self not yet saved!
+#puts "DEBUG(orig-art901): artist-ID="+new_art.id.to_s
+
+      assert_empty hsret[:destroyed]
+      assert_equal 5, hsret[:trans][ :remained].size,    '5 Translations remain (2en, 2ja, fr)'
+      assert_equal 4, hsret[:engage][:remained].size
+      assert_equal 1, hsret[:trans][ :destroy].size,     '1 Translation  destroyed'
+      assert_equal 0, hsret[:engage][:destroy].size
+      refute         (hsret.has_key?(:harami_vid_music_assocs) && hsret[:harami_vid_music_assocs]), "keys = #{hsret.keys.inspect} / hvma = #{hsret[:harami_vid_music_assocs].inspect}"
+
+      assert_equal hsret[:trans][:remained].first, hsret[:trans][:original]
+      assert_equal best_tras[1],                   hsret[:trans][:original]
+      assert_equal h1129_prms[:singer][1],         hsret[:trans][:original].title
+      refute  t0_1.db_destroyed?  # db_destroyed? defined in application_record.rb
+     #assert  t1_1.db_destroyed?  # not yet destroyed (which may change in future)
+      assert_equal t1_1, hsret[:trans][:destroy].first, "Conflicting (non-orig) Translation will be destroyed."
+
+      assert_equal new_art, Engage.find(engss[1][0].id).artist  # Music-s differ; hence Engages are NOT destroyed/merged.
+      assert_equal new_art, Engage.find(engss[1][2].id).artist
+
+      assert_equal hsmdl[:sexes][0],       hsret[:sex]
+      assert_equal hsmdl[:birth_years][1], hsret[:bday3s][:birth_year]
+      assert_equal hsmdl[:birth_months][0],hsret[:bday3s][:birth_month]
+      assert_equal hsmdl[:places][0],      hsret[:prefecture_place]
+      assert_equal hsmdl[:wiki_ens][0],    hsret[:wiki_en]
+      assert_nil                           hsret[:wiki_ja]
+      assert_equal hsmdl[:sexes][0],       new_art.sex
+      assert_equal hsmdl[:birth_years][1], new_art.birth_year
+      assert_equal hsmdl[:birth_months][0],new_art.birth_month
+      assert_equal hsmdl[:places][0],      new_art.place
+      assert_equal hsmdl[:wiki_ens][0],    new_art.wiki_en
+      assert_nil                           new_art.wiki_ja
+
+      #### save! ####
+
+      new_art.merge_save_destroy(hsret[:other], hsret)
+      new_art.reload
+
+      assert  hsret[:other].db_destroyed?
+      assert  hsret[:other].destroyed?
+      assert  t1_1.db_destroyed?
+
+      assert_equal 5, new_art.translations.size,    '4 Translations remain'
+      assert_equal 2, new_art.translations.where(langcode: "en").size
+      assert_equal 2, new_art.translations.where(langcode: "ja").size
+      assert_equal 1, new_art.translations.where(langcode: "fr").size
+      assert_equal 4, new_art.engages.size
+      assert_equal best_tras[1],           new_art.orig_translation
+      assert_equal h1129_prms[:singer][1], new_art.orig_translation.title
+
+      assert_equal hsmdl[:sexes][0],       new_art.sex
+      assert_equal hsmdl[:birth_years][1], new_art.birth_year
+      assert_equal hsmdl[:birth_months][0],new_art.birth_month
+      assert_equal hsmdl[:places][0],      new_art.place
+      assert_equal hsmdl[:wiki_ens][0],    new_art.wiki_en
+      assert_nil                           new_art.wiki_ja
+    #  raise ActiveRecord::Rollback, "Force rollback."
+    #end
+  end # test "merge_other artist trans-engage01" do
 
   private
 
@@ -1617,7 +1783,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       end
       hsmdl[:musics][i]  = hsmdl[:engages][i].music
       hsmdl[:artists][i] = hsmdl[:engages][i].artist
-      hsmdl[:hvmas][i] = eh.harami_vid.musics.find(hsmdl[:musics][i].id)
+      hsmdl[:hvmas][i] = eh.harami_vid.harami_vid_music_assocs.find_by(music: hsmdl[:musics][i])
 
       %w(year genre place note).each do |es|
         val = assc_prms[("mu_"+es).to_sym][i]
