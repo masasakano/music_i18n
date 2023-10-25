@@ -40,6 +40,8 @@ class Engage < ApplicationRecord
   validates_numericality_of :year, allow_nil: true, greater_than: 0, message: "(%{value}) must be positive."
   validates_uniqueness_of :artist, scope: [:music, :engage_how, :year]  # year can be nil. If there are 2 records that have identical with year=nil, Rails validation fails, whereas PostgreSQL ignores it.
 
+  alias_method :inspect_orig, :inspect if ! self.method_defined?(:inspect_orig)
+
   # Hash with keys of Symbols of the columns to each String
   # value like 'Beatles, The'.
   # The keys are [:be4, :aft][:ins_singer, :ins_song]
@@ -50,6 +52,17 @@ class Engage < ApplicationRecord
 
   # for simple_form; meant to be String
   attr_accessor :artist_name
+
+  # Displays (the original) Translation information, too, for Music/Artist/EngageHow.
+  #
+  # @return [String]
+  def inspect
+    retstr = inspect_orig
+    retstr.sub!(/, music_id: \d+/,  '\0'+sprintf("(%s)", music.title_or_alt))
+    retstr.sub!(/, artist_id: \d+/, '\0'+sprintf("(%s)", artist.title_or_alt))
+    retstr.sub!(/, engage_how_id: \d+/, '\0'+sprintf("(%s)", engage_how.title_or_alt(langcode: "en")))
+    retstr
+  end
 
   # Returns the potentially unsaved version of "unknown"
   def self.find_or_initialize_unknown

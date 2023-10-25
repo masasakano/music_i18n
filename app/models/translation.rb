@@ -1717,10 +1717,10 @@ class Translation < ApplicationRecord
   # of current_user's {Role} and the highest of the immediate senior Role.
   #
   # This method consider the possibility that {Role#weight} is zero for sysadmin,
-  # which is not the case anymore (it is 1).  But if it aws zero, it is the lowest value,
+  # which is not the case anymore (it is 1).  But if it was zero, it is the lowest value,
   # and since there is a unique constraint (that all the {Translation#weight}
   # must be unique), any new translation is given a positive but very small value of weight.
-  # Agian, it should not be the case anymore!
+  # Again, it should not be the case anymore!
   #
   # @return [Numeric] Default weight for the user. Float::INFINITY if no user or if user has no {Role} for Translation.
   def def_weight(user=Translation.whodunnit)
@@ -1742,6 +1742,11 @@ class Translation < ApplicationRecord
       else
         best_trans.weight
       end
+
+    if !btw
+      logger.error "role=#{role.inspect} seems to have no weight defined!"
+      btw = Float::INFINITY
+    end
 
     # Note: DEF_WEIGHT_INCREMENT_NEGATIVE is a negative value.
     ((btw+DEF_WEIGHT_INCREMENT_NEGATIVE > higher_than) ? [role.weight, (btw+DEF_WEIGHT_INCREMENT_NEGATIVE)].min : (higher_than + btw).quo(2))

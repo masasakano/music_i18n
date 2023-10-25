@@ -558,7 +558,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_equal 9, art0.translations.count, 'Sanity check.'
     assert_equal 8, art0.translations.where(langcode: "en").count, 'Sanity check.'
     assert_equal 2, art0.translations.where(weight: 0).count, 'Sanity check.'
-    assert_equal 3, art0.translations.where(weight: Float::INFINITY).count  # weight==nil => Float::INFINITY
+    assert_equal 3, art0.translations.where(weight: Float::INFINITY).count, 'Strangely fails sometimes: art0.translations(title,weight)='+Translation.sort(art0.translations).pluck(:title, :weight).inspect  # weight==nil => Float::INFINITY
 
     weight_def = Role::DEF_WEIGHT.values.max  # see get_unique_weight (base_with_translation.rb)
 
@@ -649,7 +649,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     art0.reload
 
     trao.update!(weight: Float::INFINITY)
-    assert_equal Float::INFINITY, art0.get_unique_weight(trao, priority: :lowest)
+    assert_equal Float::INFINITY, art0.get_unique_weight(trao, priority: :lowest), 'Strangely sometimes fails: art0.trans='+art0.translations.pluck(:title, :weight).inspect
     assert_equal Float::INFINITY, art0.get_unique_weight(trao, priority: :low)
     assert_equal weight_def, art0.get_unique_weight(trao, priority: :high)
     assert_equal weight_def, art0.get_unique_weight(trao, priority: :highest)
@@ -698,14 +698,14 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
 
   test "_merge_lang_orig01" do
     ## Test of "priority: :self". Both have different ja&en, is_orig=true(en)
-    ActiveRecord::Base.transaction(requires_new: true) do
+    #ActiveRecord::Base.transaction(requires_new: true) do
       art0, art1, tras = _prepare_artists_with_trans
       art1.best_translation("fr").update!(is_orig: nil)
       assert_equal 1, art1.translations.where(is_orig: nil).count
       assert_equal 2, art0.translations.size
       assert_equal 3, art1.translations.size
       assert_equal 1, art1.translations.where(langcode: "en").count
-      assert_equal Float::INFINITY, art0.orig_translation.weight  # nil weight is automatically reset at Infinity
+      assert_equal Float::INFINITY, art0.orig_translation.weight, 'Strange sometimes: art0.orig_translation='+art0.orig_translation.inspect  # nil weight is automatically reset at Infinity
 
       art0.send(:_merge_lang_orig, art1, priority: :self)
 
@@ -719,13 +719,13 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_nil                       art1.orig_translation  # en translation (orig_translation) in art1 has disappeared.
       assert_empty    art1.translations.where(is_orig: nil)
 
-      raise ActiveRecord::Rollback, "Force rollback."
-    end
+    #  raise ActiveRecord::Rollback, "Force rollback."
+    #end
   end  # test "_merge_lang_orig01" do
 
   test "_merge_lang_orig02" do
     ## Same as above but for "priority: :other".
-    ActiveRecord::Base.transaction(requires_new: true) do
+    #ActiveRecord::Base.transaction(requires_new: true) do
       art0, art1, tras = _prepare_artists_with_trans
       art1.best_translation("fr").update!(is_orig: nil)
       tras0_ids = tras.map{|i| i[:en].id}  # English(is_orig=true) translation IDs
@@ -744,16 +744,17 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_nil                       art1.orig_translation  # en translation (orig_translation) in art1 has disappeared.
       assert_empty    art1.translations.where(is_orig: nil)
 
-      raise ActiveRecord::Rollback, "Force rollback."
-    end
+    #  raise ActiveRecord::Rollback, "Force rollback."
+    #end
   end  # test "_merge_lang_orig02" do
 
   test "_merge_lang_orig03" do
     ## Test of "priority: :self". art0:(ja)is_orig, art1:(en)is_orig, different ja&en
-    ActiveRecord::Base.transaction(requires_new: true) do
+    #ActiveRecord::Base.transaction(requires_new: true) do
       art0, art1, tras = _prepare_artists_with_trans
       art1.best_translation("fr").update!(is_orig: nil)
       art0.reset_orig_langcode("ja")
+      art0.reload
       art1_orig_tr = art1.orig_translation 
 
       assert_equal 2, art0.translations.size
@@ -776,13 +777,13 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_equal false,  art1_orig_tr.is_orig
       assert_empty    art1.translations.where(is_orig: nil)
 
-      raise ActiveRecord::Rollback, "Force rollback."
-    end
+    #  raise ActiveRecord::Rollback, "Force rollback."
+    #end
   end  # test "_merge_lang_orig03" do
 
   test "_merge_lang_orig04" do
     ## Same as above but for "priority: :other".
-    ActiveRecord::Base.transaction(requires_new: true) do
+    #ActiveRecord::Base.transaction(requires_new: true) do
       art0, art1, tras = _prepare_artists_with_trans
       art1.best_translation("fr").update!(is_orig: nil)
       art0.reset_orig_langcode("ja")
@@ -797,12 +798,12 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_equal 1, art0.translations.where(is_orig: true).count
       assert_equal tras[1][:en].title, art0.orig_translation.title, "inspect="+art0.translations.where(is_orig: true).inspect
       assert_equal false, art0.best_translations[:ja].is_orig
-      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset.  For some reason, this sometimes fails but only sometimes....."  # See above
+      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset.  For some reason, this sometimes fails but only sometimes..... art0.orig_translation="+art0.orig_translation.inspect  # See above
       assert_nil                       art1.orig_translation  # orig_translation should have disappeared
       assert_empty    art1.translations.where(is_orig: nil)
 
-      raise ActiveRecord::Rollback, "Force rollback."
-    end
+    #  raise ActiveRecord::Rollback, "Force rollback."
+    #end
   end  # test "_merge_lang_orig04" do
 
   test "_merge_lang_orig05" do
@@ -862,7 +863,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
   test "_merge_lang_orig07" do
     ## Test of "priority: :other". self has is_orig=true for ja&en and other has it for two en. (it is uncertain which of the is_orig=true Translations is selected; the following test takes it into account).
     ## In base_with_translation.rb: "# Condition: Both have orig && langcode-s differ && priority==:other"
-    ActiveRecord::Base.transaction(requires_new: true) do
+    #ActiveRecord::Base.transaction(requires_new: true) do
       art0, art1, tras = _prepare_artists_with_trans
       art0.best_translations["ja"].update!(is_orig: true)
       art0.best_translations["en"].update!(is_orig: true)
@@ -895,14 +896,14 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_nil                       art1.orig_translation  # en translation-s (orig_translation) in art1 have disappeared.
       assert_empty    art1.translations.where.not(is_orig: false)
 
-      raise ActiveRecord::Rollback, "Force rollback."
-    end
+    #  raise ActiveRecord::Rollback, "Force rollback."
+    #end
   end  # test "_merge_lang_orig2" do
 
 
   test "_merge_trans01" do
     ## Test of "priority: :self". Both have different ja&en, is_orig=true(en)
-    ActiveRecord::Base.transaction(requires_new: true) do
+    #ActiveRecord::Base.transaction(requires_new: true) do
       art0, art1, tras = _prepare_artists_with_trans
       #art0.reset_orig_langcode("ja")
       art1.best_translation("fr").update!(is_orig: nil)
@@ -930,8 +931,8 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_nil                       art1.orig_translation  # orig_translation should have disappeared
       assert_empty    art1.translations.where(is_orig: nil)
 
-      raise ActiveRecord::Rollback, "Force rollback."
-    end
+    #  raise ActiveRecord::Rollback, "Force rollback."
+    #end
   end # test "_merge_trans01" do
 
   test "_merge_trans02" do
@@ -1626,8 +1627,8 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     hsmdl[:artists][1].with_translation(title: "Oaiis", langcode: "fr", note: "Added French Trans for 1")
     assert_equal(%w(ja en), [0, 1].map{|i| hsmdl[:artists][i].best_translation.langcode}, 'Sanity check...')
 
-    e1_1 = Engage.create!(artist: hsmdl[:artists][1], music: hsmdl[:musics][1], engage_how: engage_hows(:engage_how_arranger), contribution: 0.55, year: 1999)
-    e1_2 = Engage.create!(artist: hsmdl[:artists][1], music: musics(:music_light), engage_how: engage_hows(:engage_how_singer_original), contribution: 0.6, year: 1950)
+    e1_1 = Engage.create!(artist: hsmdl[:artists][1], music: hsmdl[:musics][1], engage_how: engage_hows(:engage_how_arranger), contribution: 0.55, year: 1999) # Artist engages in a different EngageHow
+    e1_2 = Engage.create!(artist: hsmdl[:artists][1], music: musics(:music_light), engage_how: engage_hows(:engage_how_singer_original), contribution: 0.6, year: 1950) # Artist engages in a different Music
 
     best_tras = [0, 1].map{|i| hsmdl[:artists][i].best_translation}
     trass= [0, 1].map{|i| hsmdl[:artists][i].translations.to_a}  # to_a so that Models are loaded.
@@ -1641,7 +1642,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     hspri = {default: :other, lang_orig: :other, lang_trans: :self, engages: :self, sex: :self, prefecture_place: :self, note: :other}
       # =>Selected: Orig(:other(Specified)), Trans(:self(Def)), engage(:self(Def)), sex(:self(Forced)), birth(:other(Def)), place(:self(Specified)), wiki_en(:self(Forced)), wiki_ja(None)
 
-    ## Run (dryrun)
+    ## Run (dryrun) - merging Artists
     hsret = nil
     #ActiveRecord::Base.transaction(requires_new: true) do
       hsret = hsmdl[:artists][0].merge_other(hsmdl[:artists][1], priorities: hspri, save_destroy: false)
@@ -1702,6 +1703,62 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_equal hsmdl[:places][0],      new_art.place
       assert_equal hsmdl[:wiki_ens][0],    new_art.wiki_en
       assert_nil                           new_art.wiki_ja
+
+    ## Prepares for merging Musics
+
+    # Modifying Translations
+    #
+    # Music0: 0ja, is_orig=en, (0ja, 1en)
+    # Music1: 2ja, is_orig=ja, (2ja, 1en)
+    hsmdl[:musics][0].reload
+    hsmdl[:musics][1].reload
+    assert_equal(%w(en en), [0, 1].map{|i| hsmdl[:musics][i].best_translation.langcode}, 'Sanity check...')
+    t1_0 = hsmdl[:musics][1].best_translation
+    hsmdl[:musics][1].with_translation(title: "ディグジーX", langcode: "ja", is_orig: false, weight: 11, note: "Added Japanese Trans for 1 (not is_orig)")
+    t1_1 = hsmdl[:musics][1].translations.find_by(title: "ディグジーX")
+    hsmdl[:musics][1].with_translation(title: "ディグジーA", langcode: "ja", is_orig: true, weight: 9, note: "Added Japanese Trans for 1 (is_orig=true)")
+    t1_2 = hsmdl[:musics][1].translations.find_by(title: "ディグジーA")
+    hsmdl[:musics][1].reset_orig_langcode(t1_2)
+    assert_equal(%w(en ja), [0, 1].map{|i| hsmdl[:musics][i].best_translation.langcode}, 'Sanity check...')
+
+    best_tras = [0, 1].map{|i| hsmdl[:musics][i].best_translation}
+    mu_trass= [0, 1].map{|i| hsmdl[:musics][i].translations.to_a}  # to_a so that Models are loaded.
+    mu_engss= [0, 1].map{|i| hsmdl[:musics][i].engages.to_a}
+    assert_equal [1, 3],   mu_trass.map(&:size), 'Sanity check...: '+mu_trass.inspect
+    assert_equal [1, 2],   mu_engss.map(&:size), 'Sanity check...: '+mu_engss.inspect
+    assert                 mu_engss[1].include?(e1_1), 'Sanity check: should include (EngageHow: Arranger)...'
+
+    hsmdl[:musics][0].reload
+    hsmdl[:musics][1].reload
+
+    genre_org = hsmdl[:musics][0].genre
+    hspri = {default: :self, engages: :other, genre: :self, year: :other, prefecture_place: :other, note: :other} # i.e., lang_orig: :self, lang_trans: :self, harami_vid_music_assocs: self
+      # =>Selected: Orig(:self(Def)), Trans(:self(Def)), engage(:other(Specified)), genre(:other(Forced)), year(:self(Forced)), place(:self(Forced)), note(:other+:self(Concatnated in this order))
+
+    ## Run - merging Musics
+
+    hsret = hsmdl[:musics][0].merge_other(hsmdl[:musics][1], priorities: hspri, save_destroy: true)
+    new_mu = hsmdl[:musics][0].reload
+
+    assert  hsret[:other].db_destroyed?
+    assert  hsret[:other].destroyed?
+    refute  t1_0.db_destroyed?
+
+    assert_equal 4, new_mu.translations.size,    '4 Translations remain'
+    assert_equal 2, new_mu.translations.where(langcode: "en").size, "other's EN translation remains b/c is_orig=false"
+    assert_equal 2, new_mu.translations.where(langcode: "ja").size
+    assert_equal 0, new_mu.translations.where(langcode: "fr").size
+    assert_equal 2, new_mu.engages.size, 'should decrease by 1 to become 2'
+    assert_equal best_tras[0],           new_mu.orig_translation
+    assert_equal h1129_prms[:song][0],   new_mu.orig_translation.title
+    assert_equal false,                  new_mu.best_translations[:ja].is_orig
+
+    assert_equal assc_prms[:mu_genre][1],      new_mu.genre
+    assert_equal assc_prms[:mu_year][0],       new_mu.year
+    assert_equal assc_prms[:mu_place][0],      new_mu.place
+    assert_equal [assc_prms[:mu_note][1], assc_prms[:mu_note][0]].join(" "), new_mu.note
+    #puts "DEBUG: "+new_mu.inspect  # => #<Music id: 999, year: 1994, place_id: 888, genre_id: 777, note: "mu-note1 mu-note0", created_at...; Translation(id=666/L=2/N=4): "Digsy's Dinner0" (en)>
+    #puts "DEBUG: "+Translation.sort(new_mu.translations).inspect  # => #<ActiveRecord::AssociationRelation [#<Translation title: "Digsy's Dinner0", is_orig: true>, #<Translation "ディグジーA", is_orig: false>, #<Translation "ディグジーX">, #<Translation "Digsy's Dinner1">]>
     #  raise ActiveRecord::Rollback, "Force rollback."
     #end
   end # test "merge_other artist trans-engage01" do
