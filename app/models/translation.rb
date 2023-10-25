@@ -42,7 +42,7 @@ class Translation < ApplicationRecord
   before_validation :move_articles_to_tail
   after_validation  :revert_articles
   before_save       :move_articles_to_tail
-  before_create     :set_create_user
+  before_create     :set_create_user       # This always sets non-nil weight.
   before_save       :set_update_user
   after_save        :reset_backup_6params  # to reset the temporary instance variable
 
@@ -1749,7 +1749,7 @@ class Translation < ApplicationRecord
     end
 
     # Note: DEF_WEIGHT_INCREMENT_NEGATIVE is a negative value.
-    ((btw+DEF_WEIGHT_INCREMENT_NEGATIVE > higher_than) ? [role.weight, (btw+DEF_WEIGHT_INCREMENT_NEGATIVE)].min : (higher_than + btw).quo(2))
+    ((btw+DEF_WEIGHT_INCREMENT_NEGATIVE > higher_than) ? [(role.weight || Float::INFINITY), (btw+DEF_WEIGHT_INCREMENT_NEGATIVE)].min : (higher_than + btw).quo(2))
   end
 
   # Get the weight after the one immediately higher than that of self.
@@ -1810,13 +1810,15 @@ class Translation < ApplicationRecord
   #
   # Set create_user_id
   # Skipped if {Translation.skip_set_user_callback} is true.
+  # non-nil weight is always set at create.
   def set_create_user
+    #puts "DEBUG122(set_create_user): title=#{title} Translation.whodunnit=#{Translation.whodunnit.inspect} callback=#{self.class.skip_set_user_callback.inspect}" if ENV['TEST_STRICT']  ## NOTE: for model tests, current_user sometimes exists(!!), which should not be(!) and is Rails-7's bug.
     if self.class.skip_set_user_callback
       self.weight ||= Float::INFINITY
       return
     end
     self.create_user ||= Translation.whodunnit
-    self.weight ||= def_weight
+    self.weight ||= def_weight  # nil-weight -> Float::INFINITY if !Translation.whodunnit (i.e., current_user.nil?)
   end
 
   # Callback before_save

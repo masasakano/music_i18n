@@ -4,6 +4,11 @@ require 'test_helper'
 class BaseWithTranslationTest < ActiveSupport::TestCase
   include ApplicationHelper # for suppress_ruby270_warnings()
 
+  setup do
+    # Without this, current_user may(!) exist if you run Controller or Integration tests at the same time.
+    Translation.whodunnit = nil
+  end
+
   test "title aka the private method get_a_title" do
     # Gets Music with some translations with "title" for the original-language but no French translation
     music = nil
@@ -558,12 +563,12 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_equal 9, art0.translations.count, 'Sanity check.'
     assert_equal 8, art0.translations.where(langcode: "en").count, 'Sanity check.'
     assert_equal 2, art0.translations.where(weight: 0).count, 'Sanity check.'
-    assert_equal 3, art0.translations.where(weight: Float::INFINITY).count, 'Strangely fails sometimes: art0.translations(title,weight)='+Translation.sort(art0.translations).pluck(:title, :weight).inspect  # weight==nil => Float::INFINITY
+    assert_equal 3, art0.translations.where(weight: Float::INFINITY).count, "Strangely failed sometimes ('setup do' should circumvent it now): Translation.whodunnit=#{Translation.whodunnit.inspect} art0.translations(title,weight)="+Translation.sort(art0.translations).pluck(:title, :weight).inspect  # weight==nil => Float::INFINITY (for system (no current_user); see Translation#set_create_user)
 
     weight_def = Role::DEF_WEIGHT.values.max  # see get_unique_weight (base_with_translation.rb)
 
     trao = art1.best_translation("en")
-    assert_equal Float::INFINITY, trao.weight  # weight==nil => Float::INFINITY
+    assert_equal Float::INFINITY, trao.weight  # weight==nil => Float::INFINITY (for system (no current_user); see Translation#set_create_user)
 
     trao.update!(weight: Float::INFINITY)  # redundant
     assert_equal Float::INFINITY, art0.get_unique_weight(trao, priority: :lowest)
@@ -644,12 +649,12 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     end
     tmp_tras = art0.translations.where(langcode: "en")  # Without this, FrozenError would be raised below.
     tmp_tras[0..1].each do |et|
-      et.update!(weight: Float::INFINITY)  # only the existing weight is Infinity (for 2 Translations)
+      et.update!(weight: Float::INFINITY)  # only the existing weight is Infinity (for 2 Translations) (for system (no current_user); see Translation#set_create_user)
     end
     art0.reload
 
     trao.update!(weight: Float::INFINITY)
-    assert_equal Float::INFINITY, art0.get_unique_weight(trao, priority: :lowest), 'Strangely sometimes fails: art0.trans='+art0.translations.pluck(:title, :weight).inspect
+    assert_equal Float::INFINITY, art0.get_unique_weight(trao, priority: :lowest), "Strangely sometimes fails ('setup do' should circumvent it now): art0.trans="+art0.translations.pluck(:title, :weight).inspect
     assert_equal Float::INFINITY, art0.get_unique_weight(trao, priority: :low)
     assert_equal weight_def, art0.get_unique_weight(trao, priority: :high)
     assert_equal weight_def, art0.get_unique_weight(trao, priority: :highest)
@@ -705,7 +710,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_equal 2, art0.translations.size
       assert_equal 3, art1.translations.size
       assert_equal 1, art1.translations.where(langcode: "en").count
-      assert_equal Float::INFINITY, art0.orig_translation.weight, 'Strange sometimes: art0.orig_translation='+art0.orig_translation.inspect  # nil weight is automatically reset at Infinity
+      assert_equal Float::INFINITY, art0.orig_translation.weight, 'Strange sometimes ("setup do" should circumvent it now): art0.orig_translation='+art0.orig_translation.inspect  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
 
       art0.send(:_merge_lang_orig, art1, priority: :self)
 
@@ -740,7 +745,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_equal 2, art1.translations.size, "Should have decreased by 1, becoming 3-1=2"
       assert_equal 0, art1.translations.where(langcode: "en").count  # en in art1 has disappeared (transferred).
       assert_equal tras[1][:en].title, art0.orig_translation.title, "orig-trans should have been transferred"
-      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset"  # See get_unique_weight() for the number (where priority==:highest is given, because of orig_translation): = 100000
+      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset; this only sometime fails strangely....."  # See get_unique_weight() for the number (where priority==:highest is given, because of orig_translation): = 100000
       assert_nil                       art1.orig_translation  # en translation (orig_translation) in art1 has disappeared.
       assert_empty    art1.translations.where(is_orig: nil)
 
@@ -760,7 +765,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_equal 2, art0.translations.size
       assert_equal 3, art1.translations.size
       assert_equal 1, art1.translations.where(langcode: "en").count
-      assert_equal Float::INFINITY, art0.orig_translation.weight  # nil weight is automatically reset at Infinity
+      assert_equal Float::INFINITY, art0.orig_translation.weight  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
       assert_equal true, art1_orig_tr.is_orig
 
       art0.send(:_merge_lang_orig, art1, priority: :self)
@@ -798,7 +803,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_equal 1, art0.translations.where(is_orig: true).count
       assert_equal tras[1][:en].title, art0.orig_translation.title, "inspect="+art0.translations.where(is_orig: true).inspect
       assert_equal false, art0.best_translations[:ja].is_orig
-      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset.  For some reason, this sometimes fails but only sometimes..... art0.orig_translation="+art0.orig_translation.inspect  # See above
+      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset.  For some reason, this sometimes fails but only sometimes..... ('setup do' should circumvent it now) art0.orig_translation="+art0.orig_translation.inspect  # See above
       assert_nil                       art1.orig_translation  # orig_translation should have disappeared
       assert_empty    art1.translations.where(is_orig: nil)
 
@@ -850,7 +855,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_equal 3, art1.translations.size, "Should have decreased by 1, becoming 4-1=2"
       assert_equal 1, art1.translations.where(langcode: "en").count  # An en in art1 has disappeared.
       assert([tras[1][:en].title, "Something011"].include?(art0.orig_translation.title))  # It is uncertain which Translation is selected, the original is_orig=true one or a new duplicate.
-      assert([67, 89].include?(art0.orig_translation.weight), "For some reason, this sometimes fails but only sometimes.....")
+      assert([67, 89].include?(art0.orig_translation.weight), "For some reason, this sometimes fails but only sometimes..... ('setup do' should circumvent it now)")
       assert_equal 2, art0.translations.where(langcode: "en").count
       assert_equal 1, art0.translations.where(is_orig: true).count
       assert_nil                       art1.orig_translation  # en translation (orig_translation) in art1 has disappeared.
@@ -911,7 +916,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_equal 2, art0.translations.size
       assert_equal 3, art1.translations.size
       assert_equal 1, art1.translations.where(langcode: "en").count
-      assert_equal Float::INFINITY, art0.orig_translation.weight  # nil weight is automatically reset at Infinity
+      assert_equal Float::INFINITY, art0.orig_translation.weight  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
 
       art0.send(:_merge_trans, art1, priority_orig: :self, priority_others: :self)
       # An English disappers. Japanese is added.
@@ -937,7 +942,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
 
   test "_merge_trans02" do
     ## Test of "priority(ies): :self". self(en-is_orig, ja), other(en, ja-is_orig-identical_to_self)
-    ActiveRecord::Base.transaction(requires_new: true) do
+    #ActiveRecord::Base.transaction(requires_new: true) do
       art0, art1, tras = _prepare_artists_with_trans
       art0.reset_orig_langcode("en")
       art1.reset_orig_langcode("ja")
@@ -948,7 +953,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_equal 2, art0.translations.size
       assert_equal 3, art1.translations.size
       assert_equal 1, art1.translations.where(langcode: "en").count
-      assert_equal Float::INFINITY, art0.orig_translation.weight  # nil weight is automatically reset at Infinity
+      assert_equal Float::INFINITY, art0.orig_translation.weight, "Strangely fails sometimes ('setup do' should circumvent it now): Translation.whodunnit=#{Translation.whodunnit.inspect} orig="+art0.orig_translation.inspect  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
 
       reths = art0.send(:_merge_trans, art1, priority_orig: :self, priority_others: :self)
       # An English disappers. Japanese is added.
@@ -969,13 +974,13 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_nil                       art1.orig_translation  # orig_translation should have disappeared
       assert_empty    art1.translations.where(is_orig: nil)
 
-      raise ActiveRecord::Rollback, "Force rollback."
-    end
+    #  raise ActiveRecord::Rollback, "Force rollback."
+    #end
   end # test "_merge_trans02" do
 
   test "_merge_trans03" do
     ## Same but Test of "priority_other: :other". self(en-is_orig, ja), other(en, ja-is_orig-identical_to_self)
-    ActiveRecord::Base.transaction(requires_new: true) do
+    #ActiveRecord::Base.transaction(requires_new: true) do
       art0, art1, tras = _prepare_artists_with_trans
       art0.reset_orig_langcode("en")
       art1.reset_orig_langcode("ja")
@@ -987,7 +992,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_equal 2, art0.translations.size
       assert_equal 3, art1.translations.size
       assert_equal 1, art1.translations.where(langcode: "en").count
-      assert_equal Float::INFINITY, art0.orig_translation.weight  # nil weight is automatically reset at Infinity
+      assert_equal Float::INFINITY, art0.orig_translation.weight, "Strangely fails sometimes ('setup do' should circumvent it now): Translation.whodunnit=#{Translation.whodunnit.inspect} orig="+art0.orig_translation.inspect  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
 
       reths = art0.send(:_merge_trans, art1, priority_orig: :self, priority_others: :other)
 
@@ -1007,8 +1012,8 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_nil                       art1.orig_translation  # orig_translation should have disappeared
       assert_empty    art1.translations.where(is_orig: nil)
 
-      raise ActiveRecord::Rollback, "Force rollback."
-    end
+    #  raise ActiveRecord::Rollback, "Force rollback."
+    #end
   end  # test "_merge_trans03" do
 
   test "_merge_trans04" do
@@ -1034,7 +1039,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_equal 1, art1.translations.where(langcode: "en").count
       assert_equal 2, art1.translations.where(langcode: "ja").count
       assert_equal "brand-new", art1.orig_translation.alt_title
-      assert_equal Float::INFINITY, art0.orig_translation.weight, "orig="+art0.orig_translation.inspect  # nil weight is automatically reset at Infinity
+      assert_equal Float::INFINITY, art0.orig_translation.weight, "Strangely fails sometimes ('setup do' should circumvent it now): Translation.whodunnit=#{Translation.whodunnit.inspect} orig="+art0.orig_translation.inspect  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
 
       reths = art0.send(:_merge_trans, art1, priority_orig: :self, priority_others: :other)
 
@@ -1091,7 +1096,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_equal 1, art1.translations.where(langcode: "en").count
       assert_equal 2, art1.translations.where(langcode: "ja").count
       assert_equal "brand-new", art1.orig_translation.alt_title
-      assert_equal Float::INFINITY, art0.orig_translation.weight  # nil weight is automatically reset at Infinity
+      assert_equal Float::INFINITY, art0.orig_translation.weight  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
 
       reths = art0.send(:_merge_trans, art1, priority_orig: :self, priority_others: :other)
 

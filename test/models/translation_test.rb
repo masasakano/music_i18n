@@ -38,6 +38,11 @@
 require 'test_helper'
 
 class TranslationTest < ActiveSupport::TestCase
+  setup do
+    # Without this, current_user may(!) exist if you run Controller or Integration tests at the same time.
+    Translation.whodunnit = nil
+  end
+
   test "has_many" do
     assert Translation.column_names.include?('translatable_type')
     assert Translation.column_names.include?('translatable_id')
@@ -203,7 +208,7 @@ class TranslationTest < ActiveSupport::TestCase
     assert_equal 'new', sex5.orig_translation.title
     assert_equal 'new', sex5.title
     ja_trans = sex5.translations_with_lang('ja')
-    assert_equal Float::INFINITY, ja_trans.find{|i| '新規' == i.title}.weight, "(NOTE: It seems sometimes current_user is set non-nil while executing this in model-testing and as a result the weight for Translation['新規'] is set less than 4 because the user has a high-rank role!): weight=#{ja_trans.find{|i| '新規' == i.title}.weight} User.display_name=#{Translation.whodunnit.display_name rescue Translation.whodunnit.inspect}, translations_with_lang('ja'): #{ja_trans.inspect}"
+    assert_equal Float::INFINITY, ja_trans.find{|i| '新規' == i.title}.weight, "(NOTE: It seems sometimes current_user is set non-nil while executing this in model-testing and as a result the weight for Translation['新規'] is set less than 4 because the user has a high-rank role! ('setup do' should circumvent it now)): weight=#{ja_trans.find{|i| '新規' == i.title}.weight} User.display_name=#{Translation.whodunnit.display_name rescue Translation.whodunnit.inspect}, translations_with_lang('ja'): #{ja_trans.inspect}"
     assert_equal '新規', ja_trans[1].title, "(NOTE: For some reason, incorrect) translations_with_lang('ja'): #{ja_trans.inspect}"
     assert_equal Float::INFINITY, ja_trans[1].weight
     assert_equal 'テスト', sex5.title(langcode: 'ja')
@@ -649,7 +654,7 @@ class TranslationTest < ActiveSupport::TestCase
     ts[21] = Translation.create!(translatable: sex, langcode: 'en', is_orig: nil, title: 'W', weight: Float::INFINITY)
     ts[22] = Translation.create!(translatable: sex, langcode: 'en', is_orig: nil, title: 'X', weight: nil)
     ts[22].reload
-    assert_equal Float::INFINITY, ts[22].weight, 'NOTE: This only sometimes fails for an unknown reason. ts[22]='+ts[22].inspect  # because of set_create_user callback
+    assert_equal Float::INFINITY, ts[22].weight, 'NOTE: This only sometimes fails for an unknown reason ("setup do" should circumvent it now). ts[22]='+ts[22].inspect  # because of set_create_user callback
     ts[22].weight = nil
     ts[22].save!(validate: false)
     assert_nil ts[22].weight
