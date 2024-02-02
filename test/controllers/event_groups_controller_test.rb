@@ -7,8 +7,8 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @event_group = event_groups(:evgr_lucky2023)
-    @moderator = roles(:general_ja_moderator).users.first  # Moderator can manage.
-    @trans_moderator = roles(:trans_moderator).users.first
+    @moderator       = users(:user_moderator_general_ja)  # General-JA Moderator can manage.
+    @trans_moderator = users(:user_translator)
     @hs_create = {
       "langcode"=>"ja",
       "title"=>"The Tｅst7",

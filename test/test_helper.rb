@@ -253,31 +253,52 @@ class ActiveSupport::TestCase
 
   # assert if the attribute of the instance is updated
   #
+  # @note model is reloaded!
+  #
   # @param model [Model]
   # @param attr [String, Symbol] Attribute
   # @param msg [String] message parameter for assert
   # @param inspect [Boolean] if true, the difference would be printed if failed.
-  def user_assert_updated_attr?(model, attr, msg=nil, inspect: true)
+  # @param refute [Boolean] if true (Def: false), returns true if NOT updated. cf. user_refute_updated_attr?
+  def user_assert_updated_attr?(model, attr, msg=nil, inspect: true, refute: false)
     bind = caller_locations(1,1)[0]  # Ruby 2.0+
     caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
     # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
 
     upd, msg2pass = _reload_and_get_message(model, msg, inspect, attr, caller_info)
-    refute_equal upd, model.send(attr), msg2pass
+    if refute
+      assert_equal upd, model.send(attr), msg2pass
+    else  # Default
+      refute_equal upd, model.send(attr), msg2pass
+    end
+  end
+
+  # refute if the attribute of the instance is updated
+  #
+  # @param #see user_assert_updated_attr?
+  def user_refute_updated_attr?(model, attr, msg=nil, inspect: true)
+    user_refute_updated_attr?(model, attr, msg=nil, inspect: true, refute: true)
   end
 
   # assert if the instance is updated, checking updated_at 
   #
+  # @note model is reloaded!
+  #
   # @param model [Model]
   # @param msg [String] message parameter for assert
   # @param inspect [Boolean] if true, the difference would be printed if failed.
-  def user_assert_updated?(model, msg=nil, inspect: true)
+  # @param refute [Boolean] if true (Def: false), returns true if NOT updated. cf. user_refute_updated_attr?
+  def user_assert_updated?(model, msg=nil, inspect: true, refute: false)
     bind = caller_locations(1,1)[0]  # Ruby 2.0+
     caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
     # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
 
     upd, msg2pass = _reload_and_get_message(model, msg, inspect, :updated_at, caller_info)
-    assert_operator upd, :<, model.updated_at, msg2pass
+    if refute
+      refute_operator upd, :<, model.updated_at, msg2pass
+    else
+      assert_operator upd, :<, model.updated_at, msg2pass
+    end
   end
 
   # refute if the instance is updated, checking updated_at 
@@ -288,12 +309,13 @@ class ActiveSupport::TestCase
   # @param msg [String] message parameter for assert/refute
   # @param inspect [Boolean] if true, the difference would be printed if failed.
   def user_refute_updated?(model, msg=nil, inspect: true)
-    bind = caller_locations(1,1)[0]  # Ruby 2.0+
-    caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
-    # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
-
-    upd, msg2pass = _reload_and_get_message(model, msg, inspect, :updated_at, caller_info)
-    assert_equal upd, model.updated_at, msg2pass
+    user_assert_updated?(model, msg=nil, inspect: true, refute: true)
+    #bind = caller_locations(1,1)[0]  # Ruby 2.0+
+    #caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
+    ## NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
+    #
+    #upd, msg2pass = _reload_and_get_message(model, msg, inspect, :updated_at, caller_info)
+    #assert_equal upd, model.updated_at, msg2pass
   end
 
   # Internal common routine.

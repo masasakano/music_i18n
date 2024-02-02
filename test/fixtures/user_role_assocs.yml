@@ -34,6 +34,18 @@ user_role_assoc_syshelper:
 #  user: user_two
 #  role: helper10000
 
+user_role_assoc_moderator_all_harami:
+  user: user_moderator_all
+  role: moderator
+
+user_role_assoc_moderator_all_translation:
+  user: user_moderator_all
+  role: trans_moderator
+
+user_role_assoc_moderator_all_general_ja_moderator:
+  user: user_moderator_all
+  role: general_ja_moderator
+
 user_role_assoc_moderator:
   user: user_moderator
   role: moderator

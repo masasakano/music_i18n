@@ -5,6 +5,11 @@
 #
 # Child classes are so far {Musics::MergesController} and {Artists::MergesController} .
 class BaseMergesController < ApplicationController
+  # GET parameter "to_submit"
+  #
+  # If this is not specified in "new", no submit button will be displayed.
+  PARAM_GET_SUBMIT = "to_submit"
+
   # Symbol-Key to the actual Form parameter key
   #
   # In each subclass, make sure to define
@@ -65,7 +70,7 @@ class BaseMergesController < ApplicationController
              model.respond_to?(:name) && model.name.underscore ||
              model.respond_to?(:downcase) && model.downcase ||
              model.respond_to?(:to_sym) && model.to_sym )
-      params.require(prm).permit(*FORM_MERGE.keys)
+      params.require(prm).permit(PARAM_GET_SUBMIT, *FORM_MERGE.keys)
     end
 
     # returns 0 or 1 for the given key for params
@@ -488,7 +493,7 @@ end
     # Sorting is based on the {Translation} weights and User's selection.
     #
     # @param models [Array<BaseWithTranslation>] 2-element Array. Index of +@to_index+ remains
-    # @param [Stroing] locale
+    # @param langcode [String] locale
     # @return [Array<Translation>]
     def _weight_sorted_translations(models, langcode)
       index2use = merge_param_int(:lang_trans, fallback: models[0])
@@ -503,5 +508,22 @@ end
       }
       # NOTE: artrans is an Array of Translation, sorted according to the weight and User's selection
       artrans.map{|i| i[1] }
+    end
+
+    # Returns the String message if an invalid model (ID or title) is specified to merge
+    #
+    # Otherwise nil.
+    #
+    # @param models [Array<BaseWithTranslation>] 2 or 3-element Array. (Original, Merging, Merged)
+    # @param modelname [String] Singular Model name, e.g., "Artist"
+    # @return [String, NilClass]
+    def _msg_if_invalid_prm_in_merging(models, modelname)
+      if !(2..3).cover?(models.size)
+        "No #{modelname} matches the given one. Try a different title or ID."
+      elsif models[0] == models[1]
+        "Identical #{modelname.pluralize} specified. Try a different title or ID."
+      else
+        nil
+      end
     end
 end

@@ -202,3 +202,47 @@ harami1129_ihojin1:
   engage: engage_kubota_ihojin1_1
   harami_vid: harami_vid_ihojin1
 
+harami1129_sting1:
+  singer: "Sting"
+  song: "Englishman in New York"
+  release_date: 2023-02-08
+  title: ハラミのSting1
+  link_root: ABCD_sti1
+  link_time: 7
+  ins_singer: 
+  ins_song: 
+  ins_release_date: 
+  ins_title: 
+  ins_link_root: 
+  ins_link_time: 
+  ins_at: 
+  note: Harami1129Sting1
+  id_remote: 23
+  last_downloaded_at: 2023-03-12 15:00:00
+  orig_modified_at: 2023-03-12 15:00:00
+  checked_at: 
+  engage: 
+  harami_vid: 
+
+harami1129_sting2:
+  singer: "スティング"
+  song: "Englishman in New Yorkkk"
+  release_date: 2023-02-09
+  title: ハラミのSting2
+  link_root: ABCD_sti2
+  link_time: 1
+  ins_singer: "スティング"
+  ins_song: "Englishman in New Yorkkk"
+  ins_release_date: 2023-02-09
+  ins_title: ハラミのSting2
+  ins_link_root: youtu.be/ABCD_sti2
+  ins_link_time: 1
+  ins_at: 2023-03-12 15:00:01
+  note: Harami1129Sting2
+  id_remote: 25
+  last_downloaded_at: 2023-03-12 15:00:00
+  orig_modified_at: 2023-03-12 15:00:00
+  checked_at: 
+  engage: 
+  harami_vid: 
+

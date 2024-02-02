@@ -33,7 +33,7 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
 
   test "should get index" do
     get '/users/sign_in'
-    sign_in Role[:moderator, :harami].users.first  # Harami moderator
+    sign_in users(:user_moderator)  # Harami moderator
     post user_session_url
 
     # If you want to test that things are working correctly, uncomment this below:

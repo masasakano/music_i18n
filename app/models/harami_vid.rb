@@ -39,7 +39,7 @@ class HaramiVid < BaseWithTranslation
 
   belongs_to :place
   has_many :harami_vid_music_assocs, dependent: :destroy
-  has_many:musics, -> { order(Arel.sql('CASE WHEN timing IS NULL THEN 1 ELSE 0 END, timing')) }, through: :harami_vid_music_assocs   # in the order of timing in HaramiVidMusicAssoc, which is already joined.
+  has_many :musics, -> { order(Arel.sql('CASE WHEN timing IS NULL THEN 1 ELSE 0 END, timing')) }, through: :harami_vid_music_assocs   # in the order of timing in HaramiVidMusicAssoc, which is already joined.
 
   has_many :artists, through: :musics
   has_many :harami1129s, dependent: :nullify

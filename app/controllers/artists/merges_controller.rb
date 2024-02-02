@@ -16,8 +16,9 @@ class Artists::MergesController < BaseMergesController
   # @raise [ActionController::UrlGenerationError] if no Artist ID is found in the path.
   # @raise [ActionController::ParameterMissing] if the other Artist ID is not specified (as GET).
   def edit
-    if !(2..3).cover?(@artists.size)
-      msg = 'No Artist matches the given one. Try a different title or ID.'
+    msg = _msg_if_invalid_prm_in_merging(@artists, "Artist") # defined in base_merges_controller.rb
+
+    if msg
       return respond_to do |format|
         format.html { redirect_to artists_new_merges_path(@artists[0]), alert: msg } # status: redirect
         format.json { render json: {error: msg}, status: :unprocessable_entity }

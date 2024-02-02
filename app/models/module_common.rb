@@ -162,7 +162,7 @@ module ModuleCommon
   # @param instr [String]
   # @return [String] "ja" or "en"
   def guess_lang_code(instr)
-    match_kanji_kana(zenkaku_to_ascii(instr, Z: 1)) ? 'ja' : 'en'
+    match_kanji_kana(zenkaku_to_ascii(instr || "", Z: 1)) ? 'ja' : 'en'
   end
 
   # Standard preprocess method of an input, mainly for {Translation}

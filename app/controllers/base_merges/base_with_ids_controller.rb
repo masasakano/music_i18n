@@ -1,5 +1,6 @@
 # coding: utf-8
 
+# JSON-only controller to return candidate Artists/Musics (or maybe else)
 class BaseMerges::BaseWithIdsController < ApplicationController
   authorize_resource :class => false
   #skip_before_action :authenticate_user!, :only => [:index]  # action defined in application_controller.rb

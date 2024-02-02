@@ -9,8 +9,8 @@ class Harami1129sControllerModeratorTest < ActionDispatch::IntegrationTest
   setup do
     # @harami1129 = harami1129s(:harami1129one)
     get '/users/sign_in'
-    # sign_in users(:user_001)
-    @general_moderator = Role[:moderator, RoleCategory::MNAME_GENERAL_JA].users.first   # moderator/general_ja, who is not qualified to manimuplate Harami1129
+    #@general_moderator = Role[:moderator, RoleCategory::MNAME_GENERAL_JA].users.first  ## => almighty moderator may be picked up!
+    @general_moderator = users(:user_moderator_general_ja)   # moderator/general_ja, who is not qualified to manimuplate Harami1129
     sign_in @general_moderator
     post user_session_url
 

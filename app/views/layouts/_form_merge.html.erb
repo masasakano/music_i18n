@@ -36,19 +36,24 @@
     </tr>
     <tr id="merge_edit_orig_language"><th>Orig-Language</th>
       <% labe = BaseMergesController::FORM_MERGE[:lang_orig] %>
+      <% orig_trans0_exists = true %>
       <% models[0..1].each_with_index do |em, i| %>
       <td>
-        <%= form.radio_button(labe, i, checked: (i==0)) %>
-        <% trans = em.orig_translation %>
-        <% arstr = %i(title ruby romaji alt_title alt_ruby alt_romaji).map{|et| h(trans.send(et) || "?")} %>
-        <% alt_head = '<span class="font-smaller">['+h(t(:alt_title).capitalize)+']</span>' %>
-        <% ruby_head = '<span class="font-smaller">'+h(t(:ruby_short).capitalize)+'</span>' %>
-        <% str = sprintf("[%s] %s<br>#{ruby_head}(%s | %s)<br>#{alt_head} %s<br>#{ruby_head}(%s | %s)", trans.langcode, *arstr).html_safe %>
-        <%= form.label labe, str, :value => i %>
+        <% trans = em.orig_translation %> <%# possibly nil %>
+        <% orig_trans0_exists = false if i == 0 && !trans %>
+        <% if trans %>
+          <%= form.radio_button(labe, i, checked: (i==0 || !orig_trans0_exists)) %>
+          <% arstr = %i(title ruby romaji alt_title alt_ruby alt_romaji).map{|et| h(trans && trans.send(et) || "?")} %>
+          <% alt_head = '<span class="font-smaller">['+h(t(:alt_title).capitalize)+']</span>' %>
+          <% ruby_head = '<span class="font-smaller">'+h(t(:ruby_short).capitalize)+'</span>' %>
+          <% str = sprintf("[%s] %s<br>#{ruby_head}(%s | %s)<br>#{alt_head} %s<br>#{ruby_head}(%s | %s)", trans.langcode, *arstr).html_safe %>
+          <% form_val = i %>
+          <%= form.label labe, str, :value => form_val %>
+        <% end %>
       </td>
       <% end %>
       <% trans = models[2].orig_translation %>
-      <td class="merged_column" id="merged_to_orig">[Original]<br>[<%= trans.langcode %>] <%= trans.title_or_alt %> </td>
+      <td class="merged_column" id="merged_to_orig">[Original]<br>[<%= trans && trans.langcode %>] <%= trans && trans.title_or_alt %> </td>
     </tr>
     <tr id="merge_edit_translations"><th title="<%= t('merges.edit.merge_if_possible', default: 'This row is automatically merged except for conflicting records.') %>"><%= t(:Translation, count: 2, default: 'Translations') %></th>
       <% labe = BaseMergesController::FORM_MERGE[:lang_trans] %>

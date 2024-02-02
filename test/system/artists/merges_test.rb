@@ -186,5 +186,139 @@ class Artists::MergesTest < ApplicationSystemTestCase
     assert_selector "h1", text: @artist.title
   end
 
+  test "populate Harami1129s and merge artists" do
+    h1129s = [harami1129s(:harami1129_sting1), harami1129s(:harami1129_sting2)]
+    art_ids = []  # "Populated" Artist IDs
+    mus_ids = []  # "Populated" Music IDs
+
+    visit new_user_session_path
+    fill_in "Email", with: users(:user_moderator).email  # All-mighty moderator
+    fill_in "Password", with: '123456'  # from users.yml
+    click_on "Log in"
+    assert_selector "h1", text: "HARAMIchan"
+
+    # Harami1129#index
+    #visit harami1129s_url  # Same as below.
+    find(:xpath, "//div[@id='navbar_upper_user']//li[@class='nav-item']//a[text()='Harami1129s']").click
+
+    assert_selector "h1", text: "Harami1129s"
+
+    (0..1).each do |i_h1129|
+      h1129 = h1129s[i_h1129]
+
+      if 0 == i_h1129
+        # internal insertion
+        visit harami1129_url(h1129)
+        assert_selector "h1", text: "HARAMI1129 Entry"
+        assert_equal h1129.id, page.find("dl#h1129_main_dl dd#h1129_id_dd").text.to_i
+        assert_selector 'form div.actions input[type="submit"][value="Insert within Table"]'
+        refute_selector 'form div.actions input[type="submit"][value="Populate"]'
+        click_on "Insert within Table"
+
+        assert_selector "h1", text: "HARAMI1129 Entry"
+        msg_notice = page.find(:xpath, "//div[@id='body_main']/p[contains(@class, 'notice')][1]").text.strip  # Notice message issued.
+        assert_match(/ID=#{h1129.id}\b.+\bupdated for ins_COLUMNS/, msg_notice)  # ID=12345 in Harami1129 is updated for ins_COLUMNS.
+        assert_equal h1129.id, page.find("dl#h1129_main_dl dd#h1129_id_dd").text.to_i
+        assert_selector 'form input[type="submit"][value="Populate"]'
+      end
+
+      # Click "Show"
+      visit harami1129s_url
+      find(:xpath, "//table[contains(@class, 'harami1129s_grid')]//tr/td[contains(@class, 'title')]/a[text()[contains(., '#{h1129.title}')]]/../../td[contains(@class, 'actions')]/a[text()='Show']").click  # NOTE: Title may be preceded with an emoji-symbol
+
+      assert_selector "h1", text: "HARAMI1129 Entry"
+      %w(title singer song).each do |ek|
+        ddid = "h1129_"+ek+"_dd"
+        exp = h1129.send(ek).strip
+        assert_equal exp, _get_h1129_table_cell(ddid, "Downloaded")
+        assert_equal exp, _get_h1129_table_cell(ddid, "Internally inserted")
+        assert_equal "",  _get_h1129_table_cell(ddid, "Current Destination"), "No destination should be defined for #{ek}, but..."
+      end
+      
+      click_on "Populate"  # Creating Artist (<=Singer) and Music (<= Song)
+      assert_selector "h1", text: "HARAMI1129 Entry"
+      %w(title singer song).each do |ek|
+        ddid = "h1129_"+ek+"_dd"
+        exp = h1129.send(ek).strip
+        assert_equal exp, _get_h1129_table_cell(ddid, "Current Destination"), "Destination should have been defined for #{ek}, but..."
+        case ek
+        when "singer", "song"
+          id_entry = File.basename(page.find(:xpath, "//dl[@id='h1129_main_dl']/dd[@id='#{ddid}']//table//th[a='Current Destination']/a")["href"].strip).to_i
+          assert_operator 0, :<, id_entry, "#{ek} should have a positive ID assigned, but..."
+          if "singer" == ek
+            art_ids[i_h1129] = id_entry
+          else
+            mus_ids[i_h1129] = id_entry
+          end
+        else
+          # skip
+        end
+      end # %w(title singer song).each do |ek|
+    end   # (0..1).each do |i_h1129|
+
+    assert_not_equal art_ids[0], art_ids[1], "Two Artists (to be merged) should exist, but..."
+    assert_not_equal mus_ids[0], mus_ids[1]
+
+    ## merging - option is not provided because the user is an only-Harami1129 moderator
+    visit artist_path(art_ids[0])
+    assert_selector :xpath, "//input[@type='submit' and @value='Add translation']"
+    refute_selector :xpath, "//input[@type='submit' and @value='Merge with another Artist']"
+
+    ## Logout and back in as a full moderator.
+    page.find(:xpath, "//div[@id='navbar_top']//a[text()='Log out']").click
+    assert_equal "Signed out successfully.", page.find(:xpath, "//div[@id='body_main']/p[contains(@class, 'notice')][1]").text.strip  # Notice message issued.
+
+    page.find("div#home_bottom a.login-button").click  # In the bottom menu.
+    #visit new_user_session_path  # equivalent.
+    fill_in "Email", with: users(:user_moderator_all).email  # All-mighty moderator
+    fill_in "Password", with: '123456'  # from users.yml
+    click_on "Log in"
+
+    assert_selector "h1", text: "HARAMIchan"
+
+    ## select a record for merging
+    visit artist_path(art_ids[0])
+    assert_selector :xpath, "//div[contains(@class, 'link-edit-destroy')]//div[contains(@class, 'actions-destroy')]//input[@disabled='disabled' and @type='submit' and @value='Destroy']"  # "Destroy button for Artist should be disabled, but..."
+    click_on "Merge with another Artist" 
+
+    assert_selector "h1", text: "Merge Artists (#{h1129s[0].singer.strip})"
+    fill_in "Artist-ID (to merge this with)", with: "-5"
+    click_on "Proceed"
+
+    ## jumping to merging page failed
+    assert_selector "h1", text: "Merge Artists (#{h1129s[0].singer.strip})"
+    assert page.find(:xpath, "//div[@id='body_main']/p[contains(@class, 'alert-danger')][1]").text.strip.include?("No Artist matches")  # Warning message "No Artist matches the given one. Try a different title or ID." issued.
+    fill_in "Artist-ID (to merge this with)", with: art_ids[0]  # identical ID => should fail.
+    click_on "Proceed"
+
+    ## jumping to merging page failed
+    assert_selector "h1", text: "Merge Artists (#{h1129s[0].singer.strip})"
+    assert page.find(:xpath, "//div[@id='body_main']/p[contains(@class, 'alert-danger')][1]").text.strip.include?("Identical Artists specified")  # Warning message "Identical Artists specified. Try a different title or ID." issued.
+
+    ## try with a correct record
+    assert_selector "h1", text: "Merge Artists (#{h1129s[0].singer.strip})"
+    fill_in "Artist-ID (to merge this with)", with: art_ids[1]
+    click_on "Proceed"
+
+    ## submit to merge
+    assert_selector "h1", text: "Merge Artists"
+    assert_match(/Back to\b.* ID.+#{art_ids[0]}\b/, page.find("p.navigate-link-below-form > a:nth-child(1)").text.strip)
+
+    page.find(:xpath, "//form//*[@id='merge_edit_merge_to']//input[@id='artist_to_index_1']").choose
+    page.find(:xpath, '//form//*[@id="merge_edit_orig_language"]//input[@id="artist_lang_orig_1"]').choose
+    click_on "Submit"
+
+    ## Logout just in case.
+    page.find(:xpath, "//div[@id='navbar_top']//a[text()='Log out']").click
+  end
+
+  private
+    # Returns a table cell String, after searching with XPath
+    # @return [String]
+    def _get_h1129_table_cell(ddid, th_row)
+      page.find(:xpath, "//dl[@id='h1129_main_dl']/dd[@id='#{ddid}']//table//tr[th='#{th_row}']/td[1]").text.strip
+                      # "//dl[@id='h1129_main_dl']/dd[@id='#{ddid}']//table//tr/td[text()=#{th_row}]/following-sibling::td[1]"  # Same meaning as the above.
+    end
+    private :_get_h1129_table_cell
 end
 

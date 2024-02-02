@@ -62,9 +62,13 @@ class Musics::MergesControllerTest < ActionDispatch::IntegrationTest
     
     sign_in @editor
     get musics_edit_merges_url(@music, params: {other_music_id: musics(:music_ihojin1).id})
+    assert_response :redirect
+    assert_redirected_to musics_new_merges_path
+ 
+    get musics_edit_merges_url(@music, params: {other_music_id: musics(:music_ihojin2).id})
     assert_response :success
  
-    get musics_edit_merges_url(@music, params: {music: {other_music_id: musics(:music_ihojin1).id}})
+    get musics_edit_merges_url(@music, params: {music: {other_music_id: musics(:music_ihojin2).id}})
     assert_response :success
  
     titnew = "異邦人でっしゃろ"

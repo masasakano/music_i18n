@@ -10,6 +10,7 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
     @other  = artists(:artist_ai)
     @music1 = musics(:music_ihojin1)
     @music2 = musics(:music_ihojin2)
+    @moderator_all = users(:user_moderator_all)   # All-mighty moderator
     @editor     = users(:user_editor_general_ja)  # (General) Editor can manage.
     @translator = users(:user_translator)
     @def_prm_artist = {
@@ -216,5 +217,128 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
     # note
     str = other_bkup.note+" "+artist_bkup.note
     assert_equal str, @other.note
-  end
+  end # test "should update1" do
+
+
+  ## merging case that used to fail.
+  test "should update2" do
+    sign_in @moderator_all 
+
+    # Populates from Harami1129 fixtures
+    h1129s = [harami1129s(:harami1129_sting1), harami1129s(:harami1129_sting2)].map{|i| _populate_harami1129(i)}
+
+    hvma_bkups = h1129s.map{|i| i.harami_vid.harami_vid_music_assocs}.flatten  # HaramiVidMusicAssoc
+
+    # sanity checks
+    assert_equal 2, hvma_bkups.compact.size, 'HaramiVidMusicAssoc should be defined, but...'
+    hvma_bkups.each_with_index do |ehv, i|
+      assert_equal 1, ehv.music.artists.size, 'Each HaramiVid has only 1 artist.'
+    end
+
+    artist_origs = hvma_bkups.map{|i| i.music.artists.first}
+    refute_equal(*(artist_origs+['Artists should differ, but...']))
+
+    transs = artist_origs.map{|i| i.translations}
+    transs.each do |ea|
+      ea.each do |ej|
+        ej.reload  # to make sure the contents are loaded
+      end
+      assert_equal 1, ea.size
+      bool = ea.first.is_orig
+      assert bool, "is_orig should be true but (#{bool.inspect})"
+    end
+    engages = h1129s.map{|i| i.harami_vid.musics.map{|em| em.engages}}.flatten.map{|ee| ee.reload; ee}
+    assert_equal 2, engages.size, 'sanity-check'
+    engages[1].update!(contribution: 0.7)
+
+    # Sanity checks (Orig-Langcodes should be defined and differ between the two ("Sting" <=> "スティング"))
+    refute_equal transs[0][0].orig_langcode, transs[1][0].orig_langcode
+
+    prm_artist = {
+      other_artist_id: artist_origs[1].id.to_s,
+      to_index: '1',
+      lang_orig: '1',
+      lang_trans: nil,
+      engage: '1',
+      prefecture_place: nil,
+      sex: nil,
+      birthday: nil,
+      wiki_en: nil,
+      wiki_ja: nil,
+    }
+
+    assert_difference('Artist.count', -1) do
+      assert_difference('Translation.count', -1) do # 
+        assert_difference('HaramiVidMusicAssoc.count', 0) do
+          assert_difference('Engage.count', 0) do
+            assert_difference('Music.count', 0) do
+              assert_difference('Place.count', 0) do
+                patch artists_update_merges_url(artist_origs[0]), params: { artist: prm_artist }
+              end
+            end
+          end
+        end
+      end
+    end
+    assert_response :redirect
+    assert_redirected_to artist_path(artist_origs[1])
+
+    refute Artist.exists?(artist_origs[0].id)  # refute artist_origs[0].destroyed?  ;;; does not work
+    assert Artist.exists?(artist_origs[1].id)
+    artist_origs[1].reload
+
+    # created_at is adjusted to the older one.
+    assert_equal artist_origs[0].created_at, artist_origs[1].created_at
+
+    # HaramiVidMusicAssoc
+    hvma_bkups.each do |ehv|
+      user_refute_updated?(ehv, 'HaramiVidMusicAssoc should not change - its Music remains unchanged, whereas the Artist for the Music has changed.')  # defined in test_helper.rb
+    end
+
+    # Translations deleted/remain
+    assert Translation.exists?(transs[0][0].id), "Both translation (is_orig is true for both (ja and en)) should remain, but the first one disappeared."
+    assert Translation.exists?(transs[1][0].id)
+    #refute Translation.exists?(trans2delete1.id)
+    #assert Translation.exists?(trans2remain1.id)
+    #assert Translation.exists?(trans2remain2.id)
+    refute_equal transs[0][0], transs[1][0]
+
+    # Translations
+    user_refute_updated?(     transs[0][0])  # defined in test_helper.rb
+    user_assert_updated_attr?(transs[1][0], :translatable_id)  # model is reloaded!
+
+    # Engage
+    assert Engage.exists?(engages[0].id)
+    assert Engage.exists?(engages[1].id)
+    cont_old = engages[1].contribution
+
+    user_assert_updated_attr?(engages[0], :artist)  # model reloaded. defined in test_helper.rb
+    user_refute_updated?(     engages[1])  # model reloaded. defined in test_helper.rb
+
+    assert_equal engages[1].artist, engages[0].artist  # it was just reloaded in the method above.
+    assert_equal cont_old, engages[1].contribution  # no change
+
+  end # test "should update2" do
+
+
+  private
+    # cf. /test/controllers/harami1129s/populates_controller_test.rb
+    # @return [Harami1129]
+    def _populate_harami1129(h1129)
+      assert_difference('Harami1129.count + HaramiVid.count*10000', 0) do
+        patch harami1129_internal_insertions_url(h1129)
+        assert_response :redirect
+        assert_redirected_to harami1129_url h1129
+      end
+      h1129.reload
+
+      assert_difference('HaramiVid.count*10000 + HaramiVidMusicAssoc.count*1000 + Music.count*100 + Artist.count*10 + Engage.count', 11111) do
+        patch harami1129_populate_url(h1129)
+        assert_response :redirect
+        assert_redirected_to harami1129_url h1129
+      end
+      h1129.reload
+    end
+
 end
+
