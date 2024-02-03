@@ -29,7 +29,6 @@ class Artists::MergesController < BaseMergesController
 
   def update
     raise 'This should never happen - necessary parameter is missing. params='+params.inspect if !(2..3).cover?(@artists.size)
-    @to_index = merge_params[FORM_MERGE[:to_index]].to_i   # defined in base_merges_controller.rb
     @all_checked_disabled = all_checked_disabled(@artists) # defined in base_merges_controller.rb
     begin
       ActiveRecord::Base.transaction do
@@ -56,6 +55,7 @@ class Artists::MergesController < BaseMergesController
   end
 
   private
+
     # Use callback for setup for new
     def set_artist
       @artist = Artist.find(params[:id])
@@ -63,6 +63,8 @@ class Artists::MergesController < BaseMergesController
 
     # Use callbacks to share common setup or constraints between actions.
     def set_artists
+      set_to_index  # set @to_index; defined in base_merges_controller.rb
+
       @artists = []
       @artists << Artist.find(params[:id])
       begin

@@ -62,6 +62,20 @@ class BaseMergesController < ApplicationController
 
   private
 
+    # set @to_index
+    def set_to_index
+      case action_name.to_sym
+      when :edit
+        params.permit!
+        @to_index = params[FORM_MERGE[:to_index]]
+        @to_index ||= @to_index.to_i  # nil or Integer
+      when :update
+        @to_index = merge_params[FORM_MERGE[:to_index]].to_i
+      else
+        raise "Unexpected action_name (#{action_name})..."
+      end
+    end
+
     # Only allow a list of trusted parameters through.
     #
     # @param fallback [Class, BaseWithTranslation, String, Symbol] like +:music+
@@ -191,19 +205,21 @@ class BaseMergesController < ApplicationController
       self.class::FORM_MERGE_KEYS.map{ |ea_fmk|
         [ea_fmk, 
            case ea_fmk
-           when :to_index, :lang_orig
-             CheckedDisabled.new(checked_index: 0, disabled: false)
+           when :to_index
+             CheckedDisabled.new(checked_index: _checked_index(ea_fmk, def_index: 0), disabled: false)
+           when :lang_orig
+             CheckedDisabled.new(chkmodels.map{|i| i.orig_translation}, checked_index: _checked_index(ea_fmk, def_index: 0))
            when :lang_trans
              _non_orig_translations_checked_disabled(chkmodels)
            when :engage
              torfs = chkmodels.map{|em| em.engages.exists? ? true : nil }
-             CheckedDisabled.new(checked_index: torfs.find_index{|tf| tf}, disabled: (1 == torfs.compact.size))
+             CheckedDisabled.new(chkmodels, ea_fmk, checked_index: _checked_index(ea_fmk){torfs.find_index{|tf| tf}}, disabled: (1 == torfs.compact.size))
            when :prefecture_place
-             CheckedDisabled.new(chkmodels, :place)
+             CheckedDisabled.new(chkmodels, :place, checked_index: _checked_index(ea_fmk))
            when :genre, :year, :sex, :wiki_en, :wiki_ja
-             CheckedDisabled.new(chkmodels, ea_fmk)
+             CheckedDisabled.new(chkmodels, ea_fmk, checked_index: _checked_index(ea_fmk))
            when :birthday
-             CheckedDisabled.new(chkmodels, :any_birthdate_defined?)
+             CheckedDisabled.new(chkmodels, :any_birthdate_defined?, checked_index: _checked_index(ea_fmk))
            when :note
              next  # ignoredd!
            when :other_music_id, :other_music_title, :other_artist_id, :other_artist_title
@@ -215,6 +231,22 @@ class BaseMergesController < ApplicationController
            end
         ]
       }.compact.to_h
+    end
+
+    # Determines checked index, considering (GET)-params
+    #
+    # Block is evaluated IF params() does not specify the index.
+    #
+    # @param key [String, Symbol] Hash Key
+    # @param def_index: [Integer, NilClass] Default value. Lowest priority.
+    # @yield [] If given, the returned value is used UNLESS the values is given in params()
+    # @return [Integer, NilClass]
+    def _checked_index(key, def_index: nil)
+      #params.permit!
+      s = self.class::MODEL_SYM
+      params.require(s).permit! if params.key?(s)
+      ret = ((params.key?(s) && params[s][FORM_MERGE[key]]) || (block_given? && yield) || def_index)
+      (ret.blank? ? nil : ret.to_i)
     end
 
     # Preparation routine.
@@ -478,7 +510,7 @@ end
     # @return [CheckedDisabled] {CheckedDisabled#contents} is a 2-element Array of the String to print.
     def _non_orig_translations_checked_disabled(models)
       contents = _translations_htmls(models)
-      i_checked = (contents.find_index{|i| !i.blank?} || -1)
+      i_checked = _checked_index(:lang_trans){(contents.find_index{|i| !i.blank?} || -1)}  # NOTE-to-Developer: "-1" should be replaced with nil?
       disabled  = (1 == contents.find_all{|i| !i.blank?}.size)
       CheckedDisabled.new(checked_index: i_checked, disabled: disabled, contents: contents)
     end

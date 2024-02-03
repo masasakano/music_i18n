@@ -23,6 +23,12 @@ class CheckedDisabled
   #
   # Note if blank?, it is regarded as being nil.
   #
+  # == Algorithm
+  #
+  # If the model class has a method "index_boss" to determine the priority, it is consulted
+  # *unless* the argument checked_index is non-nil.  For example, {Place.index_boss} determines
+  # that if one of the Places is {Place#unkown} and the other is not, the latter is selected.
+  #
   # @param models [Array<ActiveRecord>] can be nil only if disabled and checked_index are specified.
   # @param attr [Symbol] attribute method. if nil, models are directly used.
   # @param refute [Boolean] If true (Def: false), the return of :attr is reversed (it should be Boolean in this case).
@@ -34,8 +40,9 @@ class CheckedDisabled
   #    If non-nil elements are specified, it is not overwritten.
   # @return [Hash] :disabled? => Boolean, :checked_index => Index
   def initialize(models=nil, attr=nil, refute: false, defcheck_index: DEFCHECK_INDEX, disable_if_nil: true, disabled: nil, checked_index: nil, contents: [])
+    defcheck_index = defcheck_index.to_i
     @disabled = disabled
-    @checked_index = checked_index
+    @checked_index = (checked_index && checked_index.to_i)
     @contents = contents
     return if !@disabled.nil? && checked_index  # Already set
 
@@ -61,7 +68,7 @@ class CheckedDisabled
 
     return if should_disabled || !arres[@checked_index].class.respond_to?(:index_boss)
 
-    ## The model class has a method to select the index of the boss to check
+    ## The model class has a method "index_boss" to determine the priority.
     # The :index_boss method should return an index or nil if none of them have a priority.
     obj = arres[@checked_index].class.index_boss(arres, defcheck_index: defcheck_index)
 
@@ -73,6 +80,7 @@ class CheckedDisabled
       # It is either nil or Integer
       @checked_index = (obj || @checked_index)
     end
+    @checked_index &&= @checked_index.to_i
   end
 
   # Whether the item in the form should be disabled.

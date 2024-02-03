@@ -29,7 +29,7 @@
   <tbody>
     <tr id="merge_edit_merge_to"><th>Merge to</th>
       <% models[0..1].each_index do |i| %>
-      <td style="text-align: center;"><%= form.radio_button(BaseMergesController::FORM_MERGE[:to_index], i, checked: (i==0)) %>
+      <td style="text-align: center;"><%= form.radio_button(BaseMergesController::FORM_MERGE[:to_index], i, checked: (i==all_checked_disabled[:to_index].checked_index)) %>
       </td>
       <% end %>
       <td class="merged_column" id="merged_to_id"><%= models[2].id || models[2].id_backup %></td>
@@ -133,8 +133,9 @@
       <td>
 <% if false %>
         <%= form.radio_button(labe, i, checked: (i==hsstat.checked_index), disabled: hsstat.disabled?) %>
-<% else %>
         <%= form.radio_button(labe, i, checked: (i==ch_dis.checked_index), disabled: ch_dis.disabled?) %>
+<% else %>
+        <%= form.radio_button(labe, i, checked: (i==all_checked_disabled[:prefecture_place].checked_index), disabled: ch_dis.disabled?) %>
 <% end %>
         <% str = sprintf("%s &lt; %s (%s)", *([em.place, em.place.prefecture, em.place.country].map{|ep| h(ep.title_or_alt(langcode: I18n.locale).sub(/\A(どこか)(?:の場所|の都道府県)/, '不明').sub(/\AUnknown/, ''))})).html_safe %>
         <%= form.label labe, str, :value => i %>
@@ -243,10 +244,14 @@
 </table>
 
   <div class="actions">
-    <%= form.submit t("Submit", default: "Submit") %>
+    <% path_reload = send(model_underscore.pluralize + "_edit_merges_path", models[0], other_artist_id: models[1].id) %> <%# e.g., musics_edit_merges_path() %>
+    <%= form.submit t("Reload", default: "Reload"), formaction: path_reload, formmethod: "get" %>
   </div>
   <div class="actions">
   <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  </div>
+  <div class="actions" style="margin-top: 1em">
+    <%= form.submit t("Submit", default: "Submit") %>
   </div>
 <% end %>
 
