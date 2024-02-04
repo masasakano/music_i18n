@@ -75,13 +75,14 @@ class BaseMergesController < ApplicationController
 
     # set @to_index
     def set_to_index
+      keyi = FORM_MERGE[:to_index]
       case action_name.to_sym
       when :edit
         params.permit!
-        @to_index = params[FORM_MERGE[:to_index]]
-        @to_index ||= @to_index.to_i  # nil or Integer
+        @to_index = (params[keyi] || params[s=self.class::MODEL_SYM] && params[s][keyi])
+        @to_index &&= @to_index.to_i  # nil or Integer
       when :update
-        @to_index = merge_params[FORM_MERGE[:to_index]].to_i
+        @to_index = merge_params[keyi].to_i
       else
         raise "Unexpected action_name (#{action_name})..."
       end
@@ -171,6 +172,40 @@ class BaseMergesController < ApplicationController
     end
 
 
+    # Arguments from the arguments of the parent method
+    #
+    # @param model [BaseWithTranslation]
+    # @param to_index [Integer, String, NilClass] In default, taken from params()
+    # @return [Array<Integer, Hash<Symbol, Symbol>] [to_index, priorities]
+    def _build_priorities(model, to_index=nil)
+      hs_params = (params.key?(self.class::MODEL_SYM) ? params[self.class::MODEL_SYM] : nil) 
+      to_index ||= (@to_index || (hs_params ? hs_params[:to_index].to_i : 0))  # @to_index should be set at set_to_index() called from each Controller
+
+      priorities = { default: :self }
+      FORM_MERGE.each_pair do |fkey, fval|
+        next unless %w(lang_orig lang_trans engage prefecture_place birthday).include?(fkey) || model.respond_to?(fkey)
+        prm_val = (hs_params ? hs_params[fval] : nil)
+        next if prm_val.blank?
+        k = (("engage" == fval) ? :engages : fval.to_sym)  # NOTE: The key for FORM_MERGE and its value are :engage, but the key for "priorities" is :engages (!!). Inconsistent...
+        priorities[k] = ((prm_val.to_i == to_index) ? :self : :other)
+      end
+      [to_index, priorities]
+    end  # def _build_priorities(model, to_index)
+
+    # Returns 3-element Array of Models-self/other and +priorities+ (Hash) from params()
+    #
+    # +priorities+ is passed to {BaseWithTranslation#merge_other}
+    #
+    # @param models [Array<BaseWithTranslation, BaseWithTranslation>]
+    # @return [Array<Integer, Hash<Symbol, Symbol>] [to_index, priorities]
+    def get_self_other_priorities(models)
+      to_index, priorities = _build_priorities(models[0])
+
+      mdl_self  = models[to_index]
+      mdl_other = models[other_index(to_index)]
+      [mdl_self, mdl_other, priorities]
+    end  # def get_self_other_priorities(models)
+
     # Returns the merged model based on the given two models
     #
     # For {Music}, for example, the ID is taken from +params[:other_music_id]+
@@ -196,25 +231,6 @@ class BaseMergesController < ApplicationController
     # @raise [ActiveRecord::RecordNotFound] if +:other_{model}_id+ is not given and no +Model+ matches +:other_{model}_title+
     def get_merged_model(models, to_index: nil)
 
-      # Arguments from the arguments of the parent method
-      # @return [Array<Integer, Hash<Symbol, Symbol>] [to_index, priorities]
-      def _build_priorities(model, to_index)
-        hs_params = (params.key?(self.class::MODEL_SYM) ? params[self.class::MODEL_SYM] : nil) 
-        if to_index.blank?
-          to_index = (hs_params ? hs_params[:to_index].to_i : 0)
-        end
-
-        priorities = { default: :self }
-        FORM_MERGE.each_pair do |fkey, fval|
-          next unless %w(lang_orig lang_trans engage prefecture_place birthday).include?(fkey) || model.respond_to?(fkey)
-          prm_val = (hs_params ? hs_params[fval] : nil)
-          next if prm_val.blank?
-          k = (("engage" == fval) ? :engages : fval.to_sym)  # NOTE: The key for FORM_MERGE and its value are :engage, but the key for "priorities" is :engages (!!). Inconsistent...
-          priorities[k] = ((prm_val.to_i == to_index) ? :self : :other)
-        end
-        [to_index, priorities]
-      end  # def _build_priorities(model, to_index)
-
       # reloading so that the records will stay (not be garbage-collected) after roll-back.
       def _touch_hsmerged(hsmerged)
         [:trans, :engage, :harami_vid_music_assocs].each do |gkey|
@@ -238,10 +254,8 @@ class BaseMergesController < ApplicationController
 
       merged = nil  # models[0].class.new()  # will be always overwritten.
       hsmerged = {}
-      to_index, priorities = _build_priorities(models[0], to_index)
 
-      mdl_self = models[to_index]
-      mdl_other = models[other_index(to_index)]
+      mdl_self, mdl_other, priorities = get_self_other_priorities(models)
 
       ActiveRecord::Base.transaction(requires_new: true) do  # "requires_new" option necessary for testing.
         hsmerged = mdl_self.merge_other(mdl_other, priorities: priorities, save_destroy: false)

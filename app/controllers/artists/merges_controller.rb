@@ -31,8 +31,12 @@ class Artists::MergesController < BaseMergesController
   def update
     raise 'This should never happen - necessary parameter is missing. params='+params.inspect if 2 != @artists.size
     @all_checked_disabled = all_checked_disabled(@artists) # defined in base_merges_controller.rb
+
+    #mdl_self, mdl_other, priorities = get_self_other_priorities(@artists)
     begin
-      ActiveRecord::Base.transaction do
+      ActiveRecord::Base.transaction(requires_new: true) do  # "requires_new" option necessary for testing.
+        #_ = mdl_self.merge_other(mdl_other, priorities: priorities, save_destroy: true)
+
         merge_lang_orig(@artists)   # defined in base_merges_controller.rb
         merge_lang_trans(@artists)  # defined in base_merges_controller.rb
         merge_engage_harami1129(@artists)  # defined in base_merges_controller.rb
@@ -49,6 +53,9 @@ class Artists::MergesController < BaseMergesController
         #raise ActiveRecord::Rollback, "Force rollback." if ...
       end
     rescue
+      msg = "ERROR(#{File.basename __FILE__}): merging failed: ID(after-merged)=#{mdl_self.id}; models=#{@artists.inspect}"
+      logger.error msg
+      warn msg
       raise ## Transaction failed!  Rolled back.
     end
 
