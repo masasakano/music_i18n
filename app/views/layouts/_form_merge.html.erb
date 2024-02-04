@@ -1,5 +1,4 @@
 <%# NOTE: Argument "models" should be an 2-element Array of base-model and merge-model %>
-<%#   Deprecated(!): Also, "trans_prms" should be given: see non_orig_translations_prms() in base_merges_controller.rb %>
 
   <% if models[0].errors.any? || models[1].errors.any? %>
     <div id="error_explanation">
@@ -63,15 +62,6 @@
       <% all_nulls = ch_dis.contents.all?{|j| j.blank?} %>
       <% models[0..1].each_with_index do |em, i| %>
       <td title="<%= t('merges.edit.merge_if_possible') %>">
-<% if false %>
-        <% trp = trans_prms[i] %>
-        <% if trp[:exist] %>
-          <%= form.radio_button(labe, i, checked: trp[:checked], disabled: trp[:disabled]) %>
-          <%= form.label(labe, trp[:label_str], :value => i) %>
-        <% else %>
-          <span style="padding-left: 2em;"><%= trp[:label_str] %></span>
-        <% end %>
-<% else %>
         <% if !ch_dis.contents[i].blank? %>
           <%= form.radio_button(labe, i, checked: (i == ch_dis.checked_index), disabled: ch_dis.disabled?) %>
           <%= form.label(labe, ch_dis.contents[i], :value => i) %>
@@ -79,7 +69,6 @@
         <% if ch_dis.disabled? && 1 == i && !all_nulls %>
           <%= form.hidden_field labe, value: ch_dis.checked_index %>
         <% end %>
-<% end %>
       </td>
       <% end %>
       <td class="merged_column" id="merged_to_trans"><%= merged_model.hsmerged[:trans][:tr_html] %></td>
@@ -119,12 +108,6 @@
       <% all_nulls = ch_dis.contents.any?{|j| !j.blank?} %>
       <% areng[0..1].each_with_index do |engag, i| %>
       <td title="<%= t('merges.edit.merge_if_possible') %>">
-<% if false %>
-       <% if engag %>
-        <%= form.radio_button(labe, i, checked: (i == checked), disabled: disabled) %>
-        <%= form.label labe, engag, :value => i %>
-       <% end %>
-<% else %>
         <% if !ch_dis.contents[i].blank? %>
           <%= form.radio_button(labe, i, checked: (i == ch_dis.checked_index), disabled: ch_dis.disabled?) %>
           <%= form.label(labe, ch_dis.contents[i], :value => i) %>
@@ -132,10 +115,9 @@
         <% if ch_dis.disabled? && 1 == i && !all_nulls %>
           <%= form.hidden_field labe, value: ch_dis.checked_index %>
         <% end %>
-<% end %>
       </td>
       <% end %>
-      <% end %>
+      <% end %> <%# if (areng[0..1].compact.size == 0) %>
       <td class="merged_column" id="merged_to_engages"><%= areng[2] %></td>
     </tr>
 
@@ -143,19 +125,13 @@
     <tr id="merge_edit_place"><th>Place < Prefecture</th>
       <% labe = BaseMergesController::FORM_MERGE[:prefecture_place] %>
       <% ch_dis = all_checked_disabled[:prefecture_place] %>
-      <%# hsstat = CheckedDisabled.new(models, :place) %>
       <% models[0..1].each_with_index do |em, i| %>
       <td>
-<% if false %>
-        <%= form.radio_button(labe, i, checked: (i==hsstat.checked_index), disabled: hsstat.disabled?) %>
         <%= form.radio_button(labe, i, checked: (i==ch_dis.checked_index), disabled: ch_dis.disabled?) %>
-<% else %>
-        <%= form.radio_button(labe, i, checked: (i==all_checked_disabled[:prefecture_place].checked_index), disabled: ch_dis.disabled?) %>
-<% end %>
         <% str = sprintf("%s &lt; %s (%s)", *([em.place, em.place.prefecture, em.place.country].map{|ep| h(ep.title_or_alt(langcode: I18n.locale).sub(/\A(どこか)(?:の場所|の都道府県)/, '不明').sub(/\A(Unknown)(Place|Prefecture)/, '\1'))})).html_safe %>
         <%= form.label labe, str, :value => i %>
         <% if ch_dis.disabled? && 1 == i %> <%# Place always has a value %>
-          <%= form.hidden_field labe, value: all_checked_disabled[:prefecture_place].checked_index %>
+          <%= form.hidden_field labe, value: ch_dis.checked_index %>
         <% end %>
       </td>
       <% end %>
@@ -167,12 +143,10 @@
     <%#  ----------- genres ------------ %>
     <tr id="merge_edit_genre"><th>Genre</th>
       <% labe = BaseMergesController::FORM_MERGE[:genre] %>
-      <%# hsstat = CheckedDisabled.new(models, :genre) %>
       <% ch_dis = all_checked_disabled[:genre] %>
       <% models[0..1].each_with_index do |em, i| %>
       <td>
         <%= form.radio_button(labe, i, checked: (i==ch_dis.checked_index), disabled: ch_dis.disabled?) %>
-        <%# = form.radio_button(labe, i, checked: (i==hsstat.checked_index), disabled: hsstat.disabled?) %>
         <%= form.label labe, em.genre.title_or_alt(langcode: I18n.locale), :value => i %>
         <% if ch_dis.disabled? && 1 == i %> <%# Genre always has a value %>
           <%= form.hidden_field labe, value: ch_dis.checked_index %>
@@ -185,12 +159,10 @@
     <%#  ----------- years ------------ %>
     <tr id="merge_edit_year"><th>Year</th>
       <% labe = BaseMergesController::FORM_MERGE[:year] %>
-      <%# hsstat = CheckedDisabled.new(models, :year) %>
       <% ch_dis = all_checked_disabled[:year] %>
       <% models[0..1].each_with_index do |em, i| %>
       <td>
         <%= form.radio_button(labe, i, checked: (i==ch_dis.checked_index), disabled: ch_dis.disabled?) %>
-        <%# = form.radio_button(labe, i, checked: (i==hsstat.checked_index), disabled: hsstat.disabled?) %>
         <%= form.label labe, em.year.inspect, :value => i %>
         <% if ch_dis.disabled? && 1 == i %>
           <%= form.hidden_field labe, value: ch_dis.checked_index %>
@@ -199,16 +171,14 @@
       <% end %>
       <td class="merged_column" id="merged_to_year"><%= merged_model.year.inspect %></td>
     </tr>
-  <% else %>
+  <% else %> <%# if is_music %>
     <%#  ----------- sexes ------------ %>
     <tr id="merge_edit_sex"><th>Sex</th>
       <% labe = BaseMergesController::FORM_MERGE[:sex] %>
-      <% hsstat = CheckedDisabled.new(models, :sex) %>
       <% ch_dis = all_checked_disabled[:sex] %>
       <% models[0..1].each_with_index do |em, i| %>
       <td>
         <%= form.radio_button(labe, i, checked: (i==ch_dis.checked_index), disabled: ch_dis.disabled?) %>
-        <%# form.radio_button(labe, i, checked: (i==hsstat.checked_index), disabled: hsstat.disabled?) %>
         <%= form.label labe, em.sex.title_or_alt(langcode: I18n.locale), :value => i %>
           <% if ch_dis.disabled? && 1 == i %> <%# Sex always has a value %>
             <%= form.hidden_field labe, value: ch_dis.checked_index %>
@@ -221,13 +191,11 @@
     <tr id="merge_edit_birthday"><th>Birthday</th>
       <% labe = BaseMergesController::FORM_MERGE[:birthday] %>
       <% ch_dis = all_checked_disabled[:birthday] %>
-      <%# hsstat = CheckedDisabled.new(models, :any_birthdate_defined?) %>
       <% all_nulls = !models.any?{|em| em.any_birthdate_defined?} %>
       <% models[0..1].each_with_index do |em, i| %>
       <td>
         <% if em.any_birthdate_defined? %>
         <%= form.radio_button(labe, i, checked: (i==ch_dis.checked_index), disabled: ch_dis.disabled?) %>
-          <%# form.radio_button(labe, i, checked: (i==hsstat.checked_index), disabled: hsstat.disabled?) %>
           <%= form.label labe, em.birthday_string, :value => i %>
         <% end %>
         <% if ch_dis.disabled? && 1 == i && !all_nulls %>
@@ -242,13 +210,11 @@
     <tr id="merge_edit_wiki_en"><th>Wikipedia[en]</th>
       <% labe = BaseMergesController::FORM_MERGE[:wiki_en] %>
       <% ch_dis = all_checked_disabled[:wiki_en] %>
-      <%# hsstat = CheckedDisabled.new(models, :wiki_en) %>
       <% all_nulls = models.all?{|em| em.wiki_en.blank?} %>
       <% models[0..1].each_with_index do |em, i| %>
       <td>
         <% if !(str = em.wiki_en).blank?  %>
         <%= form.radio_button(labe, i, checked: (i==ch_dis.checked_index), disabled: ch_dis.disabled?) %>
-          <%# form.radio_button(labe, i, checked: (i==hsstat.checked_index), disabled: hsstat.disabled?) %>
           <%= form.label labe, str, :value => i %>
         <% end %>
         <% if ch_dis.disabled? && 1 == i && !all_nulls %>
@@ -263,13 +229,11 @@
     <tr id="merge_edit_wiki_ja"><th>Wikipedia[ja]</th>
       <% labe = BaseMergesController::FORM_MERGE[:wiki_ja] %>
       <% ch_dis = all_checked_disabled[:wiki_ja] %>
-      <%# hsstat = CheckedDisabled.new(models, :wiki_ja)  %>
       <% all_nulls = models.all?{|em| em.wiki_ja.blank?} %>
       <% models[0..1].each_with_index do |em, i| %>
       <td>
         <% if !(str = em.wiki_ja).blank?  %>
         <%= form.radio_button(labe, i, checked: (i==ch_dis.checked_index), disabled: ch_dis.disabled?) %>
-          <%# form.radio_button(labe, i, checked: (i==hsstat.checked_index), disabled: hsstat.disabled?) %>
           <%= form.label labe, str, :value => i %>
         <% end %>
         <% if ch_dis.disabled? && 1 == i && !all_nulls %>
