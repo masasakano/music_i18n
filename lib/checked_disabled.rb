@@ -36,15 +36,18 @@ class CheckedDisabled
   # @param disable_if_nil [Boolean] If true (Def) and if there is no significant one, return disabled? == true
   # @param disabled [Boolean, NilClass] If non-nil, this value is used for {#disabled?}
   # @param checked_index [Integer, NilClass] if non-nil, this value is simply used for {#checked_index}
+  #    Note that +@disabled+ will be (perhaps) set regardless of this value, unless the given +disabled+ is non-nil.
+  #    For example, in the case where @disabled is set true and @checked_index is set 0 in Default,
+  #    if checked_index=1 is given, the return has @disabled=true and @checked_index=1.
   # @param contents [Array<Object>] Basically, the values of +model.attr+ and retrieved with {#contents}.
   #    If non-nil elements are specified, it is not overwritten.
   # @return [Hash] :disabled? => Boolean, :checked_index => Index
   def initialize(models=nil, attr=nil, refute: false, defcheck_index: DEFCHECK_INDEX, disable_if_nil: true, disabled: nil, checked_index: nil, contents: [])
     defcheck_index = defcheck_index.to_i
     @disabled = disabled
-    @checked_index = (checked_index && checked_index.to_i)
+    @checked_index = (checked_index.present? && checked_index.to_i)
     @contents = contents
-    return if !@disabled.nil? && checked_index  # Already set
+    return if !@disabled.nil? && @checked_index  # Already set
 
     arres = (attr ? models.map{|em| em.send(attr)} : models.dup)
     arres.map!{|i| !i} if attr && refute
@@ -63,10 +66,10 @@ class CheckedDisabled
       end
     end
 
-    return if checked_index  # given as an argument.
-    @checked_index = (arres.find_index{|em| !em.blank?} || defcheck_index)
+    ## return if checked_index  # given as an argument.
+    @checked_index ||= (arres.find_index{|em| !em.blank?} || defcheck_index)
 
-    return if should_disabled || !arres[@checked_index].class.respond_to?(:index_boss)
+    return if (should_disabled && !checked_index) || !arres[@checked_index].class.respond_to?(:index_boss)
 
     ## The model class has a method "index_boss" to determine the priority.
     # The :index_boss method should return an index or nil if none of them have a priority.
@@ -75,10 +78,10 @@ class CheckedDisabled
     if obj.respond_to?(:checked_index)
       # Basically, if the object is this class's instance.
       @disabled      = obj.disabled?
-      @checked_index = obj.checked_index
+      @checked_index = obj.checked_index if !checked_index  # If specified as an argument, it remains unchanged.
     else
       # It is either nil or Integer
-      @checked_index = (obj || @checked_index)
+      @checked_index = (obj || @checked_index) if !checked_index  # If specified as an argument, it remains unchanged.
     end
     @checked_index &&= @checked_index.to_i
   end

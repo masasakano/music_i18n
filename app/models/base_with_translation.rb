@@ -341,6 +341,12 @@ class BaseWithTranslation < ApplicationRecord
   extend  ModuleCommon  # for split_hash_with_keys and update_or_create_by_with_notouch!()
   include ModuleCommon  # for split_hash_with_keys
 
+  # Custome exception
+  #
+  # A way to define recommended by a person in Stackoverflow:
+  # <https://stackoverflow.com/a/47115392/3577922>
+  class MissingRequirementError < StandardError; end
+
   class UnsavedTranslationsValidator < ActiveModel::Validator
     # Validate unsaved_translations if defined.
     def validate(record)
@@ -2504,13 +2510,28 @@ class BaseWithTranslation < ApplicationRecord
     end
   end
 
+  # @param priorities [Hash<Symbol, Symbol>] an element is like :birthday => :other. Usually :default is recommended.
+  # @param kwd [Symbol] Keyword, e.g., :prefecture_place
+  # @return [Symbol] either :self or :other
+  # @raise [RuntimeError] if neither kwd nor :default is defined for priorities
+  def _priority2pass(priorities, kwd)
+    retsym = (priorities[kwd] || priorities[:default])
+    raise MissingRequirementError, "(#{__method__}) Neither Keyword (#{kwd}) nor :default is defined in the given priorities: #{priorities.inspect}" if !%i(self other).include?(retsym)  # BaseWithTranslation::MissingRequirementError
+    retsym
+  end
+
   # Returns the merged self (either Artist or Music)
   #
   # If an error raises in any of the save, it rollbacks.
   # Even if +save_destroy: false+, the related models like {Translation} are STILL updated!
-  # So, for a test run, the caller must make sure to contain the calling routine inside a transaction.
+  # So, for a test run, the caller must make sure to contain the calling routine
+  # inside a transaction (and maybe rollbacks at the end of the process).
   #
-  # originally exited in app/controllers/base_merges_controller.rb
+  # The argument Hash +priorities+ must have either all the required keywords
+  # for processing self or +{:default => :self|:other}+.  Otherwise,
+  # BaseWithTranslation::MissingRequirementError is raised
+  #
+  # originally existed in app/controllers/base_merges_controller.rb
   #
   # == Returned Hash
   #
@@ -2554,19 +2575,20 @@ class BaseWithTranslation < ApplicationRecord
   #    :lang_orig, :lang_trans, :prefecture_place, :birthday
   # @param save_destroy: [Boolean] If true (Def), self is saved and the other is destroyed. If one fails, it rollbacks.
   # @return [Hash<Object, Hash<Array, Integer>>] See above.
+  # @raise [BaseWithTranslation::MissingRequirementError] if +priorities+ is incomplete (see above).
   def merge_other(other, priorities: {}, save_destroy: true)
     hsmodel = {}
     ActiveRecord::Base.transaction(requires_new: true) do  # "requires_new" option necessary for testing.
-      hsmodel[:trans]  = _merge_trans(other, priority_orig: (priorities[:lang_orig]  || priorities[:default]), priority_others: (priorities[:lang_trans] || priorities[:default])) # , orig_valid: true)
-      hsmodel[:engage] = _merge_engages(   other, priority: (priorities[:engages]  || priorities[:default]))  # updates Harami1129#engage_id, too
-      hsmodel[:bday3s] = _merge_birthday(  other, priority: (priorities[:birthday] || priorities[:default]))
+      hsmodel[:trans]  = _merge_trans(other, priority_orig: _priority2pass(priorities, :lang_orig), priority_others: _priority2pass(priorities, :lang_trans)) # , orig_valid: true)
+      hsmodel[:engage] = _merge_engages(   other, priority: _priority2pass(priorities, :engages))  # updates Harami1129#engage_id, too
+      hsmodel[:bday3s] = _merge_birthday(  other, priority: _priority2pass(priorities, :birthday))
       %i(prefecture_place genre year sex wiki_en wiki_ja).each do |metho| 
         #next if !priorities.has_key?(metho)
-        hsmodel[metho] = _merge_overwrite(other, metho, priority: (priorities[metho] || priorities[:default]))
+        hsmodel[metho] = _merge_overwrite(other, metho, priority: _priority2pass(priorities, metho))
       end
       hsmodel[:harami_vid_music_assocs] = 
-        _merge_harami_vid_music_assocs(other, priority: (priorities[:harami_vid_music_assocs] || priorities[:default]))
-      hsmodel[:note]   = _merge_note(other, priority: (priorities[:note] || priorities[:default]))
+        _merge_harami_vid_music_assocs(other, priority: _priority2pass(priorities, :harami_vid_music_assocs))
+      hsmodel[:note]   = _merge_note(  other, priority: _priority2pass(priorities, :note))
       hsmodel[:created_at] = _merge_created_at(other)
 
       hsmodel[:destroyed] ||= []
