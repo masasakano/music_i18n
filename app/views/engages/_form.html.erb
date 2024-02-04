@@ -15,7 +15,7 @@
 <dl id="engage_new_existing_engages">
 <% @music.artists.uniq.each do |artist| %>
   <dt><%= artist.title %></dt>
-  <dd><%= s=artist.engage_how_titles(@music, year: @music.year, langcode: I18n.locale).join(', '); link_to ((/\d/ =~ s) ? s : s+'('+(@music.year || t(year_unknown)).to_s+')'), edit_engage_multi_how_path(artist.engages.where(music: @music).first) %></dd>
+  <dd><%= s=artist.engage_how_titles(@music, year: @music.year, langcode: I18n.locale).join(', '); link_to ((/\d/ =~ s) ? s : s+'('+(@music.year || t(:year_unknown)).to_s+')'), edit_engage_multi_how_path(artist.engages.where(music: @music).first) %></dd>
 <% end %>
 </dl>
 

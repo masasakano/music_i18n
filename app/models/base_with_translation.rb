@@ -690,7 +690,6 @@ class BaseWithTranslation < ApplicationRecord
   # @param (see BaseWithTranslation.create_with_translation!)
   # @return [BaseWithTranslation]
   def self.update_or_create_with_translation!(hsmain={}, unique_trans_keys=nil, mainkeys=nil, *args, reload: true, **hs_trans)
-#print "DEBUG:update1st:hsmain=#{hsmain.inspect}, s_trans="; p hs_trans
     ret = update_or_create_with_translations_core!(:translation, hsmain, unique_trans_keys, mainkeys, true, *args, **hs_trans)
     ret.reload if reload
     ret
@@ -716,7 +715,6 @@ class BaseWithTranslation < ApplicationRecord
   # @param (see BaseWithTranslation.create_with_translation!)
   # @return [BaseWithTranslation]
   def self.update_or_create_with_orig_translation!(hsmain={}, unique_trans_keys=nil, mainkeys=nil, *args, reload: true, **hs_trans)
-#print "DEBUG:orig:hs_trans:"; p [hsmain, hs_trans]
     ret = update_or_create_with_translations_core!(:orig_translation, hsmain, unique_trans_keys, mainkeys, true, *args, **hs_trans)
     ret.reload if reload
     ret
@@ -764,7 +762,6 @@ class BaseWithTranslation < ApplicationRecord
       else
         raise ArgumentError, "(#{__method__}) Symbol keytrans is strange (#{keytrans.inspect}). Contact the code developer."
       end
-#print "DEBUG:corecore:(#{keytrans.inspect}):[,in_hs]:"; p [hsmain,hs_trans]
 
     keytrans = :translation if keytrans == :orig_translation  # The argument key name is :translation (or :translations)
     if !hs_trans.key? keytrans
@@ -779,10 +776,8 @@ class BaseWithTranslation < ApplicationRecord
       unique_cols, updating_cols = split_hash_with_keys(hsmain, mainkeys)
 
       existings = select_by_translations(unique_cols, unique_trans_keys, *args, **trans)
-#print "DEBUG:exi: exi=";p existings
 
       if existings.count > 1 
-#print "DEBUG:exi: unique_cols=#{unique_cols.inspect}, unique_trans_keys=#{unique_trans_keys.inspect}, args=#{args.inspect}, trans=";p trans
         msg = "More than 1 #{self.name}-s (Total: #{existings.size}) exist #{existings.inspect} for the given translations #{trans.inspect}"
         logger.error msg+".  existings="+existings.inspect
         raise MultiTranslationError::AmbiguousError, msg
@@ -795,9 +790,6 @@ class BaseWithTranslation < ApplicationRecord
       obj, msg_opts2pass =
         if updated && !existings.empty? 
           # logger.info "(#{__FILE__}:#{__method__}) for update: hsmain=#{hsmain.inspect}, mainkeys=#{mainkeys}" if updating_cols.empty?
-          # logger.info "(#{__FILE__}:#{__method__}) for update: updating_cols is empty." if updating_cols.empty?
-#puts "DEBUG:core:UPDATE:(#{__FILE__}:#{__method__}) for update: hsmain.keys=#{hsmain.keys.inspect}, mainkeys=#{mainkeys}, hsmain=#{hsmain.inspect}" if updating_cols.empty?
-#print "DEBUG:core:UPDATE: [unique_cols, updating_cols]=";p [unique_cols, updating_cols]
           if updating_cols.empty?
             [existings[0], nil]
           else
@@ -820,8 +812,6 @@ class BaseWithTranslation < ApplicationRecord
         armsg = ["Failed to create translations with param=#{trans.inspect}"]
         armsg << "hence #{msg_opts2pass} for #{self.name} rolls back." if msg_opts2pass
         logger.error armsg.join(" ")
-#print "DEBUG:upfd-in_hs:"; p hs_trans
-#print "DEBUG:upfd:"; puts armsg.join(" ")
         raise
       end
     end
@@ -1388,7 +1378,6 @@ class BaseWithTranslation < ApplicationRecord
   def self.select_by_translations(hsmain={}, unique_trans_keys=nil, *args, **inprms)
     raise RuntimeError, "Contact the code developer. uk=(#{unique_trans_keys.inspect})" if !unique_trans_keys.nil? && unique_trans_keys.blank?
 
-#print "DEBUG:plural: unique_trans_keys=#{unique_trans_keys.inspect}, args=#{args.inspect}, inprms=";p inprms
     trtbl = Translation.table_name
     joins_str = sprintf(
       "INNER JOIN %<tr>s ON %<tr>s.translatable_id = %<my>s.id and %<tr>s.translatable_type = '%<klas>s'",
@@ -1396,14 +1385,10 @@ class BaseWithTranslation < ApplicationRecord
       my: self.table_name,
       klas: self
     )
-#print "DEBUG:plural: joins_str=";p joins_str
 
     ret = self.joins(joins_str)
     ret = ret.where(**hsmain) if !hsmain.blank?
-#print "DEBUG:plural: hsmain=";p hsmain
-#print "DEBUG:plural: build=";p build_or_where_translations(unique_trans_keys, *args, **inprms)
     ret = ret.where(*(build_or_where_translations(unique_trans_keys, *args, **inprms)))
-#print "DEBUG:plural: exp2=";p ret.distinct.explain
     ret.distinct
   end
 
@@ -1465,7 +1450,6 @@ class BaseWithTranslation < ApplicationRecord
       model_class = model_snake.camelize.constantize
 
       possible_snakes = reflections.select{|a, r| %i(has_one has_many).include? r.macro}.values.map{|v| v.name.to_s.singularize}
-#print "DEBUG:byassc: (#{model_snake.inspect}, class=#{model_class.name})"; p possible_snakes
       if !possible_snakes.include? model_snake.to_s
         msg = sprintf "Option %s is invalid (no such associated model).", {ea_tkey => ea_val}.inspect
         warn msg
@@ -1475,15 +1459,11 @@ class BaseWithTranslation < ApplicationRecord
 
       tr = {any: {titles: ea_val}}
       hs_conds[model_snake] = model_class.select_by_translations(**tr)  # Associated-class instances
-#print "DEBUG:byassc:snake:"; p hs_conds[model_snake]
 
       ## NOTE: the following does not return, e.g., Music objects, but Translation objects,
       ##  though you could do  pluck(:translatable_id)
       # hs_conds[model_snake] = Translation.select_regex(:titles, ea_val, translatable_type: model_snake.camelize) # langcode: nil
     end
-#print "DEBUG:byassc:ret_cands:"; p ret_cands
-#print "DEBUG:byassc:ret_cands:m:"; p ret_cands[0].musics
-#print "DEBUG:byassc:hs_conds:"; p hs_conds
 
     # Excludes the candidates that do not satisfy the translation-conditions of the associated models
     ret_cands.select{ |final_cand|
@@ -1538,12 +1518,10 @@ class BaseWithTranslation < ApplicationRecord
       candkeys = ea_tr.keys.map{|i| (i == :titles) ? [:title, :alt_title] : i}.flatten
       defkeys = (unique_trans_keys || Translation.keys_to_identify(candkeys, *args)+[:titles])
       ea_tr.select{ |k, v| defkeys.include?(k) || 'langcode' == k.to_s}.each_pair do |ek, ev|
-#print "DEBUG:build_or: "; p [ek, ev]
         if ek == :titles
           # :titles means (:title "OR" :alt_title)
           artmp.push sprintf('(%s.title = ? OR %s.alt_title = ?)', trtbl, trtbl)
           arprm.push ev, ev
-#print "DEBUG:build_or: artmp="; p artmp
         else
           artmp.push sprintf('%s.%s = ?', trtbl, ek.to_s)
           arprm.push ev
@@ -2537,7 +2515,7 @@ class BaseWithTranslation < ApplicationRecord
   # == Returned Hash
   #
   #   trans:  Hash{remained: [Translation...], destroy: [Translation...], original: Translation}
-  #     n.b., remained Array includes the original-Translation, too.
+  #     n.b., remained Array includes the original-Translation, too. Keys :tr_html and :tr_orig_html will be added.
   #   engage: Hash{remained: [Engage...],      destroy: [Engage...]}
   #   bday3s: Hash{birth_year: Integer, birth_month: Integer, birth_day: Integer}
   #     n.b., Missing Birthday part in one is ALWAYS supplemented by the other if there is any.
@@ -2570,7 +2548,10 @@ class BaseWithTranslation < ApplicationRecord
   #    end
   #
   # @param other [BaseWithTranslation] of the same class
-  # @param priorities: [Hash<Symbol => Symbol>] e.g., :year => :other (or :self). A key may be :default
+  # @param priorities: [Hash<Symbol => Symbol>] e.g., :year => :other (or :self). A key may be :default .
+  #   Other than standard attribute/method names, including :engages, :harami_vid_music_assocs, and :note,
+  #   the folloing special keys are accepted:
+  #    :lang_orig, :lang_trans, :prefecture_place, :birthday
   # @param save_destroy: [Boolean] If true (Def), self is saved and the other is destroyed. If one fails, it rollbacks.
   # @return [Hash<Object, Hash<Array, Integer>>] See above.
   def merge_other(other, priorities: {}, save_destroy: true)
@@ -2595,7 +2576,7 @@ class BaseWithTranslation < ApplicationRecord
       end
     end
     _uniq_hsmodel!(hsmodel)
-  end
+  end # def merge_other(other, priorities: {}, save_destroy: true)
 
   # run unique for child/grand-child components
   #
@@ -3021,11 +3002,12 @@ tra_orig.save!
 
     to_destroys = all_engages.flatten.uniq.select{|mdl| !remains.include?(mdl) }
 
-    ## Register to destroy EngageHow.unknown-s if there is another one for the same Music and Artist. 
+    ## Register to destroy EngageHow.unknown-s if there is another one for the same Music and Artist that is NOT unknown. 
     if remains.size > 1
       eng_unknowns = remains.select{|eng| eng.engage_how.unknown?}
-      tmp2destroy = eng_unknowns.map{ |engkn|
+      tmp2destroy = eng_unknowns.select{ |engkn|
         remains.any?{ |em|
+         !em.engage_how.unknown? &&
           em.id != engkn.id &&
           em.music  == engkn.music &&
           em.artist == engkn.artist

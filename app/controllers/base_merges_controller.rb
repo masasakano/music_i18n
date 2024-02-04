@@ -39,28 +39,39 @@ class BaseMergesController < ApplicationController
 
   private
 
-    # @param models [Array<BaseWithTranslation>] 2-element Array. Index of +@to_index+ remains
-    #   and the other will be destroyed.
-    def _translations_htmls(models)
-      contents = models.map do |em, i|
-        # exist_editable = em.translations.where.not(id: em.orig_translation.id).any?{|et| can?(:ud, et)}
-        ### I have decided not to check ability... too complicated!
-        arstr = []
-        em.translations.where(is_orig: false).or(em.translations.where(is_orig: nil)).sort{|a, b|
-          # Sorted in the order of Language (langcode/locale) and weight
-          w = ((I18n.available_locales.find_index(a.langcode.to_sym) || Float::INFINITY) <=>
-               (I18n.available_locales.find_index(b.langcode.to_sym) || Float::INFINITY))
-          next w if w != 0
-          (a.weight || Float::INFINITY) <=> (b.weight || Float::INFINITY)
-        }.each do |et|
-          # next if et.langcode == orig_trans.langcode
-          arstr << ERB::Util.html_escape(sprintf("[%s] %s / %s", et.langcode, et.title, et.alt_title))
-        end
-        arstr.join("&nbsp;&nbsp;<br>").html_safe
-      end
+    # Returns HTML of Translations to display in Table merge-edit, where Translations are sorted.
+    #
+    # @param model [BaseWithTranslation] Artist or Music. Translation of is_orig=true is ignored.
+    # @return [String] html_safe HTML
+    def _translations_html(model)
+      # exist_editable = em.translations.where.not(id: em.orig_translation.id).any?{|et| can?(:ud, et)}
+      ### I have decided not to check ability... too complicated!
+      _translations_html_core(model.translations.where(is_orig: false).or(model.translations.where(is_orig: nil)))
     end
 
-  private
+    # Returns HTML of Translations from Array in "hsmodel" returned from {BaseWithTranslation#merge_other}
+    #
+    # @param ar_trans [Array<Translation>] Returned from {BaseWithTranslation#merge_other}
+    # @param reject_orig: [Bool] if true (Def), Translation with is_orig=true is rejected in the returned HTML.
+    # @return [String] html_safe HTML
+    def _translations_html_from_ary(ar_trans, reject_orig: true)
+      _translations_html_core(reject_orig ? ar_trans.reject{|i| i.is_orig} : ar_trans )
+    end
+
+    # @param artrans [Relation<Translation>, Array<Translation>]
+    # @return [String] html_safe HTML
+    def _translations_html_core(artrans)
+      artrans.sort{|a, b|
+        # Sorted in the order of Language (langcode/locale) and weight
+        w = ((I18n.available_locales.find_index(a.langcode.to_sym) || Float::INFINITY) <=>
+             (I18n.available_locales.find_index(b.langcode.to_sym) || Float::INFINITY))
+        next w if w != 0
+        (a.weight || Float::INFINITY) <=> (b.weight || Float::INFINITY)
+      }.map{ |et|
+        # next if et.langcode == orig_trans.langcode
+        ERB::Util.html_escape(sprintf("[%s] %s / %s", et.langcode, et.title, et.alt_title))
+      }.join("&nbsp;&nbsp;<br>").html_safe
+    end
 
     # set @to_index
     def set_to_index
@@ -165,29 +176,94 @@ class BaseMergesController < ApplicationController
     # For {Music}, for example, the ID is taken from +params[:other_music_id]+
     # or +params[:music][:other_music_id]+
     #
+    # For the returned model, singleton instance method ":hsmerged" is defined,
+    # which returns a Hash containing information about the merged models
+    # because otherwise the associated models may not be able to referred to.
+    #
+    # Refer to the manual of {BaseWithTranslation#merge_other} for the Hash;
+    # the Hash is basically the returned object of the method.
+    #
     # @example
-    #   @musics = []
-    #   @musics << Music.find(params[:id])
-    #   begin
-    #     @musics << get_other_model(@musics[0])  # defined in base_merges_controller.rb
-    #   rescue ActiveRecord::RecordNotFound
+    #   def update
+    #     @merged_music = get_merged_model(@musics)  # defined in base_merges_controller.rb
+    #     @merged_music.hsmerged[:trans][:original]  # => Translation of is_orig=true after merging
     #   end
     #
-    # @param [Array<BaseWithTranslation>] two-element Array.
-    # @return [BaseWithTranslation] the reference instance
+    # @param models [Array<BaseWithTranslation>] two-element Array.
+    # @param to_index [Integer] 0 or 1 (the final ID after merged): params[self.class::MODEL_SYM][FORM_MERGE[:to_index]]
+    # @return [BaseWithTranslation] the reference instance; singleton instance method ":hsmerged" is defined.
     # @raise [ActionController::ParameterMissing] if neither exists (which should never happen through UI).
     # @raise [ActiveRecord::RecordNotFound] if +:other_{model}_id+ is not given and no +Model+ matches +:other_{model}_title+
-    def get_merged_model(models, to_id: nil)
-      to_id ||= models[0].id
-      merged = models[0].class.new(models[0].attributes)
-      merged.id = to_id
-      merged.instance_variable_set(:@id_backup, to_id)
-      merged.define_singleton_method(:id_backup){@id_backup}
-      merged.unsaved_translations = models[0].translations
-      merged.note = [models[0].note, models[1].note].compact.join(" ").strip
-      merged.note = nil if merged.note.blank?
+    def get_merged_model(models, to_index: nil)
+
+      # Arguments from the arguments of the parent method
+      # @return [Array<Integer, Hash<Symbol, Symbol>] [to_index, priorities]
+      def _build_priorities(model, to_index)
+        hs_params = (params.key?(self.class::MODEL_SYM) ? params[self.class::MODEL_SYM] : nil) 
+        if to_index.blank?
+          to_index = (hs_params ? hs_params[:to_index].to_i : 0)
+        end
+
+        priorities = { default: :self }
+        FORM_MERGE.each_pair do |fkey, fval|
+          next unless %w(lang_orig lang_trans engage prefecture_place birthday).include?(fkey) || model.respond_to?(fkey)
+          prm_val = (hs_params ? hs_params[fval] : nil)
+          next if prm_val.blank?
+          k = (("engage" == fval) ? :engages : fval.to_sym)  # NOTE: The key for FORM_MERGE and its value are :engage, but the key for "priorities" is :engages (!!). Inconsistent...
+          priorities[k] = ((prm_val.to_i == to_index) ? :self : :other)
+        end
+        [to_index, priorities]
+      end  # def _build_priorities(model, to_index)
+
+      # reloading so that the records will stay (not be garbage-collected) after roll-back.
+      def _touch_hsmerged(hsmerged)
+        [:trans, :engage, :harami_vid_music_assocs].each do |gkey|
+          next if !hsmerged[gkey]  # e.g., :harami_vid_music_assocs for Artist
+          hsmerged[gkey].each_pair do |ek, ev|
+            if ev.respond_to?(:reload)
+              ev.reload
+            elsif ev.respond_to?(:each)
+              ev.each do |em|
+                em.created_at
+                #em.reload
+              end
+            else
+              # Skip; e.g., :harami_vid_music_assocs > :n_destroyed
+            end
+          end
+        end
+      end # def _touch_hsmerged_key(hsmerged_gkey)
+
+      #### Main routine ####
+
+      merged = nil  # models[0].class.new()  # will be always overwritten.
+      hsmerged = {}
+      to_index, priorities = _build_priorities(models[0], to_index)
+
+      mdl_self = models[to_index]
+      mdl_other = models[other_index(to_index)]
+
+      ActiveRecord::Base.transaction(requires_new: true) do  # "requires_new" option necessary for testing.
+        hsmerged = mdl_self.merge_other(mdl_other, priorities: priorities, save_destroy: false)
+        _touch_hsmerged(hsmerged)
+
+        merged = mdl_self.dup
+        merged.id = mdl_self.id
+
+        raise ActiveRecord::Rollback, "Force rollback."
+      end # ActiveRecord::Base.transaction(requires_new: true) do
+
+      mdl_self.reload
+      mdl_other.reload  # Without this, model.title_or_alt would not work well!
+
+      hsmerged[:trans][:tr_html]      = _translations_html_from_ary( hsmerged[:trans][:remained])  # HTML to display in Table merge-edit
+      hsmerged[:trans][:tr_orig_html] = _translations_html_from_ary([hsmerged[:trans][:original]], reject_orig: false)  # HTML to display in Table merge-edit
+
+      merged.instance_variable_set(:@hsmerged, hsmerged)
+      merged.define_singleton_method(:hsmerged){@hsmerged}
+
       merged
-    end
+    end # def get_merged_model(models, to_index: nil)
 
 
     # Returns Hash of {CheckedDisabled} with keys included in constant +FORM_MERGE_KEYS+
@@ -459,7 +535,7 @@ end
     # @param models [Array<BaseWithTranslation>] 2-element Array. Index of +@to_index+ remains
     #   and the other will be destroyed.
     def merge_created_at(models)
-      models[@to_index].created_at = models.map(&:created_at).min
+      models[@to_index].created_at = models.map(&:created_at).compact.min  # In normal circumstances, created_at should not be nil. However it might be in some cases like testing (maybe).
     end
 
     # rendering for update
@@ -509,7 +585,8 @@ end
     #   and the other will be destroyed.
     # @return [CheckedDisabled] {CheckedDisabled#contents} is a 2-element Array of the String to print.
     def _non_orig_translations_checked_disabled(models)
-      contents = _translations_htmls(models)
+      #contents = _translations_htmls(models)
+      contents = models.map{|em| _translations_html(em)}
       i_checked = _checked_index(:lang_trans){(contents.find_index{|i| !i.blank?} || -1)}  # NOTE-to-Developer: "-1" should be replaced with nil?
       disabled  = (1 == contents.find_all{|i| !i.blank?}.size)
       CheckedDisabled.new(checked_index: i_checked, disabled: disabled, contents: contents)

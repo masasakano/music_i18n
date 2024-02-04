@@ -32,7 +32,7 @@
       <td style="text-align: center;"><%= form.radio_button(BaseMergesController::FORM_MERGE[:to_index], i, checked: (i==all_checked_disabled[:to_index].checked_index)) %>
       </td>
       <% end %>
-      <td class="merged_column" id="merged_to_id"><%= models[2].id || models[2].id_backup %></td>
+      <td class="merged_column" id="merged_to_id">ID=<%= merged_model.id %></td>
     </tr>
     <tr id="merge_edit_orig_language"><th>Orig-Language</th>
       <% labe = BaseMergesController::FORM_MERGE[:lang_orig] %>
@@ -52,8 +52,7 @@
         <% end %>
       </td>
       <% end %>
-      <% trans = models[2].orig_translation %>
-      <td class="merged_column" id="merged_to_orig">[Original]<br>[<%= trans && trans.langcode %>] <%= trans && trans.title_or_alt %> </td>
+      <td class="merged_column" id="merged_to_orig"><%= merged_model.hsmerged[:trans][:tr_orig_html] %> </td>
     </tr>
     <tr id="merge_edit_translations"><th title="<%= t('merges.edit.merge_if_possible', default: 'This row is automatically merged except for conflicting records.') %>"><%= t(:Translation, count: 2, default: 'Translations') %></th>
       <% labe = BaseMergesController::FORM_MERGE[:lang_trans] %>
@@ -76,12 +75,13 @@
 <% end %>
       </td>
       <% end %>
-      <td class="merged_column" id="merged_to_trans"><%= ch_dis.contents[2] %></td> <%# Probably wrong. Check it. %>
+      <td class="merged_column" id="merged_to_trans"><%= merged_model.hsmerged[:trans][:tr_html] %></td>
     </tr>
     <% engage_other_underscore = (is_music ? 'Artist' : 'Music').underscore %>
     <tr id="merge_edit_engages"><th title="<%= t('merges.edit.merge_if_possible', default: 'This row is automatically merged except for conflicting records.') %>">Engage-<%= engage_other_underscore.camelize.pluralize %></th>
-      <% areng = models.map do |em| %>
-        <% str = em.engages.map{ |een|
+      <% areng = (models+[merged_model]).map do |em| %>
+        <% eng_mdls = (em.respond_to?(:hsmerged) ? em.hsmerged[:engage][:remained] : em.engages);
+           str = eng_mdls.map{ |een|
              linkmodel = een.send(engage_other_underscore)
              linkpath = send(engage_other_underscore+"_path", linkmodel)
              sprintf(
@@ -137,12 +137,12 @@
 <% else %>
         <%= form.radio_button(labe, i, checked: (i==all_checked_disabled[:prefecture_place].checked_index), disabled: ch_dis.disabled?) %>
 <% end %>
-        <% str = sprintf("%s &lt; %s (%s)", *([em.place, em.place.prefecture, em.place.country].map{|ep| h(ep.title_or_alt(langcode: I18n.locale).sub(/\A(どこか)(?:の場所|の都道府県)/, '不明').sub(/\AUnknown/, ''))})).html_safe %>
+        <% str = sprintf("%s &lt; %s (%s)", *([em.place, em.place.prefecture, em.place.country].map{|ep| h(ep.title_or_alt(langcode: I18n.locale).sub(/\A(どこか)(?:の場所|の都道府県)/, '不明').sub(/\A(Unknown)(Place|Prefecture)/, '\1'))})).html_safe %>
         <%= form.label labe, str, :value => i %>
       </td>
       <% end %>
-      <% em = models[2] %>
-      <% str = sprintf("%s &lt; %s (%s)", *([em.place, em.place.prefecture, em.place.country].map{|ep| h(ep.title_or_alt(langcode: I18n.locale).sub(/\A(どこか)(?:の場所|の都道府県)/, '不明').sub(/\AUnknown/, ''))})).html_safe %>
+      <% em = merged_model %>
+      <% str = sprintf("%s &lt; %s (%s)", *([em.place, em.place.prefecture, em.place.country].map{|ep| h(ep.title_or_alt(langcode: I18n.locale).sub(/\A(どこか)(?:の場所|の都道府県)/, '不明').sub(/\A(Unknown)(Place|Prefecture)/, '\1'))})).html_safe %>
       <td class="merged_column" id="merged_to_place"><%= str %></td>
     </tr>
   <% if is_music %>
@@ -157,7 +157,7 @@
         <%= form.label labe, em.genre.title_or_alt(langcode: I18n.locale), :value => i %>
       </td>
       <% end %>
-      <td class="merged_column" id="merged_to_genre"><%= models[2].genre.title_or_alt(langcode: I18n.locale) %></td>
+      <td class="merged_column" id="merged_to_genre"><%= merged_model.genre.title_or_alt(langcode: I18n.locale) %></td>
     </tr>
     <tr id="merge_edit_year"><th>Year</th>
       <% labe = BaseMergesController::FORM_MERGE[:year] %>
@@ -170,7 +170,7 @@
         <%= form.label labe, em.year.inspect, :value => i %>
       </td>
       <% end %>
-      <td class="merged_column" id="merged_to_year"><%= models[2].year.inspect %></td>
+      <td class="merged_column" id="merged_to_year"><%= merged_model.year.inspect %></td>
     </tr>
   <% else %>
     <tr id="merge_edit_sex"><th>Sex</th>
@@ -184,7 +184,7 @@
         <%= form.label labe, em.sex.title_or_alt(langcode: I18n.locale), :value => i %>
       </td>
       <% end %>
-      <td class="merged_column" id="merged_to_sex"><%= models[2].sex.title_or_alt(langcode: I18n.locale) %></td>
+      <td class="merged_column" id="merged_to_sex"><%= merged_model.sex.title_or_alt(langcode: I18n.locale) %></td>
     </tr>
     <tr id="merge_edit_birthday"><th>Birthday</th>
       <% labe = BaseMergesController::FORM_MERGE[:birthday] %>
@@ -199,7 +199,7 @@
         <% end %>
       </td>
       <% end %>
-      <td class="merged_column" id="merged_to_birthday"><%= models[2].birthday_string %></td>
+      <td class="merged_column" id="merged_to_birthday"><%= merged_model.birthday_string %></td>
     </tr>
     <tr id="merge_edit_wiki_en"><th>Wikipedia[en]</th>
       <% labe = BaseMergesController::FORM_MERGE[:wiki_en] %>
@@ -214,7 +214,7 @@
         <% end %>
       </td>
       <% end %>
-      <td class="merged_column" id="merged_to_wiki_en"><%= models[2].wiki_en %></td>
+      <td class="merged_column" id="merged_to_wiki_en"><%= merged_model.wiki_en %></td>
     </tr>
     <tr id="merge_edit_wiki_ja"><th>Wikipedia[ja]</th>
       <% labe = BaseMergesController::FORM_MERGE[:wiki_ja] %>
@@ -229,7 +229,7 @@
         <% end %>
       </td>
       <% end %>
-      <td class="merged_column" id="merged_to_wiki_ja"><%= models[2].wiki_en %></td>
+      <td class="merged_column" id="merged_to_wiki_ja"><%= merged_model.wiki_ja %></td>
     </tr>
   <% end %>
     <tr id="merge_edit_note"><th title="<%= t('merges.edit.merge_always', default: 'This row is automatically merged.') %>">Note</th>
@@ -238,7 +238,7 @@
         <%= em.note %>
       </td>
       <% end %>
-      <td class="merged_column" id="merged_to_note"><%= models[2].note %></td>
+      <td class="merged_column" id="merged_to_note"><%= merged_model.note %></td>
     </tr>
   </tbody>
 </table>

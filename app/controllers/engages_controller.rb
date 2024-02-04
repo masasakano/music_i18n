@@ -67,7 +67,7 @@ class EngagesController < ApplicationController
     end
 
     respond_to do |format|
-      msg = sprintf 'Engage for Artist=%s (Engaged in %d) was successfully created.', artist.title.inspect, @engage.year
+      msg = sprintf 'Engage for Artist=%s (Engaged in %s) was successfully created.', artist.title.inspect, (@engage.year || "Unknown year")
       format.html { redirect_to @engage.music, success: msg } # "success" defined in /app/controllers/application_controller.rb
       format.json { render :show, status: :created, location: @engage }
     end

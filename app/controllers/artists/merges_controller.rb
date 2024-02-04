@@ -18,17 +18,18 @@ class Artists::MergesController < BaseMergesController
   def edit
     msg = _msg_if_invalid_prm_in_merging(@artists, "Artist") # defined in base_merges_controller.rb
 
-    if msg
+    if msg  # e.g., when non-existent Artist-ID is specified by the user.
       return respond_to do |format|
         format.html { redirect_to artists_new_merges_path(@artists[0]), alert: msg } # status: redirect
         format.json { render json: {error: msg}, status: :unprocessable_entity }
       end
     end
+    @merged_artist = get_merged_model(@artists)  # defined in base_merges_controller.rb
     @all_checked_disabled = all_checked_disabled(@artists) # defined in base_merges_controller.rb
   end
 
   def update
-    raise 'This should never happen - necessary parameter is missing. params='+params.inspect if !(2..3).cover?(@artists.size)
+    raise 'This should never happen - necessary parameter is missing. params='+params.inspect if 2 != @artists.size
     @all_checked_disabled = all_checked_disabled(@artists) # defined in base_merges_controller.rb
     begin
       ActiveRecord::Base.transaction do
@@ -69,9 +70,8 @@ class Artists::MergesController < BaseMergesController
       @artists << Artist.find(params[:id])
       begin
         @artists << get_other_model(@artists[0])  # defined in base_merges_controller.rb
-        @artists << get_merged_model(@artists)    # defined in base_merges_controller.rb
       rescue ActiveRecord::RecordNotFound
-        # Specified Title for Edit is not found.  For update, this should never happen through UI.
+        # Specified Title for Edit is not found (which could happen).  For update, this should never happen through UI.
         # As a result, @artists.size == 1
       end
     end

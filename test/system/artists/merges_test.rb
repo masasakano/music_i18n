@@ -190,6 +190,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
     h1129s = [harami1129s(:harami1129_sting1), harami1129s(:harami1129_sting2)]
     art_ids = []  # "Populated" Artist IDs
     mus_ids = []  # "Populated" Music IDs
+    artists = []  # Artists after "Populated"
 
     visit new_user_session_path
     fill_in "Email", with: users(:user_moderator).email  # All-mighty moderator
@@ -259,6 +260,8 @@ class Artists::MergesTest < ApplicationSystemTestCase
     assert_not_equal art_ids[0], art_ids[1], "Two Artists (to be merged) should exist, but..."
     assert_not_equal mus_ids[0], mus_ids[1]
 
+    artists = art_ids.map{|i| Artist.find i}
+
     ## merging - option is not provided because the user is an only-Harami1129 moderator
     visit artist_path(art_ids[0])
     assert_selector :xpath, "//input[@type='submit' and @value='Add translation']"
@@ -300,12 +303,36 @@ class Artists::MergesTest < ApplicationSystemTestCase
     fill_in "Artist-ID (to merge this with)", with: art_ids[1]
     click_on "Proceed"
 
-    ## submit to merge
     assert_selector "h1", text: "Merge Artists"
     assert_match(/Back to\b.* ID.+#{art_ids[0]}\b/, page.find("p.navigate-link-below-form > a:nth-child(1)").text.strip)
+    [0, 1].each do |i|
+      assert_match(/\b#{artists[i].orig_translation.title}\b/, page.find(:xpath, "//form//table//thead//th[#{i+2}]").text.strip, '"Sting" or "スティング" should exist in the Table header, but...')
+    end
+    assert_match(/Merged\b/, page.find(:xpath, "//form//table//thead//th[4]").text.strip)
 
+    # column Merged
+    assert_match(/\b#{art_ids[0]}\b/, page.find(:xpath, "//form//tbody//tr[@id='merge_edit_merge_to']//td[3]").text.strip)  # ID=873 etc. (the first-Artist ID) in the column "Merged"
+    tra = artists[0].orig_translation
+    assert_match(/\b#{tra.langcode}\b.+#{tra.title}\b/m, page.find(:xpath, "//form//tbody//tr[@id='merge_edit_orig_language']//td[3]").text.strip, '"Sting" should exist in the column for the merged result, but...')  # "Sting" 
+    tra = artists[1].translations.first
+    assert_match(/\b#{tra.langcode}\b.+#{tra.title}\b/m, page.find(:xpath, "//form//tbody//tr[@id='merge_edit_translations']//td[3]").text.strip, '"スティング" should exist in the column for the merged result, but...')  # is_orig=true for "スティング", but it should appear in the third row (Translations), because "Sting" is for orig-language in default (because this path/page is for it).
+    assert_match(/\bYork\b.+\bYorkkk\b/m, page.find(:xpath, "//form//tbody//tr[@id='merge_edit_engages']//td[3]").text.strip, 'Both Musics should exist in the column for the merged Engage-Musics, but...')
+    assert_match(/\bUnknown\b.+\bJapan\b/m, page.find(:xpath, "//form//tbody//tr[@id='merge_edit_place']//td[3]").text.strip, 'Unknown(Japan) should appear in the column for the merged Place because it is narrower than Unknown-World, but...')
+
+    ## submit to reload
     page.find(:xpath, "//form//*[@id='merge_edit_merge_to']//input[@id='artist_to_index_1']").choose
     page.find(:xpath, '//form//*[@id="merge_edit_orig_language"]//input[@id="artist_lang_orig_1"]').choose
+    click_on "Reload"
+
+    assert_selector "h1", text: "Merge Artists"
+    assert_match(/Back to\b.* ID.+#{art_ids[0]}\b/, page.find("p.navigate-link-below-form > a:nth-child(1)").text.strip)
+    assert_match(/\b#{art_ids[1]}\b/, page.find(:xpath, "//form//tbody//tr[@id='merge_edit_merge_to']//td[3]").text.strip, "should have changed to (#{art_ids[1]}), but...")  # ID=874 etc. (the "second"-Artist ID) in the column "Merged"
+    tra = artists[1].orig_translation
+    assert_match(/\b#{tra.langcode}\b.+#{tra.title}\b/m, page.find(:xpath, "//form//tbody//tr[@id='merge_edit_orig_language']//td[3]").text.strip, 'This time, "スティング" should exist in the column for the merged result, but...') # swapped!
+    tra = artists[0].translations.first
+    assert_match(/\b#{tra.langcode}\b.+#{tra.title}\b/m, page.find(:xpath, "//form//tbody//tr[@id='merge_edit_translations']//td[3]").text.strip, 'This time, "Sting" should exist in the column for the merged result, but...')  # swapped!
+
+    ## submit
     click_on "Submit"
 
     ## Logout just in case.

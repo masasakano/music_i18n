@@ -1,7 +1,7 @@
 <h1>Merge Artists <% "("+@artists.map{|em| em.title_or_alt}.join(")+(")+")" %></h1>
 <%# Find me in app/views/artists/merges/edit.html.erb %>
 
-<%= render 'layouts/form_merge', models: @artists, all_checked_disabled: @all_checked_disabled %>
+<%= render 'layouts/form_merge', models: @artists, merged_model: @merged_artist, all_checked_disabled: @all_checked_disabled %>
 
 <p class="navigate-link-below-form">
 <%= link_to "Back to Artist ID="+@artists[0].id.to_s, artist_path(@artists[0]) %>: (<%= @artists[0].title_or_alt %>)<br>
