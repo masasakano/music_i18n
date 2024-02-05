@@ -260,8 +260,9 @@ class ActiveSupport::TestCase
   # @param msg [String] message parameter for assert
   # @param inspect [Boolean] if true, the difference would be printed if failed.
   # @param refute [Boolean] if true (Def: false), returns true if NOT updated. cf. user_refute_updated_attr?
-  def user_assert_updated_attr?(model, attr, msg=nil, inspect: true, refute: false)
-    bind = caller_locations(1,1)[0]  # Ruby 2.0+
+  # @param bind_offset [Integer] offset for caller_locations (used for displaying the caller routine)
+  def user_assert_updated_attr?(model, attr, msg=nil, inspect: true, refute: false, bind_offset: 0)
+    bind = caller_locations(1+bind_offset, 1)[0]  # Ruby 2.0+
     caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
     # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
 
@@ -277,7 +278,7 @@ class ActiveSupport::TestCase
   #
   # @param #see user_assert_updated_attr?
   def user_refute_updated_attr?(model, attr, msg=nil, inspect: true)
-    user_refute_updated_attr?(model, attr, msg=nil, inspect: true, refute: true)
+    user_assert_updated_attr?(model, attr, msg=nil, inspect: true, refute: true, bind_offset: 1)
   end
 
   # assert if the instance is updated, checking updated_at 
@@ -288,8 +289,9 @@ class ActiveSupport::TestCase
   # @param msg [String] message parameter for assert
   # @param inspect [Boolean] if true, the difference would be printed if failed.
   # @param refute [Boolean] if true (Def: false), returns true if NOT updated. cf. user_refute_updated_attr?
-  def user_assert_updated?(model, msg=nil, inspect: true, refute: false)
-    bind = caller_locations(1,1)[0]  # Ruby 2.0+
+  # @param bind_offset [Integer] offset for caller_locations (used for displaying the caller routine)
+  def user_assert_updated?(model, msg=nil, inspect: true, refute: false, bind_offset: 0)
+    bind = caller_locations(1+bind_offset, 1)[0]  # Ruby 2.0+
     caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
     # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
 
@@ -309,7 +311,7 @@ class ActiveSupport::TestCase
   # @param msg [String] message parameter for assert/refute
   # @param inspect [Boolean] if true, the difference would be printed if failed.
   def user_refute_updated?(model, msg=nil, inspect: true)
-    user_assert_updated?(model, msg=nil, inspect: true, refute: true)
+    user_assert_updated?(model, msg=nil, inspect: true, refute: true, bind_offset: 1)
     #bind = caller_locations(1,1)[0]  # Ruby 2.0+
     #caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
     ## NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"

@@ -136,6 +136,7 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
     place_bkup0 = @artist.place
     sex_bkup1   = @other.sex
     birthday_bkup0 = [@artist.birth_year, @artist.birth_month, @artist.birth_day]
+    birthday_bkup1 = [@other.birth_year,  @other.birth_month,  @other.birth_day]
     wikien_bkup1   = @artist.wiki_en  # because @other.wiki_en.nil?
     wikija_bkup1   = @artist.wiki_ja
 
@@ -210,7 +211,13 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
     # Place, Sex, birthday
     assert_equal place_bkup0, @other.place
     assert_equal sex_bkup1, @other.sex
-    assert_equal birthday_bkup0, [@other.birth_year, @other.birth_month, @other.birth_day]
+
+    arbt = [@artist, @other].map{|em| %i(birth_year birth_month birth_day).map{|eat| em.send(eat)}}
+    # The following used to be the case up to Git-commit ae38d91
+    # assert_equal birthday_bkup0, [@other.birth_year, @other.birth_month, @other.birth_day], "#{arbt.inspect}" # => [[nil, 9, nil], [1990, 9, 3]]
+    ar_birth = [birthday_bkup1[0], birthday_bkup0[1], birthday_bkup1[2]] # [1990, 9, 3]
+    assert_equal ar_birth, [@other.birth_year, @other.birth_month, @other.birth_day], "[Model1,2]=#{arbt.inspect}"
+
     assert_equal wikien_bkup1, @other.wiki_en
     assert_equal wikija_bkup1, @other.wiki_ja
 
@@ -237,6 +244,8 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
 
     artist_origs = hvma_bkups.map{|i| i.music.artists.first}
     refute_equal(*(artist_origs+['Artists should differ, but...']))
+#print "DEBUG(#{File.basename __FILE__}): artist-translat="; p artist_origs.map{|em| em.translations.map{|et| et.title_or_alt}}.inspect
+#print "DEBUG(#{File.basename __FILE__}): artist-origs-tra="; p artist_origs.map{|em| em.orig_translation.title_or_alt}.inspect
 
     transs = artist_origs.map{|i| i.translations}
     transs.each do |ea|
@@ -246,6 +255,10 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
       assert_equal 1, ea.size
       bool = ea.first.is_orig
       assert bool, "is_orig should be true but (#{bool.inspect})"
+    end
+    trans_attrs = {}.with_indifferent_access  # Hash of Double Arrays
+    %i(title is_orig translatable_id).each do |ek|
+      trans_attrs[ek] = artist_origs.map{|i| i.translations.map{|j| j.send(ek)}}  # Double Array
     end
     engages = h1129s.map{|i| i.harami_vid.musics.map{|em| em.engages}}.flatten.map{|ee| ee.reload; ee}
     assert_equal 2, engages.size, 'sanity-check'
@@ -268,7 +281,7 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_difference('Artist.count', -1) do
-      assert_difference('Translation.count', -1) do # 
+      assert_difference('Translation.count', 0) do # should not change b/c original translations are completely different (one of them used to be deleted, up to Git-commit ae38d91.
         assert_difference('HaramiVidMusicAssoc.count', 0) do
           assert_difference('Engage.count', 0) do
             assert_difference('Music.count', 0) do
@@ -304,15 +317,21 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
     refute_equal transs[0][0], transs[1][0]
 
     # Translations
-    user_refute_updated?(     transs[0][0])  # defined in test_helper.rb
-    user_assert_updated_attr?(transs[1][0], :translatable_id)  # model is reloaded!
+    tra00 = Translation.find(transs[0][0].id)
+    assert       trans_attrs[:is_orig][0]
+    assert_equal false, tra00.is_orig
+    user_assert_updated?(     transs[0][0], "should be updated because is_orig changed from true to false: trans=#{transs[0][0].inspect}")  # defined in test_helper.rb
+    assert_equal false, Translation.find(transs[0][0].id).is_orig
+    refute_equal trans_attrs[:translatable_id][0][0], tra00.translatable_id
+    assert_equal trans_attrs[:translatable_id][1][0], tra00.translatable_id
+    # user_assert_updated_attr?(transs[0][0], :translatable_id)  # does not work because model is reloaded?
 
     # Engage
     assert Engage.exists?(engages[0].id)
     assert Engage.exists?(engages[1].id)
     cont_old = engages[1].contribution
 
-    user_assert_updated_attr?(engages[0], :artist)  # model reloaded. defined in test_helper.rb
+    user_assert_updated_attr?(engages[0], :artist_id)  # model reloaded. defined in test_helper.rb
     user_refute_updated?(     engages[1])  # model reloaded. defined in test_helper.rb
 
     assert_equal engages[1].artist, engages[0].artist  # it was just reloaded in the method above.

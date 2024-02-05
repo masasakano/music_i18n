@@ -433,6 +433,8 @@ class BaseWithTranslation < ApplicationRecord
   #
   # It is either title or alt_title; in the latter case '[alt]' is appended.
   #
+  # L and N means the numbers of the unique languages and total translations, respectively.
+  #
   # @return [String]
   def inspect
     trans = translations

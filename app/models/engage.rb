@@ -58,9 +58,18 @@ class Engage < ApplicationRecord
   # @return [String]
   def inspect
     retstr = inspect_orig
-    retstr.sub!(/, music_id: \d+/,  '\0'+sprintf("(%s)", music.title_or_alt))
-    retstr.sub!(/, artist_id: \d+/, '\0'+sprintf("(%s)", artist.title_or_alt))
-    retstr.sub!(/, engage_how_id: \d+/, '\0'+sprintf("(%s)", engage_how.title_or_alt(langcode: "en")))
+    %w(music artist engage_how).each do |ek|
+      mdl = self.send(ek)
+      tit = 
+        if !mdl.respond_to?(:title_or_alt)
+          "nil"
+        elsif "engage_how" == ek
+          mdl.title_or_alt(langcode: "en")
+        else
+          mdl.title_or_alt
+        end
+      retstr.sub!(/, music_id: \d+/,  '\0'+sprintf("(%s)", tit))
+    end
     retstr
   end
 

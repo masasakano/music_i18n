@@ -332,8 +332,14 @@ class Artists::MergesTest < ApplicationSystemTestCase
     tra = artists[0].translations.first
     assert_match(/\b#{tra.langcode}\b.+#{tra.title}\b/m, page.find(:xpath, "//form//tbody//tr[@id='merge_edit_translations']//td[3]").text.strip, 'This time, "Sting" should exist in the column for the merged result, but...')  # swapped!
 
+    #take_screenshot  #take_screenshot(html: true) # HTML for Rails-7.1
+
     ## submit
     click_on "Submit"
+
+    assert page.all('p.alert').any?{|i| i.text.include? "successfully merged"}, "failed: all css: "+page.all('p.alert').inspect
+    assert_selector "h1", text: "Artist: #{h1129s[0].singer}"  # "Artist should have the name for the first one, but..."
+    assert_equal artist_path(art_ids[1]).sub(/\?.*/, ""), current_path, "Artist-ID should be the second one, but..."
 
     ## Logout just in case.
     page.find(:xpath, "//div[@id='navbar_top']//a[text()='Log out']").click
