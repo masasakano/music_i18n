@@ -406,4 +406,23 @@ class ActiveSupport::TestCase
   def _get_unique_id_remote(*rest)
     (Harami1129.all.pluck(:id_remote).compact+rest).sort.last.to_i + 1
   end
+
+  # called from /test/controllers/{artists,musics}/merges_controller_test.rb
+  # cf. /test/controllers/harami1129s/populates_controller_test.rb
+  # @return [Harami1129]
+  def _populate_harami1129_sting(h1129)
+    assert_difference('Harami1129.count + HaramiVid.count*10000', 0) do
+      patch harami1129_internal_insertions_url(h1129)
+      assert_response :redirect
+      assert_redirected_to harami1129_url h1129
+    end
+    h1129.reload
+
+    assert_difference('HaramiVid.count*10000 + HaramiVidMusicAssoc.count*1000 + Music.count*100 + Artist.count*10 + Engage.count', 11111) do
+      patch harami1129_populate_url(h1129)
+      assert_response :redirect
+      assert_redirected_to harami1129_url h1129
+    end
+    h1129.reload
+  end
 end

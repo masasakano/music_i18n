@@ -28,7 +28,7 @@
 #  fk_rails_...  (music_id => musics.id) ON DELETE => cascade
 #
 class Engage < ApplicationRecord
-  include ModuleCommon
+  include ModuleCommon  # for add_trans_info()
   extend  ModuleCommon  # for guess_lang_code etc
   before_validation :set_default_engage_how  # Not before_create.
 
@@ -57,20 +57,7 @@ class Engage < ApplicationRecord
   #
   # @return [String]
   def inspect
-    retstr = inspect_orig
-    %w(music artist engage_how).each do |ek|
-      mdl = self.send(ek)
-      tit = 
-        if !mdl.respond_to?(:title_or_alt)
-          "nil"
-        elsif "engage_how" == ek
-          mdl.title_or_alt(langcode: "en")
-        else
-          mdl.title_or_alt
-        end
-      retstr.sub!(/, music_id: \d+/,  '\0'+sprintf("(%s)", tit))
-    end
-    retstr
+    add_trans_info(inspect_orig, %w(music artist engage_how)) # defined in ModuleCommon
   end
 
   # Returns the potentially unsaved version of "unknown"

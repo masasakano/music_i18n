@@ -66,6 +66,7 @@ class Artists::MergesController < BaseMergesController
       rescue ActiveRecord::RecordNotFound
         # Specified Title for Edit is not found (which could happen).  For update, this should never happen through UI.
         # As a result, @artists.size == 1
+        raise if :edit != action_name.to_sym
       end
     end
 

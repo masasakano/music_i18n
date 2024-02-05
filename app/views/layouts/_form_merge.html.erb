@@ -139,7 +139,7 @@
       <% str = sprintf("%s &lt; %s (%s)", *([em.place, em.place.prefecture, em.place.country].map{|ep| h(ep.title_or_alt(langcode: I18n.locale).sub(/\A(どこか)(?:の場所|の都道府県)/, '不明').sub(/\A(Unknown)(Place|Prefecture)/, '\1'))})).html_safe %>
       <td class="merged_column" id="merged_to_place"><%= str %></td>
     </tr>
-  <% if is_music %>
+  <% if is_music %> <%# =========== Musics only ============ %>
     <%#  ----------- genres ------------ %>
     <tr id="merge_edit_genre"><th>Genre</th>
       <% labe = BaseMergesController::FORM_MERGE[:genre] %>
@@ -171,7 +171,7 @@
       <% end %>
       <td class="merged_column" id="merged_to_year"><%= merged_model.year.inspect %></td>
     </tr>
-  <% else %> <%# if is_music %>
+  <% else %> <%# if is_music %> <%# =========== non-Musics (Artists) only ============ %>
     <%#  ----------- sexes ------------ %>
     <tr id="merge_edit_sex"><th>Sex</th>
       <% labe = BaseMergesController::FORM_MERGE[:sex] %>
@@ -243,7 +243,31 @@
       <% end %>
       <td class="merged_column" id="merged_to_wiki_ja"><%= merged_model.wiki_ja %></td>
     </tr>
-  <% end %>
+  <% end %> <%# -- else %> <%# -- if is_music %>
+
+    <%#  ----------- HaramiVids ------------ %>
+    <tr id="merge_edit_harami_vids"><th title="<%= t('merges.edit.merge_always', default: 'This row is automatically merged.') %>">HaramiVids</th>
+      <% all_hvs = [] %>
+      <% models[0..1].each_with_index do |em, i| %>
+      <td title="<%= t('merges.edit.merge_always') %>">
+        <% all_hvs.push em.harami_vids.ids.sort %>
+        <%= all_hvs[-1].compact.map{|eid| link_to(eid, harami_vid_path(eid))}.join(", ").html_safe %>
+      </td>
+      <% end %>
+      <td class="merged_column" id="merged_to_harami_vid"><%= all_hvs.flatten.sort.map(&:to_s).join(", ") %></td>
+    </tr>
+
+    <%#  ----------- Harami1129s ------------ %>
+    <tr id="merge_edit_harami1129s"><th title="<%= t('merges.edit.merge_always', default: 'This row is automatically merged.') %>">Harami1129s</th>
+      <% all_hvs = [] %>
+      <% models[0..1].each_with_index do |em, i| %>
+      <td title="<%= t('merges.edit.merge_always') %>">
+        <% all_hvs.push em.harami1129s.ids.sort %>
+        <%= all_hvs[-1].compact.map{|eid| link_to(eid, harami1129_path(eid))}.join(", ").html_safe %>
+      </td>
+      <% end %>
+      <td class="merged_column" id="merged_to_harami1129"><%= all_hvs.flatten.sort.map(&:to_s).join(", ") %></td>
+    </tr>
 
     <%#  ----------- notes ------------ %>
     <tr id="merge_edit_note"><th title="<%= t('merges.edit.merge_always', default: 'This row is automatically merged.') %>">Note</th>

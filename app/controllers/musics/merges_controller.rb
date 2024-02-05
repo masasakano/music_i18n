@@ -31,24 +31,17 @@ class Musics::MergesController < BaseMergesController
   def update
     raise 'This should never happen - necessary parameter is missing. params='+params.inspect if 2 != @musics.size
     @all_checked_disabled = all_checked_disabled(@musics) # defined in base_merges_controller.rb
+
+    mdl_self, mdl_other, priorities = get_self_other_priorities(@musics)
     begin
       ActiveRecord::Base.transaction do
-        merge_lang_orig(@musics)   # defined in base_merges_controller.rb
-        merge_lang_trans(@musics)  # defined in base_merges_controller.rb
-        merge_engage_harami1129(@musics)  # defined in base_merges_controller.rb
-        %i(prefecture_place genre year).each do |metho| 
-          merge_overwrite(@musics, metho) # defined in base_merges_controller.rb
-        end
-        merge_note(@musics)  # defined in base_merges_controller.rb
-        merge_harami_vid_music_assoc
-        merge_created_at(@musics)  # defined in base_merges_controller.rb
-
-        @musics[@to_index].save!
-        @musics[other_index(@to_index)].reload  # Without this HaramiVidMusicAssoc is cascade-destroyed!
-        @musics[other_index(@to_index)].destroy!
+        _ = mdl_self.merge_other(mdl_other, priorities: priorities, save_destroy: true)
         #raise ActiveRecord::Rollback, "Force rollback." if ...
       end
     rescue
+      msg = "ERROR(#{File.basename __FILE__}): merging failed: ID(after-merged)=#{mdl_self.id}; models=#{@musics.inspect}"
+      logger.error msg
+      warn msg
       raise ## Transaction failed!  Rolled back.
     end
 
@@ -72,13 +65,8 @@ class Musics::MergesController < BaseMergesController
       rescue ActiveRecord::RecordNotFound
         # Specified Title for Edit is not found.  For update, this should never happen through UI.
         # As a result, @musics.size == 1
+        raise if :edit != action_name.to_sym
       end
     end
 
-    # merging HaramiVidMusicAssoc
-    def merge_harami_vid_music_assoc
-      @musics[other_index(@to_index)].harami_vid_music_assocs.each do |hvma|
-        hvma.update!(music: @musics[@to_index])
-      end
-    end
 end

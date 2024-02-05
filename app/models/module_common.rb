@@ -836,6 +836,25 @@ module ModuleCommon
     s ? s.inspect.sub(/\A"(.*)"\z/, "'"+'\1'+"'") : s.inspect
   end
 
+  # Routine to add {Translation} information to the String of inspect
+  # @param retstr [String] Output String of the default +inspect+
+  # @param models [Array<String>] e.g., %w(music, artist)
+  def add_trans_info(retstr, models)
+    models.each do |ek|
+      mdl = self.send(ek)
+      tit = 
+        if !mdl.respond_to?(:title_or_alt)
+          "nil"
+        elsif "engage_how" == ek
+          mdl.title_or_alt(langcode: "en")
+        else
+          mdl.title_or_alt
+        end
+      retstr = retstr.sub(/, #{ek}_id: \d+/,  '\0'+sprintf("(%s)", tit))
+    end
+    retstr
+  end
+
   # Returns "/db/seeds/users.rb" etc. from __FILE__
   #
   # Used in /db/seeds.rb and /db/seeds/*.rb

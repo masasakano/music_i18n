@@ -24,12 +24,22 @@
 #  fk_rails_...  (music_id => musics.id) ON DELETE => cascade
 #
 class HaramiVidMusicAssoc < ApplicationRecord
+  include ModuleCommon # for add_trans_info()
   belongs_to :harami_vid
   belongs_to :music
 
   validates_uniqueness_of :music, scope: :harami_vid
   validates_numericality_of :timing, allow_nil: true, greater_than_or_equal_to: 0, message: "(%{value}) must be 0 or positive."
   validate :completeness_between  # For Float, this does not work?: validates_numericality_of :completeness_between, within: (0..1)
+
+  alias_method :inspect_orig, :inspect if ! self.method_defined?(:inspect_orig)
+
+  # Displays (the original) Translation information, too, for Music.
+  #
+  # @return [String]
+  def inspect
+    add_trans_info(inspect_orig, %w(music)) # defined in ModuleCommon
+  end
 
   private
 

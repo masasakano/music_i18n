@@ -232,7 +232,7 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
     sign_in @moderator_all 
 
     # Populates from Harami1129 fixtures
-    h1129s = [harami1129s(:harami1129_sting1), harami1129s(:harami1129_sting2)].map{|i| _populate_harami1129(i)}
+    h1129s = [harami1129s(:harami1129_sting1), harami1129s(:harami1129_sting2)].map{|i| _populate_harami1129_sting(i)}  # defined in test_helper.rb
 
     hvma_bkups = h1129s.map{|i| i.harami_vid.harami_vid_music_assocs}.flatten  # HaramiVidMusicAssoc
 
@@ -260,7 +260,9 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
     %i(title is_orig translatable_id).each do |ek|
       trans_attrs[ek] = artist_origs.map{|i| i.translations.map{|j| j.send(ek)}}  # Double Array
     end
-    engages = h1129s.map{|i| i.harami_vid.musics.map{|em| em.engages}}.flatten.map{|ee| ee.reload; ee}
+    engages = h1129s.map{|i| i.engage}.map{|j| j.reload}
+    engages2= h1129s.map{|i| i.harami_vid.musics.map{|em| em.engages}}.flatten.map{|ee| ee.reload; ee}
+    assert_equal engages, engages2, 'sanity-check'
     assert_equal 2, engages.size, 'sanity-check'
     engages[1].update!(contribution: 0.7)
 
@@ -309,7 +311,7 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
     end
 
     # Translations deleted/remain
-    assert Translation.exists?(transs[0][0].id), "Both translation (is_orig is true for both (ja and en)) should remain, but the first one disappeared."
+    assert Translation.exists?(transs[0][0].id), "Both translations (is_orig was true for both (ja and en)) should remain."
     assert Translation.exists?(transs[1][0].id)
     #refute Translation.exists?(trans2delete1.id)
     #assert Translation.exists?(trans2remain1.id)
@@ -341,23 +343,6 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
 
 
   private
-    # cf. /test/controllers/harami1129s/populates_controller_test.rb
-    # @return [Harami1129]
-    def _populate_harami1129(h1129)
-      assert_difference('Harami1129.count + HaramiVid.count*10000', 0) do
-        patch harami1129_internal_insertions_url(h1129)
-        assert_response :redirect
-        assert_redirected_to harami1129_url h1129
-      end
-      h1129.reload
-
-      assert_difference('HaramiVid.count*10000 + HaramiVidMusicAssoc.count*1000 + Music.count*100 + Artist.count*10 + Engage.count', 11111) do
-        patch harami1129_populate_url(h1129)
-        assert_response :redirect
-        assert_redirected_to harami1129_url h1129
-      end
-      h1129.reload
-    end
 
 end
 
