@@ -19,7 +19,6 @@
 #  fk_rails_...  (prefecture_id => prefectures.id) ON DELETE => cascade
 #
 class Place < BaseWithTranslation
-  include Translatable
   belongs_to :prefecture
   has_one :country, through: :prefecture
   has_many :harami_vids

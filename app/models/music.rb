@@ -22,8 +22,6 @@
 #  fk_rails_...  (place_id => places.id)
 #
 class Music < BaseWithTranslation
-  include Translatable
-
   # If the place column is nil, insert {Place.unknown} and {Genre.unknown}
   # where the callbacks are defined in the parent class.
   # Note there is no DB restriction, but the Rails valiation prohibits nil.

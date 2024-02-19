@@ -24,8 +24,6 @@
 #  fk_rails_...  (country_id => countries.id) ON DELETE => cascade
 #
 class Prefecture < BaseWithTranslation
-  include Translatable
-
   before_destroy :assess_destroy
 
   belongs_to :country

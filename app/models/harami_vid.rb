@@ -28,7 +28,6 @@
 class HaramiVid < BaseWithTranslation
   include Rails.application.routes.url_helpers
   include ApplicationHelper # for link_to_youtube
-  include Translatable
   include ModuleCommon
 
   # If the place column is nil, insert {Place.unknown}

@@ -10,8 +10,6 @@
 #  updated_at :datetime         not null
 #
 class EngageHow < BaseWithTranslation
-  include Translatable
-
   has_many :engages, dependent: :restrict_with_exception
 
   # Validates translation immediately before it is added.

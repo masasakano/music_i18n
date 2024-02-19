@@ -337,6 +337,7 @@ class BaseWithTranslation < ApplicationRecord
   self.abstract_class = true
   after_create :save_unsaved_translations  # callback to create(-only) @unsaved_translations
 
+  include Translatable  # Key relation - polymorphic with Translation; defined in /app/models/concerns/translatable.rb
   include SlimString
   extend  ModuleCommon  # for split_hash_with_keys and update_or_create_by_with_notouch!()
   include ModuleCommon  # for split_hash_with_keys

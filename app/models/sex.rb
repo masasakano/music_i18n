@@ -15,8 +15,6 @@
 #  index_sexes_on_iso5218  (iso5218) UNIQUE
 #
 class Sex < BaseWithTranslation
-  include Translatable
-
   has_many :artists, dependent: :restrict_with_exception
   validates_uniqueness_of :iso5218
   validates :iso5218, presence: true

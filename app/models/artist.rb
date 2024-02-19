@@ -27,8 +27,6 @@
 #  fk_rails_...  (sex_id => sexes.id)
 #
 class Artist < BaseWithTranslation
-  include Translatable
-
   # callback to make sure place and sex are set if nil.
   # Note calling "valid?" would force self to have a {Place} and {Sex}
   before_validation :add_place_for_validation

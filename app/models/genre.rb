@@ -10,8 +10,6 @@
 #  updated_at                                :datetime         not null
 #
 class Genre < BaseWithTranslation
-  include Translatable
-
   has_many :musics,  dependent: :restrict_with_exception
 
   # Each subclass of {BaseWithTranslation} should define this constant; if this is true,

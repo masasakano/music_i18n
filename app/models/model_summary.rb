@@ -13,8 +13,6 @@
 #  index_model_summaries_on_modelname  (modelname) UNIQUE
 #
 class ModelSummary < BaseWithTranslation
-  include Translatable
-
   # For the translations to be unique.
   MAIN_UNIQUE_COLS = %i(modelname)
 

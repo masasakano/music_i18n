@@ -123,7 +123,6 @@
 #  fk_rails_...  (country_master_id => country_masters.id) ON DELETE => restrict
 #
 class Country < BaseWithTranslation
-  include Translatable
   include Rails.application.routes.url_helpers
 
   belongs_to :country_master, optional: true  # e.g., Country.unknown does not have a Parent.

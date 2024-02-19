@@ -30,7 +30,6 @@
 #  fk_rails_...  (place_id => places.id) ON DELETE => nullify
 #
 class EventGroup < BaseWithTranslation
-  include Translatable
   # include Rails.application.routes.url_helpers
 
   belongs_to :place, optional: true
