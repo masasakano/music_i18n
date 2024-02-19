@@ -4,18 +4,15 @@
 #
 # == Usage
 #
-# The child model of this class should be like this:
+# The child model of this class should define two constants of
+# +MAIN_UNIQUE_COLS+ and +ARTICLE_TO_TAIL+ (see farther down for detail) like this:
 #
 #   class MyChildKlass < BaseWithTranslation
-#     include Translatable
-#
 #     MAIN_UNIQUE_COLS = []
 #     ARTICLE_TO_TAIL = true
 #
-# See below for the descriptions of the Constants
-#
-# Add the following if the class should not allow multiple identical title/alt_title
-# Music does NOT include this (famously there are two songs, "M").
+# Add the following if the class should not allow multiple identical title/alt_title .
+# As a counter-example, Music does NOT include this (famously there are two songs, "M").
 #
 #     def validate_translation_callback(record)
 #       validate_translation_neither_title_nor_alt_exist(record)  # defined in ModuleCommon included in this file.
@@ -33,10 +30,10 @@
 #       validate_translation_unique_within_parent(record)
 #     end
 #
-# To Create in the UI is tricky.  You would want a Translation as an input
+# To Create with the UI is tricky.  You would want a Translation as an input
 # (n.b., for Update, it can be simply handled by the Transation model).
-# That means +params+ to give to the Model contains unusual parameters,
-# which would mess up +permit+, especially with authorization (with CanCanCan).
+# This means +params+ to give to the Model contains unusual parameters,
+# which would mess up Rails +permit+, especially with authorization (with CanCanCan).
 # Consult EventGroup Controller and views for how to do it. Both Controller and
 # Views should be carefully adjusted.  There are several helper methods.
 #
@@ -49,7 +46,7 @@
 # Each entry of a child class of this class (e.g., {Artist}, {Place}) has
 # a combination of structures of their own entries and multiple {Translation}-s.
 # In identifying the existing record(s), the whole structure must be considered.
-# The translated {Translation#title} alone is inadequate.  For example,
+# Checking the translated {Translation#title} alone is inadequate.  For example,
 # {Place} "Perth" in the UK and Australia are completely different entities
 # even though their {Translation#title} are identical.
 #
@@ -204,14 +201,14 @@
 # The current implmentation is slightly disorganized, admittedly.
 # I now think the process to search and find (identify) a record and that
 # to update/create it should be separate.  However, that is not the case in the current
-# interpretation. Both the processes are treated in a (series of) method in one go;
+# implementation. Both the processes are treated in a (series of) method in one go;
 # the core routine is {BaseWithTranslation.update_or_create_with_translations_core!},
 # and even its public wrappers are similar. Basically, they accept the arguments:
 #
-# hsmain : columns for the main entries unique to the record (eg., geo-location) used for identification/update
-# unique_trans_keys : which keys (title, alt_title?) are used to identify a record.
-# mainkeys : which keys in hsmain are used to identify the record.
-# hs_trans : Translation (used for both identification/update)
+# * hsmain : columns for the main entries unique to the record (eg., geo-location) used for identification/update
+# * unique_trans_keys : which keys (title, alt_title?) are used to identify a record.
+# * mainkeys : which keys in hsmain are used to identify the record.
+# * hs_trans : Translation (used for both identification/update)
 #
 # Then, in updating, any information that have *not* been used for identification
 # in hsmain and hs_trans will be used to update the record; in other words to
@@ -310,8 +307,8 @@
 #
 #   b.title(langcode: I18n.locale, lang_fallback: true)
 #
-# Note that a Translation is required to have *EITHER* +title+ or +alt_title+,
-# meaning it may not have +title+.
+# Note that a {Translation} is required to have *EITHER* +title+ or +alt_title+,
+# meaning it may not have +title+ but +alt_title+ only.
 #
 # === Troubleshooting
 #
@@ -474,19 +471,19 @@ class BaseWithTranslation < ApplicationRecord
   # for the given {#title}.  Note "first" is arbitrary if multiple matches
   # are found.
   #
-  # self.[] returns a first one without translations (which may be nil).
+  # +self.[]+ returns a first one without translations (which may be nil).
   #
   # In short, this method is useful for debugging and testing, but 
   # should not be used in the production code.
   #
-  # Note that this does in practice (when "value" is String, not Regexp), in the case of Artist, for example:
+  # Note that this does the following, in practice (when "value" is String, not Regexp), in the case of Artist, for example:
   #   Artist.select_regex(:title, 'ハラミちゃん', langcode: 'ja').first.translatable
   # which is slightly different but in practice very similar to (because it is only *first*)
   #   Artist.select_translations_regex(:title, 'Queen', langcode: 'en').first.translatable
   # both of which sends 2 SQL queries.
   # Technically, you can make it to only 1 SQL query.
   #   Artist.joins(:translations).where("translations.title = 'Queen' AND translations.langcode = 'en'").first
-  # However, it is too complicated and is not worth it as a general method.
+  # However, it is too complicated and is not worth it for this method intended to be used for debugging.
   #
   # @param value [Regexp, String] e.g., 'male'
   # @param langcode [String, NilClass] like 'ja'. If nil, all languages
@@ -498,13 +495,54 @@ class BaseWithTranslation < ApplicationRecord
     select_regex(kwd, preprocess_space_zenkaku(value), langcode: langcode)[0]
   end
 
-  # @return [BaseWithTranslation, NilClass] nil only if there are no records at all.
+  # Returns a single default Object of the class, only if there is such a thing
+  #
+  # Valid only for the classes that have the +weight` attribute like {Genre} and {EngageHow}.
+  #
+  # @return [BaseWithTranslation, NilClass] nil only if no records at all are found.
   # @raise [NoMethodError] if weight is not defined in the sub-class.
   def self.default
     raise NoMethodError if !has_attribute?(:weight)
     # EngageHow.all.order(:weight).first
     self.order(Arel.sql('CASE WHEN weight IS NULL THEN 1 ELSE 0 END, weight')).first # valid in any SQL database systems
   end
+
+  # Sorts the translation part in the argument so the one with
+  # is_orig=true comes in the front.
+  #
+  # @param kwds [Hash] option arguments
+  # @return [Hash] in which the translation part is sorted.
+  def self.sort_hash_langs_with_is_orig(**kwds)
+    keytrans = :translations
+    if !kwds.key? keytrans
+        raise ArgumentError, "(#{__method__}) #{keytrans.inspect} option is mandatory but is not specified."
+    end
+
+    trans_part, opts_create = split_hash_with_keys(kwds, [keytrans])
+    opt_trans, trans_all = split_hash_with_keys(trans_part[keytrans], COMMON_DEF_SLIM_OPTIONS.keys) # redundant
+
+    best_lang = find_lang_of_is_orig(trans_all)
+    langs_ordered = trans_all.keys.sort{|a, b| ((a == best_lang) ? -1 : 0) <=> ((b == best_lang) ? -1 : 0)}
+    trans_ordered = { keytrans => langs_ordered.map{|lc| [lc, trans_all[lc]]}.to_h.merge(opt_trans)}
+
+    opts_create.merge trans_ordered
+  end
+  private_class_method :sort_hash_langs_with_is_orig
+
+  # @return [Symbol] like :en which has a (Hash to create a) {Translation} with {Translation#is_orig} == true
+  def self.find_lang_of_is_orig(hsin)
+    hsin.each_pair do |ek, ea_obj|
+      if !ea_obj.respond_to? :rotate
+        return ek if ea_obj[:is_orig]
+        next
+      end
+
+      # ea_obj is an Array; the original is in the form of {en: [{title: 'abc'}, {title: 'def'}], ja: ...}
+      return ek if ea_obj.any?{|i| i[:is_orig]}
+    end
+    hsin.keys.first
+  end
+  private_class_method :find_lang_of_is_orig
 
   # Find all {BaseWithTranslation} instances that have no associated translations defined
   #
@@ -515,6 +553,9 @@ class BaseWithTranslation < ApplicationRecord
   end
 
   # Creates a {BaseWithTranslation} accompanied with multiple {Translation}-s.
+  #
+  # Very similar to {BaseWithTranslation#create_with_translation!} except
+  # this accepts multiple translations and hence the argument format differs.
   #
   # Wrapper of {BaseWithTranslation#create!} and {#with_translations} (which is
   # similar to {#create_translations!} but returns self) to return {BaseWithTranslation}.
@@ -604,46 +645,9 @@ class BaseWithTranslation < ApplicationRecord
     ret
   end
 
-  # Sorts the translation part in the argument so the one with
-  # is_orig=true comes in the front.
-  #
-  # @param kwds [Hash] option arguments
-  # @return [Hash] in which the translation part is sorted.
-  def self.sort_hash_langs_with_is_orig(**kwds)
-    keytrans = :translations
-    if !kwds.key? keytrans
-        raise ArgumentError, "(#{__method__}) #{keytrans.inspect} option is mandatory but is not specified."
-    end
-
-    trans_part, opts_create = split_hash_with_keys(kwds, [keytrans])
-    opt_trans, trans_all = split_hash_with_keys(trans_part[keytrans], COMMON_DEF_SLIM_OPTIONS.keys) # redundant
-
-    best_lang = find_lang_of_is_orig(trans_all)
-    langs_ordered = trans_all.keys.sort{|a, b| ((a == best_lang) ? -1 : 0) <=> ((b == best_lang) ? -1 : 0)}
-    trans_ordered = { keytrans => langs_ordered.map{|lc| [lc, trans_all[lc]]}.to_h.merge(opt_trans)}
-
-    opts_create.merge trans_ordered
-  end
-  private_class_method :sort_hash_langs_with_is_orig
-
-  # @return [Symbol] like :en which has a (Hash to create a) {Translation} with {Translation#is_orig} == true
-  def self.find_lang_of_is_orig(hsin)
-    hsin.each_pair do |ek, ea_obj|
-      if !ea_obj.respond_to? :rotate
-        return ek if ea_obj[:is_orig]
-        next
-      end
-
-      # ea_obj is an Array; the original is in the form of {en: [{title: 'abc'}, {title: 'def'}], ja: ...}
-      return ek if ea_obj.any?{|i| i[:is_orig]}
-    end
-    hsin.keys.first
-  end
-  private_class_method :find_lang_of_is_orig
-
   # Creates a {BaseWithTranslation} accompanied with a single {Translation} .
   #
-  # Very similar to {BaseWithTranslation#create_with_translation!} except
+  # Very similar to {BaseWithTranslation#create_with_translations!} except
   # this accepts only a single translation and hence the argument format differs.
   #
   # Wrapper of {BaseWithTranslation#create!} and {#with_translation} (which is
@@ -827,84 +831,6 @@ class BaseWithTranslation < ApplicationRecord
     obj
   end
   private_class_method :update_or_create_with_translations_core!
-
-
-  # The matched String to be used to select or generate self.
-  #
-  # The arguments are the same as {BaseWithTranslation.select_translations_regex},
-  # and ultimately {Translation.select_regex}.
-  #
-  # @example
-  #   sex.matched_string(%i(title ruby romaji), /n/, langcode: 'en') # => 'not known'
-  #   sex.set_matched_trans_att(%i(title ruby romaji), /n/, langcode: 'en')
-  #     # This set {#matched_translation}, {#matched_attribute} for self. Then,
-  #   sex.matched_string  # => 'not known'
-  #
-  # @param kwd [Symbol, String, Array<String>, NilClass] (title|alt_title|ruby|alt_ruby|romaji|alt_romaji|titles|all)
-  #    or Array of Symbol|String to evaluate. Note :titles is the alias
-  #    for [:title, :alt_title], and :all means all the 6 columns.
-  #    If nil, this parameter, as well as value, is not used.
-  # @param value [Regexp, String, NilClass] e.g., 'male' and /male\z/
-  # @param att: [Symbol, NilClass] e.g., :alt_title. Usually read from @matched_attribute or generated from kwd and value, but you can specify it explicitly.
-  # @param *args: [Array]
-  # @param **restkeys: [Hash] 
-  # @return [String, NilClass] nil if not found
-  def matched_string(kwd=nil, value=nil, *args, att: nil, **restkeys)
-    trans = matched_translation
-    att ||= matched_attribute
-    return trans.matched_string(att: att) if trans && att
-
-    raise MultiTranslationError::AmbiguousError, "(kwd, value) must be explicitly specified in #{self.class.name}##{__method__} because matched_attribute has not been defined. Note Translation was likely created by Translation.select_regex as opposed to by Translation.find_by_regex, which would set matched_attribute." if [kwd, value].compact.empty?
-    if !trans
-      trans = find_translation_by_regex(kwd, value, *args, **restkeys)
-      return trans.matched_string
-    end
-
-    return trans.matched_string(kwd, value)
-  end
-
-  # Set {#matched_translation} and {#matched_attribute}.
-  #
-  # See {#matched_string} for the arguments.
-  #
-  # @example
-  #   sex.set_matched_trans_att(%i(title ruby romaji), /n/, langcode: 'en')
-  #
-  # @param *args: [Array]
-  # @param **restkeys: [Hash] 
-  # @return [Array] [{#matched_translation}, {#matched_attribute}]
-  def set_matched_trans_att(*args, **restkeys)
-    trans = find_translation_by_regex(*args, **restkeys)
-    self.matched_translation = trans
-    self.matched_attribute   = trans.matched_attribute
-    [matched_translation, matched_attribute]
-  end
-
-  # Asign matched_translation based on the strong candidate
-  #
-  # The model should have been selected based on the given 
-  # title_str (or similar)
-  #
-  # @param model [BaseWithTranslation]
-  # @return self
-  def assign_matched_translation(title_str)
-    tra = nil
-    [title_str, /\A#{Regexp.quote title_str}\z/i].each do |str_or_re|
-      tra = find_translation_by_regex(:titles, str_or_re)
-      break if tra
-    end
-    tra ||= (best_translations['ja'] || best_translations['en'] || best_translations.first) 
-    if !tra.matched_attribute
-      # NOTE: this happens basically when tra is from best_translations rather than 
-      # find_translation_by_regex(), which happens when no Translation
-      # matches the given title_str, i.e., when the DB entry has
-      # been manually modified since the first creation.
-      tra.matched_attribute = (!tra.title.blank? ? :title : :alt_title)
-    end
-    self.matched_translation = tra
-    self.matched_attribute   = tra.matched_attribute
-    self
-  end
 
   # Wrapper of {Translation.find_all_by_a_title}
   #
@@ -1197,120 +1123,6 @@ class BaseWithTranslation < ApplicationRecord
   # @return [Array<BaseWithTranslation>]
   def self.select_partial_str(*args, **restkeys)
     select_translations_partial_str(*args, **restkeys).map{|i| i.translatable}.uniq
-  end
-
-  # Wrapper of {BaseWithTranslation.select_translations_partial_str}, excepting {Translation}s of self
-  #
-  # @param *args: [Array]
-  # @param **restkeys: [Hash] should not include the key +not_clause+, unless you know what you're doing!!
-  # @return [Translation::ActiveRecord_Relation]
-  def select_translations_partial_str_except_self(*args, **restkeys)
-    ids = translations.pluck(:id)
-    if !restkeys.key?(:not_clause) || restkeys[:not_clause].blank?
-      restkeys.merge!({not_clause: {id: ids}})
-      # Users should not specify/use not_clause option for this method.
-    end
-    self.class.select_translations_partial_str(*args, **restkeys)
-  end
-
-  # Wrapper of {#select_translations_partial_str_except_self}, returning String (title)
-  #
-  # titles for self are excluded for the candidates.
-  #
-  # Note the displayed langcode may be empty, if {Translation#is_orig} is true
-  # for none of the associated Translations.
-  #
-  # @param *args: [Array]
-  # @param display_id [Boolean] If true (Def: false), locale and ID are also printed at the tail.
-  # @param **restkeys: [Hash] 
-  # @return [Array<String>]
-  def select_titles_partial_str_except_self(*args, display_id: false, **restkeys)
-    select_translations_partial_str_except_self(*args, **restkeys).map{|i| i.translatable}.uniq.map{|em|
-      tit = em.title_or_alt
-      tail = (display_id ? sprintf(" [%s] [ID=%s]", tit.lcode, em.id) : "")  # tit.lcode == em.orig_langcode  in most cases, but orig_langcode may not be defined.
-      tit + tail
-    }
-  end
-
-  # Wrapper of {Translation.select_regex}, returning {Translation}-s of only this class
-  #
-  # Search {Translation} to find matching {BaseWithTranslation}-s.
-  # If the given value is String, SQL is used to search the match (efficient).
-  # If Regexp, Ruby engine is used (hence more resource intensive).
-  #
-  # @example
-  #   Country.select_translations_regex(:alt_title, /^Aus/i, where: ['id <> ?', abc.id])
-  #
-  # @param *args: [Array]
-  # @param **restkeys: [Hash] 
-  # @return [Translation::ActiveRecord_Relation, Array<Translation>]
-  def self.select_translations_regex(*args, **restkeys)
-    Translation.select_regex(*args, translatable_type: self.name, **restkeys)
-  end
-
-  # Wrapper of {Translation.select_regex}
-  #
-  # To find those that satisfies with String, Regexp, and/or other conditions.
-  # in {#translations}.
-  #
-  # @example
-  #   x.select_translations_regex(:alt_title, /^Aus/i, where: ['id <> ?', abc.id])
-  #
-  # @param *args: [Array]
-  # @param **restkeys: [Hash] 
-  # @return [Array<Translation>]
-  def select_translations_regex(*args, **restkeys)
-    Translation.select_regex(
-      *args,
-      translatable_type: self.class.name,
-      translatable_id:   self.id,
-      **restkeys
-    )
-  end
-
-  # Wrapper of {Translation.find_by_regex}
-  #
-  # To find the first {Translation} that satisfies String, Regexp, and/or other conditions.
-  # in {#translations}.
-  #
-  # @example
-  #   x.find_translation_by_regex(:alt_title, /^Aus/i, where: ['id <> ?', abc.id])
-  #
-  # @param *args: [Array]
-  # @param **restkeys: [Hash] 
-  # @return [Translation, NilClass]
-  def find_translation_by_regex(*args, **restkeys)
-    Translation.find_by_regex(
-      *args,
-      translatable_type: self.class.name,
-      translatable_id:   self.id,
-      **restkeys
-    )
-  end
-
-
-  # Wrapper of {Translation.find_translation_by_a_title}
-  #
-  # To find the first {Translation} that matches a String and maybe
-  # other conditions in {#translations}.
-  # That with (is_orig: true) would come first.
-  #
-  # @example
-  #   artist.find_by_a_title(:titles, 'the Proclaimers')
-  #    # => matches "Proclaimers, The" in Translation
-  #
-  # See {Translation.find_by_a_title} for options.
-  #
-  # @param *args: [Array] key, value (e.g., :titles, 'Lennon')
-  # @param **restkeys: [Hash] e.g., match_method_upto, langcode
-  # @return [Translation, NilClass] {Translation#match_method} is set
-  def find_translation_by_a_title(*args, **restkeys)
-    Translation.find_by_a_title(
-      *args,
-      translatable_type: self.class.name,
-      translatable_id:   self.id,
-      **restkeys
-    )
   end
 
   # Select all {BaseWithTranslation} based on a single {Translation} and its own parameters.
@@ -1706,10 +1518,260 @@ class BaseWithTranslation < ApplicationRecord
     #  }
     #end
 
+  # Get an object based on the given "name" (title etc)
+  #
+  # Where a potential definite article is considered.
+  #
+  # @param name [String
+  # @return [BaseWithTranslation, NilClass] nil if no match
+  def self.find_by_name(name)
+    name2chk = preprocess_space_zenkaku(name, **COMMON_DEF_SLIM_OPTIONS)
+    re, rootstr, the = definite_article_with_or_not_at_tail_regexp(name2chk) # in ModuleCommon
 
-  ###################################
-  # Instance methods
-  ###################################
+    db_style_str     = rootstr + (the.empty? ? "" : ', ' + the)
+    db_style_str_cap = rootstr + (the.empty? ? "" : ', ' + the.capitalize)
+
+    alltrans = self.select_translations_regex(:titles, re)
+    return nil if alltrans.empty?
+
+    alltrans.sort{|a,b|
+      if    a.titles.include? db_style_str
+        -1
+      elsif b.titles.include? db_style_str
+        1
+      elsif a.titles.include? db_style_str_cap
+        -1
+      elsif b.titles.include? db_style_str_cap
+        1
+      elsif a.titles.map{|i| i.downcase}.include? db_style_str.downcase
+        -1
+      elsif b.titles.map{|i| i.downcase}.include? db_style_str.downcase
+        1
+      elsif a.titles.map{|i| definite_article_stripped(i)}.include? rootstr
+        -1
+      elsif b.titles.map{|i| definite_article_stripped(i)}.include? rootstr
+        1
+      elsif a.titles.map{|i| definite_article_stripped(i).downcase}.include? rootstr.downcase
+        -1
+      elsif b.titles.map{|i| definite_article_stripped(i).downcase}.include? rootstr.downcase
+        1
+      else
+        0
+      end
+    }.first.translatable
+  end
+
+  # Returns an Array of combined {#title} and {#alt_title} for auto-complete
+  #
+  # Definite articles are considered.
+  #
+  # @return [Array<String>]
+  def self.titles_for_form
+    alltitles = Translation.where(translatable_type: self.name).pluck(:title, :alt_title).flatten.select{|i| !i.blank?}
+    alltitles.map{|i|
+      root, the = partition_root_article(i)
+      if the.empty?
+        root
+      else
+        [the+" "+root, root, root+", "+the]
+      end
+    }.flatten.uniq
+  end
+
+  ################################################
+  # instant methods
+  ################################################
+
+  # The matched String to be used to select or generate self.
+  #
+  # The arguments are the same as {BaseWithTranslation.select_translations_regex},
+  # and ultimately {Translation.select_regex}.
+  #
+  # @example
+  #   sex.matched_string(%i(title ruby romaji), /n/, langcode: 'en') # => 'not known'
+  #   sex.set_matched_trans_att(%i(title ruby romaji), /n/, langcode: 'en')
+  #     # This set {#matched_translation}, {#matched_attribute} for self. Then,
+  #   sex.matched_string  # => 'not known'
+  #
+  # @param kwd [Symbol, String, Array<String>, NilClass] (title|alt_title|ruby|alt_ruby|romaji|alt_romaji|titles|all)
+  #    or Array of Symbol|String to evaluate. Note :titles is the alias
+  #    for [:title, :alt_title], and :all means all the 6 columns.
+  #    If nil, this parameter, as well as value, is not used.
+  # @param value [Regexp, String, NilClass] e.g., 'male' and /male\z/
+  # @param att: [Symbol, NilClass] e.g., :alt_title. Usually read from @matched_attribute or generated from kwd and value, but you can specify it explicitly.
+  # @param *args: [Array]
+  # @param **restkeys: [Hash] 
+  # @return [String, NilClass] nil if not found
+  def matched_string(kwd=nil, value=nil, *args, att: nil, **restkeys)
+    trans = matched_translation
+    att ||= matched_attribute
+    return trans.matched_string(att: att) if trans && att
+
+    raise MultiTranslationError::AmbiguousError, "(kwd, value) must be explicitly specified in #{self.class.name}##{__method__} because matched_attribute has not been defined. Note Translation was likely created by Translation.select_regex as opposed to by Translation.find_by_regex, which would set matched_attribute." if [kwd, value].compact.empty?
+    if !trans
+      trans = find_translation_by_regex(kwd, value, *args, **restkeys)
+      return trans.matched_string
+    end
+
+    return trans.matched_string(kwd, value)
+  end
+
+  # Set {#matched_translation} and {#matched_attribute}.
+  #
+  # See {#matched_string} for the arguments.
+  #
+  # @example
+  #   sex.set_matched_trans_att(%i(title ruby romaji), /n/, langcode: 'en')
+  #
+  # @param *args: [Array]
+  # @param **restkeys: [Hash] 
+  # @return [Array] [{#matched_translation}, {#matched_attribute}]
+  def set_matched_trans_att(*args, **restkeys)
+    trans = find_translation_by_regex(*args, **restkeys)
+    self.matched_translation = trans
+    self.matched_attribute   = trans.matched_attribute
+    [matched_translation, matched_attribute]
+  end
+
+  # Asign matched_translation based on the strong candidate
+  #
+  # The model should have been selected based on the given 
+  # title_str (or similar)
+  #
+  # @param model [BaseWithTranslation]
+  # @return self
+  def assign_matched_translation(title_str)
+    tra = nil
+    [title_str, /\A#{Regexp.quote title_str}\z/i].each do |str_or_re|
+      tra = find_translation_by_regex(:titles, str_or_re)
+      break if tra
+    end
+    tra ||= (best_translations['ja'] || best_translations['en'] || best_translations.first) 
+    if !tra.matched_attribute
+      # NOTE: this happens basically when tra is from best_translations rather than 
+      # find_translation_by_regex(), which happens when no Translation
+      # matches the given title_str, i.e., when the DB entry has
+      # been manually modified since the first creation.
+      tra.matched_attribute = (!tra.title.blank? ? :title : :alt_title)
+    end
+    self.matched_translation = tra
+    self.matched_attribute   = tra.matched_attribute
+    self
+  end
+
+  # Wrapper of {BaseWithTranslation.select_translations_partial_str}, excepting {Translation}s of self
+  #
+  # @param *args: [Array]
+  # @param **restkeys: [Hash] should not include the key +not_clause+, unless you know what you're doing!!
+  # @return [Translation::ActiveRecord_Relation]
+  def select_translations_partial_str_except_self(*args, **restkeys)
+    ids = translations.pluck(:id)
+    if !restkeys.key?(:not_clause) || restkeys[:not_clause].blank?
+      restkeys.merge!({not_clause: {id: ids}})
+      # Users should not specify/use not_clause option for this method.
+    end
+    self.class.select_translations_partial_str(*args, **restkeys)
+  end
+
+  # Wrapper of {Translation.select_regex}, returning {Translation}-s of only this class
+  #
+  # Search {Translation} to find matching {BaseWithTranslation}-s.
+  # If the given value is String, SQL is used to search the match (efficient).
+  # If Regexp, Ruby engine is used (hence more resource intensive).
+  #
+  # @example
+  #   Country.select_translations_regex(:alt_title, /^Aus/i, where: ['id <> ?', abc.id])
+  #
+  # @param *args: [Array]
+  # @param **restkeys: [Hash] 
+  # @return [Translation::ActiveRecord_Relation, Array<Translation>]
+  def self.select_translations_regex(*args, **restkeys)
+    Translation.select_regex(*args, translatable_type: self.name, **restkeys)
+  end
+
+  # Wrapper of {#select_translations_partial_str_except_self}, returning String (title)
+  #
+  # titles for self are excluded for the candidates.
+  #
+  # Note the displayed langcode may be empty, if {Translation#is_orig} is true
+  # for none of the associated Translations.
+  #
+  # @param *args: [Array]
+  # @param display_id [Boolean] If true (Def: false), locale and ID are also printed at the tail.
+  # @param **restkeys: [Hash] 
+  # @return [Array<String>]
+  def select_titles_partial_str_except_self(*args, display_id: false, **restkeys)
+    select_translations_partial_str_except_self(*args, **restkeys).map{|i| i.translatable}.uniq.map{|em|
+      tit = em.title_or_alt
+      tail = (display_id ? sprintf(" [%s] [ID=%s]", tit.lcode, em.id) : "")  # tit.lcode == em.orig_langcode  in most cases, but orig_langcode may not be defined.
+      tit + tail
+    }
+  end
+
+  # Wrapper of {Translation.select_regex}
+  #
+  # To find those that satisfies with String, Regexp, and/or other conditions.
+  # in {#translations}.
+  #
+  # @example
+  #   x.select_translations_regex(:alt_title, /^Aus/i, where: ['id <> ?', abc.id])
+  #
+  # @param *args: [Array]
+  # @param **restkeys: [Hash] 
+  # @return [Array<Translation>]
+  def select_translations_regex(*args, **restkeys)
+    Translation.select_regex(
+      *args,
+      translatable_type: self.class.name,
+      translatable_id:   self.id,
+      **restkeys
+    )
+  end
+
+  # Wrapper of {Translation.find_by_regex}
+  #
+  # To find the first {Translation} that satisfies String, Regexp, and/or other conditions.
+  # in {#translations}.
+  #
+  # @example
+  #   x.find_translation_by_regex(:alt_title, /^Aus/i, where: ['id <> ?', abc.id])
+  #
+  # @param *args: [Array]
+  # @param **restkeys: [Hash] 
+  # @return [Translation, NilClass]
+  def find_translation_by_regex(*args, **restkeys)
+    Translation.find_by_regex(
+      *args,
+      translatable_type: self.class.name,
+      translatable_id:   self.id,
+      **restkeys
+    )
+  end
+
+
+  # Wrapper of {Translation.find_translation_by_a_title}
+  #
+  # To find the first {Translation} that matches a String and maybe
+  # other conditions in {#translations}.
+  # That with (is_orig: true) would come first.
+  #
+  # @example
+  #   artist.find_by_a_title(:titles, 'the Proclaimers')
+  #    # => matches "Proclaimers, The" in Translation
+  #
+  # See {Translation.find_by_a_title} for options.
+  #
+  # @param *args: [Array] key, value (e.g., :titles, 'Lennon')
+  # @param **restkeys: [Hash] e.g., match_method_upto, langcode
+  # @return [Translation, NilClass] {Translation#match_method} is set
+  def find_translation_by_a_title(*args, **restkeys)
+    Translation.find_by_a_title(
+      *args,
+      translatable_type: self.class.name,
+      translatable_id:   self.id,
+      **restkeys
+    )
+  end
 
   # Gets the best-scored [title, alt_title]
   #
@@ -2384,66 +2446,6 @@ class BaseWithTranslation < ApplicationRecord
     }.to_h.with_indifferent_access
   end
 
-  # Get an object based on the given "name" (title etc)
-  #
-  # Where a potential definite article is considered.
-  #
-  # @param name [String
-  # @return [BaseWithTranslation, NilClass] nil if no match
-  def self.find_by_name(name)
-    name2chk = preprocess_space_zenkaku(name, **COMMON_DEF_SLIM_OPTIONS)
-    re, rootstr, the = definite_article_with_or_not_at_tail_regexp(name2chk) # in ModuleCommon
-
-    db_style_str     = rootstr + (the.empty? ? "" : ', ' + the)
-    db_style_str_cap = rootstr + (the.empty? ? "" : ', ' + the.capitalize)
-
-    alltrans = self.select_translations_regex(:titles, re)
-    return nil if alltrans.empty?
-
-    alltrans.sort{|a,b|
-      if    a.titles.include? db_style_str
-        -1
-      elsif b.titles.include? db_style_str
-        1
-      elsif a.titles.include? db_style_str_cap
-        -1
-      elsif b.titles.include? db_style_str_cap
-        1
-      elsif a.titles.map{|i| i.downcase}.include? db_style_str.downcase
-        -1
-      elsif b.titles.map{|i| i.downcase}.include? db_style_str.downcase
-        1
-      elsif a.titles.map{|i| definite_article_stripped(i)}.include? rootstr
-        -1
-      elsif b.titles.map{|i| definite_article_stripped(i)}.include? rootstr
-        1
-      elsif a.titles.map{|i| definite_article_stripped(i).downcase}.include? rootstr.downcase
-        -1
-      elsif b.titles.map{|i| definite_article_stripped(i).downcase}.include? rootstr.downcase
-        1
-      else
-        0
-      end
-    }.first.translatable
-  end
-
-  # Returns an Array of combined {#title} and {#alt_title} for auto-complete
-  #
-  # Definite articles are considered.
-  #
-  # @return [Array<String>]
-  def self.titles_for_form
-    alltitles = Translation.where(translatable_type: self.name).pluck(:title, :alt_title).flatten.select{|i| !i.blank?}
-    alltitles.map{|i|
-      root, the = partition_root_article(i)
-      if the.empty?
-        root
-      else
-        [the+" "+root, root, root+", "+the]
-      end
-    }.flatten.uniq
-  end
-
   ######################
   
   # Returns a unique weight
@@ -2522,6 +2524,7 @@ class BaseWithTranslation < ApplicationRecord
     raise MissingRequirementError, "(#{__method__}) Neither Keyword (#{kwd}) nor :default is defined in the given priorities: #{priorities.inspect}" if !%i(self other).include?(retsym)  # BaseWithTranslation::MissingRequirementError
     retsym
   end
+  private :_priority2pass
 
   # Returns the merged self (either Artist or Music)
   #

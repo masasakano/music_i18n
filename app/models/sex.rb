@@ -15,6 +15,16 @@
 #  index_sexes_on_iso5218  (iso5218) UNIQUE
 #
 class Sex < BaseWithTranslation
+  # For the translations to be unique (required by BaseWithTranslation).
+  MAIN_UNIQUE_COLS = [:iso5218]
+
+  # Each subclass of {BaseWithTranslation} should define this constant; if this is true,
+  # the definite article in each {Translation} is moved to the tail when saved in the DB,
+  # such as "Beatles, The" when "The Beatles" is passed.  If the translated title
+  # consists of a word or few words, as opposed to a sentence or longer,
+  # this constant should be true (for example, {Music#title}).
+  ARTICLE_TO_TAIL = true
+
   has_many :artists, dependent: :restrict_with_exception
   validates_uniqueness_of :iso5218
   validates :iso5218, presence: true
@@ -28,16 +38,6 @@ class Sex < BaseWithTranslation
   def validate_translation_callback(record)
     validate_translation_neither_title_nor_alt_exist(record)  # defined in BaseWithTranslation
   end
-
-  # For the translations to be unique.
-  MAIN_UNIQUE_COLS = [:iso5218]
-
-  # Each subclass of {BaseWithTranslation} should define this constant; if this is true,
-  # the definite article in each {Translation} is moved to the tail when saved in the DB,
-  # such as "Beatles, The" from "The Beatles".  If the translated title
-  # consists of a word or few words, as opposed to a sentence or longer,
-  # this constant should be true (for example, {Music#title}).
-  ARTICLE_TO_TAIL = true
 
   # All possible ISO5218 numbers (the constant name is ISO5218+"capital-S")
   ISO5218S = [0, 1, 2, 9]

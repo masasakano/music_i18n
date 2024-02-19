@@ -22,6 +22,16 @@
 #  fk_rails_...  (place_id => places.id)
 #
 class Music < BaseWithTranslation
+  # For the translations to be unique (required by BaseWithTranslation).
+  # MAIN_UNIQUE_COLS = %i(year place_id)  # More complicated - it depends on Artist
+
+  # Each subclass of {BaseWithTranslation} should define this constant; if this is true,
+  # the definite article in each {Translation} is moved to the tail when saved in the DB,
+  # such as "Beatles, The" when "The Beatles" is passed.  If the translated title
+  # consists of a word or few words, as opposed to a sentence or longer,
+  # this constant should be true (for example, {Music#title}).
+  ARTICLE_TO_TAIL = true
+
   # If the place column is nil, insert {Place.unknown} and {Genre.unknown}
   # where the callbacks are defined in the parent class.
   # Note there is no DB restriction, but the Rails valiation prohibits nil.
@@ -43,16 +53,6 @@ class Music < BaseWithTranslation
   has_one :country, through: :prefecture
 
   validates :year, numericality: { allow_nil: true, greater_than: 0, message: "(%{value}) must be positive." }
-
-  # For the translations to be unique.
-  # MAIN_UNIQUE_COLS = %i(year place_id)  # More complicated - it depends on Artist
-
-  # Each subclass of {BaseWithTranslation} should define this constant; if this is true,
-  # the definite article in each {Translation} is moved to the tail when saved in the DB,
-  # such as "Beatles, The" from "The Beatles".  If the translated title
-  # consists of a word or few words, as opposed to a sentence or longer,
-  # this constant should be true (for example, {Music#title}).
-  ARTICLE_TO_TAIL = true
 
   UnknownMusic = {
     "ja" => '何かの曲',

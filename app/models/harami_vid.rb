@@ -30,6 +30,16 @@ class HaramiVid < BaseWithTranslation
   include ApplicationHelper # for link_to_youtube
   include ModuleCommon
 
+  # For the translations to be unique (required by BaseWithTranslation).
+  MAIN_UNIQUE_COLS = %i(uri)
+
+  # Each subclass of {BaseWithTranslation} should define this constant; if this is true,
+  # the definite article in each {Translation} is moved to the tail when saved in the DB,
+  # such as "Beatles, The" when "The Beatles" is passed.  If the translated title
+  # consists of a word or few words, as opposed to a sentence or longer,
+  # this constant should be true (for example, {Music#title}).
+  ARTICLE_TO_TAIL = false  # because title is a sentence.
+
   # If the place column is nil, insert {Place.unknown}
   # where the callback is defined in the parent class.
   # Note there is no DB restriction, but the Rails valiation prohibits nil.
@@ -47,13 +57,6 @@ class HaramiVid < BaseWithTranslation
 
   validates_uniqueness_of :uri, allow_nil: true
   validates :place, presence: true  # NOT DB constraint, but Rails before_validation sets this with a default unknown Place
-
-  # Each subclass of {BaseWithTranslation} should define this constant; if this is true,
-  # the definite article in each {Translation} is moved to the tail when saved in the DB,
-  # such as "Beatles, The" from "The Beatles".  If the translated title
-  # consists of a word or few words, as opposed to a sentence or longer,
-  # this constant should be true (for example, {Music#title}).
-  ARTICLE_TO_TAIL = false  # because title is a sentence.
 
   DEF_PLACE = (
     (Place.unknown(country: Country['JPN']) rescue nil) ||

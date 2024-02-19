@@ -19,21 +19,21 @@
 #  fk_rails_...  (prefecture_id => prefectures.id) ON DELETE => cascade
 #
 class Place < BaseWithTranslation
+  # For the translations to be unique (required by BaseWithTranslation).
+  MAIN_UNIQUE_COLS = [:prefecture, :prefecture_id]
+
+  # Each subclass of {BaseWithTranslation} should define this constant; if this is true,
+  # the definite article in each {Translation} is moved to the tail when saved in the DB,
+  # such as "Beatles, The" when "The Beatles" is passed.  If the translated title
+  # consists of a word or few words, as opposed to a sentence or longer,
+  # this constant should be true (for example, {Music#title}).
+  ARTICLE_TO_TAIL = true
+
   belongs_to :prefecture
   has_one :country, through: :prefecture
   has_many :harami_vids
   has_many :artists, dependent: :restrict_with_exception
   has_many :musics,  dependent: :restrict_with_exception
-
-  # For the translations to be unique.
-  MAIN_UNIQUE_COLS = [:prefecture, :prefecture_id]
-
-  # Each subclass of {BaseWithTranslation} should define this constant; if this is true,
-  # the definite article in each {Translation} is moved to the tail when saved in the DB,
-  # such as "Beatles, The" from "The Beatles".  If the translated title
-  # consists of a word or few words, as opposed to a sentence or longer,
-  # this constant should be true (for example, {Music#title}).
-  ARTICLE_TO_TAIL = true
 
   UnknownPlace = {
     "ja" => 'どこかの場所',

@@ -13,12 +13,12 @@
 #  index_model_summaries_on_modelname  (modelname) UNIQUE
 #
 class ModelSummary < BaseWithTranslation
-  # For the translations to be unique.
+  # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = %i(modelname)
 
   # Each subclass of {BaseWithTranslation} should define this constant; if this is true,
   # the definite article in each {Translation} is moved to the tail when saved in the DB,
-  # such as "Beatles, The" from "The Beatles".  If the translated title
+  # such as "Beatles, The" when "The Beatles" is passed.  If the translated title
   # consists of a word or few words, as opposed to a sentence or longer,
   # this constant should be true (for example, {Music#title}).
   ARTICLE_TO_TAIL = false

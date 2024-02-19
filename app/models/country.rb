@@ -125,21 +125,21 @@
 class Country < BaseWithTranslation
   include Rails.application.routes.url_helpers
 
-  belongs_to :country_master, optional: true  # e.g., Country.unknown does not have a Parent.
-  has_many :prefectures, dependent: :destroy
-  validates_uniqueness_of :iso3166_n3_code, allow_nil: true
-
-  # For the translations to be unique.
+  # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = %i(iso3166_a2_code iso3166_a3_code iso3166_n3_code)
 
   # This should be updated later!!!
   #
   # Each subclass of {BaseWithTranslation} should define this constant; if this is true,
   # the definite article in each {Translation} is moved to the tail when saved in the DB,
-  # such as "Beatles, The" from "The Beatles".  If the translated title
+  # such as "Beatles, The" when "The Beatles" is passed.  If the translated title
   # consists of a word or few words, as opposed to a sentence or longer,
   # this constant should be true (for example, {Music#title}).
   ARTICLE_TO_TAIL = false  # should be true, ideally...
+
+  belongs_to :country_master, optional: true  # e.g., Country.unknown does not have a Parent.
+  has_many :prefectures, dependent: :destroy
+  validates_uniqueness_of :iso3166_n3_code, allow_nil: true
 
   UnknownCountry = {
     'ja' => '世界',

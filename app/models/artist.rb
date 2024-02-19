@@ -27,6 +27,16 @@
 #  fk_rails_...  (sex_id => sexes.id)
 #
 class Artist < BaseWithTranslation
+  # For the translations to be unique (required by BaseWithTranslation).
+  MAIN_UNIQUE_COLS = %i(birth_day birth_month birth_year wiki_en wiki_ja place_id sex_id)
+
+  # Each subclass of {BaseWithTranslation} should define this constant; if this is true,
+  # the definite article in each {Translation} is moved to the tail when saved in the DB,
+  # such as "Beatles, The" when "The Beatles" is passed.  If the translated title
+  # consists of a word or few words, as opposed to a sentence or longer,
+  # this constant should be true (for example, {Music#title}).
+  ARTICLE_TO_TAIL = true
+
   # callback to make sure place and sex are set if nil.
   # Note calling "valid?" would force self to have a {Place} and {Sex}
   before_validation :add_place_for_validation
@@ -49,16 +59,6 @@ class Artist < BaseWithTranslation
   validates_inclusion_of :birth_day,   within: (1..31), only_integer: true, allow_nil: true, message: "(%{value}) is invalid."
   validate :is_birth_date_valid?
   validate :unique_combination?
-
-  # For the translations to be unique.
-  MAIN_UNIQUE_COLS = %i(birth_day birth_month birth_year wiki_en wiki_ja place_id sex_id)
-
-  # Each subclass of {BaseWithTranslation} should define this constant; if this is true,
-  # the definite article in each {Translation} is moved to the tail when saved in the DB,
-  # such as "Beatles, The" from "The Beatles".  If the translated title
-  # consists of a word or few words, as opposed to a sentence or longer,
-  # this constant should be true (for example, {Music#title}).
-  ARTICLE_TO_TAIL = true
 
   UnknownArtist = {
     "ja" => '不明の音楽家',
