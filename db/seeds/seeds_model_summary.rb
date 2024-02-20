@@ -57,6 +57,10 @@ module SeedsModelSummary
       ja: "Harami動画サーバーからダウンロードした動画情報",
       en: "Information retrieved from Harami-video server",
     },
+    Harami1129Review: {
+      ja: "元々のHarami1129からArtist/Music名が変化したもの",
+      en: "Updated Artist or Music from original Harami1129",
+    },
     HaramiVid: {
       ja: "ハラミちゃん動画",
       en: "Video of HARAMIchan",

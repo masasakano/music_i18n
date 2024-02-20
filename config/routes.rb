@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  resources :harami1129_reviews
   resources :event_groups
   resources :model_summaries
   namespace :translations do  # "update" is used so that it can be handled with Ability

@@ -1,0 +1,69 @@
+
+<h1>Harami1129 Reviews</h1>
+
+<div id="harami1129_reviews">
+
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th colspan="2" title"An representative one (there may be more than one Harami1129)">Harami1129-pID / title</th>
+      <th>ColName</th>
+      <th>Name</th>
+      <th colspan="2">Updated-Name / Engage</th>
+      <th>Checked?</th>
+      <th>User</th>
+      <th>Note</th>
+      <% hr1 = @harami1129_reviews.first %>
+      <th colspan="<%= (hr1 && can?(:destroy, hr1) ? 3 : 2) %>">Action</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @harami1129_reviews.each do |harami1129_review| %>
+      <tr>
+        <td><%= harami1129_review.id %></td>
+        <td><%= h1129 = harami1129_review.harami1129; h1129 ? link_to(h1129.id.to_s, harami1129_url(h1129)) : harami1129_review.harami1129_id.inspect %></td> <%# ID should exist but Harami1129 may have disappeared. %>
+        <td><%= harami1129_review.harami1129.title %></td>
+        <td><%= colname = harami1129_review.harami1129_col_name %></td>
+        <td><%= harami1129_review.harami1129_col_val %></td>
+        <% eng = harami1129_review.engage %>
+        <td>
+          <% if eng %>
+            <% if colname.include?("singer") %>
+              <%= eng.artist ? ("Artist: "+link_to(eng.artist.best_translation.title_or_alt, artist_url(eng.artist))).html_safe : eng.artist_id.inspect %>
+            <% else %>
+              <%= eng.music  ?  ("Music: "+link_to( eng.music.best_translation.title_or_alt,  music_url(eng.music) )).html_safe : eng.music_id.inspect %>
+            <% end %>
+          <% end %>
+         </td>
+        <td><%= eng ? link_to(eng.id.to_s, engage_url(eng)) : harami1129_review.engage_id.inspect %></td> <%# ID should exist but Engage may have disappeared. %>
+        <td><%= harami1129_review.checked ? "Yes" : "No" %></td>
+        <td>
+          <% if user = harami1129_review.user %>
+            <% if can?(:show, user) %>
+              <%= link_to user.display_name, user_url(user) %>
+            <% else %>
+              <%= user.display_name %>
+            <% end %>
+          <% else %>
+            nil
+          <% end %>
+         </td>
+        <td><%= harami1129_review.note %></td>
+        <td><%= link_to 'Show', harami1129_review %></td>
+        <td><%= link_to('Edit', edit_harami1129_review_path(harami1129_review)) if (can? :update, harami1129_review) %></td>
+        <% if can?(:destroy, harami1129_review) %>
+          <td><%= link_to('Destroy', harami1129_review, method: :delete, data: { confirm: t('are_you_sure') }) %></td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+</div>
+
+<br>
+
+<% if can? :create, Harami1129Review %>
+  <%= button_to 'Create New Harami1129Review', new_harami1129_review_path, method: :get %>
+<% end %>

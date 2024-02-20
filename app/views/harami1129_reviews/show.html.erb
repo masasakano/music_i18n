@@ -1,0 +1,13 @@
+
+<h1>Harami1129Review (ID=<%= @harami1129_review.id %>)</h1>
+
+<%= render @harami1129_review %>
+
+<div>
+  <%= link_to "Edit this Harami1129Review", edit_harami1129_review_path(@harami1129_review) %> |
+  <%= link_to "Back to Index", harami1129_reviews_path %>
+
+  <% if can? :destroy, @harami1129_review %>
+    <%= button_to "Destroy this Harami1129Review", @harami1129_review, method: :delete %>
+  <% end %>
+</div>

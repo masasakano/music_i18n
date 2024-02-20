@@ -1,0 +1,23 @@
+
+<%= simple_form_for(@harami1129_review) do |f| %>
+  <%= f.error_notification %>
+  <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
+
+  <div class="form-inputs">
+    <%# f.association :harami1129 %>
+    <%= f.input :harami1129_id, label: "Harami1129 ID", collection: Harami1129.pluck(:id).sort, selected: @harami1129_review.harami1129_id %>
+    <% col_inputs = Harami1129ReviewsController::H1129_INS_COLNAMES.map{|es| [es, es]} %>
+    <%= f.input :harami1129_col_name, as: :radio_buttons, collection: col_inputs, selected: @harami1129_review.harami1129_col_name %>
+    <%= f.input :harami1129_col_val, label: "Harami1129 entry value", selected: @harami1129_review.harami1129_col_val %>
+    <%= f.input :engage_id, collection: Engage.pluck(:id).sort, selected: @harami1129_review.engage_id %>
+    <%= f.input :checked, label: "Reviewed and fixed?", selected: @harami1129_review.checked %>
+    <% if can?(:update, User.roots.first) %>  <%# i.e., IF sysadmin %>
+      <%= f.input :user, collection: User.all.pluck(:display_name, :id), selected: @harami1129_review.user_id, include_blank: "Undefined(nil)" %>
+    <% end %>
+    <%= f.input :note %>
+  </div>
+
+  <div class="form-actions">
+    <%= f.button :submit %>
+  </div>
+<% end %>

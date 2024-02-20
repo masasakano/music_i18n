@@ -120,7 +120,7 @@ class Ability
       can :read,   Sex
       #can :manage, Prefecture          # can :destroy in addition to Editors
       can :manage, [Genre, EngageHow]  # can :update :destroy in addition to Editors
-      can [:read, :update], User
+#can [:read, :update], User    # This should not be activated, but it used to be... Why?
       can :update, Users::EditRolesController
       can :update, Users::Confirm  # Moderators can "confirm" users.
       #can(:edit,   Users::DeactivateUser){ |i| user.abs_superior_to?(i) }  # => NoMethodError: undefined method `roles' for #<Users::DeactivateUser
@@ -142,6 +142,7 @@ class Ability
     ## HaramiVid moderator only
     if user.qualified_as?(:moderator, rc_harami)
       can :crud, [HaramiVid, Harami1129]
+      can :cru,  [Harami1129Review]  # Harami1129Review rarely needs to be destroyed.  If necessary, sysadmin should do.
     end
 
     ## General-JA or HaramiVid moderator only

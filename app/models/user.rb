@@ -41,6 +41,7 @@ class User < ApplicationRecord
   has_many :roles, through: :user_role_assocs
   has_many :created_translations, class_name: "Translation", foreign_key: "create_user_id", dependent: :nullify
   has_many :updated_translations, class_name: "Translation", foreign_key: "update_user_id", dependent: :nullify
+  has_many :harami1129_reviews, dependent: :nullify
 
   validates_uniqueness_of :email, case_sensitive: false  # As in Default, allow_nil: false (nb empty string is allowed)
 

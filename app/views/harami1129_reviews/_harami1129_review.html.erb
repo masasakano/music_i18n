@@ -1,0 +1,54 @@
+<div id="<%= dom_id harami1129_review %>">
+  <p>
+    <strong>Harami1129 entry:</strong>
+    <% h1129 = harami1129_review.harami1129 %>
+    <%= link_to sprintf("(pID=%s)", h1129.id), harami1129_url(h1129) %>)
+    <%= h1129.title %>
+  </p>
+
+  <p>
+    <strong>Harami1129 col name:</strong>
+    <% colname = harami1129_review.harami1129_col_name %>
+    <%= colname %>
+  </p>
+
+  <p>
+    <strong>Harami1129 col val:</strong>
+    <%= harami1129_review.harami1129_col_val %>
+  </p>
+
+  <p>
+    <strong>Engage(Artist/Music):</strong>
+    <% eng = harami1129_review.engage %>
+    <%= link_to "Engage", engage_url(eng) %> /
+    <% if colname.include?("singer") %>
+      <%= eng.artist ? link_to("Artist: "+eng.artist.best_translation.title_or_alt, artist_url(eng.artist)) : eng.artist_id %>
+    <% else %>
+      <%= eng.music  ? link_to( "Music: "+eng.music.best_translation.title_or_alt,  music_url(eng.music))   : eng.music_id %>
+    <% end %>
+  </p>
+
+  <p>
+    <strong>Checked:</strong>
+    <%= harami1129_review.checked %>
+  </p>
+
+  <p>
+    <strong>User:</strong>
+    <% if user = harami1129_review.user %>
+      <% if can?(:show, user) %>
+        <%= link_to user.display_name, user_url(user) %>
+      <% else %>
+        <%= user.display_name %>
+      <% end %>
+    <% else %>
+      nil
+    <% end %>
+  </p>
+
+  <p>
+    <strong>Note:</strong>
+    <%= harami1129_review.note %>
+  </p>
+
+</div>

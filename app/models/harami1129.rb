@@ -313,6 +313,8 @@ class Harami1129 < ApplicationRecord
   #   * self.harami_vid_music_assoc.music
   # where the latter internally calls the former (and therefore must be consistent with the former).
 
+  has_many :harami1129_reviews, dependent: :nullify # Ideally, (dependent: :restrict_with_exception), meaning in DB "on_delete: :restrict". If it was the case, before the corresponding Harami1129 is destroyed, either harami1129_id in Harami1129Review should be updated for another Harami1129 or Harami1129Review record should be simply destroyed as irrelevant any more.  However, so far, it is only nullify, so moderators can destroy Harami1129 easily.
+
   validate :at_least_one_entry
   validates_uniqueness_of     :link_root, scope:     :link_time, allow_nil: true
   validates_uniqueness_of :ins_link_root, scope: :ins_link_time, allow_nil: true

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2023_09_30_213002) do
+ActiveRecord::Schema[7.0].define(version: 2024_02_19_205056) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -153,6 +153,23 @@ ActiveRecord::Schema[7.0].define(version: 2023_09_30_213002) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.float "weight", comment: "Smaller means higher in priority."
+  end
+
+  create_table "harami1129_reviews", comment: "Harami1129 for which Artist or Music is updated", force: :cascade do |t|
+    t.bigint "harami1129_id", comment: "One of Harami1129 this change is applicable to; nullable"
+    t.string "harami1129_col_name", null: false, comment: "Either ins_singer or ins_song"
+    t.string "harami1129_col_val", comment: "String Value of column harami1129_col_name"
+    t.bigint "engage_id", null: false, comment: "Updated Engage"
+    t.boolean "checked", default: false, comment: "This record of Harami1129 is manually checked"
+    t.bigint "user_id", comment: "Last User that created or updated, or nil"
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["engage_id"], name: "index_harami1129_reviews_on_engage_id"
+    t.index ["harami1129_col_val"], name: "index_harami1129_reviews_on_harami1129_col_val"
+    t.index ["harami1129_id", "harami1129_col_name"], name: "index_harami1129_reviews_unique01", unique: true
+    t.index ["harami1129_id"], name: "index_harami1129_reviews_on_harami1129_id"
+    t.index ["user_id"], name: "index_harami1129_reviews_on_user_id"
   end
 
   create_table "harami1129s", force: :cascade do |t|
@@ -429,6 +446,9 @@ ActiveRecord::Schema[7.0].define(version: 2023_09_30_213002) do
   add_foreign_key "engages", "engage_hows", on_delete: :restrict
   add_foreign_key "engages", "musics", on_delete: :cascade
   add_foreign_key "event_groups", "places", on_delete: :nullify
+  add_foreign_key "harami1129_reviews", "engages", on_delete: :cascade
+  add_foreign_key "harami1129_reviews", "harami1129s", on_delete: :nullify
+  add_foreign_key "harami1129_reviews", "users", on_delete: :nullify
   add_foreign_key "harami1129s", "engages", on_delete: :restrict
   add_foreign_key "harami1129s", "harami_vids"
   add_foreign_key "harami_vid_music_assocs", "harami_vids", on_delete: :cascade

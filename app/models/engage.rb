@@ -36,6 +36,7 @@ class Engage < ApplicationRecord
   belongs_to :artist
   belongs_to :engage_how
   has_many :harami1129s, dependent: :restrict_with_exception  # Please nullify Harami1129.engage_id before deleting self (in the future, dependent: :nullify (and so does the DB "ON DELETE") maybe?)
+  has_many :harami1129_reviews, dependent: :destroy  # About dependency. Engage (usually) may disappear only when multiple Engage-s are merged into one.  Ideally, this should be "{on_delete: :restrict}" so a new Engage is assigned instead in such a case.  However, it would need an extra routine to be invoked when Engage is destroyed, and to catch such a timing perfectly is rather complicated. Rather, I choose the record of Harami1129Review would be simply destroyed, considering Harami1129Review is used only for the administrators of this site and Harami1129.
 
   validates_numericality_of :year, allow_nil: true, greater_than: 0, message: "(%{value}) must be positive."
   validates_uniqueness_of :artist, scope: [:music, :engage_how, :year]  # year can be nil. If there are 2 records that have identical with year=nil, Rails validation fails, whereas PostgreSQL ignores it.
