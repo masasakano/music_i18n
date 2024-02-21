@@ -35,13 +35,14 @@
     </tr>
     <tr id="merge_edit_orig_language"><th>Orig-Language</th>
       <% labe = BaseMergesController::FORM_MERGE[:lang_orig] %>
+      <% ch_dis = all_checked_disabled[:lang_orig] %>
       <% orig_trans0_exists = true %>
       <% models[0..1].each_with_index do |em, i| %>
       <td>
         <% trans = em.orig_translation %> <%# possibly nil %>
         <% orig_trans0_exists = false if i == 0 && !trans %>
         <% if trans %>
-          <%= form.radio_button(labe, i, checked: (i==0 || !orig_trans0_exists)) %>
+          <%= form.radio_button(labe, i, checked: (i == ch_dis.checked_index), disabled: ch_dis.disabled?) %>  <%# (i==0 || !orig_trans0_exists)) %>
           <% arstr = %i(title ruby romaji alt_title alt_ruby alt_romaji).map{|et| h(trans && trans.send(et) || "?")} %>
           <% alt_head = '<span class="font-smaller">['+h(t(:alt_title).capitalize)+']</span>' %>
           <% ruby_head = '<span class="font-smaller">'+h(t(:ruby_short).capitalize)+'</span>' %>

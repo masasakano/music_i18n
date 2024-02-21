@@ -14,7 +14,7 @@ class Harami1129ReviewsTest < ApplicationSystemTestCase
   end
 
   test "visiting the index and then new" do
-    visit harami1129_reviews_url
+    visit harami1129_reviews_url  # should be redirected to new_user_session_path
     #visit new_user_session_path
     assert page.find(:xpath, "//div[@id='body_main']/p[contains(@class, 'alert-danger')][1]").text.strip.include?("need to sign in")
     

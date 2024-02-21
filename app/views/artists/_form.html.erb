@@ -20,57 +20,19 @@
 <% if ! artist.new_record? %>
 
 <hr>
+<section id="sec_primary">
+ <section id="sec_primary_trans">
 <%= render partial: 'layouts/all_registered_translations', locals: {model: artist, add_buttons: true} %>
+ </section>
 <hr>
 <% end %>
 
 <%= form_with(model: artist, local: true) do |form| %>
 
+ <section id="sec_primary_input">
   <% if artist.new_record? %>
     <%= render partial: 'layouts/partial_new_translations', locals: {form: form, model: artist, trans: Translation.new, disable_is_orig: true} %>
   <% end %>
-
-<%# if artist.new_record? ################################### %>
-<% if false %> <%# ################################### %>
-  <div class="field">
-    <em>アーティスト名の言語 (本来の言語で。翻訳は後で追加):</em>
-    <% BaseWithTranslation::AVAILABLE_LOCALES.each do |es| %>
-      <%= lc = artist.orig_langcode; form.radio_button('langcode', es, checked: (es.to_s == (lc || 'ja'))) %>
-      <%= form.label 'langcode', BaseWithTranslation::LANGUAGE_TITLES[:ja][es.to_s], :value => es %>
-    <% end %>
-  </div>
-
-  <div class="field">
-    <%= form.label :title, 'アーティスト正式名称 (グループの場合はグループ名)' %>
-    <%= form.text_field :title, value: artist.title %>
-  </div>
- 
-  <div class="field">
-    <%= form.label :ruby, 'アーティスト正式名称フリガナ (片仮名で)' %>
-    <%= form.text_field :ruby, value: artist.ruby %>
-  </div>
- 
-  <div class="field">
-    <%= form.label :romaji, 'アーティスト正式名称ローマ字' %>
-    <%= form.text_field :romaji, value: artist.romaji %>
-  </div>
- 
-  <div class="field">
-    <%= form.label :alt_title, 'アーティスト略称・別名' %>
-    <%= form.text_field :alt_title, value: artist.alt_title %>
-  </div>
- 
-  <div class="field">
-    <%= form.label :alt_ruby, 'アーティスト略称・別名フリガナ (片仮名で)' %>
-    <%= form.text_field :alt_ruby, value: artist.alt_ruby %>
-  </div>
- 
-  <div class="field">
-    <%= form.label :alt_romaji, 'アーティスト略称・別名ローマ字' %>
-    <%= form.text_field :alt_romaji, value: artist.alt_romaji %>
-  </div>
- 
-<% end %>
 
   <div class="field" id="div_select_country">
     <%= form.label 'place.prefecture_id.country_id', t('Country')%>
@@ -134,6 +96,7 @@
   <div class="actions">
   <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
   </div>
+ </section> <%# Closing section id="sec_primary_input" %>
 <% end %>
 
 <%= render partial: 'layouts/link_merge_destroy', locals: {model: artist, is_to_edit: !artist.new_record? } %>
@@ -143,6 +106,7 @@
   <%= link_to 'Associate a new Music to Artist '+artist.title_or_alt, musics_path(music: {artist_id: artist.id}) %>
 <% end %>
 </p>
+</section> <%# Closing section id="sec_primary" %>
 
 <%# javascript_pack_tag 'dropdown_artist' %>
 

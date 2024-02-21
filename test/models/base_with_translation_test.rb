@@ -1259,14 +1259,17 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       new_time = DateTime.now - 1000
       hsmdl[:engages][1].update!(created_at: new_time)
 
-      ## merge Engage for Music
-      hsret = hsmdl[:musics][0].send(:_merge_engages, hsmdl[:musics][1], priority: :self)
+      ## merge Engage for Music and modify Harami1129
+      hs2 = hsmdl[:musics][0].send(:_merge_engages, hsmdl[:musics][1], priority: :self)
 
+      hsret = hs2[:engage]
       assert_equal 2, hsret[:remained].size
       assert_empty    hsret[:destroy]
       assert_equal Engage, hsret[:remained].first.class
-      assert_equal 2, hsret[:remained].size
-      assert_equal 0, hsret[:destroy].size
+
+      hsret = hs2[:harami1129]
+      assert_equal 0, hsret[:remained].size, "Given that the original two have completely separate singer (Artist) and song (Music), when either Artist or Music is merged, two existing Engages will survive, meaning no change in Harami1129-s."
+      assert_empty    hsret[:destroy]
 
       #assert_equal assc_prms[:mu_genre][1], hsmdl[:musics][0].genre, 'should have been merged.'
       #assert_equal assc_prms[:mu_place][0], hsmdl[:musics][0].place, 'should stay the same.'
@@ -1279,15 +1282,22 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_equal assc_prms[:eng_contribution][0], hsmdl[:engages][0].contribution
 
       ## Further, merge Engage for Artist  -- this should merge Engage
-      hsret = hsmdl[:artists][0].send(:_merge_engages, hsmdl[:artists][1], priority: :self)
+      hs2 = hsmdl[:artists][0].send(:_merge_engages, hsmdl[:artists][1], priority: :self)
 
-      assert_equal 2, hsret[:remained].size, "engages="+hsret[:remained].inspect
+      hsret = hs2[:engage]
+      assert_equal 1, hsret[:remained].size, "engages="+hsret[:remained].inspect
       eng_remains = hsret[:remained].select{|i| "Engage" == i.class.name}
       assert_equal 1, eng_remains.size, "engages="+hsret[:remained].inspect
       assert_equal 1, hsret[:destroy].size
-
       assert_equal hsret[:destroy].first.id, hsmdl[:engages][1].id
       assert_equal  new_time, hsret[:destroy].first.created_at
+
+      hsret = hs2[:harami1129]
+      assert_equal 1, hsret[:remained].size
+      assert_empty    hsret[:destroy], "always empty"
+      assert_equal Harami1129, hsret[:remained].first.class
+      assert  hsret[:remained].map(&:id).include?(hsret[:remained].first.id)
+
       eng_remains.first.reload
       assert_equal     assc_prms[:eng_contribution][1], eng_remains.first.contribution
       assert_not_equal assc_prms[:eng_contribution][1], hsmdl[:engages][0].contribution
@@ -1315,13 +1325,16 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       hsmdl[:engages][1].update!(created_at: new_time)
 
       ## merge Engage for Music,  priority: :other
-      hsret = hsmdl[:musics][0].send(:_merge_engages, hsmdl[:musics][1], priority: :other)
+      hs2 = hsmdl[:musics][0].send(:_merge_engages, hsmdl[:musics][1], priority: :other)
 
+      hsret = hs2[:engage]
       assert_equal 2, hsret[:remained].size
       assert_empty    hsret[:destroy]
       assert_equal Engage, hsret[:remained].first.class
-      assert_equal 2, hsret[:remained].size
-      assert_equal 0, hsret[:destroy].size
+
+      hsret = hs2[:harami1129]
+      assert_equal 0, hsret[:remained].size
+      assert_empty    hsret[:destroy]
 
       hsmdl[:engages][0].reload
       assert_equal hsmdl[:musics][0],  hsmdl[:engages][0].music
@@ -1333,15 +1346,22 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_equal assc_prms[:eng_year][0],         hsmdl[:engages][0].year  # 1994
 
       ## Further, merge Engage for Artist  -- this should merge Engage
-      hsret = hsmdl[:artists][0].send(:_merge_engages, hsmdl[:artists][1], priority: :other)
+      hs2 = hsmdl[:artists][0].send(:_merge_engages, hsmdl[:artists][1], priority: :other)
 
-      assert_equal 2, hsret[:remained].size, "engages="+hsret[:remained].inspect
+      hsret = hs2[:engage]
+      assert_equal 1, hsret[:remained].size, "engages="+hsret[:remained].inspect
       eng_remains = hsret[:remained].select{|i| "Engage" == i.class.name}
       assert_equal 1, eng_remains.size, "engages="+hsret[:remained].inspect
       assert_equal 1, hsret[:destroy].size
-
       assert_equal hsret[:destroy].first.id, hsmdl[:engages][1].id
       assert_equal  new_time, hsret[:destroy].first.created_at
+
+      hsret = hs2[:harami1129]
+      assert_equal 1, hsret[:remained].size
+      assert_empty    hsret[:destroy], "always empty"
+      assert_equal Harami1129, hsret[:remained].first.class
+      assert  hsret[:remained].map(&:id).include?(hsret[:remained].first.id)
+
       eng_remains.first.reload
       assert_equal     assc_prms[:eng_contribution][1], eng_remains.first.contribution
       assert_not_equal assc_prms[:eng_contribution][1], hsmdl[:engages][0].contribution
@@ -1379,12 +1399,15 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_equal assc_prms[:eng_contribution][0], hsmdl[:engages][0].contribution
 
       ## RUN: Further, merge Engage for Artist  -- this still will not merge Engage
-      hsret = hsmdl[:artists][0].send(:_merge_engages, hsmdl[:artists][1], priority: :self)
+      hs2 = hsmdl[:artists][0].send(:_merge_engages, hsmdl[:artists][1], priority: :self)
 
+      hsret = hs2[:engage]
       assert_equal 2, hsret[:remained].size, "No change in Harami1129 b/c no Engages disappear. engages="+hsret[:remained].inspect
-      eng_remains = hsret[:remained].select{|i| "Engage" == i.class.name}
-      assert_equal 2, eng_remains.size, "engages="+hsret[:remained].inspect
       assert_equal 0, hsret[:destroy].size
+
+      hsret = hs2[:harami1129]
+      assert_equal 0, hsret[:remained].size, "No change in Harami1129 b/c no Engages disappear. engages="+hsret[:remained].inspect
+      assert_empty    hsret[:destroy]
 
       hsmdl[:engages][0].reload
       assert_not_equal assc_prms[:eng_contribution][1], hsmdl[:engages][0].contribution, "Engage#contribution should not change."
@@ -1424,14 +1447,18 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_equal assc_prms[:eng_contribution][0], hsmdl[:engages][0].contribution
 
       ## RUN: Further, merge Engage for Artist  -- this still will not merge Engage
-      hsret = hsmdl[:artists][0].send(:_merge_engages, hsmdl[:artists][1], priority: :self)
+      hs2 = hsmdl[:artists][0].send(:_merge_engages, hsmdl[:artists][1], priority: :self)
 
-      assert_equal 3, hsret[:remained].size, "No change in Harami1129 b/c no Engages disappear. engages="+hsret[:remained].inspect
-      eng_remains = hsret[:remained].select{|i| "Engage" == i.class.name}
-      assert_equal 2, eng_remains.size, "engages="+hsret[:remained].inspect
+      hsret = hs2[:engage]
+      assert_equal 2, hsret[:remained].size, "No change in Harami1129 b/c no Engages disappear. engages="+hsret[:remained].inspect
       assert_equal 1, hsret[:destroy].size
-
       assert_equal hsmdl[:engages][1].id, hsret[:destroy].first.id
+
+      hsret = hs2[:harami1129]
+      assert_equal 1, hsret[:remained].size, "No change in Harami1129 b/c no Engages disappear. engages="+hsret[:remained].inspect
+      assert_empty    hsret[:destroy]
+      assert hs2[:engage][:remained].map(&:id).include?(hsret[:remained].first.engage_id)
+
       hsmdl[:engages][0].reload
       assert_equal assc_prms[:eng_contribution][1], hsmdl[:engages][0].contribution, "Engage#contribution should be updated."
       assert_equal new_time, hsmdl[:engages][0].created_at, "created_at should be updated."

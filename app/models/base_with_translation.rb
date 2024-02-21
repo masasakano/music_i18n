@@ -2544,6 +2544,7 @@ class BaseWithTranslation < ApplicationRecord
   #   trans:  Hash{remained: [Translation...], destroy: [Translation...], original: Translation}
   #     n.b., remained Array includes the original-Translation, too. Keys :tr_html and :tr_orig_html will be added.
   #   engage: Hash{remained: [Engage...],      destroy: [Engage...]}
+  #   harami1129: Hash{remained: [Harami1129...], destroy: []}  # Harami1129 would be never destroyed.
   #   bday3s: Hash{birth_year: Integer, birth_month: Integer, birth_day: Integer}
   #     n.b., Missing Birthday part in one is ALWAYS supplemented by the other if there is any.
   #     e.g., (Y,M,S)=(1999,nil,3)&(2000,5,nil) => (1999,5,3) or (2000,5,3)
@@ -2558,6 +2559,7 @@ class BaseWithTranslation < ApplicationRecord
   #   created_at: DateTime(?)
   #   destroyed: Array[Model, ...]
   #
+  # Note that a top-level key is (already) +:destroyed+ and a 2nd-level key is +:destroy+ (now or later after it was first created).
   # If (save_destroy: true), all :destroy Arrays should be empty and instead :destroyed contain destroyed Models.
   # If (save_destroy: false), :destroy Arrays contain Models to be destroyed AND those that have been already destroyed. The :destroyed Array should be empty.
   #
@@ -2583,10 +2585,12 @@ class BaseWithTranslation < ApplicationRecord
   # @return [Hash<Object, Hash<Array, Integer>>] See above.
   # @raise [BaseWithTranslation::MissingRequirementError] if +priorities+ is incomplete (see above).
   def merge_other(other, priorities: {}, save_destroy: true)
-    hsmodel = {}
+    hsmodel = {engage: nil, harami1129: nil}
     ActiveRecord::Base.transaction(requires_new: true) do  # "requires_new" option necessary for testing.
       hsmodel[:trans]  = _merge_trans(other, priority_orig: _priority2pass(priorities, :lang_orig), priority_others: _priority2pass(priorities, :lang_trans)) # , orig_valid: true)
-      hsmodel[:engage] = _merge_engages(   other, priority: _priority2pass(priorities, :engages))  # updates Harami1129#engage_id, too
+      hsmodel[:engage] = hsmodel[:harami1129] = nil
+      hs = _merge_engages(other, priority: _priority2pass(priorities, :engages))  # updates Harami1129#engage_id, too
+      hsmodel.merge!(hs) if hs  # keys of :engage and (probably?) :harami1129
       hsmodel[:bday3s] = _merge_birthday(  other, priority: _priority2pass(priorities, :birthday))
       %i(prefecture_place genre year sex wiki_en wiki_ja).each do |metho| 
         #next if !priorities.has_key?(metho)
@@ -2983,7 +2987,7 @@ tra_orig.save!
   # Therefore, modification in Harami1129 frequently happens after merging Music or Artist.
   #
   # With this routine, many Engage may be updated in DB.
-  # This may update Harami1129 in DB, too.
+  # This may update Harami1129 in DB, too(!).
   # However, this does not destroy Engages to discard. They should be cascade-deleted when
   # an Artist/Music is destroyed (which should be done shortly after this method is called).
   # If you want to destroy them explicitly, do:
@@ -2993,9 +2997,18 @@ tra_orig.save!
   #     em.destroy
   #   end
   #
+  # Unlike other sub-methods of of {#merge_other}, this method returns a Hash of Hash,
+  # the top level of keys are :engage and :harami1129.  In the returned Hash +hsret+,
+  #   hsret[:harami1129][:destroy] == []
+  # always holds, because merging Artist or Music would not lead to destroying Harami1129.
+  # If no Engages are destroyed,
+  #   hsret[:harami1129][:remained].empty? == true
+  # because Engage's "internal" change does not affect any of Harami1129 (and so
+  # the related Harami1129-s can be easily retrieved from the remaining Engage-s, should you wish).
+  #
   # @param other [BaseWithTranslation] of the same class as self. This method makes sense only for Music/Artist (not Harami1129)
   # @param priority: [Symbol] (:self(Def)|:other)
-  # @return [Hash<Array<Engage>>, NilClass] nil only if it is not Music/Artist; else {remained: [Engage...], destroy: [...]}
+  # @return [Hash<Hash<Array<Engage>>>, NilClass] nil only if it is not Music/Artist; else {engage: {remained: [Engage...], destroy: [...]}, harami1129: {...}}
   def _merge_engages(other, priority: :self)
     return if !respond_to?(:engages)
     raise "Should not happen Contact the code developer." if !other.respond_to?(:engages)
@@ -3046,17 +3059,19 @@ tra_orig.save!
     end
 
     ## Update dependent Harami1129
-    to_destroys.each do |eng|
+    ids_to_destroy = to_destroys.map(&:id)
+    remains_hs1129 = to_destroys.map{ |eng|
       hsprm = (is_music ? {artist: eng.artist, music: self} : {artist: self, music: eng.music})
-      eng.harami1129s.each do |harami1129|
-        new_eng = Engage.where(hsprm).joins(:engage_how).order(:weight).first  # There may be multiple candidates. Picks one of the least-weight one (in terms of EngageHow).
+      eng.harami1129s.map{ |harami1129|
+        new_eng = Engage.where(hsprm).where.not(id: ids_to_destroy).joins(:engage_how).order(:weight).first  # There may be multiple candidatesi Engages. Picks one of the least-weight one (in terms of EngageHow).
         harami1129.update!(engage: new_eng)
-        remains.push harami1129
-      end
-    end
+        harami1129
+      }
+    }.flatten.compact.uniq # remains_hs1129 = to_destroys.map{ |eng|
 
     remains.map(&:reload)  # I do not know why this is required...
-    {remained: remains, destroy: to_destroys}
+    {engage:     {remained: remains,        destroy: to_destroys},
+     harami1129: {remained: remains_hs1129, destroy: []}}
   end
   private :_merge_engages
 

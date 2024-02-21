@@ -14,12 +14,8 @@ class UserRoleAssocController < ApplicationController
   # PATCH/PUT /user_role_assoc/1
   # PATCH/PUT /user_role_assoc/1.json
   def update
-logger.debug "DEBUG:her000:User ID=#{@user.id} (#{@user.display_name}): #{(@user.user_role_assocs.first || User.roots[0].user_role_assocs.first).inspect}"
-#print "DEBUG:her000:User ID=#{@user.id} (#{@user.display_name}): #{(@user.user_role_assocs.first || User.roots[0].user_role_assocs.first).inspect}\n"
     #authorize! :update, (@user.user_role_assocs.first || User.roots[0].user_role_assocs.first), :message => "Unable to access this update of UserRoleAssoc..."  ###### forces to get something existing (but if it is for sysadmin/root, even a moderator cannnot access)...
     authorize! :update, (@user.user_role_assocs.first || (Role[:moderator, :translation] || User.roots[0]).user_role_assocs.first), :message => "Unable to access this update of UserRoleAssoc..."  ###### forces to get something existing (so Editor cannnot access but moderator can)...
-#logger.debug "DEBUG:her001:User ID=#{@user.id} (#{@user.display_name})\n"
-#print "DEBUG:her001:User ID=#{@user.id} (#{@user.display_name})\n"
     tgt_role_unames = @user.roles.map{|i| (i.uname || i.name)}
     alert = nil
     ActiveRecord::Base.transaction do
@@ -37,7 +33,6 @@ logger.debug "DEBUG:her000:User ID=#{@user.id} (#{@user.display_name}): #{(@user
         end
         if params[eak].downcase == 'none' 
           alert = cancel_role_in_category(category)
-#print "DEBUG:her123:#{alert}\n"
           raise ActiveRecord::Rollback, "Force rollback." if alert
           break
         end
