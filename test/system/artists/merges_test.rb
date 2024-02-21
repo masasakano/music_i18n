@@ -319,7 +319,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
 
     page.find("div#home_bottom a.login-button").click  # In the bottom menu.
     #visit new_user_session_path  # equivalent.
-    fill_in "Email", with: users(:user_moderator_all).email  # All-mighty moderator
+    fill_in "Email", with: @moderator_all.email  # All-mighty moderator
     fill_in "Password", with: '123456'  # from users.yml
     click_on "Log in"
 
@@ -398,7 +398,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
     ##  be corrected in the original Harami1129.  The current algorithm does not distinguish these two cases.
     ##  For this reason, as long as the entry in Harami11s9 exists as an Translation (for the record),
     ##  no Harami1129Review is created.)
-    assert_equal N_FIXTURES_HARAMI1129_REVIEW, Harami1129Review.count, "Entries in Harami1129Review should unchange, but..."
+    assert_equal N_FIXTURES_HARAMI1129_REVIEW, Harami1129Review.count, "Entries in Harami1129Review should unchange, because Singer name still exists in one of the Translations of Artis, but..."
 
     assert_equal h1129_engages[0].id,  Harami1129.find(h1129s[0].id).engage_id, "h1129_engages[0] = "+h1129_engages[0].inspect
     assert_equal "ja", Engage.find(h1129_engages[0].id).music.artists.first.orig_langcode, "Original language in Engage has changed into ja"
@@ -464,10 +464,6 @@ class Artists::MergesTest < ApplicationSystemTestCase
     assert_selector "h1", text: "Music: #{h1129s[1].song}"  # "Music should have the name for the first one, but..."
     assert_equal music_path(mus_ids[1]).sub(/\?.*/, ""), current_path, "Music-ID should be the second one, but..."
 
-    ## In this case, ins_song-s in Harami1129 have both English names, and
-    ## so one of them is dropped as a translation for Music  One entry is added to Harami1129Review.
-#assert_equal N_FIXTURES_HARAMI1129_REVIEW+1, Harami1129Review.count, "Entries in Harami1129Review should by plus 1, but..."   ############ This is the next one to sort out! ###############
-
     refute       Engage.exists?(h1129_engages[0].id)
     assert       Engage.exists?(h1129_engages[1].id)
     assert_equal h1129_engages[1].id,  Harami1129.find(h1129s[0].id).engage_id, "h1129_engages[1] = "+h1129_engages[1].inspect
@@ -478,7 +474,14 @@ class Artists::MergesTest < ApplicationSystemTestCase
     artnow = Engage.find(h1129_engages[1].id).artist
     assert_equal h1129_populateds[1].ins_singer, artnow.title_or_alt
     assert artnow.translations.pluck(:title, :alt_title).flatten.compact.include?(h1129_populateds[0].ins_singer), "the other should be included as Translation, but..."
+
+    ## In this case, ins_song-s in Harami1129 have both English names, and
+    ## so one of them is dropped as a translation for Music  One entry is added to Harami1129Review.
+    assert_equal N_FIXTURES_HARAMI1129_REVIEW+1, Harami1129Review.count, "Entries in Harami1129Review should by plus 1, because one of ins_song disappears from Music, but..."
+    assert_equal @moderator_all, Harami1129Review.last.user
+    #visit harami1129_reviews_url
 #take_screenshot  #take_screenshot(html: true) # HTML for Rails-7.1
+    #assert_equal N_FIXTURES_HARAMI1129_REVIEW+1, page.find_all(:xpath, "//table[@id='harami1129_reviews_index']//tbody//tr").size, "should display 2 entries as defined in the fixture harami1129_review"
 
     ## Logout just in case.
     page.find(:xpath, "//div[@id='navbar_top']//a[text()='Log out']").click

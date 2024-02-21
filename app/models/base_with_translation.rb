@@ -1839,6 +1839,16 @@ class BaseWithTranslation < ApplicationRecord
   #  and ja is for +is_orig=true+ and +title_or_alt(langcode: 'en')+
   #  is requested. Does it return 'あ' or "abc"?
   #
+  # @example prefer_alt
+  #    Country.third.title_or_alt(prefer_alt: true)  # => e.g., "North Korea", as opposed to "the Republic of..."
+  #
+  # @example lang_fallback_option of never
+  #    Place.third.title_or_alt(langcode: "kr", lang_fallback_option: :never)  # => ""
+  #    Place.third.title_or_alt(langcode: "kr", lang_fallback_option: :never, str_fallback: nil)  # => nil
+  #
+  # @example lang_fallback_option of both
+  #    Place.third.title_or_alt(langcode: "kr", lang_fallback_option: :both)  # => never ""
+  #
   # @param prefer_alt: [Boolean] if true (Def: false), alt_title is preferably
   #    returned as long as it exists.
   # @param lang_fallback_option: [Symbol] (:both|:either(Def)|:never) Similar to {#titles} but has a different meaning. If :both,
@@ -2565,13 +2575,13 @@ class BaseWithTranslation < ApplicationRecord
   #
   # @example Standard execution (in one go)
   #    ActiveRecord::Base.transaction(requires_new: true) do
-  #      hsret = music_to_merge.merge_other(other, priorities: {default: :other, lang_orig: :other}, save_destroy: true)
+  #      hsret = music_to_merge.merge_other(other, priorities: {default: :other, lang_orig: :other}, save_destroy: true,  user: current_user)  # current_user defined in Controllers only; nil is OK.
   #      # => self is updated. other is destroyed.
   #    end
   #
   # @example separate execution (watch out for "other")
   #    ActiveRecord::Base.transaction(requires_new: true) do
-  #      hsret = music_to_merge.merge_other(other, priorities: {default: :other, lang_orig: :other}, save_destroy: false)
+  #      hsret = music_to_merge.merge_other(other, priorities: {default: :other, lang_orig: :other}, save_destroy: false, user: current_user)  # current_user defined in Controllers only; nil is OK.
   #      # ...
   #      music_to_merge.merge_save_destroy(hsret[:other], hsret)
   #    end
@@ -2581,10 +2591,11 @@ class BaseWithTranslation < ApplicationRecord
   #   Other than standard attribute/method names, including :engages, :harami_vid_music_assocs, and :note,
   #   the folloing special keys are accepted:
   #    :lang_orig, :lang_trans, :prefecture_place, :birthday
-  # @param save_destroy: [Boolean] If true (Def), self is saved and the other is destroyed. If one fails, it rollbacks.
+  # @param save_destroy: [Boolean] If true (Def), self is saved and the other is destroyed. If one fails, the entire transaction rollbacks.
+  # @param user: [ApplicationRecord, NilClass] current_user
   # @return [Hash<Object, Hash<Array, Integer>>] See above.
   # @raise [BaseWithTranslation::MissingRequirementError] if +priorities+ is incomplete (see above).
-  def merge_other(other, priorities: {}, save_destroy: true)
+  def merge_other(other, priorities: {}, save_destroy: true, user: nil)
     hsmodel = {engage: nil, harami1129: nil}
     ActiveRecord::Base.transaction(requires_new: true) do  # "requires_new" option necessary for testing.
       hsmodel[:trans]  = _merge_trans(other, priority_orig: _priority2pass(priorities, :lang_orig), priority_others: _priority2pass(priorities, :lang_trans)) # , orig_valid: true)
@@ -2600,6 +2611,8 @@ class BaseWithTranslation < ApplicationRecord
         _merge_harami_vid_music_assocs(other, priority: _priority2pass(priorities, :harami_vid_music_assocs))
       hsmodel[:note]   = _merge_note(  other, priority: _priority2pass(priorities, :note))
       hsmodel[:created_at] = _merge_created_at(other)
+
+      hsmodel[:harami1129_review] = _update_harami1129_review_after_merge(hsmodel, user: user)
 
       hsmodel[:destroyed] ||= []
       hsmodel[:other] = other
@@ -3120,6 +3133,53 @@ tra_orig.save!
     {remained: remains, destroy: to_destroys}
   end
   private :_merge_harami_vid_music_assocs
+
+  # Update/Create {Harami1129Review} after merging Artist/Music
+  #
+  # == Algorithm
+  #
+  # For each "remaining" Engage, compare the updated {Translation}-s of the same class
+  # of self (either Artist or Music, i.e., {Engage#artist} etc) and
+  # the corresponding ins_* value of {Harami1129} of which {Harami1129#engage}
+  # points to the Engage:
+  #   Harami1129.engage.artist.translations  # <=>
+  #   Harami1129.ins_singer
+  #
+  # If there is a discrepancy, a new row of {Harami1129Review} is added
+  # or an existing row of it is updated with +checked+ = false
+  #
+  # Note that if +ins_singer+ corresponds to only one of the {Translation}-s,
+  # it is regarded as "agree" and no new record is added to {Harami1129Review}.
+  #
+  # Note that "destroy" set of {Engage} needs not be considered, because the corresponding Harami1129's
+  # +engage_id" should be already altered to point to one of the remaining Engage-s
+  #
+  # @param hsmodel [Hash<Hash<Array>,Array>] 
+  # @param user: [ApplicationRecord, NilClass] current_user
+  # @return [Hash<remained: Array<Harami1129>>] {Harami1129Review}-s that are created or updated
+  def _update_harami1129_review_after_merge(hsmodel, user: nil)
+    retary = []
+    hsmodel[:engage][:remained].each do |ea_eng|
+      ea_eng.harami1129s.each do |h1129| 
+        ins_colname = Harami1129.model2harami1129_colname(self, ins: true)  # Either "ins_singer" or "ins_song"
+        ins_val = h1129.send(ins_colname)  # Value of ins_singer or ins_song
+        art_or_mus = h1129.engage.send(self.class.table_name.singularize)   # Artist or Music record of Engage
+        next if art_or_mus.translations.pluck(:title, :alt_title).flatten.compact.uniq.include?(ins_val)  # H1129's ins_song is still found in one of Engage's Music's translations?
+
+        h_rev = Harami1129Review.find_or_create_by(harami1129: h1129, harami1129_col_name: ins_colname)
+        h_rev.harami1129_col_val = ins_val
+        h_rev.engage = ea_eng
+        h_rev.checked = false  # If the record exists, its checked is updated with false.
+        if h_rev.changed? 
+          h_rev.user = user  # user_id updated only when something else has changed.
+          retary.push h_rev 
+        end
+        h_rev.save!
+      end
+    end
+    {remained: retary, destroy: []}
+  end
+  private :_update_harami1129_review_after_merge
 
   # Older one is adopted
   #

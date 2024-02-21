@@ -35,7 +35,7 @@ class Artists::MergesController < BaseMergesController
     mdl_self, mdl_other, priorities = get_self_other_priorities(@artists)
     begin
       ActiveRecord::Base.transaction(requires_new: true) do  # "requires_new" option necessary for testing.
-        _ = mdl_self.merge_other(mdl_other, priorities: priorities, save_destroy: true)
+        _ = mdl_self.merge_other(mdl_other, priorities: priorities, save_destroy: true, user: current_user)
         #raise ActiveRecord::Rollback, "Force rollback." if ...
       end
     rescue

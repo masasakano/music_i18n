@@ -258,7 +258,7 @@ class BaseMergesController < ApplicationController
       mdl_self, mdl_other, priorities = get_self_other_priorities(models)
 
       ActiveRecord::Base.transaction(requires_new: true) do  # "requires_new" option necessary for testing.
-        hsmerged = mdl_self.merge_other(mdl_other, priorities: priorities, save_destroy: false)
+        hsmerged = mdl_self.merge_other(mdl_other, priorities: priorities, save_destroy: false, user: current_user)
         _touch_hsmerged(hsmerged)
 
         merged = mdl_self.dup

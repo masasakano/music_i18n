@@ -94,10 +94,46 @@ class Harami1129 < ApplicationRecord
     checked: "No update has been made since this row was 'Confirm'-ed by a moderator.",
   }
 
+  # Prefix for column names
+  PREFIX_INS = "ins_"
+
+  # Returns a Harami1129 column name for Artist or Music
+  #
+  # @example
+  #    Harami1129.model2harami1129_colname("artist")           # => "singer"
+  #    Harami1129.model2harami1129_colname(Artist, ins: true)  # => "ins_singer"
+  #    Harami1129.model2harami1129_colname(Music.first)        # => "song"
+  #
+  # @param modelname [String, Symbol, ApplicationRecord, Class]
+  # @param ins: [Boolean] if true (Def: false), "ins_" is prefixed
+  # @return [String]
+  def self.model2harami1129_colname(modelname, ins: false)
+    modelname_str =
+      if    modelname.respond_to?(:name)  # e.g., Artist
+        modelname.name.underscore
+      elsif modelname.respond_to?(:saved_changes)  # e.g., Artist.third
+        modelname.class.name.underscore
+      else
+        modelname.to_s
+      end
+
+    colname_root =
+      case modelname_str
+      when "artist"
+        "singer"
+      when "music"
+        "song"
+      else
+        raise "Should not happen (colname_root=#{colname_root.inspect}). Contact the code developer."
+      end
+
+    (ins ? PREFIX_INS : "") + colname_root
+  end
+
   # Order of "INS" Columns displayed in Views index table
-  TABLE_INS_COLUMNS_ORDER = [
-    :ins_title, :ins_singer, :ins_song, :ins_release_date, :ins_link_root, :ins_link_time,
-  ]
+  #
+  #   [:ins_title, :ins_singer, :ins_song, :ins_release_date, :ins_link_root, :ins_link_time]
+  TABLE_INS_COLUMNS_ORDER = %w(title singer song release_date link_root link_time).map{|i| (PREFIX_INS+i).to_sym}
 
   # Order of the default time-related columns (in case some of them are the same)
   DEF_TIME_COLUMN_ORDERS = [
@@ -1120,6 +1156,21 @@ class Harami1129 < ApplicationRecord
     }.to_h
   end
 
+
+  # Returns the best {Translation} String for the language of Singer/Song
+  #
+  # @param modelname [String, Symbol] either "artist" or "music"
+  # @return [String, NilClass] nil only if self.engage_id is nil
+  def find_populated_best_trans_str_of_lang(modelname)
+    modelname = modelname.to_s
+    raise "Contact the code developer" if !(%w(artist music).include?(modelname))
+
+    ins_colname = self.class.model2harami1129_colname(modelname, ins: true)  # Either "ins_singer" or "ins_song"
+    langcode = guess_lang_code(send(ins_colname)) # defined in ModuleCommon
+    return nil if !engage
+
+    engage.send(modelname).title_or_alt(langcode: langcode, lang_fallback_option: :both)
+  end
 
   protected
 
