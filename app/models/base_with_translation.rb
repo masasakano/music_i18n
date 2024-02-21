@@ -3136,6 +3136,10 @@ tra_orig.save!
 
   # Update/Create {Harami1129Review} after merging Artist/Music
   #
+  # Entries of {Harami1129Review} are added/updated for an updated Artist/Music title
+  # from original ins_singer|song through merging Artists/Musics.  Only one entry
+  # is created for a combination of (ins_singer|song and {Engage})
+  #
   # == Algorithm
   #
   # For each "remaining" Engage, compare the updated {Translation}-s of the same class
@@ -3159,14 +3163,19 @@ tra_orig.save!
   # @return [Hash<remained: Array<Harami1129>>] {Harami1129Review}-s that are created or updated
   def _update_harami1129_review_after_merge(hsmodel, user: nil)
     retary = []
+    hs_already_updated = {}  # "ins_singer" => [Engage, Engage, ...]
     hsmodel[:engage][:remained].each do |ea_eng|
       ea_eng.harami1129s.each do |h1129| 
         ins_colname = Harami1129.model2harami1129_colname(self, ins: true)  # Either "ins_singer" or "ins_song"
+        hs_already_updated[ins_colname] = [] if !hs_already_updated.key?(ins_colname)  # initialization
+        next if hs_already_updated[ins_colname].include? ea_eng  # Already at least one entry is listed in Harami1129Review for this ins_column and Engage
+
         ins_val = h1129.send(ins_colname)  # Value of ins_singer or ins_song
         art_or_mus = h1129.engage.send(self.class.table_name.singularize)   # Artist or Music record of Engage
         next if art_or_mus.translations.pluck(:title, :alt_title).flatten.compact.uniq.include?(ins_val)  # H1129's ins_song is still found in one of Engage's Music's translations?
 
         h_rev = Harami1129Review.find_or_create_by(harami1129: h1129, harami1129_col_name: ins_colname)
+
         h_rev.harami1129_col_val = ins_val
         h_rev.engage = ea_eng
         h_rev.checked = false  # If the record exists, its checked is updated with false.
@@ -3175,6 +3184,8 @@ tra_orig.save!
           retary.push h_rev 
         end
         h_rev.save!
+
+        hs_already_updated[ins_colname].push ea_eng  # Logged that the combination (ins_COLUMN and Engage) was recorded for at least one Harami1129
       end
     end
     {remained: retary, destroy: []}
