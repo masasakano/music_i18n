@@ -43,6 +43,19 @@ class LibTimeAuxTest < ActiveSupport::TestCase
     #assert_equal  exp.hour, ti.hour
     assert_in_delta exp.to_f, ti.to_f, delta=0.1  # For Float comparison
     assert_in_delta 14.5, ti.error.in_days, delta=0.001
+
+    # Date
+    org = Date.new(2021, 2, 17)
+    exp = Time.new(2021, 2, 17, 12, 0, 0, in: "+09:00")
+    ti = TimeAux.converted_middle_time(org, 1999, 1, 1, 1, 1)  # 1999 and after are garbage
+    assert_equal  org, ti.to_date
+    assert_equal  exp,  ti
+
+    # Special cases
+    ti = TimeAux.converted_middle_time(1, nil)
+    assert_equal TimeAux::DEF_FIRST_DATE_TIME, ti
+    ti = TimeAux.converted_middle_time(9999, nil)
+    assert_equal TimeAux::DEF_LAST_DATE_TIME, ti
   end
 
   test "adjusted_time_array1" do
@@ -101,8 +114,6 @@ class LibTimeAuxTest < ActiveSupport::TestCase
     ary = TimeAux.adjusted_time_array(org)
     assert_equal  exp, ary
 
-  #end
-  #test "adjusted_time_array2" do
     ## Date input, meaning insignificant 'hour'
     exp = [2004, 2, 18, nil, nil, nil]
     orgin = [2004, 2, 18]
@@ -110,6 +121,25 @@ class LibTimeAuxTest < ActiveSupport::TestCase
 
     ary = TimeAux.adjusted_time_array(org)
     assert_equal  exp, ary
+  #end
+  #test "adjusted_time_array2" do
+
+    # Special cases
+    ary = TimeAux.adjusted_time_array(TimeAux::DEF_FIRST_DATE_TIME)
+    assert_equal TimeAux::DEF_FIRST_DATE_TIME.year,  ary[0]
+    assert_nil   ary[1]
+    assert_nil   ary[2]
+    assert_nil   ary[3]
+    assert_nil   ary[4]
+    assert_nil   ary[5]
+
+    ary = TimeAux.adjusted_time_array(TimeAux::DEF_LAST_DATE_TIME)
+    assert_equal TimeAux::DEF_LAST_DATE_TIME.year,   ary[0]
+    assert_nil   ary[1]
+    assert_nil   ary[2]
+    assert_nil   ary[3]
+    assert_nil   ary[4]
+    assert_nil   ary[5]
   end
 end
 

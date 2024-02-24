@@ -2,26 +2,23 @@
 #
 # Table name: event_groups
 #
-#  id                                                                :bigint           not null, primary key
-#  end_day                                                           :integer
-#  end_month                                                         :integer
-#  end_year                                                          :integer
-#  note                                                              :text
-#  order_no(Serial number for a series of Event Group, e.g., 5(-th)) :integer
-#  start_day                                                         :integer
-#  start_month                                                       :integer
-#  start_year                                                        :integer
-#  created_at                                                        :datetime         not null
-#  updated_at                                                        :datetime         not null
-#  place_id                                                          :bigint
+#  id                                                                                          :bigint           not null, primary key
+#  end_date(if null, end date is undefined.)                                                   :date
+#  end_date_err(Error of end-date in day. 182 or 183 days for one with only a known year.)     :integer
+#  note                                                                                        :text
+#  order_no(Serial number for a series of Event Group, e.g., 5(-th))                           :integer
+#  start_date(if null, start date is undefined.)                                               :date
+#  start_date_err(Error of start-date in day. 182 or 183 days for one with only a known year.) :integer
+#  created_at                                                                                  :datetime         not null
+#  updated_at                                                                                  :datetime         not null
+#  place_id                                                                                    :bigint
 #
 # Indexes
 #
-#  index_event_groups_on_order_no     (order_no)
-#  index_event_groups_on_place_id     (place_id)
-#  index_event_groups_on_start_day    (start_day)
-#  index_event_groups_on_start_month  (start_month)
-#  index_event_groups_on_start_year   (start_year)
+#  index_event_groups_on_end_date    (end_date)
+#  index_event_groups_on_order_no    (order_no)
+#  index_event_groups_on_place_id    (place_id)
+#  index_event_groups_on_start_date  (start_date)
 #
 # Foreign Keys
 #

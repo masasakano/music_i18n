@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_02_23_135112) do
+ActiveRecord::Schema[7.0].define(version: 2024_02_24_222942) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -131,21 +131,18 @@ ActiveRecord::Schema[7.0].define(version: 2024_02_23_135112) do
 
   create_table "event_groups", comment: "Event Group, mutually exclusive, typically lasting less than a year", force: :cascade do |t|
     t.integer "order_no", comment: "Serial number for a series of Event Group, e.g., 5(-th)"
-    t.integer "start_year"
-    t.integer "start_month"
-    t.integer "start_day"
-    t.integer "end_year"
-    t.integer "end_month"
-    t.integer "end_day"
     t.bigint "place_id"
     t.text "note"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.date "start_date", comment: "if null, start date is undefined."
+    t.integer "start_date_err", comment: "Error of start-date in day. 182 or 183 days for one with only a known year."
+    t.date "end_date", comment: "if null, end date is undefined."
+    t.integer "end_date_err", comment: "Error of end-date in day. 182 or 183 days for one with only a known year."
+    t.index ["end_date"], name: "index_event_groups_on_end_date"
     t.index ["order_no"], name: "index_event_groups_on_order_no"
     t.index ["place_id"], name: "index_event_groups_on_place_id"
-    t.index ["start_day"], name: "index_event_groups_on_start_day"
-    t.index ["start_month"], name: "index_event_groups_on_start_month"
-    t.index ["start_year"], name: "index_event_groups_on_start_year"
+    t.index ["start_date"], name: "index_event_groups_on_start_date"
   end
 
   create_table "genres", force: :cascade do |t|

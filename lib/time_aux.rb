@@ -3,7 +3,33 @@
 # This is required in /config/application.rb
 module TimeAux
 
+  # The earliest date-Time: 1 January 1, which corresponds to 3 January 1 in Date (so DEF_FIRST_DATE_TIME.to_date returns as such!).  Use {#get_first_date_time} to get a copy.
+  DEF_FIRST_DATE_TIME = TimeWithError.new(   1, 1, 1, 0, 0,   0, in: Rails.configuration.music_i18n_def_timezone_str)
+
+  # The largest date-Time: 31 December JD 9999.  Use {#get_last_date_time} to get a copy.
+  DEF_LAST_DATE_TIME  = TimeWithError.new(9999,12,31,23,59,59.9, in: Rails.configuration.music_i18n_def_timezone_str)
+
+  # Maximum error duration in ActiveSupport::Duration
+  MAX_ERROR = (DEF_LAST_DATE_TIME - DEF_FIRST_DATE_TIME).second
+
+  DEF_FIRST_DATE_TIME.error = MAX_ERROR 
+  DEF_LAST_DATE_TIME.error  = MAX_ERROR
+
   module_function  # equivalent to: extend self
+
+  # returns dup-ped {TimeAux::DEF_FIRST_DATE_TIME}
+  def get_first_date_time 
+    ret       = DEF_FIRST_DATE_TIME.dup
+    ret.error = DEF_FIRST_DATE_TIME.error
+    ret
+  end
+
+  # returns dup-ped {TimeAux::DEF_LAST_DATE_TIME}
+  def get_last_date_time 
+    ret       = DEF_LAST_DATE_TIME.dup
+    ret.error = DEF_LAST_DATE_TIME.error
+    ret
+  end
 
   # Returns the "middle" TimeWithError object, considering the uncertainty
   #
@@ -36,6 +62,12 @@ module TimeAux
   def converted_middle_time(dtime, *rest)  #, known_unit: nil)
     dtime, known_unit = _time_from_date_or_array(dtime, *rest)
     return TimeWithError.at(dtime, in: Rails.configuration.music_i18n_def_timezone_str) if ! known_unit
+
+    # If Year is 1 or 1999 and if only Year is known, returns the default edge case.
+    if :year == known_unit
+      return get_first_date_time if dtime.year == DEF_FIRST_DATE_TIME.year
+      return get_last_date_time  if dtime.year == DEF_LAST_DATE_TIME.year
+    end
 
     ku = known_unit.to_s
     dt_begin = dtime.send("beginning_of_"+ku)  # e.g., dtime.beginning_of_month
@@ -70,6 +102,12 @@ module TimeAux
 
     arret = %i(year month day hour min sec).map{|i| dtime.send(i)}
     return arret if !err && !known_unit
+
+    # Special cases: either DEF_FIRST_DATE_TIME or DEF_LAST_DATE_TIME
+    if err && (MAX_ERROR.to_i-err.to_i).abs < 86402  # i.e., if the error is huge; n.b., 86400 = 3600[sec]*24[hours]
+      arret.fill nil, 1..5  # only Year remains (either 1 or 9999)
+      return arret
+    end
 
     ra=(14..16)
     if    :minute == known_unit || (err && 30 == err.in_seconds.round && (29..31).cover?(dtime.sec))
@@ -152,3 +190,4 @@ module TimeAux
   end
   private :_guess_known_unit_from_ary
 end
+

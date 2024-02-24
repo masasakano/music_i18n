@@ -9,5 +9,12 @@ class TimeWithError < Time
   #   t.error = 10.minute  # => ActiveSupport::Duration
   #   t.error.in_seconds   # => 600
   attr_accessor "error"
+
+  alias :inspect_orig :inspect  if ! self.method_defined?(:inspect_orig)   # No overwriting.
+
+  # Overwrites inspcect
+  def inspect
+    sprintf "%s/(err=%s)", inspect_orig, error.inspect
+  end
 end
 
