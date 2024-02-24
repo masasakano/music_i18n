@@ -41,6 +41,9 @@ module HaramiMusicI18n
       ActiveSupport::TimeWithZone, ActiveSupport::TimeZone, Time
     ]
     #config.active_record.use_yaml_unsafe_load = true  # The last resort
+
+    ## application-specific parameters
+    config.music_i18n_def_timezone_str = (ENV["MUSIC_I18N_DEF_TIMEZONE_STR"] || "+09:00")  # Default Time Zone in setting a Date or Time.  Look at this with Rails.configuration.music_i18n_def_timezone_str
   end
 end
 
@@ -62,4 +65,6 @@ require 'role_category_node'  # load class RoleCategoryNode < Tree::TreeNode
 require 'local/tree/tree_node'  # modifies Tree::TreeNode#<=>
 require "checked_disabled"    # A general class used for Form
 #require "reverse_sql_order"   # A monkey patch to modify reverse_sql_order() in ActiveRecord::QueryMethods::WhereChain
+require "time_with_error"  # TimeWithError: a subclass of Time
+require "time_aux"  # Time-related auxiliary module TimeAux
 
