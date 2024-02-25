@@ -17,6 +17,7 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
       "place.prefecture_id"=>"", "place_id"=>"",
       "order_no"=>"", "start_year"=>"1999", "start_month"=>"", "start_day"=>"",
       "end_year"=>"1999", "end_month"=>"", "end_day"=>"",
+      "start_date_err"=>"", "end_date_err"=>"", 
       "note"=>""
     }
     @validator = W3CValidators::NuValidator.new
@@ -92,7 +93,7 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     pla = places(:unknown_place_kagawa_japan)
     pref = pla.prefecture
 
-    hs = { event_group: { start_day: @event_group.start_day, start_month: @event_group.start_month, start_year: @event_group.start_year, note: @event_group.note, order_no: @event_group.order_no, end_day: @event_group.end_day, end_month: 11, end_year: @event_group.end_year, :"place.prefecture_id.country_id"=>"", "place.prefecture_id"=>pref.id, place_id: "" } }
+    hs = { event_group: { start_day: @event_group.start_date.day, start_month: @event_group.start_date.month, start_year: @event_group.start_date.year, note: @event_group.note, order_no: @event_group.order_no, end_day: @event_group.end_date.day, end_month: 11, end_year: @event_group.end_date.year, :"place.prefecture_id.country_id"=>"", "place.prefecture_id"=>pref.id, place_id: "" } }
 
     patch event_group_url(@event_group), params: hs
     assert_response :redirect
@@ -102,7 +103,7 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     patch event_group_url(@event_group), params: hs
     assert_redirected_to event_group_url(@event_group)
     @event_group.reload
-    assert_equal 11, @event_group.end_month
+    assert_equal 11, @event_group.end_date.month
     assert_equal pla, @event_group.place
   end
 

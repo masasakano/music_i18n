@@ -30,16 +30,14 @@ class EventGroupTest < ActiveSupport::TestCase
   test "on delete" do
     evgr = event_groups(:evgr_lucky2023)
 
-    assert_raises(ActiveRecord::RecordInvalid){ evgr.update!(start_year: -8) }
+    assert_raises(ActiveRecord::RecordInvalid){ evgr.update!(start_date_err: -8) }
+    evgr.reload # must exist
+    assert_raises(ActiveRecord::RecordInvalid){ evgr.update!(end_date_err: -8) }
     evgr.reload
-    assert_raises(ActiveRecord::RecordInvalid){ evgr.update!(start_day: -2) }
+    assert_raises(ActiveRecord::RecordInvalid){ evgr.update!(end_date_err: "a") }
     evgr.reload
-    assert_raises(ActiveRecord::RecordInvalid){ evgr.update!(end_month: 15) }
-    evgr.reload
-    assert_raises(ActiveRecord::RecordInvalid){ evgr.update!(end_day:   32) }
 
-    evgr.reload
-    assert_equal 2023, evgr.start_year
+    assert_equal 2023, evgr.start_date.year, "sanity check"
     pla = evgr.place
     assert pla
     refute pla.prefecture.unknown?
@@ -47,5 +45,29 @@ class EventGroupTest < ActiveSupport::TestCase
     pla.destroy
     evgr.reload
     assert_nil evgr.place, "Though it should be changed into a different value when Place is destroyed, it has to be technically allowed to be nullified."
+  end
+
+  test "date order" do
+    evgr = EventGroup.create!(start_date: Date.new(2000, 3, 3), end_date: Date.new(2000, 3, 1), start_date_err: 0)  # should be OK because end_date_err is nil
+    assert_raises(ActiveRecord::RecordInvalid){ evgr.update!(start_date_err: -8) }
+    evgr.reload
+    assert_nothing_raised{ evgr.update!(end_date_err: 5) }
+    assert_nothing_raised{ evgr.update!(end_date_err: evgr.end_date_err_previously_was) }  # reverted
+    assert_nil evgr.end_date_err
+    assert_raises(ActiveRecord::RecordInvalid){ evgr.update!(end_date_err: 1) }  # 1 day is too short.
+    evgr.reload
+    assert_nothing_raised{ evgr.update!(end_date_err: 2) }
+    evgr.reload
+    assert_nothing_raised{ evgr.update!(start_date_err: 1, end_date_err: 2) }
+    evgr.reload
+    assert_raises(ActiveRecord::RecordInvalid){ evgr.update!(start_date_err: 1, end_date_err: 0) }  # 1 day is too short.
+    evgr.reload
+    assert_nothing_raised{                      evgr.update!(start_date_err: 0, end_date_err: 0, start_date: Date.new(2000, 2, 25)) } # errors do not matter.
+    evgr.reload
+    assert_nothing_raised{                      evgr.update!(start_date_err: 0, end_date_err: 0, start_date: Date.new(2000, 3, 1)) }  # Same day is OK.
+    evgr.reload
+    assert_raises(ActiveRecord::RecordInvalid){ evgr.update!(start_date_err: 0, end_date_err: 0, start_date: Date.new(2000, 3, 5)) }
+    evgr.reload
+    assert_nothing_raised{                      evgr.update!(start_date_err: nil,end_date_err: 0, start_date: Date.new(2000, 3, 5)) }
   end
 end

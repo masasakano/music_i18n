@@ -58,17 +58,32 @@ class EventGroup < BaseWithTranslation
     validate_translation_unique_within_parent(record)
   end
 
-  %i(start_year end_year).each do |ec|
-    validates ec, numericality: { greater_than_or_equal_to: 1 }, allow_blank: true
+  %i(start_date_err end_date_err).each do |ec|
+    validates ec, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true
   end
 
-  %i(start_month end_month).each do |ec|
-    validates ec, numericality: { in: 1..12 }, allow_blank: true
-  end
+  validate :start_end_dates_order_must_be_valid
 
-  %i(start_day end_day).each do |ec|
-    # "30 February" would be allowed...
-    validates ec, numericality: { in: 1..31 }, allow_blank: true
+  # Check the order for validation
+  def start_end_dates_order_must_be_valid
+    if (start_date.present? && 
+        start_date_err.present? && 
+        end_date.present? && 
+        end_date_err.present?)
+      if (  end_date + end_date_err.day <
+          start_date - start_date_err.day)
+        msg = "start_date can't be later than end_date beyond the errors"
+        ch_attrs = changed_attributes  # like {"order_no"=>nil} ("nil" is the value before changed)
+        flagchanged = false
+        %w(start_date start_date_err end_date end_date_err).each do |ek|
+          if ch_attrs.has_key?(ek)
+            errors.add(ek.to_sym, msg)
+            flagchanged = true
+          end
+        end
+        errors.add(:start_date, msg) if !flagchanged
+      end
+    end
   end
 
   # Returns the unknown {EventGroup}
@@ -84,6 +99,23 @@ class EventGroup < BaseWithTranslation
   end
   alias_method :uncategorized?, :unknown? if ! self.method_defined?(:uncategorized?)
 
+  # create start/end_date from 3 parameters
+  #
+  # year etc may be String.
+  #
+  # @param err: [Integer, String, NilClass] Integer-like
+  # @return [TimeWithError, NilClass]
+  def self.create_a_date(year, month, day, err: nil)
+    ar = [year, month, day].map{|i| convert_str_to_number_nil(i)}
+    return nil if ar.compact.empty?
+    if err.present?
+      t = TimeWithError.new(*ar, in: Rails.configuration.music_i18n_def_timezone_str)
+      t.error = err.to_i.day
+      t
+    else
+      TimeAux.converted_middle_time(*ar)  # This returns TimeWithError, as defined in /lib/time_with_error.rb
+    end
+  end
 end
 
 class << EventGroup 

@@ -6,32 +6,42 @@
 
   <p>
     <strong>From year:</strong>
-    <%= event_group.start_year %>
+    <%= event_group.start_date.year %>
   </p>
 
   <p>
     <strong>From month:</strong>
-    <%= event_group.start_month %>
+    <%= event_group.start_date.month %>
   </p>
 
   <p>
     <strong>From day:</strong>
-    <%= event_group.start_day %>
+    <%= event_group.start_date.day %>
+  </p>
+
+  <p>
+    <strong>±days:</strong>
+    <%= event_group.end_date_err %>
   </p>
 
   <p>
     <strong>To year:</strong>
-    <%= event_group.end_year %>
+    <%= event_group.end_date.year %>
   </p>
 
   <p>
     <strong>To month:</strong>
-    <%= event_group.end_month %>
+    <%= event_group.end_date.month %>
   </p>
 
   <p>
     <strong>To day:</strong>
-    <%= event_group.end_day %>
+    <%= event_group.end_date.day %>
+  </p>
+
+  <p>
+    <strong>±days:</strong>
+    <%= event_group.end_date_err %>
   </p>
 
   <p>

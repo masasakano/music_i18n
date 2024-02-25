@@ -91,6 +91,8 @@ module TimeAux
   # @param err [ActiveSupport::Duration, Integer, NilClass] Duration. Maybe included in +dtime.error+ (if it is a TimeWithError).  If Integer, the unit is a second. nil means undefined; if so and IF dtime is Date, this is automatically determined.
   # @return [Array<Numeric>] 6-element Array of Year, Month, Day, Hour, Minute, Second
   def adjusted_time_array(dtime, err: nil)
+    err = nil if err.blank?
+
     # Converts Date into Time, whereas TimeWithError or Time remains as it is.
     dtime, known_unit = _time_from_date_or_array(dtime)
     # known_unit is non-nil only for Date
@@ -172,17 +174,17 @@ module TimeAux
   # @param second [Numeric, NilClass] If minute is specified and valid, this is checked.
   # @return [Symbol, NilClass] Symbol of the last significant unit or nil
   def _guess_known_unit_from_ary(year, month=nil, day=nil, hour=nil, minute=nil, second=nil)
-    if !year
+    if year.blank?
       nil  # Entire Time is nil
-    elsif !month
+    elsif month.blank?
       :year
-    elsif !day
+    elsif day.blank?
       :month
-    elsif !hour
+    elsif hour.blank?
       :day
-    elsif !minute
+    elsif minute.blank?
       :hour
-    elsif !second
+    elsif second.blank?
       :minute
     else
       nil  # Nothing is nil

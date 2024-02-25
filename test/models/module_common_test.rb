@@ -217,6 +217,18 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert _match_rb_psql_regexp?(conn, rexb, "\\[b,m]cd\\be:f")
   end
 
+  test "convert_str_to_number_nil" do
+    assert_nil convert_str_to_number_nil(nil)
+    assert_nil convert_str_to_number_nil("  ")
+    assert_nil convert_str_to_number_nil([])
+    assert_equal [?a], convert_str_to_number_nil([?a])
+    assert_equal "abc", convert_str_to_number_nil("abc")
+    assert_equal 0, convert_str_to_number_nil(" 0 ")
+    assert_equal 0.4, convert_str_to_number_nil(" 0.4 ")
+    assert_equal(-3_0.243_24_2, convert_str_to_number_nil(" -3_0.243_24_2 "))
+    assert_equal(-5_6.23_43e-52_3 , convert_str_to_number_nil(" -5_6.23_43e-52_3 "))
+  end
+
   private
     # Returns true if Ruby and PosgreSQL results match.
     def _match_rb_psql_regexp?(conn, re_ruby, str, regexp_should_succed=true)

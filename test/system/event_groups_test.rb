@@ -1,3 +1,4 @@
+# coding: utf-8
 require "application_system_test_case"
 
 class EventGroupsTest < ApplicationSystemTestCase
@@ -24,7 +25,7 @@ class EventGroupsTest < ApplicationSystemTestCase
     page.find('form div.field.radio_langcode').choose('English')
 
     # label_str = I18n.t('layouts.new_translations.title', model: 'EventGroup')
-    page.find('input#event_group_title').fill_in with: 'Tekitoh'
+    page.find('input#event_group_title').fill_in with: 'Tekitoh'  # This is unique!
 
     # Test of dropdown-menu
     assert_selector 'div#div_select_country', text: "Country"
@@ -43,15 +44,16 @@ class EventGroupsTest < ApplicationSystemTestCase
     assert_selector    'form div#div_select_prefecture'  # Now JS made it appear
     assert     find_field('Prefecture')                  # Now JS made it appear
 
-    fill_in "Start Day", with: @event_group.start_day
-    fill_in "Start Month", with: @event_group.start_month
-    fill_in "Start Year", with: @event_group.start_year
+    fill_in "Start Day",   with: @event_group.start_date.day
+    fill_in "Start Month", with: @event_group.start_date.month
+    fill_in "Start Year",   with: @event_group.start_date.year
+    fill_in "± days (Start)", with: ""
     fill_in "Note", with: @event_group.note
     #fill_in "Order no", with: @event_group.order_no  # the label may change
     #fill_in "Place", with: @event_group.place_id  # Dropdown described above
-    fill_in "End Day", with: @event_group.end_day
-    fill_in "End Month", with: @event_group.end_month
-    fill_in "End Year", with: @event_group.end_year
+    fill_in "End Day",   with: @event_group.end_date.day
+    fill_in "End Month", with: @event_group.end_date.month
+    fill_in "End Year",  with: @event_group.end_date.year
     click_on "Create EventGroup"
 
     assert_text "EventGroup was successfully created"
@@ -68,15 +70,16 @@ class EventGroupsTest < ApplicationSystemTestCase
     assert_selector 'form div#div_select_prefecture'
     assert_selector 'form div#div_select_place'
 
-    fill_in "Start Day", with: @event_group.start_day
-    fill_in "Start Month", with: @event_group.start_month
-    fill_in "Start Year", with: @event_group.start_year
+    fill_in "Start Day",   with: @event_group.start_date.day
+    fill_in "Start Month", with: @event_group.start_date.month
+    fill_in "Start Year",  with: @event_group.start_date.year
     fill_in "Note", with: @event_group.note
     #fill_in "Order no", with: @event_group.order_no  # the label may change
     #fill_in "Place", with: @event_group.place_id  # Dropdown described above
-    fill_in "End Day", with: @event_group.end_day
-    fill_in "End Month", with: @event_group.end_month
-    fill_in "End Year", with: 2025
+    fill_in "End Day",   with: @event_group.end_date.day
+    fill_in "End Month", with: @event_group.end_date.month
+    fill_in "End Year",  with: 2025  # This is updated!
+    fill_in "± days (End)", with: @event_group.start_date_err - 1  # This is updated!
     click_on "Update EventGroup"
 
     assert_text "EventGroup was successfully updated"

@@ -11,7 +11,9 @@
       <th>Name (en)</th>
       <th title="n-th one in a series of Event Group">#num</th>
       <th>From YYYY-MM-DD</th>
+      <th>±days</th>
       <th>To YYYY-MM-DD</th>
+      <th>±days</th>
       <th>Place</th>
       <th title="Note in this DB">Note</th>
       <% if can? :update, EventGroup %>
@@ -32,8 +34,10 @@
         <% end %>
 
         <td><%= event_group.order_no %></td>
-        <td><%= date2text(event_group.start_year, event_group.start_month, event_group.start_day) %></td>
-        <td><%= date2text(event_group.end_year, event_group.end_month, event_group.end_day) %></td>
+        <td><%= da = event_group.start_date; da ? date2text(da.year, da.month, da.day) : date2text(nil, nil, nil) %></td>
+        <td><%= event_group.start_date_err %></td>
+        <td><%= da = event_group.end_date;   da ? date2text(da.year, da.month, da.day) : date2text(nil, nil, nil) %></td>
+        <td><%= event_group.end_date_err %></td>
         <td><%= event_group.place ? h(event_group.txt_place_pref_ctry) : "" %></td>
         <td><%= h(event_group.note) %></td>
 

@@ -57,10 +57,10 @@ module ModuleCommon
   }
 
   # Default start_year of {EventGroup} etc
-  DEF_EVENT_START_YEAR = 1
+  DEF_EVENT_START_YEAR = TimeAux::DEF_FIRST_DATE_TIME.year  # defined in /lib/time_aux.rb
 
   # Default end_year of {EventGroup} etc
-  DEF_EVENT_END_YEAR = 9999
+  DEF_EVENT_END_YEAR   = TimeAux::DEF_LAST_DATE_TIME.year   # defined in /lib/time_aux.rb
 
   # For model that has the method +place+
   #
@@ -853,6 +853,28 @@ module ModuleCommon
       retstr = retstr.sub(/, #{ek}_id: \d+/,  '\0'+sprintf("(%s)", tit))
     end
     retstr
+  end
+
+  # Returns Float, Integer, nil converted from String or anything else as it is
+  #
+  # This returns nil if blank?
+  #
+  # @param str [String, Object] Perhaps from Web interface
+  # @return [String]
+  def convert_str_to_number_nil(str)
+    str = str.presence
+    return str if !str.respond_to?(:gsub)  # nil may be returned
+    str.strip!
+
+    if /\A([+\-]?((0|[1-9][\d_]*)?\.[0-9][\d_]*|(0|[1-9][\d_]*)\.?)([Ee][+\-]?\d[\d_]*)?)\z/ =~ str
+      if /\A[+\-]?[\d_]+\z/ =~ str
+        str.to_i  # Integer
+      else
+        str.to_f  # Float
+      end
+    else
+      str         # String
+    end
   end
 
   # Returns "/db/seeds/users.rb" etc. from __FILE__

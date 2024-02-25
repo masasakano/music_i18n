@@ -55,34 +55,46 @@
     <%= form.number_field :order_no, class: 'order_no' %>
   </div>
 
+  <% da = event_group.start_date %></td>
   <div class="field">
     <%= form.label :start_year, "Start Year" %>
-    <%= form.number_field :start_year, value: event_group.start_year, placeholder: 'e.g., 1999', class: 'input_year' %>
+    <%= form.number_field :start_year, value: (da ? da.year : nil), placeholder: 'e.g., 1999', class: 'input_year' %>
   </div>
 
   <div class="field">
     <%= form.label :start_month,"Start Month" %>
-    <%= form.number_field :start_month, value: event_group.start_month, in: 0..12, class: 'input_year' %>
+    <%= form.number_field :start_month, value: (da ? da.month : nil), in: 0..12, class: 'input_year' %>
   </div>
 
   <div class="field">
     <%= form.label :start_day, "Start Day" %>
-    <%= form.number_field :start_day, value: event_group.start_day, in: 0..31, class: 'input_year' %>
+    <%= form.number_field :start_day, value: (da ? da.day : nil), in: 0..31, class: 'input_year' %>
   </div>
 
   <div class="field">
+    <%= form.label :start_date_err, "± days (Start)" %>
+    <%= form.number_field :start_date_err, value: event_group.start_date_err, class: 'input_year' %>
+  </div>
+
+  <% db = event_group.start_date %></td>
+  <div class="field">
     <%= form.label :end_year, "End Year" %>
-    <%= form.number_field :end_year, value: event_group.end_year, placeholder: 'e.g., 1999', class: 'input_year' %>
+    <%= form.number_field :end_year, value: (db ? db.year : nil), placeholder: 'e.g., 1999', class: 'input_year' %>
   </div>
 
   <div class="field">
     <%= form.label :end_month,"End Month" %>
-    <%= form.number_field :end_month, value: event_group.end_month, in: 0..12, class: 'input_year' %>
+    <%= form.number_field :end_month, value: (db ? db.month : nil), in: 0..12, class: 'input_year' %>
   </div>
 
   <div class="field">
     <%= form.label :end_day, "End Day" %>
-    <%= form.number_field :end_day, value: event_group.end_day, in: 0..31, class: 'input_year' %>
+    <%= form.number_field :end_day, value: (db ? db.day : nil), in: 0..31, class: 'input_year' %>
+  </div>
+
+  <div class="field">
+    <%= form.label :end_date_err, "± days (End)" %>
+    <%= form.number_field :end_date_err, value: event_group.end_date_err, class: 'input_year' %>
   </div>
 
   <div class="field">
