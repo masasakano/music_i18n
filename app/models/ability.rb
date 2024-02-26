@@ -47,7 +47,7 @@ class Ability
 
     can :manage, :session
     can :read, [HaramiVid, Music, Artist]
-    can :read, [EventGroup]
+    can :read, [EventGroup, Event]
     #can :read, :all   # permissions for every user, even if not logged in
     #can :read, [Artist, Music, Country, Prefecture, Place, Genre]
     cannot :read, Harami1129
@@ -76,7 +76,7 @@ class Ability
       #can :cru,  [Prefecture]
       can :crud, [Artist, Music, Engage, Prefecture]
       can :create, Musics::UploadMusicCsvsController
-      can :read, [Country, EngageHow, Genre, EventGroup]
+      can :read, [Country, EngageHow, Genre, EventGroup, Event]
       can :show,  Translation
       can [:new, :create], Translation # only for 'ja' and if they can edit translatable; judged in other places
       can :ud,     Translation, create_user_id: user.id #, update_user_id: user.id
@@ -147,7 +147,7 @@ class Ability
 
     ## General-JA or HaramiVid moderator only
     if user.qualified_as?(:moderator, rc_general_ja) || user.qualified_as?(:moderator, rc_harami)
-      can :crud, [EventGroup]  # later excluded for "unknown?"
+      can :crud, [EventGroup, Event]  # later excluded for "unknown?"
     end
 
     ## Translation moderator only

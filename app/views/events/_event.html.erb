@@ -1,0 +1,38 @@
+<div id="<%= dom_id event %>">
+  <p>
+    <strong>Start time (in <%= Rails.configuration.music_i18n_def_timezone_str %>):</strong>
+    <%= event.string_time_err2uptomin %>
+  </p>
+
+  <p>
+    <strong>± days (± hours):</strong>
+    <% err = event.start_time_err %>
+    <%= err ? err.second.in_hours : "&mdash".html_safe %>
+  </p>
+
+  <p>
+    <strong>Duration hour:</strong>
+    <%= event.duration_hour %>
+  </p>
+
+  <p>
+    <strong>Weight:</strong>
+    <%= event.weight %>
+  </p>
+
+  <p>
+    <strong>Event group:</strong>
+    <%= link_to "EventGroup("+event.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)+")", event_group_url(event.event_group) %>
+  </p>
+
+  <p>
+    <strong>Place:</strong>
+    <%= event.place ? h(event.txt_place_pref_ctry) : "" %>
+  </p>
+
+  <p>
+    <strong>Note:</strong>
+    <%= event.note %>
+  </p>
+
+</div>

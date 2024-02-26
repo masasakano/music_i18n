@@ -43,7 +43,16 @@ module HaramiMusicI18n
     #config.active_record.use_yaml_unsafe_load = true  # The last resort
 
     ## application-specific parameters
-    config.music_i18n_def_timezone_str = (ENV["MUSIC_I18N_DEF_TIMEZONE_STR"] || "+09:00")  # Default Time Zone in setting a Date or Time.  Look at this with Rails.configuration.music_i18n_def_timezone_str
+    #
+    # Default Time Zone in setting a Date or Time.
+    # Note that all Time values are recorded WITHOUT TIME ZONE in UT.
+    # You should retrieve a time-like value in a model like:
+    #   Time.at(MyModel.first.my_time, in: Rails.configuration.music_i18n_def_timezone_str)
+    # which converts it into the application-specific time zone.
+    # If you want (though you should rarely need) to change just the time zone
+    # without touching the other values in Time, consult
+    #   https://stackoverflow.com/a/78053461/3577922
+    config.music_i18n_def_timezone_str = (ENV["MUSIC_I18N_DEF_TIMEZONE_STR"] || "+09:00")
   end
 end
 

@@ -2106,7 +2106,47 @@ evgr_lucky2023own_en:
   langcode: en
   title: LuckyFes 2023
   weight: 100
+  create_user_id: user_moderator
+  update_user_id: 
+  note: EventGroupLucky23En
+
+evgr_streetpiano_en:
+  translatable: evgr_streetpiano
+  translatable_type: EventGroup
+  langcode: en
+  title: Streetpiano
+  weight: 100
+  create_user_id: user_moderator
+  update_user_id: 
+  note: EventGroup_evgr_streetpiano_en
+
+ev_evgr_unknown_en:
+  translatable: ev_evgr_unknown
+  translatable_type: Event
+  langcode: en
+  title: UncategorizedEvent
+  weight: 0
   create_user_id: 
+  update_user_id: 
+  note: UncategorizedEventEn
+
+ev_evgr_unknown_ja:
+  translatable: ev_evgr_unknown
+  translatable_type: Event
+  langcode: ja
+  title: その他のイベント
+  weight: 0
+  create_user_id: 
+  update_user_id: 
+  note: UncategorizedEventJa
+
+ev_harami_lucky2023_en:
+  translatable: ev_harami_lucky2023
+  translatable_type: Event
+  langcode: en
+  title: HARAMIchan at LuckyFes 2023
+  weight: 100
+  create_user_id: user_moderator
   update_user_id: 
   note: EventGroupLucky23En
 

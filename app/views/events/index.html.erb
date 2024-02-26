@@ -1,0 +1,64 @@
+<%= notice %>
+
+<h1>Events</h1>
+
+<div id="events">
+<table id="events_index_table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Name (ja)</th>
+      <th>Name (en)</th>
+      <th>From Time</th>
+      <th>±hr</th>
+      <th>Duration [h]</th>
+      <th>Place</th>
+      <th>EventGroup</th>
+      <th title="Note in this DB">Note</th>
+      <% if can? :update, Event %>
+        <th colspan="3"></th>
+      <% else %>
+        <th></th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @events.each do |event| %>
+      <tr>
+        <td><%= event.id %></td>
+        <% btr = event.best_translations %>
+        <% %w(ja en).each do |lc| %> <%# no "fr" so far %>
+        <td><%= %w(title alt_title).map{|i| tra=btr[lc]; s=(tra && h(tra.send(i))); s.blank? ? '&mdash;' : s}.join(' | ').html_safe %></td>
+        <% end %>
+
+        <%#td  %= event.order_no %  /td %>
+        <td><%= event.string_time_err2uptomin %></td>
+         <% err = event.start_time_err %>
+        <td><%= err ? sprintf("%.2f", err.second.in_hours) : "&mdash".html_safe %></td>
+        <td><%= event.duration_hour %></td>
+        <td><%= event.weight %></td>
+        <td><%= event.place ? h(event.txt_place_pref_ctry) : "" %></td>
+         <% eg = event.event_group %>
+        <td><%= eg ? eg.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) : "" %></td>
+        <td><%= h(event.note) %></td>
+
+        <td><%= link_to "Show", event %></td>
+        <% if can? :update, event  %>
+          <td><%= link_to 'Edit', edit_event_path(event) %></td>
+        <% end %>
+        <% if can? :destroy, event %>
+          <td><%= link_to 'Destroy', event, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+</div>
+
+<br>
+
+<% if can? :create, Event %>
+  <%= button_to 'Create Event', new_event_path, method: :get %>
+<% end %>
+

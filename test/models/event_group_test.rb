@@ -42,9 +42,18 @@ class EventGroupTest < ActiveSupport::TestCase
     assert pla
     refute pla.prefecture.unknown?
 
+    ## testing:  ON DELETE => nullify
     pla.destroy
     evgr.reload
     assert_nil evgr.place, "Though it should be changed into a different value when Place is destroyed, it has to be technically allowed to be nullified."
+
+    ## testing:  has_many :events, dependent: :restrict_with_exception
+    refute_empty evgr.events, "sanity check..."
+    assert_raises(ActiveRecord::DeleteRestrictionError){ evgr.destroy } # At DB level, <ActiveRecord::InvalidForeignKey> for <"PG::ForeignKeyViolation: ERROR:  update or delete on table "event_groups" violates foreign key constraint "fk_rails_..." on table "events"  DETAIL:  Key (id)=(804171372) is still referenced from table "events".>
+
+    # Once the children are destoryed, it is destroyable.
+    evgr.events.destroy_all
+    assert_nothing_raised{ evgr.destroy }
   end
 
   test "date order" do

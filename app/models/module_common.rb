@@ -89,13 +89,81 @@ module ModuleCommon
     else
       if year || !month
         sprintf('%s-%s-%s', (year ? sprintf("%4d", year) : '????'), *([month, day].map{|i| (i ? sprintf("%02d", i) : '??')}))
-      elsif day
-        I18n.l(Date.new(9999,month,day), format: :long, locale: "en").sub(/9999/, '????')
-      else  # only month is significant.
-        I18n.l(Date.new(9999,month,28), format: :long, locale: "en").sub(/9999/, '????').sub(/28/, '??')
+      else
+        d2 = (day ? day : 28)
+        ret = I18n.l(Date.new(DEF_EVENT_END_YEAR,month,d2), format: :long, locale: "en").sub(/\b#{DEF_EVENT_END_YEAR}\b/, '????')
+        (day ? ret : ret.sub(/\b28\b/, '??'))
       end
     end
   end
+
+  # Returns I18n Date-string from Date and Hour-Min with potentiallyy unknown elements
+  #
+  # The nil part is displayed in either '——' or '??' (or '????' for the year),
+  # depending on langcode.  If the given time is simply nil, "&mdash;" is returned.
+  #
+  # @example
+  #   time = Time.new(1,2,3,4,5,1)
+  #   time_err2uptomin(time, 30.minute, langcode: "en")
+  #     # => January 01, 0001 — 04:??
+  #   time_err2uptomin(time, 10.month,  langcode: "en")
+  #     # => "0001-??-?? ??:??"
+  #   time_err2uptomin(time, nil, langcode: "xx")
+  #     # => "0001-02-03 04:05"
+  #
+  # @param time  [Time, TimeWithError, NilClass]
+  # @param err [ActiveSupport::Duration, Integer, NilClass] in seconds in in Integer
+  # @param langcode [String, Symbol] Default: +I18n.locale+
+  # @return [String]
+  def time_err2uptomin(time, err=nil, langcode: I18n.locale)
+    return "&mdash;".html_safe if !time
+    if  err.blank?
+      err = time.error if time.respond_to?(:error)
+      err ||= 0.second
+    end
+    err = err.second if !err.respond_to? :in_seconds
+    year   = time.year
+
+    if err < 5.month
+      month = time.month
+      if err < 13.day
+        day = time.day
+        if err < 11.hour
+          hour = time.hour
+          if err < 25.minute
+            minute = time.min
+          end
+        end
+      end
+    end
+
+    ret_h = sprintf('%s:%s', *(_arstr_sprintf_int([hour, minute])))
+    case langcode.to_s
+    when "ja"
+      ar = _arstr_sprintf_int([month, day], fmt: "%s", fallback: "——")
+      sprintf("%s年%s月%s日 ", *ar) + ret_h.gsub(/\?\?/, "——")  # eg, "1年2月3日 04:——"
+    else
+      if !month
+        sprintf('%4d-%s-%s ', year, *(_arstr_sprintf_int([month, day]))) + ret_h  # eg, "1999-??-?? ??:??"
+      else
+        d2 = (day ? day : 28)
+        ret_d = I18n.l(Date.new(DEF_EVENT_END_YEAR,month,d2), format: :long, locale: "en").sub(/\b#{DEF_EVENT_END_YEAR}\b/, '????')
+        ret_d.sub!(/\b28\b/, '??') if !day
+        ret_d + " — " + ret_h  # eg. January 01, 0001 — 04:??
+      end
+    end
+  end # def time_err2uptomin(time, err, langcode: I18n.locale)
+
+  # Returns String Array from ojbect Array, with formating
+  #
+  # nil is converted to String +fallback+
+  #
+  # @param arstr [Array<Object>]
+  # @return [Array<String>]
+  def _arstr_sprintf_int(arobj, fmt: "%02d", fallback: "??")
+    arobj.map{|i| (i ? sprintf(fmt, i) : fallback)}
+  end
+  private :_arstr_sprintf_int
 
   # Returns HTML <a> string from a root string like either '"w.wiki/3JVi' or 'http://w.wiki/3JVi'
   #

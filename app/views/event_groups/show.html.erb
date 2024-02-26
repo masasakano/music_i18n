@@ -8,8 +8,15 @@
 <%= render @event_group %>
 
 <div>
+  <p>
   <%= link_to "Edit this EventGroup", edit_event_group_path(@event_group) %> |
   <%= link_to "Back to index", event_groups_path %>
 
+<% if can?(:destroy, @event_group) && !@event_group.events.exists? %>
   <%= button_to "Destroy this EventGroup", @event_group, method: :delete %>
+<% elsif current_user && current_user.an_admin? %>
+  Child Events exist and so this cannot be destroyed.
+<% end %>
+  </p>
+
 </div>

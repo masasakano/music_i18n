@@ -1,6 +1,7 @@
 # coding: utf-8
 class ApplicationController < ActionController::Base
   include ModuleCommon   # for split_hash_with_keys() etc
+  extend ModuleCommon    # for convert_str_to_number_nil
   using ModuleHashExtra  # for extra methods, e.g., Hash#values_blank_to_nil
 
   protect_from_forgery with: :exception
@@ -32,6 +33,9 @@ class ApplicationController < ActionController::Base
     success:        "alert alert-success",
     notice:  "notice alert alert-info",
   }.with_indifferent_access
+
+  # Unit used in Event/EventItem Forms
+  EVENT_FORM_ERR_UNITS = [["days", "day"], ["hours", "hour"], ["minutes", "minute"]]
 
   def default_url_options(options={})
     #Rails.application.default_url_options = Rails.application.routes.default_url_options = { locale: I18n.locale }
@@ -287,6 +291,67 @@ class ApplicationController < ActionController::Base
   def stripped_params(params)
     params.to_h.strip_strings.values_blank_to_nil.compact.with_sym_keys # defined in ModuleHashExtra
   end
+
+  # create start/end_date from 3 parameters
+  #
+  # year etc may be String.
+  #
+  # @param err: [Integer, String, NilClass] Integer-like
+  # @return [TimeWithError, NilClass]
+  def self.create_a_date(year, month, day, err: nil)
+    ar = [year, month, day].map{|i| convert_str_to_number_nil(i)}
+    return nil if ar.compact.empty?
+    if err.present?
+      t = TimeWithError.new(*ar, in: Rails.configuration.music_i18n_def_timezone_str)
+      t.error = err.to_i.day
+      t
+    else
+      TimeAux.converted_middle_time(*ar)  # This returns TimeWithError, as defined in /lib/time_with_error.rb
+    end
+  end
+
+  # create start/end_time from 5 or 6 parameters
+  #
+  # year etc may be String.
+  #
+  # @param err: [ActiveSupport::Duration, Integer, String, NilClass] in second if Integer-like
+  # @return [TimeWithError, NilClass] as defined in /lib/time_with_error.rb
+  def self.create_a_time(year, month, day, hour, minute, second=nil, err: nil)
+    ar = [year, month, day, hour, minute, second].map{|i| convert_str_to_number_nil(i)} # defined in ModuleCommon
+    return nil if ar.compact.empty?
+    return TimeAux.converted_middle_time(*ar) if err.blank?
+
+    t = TimeWithError.new(*ar, in: Rails.configuration.music_i18n_def_timezone_str)
+    t.error = (err.respond_to?(:in_seconds) ? err : err.to_i.second)
+    t
+  end
+
+
+  # Sets start_time and start_time_err in hsmain (which is a partial params())
+  #
+  # Overwrites the given +hsmain+
+  #
+  # @param hsmain [Hash]
+  def _set_time_to_hsmain(hsmain)
+    time_err = 
+      if params[:event][:start_err].blank?
+        nil
+      else
+        unit = params[:event][:start_err_unit].strip
+        if self.class::EVENT_FORM_ERR_UNITS.to_h.values.include?(unit)
+          params[:event][:start_err].to_f.send(unit)
+        else
+          logger.warn "(#{File.basename(__FILE__)}) Invalid :start_err_unit is specified: #{params[:event][:start_err_unit].inspect}"
+          nil
+        end
+      end
+
+    ar = %w(year month day hour minute).map{|i| params[:event]["start_"+i].presence}
+    hsmain["start_time"]     = self.class.create_a_time(*ar, err: time_err)
+    hsmain["start_time_err"] = time_err  # == hsmain["start_time"].error
+  end
+  private :_set_time_to_hsmain
+
 
   # Grid-view form helper method
   #

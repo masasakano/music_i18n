@@ -107,10 +107,18 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     assert_equal pla, @event_group.place
   end
 
-  test "should destroy event_group" do
+  test "should destroy event_group for Harami-moderator" do
+    @event_group.events.destroy_all
+
     assert_no_difference("EventGroup.count") do
       delete event_group_url(@event_group)
     end
+
+    sign_in @trans_moderator 
+    assert_no_difference("EventGroup.count", "Translator should not destroy.") do
+      delete event_group_url(@event_group)
+    end
+    sign_out @trans_moderator 
 
     sign_in @moderator
     assert_difference("EventGroup.count", -1) do
@@ -118,4 +126,14 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_redirected_to event_groups_url
   end
+
+  test "should not destroy event_group with dependent children" do
+    sign_in @moderator
+
+    assert @event_group.events.exists?, 'sanity check of fixtures.'
+    assert_raises(ActiveRecord::DeleteRestrictionError){
+      delete event_group_url(@event_group)
+    }
+  end
+
 end

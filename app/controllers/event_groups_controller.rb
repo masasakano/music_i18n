@@ -52,7 +52,7 @@ class EventGroupsController < ApplicationController
   def _add_date_to_hsmain(hsmain)
     %w(start end).each do |col_prefix|
       ar = %w(year month day).map{|i| params[:event_group][col_prefix+"_"+i].presence}
-      hsmain[col_prefix+"_date"] = EventGroup.create_a_date(*ar)  # err is not specified.
+      hsmain[col_prefix+"_date"] = ApplicationController.create_a_date(*ar)  # err is not specified.
 
       errcolname = col_prefix+"_date_err"
       err = params[:event_group][errcolname]

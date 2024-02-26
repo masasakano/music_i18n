@@ -42,7 +42,7 @@ class EventGroup < BaseWithTranslation
   belongs_to :place, optional: true
   has_one :prefecture, through: :place
   has_one :country, through: :prefecture
-  #has_many :events  #, dependent: :destroy
+  has_many :events, dependent: :restrict_with_exception  # EventGroup should not be deleted easily.
 
   UnknownEventGroup = {
     "ja" => 'その他のイベント類',
@@ -98,24 +98,6 @@ class EventGroup < BaseWithTranslation
     title(langcode: 'en') == UnknownEventGroup['en']
   end
   alias_method :uncategorized?, :unknown? if ! self.method_defined?(:uncategorized?)
-
-  # create start/end_date from 3 parameters
-  #
-  # year etc may be String.
-  #
-  # @param err: [Integer, String, NilClass] Integer-like
-  # @return [TimeWithError, NilClass]
-  def self.create_a_date(year, month, day, err: nil)
-    ar = [year, month, day].map{|i| convert_str_to_number_nil(i)}
-    return nil if ar.compact.empty?
-    if err.present?
-      t = TimeWithError.new(*ar, in: Rails.configuration.music_i18n_def_timezone_str)
-      t.error = err.to_i.day
-      t
-    else
-      TimeAux.converted_middle_time(*ar)  # This returns TimeWithError, as defined in /lib/time_with_error.rb
-    end
-  end
 end
 
 class << EventGroup 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_02_24_222942) do
+ActiveRecord::Schema[7.0].define(version: 2024_02_25_142000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -143,6 +143,23 @@ ActiveRecord::Schema[7.0].define(version: 2024_02_24_222942) do
     t.index ["order_no"], name: "index_event_groups_on_order_no"
     t.index ["place_id"], name: "index_event_groups_on_place_id"
     t.index ["start_date"], name: "index_event_groups_on_start_date"
+  end
+
+  create_table "events", comment: "Event such as a solo concert", force: :cascade do |t|
+    t.datetime "start_time", precision: nil
+    t.bigint "start_time_err", comment: "in second"
+    t.float "duration_hour"
+    t.float "weight"
+    t.bigint "event_group_id", null: false
+    t.bigint "place_id"
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["duration_hour"], name: "index_events_on_duration_hour"
+    t.index ["event_group_id"], name: "index_events_on_event_group_id"
+    t.index ["place_id"], name: "index_events_on_place_id"
+    t.index ["start_time"], name: "index_events_on_start_time"
+    t.index ["weight"], name: "index_events_on_weight"
   end
 
   create_table "genres", force: :cascade do |t|
@@ -443,6 +460,8 @@ ActiveRecord::Schema[7.0].define(version: 2024_02_24_222942) do
   add_foreign_key "engages", "engage_hows", on_delete: :restrict
   add_foreign_key "engages", "musics", on_delete: :cascade
   add_foreign_key "event_groups", "places", on_delete: :nullify
+  add_foreign_key "events", "event_groups", on_delete: :restrict
+  add_foreign_key "events", "places", on_delete: :nullify
   add_foreign_key "harami1129_reviews", "engages", on_delete: :cascade
   add_foreign_key "harami1129_reviews", "harami1129s", on_delete: :nullify
   add_foreign_key "harami1129_reviews", "users", on_delete: :nullify

@@ -1,0 +1,46 @@
+# == Schema Information
+#
+# Table name: events
+#
+#  id                        :bigint           not null, primary key
+#  duration_hour             :float
+#  note                      :text
+#  start_time                :datetime
+#  start_time_err(in second) :bigint
+#  weight                    :float
+#  created_at                :datetime         not null
+#  updated_at                :datetime         not null
+#  event_group_id            :bigint           not null
+#  place_id                  :bigint
+#
+# Indexes
+#
+#  index_events_on_duration_hour   (duration_hour)
+#  index_events_on_event_group_id  (event_group_id)
+#  index_events_on_place_id        (place_id)
+#  index_events_on_start_time      (start_time)
+#  index_events_on_weight          (weight)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (event_group_id => event_groups.id) ON DELETE => restrict
+#  fk_rails_...  (place_id => places.id) ON DELETE => nullify
+#
+
+ev_evgr_unknown:
+  start_time:     <%= TimeAux::DEF_FIRST_DATE_TIME %>
+  start_time_err: <%= TimeAux::MAX_ERROR %>
+  duration_hour: 
+  weight: 
+  event_group: evgr_unknown
+  place: unknown_place_unknown_prefecture_world
+  note: Event_EventGroupUnknown
+
+ev_harami_lucky2023:
+  start_time: 2023-07-01 15:10:00
+  start_time_err: 600
+  duration_hour: 0.5
+  weight: 1.5
+  event_group: evgr_lucky2023
+  place: unknown_place_shimane_japan
+  note: Event_ev_harami_lucky2023

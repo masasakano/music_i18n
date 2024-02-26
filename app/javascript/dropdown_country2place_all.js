@@ -4,7 +4,7 @@
 
 import {dropdownCountry2Place} from './dropdown_country2place.js';
 
-const models = ["artist", "event_group", "harami_vid", "music", "place"];
+const models = ["artist", "event_group", "event", "harami_vid", "music", "place"];
 
 models.forEach(dropdownCountry2Place);
 
