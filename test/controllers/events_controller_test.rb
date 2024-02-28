@@ -74,8 +74,7 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
     sign_in @moderator_all
     assert_difference("Event.count") do
       post events_url, params: { event: @hs_create }
-      msg_alert = css_select(".alert").text.strip
-      assert_empty msg_alert, "Alert: msg_alert"
+      my_assert_no_alert_issued screen_test_only: true  # defined in /test/test_helper.rb
     end
     assert_redirected_to event_url(Event.last)
     assert_equal "Test7, The", Event.order(:created_at).last.title, "Event: "+Event.order(:created_at).last.inspect
@@ -155,8 +154,7 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
 
     assert_difference("Event.count", -1) do
       delete event_url(evt)
-      msg_alert = css_select(".alert").text.strip
-      assert_empty msg_alert, "Alert: msg_alert"
+      my_assert_no_alert_issued  # defined in /test/test_helper.rb
     end
     assert_redirected_to events_url
   end

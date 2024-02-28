@@ -9,7 +9,7 @@ class EventGroupsController < ApplicationController
   # String of the main parameters in the Form (except "place_id")
   MAIN_FORM_KEYS = %w(order_no start_date_err end_date_err place_id note)
 
-  # Permitted main parameters for params(), used for update
+  # Permitted main parameters for params(), used for update (and create)
   PARAMS_MAIN_KEYS = ([
     :start_year, :start_month, :start_day, :end_year, :end_month, :end_day, # form-specific keys that do not exist in Model
   ] + MAIN_FORM_KEYS + PARAMS_PLACE_KEYS).uniq  # PARAMS_PLACE_KEYS defined in application_controller.rb
@@ -61,7 +61,7 @@ class EventGroupsController < ApplicationController
   end
 
   private
-    # Sets @hsmain and @hstra from params
+    # Sets @hsmain and @hstra and @prms_all from params
     #
     # +action_name+ (+create+ ?) is checked inside!
     #

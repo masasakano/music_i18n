@@ -1,3 +1,4 @@
+# coding: utf-8
 class MusicsController < ApplicationController
   include ModuleCommon # for split_hash_with_keys
 
@@ -5,9 +6,18 @@ class MusicsController < ApplicationController
   before_action :set_music, only: [:show, :edit, :update, :destroy]
   before_action :set_countries, only: [:new, :create, :edit, :update] # defined in application_controller.rb
   load_and_authorize_resource except: [:index, :show]
+  before_action :event_params_two, only: [:update, :create]
 
   # String of the main parameters in the Form (except "place_id")
   MAIN_FORM_KEYS = %w(year genre_id note)
+
+  # Permitted main parameters for params(), used for update
+  PARAMS_MAIN_KEYS = ([
+    :artist_name, :year_engage, :engage_hows, :contribution,  # form-specific keys that do not exist in Model
+  ] + MAIN_FORM_KEYS + PARAMS_PLACE_KEYS).uniq  # PARAMS_PLACE_KEYS defined in application_controller.rb
+
+  # Permitted main parameters for params() that are (1-level nested) Array
+  PARAMS_ARRAY_KEYS = [:engage_hows]
 
   # GET /musics
   # GET /musics.json
@@ -42,42 +52,29 @@ class MusicsController < ApplicationController
   # POST /musics
   # POST /musics.json
   def create
-    # Parameters: {"authenticity_token"=>"[FILTERED]", "music"=>{"langcode"=>"ja", "is_orig"=>"nil", "title"=>"", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "place.prefecture_id.country_id"=>"", "place.prefecture_id"=>"", "place_id"=>"", "genre_id"=>"", "year"=>"", "note"=>"", "artist_name"=>"", "year_engage"=>"", "engage_hows"=>["", ""], "contribution"=>""}, "commit"=>"Create Music"}
-    params.permit!
-    hsprm = params.require(:music).permit(
-      :year, :genre_id, :note,
-      :langcode, :is_orig, :title, :ruby, :romaji, :alt_title, :alt_ruby, :alt_romaji,
-      :"place.prefecture_id.country_id", :"place.prefecture_id", :place_id,
-      :artist_name, :year_engage, :engage_hows, :contribution)
+    # Parameters: {"authenticity_token"=>"[FILTERED]", "music"=>{"langcode"=>"ja", "is_orig"=>"nil", "title"=>"The Lunch Time", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "place.prefecture_id.country_id"=>"", "place.prefecture_id"=>"", "place_id"=>"", "genre_id"=>"", "year"=>"", "note"=>"", "artist_name"=>"", "year_engage"=>"", "engage_hows"=>["", "592497512", "746859435"], "contribution"=>""}, "commit"=>"Create Music"}
 
-    hsprm.permit!
-
-    hsmain = params[:music].slice(*MAIN_FORM_KEYS)
-    @music = Music.new(**(hsmain.merge({place_id: helpers.get_place_from_params(hsprm).id})))
-
-    hsprm_tra, resths = split_hash_with_keys(
-                 params[:music],
-                 %w(langcode is_orig title ruby romaji alt_title alt_ruby alt_romaji))
-    tra = Translation.preprocessed_new(**hsprm_tra.merge({'is_orig' => true})) # is_orig passed from the form is ignored, which is anyway a hidden parameter.
-
-    @music.unsaved_translations << tra
+    @music = Music.new(@hsmain)
+    add_unsaved_trans_to_model(@music, @hstra) # defined in application_controller.rb
 
     # @music.errors would be added if something goes wrong.
-    artist = helpers.get_artist_from_params hsprm['artist_name'], @music
+    artist = helpers.get_artist_from_params @prms_all['artist_name'], @music
 
     # IF nothing has gone wrong in finding an Artist if specified,
     # here we save @music as well as its main Translation.
     @msg_alerts = []
     if !@music.errors.present?  # Not even attempt to save if artist does not exist at ll.
       save_return = @music.save
-      #save_engages(hsprm, artist) if save_return && artist  # not run if artist is not specified.  ## With this, engage_hows are not permitted.
+      #save_engages(@prms_all, artist) if save_return && artist  # not run if artist is not specified.  ## With this, engage_hows are not permitted.
       begin
         # This may add an Error to @msg_alerts
-        save_engages(params[:music], artist) if save_return && artist  # not run if artist is not specified.
+        save_engages(@prms_all, artist) if save_return && artist  # not run if artist is not specified.
       rescue => err
+        logger.error "ERROR in saving Engage in MusicsController#create Music-ID=#{@music.id} (which should never happen through UI): "+err.message+" / params[:music]=#{params[:music].inspect}"
         # Something goes seriously wrong (which should never happen when called from UI).
         respond_to do |format|
-          msg = flash[:alert]+" "+@msg_alerts.join(" ")+" Consequently, although Music was successfully created, the creation of one (or more) of Music-Artist links failed for an unknown reason. You may try again later. If the problem persists, contact the site administrator."
+          msg = [(flash[:alert] || ""), @msg_alerts.join(" "), "Consequently, although Music was successfully created, the creation of one (or more) of Music-Artist links failed for an unknown reason. You may try again later. If the problem persists, contact the site administrator."].join(" ")
+print "DEBUG-cont-h042";puts msg
           format.html { redirect_to @music, notice: msg, alert: msg }
         end
         return
@@ -104,17 +101,10 @@ class MusicsController < ApplicationController
   # PATCH/PUT /musics/1.json
   def update
     # Parameters: {"authenticity_token"=>"[FILTERED]", "music"=>{"place.prefecture_id.country_id"=>"", "place.prefecture_id"=>"", "place_id"=>"", "genre_id"=>"", "year"=>"", "note"=>""}, "commit"=>"Create Music"}
-    params.permit!
-    hsprm = params.require(:music).permit(
-      :year, :note,
-      :"place.prefecture_id.country_id", :"place.prefecture_id", :place_id)
-    hsprm.permit!
-
-    hsmain = params[:music].slice(*MAIN_FORM_KEYS)
-    hs2pass = hsmain.merge({place_id: helpers.get_place_from_params(hsprm).id})
 
     def_respond_to_format(@music, :updated){
-      @music.update(hs2pass)
+      #@music.update(hs2pass)
+      @music.update(@hsmain)
     } # defined in application_controller.rb
   end
 
@@ -129,6 +119,15 @@ class MusicsController < ApplicationController
   end
 
   private
+    # Sets @hsmain and @hstra from params
+    #
+    # +action_name+ (+create+ ?) is checked inside!
+    #
+    # @return NONE
+    def event_params_two
+      set_hsparams_main_tra(:music) # defined in application_controller.rb
+    end
+
     def grid_params
       params.fetch(:musics_grid, {}).permit!
     end
@@ -164,7 +163,7 @@ class MusicsController < ApplicationController
     # @param artist [Artist] for {Engage}
     # @return [NilClass]
     def save_engages(hsprm, artist)
-      hsprm['engage_hows'].map{|i| i.blank? ? nil : i.to_i}.compact.each do |ei|
+      hsprm['engage_hows'].map{|i| i.blank? ? nil : i.to_i}.compact.uniq.each do |ei|
         eh = EngageHow.find(ei)
         if !eh
           msg = sprintf "Invalid ID=(%d) for EngageHow is specified, which should not happen.", ei

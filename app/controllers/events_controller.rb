@@ -9,7 +9,7 @@ class EventsController < ApplicationController
   # String of the main parameters in the Form (except "place_id")
   MAIN_FORM_KEYS = %i(duration_hour weight event_group_id note)  # place_id and start_* including start_err are later handled in helpers.get_place_from_params() and _set_time_to_hsmain(), respectively
 
-  # Permitted main parameters for params(), used for update
+  # Permitted main parameters for params(), used for update (and create)
   PARAMS_MAIN_KEYS = ([
     :start_year, :start_month, :start_day, :start_hour, :start_minute,
     :start_err, :start_err_unit,  # form-specific keys that do not exist in Model
@@ -61,7 +61,7 @@ class EventsController < ApplicationController
   end
 
   private
-    # Sets @hsmain and @hstra from params
+    # Sets @hsmain and @hstra and @prms_all from params
     #
     # +action_name+ (+create+ ?) is checked inside!
     #

@@ -50,12 +50,16 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
       assert_response :redirect
       music = Music.order(:created_at).last
       assert_redirected_to music_url music
+      my_assert_no_alert_issued  # defined in /test/test_helper.rb
     end
 
     assert_equal 'Lunch Time, The', music.title
     assert_equal 'en', music.orig_langcode
     assert music.place.covered_by? Country['AUS']
     assert_equal Genre.unknown,  music.genre
+    engs = music.engages
+    assert_equal 2, engs.size
+    assert_equal artists(:artist_ai).title, engs.first.artist.title  # It is "Ai" in the fixutre (not "AI")
     assert_equal @editor, music.translations.first.create_user, "(NOTE: for some reason, created_user_id is nil) Translation(=music.translations.first)="+music.translations.first.inspect
 
     # Failure due to non-existent Artist

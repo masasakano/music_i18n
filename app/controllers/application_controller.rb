@@ -277,6 +277,13 @@ class ApplicationController < ActionController::Base
   #
   # * @hsmain (for model-specific parameters) and
   # * @hstra  (for common translation-related parameters for +create+).
+  # * @prms_all (ActionController::Parameters / includin all parameters permitted under the model, e.g., params[:music]).  Those in multiple layers are not permitted.
+  #
+  # The caller Controler should define 2 or 3 Array constants of Symbols:
+  #
+  # * +PARAMS_MAIN_KEYS+: The attributes input in the form that agree with the form keywords
+  # * +MAIN_FORM_KEYS+: The form keywords that do not exist in the attributes like :is_this_form_used
+  # * +PARAMS_ARRAY_KEYS+: Key for a 1-level nested Array in params, eg., +{music: {..., engage_hows: [1,2,3]}}+.  This key **must** exist in either of the above Array constants.
   #
   # @note +action_name+ (+create+ ?) is checked inside because the translation-related
   #  parameters are relevant only for (+create+)!
@@ -285,11 +292,16 @@ class ApplicationController < ActionController::Base
   # @return [ActionController::Parameters, Hash] all permitted params
   def set_hsparams_main_tra(model_name)
     allkeys = self.class::PARAMS_MAIN_KEYS + ((:create == action_name.to_sym) ? PARAMS_TRANS_KEYS : [])  # latter defined in application_controller.rb
+
+    if (self.class.const_defined?(:PARAMS_ARRAY_KEYS) && ary=self.class::PARAMS_ARRAY_KEYS)  # nested params
+      allkeys = allkeys.map{|ek| ary.include?(ek) ? {ek => []} : ek}
+    end
+
     hsall = params.require(model_name).permit(*allkeys)
     @hsmain    = hsall.slice(*(self.class::MAIN_FORM_KEYS)).to_h  # nb, "place.prefecture_id" is ignored.
     @hstra = hsall.slice(*PARAMS_TRANS_KEYS).to_h  # defined in application_controller.rb
-    @hsmain[:place_id] = helpers.get_place_from_params(hsall).id  # Modified (overwritten)
-    hsall
+    @hsmain[:place_id] = helpers.get_place_from_params(hsall).id if allkeys.map{|ek| ek.respond_to?(:to_sym) ? ek.to_sym : nil}.include?(:place_id)   # Modified (overwritten)
+    @prms_all = hsall
   end
 
   # Retunrs a hash where boolean (and nil) values in the specified keys are converetd from String to true/false/nil

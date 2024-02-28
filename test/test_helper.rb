@@ -251,6 +251,20 @@ class ActiveSupport::TestCase
     assert_match(regex, csstext, "(#{caller_info}): "+msg2pass)
   end
 
+  # Asserts in a Conroller test no presence of alert on the page and prints the alert in failing it
+  #
+  # This tests both a flash and screen. In some cases, the previous flash remains
+  # in testing.  In such case, specify +screen_test_only: true+
+  def my_assert_no_alert_issued(screen_test_only: false)
+    bind = caller_locations(1,1)[0]  # Ruby 2.0+
+    caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
+    # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
+
+    assert  flash[:alert].blank?, "Failed(#{caller_info}) with Flash-alert: "+(flash[:alert] || "") if !screen_test_only
+    msg_alert = css_select(".alert").text.strip
+    assert_empty msg_alert, "(#{caller_info}):Alert: #{msg_alert}"
+  end
+
   # assert if the attribute of the instance is updated
   #
   # @note model is reloaded!
