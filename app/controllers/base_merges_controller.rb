@@ -74,12 +74,17 @@ class BaseMergesController < ApplicationController
     end
 
     # set @to_index
+    #
+    # Either in a form of params[:to_index] or params[:artist|:music][:to_index]
     def set_to_index
       keyi = FORM_MERGE[:to_index]
       case action_name.to_sym
       when :edit
-        params.permit!
-        @to_index = (params[keyi] || params[s=self.class::MODEL_SYM] && params[s][keyi])
+        @to_index = params[keyi]  # params.permit(keyi)[keyi] would return the same (but no point to do so)
+        if !@to_index && (s=self.class::MODEL_SYM; params.has_key?(s))
+          @to_index = params.require(s)[keyi]  # no need of "permit" for simple accessing.
+        end
+        @to_index   = @to_index.presence
         @to_index &&= @to_index.to_i  # nil or Integer
       when :update
         @to_index = merge_params[keyi].to_i
@@ -144,7 +149,7 @@ class BaseMergesController < ApplicationController
       key_t = "other_"+mo_name+"_title"
       mo_title = params.require(mo_name).permit(key_t)[key_t]
       if !mo_title || mo_title.strip.blank?  # raises ActiveRecord::RecordNotFound
-        logger.error "(#{File.basename __FILE__}:#{__method__}): Neither #{key_i.to_sym.inspect} nor #{key_t.to_sym.inspect} is found, which should never happen through UI: params=#{params}"
+        logger.error "(#{File.basename __FILE__}:#{__method__}): Neither #{key_i.to_sym.inspect} nor #{key_t.to_sym.inspect} is found, which should never happen through UI: params=#{params.inspect}"
         return mo_class.find(nil) if !mo_title || mo_title.strip.blank?  # raises ActiveRecord::RecordNotFound
       end
 
@@ -156,7 +161,7 @@ class BaseMergesController < ApplicationController
       ).map{|i| i.translatable}.uniq
 
       if armodel.empty?  # raises ActiveRecord::RecordNotFound
-        logger.error "ERROR(#{__method__}): Neither #{key_i.to_sym.inspect} nor the matching content for #{key_t.to_sym.inspect} is found, which should never happen through UI: params=#{params}"
+        logger.error "ERROR(#{__method__}): Neither #{key_i.to_sym.inspect} nor the matching content for #{key_t.to_sym.inspect} is found, which should never happen through UI: params=#{params.inspect}"
         return mo_class.find(nil)  # raises ActiveRecord::RecordNotFound
       end
 
@@ -178,8 +183,9 @@ class BaseMergesController < ApplicationController
     # @param to_index [Integer, String, NilClass] In default, taken from params()
     # @return [Array<Integer, Hash<Symbol, Symbol>] [to_index, priorities]
     def _build_priorities(model, to_index=nil)
-      hs_params = (params.key?(self.class::MODEL_SYM) ? params[self.class::MODEL_SYM] : nil) 
-      to_index ||= (@to_index || (hs_params ? hs_params[:to_index].to_i : 0))  # @to_index should be set at set_to_index() called from each Controller
+      hs_params = (s=self.class::MODEL_SYM; params.has_key?(s) ? params.require(s) : nil) 
+      hs_params &&= hs_params.permit(*FORM_MERGE)  # sanitizing.  NOTE: Even without this, hs_params[:sex] etc would return a user-set value as expected because they are simply flagged as "unpermitted" and nothing stops you accessing them.
+      to_index ||= (@to_index || (hs_params ? hs_params.permit(:to_index)[:to_index].to_i : 0))  # @to_index should be set at set_to_index() called from each Controller
 
       priorities = { default: :self }
       FORM_MERGE.each_pair do |fkey, fval|
@@ -332,10 +338,9 @@ class BaseMergesController < ApplicationController
     # @yield [] If given, the returned value is used UNLESS the values is given in params()
     # @return [Integer, NilClass]
     def _checked_index(key, def_index: nil)
-      #params.permit!
       s = self.class::MODEL_SYM
-      params.require(s).permit! if params.key?(s)
-      ret = ((params.key?(s) && params[s][FORM_MERGE[key]]) || (block_given? && yield) || def_index)
+      k = FORM_MERGE[key]
+      ret = ((params.key?(s) && params.require(s).permit(k)[k]) || (block_given? && yield) || def_index)
       (ret.blank? ? nil : ret.to_i)
     end
 

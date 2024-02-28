@@ -113,12 +113,12 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
     #  to: '1',            # => @other
     #  lang_orig: '1',        # => @other
     #  lang_trans: nil,       # => @other
-    #  engage: '1'            # => @other
+    #  engage: '1'            # => simply merged for there are no overlaps.
     #  prefecture_place: '0', # => @artist
     #  sex: '1',
     #  birthday: '0',
-    #  wiki_en: '1',
-    #  wiki_ja: '0',
+    #  wiki_en: '1',   # "abc"    <=> nil    (see immediate below)
+    #  wiki_ja: '0',   # "日本00" <=> "日本other"
 
     @artist.update!(created_at: DateTime.new(1))  # very old creation.
     @artist.update!(wiki_en: "abc", wiki_ja: '日本00')
@@ -146,6 +146,9 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
     engage2change22 = engages(:engage_kubota_ihojin2_2) # changed to belong to AI (no change in other parameters)
     assert_equal @artist, engage2change11.artist, 'sanity-check'
     assert_equal engage2change13.artist, engage2change22.artist, 'sanity-check'
+    assert @artist.engages.exists?, 'sanity-check'
+    assert @other.engages.exists?, 'sanity-check'
+    n_engages_be4 = @artist.engages.count + @other.engages.count
 
     trans2delete1 = translations(:artist_saki_kubota_ja)
     assert trans2delete1.is_orig, 'sanity-check: because of is_orit=true, this will be deleted.'
@@ -207,6 +210,7 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
     end
     assert_equal @other,   engage2change11.artist  # it was just reloaded in the method above.
     assert_equal cont_old, engage2change11.contribution  # no change
+    assert_equal n_engages_be4, Engage.where(artist: @other).count, "Engage-s (with no overlaps) should have been merged, but..."
 
     # Place, Sex, birthday
     assert_equal place_bkup0, @other.place
@@ -278,9 +282,16 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
       prefecture_place: nil,
       sex: nil,
       birthday: nil,
-      wiki_en: nil,
-      wiki_ja: nil,
+      wiki_en: '0',  # "my_wiki_en0" <=> "my_wiki_en1"  (these are set immediate below)
+      wiki_ja: '1',  # "my_wiki_ja0" <=> "my_wiki_ja1"
     }
+
+    # Sets wiki_en|ja
+    artist_origs.each_with_index do |art, i|
+      art.update!(%w(en ja).map{|j| s="wiki_"+j; [s, "my_#{s}#{i}"]}.to_h)
+    end
+    wikien_bkup0   = artist_origs[0].wiki_en
+    wikija_bkup1   = artist_origs[1].wiki_ja
 
     assert_difference('Artist.count', -1) do
       assert_difference('Translation.count', 0) do # should not change b/c original translations are completely different (one of them used to be deleted, up to Git-commit ae38d91.
@@ -339,6 +350,9 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
     assert_equal engages[1].artist, engages[0].artist  # it was just reloaded in the method above.
     assert_equal cont_old, engages[1].contribution  # no change
 
+    # wiki_en|ja
+    assert_equal wikien_bkup0, artist_origs[1].wiki_en
+    assert_equal wikija_bkup1, artist_origs[1].wiki_ja
   end # test "should update2" do
 
 
