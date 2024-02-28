@@ -68,11 +68,14 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference("Event.count") do
       post events_url, params: { event: @hs_create }
     end
+    sign_out @trans_moderator
 
     #sign_in users(:user_sysadmin)  # for DEBUG
     sign_in @moderator_all
     assert_difference("Event.count") do
       post events_url, params: { event: @hs_create }
+      msg_alert = css_select(".alert").text.strip
+      assert_empty msg_alert, "Alert: msg_alert"
     end
     assert_redirected_to event_url(Event.last)
     assert_equal "Test7, The", Event.order(:created_at).last.title, "Event: "+Event.order(:created_at).last.inspect
@@ -132,10 +135,10 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
 
     @event.reload
     t = @event.start_app_time
-    assert_nil  @event.start_time_err
     assert_equal     2011, t.year,  "time=#{@event.start_time.inspect}"
     assert_equal        7, t.month, "time=#{@event.start_time.inspect}"
     assert_equal        2, t.day,   "time=#{@event.start_time.inspect}"
+    assert_nil  @event.start_time_err
   end
 
   test "should destroy event" do
@@ -152,6 +155,8 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
 
     assert_difference("Event.count", -1) do
       delete event_url(evt)
+      msg_alert = css_select(".alert").text.strip
+      assert_empty msg_alert, "Alert: msg_alert"
     end
     assert_redirected_to events_url
   end

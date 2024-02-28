@@ -34,6 +34,13 @@ class ApplicationController < ActionController::Base
     notice:  "notice alert alert-info",
   }.with_indifferent_access
 
+  # Common params keys for {Translation}.
+  # @note +:is_orig+ is not included!
+  PARAMS_TRANS_KEYS = [:langcode, :title, :ruby, :romaji, :alt_title, :alt_ruby, :alt_romaji]  # :is_orig
+
+  # Common params keys for {Place}.
+  PARAMS_PLACE_KEYS = %i(place.prefecture_id.country_id place.prefecture_id place place_id)  # :place is used (place_id seems redundant(?) but the most basic UI may require it and so we leave it)
+
   # Unit used in Event/EventItem Forms
   EVENT_FORM_ERR_UNITS = [["days", "day"], ["hours", "hour"], ["minutes", "minute"]]
 
@@ -71,19 +78,22 @@ class ApplicationController < ActionController::Base
   #
   # The contents of the given model are modified.
   #
+  # `is_orig` is forced to be true!
+  #
   # @example
   #   hsmain = params[:place].slice('note')
   #   @place = Place.new(**(hsmain.merge({prefecture_id: params[:place][:prefecture].to_i})))
   #   add_unsaved_trans_to_model(@place)
   #
   # @param mdl [ApplicationRecord]
+  # @param prms [ActionController::Parameters, Hash] 1-layer Hash-like object. All parameters must be permitted.
   # @return [void]
-  def add_unsaved_trans_to_model(mdl)
+  def add_unsaved_trans_to_model(mdl, prms=nil)
     mdl_name = mdl.class.name
+    prms ||= params[mdl_name.underscore]  # e.g., params["event_group"]
     begin
-      hsprm_tra, _ = split_hash_with_keys(
-                   params[mdl_name.underscore],  # e.g., params["event_group"]
-                   %w(langcode title ruby romaji alt_title alt_ruby alt_romaji))
+      hsprm_tra = prms.slice(*PARAMS_TRANS_KEYS).to_h
+      # If this raises ActionController::UnfilteredParameters, you may want to exlicitly specify the *permitted* prms
     rescue NoMethodError => err
       logger.error("ERROR(#{File.basename __FILE__}): params['#{mdl_name.downcase}'] seems not correct: params=#{params.inspect}")
       raise
@@ -260,6 +270,28 @@ class ApplicationController < ActionController::Base
     )
   end
 
+  # Set two instance variables @hsmain ant @hstra
+  #
+  # Only allows a list of trusted parameters through and
+  # sets Hash-es of
+  #
+  # * @hsmain (for model-specific parameters) and
+  # * @hstra  (for common translation-related parameters for +create+).
+  #
+  # @note +action_name+ (+create+ ?) is checked inside because the translation-related
+  #  parameters are relevant only for (+create+)!
+  #
+  # @param model_name [String, Symbol] model name like "event_group"
+  # @return [ActionController::Parameters, Hash] all permitted params
+  def set_hsparams_main_tra(model_name)
+    allkeys = self.class::PARAMS_MAIN_KEYS + ((:create == action_name.to_sym) ? PARAMS_TRANS_KEYS : [])  # latter defined in application_controller.rb
+    hsall = params.require(model_name).permit(*allkeys)
+    @hsmain    = hsall.slice(*(self.class::MAIN_FORM_KEYS)).to_h  # nb, "place.prefecture_id" is ignored.
+    @hstra = hsall.slice(*PARAMS_TRANS_KEYS).to_h  # defined in application_controller.rb
+    @hsmain[:place_id] = helpers.get_place_from_params(hsall).id  # Modified (overwritten)
+    hsall
+  end
+
   # Retunrs a hash where boolean (and nil) values in the specified keys are converetd from String to true/false/nil
   #
   # Note so far this handles only a 1-layer Hash.
@@ -296,6 +328,10 @@ class ApplicationController < ActionController::Base
   #
   # year etc may be String.
   #
+  # If err is nil and if day or month is blank, a middle day is set
+  # (like 2 July if month is nil) and an appropriate error is set
+  # in the returned TimeWithError as defined in +/lib/time_with_error.rb+
+  #
   # @param err: [Integer, String, NilClass] Integer-like
   # @return [TimeWithError, NilClass]
   def self.create_a_date(year, month, day, err: nil)
@@ -326,29 +362,47 @@ class ApplicationController < ActionController::Base
     t
   end
 
-
-  # Sets start_time and start_time_err in hsmain (which is a partial params())
+  # Sets (start|end)_date and (start|end)_date_err in Hash hsmain
   #
   # Overwrites the given +hsmain+
   #
-  # @param hsmain [Hash]
-  def _set_time_to_hsmain(hsmain)
+  # @param prmall [ActionController::Parameters, Hash] all permitted params
+  # @param hsmain [Hash] Main Hash from params for Object, excluding translation-related ones
+  def _set_dates_to_hsmain(prmall, hsmain=@hsmain)
+    %w(start end).each do |col_prefix|
+      errcolname = col_prefix+"_date_err"
+      err = prmall[errcolname]
+      err = nil if err && err.strip.blank?
+
+      ar = %w(year month day).map{|i| prmall[col_prefix+"_"+i].presence}
+      hsmain[col_prefix+"_date"] = self.class.create_a_date(*ar, err: err)
+      hsmain[errcolname] = err  # String. If not integer-like, validation in Conroller should catch it.
+    end
+  end
+
+  # Sets start_time and start_time_err in Hash hsmain
+  #
+  # Overwrites the given +hsmain+
+  #
+  # @param prmall [ActionController::Parameters, Hash] all permitted params
+  # @param hsmain [Hash] Main Hash from params for Object, excluding translation-related ones
+  def _set_time_to_hsmain(prmall, hsmain=@hsmain)
     time_err = 
-      if params[:event][:start_err].blank?
+      if prmall[:start_err].blank?
         nil
       else
-        unit = params[:event][:start_err_unit].strip
-        if self.class::EVENT_FORM_ERR_UNITS.to_h.values.include?(unit)
-          params[:event][:start_err].to_f.send(unit)
+        unit = prmall[:start_err_unit].strip
+        if EVENT_FORM_ERR_UNITS.to_h.values.include?(unit)
+          prmall[:start_err].to_f.send(unit)
         else
-          logger.warn "(#{File.basename(__FILE__)}) Invalid :start_err_unit is specified: #{params[:event][:start_err_unit].inspect}"
+          logger.warn "(#{File.basename(__FILE__)}) Invalid :start_err_unit is specified: #{prmall[:start_err_unit].inspect}"
           nil
         end
       end
 
-    ar = %w(year month day hour minute).map{|i| params[:event]["start_"+i].presence}
-    hsmain["start_time"]     = self.class.create_a_time(*ar, err: time_err)
-    hsmain["start_time_err"] = time_err  # == hsmain["start_time"].error
+    ar = %w(year month day hour minute).map{|i| prmall["start_"+i].presence}
+    hsmain["start_time"]     = self.class.create_a_time(*ar, err: time_err)  # even if time_err is nil, hsmain["start_time"] may be set?? (e.g., if only Year is significant).
+    hsmain["start_time_err"] = time_err
   end
   private :_set_time_to_hsmain
 

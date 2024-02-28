@@ -1,11 +1,18 @@
+# coding: utf-8
 class EventGroupsController < ApplicationController
+  #before_action :set_event_group, only: [:show, :edit, :update, :destroy]
   skip_before_action :authenticate_user!, :only => [:index, :show]  # Revert application_controller.rb so Index is viewable by anyone.
-  before_action :set_event_group, only: [:show, :edit, :update, :destroy]
   before_action :set_countries, only: [:new, :create, :edit, :update] # defined in application_controller.rb
   load_and_authorize_resource except: [:create] # except: [:index, :show]
+  before_action :event_params_two, only: [:update, :create]
 
   # String of the main parameters in the Form (except "place_id")
   MAIN_FORM_KEYS = %w(order_no start_date_err end_date_err place_id note)
+
+  # Permitted main parameters for params(), used for update
+  PARAMS_MAIN_KEYS = ([
+    :start_year, :start_month, :start_day, :end_year, :end_month, :end_day, # form-specific keys that do not exist in Model
+  ] + MAIN_FORM_KEYS + PARAMS_PLACE_KEYS).uniq  # PARAMS_PLACE_KEYS defined in application_controller.rb
 
   # GET /event_groups or /event_groups.json
   def index
@@ -27,55 +34,19 @@ class EventGroupsController < ApplicationController
 
   # POST /event_groups or /event_groups.json
   def create
-    # Parameters: {"event_group"=>{"langcode"=>"ja", "title"=>"The Test7", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "place.prefecture_id.country_id"=>"338130558", "place.prefecture_id"=>"", "place_id"=>"", "start_year"=>"1999", "start_month"=>"", "start_day"=>"", "end_year"=>"1999", "end_month"=>"", "end_day"=>"", "note"=>""}, "locale"=>"en"}
-    #hsprm = event_group_params
-    #@event_group = EventGroup.new(event_group_params)
-    params.permit!
-    hsprm = params.require(:event_group).permit(
-      :order_no, :start_year, :start_month, :start_day, :end_year, :end_month, :end_day, :place_id, :note,
-      :start_date_err, :end_date_err,
-      :langcode, :title, :ruby, :romaji, :alt_title, :alt_ruby, :alt_romaji,  # no :is_orig, 
-      :"place.prefecture_id.country_id", :"place.prefecture_id", :place
-    )
+    # Parameters: {"event_group"=>{"langcode"=>"ja", "title"=>"The Test7", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "place.prefecture_id.country_id"=>"338130558", "place.prefecture_id"=>"", "place_id"=>"", "order_no"=>"", "start_year" =>"1999", "start_month"=>"", "start_day"=>"", "end_year"=>"1999", "end_month"=>"", "end_day"=>"", "start_date_err"=>"", "end_date_err"=>"", "note"=>""}, "locale"=>"en"}
 
-    hsmain = params[:event_group].slice(*MAIN_FORM_KEYS)
-    _add_date_to_hsmain(hsmain)
-    hsmain.merge!({place_id: helpers.get_place_from_params(hsprm).id})
-
-    @event_group = EventGroup.new(hsmain)
+    @event_group = EventGroup.new(@hsmain)
     authorize! __method__, @event_group
 
-    add_unsaved_trans_to_model(@event_group) # defined in application_controller.rb
-    def_respond_to_format(@event_group)      # defined in application_controller.rb
-  end
-
-  def _add_date_to_hsmain(hsmain)
-    %w(start end).each do |col_prefix|
-      ar = %w(year month day).map{|i| params[:event_group][col_prefix+"_"+i].presence}
-      hsmain[col_prefix+"_date"] = ApplicationController.create_a_date(*ar)  # err is not specified.
-
-      errcolname = col_prefix+"_date_err"
-      err = params[:event_group][errcolname]
-      err = nil if err && err.strip.blank?
-      hsmain[errcolname] = err
-    end
+    add_unsaved_trans_to_model(@event_group, @hstra) # defined in application_controller.rb
+    def_respond_to_format(@event_group)              # defined in application_controller.rb
   end
 
   # PATCH/PUT /event_groups/1 or /event_groups/1.json
   def update
-    params.permit!
-    hsprm = params.require(:event_group).permit(
-      :order_no, :start_year, :start_month, :start_day, :end_year, :end_month, :end_day, :note,
-      :start_date_err, :end_date_err,
-      :"place.prefecture_id.country_id", :"place.prefecture_id", :place_id
-    )
-
-    hsmain = params[:event_group].slice(*MAIN_FORM_KEYS)
-    _add_date_to_hsmain(hsmain)
-    hsmain.merge!({place_id: helpers.get_place_from_params(hsprm).id})
-
     def_respond_to_format(@event_group, :updated){
-      @event_group.update(hsmain)
+      @event_group.update(@hsmain)
     } # defined in application_controller.rb
   end
 
@@ -90,11 +61,18 @@ class EventGroupsController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
-    def set_event_group
-      @event_group = EventGroup.find(params[:id])
+    # Sets @hsmain and @hstra from params
+    #
+    # +action_name+ (+create+ ?) is checked inside!
+    #
+    # @return NONE
+    def event_params_two
+      hsall = set_hsparams_main_tra(:event_group) # defined in application_controller.rb
+      _set_dates_to_hsmain(hsall)  # defined in application_controller.rb
     end
 
+
+#############################
     # Only allow a list of trusted parameters through.
     def event_group_params
       params.require(:event_group).permit(
@@ -104,4 +82,16 @@ class EventGroupsController < ApplicationController
         :"place.prefecture_id.country_id", :"place.prefecture_id", :place  # :place is used (place_id above is redundant but the most basic UI may require it and so we leave it)
       )
     end
+  def _add_date_to_hsmain(hsmain)
+    %w(start end).each do |col_prefix|
+      ar = %w(year month day).map{|i| params[:event_group][col_prefix+"_"+i].presence}
+      hsmain[col_prefix+"_date"] = self.class.create_a_date(*ar)  # err is not specified.
+
+      errcolname = col_prefix+"_date_err"
+      err = params[:event_group][errcolname]
+      err = nil if err && err.strip.blank?
+      hsmain[errcolname] = err
+    end
+  end
+
 end

@@ -2,25 +2,18 @@
 class EventsController < ApplicationController
   #before_action :set_event, only: %i[ show edit update destroy ]
   skip_before_action :authenticate_user!, :only => [:index, :show]  # Revert application_controller.rb so Index is viewable by anyone.
-  before_action :set_event, only: [:show, :edit, :update, :destroy]
   before_action :set_countries, only: [:new, :create, :edit, :update] # defined in application_controller.rb
-  load_and_authorize_resource except: [:create] # except: [:index, :show]
+  load_and_authorize_resource except: [:create] # except: [:index, :show]  # This sets @event
+  before_action :event_params_two, only: [:update, :create]
 
   # String of the main parameters in the Form (except "place_id")
-  MAIN_FORM_KEYS = %w(start_time_err duration_hour weight event_group_id place_id note)
+  MAIN_FORM_KEYS = %i(duration_hour weight event_group_id note)  # place_id and start_* including start_err are later handled in helpers.get_place_from_params() and _set_time_to_hsmain(), respectively
 
   # Permitted main parameters for params(), used for update
-  PARAMS_MAIN_PARAMETERS = [
-    :duration_hour, :weight, :event_group_id, :place_id, :note,
+  PARAMS_MAIN_KEYS = ([
     :start_year, :start_month, :start_day, :start_hour, :start_minute,
-    :start_err, :start_err_unit,
-    :"place.prefecture_id.country_id", :"place.prefecture_id", :place  # :place is used (place_id above is redundant but the most basic UI may require it and so we leave it)
-  ]
-
-  # Permitted parameters for params()
-  PARAMS_PARAMETERS = PARAMS_MAIN_PARAMETERS + [
-    :langcode, :title, :ruby, :romaji, :alt_title, :alt_ruby, :alt_romaji, :is_orig, # In :create, should remove :is_orig
-  ]
+    :start_err, :start_err_unit,  # form-specific keys that do not exist in Model
+  ] + MAIN_FORM_KEYS + PARAMS_PLACE_KEYS).uniq  # PARAMS_PLACE_KEYS defined in application_controller.rb
 
   # GET /events or /events.json
   def index
@@ -42,31 +35,18 @@ class EventsController < ApplicationController
 
   # POST /events or /events.json
   def create
-    params.permit!
-    hsprm = params.require(:event).permit(*(PARAMS_PARAMETERS - [:is_orig]))
-    hsmain = params[:event].slice(*MAIN_FORM_KEYS)
-    _set_time_to_hsmain(hsmain)  # defined in application_controller.rb
-    hsmain.merge!({place_id: helpers.get_place_from_params(hsprm).id})
-
-    @event = Event.new(hsmain)
+    @event = Event.new(@hsmain)
     authorize! __method__, @event
 
-    add_unsaved_trans_to_model(@event) # defined in application_controller.rb
-    def_respond_to_format(@event)      # defined in application_controller.rb
+    add_unsaved_trans_to_model(@event, @hstra) # defined in application_controller.rb
+    def_respond_to_format(@event)              # defined in application_controller.rb
   end
 
 
   # PATCH/PUT /events/1 or /events/1.json
   def update
-    params.permit!
-    hsprm = params.require(:event).permit(*PARAMS_MAIN_PARAMETERS)
-
-    hsmain = params[:event].slice(*MAIN_FORM_KEYS)
-    _set_time_to_hsmain(hsmain)  # defined in application_controller.rb
-    hsmain.merge!({place_id: helpers.get_place_from_params(hsprm).id})
-
     def_respond_to_format(@event, :updated){
-      @event.update(hsmain)
+      @event.update(@hsmain)
     } # defined in application_controller.rb
   end
 
@@ -81,13 +61,13 @@ class EventsController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
-    def set_event
-      @event = Event.find(params[:id])
-    end
-
-    # Only allow a list of trusted parameters through.
-    def event_params
-      params.require(:event).permit( *PARAMS_PARAMETERS )
+    # Sets @hsmain and @hstra from params
+    #
+    # +action_name+ (+create+ ?) is checked inside!
+    #
+    # @return NONE
+    def event_params_two
+      hsall = set_hsparams_main_tra(:event) # defined in application_controller.rb
+      _set_time_to_hsmain(hsall)  # defined in application_controller.rb
     end
 end
