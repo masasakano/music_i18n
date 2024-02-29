@@ -9,7 +9,7 @@ class EventGroupsTest < ApplicationSystemTestCase
 
   test "visiting the index" do
     visit event_groups_url
-    assert_selector "h1", text: "EventGroups"
+    assert_selector "h1", text: "Event Group"
   end
 
   test "should create event group" do
@@ -57,7 +57,9 @@ class EventGroupsTest < ApplicationSystemTestCase
     click_on "Create EventGroup"
 
     assert_text "EventGroup was successfully created"
-    click_on "Back"
+    assert_selector "section#section_event_group_show_footer a", text: "Back"
+    page.find("section#section_event_group_show_footer a").click  # "Back to Index"
+    #click_on "Back"
 
     n_event_groups = page.all("div#event_groups table tr").size - 1
     assert_equal(n_event_groups_be4+1, n_event_groups)
@@ -83,7 +85,7 @@ class EventGroupsTest < ApplicationSystemTestCase
     click_on "Update EventGroup"
 
     assert_text "EventGroup was successfully updated"
-    click_on "Back"
+    page.find("section#section_event_group_show_footer a").click  # "Back to Index"
 
     ## test "should destroy Event group" do
     visit event_group_url(@event_group)

@@ -30,6 +30,10 @@ en:
     Page_n: "Page %{count}"
     release_date: "Date"
     duration: "Length[s]"
+    duration_hour: "Duration[hr]"
+    start_time: "Start Date/Time"
+    end_time: "End Date/Time"
+    Show: "Detail"
 
   application:
     menu_harami_vids: "HARAMIchan's Videos"
@@ -132,6 +136,17 @@ en:
       birth_year: "Birth year (maybe of Group)"
       birth_month: "Birth month (0 means unknown)"
       birth_day: "Birth day (0 means unknown)"
+
+  event_groups:
+    num_id: "#num"
+    start_date: Start Date
+    end_date: End Date
+    n_events: "#Events"
+    index:
+      show: "Detail (Events)"
+    show:
+      number_id: "通し番号"
+      event_table_title: Events in this Group
 
   musics:
     index:

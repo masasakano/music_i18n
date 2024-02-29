@@ -38,6 +38,7 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
   test "should get index" do
     get events_url
     assert_response :success
+    assert_match(/\bPlace\b/, css_select("table").text)
     w3c_validate "Event index"  # defined in test_helper.rb (see for debugging help)
   end
 
@@ -81,9 +82,10 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should show event" do
-    sign_in @trans_moderator
+    #sign_in @trans_moderator
     get event_url(@event)
     assert_response :success
+    assert_match(/\bPlace\b/, css_select("body").text)
     w3c_validate "Event index"  # defined in test_helper.rb (see for debugging help)
   end
 

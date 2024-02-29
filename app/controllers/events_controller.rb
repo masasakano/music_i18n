@@ -1,9 +1,9 @@
 # coding: utf-8
 class EventsController < ApplicationController
-  #before_action :set_event, only: %i[ show edit update destroy ]
   skip_before_action :authenticate_user!, :only => [:index, :show]  # Revert application_controller.rb so Index is viewable by anyone.
-  before_action :set_countries, only: [:new, :create, :edit, :update] # defined in application_controller.rb
   load_and_authorize_resource except: [:create] # except: [:index, :show]  # This sets @event
+  before_action :set_event, only: [:show] #, :edit, :update, :destroy]
+  before_action :set_countries, only: [:new, :create, :edit, :update] # defined in application_controller.rb
   before_action :event_params_two, only: [:update, :create]
 
   # String of the main parameters in the Form (except "place_id")
@@ -61,6 +61,11 @@ class EventsController < ApplicationController
   end
 
   private
+    # Use callbacks to share common setup or constraints between actions.
+    def set_event
+      @event = Event.find(params[:id])
+    end
+
     # Sets @hsmain and @hstra and @prms_all from params
     #
     # +action_name+ (+create+ ?) is checked inside!

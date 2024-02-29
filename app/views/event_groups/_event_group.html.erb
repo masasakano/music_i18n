@@ -1,56 +1,40 @@
 <div id="<%= dom_id event_group %>">
   <p>
-    <strong>Serial Number:</strong>
+    <strong><span title="Serial Number"><%= t("event_groups.show.number_id") %></span>:</strong>
     <%= event_group.order_no %>
   </p>
 
+  <% canedit = can?(:edit, event_group) %>
+  <% end_str = (canedit ? nil : "&mdash;".html_safe) %>
   <p>
-    <strong>From year:</strong>
-    <%= event_group.start_date.year %>
+    <strong><%= t("event_groups.start_date", default: "From YYYY-MM-DD") %>:</strong>
+    <%# event_group.start_date.year %>
+    <%# event_group.start_date.month %>
+    <%# event_group.start_date.day %>
+    <% da = event_group.start_date; %>
+    <%= strdate = (da ? date2text(da.year, da.month, da.day, lower_end_str: end_str, upper_end_str: end_str) : (canedit ? date2text(nil, nil, nil) : "&mdash;".html_safe)) %>
+    <% s=event_group.start_date_err; %>
+    (± <%= ("&mdash;" == strdate) ? "&mdash; [#{t(:days)}]".html_safe : sprintf("%s [%s]", s, t(:days)).html_safe %>)
   </p>
 
   <p>
-    <strong>From month:</strong>
-    <%= event_group.start_date.month %>
+    <strong><%= t("event_groups.end_date", default: "From YYYY-MM-DD") %>:</strong>
+    <%# event_group.end_date.year %>
+    <%# event_group.end_date.month %>
+    <%# event_group.end_date.day %>
+    <% da = event_group.end_date; %>
+    <%= strdate = (da ? date2text(da.year, da.month, da.day, lower_end_str: end_str, upper_end_str: end_str) : (canedit ? date2text(nil, nil, nil) : "&mdash;".html_safe)) %>
+    <% s=event_group.end_date_err; %>
+    (± <%= ("&mdash;" == strdate) ? "&mdash; [#{t(:days)}]".html_safe : sprintf("%s [%s]", s, t(:days)).html_safe %>)
   </p>
 
   <p>
-    <strong>From day:</strong>
-    <%= event_group.start_date.day %>
-  </p>
-
-  <p>
-    <strong>±days:</strong>
-    <%= event_group.end_date_err %>
-  </p>
-
-  <p>
-    <strong>To year:</strong>
-    <%= event_group.end_date.year %>
-  </p>
-
-  <p>
-    <strong>To month:</strong>
-    <%= event_group.end_date.month %>
-  </p>
-
-  <p>
-    <strong>To day:</strong>
-    <%= event_group.end_date.day %>
-  </p>
-
-  <p>
-    <strong>±days:</strong>
-    <%= event_group.end_date_err %>
-  </p>
-
-  <p>
-    <strong>Place:</strong>
+    <strong><%= t(:Place) %>:</strong>
     <%= event_group.place ? h(event_group.txt_place_pref_ctry) : "" %>
   </p>
 
   <p>
-    <strong>Note:</strong>
+    <strong><%= t("tables.note") %>:</strong>
     <%= event_group.note %>
   </p>
 

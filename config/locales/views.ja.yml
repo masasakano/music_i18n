@@ -30,6 +30,10 @@ ja:
     Page_n: "第%{count}頁 "
     release_date: "公開日"
     duration: "長さ[秒]"
+    duration_hour: "時間[h]"
+    start_time: 開始日時
+    end_time: "終了日時"
+    Show: "詳細"
 
   application:
     menu_harami_vids: "ハラミちゃん動画"
@@ -147,6 +151,17 @@ ja:
       birth_year: "誕生(グループの場合は結成)年"
       birth_month: "誕生月 (1——12) (0は未定義の意味)"
       birth_day: "誕生日 (1——31) (0は未定義の意味)"
+
+  event_groups:
+    num_id: "通番"
+    start_date: 開始日
+    end_date: 終了日
+    n_events: イベント数
+    index:
+      show: "詳細 (全イベント)"
+    show:
+      number_id: "通し番号"
+      event_table_title: 本イベントシリーズの全イベント
 
   musics:
     index:

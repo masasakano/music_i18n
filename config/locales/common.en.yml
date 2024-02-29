@@ -37,6 +37,9 @@ en:
   Country: Country
   detail: Detail
   display_name: Display Name
+  Event: Event
+  EventGroup: Event Group
+  EventItem: Event Item
   Genre: Genre
   Harami: "HARAMIchan"
   HaramiVid: "Harami's Video"
@@ -54,6 +57,7 @@ en:
   title: name
   Year_Title: Year
   year_unknown: Year_Unknown
+  days: days
 
   locale:
     lowercase:

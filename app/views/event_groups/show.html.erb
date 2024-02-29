@@ -1,22 +1,90 @@
 <% my_title = @event_group.title_or_alt_tuple_str(langcode: I18n.locale) %>
-<h1>EventGroup: <%= my_title %></h1>
+<h1><%= t("EventGroup") %>: <%= my_title %></h1>
 
-<hr>
+<% canupdate = can?(:create, @event_group) %>
+
+<% if can?(:create, Translation) %>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: @event_group, add_buttons: true} %>
 <hr>
+<% else %>
+<h3><%= t(:title).upcase %></h3>
+
+<dl>
+  <% @event_group.best_translations.each_pair do |ek, etra| %>
+    <dt>[<%= t("locale.long."+ek.to_s) %><%= '<span title="original language">*</span>'.html_safe if etra.is_orig %>]</dt>
+    <dd><%= [etra.title, etra.alt_title].map(&:presence).compact.join(" / ") %></dd>
+  <% end %>
+</dl>
+<% end %>
 
 <%= render @event_group %>
 
-<div>
+<div id="event_group_show_footer_controller">
   <p>
+    <% if canupdate %>
   <%= link_to "Edit this EventGroup", edit_event_group_path(@event_group) %> |
-  <%= link_to "Back to index", event_groups_path %>
+    <% end %>
+  <%= link_to t("layouts.back_to_index"), event_groups_path %>
 
-<% if can?(:destroy, @event_group) && !@event_group.events.exists? %>
+<% if canupdate && !@event_group.events.exists? %>
   <%= button_to "Destroy this EventGroup", @event_group, method: :delete %>
 <% elsif current_user && current_user.an_admin? %>
   Child Events exist and so this cannot be destroyed.
 <% end %>
   </p>
-
 </div>
+
+<hr>
+
+<section id="section_event_group_show_events">
+
+<h2><%= t("event_groups.show.event_table_title") %></h2>
+
+<table id="table_event_group_show_events">
+  <thead>
+    <tr>
+      <% can_create_event = can?(:create, Event) %>
+      <th><%= can_create_event ? "ID" : "" %></th>
+      <th><%= t(:title).capitalize %></th>
+      <th><%= t("tables.start_time") %></th>
+      <th><%= t("tables.duration_hour") %></th>
+      <th><%= t(:Place) %></th>
+      <th title="Note in this DB"><%= t("tables.note") %></th>
+      <% if can_create_event %>
+        <th colspan="3"></th>
+      <% else %>
+        <th></th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @event_group.events.each_with_index do |event, i_event| %>
+      <tr>
+        <td><%= can_create_event ? event.id : i_event %><%= %></td>
+        <td><%= link_to event.title_or_alt(langcode: I18n.locale), event_url(event) %></td>
+        <td><%= event.string_time_err2uptomin %></td>
+        <td><%= event.duration_hour %></td>
+        <td><%= event.place ? event.txt_place_pref_ctry : "" %></td>
+        <td><%= event.note %></td>
+        <td><%= link_to t("events.index.show"), event %></td>
+        <% if can? :update, event  %>
+          <td><%= link_to 'Edit', edit_event_path(event) %></td>
+        <% end %>
+        <% if can? :destroy, event %>
+          <td><%= link_to 'Destroy', event, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+</section>
+
+<hr>
+
+<section id="section_event_group_show_footer">
+<p>
+<%= link_to t("layouts.back_to_index"), event_groups_path %>
+</p>
+</section>
+

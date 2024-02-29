@@ -3,9 +3,9 @@ class MusicsController < ApplicationController
   include ModuleCommon # for split_hash_with_keys
 
   skip_before_action :authenticate_user!, :only => [:index, :show]
-  before_action :set_music, only: [:show, :edit, :update, :destroy]
-  before_action :set_countries, only: [:new, :create, :edit, :update] # defined in application_controller.rb
   load_and_authorize_resource except: [:index, :show]
+  before_action :set_music, only: [:show] #, :edit, :update, :destroy]
+  before_action :set_countries, only: [:new, :create, :edit, :update] # defined in application_controller.rb
   before_action :event_params_two, only: [:update, :create]
 
   # String of the main parameters in the Form (except "place_id")

@@ -77,10 +77,20 @@ module ModuleCommon
   # @param year  [Integer, NilClass]
   # @param month [Integer, NilClass]
   # @param day   [Integer, NilClass]
-  # @param langcode [String, Symbol] Default: +I18n.locale+
+  # @param langcode: [String, Symbol] Default: +I18n.locale+
+  # @param lower_end_str: [String, NilClass] if     nil  or Year <  100, this String is returned (html_safe).
+  # @param upper_end_str: [String, NilClass] if non-nil and Year > 9000, this String is returned (html_safe).
   # @return [String]
-  def date2text(year, month, day, langcode: I18n.locale)
-    year  = nil if year.blank?
+  def date2text(year, month, day, langcode: I18n.locale, lower_end_str: nil, upper_end_str: nil)
+    if year.blank?
+      return lower_end_str if lower_end_str
+      year  = nil 
+    elsif year <  100
+      return lower_end_str if lower_end_str
+    elsif year > 9000
+      return upper_end_str if upper_end_str
+    end
+
     month = nil if month.blank?
     day   = nil if day.blank?
     case langcode.to_s

@@ -1,7 +1,7 @@
 class PlacesController < ApplicationController
-  before_action :set_place, only: [:show, :edit, :update, :destroy]
-  before_action :set_countries, only: [:index, :new, :create, :edit, :update] # defined in application_controller.rb
+  #before_action :set_place, only: [:show, :edit, :update, :destroy]
   load_and_authorize_resource
+  before_action :set_countries, only: [:index, :new, :create, :edit, :update] # defined in application_controller.rb
 
   # String of the main parameters in the Form (except place-related)
   MAIN_FORM_KEYS = %w(note)

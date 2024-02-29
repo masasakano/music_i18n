@@ -1,10 +1,13 @@
-<p style="color: green"><%= notice %></p>
 
 <%= render @event %>
 
 <div>
+    <% if can? :update, @event %>
   <%= link_to "Edit this Event", edit_event_path(@event) %> |
-  <%= link_to "Back to Events", events_path %>
+    <% end %>
+  <%= link_to t("layouts.back_to_index"), events_path %>
 
+    <% if can? :destroy, @event %>
   <%= button_to "Destroy", @event, method: :delete %>
+    <% end %>
 </div>

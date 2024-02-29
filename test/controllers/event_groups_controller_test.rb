@@ -32,7 +32,12 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
   test "should get index" do
     get event_groups_url
     assert_response :success
+    assert_match(/\bPlace\b/, css_select("body").text)
     w3c_validate "EventGroup index"  # defined in test_helper.rb (see for debugging help)
+
+    css_events = "td.event_groups_index_table_events"
+    assert_operator 0, :<, css_select(css_events).size
+    assert_match(/\A\d+\z/, css_select(css_events).first.text.strip)
   end
 
   test "should get new" do
@@ -73,10 +78,13 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should show event_group" do
-    sign_in @trans_moderator
+    ## Even non-priviledge people can "show"
+    #sign_in @trans_moderator
     get event_group_url(@event_group)
     assert_response :success
+    assert_match(/\bPlace\b/, css_select("body").text)
     w3c_validate "EventGroup index"  # defined in test_helper.rb (see for debugging help)
+    assert_equal 1, css_select("#table_event_group_show_events").size
   end
 
   test "should get edit" do

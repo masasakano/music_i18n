@@ -6,6 +6,12 @@ ja:
   Country: 国名
   detail: 詳細
   display_name: 表示名
+  Event: イベント
+  Events: イベント
+  EventGroup: イベントシリーズ
+  EventGroups: イベントシリーズ
+  EventItem: イベント項目
+  EventItems: イベント項目
   Genre: ジャンル
   Harami: ハラミちゃん
   HaramiVid: "ハラミちゃん動画"
@@ -23,6 +29,7 @@ ja:
   title: 名称
   Year_Title: 西暦年
   year_unknown: 年不明
+  days: 日
 
   locale:
     lowercase:

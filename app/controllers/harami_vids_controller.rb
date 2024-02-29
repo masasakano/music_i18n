@@ -1,6 +1,7 @@
 class HaramiVidsController < ApplicationController
   skip_before_action :authenticate_user!, :only => [:index, :show]
-  before_action :set_harami_vid, only: [:show, :edit, :update, :destroy]
+  load_and_authorize_resource except: [:index, :show]
+  before_action :set_harami_vid, only: [:show]#, :edit, :update, :destroy]
 
   # GET /harami_vids
   # GET /harami_vids.json
@@ -53,6 +54,7 @@ class HaramiVidsController < ApplicationController
   # DELETE /harami_vids/1.json
   def destroy
     @harami_vid.destroy
+
     respond_to do |format|
       format.html { redirect_to harami_vids_url, notice: 'Harami vid was successfully destroyed.' }
       format.json { head :no_content }
@@ -146,4 +148,5 @@ class HaramiVidsController < ApplicationController
       prmret = harami_vid_params.slice(:release_date, :duration, :uri, :flag_by_harami, :uri_playlist_ja, :uri_playlist_en, :note)
       {place_id: harami_vid_params[:place]}.merge prmret
     end
+
 end

@@ -1,22 +1,32 @@
 <%= notice %>
 
-<h1>EventGroups</h1>
+<h1><%= t("EventGroup", count: 2) %></h1>
 
 <div id="event_groups">
 <table id="event_groups_index_table">
   <thead>
     <tr>
-      <th>ID</th>
+     <% can_edit_event_group = can?(:edit, EventGroup) %>
+      <th><%= can_edit_event_group ? "ID" : "" %></th>
+      <% if can_edit_event_group %>
       <th>Name (ja)</th>
       <th>Name (en)</th>
-      <th title="n-th one in a series of Event Group">#num</th>
-      <th>From YYYY-MM-DD</th>
+      <% else %>
+      <th><%= t(:title).capitalize %></th>
+      <% end %>
+      <th title="n-th one in a series of Event Group"><%= t("event_groups.num_id") %></th>
+      <th><%= t("event_groups.start_date", default: "From YYYY-MM-DD") %></th>
+      <% if can_edit_event_group %>
       <th>±days</th>
-      <th>To YYYY-MM-DD</th>
+      <% end %>
+      <th><%= t("event_groups.end_date", default: "To YYYY-MM-DD") %></th>
+      <% if can_edit_event_group %>
       <th>±days</th>
-      <th>Place</th>
-      <th title="Note in this DB">Note</th>
-      <% if can? :update, EventGroup %>
+      <% end %>
+      <th><%= t(:Place) %></th>
+      <th title="Note in this DB"><%= t("tables.note") %></th>
+      <th><%= t("event_groups.n_events") %></th>
+      <% if can_edit_event_group %>
         <th colspan="3"></th>
       <% else %>
         <th></th>
@@ -25,23 +35,31 @@
   </thead>
 
   <tbody>
-    <% @event_groups.each do |event_group| %>
+    <% @event_groups.order(start_date: :desc).each_with_index do |event_group, i_eg| %>
       <tr>
-        <td><%= event_group.id %></td>
+        <td><%= can_edit_event_group ? event_group.id : i_eg+1 %></td>
         <% btr = event_group.best_translations %>
+      <% if can_edit_event_group %>
         <% %w(ja en).each do |lc| %> <%# no "fr" so far %>
         <td><%= %w(title alt_title).map{|i| tra=btr[lc]; s=(tra && h(tra.send(i))); s.blank? ? '&mdash;' : s}.join(' | ').html_safe %></td>
         <% end %>
-
+      <% else %>
+        <td><%= btr[I18n.locale].title_or_alt.html_safe %></td>
+      <% end %>
         <td><%= event_group.order_no %></td>
-        <td><%= da = event_group.start_date; da ? date2text(da.year, da.month, da.day) : date2text(nil, nil, nil) %></td>
-        <td><%= event_group.start_date_err %></td>
-        <td><%= da = event_group.end_date;   da ? date2text(da.year, da.month, da.day) : date2text(nil, nil, nil) %></td>
-        <td><%= event_group.end_date_err %></td>
+        <td><%= da = event_group.start_date; str = (da ? date2text(da.year, da.month, da.day, lower_end_str: "", upper_end_str: "") : (can?(:edit, event_group) ? date2text(nil, nil, nil) : "")) %></td>
+      <% if can? :update, EventGroup %>
+        <td><%= s=event_group.start_date_err; (str.blank? ? "" : s) %></td>
+      <% end %>
+        <td><%= da = event_group.end_date;   str = (da ? date2text(da.year, da.month, da.day, lower_end_str: "", upper_end_str: "") : (can?(:edit, event_group) ? date2text(nil, nil, nil) : "")) %></td>
+      <% if can? :update, EventGroup %>
+        <td><%= s=event_group.end_date_err; (str.blank? ? "" : s) %></td>
+      <% end %>
         <td><%= event_group.place ? h(event_group.txt_place_pref_ctry) : "" %></td>
-        <td><%= h(event_group.note) %></td>
+        <td><%= event_group.note %></td>
 
-        <td><%= link_to "Show", event_group %></td>
+        <td class="event_groups_index_table_events"><%= link_to event_group.events.size, event_group_url(event_group)+"#section_event_group_show_events" %></td>
+        <td><%= link_to t("event_groups.index.show"), event_group %></td>
         <% if can? :update, event_group  %>
           <td><%= link_to 'Edit', edit_event_group_path(event_group) %></td>
         <% end %>

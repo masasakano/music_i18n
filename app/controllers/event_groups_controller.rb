@@ -1,9 +1,9 @@
 # coding: utf-8
 class EventGroupsController < ApplicationController
-  #before_action :set_event_group, only: [:show, :edit, :update, :destroy]
-  skip_before_action :authenticate_user!, :only => [:index, :show]  # Revert application_controller.rb so Index is viewable by anyone.
-  before_action :set_countries, only: [:new, :create, :edit, :update] # defined in application_controller.rb
+  skip_before_action :authenticate_user!, only: [:index, :show]  # Revert application_controller.rb so Index is viewable by anyone.
   load_and_authorize_resource except: [:create] # except: [:index, :show]
+  before_action :set_event_group, only: [:show] #, :edit, :update, :destroy]  # Public cannot access
+  before_action :set_countries, only: [:new, :create, :edit, :update] # defined in application_controller.rb
   before_action :event_params_two, only: [:update, :create]
 
   # String of the main parameters in the Form (except "place_id")
@@ -61,6 +61,11 @@ class EventGroupsController < ApplicationController
   end
 
   private
+    # Use callbacks to share common setup or constraints between actions.
+    def set_event_group
+      @event_group = EventGroup.find(params[:id])
+    end
+
     # Sets @hsmain and @hstra and @prms_all from params
     #
     # +action_name+ (+create+ ?) is checked inside!
@@ -70,28 +75,4 @@ class EventGroupsController < ApplicationController
       hsall = set_hsparams_main_tra(:event_group) # defined in application_controller.rb
       _set_dates_to_hsmain(hsall)  # defined in application_controller.rb
     end
-
-
-#############################
-    # Only allow a list of trusted parameters through.
-    def event_group_params
-      params.require(:event_group).permit(
-        :order_no, :start_year, :start_month, :start_day, :start_date_err, :end_year, :end_month, :end_day, :end_date_err, :place_id, :note,
-        :start_date_err, :end_date_err,
-        :langcode, :title, :ruby, :romaji, :alt_title, :alt_ruby, :alt_romaji, :is_orig, # In :create, should remove :is_orig
-        :"place.prefecture_id.country_id", :"place.prefecture_id", :place  # :place is used (place_id above is redundant but the most basic UI may require it and so we leave it)
-      )
-    end
-  def _add_date_to_hsmain(hsmain)
-    %w(start end).each do |col_prefix|
-      ar = %w(year month day).map{|i| params[:event_group][col_prefix+"_"+i].presence}
-      hsmain[col_prefix+"_date"] = self.class.create_a_date(*ar)  # err is not specified.
-
-      errcolname = col_prefix+"_date_err"
-      err = params[:event_group][errcolname]
-      err = nil if err && err.strip.blank?
-      hsmain[errcolname] = err
-    end
-  end
-
 end

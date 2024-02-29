@@ -6,7 +6,10 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @harami_vid = harami_vids(:harami_vid1)
-    @editor = roles(:general_ja_editor).users.first  # Editor can manage.
+    #@editor = roles(:general_ja_editor).users.first  # Editor can manage.
+    @editor_harami = users(:user_editor)
+    @editor = @editor_harami 
+    @moderator_harami = users(:user_moderator)
   end
 
   teardown do
@@ -58,11 +61,26 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_user_session_path
 
     sign_in @editor
-    assert_difference('HaramiVid.count', -1) do
+    assert_no_difference('HaramiVid.count', "editor cannot destroy, but...") do
+      assert_no_difference('HaramiVidMusicAssoc.count') do
+        assert_difference('Music.count', 0) do
+          assert_difference('Place.count', 0) do
+            delete harami_vid_url(@harami_vid)
+            my_assert_no_alert_issued(screen_test_only: true)  # defined in /test/test_helper.rb
+          end
+        end
+      end
+    end
+    sign_out @editor
+
+    sign_in @moderator_harami  # Harami moderator can destroy.
+    assert Ability.new(@moderator_harami).can?(:destroy, @harami_vid)
+    assert_difference('HaramiVid.count', -1, "HaramiVid should decraese by 1, but...") do
       assert_difference('HaramiVidMusicAssoc.count', -1) do
         assert_difference('Music.count', 0) do
           assert_difference('Place.count', 0) do
             delete harami_vid_url(@harami_vid)
+            my_assert_no_alert_issued(screen_test_only: true)  # defined in /test/test_helper.rb
           end
         end
       end
