@@ -47,7 +47,7 @@
   </div>
 <% end %>
 
-<% linkhtml = link_to 'Back to Index', send(model_underscore.pluralize+"_path") %>
+<% linkhtml = link_to t("layouts.back_to_index"), send(model_underscore.pluralize+"_path") %>
 <% if is_to_edit %>
   <% if"Artist" == model_name && model.new_record? && can_update %>
   <p class="artist-caution-in-add-music-below-form">

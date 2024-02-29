@@ -1,30 +1,30 @@
-<h3>Artists for Music: <%= music.title_or_alt_tuple_str(langcode: I18n.locale) %></h3>
+<h3><%= t("show.h2_artist").pluralize(music.artists.count, I18n.locale) %><%= t("show.h2_for") %><%= t("Music") %>: <%= music.title_or_alt_tuple_str(langcode: I18n.locale) %></h3>
 
 <table>
   <thead>
     <tr>
-      <th title="'*' indicates the original name">和名</th>
-      <th>別名</th>
-      <th title="'*' indicates the original name">英語名</th>
+      <th title="'*' indicates the original name"><%= t("tables.title_name_ja") %></th>
+      <th><%= t("tables.alt_title_name_ja") %></th>
+      <th title="'*' indicates the original name"><%= t("tables.title_name_en") %></th>
       <th title="Show/Edit Engagement between Artist and Music">
       <% if can? :update, EngageHow %>
         <%= link_to 'How?', engage_hows_url %>
       <% else %>
-        How?
+        <%= t('tables.how_short', default: "How?") %>
       <% end %>
       </th>
       <% if can? :update, Place %>
         <th><%= link_to '県', prefectures_url %>・<%= link_to '場所', places_url %> (<%= link_to '国', countries_url %>)</th>
       <% else %>
-        <th>県・場所 (国)</th>
+        <th><%= t("tables.place_country") %></th>
       <% end %>
       <th title="Birthday of the artist (person or group)">誕生日</th>
       <% if can? :update, Sex %>
-        <th><%= link_to '性別', sexes_url %></th>
+        <th><%= link_to t(:Sex), sexes_url %></th>
       <% else %>
-        <th>性別</th>
+        <th><%= t(:Sex) %></th>
       <% end %>
-      <th>Note</th>
+      <th><%= t("tables.note") %></th>
       <% if can? :update, Artist %>
         <th colspan="2" title="Show/Edit Artist">Artist</th>
         <th title="Edit (Show) Engagements between Artist and Music">Engages</th>
@@ -57,7 +57,7 @@
                   i = artist.send m; (i.blank? ? '——' : i.to_s)}) %></td>
         <td><%= artist.sex.title langcode: I18n.locale, lang_fallback: true %></td>
         <td><%= artist.note %></td>
-        <td><%= link_to 'Show', artist %></td>
+        <td><%= link_to t("tables.Show"), artist %></td>
         <% if can? :update, artist %>
           <td><%= link_to 'Edit', edit_artist_path(artist) %></td>
           <td><%= link_to 'Edit', edit_engage_multi_how_path(artist.engages.where(music: music).first) %></td>

@@ -34,6 +34,7 @@ en:
   alt_title: common name
   are_you_sure: "Are you sure?"
   are_you_sure_but_merge: "You can merge for duplication instead if you want?"
+  Artist: Artist
   Country: Country
   detail: Detail
   display_name: Display Name
@@ -44,6 +45,7 @@ en:
   Harami: "HARAMIchan"
   HaramiVid: "Harami's Video"
   log_out: Log out
+  Music: Music
   or: or
   Prefecture: Prefecture
   Place: Place

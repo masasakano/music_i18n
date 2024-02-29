@@ -1,12 +1,12 @@
-<h3>Harami Vids for Music: <%= music.title_or_alt %></h3>
+<h3><%= t("show.h2_harami_vid").pluralize(music.harami_vids.count, I18n.locale) %><%= t("show.h2_for") %><%= t("Music") %>: <%= music.title_or_alt %></h3>
 
 <table>
   <thead>
     <tr>
-      <th>Date</th>
-      <th>Title</th>
-      <th>Timing</th>
-      <th>Completeness</th>
+      <th><%= t("harami_vids.table_head_date") %></th>
+      <th><%= t("home.index.vid_title") %></th>
+      <th><%= t("harami_vids.table_head_timing") %></th>
+      <th><%= t("harami_vids.table_head_completeness") %></th>
       <% if can? :update, HaramiVid %>
         <th colspan="2">HaramiVid</th>
         <th colspan="2">HaramiVidMusicAssoc</th>
@@ -24,7 +24,7 @@
         <td><%= link_to(harami_vid.title_or_alt(langcode: I18n.locale), harami_vid) %></td>
         <td><%= assoc.timing %></td>
         <td><%= assoc.completeness %></td>
-        <td><%= link_to 'Show', harami_vid %></td>
+        <td><%= link_to t("tables.Show"), harami_vid %></td>
         <% if can? :update, harami_vid %>
         <td>
           <%= link_to 'Edit', edit_harami_vid_path(harami_vid) %>
@@ -34,7 +34,7 @@
         <td><%= link_to 'Show', assoc %></td>
 <% end %>
         <% if can? :update, harami_vid %>
-          <td><%= 'Show' %></td>
+          <td><%= t("tables.Show") %></td>
           <td>
 <% if false %>
           <% if current_user && current_user.editor? %>

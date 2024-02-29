@@ -93,7 +93,7 @@ class MusicsGrid < BaseGrid
   column(:created_at, header: Proc.new{I18n.t("tables.created_at", default: "Created at")}, if: Proc.new{CURRENT_USER && CURRENT_USER.editor?})
   column(:actions, html: true, mandatory: true, header: Proc.new{I18n.t("tables.actions", default: "Actions")}) do |record|
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
-    ar = [link_to('Show', music_path(record), data: { turbolinks: false })]
+    ar = [link_to(I18n.t('layouts.Show'), music_path(record), data: { turbolinks: false })]
     if can? :update, record
       ar.push link_to('Edit', edit_music_path(record))
       if can?(:update, Musics::MergesController)

@@ -3,7 +3,7 @@ class MusicsController < ApplicationController
   include ModuleCommon # for split_hash_with_keys
 
   skip_before_action :authenticate_user!, :only => [:index, :show]
-  load_and_authorize_resource except: [:index, :show]
+  load_and_authorize_resource except: [:index, :show, :new, :create]  # excludes :new and :create and manually authorize! in the methods (otherwise the default private method "*_params" seems to be read!)
   before_action :set_music, only: [:show] #, :edit, :update, :destroy]
   before_action :set_countries, only: [:new, :create, :edit, :update] # defined in application_controller.rb
   before_action :event_params_two, only: [:update, :create]
@@ -14,6 +14,7 @@ class MusicsController < ApplicationController
   # Permitted main parameters for params(), used for update
   PARAMS_MAIN_KEYS = ([
     :artist_name, :year_engage, :engage_hows, :contribution,  # form-specific keys that do not exist in Model
+    :artist_id,  # artist_id is allowed as GET in some cases to call index and new
   ] + MAIN_FORM_KEYS + PARAMS_PLACE_KEYS).uniq  # PARAMS_PLACE_KEYS defined in application_controller.rb
 
   # Permitted main parameters for params() that are (1-level nested) Array
@@ -43,6 +44,7 @@ class MusicsController < ApplicationController
   def new
     @music = Music.new
     set_artist_prms  # set @artist, @artist_name, @artist_title
+    authorize! __method__, @music  # necessary because load_and_authorize_resource is skipped!
   end
 
   # GET /musics/1/edit
@@ -55,6 +57,7 @@ class MusicsController < ApplicationController
     # Parameters: {"authenticity_token"=>"[FILTERED]", "music"=>{"langcode"=>"ja", "is_orig"=>"nil", "title"=>"The Lunch Time", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "place.prefecture_id.country_id"=>"", "place.prefecture_id"=>"", "place_id"=>"", "genre_id"=>"", "year"=>"", "note"=>"", "artist_name"=>"", "year_engage"=>"", "engage_hows"=>["", "592497512", "746859435"], "contribution"=>""}, "commit"=>"Create Music"}
 
     @music = Music.new(@hsmain)
+    authorize! __method__, @music
     add_unsaved_trans_to_model(@music, @hstra) # defined in application_controller.rb
 
     # @music.errors would be added if something goes wrong.
@@ -74,7 +77,6 @@ class MusicsController < ApplicationController
         # Something goes seriously wrong (which should never happen when called from UI).
         respond_to do |format|
           msg = [(flash[:alert] || ""), @msg_alerts.join(" "), "Consequently, although Music was successfully created, the creation of one (or more) of Music-Artist links failed for an unknown reason. You may try again later. If the problem persists, contact the site administrator."].join(" ")
-print "DEBUG-cont-h042";puts msg
           format.html { redirect_to @music, notice: msg, alert: msg }
         end
         return
@@ -103,7 +105,6 @@ print "DEBUG-cont-h042";puts msg
     # Parameters: {"authenticity_token"=>"[FILTERED]", "music"=>{"place.prefecture_id.country_id"=>"", "place.prefecture_id"=>"", "place_id"=>"", "genre_id"=>"", "year"=>"", "note"=>""}, "commit"=>"Create Music"}
 
     def_respond_to_format(@music, :updated){
-      #@music.update(hs2pass)
       @music.update(@hsmain)
     } # defined in application_controller.rb
   end
@@ -137,7 +138,8 @@ print "DEBUG-cont-h042";puts msg
       @music = Music.find(params[:id])
     end
 
-    # Only allow a list of trusted parameters through.
+    ## Only allow a list of trusted parameters through.
+    ## This is automatically read for :new in load_and_authorize_resource
     def music_params
       params.require(:music).permit(MAIN_FORM_KEYS.map(&:to_sym)+[:place_id])
     end

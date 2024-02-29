@@ -6,10 +6,15 @@ ja:
 
   tables:
     title_ja: 日本語名称
+    title_name_ja: 日本語名
     alt_title_ja: 日本語別称
+    alt_title_name_ja: 日本語別名
     ruby_romaji: "フリガナ/ローマ字"
+    alt_titles_name: 別名
     title_en: 英語名称
+    title_name_en: 英語名
     title_en_alt: "英語名称 [別称]"
+    alt_title_name_en: "英語別名"
     year: 年
     sex: 性別
     place: 場所
@@ -33,6 +38,7 @@ ja:
     duration_hour: "時間[h]"
     start_time: 開始日時
     end_time: "終了日時"
+    how_short: "関与形態"
     Show: "詳細"
 
   application:
@@ -56,6 +62,7 @@ ja:
     editing_guideline: '編集方針'
     reset_button: "リセット (やり直し)"
     submit_button: '送信'
+    Show: "詳細"
     new_translations:
       model_language: "%{model}名の(原語の)言語"
       translations_can_be_added_later: "翻訳は後で追加"
@@ -139,6 +146,12 @@ ja:
     footnote:
       is_original: "原語"
 
+  show:
+    h2_artist: "関連アーティスト"
+    h2_harami_vid: "関連ハラミちゃん動画"
+    h2_music: "関連楽曲"
+    h2_for: " —— "
+
   merges:
     edit: 
       merge_if_possible: "この行は衝突する項目を除いて自動的にマージされます"
@@ -162,6 +175,11 @@ ja:
     show:
       number_id: "通し番号"
       event_table_title: 本イベントシリーズの全イベント
+
+  harami_vids:
+    table_head_date: 公開日
+    table_head_timing: "開始時[秒]"
+    table_head_completeness: 一曲全部
 
   musics:
     index:
