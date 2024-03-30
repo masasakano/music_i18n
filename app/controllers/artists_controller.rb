@@ -2,13 +2,13 @@
 class ArtistsController < ApplicationController
   include ModuleCommon # for split_hash_with_keys
 
-  skip_before_action :authenticate_user!, :only => [:index, :show]
+  skip_before_action :authenticate_user!, :only => [:index, :show]  # Revert application_controller.rb so Index is viewable by anyone.
   load_and_authorize_resource except: [:index, :show, :create]  # excludes :create and manually authorize! in __create__ (otherwise the default private method "*_params" seems to be read!)
-  before_action :set_artist,    only: [:show] #, :edit, :update, :destroy]
+  before_action :set_artist,    only: [:show]
   before_action :set_countries, only: [:new, :create, :edit, :update] # defined in application_controller.rb
   before_action :event_params_two, only: [:update, :create]
 
-  # String of the main parameters in the Form (except "place_id")
+  # Symbol of the main parameters in the Form (except "place_id")
   MAIN_FORM_KEYS = %w(sex_id birth_year birth_month birth_day wiki_ja wiki_en note)
 
   # Permitted main parameters for params(), used for update
@@ -44,7 +44,6 @@ class ArtistsController < ApplicationController
   def new
     @artist = Artist.new
     params.permit(:sex_id, :place_id, :birth_year, :birth_month, :birth_day, :wiki_ja, :wiki_en, :note)
-    #@places = Place.all
   end
 
   # GET /artists/1/edit
@@ -66,16 +65,7 @@ class ArtistsController < ApplicationController
   # PATCH/PUT /artists/1
   # PATCH/PUT /artists/1.json
   def update
-    #params.permit!
-    #hsprm = params.require(:artist).permit(
-    #  :sex_id, :birth_year, :birth_month, :birth_day, :wiki_ja, :wiki_en, :note,
-    #  :"place.prefecture_id.country_id", :"place.prefecture_id", :place_id)
-
-    #hsmain = params[:artist].slice(*MAIN_FORM_KEYS)
-    #hs2pass = hsmain.merge({place_id: helpers.get_place_from_params(hsprm).id})
-
     def_respond_to_format(@artist, :updated){
-      #@artist.update(hs2pass)
       @artist.update(@hsmain)
     } # defined in application_controller.rb
   end

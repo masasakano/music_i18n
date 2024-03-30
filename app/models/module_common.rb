@@ -478,7 +478,6 @@ module ModuleCommon
       opts[:nkfopt] = ("-w -W "+opts[:nkfopt]).strip
     end
 
-#print "DEBUG(zen00300): "; p opts; p instr.encoding; p instr[0..100]
     instr.split(/(\p{So}+)/).map.with_index{|es, i|
       i.odd? ? es : NKF.nkf("-m0 -Z#{z_spaces}} #{opts[:nkfopt]}", es)   # [-Z2] Convert a JIS X0208 space to 2 ASCII spaces, as well as Zenkaku alphabet/number/symbol to Hankaku.
     }.join

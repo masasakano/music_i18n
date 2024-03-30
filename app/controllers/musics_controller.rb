@@ -2,20 +2,21 @@
 class MusicsController < ApplicationController
   include ModuleCommon # for split_hash_with_keys
 
-  skip_before_action :authenticate_user!, :only => [:index, :show]
+  skip_before_action :authenticate_user!, :only => [:index, :show]  # Revert application_controller.rb so Index is viewable by anyone.
   load_and_authorize_resource except: [:index, :show, :new, :create]  # excludes :new and :create and manually authorize! in the methods (otherwise the default private method "*_params" seems to be read!)
-  before_action :set_music, only: [:show] #, :edit, :update, :destroy]
+  before_action :set_music, only: [:show]
   before_action :set_countries, only: [:new, :create, :edit, :update] # defined in application_controller.rb
   before_action :event_params_two, only: [:update, :create]
 
-  # String of the main parameters in the Form (except "place_id")
+  # Symbol of the main parameters in the Form (except "place_id"), which exist in DB
   MAIN_FORM_KEYS = %w(year genre_id note)
 
-  # Permitted main parameters for params(), used for update
+  # Permitted main parameters for params(), used for update and create
   PARAMS_MAIN_KEYS = ([
     :artist_name, :year_engage, :engage_hows, :contribution,  # form-specific keys that do not exist in Model
     :artist_id,  # artist_id is allowed as GET in some cases to call index and new
   ] + MAIN_FORM_KEYS + PARAMS_PLACE_KEYS).uniq  # PARAMS_PLACE_KEYS defined in application_controller.rb
+  # they, including place_id, will be handled in music_params_two()
 
   # Permitted main parameters for params() that are (1-level nested) Array
   PARAMS_ARRAY_KEYS = [:engage_hows]

@@ -35,6 +35,9 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/\bPlace\b/, css_select("body").text)
     w3c_validate "EventGroup index"  # defined in test_helper.rb (see for debugging help)
 
+    css_events = "table#event_groups_index_table tbody tr"
+    assert_operator 0, :<, css_select(css_events).size, "rows (defined in Fixtures) should exist, but..."
+
     css_events = "td.event_groups_index_table_events"
     assert_operator 0, :<, css_select(css_events).size
     assert_match(/\A\d+\z/, css_select(css_events).first.text.strip)

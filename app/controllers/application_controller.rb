@@ -157,7 +157,6 @@ class ApplicationController < ActionController::Base
       end
 
     respond_to do |format|
-      #if !failed && (block_given? ? yield : mdl.save)
       result = (!failed && (block_given? ? yield : mdl.save))
       inopts = inopts.map{|k,v| [k, (v.respond_to?(:call) ? v.call(mdl) : v)]}.to_h
       alert = (alert.respond_to?(:call) ? alert.call(mdl) : alert)
@@ -298,8 +297,8 @@ class ApplicationController < ActionController::Base
     end
 
     hsall = params.require(model_name).permit(*allkeys)
-    @hsmain    = hsall.slice(*(self.class::MAIN_FORM_KEYS)).to_h  # nb, "place.prefecture_id" is ignored.
-    @hstra = hsall.slice(*PARAMS_TRANS_KEYS).to_h  # defined in application_controller.rb
+    @hsmain = hsall.slice(*(self.class::MAIN_FORM_KEYS)).to_h  # nb, "place.prefecture_id" is ignored.
+    @hstra  = hsall.slice(*PARAMS_TRANS_KEYS).to_h  # defined in application_controller.rb
     @hsmain[:place_id] = helpers.get_place_from_params(hsall).id if allkeys.map{|ek| ek.respond_to?(:to_sym) ? ek.to_sym : nil}.include?(:place_id)   # Modified (overwritten)
     @prms_all = hsall
   end

@@ -40,6 +40,9 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match(/\bPlace\b/, css_select("table").text)
     w3c_validate "Event index"  # defined in test_helper.rb (see for debugging help)
+
+    #css_events = "table#events_index_table tbody tr"
+    #assert_operator 0, :<, css_select(css_events).size, "rows (defined in Fixtures) should exist, but..."
   end
 
   test "should get new" do

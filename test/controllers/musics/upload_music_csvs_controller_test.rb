@@ -63,7 +63,7 @@ class Musics::UploadMusicCsvsControllerTest < ActionDispatch::IntegrationTest
     assert_equal '香川県',     Music.order(created_at: :desc).first.place.prefecture.title(langcode: "ja")
     assert_equal 'ja',         trans_last.langcode
     assert_equal false,        trans_last.is_orig, 'ja-title with no en-title but with "en" means ja-title should be is_orig=false, but...'
-    assert_equal @editor,      trans_last.create_user
+    assert_equal @editor,      trans_last.create_user, "(NOTE: for some reason, created_user_id is nil?): (last-)Translation=#{trans_last.inspect}"
     assert_equal Float::INFINITY, trans_last.weight
 
     # Repeated "creation" success, doing nothing
