@@ -52,7 +52,11 @@ class EventGroupTest < ActiveSupport::TestCase
     assert_raises(ActiveRecord::DeleteRestrictionError){ evgr.destroy } # At DB level, <ActiveRecord::InvalidForeignKey> for <"PG::ForeignKeyViolation: ERROR:  update or delete on table "event_groups" violates foreign key constraint "fk_rails_..." on table "events"  DETAIL:  Key (id)=(804171372) is still referenced from table "events".>
 
     # Once the children are destoryed, it is destroyable.
-    evgr.events.destroy_all
+    evgr.events.each do |eev|
+      eev.event_items.destroy_all
+      eev.destroy
+    end
+    evgr.reload  # essential.
     assert_nothing_raised{ evgr.destroy }
   end
 

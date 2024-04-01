@@ -1,10 +1,22 @@
-<h1>Editing event</h1>
+<h1>Editing Event</h1>
 
 <%= render "form", event: @event %>
 
 <br>
 
 <div>
-  <%= link_to "Show this event", @event %> |
-  <%= link_to "Back to events", events_path %>
+  <%= link_to "Show this Event", @event %> |
+  <%= link_to t("layouts.back_to_index"), events_path %>
 </div>
+
+<% if can? :read, EventItem %>  <%# should be redundant %>
+<hr>
+
+<h2>EventItems for this Event</h2>
+
+<% items = @event.event_items.order(:weight, event_ratio: :desc) %>
+<%= render partial: 'layouts/event_items_index', locals: {event_items: items, with_event: false} %>
+
+<hr>
+<% end %>
+

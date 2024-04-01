@@ -119,7 +119,13 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should destroy event_group for Harami-moderator" do
-    @event_group.events.destroy_all
+    assert_raises(ActiveRecord::DeleteRestrictionError){
+      @event_group.events.destroy_all }
+    @event_group.events.each do |eev|
+      eev.event_items.destroy_all
+      eev.destroy
+    end
+    @event_group.reload
 
     assert_no_difference("EventGroup.count") do
       delete event_group_url(@event_group)

@@ -2148,5 +2148,15 @@ ev_harami_lucky2023_en:
   weight: 100
   create_user_id: user_moderator
   update_user_id: 
-  note: EventGroupLucky23En
+  note: EventLucky23En
+
+evit_ev_unknown_en:
+  translatable: evit_ev_unknown
+  translatable_type: EventItem
+  langcode: en
+  title: UncategorizedEventItem
+  weight: 0
+  create_user_id: 
+  update_user_id: 
+  note: UncategorizedEventEItemn
 

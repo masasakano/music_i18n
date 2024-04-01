@@ -12,8 +12,12 @@
       <th>From Time</th>
       <th>±hr</th>
       <th>Duration [h]</th>
+      <th>Weight</th>
       <th>Place</th>
       <th>EventGroup</th>
+        <% if can? :read, EventItem %>
+      <th>Ev-Items</th>
+        <% end %>
       <th title="Note in this DB">Note</th>
       <% if can? :update, Event %>
         <th colspan="3"></th>
@@ -41,6 +45,12 @@
         <td><%= event.place ? h(event.txt_place_pref_ctry) : "" %></td>
          <% eg = event.event_group %>
         <td><%= eg ? eg.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) : "" %></td>
+        <% if can? :read, EventItem %>
+         <% items = event.event_items.order(:weight, event_ratio: :desc) %>
+        <td class="events_index_items">
+          <%= items.map.with_index{ |ei, i| link_to(sprintf("%d", i+1), event_item_path(ei)) }.join(", ").html_safe %>
+        </td>
+        <% end %>
         <td><%= h(event.note) %></td>
 
         <td><%= link_to "Show", event %></td>

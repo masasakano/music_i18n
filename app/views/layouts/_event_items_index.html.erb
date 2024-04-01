@@ -1,0 +1,60 @@
+
+<div id="event_items">
+<table id="event_items_index_table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Machine Title</th>
+      <th>From Time</th>
+      <th>±hr</th>
+      <th>Duration [m]</th>
+      <th>±sec</th>
+      <th>Weight</th>
+      <th>Event ratio</th>
+      <th>Place</th>
+        <% if with_event %>
+      <th>Event</th>
+        <% end %>
+      <th title="Note in this DB">Note</th>
+      <% if can? :update, EventItem %>
+        <th colspan="3"></th>
+      <% else %>
+        <th></th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% event_items.each do |event_item| %>
+      <tr>
+        <td><%= event_item.id %></td>
+        <td><%= event_item.machine_title %></td>
+
+        <td><%= event_item.string_time_err2uptomin %></td>
+         <% err = event_item.start_time_err %>
+        <td><%= err ? sprintf("%.2f", err.second.in_hours) : "&mdash".html_safe %></td>
+        <td><%= event_item.duration_minute %></td>
+         <% err = event_item.duration_minute_err %>
+        <td><%= err ? sprintf("%.2f", err.second.in_seconds) : "&mdash".html_safe %></td>
+        <td><%= event_item.weight %></td>
+        <td><%= event_item.event_ratio %></td>
+        <td><%= event_item.place ? h(event_item.txt_place_pref_ctry) : "" %></td>
+         <% if with_event %>
+          <% ev = event_item.event %>
+        <td><%= ev ? ev.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) : "" %></td>
+         <% end %>
+        <td><%= h(event_item.note) %></td>
+
+        <td><%= link_to "Show", event_item %></td>
+        <% if can? :update, event_item  %>
+          <td><%= link_to 'Edit', edit_event_item_path(event_item) %></td>
+        <% end %>
+        <% if can? :destroy, event_item %>
+          <td><%= link_to 'Destroy', event_item, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+</div>
+

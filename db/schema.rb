@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_02_25_142000) do
+ActiveRecord::Schema[7.0].define(version: 2024_03_31_173101) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -143,6 +143,28 @@ ActiveRecord::Schema[7.0].define(version: 2024_02_25_142000) do
     t.index ["order_no"], name: "index_event_groups_on_order_no"
     t.index ["place_id"], name: "index_event_groups_on_place_id"
     t.index ["start_date"], name: "index_event_groups_on_start_date"
+  end
+
+  create_table "event_items", comment: "EventItem in each Event such as a single Music playing", force: :cascade do |t|
+    t.string "machine_title", null: false
+    t.datetime "start_time", precision: nil
+    t.float "start_time_err", comment: "in second"
+    t.float "duration_minute"
+    t.float "duration_minute_err", comment: "in second"
+    t.float "weight"
+    t.float "event_ratio", comment: "Event-covering ratio [0..1]"
+    t.bigint "event_id", null: false
+    t.bigint "place_id"
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["duration_minute"], name: "index_event_items_on_duration_minute"
+    t.index ["event_id"], name: "index_event_items_on_event_id"
+    t.index ["event_ratio"], name: "index_event_items_on_event_ratio"
+    t.index ["machine_title"], name: "index_event_items_on_machine_title", unique: true
+    t.index ["place_id"], name: "index_event_items_on_place_id"
+    t.index ["start_time"], name: "index_event_items_on_start_time"
+    t.index ["weight"], name: "index_event_items_on_weight"
   end
 
   create_table "events", comment: "Event such as a solo concert", force: :cascade do |t|
@@ -460,6 +482,8 @@ ActiveRecord::Schema[7.0].define(version: 2024_02_25_142000) do
   add_foreign_key "engages", "engage_hows", on_delete: :restrict
   add_foreign_key "engages", "musics", on_delete: :cascade
   add_foreign_key "event_groups", "places", on_delete: :nullify
+  add_foreign_key "event_items", "events", on_delete: :restrict
+  add_foreign_key "event_items", "places", on_delete: :nullify
   add_foreign_key "events", "event_groups", on_delete: :restrict
   add_foreign_key "events", "places", on_delete: :nullify
   add_foreign_key "harami1129_reviews", "engages", on_delete: :cascade

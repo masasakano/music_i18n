@@ -1,0 +1,11 @@
+
+<h1>Event Items</h1>
+
+<%= render partial: 'layouts/event_items_index', locals: {event_items: @event_items, with_event: true} %>
+
+<br>
+
+<% if can? :create, EventItem %>
+  <%= button_to 'Create EventItem', new_event_item_path, method: :get %>
+<% end %>
+

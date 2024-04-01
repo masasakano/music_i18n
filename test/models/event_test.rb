@@ -45,6 +45,16 @@ class EventTest < ActiveSupport::TestCase
     pla.destroy
     evt.reload
     assert_nil evt.place, "Though it should be changed into a different value when Place is destroyed, it has to be technically allowed to be nullified."
+
+    # destroy with Dependency
+    assert_raises(ActiveRecord::DeleteRestrictionError, ActiveRecord::InvalidForeignKey){  # Rails level (has_many - dependent) and DB-level, respectively
+      evt.destroy }
+    evt.event_items.each do |ei|
+      ei.destroy
+    end
+    evt.reload  # Essential (because of caching).
+    evt.destroy
+    refute Event.exists?(evt.id)
   end
 
   test "in creating" do

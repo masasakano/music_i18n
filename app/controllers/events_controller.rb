@@ -4,7 +4,7 @@ class EventsController < ApplicationController
   load_and_authorize_resource except: [:create] # except: [:index, :show]  # This sets @event. :create will be dealt separately
   before_action :set_event, only: [:show]  # so far redundant because of load_and_authorize_resource, but will be needed once public access is allowed
   before_action :set_countries, only: [:new, :create, :edit, :update] # defined in application_controller.rb
-  before_action :event_params_two, only: [:update, :create]
+  before_action :event_params_two, only: [:create, :update]
 
   # Symbol of the main parameters in the Form (except "place_id"), which exist in DB
   MAIN_FORM_KEYS = %i(duration_hour weight event_group_id note)
@@ -72,6 +72,6 @@ class EventsController < ApplicationController
     # @return NONE
     def event_params_two
       hsall = set_hsparams_main_tra(:event) # defined in application_controller.rb
-      _set_time_to_hsmain(hsall)  # defined in application_controller.rb, to handle start_* including start_err
+      _set_time_to_hsmain(hsall)  # set start_time and err in @hsmain; defined in application_controller.rb, to handle start_* including start_err
     end
 end

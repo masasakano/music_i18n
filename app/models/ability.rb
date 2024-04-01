@@ -76,7 +76,7 @@ class Ability
       #can :cru,  [Prefecture]
       can :crud, [Artist, Music, Engage, Prefecture]
       can :create, Musics::UploadMusicCsvsController
-      can :read, [Country, EngageHow, Genre, EventGroup, Event]
+      can :read, [Country, EngageHow, Genre, EventGroup, Event, EventItem]
       can :show,  Translation
       can [:new, :create], Translation # only for 'ja' and if they can edit translatable; judged in other places
       can :ud,     Translation, create_user_id: user.id #, update_user_id: user.id
@@ -101,6 +101,11 @@ class Ability
     if user.qualified_as?(:editor, rc_harami)
       can :read,  Harami1129
       can :cru,   HaramiVid
+    end
+
+    ## General-JA editor or HaramiVid editor only
+    if user.qualified_as?(:editor, rc_general_ja) || user.qualified_as?(:editor, rc_harami)
+      can :crud, [EventItem]  # Maybe Event should be also allowed? (NOTE: the current permission is tested in events_controller_test.rb (Line-65))
     end
 
     ## Translation editor only
@@ -147,7 +152,7 @@ class Ability
 
     ## General-JA or HaramiVid moderator only
     if user.qualified_as?(:moderator, rc_general_ja) || user.qualified_as?(:moderator, rc_harami)
-      can :crud, [EventGroup, Event]  # later excluded for "unknown?"
+      can :crud, [EventGroup, Event, EventItem]  # later excluded for "unknown?"
     end
 
     ## Translation moderator only

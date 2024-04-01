@@ -12,6 +12,7 @@ class EventsTest < ApplicationSystemTestCase
   test "visiting the index" do
     visit events_url
     assert_selector "h1", text: "Events"
+    refute_text "Items"
   end
 
   test "should create event" do
@@ -21,6 +22,8 @@ class EventsTest < ApplicationSystemTestCase
     click_on "Log in"
 
     visit events_url
+    assert_selector "h1", text: "Events"
+    assert_text "Items"
     n_events_be4 = page.all("div#events table tr").size - 1
     click_on "Create Event"
 
@@ -70,6 +73,9 @@ class EventsTest < ApplicationSystemTestCase
     visit event_url(@event)
     click_on "Edit this Event", match: :first
 
+    assert_selector "h1", text: "Editing Event"
+    assert_selector "h2", text: "EventItems for this Event"
+
     assert_selector 'form div#div_select_country'
     assert_selector 'form div#div_select_prefecture'
     assert_selector 'form div#div_select_place'
@@ -84,6 +90,23 @@ class EventsTest < ApplicationSystemTestCase
 
     ## test "should destroy Event" do
     visit event_url(@event)
+    refute_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']"  # No "Destroy" button because it has child EventItems
+
+    accept_alert do
+      page.all(:xpath, "//table[@id='event_items_index_table']//tbody//td//a[@data-method='delete']")[1].click
+    end
+    assert_text "EventItem was successfully destroyed"  # This transited to EventItems index...
+
+    visit event_url(@event)
+    accept_alert do
+      page.all(:xpath, "//table[@id='event_items_index_table']//tbody//td//a[@data-method='delete']")[0].click
+    end
+    assert_text "EventItem was successfully destroyed"  # This transited to EventItems index...
+
+    # Now all Child EventItems have been destroyed (see the fixtures).
+    visit event_url(@event)
+    assert_equal 0, page.all(:xpath, "//table[@id='event_items_index_table']//tbody//tr").size
+    assert_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']"
     click_on "Destroy", match: :first
 
     assert_text "Event was successfully destroyed"

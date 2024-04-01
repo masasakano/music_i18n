@@ -33,9 +33,9 @@ class HaramiVidsTest < ApplicationSystemTestCase
     #fill_in "Duration", with: @harami_vid.duration
 
     today = Date.today
-    page.find('form div.field select#harami_vid_release_date_1i').select text: today.year
+    page.find('form div.field select#harami_vid_release_date_1i').select text: today.year.to_s
     page.find('form div.field select#harami_vid_release_date_2i').select text: 'August'
-    page.find('form div.field select#harami_vid_release_date_3i').select text: 15
+    page.find('form div.field select#harami_vid_release_date_3i').select text: 15.to_s
     # fill_in "Date", with: @harami_vid.date
 
     check "Uploaded by Harami"

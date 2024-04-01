@@ -164,6 +164,41 @@ module ModuleCommon
     end
   end # def time_err2uptomin(time, err, langcode: I18n.locale)
 
+
+  # Returns {TimeWithError} of {#start_time} with {#start_time_err}  in the application Time zone
+  #
+  # In the DB, time is saved in UT, perhaps corrected from the app
+  # timezone; i.e., if a user-input Time is in JST (+09:00), its saved time
+  # in the DB is 9 hours behind.
+  #
+  # This method returns {TimeWithError} with the app-timezone, likely JST +09:00,
+  # as set in /config/application.rb
+  #
+  # Used in Event and EventItem.
+  #
+  # @return [TimeWithError]
+  def start_app_time
+    return nil if !start_time
+
+    t = TimeWithError.at(Time.at(start_time), in: Rails.configuration.music_i18n_def_timezone_str)
+    ## Note: TimeWithError.at(start_time) would fail with
+    ##   TypeError: can't convert ActiveSupport::TimeWithZone into an exact number
+
+    t.error = start_time_err
+    t.error &&= t.error.second 
+    t
+  end
+
+
+  # See {#string_time_err2uptomin} for detail.
+  #
+  # Used in Event and EventItem.
+  #
+  # @return [String] formatted String of Date-Time
+  def string_time_err2uptomin(time=start_app_time, langcode: I18n.locale)
+    time_err2uptomin(time, langcode: I18n.locale)
+  end
+
   # Returns String Array from ojbect Array, with formating
   #
   # nil is converted to String +fallback+

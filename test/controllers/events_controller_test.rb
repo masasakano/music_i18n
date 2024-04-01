@@ -146,20 +146,23 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should destroy event" do
-    assert_no_difference("EventGroup.count") do
+    assert_no_difference("Event.count") do
       delete event_url(@event)
     end
 
     sign_in @moderator
-    assert_no_difference("EventGroup.count", "should fail because of presence of a child") do
-      delete event_url(@event)
+    assert_no_difference("Event.count", "should fail because of presence of a child") do
+      assert_raises(ActiveRecord::DeleteRestrictionError, ActiveRecord::InvalidForeignKey){  # Rails level (has_many - dependent) and DB-level, respectively
+        delete event_url(@event)
+      }
     end
 
     evt = Event.create_with_translations!({event_group: @event.event_group, place_id: @event.place.id}, note: 1950, translations: {en: [{title: 'an event 987'}]})
 
+    sign_in @moderator
     assert_difference("Event.count", -1) do
       delete event_url(evt)
-      my_assert_no_alert_issued  # defined in /test/test_helper.rb
+      # my_assert_no_alert_issued  # defined in /test/test_helper.rb  ## previous alert remains... : You need to sign in or sign up before continuing.
     end
     assert_redirected_to events_url
   end

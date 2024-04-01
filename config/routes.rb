@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  resources :event_items
   resources :events
   resources :harami1129_reviews
   resources :event_groups
