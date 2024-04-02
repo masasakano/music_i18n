@@ -8,6 +8,7 @@ class EventItemsTest < ApplicationSystemTestCase
     @event_group = event_groups(:evgr_lucky2023)  # Already has one child Event.
     @event       = events(:ev_harami_lucky2023)
     @event_item  = event_items(:evit_1_harami_lucky2023)
+    @h1_title = "Event Items"
   end
 
   test "visiting the index" do
@@ -26,7 +27,7 @@ class EventItemsTest < ApplicationSystemTestCase
     fill_in "Password", with: '123456'  # from users.yml
     click_on "Log in"
 
-    assert_selector "h1", text: "Event Items"  # should be redirected back to EventItem#index.
+    assert_selector "h1", text: @h1_title  # should be redirected back to EventItem#index.
     assert_text "Duration"
     assert_operator page.find_all(:xpath, "//table//tbody//tr").size, :>, 1
   end
@@ -79,6 +80,7 @@ class EventItemsTest < ApplicationSystemTestCase
     click_on "Destroy this EventItem", match: :first
 
     assert_text "EventItem was successfully destroyed"
+    assert_selector "h1", text: @h1_title  # should be redirected back to EventItem#index.
     assert_equal n_events-1, EventItem.count
   end
 end

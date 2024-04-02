@@ -1,4 +1,11 @@
 <div id="<%= dom_id event_item %>">
+  <% if can? :update, event_item %>
+  <p>
+    <strong>pID:</strong>
+    <%= event_item.id %>
+  </p>
+  <% end %>
+
   <p>
     <strong>Machine title:</strong>
     <%= event_item.machine_title %>

@@ -44,6 +44,7 @@ class Event < BaseWithTranslation
   has_one :prefecture, through: :place
   has_one :country, through: :prefecture
   has_many :event_items, dependent: :restrict_with_exception
+  #has_many :event_items, dependent: :restrict_with_error
 
   # Validates if a {Translation} is unique within the parent
   #

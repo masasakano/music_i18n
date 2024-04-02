@@ -1,4 +1,10 @@
 
+<h1>Event: <%= @event.title_or_alt(langcode: I18n.locale) %></h1>
+
+<hr>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @event} %>
+<hr>
+
 <%= render @event %>
 
 <div>

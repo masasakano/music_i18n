@@ -60,7 +60,7 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     engs = music.engages
     assert_equal 2, engs.size
     assert_equal artists(:artist_ai).title, engs.first.artist.title  # It is "Ai" in the fixutre (not "AI")
-    assert_equal @editor, music.translations.first.create_user, "(NOTE: for some reason, created_user_id is nil) Translation(=music.translations.first)="+music.translations.first.inspect
+    assert_equal @editor, music.translations.first.create_user, "(NOTE: for some reason, created_user_id is nil) User=#{@editor.inspect} Translation(=music.translations.first)="+music.translations.first.inspect
 
     # Failure due to non-existent Artist
     assert_difference('Music.count', 0) do

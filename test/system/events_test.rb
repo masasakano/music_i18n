@@ -7,11 +7,12 @@ class EventsTest < ApplicationSystemTestCase
     @moderator = users(:user_moderator_general_ja)
     @event_group = event_groups(:evgr_lucky2023)  # Already has one child Event.
     @event = events(:ev_harami_lucky2023)
+    @h1_title = "Events"
   end
 
   test "visiting the index" do
     visit events_url
-    assert_selector "h1", text: "Events"
+    assert_selector "h1", text: @h1_title
     refute_text "Items"
   end
 
@@ -22,7 +23,7 @@ class EventsTest < ApplicationSystemTestCase
     click_on "Log in"
 
     visit events_url
-    assert_selector "h1", text: "Events"
+    assert_selector "h1", text: @h1_title
     assert_text "Items"
     n_events_be4 = page.all("div#events table tr").size - 1
     click_on "Create Event"
@@ -90,18 +91,21 @@ class EventsTest < ApplicationSystemTestCase
 
     ## test "should destroy Event" do
     visit event_url(@event)
+    assert_match(/\AEvent:/, page.find("h1").text)
     refute_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']"  # No "Destroy" button because it has child EventItems
 
     accept_alert do
       page.all(:xpath, "//table[@id='event_items_index_table']//tbody//td//a[@data-method='delete']")[1].click
     end
     assert_text "EventItem was successfully destroyed"  # This transited to EventItems index...
+    assert_match(/\AEvent:/, page.find("h1").text)
 
     visit event_url(@event)
     accept_alert do
       page.all(:xpath, "//table[@id='event_items_index_table']//tbody//td//a[@data-method='delete']")[0].click
     end
     assert_text "EventItem was successfully destroyed"  # This transited to EventItems index...
+    assert_match(/\AEvent:/, page.find("h1").text)
 
     # Now all Child EventItems have been destroyed (see the fixtures).
     visit event_url(@event)
@@ -112,6 +116,7 @@ class EventsTest < ApplicationSystemTestCase
     assert_text "Event was successfully destroyed"
 
     # should be in the Index page
+    assert_selector "h1", text: @h1_title  # should be redirected back to Event#index.
     n_events = page.all("div#events table tr").size - 1
     assert_equal(n_events_be4, n_events)
   end

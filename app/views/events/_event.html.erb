@@ -1,38 +1,27 @@
 <div id="<%= dom_id event %>">
-  <p>
-    <strong>Start time (in <%= Rails.configuration.music_i18n_def_timezone_str %>):</strong>
-    <%= event.string_time_err2uptomin %>
-  </p>
 
-  <p>
-    <strong>± days (± hours):</strong>
+<dl>
+  <% if can? :update, event %>
+    <dt>ID (Event)</dt>
+    <dd> <%= @event.id %></dd>
+  <% end %>
+  <dt><strong>Start time [in <%= Rails.configuration.music_i18n_def_timezone_str %>] (± hours):</strong></dt>
     <% err = event.start_time_err %>
-    <%= err ? err.second.in_hours : "&mdash".html_safe %>
-  </p>
-
-  <p>
-    <strong>Duration hour:</strong>
-    <%= event.duration_hour %>
-  </p>
-
-  <p>
-    <strong>Weight:</strong>
-    <%= event.weight %>
-  </p>
-
-  <p>
-    <strong>Event group:</strong>
-    <%= link_to "EventGroup("+event.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)+")", event_group_url(event.event_group) %>
-  </p>
-
-  <p>
-    <strong>Place:</strong>
-    <%= event.place ? h(event.txt_place_pref_ctry) : "" %>
-  </p>
-
-  <p>
-    <strong>Note:</strong>
-    <%= event.note %>
-  </p>
+    <dd><%= event.string_time_err2uptomin %> (± <%= err ? err.second.in_hours : "&mdash".html_safe %> [hrs])
+  <dt><strong>Duration hour:</strong></dt>
+    <dd><%= event.duration_hour %></dd>
+  <dt><strong>Weight:</strong></dt>
+    <dd><%= event.weight %></dd>
+  <dt><strong>Event group:</strong></dt>
+    <dd><%= link_to "EventGroup("+event.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)+")", event_group_url(event.event_group) %></dd>
+  <dt><strong>Place:</strong></dt>
+    <dd><%= event.place ? h(event.txt_place_pref_ctry) : "" %></dd>
+  <dt>note</dt>
+    <dd><%= event.note %></dd>
+  <% if can? :update, event %>
+  <dt>updated_at</dt>
+    <dd><%= event.updated_at %></dd>
+  <% end %>
+</dl>
 
 </div>

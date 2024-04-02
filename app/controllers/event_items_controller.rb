@@ -50,12 +50,7 @@ class EventItemsController < ApplicationController
 
   # DELETE /event_items/1 or /event_items/1.json
   def destroy
-    @event_item.destroy
-
-    respond_to do |format|
-      format.html { redirect_to event_items_url, notice: "EventItem was successfully destroyed." }
-      format.json { head :no_content }
-    end
+    def_respond_to_format_destroy(@event_item)  # defined in application_controller.rb
   end
 
   private

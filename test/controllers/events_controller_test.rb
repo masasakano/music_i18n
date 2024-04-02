@@ -152,10 +152,13 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in @moderator
     assert_no_difference("Event.count", "should fail because of presence of a child") do
-      assert_raises(ActiveRecord::DeleteRestrictionError, ActiveRecord::InvalidForeignKey){  # Rails level (has_many - dependent) and DB-level, respectively
+      assert_raises(ActiveRecord::DeleteRestrictionError, ActiveRecord::InvalidForeignKey){  # Rails level (has_many - dependent) and DB-level, respectively; nb., this would be ActiveRecord::RecordNotDestroyed if :restrict_with_error is set and destroy! is run.
         delete event_url(@event)
       }
     end
+    assert_response :redirect
+    follow_redirect!
+    refute_match(/\bsuccessfully\b/, css_select("p.notice").text, "ERROR: "+response.body) #css_select("body").text)
 
     evt = Event.create_with_translations!({event_group: @event.event_group, place_id: @event.place.id}, note: 1950, translations: {en: [{title: 'an event 987'}]})
 
