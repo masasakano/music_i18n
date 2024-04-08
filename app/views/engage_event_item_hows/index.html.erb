@@ -1,0 +1,79 @@
+<p style="color: green"><%= notice %></p>
+
+<h1>EngageEventItemHow index</h1>
+
+  <% @engage_event_item_hows.each do |engage_event_item_how| %>
+    <%= render engage_event_item_how %>
+    <p>
+      <%= link_to "Show this EngageEventItemHow", engage_event_item_how %>
+    </p>
+  <% end %>
+
+<%= link_to "New EngageEventItemHow", new_engage_event_item_how_path %>
+<div id="engage_event_item_hows">
+<table id="engage_event_item_hows_index_table">
+  <thead>
+    <tr>
+     <% if (can_update=can?(:update, EngageEventItemHow)) %>
+      <th>ID</th>
+     <% end %>
+      <th>Name (ja)</th>
+      <th>Name (en)</th>
+      <th>mname</th>
+      <th>Weight</th>
+        <% if can? :read, EventItem %>
+      <th>#Ev-Items</th>
+        <% end %>
+      <th title="Note in this table">Note</th>
+      <% if can_update %>
+        <th colspan="2"></th> <%# No destroy with this UI %>
+      <% else %>
+        <th></th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @engage_event_item_hows.each do |ea_mdl| %>
+      <tr>
+       <% if can_update=can?(:update, ea_mdl) %>
+        <td><%= ea_mdl.id %></td>
+       <% end %>
+        <% btr = ea_mdl.best_translations %>
+        <% %w(ja en).each do |lc| %> <%# no "fr" so far %>
+        <td><%= %w(title alt_title).map{|i| tra=btr[lc]; s=(tra && h(tra.send(i))); s.blank? ? '&mdash;' : s}.join(' | ').html_safe %></td>
+        <% end %>
+
+        <%#td  %= ea_mdl.order_no %  /td %>
+        <td><%= ea_mdl.mname %></td>
+        <td><%= ea_mdl.weight %></td>
+        <% if can? :read, EventItem %>
+         <%# items = ea_mdl.event_items.order(:weight, event_ratio: :desc) %>
+         <% items = 0 %>
+        <td class="engage_event_item_hows_index_items">
+          <%= items.size %>
+        </td>
+        <% end %>
+        <td><%= ea_mdl.note %></td>
+
+        <td><%= link_to "Show", ea_mdl %></td>
+        <% if can_update %>
+          <td><%= link_to 'Edit', edit_engage_event_item_how_path(ea_mdl) %></td>
+        <% end %>
+        <% if false %> <%# No destroy with this UI %>
+         <% if can? :destroy, ea_mdl %>
+          <td><%= link_to 'Destroy', ea_mdl, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+         <% end %>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+</div>
+
+<br>
+
+<% if can? :create, EngageEventItemHow %>
+  <%= button_to "New EngageEventItemHow", new_engage_event_item_how_path, method: :get %>
+<% end %>
+

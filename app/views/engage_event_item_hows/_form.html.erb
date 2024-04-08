@@ -1,0 +1,40 @@
+
+<p>
+  Once you have created this, make sure to add at least one Translation!
+</p>
+
+<%= simple_form_for(@engage_event_item_how) do |f| %>
+  <%= f.error_notification %>
+  <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
+
+  <div class="form-inputs">
+    <%= f.input :mname %>
+    <%= f.input :weight %>
+<table id="engage_event_item_hows_index_weight_table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>mname</th>
+      <th>Weight</th>
+      <th title="Note in this table">Note</th>
+    </tr>
+  </thead>
+
+    <% EngageEventItemHows.all.each do |ea_mdl| %>
+      <tr>
+        <td><%= ea_mdl.id %></td>
+        <td><%= ea_mdl.mname %></td>
+        <td><%= ea_mdl.weight %></td>
+        <td><%= ea_mdl.note %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+    
+    <%= f.input :note %>
+  </div>
+
+  <div class="form-actions">
+    <%= f.button :submit %>
+  </div>
+<% end %>

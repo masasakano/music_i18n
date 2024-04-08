@@ -1,0 +1,29 @@
+<div id="<%= dom_id engage_event_item_how %>">
+  <p>
+  <% if can? :update, engage_event_item_how %>
+    <strong>ID (EngageEventItemHow):</strong>
+     <%= engage_event_item_how.id %>
+  <% end %>
+  </p>
+  <p>
+    <strong>Mname (machine name):</strong>
+    <%= engage_event_item_how.mname %>
+  </p>
+
+  <p>
+    <strong>Weight:</strong>
+    <%= engage_event_item_how.weight %>
+  </p>
+
+  <p>
+    <strong>Note:</strong>
+    <%= engage_event_item_how.note %>
+  </p>
+
+  <% if can? :update, event %>
+  <p>
+    <strong>updated_at:</strong>
+    <%= engage_event_item_how.updated_at %>
+  </p>
+  <% end %>
+</div>

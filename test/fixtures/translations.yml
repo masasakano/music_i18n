@@ -2160,3 +2160,193 @@ evit_ev_unknown_en:
   update_user_id: 
   note: UncategorizedEventEItemn
 
+engage_event_item_how_singer_en:
+  translatable: engage_event_item_how_singer
+  translatable_type: EngageEventItemHow
+  langcode: en
+  title: Singer
+  weight: 0
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: EngageEventItemHowSingerEn
+
+engage_event_item_how_singer_ja:
+  translatable: engage_event_item_how_singer
+  translatable_type: EngageEventItemHow
+  langcode: ja
+  title: 歌手
+  weight: 0
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: EngageEventItemHowSingerJa
+
+engage_event_item_how_chorus_en:
+  translatable: engage_event_item_how_chorus
+  translatable_type: EngageEventItemHow
+  langcode: en
+  title: Chorus
+  weight: 0
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: EngageEventItemHowChorusEn
+
+engage_event_item_how_chorus_ja:
+  translatable: engage_event_item_how_chorus
+  translatable_type: EngageEventItemHow
+  langcode: ja
+  title: コーラス
+  weight: 0
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: EngageEventItemHowChorusJa
+
+engage_event_item_how_inst_player_main_en:
+  translatable: engage_event_item_how_inst_player_main
+  translatable_type: EngageEventItemHow
+  langcode: en
+  title: Main Instrument Player
+  weight: 0
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: EngageEventItemHowInstPlayerMainEn
+
+engage_event_item_how_inst_player_main_ja:
+  translatable: engage_event_item_how_inst_player_main
+  translatable_type: EngageEventItemHow
+  langcode: ja
+  title: 主要な楽器演奏者
+  weight: 0
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: EngageEventItemHowInstPlayerMainJa
+
+engage_event_item_how_inst_player_en:
+  translatable: engage_event_item_how_inst_player
+  translatable_type: EngageEventItemHow
+  langcode: en
+  title: Instrument Player
+  weight: 0
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: EngageEventItemHowInstPlayerEn
+
+engage_event_item_how_inst_player_ja:
+  translatable: engage_event_item_how_inst_player
+  translatable_type: EngageEventItemHow
+  langcode: ja
+  title: 楽器演奏者
+  weight: 0
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: EngageEventItemHowInstPlayerJa
+
+engage_event_item_how_host_en:
+  translatable: engage_event_item_how_host
+  translatable_type: EngageEventItemHow
+  langcode: en
+  title: Host
+  weight: 0
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: EngageEventItemHowHostEn
+
+engage_event_item_how_host_ja:
+  translatable: engage_event_item_how_host
+  translatable_type: EngageEventItemHow
+  langcode: ja
+  title: ホスト
+  weight: 0
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: EngageEventItemHowHostJa
+
+engage_event_item_how_guest_main_en:
+  translatable: engage_event_item_how_guest_main
+  translatable_type: EngageEventItemHow
+  langcode: en
+  title: Main Guest
+  weight: 0
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: EngageEventItemHowGuestMainEn
+
+engage_event_item_how_guest_main_ja:
+  translatable: engage_event_item_how_guest_main
+  translatable_type: EngageEventItemHow
+  langcode: ja
+  title: メインゲスト
+  weight: 0
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: EngageEventItemHowGuestMainJa
+
+engage_event_item_how_guest_en:
+  translatable: engage_event_item_how_guest
+  translatable_type: EngageEventItemHow
+  langcode: en
+  title: Guest
+  weight: 0
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: EngageEventItemHowGuestEn
+
+engage_event_item_how_guest_ja:
+  translatable: engage_event_item_how_guest
+  translatable_type: EngageEventItemHow
+  langcode: ja
+  title: ゲスト
+  weight: 0
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: EngageEventItemHowGuestJa
+
+engage_event_item_how_other_en:
+  translatable: engage_event_item_how_other
+  translatable_type: EngageEventItemHow
+  langcode: en
+  title: Other
+  weight: 0
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: EngageEventItemHowOtherEn
+
+engage_event_item_how_other_ja:
+  translatable: engage_event_item_how_other
+  translatable_type: EngageEventItemHow
+  langcode: ja
+  title: その他
+  weight: 0
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: EngageEventItemHowOtherJa
+
+engage_evit_how_unknown_en:
+  translatable: engage_event_item_how_unknown
+  translatable_type: EngageEventItemHow
+  langcode: en
+  title: Unknown Engage-EventItem relation
+  weight: 0
+  create_user_id: 
+  update_user_id: 
+  note: UnknownEngageEventItemEn
+
+engage_evit_how_unknown_ja:
+  translatable: engage_event_item_how_unknown
+  translatable_type: EngageEventItemHow
+  langcode: ja
+  title: "イベント項目関与形態不明"
+  weight: 0
+  create_user_id: 
+  update_user_id: 
+  note: UnknownEngageEventItemJa
+
+engage_evit_how_unknown_fr:
+  translatable: engage_event_item_how_unknown
+  translatable_type: EngageEventItemHow
+  langcode: fr
+  title: Relation inconnue entre Engage-EventItem
+  weight: 0
+  create_user_id: 
+  update_user_id: 
+  note: UnknownEngageEventItemFr
+
