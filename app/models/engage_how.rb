@@ -10,6 +10,9 @@
 #  updated_at :datetime         not null
 #
 class EngageHow < BaseWithTranslation
+  # defines {#unknown?} and +self.class.unknown+
+  include ModuleUnknown
+
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []
 
@@ -34,20 +37,11 @@ class EngageHow < BaseWithTranslation
 
   validates_presence_of :weight  # Because of the DB default value, this does nothing in practice.
 
-  UnknownEngageHow = {
+  UNKNOWN_TITLES = UnknownEngageHow = {
     "ja" => '関与形態不明',
     "en" => 'UnknownEngaging',
     #"fr" => 'ArtisteInconnu',
   }
-
-  # @return [EngageHow]
-  def self.unknown
-    @engage_unknown ||= self[UnknownEngageHow['en'], 'en']
-  end
-
-  def unknown?
-    self == self.class.unknown
-  end
 
   def <(other)
     raise TypeError, "cannot compare with non-#{self.class.name}" if !other.respond_to?(:engages) || !other.respond_to?(:weight)

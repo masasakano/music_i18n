@@ -22,6 +22,12 @@
 #  fk_rails_...  (place_id => places.id)
 #
 class Music < BaseWithTranslation
+
+  # Used for the instance method {#unknown?} whereas the class method #{unknown} is overwritten.
+  #
+  # {Mucic.unknown} has {Genre.unknown} (and probably {Place.unknown} and undefined year).
+  include ModuleUnknown
+
   # For the translations to be unique (required by BaseWithTranslation).
   # MAIN_UNIQUE_COLS = %i(year place_id)  # More complicated - it depends on Artist
 
@@ -54,7 +60,7 @@ class Music < BaseWithTranslation
 
   validates :year, numericality: { allow_nil: true, greater_than: 0, message: "(%{value}) must be positive." }
 
-  UnknownMusic = {
+  UNKNOWN_TITLES = UnknownMusic = {
     "ja" => '何かの曲',
     "en" => 'UnknownMusic',
     "fr" => 'MusiqueInconnue',
@@ -83,13 +89,6 @@ class Music < BaseWithTranslation
       find_by_regex(:title, UnknownMusic["en"], langcode: "en",
                    where: sprintf("trans2.translatable_type = 'Genre' AND trans2.title = '%s' AND trans2.langcode = 'en'", Genre::UnknownGenre["en"]),
                    joins: "INNER JOIN musics ON translations.translatable_id = musics.id INNER JOIN genres ON musics.genre_id = genres.id INNER JOIN translations trans2 ON musics.genre_id = genres.id")
-  end
-
-  # Returns true if self is the unknown {Music}
-  #
-  # Note: The unknown music has {Genre.unknown} (and probably {Place.unknown} and undefined year).
-  def unknown?
-    self == self.class.unknown
   end
 
   # Wrapper of the standard self.find_all_by, considering {Translation}

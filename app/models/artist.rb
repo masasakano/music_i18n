@@ -27,6 +27,8 @@
 #  fk_rails_...  (sex_id => sexes.id)
 #
 class Artist < BaseWithTranslation
+  include ModuleUnknown
+
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = %i(birth_day birth_month birth_year wiki_en wiki_ja place_id sex_id)
 
@@ -60,13 +62,15 @@ class Artist < BaseWithTranslation
   validate :is_birth_date_valid?
   validate :unique_combination?
 
-  UnknownArtist = {
+  UNKNOWN_TITLES = UnknownArtist = {
     "ja" => '不明の音楽家',
     "en" => 'UnknownArtist',
     "fr" => 'ArtisteInconnu',
   }
 
   # Returns the unknown {Artist} with {Place.unknown} and {Sex.unknown}
+  #
+  # This has a precedence over the same-name method in ModuleUnknown
   #
   # @return [Artist]
   def self.unknown
@@ -86,13 +90,6 @@ class Artist < BaseWithTranslation
       find_by_regex(:title, UnknownArtist["en"], langcode: "en",
                    where: sprintf("artists.place_id = %d AND trans2.translatable_id = %d AND trans2.translatable_type = 'Place' AND trans2.langcode = 'en' AND trans3.translatable_type = 'Sex' AND trans3.title = '%s' AND trans3.langcode = 'en'", id_place_unknown, id_place_unknown, Sex::UnknownSex["en"]),
                    joins: "INNER JOIN artists ON translations.translatable_id = artists.id INNER JOIN places ON artists.place_id = places.id INNER JOIN translations trans2 ON artists.place_id = places.id INNER JOIN sexes ON artists.sex_id = sexes.id INNER JOIN translations trans3 ON artists.sex_id = sexes.id")
-  end
-
-  # Returns true if self is the unknown {Artist}
-  #
-  # Note: The unknown artist has {Place.unknown} and {Sex.unknown}
-  def unknown?
-    self == self.class.unknown
   end
 
   # Wrapper of the standard self.find_all_by, considering {Translation}

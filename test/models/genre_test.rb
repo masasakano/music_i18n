@@ -38,6 +38,6 @@ class GenreTest < ActiveSupport::TestCase
     assert_not genre.not_disagree?(genres(:genre_pop))
     assert_not genre.not_disagree?(genres(:genre_pop), allow_nil: false) 
     assert     genre.not_disagree?(Genre.unknown)
-    assert     genre.not_disagree?(Genre.unknown, allow_nil: false)
+    assert     genre.not_disagree?(Genre.unknown, allow_nil: false), "Genre.unknown=#{Genre.unknown.inspect}"
   end
 end

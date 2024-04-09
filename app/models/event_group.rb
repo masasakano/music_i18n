@@ -27,6 +27,9 @@
 #  fk_rails_...  (place_id => places.id) ON DELETE => nullify
 #
 class EventGroup < BaseWithTranslation
+  # defines {#unknown?} and +self.class.unknown+
+  include ModuleUnknown
+
   # include Rails.application.routes.url_helpers
 
   # For the translations to be unique (required by BaseWithTranslation).
@@ -44,7 +47,7 @@ class EventGroup < BaseWithTranslation
   has_one :country, through: :prefecture
   has_many :events, dependent: :restrict_with_exception  # EventGroup should not be deleted easily.
 
-  UnknownEventGroup = {
+  UNKNOWN_TITLES = UnknownEventGroup = {
     "ja" => 'その他のイベント類',
     "en" => 'UncategorizedEventGroup',
     "fr" => "Groupe d'événements non classé",
@@ -86,17 +89,6 @@ class EventGroup < BaseWithTranslation
     end
   end
 
-  # Returns the unknown {EventGroup}
-  #
-  # @return [EventGroup]
-  def self.unknown
-     self[UnknownEventGroup['en'], 'en']
-  end
-
-  # Returns true if self is one of the unknown country
-  def unknown?
-    title(langcode: 'en') == UnknownEventGroup['en']
-  end
   alias_method :uncategorized?, :unknown? if ! self.method_defined?(:uncategorized?)
 end
 

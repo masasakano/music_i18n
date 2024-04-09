@@ -34,6 +34,6 @@ class EngageEventItemHowTest < ActiveSupport::TestCase
     refute mdl.save
 
     assert EngageEventItemHow.unknown.unknown?
-    assert_equal EngageEventItemHow::UNKNOWN_TITLES['en'][1], EngageEventItemHow.unknown.alt_title(langcode: :en), "unknown ="+EngageEventItemHow.unknown.inspect
+    assert_equal EngageEventItemHow::UNKNOWN_TITLES['en'][1], EngageEventItemHow.unknown.alt_title(langcode: :en), "WARNING: This for some reason someitmes fails as a result of the alt_title of being nil.... EngageEventItemHow.unknown="+EngageEventItemHow.unknown.inspect
   end
 end

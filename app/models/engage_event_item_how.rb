@@ -17,6 +17,9 @@
 #  index_engage_event_item_hows_on_weight  (weight)
 #
 class EngageEventItemHow < BaseWithTranslation
+  # defines {#unknown?} and +self.class.unknown+
+  include ModuleUnknown
+
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []
 
@@ -47,19 +50,11 @@ class EngageEventItemHow < BaseWithTranslation
   validates_presence_of   :weight  # NOTE: At the DB level, a default is defined.
   validates_uniqueness_of :weight  # No DB-level constraint, but this is checked at Rails-level.
 
+  # NOTE: UNKNOWN_TITLES required to be defined for the methods included from ModuleUnknown. alt_title can be also defined as an Array instead of String.
   UNKNOWN_TITLES = UnknownEngageEventItemHow = {
     "ja" => ['イベント項目関与形態不明', '関与形態不明'],
     "en" => ['Unknown Engage-EventItem relation', 'Unknown relation'],
     "fr" => ['Relation inconnue entre Engage-EventItem', 'Relation inconnue'],
   }.with_indifferent_access
-
-  # @return [EngageHow]
-  def self.unknown
-    @engage_unknown ||= self[UNKNOWN_TITLES['en'].first, 'en']
-  end
-
-  def unknown?
-    self == self.class.unknown
-  end
 
 end

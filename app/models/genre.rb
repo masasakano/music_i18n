@@ -10,6 +10,9 @@
 #  updated_at                                :datetime         not null
 #
 class Genre < BaseWithTranslation
+  # defines {#unknown?} and +self.class.unknown+
+  include ModuleUnknown
+
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []
 
@@ -22,23 +25,12 @@ class Genre < BaseWithTranslation
 
   has_many :musics,  dependent: :restrict_with_exception
 
-  UnknownGenre = {
+  # NOTE: UNKNOWN_TITLES required to be defined for the methods included from ModuleUnknown. alt_title can be also defined as an Array instead of String.
+  UNKNOWN_TITLES = UnknownGenre = {
     "ja" => 'ジャンル不明',
     "en" => 'UnknownGenre',
     "fr" => 'GenreInconnu',
   }
-
-  # Returns the unknown {Genre}
-  #
-  # @return [Genre]
-  def self.unknown
-    @genre_unknown ||= self[UnknownGenre['en'], 'en']
-  end
-
-  # Returns true if self is one of the unknown genre
-  def unknown?
-    title(langcode: 'en') == UnknownGenre['en']
-  end
 
   # Returns the default {Genre}
   #
