@@ -171,7 +171,7 @@ class Ability
       can :manage, CountryMaster
       #can :manage_iso3166_jp, Prefecture  # redundant
       can :manage, ModelSummary
-      can :cru, EngageEventItemHow
+      can :cru, EngageEventItemHow  # Even an admin cannot destroy one, but the sysadmin.
     else
       #can(:update, Country)  # There is nothing (but note) to update in Country as the ISO-numbers are definite. Translation for Country is a different story, though.
       cannot :manage_prefecture_jp, Prefecture  # cannot edit Country in Prefecture to Japan

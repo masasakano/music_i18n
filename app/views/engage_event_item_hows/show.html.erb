@@ -2,24 +2,19 @@
 <h1>EngageEventItemHow: <%= @engage_event_item_how.title_or_alt(langcode: I18n.locale) %></h1>
 
 <hr>
-<%= render partial: 'layouts/all_registered_translations', locals: {model: @event} %>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @engage_event_item_how} %>
 <hr>
 
 <%= render @engage_event_item_how %>
 
 <div>
-  <%= link_to "Edit this engage event item how", edit_engage_event_item_how_path(@engage_event_item_how) %> |
-  <%= link_to "Back to engage event item hows", engage_event_item_hows_path %>
-
-  <%= button_to "Destroy this engage event item how", @engage_event_item_how, method: :delete %>
-</div>
-
-<div>
     <% if can? :update, @engage_event_item_how %>
   <%= link_to "Edit this EngageEventItemHow", edit_engage_event_item_how_path(@engage_event_item_how) %> |
     <% end %>
+  <%= link_to "Back to EngageEventItemHow index", engage_event_item_hows_path %>
 
-    <% if !@engage_event_item_how.engage_event_item_how_items.exists? && can?(:destroy, @engage_event_item_how) %>
+    <% if can?(:destroy, @engage_event_item_how) %>
+    <%# if !@engage_event_item_how.engage_event_item_how_items.exists? && can?(:destroy, @engage_event_item_how) %>
   <%= button_to "Destroy", @engage_event_item_how, method: :delete %>
     <% end %>
 </div>

@@ -2324,7 +2324,8 @@ engage_evit_how_unknown_en:
   translatable: engage_event_item_how_unknown
   translatable_type: EngageEventItemHow
   langcode: en
-  title: Unknown Engage-EventItem relation
+  title:     <%= EngageEventItemHow::UNKNOWN_TITLES['en'][0] %>
+  alt_title: <%= EngageEventItemHow::UNKNOWN_TITLES['en'][1] %>
   weight: 0
   create_user_id: 
   update_user_id: 
@@ -2334,7 +2335,8 @@ engage_evit_how_unknown_ja:
   translatable: engage_event_item_how_unknown
   translatable_type: EngageEventItemHow
   langcode: ja
-  title: "イベント項目関与形態不明"
+  title:     <%= EngageEventItemHow::UNKNOWN_TITLES['ja'][0] %>
+  alt_title: <%= EngageEventItemHow::UNKNOWN_TITLES['ja'][1] %>
   weight: 0
   create_user_id: 
   update_user_id: 
@@ -2344,7 +2346,8 @@ engage_evit_how_unknown_fr:
   translatable: engage_event_item_how_unknown
   translatable_type: EngageEventItemHow
   langcode: fr
-  title: Relation inconnue entre Engage-EventItem
+  title:     <%= EngageEventItemHow::UNKNOWN_TITLES['fr'][0] %>
+  alt_title: <%= EngageEventItemHow::UNKNOWN_TITLES['fr'][1] %>
   weight: 0
   create_user_id: 
   update_user_id: 

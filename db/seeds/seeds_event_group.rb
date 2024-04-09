@@ -29,6 +29,8 @@ module SeedsEventGroup
     drop2022s: nil,
   }
 
+  max_error_day = TimeAux::MAX_ERROR.in_days.ceil + 1  # = 3652060 [days]
+
   # Data to seed
   SEED_DATA = [
     {
@@ -37,9 +39,9 @@ module SeedsEventGroup
       fr: "Groupe d'événements non classé",
       orig_langcode: 'en',
       start_date: TimeAux::DEF_FIRST_DATE_TIME,
-      start_date_err: TimeAux::MAX_ERROR,
+      start_date_err: max_error_day,
       end_date:   TimeAux::DEF_LAST_DATE_TIME,
-      end_date_err:   TimeAux::MAX_ERROR,
+      end_date_err:   max_error_day,
       place: place_world,
       note: '他のどれにも分類されない一般的イベント類(結婚式招待など)',
       regex: /(Uncategorized|Unknown)\s*Event\s*Group/i,
@@ -49,9 +51,9 @@ module SeedsEventGroup
       ja: "単発ストリート演奏",
       en: "Single-shot street playing",
       start_date: TimeAux::DEF_FIRST_DATE_TIME,
-      start_date_err: TimeAux::MAX_ERROR,
+      start_date_err: max_error_day,
       end_date:   TimeAux::DEF_LAST_DATE_TIME,
-      end_date_err:   TimeAux::MAX_ERROR,
+      end_date_err:   max_error_day,
       place: place_world,
       note: 'ふらっと立ち寄るストリートピアノ演奏など',
       regex: /(単発.*|独立)ストリート(ピアノ|演奏)|street +(music|play)/i,
@@ -61,9 +63,9 @@ module SeedsEventGroup
       ja: "ストリートイベント",
       en: "Street events",
       start_date: TimeAux::DEF_FIRST_DATE_TIME,
-      start_date_err: TimeAux::MAX_ERROR,
+      start_date_err: max_error_day,
       end_date:   TimeAux::DEF_LAST_DATE_TIME,
-      end_date_err:   TimeAux::MAX_ERROR,
+      end_date_err:   max_error_day,
       place: place_world,
       note: '高松市田町フラワーフェスティバル2020など',
       regex: /street +event/i,

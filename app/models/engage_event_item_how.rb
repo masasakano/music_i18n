@@ -48,14 +48,14 @@ class EngageEventItemHow < BaseWithTranslation
   validates_uniqueness_of :weight  # No DB-level constraint, but this is checked at Rails-level.
 
   UNKNOWN_TITLES = UnknownEngageEventItemHow = {
-    "ja" => 'イベント項目関与形態不明',
-    "en" => 'Unknown Engage-EventItem relation',
-    "fr" => 'Relation inconnue entre Engage-EventItem',
+    "ja" => ['イベント項目関与形態不明', '関与形態不明'],
+    "en" => ['Unknown Engage-EventItem relation', 'Unknown relation'],
+    "fr" => ['Relation inconnue entre Engage-EventItem', 'Relation inconnue'],
   }.with_indifferent_access
 
   # @return [EngageHow]
   def self.unknown
-    @engage_unknown ||= self[UNKNOWN_TITLES['en'], 'en']
+    @engage_unknown ||= self[UNKNOWN_TITLES['en'].first, 'en']
   end
 
   def unknown?

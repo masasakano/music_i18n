@@ -30,10 +30,18 @@ module SeedsModelSummary
       en: "Engagement between Artist, Music, EngageHow, year and degree of contribution (Intermediate DB)",
       note: "Association"
     },
+    EngageEventItemHow: {
+      ja: "Engage(ArtistとMusic)とEventItemの関係の種類",
+      en: "Type of engagement between Engage (Artist and Music) and EventItem",
+    },
     EngageHow: {
       ja: "ArtistとMusicとの関係の種類",
       en: "Type of Engagement between Artist and Music",
     },
+    #EngagePlayHow: {
+    #  ja: "EngageEventItemHowの副情報で、EngageしたArtistがどの楽器や役割を担ったか",
+    #  en: "Sub-information of EngageEventItemHow, describing which instrument/part the Engage-d Artist takes",
+    #},
     EventGroup: {
       ja: "シリーズもののEventの一括り。相互に排他的。つまり、一つのEventが部分的にでも複数のEventGroupにまたがることはない。複数の大型フェスは、開催年ごとに一つのEventGroupとする(例: フジロックの2022年と2023年とは別々)。大塚愛「ラブボン」のような場合は、1つのEventGroupとしてよい。",
       en: "A series (category) of multiple Events, which are mutually exclusive, namely an Event would not overlap multiple EventGroups evern partially. For annually-held big festivals, the festival each year should be registered as a single EventGroup (e.g., Fuji Rocks 2022 and 2023 are registered as separate EventGroups). Annualy-held small-scale events like Ai Otsuka's 'LOVE IS BORN' can be registered as a single EventGroup as a series.",

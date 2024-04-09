@@ -3,8 +3,8 @@
 include ModuleCommon  # for seed_fname2print
 
 puts "DEBUG: start "+seed_fname2print(__FILE__) if $DEBUG
-if !Rails.env.development?
-  puts "  NOTE(#{seed_fname2print(__FILE__)}): skipped because it is not in Development environment."
+if !Rails.env.development? && !Rails.env.test?
+  puts "  NOTE(#{seed_fname2print(__FILE__)}): skips because it is in neither Development nor Test environments."
   return 
 elsif !User.exists?  # Administrator must exist for this script to be run.
   puts "  NOTE(#{seed_fname2print(__FILE__)}): skipped because no users exist. Once the sysadmin is created, run this (i.e., bin/rails db:seed) again."
@@ -62,6 +62,8 @@ module SeedsUser
     user
   end
 
+  # Creates users
+  #
   # Returns the number of DB entries before/after
   #
   # @return [Hash] entries[:init|:fini] = {user: User.count, assoc: UserRoleAssoc.count}

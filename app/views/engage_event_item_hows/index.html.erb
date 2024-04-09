@@ -1,15 +1,5 @@
-<p style="color: green"><%= notice %></p>
-
 <h1>EngageEventItemHow index</h1>
 
-  <% @engage_event_item_hows.each do |engage_event_item_how| %>
-    <%= render engage_event_item_how %>
-    <p>
-      <%= link_to "Show this EngageEventItemHow", engage_event_item_how %>
-    </p>
-  <% end %>
-
-<%= link_to "New EngageEventItemHow", new_engage_event_item_how_path %>
 <div id="engage_event_item_hows">
 <table id="engage_event_item_hows_index_table">
   <thead>
@@ -20,7 +10,7 @@
       <th>Name (ja)</th>
       <th>Name (en)</th>
       <th>mname</th>
-      <th>Weight</th>
+      <th title="weight for sorting this index">Weight</th>
         <% if can? :read, EventItem %>
       <th>#Ev-Items</th>
         <% end %>
@@ -51,7 +41,7 @@
          <%# items = ea_mdl.event_items.order(:weight, event_ratio: :desc) %>
          <% items = 0 %>
         <td class="engage_event_item_hows_index_items">
-          <%= items.size %>
+          <%# items.event_items.count %>
         </td>
         <% end %>
         <td><%= ea_mdl.note %></td>

@@ -32,5 +32,8 @@ class EngageEventItemHowTest < ActiveSupport::TestCase
     refute mdl.save
     mdl = EngageEventItemHow.new(mname: "naiyo", weight: mdl0.weight)
     refute mdl.save
+
+    assert EngageEventItemHow.unknown.unknown?
+    assert_equal EngageEventItemHow::UNKNOWN_TITLES['en'][1], EngageEventItemHow.unknown.alt_title(langcode: :en), "unknown ="+EngageEventItemHow.unknown.inspect
   end
 end

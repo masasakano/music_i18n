@@ -7,12 +7,23 @@
 #   movies = Movie.create([{ name: 'Star Wars' }, { name: 'Lord of the Rings' }])
 #   Character.create(name: 'Luke', movie: movies.first)
 
+## NOTE:
+# This script is run as the main script with
+#   * "./db/seeds.rb" (*if* the executable permission was ever given) or
+#   * "ruby db/seeds.rb" or
+#   * "bin/rails db:seed(:replant)" etc with the environmental variable DO_TEST_SEEDS unset or of 0.
+#
+# The test script /test/seeds/seeds_test.rb require this file ONLY IF the environmental variable DO_TEST_SEEDS is set positive.
+#
 # NOTE: Once the superuser has been created (the first registered user is automatically promoted
-#  to the superuser!), run the following to prevent them from being overwritten:
+#  to the superuser!), run the following to prevent them from being overwritten [THIS NEEDS CHECKING!]:
 #
 #     Translation.update_all(create_user_id: myself.id, update_user_id: myself.id)
 
 include ModuleCommon  # for split_hash_with_keys, seed_fname2print
+include ApplicationHelper  # for is_env_set_positive?
+
+def implant_seeds
 
 ################################
 # Load Model: Sex
@@ -716,16 +727,23 @@ end
 # Auto loading external seed files
 
 # Some files depend on other files, which must be run before them.
-ar_priority = %w(user event_group).map{|i| File.join(Rails.root, 'db', 'seeds', 'seeds_'+i+'.rb')}
-(ar_priority + Dir[File.join(Rails.root, 'db', 'seeds', 'seeds_*.rb')]).uniq.each do |seed|
+rootdirs = [Rails.root, 'db', 'seeds']
+ar_priority = %w(user event_group).map{|i| File.join(*(rootdirs+['seeds_'+i+'.rb']))}
+(ar_priority + Dir[File.join(*(rootdirs+['*.rb']))]).uniq.each do |seed|
+  next if "common.rb" == File.basename(seed)  # Skipping reading the common included Module
   puts "loading "+seed_fname2print(seed) if $DEBUG  # defined in ModuleCommon
   require seed
   camel = File.basename(seed, ".rb").camelize
   begin
-    klass = camel.constantize
+    klass =
+      if /\ASeeds/ =~ camel
+        camel.constantize      # e.g., SeedsUser
+      else
+        Seeds.const_get(camel) # e.g., Seeds::EngageEventItemHow
+      end
   rescue NameError
     # maybe seeds_user.rb in the production environment, where SeedsUser is deliberately undefined.
-    puts "DEBUG: skip running "+seed_fname2print(seed) if $DEBUG
+    puts "DEBUG: skip running "+seed_fname2print(seed) #if $DEBUG
     next
   end
   if !klass.respond_to? :load_seeds 
@@ -733,7 +751,7 @@ ar_priority = %w(user event_group).map{|i| File.join(Rails.root, 'db', 'seeds', 
   end
   increment = klass.load_seeds  # execute the method in an external file
   nrec += increment 
-  if (increment > 0 || $DEBUG) && (camel != "User")  # This has been already printed in seeds_user.rb
+  if (increment > 0 || $DEBUG) && (camel != "SeedsUser")  # This has been already printed in seeds_user.rb
     printf "(%s): %s %s are created/updated.\n", seed_fname2print(seed), increment, camel.sub(/^Seeds/, "").pluralize
   end
 end
@@ -745,5 +763,18 @@ if nrec <= 0
   warn "WARNING: All the seeds have already been implemented. No change."
 else
   printf "Successfully seeded: %d entries in total.\n", nrec
+end
+
+end # def implant_seeds
+
+
+################################
+# Executing seeding
+################################
+
+fb0 = File.basename($0)
+fbf = File.basename(__FILE__)
+if (fb0 == fbf) || (fb0 == "ruby" && ARGV[1].present? && File.basename(ARGV[1]) ==fbf) || (fb0 == "rails" && ARGV.size == 0 && !is_env_set_positive?("DO_TEST_SEEDS"))  # defined in application_helper.rb 
+  implant_seeds
 end
 
