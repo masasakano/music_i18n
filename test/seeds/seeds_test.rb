@@ -66,7 +66,7 @@ class SeedsSeedsTest < ActiveSupport::TestCase
 
     assert_equal 0, [Sex.count, Role.count, Artist.count, Translation.count, Engage.count].sum
     assert_equal 1, User.count
-    assert_equal 1, _total_entry, "Entries: "+_pair_entries.inspect.gsub(/"/, "")
+    assert_equal 1, _total_entry, "Positive entries (Expectation: [User:1] only): "+_pair_entries.reject{|i| i[1] < 1}.inspect.gsub(/"/, "")
 
     # run seeding (1st time)
     implant_seeds  # defined in /db/seeds.rb"

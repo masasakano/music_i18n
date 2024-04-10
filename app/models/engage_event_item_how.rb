@@ -49,6 +49,7 @@ class EngageEventItemHow < BaseWithTranslation
   validates_uniqueness_of :mname
   validates_presence_of   :weight  # NOTE: At the DB level, a default is defined.
   validates_uniqueness_of :weight  # No DB-level constraint, but this is checked at Rails-level.
+  validates :weight, :numericality => { :greater_than_or_equal_to => 0 }
 
   # NOTE: UNKNOWN_TITLES required to be defined for the methods included from ModuleUnknown. alt_title can be also defined as an Array instead of String.
   UNKNOWN_TITLES = UnknownEngageEventItemHow = {

@@ -3,6 +3,9 @@ ENV['RAILS_ENV'] ||= 'test'
 require_relative '../config/environment'
 require 'rails/test_help'
 require 'w3c_validators'
+require_relative '../db/seeds/engage_event_item_how'
+
+ActiveRecord::FixtureSet.context_class.include Seeds
 
 class ActiveSupport::TestCase
   include ApplicationHelper

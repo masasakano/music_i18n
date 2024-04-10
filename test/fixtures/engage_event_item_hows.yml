@@ -15,83 +15,10 @@
 #  index_engage_event_item_hows_on_weight  (weight)
 #
 
-engage_event_item_how_singer:
-  mname: singer
-  weight: 10
-  note: EngageEventItemHowSinger
+<% Seeds::EngageEventItemHow::SEED_DATA.each_pair do |ekey, edata| %>
+engage_event_item_how_<%= ekey %>:
+  mname: <%= edata[:mname] %>
+  weight: <%= edata[:weight] %>
+  note: EngageEventItemHow<%= ekey.to_s.capitalize %>
+<% end %>
 
-engage_event_item_how_chorus:
-  mname: chorus
-  weight: 20
-  note: EngageEventItemHowChorus
-
-engage_event_item_how_inst_player_main:
-  mname: inst_player_main
-  weight: 30
-  note: EngageEventItemHowInstPlayerMain
-
-engage_event_item_how_inst_player:
-  mname: inst_player
-  weight: 40
-  note: EngageEventItemHowInstPlayer
-
-engage_event_item_how_conductor:
-  mname: conductor
-  weight: 50
-  note: EngageEventItemHowConductor
-
-engage_event_item_how_host:
-  mname: host
-  weight: 110
-  note: Hosting an Event
-
-engage_event_item_how_mc:
-  mname: mc
-  weight: 120
-  note: MCing an Event not responsible for inviting guests
-
-engage_event_item_how_guest_main:
-  mname: guest_main
-  weight: 130
-  note: EngageEventItemHowGuestMain
-
-engage_event_item_how_guest:
-  mname: guest
-  weight: 140
-  note: EngageEventItemHowGuest
-
-engage_event_item_how_producer:
-  mname: producer
-  weight: 210
-  note: EngageEventItemHowProducer
-
-engage_event_item_how_staff:
-  mname: staff
-  weight: 220
-  note: EngageEventItemHowStaff
-
-engage_event_item_how_helper:
-  mname: helper
-  weight: 230
-  note: EngageEventItemHowHelper
-
-engage_event_item_how_spectator:
-  mname: spectator
-  weight: 310
-  note: EngageEventItemHowSpectator
-
-engage_event_item_how_visitor:
-  mname: visitor
-  weight: 320
-  note: EngageEventItemHowVisitor
-
-engage_event_item_how_other:
-  mname: other
-  weight: 410
-  note: EngageEventItemHowOther
-
-engage_event_item_how_unknown:
-  mname: unknown
-  weight: 999
-  note: EngageEventItemHowUnknown
-  ## The weight of this must be the DB-default 999.

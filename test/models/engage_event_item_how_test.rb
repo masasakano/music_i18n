@@ -1,3 +1,4 @@
+# coding: utf-8
 # == Schema Information
 #
 # Table name: engage_event_item_hows
@@ -26,6 +27,10 @@ class EngageEventItemHowTest < ActiveSupport::TestCase
     assert_raises(ActiveRecord::RecordInvalid){
       EngageEventItemHow.create!(mname: "naiyo", weight: nil) }
     assert_raises(ActiveRecord::RecordInvalid){
+      EngageEventItemHow.create!(mname: "naiyo", weight: "abc") }
+    assert_raises(ActiveRecord::RecordInvalid){
+      EngageEventItemHow.create!(mname: "naiyo", weight: -4) }
+    assert_raises(ActiveRecord::RecordInvalid){
       EngageEventItemHow.create!(mname: "naiyo") }  # This raises an Exception BECAUSE "unknown" has the weight of the DB-default 999.0
 
     mdl = EngageEventItemHow.new(mname: mdl0.mname, weight: 50)
@@ -35,5 +40,20 @@ class EngageEventItemHowTest < ActiveSupport::TestCase
 
     assert EngageEventItemHow.unknown.unknown?
     assert_equal EngageEventItemHow::UNKNOWN_TITLES['en'][1], EngageEventItemHow.unknown.alt_title(langcode: :en), "WARNING: This for some reason someitmes fails as a result of the alt_title of being nil.... EngageEventItemHow.unknown="+EngageEventItemHow.unknown.inspect
+
+    ## checking fixtures
+    tra = translations(:engage_event_item_how_singer_en)
+    assert_equal "Singer", tra.title
+    assert_equal "en",   tra.langcode
+    assert_equal "EngageEventItemHowSingerEn", tra.note
+
+    tra = translations(:engage_event_item_how_singer_ja)
+    assert_equal "ja",   tra.langcode
+    assert_equal "歌手", tra.title
+    assert_equal "singer", tra.translatable.mname
+    assert_equal 10,       tra.translatable.weight
+
+    tra = translations(:engage_event_item_how_other_ja)
+    assert_equal "その他", tra.title
   end
 end

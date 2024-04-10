@@ -20,7 +20,7 @@ module Seeds::EngageEventItemHow
       fr: EngageEventItemHow::UNKNOWN_TITLES['fr'],
       orig_langcode: 'en',
       mname: "unknown",
-      weight: 999,
+      weight: 999,  # NOTE: The weight for this must be the DB-default 999.
       note: '何らかの関連があったもののそれが不明な場合',
       regex: /Unknown\s*Engage\s*EventItemHow/i,  # to check potential duplicates => NOT used b/c mname suffices (c.f., seeds_event_group.rb)
     },
