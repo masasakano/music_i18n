@@ -39,10 +39,11 @@ module Seeds
     # @param attrs: [Array<Symbol, String>] Attributes to setup (or update if blank); e.g., %i(weight note)
     # @return [Integer] 1 if updated, else 0.
     def model_save(model, seed1, attrs: [])
+      # To play safe; this routine should not be called if model is not a new record.
       changed = model.new_record?  # true if the model itself is new (let alone Translation)
   
       attrs.each do |ek|
-        # If it already exists, processing is skipped basically.
+        # If it already exists, processing is skipped basically, except blank attributes may be updated.
         next if !model.new_record? && (seed1[ek].blank? || model.send(ek).present?)
         changed = 1 if !model.new_record?  # (at least partly) modified, hence +1 in increment is guaranteed.
         model.send(ek.to_s+"=", seed1[ek])
@@ -90,5 +91,52 @@ module Seeds
   
       n_changed
     end
+
+    # Core routine for load_seeds
+    #
+    # All seeded records for the class are created, if not yet created.  At the same time,
+    # this sets hash +self::MODELS+ with a key of +self::SEED_DATA+ for the model (regardless of new or existing).
+    #
+    # In default, the Hash of +SEEDS[][:regex]+ is used to identify the existing record;
+    # it is either Regexp or Proc. Alternatively, a block can be given to implement
+    # an algorithm by the caller.
+    #
+    # @example
+    #    _load_seeds_core(EngagePlayHow, %i(weight note))
+    #    _load_seeds_core(AbcDef, %i(mname weight note)){|ea_hs, key| AbcDef.find_or_initialize(...)}
+    #
+    # @param attrs [Array<Symbol>] Array of attributes for the main model to load.
+    # @param klass: [Class, NilClass] (Optional) Model class. If not specified, constant RECORD_CLASS is tried and then it is guessed from the Module name.
+    # @return [Integer] Number of created/updated entries
+    # @yield [Hash, Symbol] (Optional) Hash (==SEEDS[:key]) followed by the :key, is given.  Can be ignored.
+    # @yieldreturn [ApplicationRecord] The matching (or new) model or nil
+    def _load_seeds_core(attrs, klass: nil)
+      klass ||= ((k=:RECORD_CLASS; self.const_defined?(k) && self.const_get(k)) || self.name.split("::")[-1].constantize)  # ActiveRecord (ApplicationRecord)
+      n_changed = 0
+
+      self::SEED_DATA.each_pair do |key, ehs|
+        model =
+          if block_given?
+            yield(ehs, key)
+          elsif ehs[:regex].respond_to?(:call)
+            ehs[:regex].call(ehs, key)
+          else
+            klass.find_by_regex(:titles, ehs[:regex])
+          end
+
+        model ||= klass.new
+
+        if model.new_record?
+          n_changed += model_save(model, ehs, attrs: attrs)
+          model.reload
+        end
+        self::MODELS[key] =  model
+
+        n_changed += translation_save(model, ehs)
+      end
+
+      n_changed
+    end # def _load_seeds_core(attrs, klass: nil)
+    private :_load_seeds_core
   end # moduleCommon
 end # module Seeds

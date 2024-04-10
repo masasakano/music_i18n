@@ -341,7 +341,11 @@ class Translation < ApplicationRecord
   # it should be like {Translation#translatable_type}, i.e.,
   # the model class name (e.g., {Artist}) that can be {#constantize}-d
   #
-  # @param inobj [Boolean, Class, String] if Class, it should be BaseWithTranslation.
+  # @example
+  #    Translation.get_article_to_tail(Artist)   # => true
+  #    Translation.get_article_to_tail("Genre")  # => false
+  #
+  # @param inobj [Boolean, Class, String] if Class, it should be {BaseWithTranslation}.
   #    If String, it should be {Translation#translatable_type}
   # @return [Boolean] true if the definite article in Title should be moved to the tail
   def self.get_article_to_tail(inobj)
@@ -354,7 +358,7 @@ class Translation < ApplicationRecord
       when true, false, nil
         !!inobj
       else
-        msg = "(#{__method__}) inobj is strange: "+inobj.inspect
+        msg = "(#{__method__}) inobj is strange (with ARTICLE_TO_TAIL undefined): "+inobj.inspect
         warn msg
         logger.warn msg
         false

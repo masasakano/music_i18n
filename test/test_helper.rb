@@ -3,7 +3,11 @@ ENV['RAILS_ENV'] ||= 'test'
 require_relative '../config/environment'
 require 'rails/test_help'
 require 'w3c_validators'
-require_relative '../db/seeds/engage_event_item_how'
+
+Dir[Rails.root.to_s+"/db/seeds/*.rb"].uniq.each do |seed|
+  next if /^seeds_/ =~ File.basename(seed)  # Skipping reading the old-style Modules
+  require seed
+end
 
 ActiveRecord::FixtureSet.context_class.include Seeds
 

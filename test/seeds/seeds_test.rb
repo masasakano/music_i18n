@@ -51,7 +51,7 @@ class SeedsSeedsTest < ActiveSupport::TestCase
     #end
 
     superuser = User.roots.first
-    [StaticPage, EngageEventItemHow, HaramiVidMusicAssoc, ModelSummary, PageFormat,
+    [StaticPage, EngageEventItemHow, EngagePlayHow, HaramiVidMusicAssoc, ModelSummary, PageFormat,
      Harami1129, Harami1129Review, HaramiVid, Engage, EngageHow,
      EventItem, Event, EventGroup, Artist, Music, Genre, 
      Place, Prefecture, Country, CountryMaster,
@@ -82,11 +82,17 @@ class SeedsSeedsTest < ActiveSupport::TestCase
     assert_operator 5, :<, EventGroup.count
     assert_operator 5, :<, EngageEventItemHow.count
 
+    chorus = EngageEventItemHow.find_by(mname: "chorus")
+    assert chorus.note.present? # sanity check with the fixture (based on SEEDS in /db/seeds/engage_event_item_how.rb )
+    chorus.update!(note: nil)
+    refute chorus.note.present? # sanity check
+
     # run seeding (2nd time)
     implant_seeds  # defined in /db/seeds.rb"
 
     assert_equal n_entries1, _total_entry, "The total entry number shoud not change, but..."
-    ##p EngageEventItemHow.all
+    chorus.reload
+    refute chorus.note.present?, "should have not changed in the 2nd run of seeding, but..."
   end
 
   private

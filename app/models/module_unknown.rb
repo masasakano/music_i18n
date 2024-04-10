@@ -27,7 +27,8 @@ module ModuleUnknown
   module ClassMethods
     # @return [ApplicationRecord]
     def unknown
-      @record_unknown ||= self[[self::UNKNOWN_TITLES['en']].flatten.first, 'en']
+      #@record_unknown ||= self[[self::UNKNOWN_TITLES['en']].flatten.first, 'en']
+      @record_unknown ||= self.find_by_regex(:titles, /\A\s*(#{self::UNKNOWN_TITLES.values.inject([]){|i,j| i+[j].flatten}.map{|k| Regexp.quote(k)}.join('|')})\s*\z/i)
     end
   end
 

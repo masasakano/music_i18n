@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  resources :engage_play_hows
   resources :engage_event_item_hows
   resources :event_items
   resources :events

@@ -11,18 +11,21 @@ module Seeds::EngageEventItemHow
   # Everything is a function
   module_function
 
+  # Corresponding Active Record class
+  RECORD_CLASS = self.name.split("::")[-1].constantize  # EngageEventItemHow
+
   # Data to seed
   # NOTE: Make sure these to be consistent with /test/fixtures/engage_event_item_hows.yml and translations.yml
   SEED_DATA = {
     unknown: {
-      ja: EngageEventItemHow::UNKNOWN_TITLES['ja'],
-      en: EngageEventItemHow::UNKNOWN_TITLES['en'],
-      fr: EngageEventItemHow::UNKNOWN_TITLES['fr'],
+      ja: RECORD_CLASS::UNKNOWN_TITLES['ja'],
+      en: RECORD_CLASS::UNKNOWN_TITLES['en'],
+      fr: RECORD_CLASS::UNKNOWN_TITLES['fr'],
       orig_langcode: 'en',
       mname: "unknown",
       weight: 999,  # NOTE: The weight for this must be the DB-default 999.
       note: '何らかの関連があったもののそれが不明な場合',
-      regex: /Unknown\s*Engage\s*EventItemHow/i,  # to check potential duplicates => NOT used b/c mname suffices (c.f., seeds_event_group.rb)
+      regex: Proc.new{RECORD_CLASS.unknown}  # to check potential duplicates for EngageEventItemHow => NOT used b/c mname suffices
     },
     singer: {
       ja: "歌手",
@@ -155,18 +158,8 @@ module Seeds::EngageEventItemHow
   #
   # @return [Integer] Number of created/updated entries
   def load_seeds
-    n_changed = 0
-
-    SEED_DATA.each_pair do |key, ehs|
-      model = EngageEventItemHow.find_or_initialize_by(mname: ehs[:mname])
-      n_changed += model_save(model, ehs, attrs: %i(weight note))  # defined in seeds_common.rb
-      MODELS[key] = model.reload
-
-      n_changed += translation_save(model, ehs)  # defined in seeds_common.rb
-    end
-
-    n_changed
-  end  # def load_seeds
+    _load_seeds_core(%i(weight note)){|ehs, _| RECORD_CLASS.find_or_initialize_by(mname: ehs[:mname])}  # mname is already set, and so it is not specified for _load_seeds(); n.b., RECORD_CLASS == EngageEventItemHow
+  end
 
 end  # module Seeds::EngageEventItemHow
 

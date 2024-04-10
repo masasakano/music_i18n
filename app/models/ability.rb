@@ -147,7 +147,7 @@ class Ability
     ## HaramiVid moderator only
     if user.qualified_as?(:moderator, rc_harami)
       can :crud, [HaramiVid, Harami1129]
-      can :cru,  [Harami1129Review]  # Harami1129Review rarely needs to be destroyed.  If necessary, sysadmin should do.
+      can :cru,  [Harami1129Review, EngagePlayHow]  # Harami1129Review rarely needs to be destroyed.  Some of EngagePlayHow should not be deleted (actually they should not be radically modified, either). If necessary, sysadmin should do.
       can :read, EngageEventItemHow
     end
 

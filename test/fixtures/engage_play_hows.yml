@@ -1,0 +1,21 @@
+# == Schema Information
+#
+# Table name: engage_play_hows
+#
+#  id                                    :bigint           not null, primary key
+#  note                                  :text
+#  weight(weight for sorting for index.) :float            default(999.0), not null
+#  created_at                            :datetime         not null
+#  updated_at                            :datetime         not null
+#
+# Indexes
+#
+#  index_engage_play_hows_on_weight  (weight)
+#
+
+<% Seeds::EngagePlayHow::SEED_DATA.each_pair do |ekey, edata| %>
+engage_play_how_<%= ekey %>:
+  weight: <%= edata[:weight] %>
+  note: EngagePlayHow<%= ekey.to_s.capitalize %>
+<% end %>
+

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_04_07_205022) do
+ActiveRecord::Schema[7.0].define(version: 2024_04_09_182352) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -120,6 +120,14 @@ ActiveRecord::Schema[7.0].define(version: 2024_04_07_205022) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.float "weight", default: 999.0
+  end
+
+  create_table "engage_play_hows", comment: "(Music) Instruments for EngageEventItemHow", force: :cascade do |t|
+    t.float "weight", default: 999.0, null: false, comment: "weight for sorting for index."
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["weight"], name: "index_engage_play_hows_on_weight"
   end
 
   create_table "engages", force: :cascade do |t|

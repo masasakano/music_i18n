@@ -2,21 +2,19 @@
 
 # == Schema Information
 #
-# Table name: engage_event_item_hows
+# Table name: engage_play_hows
 #
-#  id                                                  :bigint           not null, primary key
-#  mname(unique machine name)                          :string           not null
-#  note                                                :text
-#  weight(weight to sort entries in Index for Editors) :float            default(999.0), not null
-#  created_at                                          :datetime         not null
-#  updated_at                                          :datetime         not null
+#  id                                    :bigint           not null, primary key
+#  note                                  :text
+#  weight(weight for sorting for index.) :float            default(999.0), not null
+#  created_at                            :datetime         not null
+#  updated_at                            :datetime         not null
 #
 # Indexes
 #
-#  index_engage_event_item_hows_on_mname   (mname) UNIQUE
-#  index_engage_event_item_hows_on_weight  (weight)
+#  index_engage_play_hows_on_weight  (weight)
 #
-class EngageEventItemHow < BaseWithTranslation
+class EngagePlayHow < BaseWithTranslation
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
 
@@ -30,9 +28,6 @@ class EngageEventItemHow < BaseWithTranslation
   # this constant should be true (for example, {Music#title}).
   ARTICLE_TO_TAIL = false
 
-  #has_many :engages,     dependent: :restrict_with_exception
-  #has_many :event_items, dependent: :restrict_with_exception
-
   # Validates translation immediately before it is added.
   #
   # Called by a validation in {Translation}
@@ -45,17 +40,16 @@ class EngageEventItemHow < BaseWithTranslation
     validate_translation_neither_title_nor_alt_exist(record)  # defined in BaseWithTranslation
   end
 
-  validates_presence_of   :mname
-  validates_uniqueness_of :mname
   validates_presence_of   :weight  # NOTE: At the DB level, a default is defined.
   validates_uniqueness_of :weight  # No DB-level constraint, but this is checked at Rails-level.
+  validates_numericality_of :weight
   validates :weight, :numericality => { :greater_than_or_equal_to => 0 }
 
   # NOTE: UNKNOWN_TITLES required to be defined for the methods included from ModuleUnknown. alt_title can be also defined as an Array instead of String.
   UNKNOWN_TITLES = UnknownEngageEventItemHow = {
-    "ja" => ['イベント項目関与形態不明', '関与形態不明'],
-    "en" => ['Unknown Engage-EventItem relation', 'Unknown relation'],
-    "fr" => ['Relation inconnue entre Engage-EventItem', 'Relation inconnue'],
+    "ja" => ['不明の楽器'],
+    "en" => ['Unknown music instrument', 'Unknown instrument'],
+    "fr" => ['Instrument inconnu'],
   }.with_indifferent_access
 
 end
