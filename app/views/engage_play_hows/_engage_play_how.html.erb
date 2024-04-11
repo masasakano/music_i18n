@@ -1,0 +1,27 @@
+<div id="<%= dom_id engage_play_how %>">
+<dl>
+  <% if can? :update, engage_play_how %>
+    <dt>ID (EngagePlayHow)</dt>
+    <dd> <%= @engage_play_how.id %></dd>
+  <% end %>
+  <dt><strong>Weight:</strong></dt>
+    <dd><%= engage_play_how.weight %></dd>
+  <dt>note</dt>
+    <dd><%= engage_play_how.note %></dd>
+  <% if can? :update, engage_play_how %>
+  <dt>updated_at</dt>
+    <dd><%= engage_play_how.updated_at %></dd>
+  <% end %>
+</dl>
+
+  <p>
+    <strong>Weight:</strong>
+    <%= engage_play_how.weight %>
+  </p>
+
+  <p>
+    <strong>Note:</strong>
+    <%= engage_play_how.note %>
+  </p>
+
+</div>

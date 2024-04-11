@@ -16,6 +16,6 @@
 <% Seeds::EngagePlayHow::SEED_DATA.each_pair do |ekey, edata| %>
 engage_play_how_<%= ekey %>:
   weight: <%= edata[:weight] %>
-  note: EngagePlayHow<%= ekey.to_s.capitalize %>
+  note: EngagePlayHow<%= ekey.to_s.camelize %>
 <% end %>
 

@@ -2166,8 +2166,8 @@ evit_ev_unknown_en:
 engage_event_item_how_<%= ekey %>_<%= langcode %>:
   translatable: engage_event_item_how_<%= ekey %> (EngageEventItemHow)
   langcode: <%= langcode %>
-  title: <%= [edata[langcode]].flatten.first %> 
-  alt_title: <%= [edata[langcode]].flatten.last %> 
+  title:     <%= [edata[langcode]].flatten[0] %> 
+  alt_title: <%= [edata[langcode]].flatten[1] %> 
   weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
   create_user_id: user_moderator
   update_user_id: user_moderator
@@ -2181,8 +2181,8 @@ engage_event_item_how_<%= ekey %>_<%= langcode %>:
 engage_play_how_<%= ekey %>_<%= langcode %>:
   translatable: engage_play_how_<%= ekey %> (EngagePlayHow)
   langcode: <%= langcode %>
-  title: <%= [edata[langcode]].flatten.first %> 
-  alt_title: <%= [edata[langcode]].flatten.last %> 
+  title:     <%= [edata[langcode]].flatten[0] %> 
+  alt_title: <%= [edata[langcode]].flatten[1] %> 
   weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
   create_user_id: user_moderator
   update_user_id: user_moderator

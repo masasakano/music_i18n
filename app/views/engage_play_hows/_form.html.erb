@@ -1,0 +1,69 @@
+
+<%#= simple_form_for(@engage_play_how) do |f| %>
+  <%#= f.error_notification %>
+  <%#= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
+<%# end %>
+  <% if engage_play_how.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(engage_play_how.errors.count, "error") %> prohibited this EngagePlayHow from being saved:</h2>
+
+      <ul>
+        <% engage_play_how.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+<% if ! engage_play_how.new_record? %>
+<hr>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: engage_play_how, add_buttons: true} %>
+<hr>
+
+<h2>Unique parameters</h2>
+<% end %>
+
+<%= form_with(model: engage_play_how, local: true) do |form| %>
+
+  <% if engage_play_how.new_record? %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: form, model: engage_play_how, trans: Translation.new, disable_is_orig: true} %>
+  <% end %>
+
+  <div class="field">
+    <%= form.label :weight, "Weight" %>
+    <%= form.text_field :weight, value: engage_play_how.weight, class: 'input_year' %>
+  </div>
+<table id="engage_play_hows_index_weight_table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+      <th>Weight</th>
+      <th title="Note in this table">Note</th>
+    </tr>
+  </thead>
+
+    <% EngagePlayHow.order(:weight).each do |ea_mdl| %>
+      <tr>
+        <td><%= ea_mdl.id %></td>
+        <td><%= ea_mdl.title_or_alt(langcode: I18n.locale) %></td>
+        <td><%= ea_mdl.weight %></td>
+        <td><%= ea_mdl.note %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+  <div class="field">
+    <%= form.label :note %>
+    <%= form.text_area :note %>
+  </div>
+
+  <div class="actions">
+    <%= form.submit(engage_play_how.new_record? ? "Create EngagePlayHow" :  "Update EngagePlayHow")%>
+  </div>
+  <div class="actions">
+  <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  </div>
+<% end %>
+

@@ -1,0 +1,21 @@
+
+<h1>EngagePlayHow: <%= @engage_play_how.title_or_alt(langcode: I18n.locale) %></h1>
+
+<hr>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @engage_play_how} %>
+<hr>
+
+<%= render @engage_play_how %>
+
+<div>
+    <% if can? :update, @engage_play_how %>
+  <%= link_to "Edit this EngagePlayHow", edit_engage_play_how_path(@engage_play_how) %> |
+    <% end %>
+
+    <% if can?(:destroy, @engage_play_how) %>
+  <%= button_to "Destroy", @engage_play_how, method: :delete %>
+    <% end %>
+</div>
+
+<hr>
+  <%= link_to t("layouts.back_to_index"), engage_play_hows_path %>

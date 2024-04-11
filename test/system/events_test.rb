@@ -70,7 +70,7 @@ class EventsTest < ApplicationSystemTestCase
     n_events = page.all("div#events table tr").size - 1
     assert_equal(n_events_be4+1, n_events)
 
-    ## "should update Event group" do
+    ## "should update Event" do
     visit event_url(@event)
     click_on "Edit this Event", match: :first
 

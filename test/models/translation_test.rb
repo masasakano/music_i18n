@@ -666,6 +666,21 @@ class TranslationTest < ActiveSupport::TestCase
     assert_equal ts[21], t_sibs[-2] # Y
     assert_equal ts[23], t_sibs[-3] # W
     assert_equal ts[24], t_sibs[-4] # Z
+
+    ############
+    # Translation should have "title != alt_title".
+    #
+    # However, this is actually allowed, partly because
+    #   Translation.where('title = alt_title')
+    # find a few Countries; e.g., "Canada" in :ja has an identical title and alt_title.
+    # At least, at a form level, this should be prohibited...
+    ############
+    #
+    #s = "The RubyRail"
+    #tra = Translation.new(langcode: "en", title: s, alt_title: s, translatable: kampai)
+    #refute tra.save, "title==alt_title should not be allowed, but... (TODO!)"
+    #tra = Translation.new(langcode: "en", title: "The RubyRail", alt_title: "RubyRail, The", translatable: kampai)
+    #refute tra.save, "title==alt_title should not be allowed, but..."
   end
 end
 
