@@ -51,7 +51,7 @@ class SeedsSeedsTest < ActiveSupport::TestCase
     #end
 
     superuser = User.roots.first
-    [StaticPage, EngageEventItemHow, EngagePlayHow, HaramiVidMusicAssoc, ModelSummary, PageFormat,
+    [StaticPage, EngageEventItemHow, Instrument, HaramiVidMusicAssoc, ModelSummary, PageFormat,
      Harami1129, Harami1129Review, HaramiVid, Engage, EngageHow,
      EventItem, Event, EventGroup, Artist, Music, Genre, 
      Place, Prefecture, Country, CountryMaster,

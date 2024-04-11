@@ -1,39 +1,39 @@
 
-<%#= simple_form_for(@engage_play_how) do |f| %>
+<%#= simple_form_for(@instrument) do |f| %>
   <%#= f.error_notification %>
   <%#= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
 <%# end %>
-  <% if engage_play_how.errors.any? %>
+  <% if instrument.errors.any? %>
     <div id="error_explanation">
-      <h2><%= pluralize(engage_play_how.errors.count, "error") %> prohibited this EngagePlayHow from being saved:</h2>
+      <h2><%= pluralize(instrument.errors.count, "error") %> prohibited this Instrument from being saved:</h2>
 
       <ul>
-        <% engage_play_how.errors.full_messages.each do |message| %>
+        <% instrument.errors.full_messages.each do |message| %>
           <li><%= message %></li>
         <% end %>
       </ul>
     </div>
   <% end %>
 
-<% if ! engage_play_how.new_record? %>
+<% if ! instrument.new_record? %>
 <hr>
-<%= render partial: 'layouts/all_registered_translations', locals: {model: engage_play_how, add_buttons: true} %>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: instrument, add_buttons: true} %>
 <hr>
 
 <h2>Unique parameters</h2>
 <% end %>
 
-<%= form_with(model: engage_play_how, local: true) do |form| %>
+<%= form_with(model: instrument, local: true) do |form| %>
 
-  <% if engage_play_how.new_record? %>
-    <%= render partial: 'layouts/partial_new_translations', locals: {form: form, model: engage_play_how, trans: Translation.new, disable_is_orig: true} %>
+  <% if instrument.new_record? %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: form, model: instrument, trans: Translation.new, disable_is_orig: true} %>
   <% end %>
 
   <div class="field">
     <%= form.label :weight, "Weight" %>
-    <%= form.text_field :weight, value: engage_play_how.weight, class: 'input_year' %>
+    <%= form.text_field :weight, value: instrument.weight, class: 'input_year' %>
   </div>
-<table id="engage_play_hows_index_weight_table">
+<table id="instruments_index_weight_table">
   <thead>
     <tr>
       <th>ID</th>
@@ -43,7 +43,7 @@
     </tr>
   </thead>
 
-    <% EngagePlayHow.order(:weight).each do |ea_mdl| %>
+    <% Instrument.order(:weight).each do |ea_mdl| %>
       <tr>
         <td><%= ea_mdl.id %></td>
         <td><%= ea_mdl.title_or_alt(langcode: I18n.locale) %></td>
@@ -60,7 +60,7 @@
   </div>
 
   <div class="actions">
-    <%= form.submit(engage_play_how.new_record? ? "Create EngagePlayHow" :  "Update EngagePlayHow")%>
+    <%= form.submit(instrument.new_record? ? "Create Instrument" :  "Update Instrument")%>
   </div>
   <div class="actions">
   <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>

@@ -102,7 +102,7 @@ module Seeds
     # an algorithm by the caller.
     #
     # @example
-    #    _load_seeds_core(EngagePlayHow, %i(weight note))
+    #    _load_seeds_core(Instrument, %i(weight note))
     #    _load_seeds_core(AbcDef, %i(mname weight note)){|ea_hs, key| AbcDef.find_or_initialize(...)}
     #
     # @param attrs [Array<Symbol>] Array of attributes for the main model to load.

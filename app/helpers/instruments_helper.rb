@@ -1,2 +1,2 @@
-module EngagePlayHowsHelper
+module InstrumentsHelper
 end

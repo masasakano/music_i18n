@@ -1,27 +1,27 @@
-<div id="<%= dom_id engage_play_how %>">
+<div id="<%= dom_id instrument %>">
 <dl>
-  <% if can? :update, engage_play_how %>
-    <dt>ID (EngagePlayHow)</dt>
-    <dd> <%= @engage_play_how.id %></dd>
+  <% if can? :update, instrument %>
+    <dt>ID (Instrument)</dt>
+    <dd> <%= @instrument.id %></dd>
   <% end %>
   <dt><strong>Weight:</strong></dt>
-    <dd><%= engage_play_how.weight %></dd>
+    <dd><%= instrument.weight %></dd>
   <dt>note</dt>
-    <dd><%= engage_play_how.note %></dd>
-  <% if can? :update, engage_play_how %>
+    <dd><%= instrument.note %></dd>
+  <% if can? :update, instrument %>
   <dt>updated_at</dt>
-    <dd><%= engage_play_how.updated_at %></dd>
+    <dd><%= instrument.updated_at %></dd>
   <% end %>
 </dl>
 
   <p>
     <strong>Weight:</strong>
-    <%= engage_play_how.weight %>
+    <%= instrument.weight %>
   </p>
 
   <p>
     <strong>Note:</strong>
-    <%= engage_play_how.note %>
+    <%= instrument.note %>
   </p>
 
 </div>

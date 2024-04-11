@@ -122,14 +122,6 @@ ActiveRecord::Schema[7.0].define(version: 2024_04_09_182352) do
     t.float "weight", default: 999.0
   end
 
-  create_table "engage_play_hows", comment: "(Music) Instruments for EngageEventItemHow", force: :cascade do |t|
-    t.float "weight", default: 999.0, null: false, comment: "weight for sorting for index."
-    t.text "note"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["weight"], name: "index_engage_play_hows_on_weight"
-  end
-
   create_table "engages", force: :cascade do |t|
     t.bigint "music_id", null: false
     t.bigint "artist_id", null: false
@@ -293,6 +285,14 @@ ActiveRecord::Schema[7.0].define(version: 2024_04_09_182352) do
     t.index ["place_id"], name: "index_harami_vids_on_place_id"
     t.index ["release_date"], name: "index_harami_vids_on_release_date"
     t.index ["uri"], name: "index_harami_vids_on_uri", unique: true
+  end
+
+  create_table "instruments", comment: "(Music) Instruments for ArtistMusicPlay to go with PlayRole", force: :cascade do |t|
+    t.float "weight", default: 999.0, null: false, comment: "weight for sorting for index."
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["weight"], name: "index_instruments_on_weight"
   end
 
   create_table "model_summaries", force: :cascade do |t|

@@ -2,7 +2,7 @@
 
 # == Schema Information
 #
-# Table name: engage_play_hows
+# Table name: instruments
 #
 #  id                                    :bigint           not null, primary key
 #  note                                  :text
@@ -12,9 +12,9 @@
 #
 # Indexes
 #
-#  index_engage_play_hows_on_weight  (weight)
+#  index_instruments_on_weight  (weight)
 #
-class EngagePlayHow < BaseWithTranslation
+class Instrument < BaseWithTranslation
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
 

@@ -137,7 +137,7 @@ class Ability
 #           print "DEBUG:abi03: ";p(i.user.an_admin? && (!uhrc || uhrc && i.user.highest_role_in(hrc) < uhrc))
         i.user.an_admin? && (uhrc = user.highest_role_in(hrc); !uhrc || uhrc && i.user.highest_role_in(hrc) < uhrc)
       }
-      can :read, [EngagePlayHow]
+      can :read, [Instrument]
     end
 
     ## General-JA moderator only
@@ -154,7 +154,7 @@ class Ability
 
     ## General-JA or HaramiVid moderator only
     if user.qualified_as?(:moderator, rc_general_ja) || user.qualified_as?(:moderator, rc_harami)
-      can :crud, [EventGroup, Event, EventItem, EngagePlayHow]  # later excluded for "unknown?"
+      can :crud, [EventGroup, Event, EventItem, Instrument]  # later excluded for "unknown?"
     end
 
     ## Translation moderator only
@@ -177,7 +177,7 @@ class Ability
       #can(:update, Country)  # There is nothing (but note) to update in Country as the ISO-numbers are definite. Translation for Country is a different story, though.
       cannot :manage_prefecture_jp, Prefecture  # cannot edit Country in Prefecture to Japan
       cannot(:ud, [Prefecture]){|i| i.country == Country['JPN']}
-      cannot(:ud, [BaseWithTranslation]){|i| i.respond_to?(:unknown?) && i.unknown?} # Artist, Music, Place, Genre, EngageHow, EngagePlayHow
+      cannot(:ud, [BaseWithTranslation]){|i| i.respond_to?(:unknown?) && i.unknown?} # Artist, Music, Place, Genre, EngageHow, Instrument
       cannot(:ud, [Translation]){|trans| (!(base=trans.translatable) && trans.create_user_id != user.id && trans.update_user_id != user.id) || (base && base.respond_to?(:unknown?) && base.unknown?)} # non-admin cannot edit Translation for +X.unknown+; this is necessary because anything with is_orig=true is usually editable by Translators.
       #cannot(:ud, Place){|i| i.country == Country['JPN']}
     end

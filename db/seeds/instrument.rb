@@ -2,13 +2,13 @@
 
 require(File.dirname(__FILE__)+"/common.rb")  # defines: module Seeds
 
-# Model: EngagePlayHow
+# Model: Instrument
 #
-module Seeds::EngagePlayHow
+module Seeds::Instrument
   extend Seeds::Common
 
   # Corresponding Active Record class
-  RECORD_CLASS = self.name.split("::")[-1].constantize # EngagePlayHow
+  RECORD_CLASS = self.name.split("::")[-1].constantize # Instrument
 
   # Everything is a function
   module_function
@@ -22,7 +22,7 @@ module Seeds::EngagePlayHow
       orig_langcode: 'en',
       weight: 999,  # NOTE: The weight for this must be the DB-default 999.
       note: '楽器を使ったにせよそうでないにせよそれが不明な場合',
-      regex: Proc.new{RECORD_CLASS.unknown}  # to check potential duplicates for EngagePlayHow
+      regex: Proc.new{RECORD_CLASS.unknown}  # to check potential duplicates for Instrument
     },
     vocal: {
       ja: "歌手",
@@ -178,8 +178,8 @@ module Seeds::EngagePlayHow
   #
   # @return [Integer] Number of created/updated entries
   def load_seeds
-    _load_seeds_core(%i(weight note))  # defined in seeds_common.rb, using EngagePlayHow (==RECORD_CLASS)
+    _load_seeds_core(%i(weight note))  # defined in seeds_common.rb, using Instrument (==RECORD_CLASS)
   end
 
-end  # module Seeds::EngagePlayHow
+end  # module Seeds::Instrument
 

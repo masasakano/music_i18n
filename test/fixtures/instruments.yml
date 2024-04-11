@@ -1,6 +1,6 @@
 # == Schema Information
 #
-# Table name: engage_play_hows
+# Table name: instruments
 #
 #  id                                    :bigint           not null, primary key
 #  note                                  :text
@@ -10,12 +10,12 @@
 #
 # Indexes
 #
-#  index_engage_play_hows_on_weight  (weight)
+#  index_instruments_on_weight  (weight)
 #
 
-<% Seeds::EngagePlayHow::SEED_DATA.each_pair do |ekey, edata| %>
-engage_play_how_<%= ekey %>:
+<% Seeds::Instrument::SEED_DATA.each_pair do |ekey, edata| %>
+instrument_<%= ekey %>:
   weight: <%= edata[:weight] %>
-  note: EngagePlayHow<%= ekey.to_s.camelize %>
+  note: Instrument<%= ekey.to_s.camelize %>
 <% end %>
 

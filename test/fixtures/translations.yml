@@ -2175,18 +2175,18 @@ engage_event_item_how_<%= ekey %>_<%= langcode %>:
  <% end %>
 <% end %>
 
-<% Seeds::EngagePlayHow::SEED_DATA.each_pair do |ekey, edata| %>
+<% Seeds::Instrument::SEED_DATA.each_pair do |ekey, edata| %>
  <% %i(en ja fr).each do |langcode| %>
    <% next if edata[langcode].blank? %>
-engage_play_how_<%= ekey %>_<%= langcode %>:
-  translatable: engage_play_how_<%= ekey %> (EngagePlayHow)
+instrument_<%= ekey %>_<%= langcode %>:
+  translatable: instrument_<%= ekey %> (Instrument)
   langcode: <%= langcode %>
   title:     <%= [edata[langcode]].flatten[0] %> 
   alt_title: <%= [edata[langcode]].flatten[1] %> 
   weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
   create_user_id: user_moderator
   update_user_id: user_moderator
-  note: EngagePlayHow<%= ekey.to_s.capitalize %><%= langcode.to_s.capitalize %>
+  note: Instrument<%= ekey.to_s.capitalize %><%= langcode.to_s.capitalize %>
  <% end %>
 <% end %>
 
