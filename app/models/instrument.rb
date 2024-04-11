@@ -46,7 +46,7 @@ class Instrument < BaseWithTranslation
   validates :weight, :numericality => { :greater_than_or_equal_to => 0 }
 
   # NOTE: UNKNOWN_TITLES required to be defined for the methods included from ModuleUnknown. alt_title can be also defined as an Array instead of String.
-  UNKNOWN_TITLES = UnknownEngageEventItemHow = {
+  UNKNOWN_TITLES = UnknownInstrument = {
     "ja" => ['不明の楽器'],
     "en" => ['Unknown music instrument', 'Unknown instrument'],
     "fr" => ['Instrument inconnu'],

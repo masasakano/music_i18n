@@ -50,9 +50,9 @@ module Seeds
       end
   
       begin
-        model.save!  # EngageEventItemHow saved.  This should not raise an Exception, for Countries should have been already defined!
+        model.save!  # PlayRole saved.  This should not raise an Exception, for Countries should have been already defined!
       rescue ActiveRecord::RecordInvalid
-        msg = "ERROR(#{__FILE__}:#{__method__}): EngageEventItemHow#save! failed while attempting to save ja=(#{seed1[:ja]}).  This should never happen, except after a direct Database manipulation (such as DB migration rollback) has left some orphan Translations WITHOUT a parent; check out the log file for a WARNING message."
+        msg = "ERROR(#{__FILE__}:#{__method__}): PlayRole#save! failed while attempting to save ja=(#{seed1[:ja]}).  This should never happen, except after a direct Database manipulation (such as DB migration rollback) has left some orphan Translations WITHOUT a parent; check out the log file for a WARNING message."
         warn msg
         Rails.logger.error msg
         raise
@@ -80,7 +80,7 @@ module Seeds
       tras = model.best_translations
       %i(en ja fr).each do |lcode|
         next if !seed1.key?(lcode)
-        next if tras.key?(lcode)  # Translation of the language for EngageEventItemHow already defined?. If so, skip.
+        next if tras.key?(lcode)  # Translation of the language for PlayRole already defined?. If so, skip.
   
         is_orig = (orig_langcode ? (orig_langcode.to_s ==  lcode.to_s) : nil)
         weight = ((klass.const_defined?(:UNKNOWN_TITLES) && seed1[lcode] == klass::UNKNOWN_TITLES[lcode.to_s]) ? 0 : DEF_TRANSLATION_WEIGHT) # Translations for the uncategorized/unknown have weight=0 (i.e., will be never modified).

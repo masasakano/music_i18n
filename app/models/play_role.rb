@@ -2,7 +2,7 @@
 
 # == Schema Information
 #
-# Table name: engage_event_item_hows
+# Table name: play_roles
 #
 #  id                                                  :bigint           not null, primary key
 #  mname(unique machine name)                          :string           not null
@@ -13,10 +13,10 @@
 #
 # Indexes
 #
-#  index_engage_event_item_hows_on_mname   (mname) UNIQUE
-#  index_engage_event_item_hows_on_weight  (weight)
+#  index_play_roles_on_mname   (mname) UNIQUE
+#  index_play_roles_on_weight  (weight)
 #
-class EngageEventItemHow < BaseWithTranslation
+class PlayRole < BaseWithTranslation
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
 
@@ -52,7 +52,7 @@ class EngageEventItemHow < BaseWithTranslation
   validates :weight, :numericality => { :greater_than_or_equal_to => 0 }
 
   # NOTE: UNKNOWN_TITLES required to be defined for the methods included from ModuleUnknown. alt_title can be also defined as an Array instead of String.
-  UNKNOWN_TITLES = UnknownEngageEventItemHow = {
+  UNKNOWN_TITLES = UnknownPlayRole = {
     "ja" => ['イベント項目関与形態不明', '関与形態不明'],
     "en" => ['Unknown Engage-EventItem relation', 'Unknown relation'],
     "fr" => ['Relation inconnue entre Engage-EventItem', 'Relation inconnue'],

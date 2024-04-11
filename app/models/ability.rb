@@ -149,7 +149,7 @@ class Ability
     if user.qualified_as?(:moderator, rc_harami)
       can :crud, [HaramiVid, Harami1129]
       can :cru,  [Harami1129Review]  # Harami1129Review rarely needs to be destroyed.
-      can :read, EngageEventItemHow
+      can :read, PlayRole
     end
 
     ## General-JA or HaramiVid moderator only
@@ -172,7 +172,7 @@ class Ability
       can :manage, CountryMaster
       #can :manage_iso3166_jp, Prefecture  # redundant
       can :manage, ModelSummary
-      can :cru, EngageEventItemHow  # Even an admin cannot destroy one, but the sysadmin.
+      can :cru, PlayRole  # Even an admin cannot destroy one, but the sysadmin.
     else
       #can(:update, Country)  # There is nothing (but note) to update in Country as the ISO-numbers are definite. Translation for Country is a different story, though.
       cannot :manage_prefecture_jp, Prefecture  # cannot edit Country in Prefecture to Japan

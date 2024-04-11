@@ -15,7 +15,7 @@
 #    class Work < ApplicationRecord
 #      include ModuleUnknown
 #
-#      UNKNOWN_TITLES = UnknownEngageEventItemHow = {
+#      UNKNOWN_TITLES = UnknownPlayRole = {
 #        "ja" => ['仕事形態不明', '仕事不明'],
 #        "en" => ['Unknown work attitude', 'Unknown work'],
 #        "fr" => ['Attitude de travail inconnue', 'Travail inconnu'],

@@ -16,7 +16,7 @@ class SeedsSeedsTest < ActiveSupport::TestCase
   #  "Country",
   #  "CountryMaster",
   #  "Engage",
-  #  "EngageEventItemHow",
+  #  "PlayRole",
   #  "EngageHow",
   #  "Event",
   #  "EventGroup",
@@ -51,7 +51,7 @@ class SeedsSeedsTest < ActiveSupport::TestCase
     #end
 
     superuser = User.roots.first
-    [StaticPage, EngageEventItemHow, Instrument, HaramiVidMusicAssoc, ModelSummary, PageFormat,
+    [StaticPage, PlayRole, Instrument, HaramiVidMusicAssoc, ModelSummary, PageFormat,
      Harami1129, Harami1129Review, HaramiVid, Engage, EngageHow,
      EventItem, Event, EventGroup, Artist, Music, Genre, 
      Place, Prefecture, Country, CountryMaster,
@@ -80,10 +80,10 @@ class SeedsSeedsTest < ActiveSupport::TestCase
     assert_operator 5, :<, EngageHow.count
     assert_operator 5, :<, Genre.count
     assert_operator 5, :<, EventGroup.count
-    assert_operator 5, :<, EngageEventItemHow.count
+    assert_operator 5, :<, PlayRole.count
 
-    chorus = EngageEventItemHow.find_by(mname: "chorus")
-    assert chorus.note.present? # sanity check with the fixture (based on SEEDS in /db/seeds/engage_event_item_how.rb )
+    chorus = PlayRole.find_by(mname: "chorus")
+    assert chorus.note.present? # sanity check with the fixture (based on SEEDS in /db/seeds/play_role.rb )
     chorus.update!(note: nil)
     refute chorus.note.present? # sanity check
 

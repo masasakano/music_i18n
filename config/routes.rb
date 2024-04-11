@@ -1,6 +1,6 @@
 Rails.application.routes.draw do
   resources :instruments
-  resources :engage_event_item_hows
+  resources :play_roles
   resources :event_items
   resources :events
   resources :harami1129_reviews

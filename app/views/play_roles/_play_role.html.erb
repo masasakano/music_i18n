@@ -1,29 +1,29 @@
-<div id="<%= dom_id engage_event_item_how %>">
+<div id="<%= dom_id play_role %>">
   <p>
-  <% if can? :update, engage_event_item_how %>
-    <strong>ID (EngageEventItemHow):</strong>
-     <%= engage_event_item_how.id %>
+  <% if can? :update, play_role %>
+    <strong>ID (PlayRole):</strong>
+     <%= play_role.id %>
   <% end %>
   </p>
   <p>
     <strong>Mname (machine name):</strong>
-    <%= engage_event_item_how.mname %>
+    <%= play_role.mname %>
   </p>
 
   <p>
     <strong>Weight:</strong>
-    <%= engage_event_item_how.weight %>
+    <%= play_role.weight %>
   </p>
 
   <p>
     <strong>Note:</strong>
-    <%= engage_event_item_how.note %>
+    <%= play_role.note %>
   </p>
 
-  <% if can? :update, engage_event_item_how %>
+  <% if can? :update, play_role %>
   <p>
     <strong>updated_at:</strong>
-    <%= engage_event_item_how.updated_at %>
+    <%= play_role.updated_at %>
   </p>
   <% end %>
 </div>

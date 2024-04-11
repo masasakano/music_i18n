@@ -2160,18 +2160,18 @@ evit_ev_unknown_en:
   update_user_id: 
   note: UncategorizedEventEItemn
 
-<% Seeds::EngageEventItemHow::SEED_DATA.each_pair do |ekey, edata| %>
+<% Seeds::PlayRole::SEED_DATA.each_pair do |ekey, edata| %>
  <% %i(en ja fr).each do |langcode| %>
    <% next if edata[langcode].blank? %>
-engage_event_item_how_<%= ekey %>_<%= langcode %>:
-  translatable: engage_event_item_how_<%= ekey %> (EngageEventItemHow)
+play_role_<%= ekey %>_<%= langcode %>:
+  translatable: play_role_<%= ekey %> (PlayRole)
   langcode: <%= langcode %>
   title:     <%= [edata[langcode]].flatten[0] %> 
   alt_title: <%= [edata[langcode]].flatten[1] %> 
   weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
   create_user_id: user_moderator
   update_user_id: user_moderator
-  note: EngageEventItemHow<%= ekey.to_s.capitalize %><%= langcode.to_s.capitalize %>
+  note: PlayRole<%= ekey.to_s.capitalize %><%= langcode.to_s.capitalize %>
  <% end %>
 <% end %>
 

@@ -739,7 +739,7 @@ ar_priority = %w(user event_group).map{|i| File.join(*(rootdirs+['seeds_'+i+'.rb
       if /\ASeeds/ =~ camel
         camel.constantize      # e.g., SeedsUser
       else
-        Seeds.const_get(camel) # e.g., Seeds::EngageEventItemHow
+        Seeds.const_get(camel) # e.g., Seeds::PlayRole
       end
   rescue NameError
     # maybe seeds_user.rb in the production environment, where SeedsUser is deliberately undefined.

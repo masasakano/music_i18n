@@ -2,9 +2,9 @@
 
 require(File.dirname(__FILE__)+"/common.rb")  # defines: module Seeds
 
-# Model: EngageEventItemHow
+# Model: PlayRole
 #
-module Seeds::EngageEventItemHow
+module Seeds::PlayRole
   extend Seeds::Common
   #include ModuleCommon  # for ...
 
@@ -12,10 +12,10 @@ module Seeds::EngageEventItemHow
   module_function
 
   # Corresponding Active Record class
-  RECORD_CLASS = self.name.split("::")[-1].constantize  # EngageEventItemHow
+  RECORD_CLASS = self.name.split("::")[-1].constantize  # PlayRole
 
   # Data to seed
-  # NOTE: Make sure these to be consistent with /test/fixtures/engage_event_item_hows.yml and translations.yml
+  # NOTE: Make sure these to be consistent with /test/fixtures/play_roles.yml and translations.yml
   SEED_DATA = {
     unknown: {
       ja: RECORD_CLASS::UNKNOWN_TITLES['ja'],
@@ -25,7 +25,7 @@ module Seeds::EngageEventItemHow
       mname: "unknown",
       weight: 999,  # NOTE: The weight for this must be the DB-default 999.
       note: '何らかの関連があったもののそれが不明な場合',
-      regex: Proc.new{RECORD_CLASS.unknown}  # to check potential duplicates for EngageEventItemHow => NOT used b/c mname suffices
+      regex: Proc.new{RECORD_CLASS.unknown}  # to check potential duplicates for PlayRole => NOT used b/c mname suffices
     },
     singer: {
       ja: "歌手",
@@ -158,8 +158,8 @@ module Seeds::EngageEventItemHow
   #
   # @return [Integer] Number of created/updated entries
   def load_seeds
-    _load_seeds_core(%i(weight note)){|ehs, _| RECORD_CLASS.find_or_initialize_by(mname: ehs[:mname])}  # mname is already set, and so it is not specified for _load_seeds(); n.b., RECORD_CLASS == EngageEventItemHow
+    _load_seeds_core(%i(weight note)){|ehs, _| RECORD_CLASS.find_or_initialize_by(mname: ehs[:mname])}  # mname is already set, and so it is not specified for _load_seeds(); n.b., RECORD_CLASS == PlayRole
   end
 
-end  # module Seeds::EngageEventItemHow
+end  # module Seeds::PlayRole
 

@@ -1,10 +1,10 @@
-<h1>EngageEventItemHow index</h1>
+<h1>PlayRole index</h1>
 
-<div id="engage_event_item_hows">
-<table id="engage_event_item_hows_index_table">
+<div id="play_roles">
+<table id="play_roles_index_table">
   <thead>
     <tr>
-     <% if (can_update=can?(:update, EngageEventItemHow)) %>
+     <% if (can_update=can?(:update, PlayRole)) %>
       <th>ID</th>
      <% end %>
       <th>Name (ja)</th>
@@ -24,7 +24,7 @@
   </thead>
 
   <tbody>
-    <% @engage_event_item_hows.each do |ea_mdl| %>
+    <% @play_roles.each do |ea_mdl| %>
       <tr>
        <% if can_update=can?(:update, ea_mdl) %>
         <td><%= ea_mdl.id %></td>
@@ -40,7 +40,7 @@
         <% if can? :read, EventItem %>
          <%# items = ea_mdl.event_items.order(:weight, event_ratio: :desc) %>
          <% items = 0 %>
-        <td class="engage_event_item_hows_index_items">
+        <td class="play_roles_index_items">
           <%# items.event_items.count %>
         </td>
         <% end %>
@@ -48,7 +48,7 @@
 
         <td><%= link_to "Show", ea_mdl %></td>
         <% if can_update %>
-          <td><%= link_to 'Edit', edit_engage_event_item_how_path(ea_mdl) %></td>
+          <td><%= link_to 'Edit', edit_play_role_path(ea_mdl) %></td>
         <% end %>
         <% if false %> <%# No destroy with this UI %>
          <% if can? :destroy, ea_mdl %>
@@ -63,7 +63,7 @@
 
 <br>
 
-<% if can? :create, EngageEventItemHow %>
-  <%= button_to "New EngageEventItemHow", new_engage_event_item_how_path, method: :get %>
+<% if can? :create, PlayRole %>
+  <%= button_to "New PlayRole", new_play_role_path, method: :get %>
 <% end %>
 

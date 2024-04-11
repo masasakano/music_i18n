@@ -7,7 +7,6 @@ class InstrumentsControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @instrument = instruments(:instrument_piano)
-    #@engage_event_item_how = engage_event_item_hows(:engage_event_item_how_inst_player_main)
     @sysadmin  = users(:user_sysadmin)
     @syshelper = users(:user_syshelper)
     @moderator_all   = users(:user_moderator_all)         # General-JA Moderator can manage.

@@ -3,14 +3,14 @@
   Once you have created this, make sure to add at least one Translation!
 </p>
 
-<%= simple_form_for(@engage_event_item_how) do |f| %>
+<%= simple_form_for(@play_role) do |f| %>
   <%= f.error_notification %>
   <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
 
   <div class="form-inputs">
     <%= f.input :mname %>
     <%= f.input :weight %>
-<table id="engage_event_item_hows_index_weight_table">
+<table id="play_roles_index_weight_table">
   <thead>
     <tr>
       <th>ID</th>
@@ -20,7 +20,7 @@
     </tr>
   </thead>
 
-    <% EngageEventItemHow.order(:weight).each do |ea_mdl| %>
+    <% PlayRole.order(:weight).each do |ea_mdl| %>
       <tr>
         <td><%= ea_mdl.id %></td>
         <td><%= ea_mdl.mname %></td>

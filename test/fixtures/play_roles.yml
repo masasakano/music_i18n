@@ -1,6 +1,6 @@
 # == Schema Information
 #
-# Table name: engage_event_item_hows
+# Table name: play_roles
 #
 #  id                                                  :bigint           not null, primary key
 #  mname(unique machine name)                          :string           not null
@@ -11,14 +11,14 @@
 #
 # Indexes
 #
-#  index_engage_event_item_hows_on_mname   (mname) UNIQUE
-#  index_engage_event_item_hows_on_weight  (weight)
+#  index_play_roles_on_mname   (mname) UNIQUE
+#  index_play_roles_on_weight  (weight)
 #
 
-<% Seeds::EngageEventItemHow::SEED_DATA.each_pair do |ekey, edata| %>
-engage_event_item_how_<%= ekey %>:
+<% Seeds::PlayRole::SEED_DATA.each_pair do |ekey, edata| %>
+play_role_<%= ekey %>:
   mname: <%= edata[:mname] %>
   weight: <%= edata[:weight] %>
-  note: EngageEventItemHow<%= ekey.to_s.capitalize %>
+  note: PlayRole<%= ekey.to_s.capitalize %>
 <% end %>
 

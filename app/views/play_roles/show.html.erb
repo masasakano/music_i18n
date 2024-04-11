@@ -1,21 +1,21 @@
 
-<h1>EngageEventItemHow: <%= @engage_event_item_how.title_or_alt(langcode: I18n.locale) %></h1>
+<h1>PlayRole: <%= @play_role.title_or_alt(langcode: I18n.locale) %></h1>
 
 <hr>
-<%= render partial: 'layouts/all_registered_translations', locals: {model: @engage_event_item_how} %>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @play_role} %>
 <hr>
 
-<%= render @engage_event_item_how %>
+<%= render @play_role %>
 
 <div>
-    <% if can? :update, @engage_event_item_how %>
-  <%= link_to "Edit this EngageEventItemHow", edit_engage_event_item_how_path(@engage_event_item_how) %> |
+    <% if can? :update, @play_role %>
+  <%= link_to "Edit this PlayRole", edit_play_role_path(@play_role) %> |
     <% end %>
-  <%= link_to "Back to EngageEventItemHow index", engage_event_item_hows_path %>
+  <%= link_to "Back to PlayRole index", play_roles_path %>
 
-    <% if can?(:destroy, @engage_event_item_how) %>
-    <%# if !@engage_event_item_how.engage_event_item_how_items.exists? && can?(:destroy, @engage_event_item_how) %>
-  <%= button_to "Destroy", @engage_event_item_how, method: :delete %>
+    <% if can?(:destroy, @play_role) %>
+    <%# if !@play_role.play_role_items.exists? && can?(:destroy, @play_role) %>
+  <%= button_to "Destroy", @play_role, method: :delete %>
     <% end %>
 </div>
 
@@ -23,13 +23,13 @@
 <% if can? :read, EventItem %>  <%# should be redundant %>
 <hr>
 
-<h2>EventItems for this EngageEventItemHow</h2>
+<h2>EventItems for this PlayRole</h2>
 
-<% items = @engage_event_item_how.event_items.order(:weight, event_ratio: :desc) %>
+<% items = @play_role.event_items.order(:weight, event_ratio: :desc) %>
 <%= render partial: 'layouts/event_items_index', locals: {event_items: items, with_event: false} %>
 <% end %>
 
 <hr>
-  <%= link_to t("layouts.back_to_index"), engage_event_item_hows_path %>
+  <%= link_to t("layouts.back_to_index"), play_roles_path %>
 <% end %>  <%# if false %>
 

@@ -30,7 +30,7 @@ module SeedsModelSummary
       en: "Engagement between Artist, Music, EngageHow, year and degree of contribution (Intermediate DB)",
       note: "Association"
     },
-    EngageEventItemHow: {
+    PlayRole: {
       ja: "Engage(ArtistとMusic)とEventItemの関係の種類",
       en: "Type of engagement between Engage (Artist and Music) and EventItem",
     },
