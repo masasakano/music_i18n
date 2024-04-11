@@ -1,7 +1,8 @@
 # coding: utf-8
 
-# read as follows (providing this is read from Ruby files for seeding):
-#   require(File.basename(__FILE__)+"/seeds_common.rb")
+# read as either of the following (providing this is read from Ruby files in this directory for seeding):
+#   require(File.basename(__FILE__)+"/common.rb")
+#   require_relative "common.rb"
 #
 module Seeds
   module Common
