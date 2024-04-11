@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_04_09_182352) do
+ActiveRecord::Schema[7.0].define(version: 2024_04_11_195735) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -103,16 +103,6 @@ ActiveRecord::Schema[7.0].define(version: 2024_04_09_182352) do
     t.index ["iso3166_a2_code"], name: "index_country_masters_on_iso3166_a2_code", unique: true
     t.index ["iso3166_a3_code"], name: "index_country_masters_on_iso3166_a3_code", unique: true
     t.index ["iso3166_n3_code"], name: "index_country_masters_on_iso3166_n3_code", unique: true
-  end
-
-  create_table "engage_event_item_hows", comment: "How an Engage-EventItem is associated.", force: :cascade do |t|
-    t.string "mname", null: false, comment: "unique machine name"
-    t.float "weight", default: 999.0, null: false, comment: "weight to sort entries in Index for Editors"
-    t.text "note"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["mname"], name: "index_engage_event_item_hows_on_mname", unique: true
-    t.index ["weight"], name: "index_engage_event_item_hows_on_weight"
   end
 
   create_table "engage_hows", force: :cascade do |t|
@@ -330,6 +320,16 @@ ActiveRecord::Schema[7.0].define(version: 2024_04_09_182352) do
     t.datetime "updated_at", null: false
     t.bigint "prefecture_id", null: false
     t.index ["prefecture_id"], name: "index_places_on_prefecture_id"
+  end
+
+  create_table "play_roles", comment: "Role Artist plays in playing Music in EventItem for ArtistMusicPlay", force: :cascade do |t|
+    t.string "mname", null: false, comment: "unique machine name"
+    t.float "weight", default: 999.0, null: false, comment: "weight to sort entries in Index for Editors"
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["mname"], name: "index_play_roles_on_mname", unique: true
+    t.index ["weight"], name: "index_play_roles_on_weight"
   end
 
   create_table "prefectures", force: :cascade do |t|
