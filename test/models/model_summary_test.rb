@@ -1,3 +1,4 @@
+# coding: utf-8
 # == Schema Information
 #
 # Table name: model_summaries
@@ -15,7 +16,13 @@
 require "test_helper"
 
 class ModelSummaryTest < ActiveSupport::TestCase
-  # test "the truth" do
-  #   assert true
-  # end
+  test "fixtures" do
+    traja = translations(:model_summary_HaramiVid_ja)
+    assert_equal "ja", traja.langcode
+    assert_equal "HaramiVid", traja.translatable.modelname
+
+    ms = model_summaries(:model_summary_HaramiVid)
+    assert_equal "HaramiVid", ms.modelname
+    assert_equal "ハラミちゃん動画", ms.title_or_alt(langcode: "ja"), "translations: "+ms.translations.inspect
+  end
 end

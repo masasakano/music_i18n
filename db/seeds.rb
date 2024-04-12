@@ -731,30 +731,37 @@ rootdirs = [Rails.root, 'db', 'seeds']
 ar_priority = %w(user event_group).map{|i| File.join(*(rootdirs+['seeds_'+i+'.rb']))}
 (ar_priority + Dir[File.join(*(rootdirs+['*.rb']))]).uniq.each do |seed|
   next if "common.rb" == File.basename(seed)  # Skipping reading the common included Module
-  puts "loading "+seed_fname2print(seed) if $DEBUG  # defined in ModuleCommon
-  require seed
-  camel = File.basename(seed, ".rb").camelize
+  seedfile2print = seed_fname2print(seed)
+  puts "loading "+seedfile2print if $DEBUG  # defined in ModuleCommon
+
   begin
-    klass =
-      if /\ASeeds/ =~ camel
-        camel.constantize      # e.g., SeedsUser
-      else
-        Seeds.const_get(camel) # e.g., Seeds::PlayRole
-      end
-  rescue NameError
-    # maybe seeds_user.rb in the production environment, where SeedsUser is deliberately undefined.
-    puts "DEBUG: skip running "+seed_fname2print(seed) #if $DEBUG
-    next
+    require seed
+    camel = File.basename(seed, ".rb").camelize
+    begin
+      klass =
+        if /\ASeeds/ =~ camel
+          camel.constantize      # e.g., SeedsUser
+        else
+          Seeds.const_get(camel) # e.g., Seeds::PlayRole
+        end
+    rescue NameError
+      # maybe seeds_user.rb in the production environment, where SeedsUser is deliberately undefined.
+      puts "DEBUG: skip running "+seedfile2print #if $DEBUG
+      next
+    end
+    if !klass.respond_to? :load_seeds 
+      raise sprintf("ERROR(%s): In (%s), %s.%s is not defined.", File.basename(__FILE__), seedfile2print, camel, "load_seeds")
+    end
+    increment = klass.load_seeds  # execute the method in an external file
+    nrec += increment 
+    if (increment > 0 || $DEBUG) && (camel != "SeedsUser")  # This has been already printed in seeds_user.rb
+      printf "(%s): %s %s are created/updated.\n", seedfile2print, increment, camel.sub(/^Seeds/, "").pluralize
+    end
+  rescue => err
+    warn "Error raised while loading and running #{seedfile2print}"  # Without this, the traceback information (where it failed) would not be printed in testing.
+    raise
   end
-  if !klass.respond_to? :load_seeds 
-    raise sprintf("ERROR(%s): In (%s), %s.%s is not defined.", File.basename(__FILE__), seed_fname2print(seed), camel, "load_seeds")
-  end
-  increment = klass.load_seeds  # execute the method in an external file
-  nrec += increment 
-  if (increment > 0 || $DEBUG) && (camel != "SeedsUser")  # This has been already printed in seeds_user.rb
-    printf "(%s): %s %s are created/updated.\n", seed_fname2print(seed), increment, camel.sub(/^Seeds/, "").pluralize
-  end
-end
+end  # (ar_priority + Dir[File.join(*(rootdirs+['*.rb']))]).uniq.each do |seed|
 
 ################################
 # Final comment

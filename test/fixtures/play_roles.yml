@@ -19,6 +19,6 @@
 play_role_<%= ekey %>:
   mname: <%= edata[:mname] %>
   weight: <%= edata[:weight] %>
-  note: PlayRole<%= ekey.to_s.capitalize %>
+  note: PlayRole<%= ekey.to_s.camelize %>
 <% end %>
 

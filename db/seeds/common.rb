@@ -15,6 +15,29 @@ module Seeds
     # Default translation weight
     DEF_TRANSLATION_WEIGHT = 90
   
+    # Returns a YAML-safe title (or alt_title)
+    #
+    # When a String is very long, it may cause an Error. This routine circumvents it.
+    #
+    # @note
+    #   I am not sure this is 100% YAML safe.  +String#to_yaml+ does not work in this case.
+    #
+    # @example
+    #   yaml_title(my_data[langcode], :alt_title)
+    #   yaml_title(nil)                 #=> ""
+    #   yaml_title("Abcd")              #=> "Abcd"
+    #   yaml_title("Abcd", :alt_title)  #=> ""
+    #   yaml_title(["A", "XY"], :alt_title)  #=> "XY"
+    #
+    # @param data [String, Array<String>, NilClass] like +SEED_DATA[:ja]+ i.e., either String or 2-element Array of String as in 
+    # @param title [Symbol] :title or :alt_title
+    # @return [String]
+    def yaml_title(data, title=:title)
+      index = ((:title == title) ? 0 : 1)
+      (s=[data].flatten[index]).present? ? s.gsub(/\n/, "  ").inspect : ""
+    end
+
+  
     # Save a model
     #
     # For the first run, a model (seed) is saved.
@@ -47,7 +70,11 @@ module Seeds
         # If it already exists, processing is skipped basically, except blank attributes may be updated.
         next if !model.new_record? && (seed1[ek].blank? || model.send(ek).present?)
         changed = 1 if !model.new_record?  # (at least partly) modified, hence +1 in increment is guaranteed.
-        model.send(ek.to_s+"=", seed1[ek])
+        metho_w = ek.to_s+"="
+        if !model.respond_to?(metho_w)
+          raise "ERROR(NoMethodError): (File=#{File.basename __FILE__}):(#{self.name}.#{__method__}) method(#{metho_w.to_sym.inspect}) specified in the argument #{attrs.inspect} is not defined for model #{model.inspect}  The caller maybe gives the wrong argument. Contact the code developer."
+        end
+        model.send(metho_w, seed1[ek])
       end
   
       begin
@@ -112,6 +139,7 @@ module Seeds
     # @yield [Hash, Symbol] (Optional) Hash (==SEEDS[:key]) followed by the :key, is given.  Can be ignored.
     # @yieldreturn [ApplicationRecord] The matching (or new) model or nil
     def _load_seeds_core(attrs, klass: nil)
+      self::MODELS ||= {}  # The caller may want to define it before calling this.
       klass ||= ((k=:RECORD_CLASS; self.const_defined?(k) && self.const_get(k)) || self.name.split("::")[-1].constantize)  # ActiveRecord (ApplicationRecord)
       n_changed = 0
 

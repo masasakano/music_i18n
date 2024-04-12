@@ -5,9 +5,16 @@ include ModuleCommon  # for seed_fname2print
 puts "DEBUG: start "+seed_fname2print(__FILE__) if $DEBUG
 # This seed script can run in any environment or condition (see /seeds/users.rb for an environment-specific one).
 
+require_relative "common.rb"  # defines: module Seeds
+
 # Model: ModelSummary
 #
-module SeedsModelSummary
+module Seeds::ModelSummary
+  extend Seeds::Common
+
+  # Corresponding Active Record class
+  RECORD_CLASS = self.name.split("::")[-1].constantize # Instrument
+
   # Everything is a function
   module_function
 
@@ -97,37 +104,26 @@ module SeedsModelSummary
       ja: "登録ユーザー",
       en: "Registered User",
     },
-  } 
+  }.with_indifferent_access  # SEED_DATA
+  SEED_DATA.each_pair do |ek, ev|
+    ev[:modelname] = ek  # unique key
+  end
+  SEED_DATA.each_value{|eh| eh.with_indifferent_access}
+
+  # this is properly set by load_seeds (the contents may be existing ones or new ones)
+  MODELS = SEED_DATA.keys.map{|i| [i, nil]}.to_h
+
   # Missing:
   # ModelSummary PageFormat Role RoleCategory StaticPage
 
   # Main routine to seed.
   #
+  # Constant Hash MODELS is set so that the seeded models are accessible.
+  #
   # @return [Integer] Number of created/updated entries
   def load_seeds
-    n_changed = 0
-
-    SEED_DATA.each_pair do |modelname, ehs|
-      model = ModelSummary.find_or_initialize_by(modelname: modelname)
-      is_increased = model.new_record?
-      if ehs[:note].present? && model.note.blank?
-        model.note = ehs[:note].strip 
-        is_increased = true
-      end
-      if !model.save
-        warn "ERROR(#{__FILE__}:#{__method__}): Fails in save ModelName=#{modelname} (ID=#{model.id.inspect})"
-        next
-      end
-      BaseWithTranslation::AVAILABLE_LOCALES.each do |langcode|
-        if ehs[langcode].present? && model.title(langcode: langcode.to_s).blank?
-          is_increased = true
-          model.create_translation!(langcode: langcode.to_s, title: ehs[langcode]) # not specifying is_orig
-        end
-      end
-      n_changed += 1 if is_increased  # +3 rows: one main + two translations
-    end
-    n_changed
+    _load_seeds_core(%i(modelname note))  # defined in seeds_common.rb, using Instrument (==RECORD_CLASS)
   end  # def load_seeds
 
-end    # module SeedsModelSummary
+end    # module Seeds::ModelSummary
 

@@ -7,7 +7,7 @@ class ModelSummariesTest < ApplicationSystemTestCase
     @syshelper = users(:user_syshelper)
     @moderator = users(:user_moderator)
     #@moderator = users(:user_moderator_general_ja)
-    @model_summary = model_summaries(:modelsummary_Artist)
+    @model_summary = model_summaries(:model_summary_Artist)
     @css_swithcer_ja = 'div#language_switcher_top span.lang_switcher_ja'
     @css_swithcer_en = 'div#language_switcher_top span.lang_switcher_en'
   end
@@ -30,6 +30,7 @@ class ModelSummariesTest < ApplicationSystemTestCase
     assert_selector "h1", text: "Model Summary"
     assert_text "EngageHow"
     assert_text "Harami1129"
+    assert_text "Engagement between Artist"
     assert_no_text "StaticPage"
   end
 

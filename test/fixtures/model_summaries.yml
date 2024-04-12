@@ -13,55 +13,16 @@
 #  index_model_summaries_on_modelname  (modelname) UNIQUE
 #
 
-# Created with
+# Originally created with
 # % bin/rails r 'File.open("#{Rails.root}/test/fixtures/tmp4.yml", "w"){|file| file.write ModelSummary.all.map{ |m| m.attributes.except("created_at", "updated_at")}.to_yaml}'
 
-modelsummary_Artist:
-  modelname: Artist
-  note:
+<% Seeds::ModelSummary::SEED_DATA.each_pair do |ekey, edata| %>
+model_summary_<%= ekey %>:
+  modelname: <%= edata[:modelname] %>
+  note: <%= edata[:note].present? ? edata[:note] : "ModelSummary"+ekey.to_s.camelize %>
+<% end %>
 
-modelsummary_Country:
-  modelname: Country
-
-modelsummary_CountryMaster:
-  modelname: CountryMaster
-
-modelsummary_Engage:
-  modelname: Engage
-  note: Association
-
-modelsummary_EngageHow:
-  modelname: EngageHow
-
-modelsummary_Genre:
-  modelname: Genre
-
-modelsummary_Harami1129:
-  modelname: Harami1129
-
-modelsummary_HaramiVid:
-  modelname: HaramiVid
-
-modelsummary_Music:
-  modelname: Music
-
-modelsummary_Place:
-  modelname: Place
-  note:
-
-modelsummary_Prefecture:
-  modelname: Prefecture
-  note:
-
-modelsummary_Sex:
-  modelname: Sex
-  note:
-
-modelsummary_Translation:
-  modelname: Translation
-  note:
-
-modelsummary_User:
-  modelname: User
-  note:
+#modelsummary_Sex:
+#  modelname: Sex
+#  note: ModelSummarySex
 

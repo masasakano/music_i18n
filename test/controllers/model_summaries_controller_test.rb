@@ -5,7 +5,7 @@ class ModelSummariesControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
   setup do
-    @model_summary = model_summaries(:modelsummary_Sex)
+    @model_summary = model_summaries(:model_summary_Sex)
     @syshelper = users(:user_syshelper)  # Syshelper can manage.
     @moderator = users(:user_moderator)
   end
