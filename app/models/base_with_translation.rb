@@ -476,14 +476,18 @@ class BaseWithTranslation < ApplicationRecord
   # In short, this method is useful for debugging and testing, but 
   # should not be used in the production code.
   #
-  # Note that this does the following, in practice (when "value" is String, not Regexp), in the case of Artist, for example:
-  #   Artist.select_regex(:title, 'ハラミちゃん', langcode: 'ja').first.translatable
-  # which is slightly different but in practice very similar to (because it is only *first*)
-  #   Artist.select_translations_regex(:title, 'Queen', langcode: 'en').first.translatable
-  # both of which sends 2 SQL queries.
-  # Technically, you can make it to only 1 SQL query.
-  #   Artist.joins(:translations).where("translations.title = 'Queen' AND translations.langcode = 'en'").first
-  # However, it is too complicated and is not worth it for this method intended to be used for debugging.
+  # In practice,
+  #   Artist[/^ハラミちゃん/, 'ja', true)
+  # is equivalent to either of the two:
+  #   Artist.select_regex(:titles, /^ハラミちゃん/, langcode: 'ja').first
+  #   Artist.select_translations_regex(:titles, /^ハラミちゃん/, langcode: 'ja').first.translatable
+  #
+  # Note that +sql_regexp+ option is not given to {BaseWithTranslation.select_regex},
+  # which means this uses the Ruby Regexp (not efficient) and runs 2 SQL queries.
+  #
+  # The following is more efficient, runs only 1 SQL query, though the Regexp must be compatible
+  # with the PostgreSQL format (e.g., the lookbehind option etc would not work?):
+  #   Artist.select_regex(:titles, /^ハラミちゃん/, langcode: 'ja', sql_regexp: true).first
   #
   # @param value [Regexp, String] e.g., 'male'
   # @param langcode [String, NilClass] like 'ja'. If nil, all languages
@@ -1061,8 +1065,14 @@ class BaseWithTranslation < ApplicationRecord
   end
 
   # Wrapper of {BaseWithTranslation.select_translations_regex}, but returning
-  # an Array (not Translation::ActiveRecord_Relation) of {BaseWithTranslation},
-  # searching {Translation}, from its title etc
+  # a BaseWithTranslation::ActiveRecord_Relation or Array of {BaseWithTranslation},
+  # searching {Translation} for the specified title etc.
+  #
+  # For the complete arguments and options, consult {Translation.select_regex}
+  # Importantly, the returned value depend on how you specify +sql_regexp+ option
+  # (and whether you give Regexp or String).  Although the default of +sql_regexp+
+  # is false, it is recommended to give true in a vast majority of cases
+  # for the sake of performance and also to make the result sortable in tables with the grids.
   #
   # Note that the result is not "sorted", as there is
   # no general way to know whether the result is actually sotable.
@@ -1073,14 +1083,44 @@ class BaseWithTranslation < ApplicationRecord
   #  {BaseWithTranslation}; it should never happen because such {Translation} must
   #  have been destroyed whenever {BaseWithTranslation} is destroyed. However,
   #  if the records are destroyed through direct DB manipulation like DB-migration,
-  #  it can happen!  This method sanitize such elements, leaving ERROR in Logfile.
+  #  it can happen!  This method sanitizes such elements, leaving ERROR in Logfile.
   #
   # @param *args [Array<Symbol, String, Array<String>, Regexp>] Symbol, String|Regexp. See {Translation.select_regex}. 
+  # @param debug_return_sql [Boolean] Debug option (Def: false). If true, returns a SQL-string or Hash (see {Translation.self.select_regex_rubyregex} for detail), instead of Array
   # @param **restkeys: [Hash] Any other (exact) constraints to pass to {Translation}
   #    For example,  is_orig: true
-  # @return [Array<BaseWithTranslation>]
-  def self.select_regex(*args, **restkeys)
-    select_translations_regex(*args, **restkeys).map{|tr|
+  # @return [BaseWithTranslation::ActiveRecord_Relation, Array<BaseWithTranslation>] Note this returns SQL-string or Hash if debug_return_sql is true
+  def self.select_regex(*args, debug_return_sql: false, **restkeys)
+    rela = select_translations_regex(*args, debug_return_sql: false, **restkeys)
+    if rela.respond_to?(:to_sql)
+      _select_regex_sql(rela.to_sql, debug_return_sql: debug_return_sql)
+    else
+      _select_regex_ruby(*args, debug_return_sql: debug_return_sql, **restkeys)
+    end
+  end
+
+
+  # {BaseWithTranslation.select_regex} for String or Regexp with +sql_regexp: true+ inputs.
+  #
+  # @param rela [String] SQL string output of Translation::ActiveRecord_Relation (initiated by {Translation}). See {BaseWithTranslation.select_regex}.
+  # @param debug_return_sql [Boolean] Debug option (Def: false). If true, returns a SQL-string, instead of ActiveRecord_Relation
+  # @return [BaseWithTranslation::ActiveRecord_Relation] Note this returns SQL-string if debug_return_sql is true
+  def self._select_regex_sql(rela_sql, debug_return_sql: false)
+    ret = self.joins(:translations).where(_extract_where_clause(rela_sql))
+    (debug_return_sql ? ret.to_sql : ret)
+  end
+  private_class_method :_select_regex_sql
+
+
+  # {BaseWithTranslation.select_regex} for Regexp with +sql_regexp: false+ (Default) input.
+  #
+  # @param debug_return_sql [Boolean] Debug option (Def: false). If true, returns a Hash (see {Translation.self.select_regex_rubyregex} for detail) for the SQL to derive Translation (NOT BaseWithTranslation), instead of Array
+  # @return [Array<BaseWithTranslation>] Note this returns SQL-string or Hash if debug_return_sql is true
+  def self._select_regex_ruby(*args, debug_return_sql: false, **restkeys)
+    rela = select_translations_regex(*args, debug_return_sql: debug_return_sql, **restkeys)
+    return rela if debug_return_sql
+
+    rela.map{|tr|
       if (j=tr.translatable)
         j
       else
@@ -1093,6 +1133,21 @@ class BaseWithTranslation < ApplicationRecord
       end
     }.uniq.compact
   end
+  private_class_method :_select_regex_ruby
+
+  # Returns the WHERE clause part in String, which can be fed to +where+ directly.
+  #
+  # @note This method can handle a SQL statement with a simple JOIN (with a simple arithmatics) and/or ORDER, but not much more!
+  #
+  # @param sql_str [String] String of a SQL (result of .to_sql)
+  # @return [String] WHERE clause
+  def self._extract_where_clause(sql_str)
+    sql_str.
+      sub(/ order by ["][^"][^ ]+ (?:ASC|DESC)\Z/i, "").
+      sub(/\Aselect [^ ]+ from [^ ]+ /i, "").
+      sub(/\A(?:(?:inner|left|right|outer) join ["][^ ]+" on "[^ ]+" [^a-z]+ [^ ]+( and "[^ ]+" [^a-z]+ [^ ]+)* )*where /i, "")
+  end
+  private_class_method :_extract_where_clause
 
   # Wrapper of {Translation.find_by_regex}, returning {Translation}-s of only this class
   #
@@ -1125,46 +1180,7 @@ class BaseWithTranslation < ApplicationRecord
     select_translations_partial_str(*args, **restkeys).map{|i| i.translatable}.uniq
   end
 
-  # Select all {BaseWithTranslation} based on a single {Translation} and its own parameters.
-  #
-  # It works as kind of a wrapper of {BaseWithTranslation.find_all_by_translation};
-  # however, it is implemented in a completely different way by calling SQL directly.
-  #
-  # The best way to get {Translation}-s would be
-  #   Country.select_by_translation(trim: true, langcode: 'ja', title: '日本')[0].translations
-  #
-  # @example with constraint
-  #   ctry = Country['Australia', 'en', true]
-  #   p1 = Prefecture.select_by_translation({country: ctry}, langcode: 'en', title: 'Perth')[0]
-  #
-  # @param hsmain [Hash] The hash parameters to select the main {BaseWithTranslation}(s) 
-  # @param unique_trans_keys [Array] If given, the keys (like [:ruby, :romaji]) is used
-  #   to identify the {Translation}. Else {Translation.keys_to_identify} is called
-  # @param *args [Array<Integer, Symbol>] Only 1 element. If :auto (Default), [:title, :alt_title]
-  #   is used to identify an existing {Translation}. If Integer, it is the size
-  #   of the Array of the keys for it according to the order of 
-  #   {Translation::TRANSLATED_KEYS}.
-  #   For example, if nkeys==2, and inkeys==[:romaji, :alt_title, :ruby, :naiyo]
-  #   [:alt_title, :ruby] is returned.
-  # @param inprms [Hash<Symbol>] Should contain at least one of title, alt_tile, ruby etc,
-  #   in addiotn to langcode.
-  #   May include slim_opts (Hash).  Default: {COMMON_DEF_SLIM_OPTIONS}
-  # @return [BaseWithTranslation::ActiveRecord_Relation]
-  # @raise [RuntimeError]
-  def self.select_by_translation(hsmain={}, unique_trans_keys=nil, *args, **inprms)
-    #opts, main_trans = split_hash_with_keys(inprms, COMMON_DEF_SLIM_OPTIONS.keys) # In case it contains options like :strip
-    select_by_translations(
-      hsmain,
-      unique_trans_keys,
-      *args,
-      **(opt_trans.merge({inprms.langcode.to_sym => main_trans}))
-      #**(opt_trans.merge({main_trans.langcode.to_sym => main_trans}))
-    )
-  end
-
   # Returns Relation of {BaseWithTranslation} that have one of the {Translation}-s.
-  #
-  # If the conditions are sufficient, there should be at most 1 object.
   #
   # Input Hash (inprms) is like (n.b., it may contain the keys like "strip"?),
   #   {
@@ -1172,13 +1188,23 @@ class BaseWithTranslation < ApplicationRecord
   #     ja:   {title: 'J1'},
   #   }
   #
-  # @example return
+  # It works as kind of a wrapper of {BaseWithTranslation.find_all_by_translation};
+  # however, it is implemented in a completely different way by calling SQL directly.
+  #
+  # == Algorithm example
+  #
   #    Prefecture.joins("INNER JOIN translations "+
   #                     "ON translations.translatable_id = prefectures.id AND"+
   #                        "translations.translatable_type = 'Prefecture'").
   #               where(country: cnty).
   #               where("translations.langcode = ? AND translations.title = ?, 'en', 'Abc').
   #               distinct
+  #
+  # @example to get BaseWithTranslation
+  #    Sex.select_by_translations(en: {title: 'male'}).first  # => Sex[1]
+  #
+  # @example to get all Translation-s (in one SQL)
+  #    Country.select_by_translations(ja: {langcode: 'ja', title: '日本国'})[0].translations.pluck(:title, :alt_title)
   #
   # @param hsmain [Hash] The hash parameters to select the main {BaseWithTranslation}(s) 
   #    For example, the {Translation} of {Prefecture} is unique only within
@@ -1191,12 +1217,13 @@ class BaseWithTranslation < ApplicationRecord
   #   {Translation::TRANSLATED_KEYS}.
   #   For example, if nkeys==2, and inkeys==[:romaji, :alt_title, :ruby, :naiyo]
   #   [:alt_title, :ruby] is returned.
+  # @param debug_return_sql [Boolean] Debug option (Def: false). If true, returns a SQL-string.
   # @param inprms [Hash<Symbol>] Should contain at least one of title, alt_tile, ruby etc,
-  #   in addiotn to langcode.
+  #   in addiotn to langcode for each key (like :en).
   #   May include slim_opts (Hash).  Default: {COMMON_DEF_SLIM_OPTIONS}
   # @return [BaseWithTranslation::ActiveRecord_Relation]
   # @raise [RuntimeError]
-  def self.select_by_translations(hsmain={}, unique_trans_keys=nil, *args, **inprms)
+  def self.select_by_translations(hsmain={}, unique_trans_keys=nil, *args, debug_return_sql: false, **inprms)
     raise RuntimeError, "Contact the code developer. uk=(#{unique_trans_keys.inspect})" if !unique_trans_keys.nil? && unique_trans_keys.blank?
 
     trtbl = Translation.table_name
@@ -1210,7 +1237,8 @@ class BaseWithTranslation < ApplicationRecord
     ret = self.joins(joins_str)
     ret = ret.where(**hsmain) if !hsmain.blank?
     ret = ret.where(*(build_or_where_translations(unique_trans_keys, *args, **inprms)))
-    ret.distinct
+    ret = ret.distinct
+    (debug_return_sql ? ret.to_sql : ret)
   end
 
   # Select an array of {BaseWithTranslation} according to the translations

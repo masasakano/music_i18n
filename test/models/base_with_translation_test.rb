@@ -43,9 +43,18 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     ar = Sex.select_regex(:title,  'male')
     assert_equal 1, ar.size
     assert_equal 1, ar[0].iso5218
-    ar = Sex.select_regex('title', 'male')
-    assert_equal 1, ar.size
-    assert_equal 1, ar[0].iso5218
+    ar2= Sex.select_regex('title', 'male')
+    assert_equal ar, ar2
+
+    ret = Sex.select_regex(:title, 'male', debug_return_sql: true)
+    assert_equal "SELECT \"sexes\".* FROM \"sexes\" INNER JOIN \"translations\" ON \"translations\".\"translatable_type\" = 'Sex' AND \"translations\".\"translatable_id\" = \"sexes\".\"id\" WHERE (\"translations\".\"translatable_type\" = 'Sex' AND \"translations\".\"title\" = 'male')", ret
+
+    ret = Sex.select_regex(:title, /^male/, debug_return_sql: true, sql_regexp: true)
+    assert_equal "SELECT \"sexes\".* FROM \"sexes\" INNER JOIN \"translations\" ON \"translations\".\"translatable_type\" = 'Sex' AND \"translations\".\"translatable_id\" = \"sexes\".\"id\" WHERE (\"translations\".\"translatable_type\" = 'Sex' AND (regexp_match(translations.title, '^male', 'n') IS NOT NULL))", ret
+
+    ret = Sex.select_regex(:title, /^male/, debug_return_sql: true, sql_regexp: false)
+    assert  ret.respond_to?(:each_pair), "should be Hash with values for the SQL String for Translation::ActiveRecord_Relation"
+    assert_equal(:title, ret.keys.first)
 
     ar = Sex.select_regex(:titles, /n/)
     assert_equal 2, ar.size
@@ -125,6 +134,14 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     tra = artist.find_translation_by_a_title(:titles, 'proclaimers')
     assert_equal artist.best_translations['en'], tra
     assert_equal tra.title, tra.matched_string
+  end
+
+  # Using the subclass Sex and Country
+  test "self.select_by_translations" do
+    ret = Sex.select_by_translations(en: {title: 'male'})
+    assert_equal Sex[1], ret.first
+    ret = Sex.select_by_translations(debug_return_sql: true, en: {title: 'male'})
+    assert_equal "SELECT DISTINCT \"sexes\".* FROM \"sexes\" INNER JOIN translations ON translations.translatable_id = sexes.id and translations.translatable_type = 'Sex' WHERE (translations.langcode = 'en' AND translations.title = 'male')", ret
   end
 
   # Using the subclass Sex and Country

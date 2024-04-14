@@ -577,7 +577,7 @@ class Translation < ApplicationRecord
     ret = rela.first || return
     ret.set_matched_method_attribute(kwd, rela)
     ret
-  end # def self.find_by_a_title(kwd, value, accept_match_methods: MATCH_METHODS, **restkeys)
+  end
 
 
   # Find all {Translation}-s based on a String that satisfies the condition
@@ -903,10 +903,12 @@ class Translation < ApplicationRecord
   #
   # Search for matching {Translation}-s.
   #
-  # (1) If the given value is String, SQL is used to search the match (efficient),
-  #     and Translation::ActiveRecord_Relation is returned.
-  # (2) If Regexp, Ruby engine is used (hence more resource intensive),
-  #     and Array<Translation> is returned.
+  # (1) If the given value is String, a simple SQL WHERE is used to search the match, returning Translation::ActiveRecord_Relation .
+  # (2) If Regexp and if sql_regexp is true, the best effort is made to convert a Ruby Regexp to a Postgres one, returning Translation::ActiveRecord_Relation
+  #     (see {ModuleCommon#regexp_ruby_to_postgres} for detail, including the limitation)
+  # (3) If Regexp and if sql_regexp is false (Default), Ruby Regexp is used (resource-intensive and inefficient!), returning Array<Translation>
+  #
+  # For debugging, you may specify the argument sql_regexp as true.
   #
   # Note that the result is not "sorted", as there is
   # no general way to know whether the result is actually sortable.
@@ -941,34 +943,37 @@ class Translation < ApplicationRecord
   #       joins: 'INNER JOIN engages ON translations.translatable_id = engages.music_id'
   # @param not_clause: [String, Array<String, Hash, Array>, NilClass] Rails where.not clause.
   #    See "where" for detail.
-  # @param sql_regexp [Boolean] If true (Def: false), and if value is Regexp, PostgreSQL +regexp_match()+ is used. Efficient!
+  # @param sql_regexp [Boolean] If true (Def: false), and if +value+ (the 2nd argument) is Regexp, PostgreSQL +regexp_match()+ is used. Efficient!
   # @param space_sensitive [Boolean] This is referred to ONLY WHEN +value+ is Regexp and +sql_regexp+ is true.
   #    If true (Def; n.b., the default in {Translation.select_regex_string} is false!),
   #    spaces in DB entries are significant.
   #    Note that even if false (Def), this method does nothing to the input +value+ (Regexp)
   #    and so it is the caller's responsibility to set the Regexp +value+ accordingly.
+  # @param debug_return_sql [Boolean] Debug option (Def: false). If true, returns a SQL-string or Hash (see {Translation.self.select_regex_rubyregex} for detail), instead of ActiveRecord_Relation or Array
   # @param scope [Relation, Class] scope (Relation) of {Translation} if any
   # @param langcode: [String, NilClass] Optional argument, e.g., 'ja'. If nil, all languages.
   # @param translatable_type: [Class, String] Corresponding Class of the translation.
   # @param **restkeys: [Hash] Any other (exact) constraints to pass to {Translation}
   #    For example,  is_orig: true
-  # @return [Translation::ActiveRecord_Relation, Array<Translation>]
+  # @return [Translation::ActiveRecord_Relation, Array<Translation>] Note this returns SQL-string or Hash if debug_return_sql is true
   # @note To developers. Technically, option +space_sensitive+ can be taken into account
   #    for any Regexp +value+, regardless of +sql_regexp+
-  #def self.select_regex(kwd, value, langcode: nil, translatable_type: nil, where: nil, joins: nil, not_clause: nil, **restkeys)
-  def self.select_regex(kwd, value, where: nil, joins: nil, not_clause: nil, sql_regexp: false, space_sensitive: true, **restkeys)
+  def self.select_regex(kwd, value, where: nil, joins: nil, not_clause: nil, sql_regexp: false, space_sensitive: true, debug_return_sql: false, **restkeys)
     allkeys = get_allkeys_for_select_regex(kwd)
     common_opts = init_common_opts_for_select(**restkeys)
 
-    if allkeys.empty? || value.blank? || value.respond_to?(:gsub) || (sql_regexp && value.respond_to?(:named_captures))
-      select_regex_string(common_opts, allkeys, value, where, joins, not_clause, space_sensitive: space_sensitive, **restkeys) # => Translation::ActiveRecord_Relation
-    elsif value.respond_to?(:named_captures)
-      select_regex_regex( common_opts, allkeys, value, where, joins, not_clause, **restkeys) # => Array<Translation>
-    else
-      msg = "Contact the code developer. value is strange: "+value.inspect
-      logger.error msg
-      raise ArgumentError, msg
-    end
+    ret =
+      if allkeys.empty? || value.blank? || value.respond_to?(:gsub) || (sql_regexp && value.respond_to?(:named_captures))
+        select_regex_string(common_opts, allkeys, value, where, joins, not_clause, space_sensitive: space_sensitive, **restkeys) # => Translation::ActiveRecord_Relation
+      elsif value.respond_to?(:named_captures)
+        select_regex_rubyregex( common_opts, allkeys, value, where, joins, not_clause, debug_return_sql: debug_return_sql, **restkeys) # => Array<Translation>
+      else
+        msg = "Contact the code developer. value is strange: "+value.inspect
+        logger.error msg
+        raise ArgumentError, msg
+      end
+
+    ((debug_return_sql && ret.respond_to?(:to_sql)) ? ret.to_sql : ret)
   end
 
   # Returns the initialized Hash for #{Translation.select_regex}
@@ -1063,7 +1068,7 @@ class Translation < ApplicationRecord
   #
   # Search for matching {Translation}-s
   # for a given value of String (or nil). SQL is used to search the match.
-  # If Regexp, Ruby engine is used (hence more resource intensive) as in {Translation.select_regex_regex}.
+  # If Regexp, Ruby engine is used (hence more resource intensive) as in {Translation.select_regex_rubyregex}.
   #
   # The created SQL is like (alltrans.to_sql):
   #
@@ -1078,7 +1083,7 @@ class Translation < ApplicationRecord
   #     ["title", "male"], ["alt_title", "male"], ["ruby", "male"],
   #     ["alt_ruby", "male"], ["romaji", "male"], ["alt_romaji", "male"], ["LIMIT", 11]]
   #
-  # This routine is separate from {Translation.select_regex_regex}
+  # This routine is separate from {Translation.select_regex_rubyregex}
   # just to utilize the SQL more efficiently.
   #
   # @param common_opts [Hash<Symbol, Object>] e.g., {:langcode=>"en", :translatable_type=>"Country"}
@@ -1094,7 +1099,7 @@ class Translation < ApplicationRecord
   #    Note that even if false (Def), this method does nothing to the input +value+
   #    and so it is the caller's responsibility to adjust Regexp +value+ accordingly.
   # @param scope [Relation, Class] scope (Relation) of {Translation} if any
-  # @param **restkeys [Hash] Any other (exact) constraints to pass to {Translation}
+  # @param **restkeys [Hash] simply ignored.
   # @return [Translation::ActiveRecord_Relation]
   def self.select_regex_string(common_opts, allkeys, value, where, joins, not_clause=nil, space_sensitive: false, scope: nil, **restkeys)
     base_rela = make_joins_where(where, joins, not_clause, parent: (scope || self).where(common_opts))
@@ -1170,17 +1175,16 @@ class Translation < ApplicationRecord
   # @param joins [String, Array<String, Hash, Array>, NilClass] See {Translation.select_regex} for detail.
   # @param not_clause [String, Array<String, Hash, Array>, NilClass]
   # @param scope [Relation, Class] scope (Relation) of {Translation} if any
-  # @param **restkeys: [Hash] Any other (exact) constraints to pass to {Translation}
+  # @param debug_return_sql [Boolean] Debug option (Def: false). If true, returns a SQL-string or Hash with a key for attribute (Symbol) and value of an identical SQL-string, instead of Array.
+  # @param **restkeys [Hash] simply ignored.
   # @return [Array<BaseWithTranslation>]
-  def self.select_regex_regex(common_opts, allkeys, regex, where, joins, not_clause=nil, scope: nil, **restkeys)
+  def self.select_regex_rubyregex(common_opts, allkeys, regex, where, joins, not_clause=nil, scope: nil,  debug_return_sql: false, **restkeys)
     
     alltrans = make_joins_where(where, joins, not_clause, parent: (scope || self).where(common_opts))
-    #alltrans = 
-    #  if common_opts.empty?
-    #    make_joins_where(where, joins, not_clause, parent: scope).all
-    #  else
-    #    make_joins_where(where, joins, not_clause, parent: scope).where(common_opts)
-    #  end
+
+    if debug_return_sql 
+      return allkeys.map{ |ea_k| [ea_k, alltrans.to_sql] }.to_h
+    end
 
     alltrans.select{ |ea_tr|
       allkeys.any?{ |ea_k|
@@ -1189,7 +1193,7 @@ class Translation < ApplicationRecord
       }
     }
   end
-  private_class_method :select_regex_regex
+  private_class_method :select_regex_rubyregex
 
   # Returns Rails where clause.
   #

@@ -55,6 +55,9 @@ class TranslationTest < ActiveSupport::TestCase
   end
 
   test "constraints various" do
+    t_jp_sql= Translation.select_regex(:title, 'Japan', langcode: 'en', translatable_type: Country, debug_return_sql: true)
+    assert_equal("SELECT \"translations\".* FROM \"translations\" WHERE \"translations\".\"langcode\" = 'en' AND \"translations\".\"translatable_type\" = 'Country' AND \"translations\".\"title\" = 'Japan'", t_jp_sql)
+
     t_jp_en = Translation.select_regex(:title, 'Japan', langcode: 'en', translatable_type: Country)[0]
     assert_equal 'Japan',    t_jp_en.title
     assert_equal 'ジャパン', t_jp_en.ruby
@@ -249,6 +252,11 @@ class TranslationTest < ActiveSupport::TestCase
     assert_equal 8, Translation.select_regex(nil, nil, translatable_type: Sex).size
     assert_equal 0, Translation.select_regex([:title, :alt_title, :ruby], 'naiyo', translatable_type: Sex).count
 
+    out_sql = Translation.select_regex(nil, nil, translatable_type: Sex, debug_return_sql: true)
+    assert_equal("SELECT \"translations\".* FROM \"translations\" WHERE \"translations\".\"translatable_type\" = 'Sex'", out_sql)
+    out_sql = Translation.select_regex([:title, :alt_title, :ruby], 'naiyo', translatable_type: Sex, debug_return_sql: true)
+    assert_equal("SELECT \"translations\".* FROM \"translations\" WHERE \"translations\".\"translatable_type\" = 'Sex' AND (\"translations\".\"title\" = 'naiyo' OR \"translations\".\"alt_title\" = 'naiyo' OR \"translations\".\"ruby\" = 'naiyo')", out_sql)
+
     ## find_by_regex
     trans = Translation.find_by_regex(:all, /naiyo/, translatable_type: Sex)
     assert_nil trans
@@ -268,6 +276,16 @@ class TranslationTest < ActiveSupport::TestCase
     assert_equal :title, trans.get_matched_attribute(:all, /aLe/i)
     assert_equal :title, trans.set_matched_attribute(:all, /aLe/i)
     assert_equal 'male', trans.matched_string  # Now matched_attribute is set.
+
+    # With Ruby Regexp
+    out_sql = Translation.select_regex(:titles, /aLe/i, langcode: 'en', translatable_type: Sex, where: ['id <> ?', female_id], debug_return_sql: true)
+    assert_equal(%i(title alt_title), out_sql.keys)
+    assert_equal("SELECT \"translations\".* FROM \"translations\" WHERE \"translations\".\"langcode\" = 'en' AND \"translations\".\"translatable_type\" = 'Sex' AND (id <> 2)", out_sql[:title])
+    assert_equal(*(out_sql.values))
+
+    # With Postgres Regexp
+    out_sql = Translation.select_regex(:titles, /aLe/i, langcode: 'en', translatable_type: Sex, where: ['id <> ?', female_id], sql_regexp: true, debug_return_sql: true)
+    assert_equal("SELECT \"translations\".* FROM \"translations\" WHERE \"translations\".\"langcode\" = 'en' AND \"translations\".\"translatable_type\" = 'Sex' AND (id <> 2) AND (regexp_match(translations.title, 'aLe', 'in') IS NOT NULL OR regexp_match(translations.alt_title, 'aLe', 'in') IS NOT NULL)", out_sql)
   end
 
   test "Translation.select_partial_str" do
