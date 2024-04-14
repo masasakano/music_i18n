@@ -4,7 +4,7 @@ class PlayRolesController < ApplicationController
 
   # GET /play_roles or /play_roles.json
   def index
-    @play_roles = PlayRole.all
+    @play_roles = PlayRole.all.order(:weight)
   end
 
   # GET /play_roles/1 or /play_roles/1.json

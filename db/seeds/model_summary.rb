@@ -122,7 +122,7 @@ module Seeds::ModelSummary
   #
   # @return [Integer] Number of created/updated entries
   def load_seeds
-    _load_seeds_core(%i(modelname note))  # defined in seeds_common.rb, using Instrument (==RECORD_CLASS)
+    _load_seeds_core(%i(modelname note), find_by: :modelname)  # defined in seeds_common.rb, using Instrument (==RECORD_CLASS)
   end  # def load_seeds
 
 end    # module Seeds::ModelSummary

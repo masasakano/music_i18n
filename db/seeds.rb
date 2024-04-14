@@ -755,7 +755,7 @@ ar_priority = %w(user event_group).map{|i| File.join(*(rootdirs+['seeds_'+i+'.rb
     increment = klass.load_seeds  # execute the method in an external file
     nrec += increment 
     if (increment > 0 || $DEBUG) && (camel != "SeedsUser")  # This has been already printed in seeds_user.rb
-      printf "(%s): %s %s are created/updated.\n", seedfile2print, increment, camel.sub(/^Seeds/, "").pluralize
+      printf "(%s): %s %s (incl. Translations) are created/updated.\n", seedfile2print, increment, camel.sub(/^Seeds/, "").pluralize
     end
   rescue => err
     warn "Error raised while loading and running #{seedfile2print}"  # Without this, the traceback information (where it failed) would not be printed in testing.

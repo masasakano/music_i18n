@@ -80,7 +80,7 @@ module Seeds
       begin
         model.save!  # PlayRole saved.  This should not raise an Exception, for Countries should have been already defined!
       rescue ActiveRecord::RecordInvalid
-        msg = "ERROR(#{__FILE__}:#{__method__}): PlayRole#save! failed while attempting to save ja=(#{seed1[:ja]}).  This should never happen, except after a direct Database manipulation (such as DB migration rollback) has left some orphan Translations WITHOUT a parent; check out the log file for a WARNING message."
+        msg = "ERROR(#{__FILE__}:#{__method__}): PlayRole#save! failed while attempting to save model=#{model.inspect} for Seed of ja=(#{seed1[:ja]}).  This should never happen, except after a direct Database manipulation (such as DB migration rollback) has left some orphan Translations WITHOUT a parent; check out the log file for a WARNING message."
         warn msg
         Rails.logger.error msg
         raise
@@ -113,7 +113,14 @@ module Seeds
         is_orig = (orig_langcode ? (orig_langcode.to_s ==  lcode.to_s) : nil)
         weight = ((klass.const_defined?(:UNKNOWN_TITLES) && seed1[lcode] == klass::UNKNOWN_TITLES[lcode.to_s]) ? 0 : DEF_TRANSLATION_WEIGHT) # Translations for the uncategorized/unknown have weight=0 (i.e., will be never modified).
         hstit = %i(title alt_title).zip([seed1[lcode]].flatten.map{|i| i.strip}).to_h
-        model.with_translation(langcode: lcode.to_s, is_orig: is_orig, weight: weight, **hstit)
+        begin
+          model.with_translation(langcode: lcode.to_s, is_orig: is_orig, weight: weight, **hstit)
+        rescue ActiveRecord::RecordInvalid
+          if "ModelSummary" == klass.name
+            warn "ERROR: Possibly there is an 'orphan' ModelSummary. Check it out with UI at /model_summaries/ as sysadmin."
+          end
+          raise
+        end
         n_changed += 1   # +1 because of Translation creation
       end # %i(en ja fr).each do |lcode|
   
@@ -126,8 +133,11 @@ module Seeds
     # this sets hash +self::MODELS+ with a key of +self::SEED_DATA+ for the model (regardless of new or existing).
     #
     # In default, the Hash of +SEEDS[][:regex]+ is used to identify the existing record;
-    # it is either Regexp or Proc. Alternatively, a block can be given to implement
-    # an algorithm by the caller.
+    # it is either Regexp or Proc (see @yield for the parameters). Alternatively, a block can be given to implement
+    # an algorithm by the caller.  Or, if +find_by+ option is given, the specified
+    # attribute is used to find the existing one (n.b., the given block has a higher priority).
+    #
+    # In none of the above is provided, the exact title in a standard language is used to find one (duplications are not checked).
     #
     # @example
     #    _load_seeds_core(Instrument, %i(weight note))
@@ -135,10 +145,11 @@ module Seeds
     #
     # @param attrs [Array<Symbol>] Array of attributes for the main model to load.
     # @param klass: [Class, NilClass] (Optional) Model class. If not specified, constant RECORD_CLASS is tried and then it is guessed from the Module name.
+    # @param find_by: [Symbol, String] (Optional) If given, this attribute is used to find the existing corresponding record.
     # @return [Integer] Number of created/updated entries
     # @yield [Hash, Symbol] (Optional) Hash (==SEEDS[:key]) followed by the :key, is given.  Can be ignored.
     # @yieldreturn [ApplicationRecord] The matching (or new) model or nil
-    def _load_seeds_core(attrs, klass: nil)
+    def _load_seeds_core(attrs, klass: nil, find_by: nil)
       self::MODELS ||= {}  # The caller may want to define it before calling this.
       klass ||= ((k=:RECORD_CLASS; self.const_defined?(k) && self.const_get(k)) || self.name.split("::")[-1].constantize)  # ActiveRecord (ApplicationRecord)
       n_changed = 0
@@ -147,10 +158,18 @@ module Seeds
         model =
           if block_given?
             yield(ehs, key)
+          elsif find_by
+            klass.find_by(**({find_by.to_sym => ehs[find_by]}))
           elsif ehs[:regex].respond_to?(:call)
             ehs[:regex].call(ehs, key)
-          else
+          elsif ehs[:regex]
             klass.find_by_regex(:titles, ehs[:regex])
+          else  # If :regex is not found in self::SEED_DATA, the exact :title (but not :alt_title) is used to identify the existing record.
+            hstrans = {}
+            I18n.available_locales.find{|langcode|  # langcode in Symbol
+              hstrans[langcode] = {title: [ehs[langcode]].flatten.first} if ehs.has_key? langcode.to_s
+            }
+            (hstrans.empty? ? nil : klass.select_by_translations(**hstrans).first)
           end
 
         model ||= klass.new
