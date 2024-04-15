@@ -399,5 +399,32 @@ EOF
       reths = Music.populate_csv('a, bcd "ef" g, hi') } # wrong double quotations
   end
 
+  test "associations via ArtistMusicPlayTest" do
+    evi0 = EventItem.create!(machine_title: "EvI0 ArtistMusicPlayTest", event: Event.first)
+    art0 = Artist.create!(sex: Sex.first).with_translation(langcode: "en", is_orig: "true", title: "Sam0 ArtistMusicPlayTest")
+    mus0 = Music.create!().with_translation(langcode: "en", is_orig: "true", title: "Song0 ArtistMusicPlayTest")
+
+    mus1  = musics(:music_story)
+    art1  = artists(:artist_harami)
+    evit1 = event_items(:evit_1_harami_budokan2022_soiree)
+    assert_operator 1, :<=, mus1.artist_music_plays.count, 'check has_many artist_music_plays and also fixtures'
+    assert_operator 1, :<=, (count_ev = mus1.event_items.count)
+    assert   mus1.event_items.include?(evit1)
+    assert_operator 1, :<=, (count_ar = mus1.play_artists.count), 'check has_many artists and also fixtures'
+    #assert_equal 1,         mus1.play_roles.count,  'check has_many play_roles and also fixtures'
+    assert_operator 2, :<=, mus1.instruments.count, 'check has_many instruments and also fixtures'
+
+    mus1.artist_music_plays << ArtistMusicPlay.new(event_item: evit1, artist: art0, play_role: PlayRole.first, instrument: Instrument.first)
+    assert_equal count_ar+1, mus1.play_artists.count
+    assert_equal count_ev,   mus1.event_items.count, 'distinct?'
+
+    assert_difference("ArtistMusicPlay.count", -ArtistMusicPlay.where(music: mus1).count, "Test of dependent"){
+      #mus1.harami1129s.destroy_all
+      mus1.harami1129s.each do |em|
+        em.destroy
+      end
+      mus1.destroy
+    }
+  end
 end
 

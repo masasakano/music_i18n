@@ -67,3 +67,16 @@ evit_2_harami_lucky2023:
   event: ev_harami_lucky2023
   place: unknown_place_shimane_japan
   note: EventItem1_ev_harami_lucky2023
+
+evit_1_harami_budokan2022_soiree:
+  machine_title: HARAMIchan_Budokan_2022_soiree
+  start_time: 2022-01-04 15:42:00
+  start_time_err: 300
+  duration_minute: 10
+  duration_minute_err: 2
+  weight: 
+  event_ratio: 0.1
+  event: ev__harami_budokan2022_soiree
+  place: unknown_place_tokyo_japan
+  note: EventItem1_harami_budokan2022_soiree
+

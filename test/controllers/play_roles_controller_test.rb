@@ -6,7 +6,7 @@ class PlayRolesControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
   setup do
-    @play_role = play_roles(:play_role_inst_player_main)
+    @play_role = play_roles(:play_role_spectator)
     @sysadmin  = users(:user_sysadmin)
     @syshelper = users(:user_syshelper)
     @moderator_all   = users(:user_moderator_all)         # General-JA Moderator can manage.

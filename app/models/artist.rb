@@ -54,6 +54,12 @@ class Artist < BaseWithTranslation
   has_many :harami_vids, through: :musics
   has_many :harami1129s, through: :engages  # Please nullify Harami1129#engage_id before deleting self (for now)
 
+  has_many :artist_music_plays, dependent: :destroy  # dependent is a key
+  %i(event_items play_roles instruments).each do |esym|
+    has_many esym, -> {distinct}, through: :artist_music_plays
+  end
+  has_many :play_musics, -> {distinct}, through: :artist_music_plays, source: "music"
+
   validates :birth_year, numericality: { allow_nil: true, greater_than: 0, message: "(%{value}) must be positive." }
   # ...or validates_numericality_of
   # validates :birth_month, inclusion: { allow_nil: true, within: [1..12], message: "(%{value}) is invalid." }

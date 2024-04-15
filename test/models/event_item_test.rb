@@ -49,4 +49,22 @@ class EventItemTest < ActiveSupport::TestCase
     assert_raises(ActiveRecord::RecordInvalid){
       EventItem.create!(machine_title: "naiyo1", event: evit1.event, event_ratio: 1.5) }  # [0, 1] is allowed.
   end
+
+  test "associations via ArtistMusicPlayTest" do
+    evi0 = EventItem.create!(machine_title: "EvI0 ArtistMusicPlayTest", event: Event.first)
+    art0 = Artist.create!(sex: Sex.first).with_translation(langcode: "en", is_orig: "true", title: "Sam0 ArtistMusicPlayTest")
+    mus0 = Music.create!().with_translation(langcode: "en", is_orig: "true", title: "Song0 ArtistMusicPlayTest")
+
+    evit1 = event_items(:evit_1_harami_budokan2022_soiree)
+    assert_operator 2, :<=, evit1.artist_music_plays.count, 'check has_many artist_music_plays and also fixtures'
+    assert_operator 2, :<=, evit1.artists.count, 'check has_many artists and also fixtures'
+    assert   evit1.artists.include?(artists(:artist_harami))
+    assert_operator 1, :<=, evit1.musics.count, 'check has_many musics and also fixtures'
+    assert_operator 2, :<=, evit1.play_roles.count, 'check has_many play_roles and also fixtures'
+    assert_operator 2, :<=, evit1.instruments.count, 'check has_many instruments and also fixtures'
+
+    assert_difference("ArtistMusicPlay.count", -ArtistMusicPlay.where(event_item: evit1).count, "Test of dependent"){
+      evit1.destroy
+    }
+  end
 end

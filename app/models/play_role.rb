@@ -30,9 +30,6 @@ class PlayRole < BaseWithTranslation
   # this constant should be true (for example, {Music#title}).
   ARTICLE_TO_TAIL = false
 
-  #has_many :engages,     dependent: :restrict_with_exception
-  #has_many :event_items, dependent: :restrict_with_exception
-
   # Validates translation immediately before it is added.
   #
   # Called by a validation in {Translation}
@@ -43,6 +40,11 @@ class PlayRole < BaseWithTranslation
   # @return [Array] of Error messages, or empty Array if everything passes
   def validate_translation_callback(record)
     validate_translation_neither_title_nor_alt_exist(record)  # defined in BaseWithTranslation
+  end
+
+  has_many :artist_music_plays, dependent: :restrict_with_exception  # dependent is a key / Basically PlayRole should not be easily destroyed - it may be merged instead.
+  %i(event_items artists musics instruments).each do |esym|
+    has_many esym, -> {distinct}, through: :artist_music_plays
   end
 
   validates_presence_of   :mname

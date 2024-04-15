@@ -44,3 +44,13 @@ ev_harami_lucky2023:
   event_group: evgr_lucky2023
   place: unknown_place_shimane_japan
   note: Event_ev_harami_lucky2023
+
+ev_harami_budokan2022_soiree:
+  start_time: 2022-01-04 15:00:00
+  start_time_err: 600
+  duration_hour: 3
+  weight: 
+  event_group: evgr_harami_concerts
+  place: unknown_place_tokyo_japan
+  note: Event_ev_harami_budokan2022
+

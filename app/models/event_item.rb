@@ -40,6 +40,11 @@ class EventItem < ApplicationRecord
   has_one :prefecture, through: :place
   has_one :country, through: :prefecture
 
+  has_many :artist_music_plays, dependent: :destroy  # dependent is a key
+  %i(artists musics play_roles instruments).each do |esym|
+    has_many esym, -> {distinct}, through: :artist_music_plays
+  end
+
   validates_uniqueness_of :machine_title
   %i(start_time_err duration_minute duration_minute_err event_ratio).each do |ec|
     validates ec, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true

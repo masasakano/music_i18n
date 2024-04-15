@@ -224,5 +224,35 @@ class ArtistTest < ActiveSupport::TestCase
     assert_equal art_pro, Artist.find_by_title_plus(["Proclaimers"], sex_id: sex9.id)
   end
 
+  test "music association" do
+    artai = artists(:artist_ai)
+    assert_operator 1, :<=, (count_mu = artai.musics.count), 'check has_many musics and also fixtures'
+    assert_difference("artai.musics.count", 1){  # via Engage
+      artai.musics << musics(:music_ihojin1)
+    }
+  end
+
+  test "associations via ArtistMusicPlayTest" do
+    evi0 = EventItem.create!(machine_title: "EvI0 ArtistMusicPlayTest", event: Event.first)
+    art0 = Artist.create!(sex: Sex.first).with_translation(langcode: "en", is_orig: "true", title: "Sam0 ArtistMusicPlayTest")
+    mus0 = Music.create!().with_translation(langcode: "en", is_orig: "true", title: "Song0 ArtistMusicPlayTest")
+
+    art1  = artists(:artist_harami)
+    evit1 = event_items(:evit_1_harami_budokan2022_soiree)
+    assert_operator 1, :<=, art1.artist_music_plays.count, 'check has_many artist_music_plays and also fixtures'
+    assert_operator 1, :<=, (count_ev = art1.event_items.count)
+    assert   art1.event_items.include?(evit1)
+    assert_operator 1, :<=, (count_mu = art1.play_musics.count), 'check has_many musics and also fixtures'
+    assert_equal 1,         art1.play_roles.count, 'check has_many play_roles and also fixtures'
+    assert_equal 1,         art1.instruments.count, 'check has_many instruments and also fixtures'
+
+    art1.artist_music_plays << ArtistMusicPlay.new(event_item: evit1, music: mus0, play_role: PlayRole.first, instrument: Instrument.first)
+    assert_equal count_mu+1, art1.play_musics.count
+    assert_equal count_ev,   art1.event_items.count, 'distinct?'
+
+    assert_difference("ArtistMusicPlay.count", -ArtistMusicPlay.where(artist: art1).count, "Test of dependent"){
+      art1.destroy
+    }
+  end
 end
 

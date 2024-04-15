@@ -56,4 +56,32 @@ class PlayRoleTest < ActiveSupport::TestCase
     tra = translations(:play_role_other_ja)
     assert_equal "その他", tra.title
   end
+
+  test "associations via ArtistMusicPlayTest" do
+    evi0 = EventItem.create!(machine_title: "EvI0 ArtistMusicPlayTest", event: Event.first)
+    art0 = Artist.create!(sex: Sex.first).with_translation(langcode: "en", is_orig: "true", title: "Sam0 ArtistMusicPlayTest")
+    mus0 = Music.create!().with_translation(langcode: "en", is_orig: "true", title: "Song0 ArtistMusicPlayTest")
+    plr0 = play_roles(:play_role_conductor)
+
+    plr1  = play_roles(:play_role_inst_player_main)
+    evit1 = event_items(:evit_1_harami_budokan2022_soiree)
+    assert_operator 1, :<=, plr1.artist_music_plays.count, 'check has_many artist_music_plays and also fixtures'
+    assert_operator 1, :<=, (count_ev = plr1.event_items.count)
+    assert   plr1.event_items.include?(evit1)
+    assert_operator 1, :<=, (count_ar = plr1.artists.count), 'check has_many artists and also fixtures'
+    assert_operator 1, :<=, (count_mu = plr1.musics.count), 'check has_many musics and also fixtures'
+    assert_equal 1,         plr1.instruments.count, 'check has_many instruments and also fixtures'
+
+    assert_no_difference("plr1.event_items.count", "Test of distinct?"){
+      assert_difference("plr1.musics.count", 1, "Musics association count..."){
+        assert(plr1.artist_music_plays << ArtistMusicPlay.new(event_item: evit1, artist: art0, music: mus0, instrument: Instrument.first))
+      }
+    }
+
+    assert_no_difference("ArtistMusicPlay.count", "Test of dependent"){
+      assert_raises(ActiveRecord::DeleteRestrictionError){
+        plr1.destroy
+      }
+    }
+  end
 end

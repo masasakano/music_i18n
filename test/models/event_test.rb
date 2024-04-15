@@ -29,6 +29,12 @@
 require "test_helper"
 
 class EventTest < ActiveSupport::TestCase
+  test "consistency on fixtures and translations" do
+    Event.all.each do |model|
+      assert model.translations.exists?, "No translation is found for Event=#{model.inspect}"
+    end
+  end
+
   test "on delete" do
     evt = events(:ev_harami_lucky2023)
 

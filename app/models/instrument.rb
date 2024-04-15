@@ -40,6 +40,11 @@ class Instrument < BaseWithTranslation
     validate_translation_neither_title_nor_alt_exist(record)  # defined in BaseWithTranslation
   end
 
+  has_many :artist_music_plays, dependent: :restrict_with_exception  # dependent is a key / Basically PlayRole should not be easily destroyed - it may be merged instead.
+  %i(event_items artists musics play_roles).each do |esym|
+    has_many esym, -> {distinct}, through: :artist_music_plays
+  end
+
   validates_presence_of   :weight  # NOTE: At the DB level, a default is defined.
   validates_uniqueness_of :weight  # No DB-level constraint, but this is checked at Rails-level.
   validates_numericality_of :weight

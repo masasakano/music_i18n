@@ -6,7 +6,7 @@ class InstrumentsControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
   setup do
-    @instrument = instruments(:instrument_piano)
+    @instrument = instruments(:instrument_uklele)
     @sysadmin  = users(:user_sysadmin)
     @syshelper = users(:user_syshelper)
     @moderator_all   = users(:user_moderator_all)         # General-JA Moderator can manage.

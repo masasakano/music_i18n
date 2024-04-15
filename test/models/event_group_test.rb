@@ -27,6 +27,12 @@
 require "test_helper"
 
 class EventGroupTest < ActiveSupport::TestCase
+  test "consistency on fixtures and translations" do
+    EventGroup.all.each do |model|
+      assert model.translations.exists?, "No translation is found for EventGroup=#{model.inspect}"
+    end
+  end
+
   test "on delete" do
     evgr = event_groups(:evgr_lucky2023)
 

@@ -58,6 +58,12 @@ class Music < BaseWithTranslation
   has_one :prefecture, through: :place
   has_one :country, through: :prefecture
 
+  has_many :artist_music_plays, dependent: :destroy  # dependent is a key
+  %i(event_items play_roles instruments).each do |esym|
+    has_many esym, -> {distinct}, through: :artist_music_plays
+  end
+  has_many :play_artists, -> {distinct}, through: :artist_music_plays, source: "artist"
+
   validates :year, numericality: { allow_nil: true, greater_than: 0, message: "(%{value}) must be positive." }
 
   UNKNOWN_TITLES = UnknownMusic = {

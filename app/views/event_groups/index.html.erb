@@ -44,7 +44,7 @@
         <td><%= %w(title alt_title).map{|i| tra=btr[lc]; s=(tra && h(tra.send(i))); s.blank? ? '&mdash;' : s}.join(' | ').html_safe %></td>
         <% end %>
       <% else %>
-        <td><%= btr[I18n.locale].title_or_alt.html_safe %></td>
+        <td><%= (tra=btr[I18n.locale]) ? tra.title_or_alt.html_safe : "" %></td>
       <% end %>
         <td><%= event_group.order_no %></td>
         <td><%= da = event_group.start_date; str = (da ? date2text(da.year, da.month, da.day, lower_end_str: "", upper_end_str: "") : (can?(:edit, event_group) ? date2text(nil, nil, nil) : "")) %></td>

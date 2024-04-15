@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_04_11_195735) do
+ActiveRecord::Schema[7.0].define(version: 2024_04_14_211942) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -40,6 +40,25 @@ ActiveRecord::Schema[7.0].define(version: 2024_04_11_195735) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "artist_music_plays", comment: "EventItem-Artist-Music-PlayRole-Instrument association", force: :cascade do |t|
+    t.bigint "event_item_id", null: false
+    t.bigint "artist_id", null: false
+    t.bigint "music_id", null: false
+    t.bigint "play_role_id", null: false
+    t.bigint "instrument_id", null: false
+    t.float "cover_ratio", comment: "How much ratio of Music is played"
+    t.float "contribution_artist", comment: "Contribution of the Artist to Music"
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["artist_id"], name: "index_artist_music_plays_on_artist_id"
+    t.index ["event_item_id", "artist_id", "music_id", "play_role_id", "instrument_id"], name: "index_artist_music_plays_5unique", unique: true
+    t.index ["event_item_id"], name: "index_artist_music_plays_on_event_item_id"
+    t.index ["instrument_id"], name: "index_artist_music_plays_on_instrument_id"
+    t.index ["music_id"], name: "index_artist_music_plays_on_music_id"
+    t.index ["play_role_id"], name: "index_artist_music_plays_on_play_role_id"
   end
 
   create_table "artists", force: :cascade do |t|
@@ -493,6 +512,11 @@ ActiveRecord::Schema[7.0].define(version: 2024_04_11_195735) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "artist_music_plays", "artists", on_delete: :cascade
+  add_foreign_key "artist_music_plays", "event_items", on_delete: :cascade
+  add_foreign_key "artist_music_plays", "instruments", on_delete: :cascade
+  add_foreign_key "artist_music_plays", "musics", on_delete: :cascade
+  add_foreign_key "artist_music_plays", "play_roles", on_delete: :cascade
   add_foreign_key "artists", "places"
   add_foreign_key "artists", "sexes"
   add_foreign_key "countries", "country_masters", on_delete: :restrict

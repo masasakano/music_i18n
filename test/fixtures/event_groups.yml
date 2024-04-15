@@ -43,6 +43,15 @@ evgr_lucky2023:
   place: unknown_place_shimane_japan
   note: MyText_evgr_harami2023
 
+evgr_harami_concerts:
+  order_no: 
+  start_date: <%= Date.new(2019, 12) %>
+  start_date_err: 15
+  end_date: <%= Date.new(9999, 12) %>
+  end_date_err: 
+  place: unknown_place_unknown_prefecture_world
+  note: MyText_evgr_harami_concerts
+
 evgr_streetpiano:
   order_no: 
   start_date: 

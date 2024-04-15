@@ -1267,6 +1267,36 @@ artist_rcsuccession_ja:
   update_user: 
   note: Artist3JaHarami
 
+artist_harami_ja:
+  translatable: artist_harami (Artist)
+  langcode: ja
+  title: ハラミちゃん
+  alt_title: 
+  ruby: ハラミチャン
+  alt_ruby: 
+  romaji: haramichan
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user: user_moderator_translation
+  update_user: user_moderator_translation
+  note: ArtistHaramiJa
+
+artist_harami_en:
+  translatable: artist_harami (Artist)
+  langcode: en
+  title: HARAMIchan
+  alt_title: HARAMI-chan
+  ruby: ハラミチャン
+  alt_ruby: ハラミチャン
+  romaji: haramichan
+  alt_romaji:  haramichan
+  is_orig: false
+  weight: 0
+  create_user: user_moderator_translation
+  update_user: user_moderator_translation
+  note: ArtistHaramiEn
+
 artist_ai:
   translatable: artist_ai
   translatable_type: Artist
@@ -2070,6 +2100,15 @@ evgr_lucky2023own_en:
   update_user_id: 
   note: EventGroupLucky23En
 
+evgr_harami_concerts_en:
+  translatable: evgr_harami_concerts (EventGroup)
+  langcode: en
+  title: HARAMIchan concerts
+  weight: 10
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: EventGroupHaramichanConcertsEn
+
 evgr_streetpiano_en:
   translatable: evgr_streetpiano
   translatable_type: EventGroup
@@ -2109,6 +2148,15 @@ ev_harami_lucky2023_en:
   create_user_id: user_moderator
   update_user_id: 
   note: EventLucky23En
+
+ev_harami_budokan2022_soiree_en:
+  translatable: ev_harami_budokan2022_soiree (Event)
+  langcode: en
+  title: HARAMIchan Budokan 2022 soiree
+  weight: 10
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: EventBudokan2022SoireeEn
 
 evit_ev_unknown_en:
   translatable: evit_ev_unknown

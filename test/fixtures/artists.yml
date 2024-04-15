@@ -81,6 +81,14 @@ artist_unknown:
   place: unknown_place_unknown_prefecture_world
   note: ArtistUnknown
 
+artist_harami:
+  sex_id: 2
+  place: unknown_place_tokyo_japan
+  birth_year: 1990
+  birth_month: 1
+  birth_day: 21
+  note: Artist-HARAMIchan
+
 artist_ai:
   sex_id: 9
   place: unknown_place_unknown_prefecture_world
