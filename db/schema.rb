@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_04_17_153946) do
+ActiveRecord::Schema[7.0].define(version: 2024_04_17_230830) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -466,11 +466,22 @@ ActiveRecord::Schema[7.0].define(version: 2024_04_17_153946) do
     t.text "note"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["alt_romaji"], name: "index_translations_on_alt_romaji"
+    t.index ["alt_ruby"], name: "index_translations_on_alt_ruby"
+    t.index ["alt_title"], name: "index_translations_on_alt_title"
     t.index ["create_user_id", "update_user_id"], name: "index_translations_on_create_user_id_and_update_user_id"
     t.index ["create_user_id"], name: "index_translations_on_create_user_id"
+    t.index ["is_orig"], name: "index_translations_on_is_orig"
+    t.index ["langcode"], name: "index_translations_on_langcode"
+    t.index ["romaji"], name: "index_translations_on_romaji"
+    t.index ["ruby"], name: "index_translations_on_ruby"
+    t.index ["title"], name: "index_translations_on_title"
     t.index ["translatable_id", "translatable_type", "langcode", "title", "alt_title", "ruby", "alt_ruby", "romaji", "alt_romaji"], name: "index_translations_on_9_cols", unique: true
+    t.index ["translatable_id"], name: "index_translations_on_translatable_id"
     t.index ["translatable_type", "translatable_id"], name: "index_translations_on_translatable_type_and_translatable_id"
+    t.index ["translatable_type"], name: "index_translations_on_translatable_type"
     t.index ["update_user_id"], name: "index_translations_on_update_user_id"
+    t.index ["weight"], name: "index_translations_on_weight"
   end
 
   create_table "user_role_assocs", force: :cascade do |t|
