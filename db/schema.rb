@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_04_14_211942) do
+ActiveRecord::Schema[7.0].define(version: 2024_04_17_153946) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -78,6 +78,18 @@ ActiveRecord::Schema[7.0].define(version: 2024_04_14_211942) do
     t.check_constraint "birth_day IS NULL OR birth_day >= 1 AND birth_day <= 31", name: "check_artists_on_birth_day"
     t.check_constraint "birth_month IS NULL OR birth_month >= 1 AND birth_month <= 12", name: "check_artists_on_birth_month"
     t.check_constraint "birth_year IS NULL OR birth_year > 0", name: "check_artists_on_birth_year"
+  end
+
+  create_table "channel_platforms", comment: "Platform like Youtube", force: :cascade do |t|
+    t.string "mname", null: false, comment: "machine name (alphanumeric characters only)"
+    t.text "note"
+    t.bigint "create_user_id"
+    t.bigint "update_user_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["create_user_id"], name: "index_channel_platforms_on_create_user_id"
+    t.index ["mname"], name: "index_channel_platforms_on_mname", unique: true
+    t.index ["update_user_id"], name: "index_channel_platforms_on_update_user_id"
   end
 
   create_table "countries", force: :cascade do |t|
@@ -519,6 +531,8 @@ ActiveRecord::Schema[7.0].define(version: 2024_04_14_211942) do
   add_foreign_key "artist_music_plays", "play_roles", on_delete: :cascade
   add_foreign_key "artists", "places"
   add_foreign_key "artists", "sexes"
+  add_foreign_key "channel_platforms", "users", column: "create_user_id", on_delete: :nullify
+  add_foreign_key "channel_platforms", "users", column: "update_user_id", on_delete: :nullify
   add_foreign_key "countries", "country_masters", on_delete: :restrict
   add_foreign_key "engages", "artists", on_delete: :cascade
   add_foreign_key "engages", "engage_hows", on_delete: :restrict

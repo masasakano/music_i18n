@@ -8,7 +8,7 @@ class InstrumentsController < ApplicationController
 
   # Permitted main parameters for params(), used for update and create
   PARAMS_MAIN_KEYS = MAIN_FORM_KEYS
-  # these will be handled in event_params_two()
+  # these will be handled in instrument_params_three()
 
   # GET /instruments or /instruments.json
   def index

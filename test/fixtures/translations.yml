@@ -2198,3 +2198,28 @@ instrument_<%= ekey %>_<%= langcode %>:
  <% end %>
 <% end %>
 
+<% Seeds::ChannelPlatforms::SEED_DATA.each_pair do |ekey, edata| %>
+ <% %i(en ja fr).each do |langcode| %>
+   <% next if edata[langcode].blank? %>
+channel_platform_<%= ekey %>_<%= langcode %>:
+  translatable: channel_patform_<%= ekey %> (ChannelPlatform)
+  langcode: <%= langcode %>
+  title:     <%= Seeds::Common.yaml_title(edata[langcode], :title) %>
+  alt_title: <%= Seeds::Common.yaml_title(edata[langcode], :alt_title) %>
+  weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: ChannelPlatform<%= ekey.to_s.camelize %><%= langcode.to_s.capitalize %>
+ <% end %>
+<% end %>
+
+channel_platform_oricon_ja:
+  translatable: channel_platform_oricon (ChannelPlatform)
+  langcode: ja
+  title:     オリコン
+  is_orig:  true
+  weight: 1000
+  create_user_id: translator
+  update_user_id: translator
+  note: ChannelPlatformOricon
+

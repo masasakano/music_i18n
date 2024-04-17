@@ -1059,6 +1059,11 @@ class BaseWithTranslation < ApplicationRecord
     trans = find_translation_by_regex(*args, **restkeys)
     return nil if !trans
     ret = trans.translatable
+    if !ret
+      msg = "ERROR(BaseWithTranslation##{__method__}): Translation is an orphan pointing to a non-existing polymorphic belongs_to: #{trans.inspect}"
+      logger.error(msg)
+      raise msg
+    end
     ret.matched_translation = trans
     ret.matched_attribute   = trans.matched_attribute
     ret

@@ -1,0 +1,16 @@
+<div id="<%= dom_id channel_platform %>">
+<dl>
+  <% if can? :update, channel_platform %>
+    <dt>ID (ChannelPlatform)</dt>
+    <dd> <%= @channel_platform.id %></dd>
+  <% end %>
+  <dt><strong>mname:</strong></dt>
+    <dd><%= channel_platform.mname %></dd>
+  <dt>note</dt>
+    <dd><%= channel_platform.note %></dd>
+  <% if can? :update, channel_platform %>
+  <dt>updated_at</dt>
+    <dd><%= channel_platform.updated_at %></dd>
+  <% end %>
+</dl>
+</div>

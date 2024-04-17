@@ -2,6 +2,11 @@
 
 # Common module to introduce "whodunnit"
 #
+# @example
+#   include ModuleWhodunnit # for set_create_user, set_update_user
+#   before_create     :set_create_user       # This always sets non-nil weight. defined in /app/models/concerns/module_whodunnit.rb
+#   before_save       :set_update_user       # defined in /app/models/concerns/module_whodunnit.rb
+#
 module ModuleWhodunnit
   #def self.included(base)
   #  base.extend(ClassMethods)
@@ -27,8 +32,13 @@ module ModuleWhodunnit
       self.weight ||= (klass.const_defined?("DEF_WEIGHT") ? klass::DEF_WEIGHT : Float::INFINITY) if self.respond_to?(:weight) 
       return
     end
+
     self.create_user ||= ModuleWhodunnit.whodunnit
-    self.weight ||= def_weight  # nil-weight -> Float::INFINITY if !Translation.whodunnit (i.e., current_user.nil?)
+
+    if self.respond_to?(:weight) && self.respond_to?(:def_weight)
+      # Translation
+      self.weight ||= def_weight  # nil-weight -> Float::INFINITY if !Translation.whodunnit (i.e., current_user.nil?)
+    end
   end
 
   # Callback before_save

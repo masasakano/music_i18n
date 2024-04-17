@@ -207,6 +207,8 @@ class UserTest < ActiveSupport::TestCase
     assert_not userc.abs_superior_to?(userm)
     assert     userm.abs_superior_to?(usere)
     assert_not usere.abs_superior_to?(userm)
+    assert_not usere.abs_superior_to?(userc)
+    assert     usere.abs_superior_to?(userc, except: userc.roles.first.role_category)
   end
 
   test "first user promoted to root" do

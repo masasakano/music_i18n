@@ -54,6 +54,7 @@ class SeedsSeedsTest < ActiveSupport::TestCase
     [StaticPage, ArtistMusicPlay, PlayRole, Instrument, HaramiVidMusicAssoc, ModelSummary, PageFormat,
      Harami1129, Harami1129Review, HaramiVid, Engage, EngageHow,
      EventItem, Event, EventGroup, Artist, Music, Genre, 
+     ChannelPlatform,
      Place, Prefecture, Country, CountryMaster,
      UserRoleAssoc, User, Role, RoleCategory,
      Sex, Translation].each do |klass|
@@ -70,6 +71,7 @@ class SeedsSeedsTest < ActiveSupport::TestCase
 
     # run seeding (1st time)
     implant_seeds  # defined in /db/seeds.rb"
+    # NOTE: if NoMethodError is rasied with "undefined method `best_translations'", your model may not be defined as a subclass of BaseWithTranslation?
 
     n_entries1 = _total_entry
     assert_operator 1000, :<, n_entries1

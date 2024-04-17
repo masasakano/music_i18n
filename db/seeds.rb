@@ -740,7 +740,7 @@ ar_priority = %w(user event_group).map{|i| File.join(*(rootdirs+['seeds_'+i+'.rb
     begin
       klass =
         if /\ASeeds/ =~ camel
-          camel.constantize      # e.g., SeedsUser
+          camel.singularize.constantize      # e.g., SeedsUser
         else
           Seeds.const_get(camel) # e.g., Seeds::PlayRole
         end

@@ -24,6 +24,10 @@ module Seeds::ModelSummary
       ja: "アーティスト",
       en: "Artist",
     },
+    ChannelPlatform: {
+      ja: "チャンネルのサイト",
+      en: "Channel Platform",
+    },
     Country: {
       ja: "国",
       en: "Country",

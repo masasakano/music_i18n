@@ -361,6 +361,12 @@ class RoleTest < ActiveSupport::TestCase
     assert_not Role.all_superior_to?([r_editor   ], [r_moderator])
     assert     Role.all_superior_to?([r_admin], [r_moderator, r_captain])
 
+    assert_equal role_categories(:club), r_captain.role_category,   "sanity check"
+    refute_equal role_categories(:club), r_moderator.role_category, "sanity check"
+    assert_nil(  r_moderator <=> r_captain, "sanity check")
+    assert     Role.all_superior_to?([r_moderator], [r_editor, r_captain], except: role_categories(:club))
+    assert     Role.all_superior_to?([r_editor], [r_moderator, r_captain], except: [r_moderator.role_category, role_categories(:club)]), "true if everything is ignored."
+
     # The following is a test for an invalid input.
     assert_not Role.all_superior_to?([nil], [r_moderator, r_captain])
   end

@@ -150,8 +150,11 @@ class Role < ApplicationRecord
   #
   # @param arrc1 [Array<Role>]
   # @param arrc2 [Array<Role>]
-  def self.all_superior_to?(arrc1, arrc2)
+  # @param except [Array<RoleCategory>] {RoleCategory}-s, if given, are ignored. If all are ignored, this returns true.
+  def self.all_superior_to?(arrc1, arrc2, except: [])
+    excepts = [except].compact.flatten
     arrc2.all?{|rc2|
+      next true if (excepts.any?{|er| (er <=> rc2.role_category)})
       arrc1.any?{|rc1|
         (rc2 <=> rc1) == 1
       }

@@ -41,6 +41,8 @@ class User < ApplicationRecord
   has_many :roles, through: :user_role_assocs
   has_many :created_translations, class_name: "Translation", foreign_key: "create_user_id", dependent: :nullify
   has_many :updated_translations, class_name: "Translation", foreign_key: "update_user_id", dependent: :nullify
+  has_many :created_channel_platforms, class_name: "ChannelPlatform", foreign_key: "create_user_id", dependent: :nullify
+  has_many :updated_channel_platforms, class_name: "ChannelPlatform", foreign_key: "update_user_id", dependent: :nullify
   has_many :harami1129_reviews, dependent: :nullify
 
   validates_uniqueness_of :email, case_sensitive: false  # As in Default, allow_nil: false (nb empty string is allowed)
@@ -160,8 +162,9 @@ class User < ApplicationRecord
   # This is identical to {#superior_to?}(other_user, nil)
   #
   # @param other [User]
-  def abs_superior_to?(other)
-    Role.all_superior_to?(roles, other.roles)
+  # @param except [Array<RoleCategory>] {RoleCategory}-s, if given, are ignored. If all are ignored, this returns true.
+  def abs_superior_to?(other, except: [])
+    Role.all_superior_to?(roles, other.roles, except: except)
   end
 
   # Returns true if other is a subordinate of self in the role_category

@@ -26,7 +26,7 @@ class Instrument < BaseWithTranslation
   # such as "Beatles, The" when "The Beatles" is passed.  If the translated title
   # consists of a word or few words, as opposed to a sentence or longer,
   # this constant should be true (for example, {Music#title}).
-  ARTICLE_TO_TAIL = false
+  ARTICLE_TO_TAIL = true
 
   # Validates translation immediately before it is added.
   #

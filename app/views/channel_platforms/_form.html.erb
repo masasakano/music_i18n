@@ -1,0 +1,46 @@
+
+  <% if channel_platform.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(channel_platform.errors.count, "error") %> prohibited this ChannelPlatform from being saved:</h2>
+
+      <ul>
+        <% channel_platform.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+<% if ! channel_platform.new_record? %>
+<hr>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: channel_platform, add_buttons: true} %>
+<hr>
+
+<h2>Unique parameters</h2>
+<% end %>
+
+<%= form_with(model: channel_platform, local: true) do |form| %>
+
+  <% if channel_platform.new_record? %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: form, model: channel_platform, trans: Translation.new, disable_is_orig: true} %>
+  <% end %>
+
+  <div class="field">
+    <%= form.label :mname, "mname" %>
+    <%= form.text_field :mname, value: channel_platform.mname, class: 'input_year' %>
+  </div>
+
+  <div class="field">
+    <%= form.label :note %>
+    <%= form.text_area :note %>
+  </div>
+
+  <div class="actions">
+    <%= form.submit(channel_platform.new_record? ? "Create ChannelPlatform" :  "Update ChannelPlatform")%>
+  </div>
+  <div class="actions">
+  <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  </div>
+<% end %>
+
+

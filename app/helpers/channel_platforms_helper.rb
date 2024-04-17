@@ -1,0 +1,2 @@
+module ChannelPlatformsHelper
+end

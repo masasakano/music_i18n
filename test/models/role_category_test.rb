@@ -127,7 +127,7 @@ class RoleCategoryTest < ActiveSupport::TestCase
     assert_nil       (tree['club']['subclub'] <=> tree['harami'])
 
     assert      tree['club'  ].direct_line?(tree['club']['subclub'])
-    assert_not  tree['harami'].direct_line?(tree['club']['subclub'])
+    assert_not  tree['harami'].direct_line?(tree['club']['subclub']), "(NOTE: This fails only sometimes for some reason...)"
   end
 
   test "trees" do
