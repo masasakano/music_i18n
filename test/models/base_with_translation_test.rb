@@ -6,7 +6,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
 
   setup do
     # Without this, current_user may(!) exist if you run Controller or Integration tests at the same time.
-    Translation.whodunnit = nil
+    ModuleWhodunnit.whodunnit = nil
   end
 
   test "title aka the private method get_a_title" do
@@ -580,7 +580,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_equal 9, art0.translations.count, 'Sanity check.'
     assert_equal 8, art0.translations.where(langcode: "en").count, 'Sanity check.'
     assert_equal 2, art0.translations.where(weight: 0).count, 'Sanity check.'
-    assert_equal 3, art0.translations.where(weight: Float::INFINITY).count, "Strangely failed sometimes ('setup do' should circumvent it now): Translation.whodunnit=#{Translation.whodunnit.inspect} art0.translations(title,weight)="+Translation.sort(art0.translations).pluck(:title, :weight).inspect  # weight==nil => Float::INFINITY (for system (no current_user); see Translation#set_create_user)
+    assert_equal 3, art0.translations.where(weight: Float::INFINITY).count, "Strangely failed sometimes ('setup do' should circumvent it now): ModuleWhodunnit.whodunnit=#{ModuleWhodunnit.whodunnit.inspect} art0.translations(title,weight)="+Translation.sort(art0.translations).pluck(:title, :weight).inspect  # weight==nil => Float::INFINITY (for system (no current_user); see Translation#set_create_user)
 
     weight_def = Role::DEF_WEIGHT.values.max  # see get_unique_weight (base_with_translation.rb)
 
@@ -970,7 +970,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_equal 2, art0.translations.size
       assert_equal 3, art1.translations.size
       assert_equal 1, art1.translations.where(langcode: "en").count
-      assert_equal Float::INFINITY, art0.orig_translation.weight, "Strangely fails sometimes ('setup do' should circumvent it now): Translation.whodunnit=#{Translation.whodunnit.inspect} orig="+art0.orig_translation.inspect  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
+      assert_equal Float::INFINITY, art0.orig_translation.weight, "Strangely fails sometimes ('setup do' should circumvent it now): ModuleWhodunnit.whodunnit=#{ModuleWhodunnit.whodunnit.inspect} orig="+art0.orig_translation.inspect  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
 
       reths = art0.send(:_merge_trans, art1, priority_orig: :self, priority_others: :self)
       # An English disappers. Japanese is added.
@@ -1009,7 +1009,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_equal 2, art0.translations.size
       assert_equal 3, art1.translations.size
       assert_equal 1, art1.translations.where(langcode: "en").count
-      assert_equal Float::INFINITY, art0.orig_translation.weight, "Strangely fails sometimes ('setup do' should circumvent it now): Translation.whodunnit=#{Translation.whodunnit.inspect} orig="+art0.orig_translation.inspect  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
+      assert_equal Float::INFINITY, art0.orig_translation.weight, "Strangely fails sometimes ('setup do' should circumvent it now): ModuleWhodunnit.whodunnit=#{ModuleWhodunnit.whodunnit.inspect} orig="+art0.orig_translation.inspect  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
 
       reths = art0.send(:_merge_trans, art1, priority_orig: :self, priority_others: :other)
 
@@ -1056,7 +1056,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
       assert_equal 1, art1.translations.where(langcode: "en").count
       assert_equal 2, art1.translations.where(langcode: "ja").count
       assert_equal "brand-new", art1.orig_translation.alt_title
-      assert_equal Float::INFINITY, art0.orig_translation.weight, "Strangely fails sometimes ('setup do' should circumvent it now): Translation.whodunnit=#{Translation.whodunnit.inspect} orig="+art0.orig_translation.inspect  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
+      assert_equal Float::INFINITY, art0.orig_translation.weight, "Strangely fails sometimes ('setup do' should circumvent it now): ModuleWhodunnit.whodunnit=#{ModuleWhodunnit.whodunnit.inspect} orig="+art0.orig_translation.inspect  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
 
       reths = art0.send(:_merge_trans, art1, priority_orig: :self, priority_others: :other)
 

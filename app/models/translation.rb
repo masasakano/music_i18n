@@ -37,13 +37,14 @@
 #
 class Translation < ApplicationRecord
   extend ModuleCommon
+  include ModuleWhodunnit # for set_create_user, set_update_user
   using ModuleHashExtra  # for extra methods, e.g., Hash#values_blank_to_nil
 
   before_validation :move_articles_to_tail
   after_validation  :revert_articles
   before_save       :move_articles_to_tail
-  before_create     :set_create_user       # This always sets non-nil weight.
-  before_save       :set_update_user
+  before_create     :set_create_user       # This always sets non-nil weight. defined in /app/models/concerns/module_whodunnit.rb
+  before_save       :set_update_user       # defined in /app/models/concerns/module_whodunnit.rb
   after_save        :reset_backup_6params  # to reset the temporary instance variable
 
   #after_create :set_create_user
@@ -1731,7 +1732,7 @@ class Translation < ApplicationRecord
   # Again, it should not be the case anymore!
   #
   # @return [Numeric] Default weight for the user. Float::INFINITY if no user or if user has no {Role} for Translation.
-  def def_weight(user=Translation.whodunnit)
+  def def_weight(user=ModuleWhodunnit.whodunnit)
     return Float::INFINITY if !user
     role = user.highest_role_in(RoleCategory[RoleCategory::MNAME_TRANSLATION])
     return Float::INFINITY if !role
@@ -1814,30 +1815,6 @@ class Translation < ApplicationRecord
     @backup_6params = preprocess_6params(article_to_tail: :check)
   end
 
-  # Callback before_create
-  #
-  # Set create_user_id
-  # Skipped if {Translation.skip_set_user_callback} is true.
-  # non-nil weight is always set at create.
-  def set_create_user
-    #puts "DEBUG122(set_create_user): title=#{title} Translation.whodunnit=#{Translation.whodunnit.inspect} callback=#{self.class.skip_set_user_callback.inspect}" if ENV['TEST_STRICT']  ## NOTE: for model tests, current_user sometimes exists(!!), which should not be(!) and is Rails-7's bug.
-    if self.class.skip_set_user_callback
-      self.weight ||= Float::INFINITY
-      return
-    end
-    self.create_user ||= Translation.whodunnit
-    self.weight ||= def_weight  # nil-weight -> Float::INFINITY if !Translation.whodunnit (i.e., current_user.nil?)
-  end
-
-  # Callback before_save
-  #
-  # Set update_user_id
-  # Skipped if {Translation.skip_set_user_callback} is true.
-  def set_update_user
-    return if self.class.skip_set_user_callback
-    self.update_user = Translation.whodunnit if !update_user_id_changed?
-  end
-
   # Callback after_save
   def reset_backup_6params
     @backup_6params = nil
@@ -1909,15 +1886,5 @@ class Translation < ApplicationRecord
       mat = self.class.contained_kanjis(ruby)
       errors.add :ruby,   sprintf(fmt, 'Kanji', mat[0]) if mat
     end
-end
-
-class << Translation
-  # Setter/getter of {Translation.whodunnit}
-  attr_accessor :whodunnit
-
-  # Skip {#set_create_user} and {#set_update_user} (before_create and before_save) callbacks if true.
-  # This is set especially for processing from Harami1129, as the translations populated
-  # from the table are NOT set by the signed-in user.
-  attr_accessor :skip_set_user_callback
 end
 

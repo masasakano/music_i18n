@@ -17,7 +17,7 @@ class Translations::DemotesController < ApplicationController
   #
   # @param tra [Translation]
   # @param user [User]
-  def self.allowed?(tra, user=Translation.whodunnit)
+  def self.allowed?(tra, user=ModuleWhodunnit.whodunnit)
     # return false if !can?(:update, Translations::DemotesController)  # This check should be done in UI (View). Besides, it is a bit awkward to use "can?" here.
     return false if tra.weight && tra.weight == Float::INFINITY
     return false if tra.is_orig  # Original one cannot be demoted. Moderator may modify is_orig

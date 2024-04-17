@@ -498,7 +498,7 @@ class ApplicationController < ActionController::Base
 
   # Callback
   def set_translation_whodunnit
-    Translation.whodunnit = current_user
+    ModuleWhodunnit.whodunnit = current_user
   end
 
   protected
