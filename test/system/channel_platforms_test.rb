@@ -98,22 +98,4 @@ class ChannelPlatformsTest < ApplicationSystemTestCase
     assert_equal(n_records_be4, n_records)
   end
 
-#  test "should update Channel platform" do
-#    visit channel_platform_url(@channel_platform)
-#    click_on "Edit this channel platform", match: :first
-#
-#    fill_in "Mname", with: @channel_platform.mname
-#    fill_in "Note", with: @channel_platform.note
-#    click_on "Update Channel platform"
-#
-#    assert_text "Channel platform was successfully updated"
-#    click_on "Back"
-#  end
-#
-#  test "should destroy Channel platform" do
-#    visit channel_platform_url(@channel_platform)
-#    click_on "Destroy this channel platform", match: :first
-#
-#    assert_text "Channel platform was successfully destroyed"
-#  end
 end

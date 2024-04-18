@@ -1,15 +1,5 @@
 
-  <% if channel_platform.errors.any? %>
-    <div id="error_explanation">
-      <h2><%= pluralize(channel_platform.errors.count, "error") %> prohibited this ChannelPlatform from being saved:</h2>
-
-      <ul>
-        <% channel_platform.errors.full_messages.each do |message| %>
-          <li><%= message %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
+<%= render partial: 'layouts/form_print_errors', locals: {model: channel_platform} %>
 
 <% if ! channel_platform.new_record? %>
 <hr>
@@ -27,7 +17,7 @@
 
   <div class="field">
     <%= form.label :mname, "mname" %>
-    <%= form.text_field :mname, value: channel_platform.mname, class: 'input_year' %>
+    <%= form.text_field :mname, value: channel_platform.mname, placeholder: "Unique name (内部使用用途の空白を含まない短い名前)" %>
   </div>
 
   <div class="field">

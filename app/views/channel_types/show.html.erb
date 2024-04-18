@@ -1,0 +1,22 @@
+
+<h1>Channel Type: <%= @channel_type.title_or_alt(langcode: I18n.locale) %></h1>
+
+<hr>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @channel_type} %>
+<hr>
+
+<%= render @channel_type %>
+
+<div>
+    <% if can? :update, @channel_type %>
+  <%= link_to "Edit this Channel Type", edit_channel_type_path(@channel_type) %> |
+    <% end %>
+
+    <% if can?(:destroy, @channel_type) %>
+  <%= button_to "Destroy", @channel_type, method: :delete %>
+    <% end %>
+</div>
+
+<hr>
+  <%= link_to t("layouts.back_to_index"), channel_types_path %>
+

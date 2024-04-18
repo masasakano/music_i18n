@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  resources :channel_types
   resources :channel_platforms
   resources :instruments
   resources :play_roles

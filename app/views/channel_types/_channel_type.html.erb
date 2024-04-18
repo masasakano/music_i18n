@@ -1,0 +1,22 @@
+<div id="<%= dom_id channel_type %>">
+<dl>
+  <% if can? :update, channel_type %>
+    <dt>ID (ChannelType)</dt>
+    <dd> <%= @channel_type.id %></dd>
+  <% end %>
+  <dt title="machine name"><strong>mname:</strong></dt>
+    <dd><%= channel_type.mname %></dd>
+  <dt><strong>Weight:</strong></dt>
+    <dd><%= channel_type.weight %></dd>
+  <dt>Note:</dt>
+    <dd><%= channel_type.note %></dd>
+ <% if can? :update, Users::EditRolesController %>
+   <% %w(create_user update_user).each do |metho| %>
+  <dt><%= metho %>:</dt>
+    <dd><%= ur = channel_type.send(metho); link_to(ur.display_name, ur) if ur %></dd>
+   <% end %>
+ <% end %>
+  <dt>updated_at:</dt>
+    <dd><%= channel_type.updated_at %></dd>
+</dl>
+</div>

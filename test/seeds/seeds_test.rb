@@ -54,7 +54,7 @@ class SeedsSeedsTest < ActiveSupport::TestCase
     [StaticPage, ArtistMusicPlay, PlayRole, Instrument, HaramiVidMusicAssoc, ModelSummary, PageFormat,
      Harami1129, Harami1129Review, HaramiVid, Engage, EngageHow,
      EventItem, Event, EventGroup, Artist, Music, Genre, 
-     ChannelPlatform,
+     ChannelPlatform, ChannelType,
      Place, Prefecture, Country, CountryMaster,
      UserRoleAssoc, User, Role, RoleCategory,
      Sex, Translation].each do |klass|

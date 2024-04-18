@@ -1,0 +1,42 @@
+
+<%= render partial: 'layouts/form_print_errors', locals: {model: channel_type} %>
+
+<% if ! channel_type.new_record? %>
+<hr>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: channel_type, add_buttons: true} %>
+<hr>
+
+<h2>Unique parameters</h2>
+<% end %>
+
+<div id="form_main">
+<%= form_with(model: channel_type, local: true) do |form| %>
+
+  <% if channel_type.new_record? %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: form, model: channel_type, trans: Translation.new, disable_is_orig: true} %>
+  <% end %>
+
+  <div class="field">
+    <%= form.label :mname, "mname" %>
+    <%= form.text_field :mname, value: channel_type.mname, placeholder: "Unique name (内部使用用途の空白を含まない短い名前)" %>
+  </div>
+
+  <div class="field">
+    <%= form.label :weight, "Weight" %>
+    <%= form.text_field :weight, value: channel_type.weight, class: 'input_year' %>
+  </div>
+
+  <div class="field">
+    <%= form.label :note %>
+    <%= form.text_area :note %>
+  </div>
+
+  <div class="actions">
+    <%= form.submit(channel_type.new_record? ? "Create ChannelType" :  "Update ChannelType")%>
+  </div>
+  <div class="actions">
+  <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  </div>
+<% end %>
+</div>
+

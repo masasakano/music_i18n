@@ -25,8 +25,12 @@ module Seeds::ModelSummary
       en: "Artist",
     },
     ChannelPlatform: {
-      ja: "チャンネルのサイト",
-      en: "Channel Platform",
+      ja: "チャンネルのサイト(例: Youtube、Tiktok)",
+      en: "Channel Platform (e.g., Youtube, Tiktok)",
+    },
+    ChannelType: {
+      ja: "チャンネルの種類(例: 主チャンネル、副チャンネル、メディア)",
+      en: "Channel Type (e.g., primary/secondary channels, media)",
     },
     Country: {
       ja: "国",

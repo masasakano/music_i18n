@@ -62,6 +62,34 @@ module ModuleCommon
   # Default end_year of {EventGroup} etc
   DEF_EVENT_END_YEAR   = TimeAux::DEF_LAST_DATE_TIME.year   # defined in /lib/time_aux.rb
 
+  extend ActiveSupport::Concern
+  module ClassMethods
+    # Returns a new unique weight (used for new)
+    #
+    # The returned weight is lower than that of +unknown+ unless a higher
+    # weight already exists.
+    #
+    # @example
+    #   ChannelType.new_unique_max_weight
+    #
+    # @return [Float]
+    # @raise [TypeError] if Class does not have a method of weight
+    def new_unique_max_weight
+      raise TypeError, "(#{__method__}) Class #{self.name} not supporting weight. Contact the code developer." if !(self.attribute_names.include?("weight") || (self.first && self.first.respond_to?(:weight)))
+
+      unknown_weight = ((self.respond_to?(:unknown) && (unk=self.unknown)) ? unk.weight : nil)
+      last_model = self.where.not(weight: nil).where.not(weight: unknown_weight).order(:weight).last
+      highest_weight = (last_model ? last_model.weight : 490)  # returning 500 in an unlikely case where there is no existing model
+
+      return highest_weight+10 if !unknown_weight || unknown_weight < highest_weight
+      if highest_weight + 10 < unknown_weight
+        highest_weight + 10
+      else
+        (highest_weight + unknown_weight).quo(2)
+      end
+    end
+  end
+
   # For model that has the method +place+
   #
   # @return [String] "県 — 場所 (国)"

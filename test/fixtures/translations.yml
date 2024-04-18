@@ -2213,7 +2213,7 @@ instrument_<%= ekey %>_<%= langcode %>:
  <% %i(en ja fr).each do |langcode| %>
    <% next if edata[langcode].blank? %>
 channel_platform_<%= ekey %>_<%= langcode %>:
-  translatable: channel_patform_<%= ekey %> (ChannelPlatform)
+  translatable: channel_platform_<%= ekey %> (ChannelPlatform)
   langcode: <%= langcode %>
   title:     <%= Seeds::Common.yaml_title(edata[langcode], :title) %>
   alt_title: <%= Seeds::Common.yaml_title(edata[langcode], :alt_title) %>
@@ -2233,4 +2233,30 @@ channel_platform_oricon_ja:
   create_user_id: translator
   update_user_id: translator
   note: ChannelPlatformOricon
+
+<% klass_str = "ChannelType" %>
+<% (Seeds.const_get(klass_str+"s"))::SEED_DATA.each_pair do |ekey, edata| %>
+ <% %i(en ja fr).each do |langcode| %>
+   <% next if edata[langcode].blank? %>
+<%= klass_str.underscore %>_<%= ekey %>_<%= langcode %>:
+  translatable: <%= klass_str.underscore %>_<%= ekey %> (<%= klass_str %>)
+  langcode: <%= langcode %>
+  title:     <%= Seeds::Common.yaml_title(edata[langcode], :title) %>
+  alt_title: <%= Seeds::Common.yaml_title(edata[langcode], :alt_title) %>
+  weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
+  create_user: user_syshelper
+  update_user: user_syshelper
+  note: <%= klass_str %><%= ekey.to_s.camelize %><%= langcode.to_s.capitalize %>
+ <% end %>
+<% end %>
+
+channel_type_dictionary_ja:
+  translatable: channel_type_dictionary (ChannelType)
+  langcode: ja
+  title:    辞書
+  is_orig:  true
+  weight: 4000
+  create_user_id: user_moderator_general_ja
+  update_user_id: user_moderator_general_ja
+  note: ChannelTypeOricon
 

@@ -68,7 +68,8 @@ class Ability
     can :show,   User  # can view any user's profile.
     can :update, User, id: user.id
 
-    ## Middle-rank role.
+    ##### Middle-rank role. (editors) #####
+
     if user.editor?  # Harami manager OR HIGHER (but sysadmin)
       can :destroy, Users::DeactivateUser, id: user.id
       can :update, UserRoleAssoc, user: user
@@ -88,6 +89,7 @@ class Ability
 #    cannot :show, Users::DeactivateUser, id: user.id
 #canedit, Users::DeactivateUser, id: user.id
       can :index,  ModelSummary  # Index only
+      can :read, ChannelPlatform
     end
 
     ## General-JA editor only
@@ -120,10 +122,14 @@ class Ability
       can(:ud, Translation){|trans| trans.create_user == user }  # Can edit/update/delete their own Translations.
       can :manage, [Musics::MergesController, Artists::MergesController]
       can(:update, Translations::DemotesController)
-      can :read, ChannelPlatform
     end
 
-    ## Higher rank (moderator)
+    ##### Higher rank (moderator) #####
+    #
+    # Policy: moderators can read most Models except those related to user-handling
+    #   so they can grasp the whole picture.
+    #   Translation-moderators should be able to read the BaseWithTranslation models.
+
     if user.moderator?  # Harami manager OR HIGHER (but sysadmin)
       can :read,   Sex
       #can :manage, Prefecture          # can :destroy in addition to Editors
@@ -140,12 +146,13 @@ class Ability
 #           print "DEBUG:abi03: ";p(i.user.an_admin? && (!uhrc || uhrc && i.user.highest_role_in(hrc) < uhrc))
         i.user.an_admin? && (uhrc = user.highest_role_in(hrc); !uhrc || uhrc && i.user.highest_role_in(hrc) < uhrc)
       }
-      can :read, [Instrument]
+      can :read, [Instrument, ChannelType]
     end
 
     ## General-JA moderator only
     if user.qualified_as?(:moderator, rc_general_ja)
       can :read, [CountryMaster]
+      can(:ud, ChannelType){|mdl| (cruser=mdl.create_user) && ((cruser == user) || (!mdl.unknown? && !cruser.superior_to?(user, rc_general_ja))) }  # can update/destroy unless the record was created by a superior in General-JA (i.e., an admin)
     end
 
     ## HaramiVid moderator only
@@ -153,11 +160,13 @@ class Ability
       can :crud, [HaramiVid, Harami1129]
       can :cru,  [Harami1129Review]  # Harami1129Review rarely needs to be destroyed.
       can :read, PlayRole
+      can(:ud, ChannelType){|mdl| mdl.create_user && mdl.create_user == user }  # can update/destroy only those self has created.
     end
 
     ## General-JA or HaramiVid moderator only
     if user.qualified_as?(:moderator, rc_general_ja) || user.qualified_as?(:moderator, rc_harami)
       can :crud, [EventGroup, Event, EventItem, Instrument]  # later excluded for "unknown?"
+      can :cr, ChannelType
     end
 
     ## Translation moderator only

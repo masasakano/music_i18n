@@ -1,0 +1,13 @@
+<% if model.errors.any? %>
+  <% modelname ||= model.class.name %>  <%# Model name to display %>
+  <div id="error_explanation" class="<%= ApplicationController::FLASH_CSS_CLASSES[:alert] %>">
+    <h2><%= pluralize(model.errors.count, "error") %> prohibited this <%= modelname %> from being saved:</h2>
+
+    <ul id="error_explanation_list">
+      <% model.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+
