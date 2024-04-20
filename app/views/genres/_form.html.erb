@@ -1,16 +1,7 @@
+
+<%= render partial: 'layouts/form_print_errors', locals: {model: genre} %>
+
 <%= form_with(model: genre, local: true) do |form| %>
-  <% if genre.errors.any? %>
-    <div id="error_explanation">
-      <h2><%= pluralize(genre.errors.count, "error") %> prohibited this genre from being saved:</h2>
-
-      <ul>
-        <% genre.errors.full_messages.each do |message| %>
-          <li><%= message %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
-
   <div class="field">
     <%= form.label :weight %>
     <%= form.text_field :weight %>

@@ -1,22 +1,5 @@
 
-<%#= simple_form_for(@event_group) do |f| %>
-  <%#= f.error_notification %>
-  <%#= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
-    <%#= f.input :order_no %>
-    <%#= f.association :place %>
-<%# end %>
-
-  <% if event_group.errors.any? %>
-    <div id="error_explanation">
-      <h2><%= pluralize(event_group.errors.count, "error") %> prohibited this EventGroup from being saved:</h2>
-
-      <ul>
-        <% event_group.errors.full_messages.each do |message| %>
-          <li><%= message %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
+<%= render partial: 'layouts/form_print_errors', locals: {model: event_group} %>
 
 <% if ! event_group.new_record? %>
 <hr>

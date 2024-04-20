@@ -8,21 +8,9 @@ Number of <%= link_to 'Translations created/updated by the user', translations_p
 
 <h2>How?</h2>
 
+<%= render partial: 'layouts/form_print_errors', locals: {model: @user} %>
+
 <%= form_with(model: @user, url: users_do_deactivate_users_path, :html => { :onsubmit => "CheckValidation()" }) do |form| %>
-
-  <% if @user.errors.any? %>
-    <div id="error_explanation">
-      <h2>
-        <%= pluralize(@user.errors.count, "error") %> the operation was prohibited:
-      </h2>
-      <ul>
-        <% @user.errors.full_messages.each do |msg| %>
-          <li><%= msg %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
-
   <p>
   <% User::DEACTIVATE_METHOD.each_pair do |ek, ev| %>
     <%= form.radio_button(User::DEACTIVATE_METHOD_FORM_NAME, ek, checked: (ek == :rename)) %>

@@ -91,7 +91,7 @@ else
     @engage_how = EngageHow.new(@hsmain)  # defined in model_params_multi
     authorize! __method__, @engage_how
 
-    add_unsaved_trans_to_model(@engage_how, hstrnas_prm) # defined in application_controller.rb
+    add_unsaved_trans_to_model(@engage_how, hstrnas_prm, force_is_orig_true: false) # defined in application_controller.rb
     def_respond_to_format(     @engage_how)              # defined in application_controller.rb
 end
   end

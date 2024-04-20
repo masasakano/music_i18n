@@ -1,19 +1,5 @@
 
-<%#= simple_form_for(@instrument) do |f| %>
-  <%#= f.error_notification %>
-  <%#= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
-<%# end %>
-  <% if instrument.errors.any? %>
-    <div id="error_explanation">
-      <h2><%= pluralize(instrument.errors.count, "error") %> prohibited this Instrument from being saved:</h2>
-
-      <ul>
-        <% instrument.errors.full_messages.each do |message| %>
-          <li><%= message %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
+<%= render partial: 'layouts/form_print_errors', locals: {model: instrument} %>
 
 <% if ! instrument.new_record? %>
 <hr>

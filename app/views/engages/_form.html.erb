@@ -1,14 +1,5 @@
-  <% if engage.errors.any? %>
-    <div id="error_explanation">
-      <h2><%= pluralize(engage.errors.count, "error") %> prohibited this engage from being saved:</h2>
 
-      <ul>
-        <% engage.errors.each do |error| %>
-          <li><%= error.full_message %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
+<%= render partial: 'layouts/form_print_errors', locals: {model: engage} %>
 
 <hr>
 <h3>Existing Engages</h3>

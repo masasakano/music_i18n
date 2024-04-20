@@ -1,14 +1,5 @@
-  <% if place.errors.any? %>
-    <div id="error_explanation" class="alert alert-danger">
-      <h2><%= pluralize(place.errors.count, "error") %> prohibited this place from being saved:</h2>
 
-      <ul>
-        <% place.errors.full_messages.each do |message| %>
-          <li><%= message %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
+<%= render partial: 'layouts/form_print_errors', locals: {model: place} %>
 
 <% if ! place.new_record? %>
 

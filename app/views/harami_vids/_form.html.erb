@@ -1,14 +1,5 @@
-  <% if harami_vid.errors.any? %>
-    <div id="error_explanation">
-      <h2><%= pluralize(harami_vid.errors.count, "error") %> prohibited this harami_vid from being saved:</h2>
 
-      <ul>
-        <% harami_vid.errors.full_messages.each do |message| %>
-          <li><%= message %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
+<%= render partial: 'layouts/form_print_errors', locals: {model: harami_vid} %>
 
 <% if ! harami_vid.new_record? %>
 

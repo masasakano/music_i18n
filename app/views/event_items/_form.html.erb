@@ -1,30 +1,5 @@
 
-<%# simple_form_for(@event_item) do |f| %>
-  <%# f.error_notification %>
-  <%# f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
-
-  <div class="form-inputs">
-    <%# f.association :event %>
-    <%# f.input :start_time %>
-    <%# f.input :machine_title %>
-  </div>
-
-  <%# div class="form-actions" #>
-    <%# f.button :submit %>
-  <%# /div #>
-<%# end %>
-
-  <% if event_item.errors.any? %>
-    <div id="error_explanation">
-      <h2><%= pluralize(event_item.errors.count, "error") %> prohibited this EventItem from being saved:</h2>
-
-      <ul>
-        <% event_item.errors.full_messages.each do |message| %>
-          <li><%= message %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
+<%= render partial: 'layouts/form_print_errors', locals: {model: event_item} %>
 
 <% if event_item.new_record? && Event.count == 0 %>
   No Events are defined.  You must <%= link_to "create an Event", new_event_path %> first.

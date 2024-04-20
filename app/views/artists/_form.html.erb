@@ -1,21 +1,6 @@
-  <% if artist.errors.any? %>
-    <div id="error_explanation">
-      <h2><%= pluralize(artist.errors.count, "error") %> prohibited this artist from being saved:</h2>
+<%= render partial: 'layouts/form_print_errors', locals: {model: artist} %>
 
-      <ul>
-        <% artist.errors.full_messages.each do |message| %>
-          <% if !message %>
             <%# artist.errors can be like this, namely, :base has a null error when a custom validation Artist#unique_combination fails...: #<ActiveModel::Errors [#<ActiveModel::Error attribute=unique_combination, type=: Artist is not unique in the combination of Title/AltTitle, BirthDate, and Place., options={}>, #<ActiveModel::Error attribute=base, type=invalid, options={}>]> %>
-            <% if current_user.an_admin? %>
-              <li>[Admin] for some reason, an error is null (maybe in a custom validation <tt>Artist#unique_combination</tt>): artist.errors.inspect=<%= artist.errors.inspect %> </li>
-            <% end %>
-            <% next %>
-          <% end %>
-          <li><%= message %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
 
 <% if ! artist.new_record? %>
 

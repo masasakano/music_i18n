@@ -1,14 +1,5 @@
-  <% if prefecture.errors.any? %>
-    <div id="error_explanation">
-      <h2><%= pluralize(prefecture.errors.count, "error") %> prohibited this prefecture from being saved:</h2>
 
-      <ul>
-        <% prefecture.errors.full_messages.each do |message| %>
-          <li><%= message %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
+<%= render partial: 'layouts/form_print_errors', locals: {model: prefecture} %>
 
 <% if ! prefecture.new_record? %>
 

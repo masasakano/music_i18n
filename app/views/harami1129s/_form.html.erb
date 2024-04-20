@@ -1,15 +1,7 @@
-<%= form_with(model: harami1129, local: true) do |form| %>
-  <% if harami1129.errors.any? %>
-    <div id="error_explanation">
-      <h2><%= pluralize(harami1129.errors.count, "error") %> prohibited this harami1129 from being saved:</h2>
 
-      <ul>
-        <% harami1129.errors.full_messages.each do |message| %>
-          <li><%= message %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
+<%= render partial: 'layouts/form_print_errors', locals: {model: harami1129} %>
+
+<%= form_with(model: harami1129, local: true) do |form| %>
 
   <div class="field">
     <% if @harami1129.new_record? %>
