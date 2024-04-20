@@ -533,6 +533,32 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     end
   end
 
+  # Testing methods for new records
+  #
+  test "methods with unsaved_translations" do
+    mdl0 = Sex.new iso5218: 888
+    mdlt = Sex.new iso5218: 999
+    tra0 = Translation.new langcode: "ja", title: "翻訳-0", ruby: "ほんやく-0", romaji: "honnyaku-0", is_orig: false
+    tra1 = Translation.new langcode: "en", alt_title: "tra-1-alt", is_orig: true
+    assert_raise(RuntimeError){ mdlt.unsaved_translations = tra0 }
+    mdlt.unsaved_translations = [tra0, tra1]
+
+    assert_nil         mdl0.orig_translation
+    assert_equal tra1, mdlt.orig_translation
+    assert_nil         mdl0.orig_langcode
+    assert_equal "en", mdlt.orig_langcode.to_s
+    assert_equal [],     mdl0.translations_with_lang("ja")
+    assert_equal [tra0], mdlt.translations_with_lang("ja")
+    assert_nil                 mdl0.title
+    assert_nil                 mdl0.ruby
+    assert_equal "翻訳-0",     mdlt.title(langcode: "ja")
+    assert_equal "ほんやく-0", mdlt.ruby(langcode: "ja")
+    assert_equal "tra-1-alt",  mdlt.alt_title
+    assert                     mdlt.title.blank?
+    assert_nil                 mdl0.best_translation_is_orig
+    assert                     mdlt.best_translation_is_orig
+  end # test "methods with unsaved_translations" do
+ 
   test "of_title" do
     lennon = artists(:artist2)
     assert_equal musics(:music_how), Music.of_title('How?', scoped: lennon.musics).first

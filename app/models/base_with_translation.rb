@@ -406,7 +406,17 @@ class BaseWithTranslation < ApplicationRecord
   alias_method :inspect_orig, :inspect if ! self.method_defined?(:inspect_orig)
 
   # Unsaved {Translation}-s for a new record which would be created when self is saved.
-  attr_accessor :unsaved_translations
+  #attr_accessor :unsaved_translations
+  attr_reader :unsaved_translations
+
+  # @param ary [Array<Translation>]
+  def unsaved_translations=(ary)
+    if !ary.respond_to?(:each) || !ary.respond_to?(:[]) || ary[0] && !ary[0].respond_to?(:title)
+      # This should never happen.  Putting this for coding safety.
+      raise "ERROR(#{__method__}): unsaved_translations must be an Array of Translation-s. Contact the code developer. ary=(#{ary.inspect})"
+    end
+    @unsaved_translations = ary
+  end
 
   # The {Translation} that has the attribute (e.g., :alt_title) that has
   # the value of the matched String, selected by {Translation.find_by_regex} etc.
@@ -2068,7 +2078,15 @@ class BaseWithTranslation < ApplicationRecord
   #
   # @return [Translation, Nilclass] nil if no {Translation} has {Translation#is_orig}==true 
   def orig_translation
-    translations.where(is_orig: true)[0]
+    return translations.where(is_orig: true)[0] if !new_record?
+
+    # For new_record, mimicing the algorithm.
+    utrans = unsaved_translations
+    return nil if utrans.blank?
+    utrans.sort{|a,b|
+      ar = [a, b].map{|i| i.is_orig ? -2 : (i.is_orig.nil? ? 2 : 0) }
+      ar[0] <=> ar[1]
+    }.first
   end
   alias_method :original_translation, :orig_translation if ! self.method_defined?(:original_translation)
 
@@ -2195,15 +2213,17 @@ class BaseWithTranslation < ApplicationRecord
   # @param langcode [String, Symbol, NilClass] if nil, the same as the entry of is_orig==TRUE
   # @return [ActiveRecord::AssociationRelation, Array]
   def translations_with_lang(langcodearg=nil, langcode: nil)  # langcode given both in the main argument and option to be in line with {#titles} etc.
+    tras = (new_record? ? unsaved_translations : translations)
     begin
       langcode = (langcodearg || langcode || orig_translation.langcode).to_s
     rescue NoMethodError
+      # Either is_orig=nil for all Translations or Translation is not defined.
       if self.id  # If not, self may be a new one and certainly has no translations.
         msg = "(#{__method__}) Failed to determine langcode for self=#{self.inspect} ; continue with a random language."
         logger.warn msg
         # warn msg
       end
-      return Translation.sort(translations)
+      return Translation.sort(tras)
     end
 
     if !AVAILABLE_LOCALES.include? langcode.to_sym
@@ -2211,7 +2231,19 @@ class BaseWithTranslation < ApplicationRecord
       # MultiTranslationError::UnavailableLocaleError
     end
 
-    Translation.sort(translations.where(langcode: langcode.to_s))
+    mdls =
+      if new_record?
+        tras.select{|et| et.langcode == langcode.to_s}
+      else
+        tras.where(langcode: langcode.to_s)
+      end
+    Translation.sort(mdls)
+  end
+
+  # @return [Boolean, NilClass] is_orig of {#best_translation} or nil if no Translation (or {#unsaved_translations}) is defined.
+  def best_translation_is_orig(*args, **kwds)
+    bt = best_translation(*args, **kwds)
+    bt ? bt.is_orig : bt
   end
 
   # Best {Translation} for a specific language.
@@ -2230,7 +2262,7 @@ class BaseWithTranslation < ApplicationRecord
   def best_translation(langcodearg=nil, langcode: nil, fallback: true)  # langcode given both in the main argument and option to be in line with {#titles} etc.
     langcode = (langcodearg || langcode).to_s
     langcode = "" if "all" == langcode
-    return Translation.sort(translations).first if langcode.blank?
+    return Translation.sort(new_record? ? unsaved_translations : translations).first if langcode.blank?
 
     tra = translations_with_lang(langcode: langcode)
     return tra.first if !fallback || tra.exists?
@@ -2244,7 +2276,7 @@ class BaseWithTranslation < ApplicationRecord
 
     langs2try.each do |lc|
       tra = translations_with_lang(langcode: lc)
-      return tra.first if tra.exists?
+      return tra.first if (tra.exists? rescue tra.present?)
     end
     nil
   end
