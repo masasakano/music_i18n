@@ -1,3 +1,4 @@
+# coding: utf-8
 module ApplicationHelper
 
   include ModuleCommon
@@ -341,6 +342,24 @@ module ApplicationHelper
     domain = (Rails.application.config.action_mailer.smtp_settings[:domain].strip rescue nil)
     return {} if domain.blank?
     {title: I18n.t("mail.Link_handled_by", mail_distributor: ENV['MAIL_DISTRIBUTOR'].strip, domain: domain)}
+  end
+
+  # Wrapper of pluralize to handle i18n string
+  #
+  # @param count [Numeric]
+  # @param label [Symbol, String] String passed to +I18n.t()+
+  # @param ja_classifier: [String] 助数詞
+  # @param ja_particle: [String] 助詞
+  # @param locale [Symbol, String] :ja, :en etc
+  # @param **kwd [Hash] optional parameters passed to +I18n.t()+, like +:default+, +:my_parameter+
+  def pluralize_i18n(count, label, ja_classifier: "個", ja_particle: "の", locale: I18n.locale, **kwd)
+    tra = I18n.t(label, **kwd)
+    case locale.to_sym
+    when :ja
+      sprintf "%s%s%s%s", count, ja_classifier, ja_particle, tra
+    else
+      pluralize(count, I18n.t(label, **kwd))
+    end
   end
 
   # to suppress warning, mainly that in Ruby-2.7.0:

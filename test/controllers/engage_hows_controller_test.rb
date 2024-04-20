@@ -39,14 +39,15 @@ class EngageHowsControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference('EngageHow.count') do
       post engage_hows_url, params: { translation: {is_orig: '1'}, engage_how: { note: @engage_how.note } }
     end
-    assert_match(/langcode.* is none/, flash.alert)
-    assert_response 422  # Unprocessable Entity
+    #assert_match(/\bno langcode\b/i, flash.alert, "output: #{css_select('div#body_main').to_html}")
+    assert_match(/\bno langcode\b/i, css_select('div#error_explanation ul').text, "output: #{css_select('div#body_main').to_html}")
+    assert_response :unprocessable_entity # 422
 
     # Creation failures
     assert_no_difference('EngageHow.count') do
       post engage_hows_url, params: { translation: { langcode: 'ja', is_orig: '0', title: 'abc', alt_title: 'abc' }, engage_how: {note: ''} }
     end
-    assert_response 422  # Unprocessable Entity
+    assert_response :unprocessable_entity # 422
 
     # Creation success
     assert_difference('EngageHow.count') do
@@ -56,6 +57,7 @@ class EngageHowsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to engage_how_url(eh_last)
     assert_operator eh_last, '<', EngageHow.unknown
     assert_operator eh_last, '>', EngageHow.where('id <> ?', eh_last).sort[-2] # In default, the weight, if unspecified, of a newly-created instance should be the second last.
+    assert_equal 'new test 1', eh_last.title, "trans=#{eh_last.translations}"
   end
 
   test "should show engage_how" do

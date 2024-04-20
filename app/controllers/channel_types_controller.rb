@@ -1,6 +1,6 @@
 class ChannelTypesController < ApplicationController
   #before_action :set_channel_type, only: %i[ show edit update destroy ]
-  load_and_authorize_resource except: [:create] # This sets @channel_platform
+  load_and_authorize_resource except: [:create] # This sets @channel_type
   before_action :channel_type_params_multi, only: [:create, :update]
 
   # Symbol of the main parameters in the Form (except "place_id"), which exist in DB

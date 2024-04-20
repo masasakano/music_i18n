@@ -481,6 +481,19 @@ class TranslationTest < ActiveSupport::TestCase
     assert     Translation.valid_main_params?({langcode: 'ja', title: 'abc', 'alt_title' => 'def', ruby: 'xyz'})
     assert_not Translation.valid_main_params?({langcode: 'ja', title: 'abc', 'alt_title' => 'abc', ruby: 'xyz'})
     assert     Translation.valid_main_params?({langcode: 'ja', title: 'abc', 'alt_title' => 'abX', ruby: 'xyz'})
+
+    ary = []
+    assert_not Translation.new.valid_main_params?(kwd_messages: ary)
+    assert_equal 2, ary.size
+    assert_equal %i(langcode title), ary.map{|ea| ea[0]}
+    assert_match(/\btitle (and|or) alt_?title must exist\b/i, ary.find{|ea| :title == ea[0]}[1])
+
+    tra = Translation.new(langcode: "kr", title: "xyz", alt_title: "xyz")
+    ary = []
+    assert_not tra.valid_main_params?(kwd_messages: ary)
+    assert_equal 1, ary.size, "ary=#{ary.inspect}"
+    assert_equal %i(title), ary.map{|ea| ea[0]}
+    assert_match(/\bmust differ\b/i, ary.find{|ea| :title == ea[0]}[1])
   end
 
   test "of_title" do

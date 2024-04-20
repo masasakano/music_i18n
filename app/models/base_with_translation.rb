@@ -351,15 +351,23 @@ class BaseWithTranslation < ApplicationRecord
       return if record.unsaved_translations.blank?
 
       if !record.new_record?
-        record.errors.add :base, "unsaved_translations has to be blank for an existing entity. Contact the code developer: #{record.inspect}"
+        msg_base = "unsaved_translations has to be blank for an existing entity. Contact the code developer: #{record.inspect}"
+        logger.error "ERROR: "+msg_base 
+        msg =
+          if ModuleWhodunnit.whodunnit && ModuleWhodunnit.whodunnit.an_admin?
+            "[admin-message] "+msg_base
+          else
+            "internal error re #{record.class.name}#unsaved_translations. Contact the code developer."
+          end
+        record.errors.add :base, msg
         return
       end
 
       record.unsaved_translations.each do |tra|
-        msg = []
-        if !tra.valid_main_params? messages: msg
-          msg.each do |em|
-            record.errors.add :base, em
+        kwdmsgs = []
+        if !tra.valid_main_params?(kwd_messages: kwdmsgs)
+          kwdmsgs.each do |em|
+            record.errors.add em[0], em[1]
           end
         end
       end

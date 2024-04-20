@@ -1,18 +1,7 @@
-    <% toastr_flash  # defined in /app/helpers/application_helper.rb
+    <%# toastr_flash  # defined in /app/helpers/application_helper.rb
     %>
-<p id="notice"><%= notice %></p>
 
-  <% if engage_how.errors.any? %>
-    <div id="error_explanation">
-      <h2><%= pluralize(engage_how.errors.count, "error") %> prohibited this engage_how from being saved:</h2>
-
-      <ul>
-        <% engage_how.errors.each do |error| %>
-          <li><%= error.full_message %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
+<%= render partial: 'layouts/form_print_errors', locals: {model: engage_how} %>
 
 <% if ! engage_how.new_record? %>
 <hr>
@@ -42,7 +31,7 @@
     <%= simple_fields_for engage_how do |n| %>
     <% # name="engage_how[note]" => params(:engage_how => {})
      %>
-      <%= n.input :weight, placeholder: 'Lower means a higher priority.', label_html: { title: title_weight}, input_html: { title: 'Lower means a higher priority.'} %>
+      <%= n.input :weight, placeholder: title_weight, label_html: {title: title_weight}, input_html: {title: title_weight} %>
       <%= n.input :note %>
     <% end %>
     <%= form.submit "Create EngageHow" %>

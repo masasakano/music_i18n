@@ -28,6 +28,7 @@ class EngageHow < BaseWithTranslation
   # Validates translation immediately before it is added.
   #
   # Called by a validation in {Translation}
+  # Basically, Translations must be unique.
   #
   # @param record [Translation]
   # @return [Array] of Error messages, or empty Array if everything passes
@@ -36,6 +37,7 @@ class EngageHow < BaseWithTranslation
   end
 
   validates_presence_of :weight  # Because of the DB default value, this does nothing in practice.
+  validates :weight, :numericality => { :greater_than_or_equal_to => 0 }
 
   UNKNOWN_TITLES = UnknownEngageHow = {
     "ja" => '関与形態不明',

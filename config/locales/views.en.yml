@@ -48,6 +48,13 @@ en:
     about_us: 'About Us'
     others: 'Others'
 
+  models:
+    translation:
+      no_langcode: "no langcode (langguage code) is specified - which should be (%{valid_langcodes})"
+      invalid_langcode: "langcode (langguage code)=(%{model}) is none of (%{valid_langcodes})"
+      specify_either_title_or_alt: "At least either of Title and AltTitle must exist."
+      identical_title_alt: "Title and AltTitle must differ."
+
   mail:
     Link_handled_by: "Link handled by %{mail_distributor} on behalf of %{domain}"
 
@@ -60,6 +67,7 @@ en:
     create_model: "Create a new %{model}"
     destroy_button: 'Commit Destroy'
     editing_guideline: 'Editing Guideline'
+    error_in_save: "%{errors} prohibited this %{model} from being saved"
     reset_button: "Reset (Start Over)"
     submit_button: 'Submit'
     Show: "Detail"

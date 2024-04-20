@@ -1,5 +1,14 @@
 class EngageHowsController < ApplicationController
   before_action :set_engage_how, only: %i[ show edit update destroy ]
+  load_and_authorize_resource except: [:create] # This sets @engage_how
+  before_action :model_params_multi, only: [:create, :update]
+
+  # Symbol of the main parameters in the Form (except "place_id"), which exist in DB
+  MAIN_FORM_KEYS = %i(weight note)
+
+  # Permitted main parameters for params(), used for update and create
+  PARAMS_MAIN_KEYS = MAIN_FORM_KEYS
+  # these will be handled in channel_type_params_multi()
 
   # GET /engage_hows or /engage_hows.json
   def index
@@ -36,6 +45,7 @@ class EngageHowsController < ApplicationController
         nil
       end
 
+if false
     messages = []
     if Translation.valid_main_params? hstrnas_prm, messages: messages
       hs_trans = {translation: hstrnas_prm}
@@ -51,7 +61,8 @@ class EngageHowsController < ApplicationController
     end
 
     if !@engage_how
-      @engage_how = EngageHow.new(note: hsmain[:note])
+      #@engage_how = EngageHow.new(note: hsmain[:note])
+      @engage_how = EngageHow.new(@hsmain)  # defined in model_params_multi
       @engage_how.errors.add :base, (messages[0] || "Invalid Translation")
     end
 
@@ -76,6 +87,13 @@ class EngageHowsController < ApplicationController
         format.json { render json: @engage_how.errors, status: :unprocessable_entity }
       end
     end
+else
+    @engage_how = EngageHow.new(@hsmain)  # defined in model_params_multi
+    authorize! __method__, @engage_how
+
+    add_unsaved_trans_to_model(@engage_how, hstrnas_prm) # defined in application_controller.rb
+    def_respond_to_format(     @engage_how)              # defined in application_controller.rb
+end
   end
 
   # PATCH/PUT /engage_hows/1 or /engage_hows/1.json
@@ -113,5 +131,14 @@ class EngageHowsController < ApplicationController
       # params[:translation].require([:title]) # raises, if title is left empty, which can happen, ActionController::ParameterMissing: param is missing or the value is empty: title
 
       params.permit([translation: [:langcode, :is_orig, :title, :alt_title, :ruby, :alt_ruby, :romaji, :alt_romaji], engage_how: [:weight, :note]])
+    end
+
+    # Sets @hsmain and @hstra and @prms_all from params
+    #
+    # +action_name+ (+create+ ?) is checked inside!
+    #
+    # @return NONE
+    def model_params_multi
+      set_hsparams_main_tra(:engage_how) # defined in application_controller.rb
     end
 end

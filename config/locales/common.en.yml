@@ -39,8 +39,12 @@ en:
   detail: Detail
   display_name: Display Name
   Event: Event
+  Events: Events
   EventGroup: Event Group
+  EventGroups: Event Groups
   EventItem: Event Item
+  EventItems: Event Items
+  error: error
   Genre: Genre
   Harami: "HARAMIchan"
   HaramiVid: "Harami's Video"

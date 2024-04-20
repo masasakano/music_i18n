@@ -519,28 +519,47 @@ class Translation < ApplicationRecord
   # the values for the keys of {#langcode} and either or both of {#title} and {#alt_title}
   # must be significant (non-blank after strip).
   #
+  # @see {Translation#valid_main_params?}
+  #
   # @param in_hs_param [#to_h] Hash (or params) containing the keys like 'langcode' and 'title'
-  # @param messages: [Array] an error message is Array#push-ed in returning false.
-  def self.valid_main_params?(in_hs_param, messages: [])
+  # @param kwd_messages: [Array] of [:title|:langcode, String] where error messages are Array#push-ed with Symbol of attribute (like :title) if returning false.
+  def self.valid_main_params?(in_hs_param, kwd_messages: [])
     hs_param = in_hs_param.to_h.strip_strings.values_blank_to_nil.compact.with_sym_keys # defined in ModuleHashExtra
+    messages_orig_size = kwd_messages.size
     # return false if ((/\A[a-z]{1,2}\z/ !~ hs_param[:langcode]) rescue false) # if langcode != (ja|en|fr) etc
-    if ((/\A[a-z]{1,2}\z/ !~ hs_param[:langcode]) rescue false) # if langcode != (ja|en|fr) etc (or kr|de ...)
-      messages.push "langcode (#{hs_param[:langcode]}) is none of (ja|en|fr)."
-      return false
+    valid_langcodes = I18n.available_locales.map(&:to_s).join('|')
+    msg =
+      if hs_param[:langcode].blank? || hs_param[:langcode].strip.blank?
+        I18n.t("models.translation.no_langcode", default: "no langcode (langguage code) is specified - which should be (#{I18n.available_locales.map(&:to_s).join('|')})", valid_langcodes: valid_langcodes)
+      elsif (/\A[a-z]{1,2}\z/ !~ hs_param[:langcode]) # if langcode != (ja|en|fr) etc (or kr|de ...)
+        I18n.t("models.translation.invalid_langcode", default: "langcode (#{hs_param[:langcode]}) is none of (#{I18n.available_locales.map(&:to_s).join('|')})", model: hs_param[:langcode], valid_langcodes: valid_langcodes)
+      end
+    if msg
+      kwd_messages.push [:langcode, msg]
     end
+
     # return false if !(%i(title alt_title).any?{|i| hs_param.keys.include?(i)})
-    if !(%i(title alt_title).any?{|i| hs_param.keys.include?(i)})
-      messages.push 'At least either Title or AltTitle must exist.'
-      return false
+    msg =
+      if !(%i(title alt_title).any?{|i| hs_param.keys.include?(i)})
+        I18n.t("models.translation.specify_either_title_or_alt", default: 'At least either Title or AltTitle must exist.')
+      elsif hs_param[:title] == hs_param[:alt_title]
+        I18n.t("models.translation.identical_title_alt", default:"Title and AltTitle must differ.")
+      end
+    if msg
+      kwd_messages.push [:title, msg]
     end
-    if hs_param[:title] == hs_param[:alt_title]
-      messages.push 'Title and AltTitle must differ.'
-      return false
-    end
-    true
+    (messages_orig_size == kwd_messages.size)  # return true or false
   end
 
   # Wrapper of {Translation.valid_main_params?}
+  #
+  # @example
+  #    Translation.new.valid_main_params?(kwd_messages: [])
+  #     # => false
+  #     # => kwd_messages == [
+  #     #      [:langcode, "no langcode (langguage code) is specified - which should be (ja|en|fr)"],
+  #     #      [:title, "At least either of Title and AltTitle must exist."],
+  #     #    ]
   def valid_main_params?(**kwd)
     self.class.send(__method__, slice(*(%i(langcode title alt_title))), **kwd)
   end

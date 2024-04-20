@@ -78,7 +78,8 @@ class ApplicationController < ActionController::Base
   #
   # The contents of the given model are modified.
   #
-  # `is_orig` is forced to be true!
+  # In default, +is_orig+ is forced to be true! (unless force_is_orig_true is given false and is_orig is included in params)
+  # This is so because the +is_orig+ choice is not given to the user in create in UI.
   #
   # @example
   #   hsmain = params[:place].slice('note')
@@ -87,18 +88,21 @@ class ApplicationController < ActionController::Base
   #
   # @param mdl [ApplicationRecord]
   # @param prms [ActionController::Parameters, Hash] 1-layer Hash-like object. All parameters must be permitted.
+  # @param force_is_orig_true: [Boolean] if true (Def), +is_orig+ is forced to be true!
   # @return [void]
-  def add_unsaved_trans_to_model(mdl, prms=nil)
+  def add_unsaved_trans_to_model(mdl, prms=nil, force_is_orig_true: true)
     mdl_name = mdl.class.name
     prms ||= params[mdl_name.underscore]  # e.g., params["event_group"]
     begin
-      hsprm_tra = prms.slice(*PARAMS_TRANS_KEYS).to_h
+      hsprm_tra = prms.slice(*PARAMS_TRANS_KEYS).to_h.with_indifferent_access
       # If this raises ActionController::UnfilteredParameters, you may want to exlicitly specify the *permitted* prms
     rescue NoMethodError => err
       logger.error("ERROR(#{File.basename __FILE__}): params['#{mdl_name.downcase}'] seems not correct: params=#{params.inspect}")
       raise
     end
-    tra = Translation.preprocessed_new(**(hsprm_tra.merge({is_orig: true, translatable_type: mdl_name})))
+    hsprm_tra[:translatable_type] = mdl_name
+    hsprm_tra[:is_orig] = true if force_is_orig_true || !hsprm_tra.has_key?("is_orig")
+    tra = Translation.preprocessed_new(**hsprm_tra)
 
     mdl.unsaved_translations << tra
   end
@@ -173,7 +177,7 @@ class ApplicationController < ActionController::Base
         format.html { redirect_to (redirected_path || mdl), **opts }
         format.json { render :show, status: ret_status, location: mdl }
       else
-        mdl.errors.add :base, alert  # alert is included in the instance
+        mdl.errors.add :base, alert if alert.present? # alert is, if present, included in the instance
         opts = flash_html_safe(alert: alert, **inopts)
         opts.delete :alert  # because alert is contained in the model itself.
         hsstatus = {status: :unprocessable_entity}
@@ -345,6 +349,9 @@ class ApplicationController < ActionController::Base
   # @param additional_keys: [Array<Symbol>] Additional keys (usually Translation related used by {#set_hsparams_main_tra})
   # @return [ActionController::Parameters, Hash] all permitted params
   def set_hsparams_main(model_name, additional_keys: [])
+    if !self.class.const_defined?(:PARAMS_MAIN_KEYS)
+      raise NameError, "uninitialized constant #{self.class.name}::PARAMS_MAIN_KEYS -- you must define it and MAIN_FORM_KEYS in the controller!"
+    end
     allkeys = self.class::PARAMS_MAIN_KEYS + additional_keys
 
     if (self.class.const_defined?(:PARAMS_ARRAY_KEYS) && ary=self.class::PARAMS_ARRAY_KEYS)  # nested params

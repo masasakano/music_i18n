@@ -48,6 +48,13 @@ ja:
     about_us: '本サイトについて'
     others: 'その他'
 
+  models:
+    translation:
+      no_langcode: "langcode(言語)が指定されていません——以下のいずれか(%{valid_langcodes})"
+      invalid_langcode: "langcode(言語)=(%{model})が以下のいずれでもありません(%{valid_langcodes})"
+      specify_either_title_or_alt: "Title(題名)またはAltTitle(別称)のいずれかが必須です"
+      identical_title_alt: "Title(題名)とAltTitle(別称)とは異なっていなくてはなりません"
+
   mail:
     Link_handled_by: "リンクは、%{mail_distributor}経由で%{domain}にて処理されます"
 
@@ -60,6 +67,7 @@ ja:
     create_model: "%{model}新規作成"
     destroy_button: '削除実行'
     editing_guideline: '編集方針'
+    error_in_save: "%{errors} が出て%{model}の保存に失敗しました"
     reset_button: "リセット (やり直し)"
     submit_button: '送信'
     Show: "詳細"
