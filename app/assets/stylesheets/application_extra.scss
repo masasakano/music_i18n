@@ -187,6 +187,10 @@ form div.field {
   }
 }
 
+input[type="submit"] {
+  margin-top: 1em;
+}
+
 input[type="radio"] {
   margin-left: 0.8em;
 }
@@ -281,3 +285,111 @@ div.actions-destroy-align-r {
   text-align: right;
 }
 
+/* ********************************************************* */
+/*   Simple_form    */
+/* ********************************************************* */
+/* input[type="text"] { */
+:root {
+  --form-bg-color: navy;
+  --form-bg-color-focus: blue;
+  --form-bg-radio-opacity: 0.7;
+  --form-border-width: medium;
+  --form-border-width-focus: thick;
+}
+
+.form-control  {
+  background:   var(--form-bg-color);
+  border-width: var(--form-border-width);
+}
+.form-control:focus  {
+  background: var(--form-bg-color-focus);
+}
+input.form-control  {
+  background: var(--form-bg-color);
+}
+input.form-control:focus  {
+  background: var(--form-bg-color-focus);
+  border-width: var(--form-border-width-focus);
+}
+input.form-control {
+    min-width: 10em;
+  border-width: var(--form-border-width);
+}
+input.form-control.is-invalid {
+  border-width: var(--form-border-width-focus);
+}
+input[type="number"].form-control, input[type="color"].form-control, input[type="tel"].form-control {
+    max-width: 20em;
+}
+input[type="text"].form-control.string {
+    max-width: 50em;
+}
+/*
+ <div class="form-group float required engage_how_weight form-group-valid">
+   <label title="Lower means a higher priority." class="float required" for="engage_how_weight">Weight <abbr title="必須">*</abbr></label>
+   <input class="form-control is-valid numeric float required" title="Lower means a higher priority."
+          placeholder="Lower means a higher priority."
+          type="number" step="any" value="999.0" name="engage_how[weight]" id="engage_how_weight"></div>
+*/
+
+textarea.form-control {
+    height: 6em;  /* 3.5 lines */
+  background: var(--form-bg-color);
+  border-width: var(--form-border-width);
+}
+textarea.form-control:focus {
+  background: var(--form-bg-color-focus);
+  --form-border-width-focus: thick;
+}
+/* <div class="form-group text optional engage_how_note"><label class="text optional" for="engage_how_note">Note</label>
+   <textarea class="form-control text optional" name="engage_how[note]" id="engage_how_note"></textarea></div>
+ */
+
+select.form-control  {
+    min-width: 10em;
+    max-width: 50em;
+  background: var(--form-bg-color);
+}
+select.form-control:focus  {
+  background:   var(--form-bg-color-focus);
+  border-width: var(--form-border-width);
+}
+
+fieldset.form-group.radio_buttons, fieldset.form-group.check_boxes {
+    max-width: 40em;
+  /* border-width: thick;
+     border-color: red; */ /* not working... */
+  background-color: var(--form-bg-color);
+  opacity:          var(--form-bg-radio-opacity);
+  margin-top: 0.5em;
+}
+fieldset.form-group.radio_buttons legend {
+  background-color: #2f93c4;
+  opacity: 1.0;
+  padding-bottom: 0.1em;
+}
+fieldset.form-group.radio_buttons div.form-check input[type="radio"] {
+  /* to prevent the first radio-button displayed at the right edge in the previous line. I don't know why this is necessary... */
+  display: inline-block;
+  margin-left: 0;
+  margin-right: 0.5em;
+}
+/*
+<fieldset class="form-group radio_buttons required translation_is_orig">
+ <legend class="col-form-label pt-0">これが原語か? (注: 「冷蔵庫」などの一般名詞はUndefined)
+ <abbr title="必須">*</abbr></legend>
+ <input type="hidden" name="translation[is_orig]" value="" autocomplete="off">
+ <div class="form-check">
+  <input class="form-check-input radio_buttons required" required="required" aria-required="true" type="radio" value="1" name="translation[is_orig]" id="translation_is_orig_1">
+  <label class="form-check-label collection_radio_buttons" for="translation_is_orig_1">Yes</label>
+ </div>
+ <div class="form-check">
+  <input class="form-check-input radio_buttons required" required="required" aria-required="true" type="radio" value="0" name="translation[is_orig]" id="translation_is_orig_0">
+  <label class="form-check-label collection_radio_buttons" for="translation_is_orig_0">No</label>
+ </div>
+ <div class="form-check">
+  <input class="form-check-input radio_buttons required" required="required" aria-required="true" type="radio" value="-99" checked="checked" name="translation[is_orig]" id="translation_is_orig_-99">
+  <label class="form-check-label collection_radio_buttons" for="translation_is_orig_-99">Undefined</label>
+ </div>
+</fieldset>
+*/
