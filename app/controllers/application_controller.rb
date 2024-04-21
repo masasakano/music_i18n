@@ -19,6 +19,17 @@ class ApplicationController < ActionController::Base
 
   around_action :switch_locale
 
+  # (FORM) HTML IDs and CLASSes
+  HTML_KEYS = {
+    ids: {
+      div_sel_country:    "div_select_country",
+      div_sel_prefecture: "div_select_prefecture",
+      div_sel_place:      "div_select_place",
+    }.with_indifferent_access,
+    classes: {
+    }.with_indifferent_access,
+  }.with_indifferent_access
+
   # In addition to the defaul "notice" and "alert".
   #
   # I assume "notice" => "alert-info", "alert" => "alert-danger" in Bootstrap.

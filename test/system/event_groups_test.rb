@@ -1,10 +1,15 @@
 # coding: utf-8
 require "application_system_test_case"
+require "helpers/test_system_helper"
 
 class EventGroupsTest < ApplicationSystemTestCase
   setup do
     @moderator = users(:user_moderator_general_ja)
     @event_group = event_groups(:evgr_lucky2023)
+    @button_text = {
+      create: "Create Event group",
+      update: "Update Event group",
+    }
   end
 
   test "visiting the index" do
@@ -22,20 +27,23 @@ class EventGroupsTest < ApplicationSystemTestCase
     n_event_groups_be4 = page.all("div#event_groups table tr").size - 1
     click_on "Create EventGroup"
 
-    page.find('form div.field.radio_langcode').choose('English')
+    page_find_sys(:trans_new, :langcode_radio, model: EventGroup).choose('English')  # defined in helpers/test_system_helper
 
     # label_str = I18n.t('layouts.new_translations.title', model: 'EventGroup')
     page.find('input#event_group_title').fill_in with: 'Tekitoh'  # This is unique!
 
     # Test of dropdown-menu
     assert_selector 'div#div_select_country', text: "Country"
-    assert_selector 'div#div_select_place', visible: :hidden
+    
+    assert_selector ActiveSupport::TestCase::CSSQUERIES[:hidden][:place], visible: :hidden
+    assert_selector :xpath, "//form//div[@id='#{ApplicationController::HTML_KEYS[:ids][:div_sel_place]}']//div[contains(@class, 'form-group')]", visible: :hidden
+    assert_equal 0, page.find_all(:xpath, "//form//div[@id='#{ApplicationController::HTML_KEYS[:ids][:div_sel_place]}']//div[contains(@class, 'form-group')][contains(@style,'display: none;')]").size
 
     assert     find_field('Country')
     assert_selector    'form div#div_select_country'
     #assert_selector    'form div#div_select_prefecture', visible: :hidden
     #assert_no_selector 'form div#div_select_prefecture'  # display: none
-    assert_no_selector 'form div#div_select_place'       # display: none
+    assert_no_selector ActiveSupport::TestCase::CSSQUERIES[:hidden][:place] # display: none
 
     #selector = %Q{form div#div_select_country select option:contains("Japan")}
     #page.execute_script %Q{ $('#{selector}').trigger('mouseenter').click() }
@@ -44,17 +52,17 @@ class EventGroupsTest < ApplicationSystemTestCase
     assert_selector    'form div#div_select_prefecture'  # Now JS made it appear
     assert     find_field('Prefecture')                  # Now JS made it appear
 
-    fill_in "Start Day",   with: @event_group.start_date.day
-    fill_in "Start Month", with: @event_group.start_date.month
-    fill_in "Start Year",   with: @event_group.start_date.year
+    fill_in "Start day",   with: @event_group.start_date.day
+    fill_in "Start month", with: @event_group.start_date.month
+    fill_in "Start year",   with: @event_group.start_date.year
     fill_in "± days (Start)", with: ""
     fill_in "Note", with: @event_group.note
     #fill_in "Order no", with: @event_group.order_no  # the label may change
     #fill_in "Place", with: @event_group.place_id  # Dropdown described above
-    fill_in "End Day",   with: @event_group.end_date.day
-    fill_in "End Month", with: @event_group.end_date.month
-    fill_in "End Year",  with: @event_group.end_date.year
-    click_on "Create EventGroup"
+    fill_in "End day",   with: @event_group.end_date.day
+    fill_in "End month", with: @event_group.end_date.month
+    fill_in "End year",  with: @event_group.end_date.year
+    click_on  @button_text[:create]
 
     assert_text "EventGroup was successfully created"
     assert_selector "section#section_event_group_show_footer a", text: "Back"
@@ -72,17 +80,17 @@ class EventGroupsTest < ApplicationSystemTestCase
     assert_selector 'form div#div_select_prefecture'
     assert_selector 'form div#div_select_place'
 
-    fill_in "Start Day",   with: @event_group.start_date.day
-    fill_in "Start Month", with: @event_group.start_date.month
-    fill_in "Start Year",  with: @event_group.start_date.year
+    fill_in "Start day",   with: @event_group.start_date.day
+    fill_in "Start month", with: @event_group.start_date.month
+    fill_in "Start year",  with: @event_group.start_date.year
     fill_in "Note", with: @event_group.note
     #fill_in "Order no", with: @event_group.order_no  # the label may change
     #fill_in "Place", with: @event_group.place_id  # Dropdown described above
-    fill_in "End Day",   with: @event_group.end_date.day
-    fill_in "End Month", with: @event_group.end_date.month
-    fill_in "End Year",  with: 2025  # This is updated!
+    fill_in "End day",   with: @event_group.end_date.day
+    fill_in "End month", with: @event_group.end_date.month
+    fill_in "End year",  with: 2025  # This is updated!
     fill_in "± days (End)", with: @event_group.start_date_err - 1  # This is updated!
-    click_on "Update EventGroup"
+    click_on @button_text[:update]
 
     assert_text "EventGroup was successfully updated"
     page.find("section#section_event_group_show_footer a").click  # "Back to Index"

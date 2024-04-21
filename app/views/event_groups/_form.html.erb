@@ -9,6 +9,8 @@
 <h2>Unique parameters</h2>
 <% end %>
 
+<div id="form_main">
+<% if false %> <%# ################################################# %>
 <%= form_with(model: event_group, local: true) do |form| %>
 
   <% if event_group.new_record? %>
@@ -38,7 +40,7 @@
     <%= form.number_field :order_no, class: 'order_no' %>
   </div>
 
-  <% da = event_group.start_date %></td>
+  <% da = event_group.start_date %>
   <div class="field">
     <%= form.label :start_year, "Start Year" %>
     <%= form.number_field :start_year, value: (da ? da.year : nil), placeholder: 'e.g., 1999', class: 'input_year' %>
@@ -59,7 +61,7 @@
     <%= form.number_field :start_date_err, value: event_group.start_date_err, class: 'input_year' %>
   </div>
 
-  <% db = event_group.start_date %></td>
+  <% db = event_group.start_date %>
   <div class="field">
     <%= form.label :end_year, "End Year" %>
     <%= form.number_field :end_year, value: (db ? db.year : nil), placeholder: 'e.g., 1999', class: 'input_year' %>
@@ -93,6 +95,34 @@
   </div>
 <% end %>
 
+<% else %> <%# ################################################# %>
+
+<%= simple_form_for event_group do |f| %>
+  <% if event_group.new_record? %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: event_group, trans: Translation.new, disable_is_orig: false, is_simple_form: true} %>
+  <% end %>
+
+  <%= render partial: "layouts/select_country_prefecture_place", locals: {form: f, model: event_group, is_simple_form: true} %>
+
+  <%= f.input :order_no, label: "#-th in Series", placeholder: "#-th in Series" %>
+ <% %w(start end).each do |st_end| %>
+  <% dat = event_group.send(st_end+"_date") %>
+  <%= f.input st_end+"_year",  placeholder: 'e.g., 1999',            as: :integer, input_html: {value: (dat ? dat.year : nil)} %>
+  <%= f.input st_end+"_month", placeholder: 'e.g., 12',   in: 0..12, as: :integer, input_html: {value: (dat ? dat.month : nil)} %>
+  <%= f.input st_end+"_day",   placeholder: 'e.g., 1999', in: 0..31, as: :integer, input_html: {value: (dat ? dat.day : nil)} %>
+  <%= f.input st_end+"_date_err", label: "± days ("+st_end.capitalize+")" %>
+ <% end %>
+
+  <%= f.input :note %>
+
+  <%= f.submit %>
+  <div class="actions">
+  <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  </div>
+<% end %>
+
+<% end %> <%# ################################################# %>
+
 <%#= render partial: 'layouts/link_merge_destroy', locals: {model: event_group, is_to_edit: !event_group.new_record? } %>
 
 <% if !event_group.new_record? %>
@@ -111,4 +141,5 @@
   <% end %>
 <% end %>
 
+</div>
 

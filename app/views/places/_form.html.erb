@@ -14,13 +14,13 @@
     <%= render partial: 'layouts/partial_new_translations', locals: {form: form, model: place, trans: Translation.new, disable_is_orig: true} %>
   <% end %>
 
-  <div class="field" id="div_select_country">
+  <div class="field" id="<%= ApplicationController::HTML_KEYS[:ids][:div_sel_country] %>">
     <%= form.label 'prefecture.country_id', t('Country')%>
     <% country_id = (@country ? @country.id : (place.country ? place.country.id : Country.unknown.id) ) %>
     <%= form.collection_select 'prefecture.country_id', @countries, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, {include_blank: false,  selected: country_id } %> <%# If no translation exists and left empty (instead of "NONE"), it would violate the HTML spec: Element “option” without attribute “label” must not be empty. %>
   </div>
 
-  <div class="field" id="div_select_prefecture">
+  <div class="field" id="<%= ApplicationController::HTML_KEYS[:ids][:div_sel_prefecture] %>">
     <%= form.label :prefecture_id, t('Prefecture') %>
     <%= form.grouped_collection_select 'prefecture', @countries, :prefectures, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true)}, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, {include_blank: true, selected: (place.prefecture ? place.prefecture_id : false)} %>
   </div>

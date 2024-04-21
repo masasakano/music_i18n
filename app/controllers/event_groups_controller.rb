@@ -38,7 +38,7 @@ class EventGroupsController < ApplicationController
     @event_group = EventGroup.new(@hsmain)
     authorize! __method__, @event_group
 
-    add_unsaved_trans_to_model(@event_group, @hstra) # defined in application_controller.rb
+    add_unsaved_trans_to_model(@event_group, @hstra, force_is_orig_true: false) # defined in application_controller.rb
     def_respond_to_format(@event_group)              # defined in application_controller.rb
   end
 

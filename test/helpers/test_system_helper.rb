@@ -11,6 +11,13 @@ class ActiveSupport::TestCase
   CSSQUERIES[:error_div][:whole] = 'div#error_explanation'
   CSSQUERIES[:error_div][:title] = CSSQUERIES[:error_div][:whole]+" h2"
   CSSQUERIES[:trans_new] ||= {}.with_indifferent_access
+  CSSQUERIES[:hidden] ||= {}.with_indifferent_access
+  CSSQUERIES[:hidden][:prefecture] = 'form div#'+ApplicationController::HTML_KEYS[:ids][:div_sel_prefecture]+' div.form-group'
+  CSSQUERIES[:hidden][:place]      = 'form div#'+ApplicationController::HTML_KEYS[:ids][:div_sel_place]+     ' div.form-group'
+    # e.g., assert_selector ActiveSupport::TestCase::CSSQUERIES[:hidden][:place], visible: :hidden
+    #       assert_no_selector ActiveSupport::TestCase::CSSQUERIES[:hidden][:place] # display: none
+    #       assert_equal 0, page.find_all(:xpath, "//form//div[@id='#{ApplicationController::HTML_KEYS[:ids][:div_sel_place]}']//div[contains(@class, 'form-group')][contains(@style,'display: none;')]").size
+    # c.f., in the old-school FORM:  assert_selector 'form div#div_select_place', visible: :hidden
 
   # Note: for the old-style Rails form: page.find('form div.field.radio_langcode')
   %w(langcode is_orig).each do |es|
