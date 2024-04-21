@@ -78,7 +78,7 @@ SimpleForm.setup do |config|
   # vertical input for radio buttons and check boxes
   config.wrappers :vertical_collection, item_wrapper_class: 'form-check', item_label_class: 'form-check-label', tag: 'fieldset', class: 'form-group', error_class: 'form-group-invalid', valid_class: 'form-group-valid' do |b|
     b.use :html5
-    b.optional :readonly
+    # b.optional :readonly # I commented out to circumvent a simple_form bug in the generated HTML; see https://stackoverflow.com/a/44444747/3577922 and https://github.com/heartcombo/simple_form/issues/1257
     b.wrapper :legend_tag, tag: 'legend', class: 'col-form-label pt-0' do |ba|
       ba.use :label_text
     end
