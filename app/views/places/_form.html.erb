@@ -6,8 +6,12 @@
 <hr>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: place, add_buttons: true} %>
 <hr>
+
+<h2>Unique parameters</h2>
 <% end %>
 
+<div id="form_main">
+<% if false %> <%# ################################################# %>
 <%= form_with(model: place, local: true) do |form| %>
 
   <% if place.new_record? %>
@@ -43,6 +47,43 @@
   <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
   </div>
 <% end %>
+<% else %> <%# ################################################# %>
+
+<%= simple_form_for place do |f| %>
+  <% if place.new_record? %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: place, trans: Translation.new, disable_is_orig: false, is_simple_form: true} %>
+  <% end %>
+
+  <div class="field" id="<%= ApplicationController::HTML_KEYS[:ids][:div_sel_country] %>"> <%# div_select_country %>
+   <%= f.input 'prefecture.country_id', label: t('Country') do %>
+    <% country_id = (@country ? @country.id : (place.country ? place.country.id : Country.unknown.id) ) %>
+    <%= f.collection_select 'prefecture.country_id', @countries, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, {include_blank: false,  selected: country_id } %> <%# If no translation exists and left empty (instead of "NONE"), it would violate the HTML spec: Element “option” without attribute “label” must not be empty. %>
+   <% end %>
+  </div>
+
+  <div class="field" id="<%= ApplicationController::HTML_KEYS[:ids][:div_sel_prefecture] %>">
+   <%= f.input :prefecture_id, label: t('Prefecture') do %>
+    <%= f.grouped_collection_select 'prefecture', @countries, :prefectures, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true)}, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, {include_blank: true, selected: (place.prefecture ? place.prefecture_id : false)} %>
+   <% end %>
+  </div>
+
+  <%= f.input :note %>
+
+  <%# The following is used if a Prefecture is specified in GET for new. %>
+  <% %i(prev_model_name prev_model_id).each do |metho| %>
+    <% if place.send(metho) %>
+      <%= hidden_field(:place, metho) %>
+    <% end %>
+  <% end %>
+
+  <%= f.submit %>
+  <div class="actions">
+  <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  </div>
+<% end %>
+
+<% end %> <%# ################################################# %>
+
 <% if ! place.new_record? && can?(:destroy, place) %>
   <div class="actions-destroy" style="margin-right: 1em;">
    <div class="actions" style="text-align: right">

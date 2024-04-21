@@ -1,4 +1,5 @@
 require "application_system_test_case"
+require "helpers/test_system_helper"
 
 class PlacesTest < ApplicationSystemTestCase
   setup do
@@ -36,7 +37,8 @@ class PlacesTest < ApplicationSystemTestCase
 
     # label_str = I18n.t('layouts.new_translations.model_language', model: 'Place')
     # find_field(label_str).choose('English')  ## Does not work b/c the label is just a <span>!
-    page.find('form div.field.radio_langcode').choose('English')
+    page_find_sys(:trans_new, :langcode_radio, model: Place).choose('English')  # defined in helpers/test_system_helper
+    #page.find('form div.field.radio_langcode').choose('English')
 
     assert     find_field('Country')
     assert_selector    'form div#div_select_country', text: "Country"

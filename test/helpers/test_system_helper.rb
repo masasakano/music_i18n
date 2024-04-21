@@ -28,7 +28,8 @@ class ActiveSupport::TestCase
 
   # @example
   #   assert_match(/ prohibited /, page_find_sys(:error_div, :title).text)  # defined in helpers/test_system_helper
-  #   page_find_sys(:trans_new, :langcode_radio, model: ChannelType).choose('English')  # defined in helpers/test_system_helper
+  #   page_find_sys(:trans_new, :langcode_radio, model: MyModel).choose('English')  # defined in helpers/test_system_helper
+  #    Old forms: page.find('form div.field.radio_langcode').choose('English')
   #   page_find_sys(:trans_new, :is_orig_radio, model: @channel_type).choose('No')  # defined in helpers/test_system_helper
   # 
   def page_find_sys(key1, key2=nil, model: nil)
@@ -40,12 +41,12 @@ class ActiveSupport::TestCase
 
   # Gets a field value, like a radio-button etc.
   #
-  # @example Get a value for radio-buttons for "is_orig" in Page "new" for ChannelType
-  #   assert_equal "on",   page_get_val(:trans_new, :is_orig, model: "channel_type"), "is_orig should be Undefined, but..."  # defined in helpers/test_system_helper
-  #   assert_equal "true", page_get_val(:trans_new, :is_orig, model: "channel_type"), "is_orig should be true, but..."
+  # @example Get a value for radio-buttons for "is_orig" in Page "new" for MyModel (e.g., ChannelType)
+  #   assert_equal "on",   page_get_val(:trans_new, :is_orig, model: "my_model"), "is_orig should be Undefined, but..."  # defined in helpers/test_system_helper
+  #   assert_equal "true", page_get_val(:trans_new, :is_orig, model:  my_model),  "is_orig should be true, but..."
   #
   # @example
-  #   assert_equal "en",   page_get_val(:trans_new, :langcode, model: ChannelType), "Language should be set English, but..."
+  #   assert_equal "en",   page_get_val(:trans_new, :langcode, model: MyModel), "Language should be set English, but..."
   #
   def page_get_val(key1, key2=nil, model: nil)
     if "trans_new" == key1.to_s
