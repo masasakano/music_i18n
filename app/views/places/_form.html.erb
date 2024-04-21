@@ -51,7 +51,7 @@
 
 <%= simple_form_for place do |f| %>
   <% if place.new_record? %>
-    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: place, trans: Translation.new, disable_is_orig: false, is_simple_form: true} %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: place, trans: Translation.new, disable_is_orig: true, is_simple_form: true} %>
   <% end %>
 
   <div class="field" id="<%= ApplicationController::HTML_KEYS[:ids][:div_sel_country] %>"> <%# div_select_country %>
@@ -83,6 +83,7 @@
 <% end %>
 
 <% end %> <%# ################################################# %>
+</div>
 
 <% if ! place.new_record? && can?(:destroy, place) %>
   <div class="actions-destroy" style="margin-right: 1em;">

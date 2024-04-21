@@ -233,7 +233,7 @@
 #   b.select_translations_regex(  :titles, /^Aus/i, where: ['id <> ?', abc.id])
 #     # => [Translation, [Translation, ...]]  (searching only those related to self; in practice, useful only when self has multiple translations in a language)
 #   b.titles(langcode: nil, lang_fallback_option: :never, str_fallback: nil)
-#   b.title_or_alt(prefer_alt: false, langcode: nil lang_fallback_option: :either, str_fallback: "")
+#   b.title_or_alt(prefer_alt: false, langcode: nil, lang_fallback_option: :either, str_fallback: "")
 #   b.title(langcode: nil, lang_fallback: false, str_fallback: nil) # See below re fallback
 #   b.ruby
 #   b.romaji

@@ -13,7 +13,7 @@
   <%= form.input :langcode, label: t('layouts.new_translations.model_language', model: modelname), hint: t('layouts.new_translations.translations_can_be_added_later'), required: true, collection: collec, as: :radio_buttons, checked: ((tras=model.best_translation).present? ? tras.langcode : 'ja'), input_html: { value: '' } %>
 
   <% if !disable_is_orig %>
-    <%= form.input :best_translation_is_orig, label: 'これが原語か?', hint: "(注: 「冷蔵庫」などの一般名詞は「定義不能(Undefined)」)", required: true, as: :radio_buttons, collection: [['Yes', true], ['No', false], ['Undefined', nil]], checked: nil %> <%# nil means it inherits the previous input after a failed attempt %>
+    <%= form.input :best_translation_is_orig, label: 'これが原語か?', hint: "(注: 「冷蔵庫」などの一般名詞は「定義不能(Undefined)」)", required: true, as: :radio_buttons, collection: [['Yes', true], ['No', false], ['Undefined', ApplicationController::FORM_TERNARY_UNDEFINED_VALUE]], checked: ApplicationController.returned_str_from_form(model.best_translation_is_orig.nil? ? ApplicationController::FORM_TERNARY_UNDEFINED_VALUE : model.best_translation_is_orig) %> <%# nil means it inherits the previous input after a failed attempt %> <%# nil is replaced with a default value because setting this nil results in an error: The value of the “for” attribute of the “label” element must be the ID of a non-hidden form control; in short, ID="artist_best_translation_is_orig" and label-FOR="artist_best_translation_is_orig_" %>
   <% end %>
   <% titlabel=t('layouts.new_translations.title', model: modelname) %>
   <%= form.input :title,  label: titlabel, placeholder: (('Artist'==model.class.name) ? ' ('+t('layouts.new_translations.note_re_group')+') ' : "")+'例: The '+(('Artist'==model.class.name) ? 'Beatles' : 'Ocean'), required: true, as: as_txt %>

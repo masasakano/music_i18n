@@ -19,6 +19,24 @@ class ApplicationController < ActionController::Base
 
   around_action :switch_locale
 
+  # When a nil is passed as a value in a *collection* to simple_form selections,
+  # which is often the case for a ternary selection,
+  # there is a bug in simpl_form, which the W3C validator reports as
+  #   > The value of the "for" attribute of the "label" element must be the ID of a non-hidden form control.
+  # (Issue #1840 at https://github.com/heartcombo/simple_form/issues/1840)
+  #
+  # As a workaround, let us define a special value corresponding to nil for the form;
+  # basically, this value is passed to the form instead of nil.
+  # See, for an actual example, /app/views/layouts/_partial_new_translations.html.erb
+  #
+  # See also {ApplicationController.returned_str_from_form}.
+  #
+  # @example to get the string value for this
+  #    ApplicationController.returned_str_from_form(ApplicationController::FORM_TERNARY_UNDEFINED_VALUE)
+  #      # => "999999"
+  #
+  FORM_TERNARY_UNDEFINED_VALUE = 999999
+
   # (FORM) HTML IDs and CLASSes
   HTML_KEYS = {
     ids: {
@@ -90,6 +108,22 @@ class ApplicationController < ActionController::Base
     render :file => Rails.root.to_s+"/public/400.html", :status => :bad_request # 400
     #raise ActiveRecord::RecordNotFound  # 404
     # head 400  # => blank page (Rails 5)
+  end
+
+  # Expected returned String from the form interface
+  #
+  # For String, this is obvious. For true/false, the string is returned.
+  # For nil, "on" is returned.
+  #
+  # @param val [Object] given value from Rails to Form
+  # @return [String]
+  def self.returned_str_from_form(val)
+    case val
+    when nil
+      "ok"
+    else  # including true, false
+      val.to_s
+    end
   end
 
   # Retrieve an translation from params and add it to the model (for Place, Artist, etc)
@@ -413,11 +447,11 @@ class ApplicationController < ActionController::Base
     false_int_str = ((true_int == 0) ? '1' : '0')
     val = val.downcase if val.respond_to?(:downcase)
     case val
-    when 'true', true, true_int.to_s
+    when 'true', true, true_int.to_s, self.class.returned_str_from_form(true)
       true
-    when 'false', false, false_int_str
+    when 'false', false, false_int_str, self.class.returned_str_from_form(true)
       false
-    when 'nil', 'on', nil, ""  # if nil is specified in radio_button in html.erb, 'on' is returned.
+    when 'nil', 'on', nil, "", self.class.returned_str_from_form(FORM_TERNARY_UNDEFINED_VALUE)  # if nil is specified in radio_button in html.erb, 'on' is returned.
       nil
     else
       raise "ERROR(#{__method__}): unexpected input (#{val.inspect})"

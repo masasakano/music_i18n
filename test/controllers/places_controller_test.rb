@@ -52,6 +52,8 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
     get new_place_url
     assert_response :success
   
+    assert_equal 0, css_select(css_query(:trans_new, :is_orig_radio, model: Place)).size, "is_orig selection should not be provided, but..."  # defined in helpers/test_system_helper
+
     ## Specify a Prefecture
     country_id    = @place.prefecture.country_id
     prefecture_id = @place.prefecture_id

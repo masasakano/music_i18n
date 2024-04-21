@@ -16,12 +16,13 @@ class ChannelTypesControllerTest < ActionDispatch::IntegrationTest
     @translator      = users(:user_translator)            # Translator can read but not create/delete.
     @moderator_ja    = users(:user_moderator_general_ja)  # 
     @editor_ja       = users(:user_editor_general_ja)     # Same as Harami-editor
-    #@validator = W3CValidators::NuValidator.new
+    @validator = W3CValidators::NuValidator.new
+    str_form_for_nil = ApplicationController.returned_str_from_form(ApplicationController::FORM_TERNARY_UNDEFINED_VALUE)
     @hs_create_lang = {
       "langcode"=>"ja",
       "title"=>"The Tｅst7",
       "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
-      "best_translation_is_orig"=>"on",  # radio-button returns "on" for nil
+      "best_translation_is_orig"=>str_form_for_nil,  # radio-button returns "on" for nil
     }
   end
 
@@ -74,6 +75,11 @@ class ChannelTypesControllerTest < ActionDispatch::IntegrationTest
     assert Ability.new(@moderator_harami).can?(:new, ChannelType)
     get new_channel_type_url
     assert_response :success
+
+    if !is_env_set_positive?('SKIP_W3C_VALIDATE') && !ApplicationController::FORM_TERNARY_UNDEFINED_VALUE
+      warn "WARNING(#{__FILE__}:#{caller_locations(1, 1).first.lineno}) This w3c_validate may generate the following error, originating in a simple_form bug (Issue #1840 at https://github.com/heartcombo/simple_form/issues/1840) : The value of the “for” attribute of the “label” element must be the ID of a non-hidden form control."
+    end
+    w3c_validate "Prefecture new"  # defined in test_helper.rb (see for debugging help)
   end
 
   test "should create channel_type" do

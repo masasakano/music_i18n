@@ -51,6 +51,7 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     sign_in @moderator
     get new_event_group_url
     assert_response :success
+    w3c_validate "EventGroup new"  # defined in test_helper.rb (see for debugging help)
   end
 
   test "should create event_group" do

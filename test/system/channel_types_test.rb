@@ -59,6 +59,13 @@ class ChannelTypesTest < ApplicationSystemTestCase
     click_on "New ChannelType"
 
     page_find_sys(:trans_new, :langcode_radio, model: ChannelType).choose('English')  # defined in helpers/test_system_helper
+    str_form_for_nil = ApplicationController.returned_str_from_form(ApplicationController::FORM_TERNARY_UNDEFINED_VALUE)
+    assert_equal str_form_for_nil, page_get_val(:trans_new, :is_orig, model: ChannelType), "is_orig should be Undefined in Default, but..."
+    page_find_sys(:trans_new, :is_orig_radio, model: @channel_type).choose('Yes')
+    assert_equal ApplicationController.returned_str_from_form(true), page_get_val(:trans_new, :is_orig, model: ChannelType), "is_orig should be true, but..."
+    page_find_sys(:trans_new, :is_orig_radio, model: @channel_type).choose('Undefined')
+    assert_equal str_form_for_nil, page_get_val(:trans_new, :is_orig, model: ChannelType), "is_orig should become Undefined, but..."
+
     page.find('input#channel_type_title').fill_in with: 'Tekitoh'  # This is unique!
 
     assert_operator 500.5, :<, find_field('Weight').value.to_f  # Default in case of no models apart from unknown is 500
@@ -75,9 +82,9 @@ class ChannelTypesTest < ApplicationSystemTestCase
     # Language-related values in the form are also preserved.
     # Here, page_get_val() defined in helpers/test_system_helper
     assert_equal "en",   page_get_val(:trans_new, :langcode, model: ChannelType), "Language should have been set English in the previous attempt, but..."
-    assert_equal "on",   page_get_val(:trans_new, :is_orig, model: ChannelType), "is_orig should be Undefined, but..."
+    assert_equal str_form_for_nil, page_get_val(:trans_new, :is_orig, model: ChannelType), "is_orig should be Undefined, but..."
     page_find_sys(:trans_new, :is_orig_radio, model: @channel_type).choose('No')  # defined in helpers/test_system_helper
-    assert_equal "false",page_get_val(:trans_new, :is_orig, model: ChannelType), "is_orig should be false, but..."
+    assert_equal ApplicationController.returned_str_from_form(false), page_get_val(:trans_new, :is_orig, model: ChannelType), "is_orig should be false, but..."
     page.find('input#channel_type_title').fill_in with: 'Tekitoh'  # This is unique!
     fill_in "Mname", with: "teki_toh"
     click_on @button_text[:create]

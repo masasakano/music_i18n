@@ -153,6 +153,10 @@ table.datagrid {
   }
 }
 
+table.table_string td {
+    max-width: 30em;
+}
+
 form {
     margin-left: 1rem;
     padding-bottom: 1rem;

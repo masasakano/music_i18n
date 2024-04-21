@@ -12,6 +12,7 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
     @moderator = roles(:general_ja_moderator).users.first  # (General) Moderator can manage some of them.
     @editor = roles(:general_ja_editor).users.first  # (General) Editor can manage some of them.
     @syshelper = users(:user_syshelper) #User.roots.first   # an admin can manage.
+    @validator = W3CValidators::NuValidator.new
   end
 
   teardown do
@@ -53,6 +54,10 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
     get new_prefecture_url
     assert_response :success
   
+    w3c_validate "Prefecture new"  # defined in test_helper.rb (see for debugging help)
+
+    assert_equal 0, css_select(css_query(:trans_new, :is_orig_radio, model: Prefecture)).size, "is_orig selection should not be provided, but..."  # defined in helpers/test_system_helper
+
     ## Specify a Country
     country_id = @prefecture.country_id
     get new_prefecture_url(country_id: country_id) # e.g., new?country_id=5

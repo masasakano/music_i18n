@@ -4,6 +4,7 @@ require_relative '../config/environment'
 require 'rails/test_help'
 require 'w3c_validators'
 require "helpers/controller_helper"
+require "helpers/test_system_helper"
 
 Dir[Rails.root.to_s+"/db/seeds/*.rb"].uniq.each do |seed|
   next if /^seeds_/ =~ File.basename(seed)  # Skipping reading the old-style Modules
