@@ -490,10 +490,11 @@ class TranslationTest < ActiveSupport::TestCase
 
     tra = Translation.new(langcode: "kr", title: "xyz", alt_title: "xyz")
     ary = []
-    assert_not tra.valid_main_params?(kwd_messages: ary)
+    assert_not tra.valid_main_params?(kwd_messages: ary)  # kwd_messages => [:base, "message"] etc in general; in this case, :alt_title (to indicate :alt_title was wrong.
     assert_equal 1, ary.size, "ary=#{ary.inspect}"
-    assert_equal %i(title), ary.map{|ea| ea[0]}
-    assert_match(/\bmust differ\b/i, ary.find{|ea| :title == ea[0]}[1])
+    kwd = :alt_title
+    assert_equal [kwd], ary.map{|ea| ea[0]}
+    assert_match(/\bmust differ\b/i, ary.find{|ea| kwd == ea[0]}[1])
   end
 
   test "of_title" do

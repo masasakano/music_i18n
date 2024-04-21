@@ -584,10 +584,14 @@ module ModuleCommon
   #
   # kanji/漢字 <https://easyramble.com/japanese-regex-with-ruby-oniguruma.html>
   #
+  # @see https://qiita.com/Takayuki_Nakano/items/8d38beaddb84b488d683
+  # @see https://github.com/k-takata/Onigmo/blob/master/doc/UnicodeProps.txt
+  #
   # @param instr [String]
-  # @return [MatchData, NilClass] if non-nil, returned[0] is the matched String.
+  # @return [MatchData, NilClass] if non-nil, returned[0] is the matched String. returned[0][0] is the first character.
   def contained_kanjis(instr)
-    /([一-龠々])+/.match instr
+    #/([一-龠々])+/.match instr
+    /(\p{Han}+)/.match instr
   end
 
   # Returns Hash of {abc: 1, def: 1, ghi: 3, jkl: 4}

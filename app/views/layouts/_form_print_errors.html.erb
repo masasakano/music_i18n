@@ -1,8 +1,8 @@
 <% if model.errors.any? %>
   <% modelname ||= model.class.name %>  <%# Model name to display %>
   <div id="error_explanation" class="<%= ApplicationController::FLASH_CSS_CLASSES[:alert] %>">
-    <h2><%= errors = pluralize_i18n(model.errors.count, :error, default: "error")
-            I18n.t("layouts.error_in_save", errors: errors, model: modelname, default: "%{errors} prohibited this %{model} from being saved") %>:</h2>
+    <h2><%= errors_txt = pluralize_i18n(model.errors.count, :error, default: "error")
+            I18n.t("layouts.error_in_save", errors: errors_txt, model: modelname, default: "%{errors_txt} prohibited this %{model} from being saved") %>:</h2>
 
     <ul id="error_explanation_list">
       <% model.errors.full_messages.each do |message| %>

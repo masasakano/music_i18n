@@ -81,7 +81,7 @@ class Translation < ApplicationRecord
     #
     # This calls a callback: +validate_translation_callback+
     #
-    # title and alt_title should be unique in general withing a Parent class and a language
+    # title and alt_title should be unique in general within a Parent class and a language
     # in many cases.  So this validates the situation.
     #
     # In reality, it is fairly complex.  For example, in Music, famously there are two songs, "M".
@@ -506,11 +506,16 @@ class Translation < ApplicationRecord
   # like zenkaku-hankaku conversions
   def self.preprocessed_new(*args, **opts)
     ar, newopts = preprocessed_6params_both(*args, **opts)
-#print "DEBUG:p1:object_id=";p [newopts[:title].object_id, newopts[:title].preprocessed?]
-    ret = self.new(*ar, **newopts)
-#print "DEBUG:p2:object_id=";p [ret.title.object_id, ret.title.preprocessed?]
+    begin
+      ret = self.new(*ar, **newopts)
+    rescue ActiveModel::UnknownAttributeError => err
+      logger.error "ERROR(#{File.basename __FILE__}:#{__method__}): ActiveModel::UnknownAttributeError for [args, opts]=#{[args, opts].inspect}. Message: #{err.to_s}"
+      raise
+    rescue => err
+      logger.error "ERROR(#{File.basename __FILE__}:#{__method__}): contact the code developer: #{err.inspect}"
+      raise
+    end
     ret
-    #self.new(*ar, **newopts)
   end
 
   # Return true if the main argument parameters for {#create} is valid.
@@ -539,15 +544,12 @@ class Translation < ApplicationRecord
     end
 
     # return false if !(%i(title alt_title).any?{|i| hs_param.keys.include?(i)})
-    msg =
-      if !(%i(title alt_title).any?{|i| hs_param.keys.include?(i)})
-        I18n.t("models.translation.specify_either_title_or_alt", default: 'At least either Title or AltTitle must exist.')
-      elsif hs_param[:title] == hs_param[:alt_title]
-        I18n.t("models.translation.identical_title_alt", default:"Title and AltTitle must differ.")
-      end
-    if msg
-      kwd_messages.push [:title, msg]
+    if !(%i(title alt_title).any?{|i| hs_param.keys.include?(i)})
+      kwd_messages.push [:title, I18n.t("models.translation.specify_either_title_or_alt", default: 'At least either Title or AltTitle must exist.')]
+    elsif hs_param[:title] == hs_param[:alt_title]
+      kwd_messages.push [:alt_title, I18n.t("models.translation.identical_title_alt", default:"Title and AltTitle must differ.")]
     end
+
     (messages_orig_size == kwd_messages.size)  # return true or false
   end
 
@@ -1904,7 +1906,7 @@ class Translation < ApplicationRecord
     def asian_char_validator
       fmt = 'contains %s characters (%s)'
       if langcode && !(%w(ja ko zh).include?(langcode.to_s))
-        mat = self.class.contained_asian_chars(title)
+        mat = self.class.contained_asian_chars(title)  # defined in app/models/module_common.rb
         errors.add :title,     sprintf(fmt, 'Asian', mat[0]) if mat
         mat = self.class.contained_asian_chars(alt_title)
         errors.add :alt_title, sprintf(fmt, 'Asian', mat[0]) if mat

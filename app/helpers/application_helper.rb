@@ -362,6 +362,12 @@ module ApplicationHelper
     end
   end
 
+  # @param model [Class, ApplicationRecord, String, Symbol]
+  # @return [String] singular name of the model
+  def get_modelname(model)
+    (model.respond_to?(:name) ? model.name : (model.class.respond_to?(:name) ? model.class.name : model.to_s)).underscore.singularize
+  end
+
   # to suppress warning, mainly that in Ruby-2.7.0:
   #   "Passing the keyword argument as the last hash parameter is deprecated"
   #

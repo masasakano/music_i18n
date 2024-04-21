@@ -72,7 +72,7 @@ en:
     submit_button: 'Submit'
     Show: "Detail"
     new_translations:
-      model_language: "(Original) Language of Title of %{model}"
+      model_language: "Language of this %{model}'s Title"
       translations_can_be_added_later: "translations can be added later"
       title: "%{model} Full Title"
       note_re_group: "or Group name"

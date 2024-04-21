@@ -1,6 +1,30 @@
 
   <% modelname = model.class.name %>
 
+<% as_txt = ((defined?(as_text) && as_text) ? :text : :string)  %>
+
+<% if defined?(is_simple_form) && is_simple_form  %>
+  <%# form.error_notification %>  <%# Rails scaffolding default, but the errors should be printed above this in this app. %>
+  <%# form.error_notification message: form.object.errors[:base].to_sentence if form.object.errors[:base].present? %>  <%# here printing :base errors only %>
+
+  <% collec = BaseWithTranslation::AVAILABLE_LOCALES.map do |es|
+       [BaseWithTranslation::LANGUAGE_TITLES[I18n.locale][es.to_s], es]
+     end %>
+  <%= form.input :langcode, label: t('layouts.new_translations.model_language', model: modelname), hint: t('layouts.new_translations.translations_can_be_added_later'), required: true, collection: collec, as: :radio_buttons, checked: ((tras=model.best_translation).present? ? tras.langcode : 'ja'), input_html: { value: '' } %>
+
+  <% if !disable_is_orig %>
+    <%= form.input :best_translation_is_orig, label: 'これが原語か?', hint: "(注: 「冷蔵庫」などの一般名詞は「定義不能(Undefined)」)", required: true, as: :radio_buttons, collection: [['Yes', true], ['No', false], ['Undefined', nil]], checked: nil %> <%# nil means it inherits the previous input after a failed attempt %>
+  <% end %>
+  <% titlabel=t('layouts.new_translations.title', model: modelname) %>
+  <%= form.input :title,  label: titlabel, placeholder: (('Artist'==model.class.name) ? ' ('+t('layouts.new_translations.note_re_group')+') ' : "")+'例: The '+(('Artist'==model.class.name) ? 'Beatles' : 'Ocean'), required: true, as: as_txt %>
+  <%= form.input :ruby,   label: titlabel+' - '+t('ruby'), placeholder: '(全角片仮名で)例: '+(('Artist'==model.class.name) ? 'ザ・ビートルズ' : 'ジ・オーシャン'), as: as_txt %>
+  <%= form.input :romaji, label: titlabel+' - '+t('romaji'), hint: '(ヘボン式推奨: chi, shi等)', placeholder: '(ヘボン式推奨: chi, shi等)', as: as_txt %>
+  <% altlabels=["", "_hint"].map{|i| t('layouts.new_translations.alt_title'+i, model: modelname)} %>
+  <%= form.input :alt_title,  label: altlabels[0], title: altlabels[1], placeholder: '(通称・別名) 例: ユーミン', as: as_txt %>
+  <%= form.input :alt_ruby,   label: altlabels[0]+' - '+t('ruby'),   placeholder: '(全角片仮名で)',  as: as_txt %>
+  <%= form.input :alt_romaji, label: altlabels[0]+' - '+t('romaji'), placeholder: '(ヘボン式推奨: chi, shi等)', as: as_txt %>
+
+<% else %>
   <div class="field radio_langcode">
     <span><%= t('layouts.new_translations.model_language', model: modelname) %> (<%= t('layouts.new_translations.translations_can_be_added_later') %>)</span><br>
     <% BaseWithTranslation::AVAILABLE_LOCALES.each do |es| %>
@@ -50,6 +74,7 @@
     <%= form.label :alt_romaji, altlabels[0]+' - '+t('romaji'), title: altlabels[1] %>
     <%= form.text_field :alt_romaji, value: trans.alt_romaji, placeholder: '(ヘボン式推奨: chi, shi等)' %>
   </div>
+<% end %>
 
 <% if false %>
     <% # name="translation[langcode]" => params(:translation => {})

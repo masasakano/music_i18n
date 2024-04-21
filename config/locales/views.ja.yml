@@ -68,11 +68,11 @@ ja:
     destroy_button: '削除実行'
     editing_guideline: '編集方針'
     error_in_save: "%{errors} が出て%{model}の保存に失敗しました"
-    reset_button: "リセット (やり直し)"
+    reset_button: "リセット (初期状態に戻す)"
     submit_button: '送信'
     Show: "詳細"
     new_translations:
-      model_language: "%{model}名の(原語の)言語"
+      model_language: "この%{model}名の言語"
       translations_can_be_added_later: "翻訳は後で追加"
       title: "%{model}正式名称"
       note_re_group: "グループの場合はグループ名"

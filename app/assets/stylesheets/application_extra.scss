@@ -73,6 +73,15 @@ ul.ui-autocomplete {
   }
 }
 
+h1 {
+  min-margin-left: 0;
+  margin-left: 0.3em;
+}
+
+div#error_explanation {
+  margin-left: 2em;
+}
+
 .font-smaller {
   font-size: smaller;
 }

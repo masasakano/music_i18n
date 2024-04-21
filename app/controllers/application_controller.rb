@@ -34,9 +34,16 @@ class ApplicationController < ActionController::Base
     notice:  "notice alert alert-info",
   }.with_indifferent_access
 
+  tmp_params_trans_keys = [:langcode, :title, :ruby, :romaji, :alt_title, :alt_ruby, :alt_romaji]
+
+  PARAMS_NAMES = {
+    trans: tmp_params_trans_keys.map{|i| [i, i]}.to_h.with_indifferent_access
+  }.with_indifferent_access
+  PARAMS_NAMES[:trans][:is_orig] = :best_translation_is_orig
+
   # Common params keys for {Translation}.
   # @note +:is_orig+ is not included!
-  PARAMS_TRANS_KEYS = [:langcode, :title, :ruby, :romaji, :alt_title, :alt_ruby, :alt_romaji]  # :is_orig
+  PARAMS_TRANS_KEYS = PARAMS_NAMES[:trans].values # [:langcode, :title, :ruby, :romaji, :alt_title, :alt_ruby, :alt_romaji, :best_translation_is_orig]  # NOT including :is_orig
 
   # Common params keys for {Place}.
   PARAMS_PLACE_KEYS = %i(place.prefecture_id.country_id place.prefecture_id place place_id)  # :place is used (place_id seems redundant(?) but the most basic UI may require it and so we leave it)
@@ -101,8 +108,13 @@ class ApplicationController < ActionController::Base
       raise
     end
     hsprm_tra[:translatable_type] = mdl_name
-    hsprm_tra[:is_orig] = true if force_is_orig_true || !hsprm_tra.has_key?("is_orig")
-    tra = Translation.preprocessed_new(**hsprm_tra)
+    hsprm_tra[:is_orig] =
+      if force_is_orig_true || !hsprm_tra.has_key?("best_translation_is_orig")
+        true
+      else
+        convert_param_bool hsprm_tra[:best_translation_is_orig]
+      end
+    tra = Translation.preprocessed_new(**(hsprm_tra.slice(*Translation.attribute_names)))
 
     mdl.unsaved_translations << tra
   end
@@ -376,17 +388,29 @@ class ApplicationController < ActionController::Base
     keys.each do |ek|
       raise ArgumentError, "(#{File.basename __FILE__}) key=#{ek} not exists. Contact the code developer." if !reths.has_key? ek
       reths[ek] =
-        case reths[ek]
-        when 'true', true
-          true
-        when 'false', false
-          false
-        when 'nil', 'on', nil  # if nil is specified in radio_button in html.erb, 'on' is returned.
-          nil
-        else
-        end
+        convert_param_bool(reths[ek])
     end
     reths
+  end
+
+  # Core routine of {#$convert_params_bool}
+  #
+  # @param val [String, NilClass]
+  # @param true_int: [Integer] Integer meaning true
+  # @return [Boolean, Nilclass]
+  def convert_param_bool(val, true_int: 0)
+    false_int_str = ((true_int == 0) ? '1' : '0')
+    val = val.downcase if val.respond_to?(:downcase)
+    case val
+    when 'true', true, true_int.to_s
+      true
+    when 'false', false, false_int_str
+      false
+    when 'nil', 'on', nil, ""  # if nil is specified in radio_button in html.erb, 'on' is returned.
+      nil
+    else
+      raise "ERROR(#{__method__}): unexpected input (#{val.inspect})"
+    end
   end
 
   # Returns a Hash#compact-ed Hash with keys of Symbols and String#strip-ped values

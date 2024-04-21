@@ -21,6 +21,7 @@ class ChannelTypesControllerTest < ActionDispatch::IntegrationTest
       "langcode"=>"ja",
       "title"=>"The Tｅst7",
       "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
+      "best_translation_is_orig"=>"on",  # radio-button returns "on" for nil
     }
   end
 
@@ -93,24 +94,26 @@ class ChannelTypesControllerTest < ActionDispatch::IntegrationTest
     sign_in @moderator_ja
     #sign_in @syshelper
 
-    run_test_create_null(ChannelType) # defined in /test/helpers/controller_helper.rb
+    run_test_create_null(ChannelType, extra_colnames: [:langcode]) # defined in /test/helpers/controller_helper.rb
 
     assert_difference("ChannelType.count") do
       post channel_types_url, params: { channel_type: hs2pass }
+      assert_response :redirect
     end
     new_mdl1 = ChannelType.order(:created_at).last
     assert_redirected_to channel_type_url(new_mdl1)
     assert_equal "foo", new_mdl1.mname
 
     assert_no_difference("ChannelType.count") do
-      post channel_types_url, params: { channel_type: { note: "", mname: "foobaa", weight: ChannelType.new_unique_max_weight } }  # Error b/c/ no Translation is given.
+      assert_raises(ActionView::Template::Error){
+        post channel_types_url, params: { channel_type: { note: "", mname: "foobaa", weight: ChannelType.new_unique_max_weight } }  # Error b/c/ no Translation is given.
+      }
     end
-    assert_response :unprocessable_entity
 
     assert_no_difference("ChannelType.count") do
       post channel_types_url, params: { channel_type: hs2pass.merge({mname: "foobaa", weight: ChannelType.new_unique_max_weight}) }
+      assert_response :unprocessable_entity
     end
-    assert_response :unprocessable_entity
 
     assert_difference("ChannelType.count") do
       post channel_types_url, params: { channel_type: hs2pass.merge({mname: "foobaa", weight: ChannelType.new_unique_max_weight, title: new_mdl1.title+"_abc"}) }

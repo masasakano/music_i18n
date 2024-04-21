@@ -1,5 +1,6 @@
 # coding: utf-8
 require "application_system_test_case"
+require "helpers/test_system_helper"
 
 class ChannelTypesTest < ApplicationSystemTestCase
   setup do
@@ -22,6 +23,10 @@ class ChannelTypesTest < ApplicationSystemTestCase
 
   setup do
     @channel_type = channel_types(:one)
+    @button_text = {
+      create: "Create Channel type",
+      update: "Update Channel type",
+    }
   end
 
   test "visiting the index" do
@@ -53,32 +58,33 @@ class ChannelTypesTest < ApplicationSystemTestCase
     n_records_be4 = page.all("div#channel_types table tr").size - 1
     click_on "New ChannelType"
 
-    page.find('form div.field.radio_langcode').choose('English')
+    page_find_sys(:trans_new, :langcode_radio, model: ChannelType).choose('English')  # defined in helpers/test_system_helper
     page.find('input#channel_type_title').fill_in with: 'Tekitoh'  # This is unique!
 
     assert_operator 500.5, :<, find_field('Weight').value.to_f  # Default in case of no models apart from unknown is 500
-    #expect(page).to have_xpath("//input[@value='John']")
-    #expect(find("input#somefield", :visible => false).value).to eq 'John'
-    #page.should have_field("some_field_name", placeholder: "Some Placeholder")
-    #expect(page).to have_field("field_name") { |field| field.value.present?}
-    #have_field("name", with: "your name")
 
-    fill_in "mname", with: @channel_type.mname
+    fill_in "Mname", with: @channel_type.mname
     fill_in "Note", with: @channel_type.note
-    click_on "Create ChannelType"
+    click_on @button_text[:create]
 
-    assert_match(/ prohibited /, page.find('div#error_explanation h2').text)
+    assert_match(/ prohibited /, page_find_sys(:error_div, :title).text)
     #assert_text "prohibited"
     assert_text "Mname has already been taken"
     assert_selector "h1", text: newchan
 
-    ############ Language-related values in the form have disappered after failed save!
-    page.find('form div.field.radio_langcode').choose('English')
+    # Language-related values in the form are also preserved.
+    # Here, page_get_val() defined in helpers/test_system_helper
+    assert_equal "en",   page_get_val(:trans_new, :langcode, model: ChannelType), "Language should have been set English in the previous attempt, but..."
+    assert_equal "on",   page_get_val(:trans_new, :is_orig, model: ChannelType), "is_orig should be Undefined, but..."
+    page_find_sys(:trans_new, :is_orig_radio, model: @channel_type).choose('No')  # defined in helpers/test_system_helper
+    assert_equal "false",page_get_val(:trans_new, :is_orig, model: ChannelType), "is_orig should be false, but..."
     page.find('input#channel_type_title').fill_in with: 'Tekitoh'  # This is unique!
-    fill_in "mname", with: "tekitoh"
-    click_on "Create ChannelType"
+    fill_in "Mname", with: "teki_toh"
+    click_on @button_text[:create]
 
     assert_text "ChannelType was successfully created"
+    assert_equal 'Tekitoh',  page.find('table#all_registered_translations_channel_type tr.lc_en td.trans_title').text
+    assert_equal "teki_toh", page.find_all(:xpath, "//dt[@title='machine name']/following-sibling::dd")[0].text
     click_on "Back"
 
     n_records = page.all("div#channel_types table tr").size - 1
@@ -91,11 +97,13 @@ class ChannelTypesTest < ApplicationSystemTestCase
 
     assert_selector "h1", text: "Editing Channel Type"
 
-    fill_in "mname", with: "something_else"
-
-    click_on "Update ChannelType"
+    fill_in "Mname", with: "something_else"
+    click_on @button_text[:update]
 
     assert_text "ChannelType was successfully updated"
+
+    # Confirming the record has been updated.
+    assert_equal "something_else", page.find_all(:xpath, "//dt[@title='machine name']/following-sibling::dd")[0].text
     click_on "Back"
 
     ## test "should destroy ChannelType" do
@@ -103,7 +111,9 @@ class ChannelTypesTest < ApplicationSystemTestCase
     assert_match(/\AChannel\s*Type:/, page.find("h1").text)
     assert_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']"
 
-    click_on "Destroy", match: :first
+    accept_alert do
+      click_on "Destroy", match: :first
+    end
 
     assert_text "ChannelType was successfully destroyed"
 

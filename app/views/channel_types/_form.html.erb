@@ -10,6 +10,7 @@
 <% end %>
 
 <div id="form_main">
+<% if false %> <%# ################################################# %>
 <%= form_with(model: channel_type, local: true) do |form| %>
 
   <% if channel_type.new_record? %>
@@ -38,5 +39,22 @@
   <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
   </div>
 <% end %>
+<% else %> <%# ################################################# %>
+
+<%= simple_form_for channel_type do |f| %>
+  <% if channel_type.new_record? %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: channel_type, trans: Translation.new, disable_is_orig: false, is_simple_form: true} %>
+  <% end %>
+  <%= f.input :mname, placeholder: "Unique name (内部使用用途の空白を含まない短い名前)" %>
+  <%= f.input :weight, hint: 'Positive real number. Lower weight means a higher priority.' %>
+  <%= f.input :note %>
+
+  <%= f.submit %>
+  <div class="actions">
+  <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  </div>
+<% end %>
+
+<% end %> <%# ################################################# %>
 </div>
 

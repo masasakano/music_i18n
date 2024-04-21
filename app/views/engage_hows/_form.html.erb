@@ -17,21 +17,20 @@
      %>
       <% collec = [] %>
       <% BaseWithTranslation::AVAILABLE_LOCALES.each do |es| %>
-        <% lc = engage_how.orig_langcode; form.radio_button('langcode', es, checked: (es.to_s == (lc || 'ja'))) %>
         <% collec.push [BaseWithTranslation::LANGUAGE_TITLES[:ja][es.to_s], es] %>
       <% end %>
-    <%= form.input :langcode, label: 'EngageHow名の言語 (本来の言語で。翻訳は後で追加)', required: true, collection: collec, prompt: "Please select", selected: 'ja' %>
-    <%= form.input :is_orig, label: 'これが原語か? (注: 「冷蔵庫」などの一般名詞はUndefined)', required: true, as: :radio_buttons, collection: [['Yes', '1'], ['No', '0'], ['Undefined', '-99']], checked: '-99' %>
+    <%= form.input :langcode, label: 'EngageHow名の言語 (本来の言語で。翻訳は後で追加)', hint: "(本来の言語で。翻訳は後で追加)", required: true, collection: collec, prompt: "Please select", selected: 'ja' %>
+    <%= form.input :is_orig, label: 'これが原語か?', hint: '(注: 「冷蔵庫」などの一般名詞はUndefined)', required: true, as: :radio_buttons, collection: [['Yes', '1'], ['No', '0'], ['Undefined', '-99']], checked: '-99' %>
     <%= form.input :title, label: 'EngageHow正式名称', value: engage_how.title, required: true, as: :string %>
-    <%= form.input :ruby, label: 'EngageHow正式名称フリガナ (片仮名で)', value: engage_how.ruby, as: :string %>
+    <%= form.input :ruby, label: 'EngageHow正式名称フリガナ (片仮名)', value: engage_how.ruby, as: :string %>
     <%= form.input :romaji, label: 'EngageHow正式名称ローマ字', value: engage_how.romaji, as: :string %>
     <%= form.input :alt_title, label: 'EngageHow正式略称・別名', value: engage_how.alt_title, as: :string %>
-    <%= form.input :alt_ruby, label: 'EngageHow正式略称・別名名称 (片仮名で)', value: engage_how.alt_ruby, as: :string %>
-    <%= form.input :alt_romaji, label: 'EngageHow正式略称・別名', value: engage_how.alt_romaji, as: :string %>
+    <%= form.input :alt_ruby, label: 'EngageHow正式略称・別名フリガナ (片仮名)', value: engage_how.alt_ruby, as: :string %>
+    <%= form.input :alt_romaji, label: 'EngageHow正式略称・別名ローマ字', value: engage_how.alt_romaji, as: :string %>
     <%= simple_fields_for engage_how do |n| %>
     <% # name="engage_how[note]" => params(:engage_how => {})
      %>
-      <%= n.input :weight, placeholder: title_weight, label_html: {title: title_weight}, input_html: {title: title_weight} %>
+      <%= n.input :weight, placeholder: title_weight, hint: title_weight, label_html: {title: title_weight}, input_html: {title: title_weight} %>
       <%= n.input :note %>
     <% end %>
     <%= form.submit "Create EngageHow" %>

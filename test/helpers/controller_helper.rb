@@ -10,7 +10,9 @@ class ActiveSupport::TestCase
   #   run_test_create_null(ChannelOwner)
   #
   # @param klass [ApplicationRecord, String] of the model to test like ChannelOwner
-  def run_test_create_null(klass, col_name: :note)
+  # @param col_name: [Symbol, String] an exsiting column
+  # @param extra_colnames: [Array<Symbol, String>] form parameters that are mandatory, e.g., :langcode
+  def run_test_create_null(klass, col_name: :note, extra_colnames: [])
     bind = caller_locations(1,1)[0]  # Ruby 2.0+
     caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
     # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
@@ -18,12 +20,15 @@ class ActiveSupport::TestCase
     camel_str = (klass.respond_to?(:name) ? klass.name : klass.to_s.camelize)
     snake_str = camel_str.underscore
 
-    if klass.respond_to?(:name) && !klass.column_names.include?(col_name.to_s)
+    if extra_colnames.blank? && klass.respond_to?(:name) && !klass.column_names.include?(col_name.to_s)
       raise "FATAL: Specified class #{klass.name} does not have the column '#{col_name}' strangely. Contact the code developper (#{__FILE__}:#{__method__} called from #{caller_info})."
     end
 
+    hs_in = extra_colnames.map{|i| [i, ""]}.to_h.with_indifferent_access
+    hs_in[col_name] = "" if col_name
     assert_no_difference(camel_str+".count") do
-      post send(snake_str.pluralize+"_url"), params: { snake_str => { col_name => "" }}
+      post send(snake_str.pluralize+"_url"), params: { snake_str => hs_in}
+      #post send(snake_str.pluralize+"_url"), params: { snake_str => { col_name => "" }}
       # assert flash[:alert].present?, "Did not fail with Flash-alert for a null create."  # flash does not work well for some reason in this helper thought it would work if directly included in a Controller test.
     end
     assert_response :unprocessable_entity

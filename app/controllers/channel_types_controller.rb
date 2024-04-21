@@ -34,7 +34,7 @@ class ChannelTypesController < ApplicationController
     @channel_type = ChannelType.new(@hsmain)
     authorize! __method__, @channel_type
 
-    add_unsaved_trans_to_model(@channel_type, @hstra) # defined in application_controller.rb
+    add_unsaved_trans_to_model(@channel_type, @hstra, force_is_orig_true: false) # defined in application_controller.rb
     def_respond_to_format(@channel_type)              # defined in application_controller.rb
   end
 

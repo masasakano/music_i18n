@@ -556,7 +556,14 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_equal "tra-1-alt",  mdlt.alt_title
     assert                     mdlt.title.blank?
     assert_nil                 mdl0.best_translation_is_orig
-    assert                     mdlt.best_translation_is_orig
+    assert_equal true,         mdlt.best_translation_is_orig
+    assert_empty               mdl0.best_translations
+    assert_empty               mdlt.best_translations
+    assert_nil                 mdl0.best_translation
+    assert_equal "en",         mdlt.best_translation.langcode
+    tra1.is_orig=false
+    assert_equal "ja",         mdlt.best_translation.langcode
+    assert_equal false,        mdlt.best_translation_is_orig
   end # test "methods with unsaved_translations" do
  
   test "of_title" do

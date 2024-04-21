@@ -310,6 +310,28 @@
 # Note that a {Translation} is required to have *EITHER* +title+ or +alt_title+,
 # meaning it may not have +title+ but +alt_title+ only.
 #
+# === unsaved_translations
+#
+# This class implements {#unsaved_translations} which basically retains
+# for a new record ({#new_record?} == true) an Array of unsaved {Translation}-s
+# with +translatable_type+ (and id) being nil.  It should be an empty Array
+# for the existing record, though.
+#
+# Selected translation-related methods are available for a new record regardless of
+# whether significant {#unsaved_translations} are defined or not, including
+#
+# * {#title}
+# * {#alt_title}  (but NOT {#title_or_alt})
+# * {#alt_ruby}
+# * {#orig_translation}
+# * {#orig_langcode}
+# * {#best_translation}  (but NOT {#best_translations})
+# * {#translations_with_lang}
+# * {#best_translation_is_orig}
+#
+# They are of particular use with simple_form becaseu simple_form requires a model
+# to have a method for the best use, such as, highlighting the exact forms with erroneous inputs.
+#
 # === Troubleshooting
 #
 # * If a link-String like "ja/artists/123" is visible on the website, this may be because of

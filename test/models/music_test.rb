@@ -388,7 +388,8 @@ EOF
       mus = reths[:musics][3]
       assert  mus.errors.present?
       assert_match(/Asian char/,  mus.errors.full_messages_for(:title)[0]) # "Translation(1st): contains Asian characters (英語であるべき)"
-      assert_nil   mus.title(langcode: 'en')
+      #assert_nil   mus.title(langcode: 'en'), "mus = #{mus.inspect}"
+      assert_equal "En Title contains 日本語", mus.title(langcode: 'en') # unsaved_translations
 
       assert_equal 2, reths[:musics].compact.size
       assert_equal 3, reths[:artists].compact.size
