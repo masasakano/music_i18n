@@ -3,6 +3,9 @@
 
 <% if ! channel_type.new_record? %>
 <hr>
+<% end %>
+<section id="sec_primary">
+<% if ! channel_type.new_record? %>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: channel_type, add_buttons: true} %>
 <hr>
 
@@ -42,6 +45,7 @@
 <% else %> <%# ################################################# %>
 
 <%= simple_form_for channel_type do |f| %>
+ <section id="sec_primary_input">
   <% if channel_type.new_record? %>
     <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: channel_type, trans: Translation.new, disable_is_orig: false, is_simple_form: true} %>
   <% end %>
@@ -53,8 +57,10 @@
   <div class="actions">
   <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
   </div>
+ </section> <!-- section id="sec_primary_input" -->
 <% end %>
 
 <% end %> <%# ################################################# %>
-</div>
+</div> <!-- div id="form_main" -->
 
+</section> <!-- section id="sec_primary" -->

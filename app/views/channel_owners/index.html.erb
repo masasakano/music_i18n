@@ -1,0 +1,58 @@
+<h1>Channel Owners</h1>
+
+<div id="channel_owners">
+<table id="channel_owners_index_table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Name (ja)</th>
+      <th>Name (en)</th>
+      <th title="Whether this is basically identical to an Channel_owner.">themselves?</th>
+      <th title="Note in this DB">Note</th>
+      <% if can? :update, Users::EditRolesController %>
+        <th>Created</th>
+        <th>Updated</th>
+      <% end %>
+      <% if can? :update, ChannelOwner %>
+        <th colspan="3"></th>
+      <% else %>
+        <th></th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @channel_owners.each do |model| %>
+      <tr>
+        <td><%= model.id %></td>
+        <% btr = model.best_translations %>
+        <% %w(ja en).each do |lc| %> <%# no "fr" so far %>
+        <td><%= %w(title alt_title).map{|i| tra=btr[lc]; s=(tra && h(tra.send(i))); s.blank? ? '&mdash;' : s}.join(' | ').html_safe %></td>
+        <% end %>
+
+        <td><%= model.themselves %></td>
+        <td><%= h(model.note) %></td>
+      <% if can? :update, Users::EditRolesController %>
+        <th><%= ur = model.create_user; link_to(ur.display_name, ur) if ur %></th>
+        <th><%= ur = model.update_user; link_to(ur.display_name, ur) if ur %></th>
+      <% end %>
+
+        <td><%= link_to "Show", model %></td>
+        <% if can? :update, model  %>
+          <td><%= link_to 'Edit', edit_channel_owner_path(model) %></td>
+        <% end %>
+        <% if can? :destroy, model %>
+          <td><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+</div>
+
+<br>
+
+<% if can? :create, ChannelOwner %>
+  <%= button_to 'New ChannelOwner', new_channel_owner_path, method: :get %>
+<% end %>
+

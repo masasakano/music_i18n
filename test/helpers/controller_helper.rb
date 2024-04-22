@@ -32,12 +32,25 @@ class ActiveSupport::TestCase
       # assert flash[:alert].present?, "Did not fail with Flash-alert for a null create."  # flash does not work well for some reason in this helper thought it would work if directly included in a Controller test.
     end
     assert_response :unprocessable_entity
-    assert_includes css_select('.alert-danger h2').text, "prohibited"
+    assert_includes css_select('.alert-danger h2').text, "prohibited", "Called from #{caller_info}"
     css1 = ".alert-danger #error_explanation_list"
     assert_select css1, {count: 1}, "Text: #{css_select(css1).to_s}"
     assert_operator 1, :<=, css_select(css1+" li").size, "At least one error should be reported."
     # print "DEBUG(#{__FILE__}):response: "; puts @response.body
   end
 
+  # Test a title in show for BaseWithTranslation
+  #
+  # @example
+  #   assert_base_with_translation_show_h2  # defined in /test/helpers/controller_helper.rb
+  def assert_base_with_translation_show_h2
+    bind = caller_locations(1,1)[0]  # Ruby 2.0+
+    caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
+    # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
+
+    css = css_select('h2')[0]
+    assert css, "(#{__method__}) called from #{caller_info}): H2 does not seem to exist."
+    assert_equal "All registered translated names", (css && css.text), "(#{__method__}) called from #{caller_info}): No Translation table seems to exist."
+  end
 end
 

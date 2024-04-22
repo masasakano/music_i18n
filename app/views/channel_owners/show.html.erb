@@ -1,0 +1,22 @@
+
+<h1>Channel Owner: <%= @channel_owner.title_or_alt(langcode: I18n.locale) %></h1>
+
+<hr>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @channel_owner} %>
+<hr>
+
+<%= render @channel_owner %>
+
+<div>
+    <% if can? :update, @channel_owner %>
+  <%= link_to "Edit this Channel Owner", edit_channel_owner_path(@channel_owner) %> |
+    <% end %>
+
+    <% if can?(:destroy, @channel_owner) %>
+  <%= button_to "Destroy", @channel_owner, method: :delete, data: { confirm: t('are_you_sure') } %>
+    <% end %>
+</div>
+
+<hr>
+  <%= link_to t("layouts.back_to_index"), channel_owners_path %>
+

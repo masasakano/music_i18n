@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_04_18_081729) do
+ActiveRecord::Schema[7.0].define(version: 2024_04_22_100730) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -78,6 +78,18 @@ ActiveRecord::Schema[7.0].define(version: 2024_04_18_081729) do
     t.check_constraint "birth_day IS NULL OR birth_day >= 1 AND birth_day <= 31", name: "check_artists_on_birth_day"
     t.check_constraint "birth_month IS NULL OR birth_month >= 1 AND birth_month <= 12", name: "check_artists_on_birth_month"
     t.check_constraint "birth_year IS NULL OR birth_year > 0", name: "check_artists_on_birth_year"
+  end
+
+  create_table "channel_owners", comment: "Owner of a Channel", force: :cascade do |t|
+    t.boolean "themselves", default: false, comment: "true if identical to an Artist"
+    t.bigint "create_user_id"
+    t.bigint "update_user_id"
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["create_user_id"], name: "index_channel_owners_on_create_user_id"
+    t.index ["themselves"], name: "index_channel_owners_on_themselves"
+    t.index ["update_user_id"], name: "index_channel_owners_on_update_user_id"
   end
 
   create_table "channel_platforms", comment: "Platform like Youtube", force: :cascade do |t|
@@ -556,6 +568,8 @@ ActiveRecord::Schema[7.0].define(version: 2024_04_18_081729) do
   add_foreign_key "artist_music_plays", "play_roles", on_delete: :cascade
   add_foreign_key "artists", "places"
   add_foreign_key "artists", "sexes"
+  add_foreign_key "channel_owners", "users", column: "create_user_id", on_delete: :nullify
+  add_foreign_key "channel_owners", "users", column: "update_user_id", on_delete: :nullify
   add_foreign_key "channel_platforms", "users", column: "create_user_id", on_delete: :nullify
   add_foreign_key "channel_platforms", "users", column: "update_user_id", on_delete: :nullify
   add_foreign_key "channel_types", "users", column: "create_user_id", on_delete: :nullify

@@ -24,6 +24,10 @@ module Seeds::ModelSummary
       ja: "アーティスト",
       en: "Artist",
     },
+    ChannelOwner: {
+      ja: "チャンネルのオーナー(例: Abex(企業)、Queen(=アーティスト本人))",
+      en: "Channel Owner (e.g., Abex (Corporate), Queen (Artist))",
+    },
     ChannelPlatform: {
       ja: "チャンネルのサイト(例: Youtube、Tiktok)",
       en: "Channel Platform (e.g., Youtube, Tiktok)",

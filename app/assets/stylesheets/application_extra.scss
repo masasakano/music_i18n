@@ -318,16 +318,15 @@ div.actions-destroy-align-r {
   background: var(--form-bg-color-focus);
 }
 input.form-control  {
-  background: var(--form-bg-color);
+    min-width: 10em;
+  background: var(--form-bg-color);  /* without this, the fields would be transparent */
+  border-width: var(--form-border-width);
 }
 input.form-control:focus  {
   background: var(--form-bg-color-focus);
   border-width: var(--form-border-width-focus);
 }
-input.form-control {
-    min-width: 10em;
-  border-width: var(--form-border-width);
-}
+
 input.form-control.is-invalid {
   border-width: var(--form-border-width-focus);
 }
@@ -337,6 +336,9 @@ input[type="number"].form-control, input[type="color"].form-control, input[type=
 input[type="text"].form-control.string {
     max-width: 50em;
 }
+input[type="radio"].form-check-input {
+}
+
 /*
  <div class="form-group float required engage_how_weight form-group-valid">
    <label title="Lower means a higher priority." class="float required" for="engage_how_weight">Weight <abbr title="必須">*</abbr></label>
@@ -381,11 +383,13 @@ fieldset.form-group.radio_buttons legend {
   opacity: 1.0;
   padding-bottom: 0.1em;
 }
-fieldset.form-group.radio_buttons div.form-check input[type="radio"] {
-  /* to prevent the first radio-button displayed at the right edge in the previous line. I don't know why this is necessary... */
-  display: inline-block;
+fieldset.form-group.radio_buttons div.form-check input[type="radio"] {  /* div.form-check:  not present?? */
+  /* to prevent the first radio-button (only for langcode!!) displayed at the right edge in the previous line. I don't know why this is necessary... => "item_wrapper_class: 'inline'" solved this and so these are now commented out... */
+/*  display: inline-block;
   margin-left: 0;
-  margin-right: 0.5em;
+  margin-right: 0.5em; */
+}
+fieldset.form-group.radio_buttons div.inline input[type="radio"].form-check-input {
 }
 /*
 <fieldset class="form-group radio_buttons required translation_is_orig">

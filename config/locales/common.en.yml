@@ -38,6 +38,7 @@ en:
   Country: Country
   detail: Detail
   display_name: Display Name
+  eg_independent: "e.g., "
   Event: Event
   Events: Events
   EventGroup: Event Group

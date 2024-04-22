@@ -1,0 +1,39 @@
+
+<%= render partial: 'layouts/form_print_errors', locals: {model: channel_owner} %>
+
+<% if ! channel_owner.new_record? %>
+<hr>
+<% end %>
+<section id="sec_primary">
+<% if ! channel_owner.new_record? %>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: channel_owner, add_buttons: true} %>
+<hr>
+
+<h2>Unique parameters</h2>
+<% end %>
+
+<div id="form_main">
+
+<%= simple_form_for(@channel_owner) do |f| %>
+ <section id="sec_primary_input">
+  <% if channel_owner.new_record? %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: channel_owner, trans: Translation.new, disable_is_orig: true, is_simple_form: true} %>
+  <% end %>
+  <div class="form-inputs">
+    <%= f.input :artist_name, label: 'Artist name', placeholder: '('+t('eg_independent')+'"欅坂46", "The Beatles", "Beatles, The")', required: false %>
+    <%= f.input :themselves, label: "Themselves?", hint: 'Whether this is basically identical to an Artist.' %>
+    <%= f.input :note %>
+  </div>
+
+  <div class="form-actions">
+    <%= f.button :submit %>
+  </div>
+  <div class="actions">
+  <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  </div>
+ </section> <!-- section id="sec_primary_input" -->
+<% end %>
+
+</div> <!-- div id="form_main" -->
+
+</section> <!-- section id="sec_primary" -->

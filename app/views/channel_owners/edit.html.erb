@@ -1,0 +1,10 @@
+<h1>Editing Channel Owner</h1>
+
+<%= render "form", channel_owner: @channel_owner %>
+
+<br>
+
+<div>
+  <%= link_to "Show this channel owner", @channel_owner %> |
+  <%= link_to t("layouts.back_to_index"), channel_owners_path %>
+</div>

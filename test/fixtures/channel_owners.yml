@@ -1,0 +1,46 @@
+# == Schema Information
+#
+# Table name: channel_owners
+#
+#  id                                         :bigint           not null, primary key
+#  note                                       :text
+#  themselves(true if identical to an Artist) :boolean          default(FALSE)
+#  created_at                                 :datetime         not null
+#  updated_at                                 :datetime         not null
+#  create_user_id                             :bigint
+#  update_user_id                             :bigint
+#
+# Indexes
+#
+#  index_channel_owners_on_create_user_id  (create_user_id)
+#  index_channel_owners_on_themselves      (themselves)
+#  index_channel_owners_on_update_user_id  (update_user_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (create_user_id => users.id) ON DELETE => nullify
+#  fk_rails_...  (update_user_id => users.id) ON DELETE => nullify
+#
+
+<% Seeds::ChannelOwners::SEED_DATA.each_pair do |ekey, edata| %>
+channel_owner_<%= ekey %>:
+  themselves: <%= edata[:themselves] %>
+  create_user: user_syshelper
+  update_user: user_syshelper
+  note: ChannelOwner<%= ekey.to_s.camelize %>
+<% end %>
+
+channel_owner_saki_kubota:
+  themselves: true
+  create_user: user_editor_general_ja
+  update_user: user_editor_general_ja
+  note: ChannelOwnerSakiKubota
+  # Artist: artist_saki_kubota
+
+one:
+  themselves: false
+  note: MyText
+
+two:
+  themselves: false
+  note: MyText
