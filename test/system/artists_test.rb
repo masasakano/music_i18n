@@ -3,10 +3,22 @@ require "application_system_test_case"
 
 class ArtistsTest < ApplicationSystemTestCase
   setup do
-    #@artist = artists(:one)
+    @artist = artists(:artist_ai)
     @moderator = users(:user_moderator_general_ja)
+    @moderator_all   = users(:user_moderator_all)         # General-JA Moderator can manage.
+    @editor_harami   = users(:user_editor)                # Harami Editor can manage.
+    @moderator_harami= users(:user_moderator)             # Harami Moderator can manage.
+    @translator      = users(:user_translator)            # Translator can read but not create/delete.
+    @trans_moderator = users(:user_moderator_translation) # Translator cannot create/delete but edit (maybe!).
+    @editor_ja       = users(:user_editor_general_ja)     # Same as Harami-editor
+    @moderator_gen   = users(:user_moderator_general_ja)
     @css_swithcer_ja = 'div#language_switcher_top span.lang_switcher_ja'
     @css_swithcer_en = 'div#language_switcher_top span.lang_switcher_en'
+    @h1_title = "Artists"
+    @button_text = {
+      create: "Create Artist",
+      update: "Update Artist",
+    }
   end
 
   # called after every single test
@@ -14,6 +26,8 @@ class ArtistsTest < ApplicationSystemTestCase
     # when controller is using cache it may be a good idea to reset it afterwards
     Rails.cache.clear
   end
+  # add to here
+  # ---------------------------------------------
 
   def _get_stats
     stats_str = page.find('.pagenation_stats').text
@@ -148,6 +162,55 @@ class ArtistsTest < ApplicationSystemTestCase
     page.find('table thead tr th.title_en div.order a.desc').click  # entry with NULL may come first, but at least this operation should succeed
     first_non_null_en_text = page.all("table.artists_grid tbody tr td.title_en").find{|i| !i.text.strip.empty?}.text.strip
     refute_equal title_newest_en, first_non_null_en_text
+  end
+
+  test "should create/update artist" do
+    new_model_title = "New Artist"
+    visit new_artist_url  # direct jump -> fail
+    refute_text new_model_title
+    assert_text "You need to sign in or sign up"
+
+    #visit new_user_session_path  # already on this page.
+    fill_in "Email", with: @moderator_gen.email
+    fill_in "Password", with: '123456'  # from users.yml
+    click_on "Log in"
+
+    visit artists_url
+    n_records_be4 = page.all("div#artists table tr").size - 1
+    click_on "New Artist"
+
+    assert_selector "h1", text: new_model_title
+    assert_no_selector css_query(:trans_new, :is_orig_radio, model: Prefecture)  # "is_orig selection should not be provided, but..."  # css_query defined in helpers/test_system_helper
+    page_find_sys(:trans_new, :langcode_radio, model: Artist).choose('English')  # defined in helpers/test_system_helper
+
+    page.find('input#artist_title').fill_in with: @artist.title  # This is a duplicate.
+
+    choose("female")
+    fill_in "Birth year", with: 1998
+
+    click_on @button_text[:create]
+
+    # assert_match(/ prohibited /, page_find_sys(:error_div, :title).text)  # Artist with the same name is OK unless other information is identical.
+
+    assert_text "successfully created."
+
+    assert_selector "h1", text: "Artist: "+@artist.title
+
+    page.find("a.link-edit").click
+    assert_selector "h1", text: "Editing Artist: "+@artist.title
+
+    assert_equal Sex["female"].id, page.find_field(name: "artist[sex_id]", checked: true)["value"].to_i
+    assert_equal "1998", page.find_field(name: 'artist[birth_year]').value
+
+    assert_no_selector('input#artist_title')
+
+    page.find_field(name: 'artist[birth_day]').fill_in with: 31
+    click_on @button_text[:update]
+
+    assert_text "successfully updated."
+
+    assert_match(/(\b1998\b.+\b31\b|\b31\b.+\b1998\b)/, page.find_all(:xpath, "//section[@id='sec_primary_show']//dt[@title='Birthday']/following-sibling::dd")[0].text)
+
   end
 end
 

@@ -15,7 +15,7 @@ class ActiveSupport::TestCase
   CSSQUERIES[:hidden][:place]      = 'form div#'+ApplicationController::HTML_KEYS[:ids][:div_sel_place]+     ' div.form-group'
     # e.g., assert_selector ActiveSupport::TestCase::CSSQUERIES[:hidden][:place], visible: :hidden
     #       assert_no_selector ActiveSupport::TestCase::CSSQUERIES[:hidden][:place] # display: none
-    #       assert_equal 0, page.find_all(:xpath, "//form//div[@id='#{ApplicationController::HTML_KEYS[:ids][:div_sel_place]}']//div[contains(@class, 'form-group')][contains(@style,'display: none;')]").size
+    #       assert_empty page.find_all(:xpath, "//form//div[@id='#{ApplicationController::HTML_KEYS[:ids][:div_sel_place]}']//div[contains(@class, 'form-group')][contains(@style,'display: none;')]")
     # c.f., in the old-school FORM:  assert_selector 'form div#div_select_place', visible: :hidden
 
   CSSQUERIES[:trans_new] ||= {}.with_indifferent_access
@@ -26,9 +26,11 @@ class ActiveSupport::TestCase
     #       'form fieldset.%s_best_translation_is_orig'
   end
 
-  # @example
-  #   assert_equal 0, css_select(css_query(:trans_new, :is_orig_radio, model: Model)).size  # defined in helpers/test_system_helper
+  # @example Controller test
+  #   assert_empty css_select(css_query(:trans_new, :is_orig_radio, model: Model))  # defined in helpers/test_system_helper
   # 
+  # @example System test
+  #   assert_no_selector css_query(:trans_new, :is_orig_radio, model: Prefecture)
   def css_query(key1, key2=nil, model: nil)
     query = CSSQUERIES[key1]
     query = query[key2] if key2.present?

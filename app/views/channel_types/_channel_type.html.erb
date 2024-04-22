@@ -1,8 +1,8 @@
 <div id="<%= dom_id channel_type %>">
 <dl>
   <% if can? :update, channel_type %>
-    <dt>ID (ChannelType)</dt>
-    <dd> <%= @channel_type.id %></dd>
+    <dt>ID (<%= channel_type.class.name %>)</dt>
+    <dd> <%= channel_type.id %></dd>
   <% end %>
   <dt title="machine name"><strong>mname:</strong></dt>
     <dd><%= channel_type.mname %></dd>

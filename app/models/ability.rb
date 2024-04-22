@@ -79,7 +79,6 @@ class Ability
       can :create, Musics::UploadMusicCsvsController
       can :read, [Country, EngageHow, Genre, EventGroup, Event, EventItem]
       can :show,  Translation
-      can [:new, :create], Translation # only for 'ja' and if they can edit translatable; judged in other places
       can :ud,     Translation, create_user_id: user.id #, update_user_id: user.id
       can :ud,     Translation, is_orig: true # can update/delete the original_language one.
       can :ud,     Translation, langcode: 'ja' # can update/delete if JA
@@ -115,11 +114,9 @@ class Ability
 
     ## Translation editor only
     if user.qualified_as?(:editor, rc_trans)
-      can [:read, :create], Translation
-      cannot(:create, Translation){|trans| !trans.translatable_type || !trans.translatable_type.constantize || Ability.new(user).cannot?(:create, trans.translatable_type.constantize) }
-      can(:new, Translation){|trans| !trans.translatable_type || !trans.translatable_type.constantize || Ability.new(user).can?(:create, trans.translatable_type.constantize) }
-      #cannot(:ud,  Translation){|trans| !trans.translatable || Ability.new(user).cannot?(:update, trans.translatable)}  # I think "can?" statement does not work.
-      can(:ud, Translation){|trans| trans.create_user == user }  # Can edit/update/delete their own Translations.
+      can :read, Translation
+      #cannot(:create, Translation){|trans| !trans.translatable_type || !trans.translatable_type.constantize || Ability.new(user).cannot?(:create, trans.translatable_type.constantize) }
+      #can(:new, Translation){|trans| !trans.translatable_type || !trans.translatable_type.constantize || Ability.new(user).can?(:create, trans.translatable_type.constantize) }
       can :manage, [Musics::MergesController, Artists::MergesController]
       can(:update, Translations::DemotesController)
     end

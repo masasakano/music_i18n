@@ -7,7 +7,7 @@
 <% if can_update_in_show %>
   <div class="link-edit-destroy">
     <% path_edit = send("edit_"+model_underscore+"_path", model) %> <%# e.g., edit_music_path(model) %>
-    <%= link_to 'Edit', path_edit %> <%# -------- show only %>
+    <%= link_to 'Edit', path_edit, class: "link-edit" %> <%# -------- show only %>
 <% end %>
 <% klass_merge = model_name.pluralize.constantize::MergesController %>
 <% if !model.new_record? && (can?(:destroy, model) || can?(:update, model) && can?(:update, klass_merge)) %>

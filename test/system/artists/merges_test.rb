@@ -44,7 +44,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
     #assert_selector "h1", text: "New Artist"
     # label_str = I18n.t('layouts.new_translations.model_language', model: 'Music')
     # find_field(label_str).choose('English')  ## Does not work b/c the label is just a <span>!
-    page.find('form div.field.radio_langcode').choose('日本語')
+    page_find_sys(:trans_new, :langcode_radio, model: Artist).choose('日本語')  # defined in helpers/test_system_helper
     #choose '日本語'  # a name, id, or label text matching
     fill_in "artist_title", with: "久保田" # <input placeholder="例: The Beatles" type="text" name="artist[title]" id="artist_title">
     ## Alternative
@@ -57,9 +57,10 @@ class Artists::MergesTest < ApplicationSystemTestCase
               # 'html body div#body_main form div.field.radio_langcode input#artist_langcode_ja'
     # assert     find_field('国名')  # Capybara::ElementNotFound: Unable to find option "日本国" within #<Capybara::Node::Element tag="select" path="/HTML/BODY[1]/DIV[5]/FORM[1]/DIV[8]/SELECT[1]">
     assert_selector    'form div#div_select_country'
-    assert_selector    'form div#div_select_prefecture', visible: :hidden
-    assert_no_selector 'form div#div_select_prefecture'  # display: none
-    assert_no_selector 'form div#div_select_place'       # display: none
+    assert_selector    'form div#div_select_prefecture'
+    #assert_no_selector 'form div#div_select_prefecture'  # display: none  # used to be the case!
+    #assert_no_selector    'form div#div_select_place'
+    assert_selector ActiveSupport::TestCase::CSSQUERIES[:hidden][:place], visible: :hidden # display: none
 
     #selector = %Q{form div#div_select_country select option:contains("Japan")}
     #page.execute_script %Q{ $('#{selector}').trigger('mouseenter').click() }

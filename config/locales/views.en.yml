@@ -157,6 +157,8 @@ en:
       birth_year: "Birth year (maybe of Group)"
       birth_month: "Birth month (0 means unknown)"
       birth_day: "Birth day (0 means unknown)"
+    show:
+      birthday: "Birthday"
 
   event_groups:
     num_id: "#num"

@@ -3,86 +3,44 @@
             <%# artist.errors can be like this, namely, :base has a null error when a custom validation Artist#unique_combination fails...: #<ActiveModel::Errors [#<ActiveModel::Error attribute=unique_combination, type=: Artist is not unique in the combination of Title/AltTitle, BirthDate, and Place., options={}>, #<ActiveModel::Error attribute=base, type=invalid, options={}>]> %>
 
 <% if ! artist.new_record? %>
-
 <hr>
+<% end %>
 <section id="sec_primary">
- <section id="sec_primary_trans">
+<% if ! artist.new_record? %>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: artist, add_buttons: true} %>
- </section>
 <hr>
 <% end %>
 
-<%= form_with(model: artist, local: true) do |form| %>
+<div id="form_main">
 
+<%= simple_form_for artist do |f| %>
  <section id="sec_primary_input">
   <% if artist.new_record? %>
-    <%= render partial: 'layouts/partial_new_translations', locals: {form: form, model: artist, trans: Translation.new, disable_is_orig: true} %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: artist, trans: Translation.new, disable_is_orig: true, is_simple_form: true} %>
   <% end %>
 
-  <div class="field" id="div_select_country">
-    <%= form.label 'place.prefecture_id.country_id', t('Country')%>
-    <% country = artist.country %>
-    <%= form.collection_select 'place.prefecture_id.country_id', @countries, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, {include_blank: !country, selected: (country ? country.id : nil)} %> <%# If no translation exists and left empty (instead of "NONE"), it would violate the HTML spec: Element “option” without attribute “label” must not be empty. %>
-  </div>
+  <%= render partial: "layouts/select_country_prefecture_place", locals: {form: f, model: artist, is_simple_form: true} %>
 
-  <div class="field" id="div_select_prefecture">
-    <%= form.label 'place.prefecture_id', t('Prefecture') %>
-    <% prefecture = artist.prefecture %>
-    <%= form.grouped_collection_select 'place.prefecture_id', @countries, :prefectures, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true)}, {include_blank: true, selected: (prefecture ? prefecture.id : nil)} %>
-  </div>
+  <% collec = Sex.all.map {|es| [es.title(langcode: I18n.locale, lang_fallback: true), es.id] } %>
+  <%= f.association :sex, label: t('Sex'), required: true, as: :radio_buttons, collection: collec %>
 
-  <div class="field" id="div_select_place">
-    <%= form.label :place, t('Place') %>
-    <% place = artist.place %>
-    <%= form.grouped_collection_select 'place', @prefectures, :places, Proc.new{|pref| a=pref.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true); a[0]+'/'+a[1]}, :id, Proc.new{|plac| plac.title_or_alt(langcode: I18n.locale, prefer_alt: true)}, {include_blank: true, selected: (place ? place.id : nil)} %>
-  </div>
+  <%= f.input :birth_year,  label: t("artists._form.birth_year"), placeholder: 'e.g., 1999',           as: :integer %>
+  <%= f.input :birth_month, label: t("artists._form.birth_month"), placeholder: 'e.g., 12', in: 0..12, as: :integer %>
+  <%= f.input :birth_day,   label: t("artists._form.birth_day"), placeholder: 'e.g., 25', in: 0..31, as: :integer %>
 
-  <div class="field">
-    <%= t('Sex')%>
-    <% Sex.all.each do |es| %>
-      <%= form.radio_button(:sex_id, es.id, checked: (es.id == ((sex = artist.sex) ? sex.id : Sex.unknown.id))) %>
-      <%= form.label :sex_id, es.title(langcode: I18n.locale, lang_fallback: true), :value => es.id %>
-    <% end %>
-  </div>
+  <%= f.input :wiki_en, label: 'Wikipedia ('+t("locale.long.en")+') URI', as: :url %>
+  <%= f.input :wiki_ja, label: 'Wikipedia ('+t("locale.long.ja")+') URI', as: :url %>
 
-  <div class="field">
-    <%= form.label :birth_year, t("artists._form.birth_year") %>
-    <%= form.number_field :birth_year, value: artist.birth_year, placeholder: 'e.g., 1999', class: 'input_year' %>
-  </div>
+  <%= f.input :note %>
 
-  <div class="field">
-    <%= form.label :birth_month, t("artists._form.birth_month") %>
-    <%= form.number_field :birth_month, in: 0..12, class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :birth_day, t("artists._form.birth_day") %>
-    <%= form.number_field :birth_day, in: 0..31, class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :wiki_en, 'Wikipedia ('+t("locale.long.en")+') URI' %>
-    <%= form.text_field :wiki_en %>
-  </div>
-
-  <div class="field">
-    <%= form.label :wiki_ja, 'Wikipedia ('+t("locale.long.ja")+') URI' %>
-    <%= form.text_field :wiki_ja %>
-  </div>
-
-  <div class="field">
-    <%= form.label :note, t("tables.note") %>
-    <%= form.text_area :note %>
-  </div>
-
-  <div class="actions">
-    <%= form.submit %>
-  </div>
+  <%= f.submit %>
   <div class="actions">
   <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
   </div>
- </section> <%# Closing section id="sec_primary_input" %>
+ </section> <!-- section id="sec_primary_input" -->
 <% end %>
+
+</div> <!-- div id="form_main" -->
 
 <%= render partial: 'layouts/link_merge_destroy', locals: {model: artist, is_to_edit: !artist.new_record? } %>
 
@@ -91,7 +49,7 @@
   <%= link_to 'Associate a new Music to Artist '+artist.title_or_alt, musics_path(music: {artist_id: artist.id}) %>
 <% end %>
 </p>
-</section> <%# Closing section id="sec_primary" %>
+</section> <!-- section id="sec_primary" -->
 
 <%# javascript_pack_tag 'dropdown_artist' %>
 

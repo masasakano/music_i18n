@@ -13,6 +13,10 @@ class ChannelTypesTest < ApplicationSystemTestCase
     @editor_ja       = users(:user_editor_general_ja)     # Same as Harami-editor
     @moderator_gen   = users(:user_moderator_general_ja)
     @h1_title = "Channel Types"
+    @button_text = {
+      create: "Create Channel type",
+      update: "Update Channel type",
+    }
   end
 
   teardown do
@@ -20,14 +24,6 @@ class ChannelTypesTest < ApplicationSystemTestCase
   end
   # add to here
   # ---------------------------------------------
-
-  setup do
-    @channel_type = channel_types(:one)
-    @button_text = {
-      create: "Create Channel type",
-      update: "Update Channel type",
-    }
-  end
 
   test "visiting the index" do
     visit channel_types_url

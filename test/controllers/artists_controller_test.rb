@@ -8,6 +8,7 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @artist = artists(:artist1)
     @editor = roles(:general_ja_editor).users.first  # Editor can manage.
+    @validator = W3CValidators::NuValidator.new
   end
 
   teardown do
@@ -25,6 +26,7 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
   test "should show artist" do
     get artist_url(@artist)
     assert_response :success
+    w3c_validate "Artist show"  # defined in test_helper.rb (see for debugging help)
     #refute css_select('div.link-edit-destroy a')[0].text.include? "Edit"
 
     sign_in @editor
@@ -40,27 +42,14 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to artist_url @artist
 
     follow_redirect!
-    assert_equal 1, css_select('p#show_wikipedia_ja').size
-    #puts "DEBUG: HTML:\n"+css_select('p#show_wikipedia').to_html
-    css = css_select('p#show_wikipedia_ja a')
+    assert_equal 1, css_select('dt#show_wikipedia_ja').size
+    #puts "DEBUG: HTML:\n"+css_select('dt#show_wikipedia').to_html
+    css = css_select('dd#show_wikipedia_dd_ja a')
     assert_equal "https://ja.wikipedia.org/wiki/"+hs["wiki_ja"], css[0]["href"]
     assert_equal "ja.wikipedia.org/wiki/ベン・E・キング",        css[0].text
-    css = css_select('p#show_wikipedia_en a')
+    css = css_select('dd#show_wikipedia_dd_en a')
     assert_equal "https://en.wikipedia.org/wiki/Ben_E._King", CGI.unescape(css[0]["href"])
     assert_equal wiki_en_root, css[0].text
-  end
-
-  test "should fail/succeed to get edit" do
-    get edit_artist_url(@artist)
-    assert_response :redirect
-    assert_redirected_to new_user_session_path
-
-    sign_in @editor
-    get edit_artist_url(@artist)
-    assert_response :success
-    assert css_select('a').any?{|i| /\AShow\b/ =~ i.text.strip}  # More fine-tuning for CSS-selector is needed!
-    css = css_select('div.link-edit-destroy a')
-    assert(css.empty? || !css[0].text.include?("Edit"))
   end
 
   test "should fail/succeed to get new" do
@@ -70,10 +59,17 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in @editor
     get new_artist_url
+    assert_response :success
+
+    #puts css_select('body')[0].to_html
+    #puts response.body
+    w3c_validate "Artist new"  # defined in test_helper.rb (see for debugging help)
+
     css = css_select('p.navigate-link-below-form a')
     assert_equal 1, css.size
     assert_match(/\bindex$/i,   css.first.text)
     assert_match(%r@^(/en)?/artists(\?locale=en)?$@, css.first['href'])
+    assert_empty css_select(css_query(:trans_new, :is_orig_radio, model: Artist)), "is_orig selection should not be provided, but..."  # defined in helpers/test_system_helper
   end
 
   test "should create" do
@@ -102,6 +98,21 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 'Test, The', artist.title
     assert_equal 'en', artist.orig_langcode
     assert artist.place.covered_by? Country['JPN']
+  end
+
+  test "should fail/succeed to get edit" do
+    get edit_artist_url(@artist)
+    assert_response :redirect
+    assert_redirected_to new_user_session_path
+
+    sign_in @editor
+    # get edit_artist_url(@artist) # This will result in W3C error as the wikipedia page is not a valid URL (without a https://)
+    get edit_artist_url(artists(:artist_saki_kubota))
+    assert_response :success
+    w3c_validate "Artist edit"  # defined in test_helper.rb (see for debugging help)
+    assert css_select('a').any?{|i| /\AShow\b/ =~ i.text.strip}  # More fine-tuning for CSS-selector is needed!
+    css = css_select('div.link-edit-destroy a')
+    assert(css.empty? || !css[0].text.include?("Edit"))
   end
 
   test "should update" do

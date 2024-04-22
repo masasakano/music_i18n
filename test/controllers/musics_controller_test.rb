@@ -9,6 +9,7 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     @music = musics(:music1)
     @editor = roles(:general_ja_editor).users.first  # Editor can manage.
     @f_artist_name = "artist_name"
+    @validator = W3CValidators::NuValidator.new
   end
 
   teardown do
@@ -143,6 +144,9 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     sign_in @editor
     get edit_music_url(@music)
     assert_response :success
+
+    w3c_validate "Music edit"  # defined in test_helper.rb (see for debugging help)
+
     assert css_select('a').any?{|i| /\AShow\b/ =~ i.text.strip}  # More fine-tuning for CSS-selector is needed!
     css = css_select('div.link-edit-destroy a')
     assert(css.empty? || !css[0].text.include?("Edit"))

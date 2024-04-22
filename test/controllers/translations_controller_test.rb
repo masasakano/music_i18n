@@ -9,6 +9,7 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     @translation_en = translations(:sextrans0en)
     @admin = users(:user_sysadmin)
     @translator = users(:user_translator)
+    @trans_moderator = users(:user_moderator_translation)
     @general_moderator = users(:user_moderator)  # moderator/general_ja, who is not qualified to manimuplate this model though can read
     @sex = Sex.second
     @music = Music.second
@@ -48,18 +49,26 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-if false
   test "should fail get new" do
     get new_translation_url
     assert_redirected_to new_user_session_path
   end
 
   test "translator should get new" do
-    sign_in @translator
+    [@translator, @general_moderator].each do |euser|
+      sign_in euser
+      get new_translation_url
+      assert_response :redirect
+      assert_redirected_to root_path
+      sign_out euser
+    end
+
+    sign_in @trans_moderator
     get new_translation_url
     assert_response :success
   end
 
+if false
   test "should fail to create translation" do
     assert_difference('Translation.count', 0) do
       post translations_url, params: { translation: { alt_title: 'abcde', is_orig: false, langcode: 'en', translatable_type: @sex.class.name, translatable_id: @sex.id, } }
@@ -237,6 +246,6 @@ if false
     end
     assert_redirected_to translations_url
   end
-end
+end # if false
 end
 

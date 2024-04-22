@@ -2,23 +2,19 @@
 
 <% if ! music.new_record? %>
 <hr>
+<% end %>
 <section id="sec_primary">
-  <section id="sec_primary_trans">
+<% if ! music.new_record? %>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: music, add_buttons: true} %>
-  </section>
 <hr>
 
- <section id="sec_primary_input">
 <h2>Unique parameters</h2>
 <% end %>
 
-  <% if music.new_record? %>
-<section id="sec_primary">
-  <% end %>
 <%= form_with(model: music, local: true) do |form| %>
 
+ <section id="sec_primary_input">
   <% if music.new_record? %>
-   <section id="sec_primary_input">
     <%= render partial: 'layouts/partial_new_translations', locals: {form: form, model: music, trans: Translation.new, disable_is_orig: true} %>
   <% end %>
 

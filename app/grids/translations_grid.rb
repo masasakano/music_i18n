@@ -16,9 +16,24 @@ class TranslationsGrid < BaseGrid
 
   filter(:id, :integer, header: "ID", if: Proc.new{CURRENT_USER && CURRENT_USER.editor?})  # displayed only for editors
 
-  filter(:translatable_type, :enum, header: "Class", checkboxes: true, select: Proc.new{ Translation.all.map{|c| [c.translatable_type, c.translatable_type]}.uniq })
-  filter(:langcode, :enum, header: "Locale", checkboxes: true, select: Proc.new{ I18n.available_locales.map{|c| [c, c.to_s]} })
-
+  filter(:translatable_type, :enum, header: "Class", checkboxes: true, select: Proc.new{ Translation.all.pluck(:translatable_type).uniq.compact.sort.map{|c| [c, c]} })
+  filter(:langcode, :enum, header: "Locale", checkboxes: true, select: Proc.new{Translation.all.pluck(:langcode).uniq.compact.sort{|a, b|
+    ar = [a, b].map{|i|
+      case i
+      when "ja"
+        "a"
+      when "aa"
+        "a"*50
+      when "en"
+        "aa"
+      when "fr"
+        "aaa"
+      else
+        i
+      end
+    }
+    ar[0] <=> ar[1]
+  }.map{|c| [c, c]} }) # ja, en, cn, fr, it, kr, ...
   filter(:is_orig, :xboolean, header: 'Orig?')
   filter(:weight, range: true, if: Proc.new{CURRENT_USER && CURRENT_USER.qualified_as?(TransModerator)})
 

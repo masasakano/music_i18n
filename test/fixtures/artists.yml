@@ -32,8 +32,8 @@ artist1:
   birth_year: 1
   birth_month: 1
   birth_day: 1
-  wiki_ja: MyText
-  wiki_en: MyText
+  wiki_ja: ja.wikipedia.org/wiki/ABC
+  wiki_en: ja.wikipedia.org/wiki/XYZ
   note: Artist-1-UnknownPlaceUnknownPrefectureJapan
 
 artist2:
