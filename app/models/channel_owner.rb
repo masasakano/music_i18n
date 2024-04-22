@@ -30,7 +30,7 @@ class ChannelOwner < BaseWithTranslation
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
 
-  attr_accessor :artist_name
+  attr_accessor :artist_with_id
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []

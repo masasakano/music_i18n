@@ -10,6 +10,8 @@ class BaseMerges::BaseWithIdsController < ApplicationController
   # Maximum number of candidates.
   MAX_SUGGESTIONS = 15
 
+  # The caller's path must be either */%/merges or something/(new|edit).
+  # See {#get_id} below.
   def index
     idcur = get_id
     if !idcur
@@ -20,7 +22,8 @@ class BaseMerges::BaseWithIdsController < ApplicationController
     end
 
     model_klass = self.class::MODEL_SYM.to_s.classify.constantize
-    candidates = model_klass.find(get_id).select_titles_partial_str_except_self(:titles, params[:keyword], display_id: true)
+    model = (idcur.respond_to?(:divmod) ? model_klass.find(idcur) : model_klass.new)
+    candidates = model.select_titles_partial_str_except_self(:titles, params[:keyword], display_id: true)
 
     respond_to do |format|
       format.html { }
@@ -40,8 +43,13 @@ class BaseMerges::BaseWithIdsController < ApplicationController
       #   (%w(new edit).include? hs[:action])
       #   hs[:id].to_i
       mat = %r@\b#{self.class::MODEL_SYM}s/(\d+)/merges\b@.match(params[:path])
-      if mat
-        mat[1].to_i
+      return mat[1].to_i if mat
+
+      # If called from other new/edit that are valid in this app.
+      path_modified =params[:path].sub(%r@^(/?[a-z]{2}/)?@, "").sub(%r@(/edit)(/\d+)?\z@, '\1')  # I am not sure if this is necessary in reality (but just to play safe).
+      if ("static_page_publics" != Rails.application.routes.recognize_path(path_modified)[:controller]) &&
+         %r@/(new|edit(/\d+)?)\z@ =~ params[:path]
+        return true   # anything but nil or Integer
       else
         logger.warn "Rejects AJAX (or HTTP) request to #{__FILE__} from #{params[:path]}"
         nil

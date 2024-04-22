@@ -20,7 +20,7 @@
     <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: channel_owner, trans: Translation.new, disable_is_orig: true, is_simple_form: true} %>
   <% end %>
   <div class="form-inputs">
-    <%= f.input :artist_name, label: 'Artist name', placeholder: '('+t('eg_independent')+'"欅坂46", "The Beatles", "Beatles, The")', required: false %>
+    <%= f.input :artist_with_id, label: 'Artist name', placeholder: '('+t('eg_independent')+'"欅坂46", "The Beatles", "Beatles, The")', required: false, input_html: {"data-1p-ignore" => true} %>
     <%= f.input :themselves, label: "Themselves?", hint: 'Whether this is basically identical to an Artist.' %>
     <%= f.input :note %>
   </div>
