@@ -726,10 +726,31 @@ end
 ################################
 # Auto loading external seed files
 
+# For sorting
+#
+# returns either -1 or 1 if kwd is either a or b, respectively, else returning nil
+#
+# @param reverse [Boolean, NilClass] if true, the lower priority (= 1) is returned when a==kwd.
+def _return_priority(a, b , kwd ,reverse: false)
+  sign = (reverse ? -1 : 1)
+  (ind = [a, b].index(kwd)) ? sign*(ind*2-1) : nil
+end
+
 # Some files depend on other files, which must be run before them.
+# Generates the order.
 rootdirs = [Rails.root, 'db', 'seeds']
-ar_priority = %w(user event_group).map{|i| File.join(*(rootdirs+['seeds_'+i+'.rb']))}
-(ar_priority + Dir[File.join(*(rootdirs+['*.rb']))]).uniq.each do |seed|
+allfiles = Dir[File.join(*(rootdirs+['*.rb']))].map{|s| s.sub(%r@.*\/db/seeds/(.+).rb@, '\1')}.sort{ |a, b|
+  result = %w(seeds_user user seeds_event_group event_group instrument play_role channels).each do |kwd|  # WARNING: Be careful of plural and singular!
+    reverse = ("channels" == kwd)
+    ret = _return_priority(a,b,kwd, reverse: reverse)
+    break ret if ret
+  end
+  result.respond_to?(:divmod) ? result : (a<=>b)  # result is either an Integer or (the original keyword) Array
+}.map{|i| File.join(*(rootdirs+[i+'.rb']))}
+#puts "DEBUG: seeding order:" ######### for DEBUG
+#puts allfiles.map{|i| "    "+File.basename(i)}.join("\n") ######### for DEBUG
+
+allfiles.each do |seed|
   next if "common.rb" == File.basename(seed)  # Skipping reading the common included Module
   seedfile2print = seed_fname2print(seed)
   puts "loading "+seedfile2print if $DEBUG  # defined in ModuleCommon

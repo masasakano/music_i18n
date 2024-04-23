@@ -20,6 +20,7 @@ module Seeds::ChannelOwners
       en: RECORD_CLASS::UNKNOWN_TITLES['en'],
       fr: RECORD_CLASS::UNKNOWN_TITLES['fr'],
       orig_langcode: 'en',
+      themselves: false,
       note: nil,
       #regex: Proc.new{RECORD_CLASS.unknown}  # to check potential duplicates for ChannelOwners
     },

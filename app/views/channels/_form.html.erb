@@ -1,0 +1,44 @@
+
+<%= render partial: 'layouts/form_print_errors', locals: {model: channel} %>
+
+<% if ! channel.new_record? %>
+<hr>
+<% end %>
+<section id="sec_primary">
+<% if ! channel.new_record? %>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: channel, add_buttons: true} %>
+<hr>
+
+<h2>Unique parameters</h2>
+<% end %>
+
+<div id="form_main">
+
+<%= simple_form_for(@channel) do |f| %>
+ <section id="sec_primary_input">
+  <% if channel.new_record? %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: channel, trans: Translation.new, disable_is_orig: true, is_simple_form: true} %>
+  <% end %>
+  <%= f.error_notification %>
+  <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
+
+  <div class="form-inputs">
+    <%= f.association :channel_owner %>
+    <%= f.association :channel_type %>
+    <%= f.association :channel_platform %>
+    <%= f.input :note %>
+  </div>
+
+  <div class="form-actions">
+    <%= f.submit %>
+  </div>
+  <div class="actions">
+  <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  </div>
+ </section> <!-- section id="sec_primary_input" -->
+<% end %>
+
+</div> <!-- div id="form_main" -->
+
+</section> <!-- section id="sec_primary" -->
+

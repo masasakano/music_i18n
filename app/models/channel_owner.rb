@@ -59,7 +59,7 @@ class ChannelOwner < BaseWithTranslation
 
   belongs_to :create_user, class_name: "User", foreign_key: "create_user_id", optional: true
   belongs_to :update_user, class_name: "User", foreign_key: "update_user_id", required: false
-  #has_many :channels, -> {distinct}, dependent: :restrict_with_exception  # dependent is a key / Basically this should not be easily destroyed - it may be merged instead.
+  has_many :channels, -> {distinct}, dependent: :restrict_with_exception  # dependent is a key / Basically this should not be easily destroyed - it may be merged instead.
 
   # NOTE: UNKNOWN_TITLES required to be defined for the methods included from ModuleUnknown. alt_title can be also defined as an Array instead of String.
   UNKNOWN_TITLES = {

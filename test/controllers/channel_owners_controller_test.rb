@@ -24,7 +24,7 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
       "langcode"=>"ja",
       "title"=>"The Tｅst7",
       "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
-      "best_translation_is_orig"=>str_form_for_nil,  # radio-button returns "on" for nil
+      #"best_translation_is_orig"=>str_form_for_nil,  # radio-button returns "on" for nil
     }
   end
 

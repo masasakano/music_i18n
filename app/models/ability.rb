@@ -89,7 +89,7 @@ class Ability
 #canedit, Users::DeactivateUser, id: user.id
       can :index,  ModelSummary  # Index only
       can :read, ChannelPlatform
-      can :show, ChannelOwner
+      can :show, [ChannelOwner, Channel]
     end
 
     rc_general_ja = RoleCategory[RoleCategory::MNAME_GENERAL_JA]
@@ -99,15 +99,15 @@ class Ability
     ## General-JA editor or HaramiVid editor only
     if user.qualified_as?(:editor, rc_general_ja) || user.qualified_as?(:editor, rc_harami)
       can :crud, [EventItem]  # Maybe Event should be also allowed? (NOTE: the current permission is tested in events_controller_test.rb (Line-65))
-      can :cr, [ChannelPlatform, ChannelOwner]
+      can :cr, [ChannelPlatform, ChannelOwner, Channel]
       can(:ud, ChannelPlatform){|mdl| mdl.create_user && ((mdl.create_user == user) || (!mdl.unknown? && user.abs_superior_to?(mdl.create_user, except: rc_trans))) }  # can update/destroy only if it was created by the user or by a moderator.
-      can(:ud, ChannelOwner){|mdl| mdl.create_user == user}
+      can(:ud, [ChannelOwner, Channel]){|mdl| mdl.create_user == user}
     end
 
     ## General-JA editor only
     if user.qualified_as?(:editor, rc_general_ja)
       can :manage, [Musics::MergesController, Artists::MergesController]
-      can(:ud, ChannelOwner){|mdl| mdl.create_user && ((mdl.create_user == user) || (!mdl.unknown? && (user.superior_to?(mdl.create_user, rc_general_ja) || user.highest_role_in(rc_general_ja) == mdl.create_user.highest_role_in(rc_general_ja))))}  # can update/destroy only if it was created by the user or superior in General-Role.
+      can(:ud, [ChannelOwner, Channel]){|mdl| mdl.create_user && ((mdl.create_user == user) || (!mdl.unknown? && (user.superior_to?(mdl.create_user, rc_general_ja) || user.highest_role_in(rc_general_ja) == mdl.create_user.highest_role_in(rc_general_ja))))}  # can update/destroy only if it was created by the user or superior in General-Role.
     end
 
     ## HaramiVid editor

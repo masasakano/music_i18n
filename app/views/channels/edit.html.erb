@@ -1,0 +1,11 @@
+<h1>Editing Channel</h1>
+
+<%= render "form", channel: @channel %>
+
+<br>
+
+<div>
+  <%= link_to "Show this channel", @channel %> |
+  <%= link_to t("layouts.back_to_index"), channels_path %>
+</div>
+

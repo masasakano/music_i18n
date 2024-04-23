@@ -2287,4 +2287,20 @@ channel_owner_saki_kubota_ja:
   note: ChannelOwnerSakiKubotaJa
   # Identical to Artist: artist_saki_kubota
 
+<% klass_str = "Channel" %>
+<% (Seeds.const_get(klass_str+"s"))::SEED_DATA.each_pair do |ekey, edata| %>
+ <% %i(en ja fr).each do |langcode| %>
+   <% next if edata[langcode].blank? %>
+<%= klass_str.underscore %>_<%= ekey %>_<%= langcode %>:
+  translatable: <%= klass_str.underscore %>_<%= ekey %> (<%= klass_str %>)
+  langcode: <%= langcode %>
+  title:     <%= Seeds::Common.yaml_title(edata[langcode], :title) %>
+  alt_title: <%= Seeds::Common.yaml_title(edata[langcode], :alt_title) %>
+  weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
+  create_user: user_syshelper
+  update_user: 
+  note: <%= klass_str %><%= ekey.to_s.camelize %><%= langcode.to_s.capitalize %>
+ <% end %>
+<% end %>
+
 

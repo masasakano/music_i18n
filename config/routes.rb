@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  resources :channels
   resources :channel_owners
   resources :channel_types
   resources :channel_platforms

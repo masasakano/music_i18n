@@ -55,4 +55,8 @@ class ChannelOwnerTest < ActiveSupport::TestCase
     assert_raise(ActiveRecord::RecordInvalid){
       mdl2.save! }
   end
+
+  test "associations" do
+    assert_nothing_raised{ ChannelOwner.first.channels }
+  end
 end

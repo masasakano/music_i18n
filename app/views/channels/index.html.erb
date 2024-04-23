@@ -1,19 +1,21 @@
-<h1>Channel Owners</h1>
+<h1>Channels</h1>
 
-<div id="channel_owners">
-<table id="channel_owners_index_table">
+<div id="channels">
+<table id="channels_index_table">
   <thead>
     <tr>
       <th>ID</th>
       <th>Name (ja)</th>
       <th>Name (en)</th>
-      <th title="Whether this is basically identical to an Channel_owner.">themselves?</th>
+      <th title="Channel owner.">Owner</th>
+      <th title="Channel platform.">Platform</th>
+      <th title="Channel type.">Type</th>
       <th title="Note in this DB">Note</th>
       <% if can? :update, Users::EditRolesController %>
         <th>Created</th>
         <th>Updated</th>
       <% end %>
-      <% if can? :update, ChannelOwner %>
+      <% if can? :update, Channel %>
         <th colspan="3"></th>
       <% else %>
         <th></th>
@@ -22,7 +24,7 @@
   </thead>
 
   <tbody>
-    <% @channel_owners.each do |model| %>
+    <% @channels.each do |model| %>
       <tr>
         <td><%= model.id %></td>
         <% btr = model.best_translations %>
@@ -30,8 +32,12 @@
         <td><%= %w(title alt_title).map{|i| tra=btr[lc]; s=(tra && h(tra.send(i))); s.blank? ? '&mdash;' : s}.join(' | ').html_safe %></td>
         <% end %>
 
-        <td><%= model.themselves %></td>
-        <td><%= h(model.note) %></td>
+        <td><%= m=model.channel_owner; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), channel_owner_path(m)) %></td>
+        <td><%= m=model.channel_platform; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), channel_platform_path(m)) %></td>
+        <td><%= m=model.channel_type; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), channel_type_path(m)) %></td>
+        <td><%= link_to(model.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) ) %></td>
+        <td><%= link_to(model.channel_type.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) ) %></td>
+        <td><%= model.note %></td>
       <% if can? :update, Users::EditRolesController %>
         <td><%= ur = model.create_user; link_to(ur.display_name, ur) if ur %></th>
         <td><%= ur = model.update_user; link_to(ur.display_name, ur) if ur %></th>
@@ -39,7 +45,7 @@
 
         <td><%= link_to "Show", model %></td>
         <% if can? :update, model  %>
-          <td><%= link_to 'Edit', edit_channel_owner_path(model) %></td>
+          <td><%= link_to 'Edit', edit_channel_path(model) %></td>
         <% end %>
         <% if can? :destroy, model %>
           <td><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
@@ -52,7 +58,7 @@
 
 <br>
 
-<% if can? :create, ChannelOwner %>
-  <%= button_to 'New ChannelOwner', new_channel_owner_path, method: :get %>
+<% if can? :create, Channel %>
+  <%= button_to 'New Channel', new_channel_path, method: :get %>
 <% end %>
 

@@ -48,4 +48,7 @@ class ChannelPlatformTest < ActiveSupport::TestCase
     refute  mdl.valid?
   end
 
+  test "associations" do
+    assert_nothing_raised{ ChannelPlatform.first.channels }
+  end
 end

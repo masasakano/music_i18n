@@ -72,4 +72,7 @@ class ChannelTypeTest < ActiveSupport::TestCase
     refute  mdl.valid?
   end
 
+  test "associations" do
+    assert_nothing_raised{ ChannelType.first.channels }
+  end
 end

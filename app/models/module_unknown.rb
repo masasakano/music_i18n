@@ -26,10 +26,22 @@ module ModuleUnknown
   extend ActiveSupport::Concern
   module ClassMethods
     # @return [ApplicationRecord]
-    def unknown
+    def unknown(reload: false)
       #@record_unknown ||= self[[self::UNKNOWN_TITLES['en']].flatten.first, 'en']
-      @record_unknown ||= self.find_by_regex(:titles, /\A\s*(#{self::UNKNOWN_TITLES.values.inject([]){|i,j| i+[j].flatten}.map{|k| Regexp.quote(k)}.join('|')})\s*\z/i)
+      if reload
+        @record_unknown   = _unknown_forcible
+      else
+        @record_unknown ||= _unknown_forcible
+      end
     end
+
+    # Private method to forcibly re-determine the "unknown".
+    #
+    # @return [ApplicationRecord]
+    def _unknown_forcible
+      self.find_by_regex(:titles, /\A\s*(#{self::UNKNOWN_TITLES.values.inject([]){|i,j| i+[j].flatten}.map{|k| Regexp.quote(k)}.join('|')})\s*\z/i, sql_regexp: true)
+    end
+    private :_unknown_forcible
   end
 
   def unknown?

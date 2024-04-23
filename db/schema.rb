@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_04_22_100730) do
+ActiveRecord::Schema[7.0].define(version: 2024_04_23_094627) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -116,6 +116,23 @@ ActiveRecord::Schema[7.0].define(version: 2024_04_22_100730) do
     t.index ["mname"], name: "index_channel_types_on_mname", unique: true
     t.index ["update_user_id"], name: "index_channel_types_on_update_user_id"
     t.index ["weight"], name: "index_channel_types_on_weight"
+  end
+
+  create_table "channels", comment: "Channel of Youtube etc", force: :cascade do |t|
+    t.bigint "channel_owner_id", null: false
+    t.bigint "channel_type_id", null: false
+    t.bigint "channel_platform_id", null: false
+    t.bigint "create_user_id"
+    t.bigint "update_user_id"
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["channel_owner_id", "channel_type_id", "channel_platform_id"], name: "index_unique_all3", unique: true
+    t.index ["channel_owner_id"], name: "index_channels_on_channel_owner_id"
+    t.index ["channel_platform_id"], name: "index_channels_on_channel_platform_id"
+    t.index ["channel_type_id"], name: "index_channels_on_channel_type_id"
+    t.index ["create_user_id"], name: "index_channels_on_create_user_id"
+    t.index ["update_user_id"], name: "index_channels_on_update_user_id"
   end
 
   create_table "countries", force: :cascade do |t|
@@ -574,6 +591,11 @@ ActiveRecord::Schema[7.0].define(version: 2024_04_22_100730) do
   add_foreign_key "channel_platforms", "users", column: "update_user_id", on_delete: :nullify
   add_foreign_key "channel_types", "users", column: "create_user_id", on_delete: :nullify
   add_foreign_key "channel_types", "users", column: "update_user_id", on_delete: :nullify
+  add_foreign_key "channels", "channel_owners"
+  add_foreign_key "channels", "channel_platforms"
+  add_foreign_key "channels", "channel_types"
+  add_foreign_key "channels", "users", column: "create_user_id", on_delete: :nullify
+  add_foreign_key "channels", "users", column: "update_user_id", on_delete: :nullify
   add_foreign_key "countries", "country_masters", on_delete: :restrict
   add_foreign_key "engages", "artists", on_delete: :cascade
   add_foreign_key "engages", "engage_hows", on_delete: :restrict

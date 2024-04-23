@@ -1,0 +1,80 @@
+# == Schema Information
+#
+# Table name: channels
+#
+#  id                  :bigint           not null, primary key
+#  note                :text
+#  created_at          :datetime         not null
+#  updated_at          :datetime         not null
+#  channel_owner_id    :bigint           not null
+#  channel_platform_id :bigint           not null
+#  channel_type_id     :bigint           not null
+#  create_user_id      :bigint
+#  update_user_id      :bigint
+#
+# Indexes
+#
+#  index_channels_on_channel_owner_id     (channel_owner_id)
+#  index_channels_on_channel_platform_id  (channel_platform_id)
+#  index_channels_on_channel_type_id      (channel_type_id)
+#  index_channels_on_create_user_id       (create_user_id)
+#  index_channels_on_update_user_id       (update_user_id)
+#  index_unique_all3                      (channel_owner_id,channel_type_id,channel_platform_id) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (channel_owner_id => channel_owners.id)
+#  fk_rails_...  (channel_platform_id => channel_platforms.id)
+#  fk_rails_...  (channel_type_id => channel_types.id)
+#  fk_rails_...  (create_user_id => users.id) ON DELETE => nullify
+#  fk_rails_...  (update_user_id => users.id) ON DELETE => nullify
+#
+
+one:
+  channel_owner: one
+  channel_type: one
+  channel_platform: one
+  create_user: user_editor_general_ja
+  update_user: user_editor_general_ja
+  note: MyText
+
+two:
+  channel_owner: two
+  channel_type: two
+  channel_platform: two
+  create_user: user_editor
+  update_user:
+  note: MyText
+
+##### The following fails because Proc#call "sometimes" returns nil...
+# This does not happen if only a small number of Controller-tests are called.
+# It may be related to the order of creation with Translation?
+#
+#<% Seeds::Channels::SEED_DATA.each_pair do |ekey, edata| %>
+#channel_<%= ekey %>:
+# <% %w(owner type platform).each do |ekbase| %>
+#    <% ek = "channel_"+ekbase %>
+#  <%= ek %>_id: edata[ek].call.id
+#    <%# NOTE: Alternatively, you can set this like "channel_type: channel_type_main" %>
+# <% end %>
+#  create_user: user_syshelper
+#  update_user: 
+#  note: Channel<%= ekey.to_s.camelize %>
+#<% end %>
+
+channel_unknown:
+  channel_owner: channel_owner_unknown
+  channel_type: channel_type_unknown
+  channel_platform: channel_platform_unknown
+  create_user: user_syshelper
+  update_user: 
+  note: ChannelUnknown
+
+channel_haramichan_youtube_main:
+  channel_owner: channel_owner_haramichan
+  channel_type: channel_type_main
+  channel_platform: channel_platform_youtube
+  create_user: user_syshelper
+  update_user: 
+  note: ChannelHaramichanYoutubeMain
+

@@ -266,6 +266,7 @@ class ChannelTypesControllerTest < ActionDispatch::IntegrationTest
     end
     assert_redirected_to root_path, "non-creater fails to destroy it, and failure in deletion leads to Root-path"
 
+    @channel_type.channels.destroy_all
     @channel_type.update!(create_user: @moderator_harami)
     assert_difference("ChannelType.count", -1) do
       delete channel_type_url(@channel_type)
