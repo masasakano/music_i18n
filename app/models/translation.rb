@@ -279,7 +279,7 @@ class Translation < ApplicationRecord
     false
   end
 
-  # Sort based on {#is_orig} and {#weight}
+  # Sort based on {#is_orig}, {#langcode}, and {#weight}
   #
   # Tries to use the DB.  But in failing, Array is returned.
   #
@@ -291,6 +291,10 @@ class Translation < ApplicationRecord
   # 1. Only one of them is true, and the rest are false.
   # 2. All of them are nil (e.g., "fish" and "魚").
   #
+  # The next criterion is langcode (locale). The current locale has
+  # the highest priority. If the current locale is not set, "en" is selected.
+  #
+  # The last criterion is weight.
   # For the weight, the order is normal positive numbers, Infinity,
   # and nil. The normal positive numbers should be unique but Infinity
   # and nil may not be. They are sorted in the reverse order of `created_at`,
@@ -310,8 +314,13 @@ class Translation < ApplicationRecord
   def self.sort(rela, consider_is_orig: true)
     begin
       rela2 = (consider_is_orig ? rela.order(Arel.sql("CASE WHEN is_orig IS NOT TRUE THEN 1 ELSE 0 END")) : rela)
-      rela2.order(Arel.sql("CASE WHEN is_orig IS NOT TRUE THEN 1 ELSE 0 END")).order(Arel.sql("CASE WHEN weight IS NULL THEN 2 WHEN weight = 'inf' THEN 1 ELSE 0 END, weight")).order(created_at: :desc)  # regardless of DBs; cf. https://stackoverflow.com/a/68698547/3577922
-      #rela.order(Arel.sql('CASE WHEN is_orig IS NULL THEN 1 ELSE 0 END, is_orig DESC')).order(Arel.sql('CASE WHEN weight IS NULL THEN 1 ELSE 0 END, weight'))  # regardless of DBs; cf. https://stackoverflow.com/a/68698547/3577922
+      # regardless of DBs; cf. https://stackoverflow.com/a/68698547/3577922
+
+      rela2 = rela2.order(Arel.sql("CASE WHEN is_orig IS NOT TRUE THEN 1 ELSE 0 END"))
+      if I18n.locale.present?
+        rela2 = rela2.order(Arel.sql("CASE WHEN langcode = '#{I18n.locale}' THEN 0 ELSE 1 END"))
+      end
+      rela2 = rela2.order(Arel.sql("CASE WHEN langcode = 'en' THEN 0 ELSE 1 END")).order(Arel.sql("CASE WHEN weight IS NULL THEN 2 WHEN weight = 'inf' THEN 1 ELSE 0 END, weight")).order(created_at: :desc)
     rescue NoMethodError
       rela.sort
     end

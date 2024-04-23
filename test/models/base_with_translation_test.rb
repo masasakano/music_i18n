@@ -1701,13 +1701,19 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_equal(%w(en en), [0, 1].map{|i| hsmdl[:artists][i].best_translation.langcode}, 'Sanity check...')
     hsmdl[:artists][0].with_translation(title: "オーーア", langcode: "ja", weight: 22, note: "Added dummy Japanese Trans for 0")
     t0_0 = hsmdl[:artists][0].translations.find_by(title: "オーーア")
-    hsmdl[:artists][0].with_translation(title: "オアシス", langcode: "ja", note: "Added Japanese Trans for 0")
+    hsmdl[:artists][0].with_translation(title: "オアシス", langcode: "ja", note: "Added Japanese Trans for 0", is_orig: true)
     t0_1 = hsmdl[:artists][0].translations.find_by(title: "オアシス")
     hsmdl[:artists][1].with_translation(title: "オアシス", langcode: "ja", is_orig: false, weight: 11, note: "Added Japanese Trans for 1")
     t1_1 = hsmdl[:artists][1].translations.find_by(title: "オアシス")  # => will be destroyed
     hsmdl[:artists][0].reset_orig_langcode(t0_1)
     hsmdl[:artists][1].with_translation(title: "Oaiis", langcode: "fr", note: "Added French Trans for 1")
-    assert_equal(%w(ja en), [0, 1].map{|i| hsmdl[:artists][i].best_translation.langcode}, 'Sanity check...')
+    cur_locale = I18n.locale
+    begin
+      I18n.locale = :en
+      assert_equal(%w(ja en), [0, 1].map{|i| hsmdl[:artists][i].best_translation.langcode}, "Second one must be English because is_orig=nil for all and the current locale is (set as) 'en' (current-locale=#{I18n.locale}): translations="+[0, 1].map{|i| hsmdl[:artists][i].translations.pluck(:langcode, :is_orig, :title, :weight)}.inspect)
+    ensure
+      I18n.locale = cur_locale
+    end
 
     e1_1 = Engage.create!(artist: hsmdl[:artists][1], music: hsmdl[:musics][1], engage_how: engage_hows(:engage_how_arranger), contribution: 0.55, year: 1999) # Artist engages in a different EngageHow
     e1_2 = Engage.create!(artist: hsmdl[:artists][1], music: musics(:music_light), engage_how: engage_hows(:engage_how_singer_original), contribution: 0.6, year: 1950) # Artist engages in a different Music
