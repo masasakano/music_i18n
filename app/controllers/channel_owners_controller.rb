@@ -1,13 +1,17 @@
+# coding: utf-8
 class ChannelOwnersController < ApplicationController
   #before_action :set_channel_owner, only: %i[ show edit update destroy ]
   load_and_authorize_resource except: [:create] # This sets @channel_owner
   before_action :model_params_multi, only: [:create, :update]
 
+  # params key for auto-complete Artist
+  PARAMS_KEY_AC = BaseMerges::BaseWithIdsController.formid_autocomplete_with_id(Artist).to_sym
+
   # Symbol of the main parameters in the Form (except "place_id"), which exist in DB
   MAIN_FORM_KEYS = %i(themselves note)
 
   # Permitted main parameters for params(), used for update and create
-  PARAMS_MAIN_KEYS = MAIN_FORM_KEYS
+  PARAMS_MAIN_KEYS = MAIN_FORM_KEYS + [PARAMS_KEY_AC] # == :artist_with_id
   # these will be handled in model_params_multi()
 
   # GET /channel_owners or /channel_owners.json
@@ -33,15 +37,39 @@ class ChannelOwnersController < ApplicationController
     @channel_owner = ChannelOwner.new(@hsmain)
     authorize! __method__, @channel_owner
 
-    add_unsaved_trans_to_model(@channel_owner, @hstra) # defined in application_controller.rb
-    def_respond_to_format(@channel_owner)              # defined in application_controller.rb
+    artist = _get_equivalent_artist
+
+    if artist
+      @channel_owner.unsaved_translations = _unsaved_translations_equivalent_artist(artist)
+    else
+      # Even if @channel_owner.errors.any?, it is better to set unsaved_translation so the input strings in the forms are preserved.
+      add_unsaved_trans_to_model(@channel_owner, @hstra) # defined in application_controller.rb
+    end
+    result = def_respond_to_format(@channel_owner)       # defined in application_controller.rb
+
+    # Adjusts each Translation's update_user and updated_at if there is an equivalent user.
+    if result && artist
+      _update_user_for_equivalent_artist(artist)
+    end
   end
 
   # PATCH/PUT /channel_owners/1 or /channel_owners/1.json
   def update
-    def_respond_to_format(@channel_owner, :updated){
+    artist = _get_equivalent_artist
+
+    result = def_respond_to_format(@channel_owner, :updated){
       @channel_owner.update(@hsmain)
     } # defined in application_controller.rb
+
+    # Assign the equivalent user if there is any and adjusts each Translation's update_user and updated_at
+    if result && artist
+      @channel_owner.translations.destroy_all
+      _unsaved_translations_equivalent_artist(artist).each do |trans|
+        @channel_owner.translations << trans
+      end
+      @channel_owner.reload
+      _update_user_for_equivalent_artist(artist)
+    end
   end
 
   # DELETE /channel_owners/1 or /channel_owners/1.json
@@ -63,5 +91,59 @@ class ChannelOwnersController < ApplicationController
     def model_params_multi
       hsall = set_hsparams_main_tra(:channel_owner) # defined in application_controller.rb
     end
+
+
+    # @return [Artist, NilClass] Artist if :artist_with_id is specified through UI.
+    def _get_equivalent_artist
+      if @prms_all[PARAMS_KEY_AC].present?
+        if !convert_param_bool(@prms_all[:themselves], true_int: 1)
+          flash[:warning] ||= []
+          flash[:warning] << "Specified equivalent Artist is ignored because they are specified to be not equivalent."
+        else
+          artist = BaseMergesController.other_model_from_ac(Artist.new, @prms_all[PARAMS_KEY_AC], controller: self)
+          if !artist
+            @channel_owner.errors.add PARAMS_KEY_AC, "No existing Artist is found."
+          end
+        end
+      end
+      artist
+    end
+  
+    # @return [Array<Translation>] Unsaved translations copied from the those of the equivalent Artist
+    def _unsaved_translations_equivalent_artist(artist)
+      # a set of nearly identical translations
+      artist.translations.map{|etrans|
+        new_trans = etrans.dup
+        new_trans.translatable = nil
+        new_trans
+      }
+    end
+  
+    # Adjusts each Translation's update_user and updated_at
+    #
+    # @note updated_at is adjusted while created_at stays — meaning it makes
+    #   updated_at < created_at because the Translation for ChannelOwner
+    #   was newly created whereas the corresponding Translation for Artist
+    #   was last updated (long time) before.
+    #
+    # @param artist [Artist] the equivalent Artist to self (ChannelOwner).
+    # @return [void]
+    def _update_user_for_equivalent_artist(artist)
+      artist.translations.each do |etrans|
+        hs = ["", "alt_"].map{ |prefix|
+          %w(title ruby romaji).map{ |base|
+            metho = prefix+base
+            [metho, etrans.send(metho)]
+          }
+        }.inject([],:+).to_h
+        tra_cowner = @channel_owner.translations.find_by(hs)
+  
+        hs = %w(update_user_id updated_at).map{ |metho|
+          [metho, etrans.send(metho)]
+        }.to_h
+        tra_cowner.update_columns(hs)  # skips all validations AND callbacks
+      end
+    end
+
 end
 

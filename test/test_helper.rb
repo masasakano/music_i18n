@@ -385,7 +385,7 @@ class ActiveSupport::TestCase
     #print "DEBUG: "; p page.find('ul.ui-autocomplete div.ui-menu-item-wrapper')['innerHTML']
     ## assert page.has_selector? selector  # Does not work (maybe b/c it is valid only for jQuery; officially CSS does not support "contains" selector, which is deprecated): Selenium::WebDriver::Error::InvalidSelectorError: invalid selector: An invalid or illegal selector was specified
     begin
-      assert_selector selector.sub(/:contains.*/, '')  # This MAY ensure to wait for the popup to appear??
+      assert_selector selector.sub(/:contains.*/, ''), wait: 3  # This MAY ensure to wait for the popup to appear??
       flag = true
     ensure
       warn "ERROR: Failed when called from (#{caller_info})" if !flag

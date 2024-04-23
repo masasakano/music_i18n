@@ -10,6 +10,13 @@ class BaseMerges::BaseWithIdsController < ApplicationController
   # Maximum number of candidates.
   MAX_SUGGESTIONS = 15
 
+  # @see  /app/javascript/autocomplete_model_with_id.js
+  # @param model [Class, BaseWithTranslation, String, Symbol] of Artist or Music to autocomplete
+  # @return [String] returns the basename (i.e., params key) of a form ID (for <input>) from a model.
+  def self.formid_autocomplete_with_id(model)
+    helpers.get_modelname(model)+'_with_id' # defined in application_helper.rb
+  end
+
   # The caller's path must be either */%/merges or something/(new|edit).
   # See {#get_id} below.
   def index

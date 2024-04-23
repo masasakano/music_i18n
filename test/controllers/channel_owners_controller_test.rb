@@ -94,6 +94,40 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
       post channel_owners_url, params: { channel_owner: hs2pass.merge({ note: "same translation. should fail", themselves: true }) }
     end
     assert_response :unprocessable_entity
+
+    # Test of :artist_with_id
+    art_ai = artists(:artist_ai)
+    art_with_id = BaseWithTranslation.base_with_translation_with_id_str art_ai
+    assert_difference("ChannelOwner.count") do
+      hs = {langcode: "ja", title: "dummy", themselves: true, artist_with_id: art_with_id, note: "a007"}
+      post channel_owners_url, params: { channel_owner: hs }
+    end
+    mdl = ChannelOwner.last
+    assert_equal "a007", mdl.note, 'sanity check'
+
+    _verify_assimilate_artist(art_ai, mdl)
+
+    sign_out @editor_ja
+
+if false ############################# This should be implemented later.
+    sign_in @trans_moderator
+    tra_ai.title =  "new-one"
+    tra_ai.save!
+    tra_ai.reload
+    %i(title weight update_user updated_at).each do |metho|
+      assert_equal tra_ai.send(metho), tra_mdl.send(metho)
+    end
+end
+  end
+
+  def _verify_assimilate_artist(art_ai, mdl)
+    assert_equal art_ai.title,             mdl.title, "mdl=#{mdl.inspect}"
+    assert_equal art_ai.romaji(langcode: 'ja'),      mdl.romaji(langcode: 'ja')
+    tra_ai  = art_ai.best_translations[:en]
+    tra_mdl = mdl.best_translations[:en]
+    %i(title weight update_user updated_at).each do |metho|
+      assert_equal tra_ai.send(metho), tra_mdl.send(metho), "tra_mdl=#{tra_mdl.inspect}"
+    end
   end
 
   test "should show channel_owner" do
@@ -190,6 +224,18 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
 
       patch channel_owner_url(@channel_owner2), params: update_params
       assert_response :redirect, "should not be able to update an entry, but..."
+
+    # Test of :artist_with_id
+      @channel_owner2.update!(create_user: @editor_ja, note: "orig0")
+    art_ai = artists(:artist_ai)
+    art_with_id = BaseWithTranslation.base_with_translation_with_id_str art_ai
+      hs = {langcode: "ja", title: "dummy", themselves: true, artist_with_id: art_with_id, note: "a007"}
+      patch channel_owner_url(@channel_owner2), params: { channel_owner: hs }
+    @channel_owner2.reload
+    assert_equal "a007", @channel_owner2.note, 'sanity check'
+
+    _verify_assimilate_artist(art_ai, @channel_owner2)
+
     #end
   end
 

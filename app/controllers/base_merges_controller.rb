@@ -153,25 +153,41 @@ class BaseMergesController < ApplicationController
         return mo_class.find(nil) if !mo_title || mo_title.strip.blank?  # raises ActiveRecord::RecordNotFound
       end
 
-      search_str, lcode, model_id = prepare_autocomplete_model(mo_title)
-      return mo_class.find(model_id) if model_id
-
-      armodel = model.select_translations_partial_str_except_self(
-        :titles, search_str, langcode: lcode
-      ).map{|i| i.translatable}.uniq
-
-      if armodel.empty?  # raises ActiveRecord::RecordNotFound
+      retmodel = self.class.other_model_from_ac(model, mo_title, controller: self)
+      if retmodel
+        retmodel
+      else
         logger.error "ERROR(#{__method__}): Neither #{key_i.to_sym.inspect} nor the matching content for #{key_t.to_sym.inspect} is found, which should never happen through UI: params=#{params.inspect}"
-        return mo_class.find(nil)  # raises ActiveRecord::RecordNotFound
+        mo_class.find(nil)  # raises ActiveRecord::RecordNotFound
       end
+    end
 
-      if armodel.size > 1
-        if flash[:warning]
-          flash[:warning] << "  " 
+    # Other model from the auto-completed string, excluding self
+    #
+    # flash warning may be added.
+    #
+    # If the caller has no competing model (of Artist or Music),
+    # just pass me an initilized model (see Example).
+    #
+    # @example from another Controller
+    #    model = BaseMergesController.other_model_from_ac(Artist.new, search_word, controller: self)
+    #    raise if !model
+    #
+    # @param model [BaseWithTranslation] either Artist or Music
+    # @param search_word [String]
+    # @param controller: [ApplicationController] for flash message. Mandatory
+    # @return [BaseWithTranslation, NilClass] nil if not found
+    def self.other_model_from_ac(model, search_word, controller: )
+      armodel = model.candidate_bwts_from_ac_str(search_word)
+      if armodel.empty?
+        return nil
+      elsif armodel.size > 1
+        if controller.flash[:warning]
+          controller.flash[:warning] << "  " 
         else
-          flash[:warning] = ""
+          controller.flash[:warning] = ""
         end
-        flash[:warning] << sprintf("Found more than 1 %s for word=(%s).", mo_class.name, mo_title.strip)
+        controller.flash[:warning] << sprintf("Found more than 1 %s for word=(%s); the first one is adopted.", model.class.name, search_word.strip)
       end
       armodel.first
     end
@@ -344,30 +360,6 @@ class BaseMergesController < ApplicationController
       (ret.blank? ? nil : ret.to_i)
     end
 
-    # Preparation routine.
-    #
-    # In +update+ (not +edit+), a string query for the model's Translation
-    # candidate is passed. So, we need to retrieve the model based on it.
-    # In principle, there may be no models or multiple models.
-    # Autocomplete helps to identify it uniqlely by appending the locale (langcode)
-    # and ID at the end of the query string, although users can editi them technically
-    # if they insist. Now the Controller for update must identify the model
-    # sending a query to DB. This method does preparation for it.
-    #
-    # Specifically, a search string after autocomplete may be like
-    #   "Queen [en] [123]"
-    # which includes the language and its {BaseWithTranslation} model ID.
-    # This method separates them to enable a subsequent DB query.
-    #
-    # @return [Array<String, String, Integer>] e.g., ["Queen", "en", 123] (Search-String, Locale, ID)
-    def prepare_autocomplete_model(str)
-      re_locales = I18n.available_locales.map(&:to_s).join("|")
-      lcode = nil
-      model_id = nil
-      search_str = str.sub(/(?:\s*\[(#{re_locales})\]\s*)(?:\[ID=(\d+)*\]\s*)\z/m){ lcode = $1; model_id = $2; "" }
-      model_id = (model_id.blank? ? nil : model_id.to_i)  # nil or Integer
-      [search_str, lcode, model_id] 
-    end
 
     # rendering for update
     #

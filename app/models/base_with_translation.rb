@@ -1775,10 +1775,66 @@ class BaseWithTranslation < ApplicationRecord
   # @return [Array<String>]
   def select_titles_partial_str_except_self(*args, display_id: false, **restkeys)
     select_translations_partial_str_except_self(*args, **restkeys).map{|i| i.translatable}.uniq.map{|em|
-      tit = em.title_or_alt
-      tail = (display_id ? sprintf(" [%s] [ID=%s]", tit.lcode, em.id) : "")  # tit.lcode == em.orig_langcode  in most cases, but orig_langcode may not be defined.
-      tit + tail
+      self.class.base_with_translation_with_id_str(em, print_id: display_id)
     }
+  end
+
+  # @param model [BaseWithTranslation]
+  # @param print_id [Boolean] If true (Def: true), locale and ID are also printed at the tail. Else, just {#title_or_alt} in the original language (NOT in User's language).
+  # @return [String] to be displayed like "Queen [en] [ID=888]"
+  def self.base_with_translation_with_id_str(model, print_id: true)
+    tit = model.title_or_alt
+    tail = (print_id ? sprintf(" [%s] [ID=%s]", tit.lcode, model.id) : "")  # tit.lcode == model.orig_langcode in most cases (for Artist, Music etc), but chances are orig_langcode may remain undefined.
+    tit + tail
+  end
+
+  # Decomposing a "Model+lcode+ID" string
+  #
+  # In +update+ (not +edit+) after auto-complete for a Model, a string query
+  # for the model's Translation candidate is passed. So, we need to retrieve the model based on it.
+  # In principle, there may be no models or multiple models.
+  # Autocomplete helps to identify it uniqlely by appending the locale (langcode)
+  # and ID at the end of the query string, although users can editi them technically
+  # if they insist. Now the Controller for update must identify the model
+  # sending a query to DB. This method does preparation for it.
+  #
+  # Basically, the reverse of {BaseWithTranslation.base_with_translation_with_id_str}
+  #
+  # Specifically, a search string after autocomplete may be like
+  #   "Queen [en] [123]"
+  # which includes the language and its {BaseWithTranslation} model ID.
+  # This method separates them to enable a subsequent DB query.
+  #
+  # @example
+  #    searched, lcode, model_id = BaseWithTranslation.resolve_base_with_translation_with_id_str(strin)
+  #
+  # @param str [String] e.g., "Queen [en] [ID=888]"
+  # @return [Array<String, String, Integer>] e.g., ["Queen", "en", 123] (Search-String, Locale, ID).
+  #    The second and third arguments would be nil if failing to match.
+  def self.resolve_base_with_translation_with_id_str(str)
+    #re_locales = I18n.available_locales.map(&:to_s).join("|")
+    lcode = nil
+    model_id = nil
+    search_str = str.sub(/(?:\s*\[([a-z]{2})\]\s*)(?:\[ID=(\d+)*\]\s*)\z/m){ lcode = $1; model_id = $2; "" }
+    model_id = (model_id.blank? ? nil : model_id.to_i)  # nil or Integer
+    [search_str, lcode, model_id] 
+  end
+
+  # Returns candidate BaseWithTranslation-s from auto-completed string. 
+  #
+  # At least one candidate, and usually only one, should be found unless the user deliberately alters the string.
+  #
+  # If nothing is found, an empty Array is returned.
+  #
+  # @param search_word [String]
+  # @return [Array<BaseWithTranslation>]
+  def candidate_bwts_from_ac_str(search_word)
+    search_str, lcode, model_id = BaseWithTranslation.resolve_base_with_translation_with_id_str(search_word)
+    return [self.class.find(model_id)] if model_id
+
+    self.select_translations_partial_str_except_self(
+      :titles, search_str, langcode: lcode
+    ).map{|i| i.translatable}.uniq
   end
 
   # Wrapper of {Translation.select_regex}

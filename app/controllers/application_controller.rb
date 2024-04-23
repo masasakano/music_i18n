@@ -204,7 +204,7 @@ class ApplicationController < ActionController::Base
   # @param warning [String, NilClass] warning message if any
   # @param notice [String, NilClass] notice message if any
   # @param success [String, NilClass] success message if any. Default is "%s was successfully %s." but it is overwritten if specified.
-  # @return [void]
+  # @return [Boolean, NilClass] true value if successfully saved.
   # @yield [] If given, this is called instead of simple @model.save
   def def_respond_to_format(mdl, created_updated=:created, failed: false, redirected_path: nil, back_html: nil, alert: nil, **inopts)
     ret_status, render_err =
@@ -217,8 +217,14 @@ class ApplicationController < ActionController::Base
         raise 'Contact the code developer.'
       end
 
+    result = nil
     respond_to do |format|
-      result = (!failed && (block_given? ? yield : mdl.save))
+      result =
+        if mdl.errors.any?
+          false
+        else
+          (!failed && (block_given? ? yield : mdl.save))
+        end
       inopts = inopts.map{|k,v| [k, (v.respond_to?(:call) ? v.call(mdl) : v)]}.to_h
       alert = (alert.respond_to?(:call) ? alert.call(mdl) : alert)
       if result
@@ -242,6 +248,7 @@ class ApplicationController < ActionController::Base
         format.json { render json: mdl.errors, **hsstatus }
       end
     end
+    result
   end
 
 
