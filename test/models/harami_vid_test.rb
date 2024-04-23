@@ -12,16 +12,19 @@
 #  uri_playlist_ja(URI option part for the YouTube comment of the music list in Japanese) :string
 #  created_at                                                                             :datetime         not null
 #  updated_at                                                                             :datetime         not null
+#  channel_id                                                                             :bigint
 #  place_id(The main place where the video was set in)                                    :bigint
 #
 # Indexes
 #
+#  index_harami_vids_on_channel_id    (channel_id)
 #  index_harami_vids_on_place_id      (place_id)
 #  index_harami_vids_on_release_date  (release_date)
 #  index_harami_vids_on_uri           (uri) UNIQUE
 #
 # Foreign Keys
 #
+#  fk_rails_...  (channel_id => channels.id)
 #  fk_rails_...  (place_id => places.id)
 #
 require 'test_helper'

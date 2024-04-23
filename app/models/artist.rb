@@ -29,6 +29,9 @@
 class Artist < BaseWithTranslation
   include ModuleUnknown
 
+  # defines +self.class.primary+
+  include ModulePrimaryArtist
+
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = %i(birth_day birth_month birth_year wiki_en wiki_ja place_id sex_id)
 

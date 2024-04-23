@@ -35,8 +35,6 @@
         <td><%= m=model.channel_owner; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), channel_owner_path(m)) %></td>
         <td><%= m=model.channel_platform; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), channel_platform_path(m)) %></td>
         <td><%= m=model.channel_type; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), channel_type_path(m)) %></td>
-        <td><%= link_to(model.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) ) %></td>
-        <td><%= link_to(model.channel_type.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) ) %></td>
         <td><%= model.note %></td>
       <% if can? :update, Users::EditRolesController %>
         <td><%= ur = model.create_user; link_to(ur.display_name, ur) if ur %></th>

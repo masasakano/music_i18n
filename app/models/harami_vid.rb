@@ -13,16 +13,19 @@
 #  uri_playlist_ja(URI option part for the YouTube comment of the music list in Japanese) :string
 #  created_at                                                                             :datetime         not null
 #  updated_at                                                                             :datetime         not null
+#  channel_id                                                                             :bigint
 #  place_id(The main place where the video was set in)                                    :bigint
 #
 # Indexes
 #
+#  index_harami_vids_on_channel_id    (channel_id)
 #  index_harami_vids_on_place_id      (place_id)
 #  index_harami_vids_on_release_date  (release_date)
 #  index_harami_vids_on_uri           (uri) UNIQUE
 #
 # Foreign Keys
 #
+#  fk_rails_...  (channel_id => channels.id)
 #  fk_rails_...  (place_id => places.id)
 #
 class HaramiVid < BaseWithTranslation
@@ -47,6 +50,7 @@ class HaramiVid < BaseWithTranslation
   before_validation :add_default_place
 
   belongs_to :place
+  belongs_to :channel
   has_many :harami_vid_music_assocs, dependent: :destroy
   has_many :musics, -> { order(Arel.sql('CASE WHEN timing IS NULL THEN 1 ELSE 0 END, timing')) }, through: :harami_vid_music_assocs   # in the order of timing in HaramiVidMusicAssoc, which is already joined.
 

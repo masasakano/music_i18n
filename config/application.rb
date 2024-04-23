@@ -1,3 +1,4 @@
+# coding: utf-8
 require_relative "boot"
 
 require "rails/all"
@@ -53,6 +54,25 @@ module HaramiMusicI18n
     # without touching the other values in Time, consult
     #   https://stackoverflow.com/a/78053461/3577922
     config.music_i18n_def_timezone_str = (ENV["MUSIC_I18N_DEF_TIMEZONE_STR"] || "+09:00")
+
+    # Do not change this (unless you search and change all of then consistently)
+    config.primary_artist_titles = {
+      ja: {
+        title: 'ハラミちゃん',
+        ruby:  'ハラミチャン',
+        romaji: 'Haramichan',
+        weight: 0,
+        is_orig: true,
+        langcode: "ja",
+      }.with_indifferent_access,
+      en: {
+        title: 'HARAMIchan',
+        alt_title: 'Harami-chan',
+        weight: 10,
+        is_orig: false,
+        langcode: "en",
+      }.with_indifferent_access,
+    }.with_indifferent_access
   end
 end
 

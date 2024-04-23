@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_04_23_094627) do
+ActiveRecord::Schema[7.0].define(version: 2024_04_23_173717) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -346,6 +346,8 @@ ActiveRecord::Schema[7.0].define(version: 2024_04_23_094627) do
     t.text "note"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "channel_id"
+    t.index ["channel_id"], name: "index_harami_vids_on_channel_id"
     t.index ["place_id"], name: "index_harami_vids_on_place_id"
     t.index ["release_date"], name: "index_harami_vids_on_release_date"
     t.index ["uri"], name: "index_harami_vids_on_uri", unique: true
@@ -612,6 +614,7 @@ ActiveRecord::Schema[7.0].define(version: 2024_04_23_094627) do
   add_foreign_key "harami1129s", "harami_vids"
   add_foreign_key "harami_vid_music_assocs", "harami_vids", on_delete: :cascade
   add_foreign_key "harami_vid_music_assocs", "musics", on_delete: :cascade
+  add_foreign_key "harami_vids", "channels"
   add_foreign_key "harami_vids", "places"
   add_foreign_key "musics", "genres"
   add_foreign_key "musics", "places"

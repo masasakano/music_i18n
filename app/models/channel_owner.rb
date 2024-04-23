@@ -30,6 +30,9 @@ class ChannelOwner < BaseWithTranslation
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
 
+  # defines +self.class.primary+
+  include ModulePrimaryArtist
+
   attr_accessor :artist_with_id
 
   # For the translations to be unique (required by BaseWithTranslation).
@@ -63,7 +66,7 @@ class ChannelOwner < BaseWithTranslation
 
   # NOTE: UNKNOWN_TITLES required to be defined for the methods included from ModuleUnknown. alt_title can be also defined as an Array instead of String.
   UNKNOWN_TITLES = {
-    "ja" => ['不明のチャンネル種類'],
+    "ja" => ['不明のチャンネル主'],
     "en" => ['Unknown channel owner'],
     "fr" => ['Propriétaire de chaine inconnu'],
   }.with_indifferent_access
