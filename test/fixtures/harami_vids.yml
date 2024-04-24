@@ -36,6 +36,7 @@ harami_vid1:
   flag_by_harami: true
   uri_playlist_ja: MyString
   uri_playlist_en: MyString
+  channel: channel_haramichan_youtube_main
   note: HaramiVid1
 
 harami_vid2:
@@ -46,6 +47,7 @@ harami_vid2:
   flag_by_harami: true
   uri_playlist_ja: MyString
   uri_playlist_en: MyString
+  channel: channel_haramichan_youtube_main
   note: HaramiVid2
 
 harami_vid3:
@@ -56,6 +58,7 @@ harami_vid3:
   flag_by_harami: true
   uri_playlist_ja: 
   uri_playlist_en: 
+  channel: channel_haramichan_youtube_main
   note: HaramiVid3
 
 harami_vid4:
@@ -66,6 +69,7 @@ harami_vid4:
   flag_by_harami: true
   uri_playlist_ja: 
   uri_playlist_en: 
+  channel: channel_haramichan_youtube_main
   note: HaramiVid4
 
 harami_vid_ihojin1:
@@ -76,6 +80,7 @@ harami_vid_ihojin1:
   flag_by_harami: true
   uri_playlist_ja: 
   uri_playlist_en: 
+  channel: channel_haramichan_youtube_main
   note: HaramiVidIhojin1
 
 harami_vid_50anni:
@@ -86,6 +91,7 @@ harami_vid_50anni:
   flag_by_harami: true
   uri_playlist_ja: 
   uri_playlist_en: 
+  channel: channel_haramichan_youtube_main
   note: HaramiVid50anniversary, title modified
 
 harami_vid_paris1:
@@ -96,5 +102,6 @@ harami_vid_paris1:
   flag_by_harami: true
   uri_playlist_ja: 
   uri_playlist_en: 
+  channel: channel_haramichan_youtube_main
   note: HaramiVidInParis1
 

@@ -190,6 +190,9 @@ ja:
     table_head_date: 公開日
     table_head_timing: "開始時[秒]"
     table_head_completeness: 一曲全部
+    table_head_ChannelOwner: チャンネル主
+    table_head_ChannelPlatform: サイト
+    table_head_ChannelType: 種別
 
   musics:
     index:

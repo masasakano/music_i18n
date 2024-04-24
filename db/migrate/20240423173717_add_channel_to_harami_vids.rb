@@ -32,7 +32,10 @@ class AddChannelToHaramiVids < ActiveRecord::Migration[7.0]
   def _create_basic_channels
     arret = []
     arret.push("Channel.unknown") if _create_basic_channel_unknown
-    arret.push("Channel.primary") if _create_basic_channel_harami
+    result, cpr = _create_basic_channel_harami  # cpr - Channel-PRimary
+    arret.push("Channel.primary") if result
+    cpr.reload
+    HaramiVid.update_all(channel_id: cpr.id)  # updated_at is not updated.
     arret
   end
 
@@ -80,10 +83,10 @@ class AddChannelToHaramiVids < ActiveRecord::Migration[7.0]
   end
 
   # Creates Channel.primary if not yet created.
-  # @return [NilClass, TrueClass] nil if nothing is updated. true if newly created
+  # @return [Array<NilClass|TrueClass, Channel] the first one nil if nothing is updated. Second one is {Channel.primary}.
   def _create_basic_channel_harami
     obj = _get_primary_of_class(Channel)
-    return obj if obj.respond_to? :translations
+    return [nil, obj] if obj.respond_to? :translations
 
     ch_harami = Channel.find_or_initialize_by(
       channel_type_id:     ChannelType.find_by(mname: :main).id,
@@ -91,7 +94,7 @@ class AddChannelToHaramiVids < ActiveRecord::Migration[7.0]
       channel_owner_id: _get_primary_of_class(ChannelOwner).id,
     )
 
-    return nil if !ch_harami.new_record? 
+    return [nil, ch_harami] if !ch_harami.new_record? 
     ch_harami.save!
 
     obj.each_value do |ev|
@@ -99,7 +102,7 @@ class AddChannelToHaramiVids < ActiveRecord::Migration[7.0]
       ch_harami.translations << tra 
       tra.reload.update!(translatable_type: "Channel")  # originally, "AddChannelToHaramiVids::Channel"
     end
-    return true
+    return [true, ch_harami]
   end
 
   # @see /app/models/concerns/module_primary_artist.rb

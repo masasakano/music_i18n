@@ -4,6 +4,11 @@ ja:
   are_you_sure: "本当に実行していいのですね?"
   are_you_sure_but_merge: "もし重複ならばマージもできますが?"
   Artist: アーティスト
+  Artists: アーティスト
+  Channel: チャンネル
+  ChannelOwner: チャンネル主
+  ChannelPlatform: チャンネルのプラットフォーム
+  ChannelType: チャンネルの種別
   Country: 国名
   detail: 詳細
   display_name: 表示名
@@ -21,6 +26,7 @@ ja:
   index: 一覧
   log_out: ログアウト
   Music: 楽曲
+  Musics: 楽曲
   or: または
   Prefecture: 都道府県
   Place: 場所

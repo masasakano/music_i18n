@@ -22,6 +22,13 @@
         ""
       end %></dd>
 
+  <dt> <%= t(:Channel) %>:</dt>
+  <dd>「<%= @harami_vid.channel.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>」</dd>
+  <dd><%= @harami_vid.channel.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>
+      (<%= t("harami_vids.table_head_ChannelType", default: "Type") %>: <%= @harami_vid.channel.channel_type.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>)
+    by <%= @harami_vid.channel.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>
+  </dd>
+
   <dt> <%= t("datagrid.form.by_harami_full") %>:</dt>
   <dd><%= @harami_vid.flag_by_harami %></dd>
 

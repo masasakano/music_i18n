@@ -33,6 +33,8 @@ class HaramiVid < BaseWithTranslation
   include ApplicationHelper # for link_to_youtube
   include ModuleCommon
 
+  before_validation :add_def_channel
+
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = %i(uri)
 
@@ -268,6 +270,13 @@ class HaramiVid < BaseWithTranslation
       next s1 if 1 == n_arts
       s1+', '+ActionController::Base.helpers.link_to('……', music_path(ea_mu))
     }.join('<br>').html_safe
+  end
+
+
+  # Callback before_validation and before_save
+  #
+  def add_def_channel
+    self.channel ||= Channel.primary
   end
 
   private

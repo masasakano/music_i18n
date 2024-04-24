@@ -39,7 +39,8 @@ class HaramiVidMusicAssocTest < ActiveSupport::TestCase
     ura = harami_vid_music_assocs(:harami_vid_music_assoc1)
     h1 = harami_vids(:harami_vid1)
     m1 = musics(:music1)
-    h2 = HaramiVid.create!
+    chan = Channel.primary
+    h2 = HaramiVid.create!(channel: chan)
 
     n_orig = HaramiVidMusicAssoc.count
     m1hv = m1.harami_vids

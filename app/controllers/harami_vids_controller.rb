@@ -24,7 +24,7 @@ class HaramiVidsController < ApplicationController
   # GET /harami_vids/new
   def new
     @harami_vid = HaramiVid.new
-    params.permit(:release_date, :duration, :uri, :place_id, :flag_by_harami, :uri_playlist_ja, :uri_playlist_en, :music_timing, :note)
+    params.permit(:release_date, :duration, :uri, :place_id, :flag_by_harami, :uri_playlist_ja, :uri_playlist_en, :music_timing, :channel, :note)
     @countries = Country.all
     @prefectures = Prefecture.all
     @places = Place.all
@@ -140,7 +140,7 @@ class HaramiVidsController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def harami_vid_params
-      params.require(:harami_vid).permit(:release_date, :duration, :uri, :"place.prefecture_id.country_id", :"place.prefecture_id", :place, :flag_by_harami, :uri_playlist_ja, :uri_playlist_en, :artist, :engage_how2, :music, :music_timing, :note)
+      params.require(:harami_vid).permit(:release_date, :duration, :uri, :"place.prefecture_id.country_id", :"place.prefecture_id", :place, :flag_by_harami, :uri_playlist_ja, :uri_playlist_en, :artist, :engage_how2, :music, :music_timing, :channel, :note)
     end
 
     # Only those that are direct parameters of HaramiVid

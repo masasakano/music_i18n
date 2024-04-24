@@ -56,6 +56,7 @@ class Channel < BaseWithTranslation
   belongs_to :channel_owner
   belongs_to :channel_type
   belongs_to :channel_platform
+  has_many :harami_vids, -> {distinct}, dependent: :restrict_with_exception  # dependent is a key / Basically this should not be easily destroyed - it may be merged instead.
 
   before_create     :set_create_user       # This always sets non-nil weight. defined in /app/models/concerns/module_whodunnit.rb
   before_save       :set_update_user       # defined in /app/models/concerns/module_whodunnit.rb
@@ -73,5 +74,14 @@ class Channel < BaseWithTranslation
     "en" => ['Unknown channel'],
     "fr" => ['Chaine inconnue'],
   }.with_indifferent_access
+
+  # @return [Channel]
+  def self.primary
+    self.find_by(
+      channel_type_id:     ChannelType.find_by(mname: :main).id,
+      channel_platform_id: ChannelPlatform.find_by(mname: :youtube).id,
+      channel_owner_id:    ChannelOwner.primary.id,
+    )
+  end
 end
 

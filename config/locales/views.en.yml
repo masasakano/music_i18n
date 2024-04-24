@@ -175,6 +175,9 @@ en:
     table_head_date: Date
     table_head_timing: "Timing[s]"
     table_head_completeness: Completeness
+    table_head_ChannelOwner: Owner
+    table_head_ChannelPlatform: Platform
+    table_head_ChannelType: Type
 
   musics:
     index:

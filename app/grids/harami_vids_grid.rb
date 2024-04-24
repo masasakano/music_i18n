@@ -15,7 +15,17 @@ class HaramiVidsGrid < BaseGrid
   filter(:duration, :integer, range: true, header: Proc.new{I18n.t('tables.duration')}) # float in DB # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
   filter(:release_date, :date, range: true, header: Proc.new{I18n.t('tables.release_date')}) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
 
-  filter(:flag_by_harami, :xboolean, header: Proc.new{I18n.t('datagrid.form.by_harami_full', default: "Produced by Haramichan?")})
+  filter(:channel_owner, :enum, dummy: true, select: Proc.new{
+           ChannelOwner.joins(channels: :harami_vids).distinct.map{|i| [s=i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i.id]}},  # filtering out those none of HaramiVid belong to
+         header: Proc.new{I18n.t("harami_vids.table_head_ChannelOwner", default: "Channel owner")}) do |value|  # Only for PostgreSQL!
+    self.joins(channel: :channel_owner).where("channel_owner.id" => [value].flatten)
+  end
+  filter(:channel_type, :enum, dummy: true, select: Proc.new{
+           ChannelType.joins(channels: :harami_vids).distinct.order(:weight).map{|i| [s=i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i.id]}},  # filtering out those none of HaramiVid belong to
+         header: Proc.new{I18n.t("harami_vids.table_head_ChannelType", default: "Channel type")}) do |value|  # Only for PostgreSQL!
+    self.joins(channel: :channel_type).where("channel_type.id" => [value].flatten)
+  end
+  # filter(:flag_by_harami, :xboolean, header: Proc.new{I18n.t('datagrid.form.by_harami_full', default: "Produced by Haramichan?")})
 
   filter_partial_str(:artists, header: Proc.new{I18n.t('datagrid.form.artists_multi')})
   filter_partial_str(:musics,  header: Proc.new{I18n.t('datagrid.form.musics_multi')})
@@ -54,10 +64,10 @@ class HaramiVidsGrid < BaseGrid
     record.musics.uniq.count
   end
 
-  column(:musics,  mandatory: true) do |record|
+  column(:musics,  mandatory: true, header: I18n.t(:Musics)) do |record|
     record.musics.uniq.map{  |mu| mu.title_or_alt(prefer_alt: true)}.to_csv.to_s.gsub(/,([^\s])/, ', \1')
   end
-  column(:artists, mandatory: true) do |record|
+  column(:artists, mandatory: true, header: I18n.t(:Artists)) do |record|
     record.artists.uniq.map{ |mu| mu.title_or_alt(prefer_alt: true)}.to_csv.to_s.gsub(/,([^\s])/, ', \1')
   end
 
@@ -69,15 +79,35 @@ class HaramiVidsGrid < BaseGrid
   column(:uri, mandatory: true, order: false) do |record|
     link_to_youtube record.uri, record.uri
   end
+
+  column(:channel, html: true, header: Proc.new{sprintf "%s [%s]", I18n.t(:Channel, default: "Channel"), I18n.t("harami_vids.table_head_ChannelType", default: "Type")}) do |record|
+    tit = ((cha=record.channel) ? cha.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) : nil)
+    kind = ((cha && typ=cha.channel_type) ? typ.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) : "").sub(/の?チャンネル|\s*channel/i, "")
+    next "" if !tit
+    sprintf("%s [%s]", (can?(:read, cha) ? link_to(tit, channel_path(cha)) : tit), kind).html_safe
+  end
+
+  column(:owner, html: true, header: Proc.new{I18n.t("harami_vids.table_head_ChannelOwner", default: "Owner")}) do |record|
+    tit = ((cha=record.channel) ? cha.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) : nil)
+    next "" if !tit
+    (can?(:read, cha) ? link_to(tit, channel_owner_path(cha)) : tit)
+  end
+
+  column(:platform, html: true, header: Proc.new{I18n.t("harami_vids.table_head_ChannelPlatform", default: "Platform")}) do |record|
+    tit = ((cha=record.channel) ? cha.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) : nil)
+    next "" if !tit
+    tit
+  end
+
+  column(:flag_by_harami, class: ["align-cr"], header: Proc.new{I18n.t('datagrid.form.by_harami', default: "By Harami?")}) do |record|
+    (record ? "Y" : (record.nil? ? "" : "N"))
+  end
+
   column(:uri_playlist_ja, mandatory: false, order: false, header: Proc.new{I18n.t('datagrid.form.uri_playlist', langcode: "ja")}) do |record|
     link_to_youtube record.uri_playlist_ja, record.uri_playlist_ja
   end
   column(:uri_playlist_en, mandatory: false, order: false, header: Proc.new{I18n.t('datagrid.form.uri_playlist', langcode: "en")}) do |record|
     link_to_youtube record.uri_playlist_en, record.uri_playlist_en
-  end
-
-  column(:flag_by_harami, class: ["align-cr"], header: Proc.new{I18n.t('datagrid.form.by_harami', default: "By Harami?")}) do |record|
-    (record ? "Y" : (record.nil? ? "" : "N"))
   end
 
   column(:note, order: false, header: Proc.new{I18n.t('tables.note')})
