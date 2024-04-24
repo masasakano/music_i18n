@@ -88,5 +88,12 @@ class SexTest < ActiveSupport::TestCase
     end
     assert_not sex.not_disagree?(Sex[:female])
   end
+
+  test "create_basic!" do
+    mdl = nil
+    assert_nothing_raised{
+      mdl = Sex.create_basic!}
+    assert_match(/^Sex\-basic\-/, mdl.title)
+  end
 end
 

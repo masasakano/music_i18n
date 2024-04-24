@@ -254,5 +254,24 @@ class ArtistTest < ActiveSupport::TestCase
       art1.destroy
     }
   end
+
+  test "create_basic!" do
+    art = nil
+    assert_nothing_raised{
+      art = Artist.create_basic!}
+    assert_match(/^Artist\-basic\-/, art.title)
+    assert  art.best_translation.is_orig
+    assert_equal Sex, art.sex.class
+    assert_nil  art.birth_year
+
+    se = Sex.last
+    art = Artist.create_basic!(sex: se)
+    assert_equal se, art.sex
+
+    tra = Artist.first.best_translation.dup
+    assert_nothing_raised{
+      art = Artist.create_basic!(translation: tra, birth_year: 1907)}  # Identical Translation for an existing Artist with a different birth_year is accepted.
+    assert_equal 1907, art.birth_year
+  end
 end
 

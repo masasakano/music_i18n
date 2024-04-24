@@ -420,3 +420,12 @@ class Artist < BaseWithTranslation
     end
 end
 
+class << Artist
+  alias_method :create_basic_bwt!, :create_basic! if !self.method_defined?(:create_basic_bwt!)
+
+  # Wrapper of {BaseWithTranslation.create_basic!}
+  def create_basic!(*args, sex: nil, **kwds)
+    create_basic_bwt!(*args, sex: (sex || Sex.create_basic!), **kwds)
+  end
+end
+

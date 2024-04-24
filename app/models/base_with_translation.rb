@@ -252,14 +252,14 @@
 #   b.with_translations(             ja: [{title: 'イマジン'}], en: {title: 'Imagine', is_orig: true})
 #   b.with_updated_translations(     ja: [{title: 'イマジン'}], en: {title: 'Imagine', is_orig: true})
 #     # => [BWT, [BWT, ...]]  # calling create, with NO update
-#   b.create_translation!(          langcode: en, title: 'Imagine', is_orig: true)
-#   b.update_or_create_translation!(langcode: en, title: 'Imagine', is_orig: true)
+#   b.create_translation!(          langcode: 'en', title: 'Imagine', is_orig: true)
+#   b.update_or_create_translation!(langcode: 'en', title: 'Imagine', is_orig: true)
 #     # =>  Translation
-#   b.with_translation(             langcode: en, title: 'Imagine', is_orig: true)
-#   b.with_updated_translation(     langcode: en, title: 'Imagine', is_orig: true)
+#   b.with_translation(             langcode: 'en', title: 'Imagine', is_orig: true)
+#   b.with_updated_translation(     langcode: 'en', title: 'Imagine', is_orig: true)
 #     # =>  BWT  # calling create, with NO update
-#   b.with_orig_translation(        langcode: en, title: 'Imagine')
-#   b.with_orig_updated_translation(langcode: en, title: 'Imagine')
+#   b.with_orig_translation(        langcode: 'en', title: 'Imagine')
+#   b.with_orig_updated_translation(langcode: 'en', title: 'Imagine')
 #     # =>  BWT  # calling create, with NO update
 #
 #   # Filtered by both Artist and Music names
@@ -3688,3 +3688,35 @@ tra_orig.save!
       self.genre = (Genre.unknown || Genre.first) if !self.genre
     end
 end
+
+class << BaseWithTranslation
+  alias_method :create_basic_application_original!, :create_basic! if !self.method_defined?(:create_basic_application_original!)
+
+  # Modifies {ApplicationRecord.create_basic!} to automatically add a unique translation
+  #
+  # @example In case you need to overwrite it (see also the bottom section of BaseWithTranslation).
+  #    class << Artist
+  #      alias_method :create_basic_bwt!, :create_basic! if !self.method_defined?(:create_basic_bwt!)
+  #      def create_basic!(*args, sex: nil, **kwds)
+  #        create_basic_bwt!(*args, sex: (sex || Sex.first), **kwds)
+  #      end
+  #    end
+  #
+  #    record = Artist.create_basic!  # => ok.
+  #
+  # @param translation: [Translation, Nilclass] if given, this (unsaved) Translation is used instead.
+  #    You can give an existing Translation as long as it belongs to a different parent class
+  #    (if it belongs to the same class, it is likely to raise a unique-violation-related Exception).
+  def create_basic!(*args, translation: nil, **kwds)
+    model = create_basic_application_original!(*args, **kwds)
+    hs =
+      if translation 
+        translation.attributes.except(*(%w(id translatable_type translatable_id created_at updated_at)))
+      else
+        {langcode: "en", title: name+"-basic-"+rand(0.429).to_s, is_orig: true, weight: 1000}
+      end
+
+    model.with_translation(**hs)
+  end
+end
+

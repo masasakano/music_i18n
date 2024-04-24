@@ -148,3 +148,13 @@ class Sex < BaseWithTranslation
   end
 end
 
+class << Sex
+  alias_method :create_basic_bwt!, :create_basic! if !self.method_defined?(:create_basic_bwt!)
+
+  # Wrapper of {BaseWithTranslation.create_basic!}
+  def create_basic!(*args, iso5218: nil, **kwds)
+    create_basic_bwt!(*args, iso5218: (iso5218 || (rand(0.23)*1e6).to_i.to_s), **kwds)
+  end
+end
+
+
