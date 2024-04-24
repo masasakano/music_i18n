@@ -66,7 +66,7 @@ evit_2_harami_lucky2023:
   event_ratio: 0.3
   event: ev_harami_lucky2023
   place: unknown_place_shimane_japan
-  note: EventItem1_ev_harami_lucky2023
+  note: EventItem2_ev_harami_lucky2023
 
 evit_1_harami_budokan2022_soiree:
   machine_title: HARAMIchan_Budokan_2022_soiree
@@ -79,4 +79,28 @@ evit_1_harami_budokan2022_soiree:
   event: ev__harami_budokan2022_soiree
   place: unknown_place_tokyo_japan
   note: EventItem1_harami_budokan2022_soiree
+
+one:
+  machine_title: EventItem one
+  start_time: 2021-02-01 01:00:00
+  start_time_err: 300
+  duration_minute: 20
+  duration_minute_err: 2
+  weight: 0.6
+  event_ratio: 0.2
+  event: ev_harami_lucky2023
+  place: unknown_place_shimane_japan
+  note: EventItemOne
+
+two:
+  machine_title: EventItem two
+  start_time: 2021-02-02 02:00:00
+  start_time_err: 300
+  duration_minute: 20
+  duration_minute_err: 2
+  weight: 0.7
+  event_ratio: 0.2
+  event: ev_harami_lucky2023
+  place: unknown_place_shimane_japan
+  note: EventItemTwo
 

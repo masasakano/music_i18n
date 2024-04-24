@@ -1513,6 +1513,26 @@ harami_vid_paris1_ja:
   update_user: user_moderator
   note: HaramiVidParis1_titleJa
 
+harami_vid_one_ja:
+  translatable: one (HaramiVid)
+  langcode: ja
+  title: 一番
+  is_orig: true
+  weight: 100
+  create_user: user_two
+  update_user: user_moderator
+  note: HaramiVidOneJa
+
+harami_vid_two_en:
+  translatable: two (HaramiVid)
+  langcode: en
+  title: Number Two Vid
+  is_orig: true
+  weight: 100
+  create_user: user_two
+  update_user: user_moderator
+  note: HaramiVidTwoEn
+
 engage_how_unknown_en:
   translatable: engage_how_unknown
   translatable_type: EngageHow

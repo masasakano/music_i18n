@@ -123,6 +123,12 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     assert_raises(ActiveRecord::DeleteRestrictionError){
       @event_group.events.destroy_all }
     @event_group.events.each do |eev|
+      assert_raises(ActiveRecord::DeleteRestrictionError){
+        eev.event_items.destroy_all }
+
+      eev.event_items.each do |eevi|
+        eevi.harami_vids.destroy_all
+      end
       eev.event_items.destroy_all
       eev.destroy
     end

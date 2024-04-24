@@ -51,18 +51,29 @@ class HaramiVid < BaseWithTranslation
   # Therefore this method has to be called before each validation.
   before_validation :add_default_place
 
-  belongs_to :place
-  belongs_to :channel
+  belongs_to :place     # see: before_validation and "validates :place, presence: true"
+  belongs_to :channel   # see: before_validation :add_def_channel
   has_many :harami_vid_music_assocs, dependent: :destroy
+  has_many :harami_vid_event_item_assocs,  dependent: :destroy
   has_many :musics, -> { order(Arel.sql('CASE WHEN timing IS NULL THEN 1 ELSE 0 END, timing')) }, through: :harami_vid_music_assocs   # in the order of timing in HaramiVidMusicAssoc, which is already joined.
 
-  has_many :artists, through: :musics
+  has_many :event_items, -> {distinct}, through: :harami_vid_event_item_assocs  # if the unique constraint is on for Association, `distinct` is not necessary for two-component associations (but it is for multi-components)
+  has_many :events,       -> {distinct}, through: :event_items
+  has_many :event_groups, -> {distinct}, through: :events
+  has_many :artist_music_plays, through: :event_items, source: :artists  # to an Association model! (NOT to Artists/Musics)
+  has_many :artist_collabs, -> {distinct}, through: :event_items, source: :artists
+
+  has_many :artists,     through: :musics  # duplication is possible. "distinct" would not work with ordering! So, use uniq if required.
   has_many :harami1129s, dependent: :nullify
   delegate :country,    to: :place, allow_nil: true
   delegate :prefecture, to: :place, allow_nil: true
+  delegate :channel_owner,    to: :channel, allow_nil: true
+  delegate :channel_type,     to: :channel, allow_nil: true
+  delegate :channel_platform, to: :channel, allow_nil: true
 
   validates_uniqueness_of :uri, allow_nil: true
-  validates :place, presence: true  # NOT DB constraint, but Rails before_validation sets this with a default unknown Place
+  validates :place, presence: true  # NOT DB constraint, but Rails before_validation sets this with a default unknown Place.
+  #validates :channel, presence: true  # before_validation  is taking care of. NOT DB constraint, but belongs_to constrains.
 
   DEF_PLACE = (
     (Place.unknown(country: Country['JPN']) rescue nil) ||

@@ -41,6 +41,7 @@ en:
   ChannelPlatform: Channel Platform
   ChannelType: Channel Type
   Country: Country
+  comma: ", "
   detail: Detail
   display_name: Display Name
   eg_independent: "e.g., "
@@ -58,6 +59,7 @@ en:
   log_out: Log out
   Music: Music
   Musics: Musics
+  None: None
   or: or
   Prefecture: Prefecture
   Place: Place

@@ -51,3 +51,28 @@ two:
   cover_ratio: 1.0
   contribution_artist: 0.6
   note: AMPlayBudokanStoryAi
+
+ampy_evit_1_harami_lucky2023_rcsucc:
+  event_item: evit_1_harami_lucky2023
+  artist: artist_rcsuccession
+  music: music_kampai
+  play_role: play_role_singer
+  instrument: instrument_vocal
+  note: AMPlayLuckyFes1RcSuccessionKampai
+
+ampy_evit_2_harami_lucky2023_proclaimers:
+  event_item: evit_2_harami_lucky2023
+  artist: artist_proclaimers
+  music: music_ihojin1
+  play_role: play_role_singer
+  instrument: instrument_vocal
+  note: AMPlayLuckyFes2ProclaimersIhojin1
+
+ampy_evit_2_harami_lucky2023_rcsucc:
+  event_item: evit_2_harami_lucky2023
+  artist: artist_rcsuccession
+  music: music_story
+  play_role: play_role_singer
+  instrument: instrument_vocal
+  note: AMPlayLuckyFes2RcSuccessionStory
+

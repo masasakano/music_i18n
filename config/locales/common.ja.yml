@@ -10,6 +10,7 @@ ja:
   ChannelPlatform: チャンネルのプラットフォーム
   ChannelType: チャンネルの種別
   Country: 国名
+  comma: "、"
   detail: 詳細
   display_name: 表示名
   eg_independent: "例: "
@@ -27,6 +28,7 @@ ja:
   log_out: ログアウト
   Music: 楽曲
   Musics: 楽曲
+  None: なし
   or: または
   Prefecture: 都道府県
   Place: 場所

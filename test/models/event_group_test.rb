@@ -59,6 +59,11 @@ class EventGroupTest < ActiveSupport::TestCase
 
     # Once the children are destoryed, it is destroyable.
     evgr.events.each do |eev|
+      assert_raises(ActiveRecord::DeleteRestrictionError){  # At DB level, <ActiveRecord::InvalidForeignKey> for <"PG::ForeignKeyViolation: ERROR:  update or delete on table "event_groups" violates foreign key constraint "fk_rails_..." on table "events"  DETAIL:  Key (id)=(804171372) is still referenced from table "events".>
+      eev.event_items.destroy_all }  # failed.
+      eev.event_items.each do |eevit|
+        eevit.harami_vids.destroy_all  # You cannot delete it with Event#harami_vids.destroy_all  because of ActiveRecord::HasManyThroughNestedAssociationsAreReadonly
+      end
       eev.event_items.destroy_all
       eev.destroy
     end
@@ -88,5 +93,12 @@ class EventGroupTest < ActiveSupport::TestCase
     assert_raises(ActiveRecord::RecordInvalid){ evgr.update!(start_date_err: 0, end_date_err: 0, start_date: Date.new(2000, 3, 5)) }
     evgr.reload
     assert_nothing_raised{                      evgr.update!(start_date_err: nil,end_date_err: 0, start_date: Date.new(2000, 3, 5)) }
+  end
+
+  test "association" do
+    eg = EventGroup.first
+    assert_nothing_raised{ eg.events }
+    assert_nothing_raised{ eg.event_items }
+    assert_nothing_raised{ eg.harami_vids }
   end
 end

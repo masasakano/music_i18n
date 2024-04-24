@@ -10,6 +10,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
   teardown do
     # when controller is using cache it may be a good idea to reset it afterwards
     Rails.cache.clear
+    @h1_index = "HARAMIchan's Videos"
   end
 
   test "visiting the index and then creating one" do
@@ -21,7 +22,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_selector "h1", text: "HARAMIchan"
 
     visit harami_vids_url
-    assert_selector "h1", text: "HARAMIchan's Videos"
+    assert_selector "h1", text: @h1_index
 
     click_on "Create a new HaramiVid"
 
@@ -45,6 +46,26 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
     #assert_text "Harami vid was successfully created"
     #click_on "Back"
+  end
+
+  test "visiting the index as a guest" do
+    visit grid_index_path_helper(HaramiVid, column_names: ["events", "collabs"], max_per_page: 25)
+    assert_selector "h1", text: @h1_index
+
+    tit_lucky = events(:ev_harami_lucky2023).title(langcode: "en")  # HARAMIchan at LuckyFes 2023
+    assert_text "The Proclaimers"  # NOT "Proclaimers, The"
+    assert_text tit_lucky  # in "feat. Artists"
+    assert_selector 'table thead th.events', text: "Events"
+    assert_selector 'table thead th.collabs', text: "feat. Artists"
+
+    htmlcapy_hed = page.all('table thead tr')[-1].all('th')[6]
+    assert_equal    htmlcapy_hed.text, "Events"
+    htmlcapy_evt = page.all('table tbody tr')[-1].all('td')[6]
+    htmlcapy_art = page.all('table tbody tr')[-1].all('td')[7]
+    assert_equal    htmlcapy_evt.text, tit_lucky 
+    assert_includes htmlcapy_evt['innerHTML'], tit_lucky
+    refute_includes htmlcapy_evt['innerHTML'], "<a"  # link hidden for unauthorized in Events
+    assert_includes htmlcapy_art['innerHTML'], "<a"  # link visible to anyone in feat. Artists
   end
 
   # test "updating a Harami vid" do

@@ -1,12 +1,52 @@
 <%= render @event_item %>
 
 <div>
-    <% if can? :update, @event_item %>
-  <%= link_to "Edit this EventItem", edit_event_item_path(@event_item) %> |
-    <% end %>
-  <%= link_to "Back to EventItems", event_items_path %>
 
-    <% if can? :destroy, @event_item %>
-  <%= button_to "Destroy this EventItem", @event_item, method: :delete %>
-    <% end %>
+<%# ---- taken from layouts/_link_merge_destroy.html.erb ---- %>
+
+<% model = @event_item %>
+<% model_name = model.class.name %>
+<% model_underscore = model_name.underscore %>
+<% can_update = (!model.new_record? && can?(:update, model)) %>
+<% can_update_in_show = (can_update && true ) %>
+<% if can_update_in_show %>
+  <div class="link-edit-destroy">
+    <% path_edit = send("edit_"+model_underscore+"_path", model) %> <%# e.g., edit_music_path(model) %>
+    <%= link_to "Edit this EventItem", path_edit, class: "link-edit" %> | <%# -------- show only %>
+<% end %>
+  <%= link_to "Back to EventItems", event_items_path %>
+<% if !model.new_record? && (can?(:destroy, model) || can?(:update, model) && can?(:update, model)) %>
+  <% if can_update %>
+  <div class="actions-destroy actions-destroy-align-r">
+   <div class="actions">
+  <% end %>
+
+     <% if can?(:destroy, model) && !model.harami_vids.exists?  %> <%# && !model.harami1129s.exists? %>
+      <% msg2confirm = (t('are_you_sure')+" "+t("are_you_sure_but_merge")).html_safe %>
+       <%= button_to 'Destroy', model, method: :delete, data: { confirm: msg2confirm } %>
+     <% else %>
+       <%# ----- In "show", nothing related to "Destroy" is shown. %> <%# I think this is redundant and unnecessary, because when it is a new record, this point should not be reached in the first place. %>
+       <form class="button_to"><input disabled="disabled" type="submit" value="Destroy"></form>
+       (<%= model_name %> has dependent HaramiVids and/or Harami1129s and so cannot be destroyed.)
+     <% end %>
+  <% if can_update %>
+   </div>
+  </div>
+  <% end %>
+<% end %>
+<% if can_update_in_show %>
+  </div>
+<% end %>
+    
 </div>
+
+<hr>
+
+<section id=event_item_harami_vid_index_table">
+<h2>HaramiVids for this EventItem</h2>
+
+<% items = @event_item.harami_vids.order("harami_vids.release_date") %>
+<%= render partial: 'layouts/harami_vids_index', locals: {harami_vids: items} %>
+
+</section>
+

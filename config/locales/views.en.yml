@@ -178,6 +178,7 @@ en:
     table_head_ChannelOwner: Owner
     table_head_ChannelPlatform: Platform
     table_head_ChannelType: Type
+    table_head_collabs: "feat. Artists"
 
   musics:
     index:

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_04_23_173717) do
+ActiveRecord::Schema[7.0].define(version: 2024_04_24_074001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -321,6 +321,19 @@ ActiveRecord::Schema[7.0].define(version: 2024_04_23_173717) do
     t.check_constraint "id_remote IS NULL OR id_remote > 0", name: "check_positive_id_remote_on_harami1129s"
   end
 
+  create_table "harami_vid_event_item_assocs", comment: "Association between HaramiVid and EventItem", force: :cascade do |t|
+    t.bigint "harami_vid_id", null: false
+    t.bigint "event_item_id", null: false
+    t.integer "timing", comment: "in second; boundary with another EventItem like Artist's appearance"
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["event_item_id"], name: "index_harami_vid_event_item_assocs_on_event_item_id"
+    t.index ["harami_vid_id", "event_item_id"], name: "index_harami_vid_event_item", unique: true
+    t.index ["harami_vid_id"], name: "index_harami_vid_event_item_assocs_on_harami_vid_id"
+    t.index ["timing"], name: "index_harami_vid_event_item_assocs_on_timing"
+  end
+
   create_table "harami_vid_music_assocs", force: :cascade do |t|
     t.bigint "harami_vid_id", null: false
     t.bigint "music_id", null: false
@@ -612,6 +625,8 @@ ActiveRecord::Schema[7.0].define(version: 2024_04_23_173717) do
   add_foreign_key "harami1129_reviews", "users", on_delete: :nullify
   add_foreign_key "harami1129s", "engages", on_delete: :restrict
   add_foreign_key "harami1129s", "harami_vids"
+  add_foreign_key "harami_vid_event_item_assocs", "event_items", on_delete: :cascade
+  add_foreign_key "harami_vid_event_item_assocs", "harami_vids", on_delete: :cascade
   add_foreign_key "harami_vid_music_assocs", "harami_vids", on_delete: :cascade
   add_foreign_key "harami_vid_music_assocs", "musics", on_delete: :cascade
   add_foreign_key "harami_vids", "channels"

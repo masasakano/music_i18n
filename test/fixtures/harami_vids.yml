@@ -105,3 +105,25 @@ harami_vid_paris1:
   channel: channel_haramichan_youtube_main
   note: HaramiVidInParis1
 
+one:
+  release_date: 2021-01-01
+  duration: 
+  uri: youtu.be/one
+  place: 
+  flag_by_harami: true
+  uri_playlist_ja: 
+  uri_playlist_en: 
+  channel: channel_haramichan_youtube_main
+  note: HaramiVidOne
+
+two:
+  release_date: 2021-01-02
+  duration: 
+  uri: youtu.be/two
+  place: 
+  flag_by_harami: true
+  uri_playlist_ja: 
+  uri_playlist_en: 
+  channel: channel_haramichan_youtube_main
+  note: HaramiVidTwo
+

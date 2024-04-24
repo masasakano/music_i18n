@@ -64,11 +64,15 @@ class HaramiVidsGrid < BaseGrid
     record.musics.uniq.count
   end
 
-  column(:musics,  mandatory: true, header: I18n.t(:Musics)) do |record|
-    record.musics.uniq.map{  |mu| mu.title_or_alt(prefer_alt: true)}.to_csv.to_s.gsub(/,([^\s])/, ', \1')
+  column(:musics,  html: true, mandatory: true, header: I18n.t(:Musics)) do |record|
+    print_list_inline(record.musics.uniq){ |tit, model|  # SELECT "dintinct" would not work well with ordering.
+      can?(:read, EventItem) ? link_to(tit, music_path(model)) : tit
+    }  # defined in application_helper.rb
   end
-  column(:artists, mandatory: true, header: I18n.t(:Artists)) do |record|
-    record.artists.uniq.map{ |mu| mu.title_or_alt(prefer_alt: true)}.to_csv.to_s.gsub(/,([^\s])/, ', \1')
+  column(:artists, html: true, mandatory: true, header: I18n.t(:Artists)) do |record|
+    print_list_inline(record.artists.uniq){ |tit, model|  # SELECT "dintinct" would not work well with ordering.
+      can?(:read, EventItem) ? link_to(tit, artist_path(model)) : tit
+    }  # defined in application_helper.rb
   end
 
   column(:place, header: Proc.new{I18n.t('tables.place')}) do |record|
@@ -84,6 +88,7 @@ class HaramiVidsGrid < BaseGrid
     tit = ((cha=record.channel) ? cha.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) : nil)
     kind = ((cha && typ=cha.channel_type) ? typ.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) : "").sub(/の?チャンネル|\s*channel/i, "")
     next "" if !tit
+    tit = h(tit)
     sprintf("%s [%s]", (can?(:read, cha) ? link_to(tit, channel_path(cha)) : tit), kind).html_safe
   end
 
@@ -97,6 +102,19 @@ class HaramiVidsGrid < BaseGrid
     tit = ((cha=record.channel) ? cha.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) : nil)
     next "" if !tit
     tit
+  end
+
+  column(:events, html: true, header: Proc.new{I18n.t(:Events)}) do |record|
+    print_list_inline(record.events){ |tit, model|
+      can?(:read, EventItem) ? link_to(tit, event_path(model)) : tit
+    }  # defined in application_helper.rb
+  end
+
+  column(:collabs, html: true, header: Proc.new{I18n.t("harami_vids.table_head_collabs", default: "featuring Artists")}) do |record|
+    print_list_inline(record.artist_collabs){ |tit, model|
+      tit = definite_article_to_head(tit)
+      can?(:read, Artist) ? link_to(tit, artist_path(model)) : tit
+    }  # defined in application_helper.rb
   end
 
   column(:flag_by_harami, class: ["align-cr"], header: Proc.new{I18n.t('datagrid.form.by_harami', default: "By Harami?")}) do |record|

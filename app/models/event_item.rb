@@ -40,10 +40,16 @@ class EventItem < ApplicationRecord
   has_one :prefecture, through: :place
   has_one :country, through: :prefecture
 
-  has_many :artist_music_plays, dependent: :destroy  # dependent is a key
+  has_many :artist_music_plays, dependent: :destroy  # dependent is a key  # to an Association model! (NOT to Artists/Musics)
   %i(artists musics play_roles instruments).each do |esym|
     has_many esym, -> {distinct}, through: :artist_music_plays
   end
+
+  has_many :harami_vid_event_item_assocs, dependent: :restrict_with_exception  # dependent is a key
+       # This setting basically prohibits a deletion of an EventItem associated with at least one user
+       # so that a HaramiVid would not become EventItem-less.
+       # This means you should merge the EventItem to another or something before destroy.
+  has_many :harami_vids, -> {distinct}, through: :harami_vid_event_item_assocs  # if the unique constraint is on for Association, `distinct` is redundant
 
   validates_uniqueness_of :machine_title
   %i(start_time_err duration_minute duration_minute_err event_ratio).each do |ec|
@@ -51,5 +57,9 @@ class EventItem < ApplicationRecord
   end
   %i(event_ratio).each do |ec|
     validates ec, numericality: { less_than_or_equal_to: 1 }, allow_blank: true
+  end
+
+  def destroyable?
+    !harami_vid_event_item_assocs.exists?
   end
 end

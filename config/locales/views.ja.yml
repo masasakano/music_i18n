@@ -193,6 +193,7 @@ ja:
     table_head_ChannelOwner: チャンネル主
     table_head_ChannelPlatform: サイト
     table_head_ChannelType: 種別
+    table_head_collabs: "コラボ相手"
 
   musics:
     index:

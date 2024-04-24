@@ -55,8 +55,18 @@ class EventTest < ActiveSupport::TestCase
     # destroy with Dependency
     assert_raises(ActiveRecord::DeleteRestrictionError, ActiveRecord::InvalidForeignKey){  # Rails level (has_many - dependent) and DB-level, respectively
       evt.destroy }
+    assert_raises(ActiveRecord::DeleteRestrictionError) {
+      evt.event_items.each do |ei|
+        ei.destroy
+      end }  # => Cannot delete record because of dependent harami_vid_event_item_assocs
+    assert_raises(ActiveRecord::HasManyThroughNestedAssociationsAreReadonly) {
+      evt.harami_vids.destroy_all }
     evt.event_items.each do |ei|
+      ei.harami_vids.destroy_all  # Although the error is for the association"dependent harami_vid_event_item_assocs", the underlying key policy is that you should not destroy EventItem without destroing the dependent HaramiVid(s) first.
       ei.destroy
+    end
+    evt.event_items.each do |ei|
+      ei.destroy  # this time it should be ok.  You can do it instead with:  evt.event_items.destroy_all
     end
     evt.reload  # Essential (because of caching).
     evt.destroy
@@ -92,5 +102,11 @@ class EventTest < ActiveSupport::TestCase
     # For those belonging to different EventGroup-s, the same title is fine.
     evt.update!(event_group: EventGroup.unknown)
     assert_nothing_raised{                      tra_new.update!(title: tra_base.title) }
+  end
+
+  test "association" do
+    event = Event.first
+    assert_nothing_raised{ event.event_items }
+    assert_nothing_raised{ event.harami_vids }
   end
 end

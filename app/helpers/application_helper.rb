@@ -368,6 +368,36 @@ module ApplicationHelper
     (model.respond_to?(:name) ? model.name : (model.class.respond_to?(:name) ? model.class.name : model.to_s)).underscore.singularize
   end
 
+  # Printing an array/relation inline for display
+  #
+  # @param ary [:map] Array or relation of Models.
+  # @return [String] html_safe
+  # @yield [String] html_safe [String, Model] is given. Should return the String for each item.
+  def print_list_inline(ary, separator: I18n.t(:comma, default: ", "))
+    ary.map{|em|
+      tit = (em.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)).html_safe
+      (block_given? ? yield(tit, em) : tit)
+    }.join(separator).html_safe
+  end
+
+  # Printing an array/relation inline for display
+  #
+  # @param ary [:map] Array or relation of Models.
+  # @return [String] html_safe
+  # @yield [String] html_safe [String, Model] is given. Should return the String for each item.
+  def grid_index_path_helper(klass, action: "index", column_names: [], max_per_page: 25)
+    klass_plural = (klass.respond_to?(:rewhere) ? klass.name : klass.class.name).underscore.pluralize
+    Rails.application.routes.url_helpers.url_for(
+      only_path: true,
+      controller: klass_plural,
+      action: action,
+      params: {(klass_plural+"_grid") => {
+                 column_names: column_names,
+                 max_per_page: max_per_page
+               }}
+    )
+  end
+
   # to suppress warning, mainly that in Ruby-2.7.0:
   #   "Passing the keyword argument as the last hash parameter is deprecated"
   #

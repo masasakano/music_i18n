@@ -103,6 +103,8 @@ class EventItemsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should destroy event_item" do
+    @event_item.harami_vids.destroy_all  # essential.
+
     assert_no_difference("EventItem.count", -1) do
       delete event_item_url(@event_item)
       assert_response :redirect

@@ -1,0 +1,53 @@
+
+<%# This is meant to be for developers. %>
+
+<div id="harami_vids">
+<table id="harami_vids_index_table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Title</th>
+      <th>Date</th>
+      <th>URI</th>
+      <th># Harami1129s</th>
+      <th># Musics</th>
+      <% if can? :read, EventItem %>
+      <th>EventItems</th>
+      <% end %>
+      <th title="Note in this DB">Note</th>
+      <% if can? :update, HaramiVid %>
+        <th colspan="2"></th>  <%#  HaramiVid should not be easily destroyed from Index %>
+      <% else %>
+        <th></th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% harami_vids.each do |harami_vid| %>
+      <tr>
+        <td><%= harami_vid.id %></td>
+        <td><%= harami_vid.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></td>
+        <td><%= harami_vid.release_date %></td>
+        <td><%= link_to_youtube harami_vid.uri, harami_vid.uri %></td>
+        <td><%= harami_vid.harami1129s.count %></td>
+        <td><%= harami_vid.musics.count %></td>
+      <% if can? :read, EventItem %>
+        <td>
+          <%= harami_vid.event_items.map{ |eei|
+               link_to eei.id, event_item_url(eei)
+             }.join(", ").html_safe %>
+        </td>
+      <% end %>
+        <td><%= harami_vid.note %></td>
+
+        <td><%= link_to "Show", harami_vid %></td>
+        <% if can? :update, harami_vid  %>
+          <td><%= link_to 'Edit', edit_harami_vid_path(harami_vid) %></td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+</div>
+

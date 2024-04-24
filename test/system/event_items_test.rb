@@ -77,10 +77,16 @@ class EventItemsTest < ApplicationSystemTestCase
 
     # Destroy
     visit event_item_url(@event_item)
-    click_on "Destroy this EventItem", match: :first
+    button_text = "Destroy this EventItem"
+    
+    #assert page.find(:xpath, "//input[@type='submit'][@value='#{button_text}']")["outerHTML"].present?
+    refute_selector(:xpath, "//input[@type='submit'][@value='#{button_text}']")
 
-    assert_text "EventItem was successfully destroyed"
-    assert_selector "h1", text: @h1_title  # should be redirected back to EventItem#index.
-    assert_equal n_events-1, EventItem.count
+    ### At the moment, ActiveRecord::DeleteRestrictionError
+    #click_on button_text, match: :first
+
+    #assert_text "EventItem was successfully destroyed"
+    #assert_selector "h1", text: @h1_title  # should be redirected back to EventItem#index.
+    #assert_equal n_events-1, EventItem.count
   end
 end

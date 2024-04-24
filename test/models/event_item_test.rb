@@ -67,4 +67,8 @@ class EventItemTest < ActiveSupport::TestCase
       evit1.destroy
     }
   end
+
+  test "association" do
+    assert_nothing_raised{ EventItem.first.harami_vids }
+  end
 end

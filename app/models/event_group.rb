@@ -46,6 +46,8 @@ class EventGroup < BaseWithTranslation
   has_one :prefecture, through: :place
   has_one :country, through: :prefecture
   has_many :events, dependent: :restrict_with_exception  # EventGroup should not be deleted easily.
+  has_many :event_items, through: :events, dependent: :restrict_with_exception
+  has_many :harami_vids, through: :event_items, dependent: :restrict_with_exception
 
   UNKNOWN_TITLES = UnknownEventGroup = {
     "ja" => 'その他のイベント類',

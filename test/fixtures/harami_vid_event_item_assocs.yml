@@ -1,0 +1,73 @@
+# == Schema Information
+#
+# Table name: harami_vid_event_item_assocs
+#
+#  id                                                                          :bigint           not null, primary key
+#  note                                                                        :text
+#  timing(in second; boundary with another EventItem like Artist's appearance) :integer
+#  created_at                                                                  :datetime         not null
+#  updated_at                                                                  :datetime         not null
+#  event_item_id                                                               :bigint           not null
+#  harami_vid_id                                                               :bigint           not null
+#
+# Indexes
+#
+#  index_harami_vid_event_item                          (harami_vid_id,event_item_id) UNIQUE
+#  index_harami_vid_event_item_assocs_on_event_item_id  (event_item_id)
+#  index_harami_vid_event_item_assocs_on_harami_vid_id  (harami_vid_id)
+#  index_harami_vid_event_item_assocs_on_timing         (timing)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (event_item_id => event_items.id) ON DELETE => cascade
+#  fk_rails_...  (harami_vid_id => harami_vids.id) ON DELETE => cascade
+#
+
+one:
+  harami_vid: one
+  event_item: one
+  timing: 0
+  note: MyText
+
+two:
+  harami_vid: two
+  event_item: two
+  timing: 
+  note: MyText
+
+hvei_harami_vid1_evit_1_harami_lucky2023:
+  harami_vid: harami_vid1
+  event_item: evit_1_harami_lucky2023
+  timing: 123
+  note: HveiHaramiVid1Evit1HaramiLucky2023
+
+hvei_harami_vid2_evit_unknown_harami_lucky2023:
+  harami_vid: harami_vid2
+  event_item: evit_ev_unknown
+  timing:
+  note: HveiHaramiVid1EvitUnknownHaramiLucky2023
+
+hvei_harami_vid3_evit_unknown_harami_lucky2023:
+  harami_vid: harami_vid3
+  event_item: evit_ev_unknown
+  timing:
+  note: HveiHaramiVid1EvitUnknownHaramiLucky2023
+
+hvei_harami_vid4_evit_unknown_harami_lucky2023:
+  harami_vid: harami_vid4
+  event_item: evit_ev_unknown
+  timing:
+  note: HveiHaramiVid1EvitUnknownHaramiLucky2023
+
+hvei_harami_vid_ihojin1_evit_1_harami_lucky2023:
+  harami_vid: harami_vid_ihojin1
+  event_item: evit_1_harami_lucky2023
+  timing:
+  note: HveiHaramiVidIhojin1Evit1HaramiLucky2023
+
+hvei_harami_vid_ihojin1_evit_2_harami_lucky2023:
+  harami_vid: harami_vid_ihojin1
+  event_item: evit_2_harami_lucky2023
+  timing:
+  note: HveiHaramiVidIhojin1Evit2HaramiLucky2023
+

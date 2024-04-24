@@ -50,7 +50,13 @@
           <td><%= link_to 'Edit', edit_event_item_path(event_item) %></td>
         <% end %>
         <% if can? :destroy, event_item %>
-          <td><%= link_to 'Destroy', event_item, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+          <td>
+           <% if event_item.destroyable? %>
+            <%= link_to 'Destroy', event_item, method: :delete, data: { confirm: t('are_you_sure') } %>
+           <% else %>
+            <span class="cell_disable_link destroy">Destroy</span>
+           <% end %>
+          </td>
         <% end %>
       </tr>
     <% end %>

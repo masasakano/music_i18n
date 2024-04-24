@@ -29,6 +29,29 @@
     by <%= @harami_vid.channel.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>
   </dd>
 
+  <dt> <%= t(:Event) %> (&lt; <%= t(:EventGroup)%>):</dt>
+  <dd>
+    <ul>
+    <% @harami_vid.events.each do |event| %>
+      <li><%= event.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %> (<%= event.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>)
+        <ul>
+          <% event.event_items.each do |event_item| %>
+            <li>
+              <% if can? :index, EventItem %>
+                (<%= t(:EventItem) %>: <%= event_item.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either).inspect %>) /
+              <% end %>
+              (コラボアーティスト)
+              <%= msg = event_item.artists.map{|em| em.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)}.join(t(:comma, default: ", "));
+                msg.present? ? msg : t(:None)
+              %>
+            </li>
+          <% end %>
+        </ul>
+      </li>
+    <% end %>
+    </ul>
+  </dd>
+
   <dt> <%= t("datagrid.form.by_harami_full") %>:</dt>
   <dd><%= @harami_vid.flag_by_harami %></dd>
 

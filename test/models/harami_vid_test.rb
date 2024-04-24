@@ -105,4 +105,32 @@ class HaramiVidTest < ActiveSupport::TestCase
     #:artist_rcsuccession
     #:artist_rcsuccession_ja
   end
+
+  test "create_basic!" do
+    mdl = nil
+    assert_nothing_raised{
+      mdl = HaramiVid.create_basic!}
+    assert_match(/^HaramiVid\-basic\-/, mdl.title)
+  end
+
+  test "association" do
+    model = HaramiVid.first
+    assert_nothing_raised{ model.channel }
+    assert_nothing_raised{ model.channel_owner }
+    assert_nothing_raised{ model.channel_type }
+    assert_nothing_raised{ model.channel_platform }
+    assert_nothing_raised{ model.event_items }
+    assert_nothing_raised{ model.events }
+    assert_nothing_raised{ model.event_groups }
+    assert_nothing_raised{ model.artist_collabs }
+
+    hv = harami_vids(:harami_vid_ihojin1)
+    evis = [event_items(:evit_1_harami_lucky2023), event_items(:evit_2_harami_lucky2023)]
+    assert_equal 1, evis[0].artists.size, 'confirms fixtures'
+    assert_equal 2, evis[1].artists.size, 'confirms fixtures'
+    assert_equal evis, hv.event_items.order("event_items.start_time").to_a
+    assert_equal EventItem, hv.event_items.first.class, "#{hv.event_items.first.inspect}"
+    assert hv.artist_music_plays.exists?
+    assert_equal Artist, hv.artist_collabs.first.class, "#{hv.artist_music_plays.first.inspect}"
+  end
 end
