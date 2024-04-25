@@ -77,7 +77,7 @@ class EventGroupTest < ActiveSupport::TestCase
     assert_operator 0, :<, evgr.events.count
     refute evgr.destroyable?
     evgr.events.each do |eev|
-      (eev.destroy; puts "Destroyed!") if eev.destroyable?
+      eev.destroy if eev.destroyable?
     end
 
     evgr.reload
@@ -88,6 +88,16 @@ class EventGroupTest < ActiveSupport::TestCase
     assert_difference('Event.count', -1){
       assert_difference('EventGroup.count', -1){
         evgr.destroy! } }
+    assert evgr.destroyed?
+
+    assert_difference('Translation.count', 4){
+      assert_difference('EventItem.count'){
+        assert_difference('Event.count'){
+          assert_difference('EventGroup.count'){
+            EventGroup.create_basic!
+            tras = Translation.order(created_at: :desc).limit(4)
+            assert_equal %w(Event Event Event EventGroup), tras.pluck(:translatable_type), "Three for unknown Events and one for the new CreateEvent (EventItem is not BaseWithTranslation)"
+          } } } }
   end
 
   test "mass-delete" do

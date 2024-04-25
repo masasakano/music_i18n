@@ -125,6 +125,9 @@ class EventGroup < BaseWithTranslation
   #
   # Called by an after_create callback in {Translation}
   #
+  # @todo
+  #    The core should be moved into event.rb (?) That is how this is implemented in the Event-to-EventItem.
+  #
   # @return [Event]
   def after_first_translation_hook
     hstrans = best_translations
