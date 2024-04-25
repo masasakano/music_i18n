@@ -135,17 +135,23 @@ class Event < BaseWithTranslation
   #
   # @return [Event]
   def after_first_translation_hook
-    evti = EventItem.create_new_unknown!(self)
+    evti = EventItem.find_or_create_new_unknown!(self)
   end
 
   # Callback to delete the last-remaining "unknown" EventItem
   #
   # Basically, Event#event_items.destroy_all always fails!
   def delete_remaining_unknwon_event_item_callback
-    if !destroyable?
+    if !destroyable? && !ApplicationRecord.allow_destroy_all
+      if unknown?
+        errors.add(:base, "#{self.class.name}.unknwon cannot be destroyed. It should be cascade-destroyed when the parent EventGroup is destroyed (or ApplicationRecord.allow_destroy_all is set true).")
+      else
+        errors.add(:base, "#{self.class.name} with significant descendants cannot be destroyed. Destroy all dependent HaramiVids and not-unknown EventItem first.")
+      end
       throw(:abort)
     elsif 1 == event_items.size
       event_items.first.delete
+      self.reload  # Essential!! Without this, ActiveRecord::DeleteRestrictionError would be raised as the deletion is not recognised by the Rails cache.
     end
   end
   private :delete_remaining_unknwon_event_item_callback

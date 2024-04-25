@@ -120,17 +120,27 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should destroy event_group for Harami-moderator" do
-    assert_raises(ActiveRecord::DeleteRestrictionError){
+    ev_lucky = events(:ev_harami_lucky2023)
+    assert             ev_lucky.best_translation,          "sanity check of fixtures"
+    assert_equal 'en', ev_lucky.best_translation.langcode, "sanity check of fixtures"
+    assert_raises(ActiveRecord::RecordNotDestroyed, ActiveRecord::DeleteRestrictionError){
       @event_group.events.destroy_all }
     @event_group.events.each do |eev|
-      assert_raises(ActiveRecord::DeleteRestrictionError){
+      assert_raises(ActiveRecord::RecordNotDestroyed, ActiveRecord::DeleteRestrictionError){
         eev.event_items.destroy_all }
 
       eev.event_items.each do |eevi|
         eevi.harami_vids.destroy_all
+        eevi.destroy! if !eevi.unknown?  # EventItem#unknown cannot be destroyed.
       end
-      eev.event_items.destroy_all
-      eev.destroy
+      eev.reload  # Essential!!
+      begin 
+        eev.destroy! if !eev.unknown?  # Event#unknown cannot be destroyed.
+      rescue ActiveRecord::DeleteRestrictionError
+        puts "DEBUG-136(#{File.basename __FILE__}:#{__method__}):eev.event_items=#{eev.event_items.all.to_a}"
+        puts "DEBUG-137(#{File.basename __FILE__}:#{__method__}):event=#{eev.inspect}"
+        raise
+      end
     end
     @event_group.reload
 
@@ -155,9 +165,11 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     sign_in @moderator
 
     assert @event_group.events.exists?, 'sanity check of fixtures.'
-    assert_raises(ActiveRecord::DeleteRestrictionError){
+    assert_equal 2, @event_group.events.count
+    assert_operator 0, :<, @event_group.harami_vids.count, 'sanity check of fixtures harami_vid.'
+    assert_difference("EventGroup.count", 0) do
       delete event_group_url(@event_group)
-    }
+    end
   end
 
 end

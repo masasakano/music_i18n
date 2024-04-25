@@ -68,9 +68,17 @@ class EventItem < ApplicationRecord
     "fr" => "ÉvénementArticleNonClassé_",
   }.with_indifferent_access
 
+  # Called from {Event#after_first_translation_hook}
+  #
+  # Creating a {EventItem.unknown} for the given {Event}.
+  #
+  # As long as it is called in the callback/hook as intended, "find_by" is redundant.
+  # However, in case this is manually called later after a DB accident or something,
+  # we are playing safe.
+  #
   # @param event [Event]
   # @return [String] unknown title
-  def self.create_new_unknown!(event)
+  def self.find_or_create_new_unknown!(event)
     hs = {
       event: event,
       machine_title: get_unique_title(unknown_machine_title_prefix(event)),
@@ -81,7 +89,7 @@ class EventItem < ApplicationRecord
     %i(place_id start_time start_time_err).each do |metho|
       hs[metho] = event.send metho
     end
-    create!(hs)
+    find_or_create_by!(**hs)
   end
 
   # Returns the English prefix for EventItem.Unknown for the event
@@ -163,7 +171,10 @@ class EventItem < ApplicationRecord
 
   # see {#destroyable?}
   def prevent_destroy_unknown
-    throw(:abort) if unknown?
+    if unknown? && !ApplicationRecord.allow_destroy_all
+      errors.add(:base, "#{self.class.name}.unknwon cannot be destroyed. It should be cascade-destroyed when the parent Event is destroyed (or ApplicationRecord.allow_destroy_all is set true)")
+      throw(:abort) 
+    end
   end
 
 end

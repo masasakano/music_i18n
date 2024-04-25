@@ -7,15 +7,38 @@ puts "DEBUG: start "+seed_fname2print(__FILE__) if $DEBUG
 
 # Model: EventGroup
 #
+# NOTE: Place must be loaded beforehands!
 module SeedsEventGroup
   include ModuleCommon  # for DEF_EVENT_START_YEAR etc
 
   # Everything is a function
   module_function
 
-  place_world = Place.unknown(country: Country.unknown)
+  Places = {
+    world: nil,
+    japan: nil,
+  }
+
   japan = Country[/日本/]  # '日本国' exactly in default, but it may change in the future.
+  place_world = Place.unknown(country: Country.unknown)
   place_japan = Place.unknown(country: japan)
+
+  get_place = Proc.new{|key|
+    case key.to_sym
+    when :world
+      Place.unknown #(country: Country.unknown)
+    when :japan
+      Place.unknown(country: japan)
+    when :miyazaki
+      Place.unknown(prefecture: Prefecture[/宮崎/])
+    else
+      raise "invalid key: #{key}"
+    end
+  }
+
+  # This is for running this module the second time, where Place-s are gone (and hence the original place_id are invalid!)
+  # This happens when testing seeds with /test/seeds/seeds_test.rb where multiple attempts are deliberately made.
+  GET_PLACE_PROC = get_place
 
   # product models (or guessed, if existing)
   MODELS = {
@@ -43,6 +66,7 @@ module SeedsEventGroup
       end_date:   TimeAux::DEF_LAST_DATE_TIME,
       end_date_err:   max_error_day,
       place: place_world,
+      place_key: :world,
       note: '他のどれにも分類されない一般的イベント類(結婚式招待など)',
       regex: /(Uncategorized|Unknown)\s*Event\s*Group/i,
       key: :unknown,
@@ -55,6 +79,7 @@ module SeedsEventGroup
       end_date:   TimeAux::DEF_LAST_DATE_TIME,
       end_date_err:   max_error_day,
       place: place_world,
+      place_key: :world,
       note: 'ふらっと立ち寄るストリートピアノ演奏など',
       regex: /(単発.*|独立)ストリート(ピアノ|演奏)|street +(music|play)/i,
       key: :single_streets,
@@ -67,6 +92,7 @@ module SeedsEventGroup
       end_date:   TimeAux::DEF_LAST_DATE_TIME,
       end_date_err:   max_error_day,
       place: place_world,
+      place_key: :world,
       note: '高松市田町フラワーフェスティバル2020など',
       regex: /street +event/i,
       key: :street_events,
@@ -79,6 +105,7 @@ module SeedsEventGroup
       end_date:   TimeAux::DEF_LAST_DATE_TIME,
       end_date_err: 0,
       place: place_world,
+      place_key: :world,
       note: '香美フェス2023など',
       regex: /ハラミちゃんゲスト|HARAMIchan.+guest|guest.+HARAMIchan/i,
       key: :harami_guests,
@@ -91,6 +118,7 @@ module SeedsEventGroup
       end_date:   TimeAux::DEF_LAST_DATE_TIME,
       end_date_err: 0,
       place: place_world,
+      place_key: :world,
       note: '武道館公演など',
       regex: /ハラミちゃん主催|single-shot +solo/i,
       key: :harami_concerts,
@@ -104,6 +132,7 @@ module SeedsEventGroup
       end_date:   Date.new(2022, 7, 9),
       end_date_err: 0,
       place: place_japan,
+      place_key: :japan,
       note: '宮城県仙台市(電力ホール)〜沖縄県那覇市(琉球新報ホール)',
       regex: /ハラミちゃん.*全国.*2022|HARAMIchan.+2022/i,
       key: :harami_jp2022s,
@@ -117,6 +146,7 @@ module SeedsEventGroup
       end_date:   Date.new(2024, 1, 13),
       end_date_err: 0,
       place: place_japan,
+      place_key: :japan,
       note: '埼玉県大宮市(ソニックシティ)〜東京都江東区(東京ガーデンシアター)',
       regex: /ハラミちゃん.*47都道府県|HARAMIchan.+47 +Prefecture/i,
       key: :harami_jp2023s,
@@ -131,6 +161,7 @@ module SeedsEventGroup
       end_date:   Date.new(2022, 10, 30),
       end_date_err: 0,
       place: Place.unknown(prefecture: Prefecture[/宮崎/]),
+      place_key: :miyazaki,
       note: 'THE DROP FESTIVAL日本初開催(青島こどものくに)、ハラミちゃん初の夏フェス参加',
       regex: /DROP +FES.+ 2022/i,
       key: :drop2022s,
@@ -155,6 +186,9 @@ module SeedsEventGroup
         next if model.send(ek).present? || ehs[ek].blank?
         n_changed_cand = 1  # (at least partly) modified, hence +1 in the increment
         model.send(ek.to_s+"=", ehs[ek])
+        if ek==:place && ehs[ek] && !Place.exists?(ehs[ek].id)
+          model.place = GET_PLACE_PROC.call(ehs[:place_key] || :world)
+        end
       end
 
       begin

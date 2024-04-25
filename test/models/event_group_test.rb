@@ -83,11 +83,15 @@ class EventGroupTest < ActiveSupport::TestCase
     evgr.reload
     assert_equal 1, evgr.events.count
     assert  evgr.events.first.unknown?
+    evt_tra_size = evgr.events.first.translations.count
+    assert_equal 3, evt_tra_size, "#{evgr.events.first.translations.inspect}"  # fixtures should be set so as to simulate the real application.
+    assert_equal "fr", translations(:ev_evgr_unknown_unknown_fr).langcode, "to test fixtures..."
 
     assert evgr.destroyable?
-    assert_difference('Event.count', -1){
-      assert_difference('EventGroup.count', -1){
-        evgr.destroy! } }
+    assert_difference('Translation.count', -4){
+      assert_difference('Event.count', -1){
+        assert_difference('EventGroup.count', -1){
+          evgr.destroy! } } }
     assert evgr.destroyed?
 
     assert_difference('Translation.count', 4){
@@ -127,6 +131,29 @@ class EventGroupTest < ActiveSupport::TestCase
     assert evgr.destroyable?
     assert_difference('EventItem.count', -1){
       eev.destroy }  # EventItem and Event must be destroyable.
+  end
+
+  test "ApplicationRecord.allow_destroy_all for EventGroup" do
+    evgr = EventGroup.create_basic!
+    assert_equal 1, evgr.event_items.count
+    assert_equal 1, evgr.events.count
+    assert_difference('Event.count', 0, "Sole unknown Event should not be destroyed in default, but..."){
+     assert_difference('EventItem.count', 0, "Sole unknown EventItem should not be destroyed in default, but..."){
+       evgr.events.each do |evt|
+         assert_raise(ActiveRecord::RecordNotDestroyed){
+           evt.event_items.destroy_all }
+       end
+     } }
+
+    refute ApplicationRecord.allow_destroy_all, "sanity check of the default App..."
+    begin
+      ApplicationRecord.allow_destroy_all=true  # now allowing destroy
+      assert_difference('Event.count', -1){
+       assert_difference('EventItem.count', -1){
+        evgr.events.destroy_all } }
+    ensure
+      ApplicationRecord.allow_destroy_all=false
+    end
   end
 
   test "date order" do

@@ -165,11 +165,13 @@ class EventGroup < BaseWithTranslation
   #
   # Basically, EventGroup#events.destroy_all always fails!
   def delete_remaining_unknwon_event_callback
-    if !destroyable?
+    if !destroyable? && !ApplicationRecord.allow_destroy_all
+      errors.add(:base, "#{self.class.name} with significant descendants cannot be destroyed. Destroy all dependent HaramiVids and not-unknown  descendants (EventItem, Event) first.")
       throw(:abort)
     elsif 1 == events.size
       # Both a grandchild and child will be deleted.
       event_items.first.delete  # Without this, ActiveRecord::DeleteRestrictionError is raised as an orphan would remain.
+      events.first.translations.destroy_all  # Essential. Else, orphan Translations would remain.
       events.first.delete
     end
   end

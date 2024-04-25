@@ -29,7 +29,7 @@
 
 # All unknown ones:
 <% SeedsEventGroup::SEED_DATA.map{|ev| [ev[:key], ev]}.to_h.each_pair do |ekey, edata| %>
-ev_evgr_<%= ekey %>:
+ev_evgr_<%= ekey %>_unknown:
   start_time:     <%= (t=edata[:start_date]) ? t.to_time : "" %>
   start_time_err: <%= (t=edata[:start_date_err]) ? t*86400 : "" %>
   duration_hour: 

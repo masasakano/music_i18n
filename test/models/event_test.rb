@@ -105,6 +105,23 @@ class EventTest < ActiveSupport::TestCase
     assert_nothing_raised{                      tra_new.update!(title: tra_base.title) }
   end
 
+  test "ApplicationRecord.allow_destroy_all" do
+    evt = Event.create_basic!
+    assert_equal 1, evt.event_items.count
+    assert_difference('EventItem.count', 0, "Sole unknown EventItem should not be destroyed in default, but..."){
+      assert_raise(ActiveRecord::RecordNotDestroyed){
+        evt.event_items.destroy_all } }
+
+    refute ApplicationRecord.allow_destroy_all, "sanity check of the default App..."
+    begin
+      ApplicationRecord.allow_destroy_all=true  # now allowing destroy
+      assert_difference('EventItem.count', -1){
+        evt.event_items.destroy_all }
+    ensure
+      ApplicationRecord.allow_destroy_all=false
+    end
+  end
+
   test "association" do
     event = Event.first
     assert_nothing_raised{ event.event_items }

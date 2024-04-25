@@ -55,22 +55,37 @@ class SeedsSeedsTest < ActiveSupport::TestCase
     #  warn "WARNING: recommended to set environmental PARALLEL_WORKERS=1 to run tests of seeding: #{__FILE__}"
     #end
 
+    refute_equal 0, EventItem.count, "EventItems should exist in seeds, but..."
+    assert EventItem.any?{|i| i.unknown?}
     superuser = User.roots.first
-    [StaticPage, ArtistMusicPlay, PlayRole, Instrument, HaramiVidMusicAssoc, ModelSummary, PageFormat,
-     Harami1129, Harami1129Review, HaramiVid, Engage, EngageHow,
-     EventItem, Event, EventGroup, Artist, Music, Genre, 
-     #ChannelArtistAssoc,
-     Channel, ChannelPlatform, ChannelType, ChannelOwner,
-     Place, Prefecture, Country, CountryMaster,
-     UserRoleAssoc, User, Role, RoleCategory,
-     Sex, Translation].each do |klass|
-       if User != klass
-         klass.destroy_all
-         next
-       end
-       User.where.not(id: superuser).destroy_all
+    begin
+      ApplicationRecord.allow_destroy_all = true  # required to allow destroying EventGroup-s etc.
+      ## TODO:
+      # It seems EventItems can be destroy_all-ed regardless of ApplicationRecord.allow_destroy_all. Strange! Check it out.
+      # Maybe destroy_all attempts to destroy everything WITHOUT rollback even if one of the destroy-attempts failed?
+
+      [StaticPage, ArtistMusicPlay, PlayRole, Instrument, HaramiVidMusicAssoc, ModelSummary, PageFormat,
+       Harami1129, Harami1129Review, HaramiVid, Engage, EngageHow,
+       EventItem, Event, EventGroup, Artist, Music, Genre, 
+       #ChannelArtistAssoc,
+       Channel, ChannelPlatform, ChannelType, ChannelOwner,
+       Place, Prefecture, Country, CountryMaster,
+       UserRoleAssoc, User, Role, RoleCategory,
+       Sex, Translation].each do |klass|
+         if User != klass
+           klass.destroy_all
+           next
+         end
+         User.where.not(id: superuser).destroy_all
+      end
+    ensure
+      ApplicationRecord.allow_destroy_all = false
     end
 
+    assert_equal 0, EventItem.count, "All EventItems should have been destroyed, but..."
+    assert_equal 0, Event.count, "All Events should have been destroyed, but..."
+    assert_equal 0, EventGroup.count, "All EventGroups should have been destroyed, but..."
+    assert_equal 0, [EventGroup.count, Event.count, EventItem.count].sum, "All Events should be destroyed, but..."
     assert_equal 0, [Sex.count, Role.count, Artist.count, Translation.count, Engage.count].sum
     assert_equal 1, User.count
     assert_equal 1, _total_entry, "Positive entries (Expectation: [User:1] only): "+_pair_entries.reject{|i| i[1] < 1}.inspect.gsub(/"/, "")

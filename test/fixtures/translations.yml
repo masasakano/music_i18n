@@ -2138,14 +2138,13 @@ evgr_streetpiano_en:
   note: EventGroup_evgr_streetpiano_en
 
 <% SeedsEventGroup::SEED_DATA.map{|ev| [ev[:key], ev]}.to_h.each_pair do |ekey, edata| %>
- <% %i(en ja).each do |langcode| %>
-   <% next if edata[langcode].blank? %>
-ev_evgr_<%= ekey %>_<%= langcode %>:
-  translatable: ev_evgr_<%= ekey %> (Event)
+ <% %i(en ja fr).each do |langcode| %>
+ev_evgr_<%= ekey %>_unknown_<%= langcode %>:
+  translatable: ev_evgr_<%= ekey %>_unknown (Event)
   langcode: <%= langcode %>
   title:     <%= Event::UNKNOWN_TITLES[langcode] %>
   weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
-  note: EventEventGroup<%= ekey.to_s.camelize %><%= langcode.to_s.capitalize %>
+  note: EventEventGroup<%= ekey.to_s.camelize %>Unknown<%= langcode.to_s.capitalize %>
  <% end %>
 <% end %>
 
@@ -2159,6 +2158,20 @@ ev_harami_lucky2023_unknown_en:
   title: <%= Event::UNKNOWN_TITLES[:en] %>
   weight: 0
   note: EvHaramiLucky2023UnknownEn
+
+ev_harami_lucky2023_unknown_ja:
+  translatable: ev_evgr_lucky2023_unknown (Event)
+  langcode: ja
+  title: <%= Event::UNKNOWN_TITLES[:ja] %>
+  weight: 0
+  note: EvHaramiLucky2023UnknownJa
+
+ev_harami_lucky2023_unknown_fr:
+  translatable: ev_evgr_lucky2023_unknown (Event)
+  langcode: fr
+  title: <%= Event::UNKNOWN_TITLES[:fr] %>
+  weight: 0
+  note: EvHaramiLucky2023UnknownFr
 
 ev_harami_lucky2023_en:
   translatable: ev_harami_lucky2023
@@ -2178,16 +2191,6 @@ ev_harami_budokan2022_soiree_en:
   create_user_id: user_moderator
   update_user_id: user_moderator
   note: EventBudokan2022SoireeEn
-
-evit_ev_unknown_en:
-  translatable: evit_ev_unknown
-  translatable_type: EventItem
-  langcode: en
-  title: UncategorizedEventItem
-  weight: 0
-  create_user_id: 
-  update_user_id: 
-  note: UncategorizedEventEItemn
 
 <% Seeds::PlayRole::SEED_DATA.each_pair do |ekey, edata| %>
  <% %i(en ja fr).each do |langcode| %>

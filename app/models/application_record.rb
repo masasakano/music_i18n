@@ -16,4 +16,12 @@ class ApplicationRecord < ActiveRecord::Base
     !self.class.exists? id
   end
 end
+
+class << ApplicationRecord
+  # If this is set true, {EventGroup.destroy_all}, {Event.destroy_all} {EventItem.destroy_all} are allowed.
+  # Default: false.
+  attr_accessor :allow_destroy_all
+end
+ApplicationRecord.allow_destroy_all = false
+
 require "reverse_sql_order"   # A user monkey patch to modify reverse_sql_order() in ActiveRecord::QueryMethods::WhereChain
