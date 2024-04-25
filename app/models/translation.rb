@@ -1879,7 +1879,7 @@ class Translation < ApplicationRecord
   private
   ################################################
 
-    # Call after_first_translation_hook if it exists in the parent.
+    # Call after_first_translation_hook if it exists (AND if it is not private) in the parent.
     #
     # For example, whenever a new first entry for a Prefecture is created,
     # a new Translation for Place 'UnknonwPlace' is created.

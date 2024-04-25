@@ -2101,25 +2101,21 @@ model_summary_<%= ekey %>_<%= langcode %>:
 #  update_user_id: user_moderator
 #  note: ModelSummaryHaramiVidJa
 
-evgr_unknown_en:
-  translatable: evgr_unknown
-  translatable_type: EventGroup
-  langcode: en
-  title: UncategorizedEventGroup
-  weight: 0
-  create_user_id: 
-  update_user_id: 
-  note: UncategorizedEventGroupEn
+<% SeedsEventGroup::SEED_DATA.map{|ev| [ev[:key], ev]}.to_h.each_pair do |ekey, edata| %>
+ <% %i(en ja fr).each do |langcode| %>
+   <% next if edata[langcode].blank? %>
+evgr_<%= ekey %>_<%= langcode %>:
+  translatable: evgr_<%= ekey %> (EventGroup)
+  langcode: <%= langcode %>
+  title:     <%= Seeds::Common.yaml_title(edata[langcode], :title) %>
+  weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
+  note: EventGroup<%= ekey.to_s.camelize %><%= langcode.to_s.capitalize %>
+ <% end %>
+<% end %>
 
-evgr_unknown_ja:
-  translatable: evgr_unknown
-  translatable_type: EventGroup
-  langcode: ja
-  title: その他のイベント類
-  weight: 0
-  create_user_id: 
-  update_user_id: 
-  note: UncategorizedEventGroupJa
+#evgr_unknown_en:
+#evgr_unknown_ja:
+#evgr_harami_concerts_en:
 
 evgr_lucky2023own_en:
   translatable: evgr_lucky2023
@@ -2131,15 +2127,6 @@ evgr_lucky2023own_en:
   update_user_id: 
   note: EventGroupLucky23En
 
-evgr_harami_concerts_en:
-  translatable: evgr_harami_concerts (EventGroup)
-  langcode: en
-  title: HARAMIchan concerts
-  weight: 10
-  create_user_id: user_moderator
-  update_user_id: user_moderator
-  note: EventGroupHaramichanConcertsEn
-
 evgr_streetpiano_en:
   translatable: evgr_streetpiano
   translatable_type: EventGroup
@@ -2150,25 +2137,28 @@ evgr_streetpiano_en:
   update_user_id: 
   note: EventGroup_evgr_streetpiano_en
 
-ev_evgr_unknown_en:
-  translatable: ev_evgr_unknown
-  translatable_type: Event
-  langcode: en
-  title: UncategorizedEvent
-  weight: 0
-  create_user_id: 
-  update_user_id: 
-  note: UncategorizedEventEn
+<% SeedsEventGroup::SEED_DATA.map{|ev| [ev[:key], ev]}.to_h.each_pair do |ekey, edata| %>
+ <% %i(en ja).each do |langcode| %>
+   <% next if edata[langcode].blank? %>
+ev_evgr_<%= ekey %>_<%= langcode %>:
+  translatable: ev_evgr_<%= ekey %> (Event)
+  langcode: <%= langcode %>
+  title:     <%= Event::UNKNOWN_TITLES[langcode] %>
+  weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
+  note: EventEventGroup<%= ekey.to_s.camelize %><%= langcode.to_s.capitalize %>
+ <% end %>
+<% end %>
 
-ev_evgr_unknown_ja:
-  translatable: ev_evgr_unknown
-  translatable_type: Event
-  langcode: ja
-  title: その他のイベント
+#ev_evgr_unknown_en:
+#ev_evgr_unknown_ja:
+#ev_evgr_unknown_fr:
+
+ev_harami_lucky2023_unknown_en:
+  translatable: ev_evgr_lucky2023_unknown (Event)
+  langcode: en
+  title: <%= Event::UNKNOWN_TITLES[:en] %>
   weight: 0
-  create_user_id: 
-  update_user_id: 
-  note: UncategorizedEventJa
+  note: EvHaramiLucky2023UnknownEn
 
 ev_harami_lucky2023_en:
   translatable: ev_harami_lucky2023

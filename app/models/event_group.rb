@@ -30,7 +30,8 @@ class EventGroup < BaseWithTranslation
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
 
-  # include Rails.application.routes.url_helpers
+  before_create :add_place_in_create_callback
+  before_destroy :delete_remaining_unknwon_event_callback  # must come before has_many
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []
@@ -92,6 +93,84 @@ class EventGroup < BaseWithTranslation
   end
 
   alias_method :uncategorized?, :unknown? if ! self.method_defined?(:uncategorized?)
+
+
+  # Unknown {Event} belonging to self
+  #
+  # @return [Event]
+  def unknown_event
+    events.joins(:translations).where("translations.langcode='en' AND translations.title = ?", Event::UNKNOWN_TITLES['en']).first
+  end
+
+  # Unknown {EventGroup}
+  #
+  # @return [EventGroup]
+  def unknown_sibling
+    self.class.unknown
+  end
+
+  # True if no children or if only descendants are {#unknown?} and no HaramiVid depends on self.
+  def destroyable?
+    return false if harami_vids.exists?
+    1 == events.count && 1 == event_items.size && events.first.unknown? && !unknown?
+  end
+
+  ########## callbacks ########## 
+
+  def add_place_in_create_callback
+    self.place = Place.unknown if !place
+  end
+
+  # Adds Event(UnknownEvent) after the first Translation creation of EventGroup
+  #
+  # Called by an after_create callback in {Translation}
+  #
+  # @return [Event]
+  def after_first_translation_hook
+    hstrans = best_translations
+    hs2pass = {}
+    unsaved_transs = []
+    Event::UNKNOWN_TITLES.each_pair do |lc, ea_title|
+      unsaved_transs << Translation.new(
+        title: [ea_title].flatten.first,
+        alt_title: [ea_title].flatten[1],
+        langcode: lc,
+        is_orig:  (hstrans.key?(lc) && hstrans[lc].respond_to?(:is_orig) ? hstrans[lc].is_orig : nil),
+        weight: 0,
+      )
+    end
+
+    start_time = (start_date ? start_date.to_time : nil)
+    if start_date && end_date
+      duration_hour = (end_date - start_date).quo(86400)
+      if start_date_err && end_date_err
+        start_time_err = Math.sqrt(start_date_err**2 + end_date_err**2)
+      end
+    end
+
+    evt = Event.new(
+      start_time: start_time,
+      start_time_err: start_time_err,
+      weight: Float::INFINITY,
+      place: place,
+    )
+    evt.unsaved_translations = unsaved_transs
+    self.events << evt
+  end
+
+  # Callback to delete the last-remaining "unknown" Event
+  #
+  # Basically, EventGroup#events.destroy_all always fails!
+  def delete_remaining_unknwon_event_callback
+    if !destroyable?
+      throw(:abort)
+    elsif 1 == events.size
+      # Both a grandchild and child will be deleted.
+      event_items.first.delete  # Without this, ActiveRecord::DeleteRestrictionError is raised as an orphan would remain.
+      events.first.delete
+    end
+  end
+  private :delete_remaining_unknwon_event_callback
 end
 
 class << EventGroup 

@@ -123,7 +123,7 @@ class Prefecture < BaseWithTranslation
   #
   # @param country: [Country, NilClass, String] String as the registered English name.
   # @param prefecture: [Prefecture, NilClass, String] String as the registered Prefecture name.
-  # @return [Place]
+  # @return [Prefecture]
   def self.unknown(country: nil)
     if country
       country = Country[country] if !country.respond_to? :prefectures  # else, country as given

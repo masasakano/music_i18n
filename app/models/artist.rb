@@ -422,10 +422,19 @@ end
 
 class << Artist
   alias_method :create_basic_bwt!, :create_basic! if !self.method_defined?(:create_basic_bwt!)
+  alias_method :initialize_basic_bwt, :initialize_basic if !self.method_defined?(:initialize_basic_bwt!)
 
   # Wrapper of {BaseWithTranslation.create_basic!}
-  def create_basic!(*args, sex: nil, **kwds)
-    create_basic_bwt!(*args, sex: (sex || Sex.create_basic!), **kwds)
+  def create_basic!(*args, sex: nil, sex_id: nil, **kwds, &blok)
+    sex_id ||= (sex ? sex.id : Sex.create_basic!.id)
+    create_basic_bwt!(*args, sex_id: sex_id, **kwds, &blok)
+  end
+
+  # Wrapper of {BaseWithTranslation.initialize_basic!}
+  # Unlike {#create_basic!}, an existing Sex is used, which is assumed to exist.
+  def initialize_basic(*args, sex: nil, sex_id: nil, **kwds, &blok)
+    sex_id ||= (sex ? sex.id : Sex.first.id)
+    initialize_basic_bwt(*args, sex_id: sex_id, **kwds, &blok)
   end
 end
 

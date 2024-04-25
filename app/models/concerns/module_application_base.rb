@@ -13,11 +13,11 @@ module ModuleApplicationBase
   # creates a new {Sex}, which is a mandatory parameter, unless you explicitly
   # specify a sex in {#create_basic!}.
   #
-  # @example In case you need to overwrite it (see also the bottom section of BaseWithTranslation).
+  # @example In case you need to overwrite it (see also the bottom section of BaseWithTranslation for a slightly more advanced example).
   #    class << Post
   #      alias_method :create_basic_application!, :create_basic! if !self.method_defined?(:create_basic_application!)
   #      def create_basic!(*args, error_message: "", another: nil, **kwds)
-  #        # NOTE: "another" must be specified as an optional argument with a Symbol key unlike
+  #        # NOTE: In this example, "another" must be specified as an optional argument with a Symbol key unlike
   #        #   Rails' default, where it can be specified either with a String key or as a Hash in the main argument.
   #        create_basic_application!(*args, error_message: "You must give a mandatory unique 'mname'", another: (another || 5), **kwds)
   #      end
@@ -27,13 +27,25 @@ module ModuleApplicationBase
   #    record = Post.create_basic!(mname: rand(0.2).to_s)  # => ok
   #
   # @return [ApplicationRecord]
-  def create_basic!(*args, error_message: "", **kwds)
+  def create_basic!(*args, error_message: "", **kwds, &blok)
     begin
-      create!(*args, **kwds)
+      create!(*args, **kwds, &blok)
     rescue
       warn "ERROR(#{__method__}): "+error_message if error_message.present?
       raise
     end
   end
+
+  #alias :initialize_basic :initialize
+  # a simple alias of the original in practice. Just to define it.
+  def initialize_basic(*args, error_message: "", **kwds, &blok)
+    begin
+      new(*args, **kwds, &blok)
+    rescue
+      warn "ERROR(#{__method__}): "+error_message if error_message.present?
+      raise
+    end
+  end
+
 end
 

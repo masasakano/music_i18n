@@ -3691,14 +3691,18 @@ end
 
 class << BaseWithTranslation
   alias_method :create_basic_application_original!, :create_basic! if !self.method_defined?(:create_basic_application_original!)
+  alias_method :initialize_basic_application_original, :initialize_basic if !self.method_defined?(:initialize_basic_application_original!)
 
   # Modifies {ApplicationRecord.create_basic!} to automatically add a unique translation
+  #
+  # Original is defined in /app/models/concerns/module_application_base.rb
   #
   # @example In case you need to overwrite it (see also the bottom section of BaseWithTranslation).
   #    class << Artist
   #      alias_method :create_basic_bwt!, :create_basic! if !self.method_defined?(:create_basic_bwt!)
-  #      def create_basic!(*args, sex: nil, **kwds)
-  #        create_basic_bwt!(*args, sex: (sex || Sex.first), **kwds)
+  #      def create_basic!(*args, sex: nil, sex_id: nil, **kwds, &blok)
+  #        sex_id ||= (sex ? sex.id : Sex.create_basic!.id)
+  #        create_basic_bwt!(*args, sex_id: sex_id, **kwds, &blok)
   #      end
   #    end
   #
@@ -3707,16 +3711,27 @@ class << BaseWithTranslation
   # @param translation: [Translation, Nilclass] if given, this (unsaved) Translation is used instead.
   #    You can give an existing Translation as long as it belongs to a different parent class
   #    (if it belongs to the same class, it is likely to raise a unique-violation-related Exception).
-  def create_basic!(*args, translation: nil, **kwds)
-    model = create_basic_application_original!(*args, **kwds)
-    hs =
-      if translation 
-        translation.attributes.except(*(%w(id translatable_type translatable_id created_at updated_at)))
-      else
-        {langcode: "en", title: name+"-basic-"+rand(0.429).to_s, is_orig: true, weight: 1000}
-      end
+  def create_basic!(*args, translation: nil, **kwds, &blok)
+    model = create_basic_application_original!(*args, **kwds, &blok)
+    model.with_translation(**_prepare_hash_basic_translation(translation))
+  end
 
-    model.with_translation(**hs)
+  # Initialize version.
+  #
+  # @note Other related models are not likely to be created, but existing ones should be used.
+  def initialize_basic(*args, translation: nil, **kwds, &blok)
+    model = super(*args, **kwds, &blok)
+    model.unsaved_translations << Translation.new(_prepare_hash_basic_translation(translation))
+    model
+  end
+
+  private
+  def _prepare_hash_basic_translation(translation)
+    if translation 
+      translation.attributes.except(*(%w(id translatable_type translatable_id created_at updated_at)))
+    else
+      {langcode: "en", title: name+"-basic-"+rand(0.429).to_s, is_orig: true, weight: 1000}
+    end
   end
 end
 

@@ -55,20 +55,68 @@ class EventGroupTest < ActiveSupport::TestCase
 
     ## testing:  has_many :events, dependent: :restrict_with_exception
     refute_empty evgr.events, "sanity check..."
-    assert_raises(ActiveRecord::DeleteRestrictionError){ evgr.destroy } # At DB level, <ActiveRecord::InvalidForeignKey> for <"PG::ForeignKeyViolation: ERROR:  update or delete on table "event_groups" violates foreign key constraint "fk_rails_..." on table "events"  DETAIL:  Key (id)=(804171372) is still referenced from table "events".>
+    assert_raises(ActiveRecord::RecordNotDestroyed, ActiveRecord::DeleteRestrictionError, "EVGR=#{evgr.inspect}\n events=#{evgr.events.inspect}"){ evgr.destroy! } # At DB level, <ActiveRecord::InvalidForeignKey> for <"PG::ForeignKeyViolation: ERROR:  update or delete on table "event_groups" violates foreign key constraint "fk_rails_..." on table "events"  DETAIL:  Key (id)=(804171372) is still referenced from table "events".> # ActiveRecord::RecordNotDestroyed is at Rails level.
 
-    # Once the children are destoryed, it is destroyable.
+    # Once the children are destoryed, it is destroyable, except for unknown.
+    evione = event_items(:one)
+    refute evione.destroyable?
+    assert_raises(ActiveRecord::DeleteRestrictionError){evione.destroy}
+    evgr.reload
     evgr.events.each do |eev|
-      assert_raises(ActiveRecord::DeleteRestrictionError){  # At DB level, <ActiveRecord::InvalidForeignKey> for <"PG::ForeignKeyViolation: ERROR:  update or delete on table "event_groups" violates foreign key constraint "fk_rails_..." on table "events"  DETAIL:  Key (id)=(804171372) is still referenced from table "events".>
+      refute eev.event_items.all?{|i| i.destroyable?}
+      assert_raises(ActiveRecord::RecordNotDestroyed, ActiveRecord::DeleteRestrictionError){  # At DB level, <ActiveRecord::InvalidForeignKey> for <"PG::ForeignKeyViolation: ERROR:  update or delete on table "event_groups" violates foreign key constraint "fk_rails_..." on table "events"  DETAIL:  Key (id)=(804171372) is still referenced from table "events".>
       eev.event_items.destroy_all }  # failed.
       eev.event_items.each do |eevit|
         eevit.harami_vids.destroy_all  # You cannot delete it with Event#harami_vids.destroy_all  because of ActiveRecord::HasManyThroughNestedAssociationsAreReadonly
+        eevit.destroy if eevit.destroyable?
       end
-      eev.event_items.destroy_all
-      eev.destroy
+      assert eev.event_items.exists?
     end
     evgr.reload  # essential.
-    assert_nothing_raised{ evgr.destroy }
+
+    assert_operator 0, :<, evgr.events.count
+    refute evgr.destroyable?
+    evgr.events.each do |eev|
+      (eev.destroy; puts "Destroyed!") if eev.destroyable?
+    end
+
+    evgr.reload
+    assert_equal 1, evgr.events.count
+    assert  evgr.events.first.unknown?
+
+    assert evgr.destroyable?
+    assert_difference('Event.count', -1){
+      assert_difference('EventGroup.count', -1){
+        evgr.destroy! } }
+  end
+
+  test "mass-delete" do
+    evgr = event_groups(:evgr_lucky2023)
+    evgr.events.each do |eev|
+      if eev.harami_vids.exists?
+        refute evgr.destroyable?
+        refute eev.destroyable?
+        eev.event_items.each do |evit|
+          evit.harami_vids.destroy_all 
+          evit.destroy if !evit.unknown?
+        end
+        assert_equal 1, eev.event_items.count
+        eev.reload
+        evit = eev.event_items.first
+        refute evit.siblings.exists?, "self=#{[evit.id, evit.machine_title]}, siblings=#{evit.siblings.pluck(:id, :machine_title).inspect}"
+        refute evit.destroyable?
+        assert_raises(ActiveRecord::RecordNotDestroyed, "last remaining EventItem cannot be destroyed."){  # Rails-level destroy-validation
+          evit.destroy! }
+      end
+      assert eev.destroyable? if !eev.unknown?
+      eev.destroy if !eev.unknown?
+    end
+    assert_equal 1, evgr.events.count
+    eev = evgr.events.first
+    refute eev.destroyable?  # unknown? is never destroyable? but it can be deleted when the parent EventGroup can be and is destroyed.
+    assert evgr.destroyable?
+    assert_difference('EventItem.count', -1){
+      eev.destroy }  # EventItem and Event must be destroyable.
   end
 
   test "date order" do
@@ -101,4 +149,23 @@ class EventGroupTest < ActiveSupport::TestCase
     assert_nothing_raised{ eg.event_items }
     assert_nothing_raised{ eg.harami_vids }
   end
+
+  test "callbacks" do
+    eg = EventGroup.create_basic!
+    assert_equal Place.unknown, eg.place
+    assert_equal EventGroup.unknown, eg.unknown_sibling
+    eg.reload
+    assert eg.unknown_event, "events = "+eg.events.inspect
+    assert_equal 1, eg.events.size
+
+    evt = Event.initialize_basic
+    evt.event_group = nil
+    assert_nil evt.event_group_id
+    assert_difference('Event.count') {
+      eg.events << evt
+    }
+    eg.reload
+    assert_equal 2, eg.events.size
+  end
+
 end

@@ -264,9 +264,21 @@ class ArtistTest < ActiveSupport::TestCase
     assert_equal Sex, art.sex.class
     assert_nil  art.birth_year
 
+    art = Artist.create_basic!(sex_id: Sex.third.id)
+    assert_equal Sex.third, art.sex
+
+    art = Artist.create_basic!(sex: Sex.second, sex_id: Sex.third.id)
+    assert_equal Sex.third, art.sex
+
     se = Sex.last
     art = Artist.create_basic!(sex: se)
     assert_equal se, art.sex
+
+    #art = Artist.new_basic
+    art = Artist.initialize_basic
+    art.save!
+    art.reload
+    assert art.best_translation.present?
 
     tra = Artist.first.best_translation.dup
     assert_nothing_raised{

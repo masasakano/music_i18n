@@ -27,20 +27,34 @@
 #  fk_rails_...  (place_id => places.id) ON DELETE => nullify
 #
 
-ev_evgr_unknown:
-  start_time:     <%= TimeAux::DEF_FIRST_DATE_TIME %>
-  start_time_err: <%= TimeAux::MAX_ERROR %>
+# All unknown ones:
+<% SeedsEventGroup::SEED_DATA.map{|ev| [ev[:key], ev]}.to_h.each_pair do |ekey, edata| %>
+ev_evgr_<%= ekey %>:
+  start_time:     <%= (t=edata[:start_date]) ? t.to_time : "" %>
+  start_time_err: <%= (t=edata[:start_date_err]) ? t*86400 : "" %>
   duration_hour: 
   weight: 
-  event_group: evgr_unknown
-  place: unknown_place_unknown_prefecture_world
-  note: Event_EventGroupUnknown
+  event_group: evgr_<%= ekey %>
+  place: <%= case edata[:ja]; when /^HARAMI.+202\d$/i; "unknown_place_unknown_prefecture_japan";  when /\bdrop\b.+202/i; "unknown_place_kagawa_japan"; else; "unknown_place_unknown_prefecture_world"; end %>
+  note: EventEventGroup<%= ekey.to_s.camelize %>"
+<% end %>
+
+#ev_evgr_unknown:
+#  start_time:     <%= TimeAux::DEF_FIRST_DATE_TIME %>
+#  start_time_err: <%= TimeAux::MAX_ERROR %>
+
+ev_evgr_lucky2023_unknown:
+  start_time: <%= Date.new(2023).to_time %>
+  start_time_err: 600000
+  event_group: evgr_lucky2023
+  place: unknown_place_shimane_japan
+  note: Event_ev_harami_lucky2023Unknown
 
 ev_harami_lucky2023:
-  start_time: 2023-07-01 15:10:00
+  start_time: <%= Date.new(2023).to_time %>
   start_time_err: 600
   duration_hour: 0.5
-  weight: 1.5
+  weight: 0.5
   event_group: evgr_lucky2023
   place: unknown_place_shimane_japan
   note: Event_ev_harami_lucky2023

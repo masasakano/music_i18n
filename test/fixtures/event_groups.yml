@@ -25,32 +25,27 @@
 #  fk_rails_...  (place_id => places.id) ON DELETE => nullify
 #
 
-evgr_unknown:
-  order_no:
-  start_date:
-  start_date_err: 
-  end_date:
-  end_date_err:
-  place: unknown_place_unknown_prefecture_world
-  note: MyText_evgr_unknown
+<% SeedsEventGroup::SEED_DATA.map{|ev| [ev[:key], ev]}.to_h.each_pair do |ekey, edata| %>
+evgr_<%= ekey %>:
+  start_date:     <%= edata[:start_date] %>
+  start_date_err: <%= edata[:start_date_err] %> 
+  end_date:       <%= edata[:end_date] %>
+  end_date_err:   <%= edata[:end_date_err] %> 
+  place: <%= case edata[:ja]; when /^HARAMI.+202\d$/i; "unknown_place_unknown_prefecture_japan";  when /\bdrop\b.+202/i; "unknown_place_kagawa_japan"; else; "unknown_place_unknown_prefecture_world"; end %>
+  note: "EventGroup<%= ekey.to_s.camelize %>"
+<% end %>
+
+#evgr_unknown:
+#evgr_harami_concerts:
 
 evgr_lucky2023:
   order_no: 3
-  start_date: <%= Date.new(2023, 7) %>
+  start_date: <%= Date.new(2023) %>
   start_date_err: 15
-  end_date: <%= Date.new(2023) %>
+  end_date: <%= Date.new(2023, 7) %>
   end_date_err: 182
   place: unknown_place_shimane_japan
   note: MyText_evgr_harami2023
-
-evgr_harami_concerts:
-  order_no: 
-  start_date: <%= Date.new(2019, 12) %>
-  start_date_err: 15
-  end_date: <%= Date.new(9999, 12) %>
-  end_date_err: 
-  place: unknown_place_unknown_prefecture_world
-  note: MyText_evgr_harami_concerts
 
 evgr_streetpiano:
   order_no: 

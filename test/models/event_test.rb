@@ -53,8 +53,9 @@ class EventTest < ActiveSupport::TestCase
     assert_nil evt.place, "Though it should be changed into a different value when Place is destroyed, it has to be technically allowed to be nullified."
 
     # destroy with Dependency
-    assert_raises(ActiveRecord::DeleteRestrictionError, ActiveRecord::InvalidForeignKey){  # Rails level (has_many - dependent) and DB-level, respectively
-      evt.destroy }
+    refute evt.destroyable?
+    assert_raises(ActiveRecord::RecordNotDestroyed, ActiveRecord::DeleteRestrictionError, ActiveRecord::InvalidForeignKey){  # Rails level (has_many - dependent) and DB-level, respectively
+      evt.destroy! }
     assert_raises(ActiveRecord::DeleteRestrictionError) {
       evt.event_items.each do |ei|
         ei.destroy
@@ -108,5 +109,42 @@ class EventTest < ActiveSupport::TestCase
     event = Event.first
     assert_nothing_raised{ event.event_items }
     assert_nothing_raised{ event.harami_vids }
+  end
+
+  test "callbacks" do
+    assert  Event.unknown.event_group.unknown?
+
+    evt1 = evt2 = nil
+    assert_nothing_raised{
+      evt1 = Event.create_basic!
+      evt2 = Event.create!
+    }
+    evt1.reload
+    evt2.reload
+    assert evt1.event_group
+    assert evt2.event_group
+    refute_equal evt1.event_group, evt2.event_group
+    assert_equal 0, evt2.event_items.size, "ev=#{evt2.inspect}"
+    assert_equal 1, evt1.event_items.size, "ev=#{evt1.inspect}"
+
+    evitem1= evt1.event_items.first
+    assert       evitem1.unknown?
+
+    hv1 = nil
+    hv1 = HaramiVid.create_basic!
+    hv1.event_items << evitem1
+    refute evt1.destroyable?
+    assert_raises(ActiveRecord::RecordNotDestroyed){ 
+      evt1.destroy!
+    }
+    
+    hv1.destroy
+    evt1.reload
+    assert_equal 1, evt1.event_items.size
+    assert evt1.destroyable?
+    assert_difference('Event.count', -1, "If only a single unknown EventItem remains, Event should be destroyable WITH the EventItem."){
+      evt1.destroy!
+    }
+    assert evt1.destroyed?
   end
 end
