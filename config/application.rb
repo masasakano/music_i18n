@@ -73,6 +73,9 @@ module HaramiMusicI18n
         langcode: "en",
       }.with_indifferent_access,
     }.with_indifferent_access
+
+    # default country code
+    config.primary_country = (ENV['APP_DEFAULT_COUNTRY'] || "JPN")
   end
 end
 

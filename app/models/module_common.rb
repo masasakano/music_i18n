@@ -980,6 +980,19 @@ module ModuleCommon
     s ? s.inspect.sub(/\A"(.*)"\z/, "'"+'\1'+"'") : s.inspect
   end
 
+  # Returns "(Bond Street < London (UK))"
+  #
+  # @param place [Place]
+  # @return [String]
+  def inspect_place_helper(str)
+    return "" if place.blank?
+
+    s_pla = (place.title_or_alt(langcode: "en", lang_fallback_option: :either, str_fallback: "") rescue "")
+    s_pref = (place.prefecture.title_or_alt(langcode: "en", lang_fallback_option: :either, str_fallback: "") rescue "")
+    s_country = (place.country.title_or_alt(prefer_alt: true, langcode: "en", lang_fallback_option: :either, str_fallback: "") rescue "")
+    sprintf("(%s < %s (%s))", s_pla, s_pref, s_country)
+  end
+
   # Routine to add {Translation} information to the String of inspect
   # @param retstr [String] Output String of the default +inspect+
   # @param models [Array<String>] e.g., %w(music, artist)

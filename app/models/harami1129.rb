@@ -27,12 +27,14 @@
 #  created_at                                            :datetime         not null
 #  updated_at                                            :datetime         not null
 #  engage_id                                             :bigint
+#  event_item_id                                         :bigint
 #  harami_vid_id                                         :bigint
 #
 # Indexes
 #
 #  index_harami1129s_on_checked_at                        (checked_at)
 #  index_harami1129s_on_engage_id                         (engage_id)
+#  index_harami1129s_on_event_item_id                     (event_item_id)
 #  index_harami1129s_on_harami_vid_id                     (harami_vid_id)
 #  index_harami1129s_on_id_remote                         (id_remote)
 #  index_harami1129s_on_id_remote_and_last_downloaded_at  (id_remote,last_downloaded_at) UNIQUE
@@ -47,11 +49,13 @@
 # Foreign Keys
 #
 #  fk_rails_...  (engage_id => engages.id) ON DELETE => restrict
+#  fk_rails_...  (event_item_id => event_items.id)
 #  fk_rails_...  (harami_vid_id => harami_vids.id)
 #
 class Harami1129 < ApplicationRecord
   extend  ModuleCommon
   include ModuleCommon  # preprocess_space_zenkaku etc
+  include ModuleGuessPlace  # for guess_place
 
   # Prefix for the column names inserted from the raw columns
   PREFIX_INSERTED_WITHIN = 'ins_'
@@ -147,6 +151,8 @@ class Harami1129 < ApplicationRecord
 
   ## Insertion/populaiton status of each row (for use of cache)
   #HS_STATUS_ROW = {}
+
+  attr_accessor :place  # Add a guessed Place if guessed at all.
 
   # Hold a return value of a row-status-check
   class PopulateStatus
@@ -343,6 +349,7 @@ class Harami1129 < ApplicationRecord
   attr_accessor :columns_at_destination
 
   belongs_to :harami_vid, optional: true
+  belongs_to :event_item, optional: true
   belongs_to :engage,     optional: true
   # NOTE: There are technically two ways to get Music (but use the former!):
   #   * self.engage.music
@@ -458,6 +465,9 @@ class Harami1129 < ApplicationRecord
   # (3) {EngageHow}:
   # (5) {HaramiVidMusicAssocs}: (3-way association; HaramiVid, Music, timing, though there should be no multiple timings, even though there are no Rails/DB restriction in place for it)
   # (6) {Engage}: (Association; unkown)
+  # (7) {EventItem}: (an existing unknown one is used. making sure to match the one pointing to the same HaramiVid or ins_link_root)
+  # (8) {HaramiVidEventItemAssoc}
+  # (9) {ArtistMusicPlay} (containing :event_item :artist :music :play_role :instrument)  if not existent
   #
   # == Schematic view
   #
@@ -472,6 +482,11 @@ class Harami1129 < ApplicationRecord
   #     has_many Harami1129, HaramiVidMusicAssoc(timing) => Music => EngageHow1(Artist1, Artist2), EngageHow2()
   #              Harami1129, HaramiVidMusicAssoc(timing) => Music => EngageHow1(Artist2),          EngageHow2()
   #                                                        (Trans)              (Trans)  (Trans)
+  #
+  #   EventItem (no Trans):
+  #     has_many (many-to-many) HaramiVid
+  #     has_many Harami1129
+  #     has_many ArtistMusicPlay => Artist/Music/PlayRole/Instrument (all Trans)
   #
   # == Description
   #
@@ -555,6 +570,11 @@ class Harami1129 < ApplicationRecord
   #     (2) {Harami1129.harami_vid} = harami_vid
   #     (3) {Harami1129.engage} = returned_engage
   #     (4) {HaramiVid#musics} << {Engage#music} to create an entry {HaramiVidMusicAssoc} with the specified timing ({HaramiVid#ins_link_time}) if not exists. Note that if {Harami1129#ins_link_time} differs from the existing {HaramiVidMusicAssoc}, {HaramiVidMusicAssoc#timing} is updated because there should be only one per {HaramiVid} per {Music}, although {Harami1129#ins_link_time} would not be automatically updated when {Harami1129#link_time} changes from the existing value and manual intervention is demanded (n.b., {HaramiVidMusicAssoc#created_at} differs from {#HaramiVid#updated_at} expectedly.)
+  # (4) after processing:
+  #     (1) update +event_item_id+; not creating new EventItem (maybe in the future, depending on the place?)
+  #     (2) you may create a new ArtistMusicPlay, depending on the combination of Artist/Music
+  #     (3) +event_item_id+ would not be updated in the subsequent downloading.  It is set only at the first population.
+  #         Users are free to update the column, though.
   #
   # == Columns
   #
@@ -908,7 +928,9 @@ class Harami1129 < ApplicationRecord
   end
   private :refresh_changed_and_return_nil
 
-  # Populate ins_* of {Harami1129} to {HaramiVid}, {Music}, {Artist}, {Engage}
+  # Populate ins_* of {Harami1129} to {HaramiVid}, {Music}, {Artist}, {Engage}, {EventItem}
+  #
+  # as well as {HaramiVidMusicAssoc} and {HaramiVidEventItemAssoc}
   #
   # @param updates: [Array<Symbol>] Column names (Symbols) like :ins_singer which has been updated/created (and hence they may be reflected in the populated tables).
   # @param dryrun: [Boolean] If true (Def: false), nothing is saved but {Harami1229#columns_at_destination} for the returned value is set.
@@ -982,6 +1004,7 @@ class Harami1129 < ApplicationRecord
         self.harami_vid = hvid
         enga.save! if enga.changed?  # redundant, as it should have been already saved.
         self.engage     = enga
+        set_event_item_ref(enga)
         save!
 
         # If music has changed, the existing {HaramiVidMusicAssoc} is deleted (and replaced).
@@ -994,6 +1017,49 @@ class Harami1129 < ApplicationRecord
     end
     self
   end
+
+  # Set event_item_id if nil
+  #
+  # @return [Hash<event_item, artist_music_play, place>] if updated, returns an Array of Models. EventItem can be accessed via +event_item+ anyway.
+  def set_event_item_ref(enga)
+    if event_item
+      # not updating
+    elsif (h1129 = self.class.where(ins_link_root: ins_link_root).where.not(event_item_id: nil).first)
+      # If there is one with the same URL with a significant EventItem, use it.
+      self.event_item = h1129.event_item
+    else
+      # Else, create one.
+      guessed_place = self.class.guess_place(ins_title, fallback: nil)  # defined in /app/models/concerns/module_guess_place.rb
+      evt_kind =  EventItem.default(:harami1129, place: guessed_place)  # Either Event or EventItem
+      if evt_kind.new_record?
+        # evt_kind is an Event (NOT EventItem)
+        if evt_kind.save   # Just to play safe
+          evt_kind.reload
+          evt_kind = evt_kind.event_items.first
+        else
+          logger.error("ERROR(#{File.basename __FILE__}:#{__method__}): for some reason, Event failed to be saved! Event=#{Event.inspect}")
+        end
+      end
+
+      self.event_item = evt_kind if !evt_kind.new_record?  # i.e., new_record means it is Event, NOT EventItem, as a result of failed save. This IF-clause should never fail in practice.
+    end
+
+    if event_item && enga && enga.artist && !enga.artist.unknown? && enga.music && !enga.music.unknown? 
+      amp = ArtistMusicPlay.find_or_create_by(
+        event_item: event_item,
+        artist: enga.artist,
+        music: enga.music,
+        play_role: PlayRole.default(:harami1129),
+        instrument: Instrument.default(:harami1129),
+      )
+    end
+
+    { event_item: event_item,
+      artist_music_play: amp,
+      place: guessed_place,
+    }.with_indifferent_access
+  end
+
 
   # Create or maybe update {HaramiVidMusicAssoc}
   #

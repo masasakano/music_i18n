@@ -72,6 +72,9 @@ class Harami1129sGrid < BaseGrid
   column(:engage_id, class: ["align-cr"]) do |record|
     (record.engage_id ? ActionController::Base.helpers.link_to(record.engage_id, Rails.application.routes.url_helpers.engage_url(record.engage_id, only_path: true)) : '')
   end
+  column(:event_item_id) do |record|
+    (record.event_item_id ? ActionController::Base.helpers.link_to(record.event_item_id, Rails.application.routes.url_helpers.event_item_url(record.event_item_id, only_path: true)) : '')
+  end
   column(:note, mandatory: true)
   column(:last_downloaded_at)
   column(:orig_modified_at)

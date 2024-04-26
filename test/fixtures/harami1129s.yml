@@ -25,12 +25,14 @@
 #  created_at                                            :datetime         not null
 #  updated_at                                            :datetime         not null
 #  engage_id                                             :bigint
+#  event_item_id                                         :bigint
 #  harami_vid_id                                         :bigint
 #
 # Indexes
 #
 #  index_harami1129s_on_checked_at                        (checked_at)
 #  index_harami1129s_on_engage_id                         (engage_id)
+#  index_harami1129s_on_event_item_id                     (event_item_id)
 #  index_harami1129s_on_harami_vid_id                     (harami_vid_id)
 #  index_harami1129s_on_id_remote                         (id_remote)
 #  index_harami1129s_on_id_remote_and_last_downloaded_at  (id_remote,last_downloaded_at) UNIQUE
@@ -45,6 +47,7 @@
 # Foreign Keys
 #
 #  fk_rails_...  (engage_id => engages.id) ON DELETE => restrict
+#  fk_rails_...  (event_item_id => event_items.id)
 #  fk_rails_...  (harami_vid_id => harami_vids.id)
 #
 
@@ -91,6 +94,7 @@ harami1129_rcsuccession:
   checked_at:
   engage:
   harami_vid:
+  event_item:
 
 harami1129_ai:
   singer: AI
@@ -113,6 +117,7 @@ harami1129_ai:
   checked_at:
   engage: engage_ai_story
   harami_vid:
+  event_item:
 
 harami1129one:
   singer: harami1129one sing
@@ -135,6 +140,7 @@ harami1129one:
   checked_at:
   engage:
   harami_vid:
+  event_item:
 
 harami1129two:
   singer: harami1129two sing
@@ -157,6 +163,7 @@ harami1129two:
   checked_at:
   engage:
   harami_vid:
+  event_item:
 
 harami1129_3:
   singer: harami1129three sing
@@ -179,6 +186,7 @@ harami1129_3:
   checked_at:
   engage:
   harami_vid: harami_vid3
+  event_item:
 
 harami1129_ihojin1:
   singer: "久保田早紀"
@@ -201,6 +209,7 @@ harami1129_ihojin1:
   checked_at: 2022-02-26 18:11:22
   engage: engage_kubota_ihojin1_1
   harami_vid: harami_vid_ihojin1
+  event_item: one
 
 harami1129_sting1:
   singer: "Sting"
@@ -223,6 +232,7 @@ harami1129_sting1:
   checked_at: 
   engage: 
   harami_vid: 
+  event_item:
 
 harami1129_sting2:
   singer: "スティング"
@@ -245,4 +255,5 @@ harami1129_sting2:
   checked_at: 
   engage: 
   harami_vid: 
+  event_item:
 

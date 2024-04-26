@@ -27,12 +27,14 @@
 #  created_at                                            :datetime         not null
 #  updated_at                                            :datetime         not null
 #  engage_id                                             :bigint
+#  event_item_id                                         :bigint
 #  harami_vid_id                                         :bigint
 #
 # Indexes
 #
 #  index_harami1129s_on_checked_at                        (checked_at)
 #  index_harami1129s_on_engage_id                         (engage_id)
+#  index_harami1129s_on_event_item_id                     (event_item_id)
 #  index_harami1129s_on_harami_vid_id                     (harami_vid_id)
 #  index_harami1129s_on_id_remote                         (id_remote)
 #  index_harami1129s_on_id_remote_and_last_downloaded_at  (id_remote,last_downloaded_at) UNIQUE
@@ -47,6 +49,7 @@
 # Foreign Keys
 #
 #  fk_rails_...  (engage_id => engages.id) ON DELETE => restrict
+#  fk_rails_...  (event_item_id => event_items.id)
 #  fk_rails_...  (harami_vid_id => harami_vids.id)
 #
 require 'test_helper'

@@ -131,6 +131,13 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
 
       eev.event_items.each do |eevi|
         eevi.harami_vids.destroy_all
+        if eevi.harami1129s.exists?
+          assert_raises(ActiveRecord::DeleteRestrictionError){eevi.destroy! if !eevi.unknown? }  # ActiveRecord::InvalidForeignKey if has_many was not defined.
+          eevi.harami1129s.each do |eh|
+            eh.update!(event_item: nil)  # nullify Harami1129's reference.
+          end
+          eevi.reload  # Essential!!
+        end
         eevi.destroy! if !eevi.unknown?  # EventItem#unknown cannot be destroyed.
       end
       eev.reload  # Essential!!

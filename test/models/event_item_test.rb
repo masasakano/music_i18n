@@ -1,3 +1,4 @@
+# coding: utf-8
 # == Schema Information
 #
 # Table name: event_items
@@ -66,6 +67,33 @@ class EventItemTest < ActiveSupport::TestCase
     assert_difference("ArtistMusicPlay.count", -ArtistMusicPlay.where(event_item: evit1).count, "Test of dependent"){
       evit1.destroy
     }
+  end
+
+  test "self.default" do
+    evit = EventItem.default(context=nil, place: nil)
+    assert_equal evit, EventItem.unknown
+
+    pla = places(:tocho)
+    evt = EventItem.default(:Harami1129, place: pla)
+    assert_equal Event, evt.class
+    assert   evt.new_record?
+    evt.save!
+
+    evt.reload
+    evit = evt.event_items.first
+    assert   evit.unknown?, "#{evit.inspect}"
+    assert_equal pla, evit.place
+    assert_match(/^UnknownEventItem_東京.*でのイベント/, evit.machine_title) # See Event::UNKNOWN_TITLE_PREFIXES[:ja]
+    evt1 = evt
+    evit1 = evit
+
+    pla2 = pla.unknown_sibling
+    evt2 = EventItem.default(:Harami1129, place: pla2)
+    assert_equal Event, evt2.class
+    assert   evt2.new_record?
+    evt2.save!
+    evit = evt2.event_items.first
+    assert_match(/^UnknownEventItem_Event_in/, evit.machine_title) # See Event::UNKNOWN_TITLE_PREFIXES[:en]
   end
 
   test "association" do

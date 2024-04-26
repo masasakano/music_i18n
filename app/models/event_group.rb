@@ -49,6 +49,7 @@ class EventGroup < BaseWithTranslation
   has_many :events, dependent: :restrict_with_exception  # EventGroup should not be deleted easily.
   has_many :event_items, through: :events, dependent: :restrict_with_exception
   has_many :harami_vids, through: :event_items, dependent: :restrict_with_exception
+  has_many :harami1129s, through: :event_items, dependent: :restrict_with_exception
 
   UNKNOWN_TITLES = UnknownEventGroup = {
     "ja" => 'その他のイベント類',
@@ -109,9 +110,26 @@ class EventGroup < BaseWithTranslation
     self.class.unknown
   end
 
+  # Returning a default EventGroup in the given context
+  #
+  # place is ignored so far.
+  #
+  # @option context [Symbol, String]
+  # @return [EventItem, Event]
+  def self.default(context=nil, place: nil)
+    if context.to_s.downcase.singularize == "harami1129"
+      ret = (self.select_regex(:title, /single-?shot +street(-?piano)? +play(ing|s)?/i, langcode: "en", sql_regexp: true).first ||
+             self.select_regex(:title, /単発ストリート(ピアノ)?の?演奏/i, langcode: "ja", sql_regexp: true).first)
+      return ret if ret
+      logger.warn("WARNING(#{__FILE__}:#{__method__}): Failed to identify the default Streetpiano EvengGroup!")
+    end
+
+    self.unknown
+  end
+
   # True if no children or if only descendants are {#unknown?} and no HaramiVid depends on self.
   def destroyable?
-    return false if harami_vids.exists?
+    return false if harami_vids.exists? || harami1129s.exists?
     1 == events.count && 1 == event_items.size && events.first.unknown? && !unknown?
   end
 
@@ -143,20 +161,31 @@ class EventGroup < BaseWithTranslation
       )
     end
 
-    start_time = (start_date ? start_date.to_time : nil)
-    if start_date && end_date
-      duration_hour = (end_date - start_date).quo(86400)
-      if start_date_err && end_date_err
-        start_time_err = Math.sqrt(start_date_err**2 + end_date_err**2)
-      end
-    end
+    evt = Event.initialize_with_def_time(event_group: self)
 
-    evt = Event.new(
-      start_time: start_time,
-      start_time_err: start_time_err,
-      weight: Float::INFINITY,
-      place: place,
-    )
+    #  hstime = Event.def_time_parameters(self)
+    #  evt = Event.new(
+    #    start_time:     hstime[:start_time],
+    #    start_time_err: hstime[:start_time_err],
+    #    duration_hour:  hstime[:duration_hour],
+    #    weight: Float::INFINITY,
+    #    place: place,
+    #  )
+
+    #start_time = (start_date ? start_date.to_time : nil)
+    #if start_date && end_date
+    #  duration_hour = (end_date - start_date).quo(86400)
+    #  if start_date_err && end_date_err
+    #    start_time_err = Math.sqrt(start_date_err**2 + end_date_err**2)*86400
+    #  end
+    #end
+
+    #evt = Event.new(
+    #  start_time: start_time,
+    #  start_time_err: start_time_err,
+    #  weight: Float::INFINITY,
+    #  place: place,
+    #)
     evt.unsaved_translations = unsaved_transs
     self.events << evt
   end

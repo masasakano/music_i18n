@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_04_24_074001) do
+ActiveRecord::Schema[7.0].define(version: 2024_04_25_152203) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -306,8 +306,10 @@ ActiveRecord::Schema[7.0].define(version: 2024_04_24_074001) do
     t.bigint "engage_id"
     t.datetime "orig_modified_at", precision: nil, comment: "Any downloaded column modified at"
     t.datetime "checked_at", precision: nil, comment: "Insertion validity manually confirmed at"
+    t.bigint "event_item_id"
     t.index ["checked_at"], name: "index_harami1129s_on_checked_at"
     t.index ["engage_id"], name: "index_harami1129s_on_engage_id"
+    t.index ["event_item_id"], name: "index_harami1129s_on_event_item_id"
     t.index ["harami_vid_id"], name: "index_harami1129s_on_harami_vid_id"
     t.index ["id_remote", "last_downloaded_at"], name: "index_harami1129s_on_id_remote_and_last_downloaded_at", unique: true
     t.index ["id_remote"], name: "index_harami1129s_on_id_remote"
@@ -624,6 +626,7 @@ ActiveRecord::Schema[7.0].define(version: 2024_04_24_074001) do
   add_foreign_key "harami1129_reviews", "harami1129s", on_delete: :nullify
   add_foreign_key "harami1129_reviews", "users", on_delete: :nullify
   add_foreign_key "harami1129s", "engages", on_delete: :restrict
+  add_foreign_key "harami1129s", "event_items"
   add_foreign_key "harami1129s", "harami_vids"
   add_foreign_key "harami_vid_event_item_assocs", "event_items", on_delete: :cascade
   add_foreign_key "harami_vid_event_item_assocs", "harami_vids", on_delete: :cascade

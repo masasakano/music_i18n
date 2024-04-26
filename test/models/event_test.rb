@@ -1,3 +1,4 @@
+# coding: utf-8
 # == Schema Information
 #
 # Table name: events
@@ -64,6 +65,13 @@ class EventTest < ActiveSupport::TestCase
       evt.harami_vids.destroy_all }
     evt.event_items.each do |ei|
       ei.harami_vids.destroy_all  # Although the error is for the association"dependent harami_vid_event_item_assocs", the underlying key policy is that you should not destroy EventItem without destroing the dependent HaramiVid(s) first.
+      if ei.harami1129s.exists?
+        assert_raises(ActiveRecord::DeleteRestrictionError) { ei.destroy }
+        ei.harami1129s.each do |eh|
+          eh.update! event_item: nil
+        end
+        ei.reload # Essential.
+      end
       ei.destroy
     end
     evt.event_items.each do |ei|
@@ -122,6 +130,57 @@ class EventTest < ActiveSupport::TestCase
     end
   end
 
+  test "self.default" do
+    evt = Event.default(context=nil, place: nil)
+    exp = Event.unknown
+    assert_equal exp, evt 
+
+    evt = Event.default(context=:Harami1129)
+    exp = event_groups(:evgr_single_streets)
+    assert_equal exp, evt.event_group
+    assert  evt.unknown?
+    evt_unknown = evt
+
+    evt = Event.default(:Harami1129, place: Place.unknown)
+    refute  evt.unknown?
+    refute_equal evt_unknown, evt
+    assert_equal evt_unknown.event_group, evt.event_group
+    assert_match(/^どこかの場所\(どこかの都道府県\/世界\)で?の.+ストリート/, evt.title(langcode: :ja), "Event=#{evt.inspect}")
+    evt_world = evt
+
+    evt = Event.default(:Harami1129, place: Place.unknown(country: Country['JPN']))
+    refute_equal evt_world, evt
+    assert_equal evt_world.event_group, evt.event_group
+    refute_equal evt_world.place,       evt.place
+    assert evt.place.unknown?
+    assert_match(/^どこかの場所\(どこかの都道府県\/日本\)で?の.+ストリート/, evt.title(langcode: :ja), "Event=#{evt.inspect}")
+    evt_japan = evt
+    evt_japan.save!
+  end
+
+  test "self.default 2" do
+    evt = Event.default(:Harami1129, place: Place.unknown(country: Country['JPN']))
+    evt_japan = evt
+    evt_japan.save!
+
+    evt = Event.default(:Harami1129, place: Place.unknown(country: Country['JPN']))
+    assert_equal evt_japan, evt, "#{[evt_japan, evt].inspect}"
+
+    evt = Event.default(:Harami1129, place: places(:unknown_place_tokyo_japan))
+    refute_equal evt_japan, evt, "#{[evt_japan, evt].inspect}"
+    assert_match(/^UnknownPlace\(東京.+で?の.+ストリート/, evt.title(langcode: :ja))
+      # Note that this "UnknownPlace" should usually never happen.  However, the fixture for Translation
+      # does not exist and that is why. This is a good test for language fallback (where the requested
+      # language is not defined for a Place, which can often happen).
+    evt_tokyo = evt
+    evt_tokyo.save!
+
+    pla = places(:tocho)
+    evt = Event.default(:Harami1129, place: pla)
+    refute_equal evt_tokyo, evt
+    assert evt.save, "Event=#{evt}"
+  end
+
   test "association" do
     event = Event.first
     assert_nothing_raised{ event.event_items }
@@ -163,5 +222,19 @@ class EventTest < ActiveSupport::TestCase
       evt1.destroy!
     }
     assert evt1.destroyed?
+
+    ### Translation unique within a parent
+    evt1 = Event.create_basic!  # for some reason Translation is not created...
+    evt1.with_translation(langcode: "fr", title: "Allo", is_orig: true)
+    evt1.reload
+    evt2 = evt1.dup
+    evt2.note = "Test..."
+    tra = evt1.translations.first.dup
+    tra.translatable = nil
+    evt2.unsaved_translations << tra
+    assert_raises(ActiveRecord::RecordInvalid) {
+      evt2.save!
+      p [evt1, evt1]
+    }
   end
 end

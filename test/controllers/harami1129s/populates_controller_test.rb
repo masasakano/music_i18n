@@ -45,7 +45,7 @@ class PopulatesControllerTest < ActionDispatch::IntegrationTest
       assert_redirected_to harami1129_url @harami1129
     end
 
-    _weight_user_id_nil?(Translation.last)
+    # _weight_user_id_nil?(Translation.last)  # Tha last translation is related to Event with weight of 0, once event_item_id is introduced.
 
     @harami1129.reload
     assert       @harami1129.harami_vid

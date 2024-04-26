@@ -57,4 +57,21 @@ class Instrument < BaseWithTranslation
     "fr" => ['Instrument inconnu'],
   }.with_indifferent_access
 
+  # Returning a default Instrument in the given context
+  #
+  # place is ignored so far.
+  #
+  # @option context [Symbol, String]
+  # @return [EventItem, Event]
+  def self.default(context=nil, place: nil)
+    if context.to_s.downcase.singularize == "harami1129"
+      ret = (self.select_regex(:title, /^piano$/i, langcode: "en", sql_regexp: true).first ||
+             self.select_regex(:title, /^ピアノ/i, langcode: "ja", sql_regexp: true).first ||
+             self.select_regex(:title, /ピアノ|piano/i, sql_regexp: true).first)
+      return ret if ret
+      logger.warn("WARNING(#{File.basename __FILE__}:#{__method__}): Failed to identify the default Instrument!")
+    end
+
+    self.unknown
+  end
 end

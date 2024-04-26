@@ -1,6 +1,7 @@
 
 <% st = @harami1129.populate_status %>
 <% engage = @harami1129.engage %>
+<% event_item = @harami1129.event_item %>
 
 <h1>HARAMI1129 Entry</h1>
 
@@ -125,6 +126,14 @@
   <dd id="harami1129_show_Engage_dd">
     <%= engage ? link_to(sprintf('(ID=%d) %s by %s [%s]', engage.id, engage.music.title, engage.artist.title, engage.engage_how.title(langcode: I18n.locale, lang_fallback: true)), engage) : 'nil' %>
   </dd>
+  
+  <dt id="harami1129_show_EventItem" title="Table of the association for EventItem">EventItem (in our DB, for Song and Artists to collaborate):</dt>
+  <dd id="harami1129_show_EventItem_dd">
+    EventItem: <%= event_item ? link_to(sprintf('(ID=%d) %s', event_item.id, event_item.music.title, event_item.artist.title, event_item.event_item_how.title(langcode: I18n.locale, lang_fallback: true)), event_item) : 'nil' %> </dd>
+  <dd id="harami1129_show_Event_dd">
+    &lt; Event: <%= event_item ? link_to(sprintf('(ID=%d) %s', (evt=event_item.event).id, evt.title(langcode: I18n.locale, lang_fallback: true)), evt) : 'nil' %> </dd>
+  <dd id="harami1129_show_EventGroup_dd">
+    &lt; EventGroup: <%= event_item ? link_to(sprintf('(ID=%d) %s', (evg=event_item.event_group).id, evg.title(langcode: I18n.locale, lang_fallback: true)), evg) : 'nil' %> </dd>
 
   <dt id="h1129_note_dt">Note:</dt>
   <dd id="h1129_note_dd">
@@ -158,13 +167,15 @@
 </table>
 
 <p>
+<% if can? :update, @harami1129 %>
 <%= link_to 'Edit', edit_harami1129_path(@harami1129) %> |
+<% end %>
 <%= link_to 'Back', harami1129s_path %>
 <br />
 </p>
 
 
-<% if current_user.editor? %>
+<% if can? :update, @harami1129 %>
 <p>
   <% if :checked == st.sorted_status.first %>
     Everything looks OK. If you want to <it>undo</it> confirmation (in order to properly edit and fix it later), go to <%= link_to 'Edit', edit_harami1129_path(@harami1129) %> page.

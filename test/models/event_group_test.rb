@@ -49,7 +49,7 @@ class EventGroupTest < ActiveSupport::TestCase
     refute pla.prefecture.unknown?
 
     ## testing:  ON DELETE => nullify
-    pla.destroy
+    pla.destroy!
     evgr.reload
     assert_nil evgr.place, "Though it should be changed into a different value when Place is destroyed, it has to be technically allowed to be nullified."
 
@@ -68,7 +68,8 @@ class EventGroupTest < ActiveSupport::TestCase
       eev.event_items.destroy_all }  # failed.
       eev.event_items.each do |eevit|
         eevit.harami_vids.destroy_all  # You cannot delete it with Event#harami_vids.destroy_all  because of ActiveRecord::HasManyThroughNestedAssociationsAreReadonly
-        eevit.destroy if eevit.destroyable?
+        eevit.harami1129s.destroy_all
+        eevit.destroy! if eevit.destroyable?
       end
       assert eev.event_items.exists?
     end
@@ -77,11 +78,11 @@ class EventGroupTest < ActiveSupport::TestCase
     assert_operator 0, :<, evgr.events.count
     refute evgr.destroyable?
     evgr.events.each do |eev|
-      eev.destroy if eev.destroyable?
+      eev.destroy! if eev.destroyable?
     end
 
     evgr.reload
-    assert_equal 1, evgr.events.count
+    assert_equal 1, evgr.events.count, "#{evgr.events.inspect}"
     assert  evgr.events.first.unknown?
     evt_tra_size = evgr.events.first.translations.count
     assert_equal 3, evt_tra_size, "#{evgr.events.first.translations.inspect}"  # fixtures should be set so as to simulate the real application.
@@ -112,6 +113,12 @@ class EventGroupTest < ActiveSupport::TestCase
         refute eev.destroyable?
         eev.event_items.each do |evit|
           evit.harami_vids.destroy_all 
+          if evit.harami1129s.exists?
+            evit.harami1129s.each do |eh|
+              eh.update! event_item: nil  # nullify Harami1129's ref
+            end
+          end
+          evit.reload  # Essential!
           evit.destroy if !evit.unknown?
         end
         assert_equal 1, eev.event_items.count
@@ -178,6 +185,16 @@ class EventGroupTest < ActiveSupport::TestCase
     assert_raises(ActiveRecord::RecordInvalid){ evgr.update!(start_date_err: 0, end_date_err: 0, start_date: Date.new(2000, 3, 5)) }
     evgr.reload
     assert_nothing_raised{                      evgr.update!(start_date_err: nil,end_date_err: 0, start_date: Date.new(2000, 3, 5)) }
+  end
+
+  test "self.default" do
+    evgr = EventGroup.default(context=nil, place: nil)
+    exp = EventGroup.unknown
+    assert_equal exp, evgr 
+
+    evgr = EventGroup.default(context=:Harami1129)
+    exp = event_groups(:evgr_single_streets)
+    assert_equal exp, evgr 
   end
 
   test "association" do

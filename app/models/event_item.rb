@@ -53,6 +53,7 @@ class EventItem < ApplicationRecord
        # so that a HaramiVid would not become EventItem-less.
        # This means you should merge the EventItem to another or something before destroy.
   has_many :harami_vids, -> {distinct}, through: :harami_vid_event_item_assocs  # if the unique constraint is on for Association, `distinct` is redundant
+  has_many :harami1129s, dependent: :restrict_with_exception  # dependent is a key
 
   validates_uniqueness_of :machine_title
   %i(start_time_err duration_minute duration_minute_err event_ratio).each do |ec|
@@ -67,6 +68,14 @@ class EventItem < ApplicationRecord
     "en" => 'UnknownEventItem_',
     "fr" => "ÉvénementArticleNonClassé_",
   }.with_indifferent_access
+
+  alias_method :inspect_orig_event_item, :inspect if ! self.method_defined?(:inspect_orig_event_item)
+
+  def inspect
+    tra1 = (((eg=event) ? eg.title_or_alt(langcode: "en", lang_fallback_option: :either, str_fallback: "") : "") rescue "")  # rescue is unnecessary but just to play safe! (b/c this is inspect)
+    tra2 = inspect_place_helper(place) # defined in module_common.rb
+    super.sub(/, event_id: (\d+|nil)/, '\0'+sprintf("(%s)", tra1)).sub(/, place_id: (\d+|nil)/, '\0'+tra2)
+  end
 
   # Called from {Event#after_first_translation_hook}
   #
@@ -103,9 +112,9 @@ class EventItem < ApplicationRecord
   # @return [String] unknown title
   def self.unknown_machine_title_prefix(event, artit: nil)
     artit ||= [event, event.event_group].map{|i|
-      i.title_or_alt(langcode: "en", lang_fallback_option: :either, str_fallback: "")
+      i.title_or_alt(langcode: "en", lang_fallback_option: :either, str_fallback: nil)
     }
-    UNKNOWN_TITLE_PREFIXES[:en]+artit.join("_")
+    UNKNOWN_TITLE_PREFIXES[:en]+artit.join("_").gsub(/ +/, "_")
   end
 
   # Unknown EventItem in the given event_group (or somewhere in the world)
@@ -118,8 +127,8 @@ class EventItem < ApplicationRecord
   #
   # @param event: [Event]
   # @return [EventItem]
-  def self.unknown(event: nil)
-    event ? event.unknown_event_item : Event.unknown.unknown_event_item
+  def self.unknown(event: nil, event_group: nil)
+    event ? event.unknown_event_item : Event.unknown(event_group: event_group).unknown_event_item
   end
 
   # Returns true if self is one of the unknown EVENTs
@@ -141,6 +150,26 @@ class EventItem < ApplicationRecord
     event.event_items.where.not("event_items.id" => id)
   end
 
+  # Returning a default EventItem in the given context
+  #
+  # If not matching with Place, an unsaved new record of {Event} is returned.
+  # The caller may save it or discard it, judging with {#new_record?}
+  # If {Event} is returned and if it is saved, you can find {EventItem}
+  # with +event.unknown_event_item+ as there is obviously no other EventItem
+  # belonging to the Event anyway.
+  #
+  # Note that if the place is new, usually an unknown Event should be created
+  # because each unknown Event has a Place defined.
+  #
+  # @option context [Symbol, String]
+  # @return [EventItem, Event]
+  def self.default(context=nil, place: nil)
+    def_event = Event.default(context, place: place)
+    return def_event if def_event.new_record?
+
+    def_event.unknown_event_item
+  end
+
   # @param prefix [String]
   # @return [String] unique machine_title
   def self.get_unique_title(prefix)
@@ -149,7 +178,7 @@ class EventItem < ApplicationRecord
     (0..).each do |postfix|
       trial = prefix+postfix.to_s
       return trial if !where(machine_title: trial).exists?
-      raise "(#{__FILE__}:#{__method__}) Postfix exceeded the limit for prefix=#{prefix.inspect}. Contact the code developer." if postfix > 100000  # to play safe.
+      raise "(#{File.basename __FILE__}:#{__method__}) Postfix exceeded the limit for prefix=#{prefix.inspect}. Contact the code developer." if postfix > 100000  # to play safe.
     end
   end
   private_class_method :get_unique_title
@@ -162,7 +191,7 @@ class EventItem < ApplicationRecord
   # 
   # Justification: Every {Event} must have at least 1 {EventItem}.
   def destroyable?
-    return false if harami_vid_event_item_assocs.exists?
+    return false if harami_vid_event_item_assocs.exists? || harami1129s.exists?
     !unknown?
   end
 

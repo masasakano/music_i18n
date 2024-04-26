@@ -60,4 +60,22 @@ class PlayRole < BaseWithTranslation
     "fr" => ['Relation inconnue entre Engage-EventItem', 'Relation inconnue'],
   }.with_indifferent_access
 
+  # Returning a default PlayRole in the given context
+  #
+  # place is ignored so far.
+  #
+  # @option context [Symbol, String]
+  # @return [EventItem, Event]
+  def self.default(context=nil, place: nil)
+    if context.to_s.downcase.singularize == "harami1129"
+      ret = PlayRole.find_by(mname: "inst_player_main")
+      return ret if ret  # This should never fail!
+      msg = "Failed to identify the default PlayRole"
+      logger.error("ERROR(#{__FILE__}:#{__method__}): "+msg)
+      raise msg
+    end
+
+    self.unknown
+  end
+
 end
