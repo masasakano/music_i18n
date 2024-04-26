@@ -40,9 +40,16 @@ class PopulatesControllerTest < ActionDispatch::IntegrationTest
     assert       @harami1129.ins_link_root.include? @harami1129.link_root
 
     assert_difference('HaramiVid.count*10000 + HaramiVidMusicAssoc.count*1000 + Music.count*100 + Artist.count*10 + Engage.count', 11111) do
-      patch harami1129_populate_url(@harami1129)
-      assert_response :redirect
-      assert_redirected_to harami1129_url @harami1129
+      assert_difference('Event.count*100 + EventItem.count*10 + ArtistMusicPlay.count', 111) do
+        # See HaramiVid#set_with_harami1129 and especailly a comment in the mid-section.
+        # The default Place is Japan for Harami1129 to set in EventItem
+        # and EventItem.default for the context of Harami1129 and Place of Japan
+        # is a "new" unknown in a new General Event in Japan.
+        # For this reason, a new Event and EventItem are created.
+        patch harami1129_populate_url(@harami1129)
+        assert_response :redirect
+        assert_redirected_to harami1129_url @harami1129
+      end
     end
 
     # _weight_user_id_nil?(Translation.last)  # Tha last translation is related to Event with weight of 0, once event_item_id is introduced.
@@ -53,6 +60,25 @@ class PopulatesControllerTest < ActionDispatch::IntegrationTest
     # Music place is unknown in the world
     assert_equal Place.unknown, @harami1129.engage.music.place
     assert_equal Place.unknown(country: Country.unknown), @harami1129.engage.music.place
+
+    assert @harami1129.event_item
+    assert @harami1129.harami_vid.event_items.exists?, "h1129=#{@harami1129.inspect}\n hv=#{@harami1129.harami_vid.inspect}"
+    assert @harami1129.harami_vid.event_items.include?(@harami1129.event_item)
+
+    h1129_rc = harami1129s(:harami1129_rcsuccession)
+    #assert_difference('HaramiVid.count*10000 + HaramiVidMusicAssoc.count*1000 + Music.count*100 + Artist.count*10 + Engage.count', 11111) do
+      assert_difference('Event.count*100 + EventItem.count*10 + ArtistMusicPlay.count', 111) do
+        assert_difference('HaramiVidEventItemAssoc.count', 1) do
+          patch harami1129_populate_url(h1129_rc)
+          assert_response :redirect
+        end
+      end
+    #end
+    assert_redirected_to harami1129_url h1129_rc
+    h1129_rc.reload
+    assert h1129_rc.event_item
+    assert h1129_rc.harami_vid.event_items.exists?
+    assert h1129_rc.harami_vid.event_items.include?(h1129_rc.event_item)
   end
 
   test "should update with a new Harami1129 with a Japanese singer from internal_insertion to populate" do

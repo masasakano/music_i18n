@@ -111,10 +111,12 @@
   </table>
   </dd>
 
+  <% if can? :edit, @harami1129 %>  <%# Because this "not_music" entry should be removed... %>
   <dt>NOT music video?:</dt>
   <dd>
       <%= @harami1129.not_music ? 'True' : (@harami1129.not_music.nil? ? 'nil' : 'False') %>
   </dd>
+  <% end %>
 
   <dt id="harami1129_show_HaramiVid">HaramiVid (in our DB, for Title, Date, Link):</dt>
   <dd id="harami1129_show_HaramiVid_dd">
@@ -129,11 +131,46 @@
   
   <dt id="harami1129_show_EventItem" title="Table of the association for EventItem">EventItem (in our DB, for Song and Artists to collaborate):</dt>
   <dd id="harami1129_show_EventItem_dd">
-    EventItem: <%= event_item ? link_to(sprintf('(ID=%d) %s', event_item.id, event_item.music.title, event_item.artist.title, event_item.event_item_how.title(langcode: I18n.locale, lang_fallback: true)), event_item) : 'nil' %> </dd>
+    EventItem: <%= @harami1129.event_item ? link_to(sprintf('(ID=%d) %s', @harami1129.event_item.id, @harami1129.event_item.machine_title)) : 'nil' %> </dd>
   <dd id="harami1129_show_Event_dd">
-    &lt; Event: <%= event_item ? link_to(sprintf('(ID=%d) %s', (evt=event_item.event).id, evt.title(langcode: I18n.locale, lang_fallback: true)), evt) : 'nil' %> </dd>
+    &lt; Event: <%= @harami1129.event_item ? link_to(sprintf('(ID=%d) %s', (evt=@harami1129.event_item.event).id, evt.title(langcode: I18n.locale, lang_fallback: true)), evt) : 'nil' %> </dd>
   <dd id="harami1129_show_EventGroup_dd">
-    &lt; EventGroup: <%= event_item ? link_to(sprintf('(ID=%d) %s', (evg=event_item.event_group).id, evg.title(langcode: I18n.locale, lang_fallback: true)), evg) : 'nil' %> </dd>
+    &lt; EventGroup: <%= @harami1129.event_item ? link_to(sprintf('(ID=%d) %s', (evg=@harami1129.event_item.event_group).id, evg.title(langcode: I18n.locale, lang_fallback: true)), evg) : 'nil' %> </dd>
+  <dd id="harami1129_show_EventItem_in_HaramiVid_dd">
+    (<strong>in HaramiVid</strong>):
+    <% if !hv %>
+      HaramiVid undefined
+    <% elsif !event_item %>
+      <%= cnt = hv.event_items.ids.size %> <%= "EventItem".pluralize(cnt) %>
+    <% else %>
+      <% if hv.event_items.joins(harami1129s: :event_item).where("harami1129s.id" => @harami1129.id).exists? %>
+        EventItem included
+      <% else %>
+        EventItem (ID=<%= @harami1129.event_item.id %>)<strong>NOT</strong> included in
+        <%= hv.event_items.ids.inspect %>
+      <% end %>
+    <% end %>
+    </dd>
+  <dd id="harami1129_show_EventItem_in_ArtistMusicPlay_dd">
+    (<strong>in ArtistMusicPlay</strong>):
+    <% if evit=@harami1129.event_item %>
+      Song(Music)
+      <% if @harami1129.ins_song.blank? %>
+      <% elsif evit.musics.joins(translations: :music).where("translations.title" => @harami1129.ins_song).exists? %>
+        <em>included</em>
+      <% else %>
+        <strong>NOT</strong> included
+      <% end %>
+
+      / Singer(Artist)
+      <% if @harami1129.ins_singer.blank? %>
+      <% elsif evit.artists.joins(translations: :artist).where("translations.title" => @harami1129.ins_singer).exists? %>
+        <em>included</em>
+      <% else %>
+        <strong>NOT</strong> included
+      <% end %>
+    <% end %>
+    </dd>
 
   <dt id="h1129_note_dt">Note:</dt>
   <dd id="h1129_note_dd">

@@ -88,7 +88,11 @@ class HaramiVid < BaseWithTranslation
 
   # Hash with keys of Symbols of the columns to each String
   # value like 'youtu.be/yfasl23v'
-  # The keys are [:be4, :aft][:ins_title, :ins_release_date, :ins_link_root, :ins_link_time]
+  # The keys are [:be4, :aft][:ins_title, :ins_release_date, :ins_link_root, :ins_link_time, :event_item]
+  #
+  # Basically, [:be4] means the status of HaramiVid (NOT Harami1129) of the corresponding key
+  # to Harami1129 before the execution.
+  # For :event_item, the value is +HaramiVid.event_items.ids+ (Array!)
   attr_accessor :columns_for_harami1129
 
   # Returns {HaramiVidMusicAssoc#timing} of a {Music} in {HaramiVid}, assuming there is only one timing
@@ -120,21 +124,26 @@ class HaramiVid < BaseWithTranslation
   # @param harami1129 [Harami1129]
   # @return [Harami1129, NilClass] {Translation} is associated via either {#translations} or {#unsaved_translations}
   def self.find_one_for_harami1129(harami1129)
-    return nil if harami1129.ins_link_root.blank?
+    return nil if harami1129.ins_link_root.blank? #&& !harami1129.event_item  # if ins_link_root is nil, internal_insert has not been done, yet.
     uri = ApplicationHelper.uri_youtube(harami1129.ins_link_root)
     cands = self.where(uri: uri)
     n_cands = cands.count
     if n_cands > 0
       if n_cands != 1
-        msg = sprintf "HaramiVid has multiple (n=%i) records (corresponding to Harami1129(ID=%d)) of uri= %s / Returned-ID: %d", n_cands , harami1129.id, uri, cands.first.id
+        msg = sprintf "multiple (n=%d) HaramiVids found (corresponding to Harami1129(ID=%d)) of uri= %s / Returned-ID: %d", n_cands , harami1129.id, uri, cands.first.id
         log.warn msg
       end
-      harami_vid = cands.first
-    else
-      harami_vid = self.new
+      return cands.first
     end
 
-    harami_vid
+    return self.new if !harami1129.event_item
+
+    cands = HaramiVid.joins(harami_vid_event_item_assocs: :event_item).joins(harami1129s: :event_item).where("harami1129s.id" => harami1129.id)
+    if (n_cands=cands.count) != 1
+      msg = sprintf "multiple (n=%d) HaramiVids found (corresponding to Harami1129(ID=%d)) of uri= %s and Harami1129.event_item(id=%d) / Returned-ID: %d", n_cands , harami1129.id, uri, harami1129.event_item_id, cands.first.id
+      log.warn msg
+    end
+    cands.first
   end
 
   # Sets the data from {Harami1129}
@@ -142,12 +151,15 @@ class HaramiVid < BaseWithTranslation
   # self is modified but NOT saved, yet.
   #
   # Note this record HaramiVid is one record per video. Therefore,
-  # {Harami1129#link_time} will not be referred to.
+  # {Harami1129#link_time} will not be referred to and will be recorded in HaramiVidMusicAssoc.
   #
   # The returned model instance may be filled with, if existing, all updated information
   # as specified in updates. If updates do not contain the column
   # (e.g., :ins_title), nothing is done. An existing column is not
   # updated in default (regardless of updates) unless force option is specified.
+  #
+  # As for {EventItem}, if HaramiVid has no child EventItem and if Harami1129 belongs to one,
+  # HaramiVid's one is updated (a new {HaramiVidEventItemAssoc} is creasted).  Otherwise no change.
   #
   # @param harami1129 [Harami1129]
   # @param updates: [Array<Symbol>] Updated columns in Symbol; n.b., :uri is redundant b/c it is always read regardless.
@@ -172,9 +184,28 @@ class HaramiVid < BaseWithTranslation
     self.release_date = harami1129.ins_release_date if updates.include?(:ins_release_date) && (force || release_date.nil?)
     self.columns_for_harami1129[:aft][:ins_release_date] = release_date
 
-    ## A {Place} may be assigned here
-    # Future project
-    self.place = Place['JPN'] if !place
+#
+#    ## EventItem (an Array of IDs is set to columns_for_harami1129; never nil but can be empty?)
+#    self.columns_for_harami1129[:be4][:event_item] = (ar_id=event_items.ids)
+#    self.columns_for_harami1129[:aft][:event_item] =
+#      if harami1129.event_item && ar_id.empty?
+#        event_items << harami1129.event_item if !dryrun || self.new_record?
+#        [harami1129.event_item.id]
+#      else
+#        columns_for_harami1129[:be4][:event_item]
+#      end
+#
+#    ## A {Place} may be assigned here
+#    # self.place = Place['JPN'] if !place  # NOTE: Place['JPN'] used to be assigned unconditionally!
+#    if !place && !columns_for_harami1129[:aft][:event_item].empty?  # the latter is equivalent to self.event_items.ids
+#      # NOTE: self.reload or self.event_items cannot be used here because self may be a new_record?
+#      self.place = EventItem.where(id: columns_for_harami1129[:aft][:event_item]).first.place
+#    end
+#    # NOTE: EventItem should be always defined in Harami1129 (after its internal_insert).
+#    #   Therefore, no default Place is defined here. However, in practice, the default place
+#    #   for EventItem defined from Harami1129 is still Japan, taken from config.
+#    #   See Harami1129#set_event_item_ref which calls /app/models/concerns/module_guess_place.rb
+#    #   which refers to config in Default.
 
     ## Translations
 
@@ -238,6 +269,45 @@ class HaramiVid < BaseWithTranslation
     self.matched_attribute   = :title
     self.columns_for_harami1129[:be4][:ins_title] ||= nil
     self.columns_for_harami1129[:aft][:ins_title] = harami1129.ins_title
+
+    self
+  end
+
+  # Set EventItem association
+  #
+  # Also this may update {HaramiVid#place}. If not, self (=HaramiVid) is not updated.
+  # Just an association HaramiVidEventItemAssoc may be created.
+  #
+  # @param harami1129 [Harami1129]
+  # @param force: [Boolean] if true, all the record values are forcibly updated (Def: false).
+  # @param dryrun: [Boolean] If true (Def: false), nothing is saved but {HaramiVid#columns_for_harami1129} for the returned value is set.
+  # @return [Harami1129] {Translation} is associated via either {#translations} or {#unsaved_translations}
+  #   Note the caller has no need to receive the return as the contents of self is modified anyway, whether it is saved or not.
+  def set_with_harami1129_event_item_assoc(harami1129, force: false, dryrun: false)
+    self.columns_for_harami1129 ||= {:be4 => {}, :aft => {}}
+
+    ## EventItem (an Array of IDs is set to columns_for_harami1129; never nil but can be empty?)
+    self.columns_for_harami1129[:be4][:event_item] = (ar_id=event_items.ids)
+    self.columns_for_harami1129[:aft][:event_item] =
+      if harami1129.event_item && ar_id.empty?
+        event_items << harami1129.event_item if !dryrun || self.new_record?  # HaramiVidEventItemAssoc is immediately created unless self is a new record
+        [harami1129.event_item.id]
+      else
+        columns_for_harami1129[:be4][:event_item]
+      end
+
+    ## A {Place} may be assigned here
+    # self.place = Place['JPN'] if !place  # NOTE: Place['JPN'] used to be assigned unconditionally!
+    if (!place || force) && !columns_for_harami1129[:aft][:event_item].empty?  # the latter is equivalent to self.event_items.ids
+      # NOTE: self.reload or self.event_items cannot be used here because self may be a new_record?
+      self.place = EventItem.where(id: columns_for_harami1129[:aft][:event_item]).first.place
+      save! if force || !dryrun
+    end
+    # NOTE: EventItem should be always defined in Harami1129 (after its internal_insert).
+    #   Therefore, no default Place is defined here. However, in practice, the default place
+    #   for EventItem defined from Harami1129 is still Japan, taken from config.
+    #   See Harami1129#set_event_item_ref which calls /app/models/concerns/module_guess_place.rb
+    #   which refers to config in Default.
 
     self
   end

@@ -26,10 +26,10 @@
     <% end %>
   <%= link_to t("layouts.back_to_index"), event_groups_path %>
 
-<% if canupdate && !@event_group.events.exists? %>
+<% if canupdate && @event_group.destroyable? %>
   <%= button_to "Destroy this EventGroup", @event_group, method: :delete %>
 <% elsif current_user && current_user.an_admin? %>
-  Child Events exist and so this cannot be destroyed.
+  | Child Events (descendants) exist or this is "unknown?", and so this cannot be destroyed.
 <% end %>
   </p>
 </div>

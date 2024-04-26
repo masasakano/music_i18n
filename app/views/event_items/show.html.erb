@@ -21,7 +21,7 @@
    <div class="actions">
   <% end %>
 
-     <% if can?(:destroy, model) && !model.harami_vids.exists?  %> <%# && !model.harami1129s.exists? %>
+     <% if can?(:destroy, model) && model.destroyable?  %> <%# && !model.harami1129s.exists? %>
       <% msg2confirm = (t('are_you_sure')+" "+t("are_you_sure_but_merge")).html_safe %>
        <%= button_to 'Destroy', model, method: :delete, data: { confirm: msg2confirm } %>
      <% else %>

@@ -59,7 +59,7 @@ class SeedsSeedsTest < ActiveSupport::TestCase
     assert EventItem.any?{|i| i.unknown?}
     superuser = User.roots.first
     begin
-      ApplicationRecord.allow_destroy_all = true  # required to allow destroying EventGroup-s etc.
+      ApplicationRecord.allow_destroy_all = true  # required to allow destroying EventGroup-s etc!!
       ## TODO:
       # It seems EventItems can be destroy_all-ed regardless of ApplicationRecord.allow_destroy_all. Strange! Check it out.
       # Maybe destroy_all attempts to destroy everything WITHOUT rollback even if one of the destroy-attempts failed?
@@ -111,6 +111,14 @@ class SeedsSeedsTest < ActiveSupport::TestCase
     refute chorus.note.present? # sanity check
 
     # run seeding (2nd time)
+    def_title = [ChannelOwner::UNKNOWN_TITLES[:ja]].flatten.first
+    replaced = def_title.sub(/$/, "-altered")
+    Translation.find_by(title: def_title, langcode: "ja", translatable_type: "ChannelOwner").translatable.translations.find_by(langcode: "ja").update!(title: replaced)
+    # This slight change in one of the Translations may result in ActiveRecord::RecordInvalid
+    # in Validation of Translation because Translations in other two languages are identical.
+    # Seeding script should identify the existing records correctly.
+
+    puts "NOTE(TEST:#{File.basename __FILE__}): two warning are expected to be printed below."
     implant_seeds  # defined in /db/seeds.rb"
 
     assert_equal n_entries1, _total_entry, "The total entry number shoud not change, but..."

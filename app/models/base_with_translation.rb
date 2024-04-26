@@ -1457,6 +1457,89 @@ class BaseWithTranslation < ApplicationRecord
   private_class_method :flattened_translations_hash
 
 
+  # Find all BaseWithTranslation with exact title and/or alt_title etc.
+  #
+  # Returning Relation.
+  # When multiple Translation-s are given, they are "OR" conditions.
+  #
+  # For the main parameters, they are all "AND" conditions.
+  # You often cannot save a new BaseWithTranslation with only one of the Translation-s
+  # identical to an existing one (n.b., some BaseWithTranslation-s accept those in some conditions
+  # like same-name Artists with different birthdays).
+  #
+  # This script is used in seeding (to identify the existing records based on Translation-s)
+  # to avoid failing identifications and trying to save a new one with one of Translation-s
+  # identical to an existing one, resulting in ActiveRecord::RecordInvalid.
+  #
+  # @example
+  #   ChannelOwner.find_all_by_exact_translations(
+  #     [{langcode: :ja, title: "変わったかもしれない"},
+  #      {langcode: :en, title: "Comletely agrees"}],
+  #     sex: "male")  # mandatory "main" parameters if any
+  #
+  # @param args [Array<Hash>] Hash of {Translation} parameters such as :title, :langcode
+  # @param inprms [Hash] main mandagtory parameters unique to {BaseWithTranslation}
+  # @return [BaseWithTranslation::ActiveRecord_Relation]
+  def self.find_all_by_exact_translations(*args, **inprms)  # , dump_sql: false
+    rela_base = self.joins(:translations)
+    rela_base = rela_base.where(**inprms) if !inprms.empty?
+    rela = rela_base
+
+    transs = [args].flatten.map{|ehs| ehs.map{|ek, ev| ["translations."+ek.to_s, ev]}.to_h}
+    transs.each_with_index do |hs_trans, ei|
+      if 0 == ei
+        rela = rela.where(**hs_trans)
+      else
+        rela = rela.or(rela_base.where(**hs_trans))
+      end
+    end
+    # puts rela.to_sql if dump_sql  # for debugging
+    rela.distinct
+  end
+
+  # Wrapper of self.find_all_by_exact_translations 
+  # returning an Array of Hash for Translation that do not match the OR coditions.
+  #
+  # Used for seeding.
+  # One or more of the original translations (in seeding) may change by an admin with UI
+  # in real applications, which may be inconvenient.  So, this method detects such inconsistencies.
+  #
+  # Basically, the "OR" condition for the translations for a BaseWithTranslation:
+  # should be applicable to a single translation; e.g., if an exact "ja"
+  # gives a BaseWithTranslation, then the other langcodes like "en" should
+  # returns the same.  If not, there is an inconsistency.
+  #
+  # This method accepts an Array of Hash for Tranlsation attributes like :title and :langcode,
+  # and returns the same-structure Array with the given Hash, except the elements (hashes) that are consistent
+  # are nullified, so that the caller should know which ones are wrong.
+  #
+  # @example
+  #   ChannelOwner.find_all_inconsistent_translations(
+  #     [{langcode: :ja, title: "変わったかもしれない"},
+  #      {langcode: :en, title: "Comletely agrees"}],
+  #     sex: "male")
+  #    # => [{langcode: :ja, title: "変わったかもしれない"}, nil]
+  #    #  The second element is nullified because it is consistent with the expectation,
+  #    #  i.e., ChannelOwner with only the EN translation is found and its JA translation must have been altered or deleted.
+  #
+  # @param rela_base [BaseWithTranslation::ActiveRecord_Relation]
+  # @param args [Array<Hash>] Hash of {Translation} parameters such as :title, :langcode
+  # @param inprms [Hash] main mandagtory parameters unique to {BaseWithTranslation}
+  # @return [Array<Hash>]
+  def self.find_all_inconsistent_translations(*args, **inprms)  # , dump_sql: false
+    arhs = args.flatten
+    or_ids = find_all_by_exact_translations(*args, **inprms).ids
+
+    ar_and_ids = []
+    arhs.each do |ehs|
+      ar_and_ids << find_all_by_exact_translations(ehs, **inprms).ids
+    end
+
+    arhs.map.with_index{|eh, ei|
+      (or_ids == ar_and_ids[ei]) ? nil : eh
+    }
+  end
+
   # Wrapper of {BaseWithTranslation.find_all_translations_by_mains} to return {BaseWithTranslation}-s
   #
   # Similar to {BaseWithTranslation.select_regex} but with a slightly

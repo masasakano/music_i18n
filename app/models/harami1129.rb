@@ -930,7 +930,7 @@ class Harami1129 < ApplicationRecord
 
   # Populate ins_* of {Harami1129} to {HaramiVid}, {Music}, {Artist}, {Engage}, {EventItem}
   #
-  # as well as {HaramiVidMusicAssoc} and {HaramiVidEventItemAssoc}
+  # as well as {HaramiVidMusicAssoc} and {HaramiVidEventItemAssoc} and {ArtistMusicPlay}
   #
   # @param updates: [Array<Symbol>] Column names (Symbols) like :ins_singer which has been updated/created (and hence they may be reflected in the populated tables).
   # @param dryrun: [Boolean] If true (Def: false), nothing is saved but {Harami1229#columns_at_destination} for the returned value is set.
@@ -1004,7 +1004,9 @@ class Harami1129 < ApplicationRecord
         self.harami_vid = hvid
         enga.save! if enga.changed?  # redundant, as it should have been already saved.
         self.engage     = enga
+
         set_event_item_ref(enga)
+        hvid.set_with_harami1129_event_item_assoc(self, dryrun: dryrun)  # HaramiVid#place may be modified.
         save!
 
         # If music has changed, the existing {HaramiVidMusicAssoc} is deleted (and replaced).
@@ -1029,7 +1031,7 @@ class Harami1129 < ApplicationRecord
       self.event_item = h1129.event_item
     else
       # Else, create one.
-      guessed_place = self.class.guess_place(ins_title, fallback: nil)  # defined in /app/models/concerns/module_guess_place.rb
+      guessed_place = self.class.guess_place(ins_title)  # defined in /app/models/concerns/module_guess_place.rb
       evt_kind =  EventItem.default(:harami1129, place: guessed_place)  # Either Event or EventItem
       if evt_kind.new_record?
         # evt_kind is an Event (NOT EventItem)

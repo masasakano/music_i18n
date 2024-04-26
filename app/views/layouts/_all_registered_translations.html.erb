@@ -69,7 +69,7 @@
           <td class="trans_action trans_show" style="border-right-style: none;"><%= link_to 'Show', tra %></td>
         <% end %>
         <td class="trans_action trans_edit" style="border-left-style: none;<%= (hsflag[:demotable] || hsflag[:promotable]) ? 'border-right-style: none;' : ''  %>">
-        <% if tra.editable?(user: current_user) %>
+        <% if can? :update, tra %>
           / <%= link_to 'Edit', edit_translation_path(tra) %>
         <% end %>
         </td>

@@ -179,7 +179,7 @@ module ModuleCommon
     case langcode.to_s
     when "ja"
       ar = _arstr_sprintf_int([month, day], fmt: "%s", fallback: "——")
-      sprintf("%s年%s月%s日 ", *ar) + ret_h.gsub(/\?\?/, "——")  # eg, "1年2月3日 04:——"
+      sprintf("%s年%s月%s日 ", year, *ar) + ret_h.gsub(/\?\?/, "——")  # eg, "1年2月3日 04:——"
     else
       if !month
         sprintf('%4d-%s-%s ', year, *(_arstr_sprintf_int([month, day]))) + ret_h  # eg, "1999-??-?? ??:??"
@@ -224,7 +224,7 @@ module ModuleCommon
   #
   # @return [String] formatted String of Date-Time
   def string_time_err2uptomin(time=start_app_time, langcode: I18n.locale)
-    time_err2uptomin(time, langcode: I18n.locale)
+    time_err2uptomin(time, langcode: langcode)
   end
 
   # Returns String Array from ojbect Array, with formating

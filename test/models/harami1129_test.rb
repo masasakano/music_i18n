@@ -250,20 +250,26 @@ class Harami1129Test < ActiveSupport::TestCase
 
   test "insert_populate" do
     str_equation = 'HaramiVid.count*10000 + Artist.count*1000 + Music.count*100 + Engage.count*10'
+    str_eq2      = 'HaramiVidEventItemAssoc.count*1000+Event.count*100 + EventItem.count*10 + ArtistMusicPlay.count'
 
     ## New one (ins_* are nil)
     h1129_ewf = harami1129s(:harami1129_ewf)
+    assert_nil h1129_ewf.harami_vid
 
     ## before internal_insertion
     pstat = h1129_ewf.populate_status(use_cache: true)
     assert_equal :no_insert, pstat.status(:ins_title)
     assert_equal "\u274c",   pstat.marker(:ins_title)
     assert_equal h1129_ewf.title.gsub(/！/, '!'),  pstat.ins_to_be(:ins_title)
+    assert_nil h1129_ewf.reload.harami_vid
 
     ## run internal_insertion
     assert_difference(str_equation, 11110) do
       h1129_ewf.insert_populate
     end
+    hvid = h1129_ewf.reload.harami_vid
+    assert_operator h1129_ewf.created_at, :<, hvid.created_at, "sanity check. HaramiVid is newly created from h1129_ewf."
+
     assert_equal h1129_ewf.song,   h1129_ewf.ins_song
     assert_equal h1129_ewf.singer, h1129_ewf.ins_singer
     assert_equal h1129_ewf.song,   h1129_ewf.engage.music.title
@@ -273,6 +279,12 @@ class Harami1129Test < ActiveSupport::TestCase
     assert_equal h1129_ewf.link_time, h1129_ewf.harami_vid.harami_vid_music_assocs.first.timing  # 3250
     assert_equal h1129_ewf.last_downloaded_at, h1129_ewf.orig_modified_at
     assert_operator h1129_ewf.orig_modified_at, '<', h1129_ewf.ins_at
+
+    assert h1129_ewf.event_item
+    assert h1129_ewf.harami_vid.event_items.exists?, "h1129=#{h1129_ewf.inspect}\n hv=#{h1129_ewf.harami_vid.inspect}"
+    assert h1129_ewf.harami_vid.event_items.include?(h1129_ewf.event_item)
+    assert_equal h1129_ewf.harami_vid.musics.first,               h1129_ewf.event_item.musics.first
+    assert_equal h1129_ewf.harami_vid.musics.first.artists.first, h1129_ewf.event_item.artists.first
 
     ## populate_status, where the existing cache is automtically discarded due to a change in updated_at
     pstat = h1129_ewf.populate_status
@@ -285,7 +297,9 @@ class Harami1129Test < ActiveSupport::TestCase
 
     # No change for repeated actions
     assert_difference(str_equation, 0) do
-      h1129_ewf.insert_populate
+      assert_difference(str_eq2, 0) do
+        h1129_ewf.insert_populate
+      end
     end
     assert_not h1129_ewf.saved_changes?
     assert_equal h1129_ewf.ins_song,   h1129_ewf.engage.music.title

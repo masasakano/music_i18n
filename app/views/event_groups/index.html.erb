@@ -63,8 +63,12 @@
         <% if can? :update, event_group  %>
           <td><%= link_to 'Edit', edit_event_group_path(event_group) %></td>
         <% end %>
-        <% if can? :destroy, event_group %>
+        <% if can?(:destroy, event_group) %>
+         <% if event_group.destroyable? %>
           <td><%= link_to 'Destroy', event_group, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+         <% else %>
+          <td><span class="cell_disable_link">Destroy</span></td>
+         <% end %>
         <% end %>
       </tr>
     <% end %>

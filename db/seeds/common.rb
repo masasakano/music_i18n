@@ -170,7 +170,7 @@ module Seeds
     # @yieldreturn [ApplicationRecord] The matching (or new) model or nil
     def _load_seeds_core(attrs, klass: nil, find_by: nil)
       self::MODELS ||= {}  # The caller may want to define it before calling this.
-      klass ||= ((k=:RECORD_CLASS; self.const_defined?(k) && self.const_get(k)) || self.name.split("::")[-1].constantize)  # ActiveRecord (ApplicationRecord)
+      klass ||= ((k=:RECORD_CLASS; self.const_defined?(k) && self.const_get(k)) || self.name.split("::")[-1].constantize)  # ActiveRecord Class (ApplicationRecord)
       n_changed = 0
       self::SEED_DATA.each_pair do |key, ehs|
         model =
@@ -183,11 +183,7 @@ module Seeds
           elsif ehs[:regex]
             klass.find_by_regex(:titles, ehs[:regex])
           else  # If :regex is not found in self::SEED_DATA, the exact :title (but not :alt_title) is used to identify the existing record.
-            hstrans = {}
-            I18n.available_locales.find{|langcode|  # langcode in Symbol
-              hstrans[langcode] = {title: [ehs[langcode]].flatten.first} if ehs.has_key? langcode.to_s
-            }
-            (hstrans.empty? ? nil : klass.select_by_translations(**hstrans).first)
+            _find_bwt_from_exact_translations(ehs, klass: nil)
           end
 
         model ||= klass.new
@@ -204,5 +200,25 @@ module Seeds
       n_changed
     end # def _load_seeds_core(attrs, klass: nil)
     private :_load_seeds_core
+
+    # @param find_by: [Symbol, String] (Optional) If given, this attribute is used to find the existing corresponding record.
+    # @return [Integer] Number of created/updated entries
+    # @yield [Hash, Symbol] (Optional) Hash (==SEEDS[:key]) followed by the :key, is given.  Can be ignored.
+    # @yieldreturn [ApplicationRecord] The matching (or new) model or nil
+    def _find_bwt_from_exact_translations(seed_hs, klass: nil)
+      klass ||= ((k=:RECORD_CLASS; self.const_defined?(k) && self.const_get(k)) || self.name.split("::")[-1].constantize)  # ActiveRecord Class (ApplicationRecord)
+            artrans = %w(ja en fr kr cn de es).map{|lc| seed_hs[lc] && {langcode: lc, title: seed_hs[lc]}.with_indifferent_access}.compact
+            cand = klass.find_all_by_exact_translations(artrans).first  # defined in BaseWithTranslation
+            if cand
+              arwrong = klass.find_all_inconsistent_translations(artrans).compact
+              if !arwrong.empty?
+                arlcs = arwrong.map{|i| i[:langcode].to_s}
+                msg = "WARNING: One or more Translations #{arlcs.inspect} for a seed have apparently changed from the defaults! Check out #{klass.name}.find(#{cand.id}) :\n Expected[langcode, title]=#{artrans.map{|i| i.values.flatten}.inspect}\n  Reality[langcode, title]=#{cand.translations.pluck(:langcode, :title)}"
+                Rails.logger.warn msg
+                warn msg
+              end
+            end
+            cand
+    end
   end # moduleCommon
 end # module Seeds

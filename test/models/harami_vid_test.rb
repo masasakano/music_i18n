@@ -51,22 +51,45 @@ class HaramiVidTest < ActiveSupport::TestCase
   end
 
   test "find_one_for_harami1129 for existing record" do
-    h1129 = harami1129s(:harami1129_ai)
-    # music = musics(:music_story)
-    # artist_ai = artists(:artist_ai)
+    [:harami1129_ai, :harami1129_ihojin1].each do |ea_key|
+      h1129 = harami1129s(ea_key)
+      # music = musics(:music_story)
+      # artist_ai = artists(:artist_ai)
 
-    harami_vid = HaramiVid.find_one_for_harami1129(h1129)
+      hvid = HaramiVid.find_one_for_harami1129(h1129)
+      case ea_key
+      when :harami1129_ai
+        refute     hvid.event_items.exists?  # HaramiVid Fixture includes no EventItem
+      when :harami1129_ihojin1
+        assert     hvid.event_items.exists?  # HaramiVid Fixture includes EventItem
+        refute_includes hvid.event_items, h1129.event_item  # according to Fixture
+      else
+        raise
+      end
+ 
+      assert_not hvid.new_record?
+      assert_not hvid.changed?
 
-    assert_not harami_vid.new_record?
-    assert_not harami_vid.changed?
-
-    harami_vid.set_with_harami1129(h1129, updates: %i(ins_link_root ins_title ins_release_date))
-    assert     harami_vid.changed?
-    assert     harami_vid.release_date_changed?
-    assert_nil harami_vid.release_date_was
-    assert_not harami_vid.uri_changed?
-    assert_equal h1129.ins_release_date, harami_vid.release_date
-    assert_not_equal h1129.ins_title, harami_vid.best_translations.first[1].title  # Hash#first => 2-element Array
+      hvid.set_with_harami1129(h1129, updates: %i(ins_link_root ins_title ins_release_date))
+      case ea_key
+      when :harami1129_ai
+        assert     hvid.changed?
+        assert     hvid.release_date_changed?
+        assert_nil hvid.release_date_was
+        refute_equal h1129.ins_title, hvid.best_translations.first[1].title  # Hash#first => 2-element Array
+        refute     hvid.event_items.exists?  # Because Harami1129's record does not include it.
+      when :harami1129_ihojin1
+        refute     hvid.changed?
+        refute     hvid.release_date_changed?
+        assert     hvid.release_date_was
+        assert_equal h1129.ins_title, hvid.best_translations.first[1].title
+        refute_includes hvid.event_items, h1129.event_item  # Harami1129's EventItem does not add to HaramiVid's ones.
+      else
+        raise
+      end
+      assert_not   hvid.uri_changed?
+      assert_equal h1129.ins_release_date, hvid.release_date
+    end
   end
 
   test "find_one_for_harami1129 for new record" do
