@@ -527,7 +527,7 @@ class BaseWithTranslation < ApplicationRecord
   #
   # The following is more efficient, runs only 1 SQL query, though the Regexp must be compatible
   # with the PostgreSQL format (e.g., the lookbehind option etc would not work?):
-  #   Artist.select_regex(:titles, /^ハラミちゃん/, langcode: 'ja', sql_regexp: true).first
+  #   Artist.select_regex(:titles, /^ハラミちゃん/, langcode: 'ja', sql_regexp: true).distinct.first
   #
   # @param value [Regexp, String] e.g., 'male'
   # @param langcode [String, NilClass] like 'ja'. If nil, all languages
@@ -1129,6 +1129,9 @@ class BaseWithTranslation < ApplicationRecord
   #  have been destroyed whenever {BaseWithTranslation} is destroyed. However,
   #  if the records are destroyed through direct DB manipulation like DB-migration,
   #  it can happen!  This method sanitizes such elements, leaving ERROR in Logfile.
+  #
+  # @example
+  #   Artist.select_regex(:titles, /^ハラミちゃん/, langcode: 'ja', sql_regexp: true).distinct.first
   #
   # @param *args [Array<Symbol, String, Array<String>, Regexp>] Symbol, String|Regexp. See {Translation.select_regex}. 
   # @param debug_return_sql [Boolean] Debug option (Def: false). If true, returns a SQL-string or Hash (see {Translation.self.select_regex_rubyregex} for detail), instead of Array
@@ -3554,6 +3557,14 @@ tra_orig.save!
   # offers a scheme to handle it; this callback saves "unsaved-translations"
   # stored in {BaseWithTranslation#unsaved_translations}.
   #
+  # A child class of this base class may define a callback
+  #     fallback_non_existent_unsaved_translations
+  # (which can be a private method.)
+  #
+  # If it is defined and if @unsaved_translations is blank,
+  # the callback is invoked, perhaps for the purpose of making sure
+  # a Translation is created when a model is created.
+  #
   # If one of {Translation} fails to be saved, it raises an Exception
   # (in {Translation#save!}), hence none of self and {Translation}-s
   # are saved to the DB, either, because the DB rollbacks before
@@ -3573,7 +3584,13 @@ tra_orig.save!
       ea_t.save! if ea_t.new_record? || ea_t.changed?
     end
 
-    return if @unsaved_translations.blank?
+    if @unsaved_translations.blank?
+      if respond_to?(:fallback_non_existent_unsaved_translations)
+        fallback_non_existent_unsaved_translations
+      end
+      return
+    end
+
     n_trans = @unsaved_translations.size
     @unsaved_translations.reverse.each_with_index do |translation, i|
       translation.translatable = self

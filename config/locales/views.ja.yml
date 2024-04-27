@@ -71,6 +71,10 @@ ja:
     reset_button: "リセット (初期状態に戻す)"
     submit_button: '送信'
     Show: "詳細"
+
+    fields:
+      music_title: "楽曲の名前"
+      hint_music_auto: "先にアーティスト名を入力することで絞れます"
     new_translations:
       model_language: "この%{model}名の言語"
       translations_can_be_added_later: "翻訳は後で追加"
@@ -194,6 +198,11 @@ ja:
     table_head_ChannelPlatform: サイト
     table_head_ChannelType: 種別
     table_head_collabs: "コラボ相手"
+    release_date: "公開日"
+    engage_how: "音楽家の関わり方"
+    music_main_hint: "曲名 (1曲のみ。必要に応じて後で追加可能)"
+    music_timing_hint: "曲の動画中でのタイミング [秒]"
+    form_artist_collabs: "コラボレーション相手"
 
   musics:
     index:

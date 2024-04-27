@@ -334,12 +334,17 @@ input.form-control:focus  {
 input.form-control.is-invalid {
   border-width: var(--form-border-width-focus);
 }
-input[type="number"].form-control, input[type="color"].form-control, input[type="tel"].form-control {
+input[type="number"].form-control, input[type="color"].form-control, input[type="tel"].form-control, select.form-control.date {
     max-width: 20em;
 }
 input[type="text"].form-control.string {
     max-width: 50em;
 }
+.longtext input[type="text"].form-control {
+    height: 5em;  /* 3.5 lines */
+    max-width: 5000em;
+}
+
 input[type="radio"].form-check-input {
 }
 

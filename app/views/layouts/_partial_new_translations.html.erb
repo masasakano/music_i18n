@@ -1,4 +1,5 @@
 
+<%# valiables: form, model, trans, disable_is_orig(Boolean), is_simple_form(Boolean), only_title(Boolean) %>
   <% modelname = model.class.name %>
 
 <% as_txt = ((defined?(as_text) && as_text) ? :text : :string)  %>
@@ -7,6 +8,7 @@
   <%# form.error_notification %>  <%# Rails scaffolding default, but the errors should be printed above this in this app. %>
   <%# form.error_notification message: form.object.errors[:base].to_sentence if form.object.errors[:base].present? %>  <%# here printing :base errors only %>
 
+ <section id="form_edit_translation" class="<%= (defined?(only_title) && only_title) ? 'longtext' : '' %>">
   <% collec = BaseWithTranslation::AVAILABLE_LOCALES.map do |es|
        [BaseWithTranslation::LANGUAGE_TITLES[I18n.locale][es.to_s], es]
      end %>
@@ -17,14 +19,17 @@
   <% end %>
   <% titlabel=t('layouts.new_translations.title', model: modelname) %>
   <%= form.input :title,  label: titlabel, placeholder: (('Artist'==model.class.name) ? ' ('+t('layouts.new_translations.note_re_group')+') ' : "")+t('eg_independent')+'The '+(('Artist'==model.class.name) ? 'Beatles' : 'Ocean'), required: true, as: as_txt %>
+ <% if !(defined?(only_title) && only_title) %>
   <%= form.input :ruby,   label: titlabel+' - '+t('ruby'), placeholder: '(全角片仮名で)'+t('eg_independent')+(('Artist'==model.class.name) ? 'ザ・ビートルズ' : 'ジ・オーシャン'), as: as_txt %>
   <%= form.input :romaji, label: titlabel+' - '+t('romaji'), hint: '(ヘボン式推奨: chi, shi等)', placeholder: '(ヘボン式推奨: chi, shi等)', as: as_txt %>
   <% altlabels=["", "_hint"].map{|i| t('layouts.new_translations.alt_title'+i, model: modelname)} %>
   <%= form.input :alt_title,  label: altlabels[0], title: altlabels[1], placeholder: '通称・別名 ('+t('eg_independent')+'ユーミン)', as: as_txt %>
   <%= form.input :alt_ruby,   label: altlabels[0]+' - '+t('ruby'),   placeholder: '(全角片仮名で)',  as: as_txt %>
   <%= form.input :alt_romaji, label: altlabels[0]+' - '+t('romaji'), placeholder: '(ヘボン式推奨: chi, shi等)', as: as_txt %>
+ <% end %> <%# if !(defined?(only_title) && only_title) %>
+ </section>
 
-<% else %>
+<% else %> <%# if defined?(is_simple_form) && is_simple_form  %>
   <div class="field radio_langcode">
     <span><%= t('layouts.new_translations.model_language', model: modelname) %> (<%= t('layouts.new_translations.translations_can_be_added_later') %>)</span><br>
     <% BaseWithTranslation::AVAILABLE_LOCALES.each do |es| %>

@@ -71,6 +71,10 @@ en:
     reset_button: "Reset (Start Over)"
     submit_button: 'Submit'
     Show: "Detail"
+
+    fields:
+      music_title: "Song/Music name"
+      hint_music_auto: "Input Artist first and it's narrowed down."
     new_translations:
       model_language: "Language of this %{model}'s Title"
       translations_can_be_added_later: "translations can be added later"
@@ -179,6 +183,11 @@ en:
     table_head_ChannelPlatform: Platform
     table_head_ChannelType: Type
     table_head_collabs: "feat. Artists"
+    release_date: "Release date"
+    engage_how: Way of engagement
+    music_main_hint: "Name of one song (you can add more later)"
+    music_timing_hint: "When the music starts in the video."
+    form_artist_collabs: "featuring Artist"
 
   musics:
     index:

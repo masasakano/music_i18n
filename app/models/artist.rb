@@ -101,6 +101,20 @@ class Artist < BaseWithTranslation
                    joins: "INNER JOIN artists ON translations.translatable_id = artists.id INNER JOIN places ON artists.place_id = places.id INNER JOIN translations trans2 ON artists.place_id = places.id INNER JOIN sexes ON artists.sex_id = sexes.id INNER JOIN translations trans3 ON artists.sex_id = sexes.id")
   end
 
+  # Returning a default Model in the given context
+  #
+  # place is ignored so far.
+  #
+  # @option context [Symbol, String]
+  # @option place: [Place]
+  # @return [Artist]
+  def self.default(context=nil, place: nil)
+    # case context.to_s.underscore.singularize
+    # when "harami_vid", "harami1129"
+    # end
+    self.select_regex(:titles, /^(ハラミちゃん|HARAMIchan|Harami-chan)$/i, sql_regexp: true).first || self.unknown
+  end
+
   # Wrapper of the standard self.find_all_by, considering {Translation}
   #
   # @param titles [Array<String>] Array of "title"-s of the singer (maybe in many languages) to search for.

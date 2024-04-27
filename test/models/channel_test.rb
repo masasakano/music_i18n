@@ -53,8 +53,8 @@ class ChannelTest < ActiveSupport::TestCase
   end
 
   test "association" do
-    rec0 = Channel.new(channel_owner: ChannelOwner.last, channel_platform: ChannelPlatform.last, channel_type: ChannelType.last)
-    rec1 = Channel.new(channel_owner: ChannelOwner.last, channel_platform: ChannelPlatform.last, channel_type: ChannelType.last)
+    rec0 = Channel.new(channel_owner: ChannelOwner.second, channel_platform: ChannelPlatform.last, channel_type: ChannelType.last)
+    rec1 = Channel.new(channel_owner: ChannelOwner.second, channel_platform: ChannelPlatform.last, channel_type: ChannelType.last)
     rec0.save!
     assert_raises(ActiveRecord::RecordNotUnique){ rec1.save!(validate: false) } # DB level
     assert_raises(ActiveRecord::RecordInvalid){   rec1.save! }                  # Rails level
@@ -75,5 +75,12 @@ class ChannelTest < ActiveSupport::TestCase
       refute rec1.valid?, "#{metho_id} is invalid and should be invalid, but..."
       rec1.send metho_id_w, rec0.send(metho_id)
     end
+  end
+
+  test "callbacks" do
+    assert_match(/.+\/.+\(.+\)/, Channel.first.def_initial_trans(langcode: "en").title)
+    cha = Channel.create!(channel_owner: ChannelOwner.first, channel_platform: ChannelPlatform.first, channel_type: ChannelType.first)
+    cha.reload
+    assert_operator 2, :<=, cha.translations.count, "tras = #{cha.translations.inspect}"
   end
 end

@@ -13,6 +13,9 @@ class EngageHow < BaseWithTranslation
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
 
+  # Class-method helpers
+  include ClassMethodHelper
+
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []
 
@@ -65,5 +68,22 @@ class EngageHow < BaseWithTranslation
       0
     end
   end
+
+  # Returning a default Model in the given context
+  #
+  # place is ignored so far.
+  #
+  # @option context [Symbol, String]
+  # @option place: [Place]
+  # @return [EngageHow]
+  def self.default(context=nil, place: nil)
+    case context.to_s.underscore.singularize
+    when %w(harami_vid harami1129)
+      return find_default(/^((original|オリジナル).*(singer|歌手))|((original|オリジナル).*(singer|歌手))$/i)
+    end
+
+    self.unknown
+  end
+
 end
 

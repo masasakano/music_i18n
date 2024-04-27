@@ -7,3 +7,5 @@ import {autocompleteArtist} from './autocomplete_artist.js';
 var model = 'music';
 $(autocompleteArtist(model));
 
+var model2 = 'harami_vid';
+$(autocompleteArtist(model2));

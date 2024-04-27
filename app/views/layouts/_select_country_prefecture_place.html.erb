@@ -2,6 +2,7 @@
 <%# Local variables: form(Form) model(ApplicationRecord) is_simple_form(Boolean) %>
 
 <% if is_simple_form %>
+  <% raise "#{File.basename __FILE__}: @countries is nil. May have forgotten to define it in Controller?" if !@countries %>
   <div class="field" id="<%= ApplicationController::HTML_KEYS[:ids][:div_sel_country] %>"> <%# div_select_country %>
    <%= form.input "place.prefecture_id.country_id", label: t('Country') do %>
     <% country = (model.country || Country.unknown) %>

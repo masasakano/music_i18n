@@ -2,97 +2,100 @@
 <%= render partial: 'layouts/form_print_errors', locals: {model: harami_vid} %>
 
 <% if ! harami_vid.new_record? %>
-
 <hr>
+<% end %>
+<section id="sec_primary">
+<% if ! harami_vid.new_record? %>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: harami_vid, add_buttons: true} %>
 <hr>
+
+<h2>Unique parameters</h2>
 <% end %>
 
-<%= form_with(model: harami_vid, local: true) do |form| %>
+<div id="form_main">
 
-  <div class="field">
-    <%= form.label :uri, 'URI (e.g., "3CjLiqDJ0C4" with or without youtu.be/)' %>
-    <%= form.text_field :uri %>
-  </div>
+<%= simple_form_for(harami_vid) do |f| %>
+ <section id="sec_primary_input">
+  <% if harami_vid.new_record? %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: harami_vid, trans: Translation.new, disable_is_orig: true, is_simple_form: true, only_title: true } %>
+  <% end %>
+  <div class="form-inputs">
 
-  <div class="field">
-    <%= form.label :uri_playlist_ja %>
-    <%= form.text_field :uri_playlist_ja %>
-  </div>
+    <%= f.input :uri, placeholder: 'URI/URL (e.g., "3CjLiqDJ0C4" with or without youtu.be/)', as: :url %>
+    <%= f.input :release_date,   label: t("harami_vids.table_head_date"), start_year: 2019, end_year: (Date.today.year+1) %>
+    <%= f.input :duration,   label: t("Duration in second"), placeholder: 'e.g., 600 (=10min)' %>
+  <%= render partial: "layouts/select_country_prefecture_place", locals: {form: f, model: harami_vid, is_simple_form: true} %>
 
-  <div class="field">
-    <%= form.label :uri_playlist_en %>
-    <%= form.text_field :uri_playlist_en %>
-  </div>
+    <%= f.input :form_channel_owner,
+      collection: ordered_models_form(ChannelOwner), selected: (harami_vid.form_channel_owner || ChannelOwner.default(:HaramiVid).id),
+      label: t(:ChannelOwner) %>
+    <%= f.input :form_channel_type,
+      collection: ordered_models_form(ChannelType),
+      label: t(:ChannelType),
+      checked: (harami_vid.form_channel_type || ChannelType.default(:HaramiVid).id),
+      required: true, item_wrapper_class: 'inline',
+      as: :radio_buttons %>
+    <%= f.input :form_channel_platform,
+      collection: ordered_models_form(ChannelPlatform), selected: (harami_vid.form_channel_platform || ChannelPlatform.default(:HaramiVid)),
+        label: t(:ChannelPlatform) %>
+    <%= f.input :form_events,
+      collection: form_selct_collections(Event),
+      label: t(:Event), include_blank: true, input_html: { multiple: false } %>
 
-  <div class="field">
-    <%= form.label :release_date %>
-    <%= form.date_select :release_date %>
-  </div>
+    <div class="register_assoc_artist">
+    <h4><%= t('layouts.new_musics.assoc_artist_head') %></h4>
+      <% if !@artist_name  %>
+       <div class="new_artist_link"><p>(<%= t('layouts.new_musics.note_new_artist') %><%= link_to(t('layouts.new_musics.create_new_artist'), new_artist_path, target: "_blank") %>) </p></div>
+      <% end%>
+    <div class="register_assoc_artist_field">
+      <%= f.input :artist_name,    label: t('layouts.new_musics.associated_artist_name'), placeholder: 'eg., "欅坂46", "Beatles, The", "The Beatles"' %>
+        <%= content_tag :div, '', id: 'suggestions', data: {items: Artist.titles_for_form} %>
 
-  <div class="field" id="text_field_duration">
-    <%= form.label :duration, 'Duration (s)' %>
-    <%= form.text_field :duration %>
-  </div>
+      <%= f.input :form_engage_hows,
+        collection: ordered_models_form(EngageHow), selected: (harami_vid.form_engage_hows || EngageHow.default(:HaramiVid)),
+          label: t("harami_vids.engage_how")+" "+t('layouts.new_musics.allow_multi') %>
 
-  <div class="field" id="div_select_country">
-    <%= form.label 'place.prefecture_id.country_id', 'Country'%>
-    <% country = harami_vid.country %>
-    <%= form.collection_select 'place.prefecture_id.country_id', @countries, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, {include_blank: !country, selected: (country ? country.id : nil)} %> <%# If no translation exists and left empty (instead of "NONE"), it would violate the HTML spec: Element “option” without attribute “label” must not be empty. %>
-  </div>
+      <%= f.input :form_engage_year, label: t('layouts.new_musics.year_engagement') %>
 
-  <div class="field" id="div_select_prefecture">
-    <%= form.label 'place.prefecture_id', t('Prefecture') %>
-    <% prefecture = harami_vid.prefecture %>
-    <%= form.grouped_collection_select 'place.prefecture_id', @countries, :prefectures, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true)}, {include_blank: true, selected: (prefecture ? prefecture.id : nil)} %>
-  </div>
+      <%= f.input :form_contribution, label: t('attr.contribution')+'(0.0-1.0)', hint: t('attr.contribution_hint') %>
+     <div class="register_collab_artist_field">
+      <%= f.input :artist_name_collab,  label: t('harami_vids.form_artist_collabs') %>
+      <%= f.input :form_instrument,
+        collection: ordered_models_form(Instrument), selected: (harami_vid.form_instrument || Instrument.default(:HaramiVid)),
+        label: t("Instrument") %>
+      <%= f.input :form_play_role,
+        collection: ordered_models_form(PlayRole), selected: (harami_vid.form_play_role || PlayRole.default(:HaramiVid)),
+        label: "How they collaborate" %>
+     </div>
+    </div> <!-- div class="register_assoc_artist_field"  -->
+    </div> <!-- div class="register_assoc_artist"-  -->
 
-  <div class="field" id="div_select_place">
-    <%= form.label :place, t('Place') %>
-    <% place = harami_vid.place %>
-    <%= form.grouped_collection_select 'place', @prefectures, :places, Proc.new{|pref| a=pref.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true); a[0]+'/'+a[1]}, :id, Proc.new{|plac| plac.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, {include_blank: true, selected: (place ? place.id : nil)} %>
-  </div>
+    <div class="register_assoc_music">
+    <h4>Music</h4>
+    <div class="register_assoc_music_field">
+      <%= f.input :music_name, label: t("layouts.fields.music_title"), hint: t('layouts.fields.hint_music_auto') %>
+      <%= f.input :music_timing, label: t("harami_vids.table_head_timing"), hint: t('harami_vids.music_timing_hint') %>
+    </div>
 
-  <div class="field">
-    <%= form.label :flag_by_harami, "Uploaded by Harami?" %>
-    <%= form.check_box :flag_by_harami %>
-  </div>
- 
-  <div class="field">
-    <%= form.label :artist, (harami_vid.new_record? ? '曲の' : '追加曲の')+'歌手 (または作曲家。一名あるいは一グループ名のみ。必要に応じて後で追加可能)' %>
-    <%= form.text_field :artist, disabled: true %>
-  </div>
- 
-  <div class="field">
-    <%= form.label :engage_how, '音楽家の関わり方 (複数選択可能)' %>
-    <%= form.select(:engage_how2,
-                    EngageHow.order(:weight).all.map{|i| [i.title(langcode: I18n.locale), i.id]},
-                    { :prompt => "Please select"},
-                    { :multiple => true, :size => 12, disabled: true }) %>
-  </div>
- 
-  <div class="field">
-    <%= form.label :music, (harami_vid.new_record? ? '' : '追加')+'曲名 (一曲のみ。必要に応じて後で追加可能)' %>
-    <%= form.text_field :music, disabled: true %>
-  </div>
- 
-  <div class="field">
-    <%= form.label :music_timing, (harami_vid.new_record? ? '' : '追加')+'曲の動画中でのタイミング [秒]' %>
-    <%= form.text_field :music_timing, value: 0, disabled: true %>
-  </div>
+    <%= f.input :uri_playlist_en, as: :url %>
+    <%= f.input :uri_playlist_ja, as: :url %>
+    <%# f.input :flag_by_harami, label: "Uploaded by Harami?", hint: 'True if uploaded by HARAMIchan.' %>
 
-  <div class="field">
-    <%= form.label :note %>
-    <%= form.text_area :note %>
-  </div>
+    <%= f.input :note %>
+  </div> <!-- div class="form-inputs" -->
 
-  <div class="actions">
-    <%= form.submit %>
+  <div class="form-actions">
+    <%= f.submit %>
   </div>
   <div class="actions">
-  <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
   </div>
+ </section> <!-- section id="sec_primary_input" -->
 <% end %>
+
+</div> <!-- div id="form_main" -->
+
+</section> <!-- section id="sec_primary" -->
 
 <% if ! harami_vid.new_record? %>
 <hr>

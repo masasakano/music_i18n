@@ -71,4 +71,18 @@ class ChannelOwner < BaseWithTranslation
     "fr" => ['Propriétaire de chaine inconnu'],
   }.with_indifferent_access
 
+  # Returning a default Model in the given context
+  #
+  # place is ignored so far.
+  #
+  # @option context [Symbol, String]
+  # @option place: [Place]
+  # @return [ChannelOwner]
+  def self.default(context=nil, place: nil)
+    # case context.to_s.underscore.singularize
+    # when "harami_vid", "harami1129"
+    # end
+    self.select_regex(:titles, /^(ハラミちゃん|HARAMIchan|Harami-chan)$/i, sql_regexp: true).first || self.unknown
+  end
+
 end

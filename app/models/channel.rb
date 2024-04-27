@@ -83,5 +83,72 @@ class Channel < BaseWithTranslation
       channel_owner_id:    ChannelOwner.primary.id,
     )
   end
+
+  # Initial (unsaved) Translation Array
+  #
+  # One of them has is_orig=true and the others, is_orig=false.
+  #
+  # @return [Array<Translation>] so this can be directly fed to unsaved_translations
+  def def_initial_translations
+    transs = I18n.available_locales.map{|lc| def_initial_trans(langcode: lc)}.compact
+    if !transs.empty?
+      transs[0].is_orig = true
+      transs[1..-1].each do |tra|
+        tra.is_orig = false 
+      end if transs.size > 1
+      return transs 
+    end
+
+    # fallback...
+    tra = def_initial_trans(langcode: I18n.locale, force: true)
+    raise "(#{File.basename __FILE__}) Seemingly the translations in any of channel_owner channel_platform channel_type in any languages are completely blank. Strange." if tra.blank?
+    tra.is_orig = true
+    [tra]
+  end
+
+
+  # Returns an unsaved Translation of a specified language
+  #
+  # {Translation#translatable} is not set.  Nor {Translation#is_orig}.
+  #
+  # @param [Boolean] if true (Def: false), a new Translation is almost always created, falling-back to
+  #   language; only the time nis is returned is when all three are completely nil in any languages
+  #   (meaning they all are invalid!).
+  # @return [Translation, NilClass] A default (unsaved) Translation when a new Channel is created.
+  #    returns nil if one of three dependents does not have a Translation for the specified langcode.
+  def def_initial_trans(lcode=nil, langcode: I18n.locale, force: false)
+    lcode ||= langcode
+    arstr = %w(channel_owner channel_platform channel_type).map{|model|
+      if force
+        send(model).title_or_alt(langcode: lcode, lang_fallback_option: :either, str_fallback: "")
+      else
+        send(model).title(langcode: lcode)
+      end
+    }
+    return nil if arstr.any?{|i| i.blank?} && !force
+    return nil if arstr.all?{|i| i.blank?}  # In an extremely unlikely case of all of them being blank, nil is returned regardless of the force option.
+
+    tit = sprintf "%s /%s (%s)", *arstr
+    Translation.new(title: tit, langcode: lcode)
+  end
+
+  ######################## callbacks #######################
+
+  # Callback invoed by {BaseWithTranslation#save_unsaved_translations}
+  # which is an after_create callback.
+  #
+  # This ensures a newly created record always has a {Translation}
+  # (because creating users may not care!)
+  #
+  # @return [self] self is NOT reloaded after saving Translations.
+  def fallback_non_existent_unsaved_translations
+    return if self.new_record?  # self shoud not be a new record!
+
+    def_initial_translations.each do |et|
+      self.translations << et
+    end
+    self
+  end
+
 end
 

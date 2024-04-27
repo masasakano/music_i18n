@@ -23,6 +23,9 @@
 #  fk_rails_...  (update_user_id => users.id) ON DELETE => nullify
 #
 class ChannelPlatform < BaseWithTranslation
+  # Class-method helpers
+  include ClassMethodHelper
+
   include ModuleWhodunnit # for set_create_user, set_update_user
 
   # defines {#unknown?} and +self.class.unknown+
@@ -66,5 +69,22 @@ class ChannelPlatform < BaseWithTranslation
     "en" => ['Unknown platform'],
     "fr" => ['Estrade inconnue'],
   }.with_indifferent_access
+
+  # Returning a default Model in the given context
+  #
+  # place is ignored so far.
+  #
+  # @option context [Symbol, String]
+  # @option place: [Place]
+  # @return [ChannelPlatform]
+  def self.default(context=nil, place: nil)
+    case context.to_s.underscore.singularize
+    when %w(harami_vid harami1129)
+      ret = self.find_by(mname: "youtube")
+      return find_default(ret)   # may raise an Exception
+    end
+
+    self.unknown
+  end
 
 end

@@ -380,11 +380,8 @@ module ApplicationHelper
     }.join(separator).html_safe
   end
 
-  # Printing an array/relation inline for display
+  # Grid index path helper
   #
-  # @param ary [:map] Array or relation of Models.
-  # @return [String] html_safe
-  # @yield [String] html_safe [String, Model] is given. Should return the String for each item.
   def grid_index_path_helper(klass, action: "index", column_names: [], max_per_page: 25)
     klass_plural = (klass.respond_to?(:rewhere) ? klass.name : klass.class.name).underscore.pluralize
     Rails.application.routes.url_helpers.url_for(
@@ -396,6 +393,25 @@ module ApplicationHelper
                  max_per_page: max_per_page
                }}
     )
+  end
+
+  # Ordered model for BaseWithTranslation to be used collection in Simple Form
+  #
+  # "[[Name, ID], ..."
+  #
+  # The returned String is NOT html_safe.
+  #
+  # @param klass [BaseWithTranslation]
+  # @param with_weight [String] if true, and if the model has :weight column, ordered by weight.
+  def ordered_models_form(klass, with_weight: true)
+    raise "Has to be BaseWithTranslation to be ordered." if !klass.method_defined?(:title_or_alt)
+    rela =
+      if with_weight && klass.attribute_names.include?("weight")
+        klass.order(:weight)
+      else
+        klass.all
+      end
+    rela.map{|i| [i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i.id]}
   end
 
   # to suppress warning, mainly that in Ruby-2.7.0:

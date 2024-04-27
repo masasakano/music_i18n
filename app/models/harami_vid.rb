@@ -51,6 +51,8 @@ class HaramiVid < BaseWithTranslation
   # Therefore this method has to be called before each validation.
   before_validation :add_default_place
 
+  after_create :save_unsaved_associates  # callback to create(-only) @unsaved_channel,  @unsaved_artist, @unsaved_music
+
   belongs_to :place     # see: before_validation and "validates :place, presence: true"
   belongs_to :channel   # see: before_validation :add_def_channel
   has_many :harami_vid_music_assocs, dependent: :destroy
@@ -74,6 +76,27 @@ class HaramiVid < BaseWithTranslation
   validates_uniqueness_of :uri, allow_nil: true
   validates :place, presence: true  # NOT DB constraint, but Rails before_validation sets this with a default unknown Place.
   #validates :channel, presence: true  # before_validation  is taking care of. NOT DB constraint, but belongs_to constrains.
+
+  attr_accessor :unsaved_channel
+  attr_accessor :unsaved_artist
+  attr_accessor :unsaved_music
+  attr_accessor :unsaved_event_item
+
+  attr_accessor :form_events
+  attr_accessor :form_channel_owner
+  attr_accessor :form_channel_type
+  attr_accessor :form_channel_platform
+  attr_accessor :artist_name
+  attr_accessor :form_engage_hows
+  attr_accessor :form_engage_year
+  attr_accessor :form_contribution
+  attr_accessor :artist_name_collab
+  attr_accessor :form_instrument
+  attr_accessor :form_play_role
+  attr_accessor :music_name
+  attr_accessor :music_timing
+
+  attr_accessor :form_info  # various information about the result of form inputs, especially in create.
 
   DEF_PLACE = (
     (Place.unknown(country: Country['JPN']) rescue nil) ||
@@ -360,9 +383,34 @@ class HaramiVid < BaseWithTranslation
     self.channel ||= Channel.primary
   end
 
-  private
+  private    ################### Callbacks
 
     def add_default_place
       self.place = (DEF_PLACE || Place.first) if !self.place
     end
+
+    # Channel is automatically associated with Translations after_create
+    def save_unsaved_associates  # callback to create(-only) 
+      are_new = {
+        channel: false,
+        event_item: false, 
+        artist: false,
+        music: false,
+      }
+      @unsaved_channel && are_new[:channel]=true && @unsaved_channel.save!
+      @unsaved_event_item && are_new[:event_item]=true && @unsaved_event_item.save!
+      @unsaved_artist  && are_new[:artist]=true  && @unsaved_artist.save!
+      @unsaved_music   && are_new[:music]=true   && @unsaved_music.save!
+
+      if are_new[:music]
+        save_harami_vid_music_assoc
+      end
+      if are_new[:artist] || are_new[:music]
+        save_engage
+      end
+      if are_new[:artist] || are_new[:music] || are_new[:event_item]
+        save_artist_music_play
+      end
+    end
+
 end
