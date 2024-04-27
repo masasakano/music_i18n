@@ -68,6 +68,8 @@ class Channel < BaseWithTranslation
   #validates_presence_of :channel_owner, :channel_type, :channel_platform  # unnecessary as automatically checked.
   validates :channel_owner, uniqueness: { scope: [:channel_type, :channel_platform] }
 
+  validate :valid_present_unsaved_translations, on: :create  # @unsaved_translations must be defined and valid.
+
   # NOTE: UNKNOWN_TITLES required to be defined for the methods included from ModuleUnknown. alt_title can be also defined as an Array instead of String.
   UNKNOWN_TITLES = {
     "ja" => ['不明のチャンネル'],
@@ -99,7 +101,8 @@ class Channel < BaseWithTranslation
       return transs 
     end
 
-    # fallback...
+    # fallback... (only a single Translation is created.
+    # NOTE: If you ever thihnk of creating multiple translations, some of their langcodes may become the same (due to fallback) and hence there would be a risk of unique-validation failure. Be careful.
     tra = def_initial_trans(langcode: I18n.locale, force: true)
     raise "(#{File.basename __FILE__}) Seemingly the translations in any of channel_owner channel_platform channel_type in any languages are completely blank. Strange." if tra.blank?
     tra.is_orig = true
@@ -129,7 +132,30 @@ class Channel < BaseWithTranslation
     return nil if arstr.all?{|i| i.blank?}  # In an extremely unlikely case of all of them being blank, nil is returned regardless of the force option.
 
     tit = sprintf "%s /%s (%s)", *arstr
-    Translation.new(title: tit, langcode: lcode)
+    lcode2set = (contain_asian_char?(tit) ? "ja" : lcode)  # to avoid potential Asian-char validation failure.
+    Translation.new(title: tit, langcode: lcode2set)
+  end
+
+  ######################## Validations #######################
+
+  # on: :create
+  def valid_present_unsaved_translations  # @unsaved_translations must be defined and valid.
+    def _unsaved_trans_valid?(tras=unsaved_translations)
+      (tra=tras.first).valid?
+      msgs = tra.errors.full_messages
+      # An error of "Translatable can't be blank." is expected.
+      msgs.reject{|i| /\btranslatable/i =~ i}.empty?
+    end
+
+    return if !new_record?
+    if !unsaved_translations.empty?
+      errors.add :base, "one of unsaved_translations is invalid" if !_unsaved_trans_valid?
+    end
+
+    translations.each do |et|
+      errors.add :base, "one of unsaved translations is invalid" if !et.valid?
+    end
+    errors.add :base, "unsaved translations are not defined" if unsaved_translations.empty? && !translations.exists?
   end
 
   ######################## callbacks #######################

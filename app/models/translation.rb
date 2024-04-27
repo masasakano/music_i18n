@@ -136,6 +136,10 @@ class Translation < ApplicationRecord
     # @see https://stackoverflow.com/questions/74403065/how-to-find-records-in-postgresql-matching-a-combination-of-a-pair-of-nullable-s
     def _validate_unique_tit_alt_tit_pair(record)
       title, alt_title = %i(title alt_title).map{|i| record.send(i).to_s}
+      if title.present? && title == alt_title && (!record.translatable || !record.translatable.class::ALLOW_IDENTICAL_TITLE_ALT)
+        record.errors.add :base, "title and alt_title must differ."
+        return
+      end
       hsbase = %i(langcode translatable_type translatable_id).map{|i| [i, record.send(i)]}.to_h
 
       rel = record.class.where(hsbase)
@@ -162,10 +166,14 @@ class Translation < ApplicationRecord
     end
   end
 
+  # If the class of Translatable defines this as true, title and alt_tile are allowed to be identical for Translation for them
+  #ALLOW_IDENTICAL_TITLE_ALT = true/false
+
   # Column names (Symbols) of the translation String
   TRANSLATED_KEYS = %i(title alt_title ruby alt_ruby romaji alt_romaji)
 
   # Column names (Symbols) of the translation String
+  # Basically this excludes ID, weight, translatable, *_user_id, and Rails default time columns, but everything else.
   TRANSLATION_PARAM_KEYS = %i(langcode is_orig) + TRANSLATED_KEYS
 
   # Match method lists. Usually examined in this order.
@@ -199,6 +207,19 @@ class Translation < ApplicationRecord
   validate :asian_char_validator
   validates_with OneSignificanceValidator, fields: TRANSLATED_KEYS
   validates_with UniqueCombiValidator
+
+  #### After much thought, this validation is removed, because such Translation-s should never be directly saved in reality.
+  #
+  # # if both are nil, the pair is checked in Default ("Translatable must exist"). However,
+  # # if translatable_type is set, as it happens for +tra+ after +new_model.translations << tra+,
+  # # nothing validates the presence condition, hence returning +valid?+ of true and
+  # # it is passed straight into Database when saved (as of Rails 7.0)!
+  # # (though usually caught by DB constraint: ActiveRecord::NotNullViolation)
+  # validate :translatable_id_check #, presence: true, unless: tra.translatable_type?
+  # def translatable_id_check
+  #   errors.add :base, "Translatable_id can't be blank" if translatable_id.blank? && translatable_type.present?
+  # end
+  # #validates :translatable_id, presence: true, unless: tra.translatable_type?   # This would cause a horrible error in "rails console", seeming to load the constants of Translation multiple times AND also complaining Translation is not linked to a table!
 
   # The attribute (e.g., :alt_title) that has the value of the matched String,
   # set by {Translation.find_by_regex}, or manually with {#set_matched_attribute}.

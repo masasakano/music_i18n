@@ -137,6 +137,11 @@ class Country < BaseWithTranslation
   # this constant should be true (for example, {Music#title}).
   ARTICLE_TO_TAIL = false  # should be true, ideally...
 
+  # (optionally recommended by BaseWithTranslation)
+  # Some Countries' title and alt_tile are identical as they are so in the original (CountryMaster)
+  # e.g., Country['Canada','en',true].best_translation('ja')
+  ALLOW_IDENTICAL_TITLE_ALT = true
+
   belongs_to :country_master, optional: true  # e.g., Country.unknown does not have a Parent.
   has_many :prefectures, dependent: :destroy
   validates_uniqueness_of :iso3166_n3_code, allow_nil: true

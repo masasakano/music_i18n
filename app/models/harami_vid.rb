@@ -31,7 +31,7 @@
 class HaramiVid < BaseWithTranslation
   include Rails.application.routes.url_helpers
   include ApplicationHelper # for link_to_youtube
-  include ModuleCommon
+  include ModuleCommon # for convert_str_to_number_nil etc
 
   before_validation :add_def_channel
 
@@ -76,6 +76,9 @@ class HaramiVid < BaseWithTranslation
   validates_uniqueness_of :uri, allow_nil: true
   validates :place, presence: true  # NOT DB constraint, but Rails before_validation sets this with a default unknown Place.
   #validates :channel, presence: true  # before_validation  is taking care of. NOT DB constraint, but belongs_to constrains.
+  validates_numericality_of :music_timing, allow_nil: true, greater_than_or_equal_to: 0, message: "(%{value}) must be positive or 0."
+  validates_numericality_of :form_contribution, allow_nil: true, greater_than: 0, message: "(%{value}) must be positive."
+  validates_numericality_of :form_engage_year, allow_nil: true, greater_than: 0, message: "(%{value}) must be positive."
 
   attr_accessor :unsaved_channel
   attr_accessor :unsaved_artist
@@ -94,7 +97,7 @@ class HaramiVid < BaseWithTranslation
   attr_accessor :form_instrument
   attr_accessor :form_play_role
   attr_accessor :music_name
-  attr_accessor :music_timing
+  attr_accessor :music_timing  # n.b., there is a method "timing"
 
   attr_accessor :form_info  # various information about the result of form inputs, especially in create.
 
@@ -413,4 +416,33 @@ class HaramiVid < BaseWithTranslation
       end
     end
 
+    # Channel is automatically associated with Translations after_create
+    def save_harami_vid_music_assoc  # method called from callback to create(-only) 
+      return if !@unsaved_music
+      if @unsaved_musici.new_record?
+        errors.add :base, "Music cannot be handled for an unknown reason... Contact the code developer."  # desirable to define this in case the Exception is caught somewhere upstream in the future.
+        msg = "ERROR(#{File.basename __FILE__}:#{__method__}): @unsaved_music is strange: #{@unsaved_music.inspect}" 
+        logger.error msg
+        raise msg
+      end
+
+      hvma = HaramiVidMusicAssoc.find_or_initialize_by(harami_vid: self, music: @unsaved_music)
+      hvma.timing = music_timing.to_i if music_timing.present?  # it has been validated to be numeric if present.
+      if result = hvma.save
+        msg = "Something goes wrong in saving Music-Video association"
+        errors.add :music_name, msg
+        logger.error msg
+        raise msg
+      end
+    end
+
+    # Channel is automatically associated with Translations after_create
+    def save_engage  # method called from callback to create(-only) 
+      eng = engage.find_or_initialize_by(music: @unsaved_music, artist: @unsaved_artist)
+      eng.timing = music_timing.to_i if music_timing.present?
+      eng.save!
+    end
+
+#    "music_name", "music_timing", "uri_playlist_en", "uri_playlist_ja",]
+#    "event_ids", "artist_name", "form_engage_hows", "form_engage_year", "form_contribution",
 end

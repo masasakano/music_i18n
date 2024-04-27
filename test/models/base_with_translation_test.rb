@@ -533,6 +533,103 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     end
   end
 
+  test "direct parameters of title alt_tile etc in create/new" do
+    mdl = EngageHow.new(weight: 0.3)
+    mdl.translations << Translation.new(title: 'foo1', is_orig: true, langcode: "en")
+    mdl.valid?
+    mdl.translations.first.valid? 
+    assert mdl.translations.first.valid?, "error: "+mdl.translations.first.errors.full_messages.inspect
+    assert mdl.valid?, "error: "+mdl.errors.full_messages.inspect
+    assert mdl.translations.first.valid? 
+    assert mdl.translations.first.new_record? 
+mdl.translations.first.translatable_id = EngageHow.second.id
+    mdl.save!
+
+    hsin = {title: 'naiyo', ruby: 'アイウ', romaji: 'aiu', alt_title: 'baa', alt_ruby: 'アウ', alt_romaji: 'au',  is_orig: nil, langcode: "en"}
+    mdl = EngageHow.new(weight: 0.5, **hsin)
+  if false  # see  BaseWithTranslation#put_a_title(method, value)
+    assert_equal 1, mdl.translations.size
+    tra = mdl.translations.first
+  else
+    assert_equal 1, mdl.unsaved_translations.size
+    tra = mdl.unsaved_translations.first
+  end
+    assert_equal 'naiyo', tra.title
+    assert_equal 'au',    tra.alt_romaji
+    assert    tra.new_record?, "tra=#{tra.inspect}"
+    assert_equal 'EngageHow', tra.translatable_type
+              tra.valid?
+  if false  # see  BaseWithTranslation#put_a_title(method, value)
+    assert    tra.valid?, "error: "+tra.errors.full_messages.inspect
+  end
+    mdl.valid?
+    assert mdl.valid?, "error: "+mdl.errors.full_messages.inspect
+
+  if false  # see  BaseWithTranslation#put_a_title(method, value)
+    mdl.translations << Translation.new
+    assert_equal 2, mdl.translations.size, "sanity check"
+    assert_raises(ArgumentError){ 
+      mdl.romaji = 'bada' }
+    mdl.translations.destroy(mdl.translations.last)
+    assert_equal 1, mdl.translations.size, "sanity check"
+  else
+    mdl.unsaved_translations << Translation.new
+    assert_equal 2, mdl.unsaved_translations.size, "sanity check"
+    assert_raises(ArgumentError){ 
+      mdl.romaji = 'bada' }
+    mdl.unsaved_translations.pop
+    assert_equal 1, mdl.unsaved_translations.size, "sanity check"
+  end
+
+    assert mdl.new_record?
+    assert mdl.save
+    mdl.reload
+    assert_equal 'naiyo', mdl.translations.first.title
+    assert_equal mdl.id, mdl.translations.first.translatable.id
+    assert_equal mdl.id, mdl.translations.first.translatable_id
+    assert_equal 'naiyo', mdl.title(langcode: 'en')
+
+    assert_raises(ArgumentError){ 
+      mdl.romaji = 'bada' }
+    mdl
+    assert_raises(ArgumentError){ 
+      mdl.update(romaji: 'bada') }
+
+    hsin = {title: 'naiyo', ruby: 'アイウ', romaji: 'aiu', alt_title: 'baa', alt_ruby: 'アウ', alt_romaji: 'au',  is_orig: nil, langcode: "en"}
+    assert_raises(ActiveRecord::RecordInvalid){ # unique Translation validation failure
+      mdl = EngageHow.create!(weight: 0.6, note: 'xyz', **hsin) }
+      mdl = EngageHow.create!(weight: 0.6, note: 'xyz', **(hsin.merge({title: "f2", alt_title: "cxd"})))
+    assert_equal 0.6,   mdl.weight
+    assert_equal 'xyz', mdl.note
+    assert_equal 1, mdl.translations.count
+    assert_equal 'f2',  mdl.title(langcode: 'en')
+    assert_equal 'aiu', mdl.romaji
+
+    assert_raises(ActiveRecord::RecordInvalid){ # Langcode no langcode (langguage code) is specified
+      mdl = EngageHow.create!(weight: 0.21, title: 'xxxx')}
+    assert_nothing_raised(){ # Fine if no Translation parameters are specified.
+      mdl = EngageHow.create!(weight: 0.86) }
+    mdl.valid?
+    assert mdl.valid?, "error: "+mdl.errors.full_messages.inspect  # => "Langcode no langcode (langguage code) is specified..."
+
+    mdl = EngageHow.new(weight: 0.22, title: 'xx') #langcode: "ja") #
+    mdl.valid?
+    refute mdl.valid?, "error: "+mdl.errors.full_messages.inspect  # => "Langcode no langcode (langguage code) is specified..."
+    tra = mdl.unsaved_translations.first
+    tra.langcode = ""
+    refute mdl.valid?, "error: "+mdl.errors.full_messages.inspect  # => "Langcode no langcode (langguage code) is specified..."
+    tra.langcode = "en"
+    tra.title = 'fdsa'
+    mdl.valid?
+    assert mdl.valid?, "error: "+mdl.errors.full_messages.inspect
+
+    tra.valid?
+    ######## This fails. That's what I expect. But I don't quite understand why the tests above pass so perfectly (Did I implement it somewhere?).
+    #assert tra.valid?, "error: "+tra.errors.full_messages.inspect  # => "Translatable must exist"
+    assert mdl.save
+  end
+
+
   # Testing methods for new records
   #
   test "methods with unsaved_translations" do

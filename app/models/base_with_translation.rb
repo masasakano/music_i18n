@@ -11,6 +11,10 @@
 #     MAIN_UNIQUE_COLS = []
 #     ARTICLE_TO_TAIL = true
 #
+# They can also define the following to bypass the validation by Translation
+# to check the identicalness of title and alt_title and raise an alert:
+#     ALLOW_IDENTICAL_TITLE_ALT = true/false
+#
 # Add the following if the class should not allow multiple identical title/alt_title .
 # As a counter-example, Music does NOT include this (famously there are two songs, "M").
 #
@@ -36,6 +40,43 @@
 # which would mess up Rails +permit+, especially with authorization (with CanCanCan).
 # Consult EventGroup Controller and views for how to do it. Both Controller and
 # Views should be carefully adjusted.  There are several helper methods.
+#
+# == Methods of title, langcode etc
+#
+# The writer methods for the 8 keys defined in {Translation::TRANSLATION_PARAM_KEYS} 
+# are accepted in the child classes of this class, but only on new (create).
+# With these you can initialize or create a record in a form of
+#
+#   Sex.create!(iso5218: 99, title: "new gender", langcode: "en", is_orig: nil)
+#   Sex.new(    iso5218: 99, title: "新しい性",   langcode: "ja", ruby: "アタラシイセイ")
+#
+# which creates or initialize, respectively, a {Sex} record with a single {Translation}.
+# There are several points to be aware of.
+#
+# * If any of the Translation-related paramters is specified, +langcode+
+#   (locale) and at least either (or both) of +title+ and +alt_title+ are mandatory.
+#   Usually, +is_orig+ is recommended.  Or, specify none of them.
+# * Specifying them is allowed only at the timing of initialization.
+# * For this reason, these parameters cannot be specified in +updaete+ or +update!+
+# * In other words, the form like +self.title="ABC"+ is practically never used.
+#   The writer methods are defined for the sole purpose of making the +new+ method to recognize them.
+# * The corresponding reader methods like +title+ are either not defined
+#   or defined to mean something different. For example, the reader +langcode+ is not defined.
+#   +title+ access (multiple) associated Translation-s and choose one. 
+# * Because the reader methods are not defined (or meaning differently),
+#   the keywords of "title" etc cannot be (easily) used in forms in Views.
+# * +weight+ is not included in the key (because some children models have their own +weight+ defined).
+# * In initialization (with +new+), the Translation is stored as an unsaved Translation
+#   in the first element of an Array +unsaved_translations+.
+# * To add a +weight+ to Translation or modify other parameters during initialization,
+#   do so with +unsaved_translations+ like this:
+#      sex = Sex.new(iso5218: 99, title: "新しい性", langcode: "ja")
+#      sex.unsaved_translations.weight = 100
+#      sex.unsaved_translations.alt_title = "新性"
+# * {Translation}-s in +unsaved_translations+ are *not* +valid?+ unlike
+#   those of Rails' associations.  But they are automatically and expectedly
+#   saved +after_create+.
+# * +unsaved_translations+ should never be defined for a saved record.
 #
 # == Update (or create)
 #
@@ -2170,6 +2211,88 @@ class BaseWithTranslation < ApplicationRecord
     str_fallback
   end
   private :get_a_title
+
+  # Core method for title=, alt_title=, alt_ruby=, and langcode=, is_orig=, weight= etc
+  #
+  # This method is valid practically only for the first time (new, create)
+  # Otherwise, ArgumentError is raised.
+  #
+  # The first-time call of this method creates a {Translation} accessible via +translations.first+
+  #
+  # == Problems
+  #
+  # I attempted to define writer methods like  title=, langcode= to as to allow Sex.new(iso5218: 4, title: "foo")
+  # However, this weirdly fails...
+  # Once these methods have been defined,
+  #   model = Sex.new(iso5218: 4, title: "foo", langcode: "en")
+  #   model.translations.first.valid? # => true
+  #   model.valid?                    # => true
+  #   model.save    # (no bang)
+  #     #=> ActiveRecord::NotNullViolation: PG::NotNullViolation: ERROR:  null value in column "translatable_id"
+  #
+  # Basically, it seems Rails does some magic trick in associating an unsaved (polymorphic)
+  # child to prevent "NotNullViolation" even when the foreign key ID is nil (which
+  # is inevitable with a new and unsaved parent). And the magic does not work
+  # for the associations that are defined at the time of creation.  Fair enough.
+  #
+  # To be honest, even if I managed to find a way to get around, I am afraid
+  # that may not be future-proof as it must be an edge case for Rails and
+  # the specification may change at any time, which would not affect 99.9%
+  # of Rails users.
+  #
+  # So, instead, I implemented it with the Array @unsaved_translations, accessible
+  # with the same name (+attr_accessor+).  It is just an instance valiable
+  # and so has nothing to do with the Rails association mechanism.
+  #
+  # See +after_create+ callback +:save_unsaved_translations+ and also
+  # +self.initialize+
+  #
+  # @param method [String, Symbol] one of %i(title= alt_title= ruby= alt_ruby= romaji= alt_romaji= langcode= is_orig= weight=)
+  # @return [String, NilClass] nil if there are no translations for the langcode
+  def put_a_title(method, value)
+    method = method.to_s
+    put_keys = Translation::TRANSLATION_PARAM_KEYS.map(&:to_s).map{|i| i+"="}
+
+  if false  ## See the description. This is a more principled algorithm, but it does not work.
+    if !new_record? || translations.size > 1
+      raise ArgumentError, "#{self.class.name}.#{method} is invalid except for the first time for a new record."
+    elsif !put_keys.include?(method)
+      raise ArgumentError, "#{method} is wrong. Contact the code developer."
+    end
+
+    tra = translations.first
+    if !tra
+      tra = Translation.new
+      translations << tra
+    end
+    tra.translatable_type ||= self.class.name
+       # tra.translatable_id   ||= 8888  # random number is OK... Without this, an exception is raised: ActiveRecord::NotNullViolation: PG::NotNullViolation: ERROR:  null value in column "translatable_id"
+    tra.send(method, value)
+    value
+  else
+    ### This is the algorithm I ended up with.  Not pretty, but it works.
+    if !new_record? || (@unsaved_translations && @unsaved_translations.size > 1)
+      raise ArgumentError, "#{self.class.name}.#{method} is invalid except for the first time for a new record."
+    elsif !put_keys.include?(method)
+      raise ArgumentError, "#{method} is wrong. Contact the code developer."
+    end
+
+    if @unsaved_translations.blank?
+      @unsaved_translations = [Translation.new(method[0..-2] => value, "translatable_type" => self.class.name)]
+    else
+      @unsaved_translations.first.send(method, value)
+    end
+  end
+  end
+  private :put_a_title
+
+  # Defines %i(title= alt_title= ruby= alt_ruby= romaji= alt_romaji= langcode= is_orig= weight=)
+  Translation::TRANSLATION_PARAM_KEYS.each do |metho|
+    metho_i = (metho.to_s + "=").to_sym
+    define_method(metho_i) do |arg|
+      send(:put_a_title, metho_i, arg)
+    end
+  end
 
   # Gets the best-score title
   #
