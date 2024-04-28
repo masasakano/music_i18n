@@ -63,11 +63,21 @@
 # * The corresponding reader methods like +title+ are either not defined
 #   or defined to mean something different. For example, the reader +langcode+ is not defined.
 #   +title+ access (multiple) associated Translation-s and choose one. 
-# * Because the reader methods are not defined (or meaning differently),
-#   the keywords of "title" etc cannot be (easily) used in forms in Views.
+# * Although the direct reader methods mean differently (or undefined like +is_orig+),
+#   the keywords of "title" etc can be still used for +new+ controllers because
+#   the raeder methods actually read +@unsaved_translations+ (see below) instead of
+#   Rails-associated Translation.  However, never use the keywords for anything but +new+ views
+#   and never try to read them in Controllers (except in the arguments of methods of +new+ and +create+).
 # * +weight+ is not included in the key (because some children models have their own +weight+ defined).
 # * In initialization (with +new+), the Translation is stored as an unsaved Translation
-#   in the first element of an Array +unsaved_translations+.
+#   in the first element of an Array +unsaved_translations+. Technically, you can
+#   specify them with Rails' standard association like +translations << Translation.new+
+#   at the same time, but we do not recommend it because we have implemented direct assignment of
+#   +title+ etc at initialization with +new+ and +create+, which does not work well
+#   with the default association scheme (see {#put_a_title} for detail).
+# * If both +unsaved_translations+ and Rails' association of {Translation} are
+#   specified for a {#new_record?}, the former has a priority.  If only the latter is
+#   specified, I think it would still work OK, though not tested.
 # * To add a +weight+ to Translation or modify other parameters during initialization,
 #   do so with +unsaved_translations+ like this:
 #      sex = Sex.new(iso5218: 99, title: "新しい性", langcode: "ja")
@@ -2184,16 +2194,20 @@ class BaseWithTranslation < ApplicationRecord
   # Option +str_fallback+ is useful for Views. In Dropdown menu, for example,
   # if one of them is left empty (instead of "NONE" or some significant string),
   # it would violate the HTML spec:
-  #    Element “option” without attribute “label” must not be empty.
+  #    Element "option" without attribute "label" must not be empty.
+  #
+  # @example
+  #    sex.title(langcode: I18n.locale)
+  #    get_a_title(:title, langcode: I18n.locale)  # private method!
   #
   # @param method [Symbol] one of %i(title alt_title ruby alt_ruby romaji alt_romaji)
   # @param langcode: [String, NilClass] like 'ja'. If nil, original language for the Translation is assumed.
-  # @param lang_fallback: [Boolean] if true (Def: false), when no translation is found
+  # @param lang_fallback: [Boolean] if true (Def), when no translation is found
   #    for the specified language, that of another language is returned
   #    unless none exists.
   # @param str_fallback [String, NilClass] Returned Object (String or nil) in case no "a title" is found.
   # @return [String, NilClass] nil if there are no translations for the langcode
-  def get_a_title(method, langcode: nil, lang_fallback: false, str_fallback: nil)
+  def get_a_title(method, langcode: nil, lang_fallback: true, str_fallback: nil)
     ret = (translations_with_lang(langcode)[0].public_send(method) rescue nil)
     return ret if ret
     return str_fallback if !lang_fallback
@@ -2365,7 +2379,7 @@ class BaseWithTranslation < ApplicationRecord
   #
   # @return [Translation, Nilclass] nil if no {Translation} has {Translation#is_orig}==true 
   def orig_translation
-    return translations.where(is_orig: true)[0] if !new_record?
+    return translations.where(is_orig: true)[0] if !(new_record? && @unsaved_translations.present?)
 
     # For new_record, mimicing the algorithm.
     utrans = unsaved_translations
@@ -2501,9 +2515,9 @@ class BaseWithTranslation < ApplicationRecord
   # @return [ActiveRecord::AssociationRelation, Array]
   def translations_with_lang(langcodearg=nil, langcode: nil)  # langcode given both in the main argument and option to be in line with {#titles} etc.
     tras = (new_record? ? unsaved_translations : translations)
-    begin
-      langcode = (langcodearg || langcode || orig_translation.langcode).to_s
-    rescue NoMethodError
+    langcode = (langcodearg || langcode || (ori=orig_translation) && ori.langcode)
+    langcode &&= langcode.to_s
+    if !langcode
       # Either is_orig=nil for all Translations or Translation is not defined.
       if self.id  # If not, self may be a new one and certainly has no translations.
         msg = "(#{__method__}) Failed to determine langcode for self=#{self.inspect} ; continue with a random language."
@@ -2512,6 +2526,7 @@ class BaseWithTranslation < ApplicationRecord
       end
       return Translation.sort(tras)
     end
+    langcode &&= (langcodearg || langcode || (ori=orig_translation) && ori.langcode).to_s
 
     if !AVAILABLE_LOCALES.include? langcode.to_sym
       logger.warn "(#{__method__}) langcode=#{langcode} unavailable in the environment (available=#{I18n.available_locales.inspect})."
@@ -2573,7 +2588,7 @@ class BaseWithTranslation < ApplicationRecord
   # @return [Hash] like {'ja': <Translation>, 'en': <Translation>}
   def best_translations
     hsret = {}.with_indifferent_access
-    translations.each do |ea_t|
+    ((new_record? && unsaved_translations.present?) ? unsaved_translations : translations).each do |ea_t|
       hsret[ea_t.langcode] ||= []
       hsret[ea_t.langcode].push(ea_t)
     end

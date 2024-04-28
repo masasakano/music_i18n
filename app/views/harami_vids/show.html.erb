@@ -13,20 +13,11 @@
   <dt> URI:</dt>
   <dd><%= link_to_youtube(@harami_vid.uri, @harami_vid.uri) %></dd>
 
-  <dt> <%= t("tables.place_country") %>県・場所 (国):</dt>
-  <dd><%= pla = @harami_vid.place
-      if pla
-        ar = pla.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true);
-        sprintf '%s %s(%s)', ar[1], (ar[0].blank? ? '' : '— '+ar[0]+' '), ar[2]
-      else
-        ""
-      end %></dd>
-
   <dt> <%= t(:Channel) %>:</dt>
   <dd>「<%= @harami_vid.channel.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>」</dd>
-  <dd><%= @harami_vid.channel.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>
-      (<%= t("harami_vids.table_head_ChannelType", default: "Type") %>: <%= @harami_vid.channel.channel_type.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>)
-    by <%= @harami_vid.channel.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>
+  <dd><span class="channel_platform"><%= @harami_vid.channel.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></span>
+      (<%= t("harami_vids.table_head_ChannelType", default: "Type") %>: <span class="channel_type"><%= @harami_vid.channel.channel_type.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></span>)
+    by <span class="channel_owner"><%= @harami_vid.channel.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></span>
   </dd>
 
   <dt> <%= t(:Event) %> (&lt; <%= t(:EventGroup)%>):</dt>
@@ -52,6 +43,16 @@
     </ul>
   </dd>
 
+  <dt> <%= t("tables.place_country") %>県・場所 (国):</dt>
+  <dd><%= pla = @harami_vid.place
+      if pla
+        ar = pla.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true);
+        sprintf '%s %s(%s)', ar[1], (ar[0].blank? ? '' : '— '+ar[0]+' '), ar[2]
+      else
+        ""
+      end %></dd>
+
+  <% if can? :edit, @harami_vid %>
   <dt> <%= t("datagrid.form.by_harami_full") %>:</dt>
   <dd><%= @harami_vid.flag_by_harami %></dd>
 
@@ -60,6 +61,7 @@
 
   <dt> <%= t("datagrid.form.uri_playlist", langcode: t("locale.long.en")) %>:</dt>
   <dd><%= uri=@harami_vid.uri_playlist_en; (uri.blank? ? '' : link_to_youtube(uri, uri)) %></dd>
+  <% end %>
 
   <dt> <%= t("tables.note") %>:</dt>
   <dd><%= @harami_vid.note %></dd>
@@ -69,6 +71,7 @@
   <%= button_to 'Edit', edit_harami_vid_path(@harami_vid), method: :get %>
 <br>
 <% end %>
+<%# No "Destroy" button %>
 <%= link_to t("layouts.back_to_index"), harami_vids_path %>
 
 <% if can? :read, Harami1129 %>

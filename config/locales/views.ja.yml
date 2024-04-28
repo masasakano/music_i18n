@@ -15,6 +15,10 @@ ja:
     title_name_en: 英語名
     title_en_alt: "英語名称 [別称]"
     alt_title_name_en: "英語別名"
+    title_fr: 仏語名称
+    title_name_fr: 仏語名
+    title_fr_alt: "仏語名称 [別称]"
+    alt_title_name_fr: "仏語別名"
     year: 年
     sex: 性別
     place: 場所
@@ -198,6 +202,7 @@ ja:
     table_head_ChannelPlatform: サイト
     table_head_ChannelType: 種別
     table_head_collabs: "コラボ相手"
+    table_head_title_music_timing: "[秒] リンクは元動画(頭出し済)"
     release_date: "公開日"
     engage_how: "音楽家の関わり方"
     music_main_hint: "曲名 (1曲のみ。必要に応じて後で追加可能)"

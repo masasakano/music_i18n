@@ -6,9 +6,7 @@
   <thead>
     <tr>
       <th>ID</th>
-      <th>Name (ja)</th>
-      <th>Name (en)</th>
-      <th>Name (fr)</th>
+     <%= render "layouts/title_alt_ja_en_table", model: nil, langcodes: %w(ja en fr) %>   <%# class="title_alt_ja" etc %>
       <th title="ISO-3166-1 Alpha 2 code, JIS X 0304">A2</th>
       <th title="ISO-3166-1 Alpha 3 code, JIS X 0304">A3</th>
       <th title="ISO-3166-1 Numeric code, JIS X 0304">N3</th>
@@ -31,32 +29,29 @@
   </thead>
 
   <tbody>
-    <% @countries.each do |country| %>
+    <% @countries.each do |model| %>
       <tr>
-        <td><%= country.id %></td>
-        <% btr = country.best_translations %>
-        <% %w(ja en fr).each do |lc| %>
-        <td><%= %w(title alt_title).map{|i| tra=btr[lc]; s=(tra && h(tra.send(i))); s.blank? ? '&mdash;' : s}.join(' | ').html_safe %></td>
-        <% end %>
-        <td><%= country.iso3166_a2_code %></td>
-        <td><%= country.iso3166_a3_code %></td>
-        <td><%= country.iso3166_n3_code %></td>
+        <td><%= model.id %></td>
+       <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en fr) %>  <%# class="title_alt_ja" etc %>
+        <td><%= model.iso3166_a2_code %></td>
+        <td><%= model.iso3166_a3_code %></td>
+        <td><%= model.iso3166_n3_code %></td>
         <% if can? :read, CountryMaster %>
-          <td><%= country.link_to_master %>
+          <td><%= model.link_to_master %>
         <% end %>
-        <td><%= country.independent.inspect %></td>
-        <td><%= country.territory %></td>
-        <td><%= country.iso3166_remark %></td>
-        <td><%= country.orig_note %></td>
-        <td><%= country.start_date %></td>
-        <td><%= country.end_date %></td>
-        <td><%= country.note %></td>
-        <td><%= link_to 'Show', country %></td>
-        <% if can? :update, country  %>
-          <td><%= link_to 'Edit', edit_country_path(country) %></td>
+        <td><%= model.independent.inspect %></td>
+        <td><%= model.territory %></td>
+        <td><%= model.iso3166_remark %></td>
+        <td><%= model.orig_note %></td>
+        <td><%= model.start_date %></td>
+        <td><%= model.end_date %></td>
+        <td><%= model.note %></td>
+        <td><%= link_to 'Show', model %></td>
+        <% if can? :update, model  %>
+          <td><%= link_to 'Edit', edit_country_path(model) %></td>
         <% end %>
-        <% if can? :destroy, country %>
-          <td><%= link_to 'Destroy', country, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+        <% if can? :destroy, model %>
+          <td><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
         <% end %>
       </tr>
     <% end %>

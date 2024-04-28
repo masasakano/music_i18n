@@ -1,0 +1,17 @@
+
+<%# valiables: model (give nil for processing for th), langcodes=%w(ja en) %>
+
+<% for_td    = true if !defined?(for_td) %>
+<% langcodes = %w(ja en) if !defined?(langcodes) %>
+<% langcodes = langcodes.map(&:to_s) %>
+<% css_class_root = "title_alt_" %>  <%# class="title_alt_ja" etc %>
+
+<% langcodes.each do |lc| %>
+  <% if !model %>  <%# for th %>
+      <% title = t("tables.title_name_"+lc, default: sprintf("%s (%s)", t(:Name), lc)) %>
+      <th class="<%= css_class_root+lc %>"><%= title %></th>
+  <% else %>
+          <td class="<%= css_class_root+lc %>"><%= %w(title alt_title).map{|i| (s=h(model.send(i, langcode: lc, lang_fallback: false, str_fallback: nil))).blank? ? '&mdash;' : s}.join(' | ').html_safe %></td>
+  <% end %>
+<% end %>
+

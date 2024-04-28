@@ -46,12 +46,12 @@ class HaramiVidsGrid < BaseGrid
     order_str = Arel.sql('title COLLATE "ja-x-icu"')
     scope.joins(:translations).where("langcode = 'ja'").order(order_str) #.order("title")
   }) do |record|
-    record.title langcode: 'ja'
+    record.title langcode: 'ja', lang_fallback: false
   end
   column(:title_en, mandatory: (I18n.locale.to_sym != :ja), header: Proc.new{I18n.t('tables.title_en')}, order: proc { |scope|
     scope_with_trans_order(scope, HaramiVid, langcode="en")  # defined in base_grid.rb
   }) do |record|
-    record.title langcode: 'en'
+    record.title langcode: 'en', lang_fallback: false
   end
 
   column(:release_date, mandatory: true, header: Proc.new{I18n.t('tables.release_date')})

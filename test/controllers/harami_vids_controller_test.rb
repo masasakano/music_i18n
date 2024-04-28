@@ -10,6 +10,8 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
     @editor_harami = users(:user_editor)
     @editor = @editor_harami 
     @moderator_harami = users(:user_moderator)
+    @def_params = {"langcode"=>"ja", "title"=>"", "uri"=>"", "release_date(1i)"=>"2024", "release_date(2i)"=>"4", "release_date(3i)"=>"28", "duration"=>"", "place.prefecture_id.country_id"=>"0", "place.prefecture_id"=>"", "place"=>"", "form_channel_owner"=>"3", "form_channel_type"=>"12", "form_channel_platform"=>"1", "form_events"=>"", "artist_name"=>"", "form_engage_hows"=>"72", "form_engage_year"=>"", "form_contribution"=>"", "artist_name_collab"=>"", "form_instrument"=>"2", "form_play_role"=>"2", "music_name"=>"", "music_timing"=>"", "uri_playlist_en"=>"", "uri_playlist_ja"=>"", "note"=>""}
+
   end
 
   teardown do
@@ -21,7 +23,8 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
   test "should get index" do
     get harami_vids_url
     assert_response :success
-    #assert_not (200...299).include?(response.code.to_i)  # maybe :redirect or 403 forbidden 
+
+    assert css_select("table.datagrid.harami_vids_grid tbody tr").any?{|esel| esel.css('td.title_en')[0].text.blank? && !esel.css('td.title_ja')[0].text.blank?}, "Some EN titles should be blank (where JA titles are NOT blank), but..."
   end
 
   #test "should get new" do

@@ -15,6 +15,10 @@ en:
     title_name_en: "Name (En)"
     title_en_alt: "Title [Alt] (En)"
     alt_title_name_en: "Alt-Name (En)"
+    title_fr:  "Title (Fr)"
+    title_name_fr: "Name (Fr)"
+    title_fr_alt: "Title [Alt] (Fr)"
+    alt_title_name_fr: "Alt-Name (Fr)"
     year: Year
     sex: Sex
     place: Place
@@ -183,6 +187,7 @@ en:
     table_head_ChannelPlatform: Platform
     table_head_ChannelType: Type
     table_head_collabs: "feat. Artists"
+    table_head_title_music_timing: "[in second] Link to the original video at the timing"
     release_date: "Release date"
     engage_how: Way of engagement
     music_main_hint: "Name of one song (you can add more later)"

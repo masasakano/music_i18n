@@ -6,9 +6,10 @@
 <table id="events_index_table">
   <thead>
     <tr>
+     <% if can? :edit, Event %>
       <th>ID</th>
-      <th>Name (ja)</th>
-      <th>Name (en)</th>
+     <% end %>
+       <%= render "layouts/title_alt_ja_en_table", model: nil, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
       <th>From Time</th>
       <th>±hr</th>
       <th>Duration [h]</th>
@@ -28,37 +29,36 @@
   </thead>
 
   <tbody>
-    <% @events.each do |event| %>
+    <% @events.each do |model| %>
       <tr>
-        <td><%= event.id %></td>
-        <% btr = event.best_translations %>
-        <% %w(ja en).each do |lc| %> <%# no "fr" so far %>
-        <td><%= %w(title alt_title).map{|i| tra=btr[lc]; s=(tra && h(tra.send(i))); s.blank? ? '&mdash;' : s}.join(' | ').html_safe %></td>
-        <% end %>
+       <% if can? :edit, Event %>
+        <td><%= model.id %></td>
+       <% end %>
+       <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
 
-        <%#td  %= event.order_no %  /td %>
-        <td><%= event.string_time_err2uptomin %></td>
-         <% err = event.start_time_err %>
+        <%#td  %= model.order_no %  /td %>
+        <td><%= model.string_time_err2uptomin %></td>
+         <% err = model.start_time_err %>
         <td><%= err ? sprintf("%.2f", err.second.in_hours) : "&mdash".html_safe %></td>
-        <td><%= event.duration_hour %></td>
-        <td><%= event.weight %></td>
-        <td><%= event.place ? h(event.txt_place_pref_ctry) : "" %></td>
-         <% eg = event.event_group %>
+        <td><%= model.duration_hour %></td>
+        <td><%= model.weight %></td>
+        <td><%= model.place ? h(model.txt_place_pref_ctry) : "" %></td>
+         <% eg = model.event_group %>
         <td><%= eg ? eg.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) : "" %></td>
         <% if can? :read, EventItem %>
-         <% items = event.event_items.order(:weight, event_ratio: :desc) %>
+         <% items = model.event_items.order(:weight, event_ratio: :desc) %>
         <td class="events_index_items">
           <%= items.map.with_index{ |ei, i| link_to(sprintf("%d", i+1), event_item_path(ei)) }.join(", ").html_safe %>
         </td>
         <% end %>
-        <td><%= h(event.note) %></td>
+        <td><%= h(model.note) %></td>
 
-        <td><%= link_to "Show", event %></td>
-        <% if can? :update, event  %>
-          <td><%= link_to 'Edit', edit_event_path(event) %></td>
+        <td><%= link_to "Show", model %></td>
+        <% if can? :update, model  %>
+          <td><%= link_to 'Edit', edit_event_path(model) %></td>
         <% end %>
-        <% if can? :destroy, event %>
-          <td><%= link_to 'Destroy', event, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+        <% if can? :destroy, model %>
+          <td><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
         <% end %>
       </tr>
     <% end %>

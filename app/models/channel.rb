@@ -160,21 +160,21 @@ class Channel < BaseWithTranslation
 
   ######################## callbacks #######################
 
-  # Callback invoed by {BaseWithTranslation#save_unsaved_translations}
-  # which is an after_create callback.
-  #
-  # This ensures a newly created record always has a {Translation}
-  # (because creating users may not care!)
-  #
-  # @return [self] self is NOT reloaded after saving Translations.
-  def fallback_non_existent_unsaved_translations
-    return if self.new_record?  # self shoud not be a new record!
+  ## Callback invoed by {BaseWithTranslation#save_unsaved_translations}
+  ## which is an after_create callback.
+  ##
+  ## This ensures a newly created record always has a {Translation}
+  ## (because creating users may not care!)
+  ##
+  ## @return [self] self is NOT reloaded after saving Translations.
+  #def fallback_non_existent_unsaved_translations
+  #  return if self.new_record?  # self shoud not be a new record!
 
-    def_initial_translations.each do |et|
-      self.translations << et
-    end
-    self
-  end
+  #  def_initial_translations.each do |et|
+  #    self.translations << et
+  #  end
+  #  self
+  #end
 
 end
 

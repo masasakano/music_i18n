@@ -255,7 +255,8 @@ EOF
 
       mus = reths[:musics][3]
       mus.reload
-      assert_nil   mus.title(langcode: 'en')
+      assert_nil             mus.title(langcode: 'en', lang_fallback: false)
+      assert_equal '子守唄', mus.title(langcode: 'en')
       assert_equal '子守唄', mus.title(langcode: 'ja')
       assert_equal '子守唄', mus.title
       tras = mus.best_translations

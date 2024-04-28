@@ -6,8 +6,7 @@
   <thead>
     <tr>
       <th>ID</th>
-      <th>Name (ja)</th>
-      <th>Name (en)</th>
+       <%= render "layouts/title_alt_ja_en_table", model: nil, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
       <th>Weight</th>
       <th title="Note in this DB">Note</th>
       <% if can? :update, Instrument %>
@@ -19,23 +18,20 @@
   </thead>
 
   <tbody>
-    <% @instruments.each do |instrument| %>
+    <% @instruments.each do |model| %>
       <tr>
-        <td><%= instrument.id %></td>
-        <% btr = instrument.best_translations %>
-        <% %w(ja en).each do |lc| %> <%# no "fr" so far %>
-        <td><%= %w(title alt_title).map{|i| tra=btr[lc]; s=(tra && h(tra.send(i))); s.blank? ? '&mdash;' : s}.join(' | ').html_safe %></td>
-        <% end %>
+        <td><%= model.id %></td>
+       <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
 
-        <td><%= instrument.weight %></td>
-        <td><%= h(instrument.note) %></td>
+        <td><%= model.weight %></td>
+        <td><%= h(model.note) %></td>
 
-        <td><%= link_to "Show", instrument %></td>
-        <% if can? :update, instrument  %>
-          <td><%= link_to 'Edit', edit_instrument_path(instrument) %></td>
+        <td><%= link_to "Show", model %></td>
+        <% if can? :update, model  %>
+          <td><%= link_to 'Edit', edit_instrument_path(model) %></td>
         <% end %>
-        <% if can? :destroy, instrument %>
-          <td><%= link_to 'Destroy', instrument, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+        <% if can? :destroy, model %>
+          <td><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
         <% end %>
       </tr>
     <% end %>

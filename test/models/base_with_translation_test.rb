@@ -26,7 +26,8 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_nil music.title(langcode: "fr", lang_fallback: false)  # Default for lang_fallback
     assert     music.title(langcode: "fr", lang_fallback: true)
     assert_equal "Nothing", music.title(langcode: "fr", lang_fallback: false, str_fallback: "Nothing")
-    assert_equal "Nothing", music.title(langcode: "fr",                       str_fallback: "Nothing")
+    assert_includes         music.title(langcode: "fr", lang_fallback: true,  str_fallback: "Nothing"), "Madonna"
+    assert_includes         music.title(langcode: "fr",                       str_fallback: "Nothing"), "Madonna"
 
     # {#titles} are separately implemented.
     assert_empty music.titles(langcode: "fr", lang_fallback_option: :never, str_fallback: nil).compact
@@ -461,8 +462,10 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     obj = Sex.first
     assert_equal [nil, nil], obj.titles(langcode: 'it')
     %i(title ruby romaji alt_title alt_ruby alt_romaji).each do |em| 
-      assert_nil  obj.public_send(em, langcode: 'it'), "obj.#{em.to_s} fails."
+      assert_nil  obj.public_send(em, langcode: 'it', lang_fallback: false), "obj.#{em.to_s} fails."
     end
+    assert        obj.public_send(:title, langcode: 'it', lang_fallback: true).present?
+    assert        obj.public_send(:title, langcode: 'it').present?
 
     # Tests of title_or_alt
     assert_equal 'Liverpool', prefectures(:liverpool).title_or_alt(langcode: 'en')
@@ -533,7 +536,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     end
   end
 
-  test "direct parameters of title alt_tile etc in create/new" do
+  test "direct parameter assignments of title alt_tile etc in create/new" do
     mdl = EngageHow.new(weight: 0.3)
     mdl.translations << Translation.new(title: 'foo1', is_orig: true, langcode: "en")
     mdl.valid?
@@ -543,6 +546,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert mdl.translations.first.valid? 
     assert mdl.translations.first.new_record? 
 mdl.translations.first.translatable_id = EngageHow.second.id
+    assert_equal 'foo1', mdl.title
     mdl.save!
 
     hsin = {title: 'naiyo', ruby: 'アイウ', romaji: 'aiu', alt_title: 'baa', alt_ruby: 'アウ', alt_romaji: 'au',  is_orig: nil, langcode: "en"}
@@ -580,6 +584,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     mdl.unsaved_translations.pop
     assert_equal 1, mdl.unsaved_translations.size, "sanity check"
   end
+    assert_equal 'naiyo', mdl.title
 
     assert mdl.new_record?
     assert mdl.save
@@ -651,11 +656,12 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     assert_equal "翻訳-0",     mdlt.title(langcode: "ja")
     assert_equal "ほんやく-0", mdlt.ruby(langcode: "ja")
     assert_equal "tra-1-alt",  mdlt.alt_title
-    assert                     mdlt.title.blank?
+    assert_equal "翻訳-0",     mdlt.title
+    assert                     mdlt.title(lang_fallback: false).blank?
     assert_nil                 mdl0.best_translation_is_orig
     assert_equal true,         mdlt.best_translation_is_orig
     assert_empty               mdl0.best_translations
-    assert_empty               mdlt.best_translations
+    assert_equal 2,            mdlt.best_translations.size
     assert_nil                 mdl0.best_translation
     assert_equal "en",         mdlt.best_translation.langcode
     tra1.is_orig=false

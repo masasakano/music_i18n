@@ -7,8 +7,7 @@
      <% if (can_update=can?(:update, PlayRole)) %>
       <th>ID</th>
      <% end %>
-      <th>Name (ja)</th>
-      <th>Name (en)</th>
+       <%= render "layouts/title_alt_ja_en_table", model: nil, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
       <th>mname</th>
       <th title="weight for sorting this index">Weight</th>
         <% if can? :read, EventItem %>
@@ -24,35 +23,32 @@
   </thead>
 
   <tbody>
-    <% @play_roles.each do |ea_mdl| %>
+    <% @play_roles.each do |model| %>
       <tr>
-       <% if can_update=can?(:update, ea_mdl) %>
-        <td><%= ea_mdl.id %></td>
+       <% if can_update=can?(:update, model) %>
+        <td><%= model.id %></td>
        <% end %>
-        <% btr = ea_mdl.best_translations %>
-        <% %w(ja en).each do |lc| %> <%# no "fr" so far %>
-        <td><%= %w(title alt_title).map{|i| tra=btr[lc]; s=(tra && h(tra.send(i))); s.blank? ? '&mdash;' : s}.join(' | ').html_safe %></td>
-        <% end %>
+       <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
 
-        <%#td  %= ea_mdl.order_no %  /td %>
-        <td><%= ea_mdl.mname %></td>
-        <td><%= ea_mdl.weight %></td>
+        <%#td  %= model.order_no %  /td %>
+        <td><%= model.mname %></td>
+        <td><%= model.weight %></td>
         <% if can? :read, EventItem %>
-         <%# items = ea_mdl.event_items.order(:weight, event_ratio: :desc) %>
+         <%# items = model.event_items.order(:weight, event_ratio: :desc) %>
          <% items = 0 %>
         <td class="play_roles_index_items">
           <%# items.event_items.count %>
         </td>
         <% end %>
-        <td><%= ea_mdl.note %></td>
+        <td><%= model.note %></td>
 
-        <td><%= link_to "Show", ea_mdl %></td>
+        <td><%= link_to "Show", model %></td>
         <% if can_update %>
-          <td><%= link_to 'Edit', edit_play_role_path(ea_mdl) %></td>
+          <td><%= link_to 'Edit', edit_play_role_path(model) %></td>
         <% end %>
         <% if false %> <%# No destroy with this UI %>
-         <% if can? :destroy, ea_mdl %>
-          <td><%= link_to 'Destroy', ea_mdl, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+         <% if can? :destroy, model %>
+          <td><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
          <% end %>
         <% end %>
       </tr>

@@ -9,8 +9,8 @@
 <table>
   <thead>
     <tr>
-      <th>Ja</th>
-      <th>En</th>
+      <th>ID</th>
+       <%= render "layouts/title_alt_ja_en_table", model: nil, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
       <th>Weight</th>
       <th>Note</th>
       <th colspan="<%= allcolspan %>"></th>
@@ -18,18 +18,18 @@
   </thead>
 
   <tbody>
-    <% @engage_hows.each do |engage_how| %>
+    <% @engage_hows.each do |model| %>
       <tr>
-        <td><%= engage_how.translations_with_lang('ja').map(&:title).join(' | ') %></td>
-        <td><%= engage_how.translations_with_lang('en').map(&:title).join(' | ') %></td>
-        <td class="align-r"><%= w = engage_how.weight; ((w == w.to_i) ? w.to_i : w) %></td>
-        <td><%= engage_how.note %></td>
-        <td><%= link_to 'Show', engage_how %></td>
-        <% if can?(:update, engage_how) %>
-          <td><%= link_to 'Edit', edit_engage_how_path(engage_how) %></td>
+        <td><%= model.id%></td>
+       <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
+        <td class="align-r"><%= w = model.weight; ((w == w.to_i) ? w.to_i : w) %></td>
+        <td><%= model.note %></td>
+        <td><%= link_to 'Show', model %></td>
+        <% if can?(:update, model) %>
+          <td><%= link_to 'Edit', edit_engage_how_path(model) %></td>
         <% end %>
-        <% if can?(:destory, engage_how) %>
-          <td><%= link_to 'Destroy', engage_how, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+        <% if can?(:destory, model) %>
+          <td><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
         <% end %>
       </tr>
     <% end %>

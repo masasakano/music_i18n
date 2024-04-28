@@ -9,10 +9,9 @@
      <% can_edit_event_group = can?(:edit, EventGroup) %>
       <th><%= can_edit_event_group ? "ID" : "" %></th>
       <% if can_edit_event_group %>
-      <th>Name (ja)</th>
-      <th>Name (en)</th>
+       <%= render "layouts/title_alt_ja_en_table", model: nil, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
       <% else %>
-      <th><%= t(:title).capitalize %></th>
+      <th class="title_alt_<%= I18n.locale.to_s %>"><%= t(:title).capitalize %></th>
       <% end %>
       <th title="n-th one in a series of Event Group"><%= t("event_groups.num_id") %></th>
       <th><%= t("event_groups.start_date", default: "From YYYY-MM-DD") %></th>
@@ -35,37 +34,34 @@
   </thead>
 
   <tbody>
-    <% @event_groups.order(start_date: :desc).each_with_index do |event_group, i_eg| %>
+    <% @event_groups.order(start_date: :desc).each_with_index do |model, i_eg| %>
       <tr>
-        <td><%= can_edit_event_group ? event_group.id : i_eg+1 %></td>
-        <% btr = event_group.best_translations %>
+        <td><%= can_edit_event_group ? model.id : i_eg+1 %></td>
       <% if can_edit_event_group %>
-        <% %w(ja en).each do |lc| %> <%# no "fr" so far %>
-        <td><%= %w(title alt_title).map{|i| tra=btr[lc]; s=(tra && h(tra.send(i))); s.blank? ? '&mdash;' : s}.join(' | ').html_safe %></td>
-        <% end %>
+       <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
       <% else %>
-        <td><%= (tra=btr[I18n.locale]) ? tra.title_or_alt.html_safe : "" %></td>
+       <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: [I18n.locale] %>  <%# class="title_alt_ja" etc %>
       <% end %>
-        <td><%= event_group.order_no %></td>
-        <td><%= da = event_group.start_date; str = (da ? date2text(da.year, da.month, da.day, lower_end_str: "", upper_end_str: "") : (can?(:edit, event_group) ? date2text(nil, nil, nil) : "")) %></td>
+        <td><%= model.order_no %></td>
+        <td><%= da = model.start_date; str = (da ? date2text(da.year, da.month, da.day, lower_end_str: "", upper_end_str: "") : (can?(:edit, model) ? date2text(nil, nil, nil) : "")) %></td>
       <% if can? :update, EventGroup %>
-        <td><%= s=event_group.start_date_err; (str.blank? ? "" : s) %></td>
+        <td><%= s=model.start_date_err; (str.blank? ? "" : s) %></td>
       <% end %>
-        <td><%= da = event_group.end_date;   str = (da ? date2text(da.year, da.month, da.day, lower_end_str: "", upper_end_str: "") : (can?(:edit, event_group) ? date2text(nil, nil, nil) : "")) %></td>
+        <td><%= da = model.end_date;   str = (da ? date2text(da.year, da.month, da.day, lower_end_str: "", upper_end_str: "") : (can?(:edit, model) ? date2text(nil, nil, nil) : "")) %></td>
       <% if can? :update, EventGroup %>
-        <td><%= s=event_group.end_date_err; (str.blank? ? "" : s) %></td>
+        <td><%= s=model.end_date_err; (str.blank? ? "" : s) %></td>
       <% end %>
-        <td><%= event_group.place ? h(event_group.txt_place_pref_ctry) : "" %></td>
-        <td><%= event_group.note %></td>
+        <td><%= model.place ? h(model.txt_place_pref_ctry) : "" %></td>
+        <td><%= model.note %></td>
 
-        <td class="event_groups_index_table_events"><%= link_to event_group.events.size, event_group_url(event_group)+"#section_event_group_show_events" %></td>
-        <td><%= link_to t("event_groups.index.show"), event_group %></td>
-        <% if can? :update, event_group  %>
-          <td><%= link_to 'Edit', edit_event_group_path(event_group) %></td>
+        <td class="event_groups_index_table_events"><%= link_to model.events.size, event_group_url(model)+"#section_event_group_show_events" %></td>
+        <td><%= link_to t("event_groups.index.show"), model %></td>
+        <% if can? :update, model  %>
+          <td><%= link_to 'Edit', edit_event_group_path(model) %></td>
         <% end %>
-        <% if can?(:destroy, event_group) %>
-         <% if event_group.destroyable? %>
-          <td><%= link_to 'Destroy', event_group, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+        <% if can?(:destroy, model) %>
+         <% if model.destroyable? %>
+          <td><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
          <% else %>
           <td><span class="cell_disable_link">Destroy</span></td>
          <% end %>

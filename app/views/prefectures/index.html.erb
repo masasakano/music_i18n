@@ -7,34 +7,33 @@
     <tr>
       <th>ID</th>
       <th>Country-pID(alt名称)</th>
-      <th>Name (ja)</th>
-      <th>Name (en)</th>
+       <%= render "layouts/title_alt_ja_en_table", model: nil, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
       <th title="(ISO 3166-2:JP (etc) code (JIS X 0401:1973))">ISO3166</th>
       <th title="(Remarks by HirMtsd)">Remark<br>(by HirMtsd)</th>
       <th>Start date</th>
       <th>End date</th>
       <th>Note</th>
-      <th colspan="3">Action</th>
+     <% colspan = ((can? :edit, Prefecture) ? 3 : 1) %>
+      <th colspan="<%= colspan %>">Action</th>
     </tr>
   </thead>
 
   <tbody>
-    <% @prefectures.each do |prefecture| %>
+    <% @prefectures.each do |model| %>
       <tr>
-        <td><%= prefecture.id %></td>
-        <td><%= cntr=prefecture.country; link_to(sprintf('%d', cntr.id), cntr)+sprintf('(%s)', cntr.title_or_alt(langcode: I18n.locale, prefer_alt: true)) %></td>
-        <% btr = prefecture.best_translations %>
-        <% %w(ja en).each do |lc| %>
-        <td><%= %w(title alt_title).map{|i| tra=btr[lc]; s=(tra && h(tra.send(i))); s.blank? ? '&mdash;' : s}.join(' | ').html_safe %></td>
-        <% end %>
-        <td><%= prefecture.iso3166_loc_code %></td>
-        <td><%= prefecture.orig_note %></td>
-        <td><%= prefecture.start_date %></td>
-        <td><%= prefecture.end_date %></td>
-        <td><%= prefecture.note %></td>
-        <td><%= link_to 'Show', prefecture %></td>
-        <td><%= link_to('Edit', edit_prefecture_path(prefecture)) if (can? :update, prefecture) %></td>
-        <td><%= link_to('Destroy', prefecture, method: :delete, data: { confirm: t('are_you_sure') }) if (can?(:destroy, prefecture) && prefecture.destroyable?(with_msg: false)) %></td>
+        <td><%= model.id %></td>
+        <td><%= cntr=model.country; link_to(sprintf('%d', cntr.id), cntr)+sprintf('(%s)', cntr.title_or_alt(langcode: I18n.locale, prefer_alt: true, lang_fallback_option: :either)) %></td>
+       <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
+        <td><%= model.iso3166_loc_code %></td>
+        <td><%= model.orig_note %></td>
+        <td><%= model.start_date %></td>
+        <td><%= model.end_date %></td>
+        <td><%= model.note %></td>
+        <td><%= link_to 'Show', model %></td>
+       <% if (can? :edit, model) %>
+        <td><%= link_to('Edit', edit_prefecture_path(model)) if (can? :update, model) %></td>
+        <td><%= link_to('Destroy', model, method: :delete, data: { confirm: t('are_you_sure') }) if (can?(:destroy, model) && model.destroyable?(with_msg: false)) %></td>
+       <% end %>
       </tr>
     <% end %>
   </tbody>

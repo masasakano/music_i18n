@@ -28,7 +28,7 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     _can_view_core(user)
     csssel = css_select('div#navbar_upper_user')
     assert_includes csssel[0].text, 'Places'
-    assert_includes csssel[0].text, 'HaramiVids'
+    assert_includes csssel[0].text, 'Channels'
     assert_not_includes csssel[0].text, 'Translations'
     assert_not_includes csssel[0].text, 'Users'
     assert_not_includes csssel[0].text, 'StaticPages'
@@ -40,7 +40,7 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     csssel = css_select('div#navbar_upper_user')
     assert_includes csssel[0].text, 'Engages'
     assert_includes csssel[0].text, 'Places'
-    assert_includes csssel[0].text, 'HaramiVids'
+    assert_includes csssel[0].text, 'Channels'
     assert_includes csssel[0].text, 'Harami1129s'
     assert_includes csssel[0].text, 'Others'  # from v.0.17.1
     assert_not_includes csssel[0].text, 'Translations'
@@ -69,7 +69,7 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     csssel = css_select('div#navbar_upper_user')
     assert_includes csssel[0].text, 'Engages'
     assert_includes csssel[0].text, 'Places'
-    assert_includes csssel[0].text, 'HaramiVids'
+    assert_includes csssel[0].text, 'Channels'
     assert_includes csssel[0].text, 'Harami1129s'
     assert_includes csssel[0].text, 'Translations'
     assert_includes csssel[0].text, 'Others'  # from v.0.17.1

@@ -2,7 +2,7 @@
 
 <h1>Places</h1>
 
-<table>
+<table class="table_index_main">
   <thead>
     <tr>
       <% if current_user && current_user.moderator? %>
@@ -25,10 +25,10 @@
         <% if current_user && current_user.moderator? %>
           <td><%= place.id %></td>
         <% end %>
-        <td><%= (place.title langcode: 'ja') || '' %></td>
-        <td><%= cell_ruby_romaji(place) %></td> <%# defined in translations_helper.rb %>
-        <td><%= cell_alt_all(place) %></td>
-        <td><%= cell_tit_alt(place) %></td>
+        <td class="title_ja"><%= place.title(langcode: 'ja', lang_fallback: false, str_fallback: "") %></td>
+        <td><%= cell_ruby_romaji(place) %></td>              <%# defined in translations_helper.rb %>
+        <td><%= cell_alt_all(place) %></td>                  <%# defined in translations_helper.rb %>
+        <td class="title_en"><%= cell_tit_alt(place) %></td> <%# defined in translations_helper.rb %>
         <td><%= link_to place.prefecture.title_or_alt(prefer_alt: true, langcode: I18n.locale, lang_fallback_option: :either), prefecture_path(place.prefecture_id) %></td>
         <td><%= link_to place.country.title_or_alt(prefer_alt: true, langcode: I18n.locale, lang_fallback_option: :either), country_path(place.country) %></td>
         <td><%= place.note %></td>

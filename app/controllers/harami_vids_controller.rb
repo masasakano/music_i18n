@@ -4,7 +4,7 @@ class HaramiVidsController < ApplicationController
 
   skip_before_action :authenticate_user!, :only => [:index, :show]
   load_and_authorize_resource except: [:index, :show, :create] # This sets @harami_vid
-  #before_action :set_harami_vid, only: [:show, :edit, :update, :destroy]
+  before_action :set_harami_vid, only: [:show]  # load_and... would load a model for  :edit, :update, :destroy
   before_action :model_params_multi, only: [:create, :update]
 
   # params key for auto-complete Artist
@@ -70,7 +70,22 @@ class HaramiVidsController < ApplicationController
 
 print "DEBUG: ";p [ @harami_vid, @hsmain, @hstra, @prms_all]
     add_unsaved_trans_to_model(@harami_vid, @hstra) # defined in application_controller.rb
-    def_respond_to_format(@harami_vid)              # defined in application_controller.rb
+    def_respond_to_format(@harami_vid){
+      result = nil
+      ActiveRecord::Base.transaction(requires_new: true) do
+        begin
+          associate_channel
+          result = @harami_vid.save
+          save_harami_vid_music_assoc
+          save_engage
+          save_event_item
+          save_artist_music_play
+        rescue
+          raise ActiveRecord::Rollback, "Force rollback."
+        end
+      end
+      result
+    } # defined in application_controller.rb
 ### Sets @hsmain and @hstra and @prms_all from params
 
 #    hvid_respond_to_format(@harami_vid, :created)
@@ -234,6 +249,6 @@ print "DEBUG: ";p [ @harami_vid, @hsmain, @hstra, @prms_all]
       self.unsaved_music = music
     end
 
-#    21:18:01 web.1  | E, [2024-04-26T21:18:01.793615 #15373] ERROR -- : params that caused Error: #<ActionController::Parameters {"authenticity_token"=>"vXemGMOJoVf8XIu-9cPlPj9QPMclsq63rqimxEhVtZLO9zCmahWNZdeCCF1F3z3lmo8TGi9fm9yLAW6LqM4rpA", "harami_vid"=>#<ActionController::Parameters {"langcode"=>"ja", "title"=>"", "uri"=>"", "release_date(1i)"=>"2024", "release_date(2i)"=>"4", "release_date(3i)"=>"26", "duration"=>"", "place.prefecture_id.country_id"=>"0", "place.prefecture_id"=>"", "place"=>"", "form_channel_owner"=>"3", "form_channel_type"=>"12", "form_channel_platform"=>"1", "event_ids"=>[""], "artist_name"=>"", "form_engage_hows"=>"72", "form_engage_year"=>"", "form_contribution"=>"", "artist_name_collab"=>"", "form_instrument"=>"2", "form_play_role"=>"2", "music_name"=>"", "music_timing"=>"", "uri_playlist_en"=>"", "uri_playlist_ja"=>"", "note"=>""} permitted: true>, "commit"=>"登録する", "controller"=>"harami_vids", "action"=>"create", "locale"=>"ja"} permitted: true>
+# 12:24:18 web.1  | I, [2024-04-28T12:24:18.859995 #72040]  INFO -- :   Parameters: {"authenticity_token"=>"[FILTERED]", "harami_vid"=>{"langcode"=>"ja", "title"=>"", "uri"=>"", "release_date(1i)"=>"2024", "release_date(2i)"=>"4", "release_date(3i)"=>"28", "duration"=>"", "place.prefecture_id.country_id"=>"0", "place.prefecture_id"=>"", "place"=>"", "form_channel_owner"=>"3", "form_channel_type"=>"12", "form_channel_platform"=>"1", "form_events"=>"", "artist_name"=>"", "form_engage_hows"=>"72", "form_engage_year"=>"", "form_contribution"=>"", "artist_name_collab"=>"", "form_instrument"=>"2", "form_play_role"=>"2", "music_name"=>"", "music_timing"=>"", "uri_playlist_en"=>"", "uri_playlist_ja"=>"", "note"=>""}, "commit"=>"Create Harami vid", "locale"=>"en"}
 
 end

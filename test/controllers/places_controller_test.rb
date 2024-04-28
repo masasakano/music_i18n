@@ -25,7 +25,6 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should get index" do
-    begin
       get '/users/sign_in'
       sign_in Role[:editor, RoleCategory::MNAME_GENERAL_JA].users.first  # editor/general_ja
       post user_session_url
@@ -34,13 +33,9 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
 
       get places_url
       assert_response :success
-      get new_place_url
-      assert_response :success
-      get place_url(Place.first)
-      assert_response :success
-    ensure
-      Rails.cache.clear
-    end
+
+      refute_empty css_select("table.table_index_main tbody tr")
+      assert css_select("table.table_index_main tbody tr").any?{|esel| esel.css('td.title_ja')[0].text.blank? && !esel.css('td.title_en')[0].text.blank?}, "Some JA titles should be blank (where EN titles are NOT blank), but..."
   end
 
   test "should get new only if logged in" do

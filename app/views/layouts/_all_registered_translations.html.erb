@@ -20,7 +20,9 @@
   <thead>
     <tr>
       <th></th>
+      <% if can? :edit, Translation %>
       <th>Orig?</th>
+      <% end %>
       <th>Title</th>
       <th>[Ruby|Romaji]</th>
       <th>Alt title</th>
@@ -50,8 +52,10 @@
       </th></tr>
     <% alltra.each_with_index do |tra, i| %>
     <tr class="trans_row lc_<%= lcode %>">
-      <td><%= i+1 %></td>
+      <td><%= i+1 %><%= ('<span title="original language">*</span>'.html_safe) if tra.is_orig %></td>
+      <% if can? :edit, Translation %>
       <td class="trans_is_orig"><%= tra.is_orig_str %></td>
+      <% end %>
       <td class="trans_title"><%= tra.title %></td>
       <td class="trans_ruby_romaji">[<%= (tra.ruby || '') + ' | ' + (tra.romaji || '') %>]</td>
       <td class="trans_alt_title"><%= tra.alt_title %></td>

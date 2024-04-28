@@ -345,7 +345,7 @@ class HaramiVid < BaseWithTranslation
   def view_home_music(langcode)
     musics.map{|ea_mu|
       timing = timing(ea_mu)
-      tit = ea_mu.title(langcode: langcode.to_s)
+      tit = ea_mu.title(langcode: langcode.to_s, lang_fallback: false, str_fallback: nil)
       if !tit && 'en' == langcode.to_s
         tit = ea_mu.romaji(langcode: 'ja')  # English fallback => Romaji in JA
         tit &&= '['+tit+']'

@@ -268,6 +268,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
         assert_equal "",  _get_h1129_table_cell(ddid, "Current Destination"), "No destination should be defined for #{ek}, but..."
       end
       
+      id_h1129 = find("dd#h1129_id_dd").text.to_i
       click_on "Populate"  # Creating Artist (<=Singer) and Music (<= Song)
       assert_selector "h1", text: "HARAMI1129 Entry"
 

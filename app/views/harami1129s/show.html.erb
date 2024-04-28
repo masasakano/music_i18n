@@ -156,7 +156,7 @@
     <% if evit=@harami1129.event_item %>
       Song(Music)
       <% if @harami1129.ins_song.blank? %>
-      <% elsif evit.musics.joins(translations: :music).where("translations.title" => @harami1129.ins_song).exists? %>
+      <% elsif evit.musics.joins(:translations).where("translations.title" => @harami1129.ins_song).exists? %>
         <em>included</em>
       <% else %>
         <strong>NOT</strong> included
@@ -164,7 +164,7 @@
 
       / Singer(Artist)
       <% if @harami1129.ins_singer.blank? %>
-      <% elsif evit.artists.joins(translations: :artist).where("translations.title" => @harami1129.ins_singer).exists? %>
+      <% elsif evit.artists.joins(:translations).where("translations.title" => @harami1129.ins_singer).exists? %>
         <em>included</em>
       <% else %>
         <strong>NOT</strong> included

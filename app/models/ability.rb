@@ -134,7 +134,7 @@ class Ability
     if user.moderator?  # Harami manager OR HIGHER (but sysadmin)
       can :read,   Sex
       #can :manage, Prefecture          # can :destroy in addition to Editors
-      can :manage, [Genre, EngageHow]  # can :update :destroy in addition to Editors
+      can(:manage, [Genre, EngageHow]){ |i| !i.unknown? }  # can :update :destroy in addition to Editors  # [TODO] => for General Editor only!
 #can [:read, :update], User    # This should not be activated, but it used to be... Why?
       can :update, Users::EditRolesController
       can :update, Users::Confirm  # Moderators can "confirm" users.
@@ -183,6 +183,7 @@ class Ability
       can :manage_prefecture_jp, Prefecture
       can :manage, StaticPage
       can :manage, CountryMaster
+      can :manage, [Genre, EngageHow]
       #can :manage_iso3166_jp, Prefecture  # redundant
       can :manage, ModelSummary
       can :cru, PlayRole  # Even an admin cannot destroy one, but the sysadmin.
