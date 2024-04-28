@@ -944,6 +944,24 @@ module ModuleCommon
   # However, +\z+ and +\Z+ are converted in most cases (I think
   # they cover almost all cases, unless they are used in a lookahead/lookbehind feature?).
   #
+  # == Most important points that this method handles.
+  #
+  # * Supported
+  #   * Regexp options: "i", "m" (=> "w")
+  #   * \n, \&, \1, "^", "\A", "\Z" (NOTE: \z should be OK in most cases, but not 100% (see above))
+  #   * lazy match (except "{,m}?"), \b (=> \y), \B (=> \Y), [:alnum:], \w, \W, [:blank:], [:space:]
+  #   * lookahead:   "(?=re)",  "(?!re)"
+  # * Unsupported
+  #   * lookabehind: "(?<=re)", "(?<!re)"
+  #   * "\z"
+  #   * [:word:], [:ascii:]
+  #   * named captures
+  #   * \p{...}
+  #
+  # == Reference
+  #
+  # Best gist for comparison: https://gist.github.com/glv/24bedd7d39f16a762528d7b30e366aa7
+  #
   # @return [Array<String, String>] Regexp.to_s, Option-String for PostgreSQL
   def regexp_ruby_to_postgres(regex)
     mat = /\A\(\?([a-z]*)(?:\-([a-z]*))?:(.+)\)\z/.match regex.to_s # separate Regexp options and contents.

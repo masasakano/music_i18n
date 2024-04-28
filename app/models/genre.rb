@@ -30,7 +30,7 @@ class Genre < BaseWithTranslation
     "ja" => 'ジャンル不明',
     "en" => 'UnknownGenre',
     "fr" => 'GenreInconnu',
-  }
+  }.with_indifferent_access
 
   # Returns the default {Genre}
   #

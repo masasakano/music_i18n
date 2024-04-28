@@ -50,6 +50,13 @@ class ChannelTest < ActiveSupport::TestCase
     #mdl = channels(:channel_saki_kubota)
     #assert        mdl.themselves
     #assert_equal artists(:artist_saki_kubota).title, mdl.best_translations[:ja].title
+
+    assert ChannelType.default(:HaramiVid), "ChannelType.default(:HaramiVid)"
+    assert_equal ChannelType.find_by(mname: :main), ChannelType.default(:HaramiVid)
+    assert ChannelPlatform.default(:HaramiVid), "ChannelPlatform.default(:HaramiVid)"
+    assert_equal ChannelPlatform.find_by(mname: :youtube), ChannelPlatform.default(:HaramiVid)
+    assert ChannelOwner.primary
+    assert Channel.primary, "Channel.primary"
   end
 
   test "association" do

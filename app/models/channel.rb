@@ -80,10 +80,23 @@ class Channel < BaseWithTranslation
   # @return [Channel]
   def self.primary
     self.find_by(
-      channel_type_id:     ChannelType.find_by(mname: :main).id,
-      channel_platform_id: ChannelPlatform.find_by(mname: :youtube).id,
+      channel_type_id:     ChannelType.default(:HaramiVid).id,
+      channel_platform_id: ChannelPlatform.default(:HaramiVid).id,
       channel_owner_id:    ChannelOwner.primary.id,
     )
+  end
+
+  # Returning a default Model in the given context
+  #
+  # place is ignored so far.
+  #
+  # For now, this is just an alias.
+  #
+  # @option context [Symbol, String]
+  # @option place: [Place]
+  # @return [Channel]
+  def self.default(context=nil, place: nil)
+    primary
   end
 
   # Initial (unsaved) Translation Array

@@ -65,7 +65,7 @@ class Instrument < BaseWithTranslation
   # @return [EventItem, Event]
   def self.default(context=nil, place: nil)
     case context.to_s.underscore.singularize
-    when %w(harami_vid harami1129)
+    when *(%w(harami_vid harami1129))
       ret = (self.select_regex(:title, /^piano$/i, langcode: "en", sql_regexp: true).first ||
              self.select_regex(:title, /^ピアノ/i, langcode: "ja", sql_regexp: true).first ||
              self.select_regex(:title, /ピアノ|piano/i, sql_regexp: true).first)

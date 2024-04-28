@@ -78,8 +78,8 @@ class EngageHow < BaseWithTranslation
   # @return [EngageHow]
   def self.default(context=nil, place: nil)
     case context.to_s.underscore.singularize
-    when %w(harami_vid harami1129)
-      return find_default(/^((original|オリジナル).*(singer|歌手))|((original|オリジナル).*(singer|歌手))$/i)
+    when *(%w(harami_vid harami1129))
+      return find_default(self, regex: /^(.?(\boriginal\b|オリジナル).*(\bsinger\b|歌手))|((\bsinger\b|歌手).*(\boriginal\b|オリジナル))/i)
     end
 
     self.unknown

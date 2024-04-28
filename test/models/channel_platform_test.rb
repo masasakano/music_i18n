@@ -32,6 +32,9 @@ class ChannelPlatformTest < ActiveSupport::TestCase
     assert_match(/^Unknown\b/, tra.title)
     assert tra.translatable
     assert_equal ChannelPlatform.unknown, tra.translatable
+
+    def_model = ChannelPlatform.default(:HaramiVid)
+    assert_match(/\byoutube\b/i, def_model.title(langcode: "en"))
   end
 
   test "uniqueness" do

@@ -29,6 +29,8 @@ class InstrumentTest < ActiveSupport::TestCase
 
     tra = translations(:instrument_other_ja)
     assert_equal "その他", tra.title
+
+    assert_match(/\bpiano\b/i, Instrument.default(:HaramiVid).title(langcode: "en"))
   end
 
   test "uniqueness" do

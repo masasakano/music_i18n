@@ -11,6 +11,12 @@
 require "test_helper"
 
 class EngageHowTest < ActiveSupport::TestCase
+  test "fixtures" do
+    def_eh = EngageHow.default(:HaramiVid)
+    assert_match(/\boriginal\b/i, def_eh.title(langcode: "en"))
+    assert_match(/\bsinger\b/i,   def_eh.title(langcode: "en"))
+  end
+
   test "on_delete dependency" do
     eh1 = engage_hows( :engage_how_1 )
     assert_raises(ActiveRecord::DeleteRestrictionError, ActiveRecord::InvalidForeignKey){ eh1.destroy } # DRb::DRbRemoteError: PG::ForeignKeyViolation: ERROR:  update or delete on table "engage_hows" violates foreign key constraint "fk_rails_0a84c2f7e6" on table "engages" DETAIL:  Key (id)=(949583562) is still referenced from table "engages".  # => ActiveRecord::DeleteRestrictionError (by Rail's validation)

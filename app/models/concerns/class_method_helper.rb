@@ -23,26 +23,27 @@ module ClassMethodHelper
     #    include ClassMethodHelper
     #
     #    case context.to_s.underscore.singularize
-    #    when %w(harami_vid harami1129)
-    #      return find_default(/John +Mac/i)
+    #    when *(%w(harami_vid harami1129))
+    #      return find_default(self, regex: /John +Mac/i)
     #    end
-    #    self.unknown
+    #    unknown
     #
     # @example other examples
-    #    return (self.find_default(/John +Mac/, raises: false) || self.unknown)
-    #    return (self.find_default(my_method_abc)  # may raise an Exception
+    #    return (find_default(self, regex: /John +Mac/, raises: false) || self.unknown)
+    #    return (find_default(my_method_abc)  # may raise an Exception
     #
-    # @param regex [Regexp]
+    # @option model [BaseWithTranslation] 
+    # @param regex [Regexp] if this is given, model must be given.
     # @param langcode [Symbol, String]
     # @param raises [Boolean] if true (Def), raises if something goes wrong. If false, nil is returned.
-    def find_default(model=nil, regex: nil, langcode: nil, raises: true)
+    def find_default(model=nil, regex: nil, langcode: nil, raises: true, sql_regexp: true)
       bind = caller_locations(1,1)[0]  # Ruby 2.0+
       caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/(test|app|config|db|lib)/)@, '\1'), bind.lineno
       # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
 
       ret = 
         if regex
-          self.select_regex(:titles, regex, langcode: langcode, sql_regexp: true).first
+          select_regex(:titles, regex, langcode: langcode, sql_regexp: sql_regexp).first  # ".distinct" can be added but makes no difference with just a possibility of messing up!
         else
           model
         end

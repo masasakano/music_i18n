@@ -79,7 +79,7 @@ class ChannelPlatform < BaseWithTranslation
   # @return [ChannelPlatform]
   def self.default(context=nil, place: nil)
     case context.to_s.underscore.singularize
-    when %w(harami_vid harami1129)
+    when *(%w(harami_vid harami1129))
       ret = self.find_by(mname: "youtube")
       return find_default(ret)   # may raise an Exception
     end

@@ -969,6 +969,8 @@ class Translation < ApplicationRecord
   # (1) If the given value is String, a simple SQL WHERE is used to search the match, returning Translation::ActiveRecord_Relation .
   # (2) If Regexp and if sql_regexp is true, the best effort is made to convert a Ruby Regexp to a Postgres one, returning Translation::ActiveRecord_Relation
   #     (see {ModuleCommon#regexp_ruby_to_postgres} for detail, including the limitation)
+  #     Most importantly, "^", "\A", "\Z", "\b", "\w", [:blank:], [:space:]
+  #     and Regexp-options of "i" and "m" are accepted ("\z" may be OK with exceptions)!
   # (3) If Regexp and if sql_regexp is false (Default), Ruby Regexp is used (resource-intensive and inefficient!), returning Array<Translation>
   #
   # For debugging, you may specify the argument sql_regexp as true.

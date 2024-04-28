@@ -75,6 +75,8 @@ class ChannelOwner < BaseWithTranslation
   #
   # place is ignored so far.
   #
+  # This class also defines {ChannelOwner.primary} by including ModulePrimaryArtist
+  #
   # @option context [Symbol, String]
   # @option place: [Place]
   # @return [ChannelOwner]
