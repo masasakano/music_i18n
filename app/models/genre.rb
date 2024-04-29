@@ -32,15 +32,18 @@ class Genre < BaseWithTranslation
     "fr" => 'GenreInconnu',
   }.with_indifferent_access
 
-  # Returns the default {Genre}
+  # Returning a default Model in the given context
   #
+  # place is ignored so far.
+  #
+  # @option context [Symbol, String]
   # @return [Genre]
-  def self.default
+  def self.default(context=nil, place: nil)
     @genre_default ||= Genre.all.order(Arel.sql('CASE WHEN genres.weight IS NULL THEN 1 ELSE 0 END, genres.weight')).first  # NULLS LAST (in PostgreSQL)
   end
 
   # Returns true if self is one of the unknown genre
-  def default?
+  def default?(context=nil, place: nil)
     self == self.class.default
   end
 

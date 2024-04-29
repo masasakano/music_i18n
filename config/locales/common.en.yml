@@ -31,6 +31,7 @@
 
 en:
   accept_terms: "Terms of Service"
+  additional: additional
   alt_title: common name
   are_you_sure: "Are you sure?"
   are_you_sure_but_merge: "You can merge for duplication instead if you want?"

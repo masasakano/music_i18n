@@ -30,6 +30,7 @@
       collection: ordered_models_form(ChannelOwner), include_blank: false,
       selected: (harami_vid.form_channel_owner || ChannelOwner.default(:HaramiVid).id),
       label: t(:ChannelOwner), hint: (can?(:create, ChannelOwner)    ? t("layouts.fields.hint_create_if_non_existent", link: link_to(t("layouts.do_create_lower"), new_channel_path, title: "New Channel")).html_safe : "") %>
+    <div class="form_new_model_info">
     <%= f.input :form_channel_type, include_blank: false,
       collection: ordered_models_form(ChannelType),
       label: t(:ChannelType),
@@ -39,20 +40,71 @@
       collection: ordered_models_form(ChannelPlatform), include_blank: false,
       selected: (harami_vid.form_channel_platform || ChannelPlatform.default(:HaramiVid).id),
         label: t(:ChannelPlatform) %>  <%# NOTE: Here gives no hint to prompt a user to create a new one (like ChannelType), because HaramiVid should not need so many ChannelPlatform - appropriate moderators can create one by directly jumping to it anyway without being prompted here. %>
+    </div>
 
-    <%= f.input :form_events,
+<% if ! harami_vid.new_record? %>
+    <% candidates = harami_vid.event_items.map{|evi| [evi.machine_title, evi.id]} %>
+    <%= f.collection_check_boxes :form_events, candidates, :last, :first %>
+      collection: candidates,
+      selected: (harami_vid.form_events || candidates.map{|ea| ea.last}),
+      label: t(:EventItems), as: :checkboxes,
+      input_html: { multiple: true, checked: true } %>
+    <%# selections are not working... %>
+<% end %>
+
+    <%= f.input :form_new_event,
       collection: form_selct_collections(Event), include_blank: true,
-      selected: (harami_vid.form_events || Event.default(:HaramiVid).id),
-      label: t(:Event), input_html: { multiple: false } %>
+      selected: (harami_vid.form_new_event || (harami_vid.new_record? ? Event.default(:HaramiVid).id : nil)),
+      label: (harami_vid.new_record? ? "" : t(:additional).capitalize+" ")+t(:Event),
+      input_html: { multiple: false } %>
+
+    <%= f.input :uri_playlist_en, as: :url %>
+    <%= f.input :uri_playlist_ja, as: :url %>
+    <%# f.input :flag_by_harami, label: "Uploaded by Harami?", hint: 'True if uploaded by HARAMIchan.' %>
+
+    <%= f.input :note %>
+
+  <div class="form-actions">
+    <%= f.submit %>
+  </div>
+  <div class="actions">
+  <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  </div>
+
+<hr>
+<h2>Contents</h2>
+
+<% if ! harami_vid.new_record? %>
+<%= render partial: 'music_table', locals: {harami_vid: harami_vid, add_buttons: true} %>
+<hr>
+<% end %>
+
+    <div class="register_assoc_music">
+    <h4><%= (harami_vid.new_record? ? "" : t(:additional).capitalize+" ")+t(:Music) %></h4>
+    <div class="register_assoc_music_field">
+      <%= f.input :music_name, label: t("layouts.fields.music_title"), hint: t('layouts.fields.hint_music_auto') %>
+     <div class="form_new_model_info">
+      <%= f.input :music_year, label: t("harami_vids.field_music_year") %>
+      <%= f.input :music_genre, label: t(:Genre)+" (new Music only)",
+        collection: ordered_models_form(Genre), include_blank: false,
+        selected: (harami_vid.music_genre || Genre.default(:HaramiVid).id) %>
+     </div>
+      <%= f.input :music_timing, label: t("harami_vids.table_head_timing"), hint: t('harami_vids.music_timing_hint') %>
+    </div>
 
     <div class="register_assoc_artist">
     <h4><%= t('layouts.new_musics.assoc_artist_head') %></h4>
       <% if !@artist_name  %>
-       <div class="new_artist_link"><p>(<%= t('layouts.new_musics.note_new_artist') %><%= link_to(t('layouts.new_musics.create_new_artist'), new_artist_path, target: "_blank") %>) </p></div>
+       <div class="new_artist_link"><p><%# t('layouts.new_musics.note_new_artist') %><%# link_to(t('layouts.new_musics.create_new_artist'), new_artist_path, target: "_blank") %> </p></div>  <%# Message of "Create it first" is now removed. %>
       <% end%>
     <div class="register_assoc_artist_field">
       <%= f.input :artist_name,    label: t('layouts.new_musics.associated_artist_name'), placeholder: 'eg., "欅坂46", "Beatles, The", "The Beatles"' %>
         <%= content_tag :div, '', id: 'suggestions', data: {items: Artist.titles_for_form} %>
+
+     <div class="form_new_model_info">
+      <%= f.input :artist_sex,
+        collection: ordered_models_form(Sex), selected: (harami_vid.artist_sex || Sex.unknown),
+        label: t(:Sex)+" (new Artist only)", hint: " Only for a new Artist" %>
 
       <%= f.input :form_engage_hows,
         collection: ordered_models_form(EngageHow), selected: (harami_vid.form_engage_hows || EngageHow.default(:HaramiVid)),
@@ -60,9 +112,15 @@
 
       <%= f.input :form_engage_year, label: t('layouts.new_musics.year_engagement') %>
 
-      <%= f.input :form_contribution, label: t('attr.contribution')+'(0.0-1.0)', hint: t('attr.contribution_hint') %>
-     <div class="register_collab_artist_field">
+      <%= f.input :form_engage_contribution, label: t('attr.contribution')+'(0.0-1.0)', hint: t('attr.contribution_hint') %>
+     </div>
+    </div> <!-- div class="register_assoc_artist_field"  -->
+    </div> <!-- div class="register_assoc_artist"-  -->
+
+    <div class="register_collab_artist_field">
+    <h4>Artist to collaborate with HARAMIchan (ハラミちゃんのコラボ相手)</h4>
       <%= f.input :artist_name_collab,  label: t('harami_vids.form_artist_collabs') %>
+     <div class="form_new_model_info">
       <%= f.input :form_instrument,
         collection: ordered_models_form(Instrument), selected: (harami_vid.form_instrument || Instrument.default(:HaramiVid)),
         label: t("Instrument") %>
@@ -70,21 +128,8 @@
         collection: ordered_models_form(PlayRole), selected: (harami_vid.form_play_role || PlayRole.default(:HaramiVid)),
         label: "How they collaborate" %>
      </div>
-    </div> <!-- div class="register_assoc_artist_field"  -->
-    </div> <!-- div class="register_assoc_artist"-  -->
-
-    <div class="register_assoc_music">
-    <h4>Music</h4>
-    <div class="register_assoc_music_field">
-      <%= f.input :music_name, label: t("layouts.fields.music_title"), hint: t('layouts.fields.hint_music_auto') %>
-      <%= f.input :music_timing, label: t("harami_vids.table_head_timing"), hint: t('harami_vids.music_timing_hint') %>
     </div>
 
-    <%= f.input :uri_playlist_en, as: :url %>
-    <%= f.input :uri_playlist_ja, as: :url %>
-    <%# f.input :flag_by_harami, label: "Uploaded by Harami?", hint: 'True if uploaded by HARAMIchan.' %>
-
-    <%= f.input :note %>
   </div> <!-- div class="form-inputs" -->
 
   <div class="form-actions">
@@ -103,8 +148,6 @@
 <% if ! harami_vid.new_record? %>
 <hr>
 <%= render partial: 'harami1129_table', locals: {harami_vid: harami_vid, add_buttons: true} %>
-<hr>
-<%= render partial: 'music_table', locals: {harami_vid: harami_vid, add_buttons: true} %>
 <hr>
 <% end %>
 

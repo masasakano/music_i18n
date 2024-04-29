@@ -211,6 +211,8 @@ ja:
     music_main_hint: "曲名 (1曲のみ。必要に応じて後で追加可能)"
     music_timing_hint: "曲の動画中でのタイミング [秒]"
     form_artist_collabs: "コラボレーション相手"
+    field_music_year: "発表(リリース)年"
+    warn_collab_without_music: "コラボ相手を登録する際には、有効なMusicの登録が必須です。"
 
   musics:
     index:

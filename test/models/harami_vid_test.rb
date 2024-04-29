@@ -34,7 +34,7 @@ class HaramiVidTest < ActiveSupport::TestCase
     pf1 = Place.first
     uri1 = 'http://youtu.be/abcd'
     assert_nothing_raised{
-      hv0 = HaramiVid.create!(place: pf1)
+      hv0 = HaramiVid.create!(place: pf1, uri: "https://a.com/b")
     }
     hv1 = HaramiVid.create!(uri: uri1, place: pf1)
     assert_raises(ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique){ # "Validation failed: Uri has already been taken"

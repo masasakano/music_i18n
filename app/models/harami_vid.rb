@@ -75,12 +75,14 @@ class HaramiVid < BaseWithTranslation
   delegate :channel_type,     to: :channel, allow_nil: true
   delegate :channel_platform, to: :channel, allow_nil: true
 
-  validates_uniqueness_of :uri, allow_nil: true
+  validates_uniqueness_of :uri, allow_nil: true  # allow_blank: false (??)
+  validates :uri,   presence: true
   validates :place, presence: true  # NOT DB constraint, but Rails before_validation sets this with a default unknown Place.
   #validates :channel, presence: true  # before_validation  is taking care of. NOT DB constraint, but belongs_to constrains.
-  validates_numericality_of :music_timing, allow_nil: true, greater_than_or_equal_to: 0, message: "(%{value}) must be positive or 0."
-  validates_numericality_of :form_contribution, allow_nil: true, greater_than: 0, message: "(%{value}) must be positive."
-  validates_numericality_of :form_engage_year, allow_nil: true, greater_than: 0, message: "(%{value}) must be positive."
+  validates_numericality_of :music_timing, allow_blank: true, greater_than_or_equal_to: 0, message: "(%{value}) must be positive or 0."
+  validates_numericality_of :music_year,       allow_blank: true, greater_than: 0, message: "(%{value}) must be positive."
+  validates_numericality_of :form_engage_year, allow_blank: true, greater_than: 0, message: "(%{value}) must be positive."
+  validates_numericality_of :form_engage_contribution, allow_blank: true, greater_than: 0, message: "(%{value}) must be positive."
 
   attr_accessor :unsaved_channel
   attr_accessor :unsaved_artist
@@ -88,18 +90,22 @@ class HaramiVid < BaseWithTranslation
   attr_accessor :unsaved_event_item
 
   attr_accessor :form_events
+  attr_accessor :form_new_event
   attr_accessor :form_channel_owner
   attr_accessor :form_channel_type
   attr_accessor :form_channel_platform
   attr_accessor :artist_name
+  attr_accessor :artist_sex
   attr_accessor :form_engage_hows
   attr_accessor :form_engage_year
-  attr_accessor :form_contribution
+  attr_accessor :form_engage_contribution
   attr_accessor :artist_name_collab
   attr_accessor :form_instrument
   attr_accessor :form_play_role
   attr_accessor :music_name
   attr_accessor :music_timing  # n.b., there is a method "timing"
+  attr_accessor :music_genre
+  attr_accessor :music_year
 
   attr_accessor :form_info  # various information about the result of form inputs, especially in create.
 
@@ -461,6 +467,25 @@ class HaramiVid < BaseWithTranslation
       eng.save!
     end
 
-#    "music_name", "music_timing", "uri_playlist_en", "uri_playlist_ja",]
-#    "event_ids", "artist_name", "form_engage_hows", "form_engage_year", "form_contribution",
 end
+
+
+class << HaramiVid
+  alias_method :create_basic_bwt!, :create_basic! if !self.method_defined?(:create_basic_bwt!)
+  alias_method :initialize_basic_bwt, :initialize_basic if !self.method_defined?(:initialize_basic_bwt!)
+
+  # Wrapper of {BaseWithTranslation.create_basic!}
+  def create_basic!(*args, uri: nil, **kwds, &blok)
+    uri ||= "https://example.com/"+(0...8).map{(65 + rand(26)).chr}.join
+    create_basic_bwt!(*args, uri: uri, **kwds, &blok)
+  end
+
+  # Wrapper of {BaseWithTranslation.initialize_basic!}
+  # Unlike {#create_basic!}, an existing Sex is used, which is assumed to exist.
+  def initialize_basic(*args, uri: nil, **kwds, &blok)
+    uri ||= "https://example.com/"+(0...8).map{(65 + rand(26)).chr}.join
+    initialize_basic_bwt(*args, uri: uri, **kwds, &blok)
+  end
+end
+
+

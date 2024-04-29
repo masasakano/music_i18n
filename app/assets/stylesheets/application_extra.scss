@@ -321,6 +321,10 @@ div.actions-destroy-align-r {
 .form-control:focus  {
   background: var(--form-bg-color-focus);
 }
+form div.form_new_model_info{
+  padding-left: 3em;
+}
+
 input.form-control  {
     min-width: 10em;
   background: var(--form-bg-color);  /* without this, the fields would be transparent */

@@ -40,7 +40,7 @@ class HaramiVidMusicAssocTest < ActiveSupport::TestCase
     h1 = harami_vids(:harami_vid1)
     m1 = musics(:music1)
     chan = Channel.primary
-    h2 = HaramiVid.create!(channel: chan)
+    h2 = HaramiVid.create!(channel: chan, uri: "https://a.com/b")
 
     n_orig = HaramiVidMusicAssoc.count
     m1hv = m1.harami_vids

@@ -88,6 +88,21 @@ class EventItem < ApplicationRecord
   # @param event [Event]
   # @return [String] unknown title
   def self.find_or_create_new_unknown!(event)
+    hs = prepare_create_new_unknown(event)
+    find_or_create_by!(**hs)
+  end
+
+  def self.create_new_unknown!(event)
+    hs = prepare_create_new_unknown(event)
+    create!(**hs)
+  end
+
+  def self.initialize_new_unknown(event)
+    hs = prepare_create_new_unknown(event)
+    new(**hs)
+  end
+
+  def self.prepare_create_new_unknown(event)
     hs = {
       event: event,
       machine_title: get_unique_title(unknown_machine_title_prefix(event)),
@@ -98,8 +113,9 @@ class EventItem < ApplicationRecord
     %i(place_id start_time start_time_err).each do |metho|
       hs[metho] = event.send metho
     end
-    find_or_create_by!(**hs)
+    hs
   end
+  private_class_method :prepare_create_new_unknown
 
   # Returns the English prefix for EventItem.Unknown for the event
   #

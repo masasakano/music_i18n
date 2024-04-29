@@ -14,19 +14,18 @@ class HaramiVidsController < ApplicationController
   # Symbol of the main parameters in the Form (except "place_id"), which exist in DB or as setter methods
   MAIN_FORM_KEYS = %i(uri duration note) + [
     "form_channel_owner", "form_channel_type", "form_channel_platform",
-    "event_ids", "artist_name", "form_engage_hows", "form_engage_year", "form_contribution",
+    "form_events", "form_new_event",
+    "artist_name", "artist_sex", "form_engage_hows", "form_engage_year", "form_engage_contribution",
     "artist_name_collab", "form_instrument", "form_play_role",
-    "music_name", "music_timing", 
+    "music_name", "music_timing", "music_genre", "music_year",
     "uri_playlist_en", "uri_playlist_ja",
+    "release_date(1i)", "release_date(2i)", "release_date(3i)",  # Date-related parameters
   ]
 
   # Permitted main parameters for params(), used for update and create
   PARAMS_MAIN_KEYS = MAIN_FORM_KEYS + [
-    "release_date(1i)", "release_date(2i)", "release_date(3i)",
   ] + [PARAMS_KEY_AC]
   # these will be handled in model_params_multi()
-
-#    #<ActionController::Parameters {"authenticity_token"=>"vXemGMOJoVf8XIu-9cPlPj9QPMclsq63rqimxEhVtZLO9zCmahWNZdeCCF1F3z3lmo8TGi9fm9yLAW6LqM4rpA"
 
   # GET /harami_vids
   # GET /harami_vids.json
@@ -65,26 +64,33 @@ class HaramiVidsController < ApplicationController
     @harami_vid = HaramiVid.new(@hsmain)  # This sets most of the form parameters
     authorize! __method__, @harami_vid
 
-#print "DEBUG(HaramiVidsController): ";p [ @harami_vid, @hsmain, @hstra, @prms_all]
+    @assocs = {}.with_indifferent_access  # associated models (like assocs[:music]), maybe newly created.
+
     add_unsaved_trans_to_model(@harami_vid, @hstra) # defined in application_controller.rb
-#print "DEBUG(HaramiVidsController-trans242): ";p @harami_vid.unsaved_translations.first.title
-    def_respond_to_format(@harami_vid){
+    def_respond_to_format(@harami_vid){  # defined in application_controller.rb
       result = nil
       ActiveRecord::Base.transaction(requires_new: true) do
         begin
-#print "DEBUG(HVC421): ";p @harami_vid
           find_or_create_channel_and_associate  # a new Channel may be created - make sure to rollback if something goes wrong
             # This may set @harami_vid.errors in an unlikely case (surely not with UI, though!)
-#print "DEBUG(HVC423): ";p [@harami_vid.channel_id, @harami_vid.errors.full_messages]
           result = @harami_vid.save
-          raise ActiveRecord::Rollback, "HaramiVid was not created; hence rollback to cancel the potential creation of Channel." if !result  # no more processing is needed anyway.
-#print "DEBUG(HVC433): ";p [result, @harami_vid]
-        #  save_harami_vid_music_assoc
-        #  save_engage
-        #  save_event_item
-        #  save_artist_music_play
-raise "Deliberate-exception====================="
-        rescue
+          rollback_clear_flash if !result  # no more processing is needed anyway.
+          [:find_or_create_music,    # @assocs[:music]
+           :find_or_create_harami_vid_music_assoc, # @assocs[:harami_vid_music_assoc]
+           :find_or_create_artist,   # @assocs[:artist]
+           :find_or_create_engage,   # @assocs[:engage]
+           :find_or_artist_collab,   # @assocs[:artist_collab]
+           :associate_an_event_item, # @assocs[:event_item] @assocs[:artist_music_play]
+          ].each do |task|
+            self.send task
+            rollback_clear_flash if @harami_vid.errors.any?
+          end
+          if @assocs[:artist_collab].present? && @assocs[:music].blank?
+            @harami_vid.errors.add :artist_name_collab, I18n.t("harami_vids.warn_collab_without_music")  # Valid Music must be given when you add an Artist-to-collaborate.
+            result = false
+            raise ActiveRecord::Rollback, "Force rollback."
+          end
+        rescue => err
           result = false
           raise ActiveRecord::Rollback, "Force rollback."
         ensure
@@ -92,10 +98,7 @@ raise "Deliberate-exception====================="
         end
       end
       result
-    } # defined in application_controller.rb
-### Sets @hsmain and @hstra and @prms_all from params
-
-#    hvid_respond_to_format(@harami_vid, :created)
+    }
   end
 
   # PATCH/PUT /harami_vids/1
@@ -114,71 +117,71 @@ raise "Deliberate-exception====================="
   end
 
 
-  # Common routine for create and update
-  #
-  # @see application_controller.rb
-  #
-  # @param mdl [ApplicationRecord]
-  # @param created_updated [Symbol] Either :created(Def) or :updated
-  # @param failed [Boolean] if true (Def: false), it has already failed.
-  # @param redirected_path [String, NilClass] Path to be redirected if successful, or nil (Default)
-  # @param back_html [String, NilClass] If the path specified (Def: nil) and if successful, HTML (likely a link to return) preceded with "Return to" is added to a Flash mesage; e.g., '<a href="/musics/5">Music</a>'
-  # @param alert [String, NilClass] alert message if any
-  # @param warning [String, NilClass] warning message if any
-  # @param notice [String, NilClass] notice message if any
-  # @param success [String, NilClass] success message if any. Default is "%s was successfully %s." but it is overwritten if specified.
-  # @return [void]
-  def hvid_respond_to_format(mdl, created_updated=:created, failed: false, redirected_path: nil, back_html: nil, alert: nil, **inopts)
-    ret_status, render_err =
-      case created_updated.to_sym
-      when :created
-        [:created, :new]
-      when :updated
-        [:ok, :edit]
-      else
-        raise 'Contact the code developer.'
-      end
+  # # Common routine for create and update
+  # #
+  # # @see application_controller.rb
+  # #
+  # # @param mdl [ApplicationRecord]
+  # # @param created_updated [Symbol] Either :created(Def) or :updated
+  # # @param failed [Boolean] if true (Def: false), it has already failed.
+  # # @param redirected_path [String, NilClass] Path to be redirected if successful, or nil (Default)
+  # # @param back_html [String, NilClass] If the path specified (Def: nil) and if successful, HTML (likely a link to return) preceded with "Return to" is added to a Flash mesage; e.g., '<a href="/musics/5">Music</a>'
+  # # @param alert [String, NilClass] alert message if any
+  # # @param warning [String, NilClass] warning message if any
+  # # @param notice [String, NilClass] notice message if any
+  # # @param success [String, NilClass] success message if any. Default is "%s was successfully %s." but it is overwritten if specified.
+  # # @return [void]
+  # def hvid_respond_to_format(mdl, created_updated=:created, failed: false, redirected_path: nil, back_html: nil, alert: nil, **inopts)
+  #   ret_status, render_err =
+  #     case created_updated.to_sym
+  #     when :created
+  #       [:created, :new]
+  #     when :updated
+  #       [:ok, :edit]
+  #     else
+  #       raise 'Contact the code developer.'
+  #     end
 
-    begin
-      ActiveRecord::Base.transaction do
-        case created_updated.to_sym
-        when :created
-          mdl.save!
-        when :updated
-          mdl.update!(sliced_harami_vid_params)
-        else
-          raise 'Contact the code developer.'
-        end
+  #   begin
+  #     ActiveRecord::Base.transaction do
+  #       case created_updated.to_sym
+  #       when :created
+  #         mdl.save!
+  #       when :updated
+  #         mdl.update!(sliced_harami_vid_params)
+  #       else
+  #         raise 'Contact the code developer.'
+  #       end
 
-        ####### Make sure to add any errors to "mdl"
-        ####### Make sure to fail in Exception (not mdl.save but mdl.save!)
-        #### Save Artist
-        #### Save Music
-        #### Save HaramiVidMusicAssoc
-      end
-    rescue
-      ## Transaction failed.
-      return respond_to do |format|
-        mdl.errors.add :base, alert  # alert is included in the instance
-        opts = flash_html_safe(alert: alert, **inopts)  # defined in application_controller.rb
-        opts.delete :alert  # because alert is contained in the model itself.
-        hsstatus = {status: :unprocessable_entity}
-        format.html { render render_err,       **(hsstatus.merge opts) } # notice (and/or warning) is, if any, passed as an option.
-        format.json { render json: mdl.errors, **hsstatus }
-      end
-    end
+  #       ####### Make sure to add any errors to "mdl"
+  #       ####### Make sure to fail in Exception (not mdl.save but mdl.save!)
+  #       #### Save Artist
+  #       #### Save Music
+  #       #### Save HaramiVidMusicAssoc
+  #     end
+  #   rescue
+  #     ## Transaction failed.
+  #     return respond_to do |format|
+  #       mdl.errors.add :base, alert  # alert is included in the instance
+  #       opts = flash_html_safe(alert: alert, **inopts)  # defined in application_controller.rb
+  #       opts.delete :alert  # because alert is contained in the model itself.
+  #       hsstatus = {status: :unprocessable_entity}
+  #       format.html { render render_err,       **(hsstatus.merge opts) } # notice (and/or warning) is, if any, passed as an option.
+  #       format.json { render json: mdl.errors, **hsstatus }
+  #     end
+  #   end
 
-    respond_to do |format|
-      inopts = inopts.map{|k,v| [k, (v.respond_to?(:call) ? v.call(mdl) : v)]}.to_h
-      alert = (alert.respond_to?(:call) ? alert.call(mdl) : alert)
+  #   respond_to do |format|
+  #     inopts = inopts.map{|k,v| [k, (v.respond_to?(:call) ? v.call(mdl) : v)]}.to_h
+  #     alert = (alert.respond_to?(:call) ? alert.call(mdl) : alert)
 
-      msg = sprintf '%s was successfully %s.', mdl.class.name, created_updated.to_s  # e.g., Article was successfully created.
-      msg << sprintf('  Return to %s.', back_html) if back_html
-      opts = flash_html_safe(success: msg.html_safe, alert: alert, **inopts) # "success" defined in /app/controllers/application_controller.rb
-      format.html { redirect_to (redirected_path || mdl), **opts }
-      format.json { render :show, status: ret_status, location: mdl }
-    end
-  end
+  #     msg = sprintf '%s was successfully %s.', mdl.class.name, created_updated.to_s  # e.g., Article was successfully created.
+  #     msg << sprintf('  Return to %s.', back_html) if back_html
+  #     opts = flash_html_safe(success: msg.html_safe, alert: alert, **inopts) # "success" defined in /app/controllers/application_controller.rb
+  #     format.html { redirect_to (redirected_path || mdl), **opts }
+  #     format.json { render :show, status: ret_status, location: mdl }
+  #   end
+  # end
 
   private
     def grid_params
@@ -210,23 +213,25 @@ raise "Deliberate-exception====================="
       hsall = set_hsparams_main_tra(:harami_vid) # defined in application_controller.rb
     end
 
-    def _preprocess_create
-      _associate_channel  # "form_channel_owner", "form_channel_type", "form_channel_platform"
-      _find_or_initialize_artist   # "artist_name"
-      _associate_music             # "music_name"
-    end
+    ###########################
 
-###########################
-    [
-    "event_ids", "artist_name", "form_engage_hows", "form_engage_year", "form_contribution",
-    "artist_name_collab", "form_instrument", "form_play_role",
-    "music_name", "music_timing", "uri_playlist_en", "uri_playlist_ja",]
+    # DB rollback and clear previous flashes
+    def rollback_clear_flash
+      if flash[:notice] && flash[:notice].respond_to?(:push)
+        flash[:notice].delete_if{|ec|
+          %r@<a [^>]*href="/channels/\d+[^>]*>new Channel.+is created@ =~ ec
+        }
+      end
+      raise ActiveRecord::Rollback, "HaramiVid was not created; hence rollback to cancel the potential creation of Channel."
+    end
 
     # Find or create a Channel and asociate it to HaramiVid
     #
     # If not finding yet failing to create a new Channel,
     # errors are added to @harami_vid
     # This method associates a new or identified Channel to @harami_vid.channel
+    #
+    # The new Channel is automatically associated with Translations.
     #
     # @return [Channel, NilClass] nil if failed to save.
     def find_or_create_channel_and_associate
@@ -239,72 +244,258 @@ raise "Deliberate-exception====================="
         [snake, val]
       }
 
-#print "DEBUG:hvv:509:hs=";p ar_in
       raise "Bad Channel-related parameters specified." if ar_in.any?{|ea| !ea[1]}  # b/c this should never happen via UI! I don't care what screen follows to the user/robot who submitted such a request.
-#print "DEBUG:hvv:510:hs=";p ar_in.to_h
       chan = Channel.find_or_initialize_by(**(ar_in.to_h))
-#print "DEBUG:hvv:511:chan=";p [chan.valid?, chan]
       if chan.new_record?
         return if !_save_new_channel_or_error(chan)
-#print "DEBUG:hvv:613:chan=";p chan
         _after_save_new_channel(chan)
-#print "DEBUG:hvv:713:chan=";p chan
       end
       @harami_vid.channel = chan
-#print "DEBUG:hvv:813:hv=";p [chan.id, @harami_vid]
     end
 
     # @param chan [Channel] all parameters but translations should be filled.
     # @return [Channel, NilClass] nil if failed to save.
     def _save_new_channel_or_error(chan)
-      raise if !chan.new_record?  # sanity check
       chan.unsaved_translations = chan.def_initial_translations
-      return chan if chan.save  # The returned value is not used apart from its trueness.
+      _save_or_add_error(chan, form_attr: :base)
+    end
+    private :_save_new_channel_or_error
 
-      # With UI, the above save should never fail.
-      chan.errors.full_messages.each do |msg|
-        @harami_vid.errors.add :base, "Existing Channel is not found, yet failed to create a new one: "+msg
+    # Attempts to save and if fails, add errors to @harami_vid
+    #
+    # Checkk the result with @harami_vid.errors.any?
+    #
+    # @param model [ApplicationRecord]
+    # @param form_attr [Symbol] usually the form's name
+    # @return [ApplicationRecord, NilClass] nil if failed to save.
+    def _save_or_add_error(model, form_attr: :base)
+      return model if model.save  # The returned value is not used apart from its trueness.
+
+      # With UI, the above save should not usually fail (it is never with Channel, probably not for Music).
+      model.errors.full_messages.each do |msg|
+        @harami_vid.errors.add form_attr, "Existing #{model.class.name} is not found, yet failed to create a new one: "+msg
       end
       return
     end
-    private :_save_new_channel_or_error
+    private :_save_or_add_error
 
     # after-processing of a new Channel
     def _after_save_new_channel(chan)
       flash[:notice] ||= []
-      s = "new Event"
-      msg = sprintf("A %s is created", (can?(:show, chan) ? view_context.link_to(s, event_path(chan)) : s)).html_safe 
+      s = "new Channel"
+      msg = sprintf("A %s is created", (can?(:show, chan) ? view_context.link_to(s, channel_path(chan)) : s)).html_safe 
       flash[:notice] << msg
 
       chan.reload  # to load Translation
-      msglog = (sprintf("INFO: a new Event (ID=%d, title=%s) is automatically created as a result of the creation of a new HaramiVid (%s) by user ID=(%d), thouth it may be cancelled (rollback) later.",
+      msglog = (sprintf("INFO: a new Channel (ID=%d, title=%s) is automatically created as a result of the creation of a new HaramiVid (%s) by user ID=(%d), thouth it may be cancelled (rollback) later.",
                         chan.id, chan.title.inspect, @harami_vid.title, current_user.id) rescue msg)  # "rescue" just$to play safe
       logger.info msglog
     end
     private :_after_save_new_channel
 
-    def _find_or_initialize_artist
-      artist = BaseMergesController.other_model_from_ac(Artist.new, @hsmain[:artist_name], controller: self)
-      if !artist
-        artist = Artist.new(sex: Sex.unknown)
-        tit = Artist.resolve_base_with_translation_with_id_str(@hsmain[:artist_name])
-        lcode = (contain_asian_char(tit) ? "ja" : "en")
-        artist.unsaved_translations << Translation.new(title: tit, langcode: lcode, is_orig: true)
-      end
-      self.unsaved_artist = artist
+    # Set @assocs[:music]
+    # @return [Music, NilClass] nil if failed to save Music or not specified in the first place.
+    def find_or_create_music
+      prm_name = "music_name"
+      raise "hsmain=#{@hsmain.inspect}" if !@hsmain.has_key?(prm_name)  # sanity check
+      raise if @harami_vid.new_record?  # sanity check
+
+      @assocs[:music] = nil
+      return if @hsmain[prm_name].blank?
+
+      extra_prms_for_new = {
+        genre: (((genid=@hsmain[:music_genre]).present? ? Genre.find_by_id(genid.to_i) : nil) || Genre.unknown),  # with UI, should be always found
+        year:   ((year=@hsmain[:music_year]).present? ? year.to_i : nil),  # can be nil
+      }
+      @assocs[:music] = _find_or_create_artist_or_music(Music, prm_name, extra_prms_for_new)  # can be nil.
     end
 
-    def _associate_music
-      music = BaseMergesController.other_model_from_ac(Music.new, @hsmain[:music_name], controller: self)
-      if !music
-        music = Music.new(sex: Sex.unknown)
-        tit = Music.resolve_base_with_translation_with_id_str(@hsmain[:music_name])
-        lcode = (contain_asian_char(tit) ? "ja" : "en")
-        music.unsaved_translations << Translation.new(title: tit, langcode: lcode, is_orig: true)
-      end
-      self.unsaved_music = music
+    # Set @assocs[:music] and @assocs[:harami_vid_music_assoc]
+    # @return [HaramiVidMusicAssoc, NilClass] nil if failed to save either of Music and HaramiVidMusicAssoc or not specified in the first place.
+    def find_or_create_harami_vid_music_assoc
+begin  # for DEBUGging
+      prm_name = "music_timing"
+      return (@assocs[:harami_vid_music_assoc]=nil) if @assocs[:music].blank?
+
+      @assocs[:harami_vid_music_assoc] = HaramiVidMusicAssoc.find_or_initialize_by(harami_vid: @harami_vid, music: @assocs[:music])
+        # Next one will be used for an existing record, too. (as a plan)
+      @assocs[:harami_vid_music_assoc].timing = @hsmain[prm_name].to_i if @hsmain[prm_name].present?  # it has been validated to be numeric if present(???). TODO
+      is_changed = @assocs[:harami_vid_music_assoc].changed?  # TODO: issue a flash notice for moderators
+      _save_or_add_error(@assocs[:harami_vid_music_assoc], form_attr: prm_name.to_sym)
+rescue => err
+  print "DEBUG(#{File.basename __FILE__}:#{__method__}): Error is raised:\n ";p err
+  raise
+end
     end
 
-# 12:24:18 web.1  | I, [2024-04-28T12:24:18.859995 #72040]  INFO -- :   Parameters: {"authenticity_token"=>"[FILTERED]", "harami_vid"=>{"langcode"=>"ja", "title"=>"", "uri"=>"", "release_date(1i)"=>"2024", "release_date(2i)"=>"4", "release_date(3i)"=>"28", "duration"=>"", "place.prefecture_id.country_id"=>"0", "place.prefecture_id"=>"", "place"=>"", "form_channel_owner"=>"3", "form_channel_type"=>"12", "form_channel_platform"=>"1", "form_events"=>"", "artist_name"=>"", "form_engage_hows"=>"72", "form_engage_year"=>"", "form_contribution"=>"", "artist_name_collab"=>"", "form_instrument"=>"2", "form_play_role"=>"2", "music_name"=>"", "music_timing"=>"", "uri_playlist_en"=>"", "uri_playlist_ja"=>"", "note"=>""}, "commit"=>"Create Harami vid", "locale"=>"en"}
+    # Set @assocs[:artist]
+    def find_or_create_artist
+      prm_name = "artist_name"
+      return(@assocs[:artist] = nil) if @hsmain[prm_name].blank?
+      raise if @harami_vid.new_record?  # sanity check
+      raise "ERROR: hsmain=#{@hsmain.inspect}" if !@hsmain.has_key?(prm_name)  # sanity check
 
+      extra_prms_for_new = {
+        sex: (((sexid=@hsmain[:artist_sex]).present? ? Sex.find_by_id(sexid.to_i) : nil) || Sex.unknown)  # with UI, should be always found
+      }
+      @assocs[:artist] = _find_or_create_artist_or_music(Artist, prm_name, extra_prms_for_new) # Set @assocs[:artist]
+    end
+
+    # Set @assocs[:artist_collab]
+    def find_or_artist_collab
+      prm_name = "artist_name_collab"
+      raise "ERROR: hsmain=#{@hsmain.inspect}" if !@hsmain.has_key?(prm_name)  # sanity check
+
+      return(@assocs[:artist_collab] = nil) if @hsmain[prm_name].blank?
+      @assocs[:artist_collab] = _find_or_create_artist_or_music(Artist, prm_name, find_only: true)
+    end
+
+    # Set @assocs[:engage]
+    #
+    # Assuming @assocs[:music] is already set
+    def find_or_create_engage
+begin  # for DEBUGging
+      return if @assocs[:music].blank? || @assocs[:artist].blank?  # Music or Artist is not specified; hence nor Engage is set
+
+      @assocs[:engage] = Engage.find_or_initialize_by(music: @assocs[:music], artist: @assocs[:artist])
+      if @assocs[:engage].new_record?
+        eh = ((pid=@hsmain[:form_engage_hows]).present? ? EngageHow.find_by_id(pid.to_i) : EngageHow.default(:HaramiVid))  # with UI, should be always found
+        @assocs[:engage].engage_how = eh
+        @assocs[:engage].year         = ((val=@hsmain[:form_engage_year]).present? ? val.to_i : nil)
+        @assocs[:engage].contribution = ((val=@hsmain[:form_engage_contribution]).present? ? val.to_f : nil)
+      end
+      _save_or_add_error(@assocs[:engage])  # , form_attr: :base  # uncertain which parameter is wrong.
+rescue => err
+  print "DEBUG(#{File.basename __FILE__}:#{__method__}): Error is raised:\n ";p err
+  raise
+end
+    end
+
+
+    # Set @assocs[:music] or @new_artist
+    # @param klass [Class] either Artist or Music
+    # @param prm_key [String] form key like "artist_name"
+    # @param extra_prms_for_new [Hash] e.g., {sex: Sex.unknown} to create an Artist
+    # @return [ApplicationRecord, NilClass] either Music, Artist, or nil if faiiling to save
+    def _find_or_create_artist_or_music(klass, prm_key, extra_prms_for_new={}, find_only: false)
+      raise "hsmain=#{@hsmain.inspect}" if !@hsmain.has_key? prm_key  # sanity check
+      # tit, _, _ = Artist.resolve_base_with_translation_with_id_str(@hsmain[prm_key])
+
+      # getting an existing record (Music|Artist)
+      existing_record = BaseMergesController.other_model_from_ac(klass.new, @hsmain[prm_key], controller: self)
+      return existing_record if existing_record || find_only
+
+      hs2pass = {
+        title: @hsmain[prm_key],
+        langcode: (contain_asian_char?(@hsmain[prm_key]) ? "ja" : "en"),
+        is_orig: true,
+      }
+
+      new_record = klass.new(**(hs2pass.merge(extra_prms_for_new)))   # eg: Music.new
+      ret = _save_or_add_error(new_record, form_attr: prm_key.to_sym) # eg: music
+      (ret || new_record)
+    end
+    private :_find_or_create_artist_or_music
+
+    def associate_an_event_item
+begin
+      #return if @assocs[:music].blank? || @assocs[:artist].blank?  # Music or Artist is not specified; hence nor Engage is set
+      prm_name = "form_new_event"
+      @assocs[:event_item] = nil
+
+      raise "Bad new Event parameter is specified." if @harami_vid.new_record? if (evt_id=@hsmain[prm_name]).blank?
+      # b/c this should never happen via UI! I don't care what screen follows to the user/robot who submitted such a request.
+
+      event = Event.find(evt_id.to_i)  # should never fail via UI
+      if event.unknown? && @harami_vid.place_id.present?
+        event2 = Event.default(:HaramiVid, place: Place.find(@harami_vid.place_id.to_i))
+        event = event2 if !event2.new_record? || event2.save
+      end
+
+      def_evit = event.unknown_event_item
+      return set_up_event_item_and_associate(def_evit) if !@assocs[:artist_collab] || !@assocs[:music]
+
+      instrument = ((val=@hsmain[:form_instrument]).blank? ? Instrument.default(:HaramiVid) : Instrument.find(val))
+      play_role  = ((val=@hsmain[:form_play_role]).blank?  ? PlayRole.default(:HaramiVid)   : PlayRole.find(val))
+
+      # Suppose there are multiple EventItems belonging to the Event
+      event.event_items.sort{|a,b|
+        if a == def_evit
+          1   # Default one comes last
+        elsif b == def_evit
+          -1
+        else
+          a <=> b
+        end
+      }.each do |ea_evit|
+        can_do = _can_create_artist_music_play?(
+          ea_evit,
+          @assocs[:artist_collab],
+          @assocs[:music],
+          instrument,
+          play_role
+        )
+        return set_up_event_item_and_amp(ea_evit, instrument, play_role) if can_do
+      end
+
+      # All existing EventItem-s violates unique conditions to create ArtistMusicPlay,
+      # meaning those EventItem-s are not suitable to associate to the HaramiVid @harami_vid .
+      # So creates a new EventItem
+      @assocs[:event_item] = EventItem.initialize_new_unknown(event)
+      _save_or_add_error(@assocs[:event_item])  # , form_attr: :base  # uncertain which parameter is wrong.
+
+      set_up_event_item_and_amp( @assocs[:event_item], instrument, play_role)
+rescue => err
+  print "DEBUG(#{File.basename __FILE__}:#{__method__}): Error is raised:\n ";p err
+  raise
+end
+    end
+
+    def set_up_event_item_and_associate(event_item)
+      @assocs[:event_item] ||= event_item
+      @harami_vid.event_items << event_item
+    end
+
+    def set_up_event_item_and_amp(event_item, instrument, play_role)
+      set_up_event_item_and_associate(event_item)
+      associate_artist_music_play(instrument, play_role)
+    end
+
+    def associate_artist_music_play(instrument, play_role)
+      @assocs[:artist_music_play] =
+        ArtistMusicPlay.new(
+          event_item: @assocs[:event_item],
+          artist:     @assocs[:artist_collab],
+          music:      @assocs[:music],
+          instrument: instrument,
+          play_role:   play_role,
+        )
+      _save_or_add_error(@assocs[:artist_music_play])  # , form_attr: :base  # uncertain which parameter is wrong.
+    end
+
+    def _can_create_artist_music_play?(event_item, artist, music, instrument, play_role)
+      return true if [event_item, artist, music, instrument, play_role].any?{|i| !i.respond_to?(:id)}
+
+      !(ArtistMusicPlay.where(
+          event_item_id: event_item.id,
+          artist_id: artist.id,
+          music_id:  music.id,
+          instrument_id: instrument.id,
+          play_role_id:  play_role.id
+        ).exists?)
+    end
+    private :_can_create_artist_music_play?
+
+###########################
+    [
+      "form_events", "form_new_event",
+    "artist_name", "form_engage_hows", "form_engage_year", "form_engage_contribution",
+    "artist_name_collab", "form_instrument", "form_play_role",
+    "music_name", "music_timing", "music_genre", "uri_playlist_en", "uri_playlist_ja",]
+#    "music_genre", artist_sex "music_year",
+###########################
+
+# 12:24:18 web.1  | I, [2024-04-28T12:24:18.859995 #72040]  INFO -- :   Parameters: {"authenticity_token"=>"[FILTERED]", "harami_vid"=>{"langcode"=>"ja", "title"=>"", "uri"=>"", "release_date(1i)"=>"2024", "release_date(2i)"=>"4", "release_date(3i)"=>"28", "duration"=>"", "place.prefecture_id.country_id"=>"0", "place.prefecture_id"=>"", "place"=>"", "form_channel_owner"=>"3", "form_channel_type"=>"12", "form_channel_platform"=>"1", "form_events"=>"", "artist_name"=>"", "form_engage_hows"=>"72", "form_engage_year"=>"", "form_engage_contribution"=>"", "artist_name_collab"=>"", "form_instrument"=>"2", "form_play_role"=>"2", "music_name"=>"", "music_timing"=>"", "uri_playlist_en"=>"", "uri_playlist_ja"=>"", "note"=>""}, "commit"=>"Create Harami vid", "locale"=>"en"}
+#    "music_genre", artist_sex "music_year", "new_event_id", 
+    
 end

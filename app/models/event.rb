@@ -177,7 +177,7 @@ class Event < BaseWithTranslation
 
   # Returning a default Event in the given context
   #
-  # If not matching with Place, an unsaved new record of {Event} is returned.
+  # If not matching with Place, an *unsaved* new record of {Event} is returned.
   # The caller may save it or discard it, judging with {#new_record?}
   #
   # Note that if the place is new, usually an unknown Event should be created

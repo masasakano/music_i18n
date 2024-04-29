@@ -27,14 +27,17 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
       "form_channel_owner"   =>ChannelOwner.primary.id.to_s,
       "form_channel_type"    =>ChannelType.default(:HaramiVid).id.to_s,
       "form_channel_platform"=>ChannelPlatform.default(:HaramiVid).id.to_s,
-      "form_events" => events(:ev_harami_lucky2023).id.to_s,
+      "form_events" => [events(:ev_harami_lucky2023), Event.unknown].map(&:id).map(&:to_s),
+      "form_new_event" => events(:ev_harami_lucky2023).id.to_s,
       "artist_name"=>"",
       "form_engage_hows"=>EngageHow.default(:HaramiVid).id.to_s,
-      "form_engage_year"=>"1988", "form_contribution"=>"0.5678",
+      "form_engage_year"=>"1997",
+      "form_engage_contribution"=>"0.5678",
       "artist_name_collab"=>"",
       "form_instrument" => Instrument.default(:HaramiVid).id.to_s,
       "form_play_role"  => PlayRole.default(:HaramiVid).id.to_s,
       "music_name"=>"", "music_timing"=>"1234",
+      "music_genre"=>Genre.default(:HaramiVid).id.to_s, "music_year"=>"1984",
       "note"=>"",
        # "uri_playlist_en"=>"", "uri_playlist_ja"=>"",
     }.with_indifferent_access
@@ -102,13 +105,17 @@ if true
       assert_response :unprocessable_entity
     end
 end
+#if false # temporary skip
+if true
 
     #hsnew = {title: 'a new one', uri: "https://youtu.be/mytest1", note: "newno"}
     hsnew = {note: "newno"}
-    assert_no_difference("Channel.count") do  # existing Channel is found
-      assert_difference("HaramiVid.count") do
-        post harami_vids_url, params: { harami_vid: @def_create_params.merge(hsnew)}
-        assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+    assert_no_difference("Music.count + HaramiVidMusicAssoc.count + Artist.count + Engage.count +  EventItem.count + ArtistMusicPlay.count") do
+      assert_no_difference("Channel.count") do  # existing Channel is found
+        assert_difference("HaramiVid.count") do
+          post harami_vids_url, params: { harami_vid: @def_create_params.merge(hsnew)}
+          assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+        end
       end
     end
     mdl_last = HaramiVid.last
@@ -116,6 +123,7 @@ end
     assert_equal "newno", mdl_last.note
     assert_equal @def_create_params[:title],  mdl_last.title
     assert_equal Channel.default(:HaramiVid), mdl_last.channel
+    assert_equal Date.parse("2024-02-28"),    mdl_last.release_date
 
     # A new channle is temporarily created but must be rolled-back because HaramiVid was not created after all.
     hsnew = {form_channel_platform: channel_platforms(:channel_platform_facebook).id, note: "fail due to unique uri"}
@@ -130,6 +138,152 @@ end
         assert_response :unprocessable_entity
       end
     end
+
+    # A new Channel is successfully created.
+    platform_fb = channel_platforms(:channel_platform_facebook)
+    hsnew = {uri: "youtu.be/003", form_channel_platform: platform_fb.id, note: "success"}
+    assert_difference("Channel.count") do
+      assert_difference("HaramiVid.count") do
+        post harami_vids_url, params: { harami_vid: @def_create_params.merge(hsnew)}
+        assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+      end
+    end
+    assert_equal platform_fb, Channel.last.channel_platform
+
+    # new Music, no Artist
+    mu_name = "My new Music 4"
+    hsnew = {uri: (newuri="youtu.be/004"), title: (newtit="new4"), music_name: mu_name, note: (newnote=mu_name+" is added.")}
+    assert_no_difference("Artist.count + Engage.count +  EventItem.count + ArtistMusicPlay.count") do
+      assert_difference("Music.count + HaramiVidMusicAssoc.count", 2) do
+        assert_no_difference("Channel.count") do  # existing Channel is found
+          assert_difference("HaramiVid.count") do
+            post harami_vids_url, params: { harami_vid: @def_create_params.merge(hsnew)}
+            assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+          end
+        end
+      end
+    end
+    mdl_last = HaramiVid.last
+    assert_redirected_to harami_vid_url(mdl_last)
+    assert_equal newuri,  mdl_last.uri
+    assert_equal newnote, mdl_last.note
+    assert_equal newtit,  mdl_last.title
+    assert_equal Music.last, mdl_last.musics.first
+    assert_equal mu_name,    mdl_last.musics.first.title
+
+    # Existing Music (with no Artist)
+    old_mu = musics(:music_light)
+    mu_name = old_mu.title  # existing Music
+    hsnew = {uri: (newuri="youtu.be/0050"), title: (newtit="new50"), music_name: mu_name, note: (newnote=mu_name+" is added.")}
+    assert_no_difference("Artist.count + Engage.count +  EventItem.count + ArtistMusicPlay.count") do
+      assert_difference("Music.count + HaramiVidMusicAssoc.count", 1) do  # only association is added.
+        assert_no_difference("Channel.count") do  # existing Channel is found
+          assert_difference("HaramiVid.count") do
+            post harami_vids_url, params: { harami_vid: @def_create_params.merge(hsnew)}
+            assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+          end
+        end
+      end
+    end
+    mdl_last = HaramiVid.last
+    assert_redirected_to harami_vid_url(mdl_last)
+    assert_equal newuri,  mdl_last.uri
+    assert_equal newnote, mdl_last.note
+    assert_equal newtit,  mdl_last.title
+    assert_equal old_mu,  mdl_last.musics.first
+    assert_equal mu_name, mdl_last.musics.first.title
+
+
+    # New Artist with Existing Music
+    old_mu = musics(:music_light)
+    mu_name = old_mu.title  # existing Music
+    art_name = "My new Artist 6"
+    hsnew = {uri: (newuri="youtu.be/0060"), title: (newtit="new60"), music_name: mu_name, artist_name: art_name, note: (newnote=art_name+" is added.")}
+    assert_difference("Artist.count + Engage.count +  EventItem.count + ArtistMusicPlay.count", 2) do
+      assert_difference("Music.count + HaramiVidMusicAssoc.count", 1) do  # only association with HaramiVid is added.
+        assert_no_difference("Channel.count") do  # existing Channel is found
+          assert_difference("HaramiVid.count") do
+            post harami_vids_url, params: { harami_vid: @def_create_params.merge(hsnew)}
+            assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+          end
+        end
+        # print "DEBUG:res-hv-dont: "; p HaramiVidMusicAssoc.order(created_at: :desc).limit(2)
+      end
+    end
+    mdl_last = HaramiVid.last
+    assert_redirected_to harami_vid_url(mdl_last)
+    assert_equal newuri,  mdl_last.uri
+    assert_equal newnote, mdl_last.note
+    assert_equal newtit,  mdl_last.title
+    assert_equal old_mu,  mdl_last.musics.first
+    assert_equal mu_name, mdl_last.musics.first.title
+    eng_last = Engage.last
+    assert_equal art_name, eng_last.artist.title
+    assert_equal old_mu,   eng_last.music
+    assert_equal @def_update_params["form_engage_hows"].to_i,  eng_last.engage_how.id
+    assert_equal @def_update_params["form_engage_year"].to_i,  eng_last.year
+    assert_equal @def_update_params["form_engage_contribution"].to_f, eng_last.contribution
+end
+
+    # A collab-Artist, existing Music with existing Artist
+    old_mu = musics(:music_light)
+    old_art= artists(:artist_proclaimers)  # who is engaged with :music_light
+    collab_art = artists(:artist_rcsuccession)  # no engagement with :music_light
+    pla = places(:perth_aus)  # relevant because a new EventItem is to be created.
+    name_a = collab_art.title
+    assert_equal old_art, old_mu.artists.first, "check fixture"
+    assert_includes old_mu.artists, old_art,    "check fixture"
+    refute_includes old_mu.artists, collab_art, "check fixture"
+    mu_name = old_mu.title  # existing Music
+    hsnew = {uri: (newuri="youtu.be/0070"), title: (newtit="new70"), music_name: mu_name, artist_name: old_art.title, artist_name_collab: name_a, place: pla, note: (newnote=name_a+" collaborates.")}
+    assert_no_difference("Event.count", 0) do
+      assert_difference("EventItem.count + HaramiVidEventItemAssoc.count + ArtistMusicPlay.count", 2) do  # no change in EventItem (non-default (=not-unknown) existing one is used).
+        assert_no_difference("Artist.count + Engage.count") do
+          assert_difference("Music.count + HaramiVidMusicAssoc.count", 1) do  # only association is added.
+            assert_no_difference("Channel.count") do  # existing Channel is found
+              assert_difference("HaramiVid.count") do
+                post harami_vids_url, params: { harami_vid: @def_create_params.merge(hsnew)}
+                assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+              end
+            end
+          end
+        end
+      end
+    end
+    mdl_last = HaramiVid.last
+    assert_redirected_to harami_vid_url(mdl_last)
+    assert_equal newuri,  mdl_last.uri
+    assert_equal newnote, mdl_last.note
+    assert_equal newtit,  mdl_last.title
+    assert_equal old_mu,  mdl_last.musics.first
+
+    evit_last = EventItem.last
+    assert_equal 1,         mdl_last.event_items.count
+    assert_equal @def_update_params[:form_new_event], mdl_last.event_items.first.event.id.to_s
+    assert_equal 1,         mdl_last.artist_collabs.count
+    assert_equal collab_art,mdl_last.artist_collabs.first
+
+
+    # Same collab-Artist, existing Music with existing Artist for a different HaramiVid in a different Place
+    evt0 = event_groups(:evgr_single_streets).unknown_event
+    pla = places(:perth_aus)
+    hsnew = {uri: (newuri="youtu.be/0080"), title: (newtit="new80"), music_name: mu_name, artist_name: old_art.title,
+             form_new_event: evt0.id.to_s, artist_name_collab: name_a, place: pla, note: ("Same artist collaborates with a specified +unknown+ event.")}
+    assert_difference("Event.count + EventItem.count", 2) do
+      assert_difference("ArtistMusicPlay.count", 1) do  # no change in EventItem (non-default (=not-unknown) existing one is used).
+        assert_no_difference("Music.count + Artist.count + Engage.count") do
+          assert_difference("HaramiVidMusicAssoc.count + HaramiVidEventItemAssoc.count", 2) do  # only association is added.
+            assert_no_difference("Channel.count") do  # existing Channel is found
+              assert_difference("HaramiVid.count") do
+                post harami_vids_url, params: { harami_vid: @def_create_params.merge(hsnew)}
+                assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+              end
+            end
+          end
+        end
+      end
+    end
+    #flash_regex_assert(%r@<a [^>]*href="/channels/\d+[^>]*>new Channel.+is created@, msg=nil, type: nil)  # defined in test_helper.rb
   end
 
   test "should show harami_vid" do

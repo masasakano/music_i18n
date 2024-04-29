@@ -152,7 +152,7 @@ en:
 
   show:
     h2_artist: Artist
-    h2_harami_vid: Harami's Video
+    h2_harami_vid: HARAMIchan's Video
     h2_music: Music
     h2_for: " for "
 
@@ -196,6 +196,8 @@ en:
     music_main_hint: "Name of one song (you can add more later)"
     music_timing_hint: "When the music starts in the video."
     form_artist_collabs: "featuring Artist"
+    field_music_year: "Released year"
+    warn_collab_without_music: "Valid Music must be given when you add an Artist-to-collaborate."
 
   musics:
     index:
