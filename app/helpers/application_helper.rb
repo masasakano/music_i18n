@@ -114,6 +114,72 @@ module ApplicationHelper
     (with_http ? "https://" : "") + domain + "/" + root_kwd + timing_part
   end
 
+  # Returns a YouTube URI with/without the preceeding "https//" from a valid URI
+  #
+  # Youtube has various forms of URIs
+  #
+  #   "youtu.be/WFfas92FA?t=24"
+  #   "youtu.be.com/shorts/WFfas92FA?t=24"
+  #   "https://www.youtube.com/watch?v=WFfas92FA?t=24s&link=youtu.be"
+  #   "https://www.youtube.com/live/vXABC6EvPXc?si=OOMorKVoVqoh-S5h?t=24"
+  #   "https://www.youtube.com/embed/agbNymZ7vqZ"
+  #
+  # For Youtube links, most query parameteres are removed (but v and maybe t (if with_time is true)).
+  # For other sites, they are preserved unless with_query is false.
+  #
+  # @param uri_str [String] e.g., "https://www.youtube.com/watch?v=IrH3iX6c2IA"
+  # @param long: [Boolean] if false (Def), youtu.be, else www.youtube.com ; for any other URIs, ignored.
+  # @param with_scheme: [Boolean] if true (Def: false), returned string contains "https://"
+  # @param with_host: [Boolean]
+  # @param with_query: [Boolean] For Youtube, this is ignored. Recommended to set true.
+  # @param with_time: [Boolean] Only for Youtube.
+  # @return [String] youtu.be/Wfwe3f8 etc
+  def self.normalized_uri_youtube(uri_str, long: false, with_scheme: false, with_host: true, with_time: false, with_query: true)
+    raise "(#{__method__}) nil is not allowed for uri_str" if uri_str.blank?
+
+    ## NOTE: manual processing instead of letting URI.parse() to judge is necessary
+    #    because "youtube.com:8080/" is considered to have uri.scheme of "youtube.com" (!)
+    s = ((%r@\A[a-z]{2,9}://?@ !~ uri_str.strip) ? "https://" : "")+uri_str  # "telnet" and "gopher" are the longest and "ftp" is the shortest I can think of, hence {2, 9}.
+    uri = URI.parse(s)
+    query_hs = Rack::Utils.parse_query uri.query
+
+    uri.host = uri.host.downcase
+    is_youtube = (/\A(?:www\.)?(youtube\.com|youtu\.be)\z/ =~ uri.host)
+    # domain_orig = $1  # (youtube.com|youtu.be)
+
+    if is_youtube
+      uri.path = uri.path.sub(%r@\A/(shorts|live|embed)/@, '/')
+      
+      identifier = (query_hs["v"] || uri.path.sub(%r@\A/@, ""))
+
+      if long
+        uri.host = "www.youtube.com"
+        uri.path = "/watch"
+        query_hs = query_hs.slice("v", "t")
+        query_hs["v"] = identifier
+      else
+        uri.host = "youtu.be"
+        uri.path = "/"+identifier
+        query_hs = query_hs.slice("t")
+      end
+      query_hs = query_hs.slice("v") if !with_time
+      query_hs["t"].sub!(/s\z/, "") if query_hs.has_key?("t")
+      uri.query = query_hs.to_param
+    end
+
+    ret = ""
+    ret << (uri.scheme + "://") if with_scheme
+    ret << uri.host             if with_scheme || with_host  # with_scheme has a priority.
+    ret << (":"+uri.port.to_s)  if ![80, 443].include?(uri.port)
+    ret << (ret.blank? ? uri.path.sub(%r@\A/@, '') : uri.path)
+
+    if (is_youtube || with_query) && uri.query.present?
+      ret << "?"+uri.query
+    end
+
+    ret
+  end
+
   # to check whether a record has any dependent children
   #
   # @see https://stackoverflow.com/a/68129947/3577922

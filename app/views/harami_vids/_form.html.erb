@@ -21,26 +21,29 @@
   <% end %>
   <div class="form-inputs">
 
-    <%= f.input :uri, placeholder: 'URI/URL (e.g., "3CjLiqDJ0C4" with or without youtu.be/)', as: :url %>
+    <%= f.input :uri, required: true, placeholder: 'URI/URL (e.g., "3CjLiqDJ0C4" with or without youtu.be/)', as: :url %>
     <%= f.input :release_date,   label: t("harami_vids.table_head_date"), start_year: 2019, end_year: (Date.today.year+1) %>
     <%= f.input :duration,   label: t("Duration in second"), placeholder: 'e.g., 600 (=10min)' %>
   <%= render partial: "layouts/select_country_prefecture_place", locals: {form: f, model: harami_vid, is_simple_form: true} %>
 
     <%= f.input :form_channel_owner,
-      collection: ordered_models_form(ChannelOwner), selected: (harami_vid.form_channel_owner || ChannelOwner.default(:HaramiVid).id),
-      label: t(:ChannelOwner) %>
-    <%= f.input :form_channel_type,
+      collection: ordered_models_form(ChannelOwner), include_blank: false,
+      selected: (harami_vid.form_channel_owner || ChannelOwner.default(:HaramiVid).id),
+      label: t(:ChannelOwner), hint: (can?(:create, ChannelOwner)    ? t("layouts.fields.hint_create_if_non_existent", link: link_to(t("layouts.do_create_lower"), new_channel_path, title: "New Channel")).html_safe : "") %>
+    <%= f.input :form_channel_type, include_blank: false,
       collection: ordered_models_form(ChannelType),
       label: t(:ChannelType),
-      checked: (harami_vid.form_channel_type || ChannelType.default(:HaramiVid).id),
-      required: true, item_wrapper_class: 'inline',
-      as: :radio_buttons %>
+      selected: (harami_vid.form_channel_type || ChannelType.default(:HaramiVid).id)
+       %>
     <%= f.input :form_channel_platform,
-      collection: ordered_models_form(ChannelPlatform), selected: (harami_vid.form_channel_platform || ChannelPlatform.default(:HaramiVid)),
-        label: t(:ChannelPlatform) %>
+      collection: ordered_models_form(ChannelPlatform), include_blank: false,
+      selected: (harami_vid.form_channel_platform || ChannelPlatform.default(:HaramiVid).id),
+        label: t(:ChannelPlatform) %>  <%# NOTE: Here gives no hint to prompt a user to create a new one (like ChannelType), because HaramiVid should not need so many ChannelPlatform - appropriate moderators can create one by directly jumping to it anyway without being prompted here. %>
+
     <%= f.input :form_events,
-      collection: form_selct_collections(Event),
-      label: t(:Event), include_blank: true, input_html: { multiple: false } %>
+      collection: form_selct_collections(Event), include_blank: true,
+      selected: (harami_vid.form_events || Event.default(:HaramiVid).id),
+      label: t(:Event), input_html: { multiple: false } %>
 
     <div class="register_assoc_artist">
     <h4><%= t('layouts.new_musics.assoc_artist_head') %></h4>

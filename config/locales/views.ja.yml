@@ -69,6 +69,7 @@ ja:
     translated_names: '翻訳名称'
     back_to_index: '一覧に戻る'
     create_model: "%{model}新規作成"
+    do_create_lower: "新規作成して"
     destroy_button: '削除実行'
     editing_guideline: '編集方針'
     error_in_save: "%{errors} が出て%{model}の保存に失敗しました"
@@ -79,6 +80,8 @@ ja:
     fields:
       music_title: "楽曲の名前"
       hint_music_auto: "先にアーティスト名を入力することで絞れます"
+      hint_create_if_non_existent: "もしない場合は%{link}ください。"
+        # t("layouts.fields.hint_create_if_non_existent", link: link_to(t("layouts.do_create_lower"), new_XXX_path)).html_safe
     new_translations:
       model_language: "この%{model}名の言語"
       translations_can_be_added_later: "翻訳は後で追加"

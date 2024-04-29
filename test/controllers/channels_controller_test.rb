@@ -101,6 +101,7 @@ class ChannelsControllerTest < ActionDispatch::IntegrationTest
     platform_fb = channel_platforms(:channel_platform_facebook)
     assert_difference("Channel.count", 1, "An existing translation should be allowed as long as the combination of the main three parameters is unique, but...") do
       post channels_url, params: { channel: hs2pass.merge({title: @channel2.title(langcode: :en), channel_platform_id: platform_fb.id }.with_indifferent_access) }
+      assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
     end
     eeih_last = Channel.last
     assert_redirected_to channel_url(eeih_last)

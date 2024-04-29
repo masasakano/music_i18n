@@ -83,7 +83,7 @@ class ChannelType < BaseWithTranslation
   # @return [EventItem, Event]
   def self.default(context=nil, place: nil)
     case context.to_s.underscore.singularize
-    when "harami_vid", "harami1129"
+    when *(%w(harami_vid harami1129))
       ret = self.find_by(mname: "main")
       return ret if ret
       logger.warn("WARNING(#{File.basename __FILE__}:#{__method__}): Failed to identify the default #{self.class.name}!")

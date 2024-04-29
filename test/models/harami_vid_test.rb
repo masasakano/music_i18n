@@ -50,6 +50,23 @@ class HaramiVidTest < ActiveSupport::TestCase
     }
   end
 
+  test "callbacks" do
+    identifier = "BBBCCCCQxU4"
+    hv = HaramiVid.new(uri: "https://www.youtube.com/watch?v="+identifier, title: "naiyo", langcode: "en", channel: Channel.unknown)
+    hv.save!
+    assert_equal "youtu.be/"+identifier, hv.uri
+    hv2 = hv.dup
+    refute hv2.valid?
+    hv2.uri = "https://youtu.be/shorts/"+identifier
+    refute hv2.valid?
+    hv2.uri = "https://youtube.com/live/watch?v="+identifier
+    refute hv2.valid?
+    hv2.uri = "youtu.be/xxxxnaiyo"
+    assert hv2.valid?
+    hv2.unsaved_translations << Translation.new(title: "naiyo", langcode: "en")  # The same title should be allowed.
+    hv2.save!
+  end
+
   test "find_one_for_harami1129 for existing record" do
     [:harami1129_ai, :harami1129_ihojin1].each do |ea_key|
       h1129 = harami1129s(ea_key)
@@ -122,7 +139,7 @@ class HaramiVidTest < ActiveSupport::TestCase
     assert_nil harami_vid.release_date_was
     assert     harami_vid.uri_changed?
     assert_equal h1129.ins_release_date, harami_vid.release_date
-    assert     harami_vid.best_translations.empty?  # No Translation associated, yet.
+    assert     harami_vid.translations.empty?  # No Translation associated, yet.
     assert_equal h1129.ins_title, harami_vid.unsaved_translations.first.title # but an unsaved one.
     # :harami1129_ewf
     #:artist_rcsuccession

@@ -117,7 +117,8 @@ class EventGroup < BaseWithTranslation
   # @option context [Symbol, String]
   # @return [EventItem, Event]
   def self.default(context=nil, place: nil)
-    if context.to_s.underscore.singularize == "harami1129"
+    case context.to_s.underscore.singularize
+    when *(%w(harami_vid harami1129))
       ret = (self.select_regex(:title, /single-?shot +street(-?piano)? +play(ing|s)?/i, langcode: "en", sql_regexp: true).first ||
              self.select_regex(:title, /単発ストリート(ピアノ)?の?演奏/i, langcode: "ja", sql_regexp: true).first)
       return ret if ret

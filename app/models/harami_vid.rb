@@ -34,6 +34,7 @@ class HaramiVid < BaseWithTranslation
   include ModuleCommon # for convert_str_to_number_nil etc
 
   before_validation :add_def_channel
+  before_validation :normalize_uri
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = %i(uri)
@@ -51,7 +52,8 @@ class HaramiVid < BaseWithTranslation
   # Therefore this method has to be called before each validation.
   before_validation :add_default_place
 
-  after_create :save_unsaved_associates  # callback to create(-only) @unsaved_channel,  @unsaved_artist, @unsaved_music
+#################################
+#  after_create :save_unsaved_associates  # callback to create(-only) @unsaved_channel,  @unsaved_artist, @unsaved_music
 
   belongs_to :place     # see: before_validation and "validates :place, presence: true"
   belongs_to :channel   # see: before_validation :add_def_channel
@@ -380,11 +382,27 @@ class HaramiVid < BaseWithTranslation
   end
 
 
-  # Callback before_validation and before_save
+  # Callback before_validation
   #
+  # This should not be invoked - Controllers should take care of.
   def add_def_channel
     self.channel ||= Channel.primary
   end
+
+  # Callback before_validation
+  #
+  # saving uri in DB like
+  #   "youtu.be/WFfas92FA?t=24"
+  # as opposed to
+  #   "youtu.be.com/shorts/WFfas92FA?t=24"
+  #   "https://www.youtube.com/watch?v=WFfas92FA?t=24s&link=youtu.be"
+  #   "https://www.youtube.com/live/vXABC6EvPXc?si=OOMorKVoVqoh-S5h?t=24"
+  #
+  # In fact, time-query-parameter is not recommended...
+  def normalize_uri
+    self.uri = ApplicationHelper.normalized_uri_youtube(uri, long: false, with_scheme: false, with_host: true,  with_time: true) if uri.present?
+  end
+ 
 
   private    ################### Callbacks
 

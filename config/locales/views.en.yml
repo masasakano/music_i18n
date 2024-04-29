@@ -69,6 +69,7 @@ en:
     translated_names: translated names
     back_to_index: 'Back to Index'
     create_model: "Create a new %{model}"
+    do_create_lower: "create it"
     destroy_button: 'Commit Destroy'
     editing_guideline: 'Editing Guideline'
     error_in_save: "%{errors} prohibited this %{model} from being saved"
@@ -79,6 +80,8 @@ en:
     fields:
       music_title: "Song/Music name"
       hint_music_auto: "Input Artist first and it's narrowed down."
+      hint_create_if_non_existent: "If you want another one, %{link} first."
+        # t("layouts.fields.hint_create_if_non_existent", link: link_to(t("layouts.do_create_lower"), new_XXX_path)).html_safe
     new_translations:
       model_language: "Language of this %{model}'s Title"
       translations_can_be_added_later: "translations can be added later"

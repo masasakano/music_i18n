@@ -50,8 +50,6 @@ class Ability
     can :read, [EventGroup, Event]
     #can :read, :all   # permissions for every user, even if not logged in
     #can :read, [Artist, Music, Country, Prefecture, Place, Genre]
-    cannot :read, Harami1129
-    cannot :manage, Harami1129
 
     #return if !user.present?  # additional permissions for logged in users (they can manage their posts)
     return if !user_defined  # additional permissions for logged in users (they can manage their posts)

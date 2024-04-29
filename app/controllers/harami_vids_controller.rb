@@ -6,6 +6,7 @@ class HaramiVidsController < ApplicationController
   load_and_authorize_resource except: [:index, :show, :create] # This sets @harami_vid
   before_action :set_harami_vid, only: [:show]  # load_and... would load a model for  :edit, :update, :destroy
   before_action :model_params_multi, only: [:create, :update]
+  before_action :set_countries, only: [:new, :create, :edit, :update] # defined in application_controller.rb
 
   # params key for auto-complete Artist
   PARAMS_KEY_AC = BaseMerges::BaseWithIdsController.formid_autocomplete_with_id(Artist).to_sym
@@ -49,16 +50,12 @@ class HaramiVidsController < ApplicationController
   def new
     @harami_vid = HaramiVid.new
     #params.permit(:release_date, :duration, :uri, :place_id, :flag_by_harami, :uri_playlist_ja, :uri_playlist_en, :music_timing, :channel, :note)
-    @countries = Country.all
-    @prefectures = Prefecture.all
-    @places = Place.all
+    @places = Place.all  # necessary??
   end
 
   # GET /harami_vids/1/edit
   def edit
-    @countries = Country.all
-    @prefectures = Prefecture.all
-    @places = Place.all
+    @places = Place.all  # necessary??
   end
 
   # POST /harami_vids
@@ -68,20 +65,30 @@ class HaramiVidsController < ApplicationController
     @harami_vid = HaramiVid.new(@hsmain)  # This sets most of the form parameters
     authorize! __method__, @harami_vid
 
-print "DEBUG: ";p [ @harami_vid, @hsmain, @hstra, @prms_all]
+#print "DEBUG(HaramiVidsController): ";p [ @harami_vid, @hsmain, @hstra, @prms_all]
     add_unsaved_trans_to_model(@harami_vid, @hstra) # defined in application_controller.rb
+#print "DEBUG(HaramiVidsController-trans242): ";p @harami_vid.unsaved_translations.first.title
     def_respond_to_format(@harami_vid){
       result = nil
       ActiveRecord::Base.transaction(requires_new: true) do
         begin
-          associate_channel
+#print "DEBUG(HVC421): ";p @harami_vid
+          find_or_create_channel_and_associate  # a new Channel may be created - make sure to rollback if something goes wrong
+            # This may set @harami_vid.errors in an unlikely case (surely not with UI, though!)
+#print "DEBUG(HVC423): ";p [@harami_vid.channel_id, @harami_vid.errors.full_messages]
           result = @harami_vid.save
-          save_harami_vid_music_assoc
-          save_engage
-          save_event_item
-          save_artist_music_play
+          raise ActiveRecord::Rollback, "HaramiVid was not created; hence rollback to cancel the potential creation of Channel." if !result  # no more processing is needed anyway.
+#print "DEBUG(HVC433): ";p [result, @harami_vid]
+        #  save_harami_vid_music_assoc
+        #  save_engage
+        #  save_event_item
+        #  save_artist_music_play
+raise "Deliberate-exception====================="
         rescue
+          result = false
           raise ActiveRecord::Rollback, "Force rollback."
+        ensure
+          result = false if @harami_vid.errors.any?  # errors may be set by any of the "around"-processes
         end
       end
       result
@@ -209,23 +216,72 @@ print "DEBUG: ";p [ @harami_vid, @hsmain, @hstra, @prms_all]
       _associate_music             # "music_name"
     end
 
+###########################
     [
     "event_ids", "artist_name", "form_engage_hows", "form_engage_year", "form_contribution",
     "artist_name_collab", "form_instrument", "form_play_role",
     "music_name", "music_timing", "uri_playlist_en", "uri_playlist_ja",]
 
-    def _associate_channel
-      hs_in = %w(owner type platform).map{ |ek|
-        s="channel_"
-        klass = s.camelize.contantize
-        tmp_id = @prms_all["form_"+s+ek] # e.g., form_channel_platform
-        val = klass.find_by_id(tmp_id.to_i) if tmp_id
-        val ||= klass.default(:HaramiVid)
-        [s+ek, val]
-      }.to_hs
+    # Find or create a Channel and asociate it to HaramiVid
+    #
+    # If not finding yet failing to create a new Channel,
+    # errors are added to @harami_vid
+    # This method associates a new or identified Channel to @harami_vid.channel
+    #
+    # @return [Channel, NilClass] nil if failed to save.
+    def find_or_create_channel_and_associate
+      ar_in = %w(owner type platform).map{ |ek|
+        snake="channel_"+ek  # snake case
+        klass = snake.camelize.constantize
+        tmp_id = @hsmain["form_"+snake] # e.g., form_channel_platform
+        val = klass.find_by_id(tmp_id.to_i) if tmp_id.present?
+        # val ||= klass.default(:HaramiVid)  # Invalid ID should never be specified via UI!
+        [snake, val]
+      }
 
-      self.unsaved_channel = Channel.find_or_initialize_by(**hs_in)
+#print "DEBUG:hvv:509:hs=";p ar_in
+      raise "Bad Channel-related parameters specified." if ar_in.any?{|ea| !ea[1]}  # b/c this should never happen via UI! I don't care what screen follows to the user/robot who submitted such a request.
+#print "DEBUG:hvv:510:hs=";p ar_in.to_h
+      chan = Channel.find_or_initialize_by(**(ar_in.to_h))
+#print "DEBUG:hvv:511:chan=";p [chan.valid?, chan]
+      if chan.new_record?
+        return if !_save_new_channel_or_error(chan)
+#print "DEBUG:hvv:613:chan=";p chan
+        _after_save_new_channel(chan)
+#print "DEBUG:hvv:713:chan=";p chan
+      end
+      @harami_vid.channel = chan
+#print "DEBUG:hvv:813:hv=";p [chan.id, @harami_vid]
     end
+
+    # @param chan [Channel] all parameters but translations should be filled.
+    # @return [Channel, NilClass] nil if failed to save.
+    def _save_new_channel_or_error(chan)
+      raise if !chan.new_record?  # sanity check
+      chan.unsaved_translations = chan.def_initial_translations
+      return chan if chan.save  # The returned value is not used apart from its trueness.
+
+      # With UI, the above save should never fail.
+      chan.errors.full_messages.each do |msg|
+        @harami_vid.errors.add :base, "Existing Channel is not found, yet failed to create a new one: "+msg
+      end
+      return
+    end
+    private :_save_new_channel_or_error
+
+    # after-processing of a new Channel
+    def _after_save_new_channel(chan)
+      flash[:notice] ||= []
+      s = "new Event"
+      msg = sprintf("A %s is created", (can?(:show, chan) ? view_context.link_to(s, event_path(chan)) : s)).html_safe 
+      flash[:notice] << msg
+
+      chan.reload  # to load Translation
+      msglog = (sprintf("INFO: a new Event (ID=%d, title=%s) is automatically created as a result of the creation of a new HaramiVid (%s) by user ID=(%d), thouth it may be cancelled (rollback) later.",
+                        chan.id, chan.title.inspect, @harami_vid.title, current_user.id) rescue msg)  # "rescue" just$to play safe
+      logger.info msglog
+    end
+    private :_after_save_new_channel
 
     def _find_or_initialize_artist
       artist = BaseMergesController.other_model_from_ac(Artist.new, @hsmain[:artist_name], controller: self)

@@ -231,7 +231,7 @@ class ApplicationController < ActionController::Base
         msg = sprintf '%s was successfully %s.', mdl.class.name, created_updated.to_s  # e.g., Article was successfully created.
         msg << sprintf('  Return to %s.', back_html) if back_html
         #opts = { success: msg.html_safe, flash: {}}.merge(inopts) # "success" defined in /app/controllers/application_controller.rb
-        opts = flash_html_safe(success: msg.html_safe, alert: alert, **inopts)
+        opts = flash_html_safe(success: msg.html_safe, alert: alert, **inopts)  # defined in application_controller.rb
         #opts[:alert]  = alert if alert
         #opts[:flash][:html_safe] ||= {}
         #%i(alert warning notice success).each do |ek|
@@ -597,8 +597,8 @@ class ApplicationController < ActionController::Base
     end
 
     def set_countries
-      sql = "CASE countries.id WHEN #{Country.unknown.id rescue 9} THEN 0 WHEN #{Country['JP'].id rescue 9} THEN 1 ELSE 9 END, name_en_short"
-      @countries = Country.left_joins(:country_master).order(Arel.sql(sql))
+      sql2order = "CASE countries.id WHEN #{Country.unknown.id rescue 9} THEN 0 WHEN #{Country['JP'].id rescue 9} THEN 1 ELSE 9 END, name_en_short"
+      @countries = Country.left_joins(:country_master).order(Arel.sql(sql2order))
       @prefectures = Prefecture.all
     end
 
