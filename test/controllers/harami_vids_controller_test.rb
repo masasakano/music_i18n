@@ -98,15 +98,15 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
     run_test_create_null(Channel, extra_colnames: %i(title langcode)) # defined in /test/helpers/controller_helper.rb
     ## null imput should fail.
 
-#if false # temporary skip
-if true
+if false # temporary skip
+#if true
     assert_no_difference("HaramiVid.count") do
       post harami_vids_url, params: { harami_vid: @def_create_params.merge({title: 'some', uri: 'https://youtu.be/naiyo', form_channel_owner: ChannelOwner.order(:id).last.id+1})}
       assert_response :unprocessable_entity
     end
-end
+#end
 #if false # temporary skip
-if true
+#if true
 
     #hsnew = {title: 'a new one', uri: "https://youtu.be/mytest1", note: "newno"}
     hsnew = {note: "newno"}
@@ -193,11 +193,12 @@ if true
     assert_equal old_mu,  mdl_last.musics.first
     assert_equal mu_name, mdl_last.musics.first.title
 
-
+end
     # New Artist with Existing Music
     old_mu = musics(:music_light)
     mu_name = old_mu.title  # existing Music
     art_name = "My new Artist 6"
+if false
     hsnew = {uri: (newuri="youtu.be/0060"), title: (newtit="new60"), music_name: mu_name, artist_name: art_name, note: (newnote=art_name+" is added.")}
     assert_difference("Artist.count + Engage.count +  EventItem.count + ArtistMusicPlay.count", 2) do
       assert_difference("Music.count + HaramiVidMusicAssoc.count", 1) do  # only association with HaramiVid is added.
@@ -268,7 +269,9 @@ end
     evt0 = event_groups(:evgr_single_streets).unknown_event
     pla = places(:perth_aus)
     hsnew = {uri: (newuri="youtu.be/0080"), title: (newtit="new80"), music_name: mu_name, artist_name: old_art.title,
-             form_new_event: evt0.id.to_s, artist_name_collab: name_a, place: pla, note: ("Same artist collaborates with a specified +unknown+ event.")}
+             form_new_event: evt0.id.to_s, artist_name_collab: name_a,
+             "place.prefecture_id.country_id"=>pla.country.id.to_s, "place.prefecture_id" => pla.prefecture.id.to_s,
+             place: pla.id.to_s, note: ("Same artist collaborates with a specified +unknown+ event.")}
     assert_difference("Event.count + EventItem.count", 2) do
       assert_difference("ArtistMusicPlay.count", 1) do  # no change in EventItem (non-default (=not-unknown) existing one is used).
         assert_no_difference("Music.count + Artist.count + Engage.count") do
@@ -283,6 +286,18 @@ end
         end
       end
     end
+
+    mdl_last = HaramiVid.last
+    evit_last = EventItem.last
+    assert_equal 1,         mdl_last.event_items.count
+    assert_equal evit_last, mdl_last.event_items.first
+    assert_equal Event.last, evit_last.event
+    assert_equal pla,       evit_last.place, "Event=#{evit_last.event.inspect}"
+    assert_equal 1,         mdl_last.artist_collabs.count
+    assert_equal collab_art,mdl_last.artist_collabs.first
+    assert_equal collab_art,evit_last.artists.first
+    assert_equal old_mu,    evit_last.musics.first
+
     #flash_regex_assert(%r@<a [^>]*href="/channels/\d+[^>]*>new Channel.+is created@, msg=nil, type: nil)  # defined in test_helper.rb
   end
 

@@ -11,7 +11,7 @@ class HaramiVidsController < ApplicationController
   # params key for auto-complete Artist
   PARAMS_KEY_AC = BaseMerges::BaseWithIdsController.formid_autocomplete_with_id(Artist).to_sym
 
-  # Symbol of the main parameters in the Form (except "place_id"), which exist in DB or as setter methods
+  # Symbol of the main parameters in the Form (except "place" (or "place_id"?)), which exist in DB or as setter methods
   MAIN_FORM_KEYS = %i(uri duration note) + [
     "form_channel_owner", "form_channel_type", "form_channel_platform",
     "form_events", "form_new_event",
@@ -24,8 +24,10 @@ class HaramiVidsController < ApplicationController
 
   # Permitted main parameters for params(), used for update and create
   PARAMS_MAIN_KEYS = MAIN_FORM_KEYS + [
-  ] + [PARAMS_KEY_AC]
+  ] + [PARAMS_KEY_AC] + PARAMS_PLACE_KEYS
   # these will be handled in model_params_multi()
+  # See {#create} for description of "place_id" and "place".  In short, the best strategy is
+  # to use @hsmain["place_id"] (or @hamsin[:place_id]), while that in params is "place".
 
   # GET /harami_vids
   # GET /harami_vids.json
@@ -63,6 +65,18 @@ class HaramiVidsController < ApplicationController
     #@harami_vid = HaramiVid.new(sliced_harami_vid_params)
     @harami_vid = HaramiVid.new(@hsmain)  # This sets most of the form parameters
     authorize! __method__, @harami_vid
+    ## "place" is tricky
+    # The original form ID is "place".  To change it is tricky, as everything, including JavaScript
+    # must be consistent throughout.
+    #
+    # Because of how the cascade Form is set, "place" can be insignificant, whereas
+    # Country etc is significant.  Weiredly, SimpleForm seems to return a "String" of
+    # something like "Place<242aba232>" for "place" when the value is insignificant.
+    #
+    # set_hsparams_main_tra() defined in application_controller.rb called from
+    # this model_params_multi() deals with it. Basically, it sets an Integer (ID of Place)
+    # to "place_id"; which is set to @harami_vid above.  So, make sure to refer to "place_id"
+    # as opposed to "place".
 
     @assocs = {}.with_indifferent_access  # associated models (like assocs[:music]), maybe newly created.
 
@@ -195,7 +209,7 @@ class HaramiVidsController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def harami_vid_params
-      params.require(:harami_vid).permit(:release_date, :duration, :uri, :"place.prefecture_id.country_id", :"place.prefecture_id", :place, :flag_by_harami, :uri_playlist_ja, :uri_playlist_en, :artist, :engage_how2, :music, :music_timing, :channel, :note)
+      params.require(:harami_vid).permit(:release_date, :duration, :uri, :"place.prefecture_id.country_id", :"place.prefecture_id", :place, :place_id, :flag_by_harami, :uri_playlist_ja, :uri_playlist_en, :artist, :engage_how2, :music, :music_timing, :channel, :note)
     end
 
     # Only those that are direct parameters of HaramiVid
@@ -486,16 +500,8 @@ end
     end
     private :_can_create_artist_music_play?
 
-###########################
-    [
-      "form_events", "form_new_event",
-    "artist_name", "form_engage_hows", "form_engage_year", "form_engage_contribution",
-    "artist_name_collab", "form_instrument", "form_play_role",
-    "music_name", "music_timing", "music_genre", "uri_playlist_en", "uri_playlist_ja",]
-#    "music_genre", artist_sex "music_year",
-###########################
-
-# 12:24:18 web.1  | I, [2024-04-28T12:24:18.859995 #72040]  INFO -- :   Parameters: {"authenticity_token"=>"[FILTERED]", "harami_vid"=>{"langcode"=>"ja", "title"=>"", "uri"=>"", "release_date(1i)"=>"2024", "release_date(2i)"=>"4", "release_date(3i)"=>"28", "duration"=>"", "place.prefecture_id.country_id"=>"0", "place.prefecture_id"=>"", "place"=>"", "form_channel_owner"=>"3", "form_channel_type"=>"12", "form_channel_platform"=>"1", "form_events"=>"", "artist_name"=>"", "form_engage_hows"=>"72", "form_engage_year"=>"", "form_engage_contribution"=>"", "artist_name_collab"=>"", "form_instrument"=>"2", "form_play_role"=>"2", "music_name"=>"", "music_timing"=>"", "uri_playlist_en"=>"", "uri_playlist_ja"=>"", "note"=>""}, "commit"=>"Create Harami vid", "locale"=>"en"}
-#    "music_genre", artist_sex "music_year", "new_event_id", 
-    
 end
+
+###########################
+# INFO -- :   Parameters: {"authenticity_token"=>"[FILTERED]", "harami_vid"=>{"langcode"=>"ja", "title"=>"", "uri"=>"", "release_date(1i)"=>"2024", "release_date(2i)"=>"4", "release_date(3i)"=>"30", "duration"=>"", "place.prefecture_id.country_id"=>"5798", "place.prefecture_id"=>"6653", "place"=>"6783", "form_channel_owner"=>"3", "form_channel_type"=>"12", "form_channel_platform"=>"2", "form_new_event"=>"2", "uri_playlist_en"=>"", "uri_playlist_ja"=>"", "note"=>"", "music_name"=>"", "music_year"=>"", "music_genre"=>"122", "music_timing"=>"", "artist_name"=>"", "artist_sex"=>"0", "form_engage_hows"=>"72", "form_engage_year"=>"", "form_engage_contribution"=>"", "artist_name_collab"=>"", "form_instrument"=>"2", "form_play_role"=>"2"}, "commit"=>"Submit", "locale"=>"ja"}
+

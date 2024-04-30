@@ -424,7 +424,7 @@ class ApplicationController < ActionController::Base
 
     hsall = params.require(model_name).permit(*allkeys)
     @hsmain = hsall.slice(*(self.class::MAIN_FORM_KEYS)).to_h  # nb, "place.prefecture_id" is ignored.
-    @hsmain[:place_id] = helpers.get_place_from_params(hsall).id if allkeys.map{|ek| ek.respond_to?(:to_sym) ? ek.to_sym : nil}.include?(:place_id)   # Modified (overwritten)
+    @hsmain[:place_id] = helpers.get_place_from_params(hsall).id if !allkeys.map{|ek| ek.respond_to?(:to_sym) ? ek.to_sym : nil}.map(&:to_s).grep(/\Aplace(_id)?\z/).empty? #.include?(:place_id)   # Modified (overwritten)  # defined in application_helper.rb
     @prms_all = hsall
   end
 

@@ -297,6 +297,7 @@ module ApplicationHelper
   # @return [Place]
   def get_place_from_params(hsprm)
     return Place.find(hsprm['place_id'].to_i) if !hsprm['place_id'].blank?
+    return Place.find(hsprm['place'].to_i) if !hsprm['place'].blank? && hsprm['place'].respond_to?(:gsub) && /\A\d+\z/ =~ hsprm['place']
 
     prm = hsprm['place.prefecture_id']
     return Place.unknown(prefecture: Prefecture.find(prm.to_i)) if !prm.blank?

@@ -156,6 +156,19 @@ class EventTest < ActiveSupport::TestCase
     assert_match(/^どこかの場所\(どこかの都道府県\/日本\)で?の.+ストリート/, evt.title(langcode: :ja), "Event=#{evt.inspect}")
     evt_japan = evt
     evt_japan.save!
+
+    pla = places(:perth_aus)
+    evt_prev = Event.last
+    evt = nil
+    assert_nil Event.find_by(place: pla), 'sanity check'
+    assert_no_difference('Event.count') do
+      evt = Event.default(:Harami1129, place: pla)
+    end
+    assert_difference('Event.count') do
+      assert evt.save
+    end
+    assert_equal pla, evt.place
+    refute_equal evt_prev, evt
   end
 
   test "self.default 2" do
