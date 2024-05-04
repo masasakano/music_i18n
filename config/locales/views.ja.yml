@@ -206,11 +206,14 @@ ja:
     table_head_ChannelType: 種別
     table_head_collabs: "コラボ相手"
     table_head_title_music_timing: "[秒] リンクは元動画(頭出し済)"
+    field_Duration_in_sec: "動画の長さ[秒]"
     release_date: "公開日"
     engage_how: "音楽家の関わり方"
+    field_uri_hint: "ハラミちゃんYoutube動画に関しては、タイミングも含めて追加クエリパラメーターは含めないことをお勧めします(曲のタイミングが必要ならば以下で指定可能)。"
     music_main_hint: "曲名 (1曲のみ。必要に応じて後で追加可能)"
     music_timing_hint: "曲の動画中でのタイミング [秒]"
     form_artist_collabs: "コラボレーション相手"
+    field_artist_collabs_w_harami: "ハラミちゃんのコラボ相手"
     field_music_year: "発表(リリース)年"
     warn_collab_without_music: "コラボ相手を登録する際には、有効なMusicの登録が必須です。"
 

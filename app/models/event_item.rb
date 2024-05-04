@@ -128,7 +128,7 @@ class EventItem < ApplicationRecord
   # @return [String] unknown title
   def self.unknown_machine_title_prefix(event, artit: nil)
     artit ||= [event, event.event_group].map{|i|
-      i.title_or_alt(langcode: "en", lang_fallback_option: :either, str_fallback: nil)
+      i.title_or_alt(langcode: "en", lang_fallback_option: :either, str_fallback: nil, article_to_head: true)  # Note that the article "the" , if exists, is broght to the head though it may stay "non"-capitalized.
     }
     UNKNOWN_TITLE_PREFIXES[:en]+artit.join("_").gsub(/ +/, "_")
   end

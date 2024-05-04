@@ -141,7 +141,7 @@ if false # temporary skip
 
     # A new Channel is successfully created.
     platform_fb = channel_platforms(:channel_platform_facebook)
-    hsnew = {uri: "youtu.be/003", form_channel_platform: platform_fb.id, note: "success"}
+    hsnew = {uri: uri="youtu.be/0030", form_channel_platform: platform_fb.id, note: "success"}
     assert_difference("Channel.count") do
       assert_difference("HaramiVid.count") do
         post harami_vids_url, params: { harami_vid: @def_create_params.merge(hsnew)}
@@ -149,10 +149,12 @@ if false # temporary skip
       end
     end
     assert_equal platform_fb, Channel.last.channel_platform
+    mdl_last = HaramiVid.last
+    assert_equal uri, mdl_last.uri
 
     # new Music, no Artist
     mu_name = "My new Music 4"
-    hsnew = {uri: (newuri="youtu.be/004"), title: (newtit="new4"), music_name: mu_name, note: (newnote=mu_name+" is added.")}
+    hsnew = {uri: (newuri="https://www.youtube.com/watch?v=0040"), title: (newtit="new40"), music_name: mu_name, note: (newnote=mu_name+" is added.")}
     assert_no_difference("Artist.count + Engage.count +  EventItem.count + ArtistMusicPlay.count") do
       assert_difference("Music.count + HaramiVidMusicAssoc.count", 2) do
         assert_no_difference("Channel.count") do  # existing Channel is found
@@ -170,11 +172,12 @@ if false # temporary skip
     assert_equal newtit,  mdl_last.title
     assert_equal Music.last, mdl_last.musics.first
     assert_equal mu_name,    mdl_last.musics.first.title
+    assert_equal "youtu.be/0040", mdl_last.uri
 
     # Existing Music (with no Artist)
     old_mu = musics(:music_light)
     mu_name = old_mu.title  # existing Music
-    hsnew = {uri: (newuri="youtu.be/0050"), title: (newtit="new50"), music_name: mu_name, note: (newnote=mu_name+" is added.")}
+    hsnew = {uri: (newuri="0050abcde"), title: (newtit="new50"), music_name: mu_name, note: (newnote=mu_name+" is added.")}
     assert_no_difference("Artist.count + Engage.count +  EventItem.count + ArtistMusicPlay.count") do
       assert_difference("Music.count + HaramiVidMusicAssoc.count", 1) do  # only association is added.
         assert_no_difference("Channel.count") do  # existing Channel is found
@@ -187,7 +190,7 @@ if false # temporary skip
     end
     mdl_last = HaramiVid.last
     assert_redirected_to harami_vid_url(mdl_last)
-    assert_equal newuri,  mdl_last.uri
+    assert_equal "youtu.be/"+newuri, mdl_last.uri
     assert_equal newnote, mdl_last.note
     assert_equal newtit,  mdl_last.title
     assert_equal old_mu,  mdl_last.musics.first
@@ -199,7 +202,7 @@ end
     mu_name = old_mu.title  # existing Music
     art_name = "My new Artist 6"
 if false
-    hsnew = {uri: (newuri="youtu.be/0060"), title: (newtit="new60"), music_name: mu_name, artist_name: art_name, note: (newnote=art_name+" is added.")}
+    hsnew = {uri: "https://"+(newuri="some.com/0060?a=4&b=5"), title: (newtit="new60"), music_name: mu_name, artist_name: art_name, note: (newnote=art_name+" is added.")}
     assert_difference("Artist.count + Engage.count +  EventItem.count + ArtistMusicPlay.count", 2) do
       assert_difference("Music.count + HaramiVidMusicAssoc.count", 1) do  # only association with HaramiVid is added.
         assert_no_difference("Channel.count") do  # existing Channel is found
@@ -236,7 +239,7 @@ end
     assert_includes old_mu.artists, old_art,    "check fixture"
     refute_includes old_mu.artists, collab_art, "check fixture"
     mu_name = old_mu.title  # existing Music
-    hsnew = {uri: (newuri="youtu.be/0070"), title: (newtit="new70"), music_name: mu_name, artist_name: old_art.title, artist_name_collab: name_a, place: pla, note: (newnote=name_a+" collaborates.")}
+    hsnew = {uri: "https://"+(newuri="youtu.be/0070?t=5")+"&si=xyz&link=youtu.be", title: (newtit="new70"), music_name: mu_name, artist_name: old_art.title, artist_name_collab: name_a, place: pla, note: (newnote=name_a+" collaborates.")}
     assert_no_difference("Event.count", 0) do
       assert_difference("EventItem.count + HaramiVidEventItemAssoc.count + ArtistMusicPlay.count", 2) do  # no change in EventItem (non-default (=not-unknown) existing one is used).
         assert_no_difference("Artist.count + Engage.count") do

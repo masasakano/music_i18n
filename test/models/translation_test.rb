@@ -447,9 +447,14 @@ class TranslationTest < ActiveSupport::TestCase
 
   test "titles" do
     uk_title = "United Kingdom of Great Britain and Northern Ireland, the"
-    assert_equal [uk_title, 'UK'], translations(:uk_en).titles
-    assert_equal uk_title,         translations(:uk_en).title_or_alt
-    assert_equal 'UK',             translations(:uk_en).title_or_alt(prefer_alt: true)
+    uk_title2= "the United Kingdom of Great Britain and Northern Ireland"
+    tra = translations(:uk_en)
+    assert_equal [uk_title, 'UK'], tra.titles
+    assert_equal uk_title,         tra.title_or_alt
+    assert_equal 'UK',             tra.title_or_alt(prefer_alt: true)
+    assert_equal [uk_title2,'UK'], tra.titles(      article_to_head: true)
+    assert_equal  uk_title2,       tra.title_or_alt(article_to_head: true)
+    assert_equal  uk_title2,       tra.translatable.title_or_alt(article_to_head: true, langcode: "en")  # BaseWithTranslation
   end
 
   test "siblings" do

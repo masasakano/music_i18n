@@ -774,7 +774,7 @@ class Translation < ApplicationRecord
     when :exact_absolute
       sprintf("%s.%s = '%s'", tbl, key.to_s, value)
     when :exact
-      sprintf("%s.%s = '%s'", tbl, key.to_s, definite_article_to_tail(value))
+      sprintf("%s.%s = '%s'", tbl, key.to_s, definite_article_to_tail(value))  # defined in module_common.rb
     when :exact_ilike
       sprintf("%s.%s ILIKE '%s'", tbl, key.to_s, definite_article_to_tail(value).gsub(/([%_])/, '\1'*2))
     when :optional_article, :optional_article_ilike, :include, :include_ilike
@@ -1660,9 +1660,12 @@ class Translation < ApplicationRecord
 
   # Returns [title, alt_title]
   #
+  # @param article_to_head: [Boolean] if true (Def: false), the article (=the, les, etc) is brought to the head.
   # @return [Array<String, NilClass>] size=2. Elements can be nil.
-  def titles
-    [title, alt_title]
+  def titles(article_to_head: false)
+    ret = [title, alt_title]
+    return ret if !article_to_head
+    ret.map{|i| i.present? ? definite_article_to_head(i) : i}  # defined in module_common.rb
   end
 
   # Returns title or alt_title
@@ -1671,9 +1674,10 @@ class Translation < ApplicationRecord
   #
   # @param prefer_alt: [Boolean] if true (Def: false), alt_title is preferably
   #    returned as long as it exists.
+  # @param article_to_head: [Boolean] if true (Def: false), the article (=the, les, etc) is brought to the head.
   # @return [String]  Note it is guaranteed to be String, never nil.
-  def title_or_alt(prefer_alt: false)
-    cands = titles
+  def title_or_alt(prefer_alt: false, article_to_head: false)
+    cands = titles(article_to_head: article_to_head)
     cands.reverse! if prefer_alt
     cands.compact.first || ""
   end

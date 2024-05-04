@@ -14,6 +14,7 @@
       <th>Place</th>
         <% if with_event %>
       <th>Event</th>
+      <th>EventGroup</th>
         <% end %>
       <th title="Note in this DB">Note</th>
       <% if can? :update, EventItem %>
@@ -40,8 +41,10 @@
         <td><%= event_item.event_ratio %></td>
         <td><%= event_item.place ? h(event_item.txt_place_pref_ctry) : "" %></td>
          <% if with_event %>
-          <% ev = event_item.event %>
-        <td><%= ev ? link_to(ev.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), ev) : "" %></td>
+          <% ev   = event_item.event %>
+          <% evgr =    ev.event_group %>
+        <td><%= ev ?   link_to(ev.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), ev) : "" %></td>
+        <td><%= evgr ? link_to(evgr.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), evgr) : "" %></td>
          <% end %>
         <td><%= h(event_item.note) %></td>
 

@@ -18,11 +18,17 @@ This system is the framework to deal with this type of complex and dynamic cases
 * `STATIC_PAGE_ROOT` : Root directory URI to load StaticPage-s in seeds
 * `STATIC_PAGE_FILES` : Comma-separated filenames of StaticPage-s to load in seeds with proper suffixes like `.html` and `.md` or `.text` (for markdown).
 
+#### Environmental variables for testing ###
+
+* `TEST_STRICT` : if "1", more strict tests are performed.
+* `SKIP_W3C_VALIDATE` : (*recommended*) if "1", W3C validations in testing, which connects to the W3C website, are skipped.
+* `URI_HARAMI1129_LOCALTEST` : (*recommended*) the URI to access instead of `URI_HARAMI1129` for testing, e.g., `test/controllers/harami1129s/data/harami1129_sample.html`
+
 ### Database ###
 
-This assumes PostgreSQL database.
+This app assumes a PostgreSQL database.
 
-Although many parts are database-independent, I am afraid some parts do not work in other database systems. For example, this uses `ILIKE` for case-incensitive matches and some migrations use CHECK constraints.
+Although many parts are database-independent, I am afraid some parts do not work in other database systems. For example, this uses `ILIKE` for case-incensitive matches and REGEXP functions of PostgreSQL, and some migrations use CHECK constraints.
 
 ### Static page strategy ###
 

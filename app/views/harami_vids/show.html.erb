@@ -43,7 +43,7 @@
     </ul>
   </dd>
 
-  <dt> <%= t("tables.place_country") %>県・場所 (国):</dt>
+  <dt> <%= t("tables.place_country") %>:</dt>
   <dd><%= pla = @harami_vid.place
       if pla
         ar = pla.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true);
@@ -74,11 +74,11 @@
 <%# No "Destroy" button %>
 <%= link_to t("layouts.back_to_index"), harami_vids_path %>
 
+<hr>
+<%= render partial: 'music_table', locals: {harami_vid: @harami_vid, add_buttons: true} %>
+<hr>
 <% if can? :read, Harami1129 %>
   <hr>
   <%= render partial: 'harami1129_table', locals: {harami_vid: @harami_vid, add_buttons: true} %>
 <% end %>
-<hr>
-<%= render partial: 'music_table', locals: {harami_vid: @harami_vid, add_buttons: true} %>
-<hr>
 

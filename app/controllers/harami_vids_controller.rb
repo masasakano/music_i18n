@@ -57,6 +57,7 @@ class HaramiVidsController < ApplicationController
   # GET /harami_vids/1/edit
   def edit
     @places = Place.all  # necessary??
+    @harami_vid.form_events ||= @harami_vid.event_items 
   end
 
   # POST /harami_vids

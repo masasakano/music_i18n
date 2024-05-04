@@ -2066,8 +2066,9 @@ class BaseWithTranslation < ApplicationRecord
   #   and if this is non-nil, the second element of the returned Array is
   #   this value, like +[nil, "NONE"]+. Default is nil.
   # @param prioritize_orig: [Boolean] If true, is_orig has a higher priority than first_lang (Def: false)
+  # @param **kwds [Hash] passed to {Translation#titles} as they are; in practice, +article_to_head+
   # @return [Array<String, String>] if there are no translations for the langcode, +[nil, Option(str_fallback)]+.  Singleton method of +lcode+ is available.
-  def titles(langcode: nil, lang_fallback_option: :never, str_fallback: nil, prioritize_orig: false)
+  def titles(langcode: nil, lang_fallback_option: :never, str_fallback: nil, prioritize_orig: false, **kwd)
     raise ArgumentError, "(#{__method__}) Wrong option (lang_fallback_option=#{lang_fallback_option}). Contact the code developer."  if !(%i(both either never).include? lang_fallback_option)
 
     hstrans = best_translations
@@ -2076,7 +2077,7 @@ class BaseWithTranslation < ApplicationRecord
     # Fallback
     sorted_langs = self.class.sorted_langcodes(first_lang: langcode, hstrans: hstrans, prioritize_orig: prioritize_orig, remove_invalid: false) # ["ja", "en"] etc.
     sorted_langs.each do |ecode|
-      artmp = (hstrans[ecode] && hstrans[ecode].titles)
+      artmp = (hstrans[ecode] && hstrans[ecode].titles(**kwd))
       if !artmp
         return arret if lang_fallback_option == :never
         next

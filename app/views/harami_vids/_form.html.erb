@@ -21,9 +21,10 @@
   <% end %>
   <div class="form-inputs">
 
-    <%= f.input :uri, required: true, placeholder: 'URI/URL (e.g., "3CjLiqDJ0C4" with or without youtu.be/)', as: :url %>
+    <%= f.input :uri, required: true, placeholder: 'URI/URL (e.g., "3CjLiqDJ0C4" with or without youtu.be/)', as: :url,
+      hint: t("harami_vids.field_uri_hint") %>
     <%= f.input :release_date,   label: t("harami_vids.table_head_date"), start_year: 2019, end_year: (Date.today.year+1) %>
-    <%= f.input :duration,   label: t("Duration in second"), placeholder: 'e.g., 600 (=10min)' %>
+    <%= f.input :duration,   label: t("harami_vids.field_Duration_in_sec"), placeholder: 'e.g., 600 (=10min)' %>
   <%= render partial: "layouts/select_country_prefecture_place", locals: {form: f, model: harami_vid, is_simple_form: true} %>
 
     <%= f.input :form_channel_owner,
@@ -44,10 +45,22 @@
 
 <% if ! harami_vid.new_record? %>
     <% candidates = harami_vid.event_items.map{|evi| [evi.machine_title, evi.id]} %>
-    <%= f.collection_check_boxes :form_events, candidates, :last, :first %>
+    <%# f.collection_check_boxes :form_events, candidates, :last, :first, input_html: { multiple: true, checked: true } %>
+    <%# f.collection_check_boxes :form_events, [[true, 'Yes'], [false, 'No']], :first, :last %>
+  <%= f.collection_check_boxes :form_events, harami_vid.events, :id, :machine_title %>  <%# Not shown at all if there are no EventItems associatined to harami_vid %>
+  <%# cf. https://github.com/heartcombo/simple_form#collection-check-boxes %>
+
+   <%# f.collection_check_boxes :form_events, EventItem.limit(3), :id, :machine_title %>
+    <%# f.input :form_events do %>
+    <%# f.collection_check_boxes harami_vid, :event_items, EventItem.all, :id, :machine_title %>
+    <%# f.collection_check_boxes :form_events, harami_vid.form_events, :id, :machine_name %>
+    <%#end %>
+    <%= harami_vid.form_events.inspect %>
+    <%# f.input :form_events,
       collection: candidates,
-      selected: (harami_vid.form_events || candidates.map{|ea| ea.last}),
-      label: t(:EventItems), as: :checkboxes,
+      #selected: (harami_vid.form_events || candidates.map{|ea| ea.last}),
+      label: t(:EventItems),
+      #as: :checkboxes,
       input_html: { multiple: true, checked: true } %>
     <%# selections are not working... %>
 <% end %>
@@ -118,7 +131,7 @@
     </div> <!-- div class="register_assoc_artist"-  -->
 
     <div class="register_collab_artist_field">
-    <h4>Artist to collaborate with HARAMIchan (ハラミちゃんのコラボ相手)</h4>
+    <h4><%= t('harami_vids.field_artist_collabs_w_harami') %></h4>
       <%= f.input :artist_name_collab,  label: t('harami_vids.form_artist_collabs') %>
      <div class="form_new_model_info">
       <%= f.input :form_instrument,
