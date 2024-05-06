@@ -95,8 +95,22 @@ module Seeds
         model.send(metho_w, val)
       end
   
+      do_validate = true
+      if !model.valid?
+        hserr = model.errors.to_hash
+        errkey = hserr.keys.first
+        if 1 == hserr.keys.size &&
+           [:base, :title].include?(errkey) &&
+           1 == hserr[errkey].size &&
+           "no translations are defined" == hserr[errkey].first  # Defined in /models/base_with_translation.rb
+          # Basically, if only the validation error is "no translations are defined",
+          # we skip the validation and save Translations in the next step.
+          do_validate = false
+        end
+      end
+
       begin
-        model.save!  # Model saved.  This should not raise an Exception, for Countries should have been already defined!
+        model.save!(validate: do_validate)  # Model saved.  This should not raise an Exception, for Countries should have been already defined!
       rescue ActiveRecord::RecordInvalid, ActiveRecord::InvalidForeignKey
         klass_name = (self.const_defined?(:RECORD_CLASS) ? self::RECORD_CLASS.name : "Model")
         msg = "ERROR(#{__FILE__}:#{__method__}): #{klass_name}#save! failed while attempting to save model=#{model.inspect} for Seed of ja=(#{seed1[:ja]}).  This should never happen, except after a direct Database manipulation (such as DB migration rollback) has left some orphan Translations WITHOUT a parent; check out the log file for a WARNING message."

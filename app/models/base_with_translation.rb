@@ -3908,6 +3908,36 @@ tra_orig.save!
     return []
   end
 
+  ######################## Validations #######################
+
+  # on-create validation re Translation which some models may use
+  # 
+  # Some child models may require `@unsaved_translations` exist in save.
+  # If so, define this method for an on-create validation callback as:
+  # 
+  #   validate :valid_present_unsaved_translations, on: :create  # @unsaved_translations must be defined and valid. / defined in BaseWithTranslation
+  # 
+  # @note Do not change the messesages!  They are referred to from /db/seeds/common.rb
+  # 
+  def valid_present_unsaved_translations  # @unsaved_translations must be defined and valid.
+    def _unsaved_trans_valid?(tras=unsaved_translations)
+      (tra=tras.first).valid?
+      msgs = tra.errors.full_messages
+      # An error of "Translatable can't be blank." is expected.
+      msgs.reject{|i| /\btranslatable/i =~ i}.empty?
+    end
+
+    return if !new_record?
+    if !unsaved_translations.empty?
+      errors.add :base, "one of (unsaved)_translations is invalid" if !_unsaved_trans_valid?
+    end
+
+    translations.each do |et|
+      errors.add :base, "one of (unsaved) translations is invalid" if !et.valid?
+    end
+    errors.add :base, "no translations are defined" if unsaved_translations.empty? && !translations.exists?
+  end
+
   private
 
     # @param tra [BaseWithTranslation]
