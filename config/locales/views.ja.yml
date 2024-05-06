@@ -37,6 +37,7 @@ ja:
     grand_total_entries: "全登録数"
     total_n_entries_is: "%{model}の全登録数(フィルターなし)"
     Page_n: "第%{count}頁 "
+    publish_date: "放映(出版)日"
     release_date: "公開日"
     duration: "長さ[秒]"
     duration_hour: "時間[h]"

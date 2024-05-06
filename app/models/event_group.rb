@@ -32,6 +32,7 @@ class EventGroup < BaseWithTranslation
 
   before_create :add_place_in_create_callback
   before_destroy :delete_remaining_unknwon_event_callback  # must come before has_many
+  # NOTE: after_first_translation_hook
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []
@@ -163,30 +164,6 @@ class EventGroup < BaseWithTranslation
     end
 
     evt = Event.initialize_with_def_time(event_group: self)
-
-    #  hstime = Event.def_time_parameters(self)
-    #  evt = Event.new(
-    #    start_time:     hstime[:start_time],
-    #    start_time_err: hstime[:start_time_err],
-    #    duration_hour:  hstime[:duration_hour],
-    #    weight: Float::INFINITY,
-    #    place: place,
-    #  )
-
-    #start_time = (start_date ? start_date.to_time : nil)
-    #if start_date && end_date
-    #  duration_hour = (end_date - start_date).quo(86400)
-    #  if start_date_err && end_date_err
-    #    start_time_err = Math.sqrt(start_date_err**2 + end_date_err**2)*86400
-    #  end
-    #end
-
-    #evt = Event.new(
-    #  start_time: start_time,
-    #  start_time_err: start_time_err,
-    #  weight: Float::INFINITY,
-    #  place: place,
-    #)
     evt.unsaved_translations = unsaved_transs
     self.events << evt
   end
@@ -210,5 +187,24 @@ end
 
 class << EventGroup 
   alias_method :uncategorized, :unknown if ! self.method_defined?(:uncategorized)
+
+  alias_method :create_basic_bwt!, :create_basic! if !self.method_defined?(:create_basic_bwt!)
+  alias_method :initialize_basic_bwt, :initialize_basic if !self.method_defined?(:initialize_basic_bwt!)
+
+  # Wrapper of {BaseWithTranslation.create_basic!}
+  def create_basic!(*args, start_date: TimeAux::DEF_FIRST_DATE_TIME, start_date_err: nil, end_date: TimeAux::DEF_LAST_DATE_TIME, end_date_err: nil, **kwds, &blok)
+    start_date_err ||= TimeAux::MAX_ERROR.in_days.ceil + 1  # = 3652060 [days]
+    end_date_err   ||= TimeAux::MAX_ERROR.in_days.ceil + 1
+    create_basic_bwt!(*args, start_date: start_date, start_date_err: start_date_err, end_date: end_date, end_date_err: end_date_err, **kwds, &blok)
+  end
+
+  # Wrapper of {BaseWithTranslation.initialize_basic!}
+  # Unlike {#create_basic!}, an existing Sex is used, which is assumed to exist.
+  def initialize_basic(*args, start_date: TimeAux::DEF_FIRST_DATE_TIME, start_date_err: nil, end_date: TimeAux::DEF_LAST_DATE_TIME, end_date_err: nil, **kwds, &blok)
+    start_date_err ||= TimeAux::MAX_ERROR.in_days.ceil + 1  # = 3652060 [days]
+    end_date_err   ||= TimeAux::MAX_ERROR.in_days.ceil + 1
+    initialize_basic_bwt(*args, start_date: start_date, start_date_err: start_date_err, end_date: end_date, end_date_err: end_date_err, **kwds, &blok)
+  end
 end
+
 

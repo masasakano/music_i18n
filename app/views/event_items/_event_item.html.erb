@@ -1,59 +1,35 @@
 <div id="<%= dom_id event_item %>">
+  <% canedit = can?(:edit, event_item) %>
+<dl>
   <% if can? :update, event_item %>
-  <p>
-    <strong>pID:</strong>
-    <%= event_item.id %>
-  </p>
+    <dt>pID (EventItem)</dt>
+    <dd> <%= @event_item.id %></dd>
   <% end %>
 
-  <p>
-    <strong>Machine title:</strong>
-    <%= event_item.machine_title %>
-  </p>
+  <dt><strong>Machine title:</strong></dt>
+    <dd><%= event_item.machine_title %></dd>
 
-  <p>
-    <strong>Start time:</strong>
-    <%= event_item.start_time %>
-  </p>
+  <dt><strong>Start time [in <%= Rails.configuration.music_i18n_def_timezone_str %>] (± hours):</strong></dt>
+    <% err = event_item.start_time_err %>
+    <dd><%= event_item.string_time_err2uptomin %> (± <%= err ? err.second.in_hours : "&mdash".html_safe %> [hrs])</dd>
+  <dt><strong>Duration [minute] (± minutes):</strong></dt>
+    <% err = event_item.duration_minute_err %>
+    <dd><%= event_item.duration_minute %> (± <%= err ? err.second.in_minutes : "&mdash".html_safe %> [mins])</dd>
+  <dt><strong><%= t("tables.publish_date", default: "Published on YYYY-MM-DD") %>:</strong></dt>
+    <% da = event_item.publish_date %>
+    <dd><%= strdate = (da ? date2text(da.year, da.month, da.day, lower_end_str: end_str, upper_end_str: end_str) : (canedit ? date2text(nil, nil, nil) : "&mdash;".html_safe)) %></dd>
 
-  <p>
-    <strong>Start time err:</strong>
-    <%= event_item.start_time_err %>
-  </p>
-
-  <p>
-    <strong>Duration minute:</strong>
-    <%= event_item.duration_minute %>
-  </p>
-
-  <p>
-    <strong>Duration minute err:</strong>
-    <%= event_item.duration_minute_err %>
-  </p>
-
-  <p>
-    <strong>Weight:</strong>
-    <%= event_item.weight %>
-  </p>
-
-  <p>
-    <strong>Event ratio:</strong>
-    <%= event_item.event_ratio %>
-  </p>
-
-  <p>
-    <strong>Event:</strong>
-    <%= event_item.event_id %>
-  </p>
-
-  <p>
-    <strong>Place:</strong>
-    <%= event_item.place_id %>
-  </p>
-
-  <p>
-    <strong>Note:</strong>
-    <%= event_item.note %>
-  </p>
-
+  <dt><strong>Weight:</strong></dt>
+    <dd><%= event_item.weight %></dd>
+  <dt><strong>Event group:</strong></dt>
+    <dd><%= link_to "Event("+event_item.event.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)+")", event_url(event_item.event) %></dd>
+  <dt><strong>Place:</strong></dt>
+    <dd><%= event_item.place ? h(event_item.txt_place_pref_ctry) : "" %></dd>
+  <dt>Note:</dt>
+    <dd><%= event_item.note %></dd>
+  <% if can? :update, event_item %>
+  <dt>updated_at:</dt>
+    <dd><%= event_item.updated_at %></dd>
+  <% end %>
+</dl>
 </div>

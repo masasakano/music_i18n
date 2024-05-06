@@ -6,6 +6,9 @@
 <br>
 
 <% if can? :create, EventItem %>
-  <%= button_to 'Create EventItem', new_event_item_path, method: :get %>
+  <%= button_to 'New EventItem', new_event_item_path, method: :get %>
+<% end %>
+<% if can? :index, Event %>
+  <%= link_to "Event index", events_path %>
 <% end %>
 

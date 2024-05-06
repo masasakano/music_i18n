@@ -7,7 +7,7 @@
   <% end %>
   <dt><strong>Start time [in <%= Rails.configuration.music_i18n_def_timezone_str %>] (± hours):</strong></dt>
     <% err = event.start_time_err %>
-    <dd><%= event.string_time_err2uptomin %> (± <%= err ? err.second.in_hours : "&mdash".html_safe %> [hrs])
+    <dd><%= event.string_time_err2uptomin %> (± <%= err ? err.second.in_hours : "&mdash".html_safe %> [hrs])</dd>
   <dt><strong>Duration hour:</strong></dt>
     <dd><%= event.duration_hour %></dd>
   <dt><strong>Weight:</strong></dt>
@@ -16,10 +16,10 @@
     <dd><%= link_to "EventGroup("+event.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)+")", event_group_url(event.event_group) %></dd>
   <dt><strong>Place:</strong></dt>
     <dd><%= event.place ? h(event.txt_place_pref_ctry) : "" %></dd>
-  <dt>note</dt>
+  <dt>Note:</dt>
     <dd><%= event.note %></dd>
   <% if can? :update, event %>
-  <dt>updated_at</dt>
+  <dt>updated_at:</dt>
     <dd><%= event.updated_at %></dd>
   <% end %>
 </dl>

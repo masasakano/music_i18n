@@ -3,19 +3,20 @@
 #
 # Table name: event_items
 #
-#  id                                       :bigint           not null, primary key
-#  duration_minute                          :float
-#  duration_minute_err(in second)           :float
-#  event_ratio(Event-covering ratio [0..1]) :float
-#  machine_title                            :string           not null
-#  note                                     :text
-#  start_time                               :datetime
-#  start_time_err(in second)                :float
-#  weight                                   :float
-#  created_at                               :datetime         not null
-#  updated_at                               :datetime         not null
-#  event_id                                 :bigint           not null
-#  place_id                                 :bigint
+#  id                                                                          :bigint           not null, primary key
+#  duration_minute                                                             :float
+#  duration_minute_err(in second)                                              :float
+#  event_ratio(Event-covering ratio [0..1])                                    :float
+#  machine_title                                                               :string           not null
+#  note                                                                        :text
+#  publish_date(First broadcast date, esp. when the recording date is unknown) :date
+#  start_time                                                                  :datetime
+#  start_time_err(in second)                                                   :float
+#  weight                                                                      :float
+#  created_at                                                                  :datetime         not null
+#  updated_at                                                                  :datetime         not null
+#  event_id                                                                    :bigint           not null
+#  place_id                                                                    :bigint
 #
 # Indexes
 #
@@ -107,7 +108,7 @@ class EventItem < ApplicationRecord
       event: event,
       machine_title: get_unique_title(unknown_machine_title_prefix(event)),
       duration_minute:     ((hr=event.duration_hour) ? hr.quo(60) : nil),
-      duration_minute_err: ((er=event.start_time_err) ? er.quo(60) : nil),
+      duration_minute_err: ((er=event.start_time_err) ? er : nil),  # both in units of second
     }
     
     %i(place_id start_time start_time_err).each do |metho|

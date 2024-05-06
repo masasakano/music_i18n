@@ -205,12 +205,21 @@ class EventGroupTest < ActiveSupport::TestCase
   end
 
   test "callbacks" do
-    eg = EventGroup.create_basic!
+    eg = nil
+    assert_difference('EventGroup.count + Event.count + EventItem.count', 3) {
+      eg = EventGroup.create_basic!(start_date: Date.new(2005, 8, 15))
+    }
     assert_equal Place.unknown, eg.place
     assert_equal EventGroup.unknown, eg.unknown_sibling
+    assert  eg.start_date
+    assert  eg.end_date
     eg.reload
     assert eg.unknown_event, "events = "+eg.events.inspect
     assert_equal 1, eg.events.size
+    evt = eg.events.first
+    assert_equal eg.start_date.year, evt.start_time.year, "StartDate=#{eg.start_date.inspect} Event=#{evt.inspect}"
+    assert_equal 12, evt.start_time.hour, "Event=#{evt.inspect}"  # midday
+    assert_nil evt.duration_hour
 
     evt = Event.initialize_basic
     evt.event_group = nil

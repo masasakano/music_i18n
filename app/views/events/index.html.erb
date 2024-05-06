@@ -71,4 +71,7 @@
 <% if can? :create, Event %>
   <%= button_to 'Create Event', new_event_path, method: :get %>
 <% end %>
+<% if can? :index, EventGroup %>
+  <%= link_to "EventGroup index", event_groups_path %>
+<% end %>
 

@@ -37,6 +37,7 @@ en:
     grand_total_entries: "Grand total"
     total_n_entries_is: "Total number of entries of %{model} (without filters)"
     Page_n: "Page %{count}"
+    publish_date: "Publish Date"
     release_date: "Date"
     duration: "Length[s]"
     duration_hour: "Duration[hr]"

@@ -3,19 +3,20 @@
 #
 # Table name: event_items
 #
-#  id                                       :bigint           not null, primary key
-#  duration_minute                          :float
-#  duration_minute_err(in second)           :float
-#  event_ratio(Event-covering ratio [0..1]) :float
-#  machine_title                            :string           not null
-#  note                                     :text
-#  start_time                               :datetime
-#  start_time_err(in second)                :float
-#  weight                                   :float
-#  created_at                               :datetime         not null
-#  updated_at                               :datetime         not null
-#  event_id                                 :bigint           not null
-#  place_id                                 :bigint
+#  id                                                                          :bigint           not null, primary key
+#  duration_minute                                                             :float
+#  duration_minute_err(in second)                                              :float
+#  event_ratio(Event-covering ratio [0..1])                                    :float
+#  machine_title                                                               :string           not null
+#  note                                                                        :text
+#  publish_date(First broadcast date, esp. when the recording date is unknown) :date
+#  start_time                                                                  :datetime
+#  start_time_err(in second)                                                   :float
+#  weight                                                                      :float
+#  created_at                                                                  :datetime         not null
+#  updated_at                                                                  :datetime         not null
+#  event_id                                                                    :bigint           not null
+#  place_id                                                                    :bigint
 #
 # Indexes
 #

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_04_25_152203) do
+ActiveRecord::Schema[7.0].define(version: 2024_05_06_123044) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -232,6 +232,7 @@ ActiveRecord::Schema[7.0].define(version: 2024_04_25_152203) do
     t.text "note"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.date "publish_date", comment: "First broadcast date, esp. when the recording date is unknown"
     t.index ["duration_minute"], name: "index_event_items_on_duration_minute"
     t.index ["event_id"], name: "index_event_items_on_event_id"
     t.index ["event_ratio"], name: "index_event_items_on_event_ratio"

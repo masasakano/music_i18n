@@ -2,19 +2,20 @@
 #
 # Table name: event_items
 #
-#  id                                       :bigint           not null, primary key
-#  duration_minute                          :float
-#  duration_minute_err(in second)           :float
-#  event_ratio(Event-covering ratio [0..1]) :float
-#  machine_title                            :string           not null
-#  note                                     :text
-#  start_time                               :datetime
-#  start_time_err(in second)                :float
-#  weight                                   :float
-#  created_at                               :datetime         not null
-#  updated_at                               :datetime         not null
-#  event_id                                 :bigint           not null
-#  place_id                                 :bigint
+#  id                                                                          :bigint           not null, primary key
+#  duration_minute                                                             :float
+#  duration_minute_err(in second)                                              :float
+#  event_ratio(Event-covering ratio [0..1])                                    :float
+#  machine_title                                                               :string           not null
+#  note                                                                        :text
+#  publish_date(First broadcast date, esp. when the recording date is unknown) :date
+#  start_time                                                                  :datetime
+#  start_time_err(in second)                                                   :float
+#  weight                                                                      :float
+#  created_at                                                                  :datetime         not null
+#  updated_at                                                                  :datetime         not null
+#  event_id                                                                    :bigint           not null
+#  place_id                                                                    :bigint
 #
 # Indexes
 #
@@ -40,6 +41,7 @@ evit_ev_evgr_<%= ekey %>:
   start_time_err: <%= (t=edata[:start_date_err]) ? t*86400 : "" %>
   duration_minute: 
   duration_minute_err: 
+  publish_date:
   weight: 
   event_ratio: 
   event: ev_evgr_<%= ekey %>_unknown
@@ -56,6 +58,7 @@ evit_ev_evgr_lucky2023_unknown_unknown:
   machine_title: UnknownEventItem_UnknownEvent_Lucky2023
   start_time: <%= Date.new(2023).to_time %>
   start_time_err: 600000
+  publish_date:
   event: ev_evgr_lucky2023_unknown
   place: unknown_place_shimane_japan
   note: EventItemEvent_ev_harami_lucky2023Unknown
@@ -66,6 +69,7 @@ evit_1_harami_lucky2023:
   start_time_err: 300
   duration_minute: 20
   duration_minute_err: 2
+  publish_date:
   weight: 1.5
   event_ratio: 0.6
   event: ev_harami_lucky2023
@@ -78,6 +82,7 @@ evit_2_harami_lucky2023:
   start_time_err: 300
   duration_minute: 10
   duration_minute_err: 2
+  publish_date:
   weight: 2.5
   event_ratio: 0.3
   event: ev_harami_lucky2023
@@ -118,6 +123,7 @@ one:
   start_time_err: 300
   duration_minute: 20
   duration_minute_err: 2
+  publish_date:
   weight: 0.6
   event_ratio: 0.2
   event: ev_harami_lucky2023
@@ -130,6 +136,7 @@ two:
   start_time_err: 300
   duration_minute: 20
   duration_minute_err: 2
+  publish_date:
   weight: 0.7
   event_ratio: 0.2
   event: ev_harami_lucky2023

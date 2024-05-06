@@ -194,6 +194,14 @@ class EventTest < ActiveSupport::TestCase
     assert evt.save, "Event=#{evt}"
   end
 
+  test "self.def_time_parameters" do
+    eg = EventGroup.create_basic!(start_date: Date.new(2005, 8, 15))
+    hsret = Event.def_time_parameters(eg)
+    assert_equal eg.start_date.year, hsret[:start_time].year
+    assert_equal eg.start_date.day,  hsret[:start_time].day
+    assert_equal 12,                 hsret[:start_time].utc.hour, "start_time input = #{hsret[:start_time].inspect}"
+  end
+
   test "association" do
     event = Event.first
     assert_nothing_raised{ event.event_items }

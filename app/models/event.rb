@@ -41,6 +41,7 @@ class Event < BaseWithTranslation
 
   before_validation :add_parent_in_create_callback
   before_destroy :delete_remaining_unknwon_event_item_callback  # must come before has_many
+  # NOTE: after_first_translation_hook
 
   belongs_to :event_group
   belongs_to :place
@@ -134,18 +135,13 @@ class Event < BaseWithTranslation
     hsret = {
       start_time: TimeAux::DEF_FIRST_DATE_TIME,
       start_time_err: TimeAux::MAX_ERROR,
-      duration_hour: nil,
+      duration_hour: nil,  # This is unknown, hence nil.
     }.with_indifferent_access
 
-    return hsret if event_group || !event_group.start_date
+    return hsret if !event_group || !event_group.start_date
 
-    hsret[:start_time] = event_group.start_date.to_time
-    if event_group.end_date
-      hsret[:duration_hour] = (event_group.end_date - event_group.start_date).quo(86400)
-      if event_group.start_date_err && event_group.end_date_err
-        hsret[:start_time_err] = Math.sqrt(event_group.start_date_err**2 + event_group.end_date_err**2)*86400
-      end
-    end
+    hsret[:start_time]     = TimeAux.to_time_midday_utc(event_group.start_date)  # to make it midday in UTC/GMT
+    hsret[:start_time_err] = TimeAux.to_time_midday_utc(event_group.end_date) - hsret[:start_time] if (event_group.end_date)
 
     hsret
   end

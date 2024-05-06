@@ -4,10 +4,10 @@
 module TimeAux
 
   # The earliest date-Time: 1 January 1, which corresponds to 3 January 1 in Date (so DEF_FIRST_DATE_TIME.to_date returns as such!).  Use {#get_first_date_time} to get a copy.
-  DEF_FIRST_DATE_TIME = TimeWithError.new(   1, 1, 1, 0, 0,   0, in: Rails.configuration.music_i18n_def_timezone_str)
+  DEF_FIRST_DATE_TIME = TimeWithError.new(   1, 1, 1, 12, 0, 0) #, in: Rails.configuration.music_i18n_def_timezone_str)
 
   # The largest date-Time: 31 December JD 9999.  Use {#get_last_date_time} to get a copy.
-  DEF_LAST_DATE_TIME  = TimeWithError.new(9999,12,31,23,59,59.9, in: Rails.configuration.music_i18n_def_timezone_str)
+  DEF_LAST_DATE_TIME  = TimeWithError.new(9999,12,31, 12, 0, 0) #, in: Rails.configuration.music_i18n_def_timezone_str)
 
   # Maximum error duration in ActiveSupport::Duration
   MAX_ERROR = (DEF_LAST_DATE_TIME - DEF_FIRST_DATE_TIME).second
@@ -16,6 +16,14 @@ module TimeAux
   DEF_LAST_DATE_TIME.error  = MAX_ERROR
 
   module_function  # equivalent to: extend self
+
+  # Convert Date to Time at midday at UTC
+  #
+  # @param date [Date]
+  # @return [Time]
+  def to_time_midday_utc(date)
+    date.to_time + Time.now.gmt_offset + 3600*12  # to make it midday in UTC/GMT
+  end
 
   # returns dup-ped {TimeAux::DEF_FIRST_DATE_TIME}
   def get_first_date_time 
