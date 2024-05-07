@@ -56,6 +56,7 @@ class EventItem < ApplicationRecord
   has_many :harami_vids, -> {distinct}, through: :harami_vid_event_item_assocs  # if the unique constraint is on for Association, `distinct` is redundant
   has_many :harami1129s, dependent: :restrict_with_exception  # dependent is a key
 
+  validates_presence_of   :machine_title
   validates_uniqueness_of :machine_title
   %i(start_time_err duration_minute duration_minute_err event_ratio).each do |ec|
     validates ec, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true
@@ -63,6 +64,9 @@ class EventItem < ApplicationRecord
   %i(event_ratio).each do |ec|
     validates ec, numericality: { less_than_or_equal_to: 1 }, allow_blank: true
   end
+
+  attr_accessor :form_start_err
+  attr_accessor :form_start_err_unit
 
   UNKNOWN_TITLE_PREFIXES = UnknownEvent = {
     "ja" => '不明のイベント項目_',

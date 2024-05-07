@@ -5,8 +5,12 @@ class EventItemsController < ApplicationController
   before_action :set_countries, only: [:new, :create, :edit, :update] # defined in application_controller.rb
   before_action :event_item_params, only: [:create, :update]
 
-  # Symbol of the main parameters in the Form (except "place_id"), which exist in DB
-  MAIN_FORM_KEYS = %i(machine_title duration_minute duration_minute_err weight event_ratio event_id note)
+  # Symbol of the main parameters in the Form (except "place" (or "place_id"?)), which exist in DB or as setter methods
+  MAIN_FORM_KEYS = %w(machine_title duration_minute duration_minute_err weight event_ratio event_id note)+[
+    "start_time(1i)", "start_time(2i)", "start_time(3i)", "start_time(4i)", "start_time(5i)", "start_time(6i)",
+    "publish_date(1i)", "publish_date(2i)", "publish_date(3i)",
+    "form_start_err", "form_start_err_unit",
+  ]
 
   # Permitted main parameters for params(), used for update and create
   PARAMS_MAIN_KEYS = ([
@@ -14,6 +18,9 @@ class EventItemsController < ApplicationController
     :start_err, :start_err_unit,  # form-specific keys that do not exist in Model
   ] + MAIN_FORM_KEYS + PARAMS_PLACE_KEYS).uniq  # PARAMS_PLACE_KEYS defined in application_controller.rb
   # they, including place_id, will be handled in event_params_two()
+
+  # Default unit for start-time error in the form
+  DEF_FORM_ERR_UNIT = "hour"
 
   # GET /event_items or /event_items.json
   def index
@@ -27,6 +34,12 @@ class EventItemsController < ApplicationController
   # GET /event_items/new
   def new
     @event_item = EventItem.new
+    set_event_prms  # set @event
+    @event_item.event = @event
+    @event_item.start_time     = (@event ? @event.start_time     : TimeAux::DEF_FIRST_DATE_TIME)  # see event.rb
+    @event_item.start_time_err = (@event ? @event.start_time_err : TimeAux::MAX_ERROR)
+
+    set_form_start_err
   end
 
   # GET /event_items/1/edit
@@ -67,4 +80,37 @@ class EventItemsController < ApplicationController
       _set_time_to_hsmain(hsall)  # set start_time and err in @hsmain; defined in application_controller.rb, to handle start_* including start_err
     end
 
+    # set @event from a given GET parameter
+    def set_event_prms
+      if params[:event_id].blank?
+        @event = nil
+      else
+        @event = Event.find(params[:event_id].to_i)
+      end
+    end
+
+    # set form_start_err and form_start_err_unit for a form
+    def set_form_start_err
+      return if !@event_item.start_time_err
+
+      @event_item.form_start_err_unit = DEF_FORM_ERR_UNIT if @event_item.form_start_err_unit.blank?
+      @event_item.form_start_err = @event_item.start_time_err.quo(
+        _form_start_err_factor(@event_item.form_start_err_unit)
+      )
+    end
+
+    # @param kwd [String] unit for the error (of start time)
+    # @return [Integer, NilClass] nil if kwd is blank.
+    def _form_start_err_factor(kwd)
+      case kwd
+      when "minute"
+        60
+      when "hour"
+        3600
+      when "day"
+        86400  # 3600*24
+      else
+        raise "Wrong kwd: #{kwd.inspect}"
+      end
+    end
 end

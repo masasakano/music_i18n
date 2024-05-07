@@ -3,8 +3,9 @@
 # This is required in /config/application.rb
 module TimeAux
 
-  # The earliest date-Time: 1 January 1, which corresponds to 3 January 1 in Date (so DEF_FIRST_DATE_TIME.to_date returns as such!).  Use {#get_first_date_time} to get a copy.
-  DEF_FIRST_DATE_TIME = TimeWithError.new(   1, 1, 1, 12, 0, 0) #, in: Rails.configuration.music_i18n_def_timezone_str)
+  # The earliest date-Time: 1 January 2019 (in Default).  Use {#get_first_date_time} to get a copy.
+  DEF_FIRST_DATE_TIME = TimeWithError.new(
+    Rails.application.config.music_i18n_def_first_event_year, 1, 1, 12, 0, 0) #, in: Rails.configuration.music_i18n_def_timezone_str)
 
   # The largest date-Time: 31 December JD 9999.  Use {#get_last_date_time} to get a copy.
   DEF_LAST_DATE_TIME  = TimeWithError.new(9999,12,31, 12, 0, 0) #, in: Rails.configuration.music_i18n_def_timezone_str)

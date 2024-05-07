@@ -24,6 +24,8 @@
 
 <% items = @event.event_items.order(:weight, event_ratio: :desc) %>
 <%= render partial: 'layouts/event_items_index', locals: {event_items: items, with_event: false} %>
+<%= link_to "New EventItem of this Event", new_event_item_path(event_id: @event.id) %>
+
 <% end %>
 
 <hr>

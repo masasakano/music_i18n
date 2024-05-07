@@ -66,13 +66,13 @@ module Seeds::ModelSummary
       en: "Instrument an Artist plays (mainly sub-information of ArtistMusicPlay)",
     },
     EventGroup: {
-      ja: "シリーズもののEventの一括り。相互に排他的。つまり、一つのEventが部分的にでも複数のEventGroupにまたがることはない。複数の大型フェスは、開催年ごとに一つのEventGroupとする(例: フジロックの2022年と2023年とは別々)。大塚愛「ラブボン」のような場合は、1つのEventGroupとしてよい。",
-      en: "A series (category) of multiple Events, which are mutually exclusive, namely an Event would not overlap multiple EventGroups evern partially. For annually-held big festivals, the festival each year should be registered as a single EventGroup (e.g., Fuji Rocks 2022 and 2023 are registered as separate EventGroups). Annualy-held small-scale events like Ai Otsuka's 'LOVE IS BORN' can be registered as a single EventGroup as a series.",
+      ja: "シリーズもののEventの一括り。相互に排他的。つまり、一つのEventが部分的にでも複数のEventGroupにまたがることはない。大塚愛「ラブボン」のような場合、1つのEventGroupとしてよい。",
+      en: "A series (category) of multiple Events, which are mutually exclusive, namely an Event would not overlap multiple EventGroups evern partially. Annualy-held events like Ai Otsuka's 'LOVE IS BORN' can be registered as a single EventGroup as a series.",
       note: ""
     },
     Event: {
-      ja: "(音楽)イベント。大型フェスならば1日あるいは1つのステージがEventとなるだろう。ライブでお客さんを入れ替える場合は別々に分ける(例: 昼公演と夜公演は別々)。",
-      en: "A (music) event. For big festivals, a single stage or single day may be an Event. Multiple concerts that accept separate sets of audience (like afternoon and evening concerts) should be registered as individual Events.",
+      ja: "(音楽)イベント。ライブでお客さんを入れ替える場合は原則として別々に分ける(例: 昼公演と夜公演は別々)。",
+      en: "A (music) event. Multiple concerts that accept separate sets of audience (like afternoon and evening concerts) should be registered as individual Events.",
       note: ""
     },
     EventItem: {

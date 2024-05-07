@@ -43,6 +43,12 @@ module HaramiMusicI18n
     ]
     #config.active_record.use_yaml_unsafe_load = true  # The last resort
 
+    # Year of the first (potential) Event. This is used as the lower threshold (plus 1)
+    # for the year to be provided for the form in default and also as the default first year of 
+    # EventGroup (and hence Event and EventItem).
+    yea = ((ye=ENV["MUSIC_I18N_DEF_FIRST_EVENT_YEAR"]).present? ? ye.to_i : 2019)
+    config.music_i18n_def_first_event_year = ((yea > 0) ? yea : 2019)
+
     ## application-specific parameters
     #
     # Default Time Zone in setting a Date or Time.
@@ -54,6 +60,9 @@ module HaramiMusicI18n
     # without touching the other values in Time, consult
     #   https://stackoverflow.com/a/78053461/3577922
     config.music_i18n_def_timezone_str = (ENV["MUSIC_I18N_DEF_TIMEZONE_STR"] || "+09:00")
+
+    # default country code
+    config.primary_country = (ENV['MUSIC_I18N_DEFAULT_COUNTRY'] || "JPN")
 
     # Do not change this (unless you search and change all of then consistently)
     config.primary_artist_titles = {
@@ -73,9 +82,6 @@ module HaramiMusicI18n
         langcode: "en",
       }.with_indifferent_access,
     }.with_indifferent_access
-
-    # default country code
-    config.primary_country = (ENV['APP_DEFAULT_COUNTRY'] || "JPN")
   end
 end
 

@@ -52,7 +52,7 @@ class LibTimeAuxTest < ActiveSupport::TestCase
     assert_equal  exp,  ti
 
     # Special cases
-    ti = TimeAux.converted_middle_time(1, nil)
+    ti = TimeAux.converted_middle_time(2019, nil)  # 2019 defined at Rails.application.config.music_i18n_def_first_event_year 
     assert_equal TimeAux::DEF_FIRST_DATE_TIME, ti
     ti = TimeAux.converted_middle_time(9999, nil)
     assert_equal TimeAux::DEF_LAST_DATE_TIME, ti

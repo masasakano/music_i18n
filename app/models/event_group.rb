@@ -27,6 +27,10 @@
 #  fk_rails_...  (place_id => places.id) ON DELETE => nullify
 #
 class EventGroup < BaseWithTranslation
+  # @note See {#delete_remaining_unknwon_event_callback} and its docs
+  #    to see how {ApplicationRecord.allow_destroy_all} affects behaviours
+  #    of the destroy action.
+
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
 
@@ -171,6 +175,10 @@ class EventGroup < BaseWithTranslation
   # Callback to delete the last-remaining "unknown" Event
   #
   # Basically, EventGroup#events.destroy_all always fails!
+  #
+  # @note If {ApplicationRecord.allow_destroy_all} is set true
+  #    (in Rails console etc), {EventGroup.destroy_all}, {Event.destroy_all}
+  #    and {EventItem.destroy_all} are allowed.
   def delete_remaining_unknwon_event_callback
     if !destroyable? && !ApplicationRecord.allow_destroy_all
       errors.add(:base, "#{self.class.name} with significant descendants cannot be destroyed. Destroy all dependent HaramiVids and not-unknown  descendants (EventItem, Event) first.")

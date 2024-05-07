@@ -152,8 +152,8 @@ module SeedsEventGroup
       key: :harami_jp2023s,
     },
     {
-      ja: "THE DROP FESTIVAL 2022 in Japan",
-      en: "THE DROP FESTIVAL 2022 in Japan",
+      ja: "THE DROP FESTIVAL in Japan",
+      en: "THE DROP FESTIVAL in Japan",
       orig_langcode: 'en',
       order_no: 1,
       start_date: Date.new(2022, 10, 29),
@@ -163,7 +163,7 @@ module SeedsEventGroup
       place: Place.unknown(prefecture: Prefecture[/宮崎/]),
       place_key: :miyazaki,
       note: 'THE DROP FESTIVAL日本初開催(青島こどものくに)、ハラミちゃん初の夏フェス参加',
-      regex: /DROP +FES.+ 2022/i,
+      regex: /DROP +FES(TIVAL)?\b.+\bJAPAN\b/i,
       key: :drop2022s,
     },
   ] 
@@ -231,7 +231,7 @@ module SeedsEventGroup
       etra.update!(weight: 0)
     end
 
-    n_changed
+    n_changed*7  # not accurate, but basically, per EventGroup, 1 Evnet, 2x2 Translations, and 1 EventItem are created.
   end  # def load_seeds
 
 end  # module SeedsEventGroup

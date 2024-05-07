@@ -17,6 +17,9 @@ This system is the framework to deal with this type of complex and dynamic cases
 * `URI_HARAMI1129` : URI to download Harami1129 data
 * `STATIC_PAGE_ROOT` : Root directory URI to load StaticPage-s in seeds
 * `STATIC_PAGE_FILES` : Comma-separated filenames of StaticPage-s to load in seeds with proper suffixes like `.html` and `.md` or `.text` (for markdown).
+* `MUSIC_I18N_DEF_FIRST_EVENT_YEAR` : Year of the first (potential) Event, used for forms and seeds (Default: 2019).
+* `MUSIC_I18N_DEF_TIMEZONE_STR` : Default Time Zone in setting a Date or Time (Default: "+09:00"). Note that all are saved in the DB in UTC.
+* `MUSIC_I18N_DEFAULT_COUNTRY` : Default country code (Default: "JPN").
 
 #### Environmental variables for testing ###
 
