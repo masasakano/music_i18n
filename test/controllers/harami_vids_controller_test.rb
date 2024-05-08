@@ -247,7 +247,7 @@ end
             assert_no_difference("Channel.count") do  # existing Channel is found
               assert_difference("HaramiVid.count") do
                 post harami_vids_url, params: { harami_vid: @def_create_params.merge(hsnew)}
-                assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+                assert_response :redirect, "note - this has once(!) raised an error of DEBUG(harami_vids_controller.rb:associate_an_event_item) #<ActiveRecord::RecordNotFound: Couldn't find PlayRole with 'id'=996795243> and I do not know why..."  # this should be put inside assert_difference block to detect potential 422
               end
             end
           end

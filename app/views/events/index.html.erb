@@ -39,7 +39,7 @@
         <%#td  %= model.order_no %  /td %>
         <td><%= model.string_time_err2uptomin %></td>
          <% err = model.start_time_err %>
-        <td><%= err ? sprintf("%.2f", err.second.in_hours) : "&mdash".html_safe %></td>
+        <td><%= err ? sprintf("%.2f", err.second.in_hours) : "&mdash;".html_safe %></td>
         <td><%= model.duration_hour %></td>
         <td><%= model.weight %></td>
         <td><%= model.place ? h(model.txt_place_pref_ctry) : "" %></td>

@@ -27,7 +27,7 @@
 #  fk_rails_...  (place_id => places.id) ON DELETE => nullify
 #
 
-# All unknown ones:
+# All unknown ones: #ev_evgr_unknown_unknown #ev_evgr_harami_concerts_unknown
 <% SeedsEventGroup::SEED_DATA.map{|ev| [ev[:key], ev]}.to_h.each_pair do |ekey, edata| %>
 ev_evgr_<%= ekey %>_unknown:
   start_time:     <%= (t=edata[:start_date]) ? t.to_time : "" %>
@@ -52,7 +52,7 @@ ev_evgr_lucky2023_unknown:
 
 ev_harami_lucky2023:
   start_time: <%= Date.new(2023).to_time %>
-  start_time_err: 600
+  start_time_err: 900
   duration_hour: 0.5
   weight: 0.5
   event_group: evgr_lucky2023

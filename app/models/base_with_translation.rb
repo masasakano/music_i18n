@@ -284,7 +284,7 @@
 #   b.select_translations_regex(  :titles, /^Aus/i, where: ['id <> ?', abc.id])
 #     # => [Translation, [Translation, ...]]  (searching only those related to self; in practice, useful only when self has multiple translations in a language)
 #   b.titles(langcode: nil, lang_fallback_option: :never, str_fallback: nil)
-#   b.title_or_alt(prefer_alt: false, langcode: nil, lang_fallback_option: :either, str_fallback: "")
+#   b.title_or_alt(prefer_alt: false, langcode: nil, lang_fallback_option: :either, str_fallback: "", article_to_head: true)
 #   b.title(langcode: nil, lang_fallback: false, str_fallback: nil) # See below re fallback
 #   b.ruby
 #   b.romaji
@@ -425,7 +425,7 @@ class BaseWithTranslation < ApplicationRecord
 
       if !record.new_record?
         msg_base = "unsaved_translations has to be blank for an existing entity. Contact the code developer: #{record.inspect}"
-        logger.error "ERROR: "+msg_base 
+        Rails.logger.error "ERROR: "+msg_base
         msg =
           if ModuleWhodunnit.whodunnit && ModuleWhodunnit.whodunnit.an_admin?
             "[admin-message] "+msg_base
@@ -2129,6 +2129,8 @@ class BaseWithTranslation < ApplicationRecord
   #    Unlike {#get_a_title} and {#titles}, the default is +""+, meaning this method
   #    never returns +nil+ in default, unless explicitly specified so with this option.
   # @param langcode: [String, NilClass] like 'ja' (directly passed to the parent method)
+  # @param prioritize_orig: [Boolean] (directly passed to the parent method)
+  # @param article_to_head: [Boolean] (directly passed to the parent method)
   # @return [String] Singleton method of +lcode+ is available.
   def title_or_alt(prefer_alt: false, lang_fallback_option: :either, str_fallback: "", **opts)
     cands = titles(lang_fallback_option: lang_fallback_option, str_fallback: nil, **opts) # nil is wanted when no translations are found.

@@ -7,7 +7,10 @@ class EventsController < ApplicationController
   before_action :event_params_two, only: [:create, :update]
 
   # Symbol of the main parameters in the Form (except "place_id"), which exist in DB
-  MAIN_FORM_KEYS = %i(duration_hour weight event_group_id note)
+  MAIN_FORM_KEYS = %w(duration_hour weight event_group_id note) + [
+    "start_time(1i)", "start_time(2i)", "start_time(3i)", "start_time(4i)", "start_time(5i)", "start_time(6i)",
+    "form_start_err", "form_start_err_unit",
+  ]
 
   # Permitted main parameters for params(), used for update and create
   PARAMS_MAIN_KEYS = ([
@@ -16,8 +19,12 @@ class EventsController < ApplicationController
   ] + MAIN_FORM_KEYS + PARAMS_PLACE_KEYS).uniq  # PARAMS_PLACE_KEYS defined in application_controller.rb
   # they, including place_id, will be handled in event_params_two()
 
+  # Default unit for start-time error in the form
+  DEF_FORM_ERR_UNIT = "hour"
+
   # GET /events or /events.json
   def index
+    @events = Event.all
   end
 
   # GET /events/1 or /events/1.json
@@ -26,19 +33,38 @@ class EventsController < ApplicationController
 
   # GET /events/new
   def new
+    set_event_group_prms  # set @event_group
+    @event.event_group = @event_group
+    @event.start_time     ||= (@event_group ? @event_group.start_time     : TimeAux::DEF_FIRST_DATE_TIME)  # see event.rb
+    @event.start_time_err ||= (@event_group ? @event_group.start_time_err : TimeAux::MAX_ERROR)
+
+    set_form_start_err(@event)  # defined in module_comon.rb
   end
 
   # GET /events/1/edit
   def edit
+    # In case only an EventGroup (but not StartTime) was defined in create
+    @event.start_time     ||= (@event_group ? @event_group.start_time     : TimeAux::DEF_FIRST_DATE_TIME)  # see event.rb
+
+    if !@event.form_start_err
+      unit = ((uni=@event.form_start_err_unit) ? uni : get_optimum_timu_unit(@event.start_time_err))
+      factor = _form_start_err_factor(unit)
+      @event.form_start_err_unit ||= unit
+      @event.form_start_err = @event.start_time_err.quo(factor)
+    end
+
+    set_form_start_err(@event)  # defined in module_comon.rb
   end
 
   # POST /events or /events.json
   def create
     @event = Event.new(@hsmain)
+    set_start_err_from_form(@event)  # defined in module_common.rb
     authorize! __method__, @event
 
     add_unsaved_trans_to_model(@event, @hstra) # defined in application_controller.rb
     def_respond_to_format(@event)              # defined in application_controller.rb
+    transfer_error_to_form(@event, mdl_attr: :start_time_err, form_attr: :form_start_err)  # defined in application_controller.rb
   end
 
 
@@ -47,6 +73,7 @@ class EventsController < ApplicationController
     def_respond_to_format(@event, :updated){
       @event.update(@hsmain)
     } # defined in application_controller.rb
+    transfer_error_to_form(@event, mdl_attr: :start_time_err, form_attr: :form_start_err)  # defined in application_controller.rb
   end
 
   # DELETE /events/1 or /events/1.json
@@ -69,4 +96,15 @@ class EventsController < ApplicationController
       hsall = set_hsparams_main_tra(:event) # defined in application_controller.rb
       _set_time_to_hsmain(hsall)  # set start_time and err in @hsmain; defined in application_controller.rb, to handle start_* including start_err
     end
+
+
+    # set @event_group from a given GET parameter
+    def set_event_group_prms
+      if params[:event_group_id].blank?
+        @event_group = nil
+      else
+        @event_group = EventGroup.find(params[:event_group_id].to_i)
+      end
+    end
+
 end

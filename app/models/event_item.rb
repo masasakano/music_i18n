@@ -191,18 +191,49 @@ class EventItem < ApplicationRecord
     def_event.unknown_event_item
   end
 
+  # Returns a unique title.
+  #
+  # A number may be added between prefix and separator + postfix if it is already unique.
+  # A separator becomes blank if postfix is blank.
+  #
   # @param prefix [String]
+  # @param postfix: [String]
+  # @param separator: [String]
   # @return [String] unique machine_title
-  def self.get_unique_title(prefix)
-    return prefix if !where(machine_title: prefix).exists?
+  def self.get_unique_title(prefix, postfix: "", separator: "-")
+    postfix ||= ""
+    separator = "" if postfix.blank?
+    trial = prefix + separator + postfix
+    return trial if !where(machine_title: trial).exists?
 
-    (0..).each do |postfix|
-      trial = prefix+postfix.to_s
+    (1..).each do |suffix|
+      trial = prefix + suffix.to_s + separator + postfix
       return trial if !where(machine_title: trial).exists?
-      raise "(#{File.basename __FILE__}:#{__method__}) Postfix exceeded the limit for prefix=#{prefix.inspect}. Contact the code developer." if postfix > 100000  # to play safe.
+      raise "(#{File.basename __FILE__}:#{__method__}) Suffix exceeded the limit for prefix=#{prefix.inspect} and postfix=#{(separator+postfix).inspect}. Contact the code developer." if suffix > 100000  # to play safe.
     end
   end
-  private_class_method :get_unique_title
+
+  # Wrapper of {EventTitle.get_unique_title}
+  #
+  # An eaxmple is ""
+  #
+  # @option prefix [String]
+  # @param postfix: [String, Symbol] If :default, a combined title of Event and EventGroup is used.
+  # @param separator: [String]
+  # @return [String] unique machine_title
+  def default_unique_title(prefix="item", postfix: :default, separator: "-")
+    if :default == postfix
+      postfix =
+        if event
+          [event, event.event_group].map{|model|
+            definite_article_to_head(model.title(langcode: "en", lang_fallback: true, str_fallback: "")).gsub(/ +/, "_")
+          }.join(separator)
+        else
+          ""
+        end
+    end
+    self.class.get_unique_title(prefix, postfix: postfix, separator: separator)
+  end
 
   # Not destroyable if self is the last remaining one and {#unknown?}
   # even if there are no child HaramiVids.  In such a case,

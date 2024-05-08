@@ -67,12 +67,14 @@ class EventItemsControllerTest < ActionDispatch::IntegrationTest
     sign_in editor
     assert_difference("EventItem.count") do
       post event_items_url, params: { event_item: @hs_create }
+      assert_response :redirect
     end
     ei_last = EventItem.last
     assert_redirected_to event_item_url(ei_last)
     assert_equal 2024, ei_last.start_time.year
     assert_equal    8, ei_last.start_time.month
     assert_equal    9, ei_last.publish_date.month
+    assert_equal @hs_create["form_start_err"].to_i*3600, ei_last.start_time_err
   end
 
   test "should show event_item" do

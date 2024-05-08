@@ -97,6 +97,13 @@ class EventItemTest < ActiveSupport::TestCase
     assert_match(/^UnknownEventItem_Event_in/, evit.machine_title) # See Event::UNKNOWN_TITLE_PREFIXES[:en]
   end
 
+  test "default_unique_title" do
+    evit = event_items(:evit_ev_evgr_unknown)
+    assert_equal "item-UnknownEvent-UncategorizedEventGroup",  (ut=evit.default_unique_title)
+    EventItem.create!(machine_title: ut, event: evit.event)
+    assert_equal "item1-UnknownEvent-UncategorizedEventGroup", (ut=evit.default_unique_title)
+  end
+
   test "association" do
     assert_nothing_raised{ EventItem.first.harami_vids }
   end

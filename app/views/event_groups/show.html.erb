@@ -25,14 +25,19 @@
   <%= link_to "Edit this EventGroup", edit_event_group_path(@event_group) %> |
     <% end %>
   <%= link_to t("layouts.back_to_index"), event_groups_path %>
-
-<% if canupdate && @event_group.destroyable? %>
-  <%= button_to "Destroy this EventGroup", @event_group, method: :delete %>
-<% elsif current_user && current_user.an_admin? %>
-  | Child Events (descendants) exist or this is "unknown?", and so this cannot be destroyed.
-<% end %>
   </p>
+
+<div class="text-end"> <%# bootstrap 5 %>
+<% if can?(:destroy, @event_group) && @event_group.destroyable? %>
+  <%= button_to "Destroy this EventGroup", @event_group, method: :delete %>
+  </div>
+<% elsif current_user && current_user.an_admin? %>
+  <p>
+  (Child Events (descendants) exist or this is "unknown?", so this cannot be destroyed.)
+  </p>
+<% end %>
 </div>
+</div> <!-- div id="event_group_show_footer_controller" -->
 
 <hr>
 
@@ -71,13 +76,14 @@
         <% if can? :update, event  %>
           <td><%= link_to 'Edit', edit_event_path(event) %></td>
         <% end %>
-        <% if can? :destroy, event %>
+        <% if can?(:destroy, event) && event.destroyable? %>
           <td><%= link_to 'Destroy', event, method: :delete, data: { confirm: t('are_you_sure') } %></td>
         <% end %>
       </tr>
     <% end %>
   </tbody>
 </table>
+<span class="lead"><%= link_to "New Event of this EventGroup", new_event_path(event_group_id: @event_group.id) %></span>
 </section>
 
 <hr>

@@ -1030,6 +1030,80 @@ module ModuleCommon
     retstr
   end
 
+  # Returns a String of (minute|hour|day) as the optimum unit from the given second.
+  #
+  # The latter two are expected to be set in the argument +record+
+  #
+  # @param second [Numeric, String]
+  # @return [String, Nilclass] nil if nil is given.
+  def get_optimum_timu_unit(second)
+    return if second.blank?
+    second = second.to_f
+    if second < 3600
+      "minute"
+    elsif second <= 129600  # 36 hours
+      "hour"
+    else
+      "day"
+    end
+  end
+
+  # set start_time_err from form_start_err and form_start_err_unit
+  #
+  # The latter two are expected to be set in the argument +record+
+  #
+  # @param record [ApplicationRecord] instance variable like @event_item
+  # @param set_value: [Boolean] If true (Default), the value is set to +record+
+  #   Basically, +set_value+ should be true for create and false for update.
+  # @return [Float, Nilclass] The error value
+  def set_start_err_from_form(record, set_value: true)
+    return if record.form_start_err.blank?
+
+    factor = (_form_start_err_factor(record.form_start_err_unit) || 1)
+    err_val = record.form_start_err.to_f * factor
+    record.start_time_err = err_val if set_value
+    err_val
+  end
+
+  # set form_start_err and form_start_err_unit for a form
+  #
+  # Each class should define the constant DEF_FORM_ERR_UNIT (=="hour"?)
+  #
+  # @param record [ApplicationRecord] instance variable like @event_item
+  def set_form_start_err(record)
+    return if record.start_time_err.present?
+
+    if record.form_start_err_unit.blank?
+      record.form_start_err_unit = 
+        if self.class.const_defined?(:DEF_FORM_ERR_UNIT)
+          self.class::DEF_FORM_ERR_UNIT
+        else
+          logger.warn "WARNING: DEF_FORM_ERR_UNIT should be defined for #{self.class.name}"
+          "hour"
+        end
+    end
+
+    record.form_start_err = record.start_time_err.quo(
+      _form_start_err_factor(record.form_start_err_unit)
+    )
+  end
+
+  # @param kwd [String] unit for the error (of start time)
+  # @return [Integer, NilClass] nil if kwd is blank.
+  def _form_start_err_factor(kwd)
+    case kwd
+    when "minute"
+      60
+    when "hour"
+      3600
+    when "day"
+      86400  # 3600*24
+    else
+      raise "Wrong kwd: #{kwd.inspect}"
+    end
+  end
+  private :_form_start_err_factor
+
   # Returns Float, Integer, nil converted from String or anything else as it is
   #
   # This returns nil if blank?

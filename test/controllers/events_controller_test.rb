@@ -24,6 +24,8 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
       "start_year"=>"2024", "start_month"=>"", "start_day"=>"", "start_hour"=>"", "start_minute"=>"",
       "start_err"=>"3", "start_err_unit"=>"hours",
       "duration_hour"=>"0.5", "weight"=>"",
+      "start_time(1i)"=>"2024", "start_time(2i)"=>"8", "start_time(3i)"=>"1", "start_time(4i)"=>"12", "start_time(5i)"=>"00",
+      "form_start_err"=>"69959976.0", "form_start_err_unit"=>"hour",
       "note"=>""
     }
     @validator = W3CValidators::NuValidator.new
@@ -81,7 +83,9 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
       my_assert_no_alert_issued screen_test_only: true  # defined in /test/test_helper.rb
     end
     assert_redirected_to event_url(Event.last)
-    assert_equal "Test7, The", Event.order(:created_at).last.title, "Event: "+Event.order(:created_at).last.inspect
+    ev_last = Event.order(:created_at).last
+    assert_equal "Test7, The", Event.order(:created_at).last.title, "Event: "+ev_last.inspect
+    assert_equal @hs_create["form_start_err"].to_i*3600, ev_last.start_time_err
   end
 
   test "should show event" do
@@ -100,6 +104,8 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
     sign_in @moderator
     get edit_event_url(@event)
     assert_response :success
+    assert                                      css_select("input#event_form_start_err")[0]["value"].present?, "HTML="+css_select("input#event_form_start_err").to_html
+    assert_equal @event.start_time_err/60.0, (v=css_select("input#event_form_start_err")[0]["value"]).to_f, "val=#{v.inspect}"  # This should be "minute"
   end
 
   test "should update event" do

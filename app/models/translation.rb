@@ -47,7 +47,8 @@
 #  fk_rails_...  (update_user_id => users.id)
 #
 class Translation < ApplicationRecord
-  extend ModuleCommon
+  include ModuleCommon
+  extend  ModuleCommon
   include ModuleWhodunnit # for set_create_user, set_update_user
   using ModuleHashExtra  # for extra methods, e.g., Hash#values_blank_to_nil
 

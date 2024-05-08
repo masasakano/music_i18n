@@ -555,6 +555,22 @@ class ApplicationController < ActionController::Base
   private :_set_time_to_hsmain
 
 
+  # copy the error attribute so it can be handled by simple_form
+  #
+  # For example, errors[:start_time_err] is transferred (copied) to errors[:form_start_err]
+  #
+  # @param mdl [ApplicationRecord] like @event
+  # @param mdl_attr: [String, Symbol] Attribute for which an error is raised (such as "not Numeric")
+  # @param form_attr: [String, Symbol] Attribute used in the form
+  def transfer_error_to_form(mdl, mdl_attr: :start_time_err, form_attr: :form_start_err)
+    if !mdl.errors[mdl_attr].empty?
+      mdl.errors[mdl_attr].each do |ea_msg|
+        mdl.errors.add(form_attr, ea_msg)
+        # TODO: remove the error(s) from errors[mdl_attr] (e.g., errors["start_time_err"])
+      end
+    end
+  end
+
   # Grid-view form helper method
   #
   # @example in ERB

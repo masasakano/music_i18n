@@ -456,6 +456,9 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     art = artists(:artist_proclaimers)  # "Proclaimers, The"
     assert_equal "The Proclaimers",  art.title_or_alt_tuple_str(langcode: "ja")
     assert_equal "Proclaimers, The", art.title_or_alt_tuple_str(langcode: "ja", normalize_definite_article: false), "'The' should be placed at the end only when explicitly specified."
+
+    ev = events(:ev_evgr_harami_concerts_unknown)
+    assert_equal "UnknownEvent", ev.title_or_alt(langcode: "en", lang_fallback_option: :either, str_fallback: nil, article_to_head: true)
   end
 
   test "no translations in titles etc" do

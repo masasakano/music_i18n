@@ -63,6 +63,9 @@ class Event < BaseWithTranslation
     validates ec, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true
   end
 
+  attr_accessor :form_start_err
+  attr_accessor :form_start_err_unit
+
   UNKNOWN_TITLES = UnknownEvent = {
     "ja" => '不明のイベント',
     "en" => 'UnknownEvent',

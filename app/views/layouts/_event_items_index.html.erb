@@ -33,10 +33,10 @@
 
         <td><%= event_item.string_time_err2uptomin %></td>
          <% err = event_item.start_time_err %>
-        <td><%= err ? sprintf("%.2f", err.second.in_hours) : "&mdash".html_safe %></td>
+        <td><%= err ? sprintf("%.2f", err.second.in_hours) : "&mdash;".html_safe %></td>
         <td><%= event_item.duration_minute %></td>
          <% err = event_item.duration_minute_err %>
-        <td><%= err ? sprintf("%.2f", err.second.in_seconds) : "&mdash".html_safe %></td>
+        <td><%= err ? sprintf("%.2f", err.second.in_minutes) : "&mdash;".html_safe %> [min]</td>
         <td><%= event_item.weight %></td>
         <td><%= event_item.event_ratio %></td>
         <td><%= event_item.place ? h(event_item.txt_place_pref_ctry) : "" %></td>
