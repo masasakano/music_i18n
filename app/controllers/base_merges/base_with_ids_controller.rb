@@ -43,7 +43,6 @@ class BaseMerges::BaseWithIdsController < ApplicationController
     def get_id
       # hs = Rails.application.routes.recognize_path params[:path], method: :get  # this works in Console, but does not work in test...
       # => {:controller=>"musics/merges", :action=>"new", :id=>"8", :locate=>"en"}
-#logger.debug "DEBUG(#{__FILE__}): recognize_path(#{params[:path]})="+hs.inspect
       # baseroot = File.dirname(__FILE__).sub(%r@\A.+\bapp/controllers/@, "") # => "/en/musics/21923907/merges/new"
       # dirs = hs[:controller].split("/")  # "musics/merges"
       # if /\A#{Regexp.quote(dirs[0])}/ =~ baseroot && baseroot.include?(dirs[1])

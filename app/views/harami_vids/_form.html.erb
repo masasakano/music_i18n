@@ -104,6 +104,7 @@
      </div>
       <%= f.input :music_timing, label: t("harami_vids.table_head_timing"), hint: t('harami_vids.music_timing_hint') %>
     </div>
+    </div>
 
     <div class="register_assoc_artist">
     <h4><%= t('layouts.new_musics.assoc_artist_head') %></h4>
@@ -111,8 +112,7 @@
        <div class="new_artist_link"><p><%# t('layouts.new_musics.note_new_artist') %><%# link_to(t('layouts.new_musics.create_new_artist'), new_artist_path, target: "_blank") %> </p></div>  <%# Message of "Create it first" is now removed. %>
       <% end%>
     <div class="register_assoc_artist_field">
-      <%= f.input :artist_name,    label: t('layouts.new_musics.associated_artist_name'), placeholder: 'eg., "欅坂46", "Beatles, The", "The Beatles"' %>
-        <%= content_tag :div, '', id: 'suggestions', data: {items: Artist.titles_for_form} %>
+      <%= f.input :artist_name,    label: t('layouts.new_musics.associated_artist_name'), placeholder: 'eg., "欅坂46", "Beatles, The", "The Beatles"', input_html: {"data-1p-ignore" => true} %>
 
      <div class="form_new_model_info">
       <%= f.input :artist_sex,
@@ -141,7 +141,7 @@
         collection: ordered_models_form(PlayRole), selected: (harami_vid.form_play_role || PlayRole.default(:HaramiVid)),
         label: "How they collaborate" %>
      </div>
-    </div>
+    </div> <!-- div class="register_collab_artist_field" -->
 
   </div> <!-- div class="form-inputs" -->
 

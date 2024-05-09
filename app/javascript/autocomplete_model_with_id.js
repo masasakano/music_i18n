@@ -6,12 +6,14 @@
 
 // model: Snake-case of the caller model (which should be used as an ID for <input>)
 // to_model: model to auto-complete (either "artist" or "music")
+// cssid: directly specifies the CSS-ID for the <input> field to auto-complete;
+//   if specified, either of model or to_model ("artist" or "music") suffices.
 //
 // ID for the <input> tag must be in forms of either "artist_with_id" or "channel_owner_artist_with_id"
 //
 // AJAX target algorithm is implemented in /app/controllers/base_merges/base_with_ids_controller.rb
 // Some path-restriction algoritm is applied there.
-export function autocompleteModelWithId(model, to_model=null){
+export function autocompleteModelWithId(model, to_model=null, cssid=null){
 	var prefix;
 	if (!to_model) {
 		prefix = model;
@@ -19,7 +21,7 @@ export function autocompleteModelWithId(model, to_model=null){
 	} else {
 		prefix = model + '_' + to_model;
 	}
-	var modelsel = "#" + $.escapeSelector(prefix+'_with_id');
+	var modelsel = "#" + (cssid ? cssid : $.escapeSelector(prefix+'_with_id'));
   $(modelsel).autocomplete ({
     minLength: 2,
 		delay: 500,

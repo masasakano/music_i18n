@@ -9,11 +9,14 @@ import {autocompleteModelWithId} from './autocomplete_model_with_id.js';
 const models = [
 	["artist"],
 	["music"],
-	["channel_owner", "artist"]
+	["channel_owner", "artist"],
+  ["harami_vid",    "music",  "harami_vid_music_name"],
+  ["harami_vid",    "artist", "harami_vid_artist_name"],
+  ["harami_vid",    "artist",	"harami_vid_artist_name_collab"]
 ];
 
 models.forEach(
 	(element) =>
-		autocompleteModelWithId(element[0], element[1])
+		autocompleteModelWithId(element[0], element[1], element[2])
 );
 
