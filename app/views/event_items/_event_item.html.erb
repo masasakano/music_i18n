@@ -8,23 +8,23 @@
 
   <dt><strong>Machine title:</strong></dt>
     <dd><%= event_item.machine_title %></dd>
-  <dt><strong>Event:</strong></dt>
+  <dt><strong><%= t("events.parent_event") %>:</strong></dt>
     <dd><%= link_to event_item.event.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), event_url(event_item.event) %> &lt; EventGroup(<%= link_to event_item.event.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), event_item.event.event_group %>)</dd>
+  <dt><strong>Place:</strong></dt>
+    <dd><%= event_item.place ? h(event_item.txt_place_pref_ctry) : "" %></dd>
 
-  <dt><strong>Start time [in <%= Rails.configuration.music_i18n_def_timezone_str %>] (± hours):</strong></dt>
-    <% err = event_item.start_time_err %>
-    <dd><%= event_item.string_time_err2uptomin %> (± <%= err ? err.second.in_hours : "&mdash;".html_safe %> [hrs])</dd>
-  <dt><strong>Duration [minute] (± minutes):</strong></dt>
+  <dt><strong>Start time [in <%= Rails.configuration.music_i18n_def_timezone_str %>] (± days/hrs/mins):</strong></dt>
+    <dd><%= event_item.string_time_err2uptomin %> (± <%= time_in_units(event_item.start_time_err, for_editor: can?(:edit, event_item)) %>)</dd> <%# in module_common.rb %>
+  <dt><strong><%= t("events.Duration") %> [<%= t(:minute) %>] (± <%= t(:minutes_short) %>):</strong></dt>
     <% err = event_item.duration_minute_err %>
-    <dd><%= event_item.duration_minute %> (± <%= err ? err.second.in_minutes : "&mdash;".html_safe %> [mins])</dd>
+    <dd><%= event_item.duration_minute %> (± <%= err ? err.second.in_minutes : "&mdash;".html_safe %> [<%= t(:minutes_short) %>])</dd>
   <dt><strong><%= t("tables.publish_date", default: "Published on YYYY-MM-DD") %>:</strong></dt>
     <% da = event_item.publish_date %>
+    <% end_str = (can?(:edit, event_item) ? nil : "&mdash;".html_safe) %>
     <dd><%= strdate = (da ? date2text(da.year, da.month, da.day, lower_end_str: end_str, upper_end_str: end_str) : (canedit ? date2text(nil, nil, nil) : "&mdash;".html_safe)) %></dd>
 
   <dt><strong>Weight:</strong></dt>
     <dd><%= event_item.weight %></dd>
-  <dt><strong>Place:</strong></dt>
-    <dd><%= event_item.place ? h(event_item.txt_place_pref_ctry) : "" %></dd>
   <dt>Note:</dt>
     <dd><%= event_item.note %></dd>
   <% if can? :update, event_item %>

@@ -28,20 +28,20 @@ class EventsTest < ApplicationSystemTestCase
     n_events_be4 = page.all("div#events table tr").size - 1
     click_on "Create Event"
 
-    page.find('form div.field.radio_langcode').choose('English')
+    page.find('form section#form_edit_translation fieldset.form-group.radio_buttons.event_langcode').choose('English')
 
     # label_str = I18n.t('layouts.new_translations.title', model: 'EventGroup')
     page.find('input#event_title').fill_in with: 'Tekitoh'  # This is unique!
 
     # Test of dropdown-menu
     assert_selector 'div#div_select_country', text: "Country"
-    assert_selector 'div#div_select_place', visible: :hidden
+    assert_selector 'div#div_select_place div.form-group', visible: :hidden
 
     assert     find_field('Country')
     assert_selector    'form div#div_select_country'
     #assert_selector    'form div#div_select_prefecture', visible: :hidden
     #assert_no_selector 'form div#div_select_prefecture'  # display: none
-    assert_no_selector 'form div#div_select_place'       # display: none
+    assert_no_selector 'form div#div_select_place div.form-group'       # display: none
 
     #selector = %Q{form div#div_select_country select option:contains("Japan")}
     #page.execute_script %Q{ $('#{selector}').trigger('mouseenter').click() }
@@ -50,11 +50,8 @@ class EventsTest < ApplicationSystemTestCase
     assert_selector    'form div#div_select_prefecture'  # Now JS made it appear
     assert     find_field('Prefecture')                  # Now JS made it appear
 
-    fill_in "Start Year",   with: @event.start_app_time.year
-    fill_in "Start Month",  with: ""
-    #fill_in "Start Day",    with: @event.start_app.day
-    #fill_in "Start Hour",   with: @event.start_app.hour
-    #fill_in "Start Minute", with: @event.start_app.min
+    page.find('select#event_start_time_1i').select(@event.start_app_time.year)  # defined in module_common.rb
+    page.find('select#event_start_time_2i').select("June")
     fill_in "Error", with: ""  # Form Keyword: start_err
     #select "Error Unit" ...
     fill_in "Duration [hour]", with: 5 # @event.duration_hour
@@ -81,8 +78,7 @@ class EventsTest < ApplicationSystemTestCase
     assert_selector 'form div#div_select_prefecture'
     assert_selector 'form div#div_select_place'
 
-    fill_in "Start Month",  with: 8  # This is updated!
-    fill_in "Start Day",    with: ""  # This is updated!
+    page.find('select#event_start_time_2i').select("August")
 
     click_on "Update Event"
 

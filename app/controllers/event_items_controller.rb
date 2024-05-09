@@ -19,8 +19,8 @@ class EventItemsController < ApplicationController
   ] + MAIN_FORM_KEYS + PARAMS_PLACE_KEYS).uniq  # PARAMS_PLACE_KEYS defined in application_controller.rb
   # they, including place_id, will be handled in event_params_two()
 
-  # Default unit for start-time error in the form
-  DEF_FORM_ERR_UNIT = "hour"
+  # Default unit for start-time error in the form; overwriting the one in ApplicationController
+  DEF_FORM_TIME_ERR_UNIT = "hour"
 
   # GET /event_items or /event_items.json
   def index
@@ -35,13 +35,18 @@ class EventItemsController < ApplicationController
   def new
     set_event_prms  # set @event
     @event_item.event = @event
-    if !@event
+    if @event
+      @event_item.machine_title  = @event_item.default_unique_title 
+      @event_item.place          = @event.place
+      @event_item.start_time     = @event.start_time
+      @event_item.start_time_err = @event.start_time_err
+      @event_item.duration_minute = @event.duration_hour*60 if @event.duration_hour
+    else
       flash[:notice] ||= []
       flash[:notice] << "You can pre-specify an Event and then a default machine_title would be suggested. Go to Event index, jump to your preferred Event, and there is a link to New EventItem under the table of all EventItems belonging to the Event."
     end
-    @event_item.machine_title = @event_item.default_unique_title if @event
-    @event_item.start_time     = (@event ? @event.start_time     : TimeAux::DEF_FIRST_DATE_TIME)  # see event.rb
-    @event_item.start_time_err = (@event ? @event.start_time_err : TimeAux::MAX_ERROR)
+    @event_item.start_time     ||= TimeAux::DEF_FIRST_DATE_TIME  # see event.rb
+    @event_item.start_time_err ||= TimeAux::MAX_ERROR
 
     set_form_start_err(@event_item)  # defined in module_comon.rb
   end
@@ -52,10 +57,10 @@ class EventItemsController < ApplicationController
     @event_item.start_time     = (@event ? @event.start_time     : TimeAux::DEF_FIRST_DATE_TIME)  # see event.rb
 
     if !@event_item.form_start_err
-      unit = ((uni=@event_item.form_start_err_unit) ? uni : get_optimum_timu_unit(@event_item.start_time_err))
-      factor = _form_start_err_factor(unit)
+      unit = ((uni=@event_item.form_start_err_unit) ? uni : get_optimum_timu_unit(@event_item.start_time_err))  # defined in /app/models/module_common.rb
+      factor = _form_start_err_factor(unit)  # defined in /app/models/module_common.rb
       @event_item.form_start_err_unit ||= unit
-      @event_item.form_start_err = @event_item.start_time_err.quo(factor)
+      @event_item.form_start_err = @event_item.start_time_err.quo(factor) if @event_item.start_time_err
     end
     #@event_item.start_time_err = (@event ? @event.start_time_err : TimeAux::MAX_ERROR)
 
@@ -63,22 +68,16 @@ class EventItemsController < ApplicationController
   end
 
   # POST /event_items or /event_items.json
+  # @see EventsController#craete
   def create
     @event_item = EventItem.new(@hsmain)
-    set_start_err_from_form(@event_item)  # defined in module_common.rb
     authorize! __method__, @event_item
-
-    def_respond_to_format(@event_item)    # defined in application_controller.rb
-    transfer_error_to_form(@event_item, mdl_attr: :start_time_err, form_attr: :form_start_err)  # defined in application_controller.rb
+    event_create_to_format(@event_item) # defined in application_controller.rb
   end
 
   # PATCH/PUT /event_items/1 or /event_items/1.json
   def update
-    start_err = set_start_err_from_form(@event_item, set_value: false)  # defined in module_common.rb
-    def_respond_to_format(@event_item, :updated){
-      @event_item.update(@hsmain.merge({start_time_err: start_err}))
-    } # defined in application_controller.rb
-    transfer_error_to_form(@event_item, mdl_attr: :start_time_err, form_attr: :form_start_err)  # defined in application_controller.rb
+    event_update_to_format(@event_item)  # defined in application_controller.rb
   end
 
   # DELETE /event_items/1 or /event_items/1.json

@@ -183,6 +183,11 @@ en:
       number_id: "N-th"
       event_table_title: Events in this Group
 
+  events:
+    parent_event: "(Parent) Event"
+    Duration: Duration
+    DurationError: Duration Error
+
   harami_vids:
     table_head_date: Date
     table_head_timing: "Timing[s]"

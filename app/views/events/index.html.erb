@@ -48,7 +48,7 @@
         <% if can? :read, EventItem %>
          <% items = model.event_items.order(:weight, event_ratio: :desc) %>
         <td class="events_index_items">
-          <%= items.map.with_index{ |ei, i| link_to(sprintf("%d", i+1), event_item_path(ei)) }.join(", ").html_safe %>
+          <%= items.map.with_index{ |ei, i| link_to(sprintf("%d", i+1), event_item_path(ei), title: ei.machine_title) }.join(", ").html_safe %>
         </td>
         <% end %>
         <td><%= h(model.note) %></td>

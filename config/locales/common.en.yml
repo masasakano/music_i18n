@@ -77,6 +77,11 @@ en:
   Year_Title: Year
   year_unknown: Year_Unknown
   days: days
+  hours_short: hrs
+  hour: hour
+  minutes_short: mins
+  minute: minute
+  time_second: second
 
   locale:
     lowercase:

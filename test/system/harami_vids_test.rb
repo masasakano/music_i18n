@@ -28,18 +28,19 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
     # print "DEBUG:html=";puts page.find('div#div_select_country')['outerHTML']
     assert_selector 'div#div_select_country', text: "Country"
-    assert_selector 'div#div_select_prefecture', visible: :hidden
+    assert_selector 'div#div_select_prefecture', text: "Prefecture"
+    assert_selector 'div#div_select_place div.form-group', visible: :hidden
 
-    fill_in "URI", with: 'abcdef123'
+    fill_in "Uri", match: :first, with: 'abcdef123'
     #fill_in "Duration", with: @harami_vid.duration
 
     today = Date.today
-    page.find('form div.field select#harami_vid_release_date_1i').select text: today.year.to_s
-    page.find('form div.field select#harami_vid_release_date_2i').select text: 'August'
-    page.find('form div.field select#harami_vid_release_date_3i').select text: 15.to_s
+    page.find('form select#harami_vid_release_date_1i').select text: today.year.to_s
+    page.find('form select#harami_vid_release_date_2i').select text: 'August'
+    page.find('form select#harami_vid_release_date_3i').select text: 15.to_s
     # fill_in "Date", with: @harami_vid.date
 
-    check "Uploaded by Harami"
+    #check "Uploaded by Harami"
 
     #### So far, this test does not work BECAUSE it is not working in the app.
     #click_on "Create Harami vid"

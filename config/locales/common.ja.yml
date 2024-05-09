@@ -46,6 +46,11 @@ ja:
   Year_Title: 西暦年
   year_unknown: 年不明
   days: 日
+  hours_short: 時間
+  hour: 時間
+  minutes_short: 分
+  minute: 分
+  time_second: 秒
 
   locale:
     lowercase:

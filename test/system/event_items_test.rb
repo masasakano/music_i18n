@@ -43,15 +43,16 @@ class EventItemsTest < ApplicationSystemTestCase
     click_on "Log in"
 
     visit event_items_url  # index page
-    click_on "Create EventItem"
+    click_on "New EventItem"
 
     fill_in "Machine title", with: "my_new_title"
     select('Japan',  from: 'Country')
-    fill_in "Start Year", with: 2024
+    # fill_in "Start Year", with: 2024
+    page.find('select#event_item_start_time_1i').select("2024")
     fill_in "Duration [minute]", with: 60
     fill_in "Weight", with: ""
     fill_in "Note", with: ""
-    click_on "Create EventItem"
+    click_on "Create Event item"
 
     assert_text "EventItem was successfully created"
     click_on "Back"
@@ -69,7 +70,7 @@ class EventItemsTest < ApplicationSystemTestCase
     click_on "Edit this EventItem", match: :first
 
     fill_in "Machine title", with: "my_updated_title"
-    click_on "Update EventItem"
+    click_on "Update Event item"
 
     assert_text "EventItem was successfully updated"
     click_on "Back"

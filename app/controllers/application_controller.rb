@@ -80,6 +80,9 @@ class ApplicationController < ActionController::Base
   # Unit used in Event/EventItem Forms
   EVENT_FORM_ERR_UNITS = [["days", "day"], ["hours", "hour"], ["minutes", "minute"]]
 
+  # Default unit used in Event/EventItem Forms for Time-related errors.  This can be overwritten by DEF_FORM_TIME_ERR_UNIT in each Controller class!
+  DEF_FORM_TIME_ERR_UNIT = "day"
+
   def default_url_options(options={})
     #Rails.application.default_url_options = Rails.application.routes.default_url_options = { locale: I18n.locale }
     { locale: I18n.locale }.merge options
@@ -290,6 +293,32 @@ class ApplicationController < ActionController::Base
     end
   end
 
+  # For Event and EventItem Controllers
+  #
+  # @param mdl [ApplicationRecord] Either Event or EventItem
+  # @return [void]
+  # @see #event_update_to_format
+  def event_create_to_format(mdl)
+    set_start_err_from_form(mdl)  # defined in module_common.rb
+
+    # @hstra is set in set_hsparams_main_tra ; for EventItem, @hstra should be undefined.
+    add_unsaved_trans_to_model(mdl, @hstra) if @hstra && @hstra.respond_to?(:has_key?) && @hstra.has_key?("title")
+    def_respond_to_format(mdl)
+    transfer_error_to_form(mdl, mdl_attr: :start_time_err, form_attr: :form_start_err)
+  end
+
+  # For Event and EventItem Controllers
+  #
+  # @param mdl [ApplicationRecord] Either Event or EventItem
+  # @return [void]
+  # @see #event_create_to_format
+  def event_update_to_format(mdl)
+    start_err = set_start_err_from_form(@hsmain, with_model: false)  # defined in module_common.rb
+    def_respond_to_format(mdl, :updated){
+      mdl.update(@hsmain.merge({start_time_err: start_err}))  # @hsmain is set in set_hsparams_main
+    }
+    transfer_error_to_form(mdl, mdl_attr: :start_time_err, form_attr: :form_start_err)
+  end
 
   # Make flash messages in Hash html_safe if they are already so.
   #

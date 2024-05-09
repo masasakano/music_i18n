@@ -162,13 +162,13 @@ module ModuleCommon
     err = err.second if !err.respond_to? :in_seconds
     year   = time.year
 
-    if err < 5.month
+    if err < 12.month
       month = time.month
-      if err < 13.day
+      if err < 31.day
         day = time.day
-        if err < 11.hour
+        if err < 24.hour
           hour = time.hour
-          if err < 25.minute
+          if err < 60.minute
             minute = time.min
           end
         end
@@ -192,6 +192,31 @@ module ModuleCommon
     end
   end # def time_err2uptomin(time, err, langcode: I18n.locale)
 
+  # @example
+  #   time_in_units(event.start_time_err)
+  #    # => "0.5 [days] | 12 [hrs] | 720 [mins]"
+  #
+  # @return [String] time expressed in three or so units.
+  def time_in_units(time, units: [:day, :hour, :min], langcode: I18n.locale, for_editor: false)
+    arret = units.map{|eunit|
+      case eunit.to_sym
+      when :day
+        [(time ? time.second.in_days.to_s : nil),    I18n.t(:days,          locale: langcode)]
+      when :hour
+        [(time ? time.second.in_hours.to_s : nil),   I18n.t(:hours_short,   locale: langcode)]
+      when :min
+        [(time ? time.second.in_minutes.to_s : nil), I18n.t(:minutes_short, locale: langcode)]
+      else
+        raise "not yet supported..."
+      end
+    }
+    str2add = ((for_editor && arret.map(&:first).compact.empty?) ? " (<em>UNDEFINED</em>)" : "")
+
+    retstr = arret.map{|ea|
+      sprintf("%s [%s]", (ea[0] || "&mdash;"), ERB::Util.html_escape(ea[1]))
+    }.join(" | ") + str2add
+    retstr.html_safe
+  end
 
   # Returns {TimeWithError} of {#start_time} with {#start_time_err}  in the application Time zone
   #
@@ -1053,21 +1078,23 @@ module ModuleCommon
   # The latter two are expected to be set in the argument +record+
   #
   # @param record [ApplicationRecord] instance variable like @event_item
-  # @param set_value: [Boolean] If true (Default), the value is set to +record+
-  #   Basically, +set_value+ should be true for create and false for update.
+  # @param with_model: [Boolean] If true (Default), the main argument is ApplicationRecord and is for create; else it is Hash @hsmain for update (set in set_hsparams_main in application_controller.rb)
+  #   +with_model+ should be true for create and false for update.
+  #   If +with_model+ is true (Def), the value is set for the model.
   # @return [Float, Nilclass] The error value
-  def set_start_err_from_form(record, set_value: true)
-    return if record.form_start_err.blank?
+  def set_start_err_from_form(mdl_or_hs, with_model: true)
+    err_raw, unit = (with_model ? [mdl_or_hs.form_start_err, mdl_or_hs.form_start_err_unit] : [mdl_or_hs["form_start_err"], mdl_or_hs["form_start_err_unit"]])
+    return if err_raw.blank?
 
-    factor = (_form_start_err_factor(record.form_start_err_unit) || 1)
-    err_val = record.form_start_err.to_f * factor
-    record.start_time_err = err_val if set_value
+    factor = (_form_start_err_factor(unit) || 1)
+    err_val = err_raw.to_f * factor
+    mdl_or_hs.start_time_err = err_val if with_model  # for :create
     err_val
   end
 
   # set form_start_err and form_start_err_unit for a form
   #
-  # Each class should define the constant DEF_FORM_ERR_UNIT (=="hour"?)
+  # Each class should define the constant DEF_FORM_TIME_ERR_UNIT (=="day"?)
   #
   # @param record [ApplicationRecord] instance variable like @event_item
   def set_form_start_err(record)
@@ -1075,23 +1102,22 @@ module ModuleCommon
 
     if record.form_start_err_unit.blank?
       record.form_start_err_unit = 
-        if self.class.const_defined?(:DEF_FORM_ERR_UNIT)
-          self.class::DEF_FORM_ERR_UNIT
+        if self.class.const_defined?(:DEF_FORM_TIME_ERR_UNIT)
+          self.class::DEF_FORM_TIME_ERR_UNIT
         else
-          logger.warn "WARNING: DEF_FORM_ERR_UNIT should be defined for #{self.class.name}"
-          "hour"
+          ApplicationController::DEF_FORM_TIME_ERR_UNIT
         end
     end
 
-    record.form_start_err = record.start_time_err.quo(
+    record.form_start_err = (record.start_time_err ? record.start_time_err.quo(
       _form_start_err_factor(record.form_start_err_unit)
-    )
+    ) : nil)
   end
 
   # @param kwd [String] unit for the error (of start time)
   # @return [Integer, NilClass] nil if kwd is blank.
   def _form_start_err_factor(kwd)
-    case kwd
+    case (kwd || ApplicationController::DEF_FORM_TIME_ERR_UNIT)
     when "minute"
       60
     when "hour"

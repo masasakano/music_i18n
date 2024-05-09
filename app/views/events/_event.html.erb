@@ -5,17 +5,16 @@
     <dt>ID (Event)</dt>
     <dd> <%= @event.id %></dd>
   <% end %>
-  <dt><strong>Start time [in <%= Rails.configuration.music_i18n_def_timezone_str %>] (± hours):</strong></dt>
-    <% err = event.start_time_err %>
-    <dd><%= event.string_time_err2uptomin %> (± <%= err ? err.second.in_hours : "&mdash;".html_safe %> [hrs])</dd>
-  <dt><strong>Duration hour:</strong></dt>
-    <dd><%= event.duration_hour %></dd>
-  <dt><strong>Weight:</strong></dt>
-    <dd><%= event.weight %></dd>
   <dt><strong>Event group:</strong></dt>
     <dd><%= link_to "EventGroup("+event.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true)+")", event_group_url(event.event_group) %></dd>
   <dt><strong>Place:</strong></dt>
     <dd><%= event.place ? h(event.txt_place_pref_ctry) : "" %></dd>
+  <dt><strong>Start time [in <%= Rails.configuration.music_i18n_def_timezone_str %>] (± days/hrs/mins):</strong></dt>
+    <dd><%= event.string_time_err2uptomin %> (± <%= time_in_units(event.start_time_err) %>)</dd> <%# in module_common.rb %>
+  <dt><strong><%= t("events.Duration") %> [<%= t(:hour) %>]:</strong></dt>
+    <dd><%= event.duration_hour %></dd>
+  <dt><strong>Weight:</strong></dt>
+    <dd><%= event.weight %></dd>
   <dt>Note:</dt>
     <dd><%= event.note %></dd>
   <% if can? :update, event %>

@@ -198,6 +198,11 @@ ja:
       number_id: "通し番号"
       event_table_title: 本イベントシリーズの全イベント
 
+  events:
+    parent_event: "(親)Event"
+    Duration: "期間"
+    DurationError: "期間の誤差"
+
   harami_vids:
     table_head_date: 公開日
     table_head_timing: "開始時[秒]"

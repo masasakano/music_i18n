@@ -19,8 +19,8 @@ class EventsController < ApplicationController
   ] + MAIN_FORM_KEYS + PARAMS_PLACE_KEYS).uniq  # PARAMS_PLACE_KEYS defined in application_controller.rb
   # they, including place_id, will be handled in event_params_two()
 
-  # Default unit for start-time error in the form
-  DEF_FORM_ERR_UNIT = "hour"
+  # Default unit for start-time error in the form; the same as the one in ApplicationController
+  DEF_FORM_TIME_ERR_UNIT = "day"
 
   # GET /events or /events.json
   def index
@@ -47,33 +47,26 @@ class EventsController < ApplicationController
     @event.start_time     ||= (@event_group ? @event_group.start_time     : TimeAux::DEF_FIRST_DATE_TIME)  # see event.rb
 
     if !@event.form_start_err
-      unit = ((uni=@event.form_start_err_unit) ? uni : get_optimum_timu_unit(@event.start_time_err))
-      factor = _form_start_err_factor(unit)
+      unit = ((uni=@event.form_start_err_unit) ? uni : get_optimum_timu_unit(@event.start_time_err))  # defined in /app/models/module_common.rb
+      factor = _form_start_err_factor(unit)  # defined in /app/models/module_common.rb
       @event.form_start_err_unit ||= unit
-      @event.form_start_err = @event.start_time_err.quo(factor)
+      @event.form_start_err = @event.start_time_err.quo(factor) if @event.start_time_err
     end
 
     set_form_start_err(@event)  # defined in module_comon.rb
   end
 
   # POST /events or /events.json
+  # @see EventItemsController#craete
   def create
     @event = Event.new(@hsmain)
-    set_start_err_from_form(@event)  # defined in module_common.rb
     authorize! __method__, @event
-
-    add_unsaved_trans_to_model(@event, @hstra) # defined in application_controller.rb
-    def_respond_to_format(@event)              # defined in application_controller.rb
-    transfer_error_to_form(@event, mdl_attr: :start_time_err, form_attr: :form_start_err)  # defined in application_controller.rb
+    event_create_to_format(@event) # defined in application_controller.rb
   end
-
 
   # PATCH/PUT /events/1 or /events/1.json
   def update
-    def_respond_to_format(@event, :updated){
-      @event.update(@hsmain)
-    } # defined in application_controller.rb
-    transfer_error_to_form(@event, mdl_attr: :start_time_err, form_attr: :form_start_err)  # defined in application_controller.rb
+    event_update_to_format(@event)  # defined in application_controller.rb
   end
 
   # DELETE /events/1 or /events/1.json
