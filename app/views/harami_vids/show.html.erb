@@ -29,7 +29,7 @@
           <% event.event_items.each do |event_item| %>
             <li>
               <% if can? :index, EventItem %>
-                (<%= t(:EventItem) %>: <%= event_item.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either).inspect %>) /
+                (<%= t(:EventItem) %>: <%= event_item.machine_title.inspect %>) /
               <% end %>
               (コラボアーティスト)
               <%= msg = event_item.artists.map{|em| em.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)}.join(t(:comma, default: ", "));

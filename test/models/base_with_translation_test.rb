@@ -480,8 +480,8 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
 
     pla1 = places(:takamatsu_station)
     assert_equal '高松駅', pla1.title(langcode: 'ja', lang_fallback: false)
-    assert_nil             pla1.title(langcode: 'en', lang_fallback: false)
-    assert_equal '高松駅', pla1.title(langcode: 'en', lang_fallback: true)
+    assert_nil             pla1.title(langcode: 'fr', lang_fallback: false)
+    assert_equal '高松駅', pla1.title(langcode: 'fr', lang_fallback: true)
     assert_equal 'タカマツエキ', pla1.ruby(langcode: 'ja', lang_fallback: false)
     assert_nil                   pla1.ruby(langcode: 'en', lang_fallback: false)
     assert_equal 'タカマツエキ', pla1.ruby(langcode: 'en', lang_fallback: true)
@@ -489,14 +489,14 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_nil  pla1.alt_ruby(langcode: 'en', lang_fallback: false)
     assert_nil  pla1.alt_ruby(langcode: 'en', lang_fallback: true) # non-existent in any languages
     assert_equal 'Takamatsu Eki', pla1.romaji(langcode: 'ja', lang_fallback: false)
-    assert_nil                    pla1.romaji(langcode: 'en', lang_fallback: false)
-    assert_equal 'Takamatsu Eki', pla1.romaji(langcode: 'en', lang_fallback: true)
+    assert_nil                    pla1.romaji(langcode: 'fr', lang_fallback: false)
+    assert_equal 'Takamatsu Eki', pla1.romaji(langcode: 'fr', lang_fallback: true)
     assert_equal '高松駅', pla1.title_or_alt(langcode: 'ja')
     assert_raises(ArgumentError){ pla1.title_or_alt(langcode: 'en', lang_fallback_option: true) }
-    assert_equal '',       pla1.title_or_alt(langcode: 'en', lang_fallback_option: :never)  # String guaranteed
-    assert_equal '高松駅', pla1.title_or_alt(langcode: 'en', lang_fallback_option: :both)
-    assert_equal '高松駅', pla1.title_or_alt(langcode: 'en', lang_fallback_option: :either)
-    assert_equal '高松駅', pla1.title_or_alt(langcode: 'en', lang_fallback_option: :either, prefer_alt: true)
+    assert_equal '',       pla1.title_or_alt(langcode: 'fr', lang_fallback_option: :never)  # String guaranteed
+    assert_equal '高松駅', pla1.title_or_alt(langcode: 'fr', lang_fallback_option: :both)
+    assert_equal '高松駅', pla1.title_or_alt(langcode: 'fr', lang_fallback_option: :either)
+    assert_equal '高松駅', pla1.title_or_alt(langcode: 'fr', lang_fallback_option: :either, prefer_alt: true)
   end
 
   test "save_unsaved_translations" do

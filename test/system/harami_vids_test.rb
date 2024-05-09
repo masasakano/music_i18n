@@ -1,9 +1,27 @@
+# coding: utf-8
 require "application_system_test_case"
 
 class HaramiVidsTest < ApplicationSystemTestCase
   setup do
     @harami_vid = harami_vids(:harami_vid1)
+    @channel1 = @channel = channels(:one)
+    @channel2= channels(:channel_haramichan_youtube_main)
+    #@channel_owner = channel_owners(:channel_owner_saki_kubota)
+    #@channel_owner2= channel_owners(:channel_owner_haramichan)
+    @artist = artists(:artist_saki_kubota)
+    @moderator_all   = users(:user_moderator_all)         # General-JA Moderator can manage.
+    @editor_harami   = users(:user_editor)                # Harami Editor can manage.
+    @moderator_harami= users(:user_moderator)             # Harami Moderator can manage.
+    @translator      = users(:user_translator)            # Translator can read but not create/delete.
+    @trans_moderator = users(:user_moderator_translation) # Translator cannot create/delete but edit (maybe!).
+    @editor_ja       = users(:user_editor_general_ja)     # Same as Harami-editor
+    @moderator_gen   = users(:user_moderator_general_ja)
     @sysadmin = users(:user_sysadmin)
+    @h1_title = "Channels"
+    @button_text = {
+      create: "Create Channel",
+      update: "Update Channel",
+    }
   end
 
   # called after every single test
@@ -15,7 +33,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
   test "visiting the index and then creating one" do
     visit new_user_session_path
-    fill_in "Email", with: @sysadmin.email
+    fill_in "Email", with: @editor_harami.email
     fill_in "Password", with: '123456'  # from users.yml
     click_on "Log in"
     # assert_response :redirect  # NoMethodError
@@ -26,27 +44,63 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
     click_on "Create a new HaramiVid"
 
+    vid_prms = {}
+    page_find_sys(:trans_new, :langcode_radio, model: HaramiVid).choose('English')  # defined in helpers/test_system_helper
+    vid_prms[:title] = 'NewEnglishHaramiVid37'
+    page.find('input#harami_vid_title').fill_in with: vid_prms[:title]  # This is unique!
+    vid_prms[:uri] = "youtu.be/anexample37"
+    fill_in "Uri", match: :first, with: vid_prms[:uri]
+    vid_prms[:date] = Date.new(2021, 2, 3)
+    assert_selector "div.harami_vid_release_date select#harami_vid_release_date_1i"
+    find("div.harami_vid_release_date select#harami_vid_release_date_1i").select vid_prms[:date].year
+    find("div.harami_vid_release_date select#harami_vid_release_date_2i").select Date::MONTHNAMES[vid_prms[:date].month]
+    find("div.harami_vid_release_date select#harami_vid_release_date_3i").select vid_prms[:date].day
+    # find_field("Date").fill_in with: vid_prms[:date]  # Does not work...
+    vid_prms[:duration] = 450
+    fill_in "Video length", with: vid_prms[:duration]
+
     # print "DEBUG:html=";puts page.find('div#div_select_country')['outerHTML']
     assert_selector 'div#div_select_country', text: "Country"
     assert_selector 'div#div_select_prefecture', text: "Prefecture"
     assert_selector 'div#div_select_place div.form-group', visible: :hidden
+    page.find('div#div_select_country').select 'Japan'
+    page.find('div#div_select_prefecture').select 'Kagawa'
+    assert_selector 'div#div_select_place div.form-group'
+    page.find('div#div_select_place div.form-group').select "Takamatsu Station"
 
-    fill_in "Uri", match: :first, with: 'abcdef123'
-    #fill_in "Duration", with: @harami_vid.duration
+    assert_equal "HARAMIchan", find_field('Channel Owner').find('option[selected]').text
+    find_field('Channel Type').select('Side channel')
+    assert_match(/street playing/, find_field('Event').find('option[selected]').text)
+    vid_prms[:note] = "temperary note 37"
+    fill_in "Note", with: vid_prms[:note]
 
-    today = Date.today
-    page.find('form select#harami_vid_release_date_1i').select text: today.year.to_s
-    page.find('form select#harami_vid_release_date_2i').select text: 'August'
-    page.find('form select#harami_vid_release_date_3i').select text: 15.to_s
-    # fill_in "Date", with: @harami_vid.date
+    fill_autocomplete('Associated Artist name', with: 'Lennon', select: "John Lennon")  # defined in test_helper.rb
+    find_field("Way of engagements").select "Singer (Cover)"
+    fill_in "Year of engagement", with: 2009
+    fill_in "Contribution", with: 0.5
 
-    #check "Uploaded by Harami"
+    vid_prms[:music_title] = "日本語の歌37"
+    fill_in "Song/Music name", with: vid_prms[:music_title]
+    vid_prms[:release_year] = 2007
+    fill_in "Released year", with: vid_prms[:release_year]
+    vid_prms[:genre] = "Modern instrumental"  # Jazz etc are not in the fixture...
+    find_field('Genre').select vid_prms[:genre]
+    vid_prms[:timing] = 370
+    fill_in "Timing", with: vid_prms[:timing]
 
-    #### So far, this test does not work BECAUSE it is not working in the app.
-    #click_on "Create Harami vid"
+    fill_autocomplete('featuring Artist', with: 'AI', select: 'AI [')  # defined in test_helper.rb
+    find_field("(Music) Instrument").select "Vocal"
+    find_field("How they collaborate").select "Chorus"
 
-    #assert_text "Harami vid was successfully created"
-    #click_on "Back"
+    click_on "Create Harami vid", match: :first
+
+    ### Checking flash messages
+    assert_text "HaramiVid was successfully created"
+    assert_match(/HaramiVid was successfully created\b/, find(css_for_flash(:success)).text)  # defined in test_helper.rb
+    assert_match(/Side channel\b.+ was created\b/, find(css_for_flash(:notice)).text)
+    assert_match(/\bnew channel\b/i,               find(css_for_flash(:notice)+" a").text)  # <a> link should be active.
+
+    click_on "Back"
   end
 
   test "visiting the index as a guest" do

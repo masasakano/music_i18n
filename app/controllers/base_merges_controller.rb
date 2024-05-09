@@ -393,7 +393,7 @@ class BaseMergesController < ApplicationController
         msg0 << " with " + view_context.link_to("ID=#{mu_other.id}", send(path_show, mu_other))
       end
       msg1 = (msg0 + '.  ' + errmsgs_safe).html_safe
-      opts = flash_html_safe(alert: msg1)  # defined in /app/controllers/application_controller.rb
+      opts = get_html_safe_flash_hash(alert: msg1)  # defined in /app/controllers/application_controller.rb
 
       respond_to do |format|
         hsstatus = {status: :unprocessable_entity}

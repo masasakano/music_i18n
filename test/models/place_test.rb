@@ -153,8 +153,8 @@ class PlaceTest < ActiveSupport::TestCase
     pla1 = places(:takamatsu_station)
     assert_equal ['高松駅', '香川県', '日本国'], pla1.title_or_alt_ascendants
     assert_equal ['高松駅', '香川県', '日本'],   pla1.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true)
-    assert_equal ['高松駅', 'Kagawa', 'Japan'],  pla1.title_or_alt_ascendants(langcode: 'en')
-    assert_equal ['',       'Kagawa', 'Japan'],  pla1.title_or_alt_ascendants(langcode: 'en', lang_fallback_option: :never)
+    assert_equal ['高松駅', '香川県', 'Japon'],  pla1.title_or_alt_ascendants(langcode: 'fr')
+    assert_equal ['',       '',       'Japon'],  pla1.title_or_alt_ascendants(langcode: 'fr', lang_fallback_option: :never)
   end
 
   test "brackets" do

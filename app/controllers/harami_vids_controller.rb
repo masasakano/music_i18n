@@ -112,6 +112,7 @@ class HaramiVidsController < ApplicationController
           result = false if @harami_vid.errors.any?  # errors may be set by any of the "around"-processes
         end
       end
+make_flash_html_safe!  # defined in application_controller.rb
       result
     }
   end
@@ -178,7 +179,7 @@ class HaramiVidsController < ApplicationController
   #     ## Transaction failed.
   #     return respond_to do |format|
   #       mdl.errors.add :base, alert  # alert is included in the instance
-  #       opts = flash_html_safe(alert: alert, **inopts)  # defined in application_controller.rb
+  #       opts = get_html_safe_flash_hash(alert: alert, **inopts)  # defined in application_controller.rb
   #       opts.delete :alert  # because alert is contained in the model itself.
   #       hsstatus = {status: :unprocessable_entity}
   #       format.html { render render_err,       **(hsstatus.merge opts) } # notice (and/or warning) is, if any, passed as an option.
@@ -192,7 +193,7 @@ class HaramiVidsController < ApplicationController
 
   #     msg = sprintf '%s was successfully %s.', mdl.class.name, created_updated.to_s  # e.g., Article was successfully created.
   #     msg << sprintf('  Return to %s.', back_html) if back_html
-  #     opts = flash_html_safe(success: msg.html_safe, alert: alert, **inopts) # "success" defined in /app/controllers/application_controller.rb
+  #     opts = get_html_safe_flash_hash(success: msg.html_safe, alert: alert, **inopts) # "success" defined in /app/controllers/application_controller.rb
   #     format.html { redirect_to (redirected_path || mdl), **opts }
   #     format.json { render :show, status: ret_status, location: mdl }
   #   end
@@ -297,8 +298,9 @@ class HaramiVidsController < ApplicationController
     # after-processing of a new Channel
     def _after_save_new_channel(chan)
       flash[:notice] ||= []
+      chan_new_str = sprintf("%s - %s by %s", *(%w(platform type owner).map{|i| chan.send("channel_"+i).title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true)}))
       s = "new Channel"
-      msg = sprintf("A %s is created", (can?(:show, chan) ? view_context.link_to(s, channel_path(chan)) : s)).html_safe 
+      msg = sprintf("A %s (%s) was created.", (can?(:show, chan) ? view_context.link_to(s, channel_path(chan), target: "_blank") : s), chan_new_str).html_safe  # This html_safe is processed in def_respond_to_format in application_controller.rb
       flash[:notice] << msg
 
       chan.reload  # to load Translation

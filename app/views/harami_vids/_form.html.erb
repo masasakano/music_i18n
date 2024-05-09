@@ -121,11 +121,11 @@
 
       <%= f.input :form_engage_hows,
         collection: ordered_models_form(EngageHow), selected: (harami_vid.form_engage_hows || EngageHow.default(:HaramiVid)),
-          label: t("harami_vids.engage_how")+" "+t('layouts.new_musics.allow_multi') %>
+          label: t("harami_vids.engage_how")+t('layouts.new_musics.allow_multi') %>
 
       <%= f.input :form_engage_year, label: t('layouts.new_musics.year_engagement') %>
 
-      <%= f.input :form_engage_contribution, label: t('attr.contribution')+'(0.0-1.0)', hint: t('attr.contribution_hint') %>
+      <%= f.input :form_engage_contribution, label: t('attr.contribution').capitalize+' (0.0-1.0)', hint: t('attr.contribution_hint') %>
      </div>
     </div> <!-- div class="register_assoc_artist_field"  -->
     </div> <!-- div class="register_assoc_artist"-  -->

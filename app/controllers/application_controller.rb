@@ -174,10 +174,11 @@ class ApplicationController < ActionController::Base
   # that takesthe model instance as an argument, which will
   # be evaluated after save.
   #
-  # Also, this routine properly evaluates +String#html_safe+
+  # Also, this method properly evaluates +String#html_safe+
   # for flash messages. So, you can pass HTML messages to flash
   # by converting it +html_safe+, like
-  #   def_respond_to_format(@article, notice: "My notice".html_safe)
+  #   def_respond_to_format(@article, notice: "<b>My</b> notice".html_safe)
+  # Or, this method also consider flash messeages for :notice and :warning.
   #
   # See /app/views/layouts/application.html.erb for implementation in View.
   #
@@ -219,7 +220,6 @@ class ApplicationController < ActionController::Base
       else
         raise 'Contact the code developer.'
       end
-
     result = nil
     respond_to do |format|
       result =
@@ -230,11 +230,16 @@ class ApplicationController < ActionController::Base
         end
       inopts = inopts.map{|k,v| [k, (v.respond_to?(:call) ? v.call(mdl) : v)]}.to_h
       alert = (alert.respond_to?(:call) ? alert.call(mdl) : alert)
+      hsflash = {}
+      %i(warning notice).each do |ek|
+        hsflash[ek] = flash[ek] if flash[ek].present?
+      end
+      hsflash.merge! inopts
       if result
         msg = sprintf '%s was successfully %s.', mdl.class.name, created_updated.to_s  # e.g., Article was successfully created.
         msg << sprintf('  Return to %s.', back_html) if back_html
         #opts = { success: msg.html_safe, flash: {}}.merge(inopts) # "success" defined in /app/controllers/application_controller.rb
-        opts = flash_html_safe(success: msg.html_safe, alert: alert, **inopts)  # defined in application_controller.rb
+        opts = get_html_safe_flash_hash(success: msg.html_safe, alert: alert, **hsflash)
         #opts[:alert]  = alert if alert
         #opts[:flash][:html_safe] ||= {}
         #%i(alert warning notice success).each do |ek|
@@ -244,7 +249,7 @@ class ApplicationController < ActionController::Base
         format.json { render :show, status: ret_status, location: mdl }
       else
         mdl.errors.add :base, alert if alert.present? # alert is, if present, included in the instance
-        opts = flash_html_safe(alert: alert, **inopts)
+        opts = get_html_safe_flash_hash(alert: alert, **hsflash)
         opts.delete :alert  # because alert is contained in the model itself.
         hsstatus = {status: :unprocessable_entity}
         format.html { render render_err,       **(hsstatus.merge opts) } # notice (and/or warning) is, if any, passed as an option.
@@ -320,29 +325,76 @@ class ApplicationController < ActionController::Base
     transfer_error_to_form(mdl, mdl_attr: :start_time_err, form_attr: :form_start_err)
   end
 
-  # Make flash messages in Hash html_safe if they are already so.
+  # Returns Hash of flashes to pass in respond_to so they can be displayed as HTML
   #
-  # Basically, this defines
-  #   { flash: {html_safe: {alert: true, notice: false}} }
-  # where +false+ is not explicitly defined in this routine,
-  # i.e., if they are not html_safe, they are not set in the Hash
-  # in this routine (i.e., the input Hash is unchanged).
-  #
-  # In View (/app/views/layouts/application.html.erb),
-  #   flash[:html_safe][...]
-  # is evaluated and +html_safe+ will be added on the spot if so.
+  # @see make_flash_html_safe!
   #
   # The argument is basically a Hash, which may contain arbitrary keys
-  # including (though not limited to) +:alert+, +:notice+ etc.
+  # including (though not limited to) +:alert+, +:notice+ etc, the values
+  # of which are either String or Array (or nil).
   #
-  # @return [Hash]
-  def flash_html_safe(**inopts)
+  # @param inopts [Hash] {alert: "xxx"} etc.
+  # @return [Hash] in the same structure as the input +inopts+ except {flash: {alert: true, ...}} is added.
+  def get_html_safe_flash_hash(**inopts)
     opts = { flash: {} }.merge(inopts)
     opts[:flash][:html_safe] ||= {}
-    %i(alert warning notice success).each do |ek|
-      opts[:flash][:html_safe][ek] = true if opts[ek].html_safe?
+    FLASH_CSS_CLASSES.each_key do |ek|  # perhasp %i(alert warning notice success)
+      eksym = ek.to_sym
+      opts[:flash][:html_safe][eksym] = true if _all_html_safe?(opts[eksym])
     end
     opts
+  end
+
+  # Returns true if all the element of obj is html_safe? regardless of its object class
+  #
+  # @param obj [String, Array, NilClass]
+  def _all_html_safe?(obj)
+    if obj.blank?
+      false
+    elsif obj.respond_to?(:gsub)
+      obj.html_safe?
+    else
+      obj.all?(&:html_safe?)
+    end
+  end
+  private :_all_html_safe?
+
+  # Make flash messages in Hash html_safe, maybe by escaping, and set them ready to be displayed as HTML
+  #
+  # Escapes all html-unsafe flash messages, converting them HTML-safe,
+  # and mark all flash messages as HTML-safe so that links etc are properly displayed.
+  #
+  # In fact, for `respond_to`, `get_html_safe_flash_hash` should be used;
+  # for this reason, this method has not been used so far, or not been tested, either!
+  #
+  # == Algorithm
+  #
+  # Escape all HTML-unsafe messages, replacing the original flash messages, if required.
+  # Also, +flash[:html_safe][:notice]+ etc are set true, which can then be handled in
+  # Views (see /app/views/layouts/application.html.erb), where +html_safe+ has to be
+  # reassigned (because exact Ruby objects are not passed to them).
+  #
+  # @note This method should be called immediately before it is passed to the next Session.
+  #    because this method's marking entirely depends on the current flash messages.
+  #    If an unsafe flash message is added after this method is run, it is a security risk.
+  def make_flash_html_safe!(flash_classes=FLASH_CSS_CLASSES.keys)
+    flash[:html_safe] ||= {}
+    flash_classes.each do |ek_orig|
+      ek_sym = ek_orig.to_sym
+      next if flash[ek_sym].blank?
+      if flash[ek_sym].respond_to?(:gsub)
+        flash[ek_sym] = ERB::Util.html_escape(flash[ek_sym]) if !flash[ek_sym].html_safe?
+      elsif flash[ek_sym].respond_to?(:map)
+        flash[ek_sym].each_with_index do |ea_msg, i|
+          flash[ek_sym][i] = ERB::Util.html_escape(ea_msg) if !ea_msg.html_safe?
+        end
+      else
+        raise "Flash for #{ek_sym.inspect} is neither String nor Array: #{flash[ek_sym].inspect}"
+      end
+
+      flash[:html_safe][ek_sym] = true
+    end
+    flash
   end
 
   # Returns either :show or :index path to return, or nil

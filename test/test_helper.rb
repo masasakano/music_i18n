@@ -242,7 +242,7 @@ class ActiveSupport::TestCase
   #
   # @param regex [Regexp] 
   # @param msg [String] 
-  # @param type [Symbol, Array<Symbol>, NilClass] :notice, :alert, :warning, :success or their array.
+  # @param type: [Symbol, Array<Symbol>, NilClass] :notice, :alert, :warning, :success or their array.
   #    If nil, everything defined in {ApplicationController::FLASH_CSS_CLASSES}
   #    Note that the actual CSS is "alert-danger" (Bootstrap) for :alert, etc.
   def flash_regex_assert(regex, msg=nil, type: nil)
@@ -250,15 +250,22 @@ class ActiveSupport::TestCase
     caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
     # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
 
+    csstext = css_select(css_for_flash(type)).text
+    msg2pass = (msg || sprintf("Fails in flash(%s)-message regexp matching for: ", (type || "ALL")))+csstext.inspect
+    assert_match(regex, csstext, "(#{caller_info}): "+msg2pass)
+  end
+
+  # @param type: [Symbol, Array<Symbol>, NilClass] :notice, :alert, :warning, :success or their array.
+  #    If nil, everything defined in {ApplicationController::FLASH_CSS_CLASSES}
+  #    Note that the actual CSS is "alert-danger" (Bootstrap) for :alert, etc.
+  # @return CSS for Flash-message part.
+  def css_for_flash(type=nil)
     all_flash_types = ApplicationController::FLASH_CSS_CLASSES.keys.map(&:to_s) # String
     types = type && [type.to_s].flatten || all_flash_types
     if types.any?{|i| !ApplicationController::FLASH_CSS_CLASSES.keys.include?(i)}
       raise "(#{caller_info}) (#{__FILE__}) Flash type (#{types.inspect}) must be included in ApplicationController::FLASH_CSS_CLASSES="+ApplicationController::FLASH_CSS_CLASSES.keys.map(&:to_sym).inspect
     end
-    cond = types.map{|i| "div#body_main "+"p."+ApplicationController::FLASH_CSS_CLASSES[i].strip.split.join(".")}.join(", ")  # "div#body_main p.alert.alert-danger div#body_main p.alert.alert-warning" etc
-    csstext = css_select(cond).text
-    msg2pass = (msg || sprintf("Fails in flash(%s)-message regexp matching for: ", (type || "ALL")))+csstext.inspect
-    assert_match(regex, csstext, "(#{caller_info}): "+msg2pass)
+    types.map{|i| "div#body_main "+"p."+ApplicationController::FLASH_CSS_CLASSES[i].strip.split.join(".")}.join(", ")  # "div#body_main p.alert.alert-danger div#body_main p.alert.alert-warning" etc
   end
 
   # Asserts in a Conroller test no presence of alert on the page and prints the alert in failing it
