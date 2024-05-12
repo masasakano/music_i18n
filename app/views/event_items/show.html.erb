@@ -43,6 +43,14 @@
 <hr>
 
 <section id=event_item_harami_vid_index_table">
+<h2><%= t("event_items.Playing_artists_for_this").capitalize %></h2>
+
+<%= render partial: "layouts/artist_music_plays", locals: {artist_music_plays: @event_item.artist_music_plays} %>
+</section>
+
+<hr>
+
+<section id=event_item_harami_vid_index_table">
 <h2>HaramiVids for this EventItem</h2>
 
 <% items = @event_item.harami_vids.order("harami_vids.release_date") %>

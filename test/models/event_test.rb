@@ -36,6 +36,14 @@ class EventTest < ActiveSupport::TestCase
     end
   end
 
+  test "create_basic! and trans" do
+    evgr = EventGroup.third
+    ev = Event.create_basic!(title: "ANew Evt", langcode: "en", event_group: evgr)
+    ev.reload
+    assert_equal 1, ev.translations.size, "#{ev.translations.to_a}"
+    assert_equal "ANew Evt", ev.best_translation.title
+  end
+
   test "on delete" do
     evt = events(:ev_harami_lucky2023)
 

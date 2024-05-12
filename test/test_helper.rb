@@ -258,15 +258,31 @@ class ActiveSupport::TestCase
   # @param type: [Symbol, Array<Symbol>, NilClass] :notice, :alert, :warning, :success or their array.
   #    If nil, everything defined in {ApplicationController::FLASH_CSS_CLASSES}
   #    Note that the actual CSS is "alert-danger" (Bootstrap) for :alert, etc.
+  # @param category: [Symbol] :both, :error_explanation (for save/update), :p (normal flash)
   # @return CSS for Flash-message part.
-  def css_for_flash(type=nil)
+  def css_for_flash(type=nil, category: :both)
     all_flash_types = ApplicationController::FLASH_CSS_CLASSES.keys.map(&:to_s) # String
     types = type && [type.to_s].flatten || all_flash_types
     if types.any?{|i| !ApplicationController::FLASH_CSS_CLASSES.keys.include?(i)}
       raise "(#{caller_info}) (#{__FILE__}) Flash type (#{types.inspect}) must be included in ApplicationController::FLASH_CSS_CLASSES="+ApplicationController::FLASH_CSS_CLASSES.keys.map(&:to_sym).inspect
     end
-    types.map{|i| "div#body_main "+"p."+ApplicationController::FLASH_CSS_CLASSES[i].strip.split.join(".")}.join(", ")  # "div#body_main p.alert.alert-danger div#body_main p.alert.alert-warning" etc
+
+    categories = 
+      case category.to_sym
+      when :both
+        ["p", "div#error_explanation"]
+      when :error_explanation
+        ["div#error_explanation"]
+      else
+        ["p"]
+      end
+    
+    categories.map{|ea_cat|
+      types.map{|i| "div#body_main "+ea_cat+"."+ApplicationController::FLASH_CSS_CLASSES[i].strip.split.join(".")}.join(", ")  # "div#body_main p.alert.alert-danger, div#body_main p.alert.alert-warning" etc
+    }.join(", ")
   end
+
+  
 
   # Asserts in a Conroller test no presence of alert on the page and prints the alert in failing it
   #

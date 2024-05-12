@@ -1,0 +1,37 @@
+<%# Local vairables: none %>
+    <ul>
+    <%# @harami_vid.events.order("start_time", "duration_hour").each do |event| %>
+    <% @event_event_items.each_pair do |id_event, rela_event_items| %>
+      <% event = Event.find(id_event) %>
+      <li>
+        <% event_title = event.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>
+        <% if can? :read, event %>
+          <%= link_to event_title, event %>
+        <% else %>
+          <%= event_title %>
+        <% end %>
+         [<%= event.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>]
+        <ol class="list_event_items">
+          <%# event.event_items.order("event_items.start_time").each_with_index do |event_item, eii| %>
+          <% rela_event_items.each_with_index do |event_item, eii| %>
+            <li>
+              <% if can? :index, EventItem %>
+                <%= t(:EventItem) %>
+              <% end %>
+              <% if can? :show, event_item %>
+                <% unknown_str = (event_item.unknown? ? ": Unknown" : "") %>
+                <%= link_to "(#{eii+1}#{unknown_str})", event_item, title: event_item.machine_title.inspect %>
+              <% else %>
+                (<%= eii+1 %>)
+              <% end %>
+              <%= t("haramiv_vids.show.artist_collabs", default: "featuring Artists") %>
+              (<%= show_list_featuring_artists(event_item) %>)  <%# defined in harami_vids_helper.rb %>
+              <% if event_item.artist_music_plays.exists? %>
+                <%= render partial: "layouts/artist_music_plays", locals: {artist_music_plays: event_item.artist_music_plays} %>
+              <% end %>
+            </li>
+          <% end %>
+        </ol>
+      </li>
+    <% end %>
+    </ul>

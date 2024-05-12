@@ -57,8 +57,8 @@ class EventGroup < BaseWithTranslation
   has_many :harami1129s, through: :event_items, dependent: :restrict_with_exception
 
   UNKNOWN_TITLES = UnknownEventGroup = {
-    "ja" => 'その他のイベント類',
     "en" => 'UncategorizedEventGroup',
+    "ja" => 'その他のイベント類',
     "fr" => "Groupe d'événements non classé",
   }.with_indifferent_access
 

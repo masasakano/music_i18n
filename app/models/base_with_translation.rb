@@ -1965,6 +1965,8 @@ class BaseWithTranslation < ApplicationRecord
   #
   # @param search_word [String]
   # @return [Array<BaseWithTranslation>]
+  # @raise [ActiveRecord::RecordNotFound] if a String containing the completely-wrong ID is passed,
+  #    which should never happen with auto-complete or with a standard manual input in UI.
   def candidate_bwts_from_ac_str(search_word)
     search_str, lcode, model_id = BaseWithTranslation.resolve_base_with_translation_with_id_str(search_word)
     return [self.class.find(model_id)] if model_id
@@ -3747,6 +3749,7 @@ tra_orig.save!
     raise ActiveRecord::RecordInvalid.new(self) if self.errors.size > 0
     #raise ActiveRecord::RecordInvalid, self.errors.full_messages.map(&:to_s).join(";") if !ar.empty?  # NOTE: bizzarly raises: NoMethodError: undefined method `errors' for ...:String
 
+    @unsaved_translations.reverse!
     @unsaved_translations.reverse.each do |translation|
       translation.save!
       @unsaved_translations.pop
@@ -3984,7 +3987,12 @@ class << BaseWithTranslation
   #    (if it belongs to the same class, it is likely to raise a unique-violation-related Exception).
   def create_basic!(*args, translation: nil, **kwds, &blok)
     model = create_basic_application_original!(*args, **kwds, &blok)
-    model.with_translation(**_prepare_hash_basic_translation(translation))
+    model.reload
+    if model.translations.exists?
+      model
+    else
+      model.with_translation(**_prepare_hash_basic_translation(translation))
+    end
   end
 
   # Initialize version.
@@ -3992,7 +4000,9 @@ class << BaseWithTranslation
   # @note Other related models are not likely to be created, but existing ones should be used.
   def initialize_basic(*args, translation: nil, **kwds, &blok)
     model = super(*args, **kwds, &blok)
-    model.unsaved_translations << Translation.new(_prepare_hash_basic_translation(translation))
+    if model.unsaved_translations.empty? && model.instance_variable_get(:@title).blank? && model.instance_variable_get(:@langcode).blank?
+      model.unsaved_translations << Translation.new(_prepare_hash_basic_translation(translation))
+    end
     model
   end
 

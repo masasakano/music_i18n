@@ -3,6 +3,7 @@ en:
   attr:
     contribution: 'contribution'
     contribution_hint: '0 for 0% & 1.0 for 100%'
+    cover_ratio: "Cover ratio of Music"
 
   tables:
     title_ja: "Title (Ja)"
@@ -74,6 +75,7 @@ en:
     destroy_button: 'Commit Destroy'
     editing_guideline: 'Editing Guideline'
     error_in_save: "%{errors} prohibited this %{model} from being saved"
+    new: new
     reset_button: "Reset (Start Over)"
     submit_button: 'Submit'
     Show: "Detail"
@@ -81,7 +83,7 @@ en:
     fields:
       music_title: "Song/Music name"
       hint_music_auto: "Input Artist first and it's narrowed down."
-      hint_create_if_non_existent: "If you want another one, %{link} first."
+      hint_create_if_non_existent: "If you want a new one, %{link} first."
         # t("layouts.fields.hint_create_if_non_existent", link: link_to(t("layouts.do_create_lower"), new_XXX_path)).html_safe
     new_translations:
       model_language: "Language of this %{model}'s Title"
@@ -188,6 +190,10 @@ en:
     Duration: Duration
     DurationError: Duration Error
 
+  event_items:
+    playing_artists: playing artists
+    Playing_artists_for_this: playing artists for this EventItem
+
   harami_vids:
     table_head_date: Date
     table_head_timing: "Timing[s]"
@@ -207,6 +213,10 @@ en:
     field_artist_collabs_w_harami: "Playing Artist with HARAMIchan"
     field_music_year: "Released year"
     warn_collab_without_music: "Valid Music must be given when you add an Artist-to-collaborate."
+    show:
+      artist_collabs: "featuring Artists"
+    edit:
+      artist_collabs_title: "collaborating Artists"
 
   musics:
     index:

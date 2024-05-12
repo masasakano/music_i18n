@@ -391,6 +391,10 @@ fieldset.form-group.radio_buttons, fieldset.form-group.check_boxes {
   opacity:          var(--form-bg-radio-opacity);
   margin-top: 0.5em;
 }
+fieldset.form-group.radio_buttons.harami_vid_form_new_artist_collab_event_item, fieldset.form-group.check_boxes.harami_vid_event_items {
+    max-width: 500em;
+}
+
 fieldset.form-group.radio_buttons legend {
   background-color: #2f93c4;
   opacity: 1.0;

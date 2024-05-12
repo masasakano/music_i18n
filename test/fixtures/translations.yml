@@ -1639,9 +1639,9 @@ engage_how_singer_original_ja:
   translatable: engage_how_singer_original
   translatable_type: EngageHow
   langcode: ja
-  title: 歌手(オリジナル)
+  title: "歌手(オリジナル)"
   alt_title: 
-  ruby: カシュ(オリジナル)
+  ruby: "カシュ(オリジナル)"
   alt_ruby: 
   romaji: 
   alt_romaji: 
@@ -1655,7 +1655,7 @@ engage_how_singer_cover_en:
   translatable: engage_how_singer_cover
   translatable_type: EngageHow
   langcode: en
-  title: Singer (Cover)
+  title: "Singer (Cover)"
   alt_title: 
   ruby: 
   alt_ruby: 

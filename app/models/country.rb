@@ -147,8 +147,8 @@ class Country < BaseWithTranslation
   validates_uniqueness_of :iso3166_n3_code, allow_nil: true
 
   UnknownCountry = {
-    'ja' => '世界',
     'en' => 'World',
+    'ja' => '世界',
     'fr' => 'Monde',
   }.with_indifferent_access
   UnknownCountry.default_proc = proc do |hash, key|

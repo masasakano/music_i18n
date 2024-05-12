@@ -69,10 +69,12 @@ class EventItem < ApplicationRecord
   attr_accessor :form_start_err_unit
 
   UNKNOWN_TITLE_PREFIXES = UnknownEvent = {
-    "ja" => '不明のイベント項目_',
     "en" => 'UnknownEventItem_',
+    "ja" => '不明のイベント項目_',
     "fr" => "ÉvénementArticleNonClassé_",
   }.with_indifferent_access
+
+  DEFAULT_UNIQUE_TITLE_PREFIX = "item"
 
   alias_method :inspect_orig_event_item, :inspect if ! self.method_defined?(:inspect_orig_event_item)
 
@@ -108,19 +110,41 @@ class EventItem < ApplicationRecord
   end
 
   def self.prepare_create_new_unknown(event)
-    hs = {
-      event: event,
-      machine_title: get_unique_title(unknown_machine_title_prefix(event)),
-      duration_minute:     ((hr=event.duration_hour) ? hr.quo(60) : nil),
-      duration_minute_err: ((er=event.start_time_err) ? er : nil),  # both in units of second
-    }
-    
-    %i(place_id start_time start_time_err).each do |metho|
-      hs[metho] = event.send metho
-    end
-    hs
+    prepare_create_new_template(event, prefix=unknown_machine_title_prefix(event))
+    #hs = {
+    #  event: event,
+    #  machine_title: get_unique_title(unknown_machine_title_prefix(event)),
+    #  duration_minute:     ((hr=event.duration_hour) ? hr.quo(60) : nil),
+    #  duration_minute_err: ((er=event.start_time_err) ? er : nil),  # both in units of second
+    #}
+
+    #%i(place_id start_time start_time_err).each do |metho|
+    #  hs[metho] = event.send metho
+    #end
+    #hs
   end
   private_class_method :prepare_create_new_unknown
+
+  # Returns a Hash of the default time parameters from the parent Event (if specified)
+  #
+  # @return [Hash] keys(with_indifferent_access): start_time start_time_err duration_minute etc
+  def self.prepare_create_new_template(event=nil, prefix=DEFAULT_UNIQUE_TITLE_PREFIX, **kwd)
+    hsret = {
+      event: event,
+      machine_title: get_unique_title(prefix, **kwd),
+      duration_minute:     ((event && hr=event.duration_hour) ? hr.quo(60) : nil),
+      duration_minute_err: ((event && er=event.start_time_err) ? er : nil),  # both in units of second
+    }
+
+    %i(place_id start_time start_time_err).each do |metho|
+      hsret[metho] = event.send metho
+    end
+    hsret
+  end
+
+  def self.initialize_new_template(event=nil, prefix=DEFAULT_UNIQUE_TITLE_PREFIX, **kwd)
+    self.new(**prepare_create_new_template(event, prefix, **kwd))
+  end
 
   # Returns the English prefix for EventItem.Unknown for the event
   #
@@ -133,8 +157,10 @@ class EventItem < ApplicationRecord
   # @return [String] unknown title
   def self.unknown_machine_title_prefix(event, artit: nil)
     artit ||= [event, event.event_group].map{|i|
+      i.reload
       i.title_or_alt(langcode: "en", lang_fallback_option: :either, str_fallback: nil, article_to_head: true)  # Note that the article "the" , if exists, is broght to the head though it may stay "non"-capitalized.
     }
+    artit.pop if /#{Regexp.quote(artit[1])}.?\Z/ =~ artit[0]  # to avoid duplication of EventGroup name; this can happen because Event Translation may well include EventGroup Translation at the tail.
     UNKNOWN_TITLE_PREFIXES[:en]+artit.join("_").gsub(/ +/, "_")
   end
 
@@ -221,13 +247,15 @@ class EventItem < ApplicationRecord
   # @param postfix: [String, Symbol] If :default, a combined title of Event and EventGroup is used.
   # @param separator: [String]
   # @return [String] unique machine_title
-  def default_unique_title(prefix="item", postfix: :default, separator: "-")
+  def default_unique_title(prefix=DEFAULT_UNIQUE_TITLE_PREFIX, postfix: :default, separator: "-")
     if :default == postfix
       postfix =
         if event
-          [event, event.event_group].map{|model|
+          artit = [event, event.event_group].map{|model|
             definite_article_to_head(model.title(langcode: "en", lang_fallback: true, str_fallback: "")).gsub(/ +/, "_")
-          }.join(separator)
+          }
+          artit.pop if /#{Regexp.quote(artit[1])}.?\Z/ =~ artit[0]  # to avoid duplication of EventGroup name; this can happen because Event Translation may well include EventGroup Translation at the tail.
+          artit.join(separator)
         else
           ""
         end

@@ -29,47 +29,28 @@
 
     <%= f.input :form_channel_owner,
       collection: ordered_models_form(ChannelOwner), include_blank: false,
-      selected: (harami_vid.form_channel_owner || ChannelOwner.default(:HaramiVid).id),
+      selected: (harami_vid.form_channel_owner || harami_vid.channel && harami_vid.channel.channel_owner.id ||  ChannelOwner.default(:HaramiVid).id),
       label: t(:ChannelOwner), hint: (can?(:create, ChannelOwner)    ? t("layouts.fields.hint_create_if_non_existent", link: link_to(t("layouts.do_create_lower"), new_channel_path, title: "New Channel")).html_safe : "") %>
     <div class="form_new_model_info">
     <%= f.input :form_channel_type, include_blank: false,
       collection: ordered_models_form(ChannelType),
       label: t(:ChannelType),
-      selected: (harami_vid.form_channel_type || ChannelType.default(:HaramiVid).id)
+      selected: (harami_vid.form_channel_type || harami_vid.channel && harami_vid.channel.channel_type.id || ChannelType.default(:HaramiVid).id)
        %>
     <%= f.input :form_channel_platform,
       collection: ordered_models_form(ChannelPlatform), include_blank: false,
-      selected: (harami_vid.form_channel_platform || ChannelPlatform.default(:HaramiVid).id),
+      selected: (harami_vid.form_channel_platform || harami_vid.channel && harami_vid.channel.channel_platform.id ||  ChannelPlatform.default(:HaramiVid).id),
         label: t(:ChannelPlatform) %>  <%# NOTE: Here gives no hint to prompt a user to create a new one (like ChannelType), because HaramiVid should not need so many ChannelPlatform - appropriate moderators can create one by directly jumping to it anyway without being prompted here. %>
     </div>
 
-<% if ! harami_vid.new_record? %>
-    <% candidates = harami_vid.event_items.map{|evi| [evi.machine_title, evi.id]} %>
-    <%# f.collection_check_boxes :form_events, candidates, :last, :first, input_html: { multiple: true, checked: true } %>
-    <%# f.collection_check_boxes :form_events, [[true, 'Yes'], [false, 'No']], :first, :last %>
-  <%= f.collection_check_boxes :form_events, harami_vid.events, :id, :machine_title %>  <%# Not shown at all if there are no EventItems associatined to harami_vid %>
-  <%# cf. https://github.com/heartcombo/simple_form#collection-check-boxes %>
-
-   <%# f.collection_check_boxes :form_events, EventItem.limit(3), :id, :machine_title %>
-    <%# f.input :form_events do %>
-    <%# f.collection_check_boxes harami_vid, :event_items, EventItem.all, :id, :machine_title %>
-    <%# f.collection_check_boxes :form_events, harami_vid.form_events, :id, :machine_name %>
-    <%#end %>
-    <%= harami_vid.form_events.inspect %>
-    <%# f.input :form_events,
-      collection: candidates,
-      #selected: (harami_vid.form_events || candidates.map{|ea| ea.last}),
-      label: t(:EventItems),
-      #as: :checkboxes,
-      input_html: { multiple: true, checked: true } %>
-    <%# selections are not working... %>
-<% end %>
-
+<% if harami_vid.new_record? %>
+  <%# For update, the same field appears immediately above a new Artist-collab. The reasons are (1) for a new record, EventItem is a must, (2) for update, a new EventItem may be desired only when a new Artist-collab is added AND the user wishes so. %>
     <%= f.input :form_new_event,
       collection: form_selct_collections(Event), include_blank: true,
       selected: (harami_vid.form_new_event || (harami_vid.new_record? ? Event.default(:HaramiVid).id : nil)),
       label: (harami_vid.new_record? ? "" : t(:additional).capitalize+" ")+t(:Event),
       input_html: { multiple: false } %>
+<% end %>
 
     <%= f.input :uri_playlist_en, as: :url %>
     <%= f.input :uri_playlist_ja, as: :url %>
@@ -89,11 +70,46 @@
 
 <% if ! harami_vid.new_record? %>
 <%= render partial: 'music_table', locals: {harami_vid: harami_vid, add_buttons: true} %>
+
 <hr>
 <% end %>
 
+    <% if !harami_vid.new_record? %>
+    <div class="update_event_item_association_field">
+    <h4>Associated Events (EventItems)</h4>
+
+    <% collec = harami_vid.event_items.order(:event_id) %>
+  <%= f.association :event_items, collection: collec, label_method: :machine_title, value_method: :id,
+      include_blank: false,  as: :check_boxes, label: "Associated EventItems",
+      item_wrapper_class: 'inline' %>  <%# Not shown at all if there are no EventItems associatined to harami_vid %>
+  <%= render partial: "event_event_items" %>
+    <% candidates = harami_vid.event_items.map{|evi| [evi.machine_title, evi.id]} %>
+    <%# f.collection_check_boxes :form_event_items, candidates, :last, :first, input_html: { multiple: true, checked: true } %>
+    <%# f.collection_check_boxes :form_event_items, [[true, 'Yes'], [false, 'No']], :first, :last %>
+
+<%# f.collection_check_boxes :form_event_items, harami_vid.form_event_items, :id, :machine_title %>  <%# Not shown at all if there are no EventItems associatined to harami_vid %>
+
+  <%# cf. https://github.com/heartcombo/simple_form#collection-check-boxes %>
+
+   <%# f.collection_check_boxes :form_event_items, EventItem.limit(3), :id, :machine_title %>
+    <%# f.input :form_event_items do %>
+    <%# f.collection_check_boxes harami_vid, :event_items, EventItem.all, :id, :machine_title %>
+    <%# f.collection_check_boxes :form_event_items, harami_vid.form_event_items, :id, :machine_name %>
+    <%#end %>
+<%# harami_vid.form_event_items.inspect %>
+    <%# f.input :form_event_items,
+      collection: candidates,
+      #selected: (harami_vid.form_event_items || candidates.map{|ea| ea.last}),
+      label: t(:EventItems),
+      #as: :checkboxes,
+      input_html: { multiple: true, checked: true } %>
+    <%# selections are not working... %>
+
+    </div>
+    <% end %>
+
     <div class="register_assoc_music">
-    <h4><%= (harami_vid.new_record? ? "" : t(:additional).capitalize+" ")+t(:Music) %></h4>
+    <h4><%= (harami_vid.new_record? ? "" : t(:additional).capitalize+" ")+t(:Music) %></h4>  <%# Additional Music %>
     <div class="register_assoc_music_field">
       <%= f.input :music_name, label: t("layouts.fields.music_title"), hint: t('layouts.fields.hint_music_auto') %>
      <div class="form_new_model_info">
@@ -118,6 +134,7 @@
       <%= f.input :artist_sex,
         collection: ordered_models_form(Sex), selected: (harami_vid.artist_sex || Sex.unknown),
         label: t(:Sex)+" (new Artist only)", hint: " Only for a new Artist" %>
+     </div>
 
       <%= f.input :form_engage_hows,
         collection: ordered_models_form(EngageHow), selected: (harami_vid.form_engage_hows || EngageHow.default(:HaramiVid)),
@@ -126,13 +143,30 @@
       <%= f.input :form_engage_year, label: t('layouts.new_musics.year_engagement') %>
 
       <%= f.input :form_engage_contribution, label: t('attr.contribution').capitalize+' (0.0-1.0)', hint: t('attr.contribution_hint') %>
-     </div>
     </div> <!-- div class="register_assoc_artist_field"  -->
     </div> <!-- div class="register_assoc_artist"-  -->
 
     <div class="register_collab_artist_field">
-    <h4><%= t('harami_vids.field_artist_collabs_w_harami') %></h4>
-      <%= f.input :artist_name_collab,  label: t('harami_vids.form_artist_collabs') %>
+    <h4><%= (harami_vid.new_record? ? "" : "("+t(:additional).capitalize+") ") %><%= t('harami_vids.field_artist_collabs_w_harami') %></h4>
+    <% if !harami_vid.new_record? %>
+      <%= f.input :form_new_artist_collab_event_item, as: :radio_buttons,
+        collection: collection_event_items_for_new_artist_collab, label_method: :second, value_method: :first,
+        allow_blank: false,
+        label: "Event(Item) for "+t('layouts.new')+" "+t('harami_vids.form_artist_collabs'),
+        item_wrapper_class: 'inline'
+      %>  <%# defined in event_items_helper.rb %>
+    <%# For create/new, the same field appeaers much earlier. %>
+     <div class="form_new_model_info">
+      <%= f.input :form_new_event,
+        collection: form_selct_collections(Event), include_blank: true,
+          selected: (harami_vid.form_new_event || (harami_vid.new_record? ? Event.default(:HaramiVid).id : nil)),
+          label: t(:additional).capitalize+" "+t(:Event)+"(Item)",
+          input_html: { multiple: false } %>
+     </div>
+    <% end %>
+
+      <%= f.input :artist_name_collab,  label: t('harami_vids.form_artist_collabs'),
+          hint: t("layouts.fields.hint_create_if_non_existent", link: link_to(t("layouts.do_create_lower"), new_artist_path)).html_safe %>
      <div class="form_new_model_info">
       <%= f.input :form_instrument,
         collection: ordered_models_form(Instrument), selected: (harami_vid.form_instrument || Instrument.default(:HaramiVid)),

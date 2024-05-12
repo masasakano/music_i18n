@@ -469,9 +469,9 @@ class ApplicationController < ActionController::Base
   #
   # @param model_name [String, Symbol] model name like "event_group"
   # @return [ActionController::Parameters, Hash] all permitted params
-  def set_hsparams_main_tra(model_name)
+  def set_hsparams_main_tra(model_name, array_keys: [])
     additional_keys = ((:create == action_name.to_sym) ? PARAMS_TRANS_KEYS : [])  # latter defined in application_controller.rb
-    set_hsparams_main(model_name, additional_keys: additional_keys)
+    set_hsparams_main(model_name, additional_keys: additional_keys, array_keys: array_keys)
     @hstra = @prms_all.slice(*PARAMS_TRANS_KEYS).to_h  # defined in application_controller.rb
     @prms_all
   end
@@ -493,17 +493,18 @@ class ApplicationController < ActionController::Base
   # @param model_name [String, Symbol] model name like "event_group"
   # @param additional_keys: [Array<Symbol>] Additional keys (usually Translation related used by {#set_hsparams_main_tra})
   # @return [ActionController::Parameters, Hash] all permitted params
-  def set_hsparams_main(model_name, additional_keys: [])
+  def set_hsparams_main(model_name, additional_keys: [], array_keys: [])
     if !self.class.const_defined?(:PARAMS_MAIN_KEYS)
       raise NameError, "uninitialized constant #{self.class.name}::PARAMS_MAIN_KEYS -- you must define it and MAIN_FORM_KEYS in the controller!"
     end
     allkeys = self.class::PARAMS_MAIN_KEYS + additional_keys
+    hs_array_keys = array_keys.map{|i| [i, []]}.to_h
 
     if (self.class.const_defined?(:PARAMS_ARRAY_KEYS) && ary=self.class::PARAMS_ARRAY_KEYS)  # nested params
       allkeys = allkeys.map{|ek| ary.include?(ek) ? {ek => []} : ek}
     end
 
-    hsall = params.require(model_name).permit(*allkeys)
+    hsall = params.require(model_name).permit(*allkeys, **hs_array_keys)
     @hsmain = hsall.slice(*(self.class::MAIN_FORM_KEYS)).to_h  # nb, "place.prefecture_id" is ignored.
     @hsmain[:place_id] = helpers.get_place_from_params(hsall).id if !allkeys.map{|ek| ek.respond_to?(:to_sym) ? ek.to_sym : nil}.map(&:to_s).grep(/\Aplace(_id)?\z/).empty? #.include?(:place_id)   # Modified (overwritten)  # defined in application_helper.rb
     @prms_all = hsall

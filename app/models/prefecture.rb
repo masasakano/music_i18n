@@ -52,8 +52,8 @@ class Prefecture < BaseWithTranslation
   COUNTRIES_WITH_COMPLETE_PREFECTURES = %w(JPN)
 
   UnknownPrefecture = {
-    'ja' => 'どこかの都道府県',
     'en' => 'UnknownPrefecture',
+    'ja' => 'どこかの都道府県',
     'fr' => 'ComtéInconnu',
   }.with_indifferent_access
   UnknownPrefecture.default_proc = proc do |hash, key|

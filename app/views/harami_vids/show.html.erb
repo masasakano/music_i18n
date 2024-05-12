@@ -2,55 +2,35 @@
 <h1><%= t("HaramiVid")%> <%= "[HaramiVid]" if can?(:edit, @harami_vid) %> (<%= @harami_vid.release_date %>)</h1>
 
 <hr>
+<section id="harami_vids_show_parameters">
 <%= render partial: 'layouts/all_registered_translations', locals: {model: @harami_vid, add_buttons: false} %>
-<dl>
-  <dt> <%= t("tables.release_date") %>:</dt>
-  <dd><%= @harami_vid.release_date %></dd>
+ <section id="harami_vids_show_unique_parameters">
+ <dl>
+  <dt class="item_release_date"> <%= t("tables.release_date") %>:</dt>
+  <dd class="item_release_date"><%= @harami_vid.release_date %></dd>
 
-  <dt> <%= t("tables.duration") %>:</dt>
-  <dd><%= @harami_vid.duration %></dd>
+  <dt class="item_duration"> <%= t("tables.duration") %>:</dt>
+  <dd class="item_duration"><%= @harami_vid.duration %></dd>
 
-  <dt> URI:</dt>
-  <dd><%= link_to_youtube(@harami_vid.uri, @harami_vid.uri) %></dd>
+  <dt class="item_uri"> URI:</dt>
+  <dd class="item_uri"><%= link_to_youtube(@harami_vid.uri, @harami_vid.uri) %></dd>
 
-  <dt> <%= t(:Channel) %>:</dt>
-  <dd>「<%= @harami_vid.channel.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>」</dd>
-  <dd><span class="channel_platform"><%= @harami_vid.channel.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></span>
+  <dt class="item_channel"> <%= t(:Channel) %>:</dt>
+  <dd class="item_channel">
+    <% ch_str = (chan=@harami_vid.channel).title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>
+    「<em><%= (can?(:show, chan) ? link_to(ch_str, chan) : ch_str) %></em>」:
+    <span class="channel_platform"><%= @harami_vid.channel.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></span>
       (<%= t("harami_vids.table_head_ChannelType", default: "Type") %>: <span class="channel_type"><%= @harami_vid.channel.channel_type.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></span>)
     by <span class="channel_owner"><%= @harami_vid.channel.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></span>
   </dd>
 
-  <dt> <%= t(:Event) %> (&lt; <%= t(:EventGroup)%>):</dt>
-  <dd>
-    <ul>
-    <% @harami_vid.events.each do |event| %>
-      <li><%= event.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %> (<%= event.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>)
-        <ul>
-          <% event.event_items.each do |event_item| %>
-            <li>
-              <% if can? :index, EventItem %>
-                (<%= t(:EventItem) %>: <%= event_item.machine_title.inspect %>) /
-              <% end %>
-              (コラボアーティスト)
-              <%= msg = event_item.artists.map{|em| em.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)}.join(t(:comma, default: ", "));
-                msg.present? ? msg : t(:None)
-              %>
-            </li>
-          <% end %>
-        </ul>
-      </li>
-    <% end %>
-    </ul>
+  <dt class="item_event"> <%= t(:Events) %> [<%= t(:EventGroup)%>]:</dt>
+  <dd class="item_event">
+    <%= render partial: "event_event_items" %>
   </dd>
 
-  <dt> <%= t("tables.place_country") %>:</dt>
-  <dd><%= pla = @harami_vid.place
-      if pla
-        ar = pla.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true);
-        sprintf '%s %s(%s)', ar[1], (ar[0].blank? ? '' : '— '+ar[0]+' '), ar[2]
-      else
-        ""
-      end %></dd>
+  <dt class="item_place"> <%= t("tables.place_country") %>:</dt>
+  <dd class="item_place"><%= show_pref_place_country(@harami_vid.place) %></dd>  <%# defined in places_helper.rb %>
 
   <% if can? :edit, @harami_vid %>
   <dt> <%= t("datagrid.form.by_harami_full") %>:</dt>
@@ -63,12 +43,14 @@
   <dd><%= uri=@harami_vid.uri_playlist_en; (uri.blank? ? '' : link_to_youtube(uri, uri)) %></dd>
   <% end %>
 
-  <dt> <%= t("tables.note") %>:</dt>
-  <dd><%= @harami_vid.note %></dd>
-</dl>
+  <dt class="item_note"> <%= t("tables.note") %>:</dt>
+  <dd class="item_note"><%= @harami_vid.note %></dd>
+ </dl>
+ </section> <!-- section id="harami_vids_show_unique_parameters" -->
+</section> <!-- section id="harami_vids_show_parameters" -->
 
 <% if can? :update, @harami_vid %>
-  <%= button_to 'Edit', edit_harami_vid_path(@harami_vid), method: :get %>
+  <%= button_to 'Edit', edit_harami_vid_path(@harami_vid), method: :get, id: "main_edit_button" %>
 <br>
 <% end %>
 <%# No "Destroy" button %>

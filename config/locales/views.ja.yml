@@ -3,6 +3,7 @@ ja:
   attr:
     contribution: '貢献度'
     contribution_hint: '0が0%、1.0が100%'
+    cover_ratio: "楽曲のカバー割合"
 
   tables:
     title_ja: 日本語名称
@@ -74,6 +75,7 @@ ja:
     destroy_button: '削除実行'
     editing_guideline: '編集方針'
     error_in_save: "%{errors} が出て%{model}の保存に失敗しました"
+    new: 新規
     reset_button: "リセット (初期状態に戻す)"
     submit_button: '送信'
     Show: "詳細"
@@ -203,6 +205,10 @@ ja:
     Duration: "期間"
     DurationError: "期間の誤差"
 
+  event_items:
+    playing_artists: 演奏するアーティスト
+    Playing_artists_for_this: このEventItemで演奏するアーティスト
+
   harami_vids:
     table_head_date: 公開日
     table_head_timing: "開始時[秒]"
@@ -222,6 +228,10 @@ ja:
     field_artist_collabs_w_harami: "ハラミちゃんのコラボ相手"
     field_music_year: "発表(リリース)年"
     warn_collab_without_music: "コラボ相手を登録する際には、有効なMusicの登録が必須です。"
+    show:
+      artist_collabs: "コラボアーティスト"
+    edit:
+      artist_collabs_title: "コラボしているアーティスト"
 
   musics:
     index:

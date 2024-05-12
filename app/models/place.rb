@@ -36,8 +36,8 @@ class Place < BaseWithTranslation
   has_many :musics,  dependent: :restrict_with_exception
 
   UnknownPlace = {
-    "ja" => 'どこかの場所',
     "en" => 'UnknownPlace',
+    "ja" => 'どこかの場所',
     "fr" => 'PlaceInconnue',
   }.with_indifferent_access
   #UnknownPlace.default_proc = proc do |hash, key|

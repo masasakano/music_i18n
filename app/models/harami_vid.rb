@@ -64,7 +64,7 @@ class HaramiVid < BaseWithTranslation
   has_many :event_items, -> {distinct}, through: :harami_vid_event_item_assocs  # if the unique constraint is on for Association, `distinct` is not necessary for two-component associations (but it is for multi-components)
   has_many :events,       -> {distinct}, through: :event_items
   has_many :event_groups, -> {distinct}, through: :events
-  has_many :artist_music_plays, through: :event_items, source: :artists  # to an Association model! (NOT to Artists/Musics)
+  has_many :artist_music_plays, through: :event_items, source: :artist_music_plays  # to an Association model! (NOT to Artists/Musics)
   has_many :artist_collabs, -> {distinct}, through: :event_items, source: :artists
 
   has_many :artists,     through: :musics  # duplication is possible. "distinct" would not work with ordering! So, use uniq if required.
@@ -89,7 +89,7 @@ class HaramiVid < BaseWithTranslation
   attr_accessor :unsaved_music
   attr_accessor :unsaved_event_item
 
-  attr_accessor :form_events
+  attr_accessor :form_event_items
   attr_accessor :form_new_event
   attr_accessor :form_channel_owner
   attr_accessor :form_channel_type
@@ -106,6 +106,7 @@ class HaramiVid < BaseWithTranslation
   attr_accessor :music_timing  # n.b., there is a method "timing"
   attr_accessor :music_genre
   attr_accessor :music_year
+  attr_accessor :form_new_artist_collab_event_item
 
   attr_accessor :form_info  # various information about the result of form inputs, especially in create.
 
@@ -387,6 +388,7 @@ class HaramiVid < BaseWithTranslation
     }.join('<br>').html_safe
   end
 
+  ########## Before-validation callbacks ##########
 
   # Callback before_validation
   #

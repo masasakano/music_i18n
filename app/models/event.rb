@@ -67,8 +67,8 @@ class Event < BaseWithTranslation
   attr_accessor :form_start_err_unit
 
   UNKNOWN_TITLES = UnknownEvent = {
+    "en" => 'UnknownEvent',   # the order is significant b/c EventItem, for which the machine_title is partially taken from this title of Event, is created as soon as the first Translation of Event is created; If the English title is first as defined here, EventItem#machine_title contains the English one.
     "ja" => '不明のイベント',
-    "en" => 'UnknownEvent',
     "fr" => "ÉvénementNonClassé",
   }.with_indifferent_access
 
@@ -79,8 +79,8 @@ class Event < BaseWithTranslation
   #    "京都府での一般的イベント < その他のイベント類"
   #    "Event in Kyoto < UncategorizedEventGroup"
   DEF_EVENT_TITLE_FORMATS = {
-    "ja" => ['%s(%s/%s)でのイベント', " < ", "%s"],
     "en" => ['Event in %s(%s/%s)', " < ", "%s"],
+    "ja" => ['%s(%s/%s)でのイベント', " < ", "%s"],
   }.with_indifferent_access
 
   # Information of "(Country-Code)" is added.
@@ -313,7 +313,7 @@ class <<  Event
   # Wrapper of {BaseWithTranslation.create_basic!}
   def create_basic!(*args, event_group: nil, event_group_id: nil, **kwds, &blok)
     event_group_id ||= (event_group ? event_group.id : EventGroup.create_basic!.id)
-    create_basic_bwt!(*args, event_group_id: event_group_id, **kwds, &blok)
+    super(*args, event_group_id: event_group_id, **kwds, &blok)
   end
 end
 

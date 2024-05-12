@@ -74,10 +74,10 @@ class HaramiVidsTest < ApplicationSystemTestCase
     vid_prms[:note] = "temperary note 37"
     fill_in "Note", with: vid_prms[:note]
 
-    fill_autocomplete('Associated Artist name', with: 'Lennon', select: "John Lennon")  # defined in test_helper.rb
-    find_field("Way of engagements").select "Singer (Cover)"
-    fill_in "Year of engagement", with: 2009
-    fill_in "Contribution", with: 0.5
+    fill_autocomplete('Associated Artist name', with: 'Lennon', select: (vid_prms[:engage_artist_text]="John Lennon"))  # defined in test_helper.rb
+    find_field("Way of engagements").select(vid_prms[:engage_how_text]="Singer (Cover)")
+    fill_in "Year of engagement", with: (vid_prms[:engage_year]=2009)
+    fill_in "Contribution",       with: (vid_prms[:engage_contribution]=0.5)
 
     vid_prms[:music_title] = "日本語の歌37"
     fill_in "Song/Music name", with: vid_prms[:music_title]
@@ -100,8 +100,85 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_match(/Side channel\b.+ was created\b/, find(css_for_flash(:notice)).text)
     assert_match(/\bnew channel\b/i,               find(css_for_flash(:notice)+" a").text)  # <a> link should be active.
 
+    ### checking the create-result in Show
+    _check_at_show(vid_prms)
+
+    selector_tr = "table#music_table_for_hrami_vid tbody tr "
+    assert_equal vid_prms[:music_title],       find(selector_tr+"td.item_title a").text  # link
+    music = Music.find(find(selector_tr+"td.item_title a")["href"].to_s.split("/")[-1].to_i)
+    assert_equal vid_prms[:release_year].to_s, find(selector_tr+"td.item_year").text
+    assert_equal vid_prms[:release_year].to_i, music.year
+    assert_equal vid_prms[:genre],             find(selector_tr+"td.item_genre").text
+   #assert_equal vid_prms[:place]   # Music's Place is unknown.
+    assert   music.place.unknown?   # Music's Place is unknown.
+
+    assert_equal 1, music.engages.count
+    engage = music.engages.first
+    assert_equal vid_prms[:engage_artist_text], find(selector_tr+"td.item_artists a").text
+    assert_equal vid_prms[:engage_artist_text],  engage.artist.title
+    assert_match(/#{Regexp.quote(vid_prms[:engage_how_text])}/, find(selector_tr+"td.item_artists").text)
+    assert_equal vid_prms[:engage_year],         engage.year
+    assert_equal vid_prms[:engage_contribution], engage.contribution
+
+    assert_equal vid_prms[:timing].to_s,       find(selector_tr+"td.item_timing").text
+
+    find("#main_edit_button").click
+    #click_on "Edit"  # => Ambiguous match, found 3 elements matching visible link or button "Edit"
+
+    ## Editing
+
+    vid_prms[:date_edit] = vid_prms[:date] + 1
+    find("div.harami_vid_release_date select#harami_vid_release_date_3i").select vid_prms[:date_edit].day
+    page.has_field?('section#sec_primary_input checkboxes', checked: true)
+    assert_equal "HARAMIchan",   find_field('Channel Owner').find('option[selected]').text
+    assert_equal 'Side channel', find_field('Channel Type').find('option[selected]').text
+
+    uncheck 'UnknownEventItem'  # should be invalid because it is an "unknown" EventItem and also it has an Artist
+    select 'street playing', from: 'Additional Event', match: :first  # in the same way
+
+    fill_autocomplete('Music name', with: vid_prms[:music_title][0..-2], select: vid_prms[:music_title][0..-2])  # same song; defined in test_helper.rb
+    fill_autocomplete('featuring Artist', with: 'Proclai', select: 'Proclaimers')  # defined in test_helper.rb
+    find_field("(Music) Instrument").select(vid_prms[:instrument_edit]="Vocal")
+    find_field("How they collaborate").select(vid_prms[:collab_how_edit]= "Singer")
+
+    click_on "Update Harami vid", match: :first
+#take_screenshot
+
+    ### Checking flash messages
+    assert_match(/\bEvent.* must remain/, find(css_for_flash(:alert, category: :error_explanation)).text)
+    check 'UnknownEventItem'  # should be invalid because it is an "unknown" EventItem and also it has an Artist
+    click_on "Update Harami vid", match: :first
+
+    assert_match(/HaramiVid was successfully updated\b/, find(css_for_flash(:success)).text)  # defined in test_helper.rb
+    _check_at_show(vid_prms)
+
+    sel = "section#harami_vids_show_unique_parameters dl "+"dd.item_event ol.list_event_items li:nth-child(2)"
+    assert_match(/\b#{Regexp.quote(vid_prms[:music_title])}\b/, find(sel).text)
+    assert_match(/\bfeaturing Artist.+\bThe Proclaimers\b/i,                 find(sel).text)
+    assert_selector sel+" a"
+
     click_on "Back"
   end
+
+  def _check_at_show(vid_prms)
+    assert_equal vid_prms[:title], find("table#all_registered_translations_harami_vid tr.trans_row.lc_en td.trans_title").text.strip
+
+    selector_dl = "section#harami_vids_show_unique_parameters dl "
+    assert_equal vid_prms[:uri],  find(selector_dl+" dd.item_uri a").text
+    assert_equal "https://youtu.be/",  find(selector_dl+"dd.item_uri a")["href"].to_s[0,17]
+    assert_equal (vid_prms[:date_edit] || vid_prms[:date]).to_s, find(selector_dl+"dd.item_release_date").text
+    assert_equal vid_prms[:duration], find(selector_dl+"dd.item_duration").text.to_f
+    assert_selector selector_dl+"dd.item_channel a"
+    assert_match(/Side channel\b/, find(selector_dl+"dd.item_channel").text)
+
+    sel = selector_dl+"dd.item_event ol.list_event_items li:first-child"
+    assert_match(/\b#{Regexp.quote(vid_prms[:music_title])}\b/, find(sel).text)
+    assert_match(/\bfeaturing Artist.+\bAI\b/i,                 find(sel).text)
+    assert_selector sel+" a"
+
+    assert_text vid_prms[:note]
+  end
+  private :_check_at_show
 
   test "visiting the index as a guest" do
     visit grid_index_path_helper(HaramiVid, column_names: ["events", "collabs"], max_per_page: 25)

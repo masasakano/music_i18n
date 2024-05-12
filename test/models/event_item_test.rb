@@ -102,6 +102,28 @@ class EventItemTest < ActiveSupport::TestCase
     assert_equal "item-UnknownEvent-UncategorizedEventGroup",  (ut=evit.default_unique_title)
     EventItem.create!(machine_title: ut, event: evit.event)
     assert_equal "item1-UnknownEvent-UncategorizedEventGroup", (ut=evit.default_unique_title)
+
+    evgr_tit = "NaiyoEvgr"
+    evgr = EventGroup.create_basic!(title: evgr_tit, langcode: "en")
+    evgr.reload
+    ev_tit = evgr.events.first.title(langcode: "en")
+    # assert_match(/#{evgr_tit}\Z/, ev_tit)
+    evit = evgr.event_items.first
+    assert_includes evit.machine_title, ev_tit.gsub(/\s+/, "_")
+    assert_includes evit.machine_title, evgr_tit
+    refute_includes evit.machine_title.sub(/#{evgr_tit.gsub(/\s+/, "_")}/, ""), evgr_tit, evit.machine_title.inspect
+
+    pla = places(:perth_aus)
+    ev2 = Event.default(:HaramiVid, place: pla)
+    ev2.save!
+    ev2.reload
+    evgr_tit = ev2.event_group.title(langcode: "en")
+    ev_tit = ev2.title(langcode: "en")
+    assert_match(/#{evgr_tit}\Z/, ev_tit)
+    evit = ev2.event_items.first
+    assert_includes evit.machine_title, ev_tit.gsub(/\s+/, "_")
+    assert_includes evit.machine_title, evgr_tit.gsub(/\s+/, "_")
+    refute_includes evit.machine_title.sub(/#{evgr_tit.gsub(/\s+/, "_")}/, ""), evgr_tit.gsub(/\s+/, "_"), "machine_title=#{evit.machine_title.inspect}"  # EventGroup should not be doubly included in machine_title of EventItem.
   end
 
   test "association" do

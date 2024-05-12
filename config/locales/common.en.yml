@@ -66,6 +66,7 @@ en:
   or: or
   Prefecture: Prefecture
   Place: Place
+  PlayRole: Role in playing
   read_agree_terms_html: "I have read and agreed with the %{link2term}."
   romaji: romaji
   ruby: ruby

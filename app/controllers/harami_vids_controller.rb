@@ -6,6 +6,7 @@ class HaramiVidsController < ApplicationController
   load_and_authorize_resource except: [:index, :show, :create] # This sets @harami_vid
   before_action :set_harami_vid, only: [:show]  # load_and... would load a model for  :edit, :update, :destroy
   before_action :model_params_multi, only: [:create, :update]
+  before_action :set_event_event_items, only: [:show, :edit]  # sets @event_event_items
   before_action :set_countries, only: [:new, :create, :edit, :update] # defined in application_controller.rb
 
   # params key for auto-complete Artist
@@ -14,20 +15,26 @@ class HaramiVidsController < ApplicationController
   # Symbol of the main parameters in the Form (except "place" (or "place_id"?)), which exist in DB or as setter methods
   MAIN_FORM_KEYS = %i(uri duration note) + [
     "form_channel_owner", "form_channel_type", "form_channel_platform",
-    "form_events", "form_new_event",
+    #"form_event_items",
+    "form_new_event",
     "artist_name", "artist_sex", "form_engage_hows", "form_engage_year", "form_engage_contribution",
     "artist_name_collab", "form_instrument", "form_play_role",
     "music_name", "music_timing", "music_genre", "music_year",
+    "form_new_artist_collab_event_item",
     "uri_playlist_en", "uri_playlist_ja",
     "release_date(1i)", "release_date(2i)", "release_date(3i)",  # Date-related parameters
   ]
 
   # Permitted main parameters for params(), used for update and create
   PARAMS_MAIN_KEYS = MAIN_FORM_KEYS + [
+    # "event_item_ids",  # This is a key for an Array, hence defined in model_params_multi
   ] + [PARAMS_KEY_AC] + PARAMS_PLACE_KEYS
   # these will be handled in model_params_multi()
   # See {#create} for description of "place_id" and "place".  In short, the best strategy is
   # to use @hsmain["place_id"] (or @hamsin[:place_id]), while that in params is "place".
+
+  # Form-ID for the new EventItem in the EventItem selection for a new collab-Artist
+  DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW = 0
 
   # GET /harami_vids
   # GET /harami_vids.json
@@ -50,14 +57,13 @@ class HaramiVidsController < ApplicationController
   # GET /harami_vids/new
   def new
     @harami_vid = HaramiVid.new
-    #params.permit(:release_date, :duration, :uri, :place_id, :flag_by_harami, :uri_playlist_ja, :uri_playlist_en, :music_timing, :channel, :note)
     @places = Place.all  # necessary??
   end
 
   # GET /harami_vids/1/edit
   def edit
     @places = Place.all  # necessary??
-    @harami_vid.form_events ||= @harami_vid.event_items 
+    @harami_vid.form_event_items ||= @harami_vid.event_items.order("event_items.event_id")
   end
 
   # POST /harami_vids
@@ -79,41 +85,11 @@ class HaramiVidsController < ApplicationController
     # to "place_id"; which is set to @harami_vid above.  So, make sure to refer to "place_id"
     # as opposed to "place".
 
-    @assocs = {}.with_indifferent_access  # associated models (like assocs[:music]), maybe newly created.
-
     add_unsaved_trans_to_model(@harami_vid, @hstra) # defined in application_controller.rb
     def_respond_to_format(@harami_vid){  # defined in application_controller.rb
-      result = nil
-      ActiveRecord::Base.transaction(requires_new: true) do
-        begin
-          find_or_create_channel_and_associate  # a new Channel may be created - make sure to rollback if something goes wrong
-            # This may set @harami_vid.errors in an unlikely case (surely not with UI, though!)
-          result = @harami_vid.save
-          rollback_clear_flash if !result  # no more processing is needed anyway.
-          [:find_or_create_music,    # @assocs[:music]
-           :find_or_create_harami_vid_music_assoc, # @assocs[:harami_vid_music_assoc]
-           :find_or_create_artist,   # @assocs[:artist]
-           :find_or_create_engage,   # @assocs[:engage]
-           :find_or_artist_collab,   # @assocs[:artist_collab]
-           :associate_an_event_item, # @assocs[:event_item] @assocs[:artist_music_play]
-          ].each do |task|
-            self.send task
-            rollback_clear_flash if @harami_vid.errors.any?
-          end
-          if @assocs[:artist_collab].present? && @assocs[:music].blank?
-            @harami_vid.errors.add :artist_name_collab, I18n.t("harami_vids.warn_collab_without_music")  # Valid Music must be given when you add an Artist-to-collaborate.
-            result = false
-            raise ActiveRecord::Rollback, "Force rollback."
-          end
-        rescue => err
-          result = false
-          raise ActiveRecord::Rollback, "Force rollback."
-        ensure
-          result = false if @harami_vid.errors.any?  # errors may be set by any of the "around"-processes
-        end
-      end
-make_flash_html_safe!  # defined in application_controller.rb
-      result
+      create_update_core{
+        @harami_vid.save
+      }
     }
   end
 
@@ -121,9 +97,10 @@ make_flash_html_safe!  # defined in application_controller.rb
   # PATCH/PUT /harami_vids/1.json
   def update
     def_respond_to_format(@harami_vid, :updated){
-      @harami_vid.update(@hsmain)
+      create_update_core{
+        @harami_vid.update(@hsmain)
+      }
     } # defined in application_controller.rb
-#    hvid_respond_to_format(@harami_vid, :updated)
   end
 
   # DELETE /harami_vids/1
@@ -132,74 +109,10 @@ make_flash_html_safe!  # defined in application_controller.rb
     def_respond_to_format_destroy(@harami_vid)  # defined in application_controller.rb
   end
 
-
-  # # Common routine for create and update
-  # #
-  # # @see application_controller.rb
-  # #
-  # # @param mdl [ApplicationRecord]
-  # # @param created_updated [Symbol] Either :created(Def) or :updated
-  # # @param failed [Boolean] if true (Def: false), it has already failed.
-  # # @param redirected_path [String, NilClass] Path to be redirected if successful, or nil (Default)
-  # # @param back_html [String, NilClass] If the path specified (Def: nil) and if successful, HTML (likely a link to return) preceded with "Return to" is added to a Flash mesage; e.g., '<a href="/musics/5">Music</a>'
-  # # @param alert [String, NilClass] alert message if any
-  # # @param warning [String, NilClass] warning message if any
-  # # @param notice [String, NilClass] notice message if any
-  # # @param success [String, NilClass] success message if any. Default is "%s was successfully %s." but it is overwritten if specified.
-  # # @return [void]
-  # def hvid_respond_to_format(mdl, created_updated=:created, failed: false, redirected_path: nil, back_html: nil, alert: nil, **inopts)
-  #   ret_status, render_err =
-  #     case created_updated.to_sym
-  #     when :created
-  #       [:created, :new]
-  #     when :updated
-  #       [:ok, :edit]
-  #     else
-  #       raise 'Contact the code developer.'
-  #     end
-
-  #   begin
-  #     ActiveRecord::Base.transaction do
-  #       case created_updated.to_sym
-  #       when :created
-  #         mdl.save!
-  #       when :updated
-  #         mdl.update!(sliced_harami_vid_params)
-  #       else
-  #         raise 'Contact the code developer.'
-  #       end
-
-  #       ####### Make sure to add any errors to "mdl"
-  #       ####### Make sure to fail in Exception (not mdl.save but mdl.save!)
-  #       #### Save Artist
-  #       #### Save Music
-  #       #### Save HaramiVidMusicAssoc
-  #     end
-  #   rescue
-  #     ## Transaction failed.
-  #     return respond_to do |format|
-  #       mdl.errors.add :base, alert  # alert is included in the instance
-  #       opts = get_html_safe_flash_hash(alert: alert, **inopts)  # defined in application_controller.rb
-  #       opts.delete :alert  # because alert is contained in the model itself.
-  #       hsstatus = {status: :unprocessable_entity}
-  #       format.html { render render_err,       **(hsstatus.merge opts) } # notice (and/or warning) is, if any, passed as an option.
-  #       format.json { render json: mdl.errors, **hsstatus }
-  #     end
-  #   end
-
-  #   respond_to do |format|
-  #     inopts = inopts.map{|k,v| [k, (v.respond_to?(:call) ? v.call(mdl) : v)]}.to_h
-  #     alert = (alert.respond_to?(:call) ? alert.call(mdl) : alert)
-
-  #     msg = sprintf '%s was successfully %s.', mdl.class.name, created_updated.to_s  # e.g., Article was successfully created.
-  #     msg << sprintf('  Return to %s.', back_html) if back_html
-  #     opts = get_html_safe_flash_hash(success: msg.html_safe, alert: alert, **inopts) # "success" defined in /app/controllers/application_controller.rb
-  #     format.html { redirect_to (redirected_path || mdl), **opts }
-  #     format.json { render :show, status: ret_status, location: mdl }
-  #   end
-  # end
-
+  ###########################################################################
   private
+  ###########################################################################
+
     def grid_params
       params.fetch(:harami_vids_grid, {}).permit!
     end
@@ -226,10 +139,63 @@ make_flash_html_safe!  # defined in application_controller.rb
     #
     # @return NONE
     def model_params_multi
-      hsall = set_hsparams_main_tra(:harami_vid) # defined in application_controller.rb
+      @event_event_items = {}  # {Event-ID => EventItems-Relation} for update
+      @assocs = {}.with_indifferent_access  # associated models (like assocs[:music]), maybe newly created.
+      hsall = set_hsparams_main_tra(:harami_vid, array_keys: [:event_item_ids]) # defined in application_controller.rb
+    end
+
+    # Set @event_event_items
+    def set_event_event_items
+      @event_event_items ||= {}  # This is not defined for "show"
+      @harami_vid.events.order("start_time", "duration_hour").each do |event|
+        @event_event_items[event.id] = event.event_items.order("event_items.start_time", "duration_minute")
+      end
     end
 
     ###########################
+
+    # Core routine for create and update
+    #
+    # @note uri is normalized by {HaramiVid#normalize_uri} before-validation callback.
+    #
+    # @return [Boolean] to pass to +respond_to+
+    # @yield Either +@harami_vid.save+ or +@harami_vid.update(@hsmain)+. The returned valud should
+    #   be false if the action fails.
+    def create_update_core
+      raise if !block_given?  # sanity check
+      result = nil
+      ActiveRecord::Base.transaction(requires_new: true) do
+        begin
+          find_or_create_channel_and_associate  # a new Channel may be created - make sure to rollback if something goes wrong
+            # This may set @harami_vid.errors in an unlikely case (surely not with UI, though!)
+          result = yield
+          rollback_clear_flash if !result  # no more processing is needed anyway.
+          [:find_or_create_music,    # @assocs[:music]
+           :find_or_create_harami_vid_music_assoc, # @assocs[:harami_vid_music_assoc]
+           :find_or_create_artist,   # @assocs[:artist]
+           :find_or_create_engage,   # @assocs[:engage]
+           :find_or_artist_collab,   # @assocs[:artist_collab]
+           :update_event_item_assocs,# @assocs[:destroyed_event_items]  # for update only
+           :create_an_event_item,    # @assocs[:new_event_item]  # See this method for the algorithm
+           :associate_an_event_item, # @assocs[:artist_music_play]  # used for some case of "update" only
+          ].each do |task|
+            self.send task
+            rollback_clear_flash if @harami_vid.errors.any?
+          end
+          if @assocs[:artist_collab].present? && @assocs[:music].blank?
+            @harami_vid.errors.add :artist_name_collab, I18n.t("harami_vids.warn_collab_without_music")  # Valid Music must be given when you add an Artist-to-collaborate.
+            result = false
+            raise ActiveRecord::Rollback, "Force rollback."
+          end
+        rescue => err
+          result = false
+          raise ActiveRecord::Rollback, "Force rollback."
+        ensure
+          result = false if @harami_vid.errors.any?  # errors may be set by any of the "around"-processes
+        end
+      end
+      result
+    end # def create_update_core
 
     # DB rollback and clear previous flashes
     def rollback_clear_flash
@@ -315,7 +281,6 @@ make_flash_html_safe!  # defined in application_controller.rb
     def find_or_create_music
       prm_name = "music_name"
       raise "hsmain=#{@hsmain.inspect}" if !@hsmain.has_key?(prm_name)  # sanity check
-      raise if @harami_vid.new_record?  # sanity check
 
       @assocs[:music] = nil
       return if @hsmain[prm_name].blank?
@@ -365,6 +330,11 @@ end
 
       return(@assocs[:artist_collab] = nil) if @hsmain[prm_name].blank?
       @assocs[:artist_collab] = _find_or_create_artist_or_music(Artist, prm_name, find_only: true)
+      if @assocs[:artist_collab].present? && @assocs[:music].blank?
+        flash[:warning] ||= []
+        flash[:warning] << "Collab-Artist is ignored because Music is not specified."
+      end
+      @assocs[:artist_collab]
     end
 
     # Set @assocs[:engage]
@@ -394,6 +364,8 @@ end
     # @param prm_key [String] form key like "artist_name"
     # @param extra_prms_for_new [Hash] e.g., {sex: Sex.unknown} to create an Artist
     # @return [ApplicationRecord, NilClass] either Music, Artist, or nil if faiiling to save
+    # @raise [ActiveRecord::RecordNotFound] if a String containing the completely-wrong ID is passed,
+    #    which should never happen with auto-complete or with a standard manual input in UI.
     def _find_or_create_artist_or_music(klass, prm_key, extra_prms_for_new={}, find_only: false)
       raise "hsmain=#{@hsmain.inspect}" if !@hsmain.has_key? prm_key  # sanity check
       # tit, _, _ = Artist.resolve_base_with_translation_with_id_str(@hsmain[prm_key])
@@ -414,37 +386,132 @@ end
     end
     private :_find_or_create_artist_or_music
 
-    def associate_an_event_item
+    # Update existing associations for EventItems
+    #
+    # For update only.
+    # Sets @assocs[:destroyed_event_items], each element of which is
+    # an Array of [id, machine_name, Event]
+    #
+    # Basically, all the EventItems that are *NOT* specified in :event_item_ids
+    # are destroyed.
+    def update_event_item_assocs
+      @assocs[:destroyed_event_items] = nil
+      return if "create" == action_name || !@prms_all[:event_item_ids]  # the latter should not be nil on update, but playing safe.
+      @assocs[:destroyed_event_items] = []
+
+      leaves = @prms_all[:event_item_ids].select{|i| i.present?}.map(&:to_i)
+      if leaves.empty?
+        @harami_vid.errors.add :event_item_ids, ": at least one of them must remain."
+      end
+      @harami_vid.reload
+      @event_event_items.each_value do |rela_event_items|  # The key is ID for Event (identical to eeit.event.id), value is EventItem
+        rela_event_items.each do |eeit|
+          next if leaves.include?(eeit)  # Association not destroyed.
+          @assocs[:destroyed_event_items].push [eeit.id, eeit.machine_name, eeit.event]
+          next if @harami_vid.event_items.destroy(eeit)
+          msg_core = sprintf("Event=%s, EventItem=%s",
+                             eeit.event.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either).inspect,
+                             eeit.machine_name.inspect
+                            )
+          @harami_vid.errors.add :event_item_ids, "Failed to destroy the association (#{msg_core})."
+        end
+      end
+    end
+
+    # Create an EventItem for a specified Event, if specified
+    #
+    # Creating an EventItem is mandatory for "create", but NOT for "update".
+    #
+    # == Algorithm
+    #
+    # 1. create_an_event_item (this method) / "form_new_event" / @assocs[:new_event_item] and in some cases @assocs[:artist_music_play]
+    #    1. for "update", this can be nil. If so, skipped.
+    #    2. for "update", if this parameter is specified
+    #       1. If HaramiVid is not associated for "Unknown" EventItem for the Event, use it.
+    #       2. Else, a new EventItem is created.
+    #       3. If form_new_artist_collab_event_item is 0, follow the same processing as for "create".
+    #       4. If not (i.e., the value is other than 0 (pID of an existing EventItem)), return from here.
+    #    3. for "create", "Unknown" EventItem for the Event is used in principle.
+    #       1. However, if artist-collab and music are specified and no new ArtistMusicPlay can be made with the EventItem (b/c the same combination has been defined for a different video etc), a new EventItem is created so that it allows a creation of the new ArtistMusicPlay.
+    #       2. for "create", ArtistMusicPlay is created at this stage if artist-collab is specified.
+    # 2. associate_an_event_item / / @assocs[:artist_music_play] (if not yet set)
+    #    1. skip if "create" or @assocs[:artist_music_play] is already set or either of collab-artist and music is not specified.
+    #    2. Else, a new entry of {ArtistMusicPlay} is created.
+    #
+    def create_an_event_item
 begin
       #return if @assocs[:music].blank? || @assocs[:artist].blank?  # Music or Artist is not specified; hence nor Engage is set
       prm_name = "form_new_event"
-      @assocs[:event_item] = nil
+      @assocs[:new_event_item] = nil
 
-      raise "Bad new Event parameter is specified." if @harami_vid.new_record? if (evt_id=@hsmain[prm_name]).blank?
-      # b/c this should never happen via UI! I don't care what screen follows to the user/robot who submitted such a request.
+      evt_id=@hsmain[prm_name]
+      if evt_id.blank?
+        case action_name
+        when "create"
+          raise "Bad new Event parameter is specified."
+          # b/c this should never happen via UI! I don't care what screen follows to the user/robot who submitted such a request.
+        when "update"
+          if DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_i == @harami_vid.form_new_artist_collab_event_item.to_i && @assocs[:artist_collab].present?
+            @harami_vid.errors.add :form_new_artist_collab_event_item, "is specified to be New, but no new Event is selected for it."
+          end
+          return
+        else
+          raise "Should never happen."
+        end
+      end
 
       event = Event.find(evt_id.to_i)  # should never fail via UI
       if event.unknown? && @harami_vid.place_id.present?
         event2 = Event.default(:HaramiVid, place: Place.find(@harami_vid.place_id.to_i))
-        event = event2 if !event2.new_record? || event2.save
+        if !event2.new_record? || event2.save
+          event = event2
+          event.reload
+        end
       end
 
+      event_item_created = false  # Flag to tell whether a new EventItem has been created
       def_evit = event.unknown_event_item
+      if "create" != action_name && @harami_vid.event_items.include?(def_evit)
+        # A new EventItem is explicitly specified in update, yet the candidate "unknown" EventItem already exists.
+        # Hence, a new EventItem is created.
+        tit_tmp = def_evit.default_unique_title(prefix="user", postfix: :default)
+        def_evit = EventItem.initialize_new_unknown(event)
+        set_up_event_item_and_associate(def_evit)
+        return false if def_evit.errors.include?(:new_event_item)  # Error in saving a new EventItem for some reason
+        event_item_created = true
+      end
+
+      # If "update" and if the used specifies something different from "new EventItem" for the new artist-collab association,
+      # skip the rest. The case will be handled in the next step of associate_an_event_item
+      return if (s=@harami_vid.form_new_artist_collab_event_item) && DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_i != s.to_i
+
       return set_up_event_item_and_associate(def_evit) if !@assocs[:artist_collab] || !@assocs[:music]
 
       instrument = ((val=@hsmain[:form_instrument]).blank? ? Instrument.default(:HaramiVid) : Instrument.find(val))
       play_role  = ((val=@hsmain[:form_play_role]).blank?  ? PlayRole.default(:HaramiVid)   : PlayRole.find(val))
 
-      # Suppose there are multiple EventItems belonging to the Event
-      event.event_items.sort{|a,b|
-        if a == def_evit
-          1   # Default one comes last
-        elsif b == def_evit
-          -1
+      ar_event_item =
+        if event_item_created
+          # meaning this is in update, and the user explicitly specifies an Event (for the EventItem),
+          # yet the default "unknown" EventItem is actually already associated to HaramiVid. Hence, a new one
+          # has been already created.  This (being rare) has not been tested well at the time of writing!
+          [def_evit]  # For this one, ArtistMusicPlay should be always able to be saved!
         else
-          a <=> b
+          # In specifying a new EventItem, the user only specifies an Event, not EventItem.
+          # Hence, we determine if we need to create a new EventItem or we can reuse an existing one.
+          # Suppose there are multiple EventItems belonging to the Event
+          event.event_items.sort{|a,b|
+            if a == def_evit
+              1   # Default one comes last
+            elsif b == def_evit
+              -1
+            else
+              a <=> b
+            end
+          }
         end
-      }.each do |ea_evit|
+
+      ar_event_item.each do |ea_evit|
         can_do = _can_create_artist_music_play?(
           ea_evit,
           @assocs[:artist_collab],
@@ -458,10 +525,34 @@ begin
       # All existing EventItem-s violates unique conditions to create ArtistMusicPlay,
       # meaning those EventItem-s are not suitable to associate to the HaramiVid @harami_vid .
       # So creates a new EventItem
-      @assocs[:event_item] = EventItem.initialize_new_unknown(event)
-      _save_or_add_error(@assocs[:event_item])  # , form_attr: :base  # uncertain which parameter is wrong.
+      @assocs[:new_event_item] = EventItem.initialize_new_unknown(event)
+      _save_or_add_error(@assocs[:new_event_item])  # , form_attr: :base  # uncertain which parameter is wrong.
 
-      set_up_event_item_and_amp( @assocs[:event_item], instrument, play_role)
+      set_up_event_item_and_amp( @assocs[:new_event_item], instrument, play_role)
+rescue => err
+  print "DEBUG(#{File.basename __FILE__}:#{__method__}): Error is raised:\n ";p err
+  raise
+end
+    end
+
+    # Associate a new EventItem (for "update"); sets @assocs[:artist_music_play] (if not yet)
+    def associate_an_event_item
+begin
+      return if !@assocs[:artist_collab] || !@assocs[:music] || @assocs[:artist_music_play].present?
+      return if @harami_vid.form_new_artist_collab_event_item.blank?  # or if "create" == action_name
+
+      instrument = ((val=@hsmain[:form_instrument]).blank? ? Instrument.default(:HaramiVid) : Instrument.find(val))
+      play_role  = ((val=@hsmain[:form_play_role]).blank?  ? PlayRole.default(:HaramiVid)   : PlayRole.find(val))
+
+      event_item =
+        if DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_i == @harami_vid.form_new_artist_collab_event_item.to_i
+          @assocs[:new_event_item]
+        else
+          EventItem.find @harami_vid.form_new_artist_collab_event_item.to_i
+        end
+
+      form_attr = (("create" == action_name) ? :base : :form_new_artist_collab_event_item)
+      associate_artist_music_play(instrument, play_role, event_item: event_item, form_attr: form_attr) # defines @assocs[:artist_music_play]
 rescue => err
   print "DEBUG(#{File.basename __FILE__}:#{__method__}): Error is raised:\n ";p err
   raise
@@ -469,8 +560,13 @@ end
     end
 
     def set_up_event_item_and_associate(event_item)
-      @assocs[:event_item] ||= event_item
-      @harami_vid.event_items << event_item
+      @assocs[:new_event_item] ||= event_item
+      if event_item.new_record?
+         event_item.publish_date ||= @harami_vid.release_date
+         _save_or_add_error(event_item)
+      end
+
+      @harami_vid.event_items << event_item if !@harami_vid.event_items.include?(event_item)  # Added HaramiVidEventItemAssoc
     end
 
     def set_up_event_item_and_amp(event_item, instrument, play_role)
@@ -478,16 +574,16 @@ end
       associate_artist_music_play(instrument, play_role)
     end
 
-    def associate_artist_music_play(instrument, play_role)
+    def associate_artist_music_play(instrument, play_role, event_item: @assocs[:new_event_item], form_attr: :base)
       @assocs[:artist_music_play] =
         ArtistMusicPlay.new(
-          event_item: @assocs[:event_item],
+          event_item: event_item,
           artist:     @assocs[:artist_collab],
           music:      @assocs[:music],
           instrument: instrument,
           play_role:   play_role,
         )
-      _save_or_add_error(@assocs[:artist_music_play])  # , form_attr: :base  # uncertain which parameter is wrong.
+      _save_or_add_error(@assocs[:artist_music_play], form_attr: form_attr)  # :base for create b/c uncertain which parameter is wrong.
     end
 
     def _can_create_artist_music_play?(event_item, artist, music, instrument, play_role)
@@ -506,5 +602,5 @@ end
 end
 
 ###########################
-# INFO -- :   Parameters: {"authenticity_token"=>"[FILTERED]", "harami_vid"=>{"langcode"=>"ja", "title"=>"", "uri"=>"", "release_date(1i)"=>"2024", "release_date(2i)"=>"4", "release_date(3i)"=>"30", "duration"=>"", "place.prefecture_id.country_id"=>"5798", "place.prefecture_id"=>"6653", "place"=>"6783", "form_channel_owner"=>"3", "form_channel_type"=>"12", "form_channel_platform"=>"2", "form_new_event"=>"2", "uri_playlist_en"=>"", "uri_playlist_ja"=>"", "note"=>"", "music_name"=>"", "music_year"=>"", "music_genre"=>"122", "music_timing"=>"", "artist_name"=>"", "artist_sex"=>"0", "form_engage_hows"=>"72", "form_engage_year"=>"", "form_engage_contribution"=>"", "artist_name_collab"=>"", "form_instrument"=>"2", "form_play_role"=>"2"}, "commit"=>"Submit", "locale"=>"ja"}
+# params: {"_method"=>"patch", "authenticity_token"=>"[FILTERED]", "harami_vid"=>{"uri"=>"youtu.be/2EZ5-nyu1Dg", "release_date(1i)"=>"2024", "release_date(2i)"=>"5", "release_date(3i)"=>"10", "duration"=>"842.0", "place.prefecture_id.country_id"=>"5798", "place.prefecture_id"=>"6654", "place"=>"6749", "form_channel_owner"=>"3", "form_channel_type"=>"12", "form_channel_platform"=>"2", "event_item_ids"=>["", "20"], "form_event_items"=>["", "20"], "form_new_event"=>"", "uri_playlist_en"=>"", "uri_playlist_ja"=>"", "note"=>"", "music_name"=>"", "music_year"=>"", "music_genre"=>"122", "music_timing"=>"", "artist_name"=>"", "artist_sex"=>"0", "form_engage_hows"=>"72", "form_engage_year"=>"", "form_engage_contribution"=>"", "artist_name_collab"=>"", "form_instrument"=>"2", "form_play_role"=>"2"}, "commit"=>"Update Harami vid", "controller"=>"harami_vids", "action"=>"update", "id"=>"1046", "locale"=>"en"}
 
