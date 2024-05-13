@@ -15,7 +15,6 @@ class HaramiVidsController < ApplicationController
   # Symbol of the main parameters in the Form (except "place" (or "place_id"?)), which exist in DB or as setter methods
   MAIN_FORM_KEYS = %i(uri duration note) + [
     "form_channel_owner", "form_channel_type", "form_channel_platform",
-    #"form_event_items",
     "form_new_event",
     "artist_name", "artist_sex", "form_engage_hows", "form_engage_year", "form_engage_contribution",
     "artist_name_collab", "form_instrument", "form_play_role",
@@ -63,7 +62,6 @@ class HaramiVidsController < ApplicationController
   # GET /harami_vids/1/edit
   def edit
     @places = Place.all  # necessary??
-    @harami_vid.form_event_items ||= @harami_vid.event_items.order("event_items.event_id")
   end
 
   # POST /harami_vids
@@ -546,6 +544,7 @@ begin
 
       event_item =
         if DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_i == @harami_vid.form_new_artist_collab_event_item.to_i
+          raise "contact the code developer (@assocs[:new_event_item] is unexpectedly blank)" if @assocs[:new_event_item].blank?  # This should never happen as it should have been caught at an early stage in the previous-step method: create_an_event_item
           @assocs[:new_event_item]
         else
           EventItem.find @harami_vid.form_new_artist_collab_event_item.to_i
@@ -584,6 +583,18 @@ end
           play_role:   play_role,
         )
       _save_or_add_error(@assocs[:artist_music_play], form_attr: form_attr)  # :base for create b/c uncertain which parameter is wrong.
+
+      return if ArtistMusicPlay.where(event_item_id: event_item.id, music_id: @assocs[:music].id).count > 1
+
+      @assocs[:artist_music_play_harami] =
+        ArtistMusicPlay.new(
+          event_item: event_item,
+          artist:     Artist.default(:HaramiVid),
+          music:      @assocs[:music],
+          instrument: Instrument.default(:HaramiVid),
+          play_role:  PlayRole.default(:HaramiVid),
+        )
+      _save_or_add_error(@assocs[:artist_music_play_harami])  # :base b/c uncertain which parameter is wrong.
     end
 
     def _can_create_artist_music_play?(event_item, artist, music, instrument, play_role)
@@ -602,5 +613,5 @@ end
 end
 
 ###########################
-# params: {"_method"=>"patch", "authenticity_token"=>"[FILTERED]", "harami_vid"=>{"uri"=>"youtu.be/2EZ5-nyu1Dg", "release_date(1i)"=>"2024", "release_date(2i)"=>"5", "release_date(3i)"=>"10", "duration"=>"842.0", "place.prefecture_id.country_id"=>"5798", "place.prefecture_id"=>"6654", "place"=>"6749", "form_channel_owner"=>"3", "form_channel_type"=>"12", "form_channel_platform"=>"2", "event_item_ids"=>["", "20"], "form_event_items"=>["", "20"], "form_new_event"=>"", "uri_playlist_en"=>"", "uri_playlist_ja"=>"", "note"=>"", "music_name"=>"", "music_year"=>"", "music_genre"=>"122", "music_timing"=>"", "artist_name"=>"", "artist_sex"=>"0", "form_engage_hows"=>"72", "form_engage_year"=>"", "form_engage_contribution"=>"", "artist_name_collab"=>"", "form_instrument"=>"2", "form_play_role"=>"2"}, "commit"=>"Update Harami vid", "controller"=>"harami_vids", "action"=>"update", "id"=>"1046", "locale"=>"en"}
+# params: {"_method"=>"patch", "authenticity_token"=>"[FILTERED]", "harami_vid"=>{"uri"=>"youtu.be/2EZ5-nyu1Dg", "release_date(1i)"=>"2024", "release_date(2i)"=>"5", "release_date(3i)"=>"10", "duration"=>"842.0", "place.prefecture_id.country_id"=>"5798", "place.prefecture_id"=>"6654", "place"=>"6749", "form_channel_owner"=>"3", "form_channel_type"=>"12", "form_channel_platform"=>"2", "event_item_ids"=>["", "20"], "form_new_event"=>"", "uri_playlist_en"=>"", "uri_playlist_ja"=>"", "note"=>"", "music_name"=>"", "music_year"=>"", "music_genre"=>"122", "music_timing"=>"", "artist_name"=>"", "artist_sex"=>"0", "form_engage_hows"=>"72", "form_engage_year"=>"", "form_engage_contribution"=>"", "artist_name_collab"=>"", "form_instrument"=>"2", "form_play_role"=>"2"}, "commit"=>"Update Harami vid", "controller"=>"harami_vids", "action"=>"update", "id"=>"1046", "locale"=>"en"}
 

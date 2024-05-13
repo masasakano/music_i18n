@@ -27,7 +27,7 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
       "form_channel_owner"   =>ChannelOwner.primary.id.to_s,
       "form_channel_type"    =>ChannelType.default(:HaramiVid).id.to_s,
       "form_channel_platform"=>ChannelPlatform.default(:HaramiVid).id.to_s,
-      "form_event_items" => [events(:ev_harami_lucky2023).event_items.first, Event.unknown.event_items.first].map(&:id).map(&:to_s),
+      # "form_event_items" => [events(:ev_harami_lucky2023).event_items.first, Event.unknown.event_items.first].map(&:id).map(&:to_s),
       "form_new_event" => events(:ev_harami_lucky2023).id.to_s,
       "artist_name"=>"",
       "form_engage_hows"=>EngageHow.default(:HaramiVid).id.to_s,
@@ -242,8 +242,11 @@ end
     mu_name = old_mu.title  # existing Music
     hsnew = {uri: "https://"+(newuri="youtu.be/0070?t=5")+"&si=xyz&link=youtu.be", title: (newtit="new70"), music_name: mu_name, artist_name: old_art.title, artist_name_collab: name_a, place: pla, note: (newnote=name_a+" collaborates.")}
     hvid6_prms = @def_create_params.merge(hsnew)
+    evt = Event.find(hvid6_prms["form_new_event"])
+    #assert_equal 5, evt.event_items.count, "sanity check"
+    assert_equal 1, evt.event_items.first.artist_music_plays.where(artist_id: collab_art.id).count, "sanity check; there is already 1"
     assert_no_difference("Event.count", 0) do
-      assert_difference("EventItem.count + HaramiVidEventItemAssoc.count + ArtistMusicPlay.count", 2) do  # no change in EventItem (non-default (=not-unknown) existing one is used).
+      assert_difference("EventItem.count + HaramiVidEventItemAssoc.count + ArtistMusicPlay.count", 3) do  # no change in EventItem (non-default (=not-unknown) existing one is used).
         assert_no_difference("Artist.count + Engage.count") do
           assert_difference("Music.count + HaramiVidMusicAssoc.count", 1) do  # only association is added.
             assert_no_difference("Channel.count") do  # existing Channel is found
@@ -266,9 +269,10 @@ end
     evit_last = EventItem.last
     assert_equal 1,         mdl_last.event_items.count
     assert_equal @def_update_params[:form_new_event], mdl_last.event_items.first.event.id.to_s
-    assert_equal 2,         mdl_last.artist_music_plays.count, "#{mdl_last.artist_music_plays.inspect}"
+    assert_equal 3,         mdl_last.artist_music_plays.count, "#{mdl_last.artist_music_plays.inspect}"  # pre-existing 1 + 2 (=new RC-Succession+HARAMIchan)
     assert_equal ArtistMusicPlay, mdl_last.artist_music_plays.first.class
-    assert_equal 1,         mdl_last.artist_collabs.count
+    assert_equal 2,         mdl_last.artist_collabs.count
+    assert_equal 1,         mdl_last.artist_collabs.where.not("artists.id" => Artist.default(:HaramiVid).id).count
     assert_equal collab_art,mdl_last.artist_collabs.first
 
 
@@ -280,7 +284,7 @@ end
              "place.prefecture_id.country_id"=>pla.country.id.to_s, "place.prefecture_id" => pla.prefecture.id.to_s,
              place: pla.id.to_s, note: ("Same artist collaborates with a specified +unknown+ event.")}
     assert_difference("Event.count + EventItem.count", 2) do
-      assert_difference("ArtistMusicPlay.count", 1) do  # no change in EventItem (non-default (=not-unknown) existing one is used).
+      assert_difference("ArtistMusicPlay.count", 2) do  # no change in EventItem (non-default (=not-unknown) existing one is used).
         assert_no_difference("Music.count + Artist.count + Engage.count") do
           assert_difference("HaramiVidMusicAssoc.count + HaramiVidEventItemAssoc.count", 2) do  # only association is added.
             assert_no_difference("Channel.count") do  # existing Channel is found
@@ -300,7 +304,7 @@ end
     assert_equal evit_last, mdl_last.event_items.first
     assert_equal Event.last, evit_last.event
     assert_equal pla,       evit_last.place, "Event=#{evit_last.event.inspect}"
-    assert_equal 1,         mdl_last.artist_collabs.count
+    assert_equal 2,         mdl_last.artist_collabs.count
     assert_equal collab_art,mdl_last.artist_collabs.first
     assert_equal collab_art,evit_last.artists.first
     assert_equal old_mu,    evit_last.musics.first

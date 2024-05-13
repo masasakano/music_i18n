@@ -83,28 +83,10 @@
       include_blank: false,  as: :check_boxes, label: "Associated EventItems",
       item_wrapper_class: 'inline' %>  <%# Not shown at all if there are no EventItems associatined to harami_vid %>
   <%= render partial: "event_event_items" %>
-    <% candidates = harami_vid.event_items.map{|evi| [evi.machine_title, evi.id]} %>
+    <%# candidates = harami_vid.event_items.map{|evi| [evi.machine_title, evi.id]} %>
     <%# f.collection_check_boxes :form_event_items, candidates, :last, :first, input_html: { multiple: true, checked: true } %>
-    <%# f.collection_check_boxes :form_event_items, [[true, 'Yes'], [false, 'No']], :first, :last %>
-
-<%# f.collection_check_boxes :form_event_items, harami_vid.form_event_items, :id, :machine_title %>  <%# Not shown at all if there are no EventItems associatined to harami_vid %>
-
+  <%# f.collection_check_boxes :form_event_items, harami_vid.form_event_items, :id, :machine_title %>  <%# Not shown at all if there are no EventItems associatined to harami_vid %>
   <%# cf. https://github.com/heartcombo/simple_form#collection-check-boxes %>
-
-   <%# f.collection_check_boxes :form_event_items, EventItem.limit(3), :id, :machine_title %>
-    <%# f.input :form_event_items do %>
-    <%# f.collection_check_boxes harami_vid, :event_items, EventItem.all, :id, :machine_title %>
-    <%# f.collection_check_boxes :form_event_items, harami_vid.form_event_items, :id, :machine_name %>
-    <%#end %>
-<%# harami_vid.form_event_items.inspect %>
-    <%# f.input :form_event_items,
-      collection: candidates,
-      #selected: (harami_vid.form_event_items || candidates.map{|ea| ea.last}),
-      label: t(:EventItems),
-      #as: :checkboxes,
-      input_html: { multiple: true, checked: true } %>
-    <%# selections are not working... %>
-
     </div>
     <% end %>
 

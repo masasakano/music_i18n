@@ -89,7 +89,6 @@ class HaramiVid < BaseWithTranslation
   attr_accessor :unsaved_music
   attr_accessor :unsaved_event_item
 
-  attr_accessor :form_event_items
   attr_accessor :form_new_event
   attr_accessor :form_channel_owner
   attr_accessor :form_channel_type

@@ -40,4 +40,23 @@ class ArtistMusicPlay < ApplicationRecord
 
   validates :event_item, uniqueness: {scope: %i(artist music play_role instrument)}, allow_nil: false
 
+  alias_method :inspect_orig, :inspect if ! self.method_defined?(:inspect_orig) # Preferred to  alias :text_new :to_s
+
+  # Information of "(Prefecture < Country-Code)" is added.
+  # @return [String]
+  def inspect
+    return(super) if !event_item && !artist && !music && !play_role && !instrument
+
+    hsprm = %i(artist music play_role instrument).map{|ek|
+      [ek, ((obj=send(ek)) ? sprintf("(%s)", obj.title_or_alt(langcode: "en", lang_fallback_option: :either, str_fallback: "")) : "")]
+    }.to_h.with_indifferent_access
+    hsprm[:event_item] = (event_item ? sprintf("(%s)", event_item.machine_title) : "")
+
+    ret = super
+    hsprm.each_pair do |ek, ev|
+      ret = ret.sub(/, #{ek}_id: \d+/, '\0'+ev)
+    end
+    ret
+  end
+
 end
