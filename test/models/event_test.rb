@@ -142,11 +142,13 @@ class EventTest < ActiveSupport::TestCase
     evt = Event.default(context=nil, place: nil)
     exp = Event.unknown
     assert_equal exp, evt 
+    assert evt.default?
 
     evt = Event.default(context=:Harami1129)
     exp = event_groups(:evgr_single_streets)
     assert_equal exp, evt.event_group
     assert  evt.unknown?
+    assert evt.default?
     evt_unknown = evt
 
     evt = Event.default(:Harami1129, place: Place.unknown)
@@ -154,14 +156,19 @@ class EventTest < ActiveSupport::TestCase
     refute_equal evt_unknown, evt
     assert_equal evt_unknown.event_group, evt.event_group
     assert_match(/^どこかの場所\(どこかの都道府県\/世界\)で?の.+ストリート/, evt.title(langcode: :ja), "Event=#{evt.inspect}")
+    assert_raises(RuntimeError) {
+      evt.default? }  # invalid method (default?) for a new record.
+    evt.save!
+    assert evt.default?
     evt_world = evt
 
-    evt = Event.default(:Harami1129, place: Place.unknown(country: Country['JPN']))
+    evt = Event.default(:Harami1129, place: Place.unknown(country: Country['JPN']), save_event: true)
     refute_equal evt_world, evt
     assert_equal evt_world.event_group, evt.event_group
     refute_equal evt_world.place,       evt.place
     assert evt.place.unknown?
     assert_match(/^どこかの場所\(どこかの都道府県\/日本\)で?の.+ストリート/, evt.title(langcode: :ja), "Event=#{evt.inspect}")
+    assert evt.default?
     evt_japan = evt
     evt_japan.save!
 
@@ -177,6 +184,7 @@ class EventTest < ActiveSupport::TestCase
     end
     assert_equal pla, evt.place
     refute_equal evt_prev, evt
+    assert evt.default?
   end
 
   test "self.default 2" do

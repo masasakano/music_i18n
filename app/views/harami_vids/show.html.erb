@@ -6,6 +6,9 @@
 <%= render partial: 'layouts/all_registered_translations', locals: {model: @harami_vid, add_buttons: false} %>
  <section id="harami_vids_show_unique_parameters">
  <dl>
+  <dt class="item_pid"> pID:</dt>
+  <dd class="item_pid"><%= @harami_vid.id %></dd>
+
   <dt class="item_release_date"> <%= t("tables.release_date") %>:</dt>
   <dd class="item_release_date"><%= @harami_vid.release_date %></dd>
 
@@ -55,6 +58,16 @@
 <% end %>
 <%# No "Destroy" button %>
 <%= link_to t("layouts.back_to_index"), harami_vids_path %>
+
+<% if can? :update, @harami_vid %>
+<br>
+Copying Events of this HaramiVid,
+<%= link_to t("layouts.new").capitalize+" HaramiVid", new_harami_vid_path(params: {reference_harami_vid_id: @harami_vid.id}) %> |
+<input type="text" id="pid_edit_harami_vid_with_ref" class="input_12em" placeholder="pID of HaramiVid to edit">
+<a href="#" id="href_edit_harami_vid_with_ref" class="button_like">Edit another HaramiVid</a>
+<% end %>
+
+  <%# button_to 'Edit another HaramiVid', "#", method: :get, id: "href_edit_harami_vid_with_ref", form_css: "inline_form" %>
 
 <hr>
 <%= render partial: 'music_table', locals: {harami_vid: @harami_vid, add_buttons: true} %>

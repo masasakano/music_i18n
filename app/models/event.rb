@@ -83,9 +83,11 @@ class Event < BaseWithTranslation
     "ja" => ['%s(%s/%s)でのイベント', " < ", "%s"],
   }.with_indifferent_access
 
+  # Contexts that are taken into account in {Event.default}
+  VALID_CONTEXTS_FOR_DEFAULT = EventGroup::VALID_CONTEXTS_FOR_DEFAULT
+
   # Information of "(Country-Code)" is added.
   # @return [String]
-
   alias_method :inspect_orig_event, :inspect if ! self.method_defined?(:inspect_orig_event)
 
   def inspect
@@ -183,9 +185,12 @@ class Event < BaseWithTranslation
   # because each unknown Event has a Place defined.
   #
   # @option context [Symbol, String]
-  # @return [EventItem, Event]
-  def self.default(context=nil, place: nil)
-    def_event_group = EventGroup.default(context, place: place)
+  # @param place: [Place, NilClass]
+  # @param event_group: [EventGroup, NilClass]
+  # @option save_event: [Boolean] If specified true (Def: false), always return a saved Event, where a new Event may be created.
+  # @return [Event]
+  def self.default(context=nil, place: nil, event_group: nil, save_event: false)
+    def_event_group = (event_group || EventGroup.default(context, place: place))
     return def_event_group.unknown_event if !place
 
     # place is guaranteed to exist.
@@ -193,8 +198,7 @@ class Event < BaseWithTranslation
     events = def_event_group.events.where(place: place)
     if events.exists?
       DEF_EVENT_TITLE_FORMATS.each_key do |lcode|
-        core = Regexp.quote(default_title_prefix_for_lang(place, lcode))
-        existing = self.select_regex(:title, /#{core}/, langcode: lcode, sql_regexp: true).where(event_group: def_event_group).first
+        existing = select_regex_for_default(context=nil, langcode: lcode, place: place, event_group: def_event_group).first
         return existing if existing
       end
       # Though there are Events in the same EventGroup, none of them are the generalized default Event.
@@ -225,7 +229,32 @@ class Event < BaseWithTranslation
     end
 
     evt.unsaved_translations = unsaved_transs
+    return evt if !save_event
+
+    evt.save!
     evt
+  end
+
+  # Returns Relation for Default Events for the given langcode (mandatory), context, place, EventGroup
+  #
+  # @param langcode: [String] this must be given
+  # @param place: [Place] this must be given usually, unless you want the single Default Event (for the context) that has not got a Place.
+  # @param event_group: [EventGroup, NilClass, Symbol] :any means any EventGroup, nil means the single default EvengGroup (for the context and Place)
+  # @return [ActiveRecord::Relation]
+  def self.select_regex_for_default(context=nil, langcode: nil, place: nil, event_group: :any)
+    raise ArgumentError, "(${__method__}) langcode must be given." if !langcode
+    return where(id: (event_group || EventGroup.default(context, place: place)).unknown_event.id) if !place
+    event_group = EventGroup.default(context, place: place) if !event_group
+
+    core = Regexp.quote(default_title_prefix_for_lang(place, langcode))
+    base_select_regex = select_regex(:title, /#{core}/, langcode: langcode, sql_regexp: true)
+
+    case event_group
+    when :any
+      base_select_regex 
+    else
+      base_select_regex.where(event_group: event_group)
+    end
   end
 
   # @return [Translation]
@@ -248,13 +277,40 @@ class Event < BaseWithTranslation
   # @return [String]
   def self.default_title_prefix_for_lang(place, langcode)
     hsopts = {langcode: langcode, lang_fallback_option: :either, str_fallback: ""}
-    place_tit = place.title_or_alt(**hsopts)
-    prefe_tit = place.prefecture.title_or_alt(**hsopts)
+    place_tit = place.title_or_alt(prefer_alt: true, **hsopts)
+    prefe_tit = place.prefecture.title_or_alt(prefer_alt: true, **hsopts)
     count_tit = place.country.title_or_alt(prefer_alt: true, **hsopts)
     sprintf(DEF_EVENT_TITLE_FORMATS[langcode][0], place_tit, prefe_tit, count_tit)
   end
   private_class_method :default_title_prefix_for_lang
 
+
+  # True if self if one of the default Events on the basis of the titles or {#unknown?}
+  #
+  # If title has been manually modified, they become by definition a human-interacted Event,
+  # thus a non-default one.
+  #
+  # Note that self.default returns an unknown Event in some cases; that is why
+  # this method returns true for the unknown.
+  # @param context [String, Symbol, Array<String, Symbol>, NilClass] Default: :any. NOTE that nil means the nil-context, which differs from significant contexts!
+  def default?(context=:any)
+    raise "invalid method (#{__method__}) for a new record." if new_record? || !id
+    return true if unknown?
+
+    ar_context =
+      if :any == context
+        VALID_CONTEXTS_FOR_DEFAULT
+      else
+        [context].flatten
+      end
+
+    ar_context.each do |ea_context|
+      DEF_EVENT_TITLE_FORMATS.each_key do |lcode|
+        return true if self.class.select_regex_for_default(context=ea_context, langcode: lcode, place: place, event_group: event_group).ids.include?(id)
+      end
+    end
+    return false
+  end
 
   # True if no children or if only descendants are {#unknown?} and no HaramiVid depends on self.
   def destroyable?

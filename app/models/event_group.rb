@@ -62,6 +62,9 @@ class EventGroup < BaseWithTranslation
     "fr" => "Groupe d'événements non classé",
   }.with_indifferent_access
 
+  # Contexts that are taken into account in {EventGroup.default}
+  VALID_CONTEXTS_FOR_DEFAULT = ["harami_vid", "harami1129", nil]
+
   # Validates if a {Translation} is unique within the parent
   #
   # Fired from {Translation}
@@ -123,7 +126,7 @@ class EventGroup < BaseWithTranslation
   # @return [EventItem, Event]
   def self.default(context=nil, place: nil)
     case context.to_s.underscore.singularize
-    when *(%w(harami_vid harami1129))
+    when *(%w(harami_vid harami1129))  # see VALID_CONTEXTS_FOR_DEFAULT
       ret = (self.select_regex(:title, /single-?shot +street(-?piano)? +play(ing|s)?/i, langcode: "en", sql_regexp: true).first ||
              self.select_regex(:title, /単発ストリート(ピアノ)?の?演奏/i, langcode: "ja", sql_regexp: true).first)
       return ret if ret

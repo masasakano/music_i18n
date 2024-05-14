@@ -64,6 +64,9 @@ ja:
   mail:
     Link_handled_by: "リンクは、%{mail_distributor}経由で%{domain}にて処理されます"
 
+  errors:
+    at_least_one_of_them_must_be_checked: "チェックボックスに最低でも一つはチェックしてください。"
+
   layouts:
     add_translation: '翻訳追加'
     all_registered: 'すべての登録'

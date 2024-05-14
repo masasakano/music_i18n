@@ -221,17 +221,25 @@ class Harami1129Test < ActiveSupport::TestCase
 
   test "populate_ins_cols" do
     str_equation = 'HaramiVid.count*10000 + Artist.count*1000 + Music.count*100 + Engage.count*10'
+    str_equation2= 'EventItem.count*1000 + HaramiVidEventItemAssoc.count*100 + HaramiVidMusicAssoc.count*10 + ArtistMusicPlay.count'
 
     ## New one (ins_* are nil)
     h1129_ewf = harami1129s(:harami1129_ewf)
+    h1129_ew2 = h1129_ewf.dup
+    h1129_ew3 = h1129_ewf.dup
+    assert_nil h1129_ew2.id, 'sanity check'
 
-    assert_difference(str_equation, 0) do
-      h1129_ewf.populate_ins_cols(updates: Harami1129::ALL_INS_COLS)
+    assert_no_difference(str_equation2) do
+      assert_difference(str_equation, 0) do
+        h1129_ewf.populate_ins_cols(updates: Harami1129::ALL_INS_COLS)
+      end
     end
 
     h1129_ewf.fill_ins_column!
-    assert_difference(str_equation, 11110) do
-      h1129_ewf.populate_ins_cols(updates: Harami1129::ALL_INS_COLS)
+    assert_difference(str_equation2, 1111) do
+      assert_difference(str_equation, 11110) do
+        h1129_ewf.populate_ins_cols(updates: Harami1129::ALL_INS_COLS)
+      end
     end
     assert  h1129_ewf.ins_link_root
     assert_match(%r@youtu\.be/@, h1129_ewf.ins_link_root)
@@ -240,13 +248,109 @@ class Harami1129Test < ActiveSupport::TestCase
     assert_equal h1129_ewf.ins_song,   h1129_ewf.harami_vid.musics.first.title
     assert_equal h1129_ewf.ins_singer, h1129_ewf.harami_vid.artists.first.title
     assert_equal h1129_ewf.link_time, h1129_ewf.harami_vid.harami_vid_music_assocs.first.timing  # 3250
+    assert  h1129_ewf.event_item
+    evit_orig = h1129_ewf.event_item
+    assert_equal 1, evit_orig.harami_vid_event_item_assocs.size
 
     ## timing update
     h1129_ewf.update!(ins_link_time: 8888, last_downloaded_at: Time.now)
     h1129_ewf.populate_ins_cols(updates: [:ins_link_time])
     assert_equal    1, h1129_ewf.harami_vid.harami_vid_music_assocs.count
     assert_equal 8888, h1129_ewf.harami_vid.harami_vid_music_assocs.first.timing
-  end
+
+    ## create new Harami1129 for a new Music and populate it
+    #  The same Youtube URI but timing, hence no change in EventItem but HaramiVidMusicAssoc.count and ArtistMusicPlay (HARAMIchan playing)
+    h1129_ew2.song = "AliceWonder"  # <=> "Boogie Wonderland"
+    h1129_ew2.release_date = h1129_ew2.release_date + 1
+    h1129_ew2.title = h1129_ew2.title+"2"
+    h1129_ew2.link_time = h1129_ew2.link_time + 250  # <=> 3250
+    h1129_ew2.note = h1129_ew2.note+"2"
+    h1129_ew2.id_remote = h1129_ew2.id_remote + 10   # <=> 20
+    h1129_ew2.save!
+
+    assert_no_difference(str_equation2) do
+      assert_difference(str_equation, 0) do
+        h1129_ew2.populate_ins_cols(updates: Harami1129::ALL_INS_COLS)
+      end
+    end
+
+    h1129_ew2.fill_ins_column!
+    assert_difference(str_equation2, 11) do    # Increase in HaramiVidMusicAssoc.count and ArtistMusicPlay
+      assert_difference(str_equation, 110) do  # Increase in Music and Engage
+        h1129_ew2.populate_ins_cols(updates: Harami1129::ALL_INS_COLS)
+      end
+    end
+    h1129_ew2.reload
+    assert h1129_ew2.ins_link_root
+    assert_equal h1129_ew2.ins_song,   h1129_ew2.engage.music.title
+    assert_equal h1129_ew2.ins_singer, h1129_ewf.engage.artist.title  # same Artist as the original
+
+     # checking associated HaramiVid
+    hvid = h1129_ew2.harami_vid
+    assert_equal 2, hvid.musics.size
+    assert_includes hvid.musics.map(&:title), h1129_ew2.ins_song
+    assert_equal h1129_ew2.link_time, hvid.harami_vid_music_assocs.last.timing  # 3500
+    assert_equal 1, hvid.harami_vid_event_item_assocs.size
+
+     # checking associated EventItem, ArtistMusicPlay
+    assert_equal evit_orig,            h1129_ew2.event_item, "EventItem should be identical to the previous H1129"
+    assert_equal evit_orig.updated_at, h1129_ew2.event_item.updated_at
+    evit = h1129_ew2.event_item
+    assert_equal 2, evit.artist_music_plays.count
+    assert_equal 1,                             evit.artist_music_plays.pluck(:artist_id).flatten.uniq.size  # HARAMIchan only
+    assert_equal Artist.default(:HaramiVid).id, evit.artist_music_plays.pluck(:artist_id).flatten.first, "ArtistMusicPlay-Artist=#{evit.artists.first.title.inspect}"
+    assert_equal 2, evit.musics.distinct.size
+    assert_includes evit.musics.map(&:title), h1129_ewf.ins_song
+    assert_includes evit.musics.map(&:title), h1129_ew2.ins_song
+    assert_equal 1, evit.harami_vid_event_item_assocs.size
+    assert_equal 1, hvid.harami_vid_event_item_assocs.size
+
+    ## create new Harami1129 for the same Music/Artist as the original but in a different Youtube link and populate it
+    #   hence no change in Engage but a new EventItem, HaramiVidEventItemAssoc, HaramiVidMusicAssoc.count, ArtistMusicPlay (HARAMIchan playing)
+    h1129_ew3.release_date = h1129_ew3.release_date + 2
+    h1129_ew3.link_root = h1129_ew3.link_root+"3"
+    h1129_ew3.title = h1129_ew3.title+"3"
+    h1129_ew3.note = h1129_ew3.note+"3"
+    h1129_ew3.id_remote = h1129_ew3.id_remote + 20   # <=> 20
+    h1129_ew3.save!
+
+    assert_no_difference(str_equation2) do
+      assert_difference(str_equation, 0) do
+        h1129_ew3.populate_ins_cols(updates: Harami1129::ALL_INS_COLS)
+      end
+    end
+
+    h1129_ew3.fill_ins_column!
+    assert_difference(str_equation2, 1111) do    # Increase in HaramiVidMusicAssoc.count and ArtistMusicPlay
+      assert_difference(str_equation, 10000) do  # Increase in Music and Engage
+        h1129_ew3.populate_ins_cols(updates: Harami1129::ALL_INS_COLS)
+      end
+    end
+
+    h1129_ew3.reload
+    assert h1129_ew3.ins_link_root
+    assert_equal h1129_ew3.ins_song,   h1129_ewf.engage.music.title   # same Music as the original
+    assert_equal h1129_ew3.ins_singer, h1129_ewf.engage.artist.title  # same Artist as the original
+
+     # checking associated HaramiVid
+    hvid = h1129_ew3.harami_vid
+    assert_equal 1, hvid.musics.size
+    assert_includes hvid.musics.map(&:title), h1129_ew3.ins_song
+    assert_equal h1129_ew3.link_time, hvid.harami_vid_music_assocs.first.timing  # 3250
+    assert_equal 1, hvid.harami_vid_event_item_assocs.size
+
+     # checking associated EventItem, ArtistMusicPlay
+    refute_equal evit_orig,            h1129_ew3.event_item, "EventItem should differ from the previous H1129"
+    evit = h1129_ew3.event_item
+    assert_equal 1, evit.artist_music_plays.count
+    #assert_equal 1,                             evit.artist_music_plays.pluck(:artist_id).flatten.uniq.size  # HARAMIchan only
+    assert_equal Artist.default(:HaramiVid).id, evit.artist_music_plays.pluck(:artist_id).flatten.first, "ArtistMusicPlay-Artist=#{evit.artists.first.title.inspect}"
+    assert_equal 1, evit.musics.distinct.size
+    assert_includes evit.musics.map(&:title), h1129_ewf.ins_song
+    assert_includes evit.musics.map(&:title), h1129_ew3.ins_song
+    assert_equal 1, evit.harami_vid_event_item_assocs.size
+    assert_equal 1, hvid.harami_vid_event_item_assocs.size
+  end # test "populate_ins_cols" do
 
   test "insert_populate" do
     str_equation = 'HaramiVid.count*10000 + Artist.count*1000 + Music.count*100 + Engage.count*10'
@@ -284,7 +388,7 @@ class Harami1129Test < ActiveSupport::TestCase
     assert h1129_ewf.harami_vid.event_items.exists?, "h1129=#{h1129_ewf.inspect}\n hv=#{h1129_ewf.harami_vid.inspect}"
     assert h1129_ewf.harami_vid.event_items.include?(h1129_ewf.event_item)
     assert_equal h1129_ewf.harami_vid.musics.first,               h1129_ewf.event_item.musics.first
-    assert_equal h1129_ewf.harami_vid.musics.first.artists.first, h1129_ewf.event_item.artists.first
+    assert_equal Artist.default(:harami1129),                     h1129_ewf.event_item.artists.first
 
     ## populate_status, where the existing cache is automtically discarded due to a change in updated_at
     pstat = h1129_ewf.populate_status

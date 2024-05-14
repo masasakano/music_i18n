@@ -78,13 +78,19 @@ class EventItemTest < ActiveSupport::TestCase
     evt = EventItem.default(:Harami1129, place: pla)
     assert_equal Event, evt.class
     assert   evt.new_record?
-    evt.save!
+    #evt.save!
 
-    evt.reload
-    evit = evt.event_items.first
+    assert_difference('Event.count + EventItem.count', 2) {
+      evit = EventItem.default(:Harami1129, place: pla, save_event: true)
+    }
+    assert_equal EventItem, evit.class
+    assert_equal evit.event.title(langcode: "en"), evt.unsaved_translations.find{|i| i.langcode = "en"}.title
+
+    #evt.reload
+    #evit = evt.event_items.first
     assert   evit.unknown?, "#{evit.inspect}"
     assert_equal pla, evit.place
-    assert_match(/^UnknownEventItem_東京.*でのイベント/, evit.machine_title) # See Event::UNKNOWN_TITLE_PREFIXES[:ja]
+    assert_match(/^UnknownEventItem_都庁.*でのイベント/, evit.machine_title) # See Event::UNKNOWN_TITLE_PREFIXES[:ja]
     evt1 = evt
     evit1 = evit
 
@@ -95,6 +101,28 @@ class EventItemTest < ActiveSupport::TestCase
     evt2.save!
     evit = evt2.event_items.first
     assert_match(/^UnknownEventItem_Event_in/, evit.machine_title) # See Event::UNKNOWN_TITLE_PREFIXES[:en]
+  end
+
+  test "self.new_default" do
+    pref = Prefecture.create_basic!(title: 'NewPrefectureJapan', langcode: "en", country: Country["JPN"])
+    pla  = Place.create_basic!(title: 'NewPlaceJapan', langcode: "en", prefecture: pref)
+
+    evt0 = EventItem.new_default(:Harami1129, place: pla, save_event: false)
+    assert_equal Event, evt0.class
+
+    evit1 = EventItem.new_default(:Harami1129, place: pla, save_event: true)
+    assert evit1.unknown?
+    assert_equal evit1.event.title(langcode: "en"), evt0.unsaved_translations.find{|i| i.langcode = "en"}.title
+
+    evit2 = EventItem.new_default(:Harami1129, place: pla, save_event: true)
+    refute_equal evit1, evit2
+    assert_equal evit1.place,      evit2.place
+    assert_equal evit1.start_time, evit2.start_time
+
+    evit3 = EventItem.new_default(:Harami1129, place: pla, save_event: true)
+    assert_equal evit1.place,      evit3.place
+    refute_equal evit1, evit3
+    refute_equal evit2, evit3
   end
 
   test "default_unique_title" do

@@ -111,7 +111,8 @@ class HaramiVidsGrid < BaseGrid
   end
 
   column(:collabs, html: true, header: Proc.new{I18n.t("harami_vids.table_head_collabs", default: "featuring Artists")}) do |record|
-    print_list_inline(record.artist_collabs){ |tit, model|
+    def_artist = Artist.default(:HaramiVid)
+    print_list_inline(record.artist_collabs.where.not(id: def_artist.id).distinct){ |tit, model|
       tit = definite_article_to_head(tit)
       can?(:read, Artist) ? link_to(tit, artist_path(model)) : tit
     }  # defined in application_helper.rb

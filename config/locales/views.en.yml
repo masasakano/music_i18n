@@ -64,6 +64,9 @@ en:
   mail:
     Link_handled_by: "Link handled by %{mail_distributor} on behalf of %{domain}"
 
+  errors:
+    at_least_one_of_them_must_be_checked: "at least one of them must be checked."
+
   layouts:
     add_translation: 'Add translation'
     all_registered: 'All registered '

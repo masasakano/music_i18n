@@ -1032,28 +1032,31 @@ class Harami1129 < ApplicationRecord
     else
       # Else, create one.
       guessed_place = self.class.guess_place(ins_title)  # defined in /app/models/concerns/module_guess_place.rb
-      evt_kind =  EventItem.default(:harami1129, place: guessed_place)  # Either Event or EventItem
-      if evt_kind.new_record?
-        # evt_kind is an Event (NOT EventItem)
-        if evt_kind.save   # Just to play safe
-          evt_kind.reload
-          evt_kind = evt_kind.event_items.first
+      evt_kind =  EventItem.new_default(:harami1129, place: guessed_place, save_event: false)  # Either Event or EventItem
+      if EventItem == evt_kind.class
+        evit = evt_kind
+        if evit.save
+          evit.reload
         else
-          logger.error("ERROR(#{File.basename __FILE__}:#{__method__}): for some reason, Event failed to be saved! Event=#{Event.inspect}")
+          logger.error("ERROR(#{File.basename __FILE__}:#{__method__}): for some reason, EventItem failed to be saved! EventItem=#{evt_kind.inspect}")
+        end
+      else
+        # evt_kind is an Event (NOT EventItem)
+        if evt_kind.save   # Just to play VERY safe (so as not to stop processing with a risk of Harami1129#event_item being nil.
+          evt_kind.reload
+          evit = evt_kind.event_items.first
+        else
+          logger.error("ERROR(#{File.basename __FILE__}:#{__method__}): for some reason, Event failed to be saved! Event=#{evt_kind.inspect}")
         end
       end
 
-      self.event_item = evt_kind if !evt_kind.new_record?  # i.e., new_record means it is Event, NOT EventItem, as a result of failed save. This IF-clause should never fail in practice.
+      self.event_item = evit if evit  # if not, it is Event, NOT EventItem, as a result of failed save.
     end
 
-    if event_item && enga && enga.artist && !enga.artist.unknown? && enga.music && !enga.music.unknown? 
-      amp = ArtistMusicPlay.find_or_create_by(
-        event_item: event_item,
-        artist: enga.artist,
-        music: enga.music,
-        play_role: PlayRole.default(:harami1129),
-        instrument: Instrument.default(:harami1129),
-      )
+    amp = nil
+    if event_item && enga && enga.music && !enga.music.unknown? 
+      amp = ArtistMusicPlay.initialize_default_artist(:harami1129, event_item: event_item, music: enga.music)
+      amp.save! if amp.new_record?  # should never fail.
     end
 
     { event_item: event_item,

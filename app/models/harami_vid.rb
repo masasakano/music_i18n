@@ -106,6 +106,7 @@ class HaramiVid < BaseWithTranslation
   attr_accessor :music_genre
   attr_accessor :music_year
   attr_accessor :form_new_artist_collab_event_item
+  attr_accessor :reference_harami_vid_id
 
   attr_accessor :form_info  # various information about the result of form inputs, especially in create.
 
@@ -310,7 +311,7 @@ class HaramiVid < BaseWithTranslation
   # Set EventItem association
   #
   # Also this may update {HaramiVid#place}. If not, self (=HaramiVid) is not updated.
-  # Just an association HaramiVidEventItemAssoc may be created.
+  # Just an association HaramiVidEventItemAssoc and ArtistMusicPlay (HARAMIchan playing) may be created.
   #
   # @param harami1129 [Harami1129]
   # @param force: [Boolean] if true, all the record values are forcibly updated (Def: false).

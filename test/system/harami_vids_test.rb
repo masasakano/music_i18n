@@ -145,8 +145,8 @@ class HaramiVidsTest < ApplicationSystemTestCase
 #take_screenshot
 
     ### Checking flash messages
-    assert_match(/\bEvent.* must remain/, find(css_for_flash(:alert, category: :error_explanation)).text)
-    check 'UnknownEventItem'  # should be invalid because it is an "unknown" EventItem and also it has an Artist
+    assert_match(/\bEvent.* must be checked\b/, find(css_for_flash(:alert, category: :error_explanation)).text)
+    check 'UnknownEventItem'  # In fact, this should be forcibly checked again in default when an error takes you back to the screen after unchecked.
     click_on "Update Harami vid", match: :first
 
     assert_match(/HaramiVid was successfully updated\b/, find(css_for_flash(:success)).text)  # defined in test_helper.rb

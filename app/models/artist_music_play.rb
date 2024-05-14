@@ -59,4 +59,31 @@ class ArtistMusicPlay < ApplicationRecord
     ret
   end
 
+  # Returns {ArtistMusicPlay} with the default Artist (in the given context) for specified EventItem and Music
+  #
+  # If any {ArtistMusicPlay} with the default Artist for the EventItem and Music
+  # (regardless of {Instruent} and {PlayRole}) defined already, returns the first one found (+new_record? == false+).
+  # Otherwise an initialized {ArtistMusicPlay} with +new_record?==true+ is returned.
+  #
+  # @example
+  #    amp = ArtistMusicPlay.initialize_default_artist(:HaramiVid,
+  #            event_item: Event.default(:HaramiVid).unknown_event_item, music: Music.last)
+  #    amp.save! if amp.new_record?
+  #
+  # @return [ArtistMusicPlay]
+  def self.initialize_default_artist(context=nil, event_item: , music: , instrument: nil, play_role: nil)
+    instrument ||= Instrument.default(context)
+    play_role  ||= PlayRole.default(context)
+
+    hsbase = {
+      event_item: event_item,
+      artist: Artist.default(:HaramiVid),
+      music: music,
+    }
+
+    amp_cand = where(**hsbase).first
+    return amp_cand if amp_cand  # new_record? == false
+
+    new(**(hsbase.merge({instrument: instrument, play_role: play_role})))
+  end
 end

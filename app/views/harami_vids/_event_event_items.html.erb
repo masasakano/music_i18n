@@ -1,7 +1,7 @@
 <%# Local vairables: none %>
     <ul>
     <%# @harami_vid.events.order("start_time", "duration_hour").each do |event| %>
-    <% @event_event_items.each_pair do |id_event, rela_event_items| %>
+    <% @event_event_items.each_pair do |id_event, ar_event_items| %>
       <% event = Event.find(id_event) %>
       <li>
         <% event_title = event.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>
@@ -13,7 +13,7 @@
          [<%= event.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>]
         <ol class="list_event_items">
           <%# event.event_items.order("event_items.start_time").each_with_index do |event_item, eii| %>
-          <% rela_event_items.each_with_index do |event_item, eii| %>
+          <% ar_event_items.each_with_index do |event_item, eii| %>
             <li>
               <% if can? :index, EventItem %>
                 <%= t(:EventItem) %>

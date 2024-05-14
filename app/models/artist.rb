@@ -103,16 +103,20 @@ class Artist < BaseWithTranslation
 
   # Returning a default Model in the given context
   #
-  # place is ignored so far.
+  # Both context and place are ignored so far.
   #
   # @option context [Symbol, String]
-  # @option place: [Place]
+  # @param place: [Place]
+  # @param reload: [Boolean] if true (Def: false), the cache is not used and is updated.
   # @return [Artist]
-  def self.default(context=nil, place: nil)
-    # case context.to_s.underscore.singularize
-    # when "harami_vid", "harami1129"
-    # end
-    self.select_regex(:titles, /^(ハラミちゃん|HARAMIchan|Harami-chan)$/i, sql_regexp: true).first || self.unknown
+  def self.default(context=nil, place: nil, reload: false)
+    con_s = context.to_s
+    @record_default ||= {}
+    if reload || !@record_default[con_s]
+      @record_default[con_s] = select_regex(:titles, /^(ハラミちゃん|HARAMIchan|Harami-chan)$/i, sql_regexp: true).first
+    else
+      @record_default[con_s]
+    end || self.unknown
   end
 
   # Wrapper of the standard self.find_all_by, considering {Translation}

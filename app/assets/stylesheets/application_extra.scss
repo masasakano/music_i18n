@@ -172,6 +172,7 @@ form.datagrid-form {
 
 form.inline_form {
   display: inline;
+  display: inline-block;
 }
 
 form div.field input[type="text"] {
@@ -202,6 +203,11 @@ form div.field {
     min-width: 10em;
     max-width: 15em;
   }
+}
+
+input[type="text"].input_12em {
+    min-width:    6em;
+    max-width: 11.5em;
 }
 
 input[type="submit"] {
@@ -407,6 +413,20 @@ fieldset.form-group.radio_buttons div.form-check input[type="radio"] {  /* div.f
   margin-right: 0.5em; */
 }
 fieldset.form-group.radio_buttons div.inline input[type="radio"].form-check-input {
+}
+
+a.button_like {
+  -webkit-border-radius: 4px;
+  -moz-border-radius: 4px;
+  text-decoration: none;
+  background-color: #EEEEEE;
+  color: #333333;
+  padding: 2px 6px 2px 6px;
+  border-top: 1px solid #CCCCCC;
+  border-right: 1px solid #333333;
+  border-bottom: 1px solid #333333;
+  border-left: 1px solid #CCCCCC;
+  /* taken from https://stackoverflow.com/questions/710089/how-do-i-make-an-html-link-look-like-a-button */
 }
 /*
 <fieldset class="form-group radio_buttons required translation_is_orig">

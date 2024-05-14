@@ -103,4 +103,5 @@ import "./autocomplete_music_artist.js"
 import "./autocomplete_model_with_id_all.js"
 import "./dropdown_country2place.js"
 import "./dropdown_country2place_all.js"
+import "./modify_href_by_input.js"
 

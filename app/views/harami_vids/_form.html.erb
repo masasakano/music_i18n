@@ -43,8 +43,10 @@
         label: t(:ChannelPlatform) %>  <%# NOTE: Here gives no hint to prompt a user to create a new one (like ChannelType), because HaramiVid should not need so many ChannelPlatform - appropriate moderators can create one by directly jumping to it anyway without being prompted here. %>
     </div>
 
-<% if harami_vid.new_record? %>
-  <%# For update, the same field appears immediately above a new Artist-collab. The reasons are (1) for a new record, EventItem is a must, (2) for update, a new EventItem may be desired only when a new Artist-collab is added AND the user wishes so. %>
+   <% given_ref_id = harami_vid.reference_harami_vid_id %>
+   <% given_ref = (given_ref_id.present? ? HaramiVid.find(given_ref_id) : nil) %>
+<% if harami_vid.new_record? && !(given_ref && given_ref.event_items.exists?) %> <%# For update, the following is never displayed; for create, it usually is unless a reference HaramiVid is specified and it has an EventItem(s) %>
+  <%# For update, the same field appears immediately above a new Artist-collab. The reasons are (1) for a new record, EventItem is a must (unless a reference is given), (2) for update, a new EventItem is not often wanted unless the editor wants to associate a Music and maybe a new Artist-collab. %>
     <%= f.input :form_new_event,
       collection: form_selct_collections(Event), include_blank: true,
       selected: (harami_vid.form_new_event || (harami_vid.new_record? ? Event.default(:HaramiVid).id : nil)),
@@ -74,24 +76,45 @@
 <hr>
 <% end %>
 
-    <% if !harami_vid.new_record? %>
+    <%= f.input :reference_harami_vid_id, as: :hidden %>
+
+   <% if !harami_vid.new_record? || (given_ref && given_ref.event_items.exists?) %> <%# For update, the following is always displayed; for create, it is only if reference HaramiVid is specified and it has an EventItem(s) %>
     <div class="update_event_item_association_field">
     <h4>Associated Events (EventItems)</h4>
 
-    <% collec = harami_vid.event_items.order(:event_id) %>
+    <% collec = (given_ref || harami_vid).event_items.order(:event_id) %>
   <%= f.association :event_items, collection: collec, label_method: :machine_title, value_method: :id,
       include_blank: false,  as: :check_boxes, label: "Associated EventItems",
-      item_wrapper_class: 'inline' %>  <%# Not shown at all if there are no EventItems associatined to harami_vid %>
+      item_wrapper_class: 'inline', input_html: { checked: true } %>  <%# Not shown at all if there are no EventItems associatined to harami_vid; they all are forcibly checked in default, even after returning to the edit screen.  %>
   <%= render partial: "event_event_items" %>
     <%# candidates = harami_vid.event_items.map{|evi| [evi.machine_title, evi.id]} %>
     <%# f.collection_check_boxes :form_event_items, candidates, :last, :first, input_html: { multiple: true, checked: true } %>
   <%# f.collection_check_boxes :form_event_items, harami_vid.form_event_items, :id, :machine_title %>  <%# Not shown at all if there are no EventItems associatined to harami_vid %>
   <%# cf. https://github.com/heartcombo/simple_form#collection-check-boxes %>
     </div>
+   <% end %> <!-- if !harami_vid.new_record? || given_ref -->
+
+    <% if !harami_vid.new_record? %>
+    <h4 title="以下で(追加)定義する楽曲および/もしくは追加コラボアーティストに対応したEvent(Item)">Event(Item) for new Collab-Artist and/or Music</h4>
+      <%= f.input :form_new_artist_collab_event_item, as: :radio_buttons,
+        collection: collection_event_items_for_new_artist_collab, label_method: :second, value_method: :first,
+        allow_blank: false,
+        label: "Event(Item) for "+t('layouts.new')+" "+t('harami_vids.form_artist_collabs'),
+        item_wrapper_class: 'inline'
+      %>  <%# defined in event_items_helper.rb %>
+    <%# For create/new, the same field appeaers much earlier. %>
+     <div class="form_new_model_info">
+      <%= f.input :form_new_event,
+        collection: form_selct_collections(Event), include_blank: true,
+          selected: (harami_vid.form_new_event || (harami_vid.new_record? ? Event.default(:HaramiVid).id : nil)),
+          label: t(:additional).capitalize+" "+t(:Event)+"(Item)",
+          input_html: { multiple: false } %>
+     </div>
     <% end %>
 
+   <% if !given_ref %>
     <div class="register_assoc_music">
-    <h4><%= (harami_vid.new_record? ? "" : t(:additional).capitalize+" ")+t(:Music) %></h4>  <%# Additional Music %>
+    <h4 title="動画内で演奏された楽曲の追加もしくは追加コラボアーティストに対応した楽曲"><%= (harami_vid.new_record? ? "" : "("+t(:additional).capitalize+") ")+t(:Music) %></h4>  <%# Additional Music %>
     <div class="register_assoc_music_field">
       <%= f.input :music_name, label: t("layouts.fields.music_title"), hint: t('layouts.fields.hint_music_auto') %>
      <div class="form_new_model_info">
@@ -105,7 +128,7 @@
     </div>
 
     <div class="register_assoc_artist">
-    <h4><%= t('layouts.new_musics.assoc_artist_head') %></h4>
+    <h4 title="楽曲のオリジナル歌手あるいは作詞作曲者(新規アーティスト作成も可)"><%= t('layouts.new_musics.assoc_artist_head') %></h4>
       <% if !@artist_name  %>
        <div class="new_artist_link"><p><%# t('layouts.new_musics.note_new_artist') %><%# link_to(t('layouts.new_musics.create_new_artist'), new_artist_path, target: "_blank") %> </p></div>  <%# Message of "Create it first" is now removed. %>
       <% end%>
@@ -130,22 +153,6 @@
 
     <div class="register_collab_artist_field">
     <h4><%= (harami_vid.new_record? ? "" : "("+t(:additional).capitalize+") ") %><%= t('harami_vids.field_artist_collabs_w_harami') %></h4>
-    <% if !harami_vid.new_record? %>
-      <%= f.input :form_new_artist_collab_event_item, as: :radio_buttons,
-        collection: collection_event_items_for_new_artist_collab, label_method: :second, value_method: :first,
-        allow_blank: false,
-        label: "Event(Item) for "+t('layouts.new')+" "+t('harami_vids.form_artist_collabs'),
-        item_wrapper_class: 'inline'
-      %>  <%# defined in event_items_helper.rb %>
-    <%# For create/new, the same field appeaers much earlier. %>
-     <div class="form_new_model_info">
-      <%= f.input :form_new_event,
-        collection: form_selct_collections(Event), include_blank: true,
-          selected: (harami_vid.form_new_event || (harami_vid.new_record? ? Event.default(:HaramiVid).id : nil)),
-          label: t(:additional).capitalize+" "+t(:Event)+"(Item)",
-          input_html: { multiple: false } %>
-     </div>
-    <% end %>
 
       <%= f.input :artist_name_collab,  label: t('harami_vids.form_artist_collabs'),
           hint: t("layouts.fields.hint_create_if_non_existent", link: link_to(t("layouts.do_create_lower"), new_artist_path)).html_safe %>
@@ -159,6 +166,7 @@
      </div>
     </div> <!-- div class="register_collab_artist_field" -->
 
+   <% end %>  <!-- if !given_ref -->
   </div> <!-- div class="form-inputs" -->
 
   <div class="form-actions">
