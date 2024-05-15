@@ -30,6 +30,9 @@
       <th><%= t("attr.cover_ratio") %></th>
      <% end %>
       <th><%= t(:Note) %></th>
+     <% if can? :destroy, ArtistMusicPlay %>
+      <th></th>
+     <% end %>
     </tr>
   </thead>
 
@@ -48,6 +51,13 @@
      <% end %>
      <% end %>
       <td><%= amp.note %></td>
+     <% if can? :destroy, ArtistMusicPlay %>
+      <td>
+        <% if can? :destroy, amp %>
+          <%= link_to t('layouts.destroy_button'), amp, method: :delete, data: { confirm: t('are_you_sure') } %>
+        <% end %>
+      </td>
+     <% end %>
     </tr>
    <% end %>
   </tbody>

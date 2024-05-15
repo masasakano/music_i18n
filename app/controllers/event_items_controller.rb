@@ -36,11 +36,11 @@ class EventItemsController < ApplicationController
     set_event_prms  # set @event
     @event_item.event = @event
     if @event
-      @event_item.machine_title  = @event_item.default_unique_title 
-      @event_item.place          = @event.place
-      @event_item.start_time     = @event.start_time
-      @event_item.start_time_err = @event.start_time_err
-      @event_item.duration_minute = @event.duration_hour*60 if @event.duration_hour
+      @event_item.machine_title   ||= @event_item.default_unique_title 
+      @event_item.place           ||= @event.place
+      @event_item.start_time      ||= @event.start_time
+      @event_item.start_time_err  ||= @event.start_time_err
+      @event_item.duration_minute ||= @event.duration_hour*60 if @event.duration_hour
     else
       flash[:notice] ||= []
       flash[:notice] << "You can pre-specify an Event and then a default machine_title would be suggested. Go to Event index, jump to your preferred Event, and there is a link to New EventItem under the table of all EventItems belonging to the Event."
@@ -54,13 +54,13 @@ class EventItemsController < ApplicationController
   # GET /event_items/1/edit
   def edit
     # In case only an Event (but not StartTime) was defined in create
-    @event_item.start_time     = (@event ? @event.start_time     : TimeAux::DEF_FIRST_DATE_TIME)  # see event.rb
+    @event_item.start_time   ||= (@event ? @event.start_time     : TimeAux::DEF_FIRST_DATE_TIME)  # see event.rb
 
     if !@event_item.form_start_err
       unit = ((uni=@event_item.form_start_err_unit) ? uni : get_optimum_timu_unit(@event_item.start_time_err))  # defined in /app/models/module_common.rb
       factor = _form_start_err_factor(unit)  # defined in /app/models/module_common.rb
       @event_item.form_start_err_unit ||= unit
-      @event_item.form_start_err = @event_item.start_time_err.quo(factor) if @event_item.start_time_err
+      @event_item.form_start_err ||= @event_item.start_time_err.quo(factor) if @event_item.start_time_err
     end
     #@event_item.start_time_err = (@event ? @event.start_time_err : TimeAux::MAX_ERROR)
 

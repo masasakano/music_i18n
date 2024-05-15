@@ -112,6 +112,7 @@ class Ability
     if user.qualified_as?(:editor, rc_harami)
       can :read,  Harami1129
       can :cru,   HaramiVid
+      can :destroy, ArtistMusicPlay
     end
 
     ## Translation editor only

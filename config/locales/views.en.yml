@@ -77,6 +77,8 @@ en:
     create_model: "Create a new %{model}"
     do_create_lower: "create it"
     destroy_button: 'Commit Destroy'
+    destroy_link: 'Destroy this'
+    destroy_short: 'Destroy'
     editing_guideline: 'Editing Guideline'
     error_in_save: "%{errors} prohibited this %{model} from being saved"
     new: new
@@ -234,3 +236,5 @@ en:
     show:
       is_orig: "Is this the original language?"
 
+  artist_music_plays:
+    destroy_success: 'Artist-Playing association was successfully destroyed.'

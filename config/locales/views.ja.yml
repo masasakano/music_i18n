@@ -77,6 +77,8 @@ ja:
     create_model: "%{model}新規作成"
     do_create_lower: "新規作成して"
     destroy_button: '削除実行'
+    destroy_link: '削除する'
+    destroy_short: '削除'
     editing_guideline: '編集方針'
     error_in_save: "%{errors} が出て%{model}の保存に失敗しました"
     new: 新規
@@ -248,4 +250,7 @@ ja:
   translations:
     show:
       is_orig: "これが原語か?"
+
+  artist_music_plays:
+    destroy_success: 'コラボArtistの1関連項目が削除されました。'
 

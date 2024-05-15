@@ -39,7 +39,7 @@
         <td class="item_place"><%= (pla=ea_hvid.place) ? (s=pla.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either); can?(:read, s) ? link_to(s, pla) : s) : "" %></td>
         <td class="item_musics"><%= ea_hvid.musics.uniq.map{|i| link_to(i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i)}.join(t(:comma)).html_safe %></td>
         <td class="item_event_items">
-          <%= @event_event_items.values.map{|ea_rela| ea_rela.to_a}.flatten.map.with_index{|ea_evit, ind|
+          <%= @event_event_items.values.map{|ea_rela| ea_rela.to_a}.flatten.select{|eei| eei.harami_vids.include?(ea_hvid)}.map.with_index{|ea_evit, ind|
             '<span title="'+h(ea_evit.machine_title)+'">' +
             (can?(:read, ea_evit) ? link_to(ind+1, ea_evit) : (ind+1).to_s) + '</span>'
           }.join(t(:comma)).html_safe %>

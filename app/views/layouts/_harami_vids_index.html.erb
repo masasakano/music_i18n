@@ -5,11 +5,16 @@
 <table id="harami_vids_index_table">
   <thead>
     <tr>
+     <% if can? :update, HaramiVid %>
       <th>ID</th>
+     <% end %>
+      <th>Channel</th>
       <th>Title</th>
       <th>Date</th>
       <th>URI</th>
-      <th># Harami1129s</th>
+     <% if can? :update, Harami1129 %>
+      <th title="Number of Harami1129 entries"># H1129s</th>
+     <% end %>
       <th># Musics</th>
       <% if can? :read, EventItem %>
       <th>EventItems</th>
@@ -26,11 +31,16 @@
   <tbody>
     <% harami_vids.each do |harami_vid| %>
       <tr>
+     <% if can? :update, HaramiVid %>
         <td><%= harami_vid.id %></td>
+     <% end %>
+        <td><%= harami_vid.channel.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, prefer_alt: true) %> </td>
         <td><%= harami_vid.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></td>
         <td><%= harami_vid.release_date %></td>
         <td><%= link_to_youtube harami_vid.uri, harami_vid.uri %></td>
+     <% if can? :update, Harami1129 %>
         <td><%= harami_vid.harami1129s.count %></td>
+     <% end %>
         <td><%= harami_vid.musics.count %></td>
       <% if can? :read, EventItem %>
         <td>
