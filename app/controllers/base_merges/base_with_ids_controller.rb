@@ -51,10 +51,11 @@ class BaseMerges::BaseWithIdsController < ApplicationController
       mat = %r@\b#{self.class::MODEL_SYM}s/(\d+)/merges\b@.match(params[:path])
       return mat[1].to_i if mat
 
-      # If called from other new/edit that are valid in this app.
+      # If called from other new/edit AND show that are valid in this app.
+      # "show" is necessary because once edit has failed, it returns to a "show" page!
       path_modified =params[:path].sub(%r@^(/?[a-z]{2}/)?@, "").sub(%r@(/edit)(/\d+)?\z@, '\1')  # I am not sure if this is necessary in reality (but just to play safe).
       if ("static_page_publics" != Rails.application.routes.recognize_path(path_modified)[:controller]) &&
-         %r@/(new|edit(/\d+)?)\z@ =~ params[:path]
+         %r@/(new|edit(/\d+)?|[^/]+s/\d+)\z@ =~ params[:path]  # This actually excludes paths like /children/123 or /novae/123 etc.
         return true   # anything but nil or Integer
       else
         logger.warn "Rejects AJAX (or HTTP) request to #{__FILE__} from #{params[:path]}"

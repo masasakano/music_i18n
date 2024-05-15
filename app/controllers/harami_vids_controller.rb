@@ -3,10 +3,10 @@ class HaramiVidsController < ApplicationController
   include ModuleCommon  # for contain_asian_char
 
   skip_before_action :authenticate_user!, :only => [:index, :show]
-  load_and_authorize_resource except: [:index, :show, :create] # This sets @harami_vid
-  before_action :set_harami_vid, only: [:show]  # load_and... would load a model for  :edit, :update, :destroy
+  load_and_authorize_resource except: [:index, :show, :create] # This sets @harami_vid for  :edit, :update, :destroy
+  before_action :set_harami_vid, only: [:show]  # sets @harami_vid
   before_action :model_params_multi, only: [:create, :update]
-  before_action :set_event_event_items, only: [:show, :edit]    # sets @event_event_items
+  before_action :set_event_event_items, only: [:show, :edit, :update] # sets @event_event_items (which may be later overwritten if reference_harami_vid_id is specified)
   before_action :set_countries, only: [:new, :create, :edit, :update] # defined in application_controller.rb
 
   # params key for auto-complete Artist
@@ -149,7 +149,10 @@ class HaramiVidsController < ApplicationController
     def model_params_multi
       @event_event_items = {}  # {Event-ID => EventItems-Relation} for update
       @assocs = {}.with_indifferent_access  # associated models (like assocs[:music]), maybe newly created.
-      hsall = set_hsparams_main_tra(:harami_vid, array_keys: [:event_item_ids]) # defined in application_controller.rb
+      %i(duration music_timing).each do |ek|
+        params[:harami_vid][ek] =  helpers.hms2sec(params[:harami_vid][ek]) if params[:harami_vid][ek].present?  # converts from HH:MM:SS to Integer seconds
+      end
+      set_hsparams_main_tra(:harami_vid, array_keys: [:event_item_ids]) # defined in application_controller.rb
     end
 
     # Set @event_event_items
@@ -160,14 +163,16 @@ class HaramiVidsController < ApplicationController
     # When called from _set_reference_harami_vid_id , +harami_vid2+(!) is @harami_vid, and +harami_vid+ is
     # @ref_harami_vid (which corresponds to ID of @harami_vid.reference_harami_vid_id)
     def set_event_event_items(harami_vid: @harami_vid, harami_vid2: nil)
+logger.error "DEBUG_ERROR11 (#{__method__}): action_name=#{action_name.inspect}"
       @event_event_items = {}  # Always initialized. This was not defined for "show", "new"
-      ary = [harami_vid.id, (harami_vid2 ? harami_vid2.id : nil)].compact.uniq  # uniq should never be used, but playing safe
+      ary = [(harami_vid || @harami_vid).id, (harami_vid2 ? harami_vid2.id : nil)].compact.uniq  # uniq should never be used, but playing safe
       EventItem.joins(:harami_vid_event_item_assocs).where("harami_vid_event_item_assocs.harami_vid_id" => ary).order("event_id", "start_time", "duration_minute", "event_ratio").distinct.each do |event_item|
         # Because of "distinct", order by "xxx.yyy" would not work...
         # For "edit", this will be overwritten later if reference_harami_vid_id is specified by GET
         @event_event_items[event_item.event.id] ||= []
         @event_event_items[event_item.event.id] << event_item
       end
+logger.error "DEBUG_ERROR12 (#{__method__}): @event_event_items=#{@event_event_items.inspect}"
     end
 
     # Sets reference_harami_vid_id, @event_event_items, @ref_harami_vid, and maybe release_date and place
@@ -227,7 +232,7 @@ class HaramiVidsController < ApplicationController
            :find_or_create_engage,   # @assocs[:engage]
            :find_or_artist_collab,   # @assocs[:artist_collab]
            :create_an_event_item,    # @assocs[:new_event_item]  # See this method for the algorithm
-           :associate_new_event_item,# @assocs[:artist_music_play]  # used for some case of "update" only
+           :create_artist_music_plays,# @assocs[:artist_music_play]  # used for some case of "update" only
           ].each do |task|
             self.send task
             rollback_clear_flash if @harami_vid.errors.any?
@@ -382,23 +387,79 @@ rescue => err
 end
     end
 
-    # Set @assocs[:music] and @assocs[:harami_vid_music_assoc] (singular)
+    # Set @assocs[:music] and @assocs[:harami_vid_music_assoc] (singular) and initialize @event_item_for_new_artist_collab
+    #
+    # @event_item_for_new_artist_collab may be later updated in +create_an_event_item+
+    #
     # @return [HaramiVidMusicAssoc, NilClass] nil if failed to save either of Music and HaramiVidMusicAssoc or not specified in the first place.
     def find_or_create_harami_vid_music_assoc
 begin  # for DEBUGging
       prm_name = "music_timing"
+      _set_event_item_for_new_artist_collab  # sets (initializes) @event_item_for_new_artist_collab
       return (@assocs[:harami_vid_music_assoc]=nil) if @assocs[:music].blank?
 
-      @assocs[:harami_vid_music_assoc] = HaramiVidMusicAssoc.find_or_initialize_by(harami_vid: @harami_vid, music: @assocs[:music])
-        # Next one will be used for an existing record, too. (as a plan)
-      @assocs[:harami_vid_music_assoc].timing = @hsmain[prm_name].to_i if @hsmain[prm_name].present?  # it has been validated to be numeric if present(???). TODO
-      is_changed = @assocs[:harami_vid_music_assoc].changed?  # TODO: issue a flash notice for moderators
-      _save_or_add_error(@assocs[:harami_vid_music_assoc], form_attr: prm_name.to_sym)
+      timing = ((t=@hsmain[prm_name].present?) ? t : nil)
+      @assocs[:harami_vid_music_assoc] = _find_or_create_harami_vid_music_assoc_core(hvid=@harami_vid, timing: timing, form_attr: prm_name.to_sym)
+
+      return @assocs[:harami_vid_music_assoc] if !@event_item_for_new_artist_collab 
+
+      @assocs[:harami_vid_music_assocs] ||= []
+      @event_item_for_new_artist_collab.harami_vids.where.not("harami_vids.id" => @harami_vid.id).each do |hvid|
+        @assocs[:harami_vid_music_assocs] << _find_or_create_harami_vid_music_assoc_core(hvid)  # :base for a potential Error
+      end
+
+      @assocs[:harami_vid_music_assoc]
 rescue => err
   print "DEBUG(#{File.basename __FILE__}:#{__method__}): Error is raised:\n ";p err
   raise
 end
     end
+
+
+    # Sets @event_item_for_new_artist_collab
+    #
+    # At this stage, +@event_item_for_new_artist_collab+ is nil if
+    # specified for a new EventItem.  It will be updated in +create_an_event_item+
+    #
+    # @return [EventItem, NilClass] EventItem for a new Music and/or collab-Artist
+    def _set_event_item_for_new_artist_collab
+      @event_item_for_new_artist_collab = 
+        if (s=@harami_vid.form_new_artist_collab_event_item).present? && DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_i != s.to_i
+          EventItem.find(s)
+        else
+          nil  # set to nil if 0 == @harami_vid.form_new_artist_collab_event_item
+        end
+    end
+    private :_set_event_item_for_new_artist_collab
+
+
+    # Set @assocs[:music], @assocs[:harami_vid_music_assoc] (singular), @assocs[:harami_vid_music_assocs] (plural)
+    # @param hvid [HaramiVid]
+    # @param timing: [Integer, NilClass]
+    # @param form_attr: [Symbol] :base in default. For error-handling.
+    # @return [HaramiVidMusicAssoc, NilClass] nil if failed to save either of Music and HaramiVidMusicAssoc or not specified in the first place.
+    def _find_or_create_harami_vid_music_assoc_core(hvid=@harami_vid, timing: nil, form_attr: nil)
+begin  # for DEBUGging
+      prm_name = "music_timing"
+
+      hvma = HaramiVidMusicAssoc.find_or_initialize_by(harami_vid: hvid, music: @assocs[:music])
+
+      if timing
+        hvma.timing = @hsmain[prm_name].to_i if @hsmain[prm_name].present?
+        if hvma.timing_changed? && !hvma.new_record?
+          flash[:notice] ||= []
+          flash[:notice] << sprintf("Timing for Music (%s) is updated to %s .", @assocs[:music].title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), hvma.timing)
+        end
+      end
+      hs = {}
+      hs[:form_attr] = form_attr if form_attr
+      _save_or_add_error(hvma, **hs)
+rescue => err
+  print "DEBUG(#{File.basename __FILE__}:#{__method__}): Error is raised:\n ";p err
+  raise
+end
+    end
+    private :_find_or_create_harami_vid_music_assoc_core
 
     # Set @assocs[:artist]
     def find_or_create_artist
@@ -525,7 +586,7 @@ end
     #
     # If a new EventItem is specified, usually at least Music should be specified, too, though
     # not specifying a Music is accepted.  If a Music is specified, HARAMIchan's ArtistMusicPlay
-    # will be at least added in the next step: associate_new_event_item
+    # will be at least added in the next step: create_artist_music_plays
     # In addition, ArtistMusicPlay with a collab-Artist may be added if specified.
     #
     # Each EventItem usually has a list of Musics (and playing Artists, including HARAMIchan).
@@ -554,12 +615,19 @@ end
     #       1. a new EventItem for the specified Event is created in principle.
     #       2. as long as Music is specified, ArtistMusicPlay is created, that for HARAMIchan (piano, main-instrument) is always created.
     #       3. Another ArtistMusicPlay is also created at this stage if artist-collab is specified.
-    # 3. associate_new_event_item / / @assocs[:artist_music_play] (if not yet set)
+    # 3. create_artist_music_plays / / @assocs[:artist_music_play] (if not yet set)
     #    1. skip if "create" or @assocs[:artist_music_play] is already set or either of collab-artist and music is not specified.
     #    2. Else, a new entry of {ArtistMusicPlay} for :artist-collab is created.
     #    3. If ArtistMusicPlay is created, that for HARAMIchan (piano, main-instrument) is also created unless a record is already associated.
     #
     # Here, +@event_item_for_new_artist_collab+ points to the EventItem for a Music or the new Artist-Collab.
+    # It was initialized in +find_or_create_harami_vid_music_assoc+ but here it may be updated
+    # for the case where it points to the new EventItem, which is created in this method.
+    # +@event_item_for_new_artist_collab+ will be used even if there is no new EventItem
+    # as long as Music to associate to the HaramiVid is specified, where Music can be new or existing.
+    # Note that a new ArtistMusicPlay for the EventItem of +@event_item_for_new_artist_collab+
+    # for the default Artist is also created, as long as a Music is specified, plus
+    # another ArtistMusicPlay if Collab-Artist is also specified.
     def create_an_event_item
 begin
       prm_name = "form_new_event"
@@ -568,7 +636,7 @@ begin
         if (s=@harami_vid.form_new_artist_collab_event_item).present? && DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_i != s.to_i
           EventItem.find(s)
         else
-          nil
+          nil  # set to nil if 0 == @harami_vid.form_new_artist_collab_event_item
         end
 
       evt_id=@hsmain[prm_name]
@@ -583,7 +651,7 @@ begin
           end
         when "update"
           if DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_i == @harami_vid.form_new_artist_collab_event_item.to_i && @assocs[:artist_collab].present?
-            @harami_vid.errors.add :form_new_artist_collab_event_item, "is specified to be New, but no Event is selected for it."
+            @harami_vid.errors.add :form_new_artist_collab_event_item, " is specified to be New, but no Event is selected for it."
           end
           return
         else
@@ -619,10 +687,10 @@ rescue => err
 end
     end
 
-    # Associate a new EventItem with ArtistMusicPlay; sets @assocs[:artist_music_play] (if not yet)
+    # Creates new ArtistMusicPlay-s; sets @assocs[:artist_music_play] (if not yet)
     #
     # @note HaramiVidEventItemAssoc must have been already created, so nothing is done about it here.
-    def associate_new_event_item
+    def create_artist_music_plays
 begin
       return if !@assocs[:music] || @event_item_for_new_artist_collab.blank?
       associate_harami_music_play(event_item: @event_item_for_new_artist_collab)
@@ -632,14 +700,6 @@ begin
 
       instrument = ((val=@hsmain[:form_instrument]).blank? ? Instrument.default(:HaramiVid) : Instrument.find(val))
       play_role  = ((val=@hsmain[:form_play_role]).blank?  ? PlayRole.default(:HaramiVid)   : PlayRole.find(val))
-
-      #event_item =
-      #  if DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_i == @harami_vid.form_new_artist_collab_event_item.to_i
-      #    raise "contact the code developer (@assocs[:new_event_item] is unexpectedly blank)" if @assocs[:new_event_item].blank?  # This should never happen as it should have been caught at an early stage in the previous-step method: create_an_event_item
-      #    @assocs[:new_event_item]
-      #  else
-      #    EventItem.find @harami_vid.form_new_artist_collab_event_item.to_i
-      #  end
 
       form_attr = (("create" == action_name) ? :base : :form_new_artist_collab_event_item)
       associate_artist_music_play(instrument, play_role, event_item: @event_item_for_new_artist_collab, form_attr: form_attr) # defines @assocs[:artist_music_play]
@@ -708,7 +768,8 @@ end
       return if music.blank?
       @assocs[:artist_music_play_haramis] ||= []
 
-      model = ArtistMusicPlay.initialize_default_artist(:HaramiVid, event_item: event_item, music: music, instrument: instrument, play_role: play_role)
+      # music.reload  # NOTE: this is desirable only for debugging output with Translation
+      model = ArtistMusicPlay.initialize_default_artist(:HaramiVid, event_item: event_item, music: music, instrument: instrument, play_role: play_role)  # new for the default ArtistMusicPlay (event_item and music are mandatory to specify.
       return if !model.new_record?
 
       _save_or_add_error(model, form_attr: form_attr)  # :base for create b/c uncertain which parameter is wrong.

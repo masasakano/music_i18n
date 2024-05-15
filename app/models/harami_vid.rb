@@ -79,6 +79,7 @@ class HaramiVid < BaseWithTranslation
   validates :uri,   presence: true
   validates :place, presence: true  # NOT DB constraint, but Rails before_validation sets this with a default unknown Place.
   #validates :channel, presence: true  # before_validation  is taking care of. NOT DB constraint, but belongs_to constrains.
+  validates_numericality_of :duration,     allow_blank: true, greater_than_or_equal_to: 0, message: "(%{value}) must be positive or 0."
   validates_numericality_of :music_timing, allow_blank: true, greater_than_or_equal_to: 0, message: "(%{value}) must be positive or 0."
   validates_numericality_of :music_year,       allow_blank: true, greater_than: 0, message: "(%{value}) must be positive."
   validates_numericality_of :form_engage_year, allow_blank: true, greater_than: 0, message: "(%{value}) must be positive."
@@ -386,6 +387,12 @@ class HaramiVid < BaseWithTranslation
       next s1 if 1 == n_arts
       s1+', '+ActionController::Base.helpers.link_to('……', music_path(ea_mu))
     }.join('<br>').html_safe
+  end
+
+  # @return [HaramiVid::ActiveRecord_Relation] Other HaramiVids that share the same EventItem-s
+  def other_harami_vids_of_event_items
+    hv_ids = event_items.ids
+    HaramiVid.joins(:event_items).where("event_items.id" => hv_ids).where.not("harami_vids.id" => id).distinct
   end
 
   ########## Before-validation callbacks ##########

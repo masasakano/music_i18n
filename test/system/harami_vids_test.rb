@@ -135,6 +135,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
     uncheck 'UnknownEventItem'  # should be invalid because it is an "unknown" EventItem and also it has an Artist
     select 'street playing', from: 'Additional Event', match: :first  # in the same way
+take_screenshot
 
     fill_autocomplete('Music name', with: vid_prms[:music_title][0..-2], select: vid_prms[:music_title][0..-2])  # same song; defined in test_helper.rb
     fill_autocomplete('featuring Artist', with: 'Proclai', select: 'Proclaimers')  # defined in test_helper.rb
@@ -142,18 +143,19 @@ class HaramiVidsTest < ApplicationSystemTestCase
     find_field("How they collaborate").select(vid_prms[:collab_how_edit]= "Singer")
 
     click_on "Update Harami vid", match: :first
-#take_screenshot
 
     ### Checking flash messages
     assert_match(/\bEvent.* must be checked\b/, find(css_for_flash(:alert, category: :error_explanation)).text)
     check 'UnknownEventItem'  # In fact, this should be forcibly checked again in default when an error takes you back to the screen after unchecked.
+take_screenshot
     click_on "Update Harami vid", match: :first
 
     assert_match(/HaramiVid was successfully updated\b/, find(css_for_flash(:success)).text)  # defined in test_helper.rb
     _check_at_show(vid_prms)
 
-    sel = "section#harami_vids_show_unique_parameters dl "+"dd.item_event ol.list_event_items li:nth-child(2)"
-    assert_match(/\b#{Regexp.quote(vid_prms[:music_title])}\b/, find(sel).text)
+    sel = "section#harami_vids_show_unique_parameters dl "+"dd.item_event ol.list_event_items"
+    assert_match(/\b#{Regexp.quote(vid_prms[:music_title])}\b/, find(sel+" li:nth-child(1)").text)
+    assert_match(/\bfeat.+ Artists \(None\)/, find(sel+" li:nth-child(2)").text)  # Though a new EventItem is created, the existing EventItem is checked for the new featuring-Artist, and hence the second one has no featuring Artists. 
     assert_match(/\bfeaturing Artist.+\bThe Proclaimers\b/i,                 find(sel).text)
     assert_selector sel+" a"
 

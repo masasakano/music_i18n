@@ -44,13 +44,32 @@ module ApplicationHelper
   # Returns String "01:23:45" or "23:45" from second
   #
   # @param sec  [Integer, NilClass]
+  # @param return_nil: [Boolean] If true (Def: false) and if nil is given, nil is returned.
   # @return [String]
-  def sec2hms_or_ms(sec)
+  def sec2hms_or_ms(sec, return_nil: false)
+    return if sec.nil? && return_nil
     sec = 0 if sec.blank?
     sec = sec.to_i
     fmt = ((sec <= 3599) ? "%M:%S" : "%H:%M:%S")
     
     Time.at(sec).utc.strftime(fmt)
+  end
+
+  # Convert a HMS-type String to Integer second
+  #
+  # @example
+  #   '12:34:56'.split(':').map(&:to_i).inject(0) { |a, b| a * 60 + b }
+  #   # => 45296
+  #   '34:56'.split(':').map(&:to_i).inject(0) { |a, b| a * 60 + b }
+  #   # => 2096
+  #
+  # @see https://stackoverflow.com/a/27982733/3577922 
+  #
+  # @param str [String]
+  # @return [Integer] in seconds.  If nil is given, nil is returned.
+  def hms2sec(str)
+    return str if !str
+    str.split(':').map(&:to_i).inject(0) { |a, b| a * 60 + b }
   end
 
   # Returns <title> for HTML from Path

@@ -68,7 +68,8 @@ class PlayRole < BaseWithTranslation
   # @option place: [Place]
   # @return [PlayRole]
   def self.default(context=nil, place: nil)
-    if context.to_s.downcase.singularize == "harami1129"
+    case context.to_s.underscore.singularize
+    when *(%w(harami_vid harami1129))
       ret = self.find_by(mname: "inst_player_main")
       return ret if ret  # This should never fail!
       msg = "Failed to identify the default #{self.name}"

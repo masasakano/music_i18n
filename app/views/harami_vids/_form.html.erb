@@ -21,16 +21,16 @@
   <% end %>
   <div class="form-inputs">
 
-    <%= f.input :uri, required: true, placeholder: 'URI/URL (e.g., "3CjLiqDJ0C4" with or without youtu.be/)', as: :url,
+    <%= f.input :uri, required: true, placeholder: 'URI/URL ('+t(:eg_independent)+'"3CjLiqDJ0C4" with or without youtu.be/)', as: :url,
       hint: t("harami_vids.field_uri_hint") %>
     <%= f.input :release_date,   label: t("harami_vids.table_head_date"), start_year: 2019, end_year: (Date.today.year+1) %>
-    <%= f.input :duration,   label: t("harami_vids.field_Duration_in_sec"), placeholder: 'e.g., 600 (=10min)' %>
+    <%= f.input :duration,   label: t("harami_vids.field_Duration_in_sec"), placeholder: t(:eg_independent)+'72 ['+t(:s_time)+']'+t(:or)+' 01:12', as: :string %>
   <%= render partial: "layouts/select_country_prefecture_place", locals: {form: f, model: harami_vid, is_simple_form: true} %>
 
     <%= f.input :form_channel_owner,
       collection: ordered_models_form(ChannelOwner), include_blank: false,
       selected: (harami_vid.form_channel_owner || harami_vid.channel && harami_vid.channel.channel_owner.id ||  ChannelOwner.default(:HaramiVid).id),
-      label: t(:ChannelOwner), hint: (can?(:create, ChannelOwner)    ? t("layouts.fields.hint_create_if_non_existent", link: link_to(t("layouts.do_create_lower"), new_channel_path, title: "New Channel")).html_safe : "") %>
+      label: t(:ChannelOwner), hint: (can?(:create, ChannelOwner)    ? t("layouts.fields.hint_create_if_non_existent", link: link_to(t("layouts.do_create_lower"), new_channel_owner_path, title: "New Channel")).html_safe : "") %>
     <div class="form_new_model_info">
     <%= f.input :form_channel_type, include_blank: false,
       collection: ordered_models_form(ChannelType),
@@ -86,20 +86,18 @@
   <%= f.association :event_items, collection: collec, label_method: :machine_title, value_method: :id,
       include_blank: false,  as: :check_boxes, label: "Associated EventItems",
       item_wrapper_class: 'inline', input_html: { checked: true } %>  <%# Not shown at all if there are no EventItems associatined to harami_vid; they all are forcibly checked in default, even after returning to the edit screen.  %>
-  <%= render partial: "event_event_items" %>
-    <%# candidates = harami_vid.event_items.map{|evi| [evi.machine_title, evi.id]} %>
-    <%# f.collection_check_boxes :form_event_items, candidates, :last, :first, input_html: { multiple: true, checked: true } %>
-  <%# f.collection_check_boxes :form_event_items, harami_vid.form_event_items, :id, :machine_title %>  <%# Not shown at all if there are no EventItems associatined to harami_vid %>
   <%# cf. https://github.com/heartcombo/simple_form#collection-check-boxes %>
+  <%= render partial: "event_event_items" %>
     </div>
    <% end %> <!-- if !harami_vid.new_record? || given_ref -->
 
     <% if !harami_vid.new_record? %>
     <h4 title="以下で(追加)定義する楽曲および/もしくは追加コラボアーティストに対応したEvent(Item)">Event(Item) for new Collab-Artist and/or Music</h4>
       <%= f.input :form_new_artist_collab_event_item, as: :radio_buttons,
-        collection: collection_event_items_for_new_artist_collab, label_method: :second, value_method: :first,
-        allow_blank: false,
-        label: "Event(Item) for "+t('layouts.new')+" "+t('harami_vids.form_artist_collabs'),
+        collection: (co=collection_event_items_for_new_artist_collab), label_method: :second, value_method: :first,
+        allow_blank: false, 
+        checked: (harami_vid.form_new_artist_collab_event_item || v=co.find{|i| i[0].to_i != HaramiVidsController::DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_i}; (v ? v.first : nil)),
+        label: "Event(Item) for "+t(:additional).capitalize+' '+t(:Music)+' '+t(:or)+' '+t('layouts.new')+" "+t('harami_vids.form_artist_collabs'),
         item_wrapper_class: 'inline'
       %>  <%# defined in event_items_helper.rb %>
     <%# For create/new, the same field appeaers much earlier. %>
@@ -123,12 +121,13 @@
         collection: ordered_models_form(Genre), include_blank: false,
         selected: (harami_vid.music_genre || Genre.default(:HaramiVid).id) %>
      </div>
-      <%= f.input :music_timing, label: t("harami_vids.table_head_timing"), hint: t('harami_vids.music_timing_hint') %>
+      <%= f.input :music_timing, label: t("harami_vids.table_head_timing"), hint: t('harami_vids.music_timing_hint'), placeholder: t(:eg_independent)+'72 ['+t(:s_time)+'] '+t(:or)+' 01:12', as: :string %>
     </div>
     </div>
 
+    <div class="form_new_model_info">
     <div class="register_assoc_artist">
-    <h4 title="楽曲のオリジナル歌手あるいは作詞作曲者(新規アーティスト作成も可)"><%= t('layouts.new_musics.assoc_artist_head') %></h4>
+    <h5 title="楽曲のオリジナル歌手あるいは作詞作曲者(新規アーティスト作成も可)"><%= t('layouts.new_musics.assoc_artist_head') %></h5>
       <% if !@artist_name  %>
        <div class="new_artist_link"><p><%# t('layouts.new_musics.note_new_artist') %><%# link_to(t('layouts.new_musics.create_new_artist'), new_artist_path, target: "_blank") %> </p></div>  <%# Message of "Create it first" is now removed. %>
       <% end%>
@@ -149,7 +148,8 @@
 
       <%= f.input :form_engage_contribution, label: t('attr.contribution').capitalize+' (0.0-1.0)', hint: t('attr.contribution_hint') %>
     </div> <!-- div class="register_assoc_artist_field"  -->
-    </div> <!-- div class="register_assoc_artist"-  -->
+    </div> <!-- div class="register_assoc_artist"  -->
+    </div> <!-- div class="form_new_model_info" -->
 
     <div class="register_collab_artist_field">
     <h4><%= (harami_vid.new_record? ? "" : "("+t(:additional).capitalize+") ") %><%= t('harami_vids.field_artist_collabs_w_harami') %></h4>
@@ -183,6 +183,8 @@
 </section> <!-- section id="sec_primary" -->
 
 <% if ! harami_vid.new_record? %>
+<hr>
+<%= render partial: 'other_harami_vids_table', locals: {harami_vid: harami_vid} %>
 <hr>
 <%= render partial: 'harami1129_table', locals: {harami_vid: harami_vid, add_buttons: true} %>
 <hr>

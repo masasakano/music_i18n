@@ -1,0 +1,58 @@
+<section id="harami_vids_show_other_harami_vids">
+<h3><%= t("harami_vids.show.Other_HaramiVids_for_these_EventItems") %></h3>
+
+<table id="other_harami_vids_table_for_hrami_vid">
+  <thead>
+    <tr>
+      <th><%= can?(:edit, harami_vid) ? "pID" : "" %></th>
+      <th><%= t(:Channel) %></th>
+      <th class="item_title"><%= t("home.index.vid_title")%></th>
+      <th>URI</th>
+      <th><%= t("tables.release_date") %></th>
+      <th><%= t("tables.duration_none") %></th>
+      <th>
+      <% if can? :index, Place %>
+        <%= link_to t('Place'), places_url %>
+      <% else %>
+        Place
+      <% end %>
+      </th>
+      <th><%= link_to t('Musics'), musics_url %></th>
+      <th><%= t('EventItems') %></th>
+      <th colspan="<%= can?(:update, HaramiVid) ? 2 : 1 %>"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% harami_vid.other_harami_vids_of_event_items.each_with_index do |ea_hvid, i_mus| %>
+      <tr>
+        <td><%= can?(:edit, ea_hvid) ? ea_hvid.id : i_mus+1 %></td>
+        <td class="item_channel">
+    <span class="channel_platform"><%= ea_hvid.channel.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></span>
+      (<span class="channel_type"><%= ea_hvid.channel.channel_type.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></span>)
+    by <span class="channel_owner"><%= ea_hvid.channel.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></span>
+        </td>
+        <td class="item_title"><%= ea_hvid.title_or_alt %></td>
+        <td class="URI"><%= link_to_youtube('Link', ea_hvid.uri) %></td>
+        <td class="item_release_date"><%= ea_hvid.release_date %></td>
+        <td class="item_duration"><%= ea_hvid.duration ? sec2hms_or_ms(ea_hvid.duration) : "" %></td>
+        <td class="item_place"><%= (pla=ea_hvid.place) ? (s=pla.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either); can?(:read, s) ? link_to(s, pla) : s) : "" %></td>
+        <td class="item_musics"><%= ea_hvid.musics.uniq.map{|i| link_to(i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i)}.join(t(:comma)).html_safe %></td>
+        <td class="item_event_items">
+          <%= @event_event_items.values.map{|ea_rela| ea_rela.to_a}.flatten.map.with_index{|ea_evit, ind|
+            '<span title="'+h(ea_evit.machine_title)+'">' +
+            (can?(:read, ea_evit) ? link_to(ind+1, ea_evit) : (ind+1).to_s) + '</span>'
+          }.join(t(:comma)).html_safe %>
+        </td>
+        <td><%= link_to(t("tables.Show"), ea_hvid) if can?(:read, ea_hvid) %></td>
+        <% if can? :update, ea_hvid %>
+        <td>
+          <%= link_to 'Edit', edit_harami_vid_path(ea_hvid) %>
+        </td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+</section> <!-- section id="harami_vids_show_other_harami_vids" -->
+

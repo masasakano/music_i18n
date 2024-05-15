@@ -40,6 +40,7 @@ en:
     Page_n: "Page %{count}"
     publish_date: "Publish Date"
     release_date: "Date"
+    duration_none: Length
     duration: "Length[s]"
     duration_hour: "Duration[hr]"
     start_time: "Start Date/Time"
@@ -218,6 +219,7 @@ en:
     warn_collab_without_music: "Valid Music must be given when you add an Artist-to-collaborate."
     show:
       artist_collabs: "featuring Artists"
+      Other_HaramiVids_for_these_EventItems: Other videos for these EventItems
     edit:
       artist_collabs_title: "collaborating Artists"
 

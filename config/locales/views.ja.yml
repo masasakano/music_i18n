@@ -40,6 +40,7 @@ ja:
     Page_n: "第%{count}頁 "
     publish_date: "放映(出版)日"
     release_date: "公開日"
+    duration_none: "長さ"
     duration: "長さ[秒]"
     duration_hour: "時間[h]"
     start_time: 開始日時
@@ -233,6 +234,7 @@ ja:
     warn_collab_without_music: "コラボ相手を登録する際には、有効なMusicの登録が必須です。"
     show:
       artist_collabs: "コラボアーティスト"
+      Other_HaramiVids_for_these_EventItems: "同じイベント(項目)の他の動画"
     edit:
       artist_collabs_title: "コラボしているアーティスト"
 
