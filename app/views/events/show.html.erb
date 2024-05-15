@@ -29,4 +29,9 @@
 <% end %>
 
 <hr>
+<h2>HaramiVids for this Event</h2>
+
+<%= render partial: "harami_vids_index", locals: {harami_vids: @event.harami_vids} %>
+
+<hr>
   <%= link_to t("layouts.back_to_index"), events_path %>

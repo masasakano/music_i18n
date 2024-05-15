@@ -101,15 +101,16 @@ module ApplicationHelper
   # @param timing [Integer, NilClass] in second
   # @param long [Boolean] if false (Def), youtu.be, else www.youtube.com
   # @param target [Boolean] if true (Def), +target="_blank"+ is added.
+  # @param kwds [Hash] optional arguments passed to link_to
   # @return [String] HTML of <a> for YouTube link
-  def link_to_youtube(word, root_kwd=nil, timing=nil, long: false, target: true)
+  def link_to_youtube(word, root_kwd=nil, timing=nil, long: false, target: true, **kwds)
     return '' if word.blank?
     word = ((word == :uri) ? nil : word.to_s)
     root_kwd ||= word if word
     root_kwd = word if root_kwd.respond_to?(:divmod) && !timing && word
     uri = self.method(:link_to_youtube).owner.uri_youtube(root_kwd, timing, long: long, with_http: true) # <= ApplicationHelper.uri_youtube()
     word = sprintf("%s", uri) if !word
-    opts = { title: "Youtube" }
+    opts = { title: "Youtube" }.merge(kwds)
     opts[:target] = "_blank" if target
     ActionController::Base.helpers.link_to word, uri, **opts
   end

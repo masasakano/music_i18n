@@ -110,18 +110,10 @@ class EventItem < ApplicationRecord
   end
 
   def self.prepare_create_new_unknown(event)
-    prepare_create_new_template(event, prefix=unknown_machine_title_prefix(event))
-    #hs = {
-    #  event: event,
-    #  machine_title: get_unique_title(unknown_machine_title_prefix(event)),
-    #  duration_minute:     ((hr=event.duration_hour) ? hr.quo(60) : nil),
-    #  duration_minute_err: ((er=event.start_time_err) ? er : nil),  # both in units of second
-    #}
-
-    #%i(place_id start_time start_time_err).each do |metho|
-    #  hs[metho] = event.send metho
-    #end
-    #hs
+    pre_post_fixes = unknown_machine_title_prefix_postfix(event)
+      
+    #prepare_create_new_template(event, prefix=unknown_machine_title_prefix_postfix(event).join(""), **kwd)
+    prepare_create_new_template(event, prefix=pre_post_fixes[0], postfix: pre_post_fixes[1], separator: "")
   end
   private_class_method :prepare_create_new_unknown
 
@@ -142,8 +134,9 @@ class EventItem < ApplicationRecord
     hsret
   end
 
-  def self.initialize_new_template(event=nil, prefix=DEFAULT_UNIQUE_TITLE_PREFIX, **kwd)
-    self.new(**prepare_create_new_template(event, prefix, **kwd))
+  def self.initialize_new_template(event=nil, prefix=DEFAULT_UNIQUE_TITLE_PREFIX, postfix: nil, **kwd)
+    _, def_postfix = unknown_machine_title_prefix_postfix(event)
+    self.new(**prepare_create_new_template(event, prefix, postfix: (postfix || def_postfix), **kwd))
   end
 
   # Returns the English prefix for EventItem.Unknown for the event
@@ -154,14 +147,14 @@ class EventItem < ApplicationRecord
   #
   # @param event [Event]
   # @param artit: [Array<String>] to directly give a pair of strings. If given, event is ignored. (used for seeding.)
-  # @return [String] unknown title
-  def self.unknown_machine_title_prefix(event, artit: nil)
+  # @return [Array<String>] unknown title of Prefix and Postfix, which should be joined with ""
+  def self.unknown_machine_title_prefix_postfix(event, artit: nil)
     artit ||= [event, event.event_group].map{|i|
       i.reload
       i.title_or_alt(langcode: "en", lang_fallback_option: :either, str_fallback: nil, article_to_head: true)  # Note that the article "the" , if exists, is broght to the head though it may stay "non"-capitalized.
     }
     artit.pop if /#{Regexp.quote(artit[1])}.?\Z/ =~ artit[0]  # to avoid duplication of EventGroup name; this can happen because Event Translation may well include EventGroup Translation at the tail.
-    UNKNOWN_TITLE_PREFIXES[:en]+artit.join("_").gsub(/ +/, "_")
+    [UNKNOWN_TITLE_PREFIXES[:en], artit.join("_").gsub(/ +/, "_")]
   end
 
   # Unknown EventItem in the given event_group (or somewhere in the world)

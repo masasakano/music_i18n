@@ -104,8 +104,8 @@ class EventItemTest < ActiveSupport::TestCase
   end
 
   test "self.new_default" do
-    pref = Prefecture.create_basic!(title: 'NewPrefectureJapan', langcode: "en", country: Country["JPN"])
-    pla  = Place.create_basic!(title: 'NewPlaceJapan', langcode: "en", prefecture: pref)
+    pref = Prefecture.create_basic!(title: (pref_tit='NewPrefectureJapan'), langcode: "en", country: Country["JPN"])
+    pla  = Place.create_basic!(title: (pla_tit='NewPlaceJapan'), langcode: "en", prefecture: pref)
 
     evt0 = EventItem.new_default(:Harami1129, place: pla, save_event: false)
     assert_equal Event, evt0.class
@@ -123,6 +123,11 @@ class EventItemTest < ActiveSupport::TestCase
     assert_equal evit1.place,      evit3.place
     refute_equal evit1, evit3
     refute_equal evit2, evit3
+    assert_operator 15, :<, evit3.machine_title.size, "machine_title=#{[evit1,evit2,evit3].map{|i| i.machine_title}.inspect}"  # "item1-Event_in_NewPlaceJapan(NewPrefectureJapan/Japan)_<_Single-shot_street_playing"
+    assert_includes evit3.machine_title, "_<_"
+    assert_includes evit3.machine_title, pref_tit
+    assert_includes evit3.machine_title, pla_tit
+    assert_match(/item.+#{Regexp.quote pla_tit}.*_<_./, evit3.machine_title)  # "item1-Event_in_NewPlaceJapan(NewPrefectureJapan/Japan)_<_Single-shot_street_playing"
   end
 
   test "default_unique_title" do

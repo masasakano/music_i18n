@@ -36,7 +36,7 @@
 # All unknown ones:
 <% SeedsEventGroup::SEED_DATA.map{|ev| [ev[:key], ev]}.to_h.each_pair do |ekey, edata| %>
 evit_ev_evgr_<%= ekey %>:
-  machine_title: <%= EventItem.unknown_machine_title_prefix(nil, artit: [Event::UNKNOWN_TITLES[:en], Seeds::Common.yaml_title(edata[:en], :title)]) %>
+  machine_title: <%= EventItem.unknown_machine_title_prefix_postfix(nil, artit: [Event::UNKNOWN_TITLES[:en], Seeds::Common.yaml_title(edata[:en], :title)]).join("") %>
   start_time:     <%= (t=edata[:start_date]) ? t.to_time : "" %>
   start_time_err: <%= (t=edata[:start_date_err]) ? t*86400 : "" %>
   duration_minute: 

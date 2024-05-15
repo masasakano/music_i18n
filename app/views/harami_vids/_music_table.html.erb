@@ -38,7 +38,7 @@
         <td class="item_place"><%= ar = music.place.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true, lang_fallback_option: :either);
                 sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture['ja'] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2] %></td>
         <td class="item_artists"><%= music.artists.uniq.map{|i| sprintf '%s [%s]', link_to(i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i), h(i.engage_how_titles(music, langcode: I18n.locale, lang_fallback_option: :either).join(', '))}.join(', ').html_safe %></td>
-        <td class="item_timing"><%= harami_vid.harami_vid_music_assocs.where(music: music).pluck(:timing).map{|i| link_to_youtube(i, @harami_vid.uri, i) }.join(', ').html_safe %></td>
+        <td class="item_timing"><%= harami_vid.harami_vid_music_assocs.where(music: music).pluck(:timing).select{|j| j.present?}.map{|i| link_to_youtube(sec2hms_or_ms(i), @harami_vid.uri, i, title: "#{i} sec") }.join(', ').html_safe %></td> <%# defined in application_helper.rb %>
         <td><%= link_to('Show', music) if can?(:read, music) %></td>
         <% if can? :update, music %>
         <td>
