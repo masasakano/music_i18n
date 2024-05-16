@@ -301,7 +301,7 @@ end
 
 require Rails.root.to_s+'/lib/tasks/lib/read_prefecture_list.rb'
 
-japan = Country['Japan', 'en', true]  # or Country['日本国']
+japan = Country['JPN']  # or Country['France', 'en', true] or Country['日本国']
 
 n_prefs = 0
 allprefs = read_prefecture_list
@@ -328,6 +328,52 @@ allprefs.each do |ea_cnt|
     n_prefs += 1
   end
 end
+
+# Create a Prefecture and its 2 or 3 Translation-s if not present.
+#
+# Bug: If the Prefecture does not exist in the specified Country but does
+#  in another Country, this does not work correctly.
+#
+# @param country [Country]
+# @param trans [Hash] e.g. {'ja' => {title: '東', ruby: 'アズマ', is_orig: true, weight: 10}, 'en' =>{...}}
+# @return [Integer] Created number of objects
+def seed_create_prefecture(cntry, trans, iso3166_loc_code: nil, note: nil)
+  if !cntry
+    warn "WARNING: country for Prefecture (#{trans['ja'][:title]}) does not exist; hence the Prefecture is not seeded. Strange."
+    return 0
+  end
+
+  prefectures = %w(ja en fr).map{|i| Prefecture[trans[i][:title], i, true]}
+  return 0 if prefectures.all?{|i| i}
+
+  if prefectures.all?{|i| !i}
+    Prefecture.update_or_create_with_translations!({country: cntry, iso3166_loc_code: iso3166_loc_code}, note: note, translations: trans)
+    return 3
+  end
+
+  if prefectures[0]  # Japanese Translation exists
+    return 0 if prefectures[0].title(  langcode: "en")  # Skip b/c an English translation exists.
+    prefectures[0].create_translation!(langcode: "en", **(trans["en"]))
+    return 1
+  else  # prefectures[1] (derived from the given English Translation) should be Prefecture
+    return 0 if prefectures[1].title(  langcode: "ja")  # Skip b/c a Japanese translation exists.
+    prefectures[1].create_translation!(langcode: "ja", **(trans["ja"]))
+    return 1
+  end
+end
+
+cntry = Country['FRA']
+trans = {'ja' => {title: 'パリ(県)', ruby: 'パリ(ケン)', romaji: 'Pari (ken)', alt_title: 'パリ', alt_ruby: 'パリ', alt_romaji: 'Pari', is_orig: false, weight: 10},
+         'en' => {title: 'Paris', weight: 10, is_orig: false},
+         'fr' => {title: 'Paris', weight: 0,  is_orig: true},}
+n_prefs += seed_create_prefecture(cntry, trans, iso3166_loc_code: 75, note: "iso3166_loc_code is the INSEE code")
+
+cntry = Country['GBR']
+
+trans = {'ja' => {title: 'グレーター・ロンドン', ruby: 'グレーター・ロンドン', romaji: 'greetaa rondon', is_orig: false, weight: 10},
+         'en' => {title: 'Greater London', weight: 0, is_orig: true},
+         'fr' => {title: 'Grand Londres, Le', weight: 10, is_orig: false},}
+n_prefs += seed_create_prefecture(cntry, trans, iso3166_loc_code: 12000007, note: "iso3166_loc_code is the GSS code without the prefix E(ngland)")
 
 if n_prefs > 0
   #now_prefs = Prefecture.count
@@ -594,6 +640,10 @@ artrans = [
     place: Place.unknown(country: japan), translations:
    {'ja' => {title: 'ひとり', ruby: 'ヒトリ', romaji: 'Hitori', weight: 0, is_orig: true},
     'en' => {title: 'Alone', weight: 100, }}},
+  { note: nil, year: 2023, genre: gen_inst,
+    place: Place.unknown(country: japan), translations:
+   {'ja' => {title: '祈りのワルツ', ruby: 'イノリノワルツ', romaji: 'Inori no warutsutori', weight: 0, is_orig: true},
+    'en' => {title: 'Waltz of a prayer', weight: 100, }}},
   { note: nil, year: 1993, genre: gen_pop,
     place: Place.unknown(country: japan), translations:
    {'ja' => {title: 'ロマンスの神様', ruby: 'ロマンスノカミサマ', romaji: 'Romansu no kamisama', weight: 0, is_orig: true},
@@ -635,26 +685,17 @@ enh[:play]    = EngageHow[/player/i, 'en']
 # mu[:rain]    = Music["雨", 'ja']
 # mu[:nine47]  = Music["947", 'ja']
 # mu[:hitori]  = Music["ひとり", 'ja']
-{harami: "ハラミ体操", fanfare: "ファンファーレ", rain: "雨", nine47: "947", hitori: "ひとり",}.each_pair do |ek, ev|
+{harami: "ハラミ体操", fanfare: "ファンファーレ", rain: "雨", nine47: "947", hitori: "ひとり", waltz_prayer: "祈りのワルツ"}.each_pair do |ek, ev|
   mu[ek] = (art[:harami].musics.joins(:translations).where("translations.title": ev).first || Music[ev, 'ja'])
 end  # A way to prevent a song with the identical title by another artist from being picked up in repeated seeding.
 mu[:romance] = Music["ロマンスの神様", 'ja']
 mu[:naked]   = Music["裸の心", 'ja']
-arengages = %i(harami fanfare rain nine47 hitori).map{|i|
+arengages = %i(harami fanfare rain nine47 hitori waltz_prayer).map{|i|
   %i(compose play).map{|ek|
     { note: nil, artist: art[:harami], engage_how: enh[ek],
       year: mu[i].year, music: mu[i]}
   }
 }
-  #%i(compose play).map{|ek|
-  #  { note: nil, artist: art[:harami], engage_how: eeh[ek],
-  #    year: mu[:harami].year, music: mu[:harami]} },
-  #%i(compose play).map{|ek|
-  #  { note: nil, artist: art[:harami], engage_how: eeh[ek],
-  #    year: mu[:fanfare].year, music: mu[:fanfare]} },
-  #%i(compose play).map{|ek|
-  #  { note: nil, artist: art[:harami], engage_how: eeh[ek],
-  #    year: mu[:rain].year,    music: mu[:rain]} },
 arengages += [
   %i(sing lyric compose).map{|ek|
     { note: nil, artist: art[:kohmi],  engage_how: enh[ek],

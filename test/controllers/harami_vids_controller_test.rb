@@ -1,3 +1,4 @@
+# coding: utf-8
 require 'test_helper'
 
 class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
@@ -142,10 +143,21 @@ if true
       end
     end
 
-    # A new Channel is successfully created.
+    # A new Channel is successfully created. Unknown Place (in an existing Prefecture) should be overwritten with a non-unknown, encompassed Place.
     platform_fb = channel_platforms(:channel_platform_facebook)
-    hsnew = {uri: uri="youtu.be/0030", form_channel_platform: platform_fb.id, note: "success"}
-    assert_difference("EventItem.count + ArtistMusicPlay.count") do
+    pref = prefectures(:kagawa)
+    pla_unknown_kagawa = Place.unknown(prefecture: pref)
+    pla_kagawa = places(:kawaramachi_station)
+    assert pla_unknown_kagawa.encompass_strictly?(pla_kagawa), 'sanity check of fixtures...'
+    evt_kagawa = Event.default(:HaramiVid, place: pla_unknown_kagawa, save_event: true)
+    assert_equal pla_unknown_kagawa, evt_kagawa.place, 'sanity check...'
+    hsnew = {uri: uri="youtu.be/0030", form_channel_platform: platform_fb.id, note: "success",
+             title: "【瓦町ピアノ】演奏", langcode: "ja",  # existing Place
+             "form_new_event" => evt_kagawa.id,
+             "place.prefecture_id.country_id"=>pref.country.id.to_s,
+             "place.prefecture_id"=>pref.id.to_s, "place"=>pla_kagawa.id.to_s,
+            }
+    assert_difference("Event.count*100 + EventItem.count*10 + ArtistMusicPlay.count", 110) do  # New unknown Event for the exact Place is created.
       assert_difference("Channel.count") do
         assert_difference("HaramiVid.count + HaramiVidEventItemAssoc.count", 2) do
           post harami_vids_url, params: { harami_vid: @def_create_params.merge(hsnew)}
@@ -156,6 +168,8 @@ if true
     assert_equal platform_fb, Channel.last.channel_platform
     mdl_last = HaramiVid.last
     assert_equal uri, mdl_last.uri
+    assert_equal pla_kagawa, mdl_last.place, "should have changed, but..."
+    refute mdl_last.place.unknown?
 
     # new Music, no Artist
     mu_name = "My new Music 4"

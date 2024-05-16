@@ -15,8 +15,8 @@ module ModuleGuessPlace
   module ClassMethods
     # Guesses a {Place} from the given String and returns it
     #
-    # If nothing is found, unknown Place of the def_country is returned.
-    # If it is set nil AND nothing is found, +fallback+ is returned (Default is {Place.unknown})
+    # If nothing is found, unknown Place (of perhaps the def_country) is returned.
+    # If +def_country+ is set nil AND nothing is found, +fallback+ is returned (Default is {Place.unknown})
     #
     # @example If you want nil to be returned if nothing matches
     #    Harami1129.guess_place(strin, def_country: nil, fallback: nil)
@@ -26,6 +26,9 @@ module ModuleGuessPlace
     # @param fallback: [Object] the last resort if def_country is nil and finding nothing.
     # @return [Place]
     def guess_place(strin, def_country: Rails.application.config.primary_country, fallback: Place.unknown)
+      pla_cand = _check_with_all_places_ja(strin)
+      return pla_cand if pla_cand
+
       hsbase = {langcode: 'ja', sql_regexp: true}
       cand_hash = _guess_place_data(strin)
 
@@ -55,6 +58,21 @@ module ModuleGuessPlace
       (def_country.present? && Place.unknown(country: Country[def_country])) || fallback
     end
 
+    # Check if String contains any of the registered Places in Japanese
+    #
+    # All titles and alt_titles in the order of longer ones first.
+    # Those with one character only (like "津") and up to two or three characters of Kana and alphabets only, respectively, are excluded.
+    #
+    # @param strin [String]
+    # @return [Place, NilClass]
+    def _check_with_all_places_ja(strin)
+      tra_titles = Translation.where(translatable_type: "Place", langcode: "ja").where.not(title: Place::UnknownPlace["ja"]).pluck(:title, :alt_title, :translatable_id).map{|ea| (0..1).map{|i| ea[i].present? ? [ea[i], ea[2]].to_json : nil}.compact}.flatten.map{|ej| JSON.parse ej}.select{|et| s = et[0]; (et[0].size <= 1 || /\A([\p{Hiragana}\p{Katakana}ー]{1,2}|[a-z]{1,3})\z/i =~ et[0]) ? false : true}.sort{|a,b| b[0].size <=> a[0].size}
+                     
+      tit_pla_id = tra_titles.find{|kwd| strin.include? kwd[0]}
+      return if !tit_pla_id
+      Place.find tit_pla_id[1]
+    end
+
     def _guess_place_data(strin)
       cand_hash = {
         place: nil,
@@ -74,12 +92,13 @@ module ModuleGuessPlace
         cand_hash[:country] = "JPN"
       when /東京|パリ|ロンドン/
         matched = $&
-        cand_hash[:prefecture] = /#{Regexp.quote matched}/
+        cand_hash[:prefecture] = /^#{Regexp.quote matched}/
         case matched
         when "パリ"
           cand_hash[:country] = "FRA"
         when "ロンドン"
           cand_hash[:country] = "GBR"
+          cand_hash[:prefecture] = /#{Regexp.quote matched}/
         else
         end
       when /フランス/

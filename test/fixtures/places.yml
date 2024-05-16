@@ -65,6 +65,10 @@ takamatsu_station:
   prefecture: kagawa
   note: MyTextTakamatsuStation
 
+kawaramachi_station:
+  prefecture: kagawa
+  note: MyTextKawaramachiStation
+
 unknown_place_liverpool_uk:
   prefecture: liverpool
   note: MyTextUnknownPlaceLiverpoolUk
