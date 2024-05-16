@@ -54,7 +54,7 @@
      <% if can? :destroy, ArtistMusicPlay %>
       <td>
         <% if can? :destroy, amp %>
-          <%= link_to t('layouts.destroy_button'), amp, method: :delete, data: { confirm: t('are_you_sure') } %>
+          <%= link_to t('layouts.destroy_button'), amp, method: :delete, data: { confirm: t('are_you_sure') }, title: "イベント自体からの削除(このイベントの他の動画からも削除されます!)" %>
         <% end %>
       </td>
      <% end %>

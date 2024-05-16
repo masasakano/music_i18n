@@ -240,8 +240,10 @@ ja:
     show:
       artist_collabs: "コラボアーティスト"
       Other_HaramiVids_for_these_EventItems: "同じイベント(項目)の他の動画"
+      destroy_music_from_this_vid: "この動画からの登録楽曲の削除"
     edit:
       artist_collabs_title: "コラボしているアーティスト"
+      identical_amp: "コラボアーティストとの関係情報(楽曲、楽器など)につき、既存のものの一つと同一の情報は登録できません。少なくともどれか一つは異なる必要があります。"
 
   musics:
     index:
@@ -256,4 +258,7 @@ ja:
 
   artist_music_plays:
     destroy_success: 'コラボArtistの1関連項目が削除されました。'
+
+  harami_vid_music_assocs:
+    destroy_success: '楽曲と動画の1関連項目が削除されました。'
 

@@ -3,6 +3,7 @@ Rails.application.routes.draw do
   resources :channel_owners
   resources :channel_types
   resources :channel_platforms
+  resources :harami_vid_music_assocs, only: [:destroy]
   resources :artist_music_plays, only: [:destroy]
   resources :instruments
   resources :play_roles

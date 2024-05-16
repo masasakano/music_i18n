@@ -73,7 +73,8 @@
 <% if can? :read, Harami1129 %>
   <hr>
   <section id="sec_harami1129s_for">
-  <%= render partial: 'harami1129s_table', locals: {music: @music} %>
+    <h3>Harami1129s for Music (ID=<%= @music.id.to_s %>): <%= @music.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true) %></h3>
+    <%= render partial: 'layouts/harami1129s_table', locals: {music: @music} %>
   </section>
 <% end %>
 

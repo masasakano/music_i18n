@@ -238,7 +238,7 @@ logger.error "DEBUG_ERROR12 (#{__method__}): @event_event_items=#{@event_event_i
             rollback_clear_flash if @harami_vid.errors.any?
           end
           if @assocs[:artist_collab].present? && @assocs[:music].blank?
-            @harami_vid.errors.add :artist_name_collab, I18n.t("harami_vids.warn_collab_without_music")  # Valid Music must be given when you add an Artist-to-collaborate.
+            @harami_vid.errors.add :music_name, I18n.t("harami_vids.warn_collab_without_music")  # Valid Music must be given when you add an Artist-to-collaborate.
             result = false
             raise ActiveRecord::Rollback, "Force rollback."
           end
@@ -310,7 +310,7 @@ logger.error "DEBUG_ERROR12 (#{__method__}): @event_event_items=#{@event_event_i
 
       # With UI, the above save should not usually fail (it is never with Channel, probably not for Music).
       model.errors.full_messages.each do |msg|
-        @harami_vid.errors.add form_attr, "Existing #{model.class.name} is not found, yet failed to create a new one: "+msg
+        @harami_vid.errors.add form_attr, ": Existing #{model.class.name} is not found, yet failed to create a new one: "+msg
       end
       return
     end
@@ -742,17 +742,20 @@ end
     def associate_artist_music_play(instrument, play_role, event_item: @assocs[:new_event_item], form_attr: :base)
       associate_harami_music_play(event_item: event_item)
 
-      @assocs[:artist_music_play] =
-        ArtistMusicPlay.new(
-          event_item: event_item,
-          artist:     @assocs[:artist_collab],
-          music:      @assocs[:music],
-          instrument: instrument,
-          play_role:   play_role,
-        )
-      _save_or_add_error(@assocs[:artist_music_play], form_attr: form_attr)  # :base for create b/c uncertain which parameter is wrong.
+      @assocs[:artist_music_play] = ArtistMusicPlay.find_or_initialize_by(
+        event_item: event_item,
+        artist:     @assocs[:artist_collab],
+        music:      @assocs[:music],
+        instrument: instrument,
+        play_role:   play_role,
+      )
 
-      return if ArtistMusicPlay.where(event_item_id: event_item.id, music_id: @assocs[:music].id).count > 1
+      if !@assocs[:artist_music_play].new_record?
+        @harami_vid.errors.add :form_instrument, ": "+t('harami_vids.edit.identical_amp', default: "An identical combination (Music, Instrument, etc) for an existing association for the collab-Artist is specified. You can register a new combination but not a duplication.")
+        return
+      end
+
+      _save_or_add_error(@assocs[:artist_music_play], form_attr: form_attr)  # :base for create b/c uncertain which parameter is wrong.
     end
 
     # New entry of ArtistMusicPlay for HARAMIchan

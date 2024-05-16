@@ -218,6 +218,10 @@ class Artist < BaseWithTranslation
     super(mainprms, titles, *args, **opts)
   end
 
+  # @return [HaramiVid::Relation] where self is a collab-Artist.
+  def collab_harami_vids
+    HaramiVid.joins(:artist_music_plays).where("artist_music_plays.artist_id" => id).distinct
+  end
 
   # Returns string expression of birthday
   #

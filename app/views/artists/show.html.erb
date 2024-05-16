@@ -99,9 +99,9 @@
 <section id="sec_harami_vids_featuring">
 <h3><%= t("artists.show.harami_vids_featuring_artist", artist: @artist.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "")) %></h3>
 <% if @artist == Artist.default(:HaramiVid) %>
-  (……<%= t("noun.all").capitalize %>)
+  (……<%= t("noun.all").capitalize %> → <%# link_to "HaramiVids", harami_vids_path %>)
 <% else %>
-  
+  <%= render partial: "layouts/harami_vids_index", locals: {harami_vids: @artist.collab_harami_vids } %>
 <% end %>
 </section> <!-- section id="sec_harami_vids_featuring" -->
 <hr>

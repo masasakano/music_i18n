@@ -25,6 +25,9 @@
       <th title="<%= t('harami_vids.table_head_title_music_timing') %>">Timing</th>
       <th colspan="<%= can?(:update, Music) ? 2 : 1 %>">Music</th>
       <th>動画数</th>
+     <% if can? :destroy, HaramiVidMusicAssoc %>
+      <th title="<%= t('harami_vids.show.destroy_music_from_this_vid') %>">Action</th>
+     <% end %>
     </tr>
   </thead>
 
@@ -46,6 +49,14 @@
         </td>
         <% end %>
         <td class="item_n_vids"><%= music.harami_vids.count.to_s %></td>
+      <% if can? :destroy, HaramiVidMusicAssoc %>
+        <td title="<%= t('harami_vids.show.destroy_music_from_this_vid') %>">
+         <% hvma = harami_vid.harami_vid_music_assocs.where(music: music).first %>
+       <% if can? :destroy, hvma %>
+         <%= link_to t('layouts.destroy_button'), hvma, method: :delete, data: { confirm: t('are_you_sure') }, title: t('harami_vids.show.destroy_music_from_this_vid') %>
+       <% end %>
+        </td>
+      <% end %>
       </tr>
     <% end %>
 <% if false %>
