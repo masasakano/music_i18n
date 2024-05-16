@@ -200,7 +200,7 @@ en:
 
   event_items:
     playing_artists: playing artists
-    Playing_artists_for_this: playing artists for this EventItem
+    Playing_artists_for_this: Playing artists in this EventItem
 
   harami_vids:
     table_filter_collabs_only: "Videos with Collab-Artists only?"

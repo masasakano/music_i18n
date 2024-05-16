@@ -43,7 +43,7 @@
 <hr>
 
 <section id=event_item_harami_vid_index_table">
-<h2><%= t("event_items.Playing_artists_for_this").capitalize %></h2>
+<h2><%= t("event_items.Playing_artists_for_this") %></h2>
 
 <%= render partial: "layouts/artist_music_plays", locals: {artist_music_plays: @event_item.artist_music_plays} %>
 </section>
@@ -51,10 +51,18 @@
 <hr>
 
 <section id=event_item_harami_vid_index_table">
-<h2>HaramiVids for this EventItem</h2>
+<h2>HaramiVids<%= t("show.h2_for") %><%= t("adjective.this") %><%= t("EventItem") %></h2>
 
 <% items = @event_item.harami_vids.order("harami_vids.release_date") %>
 <%= render partial: 'harami_vids_index', locals: {harami_vids: items} %>
 
 </section>
+
+<% if can? :read, Harami1129 %>
+  <hr>
+  <section id="sec_harami1129s_for">
+    <h2>Harami1129s<%= t("show.h2_for") %><%= t("adjective.this") %><%= t("EventItem") %></h2>
+    <%= render partial: 'layouts/harami1129s_table', locals: {harami1129s: @event_item.harami1129s} %>
+  </section> <!-- section id="sec_harami1129s_for" -->
+<% end %>
 

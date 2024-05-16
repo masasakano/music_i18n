@@ -55,8 +55,11 @@ ja:
   video: 動画
   videos: 動画
 
+  adjective:
+    this: この
+
   noun:
-    all: all
+    all: すべて
 
   locale:
     lowercase:

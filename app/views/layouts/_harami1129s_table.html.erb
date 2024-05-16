@@ -1,5 +1,5 @@
 
-<h3>Harami1129s for Music (ID=<%= music.id.to_s %>): <%= music.title_or_alt %></h3>
+<%# Local variables: harami1129s %>
 
 <table>
   <thead>
@@ -20,7 +20,7 @@
   </thead>
 
   <tbody>
-    <% music.harami1129s.each do |harami1129| %>
+    <% harami1129s.each do |harami1129| %>
       <tr>
         <td><%= harami1129.release_date %></td>
         <td><%= link_to(harami1129.title, harami1129) %></td>

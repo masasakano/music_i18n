@@ -14,7 +14,7 @@ class Harami1129sController < ApplicationController
     logger.warn "Environmental variable URI2FETCH, thus URI_ROOT, is not defined."
   end
 
-  INDEX_COLUMNS = [:singer, :song, :release_date, :title, :link_root, :link_time, :ins_singer, :ins_song, :ins_release_date, :ins_title, :ins_link_root, :ins_link_time, :ins_at, :note, :not_music, :destroy_engage, :human_check, :human_uncheck] # :harami_vid_id, :last_downloaded_at,
+  INDEX_COLUMNS = [:singer, :song, :release_date, :title, :link_root, :link_time, :ins_singer, :ins_song, :ins_release_date, :ins_title, :ins_link_root, :ins_link_time, :ins_at, :note, :not_music, :destroy_engage, :human_check, :human_uncheck, :event_item_id] # :harami_vid_id, :last_downloaded_at,
 
   # GET /harami1129s
   # GET /harami1129s.json
