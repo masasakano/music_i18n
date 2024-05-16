@@ -717,7 +717,7 @@ class BaseWithTranslation < ApplicationRecord
   # in the form of {#create_translations!}, e.g.,
   #   translations: {strip: true, ja: [{title: 'イマジン'}], en: {title: 'Imagine', is_orig: true}}
   #
-  # @param prms [Hash] The main data for {BaseWithTranslation}
+  # @param hsmain [Hash] The main data for {BaseWithTranslation}
   # @param unique_trans_keys [Array] If given, the keys (like [:ruby, :romaji]) is used
   #   to identify the {Translation}. Else {Translation.keys_to_identify} is called
   # @param mainkeys [Array]  Array of the columns to be used to get an existing model.
@@ -771,7 +771,9 @@ class BaseWithTranslation < ApplicationRecord
   #    a {Country}.
   # @param unique_trans_keys [Array] If given, the keys (like [:ruby, :romaji]) is used
   #   to identify the {Translation}. Else {Translation.keys_to_identify} is called
-  # @param *args [Array<Integer, Symbol>] Only 1 element. If :auto (Default), [:title, :alt_title]
+  # @param *args [Array<Integer, Symbol>] Up to 2 elements.
+  #   The first is mainkeys [Array], Array of the columns to be used to get an existing model.
+  #   The second is this; If :auto (Default), [:title, :alt_title]
   #   is used to identify an existing {Translation}. If Integer, it is the size
   #   of the Array of the keys for it according to the order of 
   #   {Translation::TRANSLATED_KEYS}.
@@ -1272,11 +1274,15 @@ class BaseWithTranslation < ApplicationRecord
   #
   # Using SQL directly.
   #
+  # @example Returning Translations containing "procla" excluding IDs of 5 or 8.
+  #    Artist.select_partial_str(:titles, ['Procla', 'Lenno']).where.not("translations.id": [5, 8])
+  #
   # @param *args: [Array]
   # @param **restkeys: [Hash] 
-  # @return [Array<BaseWithTranslation>]
+  # @return [BaseWithTranslation::ActiveRecord_Relation]
   def self.select_partial_str(*args, **restkeys)
-    select_translations_partial_str(*args, **restkeys).map{|i| i.translatable}.uniq
+    rela = select_translations_partial_str(*args, **restkeys)
+    _select_regex_sql(rela.to_sql).distinct  #, debug_return_sql: debug_return_sql)  # see _select_regex_sql for debugging.
   end
 
   # Returns Relation of {BaseWithTranslation} that have one of the {Translation}-s.

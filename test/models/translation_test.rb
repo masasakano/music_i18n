@@ -329,6 +329,12 @@ class TranslationTest < ActiveSupport::TestCase
     assert_equal 2, Translation.select_partial_str(:titles, str, **defopts).count
     str = "The Pro"
     assert_equal 3, Translation.select_partial_str(:titles, str, **defopts).count, "'The Pro' should be converted into /pro.*,the/i"
+
+    str = "Madonna"
+    assert_equal 1, Translation.select_partial_str(:titles, str, **defopts).count, "sanity check of fixtures"
+    assert_equal 1, Translation.select_partial_str(:titles, [str], **defopts).count
+    ary = [str, "The Pro"]
+    assert_equal 4, Translation.select_partial_str(:titles, ary, **defopts).count, "Proclaimers + Madonna"
   end
 
   test "update_or_create_regex! (and _by!)" do

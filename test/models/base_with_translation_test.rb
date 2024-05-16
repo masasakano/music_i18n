@@ -115,6 +115,16 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_equal sc, rel.first
   end
 
+  # Using the subclass Sex
+  test "BaseWithTranslation.select_partial_str" do
+    assert_equal 1,             (rela=Sex.select_partial_str(:titles, 'female')).size
+    assert_equal Sex['female'],  rela.first
+    assert_equal 2,             (rela=Sex.select_partial_str(:titles, 'male')).size
+    assert_equal Sex['female'],  rela.order(:iso5218).last
+    assert_equal 3,             (rela=Sex.select_partial_str(:titles, ['male', 'unknown'])).size
+    assert_equal Sex['female'],  rela.order(:iso5218).last
+  end
+
   test "class and instance methods of find_by_a_title" do
     artist = artists( :artist_proclaimers )
     art = Artist.find_by_a_title :titles, 'proclaimers'

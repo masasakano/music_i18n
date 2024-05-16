@@ -937,7 +937,7 @@ class Translation < ApplicationRecord
 
   # wrapper of {Translation.select_regex}
   #
-  # The search word is String, as given by a human over a UI.
+  # The search word is String, as given by a human over a UI (or its Array).
   # Unlike {Translation.select_regex}, this runs {ModuleCommon#preprocess_space_zenkaku}.
   # All spaces, including newlines, are ignored (both in query string and DB).
   # Also, this deals with definite articles, i.e., both "The Beat" and "Beatles, Th" match
@@ -947,21 +947,38 @@ class Translation < ApplicationRecord
   #    Translation.select_partial_str(:titles, 'Procla', not_clause: [{id: [5, 8]}])
   #
   # @param kwd [Symbol, String, Array<String>, NilClass] See {Translation.select_regex}
-  # @param value [String] e.g., "The Beat" and "Beatles, Th"
+  # @param value [String, Array] e.g., "The Beat" and "Beatles, Th" or Array of those candidates (OR-ed)
   #   Preprocessed with {ModuleCommon#preprocess_space_zenkaku}
   # @param ignore_case [Boolean] if true (Def), case-insensitive search
   # @param scope [Relation, NilClass] scope (Relation) of {Translation} if any
   # @param restkeys [Array] See {Translation.select_regex}
   def self.select_partial_str(kwd, value, ignore_case: true, **restkeys)
+    str2re =
+      if value.respond_to? :map
+        "("+value.map{|ea_str|
+          _convert_partial_str_to_re(ea_str)
+        }.join("|")+")"
+      else
+        _convert_partial_str_to_re(value)
+      end
+    regex = Regexp.new(str2re, (ignore_case ? Regexp::IGNORECASE : 0))
+    #regex = Regexp.new(str2re, Regexp::EXTENDED | Regexp::MULTILINE | (ignore_case ? Regexp::IGNORECASE : 0))
+    select_regex(kwd, regex, sql_regexp: true, space_sensitive: false, **restkeys)
+  end
+
+  # Converts a String to be String ready to be converted to Regexp
+  #
+  # @param value [String] e.g., "The Beat" and "Beatles, Th"
+  # @return [String]
+  def self._convert_partial_str_to_re(value)
     str2re = preprocess_space_zenkaku(value).gsub(/\s+/m, " ").strip
     _, rootstr, article = definite_article_with_or_not_at_tail_regexp(str2re) # in ModuleCommon
 
     str2re = Regexp.quote(rootstr.gsub(/\s/, ""))#.gsub(/(?<!\\)((?:\\\\)*)\\ /, '\1 ')  # "\ " => " "
     str2re << ".*," << article if !article.blank?
-    regex = Regexp.new(str2re, (ignore_case ? Regexp::IGNORECASE : 0))
-    #regex = Regexp.new(str2re, Regexp::EXTENDED | Regexp::MULTILINE | (ignore_case ? Regexp::IGNORECASE : 0))
-    select_regex(kwd, regex, sql_regexp: true, space_sensitive: false, **restkeys)
+    str2re 
   end
+  private_class_method :_convert_partial_str_to_re
 
   # Gets an array of {Translation}
   #
