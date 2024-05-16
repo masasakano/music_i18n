@@ -30,6 +30,12 @@ class HaramiVidsGrid < BaseGrid
   filter_partial_str(:artists, header: Proc.new{I18n.t('datagrid.form.artists_multi')})
   filter_partial_str(:musics,  header: Proc.new{I18n.t('datagrid.form.musics_multi')})
 
+  filter(:collabs_only, :boolean, dummy: true, default: false,
+         header: Proc.new{I18n.t("harami_vids.table_filter_collabs_only", default: "Videos with Collab-Artists only?")}) do |value|
+    #(value ? self.joins(:artist_music_plays).where.not("artist_music_plays.artist_id" => Artist.default(:HaramiVid).id).distinct : self)  # => FATAL: SELECT DISTINCT, ORDER BY expressions must appear...
+    value ? (allids=self.joins(:artist_music_plays).where.not("artist_music_plays.artist_id" => Artist.default(:HaramiVid).id).distinct.ids; self.where(id: allids)) : self
+  end
+
   column_names_max_per_page_filters  # defined in base_grid.rb
   # column_names_filter(header: Proc.new{I18n.t("datagrid.form.extra_columns", default: "Extra Columns")}, checkboxes: true)
   # filter(:max_per_page, :enum, select: MAX_PER_PAGES, default: 25, multiple: false, dummy: true, header: Proc.new{I18n.t("datagrid.form.max_per_page", default: "Max entries per page")})

@@ -201,6 +201,7 @@ en:
     Playing_artists_for_this: playing artists for this EventItem
 
   harami_vids:
+    table_filter_collabs_only: "Videos with Collab-Artists only?"
     table_head_date: Date
     table_head_timing: "Timing[s]"
     table_head_completeness: Completeness

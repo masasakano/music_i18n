@@ -216,6 +216,7 @@ ja:
     Playing_artists_for_this: このEventItemで演奏するアーティスト
 
   harami_vids:
+    table_filter_collabs_only: "コラボ動画のみ?"
     table_head_date: 公開日
     table_head_timing: "開始時[秒]"
     table_head_completeness: 一曲全部

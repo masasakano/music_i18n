@@ -61,7 +61,7 @@ class HaramiVid < BaseWithTranslation
   has_many :harami_vid_event_item_assocs,  dependent: :destroy
   has_many :musics, -> { order(Arel.sql('CASE WHEN timing IS NULL THEN 1 ELSE 0 END, timing')) }, through: :harami_vid_music_assocs   # in the order of timing in HaramiVidMusicAssoc, which is already joined.
 
-  has_many :event_items, -> {distinct}, through: :harami_vid_event_item_assocs  # if the unique constraint is on for Association, `distinct` is not necessary for two-component associations (but it is for multi-components)
+  has_many :event_items, through: :harami_vid_event_item_assocs  # if the unique constraint is on for Association, `distinct` is not necessary for two-component associations (but it is for multi-components)
   has_many :events,       -> {distinct}, through: :event_items
   has_many :event_groups, -> {distinct}, through: :events
   has_many :artist_music_plays, through: :event_items, source: :artist_music_plays  # to an Association model! (NOT to Artists/Musics)
