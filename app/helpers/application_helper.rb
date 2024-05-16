@@ -76,21 +76,71 @@ module ApplicationHelper
   #
   # This assumes the langcode is 2-characters and no Models are 2-character long.
   #
+  # This method returns always a String no matter what so that no exceptions would be ever raised.
+  #
   # @return [String]
   def get_html_head_title
-    ar = url_for.split('/')
-    ar = ar.map{|i| i.blank? ? nil : i}.compact
-    if (ar.size < 1)
-      ''
-    else
-      langcode_str = ''
-      if ar[0].size == 2
-        langcode_str = ' ('+ar[0].upcase+')'
-        ar.shift
-      end
-      ar.map{|i| (/^\d*$/ =~ i) ? nil : i}.compact.join('-').capitalize + langcode_str
+    retstr = ""
+    hsroute = Rails.application.routes.recognize_path(pat=url_for)  # :only_path is true <https://api.rubyonrails.org/classes/ActionView/RoutingUrlFor.html>
+    model_name = hsroute[:controller].singularize.camelize
+    # e.g., hsroute === {:controller=>"play_roles", :action=>"index", :locale=>"ja"}
+    retstr = model_name
+    record = ""
+    title = ""
+
+    begin
+      model_class = model_name.constantize
+    rescue NameError #=> er
+      #print "DEBUG(#{__method__}): #{er.inspect}"
+      return retstr
     end
-  end
+
+    case hsroute[:action]
+    when "show", "edit", "update"
+      record = 
+        begin
+          model_class.find(hsroute[:id])
+        rescue
+          nil
+        end
+      title = 
+        if !record
+          ""
+        elsif BaseWithTranslation == model_class.superclass
+          record.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)
+        else
+          str = %i(title machine_title mname display_name name).each do |candkey|
+            next if !record.respond_to?(candkey)
+            s = record.send(candkey)
+            break s.to_s.strip if s.present?
+          end
+          str ? str : ""
+        end
+    end
+
+    action_str = 
+      case hsroute[:action]
+      when "index", "new", "create", "show", "edit", "update", "destroy"
+        hsroute[:action]
+      else
+        ""
+      end
+
+    tit_display = ((title.size <= 20) ? title[0..19] : title[0..18]+"…")
+    retstr << sprintf(" %s %s", action_str, tit_display)
+
+    langcode_str = (hsroute[:locale] || "")
+    if langcode_str.blank? && (fragment=pat.split('/')[0]).size == 2
+      langcode_str = ' ['+fragment.upcase+']'
+    end
+    langcode_str = ' ['+langcode_str+']' if langcode_str.present?
+
+    retstr << langcode_str
+
+  rescue  # to make sure a page is displayed no matter what!
+    retstr || ""
+  end # def get_html_head_title
+
 
   # Returns an HTML YouTube link
   #

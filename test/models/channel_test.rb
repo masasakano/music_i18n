@@ -1,3 +1,4 @@
+# coding: utf-8
 # == Schema Information
 #
 # Table name: channels
@@ -57,6 +58,20 @@ class ChannelTest < ActiveSupport::TestCase
     assert_equal ChannelPlatform.find_by(mname: :youtube), ChannelPlatform.default(:HaramiVid)
     assert ChannelOwner.primary
     assert Channel.primary, "Channel.primary"
+  end
+
+  test "def_initial_translations" do
+    hstmpl = {channel_platform: ChannelPlatform.default(:HaramiVid), channel_type: ChannelType.default(:HaramiVid)}
+
+    co = co1 = ChannelOwner.create_basic!(title: "日本語っちゃ", langcode: "ja")
+    chan = Channel.new(channel_owner: co, **hstmpl)
+    transs = chan.def_initial_translations
+    assert_equal 1, transs.size  # because ChannelOwner's title is Japanese only, this cannot create EN or FR titles.
+
+    co = co2 = ChannelOwner.create_basic!(title: "An English Title 2", langcode: "en")
+    chan = Channel.new(channel_owner: co, **hstmpl)
+    transs = chan.def_initial_translations
+    assert_equal 3, transs.size
   end
 
   test "association" do

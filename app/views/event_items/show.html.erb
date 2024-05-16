@@ -54,7 +54,7 @@
 <h2>HaramiVids for this EventItem</h2>
 
 <% items = @event_item.harami_vids.order("harami_vids.release_date") %>
-<%= render partial: 'layouts/harami_vids_index', locals: {harami_vids: items} %>
+<%= render partial: 'harami_vids_index', locals: {harami_vids: items} %>
 
 </section>
 

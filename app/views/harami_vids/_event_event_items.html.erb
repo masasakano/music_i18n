@@ -24,7 +24,7 @@
               <% else %>
                 (<%= eii+1 %>)
               <% end %>
-              <%= t("haramiv_vids.show.artist_collabs", default: "featuring Artists") %>
+              <%= t("harami_vids.show.artist_collabs", default: "featuring Artists") %>
               (<%= show_list_featuring_artists(event_item) %>)  <%# defined in harami_vids_helper.rb %>
               <% if event_item.artist_music_plays.exists? %>
                 <%= render partial: "layouts/artist_music_plays", locals: {artist_music_plays: event_item.artist_music_plays} %>

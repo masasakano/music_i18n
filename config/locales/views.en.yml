@@ -179,6 +179,8 @@ en:
       birth_day: "Birth day (0 means unknown)"
     show:
       birthday: "Birthday"
+      harami_vids_containing_musics_by_artist: "(HARAMIchan) Videos containing Musics by %{artist}"
+      harami_vids_featuring_artist: "(HARAMIchan) Videos featuring %{artist}"
 
   event_groups:
     num_id: "#num"

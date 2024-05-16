@@ -115,7 +115,7 @@ class Channel < BaseWithTranslation
     end
 
     # fallback... (only a single Translation is created.
-    # NOTE: If you ever thihnk of creating multiple translations, some of their langcodes may become the same (due to fallback) and hence there would be a risk of unique-validation failure. Be careful.
+    # NOTE: If you ever think of creating multiple translations, some of their langcodes may become the same (due to fallback) and hence there would be a risk of unique-validation failure. Be careful.
     tra = def_initial_trans(langcode: I18n.locale, force: true)
     raise "(#{File.basename __FILE__}) Seemingly the translations in any of channel_owner channel_platform channel_type in any languages are completely blank. Strange." if tra.blank?
     tra.is_orig = true
@@ -145,8 +145,9 @@ class Channel < BaseWithTranslation
     return nil if arstr.all?{|i| i.blank?}  # In an extremely unlikely case of all of them being blank, nil is returned regardless of the force option.
 
     tit = sprintf "%s /%s (%s)", *arstr
-    lcode2set = (contain_asian_char?(tit) ? "ja" : lcode)  # to avoid potential Asian-char validation failure.
-    Translation.new(title: tit, langcode: lcode2set)
+    # lcode = (contain_asian_char?(tit) ? "ja" : lcode)  # to avoid potential Asian-char validation failure.
+    return nil if !%w(ja ko zh).include?(lcode.to_s[0..1]) && contain_asian_char?(tit)
+    Translation.new(title: tit, langcode: lcode)
   end
 
 

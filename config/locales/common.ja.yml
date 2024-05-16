@@ -52,6 +52,11 @@ ja:
   minutes_short: 分
   minute: 分
   time_second: 秒
+  video: 動画
+  videos: 動画
+
+  noun:
+    all: all
 
   locale:
     lowercase:
