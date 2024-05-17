@@ -160,7 +160,7 @@ module Seeds
       n_changed
     end
 
-    # Core routine for load_seeds
+    # Core routine for load_seeds, which should be defined in each class that includes this Module
     #
     # All seeded records for the class are created, if not yet created.  At the same time,
     # this sets hash +self::MODELS+ with a key of +self::SEED_DATA+ for the model (regardless of new or existing).
@@ -173,8 +173,8 @@ module Seeds
     # In none of the above is provided, the exact title in a standard language is used to find one (duplications are not checked).
     #
     # @example
-    #    _load_seeds_core(Instrument, %i(weight note))
-    #    _load_seeds_core(AbcDef, %i(mname weight note)){|ea_hs, key| AbcDef.find_or_initialize(...)}
+    #    _load_seeds_core(%i(weight note))  # ActiveRecord Class is derived from RECORD_CLASS.
+    #    _load_seeds_core(%i(mname weight note), klass: AbcDef){|ea_hs, key| AbcDef.find_or_initialize(...)}
     #
     # @param attrs [Array<Symbol>] Array of attributes for the main model to load.
     # @param klass: [Class, NilClass] (Optional) Model class. If not specified, constant RECORD_CLASS is tried and then it is guessed from the Module name.

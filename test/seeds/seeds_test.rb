@@ -61,6 +61,10 @@ class SeedsSeedsTest < ActiveSupport::TestCase
     begin
       ApplicationRecord.allow_destroy_all = true  # required to allow destroying EventGroup-s etc!!
       ## TODO:
+      # This had better be run after the 1st trial, i.e., three steps of (1) seeding while fixtures are there,
+      # (2) seeding after reset DB, (3) repeated seeding, should be best.  At the moment,
+      # such procedures fail because RoleCategory-Role rely on explicit pIDs(!).
+      #
       # It seems EventItems can be destroy_all-ed regardless of ApplicationRecord.allow_destroy_all. Strange! Check it out.
       # Maybe destroy_all attempts to destroy everything WITHOUT rollback even if one of the destroy-attempts failed?
 

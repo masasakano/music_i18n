@@ -826,6 +826,21 @@ allfiles.each do |seed|
 end  # (ar_priority + Dir[File.join(*(rootdirs+['*.rb']))]).uniq.each do |seed|
 
 ################################
+# HaramiVid update_all-ed with the default Channel
+
+def_channel = Channel.default(:HaramiVid)
+if def_channel
+  cnt_be4 = HaramiVid.where(channel_id: nil).count
+  HaramiVid.where(channel_id: nil).update_all(channel_id: def_channel.id)
+  cnt_aft = HaramiVid.where(channel_id: nil).count
+  if 0 < (diff_cnt = cnt_aft - cnt_be4)
+    puts "NOTE: #{diff_cnt} HaramiVid with a nil channel are updated to be associated with a default Channel."
+  end
+else
+  warn "Default Channel is not found, hence no update_all with HaramiVid executed."
+end
+
+################################
 # Final comment
 
 if nrec <= 0

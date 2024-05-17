@@ -72,6 +72,17 @@ harami_vid4:
   channel: channel_haramichan_youtube_main
   note: HaramiVid4
 
+harami_vid5:
+  release_date: 2020-11-11
+  duration: 
+  uri: youtu.be/harami_vid5
+  place: 
+  flag_by_harami: true
+  uri_playlist_ja: 
+  uri_playlist_en: 
+  channel: 
+  note: HaramiVid5 for testing seeds
+
 harami_vid_ihojin1:
   release_date: 2022-01-07
   duration: 170.0
