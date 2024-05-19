@@ -77,12 +77,18 @@ class EventItem < ApplicationRecord
   DEFAULT_UNIQUE_TITLE_PREFIX = "item"
 
   alias_method :inspect_orig_event_item, :inspect if ! self.method_defined?(:inspect_orig_event_item)
+  include ModuleModifyInspectPrintReference
 
-  def inspect
-    tra1 = (((eg=event) ? eg.title_or_alt(langcode: "en", lang_fallback_option: :either, str_fallback: "") : "") rescue "")  # rescue is unnecessary but just to play safe! (b/c this is inspect)
-    tra2 = inspect_place_helper(place) # defined in module_common.rb
-    super.sub(/, event_id: (\d+|nil)/, '\0'+sprintf("(%s)", tra1)).sub(/, place_id: (\d+|nil)/, '\0'+tra2)
-  end
+  redefine_inspect(cols_yield: %w(event_id place_id)){ |record, col_name, self_record|
+    case col_name
+    when "event_id"
+      "("+record.title_or_alt(langcode: "en", lang_fallback_option: :either, str_fallback: "")+")"
+    when "place_id"
+      self_record.inspect_place_helper(record) # defined in module_common.rb
+    else
+      raise
+    end
+  }
 
   # Called from {Event#after_first_translation_hook}
   #

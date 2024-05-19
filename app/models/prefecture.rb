@@ -60,17 +60,19 @@ class Prefecture < BaseWithTranslation
     (hash.keys.include? key.to_s) ? hash[key.to_s] : nil  # Symbol keys (langcode) are acceptable.
   end
 
+  alias_method :inspect_orig, :inspect if ! self.method_defined?(:inspect_orig) # Preferred to  alias :text_new :to_s
+  include ModuleModifyInspectPrintReference
+
   # Information of "(Country-Code)" is added.
-  # @return [String]
-  def inspect
+  redefine_inspect(cols_yield: %w(country), yield_nil: true){ |country, _, self_record|
     if country
       s_country = country.iso3166_a3_code
       s_country = country.title(langcode: 'en', lang_fallback: true) if s_country.blank?
     else
       s_country = 'nil'
     end
-    super.sub(/, country_id: \d+/, '\0'+sprintf("(%s), force_destroy: %s", s_country, force_destroy.inspect))  # n.b., in an unlikely case where country_id is nil, force_destroy is not printed.
-  end
+    sprintf("(%s), force_destroy: %s", s_country, self_record.force_destroy.inspect)
+  }
 
   # Modifying {BaseWithTranslation.[]}
   #

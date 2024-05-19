@@ -33,13 +33,8 @@ class HaramiVidMusicAssoc < ApplicationRecord
   validate :completeness_between  # For Float, this does not work?: validates_numericality_of :completeness_between, within: (0..1)
 
   alias_method :inspect_orig, :inspect if ! self.method_defined?(:inspect_orig)
-
-  # Displays (the original) Translation information, too, for Music.
-  #
-  # @return [String]
-  def inspect
-    add_trans_info(inspect_orig, %w(music)) # defined in ModuleCommon
-  end
+  include ModuleModifyInspectPrintReference
+  redefine_inspect
 
   private
 

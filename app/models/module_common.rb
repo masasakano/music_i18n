@@ -1030,9 +1030,9 @@ module ModuleCommon
   def inspect_place_helper(str)
     return "" if place.blank?
 
-    s_pla = (place.title_or_alt(langcode: "en", lang_fallback_option: :either, str_fallback: "") rescue "")
-    s_pref = (place.prefecture.title_or_alt(langcode: "en", lang_fallback_option: :either, str_fallback: "") rescue "")
-    s_country = (place.country.title_or_alt(prefer_alt: true, langcode: "en", lang_fallback_option: :either, str_fallback: "") rescue "")
+    s_pla = (place.title_or_alt(str_fallback: "") rescue "")
+    s_pref = (place.prefecture.title_or_alt(str_fallback: "") rescue "")
+    s_country = ((cnt=place.country; ((s=cnt.iso3166_a3_code).blank? ? s.title : s)) rescue "")
     sprintf("(%s < %s (%s))", s_pla, s_pref, s_country)
   end
 

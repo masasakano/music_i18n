@@ -59,19 +59,19 @@ class Place < BaseWithTranslation
     !children_class_names.empty?
   end
 
+  alias_method :inspect_orig, :inspect if ! self.method_defined?(:inspect_orig) # Preferred to  alias :text_new :to_s
+  include ModuleModifyInspectPrintReference
+
   # Information of "(Prefecture < Country-Code)" is added.
-  # @return [String]
-  def inspect
-    return(super) if !prefecture
-    pref = prefecture
+  redefine_inspect(cols_yield: %w(prefecture)){ |pref, _|
     s_pref = pref.title(langcode: 'en', lang_fallback: true)
     country = pref.country
     if country
       s_country = country.iso3166_a3_code
       s_country = country.title if s_country.blank?
     end
-    super.sub(/, prefecture_id: \d+/, '\0'+sprintf("(%s < %s)", s_pref, s_country))
-  end
+    sprintf("(%s < %s)", s_pref, s_country)
+  }
 
   # Modifying {BaseWithTranslation.[]}
   #

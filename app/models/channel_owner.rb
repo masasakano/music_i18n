@@ -74,6 +74,10 @@ class ChannelOwner < BaseWithTranslation
     "fr" => ['Propriétaire de chaine inconnu'],
   }.with_indifferent_access
 
+  alias_method :inspect_orig, :inspect if ! self.method_defined?(:inspect_orig) # Preferred to  alias :text_new :to_s
+  include ModuleModifyInspectPrintReference
+  redefine_inspect
+
   # Returning a default Model in the given context
   #
   # place is ignored so far.

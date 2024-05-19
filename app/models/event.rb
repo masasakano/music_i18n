@@ -86,15 +86,19 @@ class Event < BaseWithTranslation
   # Contexts that are taken into account in {Event.default}
   VALID_CONTEXTS_FOR_DEFAULT = EventGroup::VALID_CONTEXTS_FOR_DEFAULT
 
-  # Information of "(Country-Code)" is added.
-  # @return [String]
   alias_method :inspect_orig_event, :inspect if ! self.method_defined?(:inspect_orig_event)
+  include ModuleModifyInspectPrintReference
 
-  def inspect
-    tra1 = (((eg=event_group) ? eg.title_or_alt(langcode: "en", lang_fallback_option: :either, str_fallback: "") : "") rescue "")  # rescue is unnecessary but just to play safe! (b/c this is inspect)
-    tra2 = inspect_place_helper(place) # defined in module_common.rb
-    super.sub(/, event_group_id: (\d+|nil)/, '\0'+sprintf("(%s)", tra1)).sub(/, place_id: (\d+|nil)/, '\0'+tra2)
-  end
+  redefine_inspect(cols_yield: %w(event_group_id place_id)){ |record, col_name, self_record|
+    case col_name
+    when "event_group_id"
+      "("+record.title_or_alt(langcode: "en", lang_fallback_option: :either, str_fallback: "")+")"
+    when "place_id"
+      self_record.inspect_place_helper(record) # defined in module_common.rb
+    else
+      raise
+    end
+  }
 
   # Unknown Event in the given event_group (or somewhere in the world)
   #

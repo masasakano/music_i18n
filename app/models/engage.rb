@@ -42,6 +42,11 @@ class Engage < ApplicationRecord
   validates_uniqueness_of :artist, scope: [:music, :engage_how, :year]  # year can be nil. If there are 2 records that have identical with year=nil, Rails validation fails, whereas PostgreSQL ignores it.
 
   alias_method :inspect_orig, :inspect if ! self.method_defined?(:inspect_orig)
+  include ModuleModifyInspectPrintReference
+  redefine_inspect
+  #def inspect
+  #  add_trans_info(inspect_orig, %w(music artist engage_how)) # defined in ModuleCommon
+  #end
 
   # Hash with keys of Symbols of the columns to each String
   # value like 'Beatles, The'.
@@ -53,13 +58,6 @@ class Engage < ApplicationRecord
 
   # for simple_form; meant to be String
   attr_accessor :artist_name
-
-  # Displays (the original) Translation information, too, for Music/Artist/EngageHow.
-  #
-  # @return [String]
-  def inspect
-    add_trans_info(inspect_orig, %w(music artist engage_how)) # defined in ModuleCommon
-  end
 
   # Returns the potentially unsaved version of "unknown"
   def self.find_or_initialize_unknown
