@@ -54,7 +54,10 @@ module Seeds::ChannelOwners
   #
   # @return [Integer] Number of created/updated entries
   def load_seeds
-    _load_seeds_core(%i(themselves note))  # defined in seeds_common.rb, using RECORD_CLASS
+    proc_b4validate = Proc.new{ |model|
+      model.set_unsaved_translations_from_artist if model.themselves
+    }
+    _load_seeds_core(%i(themselves artist note), proc_b4validate: proc_b4validate)  # defined in seeds_common.rb, using RECORD_CLASS
   end
 
 end  # module Seeds::ChannelOwners

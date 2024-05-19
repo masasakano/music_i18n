@@ -68,8 +68,9 @@ module Seeds
     # @param model [ActiveRecord]
     # @param seed1 [Hash] A single Seed hash (see above)
     # @param attrs: [Array<Symbol, String>] Attributes to setup (or update if blank); e.g., %i(weight note)
+    # @param proc_b4validate: [Proc] if given, this is run before validation with the argument of model given after model attributes are set.
     # @return [Integer] 1 if updated, else 0.
-    def model_save(model, seed1, attrs: [])
+    def model_save(model, seed1, attrs: [], proc_b4validate: nil)
       USER_IDS[:sysadmin] ||= ((sysadmin=(User.roots.first rescue nil)) ? sysadmin.id : nil)  # rescue is to play safe in case RoleCategory.root_category returns nil.
 
       # To play safe; this routine should not be called if model is not a new record.
@@ -95,6 +96,8 @@ module Seeds
         model.send(metho_w, val)
       end
   
+      proc_b4validate.call(model) if proc_b4validate.respond_to?(:call)
+
       do_validate = true
       if !model.valid?
         hserr = model.errors.to_hash
@@ -141,7 +144,7 @@ module Seeds
       tras = model.best_translations
       %i(en ja fr).each do |lcode|
         next if !seed1.key?(lcode)
-        next if tras.key?(lcode)  # Translation of the language for PlayRole already defined?. If so, skip.
+        next if tras.key?(lcode)  # Translation of the language for Model already defined?. If so, skip.
   
         is_orig = (orig_langcode ? (orig_langcode.to_s ==  lcode.to_s) : nil)
         weight = ((klass.const_defined?(:UNKNOWN_TITLES) && seed1[lcode] == klass::UNKNOWN_TITLES[lcode.to_s]) ? 0 : DEF_TRANSLATION_WEIGHT) # Translations for the uncategorized/unknown have weight=0 (i.e., will be never modified).
@@ -179,10 +182,11 @@ module Seeds
     # @param attrs [Array<Symbol>] Array of attributes for the main model to load.
     # @param klass: [Class, NilClass] (Optional) Model class. If not specified, constant RECORD_CLASS is tried and then it is guessed from the Module name.
     # @param find_by: [Symbol, String] (Optional) If given, this attribute is used to find the existing corresponding record.
+    # @param proc_b4validate: [Proc] if given, this is run before validation with the argument of model given after model attributes are set.
     # @return [Integer] Number of created/updated entries
     # @yield [Hash, Symbol] (Optional) Hash (==SEEDS[:key]) followed by the :key, is given.  Can be ignored.
     # @yieldreturn [ApplicationRecord] The matching (or new) model or nil
-    def _load_seeds_core(attrs, klass: nil, find_by: nil)
+    def _load_seeds_core(attrs, klass: nil, find_by: nil, proc_b4validate: nil)
       self::MODELS ||= {}  # The caller may want to define it before calling this.
       klass ||= ((k=:RECORD_CLASS; self.const_defined?(k) && self.const_get(k)) || self.name.split("::")[-1].constantize)  # ActiveRecord Class (ApplicationRecord)
       n_changed = 0
@@ -203,7 +207,7 @@ module Seeds
         model ||= klass.new
 
         if model.new_record?
-          n_changed += model_save(model, ehs, attrs: attrs)
+          n_changed += model_save(model, ehs, attrs: attrs, proc_b4validate: proc_b4validate)
           model.reload
         end
         self::MODELS[key] =  model

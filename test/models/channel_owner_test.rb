@@ -106,6 +106,18 @@ class ChannelOwnerTest < ActiveSupport::TestCase
     assert_equal chan2.title(langcode: :en), art.title(langcode: :en)
   end
 
+  test "update and themselves" do
+    art = artists(:artist_proclaimers)
+    chan1 = ChannelOwner.create_basic!(title: (tit1="Another-one"), langcode: "en", is_orig: true, themselves: false, note: "chan1")
+    assert_equal "chan1", chan1.note
+    assert_equal tit1,    chan1.title
+    chan1.update!(langcode: true, artist: art)
+    chan1.reload
+    assert_equal "chan1",   chan1.note, 'sanity check'
+    refute_equal tit1,      chan1.title
+    assert_equal art.title, chan1.title
+  end
+
   test "associations" do
     assert_nothing_raised{ ChannelOwner.first.channels }
 
