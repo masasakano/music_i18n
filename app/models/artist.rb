@@ -518,7 +518,7 @@ class << Artist
 
   # Wrapper of {BaseWithTranslation.create_basic!}
   def create_basic!(*args, sex: nil, sex_id: nil, **kwds, &blok)
-    sex_id ||= (sex ? sex.id : Sex.create_basic!.id)
+    sex_id ||= (sex ? sex.id : (Sex.unknown || Sex.create_basic!).id)
     create_basic_bwt!(*args, sex_id: sex_id, **kwds, &blok)
   end
 

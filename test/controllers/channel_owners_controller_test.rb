@@ -178,7 +178,8 @@ end
     #assert_equal @editor_ja, @channel_owner.create_user, "sanity check. user=#{@channel_owner.inspect}"
 
     newnote1 = "new-note"
-    update_params = { channel_owner: { note: newnote1 } }
+    artist1 = artists(:artist_proclaimers)
+    update_params = { channel_owner: { themselves: "1", artist_id: artist1.id.to_s, note: newnote1 } }
 
     sign_in @moderator_harami  # do  # if I put do, the next line is not executed for some reason! (maybe because another sign_in exists below?)
       get edit_channel_owner_url(@channel_owner)
@@ -199,7 +200,7 @@ end
   
       @channel_owner2.update!(create_user: @editor_harami)
       patch channel_owner_url(@channel_owner2), params: update_params
-      assert_response :redirect, "Harami-moderator cannot update an entry created by anyone, including their subordinates, but themselves, but..."
+      assert_response :redirect, "Harami-editor cannot update an entry created by anyone, including their subordinates, but themselves, but..."
       refute_equal newnote1, @channel_owner2.reload.note
   
       @channel_owner2.update!(create_user: @moderator_harami)

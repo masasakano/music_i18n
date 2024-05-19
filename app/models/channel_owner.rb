@@ -56,7 +56,7 @@ class ChannelOwner < BaseWithTranslation
   validate :sole_themselves_per_artist?
 
   # If themselves==true, a valid unsaved_translations must be supplied.
-  validate :presence_of_unsaved_translations, if: [:themselves, :artist_id]
+  validate :presence_of_unsaved_translations, if: :themselves  # if: [:themselves, :artist_id]  # not works?
 
   before_create     :set_create_user       # This always sets non-nil weight. defined in /app/models/concerns/module_whodunnit.rb
   before_save       :set_update_user       # defined in /app/models/concerns/module_whodunnit.rb
@@ -99,11 +99,41 @@ class ChannelOwner < BaseWithTranslation
   end
 
   # For a new record, set (actually replace) {#unsaved_translations} based on Artist
+  #
   def set_unsaved_translations_from_artist
     raise if !new_record?
     return unsaved_translations if !artist
 
     unsaved_translations.replace( initialize_from_artist_translations )
+  end
+
+  # For update, this method synchronizes translations with those of the artist
+  #
+  # This method actually updates or creates a Translation.
+  #
+  # *WARNING*: The caller should enclose the call to this method with transaction for update.
+  #
+  def synchronize_translations_to_artist
+    raise if new_record?
+    return if !artist
+
+    valid_tras = []
+    artist.best_translations.each_pair do |lc_art, tra_art|
+      if (tra=best_translations[lc_art])
+        tra.update!(tra_art.hs_key_attributes)
+      else
+        translations << (tra=Translation.new(tra_art.hs_key_attributes))
+        tra.reload
+      end
+      valid_tras << tra
+    end
+
+    # Now destroy surplus Translations if there is any.
+    # no need of reload-ing here
+    translations.each do |tra|
+      tra.destroy! if !valid_tras.include?(tra)
+    end
+    translations.reset
   end
 
   ###################
@@ -112,8 +142,8 @@ class ChannelOwner < BaseWithTranslation
   #
   # No two ChannelOwner-s with themselves==true can have a common parent Artist
   def sole_themselves_per_artist?
-    if themselves && artist && self.class.where(artist_id: artist.id, themselves: true).exists?
-      errors.add :themselves, " cannot have themselves==true with this Artist because another ChannelOwner is alreay defined for them."
+    if themselves && artist && self.class.where(artist_id: artist.id, themselves: true).where.not(id: id).exists?
+      errors.add :themselves, "cannot have themselves==true with this Artist because another ChannelOwner is alreay defined for them."
     end
   end
   private :sole_themselves_per_artist?
@@ -123,23 +153,25 @@ class ChannelOwner < BaseWithTranslation
   # If themselves==true, a valid unsaved_translations, which are basically
   # identical to those of the parent Artist for all the languages, must be supplied.
   def presence_of_unsaved_translations
+    return if !artist
+    msg_trans = (new_record? ? "unsaved_" : "")+"translations"
     all_lcodes = []
     artist.best_translations.each_pair do |langcode, tra|
       all_lcodes << langcode
-      cands = unsaved_translations.find_all{|et| langcode == et.langcode}
+      cands = (new_record? ? unsaved_translations : translations).find_all{|et| langcode == et.langcode}
       if 1 != cands.size
-        errors.add :base, " must have exact unsaved_translations corresponding to the parent Artist but has zero (or multiple) Translations for language #{langcode.inspect}"
+        errors.add :base, "must have exact #{msg_trans} corresponding to the parent Artist but has zero (or multiple) Translations for language #{langcode.inspect}"
         return
       end
 
       if !Translation.identical_contents?(tra, cands.first)
-        errors.add :base, " has a different unsaved_translations from the parent Artist's counterpart for language #{langcode.inspect}"
+        errors.add :base, "has a different #{msg_trans} from the parent Artist's counterpart for language #{langcode.inspect}"
         return
       end
     end
 
-    if all_lcodes.sort.map(&:to_s) != unsaved_translations.map{|i| i.langcode}.sort.map(&:to_s)
-      errors.add :base, " has the unsaved_translations with a langcode absent in the parent Artist's counterparts"
+    if all_lcodes.sort.map(&:to_s) != (new_record? ? unsaved_translations : translations).map{|i| i.langcode}.sort.map(&:to_s)
+      errors.add :base, "has the #{msg_trans} with a langcode absent in the parent Artist's counterparts"
       return
     end
   end

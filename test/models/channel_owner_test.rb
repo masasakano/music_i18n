@@ -108,14 +108,37 @@ class ChannelOwnerTest < ActiveSupport::TestCase
 
   test "update and themselves" do
     art = artists(:artist_proclaimers)
+    art.translations << Translation.new(title: "2nd-t", langcode: "ja", is_orig: false, weight: 99999)
+    art.reload
+
     chan1 = ChannelOwner.create_basic!(title: (tit1="Another-one"), langcode: "en", is_orig: true, themselves: false, note: "chan1")
     assert_equal "chan1", chan1.note
     assert_equal tit1,    chan1.title
-    chan1.update!(langcode: true, artist: art)
+    chan1.translations << Translation.new(title: "en-chan2", langcode: "en", is_orig: false, weight: 99999)
+    chan1.translations << Translation.new(title: "en-chan3", langcode: "en", is_orig: false, weight: 99999)
+    chan1.translations << Translation.new(title: "fr-chan1", langcode: "fr", is_orig: false, weight: 99999)
     chan1.reload
+
+    chan1.themselves = true
+    chan1.artist = art
+    chan1.valid?
+    refute chan1.valid?, "#{chan1.errors.inspect}" # must have exact unsaved_translations corresponding to the parent Artist but has zero (or multiple) Translations for language "en"
+
+    chan1.synchronize_translations_to_artist  # in reality this should be enclosed with a transaction
+    assert_equal art,       chan1.artist
+    chan1.valid?
+    assert chan1.valid?, "#{chan1.errors.inspect}"
+    assert_equal art,       chan1.artist
+    chan1.save!
+
+    chan1.reload
+    art.reload
     assert_equal "chan1",   chan1.note, 'sanity check'
+    assert_equal art,       chan1.artist
     refute_equal tit1,      chan1.title
     assert_equal art.title, chan1.title
+    assert_equal art.translations.size, chan1.translations.size
+    assert_equal %w(en ja), chan1.best_translations.keys.sort
   end
 
   test "associations" do

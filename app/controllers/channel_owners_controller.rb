@@ -8,7 +8,7 @@ class ChannelOwnersController < ApplicationController
   PARAMS_KEY_AC = BaseMerges::BaseWithIdsController.formid_autocomplete_with_id(Artist).to_sym
 
   # Symbol of the main parameters in the Form (except "place_id"), which exist in DB
-  MAIN_FORM_KEYS = %i(themselves note)
+  MAIN_FORM_KEYS = %i(themselves artist_id note)
 
   # Permitted main parameters for params(), used for update and create
   PARAMS_MAIN_KEYS = MAIN_FORM_KEYS + [PARAMS_KEY_AC] # == :artist_with_id
@@ -37,10 +37,12 @@ class ChannelOwnersController < ApplicationController
     @channel_owner = ChannelOwner.new(@hsmain)
     authorize! __method__, @channel_owner
 
-    artist = _get_equivalent_artist
+    artist_in = _get_equivalent_artist
 
-    if artist
-      @channel_owner.unsaved_translations = _unsaved_translations_equivalent_artist(artist)
+    if artist_in
+      @channel_owner.artist = artist_in
+      @channel_owner.set_unsaved_translations_from_artist
+      #@channel_owner.unsaved_translations = _unsaved_translations_equivalent_artist(artist_in)
     else
       # Even if @channel_owner.errors.any?, it is better to set unsaved_translation so the input strings in the forms are preserved.
       add_unsaved_trans_to_model(@channel_owner, @hstra) # defined in application_controller.rb
@@ -48,27 +50,34 @@ class ChannelOwnersController < ApplicationController
     result = def_respond_to_format(@channel_owner)       # defined in application_controller.rb
 
     # Adjusts each Translation's update_user and updated_at if there is an equivalent user.
-    if result && artist
-      _update_user_for_equivalent_artist(artist)
+    if result && @channel_owner.artist
+      _update_user_for_equivalent_artist(@channel_owner.artist)
     end
   end
 
   # PATCH/PUT /channel_owners/1 or /channel_owners/1.json
   def update
-    artist = _get_equivalent_artist
+    artist_in = _get_equivalent_artist
+    @channel_owner.artist = artist_in if artist_in
 
     result = def_respond_to_format(@channel_owner, :updated){
-      @channel_owner.update(@hsmain)
+      #@channel_owner.update(@hsmain)
+      @hsmain.each_pair do |ek, ev|
+        @channel_owner.send(ek.to_s+"=", ev)
+      end
+      @channel_owner.synchronize_translations_to_artist
+      @channel_owner.save
     } # defined in application_controller.rb
 
     # Assign the equivalent user if there is any and adjusts each Translation's update_user and updated_at
-    if result && artist
-      @channel_owner.translations.destroy_all
-      _unsaved_translations_equivalent_artist(artist).each do |trans|
-        @channel_owner.translations << trans
-      end
-      @channel_owner.reload
-      _update_user_for_equivalent_artist(artist)
+    if result && @channel_owner.artist
+      #@channel_owner.translations.destroy_all
+      #_unsaved_translations_equivalent_artist(artist).each do |trans|
+      #  @channel_owner.translations << trans
+      #end
+      #@channel_owner.reload
+      @channel_owner.translations.reset
+      _update_user_for_equivalent_artist(@channel_owner.artist)
     end
   end
 
