@@ -193,8 +193,9 @@ class Ability
       cannot :manage_prefecture_jp, Prefecture  # cannot edit Country in Prefecture to Japan
       cannot(:ud, [Prefecture]){|i| i.country == Country['JPN']}
       cannot(:ud, [BaseWithTranslation]){|i| i.respond_to?(:unknown?) && i.unknown?} # Artist, Music, Place, Genre, EngageHow, Instrument
-      cannot(:ud, [Translation]){|trans| (!(base=trans.translatable) && trans.create_user_id != user.id && trans.update_user_id != user.id) || (base && base.respond_to?(:unknown?) && base.unknown?)} # non-admin cannot edit Translation for +X.unknown+; this is necessary because anything with is_orig=true is usually editable by Translators.
-      #cannot(:ud, Place){|i| i.country == Country['JPN']}
+      cannot(:ud, [Translation]){|trans| (!(base=trans.translatable) && trans.create_user_id != user.id && trans.update_user_id != user.id) ||
+                                           (base && base.respond_to?(:unknown?) && base.unknown?)} # non-admin cannot edit Translation for +X.unknown+; this is necessary because anything with is_orig=true is usually editable by Translators.
+      cannot(:ud, [Translation]){|trans| (base=trans.translatable) && base.respond_to?(:themselves) && base.themselves } # (except for an admin) Cannot edit Translation of ChannelOwner#themselves==true because its Tranlation-s are equivalent to sym-link to the ChannelOwner#artist Translation-s.
     end
   end
 end

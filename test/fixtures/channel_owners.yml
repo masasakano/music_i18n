@@ -7,17 +7,20 @@
 #  themselves(true if identical to an Artist) :boolean          default(FALSE)
 #  created_at                                 :datetime         not null
 #  updated_at                                 :datetime         not null
+#  artist_id                                  :bigint
 #  create_user_id                             :bigint
 #  update_user_id                             :bigint
 #
 # Indexes
 #
+#  index_channel_owners_on_artist_id       (artist_id)
 #  index_channel_owners_on_create_user_id  (create_user_id)
 #  index_channel_owners_on_themselves      (themselves)
 #  index_channel_owners_on_update_user_id  (update_user_id)
 #
 # Foreign Keys
 #
+#  fk_rails_...  (artist_id => artists.id)
 #  fk_rails_...  (create_user_id => users.id) ON DELETE => nullify
 #  fk_rails_...  (update_user_id => users.id) ON DELETE => nullify
 #
@@ -25,6 +28,7 @@
 <% Seeds::ChannelOwners::SEED_DATA.each_pair do |ekey, edata| %>
 channel_owner_<%= ekey %>:
   themselves: <%= edata[:themselves] %>
+  artist: <%= edata[:themselves] ? "artist_"+ekey.to_s.sub(/chan$/,"") : "" %>
   create_user: user_syshelper
   update_user: user_syshelper
   note: ChannelOwner<%= ekey.to_s.camelize %>
@@ -32,6 +36,7 @@ channel_owner_<%= ekey %>:
 
 channel_owner_saki_kubota:
   themselves: true
+  artist: artist_saki_kubota
   create_user: user_editor_general_ja
   update_user: user_editor_general_ja
   note: ChannelOwnerSakiKubota

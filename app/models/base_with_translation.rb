@@ -3998,6 +3998,7 @@ class << BaseWithTranslation
       model
     else
       model.with_translation(**_prepare_hash_basic_translation(translation))
+      model.reload
     end
   end
 

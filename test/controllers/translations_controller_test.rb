@@ -195,6 +195,16 @@ if false
     sign_in(@general_moderator)
     get edit_translation_url(@tra_mu_en_orig)
     assert_response :success, 'original-EN Music title should be editable by evey general-editor, but?'
+
+    play_role_unk = PlayRole.unknown?
+    play_role_unk.update!(create_user_id: @general_moderator, update_user_id: @general_moderator)
+    get edit_translation_url(play_role_unk)
+    assert_response :unprocessable_entity, 'Should fail due to unknown PlayRole'
+    sign_out(@general_moderator)
+
+    sign_in @admin
+    get edit_translation_url(play_role_unk)
+    assert_response :success
   end
 
   test "should fail to update translation" do

@@ -1282,33 +1282,33 @@ artist3_ja:
   translatable: artist3
   translatable_type: Artist
   langcode: ja
-  title: ハラミちゃん
+  title: あかりちゃん
   alt_title: 
-  ruby: ハラミチャン
+  ruby: アカリチャン
   alt_ruby:
-  romaji: haramichan
+  romaji: akarichan
   alt_romaji: 
   is_orig: true
   weight: 0
   create_user_id: 
   update_user_id: 
-  note: Artist3JaHarami
+  note: Artist3JaAkari
 
 artist3_en:
   translatable: artist3
   translatable_type: Artist
   langcode: en
-  title: HARAMIchan
-  alt_title: Harami-chan
+  title: AKARIchan
+  alt_title: Akari-chan
   ruby: 
   alt_ruby:
   romaji: 
-  alt_romaji: harami chan
+  alt_romaji: akari chan
   is_orig: false
   weight: 10
   create_user_id: 
   update_user_id: 
-  note: Artist3EnHarami
+  note: Artist3EnAkari
 
 artist_rcsuccession_ja:
   translatable: artist_rcsuccession
@@ -1330,11 +1330,11 @@ artist_harami_ja:
   translatable: artist_harami (Artist)
   langcode: ja
   title: ハラミちゃん
-  alt_title: 
+  alt_title: ハラミ
   ruby: ハラミチャン
-  alt_ruby: 
+  alt_ruby: ハラミ
   romaji: haramichan
-  alt_romaji: 
+  alt_romaji: harami
   is_orig: true
   weight: 0
   create_user: user_moderator_translation
@@ -1355,6 +1355,28 @@ artist_harami_en:
   create_user: user_moderator_translation
   update_user: user_moderator_translation
   note: ArtistHaramiEn
+
+artist_kohmi_ja:
+  translatable: artist_kohmi (Artist)
+  langcode: ja
+  title: 広瀬香美
+  ruby: ヒロセコウミ
+  romaji: HIROSE Kohmi
+  is_orig: true
+  weight: 0
+  create_user: user_moderator_translation
+  update_user: user_moderator_translation
+  note: ArtistKohmiJa
+
+artist_kohmi_en:
+  translatable: artist_kohmi (Artist)
+  langcode: en
+  title: Kohmi Hirose
+  is_orig: false
+  weight: 0
+  create_user: user_moderator_translation
+  update_user: user_moderator_translation
+  note: ArtistKohmiEn
 
 artist_ai:
   translatable: artist_ai
@@ -2352,8 +2374,10 @@ channel_type_dictionary_ja:
   update_user_id: user_moderator_general_ja
   note: ChannelTypeOricon
 
+# skip those with themselves=true as their Translations have to be exact.
 <% klass_str = "ChannelOwner" %>
 <% (Seeds.const_get(klass_str+"s"))::SEED_DATA.each_pair do |ekey, edata| %>
+ <% next if edata[:themselves] %>
  <% %i(en ja fr).each do |langcode| %>
    <% next if edata[langcode].blank? %>
 <%= klass_str.underscore %>_<%= ekey %>_<%= langcode %>:
@@ -2368,6 +2392,58 @@ channel_type_dictionary_ja:
  <% end %>
 <% end %>
 
+channel_owner_haramichan_ja:
+  translatable: channel_owner_haramichan (ChannelOwner)
+  langcode: ja
+  title: ハラミちゃん
+  alt_title: ハラミ
+  ruby: ハラミチャン
+  alt_ruby: ハラミ
+  romaji: haramichan
+  alt_romaji: harami
+  is_orig: true
+  weight: 0
+  create_user: user_moderator_translation
+  update_user: user_moderator_translation
+  note: ChannelOwnerHaramiJa
+
+channel_owner_haramichan_en:
+  translatable: channel_owner_haramichan (ChannelOwner)
+  langcode: en
+  title: HARAMIchan
+  alt_title: HARAMI-chan
+  ruby: ハラミチャン
+  alt_ruby: ハラミチャン
+  romaji: haramichan
+  alt_romaji:  haramichan
+  is_orig: false
+  weight: 0
+  create_user: user_moderator_translation
+  update_user: user_moderator_translation
+  note: ChannelOwnerHaramiEn
+
+channel_owner_kohmi_ja:
+  translatable: channel_owner_kohmi (ChannelOwner)
+  langcode: ja
+  title: 広瀬香美
+  ruby: ヒロセコウミ
+  romaji: HIROSE Kohmi
+  is_orig: true
+  weight: 0
+  create_user: user_moderator_translation
+  update_user: user_moderator_translation
+  note: ChannelOwnerKohmiJa
+
+channel_owner_kohmi_en:
+  translatable: channel_owner_kohmi (ChannelOwner)
+  langcode: en
+  title: Kohmi Hirose
+  is_orig: false
+  weight: 0
+  create_user: user_moderator_translation
+  update_user: user_moderator_translation
+  note: ChannelOwnerKohmiEn
+
 channel_owner_saki_kubota_ja:
   translatable: channel_owner_saki_kubota (ChannelOwner)
   langcode: ja
@@ -2378,6 +2454,26 @@ channel_owner_saki_kubota_ja:
   update_user_id: user_translator
   note: ChannelOwnerSakiKubotaJa
   # Identical to Artist: artist_saki_kubota
+
+channel_owner_one_en:
+  translatable: one (ChannelOwner)
+  langcode: en
+  title: ChannelOwnerOne
+  is_orig: true
+  weight: 0
+  create_user_id: user_translator
+  update_user_id: user_translator
+  note: ChannelOwnerOne
+
+channel_owner_two_en:
+  translatable: two (ChannelOwner)
+  langcode: en
+  title: ChannelOwnerTwo
+  is_orig: true
+  weight: 0
+  create_user_id: user_translator
+  update_user_id: user_translator
+  note: ChannelOwnerTwo
 
 <% klass_str = "Channel" %>
 <% (Seeds.const_get(klass_str+"s"))::SEED_DATA.each_pair do |ekey, edata| %>

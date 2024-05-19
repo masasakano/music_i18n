@@ -103,7 +103,8 @@ class SeedsSeedsTest < ActiveSupport::TestCase
     assert_operator 5, :<, User.count, "User.all="+User.all.inspect
     assert_operator 5, :<, Role.count, "Role.all="+Role.all.inspect
     assert_operator 5, :<, (ncount = Country.count)
-    assert_operator ncount, :<, Prefecture.count
+    assert_operator ncount, :<, (mcount = Prefecture.count)
+    assert_operator mcount, :<, Place.count
     assert_operator 5, :<, EngageHow.count
     assert_operator 5, :<, Genre.count
     assert_operator 5, :<, EventGroup.count
@@ -113,6 +114,10 @@ class SeedsSeedsTest < ActiveSupport::TestCase
     assert chorus.note.present? # sanity check with the fixture (based on SEEDS in /db/seeds/play_role.rb )
     chorus.update!(note: nil)
     refute chorus.note.present? # sanity check
+
+    assert(defar = Artist.default(:HaramiVid))
+    assert_equal defar.title(langcode: :en), ChannelOwner.select_regex(:title, /ハラミちゃん/, langcode: 'ja', sql_regexp: true).distinct.first.title(langcode: :en)
+    assert_equal defar, ChannelOwner.select_regex(:title, /ハラミちゃん/, langcode: 'ja', sql_regexp: true).distinct.first.artist
 
     # run seeding (2nd time)
     def_title = [ChannelOwner::UNKNOWN_TITLES[:ja]].flatten.first

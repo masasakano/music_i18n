@@ -58,6 +58,7 @@ class Translation < ApplicationRecord
   before_create     :set_create_user       # This always sets non-nil weight. defined in /app/models/concerns/module_whodunnit.rb
   before_save       :set_update_user       # defined in /app/models/concerns/module_whodunnit.rb
   after_save        :reset_backup_6params  # to reset the temporary instance variable
+  after_save        :call_after_save_translatable_callback  # to call after_save_translatable_callback in translatable if present
 
   #after_create :set_create_user
   after_create :call_after_first_translation_hook
@@ -81,6 +82,8 @@ class Translation < ApplicationRecord
     # Translation-specific custom validation
     #
     # This calls a callback: +validate_translation_callback+
+    # which may (or not) be defined in the parent (i.e., translatable) class
+    # and returns an Array of (String) error messages if validation fails.
     #
     # title and alt_title should be unique in general within a Parent class and a language
     # in many cases.  So this validates the situation.
@@ -596,7 +599,6 @@ class Translation < ApplicationRecord
   def valid_main_params?(**kwd)
     self.class.send(__method__, slice(*(%i(langcode title alt_title))), **kwd)
   end
-
 
   # Find a {Translation} based on a String
   #
@@ -1666,6 +1668,32 @@ class Translation < ApplicationRecord
     }
   end
 
+  # Returns true if the main 9 contents of two Translations are identical
+  #
+  # regardless of their translatable_type
+  #
+  # This calls {#hs_key_attributes}
+  #
+  # @param tra1 [Translation]
+  # @param tra2 [Translation]
+  # @param additional_cols: [Array<Symbol, String>] Additional column names if any
+  def self.identical_contents?(tra1, tra2, additional_cols: [])
+    tra1.hs_key_attributes.each_pair do |ek, ev|
+      return false if ev != tra2.send(ek)
+    end
+    true
+  end
+
+  # Returns a Hash of the 9 (or more) key column values of self.
+  #
+  # @param *additional_cols [Array<Symbol, String>] Additional column names if any
+  # @return [Hash<Symbol, Object>] 
+  def hs_key_attributes(*additional_cols)
+    (%i(title ruby romaji alt_title alt_ruby alt_romaji langcode is_orig weight)+additional_cols).map{|eattr|
+      [eattr, send(eattr)]
+    }.to_h
+  end
+
   # True if belongs_to a same parent
   def same_parent?(other)
     self.translatable == other.translatable
@@ -1904,6 +1932,13 @@ class Translation < ApplicationRecord
   # Callback after_save
   def reset_backup_6params
     @backup_6params = nil
+  end
+
+  # Callback after_save
+  def call_after_save_translatable_callback  # to call after_save_translatable_callback in translatable if present
+    if translatable && translatable.respond_to?(:after_save_translatable_callback)
+      translatable.after_save_translatable_callback(self)
+    end
   end
 
   # Callback after_validation

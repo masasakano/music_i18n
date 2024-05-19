@@ -562,7 +562,7 @@ artrans = [
     'fr' => {title: Artist::UnknownArtist['fr'], weight: 0, }}},
   { note: nil, birth_day: 21, birth_month: 1,
     wiki_ja: 'w.wiki/3JVi', sex: female, place: Place.unknown(country: japan), translations:
-   {'ja' => {title: 'ハラミちゃん', ruby: 'ハラミチャン', romaji: 'Haramichan', weight: 0, is_orig: true},
+   {'ja' => {title: 'ハラミちゃん', ruby: 'ハラミチャン', romaji: 'Haramichan', alt_title: 'ハラミ', alt_ruby: 'ハラミ', alt_romaji: 'Harami', weight: 0, is_orig: true},
     'en' => {title: 'HARAMIchan', alt_title: 'Harami-chan', weight: 10, is_orig: false, }}},
   { note: nil, birth_day: 12, birth_month: 4, birth_year: 1966,
     wiki_ja: 'w.wiki/3cyo', wiki_en: 'Kohmi_Hirose', sex: female, place: Place.unknown(country: japan), translations:

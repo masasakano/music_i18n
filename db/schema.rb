@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_05_06_123044) do
+ActiveRecord::Schema[7.0].define(version: 2024_05_18_161431) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -87,6 +87,8 @@ ActiveRecord::Schema[7.0].define(version: 2024_05_06_123044) do
     t.text "note"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "artist_id"
+    t.index ["artist_id"], name: "index_channel_owners_on_artist_id"
     t.index ["create_user_id"], name: "index_channel_owners_on_create_user_id"
     t.index ["themselves"], name: "index_channel_owners_on_themselves"
     t.index ["update_user_id"], name: "index_channel_owners_on_update_user_id"
@@ -603,6 +605,7 @@ ActiveRecord::Schema[7.0].define(version: 2024_05_06_123044) do
   add_foreign_key "artist_music_plays", "play_roles", on_delete: :cascade
   add_foreign_key "artists", "places"
   add_foreign_key "artists", "sexes"
+  add_foreign_key "channel_owners", "artists"
   add_foreign_key "channel_owners", "users", column: "create_user_id", on_delete: :nullify
   add_foreign_key "channel_owners", "users", column: "update_user_id", on_delete: :nullify
   add_foreign_key "channel_platforms", "users", column: "create_user_id", on_delete: :nullify

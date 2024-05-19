@@ -89,6 +89,14 @@ artist_harami:
   birth_day: 21
   note: Artist-HARAMIchan
 
+artist_kohmi:
+  sex_id: 2
+  place: unknown_place_unknown_prefecture_japan
+  birth_year: 1966
+  birth_month: 4
+  birth_day: 12
+  note: Artist-KohmiHirose
+
 artist_ai:
   sex_id: 9
   place: unknown_place_unknown_prefecture_world

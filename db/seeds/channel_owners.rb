@@ -25,10 +25,11 @@ module Seeds::ChannelOwners
       #regex: Proc.new{RECORD_CLASS.unknown}  # to check potential duplicates for ChannelOwners
     },
     haramichan: {
-      ja: 'ハラミちゃん',
+      ja: ['ハラミちゃん', 'ハラミ'],
       en: ['HARAMIchan', 'Harami-chan'],
       orig_langcode: 'ja',
       themselves: true,
+      artist: Proc.new{Artist.default(:HaramiVid)},  # Artist and its Translations must be defined before this is executed.
       note: nil,
       regex: /^(ハラミ|harami(chan)?\b)/i,
     },
@@ -37,8 +38,9 @@ module Seeds::ChannelOwners
       en: 'Kohmi Hirose',
       orig_langcode: 'ja',
       themselves: true,
+      regex: (rege=(/^広瀬\s*香美/i)),
+      artist: Proc.new{Artist.select_regex(:title, rege, langcode: 'ja', sql_regexp: true).distinct.first},
       note: nil,
-      regex: /^広瀬\s*香美/i,
     },
   }.with_indifferent_access  # SEED_DATA
   SEED_DATA.each_value{|eh| eh.with_indifferent_access}

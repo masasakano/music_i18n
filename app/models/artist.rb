@@ -27,6 +27,21 @@
 #  fk_rails_...  (sex_id => sexes.id)
 #
 class Artist < BaseWithTranslation
+  ### NOTE
+  # To destroy Artist you may do something like this:
+  #
+  #  if (chow=art1.channel_owner)
+  #    if chow && chow.channels.exists?
+  #      chow.channels.each do |ea_ch|
+  #        ea_ch.harami_vids.destroy_all if ea_ch.harami_vids.exists?
+  #        ea_ch.destroy!
+  #      end
+  #    end
+  #    chow.reload.destroy
+  #    chow
+  #  end
+  #  art1.reload.destroy
+
   include ModuleUnknown
 
   # defines +self.class.primary+
@@ -62,6 +77,8 @@ class Artist < BaseWithTranslation
     has_many esym, -> {distinct}, through: :artist_music_plays
   end
   has_many :play_musics, -> {distinct}, through: :artist_music_plays, source: "music"
+
+  has_one :channel_owner, dependent: :restrict_with_exception  # dependent is a key; by default, optional: true 
 
   validates :birth_year, numericality: { allow_nil: true, greater_than: 0, message: "(%{value}) must be positive." }
   # ...or validates_numericality_of
@@ -308,6 +325,25 @@ class Artist < BaseWithTranslation
   end
   private :_raw_link_to_wikipedia_single
 
+  # Return a Hash to copy the values of the best (or given) Translation
+  #
+  # Either trans or langcode must be specified
+  # This is a wrapper of {Translation#hs_key_attributes}
+  #
+  # @param trans: [Translatio] if specified, langcode is ignored and this Translation is used as the template.
+  # @param langcode: [String, Symbol] if specified, {Artist#best_translations} for this langcode is used as the template.
+  # @param additional_cols: [Array<Symbol, String>] Additional column names if any
+  # @return [Hash<Symbol, Object>, NilClass] nil if there is no best_translation for the langcode
+  def self.hs_best_trans_params(trans: nil, langcode: nil, additional_cols: [])
+    if !trans
+      raise ArgumentError if langcode.blank?
+      trans = best_translations[langcode.to_s]
+      return nil if !trans
+    end
+
+    trans.hs_key_attributes(*additional_cols)
+  end
+
   # before_validation callback
   #
   # {Place} is forcibly added if not set, yet!
@@ -325,6 +361,40 @@ class Artist < BaseWithTranslation
     return if ar_titles.empty?
 
     self.sex = guess_sex(ar_titles)  # defined in ModuleCommon
+  end
+
+
+  # Callback called by Translation after_save callback/hook
+  #
+  # Basically, the best Translation for the langcode for an Artist
+  # has to be synchronized with the counterpart for a ChannelOwner
+  # if there is any.  This after_save callback for Translation does it.
+  #
+  # This method has to be public!
+  #
+  # @todo
+  #   callback after one of the best Translation-s is destroyed to destroy the counterpart of ChannelOwner
+  #
+  # @paran trans [Translation] which was just saved
+  def after_save_translatable_callback(trans)
+    return if !channel_owner
+    return if !channel_owner.themselves
+
+    reload
+    return if best_translations[trans.langcode] != trans  # nothing is done if the saved Translation is not the best one for the langcode.
+
+    tra_other = channel_owner.best_translations[trans.langcode]
+    if !tra_other
+      # No Translation for the langcode is defined in the corresponding ChannelOwner.  Create one, copying this Translation.
+      new_trans = trans.dup
+      new_trans.translatable = nil
+      channel_owner.translations << new_trans
+      return
+    end
+    
+    hsoverwrite = self.class.hs_best_trans_params(trans: trans, additional_cols: %i(update_user_id updated_at))
+    tra_other.update_columns(**hsoverwrite)  # Synchronize this translation with the one for ChannelOwner (skipping validations/callbacks)
+    # tra_other.update_columns( updated_at: trans.updated_at )
   end
 
   ##############################

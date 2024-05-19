@@ -251,8 +251,73 @@ class ArtistTest < ActiveSupport::TestCase
     assert_equal count_ev,   art1.event_items.count, 'distinct?'
 
     assert_difference("ArtistMusicPlay.count", -ArtistMusicPlay.where(artist: art1).count, "Test of dependent"){
-      art1.destroy
+      # must first destroy dependent ChannelOwner => Channel(s) => HaramiVid(s) before destroying Artist
+      if (chow=art1.channel_owner)
+        if chow && chow.channels.exists?
+          chow.channels.each do |ea_ch|
+            ea_ch.harami_vids.destroy_all if ea_ch.harami_vids.exists?
+            ea_ch.destroy!
+          end
+        end
+        chow.reload.destroy
+      end
+      art1.reload.destroy
     }
+  end
+
+  # @see  test "associations" in /test/models/channel_owner_test.rb
+  test "channel_owner association" do
+    art = artists(:artist_proclaimers)
+    chan1 = ChannelOwner.create_basic!(title: "dummy", langcode: "en", is_orig: false, themselves: true, artist: art, note: "chan1-dayo")
+
+    assert_equal chan1, art.channel_owner
+    assert_equal chan1.title(langcode: :en), art.title(langcode: :en)
+
+    # assert_raises(ActiveRecord::StatementInvalid){ art.delete }  # DB level
+    ## PostgreSQL server log example:
+    # ERROR:  update or delete on table "artists" violates foreign key constraint "fk_rails_8d25b890da" on table "channel_owners"
+    # DETAIL:  Key (id)=(458496872) is still referenced from table "channel_owners".
+    ## NOTE: Don't run the code above in testing, because this would mess up the subsequent statements!
+    # For example, you cannot do "chan1.destroy" anymore, presumably because Rails' cache consider
+    # "chan1.artist_id" is invalid, pointing to a non-existent "artists" table entry in the DB (which is actually not
+    # the case because the DB prevents the Artist from being deleted).
+
+    assert_raises(ActiveRecord::DeleteRestrictionError){ art.destroy! }  # Rails validation.
+
+    assert_difference('ChannelOwner.count', -1, "ChannelOwner=#{chan1.inspect}"){
+      chan1.destroy }
+    art.reload
+    assert_difference('Artist.count', -1){
+      art.destroy!  }
+  end
+
+  # @see  test "associations" in /test/models/channel_owner_test.rb
+  test "channel_owner translations" do
+    art = artists(:artist_proclaimers)
+    assert_equal 1, art.translations.where(langcode: "en").size, 'check fixtures'
+    art.translations << Translation.new(title: "second-tit", langcode: "en", is_orig: false, weight: 1000000)
+    art.reload
+    assert_equal 2, art.translations.where(langcode: "en").size, 'sanity check'
+
+    chan1 = ChannelOwner.create_basic!(title: "dummy", langcode: "en", is_orig: false, themselves: true, artist: art, note: "chan1-dayo")
+    # only 1 Translation should be imported.
+
+    assert_equal chan1, art.channel_owner, 'sanity check'
+    assert_equal chan1.title(langcode: :en), art.title(langcode: :en), 'sanity check'
+    assert_equal 1, chan1.translations.where(langcode: "en").size
+
+    ## Now update Translation of Artist, which should be propagated to ChannelOwner!
+    art_tra_en = art.best_translations["en"]
+    art_tra_en.update!(alt_title: (new_alt="NewAlt"), romaji: (new_rom="NewRom"), weight: (new_wei=12.3))
+    art.reload
+    assert_equal new_alt, art.alt_title(langcode: "en"), 'sanity check'
+    assert_equal new_wei, art.best_translations["en"].weight, 'sanity check'
+
+    chan1.reload
+    assert_equal 1, chan1.translations.where(langcode: "en").size
+    assert_equal new_alt, chan1.alt_title(langcode: "en")
+    assert_equal new_rom, chan1.romaji(langcode: "en")
+    assert_equal new_wei, chan1.best_translations["en"].weight
   end
 
   test "create_basic!" do
