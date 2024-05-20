@@ -1714,18 +1714,23 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal "en", tras[1].best_translation.langcode, 'Sanity check...'
       refute_equal hsmdl[:hvmas][0].music, hsmdl[:hvmas][1].music, 'Sanity check...'
       assert_equal hsmdl[:musics][1],      hsmdl[:hvmas][1].music, 'Sanity check...'
+      assert_equal hsmdl[:musics][0], hsmdl[:amps][0][0].music, 'Sanity check...'
 
     #  ActiveRecord::Base.transaction(requires_new: true) do
         genre_org = hsmdl[:musics][0].genre
         hspri = {default: :other, genre: :self, year: :other, note: :other}
+        hsret = nil
+      assert_difference('ArtistMusicPlay.count', -1){
         ## Run
         hsret = hsmdl[:musics][0].merge_other(hsmdl[:musics][1], priorities: hspri, save_destroy: true)
+      }
         new_mu = hsmdl[:musics][0].reload
 #puts "DEBUG(orig901): music-ID="+new_mu.id.to_s
 
         assert_equal 1, hsret[:destroyed].find_all{|i| Translation === i}.size
         assert_equal 1, hsret[:destroyed].find_all{|i| Music === i}.size
-        assert_equal 2, hsret[:destroyed].size, '1 Music and 1 Translation destroyed'
+        assert_equal 1, hsret[:destroyed].find_all{|i| ArtistMusicPlay === i}.size
+        assert_equal 3, hsret[:destroyed].size, '1 Music, 1 Translation, 1 ArtistMusicPlay destroyed, but: destroyed='+"#{hsret[:destroyed].inspect}"
         assert_equal 1, hsret[:trans][ :remained].size,     '1 Translation remains'
         assert_equal 2, hsret[:engage][:remained].size
         assert_equal 2, hsret[:harami_vid_music_assocs][ :remained].size
@@ -1839,7 +1844,11 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     ## Run (dryrun) - merging Artists
     hsret = nil
     #ActiveRecord::Base.transaction(requires_new: true) do
+   assert_no_difference('ArtistMusicPlay.count'){
+    assert_difference('Channel.count', -2){   # this ignores dryrun.
+     assert_difference('ChannelOwner.count', -1){
       hsret = hsmdl[:artists][0].merge_other(hsmdl[:artists][1], priorities: hspri, save_destroy: false)
+   }}}
 
       new_art = hsmdl[:artists][0] #.reload  # self not yet saved!
 #puts "DEBUG(orig-art901): artist-ID="+new_art.id.to_s
@@ -1876,7 +1885,10 @@ mdl.translations.first.translatable_id = EngageHow.second.id
 
       #### save! ####
 
+    assert_difference('ArtistMusicPlay.count', 0){  # because two Artists belong to different Musics
+     assert_difference('Artist.count', -1){
       new_art.merge_save_destroy(hsret[:other], hsret)
+    }}
       new_art.reload
 
       assert  hsret[:other].db_destroyed?
@@ -2052,9 +2064,18 @@ mdl.translations.first.translatable_id = EngageHow.second.id
 
       hsmdl[:ev_its][i] = eh.event_item
       hsmdl[:amps][i] ||= []
-      j = (i-1).abs
-      hsmdl[:amps][i] << hsmdl[:musics][i].artist_music_plays << ArtistMusicPlay.new(artist: hsmdl[:artists][i], event_item: hsmdl[:ev_its][i], play_role: PlayRole.default(:HaramiVid), instrument: Instrument.default(:HaramiVid), cover_ratio: 0.5+i*0.1) 
-      hsmdl[:amps][i] << hsmdl[:musics][i].artist_music_plays << ArtistMusicPlay.new(artist: hsmdl[:artists][j], event_item: hsmdl[:ev_its][j], play_role: PlayRole.unknown, instrument: Instrument.unknown, cover_ratio: 0.2+j*0.1)
+    end
+
+    hsmdl[:h1129s].each_index do |i|
+      j = (i-1).abs  # to use j, this has to come after all other models are set.
+      hsmdl[:musics][i].artist_music_plays << ArtistMusicPlay.new(artist: hsmdl[:artists][i], event_item: hsmdl[:ev_its][i], play_role: PlayRole.default(:HaramiVid), instrument: Instrument.default(:HaramiVid), cover_ratio: 0.5+i*0.1)
+      hsmdl[:amps][i] << hsmdl[:musics][i].artist_music_plays.last
+      hsmdl[:musics][i].artist_music_plays << ArtistMusicPlay.new(artist: hsmdl[:artists][j], event_item: hsmdl[:ev_its][j], play_role: PlayRole.unknown, instrument: Instrument.unknown, cover_ratio: 0.2+j*0.1)
+      hsmdl[:amps][i] << hsmdl[:musics][i].artist_music_plays.last
+      hsmdl[:musics][i].artist_music_plays << ArtistMusicPlay.new(artist: hsmdl[:artists][j], event_item: hsmdl[:ev_its][j], play_role: PlayRole.unknown, instrument: instruments(:instrument_guitar), cover_ratio: 0.8+j*0.1) if i==1  # unique to i==1
+      hsmdl[:amps][i] << hsmdl[:musics][i].artist_music_plays.last  if i==1
+      hsmdl[:musics][i].artist_music_plays << ArtistMusicPlay.new(artist: artists(:artist_ai), event_item: hsmdl[:ev_its][0], play_role: PlayRole.unknown, instrument: instruments(:instrument_piano), cover_ratio: 0.05+j*0.1)
+      hsmdl[:amps][i] << hsmdl[:musics][i].artist_music_plays.last
 
       hsmdl[:ch_owners][i] = ChannelOwner.create_basic!(themselves: true, artist: hsmdl[:artists][i])
       hsmdl[:channels][i] ||= []

@@ -2995,16 +2995,19 @@ class BaseWithTranslation < ApplicationRecord
       end
       hsmodel[:harami_vid_music_assocs] = 
         _merge_harami_vid_music_assocs(other, priority: _priority2pass(priorities, :harami_vid_music_assocs))
-      hsmodel[:note]   = _merge_note(  other, priority: _priority2pass(priorities, :note))
-#hsmodel[:artist_music_play] = _merge_artist_music_plays(other, priority: _priority2pass(priorities, :engages))
+      hsmodel[:artist_music_play] = _merge_artist_music_plays(other, priority: _priority2pass(priorities, :artist_music_play))
       hs = _merge_channel_owners(other, priority: _priority2pass(priorities, :channel_owner))  # nil if for Music
       hsmodel.merge!(hs) if hs  # keys of :channel_owner, :channel, and maybe :harami_vid
+
+      hsmodel[:note]   = _merge_note(  other, priority: _priority2pass(priorities, :note))
       hsmodel[:created_at] = _merge_created_at(other)
 
       hsmodel[:harami1129_review] = _update_harami1129_review_after_merge(hsmodel, user: user)
 
       hsmodel[:destroyed] ||= []
       hsmodel[:other] = other
+
+      other.artist_music_plays.reset if other.respond_to? :artist_music_plays
       if save_destroy
         hsmodel = merge_save_destroy(other, hsmodel)
       end
@@ -3040,6 +3043,7 @@ class BaseWithTranslation < ApplicationRecord
   def merge_save_destroy(other, hsmodel)
     hsmodel[:channel_owner][:destroy].first.destroy! if hsmodel[:channel_owner] && hsmodel[:channel_owner][:destroy].present? && !hsmodel[:channel_owner][:destroy].first.destroyed?  # ChannelOwner must be destroyed first.
 
+    artist_music_plays.reset if respond_to? :artist_music_plays  # for some reason, this has to be placed here...
     self.save!
 
     # Channel, ChannelOwner
@@ -3065,10 +3069,12 @@ class BaseWithTranslation < ApplicationRecord
       hsmodel[:harami_vid_music_assocs][:destroy] = []  # reset
     end
 
-    # Channel, ChannelOwner, Engage
-    if hsmodel[:engage] && hsmodel[:engage].respond_to?(:keys)
-      hsmodel[:destroyed].concat hsmodel[:engage][:destroy]  # This should be cascade-destroyed.
-      hsmodel[:engage][:destroy] = []  # reset
+    # Engage, ArtistMusicPlay
+    %i(engage artist_music_play).each do |model|
+      if hsmodel[model] && hsmodel[model].respond_to?(:keys)
+        hsmodel[:destroyed].concat hsmodel[model][:destroy]  # This should be cascade-destroyed.
+        hsmodel[model][:destroy] = []  # reset
+      end
     end
 
     # Translation
@@ -3568,6 +3574,7 @@ tra_orig.save!
       return hsret
     end
   end
+  private :_merge_channel_owners
 
   # Set Artist to ChannelOwner and save ChannelOwner
   #
@@ -3653,12 +3660,48 @@ tra_orig.save!
       ehvid.update!(channel: chan_to)
     end
     chan_from.harami_vids.reset
-    chan_from.destroy!   #### later, may delegate to the later process.
+    chan_from.destroy!   ## delegation of deletion to the later process may not work well, because otherwise you cannot update another existing Channel, violating a unique constraint!
     hsret[:channel][:remained] << chan_to
     hsret[:channel][:destroy]  << chan_from
     hsret
   end
   private :_merge_channel_owners_with_artist_merge_channels
+
+  # Adjust model parameters in merging to get the best of both worlds
+  #
+  # @example for model based on self
+  #    _adjust_prms_according_priority(engage, other_music, %w(artist_id music_id engage_how), "music_id", %w(contribution), priority: :self 
+  #
+  # @example for model based on other where :self has the original priority for the method
+  #    _adjust_prms_according_priority(engage, self_music, %w(artist_id music_id engage_how), "music_id", %w(contribution), priority: :other
+  #
+  # @param model [ActiveRecord] model to deal with (like an association model Engage)
+  # @param other [BaseWithTranslation] Other model corresponding to self (like Artist)
+  # @param allcols [Array<String>] All unique column names to identify the other model
+  # @param mykeyid [String] "*_id" for the model so that {mykey_id => other.id} would characterize the DB query.
+  # @param cols [Array<String>] columns to possibly update, loading values from other model
+  # @param cols, priority: :self)
+  # @param cols, priority: :self)
+  # @return [ActiveRecord] of the given model
+  def _adjust_prms_according_priority(model, other, allcols, mykeyid, cols, priority: :self)
+    hstmp = model.attributes.slice(*allcols)
+    hstmp[mykeyid] = other.id
+    counterpart = model.class.find_by(hstmp)
+    cols.map(&:to_s).each do |ecol|
+      if ((:self  == priority) && model.send(ecol).blank? && !(val=counterpart.send(ecol)).blank?) ||
+         ((:other == priority) && !counterpart.send(ecol).blank?)
+        model.send(ecol+"=", counterpart.send(ecol))
+      end
+    end
+
+    ar = [model, counterpart]
+    ar.reverse! if :other == priority
+    _append_note!(*ar)
+
+    model.save!
+    model
+  end
+  private :_adjust_prms_according_priority
 
   # merging ArtistMusicPlay
   #
@@ -3677,31 +3720,52 @@ tra_orig.save!
   # @return [Hash<Array<ArtistMusicPlay>>, NilClass] nil only if it is not Artist/Music; else {remained: [ArtistMusicPlay...], destroy: [...]}
   def _merge_artist_music_plays(other, priority: :self)
     return if !respond_to?(:artist_music_plays)
-    raise "Should not happen Contact the code developer." if !other.respond_to?(:artist_music_plays)
-    all_amps = []
-    remains = _prioritized_models(other, priority, __method__).map{ |emdl|
-      all_amps.push emdl.artist_music_plays
-      all_amps[-1].map{ |amp|
-        is_music = !respond_to?(:musics)
-        hsprm = (is_music ? {harami_vid: amp.harami_vid, music: self} : {harami_vid: self, music: amp.music})
-        mdl = (ArtistMusicPlay.where(hsprm).first || amp)
-        if is_music 
-          mdl.music      = self
-        else
-          mdl.harami_vid = self
-        end
-        mdl.flag_collab ||= amp.flag_collab
-        mdl.completeness = amp.completeness if !mdl.completeness || mdl.completeness <= 0
-        mdl.timing       = amp.timing       if !mdl.timing       || mdl.timing <= 0
-        _append_note!(mdl, amp)
-        mdl.created_at = _older_created_at(mdl, amp)
+    raise "Should not happen. Contact the code developer." if !other.respond_to?(:artist_music_plays)
 
-        mdl.save!
-        mdl
-      }
-    }.flatten.uniq
-    to_destroys = all_amps.flatten.uniq.select{|mdl| !remains.include?(mdl) }
-    {remained: remains, destroy: to_destroys}
+    allcols = ArtistMusicPlay.reflect_on_all_associations(:belongs_to).map(&:foreign_key)
+    mykeyid = (mykey=self.class.name.underscore)+"_id"
+    unicols = allcols - [mykeyid]  # columns except for self (like music_id) for use of identifying the counterpart
+    return if !allcols.include? mykeyid  # self (nor other) is not one of the five Classes of ArtistMusicPlay belongs_to
+
+    hsret = {remained: [], destroy: []}.with_indifferent_access
+
+    amps         = [self, other].map{|emdl| [emdl, emdl.artist_music_plays]}.to_h
+    amps_unicol_ids = [self, other].map{|emdl| [emdl, emdl.artist_music_plays.pluck("artist_music_plays.id", *unicols).map{|i| [i[0], i[1..-1]]}]}.to_h
+    # {self => [[14, [123,456,789,101]], [15, [...]]], other => [...]}   # [ID, [four-element ID Arrays]
+    amps_unicol_id_onlys = amps_unicol_ids.map{|ek, ea| [ek, ea.map(&:last)]}.to_h
+    # {self => [     [123,456,789,101],  [...]], other => [...]}   # [[four-element ID Arrays], ...]
+    amps_ors = amps_unicol_ids[self] + amps_unicol_ids[other]
+    amps_and_ids = amps_ors.select{|ear| [self, other].all?{|emdl| amps_unicol_id_onlys[emdl].include?(ear[1])}}.map(&:first)  # AMP IDs only
+#print "DEBUG:honb810:and:";p amps_and_ids
+    amps_xor_ids = amps_ors.select{|ear| amps_unicol_id_onlys[self].include?(ear[1]) ^ amps_unicol_id_onlys[other].include?(ear[1])}.map(&:first)
+#print "DEBUG:honb811:xor:";p amps_xor_ids
+    cols = %w(contribution_artist cover_ratio)
+
+    (amps[self] | amps[other]).each do |emdl|
+      case emdl.send(mykey)
+      when self
+        hsret[:remained] << 
+          if amps_xor_ids.include? emdl.id
+            emdl
+          else
+            _adjust_prms_according_priority(emdl, other, allcols, mykeyid, cols, priority: priority)
+          end
+      when other
+        if amps_and_ids.include? emdl.id
+          hsret[:destroy] << emdl  # duplicated model, will be cascade-destroyed.
+          next 
+        end
+
+        emdl.send(mykey+"=", self)  # belongs_to (e.g., music_id) is now updated to self (Music etc)
+        emdl.save!
+        hsret[:remained] << emdl
+      else
+        raise
+      end
+    end # (amps[self] | amps[other]).each do |emdl|
+
+    self.artist_music_plays.reset  # Essential!
+    hsret
   end
   private :_merge_artist_music_plays
 
@@ -3746,7 +3810,7 @@ tra_orig.save!
       }
     }.flatten.uniq
     to_destroys = all_hvmas.flatten.uniq.select{|mdl| !remains.include?(mdl) }
-    {remained: remains, destroy: to_destroys}
+    {remained: remains, destroy: to_destroys}.with_indifferent_access
   end
   private :_merge_harami_vid_music_assocs
 
