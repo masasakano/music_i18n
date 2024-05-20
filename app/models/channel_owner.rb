@@ -98,6 +98,19 @@ class ChannelOwner < BaseWithTranslation
     self.select_regex(:titles, /^(ハラミちゃん|HARAMIchan|Harami-chan)$/i, sql_regexp: true).first || self.unknown
   end
 
+  # (Re)set artist_id
+  #
+  # The record is not saved, yet. However, Translation-s are updated!
+  # The caller may enclose the calling routine inside Transaction.
+  #
+  # @param artist [Artist]
+  # @param force: [Boolean] if true, {#themselves} is set true regardless of the current value.
+  def reset_to_artist(artist, force: false)
+    self.artist = artist
+    self.themselves = true if force # This should already be set.
+    synchronize_translations_to_artist
+  end
+
   # @return [Array<Translations>] initialized (unsaved) Translations with identical contents to the best ones of the given Artist
   def initialize_from_artist_translations
     return if !artist
@@ -141,7 +154,28 @@ class ChannelOwner < BaseWithTranslation
     translations.each do |tra|
       tra.destroy! if !valid_tras.include?(tra)
     end
+
+    update_user_for_equivalent_artist
     translations.reset
+  end
+
+  # Adjusts each Translation's update_user and updated_at
+  #
+  # @note updated_at is adjusted while created_at stays — meaning it makes
+  #   updated_at < created_at because the Translation for ChannelOwner
+  #   was newly created whereas the corresponding Translation for Artist
+  #   was last updated (long time) before.
+  #
+  # @return [void]
+  def update_user_for_equivalent_artist
+    return if !artist
+    translations.reset
+    artist.best_translations.each_pair do |lc, etrans|
+      hs = %w(update_user_id updated_at).map{ |metho|
+        [metho, etrans.send(metho)]
+      }.to_h
+      best_translations[lc].update_columns(hs)  # skips all validations AND callbacks
+    end
   end
 
   ###################

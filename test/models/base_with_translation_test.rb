@@ -2009,10 +2009,15 @@ mdl.translations.first.translatable_id = EngageHow.second.id
 
     hsmdl = {
       h1129s: [],
+      hvids: [],
       musics:  [],
       artists: [],
-      hvmas: [],
+      hvmas: [], # HaramiVidMusicAssoc
       engages: [],
+      ch_owners: [],
+      channels: [],
+      ev_its: [], # EventItem
+      amps: [],  # ArtistMusicPlay (Array of Arrays)
     }
       
     # Create two Harami1129
@@ -2044,6 +2049,21 @@ mdl.translations.first.translatable_id = EngageHow.second.id
         val = assc_prms[("art_"+es).to_sym][i]
         hsmdl[:artists][i].update!(es => val) if val
       end
+
+      hsmdl[:ev_its][i] = eh.event_item
+      hsmdl[:amps][i] ||= []
+      j = (i-1).abs
+      hsmdl[:amps][i] << hsmdl[:musics][i].artist_music_plays << ArtistMusicPlay.new(artist: hsmdl[:artists][i], event_item: hsmdl[:ev_its][i], play_role: PlayRole.default(:HaramiVid), instrument: Instrument.default(:HaramiVid), cover_ratio: 0.5+i*0.1) 
+      hsmdl[:amps][i] << hsmdl[:musics][i].artist_music_plays << ArtistMusicPlay.new(artist: hsmdl[:artists][j], event_item: hsmdl[:ev_its][j], play_role: PlayRole.unknown, instrument: Instrument.unknown, cover_ratio: 0.2+j*0.1)
+
+      hsmdl[:ch_owners][i] = ChannelOwner.create_basic!(themselves: true, artist: hsmdl[:artists][i])
+      hsmdl[:channels][i] ||= []
+      hsmdl[:channels][i] << Channel.create_basic!(title: "chan_h1_#{i}", langcode: :en, channel_owner: hsmdl[:ch_owners][i], channel_type: ChannelType.default(:HaramiVid), channel_platform: ChannelPlatform.default(:HaramiVid))
+      hsmdl[:channels][i] << Channel.create_basic!(title: "chan_h1_#{i+5}", langcode: :en, channel_owner: hsmdl[:ch_owners][i], channel_type: ChannelType.unknown, channel_platform: ChannelPlatform.unknown)
+      
+      hsmdl[:hvids][i] ||= []
+      hsmdl[:hvids][i] << hsmdl[:hvmas][i].harami_vid.update!(channel: hsmdl[:channels][i][1])
+      hsmdl[:hvids][i] << HaramiVid.create_basic!(title: "hvid_h1_#{i}", langcode: :en, channel: hsmdl[:channels][i][0], note: "new test HVid")
     end
 
     [h1129_prms, assc_prms, hsmdl]

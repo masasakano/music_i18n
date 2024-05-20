@@ -52,8 +52,8 @@ class ChannelOwnersController < ApplicationController
 
     # Adjusts each Translation's update_user and updated_at if there is an equivalent user.
     # These are not critical and so not included in DB-Transaction in the save above.
-    if result && @channel_owner.artist
-      _update_user_for_equivalent_artist(@channel_owner.artist)
+    if result
+      @channel_owner.update_user_for_equivalent_artist
     end
   end
 
@@ -76,12 +76,7 @@ class ChannelOwnersController < ApplicationController
       @channel_owner.save
     } # defined in application_controller.rb
 
-    # Assign the equivalent user if there is any and adjusts each Translation's update_user and updated_at
-    # These are not critical and so not included in DB-Transaction in the save/update above.
-    if result && @channel_owner.artist
-      @channel_owner.translations.reset
-      _update_user_for_equivalent_artist(@channel_owner.artist)  # adjust update_user and updated_at
-    end
+    # Here (synchronize_translations_to_artist), assigned the equivalent user if there is any and adjusts each Translation's update_user and updated_at
   end
 
   # DELETE /channel_owners/1 or /channel_owners/1.json
@@ -134,33 +129,6 @@ class ChannelOwnersController < ApplicationController
       }
     end
   
-    # Adjusts each Translation's update_user and updated_at
-    #
-    # @note updated_at is adjusted while created_at stays — meaning it makes
-    #   updated_at < created_at because the Translation for ChannelOwner
-    #   was newly created whereas the corresponding Translation for Artist
-    #   was last updated (long time) before.
-    #
-    # @param artist [Artist] the equivalent Artist to self (ChannelOwner).
-    # @return [void]
-    def _update_user_for_equivalent_artist(artist)
-      @channel_owner.translations.reset
-      artist.best_translations.each_pair do |lc, etrans|
-        #hs = ["", "alt_"].map{ |prefix|
-        #  %w(title ruby romaji).map{ |base|
-        #    metho = prefix+base
-        #    [metho, etrans.send(metho)]
-        #  }
-        #}.inject([],:+).to_h
-        #tra_cowner = @channel_owner.translations.find_by(hs)
-
-        hs = %w(update_user_id updated_at).map{ |metho|
-          [metho, etrans.send(metho)]
-        }.to_h
-        @channel_owner.best_translations[lc].update_columns(hs)  # skips all validations AND callbacks
-      end
-    end
-
 end
 
 # Parameters: {"authenticity_token"=>"[FILTERED]", "channel_owner"=>{"langcode"=>"ja", "title"=>"", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "themselves"=>"0", "artist_with_id"=>"", "artist_id"=>"", "note"=>""}, "commit"=>"Submit", "locale"=>"en"}

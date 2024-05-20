@@ -2996,6 +2996,9 @@ class BaseWithTranslation < ApplicationRecord
       hsmodel[:harami_vid_music_assocs] = 
         _merge_harami_vid_music_assocs(other, priority: _priority2pass(priorities, :harami_vid_music_assocs))
       hsmodel[:note]   = _merge_note(  other, priority: _priority2pass(priorities, :note))
+#hsmodel[:artist_music_play] = _merge_artist_music_plays(other, priority: _priority2pass(priorities, :engages))
+      hs = _merge_channel_owners(other, priority: _priority2pass(priorities, :channel_owner))  # nil if for Music
+      hsmodel.merge!(hs) if hs  # keys of :channel_owner, :channel, and maybe :harami_vid
       hsmodel[:created_at] = _merge_created_at(other)
 
       hsmodel[:harami1129_review] = _update_harami1129_review_after_merge(hsmodel, user: user)
@@ -3035,8 +3038,23 @@ class BaseWithTranslation < ApplicationRecord
   # @param hsmodel [Hash] See merge_other for description
   # @return [self]
   def merge_save_destroy(other, hsmodel)
-    # HaramiVidMusicAssocs
+    hsmodel[:channel_owner][:destroy].first.destroy! if hsmodel[:channel_owner] && hsmodel[:channel_owner][:destroy].present? && !hsmodel[:channel_owner][:destroy].first.destroyed?  # ChannelOwner must be destroyed first.
+
     self.save!
+
+    # Channel, ChannelOwner
+    %i(:channel :channel_owner).each do |klass|
+      if hsmodel[klass] && hsmodel[klass].respond_to?(:keys)
+        hsmodel[klass][:destroy].each do |mdl|
+          # Most of them have been either already destroyed or cascade-destroyed.
+          mdl.destroy if !mdl.destroyed?
+          hsmodel[:destroyed] << mdl
+        end
+        hsmodel[klass][:destroy] = []  # reset
+      end
+    end
+
+    # HaramiVidMusicAssocs
     if hsmodel[:harami_vid_music_assocs] && hsmodel[:harami_vid_music_assocs].respond_to?(:keys)
       hsmodel[:harami_vid_music_assocs][:destroy].each do |mdl|
         # This is probably not needed... cascade-destroyed?
@@ -3047,7 +3065,7 @@ class BaseWithTranslation < ApplicationRecord
       hsmodel[:harami_vid_music_assocs][:destroy] = []  # reset
     end
 
-    # Engage
+    # Channel, ChannelOwner, Engage
     if hsmodel[:engage] && hsmodel[:engage].respond_to?(:keys)
       hsmodel[:destroyed].concat hsmodel[:engage][:destroy]  # This should be cascade-destroyed.
       hsmodel[:engage][:destroy] = []  # reset
@@ -3159,13 +3177,16 @@ class BaseWithTranslation < ApplicationRecord
   #
   # @param mdl   [BaseWithTranslation] note to append to
   # @param other [BaseWithTranslation] of the same class as mdl
+  # @param reverse: [Boolean] If specified true, the order is reversed.
   # @return [String] the updated value
-  def _append_note!(mdl, other)
+  def _append_note!(mdl, other, reverse: false)
     if !other.note.blank?
       if mdl.note.blank?
         mdl.note = other.note.strip
       elsif !mdl.note.include?(other.note)
-        mdl.note = mdl.note.strip + " " + other.note.strip
+        ar = [mdl.note.strip, other.note.strip]
+        ar.reverse! if reverse
+        mdl.note = ar.join(" ")
       end
     end
     mdl.note
@@ -3474,6 +3495,215 @@ tra_orig.save!
   end
   private :_merge_engages
 
+
+  # merging ChannelOwner-s
+  #
+  # == Algorithm: Four-ish cases.
+  #
+  # === Visualization of the the most complicated situation
+  #
+  # The following is for Case 4. Here, Left-hand one has a higher priority than Right. There are 2 cases:
+  #
+  #   Cow(art=self)  Cow(art=other) | Cow(art=other) Cow(art=self)
+  #    |              |     ->DEL   |  | 4:Art-self  |  (3)->DEL
+  #   Channels..<--  Channels..     | Channels..<--  Channels..
+  #    | updat \      | ->DEL/upd   |  | 2-1  \      | ->(1)Upd/(2-3)DEL
+  #   HVids..  +---- HVids..        | HVids..  +---- HVids..(2-2)
+  #
+  # === Procedure
+  #
+  # 1. If not Artist, return nil
+  # 2. If no ChannelOWners (=Cows), returns (viatually empty) Hash.
+  # 3. If only one Cow exists [regardless of higher/lower priority],
+  #    1. update Cow#artist=self  [which may or may not be already the case]
+  #    2. update Cow#themselves=true  [redundant, but playing safe]
+  #    3. Cow#synchronize_translations_to_artist  End.
+  # 4. If Cows exist for both, do as follows (also see the figure above):
+  #    1. Left-hand case (Merge-Destroy Cow(R), taking care of Channels(R) and HaramiVids(R))
+  #       1. if no Channels(R),
+  #          1. merge Cow(R)-note to Cow(L)
+  #          2. Destroy Cow(R). End.
+  #       2. Else, update Channels(R)#CoW = Cow(L)  (multiple)  # => _merge_channel_owners_with_artist_with_channels
+  #          1. If successful, fine.
+  #          2. Else, find the Channel(L)                       # => _merge_channel_owners_with_artist_merge_channels
+  #             1. merge note to the_Channel(L)
+  #             2. HVids(R)#channel = the_Channel(L)  (multiple, if any)
+  #             3. Destroy the_Channels(R)
+  #       3. Destroy Cow(R)
+  #    2. Right-hand case (Same as Left-hand case, except case 3 is then followed).
+  #       1. Follow 4-1
+  #       2. Now reduced to case 3; follow it for Cow(L)
+  #
+  # @param other [BaseWithTranslation] of the same class as self. For this method, it makes sense only for Artist
+  # @param priority: [Symbol] (:self(Def)|:other)
+  # @return [Hash<Array<ArtistMusicPlay>>, NilClass] nil only if self is not Artist; else {channel_owner: {remained: [ChannelOwner], destroy: [ChannelOwner]}, channel: {...}, harami_vid: {...}} (up to 1 element each for channel_owner and potentially many for the others; no destroy for harami_vid)
+  def _merge_channel_owners(other, priority: :self)
+    return if !respond_to?(:channel_owner)  # because it is a singular, Artist is the only relevant one?
+    raise "Should not happen Contact the code developer." if !other.respond_to?(:channel_owner)
+    return if !is_a?(Artist) || !other.is_a?(Artist)
+
+    hsret = {
+      channel_owner: {remained: [], destroy: []},
+      channel:       {remained: [], destroy: []},
+    }.map{|ek, ev| [ek, ev.with_indifferent_access]}.to_h.with_indifferent_access
+
+    remains = _prioritized_models(other, priority, __method__).map(&:channel_owner)
+
+    if (ary=remains.compact).empty?
+      # Case 2
+      return hsret
+    elsif 1 == ary.size
+      # Case 3
+      _merge_channel_owners_set_artist(ary.first)
+      hsret[:channel_owner][:remained] << ary.first
+      return hsret
+    else
+      # Case 4
+      if self == remains[0].artist
+        _merge_channel_owners_with_artist(*remains, hsret: hsret)
+      else
+        _merge_channel_owners_with_artist(*remains, hsret: hsret)  # This sets hsret
+        _merge_channel_owners_set_artist(remains.first)
+      end
+      return hsret
+    end
+  end
+
+  # Set Artist to ChannelOwner and save ChannelOwner
+  #
+  # @return [Boolean]
+  # @raise [RuntimeError] in a totally unexpected case only
+  def _merge_channel_owners_set_artist(channel_owner, artist=self)
+    ActiveRecord::Base.transaction(requires_new: true) do
+      channel_owner.reset_to_artist(artist, force: true)
+      if !channel_owner.valid?   ### This should be put into Controller validation!!
+        errmsg = "ChannelOwner(#{remains[1].id}) cannot be associated with Artist(#{title_or_alt(prefer_alt: true, str_fallback: '', article_to_head: true)}) presumably because there is another ChannelOwner with the Artist."
+        raise errmsg
+      end
+      channel_owner.save!
+    end
+  end
+  private :_merge_channel_owners_set_artist
+
+  # Case 4-1 in _merge_channel_owners
+  #
+  # @param chow_l [ChannelOwner] "Left" ChannelOwner, meaning higher-priority. Its Artist is self.
+  # @param chow_r [ChannelOwner] "Right" ChannelOwner, meaning lower-priority. Either updated or destroyed (after merging)
+  # @return [Hash<Array<ArtistMusicPlay>>] See #_merge_channel_owners
+  def _merge_channel_owners_with_artist(chow_l, chow_r, hsret: {})
+    if !chow_r.channels.exists?
+      # Case 4-1-1
+      _append_note!(chow_l, chow_r)  # merge notes
+      chow_l.save!
+    else
+      # Case 4-1-2
+      _merge_channel_owners_with_artist_with_channels(chow_l, chow_r, hsret: hsret)  # modifies hsret, adding {channel: {}}
+    end
+    chow_r.channels.reset
+    chow_r.destroy!   #### later, may delegate to the later process.
+    hsret[:channel_owner][:remained] << chow_l
+    hsret[:channel_owner][:destroy]  << chow_r
+  end
+  private :_merge_channel_owners_with_artist
+
+  # Case 4-1-2 in _merge_channel_owners
+  #
+  # @param chow_l [ChannelOwner] "Left" ChannelOwner, meaning higher-priority. Its Artist is self.
+  # @param chow_r [ChannelOwner] "Right" ChannelOwner, meaning lower-priority. Either updated or destroyed (after merging)
+  # @return [Hash<Array<ArtistMusicPlay>>] See #_merge_channel_owners
+  def _merge_channel_owners_with_artist_with_channels(chow_l, chow_r, hsret: {})
+    chow_r.channels.each do |ea_cha|
+      ea_cha.channel_owner = chow_l
+      if ea_cha.valid?
+        # Case 4-1-2-1
+        ea_cha.save!
+        hsret[:channel][:remained] << ea_cha
+      else
+        # Case 4-1-2-2
+        _merge_channel_owners_with_artist_merge_channels(chow_l.channels, ea_cha, hsret: hsret)  # hsret is modified; one of Channel(L) is added to :remained
+      end
+    end
+    hsret
+  end
+  private :_merge_channel_owners_with_artist_with_channels
+
+  # Case 4-1-2-2 in _merge_channel_owners
+  #
+  # 1. Two ChannelOwners exist for both Artists to merge
+  # 2. ChannelOwner with Artist-to-merge should (at least) remain
+  # 3. The other ChannelOwner have_many (significant) Channels
+  # 4. The other ChannelOwner cannot accept Artist to associate (presumanbly) due to unique constraints
+  # 5. The other ChannelOwner cannot accept Artist to associate (presumanbly) due to unique constraints
+  #
+  # Therefore, the other ChannelOwner has to be merged to the remaining ChannelOwner
+  # where its contents (specifically, note only) AND the associated HaramiVid-s
+  # must be updated appropriately.
+  #
+  # @param chan_to_cands [Channel::Relation]
+  # @param chan_from [Channel]
+  # @param hsret: [Hash] to modify and return
+  # @return [Hash<Array<ArtistMusicPlay>>, NilClass] nil only if self is not Artist; else {channel_owner: {remained: [ChannelOwner], destroy: [ChannelOwner]}, channel: {...}, harami_vid: {...}} (up to 1 element each for channel_owner and potentially many for the others; no destroy for harami_vid)
+  def _merge_channel_owners_with_artist_merge_channels(chan_to_cands, chan_from, hsret: {})
+    # Case 4-1-2-2
+    chan_to = chan_to_cands.find_by(chan_from.attributes.slice(*%w(channel_type_id channel_platform_id channel_owner_id)))
+    raise "Equivalent Channel for #{chan_from.inspect} is not found despite it is invalid. Strange. Contact the code developer." if !chan_to
+    _append_note!(chan_to, chan_from)  # merge notes
+    chan_from.harami_vids.each do |ehvid|
+      # Case 4-1-2-2-2
+      ehvid.update!(channel: chan_to)
+    end
+    chan_from.harami_vids.reset
+    chan_from.destroy!   #### later, may delegate to the later process.
+    hsret[:channel][:remained] << chan_to
+    hsret[:channel][:destroy]  << chan_from
+    hsret
+  end
+  private :_merge_channel_owners_with_artist_merge_channels
+
+  # merging ArtistMusicPlay
+  #
+  # Many ArtistMusicPlay may be updated in DB.
+  # However, this does not destroy ArtistMusicPlay to discard. To do that,
+  # They should be cascade-deleted when a Artist/Music is destroyed.
+  # If you want to do it explicitly, do:
+  #
+  #   hs = _merge_artist_music_plays(other, priority: :self)
+  #   hs[:destroy].each do |em|
+  #     em.destroy
+  #   end
+  #
+  # @param other [BaseWithTranslation] of the same class as self. This method makes sense only for Music and HaramiVid
+  # @param priority: [Symbol] (:self(Def)|:other)
+  # @return [Hash<Array<ArtistMusicPlay>>, NilClass] nil only if it is not Artist/Music; else {remained: [ArtistMusicPlay...], destroy: [...]}
+  def _merge_artist_music_plays(other, priority: :self)
+    return if !respond_to?(:artist_music_plays)
+    raise "Should not happen Contact the code developer." if !other.respond_to?(:artist_music_plays)
+    all_amps = []
+    remains = _prioritized_models(other, priority, __method__).map{ |emdl|
+      all_amps.push emdl.artist_music_plays
+      all_amps[-1].map{ |amp|
+        is_music = !respond_to?(:musics)
+        hsprm = (is_music ? {harami_vid: amp.harami_vid, music: self} : {harami_vid: self, music: amp.music})
+        mdl = (ArtistMusicPlay.where(hsprm).first || amp)
+        if is_music 
+          mdl.music      = self
+        else
+          mdl.harami_vid = self
+        end
+        mdl.flag_collab ||= amp.flag_collab
+        mdl.completeness = amp.completeness if !mdl.completeness || mdl.completeness <= 0
+        mdl.timing       = amp.timing       if !mdl.timing       || mdl.timing <= 0
+        _append_note!(mdl, amp)
+        mdl.created_at = _older_created_at(mdl, amp)
+
+        mdl.save!
+        mdl
+      }
+    }.flatten.uniq
+    to_destroys = all_amps.flatten.uniq.select{|mdl| !remains.include?(mdl) }
+    {remained: remains, destroy: to_destroys}
+  end
+  private :_merge_artist_music_plays
 
   # merging HaramiVidMusicAssoc
   #
