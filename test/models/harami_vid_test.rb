@@ -75,9 +75,9 @@ class HaramiVidTest < ActiveSupport::TestCase
 
       hvid = HaramiVid.find_one_for_harami1129(h1129)
       case ea_key
-      when :harami1129_ai
-        refute     hvid.event_items.exists?  # HaramiVid Fixture includes no EventItem
-      when :harami1129_ihojin1
+      #when :harami1129_ai
+      #  refute     hvid.event_items.exists?  # HaramiVid Fixture includes no EventItem
+      when :harami1129_ihojin1, :harami1129_ai
         assert     hvid.event_items.exists?  # HaramiVid Fixture includes EventItem
         refute_includes hvid.event_items, h1129.event_item  # according to Fixture
       else
@@ -94,7 +94,7 @@ class HaramiVidTest < ActiveSupport::TestCase
         assert     hvid.release_date_changed?
         assert_nil hvid.release_date_was
         refute_equal h1129.ins_title, hvid.best_translations.first[1].title  # Hash#first => 2-element Array
-        refute     hvid.event_items.exists?  # Because Harami1129's record does not include it.
+        #refute     hvid.event_items.exists?  # Because Harami1129's record does not include it.
       when :harami1129_ihojin1
         refute     hvid.changed?
         refute     hvid.release_date_changed?

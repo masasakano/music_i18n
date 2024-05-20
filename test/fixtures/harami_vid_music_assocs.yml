@@ -61,7 +61,6 @@ harami_vid_music_assoc_4_ihojin2:
   music: music_ihojin2
   timing:
   completeness: 1.0
-  flag_collab:
   note: HaramiVidMusicAssoc Vid4 and Ihojin2
 
 harami_vid_music_assoc_ihojin1:
@@ -77,6 +76,23 @@ harami_vid_music_50anni_story:
   music: music_story
   timing: 2095
   completeness: 
-  flag_collab:
   note: Video-50-anniversary and Ai's Story
+
+harami_vid_music_paris1_robinson:
+  harami_vid: harami_vid_paris1
+  music: music_robinson
+  timing: 120
+  note: Video-Paris1-Robinson
+
+harami_vid_one_music1_assoc:
+  harami_vid: one
+  music: music1
+  timing: 1
+  completeness: 0.5
+  note: HaramiVidOneMusic1Assoc
+
+harami_vid_two_robinson_assoc:
+  harami_vid: two
+  music: music_robinson
+  note: HaramiVidTwoRobinsonAssoc
 

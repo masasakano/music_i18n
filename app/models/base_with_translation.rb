@@ -3997,8 +3997,13 @@ class << BaseWithTranslation
     if model.translations.exists?
       model
     else
-      model.with_translation(**_prepare_hash_basic_translation(translation))
-      model.reload
+      if translation
+        translation.translatable = nil
+        model.translations << translation
+      else
+        model.with_translation(**_prepare_hash_basic_translation(translation))
+      end
+      model
     end
   end
 

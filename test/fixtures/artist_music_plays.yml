@@ -42,6 +42,14 @@ one:
   contribution_artist: 0.4
   note: AMPlayBudokanStoryHarami
 
+one1:
+  event_item: one
+  artist: artist_harami
+  music: music1
+  play_role: play_role_inst_player_main
+  instrument: instrument_piano
+  note: AMPlayHvid1Music1 for One
+
 two:
   event_item: evit_1_harami_budokan2022_soiree
   artist: artist_ai
@@ -51,6 +59,14 @@ two:
   cover_ratio: 1.0
   contribution_artist: 0.6
   note: AMPlayBudokanStoryAi
+
+two2:
+  event_item: two
+  artist: artist_harami
+  music: music_robinson
+  play_role: play_role_inst_player_main
+  instrument: instrument_piano
+  note: AMPlayHaramiTwoRobinson
 
 ampy_evit_1_harami_lucky2023_rcsucc:
   event_item: evit_1_harami_lucky2023
@@ -75,4 +91,28 @@ ampy_evit_2_harami_lucky2023_rcsucc:
   play_role: play_role_singer
   instrument: instrument_vocal
   note: AMPlayLuckyFes2RcSuccessionStory
+
+ampy_evit_unknown_music2:
+  event_item: evit_ev_evgr_unknown
+  artist: artist_harami
+  music: music2
+  play_role: play_role_inst_player_main
+  instrument: instrument_piano
+  note: AMPlayHaramiEvitUnknowonMusic2 for harami_vid2
+
+ampy_evit_ev_evgr_live_streamings_music_robinson:
+  event_item: evit_ev_evgr_live_streamings
+  artist: artist_harami
+  music: music_robinson
+  play_role: play_role_inst_player_main
+  instrument: instrument_piano
+  note: AMPlayHaramiEvitLiveStreamingsMusicRobinson for harami_vid_50anni
+  
+ampy_evit_ev_evgr_single_streets_music_robinson:
+  event_item: evit_ev_evgr_single_streets
+  artist: artist_harami
+  music: music_robinson
+  play_role: play_role_inst_player_main
+  instrument: instrument_piano
+  note: AMPlayHaramiEvitSingleStreetsMusicRobinsonRobinson for harami_vid_paris1
 

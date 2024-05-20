@@ -66,6 +66,7 @@ class HaramiVid < BaseWithTranslation
   has_many :event_groups, through: :events
   has_many :artist_music_plays, through: :event_items, source: :artist_music_plays  # to an Association model! (NOT to Artists/Musics)
   has_many :artist_collabs, -> {distinct}, through: :event_items, source: :artists
+  has_many :music_plays, -> {distinct}, through: :event_items, source: :musics
 
   has_many :artists,     through: :musics  # duplication is possible. "distinct" would not work with ordering! So, use uniq if required.
   has_many :harami1129s, dependent: :nullify

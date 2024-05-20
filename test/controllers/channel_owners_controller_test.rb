@@ -5,6 +5,8 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
   # add this
   include Devise::Test::IntegrationHelpers
 
+  include ModuleCommon  # for definite_article_to_head(instr)
+
   setup do
     @channel_owner = channel_owners(:channel_owner_saki_kubota)
     @channel_owner2= channel_owners(:channel_owner_haramichan)
@@ -25,7 +27,7 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
       "title"=>"The Tｅst7",
       "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
       #"best_translation_is_orig"=>str_form_for_nil,  # radio-button returns "on" for nil
-    }
+    }.with_indifferent_access
   end
 
   teardown do
@@ -65,7 +67,7 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should create channel_owner" do
-    hs2pass = @hs_create_lang.merge({ note: "newno", themselves: false })
+    hs2pass = @hs_create_lang.merge({ artist_id: "", artist_with_id: "", note: "newno", themselves: false })
     assert_no_difference("ChannelOwner.count") do
       post channel_owners_url, params: { channel_owner: hs2pass }
     end
@@ -83,29 +85,65 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
     #sign_in @syshelper
     run_test_create_null(ChannelOwner, extra_colnames: %i(title langcode themselves)) # defined in /test/helpers/controller_helper.rb
 
+    # completely new Channel unrelated to an Artist
     assert_difference("ChannelOwner.count") do
       post channel_owners_url, params: { channel_owner: hs2pass }
+      assert_response :redirect
     end
     eeih_last = ChannelOwner.last
     assert_redirected_to channel_owner_url(eeih_last)
     assert_equal "newno", eeih_last.note
+    refute_equal @hs_create_lang[:title], eeih_last.title
+    assert_equal preprocess_space_zenkaku(@hs_create_lang[:title]), definite_article_to_head(eeih_last.title) # defined in 
 
     assert_no_difference("ChannelOwner.count") do
       post channel_owners_url, params: { channel_owner: hs2pass.merge({ note: "same translation. should fail", themselves: true }) }
+      assert_response :unprocessable_entity
     end
-    assert_response :unprocessable_entity
 
     # Test of :artist_with_id
-    art_ai = artists(:artist_ai)
-    art_with_id = BaseWithTranslation.base_with_translation_with_id_str art_ai
+    art_lennon = artists(:artist2) # John Lennon
+    art_with_id = BaseWithTranslation.base_with_translation_with_id_str art_lennon
+    # hs = {langcode: "ja", title: "dummy", themselves: true, artist_with_id: art_with_id, note: "a007"}
+    hs = {themselves: true, artist_with_id: art_with_id, note: "a007"}
     assert_difference("ChannelOwner.count") do
-      hs = {langcode: "ja", title: "dummy", themselves: true, artist_with_id: art_with_id, note: "a007"}
       post channel_owners_url, params: { channel_owner: hs }
+      assert_response :redirect
     end
-    mdl = ChannelOwner.last
-    assert_equal "a007", mdl.note, 'sanity check'
+    mdl_last1 = ChannelOwner.last
+    assert_equal "a007", mdl_last1.note, 'sanity check'
+    assert_equal 3, art_lennon.translations.size, 'fixtures check'
+    assert_equal %w(en ja), (ks=art_lennon.best_translations.keys).map(&:to_s).sort, 'fixtures check'
 
-    _verify_assimilate_artist(art_ai, mdl)
+    _verify_assimilate_artist(art_lennon, mdl_last1)
+
+    # 2nd time of :artist_with_id  - fails
+    assert_no_difference("ChannelOwner.count") do
+      post channel_owners_url, params: { channel_owner: hs }
+      assert_response :unprocessable_entity
+    end
+
+    # Change the status of JohnLennon Channel Owner to not-themselves.
+    assert mdl_last1.update(themselves: false)
+
+    # 3rd time of :artist_with_id  - success
+    assert_difference("ChannelOwner.count") do
+      post channel_owners_url, params: { channel_owner: hs }
+      assert_response :redirect
+    end
+    mdl_last2 = ChannelOwner.last
+    assert mdl_last2.themselves
+    _verify_assimilate_artist(art_lennon, mdl_last2)
+
+    assert_equal mdl_last1.title, mdl_last2.title, "titles should be identical."
+        
+    # 4th time with title etc for an identical one with themselves==false - fails (because it is identical to mdl_last1 (with themselves=false)
+    hs4th = {themselves: false, artist_id: "", artist_with_id: "", note: "a407"}
+    hs4th.merge!(art_lennon.best_translation.attributes.slice(*%w(langcode title ruby romaji alt_title alt_ruby alt_romaji)))
+    assert_no_difference("ChannelOwner.count") do
+      post channel_owners_url, params: { channel_owner: hs4th }
+      assert_response :unprocessable_entity
+    end
 
     sign_out @editor_ja
 
@@ -120,14 +158,15 @@ if false ############################# This should be implemented later.
 end
   end
 
-  def _verify_assimilate_artist(art_ai, mdl)
-    assert_equal art_ai.title,             mdl.title, "mdl=#{mdl.inspect}"
-    assert_equal art_ai.romaji(langcode: 'ja'),      mdl.romaji(langcode: 'ja')
-    tra_ai  = art_ai.best_translations[:en]
+  def _verify_assimilate_artist(art, mdl)
+    assert_equal art.title,             mdl.title, "mdl=#{mdl.inspect}"
+    assert_equal art.romaji(langcode: 'ja'), mdl.romaji(langcode: 'ja'), "All best-translations (but not minor translations) should be copied but..."
+    tra_ai  = art.best_translations[:en]
     tra_mdl = mdl.best_translations[:en]
     %i(title weight update_user updated_at).each do |metho|
       assert_equal tra_ai.send(metho), tra_mdl.send(metho), "tra_mdl=#{tra_mdl.inspect}"
     end
+    assert_equal art.best_translations.size, mdl.best_translations.size
   end
 
   test "should show channel_owner" do
@@ -179,7 +218,11 @@ end
 
     newnote1 = "new-note"
     artist1 = artists(:artist_proclaimers)
-    update_params = { channel_owner: { themselves: "1", artist_id: artist1.id.to_s, note: newnote1 } }
+    update_params = { channel_owner: {
+                        themselves: (@channel_owner2.themselves ? "1" : "0"),
+                        artist_with_id: "",
+                        artist_id: ((i=@channel_owner2.artist_id) ? i.to_s : ""),
+                        note: newnote1 } }
 
     sign_in @moderator_harami  # do  # if I put do, the next line is not executed for some reason! (maybe because another sign_in exists below?)
       get edit_channel_owner_url(@channel_owner)
@@ -216,27 +259,61 @@ end
       refute_equal newnote1, @channel_owner2.reload.note
 
       patch channel_owner_url(@channel_owner2), params: update_params
-      assert_equal newnote1, @channel_owner2.reload.note
       assert_response :redirect
+      assert_equal newnote1, @channel_owner2.reload.note
       assert_redirected_to @channel_owner2, "General-editor should be able to edit the entry created by anyone but admins, but..."
 
-      @channel_owner2.update!(create_user: @moderator_harami, note: "orig0")
-      assert_equal "orig0", @channel_owner2.reload.note
+      @channel_owner2.update!(create_user: @moderator_harami, note: "orig1")
+      assert_equal "orig1", @channel_owner2.reload.note
 
       patch channel_owner_url(@channel_owner2), params: update_params
       assert_response :redirect, "should not be able to update an entry, but..."
 
     # Test of :artist_with_id
-      @channel_owner2.update!(create_user: @editor_ja, note: "orig0")
-    art_ai = artists(:artist_ai)
-    art_with_id = BaseWithTranslation.base_with_translation_with_id_str art_ai
-      hs = {langcode: "ja", title: "dummy", themselves: true, artist_with_id: art_with_id, note: "a007"}
-      patch channel_owner_url(@channel_owner2), params: { channel_owner: hs }
-    @channel_owner2.reload
-    assert_equal "a007", @channel_owner2.note, 'sanity check'
+      @channel_owner2.update!(create_user: @editor_ja, note: "orig2")
+      art_ai = artists(:artist_ai)
+      art_with_id = BaseWithTranslation.base_with_translation_with_id_str art_ai
+      hs_ai = {themselves: true, artist_with_id: art_with_id, note: "a007",
+                                  artist_id: ((i=@channel_owner2.artist_id) ? i.to_s : ""),}  # artist_id: hidden
+      patch channel_owner_url(@channel_owner2), params: { channel_owner: hs_ai }
+      assert_response :redirect, "should not be able to update an entry, but..."
+      @channel_owner2.reload
+      assert_equal "a007", @channel_owner2.note, 'sanity check'
 
-    _verify_assimilate_artist(art_ai, @channel_owner2)
+      _verify_assimilate_artist(art_ai, @channel_owner2)
 
+    # Uncheck "themselves"
+      hs_a2 = {themselves: false, artist_with_id: "", artist_id: art_ai.id.to_s, note: "a008"}  # artist_id: hidden
+      patch channel_owner_url(@channel_owner2), params: { channel_owner: hs_a2 }
+      assert_response :redirect, "should not be able to update an entry, but..."
+      @channel_owner2.reload
+      assert_equal "a008", @channel_owner2.note, 'sanity check'
+      refute  @channel_owner2.themselves
+
+    # Creates again Artist AI
+      hs_a3 = {themselves: true, artist_with_id: art_with_id, artist_id: art_ai.id.to_s, note: "a019"}  # artist_id: hidden
+      assert_difference("ChannelOwner.count") do
+        post channel_owners_url, params: { channel_owner: hs_a3 }
+        assert_response :redirect
+      end
+      mdl_last1 = ChannelOwner.last
+      assert_equal "a019", mdl_last1.note
+      assert  mdl_last1.themselves
+      assert_equal art_ai, mdl_last1.artist
+      assert_equal @channel_owner2.title, mdl_last1.title
+      refute_equal @channel_owner2.themselves, mdl_last1.themselves
+      upd = mdl_last1.updated_at
+
+    # Uncheck "themselves" => fails (because the same translation with themselves=false exists.)
+      hs_a4 = hs_a2.merge({note: "a99"})
+      patch channel_owner_url(mdl_last1), params: { channel_owner: hs_a4 }
+      assert_response :unprocessable_entity
+      mdl_last1.reload
+      refute_equal "a99", mdl_last1.note, 'sanity check'
+      assert_equal "a019", mdl_last1.note
+      assert_equal upd,   mdl_last1.updated_at
+      assert  mdl_last1.themselves
+      assert_equal art_ai, mdl_last1.artist
     #end
   end
 

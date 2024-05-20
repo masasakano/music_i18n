@@ -282,16 +282,7 @@ class EventItem < ApplicationRecord
   # @param separator: [String]
   # @return [String] unique machine_title
   def self.get_unique_title(prefix, postfix: "", separator: "-")
-    postfix ||= ""
-    separator = "" if postfix.blank?
-    trial = prefix + separator + postfix
-    return trial if !where(machine_title: trial).exists?
-
-    (1..).each do |suffix|
-      trial = prefix + suffix.to_s + separator + postfix
-      return trial if !where(machine_title: trial).exists?
-      raise "(#{File.basename __FILE__}:#{__method__}) Suffix exceeded the limit for prefix=#{prefix.inspect} and postfix=#{(separator+postfix).inspect}. Contact the code developer." if suffix > 100000  # to play safe.
-    end
+    get_unique_string(:machine_title, prefix: prefix, postfix: postfix, separator: "", separator2: separator) # defined in /app/models/concerns/module_application_base.rb
   end
 
   # Wrapper of {EventTitle.get_unique_title}

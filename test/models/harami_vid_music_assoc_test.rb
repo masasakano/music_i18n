@@ -40,7 +40,7 @@ class HaramiVidMusicAssocTest < ActiveSupport::TestCase
     h1 = harami_vids(:harami_vid1)
     m1 = musics(:music1)
     chan = Channel.primary
-    h2 = HaramiVid.create!(channel: chan, uri: "https://a.com/b")
+    h2 = HaramiVid.create!(title: "another one1", langcode: "en", channel: chan, uri: "https://a.com/b")
 
     n_orig = HaramiVidMusicAssoc.count
     m1hv = m1.harami_vids
@@ -49,7 +49,7 @@ class HaramiVidMusicAssocTest < ActiveSupport::TestCase
     m1hv << h2
     assert_equal n_orig+1, HaramiVidMusicAssoc.count
     m1hv2 = m1.harami_vids
-    assert_equal 2, m1hv2.size
+    assert_equal 3, m1hv2.size, "HVids=#{m1hv2.inspect}"
 
     ura3 = HaramiVidMusicAssoc.last
     assert_raises(ActiveRecord::RecordInvalid){

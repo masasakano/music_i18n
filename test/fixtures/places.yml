@@ -21,6 +21,10 @@ unknown_place_unknown_prefecture_world:
   prefecture: unknown_prefecture_world
   note: MyTextUnknownPlaceWorld
 
+unknown_place_prefecture_tokyo_in_world:
+  prefecture: prefecture_tokyo_in_world
+  note: UnknownPlacePrefectureTokyoInWorld not in Japan
+
 unknown_place_unknown_prefecture_japan:
   prefecture: unknown_prefecture_japan
   note: MyTextUnknownPlaceJapan

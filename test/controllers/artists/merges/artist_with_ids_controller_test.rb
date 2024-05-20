@@ -35,8 +35,8 @@ class Artists::Merges::ArtistWithIdsControllerTest < ActionDispatch::Integration
     assert_equal Array, ary.class, 'ary='+ary.inspect
     assert_operator 0, :<, ary.size, # ["Madonna [en] [ID=202458275]", "John Lennon [en] [ID=991327290]"]
     assert_match(@re_lennon, ary.sort[0], "Lennon should match but ary="+ary.inspect)
-    assert_match(/ \[en\] /, ary[0])
-    assert_match(/ \[ID=\d+\]/, ary[0])
+    assert_match(/ \[en\] /, ary.sort[0], "ary="+ary.sort.inspect)
+    assert_match(/ \[ID=\d+\]/, ary.sort[0])
   #end
 
   #test "should get index even for new/edit paths" do

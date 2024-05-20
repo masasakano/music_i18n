@@ -38,8 +38,8 @@ class PlayRoleTest < ActiveSupport::TestCase
     mdl = PlayRole.new(mname: "naiyo", weight: mdl0.weight)
     refute mdl.save
 
-    assert PlayRole.unknown.unknown?
-    assert_equal PlayRole::UNKNOWN_TITLES['en'][1], PlayRole.unknown.alt_title(langcode: :en), "WARNING: This for some reason someitmes fails as a result of the alt_title of being nil.... PlayRole.unknown="+PlayRole.unknown.inspect
+    assert((puk=PlayRole.unknown).unknown?)
+    assert_equal PlayRole::UNKNOWN_TITLES['en'][1], puk.alt_title(langcode: :en), "WARNING: This for some reason someitmes fails as a result of the alt_title of being nil.... PlayRole.unknown="+puk.inspect+puk.best_translations["en"].inspect
 
     ## checking fixtures
     tra = translations(:play_role_singer_en)

@@ -33,7 +33,7 @@
 #  fk_rails_...  (place_id => places.id) ON DELETE => nullify
 #
 
-# All unknown ones:
+# All unknown ones: evit_ev_evgr_unknown evit_ev_evgr_single_streets evit_ev_evgr_harami_concerts evit_ev_evgr_live_streamings etc
 <% SeedsEventGroup::SEED_DATA.map{|ev| [ev[:key], ev]}.to_h.each_pair do |ekey, edata| %>
 evit_ev_evgr_<%= ekey %>:
   machine_title: <%= EventItem.unknown_machine_title_prefix_postfix(nil, artit: [Event::UNKNOWN_TITLES[:en], Seeds::Common.yaml_title(edata[:en], :title)]).join("") %>
@@ -49,7 +49,7 @@ evit_ev_evgr_<%= ekey %>:
   note: EventItemEventGroup<%= ekey.to_s.camelize %>"
 <% end %>
 
-#evit_ev_unknown:
+#evit_ev_evgr_unknown:
 #  machine_title: EventItem Unknown
 #  start_time:     <%= TimeAux::DEF_FIRST_DATE_TIME %>
 #  start_time_err: <%= TimeAux::MAX_ERROR %>
@@ -96,6 +96,15 @@ evit_ev_harami_lucky2023_unknown:
   event: ev_harami_lucky2023
   place: unknown_place_shimane_japan
   note: EventItemEvent_ev_harami_lucky2023
+
+evit_ev_harami_jp2023s_shimane_unknown:
+  machine_title: UnknownEventItem_Shimane_in_HARAMIchan_Tour_2023_<_HARAMIchan_47_Prefecture_Piano_Tour_2023
+  start_time: <%= Date.new(2023, 4).to_time %>
+  start_time_err: 2000
+  publish_date: <%= Date.new(2023, 6, 10).to_time %>
+  event: ev_harami_jp2023s_shimane
+  place: unknown_place_shimane_japan
+  note: EventItemEvent_harami_jp2023s_shimaneUnknown
 
 evit_1_harami_budokan2022_soiree:
   machine_title: HARAMIchan_Budokan_2022_soiree

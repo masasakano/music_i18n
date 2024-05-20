@@ -6,7 +6,7 @@ require(Rails.root.to_s+"/db/seeds/play_role.rb")
 class SeedsPlayRoleTest < ActiveSupport::TestCase
   setup do
     nt_be4 = Translation.count
-    [Harami1129, HaramiVid, EventItem, PlayRole].each do |eklass|
+    [ArtistMusicPlay, Harami1129, HaramiVid, EventItem, PlayRole].each do |eklass|
       eklass.destroy_all
     end
     nt_aft = Translation.count

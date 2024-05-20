@@ -81,7 +81,7 @@ harami_vid5:
   uri_playlist_ja: 
   uri_playlist_en: 
   channel: 
-  note: HaramiVid5 for testing seeds
+  note: HaramiVid5 for testing seeds with no HaramiVidEventItemAssoc or channel
 
 harami_vid_ihojin1:
   release_date: 2022-01-07
@@ -92,7 +92,7 @@ harami_vid_ihojin1:
   uri_playlist_ja: 
   uri_playlist_en: 
   channel: channel_haramichan_youtube_main
-  note: HaramiVidIhojin1
+  note: HaramiVidIhojin1 with two HaramiVidEventItemAssocs
 
 harami_vid_50anni:
   release_date: 

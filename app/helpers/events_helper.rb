@@ -4,7 +4,12 @@ module EventsHelper
     rela = rela.all if !rela.respond_to? :map
     rela.map{|i|
       evt_tit = i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)
+begin      
       grp_tit = i.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)
+rescue
+  print "DEBUG:helper1234: ev="; p [i, i.event_group]
+  raise
+end
       [sprintf("%s [%s]", evt_tit, grp_tit), i.id]
     }
   end

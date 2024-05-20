@@ -248,6 +248,20 @@ unknown_place_unknown_prefecture_world_en:
   update_user_id: 
   note: UnknownPlaceUnknownPrefectureWorldEn
 
+unknown_place_prefecture_tokyo_in_world_en:
+  translatable: unknown_place_prefecture_tokyo_in_world (Place)
+  langcode: en
+  title: UnknownPlace
+  weight: 0
+  note: UnknownPlaceUnknownPrefTokyoInWorldEn
+
+unknown_place_prefecture_tokyo_in_world_ja:
+  translatable: unknown_place_prefecture_tokyo_in_world (Place)
+  langcode: ja
+  title: どこかの場所
+  weight: 0
+  note: UnknownPlaceUnknownPrefTokyoInWorldJa
+
 unknown_place_unknown_prefecture_world_ja:
   translatable: unknown_place_unknown_prefecture_world
   translatable_type: Place
@@ -916,6 +930,7 @@ music1_en:
   create_user_id: 1
   update_user_id: 1
   note: Music1En
+  # DO NOT add a French Translation for "music1" or change is_orig because they are assumed so in base_with_translation_test.rb ("title aka the private method get_a_title")
 
 music2_en:
   translatable: music2
@@ -948,6 +963,26 @@ music3_en:
   create_user_id: 1
   update_user_id: 1
   note: Music3En
+
+music99_en:
+  translatable: music99 (Music)
+  langcode: en
+  title: Give Peace a Chance Music99
+  is_orig: true
+  weight: 0
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: Music99En
+
+music999_en:
+  translatable: music999 (Music)
+  langcode: en
+  title: Give Peace a Chance Music999
+  is_orig: true
+  weight: 0
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: Music999En
 
 music_how_en:
   translatable: music_how
@@ -1181,6 +1216,16 @@ music_ihojin2_en4:
   update_user: user_translator2
   note: MusicIhojin2En4-Translator
 
+music_robinson_en:
+  translatable: music_robinson (Music)
+  langcode: en
+  title: Robinson
+  is_orig: true
+  weight: 100
+  create_user: user_translator2
+  update_user: user_translator2
+  note: MusicRobingonEn
+
 music_light_en:
   translatable: music_light
   translatable_type: Music
@@ -1217,7 +1262,7 @@ artist_unknown_en:
 artist_unknown_ja:
   translatable: artist_unknown
   translatable_type: Artist
-  langcode: en
+  langcode: ja
   title: "不明の音楽家"
   alt_title:
   ruby: "フメイノオンガクカ"
@@ -1276,7 +1321,28 @@ artist2_en:
   weight: 0
   create_user_id: 1
   update_user_id: 1
-  note: Artist2En
+  note: Artist2En John Lennon
+
+artist2_ja:
+  translatable: artist2 (Artist)
+  langcode: ja
+  title: ジョン・レノン
+  romaji: jon renon
+  is_orig: false
+  weight: 100
+  create_user_id: 1
+  update_user_id: 1
+  note: Artist2Ja John Lennon
+
+artist2_ja2:
+  translatable: artist2 (Artist)
+  langcode: ja
+  title: レノンとヨーコ
+  is_orig: false
+  weight: 200
+  create_user_id: 1
+  update_user_id: 1
+  note: Artist2Ja2 John Lennon and Yoko
 
 artist3_ja:
   translatable: artist3
@@ -1309,6 +1375,22 @@ artist3_en:
   create_user_id: 
   update_user_id: 
   note: Artist3EnAkari
+
+artist4_en:
+  translatable: artist4 (Artist)
+  langcode: en
+  title: Artist No 4
+  is_orig: true
+  weight: 10
+  note: Artist4En
+
+artist99_en:
+  translatable: artist99 (Artist)
+  langcode: en
+  title: Artist No 99
+  is_orig: true
+  weight: 10
+  note: Artist99En
 
 artist_rcsuccession_ja:
   translatable: artist_rcsuccession
@@ -1454,10 +1536,20 @@ artist_saki_kubota_en2:
   langcode: en
   title: "Saaaki Kubota"
   is_orig: false
-  weight: 100
+  weight: 101
   create_user_id: user_translator2
   update_user_id: user_translator2
   note: Artist-SakiKubotaEn2-Saaki
+
+artist_spitz_en:
+  translatable: artist_spitz (Artist)
+  langcode: en
+  title: Spitz
+  is_orig: true
+  weight: 100
+  create_user_id: user_translator2
+  update_user_id: user_translator2
+  note: Artist-SpitzEn
 
 artist_zombies_en1:
   translatable: artist_zombies
@@ -1513,11 +1605,6 @@ harami_vid2_ja:
   translatable_type: HaramiVid
   langcode: ja
   title: ハラミのテストVideo 2
-  alt_title: 
-  ruby: 
-  alt_ruby: 
-  romaji: 
-  alt_romaji: 
   is_orig: true
   weight: 0
   create_user: user_two
@@ -1529,11 +1616,6 @@ harami_vid3_ja:
   translatable_type: HaramiVid
   langcode: ja
   title: ハラミのテストVideo 3
-  alt_title: 
-  ruby: 
-  alt_ruby: 
-  romaji: 
-  alt_romaji: 
   is_orig: true
   weight: 0
   create_user: user_two
@@ -1541,7 +1623,7 @@ harami_vid3_ja:
   note: HaramiVid3Ja
 
 harami_vid4_ja:
-  translatable: harami_vid3 (HaramiVid)
+  translatable: harami_vid4 (HaramiVid)
   langcode: ja
   title: ハラミのテストVideo 4
   is_orig: true
@@ -1549,6 +1631,16 @@ harami_vid4_ja:
   create_user: user_two
   update_user: user_moderator
   note: HaramiVid4Ja
+
+harami_vid5_ja:
+  translatable: harami_vid5 (HaramiVid)
+  langcode: ja
+  title: ハラミのテストVideo 5
+  is_orig: true
+  weight: 0
+  create_user: user_two
+  update_user: user_moderator
+  note: HaramiVid5Ja
 
 harami_vid_ihojin1_ja:
   translatable: harami_vid_ihojin1
@@ -1616,7 +1708,7 @@ harami_vid_one_ja:
 
 harami_vid_two_ja:
   translatable: two (HaramiVid)
-  langcode: en
+  langcode: ja
   title: Number Two Vid Ja 2つ目
   is_orig: true
   weight: 100
@@ -1633,6 +1725,27 @@ harami_vid_two_en:
   create_user: user_two
   update_user: user_moderator
   note: HaramiVidTwoEn
+
+engage_how1_en:
+  translatable: engage_how_1 (EngageHow)
+  langcode: en
+  title: EngageHow1 tmp
+  weight: 0
+  note: EngageHow1En
+
+engage_how2_en:
+  translatable: engage_how_2 (EngageHow)
+  langcode: en
+  title: EngageHow2 tmp
+  weight: 0
+  note: EngageHow2En
+
+engage_how3_en:
+  translatable: engage_how_3 (EngageHow)
+  langcode: en
+  title: EngageHow3 tmp
+  weight: 0
+  note: EngageHow3En
 
 engage_how_unknown_en:
   translatable: engage_how_unknown
@@ -2228,15 +2341,15 @@ evgr_lucky2023own_en:
   update_user_id: 
   note: EventGroupLucky23En
 
-evgr_streetpiano_en:
-  translatable: evgr_streetpiano
-  translatable_type: EventGroup
-  langcode: en
-  title: Streetpiano
-  weight: 100
-  create_user_id: user_moderator
-  update_user_id: 
-  note: EventGroup_evgr_streetpiano_en
+#evgr_streetpiano_en:
+#  translatable: evgr_streetpiano
+#  translatable_type: EventGroup
+#  langcode: en
+#  title: Streetpiano
+#  weight: 100
+#  create_user_id: user_moderator
+#  update_user_id: 
+#  note: EventGroup_evgr_streetpiano_en
 
 <% SeedsEventGroup::SEED_DATA.map{|ev| [ev[:key], ev]}.to_h.each_pair do |ekey, edata| %>
  <% %i(en ja fr).each do |langcode| %>
@@ -2283,6 +2396,15 @@ ev_harami_lucky2023_en:
   create_user_id: user_moderator
   update_user_id: 
   note: EventLucky23En
+
+ev_harami_jp2023s_shimane_en:
+  translatable: ev_harami_jp2023s_shimane (Event)
+  langcode: en
+  title: Shimane in HARAMIchan Tour 2023
+  weight: 100
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: EventHarami2023ShimaneEn
 
 ev_harami_budokan2022_soiree_en:
   translatable: ev_harami_budokan2022_soiree (Event)
@@ -2348,6 +2470,26 @@ channel_platform_oricon_ja:
   update_user_id: translator
   note: ChannelPlatformOricon
 
+channel_platform_one_en:
+  translatable: one (ChannelPlatform)
+  langcode: en
+  title: ChannelPlatformOne
+  is_orig: true
+  weight: 0
+  create_user_id: user_translator
+  update_user_id: user_translator
+  note: ChannelPlatformOne
+
+channel_platform_two_en:
+  translatable: two (ChannelPlatform)
+  langcode: en
+  title: ChannelPlatformTwo
+  is_orig: true
+  weight: 0
+  create_user_id: user_translator
+  update_user_id: user_translator
+  note: ChannelPlatformTwo
+
 <% klass_str = "ChannelType" %>
 <% (Seeds.const_get(klass_str+"s"))::SEED_DATA.each_pair do |ekey, edata| %>
  <% %i(en ja fr).each do |langcode| %>
@@ -2373,6 +2515,26 @@ channel_type_dictionary_ja:
   create_user_id: user_moderator_general_ja
   update_user_id: user_moderator_general_ja
   note: ChannelTypeOricon
+
+channel_type_one_en:
+  translatable: one (ChannelType)
+  langcode: en
+  title: ChannelTypeOne
+  is_orig: true
+  weight: 0
+  create_user_id: user_translator
+  update_user_id: user_translator
+  note: ChannelTypeOne
+
+channel_type_two_en:
+  translatable: two (ChannelType)
+  langcode: en
+  title: ChannelTypeTwo
+  is_orig: true
+  weight: 0
+  create_user_id: user_translator
+  update_user_id: user_translator
+  note: ChannelTypeTwo
 
 # skip those with themselves=true as their Translations have to be exact.
 <% klass_str = "ChannelOwner" %>
@@ -2455,6 +2617,16 @@ channel_owner_saki_kubota_ja:
   note: ChannelOwnerSakiKubotaJa
   # Identical to Artist: artist_saki_kubota
 
+channel_owner_saki_kubota_en1:
+  translatable: channel_owner_saki_kubota (ChannelOwner)
+  langcode: en
+  title: "Saki Kubota"
+  is_orig: false
+  weight: 100
+  create_user_id: user_translator
+  update_user_id: user_translator
+  note: ChannelOwnerSakiKubotaEn1
+
 channel_owner_one_en:
   translatable: one (ChannelOwner)
   langcode: en
@@ -2490,5 +2662,26 @@ channel_owner_two_en:
   note: <%= klass_str %><%= ekey.to_s.camelize %><%= langcode.to_s.capitalize %>
  <% end %>
 <% end %>
+
+channel_one_en:
+  translatable: one (Channel)
+  langcode: en
+  title: ChannelOne
+  is_orig: true
+  weight: 0
+  create_user_id: user_translator
+  update_user_id: user_translator
+  note: ChannelOne
+
+
+channel_two_en:
+  translatable: two (Channel)
+  langcode: en
+  title: ChannelTwo
+  is_orig: true
+  weight: 0
+  create_user_id: user_translator
+  update_user_id: user_translator
+  note: ChannelTwo
 
 

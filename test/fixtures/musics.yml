@@ -43,25 +43,25 @@ music99:
   year: 99
   place: unknown_place_unknown_prefecture_uk
   genre: genre_unknown
-  note: Music99
+  note: Music99 with no artists no harami_vids
 
 music999:
   year: 
   place: unknown_place_unknown_prefecture_world
   genre: genre_unknown
-  note: in UnknownPlace
+  note: Music999 in UnknownPlace with no artists no harami_vids
 
 music_unknown:
   year: 
   place: unknown_place_unknown_prefecture_world
   genre: genre_unknown
-  note: MusicUnknown
+  note: MusicUnknown with no artists no harami_vids
 
 music_how:
   year: 1971
   place: unknown_place_unknown_prefecture_world
   genre: genre_pop
-  note: MusicHow
+  note: MusicHow with no harami_vids
 
 music_story:
   year: 
@@ -73,7 +73,7 @@ music_kampai:
   year: 
   place: unknown_place_unknown_prefecture_japan
   genre: genre_pop
-  note: MusicKampai
+  note: MusicKampai with no artists no harami_vids
 
 music_ihojin1:
   year: 1969
@@ -87,9 +87,15 @@ music_ihojin2:
   genre: genre_pop
   note: MusicIhojin2
 
+music_robinson:
+  year: 
+  place: unknown_place_kagawa_japan
+  genre: genre_pop
+  note: MusicRobinson
+
 music_light:
   year: 1994
   place: unknown_place_unknown_prefecture_uk
   genre: genre_pop
-  note: MusicLight
+  note: MusicLight with no harami_vids
 

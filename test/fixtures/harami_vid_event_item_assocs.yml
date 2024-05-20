@@ -43,21 +43,21 @@ hvei_harami_vid1_evit_1_harami_lucky2023:
 
 hvei_harami_vid2_evit_unknown_harami_lucky2023:
   harami_vid: harami_vid2
-  event_item: evit_ev_unknown
+  event_item: evit_ev_evgr_unknown
   timing:
-  note: HveiHaramiVid1EvitUnknownHaramiLucky2023
+  note: HveiHaramiVid2EvitUnknownHaramiLucky2023
 
 hvei_harami_vid3_evit_unknown_harami_lucky2023:
   harami_vid: harami_vid3
-  event_item: evit_ev_unknown
+  event_item: evit_ev_evgr_unknown
   timing:
-  note: HveiHaramiVid1EvitUnknownHaramiLucky2023
+  note: HveiHaramiVid3EvitUnknownHaramiLucky2023
 
 hvei_harami_vid4_evit_unknown_harami_lucky2023:
   harami_vid: harami_vid4
-  event_item: evit_ev_unknown
+  event_item: evit_ev_evgr_unknown
   timing:
-  note: HveiHaramiVid1EvitUnknownHaramiLucky2023
+  note: HveiHaramiVid4EvitUnknownHaramiLucky2023
 
 hvei_harami_vid_ihojin1_evit_1_harami_lucky2023:
   harami_vid: harami_vid_ihojin1
@@ -70,4 +70,16 @@ hvei_harami_vid_ihojin1_evit_2_harami_lucky2023:
   event_item: evit_2_harami_lucky2023
   timing:
   note: HveiHaramiVidIhojin1Evit2HaramiLucky2023
+
+hvei_harami_vid_50anni_evit_ev_evgr_live_streamings:
+  harami_vid: harami_vid_50anni
+  event_item: evit_ev_evgr_live_streamings
+  timing:
+  note: HveiHaramiVid50anniEvitEvEvgrLiveStreamings
+
+hvei_harami_vid_paris1_evit_ev_evgr_single_streets:
+  harami_vid: harami_vid_paris1
+  event_item: evit_ev_evgr_single_streets
+  timing:
+  note: HveiHaramiVidParis1EvitEvEvgrSingleStreets
 

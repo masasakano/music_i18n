@@ -25,6 +25,7 @@
 #  fk_rails_...  (place_id => places.id) ON DELETE => nullify
 #
 
+# key examples: evgr_unknown evgr_single_streets evgr_harami_jp2023s evgr_harami_concerts
 <% SeedsEventGroup::SEED_DATA.map{|ev| [ev[:key], ev]}.to_h.each_pair do |ekey, edata| %>
 evgr_<%= ekey %>:
   start_date:     <%= edata[:start_date] %>
@@ -47,12 +48,12 @@ evgr_lucky2023:
   place: unknown_place_shimane_japan
   note: MyText_evgr_harami2023
 
-evgr_streetpiano:
-  order_no: 
-  start_date: 
-  start_date_err: 
-  end_date: 
-  end_date_err:
-  place: 
-  note: MyText_evgr_streetpiano - no Translation yet
-  # place is undefined, which should never happen via UI but may happen with direct manipulation like the Place is destroyed (b/c "on_delete: nullify" in DB). 
+#evgr_streetpiano:
+#  order_no: 
+#  start_date: 
+#  start_date_err: 
+#  end_date: 
+#  end_date_err:
+#  place: 
+#  note: MyText_evgr_streetpiano - no Translation yet
+#  # place is undefined, which should never happen via UI but may happen with direct manipulation like the Place is destroyed (b/c "on_delete: nullify" in DB). 

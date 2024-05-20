@@ -36,7 +36,8 @@ class ChannelOwner < BaseWithTranslation
   # defines +self.class.primary+
   include ModulePrimaryArtist
 
-  attr_accessor :artist_with_id
+  PARAMS_KEY_AC = BaseMerges::BaseWithIdsController.formid_autocomplete_with_id(Artist).to_sym
+  attr_accessor PARAMS_KEY_AC  # :artist_with_id
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []
@@ -50,13 +51,16 @@ class ChannelOwner < BaseWithTranslation
 
   # NOTE: see below validate_translation_callback
 
-  validates_presence_of :artist_id, if: :themselves, message: "can't be blank when 'themselves?' is checked."
+  validates_presence_of :artist_id, if: :themselves, message: " can't be blank when 'themselves?' is checked."
 
   # Only 1 ChannelOwner has themselves==true per the parent Artist.
   validate :sole_themselves_per_artist?
 
   # If themselves==true, a valid unsaved_translations must be supplied.
-  validate :presence_of_unsaved_translations, if: :themselves  # if: [:themselves, :artist_id]  # not works?
+  validate :presence_of_valid_translations, if: :themselves  # if: [:themselves, :artist_id]  # not works?
+
+  # Translation has to be unique per "themselves"
+  validate :combination_themselves_unique_translation
 
   before_create     :set_create_user       # This always sets non-nil weight. defined in /app/models/concerns/module_whodunnit.rb
   before_save       :set_update_user       # defined in /app/models/concerns/module_whodunnit.rb
@@ -154,17 +158,19 @@ class ChannelOwner < BaseWithTranslation
 
   # Custom validation
   #
-  # If themselves==true, a valid unsaved_translations, which are basically
+  # If themselves==true, a valid (unsaved_)translations, which are basically
   # identical to those of the parent Artist for all the languages, must be supplied.
-  def presence_of_unsaved_translations
+  def presence_of_valid_translations
     return if !artist
     msg_trans = (new_record? ? "unsaved_" : "")+"translations"
+    artrans = (new_record? ? unsaved_translations : translations)
     all_lcodes = []
     artist.best_translations.each_pair do |langcode, tra|
       all_lcodes << langcode
-      cands = (new_record? ? unsaved_translations : translations).find_all{|et| langcode == et.langcode}
+      cands = artrans.find_all{|et| langcode == et.langcode}
       if 1 != cands.size
-        errors.add :base, "must have exact #{msg_trans} corresponding to the parent Artist but has zero (or multiple) Translations for language #{langcode.inspect}"
+        s_num = ((0 == cands.size) ? "zero" : "multiple")
+        errors.add :base, "must have exact #{msg_trans} corresponding to the parent Artist but has #{s_num} Translations for language #{langcode.inspect}"
         return
       end
 
@@ -174,12 +180,32 @@ class ChannelOwner < BaseWithTranslation
       end
     end
 
-    if all_lcodes.sort.map(&:to_s) != (new_record? ? unsaved_translations : translations).map{|i| i.langcode}.sort.map(&:to_s)
+    if all_lcodes.sort.map(&:to_s) != artrans.map{|i| i.langcode}.sort.map(&:to_s)
       errors.add :base, "has the #{msg_trans} with a langcode absent in the parent Artist's counterparts"
       return
     end
   end
-  private :presence_of_unsaved_translations
+  private :presence_of_valid_translations
+
+  # This is relevant on update, when themselves is changed (because other callbacks take care of create)
+  def combination_themselves_unique_translation
+    msg2add =
+      if themselves_changed?
+        " So, you cannot alter 'themselves?' status - you may consider merging ChannelOwners or associate this to another Artist first."
+      else
+        " So, you may associate this ChannelOwner to another Artist."
+      end
+    col = (themselves_changed? ? :themselves : PARAMS_KEY_AC)
+
+    translations.each do |trans|
+      armsg = validate_translation_callback(trans)
+      next if armsg.empty?
+      armsg.each do |em|
+        errors.add col, em+msg2add
+      end
+    end
+  end
+  private :combination_themselves_unique_translation
 
   # Validates translation immediately before it is added.
   #
@@ -201,7 +227,11 @@ class ChannelOwner < BaseWithTranslation
   # @param record [Translation]
   # @return [Array] of Error messages, or empty Array if everything passes
   def validate_translation_callback(trans)
-    arret = validate_translation_neither_title_nor_alt_exist(trans)  # defined in BaseWithTranslation
+    #arret = validate_translation_neither_title_nor_alt_exist(trans)  # defined in BaseWithTranslation
+    arret = []
+    if find_all_same_trans(trans).exists?
+      return [" ChannelOnwer with an equivalent Translation "+(themselves ? "for the same Artist" : "among those related to no Artists")+" already exists (language=#{trans.langcode})."]
+    end
 
     if !themselves 
       hstmp = %w(title alt_title langcode).map{ |ek|
@@ -245,6 +275,23 @@ class ChannelOwner < BaseWithTranslation
     end
 
     return arret
+  end
+
+  # Find all ChannelOwner with the same themselves and one of translations  (no distinct is applied)
+  #
+  # This also checks with self's other translations.
+  #
+  # @param trans [Translation]
+  # @return [ActiveRecord::Relation]
+  def find_all_same_trans(trans)
+    base = self.class.joins(:translations).where(themselves: themselves).where.not("translations.id" => trans.id)
+    rela = base
+    cols = %w(langcode title alt_title)
+    hs = trans.attributes.slice(*(cols))
+    hs1 = hs.map{|ek, ev| ["translations."+ek, ev]}.to_h
+    hs2 = hs.merge({"title" => hs["alt_title"], "alt_title" => hs["title"]}).map{|ek, ev| ["translations."+ek, ev]}.to_h  # title <=> alt_title
+    rela = rela.where(hs1).or(base.where(hs2))
+    rela
   end
 end
 

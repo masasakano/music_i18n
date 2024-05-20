@@ -11,22 +11,12 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
 
   test "title aka the private method get_a_title" do
     # Gets Music with some translations with "title" for the original-language but no French translation
-    music = nil
-    Music.all.each do |mu|
-      lcs = mu.translations.pluck(:langcode)
-      next if lcs.empty? || lcs.include?("fr")
-      tran = mu.orig_translation
-      next if tran.blank? || tran.title.blank?
-      music = mu
-      break
-    end
-    raise "should found one at least." if !music
-
+    music = musics(:music1)
     assert_nil music.title(langcode: "fr", lang_fallback: false, str_fallback: nil)
     assert_nil music.title(langcode: "fr", lang_fallback: false)  # Default for lang_fallback
     assert     music.title(langcode: "fr", lang_fallback: true)
     assert_equal "Nothing", music.title(langcode: "fr", lang_fallback: false, str_fallback: "Nothing")
-    assert_includes         music.title(langcode: "fr", lang_fallback: true,  str_fallback: "Nothing"), "Madonna"
+    assert_includes         music.title(langcode: "fr", lang_fallback: true,  str_fallback: "Nothing"), "Madonna", "music.translations=#{music.translations.inspect}"
     assert_includes         music.title(langcode: "fr",                       str_fallback: "Nothing"), "Madonna"
 
     # {#titles} are separately implemented.
@@ -417,13 +407,13 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
 
     mu_en1 = musics(:music1)
     hvs = HaramiVid.select_by_associated_titles(music_title: mu_en1.title)
-    assert_equal 1, hvs.count
+    assert_equal 2, hvs.count, "HVids=#{hvs.inspect}"
     assert_equal harami_vids(:harami_vid1), hvs.first
 
     # tests of artists, which is in (many -> many) multi-layered relation
     art_en1 = artists(:artist1)
     hvs = HaramiVid.select_by_associated_titles(artist_title: art_en1.title)
-    assert_equal 1, hvs.count
+    assert_equal 2, hvs.count, "HVids=#{hvs.inspect}"
     assert_equal harami_vids(:harami_vid1), hvs.first
 
   end

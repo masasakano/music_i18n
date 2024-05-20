@@ -116,6 +116,11 @@ artist_saki_kubota:
   birth_month: 9
   note: Artist-SakiKubota
 
+artist_spitz:
+  sex_id: 1
+  place: unknown_place_unknown_prefecture_japan
+  note: Artist-Spitz
+
 artist_proclaimers:
   sex_id: 9
   birth_year: 1983

@@ -115,6 +115,14 @@ engage_kubota_ihojin2_2:
   year: 1980
   note: Engage-Kubota-Ihojin2-Composer
 
+engage_spitz_robinson:
+  music: music_robinson
+  artist: artist_spitz
+  engage_how: engage_how_singer_original
+  contribution: 1.0
+  year: 
+  note: Engage-Spitz-Robinson-Singer
+
 engage_proclaimers_light:
   music: music_light
   artist: artist_proclaimers
