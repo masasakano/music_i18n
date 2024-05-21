@@ -85,6 +85,10 @@ class ArtistsGrid < BaseGrid
     sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture[I18n.locale] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2]
   end
 
+  column(:channel_owner, header: Proc.new{I18n.t('ChannelOwner')}) do |record|
+    (co=record.channel_owner) ? ActionController::Base.helpers.link_to(I18n.t("ChannelOwner"), Rails.application.routes.url_helpers.channel_owner_url(co, only_path: true)) : ""
+  end
+
   %w(ja en).each do |elc|
     kwd = 'wiki_'+elc
     column(kwd, mandatory: false, order: false, header: Proc.new{I18n.t('tables.'+kwd)}) do |record|
@@ -118,9 +122,9 @@ class ArtistsGrid < BaseGrid
       ar.push link_to('Edit', edit_artist_path(record))
       if can?(:update, Artists::MergesController)
         ar.push ActionController::Base.helpers.link_to('Merge', artists_new_merges_path(record))
-        if can? :destroy, record
-          ar.push link_to('Destroy', artist_path(record), method: :delete, data: { confirm: (t('are_you_sure')+" "+t("are_you_sure.merge")).html_safe })
-        end
+        #if can? :destroy, record
+        #  ar.push link_to('Destroy', artist_path(record), method: :delete, data: { confirm: (t('are_you_sure')+" "+t("are_you_sure.merge")).html_safe })
+        #end
       end
     end
     ar.compact.join(' / ').html_safe

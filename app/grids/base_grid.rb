@@ -199,9 +199,10 @@ class BaseGrid
     # artit = record.translations_with_lang(langcode.to_s).pluck(col).flatten
     rela = record.translations_with_lang(langcode.to_s)
     artit = rela.pluck(col).flatten
+    artit.map{|tit| ERB::Util.html_escape(tit)}
     #artit[0] << is_orig_char if is_orig_char && rela[0] && rela[0].is_orig && current_user && current_user.editor? # Ability is not used as it would be too DB-heavy.
-    artit[0] << is_orig_char if is_orig_char && rela[0] && rela[0].is_orig && CURRENT_USER && CURRENT_USER.editor? # Ability is not used as it would be too DB-heavy.
-    artit.map{|tit| ERB::Util.html_escape(tit)}.join("<br>").html_safe
+    artit[0] << %q[<span title="]+I18n.t("datagrid.footnote.is_original")+%q[">]+ERB::Util.html_escape(is_orig_char)+%q[</span>] if is_orig_char && rela[0] && rela[0].is_orig && CURRENT_USER && CURRENT_USER.editor? # Ability is not used as it would be too DB-heavy.
+    artit.join("<br>").html_safe
   end
 
   # Returns the multi-HTML-line text to list (maybe all) Englisht translations of title and alt_title
@@ -213,12 +214,24 @@ class BaseGrid
   def self.html_title_alts(record, langcode: "en", is_orig_char: nil)
     rela = record.translations_with_lang(langcode.to_s)
     artit2 = rela.pluck(:title, :alt_title)
-    artit2[0][0] << is_orig_char if is_orig_char && rela[0] && rela[0].is_orig && CURRENT_USER && CURRENT_USER.editor?
+    artit2.map!{|ea| ea.map{|j| ERB::Util.html_escape(j)}}
+    artit2[0][0] << is_orig_helper_title(is_orig_char: is_orig_char) if is_orig_char && rela[0] && rela[0].is_orig
     artit2.map{|earow|
       s = sprintf('%s [%s]', *(earow.map{|i| i ? i : ''}))
-      s.sub!(%r@ +\[\]\z@, '')   # If NULL, nothing is displayed.
-      ERB::Util.html_escape(s)
+      s.sub(%r@ +\[\]\z@, '')   # If NULL, nothing is displayed.
     }.join("<br>").html_safe
+  end
+
+  # @return [String]
+  def self.is_orig_helper_title(is_orig_char: nil)
+    return "" if is_orig_char.blank? || !is_user_editor?  # Ability is not used as it would be too DB-heavy.
+    (%q[<span title="]+I18n.t("datagrid.footnote.is_original")+%q[">]+ERB::Util.html_escape(is_orig_char)+%q[</span>]).html_safe
+  end
+
+  # @return [String]
+  def self.is_user_editor?
+    @is_user_editor = CURRENT_USER && CURRENT_USER.editor? if @is_user_editor.nil?  # Ability is not used as it would be too DB-heavy.
+    @is_user_editor
   end
 end
 

@@ -20,6 +20,13 @@
     <dd><%= @artist.birthday_string %></dd>
   <dt title="Sex"><strong><%= t("Sex") %>:</strong></dt>
     <dd><%= @artist.sex.title langcode: I18n.locale, lang_fallback: true %></dd>
+  <dt title="ChannelOwner"><strong><%= t("ChannelOwner") %>:</strong></dt>
+    <dd>
+      <% if (owner=@artist.channel_owner) %>
+        <%= link_to t(:ChannelOwner), owner %>: 
+        <%= channels2displayed_list(owner.channels) %>  <%# defined in artists_helper.rb %>
+      <% end %>
+    </dd>
 
 <% %w(ja en).each do |lcode| %>
   <dt id="show_wikipedia_<%= lcode %>"><strong>Wikipedia <%= sprintf("[%s]", t("locale.capital."+lcode, default: lcode.upcase)) %>:</strong></dt>

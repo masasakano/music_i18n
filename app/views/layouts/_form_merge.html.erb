@@ -246,6 +246,36 @@
     </tr>
   <% end %> <%# -- else %> <%# -- if is_music %>
 
+  <% if !is_music && models[0].respond_to?(:channel_owner) %> <%# =========== Artists only ============ %>
+    <%#  ----------- ChannelOwner ------------ %>
+    <tr id="merge_edit_channel_owners"><th title="<%= t('merges.edit.merge_always', default: 'This row is automatically merged.') %>"><%= t(:ChannelOwner) %></th>
+      <% models[0..1].each_with_index do |em, i| %>
+      <td title="<%= t('merges.edit.merge_always') %>">
+        <% if (owner=em.channel_owner) %>
+          <%= link_to t(:ChannelOwner), owner %>: 
+          <%= channels2displayed_list(owner.channels) %>  <%# defined in artists_helper.rb %>
+        <% end %>
+      </td>
+      <% end %>
+      <td class="merged_column" id="merged_to_channel_owner"><%= channels2displayed_list(merged_model.hsmerged["channel"]["remained"]) if merged_model.hsmerged["channel"] %>
+      </td>
+    </tr>
+  <% end %> <%# if !is_music %>
+
+    <%#  ----------- ArtistMusicPlays ------------ %>
+    <tr id="merge_edit_artist_music_plays"><th title="<%= t('merges.edit.merge_always', default: 'This row is automatically merged.') %>">Playing</th>
+      <% metho = ((Music == models[0].class) ? "artist" : "music") %>
+      <% models[0..1].each_with_index do |em, i| %>
+      <td title="<%= t('merges.edit.merge_always') %>">
+        <% ary = em.artist_music_plays.map{|em| [em.event_item.event, sprintf("%s (%s)", em.send(metho).title_or_alt(prefer_alt: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true), em.event_item.start_time.strftime("%Y-%m"))]} %>
+        <%= ary.compact.map{|ea| link_to(ea[1], event_path(ea[0]))}.join(", ").html_safe %>
+      </td>
+      <% end %>
+      <td class="merged_column" id="merged_to_artist_music_play"><% ary = merged_model.hsmerged[:artist_music_play][:remained].map{|em| [em.event_item.event, sprintf("%s (%s)", em.send(metho).title_or_alt(prefer_alt: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true), em.event_item.start_time.strftime("%Y-%m"))]} %>
+        <%= ary.compact.map(&:last).join(", ").html_safe %>
+      </td>
+    </tr>
+
     <%#  ----------- HaramiVids ------------ %>
     <tr id="merge_edit_harami_vids"><th title="<%= t('merges.edit.merge_always', default: 'This row is automatically merged.') %>">HaramiVids</th>
       <% all_hvs = [] %>

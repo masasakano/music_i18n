@@ -3562,6 +3562,7 @@ tra_orig.save!
       # Case 3
       _merge_channel_owners_set_artist(ary.first)
       hsret[:channel_owner][:remained] << ary.first
+      hsret[:channel][:remained].concat ary.first.channels.to_a
       return hsret
     else
       # Case 4
@@ -3727,7 +3728,8 @@ tra_orig.save!
     unicols = allcols - [mykeyid]  # columns except for self (like music_id) for use of identifying the counterpart
     return if !allcols.include? mykeyid  # self (nor other) is not one of the five Classes of ArtistMusicPlay belongs_to
 
-    hsret = {remained: [], destroy: []}.with_indifferent_access
+    # changed_in_remained: Among "remained", Records that changed from an from-merge to to-merge references
+    hsret = {remained: [], changed_in_remained: [], destroy: []}.with_indifferent_access
 
     amps         = [self, other].map{|emdl| [emdl, emdl.artist_music_plays]}.to_h
     amps_unicol_ids = [self, other].map{|emdl| [emdl, emdl.artist_music_plays.pluck("artist_music_plays.id", *unicols).map{|i| [i[0], i[1..-1]]}]}.to_h
@@ -3759,6 +3761,7 @@ tra_orig.save!
         emdl.send(mykey+"=", self)  # belongs_to (e.g., music_id) is now updated to self (Music etc)
         emdl.save!
         hsret[:remained] << emdl
+        hsret[:changed_in_remained] << emdl
       else
         raise
       end

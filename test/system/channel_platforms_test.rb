@@ -88,7 +88,10 @@ class ChannelPlatformsTest < ApplicationSystemTestCase
     assert_match(/\AChannel\s*Platform:/, page.find("h1").text)
     assert_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']"
 
-    click_on "Destroy", match: :first
+    find(:xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']").click
+#    accept_alert do
+#      click_on "Destroy", match: :first  # not work as "Destroy" is now in Translation table, too.
+#    end
 
     assert_text "ChannelPlatform was successfully destroyed"
 

@@ -79,7 +79,8 @@ class InstrumentsTest < ApplicationSystemTestCase
     assert_match(/\AInstrument:/, page.find("h1").text)
     assert_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']"
 
-    click_on "Destroy", match: :first
+    find(:xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']").click
+    # click_on "Destroy", match: :first  # not work as "Destroy" is now in Translation table, too.
 
     assert_text "Instrument was successfully destroyed"
 

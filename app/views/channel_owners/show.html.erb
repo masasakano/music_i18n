@@ -1,5 +1,5 @@
 
-<h1>Channel Owner: <%= @channel_owner.title_or_alt(langcode: I18n.locale) %></h1>
+<h1>Channel Owner: <%= coname=@channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true) %></h1>
 
 <hr>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: @channel_owner} %>
@@ -16,6 +16,32 @@
   <%= button_to "Destroy", @channel_owner, method: :delete, data: { confirm: t('are_you_sure') } %>
     <% end %>
 </div>
+
+<hr>
+
+<section id="sec_channel_by">
+<h2>Channels by <%= coname %></h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Channel</th>
+      <th>Platform</th>
+      <th>Type</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @channel_owner.channels.distinct.each do |channel| %>
+      <tr>
+        <td><%= link_to channel.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true), channel %></td>
+        <td><%= channel.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true) %></td>
+        <td><%= channel.channel_type.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true) %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+</section>
 
 <hr>
   <%= link_to t("layouts.back_to_index"), channel_owners_path %>

@@ -120,7 +120,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_equal vid_prms[:engage_year],         engage.year
     assert_equal vid_prms[:engage_contribution], engage.contribution
 
-    assert_equal vid_prms[:timing].to_s,       find(selector_tr+"td.item_timing").text
+    assert_equal "06:10",       find(selector_tr+"td.item_timing").text  #  vid_prms[:timing].to_s == "370"  => 06:10
 
     find("#main_edit_button").click
     #click_on "Edit"  # => Ambiguous match, found 3 elements matching visible link or button "Edit"
@@ -135,7 +135,6 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
     uncheck 'UnknownEventItem'  # should be invalid because it is an "unknown" EventItem and also it has an Artist
     select 'street playing', from: 'Additional Event', match: :first  # in the same way
-take_screenshot
 
     fill_autocomplete('Music name', with: vid_prms[:music_title][0..-2], select: vid_prms[:music_title][0..-2])  # same song; defined in test_helper.rb
     fill_autocomplete('featuring Artist', with: 'Proclai', select: 'Proclaimers')  # defined in test_helper.rb
@@ -147,7 +146,6 @@ take_screenshot
     ### Checking flash messages
     assert_match(/\bEvent.* must be checked\b/, find(css_for_flash(:alert, category: :error_explanation)).text)
     check 'UnknownEventItem'  # In fact, this should be forcibly checked again in default when an error takes you back to the screen after unchecked.
-take_screenshot
     click_on "Update Harami vid", match: :first
 
     assert_match(/HaramiVid was successfully updated\b/, find(css_for_flash(:success)).text)  # defined in test_helper.rb

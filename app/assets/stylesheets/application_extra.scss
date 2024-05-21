@@ -139,6 +139,9 @@ table {
   td.checkbox_destroy {
       text-align: center;  /* not work (with Firefox at least) */
   }
+  td.trans_destroy {
+      padding-left: 1em;
+  }
 }
 
 table.datagrid {

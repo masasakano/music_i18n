@@ -61,7 +61,9 @@ class ChannelsTest < ApplicationSystemTestCase
     page.find('input#channel_title').fill_in with: 'Tekitoh'  # This is unique!
 
     fill_in "Channel Full Title - romaji", with: "dummy"  # This should be ignored.
-    select "HARAMIchan", from: "Channel owner"  # If unknown, "Channel is already taken".  TODO: Test it?
+#puts  page.find('select#channel_channel_owner_id')['outerHTML']
+    #select "HARAMIchan", from: "Channel owner"  # If unknown, "Channel is already taken".  TODO: Test it?
+    select "ハラミちゃん", from: "Channel owner"  # Japanese is displayed even in English environment (b/c simple_form default etc)...
     select "Unknown", from: "Channel platform"
     select "Unknown", from: "Channel type"
     fill_in "Note", with: "new-note"
@@ -99,7 +101,8 @@ class ChannelsTest < ApplicationSystemTestCase
     assert_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']"
 
     accept_alert do
-      click_on "Destroy", match: :first
+      find(:xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']").click
+      #click_on "Destroy", match: :first  # not work as "Destroy" is now in Translation table, too.
     end
 
     assert_text "Channel was successfully destroyed"
