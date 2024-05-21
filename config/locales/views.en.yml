@@ -76,6 +76,7 @@ en:
     back_to_index: 'Back to Index'
     create_model: "Create a new %{model}"
     do_create_lower: "create it"
+    i_do_create_it_lower: "create it"
     destroy_button: 'Commit Destroy'
     destroy_link: 'Destroy this'
     destroy_short: 'Destroy'

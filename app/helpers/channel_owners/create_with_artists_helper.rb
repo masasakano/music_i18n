@@ -1,0 +1,2 @@
+module ChannelOwners::CreateWithArtistsHelper
+end

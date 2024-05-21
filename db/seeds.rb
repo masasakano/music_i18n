@@ -808,7 +808,7 @@ allfiles.each do |seed|
         end
     rescue NameError
       # maybe seeds_user.rb in the production environment, where SeedsUser is deliberately undefined.
-      puts "DEBUG: skip running "+seedfile2print #if $DEBUG
+      puts "NOTE: skip running "+seedfile2print #if $DEBUG
       next
     end
     if !klass.respond_to? :load_seeds 

@@ -5,7 +5,7 @@
     <dd> <%= channel_owner.id %></dd>
   <% end %>
   <dt><strong><%= t(:Artist) %>:</strong></dt>
-    <dd><%= channel_owner.artist ? link_to(channel_owner.artist.title_or_alt(prefer_alt: true, langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), artist_path(channel_owner.artist)) : "" %></dd>
+    <dd><%= channel_owner.artist ? link_to(channel_owner.artist.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), artist_path(channel_owner.artist)) : "" %></dd>
   <dt title="Whether this is basically identical to an Artist"><strong>Themselves?:</strong></dt>
     <dd><%= channel_owner.themselves ? "Y" : "N" %></dd>
   <dt title="Note"><strong>Note:</strong></dt>

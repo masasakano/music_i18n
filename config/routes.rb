@@ -1,4 +1,7 @@
 Rails.application.routes.draw do
+  namespace :channel_owners do
+    get 'create_with_artists/new'
+  end
   resources :channels
   resources :channel_owners
   resources :channel_types

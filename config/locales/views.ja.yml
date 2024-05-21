@@ -76,6 +76,7 @@ ja:
     back_to_index: '一覧に戻る'
     create_model: "%{model}新規作成"
     do_create_lower: "新規作成して"
+    i_do_create_it_lower: "新規作成する"
     destroy_button: '削除実行'
     destroy_link: '削除する'
     destroy_short: '削除'

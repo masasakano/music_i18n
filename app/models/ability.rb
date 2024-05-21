@@ -87,7 +87,7 @@ class Ability
 #canedit, Users::DeactivateUser, id: user.id
       can :index,  ModelSummary  # Index only
       can :read, ChannelPlatform
-      can :show, [ChannelOwner, Channel]
+      can :show, [ChannelOwner, Channel]  # You may allow general visitors to browse Channel-show to see its links etc?
     end
 
     rc_general_ja = RoleCategory[RoleCategory::MNAME_GENERAL_JA]
@@ -98,6 +98,7 @@ class Ability
     if user.qualified_as?(:editor, rc_general_ja) || user.qualified_as?(:editor, rc_harami)
       can :crud, [EventItem]  # Maybe Event should be also allowed? (NOTE: the current permission is tested in events_controller_test.rb (Line-65))
       can :cr, [ChannelPlatform, ChannelOwner, Channel]
+      #can(:new, ChannelOwners::CreateWithArtistsController){|mdl| mdl.is_a?(Artist) && Proc.new{can? :update, mdl}}  # This does not work because (1) the controller does not follow the convention naming and (2) "new" method ignores the block. See, for actual implementation, /app/controllers/channel_owners/create_with_artists_controller.rb
       can(:ud, ChannelPlatform){|mdl| mdl.create_user && ((mdl.create_user == user) || (!mdl.unknown? && user.abs_superior_to?(mdl.create_user, except: rc_trans))) }  # can update/destroy only if it was created by the user or by a moderator.
       can(:ud, [ChannelOwner, Channel]){|mdl| mdl.create_user == user}
     end
@@ -192,7 +193,7 @@ class Ability
       #can(:update, Country)  # There is nothing (but note) to update in Country as the ISO-numbers are definite. Translation for Country is a different story, though.
       cannot :manage_prefecture_jp, Prefecture  # cannot edit Country in Prefecture to Japan
       cannot(:ud, [Prefecture]){|i| i.country == Country['JPN']}
-      cannot(:ud, [BaseWithTranslation]){|i| i.respond_to?(:unknown?) && i.unknown?} # Artist, Music, Place, Genre, EngageHow, Instrument
+      cannot(:ud, [BaseWithTranslation]){|i| i.respond_to?(:unknown?) && i.unknown?} # Artist, Music, Place, Genre, EngageHow, Instrument, Channel
       cannot(:ud, [Translation]){|trans| (!(base=trans.translatable) && trans.create_user_id != user.id && trans.update_user_id != user.id) ||
                                            (base && base.respond_to?(:unknown?) && base.unknown?)} # non-admin cannot edit Translation for +X.unknown+; this is necessary because anything with is_orig=true is usually editable by Translators.
       cannot(:ud, [Translation]){|trans| (base=trans.translatable) && base.respond_to?(:themselves) && base.themselves } # (except for an admin) Cannot edit Translation of ChannelOwner#themselves==true because its Tranlation-s are equivalent to sym-link to the ChannelOwner#artist Translation-s.
