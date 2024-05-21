@@ -1152,6 +1152,24 @@ module ModuleCommon
     end
   end
 
+  # Define singleton accessor method to an Object with an initil value
+  #
+  # @example
+  #    set_singleton_method_val(mystr, :lcode, "en")  # defined in module_common.rb
+  #    mystr.lcode  # => "en"
+  #    mystr.lcode="ja"
+  #    mystr.lcode  # => "ja"
+  #
+  # @param obj [Object]
+  # @param method [String, Symbol] method name to define
+  # @option initial_value [Object] Def: nil
+  # @return [obj]  # so you can link it if you want
+  def set_singleton_method_val(obj, method, initial_value=nil)
+    obj.instance_eval{singleton_class.class_eval { attr_accessor method }}
+    obj.send(method.to_s+"=", initial_value)
+    obj
+  end
+
   # Returns "/db/seeds/users.rb" etc. from __FILE__
   #
   # Used in /db/seeds.rb and /db/seeds/*.rb

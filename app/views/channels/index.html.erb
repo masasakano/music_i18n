@@ -28,9 +28,13 @@
         <td><%= model.id %></td>
        <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
 
-        <td><%= m=model.channel_owner; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), channel_owner_path(m)) %></td>
-        <td><%= m=model.channel_platform; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), channel_platform_path(m)) %></td>
-        <td><%= m=model.channel_type; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), channel_type_path(m)) %></td>
+        <td><%= m=model.channel_owner; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), channel_owner_path(m)) %>
+          <% if m.themselves && m.artist %>
+            [<%= link_to(t('.themselves'), m.artist) %>]
+          <% end %>
+        </td>
+        <td><%= m=model.channel_platform; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), channel_platform_path(m)) %></td>
+        <td><%= m=model.channel_type; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), channel_type_path(m)) %></td>
         <td><%= model.note %></td>
       <% if can? :update, Users::EditRolesController %>
         <td><%= ur = model.create_user; link_to(ur.display_name, ur) if ur %></th>

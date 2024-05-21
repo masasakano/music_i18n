@@ -128,26 +128,74 @@ class Channel < BaseWithTranslation
   # {Translation#translatable} is not set.  Nor {Translation#is_orig}.
   #
   # @param [Boolean] if true (Def: false), a new Translation is almost always created, falling-back to
-  #   language; only the time nis is returned is when all three are completely nil in any languages
+  #   language; only the time nil is returned is when all three are completely nil in any languages
   #   (meaning they all are invalid!).
   # @return [Translation, NilClass] A default (unsaved) Translation when a new Channel is created.
   #    returns nil if one of three dependents does not have a Translation for the specified langcode.
   def def_initial_trans(lcode=nil, langcode: I18n.locale, force: false)
+    tit = self.class.def_initial_trans_str(
+      lcode,
+      channel_owner:    channel_owner,
+      channel_type:     channel_type,
+      channel_platform: channel_platform,
+      langcode: langcode,
+      force: force
+    )
     lcode ||= langcode
-    arstr = %w(channel_owner channel_platform channel_type).map{|model|
+
+    # lcode = (contain_asian_char?(tit) ? "ja" : lcode)  # to avoid potential Asian-char validation failure.
+    return nil if !%w(ja ko zh).include?(lcode.to_s[0..1]) && contain_asian_char?(tit)
+    Translation.new(title: tit, langcode: lcode)
+  end
+
+
+  # Returns a String (with singleton-method lcode set) for a specified or its default language
+  #
+  # core method of Channel#def_initial_trans
+  #
+  # NOTE that the +lcode+ set for the returned String is irrelevant to the given langcode.
+  # They should usually agree, but in some cases they don't.  For example,
+  # if langcode="kr" is specified and none of the given models have Korean Translations,
+  # +returned_str.lcode+ is different from "kr".
+  # Also note that it is possible that langcode-s for the three component do not
+  # totally agree, in which case +lcode+ is one of them, maybe "ja".
+  #
+  # Even if lcode="en" for the returned String, it may still contain Asian characters
+  # as this method does not check the contents.  Do your own check with +contain_asian_char?+
+  # if necessary (defined in ModuleCommon).
+  #
+  # @param [Boolean] if true (Def: false), a new Translation is almost always created, falling-back to
+  #   language; only the time nil is returned is when all three are completely nil in any languages
+  #   (meaning they all are invalid!).
+  # @return [String, NilClass] A String with {String#lcode} set when a new Channel is created.
+  #    returns nil if one of three dependents does not have a Translation for the specified langcode.
+  def self.def_initial_trans_str(lcode=nil, channel_owner:, channel_type:, channel_platform:, langcode: I18n.locale, force: false)
+    lcode ||= langcode
+    arstr = [channel_owner, channel_platform, channel_type].map{|model|
       if force
-        send(model).title_or_alt(langcode: lcode, lang_fallback_option: :either, str_fallback: "")
+        model.title_or_alt(langcode: lcode, lang_fallback_option: :either, str_fallback: "")
       else
-        send(model).title(langcode: lcode)
+        model.title(langcode: lcode)
       end
     }
     return nil if arstr.any?{|i| i.blank?} && !force
     return nil if arstr.all?{|i| i.blank?}  # In an extremely unlikely case of all of them being blank, nil is returned regardless of the force option.
 
-    tit = sprintf "%s /%s (%s)", *arstr
-    # lcode = (contain_asian_char?(tit) ? "ja" : lcode)  # to avoid potential Asian-char validation failure.
-    return nil if !%w(ja ko zh).include?(lcode.to_s[0..1]) && contain_asian_char?(tit)
-    Translation.new(title: tit, langcode: lcode)
+    retstr = sprintf "%s / %s (%s)", *arstr
+
+    lcode_new = arstr.map(&:lcode).sort{ |a, b|
+      if "ja" == a
+        -1
+      elsif "ja" == b
+        1
+      else
+        0
+      end
+    }.first
+    
+    retstr.instance_eval{singleton_class.class_eval { attr_accessor "lcode" }}
+    retstr.lcode = lcode_new
+    retstr
   end
 
 

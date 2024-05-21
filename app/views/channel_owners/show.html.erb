@@ -9,7 +9,7 @@
 
 <div>
     <% if can? :update, @channel_owner %>
-  <%= link_to "Edit this Channel Owner", edit_channel_owner_path(@channel_owner) %> |
+  <%= link_to "Edit this Channel Owner", edit_channel_owner_path(@channel_owner) %>
     <% end %>
 
     <% if can?(:destroy, @channel_owner) %>
@@ -42,6 +42,10 @@
   </tbody>
 </table>
 </section>
+<% if can? :create, Channel %>
+  <% hsin = channel_new_get_params(channel_owner: @channel_owner) %>  <%# defined in channel_owners_helper.rb %>
+  → <%= link_to t("layouts.create_model", model: t(:Channel)), new_channel_path( params: {channel: hsin}) %>
+<% end %>
 
 <hr>
   <%= link_to t("layouts.back_to_index"), channel_owners_path %>

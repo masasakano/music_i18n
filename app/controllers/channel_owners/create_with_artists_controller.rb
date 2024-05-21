@@ -22,9 +22,7 @@ class ChannelOwners::CreateWithArtistsController < ApplicationController
     # set @artist from a given URL parameter
     def set_artist
       @artist = nil
-      artist_id = params.require(:channel_owner).permit(:artist_id)[:artist_id]
-#      artist_id = params.permit(:artist_id)[:artist_id]
-      #artist_id = params[:artist_id]
+      artist_id = params.require(:channel_owner).permit(:artist_id)[:artist_id]  # => channel_owner[artist_id]=123
       return if artist_id.blank? 
       @artist = Artist.find(artist_id)
     end

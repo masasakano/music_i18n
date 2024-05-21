@@ -17,7 +17,9 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert     music.title(langcode: "fr", lang_fallback: true)
     assert_equal "Nothing", music.title(langcode: "fr", lang_fallback: false, str_fallback: "Nothing")
     assert_includes         music.title(langcode: "fr", lang_fallback: true,  str_fallback: "Nothing"), "Madonna", "music.translations=#{music.translations.inspect}"
-    assert_includes         music.title(langcode: "fr",                       str_fallback: "Nothing"), "Madonna"
+    assert_includes(   (tit=music.title(langcode: "fr",                       str_fallback: "Nothing")), "Madonna")
+    assert_equal "en", tit.lcode
+    assert_equal "en", music.title(langcode: "en").lcode
 
     # {#titles} are separately implemented.
     assert_empty music.titles(langcode: "fr", lang_fallback_option: :never, str_fallback: nil).compact
@@ -27,6 +29,8 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_equal "Nothing", music.titles(langcode: "fr",                               str_fallback: "Nothing")[1]
     assert_equal "Nothing", music.title_or_alt(langcode: "fr", lang_fallback_option: :never, str_fallback: "Nothing")
     refute_equal "Nothing", music.title_or_alt(langcode: "fr",                               str_fallback: "Nothing"), "Default lang_fallback_option for title_or_alt is :either. as oppposed to :never in titles, and hence this should find matched title/alt_title, I think, but it failed..." 
+    tit = music.title_or_alt(langcode: "fr", lang_fallback_option: :either, str_fallback: "Nothing")
+    assert_equal "en", tit.lcode
   end
 
   # Using the subclass Sex

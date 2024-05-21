@@ -198,6 +198,10 @@ ja:
       harami_vids_containing_musics_by_artist: "%{artist}による楽曲を含む(ハラミちゃん)動画"
       harami_vids_featuring_artist: "%{artist}とのコラボ(ハラミちゃん)動画"
 
+  channels:
+    index:
+      themselves: "本人"
+
   event_groups:
     num_id: "通番"
     start_date: 開始日

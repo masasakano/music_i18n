@@ -284,7 +284,7 @@
 #   b.select_translations_regex(  :titles, /^Aus/i, where: ['id <> ?', abc.id])
 #     # => [Translation, [Translation, ...]]  (searching only those related to self; in practice, useful only when self has multiple translations in a language)
 #   b.titles(langcode: nil, lang_fallback_option: :never, str_fallback: nil)
-#   b.title_or_alt(prefer_alt: false, langcode: nil, lang_fallback_option: :either, str_fallback: "", article_to_head: true)
+#   b.title_or_alt(prefer_alt: false, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true)
 #   b.title(langcode: nil, lang_fallback: false, str_fallback: nil) # See below re fallback
 #   b.ruby
 #   b.romaji
@@ -2052,7 +2052,9 @@ class BaseWithTranslation < ApplicationRecord
   # Note the alorithm is implemented specifically for this method,
   # instead of calling {#get_a_title}, to avoid too many queries to the DB.
   #
-  # Note that singleton method String#lcode is defined for each of the returned String title/alt_title
+  # Note that singleton method {String#lcode} is defined for each of the returned String title/alt_title
+  # except when nil or a user-specified arbitrary object of str_fallback
+  # is returned as either/both of the returned objects.
   #
   # @example Suppose no translations for Italian exist. Forces the return to be Italian.
   #   place1.titles(langcode: 'it', lang_fallback_option: :never)
@@ -2207,6 +2209,15 @@ class BaseWithTranslation < ApplicationRecord
   # it would violate the HTML spec:
   #    Element "option" without attribute "label" must not be empty.
   #
+  # Note that the returned String (say, +retstr+) should in principle has
+  # a singleton method "lcode" defined and set so you can get the langcode
+  # with it:
+  #    retstr.lcode  #=> "en" etc
+  # except when nil or the object specified by str_fallback is returned.
+  # If you specify String in +str_fallback+, you may define +lcode+ in the String
+  # like:
+  #    get_a_title(str_fallback: set_singleton_method_val("None", :lcode, "en")) # defined in module_common.rb
+  #
   # @example
   #    sex.title(langcode: I18n.locale)
   #    get_a_title(:title, langcode: I18n.locale)  # private method!
@@ -2220,7 +2231,9 @@ class BaseWithTranslation < ApplicationRecord
   # @return [String, NilClass] nil if there are no translations for the langcode
   def get_a_title(method, langcode: nil, lang_fallback: true, str_fallback: nil)
     ret = (translations_with_lang(langcode)[0].public_send(method) rescue nil)
-    return ret if ret
+    if ret
+      return set_singleton_method_val(ret, :lcode, langcode) # Define Singleton method String#lcode # defined in module_common.rb
+    end
     return str_fallback if !lang_fallback
 
     ## Falback after no translations are found for the specified language.
@@ -2228,9 +2241,7 @@ class BaseWithTranslation < ApplicationRecord
     hstrans.each_pair do |ek, ev|
       ret = ev.public_send(method)
       if !ret.blank?
-        ret.instance_eval{singleton_class.class_eval { attr_accessor "lcode" }}
-        ret.lcode = ek  # Define Singleton method String#lcode
-        return ret
+        return set_singleton_method_val(ret, :lcode, ek) # Define Singleton method String#lcode # defined in module_common.rb
       end
     end
     str_fallback

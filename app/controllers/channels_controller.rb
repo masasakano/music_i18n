@@ -1,7 +1,7 @@
 # coding: utf-8
 class ChannelsController < ApplicationController
   #before_action :set_channel, only: %i[ show edit update destroy ]
-  load_and_authorize_resource except: [:create] # This sets @channel
+  load_and_authorize_resource except: [:new, :create] # This sets @channel
   before_action :model_params_multi, only: [:create, :update]
 
   ## params key for auto-complete Artist
@@ -25,7 +25,9 @@ class ChannelsController < ApplicationController
 
   # GET /channels/new
   def new
+    authorize! __method__, Channel
     @channel = Channel.new
+    set_channel_sub_parameters
   end
 
   # GET /channels/1/edit
@@ -64,6 +66,20 @@ class ChannelsController < ApplicationController
       @channel = Channel.find(params[:id])
     end
 
+    # set channel_owner_id etc from a given URL parameter
+    #
+    # Path: new_channel_path( params: {channel: {channel_owner_id: 123, channel_type_id: 456}} )
+    #
+    # @retun [void]
+    def set_channel_sub_parameters
+      if params[:channel].present?
+        %w(channel_owner_id channel_type_id channel_platform_id title langcode).each do |ek|
+          if (prm=params[:channel][ek]).present?  # => channel[channel_owner_id]=123 etc
+            @channel.send(ek+"=", prm)
+          end
+        end
+      end
+    end
 
     # Sets @hsmain and @hstra and @prms_all from params
     #
