@@ -113,7 +113,8 @@
   <% if can? :read, Harami1129 %>
   <hr>
   <section id="sec_harami1129s_for">
-  <%= render partial: 'harami1129s_table', locals: {music: music} %>
+  <h3><%= t("Harami1129").pluralize(music.harami1129s.count, I18n.locale) %><%= t("show.h2_for") %><%= t("Music") %>: <%= music.title_or_alt %></h3>
+  <%= render partial: 'layouts/harami1129s_table', locals: {harami1129s: music.harami1129s} %>
   </section>
   <% end %>
 <% end %>

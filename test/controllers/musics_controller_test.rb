@@ -8,6 +8,7 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @music = musics(:music1)
     @editor = roles(:general_ja_editor).users.first  # Editor can manage.
+    @moderator_all   = users(:user_moderator_all)    # Allmighty Moderator can manage.
     @f_artist_name = "artist_name"
     @validator = W3CValidators::NuValidator.new
   end
@@ -150,6 +151,12 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     assert css_select('a').any?{|i| /\AShow\b/ =~ i.text.strip}  # More fine-tuning for CSS-selector is needed!
     css = css_select('div.link-edit-destroy a')
     assert(css.empty? || !css[0].text.include?("Edit"))
+
+    sign_out @editor
+
+    sign_in @moderator_all 
+    get edit_music_url(@music)
+    assert_response :success
   end
 
   test "should destroy music if privileged" do

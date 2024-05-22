@@ -163,7 +163,6 @@ class HaramiVidsController < ApplicationController
     # When called from _set_reference_harami_vid_id , +harami_vid2+(!) is @harami_vid, and +harami_vid+ is
     # @ref_harami_vid (which corresponds to ID of @harami_vid.reference_harami_vid_id)
     def set_event_event_items(harami_vid: @harami_vid, harami_vid2: nil)
-logger.error "DEBUG_ERROR11 (#{__method__}): action_name=#{action_name.inspect}"
       @event_event_items = {}  # Always initialized. This was not defined for "show", "new"
       ary = [(harami_vid || @harami_vid).id, (harami_vid2 ? harami_vid2.id : nil)].compact.uniq  # uniq should never be used, but playing safe
       EventItem.joins(:harami_vid_event_item_assocs).where("harami_vid_event_item_assocs.harami_vid_id" => ary).order("event_id", "start_time", "duration_minute", "event_ratio").distinct.each do |event_item|
@@ -172,7 +171,6 @@ logger.error "DEBUG_ERROR11 (#{__method__}): action_name=#{action_name.inspect}"
         @event_event_items[event_item.event.id] ||= []
         @event_event_items[event_item.event.id] << event_item
       end
-logger.error "DEBUG_ERROR12 (#{__method__}): @event_event_items=#{@event_event_items.inspect}"
     end
 
     # Sets reference_harami_vid_id, @event_event_items, @ref_harami_vid, and maybe release_date and place
