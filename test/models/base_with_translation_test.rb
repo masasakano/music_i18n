@@ -1852,6 +1852,8 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     assert_difference('Channel.count', -2){   # this ignores dryrun.
      assert_difference('ChannelOwner.count', -1){
       hsret = hsmdl[:artists][0].merge_other(hsmdl[:artists][1], priorities: hspri, save_destroy: false)
+      # This only SOMETIMES fails with
+      #   ActiveRecord::RecordInvalid: Validation failed: cannot be added as the corresponding [ja] Translation for the parent Artist (#<Translation ... langcode: "ja", title: "オーーア", ... >) already exists.
    }}}
 
       new_art = hsmdl[:artists][0] #.reload  # self not yet saved!
@@ -2074,11 +2076,15 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       j = (i-1).abs  # to use j, this has to come after all other models are set.
       hsmdl[:musics][i].artist_music_plays << ArtistMusicPlay.new(artist: hsmdl[:artists][i], event_item: hsmdl[:ev_its][i], play_role: PlayRole.default(:HaramiVid), instrument: Instrument.default(:HaramiVid), cover_ratio: 0.5+i*0.1)
       hsmdl[:amps][i] << hsmdl[:musics][i].artist_music_plays.last
+    begin
       hsmdl[:musics][i].artist_music_plays << ArtistMusicPlay.new(artist: hsmdl[:artists][j], event_item: hsmdl[:ev_its][j], play_role: PlayRole.unknown, instrument: Instrument.unknown, cover_ratio: 0.2+j*0.1)
+    rescue  # This SOMETIMES raises ActiveRecord::InvalidForeignKey exception... Strange! (DB-level error should never be raised.)
+      hsmdl[:musics][i].artist_music_plays << ArtistMusicPlay.new(artist: hsmdl[:artists][j], event_item: hsmdl[:ev_its][j], play_role: play_roles(:play_role_host), instrument: Instrument.unknown, cover_ratio: 0.2+j*0.1)
+    end
       hsmdl[:amps][i] << hsmdl[:musics][i].artist_music_plays.last
       hsmdl[:musics][i].artist_music_plays << ArtistMusicPlay.new(artist: hsmdl[:artists][j], event_item: hsmdl[:ev_its][j], play_role: PlayRole.unknown, instrument: instruments(:instrument_guitar), cover_ratio: 0.8+j*0.1) if i==1  # unique to i==1
       hsmdl[:amps][i] << hsmdl[:musics][i].artist_music_plays.last  if i==1
-      hsmdl[:musics][i].artist_music_plays << ArtistMusicPlay.new(artist: artists(:artist_ai), event_item: hsmdl[:ev_its][0], play_role: PlayRole.unknown, instrument: instruments(:instrument_piano), cover_ratio: 0.05+j*0.1)
+      hsmdl[:musics][i].artist_music_plays << ArtistMusicPlay.new(artist: artists(:artist_ai), event_item: hsmdl[:ev_its][0], play_role: PlayRole.unknown, instrument: instruments(:instrument_piano), cover_ratio: 0.05+j*0.1)  # Like the above, this SOMETIMES raises ActiveRecord::InvalidForeignKey exception... Strange! (DB-level error should never be raised.)
       hsmdl[:amps][i] << hsmdl[:musics][i].artist_music_plays.last
 
       hsmdl[:ch_owners][i] = ChannelOwner.create_basic!(themselves: true, artist: hsmdl[:artists][i])

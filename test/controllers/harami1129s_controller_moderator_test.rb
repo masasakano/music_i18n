@@ -40,11 +40,11 @@ class Harami1129sControllerModeratorTest < ActionDispatch::IntegrationTest
       !%w(destroy_engage human_check human_uncheck).include? k
     }.map{|i| [i, h1129.send(i)]}.to_h
 
-    hs = convert_to_params(hs, maxdatenum: 6)
+    hs = convert_to_params(hs, maxdatenum: 6)  # defined in test/test_helper.rb
 
     exp_date = h1129.ins_release_date.next # +1 day
     hs.merge! convert_to_params({"ins_release_date" => exp_date})
-    hs["ins_at(6i)"] = (hs["ins_at(6i)"].to_i + 1).to_s  # +1 sec
+    hs["ins_at(6i)"] = sprintf("%02d", (hs["ins_at(6i)"].to_i + 1))  # +1 sec
 
     # Form-specific parameter
     hs['destroy_engage'] = '1'
@@ -82,7 +82,7 @@ class Harami1129sControllerModeratorTest < ActionDispatch::IntegrationTest
     assert_nil          h1129_org.not_music
     assert_equal true,  h1129.not_music
     assert_nil  h1129.engage
-    assert_equal h1129_org.ins_at, h1129.ins_at
+    assert_equal h1129_org.ins_at+1.seconds, h1129.ins_at, "hs=#{hs.inspect}"
     assert_equal exp_date, h1129.ins_release_date
 
     ##### ins_at will be changed
@@ -101,6 +101,7 @@ class Harami1129sControllerModeratorTest < ActionDispatch::IntegrationTest
 
     ##### check checked_at #####
 
+    ins_at_be4 = h1129.ins_at   ##### save a time parameter
     assert_nil  h1129.checked_at
     hs['human_check'] = "1"
     patch harami1129_url(h1129, params: { harami1129: hs })
@@ -120,6 +121,15 @@ class Harami1129sControllerModeratorTest < ActionDispatch::IntegrationTest
     h1129.reload
     assert  h1129.checked_at
     assert_operator h1129.checked_at, "<", h1129.orig_modified_at
+
+    ##### re-check checked_at #####
+    patch harami1129_url(h1129, params: { harami1129: {human_check: "1"} })  # as in "Check" button in /app/views/harami1129s/show.html.erb
+    assert_response :redirect
+    assert_redirected_to h1129  # Redirected to Harami1129
+    h1129.reload
+    assert  h1129.checked_at
+    assert_operator h1129.last_downloaded_at, "<", h1129.checked_at
+    assert_equal ins_at_be4, h1129.ins_at
 
     ##### destroy #####
 

@@ -14,7 +14,7 @@ class Harami1129sController < ApplicationController
     logger.warn "Environmental variable URI2FETCH, thus URI_ROOT, is not defined."
   end
 
-  INDEX_COLUMNS = [:singer, :song, :release_date, :title, :link_root, :link_time, :ins_singer, :ins_song, :ins_release_date, :ins_title, :ins_link_root, :ins_link_time, :ins_at, :note, :not_music, :destroy_engage, :human_check, :human_uncheck, :event_item_id] # :harami_vid_id, :last_downloaded_at,
+  INDEX_COLUMNS = [:singer, :song, :release_date, :title, :link_root, :link_time, :ins_singer, :ins_song, :ins_release_date, :ins_title, :ins_link_root, :ins_link_time, :ins_at, :last_downloaded_at, :note, :not_music, :destroy_engage, :human_check, :human_uncheck, :event_item_id] # :harami_vid_id, 
 
   # GET /harami1129s
   # GET /harami1129s.json
@@ -115,19 +115,18 @@ class Harami1129sController < ApplicationController
     #
     # An example params:
     #
-    #   # <ActionController::Parameters {"singer"=>"AI", "song"=>"Story", "release_date(1i)"=>"2019", "release_date(2i)"=>"1", "release_date(3i)"=>"9", "title"=>"【即興ピアノ】即興ライブ！！", "link_root"=>"QqIpP4ZvQf4", "link_time"=>"430", "ins_singer"=>"AI", "ins_song"=>"Story", "ins_release_date(1i)"=>"2019", "ins_release_date(2i)"=>"1", "ins_release_date(3i)"=>"9", "ins_title"=>"【即興ピアノ】即興ライブ!!", "ins_link_root"=>"QqIpP4ZvQf4", "ins_link_time"=>"430", "ins_at(1i)"=>"2021", "ins_at(2i)"=>"1", "ins_at(3i)"=>"7", "ins_at(4i)"=>"19", "ins_at(5i)"=>"12", "ins_at(6i)"=>"25", "note"=>"", "not_music"=>"0", "destroy_engage"=>"0"} permitted: true>
+    #   # <ActionController::Parameters {"singer"=>"AI", "song"=>"Story", "release_date(1i)"=>"2019", "release_date(2i)"=>"1", "release_date(3i)"=>"9", "title"=>"【即興ピアノ】即興ライブ！！", "link_root"=>"QqIpP4ZvQf4", "link_time"=>"430", "ins_singer"=>"AI", "ins_song"=>"Story", "ins_release_date(1i)"=>"2019", "ins_release_date(2i)"=>"1", "ins_release_date(3i)"=>"9", "ins_title"=>"【即興ピアノ】即興ライブ!!", "ins_link_root"=>"QqIpP4ZvQf4", "ins_link_time"=>"430", "ins_at(1i)"=>"2021", "ins_at(2i)"=>"1", "ins_at(3i)"=>"7", "ins_at(4i)"=>"19", "ins_at(5i)"=>"12", "ins_at(6i)"=>"25", "last_downloaded_at(1i)"=>"2024", "last_downloaded_at(2i)"=>"5", "last_downloaded_at(3i)"=>"16", "last_downloaded_at(4i)"=>"23", "last_downloaded_at(5i)"=>"15", "last_downloaded_at(6i)"=>"06", "note"=>"", "not_music"=>"0", "destroy_engage"=>"0", "event_item_id"=>"", "human_check"=>"0",} permitted: true>
     #   Also either "human_check" or "human_uncheck"
     #
     # @return [NilClass] @harami1129 is set.
     def load_harami1129_from_form
       hsprm = harami1129_params
 
-      prm_not_music = hsprm[:not_music]
-      prm_not_music &&= ((prm_not_music.to_i < 1) ? false : true)
+      @harami1129.not_music = hsprm[:not_music]  # covert "0" or "1" to false/true
 
       if helpers.get_bool_from_params hsprm[:destroy_engage]
-        if !prm_not_music
-          @harami1129.errors.add :destroy_engage, "needs to be coordinated with 'Not Music' - specify it to destory EngageId."
+        if !@harami1129.not_music
+          @harami1129.errors.add :destroy_engage, "needs to be coordinated with 'Not Music' - specify it to destory Engage-Id."
         else
           @harami1129.engage_id = nil
         end
@@ -154,6 +153,7 @@ class Harami1129sController < ApplicationController
       allcs = INDEX_COLUMNS.map(&:to_s)
       hsprm.each_pair do |ek, ev|
         # not_music would be set either true/false (from the original nil)
+        next if /_(date|at)(\(\di\))?\z/ =~ ek.to_s
         next if !allcs.include? ek
         next if %w(destroy_engage human_check human_uncheck).include? ek
         if ek == 'note'
@@ -165,7 +165,14 @@ class Harami1129sController < ApplicationController
           @harami1129.send ek+'=', ev
         end
       end
-    end
+
+      allkeys = hsprm.keys.map(&:to_s).map{|i| i.sub(/\(\di\)$/, "")}
+      INDEX_COLUMNS.map(&:to_s).each do |ek|
+        next if /_(date|at)\z/ !~ ek.to_s
+        next if !allkeys.include? ek  # skip if the paramter is not included in params!
+        @harami1129.send(ek+'=', date_or_time_from_params(harami1129_params, ek))  # defined in application_controller.rb
+      end
+    end # def load_harami1129_from_form
 
     # Insert one entry to DB.  Exception if fails.
     #

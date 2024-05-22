@@ -79,6 +79,28 @@ class PopulatesControllerTest < ActionDispatch::IntegrationTest
     assert h1129_rc.event_item
     assert h1129_rc.harami_vid.event_items.exists?
     assert h1129_rc.harami_vid.event_items.include?(h1129_rc.event_item)
+
+    ### check re-insert and re-populate
+    old_ins_singer = h1129_rc.ins_singer
+    old_ins_song   = h1129_rc.ins_song
+    old_engage_id  = h1129_rc.engage_id
+    old_event_item_id = h1129_rc.event_item_id
+    h1129_rc.update!(ins_singer: "", ins_song: "", engage_id: "", event_item_id: "", ins_at: h1129_rc.last_downloaded_at - 2.hours - 1.days)  # no change in harami_vid_id (b/c at the time of writing, there is no UI for it)
+    assert_operator h1129_rc.last_downloaded_at, :>, h1129_rc.ins_at
+
+    # reinsertion
+    patch harami1129_internal_insertions_url(h1129_rc)
+    assert_response :redirect
+
+    # repopulate
+    patch harami1129_populate_url(h1129_rc)
+    assert_response :redirect
+
+    h1129_rc.reload
+    assert_equal old_ins_singer, h1129_rc.ins_singer
+    assert_equal old_ins_song,   h1129_rc.ins_song
+    assert_equal old_engage_id,  h1129_rc.engage_id
+    assert_equal old_event_item_id, h1129_rc.event_item_id
   end
 
   test "should update with a new Harami1129 with a Japanese singer from internal_insertion to populate" do

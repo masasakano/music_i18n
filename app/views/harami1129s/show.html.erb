@@ -1,5 +1,5 @@
 
-<% st = @harami1129.populate_status %>
+<% popst = @harami1129.populate_status %>
 <% engage = @harami1129.engage %>
 <% event_item = @harami1129.event_item %>
 
@@ -16,85 +16,110 @@
   <%= @harami1129.id_remote %>
   </dd>
 
-  <dt id="h1129_title_dt">Title [<%= st.marker(:ins_title) %>]:</dt>
+  <dt id="h1129_title_dt">Title [<%= popst.marker(:ins_title) %>]:</dt>
   <dd id="h1129_title_dd">
   <table>
     <tbody>
       <tr><th>Downloaded</th><td><%= @harami1129.title %></td></tr>
       <tr><th>Internally inserted</th><td><%= @harami1129.ins_title %></td></tr>
-      <tr><th><%= s='Current Destination'; @harami1129.harami_vid ? link_to(s, @harami1129.harami_vid) : s %></th><td><%= st.dest_current(:ins_title) %></td></tr>
+    <% hvid = (@harami1129.harami_vid || nil) %>
+      <tr><th><%= s='Current Destination'; (hvid ? link_to(s, hvid) : s) %></th><td><%= s=popst.dest_current(:ins_title); (hvid ? link_to(s, hvid) : s) %></td></tr>
       <% if @harami1129.ins_title.blank? && !@harami1129.title.blank?  %>
-      <tr><th>(Downloaded → ins_title)</th><td><%= st.ins_to_be(:ins_title) %></td></tr>
+        <tr><th>(Downloaded → ins_title)</th><td><%= popst.ins_to_be(:ins_title) %></td></tr>
       <% end %>
-      <tr><th>(Downloaded → Destination)</th><td><%= st.dest_to_be(:ins_title) %></td></tr>
+      <% hvid_tgt = popst.tgt[:harami_vid]
+         is_new = (hvid_tgt && !hvid_tgt.id) %> <%# equivalent to new_record? %>
+      <tr><th>(Downloaded → Destination)</th><td><%= s=popst.dest_to_be(:ins_title); (is_new ? s : link_to(s, hvid_tgt)) %><%= is_new ? " (New)" : "" %></td></tr>
     </tbody>
   </table>
   </dd>
 
-  <dt id="h1129_release_date_dt">Release date [<%= st.marker(:ins_release_date) %>]:</dt>
+  <dt id="h1129_release_date_dt">Release date [<%= popst.marker(:ins_release_date) %>]:</dt>
   <dd id="h1129_release_date_dd">
   <table>
     <tbody>
       <tr><th>Downloaded</th><td><%= @harami1129.release_date %></td></tr>
       <tr><th>Internally inserted</th><td><%= @harami1129.ins_release_date %></td></tr>
-      <tr><th><%= s='Current Destination'; @harami1129.harami_vid ? link_to(s, @harami1129.harami_vid) : s %></th><td><%= st.dest_current(:ins_release_date) %></td></tr>
-      <tr><th>(Downloaded → Destination)</th><td><%= st.ins_to_be(:ins_release_date) %></td></tr>
+      <tr><th><%= s='Current Destination'; (hvid ? link_to(s, hvid) : s) %></th><td><%= s=popst.dest_current(:ins_release_date); (hvid ? link_to(s, hvid) : s) %></td></tr>
+      <tr><th>(Downloaded → Destination)</th><td><%= popst.ins_to_be(:ins_release_date) %></td></tr>
     </tbody>
   </table>
   </dd>
 
-  <dt id="h1129_link_root_dt">Link_root [<%= st.marker(:ins_link_root) %>]:</dt>
+  <dt id="h1129_link_root_dt">Link_root [<%= popst.marker(:ins_link_root) %>]:</dt>
   <dd id="h1129_link_root_dd">
   <table>
     <tbody>
       <tr><th></td><th></th><th>Full link</th></tr>
       <tr><th>Downloaded</th><td><%= @harami1129.link_root %></td><td><cite><%= lin = @harami1129.link_root; lin ? link_to_youtube(:uri, lin, @harami1129.link_time) : lin %></cite></td></tr>
       <tr><th>Internally inserted</th><td><%= @harami1129.ins_link_root %></td><td><cite><%= lin = @harami1129.ins_link_root; lin ? link_to_youtube(:uri, lin, @harami1129.ins_link_time) : lin %></cite></td></tr>
-      <tr><th><%= s='Current Destination'; @harami1129.harami_vid ? link_to(s, @harami1129.harami_vid) : s %></th><td><%= st.dest_current(:ins_link_root) %></td><td><cite><%= lin = st.dest_current(:ins_link_root); lin ? link_to_youtube(:uri, lin, st.dest_current(:ins_link_time)) : lin %></cite></td></tr>
-      <tr><th>(Downloaded → Destination)</th><td><%= st.ins_to_be(:ins_link_root) %></td><td><cite><%= lin = st.ins_to_be(:ins_link_root); lin ? link_to_youtube(:uri, lin, st.ins_to_be(:ins_link_time)) : lin %></cite></td></tr></tr>
+      <tr><th><%= s='Current Destination'; @harami1129.harami_vid ? link_to(s, @harami1129.harami_vid) : s %></th><td><%= popst.dest_current(:ins_link_root) %></td><td><cite><%= lin = popst.dest_current(:ins_link_root); lin ? link_to_youtube(:uri, lin, popst.dest_current(:ins_link_time)) : lin %></cite></td></tr>
+      <tr><th>(Downloaded → Destination)</th><td><%= popst.ins_to_be(:ins_link_root) %></td><td><cite><%= lin = popst.ins_to_be(:ins_link_root); lin ? link_to_youtube(:uri, lin, popst.ins_to_be(:ins_link_time)) : lin %></cite></td></tr></tr>
     </tbody>
   </table>
   </dd>
 
-  <dt id="h1129_link_time_dt">Link_time [sec] [<%= st.marker(:ins_link_time) %>]:</dt>
+  <dt id="h1129_link_time_dt">Link_time [sec] [<%= popst.marker(:ins_link_time) %>]:</dt>
   <dd id="h1129_link_time_dd">
   <table>
     <tbody>
       <tr><th>Downloaded</th><td><%= @harami1129.link_time %></td></tr>
       <tr><th>Internally inserted</th><td><%= @harami1129.ins_link_time %></td></tr>
-      <tr><th>Current Destination</th><td><%= st.dest_current(:ins_link_time) %></td></tr>
-      <tr><th>(Downloaded → Destination)</th><td><%= st.ins_to_be(:ins_link_time) %></td></tr>
+      <% hvid_tgt = popst.hvma_current
+         is_new = (hvid_tgt && !hvid_tgt.id) %> <%# equivalent to new_record? %>
+      <% span_tit = sprintf('HVMA-ID=%d', hvid_tgt.id) if hvid_tgt && !is_new %> 
+      <tr><th>Current Destination</th><td><span title="<%= span_tit %>"><%= popst.dest_current(:ins_link_time) %></span></td></tr>
+      <% hvid_tgt = popst.tgt[:harami_vid_music_assoc]
+         is_new = (hvid_tgt && !hvid_tgt.id) %> <%# equivalent to new_record? %>
+      <% span_tit = sprintf('HVMA-ID=%d', hvid_tgt.id) if hvid_tgt && !is_new %> 
+      <tr><th>(Downloaded → Destination)</th><td><span title="<%= span_tit %>"><%= popst.ins_to_be(:ins_link_time) %><%= is_new ? " (New)" : "" %></span></td></tr>
     </tbody>
   </table>
   </dd>
 
-  <dt id="h1129_singer_dt">Singer [<%= st.marker(:ins_singer) %>]:</dt>
+  <dt id="h1129_singer_dt">Singer [<%= popst.marker(:ins_singer) %>]:</dt>
   <dd id="h1129_singer_dd">
   <table>
     <tbody>
       <tr><th>Downloaded</th><td><%= @harami1129.singer %></td></tr>
       <tr><th>Internally inserted</th><td><%= @harami1129.ins_singer %></td></tr>
-      <tr><th><%= s='Current Destination'; (engage && engage.artist ? link_to(s, engage.artist) : s) %></th><td><%= st.dest_current(:ins_singer) %></td><td><%= engage ? ('['.html_safe+link_to((engage.engage_how ? engage.engage_how.title(langcode: I18n.locale) : 'nil')+(engage.year ? sprintf(' (%d)', engage.year) : ''), engage, title: 'Way of engagement between the singer/artist and song/music and its year')+']') : '' %></td></tr>
+      <% art = (engage && engage.artist ? engage.artist : nil) %>
+      <tr><th><%= s='Current Destination'; (art ? link_to(s, art) : s) %></th><td><%= s=popst.dest_current(:ins_singer); (art ? link_to(s, art) : s) %></td><td><%= engage ? ('['.html_safe+link_to((engage.engage_how ? engage.engage_how.title(langcode: I18n.locale) : 'nil')+(engage.year ? sprintf(' (%d)', engage.year) : '(Year=?)'), engage, title: 'Way of engagement between the singer/artist and song/music and its year')+']') : '' %></td></tr>
       <% if @harami1129.ins_singer.blank? && !@harami1129.singer.blank?  %>
-      <tr><th>(Downloaded → ins_singer)</th><td><%= st.ins_to_be(:ins_singer) %></td></tr>
+      <tr><th>(Downloaded → ins_singer)</th><td><%= popst.ins_to_be(:ins_singer) %></td></tr>
       <% end %>
-      <tr><th>(Downloaded → Destination)</th><td><%= st.dest_to_be(:ins_singer) %></td></tr>
+      <% art_tgt = popst.tgt[:artist]
+         is_new = (art_tgt && !art_tgt.id) %> <%# equivalent to new_record? %>
+      <tr><th>(Downloaded → Destination)</th><td><%= s=popst.dest_to_be(:ins_singer); (is_new ? s : link_to(s, art_tgt)) %><%= is_new ? " (New)" : "" %></td>
+      <% eng_tgt = popst.tgt[:engage]
+         is_new = (eng_tgt && !eng_tgt.id) %> <%# equivalent to new_record? %>
+      <% link_str = ""
+         if eng_tgt
+           s = (eng_tgt.engage_how ? eng_tgt.engage_how.title(langcode: I18n.locale) : 'nil')+(eng_tgt.year ? sprintf(' (%d)', eng_tgt.year) : '(Year=?)')
+           link_str = "["+link_to(s, eng_tgt, title: 'Way of engagement between the singer/artist and song/music and its year')+"]"
+           link_str = link_str.html_safe
+         end
+        %>
+        <td><%= link_str %><%= is_new ? " (New)" : "" %></td>
+        </tr>
     </tbody>
   </table>
   </dd>
 
-  <dt id="h1129_song_dt">Song [<%= st.marker(:ins_song) %>]:</dt>
+  <dt id="h1129_song_dt">Song [<%= popst.marker(:ins_song) %>]:</dt>
   <dd id="h1129_song_dd">
   <table>
     <tbody>
       <tr><th>Downloaded</th><td><%= @harami1129.song %></td></tr>
       <tr><th>Internally inserted</th><td><%= @harami1129.ins_song %></td></tr>
-      <% s='Current Destination'; mu = (engage && engage.music ? engage.music : nil) %>
-      <tr><th><%= (mu ? link_to(s, mu) : s) %></th><td><%= st.dest_current(:ins_song) %><%= (mu && mu.year ? sprintf(' (<span title="Year of this music/song">%d</span>)', mu.year).html_safe : '') %></td></tr>
+      <% mu = (engage && engage.music ? engage.music : nil) %>
+      <tr><th><%= s='Current Destination'; (mu ? link_to(s, mu) : s) %></th><td><%= s=popst.dest_current(:ins_song); (mu ? link_to(s, mu) : s) %><%= (mu && mu.year ? sprintf(' (<span title="Year of this music/song">%d</span>)', mu.year).html_safe : '') %></td></tr>
       <% if @harami1129.ins_song.blank? && !@harami1129.song.blank?  %>
-      <tr><th>(Downloaded → ins_song)</th><td><%= st.ins_to_be(:ins_song) %></td></tr>
+      <tr><th>(Downloaded → ins_song)</th><td><%= popst.ins_to_be(:ins_song) %></td></tr>
       <% end %>
-      <tr><th>(Downloaded → Destination)</th><td><%= st.dest_to_be(:ins_song) %></td></tr>
+      <% mus_tgt = popst.tgt[:music]
+         is_new = (mus_tgt && !mus_tgt.id) %> <%# equivalent to new_record? %>
+      <tr><th>(Downloaded → Destination)</th><td><%= s=popst.dest_to_be(:ins_song); (is_new ? s : link_to(s, mus_tgt)) %><%= is_new ? " (New)" : "" %></td>
     </tbody>
   </table>
   </dd>
@@ -193,12 +218,12 @@
   </thead>
   <tbody>
     <tr>
-      <td><%= st.marker(:ins_singer) %></td>
-      <td><%= st.marker(:ins_song) %></td>
-      <td><%= st.marker(:ins_release_date) %></td>
-      <td><%= st.marker(:ins_title) %></td>
-      <td><%= st.marker(:ins_link_root) %></td>
-      <td><%= st.marker(:ins_link_time) %></td>
+      <td><%= popst.marker(:ins_singer) %></td>
+      <td><%= popst.marker(:ins_song) %></td>
+      <td><%= popst.marker(:ins_release_date) %></td>
+      <td><%= popst.marker(:ins_title) %></td>
+      <td><%= popst.marker(:ins_link_root) %></td>
+      <td><%= popst.marker(:ins_link_time) %></td>
     </tr>
   </tbody>
 </table>
@@ -214,10 +239,10 @@
 
 <% if can? :update, @harami1129 %>
 <p>
-  <% if :checked == st.sorted_status.first %>
+  <% if :checked == popst.sorted_status.first %>
     Everything looks OK. If you want to <it>undo</it> confirmation (in order to properly edit and fix it later), go to <%= link_to 'Edit', edit_harami1129_path(@harami1129) %> page.
   <% else %>
-    <% if :no_insert != st.sorted_status.first %>
+    <% if :no_insert != popst.sorted_status.first %>
       Please insert within the table (or go to <%= link_to 'Edit', edit_harami1129_path(@harami1129) %> page).
     <% end %>
     <div id="form_insert_data">
@@ -230,14 +255,14 @@
     </div>
     </div>
 
-    <% if :no_insert != st.sorted_status.first %>
+    <% if :no_insert != popst.sorted_status.first %>
       [WARNING] Second-time attempt of "Populate" would fail. <%# b/c @updated_col_syms called from Harami1129#populate_ins_cols_default is never set (i.e., nil) You first must decide what this "Populate" button should do when the data are already populated, as well as what other "Populate" button (such as those appearing in Index) should do, i.e., to what extent it should populate the data, overwriting the existing ones or not, etc. %>
       <%= button_to 'Populate', harami1129_populate_url(harami1129_id: @harami1129.id), method: :patch  %>
     <% end %>
-    <% if :no_insert != st.sorted_status.first %>
+    <% if :no_insert != popst.sorted_status.first %>
       Check if everything is OK and if not, go to <%= link_to 'Edit', edit_harami1129_path(@harami1129) %> page).
-      If everything looks OK<%= ' (<em>unlikely</em> as Title in HaramiVid is blank)'.html_safe if st.dest_current(:ins_title).blank? %>, please
-      <%= button_to 'Confirm', harami1129_url, method: :patch, params: { harami1129: {a_token: nil, human_check: "1"} } %>
+      If everything looks OK<%= ' (<em>unlikely</em> as Title in HaramiVid is blank)'.html_safe if popst.dest_current(:ins_title).blank? %>, please
+      <%= button_to 'Confirm', harami1129_url, method: :patch, params: { harami1129: {human_check: "1"} } %>
     <% end %>
   <% end %>
 </p>

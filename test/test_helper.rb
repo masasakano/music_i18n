@@ -77,15 +77,28 @@ class ActiveSupport::TestCase
 
     if is_date
       num = [num, 3].min
-      dtoa = %i(year month day).map{|i| dt.send(i)}[0..(num-1)]
+      dtoa = %i(year month day).map{|i| sprintf("%0"+((:year == i) ? 4 : 2).to_s+"d", dt.send(i))}[0..(num-1)]
     else
       num = [num, 6].min
-      dtoa = dt.to_a[0,6].reverse[0..(num-1)]
+      dtoa = dt.to_a[0,6].reverse[0..(num-1)].map.with_index{|v, i| sprintf("%0"+((0 == i) ? 4 : 2).to_s+"d", v)}
     end
 
     s_kwd = kwd.to_s
     (1..num).to_a.map{|i| [sprintf("#{s_kwd}(%di)", i), dtoa[i-1]]}.to_h
   end
+  #
+  ## Convert Date or Time to ...(1i)-type format
+  ##
+  ## @return [Hash<String,String>] with_indifferent_access : e.g., {"ins_at(1i)"=>"1999", "ins_at(2i)"=>"06", ...}
+  #def datetime_to_forms(dtime, kwd)
+  #  max_i = (dtime.respond_to?(:hour) ? 6 : 3)
+  #  hsret = {}
+  #  %i(year month day hour min sec).map.with_index do |metho, i|
+  #    fmt = "%0"+((:year == metho) ? "4" : "2")+"d"
+  #    [sprintf("%s(%di)", kwd, i+1), sprintf(fmt, dtime.send(metho))]
+  #  end.to_h.with_indifferent_access
+  #end
+
 
   # Reverse of get_bool_from_params in Application.helper
   #
@@ -94,6 +107,7 @@ class ActiveSupport::TestCase
   # @param prmval [String, NilClass] params['is_ok']
   # @return [Boolean, NilClass]
   def get_params_from_bool(val)
+    return "" if val.nil?
     val ? "1" : "0"
   end
 
@@ -114,12 +128,8 @@ class ActiveSupport::TestCase
       else
         [ek.to_s,
          case ev
-         when nil
-           ""
-         when true
-           "1"
-         when false
-           "0"
+         when nil, true, false
+           get_params_from_bool(ev)
          else
            ev.to_s
          end
@@ -128,7 +138,6 @@ class ActiveSupport::TestCase
     }.compact.to_h
     hsout.merge ardts.inject({}, &:merge)
   end
-
 
   # Validate HTML with W3C
   #

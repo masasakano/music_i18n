@@ -677,6 +677,50 @@ class ApplicationController < ActionController::Base
     )
   end
 
+  # params returns "ins_at(1i)", "ins_at(2i)" etc.  Returns the converted Date or Time.
+  #
+  # Current local time zone.
+  #
+  # @example
+  #    date_or_time_from_params(my_model_params, "ins_at", is_date: false)  # defined in application_controller.rb
+  #
+  # @param hsprm [Parameters] Rails (filtered and permitted) Parameter Hash
+  # @param kwd [String, Symbol] e.g., "published_date", "inserted_at"
+  # @param is_date: [Boolean, NilClass] true for Date, false for Time. If nil, automatically judged from kwd.
+  # @return [Time, Date]
+  def date_or_time_from_params(hsprm, kwd, is_date: nil)
+    is_date = (/_date$/ =~ kwd.to_s) if is_date.nil?
+    str4parse = _build_str4parse(hsprm, kwd)
+    return if !str4parse
+
+    if is_date
+      Date.parse(str4parse)
+    else
+      Time.zone.parse(str4parse)
+    end
+  end
+
+  # Build String to be parsed by Date or Time
+  #
+  # @return [String, NilClass] nil if kwd is not found in hsprm or Year is blank.
+  def _build_str4parse(hsprm, kwd)
+    ar6 = Array.new(6)
+    (1..6).each do |i_num|
+      k = sprintf("%s(%di)", kwd.to_s, i_num)
+      ar6[i_num-1] = hsprm[k] if hsprm.has_key?(k)
+    end
+
+    return if ar6[0].blank?  # If Year is blank, this means the date/time is not present in the first place.
+
+    datepart = sprintf "%s-%s-%s", *ar6[0..2].map{|i| i ? i : "00"}
+    return datepart if ar6[3..5].compact.empty?
+
+    datepart + sprintf(" %s:%s:%s", *ar6[3..5].map{|i| i ? i : "00"})
+  end
+  private :_build_str4parse
+
+  ######################## Callbacks
+
   # Callback
   def set_translation_whodunnit
     ModuleWhodunnit.whodunnit = current_user

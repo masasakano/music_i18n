@@ -101,6 +101,10 @@ class Harami1129 < ApplicationRecord
   # Prefix for column names
   PREFIX_INS = "ins_"
 
+  attr_accessor :destroy_engage
+  attr_accessor :human_check
+  attr_accessor :human_uncheck
+
   # Returns a Harami1129 column name for Artist or Music
   #
   # @example
@@ -169,16 +173,25 @@ class Harami1129 < ApplicationRecord
     # Used by the externatl entity to judge if their cache can be used.
     attr_reader :updated_at
 
+    # Hash of Target models once populated from the current status of Harami1129 (NOT the currently linked ones, though they agree in most cases)
+    attr_accessor :tgt
+
+    # Current HaramiVidMusicAssoc (single record)
+    attr_accessor :hvma_current
+
     # @param sym_or_hs [Symbol, Hash] if Hash, {SymColumnName => SymbolStatus}; if Symbol, all the columns have the same status.
     # @param h1129_ins [Harami1129] Unsaved and only ins_* are filled; they are the current ins_* if unmodified, or ins_* inserted from the current original if modified.
     # @param dest [Hash] current String repretentation of the destination as Hash
     # @param dest_to_be [Hash] 
+    # @param tgt: [Hash<ActiveRecord>] (:harami_vid => Target ActiveRecord) etc. Record may be nil or have nil id.
     # @param updated_at: [Time] updated_at of the corresponding record.
-    def initialize(sym_or_hs, h1129_ins, dest: nil, dest_to_be: nil, updated_at: Time.now)
+    def initialize(sym_or_hs, h1129_ins, dest: nil, dest_to_be: nil, tgt: {}, hvma_current: nil, updated_at: Time.now)
       @status_cols = (sym_or_hs.respond_to?(:merge) ? sym_or_hs : Harami1129::ALL_INS_COLS.map{|i| [i, sym_or_hs]}.to_h).with_sym_keys
       @h1129_ins = h1129_ins
       @dest       = (dest && dest.with_sym_keys)  # destination (current status)
       @dest_to_be = (dest_to_be && dest_to_be.with_sym_keys)  # destination if populated (meaningful only if it has not been popularted)
+      @tgt        = tgt.with_indifferent_access               # destination ActiveRecord if populated
+      @hvma_current = hvma_current
       @updated_at = updated_at
     end
 
@@ -304,7 +317,7 @@ class Harami1129 < ApplicationRecord
       populate_ins_cols(updates: ALL_INS_COLS, messages: messages, dryrun: true) # sets @columns_at_destination
       #self.reload
 
-      return(ret = PopulateStatus.new(:checked, h1129_ins_to_be, dest: columns_at_destination[:be4].dup, dest_to_be: columns_at_destination[:aft].dup, updated_at: updated_at)) if checked_at && orig_modified_at <= checked_at  # Already eye-checked
+      return(ret = PopulateStatus.new(:checked, h1129_ins_to_be, dest: columns_at_destination[:be4].dup, dest_to_be: columns_at_destination[:aft].dup, tgt: columns_at_destination[:tgt].dup, hvma_current: columns_at_destination[:hvma_current], updated_at: updated_at)) if checked_at && orig_modified_at <= checked_at  # Already eye-checked
 
       hs2pass = {}
       ALL_INS_COLS.each do |col|
@@ -317,7 +330,7 @@ class Harami1129 < ApplicationRecord
             :consistent
           end
       end
-      return(ret = PopulateStatus.new(hs2pass, h1129_ins_to_be, dest: columns_at_destination[:be4].dup, dest_to_be: columns_at_destination[:aft].dup, updated_at: updated_at))
+      return(ret = PopulateStatus.new(hs2pass, h1129_ins_to_be, dest: columns_at_destination[:be4].dup, dest_to_be: columns_at_destination[:aft].dup, tgt: columns_at_destination[:tgt].dup, hvma_current: columns_at_destination[:hvma_current], updated_at: updated_at))
     ensure
       @populate_status = ret
     end
@@ -326,7 +339,7 @@ class Harami1129 < ApplicationRecord
 
   def get_h1129_ins_to_be
     h1129_ins_to_be = Harami1129.new()
-    ActiveRecord::Base.transaction do
+    ActiveRecord::Base.transaction(requires_new: true) do
       fill_ins_column!(force: true)
       ALL_INS_COLS.each do |col|
         h1129_ins_to_be.send(col.to_s+"=", send(col))
@@ -641,7 +654,7 @@ class Harami1129 < ApplicationRecord
     reths = {self.class.name.to_sym => [self]} # Hash of Arrays
     begin
       Rails.application.eager_load!
-      ActiveRecord::Base.transaction do
+      ActiveRecord::Base.transaction(requires_new: true) do
         t_before = DateTime.now
         insert_populate(messages: messages, dryrun: false)
         raise "Harami1129#harami_vid is nil: #{self.inspect}" if !harami_vid
@@ -685,17 +698,26 @@ class Harami1129 < ApplicationRecord
     reths
   end
 
-  # Wrapper of {#populate_ins_cols} where the columns to update
+  # Wrapper of {#populate_ins_cols} so the columns to update
   # are automatically determined.
+  #
+  # This can be directly called from {Harami1129s::PopulatesController}
+  # to re-populate data.
   #
   # @param message: [Array<String>] intent(out) for error/information messages.
   # @param dryrun: [Boolean] If true (Def: false), nothing is saved but {Harami1229#different_columns_at_destination} for the returned value is set.
-  def populate_ins_cols_default(messages: [], dryrun: false)
+  def populate_ins_cols_default(messages: [], dryrun: false, force: false)
     # In practice it is unlikely self is new_record? because fill_ins_column!
     # should have "save"-d it, unless the record is not downloaded but
     # is manually generated (but not saved yet) in which ins_* have been
     # assigned.
-    updates = ((new_record? || !harami_vid) ? ALL_INS_COLS : updated_col_syms.select{|i| ALL_INS_COLS.include? i})
+    updates =
+      if (new_record? || !harami_vid)
+        ALL_INS_COLS
+      else
+        self.updated_col_syms = get_upd_hash(ignore_ins_at: true, force: force).keys
+        updated_col_syms.select{|i| ALL_INS_COLS.include? i}
+      end
     populate_ins_cols(updates: updates, messages: messages, dryrun: dryrun)
   end
 
@@ -847,7 +869,7 @@ class Harami1129 < ApplicationRecord
   def fill_ins_column!(force: false)
     self.updated_col_syms = []
 
-    # Get Hash to passs to update!
+    # Get Hash to pass to update!
     upd_data = get_upd_hash(force: force)
     return refresh_changed_and_return_nil if !upd_data
 
@@ -881,10 +903,14 @@ class Harami1129 < ApplicationRecord
 
   # Gets a Hash to be used to update! some ins_* columns
   #
+  # @param ignore_ins_at: [Boolean] if specified true (Def: false), ins_at is not checked
+  #    Otherwise, ins_at is compared with last_downloaded_at so columns are not
+  #    re-populated in default (unless +force+ option is specified).
+  # @param foce: [Boolean]
   # @return [Hash<Symbol => Object>, NilClass] nil if no update is needed
-  def get_upd_hash(force: false)
+  def get_upd_hash(ignore_ins_at: false, force: false)
     # No need to update, because of the time comparison result.
-    return nil if !force && last_downloaded_at && ins_at && last_downloaded_at <= ins_at
+    return nil if !force && !ignore_ins_at && last_downloaded_at && ins_at && last_downloaded_at <= ins_at
 
     # Gets a "raw" Hash, where blank ins_* are specified to be updated.
     # Hash is like, {:ins_title => "Beatles"}
@@ -936,9 +962,9 @@ class Harami1129 < ApplicationRecord
   # @param dryrun: [Boolean] If true (Def: false), nothing is saved but {Harami1229#columns_at_destination} for the returned value is set.
   # @return [self, NilClass] nil if dryrun or something goes wrong.
   def populate_ins_cols(updates: [], messages: [], dryrun: false)
-    self.columns_at_destination = {:be4 => {}, :aft => {}}
+    self.columns_at_destination = {be4: {}, aft: {}, tgt: {}.with_indifferent_access, hvma_current: nil}
     begin
-      ActiveRecord::Base.transaction do
+      ActiveRecord::Base.transaction(requires_new: true) do
         hvid = harami_vid
 
         # If Harami1129#engage_id is nil, all related values in columns_for_harami1129[:be4] are nil.
@@ -951,6 +977,8 @@ class Harami1129 < ApplicationRecord
           logger.error "(Harami1129##{__method__}) Found no HaramiVid AND failed to create one. Why? Harami1129=: "+self.inspect
           return nil
         end
+
+        self.columns_at_destination[:tgt][:harami_vid] = hvid
         hvid.set_with_harami1129(self, updates: updates, dryrun: dryrun)  # not saved yet.
         self.columns_at_destination[:be4] = 
           if !hvid_exists || hvid.new_record?
@@ -964,24 +992,31 @@ class Harami1129 < ApplicationRecord
         # self.engage_id may neeed to be altered.
         messages = []
         enga = Engage.find_and_set_one_harami1129(self, updates: updates, messages: messages, dryrun: dryrun)
-        %i(ins_singer ins_song).each do |i|
-          self.columns_at_destination[:be4][i] = enga.columns_for_harami1129[:be4][i]
-          self.columns_at_destination[:aft][i] = enga.columns_for_harami1129[:aft][i]
+        self.columns_at_destination[:tgt][:engage] = enga
+        if enga
+          self.columns_at_destination[:tgt][:music]  = enga.music
+          self.columns_at_destination[:tgt][:artist] = enga.artist
+          %i(ins_singer ins_song).each do |i|
+            self.columns_at_destination[:be4][i] = enga.columns_for_harami1129[:be4][i]
+            self.columns_at_destination[:aft][i] = enga.columns_for_harami1129[:aft][i]
+          end
         end
         #self.columns_at_destination.delete :engage if (enga == engage) # Should never be true...
 
-        hvma = hvid.harami_vid_music_assocs
+        hvmas = hvid.harami_vid_music_assocs
         self.columns_at_destination[:be4][:ins_link_time] = 
-          if !hvma || !hvid_exists
+          if !hvmas || !hvid_exists
             # No HaramiVidMusicAssocs association
             nil
           else
-            if ins_link_time && hvma.where(timing: ins_link_time).exists?
+            if ins_link_time && hvmas.where(timing: ins_link_time).exists?
               # If the same time exists in the associated HaramiVidMusicAssocs, use it.
+              self.columns_at_destination[:hvma_current] = hvmas.where(timing: ins_link_time).first
               ins_link_time
             elsif !engage.blank? && !engage.music.blank?
               # Or, search based on Music and Artist, providing self#engage_id is non-nil.
-              cand = hvma.where(music: engage.music).first
+              cand = hvmas.where(music: engage.music).first
+              self.columns_at_destination[:hvma_current] = hvmas.where(music: engage.music).first
               (cand ? cand.timing : nil)
             else
               nil
@@ -1005,7 +1040,7 @@ class Harami1129 < ApplicationRecord
         enga.save! if enga.changed?  # redundant, as it should have been already saved.
         self.engage     = enga
 
-        set_event_item_ref(enga)
+        set_event_item_ref(enga, hvid)
         hvid.set_with_harami1129_event_item_assoc(self, dryrun: dryrun)  # HaramiVid#place may be modified.
         save!
 
@@ -1023,36 +1058,49 @@ class Harami1129 < ApplicationRecord
   # Set event_item_id if nil
   #
   # @return [Hash<event_item, artist_music_play, place>] if updated, returns an Array of Models. EventItem can be accessed via +event_item+ anyway.
-  def set_event_item_ref(enga)
-    if event_item
-      # not updating
-    elsif (h1129 = self.class.where(ins_link_root: ins_link_root).where.not(event_item_id: nil).first)
-      # If there is one with the same URL with a significant EventItem, use it.
-      self.event_item = h1129.event_item
-    else
-      # Else, create one.
-      guessed_place = self.class.guess_place(ins_title)  # defined in /app/models/concerns/module_guess_place.rb
-      evt_kind =  EventItem.new_default(:harami1129, place: guessed_place, save_event: false)  # Either Event or EventItem
-      if EventItem == evt_kind.class
-        evit = evt_kind
-        if evit.save
-          evit.reload
-        else
-          logger.error("ERROR(#{File.basename __FILE__}:#{__method__}): for some reason, EventItem failed to be saved! EventItem=#{evt_kind.inspect}")
-        end
+  def set_event_item_ref(enga, hvid)
+    guessed_place = self.class.guess_place(ins_title)  # defined in /app/models/concerns/module_guess_place.rb
+
+    self.event_item = 
+      if event_item
+        event_item
+      elsif (h1129 = self.class.where(ins_link_root: ins_link_root).where.not(event_item_id: nil).first)
+        # If there is one with the same URL with a significant EventItem, use it.
+        h1129.event_item
       else
-        # evt_kind is an Event (NOT EventItem)
-        if evt_kind.save   # Just to play VERY safe (so as not to stop processing with a risk of Harami1129#event_item being nil.
-          evt_kind.reload
-          evit = evt_kind.event_items.first
-        else
-          logger.error("ERROR(#{File.basename __FILE__}:#{__method__}): for some reason, Event failed to be saved! Event=#{evt_kind.inspect}")
-        end
+        (_find_evit_in_harami_vid(enga, hvid, guessed_place: guessed_place) ||  # takes from HaramiVid (this happens when HaramiVid for the same URI is created before Harami1129)
+         create_event_item_ref(hvid.event_items.first, guessed_place: guessed_place)) # create one.
       end
 
-      self.event_item = evit if evit  # if not, it is Event, NOT EventItem, as a result of failed save.
-    end
+    create_def_amp!(enga, guessed_place: nil)
+  end
 
+
+  # Create a default ArtistMusicPlay
+  #
+  # @param enga [Engage]
+  # @param hvid [HaramiVid]
+  # @param guessed_place: [Place, NilClass]
+  # @return [EventItem, NilClass]
+  def _find_evit_in_harami_vid(enga, hvid=harami_vid, guessed_place: nil)
+    guessed_place ||= self.class.guess_place(ins_title)  # defined in /app/models/concerns/module_guess_place.rb
+    hvid.event_items.each do |evit|
+      if evit.place == guessed_place && evit.musics.where(id: enga.music.id).exists?
+        return evit
+      end
+    end
+    return nil
+  end
+  private :_find_evit_in_harami_vid
+
+
+  # Create a default ArtistMusicPlay
+  #
+  # @param enga [Engage]
+  # @param guessed_place: [Place, NilClass]
+  # @return [Hash] .with_indifferent_access
+  def create_def_amp!(enga, guessed_place: nil)
+    guessed_place ||= self.class.guess_place(ins_title)  # defined in /app/models/concerns/module_guess_place.rb
     amp = nil
     if event_item && enga && enga.music && !enga.music.unknown? 
       amp = ArtistMusicPlay.initialize_default_artist(:harami1129, event_item: event_item, music: enga.music)
@@ -1065,6 +1113,34 @@ class Harami1129 < ApplicationRecord
     }.with_indifferent_access
   end
 
+
+  # Create a new event_item to belongs_to
+  #
+  # @param template [EentItem, NilClass] template if any. Its Event is used.
+  # @return [EentItem, NilClass] newly created one; nil if failed.
+  def create_event_item_ref(template=nil, guessed_place: nil)
+    event = (template ? template.event : nil)
+    guessed_place ||= self.class.guess_place(ins_title)  # defined in /app/models/concerns/module_guess_place.rb
+    evt_kind =  EventItem.new_default(:harami1129, event: event, place: guessed_place, save_event: false)  # Either Event or EventItem
+    if EventItem == evt_kind.class
+      evit = evt_kind
+      if evit.save
+        return evit.reload
+      else
+        logger.error("ERROR(#{File.basename __FILE__}:#{__method__}): for some reason, EventItem failed to be saved! EventItem=#{evt_kind.inspect}")
+        return
+      end
+    end
+
+    # evt_kind is an Event (NOT EventItem)
+    if evt_kind.save   # Just to play VERY safe (so as not to stop processing with a risk of Harami1129#event_item being nil.
+      evt_kind.event_items.reset
+      return evt_kind.event_items.first
+    else
+      logger.error("ERROR(#{File.basename __FILE__}:#{__method__}): for some reason, Event failed to be saved! Event=#{evt_kind.inspect}")
+      return
+    end
+  end
 
   # Create or maybe update {HaramiVidMusicAssoc}
   #
@@ -1081,6 +1157,7 @@ class Harami1129 < ApplicationRecord
   # @return [NilClass]
   def update_harami_vid_music_assoc(harami_vid, music, timing, updates: [])
     self.columns_at_destination[:be4][:ins_link_time] = nil
+    self.columns_at_destination[:tgt][:harami_vid_music_assoc] = nil
 
     return if !updates.include?(:ins_song) && !updates.include?(:ins_link_time) || !music
     self.columns_at_destination[:be4][:ins_link_time] = timing
@@ -1093,6 +1170,7 @@ class Harami1129 < ApplicationRecord
       # If there is none (or confusingly, more than one), a new association is created.
       self.columns_at_destination[:be4][:ins_link_time] = nil
       assoc = HaramiVidMusicAssoc.create!(harami_vid: harami_vid, music: music, timing: timing)
+      self.columns_at_destination[:tgt][:harami_vid_music_assoc] = assoc 
       logger.warn "More than one HaramiVidMusicAssoc for the same Music and HaramiVid are found, which should not happen (ID=#{assoc.id} is further added now): #{existings.inspect}" if n_counts > 1
       return
     end
@@ -1100,7 +1178,8 @@ class Harami1129 < ApplicationRecord
     return if !updates.include?(:ins_link_time)
 
     # "timing" of the existing association is updated.
-    self.columns_at_destination[:be4][:ins_link_time] = existings.first.timing
+    self.columns_at_destination[:hvma_current] = hvma = existings.first
+    self.columns_at_destination[:be4][:ins_link_time] = hvma.timing
     existings.first.update!(timing: timing)
     return
   end

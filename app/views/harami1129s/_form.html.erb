@@ -78,6 +78,14 @@
   </div>
 
   <div class="field">
+    <%= form.label :last_downloaded_at %>
+    <%= form.datetime_select :last_downloaded_at, include_seconds: true %>
+   <% if !@harami1129.new_record? %>
+     To manually update, make sure to set <em>last_downloaded_at</em> <strong>after</strong> <em>ins_at</em>.</span></p>
+   <% end %>
+  </div>
+
+  <div class="field">
     <strong>Not music: </strong><%= form.label :not_music, 'Check if this video contains no songs' %>
     <%= form.check_box :not_music %>
   </div>
