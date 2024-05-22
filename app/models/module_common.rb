@@ -1055,6 +1055,14 @@ module ModuleCommon
     retstr
   end
 
+  # Converts the given date to Time at midday on the day in UTC
+  #
+  # @param date [Date]
+  # @return [Time]
+  def convert_date_to_midday_utc(date)
+    date.to_time(:utc) + 12.hours # midday in UTC/GMT
+  end
+
   # Returns a String of (minute|hour|day) as the optimum unit from the given second.
   #
   # The latter two are expected to be set in the argument +record+

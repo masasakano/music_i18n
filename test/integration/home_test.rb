@@ -38,7 +38,7 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     user = users(:user_moderator) # Harami moderator (not translator)
     _can_view_core(user)
     csssel = css_select('div#navbar_upper_user')
-    assert_includes csssel[0].text, 'Engages'
+    assert_includes csssel[0].text, 'EventGroups'
     assert_includes csssel[0].text, 'Places'
     assert_includes csssel[0].text, 'Channels'
     assert_includes csssel[0].text, 'Harami1129s'
@@ -67,7 +67,7 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     csssel = css_select('div#navbar_top')
     assert_includes csssel[0].text, 'Admin' # Admin_panel
     csssel = css_select('div#navbar_upper_user')
-    assert_includes csssel[0].text, 'Engages'
+    assert_includes csssel[0].text, 'EventGroups'
     assert_includes csssel[0].text, 'Places'
     assert_includes csssel[0].text, 'Channels'
     assert_includes csssel[0].text, 'Harami1129s'

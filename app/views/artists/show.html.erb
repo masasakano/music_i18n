@@ -100,7 +100,7 @@
 </table>
 <% if can? :create, Music %>
 <p>
-  <%= link_to sprintf('Associate a new Music to Artist %s', my_title), musics_path(music: {artist_id: @artist.id}) %>
+  <span class="lead"><%= link_to sprintf('Associate a new Music to Artist %s', my_title), musics_path(music: {artist_id: @artist.id}) %></span>
 </p>
 <% end %>
 </section>

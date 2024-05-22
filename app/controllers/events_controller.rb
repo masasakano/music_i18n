@@ -35,8 +35,8 @@ class EventsController < ApplicationController
   def new
     set_event_group_prms  # set @event_group
     @event.event_group = @event_group
-    @event.start_time     ||= (@event_group ? @event_group.start_time     : TimeAux::DEF_FIRST_DATE_TIME)  # see event.rb
-    @event.start_time_err ||= (@event_group ? @event_group.start_time_err : TimeAux::MAX_ERROR)
+    @event.start_time     ||= (@event_group ? convert_date_to_midday_utc(@event_group.start_date) : TimeAux::DEF_FIRST_DATE_TIME)  # see event.rb
+    @event.start_time_err ||= (@event_group ? @event_group.start_date_err*86400 : TimeAux::MAX_ERROR)
 
     set_form_start_err(@event)  # defined in module_comon.rb
   end
@@ -44,7 +44,7 @@ class EventsController < ApplicationController
   # GET /events/1/edit
   def edit
     # In case only an EventGroup (but not StartTime) was defined in create
-    @event.start_time     ||= (@event_group ? @event_group.start_time     : TimeAux::DEF_FIRST_DATE_TIME)  # see event.rb
+    @event.start_time     ||= (@event_group ? convert_date_to_midday_utc(@event_group.start_time) : TimeAux::DEF_FIRST_DATE_TIME)  # see event.rb
 
     if !@event.form_start_err
       unit = ((uni=@event.form_start_err_unit) ? uni : get_optimum_timu_unit(@event.start_time_err))  # defined in /app/models/module_common.rb

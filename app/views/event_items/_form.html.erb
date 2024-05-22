@@ -1,112 +1,10 @@
 
 <%= render partial: 'layouts/form_print_errors', locals: {model: event_item} %>
 
-<% if event_item.new_record? && Event.count == 0 %>
+<% if event_item.new_record? && Event.count == 0 %>  <%# relevant only before the first seeding. %>
   No Events are defined.  You must <%= link_to "create an Event", new_event_path %> first.
 <% else %>
 
-<% if false %>  <%# Destroy this if-clause once confirmed! %>
-<%= form_with(model: event_item, local: true) do |form| %>
-
-  <div class="field">
-    <%= form.label :machine_title, "Machine title" %>
-    <%= form.text_field :machine_title, value: event_item.machine_title %>
-  </div>
-
-  <div class="field">
-    <%= form.label :event_id, "Event" %>
-    <%= form.select :event_id, Event.all.map{|eg| [eg.title_or_alt(langcode: I18n.locale, prefer_alt: true, lang_fallback_option: :either), eg.id]}, selected: nil %>
-  </div>
-
-  <div class="field" id="div_select_country">
-    <%= form.label 'place.prefecture_id.country_id', t('Country')%>
-    <% country = (event_item.country || Country.unknown) %>
-    <%= form.collection_select 'place.prefecture_id.country_id', @countries, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, {include_blank: !country, selected: (country ? country.id : nil)} %> <%# If no translation exists and left empty (instead of "NONE"), it would violate the HTML spec: Element “option” without attribute “label” must not be empty. %>
-  </div>
-
-  <div class="field" id="div_select_prefecture">
-    <%= form.label 'place.prefecture_id', t('Prefecture') %>
-    <% prefecture = event_item.prefecture %>
-    <%= form.grouped_collection_select 'place.prefecture_id', @countries, :prefectures, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true)}, {include_blank: true, selected: (prefecture ? prefecture.id : nil)} %>
-  </div>
-
-  <div class="field" id="div_select_place">
-    <%= form.label :place, t('Place') %>
-    <% place = event_item.place %>
-    <%= form.grouped_collection_select 'place', @prefectures, :places, Proc.new{|pref| a=pref.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true); a[0]+'/'+a[1]}, :id, Proc.new{|plac| plac.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, {include_blank: true, selected: (place ? place.id : nil)} %>
-  </div>
-
-  <% da = event_item.start_app_time %></td>
-  <div class="field">
-    <%= form.label :start_year, "Start Year" %>
-    <%= form.number_field :start_year, value: (da ? da.year : nil), placeholder: 'e.g., 1999', class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :start_month,"Start Month" %>
-    <%= form.number_field :start_month, value: (da ? da.month : nil), in: 0..12, class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :start_day, "Start Day" %>
-    <%= form.number_field :start_day, value: (da ? da.day : nil), in: 0..31, class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :start_hour, "Start Hour" %>
-    <%= form.number_field :start_hour, value: (da ? da.hour : nil), in: 0..31, class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :start_minute, "Start Minute" %>
-    <%= form.number_field :start_minute, value: (da ? da.min : nil), in: 0..31, class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :start_err, "Error" %>
-    <%= form.number_field :start_err, value: ((da && da.error) ? da.error.in_hours : nil), class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :start_err_unit, "Error Unit" %>
-    <%= form.select :start_err_unit, ApplicationController::EVENT_FORM_ERR_UNITS, selected: "hour" %>
-  </div>
-
-  <% val = event_item.duration_minute %>
-  <div class="field">
-    <%= form.label :duration_minute, "Duration [minute]" %>
-    <%= form.number_field :duration_minute, value: val, class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :duration_minute_err, "Duration error [second]" %>
-    <%= form.number_field :duration_minute_err, value: val, class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :weight, "Weight" %>
-    <%= form.text_field :weight, value: event_item.weight, class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :event_ratio, "Event ratio [0-1]" %>
-    <%= form.text_field :event_ratio, value: event_item.event_ratio, class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :note %>
-    <%= form.text_area :note %>
-  </div>
-
-  <div class="actions">
-    <%= form.submit(event_item.new_record? ? "Create EventItem" :  "Update EventItem")%>
-  </div>
-  <div class="actions">
-  <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
-  </div>
-<% end %>
-
-<% else %>   <%# if false - else %>
 <div id="form_main">
 
 <%= simple_form_for event_item do |f| %>
@@ -140,7 +38,6 @@
 
 </div> <!-- div id="form_main" -->
 
-<% end %>  <%# if false - else %>
 <% end %>  <%# if event_item.new_record? && Event.count == 0 %>
 
 <%#= render partial: 'layouts/link_merge_destroy', locals: {model: event_item, is_to_edit: !event_item.new_record? } %>

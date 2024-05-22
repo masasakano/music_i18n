@@ -4,6 +4,8 @@
 
 <div id="event_groups">
 <table id="event_groups_index_table">
+    <% can_edit_event_group = can?(:edit, EventGroup) %>
+    <% can_create_event     = can?(:create, Event) %>
   <thead>
     <tr>
      <% can_edit_event_group = can?(:edit, EventGroup) %>
@@ -11,25 +13,22 @@
       <% if can_edit_event_group %>
        <%= render "layouts/title_alt_ja_en_table", model: nil, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
       <% else %>
-      <th class="title_alt_<%= I18n.locale.to_s %>"><%= t(:title).capitalize %></th>
+       <th class="title_alt_<%= I18n.locale.to_s %>"><%= t(:title).capitalize %></th>
       <% end %>
       <th title="n-th one in a series of Event Group"><%= t("event_groups.num_id") %></th>
       <th><%= t("event_groups.start_date", default: "From YYYY-MM-DD") %></th>
       <% if can_edit_event_group %>
-      <th>±days</th>
+        <th>±days</th>
       <% end %>
       <th><%= t("event_groups.end_date", default: "To YYYY-MM-DD") %></th>
       <% if can_edit_event_group %>
-      <th>±days</th>
+        <th>±days</th>
       <% end %>
       <th><%= t(:Place) %></th>
       <th title="Note in this DB"><%= t("tables.note") %></th>
       <th><%= t("event_groups.n_events") %></th>
-      <% if can_edit_event_group %>
-        <th colspan="3"></th>
-      <% else %>
-        <th></th>
-      <% end %>
+     <% n_colspans = 1 + [can_edit_event_group, can_create_event].count(true) %>
+      <th colspan="<%= n_colspans %>"></th>
     </tr>
   </thead>
 
@@ -56,15 +55,25 @@
 
         <td class="event_groups_index_table_events"><%= link_to model.events.size, event_group_url(model)+"#section_event_group_show_events" %></td>
         <td><%= link_to t("event_groups.index.show"), model %></td>
-        <% if can? :update, model  %>
-          <td><%= link_to 'Edit', edit_event_group_path(model) %></td>
+        <% if can_edit_event_group %>
+          <td>
+            <% if can? :update, model  %>
+              <%= link_to 'Edit', edit_event_group_path(model) %>
+            <% end %>
+          </td>
         <% end %>
+        <% if can_create_event %>
+          <td><%= link_to 'Add Event', new_event_path(event_group_id: model.id) %></td>
+        <% end %>
+
+        <% if false %> <%# ==================== %>
         <% if can?(:destroy, model) %>
          <% if model.destroyable? %>
           <td><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
          <% else %>
           <td><span class="cell_disable_link">Destroy</span></td>
          <% end %>
+        <% end %>
         <% end %>
       </tr>
     <% end %>

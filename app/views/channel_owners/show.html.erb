@@ -44,7 +44,7 @@
 </section>
 <% if can? :create, Channel %>
   <% hsin = channel_new_get_params(channel_owner: @channel_owner) %>  <%# defined in channel_owners_helper.rb %>
-  → <%= link_to t("layouts.create_model", model: t(:Channel)), new_channel_path( params: {channel: hsin}) %>
+  <span class="lead">→ <%= link_to t("layouts.create_model", model: t(:Channel)), new_channel_path( params: {channel: hsin}) %></span>
 <% end %>
 
 <hr>

@@ -66,6 +66,10 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
     sign_in @moderator
     get new_event_url
     assert_response :success
+
+    # a GET link from EventGroup
+    get new_event_url, params: {event_group_id: EventGroup.last.id.to_s}
+    assert_response :success
   end
 
   test "should create event" do

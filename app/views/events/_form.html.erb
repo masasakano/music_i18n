@@ -9,95 +9,6 @@
 <h2>Unique parameters</h2>
 <% end %>
 
-<% if false %>  <%# Destroy this if-clause once confirmed! %>
-<%= form_with(model: event, local: true) do |form| %>
-
-  <% if event.new_record? %>
-    <%= render partial: 'layouts/partial_new_translations', locals: {form: form, model: event, trans: Translation.new, disable_is_orig: true} %>
-  <% end %>
-
-  <div class="field">
-    <%= form.label :event_group_id, "EventGroup" %>
-    <%= form.select :event_group_id, EventGroup.all.map{|eg| [eg.title_or_alt(langcode: I18n.locale, prefer_alt: true, lang_fallback_option: :either), eg.id]}, selected: EventGroup.unknown.id %>
-  </div>
-
-  <div class="field" id="div_select_country">
-    <%= form.label 'place.prefecture_id.country_id', t('Country')%>
-    <% country = (event.country || Country.unknown) %>
-    <%= form.collection_select 'place.prefecture_id.country_id', @countries, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, {include_blank: !country, selected: (country ? country.id : nil)} %> <%# If no translation exists and left empty (instead of "NONE"), it would violate the HTML spec: Element “option” without attribute “label” must not be empty. %>
-  </div>
-
-  <div class="field" id="div_select_prefecture">
-    <%= form.label 'place.prefecture_id', t('Prefecture') %>
-    <% prefecture = event.prefecture %>
-    <%= form.grouped_collection_select 'place.prefecture_id', @countries, :prefectures, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true)}, {include_blank: true, selected: (prefecture ? prefecture.id : nil)} %>
-  </div>
-
-  <div class="field" id="div_select_place">
-    <%= form.label :place, t('Place') %>
-    <% place = event.place %>
-    <%= form.grouped_collection_select 'place', @prefectures, :places, Proc.new{|pref| a=pref.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true); a[0]+'/'+a[1]}, :id, Proc.new{|plac| plac.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, {include_blank: true, selected: (place ? place.id : nil)} %>
-  </div>
-
-  <% da = event.start_app_time %></td>
-  <div class="field">
-    <%= form.label :start_year, "Start Year" %>
-    <%= form.number_field :start_year, value: (da ? da.year : nil), placeholder: 'e.g., 1999', class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :start_month,"Start Month" %>
-    <%= form.number_field :start_month, value: (da ? da.month : nil), in: 0..12, class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :start_day, "Start Day" %>
-    <%= form.number_field :start_day, value: (da ? da.day : nil), in: 0..31, class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :start_hour, "Start Hour" %>
-    <%= form.number_field :start_hour, value: (da ? da.hour : nil), in: 0..31, class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :start_minute, "Start Minute" %>
-    <%= form.number_field :start_minute, value: (da ? da.min : nil), in: 0..31, class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :start_err, "Error" %>
-    <%= form.number_field :start_err, value: ((da && da.error) ? da.error.in_hours : nil), class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :start_err_unit, "Error Unit" %>
-    <%= form.select :start_err_unit, ApplicationController::EVENT_FORM_ERR_UNITS, selected: "hour" %>
-  </div>
-
-  <div class="field">
-    <%= form.label :duration_hour, "Duration [hour]" %>
-    <%= form.number_field :duration_hour, value: event.duration_hour, class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :weight, "Weight" %>
-    <%= form.text_field :weight, value: event.weight, class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :note %>
-    <%= form.text_area :note %>
-  </div>
-
-  <div class="actions">
-    <%= form.submit(event.new_record? ? "Create Event" :  "Update Event")%>
-  </div>
-  <div class="actions">
-  <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
-  </div>
-<% end %>
-<% else %>   <%# if false - else %>
 <%= simple_form_for event do |f| %>
  <section id="sec_primary_input">
 
@@ -105,7 +16,7 @@
     <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: event, trans: Translation.new, disable_is_orig: true, is_simple_form: true, only_title: true } %>
   <% end %>
 
-  <%= f.association :event_group, label: t(:Event),
+  <%= f.association :event_group, label: t(:EventGroup),
      collection: form_selct_collections_evgr(EventGroup), include_blank: false,
      selected: (event.event_group_id || EventGroup.default(:HaramiVid).id) %>
   <%= f.input :start_time, start_year: get_form_start_year(event.start_time), end_year: Date.today.year+1, max_years_allowed: 2100, hint: "To input an earlier year, select the earliest visible year and save it first, then try to update it, where you have a lot more choices for earlier years." %> <%# defined in event_groups_helper.rb %>
@@ -128,8 +39,6 @@
   </div>
  </section> <!-- section id="sec_primary_input" -->
 <% end %>
-
-<% end %>   <%# if false - else %>
 
 <%#= render partial: 'layouts/link_merge_destroy', locals: {model: event, is_to_edit: !event.new_record? } %>
 

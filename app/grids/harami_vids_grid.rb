@@ -144,9 +144,9 @@ class HaramiVidsGrid < BaseGrid
     ar = [link_to('Show', harami_vid_path(record), data: { turbolinks: false })]
     if can? :update, record
       ar.push link_to('Edit', edit_harami_vid_path(record))
-      if can? :destroy, record
-        ar.push link_to('Destroy', harami_vid_path(record), method: :delete, data: { confirm: t('are_you_sure').html_safe })  # confirm: (t('are_you_sure')+" "+t("are_you_sure.merge")).html_safe
-      end
+      #if can? :destroy, record
+      #  ar.push link_to('Destroy', harami_vid_path(record), method: :delete, data: { confirm: t('are_you_sure').html_safe })  # confirm: (t('are_you_sure')+" "+t("are_you_sure.merge")).html_safe
+      #end
     end
     ar.compact.join(' / ').html_safe
   end
