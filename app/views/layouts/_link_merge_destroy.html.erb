@@ -7,7 +7,7 @@
 <% if can_update_in_show %>
   <div class="link-edit-destroy">
     <% path_edit = send("edit_"+model_underscore+"_path", model) %> <%# e.g., edit_music_path(model) %>
-    <%= link_to 'Edit', path_edit, class: "link-edit" %> <%# -------- show only %>
+    <span class="lead"><%= link_to 'Edit', path_edit, class: "link-edit" %></span> <%# -------- show only %>
 <% end %>
 <% klass_merge = model_name.pluralize.constantize::MergesController %>
 <% if !model.new_record? && (can?(:destroy, model) || can?(:update, model) && can?(:update, klass_merge)) %>
@@ -25,7 +25,7 @@
        <% end %>
      <% end %>
 
-     <% if can?(:destroy, model) && !model.harami_vids.exists? && !model.harami1129s.exists? %>
+     <% if can?(:destroy, model) && !model.harami_vids.exists? && !model.harami1129s.exists?  && !model.harami1129s.exists? && (!model.respond_to?(:channel_owner) || !model.channel_owner) %>
       <% msg2confirm = (t('are_you_sure')+" "+t("are_you_sure_but_merge")).html_safe %>
       <% if !model.new_record? %>
        <%= button_to 'Destroy', model, method: :delete, data: { confirm: msg2confirm } %>
@@ -35,7 +35,7 @@
      <% else %>
       <% if !model.new_record? %> <%# ----- In "show", nothing related to "Destroy" is shown. %> <%# I think this is redundant and unnecessary, because when it is a new record, this point should not be reached in the first place. %>
        <form class="button_to"><input disabled="disabled" type="submit" value="Destroy"></form>
-       (<%= model_name %> has dependent HaramiVids and/or Harami1129s and so cannot be destroyed.)
+       (<%= model_name %> has dependent HaramiVids and/or Harami1129s <%= "and/or ChannelOwner" if model.respond_to?(:channel_owner) %> and so cannot be destroyed.)
       <% end %>
      <% end %>
   <% if can_update %>

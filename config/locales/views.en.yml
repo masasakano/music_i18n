@@ -236,7 +236,8 @@ en:
       identical_amp: "An identical combination (Music, Instrument, etc) for an existing association for the collab-Artist is specified. You can register a new combination but not a duplication."
 
   musics:
-    index:
+    show:
+      year_unknown: Year unknown
 
   engage_multi_hows:
     index:

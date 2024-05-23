@@ -269,6 +269,24 @@ class Artist < BaseWithTranslation
     }
   end
 
+  # Returns an Array of {EngageHow} information for the given {Music}
+  #
+  # Convenience tool for views.
+  # See {BaseWithTranslation#title_or_alt} for the optional arguments.
+  #
+  # @param music [Music]
+  # @return [Array<Hash>] Array of [Hash<engage,title,year,contribution>, ...] with rows sorted by {EngageHow#weight}
+  def engage_how_list(music, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: nil, article_to_head: true, **kwd)
+    engages.where(music: music).joins(:engage_how).order('engage_hows.weight').map{|ea_eng|  # order(:weight) can do the same (b/c Engage does not have "weight").
+      {
+        engage: ea_eng,
+        title: ea_eng.engage_how.title_or_alt(langcode: langcode, lang_fallback_option: lang_fallback_option, str_fallback: str_fallback, article_to_head: article_to_head, **kwd),
+        year: ea_eng.year,
+        contribution: ea_eng.contribution,
+      }.with_indifferent_access
+    }
+  end
+
   # Returns an Array of {Music} belonging to self with the specified title
   #
   # So far, both {Translation#title} and {Translation#alt_title} are considered.

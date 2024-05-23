@@ -55,6 +55,12 @@ ja:
   video: 動画
   videos: 動画
 
+  times:
+    zero: "%{count}回"
+    one: "%{count}回"
+    other: "%{count}回"
+    # call this like  t(:times, count: 0)
+
   adjective:
     this: この
 

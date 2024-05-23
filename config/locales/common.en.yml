@@ -86,6 +86,12 @@ en:
   video:  video
   videos: videos
 
+  times:
+    zero: "%{count} times"
+    one: "%{count} time"
+    other: "%{count} times"
+    # call this like  t(:times, count: 0)
+
   adjective:
     this: " this "
 

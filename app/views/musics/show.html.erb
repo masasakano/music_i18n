@@ -21,7 +21,7 @@
 </p>
 
 <p>
-  <strong>県・場所 (国):</strong>
+  <strong><%= t("tables.place_country") %>:</strong>
   <%= @music.txt_place_pref_ctry %> 
 </p>
 
@@ -32,11 +32,7 @@
 
 <p>
   <strong><%= link_to 'Harami Vids', harami_vids_url %>:</strong>
-  <%= sprintf '%d回', @music.harami_vids.count %>
-  <% if false %>
-  <%= hs = @music.harami_vids.map{|i| [i.id, i.release_date]}.to_h;
-        sprintf('%d回 [%s]', hs.size, hs.map{|k,v| link_to v, harami_vid_url(k)}.join(', ')).html_safe %>
-  <% end %>
+  <%= t(:times, count: @music.harami_vids.count) %>
 </p>
 
 <p>

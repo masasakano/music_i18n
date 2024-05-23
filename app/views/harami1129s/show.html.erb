@@ -230,7 +230,9 @@
 
 <p>
 <% if can? :update, @harami1129 %>
+  <span class="lead">
 <%= link_to 'Edit', edit_harami1129_path(@harami1129) %> |
+  </span>
 <% end %>
 <%= link_to 'Back', harami1129s_path %>
 <br />
@@ -242,7 +244,8 @@
   <% if :checked == popst.sorted_status.first %>
     Everything looks OK. If you want to <it>undo</it> confirmation (in order to properly edit and fix it later), go to <%= link_to 'Edit', edit_harami1129_path(@harami1129) %> page.
   <% else %>
-    <% if :no_insert != popst.sorted_status.first %>
+    <% if ![:consistent, :checked].include? popst.sorted_status.last %>
+    <% if :no_insert == popst.sorted_status.first %>
       Please insert within the table (or go to <%= link_to 'Edit', edit_harami1129_path(@harami1129) %> page).
     <% end %>
     <div id="form_insert_data">
@@ -254,15 +257,25 @@
     <% end %>
     </div>
     </div>
-
-    <% if :no_insert != popst.sorted_status.first %>
-      [WARNING] Second-time attempt of "Populate" would fail. <%# b/c @updated_col_syms called from Harami1129#populate_ins_cols_default is never set (i.e., nil) You first must decide what this "Populate" button should do when the data are already populated, as well as what other "Populate" button (such as those appearing in Index) should do, i.e., to what extent it should populate the data, overwriting the existing ones or not, etc. %>
-      <%= button_to 'Populate', harami1129_populate_url(harami1129_id: @harami1129.id), method: :patch  %>
     <% end %>
-    <% if :no_insert != popst.sorted_status.first %>
+
+    <% if :no_insert != popst.sorted_status.first && :checked != popst.sorted_status.last %>
+    <div id="show_populate_button">
+     <% if [:ins_inconsistent, :consistent].include? popst.sorted_status.last %>
+       <%  button_text = "Re-populate" %>
+      [WARNING] Second-time attempt may do nothing. <%# b/c @updated_col_syms called from Harami1129#populate_ins_cols_default is never set (i.e., nil) You first must decide what this "Populate" button should do when the data are already populated, as well as what other "Populate" button (such as those appearing in Index) should do, i.e., to what extent it should populate the data, overwriting the existing ones or not, etc. %>
+     <% else %>
+       <%  button_text = 'Populate' %>
+     <% end %>
+      <%= button_to button_text, harami1129_populate_url(harami1129_id: @harami1129.id), method: :patch  %>
+    </div>
+    <% end %>
+    <% if :no_insert != popst.sorted_status.first && :checked != popst.sorted_status.last %>
+    <div id="show_check_button">
       Check if everything is OK and if not, go to <%= link_to 'Edit', edit_harami1129_path(@harami1129) %> page).
       If everything looks OK<%= ' (<em>unlikely</em> as Title in HaramiVid is blank)'.html_safe if popst.dest_current(:ins_title).blank? %>, please
       <%= button_to 'Confirm', harami1129_url, method: :patch, params: { harami1129: {human_check: "1"} } %>
+    </div>
     <% end %>
   <% end %>
 </p>
