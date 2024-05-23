@@ -182,6 +182,8 @@ en:
       birthday: "Birthday"
       harami_vids_containing_musics_by_artist: "(HARAMIchan) Videos containing Musics by %{artist}"
       harami_vids_featuring_artist: "(HARAMIchan) Videos featuring %{artist}"
+    tablehead:
+      n_harami_vids: "#Videos"
 
   channels:
     index:
@@ -210,7 +212,7 @@ en:
   harami_vids:
     table_filter_collabs_only: "Videos with Collab-Artists only?"
     table_head_date: Date
-    table_head_timing: "Timing[s]"
+    table_head_timing: "Timing"
     table_head_completeness: Completeness
     table_head_ChannelOwner: Owner
     table_head_ChannelPlatform: Platform
@@ -242,8 +244,21 @@ en:
   engage_multi_hows:
     index:
       assoc_engage: "with another Artist for %{music_title}."
+    table_head:
+      how_related: How related
 
   translations:
+    table_head:
+      Is_orig: "Orig?"
+      Title: Title
+      Title_name: Name
+      Title_title: Title
+      Title_music: Title
+      Ruby_romaji: "Ruby|Romaji"
+      AltTitle: "AltTitle"
+      AltTitle_name: "AltName"
+      AltTitle_title: AltTitle
+      AltTitle_music: AltTitle
     show:
       is_orig: "Is this the original language?"
 

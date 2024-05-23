@@ -45,11 +45,13 @@ module ApplicationHelper
   #
   # @param sec  [Integer, NilClass]
   # @param return_nil: [Boolean] If true (Def: false) and if nil is given, nil is returned.
+  # @param return_if_zero: [Object] What returns when sec is 0 or "0" or "abc" (Def: "00:00")
   # @return [String]
-  def sec2hms_or_ms(sec, return_nil: false)
+  def sec2hms_or_ms(sec, return_nil: false, return_if_zero: "00:00")
     return if sec.nil? && return_nil
     sec = 0 if sec.blank?
     sec = sec.to_i
+    return return_if_zero if 0 == sec 
     fmt = ((sec <= 3599) ? "%M:%S" : "%H:%M:%S")
     
     Time.at(sec).utc.strftime(fmt)

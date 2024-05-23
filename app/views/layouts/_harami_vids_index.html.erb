@@ -1,29 +1,50 @@
 
-<%# local variables: harami_vids %>
+<%# local variables: harami_vids, optional: musics (:all or Array or nil; musics to display), music (if for a particular Music - displaying timing) %>
+<%# @example
+      render partial: 'layouts/harami_vids_index', locals: {harami_vids: @music.harami_vids.order("harami_vids.release_date" => :desc).distinct, music: @music}
+ %>
+
+<% if !defined?(musics)
+     musics = :all
+   end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
+<% if !defined?(music)
+     music = nil
+   else
+     musics = nil
+   end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
 
 <div id="harami_vids">
 <table id="harami_vids_index_table">
   <thead>
     <tr>
-     <% if can? :update, HaramiVid %>
+     <% if (can_update = can?(:update, HaramiVid)) %>
       <th>ID</th>
      <% end %>
-      <th>Channel</th>
-      <th>Title</th>
-      <th>Date</th>
-     <% if can? :update, Harami1129 %>
+      <th><%= t("harami_vids.table_head_date") %></th>
+      <th><%= t(:Channel) %></th>
+      <th><%= t("home.index.vid_title") %></th>
+     <% if musics %>
+      <th><%= t("Musics") %></th>
+     <% end %>
+     <% if music %>
+      <th><%= t("harami_vids.table_head_timing") %></th>
+      <th><%= t("harami_vids.table_head_completeness") %></th>
+     <% end %>
+      <% if can? :read, EventItem %>  <%# In future, this may be released public (if most EventItems are checked valid) %>
+      <th><%= t("EventItems") %></th>
+      <% end %>
+     <% if (can_read_h1129 = can?(:read, Harami1129)) %>
       <th title="Number of Harami1129 entries"># H1129s</th>
      <% end %>
-      <th><%= t("Musics") %></th>
-      <% if can? :read, EventItem %>
-      <th>EventItems</th>
-      <% end %>
-      <th title="Note in this DB">Note</th>
-      <% if can? :update, HaramiVid %>
-        <th colspan="2"></th>  <%#  HaramiVid should not be easily destroyed from Index %>
-      <% else %>
-        <th></th>
-      <% end %>
+      <th title="Note in this DB"><%= t("tables.note").capitalize %></th>
+     <% if can_update %>
+        <th class="actions" colspan="2"></th>  <%#  HaramiVid should not be easily destroyed from Index %>
+     <% else %>
+        <th class="actions"></th>
+     <% end %>
+<% if false %>
+        <th colspan="2">HaramiVidMusicAssoc</th>
+<% end %>
     </tr>
   </thead>
 
@@ -31,22 +52,30 @@
   <tbody>
     <% harami_vids.each do |harami_vid| %>
       <tr>
-     <% if can? :update, HaramiVid %>
-        <td><%= link_to harami_vid.id, harami_vid %></td>
+     <% if can_update %>
+        <td class="number"><%= link_to harami_vid.id, harami_vid %></td>
      <% end %>
-        <td><%= harami_vid.channel.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, prefer_alt: true) %> </td>
-        <td><%= link_to_youtube harami_vid.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), harami_vid.uri %></td>
         <td><%= harami_vid.release_date %></td>
-     <% if can? :update, Harami1129 %>
-        <td><%= harami_vid.harami1129s.count %></td>
+        <td><%= harami_vid.channel.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, prefer_alt: true) %> </td>
+     <% if music %>
+       <% assoc = harami_vid.harami_vid_music_assocs.where(music: music).first %>
+       <% timing = (assoc ? assoc.timing : nil) %>
      <% end %>
+        <td><%= link_to_youtube harami_vid.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), harami_vid.uri, timing, title: t(:external_link) %></td>  <%# defined in app/helpers/application_helper.rb %>
+     <% if musics %>
         <td><%= harami_vid.musics.map{ |music|
+               next nil if :all != musics && !musics.include?(music)
                mu_tit = music.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)
                (can?(:read, music) ? link_to(mu_tit, music) : mu_tit)
-             }.join(t('comma')).html_safe %>
+             }.compact.join(t('comma')).html_safe %>
         </td>
+     <% end %>
+     <% if music %>
+        <td class="number"><%= link_to_youtube sec2hms_or_ms(assoc.timing, return_if_zero: ""), harami_vid.uri, assoc.timing, title: t(:external_link) %></td> <%# defined in application_helper.rb %>
+        <td class="number"><%= assoc.completeness %></td>
+     <% end %>
       <% if can? :read, EventItem %>
-        <td>
+        <td class="text-center">
           <%= harami_vid.event_items.map{ |eei|
              if !(ind=event_items.find_index(eei))
                event_items << eei
@@ -54,16 +83,25 @@
              end
              ind += 1
              link_to(ind.to_s, eei, title: eei.machine_title)
-             }.join(", ").html_safe %>
+             }.join(t(:comma)).html_safe %>
         </td>
       <% end %>
+     <% if can_read_h1129 %>
+        <td class="number"><%= harami_vid.harami1129s.count %></td>
+     <% end %>
         <td><%= harami_vid.note %></td>
 
-        <td><%= link_to "Show", harami_vid %></td>
+        <td><%= link_to t("tables.Show"), harami_vid %></td>
         <% if can? :update, harami_vid  %>
           <td><%= link_to 'Edit', edit_harami_vid_path(harami_vid) %></td>
         <% end %>
       </tr>
+<% if false %>
+        <td><%= link_to t("tables.Show"), assoc %></td>
+        <% if can? :update, assoc %>
+          <td><%= link_to 'Edit', edit_harami_vid_music_assoc_path(assoc) %></td>
+        <% end %>
+<% end %>
     <% end %>
   </tbody>
 </table>

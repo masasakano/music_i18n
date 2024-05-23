@@ -1,16 +1,21 @@
 <h3><%= t("show.h2_artist").pluralize(music.artists.count, I18n.locale) %><%= t("show.h2_for") %><%= t("Music") %>: <%= music.title_or_alt_tuple_str(langcode: I18n.locale) %> (<%= music.year ? l(Date.new(music.year), format: :year_comma) : t('musics.show.year_unknown') %>)</h3>
 
+<%# local variables: music %>
+
 <table>
   <thead>
     <tr>
+     <% if can? :edit, Artist %>
+      <th title="DB pID">pID</th>
+     <% end %>
       <th title="'*' indicates the original name"><%= t("tables.title_name_ja") %></th>
       <th><%= t("tables.alt_title_name_ja") %></th>
       <th title="'*' indicates the original name"><%= t("tables.title_name_en") %></th>
       <th title="Show/Edit Engagement between Artist and Music">
       <% if can? :update, EngageHow %>
-        <%= link_to 'How?', engage_hows_url %>
+        <%= link_to t('engage_multi_hows.table_head.how_related'), engage_hows_url %>
       <% else %>
-        <%= t('tables.how_short', default: "How?") %>
+        <%= t('engage_multi_hows.table_head.how_related') %>
       <% end %>
       </th>
       <th title="Place"><%= t("tables.place_country") %></th>
@@ -33,6 +38,9 @@
   <tbody>
     <% music.artists.uniq.each do |artist| %>
       <tr>
+       <% if can? :edit, Artist %>
+        <td title="DB pID" class="number"><%= link_to artist.id, artist %></td>
+       <% end %>
         <% orig_lc = artist.orig_langcode %>
         <td><%= (artist.title langcode: 'ja') || '' %><%= (orig_lc == 'ja') ? '*' : '' %></td>
         <td><%= sprintf '%s [%s/%s]', *(%i(alt_title alt_ruby alt_romaji).map{|i| artist.send(i, langcode: 'ja') || ''}) %></td>
@@ -42,14 +50,7 @@
         <% engage = artist.engages.where(music: music).first %>
         <td>
           <% linktxt, engage = engage_title_link(music, artist) %> <%# defined in musics_helper.rb %>
-          <%= linktxt %> <%# defined in musics_helper.rb %>
-          <% if false %>
-        <% if can? :read, engage %>
-          <%= link_to label_str, edit_engage_multi_how_path(engage) %>
-        <% else %>
-          <%= label_str %>
-        <% end %>
-        <% end %>
+          <%= linktxt %>
         </td>
         <td><%= ar = artist.place.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true);
                 sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture['ja'] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2] %></td>
@@ -60,7 +61,7 @@
         <td><%= link_to t("tables.Show"), artist %></td>
         <% if can? :update, artist %>
           <td><%= link_to 'Edit', edit_artist_path(artist) %></td>
-          <td><%= link_to 'Edit', edit_engage_multi_how_path(engage) %></td>
+          <td><%= link_to 'Edit', edit_engage_multi_how_path(engage) %></td> <%# "engage" is set above %>
         <% end %>
       </tr>
     <% end %>

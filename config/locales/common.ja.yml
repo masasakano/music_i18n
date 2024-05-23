@@ -15,13 +15,14 @@ ja:
   detail: 詳細
   display_name: 表示名
   eg_independent: "例: "
+  error: エラー
   Event: イベント
   Events: イベント
   EventGroup: イベントシリーズ
   EventGroups: イベントシリーズ
   EventItem: イベント項目
   EventItems: イベント項目
-  error: エラー
+  external_link: 外部リンク
   Genre: ジャンル
   Harami: ハラミちゃん
   HaramiVid: "ハラミちゃん動画"

@@ -107,7 +107,7 @@
   
   <hr>
   <section id="sec_harami_vids_for">
-  <%= render partial: 'harami_vids_table', locals: {music: music, add_buttons: true} %>
+  <%= render partial: 'layouts/harami_vids_index', locals: {harami_vids: music.harami_vids.order("harami_vids.release_date" => :desc), music: music} %>
   </section>
 
   <% if can? :read, Harami1129 %>

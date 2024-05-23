@@ -150,7 +150,7 @@ class HaramiVidsController < ApplicationController
       @event_event_items = {}  # {Event-ID => EventItems-Relation} for update
       @assocs = {}.with_indifferent_access  # associated models (like assocs[:music]), maybe newly created.
       %i(duration music_timing).each do |ek|
-        params[:harami_vid][ek] =  helpers.hms2sec(params[:harami_vid][ek]) if params[:harami_vid][ek].present?  # converts from HH:MM:SS to Integer seconds
+        params[:harami_vid][ek] =  helpers.hms2sec(params[:harami_vid][ek]) if params[:harami_vid][ek].present?  # converts from HH:MM:SS to Integer seconds; defined in application_helper.rb
       end
       set_hsparams_main_tra(:harami_vid, array_keys: [:event_item_ids]) # defined in application_controller.rb
     end

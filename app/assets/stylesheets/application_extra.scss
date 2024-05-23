@@ -86,10 +86,10 @@ div#error_explanation {
   font-size: smaller;
 }
 
-.align-c {
+.align-c {  /* text-center in Bootstrap 5 */
   text-align: center;
 }
-.align-r {
+.align-r {  /* text-end in Bootstrap 5 */
   text-align: right;
 }
 
@@ -111,6 +111,9 @@ table {
   border: 1px solid white;
   th, td {
       border: 1px solid white;
+  }
+  th.number, td.number {  /* th.number would be rarely used */
+      text-align: right;
   }
   th {
       text-align: center;
@@ -142,6 +145,9 @@ table {
   td.trans_destroy {
       padding-left: 1em;
   }
+  th.actions, td.actions {
+      min-width: 2.1em;  /* so that "詳細" is not split into 2 lines */
+  }
 }
 
 table.datagrid {
@@ -157,6 +163,12 @@ table.datagrid {
   }
   tr td.ordered {
       background-color: #ffaaaa;
+  }
+}
+
+table.all_registered_translations {
+  td.ruby {
+    padding-left: 0.3em;
   }
 }
 

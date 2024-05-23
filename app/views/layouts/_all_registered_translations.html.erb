@@ -1,17 +1,33 @@
-<%# local variables: model %>
+<%# local variables: model, (optional) title_kwd=(|name|title) %>
+  <%# for example, if title_kwd=="name", t('translations.table_head.Title_name') is used %>
+<% if !defined?(title_kwd)
+     title_kwd = nil
+   end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
+<%
+  title_kwd =
+    if title_kwd.blank?
+      nil
+    else
+      title_kwd.to_s
+    end
+  prefix = "translations.table_head."
+  t_title     = t([prefix+"Title",    title_kwd].compact.join("_"), default: "Title")
+  t_alt_title = t([prefix+"AltTitle", title_kwd].compact.join("_"), default: "AltTitle")
+%>
   <section id="sec_primary_trans">
 <h2><%= t("layouts.all_registered") %><%= t("layouts."+(defined?(myself) ? 'translations' : 'translated_names')) %></h2>
 
-<table id="all_registered_translations_<%= get_modelname(model) %>">
+<table id="all_registered_translations_<%= get_modelname(model) %>" class="all_registered_translations">
   <% allcolspan = 6
-     allcolspan += (can?(:index, Translation) ? 1 : 0)
-     action_colspan = (can?(:show, Translation)  ? 2 : 0)
+     allcolspan += ((can_index=can?(:index, Translation)) ? 1 : 0)
+     action_colspan = ((can_show=can?(:show, Translation))  ? 1 : 0)
+     action_colspan += 1 if can?(:destroy, Translation)
      allcolspan += action_colspan
-     increment1 =  (can?(:crud, Translation)  ? 1 : 0)  # showing a weight column
+     increment1 =  ((can_crud=can?(:crud, Translation))  ? 1 : 0)  # showing a weight column
 
      hsflag = {
-       demotable:  can?(:update, Translations::DemotesController),
-       promotable: can?(:update, Translations::PromotesController),
+       demotable:  (can_demote =can?(:update, Translations::DemotesController)),
+       promotable: (can_promote=can?(:update, Translations::PromotesController)),
        destroyable: model.translations.any?{|tra| can? :destroy, tra},
      }
      
@@ -22,21 +38,21 @@
   <thead>
     <tr>
       <th></th>
-      <% if can? :edit, Translation %>
-      <th>Orig?</th>
+      <% if (can_edit=can?(:edit, Translation)) %>
+      <th title="<%= t('translations.show.is_orig') %>"><%= t(prefix+'Is_orig') %></th>
       <% end %>
-      <th>Title</th>
-      <th>[Ruby|Romaji]</th>
-      <th>Alt title</th>
-      <th>[Ruby/Romaji]</th>
-      <% if can? :index, Translation %>
+      <th class="border-end-0"><%= t_title %></th>
+      <th class="border-start-0">[<%= t(prefix+'Ruby_romaji') %>]</th>
+      <th class="border-end-0"><%= t_alt_title %></th>
+      <th class="border-start-0">[<%= t(prefix+'Ruby_romaji') %>]</th>
+      <% if can_index %>
         <th>You?</th>
       <% end %>
-      <% if can? :show, Translation %>
-        <% if can? :crud, Translation %>
+      <% if can_show %>
+        <% if can_crud %>
           <th>Weight</th>
         <% end %>
-        <th colspan="<%= action_colspan %>">Action</th>
+        <th colspan="<%= action_colspan %>"></th> <%# action_colspan == 5 for moderators %>
       <% end %>
     </tr>
   </thead>
@@ -48,30 +64,31 @@
     <% alltra = model.translations_with_lang(langcode: lcode) %>
     <% next if !%w(ja en).include?(lcode) && alltra.empty? %>
     <tr><th colspan="<%= allcolspan %>" class="middle_row"><%= BaseWithTranslation::LANGUAGE_TITLES[lcode.to_sym][lcode] || lcode %>
-      <% if add_tra_button && (tra1 && tra1.creatable_other?(user: current_user, langcode: lcode) || (!tra1 && can?(:destroy, Translation))) %>
+      <% if add_tra_button && (tra1 && tra1.creatable_other?(user: current_user, langcode: lcode) || (!tra1 && can_destroy)) %>
         <%= button_to t('layouts.add_translation'), new_translation_path, form_class: "inline_form button_to", method: :get, params: { a_token: nil, langcode: lcode, translatable_type: model.class.name, translatable_id: model.id } %>
       <% end %>
       </th></tr>
     <% alltra.each_with_index do |tra, i| %>
     <tr class="trans_row lc_<%= lcode %>">
-      <td><%= i+1 %><%= ('<span title="original language">*</span>'.html_safe) if tra.is_orig %></td>
-      <% if can? :edit, Translation %>
+      <td><%= i+1 %><%= ('<span title="'+t("datagrid.footnote.is_original")+'">*</span>').html_safe if tra.is_orig %></td>
+      <% if can_edit %>
       <td class="trans_is_orig"><%= tra.is_orig_str %></td>
       <% end %>
-      <td class="trans_title"><%= tra.title %></td>
-      <td class="trans_ruby_romaji">[<%= (tra.ruby || '') + ' | ' + (tra.romaji || '') %>]</td>
-      <td class="trans_alt_title"><%= tra.alt_title %></td>
-      <td class="trans_alt_ruby_romaji">[<%= (tra.alt_ruby || '') +  ' | ' + (tra.alt_romaji || '') %>]</td>
-      <% if can?(:index, Translation) %>
+      <td class="trans_title border-end-0"><%= tra.title %></td>
+      <td class="trans_ruby_romaji ruby border-start-0"><%= print_two_with_brackets(tra.ruby, tra.romaji) %></td>  <%# defined in translations_helper.rb %>
+      <% alt_tit = tra.alt_title; alt_blank = (alt_tit.blank? && can_show) %>
+      <td class="trans_alt_title border-end-0<%= " text-center" if alt_blank %>"><%= alt_blank ? '&mdash;'.html_safe : alt_tit %></td>
+      <td class="trans_alt_ruby_romaji ruby border-start-0"><%= print_two_with_brackets(tra.alt_ruby, tra.alt_romaji) %></td>
+      <% if can_index %>
         <td class="align-c trans_you"><%= [tra.create_user_id, tra.update_user_id].include?(current_user.id) ? "Yes" : "" %></td>
       <% end %>
-      <% if can? :crud, Translation %>
+      <% if can_crud %>
         <td class="align-r trans_weight"><%= tra.weight%></td>
       <% end %>
       <% if defined?(myself) && tra == myself %>
         <td colspan="2" class="align-c trans_action" style="<%= (hsflag[:demotable] || hsflag[:promotable]) ? 'border-right-style: none;' : ''  %>"><strong>SELF</strong></td>  <%# Called from Translation-Edit %>
       <% else %>
-        <% if can? :show, tra %>
+        <% if can_show %>
           <td class="trans_action trans_show" style="border-right-style: none;"><%= link_to 'Show', tra %></td>
         <% end %>
         <td class="trans_action trans_edit" style="border-left-style: none;<%= (hsflag[:demotable] || hsflag[:promotable]) ? 'border-right-style: none;' : ''  %>">
@@ -80,7 +97,7 @@
         <% end %>
         </td>
       <% end %>
-      <% if can?(:update, Translations::DemotesController) %>
+      <% if can_demote %>
         <td class="trans_action trans_demote" style="border-left-style: none;<%= hsflag[:promotable] ? 'border-right-style: none;' : ''  %>">
           <% if Translations::DemotesController.allowed?(tra) %>
             <%  strlink = "Demote↓" %>
@@ -88,7 +105,7 @@
           <% end %>
         </td>
       <% end %>
-      <% if can?(:update, Translations::PromotesController) %>
+      <% if can_promote %>
         <td class="trans_action trans_promote" style="border-left-style: none;">
           <% if Translations::PromotesController.allowed?(tra) %>
             <%  strlink = (tra.is_orig ? '<span title="Weight should be zero because this is the original. Please promote it.">Promote↑</span>'.html_safe : "Promote↑") %>

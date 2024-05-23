@@ -46,13 +46,14 @@ en:
   detail: Detail
   display_name: Display Name
   eg_independent: "e.g., "
+  error: error
   Event: Event
   Events: Events
   EventGroup: Event Group
   EventGroups: Event Groups
   EventItem: Event Item
   EventItems: Event Items
-  error: error
+  external_link: 外部リンク
   Genre: Genre
   Harami: "HARAMIchan"
   HaramiVid: "Harami's Video"

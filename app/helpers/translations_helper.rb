@@ -28,4 +28,22 @@ module TranslationsHelper
     ar = %i(title alt_title).map{|i| model.send(i, langcode: langcode, lang_fallback: false, str_fallback: "")}
     ar[1].blank? ? ar[0] : sprintf('%s [%s]', *ar)
   end
+
+  # @example
+  #    print_two_with_brackets(tra.ruby, tra.romaji)
+  #     # => "[ | tokyo]"  or  ""
+  #     # => maybe "[ | ]" (editor) or  "" (public)
+  #
+  # @param s1 [String]
+  # @param s2 [String, NilClass]
+  # @return [String]
+  def print_two_with_brackets(s1, s2=nil, separator: " | ")
+    ar=[s1, s2]
+    retstr = "["+ar.map{|i| i || ""}.join(separator)+"]"
+    if (can?(:edit, Translation) || can?(:edit, Music)) || ar.any?(&:present?)
+      retstr
+    else
+      ""
+    end
+  end
 end

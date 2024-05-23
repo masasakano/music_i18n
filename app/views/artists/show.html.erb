@@ -4,7 +4,7 @@
 
 <hr>
 <section id="sec_primary">
-<%= render partial: 'layouts/all_registered_translations', locals: {model: @artist, add_buttons: true} %>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @artist, add_buttons: true, title_kwd: "name" } %>
 <hr>
 
  <section id="sec_primary_show">
@@ -58,50 +58,13 @@
 <section id="sec_musics_by">
 <h2>Musics by <%= my_title %></h2>
 
-<table>
-  <thead>
-    <tr>
-      <th>和名</th>
-      <th>別名</th>
-      <th>英語名</th>
-      <th>Year</th>
-      <th>Genre</th>
-      <th>How?</th>
-      <th>Harami vids</th>
-      <th>Note</th>
-      <% if can? :edit, Music %>
-        <th colspan="2">Music</th>
-        <th>Engages</th>
-      <% else %>
-        <th>Music</th>
-      <% end %>
-    </tr>
-  </thead>
-
-  <tbody>
-    <% @artist.musics.uniq.each do |music| %>
-      <tr>
-        <td><%= (music.title langcode: 'ja') || '' %></td>
-        <td><%= sprintf '%s [%s/%s]', *(%i(alt_title alt_ruby alt_romaji).map{|i| music.send(i, langcode: 'ja') || ''}) %></td>
-        <td><%= sprintf '%s [%s]', *(%i(title alt_title).map{|i| music.send(i, langcode: 'en') || ''}) %></td>
-        <td><%= music.year %></td>
-        <td><%= music.genre.title_or_alt(langcode: I18n.locale) %></td>
-        <td><%= s=@artist.engage_how_titles(music, year: music.year).join(', '); (/\d/ =~ s) ? s : s+'('+(music.year || '年不明').to_s+')' %></td>
-        <td><%= music.harami_vids.count.to_s+'本' %></td>
-        <td><%= music.note %></td>
-        <td><%= link_to 'Show', music %></td>
-        <% if can? :update, music %>
-          <td><%= link_to 'Edit', edit_music_path(music) %></td>
-          <td><%= link_to 'Edit', edit_engage_multi_how_path(@artist.engages.where(music: music).first) %></td>
-        <% end %>
-      </tr>
-    <% end %>
-  </tbody>
-</table>
+  <%= render partial: "musics_table", locals: {artist: @artist } %>
+<% if false %>  <%# the following is not working, hence false! %>
 <% if can? :create, Music %>
 <p>
   <span class="lead"><%= link_to sprintf('Associate a new Music to Artist %s', my_title), musics_path(music: {artist_id: @artist.id}) %></span>
 </p>
+<% end %>
 <% end %>
 </section>
 <hr>
@@ -110,6 +73,8 @@
 <h3><%= t("artists.show.harami_vids_featuring_artist", artist: @artist.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "")) %></h3>
 <% if @artist == Artist.default(:HaramiVid) %>
   (……<%= t("noun.all").capitalize %> → <%# link_to "HaramiVids", harami_vids_path %>)
+<% elsif !@artist.collab_harami_vids.exists? %>
+  <%= t(:None) %>
 <% else %>
   <%= render partial: "layouts/harami_vids_index", locals: {harami_vids: @artist.collab_harami_vids } %>
 <% end %>
@@ -119,52 +84,7 @@
 <section id="sec_harami_vids_for">
 <h3><%= t("artists.show.harami_vids_containing_musics_by_artist", artist: @artist.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "")) %></h3>
 
-<table>
-  <thead>
-    <tr>
-      <th>Date</th>
-      <th>Title</th>
-      <% if can? :update, HaramiVid %>
-        <th colspan="2"></th>
-      <% else %>
-        <th></th>
-      <% end %>
-    </tr>
-  </thead>
-
-  <tbody>
-    <% @artist.harami_vids.order(:release_date).uniq.each do |harami_vid| %>
-      <tr>
-        <td><%= harami_vid.release_date %></td>
-        <td><%= link_to(harami_vid.title_or_alt(langcode: I18n.locale), harami_vid) %></td>
-        <td><%= link_to t('tables.Show'), harami_vid %></td>
-        <% if can? :update, harami_vid %>
-        <td>
-          <%= link_to 'Edit', edit_harami_vid_path(harami_vid) %>
-        </td>
-        <% end %>
-<% if false %>
-        <% if can? :update, harami_vid %>
-          <td><%= 'Show' %></td>
-          <td>
-          <% if current_user && current_user.editor? %>
-            <%= link_to 'Edit', edit_harami_vid_music_assoc_path(assoc) %>
-          <% end %>
-          </td>
-        <% end %>
-<% end %>
-      </tr>
-    <% end %>
-<% if false %>
-    <% if defined?(add_buttons) && add_buttons %>
-      <tr><td colspan="7">
-      <%= button_to 'HaramiVid追加', harami_vids_path, method: :get, params: { a_token: nil, artist_id: @artist.id } %>
-      </td></tr>
-    <% end %>
-<% end %>
-
-  </tbody>
-</table>
+<%= render partial: 'layouts/harami_vids_index', locals: {harami_vids: @artist.harami_vids.order("harami_vids.release_date" => :desc).distinct, with_musics: false, musics: @artist.musics} %>
 </section>
 
 <hr>

@@ -4,6 +4,9 @@
 <table>
   <thead>
     <tr>
+     <% if (can_update = can?(:update, Harami1129)) %>
+      <th>pID</th>
+     <% end %>
       <th>Date</th>
       <th>Title</th>
       <th>URI</th>
@@ -20,12 +23,15 @@
   </thead>
 
   <tbody>
-    <% harami1129s.each do |harami1129| %>
+    <% harami1129s.order("harami1129s.release_date" => :desc).each do |harami1129| %>
       <tr>
+     <% if can_update %>
+        <td class="number"><%= link_to harami1129.id, harami1129 %></td>
+     <% end %>
         <td><%= harami1129.release_date %></td>
         <td><%= link_to(harami1129.title, harami1129) %></td>
         <td><%= link_to harami1129.ins_link_root, ApplicationHelper.uri_youtube(harami1129.ins_link_root, harami1129.ins_link_time) %></td>
-        <td><%= harami1129.ins_link_time %></td>
+        <td class="number"><%= harami1129.ins_link_time %></td>
         <td><%= harami1129.singer %></td>
         <td><%= harami1129.song %></td>
         <td><%= (!!harami1129.checked_at).inspect %></td>

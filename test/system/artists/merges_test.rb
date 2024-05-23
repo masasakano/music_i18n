@@ -97,7 +97,8 @@ class Artists::MergesTest < ApplicationSystemTestCase
     ### Show page
     assert_text "Artist was successfully created"
     assert_selector "h1", text: "久保田"
-    css_edit_button = 'div.link-edit-destroy > a:nth-child(1)'
+    css_edit_button = 'div.link-edit-destroy a'  # Specify the first one.
+    # css_edit_button = 'div.link-edit-destroy span > a:nth-child(1)'  # With this, even page.find(css_edit_button) works, but this is prone to a potential future HTML change.
     css_merge_edit = 'div.actions-destroy-align-r form:nth-child(1) > input'
     css_merge = 'div.link-edit-destroy ' + css_merge_edit
     txt_merge = "Merge with another Artist"
@@ -106,7 +107,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
     assert_equal txt_merge, page.find(css_merge)["value"]
     css_align_r = 'div.actions-destroy-align-r'
     refute page.find(css_align_r).text.include?("cannot be destroyed")
-    page.find(css_edit_button).click
+    page.find_all(css_edit_button).first.click
     
     ### Edit page
     refute_selector css_edit_button  # , text: 'Edit'  ('編集') # NON-existing
