@@ -1,4 +1,4 @@
-<h1>Music: <%= @music.title_or_alt_tuple_str("[", "]", langcode: I18n.locale) %> (by <%= BaseWithTranslation.definite_article_to_head(@music.artists.first.title_or_alt(langcode: I18n.locale)) rescue 'Unknown' %><%= l(Date.new(@music.year), format: :year_comma) if @music.year %>)</h1>
+<h1>Music: <%= @music.title_or_alt_tuple_str("[", "]", langcode: I18n.locale) %> (by <%= artist=@music.most_significant_artist; artist ? link_to(artist.title_or_alt(prefer_alt: false, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true), artist, title: "the guessed most significant artist") : 'Unknown' %><%= l(Date.new(@music.year), format: :year_comma) if @music.year %>)</h1>
 
 <hr>
 <section id="sec_primary">

@@ -97,6 +97,16 @@ class Music < BaseWithTranslation
                    joins: "INNER JOIN musics ON translations.translatable_id = musics.id INNER JOIN genres ON musics.genre_id = genres.id INNER JOIN translations trans2 ON musics.genre_id = genres.id")
   end
 
+  # Returns the most significant artist
+  #
+  # sorted in order of {EngageHow#weight}, {Engage#contribution}, {Engage#year}, {Artist#birth_year}
+  #
+  # @note in case you want the whole list, "distinct" is unsable. Use Ruby uniq instead.
+  # @return [Artist, NilClass]
+  def most_significant_artist
+    artists.joins(:engages).joins("INNER JOIN engage_hows ON engages.engage_how_id = engage_hows.id").order("engage_hows.weight", "engages.contribution", "engages.year", "artists.birth_year").first
+  end
+
   # Wrapper of the standard self.find_all_by, considering {Translation}
   #
   # @param titles [Array<String>] Array of "title"-s of the singer (maybe in many languages) to search for.
