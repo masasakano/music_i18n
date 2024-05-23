@@ -146,7 +146,7 @@ module SeedsEventGroup
       place: place_japan,
       place_key: :japan,
       note: nil,
-      regex: /(スタジオ録|\brecording\b)/i,
+      regex: /(MV.+スタジオ録|\b(MVs|music videos?)\b.+\brecording\b)/i,
       key: :mvs,
     },
     {
