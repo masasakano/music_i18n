@@ -57,16 +57,27 @@ class ArtistMusicPlay < ApplicationRecord
   #            event_item: Event.default(:HaramiVid).unknown_event_item, music: Music.last)
   #    amp.save! if amp.new_record?
   #
+  # Either a single EventItem or pIDs of multiple EventItems is mandatory.
+  #
+  # @param event_item: [EventItem]
+  # @param event_item_ids: [Array<Integer>] {HaramiVid#event_item_ids} etc.
   # @return [ArtistMusicPlay]
-  def self.initialize_default_artist(context=nil, event_item: , music: , instrument: nil, play_role: nil)
+  def self.initialize_default_artist(context=nil, music: , event_item: nil, event_item_ids: nil, instrument: nil, play_role: nil)
     instrument ||= Instrument.default(context)
     play_role  ||= PlayRole.default(context)
 
     hsbase = {
-      event_item: event_item,
       artist: Artist.default(:HaramiVid),
       music: music,
     }
+
+    if event_item
+      hsbase[:event_item] = event_item
+    elsif event_item_ids
+      hsbase[:event_item_id] = event_item_ids
+    else
+      raise ArgumentError, "(#{__method__}) Either a single EventItem or pIDs of multiple EventItems is mandatory."
+    end
 
     amp_cand = where(**hsbase).first
     return amp_cand if amp_cand  # new_record? == false

@@ -83,11 +83,15 @@
     <h4>Associated Events (EventItems)</h4>
 
     <% collec = (given_ref || harami_vid).event_items.order(:event_id) %>
+    <% if collec.exists? %>
   <%= f.association :event_items, collection: collec, label_method: :machine_title, value_method: :id,
       include_blank: false,  as: :check_boxes, label: "Associated EventItems",
       item_wrapper_class: 'inline', input_html: { checked: true } %>  <%# Not shown at all if there are no EventItems associatined to harami_vid; they all are forcibly checked in default, even after returning to the edit screen.  %>
   <%# cf. https://github.com/heartcombo/simple_form#collection-check-boxes %>
   <%= render partial: "event_event_items" %>
+    <% else %>
+      Strangely, no existing items are defined. Please register a new Event(Item) below.
+    <% end %>
     </div>
    <% end %> <!-- if !harami_vid.new_record? || given_ref -->
 

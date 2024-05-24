@@ -2126,6 +2126,9 @@ class BaseWithTranslation < ApplicationRecord
   # @example lang_fallback_option of both
   #    Place.third.title_or_alt(langcode: "kr", lang_fallback_option: :both)  # => never ""
   #
+  # @example frequent use in Views
+  #    Place.title_or_alt(prefer_alt: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true)
+  #
   # @param prefer_alt: [Boolean] if true (Def: false), alt_title is preferably
   #    returned as long as it exists.
   # @param lang_fallback_option: [Symbol] (:both|:either(Def)|:never) Similar to {#titles} but has a different meaning. If :both,

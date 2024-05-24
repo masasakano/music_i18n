@@ -84,7 +84,7 @@
 <section id="sec_harami_vids_for">
 <h3><%= t("artists.show.harami_vids_containing_musics_by_artist", artist: @artist.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "")) %></h3>
 
-<%= render partial: 'layouts/harami_vids_index', locals: {harami_vids: @artist.harami_vids.order("harami_vids.release_date" => :desc).distinct, with_musics: false, musics: @artist.musics} %>
+<%= render partial: 'layouts/harami_vids_index', locals: {harami_vids: @artist.harami_vids.order("harami_vids.release_date" => :desc).distinct, musics: @artist.musics} %>
 </section>
 
 <hr>

@@ -16,6 +16,7 @@
       <th>Event</th>
       <th>EventGroup</th>
         <% end %>
+      <th title="Number of associated HaramiVids">#HVids</th>
       <th title="Note in this DB">Note</th>
       <% if can? :update, EventItem %>
         <th colspan="3"></th>
@@ -46,6 +47,7 @@
         <td><%= ev ?   link_to(ev.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), ev) : "" %></td>
         <td><%= evgr ? link_to(evgr.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), evgr) : "" %></td>
          <% end %>
+        <td class="number"><%= event_item.harami_vids.distinct.count %></td>
         <td><%= h(event_item.note) %></td>
 
         <td><%= link_to "Show", event_item %></td>

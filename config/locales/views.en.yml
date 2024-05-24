@@ -77,6 +77,8 @@ en:
     create_model: "Create a new %{model}"
     do_create_lower: "create it"
     i_do_create_it_lower: "create it"
+    deassociate_this: "Deassociate this"
+    deassociate_this: "Deassociate this from %{model}"
     destroy_button: 'Commit Destroy'
     destroy_link: 'Destroy this'
     destroy_short: 'Destroy'
@@ -236,6 +238,7 @@ en:
     edit:
       artist_collabs_title: "collaborating Artists"
       identical_amp: "An identical combination (Music, Instrument, etc) for an existing association for the collab-Artist is specified. You can register a new combination but not a duplication."
+      deassociate_music: Deassociate Music
 
   musics:
     show:

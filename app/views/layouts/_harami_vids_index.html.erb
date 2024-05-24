@@ -82,7 +82,8 @@
                ind = event_items.size-1
              end
              ind += 1
-             link_to(ind.to_s, eei, title: eei.machine_title)
+             tit = sprintf("%s (ID=%d; Assoc-IDs=%s)", eei.machine_title, eei.id, HaramiVidEventItemAssoc.where(harami_vid: harami_vid, event_item: eei).order(:id).ids.inspect)
+             link_to(ind.to_s, eei, title: tit)
              }.join(t(:comma)).html_safe %>
         </td>
       <% end %>

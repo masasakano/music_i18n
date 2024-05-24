@@ -13,13 +13,15 @@ class HaramiVidsController < ApplicationController
   PARAMS_KEY_AC = BaseMerges::BaseWithIdsController.formid_autocomplete_with_id(Artist).to_sym
 
   # Symbol of the main parameters in the Form (except "place" (or "place_id"?)), which exist in DB or as setter methods
+  # NOTE: "event_item_ids" is a key for an Array, hence defined separately in model_params_multi (as an exception)
   MAIN_FORM_KEYS = %i(uri duration note) + [
     "form_channel_owner", "form_channel_type", "form_channel_platform",
-    "form_new_event",
+    "form_new_artist_collab_event_item", # which EventItem-ID (or new) is used to refer to the new EventItem and/or new Collab.
+    "form_new_event",  # for Event-ID (NOT EventItem) for a new EventItem to add
     "artist_name", "artist_sex", "form_engage_hows", "form_engage_year", "form_engage_contribution",
     "artist_name_collab", "form_instrument", "form_play_role",
     "music_name", "music_timing", "music_genre", "music_year",
-    "form_new_artist_collab_event_item", "reference_harami_vid_id",
+    "reference_harami_vid_id",  # For GET in new
     "uri_playlist_en", "uri_playlist_ja",
     "release_date(1i)", "release_date(2i)", "release_date(3i)",  # Date-related parameters
   ]
@@ -155,7 +157,15 @@ class HaramiVidsController < ApplicationController
       set_hsparams_main_tra(:harami_vid, array_keys: [:event_item_ids]) # defined in application_controller.rb
     end
 
-    # Set @event_event_items
+    # Set @event_event_items and @original_event_items
+    #
+    # @event_event_items is a Hash with each key (of Integer, {Event#id}) pointing to
+    # an Array of EventItems that HaramiVid has_many:
+    #
+    #    @event_event_items = {
+    #       event_1.id => [EventItem1, EventItem2, ...],
+    #       event_2.id => [EventItem5, EventItem6, ...],
+    #    }
     #
     # maybe the sum of EventItems for two HaramiVids
     #
@@ -175,8 +185,13 @@ class HaramiVidsController < ApplicationController
 
     # Sets reference_harami_vid_id, @event_event_items, @ref_harami_vid, and maybe release_date and place
     #
+    # See {#set_event_event_items} for @event_event_items.
+    # @ref_harami_vid is the ID of the reference HaramiVid given (which may be passed to +new+ and then +create+).
+    #
     # @return [void]
     def _set_reference_harami_vid_id
+      @original_event_items = @harami_vid.event_items.to_a  # to preserve the originally associated EventItems
+
       return if  @hsmain && (prm=@hsmain[:reference_harami_vid_id]).blank?
       return if !@hsmain && (prm=params.permit(:reference_harami_vid_id)[:reference_harami_vid_id]).blank?
 
@@ -354,6 +369,8 @@ class HaramiVidsController < ApplicationController
     # though the timing information should be given in this way.
     #
     # Set @assocs[:harami_vid_music_assocs] (plural)
+    #
+    # See {#set_event_event_items} about @event_event_items
     #
     # @return [HaramiVidMusicAssoc, NilClass] nil if failed to save either of Music and HaramiVidMusicAssoc or not specified in the first place.
     def make_harami_vid_music_assoc_from_events
@@ -543,9 +560,29 @@ end
     #
     # Basically, all the EventItems that are *NOT* specified in :event_item_ids
     # are destroyed.
+    #
+    # See {#set_event_event_items} and {#_set_reference_harami_vid_id} about @event_event_items and @original_event_items
     def update_event_item_assocs
       @assocs[:deassociated_event_items] = nil
-      return if !@prms_all[:event_item_ids]  # the latter should not be nil on update, but playing safe.
+      return if !@prms_all[:event_item_ids]
+      # NOTE: On update, the above should not be nil in principle EXCEPT for the case
+      # where old HaramiVids that have no EventItem associated. In such a case, View UI
+      # does not provide the form field for [:event_item_ids] because otherwise
+      # simple_form prevents the data from submitting as the field has no selection items
+      # yet simple_form insists you must select at least one. (n.b., FYI, newly created HaramiVids
+      # always have at least one EventItem and you cannot nullify the association).
+      # Hence, this "return" above is necessary to deal with such cases.
+      #
+      # If @harami_vid has no EventItems, both @harami_vid.event_items is empty AT THE MOMENT
+      # though later processing may modify it.  Instance variable @original_event_items
+      # (set in {#set_event_event_items}) preserves the Array of EventItems, and so it should be
+      # empty, and also @event_event_items (see {#set_event_event_items} and {#_set_reference_harami_vid_id}) is empty.
+      # The surest way to check the existence of EventItem before processing is
+      # +!@original_event_items.empty?+
+      #
+      # When it is empty, @prms_all[:event_item_ids] should be non-existent and so
+      # the following should not be executed.
+
       @assocs[:deassociated_event_items] = []
       @assocs[:new_associated_event_items] = []
 
@@ -558,7 +595,7 @@ end
       @harami_vid.reload
       #_set_reference_harami_vid_id  # set @event_event_items
 
-      @event_event_items.each_value do |ar_event_items|  # The key is ID for Event (identical to eeit.event.id), value is EventItem
+      @event_event_items.each_value do |ar_event_items|  # The key is ID for Event (identical to eeit.event.id), value is an Array of EventItem-s
         ar_event_items.each do |eeit|
           if leave_ids.include?(eeit.id)  # Association is not destroyed.
             next if @harami_vid.event_items.include?(eeit)
@@ -683,18 +720,62 @@ rescue => err
   print "DEBUG(#{File.basename __FILE__}:#{__method__}): Error is raised:\n ";p err
   raise
 end
-    end
+    end # def create_an_event_item
 
     # Creates new ArtistMusicPlay-s; sets @assocs[:artist_music_play] (if not yet)
+    #
+    # This method does 3 things (3 steps in this order):
+    #
+    # 1. In an unusual case on update (see below for detail), creates
+    #    the same number of ArtistMusicPlay-s as +@harami_vid.musics+.
+    #    for the default Artist and for the newly associated EventItem (which may be new).
+    # 2. Creates an ArtistMusicPlay for the default Artist and
+    #    newly specified Music @assocs[:music] for the newly associated EventItem.
+    # 3. Creates an ArtistMusicPlay for the specified collab-Artist @assocs[:artist_collab],
+    #    @assocs[:music] and the newly associated EventItem.
+    #
+    # Step 1 should be irrelevant for any newly created HaramiVids.
+    # However, legacy HaramiVids have no EventItems associated, hence
+    # in reality this happens very frequently at the time of writing.
+    # A @harami_vid may have over 100 Musics, meaning that number of
+    # ArtistMusicPlay-s can be created in one processing.
+    # Basically, there are following three potential cases.
+    #
+    # (1) on update for a legacy HaramiVid where no EventItems were associated.
+    #    (A) call {HarmiVid#associate_harami_existing_musics_plays} to associate
+    #        all associated Musics with a newly specified EventItem.
+    #        the same number of ArtistMusicPlay-s are created.
+    #    (B) Plus, if a new Music @assocs[:music] is specified with UI (not recommended...),
+    #        the Music will get also accosiated with the default Artist and the EventItem.
+    #    (C) Same, but +ref_harami_vid+ is given in params (create or update).
+    #        See {HaramiVid#associate_harami_existing_musics_plays} for detail.  Complicated...
+    #        Basically, as long as Musics agree between the two HaramiVids, that is fine,
+    #        because all ArtistMusicPlay have been already created.
+    #        If not, how to associate or not is complicated.
+    # (1) on create, where up to 1 Music is specified, or on update.
+    #     (1) run steps 2 and 3.
     #
     # @note HaramiVidEventItemAssoc must have been already created, so nothing is done about it here.
     def create_artist_music_plays
 begin
+      raise "Strange..." if @assocs[:artist_music_play].present?
+      @assocs[:artist_music_play_haramis] ||= []  # should be empty at this stage.
+
+      if @original_event_items.empty?
+        arin = (@assocs[:new_event_item].present? ? [@assocs[:new_event_item]] : [])
+        if !arin.empty? || @harami_vid.event_items.exists?
+          @assocs[:artist_music_play_haramis] = @harami_vid.associate_harami_existing_musics_plays(*arin)  # form_attr: :base
+          # For update, if @harami_vid does not have existing EventItems (which only happens
+          # for legacy HaramiVids), ArtistMusicPlay-s should be defind for all Musics
+          # of @harami_vid and for the default Artist.
+          # See {#_set_reference_harami_vid_id} for @original_event_items
+        end
+      end
+
       return if !@assocs[:music] || @event_item_for_new_artist_collab.blank?
       associate_harami_music_play(event_item: @event_item_for_new_artist_collab)
 
       return if !@assocs[:artist_collab]
-      raise "Strange..." if @assocs[:artist_music_play].present?
 
       instrument = ((val=@hsmain[:form_instrument]).blank? ? Instrument.default(:HaramiVid) : Instrument.find(val))
       play_role  = ((val=@hsmain[:form_play_role]).blank?  ? PlayRole.default(:HaramiVid)   : PlayRole.find(val))
@@ -723,7 +804,7 @@ end
 
       @assocs[:new_event_item] ||= evit
       @harami_vid.event_items << evit if !@harami_vid.event_items.include?(evit)  # Added HaramiVidEventItemAssoc
-      @harami_vid.reload
+      @harami_vid.event_items.reset
     end
 
     def set_up_event_item_and_amp(event_item, instrument, play_role)

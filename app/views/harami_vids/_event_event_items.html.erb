@@ -20,7 +20,8 @@
               <% end %>
               <% if can? :show, event_item %>
                 <% unknown_str = (event_item.unknown? ? ": Unknown" : "") %>
-                <%= link_to "(#{eii+1}#{unknown_str})", event_item, title: event_item.machine_title.inspect %>
+                <% tit = sprintf("%s (ID=%d; Assoc-IDs=%s)", event_item.machine_title, event_item.id, HaramiVidEventItemAssoc.where(harami_vid: @harami_vid, event_item: event_item).order(:id).ids.inspect) %>
+                <%= link_to "(#{eii+1}#{unknown_str})", event_item, title: tit %>
               <% else %>
                 (<%= eii+1 %>)
               <% end %>

@@ -183,6 +183,89 @@ class HaramiVid < BaseWithTranslation
     cands.first
   end
 
+  # self.errors are set, copied from {ArtistMusicPlay#errors}, if anything has gone wrong.
+  #
+  # Usually, HaramiVid should have at least 1 {EventItem} — that is the constraint
+  # for any newly created HaramiVid and those that is associated with an EventItem;
+  # i.e., {HaramiVid#event_items} is not allowed to be empty.
+  #
+  # However, a legacy Hramivid may have no {EventItem} associated. HaramiVidsController
+  # and Views force the user via UI to specify 1 new EventItem. So, such a legacy
+  # HaramiVid should have at least 1 EventItem by the time they call this method.
+  #
+  # An exception is when a GET paraeter +ref_harami_vid+ (instance variable +@ref_harami_vid+
+  # is given to HaramiVidsController on either create or update.  In such a case,
+  # a HaramiVid is not unlikely to have multiple HaramiVids, but then, one (or more) of
+  # the EventItem-s should be associated with Music and default Artist already.
+  # If none of them is associated to a Music that HaramiVid is associated, then
+  # there is an uncertainly problem of which EventItem should be used to associate
+  # to the Music.
+  #
+  # In such a case, this method raises a warning and skips the processing.
+  # The reason is this. If all these EventItems are associted to some other HaramiVids 
+  # and if not all of the HaramiVids have the Music of interest, then
+  # adding an association to Music and the EventItem would contradict
+  # the fact the other HaramiVid(s) doss not have the Music(!).  Note that
+  # a HaramiVid having a Music (via HaramiVidMusicAssoc) but not an ArtistMusicPlay
+  # for the Music is fine because the latter means some one actually plays a Music
+  # (in the HaramiVid) whereas the former simply means Music is somehow related to the HaramiVid;
+  # however, the other way around is undesirable.
+  #
+  # So, a practical strategy is to specify +ref_harami_vid+ only when the existing
+  # one is the superset of the current one, such as, the existing one being
+  # the full video and the current one being a short like TikTok.
+  # Also, it is best not specify a new Music when +ref_harami_vid+ is given
+  # (maybe constrined via UI?).
+  #
+  # In practice, such a situation (of multiple candidates) may occur via UI when
+  #
+  # 1. a user specifies +ref_harami_vid+, referring to an existing HaramiVid none of
+  #    the associated EventItems of which have Musics of the current HaramiVid because
+  #    1. the existing HaramiVid is either a subset of the current HaramiVids
+  #       (hence having fewer EventItems than those the current one should have),
+  #       or simpley unrelated (either by mistake or by intention, such as, the user
+  #       intends to amend the set of EventItems later).
+  # 2. a user specifies a new Music, yet reusing old EventItem-s?
+  #
+  # @param form_attr [Symbol] usually the form's name
+  # @return [Arrray<ArtistMusicPlay>] If everything goes well, the same thing can be accessed by {#artist_music_plays}. However, if (one of) save fails, this Array (also) contains the ArtistMusicPlay for which saving failed.
+  def associate_harami_existing_musics_plays(event_item=nil, instrument: nil, play_role: nil, music_except: nil, form_attr: :base)
+    if event_item
+      evit_ids = event_item.id  # Integer (but OK as far as +where+ clauses are concerned)
+    else
+      evit_ids = event_item_ids # Array of Integers
+      if !event_item && evit_ids.empty?
+        raise "ERROR:(HaramiVid##{__method__}) No EventItem is specified or found."
+      end
+    end
+
+    arret = []
+    musics.each do |music|
+      next if music_except == music
+      arret << amp = ArtistMusicPlay.initialize_default_artist(:HaramiVid, event_item: event_item, event_item_ids: evit_ids, music: music, instrument: instrument, play_role: play_role)  # new for the default ArtistMusicPlay (event_item and music are mandatory to specify.
+      next if !amp.new_record?
+
+      if !event_item
+        msg = "Multiple EventItem-s are specified to associate to HaraiVid's Music (#{music.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true).inspect}). Playing association is not created. You may manually add it later."
+        flash[:warning] ||= []
+        flash[:warning] << "Warning: "+msg
+        msg = "WARNING:(HaramiVid##{__method__}) "+msg+" EventItem(pID=#{event_item.id}: #{event_item.title.inspect})"
+        warn msg
+        logger.warning msg
+        next
+      end
+
+      next if amp.save  # may or may not succeed.
+
+      # This should not fail, but just in case...
+      amp.errors.full_messages.each do |msg|
+        errors.add form_attr, ": Existing ArtistMusicPlay is not found, yet failed to create a new one for EventItem (pID=#{event_item.id}: #{event_item.title.inspect}) and Music (pID=#{music.id}: #{music.title.inspect}): "+msg
+      end
+    end
+    artist_music_plays.reset
+    arret
+  end
+
   # Sets the data from {Harami1129}
   #
   # self is modified but NOT saved, yet.

@@ -538,14 +538,84 @@ end
     refute_equal(*ary)
 
     #flash_regex_assert(%r@<a [^>]*href="/channels/\d+[^>]*>new Channel.+is created@, msg=nil, type: nil)  # defined in test_helper.rb
+  end # test "should create harami_vid" do
+
+  ##### update handling of old-school data
+  test "should update old-school data ok" do
+    hvid = harami_vids(:harami_vid5)
+    refute  hvid.event_items.exists?, 'test fixtures'  # no EventItem defiend(!)
+    refute  hvid.artist_music_plays.exists?, 'test fixtures'
+    refute  hvid.channel, 'test fixtures'
+
+    assert_equal 0, hvid.musics.size, 'test fixtures'
+    refute_equal Music.first, Music.last
+    hvid.musics << Music.first
+    hvid.musics << Music.last
+    hvid.musics.reset
+    assert_equal 2, hvid.musics.size, 'sanity check'
+
+    hsin = {
+      # title: nil, langcode: nil, # form should not be given in UI (b/c exclusively for create).
+      # event_item_ids:            # form should not be given in UI (b/c no existing EventItem-s for this HaramiVid).
+      uri: "https://example.com/aruyo",
+      duration: "",
+      "release_date(1i)"=>"2024", "release_date(2i)"=>"2", "release_date(3i)"=>"28",
+      "place.prefecture_id.country_id"=>@def_place.country.id.to_s,
+      "place.prefecture_id"=>@def_place.prefecture_id.to_s,
+      "place"=>@def_place.id.to_s,
+      "form_channel_owner"   =>ChannelOwner.primary.id.to_s,
+      "form_channel_type"    =>ChannelType.default(:HaramiVid).id.to_s,
+      "form_channel_platform"=>ChannelPlatform.default(:HaramiVid).id.to_s,
+      place: @def_place.id.to_s,
+      note: "old-new data",
+      form_new_artist_collab_event_item: HaramiVidsController::DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_s,
+      form_new_event: events(:ev_evgr_mvs_unknown).id,
+      music_name: "",
+      music_year: "",
+      music_timing: "",
+      "music_genre"=>Genre.default(:HaramiVid).id.to_s, "music_year"=>"1984",
+      artist_name: "",
+      artist_name_collab: "",
+      "form_instrument" => Instrument.default(:HaramiVid).id.to_s,
+      "form_play_role"  => PlayRole.default(:HaramiVid).id.to_s,
+      "form_engage_hows"=>"",
+      "form_engage_year"=>"",
+      "form_engage_contribution"=>"",
+      "reference_harami_vid_id"=>"",  # For GET in new
+    }.with_indifferent_access
+
+
+    sign_in @moderator_all
+
+    assert_difference("ArtistMusicPlay.count", 2) do  # 2 Artist's Music-Event-Play for 2 Musics
+      assert_difference("Music.count + Artist.count + Engage.count", 0) do
+        assert_difference("HaramiVidMusicAssoc.count*10 + HaramiVidEventItemAssoc.count", 1) do
+          assert_difference("Event.count*11 + EventItem.count", 12) do  # 1 Event + 1 EventItem  (Event created because Place is new for the unknown Event!  If Event was not unknown, the existing one should be used in default. EventItem is an unknown one and default one)
+            assert_no_difference("Channel.count") do  # existing Channel is found
+              assert_no_difference("HaramiVid.count") do
+                patch harami_vid_url(hvid), params: { harami_vid: hsin }
+                assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+              end
+            end
+          end
+        end
+      end
+    end
+
+    hvid.reload
+    assert  hvid.channel, 'should have been set up, but...'
+    assert_equal 1, hvid.event_items.count
+    assert_equal 2, hvid.artist_music_plays.count  # default Artist's AMP
   end
 
+
+  ##### show
   test "should show harami_vid" do
     get harami_vid_url(@harami_vid)
     assert_response :success
   end
 
-  test "should fail to get edit" do
+  test "should fail/succeed to get edit" do
     get edit_harami_vid_url(@harami_vid)
     assert_response :redirect
     assert_redirected_to new_user_session_path
@@ -559,6 +629,15 @@ end
       get edit_harami_vid_url(@harami_vid, params: {reference_harami_vid_id: HaramiVid.last.id+1})
       #assert_response :unprocessable_entity
     }
+    sign_out @editor_harami
+
+    
+    [@moderator_harami, @sysadmin].each do |user|
+      sign_in user
+      get edit_harami_vid_url(@harami_vid, params: {reference_harami_vid_id: harami_vids(:harami_vid2).id})
+      assert_response :success
+      sign_out user
+    end
   end
 
   test "should fail to update harami_vid" do

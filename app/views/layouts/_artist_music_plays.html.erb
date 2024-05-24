@@ -43,7 +43,10 @@
       <td><%= amp.id %></td>
      <% end %>
      <%  [:artist, :music, :play_role, :instrument].each do |att| %>
-      <td><%= amp.send(att).title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></td>
+       <td>
+         <% tit = (model=amp.send(att)).title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true) %>
+         <%= can?(:show, model) ? link_to(tit, model) : tit %>
+       </td>
      <% end %>
      <% if can? :edit, EventItem %>
      <%  [:contribution_artist, :cover_ratio].each do |att| %>
@@ -54,7 +57,7 @@
      <% if can? :destroy, ArtistMusicPlay %>
       <td>
         <% if can? :destroy, amp %>
-          <%= link_to t('layouts.destroy_button'), amp, method: :delete, data: { confirm: t('are_you_sure') }, title: "イベント自体からの削除(このイベントの他の動画からも削除されます!)" %>
+          <%= link_to t('layouts.deassociate_this'), amp, method: :delete, data: { confirm: t('are_you_sure') }, title: "イベント自体からのコラボ情報の削除(このイベントの他の動画からも連携情報が除かれます!)" %>
         <% end %>
       </td>
      <% end %>

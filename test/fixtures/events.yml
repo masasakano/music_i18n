@@ -37,7 +37,7 @@ ev_evgr_<%= ekey %>_unknown:
   weight: 
   event_group: evgr_<%= ekey %>
   place: <%= case edata[:ja]; when /^HARAMI.+202\d$/i; "unknown_place_unknown_prefecture_japan";  when /\bdrop\b.+202/i; "unknown_place_kagawa_japan"; else; "unknown_place_unknown_prefecture_world"; end %>
-  note: EventEventGroup<%= ekey.to_s.camelize %>"
+  note: EventEventGroup<%= ekey.to_s.camelize %>
 <% end %>
 
 #ev_evgr_unknown:
