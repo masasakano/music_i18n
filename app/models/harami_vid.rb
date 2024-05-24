@@ -31,7 +31,7 @@
 class HaramiVid < BaseWithTranslation
   include Rails.application.routes.url_helpers
   include ApplicationHelper # for link_to_youtube
-  include ModuleCommon # for convert_str_to_number_nil etc
+  include ModuleCommon # for convert_str_to_number_nil, set_singleton_method_val etc
 
   before_validation :add_def_channel
   before_validation :normalize_uri
@@ -201,13 +201,18 @@ class HaramiVid < BaseWithTranslation
   # there is an uncertainly problem of which EventItem should be used to associate
   # to the Music.
   #
-  # In such a case, this method raises a warning and skips the processing.
-  # The reason is this. If all these EventItems are associted to some other HaramiVids 
-  # and if not all of the HaramiVids have the Music of interest, then
+  # In such a case, this method raises a (*html_safe*) warning, also adding a singleton method of
+  # +HaramiVid#warning_messages+ (returning an Array), and skips the processing.
+  # The caller (Controller?) may deal with the warning, transferring the Array to `flash[:warning]`
+  # Note that this method *alyways* set the singleton method +HaramiVid#warning_messages+ to self,
+  # which returns an empty Array [] in normal circumstances.
+  #
+  # The reason is this. If all of these EventItems are associted to some other HaramiVids 
+  # and if none of the HaramiVids have the Music of interest, then
   # adding an association to Music and the EventItem would contradict
   # the fact the other HaramiVid(s) doss not have the Music(!).  Note that
   # a HaramiVid having a Music (via HaramiVidMusicAssoc) but not an ArtistMusicPlay
-  # for the Music is fine because the latter means some one actually plays a Music
+  # for the Music is fine because the latter means someone actually plays a Music
   # (in the HaramiVid) whereas the former simply means Music is somehow related to the HaramiVid;
   # however, the other way around is undesirable.
   #
@@ -227,9 +232,13 @@ class HaramiVid < BaseWithTranslation
   #       intends to amend the set of EventItems later).
   # 2. a user specifies a new Music, yet reusing old EventItem-s?
   #
+  # @param music_except: [Music] ignores this (single) Music if specified.
+  #    See {HaramiVidsController#create_artist_music_plays} for its use.
   # @param form_attr [Symbol] usually the form's name
   # @return [Arrray<ArtistMusicPlay>] If everything goes well, the same thing can be accessed by {#artist_music_plays}. However, if (one of) save fails, this Array (also) contains the ArtistMusicPlay for which saving failed.
   def associate_harami_existing_musics_plays(event_item=nil, instrument: nil, play_role: nil, music_except: nil, form_attr: :base)
+    set_singleton_method_val(:warning_messages, [], clobber: false)  # defined in module_common.rb
+
     if event_item
       evit_ids = event_item.id  # Integer (but OK as far as +where+ clauses are concerned)
     else
@@ -247,8 +256,7 @@ class HaramiVid < BaseWithTranslation
 
       if !event_item
         msg = "Multiple EventItem-s are specified to associate to HaraiVid's Music (#{music.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true).inspect}). Playing association is not created. You may manually add it later."
-        flash[:warning] ||= []
-        flash[:warning] << "Warning: "+msg
+        self.warning_messages << ERB::Util.html_escape("Warning: "+msg)  # alternative of flash[:warning]
         msg = "WARNING:(HaramiVid##{__method__}) "+msg+" EventItem(pID=#{event_item.id}: #{event_item.title.inspect})"
         warn msg
         logger.warning msg

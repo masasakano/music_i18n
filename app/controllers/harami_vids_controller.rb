@@ -410,11 +410,24 @@ class HaramiVidsController < ApplicationController
 
     # Creates {HaramiVidMusicAssoc} from EventItems
     #
-    # EventItems are probably from @ref_harami_vid though chances are editors somehow
-    # destroyed the association.  The latter case should never happen, because
-    # all Musics in an EventItem that HaramiVid has should be associated to HaramiVid
-    # through HaramiVidMusicAssoc, too.  HaramiVidMusicAssoc seems like a bit of surplus,
-    # though the timing information should be given in this way.
+    # This method checks where the Musics associated to the specified EventItem
+    # (through ArtistMusicPlay) are all included in this HaramiVid (through HaramiVidMusicAssoc),
+    # and add any missing Musics to HaramiVidMusicAssoc with timing=nil (not ideal,
+    # but there is no way this app knows the timing information), while issuing
+    # a warning, telling null timing is set.
+    #
+    # The case of missing happens:
+    #
+    # 1. if EventItems are provided from +@ref_harami_vid+ (the GET argument),
+    # 2. if the wrong EventItem is specified (?? which would not happen currently,
+    #    but may happen if the UI changes in such a way),
+    # 3. if ArtistMusicPlay is manually and directly edited by a developer in an inconsistent way.
+    #
+    # Another possibility is that an existing EventItem is specified on update
+    # in adding a newly-associated Music.  In such a case, the Music is **NOT**
+    # added to the other HaramiVid(s), partly because the app does not know
+    # its timings, and this method raises a warning to prompt
+    # the user (=editor) to add the Music to the other HaramiVids.
     #
     # Set @assocs[:harami_vid_music_assocs] (plural)
     #
@@ -430,11 +443,14 @@ begin  # for DEBUGging
           next if @assocs[:deassociated_event_items].include? eeit
           eeit.musics.each do |ea_mu|
             next if @harami_vid.musics.include? ea_mu
+            flash[:warning] ||= []
+            flash[:warning] << "Though a played Music (#{helpers.link_to(ea_mu.title, ea_mu, target: '_blank')}) contained in #{helpers.link_to('EventItem', eeit, target: '_blank', title: eeit.machine_title)} is not found for this HaramiVid. Music is newly associated to this HaramiVid with null timing for now - please edit it later. Or, if the Music is actually not played in this HaramiVid, associate a different (or new) EventItem to this HaramiVid. Note that you may edit the EventItem to split it into two instead of creating one from scratch."
             if @ref_harami_vid && @ref_harami_vid.musics.include?(ea_mu)
               # Copies the values like timing from HaramiVidMusicAssoc for @ref_harami_vid, but adjusts somewhat.
               hvma = @ref_harami_vid.harami_vid_music_assocs.where(music_id: ea_mu.id).first.dup  # should be unique
               hvma.timing = nil
               hvma.harami_vid = @harami_vid
+              flash[:warning][-1] << " Music is newly associated with null timing."
             else
               hvma = HaramiVidMusicAssoc.new(music: ea_mu, harami_vid: @harami_vid)
             end
@@ -477,14 +493,21 @@ begin  # for DEBUGging
       _set_event_item_for_new_artist_collab  # sets (initializes) @event_item_for_new_artist_collab
       return (@assocs[:harami_vid_music_assoc]=nil) if @assocs[:music].blank?
 
-      timing = ((t=@hsmain[prm_name].present?) ? t : nil)
+      timing = ((t=@hsmain[prm_name]).present? ? t : nil)
       @assocs[:harami_vid_music_assoc] = _find_or_create_harami_vid_music_assoc_core(hvid=@harami_vid, timing: timing, form_attr: prm_name.to_sym)
 
       return @assocs[:harami_vid_music_assoc] if !@event_item_for_new_artist_collab 
 
-      @assocs[:harami_vid_music_assocs] ||= []
+
+      ## Checking out the other HaramiVid-s associated with the specified EventItem for a new collaboration
+      #  They all must have the Music (through HaramiVidMusicAssoc).
+      #  Otherwise, an error is set.
       @event_item_for_new_artist_collab.harami_vids.where.not("harami_vids.id" => @harami_vid.id).each do |hvid|
-        @assocs[:harami_vid_music_assocs] << _find_or_create_harami_vid_music_assoc_core(hvid)  # :base for a potential Error
+        next if hvid.musics.where(id: @assocs[:music].id).exists?
+        msg = ": Adding a new collab-Artist for Music of (#{helpers.link_to(@assocs[:music].title, @assocs[:music], target: '_blank')}) for #{helpers.link_to('EventItem', @event_item_for_new_artist_collab, target: '_blank', title: @event_item_for_new_artist_collab.machine_title)} contradicts the fact that another #{helpers.link_to('HaramiVid', hvid, target: '_blank')} is not associated with the Music (via HaramiVidMusicAssoc). Either edit the other #{helpers.link_to('HaramiVid', hvid, target: '_blank')} to first associate the Music (with no collab-Artist) or choose a a different (or new) EventItem to this HaramiVid in specifying a collab-Artist. Note that you may edit the EventItem to split it into two instead of creating one from scratch.".html_safe
+        @harami_vid.errors.add :form_new_artist_collab_event_item, msg
+        #@assocs[:harami_vid_music_assocs] << _find_or_create_harami_vid_music_assoc_core(hvid)  # :base for a potential Error
+#ERB::Util.html_escape
       end
 
       @assocs[:harami_vid_music_assoc]
@@ -519,12 +542,10 @@ end
     # @return [HaramiVidMusicAssoc, NilClass] nil if failed to save either of Music and HaramiVidMusicAssoc or not specified in the first place.
     def _find_or_create_harami_vid_music_assoc_core(hvid=@harami_vid, timing: nil, form_attr: nil)
 begin  # for DEBUGging
-      prm_name = "music_timing"
-
       hvma = HaramiVidMusicAssoc.find_or_initialize_by(harami_vid: hvid, music: @assocs[:music])
 
       if timing
-        hvma.timing = @hsmain[prm_name].to_i if @hsmain[prm_name].present?
+        hvma.timing = timing
         if hvma.timing_changed? && !hvma.new_record?
           flash[:notice] ||= []
           flash[:notice] << sprintf("Timing for Music (%s) is updated to %s .", @assocs[:music].title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), hvma.timing)
@@ -685,7 +706,7 @@ begin
             return
           end
         when "update"
-          if DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_i == @harami_vid.form_new_artist_collab_event_item.to_i && @assocs[:artist_collab].present?
+          if DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_i == @harami_vid.form_new_artist_collab_event_item.to_i && (@assocs[:artist_collab].present? || @assocs[:music].present?)  # i.e., it says new, yet Form-for a new Event is blank, AND yet either of Music or Artist-collab is specified, which means the Event-form must be significant (if neither of the latter two is specified, the former does not mater). Note @assocs[:music] is used to add either/both a new Music (through HaramiVidMusicAssoc) and new collab (i.e., ArtistMusicPlay).
             @harami_vid.errors.add :form_new_artist_collab_event_item, " is specified to be New, but no Event is selected for it."
           end
           return
@@ -731,6 +752,9 @@ end
     #    for the default Artist and for the newly associated EventItem (which may be new).
     # 2. Creates an ArtistMusicPlay for the default Artist and
     #    newly specified Music @assocs[:music] for the newly associated EventItem.
+    #    Note that this is undesirable in rare occasions, i.e.,
+    #    the Music is featured in the HaramiVid but the default Artist does not play it.
+    #    In such a case, the user should manually destroy the default association (the ArtistMusicPlay) later.
     # 3. Creates an ArtistMusicPlay for the specified collab-Artist @assocs[:artist_collab],
     #    @assocs[:music] and the newly associated EventItem.
     #
@@ -755,20 +779,49 @@ end
     # (1) on create, where up to 1 Music is specified, or on update.
     #     (1) run steps 2 and 3.
     #
+    # == alert - error
+    #
+    # This method issues an error when both a new Music @assocs[:music] and collab-Artist
+    # @assocs[:artist_collab] are specified, meaning this method will create an ArtistMusicPlay,
+    # and when the specified EventItem @assocs[:new_event_item] for it is associated with
+    # other HaramiVid(s) not all of which are associated with the Music @assocs[:music],
+    # because the situation is contradictory - all the HaramiVid-s associated with an ArtistMusicPlay should
+    # be associated with the Music {ArtistMusicPlay#music} via {HaramiVidMusicAssoc}.
+    #
+    # If the user wants to do so, the user should do either of the following:
+    #
+    # 1. simply specify a new EventItem to go with the new-collab relationship,
+    # 2. first add the Music to all the other HaramiVid-s sharing the same EventItem, and retry.
+    #
+    # == alert - warning
+    #
+    # In rare cases, where +ref_harami_vid+ is given in GET,
+    # `HaramiVid#associate_harami_existing_musics_plays` may set warnings: see the comment
+    # in the method for detail.
+    #
     # @note HaramiVidEventItemAssoc must have been already created, so nothing is done about it here.
     def create_artist_music_plays
 begin
       raise "Strange..." if @assocs[:artist_music_play].present?
       @assocs[:artist_music_play_haramis] ||= []  # should be empty at this stage.
 
-      if @original_event_items.empty?
+      if @original_event_items.empty?  # See {#_set_reference_harami_vid_id}
         arin = (@assocs[:new_event_item].present? ? [@assocs[:new_event_item]] : [])
         if !arin.empty? || @harami_vid.event_items.exists?
-          @assocs[:artist_music_play_haramis] = @harami_vid.associate_harami_existing_musics_plays(*arin)  # form_attr: :base
+          @assocs[:artist_music_play_haramis] = @harami_vid.associate_harami_existing_musics_plays(*arin, music_except: @assocs[:music])  # form_attr: :base
           # For update, if @harami_vid does not have existing EventItems (which only happens
           # for legacy HaramiVids), ArtistMusicPlay-s should be defind for all Musics
           # of @harami_vid and for the default Artist.
-          # See {#_set_reference_harami_vid_id} for @original_event_items
+          #
+          # Here, @assocs[:music] is specified to be ignored because 
+          # the EventItem @event_item_for_new_artist_collab should be used to create
+          # an ArtistMusicPlay with it.
+
+          if !@harami_vid.warning_messages.empty?
+            # Warning messages are added by HaramiVid#associate_harami_existing_musics_plays
+            flash[:warning] ||= []
+            flash[:warning].concat @harami_vid.warning_messages
+          end
         end
       end
 
@@ -776,6 +829,12 @@ begin
       associate_harami_music_play(event_item: @event_item_for_new_artist_collab)
 
       return if !@assocs[:artist_collab]
+
+      hvid_errs = _find_all_event_item_associated_with_harami_vid_without_the_music
+      if hvid_errs.present?
+        @harami_vid.errors.add :form_new_artist_collab_event_item, " the specified EventItem for a new collab is associated with another HaramiVid (ID=#{hvid_err.id}: #{hvid_err.title.inspect}) that does not have the Music (#{@assocs[:music].title.inspect}). You must either first associate the Music to the HaramiVid or simply specify a new (or different) EventItem for the collab-Artist-Music."
+        return
+      end
 
       instrument = ((val=@hsmain[:form_instrument]).blank? ? Instrument.default(:HaramiVid) : Instrument.find(val))
       play_role  = ((val=@hsmain[:form_play_role]).blank?  ? PlayRole.default(:HaramiVid)   : PlayRole.find(val))
@@ -786,6 +845,20 @@ rescue => err
   print "DEBUG(#{File.basename __FILE__}:#{__method__}): Error is raised:\n ";p err
   raise
 end
+    end
+
+    # Returns (the first) HaramiVid that is associated with the
+    # EventItem of interest yet is not associated with the specified Music.
+    #
+    # The situation is contradictory and should be marked.
+    #
+    # @return [HaramiVid, NilClass] nil if none is found (which is great)
+    def _find_all_event_item_associated_with_harami_vid_without_the_music
+      raise "Should not happen. Contact the code developer." if [@assocs[:music], @assocs[:artist_collab], @event_item_for_new_artist_collab].any?(&:blank?)
+
+      @event_item_for_new_artist_collab.harami_vids.where.not("harami_vids.id" => @harami_vid.id).find_all{|hvid|
+        !hvid.musics.include? @assocs[:music]
+      }  # This could be rewritten with a single SQL statement.
     end
 
     # Save a new EventItem, setting @assocs[:new_event_item], and creates HaramiVidEventItemAssoc

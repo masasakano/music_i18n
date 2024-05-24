@@ -41,6 +41,7 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
       "music_name"=>"", "music_timing"=>"1234",
       "music_genre"=>Genre.default(:HaramiVid).id.to_s, "music_year"=>"1984",
       "note"=>"",
+      #"reference_harami_vid_id" => "",  # GET parameter
        # "uri_playlist_en"=>"", "uri_playlist_ja"=>"",
     }.with_indifferent_access
 
@@ -240,7 +241,7 @@ if true
         end
       end
     end
-    mdl_last = HaramiVid.last
+    mdl_last = hvid5 = HaramiVid.last
     assert_redirected_to harami_vid_url(mdl_last)
     assert_equal newuri,  mdl_last.uri
     assert_equal newnote, mdl_last.note
@@ -268,7 +269,7 @@ end
     hsnew = {uri: "https://"+(newuri="youtu.be/0070?t=5")+"&si=xyz&link=youtu.be",
              title: (newtit="new70"), music_name: mu_name,
              artist_name: old_art.title, artist_name_collab: name_a,
-             place: pla, note: (newnote=name_a+" collaborates.")}
+             place: pla, note: (newnote=name_a+" collaborates (hvid6).")}
     hvid6_prms = @def_create_params.merge(hsnew)
     evt = Event.find(hvid6_prms["form_new_event"])
     #assert_equal 5, evt.event_items.count, "sanity check"
@@ -438,7 +439,7 @@ end
       "place.prefecture_id"=>hvid6.prefecture.id.to_s, "place"=>hvid6.place.id.to_s,
       "event_item_ids" => hvid6.event_items.ids.map(&:to_s),
       "reference_harami_vid_id" => hvid6.id.to_s,
-      "note"=>(newnote_recr="newly-created from ref"),
+      "note"=>(newnote_recr="hvid 7 created from ref"),
     }.with_indifferent_access
     assert_equal 1, hvid6.event_items.count, "sanity check..."
     assert_equal 4, hvid6.artist_music_plays.count, "sanity check..."
@@ -467,10 +468,13 @@ end
     assert_equal(*ary)
     ary = [hvid6, mdl_last].map{|mo| mo.harami_vid_music_assocs.order(:updated_at).last.timing}
     refute_equal(*ary)
+    assert_equal hvid6.musics.count, mdl_last.harami_vid_music_assocs.count  # = 2
+    assert_nil mdl_last.harami_vid_music_assocs.order(:updated_at).last.timing
     assert_equal newnote_recr, mdl_last.note
 
 
     ## Edit HaramiVid that has common EventItems with hvid6
+    ## specifing a new Music AND new Artist
     hvid7.reload
     old_updated_at = hvid7.updated_at
     evt0 = event_groups(:evgr_single_streets).unknown_event
@@ -488,29 +492,44 @@ end
              "event_item_ids" => hvid7.event_items.ids.map(&:to_s),
              "reference_harami_vid_id" => "",
              "note"=>(hvid7.note+"02"),
-             form_new_event: "",
-             artist_name: art_add_tit,
-             artist_name_collab: "",
              form_new_artist_collab_event_item: (evit2chk=hvid7.event_items.first).id.to_s,
+             form_new_event: "",
              music_name: (mu_tit="Six Thousand"),
              music_year: "2004",
-             music_timing: "01:00:12",  # 3612 sec
+             music_timing: "10:12",  # 612 sec
+             artist_name: (art_tit_h7=art_tit="Mr New"),
+             artist_sex: Sex[0],  # male
+             #"form_engage_hows"=>EngageHow.default(:HaramiVid).id.to_s,
+             form_engage_year: "2008",
+             #"form_engage_contribution"=>"0.5678",
+             artist_name_collab: "",
+             #"form_instrument" => Instrument.default(:HaramiVid).id.to_s,
+             #"form_play_role"  => PlayRole.default(:HaramiVid).id.to_s,
              note: (newn = hvid7.note+"02"),
              }
+    hvid7_prms_fail = hvid6_prms.merge(hsnew)
     assert_equal hvid6.event_items.ids.sort, hvid7.event_items.ids.sort, "sanity check..."
     assert_equal 1, hvid7.event_items.count, "sanity check..."
     assert_equal 2, hvid7.event_items.first.musics.distinct.count, "sanity check..."
     assert_equal 2, evit2chk.musics.size
     assert_equal(*([hvid7.musics, hvid7.event_items.first.musics].map{|emo| emo.order(:id).uniq.map{|i| i.note}}+["sanity check..."]))
 
-    assert_difference("Event.count + EventItem.count", 0) do  # no change in EventItem (non-default (=not-unknown) existing one is used).
+    ## should fail because hvid6 does not have the new Music!  ####
+    patch harami_vid_url(hvid7), params: { harami_vid: hvid7_prms_fail }
+    assert_response :unprocessable_entity
+
+    hvid7_prms = hvid7_prms_fail.merge({form_new_artist_collab_event_item: "0",
+                               form_new_event: evit2chk.event.id.to_s,})
+
+    assert_difference("Event.count + EventItem.count", 1) do  # an EventItem is created
       assert_difference("ArtistMusicPlay.count", 1) do  # for default Artist's Music-Event-Play
-        assert_difference("Music.count + Artist.count + Engage.count", 2) do
-          assert_difference("HaramiVidMusicAssoc.count*10 + HaramiVidEventItemAssoc.count", 20) do  #   # for hvid7 AND hvid6, while no change in the latter as an existing EventItem is used.
+        assert_difference("Music.count + Artist.count + Engage.count", 3) do
+          assert_difference("HaramiVidMusicAssoc.count*10 + HaramiVidEventItemAssoc.count", 11) do  # new ones are created
             assert_no_difference("Channel.count") do  # existing Channel is found
               assert_no_difference("HaramiVid.count") do
-                patch harami_vid_url(hvid7), params: { harami_vid: hvid6_prms.merge(hsnew) }
+                patch harami_vid_url(hvid7), params: { harami_vid: hvid7_prms }
                 assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+                assert_empty(s=(css_select("#error_explanation_list").to_s), s)
               end
             end
           end
@@ -522,25 +541,149 @@ end
     hvid7.reload
     assert_operator old_updated_at, :<, hvid7.updated_at
     mdl_last = hvid7
+    mus_hvid7 = hvid7.musics.sort{ |a,b| a.updated_at<=>b.updated_at}.last  # newly created Music
+    art_hvid7 = hvid7.artists.sort{|a,b| a.updated_at<=>b.updated_at}.last  # newly created Artist
     assert_equal newn, hvid7.note
     assert_equal    3, hvid7.musics.size
     #assert_equal mu_tit, hvid7.musics.order("musics.updated_at").last.title, "Musics=#{hvid7.musics.to_a}"  # this does not work for some reason...
-    assert_equal mu_tit, hvid7.musics.sort{|a,b| a.updated_at<=>b.updated_at}.last.title
-    assert_equal 3612, hvid7.harami_vid_music_assocs.order(:updated_at).last.timing
-    assert_equal    3, hvid7.event_items.first.musics.distinct.count  # the EventItem now has 3 Musics
+    assert_equal mu_tit,  mus_hvid7.title
+    assert_equal art_tit, art_hvid7.title
+    assert_equal Sex[0],  art_hvid7.sex
+    assert_equal       1, mus_hvid7.engages.size
+    assert_equal       1, art_hvid7.engages.size
+    assert_equal mus_hvid7.engages.first, art_hvid7.engages.first
+    assert_equal    2008, art_hvid7.engages.first.year
+    assert_equal  612, hvid7.harami_vid_music_assocs.order(:updated_at).last.timing
+    assert_equal    2, hvid7.event_items.first.musics.distinct.count  # the EventItem still has 2 Musics
 
-    assert_equal hvid6.event_items.order(:id), hvid7.event_items.order(:id), 'sanity check'
+    assert_equal    2, hvid7.event_items.count, 'sanity check'  # this was tested above in asseret_difference
+    assert_equal hvid6.event_items.first, hvid7.event_items.order(:id).first, 'sanity check'
     assert_equal hvid6.release_date, hvid7.release_date
+    assert_equal hvid6.musics.uniq.size+1, hvid7.musics.uniq.size
+    #ary = [hvid7, hvid6].map{|mo| mo.musics.uniq.sort{|a,b| a.id <=> b.id}}  # "order" does not work well...
+    #assert_equal(*ary)
+    #ary = [hvid7, hvid6].map{|mo| mo.harami_vid_music_assocs.order(:updated_at).last.timing}
+    #refute_equal(*ary)
+
+    ######
+    # You should not be able to add a Collab-Artist with an EventItem, which is associted with another Hvid that does not have this Music.
+    refute hvid6.musics.include?(mus_hvid7), 'sanity check'
+    hvid7_prms_collab_fail = hvid7_prms_fail.merge({
+        #form_new_artist_collab_event_item: (evit2chk=hvid7.event_items.first).id.to_s,  # This was and is the reason of failure; hvid6 has this EventItem, yet hvid6 does not have the Music below (mu_tit) with which a Collab-Artist is attempted to be added.
+        form_new_event: "",
+        music_name: mu_tit,  # existing Music
+        artist_name: "",
+        artist_name_collab: artists(:artist2).title,
+      })
+
+    patch harami_vid_url(hvid7), params: { harami_vid: hvid7_prms_collab_fail }
+    assert_response :unprocessable_entity, 'should raise an error because hvid6 that shares the specified EvnetItem for new-collab is not associated with the music, but...'
+
+    ######
+    # update hvid6 with an existing EventItem (of hvid7) with a Music that hvid7 has.
+    #  => should succeed
+    #     Because hvid7 has the same Music, even though its ArtistMusicPlay referring to the Music refers to a different EventItem
+    # Before:
+    #   HaramiVidMusicAssoc 1*2 (hvid6+7, Music1)  : "Five Hundred" (and another one)
+    #   HaramiVidMusicAssoc 2   (hvid7,   Music2)  : "Six Thousand"
+    #   EventItem 1 (=> both hvid6, hvid7)
+    #     ArtistMusicPlay-Default-1: (Music1, EventItem1)  : "Five Hundred"
+    #   EventItem 2 (=> hvid7)
+    #     ArtistMusicPlay-Default-2: (Music2, EventItem2)  : "Six Thousand"
+    # After:
+    #   HaramiVidMusicAssoc 1*2 (hvid6+7, Music1)  :
+    #   HaramiVidMusicAssoc 2*2 (hvid6+7, Music2)  : <= added! (with "hvid6" one)
+    #   EventItem 1 (=> both hvid6, hvid7)
+    #     ArtistMusicPlay-Default-1: (Music1, EventItem1)  :
+    #     ArtistMusicPlay-Default-2: (Music2, EventItem1)  : <= added!
+    #   EventItem 2 (=> hvid7)
+    #     ArtistMusicPlay-Default-2: (Music2, EventItem2)  :
+    #
+    # Basically, the default Artist has now two ArtistMusicPlay-s for Music-2 through EventItem-s 1&2.
+    # It is usually unnecessary, but it does not do harm.
+    # An alternative way to add the Music to hvid6 is to do while
+    # creating another EventItem.
+    #
+    # Ideally, if UI provides the form fields of timing for all the HaramiVids
+    # with an EventItem (or provides an option to add the Music to all HaramiVids
+    # even with null timings), that would do the job. Future work!
+    hvid6_update_prms = hvid6_prms.merge(
+      {
+        "event_item_ids" => hvid6.event_items.ids.map(&:to_s),
+        "reference_harami_vid_id" => "",
+        "note"=>(hvid6.note+"06"),
+        form_new_artist_collab_event_item: (evit2chk=hvid6.event_items.first).id.to_s,  # hvid6's own EventItem
+        form_new_event: "",
+        music_name: mu_tit,
+        music_timing: (mu_timing="128"),
+        artist_name: art_tit_h7,
+        artist_name_collab: "",
+        note: (newn = hvid7.note+"04"),})
+    old_updated_at = hvid6.updated_at
+    assert_equal    1, hvid6.event_items.distinct.count
+    assert_equal    2, hvid6.musics.size
+    assert_equal    2, hvid6.event_items.first.musics.distinct.count  # to check
+
+    assert_difference("Event.count + EventItem.count", 0) do  # no change in EventItem (non-default (=not-unknown) existing one is used).
+      assert_difference("ArtistMusicPlay.count", 1) do  # for default Artist's Music-Event-Play
+        assert_difference("Music.count + Artist.count + Engage.count", 0) do
+          assert_difference("HaramiVidMusicAssoc.count*10 + HaramiVidEventItemAssoc.count", 10) do  # no change in EventItemAssoc as an existing one is used.
+            assert_no_difference("Channel.count") do  # existing Channel is found
+              assert_no_difference("HaramiVid.count") do
+                patch harami_vid_url(hvid6), params: { harami_vid: hvid6_update_prms }
+                assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+                assert_empty(s=(css_select("#error_explanation_list").to_s), s)
+              end
+            end
+          end
+        end
+      end
+    end
+
+    hvid6.reload
+    hvid7.reload
+    assert_equal newn, hvid6.note
+    assert_operator old_updated_at, :<, hvid6.updated_at
+    mdl_last = hvid6
+    mus_hvid6 = hvid6.musics.sort{ |a,b| a.updated_at<=>b.updated_at}.last  # newly created Music
+    art_hvid6 = hvid6.artists.sort{|a,b| a.updated_at<=>b.updated_at}.last  # newly created Artist
+    assert_equal mus_hvid7, mus_hvid6
+    assert_equal    3, hvid6.musics.size
+    #assert_equal mu_tit, hvid6.musics.order("musics.updated_at").last.title, "Musics=#{hvid6.musics.to_a}"  # this does not work for some reason...
+    assert_equal mu_tit,  mus_hvid6.title
+    assert_equal art_tit, art_hvid6.title
+    assert_equal Sex[0],  art_hvid6.sex
+    assert_equal       1, mus_hvid6.engages.size
+    assert_equal       1, art_hvid6.engages.size
+    assert_equal mus_hvid6.engages.first, art_hvid6.engages.first
+    assert_equal    2008, art_hvid6.engages.first.year
+    assert_equal mu_timing.to_i, hvid6.harami_vid_music_assocs.order(:updated_at).last.timing
+    assert_equal    1, hvid6.event_items.distinct.count  # this was tested above in asseret_difference
+    assert_equal    3, hvid6.event_items.first.musics.distinct.count
+
+    refute_equal hvid6.event_items.last, hvid7.event_items.order(:id).last
+    assert_equal hvid6.release_date,     hvid7.release_date
     assert_equal hvid6.musics.uniq.size, hvid7.musics.uniq.size
     ary = [hvid7, hvid6].map{|mo| mo.musics.uniq.sort{|a,b| a.id <=> b.id}}  # "order" does not work well...
     assert_equal(*ary)
-    ary = [hvid7, hvid6].map{|mo| mo.harami_vid_music_assocs.order(:updated_at).last.timing}
-    refute_equal(*ary)
+
+    ######
+    # update a new HaramiVid without with hvid7-EventItem
+
+    # preparation of hvid8
+    hvid8 = HaramiVid.create!(title: (tit8="HVid8-title1"), langcode: "ja", uri: "https://example.com/hvid8", note: (note8="note-hvid8"))
+    hvid8.musics << musics(:music1) 
+    hvid8.musics.reset
+    hvma8 = hvid8.harami_vid_music_assocs.first
+    hvma8.update!(timing: (timing8=888))
+    hvid8.harami_vid_music_assocs.reset
 
     #flash_regex_assert(%r@<a [^>]*href="/channels/\d+[^>]*>new Channel.+is created@, msg=nil, type: nil)  # defined in test_helper.rb
   end # test "should create harami_vid" do
 
-  ##### update handling of old-school data
+
+  #########################
+  ## update handling of old-school data
   test "should update old-school data ok" do
     hvid = harami_vids(:harami_vid5)
     refute  hvid.event_items.exists?, 'test fixtures'  # no EventItem defiend(!)
