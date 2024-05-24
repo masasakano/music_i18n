@@ -344,20 +344,68 @@ class HaramiVidsController < ApplicationController
     end
     private :_after_save_new_channel
 
-    # Set @assocs[:music]
-    # @return [Music, NilClass] nil if failed to save Music or not specified in the first place.
-    def find_or_create_music
-      prm_name = "music_name"
-      @assocs[:music] = nil
-      return if !@hsmain.has_key?(prm_name)  # This is the case when reference_harami_vid_id is given in GET
+    # Update existing associations for EventItems
+    #
+    # Usually for update only, unless +reference_harami_vid_id+ is specified with GET.
+    #
+    # Sets @assocs[:deassociated_event_items] and @assocs[:new_associated_event_items],
+    # each element of which is an EventItem.  The latter is valid only when +reference_harami_vid_id+ is set.
+    #
+    # Basically, all the EventItems that are *NOT* specified in :event_item_ids
+    # are destroyed.
+    #
+    # See {#set_event_event_items} and {#_set_reference_harami_vid_id} about @event_event_items and @original_event_items
+    def update_event_item_assocs
+      @assocs[:deassociated_event_items] = nil
+      return if !@prms_all[:event_item_ids]
+      # NOTE: On update, the above should not be nil in principle EXCEPT for the case
+      # where old HaramiVids that have no EventItem associated. In such a case, View UI
+      # does not provide the form field for [:event_item_ids] because otherwise
+      # simple_form prevents the data from submitting as the field has no selection items
+      # yet simple_form insists you must select at least one. (n.b., FYI, newly created HaramiVids
+      # always have at least one EventItem and you cannot nullify the association).
+      # Hence, this "return" above is necessary to deal with such cases.
+      #
+      # If @harami_vid has no EventItems, both @harami_vid.event_items is empty AT THE MOMENT
+      # though later processing may modify it.  Instance variable @original_event_items
+      # (set in {#set_event_event_items}) preserves the Array of EventItems, and so it should be
+      # empty, and also @event_event_items (see {#set_event_event_items} and {#_set_reference_harami_vid_id}) is empty.
+      # The surest way to check the existence of EventItem before processing is
+      # +!@original_event_items.empty?+
+      #
+      # When it is empty, @prms_all[:event_item_ids] should be non-existent and so
+      # the following should not be executed.
 
-      return if @hsmain[prm_name].blank?
+      @assocs[:deassociated_event_items] = []
+      @assocs[:new_associated_event_items] = []
 
-      extra_prms_for_new = {
-        genre: (((genid=@hsmain[:music_genre]).present? ? Genre.find_by_id(genid.to_i) : nil) || Genre.unknown),  # with UI, should be always found
-        year:   ((year=@hsmain[:music_year]).present? ? year.to_i : nil),  # can be nil
-      }
-      @assocs[:music] = _find_or_create_artist_or_music(Music, prm_name, extra_prms_for_new)  # can be nil.
+      leave_ids = @prms_all[:event_item_ids].select{|i| i.present?}.map(&:to_i)  # removes an empty one which is usually added by simple_form
+      if leave_ids.empty?
+        msg = ": "+I18n.t('errors.at_least_one_of_them_must_be_checked')
+        @harami_vid.errors.add :event_item_ids, msg
+      end
+
+      @harami_vid.reload
+      #_set_reference_harami_vid_id  # set @event_event_items
+
+      @event_event_items.each_value do |ar_event_items|  # The key is ID for Event (identical to eeit.event.id), value is an Array of EventItem-s
+        ar_event_items.each do |eeit|
+          if leave_ids.include?(eeit.id)  # Association is not destroyed.
+            next if @harami_vid.event_items.include?(eeit)
+            ## This only happens when +reference_harami_vid_id+ is specified.
+            @harami_vid.event_items << eeit  # NOTE: TODO: The result is not checked!!
+            @assocs[:new_associated_event_items] << eeit
+            next
+          end
+          @assocs[:deassociated_event_items].push eeit
+          next if @harami_vid.event_items.destroy(eeit)
+          msg_core = sprintf("Event=%s, EventItem=%s",
+                             eeit.event.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either).inspect,
+                             eeit.machine_name.inspect
+                            )
+          @harami_vid.errors.add :event_item_ids, "Failed to destroy the association (#{msg_core})."
+        end
+      end
     end
 
     # Creates {HaramiVidMusicAssoc} from EventItems
@@ -400,6 +448,22 @@ rescue => err
   print "DEBUG(#{File.basename __FILE__}:#{__method__}): Error is raised:\n ";p err
   raise
 end
+    end
+
+    # Set @assocs[:music]
+    # @return [Music, NilClass] nil if failed to save Music or not specified in the first place.
+    def find_or_create_music
+      prm_name = "music_name"
+      @assocs[:music] = nil
+      return if !@hsmain.has_key?(prm_name)  # This is the case when reference_harami_vid_id is given in GET
+
+      return if @hsmain[prm_name].blank?
+
+      extra_prms_for_new = {
+        genre: (((genid=@hsmain[:music_genre]).present? ? Genre.find_by_id(genid.to_i) : nil) || Genre.unknown),  # with UI, should be always found
+        year:   ((year=@hsmain[:music_year]).present? ? year.to_i : nil),  # can be nil
+      }
+      @assocs[:music] = _find_or_create_artist_or_music(Music, prm_name, extra_prms_for_new)  # can be nil.
     end
 
     # Set @assocs[:music] and @assocs[:harami_vid_music_assoc] (singular) and initialize @event_item_for_new_artist_collab
@@ -488,20 +552,6 @@ end
       @assocs[:artist] = _find_or_create_artist_or_music(Artist, prm_name, extra_prms_for_new) # Set @assocs[:artist]
     end
 
-    # Set @assocs[:artist_collab]
-    def find_or_artist_collab
-      prm_name = "artist_name_collab"
-      @assocs[:artist_collab] = nil
-      return if !@hsmain.has_key?(prm_name)  # This is the case when reference_harami_vid_id is given in GET
-      return if @hsmain[prm_name].blank?
-      @assocs[:artist_collab] = _find_or_create_artist_or_music(Artist, prm_name, find_only: true)
-      if @assocs[:artist_collab].present? && @assocs[:music].blank?
-        flash[:warning] ||= []
-        flash[:warning] << "Collab-Artist is ignored because Music is not specified."
-      end
-      @assocs[:artist_collab]
-    end
-
     # Set @assocs[:engage]
     #
     # Assuming @assocs[:music] is already set
@@ -521,6 +571,20 @@ rescue => err
   print "DEBUG(#{File.basename __FILE__}:#{__method__}): Error is raised:\n ";p err
   raise
 end
+    end
+
+    # Set @assocs[:artist_collab]
+    def find_or_artist_collab
+      prm_name = "artist_name_collab"
+      @assocs[:artist_collab] = nil
+      return if !@hsmain.has_key?(prm_name)  # This is the case when reference_harami_vid_id is given in GET
+      return if @hsmain[prm_name].blank?
+      @assocs[:artist_collab] = _find_or_create_artist_or_music(Artist, prm_name, find_only: true)
+      if @assocs[:artist_collab].present? && @assocs[:music].blank?
+        flash[:warning] ||= []
+        flash[:warning] << "Collab-Artist is ignored because Music is not specified."
+      end
+      @assocs[:artist_collab]
     end
 
 
@@ -550,70 +614,6 @@ end
       (ret || new_record)
     end
     private :_find_or_create_artist_or_music
-
-    # Update existing associations for EventItems
-    #
-    # Usually for update only, unless +reference_harami_vid_id+ is specified with GET.
-    #
-    # Sets @assocs[:deassociated_event_items] and @assocs[:new_associated_event_items],
-    # each element of which is an EventItem.  The latter is valid only when +reference_harami_vid_id+ is set.
-    #
-    # Basically, all the EventItems that are *NOT* specified in :event_item_ids
-    # are destroyed.
-    #
-    # See {#set_event_event_items} and {#_set_reference_harami_vid_id} about @event_event_items and @original_event_items
-    def update_event_item_assocs
-      @assocs[:deassociated_event_items] = nil
-      return if !@prms_all[:event_item_ids]
-      # NOTE: On update, the above should not be nil in principle EXCEPT for the case
-      # where old HaramiVids that have no EventItem associated. In such a case, View UI
-      # does not provide the form field for [:event_item_ids] because otherwise
-      # simple_form prevents the data from submitting as the field has no selection items
-      # yet simple_form insists you must select at least one. (n.b., FYI, newly created HaramiVids
-      # always have at least one EventItem and you cannot nullify the association).
-      # Hence, this "return" above is necessary to deal with such cases.
-      #
-      # If @harami_vid has no EventItems, both @harami_vid.event_items is empty AT THE MOMENT
-      # though later processing may modify it.  Instance variable @original_event_items
-      # (set in {#set_event_event_items}) preserves the Array of EventItems, and so it should be
-      # empty, and also @event_event_items (see {#set_event_event_items} and {#_set_reference_harami_vid_id}) is empty.
-      # The surest way to check the existence of EventItem before processing is
-      # +!@original_event_items.empty?+
-      #
-      # When it is empty, @prms_all[:event_item_ids] should be non-existent and so
-      # the following should not be executed.
-
-      @assocs[:deassociated_event_items] = []
-      @assocs[:new_associated_event_items] = []
-
-      leave_ids = @prms_all[:event_item_ids].select{|i| i.present?}.map(&:to_i)  # removes an empty one which is usually added by simple_form
-      if leave_ids.empty?
-        msg = ": "+I18n.t('errors.at_least_one_of_them_must_be_checked')
-        @harami_vid.errors.add :event_item_ids, msg
-      end
-
-      @harami_vid.reload
-      #_set_reference_harami_vid_id  # set @event_event_items
-
-      @event_event_items.each_value do |ar_event_items|  # The key is ID for Event (identical to eeit.event.id), value is an Array of EventItem-s
-        ar_event_items.each do |eeit|
-          if leave_ids.include?(eeit.id)  # Association is not destroyed.
-            next if @harami_vid.event_items.include?(eeit)
-            ## This only happens when +reference_harami_vid_id+ is specified.
-            @harami_vid.event_items << eeit  # NOTE: TODO: The result is not checked!!
-            @assocs[:new_associated_event_items] << eeit
-            next
-          end
-          @assocs[:deassociated_event_items].push eeit
-          next if @harami_vid.event_items.destroy(eeit)
-          msg_core = sprintf("Event=%s, EventItem=%s",
-                             eeit.event.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either).inspect,
-                             eeit.machine_name.inspect
-                            )
-          @harami_vid.errors.add :event_item_ids, "Failed to destroy the association (#{msg_core})."
-        end
-      end
-    end
 
     # Create an EventItem for a specified Event if specified, and HaramiVidEventItemAssoc, and sets @assocs[:new_event_item] and @event_item_for_new_artist_collab
     #
