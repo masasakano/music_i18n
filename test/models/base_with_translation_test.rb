@@ -479,8 +479,18 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_equal 'Liverpool', prefectures(:liverpool).title_or_alt(langcode: 'en', prefer_alt: true)
     assert_equal "東京都本庁舎", places(:tocho).title_or_alt(langcode: 'ja')
     assert_equal '都庁',         places(:tocho).title_or_alt(langcode: 'ja', prefer_alt: true)
+    assert_equal '都庁',         places(:tocho).title_or_alt(langcode: 'ja', prefer_shorter: true, prefer_alt: false)
     assert_equal 'male', sexes(:sex1).title_or_alt(langcode: 'en')
     assert_equal 'M',    sexes(:sex1).title_or_alt(langcode: 'en', prefer_alt: true)
+    assert_equal 'M',    sexes(:sex1).title_or_alt(langcode: 'en', prefer_alt: false, prefer_shorter: true)
+
+    se99 = Sex.create!(iso5218: 99, title: "short", alt_title: "much longer", langcode: "en", is_orig: true)
+    se99.translations.reset
+    assert_equal "much longer", se99.alt_title, 'sanity check'
+    assert_equal 'short',       se99.title_or_alt
+    assert_equal 'short',       se99.title_or_alt(prefer_shorter: true,  prefer_alt: true)
+    assert_equal "much longer", se99.title_or_alt(prefer_shorter: false, prefer_alt: true)
+    assert_equal "much longer", se99.title_or_alt(                       prefer_alt: true)
 
     pla1 = places(:takamatsu_station)
     assert_equal '高松駅', pla1.title(langcode: 'ja', lang_fallback: false)

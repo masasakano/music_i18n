@@ -2129,6 +2129,8 @@ class BaseWithTranslation < ApplicationRecord
   # @example frequent use in Views
   #    Place.title_or_alt(prefer_alt: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true)
   #
+  # @param prefer_shorter: [Boolean] if true (Def: false), whichever shorter in title and alt_title
+  #    is returned.  If true, this has a precedence over +prefer_alt+
   # @param prefer_alt: [Boolean] if true (Def: false), alt_title is preferably
   #    returned as long as it exists.
   # @param lang_fallback_option: [Symbol] (:both|:either(Def)|:never) Similar to {#titles} but has a different meaning. If :both,
@@ -2144,11 +2146,14 @@ class BaseWithTranslation < ApplicationRecord
   # @param langcode: [String, NilClass] like 'ja' (directly passed to the parent method)
   # @param prioritize_orig: [Boolean] (directly passed to the parent method)
   # @param article_to_head: [Boolean] (directly passed to the parent method)
-  # @return [String] Singleton method of +lcode+ is available.
-  def title_or_alt(prefer_alt: false, lang_fallback_option: :either, str_fallback: "", **opts)
+  # @return [String] Singleton method of +lcode+ is available (except when str_fallback is returned).
+  def title_or_alt(prefer_shorter: false, prefer_alt: false, lang_fallback_option: :either, str_fallback: "", **opts)
     cands = titles(lang_fallback_option: lang_fallback_option, str_fallback: nil, **opts) # nil is wanted when no translations are found.
     cands.reverse! if prefer_alt
     cands.map{|i| (i.blank? || i.strip.blank?) ? nil : i}.compact.first || str_fallback
+    ar = cands.map{|i| (i.blank? || i.strip.blank?) ? nil : i}.compact
+    ar.sort!{|a,b| a.size <=> b.size} if prefer_shorter
+    ar.first || str_fallback
     ## NOTE: Do NOT modify i (like i.strip) because "i" has a Singleton method #lcode
   end
 
