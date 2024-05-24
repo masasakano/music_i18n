@@ -229,6 +229,24 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_equal(-5_6.23_43e-52_3 , convert_str_to_number_nil(" -5_6.23_43e-52_3 "))
   end
 
+  test "singleton_method_val" do
+    obj = Object.new
+    assert_equal 5, set_singleton_method_val(:metho, initial_value=5, target: obj)
+    assert   obj.respond_to?(:metho)
+    assert_equal 5, obj.metho
+    assert_equal 7, obj.metho=7
+    assert_equal 7, obj.metho
+    assert_equal 8, set_singleton_method_val(:metho, initial_value=8, target: obj)
+    assert_equal 8, obj.metho, 'should change, but...'
+    assert_equal 8, set_singleton_method_val(:metho, initial_value=9, target: obj, clobber: false)
+    assert_equal 8, obj.metho, 'should change nothing, but...'
+
+    art = Artist.new
+    assert_equal 5, art.set_singleton_method_val(:metho, initial_value=5)
+    assert   art.respond_to?(:metho)
+    assert_equal 5, art.metho
+  end
+
   private
     # Returns true if Ruby and PosgreSQL results match.
     def _match_rb_psql_regexp?(conn, re_ruby, str, regexp_should_succed=true)

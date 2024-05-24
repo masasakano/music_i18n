@@ -2235,7 +2235,8 @@ class BaseWithTranslation < ApplicationRecord
   def get_a_title(method, langcode: nil, lang_fallback: true, str_fallback: nil)
     ret = (translations_with_lang(langcode)[0].public_send(method) rescue nil)
     if ret
-      return set_singleton_method_val(ret, :lcode, langcode) # Define Singleton method String#lcode # defined in module_common.rb
+      set_singleton_method_val(:lcode, langcode, target: ret) # Define Singleton method String#lcode # defined in module_common.rb
+      return ret
     end
     return str_fallback if !lang_fallback
 
@@ -2244,7 +2245,8 @@ class BaseWithTranslation < ApplicationRecord
     hstrans.each_pair do |ek, ev|
       ret = ev.public_send(method)
       if !ret.blank?
-        return set_singleton_method_val(ret, :lcode, ek) # Define Singleton method String#lcode # defined in module_common.rb
+        set_singleton_method_val(:lcode, ek, target: ret) # Define Singleton method String#lcode # defined in module_common.rb
+        return ret
       end
     end
     str_fallback

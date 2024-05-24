@@ -1163,19 +1163,43 @@ module ModuleCommon
   # Define singleton accessor method to an Object with an initil value
   #
   # @example
-  #    set_singleton_method_val(mystr, :lcode, "en")  # defined in module_common.rb
-  #    mystr.lcode  # => "en"
-  #    mystr.lcode="ja"
-  #    mystr.lcode  # => "ja"
+  #    art = Artist.new
+  #    art.set_singleton_method_val(:lcode, "en")  # defined in module_common.rb
+  #    art.lcode  # => "en"
+  #    art.lcode="ja"
+  #    art.lcode  # => "ja"
+  #    set_singleton_method_val(art, :lcode, "fr")  # => "fr", overwritten
+  #    art.lcode  # => "fr"
+  #    set_singleton_method_val(art, :lcode, "zh", clobber: false)  # => "fr", no change
+  #    art.lcode  # => "fr"
   #
-  # @param obj [Object]
+  # @example
+  #    mus = Music.new
+  #    mus.respond_to?(:ary)   # => false (as we assume)
+  #    set_singleton_method_val(mus, :ary, [], clobber: false)  # defined in module_common.rb
+  #    mus.ary       # => []
+  #    mus.ary << 4  # mus.ary==[4]
+  #    set_singleton_method_val(mus, :ary, [], clobber: false)  # => [4], not overwritten, equivalent to mus.ary ||= []
+  #    mus.ary << 5  # mus.ary==[4, 5]
+  #    set_singleton_method_val(mus, :ary, [])                  # => [], overwritten(!) and re-initialized
+  #    mus.ary       # => []
+  #
+  # @example to a random Object
+  #    str = "my random object"
+  #    str.set_singleton_method_val(:lcode, "en", target: str)  # defined in module_common.rb
+  #    str.lcode  # => "en"
+  #
   # @param method [String, Symbol] method name to define
   # @option initial_value [Object] Def: nil
-  # @return [obj]  # so you can link it if you want
-  def set_singleton_method_val(obj, method, initial_value=nil)
-    obj.instance_eval{singleton_class.class_eval { attr_accessor method }}
-    obj.send(method.to_s+"=", initial_value)
-    obj
+  # @param target: [Object]
+  # @option clobber: [Boolean] If false (Def: true), the value is not set if the method is already defined.
+  #    "clobber: true/false" practically means "obj.method=5" and "obj.method||=5", respectively.
+  # @return [Object]  # the value of {Object#metho}, which is usually initial_value unless the method is already defined and clobber=false
+  def set_singleton_method_val(method, initial_value=nil, target: self, clobber: true)
+    return target.send(method) if !clobber && target.respond_to?(method)
+    target.instance_eval{singleton_class.class_eval { attr_accessor method }}
+    target.send(method.to_s+"=", initial_value)
+    target.send(method)
   end
 
   # Returns "/db/seeds/users.rb" etc. from __FILE__
