@@ -2,6 +2,8 @@
 
 # JSON-only controller to return candidate Artists/Musics (or maybe else)
 class BaseMerges::BaseWithIdsController < ApplicationController
+  include AutoCompleteIndex  # defined in /app/controllers/concerns/auto_complete_index.rb
+
   authorize_resource :class => false
   #skip_before_action :authenticate_user!, :only => [:index]  # action defined in application_controller.rb
   skip_authorize_resource
@@ -17,25 +19,12 @@ class BaseMerges::BaseWithIdsController < ApplicationController
     helpers.get_modelname(model)+'_with_id' # defined in application_helper.rb
   end
 
-  # The caller's path must be either */%/merges or something/(new|edit).
+  # The caller's path must be either */%/merges or something/(new|edit) or somethings/ (i.e., index).
   # See {#get_id} below.
   def index
-    idcur = get_id
-    if !idcur
-      return respond_to do |format|
-        format.html { }
-        format.json { render json: {error: "Forbidden request to #{params[:path].inspect}" }, status: :unprocessable_entity }
-      end
-    end
-
-    model_klass = self.class::MODEL_SYM.to_s.classify.constantize
-    model = (idcur.respond_to?(:divmod) ? model_klass.find(idcur) : model_klass.new)
-    candidates = model.select_titles_partial_str_except_self(:titles, params[:keyword], display_id: true)
-
-    respond_to do |format|
-      format.html { }
-      format.json { render json: candidates[0..MAX_SUGGESTIONS], status: :ok }
-    end
+    permitted = get_id
+    id_cur = (permitted.respond_to?(:divmod) ? permitted : nil)
+    index_auto_complete(permitted, self.class::MODEL_SYM, klass_id: id_cur, do_display_id: true)
   end
 
   private
@@ -53,6 +42,7 @@ class BaseMerges::BaseWithIdsController < ApplicationController
 
       # If called from other new/edit AND show that are valid in this app.
       # "show" is necessary because once edit has failed, it returns to a "show" page!
+      # So, either index, new, show, or edit within the app page is allowed.
       path_modified =params[:path].sub(%r@^(/?[a-z]{2}/)?@, "").sub(%r@(/edit)(/\d+)?\z@, '\1')  # I am not sure if this is necessary in reality (but just to play safe).
       if ("static_page_publics" != Rails.application.routes.recognize_path(path_modified)[:controller]) &&
          %r@/(new|edit(/\d+)?|[^/]+s/\d+)\z@ =~ params[:path]  # This actually excludes paths like /children/123 or /novae/123 etc.
