@@ -363,6 +363,7 @@ DEPENDENCIES
   plain_text
   puma (~> 6.4)
   rails (~> 7.0, >= 7.0.4)
+  rails-html-sanitizer
   rails-i18n (~> 7.0.0)
   rails_admin (~> 3.0)
   redcarpet (~> 3, >= 3.3.4)

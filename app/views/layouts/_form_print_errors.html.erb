@@ -6,7 +6,7 @@
 
     <ul id="error_explanation_list">
       <% model.errors.full_messages.each do |message| %>
-        <li><%= message %></li>
+        <li><%= sanitized_html(message).html_safe %></li>  <%# "a" tag etc are allowed. Defined in application_helper.rb  See also /config/application.rb %>
       <% end %>
     </ul>
   </div>

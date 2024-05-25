@@ -553,6 +553,34 @@ module ApplicationHelper
     rela.map{|i| [i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i.id]}
   end
 
+  # Returns a sanitized (scrubs) HTML-frament, using rails-html-sanitizer Gem (which is a wrapper of Loofah)
+  #
+  # The default unsafe tags are all removed regardless of the specified permitted.
+  #
+  # @see https://github.com/rails/rails-html-sanitizer?tab=readme-ov-file#scrubbers
+  # @see /config/application.rb
+  #
+  # @param str [String] This String is destructively sanitized.
+  # @param targetblank: [Boolean] If true (Def), target="_blank" attribute is added to links
+  # @param permitted: [Array] Array of permitted HTML tags
+  # @return [Rails::HTML5::FullSanitizer] sanitized fragment
+  def sanitized_html_fragment(str, targetblank: true, permitted: Rails.application.config.default_html_sanitize_permit_list)
+    scrubber = Rails::HTML::PermitScrubber.new
+    scrubber.tags = permitted
+    html_fragment = Loofah.fragment(str)
+    html_fragment.scrub!(:targetblank) if targetblank
+    html_fragment.scrub!(scrubber)
+    html_fragment
+  end
+
+  # Returns a sanitized String (wrapper of {#sanitized_html_fragment})
+  #
+  # @param #see sanitized_html_fragment
+  # @return [String] sanitized String
+  def sanitized_html(*args, **kwds)
+    sanitized_html_fragment(*args, **kwds).to_s
+  end
+
   # to suppress warning, mainly that in Ruby-2.7.0:
   #   "Passing the keyword argument as the last hash parameter is deprecated"
   #

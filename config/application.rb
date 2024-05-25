@@ -43,6 +43,9 @@ module HaramiMusicI18n
     ]
     #config.active_record.use_yaml_unsafe_load = true  # The last resort
 
+    # default list for sanitizing (scrubbing) HTML. Used in sanitized_html_fragment in application_helper.rb
+    config.default_html_sanitize_permit_list = %w(a sup sub em strong b i u del s ins ruby rt rp rb small wbr var kbd code samp def cite)
+
     # Year of the first (potential) Event. This is used as the lower threshold (plus 1)
     # for the year to be provided for the form in default and also as the default first year of 
     # EventGroup (and hence Event and EventItem).

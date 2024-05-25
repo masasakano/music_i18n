@@ -96,6 +96,18 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_equal exp, val, "long and with_time are ignored."
   end
 
+  test "sanitized_html" do
+    strin = '<a href="abc"><em>here</em></a> <script> some </script>&ldquo;&ouml;&euro;&#x3042;&rdquo; 1 > 2&'
+    exp = "<a href=\"abc\" target=\"_blank\"><em>here</em></a>  some “ö€あ” 1 &gt; 2&amp;"
+    assert_equal exp, sanitized_html(strin)
+    
+    exp = '<a href="abc">here</a>  some “ö€あ” 1 &gt; 2&amp;'
+    assert_equal exp, sanitized_html(strin, targetblank: false, permitted: %w(a))
+
+    exp = '<a href="abc" rel="nofollow"><em>here</em></a>  some “ö€あ” 1 &gt; 2&amp;'
+    assert_equal exp, sanitized_html_fragment(strin, targetblank: false).scrub!(:nofollow).to_s
+  end
+
   private
 end
 
