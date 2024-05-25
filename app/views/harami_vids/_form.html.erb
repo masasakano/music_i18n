@@ -118,7 +118,8 @@
     <div class="register_assoc_music">
     <h4 title="動画内で演奏された楽曲の追加もしくは追加コラボアーティストに対応した楽曲"><%= (harami_vid.new_record? ? "" : "("+t(:additional).capitalize+") ")+t(:Music) %></h4>  <%# Additional Music %>
     <div class="register_assoc_music_field">
-      <%= f.input :music_name, label: t("layouts.fields.music_title"), hint: t('layouts.fields.hint_music_auto') %>
+      <%= f.input :music_name, label: t("layouts.fields.music_title") #, hint: t('layouts.fields.hint_music_auto')
+      %>
      <div class="form_new_model_info">
       <%= f.input :music_year, label: t("harami_vids.field_music_year") %>
       <%= f.input :music_genre, label: t(:Genre)+" (new Music only)",
@@ -146,7 +147,7 @@
 
       <%= f.input :form_engage_hows,
         collection: ordered_models_form(EngageHow), selected: (harami_vid.form_engage_hows || EngageHow.default(:HaramiVid)),
-          label: t("harami_vids.engage_how")+t('layouts.new_musics.allow_multi') %>
+          label: t("harami_vids.engage_how") %>  <%# +t('layouts.new_musics.allow_multi'); multiple is not allowed for now... %>
 
       <%= f.input :form_engage_year, label: t('layouts.new_musics.year_engagement') %>
 
@@ -155,9 +156,15 @@
     </div> <!-- div class="register_assoc_artist"  -->
     </div> <!-- div class="form_new_model_info" -->
 
+   <% if ! harami_vid.new_record? %>
     <div class="register_collab_artist_field">
     <h4><%= (harami_vid.new_record? ? "" : "("+t(:additional).capitalize+") ") %><%= t('harami_vids.field_artist_collabs_w_harami') %></h4>
 
+      <%= f.input :music_collab,
+        collection: collection_musics_with_evit(harami_vid),
+          label: t(:Music).capitalize,
+          include_blank: true, input_html: { multiple: false },
+          hint: t('harami_vids.field_music_collab_hint') %> <%# defined in _harami_vids_index.html.erb %>
       <%= f.input :artist_name_collab,  label: t('harami_vids.form_artist_collabs'),
           hint: t("layouts.fields.hint_create_if_non_existent", link: link_to(t("layouts.do_create_lower"), new_artist_path)).html_safe %>
      <div class="form_new_model_info">
@@ -169,6 +176,7 @@
         label: "How they collaborate" %>
      </div>
     </div> <!-- div class="register_collab_artist_field" -->
+   <% end %>  <%# if ! harami_vid.new_record? %>
 
    <% end %>  <!-- if !given_ref -->
   </div> <!-- div class="form-inputs" -->

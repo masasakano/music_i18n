@@ -56,7 +56,7 @@
         <td class="number"><%= link_to harami_vid.id, harami_vid %></td>
      <% end %>
         <td><%= harami_vid.release_date %></td>
-        <td><%= harami_vid.channel.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, prefer_alt: true) %> </td>
+        <td><%= harami_vid.channel.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true) %> </td>
      <% if music %>
        <% assoc = harami_vid.harami_vid_music_assocs.where(music: music).first %>
        <% timing = (assoc ? assoc.timing : nil) %>

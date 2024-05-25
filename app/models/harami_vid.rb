@@ -103,6 +103,7 @@ class HaramiVid < BaseWithTranslation
   attr_accessor :artist_name_collab
   attr_accessor :form_instrument
   attr_accessor :form_play_role
+  attr_accessor :music_collab  # Music for newly-added collaboration (select from Haramivid#musics)
   attr_accessor :music_name
   attr_accessor :music_timing  # n.b., there is a method "timing"
   attr_accessor :music_genre

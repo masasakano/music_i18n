@@ -38,8 +38,11 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
       "artist_name_collab"=>"",
       "form_instrument" => Instrument.default(:HaramiVid).id.to_s,
       "form_play_role"  => PlayRole.default(:HaramiVid).id.to_s,
-      "music_name"=>"", "music_timing"=>"1234",
-      "music_genre"=>Genre.default(:HaramiVid).id.to_s, "music_year"=>"1984",
+      "music_collab" => "",  # Music to associate (to EventItem, not HaramiVid directly) through ArtistMusicPlay
+      "music_name"=>"",      # Music to associate through HaramiVidMusicAssoc
+      "music_timing"=>"1234",
+      "music_genre"=>Genre.default(:HaramiVid).id.to_s,
+      "music_year"=>"1984",
       "note"=>"",
       #"reference_harami_vid_id" => "",  # GET parameter
        # "uri_playlist_en"=>"", "uri_playlist_ja"=>"",
@@ -267,7 +270,8 @@ end
     refute_includes old_mu.artists, collab_art, "check fixture"
     mu_name = old_mu.title  # existing Music
     hsnew = {uri: "https://"+(newuri="youtu.be/0070?t=5")+"&si=xyz&link=youtu.be",
-             title: (newtit="new70"), music_name: mu_name,
+             title: (newtit="new70"),
+             music_name: old_mu.title, music_collab: old_mu.id.to_s,  # Because this is for create, the UI does not provide the form for collab-Artist (or its Music "music_collab") anymore... But Controllers still accept it for now.
              artist_name: old_art.title, artist_name_collab: name_a,
              place: pla, note: (newnote=name_a+" collaborates (hvid6).")}
     hvid6_prms = @def_create_params.merge(hsnew)
@@ -312,7 +316,7 @@ end
     evt0 = event_groups(:evgr_single_streets).unknown_event
     pla = places(:perth_aus)
     hsnew = {uri: (newuri="youtu.be/0080"), title: (newtit="new80"), music_name: mu_name, artist_name: old_art.title,
-             form_new_event: evt0.id.to_s, artist_name_collab: name_a,
+             form_new_event: evt0.id.to_s, artist_name_collab: name_a, music_collab: old_mu.id.to_s,  # same as above. Forms for specifying collaboration is not provided on create...
              "place.prefecture_id.country_id"=>pla.country.id.to_s, "place.prefecture_id" => pla.prefecture.id.to_s,
              place: pla.id.to_s, note: ("Same artist collaborates with a specified +unknown+ event.")}
     assert_difference("Event.count*10 + EventItem.count", 11) do
@@ -350,6 +354,8 @@ end
     hsnew = {title: nil, langcode: nil,
              event_item_ids: hvid6.event_items.ids,
              form_new_event: "",
+             music_name: "",
+             music_collab: old_mu.id.to_s,
              artist_name_collab: art_colla_tit,
              form_new_artist_collab_event_item: hvid6.event_items.first.id.to_s,
              duration: "01:03",
@@ -514,10 +520,11 @@ end
     assert_equal 2, evit2chk.musics.size
     assert_equal(*([hvid7.musics, hvid7.event_items.first.musics].map{|emo| emo.order(:id).uniq.map{|i| i.note}}+["sanity check..."]))
 
-    ## should fail because hvid6 does not have the new Music!  ####
+    ## should fail because hvid6, which shares the specified EventItem, does not have the new Music!  ####
     patch harami_vid_url(hvid7), params: { harami_vid: hvid7_prms_fail }
     assert_response :unprocessable_entity
 
+    ## should succeed now
     hvid7_prms = hvid7_prms_fail.merge({form_new_artist_collab_event_item: "0",
                                form_new_event: evit2chk.event.id.to_s,})
 
@@ -557,6 +564,7 @@ end
     assert_equal    2, hvid7.event_items.first.musics.distinct.count  # the EventItem still has 2 Musics
 
     assert_equal    2, hvid7.event_items.count, 'sanity check'  # this was tested above in asseret_difference
+    evit7 = EventItem.last
     assert_equal hvid6.event_items.first, hvid7.event_items.order(:id).first, 'sanity check'
     assert_equal hvid6.release_date, hvid7.release_date
     assert_equal hvid6.musics.uniq.size+1, hvid7.musics.uniq.size
@@ -566,18 +574,56 @@ end
     #refute_equal(*ary)
 
     ######
-    # You should not be able to add a Collab-Artist with an EventItem, which is associted with another Hvid that does not have this Music.
+    # You should not be able to add a Collab-Artist, either, with an EventItem, which is associted with another Hvid that does not have this Music.
     refute hvid6.musics.include?(mus_hvid7), 'sanity check'
     hvid7_prms_collab_fail = hvid7_prms_fail.merge({
-        #form_new_artist_collab_event_item: (evit2chk=hvid7.event_items.first).id.to_s,  # This was and is the reason of failure; hvid6 has this EventItem, yet hvid6 does not have the Music below (mu_tit) with which a Collab-Artist is attempted to be added.
+        "event_item_ids" => hvid7.event_items.ids.map(&:to_s),
+        #form_new_artist_collab_event_item: (evit2chk=hvid7.event_items.first).id.to_s,  # Identical to the one before. This was and is the reason of failure; hvid6 has this EventItem, yet hvid6 does not have the Music below (mu_tit) with which a Collab-Artist is attempted to be added.
         form_new_event: "",
-        music_name: mu_tit,  # existing Music
+        music_collab: mus_hvid7.id.to_s,  # existing Music
         artist_name: "",
         artist_name_collab: artists(:artist2).title,
       })
 
-    patch harami_vid_url(hvid7), params: { harami_vid: hvid7_prms_collab_fail }
-    assert_response :unprocessable_entity, 'should raise an error because hvid6 that shares the specified EvnetItem for new-collab is not associated with the music, but...'
+    assert_no_difference("Event.count + EventItem.count") do
+      patch harami_vid_url(hvid7), params: { harami_vid: hvid7_prms_collab_fail }
+      assert_response :unprocessable_entity, 'should raise an error because hvid6 that shares the specified EvnetItem for new-collab is not associated with the music, but...'
+    end
+
+
+    ######
+    # Tesf of adding a collab-Artist with the existing, but freshly created, EventItem - should succeed
+    hvid7_prms_add_collab_art = hvid7_prms_fail.merge({
+        "event_item_ids" => hvid7.event_items.ids.map(&:to_s),
+        form_new_artist_collab_event_item: evit7.id.to_s,  # Key
+        form_new_event: "",
+        music_collab: mus_hvid7.id.to_s,  # existing Music
+        artist_name: "",
+        artist_name_collab: (art2=artists(:artist2)).title,
+      })
+
+    assert_no_difference("Event.count + EventItem.count") do
+      assert_difference("ArtistMusicPlay.count", 1) do  # new collab-Artist
+        assert_no_difference("Music.count + Artist.count + Engage.count") do
+          assert_no_difference("HaramiVidMusicAssoc.count*10 + HaramiVidEventItemAssoc.count") do
+            assert_no_difference("Channel.count") do  # existing Channel is found
+              assert_no_difference("HaramiVid.count") do
+                patch harami_vid_url(hvid7), params: { harami_vid: hvid7_prms_add_collab_art }
+                assert_empty(s=(css_select("#error_explanation_list").to_s), s)
+                assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+              end
+            end
+          end
+        end
+      end
+    end
+
+    hvid7.reload
+    amp7 = ArtistMusicPlay.last
+    assert_equal art2,  amp7.artist
+    assert_equal mus_hvid7, amp7.music
+    assert_equal evit7, amp7.event_item
+    assert_includes hvid7.artist_collabs, art2
 
     ######
     # update hvid6 with an existing EventItem (of hvid7) with a Music that hvid7 has.
@@ -667,16 +713,7 @@ end
     ary = [hvid7, hvid6].map{|mo| mo.musics.uniq.sort{|a,b| a.id <=> b.id}}  # "order" does not work well...
     assert_equal(*ary)
 
-    ######
-    # update a new HaramiVid without with hvid7-EventItem
-
-    # preparation of hvid8
-    hvid8 = HaramiVid.create!(title: (tit8="HVid8-title1"), langcode: "ja", uri: "https://example.com/hvid8", note: (note8="note-hvid8"))
-    hvid8.musics << musics(:music1) 
-    hvid8.musics.reset
-    hvma8 = hvid8.harami_vid_music_assocs.first
-    hvma8.update!(timing: (timing8=888))
-    hvid8.harami_vid_music_assocs.reset
+    refute_includes hvid6.artist_collabs, art2  # which hvid7 includes.
 
     #flash_regex_assert(%r@<a [^>]*href="/channels/\d+[^>]*>new Channel.+is created@, msg=nil, type: nil)  # defined in test_helper.rb
   end # test "should create harami_vid" do

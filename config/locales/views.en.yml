@@ -221,7 +221,7 @@ en:
     table_head_ChannelType: Type
     table_head_collabs: "feat. Artists"
     table_head_title_music_timing: "[in second] Link to the original video at the timing"
-    field_Duration_in_sec: "Video length [sec]"
+    field_Duration_in_sec: "Video length [sec] or (hh:mm:ss)"
     release_date: "Release date"
     engage_how: Way of engagement
     field_uri_hint: "For HARAMIchan's Youtube videos, do not include extra query parameters, including the timing, in principle. You can specify the timings of musics below if desired."
@@ -230,6 +230,7 @@ en:
     form_artist_collabs: "featuring Artist"
     field_artist_collabs_w_harami: "Playing Artist with HARAMIchan"
     field_music_year: "Released year"
+    field_music_collab_hint: "Make sure to select an Event(Item) above for this."
     warn_collab_without_music: "Valid Music must be given when you add an Artist-to-collaborate."
     show:
       artist_collabs: "featuring Artists"
