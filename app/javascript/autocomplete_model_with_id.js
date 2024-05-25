@@ -23,7 +23,7 @@ export function autocompleteModelWithId(model, to_model=null, cssid=null){
 	}
 	var modelsel = "#" + (cssid ? cssid : $.escapeSelector(prefix+'_with_id'));
   $(modelsel).autocomplete ({
-    minLength: 2,
+    minLength: 1,
 		delay: 500,
     source: function (req, resp) {
       $.ajax({

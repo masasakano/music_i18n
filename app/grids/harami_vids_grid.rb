@@ -139,9 +139,9 @@ class HaramiVidsGrid < BaseGrid
 
   column(:updated_at, header: Proc.new{I18n.t('tables.updated_at')}, if: Proc.new{CURRENT_USER && CURRENT_USER.editor?})
   column(:created_at, header: Proc.new{I18n.t('tables.created_at')}, if: Proc.new{CURRENT_USER && CURRENT_USER.editor?})
-  column(:actions, html: true, mandatory: true, order: false, header: Proc.new{I18n.t("tables.actions", default: "Actions")}) do |record|
+  column(:actions, html: true, mandatory: true, order: false, header: "") do |record| # Proc.new{I18n.t("tables.actions", default: "Actions")}
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
-    ar = [link_to('Show', harami_vid_path(record), data: { turbolinks: false })]
+    ar = [link_to(I18n.t('layouts.Show'), harami_vid_path(record), data: { turbolinks: false })]
     if can? :update, record
       ar.push link_to('Edit', edit_harami_vid_path(record))
       #if can? :destroy, record

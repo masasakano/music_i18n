@@ -204,6 +204,12 @@ class Translation < ApplicationRecord
   # Default weight increment for a demoted Translation (+4)
   DEF_WEIGHT_INCREMENT_POSITIVE = DEF_WEIGHT_INCREMENT_NEGATIVE.abs.quo(2)
 
+  # Default mimimum number of characters for Regexp searches
+  DEF_MIN_REGEXP_N_CHARS = {
+    ja: 2,  # "猫" => %w(猫); "広瀬" => %w(広瀬香美 広瀬すず ...)
+    en: 3,  # "AI" => %w(AI); "ers" => ["Ray Peterson", "Proclaimers, The",  ...]
+  }.with_indifferent_access
+
   validates :title, uniqueness: { scope: [:alt_title, :ruby, :alt_ruby, :romaji, :alt_romaji, :langcode, :translatable_type, :translatable_id] }
   # NOTE: PostgreSQL does not validate the values when one of any values (whether
   #   existing or new) is null.  But Rails does.
@@ -945,6 +951,9 @@ class Translation < ApplicationRecord
   # Also, this deals with definite articles, i.e., both "The Beat" and "Beatles, Th" match
   # "Beatles, The".
   #
+  # If value is a String and if its length is less than min_ja_chars (for ja),
+  # only the exact match is returned.
+  #
   # @example Returning Translations containing "procla" excluding IDs of 5 or 8.
   #    Translation.select_partial_str(:titles, 'Procla', not_clause: [{id: [5, 8]}])
   #
@@ -952,28 +961,51 @@ class Translation < ApplicationRecord
   # @param value [String, Array] e.g., "The Beat" and "Beatles, Th" or Array of those candidates (OR-ed)
   #   Preprocessed with {ModuleCommon#preprocess_space_zenkaku}
   # @param ignore_case [Boolean] if true (Def), case-insensitive search
+  # @param min_ja_chars: [Integer] minimum number of characters to use regexp
+  # @param min_en_chars: [Integer] minimum number of characters to use regexp
   # @param scope [Relation, NilClass] scope (Relation) of {Translation} if any
-  # @param restkeys [Array] See {Translation.select_regex}
-  def self.select_partial_str(kwd, value, ignore_case: true, **restkeys)
+  # @param restkeys [Hash] See {Translation.select_regex}
+  def self.select_partial_str(kwd, value, ignore_case: true, min_ja_chars: DEF_MIN_REGEXP_N_CHARS[:ja], min_en_chars: DEF_MIN_REGEXP_N_CHARS[:en], **restkeys)
     str2re =
       if value.respond_to? :map
         "("+value.map{|ea_str|
           _convert_partial_str_to_re(ea_str)
         }.join("|")+")"
       else
-        _convert_partial_str_to_re(value)
+        value = preprocess_space_zenkaku(value, strip_all: true)  # spaces are agressively stripped and truncated
+        if _should_use_regexp?(value, min_ja_chars: min_ja_chars, min_en_chars: min_en_chars)
+          _convert_partial_str_to_re(value)
+        else
+          # Because String is so short, only the exact matches count.
+          if value.empty?
+            ""
+          else
+            '\A'+value+'\z'
+          end
+        end
       end
-    regex = Regexp.new(str2re, (ignore_case ? Regexp::IGNORECASE : 0))
+    regex = (str2re.empty? ? "" : Regexp.new(str2re, (ignore_case ? Regexp::IGNORECASE : 0)))
     #regex = Regexp.new(str2re, Regexp::EXTENDED | Regexp::MULTILINE | (ignore_case ? Regexp::IGNORECASE : 0))
     select_regex(kwd, regex, sql_regexp: true, space_sensitive: false, **restkeys)
   end
+
+  # Is it suitable for Regexp search?
+  #
+  # @param value [String] e.g., "The Beat" and "Beatles, Th"; assumed to be already stripped.
+  # @param min_ja_chars: [Integer] minimum number of characters to use regexp
+  # @param min_en_chars: [Integer] minimum number of characters to use regexp
+  # @return [String]
+  def self._should_use_regexp?(value, min_ja_chars: DEF_MIN_REGEXP_N_CHARS[:ja], min_en_chars: DEF_MIN_REGEXP_N_CHARS[:en])
+    value.size >= (contain_asian_char?(value) ? min_ja_chars : min_en_chars) # defined in ModuleCommon
+  end
+  private_class_method :_should_use_regexp?
 
   # Converts a String to be String ready to be converted to Regexp
   #
   # @param value [String] e.g., "The Beat" and "Beatles, Th"
   # @return [String]
   def self._convert_partial_str_to_re(value)
-    str2re = preprocess_space_zenkaku(value).gsub(/\s+/m, " ").strip
+    str2re = preprocess_space_zenkaku(value, strip_all: true)  # spaces are agressively stripped and truncated
     _, rootstr, article = definite_article_with_or_not_at_tail_regexp(str2re) # in ModuleCommon
 
     str2re = Regexp.quote(rootstr.gsub(/\s/, ""))#.gsub(/(?<!\\)((?:\\\\)*)\\ /, '\1 ')  # "\ " => " "

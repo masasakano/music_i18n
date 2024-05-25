@@ -115,6 +115,10 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_equal Sex['female'],  rela.first
     assert_equal 2,             (rela=Sex.select_partial_str(:titles, 'male')).size
     assert_equal Sex['female'],  rela.order(:iso5218).last
+    assert_equal 1,             (rela=Sex.select_partial_str(:titles, 'male', min_en_chars: 5)).size, 'exact match only'
+    assert_equal "M", Sex['male'].alt_title, 'test fixtures'
+    assert_equal 1,             (rela=Sex.select_partial_str(:titles, 'm')).size, 'exact match only'
+
     assert_equal 3,             (rela=Sex.select_partial_str(:titles, ['male', 'unknown'])).size
     assert_equal Sex['female'],  rela.order(:iso5218).last
   end

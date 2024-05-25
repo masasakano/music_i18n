@@ -115,7 +115,7 @@ class ArtistsGrid < BaseGrid
 
   column(:updated_at, header: Proc.new{I18n.t('tables.updated_at')}, if: Proc.new{CURRENT_USER && CURRENT_USER.editor?})
   column(:created_at, header: Proc.new{I18n.t('tables.created_at')}, if: Proc.new{CURRENT_USER && CURRENT_USER.editor?})
-  column(:actions, html: true, mandatory: true, header: Proc.new{I18n.t("tables.actions", default: "Actions")}) do |record|
+  column(:actions, html: true, mandatory: true, header: "") do |record|  # Proc.new{I18n.t("tables.actions", default: "Actions")}
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
     ar = [link_to(I18n.t('layouts.Show'), artist_path(record), data: { turbolinks: false })]
     if can? :update, record

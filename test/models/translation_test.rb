@@ -335,6 +335,13 @@ class TranslationTest < ActiveSupport::TestCase
     assert_equal 1, Translation.select_partial_str(:titles, [str], **defopts).count
     ary = [str, "The Pro"]
     assert_equal 4, Translation.select_partial_str(:titles, ary, **defopts).count, "Proclaimers + Madonna"
+
+    str = "  ai  "
+    assert_operator 1, :<, Translation.select_partial_str(:titles, str, min_en_chars: 0, **defopts).pluck(:title).uniq.size, "sanity check of fixtures #{Translation.select_partial_str(:titles, str, **defopts).pluck(:title).uniq.inspect}" # at least Ai (Ja, En), "Proclaimers, The" 
+    assert_operator 1, :<, Translation.select_partial_str(:titles, "Ａi", min_en_chars: 0, **defopts).pluck(:title).uniq.size, "sanity check of fixtures #{Translation.select_partial_str(:titles, str, **defopts).pluck(:title).uniq.inspect}" # at least Ai (Ja, En), "Proclaimers, The" 
+    assert_equal 1, Translation.select_partial_str(:titles, str, min_en_chars: 3, **defopts).pluck(:title).uniq.size, "exact match only"
+    assert_equal 1, Translation.select_partial_str(:titles, "Ａi", min_en_chars: 3, **defopts).pluck(:title).uniq.size, "exact match only"
+    assert_equal 1, Translation.select_partial_str(:titles, str, **defopts).pluck(:title).uniq.size, "Default: exact match only"
   end
 
   test "update_or_create_regex! (and _by!)" do

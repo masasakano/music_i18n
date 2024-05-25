@@ -29,7 +29,7 @@ class Artists::Merges::ArtistWithIdsControllerTest < ActionDispatch::Integration
     hs = @response.parsed_body
     assert_equal 'error', hs.keys[0]  # {"error":"Forbidden request to \"/en/random\""}
 
-    get artists_merges_artist_with_ids_path(@artist,  params: {keyword: "nn", path: "/en/artists/#{@artist.id}/merges/new"}, format: :json)
+    get artists_merges_artist_with_ids_path(@artist,  params: {keyword: "nno", path: "/en/artists/#{@artist.id}/merges/new"}, format: :json)
     assert_response :success
     ary = @response.parsed_body
     assert_equal Array, ary.class, 'ary='+ary.inspect
@@ -43,7 +43,7 @@ class Artists::Merges::ArtistWithIdsControllerTest < ActionDispatch::Integration
   #  sign_in @editor
     model = ChannelOwner.first
     %w(new edit edit/123).each do |path_fragment|
-      get artists_merges_artist_with_ids_path(model,  params: {keyword: "nn", path: "/en/channel_owners/#{path_fragment}"}, format: :json)  # "/en/" should not exist??
+      get artists_merges_artist_with_ids_path(model,  params: {keyword: "enn", path: "/en/channel_owners/#{path_fragment}"}, format: :json)  # "/en/" should not exist??
       assert_response :success, "Failed for path=#{path_fragment.inspect}"
       ary = @response.parsed_body
       assert_match(@re_lennon, ary.sort[0], "(path=#{path_fragment}): Lennon should match but ary="+ary.inspect)

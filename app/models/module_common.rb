@@ -356,15 +356,22 @@ module ModuleCommon
   #
   # @param inobj [Object] If not String, it is returned as it is.
   # @param article_to_tail [Boolean] If true, the definite article, if exists, is moved to the tail.
+  # @param sym_level: [Symbol] Option to pass to {#converted_ja_chars}
+  # @param mappings: [Hash] Option to pass to {#converted_ja_chars}
+  # @param strip_all: [Boolean] If true (Def: false), the head and tail are stripped and also multiple consecutive spaces in the middle are also (agressively) truncated.  This is probably desirable for a short title like a person's name but maybe unsuitable for a long text.
   # @param opts: [Hash] Options to pass to {SlimString.slim_string}. See above.
   # @return [Object] If String, {String#preprocessed} is set to true.
-  def preprocess_space_zenkaku(inobj, article_to_tail=false, sym_level: :standard, mappings: {}, **opts)
+  def preprocess_space_zenkaku(inobj, article_to_tail=false, sym_level: :standard, mappings: {}, strip_all: false, **opts)
     return inobj if !inobj.respond_to? :gsub
 
     newopts = COMMON_DEF_SLIM_OPTIONS.merge opts
     ret = zenkaku_to_ascii(SlimString.slim_string(inobj, **newopts), Z: 1)
     ret = converted_ja_chars(ret, sym_level: sym_level, mappings: mappings, zenkaku_to_ascii: false)
     ret = (article_to_tail ? definite_article_to_tail(ret) : ret)
+    if strip_all
+      ret.strip!
+      ret.gsub!(/\s+/m, " ")
+    end
     ret
   end
 

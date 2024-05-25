@@ -91,16 +91,16 @@ class MusicsGrid < BaseGrid
 
   column(:updated_at, header: Proc.new{I18n.t("tables.updated_at", default: "Updated at")}, if: Proc.new{CURRENT_USER && CURRENT_USER.editor?})
   column(:created_at, header: Proc.new{I18n.t("tables.created_at", default: "Created at")}, if: Proc.new{CURRENT_USER && CURRENT_USER.editor?})
-  column(:actions, html: true, mandatory: true, header: Proc.new{I18n.t("tables.actions", default: "Actions")}) do |record|
+  column(:actions, html: true, mandatory: true, header: "") do |record|  # Proc.new{I18n.t("tables.actions", default: "Actions")}
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
     ar = [link_to(I18n.t('layouts.Show'), music_path(record), data: { turbolinks: false })]
     if can? :update, record
       ar.push link_to('Edit', edit_music_path(record))
       if can?(:update, Musics::MergesController)
         ar.push link_to('Merge', musics_new_merges_path(record))
-        if can? :destroy, record
-          ar.push link_to('Destroy', music_path(record), method: :delete, data: { confirm: (t('are_you_sure')+" "+t("are_you_sure.merge")).html_safe })
-        end
+        #if can? :destroy, record
+        #  ar.push link_to('Destroy', music_path(record), method: :delete, data: { confirm: (t('are_you_sure')+" "+t("are_you_sure.merge")).html_safe })
+        #end
       end
     end
     ar.compact.join(' / ').html_safe
