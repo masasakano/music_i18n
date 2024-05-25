@@ -20,6 +20,7 @@ Rails.application.routes.draw do
     get ':id/demotes/update',  to: 'demotes#update',  as: :update_demotes  # => translations_update_demote_path(:id)  => /translations/:id/demotes/update
   end
   namespace :artists do
+    resources :ac_titles, only: [:index]
     get    ':id/merges/new',  to: 'merges#new',     as: :new_merges  # => artists_new_merge_path(:id)  => /artists/:id/merges/new
     get    ':id/merges/edit', to: 'merges#edit',    as: :edit_merges # => artists_edit_merge_path(:id) => /artists/:id/merges/edit
     match  ':id/merges',      to: 'merges#update',  as: :update_merges, via: [:put, :patch]
@@ -35,6 +36,7 @@ Rails.application.routes.draw do
   resources :static_pages
   resources :country_masters
   namespace :musics do
+    resources :ac_titles, only: [:index]  # changed from: get 'ac_titles/index'
     get    ':id/merges/new',  to: 'merges#new',     as: :new_merges  # => musics_new_merge_path(:id)  => /musics/:id/merges/new
     get    ':id/merges/edit', to: 'merges#edit',    as: :edit_merges # => musics_edit_merge_path(:id) => /musics/:id/merges/edit
     match  ':id/merges',      to: 'merges#update',  as: :update_merges, via: [:put, :patch]

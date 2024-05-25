@@ -150,6 +150,13 @@ table {
   }
 }
 
+form div.datagrid-filter input.string_filter {
+    min-width: 30em;
+}
+form div.datagrid-filter input#harami_vids_grid_title_ja, form div.datagrid-filter.filter input#harami_vids_grid_title_en {
+    width: 80em;
+}
+
 table.datagrid {
   background-color: #ff9999;
   thead tr th {

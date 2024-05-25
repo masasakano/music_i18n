@@ -6,7 +6,7 @@ class ApplicationController < ActionController::Base
 
   protect_from_forgery with: :exception
 
-  ## Uncomment this (as well as the method below) to investigate problems related to params()
+  ## Uncomment this (as well as the method at the bottom) to investigate problems related to params() and/or authenticate/Controller
   #before_action :debug_ctrl_print1
   before_action :authenticate_user!
 
@@ -753,6 +753,7 @@ class ApplicationController < ActionController::Base
 
     ## for DEBUG (corresponding to the commented calls above)
     #def debug_ctrl_print1
+    #  puts ("DEBUG(#{File.basename __FILE__})(1:Before-everything): "+params.inspect)
     #  logger.debug("DEBUG(#{File.basename __FILE__})(1:Before-everything): "+params.inspect)
     #end
     #def debug_ctrl_print2

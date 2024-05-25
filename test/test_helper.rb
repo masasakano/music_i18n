@@ -400,11 +400,24 @@ class ActiveSupport::TestCase
   #   <li class="ui-menu-item">
   #     <div id="ui-id-2" tabindex="-1" class="ui-menu-item-wrapper">OneCandidate</div>
   #   </li>
-  def fill_autocomplete(field, **options)
-    fill_in field, with: options[:with]
+  #
+  # @example
+  #   fill_autocomplete('Title', with: 'Madon', select: "Madonna")  # defined in test_helper.rb
+  #   fill_autocomplete('#musics_grid_title_ja', use_find: true, with: 'Peace a', select: "Give Peace")  # defined in test_helper.rb
+  #
+  # @param field [String] either Text or CSS
+  # @param use_find: [Boolean] if true (Def: false), page.find(field) is used to fill in.
+  def fill_autocomplete(field, use_find: false, **options)
+    if use_find
+      page.find(field).fill_in(with: options[:with])
+      prefix = ""
+    else
+      fill_in field, with: options[:with]
+      prefix = "#"
+    end
 
-    page.execute_script %Q{ $('##{field}').trigger('focus') }
-    page.execute_script %Q{ $('##{field}').trigger('keydown') }
+    page.execute_script %Q{ $('#{prefix+field}').trigger('focus') }
+    page.execute_script %Q{ $('#{prefix+field}').trigger('keydown') }
 
     selector = %Q{ul.ui-autocomplete li.ui-menu-item:contains("#{options[:select]}")}  # has to be double quotations (b/c of the sentence below)
     ## Or, more strictly,

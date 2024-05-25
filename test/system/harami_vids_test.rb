@@ -18,6 +18,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     @moderator_gen   = users(:user_moderator_general_ja)
     @sysadmin = users(:user_sysadmin)
     @h1_title = "Channels"
+    @h1_index = "HARAMIchan's Videos"
     @button_text = {
       create: "Create Channel",
       update: "Update Channel",
@@ -28,7 +29,35 @@ class HaramiVidsTest < ApplicationSystemTestCase
   teardown do
     # when controller is using cache it may be a good idea to reset it afterwards
     Rails.cache.clear
-    @h1_index = "HARAMIchan's Videos"
+  end
+
+  test "public visiting the index" do
+    visit harami_vids_url
+    assert_selector "h1", text: @h1_index
+    assert_no_selector "div#new_harami_vid_link"
+
+    css_table = "table.datagrid tbody tr"
+    size_be4 = find_all(css_table).size
+
+    fill_autocomplete('#harami_vids_grid_musics', use_find: true, with: 'Peace a', select: (tit="Give Peace"))  # defined in test_helper.rb
+    # NOTE:  "Title [ja+en] (partial-match)" does not work well.  => Syntax error, unrecognized expression: #Title [ja+en] (partial-match)
+
+    click_on "Apply"
+
+    assert_selector "h1", text: @h1_index
+    size_aft = find_all(css_table).size
+    assert_operator size_be4, :>, size_aft
+    assert_equal 1, size_aft
+
+    click_on "Reset"
+
+    assert_selector "h1", text: @h1_index
+    assert_equal size_be4, find_all(css_table).size  # size should be refreshed.
+
+    fill_autocomplete('#harami_vids_grid_artists', use_find: true, with: 'nnon', select: (tit="John Lennon"))  # defined in test_helper.rb
+    click_on "Apply"
+
+    assert_equal 1, find_all(css_table).size
   end
 
   test "visiting the index and then creating one" do
@@ -42,7 +71,9 @@ class HaramiVidsTest < ApplicationSystemTestCase
     visit harami_vids_url
     assert_selector "h1", text: @h1_index
 
-    click_on "Create a new HaramiVid"
+    exp = "Create a new HaramiVid"
+    assert_selector "div#new_harami_vid_link", text: exp
+    click_on exp
 
     vid_prms = {}
     page_find_sys(:trans_new, :langcode_radio, model: HaramiVid).choose('English')  # defined in helpers/test_system_helper
@@ -75,7 +106,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     fill_in "Note", with: vid_prms[:note]
 
     fill_autocomplete('Associated Artist name', with: 'Lennon', select: (vid_prms[:engage_artist_text]="John Lennon"))  # defined in test_helper.rb
-    find_field("Way of engagements").select(vid_prms[:engage_how_text]="Singer (Cover)")
+    find_field("Way of engagement").select(vid_prms[:engage_how_text]="Singer (Cover)")
     fill_in "Year of engagement", with: (vid_prms[:engage_year]=2009)
     fill_in "Contribution",       with: (vid_prms[:engage_contribution]=0.5)
 
@@ -88,6 +119,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     vid_prms[:timing] = 370
     fill_in "Timing", with: vid_prms[:timing]
 
+###########  This is now disabled in new...  Modify the system test!!
     fill_autocomplete('featuring Artist', with: 'AI', select: 'AI [')  # defined in test_helper.rb
     find_field("(Music) Instrument").select "Vocal"
     find_field("How they collaborate").select "Chorus"
