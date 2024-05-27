@@ -188,6 +188,10 @@ class HaramiVidsController < ApplicationController
     # See {#set_event_event_items} for @event_event_items.
     # @ref_harami_vid is the ID of the reference HaramiVid given (which may be passed to +new+ and then +create+).
     #
+    # @note
+    #   GET parameter +reference_harami_vid_id+ is passed as the root-level parameter in params,
+    #   NOT inside +harami_vids: {}+
+    #
     # @return [void]
     def _set_reference_harami_vid_id
       @original_event_items = @harami_vid.event_items.to_a  # to preserve the originally associated EventItems

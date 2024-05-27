@@ -83,6 +83,16 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
     sign_in @editor_harami
     get new_harami_vid_url
     assert_response :success
+    sign_out @editor_harami
+
+    sign_in @moderator_harami
+
+    hv1 = harami_vids(:one)
+    assert_equal 1, (n_evit1=hv1.event_items.uniq.size), 'sanity check (but it may change in future - what matter is the relation with the one "after").'
+    get new_harami_vid_url, params: { "reference_harami_vid_id" => hv1.id.to_s }  # In GET, it is at the top level and NOT under harami_vids: {}
+    assert_response :success
+    assert_equal n_evit1, css_select('fieldset.harami_vid_event_items input[type="checkbox"]').size, "All EventItems loaded from GET reference_harami_vid_id params should be listed, but..."
+    assert_equal n_evit1, css_select('fieldset.harami_vid_event_items input[type="checkbox"][checked="checked"]').size
   end
 
   test "should create harami_vid" do
@@ -716,6 +726,20 @@ end
 
     refute_includes hvid6.artist_collabs, art2  # which hvid7 includes.
 
+    ## check edit screen with GET params reference_harami_vid_id
+
+    assert_equal 1, (n_evit5=hvid5.event_items.uniq.size), 'sanity check (but it may change in future - what matter is the relation with the one "after").'
+    assert_equal 1, (n_evit6=hvid6.event_items.uniq.size), 'sanity check (but it may change in future - what matter is the relation with the one "after").'
+    refute_equal hvid5.event_items.first, hvid6.event_items.first, 'sanity check - no duplication'
+    get edit_harami_vid_url(hvid5), params: { "reference_harami_vid_id" => hvid6.id.to_s }  # In GET, it is at the top level and NOT under harami_vids: {}
+    assert_response :success
+    exp = n_evit5 + n_evit6
+    assert_equal exp, css_select('fieldset.harami_vid_event_items input[type="checkbox"]').size
+    assert_equal exp, css_select('fieldset.harami_vid_event_items input[type="checkbox"][checked="checked"]').size
+
+    ## TODO
+    # Check out what happen when duplication between the existing EventItems and GET-specified reference_harami_vid_id 
+    
     #flash_regex_assert(%r@<a [^>]*href="/channels/\d+[^>]*>new Channel.+is created@, msg=nil, type: nil)  # defined in test_helper.rb
   end # test "should create harami_vid" do
 

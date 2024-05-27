@@ -37,7 +37,7 @@
         / <%= event_item.harami1129s.distinct.count %>
       <% end %>
     </dd>
-  <dt>Note:</dt>
+  <dt><%= t("tables.note").capitalize %>:</dt>
     <dd><%= event_item.note %></dd>
   <% if canedit %>
   <dt>updated_at:</dt>

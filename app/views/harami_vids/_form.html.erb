@@ -14,6 +14,9 @@
 
 <div id="form_main">
 
+<% given_ref_id = harami_vid.reference_harami_vid_id %>
+<% given_ref = (given_ref_id.present? ? HaramiVid.find(given_ref_id) : nil) %>
+
 <%= simple_form_for(harami_vid) do |f| %>
  <section id="sec_primary_input">
   <% if harami_vid.new_record? %>
@@ -43,8 +46,6 @@
         label: t(:ChannelPlatform) %>  <%# NOTE: Here gives no hint to prompt a user to create a new one (like ChannelType), because HaramiVid should not need so many ChannelPlatform - appropriate moderators can create one by directly jumping to it anyway without being prompted here. %>
     </div>
 
-   <% given_ref_id = harami_vid.reference_harami_vid_id %>
-   <% given_ref = (given_ref_id.present? ? HaramiVid.find(given_ref_id) : nil) %>
 <% if harami_vid.new_record? && !(given_ref && given_ref.event_items.exists?) %> <%# For update, the following is never displayed; for create, it usually is unless a reference HaramiVid is specified and it has an EventItem(s) %>
   <%# For update, the same field appears immediately above a new Artist-collab. The reasons are (1) for a new record, EventItem is a must (unless a reference is given), (2) for update, a new EventItem is not often wanted unless the editor wants to associate a Music and maybe a new Artist-collab. %>
     <%= f.input :form_new_event,
@@ -78,24 +79,34 @@
 
     <%= f.input :reference_harami_vid_id, as: :hidden %>
 
-   <% if !harami_vid.new_record? || (given_ref && given_ref.event_items.exists?) %> <%# For update, the following is always displayed; for create, it is only if reference HaramiVid is specified and it has an EventItem(s) %>
+  <% display_new_event_item_form = true %>
+  <% if !harami_vid.new_record? || (given_ref && given_ref.event_items.exists?) %> <%# For update, the following is always displayed; for create, it is only if reference HaramiVid is specified and it has an EventItem(s) %>
+    <% display_new_event_item_form = false %>
     <div class="update_event_item_association_field">
     <h4>Associated Events (EventItems)</h4>
 
-    <% collec = (given_ref || harami_vid).event_items.order(:event_id) %>
+    <% collec = harami_vid.event_items
+       collec_is_empty = !harami_vid.event_items.exists?
+       if given_ref
+         collec2 = given_ref.event_items
+         collec  = (collec_is_empty ? collec2.distinct : collec.or(collec2))
+       end
+       collec = collec.order(:event_id) if !given_ref || collec_is_empty %> <%# if collec is the sum of two, the order statement would be a lot more complicated - so we do not bother. %>
+     <%# In rare cases where there are duplications between the existing and specified EventItems, they will be shown as "distinct" is (so far) not performed here. %>
     <% if collec.exists? %>
-  <%= f.association :event_items, collection: collec, label_method: :machine_title, value_method: :id,
+     <%= f.association :event_items, collection: collec, label_method: :machine_title, value_method: :id,
       include_blank: false,  as: :check_boxes, label: "Associated EventItems",
       item_wrapper_class: 'inline', input_html: { checked: true } %>  <%# Not shown at all if there are no EventItems associatined to harami_vid; they all are forcibly checked in default, even after returning to the edit screen.  %>
   <%# cf. https://github.com/heartcombo/simple_form#collection-check-boxes %>
-  <%= render partial: "event_event_items" %>
+     <%= render partial: "event_event_items" %>
     <% else %>
+      <% display_new_event_item_form = true %>
       Strangely, no existing items are defined. Please register a new Event(Item) below.
     <% end %>
     </div>
-   <% end %> <!-- if !harami_vid.new_record? || given_ref -->
+  <% end %> <!-- if !harami_vid.new_record? || given_ref -->
 
-    <% if !harami_vid.new_record? %>
+    <% if !harami_vid.new_record? || display_new_event_item_form %>
     <h4 title="以下で(追加)定義する楽曲および/もしくは追加コラボアーティストに対応したEvent(Item)">Event(Item) for new Collab-Artist and/or Music</h4>
       <%= f.input :form_new_artist_collab_event_item, as: :radio_buttons,
         collection: (co=collection_event_items_for_new_artist_collab), label_method: :second, value_method: :first,
