@@ -185,7 +185,7 @@ module ModuleCommon
         sprintf('%4d-%s-%s ', year, *(_arstr_sprintf_int([month, day]))) + ret_h  # eg, "1999-??-?? ??:??"
       else
         d2 = (day ? day : 28)
-        ret_d = I18n.l(Date.new(DEF_EVENT_END_YEAR,month,d2), format: :long, locale: "en").sub(/\b#{DEF_EVENT_END_YEAR}\b/, '????')
+        ret_d = I18n.l(Date.new(DEF_EVENT_END_YEAR,month,d2), format: :long, locale: "en")
         ret_d.sub!(/\b28\b/, '??') if !day
         ret_d + " — " + ret_h  # eg. January 01, 0001 — 04:??
       end

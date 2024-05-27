@@ -77,8 +77,8 @@ en:
     create_model: "Create a new %{model}"
     do_create_lower: "create it"
     i_do_create_it_lower: "create it"
-    deassociate_this: "Deassociate this"
-    deassociate_this: "Deassociate this from %{model}"
+    dissociate_this: "Dissociate this"
+    dissociate_this: "Dissociate from %{this_model}"
     destroy_button: 'Commit Destroy'
     destroy_link: 'Destroy this'
     destroy_short: 'Destroy'
@@ -210,6 +210,7 @@ en:
   event_items:
     playing_artists: playing artists
     Playing_artists_for_this: Playing artists in this EventItem
+    dissociate_hint: "Removes the collab/playing information from this EventItem. The information is removed from all the other videos of this EventItem."
 
   harami_vids:
     table_filter_collabs_only: "Videos with Collab-Artists only?"
@@ -239,7 +240,7 @@ en:
     edit:
       artist_collabs_title: "collaborating Artists"
       identical_amp: "An identical combination (Music, Instrument, etc) for an existing association for the collab-Artist is specified. You can register a new combination but not a duplication."
-      deassociate_music: Deassociate Music
+      dissociate_music: Dissociate Music
 
   musics:
     show:

@@ -237,7 +237,7 @@ class HaramiVidsController < ApplicationController
           result = yield
           rollback_clear_flash if !result  # no more processing is needed anyway.
           raise "Something goes very wrong." if @harami_vid.new_record?  # @harami_vid must have been saved (if failed in saving, this point should not be reached.)
-          [:update_event_item_assocs,# @assocs[:deassociated_event_items]  # for update only
+          [:update_event_item_assocs,# @assocs[:dissociated_event_items]  # for update only
            :make_harami_vid_music_assoc_from_events, # @assocs[:harami_vid_music_assocs]  # plural
            :find_or_create_music,    # @assocs[:music]
            :find_or_create_harami_vid_music_assoc,   # @assocs[:harami_vid_music_assoc]   # singular
@@ -348,7 +348,7 @@ class HaramiVidsController < ApplicationController
     #
     # Usually for update only, unless +reference_harami_vid_id+ is specified with GET.
     #
-    # Sets @assocs[:deassociated_event_items] and @assocs[:new_associated_event_items],
+    # Sets @assocs[:dissociated_event_items] and @assocs[:new_associated_event_items],
     # each element of which is an EventItem.  The latter is valid only when +reference_harami_vid_id+ is set.
     #
     # Basically, all the EventItems that are *NOT* specified in :event_item_ids
@@ -356,7 +356,7 @@ class HaramiVidsController < ApplicationController
     #
     # See {#set_event_event_items} and {#_set_reference_harami_vid_id} about @event_event_items and @original_event_items
     def update_event_item_assocs
-      @assocs[:deassociated_event_items] = nil
+      @assocs[:dissociated_event_items] = nil
       return if !@prms_all[:event_item_ids]
       # NOTE: On update, the above should not be nil in principle EXCEPT for the case
       # where old HaramiVids that have no EventItem associated. In such a case, View UI
@@ -376,7 +376,7 @@ class HaramiVidsController < ApplicationController
       # When it is empty, @prms_all[:event_item_ids] should be non-existent and so
       # the following should not be executed.
 
-      @assocs[:deassociated_event_items] = []
+      @assocs[:dissociated_event_items] = []
       @assocs[:new_associated_event_items] = []
 
       leave_ids = @prms_all[:event_item_ids].select{|i| i.present?}.map(&:to_i)  # removes an empty one which is usually added by simple_form
@@ -397,7 +397,7 @@ class HaramiVidsController < ApplicationController
             @assocs[:new_associated_event_items] << eeit
             next
           end
-          @assocs[:deassociated_event_items].push eeit
+          @assocs[:dissociated_event_items].push eeit
           next if @harami_vid.event_items.destroy(eeit)
           msg_core = sprintf("Event=%s, EventItem=%s",
                              eeit.event.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either).inspect,
@@ -440,7 +440,7 @@ begin  # for DEBUGging
       @harami_vid.reload  # This should have been saved alreaedy.
       @event_event_items.each_value do |ar_event_items|  # The key is ID for Event (identical to eeit.event.id), value is EventItem # should be set from update_event_item_assocs()
         ar_event_items.each do |eeit|
-          next if @assocs[:deassociated_event_items].include? eeit
+          next if @assocs[:dissociated_event_items].include? eeit
           eeit.musics.each do |ea_mu|
             next if @harami_vid.musics.include? ea_mu
             flash[:warning] ||= []

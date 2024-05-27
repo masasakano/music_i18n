@@ -77,8 +77,8 @@ ja:
     create_model: "%{model}新規作成"
     do_create_lower: "新規作成して"
     i_do_create_it_lower: "新規作成する"
-    deassociate_this: "この連携を解除する"
-    deassociate_this_from: "%{model}との連携を外す"
+    dissociate_this: "この連携を解除する"
+    dissociate_this_from: "%{this_model}との連携を外す"
     destroy_button: '削除実行'
     destroy_link: '削除する'
     destroy_short: '削除'
@@ -225,6 +225,7 @@ ja:
   event_items:
     playing_artists: 演奏するアーティスト
     Playing_artists_for_this: このEventItemで演奏するアーティスト
+    dissociate_hint: "イベント自体からのコラボ情報の削除(このイベントの他の動画からも連携情報が除かれます!)"
 
   harami_vids:
     table_filter_collabs_only: "コラボ動画のみ?"
@@ -254,7 +255,7 @@ ja:
     edit:
       artist_collabs_title: "コラボしているアーティスト"
       identical_amp: "コラボアーティストとの関係情報(楽曲、楽器など)につき、既存のものの一つと同一の情報は登録できません。少なくともどれか一つは異なる必要があります。"
-      deassociate_music: "登録音楽を動画から外す"
+      dissociate_music: "登録音楽を動画から外す"
 
   musics:
     show:

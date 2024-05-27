@@ -24,7 +24,7 @@
       <th><%= t(:Artist) %></th>
       <th><%= t(:Music) %></th>
       <th><%= t(:PlayRole) %></th>
-      <th><%= t(:Instrument) %></th>
+      <th><%= t(:Instrument_pl_short) %></th>
      <% if can? :edit, EventItem %>
       <th><%= t("attr.contribution") %></th>
       <th><%= t("attr.cover_ratio") %></th>
@@ -57,7 +57,7 @@
      <% if can? :destroy, ArtistMusicPlay %>
       <td>
         <% if can? :destroy, amp %>
-          <%= link_to t('layouts.deassociate_this'), amp, method: :delete, data: { confirm: t('are_you_sure') }, title: "イベント自体からのコラボ情報の削除(このイベントの他の動画からも連携情報が除かれます!)" %>
+          <%= link_to t('layouts.dissociate_this', this_model: t('adjective.this')+t('EventItem')), amp, method: :delete, data: { confirm: t('are_you_sure') }, title: t('event_items.dissociate_hint') %>
         <% end %>
       </td>
      <% end %>

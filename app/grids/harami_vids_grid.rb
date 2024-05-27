@@ -63,8 +63,8 @@ class HaramiVidsGrid < BaseGrid
   column(:release_date, mandatory: true, header: Proc.new{I18n.t('tables.release_date')})
   #date_column(:release_date, mandatory: true)  # => ERROR...
 
-  column(:duration, range: true, class: ["align-cr"], header: Proc.new{I18n.t('tables.duration')}) do |record| # float in DB # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
-    (i=record.duration) ? i.round : ""
+  column(:duration, range: true, order: :duration, class: ["align-cr"], header: Proc.new{I18n.t('tables.duration_none')}) do |record| # float in DB # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
+    sec2hms_or_ms(record.duration, return_nil: true)  # in application_helper.rb
   end
   column(:n_musics, class: ["align-cr"], header: Proc.new{I18n.t('datagrid.form.n_musics_general')}) do |record|
     record.musics.uniq.count

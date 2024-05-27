@@ -72,7 +72,7 @@
         <td><%= event.duration_hour %></td>
         <td><%= event.place ? event.txt_place_pref_ctry : "" %></td>
         <td><%= event.note %></td>
-        <td><%= link_to t("events.index.show"), event %></td>
+        <td><%= link_to t("event_groups.index.show"), event %></td>
         <% if can? :update, event  %>
           <td><%= link_to 'Edit', edit_event_path(event) %></td>
         <% end %>
