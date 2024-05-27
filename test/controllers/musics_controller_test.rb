@@ -10,7 +10,6 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     @editor = roles(:general_ja_editor).users.first  # Editor can manage.
     @moderator_all   = users(:user_moderator_all)    # Allmighty Moderator can manage.
     @f_artist_name = "artist_name"
-    @validator = W3CValidators::NuValidator.new
   end
 
   teardown do
@@ -24,6 +23,9 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     get musics_url
     assert_response :success
     #assert_not (200...299).include?(response.code.to_i)  # maybe :redirect or 403 forbidden
+    if is_env_set_positive?('TEST_STRICT')  # defined in application_helper.rb
+      w3c_validate "Music index"  # defined in test_helper.rb (see for debugging help)
+    end  # only if TEST_STRICT, because of invalid HTML for datagrid filter for Range
   end
 
   test "should create" do
@@ -129,6 +131,7 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
 
     get new_music_url
     assert_response :success
+    w3c_validate "Music new"  # defined in test_helper.rb (see for debugging help)
   end
 
   test "should show music" do

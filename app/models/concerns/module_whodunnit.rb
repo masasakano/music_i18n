@@ -26,7 +26,7 @@ module ModuleWhodunnit
   # Skipped if {Translation.skip_set_user_callback} is true.
   # non-nil weight is always set at create.
   def set_create_user
-    #puts "DEBUG122(set_create_user): title=#{title} Translation.whodunnit=#{Translation.whodunnit.inspect} callback=#{self.class.skip_set_user_callback.inspect}" if ENV['TEST_STRICT']  ## NOTE: for model tests, current_user sometimes exists(!!), which should not be(!) and is Rails-7's bug.
+    #puts "DEBUG122(set_create_user): title=#{title} Translation.whodunnit=#{Translation.whodunnit.inspect} callback=#{self.class.skip_set_user_callback.inspect}" if is_env_set_positive?('TEST_STRICT')  ## NOTE: for model tests, current_user sometimes exists(!!), which should not be(!) and is Rails-7's bug.; is_env_set_positive?() defined in application_helper.rb
     klass = self.class
     if klass.respond_to?(:skip_set_user_callback) && klass.skip_set_user_callback
       self.weight ||= (klass.const_defined?("DEF_WEIGHT") ? klass::DEF_WEIGHT : Float::INFINITY) if self.respond_to?(:weight) 

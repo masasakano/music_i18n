@@ -8,7 +8,6 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @artist = artists(:artist1)
     @editor = roles(:general_ja_editor).users.first  # Editor can manage.
-    @validator = W3CValidators::NuValidator.new
   end
 
   teardown do
@@ -21,6 +20,10 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     get artists_url
     assert_response :success
     #assert_not (200...299).include?(response.code.to_i)  # maybe :redirect or 403 forbidden
+
+    if is_env_set_positive?('TEST_STRICT')  # defined in application_helper.rb
+      w3c_validate "Artist index"  # defined in test_helper.rb (see for debugging help)
+    end  # only if TEST_STRICT, because of invalid HTML for datagrid filter for Range
   end
 
   test "should show artist" do

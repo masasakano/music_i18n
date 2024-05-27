@@ -28,7 +28,6 @@ class EventItemsControllerTest < ActionDispatch::IntegrationTest
       "duration_minute"=>"20", "duration_minute_err"=>"3.5", "weight"=>"", "event_ratio"=>"0.4",
       "note"=>"",
     }.with_indifferent_access
-    @validator = W3CValidators::NuValidator.new
     # INFO -- :   Parameters: {"authenticity_token"=>"[FILTERED]", "event_item"=>{"machine_title"=>"", "event_id"=>"10", "start_time(1i)"=>"2019", "start_time(2i)"=>"1", "start_time(3i)"=>"1", "start_time(4i)"=>"12", "start_time(5i)"=>"00", "form_start_err"=>"69959976.0", "form_start_err_unit"=>"hour", "duration_minute"=>"", "duration_minute_err"=>"", "place.prefecture_id.country_id"=>"0", "place.prefecture_id"=>"", "place"=>"", "weight"=>"", "event_ratio"=>"", "note"=>""}, "commit"=>"Submit", "locale"=>"en"}
   end
 

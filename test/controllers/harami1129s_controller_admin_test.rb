@@ -40,6 +40,9 @@ class Harami1129sControllerAdminTest < ActionDispatch::IntegrationTest
       #print "DEBUG:logged_in?=#{user_signed_in?}; current_user="; p current_user  # => undefined method `user_signed_in?' 'current_user'
       get harami1129s_url
       assert_response :success
+      if is_env_set_positive?('TEST_STRICT')  # defined in application_helper.rb
+        w3c_validate "Harami1129 index"  # defined in test_helper.rb (see for debugging help)
+      end  # only if TEST_STRICT, because of invalid HTML for datagrid filter for Range
       get sexes_url
       assert_response :success
     ensure

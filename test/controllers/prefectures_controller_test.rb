@@ -12,7 +12,6 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
     @moderator = roles(:general_ja_moderator).users.first  # (General) Moderator can manage some of them.
     @editor = roles(:general_ja_editor).users.first  # (General) Editor can manage some of them.
     @syshelper = users(:user_syshelper) #User.roots.first   # an admin can manage.
-    @validator = W3CValidators::NuValidator.new
   end
 
   teardown do

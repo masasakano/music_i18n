@@ -7,7 +7,6 @@ class MusicsIntegrationTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
   setup do
-    @validator = W3CValidators::NuValidator.new
   end
 
   # called after every single test

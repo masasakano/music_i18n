@@ -16,7 +16,6 @@ class ChannelPlatformsControllerTest < ActionDispatch::IntegrationTest
     @translator      = users(:user_translator)            # Translator can read but not create/delete.
     @moderator_ja    = users(:user_moderator_general_ja)  # 
     @editor_ja       = users(:user_editor_general_ja)     # Same as Harami-editor
-    #@validator = W3CValidators::NuValidator.new
     @hs_create_lang = {
       "langcode"=>"ja",
       "title"=>"The Tｅst7",

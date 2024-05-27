@@ -15,7 +15,6 @@ class InstrumentsControllerTest < ActionDispatch::IntegrationTest
     @trans_moderator = users(:user_moderator_translation) # Translator cannot create/delete but edit (maybe!).
     @translator      = users(:user_translator)            # Translator can read but not create/delete.
     @moderator_ja    = users(:user_moderator_general_ja)  # Same as Translator.
-    #@validator = W3CValidators::NuValidator.new
     @hs_create_lang = {
       "langcode"=>"ja",
       "title"=>"The Tｅst7",

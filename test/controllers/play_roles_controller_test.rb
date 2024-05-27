@@ -14,7 +14,6 @@ class PlayRolesControllerTest < ActionDispatch::IntegrationTest
     @editor_harami   = users(:user_editor)                # Harami Editor can manage.
     @trans_moderator = users(:user_translator)  # Translator cannot create/delete but edit (maybe!).
     @moderator_ja    = users(:user_moderator_general_ja)  # Same as Translator.
-    #@validator = W3CValidators::NuValidator.new
   end
 
   teardown do

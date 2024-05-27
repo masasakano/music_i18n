@@ -1,13 +1,11 @@
 # coding: utf-8
 require 'test_helper'
-require 'w3c_validators'
 
 class Musics::UploadMusicCsvsControllerTest < ActionDispatch::IntegrationTest
   # add this
   include Devise::Test::IntegrationHelpers
 
   setup do
-    @validator = W3CValidators::NuValidator.new
     @editor = roles(:general_ja_editor).users.first  # Editor can manage.
   end
 

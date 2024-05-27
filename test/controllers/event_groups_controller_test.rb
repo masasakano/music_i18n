@@ -20,7 +20,6 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
       "start_date_err"=>"", "end_date_err"=>"", 
       "note"=>""
     }
-    @validator = W3CValidators::NuValidator.new
   end
 
   teardown do

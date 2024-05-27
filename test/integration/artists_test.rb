@@ -9,7 +9,6 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
 
   setup do
     @artist_ai = artists(:artist_ai)
-    @validator = W3CValidators::NuValidator.new
   end
 
   # called after every single test

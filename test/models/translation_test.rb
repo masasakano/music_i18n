@@ -124,7 +124,7 @@ class TranslationTest < ActiveSupport::TestCase
       Translation.create!(title: alt_tit, alt_title: tit, romaji: "different", **hsbase)
     }
 
-#if is_env_set_positive?('TEST_STRICT')
+#if is_env_set_positive?('TEST_STRICT')  # defined in application_helper.rb
     # nil and empty string "" should be treated as identical.
     trans1.update!(alt_title: nil) 
     assert_raises(ActiveRecord::RecordInvalid, "Reverse Translation pair should fail, but..."){

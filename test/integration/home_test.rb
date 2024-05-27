@@ -1,6 +1,5 @@
 # coding: utf-8
 require "test_helper"
-require 'w3c_validators'
 
 #Rails.application.config.middleware.insert_before Warden::Manager, ActionDispatch::Cookies
 #Rails.application.config.middleware.insert_before Warden::Manager, ActionDispatch::Session::CookieStore
@@ -9,7 +8,6 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
   setup do
-    @validator = W3CValidators::NuValidator.new
   end
 
   # called after every single test

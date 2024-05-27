@@ -4,6 +4,9 @@ require 'test_helper'
 class HomeControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
+  setup do
+  end
+
   teardown do
     Rails.cache.clear
   end
@@ -13,6 +16,7 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
   test "should get index" do
     get home_index_url
     assert_response :success
+    w3c_validate "Home index"  # defined in test_helper.rb (see for debugging help)
 
     # this is not perfect because sometimes both JA and EN can be null because fixtures are not perfectly set...
     # See the index test in harami_vids_controller_test.rb for a better one, where fields with both JA and EN blank are excluded.

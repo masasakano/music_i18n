@@ -28,9 +28,9 @@ class SeedsPlayRoleTest < ActiveSupport::TestCase
     assert_operator(n_changed, :<=, n_seeds*4)
     assert_equal n_seeds, PlayRole.count
 
-    assert_match(/unknown/i, PlayRole.unknown.title(langcode: :en), "(NOTE) For some reason, this fails only sometimes...")
+    assert_match(/unknown/i, PlayRole.unknown.title(langcode: :en), "(NOTE) For some reason, this fails only sometimes... PlayRole.unknown==#{PlayRole.unknown.inspect}")
     assert PlayRole.unknown.unknown?
-    assert PlayRole[/unknown/i].unknown?
+    assert PlayRole[/unknown/i].unknown?, "PlayRole[/unknown/i]=#{PlayRole[/unknown/i].inspect}"
     #p PlayRole.all
   end
 

@@ -39,7 +39,6 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
       "duration_hour"=>(@event.duration_hour || "").to_s, "weight"=>(@event.weight || "").to_s,
       "note"=>""
     }
-    @validator = W3CValidators::NuValidator.new
   end
 
   teardown do
@@ -52,6 +51,7 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
     get events_url
     assert_response :success
     assert_match(/\bPlace\b/, css_select("table").text)
+#puts response.body
     w3c_validate "Event index"  # defined in test_helper.rb (see for debugging help)
 
     #css_events = "table#events_index_table tbody tr"

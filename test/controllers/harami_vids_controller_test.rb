@@ -17,8 +17,6 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
     @moderator_ja    = users(:user_moderator_general_ja)  # 
     @editor_ja       = users(:user_editor_general_ja)     # Same as Harami-editor
 
-    @validator = W3CValidators::NuValidator.new
-
     @def_place = places(:tocho)
     @def_update_params = {  # NOTE: Identical to @def_create_params except for those unique to create!
       "uri"=>"https://youtu.be/InitialUri", "duration"=>"56",
@@ -64,6 +62,9 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success, "Should be open to public, but..."
 
     assert css_select("table.datagrid.harami_vids_grid tbody tr").any?{|esel| esel.css('td.title_en')[0].text.blank? && !esel.css('td.title_ja')[0].text.blank?}, "Some EN titles should be blank (where JA titles are NOT blank), but..."
+    if is_env_set_positive?('TEST_STRICT')  # defined in application_helper.rb
+      w3c_validate "HaramiVid index"  # defined in test_helper.rb (see for debugging help)
+    end  # only if TEST_STRICT, because of invalid HTML for datagrid filter for Range
   end
 
   test "should get new" do

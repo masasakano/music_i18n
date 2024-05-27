@@ -24,8 +24,18 @@ This system is the framework to deal with this type of complex and dynamic cases
 #### Environmental variables for testing ###
 
 * `TEST_STRICT` : if "1", more strict tests are performed.
-* `SKIP_W3C_VALIDATE` : (*recommended*) if "1", W3C validations in testing, which connects to the W3C website, are skipped.
+* `SKIP_W3C_VALIDATE` : if "1", W3C validations in testing, which connects to the W3C website, are skipped.
+* `USE_W3C_SERVER_VALIDATOR` : (*recommended not to be set*) if "1", this uses the original W3C server for W3C validation.
 * `URI_HARAMI1129_LOCALTEST` : (*recommended*) the URI to access instead of `URI_HARAMI1129` for testing, e.g., `test/controllers/harami1129s/data/harami1129_sample.html`
+
+##### Preparation for testing #####
+
+Unless `SKIP_W3C_VALIDATE` is "1", run your (W3C) VNU server in a separate terminal with (in the case of macOS M1/2/3):
+
+```bash
+  java -Dnu.validator.servlet.bind-address=127.0.0.1 -cp $HOMEBREW_CELLAR/vnu/`vnu --version`/libexec/vnu.jar \
+    nu.validator.servlet.Main 8888
+```
 
 ### Database ###
 

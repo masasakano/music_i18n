@@ -45,7 +45,7 @@
         <td><%= model.weight %></td>
         <td><%= model.place ? h(model.txt_place_pref_ctry) : "" %></td>
          <% eg = model.event_group %>
-         <% eg_tit = (eg ? eg.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) : "") %></td>
+         <% eg_tit = (eg ? eg.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) : "") %>
         <td><%= can_read_eg ? link_to(eg_tit, eg) : eg_tit %></td>
         <% if can? :read, EventItem %>
          <% items = model.event_items.order(:weight, event_ratio: :desc) %>
