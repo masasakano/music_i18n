@@ -96,6 +96,7 @@ module ModuleGuessPlace
         case matched
         when "パリ"
           cand_hash[:country] = "FRA"
+          cand_hash[:prefecture] = /#{Regexp.quote matched}/
         when "ロンドン"
           cand_hash[:country] = "GBR"
           cand_hash[:prefecture] = /#{Regexp.quote matched}/

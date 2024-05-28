@@ -188,9 +188,13 @@ class EventTest < ActiveSupport::TestCase
 
     evgr_uk2024 = event_groups(:evgr_uk2024)
     pref_london = prefectures(:greater_london)
-    evt = Event.default(:Harami1129, save_event: true, ref_title: "ロンドンのパブで演奏してみた")
+    evt = Event.default(:Harami1129, save_event: true, ref_title: "ロンドンのパブで演奏してみた", date: Date.new(2024,3,25))
     assert_equal evgr_uk2024, evt.event_group
     assert  pref_london.encompass?(evt.place), "place=#{evt.place.inspect}"
+    assert_equal 2024,      evt.start_time.year
+    assert_equal 3,         evt.start_time.month
+    assert_operator 20, :>, evt.start_time.day
+    assert_operator  5, :<, evt.start_time_err.seconds.in_days
 
     kings_cross = Place.create_basic!(title: "Kings Cross Station", langcode: "en", is_orig: true, prefecture: pref_london)
     assert  pref_london.encompass?(evt.place), 'sanity check'
@@ -208,6 +212,10 @@ class EventTest < ActiveSupport::TestCase
     evgr_streaming = event_groups(:evgr_live_streamings)
     assert_equal evgr_streaming, evt.event_group
     assert evt.default?
+    assert_equal 2024,      evt.start_time.year
+    assert_equal 5,         evt.start_time.month
+    assert_equal 6,         evt.start_time.day
+    assert_operator  8, :>, evt.start_time_err.seconds.in_days
   end
 
   test "self.default 2" do

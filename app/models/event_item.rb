@@ -257,7 +257,7 @@ class EventItem < ApplicationRecord
   # @param event: [Event, NilClass] If specified non-nil, the Event is used without deriving an Event. If this is specified, place and event_group are ignored.
   # @param event_group: [EventGroup, NilClass]
   # @option save_event: [Boolean] If specified, always return EventItem, where a new Event may be created. Unlike {EventItem.default}, the default is true(!)
-  # @param **kwd [Hash] See {EventGroup.guessed_best_or_nil} for keywords (:ref_title, :year)
+  # @param **kwd [Hash] See {EventGroup.guessed_best_or_nil} and {EventGroup.default} for keywords (:ref_title, :year, :date)
   # @return [EventItem, Event] it is guaranteed to be EventItem if save_event is true.
   def self.new_default(context=nil, place: nil, event: nil, event_group: nil, save_event: true, **kwd)
     return new_default_for_event(event, save_event: save_event) if event

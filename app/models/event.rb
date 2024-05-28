@@ -90,6 +90,20 @@ class Event < BaseWithTranslation
 
   TITLE_UNKNOWN_DATE = "UnknownDate"
 
+  # Various time parameters like offsets and errors
+  DEF_TIME_PARAMS = {
+    DELAY_BEFORE_PUBLISH: 20.days,  # Default number of days of delay (offset) from an Event day to the publishment day
+    UTC_OFFSET_EVENT_BEGIN: 6.hours,       # In Default, an Event starts at 15:00 JST (+09:00)
+    ERR_UTC_OFFSET_EVENT_BEGIN: 6.hours,   # its default error
+    UTC_OFFSET_STREAMING_BEGIN: 10.hours,  # In Default, a live-streaming starts at 19:00 JST (+09:00)
+    ERR_UTC_OFFSET_STREAMING_BEGIN: 3.hours,  # the defalut error of it
+    DURATION: 2.hours,         # In Default, an Event lasts for 2 hours
+    DURATION_DEF_EVENT: 50.years,   # A general Default Event can last for 50 years ish
+  }.with_indifferent_access
+
+  # Default error. The publishment may occur on the same day at earliest
+  DEF_TIME_PARAMS[:ERR_DELAY_BEFORE_PUBLISH] = DEF_TIME_PARAMS[:DELAY_BEFORE_PUBLISH]
+
   # Contexts that are taken into account in {Event.default}
   VALID_CONTEXTS_FOR_DEFAULT = EventGroup::VALID_CONTEXTS_FOR_DEFAULT
 
@@ -206,20 +220,21 @@ class Event < BaseWithTranslation
   # @option save_event: [Boolean] If specified true (Def: false), always return a saved Event, where a new Event may be created.
   # @param ref_title: [String] Title of HaramiVid etc.
   # @param date: [Date] rough date is ok.
+  # @param date_for_publish: [Boolean] if true (Def), the given date is the publish date (NOT the date for Event start_time, though they would agree for live-streaming).
   # @param year: [Integer]
   # @return [Event]
-  def self.default(context=nil, place: nil, event_group: nil, save_event: false, ref_title: nil, date: nil, year: nil)
+  def self.default(context=nil, place: nil, event_group: nil, save_event: false, ref_title: nil, date: nil, date_for_publish: true, year: nil)
     year ||= date.year if date
+    date ||= Date.new(year, 6, 30) if year
     def_event_group = (event_group || EventGroup.default(context, place: place, ref_title: ref_title, year: year))
     place = revised_place_for_default(place, def_event_group, ref_title) if ref_title
 
     if "live_streamings" == def_event_group.mname_to_s
-      date ||= Date.new(year, 6, 30) if year
       evt = default_streaming_event(place, def_event_group, ref_title, date)
     elsif !place
       return def_event_group.unknown_event
     else
-      evt = default_adjust_with_place(context, place, def_event_group)
+      evt = default_adjust_with_place(context, place, def_event_group, date, date_for_publish: date_for_publish)
     end
     
     return evt if !save_event
@@ -270,11 +285,11 @@ class Event < BaseWithTranslation
       place: place,
     }
     if date
-      hsin[:start_time] = date.to_time(:utc) + 9.hours  # JST 18:00
-      hsin[:start_time_err] = 6.hours.in_seconds
-      hsin[:duration_hour] = 3
+      hsin[:start_time] = date.to_time(:utc) + DEF_TIME_PARAMS[:UTC_OFFSET_EVENT_BEGIN]  # JST 19:00
+      hsin[:start_time_err] = DEF_TIME_PARAMS[:ERR_UTC_OFFSET_STREAMING_BEGIN].in_seconds
+      hsin[:duration_hour]  = DEF_TIME_PARAMS[:DURATION].in_hours
     end
-
+  
     evt = Event.initialize_with_def_time(**hsin)
 
     evt.unsaved_translations = unsaved_transs
@@ -284,8 +299,9 @@ class Event < BaseWithTranslation
 
   # Set default Event according to Place
   #
+  # @param date_for_publish: [Boolean] if true (Def), the given date is the publish date (NOT the date for Event start_time, though they would agree for live-streaming).
   # @return [Event] unsaved, unless an exising one is found.
-  def self.default_adjust_with_place(context, place, event_group)
+  def self.default_adjust_with_place(context, place, event_group, date, date_for_publish: true)
     events = event_group.events.where(place: place)
     if events.exists?
       DEF_EVENT_TITLE_FORMATS.each_key do |lcode|
@@ -296,7 +312,16 @@ class Event < BaseWithTranslation
     end
 
     # initialize a new one
-    evt = Event.initialize_with_def_time(event_group: event_group, place: place)
+    hsin = {event_group: event_group, place: place}
+    if date
+      date = date - DEF_TIME_PARAMS[:DELAY_BEFORE_PUBLISH] if date_for_publish
+      def_err_for_exact_date = 23.hours
+      hsin[:start_time]     = date.to_time(:utc) + (date_for_publish ? DEF_TIME_PARAMS[:UTC_OFFSET_EVENT_BEGIN] : def_err_for_exact_date)  # JST 15:00 if there is publishment delay
+      hsin[:start_time_err] = (date_for_publish ? DEF_TIME_PARAMS[:ERR_DELAY_BEFORE_PUBLISH] : def_err_for_exact_date)
+      hsin[:duration_hour]  = (date_for_publish ? DEF_TIME_PARAMS[:DURATION_DEF_EVENT] :  DEF_TIME_PARAMS[:DURATION])
+    end
+
+    evt = Event.initialize_with_def_time(**hsin)
 
     # Prepare Translation
     unsaved_transs = []
