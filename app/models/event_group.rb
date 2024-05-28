@@ -56,6 +56,8 @@ class EventGroup < BaseWithTranslation
   has_many :harami_vids, through: :event_items, dependent: :restrict_with_exception
   has_many :harami1129s, through: :event_items, dependent: :restrict_with_exception
 
+  attr_accessor :mname  # defined occasionally for later use (by the caller).
+
   UNKNOWN_TITLES = UnknownEventGroup = {
     "en" => 'UncategorizedEventGroup',
     "ja" => 'その他のイベント類',
@@ -64,6 +66,21 @@ class EventGroup < BaseWithTranslation
 
   # Contexts that are taken into account in {EventGroup.default}
   VALID_CONTEXTS_FOR_DEFAULT = ["harami_vid", "harami1129", nil]
+
+  # The Regexps to identify existing (seeded) EvengGroups; see /db/seeds/seeds_event_group.rb
+  #
+  # The key is mname.
+  REGEXP_IDENTIFY_EVGR = {
+    single_streets: /(単発.*|独立)ストリート(ピアノ|演奏)|street +(music|play)/i,
+    street_events: /street +event/i,
+    harami_guests: /ハラミちゃんゲスト|HARAMIchan.+guest|guest.+HARAMIchan/i,
+    harami_concerts: /ハラミちゃん主催|single-shot +solo/i,
+    live_streamings: /^(生配信|Live[\- ]stream(ings?)?\b)/i,
+    radio: /^(ラジオ局|\bradio\b.+\b(station|studio)s?\b)/i,
+    tv: /^(テレビ局|\b(television|tv)\b.+\b(station|studio)s?\b)/i,
+    paris2023: /パリ.*2023|2023.*パリ|\bParis\b.+\b2023/i,
+    uk2024: /(英国|イギリス|イングランド|ロンドン|UK(訪問|.+旅)).*2024|2024.*(英国|イギリス|イングランド|ロンドン|UK(訪問|.+旅))|\bLondon\b.+\b2024/i,
+  }.with_indifferent_access
 
   # Validates if a {Translation} is unique within the parent
   #
@@ -120,20 +137,64 @@ class EventGroup < BaseWithTranslation
 
   # Returning a default EventGroup in the given context
   #
-  # place is ignored so far.
+  # See {EventGroup.guessed_best_or_nil} for keywords.
   #
   # @option context [Symbol, String]
   # @return [EventItem, Event]
-  def self.default(context=nil, place: nil)
+  def self.default(context=nil, **kwd)
+    guessed = guessed_best_or_nil(context, **kwd)
+    return guessed if guessed
+
     case context.to_s.underscore.singularize
     when *(%w(harami_vid harami1129))  # see VALID_CONTEXTS_FOR_DEFAULT
       ret = (self.select_regex(:title, /single-?shot +street(-?piano)? +play(ing|s)?/i, langcode: "en", sql_regexp: true).first ||
              self.select_regex(:title, /単発ストリート(ピアノ)?の?演奏/i, langcode: "ja", sql_regexp: true).first)
-      return ret if ret
+      if ret
+        ret.mname = "single_streets"
+        return ret
+      end
       logger.warn("WARNING(#{__FILE__}:#{__method__}): Failed to identify the default Streetpiano EvengGroup!")
     end
 
     self.unknown
+  end
+
+  # Returning the best-guess EventGroup in the given conditions.
+  #
+  # If nothing particularly likely is found, nil is returned.
+  #
+  # @option context [Symbol, String]
+  # @param place: [Place]
+  # @param ref_title: [String] Title of HaramiVid etc.
+  # @param year: [Integer]
+  # @return [EventGroup, NilClass]
+  def self.guessed_best_or_nil(context=nil, place: nil, ref_title: nil, year: nil)
+    ref_title = nil if ref_title.blank? || ref_title.strip.blank?
+
+    evgr_cands = REGEXP_IDENTIFY_EVGR.map{|ek, ea_re|
+      [ek, select_regex(:titles, ea_re, sql_regexp: true).first]
+    }.to_h.with_indifferent_access
+
+    if ref_title && /生配信/ =~ ref_title && (evgr=evgr_cands[k=:live_streamings])
+      evgr.mname = k.to_s
+      return evgr
+    elsif ref_title && /テレビ/ =~ ref_title && (evgr=evgr_cands[k=:tv])
+      evgr.mname = k.to_s
+      return evgr
+    elsif ref_title && /ラジオ/ =~ ref_title && (evgr=evgr_cands[k=:radio])
+      evgr.mname = k.to_s
+      return evgr
+    end
+
+    if (ref_title && /パリ|フランス/ =~ ref_title || place && (cnt=Country.find_by(iso3166_n3_code: 250)) && cnt.encompass?(place)) && (evgr=evgr_cands[k=:paris2023]) && (!year || year && (2023..2028).cover?(year))
+      evgr.mname = k.to_s
+      return evgr
+    elsif (ref_title && /(英国|イギリス|イングランド|ロンドン|ブリティッシュ)/ =~ ref_title || place && (cnt=Country.find_by(iso3166_n3_code: 826)) && cnt.encompass?(place)) && (evgr=evgr_cands[k=:uk2024]) && (!year || year && (2024..2029).cover?(year))
+      evgr.mname = k.to_s
+      return evgr
+    end
+
+    nil
   end
 
   # True if no children or if only descendants are {#unknown?} and no HaramiVid depends on self.
@@ -141,6 +202,24 @@ class EventGroup < BaseWithTranslation
     return false if harami_vids.exists? || harami1129s.exists?
     1 == events.count && 1 == event_items.size && events.first.unknown? && !unknown?
   end
+
+  # @return [String] mname.to_s if mname.present?  If not, judge it according to Translation.
+  def mname_to_s
+    if mname.present? && !(s=mname.to_s.strip).empty?
+      return s
+    end
+
+    REGEXP_IDENTIFY_EVGR.each_pair do |ek, ea_re|
+      (alltras = best_translations).values.each do |tra|
+        %i(title alt_title).each do |metho|
+          return ek.to_s if (s=tra.send(metho)).present? && ea_re =~ s
+        end
+      end
+    end
+
+    (best_translations["en"] || best_translations["ja"]).slice(:title, :alt_title).values.map{|i| (i.present? && i.strip.present?) ? i : nil}.compact.first || ""  # should never be an empty String in normal operations, but playing safe.
+  end
+
 
   ########## callbacks ########## 
 

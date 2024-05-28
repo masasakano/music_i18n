@@ -185,6 +185,29 @@ class EventTest < ActiveSupport::TestCase
     assert_equal pla, evt.place
     refute_equal evt_prev, evt
     assert evt.default?
+
+    evgr_uk2024 = event_groups(:evgr_uk2024)
+    pref_london = prefectures(:greater_london)
+    evt = Event.default(:Harami1129, save_event: true, ref_title: "ロンドンのパブで演奏してみた")
+    assert_equal evgr_uk2024, evt.event_group
+    assert  pref_london.encompass?(evt.place), "place=#{evt.place.inspect}"
+
+    kings_cross = Place.create_basic!(title: "Kings Cross Station", langcode: "en", is_orig: true, prefecture: pref_london)
+    assert  pref_london.encompass?(evt.place), 'sanity check'
+    assert_difference('Event.count') do  # New place means a new Event
+      evt = Event.default(:Harami1129, place: kings_cross, save_event: true, ref_title: "外国の駅で")
+    end
+    assert evt.default?
+    assert_equal evgr_uk2024, evt.event_group
+    assert_equal kings_cross, evt.place
+    assert_equal kings_cross, evt.event_items.first.place
+
+    assert_difference('Event.count') do
+      evt = Event.default(:Harami1129, save_event: true, ref_title: "6月の生配信", date: Date.new(2024, 5, 6))
+    end
+    evgr_streaming = event_groups(:evgr_live_streamings)
+    assert_equal evgr_streaming, evt.event_group
+    assert evt.default?
   end
 
   test "self.default 2" do

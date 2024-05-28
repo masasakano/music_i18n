@@ -83,6 +83,13 @@ class Event < BaseWithTranslation
     "ja" => ['%s(%s/%s)でのイベント', " < ", "%s"],
   }.with_indifferent_access
 
+  DEF_STREAMING_EVENT_TITLE_FORMATS = {
+    "en" => ['Live-streaming on %s', " < ", "%s"],
+    "ja" => ['%sの生配信', " < ", "%s"],
+  }.with_indifferent_access
+
+  TITLE_UNKNOWN_DATE = "UnknownDate"
+
   # Contexts that are taken into account in {Event.default}
   VALID_CONTEXTS_FOR_DEFAULT = EventGroup::VALID_CONTEXTS_FOR_DEFAULT
 
@@ -188,33 +195,113 @@ class Event < BaseWithTranslation
   # Note that if the place is new, usually an unknown Event should be created
   # because each unknown Event has a Place defined.
   #
+  # Also, if event_group is unspecified, {EventGroup} may depend on +ref_title+ (and potentially +year+).
+  #
+  # A live-streaming event can be judged based on keywords on ref_title (usually by {EventGroup.default}).
+  # In that case, make sure to provide the optional parameter +date+ (a rough value is OK).
+  #
   # @option context [Symbol, String]
   # @param place: [Place, NilClass]
   # @param event_group: [EventGroup, NilClass]
   # @option save_event: [Boolean] If specified true (Def: false), always return a saved Event, where a new Event may be created.
+  # @param ref_title: [String] Title of HaramiVid etc.
+  # @param date: [Date] rough date is ok.
+  # @param year: [Integer]
   # @return [Event]
-  def self.default(context=nil, place: nil, event_group: nil, save_event: false)
-    def_event_group = (event_group || EventGroup.default(context, place: place))
-    return def_event_group.unknown_event if !place
+  def self.default(context=nil, place: nil, event_group: nil, save_event: false, ref_title: nil, date: nil, year: nil)
+    year ||= date.year if date
+    def_event_group = (event_group || EventGroup.default(context, place: place, ref_title: ref_title, year: year))
+    place = revised_place_for_default(place, def_event_group, ref_title) if ref_title
 
-    # place is guaranteed to exist.
+    if "live_streamings" == def_event_group.mname_to_s
+      date ||= Date.new(year, 6, 30) if year
+      evt = default_streaming_event(place, def_event_group, ref_title, date)
+    elsif !place
+      return def_event_group.unknown_event
+    else
+      evt = default_adjust_with_place(context, place, def_event_group)
+    end
+    
+    return evt if !save_event
 
-    events = def_event_group.events.where(place: place)
+    evt.save!
+    evt
+  end
+
+  # @return [Place]
+  def self.revised_place_for_default(place, event_group, ref_title)
+    case event_group.mname_to_s
+    when "uk2024"
+      if /ロンドン|\bLondon/i =~ ref_title
+        if ((pref=Prefecture.find_by(iso3166_loc_code: 12000007)) || (pref=Prefecture.select_regex(:titles, /\bLondon\b/, langcode: 'en', sql_regexp: true).first))
+          if !place || place.encompass_strictly?(pla=pref.unknown_place)
+            return (pla || pref.unknown_place)
+          end
+        end
+      elsif (cnt=Country.find_by(iso3166_n3_code: 826))
+        pla = cnt.unknown_prefecture.unknown_place if !place || Place.unknown == place
+      end
+    when "paris2023"
+      if ((pref=Prefecture.select_regex(:titles, /\bParis\b/, langcode: 'fr', sql_regexp: true).first))
+        if !place || place.encompass_strictly?(pla=pref.unknown_place)
+          return (pla || pref.unknown_place)
+        end
+      end
+    end
+    place
+  end
+  private_class_method :revised_place_for_default
+
+  # @return [Event] Always new Event
+  def self.default_streaming_event(place, event_group, ref_title, date)
+    date_str = (date ? date.strftime("%Y-%m-%d") : TITLE_UNKNOWN_DATE)
+
+    unsaved_transs = DEF_STREAMING_EVENT_TITLE_FORMATS.map{ |lc, fmts|
+      prefix = sprintf(fmts[0], date_str)
+      postfix = fmts[1]+sprintf(fmts[2], event_group.best_translations["en"].title)
+      title = get_unique_string("translations.title", rela: self.joins(:translations), prefix: prefix, postfix: postfix, separator: "-", separator2:"")  # defined in module_application_base.rb
+
+      Translation.new(langcode: lc, title: title, weight: Float::INFINITY)
+    }
+
+    # initialize a new one
+    hsin = {
+      event_group: event_group,
+      place: place,
+    }
+    if date
+      hsin[:start_time] = date.to_time(:utc) + 9.hours  # JST 18:00
+      hsin[:start_time_err] = 6.hours.in_seconds
+      hsin[:duration_hour] = 3
+    end
+
+    evt = Event.initialize_with_def_time(**hsin)
+
+    evt.unsaved_translations = unsaved_transs
+    evt
+  end
+  private_class_method :revised_place_for_default
+
+  # Set default Event according to Place
+  #
+  # @return [Event] unsaved, unless an exising one is found.
+  def self.default_adjust_with_place(context, place, event_group)
+    events = event_group.events.where(place: place)
     if events.exists?
       DEF_EVENT_TITLE_FORMATS.each_key do |lcode|
-        existing = select_regex_for_default(context=nil, langcode: lcode, place: place, event_group: def_event_group).first
+        existing = select_regex_for_default(context=nil, langcode: lcode, place: place, event_group: event_group).first
         return existing if existing
       end
       # Though there are Events in the same EventGroup, none of them are the generalized default Event.
     end
 
     # initialize a new one
-    evt = Event.initialize_with_def_time(event_group: def_event_group, place: place)
+    evt = Event.initialize_with_def_time(event_group: event_group, place: place)
 
     # Prepare Translation
     unsaved_transs = []
     DEF_EVENT_TITLE_FORMATS.each_key do |lc|
-      trans = default_unsaved_trans_for_lang(place, def_event_group, lc)
+      trans = default_unsaved_trans_for_lang(place, event_group, lc)
       trans.valid?
       next if trans.errors.full_messages.any?{|i| i.include?("Asian characters")}
       unsaved_transs << trans
@@ -233,11 +320,10 @@ class Event < BaseWithTranslation
     end
 
     evt.unsaved_translations = unsaved_transs
-    return evt if !save_event
-
-    evt.save!
     evt
   end
+  private_class_method :default_adjust_with_place
+
 
   # Returns Relation for Default Events for the given langcode (mandatory), context, place, EventGroup
   #
@@ -313,6 +399,12 @@ class Event < BaseWithTranslation
         return true if self.class.select_regex_for_default(context=ea_context, langcode: lcode, place: place, event_group: event_group).ids.include?(id)
       end
     end
+
+    if "live_streamings" == event_group.mname_to_s
+      re_ini = DEF_STREAMING_EVENT_TITLE_FORMATS["en"][0].sub(/%s/, '(\d{4}-\d{2}-\d{2}|'+Regexp.quote(TITLE_UNKNOWN_DATE)+")")+'(-\d+)?'+Regexp.quote(DEF_STREAMING_EVENT_TITLE_FORMATS["en"][1]+sprintf(DEF_STREAMING_EVENT_TITLE_FORMATS["en"][2], event_group.best_translations["en"].title))
+      return true if /\A#{re_ini}/ =~ best_translations["en"].title
+    end
+
     return false
   end
 

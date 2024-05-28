@@ -1,3 +1,4 @@
+# coding: utf-8
 # == Schema Information
 #
 # Table name: event_groups
@@ -187,6 +188,45 @@ class EventGroupTest < ActiveSupport::TestCase
     assert_nothing_raised{                      evgr.update!(start_date_err: nil,end_date_err: 0, start_date: Date.new(2000, 3, 5)) }
   end
 
+  test "self.guessed_best_or_nil" do
+    evgr = EventGroup.guessed_best_or_nil(:HaramiVid, place: nil, ref_title: nil, year: nil)
+    assert_nil evgr 
+
+    evgr = EventGroup.guessed_best_or_nil(:HaramiVid, place: countries(:japan), ref_title: "ストリートピアノだよ", year: nil)
+    assert_nil evgr 
+
+    evgr = EventGroup.guessed_best_or_nil(:HaramiVid, place: countries(:france), ref_title: nil, year: nil)
+    exp  = event_groups(:evgr_paris2023)
+    assert_equal exp, evgr 
+
+    evgr = EventGroup.guessed_best_or_nil(:HaramiVid, place: nil, ref_title: "パリの駅で", year: nil)
+    exp  = event_groups(:evgr_paris2023)
+    assert_equal exp, evgr 
+
+    evgr = EventGroup.guessed_best_or_nil(:HaramiVid, place: countries(:uk), ref_title: nil, year: nil)
+    exp  = event_groups(:evgr_uk2024)
+    assert_equal exp, evgr 
+
+    evgr = EventGroup.guessed_best_or_nil(:HaramiVid, place: nil, ref_title: "イギリスにきました", year: nil)
+    exp  = event_groups(:evgr_uk2024)
+    assert_equal exp, evgr 
+
+    evgr = EventGroup.guessed_best_or_nil(:HaramiVid, place: countries(:france), ref_title: nil, year: 2030)
+    assert_nil  evgr, "this should not be 2023 Paris EventGroup, but..."
+
+    evgr = EventGroup.guessed_best_or_nil(:HaramiVid, place: nil, ref_title: "急に生配信するよ", year: 2025)
+    exp  = event_groups(:evgr_live_streamings)
+    assert_equal exp, evgr
+
+    evgr = EventGroup.guessed_best_or_nil(:HaramiVid, place: nil, ref_title: "今日はテレビの話", year: 2025)
+    exp  = event_groups(:evgr_tv)
+    assert_equal exp, evgr
+
+    evgr = EventGroup.guessed_best_or_nil(:HaramiVid, place: nil, ref_title: "ハラミラジオでコラボ", year: 2025)
+    exp  = event_groups(:evgr_radio)
+    assert_equal exp, evgr
+  end
+
   test "self.default" do
     evgr = EventGroup.default(context=nil, place: nil)
     exp = EventGroup.unknown
@@ -195,6 +235,10 @@ class EventGroupTest < ActiveSupport::TestCase
     evgr = EventGroup.default(context=:Harami1129)
     exp = event_groups(:evgr_single_streets)
     assert_equal exp, evgr 
+
+    evgr = EventGroup.default(:HaramiVid, place: nil, ref_title: "急に生配信するよ", year: 2025)
+    exp  = event_groups(:evgr_live_streamings)
+    assert_equal exp, evgr
   end
 
   test "association" do

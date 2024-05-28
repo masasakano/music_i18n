@@ -81,6 +81,10 @@ liverpool_street:
   prefecture: liverpool 
   note: MyTextLiverpoolStreet
 
+unknown_place_greater_london:
+  prefecture: greater_london
+  note: UnknownPlaceGreaterLondon
+
 perth_uk:
   prefecture: unknown_prefecture_uk
   note: MyTextPerthUk
@@ -90,6 +94,10 @@ perth_aus:
   note: MyTextPerthAus
 
 montparnasse_france:
-  prefecture: unknown_prefecture_france
+  prefecture: prefecture_paris
   note: MyTextMontparnasse
+
+unknown_place_prefecture_paris:
+  prefecture: prefecture_paris
+  note: UnknownPlacePrefectureParis
 

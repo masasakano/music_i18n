@@ -53,15 +53,24 @@ unknown_prefecture_uk:
   country: uk
   note: NoteUk
 
+liverpool:
+  country: uk
+  note: NoteLiverpool
+
+greater_london:
+  iso3166_loc_code: 12000007
+  country: uk
+  note: GreaterLondonUk
+
 unknown_prefecture_france:
   country: france
   note: PrefFrance
 
+prefecture_paris:
+  country: france
+  note: PrefectureParisFrance
+
 unknown_prefecture_aus:
   country: aus
   note: NoteAus
-
-liverpool:
-  country: uk
-  note: NoteLiverpool
 

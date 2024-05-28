@@ -25,14 +25,19 @@ module ModuleUnknown
 
   extend ActiveSupport::Concern
   module ClassMethods
-    # @return [ApplicationRecord]
+    # @return [ApplicationRecord] attribute "mname"="unknown" may be set.
     def unknown(reload: false)
       #@record_unknown ||= self[[self::UNKNOWN_TITLES['en']].flatten.first, 'en']
-      if reload
-        @record_unknown   = _unknown_forcible
+      if reload || !@record_unknown
+        @record_unknown = _unknown_forcible
       else
-        @record_unknown ||= _unknown_forcible
+        return @record_unknown
       end
+
+      if @record_unknown.respond_to? "mname="
+        @record_unknown.mname = "unknown"
+      end
+      @record_unknown
     end
 
     # Private method to forcibly re-determine the "unknown".
@@ -45,7 +50,7 @@ module ModuleUnknown
   end
 
   def unknown?
-    self == self.class.unknown
+    (respond_to?(:mname) && "unknown" == mname.to_s) || (self == self.class.unknown)
   end
 end
 

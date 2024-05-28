@@ -31,6 +31,10 @@ module SeedsEventGroup
       Place.unknown(country: japan)
     when :miyazaki
       Place.unknown(prefecture: Prefecture[/宮崎/])
+    when :unknown_place_prefecture_paris
+      Place.unknown(prefecture: Prefecture[/^Paris\b/], country: Country["FRA"])
+    when :unknown_place_unknown_prefecture_uk
+      Place.unknown(country: Country["GBR"])
     else
       raise "invalid key: #{key}"
     end
@@ -49,7 +53,7 @@ module SeedsEventGroup
     harami_concerts: nil,
     harami_jp2022s: nil,
     harami_jp2023s: nil,
-    drop2022s: nil,
+    drop2022: nil,
   }
 
   max_error_day = TimeAux::MAX_ERROR.in_days.ceil + 1  # = 3652060 [days]
@@ -216,7 +220,35 @@ module SeedsEventGroup
       place_key: :miyazaki,
       note: 'THE DROP FESTIVAL日本初開催(青島こどものくに)、ハラミちゃん初の夏フェス参加',
       regex: /DROP +FES(TIVAL)?\b.+\bJAPAN\b/i,
-      key: :drop2022s,
+      key: :drop2022,
+    },
+    {
+      ja: "ハラミちゃんパリ訪問2023年",
+      en: "HARAMIchan's visit of Paris in 2023",
+      orig_langcode: 'en',
+      start_date: Date.new(2023, 2, 1),
+      start_date_err: 30,
+      end_date:   Date.new(2023, 3, 1),
+      end_date_err: 30,
+      place: Place.unknown(prefecture: Prefecture[/^Paris\b/], country: Country["FRA"]),
+      place_key: :unknown_place_prefecture_paris,
+      note: 'NHK『街角ピアノ - スペシャル ハラミちゃん パリを行く』',
+      regex: /パリ.*2023|2023.*パリ|\bParis\b.+\b2023/i,
+      key: :paris2023,
+    },
+    {
+      ja: "ハラミちゃん英国訪問2024年",
+      en: "HARAMIchan's visit of England/London in 2024",
+      orig_langcode: 'en',
+      start_date: Date.new(2024, 1, 18),
+      start_date_err: 7,
+      end_date:   Date.new(2024, 1, 30),
+      end_date_err: 7,
+      place: Place.unknown(prefecture: Prefecture[12000007], country: Country["GBR"]),
+      place_key: :unknown_place_unknown_prefecture_uk,
+      note: 'NHK『街角ピアノスペシャル ハラミちゃん ロンドンを行く』',
+      regex: /(英国|イギリス|イングランド|UK(訪問|.+旅)).*2024|2024.*(英国|イギリス|イングランド|UK(訪問|.+旅))|\bLondon\b.+\b2024/i,
+      key: :uk2024,
     },
   ] 
 

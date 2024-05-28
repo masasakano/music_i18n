@@ -1076,7 +1076,7 @@ class Harami1129 < ApplicationRecord
   end
 
 
-  # Create a default ArtistMusicPlay
+  # Find an existing most-appropriate EventItem
   #
   # @param enga [Engage]
   # @param hvid [HaramiVid]

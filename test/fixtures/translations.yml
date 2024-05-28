@@ -417,16 +417,31 @@ unkown_prefecture_uk_en:
   translatable_type: Prefecture
   langcode: en
   title: UnknownPrefecture
-  alt_title: 
-  ruby: 
-  alt_ruby: 
-  romaji: 
-  alt_romaji: 
   is_orig: true
   weight: 0
   create_user_id: 
   update_user: 
   note: UnknownPrefectureUkEn
+
+greater_london_en:
+  translatable: greater_london (Prefecture)
+  langcode: en
+  is_orig: true
+  title: Greater London
+  weight: 0
+  create_user_id: 
+  update_user: 
+  note: GreaterLondonUkEn
+
+greater_london_ja:
+  translatable: greater_london (Prefecture)
+  langcode: ja
+  title: グレーター・ロンドン
+  is_orig: false
+  weight: 0
+  create_user_id: 
+  update_user: 
+  note: GreaterLondonUkJa
 
 unknown_place_unknown_prefecture_uk_en:
   translatable: unknown_place_unknown_prefecture_uk
@@ -449,16 +464,30 @@ unknown_place_liverpool_uk_en:
   translatable_type: Place
   langcode: en
   title: UnknownPlace
-  alt_title: 
-  ruby: 
-  alt_ruby: 
-  romaji: 
-  alt_romaji: 
   is_orig: true
   weight: 0
   create_user_id: 
   update_user: 
   note: UnknownPlaceLiverpoolUkEn
+
+unknown_place_greater_london_en:
+  translatable: unknown_place_greater_london (Place)
+  langcode: en
+  title: UnknownPlace
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: UnknownPlaceGreaterLondonEn
+
+unknown_place_greater_london_ja:
+  translatable: unknown_place_greater_london (Place)
+  langcode: ja
+  title: どこかの場所
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: UnknownPlaceGreaterLondonJa
 
 # orig=false (true for "fr"). No Japanese Translation
 france_en:
@@ -510,32 +539,71 @@ unkown_prefecture_france_en:
   update_user: 
   note: UnknownPrefectureFranceEn
 
+prefecture_paris_fr:
+  translatable: prefecture_paris (Prefecture)
+  langcode: fr
+  title: Paris
+  is_orig: true
+  weight: 0
+  create_user_id: 
+  update_user: 
+  note: PrefectureParisFr
+
+prefecture_paris_en:
+  translatable: prefecture_paris (Prefecture)
+  langcode: en
+  title: Paris
+  is_orig: false
+  weight: 0
+  create_user_id: 
+  update_user: 
+  note: PrefectureParisEn
+
+prefecture_paris_ja:
+  translatable: prefecture_paris (Prefecture)
+  langcode: ja
+  title: パリ
+  is_orig: false
+  weight: 0
+  create_user_id: 
+  update_user: 
+  note: PrefectureParisJa
+
 unknown_place_unknown_prefecture_france_en:
   translatable: unknown_place_unknown_prefecture_france
   translatable_type: Place
   langcode: en
   title: UnknownPlace
-  alt_title: 
-  ruby: 
-  alt_ruby: 
-  romaji: 
-  alt_romaji: 
   is_orig: true
   weight: 0
   create_user_id: 
   update_user: 
   note: UnknownPlaceUnknownPrefectureFranceEn
 
+unknown_place_prefecture_paris_en:
+  translatable: unknown_place_prefecture_paris (Place)
+  langcode: en
+  title: UnknownPlace
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: UnknownPlacePrefectureParisEn
+
+unknown_place_prefecture_paris_ja:
+  translatable: unknown_place_prefecture_paris (Place)
+  langcode: ja
+  title: どこかの場所
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: UnknownPlacePrefectureParisJa
+
 montparnasse_france_fr:
   translatable: montparnasse_france
   translatable_type: Place
   langcode: fr
   title: Gare Montparnasse
-  alt_title: 
-  ruby: 
-  alt_ruby: 
-  romaji: 
-  alt_romaji: 
   is_orig: true
   weight: 10
   create_user_id: 
