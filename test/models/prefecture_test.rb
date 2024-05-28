@@ -322,6 +322,81 @@ class PrefectureTest < ActiveSupport::TestCase
     #assert_not pref_wor.covered_by?(plac_pek)
   end
 
+  test "more_significant" do
+    japan = countries(:japan)
+    uk    = countries(:uk)
+
+    tokyo = prefectures(:tokyo)
+    kagawa= prefectures(:kagawa)
+    greater_london  = prefectures(:greater_london )
+    unknown_pref_jp = prefectures(:unknown_prefecture_japan)
+    unknown_pref_uk = prefectures(:unknown_prefecture_uk)
+   #unknown_pref    = prefectures(:unknown_prefecture_world)  # == Prefecture.unknown
+
+    tocho = places(:tocho)
+    takamatsu_st = places(:takamatsu_station)
+    unknown_pla_tokyo  = places(:unknown_place_tokyo_japan)
+    unknown_pla_kagawa = places(:unknown_place_kagawa_japan)
+    unknown_pla_jp     = places(:unknown_place_unknown_prefecture_japan)
+    unknown_pla_uk     = places(:unknown_place_unknown_prefecture_uk)
+    unknown_pla_london = places(:unknown_place_greater_london)
+   #unknown_pla        = places(:unknown_place_unknown_prefecture_world)  # == Place.unknown
+
+    ## Prefecture <=> Prefecture
+    refute tokyo.more_significant_than?( tokyo )
+    refute tokyo.more_significant_than?( kagawa )
+    refute tokyo.more_significant_than?( greater_london )
+    assert tokyo.more_significant_than?( unknown_pref_jp )
+    assert tokyo.more_significant_than?( unknown_pref_uk )
+    assert tokyo.more_significant_than?( Prefecture.unknown )
+
+    refute unknown_pref_jp.more_significant_than?( tokyo )
+    refute unknown_pref_jp.more_significant_than?( greater_london )
+    refute unknown_pref_jp.more_significant_than?( unknown_pref_jp )
+    refute unknown_pref_jp.more_significant_than?( unknown_pref_uk )
+    assert unknown_pref_jp.more_significant_than?( Prefecture.unknown )
+
+    refute Prefecture.unknown.more_significant_than?( tokyo )
+    refute Prefecture.unknown.more_significant_than?( unknown_pref_jp )
+    refute Prefecture.unknown.more_significant_than?( Prefecture.unknown )
+
+    ## Prefecture <=> Country
+    assert tokyo.more_significant_than?(japan)
+    assert tokyo.more_significant_than?(uk)
+    assert tokyo.more_significant_than?(Country.unknown)
+
+    refute unknown_pref_jp.more_significant_than?( japan )
+    refute unknown_pref_jp.more_significant_than?( uk )
+    assert unknown_pref_jp.more_significant_than?( Country.unknown)
+
+    refute Prefecture.unknown.more_significant_than?( japan )
+    refute Prefecture.unknown.more_significant_than?( uk )
+    refute Prefecture.unknown.more_significant_than?( Country.unknown)
+
+    ## Prefecture <=> Place
+    refute tokyo.more_significant_than?(tocho )
+    refute tokyo.more_significant_than?(takamatsu_st )
+    refute tokyo.more_significant_than?(unknown_pla_tokyo  )
+    refute tokyo.more_significant_than?(unknown_pla_kagawa )
+    assert tokyo.more_significant_than?(unknown_pla_jp     )
+    assert tokyo.more_significant_than?(unknown_pla_uk     )
+    refute tokyo.more_significant_than?(unknown_pla_london )
+    assert tokyo.more_significant_than?(Place.unknown      )
+
+    refute unknown_pref_jp.more_significant_than?( tocho )
+    refute unknown_pref_jp.more_significant_than?( takamatsu_st )
+    refute unknown_pref_jp.more_significant_than?( unknown_pla_tokyo )
+    refute unknown_pref_jp.more_significant_than?( unknown_pla_jp )
+    refute unknown_pref_jp.more_significant_than?( unknown_pla_uk )
+    assert unknown_pref_jp.more_significant_than?( Place.unknown )
+
+    refute Prefecture.unknown.more_significant_than?( tocho )
+    refute Prefecture.unknown.more_significant_than?( unknown_pla_tokyo )
+    refute Prefecture.unknown.more_significant_than?( unknown_pla_jp )
+    refute Prefecture.unknown.more_significant_than?( unknown_pla_uk )
+    refute Prefecture.unknown.more_significant_than?( Place.unknown )
+  end
+
   test "brackets" do
     assert_equal 'Tokyo',  Prefecture[13, Country[392]].title(langcode: 'en')
     assert_equal 13,       Prefecture[13, 'naiyo', Country[392]].iso3166_loc_code

@@ -272,6 +272,15 @@ unknown_place_unknown_prefecture_world_ja:
   update_user_id: 
   note: UnknownPlaceUnknownPrefectureWorldJa
 
+babel_tower_world_en:
+  translatable: babel_tower_world (Place)
+  langcode: en
+  title: Babel Tower somewhere in the World
+  weight: 0
+  create_user_id: 
+  update_user_id: 
+  note: BabelTowerWorldEn
+
 japan_ja:
   translatable: japan
   translatable_type: Country

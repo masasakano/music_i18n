@@ -181,11 +181,11 @@ class Event < BaseWithTranslation
   # If EventGroup is set and if its Place is set, and if Place is not specified,
   # the Place is also set.
   #
+  # The arguments are passed to {Event.new} as they are.
+  #
   # @example
   #    evt = Event.initialize_with_def_time(event_group: Event_group.unknown, weight: 0.5, duration_hour: 3)
   #    evt.save!
-  #
-  #
   #
   # @return [Event]
   def self.initialize_with_def_time(*args, **kwds)
@@ -299,28 +299,46 @@ class Event < BaseWithTranslation
 
   # Set default Event according to Place
   #
+  # "date" is taken into account.  Conceptually, general (aka default) Events
+  # (in the place) can be held any time, and so the default start-time years ago
+  # would be appropriate.  However, in reality, a vast majority of the default
+  # Events created would be later assigned to specific Events, which happened
+  # some time (days or weeks?) before the publish date. For this reason,
+  # this method set the date ({#start_time}) of the Event, unless reusing
+  # an existing one, at some fixed days (usually DEF_TIME_PARAMS[:DELAY_BEFORE_PUBLISH])
+  # before the published date.
+  #
+  # However, the default duration is set at 50 years.  So, if an editor modifies the Event
+  # later, they mosty likely should modify it.
+  #
   # @param date_for_publish: [Boolean] if true (Def), the given date is the publish date (NOT the date for Event start_time, though they would agree for live-streaming).
   # @return [Event] unsaved, unless an exising one is found.
   def self.default_adjust_with_place(context, place, event_group, date, date_for_publish: true)
+    # prepares a Hash (primarily for create, but time information is compared with that of the existing candidate if any found
+    hsin = {event_group: event_group, place: place}
+    if date
+      date2pass = date - (date_for_publish ? DEF_TIME_PARAMS[:DELAY_BEFORE_PUBLISH] : 0)
+      hsin[:start_time]     = date2pass.to_time(:utc) + DEF_TIME_PARAMS[:UTC_OFFSET_EVENT_BEGIN]  # JST 15:00 if there is publishment delay
+      hsin[:start_time_err] = (date_for_publish ? DEF_TIME_PARAMS[:ERR_DELAY_BEFORE_PUBLISH] : 23.hours)
+      hsin[:duration_hour]  = (date_for_publish ? DEF_TIME_PARAMS[:DURATION_DEF_EVENT] :  DEF_TIME_PARAMS[:DURATION])
+    end
+
     events = event_group.events.where(place: place)
     if events.exists?
       DEF_EVENT_TITLE_FORMATS.each_key do |lcode|
         existing = select_regex_for_default(context=nil, langcode: lcode, place: place, event_group: event_group).first
-        return existing if existing
+        if existing
+          if date && (!existing.start_time || date.to_time(:utc)+24.hours < existing.start_time)
+            existing.update!(start_time: hsin[:start_time])
+            # error and duration are unmodified.
+          end
+          return existing 
+        end
       end
       # Though there are Events in the same EventGroup, none of them are the generalized default Event.
     end
 
     # initialize a new one
-    hsin = {event_group: event_group, place: place}
-    if date
-      date = date - DEF_TIME_PARAMS[:DELAY_BEFORE_PUBLISH] if date_for_publish
-      def_err_for_exact_date = 23.hours
-      hsin[:start_time]     = date.to_time(:utc) + (date_for_publish ? DEF_TIME_PARAMS[:UTC_OFFSET_EVENT_BEGIN] : def_err_for_exact_date)  # JST 15:00 if there is publishment delay
-      hsin[:start_time_err] = (date_for_publish ? DEF_TIME_PARAMS[:ERR_DELAY_BEFORE_PUBLISH] : def_err_for_exact_date)
-      hsin[:duration_hour]  = (date_for_publish ? DEF_TIME_PARAMS[:DURATION_DEF_EVENT] :  DEF_TIME_PARAMS[:DURATION])
-    end
-
     evt = Event.initialize_with_def_time(**hsin)
 
     # Prepare Translation

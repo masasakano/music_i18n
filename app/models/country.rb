@@ -124,6 +124,7 @@
 #
 class Country < BaseWithTranslation
   include Rails.application.routes.url_helpers
+  include ModuleCountryLayered  # for more_significant_than?
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = %i(iso3166_a2_code iso3166_a3_code iso3166_n3_code)
@@ -351,6 +352,29 @@ class Country < BaseWithTranslation
     else
       false
     end
+  end
+
+  # True if self is or is a part of other.
+  #
+  # The inverse function of {#encompass_strictly?}
+  # In short, this returns TRUE only if other is {Country.unknown}()
+  # and !self.{#unknown?}  Else FALSE.
+  #
+  # @param other [Place, Prefecture, Country]
+  # @raise [TypeError] if other is none of {Country}, {Prefecture}, {Place}
+  def covered_by?(other)
+    raise TypeError, "(#{self.class.name}.#{__method__}) Contact the code developer. Argument has to one of Country, Prefecture, Place. but #{other.class.name}: other=#{other.inspect}" if !other.respond_to? :encompass?
+    other.encompass_strictly?(self)
+  end
+
+  # Returns 3-element Array of 0 or 1.
+  #
+  # 1st, 2nd, 3rd elements correspond to Country, Prefecture, Place.
+  # If one is unknown it is 0, else 1.
+  #
+  # @return [Array<Integer>]
+  def layered_significances
+    [(unknown? ? 0 : 1), 0, 0]
   end
 
   # Returns true if the set of all Prefectures that belong to the Country is complete.

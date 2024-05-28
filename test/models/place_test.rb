@@ -149,6 +149,100 @@ class PlaceTest < ActiveSupport::TestCase
 
   end
 
+  test "more_significant" do
+    japan = countries(:japan)
+    uk    = countries(:uk)
+
+    tokyo = prefectures(:tokyo)
+    kagawa= prefectures(:kagawa)
+    greater_london  = prefectures(:greater_london )
+    unknown_pref_jp = prefectures(:unknown_prefecture_japan)
+    unknown_pref_uk = prefectures(:unknown_prefecture_uk)
+   #unknown_pref    = prefectures(:unknown_prefecture_world)  # == Prefecture.unknown
+
+    tocho = places(:tocho)
+    takamatsu_st = places(:takamatsu_station)
+    unknown_pla_tokyo  = places(:unknown_place_tokyo_japan)
+    unknown_pla_kagawa = places(:unknown_place_kagawa_japan)
+    unknown_pla_jp     = places(:unknown_place_unknown_prefecture_japan)
+    unknown_pla_uk     = places(:unknown_place_unknown_prefecture_uk)
+    unknown_pla_london = places(:unknown_place_greater_london)
+   #unknown_pla        = places(:unknown_place_unknown_prefecture_world)  # == Place.unknown
+
+    ## Place <=> Place
+    refute tocho.more_significant_than?(tocho )
+    refute tocho.more_significant_than?(takamatsu_st )
+    assert tocho.more_significant_than?(unknown_pla_tokyo  )
+    assert tocho.more_significant_than?(unknown_pla_kagawa )
+    assert tocho.more_significant_than?(unknown_pla_jp     )
+    assert tocho.more_significant_than?(unknown_pla_uk     )
+    assert tocho.more_significant_than?(unknown_pla_london )
+    assert tocho.more_significant_than?(Place.unknown      )
+
+    refute unknown_pla_tokyo.more_significant_than?( tocho )
+    refute unknown_pla_tokyo.more_significant_than?( takamatsu_st )
+    refute unknown_pla_tokyo.more_significant_than?( unknown_pla_tokyo )
+    refute unknown_pla_tokyo.more_significant_than?( unknown_pla_london )
+    assert unknown_pla_tokyo.more_significant_than?( unknown_pla_jp )
+    assert unknown_pla_tokyo.more_significant_than?( unknown_pla_uk )
+    assert unknown_pla_tokyo.more_significant_than?( Place.unknown )
+
+    refute unknown_pla_jp.more_significant_than?( tocho )
+    refute unknown_pla_jp.more_significant_than?( takamatsu_st )
+    refute unknown_pla_jp.more_significant_than?( unknown_pla_tokyo )
+    refute unknown_pla_jp.more_significant_than?( unknown_pla_jp )
+    refute unknown_pla_jp.more_significant_than?( unknown_pla_uk )
+    assert unknown_pla_jp.more_significant_than?( Place.unknown )
+
+    refute Place.unknown.more_significant_than?( tocho )
+    refute Place.unknown.more_significant_than?( unknown_pla_tokyo )
+    refute Place.unknown.more_significant_than?( unknown_pla_jp )
+    refute Place.unknown.more_significant_than?( unknown_pla_uk )
+    refute Place.unknown.more_significant_than?( Place.unknown )
+
+    ## Place <=> Prefecture
+    assert tocho.more_significant_than?( tokyo )
+    assert tocho.more_significant_than?( kagawa )
+    assert tocho.more_significant_than?( greater_london )
+    assert tocho.more_significant_than?( unknown_pref_jp )
+    assert tocho.more_significant_than?( unknown_pref_uk )
+    assert tocho.more_significant_than?( Prefecture.unknown )
+
+    refute unknown_pla_tokyo.more_significant_than?( tokyo )
+    refute unknown_pla_tokyo.more_significant_than?( greater_london )
+    refute unknown_pla_tokyo.more_significant_than?( unknown_pla_london )
+    assert unknown_pla_tokyo.more_significant_than?( unknown_pref_jp )
+    assert unknown_pla_tokyo.more_significant_than?( unknown_pref_uk )
+    assert unknown_pla_tokyo.more_significant_than?( Prefecture.unknown )
+
+    refute unknown_pla_jp.more_significant_than?( tokyo )
+    refute unknown_pla_jp.more_significant_than?( greater_london )
+    refute unknown_pla_jp.more_significant_than?( unknown_pref_jp )
+    refute unknown_pla_jp.more_significant_than?( unknown_pref_uk )
+    assert unknown_pla_jp.more_significant_than?( Prefecture.unknown )
+
+    refute Place.unknown.more_significant_than?( tokyo )
+    refute Place.unknown.more_significant_than?( unknown_pref_jp )
+    refute Place.unknown.more_significant_than?( Prefecture.unknown )
+
+    ## Place <=> Country
+    assert tocho.more_significant_than?(japan)
+    assert tocho.more_significant_than?(uk)
+    assert tocho.more_significant_than?(Country.unknown)
+
+    assert unknown_pla_tokyo.more_significant_than?( japan )
+    assert unknown_pla_tokyo.more_significant_than?( uk )
+    assert unknown_pla_tokyo.more_significant_than?( Country.unknown)
+
+    refute unknown_pla_jp.more_significant_than?( japan )
+    refute unknown_pla_jp.more_significant_than?( uk )
+    assert unknown_pla_jp.more_significant_than?( Country.unknown)
+
+    refute Place.unknown.more_significant_than?( japan )
+    refute Place.unknown.more_significant_than?( uk )
+    refute Place.unknown.more_significant_than?( Country.unknown)
+  end
+
   test "title_or_alt_ascendants" do
     pla1 = places(:takamatsu_station)
     assert_equal ['高松駅', '香川県', '日本国'], pla1.title_or_alt_ascendants

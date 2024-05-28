@@ -24,6 +24,8 @@
 #  fk_rails_...  (country_id => countries.id) ON DELETE => cascade
 #
 class Prefecture < BaseWithTranslation
+  include ModuleCountryLayered  # for more_significant_than?
+
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = [:country_id, :iso3166_loc_code]
   #MAIN_UNIQUE_COLS = [:country, :country_id, :iso3166_loc_code]
@@ -232,6 +234,16 @@ class Prefecture < BaseWithTranslation
       # (1) JPN>Tokyo is     covered_by Unknown>UnknownPrefecture
       # (2) JPN>Tokyo is NOT covered_by Unknown>Tokyo
     end
+  end
+
+  # Returns 3-element Array of 0 or 1.
+  #
+  # 1st, 2nd, 3rd elements correspond to Country, Prefecture, Place.
+  # If one is unknown it is 0, else 1.
+  #
+  # @return [Array<Integer>]
+  def layered_significances
+    [country.layered_significances.first, (unknown? ? 0 : 1), 0]
   end
 
   # Returns an Array of translation of the ascendants like [self, {Country}] 

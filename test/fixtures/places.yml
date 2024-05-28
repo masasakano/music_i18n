@@ -21,6 +21,10 @@ unknown_place_unknown_prefecture_world:
   prefecture: unknown_prefecture_world
   note: MyTextUnknownPlaceWorld
 
+babel_tower_world:
+  prefecture: unknown_prefecture_world
+  note: BabelTowerSomewhereUnknownInWorld
+
 unknown_place_prefecture_tokyo_in_world:
   prefecture: prefecture_tokyo_in_world
   note: UnknownPlacePrefectureTokyoInWorld not in Japan

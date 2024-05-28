@@ -104,6 +104,35 @@ class CountryTest < ActiveSupport::TestCase
       Translation.create!(alt_title: 'NZer', langcode: 'fr', translatable: c2) }
   end
 
+  test "more_significant" do
+    ## Country <=> Country
+    assert (japan=countries(:japan)).more_significant_than?(Country.unknown)
+    refute japan.more_significant_than?(france=countries(:france))
+    refute japan.more_significant_than?(japan)
+
+    refute Country.unknown.more_significant_than?( japan )
+    refute Country.unknown.more_significant_than?( Country.unknown )
+
+    ## Country <=> Prefecture
+    assert japan.more_significant_than?(pref_unknown=prefectures(:unknown_prefecture_world))
+    assert japan.more_significant_than?(prefectures(:prefecture_tokyo_in_world))
+    refute japan.more_significant_than?(pref_unknown_jp=prefectures(:unknown_prefecture_japan))
+    refute japan.more_significant_than?(pref_unknown_uk=prefectures(:unknown_prefecture_uk))
+
+    refute Country.unknown.more_significant_than?( pref_unknown )
+    refute Country.unknown.more_significant_than?( pref_unknown_jp )
+
+    ## Country <=> Place
+    assert japan.more_significant_than?(pla_unknown=places(:unknown_place_unknown_prefecture_world))
+    assert japan.more_significant_than?(pla_babel=places(:babel_tower_world))               # Place < UnknownPref < UnknownCountry
+    assert japan.more_significant_than?(places(:unknown_place_prefecture_tokyo_in_world))  # Place < Pref < UnknownCountry
+    refute japan.more_significant_than?(pla_uk_unknown=places(:unknown_place_unknown_prefecture_uk))
+    refute japan.more_significant_than?(pla_tocho=places(:tocho))
+
+    refute Country.unknown.more_significant_than?( pla_unknown )
+    refute Country.unknown.more_significant_than?( pla_babel )
+  end
+
   test "hook after new entry 2" do
     c3 = Country[/Australia/, 'en', true]
     t3 = c3.translations_with_lang('en')[0]
