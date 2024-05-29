@@ -397,6 +397,16 @@ class PrefectureTest < ActiveSupport::TestCase
     refute Prefecture.unknown.more_significant_than?( Place.unknown )
   end
 
+  test "mname related" do
+    pref_london = Prefecture[/\bLondon\b/]
+    assert_equal Country["GBR"], pref_london.country, 'sanity check'
+    assert_equal "london", pref_london.mname_to_s
+    pref_confusing = Prefecture.create_basic!(title: "London", langcode: "en", is_orig: true, country: Country["AUS"])
+    assert_includes Prefecture.select_regex(:title, /\bLondon\b/), pref_confusing, 'sanity check'
+    assert_equal 2, Prefecture.select_regex(:title, /\bLondon\b/).size, 'sanity check (of fixtures)'
+    assert_equal pref_london, (pref=Prefecture.find_by_mname(:london)), 'This should always be "Greater London" in the UK (GBR), but...'+pref.inspect
+  end
+
   test "brackets" do
     assert_equal 'Tokyo',  Prefecture[13, Country[392]].title(langcode: 'en')
     assert_equal 13,       Prefecture[13, 'naiyo', Country[392]].iso3166_loc_code

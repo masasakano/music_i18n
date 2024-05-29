@@ -49,7 +49,7 @@ class Place < BaseWithTranslation
   #  (hash.keys.include? key.to_s) ? hash[key.to_s] : nil  # Symbol keys (langcode) are acceptable.
   #end
 
-  # The Regexps to identify existing (seeded) Place; see /db/seeds/seeds_event_group.rb
+  # The Regexps to identify existing (seeded) Place
   #
   # The key is mname.
   REGEXP_IDENTIFY_MODEL = {

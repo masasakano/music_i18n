@@ -26,6 +26,9 @@
 class Prefecture < BaseWithTranslation
   include ModuleCountryLayered  # for more_significant_than?
 
+  # define method "mname" et
+  include ModuleMname
+
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = [:country_id, :iso3166_loc_code]
   #MAIN_UNIQUE_COLS = [:country, :country_id, :iso3166_loc_code]
@@ -75,6 +78,20 @@ class Prefecture < BaseWithTranslation
     end
     sprintf("(%s), force_destroy: %s", s_country, self_record.force_destroy.inspect)
   }
+
+  # Sets {Prefecture::REGEXP_IDENTIFY_MODEL} at the first call
+  #
+  # REGEXP_IDENTIFY_MODEL is a hash with the key of mname and contains the Regexps to identify existing (seeded) Model,
+  # used by ModuleMname
+  def self.regexp_identify_model
+    if !const_defined?(:REGEXP_IDENTIFY_MODEL)
+      const_set(:REGEXP_IDENTIFY_MODEL, {
+                  london: [/ロンドン|\bLondon\b/, {where: {"prefectures.country_id" => Country["GBR"].id}}],
+                  paris:  [/\bParis\b/,           {where: {"prefectures.country_id" => Country["FRA"].id}}],
+                }.with_indifferent_access)
+    end
+    REGEXP_IDENTIFY_MODEL
+  end
 
   # Modifying {BaseWithTranslation.[]}
   #
