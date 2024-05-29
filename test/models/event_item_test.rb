@@ -128,6 +128,12 @@ class EventItemTest < ActiveSupport::TestCase
     assert_includes evit3.machine_title, pref_tit
     assert_includes evit3.machine_title, pla_tit
     assert_match(/item.+#{Regexp.quote pla_tit}.*_<_./, evit3.machine_title)  # "item1-Event_in_NewPlaceJapan(NewPrefectureJapan/Japan)_<_Single-shot_street_playing"
+
+    evit4 = EventItem.new_default(:Harami1129, place: (pla_jp_unk=Place.unknown(country: Country["JPN"])), save_event: true, ref_title: "[生演奏]ある記念に", date: Date.today)
+    assert_equal EventGroup.find_by_mname(:live_streamings), evit4.event_group
+    assert_equal Place[/ハラミ.+自宅/], (pla_home=Place.find_by_mname(:default_streaming)), 'sanity check'
+    assert_equal pla_home,  Place[:default_streaming], 'sanity check'
+    assert_equal pla_home,  evit4.place
   end
 
   test "default_unique_title" do

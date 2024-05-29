@@ -243,6 +243,13 @@ class PlaceTest < ActiveSupport::TestCase
     refute Place.unknown.more_significant_than?( Country.unknown)
   end
 
+  test "mname related" do
+    pla = Place[/ハラミ.+自宅/]
+    assert_equal "default_streaming", pla.mname_to_s
+    assert_equal Place[/ハラミ.+自宅/], (pla_home=Place.find_by_mname(:default_streaming)), 'sanity check'
+    assert_equal pla_home,  Place[:default_streaming], 'sanity check'
+  end
+
   test "title_or_alt_ascendants" do
     pla1 = places(:takamatsu_station)
     assert_equal ['高松駅', '香川県', '日本国'], pla1.title_or_alt_ascendants

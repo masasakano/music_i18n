@@ -375,6 +375,27 @@ unknown_place_unknown_prefecture_japan_en:
   update_user_id: 
   note: UnknownPlaceUnknownPrefectureJapanEn
 
+harami_home_unknown_prefecture_japan_en:
+  translatable: harami_home_unknown_prefecture_japan (Place)
+  langcode: en
+  is_orig: false
+  title: "HARAMIchan's home"
+  weight: 0
+  create_user_id: 
+  update_user_id: 
+  note: HaramiHomeUnknownPrefectureJapanEn
+
+harami_home_unknown_prefecture_japan_ja:
+  translatable: harami_home_unknown_prefecture_japan (Place)
+  langcode: ja
+  is_orig: true
+  title: "ハラミちゃん自宅"
+  alt_title: "ハラミ自宅"
+  weight: 0
+  create_user_id: 
+  update_user_id: 
+  note: HaramiHomeUnknownPrefectureJapanJa
+
 unknown_place_tokyo_japan_en:
   translatable: unknown_place_tokyo_japan
   translatable_type: Place

@@ -45,6 +45,10 @@ unknown_place_unknown_prefecture_aus:
   prefecture: unknown_prefecture_aus
   note: MyTextUnknownPlaceAus
 
+harami_home_unknown_prefecture_japan:
+  prefecture: unknown_prefecture_japan
+  note: HARAMIchanHomeUnknownPrefectureJapan
+
 unknown_place_tokyo_japan:
   prefecture: tokyo
   note: MyTextTokyo

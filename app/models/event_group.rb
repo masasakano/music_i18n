@@ -34,6 +34,9 @@ class EventGroup < BaseWithTranslation
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
 
+  # define method "mname" et
+  include ModuleMname
+
   before_create :add_place_in_create_callback
   before_destroy :delete_remaining_unknwon_event_callback  # must come before has_many
   # NOTE: after_first_translation_hook
@@ -56,7 +59,7 @@ class EventGroup < BaseWithTranslation
   has_many :harami_vids, through: :event_items, dependent: :restrict_with_exception
   has_many :harami1129s, through: :event_items, dependent: :restrict_with_exception
 
-  attr_accessor :mname  # defined occasionally for later use (by the caller).
+#  attr_accessor :mname  # defined occasionally for later use (by the caller).
 
   UNKNOWN_TITLES = UnknownEventGroup = {
     "en" => 'UncategorizedEventGroup',
@@ -67,10 +70,10 @@ class EventGroup < BaseWithTranslation
   # Contexts that are taken into account in {EventGroup.default}
   VALID_CONTEXTS_FOR_DEFAULT = ["harami_vid", "harami1129", nil]
 
-  # The Regexps to identify existing (seeded) EvengGroups; see /db/seeds/seeds_event_group.rb
+  # The Regexps to identify existing (seeded) EventGroups; see /db/seeds/seeds_event_group.rb
   #
   # The key is mname.
-  REGEXP_IDENTIFY_EVGR = {
+  REGEXP_IDENTIFY_MODEL = {
     single_streets: /(単発.*|独立)ストリート(ピアノ|演奏)|street +(music|play)/i,
     street_events: /street +event/i,
     harami_guests: /ハラミちゃんゲスト|HARAMIchan.+guest|guest.+HARAMIchan/i,
@@ -171,7 +174,7 @@ class EventGroup < BaseWithTranslation
   def self.guessed_best_or_nil(context=nil, place: nil, ref_title: nil, year: nil)
     ref_title = nil if ref_title.blank? || ref_title.strip.blank?
 
-    evgr_cands = REGEXP_IDENTIFY_EVGR.map{|ek, ea_re|
+    evgr_cands = REGEXP_IDENTIFY_MODEL.map{|ek, ea_re|
       [ek, select_regex(:titles, ea_re, sql_regexp: true).first]
     }.to_h.with_indifferent_access
 
@@ -203,22 +206,22 @@ class EventGroup < BaseWithTranslation
     1 == events.count && 1 == event_items.size && events.first.unknown? && !unknown?
   end
 
-  # @return [String] mname.to_s if mname.present?  If not, judge it according to Translation.
-  def mname_to_s
-    if mname.present? && !(s=mname.to_s.strip).empty?
-      return s
-    end
-
-    REGEXP_IDENTIFY_EVGR.each_pair do |ek, ea_re|
-      (alltras = best_translations).values.each do |tra|
-        %i(title alt_title).each do |metho|
-          return ek.to_s if (s=tra.send(metho)).present? && ea_re =~ s
-        end
-      end
-    end
-
-    (best_translations["en"] || best_translations["ja"]).slice(:title, :alt_title).values.map{|i| (i.present? && i.strip.present?) ? i : nil}.compact.first || ""  # should never be an empty String in normal operations, but playing safe.
-  end
+#  # @return [String] mname.to_s if mname.present?  If not, judge it according to Translation.
+#  def mname_to_s
+#    if mname.present? && !(s=mname.to_s.strip).empty?
+#      return s
+#    end
+#
+#    REGEXP_IDENTIFY_MODEL.each_pair do |ek, ea_re|
+#      (alltras = best_translations).values.each do |tra|
+#        %i(title alt_title).each do |metho|
+#          return ek.to_s if (s=tra.send(metho)).present? && ea_re =~ s
+#        end
+#      end
+#    end
+#
+#    (best_translations["en"] || best_translations["ja"]).slice(:title, :alt_title).values.map{|i| (i.present? && i.strip.present?) ? i : nil}.compact.first || ""  # should never be an empty String in normal operations, but playing safe.
+#  end
 
 
   ########## callbacks ########## 

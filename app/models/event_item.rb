@@ -236,7 +236,9 @@ class EventItem < ApplicationRecord
   # @param **kwd [Hash] See {EventGroup.guessed_best_or_nil} for keywords (:ref_title, :year)
   # @return [EventItem, Event]
   def self.default(context=nil, place: nil, event_group: nil, save_event: false, **kwd)
-    def_event = Event.default(context, place: place, event_group: event_group)
+print "DEBUG:evit:2400:k="; p(kwd)
+    def_event = Event.default(context, place: place, event_group: event_group, **kwd)
+print "DEBUG:evit:2490:k="; p([place, def_event])
     return def_event.unknown_event_item if !def_event.new_record?
     return def_event if !save_event
 
@@ -263,6 +265,7 @@ class EventItem < ApplicationRecord
     return new_default_for_event(event, save_event: save_event) if event
 
     def_event = default(context, place: place, event_group: event_group, save_event: false, **kwd)
+print "DEBUG:evit:1712:d="; p(def_event)
     if def_event.class == self
       # get Event from EventItem
       def_event = def_event.event

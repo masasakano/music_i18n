@@ -21,6 +21,9 @@
 class Place < BaseWithTranslation
   include ModuleCountryLayered  # for more_significant_than?
 
+  # define method "mname" et
+  include ModuleMname
+
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = [:prefecture, :prefecture_id]
 
@@ -45,6 +48,13 @@ class Place < BaseWithTranslation
   #UnknownPlace.default_proc = proc do |hash, key|
   #  (hash.keys.include? key.to_s) ? hash[key.to_s] : nil  # Symbol keys (langcode) are acceptable.
   #end
+
+  # The Regexps to identify existing (seeded) Place; see /db/seeds/seeds_event_group.rb
+  #
+  # The key is mname.
+  REGEXP_IDENTIFY_MODEL = {
+    default_streaming: /^ハラミ(ちゃん)?自宅|\bHARAMIchan's home\b/i,
+  }.with_indifferent_access
 
   # Returns String names of the classes of instances that depend on this instance.
   #
