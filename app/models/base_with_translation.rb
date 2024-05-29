@@ -3606,7 +3606,7 @@ tra_orig.save!
     ActiveRecord::Base.transaction(requires_new: true) do
       channel_owner.reset_to_artist(artist, force: true)
       if !channel_owner.valid?   ### This should be put into Controller validation!!
-        errmsg = "ChannelOwner(#{remains[1].id}) cannot be associated with Artist(#{title_or_alt(prefer_alt: true, str_fallback: '', article_to_head: true)}) presumably because there is another ChannelOwner with the Artist."
+        errmsg = "ChannelOwner(#{channel_owner.id}) cannot be associated with Artist(#{title_or_alt(prefer_alt: true, str_fallback: '', article_to_head: true)}) maybe because there is another ChannelOwner with the Artist. Errror message=#{channel_owner.errors.full_messages} /\ncowner.translations=#{channel_owner.translations.inspect} \nartist.translations=#{artist.translations.inspect})."
         raise errmsg
       end
       channel_owner.save!

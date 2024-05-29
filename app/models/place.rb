@@ -169,6 +169,14 @@ class Place < BaseWithTranslation
 
   # Similar to #{encompass?} but returns false if self==other
   #
+  # Note that if it is compared with an equivalent Object at a child-level, it returns true,
+  # whereas comparison with a parent-level returns false.
+  #
+  #   (cnt=Country["JPN"]).encompass_strictly?(pref=cnt.unknown_prefecture)
+  #     # => true
+  #   pref.encompass_strictly?(cnt)
+  #     # => false
+  #
   # @param other [Place, Prefecture, Country]
   # @raise [TypeError] if other is none of {Country}, {Prefecture}, {Place}
   def encompass_strictly?(other)

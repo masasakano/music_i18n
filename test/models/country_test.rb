@@ -104,7 +104,7 @@ class CountryTest < ActiveSupport::TestCase
       Translation.create!(alt_title: 'NZer', langcode: 'fr', translatable: c2) }
   end
 
-  test "more_significant" do
+  test "more_significant and less_significant" do
     ## Country <=> Country
     assert (japan=countries(:japan)).more_significant_than?(Country.unknown)
     refute japan.more_significant_than?(france=countries(:france))
@@ -131,6 +131,13 @@ class CountryTest < ActiveSupport::TestCase
 
     refute Country.unknown.more_significant_than?( pla_unknown )
     refute Country.unknown.more_significant_than?( pla_babel )
+
+    cnt = Country.second
+    pref = cnt.unknown_prefecture
+    refute cnt.more_significant_than?(pref)
+    refute cnt.less_significant_than?(pref)
+    refute pref.more_significant_than?(cnt)
+    refute pref.less_significant_than?(cnt)
   end
 
   test "hook after new entry 2" do

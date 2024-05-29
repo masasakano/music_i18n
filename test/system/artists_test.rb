@@ -108,7 +108,7 @@ class ArtistsTest < ApplicationSystemTestCase
 
     # sanity checks of fixtures
     zombies = artists(:artist_zombies).title  # Best(Zombies, The). Other-inferior-Trans(TheZombies); n.b., because of the latter this may come before Zedd!
-    zedd    = artists(:artist_zedd).title     # Best(Zedd)
+    zedd    = (art_zedd=artists(:artist_zedd)).title     # Best(Zedd)
     assert_equal "Zombies, The", zombies, "sanity check"
     assert_equal "Zedd",         zedd,    "sanity check2"
 
@@ -120,13 +120,14 @@ class ArtistsTest < ApplicationSystemTestCase
     # ascending order
     page.find('table thead tr th.title_en div.order a.asc').click
     i_zombies = page.all("table.artists_grid tbody tr").find_index{|nok| nok.all("td")[2].text[0, zombies.size] == zombies} # No <td> in <thead>, but all should have <td> in <tbody>
-    i_zedd    = page.all("table.artists_grid tbody tr").find_index{|nok| nok.all("td")[2].text == zedd+"*"}
+    i_zedd    = page.all("table.artists_grid tbody tr").find_index{|nok| nok.all("td")[2].text == zedd}  # For Editors: zedd+"*"
+    assert_equal    "en", art_zedd.orig_langcode
     assert_operator i_zedd, :<, i_zombies, "Should be normal-sorted, but... text="+page.all("table.artists_grid tbody tr").map{|m| m.all("td").map(&:text)}.inspect
 
     # descending order
     page.find('table thead tr th.title_en div.order a.desc').click
     i_zombies = page.all("table.artists_grid tbody tr").find_index{|nok| nok.all("td")[2].text[0, zombies.size] == zombies} # No <td> in <thead>, but all should have <td> in <tbody>
-    i_zedd    = page.all("table.artists_grid tbody tr").find_index{|nok| nok.all("td")[2].text == zedd+"*"}
+    i_zedd    = page.all("table.artists_grid tbody tr").find_index{|nok| nok.all("td")[2].text == zedd}
     assert_operator i_zedd, :>, i_zombies, "Should be reverse-sorted, but... text="+page.all("table.artists_grid tbody tr").map{|m| m.all("td").map(&:text)}.inspect
 
     ## transits to Japanese

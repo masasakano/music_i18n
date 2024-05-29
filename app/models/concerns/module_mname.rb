@@ -45,9 +45,10 @@ module ModuleMname
     #
     # @param mname_in [String, Symbol]
     def find_by_mname(mname_in)
-      raise ArgumentError, "No mname of #{mname_in} for Class #{self.name}. Contact the code developer" if !self::REGEXP_IDENTIFY_MODEL.keys.include?(mname_in.to_s)
+      hsall = get_regexp_identify_model
+      raise ArgumentError, "No mname of #{mname_in} for Class #{self.name}. Contact the code developer" if !hsall.keys.include?(mname_in.to_s)
 
-      val = get_regexp_identify_model[mname_in.to_s]
+      val = hsall[mname_in.to_s]
       re, hsin =
           if val.respond_to? :map
             val

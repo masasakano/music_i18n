@@ -233,12 +233,10 @@ class EventItem < ApplicationRecord
   # @param place: [Place, NilClass]
   # @param event_group: [EventGroup, NilClass]
   # @option save_event: [Boolean] If specified, always return EventItem, where a new Event may be created.
-  # @param **kwd [Hash] See {EventGroup.guessed_best_or_nil} for keywords (:ref_title, :year)
+  # @param **kwd [Hash] See {EventGroup.guessed_best_or_nil} and {Event.default} for keywords (:ref_title, :year, :date, :place_confidence)
   # @return [EventItem, Event]
   def self.default(context=nil, place: nil, event_group: nil, save_event: false, **kwd)
-print "DEBUG:evit:2400:k="; p(kwd)
     def_event = Event.default(context, place: place, event_group: event_group, **kwd)
-print "DEBUG:evit:2490:k="; p([place, def_event])
     return def_event.unknown_event_item if !def_event.new_record?
     return def_event if !save_event
 
@@ -259,13 +257,12 @@ print "DEBUG:evit:2490:k="; p([place, def_event])
   # @param event: [Event, NilClass] If specified non-nil, the Event is used without deriving an Event. If this is specified, place and event_group are ignored.
   # @param event_group: [EventGroup, NilClass]
   # @option save_event: [Boolean] If specified, always return EventItem, where a new Event may be created. Unlike {EventItem.default}, the default is true(!)
-  # @param **kwd [Hash] See {EventGroup.guessed_best_or_nil} and {EventGroup.default} for keywords (:ref_title, :year, :date)
+  # @param **kwd [Hash] See {EventGroup.guessed_best_or_nil} and {Event.default} for keywords (:ref_title, :year, :date, :place_confidence)
   # @return [EventItem, Event] it is guaranteed to be EventItem if save_event is true.
   def self.new_default(context=nil, place: nil, event: nil, event_group: nil, save_event: true, **kwd)
     return new_default_for_event(event, save_event: save_event) if event
 
     def_event = default(context, place: place, event_group: event_group, save_event: false, **kwd)
-print "DEBUG:evit:1712:d="; p(def_event)
     if def_event.class == self
       # get Event from EventItem
       def_event = def_event.event

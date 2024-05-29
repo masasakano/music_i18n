@@ -627,5 +627,41 @@ class Harami1129Test < ActiveSupport::TestCase
     assert_equal h1129_ai.engage.music,  hsar2[:Music].first
   end
 
+  test "insert_populate live-streaming" do
+    ms = __method__.to_s
+    hscorrect = {title: "【生配信】東京リベンジャーズ特集:"+ms+"t", singer: ms+"a", song: ms+"m", release_date: (rdate=Date.today-2.days), link_root: "youtu.be/"+ms, link_time: 778, id_remote: _get_unique_id_remote, last_downloaded_at: DateTime.now}  # defined in test_helper.rb
+    h1129 = Harami1129.create_manual!(**hscorrect)
+    assert h1129.valid?
+    assert h1129.created_at
+
+    str_equation = 'HaramiVid.count*10000 + Artist.count*1000 + Music.count*100 + Engage.count*10'
+    str_eq2      = 'HaramiVidEventItemAssoc.count*1000+Event.count*100 + EventItem.count*10 + ArtistMusicPlay.count'
+
+    ## before internal_insertion
+    pstat = h1129.populate_status(use_cache: true)
+    assert_equal :no_insert, pstat.status(:ins_title)
+    assert_equal "\u274c",   pstat.marker(:ins_title)
+    assert_nil h1129.reload.harami_vid
+
+    ## run internal_insertion
+    assert_difference(str_equation, 11110) do
+      h1129.insert_populate
+    end
+
+    hvid = h1129.reload.harami_vid
+    assert_operator h1129.created_at, :<, hvid.created_at, "sanity check. HaramiVid is newly created from h1129."
+
+    evit = h1129.event_item
+    assert_match(/\bstreamings?\b/,  h1129.event_item.event_group.best_translations["en"].title)
+    assert_equal EventGroup.find_by_mname(:live_streamings),  h1129.event_item.event_group
+    assert_equal rdate, h1129.event_item.start_time.to_date
+    assert_equal evit, hvid.event_items.first
+
+    assert_equal places(:harami_home_unknown_prefecture_japan), evit.place
+    amp = evit.artist_music_plays.first
+    assert_equal 1, evit.artist_music_plays.count
+    assert_equal Artist.default(:HaramiVid), amp.artist
+    assert_equal ms+"m", amp.music.title
+  end
 end
 

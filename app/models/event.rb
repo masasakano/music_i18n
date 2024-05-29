@@ -222,12 +222,13 @@ class Event < BaseWithTranslation
   # @param date: [Date] rough date is ok.
   # @param date_for_publish: [Boolean] if true (Def), the given date is the publish date (NOT the date for Event start_time, though they would agree for live-streaming).
   # @param year: [Integer]
+  # @param place_confidence: [Symbol] (:highest, :high, :middle, :low) If it is manually specified by an Editor, it is :high (or :highest).  If auto-judged in Harami1129, :low
   # @return [Event]
-  def self.default(context=nil, place: nil, event_group: nil, save_event: false, ref_title: nil, date: nil, date_for_publish: true, year: nil)
+  def self.default(context=nil, place: nil, event_group: nil, save_event: false, ref_title: nil, date: nil, date_for_publish: true, year: nil, place_confidence: :high)
     year ||= date.year if date
     date ||= Date.new(year, 6, 30) if year
     def_event_group = (event_group || EventGroup.default(context, place: place, ref_title: ref_title, year: year))
-    place = revised_place_for_default(place, def_event_group, ref_title) if ref_title
+    place = revised_place_for_default(place, def_event_group, ref_title, place_confidence: place_confidence) if ref_title
 
     if "live_streamings" == def_event_group.mname_to_s
       evt = default_streaming_event(place, def_event_group, ref_title, date)
@@ -243,24 +244,31 @@ class Event < BaseWithTranslation
     evt
   end
 
+  # @param place_confidence: [Symbol] (:highest, :high, :middle, :low) If it is manually specified by an Editor, it is :high (or :highest).  If auto-judged in Harami1129, :low
   # @return [Place]
-  def self.revised_place_for_default(place, event_group, ref_title)
+  def self.revised_place_for_default(place, event_group, ref_title, place_confidence: :high)
+    method4place = ((:low == place_confidence) ? :less_significant_than? : :encompass_strictly?)
     case event_group.mname_to_s
+    when "live_streamings"
+      if !place || place.unknown?
+        # If the streaming is held in not the default streaming place, the Place must be registered as whatever-name (like a "random studio") but should not be an "unknown" Place in a Prefecture.
+        # NOTE: more/less_significant_than does not work well because
+        #   Place[default_streaming] belongs_to an "unknwon" Prefecture.
+        return Place.find_by_mname(:default_streaming)
+      end
     when "uk2024"
       if /ロンドン|\bLondon/i =~ ref_title
-        if ((pref=Prefecture.find_by(iso3166_loc_code: 12000007)) || (pref=Prefecture.select_regex(:titles, /\bLondon\b/, langcode: 'en', sql_regexp: true).first))
-          if !place || place.encompass_strictly?(pla=pref.unknown_place)
-            return (pla || pref.unknown_place)
-          end
+        pref = Prefecture.find_by_mname(:london)
+        if pref && (!place || place.send(method4place, (pla=pref.unknown_place)))
+          return (pla || pref.unknown_place)
         end
-      elsif (cnt=Country.find_by(iso3166_n3_code: 826))
+      elsif (cnt=Country.find_by(iso3166_n3_code: 826))  # Country["GBR"]
         pla = cnt.unknown_prefecture.unknown_place if !place || Place.unknown == place
       end
     when "paris2023"
-      if ((pref=Prefecture.select_regex(:titles, /\bParis\b/, langcode: 'fr', sql_regexp: true).first))
-        if !place || place.encompass_strictly?(pla=pref.unknown_place)
-          return (pla || pref.unknown_place)
-        end
+      pref = Prefecture.find_by_mname(:paris)
+      if pref && (!place || place.send(method4place, (pla=pref.unknown_place)))
+        return (pla || pref.unknown_place)
       end
     end
     place

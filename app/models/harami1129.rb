@@ -1121,7 +1121,7 @@ class Harami1129 < ApplicationRecord
   def create_event_item_ref(template=nil, guessed_place: nil)
     event = (template ? template.event : nil)
     guessed_place ||= self.class.guess_place(ins_title)  # defined in /app/models/concerns/module_guess_place.rb
-    evt_kind =  EventItem.new_default(:harami1129, event: event, place: guessed_place, save_event: false)  # Either Event or EventItem
+    evt_kind =  EventItem.new_default(:harami1129, event: event, place: guessed_place, save_event: false, ref_title: ins_title, date: ins_release_date, place_confidence: :low)  # Either Event or EventItem
     if EventItem == evt_kind.class
       evit = evt_kind
       if evit.save

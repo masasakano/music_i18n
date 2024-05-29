@@ -322,7 +322,7 @@ class PrefectureTest < ActiveSupport::TestCase
     #assert_not pref_wor.covered_by?(plac_pek)
   end
 
-  test "more_significant" do
+  test "more_significant and less_significant" do
     japan = countries(:japan)
     uk    = countries(:uk)
 
@@ -355,6 +355,12 @@ class PrefectureTest < ActiveSupport::TestCase
     refute unknown_pref_jp.more_significant_than?( unknown_pref_jp )
     refute unknown_pref_jp.more_significant_than?( unknown_pref_uk )
     assert unknown_pref_jp.more_significant_than?( Prefecture.unknown )
+
+    assert unknown_pref_jp.less_significant_than?( tokyo )
+    assert unknown_pref_jp.less_significant_than?( greater_london )
+    refute unknown_pref_jp.less_significant_than?( unknown_pref_jp )
+    refute unknown_pref_jp.less_significant_than?( unknown_pref_uk )
+    refute unknown_pref_jp.less_significant_than?( Prefecture.unknown )
 
     refute Prefecture.unknown.more_significant_than?( tokyo )
     refute Prefecture.unknown.more_significant_than?( unknown_pref_jp )
@@ -395,6 +401,12 @@ class PrefectureTest < ActiveSupport::TestCase
     refute Prefecture.unknown.more_significant_than?( unknown_pla_jp )
     refute Prefecture.unknown.more_significant_than?( unknown_pla_uk )
     refute Prefecture.unknown.more_significant_than?( Place.unknown )
+
+    assert Prefecture.unknown.less_significant_than?( tocho )
+    assert Prefecture.unknown.less_significant_than?( unknown_pla_tokyo )
+    assert Prefecture.unknown.less_significant_than?( unknown_pla_jp )
+    assert Prefecture.unknown.less_significant_than?( unknown_pla_uk )
+    refute Prefecture.unknown.less_significant_than?( Place.unknown )
   end
 
   test "mname related" do
@@ -405,6 +417,7 @@ class PrefectureTest < ActiveSupport::TestCase
     assert_includes Prefecture.select_regex(:title, /\bLondon\b/), pref_confusing, 'sanity check'
     assert_equal 2, Prefecture.select_regex(:title, /\bLondon\b/).size, 'sanity check (of fixtures)'
     assert_equal pref_london, (pref=Prefecture.find_by_mname(:london)), 'This should always be "Greater London" in the UK (GBR), but...'+pref.inspect
+    assert_equal Prefecture[/\bParis\b/], Prefecture.find_by_mname(:paris)
   end
 
   test "brackets" do

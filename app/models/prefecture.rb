@@ -86,8 +86,8 @@ class Prefecture < BaseWithTranslation
   def self.regexp_identify_model
     if !const_defined?(:REGEXP_IDENTIFY_MODEL)
       const_set(:REGEXP_IDENTIFY_MODEL, {
-                  london: [/ロンドン|\bLondon\b/, {where: {"prefectures.country_id" => Country["GBR"].id}}],
-                  paris:  [/\bParis\b/,           {where: {"prefectures.country_id" => Country["FRA"].id}}],
+                  london: [/ロンドン|\bLondon\b/, {where: {"prefectures.country_id" => Country["GBR"].id}}],  # (at the time of writing) you can directly find it with Prefecture.find_by(iso3166_loc_code: 12000007)
+                  paris:  [/\bParis\b/,           {langcode: 'fr', where: {"prefectures.country_id" => Country["FRA"].id}}], # in French language
                 }.with_indifferent_access)
     end
     REGEXP_IDENTIFY_MODEL

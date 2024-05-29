@@ -216,6 +216,8 @@ class EventTest < ActiveSupport::TestCase
     assert_equal 5,         evt.start_time.month
     assert_equal 6,         evt.start_time.day
     assert_operator  8, :>, evt.start_time_err.seconds.in_days
+    pla_home=Place.find_by_mname(:default_streaming)
+    assert_equal pla_home,  evt.place
   end
 
   test "self.default 2" do
