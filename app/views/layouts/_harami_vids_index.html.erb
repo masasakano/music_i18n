@@ -18,7 +18,7 @@
   <thead>
     <tr>
      <% if (can_update = can?(:update, HaramiVid)) %>
-      <th>ID</th>
+      <th class="editor_only">pID</th>
      <% end %>
       <th><%= t("harami_vids.table_head_date") %></th>
       <th><%= t(:Channel) %></th>
@@ -31,16 +31,16 @@
       <th><%= t("harami_vids.table_head_completeness") %></th>
      <% end %>
       <% if can? :read, EventItem %>  <%# In future, this may be released public (if most EventItems are checked valid) %>
-      <th><%= t("EventItems") %></th>
+      <th class="editor_only"><%= t("EventItems") %></th>
       <% end %>
      <% if (can_read_h1129 = can?(:read, Harami1129)) %>
-      <th title="Number of Harami1129 entries"># H1129s</th>
+      <th title="Number of Harami1129 entries" class="editor_only"># H1129s</th>
      <% end %>
       <th title="Note in this DB"><%= t("tables.note").capitalize %></th>
      <% if can_update %>
-        <th class="actions" colspan="2"></th>  <%#  HaramiVid should not be easily destroyed from Index %>
+        <th class="actions" colspan="2" class="editor_only"></th>  <%#  HaramiVid should not be easily destroyed from Index %>
      <% else %>
-        <th class="actions"></th>
+        <th class="actions" class="editor_only"></th>
      <% end %>
 <% if false %>
         <th colspan="2">HaramiVidMusicAssoc</th>
@@ -62,7 +62,7 @@
     <% (ary &&= ary2).each do |harami_vid| %>
       <tr>
      <% if can_update %>
-        <td class="number"><%= link_to harami_vid.id, harami_vid %></td>
+        <td class="number editor_only"><%= link_to harami_vid.id, harami_vid %></td>
      <% end %>
         <td><%= sprintf "%s %s", harami_vid.release_date, ((dura=sec2hms_or_ms(harami_vid.duration, return_nil: true)) ? '('+dura+')' : "") %></td>
         <td><%= harami_vid.channel.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true) %> </td>
@@ -84,7 +84,7 @@
         <td class="number"><%= assoc.completeness %></td>
      <% end %>
       <% if can? :read, EventItem %>
-        <td class="text-center">
+        <td class="text-center editor_only">
           <%= harami_vid.event_items.map{ |eei|
              if !(ind=event_items.find_index(eei))
                event_items << eei
@@ -97,19 +97,19 @@
         </td>
       <% end %>
      <% if can_read_h1129 %>
-        <td class="number"><%= harami_vid.harami1129s.count %></td>
+        <td class="number editor_only"><%= harami_vid.harami1129s.count %></td>
      <% end %>
         <td><%= harami_vid.note %></td>
 
         <td><%= link_to t("tables.Show"), harami_vid %></td>
         <% if can? :update, harami_vid  %>
-          <td><%= link_to 'Edit', edit_harami_vid_path(harami_vid) %></td>
+          <td class="editor_only"><%= link_to 'Edit', edit_harami_vid_path(harami_vid) %></td>
         <% end %>
       </tr>
 <% if false %>
         <td><%= link_to t("tables.Show"), assoc %></td>
         <% if can? :update, assoc %>
-          <td><%= link_to 'Edit', edit_harami_vid_music_assoc_path(assoc) %></td>
+          <td class="editor_only"><%= link_to 'Edit', edit_harami_vid_music_assoc_path(assoc) %></td>
         <% end %>
 <% end %>
     <% end %>

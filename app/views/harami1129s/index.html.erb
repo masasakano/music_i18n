@@ -5,10 +5,8 @@
   <span style="color: red">WARNING: Remote Server is not defined. The data cannot be refreshed. Contact the site administrator.</span>
 <% end %>
 
-<% if false %>
-  NOTE to Developer:
-  This section should be rewritten, taking into consideration @alert and Flash messages.
-<% end %>
+<%# NOTE to Developer:
+  # This section should be rewritten, taking into consideration @alert and Flash messages. %>
 <% if @msg %>
   <% if !@num_errors %>
     <div id="error_explanation">
@@ -49,19 +47,20 @@
 <div id="inside_form_download_data">
 <%= form_with(url: new_harami1129s_download_harami1129s_path, method: 'GET') do |form| %>
   <div class="actions">
-    <% if current_user.an_admin? %>
-      <div class="form_download_data_options">
+    <div class="form_download_data_options">
+    <% if BaseGrid.qualified_as?(:an_admin) %>
+     <div class="admin_only">
       <%= form.label :debug, '[Admin] DEBUG?' %>
       <%= form.radio_button(:debug, '1', checked: false) %>
       <%= form.label        :debug, 'Yes', value: '1' %>
       <%= form.radio_button(:debug, '0', checked: true) %>
       <%= form.label        :debug, 'No',  value: '0' %>
-        <br>
+     </div>
     <% end %>
     <%= form.label      :init_entry_fetch, 'Initial entry number to download (Def: 1)' %>
     <%= form.text_field :init_entry_fetch,  value: 1 %><br>
-    <%  msgplus = " (-99 means all: admin only)" if current_user && current_user.an_admin? %>
-    <%= form.label      :max_entries_fetch, "Number of entries to download (Max: #{Harami1129s::DownloadHarami1129sController::MAX_ENTRIES})" %>
+    <% msg_admin = (BaseGrid.qualified_as?(:an_admin) ? '<span class="admin_only">(-99 means all: admin only)</span>'.html_safe : "") %>
+    <%= form.label      :max_entries_fetch, (h("Number of entries to download (Max: #{Harami1129s::DownloadHarami1129sController::MAX_ENTRIES})")+msg_admin).html_safe %>
     <%= form.text_field :max_entries_fetch,  value: Harami1129s::DownloadHarami1129sController::MAX_ENTRIES %><br>
     <%= form.radio_button(:step_to, Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_STEP[:download], checked: false) %>
     <%= s = Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_STEP[:download]; form.label :step_to, s.capitalize, value: s %>
@@ -73,11 +72,10 @@
     <%= submit_tag "Download data", :name => Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_SUBMIT_NAME, :class => "btn btn-info"%>  (For some reason, this button does not refresh the page (so you have to reload it manually, which reverts the Download parameters back to the default)... Try <%= link_to 'this link', new_harami1129s_download_harami1129s_path+'?debug=true&max_entries_fetch=-99' %> instead (to download all)?   Or, <%= link_to 'Back to Home', root_path, data: { turbolinks: false } %>)
   </div>
 <% end %>
-<% if false %>
-  NOTE to Developer:
-  Options may be given for the user (admin): Download, Download+Insert_within, Download+Insert_within+Inject_all.
-  Maybe the selection is passed to GET/params and Controllers will redirect_to a different destination according to it.
-<% end %>
+<%# NOTE to Developer:
+  # Options may be given for the user (admin): Download, Download+Insert_within, Download+Insert_within+Inject_all.
+  # Maybe the selection is passed to GET/params and Controllers will redirect_to a different destination according to it.
+ %>
 </div>
 </div>
 
@@ -113,12 +111,12 @@
 <%= datagrid_table @grid %>
 <%= paginate(@grid.assets) %>
 
-<p>
+<p class="pagenation_stats">
   <%= ApplicationController.str_info_entry_page_numbers(@grid, Harami1129) %>
 </p>
 
 <br>
 
-<% if current_user && current_user.sysadmin? %>
-  <%= link_to 'New Harami1129 entry', new_harami1129_path %>
+<% if BaseGrid.qualified_as?(:an_admin) %>
+  <span class="admin_only"><%= link_to 'New Harami1129 entry', new_harami1129_path %></span>
 <% end %>

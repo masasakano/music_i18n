@@ -107,6 +107,7 @@
   
   <hr>
   <section id="sec_harami_vids_for">
+  <h3><%= t("show.h2_harami_vid").pluralize(@music.harami_vids.count, I18n.locale) %><%= t("show.h2_for") %><%= t("Music") %>: <%= @music.title_or_alt %></h3>
   <%= render partial: 'layouts/harami_vids_index', locals: {harami_vids: music.harami_vids.order("harami_vids.release_date" => :desc), music: music} %>
   </section>
 

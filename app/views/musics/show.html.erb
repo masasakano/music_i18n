@@ -8,8 +8,8 @@
 <hr>
 
  <section id="sec_primary_show">
-<% if can? :update, @music %>
-<p>
+<% if can? :update, Music %>
+<p class="editor_only">
   <strong>Internal ID:</strong>
   <%= @music.id %>
 </p>

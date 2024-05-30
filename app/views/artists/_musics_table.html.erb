@@ -5,14 +5,14 @@
   <thead>
     <tr>
      <% if (can_edit=can?(:edit, Artist)) %>
-      <th title="DB pID">pID</th>
+      <th title="DB pID" class="editor_only">pID</th>
      <% end %>
       <th title="'*' indicates the original name"><%= t("tables.title_name_ja") %></th>
       <th><%= t("tables.alt_title_name_ja") %></th>
       <th title="'*' indicates the original name"><%= t("tables.title_name_en") %></th>
       <th title="first published year"><%= t('tables.year').capitalize %></th>
      <% if can_edit %>  <%# maybe published in the future... %>
-      <th><%= t('Genre').capitalize %></th>
+      <th class="editor_only"><%= t('Genre').capitalize %></th>
      <% end %>
       <th title="Show/Edit Engagement between Artist and Music">
       <% if (can_update_engage_how=can?(:update, EngageHow)) %>
@@ -22,13 +22,13 @@
       <% end %>
       </th>
      <% if can_edit %>
-      <th title="Place"><%= t("tables.place_country") %></th>
+      <th title="Place" class="editor_only"><%= t("tables.place_country") %></th>
      <% end %>
       <th><%= t('artists.tablehead.n_harami_vids') %></th>
       <th><%= t("tables.note") %></th>
       <% if (can_update=(can? :update, Artist)) %>
         <th colspan="2" title="Show/Edit Music">Music</th>
-        <th title="Edit (Show) Engagements between Artist and Music">Engages</th>
+        <th title="Edit (Show) Engagements between Artist and Music" class="editor_only">Engages</th>
       <% else %>
         <th title="Show Music">Music</th>
       <% end %>
@@ -40,7 +40,7 @@
     <% artist.musics.uniq.each do |music| %>
       <tr>
      <% if can_edit %>
-      <td title="DB pID" class="number"><%= link_to music.id, music %></td>
+      <td title="DB pID" class="number editor_only"><%= link_to music.id, music %></td>
      <% end %>
         <% orig_lc = music.orig_langcode %>
         <td class="title_ja"><%= (music.title langcode: 'ja') || '' %><%= (orig_lc == 'ja') ? asterisk : "" %></td>
@@ -52,7 +52,7 @@
         </td>
         <td><%= music.year %></td>
      <% if can_edit %>  <%# maybe published in the future... %>
-        <td><%= music.genre.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true) %></td>
+        <td class="editor_only"><%= music.genre.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true) %></td>
      <% end %>
         <% s = artist.engage_how_titles(music, year: music.year).join(', ') %>
         <% label_str = ((/\d/ =~ s) ? s : s+'('+(music.year || t('musics.show.year_unknown')).to_s+')') %>
@@ -60,15 +60,15 @@
           <% linktxt, engage = engage_title_link(music, artist) %> <%# defined in musics_helper.rb %>
         <td> <%= linktxt %> </td>
      <% if can_edit %>
-        <td><%= ar = music.place.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true);
+        <td class="editor_only"><%= ar = music.place.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true);
                 sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture['ja'] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2] %></td>
      <% end %>
         <td class="text-end"><%= music.harami_vids.count.to_s+(("ja"==I18n.locale.to_s) ? '本' : "") %></td>
         <td><%= music.note %></td>
         <td><%= link_to t("tables.Show"), music %></td>
         <% if can? :update, music %>
-          <td><%= link_to 'Edit', edit_music_path(music) %></td>
-          <td class="text-center"><%= link_to 'Edit', edit_engage_multi_how_path(engage) %></td> <%# "engage" is set above %>
+          <td class="editor_only"><%= link_to 'Edit', edit_music_path(music) %></td>
+          <td class="text-center editor_only"><%= link_to 'Edit', edit_engage_multi_how_path(engage) %></td> <%# "engage" is set above %>
         <% end %>
       </tr>
     <% end %>

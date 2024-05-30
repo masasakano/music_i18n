@@ -19,19 +19,19 @@
   <thead>
     <tr>
      <% if can? :edit, EventItem %>
-      <th>pID</th>
+      <th class="editor_only">pID</th>
      <% end %>
       <th><%= t(:Artist) %></th>
       <th><%= t(:Music) %></th>
       <th><%= t(:PlayRole) %></th>
       <th><%= t(:Instrument_pl_short) %></th>
      <% if can? :edit, EventItem %>
-      <th><%= t("attr.contribution") %></th>
-      <th><%= t("attr.cover_ratio") %></th>
+      <th class="editor_only"><%= t("attr.contribution") %></th>
+      <th class="editor_only"><%= t("attr.cover_ratio") %></th>
      <% end %>
       <th><%= t("tables.note").capitalize %></th>
      <% if can? :destroy, ArtistMusicPlay %>
-      <th></th>
+      <th class="editor_only"></th>
      <% end %>
     </tr>
   </thead>
@@ -40,7 +40,7 @@
    <% artist_music_plays.each_with_index do |amp, i_amp| %>
     <tr>
      <% if can? :edit, EventItem %>
-      <td><%= amp.id %></td>
+      <td class="editor_only"><%= amp.id %></td>
      <% end %>
      <%  [:artist, :music, :play_role, :instrument].each do |att| %>
        <td>
@@ -50,12 +50,12 @@
      <% end %>
      <% if can? :edit, EventItem %>
      <%  [:contribution_artist, :cover_ratio].each do |att| %>
-      <td><%= amp.send(att) %></td>
+      <td class="editor_only"><%= amp.send(att) %></td>
      <% end %>
      <% end %>
       <td><%= amp.note %></td>
      <% if can? :destroy, ArtistMusicPlay %>
-      <td>
+      <td class="editor_only">
         <% if can? :destroy, amp %>
           <%= link_to t('layouts.dissociate_this', this_model: t('adjective.this')+t('EventItem')), amp, method: :delete, data: { confirm: t('are_you_sure') }, title: t('event_items.dissociate_hint') %>
         <% end %>

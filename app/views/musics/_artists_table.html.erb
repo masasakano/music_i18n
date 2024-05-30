@@ -6,7 +6,7 @@
   <thead>
     <tr>
      <% if can? :edit, Artist %>
-      <th title="DB pID">pID</th>
+      <th title="DB pID" class="editor_only">pID</th>
      <% end %>
       <th title="'*' indicates the original name"><%= t("tables.title_name_ja") %></th>
       <th><%= t("tables.alt_title_name_ja") %></th>
@@ -28,7 +28,7 @@
       <th><%= t("tables.note") %></th>
       <% if can? :update, Artist %>
         <th colspan="2" title="Show/Edit Artist">Artist</th>
-        <th title="Edit (Show) Engagements between Artist and Music">Engages</th>
+        <th title="Edit (Show) Engagements between Artist and Music" class="editor_only">Engages</th>
       <% else %>
         <th title="Show Artist">Artist</th>
       <% end %>
@@ -39,7 +39,7 @@
     <% music.artists.uniq.each do |artist| %>
       <tr>
        <% if can? :edit, Artist %>
-        <td title="DB pID" class="number"><%= link_to artist.id, artist %></td>
+        <td title="DB pID" class="number editor_only"><%= link_to artist.id, artist %></td>
        <% end %>
         <% orig_lc = artist.orig_langcode %>
         <td><%= (artist.title langcode: 'ja') || '' %><%= (orig_lc == 'ja') ? '*' : '' %></td>
@@ -60,8 +60,8 @@
         <td><%= artist.note %></td>
         <td><%= link_to t("tables.Show"), artist %></td>
         <% if can? :update, artist %>
-          <td><%= link_to 'Edit', edit_artist_path(artist) %></td>
-          <td><%= link_to 'Edit', edit_engage_multi_how_path(engage) %></td> <%# "engage" is set above %>
+          <td class="editor_only"><%= link_to 'Edit', edit_artist_path(artist) %></td>
+          <td class="editor_only text-center"><%= link_to 'Edit', edit_engage_multi_how_path(engage) %></td> <%# "engage" is set above %>
         <% end %>
       </tr>
     <% end %>
@@ -69,6 +69,6 @@
 </table>
 
 <% if can? :create, Artist %>
-  <p>Add a <span class="lead"><%= link_to "new Artist-Engage", new_engage_path(music_id: music.id) %></span>.</p>
+  <p><span class=" editor_only">Add a <span class="lead"><%= link_to "new Artist-Engage", new_engage_path(music_id: music.id) %></span>.</span></p>
 <% end %>
 

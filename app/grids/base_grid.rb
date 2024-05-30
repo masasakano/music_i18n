@@ -233,7 +233,20 @@ class BaseGrid
     @is_user_editor = CURRENT_USER && CURRENT_USER.editor? if @is_user_editor.nil?  # Ability is not used as it would be too DB-heavy.
     @is_user_editor
   end
-end
+
+  def self.can_edit_class?(klass)
+    @can_edit_class ||= {}
+    @can_edit_class[klass] = can?(:edit, klass) if @can_edit_class[klass].nil?
+    @can_edit_class[klass]
+  end
+
+  # @param role [Symbol, String] :editor, :moderator, :an_admin, :sysadmin
+  def self.qualified_as?(role)
+    @qualified_as ||= {}
+    @qualified_as[role] = CURRENT_USER && CURRENT_USER.send(role.to_s+"?") if @qualified_as[role].nil?
+    @qualified_as[role]
+  end
+end # class BaseGrid
 
 #### Does not work: 
 ## ActionView::Template::Error (no implicit conversion of Regexp into String):

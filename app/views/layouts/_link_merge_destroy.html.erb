@@ -5,7 +5,7 @@
 <% can_update = (!model.new_record? && can?(:update, model)) %>
 <% can_update_in_show = (can_update && !is_to_edit) %>
 <% if can_update_in_show %>
-  <div class="link-edit-destroy">
+  <div class="link-edit-destroy editor_only">  <%# "editor_only" css-class added only in Show (not in Edit) %>
     <% path_edit = send("edit_"+model_underscore+"_path", model) %> <%# e.g., edit_music_path(model) %>
     <span class="lead"><%= link_to 'Edit', path_edit, class: "link-edit" %></span> <%# -------- show only %>
 <% end %>

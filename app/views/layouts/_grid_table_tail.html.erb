@@ -1,0 +1,11 @@
+<%# local variables: klass %>
+
+<p class="pagenation_stats">
+  <%= ApplicationController.str_info_entry_page_numbers(@grid, klass) %>
+</p>
+<% if can? :edit, klass %>
+  <p><span class="editor_only">[*] <%= t("datagrid.footnote.is_original", default: "Original language.") %></span>
+    <span class="admin_only"><%= "(editor-only footnote)" if current_user.an_admin? %></span>
+  </p>
+<% end %>
+

@@ -7,7 +7,7 @@ class MusicsGrid < BaseGrid
 
   ####### Filters #######
 
-  filter(:id, :integer, header: "ID", if: Proc.new{CURRENT_USER && CURRENT_USER.editor?})  # displayed only for editors
+  filter(:id, :integer, header: "ID", if: Proc.new{BaseGrid.qualified_as?(:editor)})  # displayed only for editors
 
   filter_include_ilike(:title_ja, header: Proc.new{I18n.t("datagrid.form.title_ja_en", default: "Title [ja+en] (partial-match)")})
   filter_include_ilike(:title_en, langcode: 'en', header: Proc.new{I18n.t("datagrid.form.title_en", default: "Title [en] (partial-match)")})
@@ -27,7 +27,7 @@ class MusicsGrid < BaseGrid
 
   ####### Columns #######
 
-  column(:id, class: ["align-cr"], header: "ID", if: Proc.new{CURRENT_USER && CURRENT_USER.editor?}) # NOT: if MusicsGrid.current_user.moderator?  # This does not work; see above
+  column(:id, class: ["align-cr", "editor_only"], header: "ID", if: Proc.new{BaseGrid.qualified_as?(:editor)}) # NOT: if MusicsGrid.current_user.moderator?  # This does not work; see above
 
   column(:title_ja, header: Proc.new{I18n.t('tables.title_ja')}, mandatory: true, order: proc { |scope|
     #order_str = Arel.sql("convert_to(title, 'UTF8')")
@@ -89,15 +89,15 @@ class MusicsGrid < BaseGrid
 
   column(:note, order: false, header: Proc.new{I18n.t("tables.note", default: "Note")})
 
-  column(:updated_at, header: Proc.new{I18n.t("tables.updated_at", default: "Updated at")}, if: Proc.new{CURRENT_USER && CURRENT_USER.editor?})
-  column(:created_at, header: Proc.new{I18n.t("tables.created_at", default: "Created at")}, if: Proc.new{CURRENT_USER && CURRENT_USER.editor?})
+  column(:updated_at, class: ["editor_only"], header: Proc.new{I18n.t('tables.updated_at')}, if: Proc.new{BaseGrid.qualified_as?(:editor)})
+  column(:created_at, class: ["editor_only"], header: Proc.new{I18n.t('tables.created_at')}, if: Proc.new{BaseGrid.qualified_as?(:editor)})
   column(:actions, html: true, mandatory: true, header: "") do |record|  # Proc.new{I18n.t("tables.actions", default: "Actions")}
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
     ar = [link_to(I18n.t('layouts.Show'), music_path(record), data: { turbolinks: false })]
     if can? :update, record
-      ar.push link_to('Edit', edit_music_path(record))
+      ar.push(('<span  class="editor_only">'+link_to('Edit', edit_artist_path(record))+'</span>').html_safe)
       if can?(:update, Musics::MergesController)
-        ar.push link_to('Merge', musics_new_merges_path(record))
+        ar.push(('<span  class="editor_only">'+link_to('Merge', artists_new_merges_path(record))+'</span>').html_safe)
         #if can? :destroy, record
         #  ar.push link_to('Destroy', music_path(record), method: :delete, data: { confirm: (t('are_you_sure')+" "+t("are_you_sure.merge")).html_safe })
         #end
