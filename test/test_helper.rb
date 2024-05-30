@@ -2,6 +2,7 @@
 ENV['RAILS_ENV'] ||= 'test'
 require_relative '../config/environment'
 require 'rails/test_help'
+require "helpers/model_helper"
 require "helpers/controller_helper"
 require "helpers/test_system_helper"
 require_relative './test_w3c_validate_helper'

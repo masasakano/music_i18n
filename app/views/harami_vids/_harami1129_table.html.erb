@@ -25,7 +25,7 @@
         <td><%= i1129+1 %>
         <td><%= '['+pstat.sorted_status(return_markers: true).first+']' %>
         <td><%= pstat.marker(:ins_title).html_safe+link_to_youtube(harami1129.title, harami1129.link_root, harami1129.link_time) %></td>
-        <td><%= pstat.marker(:ins_release_date).html_safe+harami1129.release_date %></td>
+        <td><%= pstat.marker(:ins_release_date).html_safe+date2text(harami1129.release_date) %></td> <%# defined in ModuleCommon %>
         <td><%= pstat.marker(:ins_song).html_safe+harami1129.song %></td>
         <td><%= pstat.marker(:ins_singer).html_safe+harami1129.singer %></td>
         <td><%= pstat.marker(:ins_link_time).html_safe+link_to_youtube(harami1129.link_time.to_s, harami1129.link_root, harami1129.link_time) %></td>

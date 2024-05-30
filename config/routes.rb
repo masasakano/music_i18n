@@ -11,6 +11,9 @@ Rails.application.routes.draw do
   resources :instruments
   resources :play_roles
   resources :event_items
+  namespace :event_items do
+    resources :destroy_with_amps, only: [:destroy]
+  end
   resources :events
   resources :harami1129_reviews
   resources :event_groups

@@ -42,7 +42,16 @@ ev_evgr_<%= ekey %>_unknown:
 
 #ev_evgr_unknown:
 #  start_time:     <%= TimeAux::DEF_FIRST_DATE_TIME %>
-#  start_time_err: <%= TimeAux::MAX_ERROR %>
+#  start_time_err: <%= TimeAux::DEF_FIRST_DATE_TIME.error || TimeAux::MAX_ERROR %>
+
+ev_evgr_single_streets_unknown_japan:
+  start_time: <%= TimeAux::DEF_FIRST_DATE_TIME %>
+  start_time_err: <%= TimeAux::DEF_FIRST_DATE_TIME.error %>
+  duration_hour: 
+  weight: 0.5
+  event_group: evgr_single_streets
+  place: unknown_place_unknown_prefecture_japan
+  note: EvEvgrSingleStreetsUnknownJapan
 
 ev_evgr_lucky2023_unknown:
   start_time: <%= Date.new(2023).to_time %>
@@ -77,4 +86,13 @@ ev_harami_budokan2022_soiree:
   event_group: evgr_harami_concerts
   place: unknown_place_tokyo_japan
   note: Event_ev_harami_budokan2022
+
+three:
+  start_time: <%= Date.new(2024, 5, 3).in_time_zone %>
+  start_time_err: 9000
+  duration_hour: 2.5
+  weight: 0.5
+  event_group: evgr_single_streets
+  place: unknown_place_tokyo_japan
+  note: EventThreeGroupStreetInUnknownTokyo
 

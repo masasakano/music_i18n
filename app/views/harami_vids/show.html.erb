@@ -10,7 +10,7 @@
   <dd class="item_pid"><%= @harami_vid.id %></dd>
 
   <dt class="item_release_date"> <%= t("tables.release_date") %>:</dt>
-  <dd class="item_release_date"><%= @harami_vid.release_date %></dd>
+  <dd class="item_release_date"><%= date2text(@harami_vid.release_date) %></dd> <%# defined in ModuleCommon %>
 
   <dt class="item_duration"> <%= t("tables.duration") %> (HH:MM:SS):</dt>
   <dd class="item_duration"><%= dura=@harami_vid.duration %><%= dura ? " ("+sec2hms_or_ms(dura)+")" : "" %></dd>

@@ -34,7 +34,7 @@
         </td>
         <td class="item_title"><%= ea_hvid.title_or_alt %></td>
         <td class="URI"><%= link_to_youtube('Link', ea_hvid.uri) %></td>
-        <td class="item_release_date"><%= ea_hvid.release_date %></td>
+        <td class="item_release_date"><%= date2text(ea_hvid.release_date) %></td> <%# defined in ModuleCommon %>
         <td class="item_duration"><%= ea_hvid.duration ? sec2hms_or_ms(ea_hvid.duration) : "" %></td>
         <td class="item_place"><%= (pla=ea_hvid.place) ? (s=pla.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either); can?(:read, s) ? link_to(s, pla) : s) : "" %></td>
         <td class="item_musics"><%= ea_hvid.musics.uniq.map{|i| link_to(i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i)}.join(t(:comma)).html_safe %></td>

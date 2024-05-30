@@ -102,14 +102,20 @@ module ModuleCommon
   #
   # The nil part is displayed in either '——' or '??' (or '????' for the year)
   #
-  # @param year  [Integer, NilClass]
+  # @param year  [Date, Integer, NilClass]
   # @param month [Integer, NilClass]
   # @param day   [Integer, NilClass]
   # @param langcode: [String, Symbol] Default: +I18n.locale+
   # @param lower_end_str: [String, NilClass] if     nil  or Year <  100, this String is returned (html_safe).
   # @param upper_end_str: [String, NilClass] if non-nil and Year > 9000, this String is returned (html_safe).
   # @return [String]
-  def date2text(year, month, day, langcode: I18n.locale, lower_end_str: nil, upper_end_str: nil)
+  def date2text(year, month=nil, day=nil, langcode: I18n.locale, lower_end_str: nil, upper_end_str: nil)
+    if year.respond_to? :today?  # Date is given; n.b., Integer#month is defined in Rails...
+      day = year.day
+      month = year.month
+      year = year.year
+    end
+
     if year.blank?
       return lower_end_str if lower_end_str
       year  = nil 

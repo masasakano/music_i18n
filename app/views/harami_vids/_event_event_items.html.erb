@@ -1,4 +1,6 @@
 <%# Local vairables: none %>
+    <% canindex_evit = can? :index, EventItem %>
+    <% canread_h1129 = can? :read, Harami1129 %>
     <ul>
     <%# @harami_vid.events.order("start_time", "duration_hour").each do |event| %>
     <% @event_event_items.each_pair do |id_event, ar_event_items| %>
@@ -15,10 +17,10 @@
           <%# event.event_items.order("event_items.start_time").each_with_index do |event_item, eii| %>
           <% ar_event_items.each_with_index do |event_item, eii| %>
             <li>
-              <% if can? :index, EventItem %>
+              <% if canindex_evit %>
                 <%= t(:EventItem) %>
               <% end %>
-              <% if can? :show, event_item %>
+              <% if canindex_evit %>  <%# Strictly, this should be: can? :show, event_item %>
                 <% unknown_str = (event_item.unknown? ? ": Unknown" : "") %>
                 <% tit = sprintf("%s (ID=%d; Assoc-IDs=%s)", event_item.machine_title, event_item.id, HaramiVidEventItemAssoc.where(harami_vid: @harami_vid, event_item: event_item).order(:id).ids.inspect) %>
                 <%= link_to "(#{eii+1}#{unknown_str})", event_item, title: tit %>
@@ -27,6 +29,16 @@
               <% end %>
               <%= t("harami_vids.show.artist_collabs", default: "featuring Artists") %>
               (<%= show_list_featuring_artists(event_item) %>)  <%# defined in harami_vids_helper.rb %>
+              <span class="text-nowrap">
+              <% if canread_h1129 %>
+                <span class="editor_only">[#Harami1129 = <%= event_item.harami1129s.count %>]</span>
+              <% end %>
+              <% if can?(:destroy_with_amps, event_item) %>
+                <span class="moderator_only">
+                  [&nbsp;<%= link_to 'Destroy EventItem AND its associations', event_items_destroy_with_amp_url(event_item), method: :delete, data: { confirm: t('are_you_sure') }, title: 'May also destroy the parent Event if empty', class: "button_like" %>&nbsp;]
+                </span>
+              <% end %>
+              </span>
               <% if event_item.artist_music_plays.exists? %>
                 <%= render partial: "layouts/artist_music_plays", locals: {artist_music_plays: event_item.artist_music_plays} %>
               <% end %>

@@ -9,6 +9,7 @@
       <th>±hr</th>
       <th>Duration [m]</th>
       <th>±sec</th>
+      <th>Publish Date</th>
       <th>Weight</th>
       <th>Event ratio</th>
       <th>Place</th>
@@ -38,6 +39,7 @@
         <td><%= event_item.duration_minute %></td>
          <% err = event_item.duration_minute_err %>
         <td><%= err ? sprintf("%.2f", err.second.in_minutes) : "&mdash;".html_safe %> [min]</td>
+        <td><%= date2text(event_item.publish_date) %></td> <%# defined in ModuleCommon %> <%# defined in ModuleCommon %> <%# defined in ModuleCommon %> <%# defined in ModuleCommon %>
         <td><%= event_item.weight %></td>
         <td><%= event_item.event_ratio %></td>
         <td><%= event_item.place ? h(event_item.txt_place_pref_ctry) : "" %></td>

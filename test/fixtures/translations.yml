@@ -1824,6 +1824,26 @@ harami_vid_two_en:
   update_user: user_moderator
   note: HaramiVidTwoEn
 
+harami_vid_three_ja:
+  translatable: three (HaramiVid)
+  langcode: ja
+  title: "【田中ストリートピアノ】Number Three Vid Ja 3つ目"
+  is_orig: true
+  weight: 100
+  create_user: user_two
+  update_user: user_moderator
+  note: HaramiVidThreeJa-with-EventItem-1Music
+
+harami_vid_four_ja:
+  translatable: four (HaramiVid)
+  langcode: ja
+  title: "【山下ストリートピアノ】Number Four Vid Ja 4つ目"
+  is_orig: true
+  weight: 100
+  create_user: user_two
+  update_user: user_moderator
+  note: HaramiVidFourJa-with-EventItem-1Music
+
 engage_how1_en:
   translatable: engage_how_1 (EngageHow)
   langcode: en
@@ -2464,6 +2484,20 @@ ev_evgr_<%= ekey %>_unknown_<%= langcode %>:
 #ev_evgr_unknown_ja:
 #ev_evgr_unknown_fr:
 
+ev_evgr_single_streets_unknown_japan_en:
+  translatable: ev_evgr_single_streets_unknown_japan (Event)
+  langcode: en
+  title: Event in UnknownPlace(UnknownPrefecture/Japan) < Single-shot street playing
+  weight: 0
+  note: EvEvgrSingleStreetsUnknownJapanEn
+
+ev_evgr_single_streets_unknown_japan_ja:
+  translatable: ev_evgr_single_streets_unknown_japan (Event)
+  langcode: ja
+  title: "どこかの場所(どこかの都道府県/日本)でのイベント < 単発ストリート演奏"
+  weight: 0
+  note: EvEvgrSingleStreetsUnknownJapanJa
+
 ev_harami_lucky2023_unknown_en:
   translatable: ev_evgr_lucky2023_unknown (Event)
   langcode: en
@@ -2512,6 +2546,15 @@ ev_harami_budokan2022_soiree_en:
   create_user_id: user_moderator
   update_user_id: user_moderator
   note: EventBudokan2022SoireeEn
+
+ev_three_en:
+  translatable: three (Event)
+  langcode: en
+  title: Event 3 of Single-shot-Street in Tokyo
+  weight: 10
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: EventThreeGroupStreetInUnknownTokyoEn
 
 <% Seeds::PlayRole::SEED_DATA.each_pair do |ekey, edata| %>
  <% %i(en ja fr).each do |langcode| %>

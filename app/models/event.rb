@@ -84,8 +84,8 @@ class Event < BaseWithTranslation
   }.with_indifferent_access
 
   DEF_STREAMING_EVENT_TITLE_FORMATS = {
-    "en" => ['Live-streaming on %s', " < ", "%s"],
-    "ja" => ['%sの生配信', " < ", "%s"],
+    "en" => ['Live-streaming on %s', " < ", "%s"],  # "en" has a fewer "%s" than "ja"!
+    "ja" => ['%s %s', " < ", "%s"],
   }.with_indifferent_access
 
   TITLE_UNKNOWN_DATE = "UnknownDate"
@@ -280,12 +280,19 @@ class Event < BaseWithTranslation
     date_str = (date ? date.strftime("%Y-%m-%d") : TITLE_UNKNOWN_DATE)
 
     unsaved_transs = DEF_STREAMING_EVENT_TITLE_FORMATS.map{ |lc, fmts|
-      prefix = sprintf(fmts[0], date_str)
+      case lc.to_s
+      when "en"
+        prefix = sprintf(fmts[0], date_str)  # cannot include ref_title in general because it can (and usually do) violate the "asian_characters" constraint.
+      when "ja"
+        prefix = sprintf(fmts[0], date_str, ref_title)
+      else
+        next  # should not happen for now, but playing safe
+      end
       postfix = fmts[1]+sprintf(fmts[2], event_group.best_translations["en"].title)
       title = get_unique_string("translations.title", rela: self.joins(:translations), prefix: prefix, postfix: postfix, separator: "-", separator2:"")  # defined in module_application_base.rb
 
       Translation.new(langcode: lc, title: title, weight: Float::INFINITY)
-    }
+    }.compact  # "compact" would be needed only when "next" above is executed, which should never happen, but playing safe
 
     # initialize a new one
     hsin = {

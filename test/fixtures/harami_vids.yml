@@ -138,3 +138,23 @@ two:
   channel: channel_haramichan_youtube_main
   note: HaramiVidTwo
 
+three:
+  release_date: 2024-05-06
+  duration: 
+  uri: youtu.be/three
+  place: 
+  uri_playlist_ja: 
+  uri_playlist_en: 
+  channel: channel_haramichan_youtube_main
+  note: HaramiVidThree for street-piano single shot with 1 music
+
+four:
+  release_date: 2024-05-08
+  duration: 
+  uri: youtu.be/four
+  place: unknown_place_unknown_prefecture_japan
+  uri_playlist_ja: 
+  uri_playlist_en: 
+  channel: channel_haramichan_youtube_main
+  note: HaramiVidFour for street-piano single shot with 1 music somewhere in Japan
+

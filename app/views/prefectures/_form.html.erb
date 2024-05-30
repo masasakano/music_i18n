@@ -73,7 +73,7 @@
           msg = "This should not be destroyed because #{msg}. If you are sure you want to proceed, check this:"
        %>
          <!-- input id="force_destroy" type="checkbox" name="force_destroy" value="1" / -->
-     <%= button_to 'Destroy', prefecture, method: :delete, data: { confirm: t('common.are_you_sure') } %>
+     <%= button_to 'Destroy', prefecture, method: :delete, data: { confirm: t('are_you_sure') } %>
    </div>
   </div>
 <% end %>

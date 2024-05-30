@@ -38,9 +38,11 @@ class PopulatesControllerTest < ActionDispatch::IntegrationTest
     assert_equal @harami1129.singer  , @harami1129.ins_singer
     assert_equal @harami1129.release_date, @harami1129.ins_release_date
     assert       @harami1129.ins_link_root.include? @harami1129.link_root
+    japan_unknown = places(:unknown_place_unknown_prefecture_japan)
+    assert_equal 1, Event.where(place: japan_unknown).count, 'check fixtures'
 
     assert_difference('HaramiVid.count*10000 + HaramiVidMusicAssoc.count*1000 + Music.count*100 + Artist.count*10 + Engage.count', 11111) do
-      assert_difference('Event.count*100 + EventItem.count*10 + ArtistMusicPlay.count', 111) do
+      assert_difference('Event.count*100 + EventItem.count*10 + ArtistMusicPlay.count', 11) do
         # See HaramiVid#set_with_harami1129 and especailly a comment in the mid-section.
         # The default Place is Japan for Harami1129 to set in EventItem
         # and EventItem.default for the context of Harami1129 and Place of Japan

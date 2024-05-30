@@ -49,13 +49,6 @@ class Place < BaseWithTranslation
   #  (hash.keys.include? key.to_s) ? hash[key.to_s] : nil  # Symbol keys (langcode) are acceptable.
   #end
 
-  # The Regexps to identify existing (seeded) Place
-  #
-  # The key is mname.
-  REGEXP_IDENTIFY_MODEL = {
-    default_streaming: /^ハラミ(ちゃん)?自宅|\bHARAMIchan's home\b/i,
-  }.with_indifferent_access
-
   # Returns String names of the classes of instances that depend on this instance.
   #
   # @return [Array<String>]
@@ -84,6 +77,20 @@ class Place < BaseWithTranslation
     end
     sprintf("(%s < %s)", s_pref, s_country)
   }
+
+  # Sets {Place::REGEXP_IDENTIFY_MODEL} at the first call
+  #
+  # REGEXP_IDENTIFY_MODEL is a hash with the key of mname and contains the Regexps to identify existing (seeded) Model,
+  # used by ModuleMname
+  def self.regexp_identify_model
+    if !const_defined?(:REGEXP_IDENTIFY_MODEL)
+      const_set(:REGEXP_IDENTIFY_MODEL, {
+                  default_streaming: /^ハラミ(ちゃん)?自宅|\bHARAMIchan's home\b/i,
+                  default_harami_vid: Place.unknown(country: Rails.application.config.primary_country),
+                }.with_indifferent_access)
+    end
+    REGEXP_IDENTIFY_MODEL
+  end
 
   # Modifying {BaseWithTranslation.[]}
   #

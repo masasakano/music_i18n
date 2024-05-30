@@ -49,7 +49,7 @@ class HaramiVidMusicAssocTest < ActiveSupport::TestCase
     m1hv << h2
     assert_equal n_orig+1, HaramiVidMusicAssoc.count
     m1hv2 = m1.harami_vids
-    assert_equal 3, m1hv2.size, "HVids=#{m1hv2.inspect}"
+    assert_equal 5, m1hv2.size, "HVids=#{m1hv2.inspect}"
 
     ura3 = HaramiVidMusicAssoc.last
     assert_raises(ActiveRecord::RecordInvalid){

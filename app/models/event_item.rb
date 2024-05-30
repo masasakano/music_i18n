@@ -323,6 +323,15 @@ class EventItem < ApplicationRecord
     self.class.get_unique_title(prefix, postfix: postfix, separator: separator)
   end
 
+  # True if all the ArtistMusicPlay-s are "duplicated", meaning
+  # they all are associated for different EventItems as well.
+  # 
+  def associated_amps_all_duplicated?
+    artist_music_plays.all?{|amp|
+      amp.sames_but(event_item: self).exists?
+    }
+  end
+
   # Not destroyable if self is the last remaining one and {#unknown?}
   # even if there are no child HaramiVids.  In such a case,
   # the parent Event must be destroyed, which cascade-"delete" self.

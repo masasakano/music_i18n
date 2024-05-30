@@ -56,9 +56,11 @@ module HaramiMusicI18n
     #
     # Default Time Zone in setting a Date or Time.
     # Note that all Time values are recorded WITHOUT TIME ZONE in UT.
-    # You should retrieve a time-like value in a model like:
+    # You should retrieve a time-like value in a model in either of:
     #   Time.at(MyModel.first.my_time, in: Rails.configuration.music_i18n_def_timezone_str)
-    # which converts it into the application-specific time zone.
+    #   Time.at(MyModel.first.created_at.to_r, in: Rails.configuration.music_i18n_def_timezone_str)
+    # which converts it into the application-specific time zone
+    #  (The former may fail with:  can't convert ActiveSupport::TimeWithZone into an exact number (TypeError).)
     # If you want (though you should rarely need) to change just the time zone
     # without touching the other values in Time, consult
     #   https://stackoverflow.com/a/78053461/3577922

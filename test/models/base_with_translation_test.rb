@@ -415,15 +415,14 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
 
     mu_en1 = musics(:music1)
     hvs = HaramiVid.select_by_associated_titles(music_title: mu_en1.title)
-    assert_equal 2, hvs.count, "HVids=#{hvs.inspect}"
+    assert_equal 4, hvs.count, "HVids=#{hvs.inspect}"
     assert_equal harami_vids(:harami_vid1), hvs.first
 
     # tests of artists, which is in (many -> many) multi-layered relation
     art_en1 = artists(:artist1)
     hvs = HaramiVid.select_by_associated_titles(artist_title: art_en1.title)
-    assert_equal 2, hvs.count, "HVids=#{hvs.inspect}"
+    assert_equal 4, hvs.count, "HVids=#{hvs.inspect}"
     assert_equal harami_vids(:harami_vid1), hvs.first
-
   end
 
   test "orig_langcode and lc_related" do

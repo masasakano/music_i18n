@@ -3,6 +3,59 @@
 require "test_helper"
 
 # Testing integration of fixtures
+#
+# == Example of integration
+#
+# * 1 HaramiVid
+#   * Translation (must have 1 (or more))
+#   * Channel (must belongs_to)
+#     * Translation (must have 1 (or more))
+#     * ChannelOwner (must)
+#       * Translation-s (must)
+#       * If themselves==true
+#         * Artist (must belongs_to)
+#           * Translation-s (must)
+#           * best_translations must agree with ChannelOwner' best_translations
+#     * ChannelType (must)
+#       * Translation-s (must)
+#     * ChannelPlatform (must)
+#       * Translation-s (must)
+#   * HaramiVidEventItemAssoc (through, must have 1 or more)
+#     * EventItem (must have 1 (or more))
+#       * Place (...)
+#       * Event (must belongs_to)
+#         * Place (...)
+#         * Translation (must have 1 (or more))
+#         * EventItem (unknown; must have 1)
+#         * EventGroup (must belongs_to)
+#           * Place (...)
+#           * Translation (must have 1 (or more))
+#           * Event (unknown; must have 1)
+#       * ArtistMusicPlay (belongs_to, usually have 1 or more)
+#         * Music-s (usually should agree with those appearing in HaramiVidMusicAssoc for the HaramiVid)
+#         * Artist 1 (usually the default Artist)
+#         * Artist 2 (ChannelOwner of HaramiVid, if ChannelOwner#themselves is true)
+#   * HaramiVidMusicAssoc (through, usually have 1 or many more)
+#     * Music-s (usually should agree with those appearing in ArtistMusicPlay through HaramiVidEventItemAssoc)
+#       * Place (...)
+#       * Translation (must have 1 (or more))
+#       * Engage-s (usually should have 1 or more)
+#         * Artist-s (belongs_to, 1 or more)
+#           * Place (...)
+#           * Translation (must have 1 (or more))
+#         * EngageHow-s (belongs_to, 1 or more)
+#           * Translation (must have 1 (or more))
+#   * Harami1129 (usually have 1 (or many more))
+#     * EventItem (belongs_to; must; must be cnosistent with one of HaramiVidEventItemAssoc)
+#   * Place (belongs_to, optional)
+#       * Translation (must have 1 (or more))
+#       * Prefecture (belongs_to, must)
+#         * Translation (must have 1 (or more))
+#         * Place (unknown; must)
+#         * Country (belongs_to, must)
+#           * Translation (must have 1 (or more))
+#           * Prefecture (unknown; must)
+#
 class FixtureTest < ActiveSupport::TestCase
   include ModuleCommon
 
@@ -10,6 +63,7 @@ class FixtureTest < ActiveSupport::TestCase
   fixtures :all
 
   setup do
+    @def_artist = artists(:artist_harami)
     @allowed = {
       harami_vids: %i(
         music99 music999 music_unknown music_how music_kampai music_robinson music_light
@@ -20,6 +74,9 @@ class FixtureTest < ActiveSupport::TestCase
       musics: %i(
         harami_vid5
       ).map{|ek| harami_vids(ek)},
+      harami_vid_music_assoc_musics: %i(
+        music_kampai
+      ).map{|ek| musics(ek)},  # skip checking consistency between HaramiVidMusicAssoc and ArtistMusicPlays
       event_items: %i(
         harami_vid5
       ).map{|ek| harami_vids(ek)},
@@ -38,6 +95,7 @@ class FixtureTest < ActiveSupport::TestCase
   end
 
   test "fixtures translations assocs" do
+    Rails.application.eager_load!
     BaseWithTranslation.descendants.each do |klass|
       klass.all.each do |obj|
         _assert_fixtures(obj, :translations)
@@ -94,18 +152,23 @@ class FixtureTest < ActiveSupport::TestCase
     end
   end
 
-  test "fixtures ChannelOwner and Artists" do
+  test "fixtures ChannelOwners and Artists" do
     assert_nil((m=ChannelOwner.find_by(themselves: true,  artist: nil)), "model=#{m}")
     assert_nil((m=ChannelOwner.where(themselves: false).where.not(artist: nil).first), "Allowed, but not good for fixtures: model=#{m}")
+
+    ChannelOwner.where(themselves: true).each do |eco|
+      eco_bests = eco.best_translations
+      art_bests = eco.artist.best_translations
+      cols = [:title, :alt_title, :ruby, :romaji, :alt_ruby, :alt_romaji, :is_orig, :langcode]
+      %w(en ja).each do |lc|
+        assert_equal eco_bests[lc].slice(*cols), art_bests[lc].slice(*cols), "ChannelOwner (#{str2identify_fixture(eco_bests[lc], note_label: "trans.note=")}) has inconsistent Translation in lc=#{lc} with Artist (#{str2identify_fixture(art_bests[lc], note_label: "trans.note=")})"  # str2identify_fixture() defined in model_helper.rb
+      end
+    end
   end
 
   test "fixtures consistency between MusicAssoc-Music and EventItem-Music" do
-    HaramiVid.all.each do |ehv|
-      ((mu4assoc=ehv.musics) + (mu4evit=ehv.music_plays)).sort.uniq.each do |emu|
-        msg1 = "In HaramiVid (note=#{ehv.note.inspect}), Music (#{emu.title}; note=#{emu.note.inspect}) is in "
-        assert_includes mu4assoc, emu, msg1+"HaramiVidMusicAssoc but not in ArtistMusicPlay (through HaramiVidEventItemAssoc)."
-        assert_includes mu4evit,  emu, msg1+"ArtistMusicPlay (HaramiVidEventItemAssoc) but not in HaramiVidMusicAssoc."
-      end
+    HaramiVid.all.each do |hvid|
+      assert_consistent_music_assocs_for_harami_vid(hvid)  # defined in model_helper.rb
     end
   end
 

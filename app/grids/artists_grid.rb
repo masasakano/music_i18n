@@ -69,7 +69,7 @@ class ArtistsGrid < BaseGrid
     html_title_alts(record, is_orig_char: "*")  # defined in base_grid.rb
   end
 
-  column(:sex, class: ["align-cr"], mandatory: true, header: Proc.new{I18n.t('tables.sex')}) do |record|
+  column(:sex, class: ["text-center"], mandatory: true, header: Proc.new{I18n.t('tables.sex')}) do |record|
     record.sex.title(langcode: I18n.locale)
   end
 

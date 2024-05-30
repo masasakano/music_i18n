@@ -147,6 +147,7 @@ en:
       artists_multi: 'Artists (partial match)'
       musics_multi: 'Musics (partial match)'
       n_musics_general: "# of Musics"
+      n_amps: "# of plays"
       by_harami: "By Harami?"
       by_harami_full: "Produced by HARAMIchan?"
       uri_playlist: "Comment URI list [%{langcode}]"

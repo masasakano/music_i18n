@@ -21,7 +21,7 @@
   <dt><strong><%= t("tables.publish_date", default: "Published on YYYY-MM-DD") %>:</strong></dt>
     <% da = event_item.publish_date %>
     <% end_str = (canedit ? nil : "&mdash;".html_safe) %>
-    <dd><%= strdate = (da ? date2text(da.year, da.month, da.day, lower_end_str: end_str, upper_end_str: end_str) : (canedit ? date2text(nil, nil, nil) : "&mdash;".html_safe)) %></dd>
+    <dd><%= strdate = (da ? date2text(da, lower_end_str: end_str, upper_end_str: end_str) : (canedit ? date2text(nil, nil, nil) : "&mdash;".html_safe)) %></dd> <%# defined in ModuleCommon %>
 
   <dt><strong>Weight:</strong></dt>
     <dd><%= event_item.weight %></dd>

@@ -17,9 +17,10 @@
 # or method +regexp_identify_model+, which returns an equivalent
 # (see prefecture.rb for a real example).  The constant is a Hash
 # +with_indifferent_access+ with keys of mname with values
-# of either a Regular Expression to identify the record for the mname,
-# or an Array of a pair of elements with the first one being the Regexp
-# and the latter being a Hash to pass to {BaseWithTranslation#select_regex}.
+# of one of a model record, a Regular Expression to identify the record for the mname,
+# and an Array of a pair of elements with the first one being the Regexp
+# and the latter being a Hash to pass to {BaseWithTranslation#select_regex}
+# to identify the record, which may contain the keys like +:langcode+ and/or +:where+.
 #
 # Note that the Regexp defined in +REGEXP_IDENTIFY_MODEL+ must be
 # PostgreSQL-copabible although some basic differences between
@@ -30,6 +31,7 @@
 #   REGEXP_IDENTIFY_MODEL = {
 #     default_XXX: /\Aあいうえお|\bXYZ\b/i,
 #     default_YYY: [/\bABC\b/i, {langcode: "en", where: {"prefectures.country_id" => Country["GBR"].id}}],
+#     default_ZZZ: MyModel.find(123),
 #   }.with_indifferent_access
 #     # Note the "prefectures." prefix is mandatory in the +where` value.
 #     # Note "country_id" as opposed to "country" is mandatory.
@@ -45,8 +47,8 @@ module ModuleMname
     #
     # @param mname_in [String, Symbol]
     def find_by_mname(mname_in)
-      hsall = get_regexp_identify_model
-      raise ArgumentError, "No mname of #{mname_in} for Class #{self.name}. Contact the code developer" if !hsall.keys.include?(mname_in.to_s)
+      hsall = get_model_or_regexp_to_identify_model
+      raise ArgumentError, "No mname of #{mname_in.inspect} for Class #{self.name}. Contact the code developer" if !hsall.keys.include?(mname_in.to_s)
 
       val = hsall[mname_in.to_s]
       re, hsin =
@@ -56,7 +58,11 @@ module ModuleMname
             [val, {}]
           end
 
-      self.select_regex(:titles, re, sql_regexp: true, **(hsin.symbolize_keys)).first
+      if re.class == self
+        re
+      else
+        self.select_regex(:titles, re, sql_regexp: true, **(hsin.symbolize_keys)).first
+      end
     end
 
     # Adds a new option to []
@@ -73,7 +79,7 @@ module ModuleMname
     end
 
     # @return REGEXP_IDENTIFY_MODEL or that taken from method regexp_identify_model
-    def get_regexp_identify_model
+    def get_model_or_regexp_to_identify_model
       if respond_to? :regexp_identify_model
         regexp_identify_model
       else
@@ -89,22 +95,28 @@ module ModuleMname
   #    the first one that matches the Regexp is returned, regardless of
   #    the second element.
   #
-  # @return [String, NilClass] mname.to_s if mname.present?  If not, judge it according to Translation.
-  #    returns nil only when mname is not defined for self.
+  # @return [String] mname.to_s if mname.present?  If not, judge it according to Translation.
+  #    If no corresponding mname is found, English (falling back to Japanese) Translation is returned.
+  #    This should never return nil (or an empty String except when neither title nor alt_title is defined)
   def mname_to_s
     if mname.present? && !(s=mname.to_s.strip).empty?
       return s
     end
 
-    self.class.get_regexp_identify_model.each_pair do |ek, ea_val|
+    self.class.get_model_or_regexp_to_identify_model.each_pair do |ek, ea_val|
       ea_re = (ea_val.respond_to?(:map) ? ea_val.first : ea_val)
-      (alltras = best_translations).values.each do |tra|
-        %i(title alt_title).each do |metho|
-          return ek.to_s if (s=tra.send(metho)).present? && ea_re =~ s
+      if ea_re.class == self.class
+        return ek.to_s if ea_re == self
+      else
+        (alltras = best_translations).values.each do |tra|
+          %i(title alt_title).each do |metho|
+            return ek.to_s if (s=tra.send(metho)).present? && ea_re =~ s
+          end
         end
       end
     end
 
+    # mname is not found. Returns the English title (or alt_title) instead
     (best_translations["en"] || best_translations["ja"]).slice(:title, :alt_title).values.map{|i| (i.present? && i.strip.present?) ? i : nil}.compact.first || ""  # should never be an empty String in normal operations, but playing safe.
   end
 end

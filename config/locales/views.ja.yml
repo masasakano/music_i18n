@@ -161,6 +161,7 @@ ja:
       artists_multi: 'アーティスト(部分一致)'
       musics_multi: '曲(部分一致)'
       n_musics_general: "曲数"
+      n_amps: 演奏関与数
       by_harami: "本人動画?"
       by_harami_full: "本人制作動画か?"
       uri_playlist: "セトリURI [%{langcode}]"

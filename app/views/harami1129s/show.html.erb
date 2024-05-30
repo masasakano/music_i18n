@@ -38,10 +38,10 @@
   <dd id="h1129_release_date_dd">
   <table>
     <tbody>
-      <tr><th>Downloaded</th><td><%= @harami1129.release_date %></td></tr>
-      <tr><th>Internally inserted</th><td><%= @harami1129.ins_release_date %></td></tr>
-      <tr><th><%= s='Current Destination'; (hvid ? link_to(s, hvid) : s) %></th><td><%= s=popst.dest_current(:ins_release_date); (hvid ? link_to(s, hvid) : s) %></td></tr>
-      <tr><th>(Downloaded → Destination)</th><td><%= popst.ins_to_be(:ins_release_date) %></td></tr>
+      <tr><th>Downloaded</th><td><%= date2text(@harami1129.release_date) %></td></tr> <%# defined in ModuleCommon %>
+      <tr><th>Internally inserted</th><td><%= date2text(@harami1129.ins_release_date) %></td></tr>
+      <tr><th><%= s='Current Destination'; (hvid ? link_to(s, hvid) : s) %></th><td><%= s=date2text(popst.dest_current(:ins_release_date)); (hvid ? link_to(s, hvid) : s) %></td></tr>
+      <tr><th>(Downloaded → Destination)</th><td><%= date2text(popst.ins_to_be(:ins_release_date)) %></td></tr>
     </tbody>
   </table>
   </dd>

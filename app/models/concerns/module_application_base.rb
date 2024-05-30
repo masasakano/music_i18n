@@ -52,6 +52,10 @@ module ModuleApplicationBase
 
   # Returns a unique string within a context
   #
+  # The "context" is given in the form of column name (1st argument) and either self
+  # of {ActiveRecord::Relation} (optional +rela+); the returned String is guaranteed not to exist
+  # in the context.
+  #
   # A number may be added between prefix and separator + postfix if it is already unique.
   # A separator becomes blank if postfix is blank.
   #

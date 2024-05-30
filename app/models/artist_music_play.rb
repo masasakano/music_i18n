@@ -84,4 +84,33 @@ class ArtistMusicPlay < ApplicationRecord
 
     new(**(hsbase.merge({instrument: instrument, play_role: play_role})))
   end
+
+  # Returns Relation of all ArtistMusicPlay-s same as self except for keywords
+  #
+  # Note the form of "XXX_id" is not accepted!
+  #
+  # Note if multiple keys are specified, they are treated as AND; e.g., 
+  #    sames_but(music: Music.first, artist: Artist.first)
+  # returns those that has neither of Music and Artist, and so they include
+  # ArtistMusicPlay with the Artist but not Music.
+  #
+  # @example
+  #   amp.sames_but(event_item: EventItem.first)
+  #
+  # @param kwds [Hash<ActiveRecord>]
+  # @return [ArtistMusicPlay::Relation]
+  def sames_but(**kwds)
+    hsin = {}
+    hsout = {}
+    %i(artist event_item instrument music play_role).each do |ek|
+      k = ek.to_s+"_id"
+      if kwds.has_key?(ek)
+        hsout[k] = kwds[ek].id
+      else
+        hsin[k]  = send(ek).id
+      end
+    end
+
+    self.class.where(hsin).where.not(hsout)
+  end
 end

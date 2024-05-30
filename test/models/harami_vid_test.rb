@@ -1,3 +1,4 @@
+# coding: utf-8
 # == Schema Information
 #
 # Table name: harami_vids
@@ -146,6 +147,123 @@ class HaramiVidTest < ActiveSupport::TestCase
     #:artist_rcsuccession_ja
   end
 
+  test "set_event_item_if_live_streaming" do
+    hvid = HaramiVid.create_basic!(title: (tit_orig='生配信するよ'), langcode: "ja", is_orig: true, uri: "youtu.be/abcdefghi", release_date: (dat_hvid=Date.new(2024,3,5)), channel: Channel.default(:HaramiVid))
+    hvid.musics << (mu1=musics(:music1))
+    hvid.musics << (mu2=musics(:music2))
+    assert          hvid.event_items.empty?, 'sanity check'
+    assert_equal 2, hvid.musics.count, 'sanity check'
+
+    # NOT live-streaming HaramiVid
+    assert_no_difference('ArtistMusicPlay.count'){
+      assert_no_difference('Event.count + EventItem.count + HaramiVidEventItemAssoc.count'){
+        harami_vids(:harami_vid1).set_event_item_if_live_streaming(create_amps: true)
+      }
+    }
+
+    # For live-streaming HaramiVid
+    assert_difference('HaramiVidMusicAssoc.count*10 + ArtistMusicPlay.count', 2){
+      assert_difference('Event.count + EventItem.count + HaramiVidEventItemAssoc.count', 3){
+        assert_equal EventItem, hvid.set_event_item_if_live_streaming(create_amps: true).class
+      }
+    }
+
+    assert_equal 1, hvid.event_items.size
+    evit = hvid.event_items.first
+    assert_equal EventGroup.find_by_mname(:live_streamings), evit.event_group
+    assert_includes evit.event.title(langcode: "ja"), tit_orig
+    assert_equal dat_hvid, evit.event.start_time.to_date
+
+    assert_equal 2, evit.musics.count
+    assert_equal 2, evit.artist_music_plays.count
+    assert_includes evit.musics, mu1
+    assert_includes evit.musics, mu2
+
+    # 2nd-time run
+    assert_no_difference('ArtistMusicPlay.count'){
+      assert_no_difference('Event.count + EventItem.count + HaramiVidEventItemAssoc.count'){
+        assert_nil hvid.set_event_item_if_live_streaming(create_amps: true)
+      }
+    }
+
+    hvid = HaramiVid.create_basic!(title: (tit_orig='同じ日の別の生配信'), langcode: "ja", is_orig: true, uri: "youtu.be/abcdefghi2", release_date: dat_hvid, channel: Channel.default(:HaramiVid))
+    existing_evt = Event.create_basic!(title: "tmp-event1", langcode: "en", is_orig: true, event_group: EventGroup.default(:HaramiVid))
+    existing_evit = existing_evt.unknown_event_item
+    existing_amp = ArtistMusicPlay.initialize_default_artist(:HaramiVid, event_item: existing_evit, music: musics(:music1))
+    existing_amp.save!
+    existing_evit.artist_music_plays.reset
+    hvid.event_items << existing_evit
+    hvid.reload  # to refresh all associations
+    # HaramiVid associated with an EventItem with an ArtistMusicPlay (but not with Music via HaramiVidMusicAssoc)
+
+    h1129_1 = harami1129s(:harami1129one)
+    h1129_1.update!(harami_vid: hvid, event_item: existing_evit)
+    h1129_2 = harami1129s(:harami1129two)
+    h1129_2.update!(harami_vid: hvid, event_item: existing_evit)
+
+    # Always new Event is created for live-streaming. Existing ArtistMusicPlay is copied regardless of create_amps
+    assert_difference('HaramiVidMusicAssoc.count*10 + ArtistMusicPlay.count', 1){
+      assert_difference('Event.count + EventItem.count + HaramiVidEventItemAssoc.count', 3){
+        assert_equal EventItem, hvid.set_event_item_if_live_streaming(create_amps: false).class
+      }
+    }
+
+    evgr_streaming = EventGroup.find_by_mname(:live_streamings)
+
+    assert_equal 2, hvid.event_items.size, "should be 2 = existing(StreetPiano) + new(Streaming), but..."
+    assert_includes hvid.event_items, existing_evit
+    evit = hvid.event_items.last
+    refute_equal existing_evit, evit, 'sanity check'
+    assert_equal evgr_streaming, evit.event_group
+    assert_includes evit.event.title(langcode: "ja"), tit_orig
+
+    assert_equal 2, hvid.artist_music_plays.size, "should be 2 = existing(StreetPiano) + new(Streaming), but..."
+    assert_equal 1, evit.musics.count
+    assert_equal 1, evit.artist_music_plays.count
+    assert_equal existing_amp.music, evit.artist_music_plays.first.music
+
+    assert_equal evit, h1129_1.reload.event_item
+    assert_equal evit, h1129_2.reload.event_item
+
+    # run with HaramiVid with multiple existing (non-live-streaming) EventItem-s
+    hvid = harami_vids(:harami_vid_ihojin1)
+    assert hvid.event_items.exists?, 'sanity check'
+    assert_operator 1, :<, hvid.event_items.count, 'sanity check'
+    assert_equal event_items(:evit_1_harami_lucky2023), (evit=hvid.event_items.first), 'test fixtures'  # prone to future changes
+    refute_equal evgr_streaming, evit.event_group, 'test fixtures'
+    assert_no_difference('HaramiVidMusicAssoc.count*10 + ArtistMusicPlay.count'){
+      assert_no_difference('Event.count + EventItem.count + HaramiVidEventItemAssoc.count'){
+        assert_nil hvid.set_event_item_if_live_streaming(create_amps: true)
+      }
+    }
+
+    # run with HaramiVid with an existing (non-live-streaming) EventItem; there is no default Event for the Place
+    hvid = harami_vids(:three)
+    assert hvid.event_items.exists?, 'sanity check'
+    assert_equal 1, hvid.event_items.count, 'sanity check'
+    assert_equal event_items(:three), (evit=hvid.event_items.first), 'test fixtures'  # prone to future changes
+    refute_equal evgr_streaming, evit.event_group, 'test fixtures'
+    assert_no_difference('HaramiVidMusicAssoc.count*10 + ArtistMusicPlay.count'){
+      assert_no_difference('Event.count + EventItem.count + HaramiVidEventItemAssoc.count'){
+        assert_nil hvid.set_event_item_if_live_streaming(create_amps: true)
+      }
+    }
+
+    # run with HaramiVid with an existing EventItem; an Event for the Place (unknown Prefecture in Japan) exists.
+    hvid = harami_vids(:four)
+    assert hvid.event_items.exists?, 'sanity check'
+    assert_equal 1, hvid.event_items.count, 'sanity check'
+    exp = event_items(:evit_ev_evgr_single_streets_unknown_japan_unknown)
+    assert_equal exp, (evit=hvid.event_items.first), 'test fixtures'  # prone to future changes
+    refute_equal evgr_streaming, evit.event_group, 'test fixtures'
+
+    assert_no_difference('HaramiVidMusicAssoc.count*10 + ArtistMusicPlay.count'){
+      assert_no_difference('Event.count + EventItem.count + HaramiVidEventItemAssoc.count'){
+        assert_nil hvid.set_event_item_if_live_streaming(create_amps: true)
+      }
+    }
+  end
+
   test "create_basic!" do
     mdl = nil
     assert_nothing_raised{
@@ -166,8 +284,8 @@ class HaramiVidTest < ActiveSupport::TestCase
 
     hv = harami_vids(:harami_vid_ihojin1)
     evis = [event_items(:evit_1_harami_lucky2023), event_items(:evit_2_harami_lucky2023)]
-    assert_equal 1, evis[0].artists.size, 'confirms fixtures'
-    assert_equal 2, evis[1].artists.size, 'confirms fixtures'
+    assert_equal 2, evis[0].artists.size, "#{evis[0].artists.inspect}; confirms fixtures"
+    assert_equal 2, evis[1].artists.size, '#{evis[1].artists.inspect}; confirms fixtures'
     assert_equal evis, hv.event_items.order("event_items.start_time").to_a
     assert_equal EventItem, hv.event_items.first.class, "#{hv.event_items.first.inspect}"
     assert hv.artist_music_plays.exists?

@@ -18,6 +18,8 @@ module ModuleGuessPlace
     # If nothing is found, unknown Place (of perhaps the def_country) is returned.
     # If +def_country+ is set nil AND nothing is found, +fallback+ is returned (Default is {Place.unknown})
     #
+    # The default {Place} is identical to +Place[:default_harami_vid]+
+    #
     # @example If you want nil to be returned if nothing matches
     #    Harami1129.guess_place(strin, def_country: nil, fallback: nil)
     #

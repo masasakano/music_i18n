@@ -54,6 +54,15 @@ evit_ev_evgr_<%= ekey %>:
 #  start_time:     <%= TimeAux::DEF_FIRST_DATE_TIME %>
 #  start_time_err: <%= TimeAux::MAX_ERROR %>
 
+evit_ev_evgr_single_streets_unknown_japan_unknown:
+  machine_title: UnknownEventItem_in_UnknownPlace(UnknownPrefecture/Japan)_<_Single-shot_street_playing
+  start_time: <%= TimeAux::DEF_FIRST_DATE_TIME %>
+  start_time_err: <%= TimeAux::DEF_FIRST_DATE_TIME.error %>
+  publish_date:
+  event: ev_evgr_single_streets_unknown_japan
+  place: unknown_place_unknown_prefecture_japan
+  note: EventItemEvent_ev_evgr_single_streets_unknown_japan_unknown
+
 evit_ev_evgr_lucky2023_unknown_unknown:
   machine_title: UnknownEventItem_UnknownEvent_Lucky2023
   start_time: <%= Date.new(2023).to_time %>
@@ -151,4 +160,24 @@ two:
   event: ev_harami_lucky2023
   place: unknown_place_shimane_japan
   note: EventItemTwo
+
+evit_three_single_streets_unknown:
+  machine_title: UnknownEventItem_Event_3_of_Single-shot-Street_in_Tokyo
+  start_time: 2024-05-03 13:00:00
+  start_time_err: 600
+  event: three
+  place: unknown_place_tokyo_japan
+  note: EventItemEvent_ev_three_single_streets_unknown
+
+three:
+  machine_title: item1-Event_3_of_Single-shot-Street_in_Tokyo
+  start_time: 2024-05-03 13:00:00
+  start_time_err: 300
+  duration_minute: 20
+  publish_date:
+  weight: 0.7
+  event_ratio: 0.2
+  event: three
+  place: unknown_place_tokyo_japan
+  note: EventItemThree-a-Default
 

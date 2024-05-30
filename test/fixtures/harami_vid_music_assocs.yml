@@ -96,3 +96,17 @@ harami_vid_two_robinson_assoc:
   music: music_robinson
   note: HaramiVidTwoRobinsonAssoc
 
+harami_vid_three_music1_assoc:
+  harami_vid: three
+  music: music1
+  timing: 100
+  completeness: 
+  note: HaramiVidThreeMusic1Assoc
+
+harami_vid_four_music1_assoc:
+  harami_vid: four
+  music: music1
+  timing: 200
+  completeness: 
+  note: HaramiVidFourMusic1Assoc
+

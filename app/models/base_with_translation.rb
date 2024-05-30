@@ -436,7 +436,12 @@ class BaseWithTranslation < ApplicationRecord
         return
       end
 
-      record.unsaved_translations.each do |tra|
+      record.unsaved_translations.each_with_index do |tra, i|
+        if !tra
+          record.errors.add :base, "null element in translations. Contact the code developer."
+          Rails.logger.error "ERROR(#{File.basename __FILE__}:#{__method__}): Should not happen - null element in unsaved_translations (#{i}) for #{record.inspect} / translations= #{record.unsaved_translations.inspect}"
+          next
+        end
         kwdmsgs = []
         if !tra.valid_main_params?(kwd_messages: kwdmsgs)
           kwdmsgs.each do |em|

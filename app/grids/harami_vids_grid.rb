@@ -43,7 +43,7 @@ class HaramiVidsGrid < BaseGrid
   ####### Columns #######
 
   column(:id, class: ["align-cr", "editor_only"], header: "ID", if: Proc.new{BaseGrid.qualified_as?(:editor)}) do |record|
-    to_path = Rails.application.routes.url_helpers.harami1129_url(record, {only_path: true}.merge(ApplicationController.new.default_url_options))
+    to_path = Rails.application.routes.url_helpers.harami_vid_url(record, {only_path: true}.merge(ApplicationController.new.default_url_options))
     ActionController::Base.helpers.link_to record.id, to_path
   end
 
@@ -68,6 +68,9 @@ class HaramiVidsGrid < BaseGrid
   end
   column(:n_musics, class: ["align-cr"], header: Proc.new{I18n.t('datagrid.form.n_musics_general')}) do |record|
     record.musics.uniq.count
+  end
+  column(:n_amps, class: ["align-cr"], header: Proc.new{I18n.t('datagrid.form.n_amps')}, if: Proc.new{BaseGrid.qualified_as?(:editor)}) do |record|
+    record.artist_music_plays.uniq.count
   end
 
   column(:musics,  html: true, mandatory: true, header: I18n.t(:Musics)) do |record|

@@ -83,3 +83,15 @@ hvei_harami_vid_paris1_evit_ev_evgr_single_streets:
   timing:
   note: HveiHaramiVidParis1EvitEvEvgrSingleStreets
 
+hvei_three_three:
+  harami_vid: three
+  event_item: three
+  timing:
+  note: "HveiThree(HaramiVid)Three(EventItem)"
+
+hvei_four_evit_street_unknown_japan:
+  harami_vid: four
+  event_item: evit_ev_evgr_single_streets_unknown_japan_unknown
+  timing:
+  note: "HveiFour(HaramiVid)EventItemUnknownEventInJapanInGroupStreet"
+

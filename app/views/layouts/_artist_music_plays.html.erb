@@ -12,25 +12,33 @@
        promotable: can?(:update, Translations::PromotesController),
      }
      
+     canshows = {}.with_indifferent_access
+     [Artist, Music, PlayRole, Instrument].each do |model|
+       canshows[model.name.underscore] = can?(:show, model)
+     end
+     canedit_hvid   = can? :edit, HaramiVid
+     canedit_evit   = can? :edit, EventItem
+     candestroy_amp = can? :destroy, ArtistMusicPlay
+
      increment2 = (hsflag[:demotable] ? 1 : 0) + (hsflag[:promotable] ? 1 : 0)
      allcolspan     += increment1 +  increment2
      action_colspan +=               increment2
    %>
   <thead>
     <tr>
-     <% if can? :edit, EventItem %>
+     <% if canedit_hvid %>
       <th class="editor_only">pID</th>
      <% end %>
       <th><%= t(:Artist) %></th>
       <th><%= t(:Music) %></th>
       <th><%= t(:PlayRole) %></th>
       <th><%= t(:Instrument_pl_short) %></th>
-     <% if can? :edit, EventItem %>
+     <% if canedit_evit %>
       <th class="editor_only"><%= t("attr.contribution") %></th>
       <th class="editor_only"><%= t("attr.cover_ratio") %></th>
      <% end %>
       <th><%= t("tables.note").capitalize %></th>
-     <% if can? :destroy, ArtistMusicPlay %>
+     <% if candestroy_amp %>
       <th class="editor_only"></th>
      <% end %>
     </tr>
@@ -39,22 +47,22 @@
   <tbody>
    <% artist_music_plays.each_with_index do |amp, i_amp| %>
     <tr>
-     <% if can? :edit, EventItem %>
+     <% if canedit_hvid %>
       <td class="editor_only"><%= amp.id %></td>
      <% end %>
      <%  [:artist, :music, :play_role, :instrument].each do |att| %>
        <td>
          <% tit = (model=amp.send(att)).title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true) %>
-         <%= can?(:show, model) ? link_to(tit, model) : tit %>
+         <%= canshows[att] ? link_to(tit, model) : tit %>
        </td>
      <% end %>
-     <% if can? :edit, EventItem %>
-     <%  [:contribution_artist, :cover_ratio].each do |att| %>
-      <td class="editor_only"><%= amp.send(att) %></td>
-     <% end %>
+     <% if canedit_evit %>
+      <%  [:contribution_artist, :cover_ratio].each do |att| %>
+       <td class="editor_only"><%= amp.send(att) %></td>
+      <% end %>
      <% end %>
       <td><%= amp.note %></td>
-     <% if can? :destroy, ArtistMusicPlay %>
+     <% if candestroy_amp %>
       <td class="editor_only">
         <% if can? :destroy, amp %>
           <%= link_to t('layouts.dissociate_this', this_model: t('adjective.this')+t('EventItem')), amp, method: :delete, data: { confirm: t('are_you_sure') }, title: t('event_items.dissociate_hint') %>

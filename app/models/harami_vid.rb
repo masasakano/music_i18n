@@ -488,6 +488,156 @@ class HaramiVid < BaseWithTranslation
     HaramiVid.joins(:event_items).where("event_items.id" => hv_ids).where.not("harami_vids.id" => id).distinct
   end
 
+  # sets EventItem if self is for live_streaming and doee not have a significant EventItem
+  #
+  # If self appears to be for live-streaming, this method adds, this method
+  # may create HaramiVidEventItemAssoc, and if it does, it is most likely
+  # to create also a new {Event} and {EventItem}.
+  # This method may also {#update} self.place.
+  #
+  # Specifically, if the existing {#event_item} does not exist (which should never happen
+  # except for legacy records) or there is only one {#event_item} that is simply a default assigned one,
+  # AND most importantly, 
+  # self's (zero or one) EventItem .
+  #
+  # This method does nothing with the already associated (sole) {EventItem}.
+  # However, this method copies all {ArtistMusicPlay} associated with the existing {EventItem}
+  # to the new one.
+  # Also, if +create_amps+ is given true, this methods creates a set of associations
+  # {ArtistMusicPlay} for the newly associated (usually created) {EventItem},
+  # for all Musics in {HaramiVidMusicAssoc} for the default Artist.
+  #
+  # This method mass-rewrite {Harami1129#event_item} to the new {EventItem} in default
+  # when a new {EventItem} is created (see +transfer_h1129+).
+  #
+  # @param create_amps: [Boolean] If true, new {ArtistMusicPlay}-s are created
+  #    if {HaramiVidMusicAssoc} exist.
+  # @param transfer_h1129: [Boolean] if true (Def) and if HaramiVid is associated with a single
+  #   EventItem that is associated with {Harami1129}-s, this method rewrites {Harami1129#event_item}
+  #   of all of them to the newly created {EventItem}
+  # @return [EventItem, NilClass] created EventItem if created, else nil.
+  def set_event_item_if_live_streaming(create_amps: false, transfer_h1129: true)
+    n_evits = event_items.count
+    return if n_evits > 1 || (1 == n_evits && (evit_prev=event_items.first).event_group == (evgr=EventGroup.find_by_mname(:live_streamings)))
+    # This method does nothing if HaramiVid is associated to more than 1 EventItem
+    # (because EventItems for HaramiVid must have been manually manipulated by an Editor),
+    # or if an EventItem's EventGroup is already Live-Streamings (to avoid duplicated
+    # processing).
+
+    evit = nil
+
+    ActiveRecord::Base.transaction(requires_new: true) do
+      evit = _new_evit_if_live_streaming(evit_prev)
+      return if !evit
+      self.event_items << evit  # Creates a HaramiVidEventItemAssoc
+      _copy_amps_to_new_evit(evit_prev, evit) if evit_prev  # Creates {ArtistMusicPlay}-s 
+      _create_amps_from_hvmas(evit)  if create_amps         # Creates {ArtistMusicPlay}-s 
+      _reset_h1129_evit_new(evit_prev, evit) if evit_prev && transfer_h1129
+    end
+
+    evit.harami_vid_event_item_assocs.reset
+    evit.artist_music_plays.reset
+    evit
+  end # def set_event_item_if_live_streaming
+
+  # Returns a new EventItem if EventGroup is for streaming, else nil.
+  #
+  # This method does *not* check existing EventItem-s associated to self.
+  #
+  # @param evit_prev [EventItem, NilClass]
+  # @return [EventItem, NilClass] if a new EventItem is appropriate (Group is for streaming), creates one and returns it; otherwise returns nil
+  def _new_evit_if_live_streaming(evit_prev)
+    title_ja = title_or_alt(langcode: :ja, lang_fallback_option: :either, str_fallback: "", article_to_head: true)
+    place2pass, confidence = _get_place_and_confidence(title_ja)
+
+    update!(place: place2pass) if place != place2pass
+
+    ev_or_evit = EventItem.new_default(:HaramiVid, event: nil, place: place2pass, save_event: false, ref_title: title_ja, date: release_date, place_confidence: confidence)  # => EventItem or Event (unsaved if they are new)
+    return if ev_or_evit == evit_prev
+
+    if ev_or_evit.respond_to?(:unknown_event_item)  # if it is an Event
+      return if ev_or_evit.event_group != (evgr ||= EventGroup.find_by_mname(:live_streamings))  # Ignores a different EventGroup from :live_streamings
+      ev_or_evit.save!
+      return ev_or_evit.unknown_event_item  # Event => EventItem
+    elsif ev_or_evit.event_group == (evgr ||= EventGroup.find_by_mname(:live_streamings))
+      logger.warning("WARNING(#{__method__}): EventItem (#{ev_or_evit.inspect}) unexpectedly has EventGroup[:live_streamings]; it should not have because a new Event is always created for EventGroup[:live_streamings] by Event.default, and such a case should have been already handled prior to this call.")
+      return
+    end
+
+    # EventItem belongsing to an EventGroup of NOT :live_streamings
+    nil
+  end
+  private :_new_evit_if_live_streaming
+
+  # copies ArtistMusicPlay from the (sole) existing associated EventItem to the new one.
+  #
+  # @param evit_prev [EventItem]
+  # @param evit [EventItem]
+  def _copy_amps_to_new_evit(evit_prev, evit)
+    evit = self.event_items.last
+    evit_prev.artist_music_plays.each do |amp|
+      next if evit.artist_music_plays.include? amp
+      evit.artist_music_plays << amp.dup  # no errors raised if this fails for some reason.
+    end
+  end
+  private :_copy_amps_to_new_evit
+
+  # creates default {ArtistMusicPlay}-s for the specified {EventItem} based on {HaramiVidMusicAssoc}-s for self
+  #
+  # @param evit [EventItem]
+  # @return [Array<ArtistMusicPlay>]
+  def _create_amps_from_hvmas(evit)
+    arret = []
+    musics.uniq.each do |ea_mu|
+      amp = ArtistMusicPlay.initialize_default_artist(:HaramiVid, event_item: evit, music: ea_mu)
+      next if evit.artist_music_plays.include? amp  # skips if the exact ArtistMusicPlay has been created in the previous step {#_copy_amps_to_new_evit}
+      amp.save!
+      arret << amp
+    end
+    arret
+  end
+  private :_create_amps_from_hvmas
+
+
+  # reset {Harami1129#event_item} for the children of the existing (single) EventItem
+  # associated to HaramiVid.
+  #
+  # Note that HaramiVid has other children Harami1129-s if and only if the consistency
+  # among EventItem-s, HaramiVid, and Harami1129-s is somethow broken.  In the normal
+  # circumstances, Harami1129 belongs_to only one HaramiVid and EventItem; therefore,
+  # when HaramiVid is associated to only one EventItem at most (which is the condition
+  # this method is called in the first place, because otherwise {#set_event_item_if_live_streaming}
+  # would halt its operation at the beginning), +HaramiVid#event_items.first.harami1129s+
+  # should agree with +HaramiVid#harami1129s+
+  #
+  # @param evit_prev [EventItem]
+  # @param evit [EventItem]
+  def _reset_h1129_evit_new(evit_prev, evit)
+    evit_prev.harami1129s.each do |h1129|
+      h1129.update!(event_item: evit)
+    end
+  end
+  private :_reset_h1129_evit_new
+
+  # Returns the most probable Place and its confidence (as defined in {Event.default})
+  #
+  # @return [Array<Place, Symbol>]
+  def _get_place_and_confidence(title_ja)
+    place = place
+    def_place = Place.find_by_mname(:default_harami_vid)
+    guessed_place = ((!place || (def_place == place)) ? Harami1129.guess_place(title_ja) : nil)
+
+    if !place || [def_place, Place.unknown].include?(place)
+      [guessed_place || def_place, :low]
+    elsif place.unknown?  # manually specified, but Place is unknown? in a significant country other than the default Country, e.g., Country["GBR"].unknown_place and Country["JPN"].prefectures.third.unknown_place
+      [place, :medium]
+    else
+      [place, :high]  # user has manually defined it.
+    end
+  end
+  private :_get_place_and_confidence
+
+
   ########## Before-validation callbacks ##########
 
   # Callback before_validation
