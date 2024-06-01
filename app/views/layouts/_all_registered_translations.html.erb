@@ -52,7 +52,7 @@
         <% if can_crud %>
           <th class="moderator_only">Weight</th>
         <% end %>
-        <th colspan="<%= action_colspan %>"></th> <%# action_colspan == 5 for moderators %>
+        <th colspan="<%= action_colspan %>" class="editor_only"></th> <%# action_colspan == 5 for moderators %>
       <% end %>
     </tr>
   </thead>

@@ -237,6 +237,7 @@ class EventItem < ApplicationRecord
   # @return [EventItem, Event]
   def self.default(context=nil, place: nil, event_group: nil, save_event: false, **kwd)
     def_event = Event.default(context, place: place, event_group: event_group, **kwd)
+puts "DEBUG(#{File.basename __FILE__}:#{__method__}): event=#{def_event.inspect}"
     return def_event.unknown_event_item if !def_event.new_record?
     return def_event if !save_event
 
@@ -266,6 +267,8 @@ class EventItem < ApplicationRecord
     if def_event.class == self
       # get Event from EventItem
       def_event = def_event.event
+    elsif !def_event  # should never happen...
+      raise "#{File.basename __FILE__}:(#{__method__}) unexpectedly nil is returned from #{self.name}.default(#{context.inspect}, place: #{place ? place.title.inspect : 'nil'}, event_group: #{event_group ? [event_group.id, event_group.title].inspect : 'nil'}, save_event: false, #{kwd.inspect})"
     else
       return def_event if !save_event
       def_event.save!
@@ -278,8 +281,11 @@ class EventItem < ApplicationRecord
   # @option save_event: [Boolean] If specified true, returned EventItem exists; otherwise unsaved new_record?
   # @return [EventItem]
   def self.new_default_for_event(event, save_event: false)
-    raise if !event
+    raise "Contact the code developer (wrong argument for method)." if !event
     evit = initialize_new_template(event)
+    if !evit  # should never happen...
+      raise "#{File.basename __FILE__}:(#{__method__}) unexpectedly nil is returned from #{self.name}.initialize_new_template(#{event.inspect})"
+    end
     return evit if !save_event
     evit.save!
     evit

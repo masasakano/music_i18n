@@ -69,7 +69,7 @@ class HaramiVidsGrid < BaseGrid
   column(:n_musics, class: ["align-cr"], header: Proc.new{I18n.t('datagrid.form.n_musics_general')}) do |record|
     record.musics.uniq.count
   end
-  column(:n_amps, class: ["align-cr"], header: Proc.new{I18n.t('datagrid.form.n_amps')}, if: Proc.new{BaseGrid.qualified_as?(:editor)}) do |record|
+  column(:n_amps, class: ["align-cr", "editor_only"], header: Proc.new{I18n.t('datagrid.form.n_amps')}, if: Proc.new{BaseGrid.qualified_as?(:editor)}) do |record|
     record.artist_music_plays.uniq.count
   end
 

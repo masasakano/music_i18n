@@ -310,7 +310,7 @@ class Event < BaseWithTranslation
     evt.unsaved_translations = unsaved_transs
     evt
   end
-  private_class_method :revised_place_for_default
+  private_class_method :default_streaming_event
 
   # Set default Event according to Place
   #

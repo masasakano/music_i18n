@@ -553,6 +553,10 @@ class HaramiVid < BaseWithTranslation
     update!(place: place2pass) if place != place2pass
 
     ev_or_evit = EventItem.new_default(:HaramiVid, event: nil, place: place2pass, save_event: false, ref_title: title_ja, date: release_date, place_confidence: confidence)  # => EventItem or Event (unsaved if they are new)
+    if !ev_or_evit  # should never happen...
+      raise "nil is unexpectedly returned from EventItem.new_default(:HaramiVid, event: nil, place: #{place2pass ? place2pass.title : 'nil'}, save_event: false, ref_title: #{title_ja.inspect}, date: #{release_date.inspect}, place_confidence: #{confidence.inspect}), called from Event (ID=#{id}; title=#{title_or_alt(lang_fallback_option: :either, str_fallback: '').inspect})"
+    end
+
     return if ev_or_evit == evit_prev
 
     if ev_or_evit.respond_to?(:unknown_event_item)  # if it is an Event
