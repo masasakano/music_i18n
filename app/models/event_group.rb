@@ -126,9 +126,15 @@ class EventGroup < BaseWithTranslation
 
   # Unknown {Event} belonging to self
   #
-  # @return [Event]
-  def unknown_event
-    events.joins(:translations).where("translations.langcode='en' AND translations.title = ?", Event::UNKNOWN_TITLES['en']).first
+  # @param force [Boolean] if true (Def), and if for some reason unknown Event is missing, creates one and returns it.
+  #    If false, returns nil in such a case, which should (though not quite guaranteed?)
+  #    never occur by design (except for a legacy DB).
+  # @return [Event, NilClass]
+  def unknown_event(force: true)
+    evt = events.joins(:translations).where("translations.langcode='en' AND translations.title = ?", Event::UNKNOWN_TITLES['en']).first
+    return evt if evt || !force
+
+    after_first_translation_hook  # This returns an Event, which *should* be a new one, though (I think) technically there is a slight chance of an existing one in an unlikely case.
   end
 
   # Unknown {EventGroup}
@@ -254,7 +260,7 @@ class EventGroup < BaseWithTranslation
 
     evt = Event.initialize_with_def_time(event_group: self)
     evt.unsaved_translations = unsaved_transs
-    self.events << evt
+    (self.events << evt).last
   end
 
   # Callback to delete the last-remaining "unknown" Event

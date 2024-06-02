@@ -138,6 +138,26 @@ class EventTest < ActiveSupport::TestCase
     end
   end
 
+  test "unknown_event_item" do
+    evt_base = events(:ev_harami_lucky2023)
+    evit_def = event_items(:evit_ev_harami_lucky2023_unknown)
+    assert_equal evt_base, evit_def.event, 'test fixtures'
+    assert evit_def.unknown?, 'test fixtures'
+    assert_equal evit_def, evt_base.unknown_event_item(force: false), 'sanity check'
+
+    evit_def.delete
+    assert evit_def.destroyed?
+    assert_nil evt_base.unknown_event_item(force: false)
+    assert     (evit_new=evt_base.unknown_event_item(force: true))
+    assert  evit_new.unknown?
+    evt_base.reload
+    assert_equal evit_new, evt_base.unknown_event_item(force: false)
+
+    evit_new.delete
+    assert     (evit_new2=evt_base.unknown_event_item)  # Default behaviour (from June 2024, after 1 commit after 7138ab5)
+    assert  evit_new2.unknown?
+  end
+
   test "self.default" do
     evt = Event.default(context=nil, place: nil)
     exp = Event.unknown

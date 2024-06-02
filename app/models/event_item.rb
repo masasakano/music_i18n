@@ -90,21 +90,20 @@ class EventItem < ApplicationRecord
     end
   }
 
-  # Called from {Event#after_first_translation_hook}
+  # Called from {Event#after_first_translation_hook} and maybe {Event#unknown_event_item} in an unlikely case
   #
-  # Creating a {EventItem.unknown} for the given {Event}.
+  # Internal-use method for creating a {EventItem.unknown} for the given {Event}.
   #
-  # As long as it is called in the callback/hook as intended, "find_by" is redundant.
-  # However, in case this is manually called later after a DB accident or something,
-  # we are playing safe.
+  # Since this calls {EventItem.prepare_create_new_template}, which ensures
+  # a unique {#machine_title}, this can always safely create a new EventItem.
+  #
+  # In other words, you should not call this method unless you are certain
+  # there is no {EventItem.unknown} for the given {Event}.
+  # If you want a sort of "+find_or_create+ {EventItem.unknown}", call {Event##unknown_event_item} instead
+  # (partly because String matching with {#machine_title} has some uncertainty, unlike {Place#unknown}!).
   #
   # @param event [Event]
-  # @return [String] unknown title
-  def self.find_or_create_new_unknown!(event)
-    hs = prepare_create_new_unknown(event)
-    find_or_create_by!(**hs)
-  end
-
+  # @return [EventItem]
   def self.create_new_unknown!(event)
     hs = prepare_create_new_unknown(event)
     create!(**hs)
@@ -117,7 +116,7 @@ class EventItem < ApplicationRecord
 
   def self.prepare_create_new_unknown(event)
     pre_post_fixes = unknown_machine_title_prefix_postfix(event)
-      
+
     #prepare_create_new_template(event, prefix=unknown_machine_title_prefix_postfix(event).join(""), **kwd)
     prepare_create_new_template(event, prefix=pre_post_fixes[0], postfix: pre_post_fixes[1], separator: "")
   end
@@ -237,7 +236,6 @@ class EventItem < ApplicationRecord
   # @return [EventItem, Event]
   def self.default(context=nil, place: nil, event_group: nil, save_event: false, **kwd)
     def_event = Event.default(context, place: place, event_group: event_group, **kwd)
-puts "DEBUG(#{File.basename __FILE__}:#{__method__}): event=#{def_event.inspect}"
     return def_event.unknown_event_item if !def_event.new_record?
     return def_event if !save_event
 

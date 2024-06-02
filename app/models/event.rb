@@ -143,11 +143,17 @@ class Event < BaseWithTranslation
     false
   end
 
-  # Unknown {Event_Item} belonging to self
+  # Unknown {EventItem} belonging to self
   #
-  # @return [Event_Item]
-  def unknown_event_item
-    event_items.where("regexp_match(event_items.machine_title, ?, ?) IS NOT NULL", '^'+EventItem::UNKNOWN_TITLE_PREFIXES[:en], '').order(:created_at).first
+  # @param force [Boolean] if true (Def), and if for some reason unknown EventItem is missing, creates one and returns it.
+  #    If false, returns nil in such a case, which should (though not quite guaranteed?)
+  #    never occur by design (except for a legacy DB).
+  # @return [EventItem, NilClass]
+  def unknown_event_item(force: true)
+    evit = event_items.where("regexp_match(event_items.machine_title, ?, ?) IS NOT NULL", '^'+EventItem::UNKNOWN_TITLE_PREFIXES[:en], '').order(:created_at).first
+    return evit if evit || !force
+
+    EventItem.create_new_unknown!(self)
   end
 
   # Unknown {Event} belonging to self
@@ -488,7 +494,7 @@ class Event < BaseWithTranslation
   # @return [Event]
   def after_first_translation_hook
     self.reload  # Essential!
-    evti = EventItem.find_or_create_new_unknown!(self)
+    EventItem.create_new_unknown!(self)
   end
 
   # Callback to delete the last-remaining "unknown" EventItem

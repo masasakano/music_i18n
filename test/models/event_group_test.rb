@@ -227,6 +227,37 @@ class EventGroupTest < ActiveSupport::TestCase
     assert_equal exp, evgr
   end
 
+  test "unknown_event" do
+    ## Preparation
+    max_error_day = TimeAux::MAX_ERROR.in_days.ceil + 1  # = 3652060 [days]
+    evgr = EventGroup.create_basic!(title: "My New EventGroup", langcode: "en", is_orig: true,
+                                    start_date: TimeAux::DEF_FIRST_DATE_TIME,
+                                    start_date_err: max_error_day,
+                                    end_date:   TimeAux::DEF_LAST_DATE_TIME,
+                                    end_date_err:   max_error_day,
+                                    place: Place.unknown)
+    evgr.events.reset
+    assert_equal 1, evgr.events.count
+    assert (ev_unk=evgr.unknown_event(force: false))
+    evt2 = Event.initialize_with_def_time(title: "A New Event2", langcode: "en", is_orig: true, event_group: evgr)
+    evt2.save!
+    evgr.events.reset
+    assert_equal 2, evgr.events.count
+
+    ev_unk.event_items.first.delete
+    ev_unk.delete
+    evgr.events.reset
+    assert_equal 1, evgr.events.count
+
+    refute  evgr.unknown_event(force: false)
+    assert (ev_unk2=evgr.unknown_event)
+    evgr.events.reset
+    assert  evgr.unknown_event(force: false)
+    assert_equal ev_unk2, evgr.unknown_event(force: false)
+    assert_equal 2, evgr.events.count
+    assert_equal ev_unk2, evgr.unknown_event(force: true), "should not create a new one, but..."
+  end
+
   test "self.default" do
     evgr = EventGroup.default(context=nil, place: nil)
     exp = EventGroup.unknown
