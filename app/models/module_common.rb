@@ -147,13 +147,15 @@ module ModuleCommon
   # depending on langcode.  If the given time is simply nil, "&mdash;" is returned.
   #
   # @example
-  #   time = Time.new(1,2,3,4,5,1)
-  #   time_err2uptomin(time, 30.minute, langcode: "en")
-  #     # => January 01, 0001 — 04:??
-  #   time_err2uptomin(time, 10.month,  langcode: "en")
-  #     # => "0001-??-?? ??:??"
+  #   time = Time.new(1984,2,3,4,5,1)
+  #   time_err2uptomin(time, 70.minute, langcode: "ja")
+  #     # => "1984年2月3日 04:——"
+  #   time_err2uptomin(time, 70.minute, langcode: "en")
+  #     # => February 03, 1984 — 04:??
+  #   time_err2uptomin(time, 13.month,  langcode: "en")
+  #     # => "1984-??-?? ??:??"
   #   time_err2uptomin(time, nil, langcode: "xx")
-  #     # => "0001-02-03 04:05"
+  #     # => "February 03, 1984 — 04:05"
   #
   # @param time  [Time, TimeWithError, NilClass]
   # @param err [ActiveSupport::Duration, Integer, NilClass] in seconds in in Integer
@@ -185,13 +187,13 @@ module ModuleCommon
     case langcode.to_s
     when "ja"
       ar = _arstr_sprintf_int([month, day], fmt: "%s", fallback: "——")
-      sprintf("%s年%s月%s日 ", year, *ar) + ret_h.gsub(/\?\?/, "——")  # eg, "1年2月3日 04:——"
+      sprintf("%s年%s月%s日 ", year, *ar) + ret_h.gsub(/\?\?/, "——")  # eg, "1984年2月3日 04:——"
     else
       if !month
         sprintf('%4d-%s-%s ', year, *(_arstr_sprintf_int([month, day]))) + ret_h  # eg, "1999-??-?? ??:??"
       else
         d2 = (day ? day : 28)
-        ret_d = I18n.l(Date.new(DEF_EVENT_END_YEAR,month,d2), format: :long, locale: "en")
+        ret_d = I18n.l(Date.new(year, month, d2), format: :long, locale: "en")
         ret_d.sub!(/\b28\b/, '??') if !day
         ret_d + " — " + ret_h  # eg. January 01, 0001 — 04:??
       end

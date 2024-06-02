@@ -10,6 +10,9 @@ ja:
   ChannelOwner: チャンネル主
   ChannelPlatform: チャンネルのプラットフォーム
   ChannelType: チャンネルの種別
+  ChannelOwner_short: チャンネル主
+  ChannelPlatform_short: プラットフォーム
+  ChannelType_short: 種別
   Country: 国名
   comma: "、"
   detail: 詳細

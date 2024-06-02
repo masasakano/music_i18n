@@ -4,15 +4,17 @@
 <table id="channels_index_table">
   <thead>
     <tr>
-      <th>ID</th>
+     <% if can? :edit, Channel  %>
+      <th class="editor_only">ID</th>
+     <% end %>
        <%= render "layouts/title_alt_ja_en_table", model: nil, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
-      <th title="Channel owner.">Owner</th>
-      <th title="Channel platform.">Platform</th>
-      <th title="Channel type.">Type</th>
+      <th title="Channel owner."><%= t(:ChannelOwner_short) %></th>
+      <th title="Channel platform."><%= t(:ChannelPlatform_short) %></th>
+      <th title="Channel type."><%= t(:ChannelType_short) %></th>
       <th title="Note in this DB">Note</th>
       <% if can? :update, Users::EditRolesController %>
-        <th>Created</th>
-        <th>Updated</th>
+        <th class="moderator_only">Created</th>
+        <th class="moderator_only">Updated</th>
       <% end %>
       <% if can? :update, Channel %>
         <th colspan="3"></th>
@@ -25,7 +27,7 @@
   <tbody>
     <% @channels.each do |model| %>
       <tr>
-        <td><%= model.id %></td>
+        <td class="editor_only"><%= model.id %></td>
        <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
 
         <td><%= m=model.channel_owner; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), channel_owner_path(m)) %>
@@ -37,16 +39,20 @@
         <td><%= m=model.channel_type; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), channel_type_path(m)) %></td>
         <td><%= model.note %></td>
       <% if can? :update, Users::EditRolesController %>
-        <td><%= ur = model.create_user; link_to(ur.display_name, ur) if ur %></th>
-        <td><%= ur = model.update_user; link_to(ur.display_name, ur) if ur %></th>
+        <td class="moderator_only"><%= ur = model.create_user; link_to(ur.display_name, ur) if ur %></th>
+        <td class="moderator_only"><%= ur = model.update_user; link_to(ur.display_name, ur) if ur %></th>
       <% end %>
 
-        <td><%= link_to "Show", model %></td>
+        <td><%= link_to t("tables.Show"), model %></td>
         <% if can? :update, model  %>
-          <td><%= link_to 'Edit', edit_channel_path(model) %></td>
-        <% end %>
-        <% if can? :destroy, model %>
-          <td><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+          <td class="editor_only"><%= link_to 'Edit', edit_channel_path(model) %></td>
+         <% if can? :destroy, model %>
+          <td class="editor_only"><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+         <% else %>
+          <td class="editor_only"></td>
+         <% end %>
+        <% else %>
+          <td colspan="2" class="editor_only"></td>
         <% end %>
       </tr>
     <% end %>

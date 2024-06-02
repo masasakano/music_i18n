@@ -41,6 +41,9 @@ en:
   ChannelOwner: Channel Owner
   ChannelPlatform: Channel Platform
   ChannelType: Channel Type
+  ChannelOwner_short: Owner
+  ChannelPlatform_short: Platform
+  ChannelType_short: Type
   Country: Country
   comma: ", "
   detail: Detail

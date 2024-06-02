@@ -622,10 +622,6 @@ end
       return if !@hsmain.has_key?(prm_name)  # This is the case when reference_harami_vid_id is given in GET
       return if @hsmain[prm_name].blank?
       @assocs[:artist_collab] = _find_or_create_artist_or_music(Artist, prm_name, find_only: true)
-      if @assocs[:artist_collab].present? && @assocs[:music].blank?
-        flash[:warning] ||= []
-        flash[:warning] << "Collab-Artist is ignored because Music is not specified."
-      end
       @assocs[:artist_collab]
     end
 

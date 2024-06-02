@@ -8,7 +8,7 @@
   <dt title="Channel owner.">Owner</dt>
     <dd><%= m=model.channel_owner; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), channel_owner_path(m)) if m %>
       <% if m && m.artist %>
-        (→ <%= t(:Artist) %>: <%= link_to(m.artist.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), artist_path(m)) %>)
+        (→ <%= t(:Artist) %>: <%= link_to(m.artist.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), artist_path(m.artist)) %>)
       <% end %>
     </dd>
   <dt title="Channel platform.">Platform</dt>

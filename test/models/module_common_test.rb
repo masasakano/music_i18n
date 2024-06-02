@@ -247,6 +247,14 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_equal 5, art.metho
   end
 
+  test "time_err2uptomin" do
+    time = Time.new(1984,2,3,4,5,1)
+    assert_equal "1984年2月3日 04:——", time_err2uptomin(time, 70.minute, langcode: "ja")
+    assert_equal "February 03, 1984 — 04:??", time_err2uptomin(time, 70.minute, langcode: "en")
+    assert_equal "1984-??-?? ??:??",          time_err2uptomin(time, 13.month,  langcode: "en")
+    assert_equal "February 03, 1984 — 04:05", time_err2uptomin(time, nil, langcode: "xx")
+  end
+
   private
     # Returns true if Ruby and PosgreSQL results match.
     def _match_rb_psql_regexp?(conn, re_ruby, str, regexp_should_succed=true)

@@ -33,7 +33,7 @@
               <% if canread_h1129 %>
                 <span class="editor_only">[#Harami1129 = <%= event_item.harami1129s.count %>]</span>
               <% end %>
-              <% if can?(:destroy_with_amps, event_item) %>
+              <% if can?(:destroy_with_amps, event_item) && @harami_vid.event_items.uniq.size > 1 %>
                 <span class="moderator_only">
                   [&nbsp;<%= link_to 'Destroy EventItem AND its associations', event_items_destroy_with_amp_url(event_item), method: :delete, data: { confirm: t('are_you_sure') }, title: 'May also destroy the parent Event if empty', class: "button_like" %>&nbsp;]
                 </span>
