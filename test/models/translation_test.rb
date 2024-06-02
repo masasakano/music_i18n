@@ -479,7 +479,13 @@ class TranslationTest < ActiveSupport::TestCase
     ar = tra_en1.siblings exclude_self: true
     assert_equal [tra_en3, tra_en2, tra_en4], ar.to_a
     assert_equal [tra_ja1], tra_en1.siblings(langcode: 'ja').to_a
-    assert_equal 4, tra_en1.siblings.size
+    assert_equal 4, tra_en1.siblings(exclude_self: false).size
+    assert_equal 3, tra_en1.siblings(exclude_self: true).size
+    assert_equal 3, tra_en1.siblings.size
+    assert_equal 4, tra_en1.siblings(:all).size
+    assert_equal 4, tra_en1.siblings(langcode: :all).size
+    assert_equal 0, tra_ja1.siblings.size
+    assert_equal 1, tra_ja1.siblings(exclude_self: false).size
     assert_equal [tra_ja1, 0],              tra_ja1.best_translation_with_weight
     assert_equal [tra_en3, tra_en3.weight], tra_en1.best_translation_with_weight
     assert_equal [tra_ja1, 0],              tra_en1.best_translation_with_weight(locale: 'ja')
@@ -674,6 +680,28 @@ class TranslationTest < ActiveSupport::TestCase
     assert_not eh.valid?
   end
 
+  test "last_remaining?" do
+    mus1 = Music.create_basic!(title: "tmp music-test1", langcode: "en", is_orig: nil)
+    mus1.translations.reset
+    tra1 = mus1.translations.first
+    assert_equal [tra1], tra1.siblings(:all, exclude_self: false).to_a
+    assert_empty tra1.siblings(:all).to_a
+    assert tra1.last_remaining?(:all)
+
+    mus1.translations << Translation.new(title: "tmp music-テスト2", langcode: "ja", is_orig: nil)
+    mus1.translations.reset
+    tra2 = mus1.translations.find_by(langcode: "ja")
+    assert_equal [tra2], tra1.siblings(:all).to_a
+    tra1.reload
+    refute tra1.last_remaining?(:all)
+    refute tra2.last_remaining?(:all)
+    refute tra2.last_remaining_in_any_languages?
+
+    tra1.destroy!
+    assert tra2.last_remaining?(:all)
+    assert tra2.last_remaining_in_any_languages?
+  end
+
   test "sort with is_orig" do
     sex = Sex.create!(iso5218: 99)
 
@@ -721,7 +749,7 @@ class TranslationTest < ActiveSupport::TestCase
     assert_nil ts[22].weight
     ts[23] = Translation.create!(translatable: sex, langcode: 'en', is_orig: nil, title: 'Y', weight: nil)
     ts[24] = Translation.create!(translatable: sex, langcode: 'en', is_orig: nil, title: 'Z', weight: Float::INFINITY)
-    t_sibs = ts[20].siblings
+    t_sibs = ts[20].siblings(exclude_self: false)
     assert_equal 25, t_sibs.count
     assert_equal ts[22], t_sibs[-1] # X
     assert_equal ts[21], t_sibs[-2] # Y

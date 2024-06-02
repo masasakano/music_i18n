@@ -199,6 +199,7 @@ class Ability
       cannot(:ud, [Translation]){|trans| (!(base=trans.translatable) && trans.create_user_id != user.id && trans.update_user_id != user.id) ||
                                            (base && base.respond_to?(:unknown?) && base.unknown?)} # non-admin cannot edit Translation for +X.unknown+; this is necessary because anything with is_orig=true is usually editable by Translators.
       cannot(:ud, [Translation]){|trans| (base=trans.translatable) && base.respond_to?(:themselves) && base.themselves } # (except for an admin) Cannot edit Translation of ChannelOwner#themselves==true because its Tranlation-s are equivalent to sym-link to the ChannelOwner#artist Translation-s.
+      cannot(:destroy, Translation){|trans| trans.last_remaining_in_any_languages?}
     end
   end
 end

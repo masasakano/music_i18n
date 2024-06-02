@@ -95,9 +95,9 @@ class MusicsGrid < BaseGrid
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
     ar = [link_to(I18n.t('layouts.Show'), music_path(record), data: { turbolinks: false })]
     if can? :update, record
-      ar.push(('<span  class="editor_only">'+link_to('Edit', edit_artist_path(record))+'</span>').html_safe)
+      ar.push(('<span  class="editor_only">'+link_to('Edit', edit_music_path(record))+'</span>').html_safe)
       if can?(:update, Musics::MergesController)
-        ar.push(('<span  class="editor_only">'+link_to('Merge', artists_new_merges_path(record))+'</span>').html_safe)
+        ar.push(('<span  class="editor_only">'+link_to('Merge', musics_new_merges_path(record))+'</span>').html_safe)
         #if can? :destroy, record
         #  ar.push link_to('Destroy', music_path(record), method: :delete, data: { confirm: (t('are_you_sure')+" "+t("are_you_sure.merge")).html_safe })
         #end

@@ -21,7 +21,7 @@ class Translations::DemotesController < ApplicationController
     # return false if !can?(:update, Translations::DemotesController)  # This check should be done in UI (View). Besides, it is a bit awkward to use "can?" here.
     return false if tra.weight && tra.weight == Float::INFINITY
     return false if tra.is_orig  # Original one cannot be demoted. Moderator may modify is_orig
-    return false if tra.siblings.last == tra
+    return false if tra.siblings(exclude_self: false).last == tra
 
     role = user.highest_role_in(RoleCategory[RoleCategory::MNAME_TRANSLATION])
     return false if !tra.create_user

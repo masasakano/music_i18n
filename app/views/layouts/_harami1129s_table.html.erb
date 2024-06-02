@@ -28,16 +28,16 @@
      <% if can_update %>
         <td class="number"><%= link_to harami1129.id, harami1129 %></td>
      <% end %>
-        <td><%= date2text(harami1129.release_date) %></td>
+        <td class="date_iso"><%= date2text(harami1129.release_date, langcode: "en") %></td>
         <td><%= link_to(harami1129.title, harami1129) %></td>
         <td><%= link_to harami1129.ins_link_root, ApplicationHelper.uri_youtube(harami1129.ins_link_root, harami1129.ins_link_time) %></td>
         <td class="number"><%= harami1129.ins_link_time %></td>
         <td><%= harami1129.singer %></td>
         <td><%= harami1129.song %></td>
-        <td><%= (!!harami1129.checked_at).inspect %></td>
-        <td><%= link_to 'Show', harami1129 %></td>
+        <td class="text-center"><%= (!!harami1129.checked_at).inspect %></td>
+        <td class="actions"><%= link_to 'Show', harami1129 %></td>
         <% if can? :update, harami1129 %>
-        <td>
+        <td class="actions">
           <%= link_to 'Edit', edit_harami1129_path(harami1129) %>
         </td>
         <% end %>

@@ -306,7 +306,7 @@ class Translation < ApplicationRecord
     # Edge cases
     #olc = original_langcode
     return true if lc == 'ja' && translatable && Ability.new(user).can?(:create, translatable.class)
-    return true if siblings(lc).pluck(:create_user_id).include? user.id
+    return true if siblings(lc, exclude_self: false).pluck(:create_user_id).include? user.id
     false
   end
 
@@ -1764,21 +1764,43 @@ class Translation < ApplicationRecord
   #
   # If langcode is nil, the same as the langcode of self.
   # If langcode is :all, langcode is not considered.
-  # If exclude_self: is true, self will be excluded in the returned Array.
+  # If exclude_self: is true (Def), self will be excluded in the returned Relation.
   #
   # @todo Refactor with {BaseWithTranslation#best_translation} and {BaseWithTranslation#translations_with_lang}
   #
   # @param lcode [String, NilClass] The redundant (same-meaning) argument to "langcode:"
   # @param langcode: [String, NilClass] e.g., 'ja'
   # @param exclude_self: [Boolean] (Def: false)
-  # @return [ActiveRecord::AssociationRelation]
-  def siblings(lcode=nil, langcode: nil, exclude_self: false)
-    lcode = (lcode || langcode || self.langcode).to_s
+  # @return [Translation::AssociationRelation]
+  def siblings(lcode=nil, langcode: nil, exclude_self: true)
+    lcode ||= langcode
+    lcode = (lcode || self.langcode).to_s if :all != lcode
+
     return self.class.none if !translatable.respond_to? :translations  # Practically: translatable.nil?
     ret = translatable.translations
-    ret = ret.where(langcode: lcode) if !lcode.blank? || :all == lcode
+    ret = ret.where(langcode: lcode) if !lcode.blank? && :all != lcode
     ret = ret.where.not(id: id) if exclude_self
     ret = self.class.sort(ret)
+  end
+
+  # true if self is the last_remaining translation for the self's or given or any langcode.
+  #
+  # The default is the same langcode as self's.  Give :all for all languages.
+  #
+  # @example
+  #    Sex.unknown.translations.first.last_remaining?(:all)
+  #
+  # @param lcode [String, Symbol, NilClass] The redundant (same-meaning) argument to "langcode:"
+  # @param langcode: [String, Symbol, NilClass] e.g., 'ja'. Here, :all means any language.
+  def last_remaining?(lcode=nil, langcode: nil)
+    lcode = (lcode || langcode || self.langcode)
+    !siblings(lcode, exclude_self: true).exists?
+  end
+
+  # Wrapper of {#last_remaining?}
+  #
+  def last_remaining_in_any_languages?
+    last_remaining?(:all)
   end
 
   # Wrapper for {BaseWithTranslation:orig_translation}
@@ -1928,7 +1950,7 @@ class Translation < ApplicationRecord
   def weight_after_next
     dbkeys = [:id, :title, :alt_title, :weight]
     hsi_pluck = self.class.array_to_hash(dbkeys).with_indifferent_access  # HaSh-Index_PLUCK
-    arpluck = siblings.pluck(*dbkeys)
+    arpluck = siblings(exclude_self: false).pluck(*dbkeys)
     i_mine = arpluck.find_index{|ea| ea[hsi_pluck[:id]] == id}
 
     raise "This should never happen... arpluck=#{arpluck.inspect}; self={@translation.inspect}" if i_mine >= arpluck.size-1 || is_orig # should have been caught and raised CanCanCan::AccessDenied

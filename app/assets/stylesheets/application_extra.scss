@@ -146,7 +146,15 @@ table {
       padding-left: 1em;
   }
   th.actions, td.actions {
-      min-width: 2.1em;  /* so that "詳細" is not split into 2 lines */
+      min-width: 2.2em;  /* so that "詳細" is not split into 2 lines */
+  }
+  @media (min-width:1025px) {  /* big landscape tablets, laptops, and desktops */
+    th.date_ja, td.date_ja {
+      min-width: 7.85em;  /* so that "2020年12月29日" is not split into 2 lines */
+    }
+    th.date_iso, td.date_iso {
+      min-width: 6.0em;  /* so that "2020-03-04" is not split into 2 lines (though they may never be...?) */
+    }
   }
 }
 

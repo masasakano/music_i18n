@@ -1,7 +1,7 @@
 <% my_title = @event_group.title_or_alt_tuple_str(langcode: I18n.locale) %>
 <h1><%= t("EventGroup") %>: <%= my_title %></h1>
 
-<% canupdate = can?(:create, @event_group) %>
+<% canupdate = can?(:update, @event_group) %>
 
 <% if can?(:create, Translation) %>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: @event_group, add_buttons: true} %>
@@ -22,12 +22,13 @@
 <div id="event_group_show_footer_controller">
   <p>
     <% if canupdate %>
-  <%= link_to "Edit this EventGroup", edit_event_group_path(@event_group) %> |
+      <span class="moderator_only"><%= link_to "Edit this EventGroup", edit_event_group_path(@event_group) %></span> |
     <% end %>
   <%= link_to t("layouts.back_to_index"), event_groups_path %>
   </p>
 
-<div class="text-end"> <%# bootstrap 5 %>
+<% if can?(:destroy, EventGroup) %>
+<div class="text-end moderator_only"> <%# bootstrap 5 %>
 <% if can?(:destroy, @event_group) && @event_group.destroyable? %>
   <%= button_to "Destroy this EventGroup", @event_group, method: :delete %>
   </div>
@@ -37,6 +38,7 @@
   </p>
 <% end %>
 </div>
+<% end %>
 </div> <!-- div id="event_group_show_footer_controller" -->
 
 <hr>
@@ -72,12 +74,16 @@
         <td><%= event.duration_hour %></td>
         <td><%= event.place ? event.txt_place_pref_ctry : "" %></td>
         <td><%= event.note %></td>
-        <td><%= link_to t("tables.Show"), event %></td>
+        <td class="actions"><%= link_to t("tables.Show"), event %></td>
         <% if can? :update, event  %>
-          <td><%= link_to 'Edit', edit_event_path(event) %></td>
-        <% end %>
-        <% if can?(:destroy, event) && event.destroyable? %>
-          <td><%= link_to 'Destroy', event, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+          <td class="actions editor_only"><%= link_to 'Edit', edit_event_path(event) %></td>
+         <% if can?(:destroy, event) && event.destroyable? %>
+          <td class="actions editor_only"><%= link_to 'Destroy', event, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+         <% elsif can_create_event %>
+          <td class="actions editor_only"></td>
+         <% end %>
+        <% elsif can_create_event %>
+          <td colspan="2" class="actions editor_only"></td>
         <% end %>
       </tr>
     <% end %>

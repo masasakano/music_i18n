@@ -1,18 +1,22 @@
 
 <% my_title = @artist.title_or_alt_tuple_str(langcode: I18n.locale) %>
-<h1>Artist: <%= my_title %></h1>
+<h1><%= t(:Artist) %>: <%= my_title %></h1>
 
 <hr>
 <section id="sec_primary">
+  <section id="sec_primary_trans">
 <%= render partial: 'layouts/all_registered_translations', locals: {model: @artist, add_buttons: true, title_kwd: "name" } %>
+  </section>
 <hr>
 
  <section id="sec_primary_show">
 <div id="<%= dom_id @artist %>">
 <dl>
-  <% if can? :update, @artist %>
-    <dt>ID (<%= @artist.class.name %>)</dt>
+  <% if (can_update=can?(:update, Artist)) %>
+   <div class="editor_only">
+    <dt>pID (<%= @artist.class.name %>)</dt>
     <dd> <%= @artist.id %></dd>
+   </div>
   <% end %>
   <dt title="Place"><strong><%= t("tables.place_country", default: "Place (Country)") %>:</strong></dt>
     <dd><%= @artist.txt_place_pref_ctry %></dd>
@@ -26,7 +30,7 @@
         <%= link_to t(:ChannelOwner), owner %>: 
         <% ch_str = channels2displayed_list(owner.channels) %>  <%# defined in artists_helper.rb %>
         <%= ch_str.blank? ? "(no channels registered)" : ch_str %>  <%# defined in artists_helper.rb %>
-      <% elsif can?(:create, ChannelOwner) && can?(:update, @artist) %>
+      <% elsif can?(:create, ChannelOwner) && can_update %>
         → <%= link_to t("layouts.create_model", model: t(:ChannelOwner)), channel_owners_create_with_artists_new_url( params: {channel_owner: {artist_id: @artist.id}}) %>
       <% end %>
     </dd>
@@ -39,11 +43,13 @@
 
   <dt title="Note">Note:</dt>
     <dd><%= @artist.note %></dd>
-  <% if can? :update, @artist %>
+  <% if can_update %>
+   <div class="editor_only">
    <dt>Updated at:</dt>
     <dd><%= @artist.updated_at %></dd>
    <dt>Created at:</dt>
     <dd><%= @artist.created_at %></dd>
+   </div>
   <% end %>
 </dl>
 </div>
@@ -86,6 +92,14 @@
 
 <%= render partial: 'layouts/harami_vids_index', locals: {harami_vids: @artist.harami_vids.order("harami_vids.release_date" => :desc).distinct, musics: @artist.musics} %>
 </section>
+
+<% if can? :read, Harami1129 %>
+  <hr>
+  <section id="sec_harami1129s_for">
+    <h3>Harami1129s<%= t("show.h2_for") %><%= t("Artist") %>: <%= @artist.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true) %></h3>
+    <%= render partial: 'layouts/harami1129s_table', locals: {harami1129s: @artist.harami1129s} %>
+  </section>
+<% end %>
 
 <hr>
 <%= link_to 'Back to Index', artists_path %>

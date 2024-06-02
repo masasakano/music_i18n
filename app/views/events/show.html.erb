@@ -9,11 +9,12 @@
 
 <div>
     <% if can? :update, @event %>
-  <%= link_to "Edit this Event", edit_event_path(@event) %> |
+  <%= link_to "Edit this Event", edit_event_path(@event) %>
     <% end %>
 
-    <% if !@event.event_items.exists? && can?(:destroy, @event) %>
-  <%= button_to "Destroy", @event, method: :delete %>
+    <%# if !@event.event_items.exists? && can?(:destroy, @event) %>
+    <% if @event.destroyable? && can?(:destroy, @event) %>
+      <span class="text-end"><%= button_to "Destroy", @event, method: :delete, data: { confirm: t('are_you_sure') } %></span>
     <% end %>
 </div>
 

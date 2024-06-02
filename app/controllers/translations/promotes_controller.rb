@@ -24,8 +24,8 @@ class Translations::PromotesController < ApplicationController
     # there is no point to promote it.
     best_tra, best_weight = tra.best_translation_with_weight
     return false if [best_weight, Float::INFINITY].include?(tra.weight)
-    return false if 1 == tra.siblings.count
-    return false if best_tra.is_orig && tra == tra.siblings[1]
+    return false if !tra.siblings(exclude_self: true).exists?
+    return false if best_tra.is_orig && tra == tra.siblings(exclude_self: false)[1]
 
     return true
   end

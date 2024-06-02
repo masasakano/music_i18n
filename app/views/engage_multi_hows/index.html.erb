@@ -129,7 +129,7 @@
     </tbody>
   </table>
   <% assoc_text = t(".assoc_engage", music_title: music_name, default: "with another Artist for #{music_name}") %>
-  <%= button_to t('layouts.create_model', model: @engages.first.class.name, default: 'Create a new Engage'), new_engage_path, method: :get, params: { music_id: @music.id }, form_class: "button_to inline_form" %> <%# button_to HTML-class is Default.%>
+  <%= button_to t('layouts.create_model', model: "Engage", default: 'Create a new Engage'), new_engage_path, method: :get, params: { music_id: @music.id }, form_class: "button_to inline_form" %> <%# button_to HTML-class is Default.%>
   <%= t(".assoc_engage", music_title: music_name, default: "with another Artist for #{music_name}") %> <%# button_to/link_to title tested in /system/engages_test.rb; if it is link_to, the path should be new_engage_path(music_id: @music.id) %>
 <% if (n_engages == 1) && (n_engage_others == 0) && @engages[0] && @engages[0].harami1129s.exists? %>
   <p>

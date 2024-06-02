@@ -5,7 +5,7 @@
 <table>
   <thead>
     <tr>
-     <% if can? :edit, Artist %>
+     <% if (can_edit=can?(:edit, Artist)) %>
       <th title="DB pID" class="editor_only">pID</th>
      <% end %>
       <th title="'*' indicates the original name"><%= t("tables.title_name_ja") %></th>
@@ -26,7 +26,7 @@
         <th><%= t(:Sex) %></th>
       <% end %>
       <th><%= t("tables.note") %></th>
-      <% if can? :update, Artist %>
+      <% if can_edit %>
         <th colspan="2" title="Show/Edit Artist">Artist</th>
         <th title="Edit (Show) Engagements between Artist and Music" class="editor_only">Engages</th>
       <% else %>
@@ -36,15 +36,16 @@
   </thead>
 
   <tbody>
+    <% asterisk = (can_edit ? ('<span title="'+t('datagrid.footnote.is_original')+'">*</span>').html_safe : "") %>
     <% music.artists.uniq.each do |artist| %>
       <tr>
-       <% if can? :edit, Artist %>
+       <% if can_edit %>
         <td title="DB pID" class="number editor_only"><%= link_to artist.id, artist %></td>
        <% end %>
         <% orig_lc = artist.orig_langcode %>
-        <td><%= (artist.title langcode: 'ja') || '' %><%= (orig_lc == 'ja') ? '*' : '' %></td>
-        <td><%= sprintf '%s [%s/%s]', *(%i(alt_title alt_ruby alt_romaji).map{|i| artist.send(i, langcode: 'ja') || ''}) %></td>
-        <td><%= tits = %i(title alt_title).map{|i| artist.send(i, langcode: 'en') || ''}; sprintf '%s%s [%s]', tits[0], ((orig_lc == 'en') ? '*' : ''), tits[2] %></td>
+        <td><%= (artist.title langcode: 'ja', lang_fallback: false, str_fallback: '') %><%= (orig_lc == 'ja') ? asterisk : '' %></td>
+        <td><%= sprintf '%s [%s/%s]', *(%i(alt_title alt_ruby alt_romaji).map{|i| artist.send(i, langcode: 'ja', lang_fallback: false, str_fallback: '')}) %></td>
+        <td><%= tits = %i(title alt_title).map{|i| artist.send(i, langcode: 'en', lang_fallback: false, str_fallback: '')}; sprintf '%s%s [%s]', tits[0], ((orig_lc == 'en') ? asterisk : ''), tits[2] %></td>
         <% s = artist.engage_how_titles(music, year: music.year).join(', ') %>
         <% label_str = ((/\d/ =~ s) ? s : s+'('+(music.year || t('musics.show.year_unknown')).to_s+')') %>
         <% engage = artist.engages.where(music: music).first %>
@@ -56,7 +57,7 @@
                 sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture['ja'] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2] %></td>
         <td><%= sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
                   i = artist.send m; (i.blank? ? '——' : i.to_s)}) %></td>
-        <td><%= artist.sex.title langcode: I18n.locale, lang_fallback: true %></td>
+        <td class="text-center"><%= artist.sex.title langcode: I18n.locale, lang_fallback: true %></td>
         <td><%= artist.note %></td>
         <td><%= link_to t("tables.Show"), artist %></td>
         <% if can? :update, artist %>

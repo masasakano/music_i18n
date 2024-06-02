@@ -156,7 +156,7 @@
   
   <dt id="harami1129_show_EventItem" title="Table of the association for EventItem">EventItem (in our DB, for Song and Artists to collaborate):</dt>
   <dd id="harami1129_show_EventItem_dd">
-    EventItem: <%= @harami1129.event_item ? link_to(sprintf('(ID=%d) %s', @harami1129.event_item.id, @harami1129.event_item.machine_title)) : 'nil' %> </dd>
+    EventItem: <%= @harami1129.event_item ? link_to(sprintf('(ID=%d) %s', (evit=@harami1129.event_item).id, evit.machine_title), evit) : 'nil' %> </dd>
   <dd id="harami1129_show_Event_dd">
     &lt; Event: <%= @harami1129.event_item ? link_to(sprintf('(ID=%d) %s', (evt=@harami1129.event_item.event).id, evt.title(langcode: I18n.locale, lang_fallback: true)), evt) : 'nil' %> </dd>
   <dd id="harami1129_show_EventGroup_dd">

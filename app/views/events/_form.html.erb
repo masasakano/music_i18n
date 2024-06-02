@@ -22,9 +22,8 @@
   <%= f.input :start_time, start_year: get_form_start_year(event.start_time), end_year: Date.today.year+1, max_years_allowed: 2100, hint: "To input an earlier year, select the earliest visible year and save it first, then try to update it, where you have a lot more choices for earlier years." %> <%# defined in event_groups_helper.rb %>
   <%= f.input :form_start_err, label: "Error", as: :float %>
   <%= f.input :form_start_err_unit, label: "Error Unit",
-    collection: ApplicationController::EVENT_FORM_ERR_UNITS, checked: (event.form_start_err_unit || "day"), as: :radio_buttons
+    collection: ApplicationController::EVENT_FORM_ERR_UNITS, checked: (event.form_start_err_unit || "day"), as: :radio_buttons, item_wrapper_class: 'inline'
   %>
-  selected1 = <%= (event.form_start_err_unit || "day").inspect %>; selected2=<%= event.form_start_err_unit.inspect %>
 
   <%= f.input :duration_hour, label: "Duration [hour]" %>
   <%# f.input :duration_hour_err, label: "Duration error [second]" %>

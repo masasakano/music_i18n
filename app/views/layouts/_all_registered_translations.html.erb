@@ -91,7 +91,8 @@
         <% if can_show %>
           <td class="trans_action trans_show editor_only" style="border-right-style: none;"><%= link_to 'Show', tra %></td>
         <% end %>
-        <td class="trans_action trans_edit editor_only" style="border-left-style: none;<%= (hsflag[:demotable] || hsflag[:promotable]) ? 'border-right-style: none;' : ''  %>">
+        <% class2add = ((current_user && can?(:update, tra) && ![tra.create_user, tra.update_user].include?(current_user)) ? "moderator_only" : "editor_only") %>  <%# For one's own Translation (or not editable), it is for "editor_only", else "moderator_only" in order to prompt the user to be more careful %>
+        <td class="trans_action trans_edit <%= class2add %>" style="border-left-style: none;<%= (hsflag[:demotable] || hsflag[:promotable]) ? 'border-right-style: none;' : ''  %>">
         <% if can? :update, tra %>
           / <%= link_to 'Edit', edit_translation_path(tra) %>
         <% end %>
@@ -114,8 +115,9 @@
         </td>
       <% end %>
       <% if can?(:destroy, tra) %>
-        <% class2add = ((current_user && current_user.qualified_as?(Role::RNAME_MODERATOR, RoleCategory::MNAME_TRANSLATION)) ? " moderator_only" : "editor_only") %>
-        <td class="trans_action trans_destroy<%= class2add %>" style="border-left-style: none;">
+        <% class2add = ((current_user && current_user.qualified_as?(Role::RNAME_MODERATOR, RoleCategory::MNAME_TRANSLATION)) ? "moderator_only" : "editor_only") %> <%# One's own Translation can be destroyed by themselves even if they are Editors. It is the same for Moderators, but Moderators do have more responsibility and so the style of "moderator_only" is used for Destroy regardless of the Translation owned by themselves or not. %>
+        <% class2add = "admin_only" if tra.last_remaining_in_any_languages? %>
+        <td class="trans_action trans_destroy <%= class2add %>" style="border-left-style: none;">
           <%= link_to('Destroy', tra, method: :delete, data: { confirm: (t('are_you_sure')).html_safe }) %>
         </td>
       <% end %>
