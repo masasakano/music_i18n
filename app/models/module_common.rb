@@ -884,12 +884,17 @@ module ModuleCommon
   # @param prms [Hash] The data to insert
   # @param uniques [Symbol, Array] Unique key words to find an existing record
   # @param if_needed: [Hash] Hash of Key=>Value to rescue an invalid save.
+  # @param extra_str: [String] see {ApplicationController#logger_after_create}
+  # @param execute_class: [Class, String] usually a subclass of {ApplicationController} (though the default here is inevitably ActiveRecord...)
+  # @param method_txt: [String] pass +__message__+
+  # @param user: [User] if specified and if a new record is saved, {ApplicationRecord#logger_after_create} is called.
   # @return [ActiveRecord] nil if failed. Otherwise {Harami1129} instance (you need to "reload")
   # @raise [ActiveRecord::RecordInvalid, ActiveModel::UnknownAttributeError] etc
-  def update_or_create_by_with_notouch!(prms, uniques, if_needed: {})
+  def update_or_create_by_with_notouch!(prms, uniques, if_needed: {}, extra_str: "", execute_class: self.class, method_txt: "create", user: nil)
     unique_opts, new_opts = split_hash_with_keys(prms, [uniques].flatten)
 
     record = find_or_initialize_by(**unique_opts)
+    is_new_rec = record.new_record?
 
     err = nil
     ActiveRecord::Base.transaction(requires_new: true) do
@@ -907,6 +912,7 @@ module ModuleCommon
             end
             # record.update!(**new_opts)  # Ruby 3.0 would raise ArgumentError if empty?
             record.save!
+            record.logger_after_create(extra_str: extra_str, execute_class: execute_class, method_txt: method_txt, user: user) if is_new_rec && user && !block_given? # If block_given? it is later further modified.
           rescue ActiveRecord::RecordInvalid
             raise if record.changed?  # no update if record unchanged
           end
@@ -914,6 +920,7 @@ module ModuleCommon
         if block_given?
           yield record #, upd
           record.save!(touch: false) if record.changed?
+          record.logger_after_create(extra_str: extra_str, execute_class: execute_class, method_txt: method_txt, user: user) if is_new_rec && user  # defined in application_record.rb
         end
       rescue => err
         raise ActiveRecord::Rollback, "Force rollback."

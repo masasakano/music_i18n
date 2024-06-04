@@ -99,8 +99,10 @@ class Engage < ApplicationRecord
   # @param updates [Array<Symbol>] Array of Symbol<ins_*> to update.
   # @param messages: [Array<String>] (intent: out) messages to be returned
   # @param dryrun: [Boolean] If true (Def: false), nothing is saved but {Engage#different_columns_for_harami1129} for the returned value is set.
+  # @param user: [User] if specified and if a new record is saved, {ApplicationRecord#logger_after_create} is called.
+  # @param kwds: [Hash] See #{Harami1129s::DownloadHarami1129#insert_one_db!}, or ultimately {ApplicationRecord#logger_after_create}
   # @return [Engage] {Translation} is associated via {#translations}, or maybe {#unsaved_translations} if dryrun and the return is {Engage#new_record?}
-  def self.find_and_set_one_harami1129(harami1129, updates: [], messages: [], dryrun: false)
+  def self.find_and_set_one_harami1129(harami1129, updates: [], messages: [], dryrun: false, user: nil, **kwds)
     ret = harami1129.engage # || find_or_initialize_unknown)
 
     # If Harami1129#engage_id is nil, all related values in columns_for_harami1129[:be4] are nil.
@@ -146,18 +148,31 @@ class Engage < ApplicationRecord
     end
 
     if artist.new_record?
-      artist.save! if !dryrun # should be OK? Translation is saved, too.
+      if !dryrun
+        artist.save!  # should be OK? Translation is saved, too.
+        artist.logger_after_create(user: user, **kwds) if user # defined in application_record.rb
+      end
     end
+    is_music_new = false
     if music.new_record?
-      music.save!  if !dryrun # should be OK? Translation is saved, too.
+      is_music_new = true
+      if !dryrun
+        music.save!  # should be OK? Translation is saved, too.
+        ## logger output after Engage#save! below.
+      end
     end
 
     hs = {music: music, artist: artist}
     ret = self.find_or_initialize_by(**hs)
     if ret.new_record?
       ret.engage_how = EngageHow.order(:weight).first  # For a completely new Engage for Harami1129, highest-priority EngageHow is chosen: likely "Singer (Original)"
-      ret.save! if !dryrun
-      #self.find_or_create_by!(**hs)
+      if !dryrun
+        ret.save!
+        if user && is_music_new
+          kwds[:extra_str] ||= " / Engage(ID=#{ret.id}/Artist=#{artist.logger_title}/EngageHow=#{ret.engage_how.title(langcode: 'en').inspect})"
+          music.logger_after_create(user: user, **kwds) # defined in application_record.rb
+        end
+      end
     end
 
     ret.columns_for_harami1129 = colinit

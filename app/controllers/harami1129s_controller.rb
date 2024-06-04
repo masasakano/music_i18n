@@ -174,31 +174,33 @@ class Harami1129sController < ApplicationController
       end
     end # def load_harami1129_from_form
 
-    # Insert one entry to DB.  Exception if fails.
+    #### This is transferred to /app/models/harami1129s/download_harami1129.rb
     #
-    # @param entry [Hash] The data to insert
-    # @param entry [Nokogiri] HTML table row object. Used for Error message.
-    # @return [ActiveRecord, Exception] nil if failed. Otherwise {Harami1129} instance (you need to "reload")
-    def insert_one_db!(entry, tr, debug: false)
+    # # Insert one entry to DB.  Exception if fails.
+    # #
+    # # @param entry [Hash] The data to insert
+    # # @param entry [Nokogiri] HTML table row object. Used for Error message.
+    # # @return [ActiveRecord, Exception] nil if failed. Otherwise {Harami1129} instance (you need to "reload")
+    # def insert_one_db!(entry, tr, debug: false)
 
-      #existings = Harami1129.where(link_time: entry[:link_time], link_root: entry[:link_root])
-      #harami = ((existings.size > 0) ? existings[0] : Harami1129.new)
-      #entry.each_pair do |ek, ev|
-      #  harami.send(ek.to_s+'=', ev)
-      #end
+    #   #existings = Harami1129.where(link_time: entry[:link_time], link_root: entry[:link_root])
+    #   #harami = ((existings.size > 0) ? existings[0] : Harami1129.new)
+    #   #entry.each_pair do |ek, ev|
+    #   #  harami.send(ek.to_s+'=', ev)
+    #   #end
 
-      begin
-        harami = Harami1129.insert_a_downloaded!(**entry)
-        #harami.save!
-      rescue ActiveRecord::RecordInvalid => err
-        #new_or_upd = (harami.id ? "create a" : "update an existing (ID=#{harami.id})")
-        msg = sprintf "Failed to update/create a record (%s) from harami1129 on DB with a message: %s", tr.text, err.message
-        logger.warn msg
-        @last_err = msg
-        return nil
-      end
+    #   begin
+    #     harami = Harami1129.insert_a_downloaded!(**entry)
+    #     #harami.save!
+    #   rescue ActiveRecord::RecordInvalid => err
+    #     #new_or_upd = (harami.id ? "create a" : "update an existing (ID=#{harami.id})")
+    #     msg = sprintf "Failed to update/create a record (%s) from harami1129 on DB with a message: %s", tr.text, err.message
+    #     logger.warn msg
+    #     @last_err = msg
+    #     return nil
+    #   end
 
-      harami
-    end
+    #   harami
+    # end
 
 end

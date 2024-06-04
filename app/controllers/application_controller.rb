@@ -719,6 +719,24 @@ class ApplicationController < ActionController::Base
   end
   private :_build_str4parse
 
+  # Log an info message after create
+  #
+  # +extra_str+ is passed to {ApplicationRecord#logger_title} as the sole element of +extra+
+  #
+  # The information of the initiated user is {User#display_name} in Test environment, else ID.
+  #
+  # @example
+  #    logger_after_create(@music, extra_str: " / Artists=#{ApplicationRecord.logger_titles(@music.artists.uniq)}", method_txt: __method__)  # defined in application_controller.rb
+  #
+  # @param model [ApplicationRecord]
+  # @param extra_str: [String] see above
+  # @param method_txt: [String] pass +__message__+
+  # @param header_txt: [String] Def: "Created"
+  # @return [void]
+  def logger_after_create(model, extra_str: "", method_txt: "create", header_txt: "Created")
+    model.logger_after_create(extra_str: extra_str, execute_class: self.class, method_txt: method_txt, header_txt: "Created", user: current_user)  # defined in application_record.rb
+  end
+
   ######################## Callbacks
 
   # Callback

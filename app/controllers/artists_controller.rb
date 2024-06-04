@@ -59,7 +59,12 @@ class ArtistsController < ApplicationController
     authorize! __method__, @artist
 
     add_unsaved_trans_to_model(@artist, @hstra) # defined in application_controller.rb
-    def_respond_to_format(@artist)      # defined in application_controller.rb
+    result = def_respond_to_format(@artist)      # defined in application_controller.rb
+
+    if result
+      extra_str = " / Sex="+@artist.sex.title_or_alt(prefer_shorter: true, langcode: 'en', lang_fallback_option: :either, str_fallback: '')
+      logger_after_create(@artist, extra_str: extra_str, method_txt: __method__)  # defined in application_controller.rb
+    end
   end
 
   # PATCH/PUT /artists/1

@@ -94,11 +94,16 @@ class HaramiVidsController < ApplicationController
     _set_reference_harami_vid_id  # Sets reference_harami_vid_id, @event_event_items, @ref_harami_vid
 
     add_unsaved_trans_to_model(@harami_vid, @hstra) # defined in application_controller.rb
-    def_respond_to_format(@harami_vid){  # defined in application_controller.rb
+    result = def_respond_to_format(@harami_vid){  # defined in application_controller.rb
       create_update_core{
         @harami_vid.save
       }
     }
+
+    if result
+      extra_str = " / EventItems=#{ApplicationRecord.logger_titles(@harami_vid.event_items)} / Musics=#{ApplicationRecord.logger_titles(@harami_vid.musics)}"
+      logger_after_create(@harami_vid, extra_str: extra_str, method_txt: __method__)  # defined in application_controller.rb
+    end
   end
 
   # PATCH/PUT /harami_vids/1

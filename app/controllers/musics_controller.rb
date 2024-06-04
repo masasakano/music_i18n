@@ -86,6 +86,8 @@ class MusicsController < ApplicationController
 
     respond_to do |format|
       if !@music.errors.present? && save_return
+        extra_str = " / Artists=#{ApplicationRecord.logger_titles(@music.artists.uniq)}"
+        logger_after_create(@music, extra_str: extra_str, method_txt: __method__)  # defined in application_controller.rb
         if @msg_alerts.empty?
           format.html { redirect_to @music, notice: 'Music was successfully created.', alert: flash[:alert]} # alert may be set by an external process
         else

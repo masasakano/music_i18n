@@ -60,8 +60,9 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
   # @param max_entries_fetch: [Integer, NilClass] if nil, no limit.
   # @param html_str: [String, NilClass] Direct HTML String. If nil, read from the default URI.
   # @param debug: [Boolean]
+  # @param kwds: [Hash] See #{Harami1129s::DownloadHarami1129#insert_one_db!}, or ultimately {ApplicationRecord#logger_after_create}
   # @return [Harami1129s::DownloadHarami1129::Ret] where 6 instance variables are set.
-  def self.download_put_harami1129s(init_entry_fetch: 1, max_entries_fetch: nil, html_str: nil, debug: false)
+  def self.download_put_harami1129s(init_entry_fetch: 1, max_entries_fetch: nil, html_str: nil, debug: false, **kwds)
     ret = self::Ret.new
 
     init_entry_fetch = 1 if init_entry_fetch < 1
@@ -117,7 +118,7 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
       entry = _get_row_entry(row, ret, i_sigificant: i_sigificant, hscolnos: hscolnos, tr_this: ea_tr, debug: debug)
       next if entry.respond_to?(:harami1129s) # containing no song.
 
-      h1129 = insert_one_db!(entry, ea_tr, ret, debug: debug)
+      h1129 = insert_one_db!(entry, ea_tr, ret, debug: debug, **kwds)
       next if !h1129  # Failure in saving
       ret.harami1129 = h1129
       ret.harami1129s.push h1129
@@ -330,11 +331,15 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
   # @param entry [Hash] The data to insert
   # @param trow [Nokogiri] HTML table row object. Used for Error message.
   # @param retu [Harami1129::DownloadHarami1129] To set its "last_err" attribute if need be.
+  # @param extra_str: [String] see {ApplicationController#logger_after_create}
+  # @param execute_class: [Class, String] usually a subclass of {ApplicationController} (though the default here is inevitably ActiveRecord...)
+  # @param method_txt: [String] pass +__message__+
+  # @param user: [User] if specified and if a new record is saved, {ApplicationRecord#logger_after_create} is called.
   # @return [ActiveRecord, Exception] nil if failed. Otherwise {Harami1129} instance (you need to "reload")
-  def self.insert_one_db!(entry, trow, retu, debug: false)
+  def self.insert_one_db!(entry, trow, retu, extra_str: "", execute_class: self, method_txt: "create", user: nil, debug: false)
 
     begin
-      harami = Harami1129.insert_a_downloaded!(**entry)
+      harami = Harami1129.insert_a_downloaded!(extra_str: extra_str, execute_class: execute_class, method_txt: method_txt, user: user, **entry)
       #harami.save!
     rescue ActiveRecord::RecordInvalid => err
       #new_or_upd = (harami.id ? "create a" : "update an existing (ID=#{harami.id})")

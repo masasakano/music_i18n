@@ -430,13 +430,17 @@ class Harami1129 < ApplicationRecord
   #
   # updated_at unchanges if only the change is last_downloaded_at
   #
+  # @param extra_str: [String] see {ApplicationController#logger_after_create}
+  # @param execute_class: [Class, String] usually a subclass of {ApplicationController} (though the default here is inevitably ActiveRecord...)
+  # @param method_txt: [String] pass +__message__+
+  # @param user: [User] if specified and if a new record is saved, {ApplicationRecord#logger_after_create} is called.
   # @param prms [Hash] to give {#create!}
   # @return [Harami1129]
   # @raise [ActiveRecord::RecordInvalid] etc if the given parameters are invalid.
-  def self.insert_a_downloaded!(**prms)
+  def self.insert_a_downloaded!(extra_str: "", execute_class: self, method_txt: "create", user: nil, **prms)
     # Without "if_needed:", presense validation would fail.
     hs_if_needed = (!prms.key?(:last_downloaded_at)  ? {last_downloaded_at: Time.now} : {})
-    update_or_create_by_with_notouch!(prms, [:link_time, :link_root], if_needed: hs_if_needed){ |record|
+    update_or_create_by_with_notouch!(prms, [:link_time, :link_root], if_needed: hs_if_needed, extra_str: extra_str, execute_class: execute_class, method_txt: method_txt, user: user){ |record|
       record.last_downloaded_at = (record.saved_change_to_updated_at? ? record.updated_at : Time.now)
       record.orig_modified_at = record.last_downloaded_at if record.saved_change_to_updated_at?
     }
@@ -609,11 +613,12 @@ class Harami1129 < ApplicationRecord
   # which should be done by {#fill_ins_column!}.
   #
   # @param dryrun: [Boolean] If true (Def: false), nothing is saved but {Harami1229#different_columns_at_destination} for the returned value is set.
+  # @param kwds: [Hash] See #{Harami1129s::DownloadHarami1129#insert_one_db!}, or ultimately {ApplicationRecord#logger_after_create}
   # @return [self]
-  def insert_populate(messages: [], dryrun: false)
+  def insert_populate(messages: [], dryrun: false, **kwds)
     fill_ins_column! # sets @updated_col_syms
 
-    populate_ins_cols_default(messages: messages, dryrun: dryrun)
+    populate_ins_cols_default(messages: messages, dryrun: dryrun, **kwds)
     self
   end
 
@@ -706,7 +711,8 @@ class Harami1129 < ApplicationRecord
   #
   # @param message: [Array<String>] intent(out) for error/information messages.
   # @param dryrun: [Boolean] If true (Def: false), nothing is saved but {Harami1229#different_columns_at_destination} for the returned value is set.
-  def populate_ins_cols_default(messages: [], dryrun: false, force: false)
+  # @param kwds: [Hash] See #{Harami1129s::DownloadHarami1129#insert_one_db!}, or ultimately {ApplicationRecord#logger_after_create}
+  def populate_ins_cols_default(messages: [], dryrun: false, force: false, **kwds)
     # In practice it is unlikely self is new_record? because fill_ins_column!
     # should have "save"-d it, unless the record is not downloaded but
     # is manually generated (but not saved yet) in which ins_* have been
@@ -718,7 +724,7 @@ class Harami1129 < ApplicationRecord
         self.updated_col_syms = get_upd_hash(ignore_ins_at: true, force: force).keys
         updated_col_syms.select{|i| ALL_INS_COLS.include? i}
       end
-    populate_ins_cols(updates: updates, messages: messages, dryrun: dryrun)
+    populate_ins_cols(updates: updates, messages: messages, dryrun: dryrun, **kwds)
   end
 
   # Fill blank ins_* columns, from the downloaded columns
@@ -960,8 +966,9 @@ class Harami1129 < ApplicationRecord
   #
   # @param updates: [Array<Symbol>] Column names (Symbols) like :ins_singer which has been updated/created (and hence they may be reflected in the populated tables).
   # @param dryrun: [Boolean] If true (Def: false), nothing is saved but {Harami1229#columns_at_destination} for the returned value is set.
+  # @param kwds: [Hash] See #{Harami1129s::DownloadHarami1129#insert_one_db!}, or ultimately {ApplicationRecord#logger_after_create}
   # @return [self, NilClass] nil if dryrun or something goes wrong.
-  def populate_ins_cols(updates: [], messages: [], dryrun: false)
+  def populate_ins_cols(updates: [], messages: [], dryrun: false, **kwds)
     self.columns_at_destination = {be4: {}, aft: {}, tgt: {}.with_indifferent_access, hvma_current: nil}
     begin
       ActiveRecord::Base.transaction(requires_new: true) do
@@ -991,7 +998,7 @@ class Harami1129 < ApplicationRecord
 
         # self.engage_id may neeed to be altered.
         messages = []
-        enga = Engage.find_and_set_one_harami1129(self, updates: updates, messages: messages, dryrun: dryrun)
+        enga = Engage.find_and_set_one_harami1129(self, updates: updates, messages: messages, dryrun: dryrun, **kwds)
         self.columns_at_destination[:tgt][:engage] = enga
         if enga
           self.columns_at_destination[:tgt][:music]  = enga.music

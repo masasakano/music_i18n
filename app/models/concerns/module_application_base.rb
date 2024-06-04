@@ -92,5 +92,15 @@ module ModuleApplicationBase
     raise "(#{File.basename __FILE__}:#{self.name}.#{__method__}) Suffix exceeded the limit for prefix=#{prefix.inspect} and postfix=#{(separator+postfix).inspect}. Contact the code developer."
   end
 
+  # Wrapper of {ApplicationRecord#logger_title} returning String for multiple ones
+  #
+  # @example
+  #    Artist.last.musics.logger_titles(method: :alt_title)
+  #
+  # @param ary [#map]
+  def logger_titles(ary, **kwds)
+    "["+ary.map{|em| em.logger_title}.join(', ')+"]"
+  end
+
 end
 
