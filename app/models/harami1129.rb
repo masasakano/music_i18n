@@ -997,9 +997,11 @@ class Harami1129 < ApplicationRecord
         self.columns_at_destination[:aft] = hvid.columns_for_harami1129[:aft].dup
 
         # self.engage_id may neeed to be altered.
+        # This may create an Artist, Music, and Engage.
         messages = []
         enga = Engage.find_and_set_one_harami1129(self, updates: updates, messages: messages, dryrun: dryrun, **kwds)
         self.columns_at_destination[:tgt][:engage] = enga
+
         if enga
           self.columns_at_destination[:tgt][:music]  = enga.music
           self.columns_at_destination[:tgt][:artist] = enga.artist

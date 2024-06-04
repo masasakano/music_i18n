@@ -62,14 +62,12 @@
     <% msg_admin = (BaseGrid.qualified_as?(:an_admin) ? '<span class="admin_only">(-99 means all: admin only)</span>'.html_safe : "") %>
     <%= form.label      :max_entries_fetch, (h("Number of entries to download (Max: #{Harami1129s::DownloadHarami1129sController::MAX_ENTRIES})")+msg_admin).html_safe %>
     <%= form.text_field :max_entries_fetch,  value: Harami1129s::DownloadHarami1129sController::MAX_ENTRIES %><br>
-    <%= form.radio_button(:step_to, Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_STEP[:download], checked: false) %>
-    <%= s = Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_STEP[:download]; form.label :step_to, s.capitalize, value: s %>
-    <%= form.radio_button(:step_to, Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_STEP[:internal_insert], checked: false) %>
-    <%= s = Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_STEP[:internal_insert]; form.label :step_to, s.capitalize, value: s %>
-    <%= form.radio_button(:step_to, Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_STEP[:populate], checked: true) %>
-    <%= s = Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_STEP[:populate]; form.label :step_to, s.capitalize, value: s %>
+      <% Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_STEP.each_value do |ev| %>
+        <%= form.radio_button(:step_to, ev, checked: "populate" == ev.to_s.downcase) %>
+        <%= form.label :step_to, ev.capitalize, value: ev %>
+      <% end %> (Range for "Populate_only" are for local pIDs)
     </div>
-    <%= submit_tag "Download data", :name => Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_SUBMIT_NAME, :class => "btn btn-info"%>  (For some reason, this button does not refresh the page (so you have to reload it manually, which reverts the Download parameters back to the default)... Try <%= link_to 'this link', new_harami1129s_download_harami1129s_path+'?debug=true&max_entries_fetch=-99' %> instead (to download all)?   Or, <%= link_to 'Back to Home', root_path, data: { turbolinks: false } %>)
+    <%= submit_tag "Download data", :name => Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_SUBMIT_NAME, :class => "btn btn-info"%>  (Note that all the form parameters will be reverted back after you submit with this button. <%# = link_to 'this link', new_harami1129s_download_harami1129s_path+'?debug=true&max_entries_fetch=-99' %> <%# instead (to download all)?   Or, %> <%# = link_to 'Back to Home', root_path, data: { turbolinks: false } %>)
   </div>
 <% end %>
 <%# NOTE to Developer:
