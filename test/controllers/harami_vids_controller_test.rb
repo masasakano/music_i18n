@@ -771,14 +771,14 @@ end
       "form_channel_owner"   =>ChannelOwner.primary.id.to_s,
       "form_channel_type"    =>ChannelType.default(:HaramiVid).id.to_s,
       "form_channel_platform"=>ChannelPlatform.default(:HaramiVid).id.to_s,
-      place: @def_place.id.to_s,
       note: "old-new data",
       form_new_artist_collab_event_item: HaramiVidsController::DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_s,
       form_new_event: events(:ev_evgr_mvs_unknown).id,
+      music_collab: "",  # ID
       music_name: "",
       music_year: "",
       music_timing: "",
-      "music_genre"=>Genre.default(:HaramiVid).id.to_s, "music_year"=>"1984",
+      "music_genre"=>Genre.default(:HaramiVid).id.to_s,
       artist_name: "",
       artist_name_collab: "",
       "form_instrument" => Instrument.default(:HaramiVid).id.to_s,
@@ -811,6 +811,92 @@ end
     assert  hvid.channel, 'should have been set up, but...'
     assert_equal 1, hvid.event_items.count
     assert_equal 2, hvid.artist_music_plays.count  # default Artist's AMP
+  end
+
+
+  ##### update EventItem of Harami1129
+  test "should update Harami1129.event_item" do
+    h1129 = harami1129s(:harami1129_3)
+    hvid  = harami_vids(:harami_vid3)
+    assert (chan=hvid.channel), 'fixture sanity check'
+    assert (pla=hvid.place), 'fixture sanity check'
+
+    assert_equal hvid, h1129.harami_vid, 'fixture sanity check'
+    evit  = event_items(:evit_ev_evgr_unknown)
+    assert_includes hvid.event_items, evit, 'fixture sanity check (includes)'
+    h1129.update!(event_item: evit)
+
+    # Suppose HavamiVid's associationt to EventItem has disappeared.
+    hvid.event_items = []
+    assert_empty hvid.event_items
+    evit_new = event_items(:evit_ev_evgr_single_streets_unknown_japan_unknown)  # this is the EventItem to replace the current one with
+    hvid_ref = harami_vids(:four)  # the new EventItem was referred to from this HaramiVid (via GET in edit); this setting makes this test more realistic
+    assert_equal 1, hvid_ref.musics.size
+    refute_includes hvid.musics, hvid_ref.musics.first
+    # Because the Music of the reference HaramiVid is not included in the HaramiVid, 
+    # a new HaramiVidMusicAssoc is created.  (I think I have coded so simply because it would be
+    # much easier to destroy the association than creating one, and NOT because this is
+    # always desirable.)
+
+    # Adding another EventItem to the HaramiVid should update the corresponding Harami1129#event_item
+    hsin = {
+      event_item_ids: [evit_new.id.to_s],  # Suppose this was given in edit via GET.
+      "place.prefecture_id.country_id"=>pla.country.id.to_s,
+      "place.prefecture_id"=>pla.prefecture_id.to_s,
+      "place"=>pla.id.to_s,
+      "form_channel_owner"   =>chan.channel_owner_id.to_s,
+      "form_channel_type"    =>chan.channel_type_id.to_s,
+      "form_channel_platform"=>chan.channel_platform_id.to_s,
+      note: "old-new data",
+      form_new_artist_collab_event_item: "",
+      form_new_event: "",
+      music_collab: "",  # ID
+      music_name: "",
+      music_year: "",
+      music_timing: "",
+      "music_genre"=>Genre.default(:HaramiVid).id.to_s,
+      artist_name: "",
+      artist_name_collab: "",
+      "form_instrument" => Instrument.default(:HaramiVid).id.to_s,
+      "form_play_role"  => PlayRole.default(:HaramiVid).id.to_s,
+      "form_engage_hows"=>"",
+      "form_engage_year"=>"",
+      "form_engage_contribution"=>"",
+      "reference_harami_vid_id"=>hvid_ref.id.to_s,  # For GET in new
+      note: (newnote="Updated test 1129"),
+    }.with_indifferent_access
+
+    %i(uri duration).each do |ek|
+      hsin[ek] = hvid.send(ek)
+    end
+
+    hsin.merge!(get_params_from_date_time(hvid.release_date, "release_date", 3)) # defined in test_helper.rb
+
+    sign_in @moderator_all
+
+    assert_difference("ArtistMusicPlay.count", 2) do  # 2 Artist's Music-Event-Play for 2 Musics (?)
+      assert_difference("Music.count + Artist.count + Engage.count", 0) do
+        #assert_difference("HaramiVidMusicAssoc.count*10 + HaramiVidEventItemAssoc.count", 11) do  # comments out because this might change in the future.
+        assert_difference("HaramiVidEventItemAssoc.count", 1) do
+          assert_difference("Event.count*11 + EventItem.count", 0) do  # 1 Event + 1 EventItem  (Event created because Place is new for the unknown Event!  If Event was not unknown, the existing one should be used in default. EventItem is an unknown one and default one)
+            assert_no_difference("Channel.count") do  # existing Channel is found
+              assert_no_difference("HaramiVid.count*10 + Harami1129.count") do
+                patch harami_vid_url(hvid), params: { harami_vid: hsin }
+                assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+              end
+            end
+          end
+        end
+      end
+    end
+
+    hvid.reload
+    h1129.reload
+    assert_equal newnote, hvid.note
+    assert_equal hvid, h1129.harami_vid, 'sanity check'
+    assert_equal 1, hvid.event_items.count
+
+    assert_equal hvid.event_items.to_a, [h1129.event_item], 'Harami1129#event_item should have been updated, but...'
   end
 
 

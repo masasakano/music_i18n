@@ -54,5 +54,32 @@ class ArtistMusicPlayTest < ActiveSupport::TestCase
     assert_raises(ActiveRecord::InvalidForeignKey){ampe.save!(validate: false) } # DB level: <"PG::ForeignKeyViolation: ERROR:  insert or update on table \"artist_music_plays\" violates foreign key constraint \"fk_rails_841554622d\"\nDETAIL:  Key (instrument_id)=(1066896093) is not present in table \"instruments\".\n">
     assert_raises(ActiveRecord::RecordInvalid){   ampe.save! }  # automatic because of belongs_to
   end
+
+  test "self.initialize_default_artist" do
+    mu = musics(:music_light)
+    organ = instruments(:instrument_organ)
+    evit1 = EventItem.create_basic!(event: (ev3=events(:three)), machine_title: "evit1")
+    evit2 = EventItem.create_basic!(event: (ev3=events(:three)), machine_title: "evit2")
+    evit3 = EventItem.create_basic!(event: (ev3=events(:three)), machine_title: "evit3")
+    amp10 = ArtistMusicPlay.initialize_default_artist(music: mu, event_item: evit1, event_item_ids: nil, instrument: organ)
+    assert amp10.new_record?
+    assert amp10.valid?
+    amp10.save!
+
+    amp11 = ArtistMusicPlay.initialize_default_artist(music: mu, event_item: evit1, event_item_ids: nil, instrument: organ)
+    refute amp11.new_record?, "existing one should be found and returned, but...: #{amp11.inspect}"
+    assert_equal amp10, amp11
+
+    ary = [evit1, evit2, evit3].map{|i| i.id.to_s}
+    amp12 = ArtistMusicPlay.initialize_default_artist(music: mu, event_item_ids: ary, instrument: organ)
+    refute amp12.new_record?, "existing one should be found and returned, but...: #{amp12.inspect}"
+    assert_equal amp10, amp12
+
+    amp20 = ArtistMusicPlay.initialize_default_artist(music: mu, event_item_ids: ary[1..2], instrument: organ)
+    assert amp20.new_record?, "existing one should be found and returned, but...: #{amp12.inspect}"
+    assert amp20.valid?
+    assert amp20.save!
+    refute_equal amp10, amp20
+  end
 end
 

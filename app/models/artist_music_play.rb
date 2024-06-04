@@ -52,15 +52,24 @@ class ArtistMusicPlay < ApplicationRecord
   # (regardless of {Instruent} and {PlayRole}) defined already, returns the first one found (+new_record? == false+).
   # Otherwise an initialized {ArtistMusicPlay} with +new_record?==true+ is returned.
   #
-  # @example
+  # @example single
   #    amp = ArtistMusicPlay.initialize_default_artist(:HaramiVid,
   #            event_item: Event.default(:HaramiVid).unknown_event_item, music: Music.last)
   #    amp.save! if amp.new_record?
   #
+  # @example multiple
+  #    amp = ArtistMusicPlay.initialize_default_artist(:HaramiVid,
+  #            event_item_ids: ["123", "456"], music: Music.last)
+  #    amp.save! if amp.new_record?
+  #
   # Either a single EventItem or pIDs of multiple EventItems is mandatory.
   #
+  # In the latter case, if an existing ArtistMusicPlay to match the condition is not found,
+  # the first ID in the given Array (+event_item_ids+) is used for the EventItem to
+  # initialize an ArtistMusicPlay to return.
+  #
   # @param event_item: [EventItem]
-  # @param event_item_ids: [Array<Integer>] {HaramiVid#event_item_ids} etc.
+  # @param event_item_ids: [Array<Integer, String>] {HaramiVid#event_item_ids} etc.  String form of an Integer is accepted.
   # @return [ArtistMusicPlay]
   def self.initialize_default_artist(context=nil, music: , event_item: nil, event_item_ids: nil, instrument: nil, play_role: nil)
     instrument ||= Instrument.default(context)
@@ -71,18 +80,21 @@ class ArtistMusicPlay < ApplicationRecord
       music: music,
     }
 
+    hs2find = {}
+    hs4new  = {}
     if event_item
       hsbase[:event_item] = event_item
-    elsif event_item_ids
-      hsbase[:event_item_id] = event_item_ids
+    elsif event_item_ids.present?
+      hs2find[:event_item_id] = event_item_ids  # => where(event_item_id: [12, 34, 56])
+      hs4new[ :event_item_id] = event_item_ids.first
     else
-      raise ArgumentError, "(#{__method__}) Either a single EventItem or pIDs of multiple EventItems is mandatory."
+      raise ArgumentError, "(#{__method__}) Either a single EventItem or (non-empty) Array of pIDs of one or more EventItems is mandatory."
     end
 
-    amp_cand = where(**hsbase).first
+    amp_cand = where(**(hsbase.merge(hs2find))).first
     return amp_cand if amp_cand  # new_record? == false
 
-    new(**(hsbase.merge({instrument: instrument, play_role: play_role})))
+    new(**(hsbase.merge(hs4new).merge({instrument: instrument, play_role: play_role})))
   end
 
   # Returns Relation of all ArtistMusicPlay-s same as self except for keywords

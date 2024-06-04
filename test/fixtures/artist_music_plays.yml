@@ -140,3 +140,11 @@ ampy_evit_ev_evgr_single_streets_unknown_japan_unknown_music1:
   instrument: instrument_piano
   note: AMPlayEvitThreeMusic1 featured in HaramiVid four
   
+ampy_evit_one_music_ihojin1:
+  event_item: one
+  artist: artist_harami
+  music: music_ihojin1
+  play_role: play_role_inst_player_main
+  instrument: instrument_piano
+  note: "AmpyEvitOneMusicIhojin1 to be consistent with Harami1129-harami1129_ihojin1"
+

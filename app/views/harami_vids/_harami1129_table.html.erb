@@ -12,11 +12,13 @@
       <th title="<%= t('harami_vids.table_head_title_music_timing') %>">Timing</th>
       <th>Confirmed</th>
       <th>Engage</th>
+      <th title="EventItem with an arbitrary label">EvIt</th>
       <th colspan="2">Harami1129</th>
     </tr>
   </thead>
 
   <tbody>
+    <% hs_evit = {} %>  <%# keys: ?A, ?B, ?C, ... with values of EventItem %>
     <% harami_vid.harami1129s.order(:link_time).each_with_index do |harami1129, i1129| %>
       <% pstat = harami1129.populate_status %>
 
@@ -31,6 +33,20 @@
         <td><%= pstat.marker(:ins_link_time).html_safe+link_to_youtube(harami1129.link_time.to_s, harami1129.link_root, harami1129.link_time) %></td>
         <td><%= harami1129.checked_at %></td>
         <td><%= eng = harami1129.engage; (eng ? link_to('['+eng.engage_how.title(langcode: I18n.locale)+']', eng) : '') %></td>
+        <td class="text-center"><% evit = harami1129.event_item %>
+          <% if evit %>
+            <% tuple = hs_evit.find{|k, v| v == evit}
+               serial_char =
+                 if tuple
+                   tuple[0]
+                 else
+                   k_next = ((last_pair=hs_evit.to_a.last) ? last_pair[0].next : "A")
+                 end
+               hs_evit[serial_char] ||= evit
+            %>
+            <%= link_to(serial_char, event_item_path(evit), title: sprintf("%s (ID=%d)", evit.machine_title, evit.id)) %>
+          <% end %>
+        </td>
         <td><%= link_to 'Show', harami1129 %></td>
         <td>
 <% if false %>

@@ -46,7 +46,7 @@ require "test_helper"
 #         * EngageHow-s (belongs_to, 1 or more)
 #           * Translation (must have 1 (or more))
 #   * Harami1129 (usually have 1 (or many more))
-#     * EventItem (belongs_to; must; must be cnosistent with one of HaramiVidEventItemAssoc)
+#     * EventItem (belongs_to; must; must be consistent with one of HaramiVidEventItemAssoc)
 #   * Place (belongs_to, optional)
 #       * Translation (must have 1 (or more))
 #       * Prefecture (belongs_to, must)
@@ -169,6 +169,25 @@ class FixtureTest < ActiveSupport::TestCase
   test "fixtures consistency between MusicAssoc-Music and EventItem-Music" do
     HaramiVid.all.each do |hvid|
       assert_consistent_music_assocs_for_harami_vid(hvid)  # defined in model_helper.rb
+    end
+  end
+
+  test "fixtures consistency between Harami112, Engage, EventItem, HaramiVidMusicAssoc, HaramiVidEventItemAssoc" do
+    Harami1129.all.each do |h1129|
+      assert (eng=h1129.engage) if h1129.engage_id
+      assert (evit=h1129.event_item) if h1129.event_item_id
+      next if !h1129.harami_vid_id
+      assert (hvid=h1129.harami_vid)
+      if h1129.engage_id
+        assert_includes hvid.musics, eng.music
+        if h1129.event_item_id
+          assert_includes evit.musics, eng.music, "included Music (note=#{eng.music.note.inspect}) in Harami1129 (note=#{h1129.note.inspect}) usually must be played by the default Artist, too, in EventItem (note=#{evit.note.inspect}) through an ArtistMusicPlay"
+        end
+      end
+
+      if h1129.event_item_id
+        assert_includes hvid.event_items, evit, "EventItem (note=#{evit.note.inspect}) of Harami1129 (note=#{h1129.note.inspect}) must be one of HaramiVid#event_items (hvid.note=#{hvid.note.inspect}) through HaramiVidEventItemAssoc"
+      end
     end
   end
 

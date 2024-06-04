@@ -71,6 +71,12 @@ hvei_harami_vid_ihojin1_evit_2_harami_lucky2023:
   timing:
   note: HveiHaramiVidIhojin1Evit2HaramiLucky2023
 
+hvei_harami_vid_ihojin1_evit_one:
+  harami_vid: harami_vid_ihojin1
+  event_item: one
+  timing:
+  note: "HveiHaramiVidIhojin1EvitOne to be consistent with Harami1129-harami1129_ihojin1"
+
 hvei_harami_vid_50anni_evit_ev_evgr_live_streamings:
   harami_vid: harami_vid_50anni
   event_item: evit_ev_evgr_live_streamings

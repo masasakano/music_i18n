@@ -244,10 +244,11 @@ class HaramiVid < BaseWithTranslation
       evit_ids = event_item.id  # Integer (but OK as far as +where+ clauses are concerned)
     else
       evit_ids = event_item_ids # Array of Integers
-      if !event_item && evit_ids.empty?
+      if evit_ids.empty?
         raise "ERROR:(HaramiVid##{__method__}) No EventItem is specified or found."
       end
     end
+    evit = (event_item || EventItem.find(evit_ids.first))  # NOTE: In the latter case, the first one is used in ArtistMusicPlay.initialize_default_artist() to initialize an ArtistMusicPlay in case no existing one is found for the given Array of IDs of EventItems.
 
     arret = []
     musics.each do |music|
@@ -255,20 +256,22 @@ class HaramiVid < BaseWithTranslation
       arret << amp = ArtistMusicPlay.initialize_default_artist(:HaramiVid, event_item: event_item, event_item_ids: evit_ids, music: music, instrument: instrument, play_role: play_role)  # new for the default ArtistMusicPlay (event_item and music are mandatory to specify.
       next if !amp.new_record?
 
-      if !event_item
-        msg = "Multiple EventItem-s are specified to associate to HaraiVid's Music (#{music.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true).inspect}). Playing association is not created. You may manually add it later."
-        self.warning_messages << ERB::Util.html_escape("Warning: "+msg)  # alternative of flash[:warning]
-        msg = "WARNING:(HaramiVid##{__method__}) "+msg+" EventItem(pID=#{event_item.id}: #{event_item.title.inspect})"
-        warn msg
-        logger.warning msg
-        next
-      end
+      #### NOTE: If multiple EventItems are specified and ambiguous which one is used to create an ArtistMusicPlay, the first one is used now.
+      #
+      #if !event_item && evit_ids.size > 1
+      #  msg = "Multiple EventItem-s are specified to associate to HaraiVid's Music (#{music.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true).inspect}). Playing association is not created. You may manually add it later."
+      #  self.warning_messages << ERB::Util.html_escape("Warning: "+msg)  # alternative of flash[:warning]
+      #  msg = "WARNING:(HaramiVid##{__method__}) "+msg
+      #  warn msg
+      #  logger.warning msg
+      #  next
+      #end
 
       next if amp.save  # may or may not succeed.
 
       # This should not fail, but just in case...
       amp.errors.full_messages.each do |msg|
-        errors.add form_attr, ": Existing ArtistMusicPlay is not found, yet failed to create a new one for EventItem (pID=#{event_item.id}: #{event_item.title.inspect}) and Music (pID=#{music.id}: #{music.title.inspect}): "+msg
+        errors.add form_attr, ": Existing ArtistMusicPlay is not found, yet failed to create a new one for EventItem (pID=#{evit.id}: #{evit.machine_title.inspect}) and Music (pID=#{music.id}: #{music.title.inspect}): "+msg
       end
     end
     artist_music_plays.reset

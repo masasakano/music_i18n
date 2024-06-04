@@ -72,7 +72,7 @@ class ActiveSupport::TestCase
   # @param maxnum [Integer, NilClass] Number of parameters in params
   #    In default (if nil is given), 3 for Date and 5 for DateTime
   #    (n.b., "second" is not included as in Rails default).
-  # @return [Date, DateTime]
+  # @return [Hash] with_indifferent_access
   def get_params_from_date_time(dt, kwd, maxnum=nil)
     is_date = (dt.respond_to? :julian?)
     num = (maxnum || (is_date ? 3 : 5))
@@ -86,7 +86,7 @@ class ActiveSupport::TestCase
     end
 
     s_kwd = kwd.to_s
-    (1..num).to_a.map{|i| [sprintf("#{s_kwd}(%di)", i), dtoa[i-1]]}.to_h
+    (1..num).to_a.map{|i| [sprintf("#{s_kwd}(%di)", i), dtoa[i-1]]}.to_h.with_indifferent_access
   end
   #
   ## Convert Date or Time to ...(1i)-type format

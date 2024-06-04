@@ -79,6 +79,8 @@ class BaseGrid
   end
 
   # Used in Artist, Music etc
+  #
+  # @see Engage.find_and_set_one_harami1129
   def self.filter_include_ilike(col, type=:string, langcode: nil, **kwd)
     filter(col, type, **kwd) do |value|  # Only for PostgreSQL!
       str = preprocess_space_zenkaku(value, article_to_tail=true)

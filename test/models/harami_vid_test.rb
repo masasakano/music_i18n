@@ -80,7 +80,7 @@ class HaramiVidTest < ActiveSupport::TestCase
       #  refute     hvid.event_items.exists?  # HaramiVid Fixture includes no EventItem
       when :harami1129_ihojin1, :harami1129_ai
         assert     hvid.event_items.exists?  # HaramiVid Fixture includes EventItem
-        refute_includes hvid.event_items, h1129.event_item  # according to Fixture
+        assert_includes hvid.event_items, h1129.event_item if :harami1129_ihojin1 == ea_key  # according to Fixture
       else
         raise
       end
@@ -101,7 +101,7 @@ class HaramiVidTest < ActiveSupport::TestCase
         refute     hvid.release_date_changed?
         assert     hvid.release_date_was
         assert_equal h1129.ins_title, hvid.best_translations.first[1].title
-        refute_includes hvid.event_items, h1129.event_item  # Harami1129's EventItem does not add to HaramiVid's ones.
+        assert_includes hvid.event_items, h1129.event_item  # HaramiVid#event_items includes Harami1129's EventItem
       else
         raise
       end
@@ -283,12 +283,12 @@ class HaramiVidTest < ActiveSupport::TestCase
     assert_nothing_raised{ model.artist_collabs }
 
     hv = harami_vids(:harami_vid_ihojin1)
-    evis = [event_items(:evit_1_harami_lucky2023), event_items(:evit_2_harami_lucky2023)]
-    assert_equal 2, evis[0].artists.size, "#{evis[0].artists.inspect}; confirms fixtures"
-    assert_equal 2, evis[1].artists.size, '#{evis[1].artists.inspect}; confirms fixtures'
+    evis = [event_items(:one), event_items(:evit_1_harami_lucky2023), event_items(:evit_2_harami_lucky2023)]
+    assert_equal 2, evis[1].artists.size, "#{evis[1].artists.inspect}; confirms fixtures"
+    assert_equal 2, evis[2].artists.size, '#{evis[2].artists.inspect}; confirms fixtures'
     assert_equal evis, hv.event_items.order("event_items.start_time").to_a
-    assert_equal EventItem, hv.event_items.first.class, "#{hv.event_items.first.inspect}"
+    assert_equal EventItem, hv.event_items[1].class, "#{hv.event_items.first.inspect}"
     assert hv.artist_music_plays.exists?
-    assert_equal Artist, hv.artist_collabs.first.class, "#{hv.artist_music_plays.first.inspect}"
+    assert_equal Artist, hv.artist_collabs[1].class, "#{hv.artist_music_plays.first.inspect}"
   end
 end

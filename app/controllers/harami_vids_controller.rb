@@ -266,6 +266,8 @@ class HaramiVidsController < ApplicationController
           result = false if @harami_vid.errors.any?  # errors may be set by any of the "around"-processes
         end
       end
+
+      update_harami1129_event_item if result  # This might fail (though unlikely), but the failure would not halt processing.
       result
     end # def create_update_core
 
@@ -991,6 +993,65 @@ end
     end
     private :_can_create_artist_music_play?
 
+    # Update children {Harami1129}-s that have an EventItem not associated to @harami_vid
+    #
+    # +@assocs[:harami1129s]+ is set, containing Harami1129-s whose EventItem is updated.
+    #
+    # @return [void]
+    def update_harami1129_event_item
+      @assocs[:harami1129s] = []
+      return if !@harami_vid.event_items.exists?  # should never happen, but playing safe.
+
+      @evit_1st = nil  # later redefined in _get_evit_1st if ever needed.
+      @harami_vid.harami1129s.each do |h1129|
+        begin
+          next if (evit_old=h1129.event_item) && @harami_vid.event_items.include?(evit_old)  # Harami1129.event_item consistent with @harami_vid
+          music = 
+            if h1129.engage
+              h1129.engage.music
+            else
+              messages = []
+              artist = Engage.find_and_set_artist_for_one_harami1129(h1129, messages: messages)
+                       Engage.find_and_set_music_for_one_harami1129(h1129, artist: artist, messages: messages)
+            end
+
+          _update_h1129_with_music!(h1129, music)  # This might fail, in which case false is returned (though not checked here)
+          @assocs[:harami1129s].push h1129
+        rescue => err
+          msg = "DEBUG(#{File.basename __FILE__}:#{__method__}): An unexpected error occurs while processing with Harami1129 (ID=#{h1129.id}; #{h1129.title.inspect}) for HaramiVid (ID=#{@harami_vid.id}) with #{err.inspect}"
+          logger.warn msg
+        end
+      end
+    end
+
+    # Update Harami1129 with a best-guess EventItem based on the given Music
+    #
+    # Exception is raised if fails in updating.
+    #
+    # @param h1129 [Harami1129]
+    # @param music [Music]
+    # @return [Boolean]
+    def _update_h1129_with_music!(h1129, music)
+      amp = @harami_vid.artist_music_plays.find_by(music: music)
+      evit = (amp ? amp.event_item : _get_evit_1st)
+      h1129.update!(event_item: evit)
+    end
+    private :_update_h1129_with_music!
+
+    # Returns the most "significant" EventItem
+    #
+    # A cache mechanism is employed.
+    def _get_evit_1st
+      return(@evit_1st ||= @harami_vid.event_items.sort{|a, b|
+               cmp = (a.musics.count <=> b.musics.count)  # One with more Musics has a priority.
+               if cmp != 0
+                 cmp
+               else
+                 b.created_at <=> a.created_at  # Newer one has a priority.
+               end
+             }.first)
+    end
+    private :_get_evit_1st
 end
 
 ###########################

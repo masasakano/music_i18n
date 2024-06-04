@@ -74,7 +74,9 @@ Copying Events of this HaramiVid,
 <hr>
 <%= render partial: 'music_table', locals: {harami_vid: @harami_vid, add_buttons: true} %>
 <% if can? :read, Harami1129 %>
+ <div class="editor_only">
   <hr>
   <%= render partial: 'harami1129_table', locals: {harami_vid: @harami_vid, add_buttons: true} %>
+ </div>
 <% end %>
 
