@@ -69,6 +69,12 @@ ja:
     other: "%{count}回"
     # call this like  t(:times, count: 0)
 
+  times_hon:
+    zero: "%{count}本"
+    one: "%{count}本"
+    other: "%{count}本"
+    # call this like  t(:times_hon, count: 0)
+
   adjective:
     this: この
 

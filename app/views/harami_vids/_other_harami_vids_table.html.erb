@@ -1,5 +1,5 @@
 <section id="harami_vids_show_other_harami_vids">
-<h3><%= t("harami_vids.show.Other_HaramiVids_for_Event") %></h3>
+<h3 title="Excluding uncategorized Event's HaramiVids"><%= t("harami_vids.show.Other_HaramiVids_for_Event") %></h3>
 
 <table id="other_harami_vids_table_for_hrami_vid">
   <thead>
@@ -24,10 +24,10 @@
   </thead>
 
   <tbody>
-    <% all_evits = harami_vid.events.map{|eev| eev.event_items}.flatten %>
+    <% all_evits = harami_vid.events.uniq.map{|eev| eev.event_items}.flatten %>
     <% harami_vid.other_harami_vids_of_event.each_with_index do |ea_hvid, i_mus| %>
       <tr>
-        <td><%= can_edit ? ea_hvid.id : i_mus+1 %></td>
+        <td><%= can_edit ? link_to(ea_hvid.id, ea_hvid) : i_mus+1 %></td>
         <td class="item_channel">
     <span class="channel_platform"><%= ea_hvid.channel.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></span>
       (<span class="channel_type"><%= ea_hvid.channel.channel_type.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></span>)

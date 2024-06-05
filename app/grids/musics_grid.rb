@@ -83,8 +83,8 @@ class MusicsGrid < BaseGrid
     #record.engages.joins(:engage_how).order('engage_hows.weight').pluck(:artist_id).uniq.map{|i| art = Artist.find(i); sprintf '%s [%s]', ActionController::Base.helpers.link_to(art.title_or_alt, art), h(art.engage_how_titles(record).join(', '))}.join(', ').html_safe
     record.engages.joins(:engage_how).order('engage_hows.weight').pluck(:artist_id).uniq.map{|i| art = Artist.find(i); sprintf '%s [%s]', ActionController::Base.helpers.link_to(art.title_or_alt, Rails.application.routes.url_helpers.artist_path(art)), ERB::Util.html_escape(art.engage_how_titles(record).join(', '))}.join(', ').html_safe
   end
-  column(:n_harami_vids, class: ["align-cr"], header: Proc.new{I18n.t("tables.n_harami_vids", default: "# of HaramiVids")}) do |record|
-    record.harami_vids.count.to_s+'回'
+  column(:n_harami_vids, html: true, class: ["text-end"], header: Proc.new{I18n.t("tables.n_harami_vids", default: "# of HaramiVids")}) do |record|
+    ActionController::Base.helpers.link_to(I18n.t(:times_hon, count: record.harami_vids.distinct.count.to_s), Rails.application.routes.url_helpers.music_path(record)+"#sec_harami_vids_for")
   end
 
   column(:note, order: false, header: Proc.new{I18n.t("tables.note", default: "Note")})

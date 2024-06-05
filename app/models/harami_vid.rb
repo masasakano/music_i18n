@@ -491,9 +491,20 @@ class HaramiVid < BaseWithTranslation
     HaramiVid.joins(:event_items).where("event_items.id" => hv_ids).where.not("harami_vids.id" => id).distinct
   end
 
+  # @param exclude_unknown: [Boolean] Unless false (Def: true), HaramiVids belonging to Event.unknown are excluded.
+  #   In general, Event.unknown may inlucde thousands of EventItems and HaramiVids.
+  #   Hence, if false, potentially thousands of HaramiVids may be returned, each of which
+  #   may be processed thousands of times in /app/views/harami_vids/_other_harami_vids_table.html.erb
+  #   potentially leading to a memory error.
   # @return [HaramiVid::ActiveRecord_Relation] Other HaramiVids that share the same Event(s)
-  def other_harami_vids_of_event
-    HaramiVid.joins(:events).where("events.id" => events.ids).where.not("harami_vids.id" => id).distinct
+  def other_harami_vids_of_event(exclude_unknown: true)
+    all_event_ids =
+      if exclude_unknown
+        events.reject{|ev| ev.default? || ev.unknown?}.map{|i| i.id}
+      else
+        events.ids
+      end
+    HaramiVid.joins(:events).where("events.id" => all_event_ids).where.not("harami_vids.id" => id).distinct
   end
 
   # sets EventItem if self is for live_streaming and doee not have a significant EventItem
