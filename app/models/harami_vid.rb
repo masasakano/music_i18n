@@ -491,6 +491,11 @@ class HaramiVid < BaseWithTranslation
     HaramiVid.joins(:event_items).where("event_items.id" => hv_ids).where.not("harami_vids.id" => id).distinct
   end
 
+  # @return [HaramiVid::ActiveRecord_Relation] Other HaramiVids that share the same Event(s)
+  def other_harami_vids_of_event
+    HaramiVid.joins(:events).where("events.id" => events.ids).where.not("harami_vids.id" => id).distinct
+  end
+
   # sets EventItem if self is for live_streaming and doee not have a significant EventItem
   #
   # If self appears to be for live-streaming, this method adds, this method

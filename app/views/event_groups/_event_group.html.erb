@@ -29,8 +29,8 @@
   </p>
 
   <p>
-    <strong><%= t(:Place) %>:</strong>
-    <%= event_group.place ? h(event_group.txt_place_pref_ctry) : "" %>
+    <strong><%= t("tables.place_country") %>:</strong>
+    <%= event_group.place ? show_pref_place_country(event_group.place) : "" %>  <%# defined in places_helper.rb %>
   </p>
 
   <p>

@@ -5,27 +5,32 @@
   <thead>
     <tr>
       <th></th>
-      <th class="item_title">Title</th>
-      <th>Year</th>
+      <% if canedit_mus=(can? :edit, Music) %>
+        <th>pID</th>
+      <% end %>
+      <th class="item_title"><%= t("home.index.musics_title", default: "Title").capitalize %></th>
+      <th><%= t("tables.year", default: "Year").capitalize %></th>
       <th>
+      <% tit = t("tables.genre", default: "Genre").capitalize %>
       <% if can? :read, Genre %>
-        <%= link_to 'Genre', genres_url %>
+        <%= link_to tit, genres_url %>
       <% else %>
-        Genre
+        <%= tit %>
       <% end %>
       </th>
       <th>
+      <% tit = t("tables.genre", default: "tables.place").capitalize %>
       <% if can? :read, Place %>
-        <%= link_to 'Place', places_url %>
+        <%= link_to tit, places_url %>
       <% else %>
-        Place
+        <%= tit %>
       <% end %>
       </th>
-      <th><%= link_to 'Artists', artists_url %></th>
-      <th title="<%= t('harami_vids.table_head_title_music_timing') %>">Timing</th>
-      <th colspan="<%= can?(:update, Music) ? 2 : 1 %>">Music</th>
-      <th>動画数</th>
-     <% if can? :destroy, HaramiVidMusicAssoc %>
+      <th><%= link_to t(:Artists), artists_url %></th>
+      <th title="<%= t('harami_vids.table_head_title_music_timing') %>"><%= t("harami_vids.table_head_timing") %></th>
+      <th colspan="<%= can?(:update, Music) ? 2 : 1 %>"><%= t(:Music) %></th>
+      <th><%= t("artists.tablehead.n_harami_vids") %></th>
+     <% if (can_destroy_assoc=can?(:destroy, HaramiVidMusicAssoc)) %>
       <th title="<%= t('harami_vids.show.destroy_music_from_this_vid') %>">Association</th>
      <% end %>
     </tr>
@@ -35,22 +40,25 @@
     <% harami_vid.musics.order(:timing).each_with_index do |music, i_mus| %>
       <tr>
         <td><%= i_mus+1 %></td>
+       <% if canedit_mus %>
+        <td class="text-end"><%= link_to(music.id, music) %></td>
+       <% end %>
         <td class="item_title"><%= t = music.title_or_alt; t ? link_to(t, music) : '' %></td>
         <td class="item_year"><%= music.year %></td>
         <td class="item_genre"><%= music.genre.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></td>
         <td class="item_place"><%= ar = music.place.title_or_alt_ascendants(langcode: I18n.locale, prefer_shorter: true, lang_fallback_option: :either);
                 sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture['ja'] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2] %></td>
         <td class="item_artists"><%= music.artists.uniq.map{|i| sprintf '%s [%s]', link_to(i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i), h(i.engage_how_titles(music, langcode: I18n.locale, lang_fallback_option: :either).join(', '))}.join(', ').html_safe %></td>
-        <td class="item_timing"><%= harami_vid.harami_vid_music_assocs.where(music: music).pluck(:timing).select{|j| j.present?}.map{|i| link_to_youtube(sec2hms_or_ms(i), @harami_vid.uri, i, title: "#{i} sec") }.join(', ').html_safe %></td> <%# defined in application_helper.rb %>
+        <td class="item_timing text-end"><%= harami_vid.harami_vid_music_assocs.where(music: music).pluck(:timing).select{|j| j.present?}.map{|i| link_to_youtube(sec2hms_or_ms(i), @harami_vid.uri, i, title: "#{i} sec") }.join(', ').html_safe %></td> <%# defined in application_helper.rb %>
         <td><%= link_to(t("tables.Show"), music) if can?(:read, music) %></td>
         <% if can? :update, music %>
         <td>
           <%= link_to 'Edit', edit_music_path(music) %>
         </td>
         <% end %>
-        <td class="item_n_vids"><%= music.harami_vids.count.to_s %></td>
-      <% if can? :destroy, HaramiVidMusicAssoc %>
-        <td title="<%= t('harami_vids.show.destroy_music_from_this_vid') %>">
+        <td class="item_n_vids text-end"><%= music.harami_vids.count.to_s %></td>
+      <% if can_destroy_assoc %>
+        <td title="<%= t('harami_vids.show.destroy_music_from_this_vid') %>" class="text-end">
          <% hvma = harami_vid.harami_vid_music_assocs.where(music: music).first %>
        <% if can? :destroy, hvma %>
          <%= link_to t('layouts.destroy_button'), hvma, method: :delete, data: { confirm: t('are_you_sure') }, title: t('harami_vids.show.destroy_music_from_this_vid') %>

@@ -90,11 +90,11 @@ module ModuleCommon
     end
   end
 
-  # For model that has the method +place+
+  # For model that has the method +place+. shorter-name is preferred (between title and alt_title).
   #
   # @return [String] "県 — 場所 (国)"
-  def txt_place_pref_ctry(langcode: I18n.locale, prefer_alt: true, **opts)
-    ar = place.title_or_alt_ascendants(langcode: langcode, prefer_alt: prefer_alt, **opts);
+  def txt_place_pref_ctry(langcode: I18n.locale, prefer_shorter: true, **opts)
+    ar = place.title_or_alt_ascendants(langcode: langcode, prefer_shorter: prefer_shorter, **opts);
     sprintf '%s %s(%s)', definite_article_to_head(ar[1]), (ar[0].blank? ? '' : '— '+definite_article_to_head(ar[0])+' '), definite_article_to_head(ar[2])
   end
 

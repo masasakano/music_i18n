@@ -17,10 +17,10 @@
     </div>
   <% end %>
 
-  <dt title="Year"><strong><%= t(:Year_Title) %>:</strong></dt>
-  <dd><%= @music.year %></dd>
-  <dt title="Place"><strong><%= t("tables.place_country", default: "Place (Country)") %>:</strong></dt>
-    <dd><%= @music.txt_place_pref_ctry %></dd>
+  <dt class="item_year" title="Year"><strong><%= t(:Year_Title) %>:</strong></dt>
+    <dd class="item_year"><%= @music.year %></dd>
+  <dt class="item_place"> <%= t("tables.place_country", default: "Place (Country)") %>:</dt>
+    <dd class="item_place"><%= show_pref_place_country(@music.place) %></dd>  <%# defined in places_helper.rb %>
   <dt title="Genre"><strong><%= s=t(:Genre); can?(:update, Genre) ? (link_to s, genres_url) : s %>:</strong></dt>
     <dd><%= sprintf('%s [%s]', *(%w(ja en).map{|i| @music.genre.title(langcode: i) || ''})) rescue 'nil' %></dd>
   <dt title="HaramiVid"><strong><%= link_to t(:HaramiVid), "#sec_harami_vids_for" %>:</strong></dt>

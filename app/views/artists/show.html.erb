@@ -18,8 +18,8 @@
     <dd> <%= @artist.id %></dd>
    </div>
   <% end %>
-  <dt title="Place"><strong><%= t("tables.place_country", default: "Place (Country)") %>:</strong></dt>
-    <dd><%= @artist.txt_place_pref_ctry %></dd>
+  <dt class="item_place"> <%= t("tables.place_country", default: "Place (Country)") %>:</dt>
+    <dd class="item_place"><%= show_pref_place_country(@artist.place) %></dd>  <%# defined in places_helper.rb %>
   <dt title="Birthday"><strong><%= t("artists.show.birthday", default: "Birthday") %>:</strong></dt>
     <dd><%= @artist.birthday_string %></dd>
   <dt title="Sex"><strong><%= t("Sex") %>:</strong></dt>
