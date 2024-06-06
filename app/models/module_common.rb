@@ -1148,6 +1148,8 @@ module ModuleCommon
   # @return [Integer, NilClass] nil if kwd is blank.
   def _form_start_err_factor(kwd)
     case (kwd || ApplicationController::DEF_FORM_TIME_ERR_UNIT)
+    when "second"  # This may not be available in the forms, but it is used internally, e.g., _match_parent_hsmain in event_items_controller.rb
+      1
     when "minute"
       60
     when "hour"

@@ -65,8 +65,10 @@ class EventItem < ApplicationRecord
     validates ec, numericality: { less_than_or_equal_to: 1 }, allow_blank: true
   end
 
+  attr_accessor :warnings
   attr_accessor :form_start_err
   attr_accessor :form_start_err_unit
+  attr_accessor :match_parent
 
   UNKNOWN_TITLE_PREFIXES = UnknownEvent = {
     "en" => 'UnknownEventItem_',
@@ -348,6 +350,154 @@ class EventItem < ApplicationRecord
     !unknown?
   end
 
+  # Import data from parent Event or associated {HaramiVid}-s
+  #
+  # This may set @warnings[key]
+  #
+  # @param key [String, Symbol] key (column name or one without ID)
+  # @return [Object] nil if no update is needed
+  def imported_data_from_associates(key)
+    return nil if !event  # should never happen, but playing safe
+    orig_val = send(key)
+
+    retval = 
+      case key.to_sym
+      when :start_time
+        val=event.start_time
+        (val && (!orig_val || orig_val < val)) ? val : nil
+      when :start_time_err
+        val=event.start_time_err
+        (val && (!orig_val || orig_val > val)) ? val : nil
+      when :duration_minute
+        val=event.duration_hour
+        (val && (!orig_val || orig_val > val*60)) ? val*60 : nil
+      when :publish_date
+        nil
+      when :place
+        val=event.place
+        (val && (!orig_val || orig_val.encompass_strictly?(val) || !orig_val.not_disagree?(val))) ? event.place : nil
+      else
+        raise ArgumentError, "#{File.basename __FILE__}:(#{__method__}) Wrong key (#{key})."
+      end
+
+    if !harami_vids.exists?
+      _set_warnings(key, retval || orig_val)
+      return retval 
+    end
+
+    # May adjust according to associated HaramiVid-s
+    case key.to_sym
+    when :publish_date
+      if last_release_date && (!orig_val || orig_val > last_release_date)
+        retval = first_release_date
+      end
+    when :place
+      retval ||= least_significant_hvid_place if !orig_val
+    end
+
+    _set_warnings(key, retval || orig_val)  # n.b., retval is nil if no update (for orig_val) is needed.
+    return retval 
+  end
+
+  # this sets @warnings, too.
+  #
+  # @return [Hash] (with_indifferent_access) key to value of a newly imported value,
+  #    which is nil if no update is required.
+  def data_to_import_parent
+    return({}.with_indifferent_access) if !event  # should never happen, but playing safe
+    %i(start_time start_time_err duration_minute publish_date place).map{|ek|
+      [ek, imported_data_from_associates(ek)]
+    }.to_h.with_indifferent_access
+  end
+
+  # Last release_date among the associated {HaramiVid}-s
+  def all_release_dates
+    @all_release_dates ||= (harami_vids.exists? && harami_vids.pluck(:release_date).flatten.compact.sort)
+  end
+
+  # First release_date among the associated {HaramiVid}-s
+  def first_release_date
+    @first_release_date ||= (all_release_dates && all_release_dates.first)
+  end
+
+  # Last release_date among the associated {HaramiVid}-s
+  def last_release_date
+    @last_release_date ||= (all_release_dates && all_release_dates.last)
+  end
+
+  # All associated HaramiVid-s' Places
+  #
+  # @return [Array<Place>, NilClass] nil only when there are no associated HaramiVid-s, otherwise always Array is returned.
+  def hvid_places
+    @hvid_places ||= (harami_vids.exists? && harami_vids.pluck(:place_id).flatten.compact.uniq.map{|plaid| Place.find(plaid)})
+  end
+
+  # One of the least significant Place-s among those of all associated HaramiVid-s
+  #
+  # @return [Place, NilClass] nil only when there are no associated HaramiVid-s, otherwise always Array is returned.
+  def least_significant_hvid_place
+    hvid_places && hvid_places.sort{|a, b|
+      if a.more_significant_than?(b)
+        -1
+      elsif b.more_significant_than?(a)
+        1
+      else
+        0
+      end
+    }.last
+  end
+
+  # Set @warnings for all keys with the current status of self
+  #
+  # @return [Array] @warnings
+  def set_all_warnings
+    %i(start_time start_time_err duration_minute publish_date place).each do |ek|
+      _set_warnings(ek, send(ek))
+    end
+    @warnings
+  end
+
+  # Set @warnings
+  #
+  # @param key [String, Symbol]
+  # @param val [Object] if nil, it is taken from self.
+  # @return [String, NilClass] String (message) if a warning is set, else nil. (But you may not use the returned value anyway.)
+  def _set_warnings(key, val=nil)
+    @warnings ||= {}.with_indifferent_access
+    val ||= send(key)
+    return !val  # If value is nil, this method does nothing.  The caller should handle it.
+
+    case key.to_sym
+    when :start_time
+      if val > Time.current
+        return(@warnings[key] = "Start time is in the future.")
+      elsif last_release_date && last_release_date < val.to_date
+        return(@warnings[key] = "Start time is later than the (latest) release-date of the associated video(s).")
+      end
+    when :start_time_err
+        # do nothing
+    when :duration_minute
+      if event && event.duration_hour*60 < val
+        return(@warnings[key] = "Duration is longer than that of the parent Event.")
+      end
+    when :publish_date
+      if last_release_date && last_release_date < val
+        return(@warnings[key] = "Publish date is later than the (latest) release-date of the associated video(s).")
+      elsif last_release_date == Date.current
+        return(@warnings[key] = "Publish date is today (Ignore this warning if it is what you intended).")
+      end
+    when :place
+      if event && event.place && !event.place.encompass?(val)
+        return(@warnings[key] = "Place is inconsistent with Event's Place.")
+      elsif harami_vids.exists? && hvid_places.all?{|pla| pla.not_disagree?(other, allow_nil: false)}
+        return(@warnings[key] = "Place is inconsistent with any of the associated video(s).")
+      end
+    else
+      raise ArgumentError, "#{File.basename __FILE__}:(#{__method__}) Wrong key (#{key})."
+    end
+    nil
+  end
+  private :_set_warnings
 
   ########## callbacks ########## 
 

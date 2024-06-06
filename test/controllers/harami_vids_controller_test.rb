@@ -870,7 +870,7 @@ end
       hsin[ek] = hvid.send(ek)
     end
 
-    hsin.merge!(get_params_from_date_time(hvid.release_date, "release_date", 3)) # defined in test_helper.rb
+    hsin.merge!(get_params_from_date_time(hvid.release_date, "release_date", 3)) # defined in application_helper.rb
 
     sign_in @moderator_all
 

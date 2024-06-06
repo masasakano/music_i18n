@@ -62,46 +62,6 @@ class ActiveSupport::TestCase
   # add until here
   # ---------------------------------------------
 
-  # Reverse of get_date_time_from_params in Application.helper
-  #
-  # pReturns a Hash like params from Date/DateTime
-  #   {"r_date(1i)"=>"2019", "r_date(2i)"=>"1", "r_date(3i)"=>"9"}
-  #
-  # @param dt [Date, DateTime]
-  # @param kwd [String, Symbol] Keyword of params
-  # @param maxnum [Integer, NilClass] Number of parameters in params
-  #    In default (if nil is given), 3 for Date and 5 for DateTime
-  #    (n.b., "second" is not included as in Rails default).
-  # @return [Hash] with_indifferent_access
-  def get_params_from_date_time(dt, kwd, maxnum=nil)
-    is_date = (dt.respond_to? :julian?)
-    num = (maxnum || (is_date ? 3 : 5))
-
-    if is_date
-      num = [num, 3].min
-      dtoa = %i(year month day).map{|i| sprintf("%0"+((:year == i) ? 4 : 2).to_s+"d", dt.send(i))}[0..(num-1)]
-    else
-      num = [num, 6].min
-      dtoa = dt.to_a[0,6].reverse[0..(num-1)].map.with_index{|v, i| sprintf("%0"+((0 == i) ? 4 : 2).to_s+"d", v)}
-    end
-
-    s_kwd = kwd.to_s
-    (1..num).to_a.map{|i| [sprintf("#{s_kwd}(%di)", i), dtoa[i-1]]}.to_h.with_indifferent_access
-  end
-  #
-  ## Convert Date or Time to ...(1i)-type format
-  ##
-  ## @return [Hash<String,String>] with_indifferent_access : e.g., {"ins_at(1i)"=>"1999", "ins_at(2i)"=>"06", ...}
-  #def datetime_to_forms(dtime, kwd)
-  #  max_i = (dtime.respond_to?(:hour) ? 6 : 3)
-  #  hsret = {}
-  #  %i(year month day hour min sec).map.with_index do |metho, i|
-  #    fmt = "%0"+((:year == metho) ? "4" : "2")+"d"
-  #    [sprintf("%s(%di)", kwd, i+1), sprintf(fmt, dtime.send(metho))]
-  #  end.to_h.with_indifferent_access
-  #end
-
-
   # Reverse of get_bool_from_params in Application.helper
   #
   # The input should be String.

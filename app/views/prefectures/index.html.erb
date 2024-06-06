@@ -2,18 +2,26 @@
 
 <h1>Prefectures</h1>
 
+<% canedit=can?(:edit, Prefecture) %>
+<% can_create_pla = can?(:create, Place) %>
 <table class="table_index table_string">
   <thead>
     <tr>
-      <th>ID</th>
+     <% if canedit %>
+      <th class="editor_only">pID</th>
+     <% end %>
       <th>Country-pID(alt名称)</th>
        <%= render "layouts/title_alt_ja_en_table", model: nil, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
+       <% if can_create_pla %> 
+         <th class="editor_only" title="Add Place (# of existing Places)">Add-P(#)
+         </td>
+       <% end %>
       <th title="(ISO 3166-2:JP (etc) code (JIS X 0401:1973))">ISO3166</th>
       <th title="(Remarks by HirMtsd)">Remark<br>(by HirMtsd)</th>
       <th>Start date</th>
       <th>End date</th>
       <th>Note</th>
-     <% colspan = ((can? :edit, Prefecture) ? 3 : 1) %>
+     <% colspan = (canedit ? 3 : 1) %>
       <th colspan="<%= colspan %>">Action</th>
     </tr>
   </thead>
@@ -21,18 +29,31 @@
   <tbody>
     <% @prefectures.each do |model| %>
       <tr>
-        <td><%= model.id %></td>
+       <% if canedit %>
+        <td class="editor_only"><%= link_to model.id, model %></td>
+       <% end %>
         <td><%= cntr=model.country; link_to(sprintf('%d', cntr.id), cntr)+sprintf('(%s)', cntr.title_or_alt(langcode: I18n.locale, prefer_alt: true, lang_fallback_option: :either)) %></td>
        <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
-        <td><%= model.iso3166_loc_code %></td>
+       <% if can_create_pla %> 
+         <td class="text-end editor_only">
+           <%= link_to 'AddP', new_place_path(place: {prefecture_id: model.id}) %><%= sprintf('(%d)', model.places.count) %>
+         </td>
+       <% end %>
+        <td class="text-end"><%= model.iso3166_loc_code %></td>
         <td><%= model.orig_note %></td>
         <td><%= model.start_date %></td>
         <td><%= model.end_date %></td>
         <td><%= model.note %></td>
         <td><%= link_to 'Show', model %></td>
-       <% if (can? :edit, model) %>
-        <td><%= link_to('Edit', edit_prefecture_path(model)) if (can? :update, model) %></td>
-        <td><%= link_to('Destroy', model, method: :delete, data: { confirm: t('are_you_sure') }) if (can?(:destroy, model) && model.destroyable?(with_msg: false)) %></td>
+       <% if canedit %>
+        <% if (can? :edit, model) %>
+         <td class="editor_only"><%= link_to('Edit', edit_prefecture_path(model)) if (can? :update, model) %></td>
+         <% if (can? :destroy, model) %>
+          <td class="editor_only"><%= link_to('Destroy', model, method: :delete, data: { confirm: t('are_you_sure') }) if (can?(:destroy, model) && model.destroyable?(with_msg: false)) %></td>
+         <% end %>
+        <% else %>
+         <td colspan="2" class="editor_only"></td>
+        <% end %>
        <% end %>
       </tr>
     <% end %>

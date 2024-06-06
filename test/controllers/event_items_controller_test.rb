@@ -9,6 +9,7 @@ class EventItemsControllerTest < ActionDispatch::IntegrationTest
     @event_group = event_groups(:evgr_lucky2023)  # Already has one child Event.
     @event       = events(:ev_harami_lucky2023)
     @event_item  = event_items(:evit_1_harami_lucky2023)
+    @sysadmin = users(:user_sysadmin)
     @moderator_all   = users(:user_moderator_all)         # General-JA Moderator can manage.
     @moderator_harami= users(:user_moderator)             # Harami Moderator can manage.
     @editor_harami   = users(:user_editor)                # Harami Editor can manage.
@@ -52,9 +53,12 @@ class EventItemsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_redirected_to new_user_session_path
 
-    sign_in @moderator_harami
-    get new_event_url
-    assert_response :success
+    [@moderator_harami, @sysadmin].each do |user|
+      sign_in user
+      get new_event_url
+      assert_response :success
+      sign_out user
+    end
   end
 
   test "should create event_item" do
@@ -81,9 +85,12 @@ class EventItemsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_redirected_to new_user_session_path
 
-    sign_in @editor_harami
-    get event_item_url(@event_item)
-    assert_response :success
+    [@editor_harami, @sysadmin].each do |user|
+      sign_in user
+      get event_item_url(@event_item)
+      assert_response :success
+      sign_out user
+    end
   end
 
   test "should get edit" do
@@ -91,9 +98,12 @@ class EventItemsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_redirected_to new_user_session_path
 
-    sign_in @editor_harami
-    get edit_event_item_url(@event_item)
-    assert_response :success
+    [@editor_harami, @moderator_harami, @sysadmin].each do |user|
+      sign_in user
+      get edit_event_item_url(@event_item)
+      assert_response :success
+      sign_out user
+    end
   end
 
   test "should update event_item" do
@@ -106,7 +116,42 @@ class EventItemsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to event_item_url(@event_item)
     assert_equal 0.98, EventItem.find(@event_item.id).weight
 
-    patch event_item_url(@event_item), params: {event_item: @hs_create.merge({"machine_title" => event_items(:evit_1_harami_lucky2023).machine_title}) }
+    @event_item.reload
+    tocho = places(:tocho)
+    stt_time = Time.current.floor - 2.days
+    @event_item.event.update!(start_time: stt_time, place: tocho)
+    tokyo_unknown = tocho.prefecture.unknown_place
+    @event_item.update!(start_time: stt_time-2.hours, place: tokyo_unknown)
+    @event_item.reload
+    assert @event_item.place.encompass_strictly?(@event_item.event.place), 'sanity check'
+    assert_operator @event_item.event.start_time_err, :<, @event_item.start_time_err, 'This may or may not be true, actually.'
+
+    # Leaves most parameters 
+    hs2give = @hs_create.merge(
+      get_params_from_date_time(@event_item.start_time, "start_time", maxnum=6)).merge(
+      {"weight" => @event_item.weight, "place" => @event_item.place.id, "match_parent"=>"1", "note" => (tmptxt="test-match")}
+    )
+    patch event_item_url(@event_item), params: { event_item: hs2give }
+    assert_redirected_to event_item_url(@event_item)
+
+    @event_item.reload
+    event = @event_item.event
+    assert_equal tmptxt, @event_item.note, 'sanity check'
+    assert_equal event.place,          @event_item.place
+    assert_equal event.start_time,     @event_item.start_time
+    assert_operator event.start_time_err, :>=, @event_item.start_time_err, "this must be guaranteed, but..."
+    assert_equal    event.start_time_err,      @event_item.start_time_err  # providing the assert_operator above is true.
+
+    @event_item.update!(start_time: stt_time-2.hours, place: tokyo_unknown, event: events(:ev_harami_budokan2022_soiree))
+    @event_item.reload
+    
+    # Test of specifying "match_parent"=>"1" at the same time as the new Event (in this case, reverting back to the original Event)
+    patch event_item_url(@event_item), params: { event_item: hs2give.merge({"event_id" => event.id.to_s, "note" => (tmptxt="test-match2")})}
+    assert_redirected_to event_item_url(@event_item)
+    @event_item.reload
+    assert_equal tmptxt, @event_item.note, 'sanity check'
+    assert_equal event.place,          @event_item.place
+    assert_equal event.start_time,     @event_item.start_time
   end
 
   test "should destroy event_item" do

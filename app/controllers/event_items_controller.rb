@@ -1,4 +1,6 @@
 class EventItemsController < ApplicationController
+  include ApplicationHelper  # for get_params_from_date_time
+
   #skip_before_action :authenticate_user!, :only => [:index, :show]  # Revert application_controller.rb so Index is viewable by anyone.
   load_and_authorize_resource except: [:create] # except: [:index, :show]  # This sets @event. :create will be dealt separately
   #before_action :set_event_item, only: [:show]  # it is redundant because of load_and_authorize_resource. This would be needed if public access was allowed in the future (so far, no plan)
@@ -9,7 +11,7 @@ class EventItemsController < ApplicationController
   MAIN_FORM_KEYS = %w(machine_title duration_minute duration_minute_err weight event_ratio event_id note)+[
     "start_time(1i)", "start_time(2i)", "start_time(3i)", "start_time(4i)", "start_time(5i)", "start_time(6i)",
     "publish_date(1i)", "publish_date(2i)", "publish_date(3i)",
-    "form_start_err", "form_start_err_unit",
+    "form_start_err", "form_start_err_unit", "match_parent",
   ]
 
   # Permitted main parameters for params(), used for update and create
@@ -77,6 +79,7 @@ class EventItemsController < ApplicationController
 
   # PATCH/PUT /event_items/1 or /event_items/1.json
   def update
+    _match_parent_hsmain
     event_update_to_format(@event_item)  # defined in application_controller.rb
   end
 
@@ -106,5 +109,40 @@ class EventItemsController < ApplicationController
       else
         @event = Event.find(params[:event_id].to_i)
       end
+    end
+
+    # adjusts @hsmain according to parent (to import the data from parent Event or associated HaramiVids so the parameters are all consistent)
+    #
+    # @return [void]
+    def _match_parent_hsmain
+      @event_item.match_parent = @hsmain[:match_parent]
+      return if !@event_item.match_parent
+      use_place_id = !@hsmain.keys.include?("place")
+      @event_item.event_id = @hsmain[:event_id] if @hsmain[:event_id]
+
+      hs2update = @event_item.data_to_import_parent  # This sets @event_item.warnings
+      hs2update.each_pair do |ek, ev|
+        next if !ev
+        if "start_time_err" == ek
+          @hsmain["form_start_err"] = ev
+          @hsmain["form_start_err_unit"] = "second"
+        elsif "place" == ek && use_place_id
+          @hsmain["place_id"] = ev.id
+        elsif ev.respond_to? :julian?
+          @hsmain.merge! get_params_from_date_time(ev, ek.to_s)  # defined in ApplicationHelper
+        elsif ev.respond_to? :tv_usec
+          @hsmain.merge! get_params_from_date_time(ev, ek.to_s, 6)
+        else
+          if !@hsmain.has_key?(ek)
+            msg = "ERROR(#{__method__}): Unexpectedly, key=#{ek.inspect} does not exist in @hsmain.  Developer must fix it ASAP."
+            puts msg
+            logger.error msg
+          end
+          @hsmain[ek.to_s] = ev
+        end
+      end
+
+      flash[:warning] ||= []
+      flash[:warning].concat(@event_item.warnings.map{|ek, ev| sprintf("(%s) %s", ek, ev)})
     end
 end

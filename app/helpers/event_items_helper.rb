@@ -10,4 +10,21 @@ module EventItemsHelper
         [ea_event_item.id, ea_event_item.machine_title]
       }
   end
+
+  # @param record [EventItem]
+  # @return [String]
+  def hint_for_data_to_be_imported(record)
+    record.data_to_import_parent.map{ |ek, ev|
+      next nil if ev.blank?
+      str_ev = 
+        if ev.respond_to? :current
+          ev.current.to_s.inspect
+        elsif ev.respond_to? :encompass?
+          "<"+show_pref_place_country(ev, hyperlink: false, prefer_shorter: true)+">"  # defined in places_helper.rb
+        else
+          ev.to_s
+        end
+      sprintf("%s => %s", ek, str_ev)
+    }.compact.join("; ")
+  end
 end

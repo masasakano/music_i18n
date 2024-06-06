@@ -17,7 +17,7 @@
   <%= f.input :start_time, start_year: get_form_start_year(event_item.start_time), end_year: Date.today.year+1, max_years_allowed: 2100, hint: "If you want to input an earlier year, select the earliest visible year and save it first, then try to update it, where you have a lot more choices for earlier years." %> <%# defined in event_groups_helper.rb %>
   <%= f.input :form_start_err, label: "Error" %>
   <%= f.input :form_start_err_unit, label: "Error Unit",
-    collection: ApplicationController::EVENT_FORM_ERR_UNITS, checked: (event_item.form_start_err_unit || "day"), as: :radio_buttons
+    collection: ApplicationController::EVENT_FORM_ERR_UNITS, checked: (event_item.form_start_err_unit || "day"), as: :radio_buttons, item_wrapper_class: 'inline'
   %>
   <%= f.input :publish_date, label: t("tables.publish_date") %>
 
@@ -25,6 +25,9 @@
   <%= f.input :duration_minute_err, label: t("events.DurationError")+" ["+t('time_second')+"]" %>
 
   <%= render partial: "layouts/select_country_prefecture_place", locals: {form: f, model: event_item, is_simple_form: true} %>
+   <% s_hint = hint_for_data_to_be_imported(event_item) %> <%# defined in event_items_helper.rb %>
+   <% s_hint = "(all consistent and nothing to be imported)" if s_hint.blank? %>
+  <%= f.input :match_parent, label: "Check this to gracefully import Event's data", as: :boolean, unchecked_value: false, hint: ": "+s_hint %>  <%# "This also takes into account already associated HaramiVids' data if there is any." %>
   <%= f.input :weight, hint: "[0-1] used to sort EventItems" %>
   <%= f.input :event_ratio, label: "Event ratio [0-1]", hint: "1.0 if this EventItem covers the whole Event" %>
   <%= f.input :note %>

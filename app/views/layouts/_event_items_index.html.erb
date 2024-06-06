@@ -29,7 +29,7 @@
   </thead>
 
   <tbody>
-    <% event_items.each do |event_item| %>
+    <% event_items.order(:start_time, :publish_date).each do |event_item| %>
       <tr>
         <td><%= event_item.id %></td>
         <td><%= event_item.machine_title %></td>

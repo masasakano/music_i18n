@@ -75,12 +75,14 @@ class HaramiVidsGrid < BaseGrid
 
   column(:musics,  html: true, mandatory: true, header: I18n.t(:Musics)) do |record|
     print_list_inline(record.musics.uniq){ |tit, model|  # SELECT "dintinct" would not work well with ordering.
-      can?(:read, EventItem) ? link_to(tit, music_path(model)) : tit
+      titmod = definite_article_to_head(tit)
+      can?(:read, EventItem) ? link_to(titmod, music_path(model)) : titmod
     }  # defined in application_helper.rb
   end
   column(:artists, html: true, mandatory: true, header: I18n.t(:Artists)) do |record|
     print_list_inline(record.artists.uniq){ |tit, model|  # SELECT "dintinct" would not work well with ordering.
-      can?(:read, EventItem) ? link_to(tit, artist_path(model)) : tit
+      titmod = definite_article_to_head(tit)
+      can?(:read, EventItem) ? link_to(titmod, artist_path(model)) : titmod
     }  # defined in application_helper.rb
   end
 
@@ -97,14 +99,15 @@ class HaramiVidsGrid < BaseGrid
     tit = ((cha=record.channel) ? cha.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) : nil)
     kind = ((cha && typ=cha.channel_type) ? typ.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) : "").sub(/の?チャンネル|\s*channel/i, "")
     next "" if !tit
-    tit = h(tit)
+    tit = h(definite_article_to_head(tit))
     sprintf("%s [%s]", (can?(:read, cha) ? link_to(tit, channel_path(cha)) : tit), kind).html_safe
   end
 
   column(:owner, html: true, header: Proc.new{I18n.t("harami_vids.table_head_ChannelOwner", default: "Owner")}) do |record|
     tit = ((cha=record.channel) ? cha.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) : nil)
     next "" if !tit
-    (can?(:read, cha) ? link_to(tit, channel_owner_path(cha)) : tit)
+    titmod = definite_article_to_head(tit)
+    (can?(:read, cha) ? link_to(titmod, channel_owner_path(cha)) : titmod)
   end
 
   column(:platform, html: true, header: Proc.new{I18n.t("harami_vids.table_head_ChannelPlatform", default: "Platform")}) do |record|

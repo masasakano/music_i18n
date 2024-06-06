@@ -27,10 +27,10 @@
       <% end %>
       <th><%= t("tables.note") %></th>
       <% if can_edit %>
-        <th colspan="2" title="Show/Edit Artist">Artist</th>
+        <th colspan="2" title="Show/Edit Artist"><%= t(:Artist) %></th>
         <th title="Edit (Show) Engagements between Artist and Music" class="editor_only">Engages</th>
       <% else %>
-        <th title="Show Artist">Artist</th>
+        <th title="Show Artist"><%= t(:Artist) %></th>
       <% end %>
     </tr>
   </thead>
@@ -45,7 +45,7 @@
         <% orig_lc = artist.orig_langcode %>
         <td><%= (artist.title langcode: 'ja', lang_fallback: false, str_fallback: '') %><%= (orig_lc == 'ja') ? asterisk : '' %></td>
         <td><%= sprintf '%s [%s/%s]', *(%i(alt_title alt_ruby alt_romaji).map{|i| artist.send(i, langcode: 'ja', lang_fallback: false, str_fallback: '')}) %></td>
-        <td><%= tits = %i(title alt_title).map{|i| artist.send(i, langcode: 'en', lang_fallback: false, str_fallback: '')}; sprintf('%s%s [%s]', h(tits[0]), ((orig_lc == 'en') ? asterisk : ''), h(tits[2])).html_safe %></td>
+        <td><%= tits = %i(title alt_title).map{|i| artist.send(i, langcode: 'en', lang_fallback: false, str_fallback: '')}; sprintf('%s%s [%s]', h(tits[0]), ((orig_lc == 'en') ? asterisk : ''), h(tits[1])).html_safe %></td>
         <% s = artist.engage_how_titles(music, year: music.year).join(', ') %>
         <% label_str = ((/\d/ =~ s) ? s : s+'('+(music.year || t('musics.show.year_unknown')).to_s+')') %>
         <% engage = artist.engages.where(music: music).first %>

@@ -21,7 +21,7 @@
 <% if can? :read, EventItem %>  <%# should be redundant %>
 <hr>
 
-<h2>EventItems for this Event</h2>
+<h2>EventItems for this Event (from <%= @event.string_time_err2uptomin %>)</h2>
 
 <% items = @event.event_items.order(:weight, event_ratio: :desc) %>
 <%= render partial: 'layouts/event_items_index', locals: {event_items: items, with_event: false} %>
