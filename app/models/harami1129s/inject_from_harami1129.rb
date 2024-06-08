@@ -15,7 +15,7 @@ class Harami1129s::InjectFromHarami1129 < ApplicationRecord
   # in case the Proc needs more flexible manipulation.
   MAPPING_HARAMI1129 = {
     harami_vid: {
-      # ["id", "release_date", "duration", "uri", "place_id", "flag_by_harami", "uri_playlist_ja", "uri_playlist_en", "note", "created_at", "updated_at"]
+      # ["id", "release_date", "duration", "uri", "place_id", "harami_vid_id", "event_itm_id", "uri_playlist_ja", "uri_playlist_en", "note", "created_at", "updated_at"]
       ins_release_date: :release_date,
       ins_link_root: Proc.new{|i| {:uri => (i ? 'youtu.be/'+i : nil)}},
       ins_title: {translations: :title},
@@ -37,13 +37,17 @@ class Harami1129s::InjectFromHarami1129 < ApplicationRecord
       artist: Artist,
     },
     harami_vid_music_assoc: {
-      # ["id", "harami_vid_id", "music_id", "timing", "completeness", "flag_collab", "note", "created_at", "updated_at"]
+      # ["id", "harami_vid_id", "music_id", "timing", "completeness", "note", "created_at", "updated_at"]
       harami_vid: HaramiVid,
       music: Music,
       ins_link_time: :timing,
       # completeness:float
-      # flag_collab:boolean
-    }
+    },
+    harami_vid_event_item_assoc: {  # Not examined... (put here just for informatin)
+      # ["id", "harami_vid_id", "event_item_id", "timing", "note", "created_at", "updated_at"]
+      harami_vid: HaramiVid,
+      event_item: EventItem,
+    },
   }
 
   # Core routine to interpret each entry of {MAPPING_HARAMI1129}

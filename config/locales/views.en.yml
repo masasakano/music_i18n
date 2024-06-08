@@ -222,6 +222,7 @@ en:
     table_head_ChannelPlatform: Platform
     table_head_ChannelType: Type
     table_head_collabs: "feat. Artists"
+    table_head_collab_hows: "collab. types"
     table_head_title_music_timing: "[in second] Link to the original video at the timing"
     field_Duration_in_sec: "Video length [sec] or (hh:mm:ss)"
     release_date: "Release date"

@@ -36,14 +36,13 @@
   <dd class="item_place"><%= show_pref_place_country(@harami_vid.place) %></dd>  <%# defined in places_helper.rb %>
 
   <% if can? :edit, @harami_vid %>
-  <dt> <%= t("datagrid.form.by_harami_full") %>:</dt>
-  <dd><%= @harami_vid.flag_by_harami %></dd>
+    <div class="editor_only">
+      <dt> <%= t("datagrid.form.uri_playlist", langcode: t("locale.long.ja")) %>:</dt>
+      <dd><%= uri=@harami_vid.uri_playlist_ja; (uri.blank? ? '' : link_to_youtube(uri, uri)) %></dd>
 
-  <dt> <%= t("datagrid.form.uri_playlist", langcode: t("locale.long.ja")) %>:</dt>
-  <dd><%= uri=@harami_vid.uri_playlist_ja; (uri.blank? ? '' : link_to_youtube(uri, uri)) %></dd>
-
-  <dt> <%= t("datagrid.form.uri_playlist", langcode: t("locale.long.en")) %>:</dt>
-  <dd><%= uri=@harami_vid.uri_playlist_en; (uri.blank? ? '' : link_to_youtube(uri, uri)) %></dd>
+      <dt> <%= t("datagrid.form.uri_playlist", langcode: t("locale.long.en")) %>:</dt>
+      <dd><%= uri=@harami_vid.uri_playlist_en; (uri.blank? ? '' : link_to_youtube(uri, uri)) %></dd>
+    </div>
   <% end %>
 
   <dt class="item_note"> <%= t("tables.note") %>:</dt>

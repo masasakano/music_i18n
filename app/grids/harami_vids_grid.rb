@@ -25,7 +25,6 @@ class HaramiVidsGrid < BaseGrid
          header: Proc.new{I18n.t("harami_vids.table_head_ChannelType", default: "Channel type")}) do |value|  # Only for PostgreSQL!
     self.joins(channel: :channel_type).where("channel_type.id" => [value].flatten)
   end
-  # filter(:flag_by_harami, :xboolean, header: Proc.new{I18n.t('datagrid.form.by_harami_full', default: "Produced by Haramichan?")})
 
   filter_partial_str(:artists, header: Proc.new{I18n.t('datagrid.form.artists_multi')})
   filter_partial_str(:musics,  header: Proc.new{I18n.t('datagrid.form.musics_multi')})
@@ -117,7 +116,7 @@ class HaramiVidsGrid < BaseGrid
   end
 
   column(:events, html: true, header: Proc.new{I18n.t(:Events)}) do |record|
-    print_list_inline(record.events){ |tit, model|
+    print_list_inline(record.events.distinct){ |tit, model|
       can?(:read, EventItem) ? link_to(tit, event_path(model)) : tit
     }  # defined in application_helper.rb
   end
@@ -130,14 +129,20 @@ class HaramiVidsGrid < BaseGrid
     }  # defined in application_helper.rb
   end
 
-  column(:flag_by_harami, class: ["align-cr"], header: Proc.new{I18n.t('datagrid.form.by_harami', default: "By Harami?")}, if: Proc.new{BaseGrid.qualified_as?(:editor)}) do |record|
-    (record ? "Y" : (record.nil? ? "" : "N"))
+  column(:collabs, html: true, header: Proc.new{I18n.t("harami_vids.table_head_collab_hows", default: "collaboration types")}) do |record|
+    collab_hows_text(record)
+    #def_artist = Artist.default(:HaramiVid)
+    #record.artist_collabs.where.not(id: def_artist.id).distinct.ids
+    ##print_list_inline(record.artist_collabs.where.not(id: def_artist.id).distinct){ |tit, model|
+    ##  tit = definite_article_to_head(tit)
+    ##  can?(:read, Artist) ? link_to(tit, artist_path(model)) : tit
+    ##}  # defined in application_helper.rb
   end
 
-  column(:uri_playlist_ja, mandatory: false, order: false, header: Proc.new{I18n.t('datagrid.form.uri_playlist', langcode: "ja")}) do |record|
+  column(:uri_playlist_ja, mandatory: false, order: false, header: Proc.new{I18n.t('datagrid.form.uri_playlist', langcode: "ja")}, if: Proc.new{BaseGrid.qualified_as?(:editor)}) do |record|
     link_to_youtube record.uri_playlist_ja, record.uri_playlist_ja
   end
-  column(:uri_playlist_en, mandatory: false, order: false, header: Proc.new{I18n.t('datagrid.form.uri_playlist', langcode: "en")}) do |record|
+  column(:uri_playlist_en, mandatory: false, order: false, header: Proc.new{I18n.t('datagrid.form.uri_playlist', langcode: "en")}, if: Proc.new{BaseGrid.qualified_as?(:editor)}) do |record|
     link_to_youtube record.uri_playlist_en, record.uri_playlist_en
   end
 

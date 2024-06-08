@@ -5,7 +5,6 @@
 #
 #  id                                                                                     :bigint           not null, primary key
 #  duration(Total duration in seconds)                                                    :float
-#  flag_by_harami(True if published/owned by Harami)                                      :boolean
 #  note                                                                                   :text
 #  release_date(Published date of the video)                                              :date
 #  uri((YouTube) URI of the video)                                                        :text

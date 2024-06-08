@@ -67,6 +67,22 @@ module Seeds::PlayRole
       note: nil,
       regex: /指揮者|Conductor/i,
     },
+    dancer: {
+      ja: "ダンサー",
+      en: "Dancer",
+      mname:  "dancer",
+      weight: 60,
+      note: nil,
+      regex: /ダンサー|\bdancer$/i,
+    },
+    athlete: {
+      ja: "アスリート",
+      en: "Athlete",
+      mname:  "athlete",
+      weight: 70,
+      note: "スポーツ選手とのコラボ",
+      regex: /アスリート|\bAthlete$/i,
+    },
     host: {
       ja: "ホスト",
       en: "Host",

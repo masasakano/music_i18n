@@ -28,4 +28,22 @@ module HaramiVidsHelper
       [[[tit_mu, tit_art].compact.join(" "), tit_evit].compact.join(" - "), music.id]
     } 
   end
+
+  # Retunrs String to display in the summary/index table a colleciton of "how the collaborations are made"
+  #
+  # @param hvid [HaramiVid]
+  # @param rela [HaramiVid::Relation]
+  def collab_hows_text(hvid)
+    def_artist = Artist.default(:HaramiVid)
+    hvid.artist_music_plays.where.not(artist_id: def_artist.id).distinct.map{ |amp|
+      model2print =
+        case (apr=amp.play_role).mname
+        when "inst_player_main", "inst_player"
+          amp.instrument
+        else
+          apr
+        end
+      model2print.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true)
+    }.compact.uniq.join(t(:comma))
+  end
 end

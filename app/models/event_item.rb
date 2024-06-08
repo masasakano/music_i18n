@@ -131,8 +131,8 @@ class EventItem < ApplicationRecord
     hsret = {
       event: event,
       machine_title: get_unique_title(prefix, **kwd),
-      duration_minute:     ((event && hr=event.duration_hour) ? hr.quo(60) : nil),
-      duration_minute_err: ((event && er=event.start_time_err) ? er : nil),  # both in units of second
+      duration_minute:     ((event && hr=event.duration_hour) ? hr*60 : nil),
+      duration_minute_err: ((event && hr.respond_to?(:error) && hr.error) ? hr.error : 600),  # in second
     }
 
     %i(place_id start_time start_time_err).each do |metho|

@@ -3828,7 +3828,6 @@ tra_orig.save!
         else
           mdl.harami_vid = self
         end
-        mdl.flag_collab ||= hvma.flag_collab
         mdl.completeness = hvma.completeness if !mdl.completeness || mdl.completeness <= 0
         mdl.timing       = hvma.timing       if !mdl.timing       || mdl.timing <= 0
         _append_note!(mdl, hvma)

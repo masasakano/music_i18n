@@ -57,7 +57,6 @@
 
     <%= f.input :uri_playlist_en, as: :url %>
     <%= f.input :uri_playlist_ja, as: :url %>
-    <%# f.input :flag_by_harami, label: "Uploaded by Harami?", hint: 'True if uploaded by HARAMIchan.' %>
 
     <%= f.input :note %>
 
@@ -179,12 +178,12 @@
       <%= f.input :artist_name_collab,  label: t('harami_vids.form_artist_collabs'),
           hint: t("layouts.fields.hint_create_if_non_existent", link: link_to(t("layouts.do_create_lower"), new_artist_path)).html_safe %>
      <div class="form_new_model_info">
-      <%= f.input :form_instrument,
-        collection: ordered_models_form(Instrument), selected: (harami_vid.form_instrument || Instrument.default(:HaramiVid)),
-        label: t("Instrument") %>
       <%= f.input :form_play_role,
         collection: ordered_models_form(PlayRole), selected: (harami_vid.form_play_role || PlayRole.default(:HaramiVid)),
         label: "How they collaborate" %>
+      <%= f.input :form_instrument,
+        collection: ordered_models_form(Instrument), selected: (harami_vid.form_instrument || Instrument.default(:HaramiVid)),
+        label: t("Instrument") %>
      </div>
     </div> <!-- div class="register_collab_artist_field" -->
    <% end %>  <%# if ! harami_vid.new_record? %>

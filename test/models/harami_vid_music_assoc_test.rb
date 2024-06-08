@@ -4,7 +4,6 @@
 #
 #  id                                                                          :bigint           not null, primary key
 #  completeness(The ratio of the completeness in duration of the played music) :float
-#  flag_collab(False if it is not a solo playing)                              :boolean
 #  note                                                                        :text
 #  timing(Startint time in second)                                             :integer
 #  created_at                                                                  :datetime         not null

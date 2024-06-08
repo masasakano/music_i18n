@@ -237,6 +237,7 @@ ja:
     table_head_ChannelPlatform: サイト
     table_head_ChannelType: 種別
     table_head_collabs: "コラボ相手"
+    table_head_collab_hows: "コラボ形態"
     table_head_title_music_timing: "[秒] リンクは元動画(頭出し済)"
     field_Duration_in_sec: "動画の長さ[秒]"
     release_date: "公開日"

@@ -4,7 +4,6 @@
 #
 #  id                                                                                     :bigint           not null, primary key
 #  duration(Total duration in seconds)                                                    :float
-#  flag_by_harami(True if published/owned by Harami)                                      :boolean
 #  note                                                                                   :text
 #  release_date(Published date of the video)                                              :date
 #  uri((YouTube) URI of the video)                                                        :text
@@ -33,7 +32,6 @@ harami_vid1:
   duration: 
   uri: youtu.be/harami_vid1
   place: 
-  flag_by_harami: true
   uri_playlist_ja: MyString
   uri_playlist_en: MyString
   channel: channel_haramichan_youtube_main
@@ -44,7 +42,6 @@ harami_vid2:
   duration: 180.0
   uri: youtu.be/harami_vid2
   place: tocho
-  flag_by_harami: true
   uri_playlist_ja: MyString
   uri_playlist_en: MyString
   channel: channel_haramichan_youtube_main
@@ -55,7 +52,6 @@ harami_vid3:
   duration: 180.0
   uri: youtu.be/harami_vid3
   place: place_harami_vid3
-  flag_by_harami: true
   uri_playlist_ja: 
   uri_playlist_en: 
   channel: channel_haramichan_youtube_main
@@ -66,7 +62,6 @@ harami_vid4:
   duration: 400.0
   uri: youtu.be/harami_vid4
   place: tocho
-  flag_by_harami: true
   uri_playlist_ja: 
   uri_playlist_en: 
   channel: channel_haramichan_youtube_main
@@ -77,7 +72,6 @@ harami_vid5:
   duration: 
   uri: youtu.be/harami_vid5
   place: 
-  flag_by_harami: true
   uri_playlist_ja: 
   uri_playlist_en: 
   channel: 
@@ -88,7 +82,6 @@ harami_vid_ihojin1:
   duration: 170.0
   uri: youtu.be/ABCD_iho
   place: place_harami_vid3
-  flag_by_harami: true
   uri_playlist_ja: 
   uri_playlist_en: 
   channel: channel_haramichan_youtube_main
@@ -99,7 +92,6 @@ harami_vid_50anni:
   duration: 
   uri: youtu.be/RrJqQ789
   place: 
-  flag_by_harami: true
   uri_playlist_ja: 
   uri_playlist_en: 
   channel: channel_haramichan_youtube_main
@@ -110,7 +102,6 @@ harami_vid_paris1:
   duration: 
   uri: youtu.be/xxx_harami_vid_paris_pirates
   place: montparnasse_france
-  flag_by_harami: true
   uri_playlist_ja: 
   uri_playlist_en: 
   channel: channel_haramichan_youtube_main
@@ -121,7 +112,6 @@ one:
   duration: 
   uri: youtu.be/one
   place: 
-  flag_by_harami: true
   uri_playlist_ja: 
   uri_playlist_en: 
   channel: channel_haramichan_youtube_main
@@ -132,7 +122,6 @@ two:
   duration: 
   uri: youtu.be/two
   place: 
-  flag_by_harami: true
   uri_playlist_ja: 
   uri_playlist_en: 
   channel: channel_haramichan_youtube_main

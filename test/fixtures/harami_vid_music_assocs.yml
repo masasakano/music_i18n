@@ -4,7 +4,6 @@
 #
 #  id                                                                          :bigint           not null, primary key
 #  completeness(The ratio of the completeness in duration of the played music) :float
-#  flag_collab(False if it is not a solo playing)                              :boolean
 #  note                                                                        :text
 #  timing(Startint time in second)                                             :integer
 #  created_at                                                                  :datetime         not null
@@ -29,7 +28,6 @@ harami_vid_music_assoc1:
   music: music1
   timing: 1
   completeness: 0.5
-  flag_collab: false
   note: MyText
 
 harami_vid_music_assoc2:
@@ -37,7 +35,6 @@ harami_vid_music_assoc2:
   music: music2
   timing: 
   completeness: 0.5
-  flag_collab: false
   note: MyText
 
 harami_vid_music_assoc3:
@@ -45,7 +42,6 @@ harami_vid_music_assoc3:
   music: music3
   timing: 
   completeness: 0.5
-  flag_collab: false
   note: HaramiVidMusicAssoc3
 
 harami_vid_music_assoc_3_ihojin1:
@@ -53,7 +49,6 @@ harami_vid_music_assoc_3_ihojin1:
   music: music_ihojin1
   timing: 2222 
   completeness: 0.8
-  flag_collab: false
   note: HaramiVidMusicAssoc Vid3 and Ihojin1
 
 harami_vid_music_assoc_4_ihojin2:
@@ -68,7 +63,6 @@ harami_vid_music_assoc_ihojin1:
   music: music_ihojin1
   timing: 3
   completeness: 0.8
-  flag_collab: false
   note: HaramiVidMusicAssoc Vid Ihojin1-Ihojin1
 
 harami_vid_music_50anni_story:

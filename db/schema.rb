@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_05_18_161431) do
+ActiveRecord::Schema[7.0].define(version: 2024_06_08_075220) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -344,7 +344,6 @@ ActiveRecord::Schema[7.0].define(version: 2024_05_18_161431) do
     t.bigint "music_id", null: false
     t.integer "timing", comment: "Startint time in second"
     t.float "completeness", comment: "The ratio of the completeness in duration of the played music"
-    t.boolean "flag_collab", comment: "False if it is not a solo playing"
     t.text "note"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -358,7 +357,6 @@ ActiveRecord::Schema[7.0].define(version: 2024_05_18_161431) do
     t.float "duration", comment: "Total duration in seconds"
     t.text "uri", comment: "(YouTube) URI of the video"
     t.bigint "place_id", comment: "The main place where the video was set in"
-    t.boolean "flag_by_harami", comment: "True if published/owned by Harami"
     t.string "uri_playlist_ja", comment: "URI option part for the YouTube comment of the music list in Japanese"
     t.string "uri_playlist_en", comment: "URI option part for the YouTube comment of the music list in English"
     t.text "note"
