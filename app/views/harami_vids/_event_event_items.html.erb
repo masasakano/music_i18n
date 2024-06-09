@@ -1,6 +1,7 @@
 <%# Local vairables: none %>
     <% canindex_evit = can? :index, EventItem %>
     <% canread_h1129 = can? :read, Harami1129 %>
+    <% canedit_hvid = can? :edit, @harami_vid %>
     <ul>
     <%# @harami_vid.events.order("start_time", "duration_hour").each do |event| %>
     <% @event_event_items.each_pair do |id_event, ar_event_items| %>
@@ -30,8 +31,13 @@
               <%= t("harami_vids.show.artist_collabs", default: "featuring Artists") %>
               (<%= show_list_featuring_artists(event_item) %>)  <%# defined in harami_vids_helper.rb %>
               <span class="text-nowrap">
+              <% if canedit_hvid %>
+                <% tags = (((n_vids=event_item.harami_vids.distinct.count) > 1) ? ['<span class="lead text-red"><strong>', '</strong></span>'].map{|i| i.html_safe} : ["", ""])  %>
+                <span class="editor_only">[#HaramiVid = <%= sprintf('%s%d%s', tags[0], n_vids, tags[1]).html_safe %>]</span>
+              <% end %>
               <% if canread_h1129 %>
-                <span class="editor_only">[#Harami1129 = <%= event_item.harami1129s.count %>]</span>
+                <% tags = (((n_1129s=event_item.harami1129s.count) > 0) ? ['<span class="lead text-red"><strong>', '</strong></span>'].map{|i| i.html_safe} : ["", ""])  %>
+                <span class="editor_only">[#Harami1129 = <%= sprintf('%s%d%s', tags[0], n_1129s, tags[1]).html_safe %>]</span>
               <% end %>
               <% if can?(:destroy_with_amps, event_item) && @harami_vid.event_items.uniq.size > 1 %>
                 <span class="moderator_only">

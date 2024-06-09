@@ -1,28 +1,50 @@
 
-<%# imported local variables: artist_music_plays %>
-<table class="artist_music_plays">
-  <% allcolspan = 6
-     allcolspan += (can?(:index, Translation) ? 1 : 0)
-     action_colspan = (can?(:show, Translation)  ? 2 : 0)
-     allcolspan += action_colspan
-     increment1 =  (can?(:crud, Translation)  ? 1 : 0)  # showing a weight column
+<%# imported local variables: artist_music_plays, optional: distinguished_artist (treated separately if specified), no_sort: (unless specified true, sorted by Artist, Music, PlayRole, Instrument) %>
 
-     hsflag = {
-       demotable:  can?(:update, Translations::DemotesController),
-       promotable: can?(:update, Translations::PromotesController),
-     }
+<% relas = []
+   rela_orig = 
+     if !(defined?(no_sort) && no_sort)
+       artist_music_plays.order("artist_music_plays.artist_id", "artist_music_plays.music_id", "artist_music_plays.play_role_id", "artist_music_plays.instrument_id")
+     else
+       artist_music_plays
+     end
+
+   if defined? distinguished_artist
+     relas[0] = rela_orig.where(artist_id: distinguished_artist.id)
+     relas[1] = rela_orig.where.not(artist_id: distinguished_artist.id)
+   else
+     distinguished_artist = nil
+     relas[0] = rela_orig
+     relas[1] = ArtistMusicPlay.none
+   end
+%>
+
+<table class="artist_music_plays">
+  <% allcolspan = 5
+     action_colspan = 0
+
+     canedit_hvid   = can? :edit, HaramiVid
+     canedit_evit   = can? :edit, EventItem
+     canedit_amp    = can? :edit,    ArtistMusicPlay
+     candestroy_amp = false
+     candestroy_amp = can?(:destroy, ArtistMusicPlay) if canedit_amp 
+
+     allcolspan += 1 if canedit_hvid # pID
+     allcolspan += 2 if canedit_evit # cover_ratio etc
+
+     if canedit_amp
+       allcolspan += 1 
+       action_colspan += 1
+       if candestroy_amp
+         allcolspan += 1 
+         action_colspan += 1
+       end
+     end
      
      canshows = {}.with_indifferent_access
      [Artist, Music, PlayRole, Instrument].each do |model|
        canshows[model.name.underscore] = can?(:show, model)
      end
-     canedit_hvid   = can? :edit, HaramiVid
-     canedit_evit   = can? :edit, EventItem
-     candestroy_amp = can? :destroy, ArtistMusicPlay
-
-     increment2 = (hsflag[:demotable] ? 1 : 0) + (hsflag[:promotable] ? 1 : 0)
-     allcolspan     += increment1 +  increment2
-     action_colspan +=               increment2
    %>
   <thead>
     <tr>
@@ -38,38 +60,52 @@
       <th class="editor_only"><%= t("attr.cover_ratio") %></th>
      <% end %>
       <th><%= t("tables.note").capitalize %></th>
-     <% if candestroy_amp %>
-      <th class="editor_only"></th>
+     <% if canedit_amp %>
+      <th class="editor_only" colspan="2">Actions</th>
      <% end %>
     </tr>
   </thead>
 
   <tbody>
-   <% artist_music_plays.each_with_index do |amp, i_amp| %>
-    <tr>
-     <% if canedit_hvid %>
-      <td class="editor_only"><%= amp.id %></td>
-     <% end %>
-     <%  [:artist, :music, :play_role, :instrument].each do |att| %>
-       <td>
-         <% tit = (model=amp.send(att)).title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true) %>
-         <%= canshows[att] ? link_to(tit, model) : tit %>
-       </td>
-     <% end %>
-     <% if canedit_evit %>
-      <%  [:contribution_artist, :cover_ratio].each do |att| %>
-       <td class="editor_only"><%= amp.send(att) %></td>
+    <% relas.each_with_index do |rela, i_rela| %>
+      <% if distinguished_artist %>
+        <tr><th colspan="<%= allcolspan %>" class="text-center">For <%= (0 == i_rela) ? "this Artist" : "the other Artists" %></th></tr>
       <% end %>
-     <% end %>
-      <td><%= amp.note %></td>
-     <% if candestroy_amp %>
-      <td class="editor_only">
-        <% if can? :destroy, amp %>
-          <%= link_to t('layouts.dissociate_this', this_model: t('adjective.this')+t('EventItem')), amp, method: :delete, data: { confirm: t('are_you_sure') }, title: t('event_items.dissociate_hint') %>
-        <% end %>
-      </td>
-     <% end %>
-    </tr>
+      <% rela.each_with_index do |amp, i_amp| %>
+        <tr>
+         <% if canedit_hvid %>
+          <td class="editor_only text-end"><%= amp.id %></td>
+         <% end %>
+         <%  [:artist, :music, :play_role, :instrument].each do |att| %>
+           <td>
+             <% tit = (model=amp.send(att)).title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true) %>
+             <%= canshows[att] ? link_to(tit, model) : tit %>
+           </td>
+         <% end %>
+         <% if canedit_evit %>
+          <%  [:contribution_artist, :cover_ratio].each do |att| %>
+           <td class="editor_only"><%= amp.send(att) %></td>
+          <% end %>
+         <% end %>
+          <td><%= amp.note %></td>
+         <% if canedit_amp %>
+          <td class="editor_only">
+            <% if can? :update, amp %>
+              <% hsprms = %i(event_item_id music_id artist_id).map{|i| [i, amp.send(i)]}.to_h %>
+              <%= link_to 'Edit', edit_artist_music_plays_edit_multi_path(amp) %> <%# edit_artist_music_plays_edit_multi_path(amp, params: ...) %>
+              <%# link_to 'Edit', artist_music_plays_edit_multis_path(params: {artist_music_play: hsprms}) %> <%# edit_artist_music_plays_edit_multi_path(amp, params: ...) %>
+            <% end %>
+          </td>
+         <% end %>
+         <% if candestroy_amp %>
+          <td class="editor_only">
+            <% if can? :destroy, amp %>
+              <%= link_to t('layouts.dissociate_this', this_model: t('adjective.this')+t('EventItem')), amp, method: :delete, data: { confirm: t('are_you_sure') }, title: t('event_items.dissociate_hint') %>
+            <% end %>
+          </td>
+         <% end %>
+        </tr>
+      <% end %>
    <% end %>
   </tbody>
 </table>

@@ -69,7 +69,7 @@ class EngageMultiHowsControllerTest < ActionDispatch::IntegrationTest
     # Deletion failure due to a dependent Harami1129
     assert_difference('Engage.count', 0) do
       post engage_multi_hows_url, params: { engage: { artist_id: artist_ai.id, music_id: music_story.id, engage_how: [""], year: "" }.merge(_get_hs_destroy_hash(engages[:original])) }
-      assert_response :success  # Error and hence "success" (because of re-render)
+      assert_response :unprocessable_entity
       harami1129.reload
       assert_equal engages[:original], harami1129.engage
     end

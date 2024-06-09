@@ -82,6 +82,10 @@ div#error_explanation {
   margin-left: 2em;
 }
 
+.text-red {
+  color: red;
+}
+
 .font-smaller {
   font-size: smaller;
 }
@@ -140,7 +144,11 @@ table {
       font-size: smaller;
   }
   td.checkbox_destroy {
-      text-align: center;  /* not work (with Firefox at least) */
+      text-align: center;
+
+      input[type="checkbox"] {
+          float: none;
+      }
   }
   td.trans_destroy {
       padding-left: 1em;

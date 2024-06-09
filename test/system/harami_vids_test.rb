@@ -101,7 +101,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
     assert_equal "HARAMIchan", find_field('Channel Owner').find('option[selected]').text
     find_field('Channel Type').select('Side channel')
-    assert_match(/street playing/, find_field('Event').find('option[selected]').text)
+    assert_match(/street playing/, find_field('Event', match: :first).find('option[selected]').text)
     vid_prms[:note] = "temperary note 37"
     fill_in "Note", with: vid_prms[:note]
 

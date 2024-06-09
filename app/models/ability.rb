@@ -114,7 +114,7 @@ class Ability
       can :read,  Harami1129
       can :cru,   HaramiVid
       can :destroy, HaramiVidMusicAssoc
-      can :destroy, ArtistMusicPlay
+      can :crud,  ArtistMusicPlay  # This is used also for ArtistMusicPlays::EditMultisController
     end
 
     ## Translation editor only

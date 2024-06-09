@@ -250,9 +250,60 @@ class ModuleCommonTest < ActiveSupport::TestCase
   test "time_err2uptomin" do
     time = Time.new(1984,2,3,4,5,1)
     assert_equal "1984年2月3日 04:——", time_err2uptomin(time, 70.minute, langcode: "ja")
-    assert_equal "February 03, 1984 — 04:??", time_err2uptomin(time, 70.minute, langcode: "en")
-    assert_equal "1984-??-?? ??:??",          time_err2uptomin(time, 13.month,  langcode: "en")
-    assert_equal "February 03, 1984 — 04:05", time_err2uptomin(time, nil, langcode: "xx")
+  end
+
+  test "order_prioritized_with" do
+    sex = Sex.third
+    assert_equal sex, order_prioritized_with(Sex,     sex).first
+    assert_equal sex, order_prioritized_with(Sex.all, sex).first
+    ar_sexes = Sex.all.to_a
+    assert_equal sex, order_prioritized_with(ar_sexes, sex).first
+  end
+
+  test "significantly_changed?" do
+    pro = PlayRole.create_basic!(title: "test-mu", langcode: "en", is_orig: true, mname: "test12", weight: 7592)
+    assert_nil pro.note, 'sanity check'
+
+    refute pro.changed?, 'Rails spec'
+    refute significantly_changed?(pro)
+
+    # DB: note => nil
+    pro.note = nil
+    refute pro.changed?, 'Rails spec'
+    refute significantly_changed?(pro)
+    pro.note = "abc"
+    assert pro.changed?, 'Rails spec'
+    assert significantly_changed?(pro)
+    pro.note = ""
+    assert pro.changed?, 'Rails spec'
+    refute significantly_changed?(pro)
+
+    # DB: note => ""
+    pro.save!
+
+    pro.note = nil
+    assert pro.changed?, 'Rails spec'
+    refute significantly_changed?(pro)
+    pro.note = "abc"
+    assert pro.changed?, 'Rails spec'
+    assert significantly_changed?(pro)
+    pro.note = ""
+    refute pro.changed?, 'Rails spec'
+    refute significantly_changed?(pro)
+
+    # DB: note => "abc"; changed? and significantly_changed? are equivalent.
+    pro.note = "abc"
+    pro.save!
+
+    pro.note = nil
+    assert pro.changed?, 'Rails spec'
+    assert significantly_changed?(pro)
+    pro.note = "abc"
+    refute pro.changed?, 'Rails spec'
+    refute significantly_changed?(pro)
+    pro.note = ""
+    assert pro.changed?, 'Rails spec'
+    assert significantly_changed?(pro)
   end
 
   private

@@ -37,8 +37,13 @@ class ArtistMusicPlay < ApplicationRecord
   belongs_to :music
   belongs_to :play_role
   belongs_to :instrument
+  delegate :harami_vids, to: :event_item
+
+  attr_accessor :to_destroy  # dummy accessor for simple_form
 
   validates :event_item, uniqueness: {scope: %i(artist music play_role instrument)}, allow_nil: false
+  validates :contribution_artist, numericality: {greater_than_or_equal_to: 0}, allow_nil: true
+  validates :cover_ratio,         numericality: {greater_than_or_equal_to: 0}, allow_nil: true
 
   alias_method :inspect_orig, :inspect if ! self.method_defined?(:inspect_orig) # Preferred to  alias :text_new :to_s
   include ModuleModifyInspectPrintReference

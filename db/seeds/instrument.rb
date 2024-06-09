@@ -152,6 +152,18 @@ module Seeds::Instrument
       weight: 710,
       regex: /指揮|conductor/i,
     },
+    talk: {
+      ja: "トーク",
+      en: "Talk",
+      weight: 810,
+      regex: /トーク|\btalk$/i,
+    },
+    human_body: {
+      ja: "身体",
+      en: "Human body",
+      weight: 820,
+      regex: /身体|\bhuman body$/i,
+    },
     other: {
       ja: "その他",
       en: "Other",

@@ -1,0 +1,128 @@
+
+<%= render partial: 'layouts/form_print_errors', locals: {model: @amp} %>
+
+<% artist_title = @artist.title_or_alt(lang_fallback_option: :either) %>
+<% music_title = @music.title_or_alt(lang_fallback_option: :either) %>
+<h1>ArtistMusicPlays for Music=(<%= link_to music_title, @music %>) by <%= link_to artist_title, @artist %></h1>
+
+
+<ul>
+  <li>For <strong>EventItem</strong> (pID=<%= @event_item.id %>): <%= @event_item.machine_title.inspect %></li>
+  <li>and for <strong>Music</strong> (pID=<%= @music.id %>)</li>
+  <li>Number of associated HaramiVid-s (via EventItem): <%= n_hvids = (hvids=@event_item.harami_vids.distinct).count %>
+    </li>
+</ul>
+
+<% n_amps = @amps.count %>
+<% n_amp_others = @amp_others.count %>
+<% n_cols = (@amp.new_record? ? 7 : 8) %>
+<% val_klasses = { contribution_artist: 'input_float', cover_ratio: 'input_float' }.with_indifferent_access %>
+
+<% url = (@amp.new_record? ? artist_music_plays_edit_multis_url : artist_music_plays_edit_multi_url(@amp)) %>
+<%= simple_form_for @amp, url: url do |form| %> <%# if @amp is new_record? it is basically a dummy. %>
+  <%# Essential to put these as hidden parameters: %>
+  <%= form.hidden_field :event_item_id, :value => @event_item.id %>
+  <%= form.hidden_field :artist_id,     :value => @artist.id %>
+  <%= form.hidden_field :music_id,      :value => @music.id %>
+  <table id="table_main_form_artist_music_plays_edit_multis" style="border: none;">
+    <thead>
+      <tr>
+        <th>pID</th>
+        <th>Artist</th>
+        <th>PlayRole</th>
+        <th>Instrument</th>
+        <th>Contribution</th>
+        <th title="1.0 if playing for the entier period">Cover ratio</th>
+        <th>Note</th>
+      <% if !@amp.new_record? %>
+        <th title="Check this (or these) and submit to destroy (or replace) the record. Note if a dependent (=NumLinks) exists and when an Engage(s) is deleted, the association will be replaced with another one.">Destroy</th>
+      <% end %>
+        <!--  th AMP /th-->
+      </tr>
+    </thead>
+  
+    <tbody>
+      <% fmt_fid = "artist_music_play[%s][%d]" %>
+      <% fmt_fname = "artist_music_play[%s][%d]" %>
+      <% ordered_amps = (@amp.new_record? ? @amps : order_prioritized_with(@amps, @amp)) %> <%# defined in module_common.rb %>
+      <% ordered_amps.each_with_index do |amp, i_amp| %> <%# This is a null loop for create (unless after an errorneous return in create), in which case "instrument_. %>
+        <% if !@amp.new_record? && 1 == i_amp %>
+          <tr class="edit_info"><th colspan="<%= n_cols %>"><strong>Others for this Artist (for this Music)</strong></th></tr>
+        <% end %>
+        <% next if !amp.id %> <%# This happens after a failed attempt on create %>
+        <tr class="edit_existing">
+          <td class="text-end cell-model-id"><%= amp.id %></td>
+          <td><%= artist_title %></td>
+          <% [PlayRole, Instrument].each do |klass| %>
+            <% kwd = klass.name.underscore+"_id" %>
+            <td><%= form.input kwd, label: false,
+              collection: ordered_models_form(klass), include_blank: false,
+              selected: (amp.send(kwd) || klass.default(:HaramiVid).id),
+              input_html: {id: sprintf(fmt_fid, kwd.to_s, amp.id), name: sprintf(fmt_fname, kwd.to_s, amp.id)} %></td>
+              <%# input_html: {id: ['artist_music_play', kwd, amp.id].join('_'), name: sprintf('artist_music_play[%s_%d]', kwd.to_s, amp.id)} %>
+          <% end %>
+          <% %i(contribution_artist cover_ratio note).each do |kwd| %>
+            <% hs_klass = ((:note != kwd.to_sym) ? { class: val_klasses[kwd.to_sym] } : {}) %>
+            <td><%= form.input kwd, label: false, required: false, input_html: {id: sprintf(fmt_fid, kwd.to_s, amp.id), name: sprintf(fmt_fname, kwd.to_s, amp.id), value: amp.send(kwd)}.merge(hs_klass) %></td>
+                <%# form.input kwd, label: false, required: false, input_html: {id: ['artist_music_play', kwd, amp.id].join('_'), name: sprintf('artist_music_play[%s_%d]', kwd.to_s, amp.id), value: amp.send(kwd)}.merge(hs_klass) %>
+          <% end %>
+        <% if !@amp.new_record? %>
+          <td class="checkbox_destroy">
+              <% kwd = :to_destroy %>
+              <%= form.input kwd, label: false, required: false, as: :boolean, checked_value: true, unchecked_value: false, checked: false, input_html: {id: sprintf(fmt_fid, kwd.to_s, amp.id), name: sprintf(fmt_fname, kwd.to_s, amp.id), value: false} %>  <%# the checkbox is reset after an erroneous return (if it happens) %>
+              <%# form.input kwd, label: false, required: false, as: :boolean, checked_value: true, unchecked_value: false, checked: false, input_html: {id: ['artist_music_play', kwd, amp.id].join('_'), name: sprintf('artist_music_play[%s_%d]', kwd.to_s, amp.id), value: false} %>  <%# the checkbox is reset after an erroneous return (if it happens) %>
+          </td>
+        <% end %>
+          <!-- td --><%# link_to 'Show', amp %><!--  /td-->
+        </tr>
+      <% end %> <%# @amps.each do |amp| %>
+
+      <tr class="edit_info">
+        <th colspan="<%= n_cols %>"><strong>New ArtistMusitPlay-s for this Artist</strong></th>
+      </tr>
+      <tr class="edit_new">
+        <td>NEW</td>
+        <td><%= artist_title %></td>
+          <% [PlayRole, Instrument].each do |klass| %>
+            <% kwd = klass.name.underscore+"_id" %>
+            <td><%= form.input kwd, label: false,
+              collection: ordered_models_form(klass), include_blank: true,
+              selected: (@amp.new_record? ? @amp.send(kwd) : nil),
+              input_html: {id: sprintf(fmt_fid, kwd.to_s, 0), name: sprintf(fmt_fname, kwd.to_s, 0)},
+              hint: "Select one to submit"
+                %></td>
+          <% end %>
+        <td><%= kwd='contribution_artist'; form.input :contribution_artist, label: 'Contribution(0.0-1.0)', required: false, input_html: { class:  val_klasses[:contribution_artist], id: sprintf(fmt_fid, kwd, 0), name: sprintf(fmt_fname, kwd, 0), value: (@amp.new_record? ? @amp.send(kwd) : nil) } %></td>
+        <td><%= kwd='cover_ratio'; form.input :cover_ratio, label: 'Cover-Ratio(0.0-1.0)', required: false, input_html: { class:  val_klasses[:cover_ratio], id: sprintf(fmt_fid, kwd, 0), name: sprintf(fmt_fname, kwd, 0), value: (@amp.new_record? ? @amp.send(kwd) : nil) } %></td>
+        <td><%= kwd='note'; form.input :note, input_html: { 'rows' => 4, id: sprintf(fmt_fid, kwd, 0), name: sprintf(fmt_fname, kwd, 0), value: (@amp.new_record? ? @amp.send(kwd) : nil) } %></td>
+        <td colspan="<%= n_cols-6 %>"></td>
+      </tr>
+    </tbody>
+  </table>
+  <%= form.submit t("layouts.submit_button")%>
+<% end %> <%# simple_form_for @amp, url: url do |form| %>
+  
+<section id="other_artist_music_play_table">
+  <h3>Other ArtistMusicPlays for other Musics for the EventItem</h3>
+
+  <%= render partial: "layouts/artist_music_plays", locals: {artist_music_plays: @amp_others, distinguished_artist: @artist} %>
+  <% remaining_music_ids = @amp_others.where.not(artist_id: @artist.id).pluck(:music_id) - (@amp_others.where(artist_id: @artist.id).pluck(:music_id)+[@music.id]) %>
+  <% if !remaining_music_ids.empty? %>
+    <section id="other_music_new_links">
+      <ul>
+        <% remaining_music_ids.each do |eai| %>
+          <% hsprms = %i(event_item_id artist_id).map{|i| [i, @amp.send(i)]}.to_h.merge({music_id: eai}).with_indifferent_access %>
+          <li><span class="lead"><%= link_to("New ArtistMusitPlay for "+Music.find(eai).title_or_alt(lang_fallback_option: :either).inspect, artist_music_plays_edit_multis_path(params: {artist_music_play: hsprms})) %></span> for this Artist <%= artist_title %></li>
+        <% end %>
+      </ul>
+    </section>
+  <% end %>
+</section> <!-- section id="other_artist_music_play_table" -->
+<hr>
+
+<section id="harami_vids_for_artist_music_play_table">
+<h3>HaramiVids associated to this ArtistMusicPlay (via EventItem)</h3>
+
+<%= render partial: 'layouts/harami_vids_index', locals: {harami_vids: hvids} %>
+</section> <!-- section id="harami_vids_for_artist_music_play_table"i -->
+

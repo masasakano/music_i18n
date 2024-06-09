@@ -12,9 +12,9 @@
 <% if can_update_in_show %>
   <div class="link-edit-destroy">
     <% path_edit = send("edit_"+model_underscore+"_path", model) %> <%# e.g., edit_music_path(model) %>
-    <%= link_to "Edit this EventItem", path_edit, class: "link-edit" %> | <%# -------- show only %>
+    <span class="lead"><%= link_to "Edit this EventItem", path_edit, class: "link-edit" %></span> | <%# -------- show only %>
 <% end %>
-  <%= link_to "Back to EventItems", event_items_path %>
+  <%= link_to "Back to EventItem index", event_items_path %>
 <% if !model.new_record? && (can?(:destroy, model) || can?(:update, model) && can?(:update, model)) %>
   <% if can_update %>
   <div class="actions-destroy actions-destroy-align-r">
@@ -46,6 +46,14 @@
 <h2><%= t("event_items.Playing_artists_for_this") %></h2>
 
 <%= render partial: "layouts/artist_music_plays", locals: {artist_music_plays: @event_item.artist_music_plays} %>
+
+  <div class="editor_only small">
+    <% if @event_item.artist_music_plays.exists? %>
+      To add a new type of collaboration/playing-style for a listed Artist and Music, click "<var>Edit</var>".<br>
+      To add a new (but listed) Music for a listed Artist, click "<var>Edit</var>" and find the link below a table below the main-form table.<br>
+    <% end %>
+    To add a new (collab) Artist, edit <em>HaramiVid</em> listed in the table below. Note that when you add a new collaboration in <em>HaramiVid</em>, it is automatically added as a <em>Music</em> in <em>HaramiVid</em>, which you can later remove if in appropriate).
+  </div>
 </section>
 
 <hr>

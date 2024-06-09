@@ -90,6 +90,45 @@ module ModuleCommon
     end
   end
 
+  # ActiveRecord#changed? returns true even if nil is changed into blank like "".
+  # This returns false if only the change is nil <=> blank.
+  #
+  # @param model [ActiveRecord]
+  def significantly_changed?(model)
+    return false if !model.changed?
+    model.changed_attributes.each_pair do |ek, ev|
+      return true if !ev.blank? || !model.send(ek).blank?
+    end
+    false
+  end
+
+  # ordered Relation with the specified model coming first
+  #
+  # @example
+  #    order_prioritized_with(Sex,          Sex.third).first
+  #      # => Sex.third
+  #    order_prioritized_with(Sex.all.to_a, Sex.third).first
+  #      # => Sex.third
+  #
+  # @param rela [#order, Array] Basically, Array or either of ActiveRecord::Relation and Class of ActiveRecord
+  # @param model [ActiveRecord]
+  # @return [ActiveRecord::Relation]
+  def order_prioritized_with(rela, model)
+    if rela.respond_to? :order
+      rela.order(Arel.sql("CASE WHEN #{model.class.name.underscore.pluralize}.id = #{model.id} THEN 0 ELSE 1 END ASC"))
+    else
+      rela.sort{|a, b|
+        if model.id == a.id
+          -1
+        elsif model.id == b.id
+          1
+        else
+          0
+        end
+      }
+    end
+  end
+
   # For model that has the method +place+. shorter-name is preferred (between title and alt_title).
   #
   # @return [String] "県 — 場所 (国)"
