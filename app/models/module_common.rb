@@ -1180,7 +1180,7 @@ module ModuleCommon
 
     record.form_start_err = (record.start_time_err ? record.start_time_err.quo(
       _form_start_err_factor(record.form_start_err_unit)
-    ) : nil)
+    ).to_f : nil)
   end
 
   # @param kwd [String] unit for the error (of start time)

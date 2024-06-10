@@ -59,7 +59,7 @@
         <% ary2 = nil %>
       <% end %>
     <% end %>
-    <% (ary &&= ary2).each do |harami_vid| %>
+    <% (ary &&= ary2).uniq.each do |harami_vid| %>
       <tr>
      <% if can_update %>
         <td class="number editor_only"><%= link_to harami_vid.id, harami_vid %></td>

@@ -41,7 +41,7 @@
       <tr>
         <td><%= i_mus+1 %></td>
        <% if canedit_mus %>
-        <td class="text-end"><%= link_to(music.id, music) %></td>
+        <td class="text-end editor_only"><%= link_to(music.id, music) %></td>
        <% end %>
         <td class="item_title"><%= t = music.title_or_alt; t ? link_to(t, music) : '' %></td>
         <td class="item_year"><%= music.year %></td>
@@ -51,14 +51,16 @@
         <td class="item_artists"><%= music.artists.uniq.map{|i| sprintf '%s [%s]', link_to(i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i), h(i.engage_how_titles(music, langcode: I18n.locale, lang_fallback_option: :either).join(', '))}.join(', ').html_safe %></td>
         <td class="item_timing text-end"><%= harami_vid.harami_vid_music_assocs.where(music: music).pluck(:timing).select{|j| j.present?}.map{|i| link_to_youtube(sec2hms_or_ms(i), @harami_vid.uri, i, title: "#{i} sec") }.join(', ').html_safe %></td> <%# defined in application_helper.rb %>
         <td><%= link_to(t("tables.Show"), music) if can?(:read, music) %></td>
-        <% if can? :update, music %>
-        <td>
-          <%= link_to 'Edit', edit_music_path(music) %>
-        </td>
+        <% if canedit_mus %>
+          <td class="editor_only">
+            <% if can? :update, music %>
+              <%= link_to 'Edit', edit_music_path(music) %>
+            <% end %>
+          </td>
         <% end %>
         <td class="item_n_vids text-end"><%= music.harami_vids.count.to_s %></td>
       <% if can_destroy_assoc %>
-        <td title="<%= t('harami_vids.show.destroy_music_from_this_vid') %>" class="text-end">
+        <td title="<%= t('harami_vids.show.destroy_music_from_this_vid') %>" class="text-end editor_only">
          <% hvma = harami_vid.harami_vid_music_assocs.where(music: music).first %>
        <% if can? :destroy, hvma %>
          <%= link_to t('layouts.destroy_button'), hvma, method: :delete, data: { confirm: t('are_you_sure') }, title: t('harami_vids.show.destroy_music_from_this_vid') %>

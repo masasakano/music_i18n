@@ -50,7 +50,7 @@ class EventsController < ApplicationController
       unit = ((uni=@event.form_start_err_unit) ? uni : get_optimum_timu_unit(@event.start_time_err))  # defined in /app/models/module_common.rb
       factor = _form_start_err_factor(unit)  # defined in /app/models/module_common.rb
       @event.form_start_err_unit ||= unit
-      @event.form_start_err = @event.start_time_err.quo(factor) if @event.start_time_err
+      @event.form_start_err = @event.start_time_err.quo(factor).to_f if @event.start_time_err
     end
 
     set_form_start_err(@event)  # defined in module_comon.rb

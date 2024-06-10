@@ -1,5 +1,7 @@
 <section id="harami_vids_show_other_harami_vids">
-<h3 title="Excluding uncategorized Event's HaramiVids"><%= t("harami_vids.show.Other_HaramiVids_for_Event") %></h3>
+  <h3 title="Excluding uncategorized Event's HaramiVids"><%= t("harami_vids.show.Other_HaramiVids_for_Event") %>:
+    <span><%= harami_vid.events.uniq.map{|i| i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true)}.join(" | ") %></span>
+  </h3>
 
 <table id="other_harami_vids_table_for_hrami_vid">
   <thead>
@@ -29,16 +31,16 @@
       <tr>
         <td><%= can_edit ? link_to(ea_hvid.id, ea_hvid) : i_mus+1 %></td>
         <td class="item_channel">
-    <span class="channel_platform"><%= ea_hvid.channel.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></span>
-      (<span class="channel_type"><%= ea_hvid.channel.channel_type.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></span>)
-    by <span class="channel_owner"><%= ea_hvid.channel.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></span>
+    <span class="channel_platform"><%= ea_hvid.channel.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true) %></span>
+      (<span class="channel_type"><%= ea_hvid.channel.channel_type.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true) %></span>)
+    by <span class="channel_owner"><%= ea_hvid.channel.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true) %></span>
         </td>
         <td class="item_title"><%= ea_hvid.title_or_alt %></td>
         <td class="URI"><%= link_to_youtube('Link', ea_hvid.uri) %></td>
-        <td class="item_musics"><%= ea_hvid.musics.uniq.map{|i| link_to(i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i)}.join(t(:comma)).html_safe %></td>
+        <td class="item_musics"><%= ea_hvid.musics.uniq.map{|i| link_to(i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), i)}.join(t(:comma)).html_safe %></td>
         <td class="item_release_date"><%= date2text(ea_hvid.release_date) %></td> <%# defined in ModuleCommon %>
         <td class="item_duration"><%= ea_hvid.duration ? sec2hms_or_ms(ea_hvid.duration) : "" %></td>
-        <td class="item_place"><%= (pla=ea_hvid.place) ? (s=pla.title_or_alt(langcode: I18n.locale, prefer_shorter: true, lang_fallback_option: :either); can?(:read, s) ? link_to(s, pla) : s) : "" %></td>
+        <td class="item_place"><%= (pla=ea_hvid.place) ? (s=pla.title_or_alt(langcode: I18n.locale, prefer_shorter: true, lang_fallback_option: :either, article_to_head: true); can?(:read, s) ? link_to(s, pla) : s) : "" %></td>
         <td class="item_event_items text-end">
           <%= all_evits.map.with_index{|ea_evit, ind|
             next nil if !ea_evit.harami_vids.include?(ea_hvid)

@@ -238,7 +238,7 @@ en:
     show:
       artist_collabs: "featuring Artists"
       Other_HaramiVids_for_these_EventItems: Other videos for these EventItems
-      Other_HaramiVids_for_Event: Other videos for this Event
+      Other_HaramiVids_for_Event: "Other videos for this Event(s)"
       destroy_music_from_this_vid: Remove registered Music from this video
     edit:
       artist_collabs_title: "collaborating Artists"
