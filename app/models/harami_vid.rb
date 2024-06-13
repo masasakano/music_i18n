@@ -68,7 +68,7 @@ class HaramiVid < BaseWithTranslation
   has_many :music_plays, -> {distinct}, through: :event_items, source: :musics
 
   has_many :artists,     through: :musics  # duplication is possible. "distinct" would not work with ordering! So, use uniq if required.
-  has_many :harami1129s, dependent: :nullify
+  has_many :harami1129s, dependent: :restrict_with_exception  # This used to be :nullify
   delegate :country,    to: :place, allow_nil: true
   delegate :prefecture, to: :place, allow_nil: true
   delegate :channel_owner,    to: :channel, allow_nil: true
@@ -152,35 +152,58 @@ class HaramiVid < BaseWithTranslation
     assocs.first.timing
   end
 
-  # Returns an existing or new record that matches a Harami1129 record
+  # Returns an existing or new record (HaramiVid) that matches the given Harami1129 record
   #
   # If "uri" perfectly agrees, that is the definite identification.
   #
-  # nil is returned if {Harami1129#ins_link_root} is blank.
+  # Else,
+  # A new one is returned if {Harami1129#event_item} is nil or +recreate_harami_vid+ is true.
+  # Or, nil is returned if {Harami1129#ins_link_root} is blank or
+  # if +recreate_harami_vid+ is false (and {Harami1129#event_item} is non-nil).
+  # In the latter case, {Harami1129#errors} is set.
   #
   # @param harami1129 [Harami1129]
-  # @return [Harami1129, NilClass] {Translation} is associated via either {#translations} or {#unsaved_translations}
-  def self.find_one_for_harami1129(harami1129)
+  # @param recreate_harami_vid [Boolean] When {Harami1129#event_item} is nil, if this is true (Def: false),
+  #    and if no existing HaramiVid with the URI is found, this still returns a new HaramiVid (usually nil is returned).
+  # @return [HaramiVid, NilClass]
+  def self.find_one_for_harami1129(harami1129, recreate_harami_vid: false)
     return nil if harami1129.ins_link_root.blank? #&& !harami1129.event_item  # if ins_link_root is nil, internal_insert has not been done, yet.
+
     uri = ApplicationHelper.uri_youtube(harami1129.ins_link_root)
-    cands = self.where(uri: uri)
-    n_cands = cands.count
-    if n_cands > 0
-      if n_cands != 1
-        msg = sprintf "multiple (n=%d) HaramiVids found (corresponding to Harami1129(ID=%d)) of uri= %s / Returned-ID: %d", n_cands , harami1129.id, uri, cands.first.id
-        log.warn msg
-      end
-      return cands.first
-    end
+    cand = self.find_by(uri: uri)
+    return cand if cand
 
-    return self.new if !harami1129.event_item
+    #### Because HaramiVid#uri is unique, no multiple HaramiVids should ever match. Leaving the following just for record.
+    # cands = self.where(uri: uri)
+    # n_cands = cands.count
+    # if n_cands > 0
+    #   ret = cands.first
+    #   if n_cands != 1
+    #     msg = sprintf "multiple (n=%d) HaramiVids found (IDs=%s), corresponding to Harami1129(ID=%d) of uri= %s / Among them, HaramiVid (ID=%d) is now associated to Harami1129.", n_cands, cands.ids.inspcect, harami1129.id, uri, cands.first.id
+    #     logger.warn msg
+    #     ret.errors.add :base, msg
+    #   end
+    #   return ret
+    # end
 
+    return self.new if !harami1129.event_item || recreate_harami_vid
+
+    # EventItem exists but HaramiVid does not!  HaramiVid must have been manually destroyed (whether intentionally or not).
+    # In this case, nil is returned.
+    # Message includes info about HaramiVid(s) that is associated with the EventItem
     cands = HaramiVid.joins(harami_vid_event_item_assocs: :event_item).joins(harami1129s: :event_item).where("harami1129s.id" => harami1129.id)
-    if (n_cands=cands.count) != 1
-      msg = sprintf "multiple (n=%d) HaramiVids found (corresponding to Harami1129(ID=%d)) of uri= %s and Harami1129.event_item(id=%d) / Returned-ID: %d", n_cands , harami1129.id, uri, harami1129.event_item_id, cands.first.id
-      log.warn msg
-    end
-    cands.first
+    msg = sprintf("This Harami1129 (URI= %s) has an associated EventItem (ID=%d) but no associated HaramiVid. FYI, ", uri, harami1129.event_item_id)
+    msg << 
+      if cands.exists?
+        sprintf("multiple HaramiVids (IDs=%s) are found associated to the EventItem.", cands.ids.inspect)
+      else
+        "no HaramiVid is found associated to the EventItem."
+      end
+    msg << ' You may run "Populate (Recreate HaramiVid)"'
+
+    logger.warn msg
+    harami1129.errors.add :base, msg
+    nil
   end
 
   # self.errors are set, copied from {ArtistMusicPlay#errors}, if anything has gone wrong.

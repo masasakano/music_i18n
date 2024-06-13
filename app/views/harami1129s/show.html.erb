@@ -268,6 +268,11 @@
        <%  button_text = 'Populate' %>
      <% end %>
       <%= button_to button_text, harami1129_populate_url(harami1129_id: @harami1129.id), method: :patch  %>
+     <% if !([:ins_inconsistent, :consistent].include? popst.sorted_status.last) && @harami1129.event_item && !@harami1129.harami_vid %>
+       <div id="populate_recreate_harami_vid_button">
+         <%= button_to 'Populate (Recreate HaramiVid)', harami1129_populate_url(harami1129_id: @harami1129.id), method: :patch, params: { harami1129: {recreate_harami_vid: "1"} } %>
+       </div>
+     <% end %>
     </div>
     <% end %>
     <% if :no_insert != popst.sorted_status.first && :checked != popst.sorted_status.last %>

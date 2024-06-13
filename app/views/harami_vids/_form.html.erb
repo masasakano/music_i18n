@@ -201,18 +201,18 @@
   <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
   </div>
 
+ </section> <!-- section id="sec_primary_input" -->
+<% end %> <%# simple_form_for(harami_vid) do |f| %>
+
+</div> <!-- div id="form_main" -->
+
+</section> <!-- section id="sec_primary" -->
+
   <% if can? :destroy, harami_vid %>
     <div class="actions text-end">
       <%= button_to "Destroy", harami_vid, method: :delete, data: { confirm: t('are_you_sure') } %>
     </div>
   <% end %>
-
- </section> <!-- section id="sec_primary_input" -->
-<% end %>
-
-</div> <!-- div id="form_main" -->
-
-</section> <!-- section id="sec_primary" -->
 
 <% if ! harami_vid.new_record? %>
 <hr>

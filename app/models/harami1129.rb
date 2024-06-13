@@ -614,12 +614,11 @@ class Harami1129 < ApplicationRecord
   #
   # @param dryrun: [Boolean] If true (Def: false), nothing is saved but {Harami1229#different_columns_at_destination} for the returned value is set.
   # @param kwds: [Hash] See #{Harami1129s::DownloadHarami1129#insert_one_db!}, or ultimately {ApplicationRecord#logger_after_create}
-  # @return [self]
+  # @return [self, NilClass] nil if something goes wrong
   def insert_populate(messages: [], dryrun: false, **kwds)
     fill_ins_column! # sets @updated_col_syms
 
     populate_ins_cols_default(messages: messages, dryrun: dryrun, **kwds)
-    self
   end
 
   # Dryrun {#insert_populate} and returns a Hash to point Array of each Models
@@ -711,7 +710,9 @@ class Harami1129 < ApplicationRecord
   #
   # @param message: [Array<String>] intent(out) for error/information messages.
   # @param dryrun: [Boolean] If true (Def: false), nothing is saved but {Harami1229#different_columns_at_destination} for the returned value is set.
+  # @param recreate_harami_vid: [Boolean]
   # @param kwds: [Hash] See #{Harami1129s::DownloadHarami1129#insert_one_db!}, or ultimately {ApplicationRecord#logger_after_create}
+  # @return [self, NilClass] nil if something goes wrong
   def populate_ins_cols_default(messages: [], dryrun: false, force: false, **kwds)
     # In practice it is unlikely self is new_record? because fill_ins_column!
     # should have "save"-d it, unless the record is not downloaded but
@@ -966,9 +967,10 @@ class Harami1129 < ApplicationRecord
   #
   # @param updates: [Array<Symbol>] Column names (Symbols) like :ins_singer which has been updated/created (and hence they may be reflected in the populated tables).
   # @param dryrun: [Boolean] If true (Def: false), nothing is saved but {Harami1229#columns_at_destination} for the returned value is set.
+  # @param recreate_harami_vid: [Boolean] if true (Def: false), if ther is and associated EventItem but no associated HaramiVid, re-creates HaramiVid.
   # @param kwds: [Hash] See #{Harami1129s::DownloadHarami1129#insert_one_db!}, or ultimately {ApplicationRecord#logger_after_create}
-  # @return [self, NilClass] nil if dryrun or something goes wrong.
-  def populate_ins_cols(updates: [], messages: [], dryrun: false, **kwds)
+  # @return [self, NilClass] nil if dryrun or something goes wrong
+  def populate_ins_cols(updates: [], messages: [], dryrun: false, recreate_harami_vid: false, **kwds)
     self.columns_at_destination = {be4: {}, aft: {}, tgt: {}.with_indifferent_access, hvma_current: nil}
     begin
       ActiveRecord::Base.transaction(requires_new: true) do
@@ -979,9 +981,16 @@ class Harami1129 < ApplicationRecord
         #   in order to pass ret.columns_for_harami1129 to the parent.
         hvid_exists = !!hvid
 
-        hvid ||= HaramiVid.find_one_for_harami1129(self) # maybe new
-        if !hvid ############################## Check out when this happens!!
-          logger.error "(Harami1129##{__method__}) Found no HaramiVid AND failed to create one. Why? Harami1129=: "+self.inspect
+        if ins_link_root.blank?
+          errors.add :base, "ins_link_root is blank. Make sure to run internal_insert first."
+          return nil
+        end
+
+        hvid ||= HaramiVid.find_one_for_harami1129(self, recreate_harami_vid: recreate_harami_vid) # maybe new
+        flag_hvid_recreate = (recreate_harami_vid && hvid.new_record?)
+        if !hvid
+          # Harami1129#errors.add should have been already performed.
+          logger.error "(Harami1129##{__method__}) Found no HaramiVid AND failed to create one. Harami1129=: "+self.inspect
           return nil
         end
 
@@ -998,7 +1007,6 @@ class Harami1129 < ApplicationRecord
 
         # self.engage_id may neeed to be altered.
         # This may create an Artist, Music, and Engage.
-        messages = []
         enga = Engage.find_and_set_one_harami1129(self, updates: updates, messages: messages, dryrun: dryrun, **kwds)
         self.columns_at_destination[:tgt][:engage] = enga
 
@@ -1045,6 +1053,7 @@ class Harami1129 < ApplicationRecord
         end
 
         hvid.save! if hvid.changed?
+        messages << "HaramiVid (ID=#{hvid.id.to_s}) is created and assigned." if flag_hvid_recreate
         self.harami_vid = hvid
         enga.save! if enga.changed?  # redundant, as it should have been already saved.
         self.engage     = enga

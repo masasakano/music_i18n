@@ -105,7 +105,7 @@ class BaseGrid
   def self.column_names_max_per_page_filters(with_i_page: false)
     column_names_filter(header: Proc.new{I18n.t("datagrid.form.extra_columns", default: "Extra Columns")}, checkboxes: true)
     filter(:max_per_page, :enum, select: Proc.new{
-            if CURRENT_USER && CURRENT_USER.moderator? || Rails.env.development?  ####### User-condition not working...
+            if CURRENT_USER && CURRENT_USER.moderator? #|| Rails.env.development?  ####### User-condition not working...
               {"1(Dev)" => 1, "4(Dev)" => 4}.merge(MAX_PER_PAGES)
             else
               MAX_PER_PAGES

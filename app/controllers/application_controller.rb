@@ -220,31 +220,27 @@ class ApplicationController < ActionController::Base
       else
         raise 'Contact the code developer.'
       end
+
     result = nil
-    respond_to do |format|
-      result =
-        if mdl.errors.any?
-          false
-        else
-          (!failed && (block_given? ? yield : mdl.save))
-        end
-      inopts = inopts.map{|k,v| [k, (v.respond_to?(:call) ? v.call(mdl) : v)]}.to_h
-      alert = (alert.respond_to?(:call) ? alert.call(mdl) : alert)
-      hsflash = {}
-      %i(warning notice).each do |ek|
-        hsflash[ek] = flash[ek] if flash[ek].present?
+    result =
+      if mdl.errors.any?
+        false
+      else
+        (!failed && (block_given? ? yield : mdl.save))
       end
-      hsflash.merge! inopts
+    inopts = inopts.map{|k,v| [k, (v.respond_to?(:call) ? v.call(mdl) : v)]}.to_h
+    alert = (alert.respond_to?(:call) ? alert.call(mdl) : alert)
+    hsflash = {}
+    %i(warning notice).each do |ek|
+      hsflash[ek] = flash[ek] if flash[ek].present?
+    end
+    hsflash.merge! inopts
+
+    respond_to do |format|
       if result
         msg = sprintf '%s was successfully %s.', mdl.class.name, created_updated.to_s  # e.g., Article was successfully created.
         msg << sprintf('  Return to %s.', back_html) if back_html
-        #opts = { success: msg.html_safe, flash: {}}.merge(inopts) # "success" defined in /app/controllers/application_controller.rb
         opts = get_html_safe_flash_hash(success: msg.html_safe, alert: alert, **hsflash)
-        #opts[:alert]  = alert if alert
-        #opts[:flash][:html_safe] ||= {}
-        #%i(alert warning notice success).each do |ek|
-        #  opts[:flash][:html_safe][ek] = true if opts[ek].html_safe?
-        #end
         format.html { redirect_to (redirected_path || mdl), **opts }
         format.json { render :show, status: ret_status, location: mdl }
       else

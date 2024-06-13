@@ -103,6 +103,76 @@ class PopulatesControllerTest < ActionDispatch::IntegrationTest
     assert_equal old_ins_song,   h1129_rc.ins_song
     assert_equal old_engage_id,  h1129_rc.engage_id
     assert_equal old_event_item_id, h1129_rc.event_item_id
+    assert(hvid=h1129_rc.harami_vid)
+    assert(evit=h1129_rc.event_item)
+
+    # Harami1129#harami_vid is nullified (but the HaramiVid exists)
+    h1129_rc.update!(harami_vid_id: nil)
+    assert_nil h1129_rc.harami_vid, "sanity check"
+    get harami1129_url(h1129_rc)
+    assert_response :success
+#puts response.body  ## DEBUG...................
+
+    # repopulate would set the correct HaramiVid as long as the HaramiVid (with the URI) exists.
+    assert_no_difference('HaramiVid.count*10000 + HaramiVidMusicAssoc.count*1000 + Music.count*100 + Artist.count*10 + Engage.count') do
+      assert_difference('Event.count*100 + EventItem.count*10 + ArtistMusicPlay.count', 0) do
+        assert_difference('HaramiVidEventItemAssoc.count', 0) do
+          patch harami1129_populate_url(h1129_rc)
+          assert_response :redirect
+        end
+      end
+    end
+    follow_redirect!
+    flash_regex_assert(/\bSuccessfully populated\b/, type: :notice)  # defined in test_helper.rb
+    patch harami1129_populate_url(h1129_rc)
+    assert_response :redirect
+
+    h1129_rc.reload
+    assert_equal hvid, h1129_rc.harami_vid
+
+    # Harami1129#harami_vid is nullified (the HaramiVid has been destroyed).
+    h1129_rc.update!(harami_vid_id: nil)
+    hvid.destroy!
+    assert_nil h1129_rc.harami_vid, "sanity check"
+    get harami1129_url(h1129_rc)
+    assert_response :success
+
+    # repopulate would not change HaramiVid (to prevent an accidental update of HaramiVid in re-downloading Harami1129 after HaramiVid has been deliberately nullified perhaps because the remote record is wrong)
+    assert_no_difference('HaramiVid.count*10000 + HaramiVidMusicAssoc.count*1000 + Music.count*100 + Artist.count*10 + Engage.count') do
+      assert_difference('Event.count*100 + EventItem.count*10 + ArtistMusicPlay.count', 0) do
+        assert_difference('HaramiVidEventItemAssoc.count', 0) do
+          patch harami1129_populate_url(h1129_rc)
+          assert_response :redirect
+        end
+      end
+    end
+    follow_redirect!
+    flash_regex_assert(/\bno associated HaramiVids?\b/, type: :alert)  # defined in test_helper.rb
+
+    h1129_rc.reload
+    assert_nil  h1129_rc.harami_vid
+
+    # repopulate with "recreate_harami_vid" option re-creates HaramiVid
+    assert_difference('HaramiVid.count*10000 + HaramiVidMusicAssoc.count*1000 + Music.count*100 + Artist.count*10 + Engage.count', 11000) do
+      assert_difference('Event.count*100 + EventItem.count*10 + ArtistMusicPlay.count', 0) do
+        assert_difference('HaramiVidEventItemAssoc.count', 1) do
+          patch harami1129_populate_url(h1129_rc, params: { harami1129: {recreate_harami_vid: "1"} })
+          assert_response :redirect
+    follow_redirect!
+    flash_regex_assert(/\bSuccessfully populated\b/)  # defined in test_helper.rb
+    flash_regex_assert(/\bSuccessfully populated\b/, type: :notice)  # defined in test_helper.rb
+        end
+      end
+    end
+
+    h1129_rc.reload
+    assert (hvid2=h1129_rc.harami_vid)
+    assert_equal h1129_rc.ins_link_root, hvid2.uri
+    assert_equal h1129_rc.event_item,    hvid2.event_items.first
+    assert_equal h1129_rc.ins_title,     hvid2.title
+    assert_equal 1,                      hvid2.musics.size
+    assert_equal h1129_rc.ins_song,      hvid2.musics.first.title
+    assert_equal h1129_rc.ins_link_time.to_i, hvid2.harami_vid_music_assocs.first.timing
   end
 
   test "should update with a new Harami1129 with a Japanese singer from internal_insertion to populate" do

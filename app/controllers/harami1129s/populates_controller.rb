@@ -9,13 +9,37 @@ class Harami1129s::PopulatesController < ApplicationController
   def update
     Translation.skip_set_user_callback = true  # in order NOT to set create_user_id in Translation
 
+    i = params[:id] || params[:harami1129_id]
+    @harami1129 = Harami1129.find(i)
+    msg = []
+    kwds = {messages: msg}
+
+    if params.has_key?("harami1129")
+      prms = params.require(:harami1129).permit(:recreate_harami_vid)
+      kwds[:recreate_harami_vid] = convert_param_bool(prms[:recreate_harami_vid], true_int: 1)
+      ## or...
+      # 
+      # if (prm = params.permit(harami1129: {})[:harami1129])
+      #   prm = prm.permit(:recreate_harami_vid)[:recreate_harami_vid] 
+    end
+
     respond_to do |format|
-      i = params[:id] || params[:harami1129_id]
-      @harami1129 = Harami1129.find(i)
-      msg = []
-      @harami1129.populate_ins_cols_default(messages: msg)  # msg may be updated (it is intent(out)!).
-      format.html { redirect_to @harami1129, notice: (msg.empty? ? "Successfully populated." : msg)}
-      format.json { render :show, status: :ok, location: @harami1129 }
+      if @harami1129.populate_ins_cols_default(**kwds)  # msg may be updated (it is intent(out)!).
+        msg << "Successfully populated." if msg.respond_to?(:map)
+        format.html { redirect_to @harami1129, notice: msg }
+        format.json { render :show, status: :ok, location: @harami1129 }
+      else
+        @harami1129.errors.add :base, flash[:alert] if flash[:alert].present? # alert is, if present, included in the instance
+        hsflash = {}
+        %i(warning notice).each do |ek|
+          hsflash[ek] = flash[ek] if flash[ek].present?
+        end
+        opts = get_html_safe_flash_hash(alert: @harami1129.errors.full_messages, **hsflash)
+        hsstatus = {status: :unprocessable_entity}
+        # Since this is "recirect_to", everything must be passed as flash (not in the form of @record.errors)
+        format.html { redirect_to @harami1129, **(opts) } # notice (and/or warning) is, if any, passed as an option.
+        format.json { render json: @harami1129.errors, **hsstatus }
+      end
     end
   end
 

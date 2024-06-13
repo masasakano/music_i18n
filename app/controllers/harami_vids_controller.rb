@@ -455,7 +455,7 @@ begin  # for DEBUGging
           eeit.musics.each do |ea_mu|
             next if @harami_vid.musics.include? ea_mu
             flash[:warning] ||= []
-            flash[:warning] << "Though a played Music (#{helpers.link_to(ea_mu.title, ea_mu, target: '_blank')}) contained in #{helpers.link_to('EventItem', eeit, target: '_blank', title: eeit.machine_title)} is not found for this HaramiVid. Music is newly associated to this HaramiVid with null timing for now - please edit it later. Or, if the Music is actually not played in this HaramiVid, associate a different (or new) EventItem to this HaramiVid. Note that you may edit the EventItem to split it into two instead of creating one from scratch."
+            flash[:warning] << (ERB::Util.html_escape("Though a played Music (")+helpers.link_to(ea_mu.title, ea_mu, target: '_blank')+ERB::Util.html_escape(") contained in ")+helpers.link_to('EventItem', eeit, target: '_blank', title: eeit.machine_title)+ERB::Util.html_escape(" is not found for this HaramiVid. Music is newly associated to this HaramiVid with null timing for now - please edit it later. Or, if the Music is actually not played in this HaramiVid, associate a different (or new) EventItem to this HaramiVid. Note that you may edit the EventItem to split it into two instead of creating one from scratch.")).html_safe
             if @ref_harami_vid && @ref_harami_vid.musics.include?(ea_mu)
               # Copies the values like timing from HaramiVidMusicAssoc for @ref_harami_vid, but adjusts somewhat.
               hvma = @ref_harami_vid.harami_vid_music_assocs.where(music_id: ea_mu.id).first.dup  # should be unique
