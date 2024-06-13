@@ -39,6 +39,8 @@ class Place < BaseWithTranslation
   has_many :harami_vids
   has_many :artists, dependent: :restrict_with_exception
   has_many :musics,  dependent: :restrict_with_exception
+  has_many :event_items
+  has_many :events, through: :event_items
 
   UnknownPlace = {
     "en" => 'UnknownPlace',

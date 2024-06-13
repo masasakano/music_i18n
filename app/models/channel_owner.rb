@@ -267,7 +267,7 @@ class ChannelOwner < BaseWithTranslation
       return [" ChannelOnwer with an equivalent Translation "+(themselves ? "for the same Artist" : "among those related to no Artists")+" already exists (language=#{trans.langcode})."]
     end
 
-    if !themselves 
+    if !themselves && artist
       hstmp = %w(title alt_title langcode).map{ |ek|
         ["translations."+ek, trans.send(ek)]
       }.to_h

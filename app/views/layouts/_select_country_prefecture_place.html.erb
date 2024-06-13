@@ -28,19 +28,19 @@
   <div class="field" id="<%= ApplicationController::HTML_KEYS[:ids][:div_sel_country] %>"> <%# div_select_country %>
     <%= form.label 'place.prefecture_id.country_id', t('Country')%>
     <% country = (model.country || Country.unknown) %>
-    <%= form.collection_select 'place.prefecture_id.country_id', @countries, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, {include_blank: !country, selected: (country ? country.id : nil)} %> <%# If no translation exists and left empty (instead of "NONE"), it would violate the HTML spec: Element “option” without attribute “label” must not be empty. %>
+    <%= form.collection_select 'place.prefecture_id.country_id', @countries, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_shorter: true, str_fallback: "NONE")}, {include_blank: !country, selected: (country ? country.id : nil)} %> <%# If no translation exists and left empty (instead of "NONE"), it would violate the HTML spec: Element “option” without attribute “label” must not be empty. %>
   </div>
 
   <div class="field" id="<%= ApplicationController::HTML_KEYS[:ids][:div_sel_prefecture] %>">
     <%= form.label 'place.prefecture_id', t('Prefecture') %>
     <% prefecture = model.prefecture %>
-    <%= form.grouped_collection_select 'place.prefecture_id', @countries, :prefectures, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true)}, {include_blank: true, selected: (prefecture ? prefecture.id : nil)} %>
+    <%= form.grouped_collection_select 'place.prefecture_id', @countries, :prefectures, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_shorter: true, str_fallback: "NONE")}, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true)}, {include_blank: true, selected: (prefecture ? prefecture.id : nil)} %>
   </div>
 
   <div class="field" id="<%= ApplicationController::HTML_KEYS[:ids][:div_sel_place] %>">
     <%= form.label :place, t('Place') %>
     <% place = model.place %>
-    <%= form.grouped_collection_select 'place', @prefectures, :places, Proc.new{|pref| a=pref.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true); a[0]+'/'+a[1]}, :id, Proc.new{|plac| plac.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, {include_blank: true, selected: (place ? place.id : nil)} %>
+    <%= form.grouped_collection_select 'place', @prefectures, :places, Proc.new{|pref| a=pref.title_or_alt_ascendants(langcode: I18n.locale, prefer_shorter: true); a[0]+'/'+a[1]}, :id, Proc.new{|plac| plac.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, {include_blank: true, selected: (place ? place.id : nil)} %>
   </div>
 
 <% end %> <%# if is_simple_form %>

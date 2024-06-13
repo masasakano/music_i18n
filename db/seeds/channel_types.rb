@@ -66,6 +66,11 @@ module Seeds::ChannelTypes
       en: "Fan",
       weight: 510,
     },
+    music: {
+      ja: ["Music", "ミュージック"],
+      en: "Music",
+      weight: 610,
+    },
     other: {
       ja: ['その他のチャンネル', 'その他'],
       en: ['Other types', "Other"],

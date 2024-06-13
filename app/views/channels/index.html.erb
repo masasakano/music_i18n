@@ -11,6 +11,7 @@
       <th title="Channel owner."><%= t(:ChannelOwner_short) %></th>
       <th title="Channel platform."><%= t(:ChannelPlatform_short) %></th>
       <th title="Channel type."><%= t(:ChannelType_short) %></th>
+      <th title="<%= t("tables.n_harami_vids_long") %>"><%= t("tables.n_harami_vids_short") %></th>
       <th title="Note in this DB">Note</th>
       <% if can? :update, Users::EditRolesController %>
         <th class="moderator_only">Created</th>
@@ -37,6 +38,7 @@
         </td>
         <td><%= m=model.channel_platform; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), channel_platform_path(m)) %></td>
         <td><%= m=model.channel_type; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), channel_type_path(m)) %></td>
+        <td class="text-end"><%= model.harami_vids.count %></td>
         <td><%= model.note %></td>
       <% if can? :update, Users::EditRolesController %>
         <td class="moderator_only"><%= ur = model.create_user; link_to(ur.display_name, ur) if ur %></th>

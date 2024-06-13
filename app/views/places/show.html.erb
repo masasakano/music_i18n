@@ -9,30 +9,43 @@
 
 <dl>
   <% if current_user && current_user.moderator? %>
-    <dt>ID (Place)</dt>
-    <dd> <%= @place.id %></dd>
+    <div class="editor_only">
+      <dt>pID (Place)</dt>
+      <dd> <%= @place.id %></dd>
+    </div>
   <% end %>
-  <dt><strong>Country:</strong></dt>
+  <dt><%= t(:Country) %>:</dt>
   <dd><%= link_to country_name, country_path(@place.country) %></dd>
-  <dt><strong>Prefecture:</strong></dt>
+  <dt><%= t(:Prefecture) %>:</dt>
   <dd><%= link_to prefecture_name, prefecture_path(@place.prefecture_id) %></dd>
-  <dt>note</dt>
+  <dt><%= t("tables.n_harami_vids_long") %>:</dt>
+  <dd><%= @place.harami_vids.count %></dd>
+  <dt><%= t("tables.note").capitalize %></dt>
   <dd><%= @place.note %></dd>
-  <dt>updated_at</dt>
-  <dd><%= @place.updated_at %></dd>
+  <% if can? :edit, Place %>
+    <div class="editor_only">
+      <dt>updated_at</dt>
+      <dd><%= @place.updated_at %></dd>
+    </div>
+  <% end %>
 </dl>
 
-<%= link_to 'Edit', edit_place_path(@place) %> |
-<%= link_to 'Back', places_path %>
+<%= link_to 'Back to Index', places_path %>
+<% if can? :edit, @place %>
+  <br>
+  <span class="lead editor_only">
+  <%= link_to 'Edit', edit_place_path(@place) %>
+  </span>
+<% end %>
 <% if can? :create, Place %>
-<p>
+<p class="lead editor_only">
   <%= link_to(sprintf('Create another Place in the same Prefecture "%s"', @place.prefecture.title_or_alt), new_place_path(place: {prefecture_id: @place.prefecture_id})) if @place.prefecture_id %>
 </p>
 <% end %>
 
 <hr>
 
-<h3>Artists at Place: <%= @place.title_or_alt %></h3>
+<h3><%= t(:Artists) %> (<%= @place.title_or_alt(prefer_shorter: true, lang_fallback_option: :either, str_fallback: "") %>)</h3>
 
 <table>
   <thead>
@@ -46,7 +59,7 @@
       <% else %>
         <th>性別</th>
       <% end %>
-      <th>Note</th>
+      <th><%= t("tables.note").capitalize %></th>
       <% if can? :update, Artist %>
         <th colspan="2" title="Show/Edit Artist">Action</th>
       <% else %>
@@ -84,7 +97,7 @@
 
 <hr>
 
-<h3>Musics at Place <%= @place.title_or_alt %></h3>
+<h3><%= t(:Musics) %> (<%= @place.title_or_alt(prefer_shorter: true, lang_fallback_option: :either, str_fallback: "") %>)</h3>
 
 <table>
   <thead>
@@ -93,9 +106,9 @@
       <th>英語名</th>
       <th>Year</th>
       <th>Genre</th>
-      <th>Artist</th>
-      <th>Harami vids</th>
-      <th>Note</th>
+      <th><%= t(:Artist) %></th>
+      <th><%= t("tables.n_harami_vids_short") %></th>
+      <th><%= t("tables.note").capitalize %></th>
       <% if can? :edit, Music %>
         <th colspan="2" title="Show/Edit Artist">Action</th>
       <% else %>
@@ -107,11 +120,11 @@
   <tbody>
     <% @place.musics.uniq.each do |music| %>
       <tr>
-        <td><%= music.title_or_alt %></td>
+        <td><%= music.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true) %></td>
         <td><%= sprintf '%s [%s]', *(%i(title alt_title).map{|i| music.send(i, langcode: 'en') || ''}) %></td>
         <td><%= music.year %></td>
-        <td><%= music.genre.title_or_alt(langcode: 'ja') %></td>
-        <td><%= music.engages.joins(:engage_how).order('engage_hows.weight').pluck(:artist_id).uniq.map{|i| art = Artist.find(i); sprintf '%s [%s]', link_to(art.title_or_alt, art), h(art.engage_how_titles(music).join(', '))}.join(', ').html_safe %></td>
+        <td><%= music.genre.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true) %></td>
+        <td><%= music.engages.joins(:engage_how).order('engage_hows.weight').pluck(:artist_id).uniq.map{|i| art = Artist.find(i); sprintf '%s [%s]', link_to(art.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true), art), h(art.engage_how_titles(music).join(', '))}.join(', ').html_safe %></td>
         <td><%= music.harami_vids.count.to_s+'回' %></td>
         <td><%= music.note %></td>
         <td><%= link_to 'Show', music %></td>
@@ -132,53 +145,54 @@
   <% end %>
 <% end %>
 
-<hr>
-<h3>Harami Vids at Place <%= @place.title_or_alt %></h3>
-
-<table>
-  <thead>
-    <tr>
-      <th>Date</th>
-      <th>Title</th>
-      <% if can? :update, HaramiVid %>
-        <th colspan="2">Action</th>
-      <% else %>
-        <th>Action</th>
-      <% end %>
-    </tr>
-  </thead>
-
-  <tbody>
-    <% @place.harami_vids.order(:release_date).each do |harami_vid| %>
+<% if can? :index, Event %>
+  <hr>
+  
+  <section id="event_table">
+  <h3><%= t(:Events) %> (<%= @place.title_or_alt(prefer_shorter: true, lang_fallback_option: :either, str_fallback: "") %>)</h3>
+  
+  <table>
+    <thead>
       <tr>
-        <td><%= harami_vid.release_date %></td>
-        <td><%= link_to(harami_vid.title_or_alt(langcode: I18n.locale), harami_vid) %></td>
-        <td><%= link_to 'Show', harami_vid %></td>
-        <% if can? :update, harami_vid %>
-        <td>
-          <%= link_to 'Edit', edit_harami_vid_path(harami_vid) %>
-        </td>
+        <% if (canedit_evt=can?(:edit, Event)) %>
+          <th class="editor_only">pID</th>
         <% end %>
-        <% if can? :update, harami_vid %>
-          <td><%= 'Show' %></td>
-          <td>
-<% if false %>
-          <% if current_user && current_user.editor? %>
-            <%= link_to 'Edit', edit_harami_vid_music_assoc_path(assoc) %>
-          <% end %>
-<% end %>
-          </td>
+        <th>Title</th>
+        <th><%= t("tables.n_harami_vids_short") %></th>
+        <th><%= t("tables.note").capitalize %></th>
+        <% if canedit_evt %>
+          <th colspan="2"></th>
+        <% else %>
+          <th></th>
         <% end %>
       </tr>
-    <% end %>
-<% if false %>
-    <% if defined?(add_buttons) && add_buttons %>
-      <tr><td colspan="7">
-      <%= button_to 'HaramiVid追加', harami_vids_path, method: :get, params: { a_token: nil, place_id: @place.id } %>
-      </td></tr>
-    <% end %>
+    </thead>
+  
+    <tbody>
+      <% @place.events.uniq.each do |event| %>
+        <tr>
+         <% if canedit_evt %>
+          <td class="editor_only text-end"><%= link_to event.id, event %></td>
+         <% end %>
+          <td><%= event.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true) %></td>
+          <td class="text-end"><%= event.harami_vids.distinct.count %></td>
+          <td><%= event.note %></td>
+          <td><%= link_to t("tables.Show"), event %></td>
+          <% if can? :update, event %>
+            <td><%= link_to 'Edit', edit_event_path(event) %></td>
+          <% end %>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+  </section>
 <% end %>
-  </tbody>
-</table>
 
+<hr>
+
+<section id="harami_vid_table">
+<h3><%= t("show.h2_harami_vid") %> (<%= @place.title_or_alt(prefer_shorter: true, lang_fallback_option: :either, str_fallback: "") %>)</h3>
+
+  <%= render partial: 'layouts/harami_vids_index', locals: {harami_vids: @place.harami_vids.order("harami_vids.release_date" => :desc).distinct, music: nil, with_place: false} %>
+</section>
 

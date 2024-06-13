@@ -30,6 +30,9 @@
     <%= f.input :duration,   label: t("harami_vids.field_Duration_in_sec"), placeholder: t(:eg_independent)+'72 ['+t(:s_time)+']'+t(:or)+' 01:12', as: :string %>
   <%= render partial: "layouts/select_country_prefecture_place", locals: {form: f, model: harami_vid, is_simple_form: true} %>
 
+  <% if ! harami_vid.new_record? %>
+    <h5 class="channel_part">Current Channel name: &ldquo;<%= harami_vid.channel.title_or_alt(lang_fallback_option: :either) %>&rdquo;</h4>
+  <% end %> 
     <%= f.input :form_channel_owner,
       collection: ordered_models_form(ChannelOwner), include_blank: false,
       selected: (harami_vid.form_channel_owner || harami_vid.channel && harami_vid.channel.channel_owner.id ||  ChannelOwner.default(:HaramiVid).id),
@@ -197,6 +200,13 @@
   <div class="actions">
   <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
   </div>
+
+  <% if can? :destroy, harami_vid %>
+    <div class="actions text-end">
+      <%= button_to "Destroy", harami_vid, method: :delete, data: { confirm: t('are_you_sure') } %>
+    </div>
+  <% end %>
+
  </section> <!-- section id="sec_primary_input" -->
 <% end %>
 

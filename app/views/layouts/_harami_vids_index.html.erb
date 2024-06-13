@@ -1,7 +1,7 @@
 
-<%# local variables: harami_vids, optional: musics (:all or Array or nil; musics to display), music (if for a particular Music - displaying timing) %>
+<%# local variables: harami_vids, optional: musics (:all or Array or nil; musics to display), music (if for a particular Music - displaying timing), place %>
 <%# @example
-      render partial: 'layouts/harami_vids_index', locals: {harami_vids: @music.harami_vids.order("harami_vids.release_date" => :desc).distinct, music: @music}
+      render partial: 'layouts/harami_vids_index', locals: {harami_vids: @music.harami_vids.order("harami_vids.release_date" => :desc).distinct, music: @music, with_place: false}
  %>
 
 <% if !defined?(musics)
@@ -12,6 +12,9 @@
    else
      musics = nil
    end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
+<% if !defined?(with_place)
+     with_place = nil
+   end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
 
 <div id="harami_vids">
 <table id="harami_vids_index_table">
@@ -20,7 +23,7 @@
      <% if (can_update = can?(:update, HaramiVid)) %>
       <th class="editor_only">pID</th>
      <% end %>
-      <th><%= t("harami_vids.table_head_date") %></th>
+      <th><%= t("harami_vids.table_head_date") %> (<%= t("tables.duration_none") %>)</th>
       <th><%= t(:Channel) %></th>
       <th><%= t("home.index.vid_title") %></th>
      <% if musics %>
@@ -30,7 +33,10 @@
       <th><%= t("harami_vids.table_head_timing") %></th>
       <th><%= t("harami_vids.table_head_completeness") %></th>
      <% end %>
-      <% if can? :read, EventItem %>  <%# In future, this may be released public (if most EventItems are checked valid) %>
+     <% if with_place %>
+      <th><%= t(:Place) %></th>
+     <% end %>
+      <% if (canread_evit=can?(:read, EventItem)) %>  <%# In future, this may be released public (if most EventItems are checked valid) %>
       <th class="editor_only"><%= t("EventItems") %></th>
       <% end %>
      <% if (can_read_h1129 = can?(:read, Harami1129)) %>
@@ -48,6 +54,7 @@
     </tr>
   </thead>
 
+  <% canread_pla = can?(:read, Place) %>  <%# This is usually public? %>
   <% event_items = [] %>
   <tbody>
     <% ary = harami_vids.sort{|a,b| b.release_date <=> a.release_date} %>
@@ -83,7 +90,11 @@
         <td class="number"><%= link_to_youtube sec2hms_or_ms(assoc.timing, return_if_zero: ""), harami_vid.uri, assoc.timing, title: t(:external_link) %></td> <%# defined in application_helper.rb %>
         <td class="number"><%= assoc.completeness %></td>
      <% end %>
-      <% if can? :read, EventItem %>
+     <% if with_place %>
+       <% pla_tit = ((pla=harami_vid.place) ? pla.title_or_alt(prefer_shorter: true, lang_fallback_option: :either, str_fallback: "") : nil) %>
+        <td><%= pla_tit ? (canread_pla ? link_to(pla_tit, pla) : pla_tit) : "" %></td>
+     <% end %>
+      <% if canread_evit %>
         <td class="text-center editor_only">
           <%= harami_vid.event_items.map{ |eei|
              if !(ind=event_items.find_index(eei))

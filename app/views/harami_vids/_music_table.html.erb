@@ -19,7 +19,7 @@
       <% end %>
       </th>
       <th>
-      <% tit = t("tables.genre", default: "tables.place").capitalize %>
+      <% tit = t("tables.place", default: "Place").capitalize %>
       <% if can? :read, Place %>
         <%= link_to tit, places_url %>
       <% else %>

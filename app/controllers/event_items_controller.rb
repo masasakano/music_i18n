@@ -67,6 +67,10 @@ class EventItemsController < ApplicationController
     #@event_item.start_time_err = (@event ? @event.start_time_err : TimeAux::MAX_ERROR)
 
     set_form_start_err(@event_item)  # defined in module_comon.rb
+
+    if !@event_item.publish_date
+      @event_item.publish_date = @event_item.first_release_date
+    end
   end
 
   # POST /event_items or /event_items.json

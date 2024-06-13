@@ -12,7 +12,7 @@
 <%= form_with(model: instrument, local: true) do |form| %>
 
   <% if instrument.new_record? %>
-    <%= render partial: 'layouts/partial_new_translations', locals: {form: form, model: instrument, trans: Translation.new, disable_is_orig: true} %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: form, model: instrument, trans: Translation.new, disable_is_orig: false} %>
   <% end %>
 
   <div class="field">

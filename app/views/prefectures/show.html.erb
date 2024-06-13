@@ -22,7 +22,9 @@
   <dd> <%= @prefecture.iso3166_loc_code %></dd>
   <dt>orig_note (Remarks by HirMtsd)</dt>
   <dd> <%= @prefecture.orig_note %></dd>
-  <dt>note</dt>
+  <dt><%= t("tables.n_harami_vids_long") %></dt>
+  <dd><%= @prefecture.harami_vids.count.to_s %></dd>
+  <dt><%= t("tables.note").capitalize %></dt>
   <dd><%= @prefecture.note %></dd>
 </dl>
 
@@ -45,7 +47,7 @@
       <th>英語名 [別名]</th>
       <th>N_Musics</th>
       <th>N_Artists</th>
-      <th>N_HaramiVids</th>
+      <th title="<%= t("tables.n_harami_vids_long") %>"><%= t("tables.n_harami_vids_short") %></th>
       <th>Note</th>
       <% if can? :edit, Place %>
         <th colspan="2">Action</th>
@@ -63,7 +65,7 @@
         <td><%= sprintf '%s [%s]', *(%i(title alt_title).map{|i| place.send(i, langcode: 'en') || ''}) %></td>
         <td><%= place.musics.count.to_s %></td>
         <td><%= place.artists.count.to_s %></td>
-        <td><%= place.harami_vids.count.to_s %></td>
+        <td class="text-end"><%= place.harami_vids.count.to_s %></td>
         <td><%= place.note %></td>
         <td><%= link_to 'Show', place %></td>
         <% if can? :update, place %>
@@ -82,4 +84,13 @@
 <p>
 <%= link_to 'Back to Index', prefectures_path %>
 </p>
+
+<hr>
+
+<section id="harami_vid_table">
+<h3><%= t("show.h2_harami_vid") %></h3>
+
+  <%= render partial: 'layouts/harami_vids_index', locals: {harami_vids: @prefecture.harami_vids.order("harami_vids.release_date" => :desc).distinct, music: nil, with_place: true} %>
+</section>
+
 

@@ -31,6 +31,8 @@ ja:
     wiki_en: "Wikipedia英語"
     n_musics: 登録曲数
     n_harami_vids: 登録ハラミ動画数
+    n_harami_vids_short: "動画数"
+    n_harami_vids_long: "登録ハラミ(関連)動画数"
     note: 注記
     updated_at: 最終更新日時
     created_at: 生成日時
@@ -206,6 +208,8 @@ ja:
   channels:
     index:
       themselves: "本人"
+    show:
+      harami_vid_table_title: "このチャンネルのハラミちゃん(関係)登録動画"
 
   event_groups:
     num_id: "通番"

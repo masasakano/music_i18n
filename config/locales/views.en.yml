@@ -31,6 +31,8 @@ en:
     wiki_en: "Wikipedia (En)"
     n_musics: "# of Musics"
     n_harami_vids: "# of HaramiVids"
+    n_harami_vids_short: "#Vids"
+    n_harami_vids_long: "Number of registered HaramiVids"
     note: Note
     updated_at: "Last updated at"
     created_at: "Created at"
@@ -191,6 +193,8 @@ en:
   channels:
     index:
       themselves: "Themselves"
+    show:
+      harami_vid_table_title: "Registered HaramiVids in this Channel"
 
   event_groups:
     num_id: "#num"

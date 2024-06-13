@@ -9,14 +9,26 @@
 
 <div>
     <% if can? :update, @channel %>
-  <%= link_to "Edit this Channel", edit_channel_path(@channel) %> |
+      <span class="lead">
+  <%= link_to "Edit this Channel", edit_channel_path(@channel) %>
+      </span>
     <% end %>
 
     <% if can?(:destroy, @channel) %>
+      <span class="text-end">
   <%= button_to "Destroy", @channel, method: :delete, data: { confirm: t('are_you_sure') } %>
+      </span>
     <% end %>
 </div>
 
 <hr>
   <%= link_to t("layouts.back_to_index"), channels_path %>
+
+<hr>
+
+<section id="harami_vid_table">
+<h3><%= t(".harami_vid_table_title") %></h3>
+
+  <%= render partial: 'layouts/harami_vids_index', locals: {harami_vids: @channel.harami_vids.order("harami_vids.release_date" => :desc).distinct, music: nil} %>
+</section>
 

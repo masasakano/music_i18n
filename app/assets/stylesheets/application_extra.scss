@@ -477,6 +477,11 @@ a.button_like {
   box-shadow: inset 0 0 0 1000px rgba(0,0,0,.5);
 }
 
+.channel_part {
+    padding-top: 1em;
+    margin-bottom: 0.2em;
+}
+
 /*
 <fieldset class="form-group radio_buttons required translation_is_orig">
  <legend class="col-form-label pt-0">これが原語か? (注: 「冷蔵庫」などの一般名詞はUndefined)

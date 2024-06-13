@@ -50,7 +50,8 @@ class TranslationsController < ApplicationController
   # PATCH/PUT /translations/1
   # PATCH/PUT /translations/1.json
   def update
-    hsparam = stripped_params(translation_params) # stripped_params defiend in Parent
+    # hsparam = stripped_params(translation_params) # stripped_params defiend in Parent  # This would reject nullifying alt_title
+    hsparam = translation_params
     hsparam = convert_params_bool(hsparam, :is_orig)  # is_orig can be nil, e.g., a general noun like car/voiture
 
     respond_to do |format|

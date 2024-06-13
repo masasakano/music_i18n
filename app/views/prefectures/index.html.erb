@@ -20,6 +20,7 @@
       <th title="(Remarks by HirMtsd)">Remark<br>(by HirMtsd)</th>
       <th>Start date</th>
       <th>End date</th>
+      <th title="<%= t("tables.n_harami_vids_long") %>"><%= t("tables.n_harami_vids_short") %></th>
       <th>Note</th>
      <% colspan = (canedit ? 3 : 1) %>
       <th colspan="<%= colspan %>">Action</th>
@@ -43,6 +44,7 @@
         <td><%= model.orig_note %></td>
         <td><%= model.start_date %></td>
         <td><%= model.end_date %></td>
+        <td class="text-end"><%= model.harami_vids.count %></td>
         <td><%= model.note %></td>
         <td><%= link_to 'Show', model %></td>
        <% if canedit %>
@@ -66,3 +68,4 @@
   <%= button_to 'Create New Prefecture', new_prefecture_path, method: :get %>
   <%# link_to 'New Prefecture', new_prefecture_path %>
 <% end %>
+

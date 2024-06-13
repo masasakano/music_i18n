@@ -9,11 +9,15 @@
 
 <div>
     <% if can? :update, @channel_owner %>
-  <%= link_to "Edit this Channel Owner", edit_channel_owner_path(@channel_owner) %>
+      <span class="lead">
+        <%= link_to "Edit this Channel Owner", edit_channel_owner_path(@channel_owner) %>
+      </span>
     <% end %>
 
     <% if can?(:destroy, @channel_owner) %>
-  <%= button_to "Destroy", @channel_owner, method: :delete, data: { confirm: t('are_you_sure') } %>
+      <div class="text-end">
+        <%= button_to "Destroy", @channel_owner, method: :delete, data: { confirm: t('are_you_sure') } %>
+      </div>
     <% end %>
 </div>
 
