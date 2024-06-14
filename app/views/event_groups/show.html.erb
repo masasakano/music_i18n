@@ -89,7 +89,9 @@
     <% end %>
   </tbody>
 </table>
-<span class="lead"><%= link_to "New Event of this EventGroup", new_event_path(event_group_id: @event_group.id) %></span>
+<% if can? :create, Event %>
+  <span class="lead"><%= link_to "New Event of this EventGroup", new_event_path(event_group_id: @event_group.id) %></span>
+<% end %>
 </section>
 
 <hr>

@@ -16,6 +16,9 @@
     <% if @event.destroyable? && can?(:destroy, @event) %>
       <span class="text-end"><%= button_to "Destroy", @event, method: :delete, data: { confirm: t('are_you_sure') } %></span>
     <% end %>
+  <% if can? :create, Event %>
+    <span class="lead"><%= link_to "New Event in the same EventGroup", new_event_path(event_group_id: @event.event_group_id) %></span>
+  <% end %>
 </div>
 
 <% if can? :read, EventItem %>  <%# should be redundant %>
