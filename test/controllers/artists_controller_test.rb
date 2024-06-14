@@ -20,6 +20,7 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     get artists_url
     assert_response :success
     #assert_not (200...299).include?(response.code.to_i)  # maybe :redirect or 403 forbidden
+    assert_nil current_user_display_name(is_system_test: false)  # defined in test_helper.rb
 
     if is_env_set_positive?('TEST_STRICT')  # defined in application_helper.rb
       w3c_validate "Artist index"  # defined in test_helper.rb (see for debugging help)
@@ -45,6 +46,7 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to artist_url @artist
 
     follow_redirect!
+    assert_equal(@editor.display_name, current_user_display_name(is_system_test: false))  # defined in test_helper.rb
     assert_equal 1, css_select('dt#show_wikipedia_ja').size
     #puts "DEBUG: HTML:\n"+css_select('dt#show_wikipedia').to_html
     css = css_select('dd#show_wikipedia_dd_ja a')

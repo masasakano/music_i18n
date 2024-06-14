@@ -101,6 +101,22 @@ class ActiveSupport::TestCase
     hsout.merge ardts.inject({}, &:merge)
   end
 
+  # Read the display_name of the current_user from HTML and returns it.
+  #
+  # @example
+  #    assert_nil current_user_display_name(is_system_test: false)  # defined in test_helper.rb
+  #    assert_equal(@moderator_all.display_name, current_user_display_name)  # defined in test_helper.rb
+  #
+  # @return [String, NilClass] nil if no user is logged is.
+  def current_user_display_name(is_system_test: true)
+    method = (is_system_test ? Proc.new{|*args, **kwds| page.find(*args)} : Proc.new{|*args, **kwds| css_select(*args, **kwds)})
+    begin
+      pag = method.call('div#navbar_top span.navbar_top_display_name')
+    rescue Capybara::ElementNotFound
+      return nil
+    end
+    pag.blank? ? nil : pag.text  # for css_select (in Controller tests), pag.first.text is more strict.
+  end
 
   # Validate if Flash message matches the given Regexp (called from Controller tests)
   #

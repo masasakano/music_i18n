@@ -103,12 +103,17 @@ class User < ApplicationRecord
   alias_method :role_is_or_higher_than?, :qualified_as? if ! self.method_defined?(:role_is_or_higher_than?)
   alias_method :has_role?,               :qualified_as? if ! self.method_defined?(:has_role?)
 
-  def moderator?
-    qualified_as?('moderator')
+  # In practice, this means any authenticated user who has a {Role}
+  def helper?
+    qualified_as?('helper')
   end
 
   def editor?
     qualified_as?('editor')
+  end
+
+  def moderator?
+    qualified_as?('moderator')
   end
 
   def an_admin?

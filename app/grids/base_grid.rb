@@ -12,22 +12,32 @@ class BaseGrid
   extend ApplicationHelper  # I suppose this is a key (to include path/url helpers and url_for helpers)?
   extend ModuleCommon  # My module
 
-  # Datagrid enum for the max entries per page for pegination
+  # Kaminari default.  I do not know how to get it and so I define it here.
+  # @see https://github.com/kaminari/kaminari
+  DEF_MAX_PER_PAGE = 25
+
+  # Datagrid enum for the max entries per page for pegination for unauthenticated users
   MAX_PER_PAGES = {
     10 => 10,
-    25 => 25,
+    DEF_MAX_PER_PAGE => DEF_MAX_PER_PAGE,
     50 => 50,
     100 => 100,
-    400 => 400,
-    "ALL" => -1,  # -1 is passed to params
+  }
+
+  # Datagrid enum extra for the max entries per page for pegination for authenticated users
+  MAX_PER_PAGES_EXTRA = {
+    "helper" => {
+      400 => 400,
+      "ALL" => -1,  # -1 is passed to params
+    },
+    "moderator" => {
+      "1(Dev)" => 1,
+      "4(Dev)" => 4,
+    },
   }
 
   # Absolute maximum limit for pagination.
   HARD_MAX_PER_PAGE = 10000
-
-  # Kaminari default.  I do not know how to get it and so I define it here.
-  # @see https://github.com/kaminari/kaminari
-  DEF_MAX_PER_PAGE = 25
 
   # Get the max value
   #
@@ -104,13 +114,17 @@ class BaseGrid
   # @param with_i_page [Boolean] If true (Def: false), i_page filter is activated.
   def self.column_names_max_per_page_filters(with_i_page: false)
     column_names_filter(header: Proc.new{I18n.t("datagrid.form.extra_columns", default: "Extra Columns")}, checkboxes: true)
-    filter(:max_per_page, :enum, select: Proc.new{
-            if CURRENT_USER && CURRENT_USER.moderator? #|| Rails.env.development?  ####### User-condition not working...
-              {"1(Dev)" => 1, "4(Dev)" => 4}.merge(MAX_PER_PAGES)
-            else
-              MAX_PER_PAGES
-            end
-           }, default: 25, multiple: false, include_blank: false, dummy: true, header: Proc.new{I18n.t("datagrid.form.max_per_page", default: "Max entries per page")})
+    hs_enum = MAX_PER_PAGES
+    if CURRENT_USER
+      if CURRENT_USER.helper? #|| Rails.env.development?  # if User-condition does not work...
+        hs_enum = hs_enum.merge! MAX_PER_PAGES_EXTRA["helper"]       # 400 and above come last
+        if CURRENT_USER.moderator?
+          hs_enum = MAX_PER_PAGES_EXTRA["moderator"].merge hs_enum  # "1(Dev)" etc come first.
+        end
+      end
+    end
+
+    filter(:max_per_page, :enum, select: Proc.new{hs_enum}, default: DEF_MAX_PER_PAGE, multiple: false, include_blank: false, dummy: true, header: Proc.new{I18n.t("datagrid.form.max_per_page", default: "Max entries per page")})
     filter(:i_page, :integer, dummy: true, default: 1, class: "input_year", header: Proc.new{I18n.t("datagrid.form.i_page", default: "i-th page")}) if with_i_page
        # NOT: Option "class" not working.
   end
@@ -232,21 +246,27 @@ class BaseGrid
 
   # @return [String]
   def self.is_user_editor?
-    @is_user_editor = CURRENT_USER && CURRENT_USER.editor? if @is_user_editor.nil?  # Ability is not used as it would be too DB-heavy.
-    @is_user_editor
+    #@is_user_editor = CURRENT_USER && CURRENT_USER.editor? if @is_user_editor.nil?  # Ability is not used as it would be too DB-heavy.
+    #@is_user_editor
+    CURRENT_USER && CURRENT_USER.editor?  # Ability is not used as it would be too DB-heavy.
   end
 
   def self.can_edit_class?(klass)
-    @can_edit_class ||= {}
-    @can_edit_class[klass] = can?(:edit, klass) if @can_edit_class[klass].nil?
-    @can_edit_class[klass]
+    #@can_edit_class ||= {}
+    #@can_edit_class[klass] = can?(:edit, klass) if @can_edit_class[klass].nil?
+    #@can_edit_class[klass]
+    can?(:edit, klass)
   end
 
   # @param role [Symbol, String] :editor, :moderator, :an_admin, :sysadmin
   def self.qualified_as?(role)
-    @qualified_as ||= {}
-    @qualified_as[role] = CURRENT_USER && CURRENT_USER.send(role.to_s+"?") if @qualified_as[role].nil?
-    @qualified_as[role]
+    ## Disabled the cache mechanism because this works badly in testing AND seemingly in production.
+    ## Basically, an instance variable of a class works the same as a Constant,
+    ## yet this value depends on the current_user and so is far from a Constant.
+    #@qualified_as ||= {}
+    #@qualified_as[role] = CURRENT_USER && CURRENT_USER.send(role.to_s+"?") if @qualified_as[role].nil?
+    #@qualified_as[role]
+    CURRENT_USER && CURRENT_USER.send(role.to_s+"?")
   end
 end # class BaseGrid
 

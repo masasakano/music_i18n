@@ -94,7 +94,7 @@ class RoleCategoryTest < ActiveSupport::TestCase
   end
 
   test "tree" do
-    tree = RoleCategory.tree
+    tree = RoleCategory.tree(force_update: true)
     # tree.print_tree # for DEBUG
     # irb> RoleCategory.tree.print_tree
     # * ROOT

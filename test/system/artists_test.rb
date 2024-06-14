@@ -121,6 +121,16 @@ class ArtistsTest < ApplicationSystemTestCase
     page.find('table thead tr th.title_en div.order a.asc').click
     i_zombies = page.all("table.artists_grid tbody tr").find_index{|nok| nok.all("td")[2].text[0, zombies.size] == zombies} # No <td> in <thead>, but all should have <td> in <tbody>
     i_zedd    = page.all("table.artists_grid tbody tr").find_index{|nok| nok.all("td")[2].text == zedd}  # For Editors: zedd+"*"
+
+      assert_nil current_user_display_name(is_system_test: true)  # defined in test_helper.rb
+    # This sometimes happens... Basically, "Zedd*" is displayed as opposed to "Zedd".
+    # "Zedd*" should be displayed only for Editors.  However, despite this is viewed
+    # by an unauthenticated user, "Zedd*" is displayed here.  Why?
+    if !i_zedd
+      assert_nil current_user_display_name(is_system_test: true)  # defined in test_helper.rb
+      print "DEBUG-i_zedd(#{File.basename __FILE__}): @qualified_as=#{BaseGrid.instance_variable_get(:@qualified_as).inspect}\n"
+    end
+
     assert_equal    "en", art_zedd.orig_langcode
     assert_operator i_zedd, :<, i_zombies, "Should be normal-sorted, but... text="+page.all("table.artists_grid tbody tr").map{|m| m.all("td").map(&:text)}.inspect
 
@@ -163,6 +173,8 @@ class ArtistsTest < ApplicationSystemTestCase
     page.find('table thead tr th.title_en div.order a.desc').click  # entry with NULL may come first, but at least this operation should succeed
     first_non_null_en_text = page.all("table.artists_grid tbody tr td.title_en").find{|i| !i.text.strip.empty?}.text.strip
     refute_equal title_newest_en, first_non_null_en_text
+
+    assert_no_selector "input#artists_grid_id"
   end
 
   test "should create/update artist" do
@@ -175,8 +187,11 @@ class ArtistsTest < ApplicationSystemTestCase
     fill_in "Email", with: @moderator_gen.email
     fill_in "Password", with: '123456'  # from users.yml
     click_on "Log in"
+    assert_equal(@moderator_gen.display_name, current_user_display_name(is_system_test: true))  # defined in test_helper.rb
 
     visit artists_url
+    assert_selector "input#artists_grid_id"
+
     n_records_be4 = page.all("div#artists table tr").size - 1
     click_on "New Artist"
 

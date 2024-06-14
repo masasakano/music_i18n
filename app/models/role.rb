@@ -570,14 +570,19 @@ class Role < ApplicationRecord
     end
   end
 
-  # 'moderator' or higher in the same category (providing Role#name='moderator' exists in the category, except the roles in ROOT category)
-  def moderator?
-    an_admin? || qualified_as?('moderator', role_category)
+  # 'helper' or higher in the same category (providing Role#name='helper' exists in the category, except the roles in ROOT category)
+  def helper?
+    an_admin? || qualified_as?('helper', role_category)
   end
 
   # 'editor' or higher in the same category (providing Role#name='editor' exists in the category, except the roles in ROOT category)
   def editor?
     an_admin? || qualified_as?('editor', role_category)
+  end
+
+  # 'moderator' or higher in the same category (providing Role#name='moderator' exists in the category, except the roles in ROOT category)
+  def moderator?
+    an_admin? || qualified_as?('moderator', role_category)
   end
 
   # true if the role belong to the root {RoleCategory} ("ROOT").
