@@ -12,6 +12,34 @@ class BaseGrid
   extend ApplicationHelper  # I suppose this is a key (to include path/url helpers and url_for helpers)?
   extend ModuleCommon  # My module
 
+  if !defined?(CURRENT_USER)
+    # CURRENT_USER is "dynamically" defined in before_action in ApplicationController
+    # However, depending on initialization, this file is read before Controllers,
+    # resulting in
+    #   uninitialized constant BaseGrid::CURRENT_USER (NameError)
+    # even in "rails console".  So, we define it here temporarily.
+    # In ApplicationController, it is freshly redefined every time before
+    # a Controller is called.
+    #
+    # NOTE that to use a class instance variable for BaseGrid instead
+    # would not work!  (It seems to be reset when the Class file is reread (or cached?),
+    # though object_id unchanges...)
+    CURRENT_USER ||= nil
+  end
+
+  # # Initializes a class instance variable
+  # @grid_current_user ||= CURRENT_USER
+
+  # # Getter
+  # def self.grid_current_user
+  #   @grid_current_user
+  # end
+
+  # # Setter
+  # def self.grid_current_user=(user)
+  #   @grid_current_user = user
+  # end
+
   # Kaminari default.  I do not know how to get it and so I define it here.
   # @see https://github.com/kaminari/kaminari
   DEF_MAX_PER_PAGE = 25
@@ -54,6 +82,19 @@ class BaseGrid
     nmax = DEF_MAX_PER_PAGE  if nmax < 1  # if smaller than 1 (maybe 0 because of String?), something goes wrong.
     nmax = HARD_MAX_PER_PAGE if nmax < 0 || nmax > HARD_MAX_PER_PAGE
     nmax
+  end
+
+  # Returns the selection dynamically.
+  #
+  # @return [Hash<Object, Integer>]
+  def self.max_per_page_candidates
+    hs_enum = MAX_PER_PAGES
+    return hs_enum if !CURRENT_USER || !CURRENT_USER.helper? #|| Rails.env.development?  # if User-condition does not work...
+
+    hs_enum = hs_enum.merge! MAX_PER_PAGES_EXTRA["helper"]    # 400 and above come last
+    return hs_enum if !CURRENT_USER.moderator?
+
+    hs_enum = MAX_PER_PAGES_EXTRA["moderator"].merge hs_enum  # "1(Dev)" etc come first.
   end
 
   self.default_column_options = {
@@ -114,17 +155,8 @@ class BaseGrid
   # @param with_i_page [Boolean] If true (Def: false), i_page filter is activated.
   def self.column_names_max_per_page_filters(with_i_page: false)
     column_names_filter(header: Proc.new{I18n.t("datagrid.form.extra_columns", default: "Extra Columns")}, checkboxes: true)
-    hs_enum = MAX_PER_PAGES
-    if CURRENT_USER
-      if CURRENT_USER.helper? #|| Rails.env.development?  # if User-condition does not work...
-        hs_enum = hs_enum.merge! MAX_PER_PAGES_EXTRA["helper"]       # 400 and above come last
-        if CURRENT_USER.moderator?
-          hs_enum = MAX_PER_PAGES_EXTRA["moderator"].merge hs_enum  # "1(Dev)" etc come first.
-        end
-      end
-    end
 
-    filter(:max_per_page, :enum, select: Proc.new{hs_enum}, default: DEF_MAX_PER_PAGE, multiple: false, include_blank: false, dummy: true, header: Proc.new{I18n.t("datagrid.form.max_per_page", default: "Max entries per page")})
+    filter(:max_per_page, :enum, select: Proc.new{max_per_page_candidates}, default: DEF_MAX_PER_PAGE, multiple: false, include_blank: false, dummy: true, header: Proc.new{I18n.t("datagrid.form.max_per_page", default: "Max entries per page")})
     filter(:i_page, :integer, dummy: true, default: 1, class: "input_year", header: Proc.new{I18n.t("datagrid.form.i_page", default: "i-th page")}) if with_i_page
        # NOT: Option "class" not working.
   end
@@ -258,15 +290,19 @@ class BaseGrid
     can?(:edit, klass)
   end
 
-  # @param role [Symbol, String] :editor, :moderator, :an_admin, :sysadmin
-  def self.qualified_as?(role)
-    ## Disabled the cache mechanism because this works badly in testing AND seemingly in production.
-    ## Basically, an instance variable of a class works the same as a Constant,
-    ## yet this value depends on the current_user and so is far from a Constant.
-    #@qualified_as ||= {}
-    #@qualified_as[role] = CURRENT_USER && CURRENT_USER.send(role.to_s+"?") if @qualified_as[role].nil?
-    #@qualified_as[role]
-    CURRENT_USER && CURRENT_USER.send(role.to_s+"?")
+  # see {User#qualified_as?} for the arguments
+  #
+  # @param role [Role, String, Symbol, RoleCategory] :editor, :moderator, :an_admin, :sysadmin
+  # @param rcat [RoleCategory, String, Symbol, NilClass] if needed
+  def self.qualified_as?(*args)
+    # ## Disabled the cache mechanism because this works badly in testing AND seemingly in production.
+    # ## Basically, an instance variable of a class works the same as a Constant,
+    # ## yet this value depends on the current_user and so is far from a Constant.
+    # #@qualified_as ||= {}
+    # #@qualified_as[role] = CURRENT_USER && CURRENT_USER.send(role.to_s+"?") if @qualified_as[role].nil?
+    # #@qualified_as[role]
+    #CURRENT_USER && CURRENT_USER.send(role.to_s+"?")
+    CURRENT_USER && CURRENT_USER.send(:qualified_as?, *args)
   end
 end # class BaseGrid
 

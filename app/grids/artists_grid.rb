@@ -73,7 +73,7 @@ class ArtistsGrid < BaseGrid
     record.sex.title(langcode: I18n.locale)
   end
 
-  column(:birth_year, class: ["align-cr"], mandatory: false, header: Proc.new{I18n.t('tables.year')}) do |record|
+  column(:birth_year, class: ["align-cr"], mandatory: false, header: Proc.new{I18n.t('artists.show.birthday')}) do |record|
     sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
                                 i = record.send m
                                 (i.blank? ? '——' : i.to_s)
@@ -89,6 +89,14 @@ class ArtistsGrid < BaseGrid
     (co=record.channel_owner) ? ActionController::Base.helpers.link_to(I18n.t("ChannelOwner"), Rails.application.routes.url_helpers.channel_owner_url(co, only_path: true)) : ""
   end
 
+  column(:n_musics, class: ["align-cr", "align-r-padding3"], header: Proc.new{I18n.t('tables.n_musics')}) do |record|
+    record.musics.uniq.count
+  end
+
+  column(:n_harami_vids, class: ["align-cr", "align-r-padding3"], header: Proc.new{I18n.t('tables.n_harami_vids')}) do |record|
+    record.harami_vids.uniq.count.to_s
+  end
+
   %w(ja en).each do |elc|
     kwd = 'wiki_'+elc
     column(kwd, mandatory: false, order: false, header: Proc.new{I18n.t('tables.'+kwd)}) do |record|
@@ -101,14 +109,6 @@ class ArtistsGrid < BaseGrid
         ActionController::Base.helpers.link_to(str_link, uri).html_safe
       end
     end
-  end
-
-  column(:n_musics, class: ["align-cr", "align-r-padding3"], header: Proc.new{I18n.t('tables.n_musics')}) do |record|
-    record.musics.uniq.count
-  end
-
-  column(:n_harami_vids, class: ["align-cr", "align-r-padding3"], header: Proc.new{I18n.t('tables.n_harami_vids')}) do |record|
-    record.harami_vids.uniq.count.to_s
   end
 
   column(:note, order: false, header: Proc.new{I18n.t('tables.note')})

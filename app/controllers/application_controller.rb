@@ -760,8 +760,10 @@ class ApplicationController < ActionController::Base
 
     # To use +CURRENT_USER+ (instead of +current_user+) inside Grids
     #
+    # @note Setting BaseGrid Class instance variable does not work well
+    #   (it seems to be reset when the Class file is reread, though object_id unchanges...)
     def set_current_user_for_grid
-      BaseGrid.send(:remove_const, :CURRENT_USER) if BaseGrid.const_defined?(:CURRENT_USER)  # because this may be called multiple times in (only) tests
+      BaseGrid.send(:remove_const, :CURRENT_USER) if BaseGrid.const_defined?(:CURRENT_USER)  # because this may be called multiple times in tests or when cached.
       BaseGrid.const_set(:CURRENT_USER, current_user)
     end
 
