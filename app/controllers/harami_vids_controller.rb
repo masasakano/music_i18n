@@ -1,6 +1,7 @@
 # coding: utf-8
 class HaramiVidsController < ApplicationController
   include ModuleCommon  # for contain_asian_char, txt_place_pref_ctry
+  include HaramiVidsHelper # for collection_musics_with_evit
 
   skip_before_action :authenticate_user!, :only => [:index, :show]
   load_and_authorize_resource except: [:index, :show, :create] # This sets @harami_vid for  :edit, :update, :destroy
@@ -91,6 +92,8 @@ class HaramiVidsController < ApplicationController
     # to "place_id"; which is set to @harami_vid above.  So, make sure to refer to "place_id"
     # as opposed to "place".
 
+    @music_collab_collection = collection_musics_with_evit(@harami_vid)  # collection used in Form to select a Music to add a collab-Artist
+
     _set_reference_harami_vid_id  # Sets reference_harami_vid_id, @event_event_items, @ref_harami_vid
 
     add_unsaved_trans_to_model(@harami_vid, @hstra) # defined in application_controller.rb
@@ -109,6 +112,7 @@ class HaramiVidsController < ApplicationController
   # PATCH/PUT /harami_vids/1
   # PATCH/PUT /harami_vids/1.json
   def update
+    @music_collab_collection = collection_musics_with_evit(@harami_vid)  # collection used in Form to select a Music to add a collab-Artist
     _set_reference_harami_vid_id  # Sets reference_harami_vid_id, @event_event_items, @ref_harami_vid
 
     def_respond_to_format(@harami_vid, :updated){
@@ -260,7 +264,8 @@ class HaramiVidsController < ApplicationController
             rollback_clear_flash if @harami_vid.errors.any?
           end
           if @assocs[:artist_collab].present? && @assocs[:music_collab].blank?
-            @harami_vid.errors.add :music_name, I18n.t("harami_vids.warn_collab_without_music")  # Valid Music must be given when you add an Artist-to-collaborate.
+            form_key = (@music_collab_collection.blank? ? :music_name : :music_collab)
+            @harami_vid.errors.add form_key, I18n.t("harami_vids.warn_collab_without_music")+@music_collab_collection.inspect  # Valid Music must be given when you add an Artist-to-collaborate.
             result = false
             raise ActiveRecord::Rollback, "Force rollback."
           end

@@ -178,7 +178,7 @@
           label: t(:Music).capitalize,
           include_blank: true, input_html: { multiple: false },
           prompt: t('harami_vids.form_prompt_collab'),
-          hint: t('harami_vids.field_music_collab_hint') %> <%# defined in _harami_vids_index.html.erb %>
+          hint: t('harami_vids.field_music_collab_hint') %> <%# defined in harami_vids_helper.rb %>
       <%= f.input :artist_name_collab,  label: t('harami_vids.form_artist_collabs'),
           hint: t("layouts.fields.hint_create_if_non_existent", link: link_to(t("layouts.do_create_lower"), new_artist_path)).html_safe %>
      <div class="form_new_model_info">

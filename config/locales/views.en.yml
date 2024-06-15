@@ -244,7 +244,7 @@ en:
     field_artist_collabs_w_harami: "Playing Artist with HARAMIchan"
     field_music_year: "Released year"
     field_music_collab_hint: "Make sure to select an Event(Item) above for this."
-    warn_collab_without_music: "Valid Music must be given when you add an Artist-to-collaborate."
+    warn_collab_without_music: "Valid Music must be given when you add a collaborating Artist."
     form_prompt_collab: "Newly specified Music (if any)"
     show:
       harami_vid_long: "HARAMIchan-featured Videos"

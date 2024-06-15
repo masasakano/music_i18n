@@ -12,20 +12,20 @@
   <% collec = BaseWithTranslation::AVAILABLE_LOCALES.map do |es|
        [BaseWithTranslation::LANGUAGE_TITLES[I18n.locale][es.to_s], es]
      end %>
-  <%= form.input :langcode, label: t('layouts.new_translations.model_language', model: modelname), hint: t('layouts.new_translations.translations_can_be_added_later'), required: true, collection: collec, as: :radio_buttons, item_wrapper_class: 'inline', checked: ((tras=model.best_translation).present? ? tras.langcode : 'ja'), input_html: { value: '' } %> <%# Without "inline", the first button is displayed at the right edge (only in this set of radio-boxes...) Why?? %>
+  <%= form.input :langcode, label: t('layouts.new_translations.model_language', model: modelname), hint: t('layouts.new_translations.translations_can_be_added_later'), required: true, collection: collec, as: :radio_buttons, item_wrapper_class: 'inline', checked: langcode_checked(model), input_html: { value: '' } %> <%# Without "inline", the first button is displayed at the right edge (only in this set of radio-boxes...) Why?? %>  <%# langcode_checked defined in translations_helper.rb %>
 
   <% if !disable_is_orig %>
     <%= form.input :best_translation_is_orig, label: 'これが原語か?', hint: "(注: 「冷蔵庫」などの一般名詞は「定義不能(Undefined)」)", required: true, as: :radio_buttons, item_wrapper_class: 'inline', collection: [['Yes', true], ['No', false], ['Undefined', ApplicationController::FORM_TERNARY_UNDEFINED_VALUE]], checked: ApplicationController.returned_str_from_form(model.best_translation_is_orig.nil? ? ApplicationController::FORM_TERNARY_UNDEFINED_VALUE : model.best_translation_is_orig) %> <%# nil means it inherits the previous input after a failed attempt %> <%# nil is replaced with a default value because setting this nil results in an error: The value of the “for” attribute of the “label” element must be the ID of a non-hidden form control; in short, ID="artist_best_translation_is_orig" and label-FOR="artist_best_translation_is_orig_" %>
   <% end %>
   <% titlabel=t('layouts.new_translations.title', model: modelname) %>
-  <%= form.input :title,  label: titlabel, placeholder: (('Artist'==model.class.name) ? ' ('+t('layouts.new_translations.note_re_group')+') ' : "")+t('eg_independent')+'The '+(('Artist'==model.class.name) ? 'Beatles' : 'Ocean'), required: true, as: as_txt %>
+  <%= form.input :title,  label: titlabel, placeholder: (('Artist'==model.class.name) ? ' ('+t('layouts.new_translations.note_re_group')+') ' : "")+t('eg_independent')+'The '+(('Artist'==model.class.name) ? 'Beatles' : 'Ocean'), required: true, as: as_txt, input_html: {value: value_a_title_in_form(model, :title)} %>  <%# langcode_checked defined in translations_helper.rb %>
  <% if !(defined?(only_title) && only_title) %>
-  <%= form.input :ruby,   label: titlabel+' - '+t('ruby'), placeholder: '(全角片仮名で)'+t('eg_independent')+(('Artist'==model.class.name) ? 'ザ・ビートルズ' : 'ジ・オーシャン'), as: as_txt %>
-  <%= form.input :romaji, label: titlabel+' - '+t('romaji'), hint: '(ヘボン式推奨: chi, shi等)', placeholder: '(ヘボン式推奨: chi, shi等)', as: as_txt %>
+  <%= form.input :ruby,   label: titlabel+' - '+t('ruby'), placeholder: '(全角片仮名で)'+t('eg_independent')+(('Artist'==model.class.name) ? 'ザ・ビートルズ' : 'ジ・オーシャン'), as: as_txt, input_html: {value: value_a_title_in_form(model, :ruby)} %>
+  <%= form.input :romaji, label: titlabel+' - '+t('romaji'), hint: '(ヘボン式推奨: chi, shi等)', placeholder: '(ヘボン式推奨: chi, shi等)', as: as_txt, input_html: {value: value_a_title_in_form(model, :romaji)} %>
   <% altlabels=["", "_hint"].map{|i| t('layouts.new_translations.alt_title'+i, model: modelname)} %>
-  <%= form.input :alt_title,  label: altlabels[0], title: altlabels[1], placeholder: '通称・別名 ('+t('eg_independent')+'ユーミン)', as: as_txt %>
-  <%= form.input :alt_ruby,   label: altlabels[0]+' - '+t('ruby'),   placeholder: '(全角片仮名で)',  as: as_txt %>
-  <%= form.input :alt_romaji, label: altlabels[0]+' - '+t('romaji'), placeholder: '(ヘボン式推奨: chi, shi等)', as: as_txt %>
+  <%= form.input :alt_title,  label: altlabels[0], title: altlabels[1], placeholder: '通称・別名 ('+t('eg_independent')+'ユーミン)', as: as_txt, input_html: {value: value_a_title_in_form(model, :alt_title)} %>
+  <%= form.input :alt_ruby,   label: altlabels[0]+' - '+t('ruby'),   placeholder: '(全角片仮名で)',  as: as_txt, input_html: {value: value_a_title_in_form(model, :alt_ruby)} %>
+  <%= form.input :alt_romaji, label: altlabels[0]+' - '+t('romaji'), placeholder: '(ヘボン式推奨: chi, shi等)', as: as_txt, input_html: {value: value_a_title_in_form(model, :alt_romaji)} %>
  <% end %> <%# if !(defined?(only_title) && only_title) %>
  </section>
 
