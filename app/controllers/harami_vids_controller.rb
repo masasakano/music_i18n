@@ -1,6 +1,6 @@
 # coding: utf-8
 class HaramiVidsController < ApplicationController
-  include ModuleCommon  # for contain_asian_char
+  include ModuleCommon  # for contain_asian_char, txt_place_pref_ctry
 
   skip_before_action :authenticate_user!, :only => [:index, :show]
   load_and_authorize_resource except: [:index, :show, :create] # This sets @harami_vid for  :edit, :update, :destroy
@@ -389,6 +389,7 @@ class HaramiVidsController < ApplicationController
 
       @assocs[:dissociated_event_items] = []
       @assocs[:new_associated_event_items] = []
+      #had_no_evits = !@harami_vid.event_items.exists?
 
       leave_ids = @prms_all[:event_item_ids].select{|i| i.present?}.map(&:to_i)  # removes an empty one which is usually added by simple_form
       if leave_ids.empty?
@@ -417,7 +418,38 @@ class HaramiVidsController < ApplicationController
           @harami_vid.errors.add :event_item_ids, "Failed to destroy the association (#{msg_core})."
         end
       end
+
+      # return if !had_no_evits
+      # _update_hvid_place_by_event_items
     end
+
+
+    # update {HaramiVid#place} if desired  -- not used!
+    # This method is not tested at all.
+    #
+    # @return [void]
+    def _update_hvid_place_by_event_items
+      @harami_vid.event_items.reset
+      return if (pla_hvid=@harami_vid.place) && HaramiVid::DEF_PLACE != @harami_vid.place  # A significant Place is already (manually) defined.
+      return if !@harami_vid.event_items.exists?
+      pla_cand = _place_event_items
+      return if !pla_cand
+      result = @harami_vid.update(place: pla_cand)
+      return if result
+
+      # updating HaramiVid#place failed for some reason. Only warning is issued.
+      pla_txts = [@harami_vid.place, pla_cand].map{|epla| epla ? sprintf("%s(ID=%d)", txt_place_pref_ctry(epla), epla.id) : 'nil'}  # defined in txt_place_pref_ctry
+      flash[:warning] ||= []
+      flash[:warning] << "Attempt to update HaramiVid's Place [#{pla_txts[0]}] fails to an EventItem's [#{pla_txts[1]}]."
+    end
+    private :_update_hvid_place_by_event_items
+
+    # @return [Place, NilClass] Least significant Place among @harami_vid.event_items
+    def _place_event_items
+      return nil if !@harami_vid.event_items.exists?
+      @harami_vid.event_items.map(&:place).compact.sort.first  # Least singifncant Place among all associated EventItems
+    end
+    private :_place_event_items
 
     # Creates {HaramiVidMusicAssoc} from EventItems
     #
@@ -455,7 +487,8 @@ begin  # for DEBUGging
           eeit.musics.each do |ea_mu|
             next if @harami_vid.musics.include? ea_mu
             flash[:warning] ||= []
-            flash[:warning] << (ERB::Util.html_escape("Though a played Music (")+helpers.link_to(ea_mu.title, ea_mu, target: '_blank')+ERB::Util.html_escape(") contained in ")+helpers.link_to('EventItem', eeit, target: '_blank', title: eeit.machine_title)+ERB::Util.html_escape(" is not found for this HaramiVid. Music is newly associated to this HaramiVid with null timing for now - please edit it later. Or, if the Music is actually not played in this HaramiVid, associate a different (or new) EventItem to this HaramiVid. Note that you may edit the EventItem to split it into two instead of creating one from scratch.")).html_safe
+            msg = (@ref_harami_vid ? "" : ERB::Util.html_escape("Though a played Music (")+helpers.link_to(ea_mu.title, ea_mu, target: '_blank')+ERB::Util.html_escape(") contained in ")+helpers.link_to('EventItem', eeit, target: '_blank', title: eeit.machine_title)+ERB::Util.html_escape(" is not found for this HaramiVid, "))
+            flash[:warning] << msg + (ERB::Util.html_escape("Music is newly associated to this HaramiVid with null timing for now - please edit it later. Or, if the Music is actually not played in this HaramiVid, associate a different (or new) EventItem to this HaramiVid. Note that you may edit the EventItem to split it into two instead of creating one from scratch.")).html_safe
             if @ref_harami_vid && @ref_harami_vid.musics.include?(ea_mu)
               # Copies the values like timing from HaramiVidMusicAssoc for @ref_harami_vid, but adjusts somewhat.
               hvma = @ref_harami_vid.harami_vid_music_assocs.where(music_id: ea_mu.id).first.dup  # should be unique

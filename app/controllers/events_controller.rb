@@ -39,6 +39,7 @@ class EventsController < ApplicationController
     @event.start_time_err ||= (@event_group ? @event_group.start_date_err*86400 : TimeAux::MAX_ERROR)
 
     set_form_start_err(@event)  # defined in module_comon.rb
+    @event.place = @event_group.place if @event_group
   end
 
   # GET /events/1/edit

@@ -81,11 +81,11 @@
 
     <%= f.input :reference_harami_vid_id, as: :hidden %>
 
-  <% display_new_event_item_form = true %>
+  <% display_new_event_item_form = !harami_vid.new_record? %>
   <% if !harami_vid.new_record? || (given_ref && given_ref.event_items.exists?) %> <%# For update, the following is always displayed; for create, it is only if reference HaramiVid is specified and it has an EventItem(s) %>
     <% display_new_event_item_form = false %>
     <div class="update_event_item_association_field">
-    <h4>Associated Events (EventItems)</h4>
+    <h4><%= t("harami_vids.associated_event_event_items") %></h4>
 
     <% collec = harami_vid.event_items
        collec_is_empty = !harami_vid.event_items.exists?
@@ -97,7 +97,7 @@
      <%# In rare cases where there are duplications between the existing and specified EventItems, they will be shown as "distinct" is (so far) not performed here. %>
     <% if collec.exists? %>
      <%= f.association :event_items, collection: collec, label_method: :machine_title, value_method: :id,
-      include_blank: false,  as: :check_boxes, label: "Associated EventItems",
+      include_blank: false,  as: :check_boxes, label: t("EventItems"),
       item_wrapper_class: 'inline', input_html: { checked: true } %>  <%# Not shown at all if there are no EventItems associatined to harami_vid; they all are forcibly checked in default, even after returning to the edit screen.  %>
   <%# cf. https://github.com/heartcombo/simple_form#collection-check-boxes %>
      <%= render partial: "event_event_items" %>
@@ -108,8 +108,9 @@
     </div>
   <% end %> <!-- if !harami_vid.new_record? || given_ref -->
 
+   <% if !given_ref %>
     <% if !harami_vid.new_record? || display_new_event_item_form %>
-    <h4 title="以下で(追加)定義する楽曲および/もしくは追加コラボアーティストに対応したEvent(Item)">Event(Item) for new Collab-Artist and/or Music</h4>
+    <h4><%= t("harami_vids.event_item_for_new_collab_artist") %></h4>
       <%= f.input :form_new_artist_collab_event_item, as: :radio_buttons,
         collection: (co=collection_event_items_for_new_artist_collab), label_method: :second, value_method: :first,
         allow_blank: false, 
@@ -127,9 +128,8 @@
      </div>
     <% end %>
 
-   <% if !given_ref %>
     <div class="register_assoc_music">
-    <h4 title="動画内で演奏された楽曲の追加もしくは追加コラボアーティストに対応した楽曲"><%= (harami_vid.new_record? ? "" : "("+t(:additional).capitalize+") ")+t(:Music) %></h4>  <%# Additional Music %>
+    <h4><%= (harami_vid.new_record? ? "" : "("+t(:additional).capitalize+") ")+t(:Music) %> <span class="small">(<%= t("harami_vids.music_title_comment") %>)</span></h4>  <%# Additional Music %>
     <div class="register_assoc_music_field">
       <%= f.input :music_name, label: t("layouts.fields.music_title") #, hint: t('layouts.fields.hint_music_auto')
       %>
@@ -169,7 +169,7 @@
     </div> <!-- div class="register_assoc_artist"  -->
     </div> <!-- div class="form_new_model_info" -->
 
-   <% if ! harami_vid.new_record? %>
+   <%# if ! harami_vid.new_record? %>
     <div class="register_collab_artist_field">
     <h4><%= (harami_vid.new_record? ? "" : "("+t(:additional).capitalize+") ") %><%= t('harami_vids.field_artist_collabs_w_harami') %></h4>
 
@@ -177,6 +177,7 @@
         collection: collection_musics_with_evit(harami_vid),
           label: t(:Music).capitalize,
           include_blank: true, input_html: { multiple: false },
+          prompt: t('harami_vids.form_prompt_collab'),
           hint: t('harami_vids.field_music_collab_hint') %> <%# defined in _harami_vids_index.html.erb %>
       <%= f.input :artist_name_collab,  label: t('harami_vids.form_artist_collabs'),
           hint: t("layouts.fields.hint_create_if_non_existent", link: link_to(t("layouts.do_create_lower"), new_artist_path)).html_safe %>
@@ -189,7 +190,7 @@
         label: t("Instrument") %>
      </div>
     </div> <!-- div class="register_collab_artist_field" -->
-   <% end %>  <%# if ! harami_vid.new_record? %>
+   <%# end %>  <%# if ! harami_vid.new_record? %>
 
    <% end %>  <!-- if !given_ref -->
   </div> <!-- div class="form-inputs" -->

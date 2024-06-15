@@ -211,6 +211,8 @@ en:
     parent_event: "(Parent) Event"
     Duration: Duration
     DurationError: Duration Error
+    n_event_items_long: "Number of EventItems"
+    n_event_items_short: "#Items"
 
   event_items:
     playing_artists: playing artists
@@ -232,6 +234,10 @@ en:
     release_date: "Release date"
     engage_how: Way of engagement
     field_uri_hint: "For HARAMIchan's Youtube videos, do not include extra query parameters, including the timing, in principle. You can specify the timings of musics below if desired."
+    associated_event_event_items: "Associated Event(Item)s"
+    associated_event_items: "Associated EventItems"
+    event_item_for_new_collab_artist: "Event(Item) for new Collab-Artist and/or Music"
+    music_title_comment: "Music (to add) played by HARAMIchan and/or collab-Artist"
     music_main_hint: "Name of one song (you can add more later)"
     music_timing_hint: "When the music starts in the video."
     form_artist_collabs: "featuring Artist"
@@ -239,6 +245,7 @@ en:
     field_music_year: "Released year"
     field_music_collab_hint: "Make sure to select an Event(Item) above for this."
     warn_collab_without_music: "Valid Music must be given when you add an Artist-to-collaborate."
+    form_prompt_collab: "Newly specified Music (if any)"
     show:
       harami_vid_long: "HARAMIchan-featured Videos"
       artist_collabs: "featuring Artists"

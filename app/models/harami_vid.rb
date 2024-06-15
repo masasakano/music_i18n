@@ -452,9 +452,10 @@ class HaramiVid < BaseWithTranslation
 
     ## A {Place} may be assigned here
     # self.place = Place['JPN'] if !place  # NOTE: Place['JPN'] used to be assigned unconditionally!
-    if (!place || force) && !columns_for_harami1129[:aft][:event_item].empty?  # the latter is equivalent to self.event_items.ids
+    cand_evits = columns_for_harami1129[:aft][:event_item]
+    if (!place || force) && !cand_evits.empty?  # the latter is equivalent to self.event_items.ids
       # NOTE: self.reload or self.event_items cannot be used here because self may be a new_record?
-      self.place = EventItem.where(id: columns_for_harami1129[:aft][:event_item]).first.place
+      self.place = EventItem.where(id: cand_evits).first.place
       save! if force || !dryrun
     end
     # NOTE: EventItem should be always defined in Harami1129 (after its internal_insert).

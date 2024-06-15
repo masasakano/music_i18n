@@ -56,6 +56,8 @@
       <th><%= t("tables.start_time") %></th>
       <th><%= t("tables.duration_hour") %></th>
       <th><%= t(:Place) %></th>
+      <th title="<%= t("events.n_event_items_long") %>"><%= t("events.n_event_items_short") %></th>
+      <th title="<%= t("tables.n_harami_vids") %>"><%= t("tables.n_harami_vids_short") %></th>
       <th title="Note in this DB"><%= t("tables.note") %></th>
       <% if can_create_event %>
         <th colspan="3"></th>
@@ -73,6 +75,8 @@
         <td><%= event.string_time_err2uptomin %></td>
         <td><%= event.duration_hour %></td>
         <td><%= event.place ? event.txt_place_pref_ctry : "" %></td>
+        <td class="text-end"><%= event.event_items.count %></td>
+        <td class="text-end"><%= event.harami_vids.count %></td>
         <td><%= event.note %></td>
         <td class="actions"><%= link_to t("tables.Show"), event %></td>
         <% if can? :update, event  %>

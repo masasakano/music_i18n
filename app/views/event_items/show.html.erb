@@ -74,3 +74,11 @@
   </section> <!-- section id="sec_harami1129s_for" -->
 <% end %>
 
+<hr>
+
+<section id=event_item_sibling_event_items">
+  <% event_tit = ((evt=@event_item.event) ? evt.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either) : "") %> <%# should never be nil (DB constraint), but playing safe %>
+  <h2>Sibling EventItems<%= t("show.h2_for") %><%= t("adjective.this") %><%= t("Event") %>: <%= event_tit %></h2>
+  <%= render partial: "layouts/event_items_index", locals: {event_items: @event_item.siblings} %>
+</section>
+

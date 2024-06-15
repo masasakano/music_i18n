@@ -1,3 +1,7 @@
+<%# Local variables: event_items, optional: with_event %>
+<% if !defined?(with_event)
+     with_event = false
+   end %>
 
 <div id="event_items">
 <table id="event_items_index_table">
@@ -29,7 +33,7 @@
   </thead>
 
   <tbody>
-    <% event_items.order(:start_time, :publish_date).each do |event_item| %>
+    <% event_items.order(:start_time, :weight, :publish_date).each do |event_item| %>
       <tr>
         <td><%= event_item.id %></td>
         <td><%= event_item.machine_title %></td>

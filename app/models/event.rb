@@ -466,7 +466,7 @@ class Event < BaseWithTranslation
 
     if "live_streamings" == event_group.mname_to_s
       re_ini = DEF_STREAMING_EVENT_TITLE_FORMATS["en"][0].sub(/%s/, '(\d{4}-\d{2}-\d{2}|'+Regexp.quote(TITLE_UNKNOWN_DATE)+")")+'(-\d+)?'+Regexp.quote(DEF_STREAMING_EVENT_TITLE_FORMATS["en"][1]+sprintf(DEF_STREAMING_EVENT_TITLE_FORMATS["en"][2], event_group.best_translations["en"].title))
-      return true if /\A#{re_ini}/ =~ best_translations["en"].title
+      return true if best_translations["en"].respond_to?(:title) && /\A#{re_ini}/ =~ best_translations["en"].title  # the former is equivalent to .present?
     end
 
     return false

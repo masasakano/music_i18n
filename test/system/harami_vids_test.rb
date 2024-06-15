@@ -314,7 +314,6 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_selector "h1", text: "HARAMIchan-featured Videos"  # locale: harami_vid_long: 
     assert_equal "01:12", trs[0].find(timing_a_css).text, "value should be updated, but..."
     assert_equal "Edit", trs[0].find(submit_css)["value"]
-take_screenshot
   end
 
   # test "destroying a Harami vid" do
