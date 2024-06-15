@@ -46,15 +46,25 @@ module ApplicationHelper
   # @param sec  [Integer, NilClass]
   # @param return_nil: [Boolean] If true (Def: false) and if nil is given, nil is returned.
   # @param return_if_zero: [Object] What returns when sec is 0 or "0" or "abc" (Def: "00:00")
+  # @param negative_from_60min: [Boolean] if true (Def: false) and if a negative value is given, it is added to 60min;
+  #     sec2hms_or_ms(-6, negative_from_60min: true)
+  #       # => "59:54"
   # @return [String]
-  def sec2hms_or_ms(sec, return_nil: false, return_if_zero: "00:00")
+  def sec2hms_or_ms(sec, return_nil: false, return_if_zero: "00:00", negative_from_60min: false)
     return if sec.nil? && return_nil
     sec = 0 if sec.blank?
     sec = sec.to_i
     return return_if_zero if 0 == sec 
-    fmt = ((sec <= 3599) ? "%M:%S" : "%H:%M:%S")
+    fmt = ((sec.abs <= 3599) ? "%M:%S" : "%H:%M:%S")
     
-    Time.at(sec).utc.strftime(fmt)
+    sign = ((sec < 0) ? "-" : "")
+    if negative_from_60min
+      sign = ""
+    else
+      sec = sec.abs
+    end
+
+    sign+Time.at(sec).utc.strftime(fmt)
   end
 
   # Convert a HMS-type String to Integer second
@@ -68,10 +78,15 @@ module ApplicationHelper
   # @see https://stackoverflow.com/a/27982733/3577922 
   #
   # @param str [String]
+  # @param blank_is_nil: [Boolean] if true (Def: false) and if "" is given, nil is returned.
   # @return [Integer] in seconds.  If nil is given, nil is returned.
-  def hms2sec(str)
+  def hms2sec(str, blank_is_nil: false)
     return str if !str
-    str.split(':').map(&:to_i).inject(0) { |a, b| a * 60 + b }
+    return nil if blank_is_nil && str.blank?
+    str = str.strip
+    sign = ((/\A\-/ =~ str) ? -1 : 1)
+    str = str[1..-1] if sign == -1
+    sign * str.split(':').map(&:to_i).inject(0){ |a, b| a * 60 + b }
   end
 
   # Returns <title> for HTML from Path

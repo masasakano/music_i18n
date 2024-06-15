@@ -240,6 +240,7 @@ en:
     field_music_collab_hint: "Make sure to select an Event(Item) above for this."
     warn_collab_without_music: "Valid Music must be given when you add an Artist-to-collaborate."
     show:
+      harami_vid_long: "HARAMIchan-featured Videos"
       artist_collabs: "featuring Artists"
       Other_HaramiVids_for_these_EventItems: Other videos for these EventItems
       Other_HaramiVids_for_Event: "Other videos for this Event(s)"

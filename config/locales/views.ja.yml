@@ -255,6 +255,7 @@ ja:
     field_music_collab_hint: "忘れずに上のEvent(Item)をどれか一つ選んでください。"
     warn_collab_without_music: "コラボ相手を登録する際には、有効なMusicの登録が必須です。"
     show:
+      harami_vid_long: "ハラミちゃん(関連)動画"
       artist_collabs: "コラボアーティスト"
       Other_HaramiVids_for_these_EventItems: "同じイベント(項目)の他の動画"
       Other_HaramiVids_for_Event: "このイベントの他の動画"

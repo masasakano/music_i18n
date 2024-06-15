@@ -7,6 +7,9 @@ Rails.application.routes.draw do
   resources :channel_types
   resources :channel_platforms
   resources :harami_vid_music_assocs, only: [:destroy]
+  namespace :harami_vid_music_assocs do
+    resources :timings, only: [:show, :edit, :update]
+  end
   resources :artist_music_plays, only: [:destroy]
   namespace :artist_music_plays do
     resources :edit_multis, only: [:index, :edit, :update, :create, :show]

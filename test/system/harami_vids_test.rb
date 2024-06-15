@@ -232,23 +232,90 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_includes htmlcapy_art['innerHTML'], "<a"  # link visible to anyone in feat. Artists
   end
 
-  # test "updating a Harami vid" do
-  #   visit harami_vids_url
-  #   click_on "Edit", match: :first
+  test "edit music timing at show" do
+    hvid = harami_vids :harami_vid3
 
-  #   fill_in "Date", with: @harami_vid.date
-  #   fill_in "Duration", with: @harami_vid.duration
-  #   check "Flag by harami" if @harami_vid.flag_by_harami
-  #   fill_in "Note", with: @harami_vid.note
-  #   fill_in "Place", with: @harami_vid.place_id
-  #   fill_in "Uri", with: @harami_vid.uri
-  #   fill_in "Uri playlist en", with: @harami_vid.uri_playlist_en
-  #   fill_in "Uri playlist ja", with: @harami_vid.uri_playlist_ja
-  #   click_on "Update Harami vid"
+    # unauthenticated user
+    visit harami_vid_path(hvid)
+    assert_selector "h1", text: "HARAMIchan-featured Videos"  # locale: harami_vid_long: 
+    assert_includes trans_titles_in_table.values.flatten, hvid.title_or_alt(langcode: "en", lang_fallback_option: :either)
 
-  #   assert_text "Harami vid was successfully updated"
-  #   click_on "Back"
-  # end
+    trs_css = "section#harami_vids_show_musics table tbody tr td.item_timing"
+    trs = find_all(trs_css)
+
+    assert_includes hvid.harami_vid_music_assocs, (hvma1=harami_vid_music_assocs(:harami_vid_music_assoc3))  # check fixtures
+    assert hvma1.timing.blank?, 'checking fixtures'
+    assert_includes hvid.harami_vid_music_assocs, (hvma2=harami_vid_music_assocs(:harami_vid_music_assoc_3_ihojin1))  # check fixtures
+    assert_operator 1, :<, hvma2.timing, 'checking fixtures'
+
+    assert_equal sec2hms_or_ms(hvma2.timing), trs[0].find('a').text
+    assert_raises(Capybara::ElementNotFound){
+      trs[0].find('form') }
+    assert_equal "00:00", trs[1].find('a').text  # Even when timing is nil, a significant text is displayed so that <a> tag is valid.
+
+    # HaramiEditor
+    visit new_user_session_path
+    fill_in "Email", with: @editor_harami.email
+    fill_in "Password", with: '123456'  # from users.yml
+    click_on "Log in"
+    assert_selector "h1", text: "HARAMIchan"
+
+    visit harami_vid_path(hvid)
+    assert_selector "h1", text: "HARAMIchan-featured Videos"  # locale: harami_vid_long: 
+
+    trs = find_all(trs_css)
+    timing_a_css = 'span.timing-hms a'
+    assert_equal sec2hms_or_ms(hvma2.timing), trs[0].find(timing_a_css).text
+    submit_css = "form input[value=Edit]"
+
+    assert_selector (trs_css+" "+submit_css)
+    trs[0].find(submit_css).click
+
+    # Edit mode
+    assert_selector trs_css+' input#form_timing'  # This must come BEFORE the assert_raises below because this method would wait (for up to a couple of seconds) till the condition is satisfied as a result of JavaScript's updating the page.
+    trs = find_all(trs_css)
+    assert_raises(Capybara::ElementNotFound){
+      trs[0].find(timing_a_css) }  # In the Edit-mode row, there is no value and link displayed.
+    assert trs[1].find(timing_a_css).present?  # Other rows unchanged.
+
+    assert_equal sec2hms_or_ms(hvma2.timing), trs[0].find('input#form_timing')["value"]
+    assert_equal "commit", trs[0].find('input[type=submit]')["name"]
+
+    trs[0].find('input#form_timing').fill_in with: "-6"
+    trs[0].find('input[type=submit]').click
+
+    # After an erroneous submit
+    assert_selector trs_css+' div#error_explanation'
+    trs = find_all(trs_css)
+    assert_match(/must be 0 or positive\b/, trs[0].find('div#error_explanation').text)  # => Timing(-6) must be 0 or positive.
+    assert_equal("-6", trs[0].find('input#form_timing')["value"], "Negative value should stay in the form field, but...")  # Errror message displayed in the same cell
+
+    assert_equal "Cancel", trs[0].find("a").text  # button-like "Cancel" link
+    trs[0].find("a").click
+
+    # Show mode again after "cancelling"
+    assert_selector (trs_css+" "+submit_css)
+    trs = find_all(trs_css)
+    assert_selector "h1", text: "HARAMIchan-featured Videos"  # locale: harami_vid_long: 
+    assert_equal sec2hms_or_ms(hvma2.timing), trs[0].find(timing_a_css).text, "value should be reverted back, but..."
+    trs[0].find(submit_css).click
+
+    # Edit mode
+    assert_selector trs_css+' input#form_timing'
+    trs = find_all(trs_css)
+    assert_equal sec2hms_or_ms(hvma2.timing), trs[0].find('input#form_timing')["value"]
+    trs[0].find('input#form_timing').fill_in with: "72"
+    trs[0].find('input[type=submit]').click
+
+    # Show mode again after successful submission
+    #   At the top, "Success" message is displayed... (but nobody would notice it!)
+    assert_selector (trs_css+" "+submit_css)
+    trs = find_all(trs_css)
+    assert_selector "h1", text: "HARAMIchan-featured Videos"  # locale: harami_vid_long: 
+    assert_equal "01:12", trs[0].find(timing_a_css).text, "value should be updated, but..."
+    assert_equal "Edit", trs[0].find(submit_css)["value"]
+take_screenshot
+  end
 
   # test "destroying a Harami vid" do
   #   visit harami_vids_url

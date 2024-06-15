@@ -108,6 +108,39 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_equal exp, sanitized_html_fragment(strin, targetblank: false).scrub!(:nofollow).to_s
   end
 
+  test "sec2hms_or_ms" do
+    assert_nil   sec2hms_or_ms(nil, return_nil: true)
+    assert_equal "00:00", sec2hms_or_ms(nil)
+    assert_equal     "0", sec2hms_or_ms(nil, return_if_zero: "0")
+    assert_equal "00:00", sec2hms_or_ms(0)
+    assert_equal     "0", sec2hms_or_ms(0, return_if_zero: "0")
+    assert_equal "00:01", sec2hms_or_ms(1)
+    assert_equal "11:09", sec2hms_or_ms(669)
+    assert_equal "01:01:01", sec2hms_or_ms(3661)
+    assert_equal "-00:06",    sec2hms_or_ms(-6)
+    assert_equal "-01:01:01", sec2hms_or_ms(-3661)
+    assert_equal "59:54", sec2hms_or_ms(-6, negative_from_60min: true)
+  end
+
+  test "hms2sec" do
+    assert_nil   hms2sec(nil)
+    assert_nil   hms2sec("", blank_is_nil: true)
+    assert_equal    0, hms2sec("")
+    assert_equal    9, hms2sec("09")
+    assert_equal    9, hms2sec("00:09")
+    assert_equal    9, hms2sec("00:09")
+    assert_equal 1234, hms2sec("1234")
+    assert_equal   83, hms2sec("01:23")
+    assert_equal 3683, hms2sec("1:01:23")
+    assert_equal 45296, hms2sec('12:34:56')
+    assert_equal  2096, hms2sec('34:56')
+    
+    assert_equal    0, hms2sec("0")
+    assert_equal(  -5, hms2sec("-5"))
+    assert_equal( -87, hms2sec(" -87"))
+    assert_equal(-3683, hms2sec("  -1:01:23"))
+  end
+ 
   private
 end
 

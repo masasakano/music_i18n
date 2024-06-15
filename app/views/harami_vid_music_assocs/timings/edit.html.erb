@@ -1,0 +1,19 @@
+<%= turbo_frame_tag "timing_"+dom_id(@hvma) do %>
+  <%= form_tag(harami_vid_music_assocs_timing_path(@hvma), method: "patch", style: "display: inline-block; margin-top: -1em; padding-top: 0em; padding-bottom: 0em;") do %>
+    <%# label_tag(label_txt, "Timing:") %>
+    <%= text_field_tag(HaramiVidMusicAssoc::FORM_TIMING, @hvma.form_timing, style: "max-width: 3.5em; display: inline-block;") %>
+      <%# NOTE: If a negative value is given, like "-6", "59:54" is then displayed. %>
+    <%= submit_tag "Submit", style: "display: inline-block" %>
+    <%= link_to "Cancel", harami_vid_music_assocs_timing_path(@hvma), class: "btn btn--light button_like" %>
+  <% end %>
+
+  <% if @hvma.errors.any? %>
+    <%# See /app/views/layouts/_form_print_errors.html.erb %>
+    <div id="error_explanation" class="<%= ApplicationController::FLASH_CSS_CLASSES[:alert] %>">
+      <div class="error-message">
+        <%= @hvma.errors.full_messages.to_sentence.capitalize %>
+      </div>
+    </div>
+  <% end %>
+<% end %>
+

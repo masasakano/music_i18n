@@ -1,0 +1,93 @@
+# coding: utf-8
+class HaramiVidMusicAssocs::TimingsController < ApplicationController
+  include ApplicationHelper # for hms2sec()
+
+  before_action :set_hvma
+
+  # ID for the field
+  FORM_TIMING = HaramiVidMusicAssoc::FORM_TIMING
+
+  # GET /harami_vid_music_assocs/timings/1 or /harami_vid_music_assocs/timings/1.json
+  def show
+    auth_for!(__method__)
+  end
+
+  # GET /harami_vid_music_assocs/timings/1/edit
+  def edit
+    auth_for!(__method__)
+    @hvma.form_timing ||=
+      if @hvma.timing && @hvma.timing < 0
+        @hvma.timing
+      else
+        sec2hms_or_ms(@hvma.timing, return_nil: true)
+      end
+  end
+
+  # PATCH/PUT /harami_vid_music_assocs/timings/1 or /harami_vid_music_assocs/timings/1.json
+  def update
+    auth_for!(__method__)
+
+    @hvma.form_timing = set_params[FORM_TIMING]
+    @hvma.timing = hms2sec(@hvma.form_timing, blank_is_nil: true)
+    respond_to do |format|
+      if @hvma.save
+        msg = "Timing is successfully updated."
+        format.html { redirect_to harami_vid_music_assocs_timing_path(@hvma), notice: msg }
+        format.json { render :show, status: :ok, location: @hvma }
+      else
+        @hvma.errors.add :base, flash[:alert] if flash[:alert].present? # alert is, if present, included in the instance
+        hsflash = {}
+        %i(warning notice).each do |ek|
+          hsflash[ek] = flash[ek] if flash[ek].present?
+        end
+        opts = get_html_safe_flash_hash(alert: @hvma.errors.full_messages, **hsflash)
+        hsstatus = {status: :unprocessable_entity}
+        # Since this is "recirect_to", everything must be passed as flash (not in the form of @record.errors)
+        #format.html { render template: "harami_vids/show", **(opts) } # notice (and/or warning) is, if any, passed as an option.
+        format.html { render :edit, **(opts) } # notice (and/or warning) is, if any, passed as an option.
+        format.json { render json: @hvma.errors, **hsstatus }
+      end
+    end
+  end
+
+  private
+    # Use callbacks to share common setup or constraints between actions.
+    def set_hvma
+      @hvma = HaramiVidMusicAssoc.find(params[:id])
+    end
+
+    # Common authorize
+    def auth_for!(method)
+      authorize! method, @hvma.harami_vid  # Authorize according to the same-name method for HaramiVid
+    end
+
+    # 
+    def set_params
+      params.permit(FORM_TIMING)
+    end
+
+    # set channel_owner_id etc from a given URL parameter
+    #
+    # Path: new_channel_path( params: {channel: {channel_owner_id: 123, channel_type_id: 456}} )
+    #
+    # @retun [void]
+    def set_channel_sub_parameters
+      if params[:channel].present?
+        %w(channel_owner_id channel_type_id channel_platform_id title langcode).each do |ek|
+          if (prm=params[:channel][ek]).present?  # => channel[channel_owner_id]=123 etc
+            @channel.send(ek+"=", prm)
+          end
+        end
+      end
+    end
+
+    # Sets @hsmain and @hstra and @prms_all from params
+    #
+    # +action_name+ (+create+ ?) is checked inside!
+    #
+    # @return NONE
+    def model_params_multi
+      hsall = set_hsparams_main_tra(:channel) # defined in application_controller.rb
+    end
+
+end

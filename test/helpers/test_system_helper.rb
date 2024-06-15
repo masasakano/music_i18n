@@ -72,4 +72,18 @@ class ActiveSupport::TestCase
     end
   end 
 
+  # Returns a Hash of Arrays of title-s and alt_title-s in the translation table in Show etc.
+  #
+  # @example
+  #    assert_includes trans_titles_in_table.values.flatten.map(&:downcase), "My own title".downcase  # defined in test_system_helper.rb
+  #
+  # @return [Hash<String => Array>] String of either title or alt_title (with_indifferent_access)
+  def trans_titles_in_table
+    hscss = {title: [], alt_title: []}
+    hscss[:title] = find_all('section#sec_primary_trans table#all_registered_translations_harami_vid tbody tr.trans_row td.trans_title').to_a
+    hscss[:alt_title] = find_all('section#sec_primary_trans table#all_registered_translations_harami_vid tbody tr.trans_row td.trans_title').to_a
+    hscss = hscss.map{|k, v| [k, v.map(&:text).map(&:strip)]}.to_h
+    hscss[:alt_title].map!{|et| et.sub!(/(\s*\[.*\|.*\])?\z/, '')}
+    hscss.with_indifferent_access
+  end
 end

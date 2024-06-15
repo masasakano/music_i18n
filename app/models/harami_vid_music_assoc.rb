@@ -35,6 +35,9 @@ class HaramiVidMusicAssoc < ApplicationRecord
   include ModuleModifyInspectPrintReference
   redefine_inspect
 
+  FORM_TIMING = "form_timing"
+  attr_accessor FORM_TIMING
+
   private
 
     def completeness_between
