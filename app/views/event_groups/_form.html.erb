@@ -17,19 +17,17 @@
 
   <%= render partial: "layouts/select_country_prefecture_place", locals: {form: f, model: event_group, is_simple_form: true} %>
 
-  <%= f.input :order_no, label: "#-th in Series", placeholder: "#-th in Series" %>
-
   <% dat = event_group.start_date %>
   <% dat_or_this = (dat ? dat : Date.current) %>
   <% end_y = [dat_or_this+21.year, Date.current].min.year + 1 %>
-  <%= f.input :start_date, start_year: get_form_start_year(dat), end_year: end_y, input_html: {value: dat ? dat : TimeAux::DEF_FIRST_DATE_TIME.to_date } %>
+  <%= f.input :start_date, start_year: get_form_start_year(dat), end_year: end_y %>
   <%= f.input :start_date_err, label: "± days (Start)" %>
 
   <% start_y = (dat ? dat.year : TimeAux::DEF_FIRST_DATE_TIME.year) %> <%# dat === Start-date in DB %>
   <% dat_end = event_group.end_date %>
   <% end_y = ((start_y >= Date.current.year + EventGroupsController::OFFSET_LARGE_YEAR) ? start_y : [start_y, Date.current.year, dat_end.year].max + 5) %>  <%# Selection end is +5 years %>
   <% dat_or_this = (dat_end ? dat_end : TimeAux::DEF_LAST_DATE_TIME.to_date) %>
-  <%= f.input :end_date, start_year: start_y, end_year: end_y, input_html: {value: dat_or_this} %>  <%# input_html-value is not being read... %>
+  <%= f.input :end_date, start_year: start_y, end_year: end_y %>
   <%= f.input :end_date_err, label: "± days (End)" %>
 
   <%= f.input :note %>

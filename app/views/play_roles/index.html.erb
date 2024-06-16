@@ -30,7 +30,6 @@
        <% end %>
        <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
 
-        <%#td  %= model.order_no %  /td %>
         <td><%= model.mname %></td>
         <td><%= model.weight %></td>
         <% if can? :read, EventItem %>

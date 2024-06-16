@@ -112,6 +112,9 @@ class HaramiVid < BaseWithTranslation
 
   attr_accessor :form_info  # various information about the result of form inputs, especially in create.
 
+  require "translation"  # Without these, tests sometimes fail...
+  require "translatable.rb"
+  require "place"
   DEF_PLACE = (
     (Place.unknown(country: Country['JPN']) rescue nil) ||
     Place.unknown ||

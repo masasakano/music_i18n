@@ -211,7 +211,6 @@ module SeedsEventGroup
       ja: "THE DROP FESTIVAL in Japan",
       en: "THE DROP FESTIVAL in Japan",
       orig_langcode: 'en',
-      order_no: 1,
       start_date: Date.new(2022, 10, 29),
       start_date_err: 0,
       end_date:   Date.new(2022, 10, 30),
@@ -265,7 +264,7 @@ module SeedsEventGroup
       model = (models.empty? ? EventGroup.new : models.first)
       n_changed_cand = (model.new_record? ? 1 : 0)  # +1 for EventGroup
 
-      %i(order_no start_date start_date_err end_date end_date_err place note).each do |ek|
+      %i(start_date start_date_err end_date end_date_err place note).each do |ek|
         # If the column is set, it unchanges, but if not, it is set.
         next if model.send(ek).present? || ehs[ek].blank?
         n_changed_cand = 1  # (at least partly) modified, hence +1 in the increment

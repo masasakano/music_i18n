@@ -15,7 +15,6 @@
       <% else %>
        <th class="title_alt_<%= I18n.locale.to_s %>"><%= t(:title).capitalize %></th>
       <% end %>
-      <th title="n-th one in a series of Event Group"><%= t("event_groups.num_id") %></th>
       <th><%= t("event_groups.start_date", default: "From YYYY-MM-DD") %></th>
       <% if can_edit_event_group %>
         <th class="editor_only">±days</th>
@@ -41,7 +40,6 @@
       <% else %>
        <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: [I18n.locale] %>  <%# class="title_alt_ja" etc %>
       <% end %>
-        <td><%= model.order_no %></td>
         <td><%= da = model.start_date; str = (da ? date2text(da.year, da.month, da.day, lower_end_str: "", upper_end_str: "") : (can?(:edit, model) ? date2text(nil, nil, nil) : "")) %></td>
       <% if can? :update, EventGroup %>
         <td class="editor_only"><%= s=model.start_date_err; (str.blank? ? "" : s) %></td>

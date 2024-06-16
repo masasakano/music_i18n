@@ -61,7 +61,6 @@ class EventGroupsTest < ApplicationSystemTestCase
     select @event_group.end_date.strftime('%-d'), from: "event_group_end_date_3i"
     fill_in "± days (End)", with: ""
     fill_in "Note", with: @event_group.note
-    #fill_in "Order no", with: @event_group.order_no  # the label may change
     #fill_in "Place", with: @event_group.place_id  # Dropdown described above
     click_on  @button_text[:create]
 
@@ -85,7 +84,6 @@ class EventGroupsTest < ApplicationSystemTestCase
     select @event_group.start_date.strftime('%B'), from: "event_group_start_date_2i"
     select @event_group.start_date.strftime('%-d'), from: "event_group_start_date_3i"
     fill_in "Note", with: @event_group.note
-    #fill_in "Order no", with: @event_group.order_no  # the label may change
     #fill_in "Place", with: @event_group.place_id  # Dropdown described above
     endyear = Date.current.year + 5
     select endyear, from: "event_group_end_date_1i"  # This is updated!

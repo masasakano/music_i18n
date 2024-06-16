@@ -43,11 +43,7 @@
       <th title="Number of Harami1129 entries" class="editor_only"># H1129s/Musics</th>
      <% end %>
       <th title="Note in this DB"><%= t("tables.note").capitalize %></th>
-     <% if can_update %>
-        <th class="actions editor_only" colspan="2"></th>  <%#  HaramiVid should not be easily destroyed from Index %>
-     <% else %>
-        <th class="actions" class="editor_only"></th>
-     <% end %>
+      <th class="actions editor_only<%= can_update ? ' colspan="2"' : '' %>"></th>
 <% if false %>
         <th colspan="2">HaramiVidMusicAssoc</th>
 <% end %>

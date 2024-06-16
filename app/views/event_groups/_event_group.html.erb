@@ -8,8 +8,6 @@
       <dd> <%= event_group.id %></dd>
     </div>
   <% end %>
-  <dt><span title="Serial Number"><%= t("event_groups.show.number_id") %></span>:</dt>
-    <dd><%= event_group.order_no %></dd>
 
   <% canedit = can?(:edit, event_group) %>
   <% end_str = (canedit ? nil : "&mdash;".html_safe) %>

@@ -130,7 +130,7 @@ class HaramiVidsGrid < BaseGrid
     }  # defined in application_helper.rb
   end
 
-  column(:collabs, html: true, header: Proc.new{I18n.t("harami_vids.table_head_collab_hows", default: "collaboration types")}) do |record|
+  column(:collab_hows, html: true, header: Proc.new{I18n.t("harami_vids.table_head_collab_hows", default: "collaboration types")}) do |record|
     collab_hows_text(record)
     #def_artist = Artist.default(:HaramiVid)
     #record.artist_collabs.where.not(id: def_artist.id).distinct.ids

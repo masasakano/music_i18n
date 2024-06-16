@@ -31,7 +31,7 @@
   <%= render partial: "layouts/select_country_prefecture_place", locals: {form: f, model: harami_vid, is_simple_form: true} %>
 
   <% if ! harami_vid.new_record? %>
-    <h5 class="channel_part">Current Channel name: &ldquo;<%= harami_vid.channel.title_or_alt(lang_fallback_option: :either) %>&rdquo;</h4>
+    <h5 class="channel_part">Current Channel name: &ldquo;<%= harami_vid.channel.title_or_alt(lang_fallback_option: :either) %>&rdquo;</h5>
   <% end %> 
     <%= f.input :form_channel_owner,
       collection: ordered_models_form(ChannelOwner), include_blank: false,
@@ -72,12 +72,6 @@
 
 <hr>
 <h2>Contents</h2>
-
-<% if ! harami_vid.new_record? %>
-<%= render partial: 'music_table', locals: {harami_vid: harami_vid, add_buttons: true} %>
-
-<hr>
-<% end %>
 
     <%= f.input :reference_harami_vid_id, as: :hidden %>
 
@@ -199,7 +193,7 @@
     <%= f.submit %>
   </div>
   <div class="actions">
-  <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button2', :type => "reset" }) %>
   </div>
 
  </section> <!-- section id="sec_primary_input" -->
@@ -214,6 +208,12 @@
       <%= button_to "Destroy", harami_vid, method: :delete, data: { confirm: t('are_you_sure') } %>
     </div>
   <% end %>
+
+<% if ! harami_vid.new_record? %>
+<hr>
+<%= render partial: 'music_table', locals: {harami_vid: harami_vid, add_buttons: true} %>
+
+<% end %>
 
 <% if ! harami_vid.new_record? %>
 <hr>

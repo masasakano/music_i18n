@@ -15,7 +15,6 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
       "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
       "place.prefecture_id.country_id"=>Country['JPN'].id.to_s,
       "place.prefecture_id"=>"", "place_id"=>"",
-      "order_no"=>"",
       "start_date(1i)"=>"1999", "start_date(2i)"=>"1", "start_date(3i)"=>"11",
       "end_date(1i)"=>(Date.current.end_of_year+80.year).year.to_s,
       "end_date(2i)"=>"12", "end_date(3i)"=>"31",
@@ -124,7 +123,6 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     aus = countries(:aus)
     #pref = pla.prefecture
 
-    #hs = { event_group: { start_day: @event_group.start_date.day, start_month: @event_group.start_date.month, start_year: @event_group.start_date.year, note: @event_group.note, order_no: @event_group.order_no, end_day: @event_group.end_date.day, end_month: 11, end_year: @event_group.end_date.year, :"place.prefecture_id.country_id"=>"", "place.prefecture_id"=>pref.id, place_id: "" } }
     hs = { event_group: { "start_date(1i)" => @event_group.start_date.year.to_s, "start_date(2i)" => @event_group.start_date.month.to_s, "start_date(3i)" => @event_group.start_date.day.to_s,
                           "end_date(1i)" => @event_group.end_date.year.to_s, "end_date(2i)" => "11", "end_date(3i)" => @event_group.end_date.day.to_s,
                           "note" => @event_group.note,

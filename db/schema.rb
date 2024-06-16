@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_06_08_075220) do
+ActiveRecord::Schema[7.0].define(version: 2024_06_16_220459) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -206,7 +206,6 @@ ActiveRecord::Schema[7.0].define(version: 2024_06_08_075220) do
   end
 
   create_table "event_groups", comment: "Event Group, mutually exclusive, typically lasting less than a year", force: :cascade do |t|
-    t.integer "order_no", comment: "Serial number for a series of Event Group, e.g., 5(-th)"
     t.bigint "place_id"
     t.text "note"
     t.datetime "created_at", null: false
@@ -216,7 +215,6 @@ ActiveRecord::Schema[7.0].define(version: 2024_06_08_075220) do
     t.date "end_date", comment: "if null, end date is undefined."
     t.integer "end_date_err", comment: "Error of end-date in day. 182 or 183 days for one with only a known year."
     t.index ["end_date"], name: "index_event_groups_on_end_date"
-    t.index ["order_no"], name: "index_event_groups_on_order_no"
     t.index ["place_id"], name: "index_event_groups_on_place_id"
     t.index ["start_date"], name: "index_event_groups_on_start_date"
   end

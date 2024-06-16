@@ -93,6 +93,7 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_equal n_evit1, css_select('fieldset.harami_vid_event_items input[type="checkbox"]').size, "All EventItems loaded from GET reference_harami_vid_id params should be listed, but..."
     assert_equal n_evit1, css_select('fieldset.harami_vid_event_items input[type="checkbox"][checked="checked"]').size
+    w3c_validate "HaramiVid new"  # defined in test_helper.rb (see for debugging help)
   end
 
   test "should create harami_vid" do
@@ -461,6 +462,7 @@ end
     assert_equal 1, hvid6.event_items.count, "sanity check..."
     assert  (pl6=hvid6.event_items.first.place), "sanity check..."  # It is UnknownPlace in Shimane
     refute_equal HaramiVid::DEF_PLACE, pl6
+    assert HaramiVid::DEF_PLACE, "sanity-check: Place.first=#{Place.first.inspect}"
     assert HaramiVid::DEF_PLACE.encompass_strictly?(pl6)
     assert_equal 4, hvid6.artist_music_plays.count, "sanity check..."
     assert_equal 2, hvid6.musics.count, "sanity check..."
@@ -907,6 +909,7 @@ end
   test "should show harami_vid" do
     get harami_vid_url(@harami_vid)
     assert_response :success
+    w3c_validate "HaramiVid show"  # defined in test_helper.rb (see for debugging help)
   end
 
   test "should fail/succeed to get edit" do
@@ -932,6 +935,7 @@ end
       assert_response :success
       sign_out user
     end
+    w3c_validate "HaramiVid edit"  # defined in test_helper.rb (see for debugging help)
   end
 
   test "should fail to update harami_vid" do

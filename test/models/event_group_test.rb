@@ -7,7 +7,6 @@
 #  end_date(if null, end date is undefined.)                                                   :date
 #  end_date_err(Error of end-date in day. 182 or 183 days for one with only a known year.)     :integer
 #  note                                                                                        :text
-#  order_no(Serial number for a series of Event Group, e.g., 5(-th))                           :integer
 #  start_date(if null, start date is undefined.)                                               :date
 #  start_date_err(Error of start-date in day. 182 or 183 days for one with only a known year.) :integer
 #  created_at                                                                                  :datetime         not null
@@ -17,7 +16,6 @@
 # Indexes
 #
 #  index_event_groups_on_end_date    (end_date)
-#  index_event_groups_on_order_no    (order_no)
 #  index_event_groups_on_place_id    (place_id)
 #  index_event_groups_on_start_date  (start_date)
 #
