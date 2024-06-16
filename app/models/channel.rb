@@ -57,6 +57,7 @@ class Channel < BaseWithTranslation
   belongs_to :channel_type
   belongs_to :channel_platform
   has_many :harami_vids, -> {distinct}, dependent: :restrict_with_exception  # dependent is a key / Basically this should not be easily destroyed - it may be merged instead.
+  has_many :harami1129s, through: :harami_vids, dependent: :restrict_with_exception  # I think dependent is redundant
 
   before_create     :set_create_user       # This always sets non-nil weight. defined in /app/models/concerns/module_whodunnit.rb
   before_save       :set_update_user       # defined in /app/models/concerns/module_whodunnit.rb

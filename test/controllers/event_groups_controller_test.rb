@@ -15,8 +15,12 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
       "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
       "place.prefecture_id.country_id"=>Country['JPN'].id.to_s,
       "place.prefecture_id"=>"", "place_id"=>"",
-      "order_no"=>"", "start_year"=>"1999", "start_month"=>"", "start_day"=>"",
-      "end_year"=>"1999", "end_month"=>"", "end_day"=>"",
+      "order_no"=>"",
+      "start_date(1i)"=>"1999", "start_date(2i)"=>"1", "start_date(3i)"=>"11",
+      "end_date(1i)"=>(Date.current.end_of_year+80.year).year.to_s,
+      "end_date(2i)"=>"12", "end_date(3i)"=>"31",
+      #"start_year"=>"1999", "start_month"=>"", "start_day"=>"",
+      #"end_year"=>"1999", "end_month"=>"", "end_day"=>"",
       "start_date_err"=>"", "end_date_err"=>"", 
       "note"=>""
     }
@@ -50,6 +54,9 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     sign_in @moderator
     get new_event_group_url
     assert_response :success
+
+    exp = (TimeAux::DEF_FIRST_DATE_TIME+1.day).year
+    assert_equal exp, css_select('select#event_group_start_date_1i option[selected=selected]')[0]["value"].to_i, "Default year should be selected, but..."
     w3c_validate "EventGroup new"  # defined in test_helper.rb (see for debugging help)
   end
 
@@ -77,7 +84,10 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
       post event_groups_url, params: { event_group: @hs_create }
     end
     assert_redirected_to event_group_url(EventGroup.last)
-    assert_equal "Test7, The", EventGroup.order(:created_at).last.title, "EventGroup: "+EventGroup.order(:created_at).last.inspect
+    new_evgr = EventGroup.order(:created_at).last
+    assert_equal "Test7, The", new_evgr.title, "EventGroup: "+EventGroup.order(:created_at).last.inspect
+    assert  new_evgr.end_date, "end_date should be defined, but...: EventGroup=#{new_evgr.inspect}"
+    assert_equal TimeAux::DEF_LAST_DATE_TIME.year, new_evgr.end_date.year, "Unreasonably late date (large year) should be replaced with the default, but...: EventGroup=#{new_evgr.inspect}"
   end
 
   test "should show event_group" do
@@ -98,13 +108,27 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     sign_in @moderator
     get edit_event_group_url(@event_group)
     assert_response :success
+
+    @event_group.update!(end_date: TimeAux::DEF_LAST_DATE_TIME.to_date)  # Year 9999
+    get edit_event_group_url(@event_group)
+    assert_response :success
+
+    selected_end_year = css_select('select#event_group_end_date_1i option[selected=selected]')[0]["value"].to_i
+    refute_equal TimeAux::DEF_LAST_DATE_TIME.year, selected_end_year, "End-year in the form should differ from the DB value, but..."
+    assert_equal selected_end_year, [TimeAux::DEF_LAST_DATE_TIME.year, selected_end_year].min, "End-year should be a lot earlier than the DB one, but..."
+    assert_operator (Date.current+5.year).year, :<, selected_end_year, "End-year should be much later than the current year, but..."
   end
 
   test "should update event_group" do
     pla = places(:unknown_place_kagawa_japan)
-    pref = pla.prefecture
+    aus = countries(:aus)
+    #pref = pla.prefecture
 
-    hs = { event_group: { start_day: @event_group.start_date.day, start_month: @event_group.start_date.month, start_year: @event_group.start_date.year, note: @event_group.note, order_no: @event_group.order_no, end_day: @event_group.end_date.day, end_month: 11, end_year: @event_group.end_date.year, :"place.prefecture_id.country_id"=>"", "place.prefecture_id"=>pref.id, place_id: "" } }
+    #hs = { event_group: { start_day: @event_group.start_date.day, start_month: @event_group.start_date.month, start_year: @event_group.start_date.year, note: @event_group.note, order_no: @event_group.order_no, end_day: @event_group.end_date.day, end_month: 11, end_year: @event_group.end_date.year, :"place.prefecture_id.country_id"=>"", "place.prefecture_id"=>pref.id, place_id: "" } }
+    hs = { event_group: { "start_date(1i)" => @event_group.start_date.year.to_s, "start_date(2i)" => @event_group.start_date.month.to_s, "start_date(3i)" => @event_group.start_date.day.to_s,
+                          "end_date(1i)" => @event_group.end_date.year.to_s, "end_date(2i)" => "11", "end_date(3i)" => @event_group.end_date.day.to_s,
+                          "note" => @event_group.note,
+                          "place.prefecture_id.country_id"=>aus.id.to_s, "place.prefecture_id"=>"", "place" => "" } }
 
     patch event_group_url(@event_group), params: hs
     assert_response :redirect
@@ -115,7 +139,7 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to event_group_url(@event_group)
     @event_group.reload
     assert_equal 11, @event_group.end_date.month
-    assert_equal pla, @event_group.place
+    assert_equal Place.unknown(country: aus), @event_group.place
   end
 
   test "should destroy event_group for Harami-moderator" do

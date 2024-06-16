@@ -6,12 +6,19 @@ class EventGroupsController < ApplicationController
   before_action :set_countries, only: [:new, :create, :edit, :update] # defined in application_controller.rb
   before_action :event_params_two, only: [:update, :create]
 
+  # The standard Form does not accept Year 9999 (of {TimeAux::DEF_LAST_DATE_TIME}).
+  # Hence, the maximum to display in the form in such a case is current-year plus this offset (in year).
+  OFFSET_LARGE_YEAR = 80
+
   # Symbol of the main parameters in the Form (except "place_id"), which exist in DB
-  MAIN_FORM_KEYS = %w(order_no start_date_err end_date_err place_id note)
+  MAIN_FORM_KEYS = %w(order_no start_date_err end_date_err place_id note) + [
+    "start_date(1i)", "start_date(2i)", "start_date(3i)",
+    "end_date(1i)",   "end_date(2i)",   "end_date(3i)",
+  ]
 
   # Permitted main parameters for params(), used for update and create
   PARAMS_MAIN_KEYS = ([
-    :start_year, :start_month, :start_day, :end_year, :end_month, :end_day, # form-specific keys that do not exist in Model
+    #:start_year, :start_month, :start_day, :end_year, :end_month, :end_day, # form-specific keys that do not exist in Model 
   ] + MAIN_FORM_KEYS + PARAMS_PLACE_KEYS).uniq  # PARAMS_PLACE_KEYS defined in application_controller.rb
   # they, including place_id, will be handled in event_params_two()
 
@@ -25,10 +32,17 @@ class EventGroupsController < ApplicationController
 
   # GET /event_groups/new
   def new
+    _prepare_dates_for_form
   end
 
   # GET /event_groups/1/edit
   def edit
+    _prepare_dates_for_form
+  end
+
+  def _prepare_dates_for_form
+    @event_group.start_date = TimeAux::DEF_FIRST_DATE_TIME.to_date if !@event_group.start_date
+    @event_group.end_date = (Date.current+(OFFSET_LARGE_YEAR+1).year).end_of_year if !@event_group.end_date || (@event_group.end_date > Date.current + OFFSET_LARGE_YEAR.year)
   end
 
   # POST /event_groups or /event_groups.json
@@ -69,9 +83,14 @@ class EventGroupsController < ApplicationController
     #
     # +action_name+ (+create+ ?) is checked inside!
     #
+    # This modifies Year for {#end_date} to the default one if it is unreasonably large.
+    #
     # @return NONE
     def event_params_two
       hsall = set_hsparams_main_tra(:event_group) # defined in application_controller.rb
-      _set_dates_to_hsmain(hsall)  # defined in application_controller.rb
+      if @hsmain["end_date(1i)"] && (@hsmain["end_date(1i)"].to_i >= (Date.current.year + OFFSET_LARGE_YEAR))
+        @hsmain["end_date(1i)"] = TimeAux::DEF_LAST_DATE_TIME.year.to_s
+      end
+      # _set_dates_to_hsmain(hsall)  # defined in application_controller.rb
     end
 end

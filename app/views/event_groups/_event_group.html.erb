@@ -1,41 +1,41 @@
 <div id="<%= dom_id event_group %>">
-  <p>
-    <strong><span title="Serial Number"><%= t("event_groups.show.number_id") %></span>:</strong>
-    <%= event_group.order_no %>
-  </p>
+
+<section id="primary_contents">
+<dl>
+  <% if (can_update_eg=can?(:update, EventGroup)) %>
+    <div class="editor_only">
+      <dt>pID (EventGroup)</dt>
+      <dd> <%= event_group.id %></dd>
+    </div>
+  <% end %>
+  <dt><span title="Serial Number"><%= t("event_groups.show.number_id") %></span>:</dt>
+    <dd><%= event_group.order_no %></dd>
 
   <% canedit = can?(:edit, event_group) %>
   <% end_str = (canedit ? nil : "&mdash;".html_safe) %>
-  <p>
-    <strong><%= t("event_groups.start_date", default: "From YYYY-MM-DD") %>:</strong>
-    <%# event_group.start_date.year %>
-    <%# event_group.start_date.month %>
-    <%# event_group.start_date.day %>
+  <dt class="item_start_date"><%= t("event_groups.start_date", default: "From YYYY-MM-DD") %>:</dt>
     <% da = event_group.start_date; %>
-    <%= strdate = (da ? date2text(da.year, da.month, da.day, lower_end_str: end_str, upper_end_str: end_str) : (canedit ? date2text(nil, nil, nil) : "&mdash;".html_safe)) %>
-    <% s=event_group.start_date_err; %>
-    (± <%= ("&mdash;" == strdate) ? "&mdash; [#{t(:days)}]".html_safe : sprintf("%s [%s]", s, t(:days)).html_safe %>)
-  </p>
-
-  <p>
-    <strong><%= t("event_groups.end_date", default: "From YYYY-MM-DD") %>:</strong>
-    <%# event_group.end_date.year %>
-    <%# event_group.end_date.month %>
-    <%# event_group.end_date.day %>
+    <dd class="item_start_date"><%= strdate = (da ? date2text(da.year, da.month, da.day, lower_end_str: end_str, upper_end_str: end_str) : (canedit ? date2text(nil, nil, nil) : "&mdash;".html_safe)) %>
+      <% s=event_group.start_date_err; %>
+      (± <%= ("&mdash;" == strdate) ? "&mdash; [#{t(:days)}]".html_safe : sprintf("%s [%s]", s, t(:days)).html_safe %>)</dd>
+  <dt class="item_end_date"><%= t("event_groups.end_date", default: "From YYYY-MM-DD") %>:</dt>
     <% da = event_group.end_date; %>
-    <%= strdate = (da ? date2text(da.year, da.month, da.day, lower_end_str: end_str, upper_end_str: end_str) : (canedit ? date2text(nil, nil, nil) : "&mdash;".html_safe)) %>
-    <% s=event_group.end_date_err; %>
-    (± <%= ("&mdash;" == strdate) ? "&mdash; [#{t(:days)}]".html_safe : sprintf("%s [%s]", s, t(:days)).html_safe %>)
-  </p>
+    <dd class="item_end_date"><%= strdate = (da ? date2text(da.year, da.month, da.day, lower_end_str: end_str, upper_end_str: end_str) : (canedit ? date2text(nil, nil, nil) : "&mdash;".html_safe)) %>
+      <% s=event_group.end_date_err; %>
+      (± <%= ("&mdash;" == strdate) ? "&mdash; [#{t(:days)}]".html_safe : sprintf("%s [%s]", s, t(:days)).html_safe %>)</dd>
 
-  <p>
-    <strong><%= t("tables.place_country") %>:</strong>
-    <%= event_group.place ? show_pref_place_country(event_group.place) : "" %>  <%# defined in places_helper.rb %>
-  </p>
+  <dt class="item_place"> <%= t("tables.place_country") %>:</dt>
+    <dd class="item_place"><%= event_group.place ? show_pref_place_country(event_group.place) : "" %></dd>  <%# defined in places_helper.rb %>
+  <dt class="item_note"><%= t("tables.note").capitalize %>:</dt>
+    <dd class="item_note"><%= event_group.note %></dd>
 
-  <p>
-    <strong><%= t("tables.note") %>:</strong>
-    <%= event_group.note %>
-  </p>
+  <% if can_update_eg %>
+    <div class="editor_only">
+      <dt>updated_at:</dt>
+        <dd><%= event_group.updated_at %></dd>
+    </div>
+  <% end %>
+</dl>
+</section> <!-- section id="primary_contents" -->
 
 </div>

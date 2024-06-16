@@ -18,11 +18,11 @@
       <th title="n-th one in a series of Event Group"><%= t("event_groups.num_id") %></th>
       <th><%= t("event_groups.start_date", default: "From YYYY-MM-DD") %></th>
       <% if can_edit_event_group %>
-        <th>±days</th>
+        <th class="editor_only">±days</th>
       <% end %>
       <th><%= t("event_groups.end_date", default: "To YYYY-MM-DD") %></th>
       <% if can_edit_event_group %>
-        <th>±days</th>
+        <th class="editor_only">±days</th>
       <% end %>
       <th><%= t(:Place) %></th>
       <th title="Note in this DB"><%= t("tables.note") %></th>
@@ -35,7 +35,7 @@
   <tbody>
     <% @event_groups.order(start_date: :desc).each_with_index do |model, i_eg| %>
       <tr>
-        <td><%= can_edit_event_group ? model.id : i_eg+1 %></td>
+        <td class="<%= can_edit_event_group ? 'editor_only' : '' %>"><%= can_edit_event_group ? model.id : i_eg+1 %></td>
       <% if can_edit_event_group %>
        <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
       <% else %>
@@ -44,11 +44,11 @@
         <td><%= model.order_no %></td>
         <td><%= da = model.start_date; str = (da ? date2text(da.year, da.month, da.day, lower_end_str: "", upper_end_str: "") : (can?(:edit, model) ? date2text(nil, nil, nil) : "")) %></td>
       <% if can? :update, EventGroup %>
-        <td><%= s=model.start_date_err; (str.blank? ? "" : s) %></td>
+        <td class="editor_only"><%= s=model.start_date_err; (str.blank? ? "" : s) %></td>
       <% end %>
         <td><%= da = model.end_date;   str = (da ? date2text(da.year, da.month, da.day, lower_end_str: "", upper_end_str: "") : (can?(:edit, model) ? date2text(nil, nil, nil) : "")) %></td>
       <% if can? :update, EventGroup %>
-        <td><%= s=model.end_date_err; (str.blank? ? "" : s) %></td>
+        <td class="editor_only"><%= s=model.end_date_err; (str.blank? ? "" : s) %></td>
       <% end %>
         <td><%= model.place ? h(model.txt_place_pref_ctry) : "" %></td>
         <td><%= model.note %></td>
@@ -56,23 +56,25 @@
         <td class="event_groups_index_table_events"><%= link_to model.events.size, event_group_url(model)+"#section_event_group_show_events" %></td>
         <td><%= link_to t("event_groups.index.show"), model %></td>
         <% if can_edit_event_group %>
-          <td>
+          <td class="editor_only">
             <% if can? :update, model  %>
               <%= link_to 'Edit', edit_event_group_path(model) %>
             <% end %>
           </td>
         <% end %>
         <% if can_create_event %>
-          <td><%= link_to 'Add Event', new_event_path(event_group_id: model.id) %></td>
+          <td class="editor_only"><%= link_to 'Add Event', new_event_path(event_group_id: model.id) %></td>
         <% end %>
 
         <% if false %> <%# ==================== %>
         <% if can?(:destroy, model) %>
+          <td class="editor_only">
          <% if model.destroyable? %>
-          <td><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+          <%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %>
          <% else %>
-          <td><span class="cell_disable_link">Destroy</span></td>
+          <span class="cell_disable_link">Destroy</span>
          <% end %>
+         </td>
         <% end %>
         <% end %>
       </tr>

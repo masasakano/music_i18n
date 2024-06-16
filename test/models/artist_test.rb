@@ -251,10 +251,11 @@ class ArtistTest < ActiveSupport::TestCase
     assert_equal count_ev,   art1.event_items.count, 'distinct?'
 
     assert_difference("ArtistMusicPlay.count", -ArtistMusicPlay.where(artist: art1).count, "Test of dependent"){
-      # must first destroy dependent ChannelOwner => Channel(s) => HaramiVid(s) before destroying Artist
+      # must first destroy dependent ChannelOwner => Channel(s) => HaramiVid(s) => Harami1129(s) before destroying Artist
       if (chow=art1.channel_owner)
         if chow && chow.channels.exists?
           chow.channels.each do |ea_ch|
+            ea_ch.harami1129s.update_all(harami_vid_id: nil) if ea_ch.harami1129s.exists?
             ea_ch.harami_vids.destroy_all if ea_ch.harami_vids.exists?
             ea_ch.destroy!
           end

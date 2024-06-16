@@ -22,7 +22,7 @@
 <div id="event_group_show_footer_controller">
   <p>
     <% if canupdate %>
-      <span class="moderator_only"><%= link_to "Edit this EventGroup", edit_event_group_path(@event_group) %></span> |
+      <span class="lead moderator_only"><%= link_to "Edit this EventGroup", edit_event_group_path(@event_group) %></span> |
     <% end %>
   <%= link_to t("layouts.back_to_index"), event_groups_path %>
   </p>

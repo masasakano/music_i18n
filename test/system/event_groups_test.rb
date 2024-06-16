@@ -52,16 +52,17 @@ class EventGroupsTest < ApplicationSystemTestCase
     assert_selector    'form div#div_select_prefecture'  # Now JS made it appear
     assert     find_field('Prefecture')                  # Now JS made it appear
 
-    fill_in "Start day",   with: @event_group.start_date.day
-    fill_in "Start month", with: @event_group.start_date.month
-    fill_in "Start year",   with: @event_group.start_date.year
+    select @event_group.start_date.year,  from: "event_group_start_date_1i"
+    select @event_group.start_date.strftime('%B'), from: "event_group_start_date_2i"
+    select @event_group.start_date.strftime('%-d'), from: "event_group_start_date_3i"
     fill_in "± days (Start)", with: ""
+    select @event_group.end_date.year,  from: "event_group_end_date_1i"
+    select @event_group.end_date.strftime('%B'), from: "event_group_end_date_2i"
+    select @event_group.end_date.strftime('%-d'), from: "event_group_end_date_3i"
+    fill_in "± days (End)", with: ""
     fill_in "Note", with: @event_group.note
     #fill_in "Order no", with: @event_group.order_no  # the label may change
     #fill_in "Place", with: @event_group.place_id  # Dropdown described above
-    fill_in "End day",   with: @event_group.end_date.day
-    fill_in "End month", with: @event_group.end_date.month
-    fill_in "End year",  with: @event_group.end_date.year
     click_on  @button_text[:create]
 
     assert_text "EventGroup was successfully created"
@@ -80,19 +81,21 @@ class EventGroupsTest < ApplicationSystemTestCase
     assert_selector 'form div#div_select_prefecture'
     assert_selector 'form div#div_select_place'
 
-    fill_in "Start day",   with: @event_group.start_date.day
-    fill_in "Start month", with: @event_group.start_date.month
-    fill_in "Start year",  with: @event_group.start_date.year
+    select @event_group.start_date.year,  from: "event_group_start_date_1i"
+    select @event_group.start_date.strftime('%B'), from: "event_group_start_date_2i"
+    select @event_group.start_date.strftime('%-d'), from: "event_group_start_date_3i"
     fill_in "Note", with: @event_group.note
     #fill_in "Order no", with: @event_group.order_no  # the label may change
     #fill_in "Place", with: @event_group.place_id  # Dropdown described above
-    fill_in "End day",   with: @event_group.end_date.day
-    fill_in "End month", with: @event_group.end_date.month
-    fill_in "End year",  with: 2025  # This is updated!
+    endyear = Date.current.year + 5
+    select endyear, from: "event_group_end_date_1i"  # This is updated!
+    select @event_group.end_date.strftime('%B'), from: "event_group_end_date_2i"
+    select @event_group.end_date.strftime('%-d'), from: "event_group_end_date_3i"
     fill_in "± days (End)", with: @event_group.start_date_err - 1  # This is updated!
     click_on @button_text[:update]
 
     assert_text "EventGroup was successfully updated"
+    assert_includes find('section#primary_contents dd.item_end_date').text, endyear.to_s
     page.find("section#section_event_group_show_footer a").click  # "Back to Index"
 
     ## test "should destroy Event group" do

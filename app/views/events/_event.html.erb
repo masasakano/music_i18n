@@ -1,9 +1,11 @@
 <div id="<%= dom_id event %>">
 
 <dl>
-  <% if can? :update, event %>
-    <dt>ID (Event)</dt>
-    <dd> <%= @event.id %></dd>
+  <% if can? :update, Event %>
+    <div class="editor_only">
+      <dt>ID (Event)</dt>
+      <dd> <%= @event.id %></dd>
+    </div>
   <% end %>
   <dt><strong>Event group:</strong></dt>
     <dd><%= link_to "EventGroup("+event.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true)+")", event_group_url(event.event_group) %></dd>
@@ -15,11 +17,13 @@
     <dd><%= event.duration_hour %></dd>
   <dt><strong>Weight:</strong></dt>
     <dd><%= event.weight %></dd>
-  <dt>Note:</dt>
-    <dd><%= event.note %></dd>
-  <% if can? :update, event %>
-  <dt>updated_at:</dt>
-    <dd><%= event.updated_at %></dd>
+  <dt class="item_note"><%= t("tables.note").capitalize %>:</dt>
+    <dd class="item_note"><%= event.note %></dd>
+  <% if can? :update, Event %>
+    <div class="editor_only">
+      <dt>updated_at:</dt>
+        <dd><%= event.updated_at %></dd>
+    </div>
   <% end %>
 </dl>
 

@@ -10,93 +10,6 @@
 <% end %>
 
 <div id="form_main">
-<% if false %> <%# ################################################# %>
-<%= form_with(model: event_group, local: true) do |form| %>
-
-  <% if event_group.new_record? %>
-    <%= render partial: 'layouts/partial_new_translations', locals: {form: form, model: event_group, trans: Translation.new, disable_is_orig: true} %>
-  <% end %>
-
-  <div class="field" id="div_select_country">
-    <%= form.label 'place.prefecture_id.country_id', t('Country')%>
-    <% country = (event_group.country || Country.unknown) %>
-    <%= form.collection_select 'place.prefecture_id.country_id', @countries, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, {include_blank: !country, selected: (country ? country.id : nil)} %> <%# If no translation exists and left empty (instead of "NONE"), it would violate the HTML spec: Element “option” without attribute “label” must not be empty. %>
-  </div>
-
-  <div class="field" id="div_select_prefecture">
-    <%= form.label 'place.prefecture_id', t('Prefecture') %>
-    <% prefecture = event_group.prefecture %>
-    <%= form.grouped_collection_select 'place.prefecture_id', @countries, :prefectures, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true)}, {include_blank: true, selected: (prefecture ? prefecture.id : nil)} %>
-  </div>
-
-  <div class="field" id="div_select_place">
-    <%= form.label :place, t('Place') %>
-    <% place = event_group.place %>
-    <%= form.grouped_collection_select 'place', @prefectures, :places, Proc.new{|pref| a=pref.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true); a[0]+'/'+a[1]}, :id, Proc.new{|plac| plac.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, {include_blank: true, selected: (place ? place.id : nil)} %>
-  </div>
-
-  <div class="field">
-    <%= form.label :order_no, "#-th in Series" %>
-    <%= form.number_field :order_no, class: 'order_no' %>
-  </div>
-
-  <% da = event_group.start_date %>
-  <div class="field">
-    <%= form.label :start_year, "Start Year" %>
-    <%= form.number_field :start_year, value: (da ? da.year : nil), placeholder: 'e.g., 1999', class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :start_month,"Start Month" %>
-    <%= form.number_field :start_month, value: (da ? da.month : nil), in: 0..12, class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :start_day, "Start Day" %>
-    <%= form.number_field :start_day, value: (da ? da.day : nil), in: 0..31, class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :start_date_err, "± days (Start)" %>
-    <%= form.number_field :start_date_err, value: event_group.start_date_err, class: 'input_year' %>
-  </div>
-
-  <% db = event_group.start_date %>
-  <div class="field">
-    <%= form.label :end_year, "End Year" %>
-    <%= form.number_field :end_year, value: (db ? db.year : nil), placeholder: 'e.g., 1999', class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :end_month,"End Month" %>
-    <%= form.number_field :end_month, value: (db ? db.month : nil), in: 0..12, class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :end_day, "End Day" %>
-    <%= form.number_field :end_day, value: (db ? db.day : nil), in: 0..31, class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :end_date_err, "± days (End)" %>
-    <%= form.number_field :end_date_err, value: event_group.end_date_err, class: 'input_year' %>
-  </div>
-
-  <div class="field">
-    <%= form.label :note %>
-    <%= form.text_area :note %>
-  </div>
-
-  <div class="actions">
-    <%= form.submit(event_group.new_record? ? "Create EventGroup" :  "Update EventGroup")%>
-  </div>
-  <div class="actions">
-  <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
-  </div>
-<% end %>
-
-<% else %> <%# ################################################# %>
-
 <%= simple_form_for event_group do |f| %>
   <% if event_group.new_record? %>
     <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: event_group, trans: Translation.new, disable_is_orig: false, is_simple_form: true} %>
@@ -105,13 +18,19 @@
   <%= render partial: "layouts/select_country_prefecture_place", locals: {form: f, model: event_group, is_simple_form: true} %>
 
   <%= f.input :order_no, label: "#-th in Series", placeholder: "#-th in Series" %>
- <% %w(start end).each do |st_end| %>
-  <% dat = event_group.send(st_end+"_date") %>
-  <%= f.input st_end+"_year",  placeholder: 'e.g., 1999',            as: :integer, input_html: {value: (dat ? dat.year : nil)} %>
-  <%= f.input st_end+"_month", placeholder: 'e.g., 12',   in: 0..12, as: :integer, input_html: {value: (dat ? dat.month : nil)} %>
-  <%= f.input st_end+"_day",   placeholder: 'e.g., 1999', in: 0..31, as: :integer, input_html: {value: (dat ? dat.day : nil)} %>
-  <%= f.input st_end+"_date_err", label: "± days ("+st_end.capitalize+")" %>
- <% end %>
+
+  <% dat = event_group.start_date %>
+  <% dat_or_this = (dat ? dat : Date.current) %>
+  <% end_y = [dat_or_this+21.year, Date.current].min.year + 1 %>
+  <%= f.input :start_date, start_year: get_form_start_year(dat), end_year: end_y, input_html: {value: dat ? dat : TimeAux::DEF_FIRST_DATE_TIME.to_date } %>
+  <%= f.input :start_date_err, label: "± days (Start)" %>
+
+  <% start_y = (dat ? dat.year : TimeAux::DEF_FIRST_DATE_TIME.year) %> <%# dat === Start-date in DB %>
+  <% dat_end = event_group.end_date %>
+  <% end_y = ((start_y >= Date.current.year + EventGroupsController::OFFSET_LARGE_YEAR) ? start_y : [start_y, Date.current.year, dat_end.year].max + 5) %>  <%# Selection end is +5 years %>
+  <% dat_or_this = (dat_end ? dat_end : TimeAux::DEF_LAST_DATE_TIME.to_date) %>
+  <%= f.input :end_date, start_year: start_y, end_year: end_y, input_html: {value: dat_or_this} %>  <%# input_html-value is not being read... %>
+  <%= f.input :end_date_err, label: "± days (End)" %>
 
   <%= f.input :note %>
 
@@ -121,7 +40,6 @@
   </div>
 <% end %>
 
-<% end %> <%# ################################################# %>
 </div>
 
 <%#= render partial: 'layouts/link_merge_destroy', locals: {model: event_group, is_to_edit: !event_group.new_record? } %>
