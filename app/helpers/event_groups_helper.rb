@@ -9,7 +9,7 @@ module EventGroupsHelper
     return def_year if dtime.blank?
 
     if dtime.year <= def_year
-      dtime - 20
+      dtime.year - 20
     else
       def_year
     end
