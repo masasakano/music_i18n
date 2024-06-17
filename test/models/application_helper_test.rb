@@ -94,6 +94,14 @@ class ModuleCommonTest < ActiveSupport::TestCase
     val = AH.normalized_uri_youtube(k, long: false, with_scheme: false, with_query: false, with_time: false, with_host: false)
     exp = "LIVE/watch"
     assert_equal exp, val, "long and with_time are ignored."
+
+    k = "sftp://example.com/abc/def"
+    val = AH.normalized_uri_youtube(k, long: false, with_scheme: false, with_query: false, with_time: false, with_host: true)
+    assert_equal k, val, "Even with with_scheme==false, as long as with_host is true, the non-standard scheme is included."
+
+    val = AH.normalized_uri_youtube(k, long: false, with_scheme: false, with_query: false, with_time: false, with_host: false)
+    exp = "abc/def"
+    assert_equal exp, val, "If both with_scheme and with_host are false, even the non-standard scheme is NOT included."
   end
 
   test "sanitized_html" do
@@ -139,6 +147,53 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_equal(  -5, hms2sec("-5"))
     assert_equal( -87, hms2sec(" -87"))
     assert_equal(-3683, hms2sec("  -1:01:23"))
+  end
+ 
+  test "link_to_youtube" do
+    rk="WeMoOTlQ-Ls"
+    page = Nokogiri::HTML( link_to_youtube(rk, root_kwd=nil, timing=5, long: false, target: true, title: (tit="my_title1")) )
+    exp = "https://youtu.be/WeMoOTlQ-Ls?t=5s"
+    assert_equal exp, page.css("a")[0]["href"], "a is #{page.css('a')[0].inspect}"
+    assert_equal tit, page.css("a")[0]["title"]
+    assert_equal "_blank", page.css("a")[0]["target"]
+
+    rk="www.tiktok.com/@someone/video/7258229581717556498"
+    page = Nokogiri::HTML( link_to_youtube(rk, root_kwd=nil, timing=5, long: false, target: true, title: (tit="my_title1")) )
+    exp = "https://"+rk
+    assert_equal exp, page.css("a")[0]["href"]
+    assert_equal tit, page.css("a")[0]["title"]
+    assert_equal "_blank", page.css("a")[0]["target"]
+  end
+ 
+  test "uri_youtube" do
+    rk="WeMoOTlQ-Ls"
+    assert_equal "youtu.be/#{rk}?t=5s",         AH.uri_youtube(rk, timing=5, long: false, with_http: false)
+    assert_equal "https://youtu.be/#{rk}?t=5s", AH.uri_youtube(rk, timing=5, long: false, with_http: true)
+    a, b = ["v=#{rk}", "t=5s"]
+    assert_includes [a+"&"+b, b+"&"+a].map{|i| "www.youtube.com/watch?" + i}, AH.uri_youtube(rk, timing=5, long: true,  with_http: false)
+    rk="www.tiktok.com/@someone/video/7258229581717556498"
+    assert_equal "https://"+rk, AH.uri_youtube(rk+"?is_from_webapp=1&sender_device=pc&web_id=7380717489888399999", timing=5, long: true,  with_http: true)
+  end
+ 
+  test "_prepend_youtube" do
+    exp = "http://x.com/abc"
+    assert_equal exp, AH.send(:_prepend_youtube, exp)
+    exp = "https://x.com:8080/abc"
+    assert_equal exp, AH.send(:_prepend_youtube, exp)
+    exp = "sftp://x.com/abc"
+    assert_equal exp, AH.send(:_prepend_youtube, exp)
+    exp = "x.com/abc"
+    assert_equal exp, AH.send(:_prepend_youtube, exp)
+    exp = "youtu.be/abc"
+    assert_equal exp, AH.send(:_prepend_youtube, exp)
+    exp = "www.youtube.com/watch?v=abc"
+    assert_equal exp, AH.send(:_prepend_youtube, exp)
+    exp = "something.youtube.co.jp/watch?v=abc"
+    assert_equal exp, AH.send(:_prepend_youtube, exp)
+
+    ["abc", "abc?t=5", "abc/", "abc/def", "abc/def?t=xyz"].each do |str|
+      assert_equal "youtu.be/"+str, AH.send(:_prepend_youtube, str)
+    end
   end
  
   private

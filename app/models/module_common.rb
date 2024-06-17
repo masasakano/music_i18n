@@ -1231,30 +1231,30 @@ module ModuleCommon
   #    art.lcode  # => "en"
   #    art.lcode="ja"
   #    art.lcode  # => "ja"
-  #    set_singleton_method_val(art, :lcode, "fr")  # => "fr", overwritten
+  #    art.set_singleton_method_val(:lcode, "fr")  # => "fr", overwritten
   #    art.lcode  # => "fr"
-  #    set_singleton_method_val(art, :lcode, "zh", clobber: false)  # => "fr", no change
+  #    art.set_singleton_method_val(:lcode, "zh", clobber: false)  # => "fr", no change
   #    art.lcode  # => "fr"
   #
   # @example
   #    mus = Music.new
   #    mus.respond_to?(:ary)   # => false (as we assume)
-  #    set_singleton_method_val(mus, :ary, [], clobber: false)  # defined in module_common.rb
+  #    mus.set_singleton_method_val(:ary, [], clobber: false)  # defined in module_common.rb
   #    mus.ary       # => []
   #    mus.ary << 4  # mus.ary==[4]
-  #    set_singleton_method_val(mus, :ary, [], clobber: false)  # => [4], not overwritten, equivalent to mus.ary ||= []
+  #    mus.set_singleton_method_val(:ary, [], clobber: false)  # => [4], not overwritten, equivalent to mus.ary ||= []
   #    mus.ary << 5  # mus.ary==[4, 5]
-  #    set_singleton_method_val(mus, :ary, [])                  # => [], overwritten(!) and re-initialized
+  #    mus.set_singleton_method_val(:ary, [])                  # => [], overwritten(!) and re-initialized
   #    mus.ary       # => []
   #
-  # @example to a random Object
+  # @example to a random Object ({#set_singleton_method_val} is not defined for String)
   #    str = "my random object"
   #    str.set_singleton_method_val(:lcode, "en", target: str)  # defined in module_common.rb
   #    str.lcode  # => "en"
   #
   # @param method [String, Symbol] method name to define
   # @option initial_value [Object] Def: nil
-  # @param target: [Object]
+  # @param target: [Object] Def: self. Specify this in case you want to set a singleton method to other than self.
   # @option clobber: [Boolean] If false (Def: true), the value is not set if the method is already defined.
   #    "clobber: true/false" practically means "obj.method=5" and "obj.method||=5", respectively.
   # @return [Object]  # the value of {Object#metho}, which is usually initial_value unless the method is already defined and clobber=false

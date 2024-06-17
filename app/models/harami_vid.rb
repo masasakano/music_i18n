@@ -701,7 +701,7 @@ class HaramiVid < BaseWithTranslation
   # saving uri in DB like
   #   "youtu.be/WFfas92FA?t=24"
   # as opposed to
-  #   "youtu.be.com/shorts/WFfas92FA?t=24"
+  #   "youtube.com/shorts/WFfas92FA?t=24"
   #   "https://www.youtube.com/watch?v=WFfas92FA?t=24s&link=youtu.be"
   #   "https://www.youtube.com/live/vXABC6EvPXc?si=OOMorKVoVqoh-S5h?t=24"
   #

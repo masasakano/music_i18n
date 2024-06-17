@@ -16,7 +16,7 @@
   <dd class="item_duration"><%= dura=@harami_vid.duration %><%= dura ? " ("+sec2hms_or_ms(dura)+")" : "" %></dd>
 
   <dt class="item_uri"> URI:</dt>
-  <dd class="item_uri"><%= link_to_youtube(@harami_vid.uri, @harami_vid.uri) %></dd>
+  <dd class="item_uri"><%= link_to_youtube(@harami_vid.uri, @harami_vid.uri, target: true) %></dd>
 
   <dt class="item_channel"> <%= t(:Channel) %>:</dt>
   <dd class="item_channel">

@@ -191,22 +191,72 @@ module ApplicationHelper
   # @return [String] youtu.be/Wfwe3f8 etc
   def self.uri_youtube(root_kwd, timing=nil, long: false, with_http: false)
     raise "(#{__method__}) nil is not allowed for root_kwd" if !root_kwd
-    timing   = nil if timing == "" || timing == "0" || timing == 0
-    domain = (long ? 'www.youtube.com' : 'youtu.be')
-    root_kwd = root_kwd.sub(%r@\A(?:https?://)?(?:www\.)?(?:(?:youtube.com|youtu.be)/*)?@i, "")
-    if /[[:space:]]/ =~ root_kwd
-      raise "root_kwd=#{root_kwd.inspect} must contain no spaces."
+    raise "root_kwd=#{root_kwd.inspect} must contain no spaces." if /[[:space:]]/ =~ root_kwd
+
+    root_kwd = _prepend_youtube(root_kwd)
+
+    hs2pass = {long: long, with_host: true, with_time: false, with_query: true}
+    hs2pass.merge!({with_scheme: true}) if with_http
+    normalized_txt = normalized_uri_youtube(root_kwd, **hs2pass)
+    platform = normalized_txt.platform  # singleton method
+    uri = URI.parse( normalized_txt )
+
+    return uri.to_s if :youtube != platform
+
+    timing = nil if timing == "" || timing == "0" || timing == "0s" || timing == 0
+    if timing
+      query_hs = Rack::Utils.parse_query uri.query
+      query_hs["t"] = timing.to_s+"s"
+      uri.query = query_hs.to_param
     end
-    timing_part = (timing ? sprintf("?t=%ds", timing) : '')
-    (with_http ? "https://" : "") + domain + "/" + root_kwd + timing_part
+
+    uri.to_s
   end
+
+  # Guesses the site platform and returns it.
+  #
+  # @parm str [String] may include "http://" or not.  Query parameters can be included, too.
+  # @return [Symbol, String, NilClass] nil if input is blank. Symbols like (:youtube, :tiktok). String for domain ("www." is removed) if there is a valid host. Otherwise, the input String as it is.
+  def self.guess_site_platform(str)
+    return nil if str.blank?
+    uri = URI.parse(str)
+    uri = URI.parse("https://"+str) if !uri.host
+    return nil if !uri.host
+    
+    case (host=uri.host.sub(/\Awww\./, "").downcase)
+    when "youtu.be", /\Ayoutube\.[a-z]{2,3}(\.[a-z]{2})?\z/i
+      :youtube
+    when /\Atiktok\.[a-z]{2,3}(\.[a-z]{2})?\z/i
+      :tiktok
+    when "t.co", /\A(twitter|x)\.[a-z]{2,3}(\.[a-z]{2})?\z/i  # though "t.co" may point to anything!
+      :twitter
+    when /\Ainstagram\.[a-z]{2,3}(\.[a-z]{2})?\z/
+      :instagram
+    else
+      host
+    end
+  end
+
+  # Prepend "youtu.be" if necessary.
+  #
+  # @param str [String] e.g., "abc12d", "youtu.be/"abc12d", "www.youtube.co.jp/"abc12d", "tiktok.com/abc", "https://x.com/abc"
+  # @return [String] e.g., "youtu.be/Input-String/xyz" or the given String as it is if they already includwe the domain.
+  def self._prepend_youtube(str)
+    str = str.strip
+    return str if %r@\A[a-z]+://@ =~ str           # "http://xxx.yyy" unchanges
+    return str if str.split("/")[0].include?(".")  # "example.com/abc" unchanges
+    return str if %r@[^/]*youtu(\.be|be.[a-z.]+)@ =~ str  # "youtu.be/ABC" or "www.youtube.co.jp/abc" unchanges
+    "youtu.be/"+str
+  end
+  private_class_method :_prepend_youtube
+  
 
   # Returns a YouTube URI with/without the preceeding "https//" from a valid URI
   #
   # Youtube has various forms of URIs
   #
   #   "youtu.be/WFfas92FA?t=24"
-  #   "youtu.be.com/shorts/WFfas92FA?t=24"
+  #   "youtube.com/shorts/WFfas92FA?t=24"
   #   "https://www.youtube.com/watch?v=WFfas92FA?t=24s&link=youtu.be"
   #   "https://www.youtube.com/live/vXABC6EvPXc?si=OOMorKVoVqoh-S5h?t=24"
   #   "https://www.youtube.com/embed/agbNymZ7vqZ"
@@ -214,9 +264,9 @@ module ApplicationHelper
   # For Youtube links, most query parameteres are removed (but v and maybe t (if with_time is true)).
   # For other sites, they are preserved unless with_query is false.
   #
-  # @param uri_str [String] e.g., "https://www.youtube.com/watch?v=IrH3iX6c2IA"
+  # @param uri_str [String] e.g., "https://www.youtube.com/watch?v=IrH3iX6c2IA" ; a simple String "IrH3iX6c2IA" is invalid.
   # @param long: [Boolean] if false (Def), youtu.be, else www.youtube.com ; for any other URIs, ignored.
-  # @param with_scheme: [Boolean] if true (Def: false), returned string contains "https://"
+  # @param with_scheme: [Boolean] if true (Def: false), returned string contains "https://" . Even if this is false, the returns String contains any other schems like "sftp" than "https" as long as with_host is true
   # @param with_host: [Boolean]
   # @param with_query: [Boolean] For Youtube, this is ignored. Recommended to set true.
   # @param with_time: [Boolean] Only for Youtube.
@@ -228,43 +278,75 @@ module ApplicationHelper
     #    because "youtube.com:8080/" is considered to have uri.scheme of "youtube.com" (!)
     s = ((%r@\A[a-z]{2,9}://?@ !~ uri_str.strip) ? "https://" : "")+uri_str  # "telnet" and "gopher" are the longest and "ftp" is the shortest I can think of, hence {2, 9}.
     uri = URI.parse(s)
-    query_hs = Rack::Utils.parse_query uri.query
 
-    uri.host = uri.host.downcase
-    is_youtube = (/\A(?:www\.)?(youtube\.com|youtu\.be)\z/ =~ uri.host)
-    # domain_orig = $1  # (youtube.com|youtu.be)
-
-    if is_youtube
-      uri.path = uri.path.sub(%r@\A/(shorts|live|embed)/@, '/')
-      
-      identifier = (query_hs["v"] || uri.path.sub(%r@\A/@, ""))
-
-      if long
-        uri.host = "www.youtube.com"
-        uri.path = "/watch"
-        query_hs = query_hs.slice("v", "t")
-        query_hs["v"] = identifier
-      else
-        uri.host = "youtu.be"
-        uri.path = "/"+identifier
-        query_hs = query_hs.slice("t")
-      end
-      query_hs = query_hs.slice("v") if !with_time
-      query_hs["t"].sub!(/s\z/, "") if query_hs.has_key?("t")
-      uri.query = query_hs.to_param
-    end
+    # This sets an instance variable: uri.platform
+    adjust_queries!(uri, long: long, with_query: with_query, with_time: with_time)
 
     ret = ""
-    ret << (uri.scheme + "://") if with_scheme
+    ret << (uri.scheme + "://") if with_scheme || (("https" != uri.scheme) && with_host)
     ret << uri.host             if with_scheme || with_host  # with_scheme has a priority.
-    ret << (":"+uri.port.to_s)  if ![80, 443].include?(uri.port)
+    ret << (":"+uri.port.to_s)  if uri.port.present? && ![80, 443].include?(uri.port)
     ret << (ret.blank? ? uri.path.sub(%r@\A/@, '') : uri.path)
 
-    if (is_youtube || with_query) && uri.query.present?
+    if (:youtube == uri.platform || with_query) && uri.query.present?
       ret << "?"+uri.query
     end
 
+    ret.instance_eval{singleton_class.class_eval { attr_accessor "platform" }} if !ret.respond_to?(:platform)  # these 2 linew are equivalent to ModuleCommon#set_singleton_method_val
+    ret.platform = uri.platform  # Define Singleton method String#platform
     ret
+  end
+
+  # Rewrites the given URI model, maybe removing some query parameters
+  #
+  # Note that this method does NOT add a new query parameters like timing,
+  # and works purely based on the given String.  To add a query parameter,
+  # see {self.uri_youtube}
+  #
+  # @param uri [URI] already properly parsed URI
+  # @param long: [Boolean] if false (Def), youtu.be, else www.youtube.com ; for any other URIs, ignored.
+  # @param with_time: [Boolean] Only for Youtube.
+  # @return [String] youtu.be/Wfwe3f8 etc
+  def self.adjust_queries!(uri, long: false, with_query: true, with_time: false)
+    uri.host = uri.host.downcase
+    platform = guess_site_platform(uri.to_s)
+
+    uri.instance_eval{singleton_class.class_eval { attr_accessor "platform" }} if !uri.respond_to?(:platform)  # these 2 linew are equivalent to ModuleCommon#set_singleton_method_val
+    uri.platform = platform  # Define Singleton method String#platform
+
+    return nil if platform.blank?
+    case platform
+    when Symbol
+      query_hs = Rack::Utils.parse_query uri.query
+      case platform
+      when :youtube
+        uri.path = uri.path.sub(%r@\A/(shorts|live|embed)/@, '/')
+
+        identifier = (query_hs["v"] || uri.path.sub(%r@\A/@, ""))
+
+        if long
+          uri.host = "www.youtube.com"
+          uri.path = "/watch"
+          query_hs = query_hs.slice("v", "t")
+          query_hs["v"] = identifier
+        else
+          uri.host = "youtu.be"
+          uri.path = "/"+identifier
+          query_hs = query_hs.slice("t")
+        end
+        query_hs = query_hs.slice("v") if !with_time
+        query_hs["t"].sub!(/s\z/, "") if query_hs.has_key?("t")
+      when :tiktok
+        query_hs = query_hs.except("is_from_webapp", "sender_device", "web_id", "utm_source")
+      when :instagram
+        query_hs = query_hs.except("utm_source")
+      end
+
+      uri.query = query_hs.to_param
+    else
+      # do nothing
+    end
+    uri
   end
 
   # to check whether a record has any dependent children

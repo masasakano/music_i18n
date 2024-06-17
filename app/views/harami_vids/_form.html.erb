@@ -25,7 +25,8 @@
   <div class="form-inputs">
 
     <%= f.input :uri, required: true, placeholder: 'URI/URL ('+t(:eg_independent)+'"3CjLiqDJ0C4" with or without youtu.be/)', as: :url,
-      hint: t("harami_vids.field_uri_hint") %>
+      hint: t("harami_vids.field_uri_hint"),
+      input_html: {value: (uri=harami_vid.uri) ? ApplicationHelper.uri_youtube(uri, long: false, with_http: true) : nil } %>
     <%= f.input :release_date,   label: t("harami_vids.table_head_date"), start_year: 2019, end_year: (Date.today.year+1) %>
     <%= f.input :duration,   label: t("harami_vids.field_Duration_in_sec"), placeholder: t(:eg_independent)+'72 ['+t(:s_time)+']'+t(:or)+' 01:12', as: :string %>
   <%= render partial: "layouts/select_country_prefecture_place", locals: {form: f, model: harami_vid, is_simple_form: true} %>

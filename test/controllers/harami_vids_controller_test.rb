@@ -211,6 +211,11 @@ if true
     assert_equal mu_name,    mdl_last.musics.first.title
     assert_equal "youtu.be/0040", mdl_last.uri
 
+    follow_redirect!
+    csstmp="section#harami_vids_show_unique_parameters dl dd.item_uri a"
+    assert  css_select(csstmp)[0]
+    assert_equal "https://"+mdl_last.uri, css_select(csstmp)[0]["href"]
+
     # Existing Music (with no Artist)
     old_mu = musics(:music_light)
     mu_name = old_mu.title  # existing Music
@@ -269,6 +274,11 @@ if true
     assert_equal @def_update_params["form_engage_hows"].to_i,  eng_last.engage_how.id
     assert_equal @def_update_params["form_engage_year"].to_i,  eng_last.year
     assert_equal @def_update_params["form_engage_contribution"].to_f, eng_last.contribution
+
+    follow_redirect!
+    csstmp="section#harami_vids_show_unique_parameters dl dd.item_uri a"
+    assert  css_select(csstmp)[0]
+    assert_equal "https://"+mdl_last.uri, css_select(csstmp)[0]["href"]
 end
 
     # A collab-Artist, existing Music with existing Artist

@@ -2099,8 +2099,9 @@ class BaseWithTranslation < ApplicationRecord
       end
       artmp.each do |str|
         next if !str
-        str.instance_eval{singleton_class.class_eval { attr_accessor "lcode" }}
-        str.lcode = ecode  # Define Singleton method String#lcode
+        set_singleton_method_val(:lcode, ecode, target: str, clobber: true)  # defined in module_common.rb
+        #str.instance_eval{singleton_class.class_eval { attr_accessor "lcode" }}
+        #str.lcode = ecode  # Define Singleton method String#lcode
       end
       arret.each_index do |i|
         arret[i] ||= artmp[i]
