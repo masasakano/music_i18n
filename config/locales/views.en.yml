@@ -146,7 +146,8 @@ en:
       title_ja_en: "Title [ja+en] (partial-match)"
       title_en: "Title [en] (partial-match)"
       artists: "Artist (partial-match)"
-      artists_multi: 'Artists (partial match)'
+      artists_multi: '(Original) Artists (partial match)'
+      artist_collabs_multi: '(Collab) Artists'
       musics_multi: 'Musics (partial match)'
       n_musics_general: "# of Musics"
       n_amps: "# of plays"

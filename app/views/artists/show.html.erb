@@ -25,7 +25,9 @@
   <dt title="ChannelOwner"><strong><%= t("ChannelOwner") %>:</strong></dt>
     <dd>
       <% if (owner=@artist.channel_owner) %>
-        <%= link_to t(:ChannelOwner), owner %>: 
+        <% if can?(:show, owner) %>
+          <%= link_to t(:ChannelOwner), owner %>: 
+        <% end %>
         <% ch_str = channels2displayed_list(owner.channels) %>  <%# defined in artists_helper.rb %>
         <%= ch_str.blank? ? "(no channels registered)" : ch_str %>  <%# defined in artists_helper.rb %>
       <% elsif can?(:create, ChannelOwner) && can_update %>

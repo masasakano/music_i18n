@@ -1,20 +1,25 @@
 
-<%# imported local variables: artist_music_plays, optional: distinguished_artist (treated separately if specified), no_sort: (unless specified true, sorted by Artist, Music, PlayRole, Instrument) %>
+<%# imported local variables: artist_music_plays, optional: distinguished_artist (treated separately if specified), no_sort: (unless specified true, sorted by Artist, Music, PlayRole, Instrument), harami_vid (used for sorting if specified; WARNING: if harami_vid is specified, artist_music_plays is assumed to be "event_item.artist_music_plays") %>
+<%# The table is sorted in order of Artist and then appearance in HaramiVid if harami_vid is specified. %>
+<%# If distinguished_artist is specified, the columns for the Artist has the highest priority. %>
 
 <% relas = []
-   rela_orig = 
-     if !(defined?(no_sort) && no_sort)
-       artist_music_plays.order("artist_music_plays.artist_id", "artist_music_plays.music_id", "artist_music_plays.play_role_id", "artist_music_plays.instrument_id")
-     else
-       artist_music_plays
+   rela_base = artist_music_plays
+   if !(defined?(no_sort) && no_sort)
+     ar_order = %w(artist_id music_id play_role_id instrument_id).map{|i| "artist_music_plays."+i}
+     if defined?(harami_vid) && harami_vid
+       ar_order[1] = "harami_vid_music_assocs.timing"
+       rela_base = rela_base.joins(event_item: :harami_vids).joins("INNER JOIN harami_vid_music_assocs ON harami_vid_music_assocs.harami_vid_id = harami_vids.id").where('artist_music_plays.music_id = harami_vid_music_assocs.music_id')
      end
+     rela_base = rela_base.order(*ar_order)
+   end
 
    if defined? distinguished_artist
-     relas[0] = rela_orig.where(artist_id: distinguished_artist.id)
-     relas[1] = rela_orig.where.not(artist_id: distinguished_artist.id)
+     relas[0] = rela_base.where(artist_id: distinguished_artist.id)
+     relas[1] = rela_base.where.not(artist_id: distinguished_artist.id)
    else
      distinguished_artist = nil
-     relas[0] = rela_orig
+     relas[0] = rela_base
      relas[1] = ArtistMusicPlay.none
    end
 %>
@@ -49,7 +54,7 @@
   <thead>
     <tr>
      <% if canedit_hvid %>
-      <th class="editor_only">pID</th>
+      <th class="editor_only" title="pID of ArtistMusicPlay">pID</th>
      <% end %>
       <th><%= t(:Artist) %></th>
       <th><%= t(:Music) %></th>

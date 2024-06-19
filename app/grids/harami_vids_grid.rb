@@ -15,10 +15,11 @@ class HaramiVidsGrid < BaseGrid
   filter(:duration, :integer, range: true, header: Proc.new{I18n.t('tables.duration')}) # float in DB # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
   filter(:release_date, :date, range: true, header: Proc.new{I18n.t('tables.release_date')}) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
 
-  filter(:channel_owner, :enum, dummy: true, select: Proc.new{
-           ChannelOwner.joins(channels: :harami_vids).distinct.map{|i| [s=i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i.id]}},  # filtering out those none of HaramiVid belong to
+  filter(:channel_owner, :enum, dummy: true, multiple: false, include_blank: true, select: Proc.new{
+           ChannelOwner.joins(channels: :harami_vids).distinct.map{|i| [s=i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i.id]}.sort{|a,b| a[0]<=>b[0]}},  # filtering out those none of HaramiVid belong to
          header: Proc.new{I18n.t("harami_vids.table_head_ChannelOwner", default: "Channel owner")}) do |value|  # Only for PostgreSQL!
-    self.joins(channel: :channel_owner).where("channel_owner.id" => [value].flatten)
+    list = [value].flatten.map{|i| i.blank? ? nil : i}.compact
+    self.joins(channel: :channel_owner).where("channel_owner.id" => list)
   end
   filter(:channel_type, :enum, dummy: true, select: Proc.new{
            ChannelType.joins(channels: :harami_vids).distinct.order(:weight).map{|i| [s=i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i.id]}},  # filtering out those none of HaramiVid belong to
@@ -27,6 +28,18 @@ class HaramiVidsGrid < BaseGrid
   end
 
   filter_partial_str(:artists, header: Proc.new{I18n.t('datagrid.form.artists_multi')})
+  filter(:artist_collabs, :enum, multiple: true, include_blank: true, dummy: true, header: Proc.new{I18n.t('datagrid.form.artist_collabs_multi', default: "Collab Artists")}, select: Proc.new{
+           Artist.joins(:artist_music_plays).distinct.map{|i| [s=i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i.id]}.sort{|a,b| a[0]<=>b[0]}}) do |value|  # Only for PostgreSQL!
+    list = [value].flatten.map{|i| i.blank? ? nil : i}.compact
+    if list.empty?
+      self
+    else
+      # self.joins(:artist_music_plays).where("artist_music_plays.artist_id" => list).distinct  # => this would fail in ordering by title (in PostgreSQL).
+      allids = HaramiVid.joins(:artist_music_plays).where("artist_music_plays.artist_id" => list).distinct.ids
+      self.where(id: allids)
+    end
+  end
+
   filter_partial_str(:musics,  header: Proc.new{I18n.t('datagrid.form.musics_multi')})
 
   filter(:collabs_only, :boolean, dummy: true, default: false,
@@ -52,12 +65,14 @@ class HaramiVidsGrid < BaseGrid
     order_str = Arel.sql('title COLLATE "ja-x-icu"')
     scope.joins(:translations).where("langcode = 'ja'").order(order_str) #.order("title")
   }) do |record|
-    record.title langcode: 'ja', lang_fallback: false
+    #record.title langcode: 'ja', lang_fallback: false
+    link_to_youtube record.title(langcode: 'ja', lang_fallback: false), record.uri
   end
   column(:title_en, mandatory: (I18n.locale.to_sym != :ja), header: Proc.new{I18n.t('tables.title_en')}, order: proc { |scope|
     scope_with_trans_order(scope, HaramiVid, langcode="en")  # defined in base_grid.rb
   }) do |record|
-    record.title langcode: 'en', lang_fallback: false
+    #record.title langcode: 'en', lang_fallback: false
+    link_to_youtube record.title(langcode: 'en', lang_fallback: false), record.uri
   end
 
   column(:release_date, mandatory: true, header: Proc.new{I18n.t('tables.release_date')})
@@ -91,7 +106,7 @@ class HaramiVidsGrid < BaseGrid
     sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture[I18n.locale] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2]
   end
 
-  column(:uri, mandatory: true, order: false) do |record|
+  column(:uri, order: false) do |record|
     link_to_youtube record.uri, record.uri
   end
 

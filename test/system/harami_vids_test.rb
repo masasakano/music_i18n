@@ -222,10 +222,10 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_selector 'table thead th.events', text: "Events"
     assert_selector 'table thead th.collabs', text: "feat. Artists"
 
-    htmlcapy_hed = page.all('table thead tr')[-1].all('th')[6]
+    htmlcapy_hed = page.all('table thead tr')[-1].all('th')[5]
     assert_equal    htmlcapy_hed.text, "Events"
-    htmlcapy_evt = page.all('table tbody tr')[-1].all('td')[6]
-    htmlcapy_art = page.all('table tbody tr')[-1].all('td')[7]
+    htmlcapy_evt = page.all('table tbody tr')[-1].all('td')[5]
+    htmlcapy_art = page.all('table tbody tr')[-1].all('td')[6]
     assert_equal    htmlcapy_evt.text, tit_lucky 
     assert_includes htmlcapy_evt['innerHTML'], tit_lucky
     refute_includes htmlcapy_evt['innerHTML'], "<a"  # link hidden for unauthorized in Events

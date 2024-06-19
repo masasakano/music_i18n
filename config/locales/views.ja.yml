@@ -160,7 +160,8 @@ ja:
       title_ja_en: "名前 [日英] (部分一致)"
       title_en: "名前 [英] (部分一致)"
       artists: "アーティスト名 (部分一致)"
-      artists_multi: 'アーティスト(部分一致)'
+      artists_multi: '(原曲の)アーティスト(部分一致)'
+      artist_collabs_multi: '(コラボした)アーティスト'
       musics_multi: '曲(部分一致)'
       n_musics_general: "曲数"
       n_amps: 演奏関与数

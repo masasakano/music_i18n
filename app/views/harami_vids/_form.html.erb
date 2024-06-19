@@ -39,15 +39,15 @@
       selected: (harami_vid.form_channel_owner || harami_vid.channel && harami_vid.channel.channel_owner.id ||  ChannelOwner.default(:HaramiVid).id),
       label: t(:ChannelOwner), hint: (can?(:create, ChannelOwner)    ? t("layouts.fields.hint_create_if_non_existent", link: link_to(t("layouts.do_create_lower"), new_channel_owner_path, title: "New Channel")).html_safe : "") %>
     <div class="form_new_model_info">
+    <%= f.input :form_channel_platform,
+      collection: ordered_models_form(ChannelPlatform), include_blank: false,
+      selected: (harami_vid.form_channel_platform || harami_vid.channel && harami_vid.channel.channel_platform.id ||  ChannelPlatform.default(:HaramiVid).id),
+        label: t(:ChannelPlatform) %>  <%# NOTE: Here gives no hint to prompt a user to create a new one (like ChannelType), because HaramiVid should not need so many ChannelPlatform - appropriate moderators can create one by directly jumping to it anyway without being prompted here. %>
     <%= f.input :form_channel_type, include_blank: false,
       collection: ordered_models_form(ChannelType),
       label: t(:ChannelType),
       selected: (harami_vid.form_channel_type || harami_vid.channel && harami_vid.channel.channel_type.id || ChannelType.default(:HaramiVid).id)
        %>
-    <%= f.input :form_channel_platform,
-      collection: ordered_models_form(ChannelPlatform), include_blank: false,
-      selected: (harami_vid.form_channel_platform || harami_vid.channel && harami_vid.channel.channel_platform.id ||  ChannelPlatform.default(:HaramiVid).id),
-        label: t(:ChannelPlatform) %>  <%# NOTE: Here gives no hint to prompt a user to create a new one (like ChannelType), because HaramiVid should not need so many ChannelPlatform - appropriate moderators can create one by directly jumping to it anyway without being prompted here. %>
     </div>
 
 <% if harami_vid.new_record? && !(given_ref && given_ref.event_items.exists?) %> <%# For update, the following is never displayed; for create, it usually is unless a reference HaramiVid is specified and it has an EventItem(s) %>

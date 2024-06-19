@@ -4,8 +4,10 @@
     <% canedit_hvid = can? :edit, @harami_vid %>
     <ul>
     <%# @harami_vid.events.order("start_time", "duration_hour").each do |event| %>
-    <% @event_event_items.each_pair do |id_event, ar_event_items| %>
-      <% event = Event.find(id_event) %>
+    <%# @event_event_items.each_pair do |id_event, ar_event_items| %>
+      <%# event = Event.find(id_event) %>
+    <% evevits = @event_event_items.map{|ek, ev| [Event.find(ek), ev] }.to_h %>
+    <% evevits.each_pair do |event, ar_event_items| %>
       <li>
         <% event_title = event.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>
         <% if can? :read, event %>
@@ -16,7 +18,14 @@
          [<%= event.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>]
         <ol class="list_event_items">
           <%# event.event_items.order("event_items.start_time").each_with_index do |event_item, eii| %>
-          <% ar_event_items.each_with_index do |event_item, eii| %>
+          <%# ar_event_items.each_with_index do |event_item, eii| %>
+          <% ar_event_items.sort{|a,b|
+               res = ((a.weight ? a.weight : Float::INFINITY) <=> (b.weight ? b.weight : Float::INFINITY))
+               next res if res != 0
+               res = ((a.start_time ? a.start_time : Float::INFINITY) <=> (b.start_time ? b.start_time : Float::INFINITY))
+               next res if res != 0
+               res = ((a.start_time_err ? a.start_time_err : Float::INFINITY) <=> (b.start_time_err ? b.start_time_err : Float::INFINITY))
+             }.each_with_index do |event_item, eii| %>
             <li>
               <% if canindex_evit %>
                 <%= t(:EventItem) %>
@@ -46,7 +55,7 @@
               <% end %>
               </span>
               <% if event_item.artist_music_plays.exists? %>
-                <%= render partial: "layouts/artist_music_plays", locals: {artist_music_plays: event_item.artist_music_plays} %>
+                <%= render partial: "layouts/artist_music_plays", locals: {artist_music_plays: event_item.artist_music_plays, harami_vid: @harami_vid} %>
               <% end %>
             </li>
           <% end %>
