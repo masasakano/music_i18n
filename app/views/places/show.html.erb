@@ -45,55 +45,9 @@
 
 <hr>
 
-<h3><%= t(:Artists) %> (<%= @place.title_or_alt(prefer_shorter: true, lang_fallback_option: :either, str_fallback: "") %>)</h3>
+<h2><%= t(:Artists) %> (<%= @place.title_or_alt(prefer_shorter: true, lang_fallback_option: :either, str_fallback: "") %>)</h2>
 
-<table>
-  <thead>
-    <tr>
-      <th title="'*' indicates the original name">和名</th>
-      <th>別名</th>
-      <th title="'*' indicates the original name">英語名</th>
-      <th title="Birthday of the artist (person or group)">誕生日</th>
-      <% if can? :update, Sex %>
-        <th><%= link_to '性別', sexes_url %></th>
-      <% else %>
-        <th>性別</th>
-      <% end %>
-      <th><%= t("tables.note").capitalize %></th>
-      <% if can? :update, Artist %>
-        <th colspan="2" title="Show/Edit Artist">Action</th>
-      <% else %>
-        <th title="Show Artist">Action</th>
-      <% end %>
-    </tr>
-  </thead>
-
-  <tbody>
-    <% @place.artists.uniq.each do |artist| %>
-      <tr>
-        <% orig_lc = artist.orig_langcode %>
-        <td><%= (artist.title langcode: 'ja') || '' %><%= (orig_lc == 'ja') ? '*' : '' %></td>
-        <td><%= sprintf '%s [%s/%s]', *(%i(alt_title alt_ruby alt_romaji).map{|i| artist.send(i, langcode: 'ja') || ''}) %></td>
-        <td><%= tits = %i(title alt_title).map{|i| artist.send(i, langcode: 'en') || ''}; sprintf '%s%s [%s]', tits[0], ((orig_lc == 'en') ? '*' : ''), tits[2] %></td>
-        <td><%= sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
-                  i = artist.send m; (i.blank? ? '——' : i.to_s)}) %></td>
-        <td><%= artist.sex.title langcode: I18n.locale, lang_fallback: true %></td>
-        <td><%= artist.note %></td>
-        <td><%= link_to 'Show', artist %></td>
-        <% if can? :update, artist %>
-          <td><%= link_to 'Edit', edit_artist_path(artist) %></td>
-        <% end %>
-      </tr>
-    <% end %>
-  </tbody>
-</table>
-
-<% if false %>
-<% if can? :create, Artist %>
-  <%= button_to 'Artist追加', artists_path, method: :get, params: { a_token: nil, place_id: @place.id } %>
-<% end %>
-<% end %>
-
+  <%= render partial: 'layouts/artists_table', locals: {artists: @place.artists} %>
 
 <hr>
 

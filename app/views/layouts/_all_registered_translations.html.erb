@@ -1,4 +1,4 @@
-<%# local variables: model, (optional) title_kwd=(|name|title) %>
+<%# local variables: model, (optional) title_kwd=(|name|title), add_tra_button %>
   <%# for example, if title_kwd=="name", t('translations.table_head.Title_name') is used %>
 <% if !defined?(title_kwd)
      title_kwd = nil
@@ -14,13 +14,16 @@
   t_title     = t([prefix+"Title",    title_kwd].compact.join("_"), default: "Title")
   t_alt_title = t([prefix+"AltTitle", title_kwd].compact.join("_"), default: "AltTitle")
 %>
+<% add_tra_button = defined?(add_buttons) && add_buttons if add_tra_button.nil? %>
+
   <section id="sec_primary_trans">
 <h2><%= t("layouts.all_registered") %><%= t("layouts."+(defined?(myself) ? 'translations' : 'translated_names')) %></h2>
 
 <table id="all_registered_translations_<%= get_modelname(model) %>" class="all_registered_translations">
-  <% allcolspan = 6
+  <% allcolspan = 5
+     allcolspan += ((can_edit=can?(:edit, Translation)) ? 1 : 0)
      allcolspan += ((can_index=can?(:index, Translation)) ? 1 : 0)
-     action_colspan = ((can_show=can?(:show, Translation))  ? 1 : 0)
+     action_colspan = ((can_show=can?(:show, Translation))  ? 2 : 0)
      action_colspan += 1 if can?(:destroy, Translation)
      allcolspan += action_colspan
      increment1 =  ((can_crud=can?(:crud, Translation))  ? 1 : 0)  # showing a weight column
@@ -38,8 +41,8 @@
   <thead>
     <tr>
       <th></th>
-      <% if (can_edit=can?(:edit, Translation)) %>
-      <th title="<%= t('translations.show.is_orig') %>" class="editor_only"><%= t(prefix+'Is_orig') %></th>
+      <% if can_edit %>
+        <th title="<%= t('translations.show.is_orig') %>" class="editor_only"><%= t(prefix+'Is_orig') %></th>
       <% end %>
       <th class="border-end-0"><%= t_title %></th>
       <th class="border-start-0">[<%= t(prefix+'Ruby_romaji') %>]</th>
@@ -52,6 +55,7 @@
         <% if can_crud %>
           <th class="moderator_only">Weight</th>
         <% end %>
+        <th class="editor_only"><%= t("tables.note") %></th>
         <th colspan="<%= action_colspan %>" class="editor_only"></th> <%# action_colspan == 5 for moderators %>
       <% end %>
     </tr>
@@ -59,11 +63,13 @@
 
   <tbody>
   <% tra1 = model.translations.first %>
-  <% (%w(ja en)+model.translations.pluck(:langcode)).uniq.each do |lcode| %>
-    <% add_tra_button = defined?(add_buttons) && add_buttons if add_tra_button.nil? %>
+  <% all_lcodes = (%w(ja en fr)+model.translations.pluck(:langcode)).uniq %>
+  <% all_lcodes.each do |lcode| %>
     <% alltra = model.translations_with_lang(langcode: lcode) %>
     <% next if !%w(ja en).include?(lcode) && alltra.empty? %>
-    <tr><th colspan="<%= allcolspan %>" class="middle_row"><%= BaseWithTranslation::LANGUAGE_TITLES[lcode.to_sym][lcode] || lcode %>
+
+    <tr class="lang_banner_<%= lcode %>"><th colspan="<%= allcolspan %>" class="middle_row"><%= get_language_name(lcode) %> <%# defined in module_common.rb %>
+      <%= sprintf("(%s)", get_language_name(lcode, in_locale: I18n.locale)) if I18n.locale.to_s != lcode %>
       <% if add_tra_button && (tra1 && tra1.creatable_other?(user: current_user, langcode: lcode) || (!tra1 && can_destroy)) %>
         <%= button_to t('layouts.add_translation'), new_translation_path, form_class: "inline_form button_to", method: :get, params: { a_token: nil, langcode: lcode, translatable_type: model.class.name, translatable_id: model.id } %>
       <% end %>
@@ -85,18 +91,21 @@
       <% if can_crud %>
         <td class="align-r trans_weight moderator_only"><%= tra.weight%></td>
       <% end %>
+      <% if can_show %>
+        <td class="editor_only"><%= tra.note %></td>
+      <% end %>
       <% if defined?(myself) && tra == myself %>
         <td colspan="2" class="align-c trans_action editor_only" style="<%= (hsflag[:demotable] || hsflag[:promotable]) ? 'border-right-style: none;' : ''  %>"><strong>SELF</strong></td>  <%# Called from Translation-Edit %>
       <% else %>
         <% if can_show %>
           <td class="trans_action trans_show editor_only" style="border-right-style: none;"><%= link_to 'Show', tra %></td>
+          <% class2add = ((current_user && can?(:update, tra) && ![tra.create_user, tra.update_user].include?(current_user)) ? "moderator_only" : "editor_only") %>  <%# For one's own Translation (or not editable), it is for "editor_only", else "moderator_only" in order to prompt the user to be more careful %>
+          <td class="trans_action trans_edit <%= class2add %>" style="border-left-style: none;<%= (hsflag[:demotable] || hsflag[:promotable]) ? 'border-right-style: none;' : ''  %>">
+          <% if can? :update, tra %>
+            / <%= link_to 'Edit', edit_translation_path(tra) %>
+          <% end %>
+          </td>
         <% end %>
-        <% class2add = ((current_user && can?(:update, tra) && ![tra.create_user, tra.update_user].include?(current_user)) ? "moderator_only" : "editor_only") %>  <%# For one's own Translation (or not editable), it is for "editor_only", else "moderator_only" in order to prompt the user to be more careful %>
-        <td class="trans_action trans_edit <%= class2add %>" style="border-left-style: none;<%= (hsflag[:demotable] || hsflag[:promotable]) ? 'border-right-style: none;' : ''  %>">
-        <% if can? :update, tra %>
-          / <%= link_to 'Edit', edit_translation_path(tra) %>
-        <% end %>
-        </td>
       <% end %>
       <% if can_demote %>
         <td class="trans_action trans_demote moderator_only" style="border-left-style: none;<%= hsflag[:promotable] ? 'border-right-style: none;' : ''  %>">
@@ -126,5 +135,12 @@
   <% end %>
   </tbody>
 </table>
+<% if add_tra_button && can_edit && can?(:edit, model) %>
+<%= t("layouts.Other_language") %>:
+  <span class="lead">
+  <%= link_to t('layouts.add_translation'), new_translation_path(params: { a_token: nil, translatable_type: model.class.name, translatable_id: model.id }) %>
+  </span>
+<% end %>
+
   </section> <!-- section id="sec_primary_trans" -->
 

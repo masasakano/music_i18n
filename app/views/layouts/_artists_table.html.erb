@@ -1,0 +1,56 @@
+<%# local vars: artists %>
+
+<% can_update = can?(:update, Artist) %>
+
+<table>
+  <thead>
+    <tr>
+      <% if can_update %>
+        <th class="editor_only">pID</th>
+      <% end %>
+
+      <%= render partial: "layouts/thead_title_ja_alt_en", locals: {can_update: can_update} %>
+
+      <th title="Birthday of the artist (person or group)"><%= t('artists.show.birthday') %></th>
+      <th><%= can?(:update, Sex) ? link_to(t('tables.sex'), sexes_url) : t('tables.sex') %></th>
+      <th><%= t("tables.note").capitalize %></th>
+      <% if can_update %>
+        <th colspan="2" class="editor_only" title="Show/Edit Artist">Actions</th>
+      <% else %>
+        <th title="Show Artist"></th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% artists.uniq.each do |artist| %>
+      <tr>
+        <% if can_update %>
+          <td class="editor_only"><%= link_to artist.id, artist %></td>
+        <% end %>
+
+        <%= render partial: "layouts/tbody_title_ja_alt_en", locals: {model: artist, can_update: can_update} %>
+
+        <td><%= sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
+                  i = artist.send m; (i.blank? ? '——' : i.to_s)}) %></td>
+        <td><%= artist.sex.title langcode: I18n.locale, lang_fallback: true %></td>
+        <td><%= artist.note %></td>
+        <td><%= link_to t('tables.Show').capitalize, artist %></td>
+        <% if can_update %>
+          <td class="editor_only">
+            <% if can? :update, artist %>
+              <%= link_to 'Edit', edit_artist_path(artist) %>
+            <% end %>
+          </td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<% if false %>
+<% if can? :create, Artist %>
+  <%= button_to 'Artist追加', artists_path, method: :get, params: { a_token: nil, place_id: @place.id } %>
+<% end %>
+<% end %>
+

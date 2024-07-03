@@ -76,7 +76,7 @@
       <% if distinguished_artist %>
         <tr><th colspan="<%= allcolspan %>" class="text-center">For <%= (0 == i_rela) ? "this Artist" : "the other Artists" %></th></tr>
       <% end %>
-      <% rela.each_with_index do |amp, i_amp| %>
+      <% rela.uniq.each_with_index do |amp, i_amp| %>
         <tr>
          <% if canedit_hvid %>
           <td class="editor_only text-end"><%= amp.id %></td>

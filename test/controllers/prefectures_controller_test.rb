@@ -134,12 +134,7 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should show prefecture" do
-    # show is NOT activated for non-logged-in user (or non-editor?).
-    get prefecture_url(@prefecture)
-    assert_response :redirect
-    assert_redirected_to new_user_session_path
-
-    sign_in @editor
+    # show is activated even for non-logged-in users.
     get prefecture_url(@prefecture)
     assert_response :success
   end

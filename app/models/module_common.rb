@@ -129,6 +129,37 @@ module ModuleCommon
     end
   end
 
+  # returns a language name of the specified locale in a language
+  #
+  # @example
+  #   get_language_name("fr")  # Default: in_locale: :native
+  #     # => Français
+  #   get_language_name("fr", in_locale: "en")
+  #     # => French
+  #   get_language_name("eu")
+  #     # => "EU"  # (Basque language) if the name is not found, the upper-case locale is returned.
+  def get_language_name(langcode, in_locale: :native)
+    raise if langcode.blank?
+    display_locale = ((:native == in_locale) ? langcode : in_locale).to_s
+    btit = BaseWithTranslation::LANGUAGE_TITLES[display_locale]
+    if btit.blank? || btit[langcode].blank?
+      langcode_cap = langcode.to_s.upcase
+      begin
+        hs_lang = I18nData.languages(display_locale.upcase)
+      rescue I18nData::NoTranslationAvailable
+        logger.error "(#{File.basename __FILE__}:#{__method__}) Handled locale (#{langcode}) is not found in I18nData and so is most likely an invalid locale."
+        return langcode_cap
+      end
+      if hs_lang.present? && (ret=hs_lang[langcode_cap]).present?
+        ret.capitalize
+      else
+        langcode_cap
+      end
+    else
+      btit[langcode].capitalize
+    end
+  end
+
   # For model that has the method +place+. shorter-name is preferred (between title and alt_title).
   #
   # @return [String] "県 — 場所 (国)"

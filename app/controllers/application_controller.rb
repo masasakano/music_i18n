@@ -9,6 +9,7 @@ class ApplicationController < ActionController::Base
   ## Uncomment this (as well as the method at the bottom) to investigate problems related to params() and/or authenticate/Controller
   #before_action :debug_ctrl_print1
   before_action :authenticate_user!
+  # For public contents, use:  skip_before_action :authenticate_user!, :only => [:index, :show]  # Revert application_controller.rb so Index is viewable by anyone.
 
   before_action :configure_permitted_parameters, if: :devise_controller?
   before_action :set_paper_trail_whodunnit

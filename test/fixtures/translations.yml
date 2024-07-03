@@ -1606,6 +1606,19 @@ artist_proclaimers_en:
   update_user_id: 1
   note: ArtistProclaimersEn
 
+artist_psy_kr:
+  translatable: artist_psy (Artist)
+  langcode: ko
+  title: "Psy"
+  alt_title: "박재상"
+  ruby: サイ
+  alt_ruby: パク・チェサン
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: ArtistPsyKr
+
 artist_saki_kubota_ja:
   translatable: artist_saki_kubota
   translatable_type: Artist

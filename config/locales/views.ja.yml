@@ -29,6 +29,9 @@ ja:
     genre: 音楽種別
     wiki_ja: "Wikipedia日本語"
     wiki_en: "Wikipedia英語"
+    n_artists: "アーティストの数"
+    n_artists_short: "音楽家数"
+    n_artists_long: "登録アーティストの数"
     n_musics: 登録曲数
     n_harami_vids: 登録ハラミ動画数
     n_harami_vids_short: "動画数"
@@ -87,6 +90,8 @@ ja:
     editing_guideline: '編集方針'
     error_in_save: "%{errors} が出て%{model}の保存に失敗しました"
     new: 新規
+    Other_language: "他の言語"
+    Other_language_short: "他の言語"
     reset_button: "リセット (初期状態に戻す)"
     submit_button: '送信'
     Show: "詳細"
@@ -276,6 +281,16 @@ ja:
   musics:
     show:
       year_unknown: 年不明
+
+  prefectures:
+    show:
+      h2_artists: "この県・州出身のアーティスト"
+      n_artists_long: "この県・州出身のアーティスト数"
+      n_musics_long: "この県・州の(からリリースされた)曲"
+      places_in_prefecture: "この県・州 (%{this_pref}) 内の場所"
+      events_in_prefecture: "この県・州 (%{this_pref}) 内の登録イベント"
+      N_Musics: "登録楽曲数"
+      N_Artists: "出身音楽家数"
 
   engage_multi_hows:
     index:

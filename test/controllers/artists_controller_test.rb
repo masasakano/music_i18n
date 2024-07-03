@@ -33,6 +33,14 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     w3c_validate "Artist show"  # defined in test_helper.rb (see for debugging help)
     #refute css_select('div.link-edit-destroy a')[0].text.include? "Edit"
 
+    artist_psy = artists(:artist_psy)
+    get artist_url(artist_psy)
+    assert_response :success
+    css_str = 'table.all_registered_translations tr.lang_banner_ko'
+    css = css_select(css_str)
+    assert_equal 1, css.size
+    assert_includes css_select(css_str+" th")[0].text, "한국어"
+
     sign_in @editor
 
     # tests of display of wiki

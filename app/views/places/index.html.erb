@@ -15,6 +15,7 @@
       <th>Prefecture</th>
       <th>Country</th>
       <th title="<%= t("tables.n_harami_vids_long") %>"><%= t("tables.n_harami_vids_short") %></th>
+      <th title="<%= t("tables.n_artists_long") %>"><%= t("tables.n_artists_short") %></th>
       <th>Note</th>
       <th colspan="3"></th>
     </tr>
@@ -33,6 +34,7 @@
         <td><%= link_to place.prefecture.title_or_alt(prefer_alt: true, langcode: I18n.locale, lang_fallback_option: :either), prefecture_path(place.prefecture_id) %></td>
         <td><%= link_to place.country.title_or_alt(prefer_alt: true, langcode: I18n.locale, lang_fallback_option: :either), country_path(place.country) %></td>
         <td class="text-end"><%= place.harami_vids.count %></td>
+        <td class="text-end"><%= place.artists.count %></td>
         <td><%= place.note %></td>
         <td><%= link_to 'Show', place %></td>
         <td><%= link_to 'Edit', edit_place_path(place) %></td>

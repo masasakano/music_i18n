@@ -69,6 +69,10 @@ class ArtistsGrid < BaseGrid
     html_title_alts(record, is_orig_char: "*")  # defined in base_grid.rb
   end
 
+  column(:other_lang, header: Proc.new{I18n.t('layouts.Other_language_short')}) do |record|
+    titles_other_langs(record, is_orig_char: "*")  # defined in base_grid.rb
+  end
+
   column(:sex, class: ["text-center"], mandatory: true, header: Proc.new{I18n.t('tables.sex')}) do |record|
     record.sex.title(langcode: I18n.locale)
   end

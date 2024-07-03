@@ -50,6 +50,7 @@ class Ability
     can :read, [EventGroup, Event]
     #can :read, :all   # permissions for every user, even if not logged in
     #can :read, [Artist, Music, Country, Prefecture, Place, Genre]
+    can :show, Prefecture
 
     #return if !user.present?  # additional permissions for logged in users (they can manage their posts)
     return if !user_defined  # additional permissions for logged in users (they can manage their posts)
@@ -195,7 +196,7 @@ class Ability
       #can(:update, Country)  # There is nothing (but note) to update in Country as the ISO-numbers are definite. Translation for Country is a different story, though.
       cannot :manage_prefecture_jp, Prefecture  # cannot edit Country in Prefecture to Japan
       cannot(:ud, [Prefecture]){|i| i.country == Country['JPN']}
-      cannot(:ud, [BaseWithTranslation]){|i| i.respond_to?(:unknown?) && i.unknown?} # Artist, Music, Place, Genre, EngageHow, Instrument, Channel
+      cannot(:ud, [BaseWithTranslation]){|i| i.respond_to?(:unknown?) && i.unknown?} # Artist, Music, Prefecture, Place, Genre, EngageHow, Instrument, Channel
       cannot(:ud, [Translation]){|trans| (!(base=trans.translatable) && trans.create_user_id != user.id && trans.update_user_id != user.id) ||
                                            (base && base.respond_to?(:unknown?) && base.unknown?)} # non-admin cannot edit Translation for +X.unknown+; this is necessary because anything with is_orig=true is usually editable by Translators.
       cannot(:ud, [Translation]){|trans| (base=trans.translatable) && base.respond_to?(:themselves) && base.themselves } # (except for an admin) Cannot edit Translation of ChannelOwner#themselves==true because its Tranlation-s are equivalent to sym-link to the ChannelOwner#artist Translation-s.

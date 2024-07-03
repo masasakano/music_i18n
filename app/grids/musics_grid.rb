@@ -57,6 +57,10 @@ class MusicsGrid < BaseGrid
     html_title_alts(record, is_orig_char: "*")  # defined in base_grid.rb
   end
 
+  column(:other_lang, header: Proc.new{I18n.t('layouts.Other_language_short')}) do |record|
+    titles_other_langs(record, is_orig_char: "*")  # defined in base_grid.rb
+  end
+
   column(:year, class: ["align-cr"], header: Proc.new{I18n.t('tables.year')}, mandatory: true)
 
   column(:genre, header: Proc.new{I18n.t('tables.genre')}) do |record|

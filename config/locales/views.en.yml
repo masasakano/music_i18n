@@ -29,6 +29,9 @@ en:
     genre: Genre
     wiki_ja: "Wikipedia (Ja)"
     wiki_en: "Wikipedia (En)"
+    n_artists: "# of Artists"
+    n_artists_short: "#Artists"
+    n_artists_long: "Number of registered Artists"
     n_musics: "# of Musics"
     n_harami_vids: "# of HaramiVids"
     n_harami_vids_short: "#Vids"
@@ -87,6 +90,8 @@ en:
     editing_guideline: 'Editing Guideline'
     error_in_save: "%{errors} prohibited this %{model} from being saved"
     new: new
+    Other_language: "Other language"
+    Other_language_short: "Other lang."
     reset_button: "Reset (Start Over)"
     submit_button: 'Submit'
     Show: "Detail"
@@ -267,6 +272,17 @@ en:
       assoc_engage: "with another Artist for %{music_title}."
     table_head:
       how_related: How related
+
+  prefectures:
+    show:
+      h2_artists: "Artists from this Prefecture"
+      n_artists_long: Number of Artists from this Prefecture
+      n_musics_long: Number of Musics from or released in this Prefecture
+      places_in_prefecture: "Registered Places in Prefecture %{this_pref}"
+      places_in_prefecture: "Registered Places in Prefecture %{this_pref}"
+      events_in_prefecture: "Registered Events in Prefecture %{this_pref}"
+      N_Musics: "#Musics"
+      N_Artists: "#Artists"
 
   translations:
     table_head:

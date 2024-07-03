@@ -238,6 +238,9 @@ class BaseGrid
 
   # Returns the multi-HTML-line text to list (maybe all) Englisht translations of title and alt_title
   #
+  # See also +best_translation_with_asterisk+ in application_helper.rb
+  # (TODO: The core of this routine should utilize it!)
+  #
   # @param record [BaseWithTranslation]
   # @param col [Symbol, String] Column name in {Translation} DB (usually :title or :alt_title)
   # @param langcode [String, Symbol, NilClass] Def: "en". if nil, the same as the entry of is_orig==TRUE
@@ -267,6 +270,30 @@ class BaseGrid
     artit2.map{|earow|
       s = sprintf('%s [%s]', *(earow.map{|i| i ? i : ''}))
       s.sub(%r@ +\[\]\z@, '')   # If NULL, nothing is displayed.
+    }.join("<br>").html_safe
+  end
+
+  # Returns the multi-HTML-line text to list translations of title (or alt_title) in other languages than En/Ja
+  #
+  # is_orig_char is ALWAYS displayed!
+  #
+  # @return [String] html_safe-ed
+  def self.titles_other_langs(record, is_orig_char: "*")
+    hs_best_trans = record.best_translations.except("ja", "en")
+    orig_langcode = record.orig_langcode
+    best_trans = hs_best_trans.values.sort{|a, b|
+      if    orig_langcode == a.langcode
+        -1
+      elsif orig_langcode == b.langcode
+        1
+      else
+        0
+      end
+    }.map{|etrans|
+      tit = etrans.title
+      tit = etrans.alt_title if tit.blank?
+      marker = %q[<span title="]+ERB::Util.html_escape(I18n.t("datagrid.footnote.is_original"))+%q[">]+ERB::Util.html_escape(is_orig_char)+"</span>" if (orig_langcode == etrans.langcode)  # The asterisk (*) is displayed even for non-autheticated users, unlike JA/EN titles.
+      ERB::Util.html_escape(sprintf("[%s] %s", etrans.langcode, tit)) + (marker ? marker.html_safe : "")
     }.join("<br>").html_safe
   end
 

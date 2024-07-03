@@ -41,6 +41,14 @@ class TranslationsController < ApplicationController
     hsparam = convert_params_bool(hsparam, :is_orig)  # is_orig can be nil, e.g., a general noun like car/voiture
     @translation = Translation.new hsparam
     # @translation = Translation.new(translation_params)
+    if @translation.langcode.present? && 2 == @translation.langcode.size
+      begin
+        I18nData.languages(@translation.langcode.upcase)
+      rescue I18nData::NoTranslationAvailable
+        flash[:warning] ||= []
+        flash[:warning] << "The specified locale #{@translation.langcode} looks invalid."
+      end
+    end
 
     def_respond_to_format(@translation)  # defined in application_controller.rb
     #    # format.html { redirect_back fallback_location: translations_url, success: 'Translation was successfully created.' }
@@ -57,7 +65,9 @@ class TranslationsController < ApplicationController
     respond_to do |format|
       if @translation.update(hsparam)
         ########################## redirect_back???  # So far, the following is the same as def_respond_to_format() in application_controller.rb
-        format.html { redirect_to @translation, success: 'Translation was successfully updated.' }
+        hskwds = {success: 'Translation was successfully updated.'}
+        hskwds[:warning] = flash[:warning] if flash[:warning].present?
+        format.html { redirect_to @translation, **hskwds}
         format.json { render :show, status: :ok, location: @translation }
       else
         format.html { render :edit, status: :unprocessable_entity }

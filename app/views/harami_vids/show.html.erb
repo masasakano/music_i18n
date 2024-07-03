@@ -69,9 +69,9 @@
   <%# button_to 'Edit another HaramiVid', "#", method: :get, id: "href_edit_harami_vid_with_ref", form_css: "inline_form" %>
 
 <hr>
-<%= render partial: 'other_harami_vids_table', locals: {harami_vid: @harami_vid} %>
-<hr>
 <%= render partial: 'music_table', locals: {harami_vid: @harami_vid, add_buttons: true} %>
+<hr>
+<%= render partial: 'other_harami_vids_table', locals: {harami_vid: @harami_vid} %>
 <% if can? :read, Harami1129 %>
  <div class="editor_only">
   <hr>

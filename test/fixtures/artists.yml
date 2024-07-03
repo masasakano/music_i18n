@@ -127,6 +127,12 @@ artist_proclaimers:
   place: unknown_place_unknown_prefecture_uk
   note: Artist-The-Proclaimers
 
+artist_psy:
+  sex_id: 1
+  birth_year: 1977
+  place: unknown_place_unknown_prefecture_world
+  note: Artist-Psy
+
 artist_zombies:
   sex_id: 9
   birth_year: 

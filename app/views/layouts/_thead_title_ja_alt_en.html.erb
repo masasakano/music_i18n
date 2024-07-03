@@ -1,0 +1,6 @@
+<%# local vars: can_update %>
+
+  <% title_txt = (can_update ? %q@ title="'*' indicates the original name"@.html_safe : "") %>
+  <th<%= title_txt %>><%= t('tables.title_ja') %></th>
+  <th><%= t('tables.alt_title_ja') %></th>
+  <th<%= title_txt %>><%= t('tables.title_en') %> [<%= t('tables.alt_titles_name') %>]</th>

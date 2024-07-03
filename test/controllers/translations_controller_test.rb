@@ -162,6 +162,9 @@ if false
     sign_in @translator
     get translation_url(@translation_ja)
     assert_response :success
+
+    get translation_url(translations(:artist_psy_kr))
+    assert_response :success
   end
 
   test "should fail to get edit" do

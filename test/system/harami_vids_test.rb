@@ -251,7 +251,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_equal sec2hms_or_ms(hvma2.timing), trs[0].find('a').text
     assert_raises(Capybara::ElementNotFound){
       trs[0].find('form') }
-    assert_equal "00:00", trs[1].find('a').text  # Even when timing is nil, a significant text is displayed so that <a> tag is valid.
+    assert_equal "0", trs[1].find('a').text  # When timing is nil, a significant text (of "0" as opposed to "00:00") is displayed so that <a> tag is valid.
 
     # HaramiEditor
     visit new_user_session_path

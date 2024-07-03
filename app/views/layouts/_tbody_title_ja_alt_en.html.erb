@@ -1,0 +1,10 @@
+<%# local vars: model, can_update %>
+
+  <% tit_ja = best_translation_with_asterisk(model, is_orig_char: (can_update ? "*" : nil), langcode: "ja", lang_fallback: false, str_fallback: "") %> <%# defined in application_helper.rb %>
+  <td><%= tit_ja %></td>
+  <td><%= model.alt_title(langcode: 'ja', lang_fallback: false, str_fallback: "") %></td>
+  <% tit_en = best_translation_with_asterisk(model, is_orig_char: (can_update ? "*" : nil), langcode: "en", lang_fallback: true, str_fallback: "") %>
+  <% tit_en = sprintf("<em>[%s]</em> %s", tit_en.lcode, tit_en).html_safe if "en" != tit_en.lcode %>
+  <td><%= tit_en %>
+      <%= bracket_or_empty("[%s]", model.alt_title(langcode: 'en', lang_fallback: false, str_fallback: ""), can_update) %></td> <%# defined in application_helper.rb %>
+

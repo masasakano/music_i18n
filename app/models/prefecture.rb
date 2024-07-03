@@ -47,6 +47,8 @@ class Prefecture < BaseWithTranslation
   has_many :artists,     through: :places, dependent: :restrict_with_exception # as per place.rb
   has_many :musics,      through: :places, dependent: :restrict_with_exception # as per place.rb
   has_many :harami_vids, through: :places
+  has_many :events,      through: :places
+
   validates_uniqueness_of :iso3166_loc_code, allow_nil: true
 
   # If true, children Places are cascade-destroyed.  Otherwise, self is not

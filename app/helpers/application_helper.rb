@@ -41,6 +41,70 @@ module ApplicationHelper
     sprintf "%#{maxlength}.#{maxlength-length_int-1}", num_s
   end
 
+  # Returns a HTML-safe title string followed by a marker if it is orig_langcode
+  #
+  # See self.html_titles in /app/grids/base_grid.rb
+  #
+  # This accepts an optional block which should return an Boolean to judge
+  # if the marker is appended (true) or not (false).  The reason it is a block
+  # is just because of run-time efficiency (in Grids).
+  #
+  # The returned String has a singleton method "lcode", as long as a proper title
+  # or alike is returned (i.e., it is not defined when str_fallback is used
+  # in {BaseWithTranslation#title} after all).
+  #
+  # @example unconditionally marking with an asterisk
+  #   s = best_translation_with_asterisk(Artist.second, is_orig_char: "*", langcode: "ja", lang_fallback: true, str_fallback: "")
+  #     # => s == 'Queen<span title="Original language">*</span>'  # (HTML-safe)
+  #     #    s.lcode == "en"
+  #
+  # @example conditionally marking with an asterisk
+  #   best_translation_with_asterisk(Artist.second, is_orig_char: (can?(:edit, Artist) ? "*" : nil), langcode: "ja", lang_fallback: false)
+  #
+  # @example conditionally marking with an asterisk with a block
+  #   best_translation_with_asterisk(record, is_orig_char: "*", langcode: "ja", lang_fallback: false){|lcode| can?(:edit, record)}
+  #
+  # @param record [BaseWithTranslation]
+  # @param is_orig_char [String, NilClass] Unless nil, title in a language of is_orig is followed by this char (Def: nil). See also yield.
+  # @param kwds [Hash] passed to {BaseWithTranslation#title}
+  # @return [String] html_safe-ed
+  # @yield [String] The locale String is given as an argument, and the block should return a Boolean.
+  #   The block is not called unless i_orig_char is significant AND the returned String is the orig_langcode one.
+  #   If a block is not given, it is assumed "true" is returned.
+  def best_translation_with_asterisk(record, is_orig_char: nil, **kwds)
+    tit = record.title(**kwds)
+
+    ret = (tit.present? ? h(tit) : "")
+    set_singleton_method_val(:lcode, tit.lcode, target: ret) if tit.respond_to?(:lcode)  # Define Singleton method String#lcode # defined in module_common.rb
+    return ret if ret.blank?
+
+    marker = %q[<span title="]+h(I18n.t("datagrid.footnote.is_original"))+%q[">]+h(is_orig_char)+%q[</span>] if is_orig_char && ret.present? && (record.orig_langcode == tit.lcode) && (!block_given? || yield(tit.lcode))
+    ret << marker.html_safe if marker
+    ret.html_safe
+    ret
+  end
+
+  # Helper method to return a String with a bracket or empty
+  #
+  # For Editors only, even an empty "[]" is printed to let them know
+  # the data are blank, while the empty one is not displayed for
+  # general visitors.
+  # 
+  # @param fmt [String] sprintf format
+  # @param prms [String, Array<String>]
+  # @param is_editor [Boolean]
+  # @return [String] html_safe unless blank
+  def bracket_or_empty(fmt, prms, is_editor)
+    prms = [prms].flatten
+    if prms.any?(:present?)
+      sprintf(fmt, *(prms.map{|i| i ? h(i) : ""})).html_safe
+    elsif is_editor
+      ('<span class="editor_only">'+h(sprintf(fmt, *prms))+'</span>').html_safe
+    else
+      ""
+    end
+  end
+
   # Returns String "01:23:45" or "23:45" from second
   #
   # @param sec  [Integer, NilClass]

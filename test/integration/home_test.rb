@@ -25,7 +25,7 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     user = users(:user_editor) # Harami editor (not translator)
     _can_view_core(user)
     csssel = css_select('div#navbar_upper_user')
-    assert_includes csssel[0].text, 'Places'
+    assert_includes csssel[0].text, 'Prefectures'
     assert_includes csssel[0].text, 'Channels'
     assert_not_includes csssel[0].text, 'Translations'
     assert_not_includes csssel[0].text, 'Users'
@@ -37,7 +37,7 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     _can_view_core(user)
     csssel = css_select('div#navbar_upper_user')
     assert_includes csssel[0].text, 'EventGroups'
-    assert_includes csssel[0].text, 'Places'
+    assert_includes csssel[0].text, 'Prefectures'
     assert_includes csssel[0].text, 'Channels'
     assert_includes csssel[0].text, 'Harami1129s'
     assert_includes csssel[0].text, 'Others'  # from v.0.17.1
@@ -50,7 +50,7 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     user = users(:user_moderator_translation) # Harami moderator (not translator)
     _can_view_core(user)
     csssel = css_select('div#navbar_upper_user')
-    assert_includes csssel[0].text, 'Places'
+    assert_includes csssel[0].text, 'Prefectures'
     # assert_not_includes csssel[0].text, 'HaramiVids'  ############## This should be the case. Check it out!
     assert_not_includes csssel[0].text, 'Harami1129s'
     assert_includes csssel[0].text, 'Translations'
@@ -66,7 +66,7 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     assert_includes csssel[0].text, 'Admin' # Admin_panel
     csssel = css_select('div#navbar_upper_user')
     assert_includes csssel[0].text, 'EventGroups'
-    assert_includes csssel[0].text, 'Places'
+    assert_includes csssel[0].text, 'Prefectures'
     assert_includes csssel[0].text, 'Channels'
     assert_includes csssel[0].text, 'Harami1129s'
     assert_includes csssel[0].text, 'Translations'

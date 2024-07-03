@@ -76,6 +76,7 @@ ul.ui-autocomplete {
 h1 {
   min-margin-left: 0;
   margin-left: 0.3em;
+  padding-top: 0.2em;
 }
 
 div#error_explanation {
@@ -299,6 +300,26 @@ div#navbar_top {
       color: #9999ff;
   }
   text-align: right;
+}
+
+div#navbar_upper_user {
+  padding-bottom: -1em;
+  margin-bottom: 0em;
+}
+
+nav.navbar-expand-lg.navbar-dark {
+  padding-bottom: 0em;  /* to minimise the nav-bar height */
+}
+
+a.navbar-brand {
+  margin-top: -1.3em;
+  margin-bottom: 0em;
+}
+
+div#navbarColor02 {
+  margin-top: -1.4em;
+  padding-bottom: -1em;
+  margin-bottom: 0em;
 }
 
 p#footer_login {

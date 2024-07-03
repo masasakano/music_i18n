@@ -1,0 +1,58 @@
+<%# local vars: events, (optional) hide_prefecture %>
+<%
+  if !defined? hide_prefecture
+    hide_prefecture = false
+  end
+%>
+
+<table id="table_event_group_show_events">
+  <thead>
+    <tr>
+      <% can_create_event = can?(:create, Event) %>
+      <th<%= ' class="editor_only"'.html_safe if can_create_event %>><%= can_create_event ? "ID" : "" %></th>
+      <th><%= t(:title).capitalize %></th>
+      <th><%= t("tables.start_time") %></th>
+      <th><%= t("tables.duration_hour") %></th>
+      <th><%= t(:Place) %></th>
+      <th title="<%= t("events.n_event_items_long") %>"><%= t("events.n_event_items_short") %></th>
+      <th title="<%= t("tables.n_harami_vids") %>"><%= t("tables.n_harami_vids_short") %></th>
+     <% if can_create_event %>
+      <th class="editor_only" title="Note in this DB"><%= t("tables.note") %></th>
+     <% end %>
+      <% if can_create_event %>
+        <th colspan="3"></th>
+      <% else %>
+        <th></th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% events.order("events.start_time" => :desc).distinct.distinct.each_with_index do |event, i_event| %>
+      <tr>
+        <td<%= ' class="editor_only"'.html_safe if can_create_event %>><%= can_create_event ? link_to(event.id, event) : i_event %></td>
+        <td><%= link_to event.title_or_alt(langcode: I18n.locale), event_url(event) %></td>
+        <td><%= event.string_time_err2uptomin %></td>
+        <td><%= event.duration_hour %></td>
+        <td><%= event.place ? (hide_prefecture ? link_to(event.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true), event.place) : event.txt_place_pref_ctry) : "" %></td>
+        <td class="text-end"><%= event.event_items.count %></td>
+        <td class="text-end"><%= event.harami_vids.count %></td>
+     <% if can_create_event %>
+        <td class="editor_only"><%= event.note %></td>
+     <% end %>
+        <td class="actions"><%= link_to t("tables.Show"), event %></td>
+        <% if can? :update, event  %>
+          <td class="actions editor_only"><%= link_to 'Edit', edit_event_path(event) %></td>
+         <% if can?(:destroy, event) && event.destroyable? %>
+          <td class="actions editor_only"><%= link_to 'Destroy', event, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+         <% elsif can_create_event %>
+          <td class="actions editor_only"></td>
+         <% end %>
+        <% elsif can_create_event %>
+          <td colspan="2" class="actions editor_only"></td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+

@@ -1988,6 +1988,11 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     #end
   end # test "merge_other artist trans-engage01" do
 
+  test "other langs" do
+    art = artists(:artist_psy)
+    assert art.best_translations.keys.include?("kr")
+  end
+
   private
 
   # Prepare Array of Harami1129

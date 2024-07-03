@@ -21,6 +21,7 @@
       <th>Start date</th>
       <th>End date</th>
       <th title="<%= t("tables.n_harami_vids_long") %>"><%= t("tables.n_harami_vids_short") %></th>
+      <th title="<%= t("tables.n_artists_long") %>"><%= t("tables.n_artists_short") %></th>
       <th>Note</th>
      <% colspan = (canedit ? 3 : 1) %>
       <th colspan="<%= colspan %>">Action</th>
@@ -45,6 +46,7 @@
         <td><%= model.start_date %></td>
         <td><%= model.end_date %></td>
         <td class="text-end"><%= model.harami_vids.count %></td>
+        <td class="text-end"><%= model.artists.count %></td>
         <td><%= model.note %></td>
         <td><%= link_to 'Show', model %></td>
        <% if canedit %>

@@ -1,7 +1,8 @@
 class PrefecturesController < ApplicationController
+  skip_before_action :authenticate_user!, :only => [:show]  # Revert application_controller.rb so Show is viewable by anyone. (but not Index so far...)
   before_action :set_prefecture, only: [:show, :edit, :update, :destroy]
   before_action :set_cp_all, only: [:index, :new, :edit, :create, :update]
-  load_and_authorize_resource
+  load_and_authorize_resource except: [:show]
 
   # String of the main parameters in the Form (except place-related)
   MAIN_FORM_KEYS = %w(note)

@@ -214,6 +214,8 @@ class Translation < ApplicationRecord
   # NOTE: PostgreSQL does not validate the values when one of any values (whether
   #   existing or new) is null.  But Rails does.
 
+  validates :langcode, presence: true, length: {is: 2}
+
   validate :asian_char_validator
   validates_with OneSignificanceValidator, fields: TRANSLATED_KEYS
   validates_with UniqueCombiValidator

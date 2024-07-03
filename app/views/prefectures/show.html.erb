@@ -7,23 +7,37 @@
 <hr>
 
 <dl>
-  <% if current_user && current_user.moderator? %>
-    <dt>ID (Prefecture)</dt>
-    <dd> <%= @prefecture.id %></dd>
+  <% if (canedit=can?(:edit, Prefecture)) %>
+    <div class="editor_only">
+      <dt>ID (Prefecture)</dt>
+      <dd> <%= @prefecture.id %></dd>
+    </div>
   <% end %>
-  <dt><strong>Country:</strong></dt>
+  <dt><strong><%= t(:Country) %>:</strong></dt>
   <dd><%= link_to country_name, country_path(@prefecture.country_id) %></dd>
 
   <dt>start_date</dt>
   <dd> <%= @prefecture.start_date %></dd>
   <dt>end_date</dt>
   <dd> <%= @prefecture.end_date %></dd>
-  <dt>iso3166_loc_code (ISO 3166-2:JP (etc) code (JIS X 0401:1973))</dt>
-  <dd> <%= @prefecture.iso3166_loc_code %></dd>
-  <dt>orig_note (Remarks by HirMtsd)</dt>
-  <dd> <%= @prefecture.orig_note %></dd>
+  <% if canedit %>
+    <div class="editor_only">
+      <dt>iso3166_loc_code (ISO 3166-2:JP (etc) code (JIS X 0401:1973))</dt>
+      <dd> <%= @prefecture.iso3166_loc_code %></dd>
+      <dt>orig_note (Remarks by HirMtsd)</dt>
+      <dd> <%= @prefecture.orig_note %></dd>
+    </div>
+  <% end %>
   <dt><%= t("tables.n_harami_vids_long") %></dt>
   <dd><%= @prefecture.harami_vids.count.to_s %></dd>
+  <dt><%= t(".n_artists_long") %></dt>
+  <dd><%= @prefecture.artists.count.to_s %></dd>
+  <% if canedit  %>
+    <div class="editor_only">
+      <dt><%= t(".n_musics_long") %></dt>
+      <dd> <%= @prefecture.musics.count.to_s %></dd>
+    </div>
+  <% end %>
   <dt><%= t("tables.note").capitalize %></dt>
   <dd><%= @prefecture.note %></dd>
 </dl>
@@ -32,26 +46,35 @@
 <% if can? :update, @prefecture %>
   <%= link_to 'Edit', edit_prefecture_path(@prefecture) %> |
 <% end %>
-<%= link_to 'Back to Index', prefectures_path %>
+<%= link_to t('layouts.back_to_index'), prefectures_path %>
 </p>
 
 <hr>
 
-<h2>Places in Prefecture <%= my_title %></h2>
+<h2><%= t(".places_in_prefecture", this_pref: my_title) %></h2>
+
+<% canshow_pla = can?(:show, Place) %>
+<% canedit_pla = can?(:edit, Place) %>
 
 <table id="places_in_prefecture">
   <thead>
     <tr>
-      <th>和名</th>
-      <th>別名</th>
-      <th>英語名 [別名]</th>
-      <th>N_Musics</th>
-      <th>N_Artists</th>
+      <% if canedit_pla %>
+        <th class="editor_only">pID</th>
+      <% end %>
+
+      <%= render partial: "layouts/thead_title_ja_alt_en", locals: {can_update: canedit_pla} %>
+
+      <th><%= t(".N_Artists") %></th>
+      <% if canedit_pla  %>
+        <th class="editor_only"><%= t(".N_Musics") %></th>
+      <% end %>
       <th title="<%= t("tables.n_harami_vids_long") %>"><%= t("tables.n_harami_vids_short") %></th>
-      <th>Note</th>
-      <% if can? :edit, Place %>
-        <th colspan="2">Action</th>
-      <% else %>
+      <th><%= t("tables.note").capitalize %></th>
+
+      <% if canedit_pla %>
+        <th colspan="2" class="editor_only">Action</th>
+      <% elsif canshow_pla %>
         <th>Action</th>
       <% end %>
     </tr>
@@ -60,16 +83,25 @@
   <tbody>
     <% (@places || @prefecture.places).uniq.each do |place| %>
       <tr>
-        <td><%= (place.title langcode: 'ja') || '' %></td>
-        <td><%= sprintf '%s', (place.alt_title(langcode: 'ja') || '') %></td>
-        <td><%= sprintf '%s [%s]', *(%i(title alt_title).map{|i| place.send(i, langcode: 'en') || ''}) %></td>
-        <td><%= place.musics.count.to_s %></td>
+        <% if canedit_pla %>
+          <td class="editor_only"><%= link_to place.id, place %></td>
+        <% end %>
+
+        <%= render partial: "layouts/tbody_title_ja_alt_en", locals: {model: place, can_update: canedit_pla} %>
+
         <td><%= place.artists.count.to_s %></td>
+      <% if canedit_pla  %>
+        <td class="editor_only"><%= place.musics.count.to_s %></td>
+      <% end %>
         <td class="text-end"><%= place.harami_vids.count.to_s %></td>
         <td><%= place.note %></td>
-        <td><%= link_to 'Show', place %></td>
+      <% if (canshow_pla) %>
+        <td><%= link_to t("tables.Show"), place %></td>
+      <% end %>
         <% if can? :update, place %>
-          <td><%= link_to 'Edit', edit_place_path(place) %></td>
+          <td class="editor_only"><%= link_to 'Edit', edit_place_path(place) %></td>
+        <% elsif canshow_pla %>
+          <td class="editor_only"></td>
         <% end %>
       </tr>
     <% end %>
@@ -82,15 +114,31 @@
 <% end %>
 
 <p>
-<%= link_to 'Back to Index', prefectures_path %>
+<%= link_to t('layouts.back_to_index'), prefectures_path %>
 </p>
 
 <hr>
 
+<section id="section_event_table">
+
+<h2><%= t(".events_in_prefecture", this_pref: my_title) %></h2>
+
+<%= render partial: "layouts/events_index", locals: {events: @prefecture.events, hide_prefecture: true} %>
+</section> <!-- section id="section_event_table" -->
+
+<hr>
+
 <section id="harami_vid_table">
-<h3><%= t("show.h2_harami_vid") %></h3>
+<h2><%= t("show.h2_harami_vid") %></h2>
 
   <%= render partial: 'layouts/harami_vids_index', locals: {harami_vids: @prefecture.harami_vids.order("harami_vids.release_date" => :desc).distinct, music: nil, with_place: true} %>
 </section>
 
+<hr>
+
+<section id="artist_table">
+<h2><%= t(".h2_artists") %></h2>
+
+  <%= render partial: 'layouts/artists_table', locals: {artists: @prefecture.artists} %>
+</section>
 
