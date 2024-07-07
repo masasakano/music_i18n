@@ -21,6 +21,26 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_equal "en", tit.lcode
     assert_equal "en", music.title(langcode: "en").lcode
 
+    sex = Sex[1]  # male  # Below, modifying some parameters for testing.
+    best_transs = sex.best_translations
+    best_transs['ja'].update!(is_orig: true)
+    best_transs['en'].update!(is_orig: false)
+    if !best_transs.has_key?('fr')
+      sex.translations << Translation.new(title: "homme", langcode: "fr", is_orig: false, weight: 100)
+    end
+    sex.translations.reset
+    best_transs = sex.best_translations
+    best_transs['fr'].update!(is_orig: false)
+    assert_equal 3, best_transs.size  # %w(ja en fr)
+    assert_equal 2, sex.best_translations(except: "ja").size
+    assert_equal 1, sex.best_translations(except: %i(ja en)).size
+    assert_nil                            sex.title(langcode: "de", lang_fallback: false, str_fallback: nil)
+    assert_equal best_transs['ja'].title, sex.title(langcode: "de", lang_fallback: true)
+    assert_equal 'ja',                    sex.title(langcode: "de", lang_fallback: true).lcode
+    ar_title = best_transs.slice('en', 'fr').values.map(&:title)
+    assert_includes ar_title,             sex.title(langcode: "de", lang_fallback: true, fallback_except: 'ja')
+    assert_includes ['en', 'fr'],         sex.title(langcode: "de", lang_fallback: true, fallback_except: 'ja').lcode
+
     # {#titles} are separately implemented.
     assert_empty music.titles(langcode: "fr", lang_fallback_option: :never, str_fallback: nil).compact
     assert_empty music.titles(langcode: "fr", lang_fallback_option: :never).compact  # Default for lang_fallback
@@ -1990,7 +2010,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
 
   test "other langs" do
     art = artists(:artist_psy)
-    assert art.best_translations.keys.include?("kr")
+    assert art.best_translations.keys.include?("ko")
   end
 
   private

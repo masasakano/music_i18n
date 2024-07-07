@@ -2241,9 +2241,10 @@ class BaseWithTranslation < ApplicationRecord
   # @param lang_fallback: [Boolean] if true (Def), when no translation is found
   #    for the specified language, that of another language is returned
   #    unless none exists.
-  # @param str_fallback [String, NilClass] Returned Object (String or nil) in case no "a title" is found.
+  # @param str_fallback: [String, NilClass] Returned Object (String or nil) in case no "a title" is found.
+  # @param fallback_except: [NilClass, String, Symbol, Array<String, Symbol>] If non-nil, in running fallback, this langcode(s) are ignored.
   # @return [String, NilClass] nil if there are no translations for the langcode
-  def get_a_title(method, langcode: nil, lang_fallback: true, str_fallback: nil)
+  def get_a_title(method, langcode: nil, lang_fallback: true, str_fallback: nil, fallback_except: nil)
     ret = (translations_with_lang(langcode)[0].public_send(method) rescue nil)
     if ret
       set_singleton_method_val(:lcode, langcode, target: ret) # Define Singleton method String#lcode # defined in module_common.rb
@@ -2252,7 +2253,7 @@ class BaseWithTranslation < ApplicationRecord
     return str_fallback if !lang_fallback
 
     ## Falback after no translations are found for the specified language.
-    hstrans = best_translations
+    hstrans = best_translations(except: fallback_except)
     hstrans.each_pair do |ek, ev|
       ret = ev.public_send(method)
       if !ret.blank?
@@ -2623,10 +2624,13 @@ class BaseWithTranslation < ApplicationRecord
 
   # Gets Hash of best {Translation}-s with keys of langcodes
   #
+  # @param except: [NilClass, String, Symbol, Array<String, Symbol>] e.g., 'ja', then the returned Array does not include 'ja'
   # @return [Hash] like {'ja': <Translation>, 'en': <Translation>}
-  def best_translations
+  def best_translations(except: nil)
+    except &&= [except].flatten.compact.map(&:to_s)
     hsret = {}.with_indifferent_access
     ((new_record? && unsaved_translations.present?) ? unsaved_translations : translations).each do |ea_t|
+      next if except && except.include?(ea_t.langcode)
       hsret[ea_t.langcode] ||= []
       hsret[ea_t.langcode].push(ea_t)
     end

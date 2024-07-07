@@ -30,7 +30,7 @@
   <tbody>
     <% events.order("events.start_time" => :desc).distinct.distinct.each_with_index do |event, i_event| %>
       <tr>
-        <td<%= ' class="editor_only"'.html_safe if can_create_event %>><%= can_create_event ? link_to(event.id, event) : i_event %></td>
+        <td<%= ' class="editor_only"'.html_safe if can_create_event %>><%= can_create_event ? link_to(event.id, event) : i_event+1 %></td>
         <td><%= link_to event.title_or_alt(langcode: I18n.locale), event_url(event) %></td>
         <td><%= event.string_time_err2uptomin %></td>
         <td><%= event.duration_hour %></td>

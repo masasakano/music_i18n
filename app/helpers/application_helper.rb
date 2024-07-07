@@ -66,7 +66,7 @@ module ApplicationHelper
   #
   # @param record [BaseWithTranslation]
   # @param is_orig_char [String, NilClass] Unless nil, title in a language of is_orig is followed by this char (Def: nil). See also yield.
-  # @param kwds [Hash] passed to {BaseWithTranslation#title}
+  # @param kwds [Hash] passed to {BaseWithTranslation#title} to {BaseWithTranslation#get_a_title}
   # @return [String] html_safe-ed
   # @yield [String] The locale String is given as an argument, and the block should return a Boolean.
   #   The block is not called unless i_orig_char is significant AND the returned String is the orig_langcode one.
