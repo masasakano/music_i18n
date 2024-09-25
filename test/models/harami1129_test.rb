@@ -367,7 +367,7 @@ class Harami1129Test < ActiveSupport::TestCase
     assert_equal h1129_ewf.title.gsub(/！/, '!'),  pstat.ins_to_be(:ins_title)
     assert_nil h1129_ewf.reload.harami_vid
 
-    ## run internal_insertion
+    ## run internal_insertion and populate
     assert_difference(str_equation, 11110) do
       h1129_ewf.insert_populate
     end
@@ -554,6 +554,58 @@ class Harami1129Test < ActiveSupport::TestCase
     assert_nil     pstat.destination(:release_date)
     assert_equal h1129.ins_singer, pstat.dest_to_be(:ins_singer)
     assert_equal mu1tit,  pstat.dest_to_be(:ins_song)
+  end
+
+  # Sanity check after 1 entry is added to Harmai1129 fixture to confirm it can be populated.
+  # To populate, run: harami1129s(:harami1129_zenzenzense1).insert_populate
+  test "insert_populate_zenzenzense" do
+    str_equation = 'HaramiVid.count*10000 + Artist.count*1000 + Music.count*100 + Engage.count*10'
+    str_eq2      = 'HaramiVidEventItemAssoc.count*1000+Event.count*100 + EventItem.count*10 + ArtistMusicPlay.count'
+
+    ## New one (ins_* are nil)
+    h1129_zen = harami1129s(:harami1129_zenzenzense1)
+    assert_nil h1129_zen.harami_vid
+
+    ## before internal_insertion
+    pstat = h1129_zen.populate_status(use_cache: true)
+    assert_equal :no_insert, pstat.status(:ins_title)
+    assert_equal "\u274c",   pstat.marker(:ins_title)
+    assert_equal h1129_zen.title.gsub(/！/, '!'),  pstat.ins_to_be(:ins_title)
+    assert_nil h1129_zen.reload.harami_vid
+
+    ## run internal_insertion and populate
+    assert_difference(str_equation, 11110) do
+      assert_difference(str_eq2, 1111) do
+        h1129_zen.insert_populate
+      end
+    end
+    hvid = h1129_zen.reload.harami_vid
+    assert_operator h1129_zen.created_at, :<, hvid.created_at, "sanity check. HaramiVid is newly created from h1129_zen."
+
+    assert_equal h1129_zen.song,   h1129_zen.ins_song
+    assert_equal h1129_zen.singer, h1129_zen.ins_singer
+    assert_equal h1129_zen.song,   h1129_zen.engage.music.title
+    assert_equal h1129_zen.singer, h1129_zen.engage.artist.title
+    assert_equal h1129_zen.song,      h1129_zen.harami_vid.musics.first.title
+    assert_equal h1129_zen.singer,    h1129_zen.harami_vid.artists.first.title
+    #assert_equal h1129_zen.link_time, h1129_zen.harami_vid.harami_vid_music_assocs.first.timing  # 3250
+    assert_equal h1129_zen.last_downloaded_at, h1129_zen.orig_modified_at
+    assert_operator h1129_zen.orig_modified_at, '<', h1129_zen.ins_at
+
+    assert h1129_zen.event_item
+    assert h1129_zen.harami_vid.event_items.exists?, "h1129=#{h1129_zen.inspect}\n hv=#{h1129_zen.harami_vid.inspect}"
+    assert h1129_zen.harami_vid.event_items.include?(h1129_zen.event_item)
+    assert_equal h1129_zen.harami_vid.musics.first,               h1129_zen.event_item.musics.first
+    assert_equal Artist.default(:harami1129),                     h1129_zen.event_item.artists.first
+
+    ## populate_status, where the existing cache is automtically discarded due to a change in updated_at
+    pstat = h1129_zen.populate_status
+    exp = :consistent
+    act = pstat.status(:ins_title)
+    assert_equal exp, act, "populate_status: #{act.inspect} should be #{exp.inspect}"
+    assert_equal [exp], pstat.status_cols.values.uniq  # All ins_* should be :consistent
+    assert_equal h1129_zen.ins_title,              pstat.ins_to_be(:ins_title)
+    #assert_equal h1129_zen.title.gsub(/！/, '!'),  pstat.ins_to_be(:ins_title)
   end
 
   test "create_manual" do

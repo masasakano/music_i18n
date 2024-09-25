@@ -17,6 +17,7 @@
       <th title="<%= t("events.n_event_items_long") %>"><%= t("events.n_event_items_short") %></th>
       <th title="<%= t("tables.n_harami_vids") %>"><%= t("tables.n_harami_vids_short") %></th>
      <% if can_create_event %>
+      <th class="editor_only">Weight</th>
       <th class="editor_only" title="Note in this DB"><%= t("tables.note") %></th>
      <% end %>
       <% if can_create_event %>
@@ -28,7 +29,7 @@
   </thead>
 
   <tbody>
-    <% events.order("events.start_time" => :desc).distinct.distinct.each_with_index do |event, i_event| %>
+    <% events.order("events.start_time" => :desc, "weight" => :desc).distinct.distinct.each_with_index do |event, i_event| %>
       <tr>
         <td<%= ' class="editor_only"'.html_safe if can_create_event %>><%= can_create_event ? link_to(event.id, event) : i_event+1 %></td>
         <td><%= link_to event.title_or_alt(langcode: I18n.locale), event_url(event) %></td>
@@ -38,6 +39,7 @@
         <td class="text-end"><%= event.event_items.count %></td>
         <td class="text-end"><%= event.harami_vids.count %></td>
      <% if can_create_event %>
+        <td class="editor_only text-end"><%= event.weight %></td>
         <td class="editor_only"><%= event.note %></td>
      <% end %>
         <td class="actions"><%= link_to t("tables.Show"), event %></td>

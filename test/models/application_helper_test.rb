@@ -13,6 +13,9 @@ class ModuleCommonTest < ActiveSupport::TestCase
     val = AH.normalized_uri_youtube(k, long: false, with_scheme: false, with_query: true,  with_time: false, with_host: false)
     exp = "BBBCCCCQxU4"
     assert_equal exp, val
+    assert_equal exp, AH.get_id_youtube_video(k)
+    assert_equal exp, AH.get_id_youtube_video(exp)
+    assert_equal exp, AH.get_id_youtube_video("Youtu.Be:80/"+exp)
 
     val = AH.normalized_uri_youtube(k, long: false, with_scheme: false, with_query: true,  with_time: false, with_host: true)
     exp = "youtu.be/BBBCCCCQxU4"

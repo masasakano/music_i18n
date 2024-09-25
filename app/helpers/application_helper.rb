@@ -248,6 +248,9 @@ module ApplicationHelper
 
   # Returns a YouTube URI with/without the preceeding "https//"
   #
+  # Now this is a wrapper of {ApplicationHelper.normalized_uri_youtube}.
+  # Use {ApplicationHelper.get_id_youtube_video} if you only want the ID String.
+  #
   # @param root_kwd [String]
   # @option timing [Integer, NilClass] in second
   # @param long: [Boolean] if false (Def), youtu.be, else www.youtube.com
@@ -335,7 +338,26 @@ module ApplicationHelper
   # @param with_query: [Boolean] For Youtube, this is ignored. Recommended to set true.
   # @param with_time: [Boolean] Only for Youtube.
   # @return [String] youtu.be/Wfwe3f8 etc
-  def self.normalized_uri_youtube(uri_str, long: false, with_scheme: false, with_host: true, with_time: false, with_query: true)
+  def self.normalized_uri_youtube(uri_str, with_query: true, **kwds)
+  #def self.normalized_uri_youtube(uri_str, long: false, with_scheme: false, with_host: true, with_time: false, with_query: true)
+    ret, uri = _normalized_uri_youtube_core(uri_str, with_query: with_query, **kwds)
+
+    if (:youtube == uri.platform || with_query) && uri.query.present?
+      ret << "?"+uri.query
+    end
+    ret
+  end
+    
+  # @param root_or_uri [String] Either an ID string of "IrH3iX6c2IA" or URI like "https://www.youtube.com/watch?v=IrH3iX6c2IA". Unlike {ApplicationHelper.normalized_uri_youtube}, this accepts the former, too.
+  # @return [String] Youtube Video ID, as long as it is Youtube link (you can check it with (:youtube == ret_str.platform))
+  def self.get_id_youtube_video(root_or_uri)
+    uri_str = _prepend_youtube(root_or_uri)
+    ret, _ = _normalized_uri_youtube_core(uri_str, with_scheme: false, with_host: false, with_time: false, with_query: false)
+    ret
+  end
+
+  # internal method.  See {ApplicationHelper.normalized_uri_youtube} for detail
+  def self._normalized_uri_youtube_core(uri_str, long: false, with_scheme: false, with_host: true, with_time: false, with_query: true)
     raise "(#{__method__}) nil is not allowed for uri_str" if uri_str.blank?
 
     ## NOTE: manual processing instead of letting URI.parse() to judge is necessary
@@ -347,18 +369,15 @@ module ApplicationHelper
     adjust_queries!(uri, long: long, with_query: with_query, with_time: with_time)
 
     ret = ""
+    ret.instance_eval{singleton_class.class_eval { attr_accessor "platform" }} if !ret.respond_to?(:platform)  # these 2 linew are equivalent to ModuleCommon#set_singleton_method_val
+    ret.platform = uri.platform  # Define Singleton method String#platform
+
     ret << (uri.scheme + "://") if with_scheme || (("https" != uri.scheme) && with_host)
     ret << uri.host             if with_scheme || with_host  # with_scheme has a priority.
     ret << (":"+uri.port.to_s)  if uri.port.present? && ![80, 443].include?(uri.port)
     ret << (ret.blank? ? uri.path.sub(%r@\A/@, '') : uri.path)
 
-    if (:youtube == uri.platform || with_query) && uri.query.present?
-      ret << "?"+uri.query
-    end
-
-    ret.instance_eval{singleton_class.class_eval { attr_accessor "platform" }} if !ret.respond_to?(:platform)  # these 2 linew are equivalent to ModuleCommon#set_singleton_method_val
-    ret.platform = uri.platform  # Define Singleton method String#platform
-    ret
+    [ret, uri]
   end
 
   # Rewrites the given URI model, maybe removing some query parameters
