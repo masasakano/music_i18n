@@ -704,6 +704,16 @@ module ModuleCommon
     /(\p{Han}+)/.match instr
   end
 
+  # True if only the difference is s1 has "?"-s or nothing where s2 has emojis.
+  #
+  # TODO: (Bug): At the moment,
+  #   diff_emoji_only?("You?", "You")
+  # returns true, which is wrong.
+  def diff_emoji_only?(s1, s2)
+    dif = Diff::LCS.diff(s1, s2)
+    dif.all?{|ar| ar.all?{|i| ("-" == i.action && "?" == i.element) || ("+" == i.action && Unicode::Emoji::REGEX =~ i.element)}}  # /\p{Emoji}/ may not be up-to-date
+  end
+
   # Returns Hash of {abc: 1, def: 1, ghi: 3, jkl: 4}
   #
   # The values indicate the number in the ordered list.

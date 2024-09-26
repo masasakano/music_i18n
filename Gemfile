@@ -134,6 +134,9 @@ gem 'kaminari-i18n'  # https://github.com/tigrish/kaminari-i18n
 gem 'plain_text'     # used in /lib/reverse_sql_order.rb
 gem 'rails-html-sanitizer'  # https://github.com/rails/rails-html-sanitizer
 gem 'i18n_data'  # for language names (and country names)
+gem 'diff-lcs', '~> 1.5', '>= 1.5.1'
+gem 'unicode-emoji', '~> 3', '>= 3.5'
+gem 'google-apis-youtube_v3', '~> 0.45.0'
 
 # Necessary in Ruby 3.1
 gem 'net-smtp', require: false #, '~> 0.3', '>= 0.3.1'

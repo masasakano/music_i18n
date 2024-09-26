@@ -184,6 +184,14 @@ class ModuleCommonTest < ActiveSupport::TestCase
      assert_equal exp, definite_article_with_or_not_at_tail_regexp("La  La La"), "should be a special case"
   end
 
+  test "diff_emoji_only?" do
+    s3 = "ab??cd"
+    s4 = "ab\u{1F979}cd"
+    assert diff_emoji_only?(s3, s4)
+    refute diff_emoji_only?(s3, "abXcd")
+    # refute diff_emoji_only?("You?", "You")  # TODO!!!!!!!!!!!!!!
+  end
+
   test "regexp_ruby_to_postgres" do
     assert_equal ["abc+d", "n"], regexp_ruby_to_postgres(/abc+d/)
     assert_equal ['^ab\Z', 'in'], regexp_ruby_to_postgres(/^ab\z/i)

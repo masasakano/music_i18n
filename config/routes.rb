@@ -70,6 +70,7 @@ Rails.application.routes.draw do
   end
 
   get 'users/index'
+  resources :harami1129s
   resources :harami1129s do
     resource :populate,            only: [:update], module: 'harami1129s'
     resource :internal_insertions, only: [:update], module: 'harami1129s'
@@ -82,7 +83,9 @@ Rails.application.routes.draw do
     #put       :internal_insertions, to: 'internal_insertions#update_all'  # Patch and Put does not work: Rails.application.routes.recognize_path("/harami1129s/internal_insertions", method: :put) #=> {:controller=>"harami1129s", :action=>"update", :id=>"internal_insertions"}
   end
   resources :harami_vids
-  resources :harami1129s
+  namespace :harami_vids do
+    resources :fetch_youtube_data, only: [:create, :update]
+  end
   resources :musics
   resources :genres
   resources :artists
