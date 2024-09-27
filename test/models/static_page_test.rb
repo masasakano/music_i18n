@@ -61,7 +61,8 @@ class StaticPageTest < ActiveSupport::TestCase
   end
 
   test "load html page from file" do
-    (fullpath = _get_fullpath_to_load(/^privacy_policy/)) || return
+    assert_nil get_fullpath_test_data(/^naiyo/)  # test of get_fullpath_test_data (defined in application_helper.rb)
+    (fullpath = get_fullpath_test_data(/^privacy_policy/)) || return  # defined in application_helper.rb
     page = StaticPage.load_file! fullpath, langcode: 'en', clobber: true
     assert_match(/\bPrivacy policy/i, page.title)
     assert_equal PageFormat::FULL_HTML, page.page_format.mname
@@ -79,7 +80,7 @@ class StaticPageTest < ActiveSupport::TestCase
   end
 
   test "load markdown page from file" do
-    (fullpath = _get_fullpath_to_load(/^about_us/)) || return
+    (fullpath = get_fullpath_test_data(/^about_us/)) || return  # defined in application_helper.rb
     page = StaticPage.load_file! fullpath, langcode: 'en', clobber: true
     assert_match(/\bAbout\b/, page.title)
     assert_equal PageFormat::MARKDOWN, page.page_format.mname
@@ -140,24 +141,24 @@ class StaticPageTest < ActiveSupport::TestCase
     assert_equal exp, _remove_markdown_h1(str)
   end
 
-  # @param re [Regexp] to identify the file
-  # @param from_env: [Boolean] set this true to test dotenv-rails
-  # @return [String, NilClass]
-  def _get_fullpath_to_load(re, from_env: false)
-    if from_env
-      fdir  = ENV['STATIC_PAGE_ROOT']   # defined in .env
-      return if !fdir
-      fnames = ENV['STATIC_PAGE_FILES'] # defined in .env
-      return if !fnames
-      fnames = fnames.split(/,/)
-    else
-      fdir = Rails.root.join(*(%w(test fixtures data))).to_s
-      # fdir  = 'file://'+fdir.to_s
-      fnames = Dir.glob(fdir.to_s+'/*.{html,md}').map{|i| i.sub(%r@.*/@, '')}
-    end
-    
-    fname = fnames.find{|i| re =~ i}
-    fdir.sub(%r@/$@, '')+'/'+fname
-  end
+  ## @param re [Regexp] to identify the file
+  ## @param from_env: [Boolean] set this true to test dotenv-rails
+  ## @return [String, NilClass]
+  #def _get_fullpath_to_load(re, from_env: false)
+  #  if from_env
+  #    fdir  = ENV['STATIC_PAGE_ROOT']   # defined in .env
+  #    return if !fdir
+  #    fnames = ENV['STATIC_PAGE_FILES'] # defined in .env
+  #    return if !fnames
+  #    fnames = fnames.split(/,/)
+  #  else
+  #    fdir = Rails.root.join(*(%w(test fixtures data))).to_s
+  #    # fdir  = 'file://'+fdir.to_s
+  #    fnames = Dir.glob(fdir.to_s+'/*.{html,md}').map{|i| i.sub(%r@.*/@, '')}
+  #  end
+  #  
+  #  fname = fnames.find{|i| re =~ i}
+  #  fdir.sub(%r@/$@, '')+'/'+fname
+  #end
 end
 

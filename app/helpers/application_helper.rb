@@ -790,6 +790,30 @@ module ApplicationHelper
     sanitized_html_fragment(*args, **kwds).to_s
   end
 
+  # Returns the full path for the test data with the given root filename Regexp
+  #
+  # @param re [Regexp] to identify the file
+  # @param from_env: [Boolean] set this true to test dotenv-rails
+  # @param suffixes: [Array<String>,String] Acceptable suffixes.
+  # @return [String, NilClass]
+  def get_fullpath_test_data(re, from_env: false, suffixes: %w(html md))
+    if from_env
+      fdir  = ENV['STATIC_PAGE_ROOT']   # defined in .env
+      return if !fdir
+      fnames = ENV['STATIC_PAGE_FILES'] # defined in .env
+      return if !fnames
+      fnames = fnames.split(/,/)
+    else
+      fdir = Rails.root.join(*(%w(test fixtures data))).to_s
+      # fdir  = 'file://'+fdir.to_s
+      fnames = Dir.glob(fdir.to_s+"/*.{#{[suffixes].flatten.join(',')}}").map{|i| i.sub(%r@.*/@, '')}
+      #fnames = Dir.glob(fdir.to_s+"/*.{html,md}").map{|i| i.sub(%r@.*/@, '')}
+    end
+
+    fname = fnames.find{|i| re =~ i}
+    fname && fdir.sub(%r@/$@, '')+'/'+fname || nil
+  end
+
   # to suppress warning, mainly that in Ruby-2.7.0:
   #   "Passing the keyword argument as the last hash parameter is deprecated"
   #
