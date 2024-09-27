@@ -1,7 +1,19 @@
 # coding: utf-8
 # require "unicode/emoji"
 # require "google/apis/youtube_v3"
+#
+# == NOTE
+#
+# * ENV["YOUTUBE_API_KEY"] is essential.
+# * ENV["UPDATE_YOUTUBE_MARSHAL"] : set this if you want to update the marshal-led Youtube data.
 class HaramiVids::FetchYoutubeDataController < ApplicationController
+  include ApplicationHelper
+
+  FROOT_YOUTUBE_ZENZENZENSE = {
+    snippet:        "youtube_zenzenzense_snippet",
+    contentDetails: "youtube_zenzenzense_contentDetails",
+  }.with_indifferent_access
+
   # creates/edits a HaramiVid according to information fetched via Youtube API
   def create
     set_new_harami_vid  # set @harami_vid
@@ -39,7 +51,9 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
     # set @harami_vid from a given URL parameter
     def set_new_harami_vid
       @harami_vid = nil
-      uri = params.require(:harami_vid).require(:fetch_youtube_datum).permit(:uri_youtube)[:uri_youtube]
+      safe_params = params.require(:harami_vid).require(:fetch_youtube_data).permit(:uri_youtube, :use_cache_test)
+      @use_cache_test = !!safe_params[:use_cache_test]
+      uri = safe_params[:uri_youtube]
       return if uri.blank? 
       @harami_vid = HaramiVid.new(uri: ApplicationHelper.uri_youtube(uri, with_http: false))
     end
@@ -47,8 +61,11 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
     # set @harami_vid from a given URL parameter
     def set_harami_vid
       @harami_vid = nil
+      safe_params = params.require(:harami_vid).require(:fetch_youtube_datum).permit(:use_cache_test)
+      @use_cache_test = !!safe_params[:use_cache_test]
+
       harami_vid_id = params.require(:harami_vid)[:id]
-      return if harami_vid_id.blank? 
+      return if harami_vid_id.blank?
       @harami_vid = HaramiVid.find(harami_vid_id)
     end
 
@@ -65,35 +82,92 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
 
     def create_harami_vid_from_youtube_api
       set_youtube  # sets @youtube
-      api = _get_youtube_api
+      api = _get_youtube_api_videos  # This sets @id_youtube
       return if !api
 
       snippet = api.items[0].snippet
       channel = _get_channel(snippet)
       return _return_no_channel_err(snippet) if !channel
-      # unsaved_translations are added.
-      #
-      #
-      #
-      #
-    end
 
-    # @return [Google::Apis::YoutubeV3, NilClass] Youtube-API object or nil if not a Youtube vid
-    def _get_youtube_api
-      @id_youtube = ApplicationHelper.get_id_youtube_video(@harami_vid.uri)
-      if !@id_youtube.respond_to? || :youtube == @id_youtube.platform
-        @youtube.list_videos("snippet", id: @id_youtube, hl: "en")  # maxResults is invalid with "id"
-      else
-        @harami_vid.errors.add :base, "Non-Youtube video is unsupported."
-        nil
+      @harami_vid.channel = channel
+      @harami_vid.duration = _get_youtube_duration.in_seconds
+
+      titles = _get_youtube_titles(snippet)
+      tras = []
+      titles.each_pair do |lc, tit|
+        next if tit.blank? || tit.strip.blank?
+        tras << Translation.preprocessed_new(title: tit, langcode: lc.to_s, is_orig: (lc.to_s == snippet.default_language))
       end
+      @harami_vid.unsaved_translations = tras
     end
 
+    # Returns 2-element Array of @youtube.list_videos and fullpath, if recovering them from marshalled
+    #
+    # @param root_kwd [String] root filename for the marshal-led data.
+    # @return [Array<Hash,String,NilClass>] 2-element Array of [Hash(Google::Apis::YoutubeV3), String(full-path)] or [nil, nil]
+    def _get_youtuberet_fullpath(root_kwd)
+      return [nil, nil] if !@use_cache_test 
+
+      fullpath = get_fullpath_test_data(/^#{Regexp.quote(root_kwd)}/)  # defined in application_helper.rb
+      return [nil, nil] if !fullpath
+
+      [Marshal.load(IO.read(fullpath)), fullpath]
+    end
+
+    # Save the marshal-led Youtube-API-Hash if all the conditions satisfy.
+    #
+    # The data are saved if :
+    #
+    # * The given +fullpath+ is present, AND
+    # * +ENV["UPDATE_YOUTUBE_MARSHAL"]+ is set.
+    #
+    # @param hsdata [Hash] Youtube API return
+    # @param fullpath [String] to save.
+    # @return [String, NilClass>] If saved, the given fullpath is returned, else nil.
+    def _may_save_youtuberet_martial(hsdata, fullpath)
+      return nil if !(fullpath && is_env_set_positive?("UPDATE_YOUTUBE_MARSHAL"))
+      open(fullpath, "w"){|io|
+        io.write(Marshal.dump(hsret))
+      }
+      return fullpath
+    end
+
+    #
+    # If use_cache_test is specified and ENV["UPDATE_YOUTUBE_MARSHAL"] is set,
+    # the test data in /fixture/data is updated.
+    #
+    # @return [Google::Apis::YoutubeV3, NilClass] Youtube-API object or nil if the platform is not Youtube
+    def _get_youtube_api_videos
+      @id_youtube = ApplicationHelper.get_id_youtube_video(@harami_vid.uri)
+
+      if @id_youtube.respond_to?(:platform) && :youtube != @id_youtube.platform
+        @harami_vid.errors.add :base, "Non-Youtube video is unsupported."
+        return nil
+      end
+
+      part = "snippet"
+      hsret, fullpath = _get_youtuberet_fullpath(FROOT_YOUTUBE_ZENZENZENSE[part])
+
+      hsret ||= @youtube.list_videos("snippet", id: @id_youtube, hl: "en")  # maxResults is invalid with "id"
+      _may_save_youtuberet_martial(hsret, fullpath)
+      hsret
+    end
+
+    # Returns ActiveSupport::Duration of the Youtube video
+    #
+    # If use_cache_test is specified and ENV["UPDATE_YOUTUBE_MARSHAL"] is set,
+    # the test data in /fixture/data is updated.
+    #
     # @return [ActiveSupport::Duration]
     def _get_youtube_duration
-      hsret4 = @youtube.list_videos('contentDetails', id: @id_youtube, hl: "en")  # duration etc.
+      part = "contentDetails"
+      hsret, fullpath = _get_youtuberet_fullpath(FROOT_YOUTUBE_ZENZENZENSE[part])
+
+      hsret ||= @youtube.list_videos(part, id: @id_youtube, hl: "en")  # duration etc.
+      _may_save_youtuberet_martial(hsret, fullpath)
+
       # Duration is in ISO8601 format, e.g., "PT4M5S"
-      ActiveSupport::Duration.parse(hsret4.items[0].content_details.duration)
+      ActiveSupport::Duration.parse(hsret.items[0].content_details.duration)
     end
     
     # @return [Channel, NilClass]
@@ -135,7 +209,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
     # If the default language is English, the existence of Japanese title is not checked.
     # Also, "en-GB" etc are not taken into account (though Youtube's fallback mechanism should work).
     #
-    # @return [Hash]
+    # @return [Hash] e.g., {"ja" => "Some1", "en" => nil}
     def _get_youtube_titles(snippet)
       # titles = {"ja" => nil, "en" => nil}.with_indifferent_access
       titles = {}.with_indifferent_access
@@ -192,7 +266,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
 
     def update_harami_vid_with_youtube_api
       set_youtube  # sets @youtube
-      api = _get_youtube_api
+      api = _get_youtube_api_videos  # This sets @id_youtube
       return if !api  # @harami_vid.errors is set.
 
       snippet = api.items[0].snippet
