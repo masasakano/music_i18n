@@ -73,7 +73,7 @@ class MusicsGrid < BaseGrid
 
   # Valid only for PostgreSQL
   # To make it applicable for other DBs, see  https://stackoverflow.com/a/68998474/3577922)
-  column(:artists, header: Proc.new{I18n.t("application.menu_artists", default: "Artists")}, mandatory: true, order: proc { |scope|
+  column(:artists, html: true, header: Proc.new{I18n.t("application.menu_artists", default: "Artists")}, mandatory: true, order: proc { |scope|
     #order_str = Arel.sql("convert_to(title, 'UTF8'), convert_to(alt_title, 'UTF8')")
     #order_str = Arel.sql('title COLLATE "ja_JP", alt_title COLLATE "ja_JP"')
     #order_str = Arel.sql('title COLLATE "C", alt_title COLLATE "C"')
@@ -84,8 +84,8 @@ class MusicsGrid < BaseGrid
     #scope.joins("INNER JOIN unnest('{#{ids.join(',')}}'::int[]) WITH ORDINALITY t_ord(id, ord) USING (id)").order("t_ord.ord")  # This should work, too, unless there is another JOIN.
     scope.joins("INNER JOIN unnest('{#{ids.join(',')}}'::int[]) WITH ORDINALITY t_ord(id, ord) ON musics.id = t_ord.id").order("t_ord.ord")
   }) do |record|
-    #record.engages.joins(:engage_how).order('engage_hows.weight').pluck(:artist_id).uniq.map{|i| art = Artist.find(i); sprintf '%s [%s]', ActionController::Base.helpers.link_to(art.title_or_alt, art), h(art.engage_how_titles(record).join(', '))}.join(', ').html_safe
-    record.engages.joins(:engage_how).order('engage_hows.weight').pluck(:artist_id).uniq.map{|i| art = Artist.find(i); sprintf '%s [%s]', ActionController::Base.helpers.link_to(art.title_or_alt, Rails.application.routes.url_helpers.artist_path(art)), ERB::Util.html_escape(art.engage_how_titles(record).join(', '))}.join(', ').html_safe
+    #record.engages.joins(:engage_how).order('engage_hows.weight').pluck(:artist_id).uniq.map{|i| art = Artist.find(i); sprintf '%s [%s]', ActionController::Base.helpers.link_to(art.title_or_alt, Rails.application.routes.url_helpers.artist_path(art, locale: I18n.locale)), ERB::Util.html_escape(art.engage_how_titles(record).join(', '))}.join(', ').html_safe
+    record.engages.joins(:engage_how).order('engage_hows.weight').pluck(:artist_id).uniq.map{|i| art = Artist.find(i); sprintf '%s [%s]', link_to(art.title_or_alt, artist_path(art)), html_escape(art.engage_how_titles(record).join(', '))}.join(', ').html_safe  # NOTE: the option "html: true" is essential to use artist_path directly (as opposed to Rails.application.routes.url_helpers.artist_path). Also, in the latter case, "locale: I18n.locale" is essential for some reason (otherwise the URL with no locale is returned).
   end
   column(:n_harami_vids, html: true, class: ["text-end"], header: Proc.new{I18n.t("tables.n_harami_vids", default: "# of HaramiVids")}) do |record|
     ActionController::Base.helpers.link_to(I18n.t(:times_hon, count: record.harami_vids.distinct.count.to_s), Rails.application.routes.url_helpers.music_path(record)+"#sec_harami_vids_for")
