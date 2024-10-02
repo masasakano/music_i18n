@@ -3,26 +3,28 @@
 #
 # Table name: channels
 #
-#  id                                                :bigint           not null, primary key
-#  id_at_platform(Channel-ID at the remote platform) :string
-#  note                                              :text
-#  created_at                                        :datetime         not null
-#  updated_at                                        :datetime         not null
-#  channel_owner_id                                  :bigint           not null
-#  channel_platform_id                               :bigint           not null
-#  channel_type_id                                   :bigint           not null
-#  create_user_id                                    :bigint
-#  update_user_id                                    :bigint
+#  id                                                                    :bigint           not null, primary key
+#  id_at_platform(Channel-ID at the remote platform)                     :string
+#  id_human_at_platform(Human-readable Channel-ID at remote without <@>) :string
+#  note                                                                  :text
+#  created_at                                                            :datetime         not null
+#  updated_at                                                            :datetime         not null
+#  channel_owner_id                                                      :bigint           not null
+#  channel_platform_id                                                   :bigint           not null
+#  channel_type_id                                                       :bigint           not null
+#  create_user_id                                                        :bigint
+#  update_user_id                                                        :bigint
 #
 # Indexes
 #
-#  index_channels_on_channel_owner_id     (channel_owner_id)
-#  index_channels_on_channel_platform_id  (channel_platform_id)
-#  index_channels_on_channel_type_id      (channel_type_id)
-#  index_channels_on_create_user_id       (create_user_id)
-#  index_channels_on_id_at_platform       (id_at_platform)
-#  index_channels_on_update_user_id       (update_user_id)
-#  index_unique_all3                      (channel_owner_id,channel_type_id,channel_platform_id) UNIQUE
+#  index_channels_on_channel_owner_id      (channel_owner_id)
+#  index_channels_on_channel_platform_id   (channel_platform_id)
+#  index_channels_on_channel_type_id       (channel_type_id)
+#  index_channels_on_create_user_id        (create_user_id)
+#  index_channels_on_id_at_platform        (id_at_platform)
+#  index_channels_on_id_human_at_platform  (id_human_at_platform)
+#  index_channels_on_update_user_id        (update_user_id)
+#  index_unique_all3                       (channel_owner_id,channel_type_id,channel_platform_id) UNIQUE
 #
 # Foreign Keys
 #
