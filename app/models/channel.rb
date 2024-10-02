@@ -25,6 +25,7 @@
 #  index_channels_on_id_human_at_platform  (id_human_at_platform)
 #  index_channels_on_update_user_id        (update_user_id)
 #  index_unique_all3                       (channel_owner_id,channel_type_id,channel_platform_id) UNIQUE
+#  index_unique_channel_platform_its_id    (channel_platform_id,id_at_platform) UNIQUE
 #
 # Foreign Keys
 #
@@ -72,6 +73,17 @@ class Channel < BaseWithTranslation
 
   #validates_presence_of :channel_owner, :channel_type, :channel_platform  # unnecessary as automatically checked.
   validates :channel_owner, uniqueness: { scope: [:channel_type, :channel_platform] }
+
+  validates :id_at_platform,       uniqueness: { scope: [:channel_platform] }, allow_nil: true
+  validates :id_at_platform,       length: {minimum: 3}, allow_nil: true  # 3 is rather random...
+  validates :id_at_platform,       format: {with: /\A[[:ascii:]]+\z/i}, allow_nil: true
+  validates :id_at_platform,       format: {without: /[\s]/i},          allow_nil: true
+
+  validates :id_human_at_platform, uniqueness: { scope: [:channel_platform] }, allow_nil: true  # No DB-level constraint.
+  validates :id_human_at_platform,       length: {minimum: 3}, allow_nil: true  # 3 is rather random...
+  validates :id_human_at_platform,       format: {with: /\A[[:ascii:]]+\z/i}, allow_nil: true
+  validates :id_human_at_platform,       format: {without: /[@\s]/i},         allow_nil: true
+  # Note that if (channel_platform == :other) and id_at_platform-s agree, it would raise a DB-level error(!). For Channels with (channel_platform == :other), you should leave id_at_platform-s blank and instead record them in note if need be (though there is no application-level check for this).
 
   validate :valid_present_unsaved_translations, on: :create  # @unsaved_translations must be defined and valid. / defined in BaseWithTranslation
 

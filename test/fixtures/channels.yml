@@ -24,6 +24,7 @@
 #  index_channels_on_id_human_at_platform  (id_human_at_platform)
 #  index_channels_on_update_user_id        (update_user_id)
 #  index_unique_all3                       (channel_owner_id,channel_type_id,channel_platform_id) UNIQUE
+#  index_unique_channel_platform_its_id    (channel_platform_id,id_at_platform) UNIQUE
 #
 # Foreign Keys
 #

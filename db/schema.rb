@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_10_02_152116) do
+ActiveRecord::Schema[7.0].define(version: 2024_10_02_200056) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -133,6 +133,7 @@ ActiveRecord::Schema[7.0].define(version: 2024_10_02_152116) do
     t.string "id_human_at_platform", comment: "Human-readable Channel-ID at remote without <@>"
     t.index ["channel_owner_id", "channel_type_id", "channel_platform_id"], name: "index_unique_all3", unique: true
     t.index ["channel_owner_id"], name: "index_channels_on_channel_owner_id"
+    t.index ["channel_platform_id", "id_at_platform"], name: "index_unique_channel_platform_its_id", unique: true
     t.index ["channel_platform_id"], name: "index_channels_on_channel_platform_id"
     t.index ["channel_type_id"], name: "index_channels_on_channel_type_id"
     t.index ["create_user_id"], name: "index_channels_on_create_user_id"
