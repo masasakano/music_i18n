@@ -46,4 +46,33 @@ module HaramiVidsHelper
       model2print.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true)
     }.compact.uniq.join(t(:comma))
   end
+
+  private
+
+    # Set @event_event_items and @original_event_items
+    #
+    # @event_event_items is a Hash with each key (of Integer, {Event#id}) pointing to
+    # an Array of EventItems that HaramiVid has_many:
+    #
+    #    @event_event_items = {
+    #       event_1.id => [EventItem1, EventItem2, ...],
+    #       event_2.id => [EventItem5, EventItem6, ...],
+    #    }
+    #
+    # maybe the sum of EventItems for two HaramiVids
+    #
+    # This routine may be called twice - once as a before_action callback and later from _set_reference_harami_vid_id
+    # When called from _set_reference_harami_vid_id , +harami_vid2+(!) is @harami_vid, and +harami_vid+ is
+    # @ref_harami_vid (which corresponds to ID of @harami_vid.reference_harami_vid_id)
+    def set_event_event_items(harami_vid: @harami_vid, harami_vid2: nil)
+      @event_event_items = {}  # Always initialized. This was not defined for "show", "new"
+      ary = [(harami_vid || @harami_vid).id, (harami_vid2 ? harami_vid2.id : nil)].compact.uniq  # uniq should never be used, but playing safe
+      EventItem.joins(:harami_vid_event_item_assocs).where("harami_vid_event_item_assocs.harami_vid_id" => ary).order("event_id", "start_time", "duration_minute", "event_ratio").distinct.each do |event_item|
+        # Because of "distinct", order by "xxx.yyy" would not work...
+        # For "edit", this will be overwritten later if reference_harami_vid_id is specified by GET
+        @event_event_items[event_item.event.id] ||= []
+        @event_event_items[event_item.event.id] << event_item
+      end
+    end
+
 end

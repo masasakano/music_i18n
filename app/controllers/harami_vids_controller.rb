@@ -1,13 +1,13 @@
 # coding: utf-8
 class HaramiVidsController < ApplicationController
   include ModuleCommon  # for contain_asian_char, txt_place_pref_ctry
-  include HaramiVidsHelper # for collection_musics_with_evit
+  include HaramiVidsHelper # for set_event_event_items (common with HaramiVids::FetchYoutubeDataController) and collection_musics_with_evit
 
   skip_before_action :authenticate_user!, :only => [:index, :show]
   load_and_authorize_resource except: [:index, :show, :create] # This sets @harami_vid for  :edit, :update, :destroy
   before_action :set_harami_vid, only: [:show]  # sets @harami_vid
   before_action :model_params_multi, only: [:create, :update]
-  before_action :set_event_event_items, only: [:show, :edit, :update] # sets @event_event_items (which may be later overwritten if reference_harami_vid_id is specified)
+  before_action :set_event_event_items, only: [:show, :edit, :update] # sets @event_event_items (which may be later overwritten if reference_harami_vid_id is specified). defined in harami_vids_helper.rb
   before_action :set_countries, only: [:new, :create, :edit, :update] # defined in application_controller.rb
 
   # params key for auto-complete Artist
@@ -164,32 +164,6 @@ class HaramiVidsController < ApplicationController
         params[:harami_vid][ek] =  helpers.hms2sec(params[:harami_vid][ek]) if params[:harami_vid][ek].present?  # converts from HH:MM:SS to Integer seconds; defined in application_helper.rb
       end
       set_hsparams_main_tra(:harami_vid, array_keys: [:event_item_ids]) # defined in application_controller.rb
-    end
-
-    # Set @event_event_items and @original_event_items
-    #
-    # @event_event_items is a Hash with each key (of Integer, {Event#id}) pointing to
-    # an Array of EventItems that HaramiVid has_many:
-    #
-    #    @event_event_items = {
-    #       event_1.id => [EventItem1, EventItem2, ...],
-    #       event_2.id => [EventItem5, EventItem6, ...],
-    #    }
-    #
-    # maybe the sum of EventItems for two HaramiVids
-    #
-    # This routine may be called twice - once as a before_action callback and later from _set_reference_harami_vid_id
-    # When called from _set_reference_harami_vid_id , +harami_vid2+(!) is @harami_vid, and +harami_vid+ is
-    # @ref_harami_vid (which corresponds to ID of @harami_vid.reference_harami_vid_id)
-    def set_event_event_items(harami_vid: @harami_vid, harami_vid2: nil)
-      @event_event_items = {}  # Always initialized. This was not defined for "show", "new"
-      ary = [(harami_vid || @harami_vid).id, (harami_vid2 ? harami_vid2.id : nil)].compact.uniq  # uniq should never be used, but playing safe
-      EventItem.joins(:harami_vid_event_item_assocs).where("harami_vid_event_item_assocs.harami_vid_id" => ary).order("event_id", "start_time", "duration_minute", "event_ratio").distinct.each do |event_item|
-        # Because of "distinct", order by "xxx.yyy" would not work...
-        # For "edit", this will be overwritten later if reference_harami_vid_id is specified by GET
-        @event_event_items[event_item.event.id] ||= []
-        @event_event_items[event_item.event.id] << event_item
-      end
     end
 
     # Sets reference_harami_vid_id, @event_event_items, @ref_harami_vid, and maybe release_date and place
