@@ -37,6 +37,7 @@ module Seeds::Channels
       channel_owner:    Proc.new{ChannelOwner.select_regex(:titles, Seeds::ChannelOwners::SEED_DATA[:haramichan][:regex], sql_regexp: true).first},
       channel_type:     Proc.new{ChannelType.where(    mname: Seeds::ChannelTypes::SEED_DATA[:main][:mname]).first},
       channel_platform: Proc.new{ChannelPlatform.where(mname: Seeds::ChannelPlatforms::SEED_DATA[:youtube][:mname]).first},
+      id_at_platform: 'UCr4fZBNv69P-09f98l7CshA',
       note: nil,
     },
     kohmi_youtube_main: {
@@ -46,6 +47,7 @@ module Seeds::Channels
       channel_owner:    Proc.new{ChannelOwner.select_regex(:titles, Seeds::ChannelOwners::SEED_DATA[:kohmi][:regex], sql_regexp: true).first},
       channel_type:     Proc.new{ChannelType.where(    mname: Seeds::ChannelTypes::SEED_DATA[:main][:mname]).first},
       channel_platform: Proc.new{ChannelPlatform.where(mname: Seeds::ChannelPlatforms::SEED_DATA[:youtube][:mname]).first},
+      id_at_platform: 'UCPkjL7jAJhrZ3e4-NlsGt-Q',
       note: nil,
     },
   }.with_indifferent_access  # SEED_DATA

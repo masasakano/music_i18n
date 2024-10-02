@@ -2,15 +2,16 @@
 #
 # Table name: channels
 #
-#  id                  :bigint           not null, primary key
-#  note                :text
-#  created_at          :datetime         not null
-#  updated_at          :datetime         not null
-#  channel_owner_id    :bigint           not null
-#  channel_platform_id :bigint           not null
-#  channel_type_id     :bigint           not null
-#  create_user_id      :bigint
-#  update_user_id      :bigint
+#  id                                                :bigint           not null, primary key
+#  id_at_platform(Channel-ID at the remote platform) :string
+#  note                                              :text
+#  created_at                                        :datetime         not null
+#  updated_at                                        :datetime         not null
+#  channel_owner_id                                  :bigint           not null
+#  channel_platform_id                               :bigint           not null
+#  channel_type_id                                   :bigint           not null
+#  create_user_id                                    :bigint
+#  update_user_id                                    :bigint
 #
 # Indexes
 #
@@ -18,6 +19,7 @@
 #  index_channels_on_channel_platform_id  (channel_platform_id)
 #  index_channels_on_channel_type_id      (channel_type_id)
 #  index_channels_on_create_user_id       (create_user_id)
+#  index_channels_on_id_at_platform       (id_at_platform)
 #  index_channels_on_update_user_id       (update_user_id)
 #  index_unique_all3                      (channel_owner_id,channel_type_id,channel_platform_id) UNIQUE
 #
@@ -34,6 +36,7 @@ one:
   channel_owner: one
   channel_type: one
   channel_platform: one
+  id_at_platform: 
   create_user: user_editor_general_ja
   update_user: user_editor_general_ja
   note: MyText
@@ -42,6 +45,7 @@ two:
   channel_owner: two
   channel_type: two
   channel_platform: two
+  id_at_platform: 
   create_user: user_editor
   update_user:
   note: MyText
@@ -66,6 +70,7 @@ channel_unknown:
   channel_owner: channel_owner_unknown
   channel_type: channel_type_unknown
   channel_platform: channel_platform_unknown
+  id_at_platform: 
   create_user: user_syshelper
   update_user: 
   note: ChannelUnknown
@@ -74,6 +79,7 @@ channel_haramichan_youtube_main:
   channel_owner: channel_owner_haramichan
   channel_type: channel_type_main
   channel_platform: channel_platform_youtube
+  id_at_platform: UCr4fZBNv69P-09f98l7CshA
   create_user: user_syshelper
   update_user: 
   note: ChannelHaramichanYoutubeMain

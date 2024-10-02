@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_06_16_220459) do
+ActiveRecord::Schema[7.0].define(version: 2024_10_01_234205) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -129,11 +129,13 @@ ActiveRecord::Schema[7.0].define(version: 2024_06_16_220459) do
     t.text "note"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "id_at_platform", comment: "Channel-ID at the remote platform"
     t.index ["channel_owner_id", "channel_type_id", "channel_platform_id"], name: "index_unique_all3", unique: true
     t.index ["channel_owner_id"], name: "index_channels_on_channel_owner_id"
     t.index ["channel_platform_id"], name: "index_channels_on_channel_platform_id"
     t.index ["channel_type_id"], name: "index_channels_on_channel_type_id"
     t.index ["create_user_id"], name: "index_channels_on_create_user_id"
+    t.index ["id_at_platform"], name: "index_channels_on_id_at_platform"
     t.index ["update_user_id"], name: "index_channels_on_update_user_id"
   end
 
