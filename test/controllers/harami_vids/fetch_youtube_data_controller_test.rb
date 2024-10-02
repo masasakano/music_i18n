@@ -22,11 +22,11 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
     @editor_ja       = users(:user_editor_general_ja)     # Same as Harami-editor
 
     @def_update_params = {  # NOTE: Identical to @def_create_params except for those unique to create!
+      "uri_youtube"=>"https://www.youtube.com/watch?v=hV_L7BkwioY", # HARAMIchan Zenzenzense
       "use_cache_test" => true,
     }.with_indifferent_access
 
     @def_create_params = @def_update_params.merge({
-      "uri_youtube"=>"https://www.youtube.com/watch?v=hV_L7BkwioY", # HARAMIchan Zenzenzense
     }.with_indifferent_access)
     @h1129 = harami1129s(:harami1129_zenzenzense1)
   end
@@ -62,14 +62,15 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
             assert_no_difference("Channel.count") do
               post harami_vids_fetch_youtube_data_path, params: { harami_vid: { fetch_youtube_data: hsin } }
               assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+              hvid = HaramiVid.last
+              assert_redirected_to hvid
             end
           end
         end
       end
     end
 
-    hvid = HavamiVid.last
-    assert_redirected_to hvid
+    hvid = HaramiVid.last
 
     assert_equal @h1129.uri,    hvid.uri, "sanity check..."
     assert_equal @h1129.song,   hvid.musics.first.title

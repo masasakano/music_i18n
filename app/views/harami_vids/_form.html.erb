@@ -95,7 +95,7 @@
       include_blank: false,  as: :check_boxes, label: t("EventItems"),
       item_wrapper_class: 'inline', input_html: { checked: true } %>  <%# Not shown at all if there are no EventItems associatined to harami_vid; they all are forcibly checked in default, even after returning to the edit screen.  %>
   <%# cf. https://github.com/heartcombo/simple_form#collection-check-boxes %>
-     <%= render partial: "event_event_items" %>
+     <%= render partial: "harami_vids/event_event_items" %> <%# "harami_vids/" required for access from HaramiVids::FetchYoutubeDataController %>
     <% else %>
       <% display_new_event_item_form = true %>
       Strangely, no existing items are defined. Please register a new Event(Item) below.
@@ -212,15 +212,15 @@
 
 <% if ! harami_vid.new_record? %>
 <hr>
-<%= render partial: 'music_table', locals: {harami_vid: harami_vid, add_buttons: true} %>
+<%= render partial: 'harami_vids/music_table', locals: {harami_vid: harami_vid, add_buttons: true} %> <%# "harami_vids/" required for access from HaramiVids::FetchYoutubeDataController %>
 
 <% end %>
 
 <% if ! harami_vid.new_record? %>
 <hr>
-<%= render partial: 'other_harami_vids_table', locals: {harami_vid: harami_vid} %>
+<%= render partial: 'harami_vids/other_harami_vids_table', locals: {harami_vid: harami_vid} %>
 <hr>
-<%= render partial: 'harami1129_table', locals: {harami_vid: harami_vid, add_buttons: true} %>
+<%= render partial: 'harami_vids/harami1129_table', locals: {harami_vid: harami_vid, add_buttons: true} %>
 <hr>
 <% end %>
 

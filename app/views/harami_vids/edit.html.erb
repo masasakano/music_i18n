@@ -1,6 +1,6 @@
 <h1>Editing Harami Vid (ID=<%= @harami_vid.id %>) <%= ((@harami_vid.channel && (owner=@harami_vid.channel.channel_owner) != Artist.default(:HaramiVid)) ? "by #{owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)}" : "") %></h1>
 
-<%= render 'form', harami_vid: @harami_vid %>
+<%= render 'harami_vids/form', harami_vid: @harami_vid %> <%# "harami_vids/" required for access from HaramiVids::FetchYoutubeDataController %>
 
 <%= link_to 'Show', @harami_vid %> |
 <%= link_to 'Back', harami_vids_path %>

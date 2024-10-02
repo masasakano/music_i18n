@@ -8,6 +8,9 @@
 # * ENV["UPDATE_YOUTUBE_MARSHAL"] : set this if you want to update the marshal-led Youtube data.
 class HaramiVids::FetchYoutubeDataController < ApplicationController
   include ApplicationHelper
+  include HaramiVidsHelper # for set_event_event_items (common with HaramiVidsController)
+
+  before_action :set_countries, only: [:create, :update] # defined in application_controller.rb
 
   FROOT_YOUTUBE_ZENZENZENSE = {
     snippet:        "youtube_zenzenzense_snippet",
@@ -21,7 +24,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
     authorize! __method__, HaramiVid
 
     create_harami_vid_from_youtube_api  # unsaved_translations are added.
-    result = def_respond_to_format(@harami_vid)      # defined in application_controller.rb
+    result = def_respond_to_format(@harami_vid, render_err_path: "harami_vids")      # defined in application_controller.rb
 
     if result
       extra_str = sprintf(" / URI=<%s>", @harami_vid.uri)
@@ -43,7 +46,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
 
     ActiveRecord::Base.transaction(requires_new: true) do
       update_harami_vid_with_youtube_api
-      result = def_respond_to_format(@harami_vid)      # No update is run if @harami_vid.errors.any? ; defined in application_controller.rb
+      result = def_respond_to_format(@harami_vid, :updated, render_err_path: "harami_vids")      # No update is run if @harami_vid.errors.any? ; defined in application_controller.rb
     end
   end
 
@@ -64,9 +67,10 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
       safe_params = params.require(:harami_vid).require(:fetch_youtube_datum).permit(:use_cache_test)
       @use_cache_test = !!safe_params[:use_cache_test]
 
-      harami_vid_id = params.require(:harami_vid)[:id]
+      harami_vid_id = params[:id]
       return if harami_vid_id.blank?
       @harami_vid = HaramiVid.find(harami_vid_id)
+      set_event_event_items  # sets @event_event_items  defined in harami_vids_helper.rb
     end
 
     # set @youtube
@@ -175,8 +179,8 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
       channel = Channel.find_by(id_at_platform: snippet.channel_id)
       return channel if channel
 
-      chan_type_youtube = ChannelType.select_by_translations(en: {title: 'Youtube'}).first
-      return Channel.where(channel_type_id: chan_type_youtube.id).select_regex(:title, /^#{Regexp.quote(snippet.channel_title)}\b/, langcode: snippet.default_language, sql_regexp: true).first  # based on the human-readable Channel name.  nil is returned if not found.
+      chan_platform_youtube = ChannelPlatform.select_by_translations(en: {title: 'Youtube'}).first
+      return Channel.where(channel_platform_id: chan_platform_youtube.id).select_regex(:title, /^#{Regexp.quote(snippet.channel_title)}(\b|\s|$)/, langcode: snippet.default_language, sql_regexp: true).joins(:channel_type).order("channel_types.weight").first  # based on the human-readable Channel name.  nil is returned if not found.
     end
 
     # @return [NilClass]
@@ -231,10 +235,10 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
       titles = _get_youtube_titles(snippet)
       [snippet.default_language, "ja", "en"].uniq.each do |elc|
         tras = @harami_vid.translations.where(langcode: elc)
-        next if tras.where(title: titles[elc]).or.where(alt_title: titles[elc]).exists?  # Skip if an identical Translation exists whoever owns it.
+        next if tras.where(title: titles[elc]).or(tras.where(alt_title: titles[elc])).exists?  # Skip if an identical Translation exists whoever owns it.
 
-        tra0 = tras.where(create_user_id: current_user.id).or.where(update_user_id: current_user.id).first
-        if tra0 || diff_emoji_only?(tra0.title, titles[elc])  # defined in module_common.rb
+        tra0 = tras.where(create_user_id: current_user.id).or(tras.where(update_user_id: current_user.id)).first
+        if tra0 && diff_emoji_only?(tra0.title, titles[elc])  # defined in module_common.rb
           tra0.title = titles[elc]
           tra = tra0
           ret_msgs << "Title[#{elc}] updated."
@@ -264,6 +268,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
       end
     end
 
+    # this is within a DB transaction (see {#update})
     def update_harami_vid_with_youtube_api
       set_youtube  # sets @youtube
       api = _get_youtube_api_videos  # This sets @id_youtube
