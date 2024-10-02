@@ -1063,6 +1063,7 @@ class Translation < ApplicationRecord
   # @param not_clause: [String, Array<String, Hash, Array>, NilClass] Rails where.not clause.
   #    See "where" for detail.
   # @param sql_regexp [Boolean] If true (Def: false), and if +value+ (the 2nd argument) is Regexp, PostgreSQL +regexp_match()+ is used. Efficient!
+  #    See {ModuleCommon#regexp_ruby_to_postgres} for detail of Ruby-PostgreSQL Regexp conversion.
   # @param space_sensitive [Boolean] This is referred to ONLY WHEN +value+ is Regexp and +sql_regexp+ is true.
   #    If true (Def; n.b., the default in {Translation.select_regex_string} is false!),
   #    spaces in DB entries are significant.
@@ -1204,6 +1205,8 @@ class Translation < ApplicationRecord
   #
   # This routine is separate from {Translation.select_regex_rubyregex}
   # just to utilize the SQL more efficiently.
+  #
+  # See {ModuleCommon#regexp_ruby_to_postgres} for detail of Ruby-PostgreSQL Regexp conversion.
   #
   # @param common_opts [Hash<Symbol, Object>] e.g., {:langcode=>"en", :translatable_type=>"Country"}
   # @param allkeys [Array<Symbol>] %i(title alt_title) etc

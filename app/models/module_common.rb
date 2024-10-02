@@ -1077,6 +1077,8 @@ module ModuleCommon
   #   * Regexp options: "i", "m" (=> "w")
   #   * \n, \&, \1, "^", "\A", "\Z" (NOTE: \z should be OK in most cases, but not 100% (see above))
   #   * lazy match (except "{,m}?"), \b (=> \y), \B (=> \Y), [:alnum:], \w, \W, [:blank:], [:space:]
+  #     * NOTE that Ruby \b includes the line-end, whereas PostgreSQL \y does not!
+  #     * NOTE that Ruby \b works with Japanese characters, whereas PostgreSQL \y does not, ignoring any boundaries before/after an Asian character!
   #   * lookahead:   "(?=re)",  "(?!re)"
   # * Unsupported
   #   * lookabehind: "(?<=re)", "(?<!re)"

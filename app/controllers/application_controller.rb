@@ -204,6 +204,7 @@ class ApplicationController < ActionController::Base
   # @param created_updated [Symbol] Either :created(Def) or :updated
   # @param failed [Boolean] if true (Def: false), it has already failed.
   # @param redirected_path [String, NilClass] Path to be redirected if successful, or nil (Default)
+  # @param render_err_path [String, NilClass] If non-nil, the path is used for rendering, e.g., "musics/merges" => "musics/merges/(new|edit)" 
   # @param back_html [String, NilClass] If the path specified (Def: nil) and if successful, HTML (likely a link to return) preceded with "Return to" is added to a Flash mesage; e.g., '<a href="/musics/5">Music</a>'
   # @param alert [String, NilClass] alert message if any
   # @param warning [String, NilClass] warning message if any
@@ -211,13 +212,13 @@ class ApplicationController < ActionController::Base
   # @param success [String, NilClass] success message if any. Default is "%s was successfully %s." but it is overwritten if specified.
   # @return [Boolean, NilClass] true value if successfully saved.
   # @yield [] If given, this is called instead of simple @model.save
-  def def_respond_to_format(mdl, created_updated=:created, failed: false, redirected_path: nil, back_html: nil, alert: nil, **inopts)
+  def def_respond_to_format(mdl, created_updated=:created, failed: false, redirected_path: nil, render_err_path: nil, back_html: nil, alert: nil, **inopts)
     ret_status, render_err =
       case created_updated.to_sym
       when :created
-        [:created, :new]
+        [:created, (render_err_path ? render_err_path+"/new" : :new)]
       when :updated
-        [:ok, :edit]
+        [:ok,      (render_err_path ? render_err_path+"/edit" : :edit)]
       else
         raise 'Contact the code developer.'
       end

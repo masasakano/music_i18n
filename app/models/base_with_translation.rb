@@ -1180,6 +1180,9 @@ class BaseWithTranslation < ApplicationRecord
   # Note that the result is not "sorted", as there is
   # no general way to know whether the result is actually sotable.
   #
+  # As for +sql_regexp+ option,
+  # see {ModuleCommon#regexp_ruby_to_postgres} for detail of Ruby-PostgreSQL Regexp conversion.
+  #
   # @note
   #  Elements of the returned Relation from {Translation.select_regex} may be nil
   #  only when {Translation#translatable_id} does not have the corresponding
@@ -1188,8 +1191,8 @@ class BaseWithTranslation < ApplicationRecord
   #  if the records are destroyed through direct DB manipulation like DB-migration,
   #  it can happen!  This method sanitizes such elements, leaving ERROR in Logfile.
   #
-  # @example
-  #   Artist.select_regex(:titles, /^ハラミちゃん/, langcode: 'ja', sql_regexp: true).distinct.first
+  # @example Be careful with Ruby-Regexp \b (see above)
+  #   Artist.select_regex(:titles, /^ハラミちゃん(\b|\s|$)/, langcode: 'ja', sql_regexp: true).distinct.first
   #
   # @param *args [Array<Symbol, String, Array<String>, Regexp>] Symbol, String|Regexp. See {Translation.select_regex}. 
   # @param debug_return_sql [Boolean] Debug option (Def: false). If true, returns a SQL-string or Hash (see {Translation.self.select_regex_rubyregex} for detail), instead of Array
