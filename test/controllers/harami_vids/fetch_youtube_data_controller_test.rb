@@ -79,6 +79,7 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
     assert_equal channels(:channel_haramichan_youtube_main), hvid.channel
     assert_equal Event.default, hvid.event_items.first.channel
 
+    assert ENV["YOUTUBE_API_KEY"].present?, "Environmental variable YOUTUBE_API_KEY is not set, which is essential for this test."
     sign_out @editor_harami
   end
 
@@ -131,6 +132,7 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
     sign_out @trans_moderator
 
     ## Editor harami is qualified
+    # Same Japanese Translation, but English Translation is added.
     sign_in @editor_harami
 
     assert_no_difference("ArtistMusicPlay.count + Music.count + Artist.count + Engage.count + HaramiVidMusicAssoc.count + HaramiVidEventItemAssoc.count + Event.count + EventItem.count + Channel.count + HaramiVid.count") do
@@ -147,7 +149,7 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
     assert_equal release_date_be4, hvid.release_date
 
     assert hvid.duration.present?
-    assert_operator 0, :<, hvid.duration
+    assert_operator 0, :<, hvid.duration, "Positive duration should have been set, but..."
 
     tras = hvid.translations
     assert_equal %w(en ja), tras.pluck(:langcode).flatten.sort
@@ -155,6 +157,29 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
 
     tra_en = tras.find_by(langcode: "en")
     assert_equal @editor_harami, tra_en.create_user
+
+
+    ## 2nd and 3rd runs
+    # This time, only Youtube-ID of Channel should be updated after it is deliberately unset.
+    chan = hvid.channel
+    %w(id_at_platform id_human_at_platform).each do |att|
+      chan.update!(att => nil)
+      assert_nil chan.send(att)
+      prev_updated_time = chan.updated_at
+  
+      assert_no_difference("ArtistMusicPlay.count + Music.count + Artist.count + Engage.count + HaramiVidMusicAssoc.count + HaramiVidEventItemAssoc.count + Event.count + EventItem.count + Channel.count + HaramiVid.count") do
+        assert_no_difference("Translation.count") do  # English Translation added.
+          patch harami_vids_fetch_youtube_datum_path(hvid), params: { harami_vid: { fetch_youtube_datum: hsin } }
+          assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+          assert_redirected_to hvid
+        end
+      end
+  
+      chan.reload
+      assert_operator prev_updated_time, :<, chan.updated_at
+      assert chan.send(att)
+      assert_operator 3, :<=, chan.send(att).size, "#{att} should have been set, but..."
+    end
 
     sign_out @editor_harami
   end

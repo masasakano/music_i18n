@@ -12,7 +12,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
 
   before_action :set_countries, only: [:create, :update] # defined in application_controller.rb
 
-  FROOT_YOUTUBE_ZENZENZENSE = {
+  SEEDS_FBASE_YOUTUBE_ZENZENZENSE = {
     snippet:        "youtube_zenzenzense_snippet",
     contentDetails: "youtube_zenzenzense_contentDetails",
   }.with_indifferent_access
@@ -46,7 +46,13 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
 
     ActiveRecord::Base.transaction(requires_new: true) do
       update_harami_vid_with_youtube_api
+#begin
       result = def_respond_to_format(@harami_vid, :updated, render_err_path: "harami_vids")      # No update is run if @harami_vid.errors.any? ; defined in application_controller.rb
+#  print "DEBUG:err-upd-225: "; p result
+#rescue => er
+#  print "DEBUG:err-upd-235: "; p er
+#  raise
+#end
     end
   end
 
@@ -90,6 +96,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
       return if !api
 
       snippet = api.items[0].snippet
+      _set_yt_channel(snippet)
       channel = _get_channel(snippet)
       return _return_no_channel_err(snippet) if !channel
 
@@ -103,6 +110,29 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
         tras << Translation.preprocessed_new(title: tit, langcode: lc.to_s, is_orig: (lc.to_s == snippet.default_language))
       end
       @harami_vid.unsaved_translations = tras
+    end
+
+    # this is within a DB transaction (see {#update})
+    def update_harami_vid_with_youtube_api
+      set_youtube  # sets @youtube
+      api = _get_youtube_api_videos  # This sets @id_youtube
+      return if !api  # @harami_vid.errors is set.
+
+      snippet = api.items[0].snippet
+      _check_and_set_channel(snippet)
+
+      ret_msg = _adjust_youtube_titles(snippet)  # Translation(s) updated or created.
+      return if ret_msg.blank?
+      flash[:notice] ||= []
+      flash[:notice] << ret_msg
+
+      _adjust_date(snippet)
+
+      duration_s = _get_youtube_duration.in_seconds
+      if @harami_vid.duration != duration_s 
+        @harami_vid.duration = duration_s 
+        flash[:notice] << "Duration is updated to #{duration_s} [s]"
+      end
     end
 
     # Returns 2-element Array of @youtube.list_videos and fullpath, if recovering them from marshalled
@@ -131,7 +161,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
     def _may_save_youtuberet_martial(hsdata, fullpath)
       return nil if !(fullpath && is_env_set_positive?("UPDATE_YOUTUBE_MARSHAL"))
       open(fullpath, "w"){|io|
-        io.write(Marshal.dump(hsret))
+        io.write(Marshal.dump(hsdata))
       }
       return fullpath
     end
@@ -150,7 +180,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
       end
 
       part = "snippet"
-      hsret, fullpath = _get_youtuberet_fullpath(FROOT_YOUTUBE_ZENZENZENSE[part])
+      hsret, fullpath = _get_youtuberet_fullpath(SEEDS_FBASE_YOUTUBE_ZENZENZENSE[part])
 
       hsret ||= @youtube.list_videos("snippet", id: @id_youtube, hl: "en")  # maxResults is invalid with "id"
       _may_save_youtuberet_martial(hsret, fullpath)
@@ -165,7 +195,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
     # @return [ActiveSupport::Duration]
     def _get_youtube_duration
       part = "contentDetails"
-      hsret, fullpath = _get_youtuberet_fullpath(FROOT_YOUTUBE_ZENZENZENSE[part])
+      hsret, fullpath = _get_youtuberet_fullpath(SEEDS_FBASE_YOUTUBE_ZENZENZENSE[part])
 
       hsret ||= @youtube.list_videos(part, id: @id_youtube, hl: "en")  # duration etc.
       _may_save_youtuberet_martial(hsret, fullpath)
@@ -173,14 +203,112 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
       # Duration is in ISO8601 format, e.g., "PT4M5S"
       ActiveSupport::Duration.parse(hsret.items[0].content_details.duration)
     end
+
     
+    # Sets @yt_channel
+    #
+    # It has 
+    # Sets @yt_channel (having attributes of "id" (=>ChannelID) and "snippet"
+    # (of Channel) and else) for "en".
+    # snippet has attributes of title, description, custom_url (=>@haramipiano_main),
+    # published_at (=>DateTime?), country (=>"JP"?), default_language (=>"ja"?),
+    # localized (=> {title:, description: } for "en" or its fallback.
+    #
+    # @return [Google::Apis::YoutubeV3::Channel, NilClass]
+    def _set_yt_channel(snippet)
+      @yt_channel = @youtube.list_channels("snippet", id: snippet.channel_id, hl: "en")
+      @yt_channel = @yt_channel.items[0]
+    end
+
+    def _run_update_channel(result, msg_err, msg_ok=nil)
+      flash[:notice] ||= []
+      if result
+        flash[:notice] << msg_ok if msg_ok
+        return result
+      end
+
+      @harami_vid.errors.add :base, msg_err
+      return result
+    end
+
+    # Updates Youtube-ID related info of the Channel
+    #
+    # Returns (parroting) the given Channel if everything is OK.
+    # If failed to update Channel when prompted to attempt, returns nil.
+    #
+    # @param channel [Channel]
+    # @param snippet [Google::Apis::YoutubeV3::Video, NilClass] unnecessary if @yt_channel is already set
+    # @param yt_handle: [String, NilClass] Youtube channel's Handle-name.
+    # @return [Channel, NilClass]
+    def _update_channel_youtube_ids(channel, snippet=nil, yt_handle: nil)
+      msg_err_head = sprintf("Failed to update Channel(pID=%d) for ", channel.id)
+      _set_yt_channel(snippet) if !@yt_channel
+
+      if channel.id_at_platform != @yt_channel.id
+        result = channel.update(id_at_platform: @yt_channel.id)
+        ret = _run_update_channel(result, msg_err_head+"id_at_platform to: "+@yt_channel.id.inspect)
+        return (ret ? channel : ret)
+      end
+
+      yt_handle ||= @yt_channel.snippet.custom_url.sub(/^@/, "")
+      if channel.id_human_at_platform != yt_handle
+        result = channel.update(id_human_at_platform: yt_handle)
+        ret = _run_update_channel(result, msg_err_head+"id_human_at_platform to: "+yt_handle.inspect)
+        return (ret ? channel : ret)
+      end
+
+      return channel
+    end
+
+    # Return the {Channel}
+    #
+    # If the ID-based search over the registered {Channel}-s has failed,
+    # a human-readable-ID-based search is performed. If it fails, a title-based search
+    # is performed.
+    #
     # @return [Channel, NilClass]
     def _get_channel(snippet)
       channel = Channel.find_by(id_at_platform: snippet.channel_id)
-      return channel if channel
+      return _update_channel_youtube_ids(channel, snippet) if channel
 
+      _set_yt_channel(snippet) if !@yt_channel
+      yt_handle = @yt_channel.snippet.custom_url.sub(/^@/, "")
+
+      channel = Channel.find_by(id_human_at_platform: yt_handle)
+      return _update_channel_youtube_ids(channel, snippet, yt_handle: yt_handle) if channel
+
+      ## preforming title-based search (may wrongly identifies Channel)
       chan_platform_youtube = ChannelPlatform.select_by_translations(en: {title: 'Youtube'}).first
-      return Channel.where(channel_platform_id: chan_platform_youtube.id).select_regex(:title, /^#{Regexp.quote(snippet.channel_title)}(\b|\s|$)/, langcode: snippet.default_language, sql_regexp: true).joins(:channel_type).order("channel_types.weight").first  # based on the human-readable Channel name.  nil is returned if not found.
+      channel = Channel.where(channel_platform_id: chan_platform_youtube.id).select_regex(:title, /^#{Regexp.quote(snippet.channel_title)}(\b|\s|$)/, langcode: snippet.default_language, sql_regexp: true).joins(:channel_type).order("channel_types.weight").first  # based on the human-readable Channel title.  nil is returned if not found.
+      flash[:warning] ||= []
+
+      if !channel
+        msg = sprintf("Failed to find Channel with remote-IDs/handle (Youtube-ID=%s, Handle=%s).", 
+                      snippet.channel_id.inspect,
+                      yt_handle.inspect)
+        flash[:warning].concat msg
+        return nil
+      end
+
+      id_defined = channel.id_at_platform.present? || channel.id_human_at_platform.present?
+      strmid, strtail =
+              if id_defined
+                ["inconsistent with those taken from the given URI", " Processing aborted."]
+              else
+                ["not defined", ""]
+              end
+      msg = sprintf("Although there is a Channel(pID=%s) [%s] with a similar name, its remote-IDs/handle are %s (Youtube-ID=%s, Handle=%s).%s", 
+                      channel.id.inspect,
+                      channel.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true),
+                      strmid,
+                      snippet.channel_id.inspect,
+                      yt_handle.inspect,
+                      strtail
+                   )
+      flash[:warning].concat msg
+      return if id_defined
+
+      return _update_channel_youtube_ids(channel, snippet, yt_handle: yt_handle)
     end
 
     # @return [NilClass]
@@ -227,29 +355,36 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
       titles
     end
 
+    # Update or add {Channel.translations} according to Youtube.
     #
     # @return [String, NilClass]
     def _adjust_youtube_titles(snippet)
       raise if !current_user  # should never happen in normal calls.
       ret_msgs = []
-      titles = _get_youtube_titles(snippet)
+      titles = _get_youtube_titles(snippet)  # duplication is already eliminated if present.
+#print "DEBUG:err-upd-405: titles="; p titles
       [snippet.default_language, "ja", "en"].uniq.each do |elc|
         tras = @harami_vid.translations.where(langcode: elc)
+#print "DEBUG:err-upd-424: lcode, def="; p [elc, snippet.default_language]
+#print "DEBUG:err-upd-425: tras="; p tras
         next if tras.where(title: titles[elc]).or(tras.where(alt_title: titles[elc])).exists?  # Skip if an identical Translation exists whoever owns it.
 
         tra0 = tras.where(create_user_id: current_user.id).or(tras.where(update_user_id: current_user.id)).first
+#print "DEBUG:err-upd-435: tra0="; p tra0
         if tra0 && diff_emoji_only?(tra0.title, titles[elc])  # defined in module_common.rb
-          tra0.title = titles[elc]
-          tra = tra0
+          result = tra.update(title: titles[elc])
           ret_msgs << "Title[#{elc}] updated."
+#print "DEBUG:err-upd-441: [result, tra]="; p [result, tra]
         else
           tra = Translation.preprocessed_new(title: titles[elc], langcode: elc, is_orig: (elc == snippet.default_language))
+          @harami_vid.translations << tra
           ret_msgs << "New Title[#{elc}] added."
+          result = tra.id  # Integer or nil if failed to save and associate.
+#print "DEBUG:err-upd-446: [result, tra]="; p [result, tra]
         end
 
-        result = tra.save
         if !result
-          ret_msgs.pop
+          # Failed to save a Translation. The parent should rollback everything.
           msg = sprintf("ERROR: Failed to save a Translation[%s]: %s", elc, titles[elc])
           @harami_vid.errors.add :base, msg
           return nil
@@ -265,29 +400,6 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
         flash[:notice] ||= []
         flash[:notice] << "Release-Date is updated to #{date}"
         @harami_vid.release_date = date
-      end
-    end
-
-    # this is within a DB transaction (see {#update})
-    def update_harami_vid_with_youtube_api
-      set_youtube  # sets @youtube
-      api = _get_youtube_api_videos  # This sets @id_youtube
-      return if !api  # @harami_vid.errors is set.
-
-      snippet = api.items[0].snippet
-      _check_and_set_channel(snippet)
-
-      ret = _adjust_youtube_titles(snippet)  # Translation(s) updated or created.
-      return if ret.blank?
-      flash[:notice] ||= []
-      flash[:notice] << ret
-
-      _adjust_date(snippet)
-
-      duration_s = _get_youtube_duration.in_seconds
-      if @harami_vid.duration != duration_s 
-        @harami_vid.duration = duration_s 
-        flash[:notice] << "Duration is updated to #{duration_s} [s]"
       end
     end
 
