@@ -64,6 +64,9 @@ class Channel < BaseWithTranslation
   has_many :harami_vids, -> {distinct}, dependent: :restrict_with_exception  # dependent is a key / Basically this should not be easily destroyed - it may be merged instead.
   has_many :harami1129s, through: :harami_vids, dependent: :restrict_with_exception  # I think dependent is redundant
 
+  # callback to make sure id_human_at_platform does not have a prefix of "@"
+  before_validation :remove_atmark_id_human_for_validation
+
   before_create     :set_create_user       # This always sets non-nil weight. defined in /app/models/concerns/module_whodunnit.rb
   before_save       :set_update_user       # defined in /app/models/concerns/module_whodunnit.rb
 
@@ -217,6 +220,13 @@ class Channel < BaseWithTranslation
 
 
   ######################## callbacks #######################
+
+  # before_validation callback
+  #
+  # Preceding +@+ is removed from {#id_human_at_platform}.
+  def remove_atmark_id_human_for_validation
+    self.id_human_at_platform.sub!(/\A@/, "") if id_human_at_platform
+  end
 
   ## Callback invoed by {BaseWithTranslation#save_unsaved_translations}
   ## which is an after_create callback.

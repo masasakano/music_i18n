@@ -8,7 +8,7 @@ class ChannelsController < ApplicationController
   #PARAMS_KEY_AC = BaseMerges::BaseWithIdsController.formid_autocomplete_with_id(Artist).to_sym
 
   # Symbol of the main parameters in the Form (except "place_id"), which exist in DB
-  MAIN_FORM_KEYS = %i(channel_owner_id channel_platform_id channel_type_id note)
+  MAIN_FORM_KEYS = %i(id_at_platform id_human_at_platform channel_owner_id channel_platform_id channel_type_id note)
 
   # Permitted main parameters for params(), used for update and create
   PARAMS_MAIN_KEYS = MAIN_FORM_KEYS #+ [PARAMS_KEY_AC] # == :artist_with_id
@@ -88,6 +88,9 @@ class ChannelsController < ApplicationController
     # @return NONE
     def model_params_multi
       hsall = set_hsparams_main_tra(:channel) # defined in application_controller.rb
+      %i(id_at_platform id_human_at_platform).each do |att|
+        @hsmain[att] = nil if @hsmain[att].blank?
+      end
     end
 
 end

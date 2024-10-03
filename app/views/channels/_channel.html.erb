@@ -1,27 +1,35 @@
 <div id="<%= dom_id channel %>">
 <% model = channel %>
 <dl>
-  <% if can? :update, channel %>
-    <dt>ID (<%= channel.class.name %>)</dt>
+  <% if can? :update, Channel %>
+   <div class="editor_only">
+    <dt>pID (<%= channel.class.name %>)</dt>
     <dd> <%= channel.id %></dd>
+   </div>
   <% end %>
-  <dt title="Channel owner.">Owner</dt>
+  <dt class="item_id_at_platform"> <%= t("channels.show.id_at_platform") %>:</dt>
+  <dd class="item_id_at_platform"><%= link_to_channel(model.id_at_platform, kind: "id", platform: model.channel_platform) %></dd>
+  <dt class="item_id_human_at_platform"> <%= t("channels.show.id_human_at_platform") %>:</dt>
+  <dd class="item_id_human_at_platform"><%= link_to_channel(model.id_human_at_platform, kind: "handle", platform: model.channel_platform) %></dd>
+  <dt title="Channel owner."><%= t("harami_vids.table_head_ChannelOwner") %>:</dt>
     <dd><%= m=model.channel_owner; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), channel_owner_path(m)) if m %>
       <% if m && m.artist %>
         (→ <%= t(:Artist) %>: <%= link_to(m.artist.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), artist_path(m.artist)) %>)
       <% end %>
     </dd>
-  <dt title="Channel platform.">Platform</dt>
+  <dt title="Channel platform."><%= t("harami_vids.table_head_ChannelPlatform") %>:</dt>
     <dd><%= m=model.channel_platform; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), channel_platform_path(m)) %></dd>
-  <dt title="Channel type.">Type</dt>
+  <dt title="Channel type."><%= t("harami_vids.table_head_ChannelType") %>:</dt>
     <dd><%= m=model.channel_type; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), channel_type_path(m)) %></dd>
-  <dt title="Note"><strong>Note:</strong></dt>
+  <dt title="Note"><%= t("tables.note")%>:</dt>
     <dd><%= model.note %></dd>
  <% if can? :update, Users::EditRolesController %>
+  <div class="editor_only">
    <% %w(create_user update_user).each do |metho| %>
   <dt><%= metho %>:</dt>
     <dd><%= ur = channel.send(metho); link_to(ur.display_name, ur) if ur %></dd>
    <% end %>
+  </div>
  <% end %>
  <% if can? :edit, channel %>
   <dt>updated_at:</dt>

@@ -223,6 +223,43 @@ module ApplicationHelper
   end # def get_html_head_title
 
 
+  # Returns an HTML link for (YouTube) Channel
+  #
+  # So far, only Youtube is considered. Else, a html-escaped bare word is returned.
+  #
+  # @param word [String, NilClass, Symbol] Hilighted word (for users to click).
+  #    If nil, returns a null string.
+  #    If the special symbol :uri, the raw URI. Otherwise it must be String.
+  # @option root_kwd [String, NilClass] if nil, word is used. This is optional.
+  # @param kind [String, Symbol] id or handle
+  # @param platform [ChannelPlatform, String] So far, only "youtube" is accepted.
+  # @param target [Boolean] if true (Def), +target="_blank"+ is added.
+  # @param kwds [Hash] optional arguments passed to link_to
+  # @return [String] HTML of <a> for YouTube link
+  def link_to_channel(word, root_kwd=nil, kind: "id", platform: "youtube", target: true, **kwds)
+    return '' if word.blank?
+    s_platform = (platform.respond_to?(:mname) ? platform.mname : platform.to_s).downcase
+    return ERB::Util.html_escape(word) if "youtube" != s_platform
+
+    word = ((word == :uri) ? nil : word.to_s)
+    root_kwd ||= word if word
+
+    uri = "https://www.youtube.com/" +
+      case kind.to_s.downcase
+      when "id"
+        "channel/"+root_kwd
+      when "handle"
+        "@"+root_kwd.sub(/\A@/, "")
+      else
+        raise ArgumentError, "wrong kind (#{kind.inspect})"
+      end
+
+    word = sprintf("%s", uri) if !word
+    opts = { title: "Youtube" }.merge(kwds)
+    opts[:target] = "_blank" if target
+    ActionController::Base.helpers.link_to word, uri, **opts
+  end
+
   # Returns an HTML YouTube link
   #
   # @param word [String, NilClass, Symbol] Hilighted word (for users to click).

@@ -201,6 +201,8 @@ en:
       themselves: "Themselves"
     show:
       harami_vid_table_title: "Registered HaramiVids in this Channel"
+      id_at_platform: "machine ID at the remote platform"
+      id_human_at_platform: "human-readable ID at remote platform (@-something)"
 
   event_groups:
     num_id: "#num"

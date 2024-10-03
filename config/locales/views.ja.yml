@@ -216,6 +216,8 @@ ja:
       themselves: "本人"
     show:
       harami_vid_table_title: "このチャンネルのハラミちゃん(関係)登録動画"
+      id_at_platform: "プラットフォームが付した機械ID"
+      id_human_at_platform: "プラットフォーム上の人間的ID (@なんちゃら)"
 
   event_groups:
     num_id: "通番"

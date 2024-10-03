@@ -23,6 +23,8 @@
   <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
 
   <div class="form-inputs">
+    <%= f.input :id_at_platform, label: t("channels.show.id_at_platform") %>
+    <%= f.input :id_human_at_platform, label: t("channels.show.id_human_at_platform") %>
     <%= f.association :channel_owner,    hint: (can?(:create, ChannelOwner)    ? t("layouts.fields.hint_create_if_non_existent", link: link_to(t("layouts.do_create_lower"), new_channel_owner_path)).html_safe : "")%>
     <%= f.association :channel_platform, hint: (can?(:create, ChannelPlatform) ? t("layouts.fields.hint_create_if_non_existent", link: link_to(t("layouts.do_create_lower"), new_channel_platform_path)).html_safe : "") %>
     <%= f.association :channel_type %>  <%# NOTE: Here gives no hint to prompt a user to create a new one, because ChannelType should be highly restricted - appropriate moderators can create one by directly jumping to it anyway without being prompted here. %>

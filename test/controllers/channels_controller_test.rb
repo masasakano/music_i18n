@@ -26,7 +26,12 @@ class ChannelsControllerTest < ActionDispatch::IntegrationTest
       "title"=>"The Tｅst7",
       "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
       #"best_translation_is_orig"=>str_form_for_nil,  # radio-button returns "on" for nil
-    }
+    }.with_indifferent_access
+
+    @hs_basics = {
+      id_at_platform: "",
+      id_human_at_platform: "",
+    }.with_indifferent_access
   end
 
   teardown do
@@ -66,7 +71,7 @@ class ChannelsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should create channel" do
-    hs2pass = @hs_create_lang.merge({ channel_owner_id: @channel.channel_owner.id, channel_platform_id: ChannelPlatform.unknown.id, channel_type_id: @channel.channel_type.id, note: "newno", })
+    hs2pass = @hs_create_lang.merge(@hs_basics).merge({ channel_owner_id: @channel.channel_owner.id, channel_platform_id: ChannelPlatform.unknown.id, channel_type_id: @channel.channel_type.id, note: "newno", })
     assert_no_difference("Channel.count") do
       post channels_url, params: { channel: hs2pass }
     end
@@ -155,15 +160,30 @@ class ChannelsControllerTest < ActionDispatch::IntegrationTest
     #assert_equal @editor_ja, @channel.create_user, "sanity check. user=#{@channel.inspect}"
 
     newnote1 = "new-note"
-    update_params = { channel: { channel_type_id: ChannelType.unknown.id, note: newnote1 } }
+    update_params = { channel: { channel_type_id: ChannelType.unknown.id, note: newnote1 } }.with_indifferent_access
 
-    #hs2pass = @hs_create_lang.merge({ channel_owner: @channel.channel_owner, channel_platform: ChannelPlatform.unknown, channel_type: @channel.channel_type, note: "newno", })
+    # Sets id_at_platform, id_human_at_platform
+    chans = [@channel, @channel2]
+    update_paramss = {
+      1 => { channel: update_params[:channel] },
+      2 => { channel: update_params[:channel] },
+    }
+    (1..2).each do |eid|
+      hstmp = {}.with_indifferent_access
+      @hs_basics.each_key do |ek|  # id_at_platform, id_human_at_platform
+        hstmp[ek] = (@channel.send(ek) || "")  # Always "" (but nil) is passed from from.
+      end
+      %i(channel_owner_id channel_platform_id).each do |ek|
+        hstmp[ek] = chans[eid-1].send(ek)
+      end
+      update_paramss[eid][:channel] = update_paramss[eid][:channel].merge(hstmp)
+    end
 
     sign_in @moderator_harami  # do  # if I put do, the next line is not executed for some reason! (maybe because another sign_in exists below?)
       get edit_channel_url(@channel)
       assert_response :redirect, "Harami-Moderator should not be able to edit the entry created by GA-editor, but..."
       assert_redirected_to root_path
-      patch channel_url(@channel), params: update_params
+      patch channel_url(@channel), params: update_paramss[1]
       assert_response :redirect, "Harami-Moderator should not be able to update the entry created by GA-editor, but..."
       assert_redirected_to root_path
   
@@ -172,20 +192,41 @@ class ChannelsControllerTest < ActionDispatch::IntegrationTest
       get edit_channel_url(@channel2)
       assert_response :redirect, "Anyone but admins should not be able to edit the entry created by admin or no one, but..."
       assert_redirected_to root_path
-      patch channel_url(@channel2), params: update_params
+      patch channel_url(@channel2), params: update_paramss[2]
       assert_response :redirect, "Anyone but admins should not be able to update the entry created by admin or no one, but..."
       assert_redirected_to root_path
   
       @channel2.update!(create_user: @editor_harami)
-      patch channel_url(@channel2), params: update_params
+      patch channel_url(@channel2), params: update_paramss[2]
       assert_response :redirect, "Harami-moderator cannot update an entry created by anyone, including their subordinates, but themselves, but..."
       refute_equal newnote1, @channel2.reload.note
-  
+
       @channel2.update!(create_user: @moderator_harami)
-      patch channel_url(@channel2), params: update_params
+      patch channel_url(@channel2), params: update_paramss[2]
       assert_response :redirect
       assert_redirected_to @channel2, "Harami-moderator should be able to update the entry created by themselves, but..."
       assert_equal newnote1, @channel2.reload.note
+
+      # Testing updating id_human_at_platform - "@" should be removed if specified.
+      tmpid_human = "abcde"
+      patch channel_url(@channel2), params: {channel: update_paramss[2][:channel].merge({id_human_at_platform: "@"+tmpid_human}.with_indifferent_access) }
+      assert_response :redirect
+      assert_redirected_to @channel2, "Harami-moderator should be able to update the entry created by themselves, but..."
+      assert_equal tmpid_human, @channel2.reload.id_human_at_platform
+      @channel2.update!(id_human_at_platform: nil)
+
+      # Testing updating id_human_at_platform - 1 character is too short.
+      tmpid_human = "X"
+      patch channel_url(@channel2), params: {channel: update_paramss[2][:channel].merge({id_human_at_platform: tmpid_human}.with_indifferent_access) }
+      assert_response :unprocessable_entity
+      assert_nil  @channel2.reload.id_human_at_platform  # no change
+
+      # Testing updating id_at_platform - 1 character is too short.
+      assert_nil  @channel2.id_at_platform  # sanity check
+      tmpid_human = "X"
+      patch channel_url(@channel2), params: {channel: update_paramss[2][:channel].merge({id_at_platform: tmpid_human}.with_indifferent_access) }
+      assert_response :unprocessable_entity
+      assert_nil  @channel2.reload.id_at_platform  # no change
     sign_out @moderator_harami
 
     sign_in @editor_ja # do
@@ -193,7 +234,7 @@ class ChannelsControllerTest < ActionDispatch::IntegrationTest
       assert_equal @moderator_harami, @channel2.create_user, "sanity check"
       refute_equal newnote1, @channel2.reload.note
 
-      patch channel_url(@channel2), params: update_params
+      patch channel_url(@channel2), params: update_paramss[2]
       assert_equal newnote1, @channel2.reload.note
       assert_response :redirect
       assert_redirected_to @channel2, "General-editor should be able to edit the entry created by anyone but admins, but..."
@@ -201,7 +242,7 @@ class ChannelsControllerTest < ActionDispatch::IntegrationTest
       @channel2.update!(create_user: @moderator_harami, note: "orig0")
       assert_equal "orig0", @channel2.reload.note
 
-      patch channel_url(@channel2), params: update_params
+      patch channel_url(@channel2), params: update_paramss[2]
       assert_response :redirect, "should not be able to update an entry, but..."
 
     #end

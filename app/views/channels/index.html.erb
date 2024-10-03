@@ -28,7 +28,7 @@
   <tbody>
     <% @channels.each do |model| %>
       <tr>
-        <td class="editor_only"><%= model.id %></td>
+        <td class="editor_only"><%= link_to(model.id, model) %></td>
        <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
 
         <td><%= m=model.channel_owner; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), channel_owner_path(m)) %>
