@@ -6,8 +6,12 @@
 <%= render partial: 'layouts/all_registered_translations', locals: {model: @harami_vid, add_buttons: false} %>
  <section id="harami_vids_show_unique_parameters">
  <dl>
-  <dt class="item_pid"> pID:</dt>
-  <dd class="item_pid"><%= @harami_vid.id %></dd>
+  <% if can? :edit, @harami_vid %>
+    <div class="editor_only">
+      <dt class="item_pid"> pID:</dt>
+      <dd class="item_pid"><%= @harami_vid.id %></dd>
+    </div>
+  <% end %>
 
   <dt class="item_release_date"> <%= t("tables.release_date") %>:</dt>
   <dd class="item_release_date"><%= date2text(@harami_vid.release_date) %></dd> <%# defined in ModuleCommon %>

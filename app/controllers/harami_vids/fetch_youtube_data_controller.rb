@@ -100,7 +100,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
       _check_and_set_channel(snippet)
 
       ret_msg = _adjust_youtube_titles(snippet)  # Translation(s) updated or created.
-      return if ret_msg.blank?
+      return if !ret_msg  # Error has been raised in saving/updating Translation(s)
       flash[:notice] ||= []
       flash[:notice] << ret_msg
 
@@ -189,6 +189,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
       ret_msgs = []
       titles = _get_youtube_titles(snippet)  # duplication is already eliminated if present.
       [snippet.default_language, "ja", "en"].uniq.each do |elc|
+        next if titles[elc].blank?
         tras = @harami_vid.translations.where(langcode: elc)
         next if tras.where(title: titles[elc]).or(tras.where(alt_title: titles[elc])).exists?  # Skip if an identical Translation exists whoever owns it.
 
@@ -205,7 +206,8 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
 
         if !result
           # Failed to save a Translation. The parent should rollback everything.
-          msg = sprintf("ERROR: Failed to save a Translation[%s]: %s", elc, titles[elc])
+          msg_err = tra.errors.full_messages.join("; ") # +" / "+titles.inspect
+          msg = [sprintf("ERROR: Failed to save a Translation[%s]: %s", elc, titles[elc]), msg_err].join(" / ")
           @harami_vid.errors.add :base, msg
           return nil
         end
