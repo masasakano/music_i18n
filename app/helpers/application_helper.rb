@@ -3,6 +3,9 @@ module ApplicationHelper
 
   include ModuleCommon
 
+  # Default directory for test fixtute data
+  DEF_FIXTURE_DATA_DIR = Rails.root.join(*(%w(test fixtures data))).to_s
+
   # For toastr Gem. From
   # <https://stackoverflow.com/a/58778188/3577922>
   def toastr_flash
@@ -827,7 +830,7 @@ module ApplicationHelper
     sanitized_html_fragment(*args, **kwds).to_s
   end
 
-  # Returns the full path for the test data with the given root filename Regexp
+  # Returns the full path for the test data with the given root filename Regexp (or String) with one of candidate suffixes
   #
   # @param re [Regexp, String] to identify the file. If String, it is a partial match.
   # @param from_env: [Boolean] set this true to test dotenv-rails
@@ -841,7 +844,7 @@ module ApplicationHelper
       return if !fnames
       fnames = fnames.split(/,/)
     else
-      fdir = Rails.root.join(*(%w(test fixtures data))).to_s
+      fdir = DEF_FIXTURE_DATA_DIR
       # fdir  = 'file://'+fdir.to_s
       fnames = Dir.glob(fdir.to_s+"/*.{#{[suffixes].flatten.join(',')}}").map{|i| i.sub(%r@.*/@, '')}
       #fnames = Dir.glob(fdir.to_s+"/*.{html,md}").map{|i| i.sub(%r@.*/@, '')}
@@ -849,6 +852,16 @@ module ApplicationHelper
 
     fname = fnames.find{|i| re.respond_to?(:gsub) ? i.include?(re) : (re =~ i)}
     fname && fdir.sub(%r@/$@, '')+'/'+fname || nil
+  end
+
+  # Saves the marshal-led object to the specified file.
+  #
+  # @param obj [Object] any Ruby object (but not IO etc). Singleton methods are not saved.
+  # @param fullpath [String] to save.
+  def save_marshal(obj, fullpath)
+    open(fullpath, "w"){|io|
+      Marshal.dump(obj, io)
+    }
   end
 
   # to suppress warning, mainly that in Ruby-2.7.0:

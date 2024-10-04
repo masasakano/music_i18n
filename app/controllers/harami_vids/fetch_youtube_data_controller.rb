@@ -5,10 +5,12 @@
 # == NOTE
 #
 # * ENV["YOUTUBE_API_KEY"] is essential.
-# * ENV["UPDATE_YOUTUBE_MARSHAL"] : set this if you want to update the marshal-led Youtube data.
+# * ENV["UPDATE_YOUTUBE_MARSHAL"] : set this if you want to *update* the marshal-ed Youtube data.
+# * ENV["SKIP_YOUTUBE_MARSHAL"] : In testing, if this is set, marshal-ed data are not used.
 class HaramiVids::FetchYoutubeDataController < ApplicationController
   include ApplicationHelper
   include HaramiVidsHelper # for set_event_event_items (common with HaramiVidsController)
+  include ModuleGuessPlace  # for guess_place
   include ModuleYoutubeApiAux # defined in /app/models/concerns/module_youtube_api_aux.rb
 
   before_action :set_countries, only: [:create, :update] # defined in application_controller.rb
@@ -99,8 +101,6 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
       @harami_vid.duration = ActiveSupport::Duration.parse(@yt_video.content_details.duration).in_seconds
       _adjust_date(snippet)
 
-      _set_up_event_item_and_associate()  # setting EventItem association
-
       titles = _get_youtube_titles(snippet)
       tras = []
       titles.each_pair do |lc, tit|
@@ -108,6 +108,9 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
         tras << Translation.preprocessed_new(title: tit, langcode: lc.to_s, is_orig: (lc.to_s == snippet.default_language))
       end
       @harami_vid.unsaved_translations = tras
+
+      @harami_vid.place = self.class.guess_place(titles["ja"])
+      _set_up_event_item_and_associate()  # setting EventItem association; this should come after @harami_vid.place is set up.
     end
 
     # this is within a DB transaction (see {#update})
@@ -134,12 +137,25 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
       end
     end
 
-    # Save a new EventItem, imported from HaramiVidsController#set_up_event_item_and_associate
+    # Saves a new EventItem and associates it to HaramiVid
+    #
+    # This method is imported from HaramiVidsController#set_up_event_item_and_associate
+    #
+    # @todo refactoring to make this routine common!
     #
     def _set_up_event_item_and_associate()
-      evit = EventItem.new_default(:HaramiVid, event: Event.default(:HaramiVid), save_event: false)
+      evit = EventItem.new_default(:HaramiVid, place: @harami_vid.place, save_event: true)
 
-      evit.update!(publish_date: @harami_vid.release_date)  # EventItem is always new, hence this is OK.
+      hsopts = { publish_date: @harami_vid.release_date }
+      if @harami_vid.release_date
+        hsopts.merge!({start_time: @harami_vid.release_date.to_time - 30.days,
+                       start_time_err: 30.days.in_seconds,})
+      end
+      if @harami_vid.duration
+        hsopts.merge!({duration_minute:     @harami_vid.duration.seconds.in_minutes,
+                       duration_minute_err: @harami_vid.duration/2.0,})
+      end
+      evit.update!(**hsopts)  # EventItem is always new, hence this is OK.
 
       @harami_vid.event_items << evit if !@harami_vid.event_items.include?(evit)
       @harami_vid.event_items.reset
@@ -351,7 +367,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
     # If the default language is English, the existence of Japanese title is not checked.
     # Also, "en-GB" etc are not taken into account (though Youtube's fallback mechanism should work).
     #
-    # @return [Hash] e.g., {"ja" => "Some1", "en" => nil}
+    # @return [Hash] e.g., {"ja" => "Some1", "en" => nil} (with_indifferent_access)
     def _get_youtube_titles(snippet)
       # titles = {"ja" => nil, "en" => nil}.with_indifferent_access
       titles = {}.with_indifferent_access

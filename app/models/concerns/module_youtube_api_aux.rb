@@ -1,11 +1,24 @@
 # -*- coding: utf-8 -*-
+# require "unicode/emoji"
+# require "google/apis/youtube_v3"
 
-# Common module to implement "self.primary" for {Artist} and similar
+# Common module to implement Youtube-API-related methods
 #
 # @example
 #   include ModuleYoutubeApiAux
-#   ChannelOnwer.primary  # => primary ChannelOnwer
+#   set_youtube                   # sets @youtube
+#   get_yt_video(HaramiVid.last)  # sets @yt_video
+#   ActiveSupport::Duration.parse(@yt_video.content_details.duration).in_seconds  # => Float
 #
+# == NOTE
+#
+# * ENV["YOUTUBE_API_KEY"] is essential.
+# * ENV["SKIP_YOUTUBE_MARSHAL"] : In testing, if this is set, marshal-ed data are not used,
+#   but it accesses the remote Google/Youtube API.
+# * ENV["UPDATE_YOUTUBE_MARSHAL"] : set this if you want to update the marshal-led Youtube data.
+#   If this is set, ENV["SKIP_YOUTUBE_MARSHAL"] is ignored.
+#   NOTE even if this is set, it does NOT create a new one but only updates an existing one(s).
+#   Use instead: bin/rails save_marshal_youtube
 module ModuleYoutubeApiAux
   #def self.included(base)
   #  base.extend(ClassMethods)
@@ -13,22 +26,6 @@ module ModuleYoutubeApiAux
   extend ActiveSupport::Concern  # In Rails, the 3 lines above can be replaced with this.
 
   include ApplicationHelper
-
-  # Seeds-related constant
-  SEEDS_YOUTUBE = {
-    channel: {
-      harami: {
-        id: "UCr4fZBNv69P-09f98l7CshA",  # == channels(:channel_haramichan_youtube_main).id_at_platform  (in Test)
-        basename: "youtube_channel_harami.marshal",
-      }.with_indifferent_access,
-    }.with_indifferent_access,
-    video: {
-      zenzenzense: {
-        id: "hV_L7BkwioY",  # == harami1129s(:harami1129_zenzenzense1).link_root  (in Test)
-        basename: "youtube_zenzenzense.marshal",
-      }.with_indifferent_access,
-    }.with_indifferent_access,
-  }.with_indifferent_access
 
   module ClassMethods
   end
@@ -68,8 +65,9 @@ module ModuleYoutubeApiAux
   # @param filter_kind: [String, Symbol] what yid means: either "id" or "forHandle". Else :auto to determine automatically (in practice, this attempts both).
   # @param youtube: [Google::Apis::YoutubeV3]
   # @param set_instance_var: [Boolean] if true (Def), @yt_channel is set (possibly overwritten).
+  # @param use_cache_test: [Boolean] if true, the cache (marshal-ed) data are used in principle (see above).
   # @return [Google::Apis::YoutubeV3::Channel, NilClass]
-  def get_yt_channel(yid, filter_kind: nil, youtube: @youtube, set_instance_var: true)
+  def get_yt_channel(yid, filter_kind: nil, youtube: @youtube, set_instance_var: true, use_cache_test: false)
     yt_channel = nil
     ((:auto == filter_kind) ? ["id", "for_handle"] : [filter_kind]).each do |eaf|
       hsopts = {:hl => "en", eaf.to_sym => yid}
@@ -104,16 +102,26 @@ module ModuleYoutubeApiAux
 
   # Returns Youtube-Video instance, setting @yt_video in default.
   #
-  # If use_cache_test is specified and ENV["UPDATE_YOUTUBE_MARSHAL"] is set,
-  # the test data in /fixture/data is updated.
+  # If use_cache_test is true, the cache (marshal-ed data at /test/fixtures/data
+  # as specified in +ApplicationHelper::DEF_FIXTURE_DATA_DIR+) is used in principle,
+  # instead of accessing remote Google/Youtube-API (as long as the cache exists,
+  # which should be always the case once the cache has been created).
+  # Even When +use_cache_test+ is true, if either of ENV["SKIP_YOUTUBE_MARSHAL"]
+  # and ENV["UPDATE_YOUTUBE_MARSHAL"] is set positive, the marshal-ed cache is *NOT*
+  # read, but this accesses the remobe Youtube-API.
+  #
+  # Also, if ENV["UPDATE_YOUTUBE_MARSHAL"] is set positive AND if +use_cache_test+ is true
+  # the cache is updated, as long as the file already exists. In practice, this happens
+  # only in the test environment (because this method is always called with +use_cache_test: false+
+  # except in the test environment).
   #
   # @param yid [String, #uri] e.g., "xyz123abc", "https://youtu.be/xyz123abc", HaramiVid. The URI can be in almost any form for Youtube.
   # @param filter_kind: [String, Symbol] what yid means: either "id" or "forHandle". Else :auto to determine automatically (in practice, this attempts both).
   # @param youtube: [Google::Apis::YoutubeV3]
   # @param set_instance_var: [Boolean] if true (Def), @yt_video is set (possibly overwritten).
   # @param model: [ActiveRecord, TrueClass, NilClass] if non-nil and if an error is raised, an error is added to either this model or yid (if this value is True and yid is ActiveRecord).
-  # @param use_cache_test: [Boolean] if true, 
-  # @return [Google::Apis::YoutubeV3::Video, NilClass]
+  # @param use_cache_test: [Boolean] if true, the cache (marshal-ed) data are used in principle (see above).
+  # @return [Google::Apis::YoutubeV3::Video, NilClass] This is +Google::Apis::YoutubeV3::ListVideosResponse#items[0]+
   def get_yt_video(yid_in, filter_kind: "id", youtube: @youtube, set_instance_var: true, model: true, use_cache_test: false)
     return _return_error_in_get_yt_video(yid_in, set_instance_var: set_instance_var, model: model) if yid_in.respond_to?(:channel) && (chan=yid_in.channel) && chan.respond_to?(:channel_platform) && (plat=chan.channel_platform) && "youtube" != plat.mname.downcase  # returns nil if ChannelPlatform is NOT youtube
 
@@ -125,12 +133,23 @@ module ModuleYoutubeApiAux
     end
 
     ytret = nil
-    if use_cache_test && [SEEDS_YOUTUBE[:video][:zenzenzense][:id]].include?(yid)
-      ytret, fullpath = _get_youtubeitem_fullpath(SEEDS_YOUTUBE[:video][:zenzenzense][:basename])
+    if use_cache_test
+      require Rails.root.join("test/helpers/marshaled")  # loads the constant MARSHALED
+      ytret, fullpath = _get_youtube_marshaled_fullpath(yid, :zenzenzense, kind: :video)
+      # ytret is non-nil only if yid agrees with Marshal(:zenzenzense) AND if it is for testing etc
+      msg = "DEBUG: marshal was attempted to be loaded from #{fullpath.inspect}; result=#{ytret.inspect}"
+      logger.debug msg
     end
 
-    ytret ||= ((yt=@youtube.list_videos(%w(snippet contentDetails), id: yid, hl: "en")) ? yt.items[0] : nil)  # maxResults is invalid with "id"
-    _may_update_youtube_marshal(ytret, fullpath) if ytret && fullpath ## i.e., if use_cache_test is given AND Youtube-ID satisfies the condition AND fullpath is obtained.
+    if !ytret
+      logger.debug("DEBUG: accesses Google/Youtube API for Video #{yid.inspect}")
+      yt = @youtube.list_videos(%w(snippet contentDetails), id: yid, hl: "en")  # maxResults is invalid with "id"
+      ytret = (yt ? yt.items[0] : nil)
+      msg = "DEBUG: Info of Video #{yid.inspect} was retrieved with Google/Youtube API; result=#{ytret.inspect}"
+      logger.debug msg
+    end
+
+    _may_update_youtube_marshal(ytret, fullpath) ## i.e., updated if use_cache_test is true AND ENV["UPDATE_YOUTUBE_MARSHAL"] is positive AND Youtube-ID satisfies the condition AND fullpath has been obtained.
     @yt_video = ytret if set_instance_var
     ytret
   end
@@ -253,18 +272,36 @@ module ModuleYoutubeApiAux
       return nil 
     end
 
-    # Returns 2-element Array of @youtube.list_videos and fullpath, if recovering them from marshalled
-    #
     # @param root_kwd [String] root filename for the marshal-led data.
-    # @return [Array<Hash,String,NilClass>] 2-element Array of [Hash(Google::Apis::YoutubeV3), String(full-path)] or [nil, nil]
-    def _get_youtubeitem_fullpath(root_kwd)
-      return [nil, nil] if !@use_cache_test 
+    # @return [String, NilClass] The absolute path of the existing marshal file
+    def _find_marshal_fullpath(root_kwd)
+      get_fullpath_test_data(root_kwd, suffixes: %w(marshal))  # defined in application_helper.rb
+    end
 
-      fullpath = get_fullpath_test_data(root_kwd)  # defined in application_helper.rb
-      #fullpath = get_fullpath_test_data(/^#{Regexp.quote(root_kwd)}/)  # defined in application_helper.rb
-      return [nil, nil] if !fullpath
 
-      [Marshal.load(IO.read(fullpath)), fullpath]
+    # Returns a marshal-ed Youtube-Video object and its marshall fullpath (for potential use of updating later)
+    #
+    # @param yid [String] Video ID at Youtube
+    # @param data_kwds [String, Symbol, Array] like :zenzenzense or its Array; see MARSHALED (in /test/helpers/marshaled.rb)
+    # @param kind [String, Symbol] either :video or :channel (or its String)
+    # @return [Array<Google::Apis::YoutubeV3::Video,String,NilClass>] 2-element Array of [Apis|nil, String(full-path)|nil]
+    def _get_youtube_marshaled_fullpath(yid, data_kwds, kind: :video)
+      return [nil, nil] if !is_env_set_positive?("UPDATE_YOUTUBE_MARSHAL") && is_env_set_positive?("SKIP_YOUTUBE_MARSHAL")
+
+      [data_kwds].flatten.each do |dkwd|
+        next if ![MARSHALED[:youtube][kind][dkwd][:id]].include?(yid)
+
+        fullpath = _find_marshal_fullpath(MARSHALED[:youtube][kind][dkwd][:basename])
+        next if fullpath.blank?
+        # Now, a file at fullpath is guaranteed to exist (never a new file).
+
+        return [nil, fullpath] if is_env_set_positive?("UPDATE_YOUTUBE_MARSHAL") || is_env_set_positive?("SKIP_YOUTUBE_MARSHAL")
+
+        logger.debug("DEBUG: loading marshall (kwd=#{dkwd.inspect}) for Video #{yid.inspect}")
+        return [Marshal.load(IO.read(fullpath)), fullpath]
+      end
+
+      [nil, nil]  # Basically no Marshal-fullpath is found for the given Youtube Video-ID
     end
 
     # Save the marshal-led Youtube-API-Hash if all the conditions satisfy.
@@ -281,10 +318,11 @@ module ModuleYoutubeApiAux
     # @param fullpath [String] to save.
     # @return [String, NilClass>] If saved, the given fullpath is returned, else nil.
     def _may_update_youtube_marshal(yt_vid, fullpath)
-      return nil if !(fullpath && is_env_set_positive?("UPDATE_YOUTUBE_MARSHAL"))
-      open(fullpath, "w"){|io|
-        io.write(Marshal.dump(yt_vid))
-      }
+      return nil if !yt_vid || !fullpath || !is_env_set_positive?("UPDATE_YOUTUBE_MARSHAL") # defined in ApplicationHelper
+      msg = "NOTE: Updated #{fullpath}"
+      logger.info(msg)
+      puts msg
+      save_marshal(yt_vid, fullpath)  # defined in application_helper.rb
       return fullpath
     end
 

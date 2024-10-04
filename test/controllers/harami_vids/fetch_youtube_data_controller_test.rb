@@ -1,3 +1,4 @@
+# coding: utf-8
 require "test_helper"
 
 # == NOTE
@@ -28,7 +29,7 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
     }.with_indifferent_access
 
     @def_create_params = @def_update_params.merge({
-      "uri_youtube"=>"https://www.youtube.com/watch?v=hV_L7BkwioY", # HARAMIchan Zenzenzense; harami1129s(:harami1129_zenzenzense1).link_root
+      "uri_youtube" => "https://www.youtube.com/watch?v=hV_L7BkwioY", # HARAMIchan Zenzenzense; harami1129s(:harami1129_zenzenzense1).link_root
     }.with_indifferent_access)
     @h1129 = harami1129s(:harami1129_zenzenzense1)
   end
@@ -60,9 +61,9 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
     sign_in @editor_harami
 
     assert_difference("Music.count*1000 + Artist.count*100 + Engage.count*10 + HaramiVidMusicAssoc.count", 0) do
-      assert_difference("ArtistMusicPlay.count*1000 + Event.count*100 + EventItem.count*10", 10) do
+      assert_difference("ArtistMusicPlay.count*1000 + Event.count*100 + EventItem.count*10", 110) do
         assert_difference("HaramiVidEventItemAssoc.count*10 + HaramiVid.count*1", 11) do
-          assert_difference("Translation.count", 2) do  # English Translation added.
+          assert_difference("Translation.count", 3) do  # JA/EN for new HaramiVid, and JA for new Event "都庁(東京都/日本)でのイベント..."
             assert_no_difference("Channel.count") do
               post harami_vids_fetch_youtube_data_path, params: { harami_vid: { fetch_youtube_data: hsin } }
               assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
@@ -82,7 +83,7 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
     #assert_equal @h1129.singer, hvid.artists.first.title
     assert_equal @h1129.title,  hvid.title
     assert_equal channels(:channel_haramichan_youtube_main), hvid.channel
-    assert_equal Event.default(:HaramiVid), hvid.event_items.first.event
+    assert_equal Event.default(:HaramiVid, place: places(:tocho)), hvid.event_items.first.event
     assert       hvid.release_date
     assert_equal hvid.release_date, hvid.event_items.first.publish_date
 
@@ -188,6 +189,7 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
 
 
     ## 2nd and 3rd runs
+    # In default uses marshal data, but accesses Google/Youtube API if ENV["SKIP_YOUTUBE_MARSHAL"] or ENV["UPDATE_YOUTUBE_MARSHAL"] is set positive.
     # This time, only Youtube-ID of Channel should be updated after it is deliberately unset.
     chan = hvid.channel
     %w(id_at_platform id_human_at_platform).each do |att|
