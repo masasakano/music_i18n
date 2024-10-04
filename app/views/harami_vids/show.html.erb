@@ -58,6 +58,22 @@
     <br>
       <%= link_to '→ Edit', edit_harami_vid_path(@harami_vid), id: "main_edit_button", class: "lead" %>
     <%# No "Destroy" button %>
+    <% if "youtube" == @harami_vid.channel.channel_platform.mname %>
+      <div id="modify_by_youtube" class="float-end">
+      <%= form_with method: :patch, model: @harami_vid, url: harami_vids_fetch_youtube_datum_path(@harami_vid), local: true do |form| %> <%# scope: :article %>
+        <%= form.fields_for :fetch_youtube_datum do |fyd_form| %>
+          <%= fyd_form.hidden_field :uri_youtube, value: @harami_vid.uri %>
+        <% end %>
+        <div class="actions">
+          <%= form.submit "Import Youtube",
+            class: "btn btn-info", title: 'Modify data according to the Youtube data.' %> <%# , :name => PostsController::FORM_SUBMIT_INSERTION_WITHIN_NAME, %>
+          <%# submit_tag "Import Youtube",
+            class: "btn btn-info", title: 'Modify data according to the Youtube data.' %> <%# , :name => PostsController::FORM_SUBMIT_INSERTION_WITHIN_NAME, %>
+        </div>
+      <% end %>
+      </div>
+      <%# link_to 'Import Youtube', harami_vids_fetch_youtube_datum_path(@harami_vid), id: "href_edit_harami_vid_youtube_import", method: :patch, class: "button_like float-end", remote: true, data: { harami_vid: { fetch_youtube_data: {uri_youtube: @harami_vid.uri}} } %>
+    <% end %>
     <br>
     Copying Events of this HaramiVid,
     <%= link_to t("layouts.new").capitalize+" HaramiVid", new_harami_vid_path(params: {reference_harami_vid_id: @harami_vid.id}) %> |

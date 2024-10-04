@@ -829,7 +829,7 @@ module ApplicationHelper
 
   # Returns the full path for the test data with the given root filename Regexp
   #
-  # @param re [Regexp] to identify the file
+  # @param re [Regexp, String] to identify the file. If String, it is a partial match.
   # @param from_env: [Boolean] set this true to test dotenv-rails
   # @param suffixes: [Array<String>,String] Acceptable suffixes.
   # @return [String, NilClass]
@@ -847,7 +847,7 @@ module ApplicationHelper
       #fnames = Dir.glob(fdir.to_s+"/*.{html,md}").map{|i| i.sub(%r@.*/@, '')}
     end
 
-    fname = fnames.find{|i| re =~ i}
+    fname = fnames.find{|i| re.respond_to?(:gsub) ? i.include?(re) : (re =~ i)}
     fname && fdir.sub(%r@/$@, '')+'/'+fname || nil
   end
 

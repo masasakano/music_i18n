@@ -6,6 +6,8 @@ require "test_helper"
 # * ENV["UPDATE_YOUTUBE_MARSHAL"] : set this if you want to update the marshal-led Youtube data.
 #
 class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
+  include ModuleYoutubeApiAux  # for unit testing
+
   # add this
   include Devise::Test::IntegrationHelpers
 
@@ -22,11 +24,11 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
     @editor_ja       = users(:user_editor_general_ja)     # Same as Harami-editor
 
     @def_update_params = {  # NOTE: Identical to @def_create_params except for those unique to create!
-      "uri_youtube"=>"https://www.youtube.com/watch?v=hV_L7BkwioY", # HARAMIchan Zenzenzense
       "use_cache_test" => true,
     }.with_indifferent_access
 
     @def_create_params = @def_update_params.merge({
+      "uri_youtube"=>"https://www.youtube.com/watch?v=hV_L7BkwioY", # HARAMIchan Zenzenzense; harami1129s(:harami1129_zenzenzense1).link_root
     }.with_indifferent_access)
     @h1129 = harami1129s(:harami1129_zenzenzense1)
   end
@@ -52,11 +54,13 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
     sign_out @trans_moderator
 
+    assert ENV["YOUTUBE_API_KEY"].present?, "Environmental variable YOUTUBE_API_KEY is not set, which is essential for this test."
+
     ## Editor harami is qualified
     sign_in @editor_harami
 
-    assert_difference("Music.count*1000 + Artist.count*100 + Engage.count*10 + HaramiVidMusicAssoc.count", 1111) do
-      assert_difference("ArtistMusicPlay.count*1000 + Event.count*100 + EventItem.count*10", 1110) do
+    assert_difference("Music.count*1000 + Artist.count*100 + Engage.count*10 + HaramiVidMusicAssoc.count", 0) do
+      assert_difference("ArtistMusicPlay.count*1000 + Event.count*100 + EventItem.count*10", 10) do
         assert_difference("HaramiVidEventItemAssoc.count*10 + HaramiVid.count*1", 11) do
           assert_difference("Translation.count", 2) do  # English Translation added.
             assert_no_difference("Channel.count") do
@@ -72,14 +76,16 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
 
     hvid = HaramiVid.last
 
-    assert_equal @h1129.uri,    hvid.uri, "sanity check..."
-    assert_equal @h1129.song,   hvid.musics.first.title
-    assert_equal @h1129.singer, hvid.artists.first.title
+    assert_equal @h1129.link_root, File.basename(hvid.uri), "sanity check..."
+    assert_empty hvid.musics
+    #assert_equal @h1129.song,   hvid.musics.first.title
+    #assert_equal @h1129.singer, hvid.artists.first.title
     assert_equal @h1129.title,  hvid.title
     assert_equal channels(:channel_haramichan_youtube_main), hvid.channel
-    assert_equal Event.default, hvid.event_items.first.channel
+    assert_equal Event.default(:HaramiVid), hvid.event_items.first.event
+    assert       hvid.release_date
+    assert_equal hvid.release_date, hvid.event_items.first.publish_date
 
-    assert ENV["YOUTUBE_API_KEY"].present?, "Environmental variable YOUTUBE_API_KEY is not set, which is essential for this test."
     sign_out @editor_harami
   end
 
@@ -118,6 +124,28 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
     assert release_date_be4
 
     hsin = {}.merge(@def_update_params.merge).with_indifferent_access  # "use_cache_test" => true
+
+    ## unit tests of ModuleYoutubeApiAux
+    yid = @h1129.link_root
+    assert_equal yid, get_yt_video_id(yid)
+    suri = "www.youtube.com/?v="+yid+"&t=888&si=acvskf"
+    assert_equal yid, get_yt_video_id(suri)
+    assert_equal yid, get_yt_video_id("https://"+suri)
+    assert_equal yid, get_yt_video_id(hvid)
+    uristr = "https://www.example.com/abc123"
+    ret = ApplicationHelper.get_id_youtube_video(uristr)
+    assert_equal "abc123",      ret
+    assert_equal "example.com", ret.platform
+    ret = get_yt_video_id(uristr)
+    assert_equal "abc123",      ret
+    assert_equal "example.com", ret.platform
+    ret = get_yt_video_id(hvid)
+    assert_equal @h1129.link_root, ret
+
+    ## WARNING: This accesses Google Youtube API.  For this reason, these are commented out.  Uncomment them to run them.
+    #set_youtube  # sets @youtube; defined in ModuleYoutubeApiAux
+    #assert_nil get_yt_video("naiyo")
+    ##
 
     ## sign_in mandatory
     patch harami_vids_fetch_youtube_datum_path(hvid), params: { harami_vid: { fetch_youtube_datum: hsin } }

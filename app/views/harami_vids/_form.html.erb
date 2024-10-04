@@ -32,7 +32,7 @@
   <%= render partial: "layouts/select_country_prefecture_place", locals: {form: f, model: harami_vid, is_simple_form: true} %>
 
   <% if ! harami_vid.new_record? %>
-    <h5 class="channel_part">Current Channel name: &ldquo;<%= harami_vid.channel.title_or_alt(lang_fallback_option: :either) %>&rdquo;</h5>
+    <h5 class="channel_part">Current Channel name: &ldquo;<%= link_to(harami_vid.channel.title_or_alt(lang_fallback_option: :either), channel_path(harami_vid.channel)) %>&rdquo;</h5>
   <% end %> 
     <%= f.input :form_channel_owner,
       collection: ordered_models_form(ChannelOwner), include_blank: false,
