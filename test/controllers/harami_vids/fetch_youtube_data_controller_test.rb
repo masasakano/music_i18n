@@ -44,13 +44,13 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
     hsin = {}.merge(@def_create_params.merge).with_indifferent_access  # "use_cache_test" => true
 
     ## sign_in mandatory
-    post harami_vids_fetch_youtube_data_path, params: { harami_vid: { fetch_youtube_data: hsin } }
+    post harami_vids_fetch_youtube_data_path, params: { harami_vid: { fetch_youtube_datum: hsin } }
     assert_response :redirect
     assert_redirected_to new_user_session_path
 
     ## trans_moderator is not qualified
     sign_in  @trans_moderator
-    post harami_vids_fetch_youtube_data_path, params: { harami_vid: { fetch_youtube_data: hsin } }
+    post harami_vids_fetch_youtube_data_path, params: { harami_vid: { fetch_youtube_datum: hsin } }
     assert_response :redirect, "should be banned for #{@trans_moderator.display_name}, but allowed..."
     assert_redirected_to root_path
     sign_out @trans_moderator
@@ -65,7 +65,7 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
         assert_difference("HaramiVidEventItemAssoc.count*10 + HaramiVid.count*1", 11) do
           assert_difference("Translation.count", 3) do  # JA/EN for new HaramiVid, and JA for new Event "都庁(東京都/日本)でのイベント..."
             assert_no_difference("Channel.count") do
-              post harami_vids_fetch_youtube_data_path, params: { harami_vid: { fetch_youtube_data: hsin } }
+              post harami_vids_fetch_youtube_data_path, params: { harami_vid: { fetch_youtube_datum: hsin } }
               assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
               hvid = HaramiVid.last
               assert_redirected_to hvid

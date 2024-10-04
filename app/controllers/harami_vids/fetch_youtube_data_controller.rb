@@ -57,7 +57,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
     # set @harami_vid from a given URL parameter
     def set_new_harami_vid
       @harami_vid = HaramiVid.new  # If returns nil below, this will eventually raise an ERROR with non-existtent URI
-      safe_params = params.require(:harami_vid).require(:fetch_youtube_data).permit(:uri_youtube, :use_cache_test)
+      safe_params = params.require(:harami_vid).require(:fetch_youtube_datum).permit(:uri_youtube, :use_cache_test)
       @use_cache_test = get_bool_from_params(safe_params[:use_cache_test]) # defined in application_helper.rb
       uri = safe_params[:uri_youtube]
       return if uri.blank?
