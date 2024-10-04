@@ -3,9 +3,6 @@
     <% canread_h1129 = can? :read, Harami1129 %>
     <% canedit_hvid = can? :edit, @harami_vid %>
     <ul>
-    <%# @harami_vid.events.order("start_time", "duration_hour").each do |event| %>
-    <%# @event_event_items.each_pair do |id_event, ar_event_items| %>
-      <%# event = Event.find(id_event) %>
     <% evevits = @event_event_items.map{|ek, ev| [Event.find(ek), ev] }.to_h %>
     <% evevits.each_pair do |event, ar_event_items| %>
       <li>
@@ -17,8 +14,6 @@
         <% end %>
          [<%= event.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>]
         <ol class="list_event_items">
-          <%# event.event_items.order("event_items.start_time").each_with_index do |event_item, eii| %>
-          <%# ar_event_items.each_with_index do |event_item, eii| %>
           <% ar_event_items.sort{|a,b|
                res = ((a.weight ? a.weight : Float::INFINITY) <=> (b.weight ? b.weight : Float::INFINITY))
                next res if res != 0

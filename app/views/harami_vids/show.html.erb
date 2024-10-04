@@ -67,12 +67,9 @@
         <div class="actions">
           <%= form.submit "Import Youtube",
             class: "btn btn-info", title: 'Modify data according to the Youtube data.' %> <%# , :name => PostsController::FORM_SUBMIT_INSERTION_WITHIN_NAME, %>
-          <%# submit_tag "Import Youtube",
-            class: "btn btn-info", title: 'Modify data according to the Youtube data.' %> <%# , :name => PostsController::FORM_SUBMIT_INSERTION_WITHIN_NAME, %>
         </div>
       <% end %>
       </div>
-      <%# link_to 'Import Youtube', harami_vids_fetch_youtube_datum_path(@harami_vid), id: "href_edit_harami_vid_youtube_import", method: :patch, class: "button_like float-end", remote: true, data: { harami_vid: { fetch_youtube_data: {uri_youtube: @harami_vid.uri}} } %>
     <% end %>
     <br>
     Copying Events of this HaramiVid,
