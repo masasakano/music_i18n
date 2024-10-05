@@ -20,8 +20,11 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
     set_new_harami_vid  # set @harami_vid
     authorize! __method__, HaramiVid
 
-    create_harami_vid_from_youtube_api  # unsaved_translations are added.
-    result = def_respond_to_format(@harami_vid, render_err_path: "harami_vids")      # defined in application_controller.rb
+    result = nil
+    ActiveRecord::Base.transaction(requires_new: true) do
+      create_harami_vid_from_youtube_api  # EventItem is created. unsaved_translations are added.
+      result = def_respond_to_format(@harami_vid, render_err_path: "harami_vids")      # defined in application_controller.rb
+    end
 
     if result
       extra_str = sprintf(" / URI=<%s>", @harami_vid.uri)
@@ -63,8 +66,9 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
       set_event_event_items  # sets @event_event_items  defined in harami_vids_helper.rb
     end
 
+    # this is within a DB transaction (see {#create})
     def create_harami_vid_from_youtube_api
-      set_youtube  # sets @youtube
+      set_youtube  # sets @youtube; defined in ModuleYoutubeApiAux
       get_yt_video(@harami_vid, set_instance_var: true, model: true, use_cache_test: @use_cache_test) # sets @yt_video # defined in module_youtube_api_aux.rb
       return if !@yt_video
 
@@ -91,7 +95,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
 
     # this is within a DB transaction (see {#update})
     def update_harami_vid_with_youtube_api
-      set_youtube  # sets @youtube
+      set_youtube  # sets @youtube; defined in ModuleYoutubeApiAux
       get_yt_video(@harami_vid, set_instance_var: true, model: true, use_cache_test: @use_cache_test) # sets @yt_video # defined in module_youtube_api_aux.rb
       return if !@yt_video
 

@@ -27,8 +27,8 @@ module ModuleYoutubeApiAux
 
   include ApplicationHelper
 
-  module ClassMethods
-  end
+  #module ClassMethods
+  #end
 
   # sets @youtube
   #
@@ -61,16 +61,32 @@ module ModuleYoutubeApiAux
   #   * localized (=> {title:, description: } for "en" or its fallback.
   #   * thumbnails (=> {title:, description: } for "en" or its fallback.
   #
-  # @param yid [String]
-  # @param filter_kind: [String, Symbol] what yid means: either "id" or "forHandle". Else :auto to determine automatically (in practice, this attempts both).
+  # @param yid [String, PrmChannelRemote]
+  # @param filter_kind: [String, Symbol] what yid means: either "id" or "forHandle". Else :auto to determine automatically (in practice, this connects to Youtube up to 2 times).
   # @param youtube: [Google::Apis::YoutubeV3]
   # @param set_instance_var: [Boolean] if true (Def), @yt_channel is set (possibly overwritten).
   # @param use_cache_test: [Boolean] if true, the cache (marshal-ed) data are used in principle (see above).
   # @return [Google::Apis::YoutubeV3::Channel, NilClass]
-  def get_yt_channel(yid, filter_kind: nil, youtube: @youtube, set_instance_var: true, use_cache_test: false)
+  def get_yt_channel(yid, filter_kind: :auto, youtube: @youtube, set_instance_var: true, use_cache_test: false)
     yt_channel = nil
-    ((:auto == filter_kind) ? ["id", "for_handle"] : [filter_kind]).each do |eaf|
-      hsopts = {:hl => "en", eaf.to_sym => yid}
+
+    yid_str = (yid.respond_to?(:gsub) ? yid : yid.val) # the latter for PrmChannelRemote
+
+    arfilter = 
+      if (:auto == filter_kind)
+        if yid.respond_to?(:yt_filter_kwd) && (new_filter = yid.yt_filter_kwd) # if PrmChannelRemote
+          [new_filter]
+        elsif '@' == yid_str[0,1]
+          ["for_handle"]
+        else
+          ["id", "for_handle"]
+        end
+      else
+        [filter_kind]
+      end
+
+    arfilter.each do |eaf|
+      hsopts = {:hl => "en", eaf.to_sym => yid_str}
       yt_channel = youtube.list_channels("snippet", **hsopts)
       break if yt_channel
     end
@@ -82,6 +98,8 @@ module ModuleYoutubeApiAux
 
 
   # Returns a Youtube video ID, simply based on the given URI.
+  #
+  # Wrapper of {ApplicationHelper.get_id_youtube_video}
   #
   # If the given argument is not for Youtube, the directory part is returned,
   # and the returned String has a singleton method platform so that
@@ -116,13 +134,12 @@ module ModuleYoutubeApiAux
   # except in the test environment).
   #
   # @param yid [String, #uri] e.g., "xyz123abc", "https://youtu.be/xyz123abc", HaramiVid. The URI can be in almost any form for Youtube.
-  # @param filter_kind: [String, Symbol] what yid means: either "id" or "forHandle". Else :auto to determine automatically (in practice, this attempts both).
   # @param youtube: [Google::Apis::YoutubeV3]
   # @param set_instance_var: [Boolean] if true (Def), @yt_video is set (possibly overwritten).
   # @param model: [ActiveRecord, TrueClass, NilClass] if non-nil and if an error is raised, an error is added to either this model or yid (if this value is True and yid is ActiveRecord).
   # @param use_cache_test: [Boolean] if true, the cache (marshal-ed) data are used in principle (see above).
   # @return [Google::Apis::YoutubeV3::Video, NilClass] This is +Google::Apis::YoutubeV3::ListVideosResponse#items[0]+
-  def get_yt_video(yid_in, filter_kind: "id", youtube: @youtube, set_instance_var: true, model: true, use_cache_test: false)
+  def get_yt_video(yid_in, youtube: @youtube, set_instance_var: true, model: true, use_cache_test: false)
     return _return_error_in_get_yt_video(yid_in, set_instance_var: set_instance_var, model: model) if yid_in.respond_to?(:channel) && (chan=yid_in.channel) && chan.respond_to?(:channel_platform) && (plat=chan.channel_platform) && "youtube" != plat.mname.downcase  # returns nil if ChannelPlatform is NOT youtube
 
     yid = get_yt_video_id(yid_in)

@@ -1,9 +1,12 @@
 Rails.application.routes.draw do
+  resources :channels
+  namespace :channels do
+    resources :fetch_youtube_channels, only: [:update]  # may add :create in future
+  end
+  resources :channel_owners
   namespace :channel_owners do
     get 'create_with_artists/new'
   end
-  resources :channels
-  resources :channel_owners
   resources :channel_types
   resources :channel_platforms
   resources :harami_vid_music_assocs, only: [:destroy]

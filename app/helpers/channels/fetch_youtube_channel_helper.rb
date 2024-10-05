@@ -1,0 +1,2 @@
+module Channels::FetchYoutubeChannelHelper
+end

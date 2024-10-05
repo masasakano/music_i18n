@@ -5,6 +5,7 @@ require "test_helper"
 #
 # * ENV["YOUTUBE_API_KEY"] is essential.
 # * ENV["UPDATE_YOUTUBE_MARSHAL"] : set this if you want to update the marshal-led Youtube data.
+# * ENV["SKIP_YOUTUBE_MARSHAL"] : set this to ignore marshal but access Youtube-API
 #
 class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
   include ModuleYoutubeApiAux  # for unit testing

@@ -178,6 +178,28 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_equal "https://"+rk, AH.uri_youtube(rk+"?is_from_webapp=1&sender_device=pc&web_id=7380717489888399999", timing=5, long: true,  with_http: true)
   end
  
+  test "self.parsed_uri_with_or_not" do
+    uri = AH.parsed_uri_with_or_not("http://y.com/abc/def", def_scheme: "gopher")
+    assert_equal "http", uri.scheme
+    assert_equal "y.com", uri.host
+
+    str = "y.com/abc/def"
+    uri = AH.parsed_uri_with_or_not(str, def_scheme: "gopher")
+    assert_nil   uri.scheme
+    assert_nil   uri.host
+    assert_equal str, uri.path
+
+    uri = AH.parsed_uri_with_or_not("www.y.com/abc/def", def_scheme: "gopher")
+    assert_equal "gopher", uri.scheme
+    assert_equal "www.y.com", uri.host
+    assert_equal "/abc/def", uri.path
+
+    uri = AH.parsed_uri_with_or_not("youtu.be/abc/def")
+    assert_equal "https",   uri.scheme
+    assert_equal "youtu.be", uri.host
+    assert_equal "/abc/def", uri.path
+  end
+
   test "_prepend_youtube" do
     exp = "http://x.com/abc"
     assert_equal exp, AH.send(:_prepend_youtube, exp)

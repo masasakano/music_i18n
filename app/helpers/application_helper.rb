@@ -344,6 +344,26 @@ module ApplicationHelper
     end
   end
 
+
+  # Returns parsed URI whether the input has a schme (https) at the head or not
+  #
+  # If the input *looks like* a URI but does not have a scheme, a scheme is added.
+  # Otherwise, the input String is treated as it is.
+  #
+  # @parm uri_str [String] may include "http://" or not.
+  # @return [URI] 
+  def self.parsed_uri_with_or_not(uri_str, def_scheme: "https")
+    uri_str2pass = 
+      if %r@\A([^:/]+:///?)?((?:www\.)[^.]|youtu.be/)(.+)@ =~ uri_str
+        ($1.blank? ? def_scheme+"://" : $1) + $2 + $3
+      else
+        uri_str
+      end
+
+    URI.parse(uri_str2pass)
+  end
+
+
   # Prepend "youtu.be" if necessary.
   #
   # @param str [String] e.g., "abc12d", "youtu.be/"abc12d", "www.youtube.co.jp/"abc12d", "tiktok.com/abc", "https://x.com/abc"
