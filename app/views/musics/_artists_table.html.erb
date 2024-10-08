@@ -1,4 +1,4 @@
-<h3><%= t("show.h2_artist").pluralize(music.artists.count, I18n.locale) %><%= t("show.h2_for") %><%= t("Music") %>: <%= music.title_or_alt_tuple_str(langcode: I18n.locale) %> (<%= music.year ? l(Date.new(music.year), format: :year_comma) : t('musics.show.year_unknown') %>)</h3>
+<h3><%= t("show.h2_artist").pluralize(music.artists.count, I18n.locale) %><%= t("show.h2_for") %><%= t("Music") %>: <%= music.title_or_alt_tuple_str(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true) %> (<%= music.year ? l(Date.new(music.year), format: :year) : t('musics.show.year_unknown') %>)</h3>
 
 <%# local variables: music %>
 
@@ -58,7 +58,7 @@
         <td><%= sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
                   i = artist.send m; (i.blank? ? '——' : i.to_s)}) %></td>
         <td class="text-center"><%= artist.sex.title langcode: I18n.locale, lang_fallback: true %></td>
-        <td><%= artist.note %></td>
+        <td><%= auto_link50(artist.note) %></td>
         <td><%= link_to t("tables.Show"), artist %></td>
         <% if can? :update, artist %>
           <td class="editor_only"><%= link_to 'Edit', edit_artist_path(artist) %></td>

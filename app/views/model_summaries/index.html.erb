@@ -20,7 +20,7 @@
           <%= model_summary.title(langcode: I18n.locale) %>
           <% if can? :manage, ModelSummary %>
             <% if model_summary.note.present? %>
-              (<em>NOTE(admin)</em>: <%= model_summary.note %>)
+              (<em>NOTE(admin)</em>: <%= auto_link50(model_summary.note) %>)
             <% end %>
             (<%= link_to "Show", model_summary %> / <%= link_to "Edit?", edit_model_summary_path(model_summary) %>)
           <% end %>

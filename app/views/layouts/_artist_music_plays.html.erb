@@ -92,7 +92,7 @@
            <td class="editor_only"><%= amp.send(att) %></td>
           <% end %>
          <% end %>
-          <td><%= amp.note %></td>
+          <td><%= auto_link50(amp.note) %></td>
          <% if canedit_amp %>
           <td class="editor_only">
             <% if can? :update, amp %>

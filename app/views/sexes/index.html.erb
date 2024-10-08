@@ -17,7 +17,7 @@
       <tr>
         <td><%= sex.iso5218 %></td>
        <%= render "layouts/title_alt_ja_en_table", model: sex, langcodes: %w(ja en fr) %>  <%# class="title_alt_ja" etc %>
-        <td><%= sex.note %></td>
+        <td><%= auto_link50(sex.note) %></td>
         <td><%= link_to 'Show', sex %></td>
         <td><%= link_to('Edit', edit_sex_path(sex)) if can?(:update, sex) %></td>
         <td><%= link_to( 'Destroy', sex, method: :delete, data: { confirm: t('are_you_sure') }) if can?(:destroy, sex) %></td>

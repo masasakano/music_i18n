@@ -17,7 +17,7 @@
       <tr>
         <td><%= page_format.mname %></td>
         <td><%= page_format.description %></td>
-        <td><%= page_format.note %></td>
+        <td><%= auto_link50(page_format.note) %></td>
         <td><%= link_to 'Show', page_format %></td>
         <td><%= link_to 'Edit', edit_page_format_path(page_format) %></td>
         <td><%= link_to 'Destroy', page_format, method: :delete, data: { confirm: t('are_you_sure') } %></td>

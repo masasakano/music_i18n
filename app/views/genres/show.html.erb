@@ -13,7 +13,7 @@
 
 <p>
   <strong>Note:</strong>
-  <%= @genre.note %>
+  <%= auto_link(@genre.note) %>
 </p>
 
 <% if can?(:update, @genre) %>

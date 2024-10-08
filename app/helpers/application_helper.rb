@@ -891,6 +891,11 @@ module ApplicationHelper
     }
   end
 
+  # Wrapper of +ruto_link+ in Gem +rails_autolink+ to limit the length up to 50 (or else) like "https://ja.wikipedia.org/wiki/%E3%83%8F%E3%83%8..."
+  def auto_link50(text, limit: 50)
+    auto_link(text){|i| truncate(i, length: limit)}
+  end
+
   # to suppress warning, mainly that in Ruby-2.7.0:
   #   "Passing the keyword argument as the last hash parameter is deprecated"
   #

@@ -120,7 +120,7 @@ class HaramiVid < BaseWithTranslation
     Place.unknown ||
     Place.first ||
     if Rails.env == 'test'
-      nil  # In the test environment, a constant should not be assigned to a model.
+      places(:unknown_place_unknown_prefecture_japan) || nil  # In the test environment, a constant should not be assigned to a model.
     else
       raise('No Place is defined, hence HaramiVid fails to be created/updated.: '+Place.all.inspect)
     end

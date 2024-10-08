@@ -115,7 +115,9 @@ class ArtistsGrid < BaseGrid
     end
   end
 
-  column(:note, order: false, header: Proc.new{I18n.t('tables.note')})
+  column(:note, html: true, order: false, header: Proc.new{I18n.t("tables.note", default: "Note")}){ |record|
+    auto_link50(record.note)
+  }
 
   column(:updated_at, class: ["editor_only"], header: Proc.new{I18n.t('tables.updated_at')}, if: Proc.new{BaseGrid.qualified_as?(:editor)})
   column(:created_at, class: ["editor_only"], header: Proc.new{I18n.t('tables.created_at')}, if: Proc.new{BaseGrid.qualified_as?(:editor)})

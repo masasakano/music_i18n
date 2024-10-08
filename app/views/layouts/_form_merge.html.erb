@@ -304,10 +304,10 @@
     <tr id="merge_edit_note"><th title="<%= t('merges.edit.merge_always', default: 'This row is automatically merged.') %>">Note</th>
       <% models[0..1].each_with_index do |em, i| %>
       <td title="<%= t('merges.edit.merge_always') %>">
-        <%= em.note %>
+        <%= auto_link50(em.note) %>
       </td>
       <% end %>
-      <td class="merged_column" id="merged_to_note"><%= merged_model.note %></td>
+      <td class="merged_column" id="merged_to_note"><%= auto_link50(merged_model.note) %></td>
     </tr>
   </tbody>
 </table>

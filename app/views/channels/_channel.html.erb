@@ -74,7 +74,7 @@
   <dt title="Channel type."><%= t("harami_vids.table_head_ChannelType") %>:</dt>
     <dd><%= m=model.channel_type; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), channel_type_path(m)) %></dd>
   <dt title="Note"><%= t("tables.note")%>:</dt>
-    <dd><%= model.note %></dd>
+    <dd><%= auto_link50(model.note) %></dd>
  <% if can? :update, Users::EditRolesController %>
   <div class="editor_only">
    <% %w(create_user update_user).each do |metho| %>

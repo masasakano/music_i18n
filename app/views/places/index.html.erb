@@ -35,7 +35,7 @@
         <td><%= link_to place.country.title_or_alt(prefer_alt: true, langcode: I18n.locale, lang_fallback_option: :either), country_path(place.country) %></td>
         <td class="text-end"><%= place.harami_vids.count %></td>
         <td class="text-end"><%= place.artists.count %></td>
-        <td><%= place.note %></td>
+        <td><%= auto_link50(place.note) %></td>
         <td><%= link_to 'Show', place %></td>
         <td><%= link_to 'Edit', edit_place_path(place) %></td>
         <td><% if place.has_children? %>

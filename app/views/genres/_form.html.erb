@@ -37,7 +37,7 @@
         <td><%= eg.weight %></td>
         <td><%= eg.title_or_alt langcode: 'ja' %></td>
         <td><%= eg.title_or_alt langcode: 'en' %></td>
-        <td><%= eg.note %></td>
+        <td><%= auto_link50(eg.note) %></td>
       </tr>
     <% end %>
   </tbody>

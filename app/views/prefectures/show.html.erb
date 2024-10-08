@@ -39,7 +39,7 @@
     </div>
   <% end %>
   <dt><%= t("tables.note").capitalize %></dt>
-  <dd><%= @prefecture.note %></dd>
+  <dd><%= auto_link(@prefecture.note) %></dd>
 </dl>
 
 <p>
@@ -94,7 +94,7 @@
         <td class="editor_only text-end"><%= place.musics.count.to_s %></td>
       <% end %>
         <td class="text-end"><%= place.harami_vids.count.to_s %></td>
-        <td class="text-start"><%= place.note %></td>
+        <td class="text-start"><%= auto_link50(place.note) %></td>
       <% if (canshow_pla) %>
         <td><%= link_to t("tables.Show"), place %></td>
       <% end %>

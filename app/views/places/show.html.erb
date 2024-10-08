@@ -21,7 +21,7 @@
   <dt><%= t("tables.n_harami_vids_long") %>:</dt>
   <dd><%= @place.harami_vids.count %></dd>
   <dt><%= t("tables.note").capitalize %></dt>
-  <dd><%= @place.note %></dd>
+  <dd><%= auto_link(@place.note) %></dd>
   <% if can? :edit, Place %>
     <div class="editor_only">
       <dt>updated_at</dt>
@@ -80,7 +80,7 @@
         <td><%= music.genre.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true) %></td>
         <td><%= music.engages.joins(:engage_how).order('engage_hows.weight').pluck(:artist_id).uniq.map{|i| art = Artist.find(i); sprintf '%s [%s]', link_to(art.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true), art), h(art.engage_how_titles(music).join(', '))}.join(', ').html_safe %></td>
         <td><%= music.harami_vids.count.to_s+'回' %></td>
-        <td><%= music.note %></td>
+        <td><%= auto_link50(music.note) %></td>
         <td><%= link_to 'Show', music %></td>
         <% if can? :update, music %>
           <td><%= link_to 'Edit', edit_music_path(music) %></td>
@@ -130,7 +130,7 @@
          <% end %>
           <td><%= event.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true) %></td>
           <td class="text-end"><%= event.harami_vids.distinct.count %></td>
-          <td><%= event.note %></td>
+          <td><%= auto_link50(event.note) %></td>
           <td><%= link_to t("tables.Show"), event %></td>
           <% if can? :update, event %>
             <td><%= link_to 'Edit', edit_event_path(event) %></td>

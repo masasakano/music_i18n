@@ -12,10 +12,12 @@
 <%= render "layouts/grid_table_tail", klass: Music %>
 
 <% if can? :create, Music %>
+ <div class="button_new">
   <% if @artist_title %>
     <%= link_to 'Create a new music associated with '+@artist_title, new_music_path(music: {artist_id: artist_id}) %> <%# button_to does not work with a GET parameter... %>
   <% else %>
     <%= button_to 'Create New Music', new_music_path, method: :get %>
   <% end %>
+ </div>
 <% end %>
 

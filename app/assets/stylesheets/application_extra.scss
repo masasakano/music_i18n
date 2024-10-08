@@ -79,6 +79,31 @@ h1 {
   padding-top: 0.2em;
 }
 
+h2 {
+  min-padding-left: 0;
+  padding-left: 0.25em;
+}
+
+h3 {
+  min-padding-left: 0;
+  padding-left: 0.20em;
+}
+
+h4 {
+  min-padding-left: 0;
+  padding-left: 0.15em;
+}
+
+h5 {
+  min-padding-left: 0;
+  padding-left: 0.12em;
+}
+
+h6 {
+  min-padding-left: 0;
+  padding-left: 0.10em;
+}
+
 div#error_explanation {
   margin-left: 2em;
 }
@@ -342,6 +367,11 @@ p#footer_login {
 
 table#places_in_prefecture td:nth-child(4), table#places_in_prefecture td:nth-child(5), table#places_in_prefecture td:nth-child(6) {
   text-align: right;
+}
+
+div.button_new {
+  text-align: right;
+  margin-right: 10px;
 }
 
 /* datagrid */

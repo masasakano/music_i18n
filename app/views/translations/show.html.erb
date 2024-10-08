@@ -45,7 +45,7 @@
   <dd><%= user = @translation.update_user; user ? link_to(user.display_name, user_path(user)) : nil %> at <%= @translation.updated_at %></dd>
 
   <dt> Note:</dt>
-  <dd><%= @translation.note %></dd>
+  <dd><%= auto_link(@translation.note) %></dd>
 
 </dl>
 

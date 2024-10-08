@@ -34,7 +34,7 @@
         <td><%= sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
                   i = artist.send m; (i.blank? ? '——' : i.to_s)}) %></td>
         <td class="text-center"><%= artist.sex.title langcode: I18n.locale, lang_fallback: true %></td>
-        <td class="text-start"><%= artist.note %></td>
+        <td class="text-start"><%= auto_link50(artist.note) %></td>
         <td><%= link_to t('tables.Show').capitalize, artist %></td>
         <% if can_update %>
           <td class="editor_only">

@@ -281,6 +281,10 @@ GEM
       nested_form (~> 0.3)
       rails (>= 6.0, < 8)
       turbo-rails (~> 1.0)
+    rails_autolink (1.1.8)
+      actionview (> 3.1)
+      activesupport (> 3.1)
+      railties (> 3.1)
     railties (7.0.8)
       actionpack (= 7.0.8)
       activesupport (= 7.0.8)
@@ -425,6 +429,7 @@ DEPENDENCIES
   rails-html-sanitizer
   rails-i18n (~> 7.0.0)
   rails_admin (~> 3.0)
+  rails_autolink (~> 1.1, >= 1.1.8)
   redcarpet (~> 3, >= 3.3.4)
   redirector (~> 1.1, >= 1.1.2)
   redis (~> 5.0)

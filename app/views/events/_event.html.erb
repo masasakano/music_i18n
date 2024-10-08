@@ -18,7 +18,7 @@
   <dt><strong>Weight:</strong></dt>
     <dd><%= event.weight %></dd>
   <dt class="item_note"><%= t("tables.note").capitalize %>:</dt>
-    <dd class="item_note"><%= event.note %></dd>
+    <dd class="item_note"><%= auto_link(event.note) %></dd>
   <% if can? :update, Event %>
     <div class="editor_only">
       <dt>updated_at:</dt>

@@ -34,7 +34,7 @@
         <td><%= ea_mdl.id %></td>
         <td><%= ea_mdl.title_or_alt(langcode: I18n.locale) %></td>
         <td><%= ea_mdl.weight %></td>
-        <td><%= ea_mdl.note %></td>
+        <td><%= auto_link50(ea_mdl.note) %></td>
       </tr>
     <% end %>
   </tbody>

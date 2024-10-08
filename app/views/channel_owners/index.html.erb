@@ -27,7 +27,7 @@
        <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
 
         <td><%= model.themselves %></td>
-        <td><%= h(model.note) %></td>
+        <td><%= auto_link50(model.note) %></td>
       <% if can? :update, Users::EditRolesController %>
         <td><%= ur = model.create_user; link_to(ur.display_name, ur) if ur %></th>
         <td><%= ur = model.update_user; link_to(ur.display_name, ur) if ur %></th>

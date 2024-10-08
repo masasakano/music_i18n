@@ -50,7 +50,7 @@
   <dt>End date</dt>
         <dd><%= @country.end_date %></dd>
   <dt>Note:</dt>
-  <dd><%= @country.note %></dd>
+  <dd><%= auto_link(@country.note) %></dd>
 </dl>
 
 <% if can? :update, CountryMaster %>
@@ -92,7 +92,7 @@
         <td><%= prefecture.musics.count.to_s %></td>
         <td><%= prefecture.artists.count.to_s %></td>
         <td><%= prefecture.harami_vids.count.to_s %></td>
-        <td><%= prefecture.note %></td>
+        <td><%= auto_link50(prefecture.note) %></td>
         <td><%= link_to 'Show', prefecture %></td>
         <% if can? :update, prefecture %>
           <td><%= link_to 'Edit', edit_prefecture_path(prefecture) %></td>

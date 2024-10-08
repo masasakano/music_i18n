@@ -33,7 +33,7 @@
         <td><%= sprintf '%s [%s]', *(%i(title alt_title).map{|i| genre.send(i, langcode: 'en') || ''}) %></td>
         <td class="align-r"><%= genre.musics.count %></td>
         <td class="align-r"><%= genre.weight %></td>
-        <td><%= genre.note %></td>
+        <td><%= auto_link50(genre.note) %></td>
         <td><%= link_to 'Show', genre %></td>
         <% if can?(:update, genre) %>
           <td><%= link_to 'Edit', edit_genre_path(genre) %></td>

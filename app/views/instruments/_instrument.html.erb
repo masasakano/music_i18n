@@ -7,7 +7,7 @@
   <dt><strong>Weight:</strong></dt>
     <dd><%= instrument.weight %></dd>
   <dt>note</dt>
-    <dd><%= instrument.note %></dd>
+    <dd><%= auto_link(instrument.note) %></dd>
   <% if can? :update, instrument %>
   <dt>updated_at</dt>
     <dd><%= instrument.updated_at %></dd>

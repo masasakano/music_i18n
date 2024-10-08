@@ -17,7 +17,7 @@
 
   <p>
     <strong>Note:</strong>
-    <%= play_role.note %>
+    <%= auto_link(play_role.note) %>
   </p>
 
   <% if can? :update, play_role %>

@@ -24,7 +24,7 @@
        <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
 
         <td><%= model.weight %></td>
-        <td><%= h(model.note) %></td>
+        <td><%= auto_link50(h(model.note)) %></td>
 
         <td><%= link_to "Show", model %></td>
         <% if can? :update, model  %>

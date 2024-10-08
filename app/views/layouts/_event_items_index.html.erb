@@ -60,7 +60,7 @@
          <% end %>
         <td class="number"><%= event_item.harami_vids.distinct.count %></td>
         <td class="number"><%= event_item.artist_music_plays.distinct.count %></td>
-        <td><%= h(event_item.note) %></td>
+        <td><%= auto_link50(event_item.note) %></td>
 
         <td class="actions"><%= link_to "Show", event_item %></td>
         <% if canupdate %>

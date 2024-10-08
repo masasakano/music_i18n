@@ -25,7 +25,7 @@
   <dt class="item_place"> <%= t("tables.place_country") %>:</dt>
     <dd class="item_place"><%= event_group.place ? show_pref_place_country(event_group.place) : "" %></dd>  <%# defined in places_helper.rb %>
   <dt class="item_note"><%= t("tables.note").capitalize %>:</dt>
-    <dd class="item_note"><%= event_group.note %></dd>
+    <dd class="item_note"><%= auto_link(event_group.note) %></dd>
 
   <% if can_update_eg %>
     <div class="editor_only">

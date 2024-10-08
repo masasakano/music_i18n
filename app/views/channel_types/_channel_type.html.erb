@@ -9,7 +9,7 @@
   <dt><strong>Weight:</strong></dt>
     <dd><%= channel_type.weight %></dd>
   <dt title="Note">Note:</dt>
-    <dd><%= channel_type.note %></dd>
+    <dd><%= auto_link(channel_type.note) %></dd>
  <% if can? :update, Users::EditRolesController %>
    <% %w(create_user update_user).each do |metho| %>
   <dt><%= metho %>:</dt>

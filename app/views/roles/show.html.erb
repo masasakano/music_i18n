@@ -22,7 +22,7 @@
 
 <p>
   <strong>Note:</strong>
-  <%= @role.note %>
+  <%= auto_link(@role.note) %>
 </p>
 
 <%= link_to 'Edit', edit_role_path(@role) %> |

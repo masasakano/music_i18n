@@ -50,7 +50,7 @@
             nil
           <% end %>
          </td>
-        <td><%= harami1129_review.note %></td>
+        <td><%= auto_link50(harami1129_review.note) %></td>
         <td><%= link_to 'Show', harami1129_review %></td>
         <td><%= link_to('Edit', edit_harami1129_review_path(harami1129_review)) if (can? :update, harami1129_review) %></td>
         <% if can?(:destroy, harami1129_review) %>

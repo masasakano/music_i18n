@@ -12,7 +12,7 @@
 
 <p>
   <strong>Note:</strong>
-  <%= @page_format.note %>
+  <%= auto_link(@page_format.note) %>
 </p>
 
 <%= link_to 'Edit', edit_page_format_path(@page_format) %> |

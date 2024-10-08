@@ -52,7 +52,7 @@
           <%= items.map.with_index{ |ei, i| link_to(sprintf("%d", i+1), event_item_path(ei), title: ei.machine_title) }.join(", ").html_safe %>
         </td>
         <% end %>
-        <td><%= h(model.note) %></td>
+        <td><%= auto_link50(model.note) %></td>
 
         <td><%= link_to "Show", model %></td>
         <% if can? :update, model  %>

@@ -13,6 +13,8 @@
 <br>
 
 <% if can? :create, Artist %>
+ <div class="button_new">
   <%= button_to 'Create New Artist', new_artist_path, method: :get %>
   <%# link_to 'New Artist', new_artist_path %>
+ </div>
 <% end %>

@@ -38,7 +38,7 @@
       <% end %>
     </dd>
   <dt><%= t("tables.note").capitalize %>:</dt>
-    <dd><%= event_item.note %></dd>
+    <dd><%= auto_link(event_item.note) %></dd>
   <% if canedit %>
   <dt>updated_at:</dt>
     <dd><%= event_item.updated_at %></dd>

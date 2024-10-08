@@ -41,8 +41,8 @@
       (uri.blank? ? '——' : link_to_from_root_str(h(CGI.unescape(uri.sub(%r@^https?://@, ""))), uri).html_safe) %></dd>
 <% end %>
 
-  <dt title="Note">Note:</dt>
-    <dd><%= @artist.note %></dd>
+  <dt class="item_note" title="Note"> <%= t("tables.note") %>:</dt>
+    <dd class="item_note"><%= auto_link(@artist.note) %></dd>
   <% if can_update %>
    <div class="editor_only">
    <dt>Updated at:</dt>

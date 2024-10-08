@@ -92,7 +92,7 @@
         <td class="align-r trans_weight moderator_only"><%= tra.weight%></td>
       <% end %>
       <% if can_show %>
-        <td class="editor_only"><%= tra.note %></td>
+        <td class="editor_only"><%= auto_link50(tra.note) %></td>
       <% end %>
       <% if defined?(myself) && tra == myself %>
         <td colspan="2" class="align-c trans_action editor_only" style="<%= (hsflag[:demotable] || hsflag[:promotable]) ? 'border-right-style: none;' : ''  %>"><strong>SELF</strong></td>  <%# Called from Translation-Edit %>
@@ -136,10 +136,12 @@
   </tbody>
 </table>
 <% if add_tra_button && can_edit && can?(:edit, model) %>
-<%= t("layouts.Other_language") %>:
-  <span class="lead">
-  <%= link_to t('layouts.add_translation'), new_translation_path(params: { a_token: nil, translatable_type: model.class.name, translatable_id: model.id }) %>
-  </span>
+<div class="editor_only">
+ <%= t("layouts.Other_language") %>:
+   <span class="lead">
+    <%= link_to t('layouts.add_translation'), new_translation_path(params: { a_token: nil, translatable_type: model.class.name, translatable_id: model.id }) %>
+   </span>
+</div>
 <% end %>
 
   </section> <!-- section id="sec_primary_trans" -->

@@ -137,6 +137,7 @@ gem 'i18n_data'  # for language names (and country names)
 gem 'diff-lcs', '~> 1.5', '>= 1.5.1'
 gem 'unicode-emoji', '~> 3', '>= 3.5'
 gem 'google-apis-youtube_v3', '~> 0.45.0'
+gem 'rails_autolink', '~> 1.1', '>= 1.1.8'
 
 # Necessary in Ruby 3.1
 gem 'net-smtp', require: false #, '~> 0.3', '>= 0.3.1'

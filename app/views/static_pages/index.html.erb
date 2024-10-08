@@ -25,7 +25,7 @@
         <td><%= link_to static_page.page_format.mname, static_page.page_format %></td>
         <td><%= static_page.summary %></td>
         <td><%= static_page.content ? static_page.content[0..200] : nil %></td>
-        <td><%= static_page.note %></td>
+        <td><%= auto_link50(static_page.note) %></td>
         <td><%= link_to 'Public', StaticPagesController.public_path(static_page) %></td>
         <td><%= link_to 'Show', static_page %></td>
         <% if can? :update, static_page %>

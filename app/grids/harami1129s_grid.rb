@@ -75,7 +75,10 @@ class Harami1129sGrid < BaseGrid
   column(:event_item_id) do |record|
     (record.event_item_id ? ActionController::Base.helpers.link_to(record.event_item_id, Rails.application.routes.url_helpers.event_item_url(record.event_item_id, only_path: true)) : '')
   end
-  column(:note, mandatory: true)
+  column(:note, mandatory: true, html: true, order: false, header: Proc.new{I18n.t("tables.note", default: "Note")}){ |record|
+    auto_link50(record.note)
+  }
+
   column(:last_downloaded_at)
   column(:orig_modified_at)
   column(:ins_at)

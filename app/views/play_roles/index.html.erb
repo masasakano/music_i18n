@@ -39,7 +39,7 @@
           <%# items.event_items.count %>
         </td>
         <% end %>
-        <td><%= model.note %></td>
+        <td><%= auto_link50(model.note) %></td>
 
         <td><%= link_to "Show", model %></td>
         <% if can_update %>

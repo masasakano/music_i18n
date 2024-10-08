@@ -23,7 +23,7 @@
         <td><%= model.id%></td>
        <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
         <td class="align-r"><%= w = model.weight; ((w == w.to_i) ? w.to_i : w) %></td>
-        <td><%= model.note %></td>
+        <td><%= auto_link50(model.note) %></td>
         <td><%= link_to 'Show', model %></td>
         <% if can?(:update, model) %>
           <td><%= link_to 'Edit', edit_engage_how_path(model) %></td>

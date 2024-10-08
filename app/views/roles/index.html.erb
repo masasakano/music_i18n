@@ -21,7 +21,7 @@
         <td><%= role.uname || '&mdash;'.html_safe() %></td>
         <td><%= sprintf '%d (%s)', role.role_category_id, role.role_category.mname %></td>
         <td><%= role.weight %></td>
-        <td><%= role.note %></td>
+        <td><%= auto_link50(role.note) %></td>
         <td><%= link_to 'Show', role %></td>
         <td><%= link_to 'Edit', edit_role_path(role) %></td>
         <td><%= link_to 'Destroy', role, method: :delete, data: { confirm: t('are_you_sure') } %></td>

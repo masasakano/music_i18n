@@ -64,7 +64,7 @@
                 sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture['ja'] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2] %></td>
      <% end %>
         <td class="text-end"><%= music.harami_vids.count.to_s+(("ja"==I18n.locale.to_s) ? '本' : "") %></td>
-        <td><%= music.note %></td>
+        <td><%= auto_link50(music.note) %></td>
         <td><%= link_to t("tables.Show"), music %></td>
         <% if can? :update, music %>
           <td class="editor_only"><%= link_to 'Edit', edit_music_path(music) %></td>

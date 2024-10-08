@@ -7,7 +7,7 @@
 
 <p>
   <strong>Note:</strong>
-  <%= @role_category.note %>
+  <%= auto_link(@role_category.note) %>
 </p>
 
 <%= link_to 'Edit', edit_role_category_path(@role_category) %> |
