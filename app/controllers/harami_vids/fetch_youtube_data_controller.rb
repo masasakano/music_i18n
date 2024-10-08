@@ -24,6 +24,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
     ActiveRecord::Base.transaction(requires_new: true) do
       create_harami_vid_from_youtube_api  # EventItem is created. unsaved_translations are added.
       result = def_respond_to_format(@harami_vid, render_err_path: "harami_vids")      # defined in application_controller.rb
+      raise ActiveRecord::Rollback, "Force rollback." if !result
     end
 
     if result
@@ -40,6 +41,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
     ActiveRecord::Base.transaction(requires_new: true) do
       update_harami_vid_with_youtube_api
       result = def_respond_to_format(@harami_vid, :updated, render_err_path: "harami_vids")      # No update is run if @harami_vid.errors.any? ; defined in application_controller.rb
+      raise ActiveRecord::Rollback, "Force rollback." if !result
     end
   end
 
@@ -73,7 +75,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
       return if !@yt_video
 
       snippet = @yt_video.snippet
-      get_yt_channel(snippet.channel_id, filter_kind: "id") # setting @yt_channel
+      get_yt_channel(snippet.channel_id, kind: :id_at_platform) # setting @yt_channel
       channel = get_channel(snippet)
       return _return_no_channel_err(snippet) if !channel
 
@@ -81,7 +83,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
       @harami_vid.duration = ActiveSupport::Duration.parse(@yt_video.content_details.duration).in_seconds
       _adjust_date(snippet)
 
-      titles = _get_youtube_titles(snippet)
+      titles = get_youtube_titles(snippet)
       tras = []
       titles.each_pair do |lc, tit|
         next if tit.blank? || tit.strip.blank?
@@ -97,9 +99,11 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
     def update_harami_vid_with_youtube_api
       set_youtube  # sets @youtube; defined in ModuleYoutubeApiAux
       get_yt_video(@harami_vid, set_instance_var: true, model: true, use_cache_test: @use_cache_test) # sets @yt_video # defined in module_youtube_api_aux.rb
-      return if !@yt_video
+      if !@yt_video
+        @harami_vid.errors.add :base, "URI appears to be either wrong (non-existent) or a non-Youtube one: #{@harami_vid.uri}"
+        return
+      end
 
-      #snippet = api.items[0].snippet
       snippet = @yt_video.snippet
       _check_and_set_channel(snippet)
 
@@ -143,7 +147,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
 
     # @return [NilClass]
     def _return_no_channel_err(snippet)
-      msg = sprintf("Channel is not found. Define the channel first: ID=\"%s\", Name=\"%s\" [%s]", snippet.channel_id, snippet.channel_title, snippet.default_language)
+      msg = sprintf("Channel is not found. Define the channel first: ID=\"%s\", Name=\"%s\" [%s]", snippet.channel_id, snippet.channel_title, (snippet.default_language || nil))
       @harami_vid.errors.add :base, msg
       nil
     end
@@ -166,33 +170,16 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
       end
     end
 
-    # Assumes the Youtube title has the default language of Japanese and it may have English title but no others.
+    # Update or add {HaramiVid#translations} according to Youtube.
     #
-    # If the default language is English, the existence of Japanese title is not checked.
-    # Also, "en-GB" etc are not taken into account (though Youtube's fallback mechanism should work).
-    #
-    # @return [Hash] e.g., {"ja" => "Some1", "en" => nil} (with_indifferent_access)
-    def _get_youtube_titles(snippet)
-      # titles = {"ja" => nil, "en" => nil}.with_indifferent_access
-      titles = {}.with_indifferent_access
-      titles[snippet.default_language] = preprocess_space_zenkaku(snippet.title)
-      
-      if "en" == snippet.default_language || snippet.localized.title == snippet.title
-        # do nothing
-      else
-        titles["en"] = preprocess_space_zenkaku(snippet.localized.title)
-      end
-      titles
-    end
-
-    # Update or add {Channel.translations} according to Youtube.
+    # c.f., Same name method in /app/controllers/channels/fetch_youtube_channels_controller.rb
     #
     # @return [String, NilClass]
     def _adjust_youtube_titles(snippet)
       raise if !current_user  # should never happen in normal calls.
       ret_msgs = []
-      titles = _get_youtube_titles(snippet)  # duplication is already eliminated if present.
-      [snippet.default_language, "ja", "en"].uniq.each do |elc|
+      titles = get_youtube_titles(snippet)  # duplication is already eliminated if present. # defined in module_youtube_api_aux.rb
+      [snippet.default_language, "ja", "en"].uniq.find_all(&:present?).each do |elc|  # snippet.default_language can be nil for some reason...
         next if titles[elc].blank?
         tras = @harami_vid.translations.where(langcode: elc)
         next if tras.where(title: titles[elc]).or(tras.where(alt_title: titles[elc])).exists?  # Skip if an identical Translation exists whoever owns it.
@@ -202,7 +189,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
           result = tra.update(title: titles[elc])
           ret_msgs << "Title[#{elc}] updated."
         else
-          tra = Translation.preprocessed_new(title: titles[elc], langcode: elc, is_orig: (elc == snippet.default_language))
+          tra = Translation.preprocessed_new(title: titles[elc], langcode: elc, is_orig: (elc == (snippet.default_language || "ja")))
           @harami_vid.translations << tra
           ret_msgs << "New Title[#{elc}] added."
           result = tra.id  # Integer or nil if failed to save and associate.

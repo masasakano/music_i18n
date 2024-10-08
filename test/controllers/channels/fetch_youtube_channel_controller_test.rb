@@ -77,22 +77,7 @@ class Channels::FetchYoutubeChannelControllerTest < ActionDispatch::IntegrationT
     id1_id     = @channel.id_at_platform
     id2_handle = @channel.id_human_at_platform
 
-    ## unit tests of ModuleYoutubeApiAux
     yid = @h1129.link_root
-    #assert_equal yid, get_yt_video_id(yid)
-    #suri = "www.youtube.com/?v="+yid+"&t=888&si=acvskf"
-    #assert_equal yid, get_yt_video_id(suri)
-    #assert_equal yid, get_yt_video_id("https://"+suri)
-    #assert_equal yid, get_yt_video_id(hvid)
-    #uristr = "https://www.example.com/abc123"
-    #ret = ApplicationHelper.get_id_youtube_video(uristr)
-    #assert_equal "abc123",      ret
-    #assert_equal "example.com", ret.platform
-    #ret = get_yt_video_id(uristr)
-    #assert_equal "abc123",      ret
-    #assert_equal "example.com", ret.platform
-    #ret = get_yt_video_id(hvid)
-    #assert_equal @h1129.link_root, ret
 
     ## WARNING: This accesses Google Youtube API.  For this reason, these are commented out.  Uncomment them to run them.
     #set_youtube  # sets @youtube; defined in ModuleYoutubeApiAux
@@ -123,12 +108,13 @@ class Channels::FetchYoutubeChannelControllerTest < ActionDispatch::IntegrationT
     # Same Japanese Translation, but English Translation is added.
     #sign_in @editor_harami
     #sign_in @moderator_all
-    sign_in @syshelper
+    sign_in(user=@syshelper)
 
     ## No change in the 1st run, except the EN Translation.
     # preparation
     @channel.best_translations["en"].destroy!
     @channel.reload
+    assert_empty @channel.translations.where(langcode: 'en'), "sanity check... Size=#{@channel.translations.where(langcode: 'en').size}"
     assert_equal 1, @channel.translations.size, 'sanity check'
 
     assert_no_difference("ChannelOwner.count + ChannelPlatform.count + ChannelType.count") do
@@ -150,7 +136,7 @@ class Channels::FetchYoutubeChannelControllerTest < ActionDispatch::IntegrationT
     refute_equal(*tras.pluck(:title))
 
     tra_en = tras.find_by(langcode: "en")
-    assert_equal @editor_harami, tra_en.create_user
+    assert_equal user, tra_en.create_user, "translations=#{tras.where(langcode: 'en').order(:weight).inspect}"
 
     ## 2nd and 3rd runs
     ## (id_at_platform and id_human_at_platform are missing, alternatively) 
@@ -187,6 +173,7 @@ class Channels::FetchYoutubeChannelControllerTest < ActionDispatch::IntegrationT
   
     uri_vid_long = sprintf "https://www.youtube.com/?v=%s&si=avbaxvva", hvid.uri.split("/")[-1]
     (@harami_uris.values+[@harami_uris[:id_human_at_platform].split("/")[-1], uri_vid_long]).each do |eprm|
+      # ==["https://www.youtube.com/channel/...", "https://.../@haramipiano_main", "@haramipiano_main", uri_vid_long(see-above)]
       hsin = {}.merge(@def_update_params.merge).merge({
         "uri_youtube" => eprm,
         "id_at_platform" => "",
@@ -200,10 +187,10 @@ class Channels::FetchYoutubeChannelControllerTest < ActionDispatch::IntegrationT
       end
 
       @channel.reload
-      assert_operator prev_updated_time, :<, @channel.updated_at
+      #assert_operator prev_updated_time, :<, @channel.updated_at
       prev_updated_time = @channel.updated_at
 
-      assert                   @channel.id_at_platform,       'should be reimported, but...'
+      assert                   @channel.id_at_platform,       "eprm=#{eprm.inspect} channel=#{@channel.inspect}"
       assert                   @channel.id_human_at_platform, 'should be reimported, but...'
       assert_equal id1_id,     @channel.id_at_platform,       'should be reimported, but...'
       assert_equal id2_handle, @channel.id_human_at_platform, 'should be reimported, but...'

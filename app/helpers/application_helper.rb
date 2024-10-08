@@ -363,6 +363,13 @@ module ApplicationHelper
     URI.parse(uri_str2pass)
   end
 
+  # @param uri [URI::Generic]
+  # @param without_slash: [Boolean] If true (false), the leading forward slash is deleted if host exists.
+  # @return [String]
+  def self.uri_path_query(uri, without_slash: false)
+    ret = [uri.path, uri.query].compact.join("?")
+    (without_slash && uri.host.present?) ? ret.sub(%r@\A/@, "") : ret  # the leading slash is removed if present
+  end
 
   # Prepend "youtu.be" if necessary.
   #

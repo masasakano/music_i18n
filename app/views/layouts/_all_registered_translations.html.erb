@@ -63,7 +63,7 @@
 
   <tbody>
   <% tra1 = model.translations.first %>
-  <% all_lcodes = (%w(ja en fr)+model.translations.pluck(:langcode)).uniq %>
+  <% all_lcodes = (%w(ja en fr)+model.translations.pluck(:langcode)).uniq.find_all{|i| i.present?} %>
   <% all_lcodes.each do |lcode| %>
     <% alltra = model.translations_with_lang(langcode: lcode) %>
     <% next if !%w(ja en).include?(lcode) && alltra.empty? %>

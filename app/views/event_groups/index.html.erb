@@ -32,9 +32,10 @@
   </thead>
 
   <tbody>
-    <% @event_groups.order(start_date: :desc).each_with_index do |model, i_eg| %>
+    <%# Sorts by the most recent child Event (NOT EventGroup) %>
+    <% @event_groups.joins(:events).order("events.start_time" => :desc).uniq.each_with_index do |model, i_eg| %> <%# "distinct" raises an Error (at least with PostgreSQL) %>
       <tr>
-        <td class="<%= can_edit_event_group ? 'editor_only' : '' %>"><%= can_edit_event_group ? model.id : i_eg+1 %></td>
+        <td class="<%= can_edit_event_group ? 'editor_only' : '' %>"><%= can_edit_event_group ? link_to(model.id, model) : i_eg+1 %></td>
       <% if can_edit_event_group %>
        <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
       <% else %>

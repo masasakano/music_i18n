@@ -212,7 +212,7 @@ class ChannelsControllerTest < ActionDispatch::IntegrationTest
       patch channel_url(@channel2), params: {channel: update_paramss[2][:channel].merge({id_human_at_platform: "@"+tmpid_human}.with_indifferent_access) }
       assert_response :redirect
       assert_redirected_to @channel2, "Harami-moderator should be able to update the entry created by themselves, but..."
-      assert_equal tmpid_human, @channel2.reload.id_human_at_platform
+      assert_equal "@"+tmpid_human, @channel2.reload.id_human_at_platform
       @channel2.update!(id_human_at_platform: nil)
 
       # Testing updating id_human_at_platform - 1 character is too short.

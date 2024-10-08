@@ -6,6 +6,7 @@ require "test_helper"
 # * ENV["YOUTUBE_API_KEY"] is essential.
 # * ENV["UPDATE_YOUTUBE_MARSHAL"] : set this if you want to update the marshal-led Youtube data.
 # * ENV["SKIP_YOUTUBE_MARSHAL"] : set this to ignore marshal but access Youtube-API
+#   Some tests are performed only with ENV["SKIP_YOUTUBE_MARSHAL"]=1
 #
 class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
   include ModuleYoutubeApiAux  # for unit testing
@@ -144,10 +145,11 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
     ret = get_yt_video_id(hvid)
     assert_equal @h1129.link_root, ret
 
-    ## WARNING: This accesses Google Youtube API.  For this reason, these are commented out.  Uncomment them to run them.
-    #set_youtube  # sets @youtube; defined in ModuleYoutubeApiAux
-    #assert_nil get_yt_video("naiyo")
-    ##
+    ## WARNING: This always accesses Google Youtube API.
+    if is_env_set_positive?("SKIP_YOUTUBE_MARSHAL") # defined in ApplicationHelper
+      set_youtube  # sets @youtube; defined in ModuleYoutubeApiAux
+      assert_nil get_yt_video("naiyo")
+    end
 
     ## sign_in mandatory
     patch harami_vids_fetch_youtube_datum_path(hvid), params: { harami_vid: { fetch_youtube_datum: hsin } }
@@ -190,7 +192,7 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
 
 
     ## 2nd and 3rd runs
-    # In default uses marshal data, but accesses Google/Youtube API if ENV["SKIP_YOUTUBE_MARSHAL"] or ENV["UPDATE_YOUTUBE_MARSHAL"] is set positive.
+    # In default this uses marshal data, but accesses Google/Youtube API if ENV["SKIP_YOUTUBE_MARSHAL"] or ENV["UPDATE_YOUTUBE_MARSHAL"] is set positive.
     # This time, only Youtube-ID of Channel should be updated after it is deliberately unset.
     chan = hvid.channel
     %w(id_at_platform id_human_at_platform).each do |att|
@@ -212,6 +214,21 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
       assert_operator 3, :<=, chan.send(att).size, "#{att} should have been set, but..."
     end
 
-    sign_out @editor_harami
+
+    ## WARNING: This always accesses Google Youtube API.
+    ## 4th and errorneous run (only if indicated so!)
+    if is_env_set_positive?("SKIP_YOUTUBE_MARSHAL") # defined in ApplicationHelper
+      hvid.update!(uri: hvid.uri+"naiyo")
+      assert_no_difference("ArtistMusicPlay.count + Music.count + Artist.count + Engage.count + HaramiVidMusicAssoc.count + HaramiVidEventItemAssoc.count + Event.count + EventItem.count + Channel.count + HaramiVid.count") do
+        assert_no_difference("Translation.count") do  # English Translation added.
+          patch harami_vids_fetch_youtube_datum_path(hvid), params: { harami_vid: { fetch_youtube_datum: hsin } }
+          assert_response :unprocessable_entity
+        end
+      end
+
+      flash_regex_assert(/\bURI\b.+\bwrong/i, msg=nil, type: :alert)
+  
+      sign_out @editor_harami
+    end # if is_env_set_positive?("SKIP_YOUTUBE_MARSHAL")
   end
 end

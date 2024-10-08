@@ -126,6 +126,13 @@ class ActiveSupport::TestCase
   #
   # *Tip*: If the type is in suspect, pass nil to type (Default).
   #
+  # == Debugging
+  #
+  # You may add +follow_redirect!+ before calling this in some cases.
+  # For debugging, insert the following statemets (refer to #{css_for_flash})
+  #   print "DEBUG:for-flash1: #{css_select('div#error_explanation').to_html}\n"
+  #   print "DEBUG:for-flash2: #{css_select('p.alert').to_html}\n"
+  #
   # @param regex [Regexp] 
   # @param msg [String] 
   # @param type: [Symbol, Array<Symbol>, NilClass] :notice, :alert, :warning, :success or their array.

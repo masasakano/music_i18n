@@ -19,6 +19,10 @@
 #   If this is set, ENV["SKIP_YOUTUBE_MARSHAL"] is ignored.
 #   NOTE even if this is set, it does NOT create a new one but only updates an existing one(s).
 #   Use instead: bin/rails save_marshal_youtube
+# * +Rails.logger+ as opposed to +logger+ is preferred, becase
+#   this module is included in {PrmChannelRemote}, in which case
+#   +logger+ is undefined.
+#
 module ModuleYoutubeApiAux
   #def self.included(base)
   #  base.extend(ClassMethods)
@@ -27,22 +31,48 @@ module ModuleYoutubeApiAux
 
   include ApplicationHelper
 
+  # Kind parameter of this class to Youtube-Ruby-API filter keyword
+  KIND2YTFILTER = {
+    id_at_platform: "id",
+    id_human_at_platform: "for_handle",  # for filter in the query.  To retrive, it is "snippet.custom_url"
+  }.with_indifferent_access
+
   #module ClassMethods
   #end
 
   # sets @youtube
   #
+  # Its API key is set.
   # +ENV["YOUTUBE_API_KEY"]+ must be set non-negative.
-  def set_youtube
-    @youtube = Google::Apis::YoutubeV3::YouTubeService.new
-    @youtube.key = ENV["YOUTUBE_API_KEY"]  # or else
-    if @youtube.blank?
+  #
+  # @param set_instance_var: [Boolean] if true (Def), @youtube is set (possibly overwritten).
+  # @return [Google::Apis::YoutubeV3::YouTubeService]
+  def set_youtube(set_instance_var: true)
+    youtube = Google::Apis::YoutubeV3::YouTubeService.new
+    youtube.key = ENV["YOUTUBE_API_KEY"]  # or else
+    if youtube.blank?
       msg = "ERROR: ENV[YOUTUBE_API_KEY] undefined."
-      logger.error()
+      Rails.logger.error(msg)
       raise msg
     end
+    @youtube = youtube if set_instance_var
+    youtube
   end
 
+  # Returns the value from Youtube-API response of Channel
+  #
+  # @param kind [Symbol, String] (:id_at_platform|:id_human_at_platform)
+  # @param yt_channel: [Google::Apis::YoutubeV3::Channel]
+  def get_id_ytresponse(kind, yt_channel: @yt_channel)
+    case kind.to_sym
+    when :id_at_platform
+      yt_channel.id  
+    when :id_human_at_platform
+      yt_channel.snippet.custom_url
+    else
+      raise ArgumentError, "wrong kind =(#{kind.inspect})"
+    end
+  end
 
   # Returns Youtube-Channel, setting @yt_channel (unless otherwise)
   #
@@ -61,41 +91,91 @@ module ModuleYoutubeApiAux
   #   * localized (=> {title:, description: } for "en" or its fallback.
   #   * thumbnails (=> {title:, description: } for "en" or its fallback.
   #
-  # @param yid [String, PrmChannelRemote]
-  # @param filter_kind: [String, Symbol] what yid means: either "id" or "forHandle". Else :auto to determine automatically (in practice, this connects to Youtube up to 2 times).
+  # @param inobj [String, PrmChannelRemote, Channel]
+  # @param kind: [String, Symbol] what inobj means when it is String (irrelevant for the other classes): one of %i(id_at_platform id_human_at_platform unknown). See KIND2YTFILTER for the corresponding Youtube-API filters.
   # @param youtube: [Google::Apis::YoutubeV3]
   # @param set_instance_var: [Boolean] if true (Def), @yt_channel is set (possibly overwritten).
   # @param use_cache_test: [Boolean] if true, the cache (marshal-ed) data are used in principle (see above).
   # @return [Google::Apis::YoutubeV3::Channel, NilClass]
-  def get_yt_channel(yid, filter_kind: :auto, youtube: @youtube, set_instance_var: true, use_cache_test: false)
-    yt_channel = nil
-
-    yid_str = (yid.respond_to?(:gsub) ? yid : yid.val) # the latter for PrmChannelRemote
-
-    arfilter = 
-      if (:auto == filter_kind)
-        if yid.respond_to?(:yt_filter_kwd) && (new_filter = yid.yt_filter_kwd) # if PrmChannelRemote
-          [new_filter]
-        elsif '@' == yid_str[0,1]
-          ["for_handle"]
-        else
-          ["id", "for_handle"]
-        end
-      else
-        [filter_kind]
-      end
-
-    arfilter.each do |eaf|
-      hsopts = {:hl => "en", eaf.to_sym => yid_str}
-      yt_channel = youtube.list_channels("snippet", **hsopts)
-      break if yt_channel
+  def get_yt_channel(inobj, kind: :unknown, youtube: @youtube, set_instance_var: true, use_cache_test: false)
+    if inobj.respond_to?(:gsub) || inobj.respond_to?(:val)
+      # inobj is either String or PrmChannelRemote
+      yt_channel = get_yt_channel_from_pcr(inobj, kind: kind, youtube: youtube, use_cache_test: use_cache_test)
+      @yt_channel = yt_channel if set_instance_var
+      return yt_channel
     end
 
-    ret = (yt_channel ? yt_channel.items[0] : nil)
-    @yt_channel = ret if set_instance_var
-    ret
-  end
+    # inobj is Channel
+    raise ArgumentError, "Wrong object: #{inobj.inspect}" if !inobj.respond_to?(:channel_owner_id)
 
+    platform_this = inobj.channel_platform.mname.to_sym
+    if :youtube != platform_this
+      inobj.errors.add :base, "It is not a Youtube URI, and so cannot work out the platform ID."
+      return
+    end
+
+    pcrs = %i(id_at_platform id_human_at_platform).map{ |eatt|
+      idval = inobj.send(eatt)
+      idval.present? ? PrmChannelRemote.new(inobj.send(eatt), kind: eatt, platform: inobj.channel_platform.mname.to_sym) : nil
+    }.compact
+
+    return nil if pcrs.empty?
+    
+    yt_channel = get_yt_channel_from_pcr(pcrs[0], youtube: youtube, use_cache_test: use_cache_test)
+
+    # NOTE: whenever pcrs has 2-elements, the second element is Channel#id_human_at_platform
+    if pcrs[1] && yt_channel.snippet.custom_url != pcrs[1].val
+      msg = "ERROR: Channel#id_human_at_platform (=#{pcrs[1].val.inspect}) != Youtube-Data (=#{yt_channel.snippet.custom_url.inspect})."
+      inobj.errors.add :base, msg
+      Rails.logger.warn msg
+      return
+    end
+
+    @yt_channel = yt_channel if set_instance_var
+    yt_channel
+  end  # def get_yt_channel()
+
+
+  # Returns Google:...:Channel or nil, searched based on the given String keyword.
+  #
+  # @param pcr_or_str [PrmChannelRemote, String]
+  # @param kind: [String, Symbol] One of :id_at_platform, :id_human_at_platform, :unknown (NOT :id_video). Mandatory only when pcr_or_str is String, but otherwise ignored.
+  # @param youtube [Google::Apis::YoutubeV3::YouTubeService]
+  # @param use_cache_test: [Boolean] if true, the cache (marshal-ed) data are used in principle (see above).
+  # @return [Google::Apis::YoutubeV3::Channel, NilClass] Marshal fullpath is found at @marshal_abspaths["channel"]["id" or "for_handle"]
+  def get_yt_channel_from_pcr(pcr_or_str, kind: nil, youtube: @youtube, use_cache_test: false)
+    pcr = (pcr_or_str.respond_to?(:gsub) ? PrmChannelRemote.new(pcr_or_str, kind: kind) : pcr_or_str)
+    if pcr.val.blank?
+      raise "ERROR: pcr is strange: #{pcr.inspect}"
+    end
+    fullpath = nil
+    youtube ||= set_youtube(set_instance_var: false)
+
+    filters = _get_channel_filters(pcr)  #  %i(id for_handle) if pcr_or_str is String
+
+    if use_cache_test
+      require Rails.root.join("test/helpers/marshaled")  # loads the constant MARSHALED
+      yt_channel, fullpath = _get_youtube_marshaled_fullpath(pcr.val, category: :channel, filters: filters)
+      # yt_channel is non-nil only if pcr.val agrees with a content of defined Marshal-ed channels (in /test/helpers/marshaled.rb) AND if it is for testing etc
+      # Its fullpath is @marshal_abspaths["channel"]["id"] etc.
+      msg = "DEBUG: marshal was attempted to be loaded for #{pcr.val.inspect} from #{fullpath.inspect}; result=#{yt_channel.inspect.sub(/(, @description=.{40}).*(\", @title=.*, @title=)/){$1+'[...(snip)...]'+$2}}"
+      Rails.logger.debug msg
+      return yt_channel if yt_channel
+    end
+
+    filters.each do |eaf|
+      Rails.logger.debug("DEBUG: accesses Google/Youtube API for Channel #{pcr.val.inspect}")
+      hsopts = {:hl => "en", eaf.to_sym => pcr.val}
+      yt_channels = youtube.list_channels("snippet", **hsopts)
+      msg = "DEBUG: Info of Channel #{pcr.val.inspect} was retrieved with Google/Youtube API; result=#{yt_channels.inspect}"
+      Rails.logger.debug msg
+      if (yt_channels && yt_channels.items.present? && (yt_channels.page_info.total_results > 0))
+        return yt_channels.items[0]
+      end
+      Rails.logger.debug("DEBUG: No significant channel was retrieved for #{pcr.val.inspect}")
+    end
+    nil
+  end
 
   # Returns a Youtube video ID, simply based on the given URI.
   #
@@ -152,18 +232,27 @@ module ModuleYoutubeApiAux
     ytret = nil
     if use_cache_test
       require Rails.root.join("test/helpers/marshaled")  # loads the constant MARSHALED
-      ytret, fullpath = _get_youtube_marshaled_fullpath(yid, :zenzenzense, kind: :video)
-      # ytret is non-nil only if yid agrees with Marshal(:zenzenzense) AND if it is for testing etc
+      ytret, fullpath = _get_youtube_marshaled_fullpath(yid, :zenzenzense, category: :video)
+      # ytret is non-nil only if yid agrees with defined Marshal (i.e., :zenzenzense; see /test/helpers/marshaled.rb) AND if it is for testing etc
       msg = "DEBUG: marshal was attempted to be loaded from #{fullpath.inspect}; result=#{ytret.inspect}"
-      logger.debug msg
+      Rails.logger.debug msg
     end
 
     if !ytret
-      logger.debug("DEBUG: accesses Google/Youtube API for Video #{yid.inspect}")
-      yt = @youtube.list_videos(%w(snippet contentDetails), id: yid, hl: "en")  # maxResults is invalid with "id"
-      ytret = (yt ? yt.items[0] : nil)
+      # i.e.,, either not for testing or marshal-ed data are not found
+      Rails.logger.debug("DEBUG: accesses Google/Youtube API for Video #{yid.inspect}")
+      yt = youtube.list_videos(%w(snippet contentDetails), id: yid, hl: "en")  # maxResults is invalid with "id"
+      ytret = ((yt && yt.items.present? && (yt.page_info.total_results > 0)) ? yt.items[0] : nil)
+      # NOTE: yt is ALYWAS non-nil (== Google::Apis::YoutubeV3::...)
+      #   @youtube.list_videos.items[0] returns nil or significant.
+      #   However(!!), in the case of "list_channels" fails, if it fails to find one,
+      #   it returns (@youtube.list_channels.items == nil) (!!)
+      #   Here, for the video, "yt.items[0]" never fails at the time of writing (October 2024),
+      #   the specification may change in the future?!
+      #   So, to check it, it is safer to use +ret.page_info.total_results+
+
       msg = "DEBUG: Info of Video #{yid.inspect} was retrieved with Google/Youtube API; result=#{ytret.inspect}"
-      logger.debug msg
+      Rails.logger.debug msg
     end
 
     _may_update_youtube_marshal(ytret, fullpath) ## i.e., updated if use_cache_test is true AND ENV["UPDATE_YOUTUBE_MARSHAL"] is positive AND Youtube-ID satisfies the condition AND fullpath has been obtained.
@@ -178,20 +267,21 @@ module ModuleYoutubeApiAux
   # a human-readable-ID-based search is performed. If it fails, a title-based search
   # is performed.
   #
+  # @param set_instance_var: [Boolean] if true (Def), @yt_channel is set (possibly overwritten).
   # @return [Channel, NilClass]
-  def get_channel(snippet)
+  def get_channel(snippet, use_cache_test: false)
     channel = Channel.find_by(id_at_platform: snippet.channel_id)
-    return _update_channel_youtube_ids(channel, snippet) if channel
+    return _update_channel_youtube_ids(channel, snippet, set_instance_var: true) if channel
 
-    get_yt_channel(snippet.channel_id, filter_kind: "id") if !@yt_channel
-    yt_handle = @yt_channel.snippet.custom_url.sub(/^@/, "")
+    get_yt_channel(snippet.channel_id, kind: :id_at_platform, set_instance_var: true) if !@yt_channel
+    yt_handle = @yt_channel.snippet.custom_url
 
     channel = Channel.find_by(id_human_at_platform: yt_handle)
     return _update_channel_youtube_ids(channel, snippet, yt_handle: yt_handle) if channel
 
     ## preforming title-based search (may wrongly identifies Channel)
     chan_platform_youtube = ChannelPlatform.select_by_translations(en: {title: 'Youtube'}).first
-    channel = Channel.where(channel_platform_id: chan_platform_youtube.id).select_regex(:title, /^#{Regexp.quote(snippet.channel_title)}(\b|\s|$)/, langcode: snippet.default_language, sql_regexp: true).joins(:channel_type).order("channel_types.weight").first  # based on the human-readable Channel title.  nil is returned if not found.
+    channel = Channel.where(channel_platform_id: chan_platform_youtube.id).select_regex(:title, /^#{Regexp.quote(snippet.channel_title)}(\b|\s|$)/, langcode: (snippet.default_language || "ja"), sql_regexp: true).joins(:channel_type).order("channel_types.weight").first  # based on the human-readable Channel title.  nil is returned if not found.
     flash[:warning] ||= []
 
     if !channel
@@ -223,9 +313,83 @@ module ModuleYoutubeApiAux
     return _update_channel_youtube_ids(channel, snippet, yt_handle: yt_handle)
   end
 
+  # Assumes the Youtube title has the default language of Japanese and it may have English title but no others.
+  #
+  # If the default language is English, the existence of Japanese title is not checked.
+  # Also, "en-GB" etc are not taken into account (though Youtube's fallback mechanism should work).
+  #
+  # @param snippet [#default_language, #localized] e.g., Google::Apis::YoutubeV3::ChannelSnippet
+  # @return [Hash] e.g., {"ja" => "Some1", "en" => nil} (with_indifferent_access)
+  def get_youtube_titles(snippet)
+    # titles = {"ja" => nil, "en" => nil}.with_indifferent_access
+    titles = {}.with_indifferent_access
+    titles[(snippet.default_language || "ja")] = preprocess_space_zenkaku(snippet.title)
+    
+    if "en" == snippet.default_language || snippet.localized.title == snippet.title
+      # do nothing
+    else
+      titles["en"] = preprocess_space_zenkaku(snippet.localized.title)
+    end
+    titles
+  end
+
   #################
   private 
   #################
+
+    # gets PrmChannelRemote from objects
+    # @param yid [String, PrmChannelRemote, Channel]
+    # @param kind: [String, Symbol] what yid means: either "id" or "forHandle"
+    # @return [PrmChannelRemote, Array<PrmChannelRemote>] PrmChannelRemote or its 2-element Array
+    def _get_pcr(yid, kind)
+      if yid.respond_to?(:gsub)
+        # String
+        return PrmChannelRemote.new(yid, kind: kind)  # platform is Default.
+      end
+
+      if yid.respond_to?(:val) &&  yid.respond_to?(:kind)
+        # PrmChannelRemote
+        return yid if yid.kind.to_s == kind.to_s || yid.kind.to_sym != :unknown
+        dup_pcr = yid.dup
+        dup_pcr.update!(kind: kind.to_s)
+        return dup_pcr
+      end
+
+      raise ArgumentError, "yid is strange. Contact the code developer. yid=#{yid.inspect}" if !yid.respond_to?(:id_at_platform)  # none of String, PrmChannelRemote, Channel
+
+      retcand = %i(id_at_platform id_human_at_platform).map{|ek|
+        (val=yid.send(ek)).present? ? PrmChannelRemote.new(val, kind: ek) : nil
+      }.compact
+
+      case retcand.size
+      when 0
+        raise "ERROR(#{File.basename __FILE__}): Channel given to get_yt_channel() has neither of :id_at_platform and :id_human_at_platform present."
+      when 1
+        retcand.first
+      else
+        retcand
+      end
+    end
+
+
+    # Gets an Array of Youtube filter names (Symbols) for a Channel
+    #
+    # @param pcr [String, Symbol, PrmChannelRemote]
+    # @return [Array<Symbol>]
+    def _get_channel_filters(pcr)
+      def_filters = %i(id for_handle)
+      return def_filters if pcr.respond_to?(:gsub)
+
+      case pcr.kind.to_sym
+      when :unknown
+        def_filters
+      when *(KIND2YTFILTER.keys.map(&:to_sym))
+        [KIND2YTFILTER[pcr.kind]]
+      else
+        raise "Unexpected kind=(#{pcr.kind.to_sym.inspect})"
+      end
+    end
+
 
     # Adjustment 
     def _run_update_channel(result, msg_err, msg_ok=nil, model: @harami_vid)
@@ -247,10 +411,11 @@ module ModuleYoutubeApiAux
     # @param channel [Channel]
     # @param snippet [Google::Apis::YoutubeV3::Video, NilClass] unnecessary if @yt_channel is already set
     # @param yt_handle: [String, NilClass] Youtube channel's Handle-name.
+    # @param set_instance_var: [Boolean] if true (Def), @yt_channel is set (possibly overwritten).
     # @return [Channel, NilClass]
-    def _update_channel_youtube_ids(channel, snippet=nil, yt_handle: nil)
+    def _update_channel_youtube_ids(channel, snippet=nil, yt_handle: nil, set_instance_var: false)
       msg_err_head = sprintf("Failed to update Channel(pID=%d) for ", channel.id)
-      get_yt_channel(snippet.channel_id, filter_kind: "id") if !@yt_channel
+      get_yt_channel(snippet.channel_id, kind: :id_at_platform, set_instance_var: set_instance_var) if !@yt_channel
   
       if channel.id_at_platform != @yt_channel.id
         result = channel.update(id_at_platform: @yt_channel.id)
@@ -258,7 +423,7 @@ module ModuleYoutubeApiAux
         return (ret ? channel : ret)
       end
  
-      yt_handle ||= @yt_channel.snippet.custom_url.sub(/^@/, "")
+      yt_handle ||= @yt_channel.snippet.custom_url
       if channel.id_human_at_platform != yt_handle
         result = channel.update(id_human_at_platform: yt_handle)
         ret = _run_update_channel(result, msg_err_head+"id_human_at_platform to: "+yt_handle.inspect)
@@ -298,24 +463,35 @@ module ModuleYoutubeApiAux
 
     # Returns a marshal-ed Youtube-Video object and its marshall fullpath (for potential use of updating later)
     #
+    # Technically, it is possible to cache the results to avoid repeated loading.
+    # However, this is used only for testing and only using the local machine power,
+    # it would be too much.
+    #
     # @param yid [String] Video ID at Youtube
-    # @param data_kwds [String, Symbol, Array] like :zenzenzense or its Array; see MARSHALED (in /test/helpers/marshaled.rb)
-    # @param kind [String, Symbol] either :video or :channel (or its String)
+    # @param data_kwds [String, Symbol, Array, NilClass] like :zenzenzense or its Array or nil (Def), in which case all defined in MARSHALED for the category (as defined in /test/helpers/marshaled.rb)
+    # @param category [String, Symbol] either :video or :channel (or its String)
+    # @param filters [Array<Symbol>] Considered only if category == :channel. What filters of Youtube should be used?
     # @return [Array<Google::Apis::YoutubeV3::Video,String,NilClass>] 2-element Array of [Apis|nil, String(full-path)|nil]
-    def _get_youtube_marshaled_fullpath(yid, data_kwds, kind: :video)
+    def _get_youtube_marshaled_fullpath(yid, data_kwds=nil, category: :video, filters: [:id, :custom_url])
       return [nil, nil] if !is_env_set_positive?("UPDATE_YOUTUBE_MARSHAL") && is_env_set_positive?("SKIP_YOUTUBE_MARSHAL")
 
+      @marshal_abspaths ||= {}.with_indifferent_access
+      @marshal_abspaths[category] ||= {}
+      filters = [:id] if :video == category.to_sym 
+      data_kwds ||= MARSHALED[:youtube][category].keys
       [data_kwds].flatten.each do |dkwd|
-        next if ![MARSHALED[:youtube][kind][dkwd][:id]].include?(yid)
+        next if !MARSHALED[:youtube][category][dkwd].slice(*filters).values.compact.include?(yid)
 
-        fullpath = _find_marshal_fullpath(MARSHALED[:youtube][kind][dkwd][:basename])
-        next if fullpath.blank?
+        @marshal_abspaths[category][dkwd] ||= _find_marshal_fullpath(MARSHALED[:youtube][category][dkwd][:basename])
+        next if @marshal_abspaths[category][dkwd].blank?
+        # fullpath = _find_marshal_fullpath(MARSHALED[:youtube][category][dkwd][:basename])
+        # next if fullpath.blank?
         # Now, a file at fullpath is guaranteed to exist (never a new file).
 
-        return [nil, fullpath] if is_env_set_positive?("UPDATE_YOUTUBE_MARSHAL") || is_env_set_positive?("SKIP_YOUTUBE_MARSHAL")
+        return [nil, @marshal_abspaths[category][dkwd]] if is_env_set_positive?("UPDATE_YOUTUBE_MARSHAL") || is_env_set_positive?("SKIP_YOUTUBE_MARSHAL")
 
-        logger.debug("DEBUG: loading marshall (kwd=#{dkwd.inspect}) for Video #{yid.inspect}")
-        return [Marshal.load(IO.read(fullpath)), fullpath]
+        Rails.logger.debug("DEBUG: loading marshall (kwd=#{dkwd.inspect}) for Video #{yid.inspect}")
+        return [Marshal.load(IO.read(@marshal_abspaths[category][dkwd])), @marshal_abspaths[category][dkwd]]
       end
 
       [nil, nil]  # Basically no Marshal-fullpath is found for the given Youtube Video-ID
@@ -337,7 +513,7 @@ module ModuleYoutubeApiAux
     def _may_update_youtube_marshal(yt_vid, fullpath)
       return nil if !yt_vid || !fullpath || !is_env_set_positive?("UPDATE_YOUTUBE_MARSHAL") # defined in ApplicationHelper
       msg = "NOTE: Updated #{fullpath}"
-      logger.info(msg)
+      Rails.logger.info(msg)
       puts msg
       save_marshal(yt_vid, fullpath)  # defined in application_helper.rb
       return fullpath

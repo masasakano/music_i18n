@@ -86,7 +86,7 @@ channel_haramichan_youtube_main:
   channel_type: channel_type_main
   channel_platform: channel_platform_youtube
   id_at_platform: UCr4fZBNv69P-09f98l7CshA
-  id_human_at_platform: haramipiano_main
+  id_human_at_platform: "@haramipiano_main"
   create_user: user_syshelper
   update_user: 
   note: ChannelHaramichanYoutubeMain

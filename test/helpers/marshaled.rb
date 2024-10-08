@@ -9,7 +9,13 @@ MARSHALED = {
     channel: {
       harami: {
         id: "UCr4fZBNv69P-09f98l7CshA",  # == channels(:channel_haramichan_youtube_main).id_at_platform  (in Test)
+        custom_url: "haramipiano_main", # without preceding "@"
         basename: "youtube_channel_harami.marshal",
+      }.with_indifferent_access,
+      kohmi: {
+        id: "UCPkjL7jAJhrZ3e4-NlsGt-Q",  # == channels(:channel_haramichan_youtube_main).id_at_platform  (in Test)
+        custom_url: "officialyoutubechannel8034", # without preceding "@"
+        basename: "youtube_channel_kohmi.marshal",
       }.with_indifferent_access,
     }.with_indifferent_access,
     video: {

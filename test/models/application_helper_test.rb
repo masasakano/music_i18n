@@ -200,6 +200,14 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_equal "/abc/def", uri.path
   end
 
+  test "uri_path_query" do
+    uri = URI.parse("https://x.com/abc?d=e")
+    assert_equal "/abc?d=e", AH.uri_path_query(uri, without_slash: false)
+    assert_equal  "abc?d=e", AH.uri_path_query(uri, without_slash: true)
+    uri = URI.parse("/abc?d=e")
+    assert_equal "/abc?d=e", AH.uri_path_query(uri, without_slash: true)
+  end
+
   test "_prepend_youtube" do
     exp = "http://x.com/abc"
     assert_equal exp, AH.send(:_prepend_youtube, exp)

@@ -64,8 +64,8 @@ class Channel < BaseWithTranslation
   has_many :harami_vids, -> {distinct}, dependent: :restrict_with_exception  # dependent is a key / Basically this should not be easily destroyed - it may be merged instead.
   has_many :harami1129s, through: :harami_vids, dependent: :restrict_with_exception  # I think dependent is redundant
 
-  # callback to make sure id_human_at_platform does not have a prefix of "@"
-  before_validation :remove_atmark_id_human_for_validation
+  # callback to make sure id_human_at_platform has a prefix of "@"
+  before_validation :ensure_atmark_id_human_for_validation
 
   before_create     :set_create_user       # This always sets non-nil weight. defined in /app/models/concerns/module_whodunnit.rb
   before_save       :set_update_user       # defined in /app/models/concerns/module_whodunnit.rb
@@ -80,12 +80,12 @@ class Channel < BaseWithTranslation
   validates :id_at_platform,       uniqueness: { scope: [:channel_platform] }, allow_nil: true
   validates :id_at_platform,       length: {minimum: 3}, allow_nil: true  # 3 is rather random...
   validates :id_at_platform,       format: {with: /\A[[:ascii:]]+\z/i}, allow_nil: true
-  validates :id_at_platform,       format: {without: /[\s]/i},          allow_nil: true
+  validates :id_at_platform,       format: {without: /[\s\/]/i},          allow_nil: true
 
   validates :id_human_at_platform, uniqueness: { scope: [:channel_platform] }, allow_nil: true  # No DB-level constraint.
   validates :id_human_at_platform,       length: {minimum: 3}, allow_nil: true  # 3 is rather random...
   validates :id_human_at_platform,       format: {with: /\A[[:ascii:]]+\z/i}, allow_nil: true
-  validates :id_human_at_platform,       format: {without: /[@\s]/i},         allow_nil: true
+  validates :id_human_at_platform,       format: {without: /[\s]/i},         allow_nil: true
   # Note that if (channel_platform == :other) and id_at_platform-s agree, it would raise a DB-level error(!). For Channels with (channel_platform == :other), you should leave id_at_platform-s blank and instead record them in note if need be (though there is no application-level check for this).
 
   validate :valid_present_unsaved_translations, on: :create  # @unsaved_translations must be defined and valid. / defined in BaseWithTranslation
@@ -223,9 +223,9 @@ class Channel < BaseWithTranslation
 
   # before_validation callback
   #
-  # Preceding +@+ is removed from {#id_human_at_platform}.
-  def remove_atmark_id_human_for_validation
-    self.id_human_at_platform.sub!(/\A@/, "") if id_human_at_platform
+  # Non-blank {#id_human_at_platform} is guaranteed to have the prefix +@+
+  def ensure_atmark_id_human_for_validation
+    self.id_human_at_platform.sub!(/\A@?/, "@") if id_human_at_platform.present?
   end
 
   ## Callback invoed by {BaseWithTranslation#save_unsaved_translations}

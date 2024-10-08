@@ -38,7 +38,7 @@ module Seeds::Channels
       channel_type:     Proc.new{ChannelType.where(    mname: Seeds::ChannelTypes::SEED_DATA[:main][:mname]).first},
       channel_platform: Proc.new{ChannelPlatform.where(mname: Seeds::ChannelPlatforms::SEED_DATA[:youtube][:mname]).first},
       id_at_platform: 'UCr4fZBNv69P-09f98l7CshA',
-      id_human_at_platform: 'haramipiano_main',
+      id_human_at_platform: '@haramipiano_main',
       note: nil,
     },
     kohmi_youtube_main: {
@@ -49,7 +49,7 @@ module Seeds::Channels
       channel_type:     Proc.new{ChannelType.where(    mname: Seeds::ChannelTypes::SEED_DATA[:main][:mname]).first},
       channel_platform: Proc.new{ChannelPlatform.where(mname: Seeds::ChannelPlatforms::SEED_DATA[:youtube][:mname]).first},
       id_at_platform: 'UCPkjL7jAJhrZ3e4-NlsGt-Q',
-      id_human_at_platform: 'officialyoutubechannel8034',
+      id_human_at_platform: '@officialyoutubechannel8034',
       note: nil,
     },
   }.with_indifferent_access  # SEED_DATA
