@@ -132,11 +132,12 @@ class ChannelsControllerTest < ActionDispatch::IntegrationTest
 
     assert_equal @editor_ja, @channel.create_user, "sanity check. user=#{@channel.inspect}"
 
-    sign_in @moderator_harami
-    get edit_channel_url(@channel)
-    assert_response :redirect, "HARAMI-moderator should not be able to edit the entry created by @editor_ja, but..."
-    assert_redirected_to root_path
-    sign_out @moderator_harami
+    ### Specs changed after ver.1.5 -- now anyone can edit or destroy Channel created by anyone but admin
+    # sign_in @moderator_harami
+    # get edit_channel_url(@channel)
+    # assert_response :redirect, "HARAMI-moderator should not be able to edit the entry created by @editor_ja, but..."
+    # assert_redirected_to root_path
+    # sign_out @moderator_harami
 
     sign_in @editor_ja
     get edit_channel_url(@channel)
@@ -180,26 +181,28 @@ class ChannelsControllerTest < ActionDispatch::IntegrationTest
     end
 
     sign_in @moderator_harami  # do  # if I put do, the next line is not executed for some reason! (maybe because another sign_in exists below?)
-      get edit_channel_url(@channel)
-      assert_response :redirect, "Harami-Moderator should not be able to edit the entry created by GA-editor, but..."
-      assert_redirected_to root_path
-      patch channel_url(@channel), params: update_paramss[1]
-      assert_response :redirect, "Harami-Moderator should not be able to update the entry created by GA-editor, but..."
-      assert_redirected_to root_path
+      ### Specs changed after ver.1.5 -- now anyone can edit or destroy Channel created by anyone but admin
+      # get edit_channel_url(@channel)
+      # assert_response :redirect, "Harami-Moderator should not be able to edit the entry created by GA-editor, but..."
+      # assert_redirected_to root_path
+      # patch channel_url(@channel), params: update_paramss[1]
+      # assert_response :redirect, "Harami-Moderator should not be able to update the entry created by GA-editor, but..."
+      # assert_redirected_to root_path
   
       orig_create_user = @channel2.create_user
   
-      get edit_channel_url(@channel2)
-      assert_response :redirect, "Anyone but admins should not be able to edit the entry created by admin or no one, but..."
-      assert_redirected_to root_path
-      patch channel_url(@channel2), params: update_paramss[2]
-      assert_response :redirect, "Anyone but admins should not be able to update the entry created by admin or no one, but..."
-      assert_redirected_to root_path
+      ### Specs changed after ver.1.5 -- now anyone can edit or destroy Channel created by anyone but admin
+      # get edit_channel_url(@channel2)
+      # assert_response :redirect, "Anyone but admins should not be able to edit the entry created by admin or no one, but..."
+      # assert_redirected_to root_path
+      # patch channel_url(@channel2), params: update_paramss[2]
+      # assert_response :redirect, "Anyone but admins should not be able to update the entry created by admin or no one, but..."
+      # assert_redirected_to root_path
   
-      @channel2.update!(create_user: @editor_harami)
-      patch channel_url(@channel2), params: update_paramss[2]
-      assert_response :redirect, "Harami-moderator cannot update an entry created by anyone, including their subordinates, but themselves, but..."
-      refute_equal newnote1, @channel2.reload.note
+      # @channel2.update!(create_user: @editor_harami)
+      # patch channel_url(@channel2), params: update_paramss[2]
+      # assert_response :redirect, "Harami-moderator cannot update an entry created by anyone, including their subordinates, but themselves, but..."
+      # refute_equal newnote1, @channel2.reload.note
 
       @channel2.update!(create_user: @moderator_harami)
       patch channel_url(@channel2), params: update_paramss[2]
@@ -246,9 +249,12 @@ class ChannelsControllerTest < ActionDispatch::IntegrationTest
       assert_response :redirect, "should not be able to update an entry, but..."
 
     #end
+    sign_out @editor_ja
   end
 
   test "should destroy channel" do
+    refute @channel.create_user.an_admin?, 'sanity check...'
+
     sign_in @translator
     assert_no_difference("Channel.count") do
       delete channel_url(@channel)
@@ -258,18 +264,20 @@ class ChannelsControllerTest < ActionDispatch::IntegrationTest
     sign_out @translator
 
     sign_in @moderator_harami
-    assert_no_difference("Channel.count") do
-      delete channel_url(@channel)
-      assert_response :redirect
-    end
-    assert_redirected_to root_path, "non-creater fails to destroy it, and failure in deletion leads to Root-path"
-
-    @channel.update!(create_user: @moderator_harami)
     assert_difference("Channel.count", -1) do
       delete channel_url(@channel)
       assert_response :redirect
     end
     assert_redirected_to channels_url
+    # assert_redirected_to root_path, "non-creater fails to destroy it, and failure in deletion leads to Root-path"  # => specs changed
+
+    ### Now (because the specs changed), the model has been already destroyed.
+    # @channel.update!(create_user: @moderator_harami)
+    # assert_difference("Channel.count", -1) do
+    #   delete channel_url(@channel)
+    #   assert_response :redirect
+    # end
+    # assert_redirected_to channels_url
 
     sign_out @moderator_harami
 

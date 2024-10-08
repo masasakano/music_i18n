@@ -60,7 +60,7 @@ class Channels::FetchYoutubeChannelsController < ApplicationController
       snippet = @yt_channel.snippet
       _adjust_ids
 
-      ret_msg = _adjust_youtube_titles(snippet)  # Translation(s) updated or created.
+      ret_msg = _adjust_youtube_titles(snippet, model: @channel)  # Translation(s) updated or created.
       return if !ret_msg  # Error has been raised in saving/updating Translation(s)
       flash[:notice] ||= []
       flash[:notice] << ret_msg
@@ -123,6 +123,7 @@ class Channels::FetchYoutubeChannelsController < ApplicationController
           else
             tra0.weight 
           end
+        weight_updated = [weight_updated, def_weight, Translation.def_init_weight(current_user)].min
 
         if tra0
           tra = tra0

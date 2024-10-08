@@ -33,9 +33,7 @@ class Channels::FetchYoutubeChannelControllerTest < ActionDispatch::IntegrationT
       "use_cache_test" => true,
       "uri_youtube" => "", # id_at_platform or id_human_at_platform or URI or Video-URI
       "id_at_platform"       => "", # hidden: <= from id_at_platform
-      # "id_kind1" => "",       # hidden: "id" or "handle" (or "name") or "uri" or "video" or "unknown"
       "id_human_at_platform" => "", # hidden: <= from id_human_at_platform
-      # "id_kind2" => "",       # hidden: "id" or "handle" (or "name") or "uri" or "video" or "unknown"
     }.with_indifferent_access
 
     @def_create_params = @def_update_params.merge({
@@ -196,7 +194,50 @@ class Channels::FetchYoutubeChannelControllerTest < ActionDispatch::IntegrationT
       assert_equal id2_handle, @channel.id_human_at_platform, 'should be reimported, but...'
       assert_equal note_be4, @channel.note, 'sanity check'
     end
-
     sign_out @editor_harami
   end
+
+  test "should update weights" do
+    ######## Here by Editor-Harami
+    sign_in (user=@editor_harami)
+
+    ## 8th run (DESTRUCTIVE!!) (checking Translation update, esp. weight)
+    def_weight = 100
+    assert_equal def_weight, Role::DEF_WEIGHT[Role::RNAME_MODERATOR], "sanity check; see role.rb for definition"
+
+    @channel.update!(create_user: @editor_ja)
+    [[Float::INFINITY, def_weight], [98, 49], [0, 0]].each do |w_be4, w_aft|
+      tra_ja_best = _destroy_all_trans_but_best_ja(@channel)
+      tra_ja_best.update!(title: "naiyo-8th-run", weight: w_be4, update_user: @editor_ja, create_user: @editor_ja)  # Because it is by a different user, after accessing Youtube API, a new Translation should be created, except for the last trial, where Translation#weight is 0.
+
+      hsin = {}.merge({"use_cache_test" => true})
+      assert_difference("ChannelOwner.count + ChannelPlatform.count + ChannelType.count + Translation.count*10 + Channel.count", ((0 == w_be4) ? 10 : 20)) do
+        # new JA and EN Translations created.
+        patch channels_fetch_youtube_channel_path(@channel), params: { channel: { fetch_youtube_channel: hsin } }
+        assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+        assert_redirected_to @channel
+      end
+
+      tra = @channel.best_translation(langcode: :ja, fallback: false)
+      assert_equal tra, @channel.translations.where(langcode: :ja).order(updated_at: :desc).first, "sanity check"
+      assert_equal w_aft, tra.weight
+    end
+
+    sign_out (user=@editor_harami)
+  end
+
+  private
+
+    # destroy all JA translations but the best one.  Also, completely destroys all EN translations.
+    #
+    # @return [Tranlstion] best one
+    def _destroy_all_trans_but_best_ja(channel)
+      tra_ja_best = channel.best_translation(langcode: :ja, fallback: false)
+      channel.translations.where(langcode: :ja).where.not(id: tra_ja_best.id).destroy_all
+      assert_equal 1, channel.translations.where(langcode: :ja).count, "sanity check so tra_ja_best with the new weight is the only JA translation."
+      assert Translation.exists?(tra_ja_best.id)
+
+      channel.translations.where(langcode: :en).destroy_all
+      tra_ja_best
+    end
 end

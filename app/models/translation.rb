@@ -1907,8 +1907,8 @@ class Translation < ApplicationRecord
   # @return [Numeric] Default weight for the user. Float::INFINITY if no user or if user has no {Role} for Translation.
   def def_weight(user=ModuleWhodunnit.whodunnit)
     return Float::INFINITY if !user
-    role = user.highest_role_in(RoleCategory[RoleCategory::MNAME_TRANSLATION])
-    return Float::INFINITY if !role
+    role = user.highest_role_in(RoleCategory[RoleCategory::MNAME_TRANSLATION])  # see also Translation.def_init_weight
+    return Float::INFINITY if !role  # If the user has no Role in Translation, this is returned.
     return Float::INFINITY if !translatable  # only possible when this is a new_record. This used to be role.weight but then it may violate the unique constraint.
 
     immediate_superior = role.superiors[-1]  # If current_user is sysadmin, it is nil
@@ -1932,6 +1932,14 @@ class Translation < ApplicationRecord
 
     # Note: DEF_WEIGHT_INCREMENT_NEGATIVE is a negative value.
     ((btw+DEF_WEIGHT_INCREMENT_NEGATIVE > higher_than) ? [(role.weight || Float::INFINITY), (btw+DEF_WEIGHT_INCREMENT_NEGATIVE)].min : (higher_than + btw).quo(2))
+  end
+
+  # See also the instance method {Translation#def_weight}
+  #
+  # @param user [User]
+  # @return [Float] Default (initial) weight for {Translation} for the user.
+  def self.def_init_weight(user)
+    (role=user.highest_role_in(RoleCategory[RoleCategory::MNAME_TRANSLATION])) ? role.weight : Float::INFINITY 
   end
 
   # Get the weight after the one immediately higher than that of self.
