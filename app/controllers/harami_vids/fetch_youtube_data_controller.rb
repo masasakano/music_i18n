@@ -11,7 +11,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
   include ApplicationHelper
   include HaramiVidsHelper # for set_event_event_items (common with HaramiVidsController)
   include ModuleGuessPlace  # for guess_place
-  include ModuleYoutubeApiAux # defined in /app/models/concerns/module_youtube_api_aux.rb
+  include ModuleYoutubeApiAux # defined in /app/controllers/concerns/module_youtube_api_aux.rb
 
   before_action :set_countries, only: [:create, :update] # defined in application_controller.rb
 
@@ -107,7 +107,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
       snippet = @yt_video.snippet
       _check_and_set_channel(snippet)
 
-      ret_msg = _adjust_youtube_titles(snippet)  # Translation(s) updated or created.
+      ret_msg = adjust_youtube_titles(snippet, model: @harami_vid)  # Translation(s) updated or created.
       return if !ret_msg  # Error has been raised in saving/updating Translation(s)
       flash[:notice] ||= []
       flash[:notice] << ret_msg
@@ -168,43 +168,6 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
         flash[:warning] << msg
         logger.warn msg
       end
-    end
-
-    # Update or add {HaramiVid#translations} according to Youtube.
-    #
-    # c.f., Same name method in /app/controllers/channels/fetch_youtube_channels_controller.rb
-    #
-    # @return [String, NilClass]
-    def _adjust_youtube_titles(snippet)
-      raise if !current_user  # should never happen in normal calls.
-      ret_msgs = []
-      titles = get_youtube_titles(snippet)  # duplication is already eliminated if present. # defined in module_youtube_api_aux.rb
-      [snippet.default_language, "ja", "en"].uniq.find_all(&:present?).each do |elc|  # snippet.default_language can be nil for some reason...
-        next if titles[elc].blank?
-        tras = @harami_vid.translations.where(langcode: elc)
-        next if tras.where(title: titles[elc]).or(tras.where(alt_title: titles[elc])).exists?  # Skip if an identical Translation exists whoever owns it.
-
-        tra0 = tras.where(create_user_id: current_user.id).or(tras.where(update_user_id: current_user.id)).first
-        if tra0 && diff_emoji_only?(tra0.title, titles[elc])  # defined in module_common.rb
-          result = tra.update(title: titles[elc])
-          ret_msgs << "Title[#{elc}] updated."
-        else
-          tra = Translation.preprocessed_new(title: titles[elc], langcode: elc, is_orig: (elc == (snippet.default_language || "ja")))
-          @harami_vid.translations << tra
-          ret_msgs << "New Title[#{elc}] added."
-          result = tra.id  # Integer or nil if failed to save and associate.
-        end
-
-        if !result
-          # Failed to save a Translation. The parent should rollback everything.
-          msg_err = tra.errors.full_messages.join("; ") # +" / "+titles.inspect
-          msg = [sprintf("ERROR: Failed to save a Translation[%s]: %s", elc, titles[elc]), msg_err].join(" / ")
-          @harami_vid.errors.add :base, msg
-          return nil
-        end
-      end
-
-      ret_msgs.join(" ")
     end
 
     def _adjust_date(snippet)

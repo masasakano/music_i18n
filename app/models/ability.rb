@@ -99,7 +99,7 @@ class Ability
     if user.qualified_as?(:editor, rc_general_ja) || user.qualified_as?(:editor, rc_harami)
       can :crud, [EventItem]  # Maybe Event should be also allowed? (NOTE: the current permission is tested in events_controller_test.rb (Line-65))
       can(:cr, [Channel])
-      can(:ud, [Channel]){|mdl| !mdl.unknown? && (user.an_admin? || !mdl.create_user.an_admin?)}
+      can(:ud, [Channel]){|mdl| !mdl.unknown? && (user.an_admin? || !(cuser=mdl.create_user) || !cuser.an_admin?)}
       can :cr, [ChannelPlatform, ChannelOwner]
       #can(:new, ChannelOwners::CreateWithArtistsController){|mdl| mdl.is_a?(Artist) && Proc.new{can? :update, mdl}}  # This does not work because (1) the controller does not follow the convention naming and (2) "new" method ignores the block. See, for actual implementation, /app/controllers/channel_owners/create_with_artists_controller.rb
       can(:ud, ChannelPlatform){|mdl| mdl.create_user && ((mdl.create_user == user) || (!mdl.unknown? && user.abs_superior_to?(mdl.create_user, except: rc_trans))) }  # can update/destroy only if it was created by the user or by a moderator.

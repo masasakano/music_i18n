@@ -333,6 +333,71 @@ module ModuleYoutubeApiAux
     titles
   end
 
+
+  # update or add {Channel#translations} or {HaramiVid#translations} according to Youtube.
+  #
+  # Translations of {Channel} or {HaramiVid} are always forcibly updated and are given the lowest (=best) weight.
+  # If the existing best-translation has a weight of 0 and belongs to another user,
+  # the translation is updated.  Otherwise, either the user's best translation is updated
+  # or a new one with the lowest weight is created.
+  #
+  # @param snippet [#default_language, #localized] e.g., Google::Apis::YoutubeV3::ChannelSnippet
+  # @param model: [ActiveRecord] Channel or HaramiVid
+  # @return [String, NilClass]
+  def adjust_youtube_titles(snippet, model: )
+    raise if !current_user  # should never happen in normal calls.
+    ret_msgs = []
+    titles = get_youtube_titles(snippet)  # duplication is already eliminated if present. # defined in module_youtube_api_aux.rb
+    [snippet.default_language, "ja", "en"].uniq.find_all(&:present?).each do |elc|  # snippet.default_language can be nil for some reason...
+      next if titles[elc].blank?
+      tras = model.translations.where(langcode: elc)
+      next if tras.where(title: titles[elc]).or(tras.where(alt_title: titles[elc])).exists?  # Skip if an identical Translation exists whoever owns it.
+
+      tra_best = model.best_translation(langcode: elc, fallback: false)
+      tra0 = 
+        if tra_best && tra_best.weight && tra_best.weight <= 0
+          tra_best
+        else
+          tras.where(create_user_id: current_user.id).or(tras.where(update_user_id: current_user.id)).order(:weight).first
+        end
+
+      def_weight = Role::DEF_WEIGHT[Role::RNAME_MODERATOR]
+      weight_updated =
+        if !tra0
+          ((tra_best && tra_best.weight) ? tra_best.weight/2.0 : def_weight)
+        elsif (tra0.weight == tra_best.weight)
+          ((!tra0.weight || tra0.weight > def_weight*10) ? def_weight : tra0.weight)
+        elsif (tra0.weight > tra_best.weight)
+          tra_best.weight/2.0
+        else
+          tra0.weight 
+        end
+      weight_updated = [weight_updated, def_weight, Translation.def_init_weight(current_user)].min
+
+      if tra0
+        tra = tra0
+        result = tra.update(title: titles[elc], weight: weight_updated)
+        ret_msgs << "Title[#{elc}] updated."
+      else
+        tra = Translation.preprocessed_new(title: titles[elc], langcode: elc, is_orig: (elc == (snippet.default_language || "ja")), weight: weight_updated)
+        model.translations << tra
+        ret_msgs << "New Title[#{elc}] added."
+        result = tra.id  # Integer or nil if failed to save and associate.
+      end
+
+      if !result
+        # Failed to save a Translation. The parent should rollback everything.
+        msg_err = tra.errors.full_messages.join("; ") # +" / "+titles.inspect
+        msg = [sprintf("ERROR: Failed to save a Translation[%s]: %s", elc, titles[elc]), msg_err].join(" / ")
+        model.errors.add :base, msg
+        return nil
+      end
+    end
+
+    ret_msgs.join(" ")
+  end
+
+
   #################
   private 
   #################

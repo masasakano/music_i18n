@@ -242,12 +242,16 @@ class ChannelsControllerTest < ActionDispatch::IntegrationTest
       assert_response :redirect
       assert_redirected_to @channel2, "General-editor should be able to edit the entry created by anyone but admins, but..."
 
-      @channel2.update!(create_user: @moderator_harami, note: "orig0")
-      assert_equal "orig0", @channel2.reload.note
+      #@channel2.update!(create_user: @moderator_harami, note: "orig0")
+      #assert_equal "orig0", @channel2.reload.note
 
+      #patch channel_url(@channel2), params: update_paramss[2]
+      #assert_response :redirect, "should not be able to update an entry, but..."
+
+      @channel2.update!(create_user: nil, note: "orig1")
       patch channel_url(@channel2), params: update_paramss[2]
-      assert_response :redirect, "should not be able to update an entry, but..."
-
+      assert_response :redirect
+      assert_redirected_to @channel2, "should succeed in updating a record with no create_user, but..."
     #end
     sign_out @editor_ja
   end
