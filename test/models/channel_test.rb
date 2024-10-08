@@ -3,17 +3,17 @@
 #
 # Table name: channels
 #
-#  id                                                                    :bigint           not null, primary key
-#  id_at_platform(Channel-ID at the remote platform)                     :string
-#  id_human_at_platform(Human-readable Channel-ID at remote without <@>) :string
-#  note                                                                  :text
-#  created_at                                                            :datetime         not null
-#  updated_at                                                            :datetime         not null
-#  channel_owner_id                                                      :bigint           not null
-#  channel_platform_id                                                   :bigint           not null
-#  channel_type_id                                                       :bigint           not null
-#  create_user_id                                                        :bigint
-#  update_user_id                                                        :bigint
+#  id                                                                     :bigint           not null, primary key
+#  id_at_platform(Channel-ID at the remote platform)                      :string
+#  id_human_at_platform(Human-readable Channel-ID at remote prefixed <@>) :string
+#  note                                                                   :text
+#  created_at                                                             :datetime         not null
+#  updated_at                                                             :datetime         not null
+#  channel_owner_id                                                       :bigint           not null
+#  channel_platform_id                                                    :bigint           not null
+#  channel_type_id                                                        :bigint           not null
+#  create_user_id                                                         :bigint
+#  update_user_id                                                         :bigint
 #
 # Indexes
 #
