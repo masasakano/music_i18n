@@ -4,7 +4,7 @@
 <table id="channels_index_table">
   <thead>
     <tr>
-     <% if can? :edit, Channel  %>
+     <% if (canedit=can?(:edit, Channel))  %>
       <th class="editor_only">ID</th>
      <% end %>
        <%= render "layouts/title_alt_ja_en_table", model: nil, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
@@ -26,18 +26,23 @@
   </thead>
 
   <tbody>
-    <% @channels.each do |model| %>
+    <% sort_channels_for_index(@channels).each do |model| %> <%# defined in channels_helper.rb %>
       <tr>
-        <td class="editor_only"><%= link_to(model.id, model) %></td>
-       <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
-
+        <% if canedit  %>
+          <td class="editor_only"><%= link_to(model.id, model) %></td>
+        <% end %>
+        <% proc_link = Proc.new{|word, _, _|
+               ret = link_to_youtube_from_channel(word, model, prefer_handle: true)
+               ret ? ret : h(word)
+             } %>
+        <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en), proc_replace_title: proc_link %>  <%# class="title_alt_ja" etc %>
         <td><%= m=model.channel_owner; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), channel_owner_path(m)) %>
           <% if m.themselves && m.artist %>
             [<%= link_to(t('.themselves'), m.artist) %>]
           <% end %>
         </td>
-        <td><%= m=model.channel_platform; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), channel_platform_path(m)) %></td>
-        <td><%= m=model.channel_type; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), channel_type_path(m)) %></td>
+        <td><%= m=model.channel_platform; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), channel_platform_path(m)) %></td>  <%# prefer_shorter is not specified because otherwise Japanse katakana word for "Youtube" is adopted (which has less characters, technically) in the JA environment. %>
+        <td><%= m=model.channel_type; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true, prefer_shorter: true), channel_type_path(m)) %></td>
         <td class="text-end"><%= model.harami_vids.count %></td>
         <td><%= auto_link50(model.note) %></td>
       <% if can? :update, Users::EditRolesController %>

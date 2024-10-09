@@ -7,9 +7,8 @@
     <dd> <%= channel.id %></dd>
    </div>
   <% end %>
-  <% is_youtubre = ("youtube" == model.channel_platform.mname) %>
   <% if can?(:update, model) %>
-    <% if is_youtubre && model.id_at_platform.blank? && model.id_human_at_platform.blank? %>
+    <% if model.on_youtube? && model.id_at_platform.blank? && model.id_human_at_platform.blank? %>
       <div class="editor_only">
         <%= form_with method: :patch, model: model, url: channels_fetch_youtube_channel_path(model), local: true do |form| %> <%# scope: :article %>
           <dt>
@@ -30,7 +29,7 @@
   <dt class="item_id_at_platform"> <%= t("channels.show.id_at_platform") %>:</dt>
   <dd class="item_id_at_platform"><%= link_to_channel(model.id_at_platform, kind: "id", platform: model.channel_platform) %>
   <% if can?(:update, model) %>
-    <% if is_youtubre && model.id_at_platform.blank? && model.id_human_at_platform.present? %>
+    <% if model.on_youtube? && model.id_at_platform.blank? && model.id_human_at_platform.present? %>
       <div class="editor_only">
         <%= form_with method: :patch, model: model, url: channels_fetch_youtube_channel_path(model), local: true do |form| %> <%# scope: :article %>
           <%= form.fields_for :fetch_youtube_channel do |fyd_form| %>
@@ -48,7 +47,7 @@
   <dt class="item_id_human_at_platform"> <%= t("channels.show.id_human_at_platform") %>:</dt>
   <dd class="item_id_human_at_platform"><%= link_to_channel(model.id_human_at_platform, kind: "handle", platform: model.channel_platform) %>
   <% if can?(:update, model) %>
-    <% if is_youtubre && model.id_at_platform.present? && model.id_human_at_platform.blank? %>
+    <% if model.on_youtube? && model.id_at_platform.present? && model.id_human_at_platform.blank? %>
       <div class="editor_only">
         <%= form_with method: :patch, model: model, url: channels_fetch_youtube_channel_path(model), local: true do |form| %> <%# scope: :article %>
           <%= form.fields_for :fetch_youtube_channel do |fyd_form| %>

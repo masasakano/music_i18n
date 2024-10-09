@@ -87,4 +87,8 @@ class ChannelPlatform < BaseWithTranslation
     self.unknown
   end
 
+  # true if YouTube
+  def youtube?
+    "youtube" == (mname && mname.to_s.downcase)
+  end
 end

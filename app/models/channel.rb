@@ -53,6 +53,12 @@ class Channel < BaseWithTranslation
   # this constant should be true (for example, {Music#title}).
   ARTICLE_TO_TAIL = true
 
+  # id in link_to_channel in ApplicationHelper for each of attribute keywords.
+  LINK_TO_CHANNEL_KINDS = {
+    id_at_platform: "id",
+    id_human_at_platform: "handle",
+  }.with_indifferent_access
+
   ### This validation is NOT activated so a same Translation is allowed as long as the 3 unique parameters are accepted.
   #def validate_translation_callback(record)
   #  validate_translation_neither_title_nor_alt_exist(record)  # defined in BaseWithTranslation
@@ -218,6 +224,10 @@ class Channel < BaseWithTranslation
     retstr
   end
 
+  # true if on YouTube
+  def on_youtube?
+    channel_platform.youtube?
+  end
 
   ######################## callbacks #######################
 

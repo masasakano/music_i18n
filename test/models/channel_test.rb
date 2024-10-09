@@ -140,6 +140,11 @@ class ChannelTest < ActiveSupport::TestCase
     assert_equal 3, transs.size
   end
 
+  test "methods" do
+    assert channels(:channel_haramichan_youtube_main).on_youtube?
+    refute channels(:channel_unknown).on_youtube?
+  end 
+
   test "association" do
     rec0 = Channel.new(title: 'a', langcode: 'en', channel_owner: ChannelOwner.second, channel_platform: ChannelPlatform.last, channel_type: ChannelType.last)
     rec1 = Channel.new(title: 'a', langcode: 'en', channel_owner: ChannelOwner.second, channel_platform: ChannelPlatform.last, channel_type: ChannelType.last)

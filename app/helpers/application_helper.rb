@@ -230,16 +230,23 @@ module ApplicationHelper
   #
   # So far, only Youtube is considered. Else, a html-escaped bare word is returned.
   #
+  # @example Standard link
+  #   link_to_channel("click here", model.id_at_platform, kind: "id", platform: model.channel_platform)
+  #
+  # @example ID is the anchor to highlight
+  #   link_to_channel(model.id_human_at_platform, kind: "handle", platform: model.channel_platform)
+  #
   # @param word [String, NilClass, Symbol] Hilighted word (for users to click).
   #    If nil, returns a null string.
   #    If the special symbol :uri, the raw URI. Otherwise it must be String.
-  # @option root_kwd [String, NilClass] if nil, word is used. This is optional.
+  # @option root_kwd [String, NilClass] ID String for Youtube. If nil, word is used. This is optional.
   # @param kind [String, Symbol] id or handle
   # @param platform [ChannelPlatform, String] So far, only "youtube" is accepted.
-  # @param target [Boolean] if true (Def), +target="_blank"+ is added.
+  # @param target: [Boolean] if true (Def), +target="_blank"+ is added.
+  # @param link_title: [String] title attribute for the anchor
   # @param kwds [Hash] optional arguments passed to link_to
   # @return [String] HTML of <a> for YouTube link
-  def link_to_channel(word, root_kwd=nil, kind: "id", platform: "youtube", target: true, **kwds)
+  def link_to_channel(word, root_kwd=nil, kind: "id", platform: "youtube", target: true, link_title: "Youtube", **kwds)
     return '' if word.blank?
     s_platform = (platform.respond_to?(:mname) ? platform.mname : platform.to_s).downcase
     return ERB::Util.html_escape(word) if "youtube" != s_platform
@@ -258,7 +265,7 @@ module ApplicationHelper
       end
 
     word = sprintf("%s", uri) if !word
-    opts = { title: "Youtube" }.merge(kwds)
+    opts = { title: link_title }.merge(kwds)
     opts[:target] = "_blank" if target
     ActionController::Base.helpers.link_to word, uri, **opts
   end

@@ -51,6 +51,11 @@ class ChannelPlatformTest < ActiveSupport::TestCase
     refute  mdl.valid?
   end
 
+  test "methods" do
+    assert channel_platforms(:channel_platform_youtube).youtube?
+    refute ChannelPlatform.unknown.youtube?
+  end 
+
   test "associations" do
     assert_nothing_raised{ ChannelPlatform.first.channels }
   end

@@ -1,9 +1,13 @@
 
-<%# valiables: model (give nil for processing for th), langcodes=%w(ja en) %>
+<%# valiables: model (give nil for processing for th), langcodes=%w(ja en); optional: proc_replace_title=Proc(), both_tit_alt(Boolean)=false %>
+<%# proc_replace_title is a Proc to replace a Title/AltTitle string for each language, where (title_word, attribute(either :title or :alt_title), langcode) are passed when the title/alt_title is significant, and the Proc should always return a HTML-safe String. %>
+<%# NOTE: When proc_replace_title is specified, if both_tit_alt is false (Def), at most one of title and alt_title String is passed to the given Proc (so you can avoid creating anchors for the same target links again and again). %>
 
 <% for_td    = true if !defined?(for_td) %>
 <% langcodes = %w(ja en) if !defined?(langcodes) %>
 <% langcodes = langcodes.map(&:to_s) %>
+<% proc_replace_title = nil if !defined?(proc_replace_title) %>
+<% both_tit_alt = false if !defined?(both_tit_alt) %>  <%# Even when it is not given, it is defined for some reason... hence it is not false in default but simly nil (Has Rails' behaviour changed?) %>
 <% css_class_root = "title_alt_" %>  <%# class="title_alt_ja" etc %>
 
 <% langcodes.each do |lc| %>
@@ -11,7 +15,20 @@
       <% title = t("tables.title_name_"+lc, default: sprintf("%s (%s)", t(:Name), lc)) %>
       <th class="<%= css_class_root+lc %>"><%= title %></th>
   <% else %>
-          <td class="<%= css_class_root+lc %>"><%= %w(title alt_title).map{|i| (s=h(model.send(i, langcode: lc, lang_fallback: false, str_fallback: nil))).blank? ? '&mdash;' : s}.join(' | ').html_safe %></td>
+      <td class="<%= css_class_root+lc %>"><%=
+      called_once = false
+      %w(title alt_title).map{|att|
+        if (tit=model.send(att, langcode: lc, lang_fallback: false, str_fallback: nil)).blank?
+          '&mdash;'
+        else
+          if proc_replace_title && !called_once
+            called_once = !both_tit_alt
+            proc_replace_title.call(tit, att, lc)
+          else
+            h(tit)
+          end
+        end
+      }.join(' | ').html_safe %></td>
   <% end %>
 <% end %>
 
