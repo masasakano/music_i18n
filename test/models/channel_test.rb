@@ -114,13 +114,22 @@ class ChannelTest < ActiveSupport::TestCase
       mdl.send(att+"=", word_ok)
       assert mdl.valid?
 
-      ar2chk = ["語", " "]  # "@" may be allowed for ID on Youtube?  I don't know!  On Twitter, "@" is definitely not allowed, but you should use id_human_at_platform only?
-      ar2chk << "@" if "id_human_at_platform" == att
-      ["語", " "].each do |ec|
-        mdl.send(att) << ec 
-        refute mdl.valid?, "Unexpectedly passed with #{att}=#{mdl.send(att).inspect}"
-        mdl.send(att+"=", word_ok)
-        assert mdl.valid?  # sanity check
+      alloweds_base = ["_", "-"]  # "-" is banned on Twitter/X, though!
+      banneds_base = [" "]  # "@" may be allowed for ID on Youtube?  I don't know!  On Twitter, "@" is definitely not allowed, but you should use id_human_at_platform only?
+      hs2chk = {
+        allowed: {id_at_platform:       alloweds_base,
+                  id_human_at_platform: alloweds_base+["語"]},
+        banned:  {id_at_platform:       banneds_base+["語"],
+                  id_human_at_platform: banneds_base+["@"]}  # "@" is disallowed except for the first character
+      }.with_indifferent_access
+
+      hs2chk.each_pair do |ok_or_no, ehs|
+        ehs[att].each do |eword|
+          mdl.send(att) << eword
+          send(((:banned == ok_or_no.to_sym) ? :refute : :assert), mdl.valid?, "(#{ok_or_no}): Unexpectedly #{((:banned == ok_or_no.to_sym) ? '' : 'not ')}passed with #{eword.inspect} for #{att}=#{mdl.send(att).inspect}")
+          mdl.send(att+"=", word_ok)
+          assert mdl.valid?  # sanity check
+        end
       end
       mdl.save!  # must work.
     end # %w(id_at_platform id_human_at_platform).each do |att|

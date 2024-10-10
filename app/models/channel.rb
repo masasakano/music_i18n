@@ -90,8 +90,8 @@ class Channel < BaseWithTranslation
 
   validates :id_human_at_platform, uniqueness: { scope: [:channel_platform] }, allow_nil: true  # No DB-level constraint.
   validates :id_human_at_platform,       length: {minimum: 3}, allow_nil: true  # 3 is rather random...
-  validates :id_human_at_platform,       format: {with: /\A[[:ascii:]]+\z/i}, allow_nil: true
-  validates :id_human_at_platform,       format: {without: /[\s]/i},         allow_nil: true
+  #validates :id_human_at_platform,       format: {with: /\A[[:ascii:]]+\z/i}, allow_nil: true  # Asian characters are allowed on Youtube (but not on Twitter/X)
+  validates :id_human_at_platform,       format: {without: /[\s]|\A.+@/i},    allow_nil: true
   # Note that if (channel_platform == :other) and id_at_platform-s agree, it would raise a DB-level error(!). For Channels with (channel_platform == :other), you should leave id_at_platform-s blank and instead record them in note if need be (though there is no application-level check for this).
 
   validate :valid_present_unsaved_translations, on: :create  # @unsaved_translations must be defined and valid. / defined in BaseWithTranslation
