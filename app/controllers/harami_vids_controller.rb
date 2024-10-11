@@ -1,6 +1,7 @@
 # coding: utf-8
 class HaramiVidsController < ApplicationController
   include ModuleCommon  # for contain_asian_char, txt_place_pref_ctry
+  include ModuleHaramiVidEventAux # some constants and methods common with HaramiVids::FetchYoutubeDataController
   include HaramiVidsHelper # for set_event_event_items (common with HaramiVids::FetchYoutubeDataController) and collection_musics_with_evit
 
   skip_before_action :authenticate_user!, :only => [:index, :show]
@@ -243,7 +244,12 @@ class HaramiVidsController < ApplicationController
             result = false
             raise ActiveRecord::Rollback, "Force rollback."
           end
+
+          adjust_event_item_duration(@harami_vid)  # defined in concerns/module_harami_vid_event_aux.rb
         rescue => err
+          # Gracefully handles an unexpected Exception; idelaly, I suppose this should not be put here, because there should be no unexpected exceptions...
+          logger.error "Exception (#{err.class}): #{err.message}.\n ## Backtrace:  \n#{err.backtrace.join("\n")}"
+          @harami_vid.errors.add :base, "An unexpected error in updating/saving Video was raised. Contact the site administrator."
           result = false
           raise ActiveRecord::Rollback, "Force rollback."
         ensure
@@ -264,6 +270,7 @@ class HaramiVidsController < ApplicationController
       end
       raise ActiveRecord::Rollback, "HaramiVid was not created; hence rollback to cancel the potential creation of Channel."
     end
+
 
     # Find or create a Channel and asociate it to HaramiVid
     #
@@ -751,15 +758,11 @@ begin
         end
       end
 
+      @assocs[:new_event_item] ||= nil
       event = Event.find(evt_id.to_i)  # should never fail via UI
-      ev_kind = 
-        if event.default? && @harami_vid.place.present? && (!event.place || event.place.encompass_strictly?(@harami_vid.place))
-          EventItem.new_default(:HaramiVid, place: @harami_vid.place, event_group: event.event_group, save_event: false) # unsaved Event or unsaved EventItem
-        else
-          EventItem.new_default(:HaramiVid, event: event, save_event: false) # unsaved EventItem
-        end
-
-      set_up_event_item_and_associate(ev_kind)  # sets @assocs[:new_event_item]
+      # ev_kind = new_event_or_item_for_harami_vid(event, @harami_vid)  # defined in concerns/module_harami_vid_event_aux.rb
+      # set_up_event_item_and_associate(ev_kind)  # sets @assocs[:new_event_item]
+      set_up_event_item_and_associate(event)  # sets @assocs[:new_event_item]
 
       # @event_item_for_new_artist_collab is updated (from nil to EventItem) if it should point to the newly created EventItem
       @event_item_for_new_artist_collab ||=
@@ -913,21 +916,23 @@ end
     # Save a new EventItem, setting @assocs[:new_event_item], and creates HaramiVidEventItemAssoc
     #
     # @param evt_kind [Event, EventItem] Either Event or EventItem
-    def set_up_event_item_and_associate(evt_kind)
-      @assocs[:new_event_item] ||= nil
-      if evt_kind.new_record?  # It should be always new_record?
-        return if !_save_or_add_error(evt_kind)
-      end
-      evit = ((EventItem == evt_kind.class) ? evt_kind.reload : evt_kind.unknown_event_item)
+    def set_up_event_item_and_associate(event)
+      evit, msg = create_event_item_from_harami_vid(event, harami_vid=@harami_vid)  # defined in concerns/module_harami_vid_event_aux.rb
 
-      evit.update!(publish_date: @harami_vid.release_date)  # EventItem is always new, hence this is OK.
+      if evit && msg.present?  # evit should be always present when msg is present, but playing safe
+        flash[:warning] ||= []
+        flash[:warning] << msg if msg.present?
+      end
 
       raise "There should be only one New EventItem - contact the code developer: #{evt_kind.inspect}" if @assocs[:new_event_item].present? && (@assocs[:new_event_item] != evit)
 
       @assocs[:new_event_item] ||= evit
+      return if !evit || evit.errors.any?
+
       @harami_vid.event_items << evit if !@harami_vid.event_items.include?(evit)  # Added HaramiVidEventItemAssoc
       @harami_vid.event_items.reset
     end
+
 
     def set_up_event_item_and_amp(event_item, instrument, play_role)
       set_up_event_item_and_associate(event_item)

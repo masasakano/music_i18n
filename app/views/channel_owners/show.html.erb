@@ -7,7 +7,7 @@
 
 <%= render @channel_owner %>
 
-<div>
+<div class="editor_only">
     <% if can? :update, @channel_owner %>
       <span class="lead">
         <%= link_to "Edit this Channel Owner", edit_channel_owner_path(@channel_owner) %>
@@ -15,23 +15,27 @@
     <% end %>
 
     <% if can?(:destroy, @channel_owner) %>
-      <div class="text-end">
-        <%= button_to "Destroy", @channel_owner, method: :delete, data: { confirm: t('are_you_sure') } %>
-      </div>
+      <span class="text-end">
+        <% if @channel_owner.harami_vids.exists? %>
+          <form class="button_to"><input disabled="disabled" type="submit" value="Destroy"></form>
+        <% else %>
+          <%= button_to "Destroy", @channel_owner, method: :delete, data: { confirm: t('are_you_sure') } %>
+        <% end %>
+      </span>
     <% end %>
 </div>
 
 <hr>
 
 <section id="sec_channel_by">
-<h2>Channels by <%= coname %></h2>
+<h2><%= t(:Channels) %> by <%= coname %></h2>
 
 <table>
   <thead>
     <tr>
-      <th>Channel</th>
-      <th>Platform</th>
-      <th>Type</th>
+      <th><%= t(:Channel) %></th>
+      <th><%= t("harami_vids.table_head_ChannelPlatform") %></th>
+      <th><%= t("harami_vids.table_head_ChannelType") %></th>
     </tr>
   </thead>
 
@@ -47,9 +51,19 @@
 </table>
 </section>
 <% if can? :create, Channel %>
+ <div class="editor_only">
   <% hsin = channel_new_get_params(channel_owner: @channel_owner) %>  <%# defined in channel_owners_helper.rb %>
   <span class="lead">→ <%= link_to t("layouts.create_model", model: t(:Channel)), new_channel_path( params: {channel: hsin}) %></span>
+ </div>
 <% end %>
+
+<hr>
+
+<section id="harami_vid_table">
+<h3><%= t(".harami_vid_table_title") %></h3>
+
+  <%= render partial: 'layouts/harami_vids_index', locals: {harami_vids: @channel_owner.harami_vids.order("harami_vids.release_date" => :desc).distinct, music: nil, for_owner: true} %>
+</section>
 
 <hr>
   <%= link_to t("layouts.back_to_index"), channel_owners_path %>

@@ -1,24 +1,30 @@
 <div id="<%= dom_id channel_owner %>">
 <dl>
-  <% if can? :update, channel_owner %>
-    <dt>ID (<%= channel_owner.class.name %>)</dt>
+ <% if canedit=can?(:edit, ChannelOwner) %>
+  <div class="editor_only">
+    <dt>pID (<%= channel_owner.class.name %>)</dt>
     <dd> <%= channel_owner.id %></dd>
-  <% end %>
+  </div>
+ <% end %>
   <dt><strong><%= t(:Artist) %>:</strong></dt>
     <dd><%= channel_owner.artist ? link_to(channel_owner.artist.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), artist_path(channel_owner.artist)) : "" %></dd>
-  <dt title="Whether this is basically identical to an Artist"><strong>Themselves?:</strong></dt>
+  <dt title="Whether this is basically identical to an Artist"><strong><%= t("channels.index.themselves") %>?:</strong></dt>
     <dd><%= channel_owner.themselves ? "Y" : "N" %></dd>
-  <dt title="Note"><strong>Note:</strong></dt>
+  <dt title="Note"><%= t("tables.note")%>:</dt>
     <dd><%= auto_link(channel_owner.note) %></dd>
  <% if can? :update, Users::EditRolesController %>
+  <div class="moderator_only">
    <% %w(create_user update_user).each do |metho| %>
   <dt><%= metho %>:</dt>
     <dd><%= ur = channel_owner.send(metho); link_to(ur.display_name, ur) if ur %></dd>
    <% end %>
+  </div>
  <% end %>
- <% if can? :edit, channel_owner %>
+ <% if canedit %>
+  <div class="editor_only">
   <dt>updated_at:</dt>
     <dd><%= channel_owner.updated_at %></dd>
+  </div>
  <% end %>
 </dl>
 </div>

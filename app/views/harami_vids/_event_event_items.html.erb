@@ -2,6 +2,7 @@
     <% canindex_evit = can? :index, EventItem %>
     <% canread_h1129 = can? :read, Harami1129 %>
     <% canedit_hvid = can? :edit, @harami_vid %>
+    <% canedit_evt = can? :edit, Event %>
     <ul>
     <% evevits = @event_event_items.map{|ek, ev| [Event.find(ek), ev] }.to_h %>
     <% evevits.each_pair do |event, ar_event_items| %>
@@ -13,6 +14,9 @@
           <%= event_title %>
         <% end %>
          [<%= event.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>]
+         <% if canedit_evt %>
+           <span class="editor_only">(<%= date2text(event.start_time.to_date) %>)</span> <%# defined in ModuleCommon %>
+         <% end %>
         <ol class="list_event_items">
           <% ar_event_items.sort{|a,b|
                res = ((a.weight ? a.weight : Float::INFINITY) <=> (b.weight ? b.weight : Float::INFINITY))
@@ -34,6 +38,13 @@
               <% end %>
               <%= t("harami_vids.show.artist_collabs", default: "featuring Artists") %>
               (<%= show_list_featuring_artists(event_item) %>)  <%# defined in harami_vids_helper.rb %>
+               <% if @harami_vid.release_date && event_item.start_time && event_item.start_time_err && (event_item.start_time_err < 604800) %>
+                 (<%= date2text(event_item.start_time.to_date) %>) <%# defined in ModuleCommon %>
+               <% elsif canedit_evt %>
+                 <span class="editor_only">
+                 (<%= date2text(event_item.start_time.to_date) %>) <%# defined in ModuleCommon %>
+                 </span>
+               <% end %>
               <span class="text-nowrap">
               <% if canedit_hvid %>
                 <% tags = (((n_vids=event_item.harami_vids.distinct.count) > 1) ? ['<span class="lead text-red"><strong>', '</strong></span>'].map{|i| i.html_safe} : ["", ""])  %>

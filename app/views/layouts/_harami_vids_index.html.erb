@@ -1,7 +1,7 @@
 
-<%# local variables: harami_vids, optional: musics (:all or Array or nil; musics to display), music (if for a particular Music - displaying timing), place %>
+<%# local variables: harami_vids, optional: musics (:all or Array or nil; musics to display), music (if for a particular Music - displaying timing), place, for_owner (Channel or ChannelOwner)  %>
 <%# @example
-      render partial: 'layouts/harami_vids_index', locals: {harami_vids: @music.harami_vids.order("harami_vids.release_date" => :desc).distinct, music: @music, with_place: false}
+      render partial: 'layouts/harami_vids_index', locals: {harami_vids: @music.harami_vids.order("harami_vids.release_date" => :desc).distinct, music: @music, with_place: false, for_owner: false }
  %>
 
 <% if !defined?(musics)
@@ -15,6 +15,9 @@
 <% if !defined?(with_place)
      with_place = nil
    end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
+<% if !defined?(for_owner)
+     for_owner = false
+   end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
 
 <div id="harami_vids">
 <table id="harami_vids_index_table">
@@ -24,7 +27,12 @@
       <th class="editor_only">pID</th>
      <% end %>
       <th><%= t("harami_vids.table_head_date") %> (<%= t("tables.duration_none") %>)</th>
+     <% if for_owner %>
+      <th><%= t("harami_vids.table_head_ChannelPlatform") %></th>
+      <th><%= t("harami_vids.table_head_ChannelType") %></th>
+     <% else %>
       <th><%= t(:Channel) %></th>
+     <% end %>
       <th><%= t("home.index.vid_title") %></th>
      <% if musics %>
       <th><%= t("Musics") %></th>
@@ -68,7 +76,12 @@
         <td class="number editor_only"><%= link_to harami_vid.id, harami_vid %></td>
      <% end %>
         <td class="date_ja"><%= sprintf "%s %s", date2text(harami_vid.release_date), ((dura=sec2hms_or_ms(harami_vid.duration, return_nil: true)) ? '('+dura+')' : "") %></td> <%# defined in ModuleCommon %>
+     <% if for_owner %>
+        <td><%= harami_vid.channel.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %> </td> <%# prefer_shorter: false (Default) %>
+        <td><%= harami_vid.channel.channel_type.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true) %> </td>
+     <% else %>
         <td><%= harami_vid.channel.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true) %> </td>
+     <% end %>
      <% if music %>
        <% assoc = harami_vid.harami_vid_music_assocs.where(music: music).first %>
        <% timing = (assoc ? assoc.timing : nil) %>

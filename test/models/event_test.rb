@@ -271,6 +271,19 @@ class EventTest < ActiveSupport::TestCase
     assert_equal 12,                 hsret[:start_time].utc.hour, "start_time input = #{hsret[:start_time].inspect}"
   end
 
+  test "open_ended?" do
+    evt = Event.default(context=:Harami1129, place: places(:kawaramachi_station))
+    assert_nil evt.duration_hour , 'sanity check of fixture'
+    assert evt.open_ended?
+
+    evt.update!(duration_hour: 24*365*200)  # 200 years
+    assert evt.open_ended?
+    evt.update!(duration_hour: 24*365*10)   # 10 years
+    refute evt.open_ended?
+
+    assert events(:ev_evgr_single_streets_unknown_japan).open_ended?
+  end
+
   test "association" do
     event = Event.first
     assert_nothing_raised{ event.event_items }

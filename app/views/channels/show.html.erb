@@ -16,7 +16,11 @@
 
     <% if can?(:destroy, @channel) %>
       <span class="text-end">
-  <%= button_to "Destroy", @channel, method: :delete, data: { confirm: t('are_you_sure') } %>
+        <% if @channel.harami_vids.exists? %>
+          <form class="button_to"><input disabled="disabled" type="submit" value="Destroy"></form>
+        <% else %>
+          <%= button_to "Destroy", @channel, method: :delete, data: { confirm: t('are_you_sure') } %>
+        <% end %>
       </span>
     <% end %>
 </div>

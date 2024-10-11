@@ -204,11 +204,16 @@ en:
       id_at_platform: "machine ID at the remote platform"
       id_human_at_platform: "human-readable ID at remote platform (@-something)"
 
+  channel_owners:
+    show:
+      harami_vid_table_title: "Registered HaramiVids in this Channel Owner"
+
   event_groups:
     num_id: "#num"
     start_date: Start Date
     end_date: End Date
     n_events: "#Events"
+    n_events_long: "Number of Events"
     index:
       show: "Detail (Events)"
     show:

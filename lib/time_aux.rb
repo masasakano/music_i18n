@@ -16,6 +16,9 @@ module TimeAux
   DEF_FIRST_DATE_TIME.error = MAX_ERROR 
   DEF_LAST_DATE_TIME.error  = MAX_ERROR
 
+  # Lower threshold for a period/duration to be open-ended
+  THRE_OPEN_ENDED = 99.years
+
   module_function  # equivalent to: extend self
 
   # Convert Date to Time at midday at UTC

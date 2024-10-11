@@ -36,6 +36,18 @@
 require "test_helper"
 
 class EventItemTest < ActiveSupport::TestCase
+  # Test of unified handling of duration_error (in seconds at the time of writing despite its name of duration_minute_err)
+  test "EventItem.num_with_unit_to_db_duration_err" do
+    evit = event_items(:evit_1_harami_budokan2022_soiree)
+    evit.update!(duration_minute_err: 240)
+    assert          evit.duration_err_with_unit.respond_to?(:in_minutes)
+    assert_equal 4, evit.duration_err_with_unit.in_minutes
+
+    assert_equal 120, EventItem.num_with_unit_to_db_duration_err(2.minutes)
+    assert_raises(NoMethodError){
+      assert_equal 120, EventItem.num_with_unit_to_db_duration_err(2)}
+  end
+
   test "constraints" do
     evit1 = event_items(:evit_1_harami_lucky2023)
 
@@ -163,6 +175,17 @@ class EventItemTest < ActiveSupport::TestCase
     assert_includes evit.machine_title, ev_tit.gsub(/\s+/, "_")
     assert_includes evit.machine_title, evgr_tit.gsub(/\s+/, "_")
     refute_includes evit.machine_title.sub(/#{evgr_tit.gsub(/\s+/, "_")}/, ""), evgr_tit.gsub(/\s+/, "_"), "machine_title=#{evit.machine_title.inspect}"  # EventGroup should not be doubly included in machine_title of EventItem.
+  end
+
+  test "open_ended?" do
+    evit = EventItem.new_default(context=:Harami1129, place: places(:kawaramachi_station))
+    assert_nil evit.duration_minute , 'sanity check of fixture'
+    assert evit.open_ended?
+
+    evit.update!(duration_minute: 60*24*365*200)  # 200 years
+    assert evit.open_ended?
+    evit.update!(duration_minute: 60*24*365*10)   # 10 years
+    refute evit.open_ended?
   end
 
   test "association" do

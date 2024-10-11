@@ -163,15 +163,15 @@ if true
     platform_fb = channel_platforms(:channel_platform_facebook)
     pref = prefectures(:kagawa)
     pla_unknown_kagawa = Place.unknown(prefecture: pref)
-    pla_kagawa = places(:kawaramachi_station)
-    assert pla_unknown_kagawa.encompass_strictly?(pla_kagawa), 'sanity check of fixtures...'
+    pla_kawaramachi = places(:kawaramachi_station)
+    assert pla_unknown_kagawa.encompass_strictly?(pla_kawaramachi), 'sanity check of fixtures...'
     evt_kagawa = Event.default(:HaramiVid, place: pla_unknown_kagawa, save_event: true)
     assert_equal pla_unknown_kagawa, evt_kagawa.place, 'sanity check...'
     hsnew = {uri: uri="youtu.be/0030", form_channel_platform: platform_fb.id, note: "success",
              title: "【瓦町ピアノ】演奏", langcode: "ja",  # existing Place
              "form_new_event" => evt_kagawa.id,
              "place.prefecture_id.country_id"=>pref.country.id.to_s,
-             "place.prefecture_id"=>pref.id.to_s, "place"=>pla_kagawa.id.to_s,
+             "place.prefecture_id"=>pref.id.to_s, "place"=>pla_kawaramachi.id.to_s,
             }
     assert_difference("Event.count*100 + EventItem.count*10 + ArtistMusicPlay.count", 110) do  # New unknown Event for the exact Place is created.
       assert_difference("Channel.count") do
@@ -184,10 +184,51 @@ if true
     assert_equal platform_fb, Channel.last.channel_platform
     mdl_last = HaramiVid.last
     assert_equal uri, mdl_last.uri
-    assert_equal pla_kagawa, mdl_last.place, "should have changed, but..."
+    assert_equal pla_kawaramachi, mdl_last.place, "should have changed, but..."
     refute mdl_last.place.unknown?
 
-    # new Music, no Artist
+    assert_equal 1, mdl_last.event_items.size, 'sanity check'
+    evit_last =     mdl_last.event_items.first
+    evt_last  = evit_last.event
+
+    assert_equal pla_unknown_kagawa, evt_kagawa.place
+    refute_equal evt_kagawa,      evt_last
+    assert_equal pla_kawaramachi, evt_last.place # Event#place
+    assert  evt_kagawa.open_ended?, 'sanity check'
+    assert  evt_last.open_ended?
+
+    evit_pla = evit_last.place  # EventItem#place
+    assert  pla_unknown_kagawa.encompass?(evit_pla)
+    assert_equal pla_kawaramachi, evit_pla, "Evit#place should have been updated"
+
+     # Start-time of EventItem should have been set with a best guess.
+    assert                 mdl_last.release_date
+    assert                evit_last.start_time
+    assert                evit_last.start_time_err
+    hvid_stime     = mdl_last.release_date.to_time(:utc) + 12.hours # midday in UTC
+    evit_stime     = evit_last.start_time
+    evit_stime_err = evit_last.start_time_err
+    assert_operator hvid_stime,          :>, evit_stime
+    assert_operator hvid_stime-8.months, :<, evit_stime
+    assert_operator 6.months,            :>, evit_stime_err
+    assert_operator 20.days,             :<, evit_stime_err
+    assert_equal mdl_last.release_date, evit_last.publish_date
+    
+     # Duration of EventItem should have been set with a best guess.
+    hvid_dur = @def_update_params[:duration].to_f
+    assert                 mdl_last.duration
+    assert_equal hvid_dur, mdl_last.duration
+    assert_operator mdl_last.duration, :>, 30    # practically, the test of @def_update_params above
+    assert_operator mdl_last.duration, :<, 10000
+    assert  evit_last.duration_minute
+    refute  evit_last.open_ended?, "The created EventItem should not be open-ended: evit_last.duration_minute = #{evit_last.duration_minute.inspect}"
+    assert_operator mdl_last.duration, :<, evit_last.duration_minute.minutes.in_seconds
+    assert_operator 1,                 :>, evit_last.duration_minute.minutes.in_hours
+    assert_operator mdl_last.duration*0.5, :<, evit_last.duration_err_with_unit.in_seconds, "Raw=#{evit_last.duration_minute_err} converted=#{evit_last.duration_err_with_unit.inspect}"
+    assert_operator 1,                     :>, evit_last.duration_err_with_unit.in_hours
+    assert_operator evit_last.duration_err_with_unit, :<=, evit_last.duration_minute.minutes, "Error should be (equal to or) smaller than the actual value, but...: #{evit_last.duration_err_with_unit.inspect} !< #{evit_last.duration_minute.minutes.inspect}" ## In this case, the duration is so small (only 1 or 2 minutes), this is actually "equal", which is not a good test; to test it better, you would need a much larger duration of at least over 10 minutes, or better over 20 minutes, because the difference from the original duration in HaramiVid (if not quite the inflated value of EventItem) is 10% only and is snapped to the nearest Integeer.
+
+    ## new Music, no Artist
     mu_name = "My new Music 4"
     hsnew = {uri: (newuri="https://www.youtube.com/watch?v=0040"), title: (newtit="new40"), music_name: mu_name, note: (newnote=mu_name+" is added.")}
     assert_difference("EventItem.count*10 + ArtistMusicPlay.count", 11) do  # EventItem(1) + ArtistMusicPlay(HARAMIchan)
@@ -841,6 +882,8 @@ end
     assert_includes hvid.event_items, evit, 'fixture sanity check (includes)'
     h1129.update!(event_item: evit)
 
+    assert  hvid.duration, 'fixture sanity check'
+
     # Suppose HavamiVid's associationt to EventItem has disappeared.
     hvid.event_items = []
     assert_empty hvid.event_items
@@ -862,7 +905,6 @@ end
       "form_channel_owner"   =>chan.channel_owner_id.to_s,
       "form_channel_type"    =>chan.channel_type_id.to_s,
       "form_channel_platform"=>chan.channel_platform_id.to_s,
-      note: "old-new data",
       form_new_artist_collab_event_item: "",
       form_new_event: "",
       music_collab: "",  # ID
@@ -912,6 +954,16 @@ end
     assert_equal 1, hvid.event_items.count
 
     assert_equal hvid.event_items.to_a, [h1129.event_item], 'Harami1129#event_item should have been updated, but...'
+
+    # Duration should have been set appropriately ish.
+    evit = hvid.event_items.first
+    assert_operator hvid.duration, :>, 150
+    assert       evit.duration_minute
+    assert_operator hvid.duration, :<, evit.duration_minute.minutes.in_seconds
+    assert_operator 3,             :>, evit.duration_minute.minutes.in_days
+    assert_operator hvid.duration*0.5, :<, evit.duration_err_with_unit.in_seconds, "Raw=#{evit.duration_minute_err} converted=#{evit.duration_err_with_unit.inspect}"
+    assert_operator 3,                 :>, evit.duration_err_with_unit.in_days
+    assert_operator evit.duration_err_with_unit, :<=, evit.duration_minute.minutes, "Error should be (equal to or) smaller than the actual value, but...: #{evit.duration_err_with_unit.inspect} !< #{evit.duration_minute.minutes.inspect}"
   end
 
 

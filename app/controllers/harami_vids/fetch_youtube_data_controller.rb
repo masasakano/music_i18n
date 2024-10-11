@@ -9,6 +9,7 @@
 # * ENV["SKIP_YOUTUBE_MARSHAL"] : In testing, if this is set, marshal-ed data are not used.
 class HaramiVids::FetchYoutubeDataController < ApplicationController
   include ApplicationHelper
+  include ModuleHaramiVidEventAux # some constants and methods common with HaramiVids::FetchYoutubeDataController
   include HaramiVidsHelper # for set_event_event_items (common with HaramiVidsController)
   include ModuleGuessPlace  # for guess_place
   include ModuleYoutubeApiAux # defined in /app/controllers/concerns/module_youtube_api_aux.rb
@@ -110,7 +111,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
       ret_msg = adjust_youtube_titles(snippet, model: @harami_vid)  # Translation(s) updated or created.
       return if !ret_msg  # Error has been raised in saving/updating Translation(s)
       flash[:notice] ||= []
-      flash[:notice] << ret_msg
+      flash[:notice] << ret_msg if ret_msg.present?
 
       _adjust_date(snippet)
 
@@ -119,27 +120,28 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
         @harami_vid.duration = duration_s 
         flash[:notice] << "Duration is updated to #{duration_s} [s]"
       end
+
+      adjust_event_item_duration(@harami_vid, skip_update_start_time: false)  # defined in concerns/module_harami_vid_event_aux.rb  # Update the start_time/err as well.
     end
 
-    # Saves a new EventItem and associates it to HaramiVid
+    # Saves a new EventItem and associates it to a new HaramiVid
     #
     # This method is imported from HaramiVidsController#set_up_event_item_and_associate
     #
     # @todo refactoring to make this routine common!
     #
     def _set_up_event_item_and_associate()
-      evit = EventItem.new_default(:HaramiVid, place: @harami_vid.place, save_event: true)
+      evt_kind =  EventItem.new_default(:harami1129, place: @harami_vid.place, save_event: false,
+                                        ref_title: @harami_vid.unsaved_translations.first.title,
+                                        date: @harami_vid.release_date, place_confidence: :low)  # Either Event or EventItem
 
-      hsopts = { publish_date: @harami_vid.release_date }
-      if @harami_vid.release_date
-        hsopts.merge!({start_time: @harami_vid.release_date.to_time - 30.days,
-                       start_time_err: 30.days.in_seconds,})
+      evit, msg = create_event_item_from_harami_vid(evt_kind, harami_vid=@harami_vid)  # defined in concerns/module_harami_vid_event_aux.rb
+
+      if evit && msg.present?  # evit should be always present when msg is present, but playing safe
+        flash[:warning] ||= []
+        flash[:warning] << msg if msg.present?
       end
-      if @harami_vid.duration
-        hsopts.merge!({duration_minute:     @harami_vid.duration.seconds.in_minutes,
-                       duration_minute_err: @harami_vid.duration/2.0,})
-      end
-      evit.update!(**hsopts)  # EventItem is always new, hence this is OK.
+      return if !evit || evit.errors.any?
 
       @harami_vid.event_items << evit if !@harami_vid.event_items.include?(evit)
       @harami_vid.event_items.reset

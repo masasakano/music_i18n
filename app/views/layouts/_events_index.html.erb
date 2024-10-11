@@ -35,7 +35,7 @@
         <td><%= link_to event.title_or_alt(langcode: I18n.locale), event_url(event) %></td>
         <td><%= event.string_time_err2uptomin %></td>
         <td><%= event.duration_hour %></td>
-        <td><%= event.place ? (hide_prefecture ? link_to(event.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true), event.place) : event.txt_place_pref_ctry) : "" %></td>
+        <td><%= (pla=event.place) ? (hide_prefecture ? link_to(pla.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true), pla) : event.txt_place_pref_ctry) : "" %></td>
         <td class="text-end"><%= event.event_items.count %></td>
         <td class="text-end"><%= event.harami_vids.count %></td>
      <% if can_create_event %>

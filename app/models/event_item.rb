@@ -78,6 +78,9 @@ class EventItem < ApplicationRecord
 
   DEFAULT_UNIQUE_TITLE_PREFIX = "item"
 
+  # Default duration_minute_err for a new template.
+  DEFAULT_NEW_TEMPLATE_DURATION_ERR = 600
+
   alias_method :inspect_orig_event_item, :inspect if ! self.method_defined?(:inspect_orig_event_item)
   include ModuleModifyInspectPrintReference
 
@@ -132,7 +135,7 @@ class EventItem < ApplicationRecord
       event: event,
       machine_title: get_unique_title(prefix, **kwd),
       duration_minute:     ((event && hr=event.duration_hour) ? hr*60 : nil),
-      duration_minute_err: ((event && hr.respond_to?(:error) && hr.error) ? hr.error : 600),  # in second
+      duration_minute_err: ((event && hr.respond_to?(:error) && hr.error) ? hr.error : DEFAULT_NEW_TEMPLATE_DURATION_ERR),  # in second
     }
 
     %i(place_id start_time start_time_err).each do |metho|
@@ -336,6 +339,29 @@ class EventItem < ApplicationRecord
     artist_music_plays.all?{|amp|
       amp.sames_but(event_item: self).exists?
     }
+  end
+
+  # @example 
+  #    evit.duration_err_with_unit.in_seconds  # => 120.0 (Float), when evit.duration_minute_err == 2.0
+  #
+  # @return [ActiveSupport::Duration]
+  def duration_err_with_unit
+    duration_minute_err.present? ? duration_minute_err.seconds : nil
+  end
+
+  # Returns duration_minute_err to be set for the ActiveRecord (EventItem) and hence DB
+  #
+  # This is a class method!
+  #
+  # @param val_with_unit [ActiveSupport::Duration, NilClass]
+  # @return [Float, NilClass] in seconds at the time of writing
+  def self.num_with_unit_to_db_duration_err(val_with_unit)
+    val_with_unit.present? ? val_with_unit.in_seconds : nil
+  end
+
+  # True if no children or if only descendants are {#unknown?} and no HaramiVid depends on self.
+  def open_ended?
+    !duration_minute || duration_minute > TimeAux::THRE_OPEN_ENDED.in_minutes
   end
 
   # Not destroyable if self is the last remaining one and {#unknown?}

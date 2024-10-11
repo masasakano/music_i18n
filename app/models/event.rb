@@ -473,6 +473,11 @@ class Event < BaseWithTranslation
   end
 
   # True if no children or if only descendants are {#unknown?} and no HaramiVid depends on self.
+  def open_ended?
+    !duration_hour || duration_hour > TimeAux::THRE_OPEN_ENDED.in_hours
+  end
+
+  # True if no children or if only descendants are {#unknown?} and no HaramiVid depends on self.
   def destroyable?
     return false if harami_vids.exists? || harami1129s.exists?
     !unknown?

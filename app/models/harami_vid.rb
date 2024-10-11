@@ -521,7 +521,10 @@ class HaramiVid < BaseWithTranslation
   #   In general, Event.unknown may inlucde thousands of EventItems and HaramiVids.
   #   Hence, if false, potentially thousands of HaramiVids may be returned, each of which
   #   may be processed thousands of times in /app/views/harami_vids/_other_harami_vids_table.html.erb
-  #   potentially leading to a memory error.
+  #   where all HaramiVid in the same Event would be shown, i.e., if the video belongs to
+  #   a default Event, the table would include hundreds of other HaramiVid-s that
+  #   belong to the same default/unknown Event.
+  #   This potentially leads to a memory error.
   # @return [HaramiVid::ActiveRecord_Relation] Other HaramiVids that share the same Event(s)
   def other_harami_vids_of_event(exclude_unknown: true)
     all_event_ids =

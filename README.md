@@ -20,6 +20,7 @@ This system is the framework to deal with this type of complex and dynamic cases
 * `MUSIC_I18N_DEF_FIRST_EVENT_YEAR` : Year of the first (potential) Event, used for forms and seeds (Default: 2019).
 * `MUSIC_I18N_DEF_TIMEZONE_STR` : Default Time Zone in setting a Date or Time (Default: "+09:00"). Note that all are saved in the DB in UTC.
 * `MUSIC_I18N_DEFAULT_COUNTRY` : Default country code (Default: "JPN").
+* `YOUTUBE_API_KEY` : Essential to use Youtue-API-related methods, such as those in `/app/controllers/concerns/module_youtube_api_aux.rb` .
 
 #### Environmental variables for testing ###
 
@@ -27,6 +28,8 @@ This system is the framework to deal with this type of complex and dynamic cases
 * `SKIP_W3C_VALIDATE` : if "1", W3C validations in testing, which connects to the W3C website, are skipped.
 * `USE_W3C_SERVER_VALIDATOR` : (*recommended not to be set*) if "1", this uses the original W3C server for W3C validation.
 * `URI_HARAMI1129_LOCALTEST` : (*recommended*) the URI to access instead of `URI_HARAMI1129` for testing, e.g., `test/controllers/harami1129s/data/harami1129_sample.html`
+* `SKIP_YOUTUBE_MARSHAL` : In testing, if this is set, marshal-ed data are not used, and the testing scripts access Youtube with the API whenever necessary.
+* `UPDATE_YOUTUBE_MARSHAL` : set this if you want to *update* the marshal-ed Youtube data from the remote Youtube server.  If this is set, `SKIP_YOUTUBE_MARSHAL` is ignored and treated as set.  Note that even if this is set, this does *not* create the marshal-ed data. For creating them, use `lib/tasks/save_marshal_youtube.rake`
 
 ##### Preparation for testing #####
 
