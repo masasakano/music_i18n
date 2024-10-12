@@ -9,7 +9,9 @@
 
 <div>
     <% if can? :update, @event %>
-  <%= link_to "Edit this Event", edit_event_path(@event) %>
+      <span class="lead editor_only">
+      <%= link_to "Edit this Event", edit_event_path(@event) %>
+      </span>
     <% end %>
 
     <%# if !@event.event_items.exists? && can?(:destroy, @event) %>
@@ -17,18 +19,21 @@
       <span class="text-end"><%= button_to "Destroy", @event, method: :delete, data: { confirm: t('are_you_sure') } %></span>
     <% end %>
   <% if can? :create, Event %>
-    <span class="lead"><%= link_to "New Event in the same EventGroup", new_event_path(event_group_id: @event.event_group_id) %></span>
+    <br>
+    <span class="lead editor_only"><%= link_to "New Event in the same EventGroup", new_event_path(event_group_id: @event.event_group_id) %></span>
   <% end %>
 </div>
 
-<% if can? :read, EventItem %>  <%# should be redundant %>
+<% if can? :read, EventItem %>
+<div class="editor_only">
 <hr>
 
 <h2>EventItems for this Event (from <%= @event.string_time_err2uptomin %>)</h2>
 
 <% items = @event.event_items.order(:weight, event_ratio: :desc) %>
 <%= render partial: 'layouts/event_items_index', locals: {event_items: items, with_event: false} %>
-<span class="lead"><%= link_to "New EventItem of this Event", new_event_item_path(event_id: @event.id) %></span>
+<span class="lead editor_only"><%= link_to "New EventItem of this Event", new_event_item_path(event_id: @event.id) %></span>
+</div>
 
 <% end %>
 

@@ -4,7 +4,7 @@
 <h1>Place: <%= @place.title_or_alt %> (&lt; <%= prefecture_name %> &lt; <%= country_name %>)</h1>
 
 <hr>
-<%= render partial: 'layouts/all_registered_translations', locals: {model: @place} %>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @place, add_buttons: true} %>
 <hr>
 
 <dl>

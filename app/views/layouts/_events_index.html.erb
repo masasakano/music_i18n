@@ -40,8 +40,8 @@
         <td class="text-end"><%= event.harami_vids.count %></td>
      <% if can_create_event %>
         <td class="editor_only text-end"><%= event.weight %></td>
-        <td class="editor_only"><%= auto_link50(event.note) %></td>
      <% end %>
+        <td class=""><%= auto_link50(event.note) %></td>
         <td class="actions"><%= link_to t("tables.Show"), event %></td>
         <% if can? :update, event  %>
           <td class="actions editor_only"><%= link_to 'Edit', edit_event_path(event) %></td>

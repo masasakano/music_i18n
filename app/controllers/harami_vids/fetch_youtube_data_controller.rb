@@ -121,7 +121,11 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
         flash[:notice] << "Duration is updated to #{duration_s} [s]"
       end
 
-      adjust_event_item_duration(@harami_vid, skip_update_start_time: false)  # defined in concerns/module_harami_vid_event_aux.rb  # Update the start_time/err as well.
+      msgs = adjust_event_item_duration(@harami_vid, skip_update_start_time: false)  # defined in concerns/module_harami_vid_event_aux.rb  # Update the start_time/err as well.
+      if !msgs.empty?
+        flash[:warning] ||= []
+        flash[:warning].concat msgs
+      end
     end
 
     # Saves a new EventItem and associates it to a new HaramiVid
@@ -135,11 +139,11 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
                                         ref_title: @harami_vid.unsaved_translations.first.title,
                                         date: @harami_vid.release_date, place_confidence: :low)  # Either Event or EventItem
 
-      evit, msg = create_event_item_from_harami_vid(evt_kind, harami_vid=@harami_vid)  # defined in concerns/module_harami_vid_event_aux.rb
+      evit, msgs = create_event_item_from_harami_vid(evt_kind, harami_vid=@harami_vid)  # defined in concerns/module_harami_vid_event_aux.rb
 
-      if evit && msg.present?  # evit should be always present when msg is present, but playing safe
+      if evit && msgs.present?  # evit should be always present when msgs is present, but playing safe
         flash[:warning] ||= []
-        flash[:warning] << msg if msg.present?
+        flash[:warning].concat msgs if msgs.present?
       end
       return if !evit || evit.errors.any?
 

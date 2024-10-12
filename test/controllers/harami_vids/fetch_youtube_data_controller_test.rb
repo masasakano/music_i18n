@@ -120,6 +120,11 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
     tra_be4 = hvid.translations.first
     assert_equal "ja", tra_be4.langcode
     assert_nil hvid.duration
+    assert_equal 1, hvid.events.count
+    assert_equal 1, hvid.event_items.count
+    assert   (ev_du_hr=hvid.events.first.duration_hour)
+    assert(evit_du_min=hvid.event_items.first.duration_minute)
+    assert_in_delta(ev_du_hr*60, evit_du_min, delta=0.001, msg="inconsistent Duration")  # For Float comparison
 
     channel_be4      = hvid.channel
     release_date_be4 = hvid.release_date
@@ -181,7 +186,9 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
     assert_equal release_date_be4, hvid.release_date
 
     assert hvid.duration.present?
-    assert_operator 0, :<, hvid.duration, "Positive duration should have been set, but..."
+    assert_operator 0, :<, (hv_dura=hvid.duration), "Positive duration should have been set, but..."
+
+    _do_check_if_duration_adjusted(hvid, ev_du_hr, evit_du_min, caller_msg="1st run")
 
     tras = hvid.translations
     assert_equal %w(en ja), tras.pluck(:langcode).flatten.sort
@@ -192,10 +199,17 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
 
 
     ## 2nd and 3rd runs
+    # Mostly checking Channels, but alos checking EventItem parameters
     # In default this uses marshal data, but accesses Google/Youtube API if ENV["SKIP_YOUTUBE_MARSHAL"] or ENV["UPDATE_YOUTUBE_MARSHAL"] is set positive.
     # This time, only Youtube-ID of Channel should be updated after it is deliberately unset.
+    hv_dura0 = hvid.duration
+    evit = hvid.event_items.first
+    ev   = evit.event
+    dura0 = 23.hours
+    ev.update!(  duration_hour:   dura0.in_hours)
+    evit.update!(duration_minute: dura0.in_minutes)
     chan = hvid.channel
-    %w(id_at_platform id_human_at_platform).each do |att|
+    %w(id_at_platform id_human_at_platform).each_with_index do |att, i_run|
       chan.update!(att => nil)
       assert_nil chan.send(att)
       prev_updated_time = chan.updated_at
@@ -212,6 +226,11 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
       assert_operator prev_updated_time, :<, chan.updated_at
       assert chan.send(att)
       assert_operator 3, :<=, chan.send(att).size, "#{att} should have been set, but..."
+
+      hvid.reload
+      assert_equal hv_dura0, (hv_dura2=hvid.duration)
+
+      _do_check_if_duration_adjusted(hvid, dura0.in_hours, dura0.in_minutes, caller_msg="#{i_run+2}-st run")
     end
 
 
@@ -231,4 +250,27 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
       sign_out @editor_harami
     end # if is_env_set_positive?("SKIP_YOUTUBE_MARSHAL")
   end
+
+  private
+
+    # @param hvid [HaramiVid]
+    # @param ev_du_hr [Float]    Event#duration_hour       before PATCH
+    # @param evit_du_min [Float] EventItem#duration_minute before PATCH
+    # @param caller_msg [String] which caller?
+    def _do_check_if_duration_adjusted(hvid, ev_du_hr, evit_du_min, caller_msg="Called from Default")
+      assert(   (ev_du_hr2=hvid.events.first.duration_hour),        caller_msg)
+      assert((evit_du_min2=hvid.event_items.first.duration_minute), caller_msg)
+      assert_in_delta(ev_du_hr, ev_du_hr2, delta=0.00001, msg="(#{caller_msg}) inconsistent Duration")
+      refute_equal    evit_du_min, evit_du_min2, "(#{caller_msg}: hvid-duration=#{hvid.duration.seconds.inspect}"
+  
+      ev_du_sec    = ev_du_hr*3600
+      evit_du_sec2 = evit_du_min2*60
+      assert_operator ev_du_sec, :>, hvid.duration*3, caller_msg
+      assert_operator ev_du_sec, :>,  evit_du_sec2*3, caller_msg
+      assert_operator evit_du_sec2, :>, hvid.duration*1.1, caller_msg
+      assert_operator evit_du_sec2, :<, hvid.duration*2.1, "(#{caller_msg}) should be 1.5 times (ModuleHaramiVidEventAux::DEF_DURATION_RATIO_EVIT_TO_HVID), but..."
+      evit_err_sec2 = hvid.event_items.first.duration_err_with_unit.in_seconds  # Duraion-ERR for EventItem in seconds
+      assert_operator evit_err_sec2, :>, hvid.duration*0.5, caller_msg
+      assert_operator evit_err_sec2, :<, hvid.duration*2.1, "(#{caller_msg}) should be 1.4 times (ModuleHaramiVidEventAux:: DEF_DURATION_ERR_RATIO_EVIT_TO_HVID), but..."
+    end
 end

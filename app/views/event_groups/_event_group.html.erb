@@ -24,6 +24,16 @@
 
   <dt class="item_place"> <%= t("tables.place_country") %>:</dt>
     <dd class="item_place"><%= event_group.place ? show_pref_place_country(event_group.place) : "" %></dd>  <%# defined in places_helper.rb %>
+  <dt class="item_n_events"><%= t("event_groups.n_events_long") %><% if !(canread_evit=(can?(:read, EventItem))) %>:
+    <% else %>
+      <span class="editor_only"> / <%= t(:EventItems) %> </span>
+    <% end %>
+    </dt>
+    <dd class="item_n_events event_groups_index_table_events"><%= link_to event_group.events.count, "#section_event_group_show_events" %>
+      <span class="editor_only"> / <%= event_group.event_items.count  %> </span>
+    </dd>
+  <dt class="item_n_hvids"><%= t("tables.n_harami_vids") %>:</dt>
+    <dd class="item_n_hvids"><%= event_group.harami_vids.count %></dd>
   <dt class="item_note"><%= t("tables.note").capitalize %>:</dt>
     <dd class="item_note"><%= auto_link(event_group.note) %></dd>
 

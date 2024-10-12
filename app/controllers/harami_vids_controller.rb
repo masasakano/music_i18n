@@ -245,7 +245,11 @@ class HaramiVidsController < ApplicationController
             raise ActiveRecord::Rollback, "Force rollback."
           end
 
-          adjust_event_item_duration(@harami_vid)  # defined in concerns/module_harami_vid_event_aux.rb
+          msgs = adjust_event_item_duration(@harami_vid)  # defined in concerns/module_harami_vid_event_aux.rb
+          if !msgs.empty?
+            flash[:warning] ||= []
+            flash[:warning].concat msgs
+          end
         rescue => err
           # Gracefully handles an unexpected Exception; idelaly, I suppose this should not be put here, because there should be no unexpected exceptions...
           logger.error "Exception (#{err.class}): #{err.message}.\n ## Backtrace:  \n#{err.backtrace.join("\n")}"
@@ -760,8 +764,6 @@ begin
 
       @assocs[:new_event_item] ||= nil
       event = Event.find(evt_id.to_i)  # should never fail via UI
-      # ev_kind = new_event_or_item_for_harami_vid(event, @harami_vid)  # defined in concerns/module_harami_vid_event_aux.rb
-      # set_up_event_item_and_associate(ev_kind)  # sets @assocs[:new_event_item]
       set_up_event_item_and_associate(event)  # sets @assocs[:new_event_item]
 
       # @event_item_for_new_artist_collab is updated (from nil to EventItem) if it should point to the newly created EventItem
@@ -917,11 +919,11 @@ end
     #
     # @param evt_kind [Event, EventItem] Either Event or EventItem
     def set_up_event_item_and_associate(event)
-      evit, msg = create_event_item_from_harami_vid(event, harami_vid=@harami_vid)  # defined in concerns/module_harami_vid_event_aux.rb
+      evit, msgs = create_event_item_from_harami_vid(event, harami_vid=@harami_vid)  # defined in concerns/module_harami_vid_event_aux.rb
 
-      if evit && msg.present?  # evit should be always present when msg is present, but playing safe
+      if evit && msgs.present?  # evit should be always present when msgs is present, but playing safe
         flash[:warning] ||= []
-        flash[:warning] << msg if msg.present?
+        flash[:warning].concat msgs if msgs.present?
       end
 
       raise "There should be only one New EventItem - contact the code developer: #{evt_kind.inspect}" if @assocs[:new_event_item].present? && (@assocs[:new_event_item] != evit)

@@ -22,7 +22,7 @@
 <div id="event_group_show_footer_controller">
   <p>
     <% if canupdate %>
-      <span class="lead moderator_only"><%= link_to "Edit this EventGroup", edit_event_group_path(@event_group) %></span> |
+      <span class="lead moderator_only"><%= link_to "Edit this EventGroup", edit_event_group_path(@event_group) %> |</span>
     <% end %>
   <%= link_to t("layouts.back_to_index"), event_groups_path %>
   </p>
@@ -49,7 +49,7 @@
 
 <%= render partial: "layouts/events_index", locals: {events: @event_group.events} %>
 <% if can? :create, Event %>
-  <span class="lead"><%= link_to "New Event of this EventGroup", new_event_path(event_group_id: @event_group.id) %></span>
+  <span class="lead editor_only"><%= link_to "New Event of this EventGroup", new_event_path(event_group_id: @event_group.id) %></span>
 <% end %>
 </section>
 
