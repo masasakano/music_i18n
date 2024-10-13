@@ -29,6 +29,8 @@
 #  fk_rails_...  (place_id => places.id) ON DELETE => nullify
 #
 class Event < BaseWithTranslation
+  include ModuleEventAux  # for self.def_event_tra_new etc
+
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []
 
@@ -72,6 +74,8 @@ class Event < BaseWithTranslation
     "fr" => "ÉvénementNonClassé",
   }.with_indifferent_access
 
+  ar2tail = [" < ", "%s"]
+
   # the first three "%s" are the Place/Prefecture/Country title (of the language, if existent)
   # the second "%s" one is meant to be for EventGroup title
   #
@@ -79,13 +83,13 @@ class Event < BaseWithTranslation
   #    "京都府での一般的イベント < その他のイベント類"
   #    "Event in Kyoto < UncategorizedEventGroup"
   DEF_EVENT_TITLE_FORMATS = {
-    "en" => ['Event in %s(%s/%s)', " < ", "%s"],
-    "ja" => ['%s(%s/%s)でのイベント', " < ", "%s"],
+    "en" => ['Event in %s(%s/%s)'   ]+ar2tail.dup.map(&:dup),
+    "ja" => ['%s(%s/%s)でのイベント']+ar2tail.dup.map(&:dup),
   }.with_indifferent_access
 
   DEF_STREAMING_EVENT_TITLE_FORMATS = {
-    "en" => ['Live-streaming on %s', " < ", "%s"],  # "en" has a fewer "%s" than "ja"!
-    "ja" => ['%s %s', " < ", "%s"],
+    "en" => ['Live-streaming on %s']+ar2tail.dup.map(&:dup),  # "en" has a fewer "%s" than "ja"!
+    "ja" => ['%s %s', " < ", "%s"  ]+ar2tail.dup.map(&:dup),
   }.with_indifferent_access
 
   TITLE_UNKNOWN_DATE = "UnknownDate"
@@ -294,10 +298,7 @@ class Event < BaseWithTranslation
       else
         next  # should not happen for now, but playing safe
       end
-      postfix = fmts[1]+sprintf(fmts[2], event_group.best_translations["en"].title)
-      title = get_unique_string("translations.title", rela: self.joins(:translations), prefix: prefix, postfix: postfix, separator: "-", separator2:"")  # defined in module_application_base.rb
-
-      Translation.new(langcode: lc, title: title, weight: Float::INFINITY)
+      def_event_tra_new(prefix, lc, event_group, prefer_en: true)  # defined in ModuleEventAux
     }.compact  # "compact" would be needed only when "next" above is executed, which should never happen, but playing safe
 
     # initialize a new one
@@ -414,14 +415,7 @@ class Event < BaseWithTranslation
   # @return [Translation]
   def self.default_unsaved_trans_for_lang(place, event_group, langcode)
     prefix = default_title_prefix_for_lang(place, langcode)
-    fmt = DEF_EVENT_TITLE_FORMATS[langcode][1..-1].join("")
-    title = prefix + sprintf(fmt, event_group.title_or_alt(langcode: langcode, lang_fallback_option: :either, str_fallback: ""))
-    Translation.new(
-      title:    title,
-      langcode: langcode,
-      is_orig:  nil,
-      weight: 0,
-    )
+    def_event_tra_new(prefix, langcode, event_group, prefer_en: false)  # defined in ModuleEventAux
   end # self.default_unsaved_trans_for_lang(context: nil, place: nil)
   private_class_method :default_unsaved_trans_for_lang
 
@@ -430,10 +424,10 @@ class Event < BaseWithTranslation
   # @param place [Place]
   # @return [String]
   def self.default_title_prefix_for_lang(place, langcode)
-    hsopts = {langcode: langcode, lang_fallback_option: :either, str_fallback: ""}
-    place_tit = place.title_or_alt(prefer_alt: true, **hsopts)
-    prefe_tit = place.prefecture.title_or_alt(prefer_alt: true, **hsopts)
-    count_tit = place.country.title_or_alt(prefer_alt: true, **hsopts)
+    hsopts = {prefer_shorter: true, langcode: langcode, lang_fallback_option: :either, str_fallback: ""}
+    place_tit = place.title_or_alt(**hsopts)
+    prefe_tit = place.prefecture.title_or_alt(**hsopts)
+    count_tit = place.country.title_or_alt(**hsopts)
     sprintf(DEF_EVENT_TITLE_FORMATS[langcode][0], place_tit, prefe_tit, count_tit)
   end
   private_class_method :default_title_prefix_for_lang
