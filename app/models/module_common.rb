@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 require 'nkf'
+# require "unicode/emoji"
 
 # Common utility routines
 #

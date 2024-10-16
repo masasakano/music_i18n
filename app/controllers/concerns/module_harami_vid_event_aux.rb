@@ -126,7 +126,7 @@ module ModuleHaramiVidEventAux
     EventItem.new_default(:HaramiVid, save_event: false, **opts)
   end
 
-  # Updates (optionally) start_time, duration and their erros of the EventItem, using information from the HaramiVid
+  # Updates publish_date, (optionally) start_time, duration and their erros of the EventItem, using information from the HaramiVid
   #
   # The EventItem should be associated to the HaramiVid.
   #
@@ -140,6 +140,28 @@ module ModuleHaramiVidEventAux
   # @param force_update_start_time: [Boolean] if true (Def: false), start-time is always updated as long as {HaramiVid#release_date} is present.
   # @return [NilClass, Array<String>] Array of String messages for Flash[:warning] or nil
   def _update_event_item_from_harami_vid(evit, harami_vid=@harami_vid, skip_update_start_time: true, force_update_start_time: false)
+    hsin, ret_msgs = _hs_update_event_item_from_harami_vid(evit, harami_vid, skip_update_start_time: skip_update_start_time, force_update_start_time: force_update_start_time)
+
+    if !hsin.empty? && !evit.update!(hsin)
+      evit.errors.full_messages.each do |em|
+        harami_vid.errors.add :base, "Failed in updating an EventItem: "+em
+      end
+    end
+
+    ret_msgs
+  end
+
+
+  # Returns a Hash to be used to update publish_date, (optionally) start_time, duration and their erros of an EventItem, using information from the HaramiVid
+  #
+  # The EventItem should be associated to the HaramiVid.
+  #
+  # @param evit [EventItem]
+  # @param harami_vid [HaramiVid]
+  # @param skip_update_start_time: [Boolean] if true (Def), skips updating start-time. This has a higher priority than force_update_start_time
+  # @param force_update_start_time: [Boolean] if true (Def: false), start-time is always updated as long as {HaramiVid#release_date} is present.
+  # @return [Array<Hash, Array<String>>] 2-elements Array of Hash and an Array of String messages for Flash[:warning]
+  def _hs_update_event_item_from_harami_vid(evit, harami_vid=@harami_vid, skip_update_start_time: true, force_update_start_time: false)
     hsin = {}.with_indifferent_access
     if harami_vid.release_date && (!evit.publish_date || (harami_vid.release_date < evit.publish_date))
        hsin[:publish_date] = harami_vid.release_date 
@@ -154,13 +176,7 @@ module ModuleHaramiVidEventAux
     hsin.merge!(hs) if hs.present?
     ret_msgs << msg if msg
 
-    if !hsin.empty? && !evit.update!(hsin)
-      evit.errors.full_messages.each do |em|
-        harami_vid.errors.add :base, "Failed in updating an EventItem: "+em
-      end
-    end
-
-    ret_msgs
+    [hsin, ret_msgs]
   end
 
   # Retuns a Hash to update StartTime and error of the (would-be) associated EventItem based on HaramiVid

@@ -1,6 +1,9 @@
 
 <%# Local variables: form(Form) model(ApplicationRecord) is_simple_form(Boolean) %>
 
+<% @countries   ||= Country.all %>
+<% @prefectures ||= Prefecture.all %>
+
 <% if is_simple_form %>
   <% raise "#{File.basename __FILE__}: @countries or @prefectures is nil. May have forgotten to define them in Controller (with set_countries in application_controller.rb)?" if !@countries || !@prefectures %>
   <div class="field" id="<%= ApplicationController::HTML_KEYS[:ids][:div_sel_country] %>"> <%# div_select_country %>

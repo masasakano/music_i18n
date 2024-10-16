@@ -1,0 +1,2 @@
+module EventItems::ResettleNewEventsHelper
+end
