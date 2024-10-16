@@ -82,6 +82,28 @@ class EventItemTest < ActiveSupport::TestCase
     }
   end
 
+  test "create_new_unknown!" do
+    event = Event.new(event_group: EventGroup.last)
+    ev_tit = "Events of create_new_unknown"
+    event.unsaved_translations << Translation.new(title: ev_tit, langcode: "en", is_orig: nil)
+
+    assert_raises(RuntimeError){
+      evit = EventItem.create_new_unknown!(event)
+    }
+
+    event.save!
+    unk_ev = event.unknown_event_item
+    #print "NOTE: Automatically craeted unknown EventItem: #{unk_ev.inspect}"
+
+    # The following should never be used in practice, because create_new_unknown! is an internal method called only by a callback in an Event creation.
+    evit = nil
+    assert_nothing_raised{
+      evit = EventItem.create_new_unknown!(event)
+    }
+    assert evit.id
+    refute_equal unk_ev.machine_title, evit.machine_title  # => "UnknownEventItem_1Events_of_create_new_unknown_..."
+  end
+
   test "self.default" do
     evit = EventItem.default(context=nil, place: nil)
     assert_equal evit, EventItem.unknown
@@ -113,6 +135,16 @@ class EventItemTest < ActiveSupport::TestCase
     evt2.save!
     evit = evt2.event_items.first
     assert_match(/^UnknownEventItem_Event_in/, evit.machine_title) # See Event::UNKNOWN_TITLE_PREFIXES[:en]
+
+    pladiet = Place.create_basic!(prefecture_id: prefectures(:tokyo).id, title: "国会", langcode: "ja", is_orig: true)
+    evit3 = EventItem.default(:Harami1129, place: pladiet, save_event: true)
+    ev3 = evit3.event
+    evgr3 = ev3.event_group
+    evgr3_mods = %w(ja en).map{|i| [i, evgr3.title(langcode: i).gsub(/\s+/, "_")]}.to_h.with_indifferent_access
+    assert ev3.title(langcode: "ja").include?(evgr3_mods[:ja])
+    refute ev3.title(langcode: "en").include?(evgr3_mods[:en])
+    refute evit3.machine_title.include?(evgr3_mods[:ja]), "evit3.machine_title=#{evit3.machine_title.inspect} should not include #{evgr3_mods[:ja].inspect}"
+    assert evit3.machine_title.include?(evgr3_mods[:en])
   end
 
   test "self.new_default" do

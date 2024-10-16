@@ -110,6 +110,8 @@ class EventItem < ApplicationRecord
   # @param event [Event]
   # @return [EventItem]
   def self.create_new_unknown!(event)
+    raise "Event must be present. Contact the code developer." if !event
+    raise "(#{File.basename __FILE__}:#{__method__}) Cannot accept an unsaved Event because the creation of an Event fires a creation of the unknown EventItem, which is identical to that is about to be created, leading to a DB-level unique-constraint violation. Contact the code developer. Event: #{event.inspect}" if !event.id
     hs = prepare_create_new_unknown(event)
     create!(**hs)
   end
@@ -120,20 +122,25 @@ class EventItem < ApplicationRecord
   end
 
   def self.prepare_create_new_unknown(event)
-    pre_post_fixes = unknown_machine_title_prefix_postfix(event)
-
-    #prepare_create_new_template(event, prefix=unknown_machine_title_prefix_postfix(event).join(""), **kwd)
-    prepare_create_new_template(event, prefix=pre_post_fixes[0], postfix: pre_post_fixes[1], separator: "")
+    mtitle = default_unknown_machine_title(event)
+    prepare_create_new_template(event, machine_title: mtitle)
   end
   private_class_method :prepare_create_new_unknown
 
+  # Default machine title for EventItem for the given Event
+  def self.default_unknown_machine_title(event)
+    pre_post_fixes = unknown_machine_title_prefix_postfix(event)
+    get_unique_title(pre_post_fixes[0], postfix: pre_post_fixes[1], separator: "")
+  end
+
   # Returns a Hash of the default time parameters from the parent Event (if specified)
   #
+  # @param kwd [Hash] machine_title, postfix, separator etc. If machine_title is specified, all the kwd AND prefix are ignored.
   # @return [Hash] keys(with_indifferent_access): start_time start_time_err duration_minute etc
-  def self.prepare_create_new_template(event=nil, prefix=DEFAULT_UNIQUE_TITLE_PREFIX, **kwd)
+  def self.prepare_create_new_template(event=nil, prefix=DEFAULT_UNIQUE_TITLE_PREFIX, machine_title: nil, **kwd)
     hsret = {
       event: event,
-      machine_title: get_unique_title(prefix, **kwd),
+      machine_title: (machine_title || get_unique_title(prefix, **kwd)),
       duration_minute:     ((event && hr=event.duration_hour) ? hr*60 : nil),
       duration_minute_err: ((event && hr.respond_to?(:error) && hr.error) ? hr.error : DEFAULT_NEW_TEMPLATE_DURATION_ERR),  # in second
     }
@@ -149,22 +156,43 @@ class EventItem < ApplicationRecord
     self.new(**prepare_create_new_template(event, prefix, postfix: (postfix || def_postfix), **kwd))
   end
 
-  # Returns the English prefix for EventItem.Unknown for the event
+  # Returns the (English) prefix and postfix for EventItem.Unknown for the event
   #
-  # This is a long prefix so that it is umlikely to be not unique.
+  # This is a long prefix so that it is unlikely to be not unique.
   # Note that the second and third components are Translations and so
   # they are prone to change. Use just UNKNOWN_TITLE_PREFIXES to find one.
+  #
+  # Because it contains a Translation of the Event, if the Event has only
+  # a Japanese Translation, the returned postfix also contains Japanese characters.
   #
   # @param event [Event]
   # @param artit: [Array<String>] to directly give a pair of strings. If given, event is ignored. (used for seeding.)
   # @return [Array<String>] unknown title of Prefix and Postfix, which should be joined with ""
   def self.unknown_machine_title_prefix_postfix(event, artit: nil)
-    artit ||= [event, event.event_group].map{|i|
-      i.reload
-      i.title_or_alt(langcode: "en", lang_fallback_option: :either, str_fallback: nil, article_to_head: true)  # Note that the article "the" , if exists, is broght to the head though it may stay "non"-capitalized.
+    evgr = nil
+    artit ||= [event, event.event_group].map{|evkind|
+      evgr = (evkind.id ? evkind.reload : evkind)
+      evgr.title_or_alt(langcode: "en", lang_fallback_option: :either, str_fallback: nil, article_to_head: true)  # Note that the article "the" , if exists, is broght to the head though it may stay "non"-capitalized.
     }
-    artit.pop if /#{Regexp.quote(artit[1])}.?\Z/ =~ artit[0]  # to avoid duplication of EventGroup name; this can happen because Event Translation may well include EventGroup Translation at the tail.
-    [UNKNOWN_TITLE_PREFIXES[:en], artit.join("_").gsub(/ +/, "_")]
+
+    # to avoid duplication of EventGroup title; this can happen because Event Translation may well include EventGroup Translation at the tail.
+    # Note that the EventGroup title contained in the Event title may be either Japanese or English.
+    # So, handling only an English duplication is not enough.
+    evgr_titles = {
+      en: artit[1],
+      ja: evgr && evgr.title_or_alt(langcode: "ja", lang_fallback_option: :never, str_fallback: nil, article_to_head: true),  # maybe identical to "en" IF Event has only "ja". evgr is nil if artit is given as an argument.
+    }.with_indifferent_access
+
+    if evgr && evgr_titles[:ja].present? && !evgr_titles[:ja].strip.empty? && /#{Regexp.quote(evgr_titles[:ja])}.?\Z/ =~ artit[0]
+      if artit[1].present? && !artit[1].strip.empty?  # should be always the case, but playing safe.
+        artit[0].sub!(/#{Regexp.quote(evgr_titles[:ja])}(.?)\Z/, artit[1].strip+'\1')
+        artit.pop
+      end
+    else # if !evgr || 1 == evgr_titles.values.uniq.size  # evgr is nil if artit is given as an argument.
+      artit.pop if /#{Regexp.quote(artit[1])}.?\Z/ =~ artit[0]
+    end
+
+    [UNKNOWN_TITLE_PREFIXES[:en], artit.join("_").gsub(/ +/, "_").gsub(/__+/, "_")]
   end
 
   # Unknown EventItem in the given event_group (or somewhere in the world)
@@ -190,7 +218,7 @@ class EventItem < ApplicationRecord
   #
   # @return [EventItem] the unknown one
   def unknown_sibling
-    event.unknown_event_item
+    event.unknown_event_item(force: false)
   end
 
   # All {EventItem} belonging to the same {Event} but self
@@ -321,7 +349,7 @@ class EventItem < ApplicationRecord
       postfix =
         if event
           artit = [event, event.event_group].map{|model|
-            definite_article_to_head(model.title(langcode: "en", lang_fallback: true, str_fallback: "")).gsub(/ +/, "_")
+            definite_article_to_head(model.title(langcode: "en", lang_fallback: true, str_fallback: "")).gsub(/ +/, "_").gsub(/__+/, "_")
           }
           artit.pop if /#{Regexp.quote(artit[1])}.?\Z/ =~ artit[0]  # to avoid duplication of EventGroup name; this can happen because Event Translation may well include EventGroup Translation at the tail.
           artit.join(separator)

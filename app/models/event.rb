@@ -157,7 +157,7 @@ class Event < BaseWithTranslation
     evit = event_items.where("regexp_match(event_items.machine_title, ?, ?) IS NOT NULL", '^'+EventItem::UNKNOWN_TITLE_PREFIXES[:en], '').order(:created_at).first
     return evit if evit || !force
 
-    EventItem.create_new_unknown!(self)
+    EventItem.create_new_unknown!(self)  # This guarantees a unique machine_title, even though the check above is not complete (it did not search for the entire EventItem for the identical machine_title).
   end
 
   # Unknown {Event} belonging to self

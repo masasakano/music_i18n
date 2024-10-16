@@ -156,6 +156,24 @@ class EventTest < ActiveSupport::TestCase
     evit_new.delete
     assert     (evit_new2=evt_base.unknown_event_item)  # Default behaviour (from June 2024, after 1 commit after 7138ab5)
     assert  evit_new2.unknown?
+
+    evgr = event_groups(:evgr_uk2024)
+    ev_title = "新しいよ 999"
+    ev = Event.create_basic!(title: ev_title, langcode: "ja", event_group: evgr)
+    evit = ev.unknown_event_item(force: false)
+    assert evit, "Unknown EventItem should have been created, but..."
+    assert evit.respond_to?(:machine_title), "evit=#{evit.inspect}"
+
+    ev_title_mod = ev_title.gsub(/\s+/, "_")
+    refute_equal ev_title_mod, ev_title, "Should be '新しいよ_999', but..."
+    assert evit.machine_title.include?(ev_title_mod)
+
+    evgr_tit = evgr.title(langcode: "en")
+    evgr_tit_ja = evgr.title(langcode: "ja")
+    assert evgr_tit_ja.present?
+    evgr_tit_mod = evgr.title.gsub(/\s+/, "_")
+    assert (mt=evit.machine_title).include?(evgr_tit_mod), "machine_title: #{mt.inspect}"
+    assert_equal 1, mt.scan(%/#{Regexp.quote(evgr_tit_mod)}/).count, "machine_title=#{mt.inspect} / scan=/#{Regexp.quote(evgr_tit_mod).inspect}/"
   end
 
   test "self.default" do
