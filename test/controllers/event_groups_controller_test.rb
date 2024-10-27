@@ -9,6 +9,7 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     @event_group = event_groups(:evgr_lucky2023)
     @moderator       = users(:user_moderator_general_ja)  # General-JA Moderator can manage.
     @trans_moderator = users(:user_translator)
+    @editor_ja       = users(:user_editor_general_ja)
     @hs_create = {
       "langcode"=>"ja",
       "title"=>"The Tｅst7",
@@ -33,6 +34,11 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
 
   test "should get index" do
     get event_groups_url
+    assert_response :redirect
+    assert_redirected_to root_path, "This can be new_user_session_path, depending how it is written in controller."
+
+    sign_in @editor_ja  ########### This should be unnecessary once index becomes public!
+    get event_groups_url
     assert_response :success
     assert_match(/\bPlace\b/, css_select("body").text)
     w3c_validate "EventGroup index"  # defined in test_helper.rb (see for debugging help)
@@ -43,6 +49,7 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     css_events = "td.event_groups_index_table_events"
     assert_operator 0, :<, css_select(css_events).size
     assert_match(/\A\d+\z/, css_select(css_events).first.text.strip)
+    sign_out @editor_ja
   end
 
   test "should get new" do
@@ -97,6 +104,12 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/\bPlace\b/, css_select("body").text)
     w3c_validate "EventGroup index"  # defined in test_helper.rb (see for debugging help)
     assert_equal 1, css_select("#table_event_group_show_events").size
+
+    assert_equal 0, css_select("#link_back_to_index a").size  # "Back to Index"
+    sign_in @editor_ja  ########### This should be unnecessary once index becomes public!
+    get event_group_url(@event_group)
+    assert_equal 1, css_select(".link_back_to_index a").size  # "Back to Index"
+    sign_out @editor_ja
   end
 
   test "should get edit" do

@@ -234,6 +234,7 @@ ja:
     show:
       number_id: "通し番号"
       event_table_title: 本イベントシリーズの全イベント
+      harami_vid_table_title: 本イベントシリーズの全動画
 
   events:
     parent_event: "(親)Event"

@@ -3,14 +3,29 @@
 <%# The table is sorted in order of Artist and then appearance in HaramiVid if harami_vid is specified. %>
 <%# If distinguished_artist is specified, the columns for the Artist has the highest priority. %>
 
+<%
+  if !defined? no_sort
+    no_sort = false
+  end
+%>  <%# This has to be written over multiple lines. %>
+<%
+  if !defined? harami_vid
+    harami_vid = nil
+  end
+%>  <%# This has to be written over multiple lines. %>
+
 <% relas = []
    rela_base = artist_music_plays
-   if !(defined?(no_sort) && no_sort)
+   if !no_sort
      ar_order = %w(artist_id music_id play_role_id instrument_id).map{|i| "artist_music_plays."+i}
-     if defined?(harami_vid) && harami_vid
-       ar_order[1] = "harami_vid_music_assocs.timing"
-       rela_base = rela_base.joins(event_item: :harami_vids).joins("INNER JOIN harami_vid_music_assocs ON harami_vid_music_assocs.harami_vid_id = harami_vids.id").where('artist_music_plays.music_id = harami_vid_music_assocs.music_id')
-     end
+     ar_order[1] = "harami_vid_music_assocs.timing"
+     rela_base =
+       if harami_vid
+         rela_base.joins(event_item: :harami_vids).joins("INNER JOIN harami_vid_music_assocs ON harami_vid_music_assocs.harami_vid_id = harami_vids.id")
+       else
+         rela_base.joins("INNER JOIN harami_vid_event_item_assocs ON harami_vid_event_item_assocs.event_item_id = artist_music_plays.event_item_id").joins("INNER JOIN harami_vid_music_assocs ON harami_vid_music_assocs.harami_vid_id = harami_vid_event_item_assocs.harami_vid_id")
+       end
+     rela_base = rela_base.where('artist_music_plays.music_id = harami_vid_music_assocs.music_id')
      rela_base = rela_base.order(*ar_order)
    end
 

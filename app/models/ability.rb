@@ -47,7 +47,7 @@ class Ability
 
     can :manage, :session
     can :read, [HaramiVid, Music, Artist]
-    can :read, [EventGroup, Event]
+    can :show, [EventGroup, Event]
     #can :read, :all   # permissions for every user, even if not logged in
     #can :read, [Artist, Music, Country, Prefecture, Place, Genre]
     can :show, Prefecture

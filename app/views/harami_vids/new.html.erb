@@ -1,20 +1,23 @@
 <h1>New Harami Vid</h1>
 
-<div id="create_by_youtube">
-  <%= form_with method: :post, model: HaramiVid, url: harami_vids_fetch_youtube_data_path, local: true, class: "inline_form", style: "margin-bottom: -4em;" do |form| %> <%# scope: :article %>
-    <%= form.fields_for :fetch_youtube_datum do |fyd_form| %>
-      <div class="input-group mb-3">
-     <div class="field">
-      <%= fyd_form.text_field :uri_youtube, placeholder: "Youtube-video ID or URI" %>
-     </div>
+<% if @harami_vid.reference_harami_vid_id.blank? %>
+  <%# If reference-ID is given (in GET), Import-Youtube function should not be displayed, for it would ignore the reference-ID. %>
+  <div id="create_by_youtube">
+    <%= form_with method: :post, model: HaramiVid, url: harami_vids_fetch_youtube_data_path, local: true, class: "inline_form", style: "margin-bottom: -4em;" do |form| %> <%# scope: :article %>
+      <%= form.fields_for :fetch_youtube_datum do |fyd_form| %>
+        <div class="input-group mb-3">
+       <div class="field">
+        <%= fyd_form.text_field :uri_youtube, placeholder: "Youtube-video ID or URI" %>
+       </div>
+      <% end %>
+      <div class="actions input-group-append">
+        <%= form.submit "Import Youtube",
+          class: "btn btn-info", title: 'Create data according to the Youtube data.', style: "margin-top: -7em; margin-bottom: -7em; margin-left: 0.5em; padding: 6px;" %>
+      </div>
+      
     <% end %>
-    <div class="actions input-group-append">
-      <%= form.submit "Import Youtube",
-        class: "btn btn-info", title: 'Create data according to the Youtube data.', style: "margin-top: -7em; margin-bottom: -7em; margin-left: 0.5em; padding: 6px;" %>
-    </div>
-    
-  <% end %>
-</div>
+  </div>
+<% end %>
 
 <hr style="margin-top: -1em;">
 

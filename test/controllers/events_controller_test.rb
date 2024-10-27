@@ -12,6 +12,7 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
     @moderator_harami= users(:user_moderator)             # Harami Moderator can manage.
     @trans_moderator = users(:user_translator)  # Translator cannot create/delete but edit (maybe!).
     @moderator_ja    = users(:user_moderator_general_ja)  # Same as Translator.
+    @editor_ja       = users(:user_editor_general_ja)
     @moderator = @moderator_all 
     pla = places(:unknown_place_unknown_prefecture_japan)
     @hs_create = {
@@ -49,10 +50,16 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
 
   test "should get index" do
     get events_url
+    assert_response :redirect
+    assert_redirected_to root_path, "This can be new_user_session_path, depending how it is written in controller."
+
+    sign_in @editor_ja  ########### This should be unnecessary once index becomes public!
+    get events_url
     assert_response :success
     assert_match(/\bPlace\b/, css_select("table").text)
 #puts response.body
     w3c_validate "Event index"  # defined in test_helper.rb (see for debugging help)
+    sign_out @editor_ja
 
     #css_events = "table#events_index_table tbody tr"
     #assert_operator 0, :<, css_select(css_events).size, "rows (defined in Fixtures) should exist, but..."
@@ -112,6 +119,12 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match(/\bPlace\b/, css_select("body").text)
     w3c_validate "Event index"  # defined in test_helper.rb (see for debugging help)
+
+    assert_equal 0, css_select("#link_back_to_index a").size  # "Back to Index"
+    sign_in @editor_ja  ########### This should be unnecessary once index becomes public!
+    get event_url(@event)
+    assert_equal 1, css_select(".link_back_to_index a").size  # "Back to Index"
+    sign_out @editor_ja
   end
 
   test "should get edit" do

@@ -1,5 +1,5 @@
 
-<%# local variables: harami_vids, optional: musics (:all or Array or nil; musics to display), music (if for a particular Music - displaying timing), place, for_owner (Channel or ChannelOwner), sort_asc: false %>
+<%# local variables: harami_vids, optional: event, musics (:all or Array or nil; musics to display), music (if for a particular Music - displaying timing), place, for_owner (Channel or ChannelOwner), can_update_hvids, canread_evit, can_read_h1129, canread_pla, canread_mus, evit_offset %>
 <%# @example
       render partial: 'layouts/harami_vids_index', locals: {harami_vids: @music.harami_vids.order("harami_vids.release_date" => :desc).distinct, music: @music, with_place: false, for_owner: false }
  %>
@@ -18,60 +18,33 @@
 <% if !defined?(for_owner)
      for_owner = false
    end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
-<% if !defined?(sort_asc)
-     sort_asc = false
+<% if !defined?(can_update_hvids)
+     can_update_hvids = can?(:update, HaramiVid)
    end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
-<% asc_desc = (sort_asc ? :asc : :desc) %>
+<% if !defined?(canread_evit)
+     canread_evit = can?(:read, EventItem)
+   end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>  <%# In future, this may be released public (if most EventItems are checked valid) %>
+<% if !defined?(can_read_h1129)
+     can_read_h1129 = can?(:read, Harami1129)
+   end %>
+<% if !defined?(canread_pla)
+     canread_pla = can?(:read, Place)
+   end %>  <%# This is usually public? %>
+<% if !defined?(canread_mus)
+     canread_mus = can?(:read, Music)
+   end %> <%# This is usually public? %>
+<% if !defined?(event)
+     event = nil
+   end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
+<% if !defined?(evit_offset)
+     evit_offset = 0
+   end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
+
+<% event_items = [] %>
 
 <div id="harami_vids">
-<table id="harami_vids_index_table">
-  <thead>
-    <tr>
-     <% if (can_update = can?(:update, HaramiVid)) %>
-      <th class="editor_only">pID</th>
-     <% end %>
-      <th><%= t("harami_vids.table_head_date") %> (<%= t("tables.duration_none") %>)</th>
-     <% if for_owner %>
-      <th><%= t("harami_vids.table_head_ChannelPlatform") %></th>
-      <th><%= t("harami_vids.table_head_ChannelType") %></th>
-     <% else %>
-      <th><%= t(:Channel) %></th>
-     <% end %>
-      <th><%= t("home.index.vid_title") %></th>
-     <% if musics %>
-      <th><%= t("Musics") %></th>
-     <% end %>
-     <% if music %>
-      <th><%= t("harami_vids.table_head_timing") %></th>
-      <th><%= t("harami_vids.table_head_completeness") %></th>
-     <% end %>
-     <% if with_place %>
-      <th><%= t(:Place) %></th>
-     <% end %>
-      <% if (canread_evit=can?(:read, EventItem)) %>  <%# In future, this may be released public (if most EventItems are checked valid) %>
-      <th class="editor_only"><%= t("EventItems") %></th>
-      <% end %>
-     <% if (can_read_h1129 = can?(:read, Harami1129)) %>
-      <th title="Number of Harami1129 entries" class="editor_only"># H1129s/Musics</th>
-     <% end %>
-      <th title="Note in this DB"><%= t("tables.note").capitalize %></th>
-      <th class="actions editor_only"<%= can_update ? ' colspan="2"'.html_safe : '' %>></th>
-<% if false %>
-        <th colspan="2" class="editor_only">HaramiVidMusicAssoc</th>
-<% end %>
-    </tr>
-  </thead>
 
-  <% canread_pla = can?(:read, Place) %>  <%# This is usually public? %>
-  <% event_items = [] %>
-  <tbody>
-    <% if harami_vids.respond_to?(:order)
-         ary = harami_vids.order(release_date: asc_desc)
-       else
-         factor = (sort_asc ? 1 : -1)
-         ary = harami_vids.sort{|a,b| factor*(a.release_date <=> b.release_date)}
-       end 
-    %>
+    <% ary = (harami_vids.respond_to?(:order) ? harami_vids.order(:release_date) :  harami_vids.sort{|a,b| a.release_date <=> b.release_date}) %> <%# ascending order %>
 <% if false %>
     <% ary2 = nil %>
     <% if harami_vids.respond_to? :order %>
@@ -85,7 +58,7 @@
     <%# (ary &&= ary2).uniq.each do |harami_vid| %>
     <% ary.uniq.each do |harami_vid| %>
       <tr>
-     <% if can_update %>
+     <% if can_update_hvids %>
         <td class="number editor_only"><%= link_to harami_vid.id, harami_vid %></td>
      <% end %>
         <td class="date_ja"><%= sprintf "%s %s", date2text(harami_vid.release_date), ((dura=sec2hms_or_ms(harami_vid.duration, return_nil: true)) ? '('+dura+')' : "") %></td> <%# defined in ModuleCommon %>
@@ -94,6 +67,7 @@
         <td><%= harami_vid.channel.channel_type.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true) %> </td>
      <% else %>
         <td><%= harami_vid.channel.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true) %> </td>
+        <td><%= harami_vid.channel.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %> </td> <%# prefer_shorter: false (Default) %>
      <% end %>
      <% if music %>
        <% assoc = harami_vid.harami_vid_music_assocs.where(music: music).first %>
@@ -103,8 +77,8 @@
      <% if musics %>
         <td><%= harami_vid.musics.map{ |music|
                next nil if :all != musics && !musics.include?(music)
-               mu_tit = music.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)
-               (can?(:read, music) ? link_to(mu_tit, music) : mu_tit)
+               mu_tit = music.title_or_alt(lang_fallback_option: :either)
+               (canread_mus ? link_to(mu_tit, music) : mu_tit)
              }.compact.join(t('comma')).html_safe %>
         </td>
      <% end %>
@@ -119,14 +93,15 @@
       <% if canread_evit %>
         <td class="text-center editor_only">
           <%= harami_vid.event_items.map{ |eei|
+             next nil if event && event != eei.event
              if !(ind=event_items.find_index(eei))
                event_items << eei
                ind = event_items.size-1
              end
-             ind += 1
+             ind += evit_offset + 1
              tit = sprintf("%s (ID=%d; Assoc-IDs=%s)", eei.machine_title, eei.id, HaramiVidEventItemAssoc.where(harami_vid: harami_vid, event_item: eei).order(:id).ids.inspect)
              link_to(ind.to_s, eei, title: tit)
-             }.join(t(:comma)).html_safe %>
+             }.compact.join(t(:comma)).html_safe %>
         </td>
       <% end %>
      <% if can_read_h1129 %>
@@ -135,22 +110,7 @@
         <td><%= auto_link50(harami_vid.note) %></td>
 
         <td class="actions"><%= link_to t("tables.Show"), harami_vid %></td>
-        <% if can_update %>
-          <td class="actions editor_only text-end">
-          <% if can? :update, harami_vid  %>
-            <%= link_to 'Edit', edit_harami_vid_path(harami_vid) %>
-          <% end %>
-          </td>
-        <% end %>
       </tr>
-<% if false %>
-        <td class="actions"><%= link_to t("tables.Show"), assoc %></td>
-        <% if can? :update, assoc %>
-          <td class="actions editor_only text-end"><%= link_to 'Edit', edit_harami_vid_music_assoc_path(assoc) %></td>
-        <% end %>
-<% end %>
     <% end %>
-  </tbody>
-</table>
 </div>
 

@@ -23,7 +23,7 @@
     <dd class="item_place"><%= event_item.place ? show_pref_place_country(event_item.place) : "" %></dd>  <%# defined in places_helper.rb %>
 
   <dt><strong>Start time [in <%= Rails.configuration.music_i18n_def_timezone_str %>] (± days/hrs/mins):</strong></dt>
-    <dd><%= event_item.string_time_err2uptomin %> (± <%= time_in_units(event_item.start_time_err, for_editor: can?(:edit, event_item)) %>) <span class="moderator_only">[Raw-value=<%= event_item.start_time %>]</span></dd> <%# in module_common.rb %>
+    <dd><%= event_item.string_time_err2uptomin %> (± <%= time_in_units(event_item.start_time_err, for_editor: canedit) %>) <span class="moderator_only">[Raw-value=<%= event_item.start_time %>]</span></dd> <%# in module_common.rb %>
   <dt><strong><%= t("events.Duration") %> [<%= t(:minute) %>] (± <%= t(:minutes_short) %>):</strong></dt>
     <% err = event_item.duration_err_with_unit %>
     <dd><%= event_item.duration_minute %> <span class="moderator_only"> [=Raw-value] </span>(± <%= err ? err.in_minutes : "&mdash;".html_safe %> [<%= t(:minutes_short) %>]<span class="moderator_only"> /Raw-value=<%= event_item.duration_minute_err %></span>) </dd>

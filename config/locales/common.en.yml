@@ -118,12 +118,27 @@ en:
     lowercase:
       en: en
       ja: ja
+      fr: fr
+      de: de
+      es: es
+      it: it
+      kr: kr
     capital:
       en: EN
       ja: JA
+      fr: FR
+      de: DE
+      es: ES
+      it: IT
+      kr: KR
     long:
       en: English
       ja: Japanese
+      fr: French
+      de: German
+      es: Spanish
+      it: Italian
+      kr: Korean
 
   # https://github.com/rails/rails/blob/main/activesupport/lib/active_support/locale/en.yml#L15
   date:

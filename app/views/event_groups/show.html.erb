@@ -1,4 +1,5 @@
-<% my_title = @event_group.title_or_alt_tuple_str(langcode: I18n.locale) %>
+<% canupdate_evgr = can?(:update, EventGroup) %>
+<% my_title = (canupdate_evgr ? @event_group.title_or_alt_tuple_str(langcode: I18n.locale) : @event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true)) %>
 <h1><%= t("EventGroup") %>: <%= my_title %></h1>
 
 <% canupdate = can?(:update, @event_group) %>
@@ -48,16 +49,72 @@
 <h2><%= t("event_groups.show.event_table_title") %></h2>
 
 <%= render partial: "layouts/events_index", locals: {events: @event_group.events} %>
-<% if can? :create, Event %>
+<% if (cancreate_evt=can?(:create, Event)) %>
   <span class="lead editor_only"><%= link_to "New Event of this EventGroup", new_event_path(event_group_id: @event_group.id) %></span>
 <% end %>
 </section>
 
 <hr>
 
-<section id="section_event_group_show_footer">
-<p>
-<%= link_to t("layouts.back_to_index"), event_groups_path %>
-</p>
-</section>
+<section id="section_event_group_show_harami_vids_events">
+
+<h2><%= t("event_groups.show.harami_vid_table_title") %></h2>
+
+<% can_update_hvids = can?(:update, HaramiVid)
+   canread_evit     = can?(:read, EventItem) %> <%# In future, this may be released public (if most EventItems are checked valid) %>
+<% can_read_h1129   = can?(:read, Harami1129) %>
+<% canread_pla = can?(:read, Place) %>  <%# This is usually public? %>
+<% canread_mus = can?(:read, Music) %>  <%# This is usually public? %>
+
+<table id="table_event_group_show_harami_vids">
+  <thead>
+    <tr>
+     <% if can_update_hvids %>
+      <th class="editor_only">pID</th>
+     <% end %>
+      <th><%= t("harami_vids.table_head_date") %> (<%= t("tables.duration_none") %>)</th>
+      <th><%= t(:Channel) %></th>
+      <th><%= t("harami_vids.table_head_ChannelPlatform") %></th>
+      <th><%= t("home.index.vid_title") %></th>
+      <th><%= t("Musics") %></th>
+     <% if can_update_hvids %>
+      <th class="editor_only"><%= t(:Place) %></th>
+     <% end %>
+     <% if (canread_evit) %>
+      <th class="editor_only" title="Note that not all EventItems have associated HaramiVids, so the numbers here are not always continuous."><%= t("EventItems") %></th>
+     <% end %>
+     <% if (can_read_h1129 = can?(:read, Harami1129)) %>
+      <th title="Number of Harami1129 entries" class="editor_only"># H1129s/Musics</th>
+     <% end %>
+      <th title="Note in this DB"><%= t("tables.note").capitalize %></th>
+      <th class="actions"></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% evit_offset = 0 %>
+    <% @event_group.events.order("events.start_time", "weight").distinct.each do |event| %>
+      <tr class="text-center">
+        <% tit = event.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true).sub(/\s+<\s+[^<]+\z/, "")
+           date = event.string_time_err2uptomin
+           pla_txt = ((pla=event.place) ? event.txt_place_pref_ctry : (cancreate_evt ? "(UNDEFINED)" : "&mdash;")) %>
+        <% cspan = 7 + (can_update_hvids ? 2 : 0) + (canread_evit ? 1 : 0) + (can_read_h1129 ? 1 : 0) %>
+        <th colspan="<%= cspan %>"> <%= t(:Event) %>: <%= sprintf("%s / %s / %s", tit, date, pla_txt) %> </th>
+      </tr>
+      <%= render partial: "layouts/harami_vids_index_tbody_part", locals: {harami_vids: event.harami_vids, event: event, can_update_hvids: can_update_hvids, canread_evit: canread_evit, can_read_h1129: can_read_h1129, canread_pla: canread_pla, canread_mus: canread_mus, with_place: can_update_hvids, evit_offset: evit_offset } %>
+      <% evit_offset += event.event_items.distinct.count %>
+    <% end %>
+  </tbody>
+</table>
+
+</section> <%# section id="section_event_group_show_harami_vids_events" %>
+
+<% if can? :index, EventGroup %>  <%# EventGroup-index will perhaps become public in the future... %>
+<hr>
+
+  <section id="section_event_group_show_footer">
+  <p class="link_back_to_index">
+  <%= link_to t("layouts.back_to_index"), event_groups_path %>
+  </p>
+  </section>
+<% end %>
 

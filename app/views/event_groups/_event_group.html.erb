@@ -15,12 +15,20 @@
     <% da = event_group.start_date; %>
     <dd class="item_start_date"><%= strdate = (da ? date2text(da.year, da.month, da.day, lower_end_str: end_str, upper_end_str: end_str) : (canedit ? date2text(nil, nil, nil) : "&mdash;".html_safe)) %>
       <% s=event_group.start_date_err; %>
-      (± <%= ("&mdash;" == strdate) ? "&mdash; [#{t(:days)}]".html_safe : sprintf("%s [%s]", s, t(:days)).html_safe %>)</dd>
+      (± <%= (("&mdash;" == strdate) || !s || s.days > 99.years)  ? "&mdash; [#{t(:days)}]".html_safe : sprintf("%s [%s]", s, t(:days)).html_safe %>)
+      <% if can_update_eg %> 
+        <span class="moderator_only">[Raw-value=<%= event_group.start_date %> ± <%= event_group.start_date_err %>]</span>
+      <% end %>
+    </dd>
   <dt class="item_end_date"><%= t("event_groups.end_date", default: "From YYYY-MM-DD") %>:</dt>
     <% da = event_group.end_date; %>
     <dd class="item_end_date"><%= strdate = (da ? date2text(da.year, da.month, da.day, lower_end_str: end_str, upper_end_str: end_str) : (canedit ? date2text(nil, nil, nil) : "&mdash;".html_safe)) %>
       <% s=event_group.end_date_err; %>
-      (± <%= ("&mdash;" == strdate) ? "&mdash; [#{t(:days)}]".html_safe : sprintf("%s [%s]", s, t(:days)).html_safe %>)</dd>
+      (± <%= ("&mdash;" == strdate) ? "&mdash; [#{t(:days)}]".html_safe : sprintf("%s [%s]", s, t(:days)).html_safe %>)
+      <% if can_update_eg %> 
+        <span class="moderator_only">[Raw-value=<%= event_group.end_date %> ± <%= event_group.end_date_err %>]</span>
+      <% end %>
+    </dd>
 
   <dt class="item_place"> <%= t("tables.place_country") %>:</dt>
     <dd class="item_place"><%= event_group.place ? show_pref_place_country(event_group.place) : "" %></dd>  <%# defined in places_helper.rb %>
@@ -30,7 +38,9 @@
     <% end %>
     </dt>
     <dd class="item_n_events event_groups_index_table_events"><%= link_to event_group.events.count, "#section_event_group_show_events" %>
-      <span class="editor_only"> / <%= event_group.event_items.count  %> </span>
+      <% if canread_evit %>
+        <span class="editor_only"> / <%= event_group.event_items.count %> </span>
+      <% end %>
     </dd>
   <dt class="item_n_hvids"><%= t("tables.n_harami_vids") %>:</dt>
     <dd class="item_n_hvids"><%= event_group.harami_vids.count %></dd>

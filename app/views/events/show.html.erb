@@ -40,7 +40,14 @@
 <hr>
 <h2>HaramiVids for this Event</h2>
 
-<%= render partial: "layouts/harami_vids_index", locals: {harami_vids: @event.harami_vids} %>
+<%= render partial: "layouts/harami_vids_index", locals: {harami_vids: @event.harami_vids.distinct, sort_asc: true} %>
 
+<% if can? :index, Event %>  <%# Event-index will perhaps become public in the future... %>
 <hr>
+  <section id="section_event_show_footer">
+  <p class="link_back_to_index">
   <%= link_to t("layouts.back_to_index"), events_path %>
+  </p>
+  </section>
+<% end %>
+

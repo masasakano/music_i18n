@@ -12,7 +12,11 @@
   <dt class="item_place"> <%= t("tables.place_country") %>:</dt>
     <dd class="item_place"><%= event.place ? show_pref_place_country(event.place) : "" %></dd>  <%# defined in places_helper.rb %>
   <dt><strong>Start time [in <%= Rails.configuration.music_i18n_def_timezone_str %>] (± days/hrs/mins):</strong></dt>
-    <dd><%= event.string_time_err2uptomin %> (± <%= time_in_units(event.start_time_err) %>)</dd> <%# in module_common.rb %>
+    <dd><%= event.string_time_err2uptomin %> (± <%= time_in_units(event.start_time_err, for_editor: can_update_gen) %>)
+      <% if can_update_gen %> 
+        <span class="moderator_only">[Raw-value=<%= event.start_time %>]</span>
+      <% end %>
+    </dd> <%# in module_common.rb %>
   <dt><strong><%= t("events.Duration") %> [<%= t(:hour) %>]:</strong></dt>
     <dd><%= event.duration_hour %></dd>
   <% if can_update_gen %>
