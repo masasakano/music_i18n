@@ -1,0 +1,13 @@
+<%# Displaying flash messages on the spot, which are dismissible. %>
+
+<%# NOTE: This may be called as render "/layouts/flash_display" in a Hotwire/turbo-frame partial, where you may load it conditionally with (if !from_non_turbo && canupdate). If you call the same partial from the standard (non-Turbo) View, you may pass a variable from_non_turbo=true in calling the partial so that the Turbo partial avoid rendering this file. %>
+<%# Example: see /app/views/harami_vids/update_places/_show_place.html.erb and also 'render partial: "/harami_vids/update_places/show_place"' in /app/views/harami_vids/show.html.erb %>
+
+          <% ApplicationController::FLASH_CSS_CLASSES.keys.each do |ek| %>
+            <% next if flash[ek].blank? %>
+            <div class="alert alert-dismissible fade show <%= ApplicationController::FLASH_CSS_CLASSES[ek] %>" role="alert">
+              <%= [flash[ek]].flatten.map{|i| (flash[:html_safe] && flash[:html_safe][ek]) ? i : h(i)}.join("<br>").html_safe %>
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          <% end %>
+

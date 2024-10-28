@@ -128,12 +128,9 @@
     </div>
 
     <div id="body_main">
-      <% [alert && 'alert', warning.present? && 'warning', success.present? && 'success', notice && 'notice'].compact.each do |ek| %>
-        <% next if flash[ek].blank? %>
-        <p class="<%= ApplicationController::FLASH_CSS_CLASSES[ek] %>">
-          <%= [flash[ek]].flatten.map{|i| (flash[:html_safe] && flash[:html_safe][ek]) ? i : h(i)}.join("<br>").html_safe %>
-        </p>
-      <% end %> <%# manage_toastr.js wrap the contents  # toastr_flash in /app/helpers/application_helper.rb is not used anymore %>
+      <%# [alert && 'alert', warning.present? && 'warning', success.present? && 'success', notice && 'notice'].compact.each do |ek| %>
+      <%= render "/layouts/flash_display" %>
+      <%# manage_toastr.js wrap the contents  # toastr_flash in /app/helpers/application_helper.rb is not used anymore %>
     <%= yield %>
     </div>
     <hr>

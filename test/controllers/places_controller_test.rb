@@ -162,9 +162,11 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
     ## It displays Place#show, with a flash message containing a link to the original Prefecture
     follow_redirect!
     assert_response :success
-    assert_match(/Prefecture \(<a.+>Kagawa\b<\/a>\)/, css_select("p.alert-success").inner_html)
-    assert_match(%r@\A/prefectures/#{prefecture.id}\b@, css_select("p.alert-success a")[0]["href"], "Failed: Flash-success="+css_select("p.alert-success")[0].to_html)
-    assert_match(/\AKagawa\z/, css_select("p.alert-success a")[0].text)
+    flash_regex_assert(/Prefecture \(<a.+>Kagawa\b<\/a>\)/, "Should be 'Prefecture: Kagawa', but...", type: :success, with_html: true) # defined in test_helper.rb
+
+    css4flash = css_for_flash(:success, extra: "a") # defined in test_helper.rb
+    assert_match(%r@\A/prefectures/#{prefecture.id}\b@, css_select(css4flash)[0]["href"], "Failed: Flash-success="+css_select(css4flash)[0].to_html)
+    assert_match(/\AKagawa\z/, css_select(css4flash)[0].text)
   end
 
   test "should show place" do

@@ -138,24 +138,50 @@ class ActiveSupport::TestCase
   # @param type: [Symbol, Array<Symbol>, NilClass] :notice, :alert, :warning, :success or their array.
   #    If nil, everything defined in {ApplicationController::FLASH_CSS_CLASSES}
   #    Note that the actual CSS is "alert-danger" (Bootstrap) for :alert, etc.
-  def flash_regex_assert(regex, msg=nil, type: nil)
+  # @param with_html: [Boolean] if true (Def: false), HTML (as opposed to a plain text) is evaluated with regex.
+  # @param kwds: [Hash] Optional hash to be passed to {#css_for_flash}, notably +extra+
+  def flash_regex_assert(regex, msg=nil, type: nil, with_html: false, **kwds)
     bind = caller_locations(1,1)[0]  # Ruby 2.0+
     caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
     # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
 
-    csstext = css_select(css_for_flash(type)).text
+    csstext = css_select(css_for_flash(type, **kwds)).send(with_html ? :inner_html : :text)
     msg2pass = (msg || sprintf("Fails in flash(%s)-message regexp matching for: ", (type || "ALL")))+csstext.inspect
     assert_match(regex, csstext, "(#{caller_info}): "+msg2pass)
   end
 
+  # Returns the CSS string to extract the flash messages.
+  #
+  # @example
+  #    css_for_flash(:notice, category: :error_explanation)
+  #      # => "div#body_main div.alert.alert-info.notice"
+  #    css_for_flash(:warning, category: :both, extra: "a em")
+  #      # => "div#body_main div.alert.alert-warning a em, div#body_main div#error_explanation.alert.alert-warning a em"
+  #    css_for_flash([:alert, :success], category: :div, extra_attributes: ["cls1", "cls2"])
+  #      # => "div#body_main div.alert.alert-danger.cls1.cls2, div#body_main div.alert.alert-success.cls1.cls2"
+  #
   # @param type: [Symbol, Array<Symbol>, NilClass] :notice, :alert, :warning, :success or their array.
   #    If nil, everything defined in {ApplicationController::FLASH_CSS_CLASSES}
   #    Note that the actual CSS is "alert-danger" (Bootstrap) for :alert, etc.
-  # @param category: [Symbol] :both, :error_explanation (for save/update), :p (normal flash)
-  # @return CSS for Flash-message part.
-  def css_for_flash(type=nil, category: :both)
+  # @param category: [Symbol] :both, :error_explanation (for save/update), :div (normal flash)
+  # @param extra: [String, NilClass] Extra CSS following the returned CSS-selector (placed after a space!)
+  # @param extra_attributes: [String, Array, NilClass] Extra CSS classes (attributes) to append the last element in the returned CSS-selector (placed without a space)
+  #   This is useful to further edit the returned CSS in case there are more than one "OR" condition.
+  # @return [String] CSS for Flash-message part; e.g., ".alert, div#error_explanation"
+  def css_for_flash(type=nil, category: :both, extra: nil, extra_attributes: nil, return_array: false)
+    bind = caller_locations(1,1)[0]  # Ruby 2.0+
+    caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
+    # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
+
+    extra_attributes =
+      if extra_attributes.blank?
+        []
+      else
+        [extra_attributes].flatten 
+      end
+
     all_flash_types = ApplicationController::FLASH_CSS_CLASSES.keys.map(&:to_s) # String
-    types = type && [type.to_s].flatten || all_flash_types
+    types = type && (type.respond_to?(:flatten) ? type.map(&:to_s) : [type.to_s]) || all_flash_types
     if types.any?{|i| !ApplicationController::FLASH_CSS_CLASSES.keys.include?(i)}
       raise "(#{caller_info}) (#{__FILE__}) Flash type (#{types.inspect}) must be included in ApplicationController::FLASH_CSS_CLASSES="+ApplicationController::FLASH_CSS_CLASSES.keys.map(&:to_sym).inspect
     end
@@ -163,19 +189,79 @@ class ActiveSupport::TestCase
     categories = 
       case category.to_sym
       when :both
-        ["p", "div#error_explanation"]
+        ["div", "div#error_explanation"]
       when :error_explanation
         ["div#error_explanation"]
       else
-        ["p"]
+        ["div"]
       end
-    
+
     categories.map{|ea_cat|
-      types.map{|i| "div#body_main "+ea_cat+"."+ApplicationController::FLASH_CSS_CLASSES[i].strip.split.join(".")}.join(", ")  # "div#body_main p.alert.alert-danger, div#body_main p.alert.alert-warning" etc
+      types.map{|i| "div#body_main "+ea_cat+"."+(ApplicationController::FLASH_CSS_CLASSES[i].strip.split+extra_attributes).join(".")+(extra.present? ? " "+extra : "")}.join(", ")  # "div#body_main p.alert.alert-danger, div#body_main p.alert.alert-warning" etc
     }.join(", ")
   end
 
-  
+  # Returns the XPATH string to extract the flash messages.
+  #
+  # @example
+  #    xpath_for_flash(:notice, category: :error_explanation)
+  #      # => "div#body_main div.alert.alert-info.notice"
+  #    css_for_flash(:warning, category: :both, extra: "a em")
+  #      # => "div#body_main div.alert.alert-warning a em, div#body_main div#error_explanation.alert.alert-warning a em"
+  #    css_for_flash([:alert, :success], category: :div, extra_attributes: ["cls1", "cls2"])
+  #      # => "div#body_main div.alert.alert-danger.cls1.cls2, div#body_main div.alert.alert-success.cls1.cls2"
+  #
+  # @param type: [Symbol, Array<Symbol>, NilClass] :notice, :alert, :warning, :success or their array.
+  #    If nil, everything defined in {ApplicationController::FLASH_CSS_CLASSES}
+  #    Note that the actual CSS is "alert-danger" (Bootstrap) for :alert, etc.
+  # @param category: [Symbol] :both, :error_explanation (for save/update), :div (normal flash)
+  # @param extras: [Array<String>, NilClass] Extra tags following the returned CSS-selector (placed after a space!)
+  # @param extra_attributes: [String, Array, NilClass] Extra CSS classes (attributes) to append the last element in the returned CSS-selector (placed without a space)
+  #   This is useful to further edit the returned CSS in case there are more than one "OR" condition.
+  # @return [String] CSS for Flash-message part; e.g., ".alert, div#error_explanation"
+  def xpath_for_flash(type=nil, category: :both, extras: nil, extra_attributes: nil, return_array: false)
+    bind = caller_locations(1,1)[0]  # Ruby 2.0+
+    caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
+    # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
+
+    extras = [] if extras.blank?
+
+    extra_attributes =
+      if extra_attributes.blank?
+        []
+      else
+        [extra_attributes].flatten 
+      end
+
+    all_flash_types = ApplicationController::FLASH_CSS_CLASSES.keys.map(&:to_s) # String
+    types = type && (type.respond_to?(:flatten) ? type.map(&:to_s) : [type.to_s]) || all_flash_types
+    if types.any?{|i| !ApplicationController::FLASH_CSS_CLASSES.keys.include?(i)}
+      raise "(#{caller_info}) (#{__FILE__}) Flash type (#{types.inspect}) must be included in ApplicationController::FLASH_CSS_CLASSES="+ApplicationController::FLASH_CSS_CLASSES.keys.map(&:to_sym).inspect
+    end
+
+    category_tag = "div"
+    categories = 
+      case category.to_sym
+      when :both
+        ["div", "div[@id='error_explanation']"]
+      when :error_explanation
+        [       "div[@id='error_explanation']"]
+      else
+        ["div"]
+      end
+
+    categories.map{|ea_cat|
+      css_klasses = types.map{|i|
+        str0 = (ApplicationController::FLASH_CSS_CLASSES[i].strip.split + extra_attributes).map{|ea_klass|
+          sprintf("[contains(@class, '%s')]", ea_klass)
+        }.join("")
+        ([str0] + extras).join("//")
+      }
+      css_klasses.map{|ea_xpk|
+        sprintf("//div[@id='body_main']/%s%s[1]", ea_cat, ea_xpk)  # the flash part should appear immediately after div#body_main
+      } 
+    }.flatten.join("|")
+  end
 
   # Asserts in a Conroller test no presence of alert on the page and prints the alert in failing it
   #

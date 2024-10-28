@@ -10,11 +10,12 @@ class EventsTest < ApplicationSystemTestCase
     @h1_title = "Events"
   end
 
-  test "visiting the index" do
-    visit events_url
-    assert_selector "h1", text: @h1_title
-    refute_text "Items"
-  end
+  ######## For now, it is prohibited for public to view Event#index
+  #test "visiting the index" do
+  #  visit events_url
+  #  assert_selector "h1", text: @h1_title
+  #  refute_text "Items"
+  #end
 
   test "should create event" do
     visit new_user_session_path

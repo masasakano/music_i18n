@@ -141,6 +141,11 @@ class LibTimeAuxTest < ActiveSupport::TestCase
     assert_nil   ary[4]
     assert_nil   ary[5]
   end
+
+  test "to_time_midday_utc" do
+    assert_equal 12, TimeAux.to_time_midday_utc(Date.new(2024,10,20)).hour
+    assert_equal 12, TimeAux.to_time_midday_utc(Date.new(2024,10,28)).hour
+  end
 end
 
 

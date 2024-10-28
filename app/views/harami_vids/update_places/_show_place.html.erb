@@ -1,0 +1,20 @@
+
+<%# Assumed instance variables: @harami_vid; local variables: (optional) from_non_turbo: Def(false) true if requested from show.html.erb %>
+
+<% if !defined?(from_non_turbo)
+     from_non_turbo = false
+   end %>
+
+    <%= turbo_frame_tag "update_place_"+dom_id(@harami_vid) do %>
+      <%= show_pref_place_country(@harami_vid.place) %> <%# defined in places_helper.rb %>
+      <% if (canupdate=can?(:update, @harami_vid)) && (evit_place=get_evit_place_if_need_updating(@harami_vid)) %>
+        <br>
+        <div class="editor_only harami_vids_update_place">
+          / In EventItem(s): <%= show_pref_place_country(evit_place) %>
+          <%= button_to "Update Place", harami_vids_update_place_path(@harami_vid), method: :patch, form_class: "inline_form", class: "text-end", style: "display: inline-block; margin-top: -1em; padding-top: 0em; padding-bottom: 0em; margin-bottom: -1em;" %>
+        </div>
+      <% end %>
+      <% if !from_non_turbo && canupdate %>
+        <%= render "/layouts/flash_display" %>
+      <% end %>
+    <% end %>

@@ -1,12 +1,12 @@
 
-<h1><%= t(".harami_vid_long")%> <%= "[HaramiVid]" if can?(:edit, @harami_vid) %> (<%= @harami_vid.release_date %>) <%= ((@harami_vid.channel && (owner=@harami_vid.channel.channel_owner) != Artist.default(:HaramiVid)) ? "by #{owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)}" : "") %></h1>
+<h1><%= t(".harami_vid_long")%> <%= "[HaramiVid]" if (canedit=can?(:edit, @harami_vid)) %> (<%= @harami_vid.release_date %>) <%= ((@harami_vid.channel && (owner=@harami_vid.channel.channel_owner) != Artist.default(:HaramiVid)) ? "by #{owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)}" : "") %></h1>
 
 <hr>
 <section id="harami_vids_show_parameters">
 <%= render partial: 'layouts/all_registered_translations', locals: {model: @harami_vid, add_buttons: false} %>
  <section id="harami_vids_show_unique_parameters">
  <dl>
-  <% if can? :edit, @harami_vid %>
+  <% if canedit %>
     <div class="editor_only">
       <dt class="item_pid"> pID:</dt>
       <dd class="item_pid"><%= @harami_vid.id %></dd>
@@ -31,15 +31,17 @@
     by <span class="channel_owner"><%= @harami_vid.channel.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></span>
   </dd>
 
+  <dt class="item_place"> <%= t("tables.place_country") %>:</dt>
+  <dd class="item_place">
+    <%= render partial: "/harami_vids/update_places/show_place", locals: {from_non_turbo: true} %>
+    </dd>
+
   <dt class="item_event"> <%= t(:Events) %> [<%= t(:EventGroup)%>]:</dt>
   <dd class="item_event">
     <%= render partial: "event_event_items" %>
   </dd>
 
-  <dt class="item_place"> <%= t("tables.place_country") %>:</dt>
-  <dd class="item_place"><%= show_pref_place_country(@harami_vid.place) %></dd>  <%# defined in places_helper.rb %>
-
-  <% if can? :edit, @harami_vid %>
+  <% if canedit %>
     <div class="editor_only">
       <dt> <%= t("datagrid.form.uri_playlist", langcode: t("locale.long.ja")) %>:</dt>
       <dd><%= uri=@harami_vid.uri_playlist_ja; (uri.blank? ? '' : link_to_youtube(uri, uri)) %></dd>
@@ -54,8 +56,6 @@
  </dl>
  </section> <!-- section id="harami_vids_show_unique_parameters" -->
 </section> <!-- section id="harami_vids_show_parameters" -->
-
-<%= link_to t("layouts.back_to_index"), harami_vids_path %>
 
 <% if can? :update, @harami_vid %>
   <div class="editor_only">
@@ -84,6 +84,8 @@
 <% end %>
 
   <%# button_to 'Edit another HaramiVid', "#", method: :get, id: "href_edit_harami_vid_with_ref", form_css: "inline_form" %>
+
+<%= link_to t("layouts.back_to_index"), harami_vids_path %>
 
 <hr>
 <%= render partial: 'music_table', locals: {harami_vid: @harami_vid, add_buttons: true} %>

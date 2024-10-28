@@ -103,7 +103,7 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
     get artists_edit_merges_url(@artist, params: {artist: {other_artist_id: nil, other_artist_title: "こんな曲はきっとないことでしょう、どうするかな" }})
     assert_response :redirect
     follow_redirect!
-    assert css_select('p.alert').text.include? 'No Artist matches'
+    flash_regex_assert(/No Artist matches/, "Should be 'No Artist matches', but...", type: :alert) # defined in test_helper.rb
   end
 
   ## @artist is merged into @other

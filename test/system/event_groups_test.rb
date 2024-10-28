@@ -5,6 +5,7 @@ require "helpers/test_system_helper"
 class EventGroupsTest < ApplicationSystemTestCase
   setup do
     @moderator = users(:user_moderator_general_ja)
+    @editor_ja = users(:user_editor_general_ja)
     @event_group = event_groups(:evgr_lucky2023)
     @button_text = {
       create: "Create Event group",
@@ -12,10 +13,11 @@ class EventGroupsTest < ApplicationSystemTestCase
     }
   end
 
-  test "visiting the index" do
-    visit event_groups_url
-    assert_selector "h1", text: "Event Group"
-  end
+  ######## For now, it is prohibited for public to view EventGroup#index
+  #test "visiting the index" do
+  #  visit event_groups_url
+  #  assert_selector "h1", text: "Event Group"
+  #end
 
   test "should create event group" do
     visit new_user_session_path
@@ -24,6 +26,7 @@ class EventGroupsTest < ApplicationSystemTestCase
     click_on "Log in"
 
     visit event_groups_url
+    assert_selector "h1", text: "Event Group"
     n_event_groups_be4 = page.all("div#event_groups table tr").size - 1
     click_on "Create EventGroup"
 

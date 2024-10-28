@@ -120,11 +120,11 @@ class Artists::MergesTest < ApplicationSystemTestCase
     ### Merge new
 #page.find(css_swithcer_en).click  ###### Language switching to English; for some reason, it seems t has been already in English..... Check it out!
     click_on "Proceed"  # With no input, but just Submit!  This should display just an error Flash message.
-    assert page.all('p.alert').any?{|i| i.text.include? "No Artist"}, "failed: all css: "+page.all('p.alert').inspect
+    assert page.all(css_for_flash(:alert, category: :div)).any?{|i| i.text.include? "No Artist"}, "failed: all css: "+page.all(css_for_flash(:alert, category: :div)).inspect
 
     fill_in "Other artist title", with: "そんな人いるわけないよ"
     click_on "Proceed"  # Submit with a wrong input!  This should display just an error Flash message.
-    assert page.all('p.alert').any?{|i| i.text.include? "No Artist"}, "failed: all css: "+page.all('p.alert').inspect
+    assert page.all(css_for_flash(:alert, category: :div)).any?{|i| i.text.include? "No Artist"}, "failed: all css: "+page.all(css_for_flash(:alert, category: :div)).inspect
 
     assert_selector 'form div.field label[for="artist_other_artist_id"]'
     assert_selector 'form div.field input#artist_with_id[name="artist[other_artist_title]"]'
@@ -203,27 +203,29 @@ class Artists::MergesTest < ApplicationSystemTestCase
 
     ## first, testing Harami1129Review (for authorization etc)
     visit harami1129_reviews_url  # should be redirected to new_user_session_path
-    assert page.find(:xpath, "//div[@id='body_main']/p[contains(@class, 'alert-danger')][1]").text.strip.include?("need to sign in")
+    assert page.find(:xpath, xpath_for_flash(:alert, category: :div)).text.strip.include?("need to sign in") # defined in test_helper.rb
+                # "//div[@id='body_main']/p[contains(@class, 'alert-danger')][1]" (and more)
 
     fill_in "Email", with: @moderator_ja.email  # General-only moderator
     fill_in "Password", with: '123456'  # from users.yml
     click_on "Log in"
 
-    assert_equal "Signed in successfully.",  page.find(:xpath, "//div[@id='body_main']/p[contains(@class, 'notice')][1]").text.strip  # Notice message issued.
+    assert_equal "Signed in successfully.",  page.find(:xpath, xpath_for_flash(:notice, category: :div)).text.strip  # Notice message issued.
+                                              # "//div[@id='body_main']/p[contains(@class, 'notice')][1]" (and more)
     assert_selector "h1", text: "HARAMIchan"  # Here, @moderator_ja is not qualified to view Harami1129Review, so the login page would not go back to Harami1129Review-index but is redirected to Home.
     refute_selector "h1", text: "Harami1129 Reviews"
 
     assert page.find(:xpath, "//div[@id='navbar_top']//a[text()='Log out']").click
-    assert_equal "Signed out successfully.", page.find(:xpath, "//div[@id='body_main']/p[contains(@class, 'notice')][1]").text.strip  # Notice message issued.
+    assert_equal "Signed out successfully.", page.find(:xpath, xpath_for_flash(:notice, category: :div)).text.strip  # Notice message issued.
     assert_selector "h1", text: "HARAMIchan"
 
     visit harami1129_reviews_url  # should be redirected to new_user_session_path
-    assert page.find(:xpath, "//div[@id='body_main']/p[contains(@class, 'alert-danger')][1]").text.strip.include?("need to sign in")
+    assert page.find(:xpath, xpath_for_flash(:alert, category: :div)).text.strip.include?("need to sign in")
     fill_in "Email", with: @moderator_harami.email  # Harami-only moderator
     fill_in "Password", with: '123456'  # from users.yml
     click_on "Log in"
 
-    assert_equal "Signed in successfully.",  page.find(:xpath, "//div[@id='body_main']/p[contains(@class, 'notice')][1]").text.strip  # Notice message issued.
+    assert_equal "Signed in successfully.",  page.find(:xpath, xpath_for_flash(:notice, category: :div)).text.strip  # Notice message issued.
     assert_selector "h1", text: "Harami1129 Reviews"
     
     assert_equal N_FIXTURES_HARAMI1129_REVIEW, page.find_all(:xpath, "//table[@id='harami1129_reviews_index']//tbody//tr").size, "should display 2 entries as defined in the fixture harami1129_review"
@@ -250,7 +252,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
         click_on "Insert within Table"
 
         assert_selector "h1", text: "HARAMI1129 Entry"
-        msg_notice = page.find(:xpath, "//div[@id='body_main']/p[contains(@class, 'notice')][1]").text.strip  # Notice message issued.
+        msg_notice = page.find(:xpath, xpath_for_flash(:notice, category: :div)).text.strip  # Notice message issued.
         assert_match(/ID=#{h1129.id}\b.+\bupdated for ins_COLUMNS/, msg_notice)  # ID=12345 in Harami1129 is updated for ins_COLUMNS.
         assert_equal h1129.id, page.find("dl#h1129_main_dl dd#h1129_id_dd").text.to_i
         assert_selector 'form input[type="submit"][value="Populate"]'
@@ -318,7 +320,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
 
     ## Logout and back in as a full moderator.
     page.find(:xpath, "//div[@id='navbar_top']//a[text()='Log out']").click
-    assert_equal "Signed out successfully.", page.find(:xpath, "//div[@id='body_main']/p[contains(@class, 'notice')][1]").text.strip  # Notice message issued.
+    assert_equal "Signed out successfully.", page.find(:xpath, xpath_for_flash(:notice, category: :div)).text.strip  # Notice message issued.
 
     page.find("div#home_bottom a.login-button").click  # In the bottom menu.
     #visit new_user_session_path  # equivalent.
@@ -339,13 +341,13 @@ class Artists::MergesTest < ApplicationSystemTestCase
 
     ## jumping to merging page failed
     assert_selector "h1", text: "Merge Artists (#{h1129s[0].singer.strip})"
-    assert page.find(:xpath, "//div[@id='body_main']/p[contains(@class, 'alert-danger')][1]").text.strip.include?("No Artist matches")  # Warning message "No Artist matches the given one. Try a different title or ID." issued.
+    assert page.find(:xpath, xpath_for_flash(:alert, category: :div)).text.strip.include?("No Artist matches")  # Warning message "No Artist matches the given one. Try a different title or ID." issued.
     fill_in "Artist-ID (to merge this with)", with: art_ids[0]  # identical ID => should fail.
     click_on "Proceed"
 
     ## jumping to merging page failed
     assert_selector "h1", text: "Merge Artists (#{h1129s[0].singer.strip})"
-    assert page.find(:xpath, "//div[@id='body_main']/p[contains(@class, 'alert-danger')][1]").text.strip.include?("Identical Artists specified")  # Warning message "Identical Artists specified. Try a different title or ID." issued.
+    assert page.find(:xpath, xpath_for_flash(:alert, category: :div)).text.strip.include?("Identical Artists specified")  # Warning message "Identical Artists specified. Try a different title or ID." issued.
 
     ## try with a correct record
     assert_selector "h1", text: "Merge Artists (#{h1129s[0].singer.strip})"
@@ -388,7 +390,9 @@ class Artists::MergesTest < ApplicationSystemTestCase
     ## submit
     click_on "Submit"
 
-    assert page.all('p.alert').any?{|i| i.text.include? "successfully merged"}, "failed: all css: "+page.all('p.alert').inspect
+    # Here, :success may be replaced with :notice in the future...  You may omit :success in order to check all flash messages
+    res = page.all(css_for_flash(:success, category: :div))
+    assert res.any?{|i| i.text.include? "successfully merged"}, "failed: all css: #{res.map{|i| i['innerHTML']}.inspect}"
     assert_selector "h1", text: "Artist: #{h1129s[1].singer}"  # "Artist should have the name for the second one (=スティング), but..."
     assert_equal artist_path(art_ids[1]).sub(/\?.*/, ""), current_path, "Artist-ID should be the second one, but..."
 
@@ -463,7 +467,9 @@ class Artists::MergesTest < ApplicationSystemTestCase
     ## submit
     click_on "Submit"
 
-    assert page.all('p.alert').any?{|i| i.text.include? "successfully merged"}, "failed: all css: "+page.all('p.alert').inspect
+    # Here, :success may be replaced with :notice in the future...  You may omit :success in order to check all flash messages
+    res = page.all(css_for_flash(:success, category: :div))
+    assert res.any?{|i| i.text.include? "successfully merged"}, "failed: all css: #{res.inspect}"
     assert_selector "h1", text: "Music: #{h1129s[1].song}"  # "Music should have the name for the first one, but..."
     assert_equal music_path(mus_ids[1]).sub(/\?.*/, ""), current_path, "Music-ID should be the second one, but..."
 

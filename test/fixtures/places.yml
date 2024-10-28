@@ -105,6 +105,10 @@ montparnasse_france:
   prefecture: prefecture_paris
   note: MyTextMontparnasse
 
+gare_lyon_france:
+  prefecture: prefecture_paris
+  note: MyTextGareLyon
+
 unknown_place_prefecture_paris:
   prefecture: prefecture_paris
   note: UnknownPlacePrefectureParis

@@ -23,10 +23,13 @@ module TimeAux
 
   # Convert Date to Time at midday at UTC
   #
+  # See "How to convert a Date to the midday Time in UTC in Ruby-on-Rails, regardless of the timezone?"
+  # <https://stackoverflow.com/questions/79134838>
+  #
   # @param date [Date]
-  # @return [Time]
+  # @return [Time] Built-in Time and NOT ActiveSupport::TimeWithZone 
   def to_time_midday_utc(date)
-    date.to_time + Time.now.gmt_offset + 3600*12  # to make it midday in UTC/GMT
+    date.to_time(:utc) + 12.hours  # to make it midday in UTC/GMT
   end
 
   # returns dup-ped {TimeAux::DEF_FIRST_DATE_TIME}

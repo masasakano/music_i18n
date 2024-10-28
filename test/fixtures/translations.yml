@@ -641,6 +641,17 @@ montparnasse_france_fr:
   note: PlaceMontparnasseFranceFr
   # No Ja/En Translation for Gare Montparnasse
 
+gare_lyon_france_fr:
+  translatable: gare_lyon_france (Place)
+  langcode: fr
+  title: Gare de Lyon
+  is_orig: true
+  weight: 10
+  create_user_id: 
+  update_user: 
+  note: PlaceGareLyonFranceFr
+  # No Ja/En Translation for Gare de Lyon
+
 unkown_prefecture_aus_en:
   translatable: unknown_prefecture_aus
   translatable_type: Prefecture

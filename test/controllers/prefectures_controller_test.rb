@@ -242,10 +242,10 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
     # warning should be printed as Country(Australia) is changed into Japan.
     follow_redirect!
     assert_response :success  # redirect success
-    assert_select 'p.alert-success', text: "Prefecture was successfully updated."
-    assert_equal 1, css_select('p.alert-warning').size
-    assert_match(/Make sure that is what you intended/, css_select('p.alert-warning')[0].text)
-    #assert_select 'p.alert-warning', text: "Make sure that is what you intended"  ## Exact match...
+    flash_regex_assert(/Prefecture was successfully updated\b/, "flash message should exist, but...", type: :success) # defined in test_helper.rb
+    assert_equal 1, css_select(css_for_flash(:warning)).size # defined in test_helper.rb
+    flash_regex_assert(/Make sure that is what you intended/, "flash warning message should exist, but...", type: :warning) # defined in test_helper.rb
+    #assert_select 'div.alert-warning', text: "Make sure that is what you intended"  ## Exact match...
 
     orig_updated_at2 = @prefecture.updated_at
     patch prefecture_url(@prefecture), params: { prefecture: { note: "", country_id: Country['JPN'].id.to_s, iso3166_loc_code: pref_orig.iso3166_loc_code } }
