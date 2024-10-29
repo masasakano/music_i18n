@@ -5,17 +5,7 @@
 <% mo_title = model.title_or_alt %>
 <h1>Merge <%= model_underscore.camelize.pluralize %> (<%= mo_title %>)</h1> <%# e.g., Musics (Let It Be) %>
 
-  <% if model.errors.any? %>
-    <div id="error_explanation">
-      <h2><%= pluralize(model.errors.count, "error") %> prohibited merging:</h2>
-
-      <ul>
-        <% model.errors.full_messages.each do |message| %>
-          <li><%= message %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
+  <%= render partial: 'layouts/form_print_errors', locals: {model: model} %>
 
 <% path_edit = send(model_underscore.pluralize + "_edit_merges_path", model) %> <%# e.g., musics_edit_merges_path() %>
 <%= form_with(model: model, url: path_edit, method: "get") do |form| %>

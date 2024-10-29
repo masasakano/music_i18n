@@ -1,16 +1,6 @@
 <%# NOTE: Argument "models" should be an 2-element Array of base-model and merge-model %>
 
-  <% if models[0].errors.any? || models[1].errors.any? %>
-    <div id="error_explanation">
-      <h2>merging failed:</h2>
-
-      <ul>
-        <% models.each do |eam| %>
-          <li><%= errors.full_messages %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
+<%= render partial: 'layouts/form_print_errors', locals: {model: models} %>
 
 <% is_music = (models[0].class == Music) %>
 <% model_underscore = models[0].class.name.underscore %>

@@ -38,7 +38,7 @@
 
   <dt class="item_event"> <%= t(:Events) %> [<%= t(:EventGroup)%>]:</dt>
   <dd class="item_event">
-    <%= render partial: "event_event_items" %>
+    <%= render partial: "event_event_items", locals: {from_non_turbo: true} %>
   </dd>
 
   <% if canedit %>

@@ -109,6 +109,7 @@ class HaramiVid < BaseWithTranslation
   attr_accessor :music_year
   attr_accessor :form_new_artist_collab_event_item
   attr_accessor :reference_harami_vid_id
+  attr_accessor :missing_music_ids
 
   attr_accessor :form_info  # various information about the result of form inputs, especially in create.
 

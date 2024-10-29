@@ -5,7 +5,8 @@ require 'test_helper'
 class ModuleCommonTest < ActiveSupport::TestCase
 
   test "css_for_flash" do
-    assert_equal "div#body_main div#error_explanation.notice.alert.alert-info", css_for_flash(:notice, category: :error_explanation)
+    exp = "div#body_main div#error_explanation.notice.alert.alert-info, div#body_main div.error_explanation.notice.alert.alert-info"
+    assert_equal exp, css_for_flash(:notice, category: :error_explanation)
 
     exp = "div#body_main div.alert.alert-warning a em, div#body_main div#error_explanation.alert.alert-warning a em"
     assert_equal exp, css_for_flash(:warning, category: :both, extra: "a em")

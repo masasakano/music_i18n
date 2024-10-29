@@ -91,7 +91,7 @@ class Musics::MergesControllerTest < ActionDispatch::IntegrationTest
     get musics_edit_merges_url(@music, params: {music: {other_music_id: nil, other_music_title: "こんな曲はきっとないことでしょう、どうするかな" }})
     assert_response :redirect
     follow_redirect!
-    assert css_select('p.alert').text.include? 'No Music matches'
+    flash_regex_assert(/\bNo Music matches/, msg=nil, type: :alert)  # defined in test_helper.rb
   end
 
   ## @music is merged into @other

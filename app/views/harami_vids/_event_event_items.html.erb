@@ -1,4 +1,11 @@
-<%# Local vairables: none %>
+<%# Assumed instance variables: @harami_vid, @event_event_items; local variables: (optional) from_non_turbo: Def(false) true if requested from show.html.erb %>
+
+<% if !defined?(from_non_turbo)
+     from_non_turbo = false
+   end %>
+
+<%= turbo_frame_tag "show_events_"+dom_id(@harami_vid) do %>
+    <% def_artist = Artist.default(:HaramiVid) %>
     <% canindex_evit = can? :index, EventItem %>
     <% canread_h1129 = can? :read, Harami1129 %>
     <% canedit_hvid = can? :edit, @harami_vid %>
@@ -74,9 +81,28 @@
               <% if event_item.artist_music_plays.exists? %>
                 <%= render partial: "layouts/artist_music_plays", locals: {artist_music_plays: event_item.artist_music_plays, harami_vid: @harami_vid} %>
               <% end %>
+              <% if canedit_hvid && !(all_missings=missing_musics_from_evits(harami_vid: @harami_vid, artist: def_artist)).empty? %>
+                <div class="add_missing_musics editor_only">
+                  <p class="add_missing_musics editor_only lead"><strong>Missing Musics in EventItem-<%= def_artist.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></strong></p>
+                  <%  set_missing_music_ids(all_missings, harami_vid: @harami_vid) %> <%# defined in HaramiVids::AddMissingMusicToEvitsHelper %>
+                  <%= simple_form_for @harami_vid, method: :patch, url: harami_vids_add_missing_music_to_evit_url(@harami_vid) do |f1| %>
+                    <%= f1.simple_fields_for :add_missing_music_to_evit do |f2| %>
+                      <%= f2.input :musics_event_item_id, as: :hidden, input_html: { value: event_item.id } %>
+                      <%# f2.input :missing_music_ids, as: :check_boxes, collection: collection_missing_musics(all_missings), multiple: true, item_wrapper_class: 'inline' %> <%# defined in HaramiVids::AddMissingMusicToEvitsHelper %>
+                      <%= f2.collection_check_boxes :missing_music_ids, collection_missing_musics(all_missings), :last, :first, checked: @harami_vid.missing_music_ids %> <%# defined in HaramiVids::AddMissingMusicToEvitsHelper %>
+                    <% end %>
+                    <%= f1.submit sprintf("Add Musics to this EventItem (%s) for %s", event_item.id, def_artist.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)) %>
+                  <% end %>
+                </div>
+              <% end %>
+              <% if !from_non_turbo && canedit_hvid %>
+                <%= render partial: 'layouts/form_print_errors', locals: {model: @harami_vid, error_explanation_for_class: true} %>
+                <%= render partial: "/layouts/flash_display" %>
+              <% end %>
             </li>
           <% end %>
         </ol>
       </li>
     <% end %>
     </ul>
+<% end %>

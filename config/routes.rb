@@ -90,6 +90,7 @@ Rails.application.routes.draw do
   namespace :harami_vids do
     resources :fetch_youtube_data, only: [:create, :update]
     resources :update_places,      only: [:show,   :update]
+    resources :add_missing_music_to_evits, only: [:show,   :update]
   end
   resources :musics
   resources :genres

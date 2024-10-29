@@ -15,6 +15,7 @@
         </div>
       <% end %>
       <% if !from_non_turbo && canupdate %>
-        <%= render "/layouts/flash_display" %>
+        <%= render partial: 'layouts/form_print_errors', locals: {model: @harami_vid, error_explanation_for_class: true} %>
+        <%= render partial: "/layouts/flash_display" %>
       <% end %>
     <% end %>

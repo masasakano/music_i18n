@@ -33,6 +33,7 @@ class ActiveSupport::TestCase
     end
     assert_response :unprocessable_entity
     assert_includes css_select('.alert-danger h2').text, "prohibited", "Called from #{caller_info}"
+    
     css1 = ".alert-danger #error_explanation_list"
     assert_select css1, {count: 1}, "Text: #{css_select(css1).to_s}"
     assert_operator 1, :<=, css_select(css1+" li").size, "At least one error should be reported."

@@ -6,7 +6,7 @@
           <% ApplicationController::FLASH_CSS_CLASSES.keys.each do |ek| %>
             <% next if flash[ek].blank? %>
             <div class="alert alert-dismissible fade show <%= ApplicationController::FLASH_CSS_CLASSES[ek] %>" role="alert">
-              <%= [flash[ek]].flatten.map{|i| (flash[:html_safe] && flash[:html_safe][ek]) ? i : h(i)}.join("<br>").html_safe %>
+              <%= [flash[ek]].flatten.map{|i| (flash[:html_safe] && flash[:html_safe][ek]) ? i : sanitized_html(i)}.join("<br>").html_safe %>  <%# "a" tag etc are allowed. Defined in application_helper.rb  See also /config/application.rb %>
               <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
           <% end %>

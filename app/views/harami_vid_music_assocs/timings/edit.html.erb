@@ -7,13 +7,7 @@
     <%= link_to "Cancel", harami_vid_music_assocs_timing_path(@hvma), class: "btn btn--light button_like" %>
   <% end %>
 
-  <% if @hvma.errors.any? %>
-    <%# See /app/views/layouts/_form_print_errors.html.erb %>
-    <div id="error_explanation" class="<%= ApplicationController::FLASH_CSS_CLASSES[:alert] %>">
-      <div class="error-message">
-        <%= @hvma.errors.full_messages.to_sentence.capitalize %>
-      </div>
-    </div>
-  <% end %>
+  <%= render partial: 'layouts/form_print_errors', locals: {model: @hvma, error_explanation_for_class: true} %>
+  <%= render partial: "/layouts/flash_display" %>
 <% end %>
 

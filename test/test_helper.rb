@@ -191,7 +191,7 @@ class ActiveSupport::TestCase
       when :both
         ["div", "div#error_explanation"]
       when :error_explanation
-        ["div#error_explanation"]
+        ["div#error_explanation", "div.error_explanation"]  # the latter is needed when called from turbo.
       else
         ["div"]
       end

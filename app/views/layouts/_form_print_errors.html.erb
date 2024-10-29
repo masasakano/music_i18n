@@ -1,13 +1,23 @@
-<% if model.errors.any? %>
-  <% modelname ||= model.class.name %>  <%# Model name to display %>
-  <div id="error_explanation" class="<%= ApplicationController::FLASH_CSS_CLASSES[:alert] %>">
+<%# Local variables: (mandatory) model, which can be a single model or an Array of models, (optional) error_explanation_for_class: Def(false) if true, div class="error_explanation" is used as opposed to "id" as in Devise default, which is necessary when there can be multiple div-ID in the same page, like when called by turbo. %>
+
+<% if !defined?(error_explanation_for_class)
+     error_explanation_for_class = false
+   end %>
+
+<% models = [model].flatten %>
+<% if models.any?{|i| i.errors.any?} %>
+  <% modelname ||= models.first.class.name %>  <%# Model name to display %>
+  <% div_id_klass = (error_explanation_for_class ? 'class="error_explanation ' : 'id="error_explanation" class="') %>
+  <div <%= div_id_klass.html_safe %><%= ApplicationController::FLASH_CSS_CLASSES[:alert] %>">
     <h2><%= errors_txt = pluralize_i18n(model.errors.count, :error, default: "error")
             I18n.t("layouts.error_in_save", errors: errors_txt, model: modelname, default: "%{errors_txt} prohibited this %{model} from being saved") %>:</h2>
 
     <ul id="error_explanation_list">
-      <% model.errors.full_messages.each do |message| %>
+     <% models.each do |eam| %>
+      <% eam.errors.full_messages.each do |message| %>
         <li><%= sanitized_html(message).html_safe %></li>  <%# "a" tag etc are allowed. Defined in application_helper.rb  See also /config/application.rb %>
       <% end %>
+     <% end %>
     </ul>
   </div>
 <% end %>
