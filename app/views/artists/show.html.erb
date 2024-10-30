@@ -42,7 +42,7 @@
 <% end %>
 
   <dt class="item_note" title="Note"> <%= t("tables.note") %>:</dt>
-    <dd class="item_note"><%= auto_link(@artist.note) %></dd>
+    <dd class="item_note"><%= sanitized_html(auto_link(@artist.note)).html_safe %></dd>
   <% if can_update %>
    <div class="editor_only">
    <dt>Updated at:</dt>

@@ -49,7 +49,7 @@
         <td class="editor_only"><%= s=model.end_date_err; (str.blank? ? "" : s) %></td>
       <% end %>
         <td><%= model.place ? h(model.txt_place_pref_ctry) : "" %></td>
-        <td><%= auto_link50(model.note) %></td>
+        <td><%= sanitized_html(auto_link50(model.note)).html_safe %></td>
 
         <td class="event_groups_index_table_events"><%= link_to model.events.size, event_group_url(model)+"#section_event_group_show_events" %></td>
         <td><%= link_to t("event_groups.index.show"), model %></td>

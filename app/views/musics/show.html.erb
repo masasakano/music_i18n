@@ -26,7 +26,7 @@
   <dt title="HaramiVid"><strong><%= link_to t(:HaramiVid), "#sec_harami_vids_for" %>:</strong></dt>
     <dd><%= t(:times, count: @music.harami_vids.count) %></dd>
   <dt class="item_note" title="Note"> <%= t("tables.note") %>:</dt>
-    <dd class="item_note"><%= auto_link(@music.note) %></dd>
+    <dd class="item_note"><%= sanitized_html(auto_link(@music.note)).html_safe %></dd>
   <% if can_update %>
    <div class="editor_only">
      <dt>Updated at:</dt>

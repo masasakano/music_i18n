@@ -45,7 +45,7 @@
   <dt class="item_n_hvids"><%= t("tables.n_harami_vids") %>:</dt>
     <dd class="item_n_hvids"><%= event_group.harami_vids.count %></dd>
   <dt class="item_note"><%= t("tables.note").capitalize %>:</dt>
-    <dd class="item_note"><%= auto_link(event_group.note) %></dd>
+    <dd class="item_note"><%= sanitized_html(auto_link(event_group.note)).html_safe %></dd>
 
   <% if can_update_eg %>
     <div class="editor_only">

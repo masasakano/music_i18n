@@ -82,7 +82,16 @@ class EventItems::ResettleNewEventsControllerTest < ActionDispatch::IntegrationT
     ## Editor harami is qualified
     sign_in @editor_harami
 
-    # Displayed Button-like link
+    # Button-like link is not displayed when the EventItem has no siblilngs (except for Unknown)
+    get harami_vid_path(hvid)
+    assert_response :success
+    assert_select @css_assoc_event, {count: 0}, "Text: #{css_select(@css_assoc_event).to_s}"  # another option for the hash: {text: "XXX is not specified."}
+    
+    # creating a sibling; then Button-like link is displayed.
+    evit2 = hvid.event_items.first.dup
+    evit2.machine_title = evit2.machine_title + "-2"
+    evit2.save!
+
     get harami_vid_path(hvid)
     assert_response :success
     assert_select @css_assoc_event, {count: 1}, "Text: #{css_select(@css_assoc_event).to_s}"  # another option for the hash: {text: "XXX is not specified."}

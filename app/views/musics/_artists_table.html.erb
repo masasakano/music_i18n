@@ -28,9 +28,12 @@
       <th><%= t("tables.note") %></th>
       <% if can_edit %>
         <th colspan="2" title="Show/Edit Artist"><%= t(:Artist) %></th>
-        <th title="Edit (Show) Engagements between Artist and Music" class="editor_only">Engages</th>
       <% else %>
         <th title="Show Artist"><%= t(:Artist) %></th>
+      <% end %>
+      <th><%= t("tables.note") %> (<%= t("engage_multi_hows.table_head.how_related") %>)</th>
+      <% if can_edit %>
+        <th title="Edit (Show) Engagements between Artist and Music" class="editor_only">Engages</th>
       <% end %>
     </tr>
   </thead>
@@ -58,10 +61,13 @@
         <td><%= sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
                   i = artist.send m; (i.blank? ? '——' : i.to_s)}) %></td>
         <td class="text-center"><%= artist.sex.title langcode: I18n.locale, lang_fallback: true %></td>
-        <td><%= auto_link50(artist.note) %></td>
+        <td><%= sanitized_html(auto_link50(artist.note)).html_safe %></td>
         <td><%= link_to t("tables.Show"), artist %></td>
         <% if can? :update, artist %>
           <td class="editor_only"><%= link_to 'Edit', edit_artist_path(artist) %></td>
+        <% end %>
+        <td><%= sanitized_html(auto_link50(compile_engage_notes(artist, music))).html_safe %></td> <%# defined in musics_helper.rb %>
+        <% if can? :update, artist %>
           <td class="editor_only text-center"><%= link_to 'Edit', edit_engage_multi_how_path(engage) %></td> <%# "engage" is set above %>
         <% end %>
       </tr>

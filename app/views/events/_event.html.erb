@@ -19,6 +19,23 @@
     </dd> <%# in module_common.rb %>
   <dt><strong><%= t("events.Duration") %> [<%= t(:hour) %>]:</strong></dt>
     <dd><%= event.duration_hour %></dd>
+  <dt><strong><%= t("events.n_event_items_long") %> / <%= t("tables.n_harami_vids_long") %> / <%= t("datagrid.form.n_musics_general") %><%= ":" if !can_update_gen %>
+    <% if can_update_gen %>
+      <span class="editor_only">
+        / <%= t("datagrid.form.n_musics_general") %> (playing)
+      </span>
+    <% end %>
+     </strong></dt>
+    <dd><%= event.event_items.distinct.count %> / <%= event.harami_vids.distinct.count %> / <%= n1=Music.joins(:harami_vids).joins("INNER JOIN harami_vid_event_item_assocs ON harami_vid_event_item_assocs.harami_vid_id = harami_vids.id").joins("INNER JOIN event_items ON harami_vid_event_item_assocs.event_item_id = event_items.id").joins("INNER JOIN events ON event_items.event_id = events.id").where("events.id = ?", @event.id).distinct.count %>
+      <% if can_update_gen %>
+        <span class="editor_only">
+        / <%= n2=Music.joins(:event_items).joins("INNER JOIN events ON event_items.event_id = events.id").where("events.id = ?", @event.id).distinct.count %>
+        <% if n1 != n2 %>
+          &nbsp; (← <span class="lead text-red"><strong>Inconsistent</strong></span>)
+        <% end %>
+        </span>
+      <% end %>
+    </dd>
   <% if can_update_gen %>
     <div class="editor_only">
       <dt><strong>Weight:</strong></dt>
@@ -26,7 +43,7 @@
     </div>
   <% end %>
   <dt class="item_note"><%= t("tables.note").capitalize %>:</dt>
-    <dd class="item_note"><%= auto_link(event.note) %></dd>
+    <dd class="item_note"><%= sanitized_html(auto_link(event.note)).html_safe %></dd>
   <% if can_update_gen %>
     <div class="editor_only">
       <dt>updated_at:</dt>

@@ -36,7 +36,7 @@ class EventsController < ApplicationController
     set_event_group_prms  # set @event_group
     @event.event_group = @event_group
     @event.start_time     ||= (@event_group ? convert_date_to_midday_utc(@event_group.start_date) : TimeAux::DEF_FIRST_DATE_TIME)  # see event.rb
-    @event.start_time_err ||= (@event_group ? @event_group.start_date_err*86400 : TimeAux::MAX_ERROR)
+    @event.start_time_err ||= ((@event_group && @event_group.start_date_err) ? @event_group.start_date_err*86400 : TimeAux::MAX_ERROR)
 
     set_form_start_err(@event)  # defined in module_comon.rb
     @event.place = @event_group.place if @event_group

@@ -47,6 +47,58 @@ module HaramiVidsHelper
     }.compact.uniq.join(t(:comma))
   end
 
+  # Returns a sorted Hash of @event_event_items by the timing of the associated Music in the HaramiVid
+  #
+  # see {#set_event_event_items} for the structure of Hash @event_event_items
+  # All EventItems in event_event_items are assumed to be already associated to HaramiVid.
+  #
+  # In short, the EventItems belonging to the Event, one of EventItems of it is associated to
+  # a Music that is played first in the HaramiVid come first, and all EventItems in the Event
+  # are again sorted by the Music timings.
+  #
+  # The result is as follows:
+  #
+  #   {
+  #     Event1-pID =>
+  #       [EventItem1  (1st, 4th, 8th Music),
+  #        EventItem2  (7th, 9th Music)]
+  #     Event2-pID) =>
+  #       [EventItem1  (2nd, 3rd Music),
+  #        EventItem2  (3rd, 6th, Music)]  (duplicated)
+  #     Event3-pID) =>
+  #       [EventItem1  (5th Music), ]
+  #   }
+  #
+  # @note When timing for a Music is nil, the associated EventItem has the highest priority.
+  #
+  # @param harami_vid [HaramiVid]
+  # @param event_event_items [Hash] if @event_event_items is not set, automatically set here.
+  # @return [Hash]
+  def sorted_event_event_items_by_timing(harami_vid=@harami_vid, event_event_items=@event_event_items)
+    event_event_items ||= set_event_event_items(harami_vid: harami_vid)
+
+    # sorted_evits = harami_vid.event_items.joins(:artist_music_plays).joins(:harami_vids).joins("").joins("LEFT OUTER JOIN harami_vid_music_assocs ON harami_vid_music_assocs.harami_vid_id = harami_vids.id AND harami_vid_music_assocs.music_id = artist_music_plays.music_id").order("harami_vid_music_assocs.timing").uniq  ### => the timing-sorted EventItems
+
+    evit_timings_all = harami_vid.event_items.joins(:artist_music_plays).joins(:harami_vids).joins("").joins("LEFT OUTER JOIN harami_vid_music_assocs ON harami_vid_music_assocs.harami_vid_id = harami_vids.id AND harami_vid_music_assocs.music_id = artist_music_plays.music_id").order("harami_vid_music_assocs.timing").select("id", "harami_vid_music_assocs.timing AS timing").map{|i| [i.id, i.timing]}
+
+    evit_timings = []  # Reduced Array of [EventItem-pID, timing]-s
+    evit_timings_all.each do |ea|
+      evit_timings << ea if !evit_timings.any?{|epair| epair[0] == ea[0]}
+    end
+
+    event_event_items.map{ |evtid, arevit|
+      [evtid,
+       arevit.map{ |eet|
+         evit_timings.find{ |ev_ti|
+           break [eet, (ev_ti[1] || -1)] if ev_ti[0] == eet.id  # -1 (highest priority) is assigned if timing is nil
+         } || [eet, Float::INFINITY]   # If a Music (associated to EventItem) is not listed in HaramiVidMusicAssoc, its timing is interpreted as Infinity (n.b., the EventItem may have other Musics that have a significant timing, hence having a higher priority).
+       }.sort{|a, b| a[1]<=>b[1]}  # Array of [EventItem, timing]-s sorted by timing (per Event)
+      ]  # [EventID, [[EvenItem1,timing1], [EvenItem2,timing2], ...]]
+    }.sort{|a, b|  # sort for Event (using its earliest-timing EventItem
+      a[1][0][1]<=>b[1][0][1]  # respectably: 1=EventItemArray, 0=Earliest-timing-EventItem-Pair, 1=Timing
+    }.map{|ev_evits| [ev_evits[0], ev_evits[1].map{|epair| epair.first}]}.to_h
+  end
+
   private
 
     # Set @event_event_items and @original_event_items

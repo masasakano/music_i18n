@@ -30,4 +30,17 @@ module MusicsHelper
 
     [retstr, hsyear.first[1].first[:engage]]
   end
+
+  # You may encupsule it sanitized_html(with auto_link50(...)).html_safe
+  #
+  # @return [String] to show in a cell in Artist-Engage table in Music#show
+  def compile_engage_notes(artist, music)
+    arnotes = artist.engages.where(music: music).map{ |eng|
+      if eng.note.present?
+        sprintf("[%s] %s", eng.engage_how.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true), eng.note.strip)
+      else
+        nil
+      end
+    }.compact.join(" \n")
+  end
 end

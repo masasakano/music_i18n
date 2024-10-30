@@ -21,7 +21,7 @@
   <dt><%= t("tables.n_harami_vids_long") %>:</dt>
   <dd><%= @place.harami_vids.count %></dd>
   <dt><%= t("tables.note").capitalize %></dt>
-  <dd><%= auto_link(@place.note) %></dd>
+  <dd><%= sanitized_html(auto_link(@place.note)).html_safe %></dd>
   <% if can? :edit, Place %>
     <div class="editor_only">
       <dt>updated_at</dt>

@@ -221,11 +221,15 @@ class EventItem < ApplicationRecord
     event.unknown_event_item(force: false)
   end
 
-  # All {EventItem} belonging to the same {Event} but self
+  # All {EventItem} belonging to the same {Event} but self (and optionally, unknown)
   #
+  # @param exclude_unknown: [Boolean] if true, (Def: false), EventItem#unknown? is also excluded.
   # @return [Relation<EventItem>]
-  def siblings
-    event.event_items.where.not("event_items.id" => id)
+  def siblings(exclude_unknown: false)
+    except_ids = [id]
+    except_ids << unknown_sibling.id
+    event.event_items.where.not("event_items.id" => except_ids)
+    #event.event_items.where.not("event_items.id" => id)
   end
 
   # Returning a default EventItem in the given context

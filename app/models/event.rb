@@ -52,6 +52,8 @@ class Event < BaseWithTranslation
   has_many :event_items, dependent: :restrict_with_exception
   has_many :harami_vids, through: :event_items, dependent: :restrict_with_exception
   has_many :harami1129s, through: :event_items, dependent: :restrict_with_exception
+  # musics can be:  Music.joins(:harami_vids).joins("INNER JOIN harami_vid_event_item_assocs ON harami_vid_event_item_assocs.harami_vid_id = harami_vids.id").joins("INNER JOIN event_items ON harami_vid_event_item_assocs.event_item_id = event_items.id").joins("INNER JOIN events ON event_items.event_id = events.id").where("events.id = ?", self.id).distinct
+  # musics through EventItem:  Music.joins(:event_items).joins("INNER JOIN events ON event_items.event_id = events.id").where("events.id = ?", self.id).distinct.count
 
   # Validates if a {Translation} is unique within the parent
   #

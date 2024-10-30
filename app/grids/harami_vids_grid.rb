@@ -163,7 +163,7 @@ class HaramiVidsGrid < BaseGrid
   end
 
   column(:note, html: true, order: false, header: Proc.new{I18n.t("tables.note", default: "Note")}){ |record|
-    auto_link50(record.note)
+    sanitized_html(auto_link50(record.note)).html_safe
   }
 
   column(:updated_at, class: ["editor_only"], header: Proc.new{I18n.t('tables.updated_at')}, if: Proc.new{BaseGrid.qualified_as?(:editor)})
