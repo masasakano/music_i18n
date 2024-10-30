@@ -180,6 +180,31 @@ class EventItemTest < ActiveSupport::TestCase
     assert_equal pla_home,  evit4.place
   end
 
+  test "unknown_sibling etc" do
+    evit = EventItem.new_default(context=:Harami1129, place: places(:kawaramachi_station))
+    evit2 = evit.dup
+    evit2.update!(machine_title: "xyz-"+evit.machine_title+"-2")
+    assert evit.unknown?
+    assert_equal 2, evit2.event.event_items.count
+
+    assert_equal 1, evit2.siblings.size, "siblings=#{evit.event.event_items.inspect}"
+    assert          evit2.siblings.first.unknown?
+    assert_equal 0, evit2.siblings(exclude_unknown: true).size
+    assert (evit_unk=evit.unknown_sibling(force: false))
+    evit_unk.update!(machine_title: 'dummy123')  # => unknown is not unknown any more.
+    evit.reload
+    evit2.reload
+    assert_equal 2, evit2.event.event_items.count
+    assert_nil          evit2.unknown_sibling(force: false)
+    assert_equal 1, evit2.siblings.size
+    assert_equal 1, evit2.siblings(exclude_unknown: true).size
+    assert    (evit_unk=evit2.unknown_sibling(force: true))
+    assert evit_unk.unknown?
+    evit2.reload
+    assert_equal 2, evit2.siblings.size
+    assert_equal 1, evit2.siblings(exclude_unknown: true).size
+  end
+
   test "default_unique_title" do
     evit = event_items(:evit_ev_evgr_unknown)
     assert_equal "item-UnknownEvent-UncategorizedEventGroup",  (ut=evit.default_unique_title)

@@ -216,9 +216,10 @@ class EventItem < ApplicationRecord
 
   # Unknown {EventItem} belonging to the same {Event}
   #
-  # @return [EventItem] the unknown one
-  def unknown_sibling
-    event.unknown_event_item(force: false)
+  # @param force: [Boolean] if true (Def: false), and if unknown sibling is not found, create it.
+  # @return [EventItem, NilClass] the unknown one
+  def unknown_sibling(force: false)
+    event.unknown_event_item(force: force)
   end
 
   # All {EventItem} belonging to the same {Event} but self (and optionally, unknown)
@@ -227,7 +228,7 @@ class EventItem < ApplicationRecord
   # @return [Relation<EventItem>]
   def siblings(exclude_unknown: false)
     except_ids = [id]
-    except_ids << unknown_sibling.id
+    except_ids << unknown_sibling.id if exclude_unknown && unknown_sibling
     event.event_items.where.not("event_items.id" => except_ids)
     #event.event_items.where.not("event_items.id" => id)
   end
