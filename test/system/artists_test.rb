@@ -178,6 +178,12 @@ class ArtistsTest < ApplicationSystemTestCase
   end
 
   test "should create/update artist" do
+    harami = artists(:artist_harami)
+    visit artist_url(harami)
+    assert_selector "h1", text: sprintf("Artist: %s (%s)", harami.title(langcode: "ja"), harami.title(langcode: "en"))
+    xpath_new_music_link = "//section[@id='sec_musics_by']//div[contains(@class, 'link_to_new_music')]//a"
+    refute_selector(:xpath, xpath_new_music_link)
+
     new_model_title = "New Artist"
     visit new_artist_url  # direct jump -> fail
     refute_text new_model_title
@@ -226,6 +232,12 @@ class ArtistsTest < ApplicationSystemTestCase
     assert_text "successfully updated."
 
     assert_match(/(\b1998\b.+\b31\b|\b31\b.+\b1998\b)/, page.find_all(:xpath, "//section[@id='sec_primary_show']//dt[@title='Birthday']/following-sibling::dd")[0].text)
+
+    assert_equal 1, page.find_all(:xpath, xpath_new_music_link).size
+    page.find(:xpath, xpath_new_music_link).click
+
+    # Music#new page
+    assert_selector "h1", text: "New Music for Artist "+@artist.title
 
   end
 end

@@ -62,7 +62,7 @@
       <% label_artist = sprintf '%s %s', t('layouts.new_musics.associated_artist_name'), (music.new_record? ? '' : 'to add ')%>
       <%= form.label 'artist_name', label_artist %>
       <% if @artist_name  %>
-        <%= form.text_field 'artist_name', value: @artist_name, disabled: true %>
+        <%= form.text_field 'artist_name', value: @artist_name, readonly: true %>
       <% else %>
         <%= form.text_field 'artist_name', placeholder: 'eg., "欅坂46", "Beatles, The", "The Beatles"' %>
         <%= content_tag :div, '', id: 'suggestions', data: {items: Artist.titles_for_form} %>

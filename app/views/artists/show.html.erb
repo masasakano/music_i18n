@@ -65,12 +65,12 @@
 <h2>Musics by <%= my_title %></h2>
 
   <%= render partial: "musics_table", locals: {artist: @artist } %>
-<% if false %>  <%# the following is not working, hence false! %>
 <% if can? :create, Music %>
-<p>
-  <span class="lead"><%= link_to sprintf('Associate a new Music to Artist %s', my_title), musics_path(music: {artist_id: @artist.id}) %></span>
-</p>
-<% end %>
+  <div class="link_to_new_music">
+    <p class="editor_only">
+      <span class="lead"><%= link_to sprintf('Associate a new Music to this Artist %s', my_title), new_music_path(music: {artist_id: @artist.id}) %></span>
+    </p>
+  </div>
 <% end %>
 </section>
 <hr>

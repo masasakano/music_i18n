@@ -34,7 +34,7 @@ class MusicsIntegrationTest < ActionDispatch::IntegrationTest
     # <input value="AI (ID=7)" disabled="disabled" type="text" name="music[artist_name]" id="music_artist_name">
     csssel = css_select('input#music_artist_name')
     assert_equal 1, csssel.size
-    assert_equal 'disabled', csssel.first.attributes['disabled'].value # disabled="disabled"
+    assert_equal 'readonly', csssel.first.attributes['readonly'].value # readonly="readonly"  # NOT disabled
     artist_title = artist_ai.title_or_alt
     assert_match(/.*[a-z]+.* \(ID=#{artist_ai.id}\)\z/i, csssel.first.attributes['value'].value) # value="AI (ID=7)"
     assert_select "h1", 'New Music for Artist '+artist_title

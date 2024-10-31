@@ -155,7 +155,8 @@ class MusicsController < ApplicationController
       else
         @artist = Artist.find(artist_id_str.to_i)
         @artist_title = @artist.title_or_alt
-        @artist_name  = sprintf "%s (ID=%d)", @artist_title, @artist.id
+        @artist_name  = sprintf "%s (ID=%d)", @artist_title, @artist.id  # This format conforms my (simple) auto-complete (as opposed to "Name [en] [ID=%d]")
+        # @artist_title_for_ac =  Artist.base_with_translation_with_id_str(@artist, print_id: true)
       end
     end
 
