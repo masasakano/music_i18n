@@ -718,6 +718,33 @@ class TranslationTest < ActiveSupport::TestCase
     end
     tra = Translation.find_by_a_title(:titles, 'T', translatable: sex)
     assert_equal     ts[10], tra
+    assert_equal     ts[10], Translation.sort(sex.translations).first
+
+    t_alias = "tras"
+    tmpjoins = "INNER JOIN translations #{t_alias} ON #{t_alias}.translatable_type = 'Sex' AND #{t_alias}.translatable_id = #{sex.id}"
+    assert_raises(ActiveRecord::StatementInvalid){
+      ## Test of NOT specifying the table_alias when it is necessary.
+      ActiveRecord::Base.transaction(requires_new: true) do
+        # transaction is needed; otherwise raises: ActiveRecord::StatementInvalid: PG::InFailedSqlTransaction: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+        Translation.sort(Sex.joins(tmpjoins), langcode: "en").select(:title).first
+        # ActiveRecord::StatementInvalid: PG::UndefinedTable: ERROR:  invalid reference to FROM-clause entry for table "translations"
+        # LINE 1: ... AND tras.translatable_id = 10 ORDER BY CASE WHEN translatio...
+        #                                                              ^
+      end
+    }
+    res = Translation.sort(Sex.joins(tmpjoins), langcode: "en", t_alias: t_alias)
+    assert_equal ts[10].title, res.select(t_alias+".title AS tra_title").limit(1).first.tra_title, "res=#{res.inspect}"
+
+    ActiveRecord::Base.transaction(requires_new: true) do
+      # Tests of consider_is_orig and also Array of Translations.
+      # temporarily changes ts[10].weight
+      ts[10].update!(weight: sex.translations.order(weight: :desc).first.weight+10)
+      assert_equal   ts[10], Translation.sort(sex.translations).first
+      refute_equal   ts[10], (tra1st=Translation.sort(sex.translations, consider_is_orig: false).first)
+      assert_equal   ts[10], Translation.sort(ts, consider_is_orig: true).first
+      assert_equal   tra1st, Translation.sort(ts, consider_is_orig: false).first
+      raise ActiveRecord::Rollback, "Force rollback."
+    end
 
     # weight
     ts[10].update! is_orig: false, weight: 2

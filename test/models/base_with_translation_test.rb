@@ -2137,5 +2137,97 @@ mdl.translations.first.translatable_id = EngageHow.second.id
 
     [h1129_prms, assc_prms, hsmdl]
   end
+
+  # test of self.sort_by_best_titles
+  test "self.sort_by_best_titles" do
+    se = {}
+    trass = {
+      en: {},
+      ja: {},
+    }.with_indifferent_access
+    ar2prepare = [
+     [5, 81, "aaa-qr-81"], # 5th  # later is_orig=nil weight=20, accompanied with a JA of is_orig=nil weight=3 (but weight does not matter because langcode matters more).
+     [2, 82, "aaa-de-82"], # 2nd  # later moved to alt_title, while title is emptified; accompanied with a JA
+     [1, 83, "aaa-bc-83"], # 1st
+     [3, 84, "aaa-fg-84"], # 3rd  # later moved to alt_title, while title is nullified, accompanied with another EN with "aaa-aa" but with a lower weight
+     [6, 85, "aaa-st-85"], # 6th (or 1st)  # later is_orig=false, JA of "aaa-bb-85" is_orig=true which would be 1st if is_orig has a higher priority over language.
+     [4, 86, "aaa-jk-86"], # 4th (unless "ja" is totally ignored) # later moved to JA, is_orig=true, and no "en"
+     [9, 99, "zzz-zz-99"], # last # later is_orig=nil, accompanied with another EN with is_orig=nil, accompanied with JA
+    ]
+
+    ar2prepare.each do |ea|
+      se[ea[0]] = Sex.create_with_orig_translation!({iso5218: ea[1]}, translation: {title: ea[2], langcode: 'en'})
+      trass[:en][ea[0]] = se[ea[0]].reload.best_translation
+    end
+
+    # JA for 6, 2, 4, 5 only
+    [5, 2, 6].each do |i|
+      se[i].translations << Translation.new(title: trass[:en][i].title+"-JA", weight: 11, is_orig: false, langcode: "ja")
+      trass[:ja][i] = se[i].translations.order(created_at: :desc).first
+    end
+    trass[:ja][5].update!(is_orig: nil, weight: 3)
+    trass[:ja][6].update!(title: "aaa-bb-85", is_orig: true, weight: 3)
+
+    trass[:en][5].update!(is_orig: nil, weight: 20)
+    trass[:en][2].update!(title: "",  alt_title: trass[:en][2].title)
+    trass[:en][3].update!(title: nil, alt_title: trass[:en][3].title)
+    trass[:en][6].update!(is_orig: false)
+    trass[:en][4].update!(langcode: "ja", is_orig: true, weight: 10)
+    trass[:en][9].update!(is_orig: nil, weight: 10)
+
+    se[3].translations << Translation.new(title: "aaa-aa-84", weight: 20, is_orig: false, langcode: "en")  # should be ignored because of its higher weight
+    trass[:en][3.2] = se[3].translations.order(created_at: :desc).first
+
+    se[9].translations << Translation.new(title: "yyy-yy-99-98", weight: 20, is_orig: nil, langcode: "en") 
+    trass[:en][9.2] = se[9].translations.order(created_at: :desc).first
+
+if false
+    sexes = Sex.sort_by_best_titles(consider_is_orig: true, langcode: "en", lang_fallback_option: :never)  # Basically non-"en" Translations are regarded as non-existent, so those that hve only non-"en" Translation always comes last; consider_is_orig is considered only for "en" Translations. This is the case, where non-"en" Translation is not displayed at all.
+    assert_equal se[1], sexes[0]
+    assert_equal se[2], sexes[1]
+    assert_equal se[3], sexes[2]
+    assert_equal se[5], sexes[3]
+    assert_equal se[6], sexes[4]
+    assert_equal se[9], sexes[-2]
+    assert_equal se[4], sexes[-1], "this is the only one without 'en' Translation, so comes last, but..."
+end
+
+    sexes = Sex.sort_by_best_titles(consider_is_orig: true, langcode: "en", lang_fallback_option: :either, prioritize_is_orig: false)  # Basically non-"en" Translations are considered only if there is no "en" translation regardless of is_orig. Basically, "ja" Translations is displayed only when no "en" Translation exists and they all are sorted accordingly.
+    assert_equal se[1], sexes[0] # 
+    assert_equal se[2], sexes[1]
+    assert_equal se[3], sexes[2]
+    assert_equal se[4], sexes[3]
+    assert_equal se[5], sexes[4]
+    assert_equal se[6], sexes[5], "trans = #{[se[6],sexes[6]].map{|i| i.translations.pluck(:langcode, :is_orig, :title, :alt_title, :weight)}.inspect}\n all: #{sexes.select("translations.title as tit,translations.alt_title as alt, translations.weight as wei").map{|i| [i.tit, i.alt, i.wei]}.inspect}"
+    assert_equal se[9], sexes[-1]
+
+    sexes = Sex.sort_by_best_titles(consider_is_orig: true, langcode: "en", lang_fallback_option: :either, prioritize_is_orig: true)  # Basically is_orig Translations are always considered (displayed) first regardless of its language and the results are sorted accordingly. langcode only makes sense when none has is_orig=true
+    assert_equal se[6], sexes[0], "JA with is_orig=true is 'aaa-aa' and so should come first, but..."
+    assert_equal se[1], sexes[1]
+    assert_equal se[2], sexes[2]
+    assert_equal se[3], sexes[3]
+    assert_equal se[4], sexes[4]
+    assert_equal se[5], sexes[5]
+    assert_equal se[9], sexes[-1]
+
+    sexes = Sex.sort_by_best_titles(consider_is_orig: true, langcode: "ja", lang_fallback_option: :never)  # Basically non-"ja" Translations are regarded as non-existent, so those that hve only non-"ja" Translation always comes last; consider_is_orig is considered only for "ja" Translations. This is the case, where non-"ja" Translation is not displayed at all.
+    assert_equal se[6], sexes[0]
+    assert_equal se[2], sexes[1]
+    assert_equal se[4], sexes[2]
+    assert_equal se[5], sexes[3]
+    ### In never, they should be irrelevant (in the current implementation, their translations are not considered at all and so the order is random).
+    #assert_equal se[1], sexes[4], "trans = #{[se[1],sexes[4]].map{|i| i.translations.pluck(:langcode, :is_orig, :title, :weight)}.inspect}"
+    #assert_equal se[9], sexes[-1]
+
+    sexes = Sex.sort_by_best_titles(consider_is_orig: true, langcode: "ja", lang_fallback_option: :either, prioritize_is_orig: false)  # Basically non-"ja" Translations are considered only if there is no "en" translation regardless of is_orig. Basically, "en" Translations is displayed only when no "ja" Translation exists and they all are sorted accordingly.
+    assert_equal se[6], sexes[0]
+    assert_equal se[1], sexes[1]
+    assert_equal se[2], sexes[2]
+    assert_equal se[3], sexes[3]
+    assert_equal se[4], sexes[4]
+    assert_equal se[5], sexes[5], "trass[:ja] = #{trass[:ja].inspect}"
+    assert_equal se[9], sexes[6], "trans = #{[se[9],sexes[6]].map{|i| i.translations.pluck(:langcode, :is_orig, :title, :alt_title, :weight)}.inspect}\n all: #{sexes.select("translations.title as tit,translations.alt_title as alt, translations.weight as wei").map{|i| [i.tit, i.alt, i.wei]}.inspect}"
+  end
+
 end
 

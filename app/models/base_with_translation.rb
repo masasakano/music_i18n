@@ -1802,6 +1802,71 @@ class BaseWithTranslation < ApplicationRecord
     }.flatten.uniq
   end
 
+  # Sort Relation or model itself (BaseWithTranslation) alphabetically by best titles
+  #
+  # Three examples:
+  #
+  # == lang_fallback_option: :never
+  #
+  # I suppose this is rarely used?
+  # This is the case where non-I18n.locale (say, "ja") Translation is left blank in display.
+  # Basically non-"ja" Translations are regarded as non-existent, so those
+  # that have only non-"ja" Translation always comes last and their order
+  # is uncertain. consider_is_orig is relevant only for Translations
+  # within each language (in the algorithm, where they identifies the best one for the language).
+  #
+  #   Country.sort_by_best_titles(langcode: I18n.locale, lang_fallback_option: :never)
+  #
+  # == (Default) prioritize_is_orig: false, lang_fallback_option: :either
+  #
+  # Default case. This is the case used when a Translation will be always displayed,
+  # though I18n.locale has always a priority regardless of +is_orig+.
+  # Basically non-I18n.locale (say, "ja") Translations are considered only if there
+  # is no "ja" translation; once Translations have been determined, they are alphabetically
+  # sorted. consider_is_orig is relevant only in identifying the best
+  # Translations within each language.
+  #
+  #   Country.sort_by_best_titles()
+  #
+  # == prioritize_is_orig: true, lang_fallback_option: :either
+  #
+  # This is the case used when an original-language Translation will be
+  # attempted to be displayed (unless there is no +is_orig=true+, in which case
+  # I18n.locale is used. consider_is_orig is very relevant.
+  #
+  #   Country.sort_by_best_titles(prioritize_is_orig: true)
+  #
+  # @option rela [ActiveRecord::AssociationRelation<Translation>]
+  # @param consider_is_orig: [Symbol] if true (Def), is_orig is considered.  Usually, this should be left in Default.
+  # @param langcode: [String] locale to be prioritized. 
+  # @param lang_fallback_option: [Symbol] (:both|:either(Def)|:never)  The default differs from {#title_or_alt}. :either and :both mean the same here.
+  # @param prioritize_is_orig: [Boolean] if true, is_orig comes before langcode. Basically, title in whatever language with is_orig=true will be probably displayed (and so sorted accordingly)
+  # @param prefer_alt [Boolean] if true (Def: false), {#alt_title} has a priority over {#title} (originating in {Translation#title}).
+  def self.sort_by_best_titles(rela=self, consider_is_orig: true, langcode: I18n.locale, lang_fallback_option: :never, prioritize_is_orig: false, prefer_alt: false)
+      
+    tblname = Translation.table_name
+
+    ary = Translation.build_sql_order(consider_is_orig: consider_is_orig, langcode: langcode, prioritize_is_orig: prioritize_is_orig)
+    sql_order = Arel.sql(ary.join(","))
+    join_strs = ["LEFT JOIN LATERAL (SELECT #{tblname}.* FROM #{tblname} WHERE #{tblname}.translatable_type = '#{name}' AND #{tblname}.translatable_id = #{table_name}.id",
+                " ORDER BY "+sql_order+" LIMIT 1) #{tblname} ON true"]
+
+    rela2 = 
+      case lang_fallback_option
+      when :never
+        where_langcode = (langcode.present? ? sprintf(" AND langcode = '%s'", langcode) : "")
+        rela.joins(join_strs[0] + where_langcode + join_strs[1])
+      when :either, :both
+        rela.joins(join_strs.join(""))
+      else
+        raise "unsupported."
+      end
+
+    sql_order_title = "CASE WHEN #{tblname}.title <> '' THEN #{tblname}.title COLLATE \"ja-x-icu\" ELSE #{tblname}.alt_title COLLATE \"ja-x-icu\" END;"
+    sql_order_title = sql_order_title.gsub(/alt_title/, "\uFFFD").gsub(/title/, "alt_title").gsub(/\uFFFD/, "title") if prefer_alt
+    rela2.order(Arel.sql(sql_order_title))
+  end
+
   ################################################
   # instant methods
   ################################################
@@ -4116,6 +4181,7 @@ tra_orig.save!
     alt_tit = record.alt_title
     tit     = nil if tit.blank?
     alt_tit = nil if alt_tit.blank?
+    return [sprintf("Both title and alt_title are blank.")] if !tit && !alt_tit
 
     options = {}
     options[:langcode] = record.langcode if record.langcode
@@ -4133,22 +4199,21 @@ tra_orig.save!
 
     alltrans = self.class.select_translations_regex(nil, nil, where: wherecond, **options)
 
-    if !alltrans.empty?
-      tra = alltrans.first
-      msg = sprintf("%s=(%s) (%s) already exists in %s [(%s, %s)(ID=%d)] for %s(ID=%d)",
-                    'title|alt_title',
-                    [tit, alt_tit].compact.map{|i| single_quoted_or_str_nil i}.join("|"),
-                    single_quoted_or_str_nil(record.langcode),
-                    record.class.name,
-                    tra.title,
-                    tra.alt_title,
-                    tra.id,
-                    self.class.name,
-                    tra.translatable_id
-                   )
-      return [msg]
-    end
-    return []
+    return [] if alltrans.empty?  # no errors
+
+    tra = alltrans.first
+    msg = sprintf("%s=(%s) (%s) already exists in %s [(%s, %s)(ID=%d)] for %s(ID=%d)",
+                  'title|alt_title',
+                  [tit, alt_tit].compact.map{|i| single_quoted_or_str_nil i}.join("|"),
+                  single_quoted_or_str_nil(record.langcode),
+                  record.class.name,
+                  tra.title,
+                  tra.alt_title,
+                  tra.id,
+                  self.class.name,
+                  tra.translatable_id
+                 )
+    [msg]
   end
 
   # Utility for Callback/hook to validate translation immediately before it is added.

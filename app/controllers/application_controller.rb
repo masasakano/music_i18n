@@ -1,5 +1,6 @@
 # coding: utf-8
 class ApplicationController < ActionController::Base
+  include ApplicationHelper
   include ModuleCommon   # for split_hash_with_keys() etc
   extend ModuleCommon    # for convert_str_to_number_nil
   using ModuleHashExtra  # for extra methods, e.g., Hash#values_blank_to_nil
@@ -755,8 +756,13 @@ class ApplicationController < ActionController::Base
     end
 
     def set_countries
-      sql2order = "CASE countries.id WHEN #{Country.unknown.id rescue 9} THEN 0 WHEN #{Country['JP'].id rescue 9} THEN 1 ELSE 9 END, name_en_short"
-      @countries = Country.left_joins(:country_master).order(Arel.sql(sql2order))
+      case I18n.locale.to_s
+      when "ja"
+        Country.sort_by_best_titles(countries_order_jp_top, prefer_alt: true)  # defined in ApplicationHelper
+      else
+        sql2order = sql_order_jp_top+", name_en_short"
+        @countries = Country.left_joins(:country_master).order(Arel.sql(sql2order))
+      end
       @prefectures = Prefecture.all
     end
 
