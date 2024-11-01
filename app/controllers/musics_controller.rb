@@ -122,7 +122,24 @@ class MusicsController < ApplicationController
     end
   end
 
+
+  # Method also used in system tests
+  #
+  # @example
+  #    title, field_string = MusicsController.artist_name_and_id_for_field(artist)
+  #
+  # @param artist [Artist]
+  # @return [Array<String>] 2-element array of Title and "Title ID=(??)", the latter of which is used for a field in Music-show
+  def self.artist_name_and_id_for_field(artist)
+    artist_title = artist.title_or_alt  # in the original language!
+    artist_name  = sprintf "%s (ID=%d)", artist_title, artist.id  # This format conforms my (simple) auto-complete (as opposed to "Name [en] [ID=%d]")
+    [artist_title, artist_name]
+  end
+
+  ################################
   private
+  ################################
+
     # Sets @hsmain and @hstra from params
     #
     # +action_name+ (+create+ ?) is checked inside!
@@ -154,8 +171,15 @@ class MusicsController < ApplicationController
         @artist = @artist_name = @artist_title = nil
       else
         @artist = Artist.find(artist_id_str.to_i)
-        @artist_title = @artist.title_or_alt
-        @artist_name  = sprintf "%s (ID=%d)", @artist_title, @artist.id  # This format conforms my (simple) auto-complete (as opposed to "Name [en] [ID=%d]")
+        if @artist
+          @artist_title, @artist_name = self.class.artist_name_and_id_for_field(@artist)  # @artist_name is input in the View field
+        else
+          @artist_name = @artist_title = nil
+          msg = "Specified Artist-ID (#{artist_id_str}) is non-existent."
+          flash[:alert] ||= []
+          flash[:alert] << msg
+          logger.warn "ERROR: Music-new GET parameter is wrong for some reason: "+msg
+        end
         # @artist_title_for_ac =  Artist.base_with_translation_with_id_str(@artist, print_id: true)
       end
     end

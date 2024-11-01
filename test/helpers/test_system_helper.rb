@@ -26,6 +26,41 @@ class ActiveSupport::TestCase
     #       'form fieldset.%s_best_translation_is_orig'
   end
 
+  # Temporarily sets a longe wait time for the specific block (in case the machine is slow)
+  #
+  # To activate it, +ENV["CAPYBARA_LONGER_TIMEOUT"]+ must be set with an Integer in second.
+  # Then, when the environmental variable is not set (the machine is not slow), 
+  # none of these blocks would wait too long.
+  #
+  # @example
+  #   with_longer_wait{ assert_selector 'section#mypart div.error_explanation'}
+  #   # defined in test_system_helper.rb ; use with CAPYBARA_LONGER_TIMEOUT=3
+  #
+  def with_longer_wait
+    if (ti=ENV["CAPYBARA_LONGER_TIMEOUT"]).present?
+      Capybara.using_wait_time(ti.to_i){ yield }
+    else
+      yield
+    end
+  end
+
+  # Capybara save_page in system tests with filaneme information automatically assigned, and info printed
+  #
+  # @example
+  #   save_page_auto_fname  # defined in test_system_helper.rb
+  def save_page_auto_fname(with_time: false)
+    bind = caller_locations(1,1)[0]  # Ruby 2.0+
+    caller_info = sprintf("%s-L%d", bind.absolute_path.sub(%r@.*(/test/system/)@, ""), bind.lineno)  # may contain "/", which should be replaced!
+    # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
+
+    time_str = "-"+Time.now.strftime("%Y%m%d%H%M%S") if with_time
+    fname = sprintf("page%s-%s.html", time_str, caller_info).gsub(%r@/@, "_")
+    page.save_page(fname)
+    
+    puts sprintf("Capybara HTML page saved at %s/%s", Capybara.save_path, fname)
+  end
+
+
   # @example Controller test
   #   assert_empty css_select(css_query(:trans_new, :is_orig_radio, model: Model))  # defined in helpers/test_system_helper
   # 
@@ -85,5 +120,20 @@ class ActiveSupport::TestCase
     hscss = hscss.map{|k, v| [k, v.map(&:text).map(&:strip)]}.to_h
     hscss[:alt_title].map!{|et| et.sub!(/(\s*\[.*\|.*\])?\z/, '')}
     hscss.with_indifferent_access
+  end
+
+  # Fill in a title (or romaji etc) in Model#new in a System test.
+  #
+  # @example
+  #    fill_in_new_title_with(Music, "Song of Love", kind: "title", locale: "ja")  # defined in test_system_helper.rb
+  #
+  # @param model [Class, String] e.g., Music
+  # @param title_str [String] "My glorious piece"
+  # @param kind: [String] "title" (Def), "alt_title", "romaji" etc.
+  def fill_in_new_title_with(model, title_str, kind: "title", locale: I18n.locale)
+    opts = { model: (model.respond_to?(:name) ? model.name : model.to_s) }
+    opts[:locale] = locale if I18n.locale
+    label_str = I18n.t('layouts.new_translations.'+kind.to_s, **opts)
+    find_field(label_str, match: :first).fill_in with: title_str
   end
 end

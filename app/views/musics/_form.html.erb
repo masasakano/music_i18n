@@ -11,7 +11,7 @@
 <h2>Unique parameters</h2>
 <% end %>
 
-<%= form_with(model: music, local: true) do |form| %>
+<%= form_with(model: music, local: true, id: "form_musics_new_primary") do |form| %>
 
  <section id="sec_primary_input">
   <% if music.new_record? %>
@@ -70,13 +70,13 @@
     </div>
 
     <div class="field">
-      <%= form.label :engage_hows, 'EngageHow('+t('layouts.new_musics.allow_multi')+'複数可)' %>
+      <%= form.label :engage_hows, 'EngageHow('+t('layouts.new_musics.allow_multi')+')' %>
       <%= form.collection_select :engage_hows, EngageHow.all.order(:weight), :id, Proc.new{|i| i.title(langcode: I18n.locale, str_fallback: "NONE")}, {include_blank: true}, {multiple: true} %> <%# If left empty (instead of "NONE"), it would violate the HTML spec: Element “option” without attribute “label” must not be empty. %>
     </div>
 
-    <div class="field">
+    <div class="field music_year_engage">
       <%= s_help = t('layouts.new_musics.year_engagement_hint'); form.label :year_engage, t('layouts.new_musics.year_engagement'), title: s_help %>
-      <%= form.number_field :year_engage, class: 'input_year', title: s_help %>
+      <%= form.number_field :year_engage, class: 'input_year', placeholder: music.year, title: s_help %>
     </div>
 
     <div class="field">

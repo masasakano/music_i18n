@@ -208,7 +208,7 @@ class ArtistsTest < ApplicationSystemTestCase
     page.find('input#artist_title').fill_in with: @artist.title  # This is a duplicate.
 
     choose("female")
-    fill_in "Birth year", with: 1998
+    fill_in "Birth year", with: 1998  # Because of a different birth_year from the existing AI, the new Artist with the idencical name is accepted!
 
     click_on @button_text[:create]
 
@@ -216,7 +216,9 @@ class ArtistsTest < ApplicationSystemTestCase
 
     assert_text "successfully created."
 
-    assert_selector "h1", text: "Artist: "+@artist.title
+    assert_selector "h1", text: "Artist: "+@artist.title  # Same title as the existing Artist
+    assert (artist_pid=retrieve_pid_in_show)   # Should be visible for Editor # defined in test_helper.rb
+    new_artist = Artist.find(artist_pid)
 
     page.find("a.link-edit").click
     assert_selector "h1", text: "Editing Artist: "+@artist.title
@@ -236,12 +238,45 @@ class ArtistsTest < ApplicationSystemTestCase
     assert_equal 1, page.find_all(:xpath, xpath_new_music_link).size
     page.find(:xpath, xpath_new_music_link).click
 
-    # Music#new page
-    assert_selector "h1", text: "New Music for Artist "+@artist.title
-    page.find(@css_swithcer_ja+" a").click
-
+    ### Music#new page
+    assert_equal @artist.title, new_artist.title
+    assert_selector "h1", text: "New Music for Artist "+@artist.title  # == new_artist.title
+    page.find(@css_swithcer_ja+" a").click  # => to Japanese mode
     assert_text "一覧に戻る"
+    _, title_input = MusicsController.artist_name_and_id_for_field(new_artist)
+    assert_selector "input#music_artist_name[value='#{title_input}']"
 
+    new_music_title = 'My Tekitoh'
+    new_music_year = 2021
+    page.find(PAGECSS[:new_trans_lang_radios]).choose('英語')  # defined in test_helper.rb
+    fill_in_new_title_with(Music, new_music_title, locale: "ja")  # defined in test_system_helper.rb
+    find_field(I18n.t('Year_Title', locale: "ja")).fill_in with: new_music_year.to_s  # see ./musics_test.rb
+
+    # submission fails
+    xpath_submit = "//section[@id='sec_primary']//input[@type='submit']"
+    accept_alert(/Error! At least (one|an) enagegement/) do  # "Error! At least one enagegement" # needs to be specified when Artist is given."
+      find(:xpath, xpath_submit).click  # "登録する"
+    end
+
+    # submission succeess
+    engage_strs = [:engage_how_lyricist_ja, :engage_how_composer_ja].map{|i| translations(i).title}
+    select_from_txt = 'EngageHow('+I18n.t('layouts.new_musics.allow_multi', locale: "ja")+')'
+    select engage_strs[0], from: select_from_txt
+    select engage_strs[1], from: select_from_txt
+    find(:xpath, xpath_submit).click  # "登録する"
+
+    assert_text "Music was successfully created"
+    exp = sprintf("%s: %s (by %s %s", I18n.t(:Music, locale: "ja"), new_music_title, new_artist.title, new_music_year.to_s)
+    assert_selector "h1", text: exp
+
+    css = "section#sec_artists_by table tbody tr"
+    assert_selector css
+    assert_equal 1, (tr=page.find_all(css)).size
+    assert_includes tr[0].text, new_music_year.to_s  # "作詞/作曲(2021)"
+    assert_includes tr[0].text, engage_strs[0]
+    assert_includes tr[0].text, engage_strs[1]
+#save_page_auto_fname  # defined in test_system_helper.rb
+#take_screenshot
   end
 end
 

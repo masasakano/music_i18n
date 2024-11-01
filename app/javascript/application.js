@@ -105,4 +105,5 @@ import "./dropdown_country2place.js"
 import "./dropdown_country2place_all.js"
 import "./modify_href_by_input.js"
 import "./autocomplete_title_public_load_all.js"
+import "./controllers/musics/new_submit_validation.js"
 

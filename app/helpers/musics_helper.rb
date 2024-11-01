@@ -1,3 +1,4 @@
+# coding: utf-8
 module MusicsHelper
 
   # @return [Array[String,Engage]] maybe hyperlink (if permitted)

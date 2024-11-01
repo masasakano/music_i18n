@@ -8,12 +8,12 @@
 <hr>
 
  <section id="sec_primary_show">
-<div id="<%= dom_id @artist %>">
+<div id="<%= dom_id @artist %>" class="show_unique_parameters">
 <dl>
   <% if (can_update=can?(:update, Artist)) %>
    <div class="editor_only">
-    <dt>pID (<%= @artist.class.name %>)</dt>
-    <dd> <%= @artist.id %></dd>
+    <dt class="item_pid">pID (<%= @artist.class.name %>)</dt>
+    <dd class="item_pid"> <%= @artist.id %></dd>
    </div>
   <% end %>
   <dt class="item_place"> <%= t("tables.place_country", default: "Place (Country)") %>:</dt>

@@ -59,8 +59,13 @@ class ActiveSupport::TestCase
     end
   end
 
-  # add until here
-  # ---------------------------------------------
+  # CSS for pages
+  PAGECSS = {
+    new_trans_lang_radios: 'form div.field.radio_langcode',  # eg: page.find(PAGECSS[:new_trans_lang_radios]).choose('English')
+    show: {
+      pid: ".show_unique_parameters dd.item_pid", # see retrieve_pid_in_show() below
+    },
+  }.with_indifferent_access
 
   # Reverse of get_bool_from_params in Application.helper
   #
@@ -436,6 +441,19 @@ class ActiveSupport::TestCase
       $stderr.puts msg
     end
     Rails.logger.info "INFO: to read Local test data file: #{ENV['URI_HARAMI1129']}"
+  end
+
+  # Get Integer PID from Show page in Model.
+  #
+  # @return [Integer]
+  def retrieve_pid_in_show
+    pid_str =
+      if defined?(page) && page.respond_to?(:find)
+        page.find(PAGECSS[:show][:pid]).text
+      else
+        raise "unsupported"
+      end
+    pid_str.to_i
   end
 
   # Get a unique id_remote for Harami1129

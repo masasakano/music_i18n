@@ -285,7 +285,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     trs[0].find('input[type=submit]').click
 
     # After an erroneous submit
-    assert_selector trs_css+' div.error_explanation'
+    with_longer_wait{ assert_selector trs_css+' div.error_explanation'}  # defined in test_system_helper.rb ; use with CAPYBARA_LONGER_TIMEOUT=3
     trs = find_all(trs_css)
     assert_match(/must be 0 or positive\b/, trs[0].find('div.error_explanation').text)  # => Timing(-6) must be 0 or positive.
     assert_equal("-6", trs[0].find('input#form_timing')["value"], "Negative value should stay in the form field, but...")  # Errror message displayed in the same cell

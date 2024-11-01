@@ -46,10 +46,9 @@ class MusicsTest < ApplicationSystemTestCase
 
     # label_str = I18n.t('layouts.new_translations.model_language', model: 'Music')
     # find_field(label_str).choose('English')  ## Does not work b/c the label is just a <span>!
-    page.find('form div.field.radio_langcode').choose('English')
+    page.find(PAGECSS[:new_trans_lang_radios]).choose('English')  # defined in test_helper.rb
 
-    label_str = I18n.t('layouts.new_translations.title', model: 'Music')
-    find_field(label_str, match: :first).fill_in with: 'Tekitoh'
+    fill_in_new_title_with(Music, 'Tekitoh')  # defined in test_system_helper.rb
 
     assert     find_field('Country')
     assert_selector    'form div#div_select_country'
@@ -65,7 +64,7 @@ class MusicsTest < ApplicationSystemTestCase
     assert     find_field('Prefecture')                  # Now JS made it appear
 
     ##select('XXX',  from: 'Genre')
-    find_field('Year').fill_in with: '2001'
+    find_field(I18n.t('Year_Title', locale: "en")).fill_in with: '2001'  # 'Year'; see /app/views/musics/_form.html.erb
 
     click_on "Create Music"
 
