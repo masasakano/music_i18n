@@ -2,8 +2,6 @@
 
 <%= render 'form', music: @music %>
 
-<%= link_to 'Back to Index', musics_path %>
-
 <hr>
 
 <h2 id="csv_file_upload">CSV file upload</h2>
@@ -96,6 +94,6 @@ The CSV is a file format of (strictly speaking, there are a few variants in the 
 
 <p>
   <br>
-  <%= link_to 'Back to Index', musics_path %>
+  <%= link_to t("layouts.back_to_index"), musics_path %>
 </p>
 

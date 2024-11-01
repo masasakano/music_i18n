@@ -238,6 +238,9 @@ class ArtistsTest < ApplicationSystemTestCase
 
     # Music#new page
     assert_selector "h1", text: "New Music for Artist "+@artist.title
+    page.find(@css_swithcer_ja+" a").click
+
+    assert_text "一覧に戻る"
 
   end
 end

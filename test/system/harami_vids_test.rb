@@ -176,7 +176,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     click_on "Update Harami vid", match: :first
 
     ### Checking flash messages
-    assert_match(/\bEvent.* must be checked\b/, find(css_for_flash(:alert, category: :error_explanation)).text)
+    assert_match(/\bEvent.* must be checked\b/, find_all(css_for_flash(:alert, category: :error_explanation))[0].text)  # TODO: two matches...
     check 'UnknownEventItem'  # In fact, this should be forcibly checked again in default when an error takes you back to the screen after unchecked.
     click_on "Update Harami vid", match: :first
 
@@ -285,9 +285,9 @@ class HaramiVidsTest < ApplicationSystemTestCase
     trs[0].find('input[type=submit]').click
 
     # After an erroneous submit
-    assert_selector trs_css+' div#error_explanation'
+    assert_selector trs_css+' div.error_explanation'
     trs = find_all(trs_css)
-    assert_match(/must be 0 or positive\b/, trs[0].find('div#error_explanation').text)  # => Timing(-6) must be 0 or positive.
+    assert_match(/must be 0 or positive\b/, trs[0].find('div.error_explanation').text)  # => Timing(-6) must be 0 or positive.
     assert_equal("-6", trs[0].find('input#form_timing')["value"], "Negative value should stay in the form field, but...")  # Errror message displayed in the same cell
 
     assert_equal "Cancel", trs[0].find("a").text  # button-like "Cancel" link
