@@ -31,8 +31,8 @@
   </thead>
 
   <tbody>
-    <%# Sorts by the most recent child Event (NOT EventGroup) %>
-    <% @event_groups.joins(:events).order("events.start_time" => :desc).uniq.each_with_index do |model, i_eg| %> <%# "distinct" raises an Error (at least with PostgreSQL) %>
+    <%# @event_groups.joins(:events).order("events.start_time" => :desc).uniq.each_with_index do |model, i_eg| %> <%# "distinct" raises an Error (at least with PostgreSQL) %> <%# Sorts by the most recent child Event (NOT EventGroup)  => retracted! %>
+    <% @event_groups.order(:start_date).each_with_index do |model, i_eg| %>
       <tr>
         <td class="<%= can_edit_event_group ? 'editor_only' : '' %>"><%= can_edit_event_group ? link_to(model.id, model) : i_eg+1 %></td>
       <% if can_edit_event_group %>
