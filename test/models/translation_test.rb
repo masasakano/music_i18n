@@ -703,6 +703,8 @@ class TranslationTest < ActiveSupport::TestCase
   end
 
   test "sort with is_orig" do
+    assert_empty Translation.build_sql_order(langcode: nil).grep(/langcode/)
+
     sex = Sex.create!(iso5218: 99)
 
     # Creating many so that it would not pick up the right one just by chance.
@@ -782,6 +784,14 @@ class TranslationTest < ActiveSupport::TestCase
     assert_equal ts[21], t_sibs[-2] # Y
     assert_equal ts[23], t_sibs[-3] # W
     assert_equal ts[24], t_sibs[-4] # Z
+
+    # testing weight=10, Infinity for both is_orig=true
+    mus = Music.create!(note: 'new Mu')
+    mtras = []
+    mtras[0] = Translation.create!(translatable: mus, langcode: 'ja', is_orig: true, title: "日本語音楽00", weight: Float::INFINITY)
+    mtras[1] = Translation.create!(translatable: mus, langcode: 'ja', is_orig: true, title: "日本語音楽01", weight: 10)
+    assert_equal mtras[1], Translation.sort(mtras).first
+
 
     ############
     # Translation should have "title != alt_title".

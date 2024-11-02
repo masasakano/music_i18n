@@ -2322,10 +2322,10 @@ class BaseWithTranslation < ApplicationRecord
 
     ## Falback after no translations are found for the specified language.
     hstrans = best_translations(except: fallback_except)
-    hstrans.each_pair do |ek, ev|
-      ret = ev.public_send(method)
+    fallback_langcodes(except: fallback_except).each do |elc|
+      ret = hstrans[elc].public_send(method)
       if !ret.blank?
-        set_singleton_method_val(:lcode, ek, target: ret) # Define Singleton method String#lcode # defined in module_common.rb
+        set_singleton_method_val(:lcode, elc, target: ret) # Define Singleton method String#lcode # defined in module_common.rb
         return ret
       end
     end
@@ -2478,7 +2478,7 @@ class BaseWithTranslation < ApplicationRecord
   # Gets the original {Translation}, meaning the original word(s)
   #
   # In the case (which should never happen) of multiple Translations having is_orig=true,
-  # a single arbitrary one among them is returned.
+  # weight is taken into account (see {Translation.sort}).
   #
   # @example to get the language of the original word
   #   obj.orig_translation.langcode  # => 'ja'
@@ -2486,15 +2486,13 @@ class BaseWithTranslation < ApplicationRecord
   #
   # @return [Translation, Nilclass] nil if no {Translation} has {Translation#is_orig}==true 
   def orig_translation
-    return translations.where(is_orig: true)[0] if !(new_record? && @unsaved_translations.present?)
+    return Translation.sort(translations.where(is_orig: true), prioritize_is_orig: false)[0] if !(new_record? && @unsaved_translations.present?)
 
-    # For new_record, mimicing the algorithm.
+    # For new_record and without (Rails default association of) {#translations}, mimicing the algorithm.
     utrans = unsaved_translations
     return nil if utrans.blank?
-    utrans.sort{|a,b|
-      ar = [a, b].map{|i| i.is_orig ? -2 : (i.is_orig.nil? ? 2 : 0) }
-      ar[0] <=> ar[1]
-    }.first
+    best_tra = Translation.sort(utrans).first
+    best_tra.is_orig ? best_tra : nil
   end
   alias_method :original_translation, :orig_translation if ! self.method_defined?(:original_translation)
 
@@ -2621,24 +2619,24 @@ class BaseWithTranslation < ApplicationRecord
   # @param langcode [String, Symbol, NilClass] if nil, the same as the entry of is_orig==TRUE
   # @return [ActiveRecord::AssociationRelation, Array]
   def translations_with_lang(langcodearg=nil, langcode: nil)  # langcode given both in the main argument and option to be in line with {#titles} etc.
-    tras = (new_record? ? unsaved_translations : translations)
+    tras = ((new_record? && @unsaved_translations.present?) ? unsaved_translations : translations)
     langcode = (langcodearg || langcode || (ori=orig_translation) && ori.langcode)
     langcode &&= langcode.to_s
     if !langcode
       # Either is_orig=nil for all Translations or Translation is not defined.
-      if self.id  # If not, self may be a new one and certainly has no translations.
+      if !new_record?
         msg = "(#{__method__}) Failed to determine langcode for self=#{self.inspect} ; continue with a random language."
         logger.warn msg
         # warn msg
       end
-      return Translation.sort(tras)
+      return Translation.sort(tras)  # This is not a duplicated call of DB for existing records with orig_translation above, which imposed a finer condition.
     end
-    langcode &&= (langcodearg || langcode || (ori=orig_translation) && ori.langcode).to_s
 
-    if !AVAILABLE_LOCALES.include? langcode.to_sym
-      logger.warn "(#{__method__}) langcode=#{langcode} unavailable in the environment (available=#{I18n.available_locales.inspect})."
-      # MultiTranslationError::UnavailableLocaleError
-    end
+    #### retracted because we should accept any language at this level!
+    # if !AVAILABLE_LOCALES.include? langcode.to_sym
+    #   logger.warn "(#{__method__}) langcode=#{langcode} unavailable in the environment (available=#{I18n.available_locales.inspect})."
+    #   # MultiTranslationError::UnavailableLocaleError
+    # end
 
     mdls =
       if new_record?
@@ -2655,13 +2653,13 @@ class BaseWithTranslation < ApplicationRecord
     bt ? bt.is_orig : bt
   end
 
-  # Best {Translation} for a specific language.
+  # Best {Translation} for a specific language with fallback algorithms.
   #
   # If langcode is nil, the standard sorting/ordering (based on is_orig
   # and weight) regardless of langcode is applied and fallback is ignored.
   #
   # If fallback==false (Def: true), the result is the same as
-  # {#best_translations}(langcode: your_langcode)
+  # {#best_translations}[your_langcode]
   # though this is less heavy on DB-accesses.
   #
   # @param langcodearg [String, Symbol, NilClass] Same as the optional argument and has a higher priority.
@@ -2671,33 +2669,94 @@ class BaseWithTranslation < ApplicationRecord
   def best_translation(langcodearg=nil, langcode: nil, fallback: true)  # langcode given both in the main argument and option to be in line with {#titles} etc.
     langcode = (langcodearg || langcode).to_s
     langcode = "" if "all" == langcode
-    return Translation.sort(new_record? ? unsaved_translations : translations).first if langcode.blank?
+    tras = ((new_record? && @unsaved_translations.present?) ? unsaved_translations : translations)
+    return Translation.sort(tras).first if langcode.blank?
 
-    tra = translations_with_lang(langcode: langcode)
+    tra = translations_with_lang(langcode: langcode)  # this is necessary because langcode is determined from is_orig when nil langcode is given
     return tra.first if !fallback || tra.exists?
 
-    langs2try =
-      if fallback.respond_to?(:map)
-        fallback
-      else
-        ([orig_translation.langcode]+I18n.available_locales.map(&:to_s)).reject{|i| i == langcode}
-      end
+    # Translation for the specified langcode has not been found.
+    # Fallback is now searched for.
+    if fallback.respond_to?(:map)
+      langs2try = fallback
+    elsif (ret=orig_translation)
+      return ret
+    else
+      langs2try = fallback_langcodes(except: langcode)  # except is desirable (to avoid an unnecessary, duplicated processing) because the specified langcode has been already tried. Note that if nil langcode is specified, fallback should have been already ignored.
+    end
 
     langs2try.each do |lc|
       tra = translations_with_lang(langcode: lc)
-      return tra.first if (tra.exists? rescue tra.present?)
+      return tra.first if (tra.exists? rescue tra.present?)  # tra is either Relation or Array
     end
     nil
   end
 
+  # Returns the sorted Array of langcodes in order of the priority
+  #
+  # At least, all existing languages for {#translations} (or {#unsaved_translations}
+  # for {#new_record?}) will be included.
+  #
+  # Here, the order of the fallback langcode basically follow +I18n.available_locales+
+  # except the first one is "en" (English). This is because if some one requests
+  # a language other than English and Japanese, they are most likely to prefer
+  # English to Japanese, regardless of the system default priority,
+  # which is used to give the initial language when nothing is requested
+  # by the user.  In reality, Japanese reader request Japanese language
+  # in a vast majority of cases, so prioritizing English should not be a trouble
+  # for them.
+  #
+  # @param except: [NilClass, String, Symbol, Array<String, Symbol>] e.g., 'ja', the langcode(s) are ignored.
+  # @param reject_non_existent: [Boolean] if true (Def), langcodes that do not exist in {#translations} are removed from the returned Array.
+  # @return [Array]
+  def fallback_langcodes(except: nil, reject_non_existent: true)
+    except &&= [except].flatten.compact.map(&:to_s)
+    except ||= []
+
+    def_lcodes =
+      if new_record?
+        (@unsaved_translations.present? ? unsaved_translations : translations).map(&:langcode)  # for a new_record, "pluck" for Rails association does not work!!
+      else
+        translations.pluck(:langcode)  # all existing langcodes for {#translations}
+      end
+    arret = ["en"] + I18n.available_locales.map(&:to_s)
+    arret += def_lcodes
+    arret.reject!{|i| except.include?(i)}
+    arret = (arret &  def_lcodes) if reject_non_existent
+    arret.uniq
+  end
+
+
   # Gets Hash of best {Translation}-s with keys of langcodes
   #
   # @param except: [NilClass, String, Symbol, Array<String, Symbol>] e.g., 'ja', then the returned Array does not include 'ja'
-  # @return [Hash] like {'ja': <Translation>, 'en': <Translation>}
+  # @return [Hash<Translation>] like {ja: <Translation>, en: <Translation>} (with_indifferent_access). All keys have exactly 1 Translation per each (never nil).
   def best_translations(except: nil)
+    return best_unsaved_translations(except: except) if new_record? # && unsaved_translations.present?
+
+    except &&= [except].flatten.compact.map(&:to_s)
+    except ||= []
+
+    hsret = {}.with_indifferent_access
+    all_lcodes = translations.pluck(:langcode) - except # => e.g., ["en", "fr", "ja"]
+    all_lcodes.each do |ea_k|
+      hsret[ea_k] = Translation.sort(translations.where(langcode: ea_k), langcode: nil)[0]
+    end
+
+    hsret
+  end
+
+  ######################################################################################################################################################
+
+  # Gets Hash of best (unsaved) {Translation}-s with keys of langcodes for a new_record
+  #
+  # @param except: #see #best_translations
+  # @return [Hash] like {'ja': <Translation>, 'en': <Translation>}
+  def best_unsaved_translations(except: nil)
+    raise if !new_record?  # sanity check
     except &&= [except].flatten.compact.map(&:to_s)
     hsret = {}.with_indifferent_access
-    ((new_record? && unsaved_translations.present?) ? unsaved_translations : translations).each do |ea_t|
+    (translations.present? ? translations : unsaved_translations).each do |ea_t|  # either unsaved_translations or (Rails default) translations
       next if except && except.include?(ea_t.langcode)
       hsret[ea_t.langcode] ||= []
       hsret[ea_t.langcode].push(ea_t)
@@ -2707,6 +2766,7 @@ class BaseWithTranslation < ApplicationRecord
     end
     hsret
   end
+  private :best_unsaved_translations
 
   # Creates {Translation}-s which are assciated to self.
   #

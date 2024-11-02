@@ -9,6 +9,21 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     ModuleWhodunnit.whodunnit = nil
   end
 
+  test "best_translations" do
+    # testing weight=10, Infinity for both is_orig=true
+    mus = Music.create!(note: 'new Mu')
+    mtras = []
+    mtras[0] = Translation.create!(translatable: mus, langcode: 'ja', is_orig: true, title: "日本語音楽00", weight: Float::INFINITY)
+    mtras[1] = Translation.create!(translatable: mus, langcode: 'ja', is_orig: true, title: "日本語音楽01", weight: 10)
+    #mtras[2] = Translation.create!(translatable: mus, langcode: 'ja', is_orig: true, title: "日本語音楽02", weight: Float::INFINITY)
+    mus.translations.reset
+
+    assert_equal mtras[1], mus.best_translation
+    assert_equal mtras[1], mus.best_translations[:ja], "best_translations=#{mus.best_translations.inspect}"
+    assert_nil             mus.best_translations[:en]
+    assert_equal mtras[1], mus.orig_translation
+  end
+
   test "title aka the private method get_a_title" do
     # Gets Music with some translations with "title" for the original-language but no French translation
     music = musics(:music1)
@@ -35,11 +50,11 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_equal 2, sex.best_translations(except: "ja").size
     assert_equal 1, sex.best_translations(except: %i(ja en)).size
     assert_nil                            sex.title(langcode: "de", lang_fallback: false, str_fallback: nil)
-    assert_equal best_transs['ja'].title, sex.title(langcode: "de", lang_fallback: true)
-    assert_equal 'ja',                    sex.title(langcode: "de", lang_fallback: true).lcode
-    ar_title = best_transs.slice('en', 'fr').values.map(&:title)
-    assert_includes ar_title,             sex.title(langcode: "de", lang_fallback: true, fallback_except: 'ja')
-    assert_includes ['en', 'fr'],         sex.title(langcode: "de", lang_fallback: true, fallback_except: 'ja').lcode
+    assert_equal best_transs['en'].title, sex.title(langcode: "de", lang_fallback: true)
+    assert_equal 'en',                    sex.title(langcode: "de", lang_fallback: true).lcode
+    ar_title = best_transs.slice('ja', 'fr').values.map(&:title)
+    assert_includes ar_title,             sex.title(langcode: "de", lang_fallback: true, fallback_except: 'en')
+    assert_includes ['ja', 'fr'],         sex.title(langcode: "de", lang_fallback: true, fallback_except: 'en').lcode
 
     # {#titles} are separately implemented.
     assert_empty music.titles(langcode: "fr", lang_fallback_option: :never, str_fallback: nil).compact
@@ -516,9 +531,14 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_equal "much longer", se99.title_or_alt(                       prefer_alt: true)
 
     pla1 = places(:takamatsu_station)
+    assert_equal %w(en ja), pla1.fallback_langcodes(except: [])
+    assert_equal %w(en),    pla1.fallback_langcodes(except: "ja")
     assert_equal '高松駅', pla1.title(langcode: 'ja', lang_fallback: false)
     assert_nil             pla1.title(langcode: 'fr', lang_fallback: false)
-    assert_equal '高松駅', pla1.title(langcode: 'fr', lang_fallback: true)
+    assert_equal ['高松駅', 'Takamatsu Station'], Translation.sort(pla1.translations).pluck(:title) # because of is_orig
+    assert_equal 'Takamatsu Station', pla1.title(langcode: 'fr', lang_fallback: true)
+    assert_equal "en",     pla1.title(langcode: 'fr', lang_fallback: true).lcode  # singleton method
+    assert_equal 'Takamatsu Station', pla1.title(langcode: 'fr', lang_fallback: true, fallback_except: "ja")
     assert_equal 'タカマツエキ', pla1.ruby(langcode: 'ja', lang_fallback: false)
     assert_nil                   pla1.ruby(langcode: 'en', lang_fallback: false)
     assert_equal 'タカマツエキ', pla1.ruby(langcode: 'en', lang_fallback: true)

@@ -349,9 +349,12 @@ class Translation < ApplicationRecord
   # at the time of writing: v.1.7). For example:
   #   Translation.sort(model.translations.where(langcode: "ja"), consider_is_orig: false)
   #
+  # @example Already filtered Relation for a language
+  #    Translation.sort(Sex.first.translations.where(langcode: "ja"), langcode: nil)
+  #
   # @option rela [ActiveRecord::AssociationRelation<Translation>]
   # @param consider_is_orig: [Symbol] if true (Def), is_orig is considered.
-  # @param langcode: [String, NilClass] locale to be prioritized. 
+  # @param langcode: [String, NilClass] locale to be prioritized.  Specify nil to skip this condition (e.g., you have already filtered out all the other languages in rela)
   # @param prioritize_is_orig: [Boolean] if true (Def), is_orig is prioritized over langcode.
   # @param t_alias: [String, NilClass] DB table alias for Translation table, if the given +rela+ uses it. Default is {Translation.table_name} (= "translations")
   # @return [ActiveRecord::AssociationRelation, Array]
@@ -370,11 +373,12 @@ class Translation < ApplicationRecord
   # or `lang_fallback: true` in some methods in {BaseWithTranslation} to find
   # the best Translation regardless of the language.
   #
+  # @param langcode: [String, NilClass] locale to be prioritized (Def: I18n.locale).  If nil, no condition.
   # @return [Array] Array of SQL expressions for "ORDER BY", to be fed to +Relation.order(Arel.sql(returned_array.join(",")))+
   def self.build_sql_order(consider_is_orig: true, langcode: I18n.locale, prioritize_is_orig: true, t_alias: nil)
     t_alias ||= table_name
     arel_strs = []
-    arel_strs << build_sql_order_langcode(langcode: langcode, t_alias: t_alias)
+    arel_strs << build_sql_order_langcode(langcode: langcode, t_alias: t_alias) if langcode
     arel_strs << sprintf("CASE WHEN %s.is_orig IS NOT TRUE THEN 1 ELSE 0 END", t_alias) if consider_is_orig
     # regardless of DBs; cf. https://stackoverflow.com/a/68698547/3577922
 
@@ -389,7 +393,7 @@ class Translation < ApplicationRecord
   def self.build_sql_order_langcode(langcode: I18n.locale, t_alias: table_name)
     whens = []
     whens << sprintf("WHEN %s.langcode = '#{langcode}' THEN 0", t_alias) if langcode.present?
-    whens << sprintf("WHEN %s.langcode = 'en' THEN 1", t_alias)
+    whens << sprintf("WHEN %s.langcode = 'en' THEN 1", t_alias) if 'en' != langcode.to_s
     "CASE " + whens.join(" ") + " ELSE 2 END"
   end
   private_class_method :build_sql_order_langcode
@@ -397,19 +401,9 @@ class Translation < ApplicationRecord
   # Array version for {Translation.sort}
   def self.sort_array(rela=self, consider_is_orig: true)
     rela.sort{|a,b|
-      if    consider_is_orig && a.is_orig
-        -1
-      elsif consider_is_orig && b.is_orig
-         1
-      elsif !a.weight && !b.weight
-         0
-      elsif !a.weight
-         1
-      elsif !b.weight
-        -1
-      else
-        a.weight <=> b.weight
-      end
+      [a, b].map{|et|
+        [((consider_is_orig && et.is_orig) ? 0 : 1), (et.weight.nil? ? 2 : 0), et.weight]
+      }.reduce(:<=>)
     }
   end
 

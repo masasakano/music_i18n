@@ -44,7 +44,7 @@ class EngageHowTest < ActiveSupport::TestCase
     # But words can be the same in separate languages.
     assert_nothing_raised{ 
       engage_hows(:engage_how_composer).with_translation(langcode: 'fr', title: 'new3',
-        alt_title: engage_hows(:engage_how_player).title(langcode: 'fr'), is_orig: false) }
+        alt_title: engage_hows(:engage_how_player).title(langcode: 'en'), is_orig: false) }
   end
 
   test "weight value" do
