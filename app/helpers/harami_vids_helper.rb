@@ -77,9 +77,9 @@ module HaramiVidsHelper
   def sorted_event_event_items_by_timing(harami_vid=@harami_vid, event_event_items=@event_event_items)
     event_event_items ||= set_event_event_items(harami_vid: harami_vid)
 
-    # sorted_evits = harami_vid.event_items.joins(:artist_music_plays).joins(:harami_vids).joins("").joins("LEFT OUTER JOIN harami_vid_music_assocs ON harami_vid_music_assocs.harami_vid_id = harami_vids.id AND harami_vid_music_assocs.music_id = artist_music_plays.music_id").order("harami_vid_music_assocs.timing").uniq  ### => the timing-sorted EventItems
+    # sorted_evits = harami_vid.event_items.joins(:artist_music_plays).joins(:harami_vids).joins("").joins("LEFT OUTER JOIN harami_vid_music_assocs ON harami_vid_music_assocs.harami_vid_id = harami_vids.id AND harami_vid_music_assocs.music_id = artist_music_plays.music_id").where("harami_vid_music_assocs.harami_vid_id = ?", harami_vid.id).order("harami_vid_music_assocs.timing").uniq  ### => the timing-sorted EventItems
 
-    evit_timings_all = harami_vid.event_items.joins(:artist_music_plays).joins(:harami_vids).joins("").joins("LEFT OUTER JOIN harami_vid_music_assocs ON harami_vid_music_assocs.harami_vid_id = harami_vids.id AND harami_vid_music_assocs.music_id = artist_music_plays.music_id").order("harami_vid_music_assocs.timing").select("id", "harami_vid_music_assocs.timing AS timing").map{|i| [i.id, i.timing]}
+    evit_timings_all = harami_vid.event_items.joins(:artist_music_plays).joins(:harami_vids).joins("").joins("LEFT OUTER JOIN harami_vid_music_assocs ON harami_vid_music_assocs.harami_vid_id = harami_vids.id AND harami_vid_music_assocs.music_id = artist_music_plays.music_id").where("harami_vid_music_assocs.harami_vid_id = ?", harami_vid.id).order("harami_vid_music_assocs.timing").select("id", "harami_vid_music_assocs.timing AS timing").map{|i| [i.id, i.timing]}
 
     evit_timings = []  # Reduced Array of [EventItem-pID, timing]-s
     evit_timings_all.each do |ea|

@@ -279,20 +279,22 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
       end
     end
 
+    pref_url = prefecture_url(liverpool.places[-1].prefecture)
     assert_difference('Place.count', -1) do
       assert_difference('Translation.count', -1) do
         delete place_url(liverpool.places[-1])
         assert_response :redirect
-        assert_redirected_to places_url
       end
     end
+    assert_redirected_to pref_url
+
     assert_difference('Prefecture.count', -1) do
       assert_difference('Translation.count', -2, "Translations of Prefecture and Place.unknown should be destroyed") do
         delete prefecture_url(liverpool)
         assert_response :redirect #, "Prefecture with no significant Places should be destroyed"
-        assert_redirected_to prefectures_url
       end
     end
+    assert_redirected_to prefectures_url
 
     shimane = prefectures(:shimane)
     assert_equal 2, shimane.translations.size, 'Sanity check: shimane should have 1 translation'
@@ -320,13 +322,14 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
     end
 
     # destroy the child Place first.
+    pref_url = prefecture_url(shimane.places[-1].prefecture)
     assert_difference('Place.count', -1) do
       assert_difference('Translation.count', -1) do
         delete place_url(shimane.places[-1])
         assert_response :redirect
-        assert_redirected_to places_url
       end
     end
+    assert_redirected_to pref_url
 
     # Now the Prefecture has only Place.unknown. Hence an admin can destroy it, even though it is in Japan.
     assert_difference('Prefecture.count', -1) do
@@ -334,9 +337,9 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
         assert_difference('Translation.count', -3) do
           delete prefecture_url(shimane), params: { prefecture: { force_destroy: "1" } }
           assert_response :redirect #, "Prefecture should be forcibly destroyed by an admin"
-          assert_redirected_to prefectures_url
         end
       end
     end
+    assert_redirected_to prefectures_url
   end
 end
