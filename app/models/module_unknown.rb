@@ -9,7 +9,7 @@
 #
 # The class that includes this module MUST define the +with_indifferent_access+ hash +UNKNOWN_TITLES+
 # having keys of "ja|en|fr" each with translation to express the unknown model
-# or its two-element Array for title and +alt_title+ as in the following example.
+# or its (one or) two-element Array for title and +alt_title+ (or String for title only) as in the following example.
 #
 # @example
 #    class Work < ApplicationRecord
@@ -22,6 +22,7 @@
 #      }.with_indifferent_access
 #
 module ModuleUnknown
+  include ModuleSetSingletonUnknown # for method set_singleton_unknown
 
   extend ActiveSupport::Concern
   module ClassMethods
@@ -41,6 +42,8 @@ module ModuleUnknown
     end
 
     # Private method to forcibly re-determine the "unknown".
+    #
+    # This basically OR-s all unknown title and alt_title in all the languages.
     #
     # @return [ApplicationRecord]
     def _unknown_forcible

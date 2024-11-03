@@ -40,7 +40,7 @@
         <td class="item_musics"><%= ea_hvid.musics.uniq.map{|i| link_to(i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), i)}.join(t(:comma)).html_safe %></td>
         <td class="item_release_date"><%= date2text(ea_hvid.release_date) %></td> <%# defined in ModuleCommon %>
         <td class="item_duration"><%= ea_hvid.duration ? sec2hms_or_ms(ea_hvid.duration) : "" %></td>
-        <td class="item_place"><%= (pla=ea_hvid.place) ? (s=pla.title_or_alt(langcode: I18n.locale, prefer_shorter: true, lang_fallback_option: :either, article_to_head: true); can?(:read, s) ? link_to(s, pla) : s) : "" %></td>
+        <td class="item_place"><%= ea_hvid.place ? ea_hvid.txt_place_pref_ctry(without_country_maybe: true) : "" %></td>
         <td class="item_event_items text-end">
           <%= all_evits.map.with_index{|ea_evit, ind|
             next nil if !ea_evit.harami_vids.include?(ea_hvid)

@@ -1,7 +1,7 @@
 
-<%# imported local variables: artist_music_plays, optional: distinguished_artist (treated separately if specified), no_sort: (unless specified true, sorted by Artist, Music, PlayRole, Instrument), harami_vid (used for sorting if specified; WARNING: if harami_vid is specified, artist_music_plays is assumed to be "event_item.artist_music_plays") %>
-<%# The table is sorted in order of Artist and then appearance in HaramiVid if harami_vid is specified. %>
-<%# If distinguished_artist is specified, the columns for the Artist has the highest priority. %>
+<%# imported local variables: artist_music_plays, optional: distinguished_artist (treated separately if specified), no_sort: (unless specified true, sorted by ([Music, Artist] or its reverse if distinguished_artist is non-nil, PlayRole, Instrument), harami_vid (used for sorting if specified; WARNING: if harami_vid is specified, artist_music_plays is assumed to be "event_item.artist_music_plays") %>
+<%# The table is sorted in order of Music and Artist and then appearance in HaramiVid if harami_vid is specified. %>
+<%# If distinguished_artist is specified (needed in /artist_music_plays/edit_multis/ where an Artist is focused), the columns for the Artist has the highest priority.  In HaramiVid#show (or edit), nil or nothing should be given. %>
 
 <%
   if !defined? no_sort
@@ -13,27 +13,31 @@
     harami_vid = nil
   end
 %>  <%# This has to be written over multiple lines. %>
+<%
+  if !defined? distinguished_artist
+    distinguished_artist = nil
+  elsif distinguished_artist.blank?
+    distinguished_artist = nil
+  end
+%>  <%# This has to be written over multiple lines. %>
 
-<% relas = []
-   rela_base = artist_music_plays
-   if !no_sort
-     ar_order = %w(artist_id music_id play_role_id instrument_id).map{|i| "artist_music_plays."+i}
-     ar_order[1] = "harami_vid_music_assocs.timing"
-     rela_base =
-       if harami_vid
-         rela_base.joins(event_item: :harami_vids).joins("INNER JOIN harami_vid_music_assocs ON harami_vid_music_assocs.harami_vid_id = harami_vids.id")
-       else
-         rela_base.joins("INNER JOIN harami_vid_event_item_assocs ON harami_vid_event_item_assocs.event_item_id = artist_music_plays.event_item_id").joins("INNER JOIN harami_vid_music_assocs ON harami_vid_music_assocs.harami_vid_id = harami_vid_event_item_assocs.harami_vid_id")
-       end
-     rela_base = rela_base.where('artist_music_plays.music_id = harami_vid_music_assocs.music_id')
-     rela_base = rela_base.order(*ar_order)
-   end
 
-   if defined? distinguished_artist
-     relas[0] = rela_base.where(artist_id: distinguished_artist.id)
+<% db_columns, th_labels4, td_attrs4 = get_ordered_amp_arrays(distinguished_artist) %> <%# defined in artist_music_plays_helper.rb %>
+
+<%
+   rela_base =
+     if no_sort
+       artist_music_plays
+     else
+       hvma_joined_artist_music_plays(artist_music_plays, db_columns, harami_vid: harami_vid)
+     end
+%> <%# HaramiVidMusicAssocs-joined relation; defined in artist_music_plays_helper.rb %>
+<%
+   relas = []
+   if distinguished_artist
+     relas[0] = rela_base.where(    artist_id: distinguished_artist.id)
      relas[1] = rela_base.where.not(artist_id: distinguished_artist.id)
    else
-     distinguished_artist = nil
      relas[0] = rela_base
      relas[1] = ArtistMusicPlay.none
    end
@@ -71,10 +75,10 @@
      <% if canedit_hvid %>
       <th class="editor_only" title="pID of ArtistMusicPlay">pID</th>
      <% end %>
-      <th><%= t(:Artist) %></th>
-      <th><%= t(:Music) %></th>
-      <th><%= t(:PlayRole) %></th>
-      <th><%= t(:Instrument_pl_short) %></th>
+      <th><%= th_labels4[0] %></th>
+      <th><%= th_labels4[1] %></th>
+      <th><%= th_labels4[2] %></th>  <%# t(:PlayRole) %>
+      <th><%= th_labels4[3] %></th>  <%# t(:Instrument_pl_short) %>
      <% if canedit_evit %>
       <th class="editor_only"><%= t("attr.contribution") %></th>
       <th class="editor_only"><%= t("attr.cover_ratio") %></th>
@@ -87,6 +91,7 @@
   </thead>
 
   <tbody>
+    <% title_opts = {langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true} %>
     <% relas.each_with_index do |rela, i_rela| %>
       <% if distinguished_artist %>
         <tr><th colspan="<%= allcolspan %>" class="text-center">For <%= (0 == i_rela) ? "this Artist" : "the other Artists" %></th></tr>
@@ -96,9 +101,11 @@
          <% if canedit_hvid %>
           <td class="editor_only text-end"><%= amp.id %></td>
          <% end %>
-         <%  [:artist, :music, :play_role, :instrument].each do |att| %>
+         <%  td_attrs4.each do |att| %>
            <td>
-             <% tit = (model=amp.send(att)).title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true) %>
+             <% model = amp.send(att) %>
+             <% metho = ((:music == att) ? :title_maybe_with_artist : :title_or_alt) %>
+             <% tit = model.send(metho, **title_opts) %>
              <%= canshows[att] ? link_to(tit, model) : tit %>
            </td>
          <% end %>

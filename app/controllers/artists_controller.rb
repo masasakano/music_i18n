@@ -44,6 +44,7 @@ class ArtistsController < ApplicationController
   def new
     @artist = Artist.new
     params.permit(:sex_id, :place_id, :birth_year, :birth_month, :birth_day, :wiki_ja, :wiki_en, :note)
+    @artist.sex ||= Sex.unknown
   end
 
   # GET /artists/1/edit

@@ -67,8 +67,7 @@ class MusicsGrid < BaseGrid
     record.genre.title_or_alt(langcode: I18n.locale)
   end
   column(:place, header: Proc.new{I18n.t('tables.place')}) do |record|
-    ar = record.place.title_or_alt_ascendants(langcode:  I18n.locale, prefer_alt: true);
-    sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture['ja'] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2]
+    record.place.pref_pla_country_str(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true)
   end
 
   # Valid only for PostgreSQL

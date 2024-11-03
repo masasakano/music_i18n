@@ -256,6 +256,80 @@ class PlaceTest < ActiveSupport::TestCase
     assert_equal ['高松駅', '香川県', '日本'],   pla1.title_or_alt_ascendants(langcode: 'ja', prefer_alt: true)
     assert_equal ['高松駅', '香川県', 'Japon'],  pla1.title_or_alt_ascendants(langcode: 'fr')
     assert_equal ['',       '',       'Japon'],  pla1.title_or_alt_ascendants(langcode: 'fr', lang_fallback_option: :never)
+
+    ar = pla1.title_or_alt_ascendants(set_singleton: true)
+    refute ar[0].unknown?
+    refute ar[1].unknown?
+    refute ar[2].unknown?
+
+    pla_unk = places(:unknown_place_kagawa_japan)
+    ar = pla_unk.title_or_alt_ascendants(set_singleton: true)
+    assert pla_unk.unknown?
+    assert ar[0].unknown?
+    refute ar[1].unknown?
+    refute ar[2].unknown?
+
+    pla_unk = places(:unknown_place_unknown_prefecture_japan)
+    ar = pla_unk.title_or_alt_ascendants(set_singleton: true)
+    assert pla_unk.unknown?
+    assert ar[0].unknown?
+    assert ar[1].unknown?
+    refute ar[2].unknown?
+
+    pla_unk = places(:unknown_place_unknown_prefecture_world)
+    ar = pla_unk.title_or_alt_ascendants(set_singleton: true)
+    assert ar[0].unknown?
+    assert ar[1].unknown?
+    assert ar[2].unknown?
+
+    ar = pla_unk.title_or_alt_ascendants(set_singleton: false)
+    refute ar[0].respond_to?(:unknown?)
+    refute ar[1].respond_to?(:unknown?)
+    refute ar[2].respond_to?(:unknown?)
+  end
+
+  test "pref_pla_country_str and txt_place_pref_ctry" do
+    pla1 = places(:takamatsu_station)
+    assert_equal '香川県 — 高松駅 (日本国)', pla1.pref_pla_country_str()
+    assert_equal '香川県 — 高松駅 (日本)',   pla1.pref_pla_country_str(prefer_shorter: true)
+    assert_equal '香川県 — 高松駅 (日本)',   pla1.txt_place_pref_ctry(langcode: "ja")  # b/c I18n.locale is "en" in testing
+    assert_equal '香川県 — 高松駅 (日本)',   pla1.txt_place_pref_ctry(langcode: nil)
+
+    artmp = pla1.title_or_alt_ascendants(prefer_shorter: true, set_singleton: true)
+    assert_equal '香川県 — 高松駅 (日本)',   pla1.pref_pla_country_str(str_ascendants: artmp, prefer_shorter: true)
+    artmp = pla1.title_or_alt_ascendants(prefer_shorter: true, set_singleton: false)
+    assert_equal '香川県 — 高松駅 (日本)',   pla1.pref_pla_country_str(str_ascendants: artmp, prefer_shorter: true)
+
+    pla_unk = places(:unknown_place_kagawa_japan)
+    assert_equal '香川県 (日本)', pla_unk.pref_pla_country_str(prefer_shorter: true)
+
+    pla_unk = places(:unknown_place_unknown_prefecture_world)
+    assert_equal '(World)', pla_unk.pref_pla_country_str(prefer_shorter: true).strip
+    assert_equal '(World)', pla_unk.pref_pla_country_str(prefer_shorter: true, langcode: "kr", lang_fallback_option: :either).strip
+    assert_equal '(世界)',  pla_unk.pref_pla_country_str(prefer_shorter: true, langcode: "ja", lang_fallback_option: :either).strip
+
+    pla_unk = places(:harami_home_unknown_prefecture_japan)
+    tit = pla_unk.title_or_alt(langcode: "ja", prefer_shorter: true)
+    assert pla_unk.prefecture.unknown?, "sanity check"
+    assert_equal "— #{tit} (日本)", pla_unk.pref_pla_country_str(prefer_shorter: true).strip
+
+    uk = countries(:uk)
+    pref_uk = Prefecture.create!(country: uk)
+    tit_pref = "The Stateshire"
+    tra_pref = Translation.preprocessed_new(translatable: pref_uk, title: tit_pref, langcode: "en", is_orig: true, weight: 0)
+    tra_pref.save!
+    tra_pref.reload
+    pref_uk.translations.reset
+    assert_equal "Stateshire, The", pref_uk.title
+
+    pla_uk = Place.create!(prefecture: pref_uk)
+    tit_pla = "The Street"
+    tra_pla  = Translation.preprocessed_new(translatable: pla_uk, title: tit_pla, langcode: "en", is_orig: true, weight: 0)
+    tra_pla.save!
+    pla_uk.translations.reset
+    assert_equal "Street, The", pla_uk.title
+
+    assert_match(/#{tit_pref} — #{tit_pla} \(the United Kingdom/i, pla_uk.pref_pla_country_str(langcode: nil, prefer_shorter: false))
   end
 
   test "brackets" do

@@ -29,6 +29,9 @@ class Prefecture < BaseWithTranslation
   # define method "mname" et
   include ModuleMname
 
+  # for set_singleton_unknown
+  include ModuleSetSingletonUnknown
+
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = [:country_id, :iso3166_loc_code]
   #MAIN_UNIQUE_COLS = [:country, :country_id, :iso3166_loc_code]
@@ -271,12 +274,18 @@ class Prefecture < BaseWithTranslation
   #   self.title_or_alt_ascendants(langcode: 'ja')
   #    # => ["Kyoto", "Japan"]
   #
+  # @param set_singleton: [Boolean] if true, singleton method +String#unknown?+ is defined for each component of the returned Array.
   # @param langcode: [String, NilClass] like 'ja'
   # @param prefer_alt: [Boolean] if true (Def: false), alt_title is preferably
   #    returned as long as it exists.
   # @return [Array]
-  def title_or_alt_ascendants(**kwd)
-    [title_or_alt(**kwd), country.title_or_alt(**kwd)]
+  def title_or_alt_ascendants(set_singleton: false, **kwd)
+    ret = [title_or_alt(**kwd), country.title_or_alt(**kwd)]
+    return ret if !set_singleton
+
+    set_singleton_unknown(ret[0]) # defined in ModuleSetSingletonUnknown
+    country.set_singleton_unknown(ret[1])
+    ret
   end
 
   # Adds Place(UnknownPlaceXxx) after the first Translation creation of Prefecture

@@ -26,6 +26,10 @@
 # PostgreSQL-copabible although some basic differences between
 # Ruby and PostgreSQL Regexps are corrected (see models/translation.rb for detail).
 #
+# @note
+#   If the model +include ModuleCommon+, when {ModuleUnknown#unknown} is called first time (or +relaod: true+)
+#   {#mname} is set to "unknown"
+#
 # @example
 #   include ModuleMname
 #   REGEXP_IDENTIFY_MODEL = {

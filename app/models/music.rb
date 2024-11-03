@@ -107,6 +107,25 @@ class Music < BaseWithTranslation
     artists.joins(:engages).joins("INNER JOIN engage_hows ON engages.engage_how_id = engage_hows.id").order("engage_hows.weight", "engages.contribution", "engages.year", "artists.birth_year").first
   end
 
+  # Returns a Title, possibly associated with Artist name but only if there are multiple matches for the returned title.
+  #
+  # Regardless of `lang_fallback_option` and other optional arguments, Artist name is expressed in its original language.
+  #
+  # @example
+  #    mus.title_maybe_with_artist(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true, prefer_shorter: true)
+  #
+  # @param kwds [Hash] passed to {BaseWithTranslation#title_or_alt} for Music
+  # @return [String]
+  def title_maybe_with_artist(**kwds)
+    mu_tit = title_or_alt(**kwds)
+    if Music.find_all_by_a_title(:all, mu_tit, uniq: true).size <= 1
+      return mu_tit
+    else
+      art_tit = most_significant_artist.title_or_alt(langcode: nil, lang_fallback_option: :either, article_to_head: true)
+      sprintf "%s [by %s]", mu_tit, art_tit
+    end
+  end
+
   # Wrapper of the standard self.find_all_by, considering {Translation}
   #
   # @param titles [Array<String>] Array of "title"-s of the singer (maybe in many languages) to search for.

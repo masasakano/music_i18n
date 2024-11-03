@@ -87,8 +87,7 @@
         <td class="number"><%= assoc.completeness %></td>
      <% end %>
      <% if with_place %>
-       <% pla_tit = ((pla=harami_vid.place) ? pla.title_or_alt(prefer_shorter: true, lang_fallback_option: :either, str_fallback: "") : nil) %>
-        <td><%= pla_tit ? (canread_pla ? link_to(pla_tit, pla) : pla_tit) : "" %></td>
+        <td><%= harami_vid.place ? harami_vid.txt_place_pref_ctry(without_country_maybe: true) : "" %></td>
      <% end %>
       <% if canread_evit %>
         <td class="text-center editor_only">

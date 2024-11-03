@@ -24,6 +24,9 @@ class Place < BaseWithTranslation
   # define method "mname" et
   include ModuleMname
 
+  # for set_singleton_unknown
+  include ModuleSetSingletonUnknown
+
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = [:prefecture, :prefecture_id]
 
@@ -273,15 +276,75 @@ class Place < BaseWithTranslation
   # Returns an Array of translation of the ascendants like [self, {Prefecture}, {Country}] 
   #
   # @example
-  #   self.title_or_alt_ascendants(langcode: 'ja')
+  #   self.title_or_alt_ascendants(langcode: 'en')
   #    # => ["Shijo", "Kyoto", "Japan"]
   #
   # @param langcode: [String, NilClass] like 'ja'
   # @param prefer_alt: [Boolean] if true (Def: false), alt_title is preferably
   #    returned as long as it exists.
   # @return [Array]
-  def title_or_alt_ascendants(**kwd)
-    [title_or_alt(**kwd), prefecture.public_send(__method__, **kwd)].flatten
+  def title_or_alt_ascendants(set_singleton: false, **kwd)
+    ret = [title_or_alt(**kwd), prefecture.public_send(__method__, set_singleton: set_singleton, **kwd)].flatten
+    return ret if !set_singleton
+
+    set_singleton_unknown(ret[0]) # defined in ModuleSetSingletonUnknown
+    ret
+  end
+
+  # Returns a String of "Prefecture - Place (Country)" where some may be missing
+  #
+  # @example
+  #   self.pref_pla_country_str(langcode: nil, prefer_shorter: false)  # Default option
+  #     # => "Liverpool — The Square (the United Kingdom of Great Britain and Northern Ireland)"
+  #
+  # @param without_country_maybe: [Boolean] if true (Def: false), the country information is not printed unless that is the only information or the country is not in the default country. This is mainly used for HaramiVid.
+  # @param langcode: [String, NilClass] like 'ja'
+  # @param prefer_alt: [Boolean] if true (Def: false), alt_title is preferably
+  #    returned as long as it exists.
+  # @return [String]
+  def pref_pla_country_str(str_ascendants: nil, without_country_maybe: false, **kwd)
+    return pref_pla_country_str_from_ascendants(str_ascendants, langcode: kwd[:langcode]) if str_ascendants.present? && !str_ascendants.first.respond_to?(:unknown?)
+
+    ar = (str_ascendants.present? ? str_ascendants : [self, self.prefecture, self.country].map{|model| model.title_or_alt(**kwd)}).map{|i| definite_article_to_head(i)} # defined in module_common.rb
+    ar[1] = "" if prefecture.unknown?
+    ar[0] = (unknown? ? "" : '— '+ar[0]+' ')
+
+    with_country = (!without_country_maybe || (ar[1].blank? && unknown?) || !country.primary?)
+    _ascendants3_to_str(ar, with_country: with_country)
+  end
+
+  # @param with_country: [Boolean] If false (Def: true), Country is not printed.
+  # @return [Array]
+  def _ascendants3_to_str(arstr_prepared, with_country: true)
+    # sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture[I18n.locale] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2]  # old specs
+    if with_country
+      sprintf '%s %s(%s)', arstr_prepared[1], arstr_prepared[0], arstr_prepared[2]
+    else
+      sprintf '%s %s',     arstr_prepared[1], arstr_prepared[0]
+    end
+  end
+  private :_ascendants3_to_str
+
+  # Legacy one, where this manages to find whether it is {#unknown?} or not from String.
+  #
+  # @example
+  #   ar = places(:bodokan).place.title_or_alt_ascendants(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true)
+  #   self.pref_pla_country_str_from_ascendants(ar, langcode: I18n.locale)
+  #     # => "Liverpool — The Square (the United Kingdom of Great Britain and Northern Ireland)"
+  #
+  # @return [String]
+  def pref_pla_country_str_from_ascendants(str_ascendants, langcode: I18n.locale)
+    ar = str_ascendants.map{|i| definite_article_to_head(i)} # defined in module_common.rb
+    if ((Prefecture::UnknownPrefecture[langcode] == ar[1]) || ar[1].blank?)
+      ar[1] = ""
+    end
+    if ((Place::UnknownPlace[langcode] == ar[0]) || ar[0].blank?)
+      ar[0] = ""
+    else
+      ar[0] = '— '+ar[0]+' '
+    end
+
+    _ascendants3_to_str(ar)
   end
 
   # true if it has any desendants/children

@@ -35,6 +35,18 @@ require 'test_helper'
 class CountryTest < ActiveSupport::TestCase
   include ApplicationHelper # for suppress_ruby270_warnings()
 
+  test "set_singleton_unknown" do
+    unk = Country.unknown
+    str = unk.title
+    assert unk.set_singleton_unknown(str)
+    assert str.unknown?
+
+    cnt = countries(:japan)
+    str = cnt.title
+    refute cnt.set_singleton_unknown(str)
+    refute str.unknown?
+  end
+
   test "belongs_to" do
     cnt = countries(:aus)
     assert_equal cnt.iso3166_a3_code, cnt.country_master.iso3166_a3_code
@@ -102,6 +114,12 @@ class CountryTest < ActiveSupport::TestCase
     assert_nothing_raised{
       t2.update!(note: 'new-t2')
       Translation.create!(alt_title: 'NZer', langcode: 'fr', translatable: c2) }
+  end
+
+  # according to config.primary_country
+  test "primary" do
+    assert countries(:japan).primary?
+    refute countries(:uk).primary?
   end
 
   test "more_significant and less_significant" do

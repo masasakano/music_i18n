@@ -237,6 +237,21 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_equal(-5_6.23_43e-52_3 , convert_str_to_number_nil(" -5_6.23_43e-52_3 "))
   end
 
+  test "capture_stderr" do
+    output = Artist.capture_stderr{
+      warn "abc"
+      123
+    }
+    assert_equal "abc", output.chop
+
+    ret = self.class.silence_streams($stderr){
+      # puts "This should be printed!"
+      warn "This should not be printed..."
+      123
+    }
+    assert_equal 123, ret
+  end
+
   test "singleton_method_val" do
     obj = Object.new
     assert_equal 5, set_singleton_method_val(:metho, initial_value=5, target: obj)
@@ -253,6 +268,36 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_equal 5, art.set_singleton_method_val(:metho, initial_value=5)
     assert   art.respond_to?(:metho)
     assert_equal 5, art.metho
+
+    assert_raises(NameError){
+      output = Artist.capture_stderr{
+        set_singleton_method_val(:empty?, initial_value=true,  target: obj)
+      }
+    }
+
+    assert set_singleton_method_val(:empty?, initial_value=true,  target: obj, reader: true)
+    assert obj.respond_to?(:empty?)
+    assert obj.empty?
+    refute set_singleton_method_val(:empty?, initial_value=false, target: obj, reader: true, clobber: true)
+    assert obj.respond_to?(:empty?)
+    refute obj.empty?
+
+    class Object2
+      include ModuleCommon
+      def naiyo?
+        8
+      end
+    end
+    obj2 = Object2.new
+    refute obj.respond_to?(:naiyo?)
+    # assert_equal 8, obj2.set_singleton_method_val(:naiyo?, "damedayo", target: obj, reader: true, derive: true)  # This should print out warning message to STDOUT (and Rails log).  Uncomment it to test this.
+    assert_equal 8, obj2.set_singleton_method_val(:naiyo?, target: obj, reader: true, derive: true)
+    assert obj.respond_to?(:naiyo?)
+    assert_equal 8, obj2.naiyo?
+
+    assert "".set_singleton_method_val(:empty?, target: obj2, reader: true, derive: true)
+    assert obj2.respond_to?(:empty?)
+    assert obj2.empty?
   end
 
   test "time_err2uptomin" do

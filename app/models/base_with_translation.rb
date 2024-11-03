@@ -4432,6 +4432,11 @@ class << BaseWithTranslation
   #
   # Original is defined in /app/models/concerns/module_application_base.rb
   #
+  # @example HaramiVid
+  #    mdl = HaramiVid.create_basic!(title: 'Great memory!', langcode: "ja", is_orig: true,
+  #            uri: "youtu.be/abcdefghi", release_date: Date.current,
+  #            channel: Channel.default(:HaramiVid))
+  #
   # @example In case you need to overwrite it (see also the bottom section of BaseWithTranslation).
   #    class << Artist
   #      alias_method :create_basic_bwt!, :create_basic! if !self.method_defined?(:create_basic_bwt!)

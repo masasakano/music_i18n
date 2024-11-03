@@ -409,6 +409,34 @@ class PrefectureTest < ActiveSupport::TestCase
     refute Prefecture.unknown.less_significant_than?( Place.unknown )
   end
 
+  test "title_or_alt_ascendants" do
+    pla1 = places(:takamatsu_station)
+    pref = pla1.prefecture
+    assert_equal ['香川県', '日本国'], pref.title_or_alt_ascendants
+    assert_equal ['香川県', '日本'],   pref.title_or_alt_ascendants(langcode: 'ja', prefer_shorter: true)
+    assert_equal ['香川県', 'Japon'],  pref.title_or_alt_ascendants(langcode: 'fr')
+    assert_equal ['',       'Japon'],  pref.title_or_alt_ascendants(langcode: 'fr', lang_fallback_option: :never)
+
+    ar = pref.title_or_alt_ascendants(set_singleton: true)
+    refute ar[0].unknown?
+    refute ar[1].unknown?
+
+    pref_unk = prefectures(:unknown_prefecture_japan)
+    ar = pref_unk.title_or_alt_ascendants(set_singleton: true)
+    assert pref_unk.unknown?
+    assert ar[0].unknown?
+    refute ar[1].unknown?
+
+    pref_unk = prefectures(:unknown_prefecture_world)
+    ar = pref_unk.title_or_alt_ascendants(set_singleton: true)
+    assert ar[0].unknown?
+    assert ar[1].unknown?
+
+    ar = pref_unk.title_or_alt_ascendants(set_singleton: false)
+    refute ar[0].respond_to?(:unknown?)
+    refute ar[1].respond_to?(:unknown?)
+  end
+
   test "mname related" do
     pref_london = Prefecture[/\bLondon\b/]
     assert_equal Country["GBR"], pref_london.country, 'sanity check'

@@ -89,8 +89,65 @@ module ModuleCommon
         (highest_weight + unknown_weight).quo(2)
       end
     end
-  end
 
+
+    # temporarily redirects $stderr and gets the output String.
+    #
+    # see <https://stackoverflow.com/a/4459463/3577922>
+    #
+    # @example
+    #   output = Artist.capture_stderr{
+    #     warn "abc"
+    #     123
+    #   }
+    #     # => "abc\n"
+    #
+    # @return [String] of $stderr
+    def capture_stderr
+      mutex = Mutex.new
+      mutex.synchronize{
+        begin
+          previous_stderr, $stderr = $stderr, StringIO.new
+          yield
+          return $stderr.string
+        ensure
+          $stderr = previous_stderr
+        end
+      }
+    end
+
+    # temporarily suppresses the given IO
+    #
+    # see <https://stackoverflow.com/a/8959520/3577922>
+    #
+    # @example  to temporarily suppress $stderr
+    #   Artist.silence_streams($stderr){
+    #     warn "This should not be printed..."
+    #     123
+    #   }
+    #     # => 123
+    #
+    # @param streams [IO] $stderr [Array]
+    # @return [object] The returned value of the given block
+    def silence_streams(*streams)
+      mutex = Mutex.new
+      mutex.synchronize{
+        begin
+          on_hold = streams.collect { |stream| stream.dup }
+          streams.each do |stream|
+            stream.reopen(RUBY_PLATFORM =~ /mswin/ ? 'NUL:' : '/dev/null')
+            stream.sync = true
+          end
+          return yield
+        ensure
+          streams.each_with_index do |stream, i|
+            stream.reopen(on_hold[i])
+          end
+        end
+      }
+    end
+  end # module ClassMethods
+  
   # ActiveRecord#changed? returns true even if nil is changed into blank like "".
   # This returns false if only the change is nil <=> blank.
   #
@@ -163,10 +220,17 @@ module ModuleCommon
 
   # For model that has the method +place+. shorter-name is preferred (between title and alt_title).
   #
+  # This works for {Place}, too.
+  # Unlike {Place#pref_pla_country_str}, this used I18n.locale
+  # 
+  # @example
+  #    event.txt_place_pref_ctry(lang_fallback_option: :never)
+  #
+  # @param without_country_maybe: [Boolean] if true (Def: false), the country information is not printed unless that is the only information or the country is not in the default country. This is mainly used for HaramiVid.
+  # @param **opts [Hash] passed to {BaseWithTranslation#title_or_alt}
   # @return [String] "県 — 場所 (国)"
-  def txt_place_pref_ctry(langcode: I18n.locale, prefer_shorter: true, **opts)
-    ar = place.title_or_alt_ascendants(langcode: langcode, prefer_shorter: prefer_shorter, **opts);
-    sprintf '%s %s(%s)', definite_article_to_head(ar[1]), (ar[0].blank? ? '' : '— '+definite_article_to_head(ar[0])+' '), definite_article_to_head(ar[2])
+  def txt_place_pref_ctry(without_country_maybe: false, langcode: I18n.locale, prefer_shorter: true, lang_fallback_option: :either, **opts)
+    (is_a?(Place) ? self : place).pref_pla_country_str(without_country_maybe: without_country_maybe, langcode: langcode, prefer_shorter: prefer_shorter, lang_fallback_option: lang_fallback_option, **opts)
   end
 
   # Returns I18n Date-string from Date with potentiallyy unknown elements
@@ -1267,7 +1331,7 @@ module ModuleCommon
     end
   end
 
-  # Define singleton accessor method to an Object with an initil value
+  # Define singleton accessor (or reader) method to an Object with an initil value
   #
   # @example
   #    art = Artist.new
@@ -1296,16 +1360,47 @@ module ModuleCommon
   #    str.set_singleton_method_val(:lcode, "en", target: str)  # defined in module_common.rb
   #    str.lcode  # => "en"
   #
+  # @example Reader only (for the method name with "?") and gives option +derive+
+  #    obj = Object.new
+  #    "".set_singleton_method_val(:empty?, target: obj, reader: true, derive: true)
+  #      # => true
+  #    obj.empty? # => true
+  #
+  #
   # @param method [String, Symbol] method name to define
   # @option initial_value [Object] Def: nil
   # @param target: [Object] Def: self. Specify this in case you want to set a singleton method to other than self.
   # @option clobber: [Boolean] If false (Def: true), the value is not set if the method is already defined.
   #    "clobber: true/false" practically means "obj.method=5" and "obj.method||=5", respectively.
-  # @return [Object]  # the value of {Object#metho}, which is usually initial_value unless the method is already defined and clobber=false
-  def set_singleton_method_val(method, initial_value=nil, target: self, clobber: true)
+  # @option reader: [Boolean] If true (Def: false), set `attr_reader`, otherwise +attr_accessor+.
+  # @option derive: [Boolean] If true (Def: false), initial_value is derived with +self.send(method)+; if so, +initial_value+ should be nil.
+  # @return [Object]  # the value of +target.send(method)+, which is usually +initial_value+ (or +self.send(method)+ of the object itself if derive==true) unless the method is already defined and clobber=false
+  def set_singleton_method_val(method, initial_value=nil, target: self, clobber: true, reader: false, derive: false)
     return target.send(method) if !clobber && target.respond_to?(method)
-    target.instance_eval{singleton_class.class_eval { attr_accessor method }}
-    target.send(method.to_s+"=", initial_value)
+    if derive
+      if initial_value
+        msg = "WARNING(#{File.basename __FILE__}:#{__method__}): Significant initial_value=(#{initial_value.inspect}) is overridden because derive==true."
+        warn msg
+        Rails.logger.warn msg  # Rails.logger as opposed to logger for the sake of model-testing.
+      end
+
+      initial_value = send(method)
+    end
+
+    if reader
+      # attr_reader would not work for a method name with "?", so this is the way.
+      target.singleton_class.define_method(method) do
+        initial_value
+      end
+    else
+      begin
+        target.instance_eval{singleton_class.class_eval {attr_accessor method}}
+      rescue NameError
+        warn "ERROR(#{File.basename __FILE__}:#{__method__}) You must specify 'reader: false' because the method name with '?' is not allowed for writer or attr_accessor." if "?" == method.to_s[-1,1]
+        raise
+      end
+      target.send(method.to_s+"=", initial_value)
+    end
     target.send(method)
   end
 

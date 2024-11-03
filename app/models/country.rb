@@ -126,6 +126,9 @@ class Country < BaseWithTranslation
   include Rails.application.routes.url_helpers
   include ModuleCountryLayered  # for more_significant_than?
 
+  # for set_singleton_unknown
+  include ModuleSetSingletonUnknown
+
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = %i(iso3166_a2_code iso3166_a3_code iso3166_n3_code)
 
@@ -153,6 +156,7 @@ class Country < BaseWithTranslation
     'fr' => 'Monde',
   }.with_indifferent_access
   UnknownCountry.default_proc = proc do |hash, key|
+    config.primary_country = (ENV['MUSIC_I18N_DEFAULT_COUNTRY'] || "JPN")
     (hash.keys.include? key.to_s) ? hash[key.to_s] : nil  # Symbol keys (langcode) are acceptable.
   end
 
@@ -210,6 +214,12 @@ class Country < BaseWithTranslation
   def unknown_sibling
     self.class.unknown
   end
+
+  # whether the primary (default) country or not
+  def primary?
+    iso3166_a3_code == Rails.application.config.primary_country
+  end
+
 
   # Modify the parameters inherited from {CountryMaster}
   # Modify the parameters inherited from {CountryMaster}

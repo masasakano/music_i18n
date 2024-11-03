@@ -49,8 +49,7 @@
         <td class="item_title"><%= t = music.title_or_alt; t ? link_to(t, music) : '' %></td>
         <td class="item_year"><%= music.year %></td>
         <td class="item_genre"><%= music.genre.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></td>
-        <td class="item_place"><%= ar = music.place.title_or_alt_ascendants(langcode: I18n.locale, prefer_shorter: true, lang_fallback_option: :either);
-                sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture['ja'] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2] %></td>
+        <td class="item_place"><%= music.place ? h(music.txt_place_pref_ctry) : "" %></td>
         <td class="item_artists"><%= music.artists.uniq.map{|i| sprintf '%s [%s]', link_to(i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i), h(i.engage_how_titles(music, langcode: I18n.locale, lang_fallback_option: :either).join(', '))}.join(', ').html_safe %></td>
         <td class="item_timing">
           <%# timings = (hvmas=harami_vid.harami_vid_music_assocs.where(music: music)).pluck(:timing).select{|j| j.present?} %>
