@@ -246,6 +246,7 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
 
     # Success: Successful deletion
     perth_aus = places(:perth_aus)
+    pref_show_url = prefecture_url(perth_aus.prefecture)
     assert_difference('Place.count', -1) do
       assert_difference('Translation.count', -1) do
         delete place_url(perth_aus)
@@ -253,7 +254,7 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :redirect
-    assert_redirected_to places_url
+    assert_redirected_to pref_show_url  # changed from places_url
     assert_raises(ActiveRecord::RecordNotFound){ perth_aus.reload }
   end
 end

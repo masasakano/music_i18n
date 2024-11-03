@@ -163,9 +163,11 @@ class EventItemsControllerTest < ActionDispatch::IntegrationTest
     end
 
     sign_in @editor_harami
+    event_show_url = event_url(@event_item.event)
     assert_difference("EventItem.count", -1) do
       delete event_item_url(@event_item)
     end
-    assert_redirected_to event_items_url
+    assert_redirected_to event_show_url
+    #assert_redirected_to event_items_url
   end
 end

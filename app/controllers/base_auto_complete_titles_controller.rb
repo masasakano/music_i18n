@@ -8,7 +8,7 @@ class BaseAutoCompleteTitlesController < ApplicationController
   include AutoCompleteIndex  # defined in /app/controllers/concerns/auto_complete_index.rb
 
   # Maximum number of candidates.
-  MAX_SUGGESTIONS = 15
+  MAX_SUGGESTIONS = 30
 
   # @see  /app/javascript/autocomplete_model_with_id.js
   # @param model [Class, BaseWithTranslation, String, Symbol] of Artist or Music to autocomplete

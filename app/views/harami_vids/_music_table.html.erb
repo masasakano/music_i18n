@@ -30,6 +30,9 @@
       <th title="<%= t('harami_vids.table_head_title_music_timing') %>"><%= t("harami_vids.table_head_timing") %></th>
       <th colspan="<%= can?(:update, Music) ? 2 : 1 %>"><%= t(:Music) %></th>
       <th><%= t("artists.tablehead.n_harami_vids") %></th>
+      <% if canedit_mus=(can? :edit, Music) %>
+        <th class="editor_only"><%= t("tables.note") %> (<%= t("engage_multi_hows.table_head.how_related") %>)</th>
+      <% end %>
      <% if (can_destroy_assoc=can?(:destroy, HaramiVidMusicAssoc)) %>
       <th title="<%= t('harami_vids.show.destroy_music_from_this_vid') %>" class="text-end editor_only">Association</th>
      <% end %>
@@ -72,9 +75,12 @@
           </td>
         <% end %>
         <td class="item_n_vids text-end"><%= music.harami_vids.count.to_s %></td>
+        <% hvma = harami_vid.harami_vid_music_assocs.where(music: music).first %>
+      <% if canedit_mus=(can? :edit, Music) %>
+        <td class="editor_only"><%= hvma.note %></td>
+      <% end %>
       <% if can_destroy_assoc %>
         <td title="<%= t('harami_vids.show.destroy_music_from_this_vid') %>" class="text-end editor_only">
-         <% hvma = harami_vid.harami_vid_music_assocs.where(music: music).first %>
        <% if can? :destroy, hvma %>
          <%= link_to t('layouts.destroy_button'), hvma, method: :delete, data: { confirm: t('are_you_sure') }, title: t('harami_vids.show.destroy_music_from_this_vid') %>
        <% end %>

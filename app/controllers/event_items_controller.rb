@@ -89,7 +89,8 @@ class EventItemsController < ApplicationController
 
   # DELETE /event_items/1 or /event_items/1.json
   def destroy
-    def_respond_to_format_destroy(@event_item)  # defined in application_controller.rb
+    back_url = event_url(@event_item.event)
+    def_respond_to_format_destroy(@event_item, fallback_location: back_url)  # defined in application_controller.rb
   end
 
   private

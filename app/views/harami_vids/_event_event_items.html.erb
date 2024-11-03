@@ -1,17 +1,21 @@
-<%# Assumed instance variables: @harami_vid, @event_event_items; local variables: (optional) from_non_turbo: Def(false) true if requested from show.html.erb %>
+<%# Assumed instance variables: @harami_vid, @event_event_items; local variables: (optional) sorted_event_event_items (sorted @event_event_items), from_non_turbo: Def(false) true if requested from show.html.erb %>
 
+<% if !defined?(sorted_event_event_items)
+     sorted_event_event_items = nil
+   end %>
 <% if !defined?(from_non_turbo)
      from_non_turbo = false
    end %>
 
 <%= turbo_frame_tag "show_events_"+dom_id(@harami_vid) do %>
+    <% sorted_event_event_items = sorted_event_event_items_by_timing(@harami_vid, @event_event_items) if sorted_event_event_items.blank? %> <%# defined in app/helpers/harami_vids_helper.rb %>
     <% def_artist = Artist.default(:HaramiVid) %>
     <% canindex_evit = can? :index, EventItem %>
     <% canread_h1129 = can? :read, Harami1129 %>
     <% canedit_hvid = can? :edit, @harami_vid %>
     <% canedit_evt = can? :edit, Event %>
     <ul>
-    <% evevits = sorted_event_event_items_by_timing(@harami_vid, @event_event_items).map{|ek, ev| [Event.find(ek), ev] }.to_h %> <%# defined in HaramiVidsHelper, sorting the varible by Music timing %>
+    <% evevits = sorted_event_event_items.map{|ek, ev| [Event.find(ek), ev] }.to_h %> <%# defined in HaramiVidsHelper, sorting the varible by Music timing %>
     <% evevits.each_pair do |event, ar_event_items| %>
       <li>
         <% event_title = event.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>
@@ -36,10 +40,17 @@
               <% if canindex_evit %>
                 <%= t(:EventItem) %>
               <% end %>
+              <% link_txt_extra = "" %>
               <% if canindex_evit %>  <%# Strictly, this should be: can? :show, event_item %>
-                <% unknown_str = (event_item.unknown? ? ": Unknown" : "") %>
+                <% link_txt_extra = ": " +
+                     if event_item.unknown?
+                       "Unknown"
+                     else
+                       event_item.machine_title.sub(/\-.*/, "-…").sub(/(.{29}).*/, '\1…')
+                     end
+                %>
                 <% tit = sprintf("%s (ID=%d; Assoc-IDs=%s)", event_item.machine_title, event_item.id, HaramiVidEventItemAssoc.where(harami_vid: @harami_vid, event_item: event_item).order(:id).ids.inspect) %>
-                <%= link_to "(#{eii+1}#{unknown_str})", event_item, title: tit %>
+                <%= link_to "(#{eii+1}#{link_txt_extra})", event_item, title: tit %>
               <% else %>
                 (<%= eii+1 %>)
               <% end %>

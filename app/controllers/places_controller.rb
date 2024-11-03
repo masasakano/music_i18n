@@ -70,18 +70,21 @@ class PlacesController < ApplicationController
       return _respond_destroy_fail("Cannot destroy Place because it has one or more dependent children of "+s.join(" and "))
     end
 
-    begin
-      @place.destroy
-    rescue ActiveRecord::InvalidForeignKey => err
-      # This should not happen...
-      logger.error sprintf("(DELETE Place: %s) Place(ID=%d, title_or_alt=%s) has uncaught dependent children: error-message=%s", err.class.name, @place.id, @place.title_or_alt.inspect, err.message)
-      return _respond_destroy_fail("Cannot destroy Place because it seems to have one or more dependent children.")
-    end
+    # begin
+    #   @place.destroy
+    # rescue ActiveRecord::InvalidForeignKey => err
+    #   # This should not happen...
+    #   logger.error sprintf("(DELETE Place: %s) Place(ID=%d, title_or_alt=%s) has uncaught dependent children: error-message=%s", err.class.name, @place.id, @place.title_or_alt.inspect, err.message)
+    #   return _respond_destroy_fail("Cannot destroy Place because it seems to have one or more dependent children.")
+    # end
 
-    respond_to do |format|
-      format.html { redirect_to places_url, notice: 'Place was successfully destroyed.' }
-      format.json { head :no_content }
-    end
+    # respond_to do |format|
+    #   format.html { redirect_to places_url, notice: 'Place was successfully destroyed.' }
+    #   format.json { head :no_content }
+    # end
+
+    back_url = prefecture_url(@place.prefecture)
+    def_respond_to_format_destroy(@place, fallback_location: back_url)  # defined in application_controller.rb
   end
 
   private

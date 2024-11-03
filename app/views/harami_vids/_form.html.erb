@@ -82,20 +82,27 @@
     <div class="update_event_item_association_field">
     <h4><%= t("harami_vids.associated_event_event_items") %></h4>
 
+    <% sorted_event_event_items = nil %>
+    <% sorted_event_event_items = sorted_event_event_items_by_timing(harami_vid, @event_event_items) if !@event_event_items.blank? %> <%# defined in app/helpers/harami_vids_helper.rb %>
     <% collec = harami_vid.event_items
        collec_is_empty = !harami_vid.event_items.exists?
        if given_ref
          collec2 = given_ref.event_items
-         collec  = (collec_is_empty ? collec2.distinct : collec.or(collec2))
+         collec  = (collec_is_empty ? collec2 : collec.or(collec2)).distinct
+       elsif !collec_is_empty
+         collec3 = sorted_event_item_collection(collec, harami_vid, sorted_eei: sorted_event_event_items)
+         collec  = collec3 if collec3
        end
-       collec = collec.order(:event_id) if !given_ref || collec_is_empty %> <%# if collec is the sum of two, the order statement would be a lot more complicated - so we do not bother. %>
+       %>
+       <%# sorted_event_item_collection defined in event_items_helper.rb %>
+
      <%# In rare cases where there are duplications between the existing and specified EventItems, they will be shown as "distinct" is (so far) not performed here. %>
     <% if collec.exists? %>
      <%= f.association :event_items, collection: collec, label_method: :machine_title, value_method: :id,
       include_blank: false,  as: :check_boxes, label: t("EventItems"),
       item_wrapper_class: 'inline', input_html: { checked: true } %>  <%# Not shown at all if there are no EventItems associatined to harami_vid; they all are forcibly checked in default, even after returning to the edit screen.  %>
   <%# cf. https://github.com/heartcombo/simple_form#collection-check-boxes %>
-     <%= render partial: "harami_vids/event_event_items" %> <%# "harami_vids/" required for access from HaramiVids::FetchYoutubeDataController %>
+     <%= render partial: "harami_vids/event_event_items", locals: {sorted_event_event_items: sorted_event_event_items} %> <%# "harami_vids/" required for access from HaramiVids::FetchYoutubeDataController %>
     <% else %>
       <% display_new_event_item_form = true %>
       Strangely, no existing items are defined. Please register a new Event(Item) below.
@@ -107,9 +114,10 @@
     <% if !harami_vid.new_record? || display_new_event_item_form %>
     <h4><%= t("harami_vids.event_item_for_new_collab_artist") %></h4>
       <%= f.input :form_new_artist_collab_event_item, as: :radio_buttons,
-        collection: (co=collection_event_items_for_new_artist_collab), label_method: :second, value_method: :first,
+        collection: (co=collection_event_items_for_new_artist_collab(harami_vid, sorted_eei: sorted_event_event_items)),
+        label_method: :second, value_method: :first,
         allow_blank: false, 
-        checked: (harami_vid.form_new_artist_collab_event_item || v=co.find{|i| i[0].to_i != HaramiVidsController::DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_i}; (v ? v.first : nil)),
+        checked: (harami_vid.form_new_artist_collab_event_item || co.last),
         label: "Event(Item) for "+t(:additional).capitalize+' '+t(:Music)+' '+t(:or)+' '+t('layouts.new')+" "+t('harami_vids.form_artist_collabs'),
         item_wrapper_class: 'inline'
       %>  <%# defined in event_items_helper.rb %>

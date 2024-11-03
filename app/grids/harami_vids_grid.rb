@@ -102,8 +102,19 @@ class HaramiVidsGrid < BaseGrid
   end
 
   column(:place, header: Proc.new{I18n.t('tables.place')}) do |record|
-    ar = record.place.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true);
-    sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture[I18n.locale] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2]
+    ar = record.place.title_or_alt_ascendants(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true);
+    # sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture[I18n.locale] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2]
+    
+    # Unknown Place, Prefecture, Country
+    if ((Prefecture::UnknownPrefecture[I18n.locale] == ar[1]) || ar[1].blank?)
+      ar[1] = ""
+    end
+    if ((Place::UnknownPlace[I18n.locale] == ar[0]) || ar[0].blank?)
+      ar[0] = ""
+    else
+      ar[0] = '— '+ar[0]+' '
+    end
+    sprintf '%s %s(%s)', ar[1], ar[0], ar[2]
   end
 
   column(:uri, order: false) do |record|
