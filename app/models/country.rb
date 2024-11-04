@@ -148,6 +148,9 @@ class Country < BaseWithTranslation
 
   belongs_to :country_master, optional: true  # e.g., Country.unknown does not have a Parent.
   has_many :prefectures, dependent: :destroy
+  has_many :places, through: :prefectures
+  has_many :musics, through: :places
+
   validates_uniqueness_of :iso3166_n3_code, allow_nil: true
 
   UnknownCountry = {
@@ -213,6 +216,11 @@ class Country < BaseWithTranslation
   # @return [Country]
   def unknown_sibling
     self.class.unknown
+  end
+
+  # @return [Country]
+  def self.primary
+    Country.find_by iso3166_a3_code: Rails.application.config.primary_country
   end
 
   # whether the primary (default) country or not

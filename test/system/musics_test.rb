@@ -19,6 +19,29 @@ class MusicsTest < ApplicationSystemTestCase
     assert_selector "h1", text: "Musics"
     assert_no_selector 'form.button_to'  # No button if not logged-in.
 
+    n_trs0 = page.find_all("tr").size
+
+    genre_word = 'Classic'
+    genre = Genre.find_by_regex(:title, /^#{genre_word}$/)
+    assert genre.id  # sanity check (checking fixtures)
+
+    assert (classic_mus=Music.where(genre_id: genre.id)).exists?, "sanity check"  # At least one Classic music exists
+
+    select(genre_word,  from: 'Genre')  # t(:Genre)
+    click_on "Apply"
+
+    mu_classic = classic_mus.first
+    one_title = mu_classic.title_or_alt(langcode: "en", lang_fallback_option: :either)
+    assert one_title.present?, "sanity check"
+
+    assert_selector "h1", text: "Musics"
+    assert_text one_title
+
+    n_trs_classic = page.find_all("tr").size
+    assert_operator n_trs0, :>, n_trs_classic, "The number of table rows should have (greatly) decreased, but..."
+
+    ########### HaramiVid#new
+
     visit new_user_session_path
     fill_in "Email", with: @moderator.email
     fill_in "Password", with: '123456'  # from users.yml
@@ -63,12 +86,17 @@ class MusicsTest < ApplicationSystemTestCase
     assert_selector    'form div#div_select_prefecture'  # Now JS made it appear
     assert     find_field('Prefecture')                  # Now JS made it appear
 
-    ##select('XXX',  from: 'Genre')
+    # select('Modern instrumental',  from: 'Genre')
     find_field(I18n.t('Year_Title', locale: "en")).fill_in with: '2001'  # 'Year'; see /app/views/musics/_form.html.erb
 
     click_on "Create Music"
 
     assert_text "Music was successfully created"
+
+    click_on "Back to Index", match: :first  # there may be 2 matches, which would raise Capybara::Ambiguous
+
+    assert_selector "h1", text: "Musics"
+    assert_equal n_trs0+1, page.find_all("tr").size, "The number of table rows should have increased by 1, but..."
   end
 
   #test "updating a Music" do

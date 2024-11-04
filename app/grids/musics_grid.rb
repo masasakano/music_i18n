@@ -14,6 +14,12 @@ class MusicsGrid < BaseGrid
 
   filter(:year, :integer, range: true, header: Proc.new{I18n.t('tables.year')}) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
 
+  filter(:genre, :enum, multiple: true, select: Proc.new{Genre.order("genres.weight").map{|mdl| [mdl.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), mdl.id]}.to_h}, header: Proc.new{I18n.t('Genre')})
+
+  filter(:country, :enum, multiple: false, select: Proc.new{Country.joins(:musics).distinct.map{|mdl| [mdl.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true, prefer_shorter: true), mdl.id]}.to_h}, header: Proc.new{I18n.t('Country')}) do |value|
+    self.joins(:place).joins(:prefecture).joins(:country).where("countries.id = ?", value)
+  end
+
   filter(:artists, :string, header: Proc.new{I18n.t("datagrid.form.artists", default: "Artist (partial-match)")}) do |value|  # Only for PostgreSQL!
     str = preprocess_space_zenkaku(value, article_to_tail=true)
     trans_opts = {accept_match_methods: [:include_ilike], translatable_type: 'Artist'}
@@ -63,7 +69,7 @@ class MusicsGrid < BaseGrid
 
   column(:year, class: ["align-cr"], header: Proc.new{I18n.t('tables.year')}, mandatory: true)
 
-  column(:genre, header: Proc.new{I18n.t('tables.genre')}) do |record|
+  column(:genre, header: Proc.new{I18n.t(:Genre)}) do |record|
     record.genre.title_or_alt(langcode: I18n.locale)
   end
   column(:place, header: Proc.new{I18n.t('tables.place')}) do |record|
