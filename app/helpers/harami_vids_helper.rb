@@ -105,7 +105,7 @@ module HaramiVidsHelper
     if event_item.unknown?
       "Unknown"
     else
-      event_item.machine_title.sub(/((?:#{Regexp.quote(EventItems::DeepDuplicatesController::PREFIX_MACHINE_TITLE_DUPLICATE)}\d*\-)*[^-]+)\-.*/, '\1-…').sub(/(.{29}).*/, '\1…')  # "copy-" prefix or its multiples are taken into account, which can be prefixed in the controller in /app/controllers/event_items/deep_duplicates_controller.rb
+      event_item.machine_title.sub(/((?:#{Regexp.quote(EventItem::PREFIX_MACHINE_TITLE_DUPLICATE)}\d*\-)*[^-]+)\-.*/, '\1-…').sub(/(.{29}).*/, '\1…')  # "copy-" prefix or its multiples are taken into account, which can be prefixed in the controller in /app/controllers/event_items/deep_duplicates_controller.rb
     end
   end
 

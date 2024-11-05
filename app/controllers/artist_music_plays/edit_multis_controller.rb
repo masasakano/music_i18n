@@ -61,9 +61,7 @@ class ArtistMusicPlays::EditMultisController < ApplicationController
 
           msg = "ERROR(#{__method__}): #{verb} ArtistMusicPlay failed: #{eamp.inspect}"
           logger.error msg
-          eamp.errors.full_messages.each do |ems|
-            @amp.errors.add :base, ems
-          end
+          @amp.copy_errors_from(eamp)  # defined in application_record.rb
           raise ActiveRecord::Rollback, msg+" Forced rollback." 
         end
       end

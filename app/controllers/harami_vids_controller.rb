@@ -323,9 +323,9 @@ class HaramiVidsController < ApplicationController
       return model if model.save  # The returned value is not used apart from its trueness.
 
       # With UI, the above save should not usually fail (it is never with Channel, probably not for Music).
-      model.errors.full_messages.each do |msg|
-        @harami_vid.errors.add form_attr, ": Existing #{model.class.name} is not found, yet failed to create a new one: "+msg
-      end
+      prefix = ": Existing #{model.class.name} is not found, yet failed to create a new one: "+msg
+      @harami_vid.copy_errors_from(model, form_attr: form_attr, msg2prefix: prefix)  # defined in application_record.rb
+
       return
     end
     private :_save_or_add_error

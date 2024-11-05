@@ -210,6 +210,154 @@ class HaramiVid < BaseWithTranslation
     nil
   end
 
+  # Associates a Music to self consistently (in terms of HaramiVidMusicAssoc and ArtistMusicPlay through HaramiVidMusicAssoc )
+  #
+  # ArtistMusicPlay is required for {EventItem} to associate a Music; so it increases by 1 (unless already existent).
+  # In contrast, a new (unless existent) HaramiVidMusicAssoc is required for each HaramiVid associated to the EventItem.
+  # Therefore, this method produces 1 ArtistMusicPlay and the number of HaramiVid-s HaramiVidMusicAssoc.
+  #
+  # If self is new, this does save self or {HaramiVidMusicAssoc} BUT saves an {ArtistMusicPlay}!
+  # You may enclose the calling routine with +transaction(requires_new: true)+
+  # If self is not new, this immediately saves 2 records (HaramiVidMusicAssoc and ArtistMusicPlay).
+  #
+  # If there are other {HaramiVid}-s associated to +event_item+ they must be given along with
+  # their timings in +others+, or alternatively others=:auto can be given; otherwise this raises
+  # an Exception.
+  #
+  # @note The caller should do
+  #    self.reload  # or
+  #    self.harami_vid_music_assocs.reset
+  #    self.artist_music_plays.reset
+  #
+  # @example 
+  #   amp, hvmas = hvid.associate_music!(music0, evit0, timing: 6, others: :auto)
+  #   amp, hvmas = hvid.associate_music!(music1, evit0, timing: 6, others: [other_hvid1, other_hvid2])
+  #   amp, hvmas = hvid.associate_music!(music2, evit0, timing: 9, others: [[hvid1, 95, nil], [hvid2, nil, 1.0]])
+  #     # n.b., hvmas[-1] is the created HaramiVidMusicAssoc for self (or the one that will be saved if new_record?).
+  #
+  # @param music [Music]
+  # @param event_item [EventItem, NilClass] This can be nil **only if only one EventItem is associated**, which will be used. Otherwise, this raises an Exception.
+  # @param others [Array<Array<HaramiVid, Numeric, Numeric>>, Symbol] Array of Array of the other {HaramiVid}-s associated to event_item and their timings and completeness (which can be nil), or simple Array of the former. Or, Symbol :auto is accepted, meaning the Music gets associated to the other HaramiVid-s with NULL timing.
+  # @param timing: [Numeric, NilClass] for HaramiVidMusicAssoc
+  # @param completeness: [Numeric, NilClass] for HaramiVidMusicAssoc
+  # @param artist_play [Artist, NilClass]
+  # @param play_role: [PlayRole, NilClass]
+  # @param instrument: [Instrument, NilClass]
+  # @param contribution_artist [Numeric, NilClass] for ArtistMusicPlay
+  # @param cover_ratio [Numeric, NilClass] for ArtistMusicPlay
+  # @param bang: [Boolean] if true (Def: false), uses create! or update! instead of +find_or_initialize_by+ (useful for testing)
+  # @param update_if_exists: [Boolean] if true (Def), +update+ in an (unlikely) case of finding an existing record; else +create+ (or create! if bang)
+  # @return [Array<ArtistMusicPlay, Array<HaramiVidMusicAssoc>>] newly associated records (or possibly already associated ones that satisfy all the given conditions, if bang is false (Default)).
+  #   the former is always saved, but the latter is not in the case of new self.
+  #   To get the actual HaramiVidMusicAssoc, you may need to actively find it for HaramiVid, referencing the returned one.
+  #   At the time of writing, if not a new record and if bang is false, it is guaranteed to be a proper record.
+  #   The orders of the Array of HaramiVidMusicAssoc follow the given others **appended** by that for self.
+  def associate_music(music, event_item=nil, others: [], timing: nil, completeness: nil, bang: false, update_if_exists: true, **opt_args)
+    raise ArgumentError, "ERROR(HaramiVid##{__method__}): Argument 'others' must be a double Array, but it does not appears so: others=#{others.inspect}" if others.present? && others[1].is_a?(Numeric)
+    if !event_item
+      if 1 == event_items.count
+        event_item = event_items.first
+      else
+        raise ArgumentError, "ERROR(HaramiVid##{__method__}): No EventItem is specified or found (or ambiguous): event_item=#{event_item.inspect}"
+      end
+    end
+
+    event_item_hvids = event_item.harami_vids.where.not("harami_vids.id = ?", self.id)
+    prm_music_vids = _get_harami_vids_timings((:auto == others) ? event_item_hvids.to_a : others)  # Hash[ HaramiVid => [timing, completeness] ]
+
+    if (:auto != others)
+      event_item_hvids.each do |ea_hvid|
+        raise "ERROR(HaramiVid##{__method__}): Specified EventItem are associated with multiple HaramiVids, but at least one of them (ID=#{ea_hvid.id}) is not specified with the option others: #{others.inspect})" if !prm_music_vids.keys.include?(ea_hvid)
+      end
+    end
+    prm_music_vids[self] = [timing, completeness]
+
+    amp = nil
+    hvmas = []
+    ActiveRecord::Base.transaction(requires_new: true) do
+      hvmas = _update_or_create_hvmas(music, prm_music_vids, bang: bang, update_if_exists: update_if_exists)
+      amp   = _update_or_create_amp(  music, event_item,     bang: bang, update_if_exists: update_if_exists, **opt_args)
+    end
+
+    [amp, hvmas]
+  end
+
+  # @return [Hash<Array<HaramiVid> => Array[<Numeric, NilClass>]>] {HaramiVid => [timing, completeness]}
+  def _get_harami_vids_timings(arin)
+    [[], []] if arin.blank?
+    arin.map{ |ea|
+      ea.respond_to?(:last) ? [ea.first, [ea[1], ea[2]]] : [ea, [nil, nil]]
+    }.to_h
+  end
+  private :_get_harami_vids_timings
+
+  # Returns an Array of newly created and associated HaramiVidMusicAssoc (or possibly already associated ones that satisfy all the given conditions, if bang is false (Default).
+  #
+  # They may not be already saved if HaramiVid in prm_music_vids is new_record?
+  # To get the actual HaramiVidMusicAssoc, you may need to actively find it for HaramiVid, referencing the returned one.
+  # At the time of writing, if not a new record and if bang is false, they are guaranteed to be already saved.
+  #
+  # @param music [Music] 
+  # @param prm_music_vids [Hash]  {HaramiVid => [timing, completeness]}  see #{_get_harami_vids_timings}
+  # @param update_if_exists: [Boolean] if true (Def), +update+ in an (unlikely) case of finding an existing record; else +create+ (or create! if bang)
+  # @return [Array<HaramiVidMusicAssoc>] newly created (or updated) ones
+  def _update_or_create_hvmas(music, prm_music_vids, bang: false, update_if_exists: true)
+    hvmas = []
+
+    prm_music_vids.each_pair do |evid, opts|
+      if update_if_exists && !evid.new_record?
+        hvma = HaramiVidMusicAssoc.find_or_initialize_by(harami_vid: evid, music: music)
+        hvma.timing       = opts[0] if opts[0] # timing not updated if nil is given
+        hvma.completeness = opts[1] if opts[1] # completeness not updated if nil is given
+        hvma.send(bang ? :save! : :save)
+      else
+        hvma = HaramiVidMusicAssoc.new(music: music, timing: opts[0], completeness: opts[1])
+        evid.harami_vid_music_assocs << hvma
+      end
+      hvmas.push hvma
+      copy_errors_from(hvma)  # defined in application_record.rb
+    end
+
+    hvmas
+  end
+  private :_update_or_create_hvmas
+
+  # Internal routine to create/update {ArtistMusicPlay}
+  #
+  # @param music [Music]
+  # @param event_item [EventItem, NilClass] This can be nil **only if only one EventItem is associated**, which will be used. Otherwise, this raises an Exception.
+  # @param artist_play [Artist, NilClass]
+  # @param play_role: [PlayRole, NilClass]
+  # @param instrument: [Instrument, NilClass]
+  # @param contribution_artist [Numeric, NilClass] for ArtistMusicPlay
+  # @param cover_ratio [Numeric, NilClass] for ArtistMusicPlay
+  # @param bang: [Boolean] if true (Def: false), uses create! or update! instead of +find_or_initialize_by+ (useful for testing)
+  # @param update_if_exists: [Boolean] if true (Def), +update+ in an (unlikely) case of finding an existing record; else +create+ (or create! if bang)
+  # @return [Array<HaramiVidMusicAssoc>] newly created (or updated) ones
+  def _update_or_create_amp(music, event_item=nil, artist_play: nil, play_role: nil, instrument: nil, contribution_artist: nil, cover_ratio: nil, bang: false, update_if_exists: true)
+    artist_play ||= Artist.default(:HaramiVid)
+    play_role   ||= PlayRole.default(:HaramiVid)
+    instrument  ||= Instrument.default(:HaramiVid)
+
+    mandatories = {event_item: event_item, artist: artist_play, music: music, play_role: play_role, instrument: instrument}.with_indifferent_access
+    options = {contribution_artist: contribution_artist, cover_ratio: cover_ratio}.with_indifferent_access
+    if update_if_exists
+      amp = ArtistMusicPlay.find_or_initialize_by(mandatories)
+      amp.contribution_artist = contribution_artist if contribution_artist # not updated if nil is given
+      amp.cover_ratio         = cover_ratio         if cover_ratio         # not updated if nil is given
+      metho = (bang ? :update! : :update)
+      amp.send(metho, options)
+    else
+      amp = ArtistMusicPlay.new(mandatories.merge(options))
+      metho = (bang ? :save! : :save)
+      amp.send(metho)
+    end
+
+    copy_errors_from(amp)  # defined in  # application_record.rb
+    amp
+  end
+  private :_update_or_create_amp
+
   # self.errors are set, copied from {ArtistMusicPlay#errors}, if anything has gone wrong.
   #
   # Usually, HaramiVid should have at least 1 {EventItem} — that is the constraint

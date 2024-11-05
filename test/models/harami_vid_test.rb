@@ -263,6 +263,118 @@ class HaramiVidTest < ActiveSupport::TestCase
     }
   end
 
+  test "associate_music" do
+    str_unique = __method__.to_s.gsub(/(\s|[^a-z])/i, '_')
+    hvid = HaramiVid.create_basic!(title: "a new vid #{str_unique}", langcode: "en", is_orig: true, uri: "https://example.com/#{str_unique}")
+    mu1 = musics(:music1)
+
+    assert_raises(ArgumentError, "No EventItem associated ans event_item is specified nil"){
+      hvid.associate_music(mu1, bang: true)}
+
+    evit0 = EventItem.create_basic!(event: Event.unknown, machine_title: "test_0_#{str_unique}")
+    evit1 = evit0.deep_dup
+    hvid.event_items << evit0
+    hvid.event_items << evit1
+    hvid.event_items.reset
+    assert_raises(ArgumentError, "Multiple EventItems associated ans event_item is specified nil"){
+      hvid.associate_music(mu1, bang: true)}
+
+    amp = hvmas = nil
+    assert_difference('HaramiVidMusicAssoc.count*10 + ArtistMusicPlay.count', 11){
+      amp, hvmas = hvid.associate_music(mu1, evit0, timing: 5, bang: true) }
+    hvid.reload
+    assert_equal 1, hvid.harami_vid_music_assocs.count
+    assert_equal 5, hvid.harami_vid_music_assocs.first.timing
+    assert_equal 1, hvid.musics.count
+    assert_equal 1, hvid.artist_music_plays.count
+    assert_equal amp, hvid.artist_music_plays.first
+    assert_equal 2, hvid.event_items.count
+    assert_equal mu1,   hvid.musics.first
+    assert_equal mu1,   hvid.music_plays.first, "should be consistent, but..."
+    assert_equal evit0, hvid.event_items.first
+    assert_equal artists(:artist_harami), hvid.artist_collabs.first
+
+    mu2=musics(:music_light)
+    hvid.event_items.destroy(evit1)
+    evit1.destroy!
+    hvid.reload
+    assert_difference('HaramiVidMusicAssoc.count*10 + ArtistMusicPlay.count', 11){
+      hvid.associate_music(mu2, bang: true) }
+    assert_equal 2, hvid.musics.count
+    assert_equal 2, hvid.music_plays.count
+    assert          hvid.musics.where("musics.id = ?", mu2.id).exists?
+    assert_nil      hvid.harami_vid_music_assocs.where("harami_vid_music_assocs.music_id = ?", mu2.id).first.timing
+
+    # Tests where another HaramiVid shares the EventItem
+    mu3 = musics(:music_robinson)
+    hvi2 = HaramiVid.create_basic!(title: "another new vid 2 #{str_unique}", langcode: "en", is_orig: true, uri: "https://example.com/#{str_unique}_2")
+    hvi2.event_items << evit0
+
+    assert_no_difference('HaramiVidMusicAssoc.count*10 + ArtistMusicPlay.count'){
+      assert_raises(RuntimeError, "Multiple HaramiVids associted to EventItem"){
+        amp, hvmas = hvid.associate_music(mu3, evit0, bang: true) }
+    }
+
+    assert_difference('HaramiVidMusicAssoc.count*10 + ArtistMusicPlay.count', 21){
+      amp, hvmas = hvid.associate_music(mu3, evit0, timing: 3, others: [[hvi2, 4]], bang: true)
+    }
+    hvid.reload
+    hvi2.reload
+    assert_equal 3, hvid.musics.count
+    assert_equal 3, hvid.music_plays.count
+    assert          hvid.musics.where("musics.id = ?", mu2.id).exists?
+    assert          hvid.musics.where("musics.id = ?", mu3.id).exists?
+    assert_equal 3, hvid.harami_vid_music_assocs.where("harami_vid_music_assocs.music_id = ?", mu3.id).first.timing
+    assert_equal 4, hvi2.harami_vid_music_assocs.where("harami_vid_music_assocs.music_id = ?", mu3.id).first.timing
+
+    # Tests of +others: :auto+
+    mu4 = musics(:music_kampai)
+    assert_difference('HaramiVidMusicAssoc.count*10 + ArtistMusicPlay.count', 21){
+      amp, hvmas = hvid.associate_music(mu4, evit0, timing: 6, others: :auto, bang: true)
+    }
+    hvid.reload
+    hvi2.reload
+    assert_equal 4, hvid.musics.count
+    assert_equal 4, hvid.music_plays.count
+    assert          hvid.musics.where("musics.id = ?", mu4.id).exists?
+    assert          hvi2.musics.where("musics.id = ?", mu4.id).exists?
+    assert_equal 6, hvid.harami_vid_music_assocs.where("harami_vid_music_assocs.music_id = ?", mu4.id).first.timing
+    assert_nil      hvi2.harami_vid_music_assocs.where("harami_vid_music_assocs.music_id = ?", mu4.id).first.timing
+
+    # Tests of existing records
+    assert_no_difference('HaramiVidMusicAssoc.count*10 + ArtistMusicPlay.count'){
+      assert_raises(ActiveRecord::RecordInvalid){
+        refute hvid.errors.any?
+        amp, hvmas = hvid.associate_music(mu4, evit0, timing: nil, others: [[hvi2, 7]], bang: false, update_if_exists: false)
+        assert  amp.errors.any?
+        assert hvid.errors.any?, "errors should be copied to HaramiVid, but..."
+        hvid.errors.clear
+        amp, hvmas = hvid.associate_music(mu4, evit0, timing: nil, others: [[hvi2, 7]], bang: true,  update_if_exists: false)
+      }
+    }
+    assert_no_difference('HaramiVidMusicAssoc.count*10 + ArtistMusicPlay.count'){
+        amp, hvmas = hvid.associate_music(mu4, evit0, timing: nil, others: [[hvi2, 7]])  # no bang
+    }
+    assert_equal 6, hvid.harami_vid_music_assocs.where("harami_vid_music_assocs.music_id = ?", mu4.id).first.timing, "should have NOT been updated, but..."
+    assert_equal 7, hvi2.harami_vid_music_assocs.where("harami_vid_music_assocs.music_id = ?", mu4.id).first.timing, "should have been updated, but..."
+
+    # Tests of simple Array of others (using self (==hvid) just for testing...)
+    hvi3 = HaramiVid.create_basic!(title: "another new vid 3 #{str_unique}", langcode: "en", is_orig: true, uri: "https://example.com/#{str_unique}_3")
+    hvi3.event_items << evit0
+    mu5 = musics(:music_story)
+    inst1 = instruments(:instrument_guitar)
+    assert_difference('HaramiVidMusicAssoc.count*10 + ArtistMusicPlay.count', 31){
+      amp, hvmas = hvid.associate_music(mu5, evit0, others: [hvi2, hvi3, hvid], instrument: inst1, contribution_artist: 0.24, cover_ratio: 0.35)  # no bang (because self=hvid is specified in others, apart from it is unnecessary!)
+    }
+    assert_equal inst1, amp.instrument
+    assert_equal 0.24,  amp.contribution_artist
+    assert_equal 0.35,  amp.cover_ratio
+    assert_nil hvid.harami_vid_music_assocs.where("harami_vid_music_assocs.music_id = ?", mu5.id).first.timing, "music should be associated with null timing, but..."
+    assert_nil hvi2.harami_vid_music_assocs.where("harami_vid_music_assocs.music_id = ?", mu5.id).first.timing, "music should be associated with null timing, but..."
+    assert_nil hvi3.harami_vid_music_assocs.where("harami_vid_music_assocs.music_id = ?", mu5.id).first.timing, "music should be associated with null timing, but..."
+    assert_equal hvmas[1], hvi3.harami_vid_music_assocs.where("harami_vid_music_assocs.music_id = ?", mu5.id).first
+  end
+
   test "create_basic!" do
     mdl = nil
     assert_nothing_raised{

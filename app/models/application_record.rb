@@ -81,6 +81,17 @@ class ApplicationRecord < ActiveRecord::Base
   def db_destroyed?
     !self.class.exists? id
   end
+
+  # copies ActiveRecord#errors from another ActiveRecord to self
+  #
+  # @param model [ActiveRecord]
+  # @param form_attr: [Symbol, String] form name (Def: :base)
+  # @param msg2prefix: [String] form name
+  def copy_errors_from(model, form_attr: :base, msg2prefix: ": ")
+    model.errors.full_messages.each do |msg|  # implicitly including model.errors.any?
+      errors.add form_attr, ": Existing #{model.class.name} is not found, yet failed to create a new one: "+msg
+    end
+  end
 end
 
 class << ApplicationRecord
