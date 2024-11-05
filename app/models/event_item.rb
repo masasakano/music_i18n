@@ -84,6 +84,8 @@ class EventItem < ApplicationRecord
   alias_method :inspect_orig_event_item, :inspect if ! self.method_defined?(:inspect_orig_event_item)
   include ModuleModifyInspectPrintReference
 
+  PREFIX_MACHINE_TITLE_DUPLICATE = "copy"  # followed by (potentially a number and) a hyphen "-", as in EventItem default (EventItem.get_unique_title)
+
   redefine_inspect(cols_yield: %w(event_id place_id)){ |record, col_name, self_record|
     case col_name
     when "event_id"
@@ -508,6 +510,57 @@ class EventItem < ApplicationRecord
       end
     }.last
   end
+
+  # "Deep" copy/duplication
+  #
+  # Returns a dup of self (EventItem), where
+  #   * machine_title is (has to be) unique
+  #   * weight is nil
+  #   * All the other direct parameters are same, except for the primary ID and timestamps.
+  #   * All the associated ArtistMusicPlay-s are copied and inherited (obviously except for *event_item_id*)
+  #   * All the associated HaramiVidEventItemAssoc-s are copied and inherited (because it is easier to destroy the association later if the user wants than to re-create an association)
+  #
+  # @return [EventItem]
+  def deep_dup
+    evit = dup
+
+    evit.machine_title = _get_unique_copied_machine_title
+      # => e.g., "copy-unk_Event_in_Tocho(...)", "copy2-Hitori-20240101_Tocho_<_Single-shotStreetpianoPlaying"
+
+    evit.weight = nil  # Only weight
+
+    harami_vids.each do |ehv|
+      evit.harami_vids << ehv
+    end
+
+    artist_music_plays.each do |eamp|
+      amp_new = eamp.dup
+      amp_new.event_item = nil
+      evit.artist_music_plays << amp_new
+    end
+
+    evit
+  end
+
+  # @example
+  #    _get_unique_copied_machine_title
+  #      # => e.g., "copy-unk_Event_in_Tocho(...)", "copy2-Hitori-20240101_Tocho_<_Single-shotStreetpianoPlaying"
+  #
+  # @return [String] machine_title guaranteed to be unique.
+  def _get_unique_copied_machine_title
+    mtit = machine_title.dup
+    EventItem::UNKNOWN_TITLE_PREFIXES.values.each do |prefix|
+      # In the case of "Unknown" (prefix is like "UnknownEventItem_" for "en"),
+      # the prefix is replaced.
+      mat = /(.*)([_\-]+)\z/.match prefix
+      root = Regexp.quote(mat ? mat[0] : prefix)
+      separator_regex = (mat ? Regexp.quote(mat[1]) : "")
+      mtit.sub!(/\A#{root}#{separator_regex}/, "unk"+(mat ? mat[1].tr_s("_\-", "_\-") : "_"))
+    end
+
+    EventItem.get_unique_title(PREFIX_MACHINE_TITLE_DUPLICATE, postfix: mtit)
+  end
+  private :_get_unique_copied_machine_title
 
   # Set @warnings for all keys with the current status of self
   #

@@ -216,7 +216,7 @@ class EventItems::DeepDuplicatesControllerTest < ActionDispatch::IntegrationTest
       assert_equal exp, evit.send(attr)
     end
 
-    assert_match(/^copy-/, evit.machine_title)  # "copy" == EventItems::DeepDuplicatesController::PREFIX_MACHINE_TITLE_DUPLICATE
+    assert_match(/^copy-/, evit.machine_title)  # "copy" == EventItems::PREFIX_MACHINE_TITLE_DUPLICATE
 
     assert      evit11.weight
     assert_nil  evit.weight
@@ -279,7 +279,7 @@ class EventItems::DeepDuplicatesControllerTest < ActionDispatch::IntegrationTest
       assert_equal exp, evit.send(attr)
     end
 
-    assert_match(/^copy1-/, evit.machine_title)  # "copy" == EventItems::DeepDuplicatesController::PREFIX_MACHINE_TITLE_DUPLICATE
+    assert_match(/^copy1-/, evit.machine_title)  # "copy" == EventItems::PREFIX_MACHINE_TITLE_DUPLICATE
     assert      evit11.weight
     assert_nil  evit.weight
 
