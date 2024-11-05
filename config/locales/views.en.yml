@@ -260,6 +260,7 @@ en:
     field_music_collab_hint: "Make sure to select an Event(Item) above for this."
     warn_collab_without_music: "Valid Music must be given when you add a collaborating Artist."
     form_prompt_collab: "Newly specified Music (if any)"
+    Duplicate: "Duplicate"
     show:
       harami_vid_long: "HARAMIchan-featured Videos"
       artist_collabs: "featuring Artists"

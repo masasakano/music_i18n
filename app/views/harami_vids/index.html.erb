@@ -13,8 +13,8 @@
 <br>
 
 <% if can? :create, HaramiVid %>
-  <div id="new_harami_vid_link">
-  <%= link_to 'Create a new HaramiVid', new_harami_vid_path %>
+  <div id="new_harami_vid_link" class="editor_only">
+    <%= link_to 'Create a new HaramiVid', new_harami_vid_path %>
   </div>
 <% end %>
 

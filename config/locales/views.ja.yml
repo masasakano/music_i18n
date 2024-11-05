@@ -275,6 +275,7 @@ ja:
     field_music_collab_hint: "忘れずに上のEvent(Item)をどれか一つ選んでください。"
     warn_collab_without_music: "コラボ相手との楽曲を指定してください。"
     form_prompt_collab: "(もしあれば)上で新たに指定した曲"
+    Duplicate: "複製"
     show:
       harami_vid_long: "ハラミちゃん(関連)動画"
       artist_collabs: "コラボアーティスト"

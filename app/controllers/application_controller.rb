@@ -206,6 +206,7 @@ class ApplicationController < ActionController::Base
   # @param failed [Boolean] if true (Def: false), it has already failed.
   # @param redirected_path [String, NilClass] Path to be redirected if successful, or nil (Default)
   # @param render_err_path [String, NilClass] If non-nil, the path is used for rendering, e.g., "musics/merges" => "musics/merges/(new|edit)" 
+  # @param force_redirect [Boolean] In default (false), if save/update fails, this tries to render a page, the path of which depends on +created_updated+ and +render_err_path+ (if specified). However, if this is set true and in case of failure, this redirects to +render_err_path+, which should be the exact path.
   # @param back_html [String, NilClass] If the path specified (Def: nil) and if successful, HTML (likely a link to return) preceded with "Return to" is added to a Flash mesage; e.g., '<a href="/musics/5">Music</a>'
   # @param alert [String, NilClass] alert message if any
   # @param warning [String, NilClass] warning message if any
@@ -213,7 +214,8 @@ class ApplicationController < ActionController::Base
   # @param success [String, NilClass] success message if any. Default is "%s was successfully %s." but it is overwritten if specified.
   # @return [Boolean, NilClass] true value if successfully saved.
   # @yield [] If given, this is called instead of simple @model.save
-  def def_respond_to_format(mdl, created_updated=:created, failed: false, redirected_path: nil, render_err_path: nil, back_html: nil, alert: nil, **inopts)
+  def def_respond_to_format(mdl, created_updated=:created, failed: false, redirected_path: nil, render_err_path: nil, force_redirect: false, back_html: nil, alert: nil, **inopts)
+    raise ArgumentError, "ERROR(#{__method__}): When force_redirect is true, render_err_path must be specified, too. Contact the code developer." if force_redirect && render_err_path.blank?
     ret_status, render_err =
       case created_updated.to_sym
       when :created

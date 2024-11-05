@@ -171,6 +171,7 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
     ## Editor harami is qualified
     # Same Japanese Translation, but English Translation is added.
     sign_in @editor_harami
+    ModuleWhodunnit.whodunnit  #  just to (potentially) suppress mal-functioning in setting this...
 
     assert_no_difference("ArtistMusicPlay.count + Music.count + Artist.count + Engage.count + HaramiVidMusicAssoc.count + HaramiVidEventItemAssoc.count + Event.count + EventItem.count + Channel.count + HaramiVid.count") do
       assert_difference("Translation.count") do  # English Translation added.
@@ -195,7 +196,7 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
     refute_equal(*tras.pluck(:title))
 
     tra_en = tras.find_by(langcode: "en")
-    assert_equal @editor_harami, tra_en.create_user
+    assert_equal @editor_harami, tra_en.create_user, "(NOTE: for some reason, created_user_id is nil) User=#{@editor_harami.inspect} / ModuleWhodunnit.whodunnit=#{ModuleWhodunnit.whodunnit.inspect} / PaperTrail.request.whodunnit=#{PaperTrail.request.whodunnit.inspect} / Translation="+tra_en.inspect
 
 
     ## 2nd and 3rd runs

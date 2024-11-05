@@ -21,6 +21,7 @@ Rails.application.routes.draw do
   resources :play_roles
   resources :event_items
   namespace :event_items do
+    resources :deep_duplicates,   only: [:create]
     resources :destroy_with_amps, only: [:destroy]
     resources :resettle_new_events, only: [:update]
   end

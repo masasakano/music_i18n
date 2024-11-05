@@ -30,6 +30,8 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
 
   test "should create" do
     sign_in @editor
+    ModuleWhodunnit.whodunnit  #  just to (potentially) suppress mal-functioning in setting this...
+    get musics_url
 
     artist_ai = artists( :artist_ai )
     engage_how_composer = engage_hows( :engage_how_composer )
@@ -64,13 +66,14 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     engs = music.engages
     assert_equal 2, engs.size
     assert_equal artists(:artist_ai).title, engs.first.artist.title  # It is "Ai" in the fixutre (not "AI")
-    assert_equal @editor, music.translations.first.create_user, "(NOTE: for some reason, created_user_id is nil) User=#{@editor.inspect} Translation(=music.translations.first)="+music.translations.first.inspect
+    assert_equal @editor, music.translations.first.create_user, "(NOTE: for some reason, created_user_id is nil) User=#{@editor.inspect} / ModuleWhodunnit.whodunnit=#{ModuleWhodunnit.whodunnit.inspect} / PaperTrail.request.whodunnit=#{PaperTrail.request.whodunnit.inspect} / Translation(=music.translations.first)="+music.translations.first.inspect
 
     # Failure due to non-existent Artist
     assert_difference('Music.count', 0) do
       post musics_url, params: { music: hstmpl.merge({@f_artist_name=>'naiyo'}) }
       assert_response :success
     end
+    sign_out @editor
   end
 
   test "should update" do
@@ -121,6 +124,7 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1990,        @music.year
     assert_equal place_perth, @music.place
     assert_equal genre_c,     @music.genre
+    sign_out @editor
   end
 
   test "should get new" do
@@ -132,6 +136,7 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     get new_music_url
     assert_response :success
     w3c_validate "Music new"  # defined in test_helper.rb (see for debugging help)
+    sign_out @editor
   end
 
   test "should show music" do
@@ -160,6 +165,7 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     sign_in @moderator_all 
     get edit_music_url(@music)
     assert_response :success
+    sign_out @moderator_all 
   end
 
   test "should destroy music if privileged" do
@@ -192,5 +198,6 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_redirected_to musics_url
     assert_raises(ActiveRecord::RecordNotFound){ music3.reload }
+    sign_out @editor
   end
 end

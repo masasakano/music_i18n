@@ -330,6 +330,9 @@ class EventItem < ApplicationRecord
 
   # Returns a unique title.
   #
+  # Wrapper of +get_unique_string+ (defined in +/app/models/concerns/module_application_base.rb+)
+  # so you don't have to type much in most cases!
+  #
   # A number may be added between prefix and separator + postfix if it is already unique.
   # A separator becomes blank if postfix is blank.
   #

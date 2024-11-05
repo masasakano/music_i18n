@@ -107,6 +107,8 @@ class Channels::FetchYoutubeChannelControllerTest < ActionDispatch::IntegrationT
     #sign_in @editor_harami
     #sign_in @moderator_all
     sign_in(user=@syshelper)
+    ModuleWhodunnit.whodunnit  #  just to (potentially) suppress mal-functioning in setting this...
+    get musics_url
 
     ## No change in the 1st run, except the EN Translation.
     # preparation

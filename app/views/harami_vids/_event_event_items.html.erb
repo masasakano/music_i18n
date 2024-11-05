@@ -14,6 +14,10 @@
     <% canread_h1129 = can? :read, Harami1129 %>
     <% canedit_hvid = can? :edit, @harami_vid %>
     <% canedit_evt = can? :edit, Event %>
+    <% if !from_non_turbo && canedit_hvid %>  <%#  flash messages  %>
+      <%= render partial: 'layouts/form_print_errors', locals: {model: @harami_vid, error_explanation_for_class: true} %>
+      <%= render partial: "/layouts/flash_display" %>
+    <% end %>
     <ul>
     <% evevits = sorted_event_event_items.map{|ek, ev| [Event.find(ek), ev] }.to_h %> <%# defined in HaramiVidsHelper, sorting the varible by Music timing %>
     <% evevits.each_pair do |event, ar_event_items| %>
@@ -42,17 +46,17 @@
               <% end %>
               <% link_txt_extra = "" %>
               <% if canindex_evit %>  <%# Strictly, this should be: can? :show, event_item %>
-                <% link_txt_extra = ": " +
-                     if event_item.unknown?
-                       "Unknown"
-                     else
-                       event_item.machine_title.sub(/\-.*/, "-…").sub(/(.{29}).*/, '\1…')
-                     end
-                %>
+                <% link_txt_extra = ": " + trimmed_event_item_machine_title_to_display(event_item) %> <%# defined in harami_vids_helper.rb %>
                 <% tit = sprintf("%s (ID=%d; Assoc-IDs=%s)", event_item.machine_title, event_item.id, HaramiVidEventItemAssoc.where(harami_vid: @harami_vid, event_item: event_item).order(:id).ids.inspect) %>
-                <%= link_to "(#{eii+1}#{link_txt_extra})", event_item, title: tit %>
+                (<%= eii+1 %><span class="editor_only"><%= link_to "#{link_txt_extra}", event_item, title: tit %></span>)
               <% else %>
                 (<%= eii+1 %>)
+              <% end %>
+              <% n_amps = event_item.artist_music_plays.count %>
+              <% if n_amps > 1 && canedit_hvid &&  %>
+                <span class="editor_only">
+                  <%= button_to t("harami_vids.Duplicate"), event_items_deep_duplicates_url, form_class: "button_to inline_form", method: :post, params: { event_item: { deep_duplicates_controller: {event_item_id: event_item.id, harami_vid_id: @harami_vid.id} } } %>
+                </span>
               <% end %>
               <%= t("harami_vids.show.artist_collabs", default: "featuring Artists") %>
               (<%= show_list_featuring_artists(event_item) %>)  <%# defined in harami_vids_helper.rb %>
@@ -89,7 +93,7 @@
                 </span>
               <% end %>
               </span>
-              <% if event_item.artist_music_plays.exists? %>
+              <% if 0 != n_amps %>  <%# if event_item.artist_music_plays.exists? %>
                 <%= render partial: "layouts/artist_music_plays", locals: {artist_music_plays: event_item.artist_music_plays, harami_vid: @harami_vid} %>
               <% end %>
               <% if canedit_hvid && !(all_missings=missing_musics_from_evits(harami_vid: @harami_vid, artist: def_artist)).empty? %>

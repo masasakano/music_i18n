@@ -1,3 +1,4 @@
+# coding: utf-8
 module HaramiVidsHelper
   def show_list_featuring_artists(event_item)
     msg = event_item.artists.map{|ea_art|
@@ -97,6 +98,15 @@ module HaramiVidsHelper
     }.sort{|a, b|  # sort for Event (using its earliest-timing EventItem
       a[1][0][1]<=>b[1][0][1]  # respectably: 1=EventItemArray, 0=Earliest-timing-EventItem-Pair, 1=Timing
     }.map{|ev_evits| [ev_evits[0], ev_evits[1].map{|epair| epair.first}]}.to_h
+  end
+
+  # Used in `/app/views/harami_vids/_event_event_items.html.erb` called from HaramiVid#show
+  def trimmed_event_item_machine_title_to_display(event_item)
+    if event_item.unknown?
+      "Unknown"
+    else
+      event_item.machine_title.sub(/((?:#{Regexp.quote(EventItems::DeepDuplicatesController::PREFIX_MACHINE_TITLE_DUPLICATE)}\d*\-)*[^-]+)\-.*/, '\1-…').sub(/(.{29}).*/, '\1…')  # "copy-" prefix or its multiples are taken into account, which can be prefixed in the controller in /app/controllers/event_items/deep_duplicates_controller.rb
+    end
   end
 
   private

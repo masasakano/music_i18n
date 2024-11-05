@@ -59,6 +59,10 @@ module ModuleApplicationBase
   # A number may be added between prefix and separator + postfix if it is already unique.
   # A separator becomes blank if postfix is blank.
   #
+  # In short,
+  #   prefix (+ separator + NUMBER) + separator2 + postfix
+  # is checked with the given `Model.all.pluck(col)` for identicality and a unique number may (or may not) be inserted above.
+  #
   # @example simple (in the context of an EventItem class method)
   #   EventItem.get_unique_string(:machine_title, prefix: "item", postfix: "MyGroup", separator: "", separator2: "_")
   #     # => item_MyGroup"

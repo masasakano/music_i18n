@@ -32,6 +32,7 @@ class Musics::UploadMusicCsvsControllerTest < ActionDispatch::IntegrationTest
       assert_response :redirect
       assert_redirected_to musics_url
     }
+    sign_out @editor
   end
 
   test "should not create when no file is specified" do
@@ -42,10 +43,14 @@ class Musics::UploadMusicCsvsControllerTest < ActionDispatch::IntegrationTest
       assert_response :redirect
       assert_redirected_to new_music_url
     end
+    sign_out @editor
   end
 
   test "should create" do
     sign_in @editor
+
+    get artists_url
+    previous_str = _str_user_id_display_name(ModuleWhodunnit.whodunnit)  #  just to (potentially) suppress mal-functioning in setting this...
 
     # Creation success
     #
@@ -61,7 +66,7 @@ class Musics::UploadMusicCsvsControllerTest < ActionDispatch::IntegrationTest
     assert_equal '香川県',     Music.order(created_at: :desc).first.place.prefecture.title(langcode: "ja")
     assert_equal 'ja',         trans_last.langcode
     assert_equal false,        trans_last.is_orig, 'ja-title with no en-title but with "en" means ja-title should be is_orig=false, but...'
-    assert_equal @editor,      trans_last.create_user, "(NOTE: for some reason, created_user_id is nil?): (last-)Translation=#{trans_last.inspect}"
+    assert_equal @editor,      trans_last.create_user, "(NOTE: for some reason, created_user_id is nil?): Previous=#{previous_str} User=#{[@editor.id,@editor.email.sub(/@.+/,'')].inspect} #{((whod=ModuleWhodunnit.whodunnit).nil? || whod.id != @editor.id) ? '(!!)!=' : '=='} ModuleWhodunnit.whodunnit=#{ModuleWhodunnit.whodunnit.inspect} / PaperTrail.request.whodunnit=#{PaperTrail.request.whodunnit.inspect} / (last-)Translation=#{trans_last.inspect}"
     assert_equal Float::INFINITY, trans_last.weight
 
     # Repeated "creation" success, doing nothing
@@ -69,6 +74,13 @@ class Musics::UploadMusicCsvsControllerTest < ActionDispatch::IntegrationTest
       post musics_upload_music_csvs_url, params: { file: fixture_file_upload('music_artists_3rows.csv', 'text/csv') }
       assert_response :success
     end
+    sign_out @editor
   end
+
+  private
+    # debug helper to return String of User.
+    def _str_user_id_display_name(user)
+      user ? [@editor.id, @editor.email.sub(/@.+/,'')].inspect : "nil"
+    end
 end
 
