@@ -395,6 +395,14 @@ module ModuleCommon
     time_err2uptomin(time, langcode: langcode)
   end
 
+  # @note see <https://stackoverflow.com/questions/79134838/how-to-convert-a-date-to-the-midday-time-in-utc-in-ruby-on-rails-regardless-of/>
+  #
+  # @param date [Date]
+  # @return [Time] time at the middle of day of the given date
+  def utc_middle_of_day(date)
+    date.to_time(:utc).at_middle_of_day
+  end
+
   # Returns String Array from ojbect Array, with formating
   #
   # nil is converted to String +fallback+

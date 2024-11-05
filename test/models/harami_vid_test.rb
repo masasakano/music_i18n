@@ -272,6 +272,9 @@ class HaramiVidTest < ActiveSupport::TestCase
       hvid.associate_music(mu1, bang: true)}
 
     evit0 = EventItem.create_basic!(event: Event.unknown, machine_title: "test_0_#{str_unique}")
+    assert_raises(ArgumentError, "EventItem must be associated to HaramiVid before the call."){
+      hvid.associate_music(mu1, evit0)}
+
     evit1 = evit0.deep_dup
     hvid.event_items << evit0
     hvid.event_items << evit1

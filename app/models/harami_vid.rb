@@ -229,6 +229,8 @@ class HaramiVid < BaseWithTranslation
   #    self.harami_vid_music_assocs.reset
   #    self.artist_music_plays.reset
   #
+  # @note for debugging purposes, try to run with (because it may raise an Exception): bang: true, update_if_exists: false
+  #
   # @example 
   #   amp, hvmas = hvid.associate_music!(music0, evit0, timing: 6, others: :auto)
   #   amp, hvmas = hvid.associate_music!(music1, evit0, timing: 6, others: [other_hvid1, other_hvid2])
@@ -260,6 +262,8 @@ class HaramiVid < BaseWithTranslation
       else
         raise ArgumentError, "ERROR(HaramiVid##{__method__}): No EventItem is specified or found (or ambiguous): event_item=#{event_item.inspect}"
       end
+    elsif !event_items.find_by(id: event_item.id)  # sanity check!
+      raise ArgumentError, "ERROR(#{File.basename __FILE__}:#{__method__}): Specified event_item is not associated to self (HaramiVid: ID=#{id}) - associate it before the call: event_item=#{event_item.inspect}"
     end
 
     event_item_hvids = event_item.harami_vids.where.not("harami_vids.id = ?", self.id)
@@ -312,7 +316,12 @@ class HaramiVid < BaseWithTranslation
         hvma.send(bang ? :save! : :save)
       else
         hvma = HaramiVidMusicAssoc.new(music: music, timing: opts[0], completeness: opts[1])
-        evid.harami_vid_music_assocs << hvma
+        if evid.new_record?
+          evid.harami_vid_music_assocs << hvma
+        else
+          hvma.harami_vid = evid
+          hvma.send(bang ? :save! : :save)
+        end
       end
       hvmas.push hvma
       copy_errors_from(hvma)  # defined in application_record.rb

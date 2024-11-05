@@ -35,13 +35,50 @@ module ModuleHaramiVidEventAux
   # the duration of HaramiVid.
   DEF_DURATION_ERR_RATIO_EVIT_TO_HVID = 1.4
 
-  # If the present start-time of EventItem is more past than this duration, it will be updated with {HaramiVid#release_date} providing it is present.
+  # If the present start-time of EventItem is earlier than this duration,
+  # it will be updated with {HaramiVid#release_date}, providing it is present,
+  # as long as it does not contradict release_date of the related HaramiVids.
   # This usually happens an EventItem for a default Event is assigned to a HaramiVid,
   # where the start time of the Event is often (though not always) much earlier.
   THRE_DURATION_UPDATE_EVENT_START_TIME = 11.months
 
-  #module ClassMethods
-  #end
+  # Automatically-assigned start-date/time is earlier than the reference point than this period
+  #
+  # This must be smaller than THRE_DURATION_UPDATE_EVENT_START_TIME
+  OFFSET_PERIOD_FROM_REFERENCE = 1.months
+
+  module ClassMethods
+    # Returns true if {EventItem#start_time} should be updated according to HaramiVid
+    #
+    # == Algorithm
+    #
+    # New start-time would be, if updated, Reference point (that is roughly harami_vid.release_date)
+    # minus OFFSET_PERIOD_FROM_REFERENCE.
+    # Here, let us call it cand_epoch.
+    #
+    # * False if cand_epoch is (altually already) equal to or earlier than evit.start_time
+    # * False if cand_epoch is later than (EarliestEpoch = Reference minus THRE_DURATION_UPDATE_EVENT_START_TIME)
+    # * False if cand_epoch is later than the earliest `HaramiVid#release_date` of HaramiVids associated to evit, because cand_epoch would definitely contradict the fact the content had been published by the epoch of cand_epoch.
+    # * False if cand_epoch is later than the earliest `HaramiVid#release_date` of HaramiVids that belong to the evit.event and has one of the Musics associated to evit.  In fact, if the same Music is played more than once in the Event in completely saparate occassions, this will wrongly return false, but such a situation should not happen (if ideally).
+    def should_update_event_item_start_time?(evit, harami_vid)
+      return false if !harami_vid.release_date
+      cand_epoch = candidate_new_start_time(harami_vid)
+      return false if cand_epoch <= evit.start_time  # Already adjusted or manually set
+
+      earliest_epoch = utc_middle_of_day(harami_vid.release_date) - THRE_DURATION_UPDATE_EVENT_START_TIME # defined in module_common.rb
+      # return false if cand_epoch < earliest_epoch  # should never happen by definition of both values
+      t = evit.harami_vids.where.not("harami_vids.id = ?", harami_vid.id).pluck(:release_date).flatten.compact.sort.first 
+      return false if t && t < cand_epoch
+      t = evit.event.harami_vids.joins(events: {harami_vids: :harami_vid_music_assocs}).where("harami_vid_music_assocs.music_id" => evit.musics.ids).distinct.pluck(:release_date).flatten.compact.sort.first
+                               # joins("INNER JOIN harami_vid_music_assocs ON harami_vid_music_assocs.harami_vid_id = harami_vids.id")
+      return false if t && t < cand_epoch
+      true
+    end
+
+    def candidate_new_start_time(harami_vid)
+      utc_middle_of_day(harami_vid.release_date) - OFFSET_PERIOD_FROM_REFERENCE # defined in module_common.rb
+    end
+  end
 
   # Attempts to save and if fails, add errors to @harami_vid
   #
@@ -186,13 +223,10 @@ module ModuleHaramiVidEventAux
   # @param force_update: [Boolean] if true (Def: false), start-time is always updated as long as {HaramiVid#release_date} is present.  This is ignored in updating Duration.
   # @return [NilClass, Array<Hash, String>] 2-elements Array or nil (if not processed at all). 1st is the Hash to update a model. 2nd is a Flash message (or nil)
   def _hs_adjust_event_item_start_time(evit, harami_vid=@harami_vid, force_update: false)
-    return if !harami_vid.release_date ||
-              (!force_update &&
-               evit.start_time &&
-               (((hvid_start_time=(harami_vid.release_date.to_time(:utc) + 12.hours)) - evit.start_time).seconds < THRE_DURATION_UPDATE_EVENT_START_TIME))
+    return if !force_update && !self.class.should_update_event_item_start_time?(evit, harami_vid)
 
-    new_start_time = hvid_start_time-1.months
-    hsret = {start_time: new_start_time, start_time_err: (new_err=1.months).in_seconds}.with_indifferent_access
+    new_start_time = self.class.candidate_new_start_time(harami_vid)
+    hsret = {start_time: new_start_time, start_time_err: (new_err=OFFSET_PERIOD_FROM_REFERENCE).in_seconds}.with_indifferent_access
     msg = sprintf("Start time of the (newly created?) EventItem (pID=%d) is adjusted to (%s) with an error of %f days, based on the release-date (%s) of the HaramiVid. If it is incorrect (in rare cases), edit the EventItem.", evit.id, new_start_time, new_err.in_days, harami_vid.release_date)
     [hsret, msg]
   end

@@ -107,6 +107,8 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
     art = hvid.artists.first
     evit = hvid.event_items.first
     assert evit
+    evit_stime0 = evit.start_time
+    assert evit_stime0
     amps  = evit.artist_music_plays
     amp   = amps.first
 
@@ -198,17 +200,24 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
     tra_en = tras.find_by(langcode: "en")
     assert_equal @editor_harami, tra_en.create_user, "(NOTE: for some reason, created_user_id is nil) User=#{@editor_harami.inspect} / ModuleWhodunnit.whodunnit=#{ModuleWhodunnit.whodunnit.inspect} / PaperTrail.request.whodunnit=#{PaperTrail.request.whodunnit.inspect} / Translation="+tra_en.inspect
 
+    evit.reload
+    assert_equal evit_stime0, evit.start_time  # because the vid is from 2019-06 and EventItem#start_time is similar.
 
     ## 2nd and 3rd runs
-    # Mostly checking Channels, but alos checking EventItem parameters
+    # Mostly checking Channels, but also checking EventItem parameters
     # In default this uses marshal data, but accesses Google/Youtube API if ENV["SKIP_YOUTUBE_MARSHAL"] or ENV["UPDATE_YOUTUBE_MARSHAL"] is set positive.
     # This time, only Youtube-ID of Channel should be updated after it is deliberately unset.
     hv_dura0 = hvid.duration
     evit = hvid.event_items.first
     ev   = evit.event
+
     dura0 = 23.hours
+    evit_stime_early = Date.new(1999, 1, 1).to_time
+    ev.update!(  start_time: evit_stime_early)  # much earlier date
+    evit.update!(start_time: evit_stime_early)  # => this should be updated.
     ev.update!(  duration_hour:   dura0.in_hours)
     evit.update!(duration_minute: dura0.in_minutes)
+
     chan = hvid.channel
     %w(id_at_platform id_human_at_platform).each_with_index do |att, i_run|
       chan.update!(att => nil)
@@ -216,7 +225,7 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
       prev_updated_time = chan.updated_at
   
       assert_no_difference("ArtistMusicPlay.count + Music.count + Artist.count + Engage.count + HaramiVidMusicAssoc.count + HaramiVidEventItemAssoc.count + Event.count + EventItem.count + Channel.count + HaramiVid.count") do
-        assert_no_difference("Translation.count") do  # English Translation added.
+        assert_no_difference("Translation.count") do
           patch harami_vids_fetch_youtube_datum_path(hvid), params: { harami_vid: { fetch_youtube_datum: hsin } }
           assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
           assert_redirected_to hvid
@@ -231,16 +240,84 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
       hvid.reload
       assert_equal hv_dura0, (hv_dura2=hvid.duration)
 
+      ev.reload
+      evit.reload
+      stime = evit.start_time
+      assert_equal ev.start_time, evit_stime_early, "Event time should not be affected."
+      refute_equal    stime,      evit_stime_early
+      assert_operator stime, :>,  evit_stime_early
+      assert_operator stime.to_date, :<=, hvid.release_date
+      assert_operator stime.to_date, :>=, hvid.release_date - 3.months
       _do_check_if_duration_adjusted(hvid, dura0.in_hours, dura0.in_minutes, caller_msg="#{i_run+2}-st run")
     end
 
 
+    ## 4th run
+    # Checking updating start_time or not with HaramiVid sharing an EventItem
+    evit_sdate_2yr = (hvid.release_date - 2.years)
+    evit_stime_2yr = evit_sdate_2yr.to_time
+    evit.update!(start_time: evit_stime_2yr)  # => this should NOT be updated this time because of other HaramiVid.
+
+    str_unique = __method__.to_s.gsub(/(\s|[^a-z])/i, '_')
+    i = 2
+    tit, uri = "new vid #{i} #{str_unique}", "https://example.com/#{str_unique}_#{i}"
+    hvid2_date = evit_sdate_2yr + 2.days 
+    hvid2 = HaramiVid.create_basic!(title: tit, langcode: "en", is_orig: true, uri: uri, release_date: hvid2_date)
+    hvid2.event_items << evit
+    hvid2.musics << mus
+
+    evit.reload
+    assert_equal 2, evit.harami_vids.count, "sanity check"
+
+    assert_no_difference("ArtistMusicPlay.count + Music.count + Artist.count + Engage.count + HaramiVidMusicAssoc.count + HaramiVidEventItemAssoc.count + Event.count + EventItem.count + Channel.count + HaramiVid.count + Translation.count") do
+      patch harami_vids_fetch_youtube_datum_path(hvid), params: { harami_vid: { fetch_youtube_datum: hsin } }
+      assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+      assert_redirected_to hvid
+    end
+
+    evit.reload
+    stime = evit.start_time
+    assert_equal stime, evit_stime_2yr, "EventItem start time should not be updated this time because of other HaramiVid, but..."
+
+
+    ## 5th run
+    # Checking updating start_time or not with HaramiVid sharing a Music and Event
+    hvid2.event_items.destroy(evit)
+    evit.reload
+    assert_equal 1, evit.harami_vids.count, "sanity check"
+    assert_equal 0, hvid2.event_items.count, "sanity check"
+    
+    evit2 = evit.dup
+    evit2.update!(machine_title: EventItem.get_unique_title(__method__.to_s))
+    hvid2.event_items << evit2
+    assert_equal evit2, hvid2.event_items.first, "sanity check"
+
+    assert_difference("ArtistMusicPlay.count*1000 + Music.count + Artist.count + Engage.count + HaramiVidMusicAssoc.count*100 + HaramiVidEventItemAssoc.count*10 + Event.count + EventItem.count + Channel.count + HaramiVid.count + Translation.count", 1000) do
+      amp, hvmas = hvid2.associate_music(mus, evit2, timing: 5)  # , bang: true, update_if_exists: false)
+    end
+    hvid2.reload
+    evit2.reload
+    assert_equal 1,     evit2.harami_vids.count, "sanity check"
+    assert_equal hvid2, evit2.harami_vids.first, "sanity check"
+    assert_equal mus,   hvid2.musics.first,      "sanity check"
+
+    assert_no_difference("ArtistMusicPlay.count + Music.count + Artist.count + Engage.count + HaramiVidMusicAssoc.count + HaramiVidEventItemAssoc.count + Event.count + EventItem.count + Channel.count + HaramiVid.count + Translation.count") do
+      patch harami_vids_fetch_youtube_datum_path(hvid), params: { harami_vid: { fetch_youtube_datum: hsin } }
+      assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+      assert_redirected_to hvid
+    end
+
+    evit.reload
+    stime = evit.start_time
+    assert_equal stime, evit_stime_2yr, "EventItem start time should not be updated this time because of other HaramiVid, but..."
+
+
     ## WARNING: This always accesses Google Youtube API.
-    ## 4th and errorneous run (only if indicated so!)
+    ## 6th and errorneous run (only if indicated so!)
     if is_env_set_positive?("SKIP_YOUTUBE_MARSHAL") # defined in ApplicationHelper
       hvid.update!(uri: hvid.uri+"naiyo")
       assert_no_difference("ArtistMusicPlay.count + Music.count + Artist.count + Engage.count + HaramiVidMusicAssoc.count + HaramiVidEventItemAssoc.count + Event.count + EventItem.count + Channel.count + HaramiVid.count") do
-        assert_no_difference("Translation.count") do  # English Translation added.
+        assert_no_difference("Translation.count") do
           patch harami_vids_fetch_youtube_datum_path(hvid), params: { harami_vid: { fetch_youtube_datum: hsin } }
           assert_response :unprocessable_entity
         end
