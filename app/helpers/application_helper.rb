@@ -6,6 +6,10 @@ module ApplicationHelper
   # Default directory for test fixtute data
   DEF_FIXTURE_DATA_DIR = Rails.root.join(*(%w(test fixtures data))).to_s
 
+  CSS_CLASSES = {
+    consistency_place: "consistency_place",
+  }.with_indifferent_access
+
   # For toastr Gem. From
   # <https://stackoverflow.com/a/58778188/3577922>
   def toastr_flash
@@ -375,7 +379,7 @@ module ApplicationHelper
   # @return [String]
   def self.uri_path_query(uri, without_slash: false)
     ret = [uri.path, uri.query].compact.join("?")
-    (without_slash && uri.host.present?) ? ret.sub(%r@\A/@, "") : ret  # the leading slash is removed if present
+    (without_slash && uri.host.present?) ? ret.sub(%r@\A/@, "") : ret  # the leading slash is removed if present?
   end
 
   # Prepend "youtu.be" if necessary.
@@ -919,6 +923,45 @@ module ApplicationHelper
   # @return [String]
   def sql_order_jp_top
     "CASE countries.id WHEN #{Country.unknown.id rescue 9} THEN 0 WHEN #{Country['JP'].id rescue 9} THEN 1 ELSE 9 END"
+  end
+
+  # returns HTML
+  #
+  # The default return when inconsistent is:
+  #   <span class="editor_only">(<span class="lead text-red"><strong>INCONSISTENT</strong>)</span></span>
+  #
+  # @example printed only if inconsitent
+  #   html_consistent_or_inconsistent(is_consistent=false, postfix=" with Event".html_safe) if can_edit  # defined in application_helper.rb
+  #
+  # @example printed both, with no parentheses, for moderator CSS class.
+  #   html_consistent_or_inconsistent(is_consistent=true, print_consistent: true, with_parentheses: false, span_class: "moderator_only my_other_class") if can_edit # defined in application_helper.rb
+  #
+  # @param is_consistent [Boolean] true if consistent
+  # @param print_consistent: [Boolean] If true (Def: false), "consistent" is returned if consistent
+  # @param with_parentheses: [Boolean] If true (Def), a pair of parentheses are included.
+  # @param span_class: [String, NilClass] Returned HTML contains a pair of span tag with the given class. Def: "editor_only". If nil, just a class of "inconsistent_place" is used for the (outer) span.
+  # @param prefix: [String] a html_safe String prepended to "INCONSISTENT" (or "consistent"); ENSURE this is html_safe. You may a trailing space for this.  This is printed before the parenthesis in the site default colour.
+  # @param postfix: [String] a html_safe String appended to "INCONSISTENT" (or "consistent"); ENSURE this is html_safe. You may include a leading space for this.  This is printed inside the parentheses (if present) in red.
+  # @return [String] html_safe String of "<span ...>INCONSISTENT<...>" or "consistent" or empty String. This can contain spaces (to specify more than one classes).
+  def html_consistent_or_inconsistent(is_consistent, print_consistent: false, with_parentheses: true, span_class: "editor_only", prefix: "".html_safe, postfix: "".html_safe)
+    return "".html_safe if is_consistent && !print_consistent
+    raise ArgumentError, "postfix #{postfix.inspect} is NOT html_safe." if !postfix.html_safe?
+
+    css_class_str = [CSS_CLASSES[:consistency_place], (span_class.present? ? html_escape(span_class) : nil)].compact.join(" ")
+    outer_span_pair = [(span_class.present? ? "<span class=\"#{css_class_str}\">" : "")]
+    outer_span_pair << (outer_span_pair[0].present? ? "</span>" : "")
+    outer_span_pair.map!(&:html_safe)
+
+    core_html =
+      if is_consistent
+        (print_consistent ? "consistent"+postfix : "").html_safe
+      else
+        ('<span class="lead text-red"><strong>INCONSISTENT</strong>'+postfix+'</span>').html_safe
+      end
+
+    parenthesized_core_html = ((with_parentheses && !core_html.empty?) ?  ("("+core_html+")").html_safe : core_html)
+
+    outer_span_pair[0] + prefix + parenthesized_core_html + outer_span_pair[1]  # should be html_safe
   end
 
   # to suppress warning, mainly that in Ruby-2.7.0:

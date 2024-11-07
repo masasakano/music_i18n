@@ -51,7 +51,10 @@
         <td><%= date2text(event_item.publish_date) %></td> <%# defined in ModuleCommon %> <%# defined in ModuleCommon %> <%# defined in ModuleCommon %> <%# defined in ModuleCommon %>
         <td><%= event_item.weight %></td>
         <td><%= event_item.event_ratio %></td>
-        <td><%= event_item.place ? h(event_item.txt_place_pref_ctry) : "" %></td>
+        <td><%= event_item.place ? event_item.txt_place_pref_ctry(without_country_maybe: true) : "" %>
+          <% is_consistent = (!(ev_pla=event_item.event.place) || event_item.place && ev_pla.encompass?(event_item.place)) %>
+          <%= html_consistent_or_inconsistent(is_consistent) %>
+        </td>
          <% if with_event %>
           <% ev   = event_item.event %>
           <% evgr =    ev.event_group %>

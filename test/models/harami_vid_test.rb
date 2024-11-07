@@ -378,6 +378,75 @@ class HaramiVidTest < ActiveSupport::TestCase
     assert_equal hvmas[1], hvi3.harami_vid_music_assocs.where("harami_vid_music_assocs.music_id = ?", mu5.id).first
   end
 
+  # See {HaramiVid#is_place_all_consistent?} source code for an explanation.
+  test "is_place_all_consistent" do
+    pref_tokyo  = prefectures(:tokyo)
+    unknown_pla_tokyo = prefectures(:tokyo).unknown_place
+    tocho     = places(:tocho)
+    akihabara = places(:akihabara)
+    [tocho, akihabara].each do |ep|
+      assert unknown_pla_tokyo.encompass?(ep), "sanity check of fixtures." 
+    end
+    unknown_pla_japan = places(:unknown_place_unknown_prefecture_japan)
+    assert_equal countries(:japan).unknown_prefecture.unknown_place, unknown_pla_japan, "sanity check of fixtures." 
+
+    # creating two random Events and EventItems
+    evgr = EventGroup.unknown
+    evs = []
+    evits = []
+    (0..1).each do |i|
+      ev_tit = "evt test#{i}-#{__method__}"
+      ev = Event.create_basic!(event_group: evgr, title: ev_tit, langcode: "en", is_orig: true)
+      evs << ev
+      mt = EventItem.get_unique_title("evit_"+ev_tit)
+      evits << EventItem.create_basic!(event: ev, machine_title: mt)
+      evs[-1].event_items.reset
+    end
+
+    # key difference: Place
+    evs[0].update!(  place: tocho)
+    evits[0].update!(place: tocho)
+    evs[1].update!(  place: unknown_pla_japan)
+    evits[1].update!(place: akihabara)
+
+    uri = HaramiVid.get_unique_string(:uri, prefix: "https://example.com/#{__method__.to_s.sub(/\s+/, '_')}", postfix: "", separator: "", separator2: "") # defined in /app/models/concerns/module_application_base.rb
+    hv_tit = uri
+    hvid = HaramiVid.create_basic!(uri: uri, title: hv_tit, langcode: "en", is_orig: true)
+    
+    hvid.place = nil
+    hvid.save(validate: false)  # need to skip validate (because place=nil is usually not allowed.)
+    assert_nil hvid.place
+    refute hvid.is_place_all_consistent?(strict: false)  # When HaramiVid#place is nil
+
+    # When no EventItem-s are associated
+    hvid.update!(place: tocho)
+    refute hvid.is_place_all_consistent?(strict: true)
+    assert hvid.is_place_all_consistent?(strict: false)
+    hvid.update!(place: Place.unknown)
+    refute hvid.is_place_all_consistent?(strict: true)
+    assert hvid.is_place_all_consistent?(strict: false)
+
+    (0..1).each do |i|
+      hvid.event_items << evits[i]
+    end
+
+    hvid.update!(place: tocho)
+    refute hvid.is_place_all_consistent?(strict: false)
+    hvid.update!(place: akihabara)
+    refute hvid.is_place_all_consistent?(strict: false)
+
+    hvid.update!(place: unknown_pla_tokyo)
+    assert hvid.is_place_all_consistent?(strict: true)
+
+    hvid.update!(place: unknown_pla_japan)
+    refute hvid.is_place_all_consistent?(strict: true)
+    hvid.update!(place: unknown_pla_japan)
+    assert hvid.is_place_all_consistent?(strict: false)
+
+    hvid.update!(place: Place.unknown)
+    refute hvid.is_place_all_consistent?(strict: false)
+  end
+
   test "create_basic!" do
     mdl = nil
     assert_nothing_raised{

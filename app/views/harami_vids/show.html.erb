@@ -47,7 +47,7 @@
       <span class="editor_only">
         / (playing) <%= n2=@harami_vid.music_plays.count %> <%# this is "distinct" %>
         <% if n1 != n2 %>
-          &nbsp; (← <span class="lead text-red"><strong>Inconsistent</strong></span> &mdash; <em>you may associate Musics to EventItem(s)?</em>)
+          &nbsp; (← <%= html_consistent_or_inconsistent(true, print_consistent: false, with_parentheses: false, span_class: "") %> &mdash; <em>you may associate Musics to EventItem(s)?</em>)
         <% end %>
       </span>
     <% end %>

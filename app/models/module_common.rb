@@ -221,7 +221,9 @@ module ModuleCommon
   # For model that has the method +place+. shorter-name is preferred (between title and alt_title).
   #
   # This works for {Place}, too.
-  # Unlike {Place#pref_pla_country_str}, this used I18n.locale
+  # Unlike {Place#pref_pla_country_str}, this uses I18n.locale in default.
+  #
+  # See also {PlacesHelper#show_pref_place_country} which looks up ability
   # 
   # @example
   #    event.txt_place_pref_ctry(lang_fallback_option: :never)

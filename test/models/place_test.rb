@@ -377,5 +377,30 @@ class PlaceTest < ActiveSupport::TestCase
     assert_empty perth_aus.children_class_names.sort
     assert_not   perth_aus.has_children?
   end
+
+  test "self.minimal_covering_place" do
+    pref_tokyo  = prefectures(:tokyo)
+    unknown_pla_tokyo = prefectures(:tokyo).unknown_place
+    tocho     = places(:tocho)
+    akihabara = places(:akihabara)
+    # kagawa= prefectures(:kagawa)
+    takamatsu_st = places(:takamatsu_station)
+    unknown_pla_japan = places(:unknown_place_unknown_prefecture_japan)
+
+    unknown_pla_london = places(:unknown_place_greater_london)
+    unknown_pla_world = places(:unknown_place_unknown_prefecture_world)
+
+    assert_equal tocho, Place.minimal_covering_place(tocho)
+    assert_equal tocho, Place.minimal_covering_place(tocho, tocho)
+    assert_equal tocho, Place.minimal_covering_place(tocho, tocho, tocho)
+    assert_equal unknown_pla_tokyo, Place.minimal_covering_place(tocho, tocho, akihabara, tocho)
+    assert_equal unknown_pla_tokyo, Place.minimal_covering_place(akihabara, tocho, tocho)
+    assert_equal unknown_pla_japan, Place.minimal_covering_place(tocho, tocho, takamatsu_st)
+    assert_equal unknown_pla_world, Place.minimal_covering_place(tocho, tocho, unknown_pla_london)
+    assert_equal unknown_pla_world, Place.minimal_covering_place(unknown_pla_london, tocho, tocho)
+    assert_equal unknown_pla_world, Place.minimal_covering_place(tocho, unknown_pla_world)
+    assert_equal unknown_pla_world, Place.minimal_covering_place(tocho, nil, tocho)
+    assert_equal unknown_pla_world, Place.minimal_covering_place(nil)
+  end
 end
 

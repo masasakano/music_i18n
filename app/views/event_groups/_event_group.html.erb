@@ -1,4 +1,10 @@
+<%# local vars: n_harami_vids (Number of associated HaramiVids) %>
+
+<% if !defined?(n_harami_vids)
+     n_harami_vids = HaramiVid.joins(:event_groups).where("event_groups.id = ?", event_group.id).distinct.count
+   end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %> <%# for some reason, n_harami_vids is not passed from the parent show.html.erg ... hence it is redefiend (recalculated here. %>
 <div id="<%= dom_id event_group %>">
+
 
 <section id="primary_contents">
 <dl>
@@ -43,7 +49,7 @@
       <% end %>
     </dd>
   <dt class="item_n_hvids"><%= t("tables.n_harami_vids") %>:</dt>
-    <dd class="item_n_hvids"><%= event_group.harami_vids.count %></dd>
+    <dd class="item_n_hvids"><%= n_harami_vids %></dd>
   <dt class="item_note"><%= t("tables.note").capitalize %>:</dt>
     <dd class="item_note"><%= sanitized_html(auto_link(event_group.note)).html_safe %></dd>
 

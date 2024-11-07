@@ -22,7 +22,7 @@
   <dd><%= @place.harami_vids.count %></dd>
   <dt><%= t("tables.note").capitalize %></dt>
   <dd><%= sanitized_html(auto_link(@place.note)).html_safe %></dd>
-  <% if can? :edit, Place %>
+  <% if (canedit_place=can?(:edit, Place)) %>
     <div class="editor_only">
       <dt>updated_at</dt>
       <dd><%= @place.updated_at %></dd>
@@ -101,44 +101,11 @@
 
 <% if can? :index, Event %>
   <hr>
-  
+
   <section id="event_table">
-  <h3><%= t(:Events) %> (<%= @place.title_or_alt(prefer_shorter: true, lang_fallback_option: :either, str_fallback: "") %>)</h3>
+  <h3 title="Events one of EventItems of which is held at this Place"><%= t(:Events) %> (<%= @place.title_or_alt(prefer_shorter: true, lang_fallback_option: :either, str_fallback: "") %>)</h3>
   
-  <table>
-    <thead>
-      <tr>
-        <% if (canedit_evt=can?(:edit, Event)) %>
-          <th class="editor_only">pID</th>
-        <% end %>
-        <th>Title</th>
-        <th><%= t("tables.n_harami_vids_short") %></th>
-        <th><%= t("tables.note").capitalize %></th>
-        <% if canedit_evt %>
-          <th colspan="2"></th>
-        <% else %>
-          <th></th>
-        <% end %>
-      </tr>
-    </thead>
-  
-    <tbody>
-      <% @place.events.uniq.each do |event| %>
-        <tr>
-         <% if canedit_evt %>
-          <td class="editor_only text-end"><%= link_to event.id, event %></td>
-         <% end %>
-          <td><%= event.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true) %></td>
-          <td class="text-end"><%= event.harami_vids.distinct.count %></td>
-          <td><%= auto_link50(event.note) %></td>
-          <td><%= link_to t("tables.Show"), event %></td>
-          <% if can? :update, event %>
-            <td><%= link_to 'Edit', edit_event_path(event) %></td>
-          <% end %>
-        </tr>
-      <% end %>
-    </tbody>
-  </table>
+  <%= render partial: 'layouts/events_index', locals: {events: @place.events_thru_event_items.distinct, with_place: false} %> <%# ordered in the partial %>
   </section>
 <% end %>
 
@@ -147,6 +114,11 @@
 <section id="harami_vid_table">
 <h3><%= t("show.h2_harami_vid") %> (<%= @place.title_or_alt(prefer_shorter: true, lang_fallback_option: :either, str_fallback: "") %>)</h3>
 
-  <%= render partial: 'layouts/harami_vids_index', locals: {harami_vids: @place.harami_vids.order("harami_vids.release_date" => :desc).distinct, music: nil, with_place: false} %>
+  <% harami_vids_without_events = @place.harami_vids.left_joins(:harami_vid_event_item_assocs).where("harami_vid_event_item_assocs.event_item_id IS NULL") %>  <%# HaramiVids at the Place with no associated EventItems %>
+  <% events = Event.where(id: @place.harami_vids.joins(:events).distinct.select("events.id AS evt_id").map(&:evt_id)) %>
+  <% n_harami_vids = harami_vids_without_events.size + events.size %>
+
+  <%= render partial: "layouts/events_harami_vids_index", locals: {events: events, with_place_public: false, max_rows: (canedit_place ? nil : 100), n_harami_vids: n_harami_vids, harami_vids_without_events: harami_vids_without_events } %>  <%# Some EventGroups have too many HaramiVid-s, so they are trimeed for non-Editors. %>
+
 </section>
 

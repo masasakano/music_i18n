@@ -220,6 +220,7 @@ en:
       number_id: "N-th"
       event_table_title: Events in this Group
       harami_vid_table_title: Videos in this Group
+      trim_hvid_table_to: "……trimmed to %{trimmed_rows} rows out of %{all_rows}."
 
   events:
     parent_event: "(Parent) Event"

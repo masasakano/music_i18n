@@ -1,5 +1,5 @@
 
-<%# local variables: harami_vids, optional: event, musics (:all or Array or nil; musics to display), music (if for a particular Music - displaying timing), place, for_owner (Channel or ChannelOwner), can_update_hvids, canread_evit, can_read_h1129, canread_pla, canread_mus, evit_offset %>
+<%# local variables: harami_vids, optional: event, musics (:all or Array or nil; musics to display), music (if for a particular Music - displaying timing), place, for_owner (Channel or ChannelOwner), can_update_hvids, canread_evit, can_read_h1129, canread_pla, canread_mus, evit_offset, with_place, with_place_public, stop_rows %>
 <%# @example
       render partial: 'layouts/harami_vids_index', locals: {harami_vids: @music.harami_vids.order("harami_vids.release_date" => :desc).distinct, music: @music, with_place: false, for_owner: false }
  %>
@@ -15,6 +15,11 @@
 <% if !defined?(with_place)
      with_place = nil
    end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
+<%
+  if !defined? with_place_public 
+    with_place_public = false
+  end
+%>
 <% if !defined?(for_owner)
      for_owner = false
    end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
@@ -39,6 +44,10 @@
 <% if !defined?(evit_offset)
      evit_offset = 0
    end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
+<% if !defined?(stop_rows)
+     stop_rows = nil
+   end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
+<% stop_rows ||= Float::INFINITY %>
 
 <% event_items = [] %>
 
@@ -56,7 +65,8 @@
     <% end %>
 <% end %> <%# I don't understand this clause - the sentence below should actually fail with this, but it doesn't... I put it into if-false... %>
     <%# (ary &&= ary2).uniq.each do |harami_vid| %>
-    <% ary.uniq.each do |harami_vid| %>
+    <% ary.uniq.each_with_index do |harami_vid, i_row| %>
+      <% break if i_row+1 > stop_rows %>
       <tr>
      <% if can_update_hvids %>
         <td class="number editor_only"><%= link_to harami_vid.id, harami_vid %></td>
@@ -87,7 +97,11 @@
         <td class="number"><%= assoc.completeness %></td>
      <% end %>
      <% if with_place %>
-        <td><%= harami_vid.place ? harami_vid.txt_place_pref_ctry(without_country_maybe: true) : "" %></td>
+        <td<%= ' class="editor_only"'.html_safe if !with_place_public %>><%= harami_vid.place ? harami_vid.txt_place_pref_ctry(without_country_maybe: true) : "" %>
+          <% if can_update_hvids %>
+            <%= html_consistent_or_inconsistent(harami_vid.is_place_all_consistent?(strict: true)) %>
+          <% end %>
+        </td>
      <% end %>
       <% if canread_evit %>
         <td class="text-center editor_only">

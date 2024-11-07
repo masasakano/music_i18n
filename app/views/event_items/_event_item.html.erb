@@ -20,7 +20,13 @@
     <% end %>
 
   <dt class="item_place"> <%= t("tables.place_country") %>:</dt>
-    <dd class="item_place"><%= event_item.place ? show_pref_place_country(event_item.place) : "" %></dd>  <%# defined in places_helper.rb %>
+    <dd class="item_place"><%= (evit_pla=event_item.place) ? show_pref_place_country(event_item.place) : "" %>
+      <% if canedit %>
+        <% is_consistent = event_item.place_consistent? %>
+        <% ev_place_str = h((ev_pla=event_item.event.place).blank? ? "nil" : show_pref_place_country(ev_pla)) if !is_consistent %> <%# TODO: the link part in Place is printed in white (while the rest is in red) in the statement below %>
+        <%= html_consistent_or_inconsistent(is_consistent, postfix: " with Event (#{ev_place_str})".html_safe) %>  <%# defined in application_helper.rb %>
+      <% end %>
+    </dd>  <%# defined in places_helper.rb %>
 
   <dt><strong>Start time [in <%= Rails.configuration.music_i18n_def_timezone_str %>] (± days/hrs/mins):</strong></dt>
     <dd><%= event_item.string_time_err2uptomin %> (± <%= time_in_units(event_item.start_time_err, for_editor: canedit) %>) <span class="moderator_only">[Raw-value=<%= event_item.start_time %>]</span></dd> <%# in module_common.rb %>

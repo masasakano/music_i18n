@@ -57,6 +57,10 @@ tocho:
   prefecture: tokyo
   note: MyTextTocho
 
+akihabara:
+  prefecture: tokyo
+  note: PlaceAkihabara
+
 place_harami_vid3:
   prefecture: tokyo
   note: PlaceHaramiVid3

@@ -7,7 +7,10 @@
 
     <%= turbo_frame_tag "update_place_"+dom_id(@harami_vid) do %>
       <%= show_pref_place_country(@harami_vid.place) %> <%# defined in places_helper.rb %>
-      <% if (canupdate=can?(:update, @harami_vid)) && (evit_place=get_evit_place_if_need_updating(@harami_vid)) %>
+      <% if (canupdate=can?(:update, @harami_vid)) %>
+        <%= html_consistent_or_inconsistent(@harami_vid.is_place_all_consistent?(strict: true)) %>
+      <% end %>
+      <% if canupdate && (evit_place=get_evit_place_if_need_updating(@harami_vid)) %>
         <br>
         <div class="editor_only harami_vids_update_place">
           / In EventItem(s): <%= show_pref_place_country(evit_place) %>

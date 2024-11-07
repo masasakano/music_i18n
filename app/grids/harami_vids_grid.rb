@@ -101,8 +101,12 @@ class HaramiVidsGrid < BaseGrid
     }  # defined in application_helper.rb
   end
 
-  column(:place, header: Proc.new{I18n.t('tables.place')}) do |record|
-    record.place.pref_pla_country_str(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true)
+  column(:place, html: true, header: Proc.new{I18n.t('tables.place')}) do |record|
+    txt_caution = "".html_safe
+    if can?(:read, HaramiVid) && !record.is_place_all_consistent?(strict: true)
+      txt_caution = '<span title="Inconsistent with EventItems and/or Events">†</span>'.html_safe
+    end
+    ERB::Util.html_escape(record.place.pref_pla_country_str(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true)) + txt_caution
   end
 
   column(:uri, order: false) do |record|

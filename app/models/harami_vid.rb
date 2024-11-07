@@ -136,6 +136,57 @@ class HaramiVid < BaseWithTranslation
   # For :event_item, the value is +HaramiVid.event_items.ids+ (Array!)
   attr_accessor :columns_for_harami1129
 
+  # True if self.place is consistent with those of EventItem-s and Event-s
+  #
+  # == Algorithm
+  #
+  # 1. If strict==true,  HaramiVid#place must be the {Place.minimal_covering_place} of all EventItem-s,
+  # 2. If strict==false, HaramiVid#place must encompass it,
+  # 3. {Place.minimal_covering_place} of all Event-s must encompass {HaramiVid#place}.
+  # 4. If self.place is nil, always returns false.
+  # 5. If none of Place-s for the associated EventItem-s and Event-s are defined (or more likely, no EventItem-s are associated to self (HaramiVid)), while self.place is defined,
+  #    1. false if strict==true
+  #    2. true  if strict==false (permissive, ignoring the incomplete Place settings)
+  #
+  # For example, when HaramiVid is associated the following two EventItem-s,
+  #
+  # 1. Event1 (Tocho) > EventItem1_1 (Tocho)
+  # 2. Event2 (Japan) > EventItem2_1 (Akihabara)
+  #
+  # If strict is true  {HaramiVid#place} must be "UnknownPlace of Tokyo" (condition 1, which also satisfies condition 3),
+  # If strict is false, {HaramiVid#place} must be either "UnknownPlace of Tokyo" (condition 2 as minimum)
+  # or "UnknownPlace of Japan" (condition 3 as the maximum).
+  #
+  # @note
+  #   This method does not check the consistency of Place-s between Event and EventItem-s.
+  #   If they are inconsistent, this may return false no matter what HaramiVid#place is.
+  #
+  # @param strict [Boolean[  see above.
+  def is_place_all_consistent?(strict: true)
+    return false if !place
+
+    evit_plas, ev_plas =
+      [event_items.left_joins(:place),
+       event_items.joins(:event).joins("LEFT OUTER JOIN places ON events.place_id = places.id")
+      ].map{|erel|
+        erel.select("places.id as pla_id").map{|i| i[:pla_id]}.uniq.map{|j| Place.find j}
+      }
+
+    # No EventItems are associated.
+    return !strict if evit_plas.empty? && ev_plas.empty?
+
+    ### The following ignores those with NULL place. Though it should never happen, they should be handled for safety.
+    # ev_plas   = Place.joins(:events).joins(events: :event_items).joins(events: {event_items: :harami_vid_event_item_assocs}).where("harami_vid_event_item_assocs.harami_vid_id = ?", id).distinct
+    # evit_plas = Place.joins(:event_items).joins(event_items: :harami_vid_event_item_assocs).where("harami_vid_event_item_assocs.harami_vid_id = ?", id).distinct
+
+    evit_cover_pla = Place.minimal_covering_place(*(evit_plas.uniq))
+    ev_cover_pla   = Place.minimal_covering_place(*(ev_plas.uniq))
+
+    ev_cover_pla.encompass?(place) &&
+      (strict ? (place == evit_cover_pla) : place.encompass?(evit_cover_pla))
+  end
+
+
   # Returns {HaramiVidMusicAssoc#timing} of a {Music} in {HaramiVid}, assuming there is only one timing
   #
   # @param music [Music]

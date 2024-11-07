@@ -42,7 +42,7 @@
         <td><%= link_to event.title_or_alt(langcode: I18n.locale), event_url(event) %></td>
         <td><%= event.string_time_err2uptomin %></td>
         <td class="text-end"><%= event.duration_hour %></td>
-        <td><%= (pla=event.place) ? (hide_prefecture ? link_to(pla.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true), pla) : event.txt_place_pref_ctry) : "" %></td>
+        <td><%= (pla=event.place) ? (hide_prefecture ? link_to(pla.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true), pla) : event.txt_place_pref_ctry(without_country_maybe: true)) : "" %></td>
        <% if can_create_event %>
         <td class="editor_only text-end"><%= event.event_items.count %></td>
        <% end %>
@@ -56,8 +56,14 @@
        <% end %>
        <% if can? :update, event  %>
           <td class="actions editor_only"><%= link_to 'Edit', edit_event_path(event) %></td>
-         <% if can?(:destroy, event) && event.destroyable? %>
-          <td class="actions editor_only"><%= link_to 'Destroy', event, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+         <% if can?(:destroy, event) %>
+           <td class="actions editor_only">
+             <% if event.destroyable? %>
+               <%= link_to 'Destroy', event, method: :delete, data: { confirm: t('are_you_sure') } %>
+             <% else %>
+               <span class="cell_disable_link">Destroy</span>
+             <% end %>
+           </td>
          <% elsif can_create_event %>
           <td class="actions editor_only"></td>
          <% end %>

@@ -30,7 +30,8 @@
         <% end %>
          [<%= event.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>]
          <% if canedit_evt %>
-           <span class="editor_only">(<%= date2text(event.start_time.to_date) %>)</span> <%# defined in ModuleCommon %>
+           <span class="editor_only">(<%= date2text(event.start_time.to_date) %> <%# defined in ModuleCommon %>
+            / <%= (ev_pla=event.place) ? show_pref_place_country(ev_pla) : "Place=nil" %>)</span>  <%# Place should never be nil but playing safe. %>
          <% end %>
         <ol class="list_event_items">
           <% ar_event_items.sort{|a,b|
@@ -53,7 +54,7 @@
                 (<%= eii+1 %>)
               <% end %>
               <% n_amps = event_item.artist_music_plays.count %>
-              <% if n_amps > 1 && canedit_hvid &&  %>
+              <% if (n_amps > 1 || event_item.unknown?) && canedit_hvid &&  %>
                 <span class="editor_only">
                   <%= button_to t("harami_vids.Duplicate"), event_items_deep_duplicates_url, form_class: "button_to inline_form", method: :post, params: { event_item: { deep_duplicates_controller: {event_item_id: event_item.id, harami_vid_id: @harami_vid.id} } } %>
                 </span>
@@ -78,7 +79,9 @@
               <% end %>
               <% if canindex_evit %>
                 <span class="editor_only">
-                  <% word = ((!@harami_vid.place || @harami_vid.place.encompass?(event_item.place)) ? "consistent" : '<span class="lead text-red"><strong>INCONSISTENT</strong></span>'.html_safe) %>
+                  <% is_consistent = (event_item.place_consistent? && event_item.place_consistent?(with: @harami_vid))
+                     word = html_consistent_or_inconsistent(is_consistent, print_consistent: true, with_parentheses: false, span_class: "")
+                       %> <%# html_safe String; defined in application_helper.rb %> <%# event_item is guaranteed to be non-nil %>
                   [<%= word %>: <%= show_pref_place_country(event_item.place) %>]
                 </span>
               <% end %>

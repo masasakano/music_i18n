@@ -43,7 +43,8 @@ class Place < BaseWithTranslation
   has_many :artists, dependent: :restrict_with_exception
   has_many :musics,  dependent: :restrict_with_exception
   has_many :event_items
-  has_many :events, through: :event_items
+  has_many :events
+  has_many :events_thru_event_items, -> {distinct}, through: :event_items, source: :event
 
   UnknownPlace = {
     "en" => 'UnknownPlace',
@@ -179,6 +180,40 @@ class Place < BaseWithTranslation
     self.prefecture.unknown_place
   end
 
+  # returns a minimal covering place.
+  #
+  # @example
+  #   tocho = places(:tocho)
+  #   Place.minimal_covering_place(tocho, tocho)
+  #     # => tocho
+  #   Place.minimal_covering_place(tocho, tocho, akihabara)
+  #     # => prefectures(:tokyo).unknown_place
+  #   Place.minimal_covering_place(tocho, tocho, takamatsu_station)
+  #     # => countries(:japan).unknown_place
+  #   Place.minimal_covering_place(tocho, tocho, liverpool)
+  #     # => places(:world)
+  #   Place.minimal_covering_place(nil, tocho, tocho)
+  #     # => places(:world)
+  #
+  # @param places [Array<Place, NilClass>] 
+  # @return [Place] minimal covering one. Place.unknown is returned if no arguments are given
+  def self.minimal_covering_place(*places)
+    return Place.unknown if places.empty?
+
+    pla_unk = Place.unknown
+    places = places.map{|pla| pla ? pla : pla_unk}.reduce{|covering, pla|
+      if covering == pla || covering.encompass?(pla)
+        covering
+      elsif !covering.unknown? && (pref=covering.prefecture).encompass?(pla)
+        pref.unknown_place
+      elsif (cntr=covering.country).encompass?(pla)
+        cntr.unknown_prefecture.unknown_place
+      else
+        Place.unknown
+      end
+    }
+  end
+
   # Similar to #{encompass?} but returns false if self==other
   #
   # Note that if it is compared with an equivalent Object at a child-level, it returns true,
@@ -292,6 +327,9 @@ class Place < BaseWithTranslation
   end
 
   # Returns a String of "Prefecture - Place (Country)" where some may be missing
+  #
+  # {ModuleCommon#txt_place_pref_ctry} is a wrapper of this.
+  # See also {PlacesHelper#show_pref_place_country}
   #
   # @example
   #   self.pref_pla_country_str(langcode: nil, prefer_shorter: false)  # Default option

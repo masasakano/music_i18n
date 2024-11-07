@@ -2,6 +2,9 @@
 module PlacesHelper
   # Returns a HTML-safe String, including a link (if eligible)
   #
+  # See also {ModuleCommon#txt_place_pref_ctry} (which has an option +without_country_maybe: false+
+  # which is a wrapper of {Place#pref_pla_country_str}
+  #
   # @param pla [Place]
   # @param hyperlink: [Boolean] If true (Def), Hyperlink to Place is included.
   # @param prefer_shorter: [Boolean] for title_or_alt in base_with_translation.rb

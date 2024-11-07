@@ -7,9 +7,9 @@
 
 <%= render @event %>
 
-<div>
+<div class="editor_only">
     <% if can? :update, @event %>
-      <span class="lead editor_only">
+      <span class="lead">
       <%= link_to "Edit this Event", edit_event_path(@event) %>
       </span>
     <% end %>
@@ -20,7 +20,7 @@
     <% end %>
   <% if can? :create, Event %>
     <br>
-    <span class="lead editor_only"><%= link_to "New Event in the same EventGroup", new_event_path(event_group_id: @event.event_group_id) %></span>
+    <span class="lead"><%= link_to "New Event in the same EventGroup", new_event_path(event_group_id: @event.event_group_id) %></span>
   <% end %>
 </div>
 
@@ -40,7 +40,7 @@
 <hr>
 <h2>HaramiVids for this Event</h2>
 
-<%= render partial: "layouts/harami_vids_index", locals: {harami_vids: @event.harami_vids.distinct, sort_asc: true} %>
+<%= render partial: "layouts/harami_vids_index", locals: {harami_vids: @event.harami_vids.distinct, sort_asc: true, with_place: true} %>
 
 <% if can? :index, Event %>  <%# Event-index will perhaps become public in the future... %>
 <hr>

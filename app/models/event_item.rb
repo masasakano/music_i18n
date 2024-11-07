@@ -542,6 +542,12 @@ class EventItem < ApplicationRecord
     evit
   end
 
+  # @param with: [ActiveRecord, Place] Event or HaramiVid (or Place, directly) whose place should encomapss self's plae.
+  def place_consistent?(with: event)
+    place_ref = (with.respond_to?(:place) ? with.place : with)
+    ((!!place ^! !!place_ref) && (!place_ref || place_ref.encompass?(place)))
+  end
+
   # @example
   #    _get_unique_copied_machine_title
   #      # => e.g., "copy-unk_Event_in_Tocho(...)", "copy2-Hitori-20240101_Tocho_<_Single-shotStreetpianoPlaying"

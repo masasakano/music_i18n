@@ -828,6 +828,18 @@ tocho_ja:
   update_user_id: 
   note: TochoJa
 
+akihabara_ja:
+  translatable: akihabara (Place)
+  langcode: ja
+  title: "秋葉原"
+  ruby: アキハバラ
+  romaji: Akihabara
+  is_orig: true
+  weight: 0
+  create_user_id: user_moderator_translation
+  update_user_id: user_moderator_translation
+  note: AkihabaraJa
+
 place_harami_vid3_ja:
   translatable: place_harami_vid3
   translatable_type: Place

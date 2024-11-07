@@ -1,5 +1,5 @@
 
-<%# local variables: harami_vids, optional: musics (:all or Array or nil; musics to display), music (if for a particular Music - displaying timing), place, for_owner (Channel or ChannelOwner), sort_asc: false %>
+<%# local variables: harami_vids, optional: musics (:all or Array or nil; musics to display), music (if for a particular Music - displaying timing), with_place, for_owner (Channel or ChannelOwner), sort_asc: false %>
 <%# @example
       render partial: 'layouts/harami_vids_index', locals: {harami_vids: @music.harami_vids.order("harami_vids.release_date" => :desc).distinct, music: @music, with_place: false, for_owner: false }
  %>
@@ -113,7 +113,11 @@
         <td class="number"><%= assoc.completeness %></td>
      <% end %>
      <% if with_place %>
-        <td><%= harami_vid.place ? harami_vid.txt_place_pref_ctry(without_country_maybe: true) : "" %></td>
+       <td><%= harami_vid.place ? harami_vid.txt_place_pref_ctry(without_country_maybe: true) : "" %>
+         <% if can_update %>
+           <%= html_consistent_or_inconsistent(harami_vid.is_place_all_consistent?(strict: true)) %>
+         <% end %>
+       </td>
      <% end %>
       <% if canread_evit %>
         <td class="text-center editor_only">
