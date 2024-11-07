@@ -76,8 +76,23 @@ class Music < BaseWithTranslation
   #   obtain the list of unique Artists.  In default, it contains all the Engages,
   #   which some artists have more than one (like a composer and lyricist)
   #
+  # @note For some reason, NULLS FIRST|LAST does not work...
+  #
   def sorted_artists
-    artists.joins(engages: :engage_how).order(Arel.sql('CASE WHEN engage_hows.weight IS NULL THEN 1 ELSE 0 END, engage_hows.weight')).order(Arel.sql("CASE WHEN engages.contribution IS NULL THEN 1 ELSE 0 END, engages.contribution DESC"))  # This _should_ sort in the order of EngageHow#weight and then Engage#contribution (DESC). The latter has not been tested!
+    #artists.joins(engages: :engage_how).order("engage_hows.weight NULLS LAST", "engages.contribution DESC NULLS LAST", "engages.year NULLS FIRST")  # This seems to work
+    #artists.joins(engages: :engage_how).order(Arel.sql('CASE WHEN engage_hows.weight IS NULL THEN 1 ELSE 0 END, engage_hows.weight')).order(Arel.sql("CASE WHEN engages.contribution IS NULL THEN 1 ELSE 0 END, engages.contribution DESC")).order(Arel.sql("CASE WHEN engages.year IS NULL THEN 0 ELSE 1 END, engages.year"))  # This works.
+    artists.joins(engages: :engage_how).order(Arel.sql('engage_hows.weight NULLS LAST, engages.contribution DESC NULLS LAST, engages.year NULLS FIRST, artists.birth_year NULLS FIRST'))  # This _should_ sort in the order of EngageHow#weight and then Engage#contribution (DESC).
+  end
+
+  # Returns the most significant artist
+  #
+  # sorted in order of {EngageHow#weight}, {Engage#contribution}, {Engage#year}, {Artist#birth_year}
+  #
+  # @note in case you want the whole list, "distinct" is unsable. Use Ruby uniq instead.
+  # @return [Artist, NilClass]
+  def most_significant_artist
+    # artists.joins(:engages).joins("INNER JOIN engage_hows ON engages.engage_how_id = engage_hows.id").order("engage_hows.weight", "engages.contribution", "engages.year", "artists.birth_year").first
+    sorted_artists.first
   end
 
   # Returns the unknown {Music} with {Genre.unknown}
@@ -97,14 +112,37 @@ class Music < BaseWithTranslation
                    joins: "INNER JOIN musics ON translations.translatable_id = musics.id INNER JOIN genres ON musics.genre_id = genres.id INNER JOIN translations trans2 ON musics.genre_id = genres.id")
   end
 
-  # Returns the most significant artist
+  # Wrapper of +Music.engages << mus+, and retursn the created Engage
   #
-  # sorted in order of {EngageHow#weight}, {Engage#contribution}, {Engage#year}, {Artist#birth_year}
+  # If found, contribution and note are updated, IF non-nil is given.
+  # If nil note is given, for example, note will not be updated
+  # (because once set, it has to be always present (even if empty) and should never be nullified).
+  # If an empty String is given, the value is updated.
   #
-  # @note in case you want the whole list, "distinct" is unsable. Use Ruby uniq instead.
-  # @return [Artist, NilClass]
-  def most_significant_artist
-    artists.joins(:engages).joins("INNER JOIN engage_hows ON engages.engage_how_id = engage_hows.id").order("engage_hows.weight", "engages.contribution", "engages.year", "artists.birth_year").first
+  # @param artist [Artist, Integer] can be pID
+  # @param engage_how [EngageHow, Integer]]
+  # @param year [Numeric, NilClass]
+  # @param contribution [Numeric, NilClass]
+  # @param note [String, NilClass]
+  # @return [Engage]
+  def find_and_update_or_add_engage(artist, engage_how, year: nil, contribution: nil, note: nil, bang: false)
+    eng_new = Engage.find_or_initialize_by(
+      music_id: id,
+      artist_id:     (artist.respond_to?(:id)     ? artist.id     : artist),
+      engage_how_id: (engage_how.respond_to?(:id) ? engage_how.id : engage_how),
+      year: year
+    )
+    eng_new.contribution = contribution if contribution
+    eng_new.note         = note         if note
+
+    (bang ? eng_new.save! : eng_new.save)
+    engages.reset
+    eng_new
+  end
+
+  # Same as {#find_and_update_or_add_engage} but uses save!
+  def find_and_update_or_add_engage!(*rest, bang: nil, **kwds)
+    find_and_update_or_add_engage(*rest, bang: true, **kwds)
   end
 
   # Returns a Title, possibly associated with Artist name but only if there are multiple matches for the returned title.

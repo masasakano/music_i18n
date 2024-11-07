@@ -36,20 +36,13 @@
   </thead>
 
   <tbody>
-    <% asterisk = (can_edit ? ('<span title="'+t('datagrid.footnote.is_original')+'">*</span>').html_safe : "") %>
+    <% asterisk = (can_edit ? ('<span title="'+t('datagrid.footnote.is_original')+'">*</span>') : "").html_safe %>
     <% artist.musics.uniq.each do |music| %>
       <tr>
      <% if can_edit %>
       <td title="DB pID" class="number editor_only"><%= link_to music.id, music %></td>
      <% end %>
-        <% orig_lc = music.orig_langcode %>
-        <td class="title_ja"><%= music.title(langcode: 'ja', lang_fallback: false, str_fallback: '') %><%= (orig_lc == 'ja') ? asterisk : "" %></td>
-        <td class="alt_title_ja"><%= music.alt_title(langcode: 'ja', lang_fallback: false, str_fallback: '') %>
-            <%= print_two_with_brackets(*(%i(alt_ruby alt_romaji).map{|i| music.send(i, langcode: 'ja', lang_fallback: false)}), separator: "/") %>  <%# defined in translations_helper.rb %>
-        </td>
-        <td class="title_alt_en"><%= s=music.title(langcode: 'en', lang_fallback: false, str_fallback: '') %><%= asterisk if (s && (orig_lc == 'en')) %>
-          <%= print_two_with_brackets(music.alt_title(langcode: 'en', lang_fallback: false)) %>  <%# defined in translations_helper.rb %>
-        </td>
+       <%= render partial: "layouts/tbody_title_ja_alt_en", locals: {model: music, can_update: can_update} %>
         <td><%= music.year %></td>
      <% if can_edit %>  <%# maybe published in the future... %>
         <td class="editor_only"><%= music.genre.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true) %></td>

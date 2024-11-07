@@ -1122,8 +1122,7 @@ music_how_en:
   note: MusicHowEn
 
 music_story_en:
-  translatable: music_story
-  translatable_type: Music
+  translatable: music_story (Music)
   langcode: en
   title: Story
   alt_title: 
@@ -1136,6 +1135,18 @@ music_story_en:
   create_user_id: 1
   update_user_id: 1
   note: MusicStoryEn
+
+music_story_ja:
+  translatable: music_story (Music)
+  langcode: ja
+  title: ストーリー
+  alt_title: 
+  is_orig: false
+  weight: 1000
+  create_user: user_editor
+  update_user: user_editor
+  note: MusicStoryJa
+# no ja alt_title/romaji
 
 music_kampai_ja1:
   translatable: music_kampai

@@ -40,7 +40,58 @@ class MusicsTest < ApplicationSystemTestCase
     n_trs_classic = page.find_all("tr").size
     assert_operator n_trs0, :>, n_trs_classic, "The number of table rows should have (greatly) decreased, but..."
 
-    ########### HaramiVid#new
+    # Reset
+    click_on "Reset"
+    
+    n_trs1 = page.find_all("tr").size
+    assert_equal n_trs0, n_trs1, "The number of table rows should be reset, but..."
+
+    ########### goes to HaramiVid#show by public
+
+    title_ja = "ストーリー"
+    mutmp = musics(:music_story)
+    assert_equal title_ja, mutmp.title(langcode: "ja"), "sanity check of fixtures"
+    title_en = mutmp.title(langcode: "en")
+
+    fill_autocomplete('#musics_grid_title_ja', use_find: true, with: 'ストー', select: title_ja)  # defined in test_helper.rb
+    click_on "Apply"
+    n_trs_story = page.find_all("tr").size
+    assert_operator n_trs0, :>, n_trs_story, "The number of table rows should have (greatly) decreased, but..."
+
+    xpath_music_index_row_of_story = sprintf("//table[contains(@class, 'musics_grid')]/tbody/tr[td[contains(@class, '%s') and text()='%s']]", "title_ja", title_ja )
+    # assert_selector :xpath, "//table[contains(@class, 'musics_grid')]/tbody/tr"
+    # assert_selector :xpath, "//table[contains(@class, 'musics_grid')]/tbody/tr[1]/td"
+    # assert_selector :xpath, "//table[contains(@class, 'musics_grid')]/tbody/tr[td[contains(@class, 'title_ja')]]"
+    # assert_selector :xpath, "//table[contains(@class, 'musics_grid')]/tbody/tr[td[@class='title_ja']]"
+    assert_selector :xpath, xpath_music_index_row_of_story
+    assert_selector :xpath, xpath_music_index_row_of_story
+    trow = find(:xpath, xpath_music_index_row_of_story)
+
+    sub_xpath_to_detail = "//td[contains(@class, 'actions')]"
+    assert_equal 1, trow.find_all(:xpath, sub_xpath_to_detail).size
+    trow.find(:xpath, sub_xpath_to_detail+"//a").click
+
+    ########### HaramiVid#show by public
+
+    assert_selector "h1", text: title_en
+
+    art = mutmp.artists.first
+    assert (art_tit_ja=art.title(langcode: "ja")).present?, "sanity check."
+    refute art.alt_title(langcode: "ja").present?, "sanity check."
+
+    xpath_music_table_row1 = '//*[@id="sec_artists_by"]//table/tbody/tr[1]'
+    xpath_music_table_tit_ja = xpath_music_table_row1
+    assert_selector(:xpath, xpath_music_table_tit_ja + "/td[1]", text: art_tit_ja)
+    cell_str = find(:xpath, xpath_music_table_tit_ja + "/td[2]").text  # ja-alt_title
+    assert_equal "", cell_str
+
+    #/html/body/div[5]/table/tbody/tr[5]/td[1]
+    #.datagrid > tbody:nth-child(2) > tr:nth-child(5) > td:nth-child(1)
+    #html body div#body_main table.datagrid.musics_grid tbody tr td.title_ja
+    #html body div#body_main table.datagrid.musics_grid tbody tr td.actions a
+    #  • //div[@id="ABC"]//a[text()='Click Me'] (Note the multiple double forward slashes!)
+
+     ########### HaramiVid#new
 
     visit new_user_session_path
     fill_in "Email", with: @moderator.email

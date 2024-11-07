@@ -1,4 +1,5 @@
 <%# local vars: model, can_update %>
+<%# NOTE: returns 3 lines of "td" for a table %>
 
   <% tit_ja = best_translation_with_asterisk(model, is_orig_char: (can_update ? "*" : nil), langcode: "ja", lang_fallback: false, str_fallback: "") %> <%# defined in application_helper.rb %>
   <td class="text-start"><%= tit_ja %></td>

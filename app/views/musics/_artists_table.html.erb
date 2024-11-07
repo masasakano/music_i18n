@@ -39,16 +39,13 @@
   </thead>
 
   <tbody>
-    <% asterisk = (can_edit ? ('<span title="'+t('datagrid.footnote.is_original')+'">*</span>').html_safe : "") %>
+    <% asterisk = (can_edit ? ('<span title="'+t('datagrid.footnote.is_original')+'">*</span>') : "").html_safe %>
     <% music.artists.uniq.each do |artist| %>
       <tr>
        <% if can_edit %>
         <td title="DB pID" class="number editor_only"><%= link_to artist.id, artist %></td>
        <% end %>
-        <% orig_lc = artist.orig_langcode %>
-        <td><%= (artist.title langcode: 'ja', lang_fallback: false, str_fallback: '') %><%= (orig_lc == 'ja') ? asterisk : '' %></td>
-        <td><%= sprintf '%s [%s/%s]', *(%i(alt_title alt_ruby alt_romaji).map{|i| artist.send(i, langcode: 'ja', lang_fallback: false, str_fallback: '')}) %></td>
-        <td><%= tits = %i(title alt_title).map{|i| artist.send(i, langcode: 'en', lang_fallback: false, str_fallback: '')}; sprintf('%s%s [%s]', h(tits[0]), ((orig_lc == 'en') ? asterisk : ''), h(tits[1])).html_safe %></td>
+       <%= render partial: "layouts/tbody_title_ja_alt_en", locals: {model: artist, can_update: can_edit} %>
         <% s = artist.engage_how_titles(music, year: music.year).join(', ') %>
         <% label_str = ((/\d/ =~ s) ? s : s+'('+(music.year || t('musics.show.year_unknown')).to_s+')') %>
         <% engage = artist.engages.where(music: music).first %>
@@ -56,8 +53,12 @@
           <% linktxt, engage = engage_title_link(music, artist) %> <%# defined in musics_helper.rb %>
           <%= linktxt %>
         </td>
+<% if false %>
         <td><%= ar = artist.place.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true);
                 sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture['ja'] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2] %></td>
+<% else %>
+        <td><%= artist.txt_place_pref_ctry(without_country_maybe: true) %></td>
+<% end %>
         <td><%= sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
                   i = artist.send m; (i.blank? ? '——' : i.to_s)}) %></td>
         <td class="text-center"><%= artist.sex.title langcode: I18n.locale, lang_fallback: true %></td>
@@ -66,7 +67,7 @@
         <% if can? :update, artist %>
           <td class="editor_only"><%= link_to 'Edit', edit_artist_path(artist) %></td>
         <% end %>
-        <td><%= sanitized_html(auto_link50(compile_engage_notes(artist, music))).html_safe %></td> <%# defined in musics_helper.rb %>
+        <td>ABC<%= sanitized_html(auto_link50(compile_engage_notes(artist, music))).html_safe %></td> <%# defined in musics_helper.rb %>
         <% if can? :update, artist %>
           <td class="editor_only text-center"><%= link_to 'Edit', edit_engage_multi_how_path(engage) %></td> <%# "engage" is set above %>
         <% end %>

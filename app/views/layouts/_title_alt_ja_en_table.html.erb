@@ -2,6 +2,7 @@
 <%# valiables: model (give nil for processing for th), langcodes=%w(ja en); optional: proc_replace_title=Proc(), both_tit_alt(Boolean)=false %>
 <%# proc_replace_title is a Proc to replace a Title/AltTitle string for each language, where (title_word, attribute(either :title or :alt_title), langcode) are passed when the title/alt_title is significant, and the Proc should always return a HTML-safe String. %>
 <%# NOTE: When proc_replace_title is specified, if both_tit_alt is false (Def), at most one of title and alt_title String is passed to the given Proc (so you can avoid creating anchors for the same target links again and again). %>
+<%# DESCRIPTION: This is the standard partial for the index table for Developers/Editors, where both title/alt_title are ALWAYS shown. For tables for general public, use _tbody_title_ja_alt_en.html.erb instead. %>
 
 <% for_td    = true if !defined?(for_td) %>
 <% langcodes = %w(ja en) if !defined?(langcodes) %>

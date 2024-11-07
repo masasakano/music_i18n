@@ -391,6 +391,10 @@ class EngageTest < ActiveSupport::TestCase
 
     ## Existing (and name-wise unrelated) Engage
     eng_orig = engages(:engage_ai_story)
+    musics(:music_story).translations.where.not(langcode: "en").each do |mdl|
+      mdl.destroy!  # Ensure no ja translations.
+    end
+
     h1129 = Harami1129.new(ins_singer: 'naiyo_a', ins_song: 'naiyo_m', engage: eng_orig)
     eng = Engage.find_and_set_one_harami1129(h1129, updates: Harami1129::ALL_INS_COLS, dryrun: true)
     assert_equal eng_orig.artist.title, eng.columns_for_harami1129[:be4][:ins_singer]
