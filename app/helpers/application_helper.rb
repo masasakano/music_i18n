@@ -964,6 +964,25 @@ module ApplicationHelper
     outer_span_pair[0] + prefix + parenthesized_core_html + outer_span_pair[1]  # should be html_safe
   end
 
+  # sorted Array ignoring the differences between lower-upper-case letters and hiragana and katakana
+  #
+  # @note
+  #   If you use this in a class definition in BaseGrid, you perhaps need to
+  #   explicitly specify +langcode: I18n.locale+ in the Proc in the caller.
+  #   Otherwise, "en" would be used.  Be warned!
+  #
+  # @param ary [Relation, Array<BaseWithTranslation>]
+  # @return [Array<String, Integer>]
+  def sorted_title_ids(ary, **opts)
+    hsopts = {langcode: I18n.locale, lang_fallback_option: :either}.merge opts
+    ary.map{|i|
+      str = i.title_or_alt(**opts)
+      [str.tr('ア-ンA-Z', 'あ-んa-z'), str, i.id]
+    }.sort{|a,b| a[0] <=> b[0]}.map{
+      |j| j[1..2]
+    }
+  end
+
   # to suppress warning, mainly that in Ruby-2.7.0:
   #   "Passing the keyword argument as the last hash parameter is deprecated"
   #

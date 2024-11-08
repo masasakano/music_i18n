@@ -13,10 +13,10 @@ class HaramiVidsGrid < BaseGrid
   filter_include_ilike(:title_en, langcode: 'en', header: Proc.new{I18n.t("datagrid.form.title_en", default: "Title [en] (partial-match)")})
 
   filter(:duration, :integer, range: true, header: Proc.new{I18n.t('tables.duration')}) # float in DB # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
-  filter(:release_date, :date, range: true, header: Proc.new{I18n.t('tables.release_date')}) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
+  filter(:release_date, :date, range: true, header: Proc.new{I18n.t('tables.release_date')+" (< #{Date.current.to_s})"}) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
 
   filter(:channel_owner, :enum, dummy: true, multiple: false, include_blank: true, select: Proc.new{
-           ChannelOwner.joins(channels: :harami_vids).distinct.map{|i| [s=i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i.id]}.sort{|a,b| a[0]<=>b[0]}},  # filtering out those none of HaramiVid belong to
+           sorted_title_ids(ChannelOwner.joins(channels: :harami_vids).distinct, langcode: I18n.locale)},  # filtering out those none of HaramiVid belong to; sorted_title_ids() defined in application_helper.rb
          header: Proc.new{I18n.t("harami_vids.table_head_ChannelOwner", default: "Channel owner")}) do |value|  # Only for PostgreSQL!
     list = [value].flatten.map{|i| i.blank? ? nil : i}.compact
     self.joins(channel: :channel_owner).where("channel_owner.id" => list)
@@ -29,7 +29,7 @@ class HaramiVidsGrid < BaseGrid
 
   filter_partial_str(:artists, header: Proc.new{I18n.t('datagrid.form.artists_multi')})
   filter(:artist_collabs, :enum, multiple: true, include_blank: true, dummy: true, header: Proc.new{I18n.t('datagrid.form.artist_collabs_multi', default: "Collab Artists")}, select: Proc.new{
-           Artist.joins(:artist_music_plays).distinct.map{|i| [s=i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i.id]}.sort{|a,b| a[0]<=>b[0]}}) do |value|  # Only for PostgreSQL!
+           sorted_title_ids(Artist.joins(:artist_music_plays).distinct, langcode: I18n.locale)}) do |value|  # Only for PostgreSQL! ; sorted_title_ids() defined in application_helper.rb
     list = [value].flatten.map{|i| i.blank? ? nil : i}.compact
     if list.empty?
       self

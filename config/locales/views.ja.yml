@@ -198,6 +198,8 @@ ja:
       merge_always: "この行は自動的にマージされます"
 
   artists:
+    index:
+      birth_year: "誕生年"
     new:
       please_add_music: "Artistを登録した後、Music登録も忘れずお願いします。"
     _form:

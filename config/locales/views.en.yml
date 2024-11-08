@@ -183,6 +183,8 @@ en:
       merge_always: "This row is automatically merged."
 
   artists:
+    index:
+      birth_year: "Birth year"
     new:
       please_add_music: "Please add a Music(s) once you have created an Artist."
     _form:

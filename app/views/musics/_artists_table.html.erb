@@ -67,7 +67,7 @@
         <% if can? :update, artist %>
           <td class="editor_only"><%= link_to 'Edit', edit_artist_path(artist) %></td>
         <% end %>
-        <td>ABC<%= sanitized_html(auto_link50(compile_engage_notes(artist, music))).html_safe %></td> <%# defined in musics_helper.rb %>
+        <td><%= sanitized_html(auto_link50(compile_engage_notes(artist, music))).html_safe %></td> <%# defined in musics_helper.rb %>
         <% if can? :update, artist %>
           <td class="editor_only text-center"><%= link_to 'Edit', edit_engage_multi_how_path(engage) %></td> <%# "engage" is set above %>
         <% end %>

@@ -12,7 +12,7 @@ class ArtistsGrid < BaseGrid
   filter_include_ilike(:title_ja, header: Proc.new{I18n.t("datagrid.form.title_ja_en", default: "Title [ja+en] (partial-match)")})
   filter_include_ilike(:title_en, langcode: 'en', header: Proc.new{I18n.t("datagrid.form.title_en", default: "Title [en] (partial-match)")})
 
-  filter(:birth_year, :integer, range: true, header: Proc.new{I18n.t('tables.year')}) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
+  filter(:birth_year, :integer, range: true, header: Proc.new{I18n.t('artists.index.birth_year')}) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
 
   def self.sex_titles
     begin
