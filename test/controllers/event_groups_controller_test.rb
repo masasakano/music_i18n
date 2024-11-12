@@ -41,7 +41,6 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     get event_groups_url
     assert_response :success
     assert_match(/\bPlace\b/, css_select("body").text)
-    w3c_validate "EventGroup index"  # defined in test_helper.rb (see for debugging help)
 
     css_events = "table#event_groups_index_table tbody tr"
     assert_operator 0, :<, css_select(css_events).size, "rows (defined in Fixtures) should exist, but..."
@@ -49,6 +48,7 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     css_events = "td.event_groups_index_table_events"
     assert_operator 0, :<, css_select(css_events).size
     assert_match(/\A\d+\z/, css_select(css_events).first.text.strip)
+    w3c_validate "EventGroup index"  # defined in test_helper.rb (see for debugging help)
     sign_out @editor_ja
   end
 
@@ -102,7 +102,7 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     get event_group_url(@event_group)
     assert_response :success
     assert_match(/\bPlace\b/, css_select("body").text)
-    w3c_validate "EventGroup index"  # defined in test_helper.rb (see for debugging help)
+    w3c_validate "EventGroup show"  # defined in test_helper.rb (see for debugging help)
     assert_equal 1, css_select("#table_event_group_show_events").size
 
     assert_equal 0, css_select("#link_back_to_index a").size  # "Back to Index"

@@ -143,6 +143,15 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     get music_url(@music)
     assert_response :success
     #refute css_select('div.link-edit-destroy a')[0].text.include? "Edit"
+    w3c_validate "Music show"  # defined in test_helper.rb (see for debugging help)
+
+    mus = musics(:music_how)
+    art = mus.artists.first
+    assert (art_alt_tit = art.alt_title(langcode: "en")).present?, "fixture testing"
+    get music_url(mus)
+    cell = css_select('section#sec_artists_by table td.titles-en').first.text
+    assert_includes cell, "["
+    assert_match(/\s+\[#{Regexp.quote(art_alt_tit)}\]/m, cell.strip)
   end
 
   test "should get edit" do

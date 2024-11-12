@@ -42,13 +42,10 @@
     </tr>
   </thead>
   <% cspan = 8 + (can_update_hvids ? 2 : 0) + (canread_evit ? 1 : 0) + (can_read_h1129 ? 1 : 0) %>
-  <tfoot>
-    <% all_rows = events.order("events.start_time", "weight").distinct  %>
-    <% if max_rows && max_rows < n_harami_vids %>
-      <% all_rows = all_rows.limit(max_rows) %>
-      <tr><td colspan="<%= cspan %>"><%= t("event_groups.show.trim_hvid_table_to", trimmed_rows: max_rows, all_rows: n_harami_vids) %></td></tr>
-    <% end %>
-  </tfoot>
+  <% all_rows = events.order("events.start_time", "weight").distinct  %>
+  <% if max_rows && max_rows < n_harami_vids %>
+    <% all_rows = all_rows.limit(max_rows) %>
+  <% end %>
   <tbody>
     <% start_row = -1 %>
     <% evit_offset = 0 %>
@@ -76,6 +73,9 @@
         <%= render partial: "layouts/harami_vids_index_tbody_part", locals: {harami_vids: harami_vids_without_events.sort{|a,b| (a.release_date <=> b.release_date) rescue 0 }, event: nil, can_update_hvids: can_update_hvids, canread_evit: canread_evit, can_read_h1129: can_read_h1129, canread_pla: canread_pla, canread_mus: canread_mus, with_place: (with_place_public || can_update_hvids), evit_offset: evit_offset, with_place_public: with_place_public, stop_rows: stop_rows } %>
     <% end %>
   </tbody>
+  <tfoot>
+      <tr><td colspan="<%= cspan %>"><%= t("event_groups.show.trim_hvid_table_to", trimmed_rows: max_rows, all_rows: n_harami_vids) %></td></tr>
+  </tfoot>
 </table>
 
 

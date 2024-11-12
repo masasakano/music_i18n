@@ -97,19 +97,31 @@ module ApplicationHelper
   # the data are blank, while the empty one is not displayed for
   # general visitors.
   # 
+  # @example 
+  #    alt_tit = model.alt_title(langcode: 'en', lang_fallback: false, str_fallback: "")
+  #    bracket_or_empty("[%s]", alt_tit, can?(:update, model))  <%# defined in application_helper.rb %>
+  # 
   # @param fmt [String] sprintf format
   # @param prms [String, Array<String>]
   # @param is_editor [Boolean]
   # @return [String] html_safe unless blank
   def bracket_or_empty(fmt, prms, is_editor)
     prms = [prms].flatten
-    if prms.any?(:present?)
-      sprintf(fmt, *(prms.map{|i| i ? h(i) : ""})).html_safe
-    elsif is_editor
-      ('<span class="editor_only">'+h(sprintf(fmt, *prms))+'</span>').html_safe
-    else
-      ""
-    end
+    is_all_safe = (fmt.html_safe? && prms.all?{|i| i.blank? || i.html_safe?})
+
+    str_core = sprintf(fmt, *(prms.map{|i| i ? i : ""}))
+    str_core = (is_all_safe ? str_core.html_safe : ERB::Util.html_escape(str_core))
+ 
+    ret_str =
+      if prms.any?(&:present?)
+        str_core
+      elsif is_editor
+        '<span class="editor_only">' + str_core + '</span>'
+      else
+        ""
+      end
+
+    ret_str.html_safe
   end
 
   # Returns String "01:23:45" or "23:45" from second

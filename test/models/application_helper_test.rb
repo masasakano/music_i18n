@@ -229,6 +229,34 @@ class ModuleCommonTest < ActiveSupport::TestCase
     end
   end
  
+  test "bracket_or_empty" do
+    empty_str_editor = '<span class="editor_only">[]</span>'
+    assert_equal "[abc]", bracket_or_empty("[%s]", "abc", false)
+    assert_equal "[abc]", bracket_or_empty("[%s]", "abc", true)
+    assert_equal "",               bracket_or_empty("[%s]", nil, false)
+    assert_equal empty_str_editor, bracket_or_empty("[%s]", nil, true)
+    assert_equal "[abc]", bracket_or_empty("[%s%s]", ["abc", ""], false)
+    assert_equal "[abc]", bracket_or_empty("[%s%s]", ["abc", ""], true)
+    assert_equal "",      bracket_or_empty("[%s]",    "",      false)
+    assert_equal "",      bracket_or_empty("[%s%s]", ["", ""], false)
+    assert_equal "",      bracket_or_empty("[%s%s]", [nil, ""], false)
+    assert_includes bracket_or_empty("[%s]",    "",      true), '<span class="editor_only">'
+    assert_includes bracket_or_empty("[%s%s]", ["", ""], true), '<span class="editor_only">'
+    assert_equal empty_str_editor, bracket_or_empty("[%s%s]", [nil, ""], true)
+
+    assert_equal "[&lt;abc]", ERB::Util.html_escape("[<abc]"), "sanity check"
+    assert          bracket_or_empty("[%s]", "<abc", false).html_safe?
+    assert          bracket_or_empty("[%s]", "<abc", true).html_safe?
+    assert_includes bracket_or_empty("[%s]", "<abc", false), "&lt;"
+    assert_includes bracket_or_empty("[%s]", "<abc", true),  "&lt;"
+    assert          bracket_or_empty("[%s]", "<abc".html_safe, false).html_safe?
+    assert          bracket_or_empty("[%s]", "<abc".html_safe, true).html_safe?
+    assert_includes bracket_or_empty("[%s]", "<abc".html_safe, true), "&lt;"
+    assert          bracket_or_empty("[%s]".html_safe, "<abc".html_safe, false).html_safe?
+    assert          bracket_or_empty("[%s]".html_safe, "<abc".html_safe, true).html_safe?
+    refute_includes bracket_or_empty("[%s]".html_safe, "<abc".html_safe, true), "&lt;"
+  end
+
   private
 end
 

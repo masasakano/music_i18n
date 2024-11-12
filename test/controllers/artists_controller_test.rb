@@ -22,6 +22,23 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     #assert_not (200...299).include?(response.code.to_i)  # maybe :redirect or 403 forbidden
     assert_nil current_user_display_name(is_system_test: false)  # defined in test_helper.rb
 
+    art = artists(:artist_proclaimers)
+    assert       art.translations.where(langcode: "en").exists?, "sanity check"
+    refute       art.translations.where(langcode: "ja").exists?, "sanity check"
+    assert_equal "en", art.orig_langcode, "sanity check"
+    tra = art.best_translation
+    alt_tit = "alt-proclaimers"
+    tra.update!(alt_title: alt_tit)
+    art.translations.reset
+
+    get artists_url, params: {artists_grid: {title_ja: alt_tit}}  # search by English alt-title
+    css_txt = 'table.datagrid tbody tr'
+    assert  css_select(css_txt+" td")[0].text.blank?  # ja-title
+    assert  css_select(css_txt+" td")[1].text.blank?  # ja-alt_title
+    assert_equal 1, css_select(css_txt).size
+    assert  (tit=css_select(css_txt+" td")[2].text).present?  # en-title/alt_title
+    assert_match(%r@\s+\[#{Regexp.quote(alt_tit)}\]\z@, tit.strip)
+
     if is_env_set_positive?('TEST_STRICT')  # defined in application_helper.rb
       w3c_validate "Artist index"  # defined in test_helper.rb (see for debugging help)
     end  # only if TEST_STRICT, because of invalid HTML for datagrid filter for Range

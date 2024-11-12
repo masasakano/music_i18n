@@ -5,9 +5,10 @@
   <div id="create_by_youtube">
     <%= form_with method: :post, model: HaramiVid, url: harami_vids_fetch_youtube_data_path, local: true, class: "inline_form", style: "margin-bottom: -4em;" do |form| %> <%# scope: :article %>
       <%= form.fields_for :fetch_youtube_datum do |fyd_form| %>
-        <div class="input-group mb-3">
+       <div class="input-group mb-3">
        <div class="field">
         <%= fyd_form.text_field :uri_youtube, placeholder: "Youtube-video ID or URI" %>
+       </div>
        </div>
       <% end %>
       <div class="actions input-group-append">

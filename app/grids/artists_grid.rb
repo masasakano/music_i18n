@@ -44,7 +44,6 @@ class ArtistsGrid < BaseGrid
     scope.left_joins(:translations).where("langcode = 'ja'").order(order_str) #.order("title")
     #scope.left_joins("LEFT OUTER JOIN translations ON translations.translatable_type = 'Artist' AND translations.translatable_id = artists.id AND translations.langcode = 'ja'").order(order_str) #.order("title")
   }) do |record|
-    # record.title langcode: 'ja'
     html_titles(record, col: :title, langcode: "ja", is_orig_char: "*") # defined in base_grid.rb
   end
   column(:ruby_romaji_ja, header: Proc.new{I18n.t('tables.ruby_romaji')}, order: proc { |scope|
@@ -52,16 +51,14 @@ class ArtistsGrid < BaseGrid
     scope.joins(:translations).where("langcode = 'ja'").order(order_str) #order("ruby").order("romaji")
     #scope.left_joins("LEFT OUTER JOIN translations ON translations.translatable_type = 'Artist' AND translations.translatable_id = artists.id AND translations.langcode = 'ja'").order(order_str) #order("ruby").order("romaji")  # for some reason this does not work!
   }) do |record|
-    s = sprintf '[%s/%s]', *(%i(ruby romaji).map{|i| record.send(i, langcode: 'ja') || ''})
-    s.sub(%r@/\]\z@, ']').sub(/\A\[\]\z/, '')  # If NULL, nothing is displayed.
+    str_ruby_romaji(record)  # If NULL, nothing is displayed. # defined in base_grid.rb
   end
   column(:alt_title_ja, mandatory: true, header: Proc.new{I18n.t('tables.alt_title_ja')}, order: proc { |scope|
     order_str = Arel.sql('alt_title COLLATE "ja-x-icu"')
     scope.joins(:translations).where("langcode = 'ja'").order(order_str)
     #scope.left_joins("LEFT OUTER JOIN translations ON translations.translatable_type = 'Artist' AND translations.translatable_id = artists.id AND translations.langcode = 'ja'").order(order_str) #.order("title")
   }) do |record|
-    s = sprintf '%s [%s/%s]', *(%i(alt_title alt_ruby alt_romaji).map{|i| record.send(i, langcode: 'ja') || ''})
-    s.sub(%r@ +\[/\]\z@, '')  # If NULL, nothing is displayed.
+    str_ruby_romaji(record, col: :alt_title)  # If NULL, nothing is displayed. # defined in base_grid.rb
   end
   column(:title_en, mandatory: true, header: Proc.new{I18n.t('tables.title_en_alt')}, order: proc { |scope|
     scope_with_trans_order(scope, Artist, langcode="en")  # defined in base_grid.rb

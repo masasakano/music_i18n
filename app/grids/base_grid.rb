@@ -236,7 +236,7 @@ class BaseGrid
     ids.empty? ? scope : scope.order(Arel.sql("array_position(array#{uniqqed_ids}, id)")) #.order(:id)  # The last one should be redundant b/c LEFT OUTER JOIN was used!
   end
 
-  # Returns the multi-HTML-line text to list (maybe all) Englisht translations of title and alt_title
+  # Returns the multi-HTML-line text to list (maybe all) Englisht translations of title (or alt_title, though not used?)
   #
   # See also +best_translation_with_asterisk+ in application_helper.rb
   # (TODO: The core of this routine should utilize it!)
@@ -255,6 +255,44 @@ class BaseGrid
     artit[0] << %q[<span title="]+I18n.t("datagrid.footnote.is_original")+%q[">]+ERB::Util.html_escape(is_orig_char)+%q[</span>] if is_orig_char && rela[0] && rela[0].is_orig && CURRENT_USER && CURRENT_USER.editor? # Ability is not used as it would be too DB-heavy.
     artit.join("<br>").html_safe
   end
+
+  # String of (alt_title or nothing) plus ruby and romaji for Grid index
+  #
+  # If NULL, nothing is displayed.
+  #
+  # @example :title
+  #   str_ruby_romaji(record)
+  #    # => [ルビ/my-romaji]"
+  #    # => "[ルビのみ/]"
+  #    # => "[/my-romaji-only]"
+  #    # => ""
+  #
+  # @example :alt_title
+  #   str_ruby_romaji(record, col: :alt_title)
+  #    # => "瑠美 [ルビ/my-romaji]"
+  #    # => "瑠美"
+  #    # => "[ルビ/my-romaji-only]"  # highly unlikely; only if alt_title is nil but ruby ext exist.
+  #    # => ""
+  #
+  # @param col: [String] Either :title or :alt_title. For the latter, alt_title is also included in return.
+  # @return [String] html_safe-ed
+  def self.str_ruby_romaji(record, col: :title, langcode: "ja")
+    fmt1 = ((col == :alt_title) ? "%s " : "")
+    fmt2 = "[%s/%s]"
+    cols = %i(ruby romaji)
+    cols.unshift(:alt_title) if (col == :alt_title)
+
+    artit = cols.map{|i| record.send(i, langcode: langcode, lang_fallback: false, str_fallback: "")}
+    retstr =
+      if artit[1..2].all?(&:blank?)
+        ((col == :alt_title) ? ERB::Util.html_escape(sprintf(fmt1, artit[0])) : "")
+      else
+        ERB::Util.html_escape(sprintf(fmt1+fmt2, *artit))
+      end
+
+    retstr.html_safe
+  end
+
 
   # Returns the multi-HTML-line text to list (maybe all) Englisht translations of title and alt_title
   #

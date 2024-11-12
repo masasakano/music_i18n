@@ -138,7 +138,7 @@ class MusicsTest < ApplicationSystemTestCase
     assert     find_field('Prefecture')                  # Now JS made it appear
 
     # select('Modern instrumental',  from: 'Genre')
-    find_field(I18n.t('Year_Title', locale: "en")).fill_in with: '2001'  # 'Year'; see /app/views/musics/_form.html.erb
+    find_field(I18n.t('Year_Title', locale: "en")).fill_in with: '1250'  # 'Year'; see /app/views/musics/_form.html.erb
 
     click_on "Create Music"
 
@@ -148,6 +148,15 @@ class MusicsTest < ApplicationSystemTestCase
 
     assert_selector "h1", text: "Musics"
     assert_equal n_trs0+1, page.find_all("tr").size, "The number of table rows should have increased by 1, but..."
+
+    page.find_all('input[type="text"]')[3].fill_in  with: 1200
+    page.find_all('input[type="text"]')[4].fill_in  with: 1299
+    #find_field("Year", match: :first).fill_in  with: 1200  # not works
+    #fill_in "Year", match: :first, with: 1200  # not works
+    #fill_in "Year", match: :last,  with: 1299  # not works
+    click_on "Apply"
+    assert_selector "h1", text: "Musics"
+    assert_equal 1, page.find_all("tbody tr").size, "The number of table-body rows for Musics in the 13th century should be one (just created), but..."
   end
 
   #test "updating a Music" do

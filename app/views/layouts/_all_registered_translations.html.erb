@@ -23,20 +23,17 @@
   <% allcolspan = 5
      allcolspan += ((can_edit=can?(:edit, Translation)) ? 1 : 0)
      allcolspan += ((can_index=can?(:index, Translation)) ? 1 : 0)
-     action_colspan = ((can_show=can?(:show, Translation))  ? 2 : 0)
-     action_colspan += 1 if can?(:destroy, Translation)
-     allcolspan += action_colspan
-     increment1 =  ((can_crud=can?(:crud, Translation))  ? 1 : 0)  # showing a weight column
+     action_colspan = ((can_show=can?(:show, Translation))  ? 2 : 0)  # Show, SELF or not
+     allcolspan += ((can_crud=can?(:crud, Translation))  ? 1 : 0)  # showing a weight column
 
-     hsflag = {
+     flag_ables = {
        demotable:  (can_demote =can?(:update, Translations::DemotesController)),
        promotable: (can_promote=can?(:update, Translations::PromotesController)),
        destroyable: model.translations.any?{|tra| can? :destroy, tra},
      }
-     
-     increment2 = hsflag.values.count(true)
-     allcolspan     += increment1 +  increment2
-     action_colspan +=               increment2
+     action_colspan += flag_ables.values.count(true)
+
+     allcolspan += action_colspan
    %>
   <thead>
     <tr>
@@ -70,7 +67,7 @@
 
     <tr class="lang_banner_<%= lcode %>"><th colspan="<%= allcolspan %>" class="middle_row"><%= get_language_name(lcode) %> <%# defined in module_common.rb %>
       <%= sprintf("(%s)", get_language_name(lcode, in_locale: I18n.locale)) if I18n.locale.to_s != lcode %>
-      <% if add_tra_button && (tra1 && tra1.creatable_other?(user: current_user, langcode: lcode) || (!tra1 && can_destroy)) %>
+      <% if add_tra_button && (tra1 && tra1.creatable_other?(user: current_user, langcode: lcode) || (!tra1 && flag_ables[:destroyable])) %>
         <%= button_to t('layouts.add_translation'), new_translation_path, form_class: "inline_form button_to", method: :get, params: { a_token: nil, langcode: lcode, translatable_type: model.class.name, translatable_id: model.id } %>
       <% end %>
       </th></tr>
@@ -95,27 +92,27 @@
         <td class="editor_only"><%= auto_link50(tra.note) %></td>
       <% end %>
       <% if defined?(myself) && tra == myself %>
-        <td colspan="2" class="align-c trans_action editor_only" style="<%= (hsflag[:demotable] || hsflag[:promotable]) ? 'border-right-style: none;' : ''  %>"><strong>SELF</strong></td>  <%# Called from Translation-Edit %>
+        <td colspan="2" class="align-c trans_action editor_only" style="<%= (flag_ables[:demotable] || flag_ables[:promotable]) ? 'border-right-style: none;' : ''  %>"><strong>SELF</strong></td>  <%# Called from Translation-Edit %>
       <% else %>
         <% if can_show %>
           <td class="trans_action trans_show editor_only" style="border-right-style: none;"><%= link_to 'Show', tra %></td>
           <% class2add = ((current_user && can?(:update, tra) && ![tra.create_user, tra.update_user].include?(current_user)) ? "moderator_only" : "editor_only") %>  <%# For one's own Translation (or not editable), it is for "editor_only", else "moderator_only" in order to prompt the user to be more careful %>
-          <td class="trans_action trans_edit <%= class2add %>" style="border-left-style: none;<%= (hsflag[:demotable] || hsflag[:promotable]) ? 'border-right-style: none;' : ''  %>">
+          <td class="trans_action trans_edit <%= class2add %>" style="border-left-style: none;<%= (flag_ables[:demotable] || flag_ables[:promotable]) ? 'border-right-style: none;' : ''  %>">
           <% if can? :update, tra %>
             / <%= link_to 'Edit', edit_translation_path(tra) %>
           <% end %>
           </td>
         <% end %>
       <% end %>
-      <% if can_demote %>
-        <td class="trans_action trans_demote moderator_only" style="border-left-style: none;<%= hsflag[:promotable] ? 'border-right-style: none;' : ''  %>">
+      <% if flag_ables[:demotable] %>
+        <td class="trans_action trans_demote moderator_only" style="border-left-style: none; border-right-style: none">
           <% if Translations::DemotesController.allowed?(tra) %>
             <%  strlink = "Demote↓" %>
              / <%= link_to strlink, translations_update_demotes_path(tra) %>
           <% end %>
         </td>
       <% end %>
-      <% if can_promote %>
+      <% if flag_ables[:promotable] %>
         <td class="trans_action trans_promote moderator_only" style="border-left-style: none;">
           <% if Translations::PromotesController.allowed?(tra) %>
             <%  strlink = (tra.is_orig ? '<span title="Weight should be zero because this is the original. Please promote it.">Promote↑</span>'.html_safe : "Promote↑") %>
@@ -123,12 +120,16 @@
           <% end %>
         </td>
       <% end %>
-      <% if can?(:destroy, tra) %>
-        <% class2add = ((current_user && current_user.qualified_as?(Role::RNAME_MODERATOR, RoleCategory::MNAME_TRANSLATION)) ? "moderator_only" : "editor_only") %> <%# One's own Translation can be destroyed by themselves even if they are Editors. It is the same for Moderators, but Moderators do have more responsibility and so the style of "moderator_only" is used for Destroy regardless of the Translation owned by themselves or not. %>
-        <% class2add = "admin_only" if tra.last_remaining_in_any_languages? %>
-        <td class="trans_action trans_destroy <%= class2add %>" style="border-left-style: none;">
-          <%= link_to('Destroy', tra, method: :delete, data: { confirm: (t('are_you_sure')).html_safe }) %>
-        </td>
+      <% if flag_ables[:destroyable] %>
+        <% if can?(:destroy, tra) %>
+          <% class2add = ((current_user && current_user.qualified_as?(Role::RNAME_MODERATOR, RoleCategory::MNAME_TRANSLATION)) ? "moderator_only" : "editor_only") %> <%# One's own Translation can be destroyed by themselves even if they are Editors. It is the same for Moderators, but Moderators do have more responsibility and so the style of "moderator_only" is used for Destroy regardless of the Translation owned by themselves or not. %>
+          <% class2add = "admin_only" if tra.last_remaining_in_any_languages? %>
+          <td class="trans_action trans_destroy <%= class2add %>" style="border-left-style: none;">
+            <%= link_to('Destroy', tra, method: :delete, data: { confirm: (t('are_you_sure')).html_safe }) %>
+          </td>
+        <% else %>
+          <td><span class="cell_disable_link destroy">Destroy</span></td>
+        <% end %>
       <% end %>
     </tr>
     <% end %>

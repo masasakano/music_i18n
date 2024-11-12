@@ -51,8 +51,6 @@
 
 <% event_items = [] %>
 
-<div id="harami_vids">
-
     <% ary = (harami_vids.respond_to?(:order) ? harami_vids.order(:release_date) :  harami_vids.sort{|a,b| a.release_date <=> b.release_date}) %> <%# ascending order %>
 <% if false %>
     <% ary2 = nil %>
@@ -125,5 +123,4 @@
         <td class="actions"><%= link_to t("tables.Show"), harami_vid %></td>
       </tr>
     <% end %>
-</div>
 

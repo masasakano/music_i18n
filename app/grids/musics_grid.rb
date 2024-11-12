@@ -40,22 +40,19 @@ class MusicsGrid < BaseGrid
     order_str = Arel.sql('title COLLATE "ja-x-icu"')
     scope.joins(:translations).where("langcode = 'ja'").order(order_str) #.order("title")
   }) do |record|
-    #record.title langcode: 'ja'
     html_titles(record, col: :title, langcode: "ja", is_orig_char: "*") # defined in base_grid.rb
   end
   column(:ruby_romaji_ja, header: Proc.new{I18n.t('tables.ruby_romaji')}, order: proc { |scope|
     order_str = Arel.sql('ruby COLLATE "ja-x-icu", romaji COLLATE "ja-x-icu"')
     scope.joins(:translations).where("langcode = 'ja'").order(order_str) #order("ruby").order("romaji")
   }) do |record|
-    s = sprintf '[%s/%s]', *(%i(ruby romaji).map{|i| record.send(i, langcode: 'ja') || ''})
-    s.sub(%r@/\]\z@, ']').sub(/\A\[\]\z/, '')  # If NULL, nothing is displayed.
+    str_ruby_romaji(record)  # If NULL, nothing is displayed. # defined in base_grid.rb
   end
   column(:alt_title_ja, header: Proc.new{I18n.t('tables.alt_title_ja')}, mandatory: true, order: proc { |scope|
     order_str = Arel.sql('alt_title COLLATE "ja-x-icu"')
     scope.joins(:translations).where("langcode = 'ja'").order(order_str)
   }) do |record|
-    s = sprintf '%s [%s/%s]', *(%i(alt_title alt_ruby alt_romaji).map{|i| record.send(i, langcode: 'ja') || ''})
-    s.sub(%r@ +\[/\]\z@, '')  # If NULL, nothing is displayed.
+    str_ruby_romaji(record, col: :alt_title)  # If NULL, nothing is displayed. # defined in base_grid.rb
   end
   column(:title_en, mandatory: true, header: Proc.new{I18n.t('tables.title_en_alt')}, order: proc { |scope| #, grid|  # add grid to get a filter to use like:  grid.trans_display_preferance
     scope_with_trans_order(scope, Music, langcode="en")  # defined in base_grid.rb
