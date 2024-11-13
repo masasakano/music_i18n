@@ -3,7 +3,7 @@
 <h1><%= t("Music").pluralize(8, I18n.locale) %> <%= @artist_title ? "to newly associate with Artist "+@artist_title : '' %></h1>
 <% artist_id = (@artist ? @artist.id : nil) %>
 
-<%= datagrid_form_for @grid, :method => :get, :url => musics_path %>
+<%= datagrid_form_with model: @grid, method: :get, url: musics_path %>
 
 <%= paginate(@grid.assets) %>
 <%= datagrid_table @grid %>

@@ -1,7 +1,7 @@
 # coding: utf-8
-class BaseGrid
+class BaseGrid < Datagrid::Base
 
-  include Datagrid
+  # include Datagrid  # In DataGrid Version 1.  In Version 2, the class should be inherited.
 
   # User-added! To make path-helpers available across Datagrid classes
   # However, in some context, you still have to write like (for some reason):

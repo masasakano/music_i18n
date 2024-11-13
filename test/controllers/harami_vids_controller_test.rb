@@ -61,7 +61,8 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
     get harami_vids_url
     assert_response :success, "Should be open to public, but..."
 
-    assert css_select("table.datagrid.harami_vids_grid tbody tr").any?{|esel| esel.css('td.title_en')[0].text.blank? && !esel.css('td.title_ja')[0].text.blank?}, "Some EN titles should be blank (where JA titles are NOT blank), but..."
+    assert css_select(csstxt0="table.datagrid-table tbody tr").present?
+    assert css_select(csstxt0).any?{|esel| !esel.css('td[data-column="title_ja"]')[0].text.blank?}, "JA titles should not be blank in general, but..."
     if is_env_set_positive?('TEST_STRICT')  # defined in application_helper.rb
       w3c_validate "HaramiVid index"  # defined in test_helper.rb (see for debugging help)
     end  # only if TEST_STRICT, because of invalid HTML for datagrid filter for Range

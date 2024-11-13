@@ -58,7 +58,7 @@ class MusicsTest < ApplicationSystemTestCase
     n_trs_story = page.find_all("tr").size
     assert_operator n_trs0, :>, n_trs_story, "The number of table rows should have (greatly) decreased, but..."
 
-    xpath_music_index_row_of_story = sprintf("//table[contains(@class, 'musics_grid')]/tbody/tr[td[contains(@class, '%s') and text()='%s']]", "title_ja", title_ja )
+    xpath_music_index_row_of_story = sprintf("//table[contains(@class, 'datagrid-table')]/tbody/tr[td[contains(@data-column, '%s') and text()='%s']]", "title_ja", title_ja )
     # assert_selector :xpath, "//table[contains(@class, 'musics_grid')]/tbody/tr"
     # assert_selector :xpath, "//table[contains(@class, 'musics_grid')]/tbody/tr[1]/td"
     # assert_selector :xpath, "//table[contains(@class, 'musics_grid')]/tbody/tr[td[contains(@class, 'title_ja')]]"
@@ -149,8 +149,8 @@ class MusicsTest < ApplicationSystemTestCase
     assert_selector "h1", text: "Musics"
     assert_equal n_trs0+1, page.find_all("tr").size, "The number of table rows should have increased by 1, but..."
 
-    page.find_all('input[type="text"]')[3].fill_in  with: 1200
-    page.find_all('input[type="text"]')[4].fill_in  with: 1299
+    page.find_all('input[type="number"]')[0].fill_in  with: 1200
+    page.find_all('input[type="number"]')[1].fill_in  with: 1299
     #find_field("Year", match: :first).fill_in  with: 1200  # not works
     #fill_in "Year", match: :first, with: 1200  # not works
     #fill_in "Year", match: :last,  with: 1299  # not works

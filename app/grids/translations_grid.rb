@@ -96,7 +96,7 @@ class TranslationsGrid < BaseGrid
 
   column(:updated_at, class: ["editor_only"], header: Proc.new{I18n.t('tables.updated_at')}, if: Proc.new{BaseGrid.qualified_as?(:editor)})
   column(:created_at, class: ["editor_only"], header: Proc.new{I18n.t('tables.created_at')}, if: Proc.new{BaseGrid.qualified_as?(:editor)})
-  column(:actions, html: true, mandatory: true, header: I18n.t("tables.actions", default: "Actions")) do |record|
+  column(:actions, class: "actions", html: true, mandatory: true, header: I18n.t("tables.actions", default: "Actions")) do |record|
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
     ar = [link_to('Show', translation_path(record), data: { turbolinks: false })]
     if can? :update, record

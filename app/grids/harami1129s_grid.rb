@@ -91,7 +91,7 @@ class Harami1129sGrid < BaseGrid
     ar.empty? ? "" : ar.join(", ")
   end
 
-  column(:actions, html: true, mandatory: true) do |record|
+  column(:actions, class: "actions", html: true, mandatory: true) do |record|
     [link_to('Show', record, data: { turbolinks: false }),
      (record.harami_vid ? link_to('HVid', harami_vid_path(record.harami_vid), title: 'HaramiVid imported from this record (and possibly also from other records)') : nil),
      link_to('Edit', edit_harami1129_path(record)),

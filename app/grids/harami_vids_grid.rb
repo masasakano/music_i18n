@@ -77,7 +77,7 @@ class HaramiVidsGrid < BaseGrid
   column(:release_date, mandatory: true, header: Proc.new{I18n.t('tables.release_date')})
   #date_column(:release_date, mandatory: true)  # => ERROR...
 
-  column(:duration, range: true, order: :duration, class: ["align-cr"], header: Proc.new{I18n.t('tables.duration_none')}) do |record| # float in DB # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
+  column(:duration, order: :duration, class: ["align-cr"], header: Proc.new{I18n.t('tables.duration_none')}) do |record| # float in DB # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
     sec2hms_or_ms(record.duration, return_nil: true)  # in application_helper.rb
   end
   column(:n_musics, class: ["align-cr"], header: Proc.new{I18n.t('datagrid.form.n_musics_general')}) do |record|
@@ -170,7 +170,7 @@ class HaramiVidsGrid < BaseGrid
 
   column(:updated_at, class: ["editor_only"], header: Proc.new{I18n.t('tables.updated_at')}, if: Proc.new{BaseGrid.qualified_as?(:editor)})
   column(:created_at, class: ["editor_only"], header: Proc.new{I18n.t('tables.created_at')}, if: Proc.new{BaseGrid.qualified_as?(:editor)})
-  column(:actions, html: true, mandatory: true, order: false, header: "") do |record| # Proc.new{I18n.t("tables.actions", default: "Actions")}
+  column(:actions, class: "actions", html: true, mandatory: true, order: false, header: "") do |record| # Proc.new{I18n.t("tables.actions", default: "Actions")}
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
     ar = [link_to(I18n.t('layouts.Show'), harami_vid_path(record), data: { turbolinks: false })]
     if can? :update, record

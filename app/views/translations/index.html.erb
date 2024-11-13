@@ -61,7 +61,7 @@
 </table>
 <% end %>
 
-<%= datagrid_form_for @grid, :method => :get, :url => translations_path %>
+<%= datagrid_form_with model: @grid, method: :get, url: translations_path %>
 <% nrows = @grid.assets.count %>
 
 <%= paginate(@grid.assets) %>

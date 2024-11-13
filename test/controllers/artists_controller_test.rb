@@ -32,7 +32,7 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     art.translations.reset
 
     get artists_url, params: {artists_grid: {title_ja: alt_tit}}  # search by English alt-title
-    css_txt = 'table.datagrid tbody tr'
+    css_txt = 'table.datagrid-table tbody tr'
     assert  css_select(css_txt+" td")[0].text.blank?  # ja-title
     assert  css_select(css_txt+" td")[1].text.blank?  # ja-alt_title
     assert_equal 1, css_select(css_txt).size

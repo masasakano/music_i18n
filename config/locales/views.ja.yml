@@ -157,6 +157,8 @@ ja:
           "<=": "≤"
           "=": "="
           "=~": "≈"
+      range:
+        separator: "〜"
     form:
       search: "適用"
       reset: "リセット"
