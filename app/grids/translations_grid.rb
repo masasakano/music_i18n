@@ -1,5 +1,5 @@
 # coding: utf-8
-class TranslationsGrid < BaseGrid
+class TranslationsGrid < ApplicationGrid
 
   TransModerator = Role['moderator', 'translation']
   Translator     = Role['editor',    'translation']
@@ -14,7 +14,7 @@ class TranslationsGrid < BaseGrid
     self.select_partial_str(:all, value, ignore_case: true)  # Only for PostgreSQL!
   end
 
-  filter(:id, :integer, header: "ID", if: Proc.new{BaseGrid.qualified_as?(:editor)})  # displayed only for editors
+  filter(:id, :integer, header: "ID", if: Proc.new{ApplicationGrid.qualified_as?(:editor)})  # displayed only for editors
 
   filter(:translatable_type, :enum, header: "Class", checkboxes: true, select: Proc.new{ Translation.all.pluck(:translatable_type).uniq.compact.sort.map{|c| [c, c]} })
   filter(:langcode, :enum, header: "Locale", checkboxes: true, select: Proc.new{Translation.all.pluck(:langcode).uniq.compact.sort{|a, b|
@@ -35,11 +35,11 @@ class TranslationsGrid < BaseGrid
     ar[0] <=> ar[1]
   }.map{|c| [c, c]} }) # ja, en, cn, fr, it, kr, ...
   filter(:is_orig, :xboolean, header: 'Orig?')
-  filter(:weight, range: true, if: Proc.new{BaseGrid.qualified_as?(TransModerator)})
+  filter(:weight, :float, range: true, if: Proc.new{ApplicationGrid.qualified_as?(TransModerator)})
 
   filter(:create_user, header: 'Create/Update User ("SELF" for yourself)') do |value|
     #cuser = ((defined?(CURRENT_USER) && CURRENT_USER) || TranslationsGrid.CURRENT_USER)  # Former is invalid and so the latter is accepted!
-    cuser = BaseGrid::CURRENT_USER
+    cuser = ApplicationGrid::CURRENT_USER
     value = cuser.display_name if cuser && 'SELF' == value.strip.upcase
     self.joins("JOIN users ON users.id = translations.create_user_id OR users.id = translations.update_user_id").where('users.display_name = ?', value.strip)
   end
@@ -53,7 +53,7 @@ class TranslationsGrid < BaseGrid
 
   ####### Columns #######
 
-  column(:id, class: ["align-cr", "editor_only"], header: "ID", if: Proc.new{BaseGrid.qualified_as?(:editor)}) do |record|
+  column(:id, class: ["align-cr", "editor_only"], header: "ID", if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
     to_path = Rails.application.routes.url_helpers.harami1129_url(record, {only_path: true}.merge(ApplicationController.new.default_url_options))
     ActionController::Base.helpers.link_to record.id, to_path
   end
@@ -78,7 +78,7 @@ class TranslationsGrid < BaseGrid
     record ? 'T' : (record.nil? ? '' : 'F')
   end
 
-  column(:weight, mandatory: true, class: ["editor_only"], if: Proc.new{BaseGrid.qualified_as?(TransModerator)})
+  column(:weight, mandatory: true, class: ["editor_only"], if: Proc.new{ApplicationGrid.qualified_as?(TransModerator)})
 
   column_display_user(:create_user, class: ["editor_only"])
   column_display_user(:update_user, class: ["editor_only"])
@@ -94,8 +94,8 @@ class TranslationsGrid < BaseGrid
     auto_link50(record.note)
   }
 
-  column(:updated_at, class: ["editor_only"], header: Proc.new{I18n.t('tables.updated_at')}, if: Proc.new{BaseGrid.qualified_as?(:editor)})
-  column(:created_at, class: ["editor_only"], header: Proc.new{I18n.t('tables.created_at')}, if: Proc.new{BaseGrid.qualified_as?(:editor)})
+  column(:updated_at, class: ["editor_only"], header: Proc.new{I18n.t('tables.updated_at')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)})
+  column(:created_at, class: ["editor_only"], header: Proc.new{I18n.t('tables.created_at')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)})
   column(:actions, class: "actions", html: true, mandatory: true, header: I18n.t("tables.actions", default: "Actions")) do |record|
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
     ar = [link_to('Show', translation_path(record), data: { turbolinks: false })]

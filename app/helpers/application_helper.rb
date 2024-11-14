@@ -801,9 +801,17 @@ module ApplicationHelper
   end
 
   # @param model [Class, ApplicationRecord, String, Symbol]
-  # @return [String] singular name of the model
+  # @return [String] singular name of the model from any
   def get_modelname(model)
     (model.respond_to?(:name) ? model.name : (model.class.respond_to?(:name) ? model.class.name : model.to_s)).underscore.singularize
+  end
+
+  # plural snake-case name of the model or any String (which usually agrees with table_name but no guarantee)
+  #
+  # @param model [Class, ApplicationRecord, String, Symbol]
+  # @return [String]
+  def plural_underscore(model)
+    get_modelname(model).pluralize
   end
 
   # Printing an array/relation inline for display
@@ -979,7 +987,7 @@ module ApplicationHelper
   # sorted Array ignoring the differences between lower-upper-case letters and hiragana and katakana
   #
   # @note
-  #   If you use this in a class definition in BaseGrid, you perhaps need to
+  #   If you use this in a class definition in ApplicationGrid, you perhaps need to
   #   explicitly specify +langcode: I18n.locale+ in the Proc in the caller.
   #   Otherwise, "en" would be used.  Be warned!
   #

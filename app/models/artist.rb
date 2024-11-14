@@ -88,6 +88,9 @@ class Artist < BaseWithTranslation
   validate :is_birth_date_valid?
   validate :unique_combination?
 
+  # Default Artist names (titles). Used in {Artist.default}
+  DEF_ARTIST_TITLES = %w(ハラミちゃん HARAMIchan Harami-chan)
+
   UNKNOWN_TITLES = UnknownArtist = {
     "ja" => '不明の音楽家',
     "en" => 'UnknownArtist',
@@ -130,7 +133,7 @@ class Artist < BaseWithTranslation
     con_s = context.to_s
     @record_default ||= {}
     if reload || !@record_default[con_s]
-      @record_default[con_s] = select_regex(:titles, /^(ハラミちゃん|HARAMIchan|Harami-chan)$/i, sql_regexp: true).first
+      @record_default[con_s] = select_regex(:titles, /^(#{DEF_ARTIST_TITLES.map{|i| Regexp.quote(i)}.join('|')})$/i, sql_regexp: true).first
     else
       @record_default[con_s]
     end || self.unknown

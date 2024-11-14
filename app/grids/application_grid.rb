@@ -1,5 +1,5 @@
 # coding: utf-8
-class BaseGrid < Datagrid::Base
+class ApplicationGrid < Datagrid::Base
 
   # include Datagrid  # In DataGrid Version 1.  In Version 2, the class should be inherited.
 
@@ -16,12 +16,12 @@ class BaseGrid < Datagrid::Base
     # CURRENT_USER is "dynamically" defined in before_action in ApplicationController
     # However, depending on initialization, this file is read before Controllers,
     # resulting in
-    #   uninitialized constant BaseGrid::CURRENT_USER (NameError)
+    #   uninitialized constant ApplicationGrid::CURRENT_USER (NameError)
     # even in "rails console".  So, we define it here temporarily.
     # In ApplicationController, it is freshly redefined every time before
     # a Controller is called.
     #
-    # NOTE that to use a class instance variable for BaseGrid instead
+    # NOTE that to use a class instance variable for ApplicationGrid instead
     # would not work!  (It seems to be reset when the Class file is reread (or cached?),
     # though object_id unchanges...)
     CURRENT_USER ||= nil
@@ -369,7 +369,7 @@ class BaseGrid < Datagrid::Base
     #CURRENT_USER && CURRENT_USER.send(role.to_s+"?")
     CURRENT_USER && CURRENT_USER.send(:qualified_as?, *args)
   end
-end # class BaseGrid
+end # class ApplicationGrid
 
 #### Does not work: 
 ## ActionView::Template::Error (no implicit conversion of Regexp into String):

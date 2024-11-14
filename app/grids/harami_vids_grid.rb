@@ -1,5 +1,5 @@
 # coding: utf-8
-class HaramiVidsGrid < BaseGrid
+class HaramiVidsGrid < ApplicationGrid
 
   scope do
     HaramiVid.all
@@ -7,7 +7,7 @@ class HaramiVidsGrid < BaseGrid
 
   ####### Filters #######
 
-  filter(:id, :integer, header: "ID", if: Proc.new{BaseGrid.qualified_as?(:editor)})  # displayed only for editors
+  filter(:id, :integer, header: "ID", if: Proc.new{ApplicationGrid.qualified_as?(:editor)})  # displayed only for editors
 
   filter_include_ilike(:title_ja, header: Proc.new{I18n.t("datagrid.form.title_ja_en", default: "Title [ja+en] (partial-match)")})
   filter_include_ilike(:title_en, langcode: 'en', header: Proc.new{I18n.t("datagrid.form.title_en", default: "Title [en] (partial-match)")})
@@ -49,13 +49,11 @@ class HaramiVidsGrid < BaseGrid
     value ? (allids=HaramiVid.joins(:artist_music_plays).where.not("artist_music_plays.artist_id" => Artist.default(:HaramiVid).id).distinct.ids; self.where(id: allids)) : self
   end
 
-  column_names_max_per_page_filters  # defined in base_grid.rb
-  # column_names_filter(header: Proc.new{I18n.t("datagrid.form.extra_columns", default: "Extra Columns")}, checkboxes: true)
-  # filter(:max_per_page, :enum, select: MAX_PER_PAGES, default: 25, multiple: false, dummy: true, header: Proc.new{I18n.t("datagrid.form.max_per_page", default: "Max entries per page")})
+  column_names_max_per_page_filters  # defined in base_grid.rb ; calling column_names_filter() and filter(:max_per_page)
 
   ####### Columns #######
 
-  column(:id, class: ["align-cr", "editor_only"], header: "ID", if: Proc.new{BaseGrid.qualified_as?(:editor)}) do |record|
+  column(:id, class: ["align-cr", "editor_only"], header: "ID", if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
     to_path = Rails.application.routes.url_helpers.harami_vid_url(record, {only_path: true}.merge(ApplicationController.new.default_url_options))
     ActionController::Base.helpers.link_to record.id, to_path
   end
@@ -83,7 +81,7 @@ class HaramiVidsGrid < BaseGrid
   column(:n_musics, class: ["align-cr"], header: Proc.new{I18n.t('datagrid.form.n_musics_general')}) do |record|
     record.musics.uniq.count
   end
-  column(:n_amps, class: ["align-cr", "editor_only"], header: Proc.new{I18n.t('datagrid.form.n_amps')}, if: Proc.new{BaseGrid.qualified_as?(:editor)}) do |record|
+  column(:n_amps, class: ["align-cr", "editor_only"], header: Proc.new{I18n.t('datagrid.form.n_amps')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
     record.artist_music_plays.uniq.count
   end
 
@@ -157,10 +155,10 @@ class HaramiVidsGrid < BaseGrid
     ##}  # defined in application_helper.rb
   end
 
-  column(:uri_playlist_ja, mandatory: false, order: false, header: Proc.new{I18n.t('datagrid.form.uri_playlist', langcode: "ja")}, if: Proc.new{BaseGrid.qualified_as?(:editor)}) do |record|
+  column(:uri_playlist_ja, mandatory: false, order: false, header: Proc.new{I18n.t('datagrid.form.uri_playlist', langcode: "ja")}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
     link_to_youtube record.uri_playlist_ja, record.uri_playlist_ja
   end
-  column(:uri_playlist_en, mandatory: false, order: false, header: Proc.new{I18n.t('datagrid.form.uri_playlist', langcode: "en")}, if: Proc.new{BaseGrid.qualified_as?(:editor)}) do |record|
+  column(:uri_playlist_en, mandatory: false, order: false, header: Proc.new{I18n.t('datagrid.form.uri_playlist', langcode: "en")}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
     link_to_youtube record.uri_playlist_en, record.uri_playlist_en
   end
 
@@ -168,8 +166,8 @@ class HaramiVidsGrid < BaseGrid
     sanitized_html(auto_link50(record.note)).html_safe
   }
 
-  column(:updated_at, class: ["editor_only"], header: Proc.new{I18n.t('tables.updated_at')}, if: Proc.new{BaseGrid.qualified_as?(:editor)})
-  column(:created_at, class: ["editor_only"], header: Proc.new{I18n.t('tables.created_at')}, if: Proc.new{BaseGrid.qualified_as?(:editor)})
+  column(:updated_at, class: ["editor_only"], header: Proc.new{I18n.t('tables.updated_at')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)})
+  column(:created_at, class: ["editor_only"], header: Proc.new{I18n.t('tables.created_at')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)})
   column(:actions, class: "actions", html: true, mandatory: true, order: false, header: "") do |record| # Proc.new{I18n.t("tables.actions", default: "Actions")}
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
     ar = [link_to(I18n.t('layouts.Show'), harami_vid_path(record), data: { turbolinks: false })]

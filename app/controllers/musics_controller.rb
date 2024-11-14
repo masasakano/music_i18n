@@ -1,6 +1,7 @@
 # coding: utf-8
 class MusicsController < ApplicationController
   include ModuleCommon # for split_hash_with_keys
+  include ModuleGridController # for set_grid
 
   skip_before_action :authenticate_user!, :only => [:index, :show]  # Revert application_controller.rb so Index is viewable by anyone.
   load_and_authorize_resource except: [:index, :show, :new, :create]  # excludes :new and :create and manually authorize! in the methods (otherwise the default private method "*_params" seems to be read!)
@@ -28,12 +29,7 @@ class MusicsController < ApplicationController
     set_artist_prms  # set @artist, @artist_name, @artist_title
     @artist_music_ids = (@artist ? @artist.musics.distinct.pluck(:id) : nil)
     
-    # May raise ActiveModel::UnknownAttributeError if malicious params are given.
-    # It is caught in application_controller.rb
-    @grid = MusicsGrid.new(order: :created_at, descending: true, **grid_params) do |scope|
-      nmax = BaseGrid.get_max_per_page(grid_params[:max_per_page])
-      scope.page(params[:page]).per(nmax)
-    end
+    set_grid(Music)  # setting @grid; defined in concerns/module_grid_controller.rb
   end
 
   # GET /musics/1
@@ -147,10 +143,6 @@ class MusicsController < ApplicationController
     # @return NONE
     def event_params_two
       set_hsparams_main_tra(:music) # defined in application_controller.rb
-    end
-
-    def grid_params
-      params.fetch(:musics_grid, {}).permit!
     end
 
     # Use callbacks to share common setup or constraints between actions.

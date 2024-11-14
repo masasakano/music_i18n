@@ -94,7 +94,7 @@ class Engage < ApplicationRecord
   # Note that if {Harami1129#engage} is nil for the given argument,
   # the optional argument +updates+ is ignored.
   #
-  # @see BaseGrid.filter_include_ilike
+  # @see ApplicationGrid.filter_include_ilike
   #
   # @param harami1129 [Harami1129]
   # @param updates [Array<Symbol>] Array of Symbol<ins_*> to update.

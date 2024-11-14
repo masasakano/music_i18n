@@ -3,6 +3,7 @@ class HaramiVidsController < ApplicationController
   include ModuleCommon  # for contain_asian_char, txt_place_pref_ctry
   include ModuleHaramiVidEventAux # some constants and methods common with HaramiVids::FetchYoutubeDataController
   include HaramiVidsHelper # for set_event_event_items (common with HaramiVids::FetchYoutubeDataController) and collection_musics_with_evit
+  include ModuleGridController # for set_grid
 
   skip_before_action :authenticate_user!, :only => [:index, :show]
   load_and_authorize_resource except: [:index, :show, :create] # This sets @harami_vid for  :edit, :update, :destroy
@@ -43,13 +44,7 @@ class HaramiVidsController < ApplicationController
   # GET /harami_vids.json
   def index
     @harami_vids = HaramiVid.all
-
-    # May raise ActiveModel::UnknownAttributeError if malicious params are given.
-    # It is caught in application_controller.rb
-    @grid = HaramiVidsGrid.new(order: :release_date, descending: true, **grid_params) do |scope|
-      nmax = BaseGrid.get_max_per_page(grid_params[:max_per_page])
-      scope.page(params[:page]).per(nmax)
-    end
+    set_grid(HaramiVid, hs_def: {order: :release_date, descending: true})  # setting @grid; defined in concerns/module_grid_controller.rb
   end
 
   # GET /harami_vids/1
@@ -132,10 +127,6 @@ class HaramiVidsController < ApplicationController
   ###########################################################################
   private
   ###########################################################################
-
-    def grid_params
-      params.fetch(:harami_vids_grid, {}).permit!
-    end
 
     # Use callbacks to share common setup or constraints between actions.
     def set_harami_vid

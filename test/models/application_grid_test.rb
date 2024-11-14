@@ -2,7 +2,7 @@
 require 'test_helper'
 
 # Just unit tests for /app/grid/base_grid.rb and /lib/reverse_sql_order.rb
-class BaseGridTest < ActiveSupport::TestCase
+class ApplicationGridTest < ActiveSupport::TestCase
   include ApplicationHelper # for suppress_ruby270_warnings()
 
   test "self.scope_with_trans_order" do
@@ -16,10 +16,10 @@ class BaseGridTest < ActiveSupport::TestCase
     scope_direct_order = scope.order(Arel.sql("array_position(array#{[zombies,zedd].map(&:id).inspect}, artists.id)"))
     assert_equal zombies.id, scope_direct_order.first.id  # sanity check
 
-    scope_asc  = BaseGrid.scope_with_trans_order(scope, Artist, "en")
+    scope_asc  = ApplicationGrid.scope_with_trans_order(scope, Artist, "en")
     assert_equal zedd.id,    scope_asc.first.id, 'Wrong: result should be ["Zedd", "Zombies, The"]), but: '+scope_asc.map{|m| Artist.find(m.id).title}.inspect+"; SQL=#{scope_asc.to_sql}"
 
-    scope_desc = BaseGrid.scope_with_trans_order(scope, Artist, "en").reverse_order  # redefined in /lib/reverse_sql_order.rb
+    scope_desc = ApplicationGrid.scope_with_trans_order(scope, Artist, "en").reverse_order  # redefined in /lib/reverse_sql_order.rb
     assert_equal zombies.id, scope_desc.first.id, "wrong... SQL=#{scope_desc.to_sql}"
   end
 end

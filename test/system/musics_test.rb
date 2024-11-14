@@ -122,7 +122,8 @@ class MusicsTest < ApplicationSystemTestCase
     # find_field(label_str).choose('English')  ## Does not work b/c the label is just a <span>!
     page.find(PAGECSS[:new_trans_lang_radios]).choose('English')  # defined in test_helper.rb
 
-    fill_in_new_title_with(Music, 'Tekitoh')  # defined in test_system_helper.rb
+    tit1 = 'Tekitoh___1'
+    fill_in_new_title_with(Music, tit1)  # defined in test_system_helper.rb
 
     assert     find_field('Country')
     assert_selector    'form div#div_select_country'
@@ -149,14 +150,19 @@ class MusicsTest < ApplicationSystemTestCase
     assert_selector "h1", text: "Musics"
     assert_equal n_trs0+1, page.find_all("tr").size, "The number of table rows should have increased by 1, but..."
 
-    page.find_all('input[type="number"]')[0].fill_in  with: 1200
-    page.find_all('input[type="number"]')[1].fill_in  with: 1299
+    css_to   = css_grid_input_range(Music, "year", fromto: :to)
+    page.find_all('input[type="number"]')[1].fill_in  with: 1200  # the first one is for pID
+    page.find(css_to).fill_in  with: 1299
     #find_field("Year", match: :first).fill_in  with: 1200  # not works
     #fill_in "Year", match: :first, with: 1200  # not works
     #fill_in "Year", match: :last,  with: 1299  # not works
     click_on "Apply"
+
     assert_selector "h1", text: "Musics"
-    assert_equal 1, page.find_all("tbody tr").size, "The number of table-body rows for Musics in the 13th century should be one (just created), but..."
+    assert_selector css_to+"[value='1299']"  # The field should keep the input value
+    assert_equal 1, (trs=page.find_all("tbody tr")).size, "The number of table-body rows for Musics in the 13th century should be one (just created), but..."
+    assert_includes trs[0].text, tit1
+#take_screenshot
   end
 
   #test "updating a Music" do

@@ -34,7 +34,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
     ### Artist#new page (EN)
     assert_selector "h1", text: "New Artist"
     css_swithcer_ja = 'div#language_switcher_top span.lang_switcher_ja a'
-    css_swithcer_en = 'div#language_switcher_top span.lang_switcher_en a'
+    #css_swithcer_en = 'div#language_switcher_top span.lang_switcher_en a'
     assert_equal "日本語", page.find(css_swithcer_ja).text
     page.find(css_swithcer_ja).click
     # click_link "日本語" # => Capybara::Ambiguous: Ambiguous match, found 2 elements matching visible link "日本語"
@@ -260,7 +260,8 @@ class Artists::MergesTest < ApplicationSystemTestCase
 
       # Click "Show"
       visit harami1129s_url
-      find(:xpath, "//table[contains(@class, 'harami1129s_grid')]//tr/td[contains(@class, 'title')]/a[text()[contains(., '#{h1129.title}')]]/../../td[contains(@class, 'actions')]/a[text()='Show']").click  # NOTE: Title may be preceded with an emoji-symbol
+      xpath = "/"+XPATHGRIDS[:td_title]+"/a[text()[contains(., '#{h1129.title}')]]/../../td[contains(@class, 'actions')]/a[text()='Show']"
+      find(:xpath, xpath).click  # NOTE: Title may be preceded with an emoji-symbol
 
       assert_selector "h1", text: "HARAMI1129 Entry"
       %w(title singer song).each do |ek|
@@ -271,7 +272,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
         assert_equal "",  _get_h1129_table_cell(ddid, "Current Destination"), "No destination should be defined for #{ek}, but..."
       end
       
-      id_h1129 = find("dd#h1129_id_dd").text.to_i
+      # id_h1129 = find("dd#h1129_id_dd").text.to_i
       click_on "Populate"  # Creating Artist (<=Singer) and Music (<= Song)
       assert_selector "h1", text: "HARAMI1129 Entry"
 

@@ -1,5 +1,5 @@
 # coding: utf-8
-class Harami1129sGrid < BaseGrid
+class Harami1129sGrid < ApplicationGrid
 
   scope do
     Harami1129.all

@@ -48,7 +48,7 @@
 <%= form_with(url: new_harami1129s_download_harami1129s_path, method: 'GET') do |form| %>
   <div class="actions">
     <div class="form_download_data_options">
-    <% if BaseGrid.qualified_as?(:an_admin) %>
+    <% if ApplicationGrid.qualified_as?(:an_admin) %>
      <div class="admin_only">
       <%= form.label :debug, '[Admin] DEBUG?' %>
       <%= form.radio_button(:debug, '1', checked: false) %>
@@ -59,7 +59,7 @@
     <% end %>
     <%= form.label      :init_entry_fetch, 'Initial entry number to download (Def: 1)' %>
     <%= form.text_field :init_entry_fetch,  value: 1 %><br>
-    <% msg_admin = (BaseGrid.qualified_as?(:an_admin) ? '<span class="admin_only">(-99 means all: admin only)</span>'.html_safe : "") %>
+    <% msg_admin = (ApplicationGrid.qualified_as?(:an_admin) ? '<span class="admin_only">(-99 means all: admin only)</span>'.html_safe : "") %>
     <%= form.label      :max_entries_fetch, (h("Number of entries to download (Max: #{Harami1129s::DownloadHarami1129sController::MAX_ENTRIES})")+msg_admin).html_safe %>
     <%= form.text_field :max_entries_fetch,  value: Harami1129s::DownloadHarami1129sController::MAX_ENTRIES %><br>
       <% Harami1129s::DownloadHarami1129sController::DOWNLOAD_FORM_STEP.each_value do |ev| %>
@@ -115,6 +115,6 @@
 
 <br>
 
-<% if BaseGrid.qualified_as?(:an_admin) %>
+<% if ApplicationGrid.qualified_as?(:an_admin) %>
   <span class="admin_only"><%= link_to 'New Harami1129 entry', new_harami1129_path %></span>
 <% end %>

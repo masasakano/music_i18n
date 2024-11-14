@@ -67,6 +67,65 @@ class ActiveSupport::TestCase
     },
   }.with_indifferent_access
 
+  # CSS for Grids
+  CSSGRIDS = {
+    form: 'form.datagrid-form',  # used to be form#new_artists_grid in DataGrid Ver.1
+    # input_sex:      'input[name="artists_grid[sex][]"]',
+    # input_title_en: 'input#artists_grid_title_en',  # maybe preceded with div.datagrid-filter
+    table:          'table.datagrid-table',  # used to contain 'table.artists_grid' in DataGrid Ver.1
+  }.with_indifferent_access
+  CSSGRIDS.merge!({
+    form_reset: CSSGRIDS[:form]+' div.datagrid-actions a.datagrid-reset',
+    th_tr: CSSGRIDS[:table]+' thead tr',
+    tb_tr: CSSGRIDS[:table]+' tbody tr',
+  })
+  CSSGRIDS.merge!({
+    th_sex:      CSSGRIDS[:th_tr]+' th[data-column="sex"]',  # used to be "th.sex" in Datagrid Ver.1
+    th_title_en: CSSGRIDS[:th_tr]+' th[data-column="title_en"]',
+    th_events:   CSSGRIDS[:th_tr]+' th[data-column="events"]',
+    th_collabs:  CSSGRIDS[:th_tr]+' th[data-column="collabs"]',
+    td_title_ja: CSSGRIDS[:tb_tr]+' td[data-column="title_ja"]',
+    td_title_en: CSSGRIDS[:tb_tr]+' td[data-column="title_en"]',
+  })
+  CSSGRIDS.merge!({
+    th_title_en_a_asc:  CSSGRIDS[:th_title_en]+' div.datagrid-order  a.datagrid-order-control-asc',
+    th_title_en_a_desc: CSSGRIDS[:th_title_en]+' div.datagrid-order  a.datagrid-order-control-desc',
+  })
+
+  # XPATH for Grids
+  #
+  # @note You may precede it with "/" (!!)
+  XPATHGRIDS = {
+    form: "/form[contains(@class, 'datagrid-form')]",  # used to be form#new_artists_grid in DataGrid Ver.1
+    table: "/table[contains(@class, 'datagrid-table')]",  # used to contain 'table.artists_grid' in DataGrid Ver.1
+  }.with_indifferent_access
+  XPATHGRIDS.merge!({
+    th_tr: XPATHGRIDS[:table]+'//thead//tr',
+    tb_tr: XPATHGRIDS[:table]+'//tbody//tr',
+  })
+  XPATHGRIDS.merge!({
+    td_title: XPATHGRIDS[:tb_tr]+"//td[@data-column='title']",  # for Harami1129
+  })
+
+  # @example
+  #   css_grid_input_range(Artist, "birth_year", fromto: :to)
+  #
+  # @param fromto: [Symbol] either :from or :to
+  # @return [String] CSS for :from or :to for Grid.
+  def css_grid_input_range(model, kwd, fromto: )
+    model_pl = plural_underscore(model)  # defined in application_helper.rb
+
+    from_to =
+      case fromto.to_s
+      when "from", "to"
+        fromto.to_s
+      else
+        raise "Wrong argument (#{fromto.inspect}) - either :from or :to"
+      end
+
+    sprintf 'input[name="%s_grid[%s][%s]"]', model_pl, kwd, from_to
+  end
+
   # Reverse of get_bool_from_params in Application.helper
   #
   # The input should be String.

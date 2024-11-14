@@ -257,6 +257,14 @@ class ModuleCommonTest < ActiveSupport::TestCase
     refute_includes bracket_or_empty("[%s]".html_safe, "<abc".html_safe, true), "&lt;"
   end
 
+  test "css_grid_input_range" do
+    exp = 'input[name="artists_grid[birth_year][to]"]'
+    act = css_grid_input_range(Artist, "birth_year", fromto: :to)
+    assert_equal exp, act
+    act = css_grid_input_range(:artists, "birth_year", fromto: :to)
+    assert_equal exp, act
+  end
+
   private
 end
 

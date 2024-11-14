@@ -105,7 +105,7 @@ class ApplicationController < ActionController::Base
 
   # authorize_resource :class => false
 
-  # Exception handling when tyring to get BaseGrid.new(grid_params)  
+  # Exception handling when tyring to get ApplicationGrid.new(grid_params)  
   # e.g., ActiveModel::UnknownAttributeError (unknown attribute 'created_at' for Harami1129sGrid.)
   rescue_from ActiveModel::UnknownAttributeError do
     logger.error 'params that caused Error: '+params.inspect
@@ -773,11 +773,11 @@ class ApplicationController < ActionController::Base
 
     # To use +CURRENT_USER+ (instead of +current_user+) inside Grids
     #
-    # @note Setting BaseGrid Class instance variable does not work well
+    # @note Setting ApplicationGrid Class instance variable does not work well
     #   (it seems to be reset when the Class file is reread, though object_id unchanges...)
     def set_current_user_for_grid
-      BaseGrid.send(:remove_const, :CURRENT_USER) if BaseGrid.const_defined?(:CURRENT_USER)  # because this may be called multiple times in tests or when cached.
-      BaseGrid.const_set(:CURRENT_USER, current_user)
+      ApplicationGrid.send(:remove_const, :CURRENT_USER) if ApplicationGrid.const_defined?(:CURRENT_USER)  # because this may be called multiple times in tests or when cached.
+      ApplicationGrid.const_set(:CURRENT_USER, current_user)
     end
 
     ## for DEBUG (corresponding to the commented calls above)

@@ -3,6 +3,7 @@ require 'open-uri'
 
 class Harami1129sController < ApplicationController
   include ModuleCommon # for any_zenkaku_to_ascii
+  include ModuleGridController # for set_grid
 
   before_action :set_harami1129, only: [:show, :edit, :update, :destroy]
   load_and_authorize_resource
@@ -22,12 +23,7 @@ class Harami1129sController < ApplicationController
     harami1129_params(default: false)
     @harami1129s = Harami1129.all
 
-    # May raise ActiveModel::UnknownAttributeError if malicious params are given.
-    # It is caught in application_controller.rb
-    @grid = Harami1129sGrid.new(order: :created_at, descending: true, **grid_params) do |scope|
-      nmax = BaseGrid.get_max_per_page(grid_params[:max_per_page])
-      scope.page(params[:page]).per(nmax)
-    end
+    set_grid(Harami1129)  # setting @grid; defined in concerns/module_grid_controller.rb
   end
 
   # GET /harami1129s/1
@@ -78,10 +74,6 @@ class Harami1129sController < ApplicationController
   ############################################################
 
   protected
-
-  def grid_params
-    params.fetch(:harami1129s_grid, {}).permit!
-  end
 
   #FORM_SUBMIT_NAME = 'FetchData'
   FORM_SUBMIT_INSERTION_WITHIN_NAME = 'InsertionWithin'

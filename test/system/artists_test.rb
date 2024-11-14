@@ -43,13 +43,20 @@ class ArtistsTest < ApplicationSystemTestCase
   end
 
   test "visiting the index" do
+    # cf. test_helper.rb for CSSGRIDS
+    csses = {
+      input_sex:      'input[name="artists_grid[sex][]"]',
+      input_title_en: 'input#artists_grid_title_en',  # maybe preceded with div.datagrid-filter
+    }.with_indifferent_access
+
     # Artist#index (EN)
     visit artists_url
     assert_selector "h1", text: "Artists"
     assert_no_selector 'form.button_to'  # No button if not logged-in.
+    assert_no_selector "input#artists_grid_id"  # No ID filter for general public
 
-    assert_equal "Sex",        page.find('table thead tr th.sex').text.strip
-    assert_equal "Title [Alt] (En)", page.find('table thead tr th.title_en').text.split(/\n/)[0].strip  # text followed by "\n ↑ ↓"
+    assert_equal "Sex",              page.find(CSSGRIDS[:th_sex]).text.strip  # CSSGRIDS defined in test_helper.rb
+    assert_equal "Title [Alt] (En)", page.find(CSSGRIDS[:th_title_en]).text.split(/\n/)[0].strip  # text followed by "\n ↑ ↓"
     stats_str = page.find('.pagenation_stats').text
     assert stats_str.include?("Grand total")
 
@@ -58,6 +65,10 @@ class ArtistsTest < ApplicationSystemTestCase
     assert_equal 1, stats1[:i_page]
     assert_equal 1, stats1[:i_from], "stats1 = "+stats1.inspect
     assert_operator 25, :>=, stats1[:i_to]  # max 25 entries per page
+
+    assert_operator 2, :<, (trs=page.find_all(CSSGRIDS[:tb_tr])).size, "The number of table-body rows for Artists should be more than 2, but..."
+    assert_includes trs[0].text,              Artist::DEF_ARTIST_TITLES.first
+    assert_equal    trs[0].all("td")[0].text, Artist::DEF_ARTIST_TITLES.first  # Default Artist always should come at the top (in default).
 
     ## language switcher
     assert_equal "English", page.find(@css_swithcer_en).text
@@ -72,11 +83,11 @@ class ArtistsTest < ApplicationSystemTestCase
     assert_equal "English", page.find(@css_swithcer_en+" a").text
 
     assert page.find('div#navbar_upper_any').text.include?("動画")
-    assert_equal "性別",     page.find('table thead tr th.sex').text.strip
-    assert_equal "英語名称 [別称]", page.find('table thead tr th.title_en').text.split(/\n/)[0].strip  # text followed by "\n ↑ ↓"
+    assert_equal "性別",            page.find(CSSGRIDS[:th_sex]).text.strip
+    assert_equal "英語名称 [別称]", page.find(CSSGRIDS[:th_title_en]).text.split(/\n/)[0].strip  # text followed by "\n ↑ ↓"
 
     ## English sorting (the total number should not change)
-    page.find('table thead tr th.title_en div.order a.desc').click
+    page.find(CSSGRIDS[:th_title_en_a_desc]).click
     stats2 = _get_stats
     assert_equal "全登録数", stats2[:word_tot]
 
@@ -93,7 +104,7 @@ class ArtistsTest < ApplicationSystemTestCase
     assert_equal "日本語",  page.find(@css_swithcer_ja+" a").text
 
     # Filtering
-    page.all('input[name="artists_grid[sex][]"]')[2].set(true)  # "input#artists_grid_sex_not\ known" should work?
+    page.all(csses[:input_sex])[2].set(true)  # "input#artists_grid_sex_not\ known" should work?
     #find_field("Sex").choose('not known')  # invalid b/c "for" are inconsistent.
     click_on "Apply"
 
@@ -113,14 +124,14 @@ class ArtistsTest < ApplicationSystemTestCase
     assert_equal "Zedd",         zedd,    "sanity check2"
 
     # filtering and reverse-Sorting
-    page.all('input[name="artists_grid[sex][]"]')[2].set(false)  # any sex
+    page.all(csses[:input_sex])[2].set(false)  # any sex
     fill_in "artists_grid_title_en", with: "Z"
     click_on "Apply"
 
     # ascending order
-    page.find('table thead tr th.title_en div.order a.asc').click
-    i_zombies = page.all("table.artists_grid tbody tr").find_index{|nok| nok.all("td")[2].text[0, zombies.size] == zombies} # No <td> in <thead>, but all should have <td> in <tbody>
-    i_zedd    = page.all("table.artists_grid tbody tr").find_index{|nok| nok.all("td")[2].text == zedd}  # For Editors: zedd+"*"
+    page.find(CSSGRIDS[:th_title_en_a_asc]).click
+    i_zombies = page.all(CSSGRIDS[:tb_tr]).find_index{|nok| nok.all("td")[2].text[0, zombies.size] == zombies} # No <td> in <thead>, but all should have <td> in <tbody>
+    i_zedd    = page.all(CSSGRIDS[:tb_tr]).find_index{|nok| nok.all("td")[2].text == zedd}  # For Editors: zedd+"*"
 
       assert_nil current_user_display_name(is_system_test: true)  # defined in test_helper.rb
     # This sometimes happens... Basically, "Zedd*" is displayed as opposed to "Zedd".
@@ -128,16 +139,16 @@ class ArtistsTest < ApplicationSystemTestCase
     # by an unauthenticated user, "Zedd*" is displayed here.  Why?
     if !i_zedd
       assert_nil current_user_display_name(is_system_test: true)  # defined in test_helper.rb
-      print "DEBUG-i_zedd(#{File.basename __FILE__}): @qualified_as=#{BaseGrid.instance_variable_get(:@qualified_as).inspect}\n"
+      print "DEBUG-i_zedd(#{File.basename __FILE__}): @qualified_as=#{ApplicationGrid.instance_variable_get(:@qualified_as).inspect}\n"
     end
 
     assert_equal    "en", art_zedd.orig_langcode
     assert_operator i_zedd, :<, i_zombies, "Should be normal-sorted, but... text="+page.all("table.artists_grid tbody tr").map{|m| m.all("td").map(&:text)}.inspect
 
     # descending order
-    page.find('table thead tr th.title_en div.order a.desc').click
-    i_zombies = page.all("table.artists_grid tbody tr").find_index{|nok| nok.all("td")[2].text[0, zombies.size] == zombies} # No <td> in <thead>, but all should have <td> in <tbody>
-    i_zedd    = page.all("table.artists_grid tbody tr").find_index{|nok| nok.all("td")[2].text == zedd}
+    page.find(CSSGRIDS[:th_title_en_a_desc]).click
+    i_zombies = page.all(CSSGRIDS[:tb_tr]).find_index{|nok| nok.all("td")[2].text[0, zombies.size] == zombies} # No <td> in <thead>, but all should have <td> in <tbody>
+    i_zedd    = page.all(CSSGRIDS[:tb_tr]).find_index{|nok| nok.all("td")[2].text == zedd}
     assert_operator i_zedd, :>, i_zombies, "Should be reverse-sorted, but... text="+page.all("table.artists_grid tbody tr").map{|m| m.all("td").map(&:text)}.inspect
 
     ## transits to Japanese
@@ -160,21 +171,19 @@ class ArtistsTest < ApplicationSystemTestCase
     assert_equal artist_newest, Artist.order(created_at: :desc).first, "sanity check fails [first, last]: "+[Artist.order(created_at: :desc).first, Artist.order(created_at: :desc).last].inspect
 
     ## Reset
-    page.find("form#new_artists_grid div.datagrid-actions a.datagrid-reset").click
-    assert_empty page.find("form#new_artists_grid div.datagrid-filter input#artists_grid_title_en").text, 'sanity check'
+    page.find(CSSGRIDS[:form_reset]).click
+    assert_empty page.find(csses[:input_title_en]).text, 'sanity check'
 
-    assert_equal "ハラミちゃん",  page.all("table.artists_grid tbody tr td.title_ja")[0].text.strip
-    assert_equal title_newest_ja, page.all("table.artists_grid tbody tr td.title_ja")[1].text.strip
+    assert_equal "ハラミちゃん",  page.all(CSSGRIDS[:td_title_ja])[0].text.strip
+    assert_equal title_newest_ja, page.all(CSSGRIDS[:td_title_ja])[1].text.strip
 
-    page.find('table thead tr th.title_en div.order a.asc').click
-    first_non_null_en_text = page.all("table.artists_grid tbody tr td.title_en").find{|i| !i.text.strip.empty?}.text.strip
+    page.find(CSSGRIDS[:th_title_en_a_asc]).click
+    first_non_null_en_text = page.all(CSSGRIDS[:td_title_en]).find{|i| !i.text.strip.empty?}.text.strip
     assert_equal title_newest_en, first_non_null_en_text
 
-    page.find('table thead tr th.title_en div.order a.desc').click  # entry with NULL may come first, but at least this operation should succeed
-    first_non_null_en_text = page.all("table.artists_grid tbody tr td.title_en").find{|i| !i.text.strip.empty?}.text.strip
+    page.find(CSSGRIDS[:th_title_en_a_desc]).click  # entry with NULL may come first, but at least this operation should succeed
+    first_non_null_en_text = page.all(CSSGRIDS[:th_title_en]).find{|i| !i.text.strip.empty?}.text.strip
     refute_equal title_newest_en, first_non_null_en_text
-
-    assert_no_selector "input#artists_grid_id"
   end
 
   test "should create/update artist" do
@@ -207,8 +216,9 @@ class ArtistsTest < ApplicationSystemTestCase
 
     page.find('input#artist_title').fill_in with: @artist.title  # This is a duplicate.
 
+    new_btyear = 1150
     choose("female")
-    fill_in "Birth year", with: 1998  # Because of a different birth_year from the existing AI, the new Artist with the idencical name is accepted!
+    fill_in "Birth year", with: new_btyear  # Because of a different birth_year from the existing AI, the new Artist with the idencical name is accepted!
 
     click_on @button_text[:create]
 
@@ -224,7 +234,7 @@ class ArtistsTest < ApplicationSystemTestCase
     assert_selector "h1", text: "Editing Artist: "+@artist.title
 
     assert_equal Sex["female"].id, page.find_field(name: "artist[sex_id]", checked: true)["value"].to_i
-    assert_equal "1998", page.find_field(name: 'artist[birth_year]').value
+    assert_equal new_btyear.to_s, page.find_field(name: 'artist[birth_year]').value
 
     assert_no_selector('input#artist_title')
 
@@ -233,7 +243,7 @@ class ArtistsTest < ApplicationSystemTestCase
 
     assert_text "successfully updated."
 
-    assert_match(/(\b1998\b.+\b31\b|\b31\b.+\b1998\b)/, page.find_all(:xpath, "//section[@id='sec_primary_show']//dt[@title='Birthday']/following-sibling::dd")[0].text)
+    assert_match(/(\b#{new_btyear}\b.+\b31\b|\b31\b.+\b#{new_btyear}\b)/, page.find_all(:xpath, "//section[@id='sec_primary_show']//dt[@title='Birthday']/following-sibling::dd")[0].text)
 
     assert_equal 1, page.find_all(:xpath, xpath_new_music_link).size
     page.find(:xpath, xpath_new_music_link).click
@@ -275,6 +285,23 @@ class ArtistsTest < ApplicationSystemTestCase
     assert_includes tr[0].text, new_music_year.to_s  # "作詞/作曲(2021)"
     assert_includes tr[0].text, engage_strs[0]
     assert_includes tr[0].text, engage_strs[1]
+
+    # Tests of year filtering in Index
+    click_on "アーティスト", match: :first
+
+#puts "DEBUG: "+page.find(CSSGRIDS[:form])['innerHTML']
+    assert_selector 'input#artists_grid_birth_year'
+    #fill_in 'input#artists_grid_birth_year', with: new_btyear - 5
+    css_from = css_grid_input_range(Artist, "birth_year", fromto: :from)
+    css_to   = css_grid_input_range(Artist, "birth_year", fromto: :to)
+    page.find(css_from).fill_in with: new_btyear - 5  # defined in test_helper.rb
+    page.find(css_to).fill_in   with: new_btyear + 5
+    click_on "適用"
+
+    assert_selector css_from+"[value='#{new_btyear - 5}']"  # The field should keep the input value
+    assert_equal 1, (trs=page.find_all(CSSGRIDS[:tb_tr])).size, "The number of table-body rows for Artists in the 12th century should be one (just created), but..."
+    assert_includes trs[0].text, @artist.title
+
 #save_page_auto_fname  # defined in test_system_helper.rb
 #take_screenshot
   end

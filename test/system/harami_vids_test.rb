@@ -36,7 +36,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_selector "h1", text: @h1_index
     assert_no_selector "div#new_harami_vid_link"
 
-    css_table = "table.datagrid tbody tr"
+    css_table = CSSGRIDS[:tb_tr]
     size_be4 = find_all(css_table).size
 
     fill_autocomplete('#harami_vids_grid_musics', use_find: true, with: 'Peace a', select: (tit="Give Peace"))  # defined in test_helper.rb
@@ -219,13 +219,13 @@ class HaramiVidsTest < ApplicationSystemTestCase
     tit_lucky = events(:ev_harami_lucky2023).title(langcode: "en")  # HARAMIchan at LuckyFes 2023
     assert_text "The Proclaimers"  # NOT "Proclaimers, The"
     assert_text tit_lucky  # in "feat. Artists"
-    assert_selector 'table thead th.events', text: "Events"
-    assert_selector 'table thead th.collabs', text: "feat. Artists"
+    assert_selector CSSGRIDS[:th_events],  text: "Events"
+    assert_selector CSSGRIDS[:th_collabs], text: "feat. Artists"
 
-    htmlcapy_hed = page.all('table thead tr')[-1].all('th')[5]
+    htmlcapy_hed = page.all(CSSGRIDS[:th_tr])[-1].all('th')[5]
     assert_equal    htmlcapy_hed.text, "Events"
-    htmlcapy_evt = page.all('table tbody tr')[-1].all('td')[5]
-    htmlcapy_art = page.all('table tbody tr')[-1].all('td')[6]
+    htmlcapy_evt = page.all(CSSGRIDS[:tb_tr])[-1].all('td')[5]
+    htmlcapy_art = page.all(CSSGRIDS[:tb_tr])[-1].all('td')[6]
     assert_equal    htmlcapy_evt.text, tit_lucky 
     assert_includes htmlcapy_evt['innerHTML'], tit_lucky
     refute_includes htmlcapy_evt['innerHTML'], "<a"  # link hidden for unauthorized in Events

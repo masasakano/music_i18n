@@ -1,5 +1,7 @@
 # coding: utf-8
 class TranslationsController < ApplicationController
+  include ModuleGridController # for set_grid
+
   before_action :set_translation, only: [:show, :edit, :update, :destroy]
   load_and_authorize_resource
 
@@ -9,13 +11,7 @@ class TranslationsController < ApplicationController
     @translations = Translation.all.order(:translatable_type, :translatable_id)
     @hsuser = User.all.pluck(:id, :display_name).to_h.map{|k,v| [k, ((v.length < 17) ? v : sprintf("%s…%d",v[0..16],k))]}.to_h
 
-    # May raise ActiveModel::UnknownAttributeError if malicious params are given.
-    # It is caught in application_controller.rb
-    @cur_page = nil
-    @grid = TranslationsGrid.new(order: :updated_at, descending: true, **grid_params) do |scope|
-      nmax = BaseGrid.get_max_per_page(grid_params[:max_per_page])
-      @cur_page = scope.page(params[:page]).per(nmax)
-    end
+    set_grid(Translation)  # setting @grid; defined in concerns/module_grid_controller.rb
   end
 
   # GET /translations/1
@@ -88,10 +84,6 @@ class TranslationsController < ApplicationController
   end
 
   private
-    def grid_params
-      params.fetch(:translations_grid, {}).permit!
-    end
-
     # Use callbacks to share common setup or constraints between actions.
     def set_translation
       @translation = Translation.find(params[:id])

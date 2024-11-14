@@ -1,6 +1,7 @@
 # coding: utf-8
 class ArtistsController < ApplicationController
   include ModuleCommon # for split_hash_with_keys
+  include ModuleGridController # for set_grid
 
   skip_before_action :authenticate_user!, :only => [:index, :show]  # Revert application_controller.rb so Index is viewable by anyone.
   load_and_authorize_resource except: [:index, :show, :create]  # excludes :create and manually authorize! in __create__ (otherwise the default private method "*_params" seems to be read!)
@@ -23,16 +24,11 @@ class ArtistsController < ApplicationController
   def index
     @artists = Artist.all
 
-    # May raise ActiveModel::UnknownAttributeError if malicious params are given.
-    # It is caught in application_controller.rb
-    @grid = ArtistsGrid.new(**grid_params) do |scope|
-      nmax = BaseGrid.get_max_per_page(grid_params[:max_per_page])
-      if grid_params[:order].blank?
-        harami = Artist['ハラミちゃん', "ja"]  # Haramichan always comes first!
-        scope = scope.order(Arel.sql("CASE artists.id WHEN #{harami.id rescue 0} THEN 0 ELSE 1 END, created_at DESC"))
-      end
-      scope.page(params[:page]).per(nmax)
-    end
+    set_grid(Artist){ |scope, grid_prms|
+      next scope if grid_prms[:order].present?
+      harami = Artist.default(:HaramiVid)
+      scope.order(Arel.sql("CASE artists.id WHEN #{harami.id rescue 0} THEN 0 ELSE 1 END, created_at DESC"))
+    }  # setting @grid; defined in concerns/module_grid_controller.rb
   end
 
   # GET /artists/1
@@ -94,10 +90,6 @@ class ArtistsController < ApplicationController
     # @return NONE
     def event_params_two
       set_hsparams_main_tra(:artist) # defined in application_controller.rb
-    end
-
-    def grid_params
-      params.fetch(:artists_grid, {}).permit!
     end
 
     # Use callbacks to share common setup or constraints between actions.
