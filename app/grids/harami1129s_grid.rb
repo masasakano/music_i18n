@@ -23,7 +23,7 @@ class Harami1129sGrid < ApplicationGrid
     to_path = Rails.application.routes.url_helpers.harami1129_url(record, {only_path: true}.merge(ApplicationController.new.default_url_options))
     ActionController::Base.helpers.link_to record.id, to_path
   end
-  column(:id_remote, mandatory: true, class: ["align-cr"], header: '#Row') do |record|
+  column(:id_remote, mandatory: true, tag_options: {class: ["align-cr"]}, header: '#Row') do |record|
     to_path = Rails.application.routes.url_helpers.harami1129_url(record, {only_path: true}.merge(ApplicationController.new.default_url_options))
     ActionController::Base.helpers.link_to record.id_remote, to_path
   end
@@ -66,10 +66,10 @@ class Harami1129sGrid < ApplicationGrid
   date_column(:ins_release_date)
   column(:ins_link_root)
   column(:ins_link_time)
-  column(:harami_vid_id, header: 'Vid', class: ["align-cr"]) do |record|
+  column(:harami_vid_id, header: 'Vid', tag_options: {class: ["align-cr"]}) do |record|
     (record.harami_vid_id ? ActionController::Base.helpers.link_to(record.harami_vid_id, Rails.application.routes.url_helpers.harami_vid_url(record.harami_vid_id, only_path: true)) : '')
   end
-  column(:engage_id, class: ["align-cr"]) do |record|
+  column(:engage_id, tag_options: {class: ["align-cr"]}) do |record|
     (record.engage_id ? ActionController::Base.helpers.link_to(record.engage_id, Rails.application.routes.url_helpers.engage_url(record.engage_id, only_path: true)) : '')
   end
   column(:event_item_id) do |record|
@@ -91,7 +91,7 @@ class Harami1129sGrid < ApplicationGrid
     ar.empty? ? "" : ar.join(", ")
   end
 
-  column(:actions, class: "actions", html: true, mandatory: true) do |record|
+  column(:actions, tag_options: {class: ["actions"]}, html: true, mandatory: true) do |record|
     [link_to('Show', record, data: { turbolinks: false }),
      (record.harami_vid ? link_to('HVid', harami_vid_path(record.harami_vid), title: 'HaramiVid imported from this record (and possibly also from other records)') : nil),
      link_to('Edit', edit_harami1129_path(record)),

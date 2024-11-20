@@ -120,8 +120,7 @@ gem 'toastr-rails'
 gem 'rails_admin', '~> 3.0'  # For Rails-7; need run:  DISABLE_SPRING=1 bin/rails g rails_admin:install  cf. https://stackoverflow.com/a/72674116
 gem 'cancancan'
 # gem 'active_record-postgres-constraints' # Valid up to Rails 6.0 but obsolete (not work) at 6.1.
-gem 'datagrid', git: 'https://github.com/bogdan/datagrid.git', branch: 'version-2'
-#gem 'datagrid', '~> 1.4', '>= 1.4.4'
+gem 'datagrid', '~> 2.0'  # merged from its branch: 'version-2'
 gem 'rubytree', '~> 2', '>= 2.0.0'
 gem 'slim_string', '~> 1', '>= 1.0.1'
 gem 'simple_form', '~> 5', '>= 5.1.0'

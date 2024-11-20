@@ -53,7 +53,7 @@ class TranslationsGrid < ApplicationGrid
 
   ####### Columns #######
 
-  column(:id, class: ["align-cr", "editor_only"], header: "ID", if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
+  column(:id, tag_options: {class: ["align-cr", "editor_only"]}, header: "ID", if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
     to_path = Rails.application.routes.url_helpers.harami1129_url(record, {only_path: true}.merge(ApplicationController.new.default_url_options))
     ActionController::Base.helpers.link_to record.id, to_path
   end
@@ -66,7 +66,7 @@ class TranslationsGrid < ApplicationGrid
     ).html_safe
   end
 
-  column(:langcode, mandatory: true, header: "lc", class: ["text-center"])
+  column(:langcode, mandatory: true, header: "lc", tag_options: {class: ["text-center"]})
   column(:title, mandatory: true)
   column(:ruby)
   column(:romaji)
@@ -78,10 +78,10 @@ class TranslationsGrid < ApplicationGrid
     record ? 'T' : (record.nil? ? '' : 'F')
   end
 
-  column(:weight, mandatory: true, class: ["editor_only"], if: Proc.new{ApplicationGrid.qualified_as?(TransModerator)})
+  column(:weight, mandatory: true, tag_options: {class: ["editor_only"]}, if: Proc.new{ApplicationGrid.qualified_as?(TransModerator)})
 
-  column_display_user(:create_user, class: ["editor_only"])
-  column_display_user(:update_user, class: ["editor_only"])
+  column_display_user(:create_user, tag_options: {class: ["editor_only"]})
+  column_display_user(:update_user, tag_options: {class: ["editor_only"]})
   #column(:create_user) do |record|
   #  is_me = (CURRENT_USER && CURRENT_USER == record)
   #  is_me ? "<strong>SELF</strong>".html_safe : record.display_name
@@ -94,9 +94,9 @@ class TranslationsGrid < ApplicationGrid
     auto_link50(record.note)
   }
 
-  column(:updated_at, class: ["editor_only"], header: Proc.new{I18n.t('tables.updated_at')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)})
-  column(:created_at, class: ["editor_only"], header: Proc.new{I18n.t('tables.created_at')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)})
-  column(:actions, class: "actions", html: true, mandatory: true, header: I18n.t("tables.actions", default: "Actions")) do |record|
+  column(:updated_at, tag_options: {class: ["editor_only"]}, header: Proc.new{I18n.t('tables.updated_at')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)})
+  column(:created_at, tag_options: {class: ["editor_only"]}, header: Proc.new{I18n.t('tables.created_at')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)})
+  column(:actions, tag_options: {class: ["actions"]}, html: true, mandatory: true, header: I18n.t("tables.actions", default: "Actions")) do |record|
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
     ar = [link_to('Show', translation_path(record), data: { turbolinks: false })]
     if can? :update, record

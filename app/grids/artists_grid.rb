@@ -36,7 +36,7 @@ class ArtistsGrid < ApplicationGrid
 
   ####### Columns #######
 
-  column(:id, class: ["align-cr", "editor_only"], header: "ID", if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) # NOT: if ArtistsGrid.is_current_user_moderator
+  column(:id, tag_options: {class: ["align-cr", "editor_only"]}, header: "ID", if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) # NOT: if ArtistsGrid.is_current_user_moderator
 
   column(:title_ja, mandatory: true, header: Proc.new{I18n.t('tables.title_ja')}, order: proc { |scope|
     #order_str = Arel.sql("convert_to(title, 'UTF8')")
@@ -70,11 +70,11 @@ class ArtistsGrid < ApplicationGrid
     titles_other_langs(record, is_orig_char: "*")  # defined in base_grid.rb
   end
 
-  column(:sex, class: ["text-center"], mandatory: true, header: Proc.new{I18n.t('tables.sex')}) do |record|
+  column(:sex, tag_options: {class: ["text-center"]}, mandatory: true, header: Proc.new{I18n.t('tables.sex')}) do |record|
     record.sex.title(langcode: I18n.locale)
   end
 
-  column(:birth_year, class: ["align-cr"], mandatory: false, header: Proc.new{I18n.t('artists.show.birthday')}) do |record|
+  column(:birth_year, tag_options: {class: ["align-cr"]}, mandatory: false, header: Proc.new{I18n.t('artists.show.birthday')}) do |record|
     sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
                                 i = record.send m
                                 (i.blank? ? '——' : i.to_s)
@@ -89,11 +89,11 @@ class ArtistsGrid < ApplicationGrid
     (co=record.channel_owner) ? ActionController::Base.helpers.link_to(I18n.t("ChannelOwner"), Rails.application.routes.url_helpers.channel_owner_url(co, only_path: true)) : ""
   end
 
-  column(:n_musics, class: ["align-cr", "align-r-padding3"], header: Proc.new{I18n.t('tables.n_musics')}) do |record|
+  column(:n_musics, tag_options: {class: ["align-cr", "align-r-padding3"]}, header: Proc.new{I18n.t('tables.n_musics')}) do |record|
     record.musics.uniq.count
   end
 
-  column(:n_harami_vids, class: ["align-cr", "align-r-padding3"], header: Proc.new{I18n.t('tables.n_harami_vids')}) do |record|
+  column(:n_harami_vids, tag_options: {class: ["align-cr", "align-r-padding3"]}, header: Proc.new{I18n.t('tables.n_harami_vids')}) do |record|
     record.harami_vids.uniq.count.to_s
   end
 
@@ -115,9 +115,9 @@ class ArtistsGrid < ApplicationGrid
     sanitized_html(auto_link50(record.note)).html_safe
   }
 
-  column(:updated_at, class: ["editor_only"], header: Proc.new{I18n.t('tables.updated_at')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)})
-  column(:created_at, class: ["editor_only"], header: Proc.new{I18n.t('tables.created_at')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)})
-  column(:actions, class: "actions", html: true, mandatory: true, header: "") do |record|  # Proc.new{I18n.t("tables.actions", default: "Actions")}
+  column(:updated_at, tag_options: {class: ["editor_only"]}, header: Proc.new{I18n.t('tables.updated_at')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)})
+  column(:created_at, tag_options: {class: ["editor_only"]}, header: Proc.new{I18n.t('tables.created_at')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)})
+  column(:actions, tag_options: {class: ["actions"]}, html: true, mandatory: true, header: "") do |record|  # Proc.new{I18n.t("tables.actions", default: "Actions")}
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
     ar = [link_to(I18n.t('layouts.Show'), artist_path(record), data: { turbolinks: false })]
     if can? :update, record
