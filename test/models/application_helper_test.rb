@@ -265,6 +265,22 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_equal exp, act
   end
 
+  test "html_consistent_or_inconsistent" do
+    css_pla = CSS_CLASSES[:consistency_place]
+    exp = '<span class="'+css_pla+' editor_only">(<span class="lead text-red"><strong>INCONSISTENT</strong></span>)</span>'
+    assert_equal exp, html_consistent_or_inconsistent(false)
+
+    exp = '<span class="'+css_pla+' editor_only">(<span class="lead text-red"><strong>INCONSISTENT</strong> with Event</span>)</span>'
+    assert_equal exp, html_consistent_or_inconsistent(false, postfix: " with Event".html_safe)
+    assert_equal "",  html_consistent_or_inconsistent(true,  postfix: " with Event".html_safe)
+
+    opts = {print_consistent: true, with_parentheses: false, span_class: "moderator_only my_other_class"}
+    exp = '<span class="'+css_pla+' moderator_only my_other_class"><span class="lead text-red"><strong>INCONSISTENT</strong></span></span>'
+    assert_equal exp, html_consistent_or_inconsistent(false, **opts)
+    exp = '<span class="'+css_pla+' moderator_only my_other_class">consistent</span>'
+    assert_equal exp, html_consistent_or_inconsistent(true,  **opts)
+  end
+
   private
 end
 

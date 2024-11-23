@@ -401,6 +401,58 @@ class ApplicationGrid < Datagrid::Base
     column(:updated_at, header: Proc.new{I18n.t('tables.updated_at')}, **common_opts)
     column(:created_at, header: Proc.new{I18n.t('tables.created_at')}, **common_opts)
   end
+
+  # Add a column for "actions", including Show, Edit (if user is eligible), and more if specified.
+  #
+  # == Note to developers
+  #
+  # The part inside the block cannot be easily defined as a separate method...
+  # If it is defined in applicatioin_helper.rb, it can be used.
+  # However, if it is defined in this class as a class method,
+  #
+  #   1. You need to call it like: ApplicationGrid._column_actions_html()
+  #   2. link_to has to be written as ActionController::Base.helpers.link_to
+  #   3. URL helpers have to be written as Rails.application.routes.url_helpers.polymorphic_path
+  #   4. Most importantly, Ability-related methods of can? cannot be used (and I don't yet know how)
+  #
+  # For these reasons, they are written in this method.  Nevertheless,
+  # the block passed to this method has to be exec-ed with +instance_exec()+
+  # to be run in View's context.
+  # See /datagrid-2.0.0/lib/datagrid/columns.rb
+  #
+  # I tried creating a method that returns ar4editors and tried instance_exec it
+  # from here, but it still did not work; can?() fails and link_to would not work without the fullpath.
+  #
+  # @example
+  #   column_actions  # defined in application_grid.rb
+  #
+  # @param with_destroy: [Boolean] if true (Def: false), "Destroy" link  is added.
+  # @yield should return html_safe(!!) String (like "Destroy" link) or its Array (or nil) that are meant to follow "Edit" for Editor (or Moderataor)
+  #   The block is called only when User can :update.
+  #   The returned HTML String is automatically enclosed with *span* of +tag_class+.
+  def self.column_actions(tag_class: "editor_only", with_destroy: false, &block)
+    column(:actions, tag_options: {class: ["actions"]}, html: true, mandatory: true, order: false, header: "") do |record| # Proc.new{I18n.t("tables.actions", default: "Actions")}
+      retstr = link_to(I18n.t('layouts.Show'), polymorphic_path(record), data: { turbolinks: false })
+      next retstr if !can?(:update, record)
+
+      ar4editors = [ link_to('Edit', polymorphic_path(record, action: :edit)) ]
+
+      if block_given?
+        #artmp = yield(record)  # Standard yield would fail if can?() is used in the given block.
+        artmp = instance_exec(record, &block)
+        ar4editors += [artmp].flatten if artmp && ![artmp].compact.empty?
+      end
+
+      if with_destroy && can?(:destroy, record)
+        ar4editors.push link_to('Destroy', polymorphic_path(record), method: :delete, data: { confirm: I18n.t('are_you_sure') })
+      end
+
+      ar_pair = tag_pair_span(tag_class: tag_class) # defined in application_helper.rb
+
+      retstr += (ar_pair[0] + " / ".html_safe + ar4editors.join(" / ").html_safe + ar_pair[1]) # should be html_safe as a whole
+    end
+  end
+
 end # class ApplicationGrid
 
 #### Does not work: 

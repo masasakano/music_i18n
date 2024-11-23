@@ -75,29 +75,12 @@ class TranslationsGrid < ApplicationGrid
 
   column(:weight, mandatory: true, tag_options: {class: ["editor_only"]}, if: Proc.new{ApplicationGrid.qualified_as?(TransModerator)})
 
-  column_display_user(:create_user, tag_options: {class: ["editor_only"]})
-  column_display_user(:update_user, tag_options: {class: ["editor_only"]})
-  #column(:create_user) do |record|
-  #  is_me = (CURRENT_USER && CURRENT_USER == record)
-  #  is_me ? "<strong>SELF</strong>".html_safe : record.display_name
-  #end
-  #column(:update_user) do |record|
-  #  record.display_name
-  #end
+  column_display_user(:update_user, tag_options: {class: ["editor_only"]})  # defined in application_grid.rb
+  column_display_user(:create_user, tag_options: {class: ["editor_only"]})  # defined in application_grid.rb
 
   column_note             # defined in application_grid.rb
   columns_upd_created_at  # defined in application_grid.rb
 
-  column(:actions, tag_options: {class: ["actions"]}, html: true, mandatory: true, header: I18n.t("tables.actions", default: "Actions")) do |record|
-    #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
-    ar = [link_to('Show', translation_path(record), data: { turbolinks: false })]
-    if can? :update, record
-      ar.push link_to('Edit', edit_translation_path(record))
-      if can? :destroy, record
-        ar.push link_to('Destroy', translation_path(record), method: :delete, data: { confirm: t('are_you_sure').html_safe })
-      end
-    end
-    ar.compact.join(' / ').html_safe
-  end
+  column_actions(with_destroy: true) #do |record| # defined in application_grid.rb
 end
 

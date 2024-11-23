@@ -1,5 +1,6 @@
 # coding: utf-8
 class MusicsGrid < ApplicationGrid
+  extend ApplicationHelper ##################################################################################
 
   scope do
     Music.all
@@ -96,19 +97,9 @@ class MusicsGrid < ApplicationGrid
   column_note             # defined in application_grid.rb
   columns_upd_created_at  # defined in application_grid.rb
 
-  column(:actions, tag_options: {class: ["actions"]}, html: true, mandatory: true, header: "") do |record|  # Proc.new{I18n.t("tables.actions", default: "Actions")}
-    #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
-    ar = [link_to(I18n.t('layouts.Show'), music_path(record), data: { turbolinks: false })]
-    if can? :update, record
-      ar.push(('<span  class="editor_only">'+link_to('Edit', edit_music_path(record))+'</span>').html_safe)
-      if can?(:update, Musics::MergesController)
-        ar.push(('<span  class="editor_only">'+link_to('Merge', musics_new_merges_path(record))+'</span>').html_safe)
-        #if can? :destroy, record
-        #  ar.push link_to('Destroy', music_path(record), method: :delete, data: { confirm: (t('are_you_sure')+" "+t("are_you_sure.merge")).html_safe })
-        #end
-      end
-    end
-    ar.compact.join(' / ').html_safe
+  column_actions(with_destroy: false) do |record| # defined in application_grid.rb
+    # This is relevant only when User can :update
+    can?(:update, Musics::MergesController) ? link_to('Merge', musics_new_merges_path(record)) : nil
   end
 
 end

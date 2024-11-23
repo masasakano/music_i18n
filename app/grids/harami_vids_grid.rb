@@ -162,17 +162,7 @@ class HaramiVidsGrid < ApplicationGrid
   column_note             # defined in application_grid.rb
   columns_upd_created_at  # defined in application_grid.rb
 
-  column(:actions, tag_options: {class: ["actions"]}, html: true, mandatory: true, order: false, header: "") do |record| # Proc.new{I18n.t("tables.actions", default: "Actions")}
-    #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
-    ar = [link_to(I18n.t('layouts.Show'), harami_vid_path(record), data: { turbolinks: false })]
-    if can? :update, record
-      ar.push(sprintf('<span class="editor_only">%s</span>', link_to('Edit', edit_harami_vid_path(record))).html_safe)
-      #if can? :destroy, record
-      #  ar.push link_to('Destroy', harami_vid_path(record), method: :delete, data: { confirm: t('are_you_sure').html_safe })  # confirm: (t('are_you_sure')+" "+t("are_you_sure.merge")).html_safe
-      #end
-    end
-    ar.compact.join(' / ').html_safe
-  end
+  column_actions  # defined in application_grid.rb
 
 end
 
