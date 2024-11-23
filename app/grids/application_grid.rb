@@ -369,6 +369,38 @@ class ApplicationGrid < Datagrid::Base
     #CURRENT_USER && CURRENT_USER.send(role.to_s+"?")
     CURRENT_USER && CURRENT_USER.send(:qualified_as?, *args)
   end
+
+  # Add filter with ID range and define it as the first column to display (displayed only for Editors)
+  #
+  # @note The following would not work:
+  #    if ArtistsGrid.is_current_user_moderator
+  #
+  # @example Put it at the beginning of the filters
+  #   filter_n_column_id(:harami_vid_url)  # defined in application_grid.rb
+  #
+  # @param url_sym [Symbol, String] e.g., :harami_vid_url
+  def self.filter_n_column_id(url_sym)
+    filter(:id, :integer, range: true, header: "ID", tag_options: {class: ["editor_only"]}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)})  # displayed only for editors
+    column(:id, tag_options: {class: ["align-cr", "editor_only"]}, header: "ID", if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
+      to_path = Rails.application.routes.url_helpers.send(url_sym, record, {only_path: true}.merge(ApplicationController.new.default_url_options))
+      ActionController::Base.helpers.link_to record.id, to_path
+    end
+  end
+
+  # Add column :note
+  def self.column_note
+    column(:note, html: true, order: false, header: Proc.new{I18n.t("tables.note", default: "Note")}){ |record|
+      sanitized_html(auto_link50(record.note)).html_safe
+    }
+  end 
+
+  # Add columns - put this at the end of the columns before Actions
+  #
+  def self.columns_upd_created_at
+    common_opts = {tag_options: {class: ["editor_only"]}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)}}
+    column(:updated_at, header: Proc.new{I18n.t('tables.updated_at')}, **common_opts)
+    column(:created_at, header: Proc.new{I18n.t('tables.created_at')}, **common_opts)
+  end
 end # class ApplicationGrid
 
 #### Does not work: 

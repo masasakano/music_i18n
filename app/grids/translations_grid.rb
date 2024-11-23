@@ -10,11 +10,11 @@ class TranslationsGrid < ApplicationGrid
 
   ####### Filters #######
 
+  filter_n_column_id(:translation_url)  # defined in application_grid.rb
+
   filter(:title, header: 'Title/Ruby keyword (partial match)') do |value|
     self.select_partial_str(:all, value, ignore_case: true)  # Only for PostgreSQL!
   end
-
-  filter(:id, :integer, header: "ID", if: Proc.new{ApplicationGrid.qualified_as?(:editor)})  # displayed only for editors
 
   filter(:translatable_type, :enum, header: "Class", checkboxes: true, select: Proc.new{ Translation.all.pluck(:translatable_type).uniq.compact.sort.map{|c| [c, c]} })
   filter(:langcode, :enum, header: "Locale", checkboxes: true, select: Proc.new{Translation.all.pluck(:langcode).uniq.compact.sort{|a, b|
@@ -53,11 +53,6 @@ class TranslationsGrid < ApplicationGrid
 
   ####### Columns #######
 
-  column(:id, tag_options: {class: ["align-cr", "editor_only"]}, header: "ID", if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
-    to_path = Rails.application.routes.url_helpers.harami1129_url(record, {only_path: true}.merge(ApplicationController.new.default_url_options))
-    ActionController::Base.helpers.link_to record.id, to_path
-  end
-
   column(:translatable, mandatory: true) do |record|
     sprintf(
       "%s (%s)",
@@ -90,12 +85,9 @@ class TranslationsGrid < ApplicationGrid
   #  record.display_name
   #end
 
-  column(:note, html: true, order: false, header: Proc.new{I18n.t("tables.note", default: "Note")}){ |record|
-    auto_link50(record.note)
-  }
+  column_note             # defined in application_grid.rb
+  columns_upd_created_at  # defined in application_grid.rb
 
-  column(:updated_at, tag_options: {class: ["editor_only"]}, header: Proc.new{I18n.t('tables.updated_at')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)})
-  column(:created_at, tag_options: {class: ["editor_only"]}, header: Proc.new{I18n.t('tables.created_at')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)})
   column(:actions, tag_options: {class: ["actions"]}, html: true, mandatory: true, header: I18n.t("tables.actions", default: "Actions")) do |record|
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
     ar = [link_to('Show', translation_path(record), data: { turbolinks: false })]

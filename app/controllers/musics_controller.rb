@@ -29,7 +29,7 @@ class MusicsController < ApplicationController
     set_artist_prms  # set @artist, @artist_name, @artist_title
     @artist_music_ids = (@artist ? @artist.musics.distinct.pluck(:id) : nil)
     
-    set_grid(Music)  # setting @grid; defined in concerns/module_grid_controller.rb
+    set_grid(Music, hs_def: {order: :updated_at, descending: true})  # setting @grid; defined in concerns/module_grid_controller.rb
   end
 
   # GET /musics/1

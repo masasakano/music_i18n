@@ -11,7 +11,7 @@ class TranslationsController < ApplicationController
     @translations = Translation.all.order(:translatable_type, :translatable_id)
     @hsuser = User.all.pluck(:id, :display_name).to_h.map{|k,v| [k, ((v.length < 17) ? v : sprintf("%s…%d",v[0..16],k))]}.to_h
 
-    set_grid(Translation)  # setting @grid; defined in concerns/module_grid_controller.rb
+    set_grid(Translation, hs_def: {order: :updated_at, descending: true})  # setting @grid; defined in concerns/module_grid_controller.rb
   end
 
   # GET /translations/1

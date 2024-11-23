@@ -151,7 +151,7 @@ class MusicsTest < ApplicationSystemTestCase
     assert_equal n_trs0+1, page.find_all("tr").size, "The number of table rows should have increased by 1, but..."
 
     css_to   = css_grid_input_range(Music, "year", fromto: :to)
-    page.find_all('input[type="number"]')[1].fill_in  with: 1200  # the first one is for pID
+    page.find_all('input[type="number"]')[2].fill_in  with: 1200  # the first two are for pID
     page.find(css_to).fill_in  with: 1299
     #find_field("Year", match: :first).fill_in  with: 1200  # not works
     #fill_in "Year", match: :first, with: 1200  # not works

@@ -33,15 +33,18 @@ module ModuleGridController
   # @example HaramiVid
   #   set_grid(HaramiVid, hs_def: {order: :release_date, descending: true})  # setting @grid; defined in concerns/module_grid_controller.rb
   #
+  # @example Music, Translation
+  #  set_grid(Music, hs_def: {order: :updated_at, descending: true})  # setting @grid; defined in concerns/module_grid_controller.rb
+  #
   # @param model [Class, ApplicationRecord, String, Symbol]
-  # @param hs_def: [Hash] to give @grid in default
+  # @param hs_def: [Hash] to give @grid in default; this has a lower priority than params, so this can give a default ordering/sorting
   # @return [Google::Apis::YoutubeV3::YouTubeService]
   def set_grid(model, hs_def: {})
     prm_name = plural_underscore(model) + "_grid"  # e.g., "artists_grid"; defined in application_helper.rb
     grid_klass = prm_name.classify.constantize
 
     grid_prms = (params[prm_name] || {})  # NULL for the first-time access to index
-    grid_prms = grid_prms.merge(hs_def) if hs_def.present?
+    grid_prms = grid_prms.merge(hs_def) if hs_def.present? && params[:order].blank? # hs_def should have a lower priority than params
 
     @grid = grid_klass.new(grid_prms) do |scope|
       nmax = ApplicationGrid.get_max_per_page(grid_prms[:max_per_page])

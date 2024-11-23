@@ -7,7 +7,7 @@ class MusicsGrid < ApplicationGrid
 
   ####### Filters #######
 
-  filter(:id, :integer, header: "ID", if: Proc.new{ApplicationGrid.qualified_as?(:editor)})  # displayed only for editors
+  filter_n_column_id(:music_url)  # defined in application_grid.rb
 
   filter_include_ilike(:title_ja, header: Proc.new{I18n.t("datagrid.form.title_ja_en", default: "Title [ja+en] (partial-match)")})
   filter_include_ilike(:title_en, langcode: 'en', header: Proc.new{I18n.t("datagrid.form.title_en", default: "Title [en] (partial-match)")})
@@ -33,7 +33,7 @@ class MusicsGrid < ApplicationGrid
 
   ####### Columns #######
 
-  column(:id, tag_options: {class: ["align-cr", "editor_only"]}, header: "ID", if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) # NOT: if MusicsGrid.current_user.moderator?  # This does not work; see above
+  # ID first (already defined in the head of the filters section)
 
   column(:title_ja, header: Proc.new{I18n.t('tables.title_ja')}, mandatory: true, order: proc { |scope|
     #order_str = Arel.sql("convert_to(title, 'UTF8')")
@@ -93,12 +93,9 @@ class MusicsGrid < ApplicationGrid
     ActionController::Base.helpers.link_to(I18n.t(:times_hon, count: record.harami_vids.distinct.count.to_s), Rails.application.routes.url_helpers.music_path(record)+"#sec_harami_vids_for")
   end
 
-  column(:note, html: true, order: false, header: Proc.new{I18n.t("tables.note", default: "Note")}){ |record|
-    sanitized_html(auto_link50(record.note)).html_safe
-  }
+  column_note             # defined in application_grid.rb
+  columns_upd_created_at  # defined in application_grid.rb
 
-  column(:updated_at, tag_options: {class: ["editor_only"]}, header: Proc.new{I18n.t('tables.updated_at')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)})
-  column(:created_at, tag_options: {class: ["editor_only"]}, header: Proc.new{I18n.t('tables.created_at')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)})
   column(:actions, tag_options: {class: ["actions"]}, html: true, mandatory: true, header: "") do |record|  # Proc.new{I18n.t("tables.actions", default: "Actions")}
     #ar = [ActionController::Base.helpers.link_to('Show', record, data: { turbolinks: false })]
     ar = [link_to(I18n.t('layouts.Show'), music_path(record), data: { turbolinks: false })]

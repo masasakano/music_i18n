@@ -75,17 +75,14 @@ class Harami1129sGrid < ApplicationGrid
   column(:event_item_id) do |record|
     (record.event_item_id ? ActionController::Base.helpers.link_to(record.event_item_id, Rails.application.routes.url_helpers.event_item_url(record.event_item_id, only_path: true)) : '')
   end
-  column(:note, mandatory: true, html: true, order: false, header: Proc.new{I18n.t("tables.note", default: "Note")}){ |record|
-    sanitized_html(auto_link50(record.note)).html_safe
-  }
+
+  column_note             # defined in application_grid.rb
 
   column(:last_downloaded_at)
   column(:orig_modified_at)
   column(:ins_at)
   column(:checked_at)
-  column(:updated_at)
-  column(:created_at)
-
+  columns_upd_created_at  # defined in application_grid.rb
   column(:Problems) do |record|
     ar = record.populate_status.problematic_column_names
     ar.empty? ? "" : ar.join(", ")
