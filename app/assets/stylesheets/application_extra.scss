@@ -192,26 +192,50 @@ table {
   }
 }
 
-form div.datagrid-filter input.string_filter {
+form div.datagrid-filter input[type="text"] {
     min-width: 30em;
+    width: 50em;
+}
+form div.datagrid-filter input[type="number"] {
+    min-width: 5em;
+    width: 10em;
 }
 form div.datagrid-filter input#harami_vids_grid_title_ja, form div.datagrid-filter.filter input#harami_vids_grid_title_en {
     width: 80em;
 }
+form div.datagrid-filter[data-filter="id"] {
+  box-shadow: inset 0 0 0 1000px rgba(0,0,0,.1);  /* Same as editor_only */
+}
 
-table.datagrid {
+table.datagrid-table {
   background-color: #ff9999;
-  thead tr th {
+  thead tr {
+    th {
       background-color: #bbbbbb;
+    }
   }
+  
   tbody {
       background-color: #dd9999;
   }
-  tr th.ordered {
-      background-color: #ffaaaa;
+
+  .datagrid-order-active-asc,
+  .datagrid-order-active-desc {
+    background-color: #ffaaaa;
+    /* background-color: #fff7d5; */ /* Datagrid-2.0 defualt */
   }
-  tr td.ordered {
-      background-color: #ffaaaa;
+
+  .datagrid-order-active-asc a.datagrid-order-control-asc,
+  .datagrid-order-active-desc a.datagrid-order-control-desc {
+    /* Datagrid-2.0 defualt; copied from /datagrid-2.0.0/app/assets/stylesheets/datagrid.css */
+    font-weight: bold;
+    color: #d00;
+  }
+
+  thead tr, tbody tr {
+    th[data-column="id"], th[data-column="updated_at"], th[data-column="created_at"], td[data-column="id"], td[data-column="updated_at"], td[data-column="created_at"] {
+      box-shadow: inset 0 0 0 1000px rgba(0,0,0,.1);  /* Same as editor_only */
+    }
   }
 }
 
