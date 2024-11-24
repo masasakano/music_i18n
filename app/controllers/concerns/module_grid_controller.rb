@@ -44,7 +44,7 @@ module ModuleGridController
     grid_klass = prm_name.classify.constantize
 
     grid_prms = (params[prm_name] || {})  # NULL for the first-time access to index
-    grid_prms = grid_prms.merge(hs_def) if hs_def.present? && params[:order].blank? # hs_def should have a lower priority than params
+    grid_prms = grid_prms.merge(hs_def) if hs_def.present? && grid_prms[:order].blank? # hs_def should have a lower priority than params
 
     @grid = grid_klass.new(grid_prms) do |scope|
       nmax = ApplicationGrid.get_max_per_page(grid_prms[:max_per_page])
