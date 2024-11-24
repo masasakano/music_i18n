@@ -36,34 +36,7 @@ class MusicsGrid < ApplicationGrid
 
   # ID first (already defined in the head of the filters section)
 
-  column(:title_ja, header: Proc.new{I18n.t('tables.title_ja')}, mandatory: true, order: proc { |scope|
-    #order_str = Arel.sql("convert_to(title, 'UTF8')")
-    order_str = Arel.sql('title COLLATE "ja-x-icu"')
-    scope.joins(:translations).where("langcode = 'ja'").order(order_str) #.order("title")
-  }) do |record|
-    html_titles(record, col: :title, langcode: "ja", is_orig_char: "*") # defined in base_grid.rb
-  end
-  column(:ruby_romaji_ja, header: Proc.new{I18n.t('tables.ruby_romaji')}, order: proc { |scope|
-    order_str = Arel.sql('ruby COLLATE "ja-x-icu", romaji COLLATE "ja-x-icu"')
-    scope.joins(:translations).where("langcode = 'ja'").order(order_str) #order("ruby").order("romaji")
-  }) do |record|
-    str_ruby_romaji(record)  # If NULL, nothing is displayed. # defined in base_grid.rb
-  end
-  column(:alt_title_ja, header: Proc.new{I18n.t('tables.alt_title_ja')}, mandatory: true, order: proc { |scope|
-    order_str = Arel.sql('alt_title COLLATE "ja-x-icu"')
-    scope.joins(:translations).where("langcode = 'ja'").order(order_str)
-  }) do |record|
-    str_ruby_romaji(record, col: :alt_title)  # If NULL, nothing is displayed. # defined in base_grid.rb
-  end
-  column(:title_en, mandatory: true, header: Proc.new{I18n.t('tables.title_en_alt')}, order: proc { |scope| #, grid|  # add grid to get a filter to use like:  grid.trans_display_preferance
-    scope_with_trans_order(scope, Music, langcode="en")  # defined in base_grid.rb
-  }) do |record|
-    html_title_alts(record, is_orig_char: "*")  # defined in base_grid.rb
-  end
-
-  column(:other_lang, header: Proc.new{I18n.t('layouts.Other_language_short')}) do |record|
-    titles_other_langs(record, is_orig_char: "*")  # defined in base_grid.rb
-  end
+  column_all_titles  # defined in application_grid.rb
 
   column(:year, tag_options: {class: ["align-cr"]}, header: Proc.new{I18n.t('tables.year')}, mandatory: true)
 

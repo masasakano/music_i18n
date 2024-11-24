@@ -299,17 +299,49 @@ class ApplicationGrid < Datagrid::Base
   # @param record [BaseWithTranslation]
   # @param langcode [String, Symbol, NilClass] if nil, the same as the entry of is_orig==TRUE
   # @param is_orig_char [String, NilClass] Unless nil, title in a language of is_orig is ticked with this char (Def: nil)
+  # @param with_locale_prefix: [Boolean] if true (Def: false), "[fr] " etc is prefixed.
   # @return [String] html_safe-ed
-  def self.html_title_alts(record, langcode: "en", is_orig_char: nil)
+  def self.html_title_alts(record, langcode: "en", is_orig_char: nil, with_locale_prefix: false)
     rela = record.translations_with_lang(langcode.to_s)
-    artit2 = rela.pluck(:title, :alt_title)
-    artit2.map!{|ea| ea.map{|j| ERB::Util.html_escape(j)}}
-    artit2[0][0] << is_orig_helper_title(is_orig_char: is_orig_char) if is_orig_char && rela[0] && rela[0].is_orig
+    artit2 = rela.pluck(:title, :ruby, :alt_title, :alt_ruby)
+    is_orig_char_to_pass = (is_orig_char && rela[0] && rela[0].is_orig ? is_orig_char : nil)
+
     artit2.map{|earow|
-      s = sprintf('%s [%s]', *(earow.map{|i| i ? i : ''}))
-      s.sub(%r@ +\[\]\z@, '')   # If NULL, nothing is displayed.
+      _html_title_alt_one(earow, langcode: langcode, is_orig_char: is_orig_char_to_pass, with_locale_prefix: with_locale_prefix)
     }.join("<br>").html_safe
   end
+
+  # Returns a line of the String HTML expression for "title [ruby] / alt_title [alt_ruby]"
+  #
+  # @param artits [Array<String>] title, ruby, alt_title, alt_ruby
+  # @param langcode [String, Symbol, NilClass] if nil, the same as the entry of is_orig==TRUE
+  # @param is_orig_char [String, NilClass] Unless nil, title in a language of is_orig is ticked with this char (Def: nil)
+  # @param with_locale_prefix: [Boolean] if true (Def: false), "[fr] " etc is prefixed.
+  # @return [String] html_safe-ed
+  def self._html_title_alt_one(ar_titles, langcode: "en", is_orig_char: nil, with_locale_prefix: false)
+    artits = ar_titles.map{|j| ERB::Util.html_escape(j)}.map.with_index{|tit, i|
+      case i
+      when 0, 2
+        tit_html = (tit.present? ? safe_html_in_tagpair(tit, tag_class: "translation-"+((i==0) ? "" : "alt_")+"title lang-#{langcode}") : tit)
+        if is_orig_char && ((0 == i) || ar_titles[0].blank?)
+          (tit_html + is_orig_helper_title(is_orig_char: is_orig_char))
+        else
+          tit_html
+        end
+      when 1, 3
+        tit.present? ? sprintf(" [%s]", safe_html_in_tagpair(tit, tag_class: "translation-"+((i==0) ? "" : "alt_")+"ruby lang-#{langcode}")) : ""
+      else
+        raise "Should never happen"
+      end
+    }
+
+    ret = ""
+    ret << sprintf("[%s] ", safe_html_in_tagpair(ERB::Util.html_escape(langcode), tag_class: "translation-locale")) if with_locale_prefix
+    ret << artits[0..1].join("")
+    return ret.html_safe if artits[2].blank?
+    (ret + sprintf(' &nbsp;/ %s%s', *(artits[2..3]))).html_safe
+  end
+  private_class_method :_html_title_alt_one
 
   # Returns the multi-HTML-line text to list translations of title (or alt_title) in other languages than En/Ja
   #
@@ -317,21 +349,12 @@ class ApplicationGrid < Datagrid::Base
   #
   # @return [String] html_safe-ed
   def self.titles_other_langs(record, is_orig_char: "*")
-    hs_best_trans = record.best_translations.except("ja", "en")
     orig_langcode = record.orig_langcode
-    best_trans = hs_best_trans.values.sort{|a, b|
-      if    orig_langcode == a.langcode
-        -1
-      elsif orig_langcode == b.langcode
-        1
-      else
-        0
-      end
-    }.map{|etrans|
-      tit = etrans.title
-      tit = etrans.alt_title if tit.blank?
-      marker = %q[<span title="]+ERB::Util.html_escape(I18n.t("datagrid.footnote.is_original"))+%q[">]+ERB::Util.html_escape(is_orig_char)+"</span>" if (orig_langcode == etrans.langcode)  # The asterisk (*) is displayed even for non-autheticated users, unlike JA/EN titles.
-      ERB::Util.html_escape(sprintf("[%s] %s", etrans.langcode, tit)) + (marker ? marker.html_safe : "")
+
+    langcodes = (record.translations.pluck(:langcode).flatten.uniq - ["ja", "en"]).map{
+      |i| [((orig_langcode == i) ? 0 : 1), i]
+    }.sort.map(&:last).map{ |elc|
+      html_title_alts(record, langcode: elc, is_orig_char: is_orig_char, with_locale_prefix: true)
     }.join("<br>").html_safe
   end
 
@@ -384,6 +407,44 @@ class ApplicationGrid < Datagrid::Base
     column(:id, tag_options: {class: ["align-cr", "editor_only"]}, header: "ID", if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
       to_path = Rails.application.routes.url_helpers.send(url_sym, record, {only_path: true}.merge(ApplicationController.new.default_url_options))
       ActionController::Base.helpers.link_to record.id, to_path
+    end
+  end
+
+  # Add columns title_ja, ruby_... for a {BaseWithTranslation} model etc.
+  def self.column_all_titles
+    column(:title_ja, mandatory: true, header: Proc.new{I18n.t('tables.title_ja')}, order: proc { |scope|
+      #order_str = Arel.sql("convert_to(title, 'UTF8')")
+      order_str = Arel.sql('title COLLATE "ja-x-icu"')
+      scope.left_joins(:translations).where("langcode = 'ja'").order(order_str) #.order("title")
+      #scope.left_joins("LEFT OUTER JOIN translations ON translations.translatable_type = 'Artist' AND translations.translatable_id = artists.id AND translations.langcode = 'ja'").order(order_str) #.order("title")
+    }) do |record|
+      html_titles(record, col: :title, langcode: "ja", is_orig_char: "*") # defined in base_grid.rb
+    end
+
+    column(:ruby_romaji_ja, header: Proc.new{I18n.t('tables.ruby_romaji')}, order: proc { |scope|
+      order_str = Arel.sql('ruby COLLATE "ja-x-icu", romaji COLLATE "ja-x-icu"')
+      scope.joins(:translations).where("langcode = 'ja'").order(order_str) #order("ruby").order("romaji")
+      #scope.left_joins("LEFT OUTER JOIN translations ON translations.translatable_type = 'Artist' AND translations.translatable_id = artists.id AND translations.langcode = 'ja'").order(order_str) #order("ruby").order("romaji")  # for some reason this does not work!
+    }) do |record|
+      str_ruby_romaji(record)  # If NULL, nothing is displayed. # defined in base_grid.rb
+    end
+
+    column(:alt_title_ja, mandatory: true, header: Proc.new{I18n.t('tables.alt_title_ja')}, order: proc { |scope|
+      order_str = Arel.sql('alt_title COLLATE "ja-x-icu"')
+      scope.joins(:translations).where("langcode = 'ja'").order(order_str)
+      #scope.left_joins("LEFT OUTER JOIN translations ON translations.translatable_type = 'Artist' AND translations.translatable_id = artists.id AND translations.langcode = 'ja'").order(order_str) #.order("title")
+    }) do |record|
+      str_ruby_romaji(record, col: :alt_title)  # If NULL, nothing is displayed. # defined in base_grid.rb
+    end
+
+    column(:title_en, mandatory: true, header: Proc.new{I18n.t('tables.title_en_alt')}, order: proc { |scope|
+      scope_with_trans_order(scope, Artist, langcode="en")  # defined in base_grid.rb
+    }) do |record|
+      html_title_alts(record, is_orig_char: "*")  # defined in base_grid.rb
+    end
+
+    column(:other_lang, header: Proc.new{I18n.t('layouts.Other_language_short')}) do |record|
+      titles_other_langs(record, is_orig_char: "*")  # defined in base_grid.rb
     end
   end
 

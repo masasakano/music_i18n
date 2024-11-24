@@ -968,10 +968,6 @@ module ApplicationHelper
     raise ArgumentError, "postfix #{postfix.inspect} is NOT html_safe." if !postfix.html_safe?
 
     tag_class = ERB::Util.html_escape(span_class.present? ? [CSS_CLASSES[:consistency_place], (span_class.present? ? span_class : nil)].compact.join(" ") : "")
-    outer_span_pair = tag_pair_span(tag_class: tag_class)
-    # outer_span_pair = [(span_class.present? ? "<span class=\"#{css_class_str}\">" : "")]
-    # outer_span_pair << (outer_span_pair[0].present? ? "</span>" : "")
-    # outer_span_pair.map!(&:html_safe)
 
     core_html =
       if is_consistent
@@ -982,7 +978,23 @@ module ApplicationHelper
 
     parenthesized_core_html = ((with_parentheses && !core_html.empty?) ?  ("("+core_html+")").html_safe : core_html)
 
-    outer_span_pair[0] + prefix + parenthesized_core_html + outer_span_pair[1]  # should be html_safe
+    safe_html_in_tagpair(prefix + parenthesized_core_html, tag_class: tag_class)
+  end
+
+  # Pair of html_safe String of (usually) either span (Def) or div
+  #
+  # @example
+  #   safe_html_in_tagpair("10 &gt; 9<br>8".html_safe, tag_class: "moderator_only smaller")
+  #   # => '<span class="moderator_only smaller">10 &gt; 9<br>8</span>'  [html_safe-ed]
+  #
+  # @param safe_content [String] to be encomapassed in a pair of HTML tags. Assumed to be html_safe
+  # @param tag_class: [String] String of CSS class(es) like "editor_only my_class1"
+  # @param tag: [String] HTML tag (Def: "span")
+  # @return [String] html_safe-ed 
+  def safe_html_in_tagpair(safe_content, tag_class: "editor_only", tag: "span")
+    raise "Argument has to be a html_safe String. Contact the code developer." if safe_content.present? && !safe_content.html_safe?
+    pair = tag_pair_span(tag_class: tag_class, tag: tag)
+    pair[0] + safe_content + pair[1]
   end
 
   # Pair of html_safe String of (usually) either span (Def) or div
@@ -991,13 +1003,15 @@ module ApplicationHelper
   #   ary = tag_pair_span(tag_class: "moderator_only") # defined in application_helper.rb
   #
   # @param tag_class: [String] String of CSS class(es) like "editor_only my_class1"
+  # @param tag: [String] HTML tag (Def: "span")
   # @return [Array<String>] 
   def tag_pair_span(tag_class: "editor_only", tag: "span")
     safe_tag = (tag.html_safe? ? tag : ERB::Util.html_escape(tag))
     raise if (tag.blank? || /\A[a-z0-9_]+\z/i !~ tag)
     raise if (tag_class.present? && /[<>]/ =~ tag_class)
-    safe_tag_class = (tag_class.html_safe? ? tag_class : ERB::Util.html_escape(tag_class))
-    outer_span_pair = [(tag_class.present? ? "<#{safe_tag} class=\"#{safe_tag_class}\">" : "")]
+    safe_tag_class = (tag_class.html_safe? ? tag_class : ERB::Util.html_escape(tag_class)) if tag_class
+    s = "<" + safe_tag + (tag_class.present? ? " class=\"#{safe_tag_class}\"" : "") + ">"
+    outer_span_pair = [s]
     outer_span_pair << (outer_span_pair[0].present? ? "</#{safe_tag}>" : "")
     outer_span_pair.map(&:html_safe)
   end

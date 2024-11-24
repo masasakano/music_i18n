@@ -58,7 +58,7 @@ class HaramiVid < BaseWithTranslation
   belongs_to :channel   # see: before_validation :add_def_channel
   has_many :harami_vid_music_assocs, dependent: :destroy
   has_many :harami_vid_event_item_assocs,  dependent: :destroy
-  has_many :musics, -> { order(Arel.sql('CASE WHEN timing IS NULL THEN 1 ELSE 0 END, timing')) }, through: :harami_vid_music_assocs   # in the order of timing in HaramiVidMusicAssoc, which is already joined. / n.b., because of this, "distinct" may raise an Exception.
+  has_many :musics, -> { order(Arel.sql('CASE WHEN harami_vid_music_assocs.timing IS NULL THEN 1 ELSE 0 END, harami_vid_music_assocs.timing')) }, through: :harami_vid_music_assocs   # in the order of timing in HaramiVidMusicAssoc, which is already joined. / n.b., because of this, "distinct" may raise an Exception.
 
   has_many :event_items, through: :harami_vid_event_item_assocs  # if the unique constraint is on for Association, `distinct` is not necessary for two-component associations (but it is for multi-components)
   has_many :events,       through: :event_items

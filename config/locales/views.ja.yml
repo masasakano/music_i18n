@@ -14,7 +14,7 @@ ja:
     alt_titles_name: 別名
     title_en: 英語名称
     title_name_en: 英語名
-    title_en_alt: "英語名称 [別称]"
+    title_en_alt: "英語名称 / 別称"
     alt_title_name_en: "英語別名"
     title_fr: 仏語名称
     title_name_fr: 仏語名
@@ -49,6 +49,8 @@ ja:
     duration: "長さ[秒]"
     duration_hour: "時間[h]"
     start_time: 開始日時
+    start_time_err: "開始日時誤差"
+    start_time_err_hr_short: "日時誤差[時間]"
     end_time: "終了日時"
     how_short: "関与形態"
     Show: "詳細"

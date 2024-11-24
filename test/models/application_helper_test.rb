@@ -265,6 +265,22 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_equal exp, act
   end
 
+  test "tag_pair_span" do
+    exp = ['<span class="my1 my2">', '</span>']
+    act = tag_pair_span(tag_class: "my1 my2")
+    assert_equal exp, act
+    exp = ['<em>', '</em>']
+    act = tag_pair_span(tag_class: nil, tag: "em")
+    assert_equal exp, act
+  end
+
+  test "safe_html_in_tagpair" do
+    assert_equal "<em>abc</em>", safe_html_in_tagpair("abc".html_safe, tag_class: "", tag: "em")
+    exp =  '<span class="moderator_only smaller">10 &gt; 9<br>8</span>'
+    act = safe_html_in_tagpair("10 &gt; 9<br>8".html_safe, tag_class: "moderator_only smaller")
+    assert_equal exp, act
+  end
+
   test "html_consistent_or_inconsistent" do
     css_pla = CSS_CLASSES[:consistency_place]
     exp = '<span class="'+css_pla+' editor_only">(<span class="lead text-red"><strong>INCONSISTENT</strong></span>)</span>'
@@ -276,9 +292,13 @@ class ModuleCommonTest < ActiveSupport::TestCase
 
     opts = {print_consistent: true, with_parentheses: false, span_class: "moderator_only my_other_class"}
     exp = '<span class="'+css_pla+' moderator_only my_other_class"><span class="lead text-red"><strong>INCONSISTENT</strong></span></span>'
-    assert_equal exp, html_consistent_or_inconsistent(false, **opts)
+    act = html_consistent_or_inconsistent(false, **opts)
+    assert_equal exp, act
+    assert act.html_safe?
     exp = '<span class="'+css_pla+' moderator_only my_other_class">consistent</span>'
-    assert_equal exp, html_consistent_or_inconsistent(true,  **opts)
+    act = html_consistent_or_inconsistent(true,  **opts)
+    assert_equal exp, act
+    assert act.html_safe?
   end
 
   private

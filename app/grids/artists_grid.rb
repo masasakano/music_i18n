@@ -38,37 +38,7 @@ class ArtistsGrid < ApplicationGrid
 
   # ID first (already defined in the head of the filters section)
 
-  column(:title_ja, mandatory: true, header: Proc.new{I18n.t('tables.title_ja')}, order: proc { |scope|
-    #order_str = Arel.sql("convert_to(title, 'UTF8')")
-    order_str = Arel.sql('title COLLATE "ja-x-icu"')
-    scope.left_joins(:translations).where("langcode = 'ja'").order(order_str) #.order("title")
-    #scope.left_joins("LEFT OUTER JOIN translations ON translations.translatable_type = 'Artist' AND translations.translatable_id = artists.id AND translations.langcode = 'ja'").order(order_str) #.order("title")
-  }) do |record|
-    html_titles(record, col: :title, langcode: "ja", is_orig_char: "*") # defined in base_grid.rb
-  end
-  column(:ruby_romaji_ja, header: Proc.new{I18n.t('tables.ruby_romaji')}, order: proc { |scope|
-    order_str = Arel.sql('ruby COLLATE "ja-x-icu", romaji COLLATE "ja-x-icu"')
-    scope.joins(:translations).where("langcode = 'ja'").order(order_str) #order("ruby").order("romaji")
-    #scope.left_joins("LEFT OUTER JOIN translations ON translations.translatable_type = 'Artist' AND translations.translatable_id = artists.id AND translations.langcode = 'ja'").order(order_str) #order("ruby").order("romaji")  # for some reason this does not work!
-  }) do |record|
-    str_ruby_romaji(record)  # If NULL, nothing is displayed. # defined in base_grid.rb
-  end
-  column(:alt_title_ja, mandatory: true, header: Proc.new{I18n.t('tables.alt_title_ja')}, order: proc { |scope|
-    order_str = Arel.sql('alt_title COLLATE "ja-x-icu"')
-    scope.joins(:translations).where("langcode = 'ja'").order(order_str)
-    #scope.left_joins("LEFT OUTER JOIN translations ON translations.translatable_type = 'Artist' AND translations.translatable_id = artists.id AND translations.langcode = 'ja'").order(order_str) #.order("title")
-  }) do |record|
-    str_ruby_romaji(record, col: :alt_title)  # If NULL, nothing is displayed. # defined in base_grid.rb
-  end
-  column(:title_en, mandatory: true, header: Proc.new{I18n.t('tables.title_en_alt')}, order: proc { |scope|
-    scope_with_trans_order(scope, Artist, langcode="en")  # defined in base_grid.rb
-  }) do |record|
-    html_title_alts(record, is_orig_char: "*")  # defined in base_grid.rb
-  end
-
-  column(:other_lang, header: Proc.new{I18n.t('layouts.Other_language_short')}) do |record|
-    titles_other_langs(record, is_orig_char: "*")  # defined in base_grid.rb
-  end
+  column_all_titles  # defined in application_grid.rb
 
   column(:sex, tag_options: {class: ["text-center"]}, mandatory: true, header: Proc.new{I18n.t('tables.sex')}) do |record|
     record.sex.title(langcode: I18n.locale)
@@ -106,7 +76,7 @@ class ArtistsGrid < ApplicationGrid
       else
         str_link = File.basename(uri)
         str_link = CGI.unescape(str_link) if str_link.include? '%'
-        ActionController::Base.helpers.link_to(str_link, uri).html_safe
+        ActionController::Base.helpers.link_to(str_link, uri, target: "_blank")
       end
     end
   end
