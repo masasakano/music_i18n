@@ -9,8 +9,8 @@ class HaramiVidsGrid < ApplicationGrid
 
   filter_n_column_id(:harami_vid_url)  # defined in application_grid.rb
 
-  filter_include_ilike(:title_ja, header: Proc.new{I18n.t("datagrid.form.title_ja_en", default: "Title [ja+en] (partial-match)")})
-  filter_include_ilike(:title_en, langcode: 'en', header: Proc.new{I18n.t("datagrid.form.title_en", default: "Title [en] (partial-match)")})
+  filter_ilike_title(:ja)  # defined in application_grid.rb
+  filter_ilike_title(:en)  # defined in application_grid.rb
 
   filter(:duration, :integer, range: true, header: Proc.new{I18n.t('tables.duration')}) # float in DB # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
   filter(:release_date, :date, range: true, header: Proc.new{I18n.t('tables.release_date')+" (< #{Date.current.to_s})"}) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
@@ -55,19 +55,12 @@ class HaramiVidsGrid < ApplicationGrid
 
   # ID first (already defined in the head of the filters section)
 
-  column(:title_ja, mandatory: true, header: Proc.new{I18n.t('tables.title_ja')}, order: proc { |scope|
-    #order_str = Arel.sql("convert_to(title, 'UTF8')")
-    order_str = Arel.sql('title COLLATE "ja-x-icu"')
-    scope.joins(:translations).where("langcode = 'ja'").order(order_str) #.order("title")
-  }) do |record|
-    link_to_youtube record.title(langcode: 'ja', lang_fallback: false), record.uri  # not displaying other candidate Translations.
-  end
-  column(:title_en, mandatory: (I18n.locale.to_sym != :ja), header: Proc.new{I18n.t('tables.title_en')}, order: proc { |scope|
-    scope_with_trans_order(scope, HaramiVid, langcode="en")  # defined in base_grid.rb
-  }) do |record|
-    #record.title langcode: 'en', lang_fallback: false
-    link_to_youtube record.title(langcode: 'en', lang_fallback: false), record.uri
-  end
+  column_title_ja{|record, tit|  # defined in application_grid.rb
+    link_to_youtube tit, record.uri  # not displaying other candidate Translations.
+  }
+  column_title_en(HaramiVid){|record, tit|  # defined in application_grid.rb
+    link_to_youtube tit, record.uri  # not displaying other candidate Translations.
+  }
 
   column(:release_date, mandatory: true, header: Proc.new{I18n.t('tables.release_date')})
   #date_column(:release_date, mandatory: true)  # => ERROR...
@@ -75,12 +68,9 @@ class HaramiVidsGrid < ApplicationGrid
   column(:duration, order: :duration, tag_options: {class: ["align-cr"]}, header: Proc.new{I18n.t('tables.duration_none')}) do |record| # float in DB # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
     sec2hms_or_ms(record.duration, return_nil: true)  # in application_helper.rb
   end
-  column(:n_musics, tag_options: {class: ["align-cr"]}, header: Proc.new{I18n.t('datagrid.form.n_musics_general')}) do |record|
-    record.musics.uniq.count
-  end
-  column(:n_amps, tag_options: {class: ["align-cr", "editor_only"]}, header: Proc.new{I18n.t('datagrid.form.n_amps')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
-    record.artist_music_plays.uniq.count
-  end
+
+  column_n_models_belongs_to(:n_musics, :musics, distinct: false, header: Proc.new{I18n.t('tables.n_musics')})
+  column_n_models_belongs_to(:n_amps, :artist_music_plays, distinct: false, header: Proc.new{I18n.t('datagrid.form.n_amps')})
 
   column(:musics,  html: true, mandatory: true, header: I18n.t(:Musics)) do |record|
     print_list_inline(record.musics.uniq){ |tit, model|  # SELECT "dintinct" would not work well with ordering.
@@ -95,6 +85,7 @@ class HaramiVidsGrid < ApplicationGrid
     }  # defined in application_helper.rb
   end
 
+  # column_place  # defined in application_grid.rb
   column(:place, html: true, header: Proc.new{I18n.t('tables.place')}) do |record|
     txt_caution = "".html_safe
     if can?(:read, HaramiVid) && !record.is_place_all_consistent?(strict: true)
@@ -107,7 +98,10 @@ class HaramiVidsGrid < ApplicationGrid
     link_to_youtube record.uri, record.uri
   end
 
-  column(:channel, html: true, header: Proc.new{sprintf "%s [%s]", I18n.t(:Channel, default: "Channel"), I18n.t("harami_vids.table_head_ChannelType", default: "Type")}) do |record|
+  label_proc = Proc.new{sprintf "%s [%s]", I18n.t(:Channel, default: "Channel"), I18n.t("harami_vids.table_head_ChannelType", default: "Type")}
+  ### This simple call is not used because the method below prints ChannelType as well.
+  # column_model_trans_belongs_to(:channel, header: label_proc, with_link: :class)  # defined in application_grid.rb
+  column(:channel, html: true, header: label_proc) do |record|
     tit = ((cha=record.channel) ? cha.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) : nil)
     kind = ((cha && typ=cha.channel_type) ? typ.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) : "").sub(/の?チャンネル|\s*channel/i, "")
     next "" if !tit
@@ -115,18 +109,8 @@ class HaramiVidsGrid < ApplicationGrid
     sprintf("%s [%s]", (can?(:read, cha) ? link_to(tit, channel_path(cha)) : tit), kind).html_safe
   end
 
-  column(:owner, html: true, header: Proc.new{I18n.t("harami_vids.table_head_ChannelOwner", default: "Owner")}) do |record|
-    tit = ((cha=record.channel) ? cha.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) : nil)
-    next "" if !tit
-    titmod = definite_article_to_head(tit)
-    (can?(:read, cha) ? link_to(titmod, channel_owner_path(cha)) : titmod)
-  end
-
-  column(:platform, html: true, header: Proc.new{I18n.t("harami_vids.table_head_ChannelPlatform", default: "Platform")}) do |record|
-    tit = ((cha=record.channel) ? cha.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) : nil)
-    next "" if !tit
-    tit
-  end
+  column_model_trans_belongs_to(:channel_owner, header: Proc.new{I18n.t("harami_vids.table_head_ChannelOwner", default: "Owner")}, with_link: :class)  # defined in application_grid.rb
+  column_model_trans_belongs_to(:channel_platform, header: Proc.new{I18n.t("harami_vids.table_head_ChannelPlatform", default: "Platform")}, with_link: false)  # defined in application_grid.rb
 
   column(:events, html: true, header: Proc.new{I18n.t(:Events)}) do |record|
     print_list_inline(record.events.distinct){ |tit, model|

@@ -1,7 +1,18 @@
 
 <h1>Event Items</h1>
 
+<% if true %>
+<%= datagrid_form_with model: @grid, url: event_items_path %>
+
+<%= paginate(@grid.assets) %>
+<%= datagrid_table @grid %>
+<%= paginate(@grid.assets) %>
+
+<%= render "layouts/grid_table_tail", klass: EventItem %>
+
+<% else %>
 <%= render partial: 'layouts/event_items_index', locals: {event_items: @event_items, with_event: true} %>
+<% end %>
 
 <br>
 

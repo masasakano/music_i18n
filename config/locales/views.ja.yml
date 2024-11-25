@@ -308,6 +308,9 @@ ja:
       N_Musics: "登録楽曲数"
       N_Artists: "出身音楽家数"
 
+  engages:
+    engage_how: "関わり方"
+
   engage_multi_hows:
     index:
       assoc_engage: "(他のArtistとこの曲「%{music_title}」)"

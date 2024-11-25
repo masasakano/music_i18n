@@ -1,7 +1,16 @@
-<p id="notice"><%= notice %></p>
 
 <h1>Engages</h1>
 
+<% if true %>
+<%= datagrid_form_with model: @grid, url: engages_path %>
+
+<%= paginate(@grid.assets) %>
+<%= datagrid_table @grid %>
+<%= paginate(@grid.assets) %>
+
+<%= render "layouts/grid_table_tail", klass: Engage %>
+
+<% else %>
 <table>
   <thead>
     <tr>
@@ -33,6 +42,7 @@
     <% end %>
   </tbody>
 </table>
+<% end %>
 
 <br>
 

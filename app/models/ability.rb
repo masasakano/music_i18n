@@ -99,17 +99,17 @@ class Ability
     if user.qualified_as?(:editor, rc_general_ja) || user.qualified_as?(:editor, rc_harami)
       can :crud, [EventItem]  # Maybe Event should be also allowed? (NOTE: the current permission is tested in events_controller_test.rb (Line-65))
       can(:cr, [Channel])
-      can(:ud, [Channel]){|mdl| !mdl.unknown? && (user.an_admin? || !(cuser=mdl.create_user) || !cuser.an_admin?)}
+      can(:ud, [Channel]){|mdl| !mdl.unknown? && (user.an_admin? || !(cuser=mdl.create_user) || !cuser.an_admin?)} # except if there's a dependent HaramiVid
       can :cr, [ChannelPlatform, ChannelOwner]
       #can(:new, ChannelOwners::CreateWithArtistsController){|mdl| mdl.is_a?(Artist) && Proc.new{can? :update, mdl}}  # This does not work because (1) the controller does not follow the convention naming and (2) "new" method ignores the block. See, for actual implementation, /app/controllers/channel_owners/create_with_artists_controller.rb
-      can(:ud, ChannelPlatform){|mdl| mdl.create_user && ((mdl.create_user == user) || (!mdl.unknown? && user.abs_superior_to?(mdl.create_user, except: rc_trans))) }  # can update/destroy only if it was created by the user or by a moderator.
-      can(:ud, [ChannelOwner]){|mdl| mdl.create_user == user}
+      can(:ud, ChannelPlatform){|mdl| mdl.create_user && ((mdl.create_user == user) || (!mdl.unknown? && user.abs_superior_to?(mdl.create_user, except: rc_trans))) }  # can update/edit only if it was created by the user or by a translator. (unless there's a dependent Channel)
+      can(:ud, [ChannelOwner]){|mdl| mdl.create_user == user} # (unless there's a dependent Channel)
     end
 
     ## General-JA editor only
     if user.qualified_as?(:editor, rc_general_ja)
       can :manage, [Musics::MergesController, Artists::MergesController]
-      can(:ud, [ChannelOwner]){|mdl| mdl.create_user && ((mdl.create_user == user) || (!mdl.unknown? && (user.superior_to?(mdl.create_user, rc_general_ja) || user.highest_role_in(rc_general_ja) == mdl.create_user.highest_role_in(rc_general_ja))))}  # can update/destroy only if it was created by the user or superior in General-Role.
+      can(:ud, [ChannelOwner]){|mdl| mdl.create_user && ((mdl.create_user == user) || (!mdl.unknown? && (user.superior_to?(mdl.create_user, rc_general_ja) || user.highest_role_in(rc_general_ja) == mdl.create_user.highest_role_in(rc_general_ja))))}  # can update/destroy only if it was created by the user or superior in General-Role. # (unless there's a dependent Channel)
     end
 
     ## HaramiVid editor
@@ -157,7 +157,7 @@ class Ability
     ## General-JA moderator only
     if user.qualified_as?(:moderator, rc_general_ja)
       can :read, [CountryMaster]
-      can(:ud, ChannelType){|mdl| (cruser=mdl.create_user) && ((cruser == user) || (!mdl.unknown? && !cruser.superior_to?(user, rc_general_ja))) }  # can update/destroy unless the record was created by a superior in General-JA (i.e., an admin)
+      can(:ud, ChannelType){|mdl| (cruser=mdl.create_user) && ((cruser == user) || (!mdl.unknown? && !cruser.superior_to?(user, rc_general_ja))) }  # can update/destroy unless the record was created by a superior in General-JA (i.e., an admin) (though cannot if there's a dependent Channel).
     end
 
     ## HaramiVid moderator only
@@ -165,7 +165,7 @@ class Ability
       can :crud, [HaramiVid, Harami1129]
       can :cru,  [Harami1129Review]  # Harami1129Review rarely needs to be destroyed.
       can :read, PlayRole
-      can(:ud, ChannelType){|mdl| mdl.create_user && mdl.create_user == user }  # can update/destroy only those self has created.
+      can(:ud, ChannelType){|mdl| mdl.create_user && mdl.create_user == user }  # can update/destroy only those self has created (though cannot if there's a dependent Channel).
     end
 
     ## General-JA or HaramiVid moderator only
@@ -193,7 +193,7 @@ class Ability
       #can :manage_iso3166_jp, Prefecture  # redundant
       can :manage, ModelSummary
       can :cru, PlayRole  # Even an admin cannot destroy one, but the sysadmin.
-      can(:ud, [ChannelPlatform, ChannelOwner, Channel]){|mdl| !mdl.unknown?}  # ChannelPlatform.unknown can be managed by only sysadmin
+      can(:ud, [ChannelPlatform, ChannelOwner, Channel]){|mdl| !mdl.unknown?}  # ChannelPlatform.unknown can be managed by only sysadmin # (unless there's a dependent HaramiVid or Channel)
     else
       #can(:update, Country)  # There is nothing (but note) to update in Country as the ISO-numbers are definite. Translation for Country is a different story, though.
       cannot :manage_prefecture_jp, Prefecture  # cannot edit Country in Prefecture to Japan
@@ -204,5 +204,8 @@ class Ability
       cannot(:ud, [Translation]){|trans| (base=trans.translatable) && base.respond_to?(:themselves) && base.themselves } # (except for an admin) Cannot edit Translation of ChannelOwner#themselves==true because its Tranlation-s are equivalent to sym-link to the ChannelOwner#artist Translation-s.
       cannot(:destroy, Translation){|trans| trans.last_remaining_in_any_languages?}
     end
+
+    cannot(:destroy, [Channel]){                                   |mdl| mdl.unknown? || mdl.harami_vids.exists?}
+    cannot(:destroy, [ChannelPlatform, ChannelOwner, ChannelType]){|mdl| mdl.unknown? || mdl.channels.exists?}  # ChannelPlatform.unknown can be managed by only sysadmin
   end
 end

@@ -56,7 +56,7 @@ class ArtistsTest < ApplicationSystemTestCase
     assert_no_selector "input#artists_grid_id"  # No ID filter for general public
 
     assert_equal "Sex",              page.find(CSSGRIDS[:th_sex]).text.strip  # CSSGRIDS defined in test_helper.rb
-    assert_equal "Title [Alt] (En)", page.find(CSSGRIDS[:th_title_en]).text.split(/\n/)[0].strip  # text followed by "\n ↑ ↓"
+    assert_match(/\ATitle[[:blank:]]+\/ Alt \(En\)/, page.find(CSSGRIDS[:th_title_en]).text.split(/\n/)[0].strip)  # text followed by "\n ↑ ↓"
     stats_str = page.find('.pagenation_stats').text
     assert stats_str.include?("Grand total")
 
@@ -84,7 +84,7 @@ class ArtistsTest < ApplicationSystemTestCase
 
     assert page.find('div#navbar_upper_any').text.include?("動画")
     assert_equal "性別",            page.find(CSSGRIDS[:th_sex]).text.strip
-    assert_equal "英語名称 [別称]", page.find(CSSGRIDS[:th_title_en]).text.split(/\n/)[0].strip  # text followed by "\n ↑ ↓"
+    assert_match(%r@英語名称[[:blank:]]+/\s+別称@, page.find(CSSGRIDS[:th_title_en]).text.split(/\n/)[0].strip)  # text followed by "\n ↑ ↓"
 
     ## English sorting (the total number should not change)
     page.find(CSSGRIDS[:th_title_en_a_desc]).click

@@ -1,8 +1,17 @@
-<%= notice %>
 
 <h1><%= t("Event").pluralize(8, I18n.locale) %></h1>
 
 <div id="events">
+<% if true %>
+<%= datagrid_form_with model: @grid, url: events_path %>
+
+<%= paginate(@grid.assets) %>
+<%= datagrid_table @grid %>
+<%= paginate(@grid.assets) %>
+
+<%= render "layouts/grid_table_tail", klass: Event %>
+
+<% else %>
 <table id="events_index_table">
   <thead>
     <tr>
@@ -66,6 +75,7 @@
   </tbody>
 </table>
 </div>
+<% end %>
 
 <br>
 

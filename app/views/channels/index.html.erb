@@ -1,6 +1,16 @@
 <h1>Channels</h1>
 
 <div id="channels">
+<% if true %>
+<%= datagrid_form_with model: @grid, url: channels_path %>
+
+<%= paginate(@grid.assets) %>
+<%= datagrid_table @grid %>
+<%= paginate(@grid.assets) %>
+
+<%= render "layouts/grid_table_tail", klass: Channel %>
+
+<% else %>
 <table id="channels_index_table">
   <thead>
     <tr>
@@ -65,6 +75,7 @@
     <% end %>
   </tbody>
 </table>
+<% end %>
 </div>
 
 <br>

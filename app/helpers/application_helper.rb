@@ -984,7 +984,7 @@ module ApplicationHelper
   # Pair of html_safe String of (usually) either span (Def) or div
   #
   # @example
-  #   safe_html_in_tagpair("10 &gt; 9<br>8".html_safe, tag_class: "moderator_only smaller")
+  #   safe_html_in_tagpair("10 &gt; 9<br>8".html_safe, tag_class: "moderator_only smaller")  # defined in application_helper.rb
   #   # => '<span class="moderator_only smaller">10 &gt; 9<br>8</span>'  [html_safe-ed]
   #
   # @param safe_content [String] to be encomapassed in a pair of HTML tags. Assumed to be html_safe

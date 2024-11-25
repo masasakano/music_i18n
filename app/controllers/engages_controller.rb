@@ -1,4 +1,7 @@
 class EngagesController < ApplicationController
+  include ModuleCommon
+  include ModuleGridController # for set_grid
+
   # "edit" and "update" are eliminated for the sake of simplicity;
   # these actions are handled by {EngageMultiHowsController}
   before_action :set_engage, only: %i( new )
@@ -7,6 +10,7 @@ class EngagesController < ApplicationController
   # GET /engages or /engages.json
   def index
     @engages = Engage.all
+    set_grid(Engage, hs_def: {order: :updated_at, descending: true})  # setting @grid; defined in concerns/module_grid_controller.rb
   end
 
   # GET /engages/1 or /engages/1.json

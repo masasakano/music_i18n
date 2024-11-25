@@ -111,7 +111,8 @@
 
 <hr>
 
-<section id="harami_vid_table">
+<section id="sec_harami_vids_for">
+<section id="harami_vid_table">  <%# obsolete... %>
 <h3><%= t("show.h2_harami_vid") %> (<%= @place.title_or_alt(prefer_shorter: true, lang_fallback_option: :either, str_fallback: "") %>)</h3>
 
   <% harami_vids_without_events = @place.harami_vids.left_joins(:harami_vid_event_item_assocs).where("harami_vid_event_item_assocs.event_item_id IS NULL") %>  <%# HaramiVids at the Place with no associated EventItems %>
@@ -120,5 +121,6 @@
 
   <%= render partial: "layouts/events_harami_vids_index", locals: {events: events, with_place_public: false, max_rows: (canedit_place ? nil : 100), n_harami_vids: n_harami_vids, harami_vids_without_events: harami_vids_without_events } %>  <%# Some EventGroups have too many HaramiVid-s, so they are trimeed for non-Editors. %>
 
+</section>
 </section>
 

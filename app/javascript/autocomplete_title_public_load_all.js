@@ -10,8 +10,10 @@ const models = [
 	["artist", "artists_grid_title_ja"],
 	["artist", "harami_vids_grid_artists"],
 	["artist", "musics_grid_artists"],
+	["artist", "engages_grid_artists"],
 	["music",  "harami_vids_grid_musics"],
-	["music",  "musics_grid_title_ja"]
+	["music",  "musics_grid_title_ja"],
+	["music",  "engages_grid_musics"]
 ];
 
 models.forEach(

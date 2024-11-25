@@ -1,4 +1,9 @@
+# coding: utf-8
 class PlacesController < ApplicationController
+  include ModuleCommon
+  include ApplicationHelper
+  include ModuleGridController # for set_grid
+
   #before_action :set_place, only: [:show, :edit, :update, :destroy]
   load_and_authorize_resource
   before_action :set_countries, only: [:index, :new, :create, :edit, :update] # defined in application_controller.rb
@@ -10,6 +15,7 @@ class PlacesController < ApplicationController
   # GET /places.json
   def index
     @places = Place.all
+    set_grid(Place, hs_def: {order: :updated_at, descending: true})  # setting @grid; defined in concerns/module_grid_controller.rb
   end
 
   # GET /places/1

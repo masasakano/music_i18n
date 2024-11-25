@@ -1,5 +1,9 @@
 # coding: utf-8
 class ChannelsController < ApplicationController
+  include ModuleCommon
+  include ApplicationHelper
+  include ModuleGridController # for set_grid
+
   #before_action :set_channel, only: %i[ show edit update destroy ]
   load_and_authorize_resource except: [:new, :create] # This sets @channel
   before_action :model_params_multi, only: [:create, :update]
@@ -17,6 +21,7 @@ class ChannelsController < ApplicationController
   # GET /channels or /channels.json
   def index
     @channels = Channel.all
+    set_grid(Channel, hs_def: {order: :updated_at, descending: true})  # setting @grid; defined in concerns/module_grid_controller.rb
   end
 
   # GET /channels/1 or /channels/1.json

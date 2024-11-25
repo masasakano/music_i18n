@@ -142,10 +142,29 @@ class ApplicationGrid < Datagrid::Base
     end
   end
 
-  # Used in HaramiVid
-  def self.filter_partial_str(col, type=:string, titles: :titles, **kwd)
+  # Wrapper for main-title filter, which is Translation but not auto-complete.
+  def self.filter_ilike_title(ja_or_en, header: nil, input_options: {autocomplete: 'off'}, **opts)
+    mainprm = ("title_"+ja_or_en.to_s).to_sym
+
+    if !header
+      header = 
+        case ja_or_en.to_sym
+        when :ja
+          Proc.new{I18n.t("datagrid.form.title_ja_en", default: "Title [ja+en] (partial-match)")}
+        when :en
+          Proc.new{I18n.t("datagrid.form.title_en",    default: "Title [en] (partial-match)")}
+        else
+          raise
+        end
+    end
+
+    filter_include_ilike(mainprm, header: header, input_options: input_options, **opts)
+  end
+
+  # Used in HaramiVid, Engage, etc.
+  def self.filter_partial_str(col, type=:string, titles: :titles, self_models: :harami_vids, **kwd)
     filter(col, type, **kwd) do |value|  # Only for PostgreSQL!
-      ids = col.to_s.singularize.classify.constantize.select_partial_str(:titles, value, ignore_case: true).map{|eobj| eobj.harami_vids}.flatten.map(&:id)
+      ids = col.to_s.singularize.classify.constantize.select_partial_str(:titles, value, ignore_case: true).map{|eobj| eobj.send(self_models)}.flatten.map(&:id)
       self.where(id: ids)
     end
   end
@@ -181,7 +200,7 @@ class ApplicationGrid < Datagrid::Base
   # Sorted according to title+alt_title or alt_title for those without a title and then {Translation#weight}.
   #
   # In fact, this is still insufficient... For example, suppose an Artist has two Translations of
-  # "+Zombies, The+" and "TheZombies" and the former has a better score. Ideally, the name shoulc
+  # "+Zombies, The+" and "TheZombies" and the former has a better score. Ideally, the name should
   # have a very low priority because it begins with +Z+. However, in this algorithm, "The Zombies"
   # has a higher priority!
   #
@@ -402,15 +421,51 @@ class ApplicationGrid < Datagrid::Base
   #   filter_n_column_id(:harami_vid_url)  # defined in application_grid.rb
   #
   # @param url_sym [Symbol, String] e.g., :harami_vid_url
-  def self.filter_n_column_id(url_sym)
+  def self.filter_n_column_id(url_sym, mandatory: false)
     filter(:id, :integer, range: true, header: "ID", tag_options: {class: ["editor_only"]}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)})  # displayed only for editors
-    column(:id, tag_options: {class: ["align-cr", "editor_only"]}, header: "ID", if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
+    column(:id, mandatory: mandatory, tag_options: {class: ["align-cr", "editor_only"]}, header: "ID", if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
       to_path = Rails.application.routes.url_helpers.send(url_sym, record, {only_path: true}.merge(ApplicationController.new.default_url_options))
       ActionController::Base.helpers.link_to record.id, to_path
     end
   end
 
+  # Add Column with the single-line HTML text for the translation of title (and alt_title if ever present) in Japanese (ja)
+  #
+  # @return [String] html_safe-ed
+  def self.column_title_ja
+    column(:title_ja, mandatory: true, header: Proc.new{I18n.t('tables.title_ja')}, order: proc { |scope|
+      #order_str = Arel.sql("convert_to(title, 'UTF8')")
+      order_str = Arel.sql('title COLLATE "ja-x-icu"')
+      scope.joins(:translations).where("langcode = 'ja'").order(order_str) #.order("title")
+    }) do |record|
+      tit = _column_title_core(record, "ja")
+      block_given? ? yield(record, tit) : tit
+    end
+  end
+
+  # @param mandatory: [Boolean, NilClass] if nil, automatically determined according to I18n.locale.
+  def self.column_title_en(klass, mandatory: nil)
+    mandatory2pass = (mandatory.nil? ? (I18n.locale.to_sym != :ja) : mandatory)
+    column(:title_en, mandatory: mandatory2pass, header: Proc.new{I18n.t('tables.title_en')}, order: proc { |scope|
+      scope_with_trans_order(scope, klass, langcode="en")  # defined in base_grid.rb
+    }) do |record|
+      tit = _column_title_core(record, "en")
+      block_given? ? yield(record, tit) : tit
+    end
+  end
+
+  # Internal routine to return a title of a specified language to display (no language fallback)
+  def self._column_title_core(record, langcode)
+    titles = %i(title alt_title).map{|metho| record.send(metho, langcode: langcode, lang_fallback: false)}
+    ret = titles[0]
+    ret << "/ "+titles[1] if titles[1].present?
+    ret
+  end
+  private_class_method :_column_title_core
+
   # Add columns title_ja, ruby_... for a {BaseWithTranslation} model etc.
+  #
+  # Returns multi-HTML-line text to list translations of title (or alt_title) in other languages than En/Ja
   def self.column_all_titles
     column(:title_ja, mandatory: true, header: Proc.new{I18n.t('tables.title_ja')}, order: proc { |scope|
       #order_str = Arel.sql("convert_to(title, 'UTF8')")
@@ -448,9 +503,88 @@ class ApplicationGrid < Datagrid::Base
     end
   end
 
+  # Add a column for a Model of BaseWithTranslation, which the original model belongs_to
+  #
+  # @example
+  #   column_model_trans_belongs_to(:music, mandatory: true, header: Proc.new{I18n.t(:Music)})  # defined in application_grid.rb
+  #
+  # @param model_sym [Symbol] e.g., :artist
+  # @param with_link: [Boolean, Sybol] If true (Def), hyperlink is displayed. If :class or :model, hyperlink is displayed only if the user can :show the class or each model, respectively. (:class is less DB-heavy.)
+  # @options opts [Hash] as of the default +column+
+  def self.column_model_trans_belongs_to(model_sym, with_link: true, **opts)
+    column(model_sym, html: true, order: proc { |scope|
+             order_str = Arel.sql('translations.title COLLATE "ja-x-icu"')
+             #order_str = Arel.sql('title COLLATE "und-x-icu"')
+             #order_str = Arel.sql('title COLLATE "C"')
+             self_ids = scope.joins(model_sym).joins(model_sym => "translations").where(:"translations.langcode" => [I18n.locale] + I18n.available_locales).order(order_str).ids.uniq
+             join_sql = "INNER JOIN unnest('{#{self_ids.join(',')}}'::int[]) WITH ORDINALITY t(id, ord) USING (id)"  # PostgreSQL specific.
+             scope.where(id: self_ids).joins(join_sql).order("t.ord")
+           }, **opts) do |record|
+      @can_models ||= {}
+      mdl = record.send(model_sym)
+      next nil if !mdl
+      tit = mdl.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)
+      with_link_now =
+        case with_link
+        when :model
+          can?(:show, mdl)
+        when :class
+          if @can_models.has_key?(model_sym)
+            @can_models[model_sym]
+          else
+            @can_models[model_sym] = can?(:read, record.class)
+          end
+        else
+          with_link
+        end
+      (with_link_now ? link_to(tit, mdl) : tit)  # The latter is NOT html_safe.
+    end
+  end 
+
+  # Add column :place
+  def self.column_place(header: Proc.new{I18n.t('tables.place')}, **opts)
+    column(:place, header: Proc.new{I18n.t('tables.place')}) do |record|
+      record.place.pref_pla_country_str(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true)
+    end
+  end 
+
+  # Add column for Number-of-models that belongs_to
+  #
+  # This accepts a block.
+  # If header is not given, 'tables.'+model_sym is assumed for I18n.t 
+  #
+  # @param model_sym [Symbol] e.g., :n_musics
+  # @param metho [Symbol] e.g., :musics
+  # @param header [Proc, String, NilClass, FalseClass] if nil (Def), replaced with a guessed Default. If false, no header is passed.
+  # @param order [Proc, NilClass, FalseClass] if nil (Def), sorted by Translation. If false, no order is defined.
+  def self.column_n_models_belongs_to(model_sym, metho, distinct: false, header: nil, order: nil, tag_options: {class: ["align-cr", "align-r-padding3"]}, **opts)
+    header = Proc.new{I18n.t('tables.'+model_sym.to_s)} if header.nil?
+    opts = opts.merge({header: header}) if header
+
+    order = proc { |scope| scope.left_joins(metho).group(:id).order("COUNT(#{metho}.id)")} if order.nil?
+    opts = opts.merge({order: order}) if order
+
+    column(model_sym, html: true, tag_options: tag_options, **opts) do |record|
+      count = record.send(metho).send(distinct ? :distinct : :uniq).count
+      block_given? ? yield(record, count) : count
+    end
+  end
+
+  # Wrapper of column_n_models_belongs_to(), specifically for N-HaramiVids.
+  #
+  # @example
+  #    column_n_harami_vids  # defined in application_grid.rb
+  def self.column_n_harami_vids(model_sym=:n_harami_vids, metho=:harami_vids, **opts)
+    column_n_models_belongs_to(model_sym, metho, **opts) do |record, count|
+      link_txt = I18n.t(:times_hon, count: count)
+      next link_txt if count == 0
+      ActionController::Base.helpers.link_to(link_txt, Rails.application.routes.url_helpers.polymorphic_path(record)+"#sec_harami_vids_for")
+    end
+  end
+
   # Add column :note
-  def self.column_note
-    column(:note, html: true, order: false, header: Proc.new{I18n.t("tables.note", default: "Note")}){ |record|
+  def self.column_note(**opts)
+    column(:note, html: true, order: false, header: Proc.new{I18n.t("tables.note", default: "Note")}, **opts){ |record|
       sanitized_html(auto_link50(record.note)).html_safe
     }
   end 
@@ -488,15 +622,17 @@ class ApplicationGrid < Datagrid::Base
   #   column_actions  # defined in application_grid.rb
   #
   # @param with_destroy: [Boolean] if true (Def: false), "Destroy" link  is added.
+  # @param edit_path_method: [Symbol, String, NilClass] Specify the method to get the edit-path from Model. If nil, automatically guessed, assuming the RESTful resources.
   # @yield should return html_safe(!!) String (like "Destroy" link) or its Array (or nil) that are meant to follow "Edit" for Editor (or Moderataor)
   #   The block is called only when User can :update.
   #   The returned HTML String is automatically enclosed with *span* of +tag_class+.
-  def self.column_actions(tag_class: "editor_only", with_destroy: false, &block)
+  def self.column_actions(tag_class: "editor_only", with_destroy: false, edit_path_method: nil, &block)
     column(:actions, tag_options: {class: ["actions"]}, html: true, mandatory: true, order: false, header: "") do |record| # Proc.new{I18n.t("tables.actions", default: "Actions")}
       retstr = link_to(I18n.t('layouts.Show'), polymorphic_path(record), data: { turbolinks: false })
       next retstr if !can?(:update, record)
 
-      ar4editors = [ link_to('Edit', polymorphic_path(record, action: :edit)) ]
+      edit_path = (edit_path_method ? send(edit_path_method, record) : polymorphic_path(record, action: :edit))
+      ar4editors = [ link_to('Edit', edit_path) ]
 
       if block_given?
         #artmp = yield(record)  # Standard yield would fail if can?() is used in the given block.

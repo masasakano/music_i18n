@@ -1,5 +1,7 @@
 class EventItemsController < ApplicationController
+  include ModuleCommon
   include ApplicationHelper  # for get_params_from_date_time
+  include ModuleGridController # for set_grid
 
   #skip_before_action :authenticate_user!, :only => [:index, :show]  # Revert application_controller.rb so Index is viewable by anyone.
   load_and_authorize_resource except: [:create] # except: [:index, :show]  # This sets @event. :create will be dealt separately
@@ -27,6 +29,7 @@ class EventItemsController < ApplicationController
   # GET /event_items or /event_items.json
   def index
     @event_items = EventItem.all
+    set_grid(EventItem, hs_def: {order: :updated_at, descending: true})  # setting @grid; defined in concerns/module_grid_controller.rb
   end
 
   # GET /event_items/1 or /event_items/1.json

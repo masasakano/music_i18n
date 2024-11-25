@@ -40,32 +40,32 @@ class ArtistsGrid < ApplicationGrid
 
   column_all_titles  # defined in application_grid.rb
 
-  column(:sex, tag_options: {class: ["text-center"]}, mandatory: true, header: Proc.new{I18n.t('tables.sex')}) do |record|
-    record.sex.title(langcode: I18n.locale)
+  column_model_trans_belongs_to(:sex, tag_options: {class: ["text-center"]}, mandatory: true, order: false, header: Proc.new{I18n.t('tables.sex')}, with_link: false)  # defined in application_grid.rb
+
+  column(:birth_year, html: true, tag_options: {class: ["align-cr"]}, mandatory: false, header: Proc.new{I18n.t('artists.show.birthday')}) do |record|
+    fmt =
+      case I18n.locale
+      when :ja, "ja", nil
+        '%s年%s月%s日'
+      else
+        '%s-%s-%s'
+      end
+    sprintf fmt, *(%i(birth_year birth_month birth_day).map{|m|
+                     i = record.send m
+                     (i.blank? ? '——' : i.to_s)
+                   })
   end
 
-  column(:birth_year, tag_options: {class: ["align-cr"]}, mandatory: false, header: Proc.new{I18n.t('artists.show.birthday')}) do |record|
-    sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
-                                i = record.send m
-                                (i.blank? ? '——' : i.to_s)
-                              })
-  end
-
-  column(:place, header: Proc.new{I18n.t('tables.place')}) do |record|
-    record.place.pref_pla_country_str(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true)
-  end
+  column_place  # defined in application_grid.rb
 
   column(:channel_owner, header: Proc.new{I18n.t('ChannelOwner')}) do |record|
     (co=record.channel_owner) ? ActionController::Base.helpers.link_to(I18n.t("ChannelOwner"), Rails.application.routes.url_helpers.channel_owner_url(co, only_path: true)) : ""
   end
+  ### Here, this method below is not called so that the link-text is special and it is not sortable
+  # column_model_trans_belongs_to(:channel_owner, header: Proc.new{I18n.t('ChannelOwner')}, with_link: :class)  # defined in application_grid.rb
 
-  column(:n_musics, tag_options: {class: ["align-cr", "align-r-padding3"]}, header: Proc.new{I18n.t('tables.n_musics')}) do |record|
-    record.musics.uniq.count
-  end
-
-  column(:n_harami_vids, tag_options: {class: ["align-cr", "align-r-padding3"]}, header: Proc.new{I18n.t('tables.n_harami_vids')}) do |record|
-    record.harami_vids.uniq.count.to_s
-  end
+  column_n_models_belongs_to(:n_musics, :musics, distinct: false, header: Proc.new{I18n.t('tables.n_musics')})
+  column_n_harami_vids    # defined in application_grid.rb
 
   %w(ja en).each do |elc|
     kwd = 'wiki_'+elc

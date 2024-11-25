@@ -34,8 +34,9 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
       get places_url
       assert_response :success
 
-      refute_empty css_select("table.table_index_main tbody tr")
-      assert css_select("table.table_index_main tbody tr").any?{|esel| esel.css('td.title_ja')[0].text.blank? && !esel.css('td.title_en')[0].text.blank?}, "Some JA titles should be blank (where EN titles are NOT blank), but..."
+      # refute_empty css_select("table.table_index_main tbody tr")  # old specs
+      refute_empty css_select(tblcss="table.datagrid-table tbody tr")
+      assert css_select(tblcss).any?{|esel| esel.css('td[data-column="title_ja"]')[0].text.blank? && !esel.css('td[data-column="title_en"]')[0].text.blank?}, "Some JA titles should be blank (where EN titles are NOT blank), but..."
   end
 
   test "should get new only if logged in" do

@@ -40,12 +40,8 @@ class MusicsGrid < ApplicationGrid
 
   column(:year, tag_options: {class: ["align-cr"]}, header: Proc.new{I18n.t('tables.year')}, mandatory: true)
 
-  column(:genre, header: Proc.new{I18n.t(:Genre)}) do |record|
-    record.genre.title_or_alt(langcode: I18n.locale)
-  end
-  column(:place, header: Proc.new{I18n.t('tables.place')}) do |record|
-    record.place.pref_pla_country_str(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true)
-  end
+  column_model_trans_belongs_to(:genre, header: Proc.new{I18n.t(:Genre)}, with_link: false)  # defined in application_grid.rb
+  column_place  # defined in application_grid.rb
 
   # Valid only for PostgreSQL
   # To make it applicable for other DBs, see  https://stackoverflow.com/a/68998474/3577922)
@@ -63,9 +59,8 @@ class MusicsGrid < ApplicationGrid
     #record.engages.joins(:engage_how).order('engage_hows.weight').pluck(:artist_id).uniq.map{|i| art = Artist.find(i); sprintf '%s [%s]', ActionController::Base.helpers.link_to(art.title_or_alt, Rails.application.routes.url_helpers.artist_path(art, locale: I18n.locale)), ERB::Util.html_escape(art.engage_how_titles(record).join(', '))}.join(', ').html_safe
     record.engages.joins(:engage_how).order('engage_hows.weight').pluck(:artist_id).uniq.map{|i| art = Artist.find(i); sprintf '%s [%s]', link_to(art.title_or_alt, artist_path(art)), html_escape(art.engage_how_titles(record).join(', '))}.join(', ').html_safe  # NOTE: the option "html: true" is essential to use artist_path directly (as opposed to Rails.application.routes.url_helpers.artist_path). Also, in the latter case, "locale: I18n.locale" is essential for some reason (otherwise the URL with no locale is returned).
   end
-  column(:n_harami_vids, html: true, tag_options: {class: ["text-end"]}, header: Proc.new{I18n.t("tables.n_harami_vids", default: "# of HaramiVids")}) do |record|
-    ActionController::Base.helpers.link_to(I18n.t(:times_hon, count: record.harami_vids.distinct.count.to_s), Rails.application.routes.url_helpers.music_path(record)+"#sec_harami_vids_for")
-  end
+
+  column_n_harami_vids    # defined in application_grid.rb
 
   column_note             # defined in application_grid.rb
   columns_upd_created_at  # defined in application_grid.rb

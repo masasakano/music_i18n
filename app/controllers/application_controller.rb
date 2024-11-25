@@ -667,7 +667,18 @@ class ApplicationController < ActionController::Base
     tot_count = asset.total_count
     cur_page = asset.current_page
     n_per_page = asset.limit_value
-    n_selected_pages = [(cur_page-1)*n_per_page+asset.size, tot_count].min  # playing safe though it should be: ((cur_page-1)*n_per_page+asset.size == tot_count)
+    ### NOTE: asset.size returns something like {1793=>49, 1728=>32, 1500=>31},
+    #  where the SQL (in ordering) is grouped,
+    #  where the Hash seems to mean ID=>count_number;
+    #  in such a case, asset.inspect returns just #<ActiveRecord::Relation ...> as usual
+    #  but I suppose its internal structure is different from non-grouped ones.
+    #  Although the following seems to work, I don't understand exactly what is happening, so leave them for now...
+#logger.warn("=============================[asset]="+asset.inspect)
+#logger.warn("=============================[count]="+asset.count.inspect)
+#logger.warn("=============================[cur_page, n_per_page, asset.size, tot]="+[cur_page, n_per_page, asset.size, tot_count].inspect)
+    # n_selected_pages = [(cur_page-1)*n_per_page+asset.size, tot_count].min  # playing safe though it should be: ((cur_page-1)*n_per_page+asset.size == tot_count)
+    asize = (asset.size.respond_to?(:size) ? asset.size.size : asset.size)
+    n_selected_pages = [(cur_page-1)*n_per_page+asize, tot_count].min  # playing safe though it should be: ((cur_page-1)*n_per_page+asset.size == tot_count)
   
     sprintf(
       "%s (%d—%d)/%d [%s: %d]",

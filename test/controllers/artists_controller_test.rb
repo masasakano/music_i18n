@@ -37,7 +37,7 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     assert  css_select(css_txt+" td")[1].text.blank?  # ja-alt_title
     assert_equal 1, css_select(css_txt).size
     assert  (tit=css_select(css_txt+" td")[2].text).present?  # en-title/alt_title
-    assert_match(%r@\s+\[#{Regexp.quote(alt_tit)}\]\z@, tit.strip)
+    assert_match(%r@[[:blank:]]+/\s+#{Regexp.quote(alt_tit)}\z@, tit.strip)  # The first blank is not a space(!)
 
     if is_env_set_positive?('TEST_STRICT')  # defined in application_helper.rb
       w3c_validate "Artist index"  # defined in test_helper.rb (see for debugging help)
