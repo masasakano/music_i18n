@@ -12,6 +12,7 @@ Rails.application.routes.draw do
   resources :harami_vid_music_assocs, only: [:destroy]
   namespace :harami_vid_music_assocs do
     resources :timings, only: [:show, :edit, :update]
+    resources :notes,   only: [:show, :edit, :update]
   end
   resources :artist_music_plays, only: [:destroy]
   namespace :artist_music_plays do

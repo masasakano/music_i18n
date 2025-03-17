@@ -35,8 +35,9 @@ class HaramiVidMusicAssoc < ApplicationRecord
   include ModuleModifyInspectPrintReference
   redefine_inspect
 
-  FORM_TIMING = "form_timing"
-  attr_accessor FORM_TIMING
+  FORM_TIMING = "form_timing"  # for attr_accessor
+  FORM_NOTE   = "form_note"    # for attr_accessor
+  attr_accessor FORM_TIMING, FORM_NOTE
 
   private
 

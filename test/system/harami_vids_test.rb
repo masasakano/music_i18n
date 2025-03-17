@@ -128,9 +128,9 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
     ### Checking flash messages
     assert_text "HaramiVid was successfully created"
-    assert_match(/HaramiVid was successfully created\b/, find(css_for_flash(:success)).text)  # defined in test_helper.rb
-    assert_match(/Side channel\b.+ was created\b/, find(css_for_flash(:notice)).text)
-    assert_match(/\bnew channel\b/i,               find(css_for_flash(:notice)+" a").text)  # <a> link should be active.
+    assert_match(/HaramiVid was successfully created\b/, find_all(css_for_flash(:success)).first.text)  # defined in test_helper.rb # There are multiple matches likely because of Turbo-frames
+    assert_match(/Side channel\b.+ was created\b/, find_all(css_for_flash(:notice)).first.text)
+    assert_match(/\bnew channel\b/i,               find_all(css_for_flash(:notice)+" a").first.text)  # <a> link should be active.
 
     ### checking the create-result in Show
     _check_at_show(vid_prms)
@@ -152,7 +152,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_equal vid_prms[:engage_year],         engage.year
     assert_equal vid_prms[:engage_contribution], engage.contribution
 
-    assert_equal "06:10",       find(selector_tr+"td.item_timing").text  #  vid_prms[:timing].to_s == "370"  => 06:10
+    assert_equal "06:10",       find(selector_tr+"td.item_timing span.text-start").text  #  vid_prms[:timing].to_s == "370"  => 06:10
 
     find("#main_edit_button").click
     #click_on "Edit"  # => Ambiguous match, found 3 elements matching visible link or button "Edit"
@@ -180,7 +180,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     check 'UnknownEventItem'  # In fact, this should be forcibly checked again in default when an error takes you back to the screen after unchecked.
     click_on "Update Harami vid", match: :first
 
-    assert_match(/HaramiVid was successfully updated\b/, find(css_for_flash(:success)).text)  # defined in test_helper.rb
+    assert_match(/HaramiVid was successfully updated\b/, find_all(css_for_flash(:success)).first.text)  # defined in test_helper.rb
     _check_at_show(vid_prms)
 
     sel = "section#harami_vids_show_unique_parameters dl "+"dd.item_event ol.list_event_items"
@@ -232,7 +232,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_includes htmlcapy_art['innerHTML'], "<a"  # link visible to anyone in feat. Artists
   end
 
-  test "edit music timing at show" do
+  test "edit music timing (and note) at show" do
     hvid = harami_vids :harami_vid3
 
     # unauthenticated user
@@ -253,6 +253,12 @@ class HaramiVidsTest < ApplicationSystemTestCase
       trs[0].find('form') }
     assert_equal "0", trs[1].find('a').text  # When timing is nil, a significant text (of "0" as opposed to "00:00") is displayed so that <a> tag is valid.
 
+    # for editing note (no web-form for public)
+    trs_css_note = "section#harami_vids_show_musics table tbody tr td.item_note"
+    trs = find_all(trs_css_note)
+    assert_raises(Capybara::ElementNotFound){
+      trs[0].find('form') }
+
     # HaramiEditor
     visit new_user_session_path
     fill_in "Email", with: @editor_harami.email
@@ -270,6 +276,8 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
     assert_selector (trs_css+" "+submit_css)
     trs[0].find(submit_css).click
+
+    assert_selector (trs_css_note+" "+submit_css)
 
     # Edit mode
     assert_selector trs_css+' input#form_timing'  # This must come BEFORE the assert_raises below because this method would wait (for up to a couple of seconds) till the condition is satisfied as a result of JavaScript's updating the page.

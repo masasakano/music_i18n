@@ -1,38 +1,32 @@
 # coding: utf-8
-class HaramiVidMusicAssocs::TimingsController < ApplicationController
+class HaramiVidMusicAssocs::NotesController < ApplicationController
   include ApplicationHelper # for hms2sec()
 
   before_action :set_hvma
 
   # ID for the field
-  FORM_TIMING = HaramiVidMusicAssoc::FORM_TIMING
+  FORM_NOTE = HaramiVidMusicAssoc::FORM_NOTE
 
-  # GET /harami_vid_music_assocs/timings/1 or /harami_vid_music_assocs/timings/1.json
+  # GET /harami_vid_music_assocs/notes/1 or /harami_vid_music_assocs/notes/1.json
   def show
     auth_for!(__method__)
   end
 
-  # GET /harami_vid_music_assocs/timings/1/edit
+  # GET /harami_vid_music_assocs/notes/1/edit
   def edit
     auth_for!(__method__)
-    @hvma.form_timing ||=
-      if @hvma.timing && @hvma.timing < 0
-        @hvma.timing
-      else
-        sec2hms_or_ms(@hvma.timing, return_nil: true)
-      end
+    @hvma.form_note ||= @hvma.note
   end
 
-  # PATCH/PUT /harami_vid_music_assocs/timings/1 or /harami_vid_music_assocs/timings/1.json
+  # PATCH/PUT /harami_vid_music_assocs/notes/1 or /harami_vid_music_assocs/notes/1.json
   def update
     auth_for!(__method__)
 
-    @hvma.form_timing = set_params[FORM_TIMING]
-    @hvma.timing = hms2sec(@hvma.form_timing, blank_is_nil: true)
+    @hvma.note = @hvma.form_note = set_params[FORM_NOTE]
     respond_to do |format|
       if @hvma.save
-        msg = "Timing is successfully updated."
-        format.html { redirect_to harami_vid_music_assocs_timing_path(@hvma), notice: msg }
+        msg = "Note is successfully updated."
+        format.html { redirect_to harami_vid_music_assocs_note_path(@hvma), notice: msg }
         format.json { render :show, status: :ok, location: @hvma }
       else
         @hvma.errors.add :base, flash[:alert] if flash[:alert].present? # alert is, if present, included in the instance
@@ -63,7 +57,7 @@ class HaramiVidMusicAssocs::TimingsController < ApplicationController
 
     # 
     def set_params
-      params.permit(FORM_TIMING)
+      params.permit(FORM_NOTE)
     end
 
 end
