@@ -975,6 +975,44 @@ end
     w3c_validate "HaramiVid show"  # defined in test_helper.rb (see for debugging help)
   end
 
+  test "should show MusicAssoc in harami_vid" do
+    hvid = harami_vids(:harami_vid3)
+    mu1 = hvid.musics.order(Arel.sql('CASE WHEN timing IS NULL THEN 0 ELSE 1 END, timing')).first
+    hvma = hvid.harami_vid_music_assocs.where(music: mu1).first
+    assert mu1, "sanity check of MusicAssoc fixtures"
+
+    get harami_vid_url(hvid)
+    csstxt_tbl = 'table#music_table_for_hrami_vid'
+    assert_equal 1, css_select(csstxt_tbl).size
+    csstxt_tbl_rows  = csstxt_tbl + ' tbody tr'
+    assert_operator 1, :<, css_select(csstxt_tbl_rows).size
+    csstxt_tbl_row1td1  = csstxt_tbl_rows + ":first-child td:first-child"
+    assert_equal 1, css_select(csstxt_tbl_row1td1).size
+    assert_equal "1", css_select(csstxt_tbl_row1td1).first.text.strip  # sequential number
+    csstxt_tbl_row1td1_span = csstxt_tbl_row1td1 + " span"
+    assert_select csstxt_tbl_row1td1_span
+    tag_span = css_select(csstxt_tbl_row1td1_span).first
+    assert_match(/sequen/i, tag_span["title"], "Inspect: #{tag_span.inspect}")
+    refute_match(/pID/i, tag_span["title"])
+
+#    assert_select csstxt_tbl_row1td1+" a", count: 0
+#    # assert_no_select csstxt_tbl_row1td1+" a"  # this raises NoMethodError
+    
+    sign_in @editor_harami
+    get harami_vid_url(hvid)
+    assert_equal "1", css_select(csstxt_tbl_row1td1).first.text.strip  # sequential number
+    assert_select csstxt_tbl_row1td1_span
+
+    tag_span = css_select(csstxt_tbl_row1td1_span).first
+    assert_match(/sequen/i, tag_span["title"], "Inspect: #{tag_span.inspect}")
+    assert_match(/pID=#{hvma.id}/i, tag_span["title"])
+
+    csstxt_tbl_row1tdlast_a = csstxt_tbl_rows + ":first-child td:last-child a"
+    assert_select csstxt_tbl_row1tdlast_a
+    assert_match(/\b#{hvma.id}\b/i, css_select(csstxt_tbl_row1tdlast_a).text)
+    sign_out @editor_harami
+  end
+
   test "should fail/succeed to get edit" do
     get edit_harami_vid_url(@harami_vid)
     assert_response :redirect

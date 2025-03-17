@@ -1,12 +1,13 @@
 <section id="harami_vids_show_musics">
 <h3>Musics for HaramiVid (<%= harami_vid.release_date %>)</h3>
 
+<% canedit_hvid=(can? :edit, HaramiVid) %>
 <table id="music_table_for_hrami_vid">
   <thead>
     <tr>
-      <th></th>
+      <th>#</th>
       <% if canedit_mus=(can? :edit, Music) %>
-        <th class="text-end editor_only">pID</th>
+        <th class="text-end editor_only" title="pID of Music">pID</th>
       <% end %>
       <th class="item_title"><%= t("home.index.musics_title", default: "Title").capitalize %></th>
       <th><%= t("tables.year", default: "Year").capitalize %></th>
@@ -41,8 +42,17 @@
 
   <tbody>
     <% harami_vid.musics.order(:timing).each_with_index do |music, i_mus| %>
+      <% hvmas = harami_vid.harami_vid_music_assocs.where(music: music) %>
+      <% @hvma = hvma = hvmas.first %>  <%# Instance variable required for an embedded HTML %>
       <tr>
-        <td><%= i_mus+1 %></td>
+        <td>
+          <% helptxt = "sequential number" %>
+          <% if canedit_hvid %>
+            <% assoc_pid = (hvma && hvma.id ? hvma.id : "'Not found strangely.'") %>  <%# Usually Integer, but maybe String. %>
+            <% helptxt += " (Assoc pID=#{assoc_pid})" %>
+          <% end %>
+          <span title="<%= helptxt %>"><%= i_mus+1 %></span>
+        </td>
        <% if canedit_mus %>
         <td class="text-end editor_only"><%= link_to(music.id, music) %></td>
        <% end %>
@@ -53,9 +63,7 @@
         <td class="item_artists"><%= music.artists.uniq.map{|i| sprintf '%s [%s]', link_to(i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i), h(i.engage_how_titles(music, langcode: I18n.locale, lang_fallback_option: :either).join(', '))}.join(', ').html_safe %></td>
         <td class="item_timing">
           <%# timings = (hvmas=harami_vid.harami_vid_music_assocs.where(music: music)).pluck(:timing).select{|j| j.present?} %>
-          <% hvmas = harami_vid.harami_vid_music_assocs.where(music: music) %>
-          <% @hvma = hvmas.first %>
-          <% @timing = @hvma.timing %>
+          <% @timing = hvma.timing %>
           <% if (timings=hvmas.pluck(:timing).select{|j| j.present?}).count > 1 %>
             <%# this should not happen, but playing safe... %>
             <span class="text-start">
@@ -81,7 +89,8 @@
       <% if can_destroy_assoc %>
         <td title="<%= t('harami_vids.show.destroy_music_from_this_vid') %>" class="text-end editor_only">
        <% if can? :destroy, hvma %>
-         <%= link_to t('layouts.destroy_button'), hvma, method: :delete, data: { confirm: t('are_you_sure') }, title: t('harami_vids.show.destroy_music_from_this_vid') %>
+         <% del_text =  t('layouts.destroy_button') + " (#{assoc_pid})" %>
+         <%= link_to del_text, hvma, method: :delete, data: { confirm: t('are_you_sure') }, title: t('harami_vids.show.destroy_music_from_this_vid') %>
        <% end %>
         </td>
       <% end %>
