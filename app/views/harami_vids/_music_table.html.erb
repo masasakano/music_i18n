@@ -84,7 +84,7 @@
         <td class="item_n_vids text-end"><%= music.harami_vids.count.to_s %></td>
         <% hvma = harami_vid.harami_vid_music_assocs.where(music: music).first %>
       <%# if canedit_mus=(can? :edit, Music) %>
-        <td class="item_note">
+        <td class="item_note text-<%= hvma.note.blank? ? "end" : "start" %>">
           <%= render partial: "/harami_vid_music_assocs/notes/show_note" %>
           <%# hvma.note %>
         </td>

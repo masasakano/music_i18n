@@ -22,9 +22,10 @@
 <table id="all_registered_translations_<%= get_modelname(model) %>" class="all_registered_translations">
   <% allcolspan = 5
      allcolspan += ((can_edit=can?(:edit, Translation)) ? 1 : 0)
-     allcolspan += ((can_index=can?(:index, Translation)) ? 1 : 0)
-     action_colspan = ((can_show=can?(:show, Translation))  ? 2 : 0)  # Show, SELF or not
-     allcolspan += ((can_crud=can?(:crud, Translation))  ? 1 : 0)  # showing a weight column
+     allcolspan += ((can_index=can?(:index, Translation)) ? 1 : 0) # showing SELF or not
+     allcolspan += ((can_crud=can?(:crud, Translation))  ? 1 : 0)  # showing Weight column
+     allcolspan += ((can_show=can?(:show, Translation))  ? 1 : 0)  # showing Note column
+     action_colspan = ((can_show=can?(:show, Translation))  ? 2 : 0)  # At least, "Show"+"Edit", plus optionally demotable, promotable, destroyable
 
      flag_ables = {
        demotable:  (can_demote =can?(:update, Translations::DemotesController)),
