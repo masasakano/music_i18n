@@ -1,0 +1,66 @@
+<%# assumed local variables to be passed: prefecture, places, (optional) pref_title [String], with_edit (Def: true) %>
+<%# Note: if with_edit==false given, no Edit link is shown. %>
+<% if !defined?(pref_title)
+     pref_title = prefecture.title_or_alt_tuple_str("[", "]", langcode: I18n.locale)
+   end %>
+<% if !defined?(with_edit)
+     with_edit = true
+   end %>
+
+<h2><%= t("prefectures.show.places_in_prefecture", this_pref: pref_title) %></h2>
+
+<% canshow_pla = can?(:show, Place) %>
+<% canedit_pla = can?(:edit, Place) %>
+
+<table id="places_in_prefecture">
+  <thead>
+    <tr>
+      <% if canedit_pla %>
+        <th class="editor_only">pID</th>
+      <% end %>
+
+      <%= render partial: "layouts/thead_title_ja_alt_en", locals: {can_update: canedit_pla} %>
+
+      <th><%= t("prefectures.show.N_Artists") %></th>
+      <% if canedit_pla  %>
+        <th class="editor_only"><%= t("prefectures.show.N_Musics") %></th>
+      <% end %>
+      <th title="<%= t("tables.n_harami_vids_long") %>"><%= t("tables.n_harami_vids_short") %></th>
+      <th><%= t("tables.note").capitalize %></th>
+
+      <% if canedit_pla && with_edit %>
+        <th colspan="2" class="editor_only">Action</th>
+      <% elsif canshow_pla %>
+        <th></th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% (places || prefecture.places).uniq.each do |place| %>
+      <tr>
+        <% if canedit_pla %>
+          <td class="editor_only"><%= link_to place.id, place %></td>
+        <% end %>
+
+        <%= render partial: "layouts/tbody_title_ja_alt_en", locals: {model: place, can_update: canedit_pla} %>
+
+        <td class="text-end"><%= place.artists.count.to_s %></td>
+      <% if canedit_pla  %>
+        <td class="editor_only text-end"><%= place.musics.count.to_s %></td>
+      <% end %>
+        <td class="text-end"><%= place.harami_vids.count.to_s %></td>
+        <td class="text-start"><%= auto_link50(place.note) %></td>
+      <% if (canshow_pla) %>
+        <td><%= link_to t("tables.Show"), place %></td>
+      <% end %>
+        <% if with_edit && canedit_pla %>
+          <td class="editor_only">
+            <%= link_to('Edit', edit_place_path(place)) if can?(:update, place) %>
+          </td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+

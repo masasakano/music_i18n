@@ -2,3 +2,8 @@
 
 <%= render 'form', place: @place %>
 
+<% if @place.prefecture %>
+  <hr>
+  <%= render partial: '/layouts/places_in_prefecture', locals: {prefecture: @place.prefecture, places: @place.prefecture.places, with_edit: false} %>
+<% end %>
+
