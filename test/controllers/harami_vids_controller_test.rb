@@ -230,7 +230,7 @@ if true
     assert_operator evit_last.duration_err_with_unit, :<=, evit_last.duration_minute.minutes, "Error should be (equal to or) smaller than the actual value, but...: #{evit_last.duration_err_with_unit.inspect} !< #{evit_last.duration_minute.minutes.inspect}" ## In this case, the duration is so small (only 1 or 2 minutes), this is actually "equal", which is not a good test; to test it better, you would need a much larger duration of at least over 10 minutes, or better over 20 minutes, because the difference from the original duration in HaramiVid (if not quite the inflated value of EventItem) is 10% only and is snapped to the nearest Integeer.
 
     ## new Music, no Artist
-    mu_name = "My new Music 4"
+    mu_name = "My new Music 4 日本の歌"
     hsnew = {uri: (newuri="https://www.youtube.com/watch?v=0040"), title: (newtit="new40"), music_name: mu_name, note: (newnote=mu_name+" is added.")}
     assert_difference("EventItem.count*10 + ArtistMusicPlay.count", 11) do  # EventItem(1) + ArtistMusicPlay(HARAMIchan)
       assert_no_difference("Artist.count + Engage.count") do
@@ -249,9 +249,14 @@ if true
     assert_equal "youtu.be/0040", mdl_last.uri
     assert_equal newnote, mdl_last.note
     assert_equal newtit,  mdl_last.title
-    assert_equal Music.last, mdl_last.musics.first
-    assert_equal mu_name,    mdl_last.musics.first.title
     assert_equal "youtu.be/0040", mdl_last.uri
+
+    mu_last = mdl_last.musics.first
+    assert_equal Music.last, mu_last
+    assert_equal mu_name,    mu_last.title
+    assert       mu_last.place.unknown?
+    refute_equal Country.unknown, mu_last.country  # b/c the Music title contains Japanese characters; n.b., I have once tested the opposite by temporarily changing mu_name into one containing only alpha-numerics and confirmed it worked (i.e., this condition is assert==true), although it is not included in this semi-permanent test-suite.
+    assert_equal Country['JPN'],  mu_last.country  # Same.
 
     follow_redirect!
     csstmp="section#harami_vids_show_unique_parameters dl dd.item_uri a"

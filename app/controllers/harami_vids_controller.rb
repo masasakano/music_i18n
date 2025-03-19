@@ -662,10 +662,17 @@ end
       existing_record = BaseMergesController.other_model_from_ac(klass.new, @hsmain[prm_key], controller: self)
       return existing_record if existing_record || find_only
 
+      ## New record
+      if @hsmain[prm_key].present? && /(?:\p{Hiragana}|\p{Katakana}|[一-龠々])/ =~ @hsmain[prm_key] && (jpn=Country.find_by(iso3166_n3_code: 392))  # If Artist/Music title contains a Japanese (or Chinese) character, the default place is set at Japan's unknown Place.
+        pla = jpn.unknown_prefecture.unknown_place
+      end
+      pla ||= Place.unknown
+
       hs2pass = {
         title: @hsmain[prm_key],
         langcode: (contain_asian_char?(@hsmain[prm_key]) ? "ja" : "en"),
         is_orig: true,
+        place: pla,
       }
 
       new_record = klass.new(**(hs2pass.merge(extra_prms_for_new)))   # eg: Music.new
