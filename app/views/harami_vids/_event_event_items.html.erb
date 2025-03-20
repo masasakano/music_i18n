@@ -55,9 +55,10 @@
               <% end %>
               <% n_amps = event_item.artist_music_plays.count %>
               <% if (n_amps > 1 || event_item.unknown?) && canedit_hvid &&  %>
-                <span class="editor_only">
-                  <%= button_to t("harami_vids.Duplicate"), event_items_deep_duplicates_url, form_class: "button_to inline_form", method: :post, params: { event_item: { deep_duplicates_controller: {event_item_id: event_item.id, harami_vid_id: @harami_vid.id} } } %>
-                </span>
+                <div class="editor_only">
+                  <%# button_to t("harami_vids.Duplicate"), event_items_deep_duplicates_url, form_class: "button_to inline_form", method: :post, params: { event_item: { deep_duplicates_controller: {event_item_id: event_item.id, harami_vid_id: @harami_vid.id} } } %> <%# This would violate the W3C standards about a nested-form %>
+                  <%= link_to t("harami_vids.Duplicate"), event_items_deep_duplicates_url(event_item: { deep_duplicates_controller: { event_item_id: event_item.id, harami_vid_id: @harami_vid.id} }), class: "button_like", method: :post %>
+                </div>
               <% end %>
               <%= t("harami_vids.show.artist_collabs", default: "featuring Artists") %>
               (<%= show_list_featuring_artists(event_item) %>)  <%# defined in harami_vids_helper.rb %>

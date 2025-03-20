@@ -21,7 +21,8 @@
       <% end %>
       </th>
       <th><%= t('EventItems') %></th>
-      <th colspan="<%= can_edit ? 2 : 1 %>"></th>
+      <% tbody_exists = harami_vid.other_harami_vids_of_event.present? %>
+      <th colspan="<%= (can_edit && tbody_exists) ? 2 : 1 %>"></th>
     </tr>
   </thead>
 

@@ -13,15 +13,22 @@
     </div>
   <% end %>
 
+  <div> <!-- This is necessary when one of the dt/dd elements are inside div in the W3C standards -->
   <dt class="item_release_date"> <%= t("tables.release_date") %>:</dt>
   <dd class="item_release_date"><%= date2text(@harami_vid.release_date) %></dd> <%# defined in ModuleCommon %>
+  </div>
 
+  <div>
   <dt class="item_duration"> <%= t("tables.duration") %> (HH:MM:SS):</dt>
   <dd class="item_duration"><%= dura=@harami_vid.duration %><%= dura ? " ("+sec2hms_or_ms(dura)+")" : "" %></dd>
+  </div>
 
+  <div>
   <dt class="item_uri"> URI:</dt>
   <dd class="item_uri"><%= link_to_youtube(@harami_vid.uri, @harami_vid.uri, target: true) %></dd>
+  </div>
 
+  <div>
   <dt class="item_channel"> <%= t(:Channel) %>:</dt>
   <dd class="item_channel">
     <% ch_str = (chan=@harami_vid.channel).title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>
@@ -30,17 +37,23 @@
       (<%= t("harami_vids.table_head_ChannelType", default: "Type") %>: <span class="channel_type"><%= @harami_vid.channel.channel_type.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></span>)
     by <span class="channel_owner"><%= @harami_vid.channel.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></span>
   </dd>
+  </div>
 
+  <div>
   <dt class="item_place"> <%= t("tables.place_country") %>:</dt>
   <dd class="item_place">
     <%= render partial: "/harami_vids/update_places/show_place", locals: {from_non_turbo: true} %>
     </dd>
+  </div>
 
+  <div>
   <dt class="item_event"> <%= t(:Events) %> [<%= t(:EventGroup)%>]:</dt>
   <dd class="item_event">
     <%= render partial: "event_event_items", locals: {from_non_turbo: true} %>
   </dd>
+  </div>
 
+  <div>
   <dt class="item_n_musics"> <%= t("datagrid.form.n_musics_general") %>:</dt>
   <dd class="item_n_musics"><%= n1=@harami_vid.musics.uniq.size %>
     <% if canedit %>
@@ -52,19 +65,24 @@
       </span>
     <% end %>
   </dd>
+  </div>
 
   <% if canedit %>
     <div class="editor_only">
       <dt> <%= t("datagrid.form.uri_playlist", langcode: t("locale.long.ja")) %>:</dt>
       <dd><%= uri=@harami_vid.uri_playlist_ja; (uri.blank? ? '' : link_to_youtube(uri, uri)) %></dd>
+    </div>
 
+    <div class="editor_only">
       <dt> <%= t("datagrid.form.uri_playlist", langcode: t("locale.long.en")) %>:</dt>
       <dd><%= uri=@harami_vid.uri_playlist_en; (uri.blank? ? '' : link_to_youtube(uri, uri)) %></dd>
     </div>
   <% end %>
 
+  <div>
   <dt class="item_note"> <%= t("tables.note") %>:</dt>
   <dd class="item_note"><%= sanitized_html(auto_link(@harami_vid.note)).html_safe %></dd>
+  </div>
  </dl>
  </section> <!-- section id="harami_vids_show_unique_parameters" -->
 </section> <!-- section id="harami_vids_show_parameters" -->

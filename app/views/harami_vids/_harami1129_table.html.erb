@@ -13,7 +13,8 @@
       <th>Confirmed</th>
       <th>Engage</th>
       <th title="EventItem with an arbitrary label">EvIt</th>
-      <th colspan="2">Harami1129</th>
+      <% tbody_exists = harami_vid.harami1129s.present? %>
+      <th colspan="<%= tbody_exists ? 2 : 1 %>">Harami1129</th>
     </tr>
   </thead>
 

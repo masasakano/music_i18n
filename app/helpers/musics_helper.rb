@@ -15,18 +15,35 @@ module MusicsHelper
 
     return [] if hsyear.empty?
 
-    can_read = can?(:read, hsyear.first[1].first[:engage])  # If one can read one Engage, they should be allowed to read any Engage.
+    can_read = can?(:read, (e1=hsyear.first[1].first[:engage]))  # If one can read one Engage, they should be allowed to read any Engage.
       # n.b., Hash#first gives a pair of Array(key, value)
+    can_update = can?(:update, e1)
 
     years = hsyear.keys.sort
     retstr = years.map{ |eyr|
+      conts = hsyear[eyr].map{ |ehs|
+        ehs[:contribution] && print_1or2digits(ehs[:contribution])  # defined in application_helper.rb
+      }
+      contribution_str =
+        if !can_update || conts.compact.empty?
+          ""
+        else
+          '<span class="editor_only">;f=' + conts.map{|i| i ? i : "nil"}.join("/") + "</span>"
+        end
+
       hsyear[eyr].map{ |ehs|
+        dagger_contribution =
+          if ehs[:contribution] && ehs[:contribution] != 1
+            sprintf '<span title="%s: %s">†</span>', t("attr.contribution"), print_percent_2digits(ehs[:contribution])
+          else
+            ""
+          end.html_safe
         if can_read
           link_to ehs[:title], ehs[:engage]
         else
           ERB::Util.html_escape(ehs[:title]) 
-        end
-      }.join("/")+"("+((9999 == eyr) ? t('musics.show.year_unknown') : eyr.to_s)+")"
+        end + dagger_contribution
+      }.join("/")+"("+((9999 == eyr) ? t('musics.show.year_unknown') : eyr.to_s)+contribution_str+")"
     }.join(t(:comma)).html_safe
 
     [retstr, hsyear.first[1].first[:engage]]

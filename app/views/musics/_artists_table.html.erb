@@ -6,70 +6,58 @@
   <thead>
     <tr>
      <% if (can_edit=can?(:edit, Artist)) %>
-      <th title="DB pID" class="editor_only">pID</th>
+      <th title="DB pID" class="editor_only cell_pid">pID</th>
      <% end %>
       <th title="'*' indicates the original name"><%= t("tables.title_name_ja") %></th>
       <th><%= t("tables.alt_title_name_ja") %></th>
       <th title="'*' indicates the original name"><%= t("tables.title_name_en") %></th>
-      <th title="Show/Edit Engagement between Artist and Music">
+      <th title="Engagement between Artist and Music" class="cell_engage_how">
       <% if can? :update, EngageHow %>
         <%= link_to t('engage_multi_hows.table_head.how_related'), engage_hows_url %>
       <% else %>
         <%= t('engage_multi_hows.table_head.how_related') %>
       <% end %>
       </th>
-      <th title="Place"><%= t("tables.place_country") %></th>
-      <th title="Birthday of the artist (person or group)"><%= t('artists.show.birthday').capitalize %></th>
-      <% if can? :update, Sex %>
-        <th><%= link_to t(:Sex), sexes_url %></th>
-      <% else %>
-        <th><%= t(:Sex) %></th>
-      <% end %>
-      <th><%= t("tables.note") %></th>
+      <th title="Place" class="cell_place"><%= t("tables.place_country") %></th>
+      <th title="Birthday of the artist (person or group)" class="cell_birthday"><%= t('artists.show.birthday').capitalize %></th>
+      <th class="cell_sex"> <%= can?(:update, Sex) ? link_to(t(:Sex), sexes_url) : t(:Sex) %> </th>
+      <th class="cell_note"><%= t("tables.note") %></th>
       <% if can_edit %>
-        <th colspan="2" title="Show/Edit Artist"><%= t(:Artist) %></th>
+        <th colspan="2" title="Show/Edit Artist" class="cell_action"><%= t(:Artist) %></th>
       <% else %>
-        <th title="Show Artist"><%= t(:Artist) %></th>
+        <th title="Show Artist" class="cell_action"><%= t(:Artist) %></th>
       <% end %>
-      <th><%= t("tables.note") %> (<%= t("engage_multi_hows.table_head.how_related") %>)</th>
+      <th class="cell_note_engage_how"><%= t("tables.note") %> (<%= t("engage_multi_hows.table_head.how_related") %>)</th>
       <% if can_edit %>
-        <th title="Edit (Show) Engagements between Artist and Music" class="editor_only">Engages</th>
+        <th title="Edit (Show) Engagements between Artist and Music" class="editor_only cell_action cell_edit_engage">Engages</th>
       <% end %>
     </tr>
   </thead>
 
   <tbody>
     <% asterisk = (can_edit ? ('<span title="'+t('datagrid.footnote.is_original')+'">*</span>') : "").html_safe %>
-    <% music.artists.uniq.each do |artist| %>
+    <% music.sorted_artists.uniq.each do |artist| %>
       <tr>
        <% if can_edit %>
-        <td title="DB pID" class="number editor_only"><%= link_to artist.id, artist %></td>
+        <td title="DB pID" class="number editor_only cell_pid"><%= link_to artist.id, artist %></td>
        <% end %>
        <%= render partial: "layouts/tbody_title_ja_alt_en", locals: {model: artist, can_update: can_edit} %>
-        <% s = artist.engage_how_titles(music, year: music.year).join(', ') %>
-        <% label_str = ((/\d/ =~ s) ? s : s+'('+(music.year || t('musics.show.year_unknown')).to_s+')') %>
-        <% engage = artist.engages.where(music: music).first %>
-        <td>
+        <td class="cell_engage_how">
           <% linktxt, engage = engage_title_link(music, artist) %> <%# defined in musics_helper.rb %>
           <%= linktxt %>
         </td>
-<% if false %>
-        <td><%= ar = artist.place.title_or_alt_ascendants(langcode: I18n.locale, prefer_alt: true);
-                sprintf '%s %s(%s)', ar[1], ((ar[1] == Prefecture::UnknownPrefecture['ja'] || ar[0].blank?) ? '' : '— '+ar[0]+' '), ar[2] %></td>
-<% else %>
-        <td><%= artist.txt_place_pref_ctry(without_country_maybe: true) %></td>
-<% end %>
-        <td><%= sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
+        <td class="cell_place"><%= artist.txt_place_pref_ctry(without_country_maybe: true) %></td>
+        <td class="cell_birthday"><%= sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
                   i = artist.send m; (i.blank? ? '——' : i.to_s)}) %></td>
-        <td class="text-center"><%= artist.sex.title langcode: I18n.locale, lang_fallback: true %></td>
-        <td><%= sanitized_html(auto_link50(artist.note)).html_safe %></td>
-        <td><%= link_to t("tables.Show"), artist %></td>
+        <td class="text-center cell_sex"><%= artist.sex.title langcode: I18n.locale, lang_fallback: true %></td>
+        <td class="cell_note"><%= sanitized_html(auto_link50(artist.note)).html_safe %></td>
+        <td class="cell_action_show"><%= link_to t("tables.Show"), artist %></td>
         <% if can? :update, artist %>
-          <td class="editor_only"><%= link_to 'Edit', edit_artist_path(artist) %></td>
+          <td class="editor_only cell_action"><%= link_to 'Edit', edit_artist_path(artist) %></td>
         <% end %>
-        <td><%= sanitized_html(auto_link50(compile_engage_notes(artist, music))).html_safe %></td> <%# defined in musics_helper.rb %>
+        <td class="cell_note_engage_how"><%= sanitized_html(auto_link50(compile_engage_notes(artist, music))).html_safe %></td> <%# defined in musics_helper.rb %>
         <% if can? :update, artist %>
-          <td class="editor_only text-center"><%= link_to 'Edit', edit_engage_multi_how_path(engage) %></td> <%# "engage" is set above %>
+          <td class="editor_only text-center cell_action cell_edit_engage"><%= link_to 'Edit', edit_engage_multi_how_path(engage) %></td> <%# "engage" is set above %>
         <% end %>
       </tr>
     <% end %>

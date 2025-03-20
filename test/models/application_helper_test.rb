@@ -301,6 +301,15 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert act.html_safe?
   end
 
+  test "print_1or2digits" do
+    assert_equal "0.0",  print_1or2digits(0)
+    assert_equal "1.0",  print_1or2digits(1)
+    assert_equal "0.3",  print_1or2digits(0.3)
+    assert_equal "0.33", print_1or2digits(0.33)
+    assert_equal "0.33", print_1or2digits(0.3333)
+    assert_equal "0.34", print_1or2digits(0.3399)
+  end
+
   private
 end
 

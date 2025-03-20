@@ -32,8 +32,8 @@ harami_vid1:
   duration: 
   uri: youtu.be/harami_vid1
   place: 
-  uri_playlist_ja: MyString
-  uri_playlist_en: MyString
+  uri_playlist_ja: "https://www.youtube.com/watch?v=harami_vid1&lc=MyString"
+  uri_playlist_en: "https://www.youtube.com/watch?v=harami_vid1&lc=MyString"
   channel: channel_haramichan_youtube_main
   note: HaramiVid1
 
@@ -42,8 +42,8 @@ harami_vid2:
   duration: 180.0
   uri: youtu.be/harami_vid2
   place: tocho
-  uri_playlist_ja: MyString
-  uri_playlist_en: MyString
+  uri_playlist_ja: "https://www.youtube.com/watch?v=harami_vid2&lc=MyString"
+  uri_playlist_en: "https://www.youtube.com/watch?v=harami_vid2&lc=MyString"
   channel: channel_haramichan_youtube_main
   note: HaramiVid2
 

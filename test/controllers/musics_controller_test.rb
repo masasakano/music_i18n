@@ -145,6 +145,7 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     #refute css_select('div.link-edit-destroy a')[0].text.include? "Edit"
     w3c_validate "Music show"  # defined in test_helper.rb (see for debugging help)
 
+    ## Artist table with another music
     mus = musics(:music_how)
     art = mus.artists.first
     assert (art_alt_tit = art.alt_title(langcode: "en")).present?, "fixture testing"
@@ -152,6 +153,34 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     cell = css_select('section#sec_artists_by table td.titles-en').first.text
     assert_includes cell, "["
     assert_match(/\s+\[#{Regexp.quote(art_alt_tit)}\]/m, cell.strip)
+
+    ## Testing Artist table with @music (== :music1)
+    ehow_cover = engage_hows(:engage_how_singer_cover)
+    assert_equal 1, @music.engages.size                                 # testing fixture 
+    music_ehow = @music.engages.first.engage_how
+    assert_operator ehow_cover.weight, :<, music_ehow.weight  # testing fixture (the original associated EngageHow is lower in weight than new EngageHow-s)
+
+    art2=artists(:artist2)
+    art3=artists(:artist3)
+    assert_equal "en", art2.orig_langcode.to_s  # testing fixture 
+    assert_equal "ja", art3.orig_langcode.to_s  # testing fixture 
+
+    eng2 = Engage.create!(music: @music, artist: art2, engage_how: ehow_cover, year: 2025, contribution: nil)
+    eng3 = Engage.create!(music: @music, artist: art3, engage_how: ehow_cover, year: 2024, contribution: nil)
+    assert_equal 3, @music.engages.reset.size                           # testing the setup
+
+    get music_url(@music)
+    assert_response :success
+    basecsstxt = 'section#sec_artists_by table tr'
+    css_rows = css_select(basecsstxt)
+    all_ehows = css_select(basecsstxt + ' td.cell_engage_how').map(&:text).map(&:strip)
+    assert_includes all_ehows[0], ehow_cover.title(langcode: "en")
+    assert_includes all_ehows[1], ehow_cover.title(langcode: "en")
+    assert_includes all_ehows[2], music_ehow.title(langcode: "en")
+    assert_includes all_ehows[0], "2024", "The first entry should be the oldest one, but..."
+    assert_includes all_ehows[1], "2025", "The second entry should be the second-oldest one, but..."
+    assert_equal art2.title, css_select(basecsstxt + ' td.titles-en')[1].text.sub(/\s*\[.+/, "").strip
+    assert_equal art3.title, css_select(basecsstxt + ' td.title-ja')[0].text.strip
   end
 
   test "should get edit" do

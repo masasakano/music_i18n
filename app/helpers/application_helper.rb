@@ -1035,6 +1035,27 @@ module ApplicationHelper
     }
   end
 
+  # Returns "0.0" or "1.0" or "0.33" (neither "1.00" nor "0.3333")
+  #
+  # @param num [Numeric, String]
+  # @return [String] "" if nil is given.
+  def print_1or2digits(num)
+    return "" if !num
+    fmt = ((num*10 == (num*10).to_i) ? "%3.1f" : "%4.2f")
+    sprintf(fmt, num)
+  end
+
+  # Returns "0.0" or "1.0" or "0.33" (neither "1.00" nor "0.3333")
+  #
+  # NOTE: If the given number is over 0 or negative, this returns "".
+  #
+  # @param num [Numeric, String]
+  # @return [String] "" if nil is given.  Examples: " 0%", " 1%", "23%", "100%"
+  def print_percent_2digits(num)
+    return "" if !num || num < 0 || num > 1
+    sprintf("%3d%%", num*100).sub(/^\s/, "")
+  end
+
   # to suppress warning, mainly that in Ruby-2.7.0:
   #   "Passing the keyword argument as the last hash parameter is deprecated"
   #
