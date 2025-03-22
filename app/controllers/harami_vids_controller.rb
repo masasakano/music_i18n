@@ -16,7 +16,7 @@ class HaramiVidsController < ApplicationController
   PARAMS_KEY_AC = BaseMerges::BaseWithIdsController.formid_autocomplete_with_id(Artist).to_sym
 
   # Symbol of the main parameters in the Form (except "place" (or "place_id"?)), which exist in DB or as setter methods
-  # NOTE: "event_item_ids" is a key for an Array, hence defined separately in model_params_multi (as an exception)
+  # NOTE: In addition, "event_item_ids" is used, but it is a key for an Array, hence defined separately in model_params_multi() (as an exception)
   MAIN_FORM_KEYS = %i(uri duration note) + [
     "form_channel_owner", "form_channel_type", "form_channel_platform",
     "form_new_artist_collab_event_item", # which EventItem-ID (or new) is used to refer to the new EventItem and/or new Collab.
@@ -31,7 +31,7 @@ class HaramiVidsController < ApplicationController
 
   # Permitted main parameters for params(), used for update and create
   PARAMS_MAIN_KEYS = MAIN_FORM_KEYS + [
-    # "event_item_ids",  # This is a key for an Array, hence defined in model_params_multi
+    # "event_item_ids",  # This is a key for an Array, hence defined in model_params_multi()
   ] + [PARAMS_KEY_AC] + PARAMS_PLACE_KEYS
   # these will be handled in model_params_multi()
   # See {#create} for description of "place_id" and "place".  In short, the best strategy is

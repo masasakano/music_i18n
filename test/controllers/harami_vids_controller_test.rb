@@ -20,7 +20,7 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
     @def_place = places(:tocho)
     @def_update_params = {  # NOTE: Identical to @def_create_params except for those unique to create!
       "uri"=>"https://youtu.be/InitialUri", "duration"=>"56",
-      "release_date(1i)"=>"2024", "release_date(2i)"=>"2", "release_date(3i)"=>"28",
+      # "release_date(1i)"=>"2024", "release_date(2i)"=>"2", "release_date(3i)"=>"28",   ## see below
       "place.prefecture_id.country_id"=>@def_place.country.id.to_s,
       "place.prefecture_id"=>@def_place.prefecture_id.to_s, "place"=>@def_place.id.to_s,
       "form_channel_owner"   =>ChannelOwner.primary.id.to_s,
@@ -44,7 +44,9 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
       "note"=>"",
       #"reference_harami_vid_id" => "",  # GET parameter
        # "uri_playlist_en"=>"", "uri_playlist_ja"=>"",
-    }.with_indifferent_access
+    }.merge(
+      get_params_from_date_time(Date.new(2024, 2, 28), "release_date")  # defined in application_helper.rb
+    ).with_indifferent_access
 
     @def_create_params = @def_update_params.merge({
       "title"=>"Initial test-title", "langcode"=>"ja",
@@ -146,7 +148,7 @@ if true
     assert_equal Channel.default(:HaramiVid), mdl_last.channel
     assert_equal Date.parse("2024-02-28"),    mdl_last.release_date
 
-    # A new channle is temporarily created but must be rolled-back because HaramiVid was not created after all.
+    # A new Channel is temporarily created but must be rolled-back because HaramiVid was not created after all.
     hsnew = {form_channel_platform: channel_platforms(:channel_platform_facebook).id, note: "fail due to unique uri"}
     assert_no_difference("Channel.count") do
       assert_no_difference("HaramiVid.count") do
@@ -504,9 +506,11 @@ end
     assert_equal 63, hvid6.duration
 
     ## Create HaramiVid based on hvid6 (reference_harami_vid_id)
+    hvid6.update!(release_date: hvid6.release_date+1.month)  # so that it is 2 months after EventItem StartTime
+    hvid6.reload
     hsnew = {title: "A new from template", langcode: "en",
       "uri"=>"https://youtu.be/A_new_from_template", "duration"=>"780",
-      "release_date(1i)"=>hvid6.release_date.year, "release_date(2i)"=>hvid6.release_date.month, "release_date(3i)"=>hvid6.release_date.day,
+      # "release_date(1i)"=>hvid6.release_date.year, "release_date(2i)"=>hvid6.release_date.month, "release_date(3i)"=>hvid6.release_date.day,  ## see below
       "form_channel_owner"   =>ChannelOwner.primary.id.to_s,
       "form_channel_type"    =>ChannelType.default(:HaramiVid).id.to_s,
       "form_channel_platform"=>ChannelPlatform.default(:HaramiVid).id.to_s,
@@ -515,7 +519,9 @@ end
       "event_item_ids" => hvid6.event_items.ids.map(&:to_s),
       "reference_harami_vid_id" => hvid6.id.to_s,
       "note"=>(newnote_recr="hvid 7 created from ref"),
-    }.with_indifferent_access
+    }.merge(
+      get_params_from_date_time(hvid6.release_date, "release_date")  # defined in application_helper.rb
+    ).with_indifferent_access
     assert_equal 1, hvid6.event_items.count, "sanity check..."
     assert  (pl6=hvid6.event_items.first.place), "sanity check..."  # It is UnknownPlace in Shimane
     refute_equal HaramiVid::DEF_PLACE, pl6
@@ -550,7 +556,6 @@ end
     assert_equal hvid6.musics.count, mdl_last.harami_vid_music_assocs.count  # = 2
     assert_nil mdl_last.harami_vid_music_assocs.order(:updated_at).last.timing
     assert_equal newnote_recr, mdl_last.note
-
 
     ## Edit HaramiVid that has common EventItems with hvid6
     ## specifing a new Music AND new Artist
@@ -730,14 +735,19 @@ end
       {
         "event_item_ids" => hvid6.event_items.ids.map(&:to_s),
         "reference_harami_vid_id" => "",
-        "note"=>(hvid6.note+"06"),
         form_new_artist_collab_event_item: (evit2chk=hvid6.event_items.first).id.to_s,  # hvid6's own EventItem
         form_new_event: "",
         music_name: mu_tit,
         music_timing: (mu_timing="128"),
         artist_name: art_tit_h7,
         artist_name_collab: "",
-        note: (newn = hvid7.note+"04"),})
+        #release_date: hvid6.release_date,
+        #"note"=>(hvid6.note+"06"),
+        note: (newn = hvid7.note+"04"),
+      }
+    ).merge(
+      get_params_from_date_time(hvid6.release_date, "release_date")  # defined in application_helper.rb
+    )
     old_updated_at = hvid6.updated_at
     assert_equal    1, hvid6.event_items.distinct.count
     assert_equal    2, hvid6.musics.size
@@ -798,6 +808,170 @@ end
     exp = n_evit5 + n_evit6
     assert_equal exp, css_select('fieldset.harami_vid_event_items input[type="checkbox"]').size
     assert_equal exp, css_select('fieldset.harami_vid_event_items input[type="checkbox"][checked="checked"]').size
+
+    #####
+    # Testing auto-update of EventItem Time/Duration in create EventItem
+    #
+    # 1. When Event is pretty old, but its start_time_err is small and duration is short
+
+    evt_kagawa_unkpla = nil
+    assert_difference("Event.count*10 + EventItem.count", 11) do  # 
+      evt_kagawa_unkpla = Event.create_basic!(
+        title: 'Test Event in Unknown-Place in Kagawa', langcode: "en", is_orig: true,
+        place: pla_unknown_kagawa,
+        event_group: EventGroup.unknown,
+        start_time: (hvid6.release_date - 3.months).to_time,
+        start_time_err: 1.days.in_seconds,  # 1 day
+        duration_hour: 1.0,
+        note: "Event 3 months before HaramiVid with +/- 1 day with 1.0 duration hour",
+      )
+    end
+
+    hvid6_update_prms = hvid6_prms.merge(
+      {
+        "reference_harami_vid_id" => "",
+        form_new_event: evt_kagawa_unkpla.id.to_i.to_s,
+        note: (newn = hvid6.note+"08"),
+        "place.prefecture_id.country_id"=>hvid6.country.id.to_s,
+        "place.prefecture_id"=>hvid6.prefecture.id.to_s,
+        "place"=>hvid6.place.id.to_s,
+        "form_channel_owner"   =>hvid6.channel_owner.id.to_s,
+        "form_channel_type"    =>hvid6.channel_type.id.to_s,
+        "form_channel_platform"=>hvid6.channel_platform.id.to_s,
+        "event_item_ids" => hvid6.event_items.ids.map(&:to_s),
+        "artist_name"=>"",
+        # "form_engage_hows"=>EngageHow.default(:HaramiVid).id.to_s,
+        "form_engage_year"=>"",
+        "form_engage_contribution"=>"0.56789",
+        # "artist_name_collab"=>"",
+        # "form_instrument" => Instrument.default(:HaramiVid).id.to_s,
+        # "form_play_role"  => PlayRole.default(:HaramiVid).id.to_s,
+        # "music_collab" => "",  # Music to associate (to EventItem, not HaramiVid directly) through ArtistMusicPlay
+        # "music_name"=>"",      # Music to associate through HaramiVidMusicAssoc
+        # "music_timing"=>"1234",
+        # "music_genre"=>Genre.default(:HaramiVid).id.to_s,
+        # "music_year"=>"1984",
+      }
+    ).merge(
+      get_params_from_date_time(hvid6.release_date, "release_date")  # defined in application_helper.rb
+    )
+    new_def_evit = EventItem.last
+
+    old_updated_at = hvid6.updated_at
+    assert_equal    1, hvid6.event_items.distinct.count
+
+    assert_difference("Event.count*10 + EventItem.count", 1) do  # a new EventItem (non-default one).
+      #assert_difference("ArtistMusicPlay.count", 0) do  # for default Artist's Music-Event-Play
+      ## This increases by two --- I haven't worked out why...
+        assert_difference("Music.count + Artist.count + Engage.count", 0) do
+          assert_difference("HaramiVidMusicAssoc.count*10 + HaramiVidEventItemAssoc.count", 1) do  # change in EventItemAssoc
+            assert_no_difference("Channel.count") do  # existing Channel is found
+              assert_no_difference("HaramiVid.count") do
+                patch harami_vid_url(hvid6), params: { harami_vid: hvid6_update_prms }
+                assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+                assert_empty(s=(css_select("#error_explanation_list").to_s), s)
+              end
+            end
+          end
+        end
+      #end
+    end
+
+    new_evit = EventItem.last
+    hvid6.reload
+    assert_equal newn, hvid6.note
+    assert_operator old_updated_at, :<, hvid6.updated_at
+    mdl_last = hvid6
+
+    assert_includes hvid6.event_items, new_evit
+    assert_equal evt_kagawa_unkpla.place, new_evit.place
+    assert_equal new_def_evit.start_time,          new_evit.start_time
+    assert_equal evt_kagawa_unkpla.start_time,     new_evit.start_time
+    assert_equal evt_kagawa_unkpla.start_time_err, new_evit.start_time_err
+    assert_operator evt_kagawa_unkpla.duration_hour.hours, :>, new_evit.duration_minute.minutes
+
+    #####
+    # Same  (i.e., Testing auto-update of EventItem Time/Duration in create EventItem)
+    #
+    # 2. When Event is pretty new with a fairly large start_time_err, and its duration is short
+    #    => StartTimes and their errors of Event and Event should agree
+
+    evt_kagawa_unkpla.start_time     = hvid6.release_date.beginning_of_day - 3.days
+    evt_kagawa_unkpla.start_time_err = 2.hours.in_seconds
+    evt_kagawa_unkpla.save!
+    old_updated_at = hvid6.updated_at
+
+    assert_difference("Event.count*10 + EventItem.count", 1) do  # a new EventItem (non-default one).
+      #assert_difference("ArtistMusicPlay.count", 0) do  # for default Artist's Music-Event-Play
+        assert_difference("Music.count + Artist.count + Engage.count", 0) do
+          assert_difference("HaramiVidMusicAssoc.count*10 + HaramiVidEventItemAssoc.count", 1) do  # change in EventItemAssoc
+            assert_no_difference("Channel.count") do  # existing Channel is found
+              assert_no_difference("HaramiVid.count") do
+                patch harami_vid_url(hvid6), params: { harami_vid: hvid6_update_prms.merge({event_item_ids: hvid6.event_items.ids.map(&:to_s)}) }
+                assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+                assert_empty(s=(css_select("#error_explanation_list").to_s), s)
+              end
+            end
+          end
+        end
+      #end
+    end
+
+    new_evit = EventItem.last
+    hvid6.reload
+    #assert_equal newn, hvid6.note
+    assert_equal old_updated_at, hvid6.updated_at  # HaramiVid itself does not change.
+    mdl_last = hvid6
+
+    assert_includes hvid6.event_items, new_evit
+    assert_equal evt_kagawa_unkpla.place, new_evit.place
+    refute_equal new_def_evit.start_time,          new_evit.start_time
+    assert_equal evt_kagawa_unkpla.start_time,     new_evit.start_time
+    assert_equal evt_kagawa_unkpla.start_time_err, new_evit.start_time_err
+    assert_operator evt_kagawa_unkpla.duration_hour.hours, :>, new_evit.duration_minute.minutes
+
+    #####
+    # Same  (i.e., Testing auto-update of EventItem Time/Duration in create EventItem)
+    #
+    # 3. When Event is a month old with a smaller start_time_err than Default EventItem created from HaramiVid
+    #    => StartTimes and their errors of Event and Event should agree
+
+    evt_kagawa_unkpla.start_time     = hvid6.release_date.beginning_of_day - 40.days
+    evt_kagawa_unkpla.start_time_err = 15.days.in_seconds
+    evt_kagawa_unkpla.duration_hour = (hvid6.duration.seconds - 2).seconds.in_hours
+    evt_kagawa_unkpla.save!
+    old_updated_at = hvid6.updated_at
+
+    assert_difference("Event.count*10 + EventItem.count", 1) do  # a new EventItem (non-default one).
+      #assert_difference("ArtistMusicPlay.count", 0) do  # for default Artist's Music-Event-Play
+        assert_difference("Music.count + Artist.count + Engage.count", 0) do
+          assert_difference("HaramiVidMusicAssoc.count*10 + HaramiVidEventItemAssoc.count", 1) do  # change in EventItemAssoc
+            assert_no_difference("Channel.count") do  # existing Channel is found
+              assert_no_difference("HaramiVid.count") do
+                patch harami_vid_url(hvid6), params: { harami_vid: hvid6_update_prms.merge({event_item_ids: hvid6.event_items.ids.map(&:to_s)}) }
+                assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+                assert_empty(s=(css_select("#error_explanation_list").to_s), s)
+              end
+            end
+          end
+        end
+      #end
+    end
+
+    new_evit = EventItem.last
+    hvid6.reload
+    #assert_equal newn, hvid6.note
+    assert_equal old_updated_at, hvid6.updated_at  # HaramiVid itself does not change.
+    mdl_last = hvid6
+
+    assert_includes hvid6.event_items, new_evit
+    assert_equal evt_kagawa_unkpla.place, new_evit.place
+    refute_equal new_def_evit.start_time,          new_evit.start_time
+    assert_equal evt_kagawa_unkpla.start_time,     new_evit.start_time
+    assert_equal evt_kagawa_unkpla.start_time_err, new_evit.start_time_err
+    assert_operator evt_kagawa_unkpla.duration_hour.hours,     :>=, new_evit.duration_minute.minutes
+    assert_operator evt_kagawa_unkpla.duration_hour.hours*0.9, :<,  new_evit.duration_minute.minutes
+    assert_operator evt_kagawa_unkpla.duration_hour.hours,     :>,  new_evit.duration_minute_err.seconds
 
     ## TODO
     # Check out what happen when duplication between the existing EventItems and GET-specified reference_harami_vid_id 

@@ -24,7 +24,9 @@ class EventsTest < ApplicationSystemTestCase
     click_on "Log in"
 
     visit events_url
-    assert_selector "h1", text: @h1_title
+    Capybara.using_wait_time(2){
+      assert_selector "h1", text: @h1_title
+    }
     assert_text "Items"
     n_events_be4 = page.all("div#events table tr").size - 1
     click_on "Create Event"
@@ -89,7 +91,9 @@ class EventsTest < ApplicationSystemTestCase
     ## test "should destroy Event" do
     visit event_url(@event)
     assert_match(/\AEvent:/, page.find("h1").text)
-    refute_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']"  # No "Destroy" button because it has child EventItems
+    assert_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy'][@disabled='disabled']"  # "Destroy" button should be disabled because it has child EventItems
+    ### This case used not to display the Destroy button at all.
+    # refute_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']"  # No "Destroy" button because it has child EventItems
 
     ### At the moment, ActiveRecord::DeleteRestrictionError (anyway, "Destroy" links in the table are disabled.)
     #assert_selector(:xpath, "//table[@id='event_items_index_table']//tbody//td//span[contains(@class, 'cell_disable_link')][text()='Destroy']")

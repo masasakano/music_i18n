@@ -15,8 +15,12 @@
     <% end %>
 
     <%# if !@event.event_items.exists? && can?(:destroy, @event) %>
-    <% if @event.destroyable? && can?(:destroy, @event) %>
-      <span class="text-end"><%= button_to "Destroy", @event, method: :delete, data: { confirm: t('are_you_sure') } %></span>
+    <% if can?(:destroy, @event)  %>
+      <% if @event.destroyable? %>
+        <span class="text-end"><%= button_to "Destroy", @event, method: :delete, data: { confirm: t('are_you_sure') } %></span>
+      <% else %>
+        <span class="text-end"><form class="button_to"><input disabled="disabled" type="submit" value="Destroy"></form></span>
+      <% end %>
     <% end %>
   <% if can? :create, Event %>
     <br>

@@ -51,9 +51,9 @@ class PlacesTest < ApplicationSystemTestCase
     select('Japan',  from: 'Country')
     click_on "Create Place"
 
-    assert_equal path2place_index, current_path, 'Should be on Index path after erroneous input.'
-    assert_text "AltTitle must exist"
+    assert_text "AltTitle must exist"   # This would wait.
     assert_text "Prefecture must exist"
+    assert_equal path2place_index, current_path, 'Should be on Index path after erroneous input.'  # NOT "new/" according to Rails convention.
 
     select('Japan',  from: 'Country')
     #puts "DEBUG-0x:html="+page.html

@@ -479,7 +479,7 @@ class Event < BaseWithTranslation
 
   # True if no children or if only descendants are {#unknown?} and no HaramiVid depends on self.
   def destroyable?
-    return false if harami_vids.exists? || harami1129s.exists?
+    return false if harami_vids.exists? || harami1129s.exists? || event_items.count > 1
     !unknown?
   end
 

@@ -226,6 +226,13 @@ module ModuleHaramiVidEventAux
     return if !force_update && !self.class.should_update_event_item_start_time?(evit, harami_vid)
 
     new_start_time = self.class.candidate_new_start_time(harami_vid)
+    evit_err = ((er=evit.start_time_err) ? er : Float::INFINITY).seconds
+    if (evit.start_time < new_start_time && (evit.start_time + evit_err) < harami_vid.release_date.beginning_of_day) ||
+       (new_start_time < evit.start_time)
+      hsret = {start_time: evit.start_time, start_time_err: ((evit_err.in_seconds == Float::INFINITY) ? OFFSET_PERIOD_FROM_REFERENCE : evit_err).in_seconds}
+      return [hsret, nil]
+    end
+
     hsret = {start_time: new_start_time, start_time_err: (new_err=OFFSET_PERIOD_FROM_REFERENCE).in_seconds}.with_indifferent_access
     msg = sprintf("Start time of the (newly created?) EventItem (pID=%d) is adjusted to (%s) with an error of %f days, based on the release-date (%s) of the HaramiVid. If it is incorrect (in rare cases), edit the EventItem.", evit.id, new_start_time, new_err.in_days, harami_vid.release_date)
     [hsret, msg]
@@ -244,7 +251,9 @@ module ModuleHaramiVidEventAux
               (harami_vid.duration < 1.5) ||  # [seconds] -- unreasonably small
               (evit.unknown? && evit.event.unknown?)  # If a completely unknown EventItem, leaves its duration
 
-    new_duration_minute = (harami_vid.duration.seconds.in_minutes * DEF_DURATION_RATIO_EVIT_TO_HVID).ceil.to_f
+    evit_min_num = ((dum=evit.duration_minute) ? dum : Float::INFINITY)
+    new_duration_minute = [(harami_vid.duration.seconds.in_minutes * DEF_DURATION_RATIO_EVIT_TO_HVID).ceil,
+                           evit_min_num].min.to_f
 
     if evit.open_ended? || evit.duration_minute < 0.9  # evit.duration_minute is defined if NOT open_ended, 
       # Continue processing
@@ -268,7 +277,7 @@ module ModuleHaramiVidEventAux
     # Error value adjustment
     vnow = evit.duration_err_with_unit
     if vnow.blank? || vnow > TimeAux::THRE_OPEN_ENDED || (vnow == EventItem::DEFAULT_NEW_TEMPLATE_DURATION_ERR)
-      val = (harami_vid.duration.seconds.in_minutes * DEF_DURATION_ERR_RATIO_EVIT_TO_HVID).ceil.to_f
+      val = [(harami_vid.duration.seconds.in_minutes * DEF_DURATION_ERR_RATIO_EVIT_TO_HVID).ceil, evit_min_num].min.to_f
       hsret[:duration_minute_err] = EventItem.num_with_unit_to_db_duration_err(val.minutes)
     end
 
