@@ -28,6 +28,7 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
       "form_channel_platform"=>ChannelPlatform.default(:HaramiVid).id.to_s,
       ### (NOT Used anymore) "form_event_items" => [events(:ev_harami_lucky2023).event_items.first, Event.unknown.event_items.first].map(&:id).map(&:to_s),
      # "event_item_ids" => [...]   # existing EventItems, mandatory for update, but should not be usually included in create unless "reference_harami_vid_id" is specified with GET
+      "form_new_artist_collab_event_item" => HaramiVidsController::DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_s,  # ==0; For new event.
       "form_new_event" => events(:ev_harami_lucky2023).id.to_s,  # A new EventItem should be created
       "artist_name"=>"",
       "form_engage_hows"=>EngageHow.default(:HaramiVid).id.to_s,
@@ -603,8 +604,9 @@ end
     assert_response :unprocessable_entity
 
     ## should succeed now
-    hvid7_prms = hvid7_prms_fail.merge({form_new_artist_collab_event_item: "0",
-                               form_new_event: evit2chk.event.id.to_s,})
+    hvid7_prms = hvid7_prms_fail.merge({
+             form_new_artist_collab_event_item: HaramiVidsController::DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_s,
+             form_new_event: evit2chk.event.id.to_s,})
 
     assert_difference("Event.count + EventItem.count", 1) do  # an EventItem is created
       assert_difference("ArtistMusicPlay.count", 1) do  # for default Artist's Music-Event-Play
@@ -670,7 +672,7 @@ end
 
 
     ######
-    # Tesf of adding a collab-Artist with the existing, but freshly created, EventItem - should succeed
+    # Tesf of adding a collab-Artist with the existing (freshly created a moment ago) EventItem - should succeed
     hvid7_prms_add_collab_art = hvid7_prms_fail.merge({
         "event_item_ids" => hvid7.event_items.ids.map(&:to_s),
         form_new_artist_collab_event_item: evit7.id.to_s,  # Key
@@ -830,6 +832,7 @@ end
     hvid6_update_prms = hvid6_prms.merge(
       {
         "reference_harami_vid_id" => "",
+        # form_new_artist_collab_event_item: HaramiVidsController::DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_s,  # As in hvid6_prms.
         form_new_event: evt_kagawa_unkpla.id.to_i.to_s,
         note: (newn = hvid6.note+"08"),
         "place.prefecture_id.country_id"=>hvid6.country.id.to_s,
@@ -972,6 +975,42 @@ end
     assert_operator evt_kagawa_unkpla.duration_hour.hours,     :>=, new_evit.duration_minute.minutes
     assert_operator evt_kagawa_unkpla.duration_hour.hours*0.9, :<,  new_evit.duration_minute.minutes
     assert_operator evt_kagawa_unkpla.duration_hour.hours,     :>,  new_evit.duration_minute_err.seconds
+
+    ## Testing to confirm no EventItem is created unless "new EventItem" is explicitly specified.
+
+    newnote = "new Note no EI"
+    new_prm6 = hvid6_update_prms.merge(
+      {
+        event_item_ids: hvid6.event_items.ids.map(&:to_s),
+        form_new_artist_collab_event_item: hvid6.event_items.last.id.to_s,
+        form_new_event: events(:ev_harami_lucky2023).id.to_s,  # No new EventItem should be created
+        music_name: "",
+        music_collab: "",
+        artist_name: "",
+        artist_name_collab: "",
+        note: newnote,
+      })
+
+    assert_no_difference("Event.count*10 + EventItem.count") do  # a new EventItem (non-default one).
+      assert_no_difference("ArtistMusicPlay.count") do  # for default Artist's Music-Event-Play
+        assert_no_difference("Music.count + Artist.count + Engage.count") do
+          assert_no_difference("HaramiVidMusicAssoc.count*10 + HaramiVidEventItemAssoc.count") do  # change in EventItemAssoc
+            assert_no_difference("Channel.count") do  # existing Channel is found
+              assert_no_difference("HaramiVid.count") do
+                patch harami_vid_url(hvid6), params: { harami_vid: new_prm6 }
+                assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+                assert_empty(s=(css_select("#error_explanation_list").to_s), s)
+              end
+            end
+          end
+        end
+      end
+    end
+
+    hvid6.reload
+    assert_equal newnote, hvid6.note  # HaramiVid is updated, but no EventItem should be created.
+    new_evit2 = EventItem.last
+    assert_equal new_evit2, new_evit
 
     ## TODO
     # Check out what happen when duplication between the existing EventItems and GET-specified reference_harami_vid_id 

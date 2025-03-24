@@ -229,6 +229,7 @@ class HaramiVidsController < ApplicationController
             self.send task
             rollback_clear_flash if @harami_vid.errors.any?
           end
+
           if @assocs[:artist_collab].present? && @assocs[:music_collab].blank?
             form_key = (@music_collab_collection.blank? ? :music_name : :music_collab)
             @harami_vid.errors.add form_key, I18n.t("harami_vids.warn_collab_without_music")+@music_collab_collection.inspect  # Valid Music must be given when you add an Artist-to-collaborate.
@@ -243,6 +244,9 @@ class HaramiVidsController < ApplicationController
           end
         rescue => err
           # Gracefully handles an unexpected Exception; idelaly, I suppose this should not be put here, because there should be no unexpected exceptions...
+          if @harami_vid && @harami_vid.errors.any?  # i.e., if an error has been caught and been deliberately rolled back, likely due to an invalid (combination of) input by the user, such as a missing mandatory parameter.
+            logger.error "Error: in saving HaramiVid with registered error messages:  "+@harami_vid.errors.full_messages.join("  ")
+          end
           logger.error "Exception (#{err.class}): #{err.message}.\n ## Backtrace:  \n#{err.backtrace.join("\n")}"
           @harami_vid.errors.add :base, "An unexpected error in updating/saving Video was raised. Contact the site administrator."
           result = false
@@ -263,7 +267,7 @@ class HaramiVidsController < ApplicationController
           %r@<a [^>]*href="/channels/\d+[^>]*>new Channel.+is created@ =~ ec
         }
       end
-      raise ActiveRecord::Rollback, "HaramiVid was not created; hence rollback to cancel the potential creation of Channel."
+      raise ActiveRecord::Rollback, "HaramiVid was not created; hence rollback, cancelling the potential creation of Channel and EventItem."
     end
 
 
@@ -732,13 +736,15 @@ end
     def create_an_event_item
 begin
       prm_name = "form_new_event"
-      @assocs[:new_event_item] = nil
-      @event_item_for_new_artist_collab = 
+      @event_item_for_new_artist_collab ||= 
         if (s=@harami_vid.form_new_artist_collab_event_item).present? && DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_i != s.to_i
           EventItem.find(s)
         else
           nil  # set to nil if 0 == @harami_vid.form_new_artist_collab_event_item
         end
+
+      @assocs[:new_event_item] = @event_item_for_new_artist_collab  # initialization
+      return if @assocs[:new_event_item]  # Unless EventItem for Music or Collab-Artist is specified "new", the specified Event is ignored and no new EventItem is created.  NOTE an empty EventItem can be created if it is specified "new" with no Music specified.
 
       evt_id=@hsmain[prm_name]
       if evt_id.blank?
@@ -760,8 +766,7 @@ begin
         end
       end
 
-      @assocs[:new_event_item] ||= nil
-      event = Event.find(evt_id.to_i)  # should never fail via UI
+      event = Event.find(evt_id.to_i)  # should never fail via UI b/c any invalid input via UI has been already caught above.
       set_up_event_item_and_associate(event)  # sets @assocs[:new_event_item]
 
       # @event_item_for_new_artist_collab is updated (from nil to EventItem) if it should point to the newly created EventItem
@@ -946,6 +951,7 @@ end
 
     # New entry of ArtistMusicPlay for :artist_collab and at the same time for HARAMIchan
     def associate_artist_music_play(instrument, play_role, event_item: @assocs[:new_event_item], form_attr: :base)
+begin
       associate_harami_music_play(event_item: event_item)
 
       @assocs[:artist_music_play] = ArtistMusicPlay.find_or_initialize_by(
@@ -962,6 +968,10 @@ end
       end
 
       _save_or_add_error(@assocs[:artist_music_play], form_attr: form_attr)  # :base for create b/c uncertain which parameter is wrong.
+rescue => err
+  print "DEBUG(#{File.basename __FILE__}:#{__method__}): Error is raised:\n ";p err
+  raise
+end
     end
 
     # New entry of ArtistMusicPlay for HARAMIchan
