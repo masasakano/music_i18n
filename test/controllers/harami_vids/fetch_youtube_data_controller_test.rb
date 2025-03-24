@@ -213,7 +213,8 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
 
     dura0 = 23.hours
     evit_stime_early = Date.new(1999, 1, 1).to_time
-    ev.update!(  start_time: evit_stime_early)  # much earlier date
+    evit_stime_early_err = ((hvid.release_date ? hvid.release_date : Date.current).end_of_day - evit_stime_early).seconds.in_seconds*1.1
+    ev.update!(  start_time: evit_stime_early, start_time_err: evit_stime_early_err)  # much earlier date with a huge error, i.e., a kind of default Event applicable for EventItem-s at any epoch
     evit.update!(start_time: evit_stime_early)  # => this should be updated.
     ev.update!(  duration_hour:   dura0.in_hours)
     evit.update!(duration_minute: dura0.in_minutes)
@@ -243,14 +244,13 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
       ev.reload
       evit.reload
       stime = evit.start_time
-      assert_equal ev.start_time, evit_stime_early, "Event time should not be affected."
-      refute_equal    stime,      evit_stime_early
+      assert_equal ev.start_time, evit_stime_early, "Event Start-time should not be affected."
+      refute_equal    stime,      evit_stime_early, "Failed in #{i_run+2}-th (either 2nd or 3rd) run. Because Event is one of default Events that have a huge error in StartTimeErr, its start time should not be copied to EventItem StartTime, but..."
       assert_operator stime, :>,  evit_stime_early
       assert_operator stime.to_date, :<=, hvid.release_date
       assert_operator stime.to_date, :>=, hvid.release_date - 3.months
       _do_check_if_duration_adjusted(hvid, dura0.in_hours, dura0.in_minutes, caller_msg="#{i_run+2}-st run")
     end
-
 
     ## 4th run
     # Checking updating start_time or not with HaramiVid sharing an EventItem
