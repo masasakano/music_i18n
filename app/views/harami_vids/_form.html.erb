@@ -110,6 +110,7 @@
     </div>
   <% end %> <!-- if !harami_vid.new_record? || given_ref -->
 
+  <!-- New EventItem -->
    <% if !given_ref %>
     <% if !harami_vid.new_record? || display_new_event_item_form %>
     <h4><%= t("harami_vids.event_item_for_new_collab_artist") %></h4>
@@ -125,12 +126,13 @@
      <div class="form_new_model_info">
       <%= f.input :form_new_event,
         collection: form_selct_collections(Event.left_joins(:place).order(:start_time, :event_group_id, "places.prefecture_id", "places.id")), include_blank: true,
-          selected: (harami_vid.form_new_event || (harami_vid.new_record? ? Event.default(:HaramiVid).id : nil)),
+          selected: ((v=harami_vid.form_new_event).present? ? v : default_event_for_new_event_item(harami_vid).id),
           label: t(:additional).capitalize+" "+t(:Event)+"(Item)",
-          input_html: { multiple: false } %>
+          input_html: { multiple: false } %> <%# default_event_for_new_event_item() defined in /app/helpers/harami_vids_helper.rb %>
      </div>
     <% end %>
 
+  <!-- New Associated Music -->
     <div class="register_assoc_music">
     <h4><%= (harami_vid.new_record? ? "" : "("+t(:additional).capitalize+") ")+t(:Music) %> <span class="small">(<%= t("harami_vids.music_title_comment") %>)</span></h4>  <%# Additional Music %>
     <div class="register_assoc_music_field">

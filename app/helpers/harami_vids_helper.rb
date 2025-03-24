@@ -109,6 +109,20 @@ module HaramiVidsHelper
     end
   end
 
+  # Returns the default Event for a newly associated EventItem
+  #
+  # 1. For a new HaramiVid, the default Event.
+  # 2. For an existing HaramiVid with no EventItem-s associated, the Event has to be explicitly specified (because the editor tends to forget to specify it, and the default one is usually wrong).
+  # 3. For an existing HaramiVid with one or more EventItem-s, the most newly created Event among them is the default.
+  #
+  # @param harami_vid [HaramiVid]
+  # @return [Event]
+  def default_event_for_new_event_item(harami_vid=@harami_vid)
+    return Event.default(:HaramiVid).id if harami_vid.new_record?
+    return nil if harami_vid.events.blank?
+    harami_vid.events.order(created_at: :desc).first
+  end
+
   private
 
     # Set @event_event_items and @original_event_items
