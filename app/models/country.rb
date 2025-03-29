@@ -298,6 +298,54 @@ class Country < BaseWithTranslation
     }.to_h
   end
 
+  # Loads a Country from CountryMaster
+  #
+  # @param country_master: [CountryMaster]
+  # @param hs_main: [Hash, NilClass] e.g., {iso3166_a2_code: "JP", ...}. If nil, created from country_master.
+  # @param hs_trans: [Hash, NilClass] e.g., {ja: {title: "英領インド洋地域", alt_title: nil, is_orig: false, weight: 0}, ...}. If nil, created from country_master.
+  # @param check_clobber: [Boolean] if true (Def: false), and if the corresponding Country already exists, returns nil. If false, no check is performed and this method always attempts to create a Country.
+  # @return [Country] {Country#errors}.any? may be true if check_clobber is true and this already exists.
+  def self.load_one_from_master(country_master:, hs_main: nil, hs_trans: nil, check_clobber: false)
+    # NOTE: iso3166_a2_code is the only guaranteed parameter every CountryMaster has.
+    #   Specifically, neither iso3166_n3_code nor iso3166_a3_code is defined for "the Republic of Kosovo".
+    if check_clobber && (ret=Country.find_by(iso3166_a2_code: (a2=country_master.iso3166_a2_code)))
+      ret.errors.add :base, "Country with A2=#{a2} already exists."
+      return ret
+    end
+
+    hs_main ||= _hs_country_from_master(country_master)
+    hs_trans ||= country_master.construct_hs_trans
+    hs_trans = Country.modify_masters_trans(hs_trans) # title/alt_title modified, e.g., => UK
+
+    begin
+      ret = Country.create_with_translations!(hs_main.merge({country_master_id: country_master.id}), translations: hs_trans) # {country_master: cm} is not accepted, likely due to a problem in create_with_translations!()
+    rescue ActiveRecord::RecordInvalid
+      msg = sprintf("ERROR in the input Country, maybe in Translations (CountryMaster-pID=%d). Contact the code developer: [Hash, Trans]=%s", country_master.id, [hs_main, hs_trans].inspect)
+      print msg if Object.const_defined?(:FLAG_SEEDING)
+      begin
+        logger.error msg
+      rescue  # b/c I am not sure if logger is defined is in seeding.
+      end
+      raise
+    end
+
+    ret
+  end
+
+  # Here, the caller may override country_master_id
+  #
+  # @return [Hash] to create a Country, loading from the given CountryMaster
+  def self._hs_country_from_master(country_master)
+    hsret = {}.with_indifferent_access
+    %w(iso3166_a2_code iso3166_a3_code iso3166_n3_code independent territory iso3166_remark orig_note start_date end_date).each do |ek|
+      hsret[ek] = country_master.send(ek)
+    end
+
+    hsret[:country_master_id] = country_master.id
+    hsret
+  end
+  private_class_method :_hs_country_from_master
+
   # Similar to #{encompass?} but returns false if self==other
   #
   # @param other [Place, Prefecture, Country]

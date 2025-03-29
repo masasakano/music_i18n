@@ -20,7 +20,8 @@
       <th>Note</th>
       <th>Start date</th>
       <th>End date</th>
-      <th colspan="3"></th>
+      <th>Country</th>
+      <th<%= can?(:manage, CountryMaster) ? ' colspan="3"' : "" %>></th>
     </tr>
   </thead>
 
@@ -29,19 +30,28 @@
       <tr>
         <td><%= country_master.iso3166_a2_code %></td>
         <td><%= country_master.iso3166_a3_code %></td>
-        <td><%= country_master.iso3166_n3_code %></td>
+        <td class="align-r"><%= country_master.iso3166_n3_code %></td>
         <td><%= country_master.name_ja_full %></td>
         <td><%= country_master.name_ja_short %></td>
         <td><%= country_master.name_en_full %></td>
         <td><%= country_master.name_en_short %></td>
         <td><%= country_master.name_fr_full %></td>
         <td><%= country_master.name_fr_short %></td>
-        <td><%= country_master.independent %></td>
+        <td class="align-c"><%= country_master.independent %></td>
         <td><%= country_master.territory %></td>
         <td><%= country_master.iso3166_remark %></td>
         <td><%= auto_link50(country_master.note) %></td>
         <td><%= country_master.start_date %></td>
         <td><%= country_master.end_date %></td>
+        <td class="align-c">
+          <% if (cnt=country_master.countries.count) > 1 %>
+            <% country_master.countries.each_with_index do |country, i| %>
+              <span class="text-red"><%= link_to i, country %></span>  <%# This should never happen... %>
+            <% end %>
+          <% elsif 1 == cnt %>
+              <%= link_to "Y", country_master.countries.first %>
+          <% end %>
+          </td>
         <td><%= link_to 'Show', country_master %></td>
         <% if can? :manage, country_master %>
           <td><%= link_to 'Edit', edit_country_master_path(country_master) %></td>

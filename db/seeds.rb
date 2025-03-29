@@ -20,6 +20,11 @@
 #
 #     Translation.update_all(create_user_id: myself.id, update_user_id: myself.id)
 
+class Object
+  # To mark this process is running seeding
+  FLAG_SEEDING = true
+end
+
 include ModuleCommon  # for split_hash_with_keys, seed_fname2print
 include ApplicationHelper  # for is_env_set_positive?
 
@@ -189,7 +194,7 @@ nrec += nrectmp
 
 
 ################################
-# Load the countries
+# Load the countries (CountryMaster and Country)
 
 ini_prefs = Prefecture.count
 ini_placs = Place.count
@@ -223,14 +228,14 @@ require Rails.root.to_s+'/lib/tasks/lib/read_country_list.rb'
 
 valids = nil
 if ENV['LOAD_COUNTRIES'].blank?
-  printf("NOTE: All countries are imported from CountryMaster (unless specifying LOAD_COUNTRIES='JP,KR,GB'] etc).\n")
+  printf("NOTE: All countries in CountryMaster are imported to Country (unless specifying LOAD_COUNTRIES='JP,KR,GB'] etc).\n")
 else
   valids = ENV['LOAD_COUNTRIES'].strip.split(/\s*,\s*/).map{|i| i.blank? ? nil : i}.compact
   printf("NOTE: LOAD_COUNTRIES=%s\n", ENV['LOAD_COUNTRIES'].inspect)
 end
 
 n_cnts = 0
-allcnts = read_country_list
+allcnts = read_country_list  # defined in /lib/tasks/lib/read_country_list.rb
 allcnts.each do |ea_cnt|
   trans = ea_cnt.select{ |k, _| /^lang:/ =~ k }.values.reduce({}, :merge)
   ## An example:
@@ -267,17 +272,12 @@ allcnts.each do |ea_cnt|
     next if !valids.include? hstmp[sym].to_s
   end
 
-  trans = Country.modify_masters_trans(trans) # title/alt_title modified, e.g., => UK
-
   next if Country.find_by(sym => hstmp[sym])  # Already defined.
 
-  begin
-    Country.create_with_translations!(hstmp.merge({country_master_id: cm.id}), translations: trans) # {country_master: cm} is not accepted, likely due to a problem in create_with_translations!()
-  rescue ActiveRecord::RecordInvalid
-    print "ERROR in the input Country, maybe in Translations. Contact the code developer: [Hash, Trans]="; p [hstmp, trans]
-    raise
-  end
-  n_cnts += 1
+  Country.load_one_from_master(country_master: cm, hs_main: hstmp, hs_trans: trans, check_clobber: false)
+  # This would raise an error (b/c check_clobber=false) if the Country already existed, which should never happen because the condition is checked above.
+
+  n_cnts += 1  # Number of new Countries.
 end
 
 
