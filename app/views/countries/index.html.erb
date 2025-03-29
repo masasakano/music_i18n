@@ -60,7 +60,18 @@
 
 <br>
 
+<% if can? :create, Place %>
+  <p>
+    <% if can? :update, CountryMasters::CreateCountriesController %>
+      <%= link_to "Load a new Country from Master data", country_masters_path %>
+    <% else %>
+      (<em>To editors</em>) If you need a Country not listed here to create a new Place, contact the site administrator.
+    <% end %>
+  </p>
+<% end %>
+
 <% if can? :create, Country %>
   <%= button_to 'Create New Country', new_country_path, method: :get %>
+  <strong>WARNING</strong>: Are you sure you want to manually create one?  You should load one from Master data (see above), usually.
   <%# link_to 'New Country', new_country_path %>
 <% end %>

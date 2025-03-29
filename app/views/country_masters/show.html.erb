@@ -1,4 +1,4 @@
-<p id="notice"><%= notice %></p>
+<h1>CountryMaster: <%= tit=@country_master.name_en_full; tit.present? ? tit : @country_master.name_en_short %></h1>
 
 <p>
   <strong>Code a2:</strong>
@@ -73,6 +73,26 @@
 <p>
   <strong>End date:</strong>
   <%= @country_master.end_date %>
+</p>
+
+<p>
+  <strong>Child Country:</strong>
+  <% if ((cnt=@country_master.countries.count) > 1) %>
+    <ol>
+      <% @country_master.countries.each_with_index do |country| %>
+        <li><span class="text-red" title="There should be only 1 child Country, but for some reason, a multiple of them exist..."><%= link_to country.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true), country %></span></li>  <%# This should never happen... %>
+      <% end %>
+    </ol>
+  <% elsif 1 == cnt %>
+    <% country = @country_master.countries.first %>
+    <%= link_to country.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true), country %> (pID=<%= country.id %>)
+  <% else %>
+    None
+    <% if can?(:update, CountryMasters::CreateCountriesController) %>
+      <br>
+      <%= link_to 'Create child Country', country_masters_create_countries_path(@country_master), method: :post, data: { confirm: t('are_you_sure') }, class: "button_like" %>
+    <% end %>
+  <% end %>
 </p>
 
 <% if current_user.an_admin? %>

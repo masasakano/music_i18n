@@ -49,7 +49,9 @@
               <span class="text-red"><%= link_to i, country %></span>  <%# This should never happen... %>
             <% end %>
           <% elsif 1 == cnt %>
-              <%= link_to "Y", country_master.countries.first %>
+              <%= link_to "Link", (cntry=country_master.countries.first), title: sprintf("pID=%d", cntry.id) %>
+          <% elsif can?(:update, CountryMasters::CreateCountriesController) %>
+            <%= link_to 'Create', country_masters_create_countries_path(country_master), method: :post, data: { confirm: t('are_you_sure') }, class: "button_like" %>
           <% end %>
           </td>
         <td><%= link_to 'Show', country_master %></td>

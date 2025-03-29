@@ -50,6 +50,10 @@ Rails.application.routes.draw do
 
   resources :static_pages
   resources :country_masters
+  namespace :country_masters do
+    post   ':id/create_countries',  to: 'create_countries#update', as: :create_countries  # => country_masters_create_countries_path(:id)  => /country_masters/:id/create_countries
+  end
+
   namespace :musics do
     resources :ac_titles, only: [:index]  # changed from: get 'ac_titles/index'
     get    ':id/merges/new',  to: 'merges#new',     as: :new_merges  # => musics_new_merge_path(:id)  => /musics/:id/merges/new

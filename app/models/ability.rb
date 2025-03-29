@@ -157,6 +157,7 @@ class Ability
     ## General-JA moderator only
     if user.qualified_as?(:moderator, rc_general_ja)
       can :read, [CountryMaster]
+      can(:update, CountryMasters::CreateCountriesController)
       can(:ud, ChannelType){|mdl| (cruser=mdl.create_user) && ((cruser == user) || (!mdl.unknown? && !cruser.superior_to?(user, rc_general_ja))) }  # can update/destroy unless the record was created by a superior in General-JA (i.e., an admin) (though cannot if there's a dependent Channel).
     end
 

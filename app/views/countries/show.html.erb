@@ -1,12 +1,16 @@
-<p id="notice"><%= notice %></p>
-
 <h1>Country: <%= my_title = @country.title_or_alt_tuple_str(langcode: I18n.locale) %></h1>
 
 <hr>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: @country} %>
 
+<% if can? :show, CountryMaster %>
 <% cm = @country.country_master %>
-<div class="show_or_hide" style="display: none;">
+<% if !cm %> <%# In practice, this is the case only for "World". %>
+  <p><strong>Master country data:</strong> None</p>
+<% else %>
+
+<%# div class="show_or_hide" style="display: none;">  <%# This is not working... %>
+<div>
   <h4>master names</h4>
   <dl>
     <% %w(ja en fr).each do |lcode| %>
@@ -15,7 +19,7 @@
     <% end %>
   </dl>
   <p>
-  (……<a id="Link_show_or_hide" title="Show or hide" href="#">Show</a>)
+  <%#(……%><%# a id="Link_show_or_hide" title="Show or hide" href="#"#><%#Show%><%#/a%><%#)%>
   </p>
 </div>
 <% if can? :show, cm %>
@@ -23,6 +27,8 @@
 <% end %>
 <%# javascript_pack_tag 'show_or_hide' %>
 <hr>
+<% end %> <%# if !cm %>
+<% end %> <%# if can? :show, CountryMaster %>
 
 <dl>
   <dt>ID</dt>
