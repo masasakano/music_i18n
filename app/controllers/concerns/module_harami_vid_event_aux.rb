@@ -228,8 +228,8 @@ module ModuleHaramiVidEventAux
     new_start_time = self.class.candidate_new_start_time(harami_vid)
     hvid_time = (harami_vid.release_date ? harami_vid.release_date : Date.current).beginning_of_day
     ev_err = ((er=(evit.event ? evit.event.start_time_err : evit.start_time_err)) ? er : Float::INFINITY).seconds
-    if (evit.start_time < new_start_time && (evit.start_time + ev_err) < hvid_time) ||
-       (new_start_time < evit.start_time)
+    if (new_start_time < evit.start_time) ||
+       (evit.start_time < new_start_time && ev_err.in_milliseconds != Float::INFINITY && (evit.start_time + ev_err) < hvid_time) # nb., (Time + Float::INFINITY).seconds) would return FloatDomainError
       hsret = {start_time: evit.start_time, start_time_err: ((ev_err.in_milliseconds/1000.0 == Float::INFINITY) ? [OFFSET_PERIOD_FROM_REFERENCE, ].max.seconds : ev_err).in_milliseconds/1000.0} # NOTE: Float::INFINITY.seconds.in_seconds raises FloatDomainError
       return [hsret, nil]
     end
