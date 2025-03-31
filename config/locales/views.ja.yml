@@ -249,6 +249,7 @@ ja:
     DurationError: "期間の誤差"
     n_event_items_long: "イベント項目数"
     n_event_items_short: "項目数"
+    time_zone_preposition: "時刻帯"
 
   event_items:
     playing_artists: 演奏するアーティスト

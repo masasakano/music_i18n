@@ -117,6 +117,7 @@ class Ability
       can :read,  Harami1129
       can :cru,   HaramiVid
       can :destroy, HaramiVidMusicAssoc
+      can :crud,  Event  # Event can be destroyed only if there are no significant associated EventItem-s or HaramiVid-s anyway.
       can :crud,  ArtistMusicPlay  # This is used also for ArtistMusicPlays::EditMultisController
     end
 

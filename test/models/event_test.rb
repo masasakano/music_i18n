@@ -5,6 +5,7 @@
 #
 #  id                        :bigint           not null, primary key
 #  duration_hour             :float
+#  memo_editor               :text
 #  note                      :text
 #  start_time                :datetime
 #  start_time_err(in second) :bigint

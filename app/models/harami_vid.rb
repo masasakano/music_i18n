@@ -121,7 +121,12 @@ class HaramiVid < BaseWithTranslation
     Place.unknown ||
     Place.first ||
     if Rails.env == 'test'
+#if defined?("places") && respond_to?(:places)  # In a very odd occasions, this would be needed, though this insertion would fail a HaramiVid Controller test.
+##if true
       places(:unknown_place_unknown_prefecture_japan) || nil  # In the test environment, a constant should not be assigned to a model.
+#else
+#  nil
+#end
     else
       raise('No Place is defined, hence HaramiVid fails to be created/updated.: '+Place.all.inspect)
     end

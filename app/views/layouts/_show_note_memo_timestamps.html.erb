@@ -1,0 +1,31 @@
+<%# local vars: model, (optional) model4ability (Model or Boolean), show_timestamp(Boolean) %>
+<%#   NOTE: model4ability may be a model instance or model class or Boolean, used for an Ability check. In default (if not given), model is used.  If TrueClass, the boolean value is used, skipping the ability check, where the value is interpreted as the permission to display Editor's Note. %>
+<%#   NOTE: If show_timestamp (Boolean) is not given, the same check for model4ability is applied. %>
+<%# USAGE:  render partial: 'layouts/show_note_memo_timestamps', locals: {model: artist, model4ability: !!can_update_gen} %>
+
+<% if !defined?(model4ability) %>
+  <% model4ability = model %>
+<% end %>
+<% show_editor_note = ((true == model4ability) || model4ability && can?(:update, model4ability)) %>
+<% if !defined?(show_timestamp) %>
+  <% show_timestamp = show_editor_note %>
+<% end %>
+
+  <dt class="item_note"><%= t("tables.note").capitalize %>:</dt>
+    <dd class="item_note"><%= sanitized_html(auto_link(model.note)).html_safe %></dd>
+
+<% if model.has_attribute?(:memo_editor) && show_editor_note %>
+  <div class="editor_only memo_editor">
+  <dt class="item_memo_editor">Editor's memo:</dt>
+    <dd class="item_memo_editor"><%= sanitized_html(auto_link(model.memo_editor)).html_safe %></dd>
+  </div>
+<% end %>
+
+  <% if show_timestamp %>
+    <div class="editor_only">
+      <dt>updated_at:</dt>
+        <dd><%= model.updated_at %> <span class="font-smaller" style="margin-left: 1em;">(<%= (model.updated_at && model.created_at && model.updated_at - model.created_at > 1.seconds) ? (Time.current - model.updated_at < 1.seconds ? "<strong>Updated now!</strong>".html_safe : "Updated since creation") : "Never modified since creation" %>)</span></dd>
+      <dt>created_at:</dt>
+        <dd><%= model.created_at %></dd>
+    </div>
+  <% end %>

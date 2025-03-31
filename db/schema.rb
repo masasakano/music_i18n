@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_10_08_035015) do
+ActiveRecord::Schema[7.0].define(version: 2025_03_31_173224) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -257,6 +257,7 @@ ActiveRecord::Schema[7.0].define(version: 2024_10_08_035015) do
     t.text "note"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "memo_editor"
     t.index ["duration_hour"], name: "index_events_on_duration_hour"
     t.index ["event_group_id"], name: "index_events_on_event_group_id"
     t.index ["place_id"], name: "index_events_on_place_id"

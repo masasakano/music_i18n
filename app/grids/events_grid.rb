@@ -42,7 +42,7 @@ class EventsGrid < ApplicationGrid
 #    value ? (allids=Event.joins(:artist_music_plays).where.not("artist_music_plays.artist_id" => Artist.default(:Event).id).distinct.ids; self.where(id: allids)) : self
 #  end
 
-  column_names_max_per_page_filters  # defined in base_grid.rb ; calling column_names_filter() and filter(:max_per_page)
+  column_names_max_per_page_filters  # defined in application_grid.rb ; calling column_names_filter() and filter(:max_per_page)
 
   ####### Columns #######
 
@@ -60,7 +60,11 @@ class EventsGrid < ApplicationGrid
 
   column(:weight, mandatory: false, tag_options: { class: ["editor_only"] }, if: Proc.new{ApplicationGrid.qualified_as?(:editor)})
 
-  column(:duration_hour, mandatory: true, order: :duration_hour, tag_options: { class: ["align-cr"] }, header: Proc.new{I18n.t('tables.duration_hour')}) # float in DB # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
+  column(:duration_hour, mandatory: true, order: :duration_hour, tag_options: { class: ["align-cr"] }, header: Proc.new{I18n.t('tables.duration_hour')}) do |record| # float in DB # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
+    next record.duration_hour if !record.duration_hour
+    next record.duration_hour if record.duration_hour < 0
+    "%.3g" % record.duration_hour
+  end
 
   column(:place, html: true, mandatory: true, header: Proc.new{I18n.t('tables.place')}) do |record|
     #txt_caution = "".html_safe
@@ -100,7 +104,7 @@ class EventsGrid < ApplicationGrid
   end
 
   column_note             # defined in application_grid.rb
-  columns_upd_created_at  # defined in application_grid.rb
+  columns_upd_created_at(Event)  # defined in application_grid.rb
 
   column_actions  # defined in application_grid.rb
 

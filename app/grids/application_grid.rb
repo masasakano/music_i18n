@@ -591,8 +591,18 @@ class ApplicationGrid < Datagrid::Base
 
   # Add columns - put this at the end of the columns before Actions
   #
-  def self.columns_upd_created_at
+  # @param model_klass [ActiveRecord] Model class
+  def self.columns_upd_created_at(model_klass=nil)
     common_opts = {tag_options: {class: ["editor_only"]}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)}}
+    if model_klass && model_klass.has_attribute?(:memo_editor)
+      opts = common_opts.merge({tag_options: common_opts[:tag_options].merge({class: common_opts[:tag_options][:class]+["text-center"]})})
+      column(:memo_editor_exists, html: true, mandatory: true, order: false, header: "Memo?", **opts){ |record|
+        record.memo_editor.present? && record.memo_editor.strip.present? ? "Y" : nil
+      }
+      column(:memo_editor, html: true, order: false, header: "Editor's Memo", **common_opts){ |record|
+        sanitized_html(auto_link50(record.memo_editor)).html_safe
+      }
+    end
     column(:updated_at, header: Proc.new{I18n.t('tables.updated_at')}, **common_opts)
     column(:created_at, header: Proc.new{I18n.t('tables.created_at')}, **common_opts)
   end

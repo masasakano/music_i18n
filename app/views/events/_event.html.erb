@@ -1,6 +1,6 @@
 <div id="<%= dom_id event %>">
 
-<dl>
+<dl class="show_main_parameters">
   <% if can_update_gen=can?(:update, Event) %>
     <div class="editor_only">
       <dt>ID (Event)</dt>
@@ -11,7 +11,7 @@
     <dd><%= link_to event.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), event_group_url(event.event_group), title: event.event_group.note %></dd>
   <dt class="item_place"> <%= t("tables.place_country") %>:</dt>
     <dd class="item_place"><%= event.place ? show_pref_place_country(event.place) : "" %></dd>  <%# defined in places_helper.rb %>
-  <dt><strong>Start time [in <%= Rails.configuration.music_i18n_def_timezone_str %>] (± days/hrs/mins):</strong></dt>
+  <dt><strong><%= t("tables.start_time") %> [<%= t("events.time_zone_preposition") %> <%= Rails.configuration.music_i18n_def_timezone_str %>]:</strong></dt>
     <dd><%= event.string_time_err2uptomin %> (± <%= time_in_units(event.start_time_err, for_editor: can_update_gen) %>)
       <% if can_update_gen %> 
         <span class="moderator_only">[Raw-value=<%= event.start_time %>]</span>
@@ -42,14 +42,7 @@
       <dd><%= event.weight %></dd>
     </div>
   <% end %>
-  <dt class="item_note"><%= t("tables.note").capitalize %>:</dt>
-    <dd class="item_note"><%= sanitized_html(auto_link(event.note)).html_safe %></dd>
-  <% if can_update_gen %>
-    <div class="editor_only">
-      <dt>updated_at:</dt>
-        <dd><%= event.updated_at %></dd>
-    </div>
-  <% end %>
+  <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: event, model4ability: !!can_update_gen} %>
 </dl>
 
 </div>

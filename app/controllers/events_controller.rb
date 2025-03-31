@@ -3,6 +3,7 @@ class EventsController < ApplicationController
   include ModuleCommon
   include ApplicationHelper  # for get_params_from_date_time
   include ModuleGridController # for set_grid
+  include ModuleMemoEditor   # for memo_editor attribute
 
   skip_before_action :authenticate_user!, :only => [:index, :show]  # Revert application_controller.rb so Index is viewable by anyone.
   load_and_authorize_resource except: [:create] # except: [:index, :show]  # This sets @event. :create will be dealt separately
@@ -11,10 +12,13 @@ class EventsController < ApplicationController
   before_action :event_params_two, only: [:create, :update]
 
   # Symbol of the main parameters in the Form (except "place_id"), which exist in DB
-  MAIN_FORM_KEYS = %w(duration_hour weight event_group_id note) + [
+  MAIN_FORM_KEYS ||= []  # redundant because this should be already defined in ModuleMemoEditor.
+  MAIN_FORM_KEYS.concat(
+    %w(duration_hour weight event_group_id note) + [
     "start_time(1i)", "start_time(2i)", "start_time(3i)", "start_time(4i)", "start_time(5i)", "start_time(6i)",
     "form_start_err", "form_start_err_unit",
-  ]
+  ])
+  #MAIN_FORM_KEYS = %w(duration_hour weight event_group_id note memo_editor) + [
 
   # Permitted main parameters for params(), used for update and create
   PARAMS_MAIN_KEYS = ([

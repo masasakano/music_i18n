@@ -232,6 +232,7 @@ en:
     DurationError: Duration Error
     n_event_items_long: "Number of EventItems"
     n_event_items_short: "#Items"
+    time_zone_preposition: in
 
   event_items:
     playing_artists: playing artists

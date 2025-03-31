@@ -4,6 +4,7 @@
 #
 #  id                        :bigint           not null, primary key
 #  duration_hour             :float
+#  memo_editor               :text
 #  note                      :text
 #  start_time                :datetime
 #  start_time_err(in second) :bigint
@@ -68,6 +69,7 @@ ev_harami_lucky2023:
   event_group: evgr_lucky2023
   place: unknown_place_shimane_japan
   note: Event_ev_harami_lucky2023
+  memo_editor: "Lucky Fes info obtained from XXX"
 
 ev_harami_jp2023s_shimane:
   start_time: <%= Date.new(2023, 4).to_time %>

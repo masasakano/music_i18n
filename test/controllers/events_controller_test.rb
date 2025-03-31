@@ -10,6 +10,7 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
     @event = events(:ev_harami_lucky2023)
     @moderator_all   = users(:user_moderator_all)         # General-JA Moderator can manage.
     @moderator_harami= users(:user_moderator)             # Harami Moderator can manage.
+    @editor_harami   = users(:user_editor)
     @trans_moderator = users(:user_translator)  # Translator cannot create/delete but edit (maybe!).
     @moderator_ja    = users(:user_moderator_general_ja)  # Same as Translator.
     @editor_ja       = users(:user_editor_general_ja)
@@ -27,7 +28,8 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
       "duration_hour"=>"0.5", "weight"=>"",
       "start_time(1i)"=>"2024", "start_time(2i)"=>"8", "start_time(3i)"=>"1", "start_time(4i)"=>"12", "start_time(5i)"=>"00",
       "form_start_err"=>"69959976.0", "form_start_err_unit"=>"hour",
-      "note"=>""
+      "note"=>"",
+      "memo_editor"=>"",
     }
     pla = @event.place
     tim = @event.start_time
@@ -66,6 +68,10 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should get new" do
+    refute EventsController::MAIN_FORM_KEYS.include?("naiyo")
+    assert EventsController::MAIN_FORM_KEYS.include?("note")
+    assert EventsController::MAIN_FORM_KEYS.include?("memo_editor")
+
     get new_event_url
     assert_response :redirect
     assert_redirected_to new_user_session_path
@@ -103,17 +109,22 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
 
     #sign_in users(:user_sysadmin)  # for DEBUG
     sign_in @moderator_all
+    memo1 = "new-memo-editor"
     assert_difference("Event.count") do
-      post events_url, params: { event: @hs_create }
+      post events_url, params: { event: @hs_create.merge({memo_editor: memo1}) }
       my_assert_no_alert_issued screen_test_only: true  # defined in /test/test_helper.rb
     end
     assert_redirected_to event_url(Event.last)
     ev_last = Event.order(:created_at).last
     assert_equal "Test7, The", Event.order(:created_at).last.title, "Event: "+ev_last.inspect
     assert_equal @hs_create["form_start_err"].to_i*3600, ev_last.start_time_err
+    assert_equal memo1, ev_last.memo_editor
   end
 
   test "should show event" do
+    assert((medi=@event.memo_editor), "event=#{@event.inspect}")
+    assert medi.strip.present?
+
     #sign_in @trans_moderator
     get event_url(@event)
     assert_response :success
@@ -121,10 +132,34 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
     w3c_validate "Event index"  # defined in test_helper.rb (see for debugging help)
 
     assert_equal 0, css_select("#link_back_to_index a").size  # "Back to Index"
+    assert_equal 0, css_select("body dd.item_memo_editor").size, "should be editor_only, but..."
+
     sign_in @editor_ja  ########### This should be unnecessary once index becomes public!
+    abi = Ability.new(@editor_ja)
+    assert abi.can?(:read,   @event) 
+    refute abi.can?(:update, @event) 
     get event_url(@event)
+    assert_response :success
+    assert_match(/\bPlace\b/, css_select("body").text)
     assert_equal 1, css_select(".link_back_to_index a").size  # "Back to Index"
+    assert_equal 0, css_select("body dd.item_memo_editor").size, "should be Harami editor_only, but..."
     sign_out @editor_ja
+
+    sign_in @moderator_harami
+    get event_url(@event)
+    assert_response :success
+    assert_equal 1, css_select("body dd.item_memo_editor").size
+    assert_equal medi, css_select("body dd.item_memo_editor").text.strip
+    sign_out @moderator_harami
+
+    sign_in @editor_harami
+    abi = Ability.new(@editor_harami)
+    assert abi.can?(:update, @event) 
+    get event_url(@event)
+    assert_response :success
+    assert_equal 1, css_select("body dd.item_memo_editor").size
+    assert_equal medi, css_select("body dd.item_memo_editor").text.strip
+    sign_out @editor_harami
   end
 
   test "should get edit" do

@@ -1,0 +1,16 @@
+<%# local vars: form, model4ability, (optional) skip_ability_check (Def: false) %>
+<%#   NOTE: form for SimpleForm. model4ability may be a model instance or model class, used for an Ability check.  Former is recommended. %>
+<%# USAGE:  render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: Artist.first, skip_ability_check: true} %>
+
+<% if !defined?(skip_ability_check) %>
+  <% skip_ability_check = false %>
+<% end %>
+
+  <%= form.input :note %>
+
+<% if model4ability.has_attribute?(:memo_editor) && (skip_ability_check || can?(:update, model4ability)) %>
+  <div class="editor_only memo_editor">
+  <%= form.input :memo_editor, hint: "Non-public memo/note viewable only for editors" %>
+  </div>
+<% end %>
+
