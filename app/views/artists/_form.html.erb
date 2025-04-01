@@ -31,7 +31,7 @@
   <%= f.input :wiki_en, label: 'Wikipedia ('+t("locale.long.en")+') URI', as: :url %>
   <%= f.input :wiki_ja, label: 'Wikipedia ('+t("locale.long.ja")+') URI', as: :url %>
 
-  <%= f.input :note %>
+  <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: Artist, skip_ability_check: true} %>
 
   <%= f.submit %>
   <div class="actions">

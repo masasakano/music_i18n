@@ -41,16 +41,7 @@
       (uri.blank? ? '——' : link_to_from_root_str(CGI.unescape(uri.sub(%r@^https?://@, "")), uri, target: "_blank")) %></dd>
 <% end %>
 
-  <dt class="item_note" title="Note"> <%= t("tables.note") %>:</dt>
-    <dd class="item_note"><%= sanitized_html(auto_link(@artist.note)).html_safe %></dd>
-  <% if can_update %>
-   <div class="editor_only">
-   <dt>Updated at:</dt>
-    <dd><%= @artist.updated_at %></dd>
-   <dt>Created at:</dt>
-    <dd><%= @artist.created_at %></dd>
-   </div>
-  <% end %>
+  <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @artist, model4ability: can_update} %>
 </dl>
 </div>
   </section> <%# closing section id="sec_primary_show" %>

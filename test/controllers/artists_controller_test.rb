@@ -45,10 +45,13 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should show artist" do
+    assert((memoe=@artist.memo_editor).strip.present?, "fixture testing")
+
     get artist_url(@artist)
     assert_response :success
     w3c_validate "Artist show"  # defined in test_helper.rb (see for debugging help)
     #refute css_select('div.link-edit-destroy a')[0].text.include? "Edit"
+    assert_equal 0, css_select("body dd.item_memo_editor").size, "should be Harami editor_only, but..."
 
     artist_psy = artists(:artist_psy)
     get artist_url(artist_psy)
@@ -59,6 +62,12 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     assert_includes css_select(css_str+" th")[0].text, "한국어"
 
     sign_in @editor
+
+    get artist_url(@artist)
+    assert_response :success
+    w3c_validate "Artist show-editor"  # defined in test_helper.rb (see for debugging help)
+    assert_equal 1, css_select("body dd.item_memo_editor").size
+    assert_equal memoe, css_select("body dd.item_memo_editor").text.strip
 
     # tests of display of wiki
     wiki_en_root = "en.wikipedia.org/wiki/Ben_E._King"
@@ -106,6 +115,7 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     sign_in @editor
 
     # Creation success
+    memoe = "my random memo"
     artist = nil
     assert_difference('Artist.count', 1) do
       hs = {
@@ -117,12 +127,13 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
         "sex_id"=>Sex.unknown.id.to_s,
         "birth_year"=>"", "birth_month"=>"", "birth_day"=>"", "wiki_en"=>"", "wiki_ja"=>"",
         #"music"=>"", "engage_how"=>[""],
-        "note"=>""}
+        "note"=>"", "memo_editor" => memoe}
       post artists_url, params: { artist: hs }
       assert_response :redirect
       artist = Artist.last
       assert_equal "Test, The", artist.title, "Artist: "+artist.inspect
       assert_redirected_to artist_url(artist)
+      assert_equal memoe,   artist.memo_editor
     end
 
     assert_equal 'Test, The', artist.title
@@ -143,6 +154,8 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     assert css_select('a').any?{|i| /\AShow\b/ =~ i.text.strip}  # More fine-tuning for CSS-selector is needed!
     css = css_select('div.link-edit-destroy a')
     assert(css.empty? || !css[0].text.include?("Edit"))
+    css = css_select('div.editor_only.memo_editor textarea')
+    refute css.empty?
   end
 
   test "should update" do
