@@ -2,11 +2,12 @@
 #
 # Table name: places
 #
-#  id            :bigint           not null, primary key
-#  note          :text
-#  created_at    :datetime         not null
-#  updated_at    :datetime         not null
-#  prefecture_id :bigint           not null
+#  id                                         :bigint           not null, primary key
+#  memo_editor(Internal-use memo for Editors) :text
+#  note                                       :text
+#  created_at                                 :datetime         not null
+#  updated_at                                 :datetime         not null
+#  prefecture_id                              :bigint           not null
 #
 # Indexes
 #
@@ -56,6 +57,7 @@ unknown_place_tokyo_japan:
 tocho:
   prefecture: tokyo
   note: MyTextTocho
+  memo_editor: MyMemoEditorTocho
 
 akihabara:
   prefecture: tokyo
@@ -112,6 +114,7 @@ montparnasse_france:
 gare_lyon_france:
   prefecture: prefecture_paris
   note: MyTextGareLyon
+  memo_editor: MyMemoEditorGareLyon
 
 unknown_place_prefecture_paris:
   prefecture: prefecture_paris

@@ -1,12 +1,22 @@
-<%# assumed local variables to be passed: prefecture, places, (optional) pref_title [String], with_edit (Def: true) %>
-<%# Note: if with_edit==false given, no Edit link is shown. %>
+<%# assumed local variables to be passed: prefecture, (optional) places, pref_title [String], with_edit (Def: true), this_place [Place], this_model_note [Place] %>
+<%# Note: if with_edit==false given, no Edit link is shown. If this_place is given, the Place agreeing with it is marked. %>
+<% if !defined?(places)
+     places = prefecture.places
+   end %>
 <% if !defined?(pref_title)
      pref_title = prefecture.title_or_alt_tuple_str("[", "]", langcode: I18n.locale)
    end %>
 <% if !defined?(with_edit)
      with_edit = true
    end %>
+<% if !defined?(this_place)
+     this_place = nil
+   end %>
+<% if !defined?(this_model_note)
+     this_model_note = t("tables.note_this_model", kwd: t(:Place))
+   end %>
 
+<section id="places_in_prefecture">
 <h2><%= t("prefectures.show.places_in_prefecture", this_pref: pref_title) %></h2>
 
 <% canshow_pla = can?(:show, Place) %>
@@ -28,6 +38,9 @@
       <th title="<%= t('tables.n_harami_vids_long') %>"><%= t("tables.n_harami_vids_short") %></th>
       <th title="<%= t('event_groups.n_events_long') %>"><%= t("event_groups.n_events") %></th>
       <th><%= t("tables.note").capitalize %></th>
+      <% if canedit_pla  %>
+        <th class="editor_only">Memo?</th>
+      <% end %>
 
       <% if canedit_pla && with_edit %>
         <th colspan="2" class="editor_only">Action</th>
@@ -38,13 +51,13 @@
   </thead>
 
   <tbody>
-    <% (places || prefecture.places).uniq.each do |place| %>
-      <tr>
+    <% places.uniq.each do |place| %>
+      <tr<%= ' class="self_in_table"'.html_safe if (is_self=(this_place && place == this_place)) %>>
         <% if canedit_pla %>
           <td class="editor_only"><%= link_to place.id, place %></td>
         <% end %>
 
-        <%= render partial: "layouts/tbody_title_ja_alt_en", locals: {model: place, can_update: canedit_pla} %>
+        <%= render partial: "layouts/tbody_title_ja_alt_en", locals: {model: place, can_update: canedit_pla, is_self: is_self, this_model_note: this_model_note} %>
 
         <td class="text-end"><%= place.artists.count.to_s %></td>
       <% if canedit_pla  %>
@@ -53,6 +66,11 @@
         <td class="text-end"><%= place.harami_vids.count.to_s %></td>
         <td class="text-end"><%= place.events.count.to_s %></td>
         <td class="text-start"><%= auto_link50(place.note) %></td>
+      <% if canedit_pla  %>
+        <td class="editor_only text-center">
+          <%= place.memo_editor.present? && (tit=place.memo_editor.strip).present? ? sprintf('<span title="%s">Y</span>', h(tit)).html_safe : nil %>
+        </td>
+      <% end %>
       <% if (canshow_pla) %>
         <td><%= link_to t("tables.Show"), place %></td>
       <% end %>
@@ -65,4 +83,6 @@
     <% end %>
   </tbody>
 </table>
+
+</section> <!-- section id="places_in_prefecture" -->
 

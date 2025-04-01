@@ -20,14 +20,9 @@
   <dd><%= link_to prefecture_name, prefecture_path(@place.prefecture_id) %></dd>
   <dt><%= t("tables.n_harami_vids_long") %>:</dt>
   <dd><%= @place.harami_vids.count %></dd>
-  <dt><%= t("tables.note").capitalize %></dt>
-  <dd><%= sanitized_html(auto_link(@place.note)).html_safe %></dd>
-  <% if (canedit_place=can?(:edit, Place)) %>
-    <div class="editor_only">
-      <dt>updated_at</dt>
-      <dd><%= @place.updated_at %></dd>
-    </div>
-  <% end %>
+
+  <% canedit_place=can?(:edit, Place) %>
+  <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @place, model4ability: canedit_place} %>
 </dl>
 
 <%= link_to 'Back to Index', places_path %>
@@ -37,9 +32,10 @@
   <%= link_to 'Edit', edit_place_path(@place) %>
   </span>
 <% end %>
-<% if can? :create, Place %>
+<% if can_create_pla=can?(:create, Place) %>
+  <% pref_title = @place.prefecture.title_or_alt_tuple_str("[", "]", langcode: I18n.locale) %>
 <p class="lead editor_only">
-  <%= link_to(sprintf('Create another Place in the same Prefecture "%s"', @place.prefecture.title_or_alt), new_place_path(place: {prefecture_id: @place.prefecture_id})) if @place.prefecture_id %>
+  <%= link_to(sprintf('Create another Place in the same Prefecture "%s"', pref_title), new_place_path(place: {prefecture_id: @place.prefecture_id})) if @place.prefecture_id %>
 </p>
 <% end %>
 
@@ -122,4 +118,14 @@
 
 </section>
 </section>
+
+<hr>
+
+<%= render partial: '/layouts/places_in_prefecture', locals: {prefecture: @place.prefecture, this_place: @place} %>
+
+<% if can_create_pla %>
+<p class="lead">
+  <%= link_to sprintf('Create a new Place in this Prefecture "%s"', pref_title), new_place_path(place: {prefecture_id: @place.prefecture.id}) %>
+</p>
+<% end %>
 

@@ -53,7 +53,7 @@ class PlacesGrid < ApplicationGrid
   # end
 
   column_note             # defined in application_grid.rb
-  columns_upd_created_at  # defined in application_grid.rb
+  columns_upd_created_at(Place)  # defined in application_grid.rb
 
   column_actions(with_destroy: false) # defined in application_grid.rb
 

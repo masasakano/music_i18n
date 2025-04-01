@@ -171,6 +171,8 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should show place" do
+    assert((memoe=@place.memo_editor).present?)  # testing fixtures
+
     # show is NOT activated for non-logged-in user (or non-editor?).
     get place_url(@place)
     assert_response :redirect
@@ -179,6 +181,7 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
     sign_in @editor
     get place_url(@place)
     assert_response :success
+    assert_equal memoe, css_select("body dd.item_memo_editor").text.strip
   end
 
   test "should fail/succeed to get edit" do
@@ -195,19 +198,21 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
     updated_at_orig = @place.updated_at
     pref_orig = @place.prefecture
     note2 = 'Edited new place note'
-    patch place_url(@place), params: { place: { note: note2, prefecture_id: prefectures(:kagawa).id.to_s } }
+    memo_editor2 = "new memo2"
+    patch place_url(@place), params: { place: { note: note2, memo_editor: memo_editor2, prefecture_id: prefectures(:kagawa).id.to_s } }
 
     assert_response :redirect
     assert_redirected_to new_user_session_path
 
     sign_in @editor
-    patch place_url(@place), params: { place: { note: note2, prefecture_id: prefectures(:kagawa).id.to_s } }
+    patch place_url(@place), params: { place: { note: note2, memo_editor: memo_editor2, prefecture_id: prefectures(:kagawa).id.to_s } }
     assert_response :redirect
     assert_redirected_to place_url(@place)
 
     @place.reload
     assert_operator updated_at_orig, :<, @place.updated_at
     assert_equal note2, @place.note
+    assert_equal memo_editor2, @place.memo_editor
     assert_not_equal pref_orig, @place.prefecture
     assert_equal prefectures(:kagawa), @place.prefecture
   end

@@ -4,11 +4,12 @@
 #
 # Table name: places
 #
-#  id            :bigint           not null, primary key
-#  note          :text
-#  created_at    :datetime         not null
-#  updated_at    :datetime         not null
-#  prefecture_id :bigint           not null
+#  id                                         :bigint           not null, primary key
+#  memo_editor(Internal-use memo for Editors) :text
+#  note                                       :text
+#  created_at                                 :datetime         not null
+#  updated_at                                 :datetime         not null
+#  prefecture_id                              :bigint           not null
 #
 # Indexes
 #

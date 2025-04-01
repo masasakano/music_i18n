@@ -3,13 +3,15 @@ class PlacesController < ApplicationController
   include ModuleCommon
   include ApplicationHelper
   include ModuleGridController # for set_grid
+  include ModuleMemoEditor   # for memo_editor attribute
 
   #before_action :set_place, only: [:show, :edit, :update, :destroy]
   load_and_authorize_resource
   before_action :set_countries, only: [:index, :new, :create, :edit, :update] # defined in application_controller.rb
 
   # String of the main parameters in the Form (except place-related)
-  MAIN_FORM_KEYS = %w(note)
+  MAIN_FORM_KEYS ||= []
+  MAIN_FORM_KEYS.concat(%w(note))
 
   # GET /places
   # GET /places.json
@@ -101,7 +103,7 @@ class PlacesController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def place_params
-      params.require(:place).permit(:prefecture_id, :note, :prev_model_name, :prev_model_id)  # adding "prefecture.country_id" would cause <400: Bad Request>
+      params.require(:place).permit(:prefecture_id, :prev_model_name, :prev_model_id, *MAIN_FORM_KEYS)  # adding "prefecture.country_id" would cause <400: Bad Request>
     end
 
     # set @country and @place.prefecture from a given URL parameter

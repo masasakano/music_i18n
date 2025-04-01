@@ -67,7 +67,7 @@
    <% end %>
   </div>
 
-  <%= f.input :note %>
+  <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: Place, skip_ability_check: true} %>
 
   <%# The following is used if a Prefecture is specified in GET for new. %>
   <% %i(prev_model_name prev_model_id).each do |metho| %>
