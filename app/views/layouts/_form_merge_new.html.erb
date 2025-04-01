@@ -12,7 +12,7 @@
   <% other_str = "other_"+model_underscore %>
   <div class="field">
     <%= form.label      other_str+"_id", model_underscore.camelize+"-ID (to merge this with)" %>
-    <%= form.text_field other_str+"_id", class: "input_int" %>
+    <%= form.text_field other_str+"_id", class: "input_int", "data-1p-ignore": true %>
   </div>
 
   <div class="field field-note">

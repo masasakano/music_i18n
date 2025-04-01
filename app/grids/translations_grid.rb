@@ -12,7 +12,7 @@ class TranslationsGrid < ApplicationGrid
 
   filter_n_column_id(:translation_url)  # defined in application_grid.rb
 
-  filter(:title, header: 'Title/Ruby keyword (partial match)') do |value|
+  filter(:title, header: 'Title/Ruby keyword (partial match)', input_options: {"data-1p-ignore" => true}) do |value|
     self.select_partial_str(:all, value, ignore_case: true)  # Only for PostgreSQL!
   end
 
@@ -45,7 +45,7 @@ class TranslationsGrid < ApplicationGrid
   end
 
   # :xboolean does not work expectantly for some reason... (the result would be the same regardless Yes/No (but not-selected))
-  filter(:user_defined_exclusively, :boolean,  dummy: false, header: 'User-defined records only?') do |value|
+  filter(:user_defined_exclusively, :boolean,  dummy: false, header: 'User-defined records only?', input_options: {"data-1p-ignore" => true}) do |value|
     self.where("create_user_id IS NOT NULL OR update_user_id IS NOT NULL")
   end
 

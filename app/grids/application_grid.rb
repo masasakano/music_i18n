@@ -116,7 +116,7 @@ class ApplicationGrid < Datagrid::Base
 
   # Used in Harami1129
   def self.filter_split_ilike(col, type=:string, **kwd)
-    filter(col, type, **kwd) do |value|  # Only for PostgreSQL!
+    filter(col, type, **(_add_filter_data_1p_ignore(kwd))) do |value|  # Only for PostgreSQL!
       arval = value.strip.split(/\s*,\s*/)
       break nil if arval.size == 0
       ret = self.where(col.to_s+" ILIKE ?", '%'+arval[0]+'%')
@@ -133,7 +133,7 @@ class ApplicationGrid < Datagrid::Base
   #
   # @see Engage.find_and_set_one_harami1129
   def self.filter_include_ilike(col, type=:string, langcode: nil, **kwd)
-    filter(col, type, **kwd) do |value|  # Only for PostgreSQL!
+    filter(col, type, **(_add_filter_data_1p_ignore(kwd))) do |value|  # Only for PostgreSQL!
       str = preprocess_space_zenkaku(value, article_to_tail=true)
       trans_opts = {accept_match_methods: [:include_ilike]}
       trans_opts[:langcode] = langcode if langcode
@@ -142,8 +142,23 @@ class ApplicationGrid < Datagrid::Base
     end
   end
 
+  # Add an option to a filter form to suppress the 1Password pop-up.
+  #
+  # @param hsin [Hash]
+  def self._add_filter_data_1p_ignore(hsin)
+    hs2merge = {"data-1p-ignore" => true}
+    if hsin.has_key?(:input_options) && hsin[:input_options]
+      hsin.merge({input_options: hs2merge.merge(hsin[:input_options])})
+    else
+      hsin.merge({input_options: hs2merge})
+    end
+  end
+  private_class_method :_add_filter_data_1p_ignore
+
   # Wrapper for main-title filter, which is Translation but not auto-complete.
-  def self.filter_ilike_title(ja_or_en, header: nil, input_options: {autocomplete: 'off'}, **opts)
+  def self.filter_ilike_title(ja_or_en, header: nil, input_options: nil, **opts)
+    input_options ||= {autocomplete: 'off'}
+    input_options = {autocomplete: 'off'}.merge(input_options)
     mainprm = ("title_"+ja_or_en.to_s).to_sym
 
     if !header
@@ -163,7 +178,7 @@ class ApplicationGrid < Datagrid::Base
 
   # Used in HaramiVid, Engage, etc.
   def self.filter_partial_str(col, type=:string, titles: :titles, self_models: :harami_vids, **kwd)
-    filter(col, type, **kwd) do |value|  # Only for PostgreSQL!
+    filter(col, type, **(_add_filter_data_1p_ignore(kwd))) do |value|  # Only for PostgreSQL!
       ids = col.to_s.singularize.classify.constantize.select_partial_str(:titles, value, ignore_case: true).map{|eobj| eobj.send(self_models)}.flatten.map(&:id)
       self.where(id: ids)
     end
