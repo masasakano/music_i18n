@@ -144,7 +144,7 @@ class HaramiVidsGrid < ApplicationGrid
   end
 
   column_note             # defined in application_grid.rb
-  columns_upd_created_at  # defined in application_grid.rb
+  columns_upd_created_at(HaramiVid)  # defined in application_grid.rb
 
   column_actions  # defined in application_grid.rb
 

@@ -14,6 +14,7 @@
 #  updated_at                                                                             :datetime         not null
 #  channel_id                                                                             :bigint
 #  place_id(The main place where the video was set in)                                    :bigint
+#  memo_editor(Internal-use memo for Editors)                                             :text
 #
 # Indexes
 #

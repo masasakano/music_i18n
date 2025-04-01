@@ -131,7 +131,8 @@ if true
 #if true
 
     #hsnew = {title: 'a new one', uri: "https://youtu.be/mytest1", note: "newno"}
-    hsnew = {note: "newno"}
+    memoe = "memo_edit"
+    hsnew = {note: "newno", memo_editor: memoe}
     assert_difference("EventItem.count + ArtistMusicPlay.count") do
       assert_no_difference("Music.count + HaramiVidMusicAssoc.count + Artist.count + Engage.count") do
         assert_no_difference("Channel.count") do  # existing Channel is found
@@ -145,6 +146,7 @@ if true
     mdl_last = HaramiVid.last
     assert_redirected_to harami_vid_url(mdl_last)
     assert_equal "newno", mdl_last.note
+    assert_equal memoe,   mdl_last.memo_editor
     assert_equal @def_create_params[:title],  mdl_last.title
     assert_equal Channel.default(:HaramiVid), mdl_last.channel
     assert_equal Date.parse("2024-02-28"),    mdl_last.release_date
@@ -1188,9 +1190,19 @@ end
 
   ##### show
   test "should show harami_vid" do
+    assert((memoe=@harami_vid.memo_editor).strip.present?)
     get harami_vid_url(@harami_vid)
     assert_response :success
     w3c_validate "HaramiVid show"  # defined in test_helper.rb (see for debugging help)
+    assert_equal 0, css_select("body dd.item_memo_editor").size, "should be Harami editor_only, but..."
+
+    sign_in @editor_harami
+    get harami_vid_url(@harami_vid)
+    assert_response :success
+    w3c_validate "HaramiVid show-editor"  # defined in test_helper.rb (see for debugging help)
+    assert_equal 1, css_select("body dd.item_memo_editor").size
+    assert_equal memoe, css_select("body dd.item_memo_editor").text.strip
+    sign_out @editor_harami
   end
 
   test "should show MusicAssoc in harami_vid" do

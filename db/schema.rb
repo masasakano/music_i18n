@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2025_04_01_132104) do
+ActiveRecord::Schema[7.0].define(version: 2025_04_01_202818) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -368,6 +368,7 @@ ActiveRecord::Schema[7.0].define(version: 2025_04_01_132104) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "channel_id"
+    t.text "memo_editor", comment: "Internal-use memo for Editors"
     t.index ["channel_id"], name: "index_harami_vids_on_channel_id"
     t.index ["place_id"], name: "index_harami_vids_on_place_id"
     t.index ["release_date"], name: "index_harami_vids_on_release_date"

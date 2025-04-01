@@ -4,6 +4,7 @@ class HaramiVidsController < ApplicationController
   include ModuleHaramiVidEventAux # some constants and methods common with HaramiVids::FetchYoutubeDataController
   include HaramiVidsHelper # for set_event_event_items (common with HaramiVids::FetchYoutubeDataController) and collection_musics_with_evit
   include ModuleGridController # for set_grid
+  include ModuleMemoEditor   # for memo_editor attribute
 
   skip_before_action :authenticate_user!, :only => [:index, :show]
   load_and_authorize_resource except: [:index, :show, :create] # This sets @harami_vid for  :edit, :update, :destroy
@@ -17,7 +18,9 @@ class HaramiVidsController < ApplicationController
 
   # Symbol of the main parameters in the Form (except "place" (or "place_id"?)), which exist in DB or as setter methods
   # NOTE: In addition, "event_item_ids" is used, but it is a key for an Array, hence defined separately in model_params_multi() (as an exception)
-  MAIN_FORM_KEYS = %i(uri duration note) + [
+  MAIN_FORM_KEYS ||= []
+  MAIN_FORM_KEYS.concat(
+    %i(uri duration note) + [
     "form_channel_owner", "form_channel_type", "form_channel_platform",
     "form_new_artist_collab_event_item", # which EventItem-ID (or new) is used to refer to the new EventItem and/or new Collab.
     "form_new_event",  # for Event-ID (NOT EventItem) for a new EventItem to add
@@ -27,7 +30,7 @@ class HaramiVidsController < ApplicationController
     "reference_harami_vid_id",  # For GET in new
     "uri_playlist_en", "uri_playlist_ja",
     "release_date(1i)", "release_date(2i)", "release_date(3i)",  # Date-related parameters
-  ]
+  ])
 
   # Permitted main parameters for params(), used for update and create
   PARAMS_MAIN_KEYS = MAIN_FORM_KEYS + [

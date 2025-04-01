@@ -79,10 +79,7 @@
     </div>
   <% end %>
 
-  <div>
-  <dt class="item_note"> <%= t("tables.note") %>:</dt>
-  <dd class="item_note"><%= sanitized_html(auto_link(@harami_vid.note)).html_safe %></dd>
-  </div>
+  <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @harami_vid, model4ability: HaramiVid} %>
  </dl>
  </section> <!-- section id="harami_vids_show_unique_parameters" -->
 </section> <!-- section id="harami_vids_show_parameters" -->

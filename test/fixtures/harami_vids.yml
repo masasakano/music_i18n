@@ -13,6 +13,7 @@
 #  updated_at                                                                             :datetime         not null
 #  channel_id                                                                             :bigint
 #  place_id(The main place where the video was set in)                                    :bigint
+#  memo_editor(Internal-use memo for Editors)                                             :text
 #
 # Indexes
 #
@@ -36,6 +37,7 @@ harami_vid1:
   uri_playlist_en: "https://www.youtube.com/watch?v=harami_vid1&lc=MyString"
   channel: channel_haramichan_youtube_main
   note: HaramiVid1
+  memo_editor: MemoEditorHaramiVid1
 
 harami_vid2:
   release_date: 2020-10-30
