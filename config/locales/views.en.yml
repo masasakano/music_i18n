@@ -225,6 +225,8 @@ en:
       event_table_title: Events in this Group
       harami_vid_table_title: Videos in this Group
       trim_hvid_table_to: "……trimmed to %{trimmed_rows} rows out of %{all_rows}."
+      for_all_rows: "For all videos, "
+      see_event_page: "see Event Page"
 
   events:
     parent_event: "(Parent) Event"
@@ -233,6 +235,7 @@ en:
     n_event_items_long: "Number of EventItems"
     n_event_items_short: "#Items"
     time_zone_preposition: in
+    harami_vids_for_this_event: "Haramichan Videos for this Event"
 
   event_items:
     playing_artists: playing artists

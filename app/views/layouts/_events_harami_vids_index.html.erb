@@ -1,14 +1,21 @@
-<%# local vars: events, (optional) with_place_public, max_rows (nil), harami_vids_without_events (Array) %>
+<%# local vars: events (Relation), (optional) with_place_public, max_n_events (maximum number of Events to display; Def: nil), harami_vids_without_events (Array), max_harami_vids_per_event (maximum number of HaramiVids per event to display; Def: nil) %>
+  <%# NOTE: Although this lists Events and its HaramiVids in principle, this also allows listing of (extra) HaramiVids that have no associagted Events in addition to Events.  Ruby Array harami_vids_without_events specifies those HaramiVids of such a type. %>
 <%# example:  %>
 <% if !defined? with_place_public 
     with_place_public = false
   end %>
-<% if !defined? max_rows 
-    max_rows = nil
+<% if !defined? max_n_events 
+    max_n_events = nil
   end %>
 <% if !defined? harami_vids_without_events
     harami_vids_without_events = nil
   end %>
+<% if !defined? max_harami_vids_per_event 
+    max_harami_vids_per_event = nil
+  end %>
+
+<% max_n_events = nil              if Float::INFINITY == max_n_events
+   max_harami_vids_per_event = nil if Float::INFINITY == max_harami_vids_per_event %>
 
 <% can_update_hvids = can?(:update, HaramiVid)
    canedit_ev       = can?(:edit, Event)
@@ -42,29 +49,37 @@
     </tr>
   </thead>
   <% cspan = 8 + (can_update_hvids ? 2 : 0) + (canread_evit ? 1 : 0) + (can_read_h1129 ? 1 : 0) %>
-  <% all_rows = events.order("events.start_time", "weight").distinct  %>
-  <% if max_rows && max_rows < n_harami_vids %>
-    <% all_rows = all_rows.limit(max_rows) %>
-  <% end %>
+  <% all_rows = events.order("events.start_time", "weight").distinct
+     n_events = events.distinct.count
+     display_all_events = true
+     if max_n_events && max_n_events < n_events
+       all_rows = all_rows.limit(max_n_events)
+       display_all_events = false
+     end %>
   <tbody>
-    <% start_row = -1 %>
+    <%# start_row = -1 %>
     <% evit_offset = 0 %>
-    <% stop_rows = nil %>
+    <% stop_rows = max_harami_vids_per_event %>
     <% all_rows.each do |event| %>
       <% next if !canedit_ev && !event.harami_vids.exists? %>
-      <% next_last_row = start_row + event.harami_vids.distinct.count %>
-      <% stop_rows = max_rows - start_row - 1 if max_rows && (next_last_row > max_rows) %>
-      <% start_row = next_last_row %>
+      <%# next_last_row = start_row + event.harami_vids.distinct.count %>
+      <%# stop_rows = max_n_events - start_row - 1 if max_n_events && (next_last_row > max_n_events) %>
+      <%# start_row = next_last_row %>
       <tr class="text-center">
         <% tit = event.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true).sub(/\s+<\s+[^<]+\z/, "")
            tit_html = (can?(:read, event) ? link_to(tit, event) : tit)
            date = event.string_time_err2uptomin
            pla_txt = ((pla=event.place) ? event.txt_place_pref_ctry : (cancreate_evt ? "(UNDEFINED)" : "&mdash;")) %>
-        <th colspan="<%= cspan %>"> <%= t(:Event) %>: <%= tit_html %> / <%= sprintf("%s / %s", date, pla_txt) %> </th>
+        <th colspan="<%= cspan %>"> <%= t(:Event) %>: <%= tit_html %> / <%= sprintf("%s / %s", date, pla_txt) %> / <%= t("tables.n_harami_vids_short") %>=<%= n_hvids = event.harami_vids.distinct.count %></th>
       </tr>
       <%= render partial: "layouts/harami_vids_index_tbody_part", locals: {harami_vids: event.harami_vids, event: event, can_update_hvids: can_update_hvids, canread_evit: canread_evit, can_read_h1129: can_read_h1129, canread_pla: canread_pla, canread_mus: canread_mus, with_place: (with_place_public || can_update_hvids), evit_offset: evit_offset, with_place_public: with_place_public, stop_rows: stop_rows } %>
       <% evit_offset += event.event_items.distinct.count %>
-      <% break if stop_rows %>
+      <%# break if stop_rows %>
+      <% if max_harami_vids_per_event && max_harami_vids_per_event < n_hvids %> 
+        <tr><td colspan="<%= cspan %>"><%= t("event_groups.show.trim_hvid_table_to", trimmed_rows: max_harami_vids_per_event, all_rows: n_hvids) %>
+          <%= t("event_groups.show.for_all_rows") %><%= link_to t("event_groups.show.see_event_page"), event_path(event)+"#harami_vids_for_event" %>
+</td></tr>
+      <% end %>
     <% end %>
     <% if !stop_rows && harami_vids_without_events.present? %>
         <tr class="text-center">
@@ -73,9 +88,11 @@
         <%= render partial: "layouts/harami_vids_index_tbody_part", locals: {harami_vids: harami_vids_without_events.sort{|a,b| (a.release_date <=> b.release_date) rescue 0 }, event: nil, can_update_hvids: can_update_hvids, canread_evit: canread_evit, can_read_h1129: can_read_h1129, canread_pla: canread_pla, canread_mus: canread_mus, with_place: (with_place_public || can_update_hvids), evit_offset: evit_offset, with_place_public: with_place_public, stop_rows: stop_rows } %>
     <% end %>
   </tbody>
+  <% if !display_all_events %>
   <tfoot>
-      <tr><td colspan="<%= cspan %>"><%= t("event_groups.show.trim_hvid_table_to", trimmed_rows: max_rows, all_rows: n_harami_vids) %></td></tr>
+      <tr><td colspan="<%= cspan %>"><%= t("event_groups.show.trim_hvid_table_to", trimmed_rows: max_n_events, all_rows: n_events) %></td></tr>
   </tfoot>
+  <% end %>
 </table>
 
 

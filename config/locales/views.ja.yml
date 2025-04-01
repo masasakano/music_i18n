@@ -242,6 +242,8 @@ ja:
       event_table_title: 本イベントシリーズの全イベント
       harami_vid_table_title: 本イベントシリーズの全動画
       trim_hvid_table_to: "……項目数が多すぎたため、%{all_rows}項目中、%{trimmed_rows}項目のみ表示しています。"
+      for_all_rows: "全項目は、"
+      see_event_page: "イベントのページを参照"
 
   events:
     parent_event: "(親)Event"
@@ -250,6 +252,7 @@ ja:
     n_event_items_long: "イベント項目数"
     n_event_items_short: "項目数"
     time_zone_preposition: "時刻帯"
+    harami_vids_for_this_event: "このイベントのハラミちゃん動画"
 
   event_items:
     playing_artists: 演奏するアーティスト

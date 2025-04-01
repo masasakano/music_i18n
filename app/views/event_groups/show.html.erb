@@ -18,8 +18,12 @@
 </dl>
 <% end %>
 
-<% n_harami_vids = HaramiVid.joins(:event_groups).where("event_groups.id = ?", @event_group.id).distinct.count %>
-<%= render @event_group, locals: { n_harami_vids: n_harami_vids } %>   <%# for some reason, n_harami_vids is not passed... hence it is redefiend (recalculated in ./_event_group.html.erb %>
+<% n_events = @event_group.events.count
+   n_harami_vids = HaramiVid.joins(:events).where('events.event_group_id = ?', @event_group.id).distinct.count %>
+<%# NOTE: Alternatively:  HaramiVid.joins(:event_groups).where("event_groups.id = ?", @event_group.id).distinct.count %>
+<%# NOTE: Alternatively:  HaramiVid.joins(events: :event_group).where(event_groups: {id: @event_group.id}).distinct %>
+
+<%= render @event_group, locals: { n_events: n_events, n_harami_vids: n_harami_vids } %>   <%# for some reason, n_harami_vids is not passed... hence it is redefiend (recalculated in ./_event_group.html.erb %>
 
 <div id="event_group_show_footer_controller">
   <p>
@@ -47,7 +51,7 @@
 
 <section id="section_event_group_show_events">
 
-<h2><%= t("event_groups.show.event_table_title") %></h2>
+<h2><%= t("event_groups.show.event_table_title") %> (<%= n_events %> <%= t(:Events) %>)</h2>
 
 <%= render partial: "layouts/events_index", locals: {events: @event_group.events} %>
 <% if (cancreate_evt=can?(:create, Event)) %>
@@ -59,9 +63,9 @@
 
 <section id="section_event_group_show_harami_vids_events">
 
-<h2><%= t("event_groups.show.harami_vid_table_title") %></h2>
+<h2><%= t("event_groups.show.harami_vid_table_title") %> (<%= n_harami_vids %> <%= t(:videos) %>)</h2>
 
-<%= render partial: "layouts/events_harami_vids_index", locals: {events: @event_group.events, with_place_public: true, max_rows: (cancreate_evt ? nil : 100), n_harami_vids: n_harami_vids } %>  <%# Some EventGroups have too many HaramiVid-s, so they are trimeed for non-Editors. %>
+<%= render partial: "layouts/events_harami_vids_index", locals: {events: @event_group.events, with_place_public: true, max_n_events: (cancreate_evt ? nil : 100), max_harami_vids_per_event:  (cancreate_evt ? 15 : 5) } %>  <%# Some EventGroups have too many HaramiVid-s, so they are trimeed for non-Editors. %>
 
 </section> <%# section id="section_event_group_show_harami_vids_events" %>
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2025_03_31_173224) do
+ActiveRecord::Schema[7.0].define(version: 2025_04_01_005410) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -219,6 +219,7 @@ ActiveRecord::Schema[7.0].define(version: 2025_03_31_173224) do
     t.integer "start_date_err", comment: "Error of start-date in day. 182 or 183 days for one with only a known year."
     t.date "end_date", comment: "if null, end date is undefined."
     t.integer "end_date_err", comment: "Error of end-date in day. 182 or 183 days for one with only a known year."
+    t.text "memo_editor", comment: "Internal memo for Editors"
     t.index ["end_date"], name: "index_event_groups_on_end_date"
     t.index ["place_id"], name: "index_event_groups_on_place_id"
     t.index ["start_date"], name: "index_event_groups_on_start_date"

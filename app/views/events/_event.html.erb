@@ -1,5 +1,8 @@
+<%# local vars: None %>
+
 <div id="<%= dom_id event %>">
 
+<section id="primary_contents">
 <dl class="show_main_parameters">
   <% if can_update_gen=can?(:update, Event) %>
     <div class="editor_only">
@@ -44,5 +47,6 @@
   <% end %>
   <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: event, model4ability: !!can_update_gen} %>
 </dl>
+</section> <!-- section id="primary_contents" -->
 
 </div>

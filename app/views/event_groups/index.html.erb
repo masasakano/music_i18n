@@ -24,7 +24,11 @@
       <% end %>
       <th><%= t(:Place) %></th>
       <th title="Note in this DB"><%= t("tables.note") %></th>
-      <th><%= t("event_groups.n_events") %></th>
+      <% if can?(:edit, Event) %>
+        <th class="editor_only text-center" title="memo_editor present?">Memo?</th>
+      <% end %>
+      <th title="<%= t("tables.n_harami_vids_long") %>"><%= t("tables.n_harami_vids_short") %></th>
+      <th title="<%= t('event_groups.n_events_long') %>"><%= t("event_groups.n_events") %></th>
      <% n_colspans = 1 + [can_edit_event_group, can_create_event].count(true) %>
       <th colspan="<%= n_colspans %>"></th>
     </tr>
@@ -42,16 +46,21 @@
       <% end %>
         <td><%= da = model.start_date; str = (da ? date2text(da.year, da.month, da.day, lower_end_str: "", upper_end_str: "") : (can?(:edit, model) ? date2text(nil, nil, nil) : "")) %></td>
       <% if can? :update, EventGroup %>
-        <td class="editor_only"><%= s=model.start_date_err; (str.blank? ? "" : s) %></td>
+        <td class="editor_only align-cr"><%= s=model.start_date_err; (str.blank? ? "" : s) %></td>
       <% end %>
         <td><%= da = model.end_date;   str = (da ? date2text(da.year, da.month, da.day, lower_end_str: "", upper_end_str: "") : (can?(:edit, model) ? date2text(nil, nil, nil) : "")) %></td>
       <% if can? :update, EventGroup %>
-        <td class="editor_only"><%= s=model.end_date_err; (str.blank? ? "" : s) %></td>
+        <td class="editor_only align-cr"><%= s=model.end_date_err; (str.blank? ? "" : s) %></td>
       <% end %>
         <td><%= model.place ? h(model.txt_place_pref_ctry) : "" %></td>
         <td><%= sanitized_html(auto_link50(model.note)).html_safe %></td>
+      <% if can?(:edit, Event) %>
+        <td class="editor_only text-center"><%= model.memo_editor.present? && (memo_editor_txt=model.memo_editor.strip).present? ? ('<span title="'+h(memo_editor_txt)+'">Y</span>').html_safe : nil %></td>
+      <% end %>
 
-        <td class="event_groups_index_table_events"><%= link_to model.events.size, event_group_url(model)+"#section_event_group_show_events" %></td>
+        <% n_harami_vids = HaramiVid.joins(:events).where('events.event_group_id = ?', model.id).distinct.count %>
+        <td class="align-cr"><%= n_harami_vids %></td>
+        <td class="align-cr event_groups_index_table_events"><%= link_to model.events.size, event_group_url(model)+"#section_event_group_show_events" %></td>
         <td><%= link_to t("event_groups.index.show"), model %></td>
         <% if can_edit_event_group %>
           <td class="editor_only">

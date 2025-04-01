@@ -30,7 +30,7 @@
   <%= f.input :end_date, start_year: start_y, end_year: end_y %>
   <%= f.input :end_date_err, label: "± days (End)" %>
 
-  <%= f.input :note %>
+  <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: event_group, skip_ability_check: true} %>
 
   <%= f.submit %>
   <div class="actions">

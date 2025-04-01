@@ -1,10 +1,12 @@
-<%# local vars: n_harami_vids (Number of associated HaramiVids) %>
+<%# local vars: n_events, n_harami_vids (Number of associated HaramiVids) %>
 
+<% if !defined?(n_events)
+     n_events = @event_group.events.count
+   end %>
 <% if !defined?(n_harami_vids)
      n_harami_vids = HaramiVid.joins(:event_groups).where("event_groups.id = ?", event_group.id).distinct.count
    end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %> <%# for some reason, n_harami_vids is not passed from the parent show.html.erg ... hence it is redefiend (recalculated here. %>
 <div id="<%= dom_id event_group %>">
-
 
 <section id="primary_contents">
 <dl>
@@ -43,22 +45,15 @@
       <span class="editor_only"> / <%= t(:EventItems) %> </span>
     <% end %>
     </dt>
-    <dd class="item_n_events event_groups_index_table_events"><%= link_to event_group.events.count, "#section_event_group_show_events" %>
+    <dd class="item_n_events event_groups_index_table_events"><%= link_to n_events, "#section_event_group_show_events" %>
       <% if canread_evit %>
         <span class="editor_only"> / <%= event_group.event_items.count %> </span>
       <% end %>
     </dd>
   <dt class="item_n_hvids"><%= t("tables.n_harami_vids") %>:</dt>
     <dd class="item_n_hvids"><%= n_harami_vids %></dd>
-  <dt class="item_note"><%= t("tables.note").capitalize %>:</dt>
-    <dd class="item_note"><%= sanitized_html(auto_link(event_group.note)).html_safe %></dd>
 
-  <% if can_update_eg %>
-    <div class="editor_only">
-      <dt>updated_at:</dt>
-        <dd><%= event_group.updated_at %></dd>
-    </div>
-  <% end %>
+  <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: event_group, model4ability: Event} %>
 </dl>
 </section> <!-- section id="primary_contents" -->
 

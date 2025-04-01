@@ -18,7 +18,6 @@ class EventsController < ApplicationController
     "start_time(1i)", "start_time(2i)", "start_time(3i)", "start_time(4i)", "start_time(5i)", "start_time(6i)",
     "form_start_err", "form_start_err_unit",
   ])
-  #MAIN_FORM_KEYS = %w(duration_hour weight event_group_id note memo_editor) + [
 
   # Permitted main parameters for params(), used for update and create
   PARAMS_MAIN_KEYS = ([

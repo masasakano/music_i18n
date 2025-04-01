@@ -117,9 +117,8 @@
 
   <% harami_vids_without_events = @place.harami_vids.left_joins(:harami_vid_event_item_assocs).where("harami_vid_event_item_assocs.event_item_id IS NULL") %>  <%# HaramiVids at the Place with no associated EventItems %>
   <% events = Event.where(id: @place.harami_vids.joins(:events).distinct.select("events.id AS evt_id").map(&:evt_id)) %>
-  <% n_harami_vids = harami_vids_without_events.size + events.size %>
 
-  <%= render partial: "layouts/events_harami_vids_index", locals: {events: events, with_place_public: false, max_rows: (canedit_place ? nil : 100), n_harami_vids: n_harami_vids, harami_vids_without_events: harami_vids_without_events } %>  <%# Some EventGroups have too many HaramiVid-s, so they are trimeed for non-Editors. %>
+  <%= render partial: "layouts/events_harami_vids_index", locals: {events: events, with_place_public: false, max_n_events: (canedit_place ? nil : 100), harami_vids_without_events: harami_vids_without_events, max_harami_vids_per_event:  (canedit_place ? 15 : 5) } %>  <%# Some EventGroups have too many HaramiVid-s, so they are trimeed for non-Editors. %>
 
 </section>
 </section>

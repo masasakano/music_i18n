@@ -10,6 +10,7 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     @moderator       = users(:user_moderator_general_ja)  # General-JA Moderator can manage.
     @trans_moderator = users(:user_translator)
     @editor_ja       = users(:user_editor_general_ja)
+    @editor_harami   = users(:user_editor)
     @hs_create = {
       "langcode"=>"ja",
       "title"=>"The Tｅst7",
@@ -97,6 +98,9 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should show event_group" do
+    assert((medi=@event_group.memo_editor), "fixtures test. event=#{@event_group.inspect}")
+    assert medi.strip.present?
+
     ## Even non-priviledge people can "show"
     #sign_in @trans_moderator
     get event_group_url(@event_group)
@@ -104,12 +108,21 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/\bPlace\b/, css_select("body").text)
     w3c_validate "EventGroup show"  # defined in test_helper.rb (see for debugging help)
     assert_equal 1, css_select("#table_event_group_show_events").size
+    assert_equal 0, css_select("body dd.item_memo_editor").size, "should be editor_only, but..."
 
     assert_equal 0, css_select("#link_back_to_index a").size  # "Back to Index"
     sign_in @editor_ja  ########### This should be unnecessary once index becomes public!
     get event_group_url(@event_group)
     assert_equal 1, css_select(".link_back_to_index a").size  # "Back to Index"
+    assert_equal 0, css_select("body dd.item_memo_editor").size, "should be Harami editor_only, but..."
     sign_out @editor_ja
+
+    sign_in @editor_harami
+    get event_group_url(@event_group)
+    assert_response :success
+    assert_equal 1, css_select(".link_back_to_index a").size  # "Back to Index"
+    assert_equal 1, css_select("body dd.item_memo_editor").size
+    sign_out @editor_harami
   end
 
   test "should get edit" do

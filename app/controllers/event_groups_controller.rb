@@ -1,5 +1,7 @@
 # coding: utf-8
 class EventGroupsController < ApplicationController
+  include ModuleMemoEditor   # for memo_editor attribute
+
   skip_before_action :authenticate_user!, only: [:index, :show]  # Revert application_controller.rb so Index is viewable by anyone.
   load_and_authorize_resource except: [:create] # except: [:index, :show]  # This sets @event. :create will be dealt separately
   before_action :set_event_group, only: [:show]  # so far redundant, but will be needed once public access is allowed
@@ -11,10 +13,11 @@ class EventGroupsController < ApplicationController
   OFFSET_LARGE_YEAR = 80
 
   # Symbol of the main parameters in the Form (except "place_id"), which exist in DB
-  MAIN_FORM_KEYS = %w(start_date_err end_date_err place_id note) + [
+  MAIN_FORM_KEYS.concat(
+    %w(start_date_err end_date_err place_id note) + [
     "start_date(1i)", "start_date(2i)", "start_date(3i)",
     "end_date(1i)",   "end_date(2i)",   "end_date(3i)",
-  ]
+  ])
 
   # Permitted main parameters for params(), used for update and create
   PARAMS_MAIN_KEYS = ([

@@ -25,7 +25,8 @@
       <% if canedit_pla  %>
         <th class="editor_only"><%= t("prefectures.show.N_Musics") %></th>
       <% end %>
-      <th title="<%= t("tables.n_harami_vids_long") %>"><%= t("tables.n_harami_vids_short") %></th>
+      <th title="<%= t('tables.n_harami_vids_long') %>"><%= t("tables.n_harami_vids_short") %></th>
+      <th title="<%= t('event_groups.n_events_long') %>"><%= t("event_groups.n_events") %></th>
       <th><%= t("tables.note").capitalize %></th>
 
       <% if canedit_pla && with_edit %>
@@ -50,6 +51,7 @@
         <td class="editor_only text-end"><%= place.musics.count.to_s %></td>
       <% end %>
         <td class="text-end"><%= place.harami_vids.count.to_s %></td>
+        <td class="text-end"><%= place.events.count.to_s %></td>
         <td class="text-start"><%= auto_link50(place.note) %></td>
       <% if (canshow_pla) %>
         <td><%= link_to t("tables.Show"), place %></td>

@@ -11,6 +11,7 @@
 #  created_at                                                                                  :datetime         not null
 #  updated_at                                                                                  :datetime         not null
 #  place_id                                                                                    :bigint
+#  memo_editor(Internal memo for Editors)                                                      :text
 #
 # Indexes
 #
@@ -44,6 +45,7 @@ evgr_lucky2023:
   end_date_err: 182
   place: unknown_place_shimane_japan
   note: MyText_evgr_harami2023
+  memo_editor: MyNoteForEditor_evgr_harami2023
 
 #evgr_streetpiano:
 #  start_date: 
