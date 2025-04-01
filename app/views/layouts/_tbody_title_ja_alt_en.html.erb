@@ -1,11 +1,18 @@
-<%# local vars: model, can_update %>
+<%# local vars: model, can_update, (optional) is_self [Boolean] (Def: false), this_model_note [String]  %>
 <%# NOTE: returns 3 lines of "td" for a table %>
 
+<% if !defined?(is_self)
+     is_self = false
+   end %>
+<% if !defined?(this_model_note)
+     this_model_note = (is_self ? t("tables.note_this_model_default") : nil)
+   end %>
+
   <% tit_ja = best_translation_with_asterisk(model, is_orig_char: (can_update ? "*" : nil), langcode: "ja", lang_fallback: false, str_fallback: "") %> <%# defined in application_helper.rb %>
-  <td class="text-start title-ja"><%= tit_ja %></td>
+  <td class="text-start title-ja"><span class="title"><%= tit_ja %></span><%= sprintf('&nbsp;<span class="note">%s</span>', h(this_model_note)).html_safe if is_self && tit_ja.present? %></td>
   <td class="text-start alt_title-ja"><%= model.alt_title(langcode: 'ja', lang_fallback: false, str_fallback: "") %></td>
   <% tit_en = best_translation_with_asterisk(model, is_orig_char: (can_update ? "*" : nil), langcode: "en", lang_fallback: true, str_fallback: "", fallback_except: "ja") %>
   <% tit_en = sprintf("<em>[%s]</em> %s", tit_en.lcode, tit_en).html_safe if tit_en.present? && "en" != tit_en.lcode %>
-  <td class="text-start titles-en"><%= tit_en %>
-      <%= bracket_or_empty("[%s]", model.alt_title(langcode: 'en', lang_fallback: false, str_fallback: ""), can_update) %></td> <%# defined in application_helper.rb %>
+  <td class="text-start titles-en"><span class="title"><%= tit_en %>
+      <%= bracket_or_empty("[%s]", alt_tit_en=model.alt_title(langcode: 'en', lang_fallback: false, str_fallback: ""), can_update) %></span><%= sprintf('&nbsp;<span class="note">%s</span>', h(this_model_note)).html_safe if is_self && alt_tit_en.present? %></td> <%# defined in application_helper.rb %>
 

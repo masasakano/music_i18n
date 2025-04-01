@@ -1,6 +1,12 @@
-<%# Local variables: event_items, optional: with_event %>
+<%# Local variables: event_items, optional: with_event, this_event_item [EventItem], this_model_note [Place] %>
 <% if !defined?(with_event)
      with_event = false
+   end %>
+<% if !defined?(this_event_item)
+     this_event_item = nil
+   end %>
+<% if !defined?(this_model_note)
+     this_model_note = t("tables.note_this_model", kwd: t(:EventItem))
    end %>
 
 <div id="event_items">
@@ -36,11 +42,11 @@
 
   <tbody>
     <% event_items.order(:start_time, :weight, :publish_date).each do |event_item| %>
-      <tr>
+      <tr<%= ' class="self_in_table"'.html_safe if (is_self=(this_event_item && event_item == this_event_item)) %>>
         <% if canedit %>
           <td class="editor_only"><%= link_to event_item.id, event_item %></td>
         <% end %>
-        <td><%= event_item.machine_title %></td>
+        <td><span class="title"><%= event_item.machine_title %></span><%= sprintf('&nbsp;<span class="note">%s</span>', h(this_model_note)).html_safe if is_self %></td>
 
         <td><%= event_item.string_time_err2uptomin %></td>
          <% err = event_item.start_time_err %>

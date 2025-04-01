@@ -120,7 +120,7 @@
 <hr>
 <%= render partial: 'music_table', locals: {harami_vid: @harami_vid, add_buttons: true} %>
 <hr>
-<%= render partial: 'other_harami_vids_table', locals: {harami_vid: @harami_vid} %>
+<%= render partial: 'other_harami_vids_table', locals: {harami_vid: @harami_vid, mark_self: true} %>
 <% if can? :read, Harami1129 %>
  <div class="editor_only">
   <hr>

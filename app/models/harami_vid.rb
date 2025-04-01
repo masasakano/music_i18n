@@ -725,10 +725,13 @@ class HaramiVid < BaseWithTranslation
     }.join('<br>').html_safe
   end
 
+  # @param include_self: [Boolean] If true (Def: false), self (HaramiVid) is included in return.
   # @return [HaramiVid::ActiveRecord_Relation] Other HaramiVids that share the same EventItem-s
-  def other_harami_vids_of_event_items
+  def other_harami_vids_of_event_items(include_self: false)
     hv_ids = event_items.ids
-    HaramiVid.joins(:event_items).where("event_items.id" => hv_ids).where.not("harami_vids.id" => id).distinct
+    ret = HaramiVid.joins(:event_items).where("event_items.id" => hv_ids)
+    ret = ret.where.not("harami_vids.id" => id) if !include_self
+    ret.distinct
   end
 
   # @param exclude_unknown: [Boolean] Unless false (Def: true), HaramiVids belonging to Event.unknown are excluded.
@@ -739,15 +742,19 @@ class HaramiVid < BaseWithTranslation
   #   a default Event, the table would include hundreds of other HaramiVid-s that
   #   belong to the same default/unknown Event.
   #   This potentially leads to a memory error.
+  # @param include_self: [Boolean] If true (Def: false), self (HaramiVid) is included in return.
   # @return [HaramiVid::ActiveRecord_Relation] Other HaramiVids that share the same Event(s)
-  def other_harami_vids_of_event(exclude_unknown: true)
+  def other_harami_vids_of_event(exclude_unknown: true, include_self: false)
     all_event_ids =
       if exclude_unknown
         events.reject{|ev| ev.default? || ev.unknown?}.map{|i| i.id}
       else
         events.ids
       end
-    HaramiVid.joins(:events).where("events.id" => all_event_ids).where.not("harami_vids.id" => id).distinct
+
+    ret = HaramiVid.joins(:events).where("events.id" => all_event_ids)
+    ret = ret.where.not("harami_vids.id" => id) if !include_self
+    ret.distinct
   end
 
   # sets EventItem if self is for live_streaming and doee not have a significant EventItem

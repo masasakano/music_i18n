@@ -54,6 +54,8 @@ ja:
     end_time: "終了日時"
     how_short: "関与形態"
     Show: "詳細"
+    note_this_model_default: "[自身]"
+    note_this_model: "[この%{kwd}]"
 
   application:
     menu_harami_vids: "ハラミちゃん動画"

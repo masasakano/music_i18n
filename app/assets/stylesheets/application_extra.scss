@@ -577,6 +577,16 @@ a.button_like {
   box-shadow: inset 0 0 0 1000px rgba(0,0,0,.5);
 }
 
+.self_in_table {
+  span.title {
+    opacity: 0.5;
+  }
+  span.note {
+    font-weight: bold;
+    color: red;
+  }
+}
+
 .channel_part {
     padding-top: 1em;
     margin-bottom: 0.2em;

@@ -54,6 +54,8 @@ en:
     end_time: "End Date/Time"
     how_short: "How?"
     Show: "Detail"
+    note_this_model_default: "[SELF]"
+    note_this_model: "[This %{kwd}]"
 
   application:
     menu_harami_vids: "HARAMIchan's Videos"

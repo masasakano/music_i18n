@@ -1,3 +1,10 @@
+<%# Local variables: harami_vid, optional: mark_self [Boolean] (Def: false) %>
+<% if !defined?(mark_self)
+     mark_self = false
+   end %>
+
+<% this_model_note = t("tables.note_this_model", kwd: t(:video)) %>
+
 <section id="harami_vids_show_other_harami_vids">
   <h3 title="Excluding uncategorized Event's HaramiVids"><%= t("harami_vids.show.Other_HaramiVids_for_Event") %>:
     <span><%= harami_vid.events.uniq.map{|i| i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true)}.join(" | ") %></span>
@@ -28,15 +35,15 @@
 
   <tbody>
     <% all_evits = harami_vid.events.uniq.map{|eev| eev.event_items}.flatten %>
-    <% harami_vid.other_harami_vids_of_event.each_with_index do |ea_hvid, i_mus| %>
-      <tr>
+    <% harami_vid.other_harami_vids_of_event(include_self: true).each_with_index do |ea_hvid, i_mus| %>
+      <tr<%= ' class="self_in_table"'.html_safe if (is_self=(mark_self && ea_hvid == harami_vid)) %>>
         <td><%= can_edit ? link_to(ea_hvid.id, ea_hvid) : i_mus+1 %></td>
         <td class="item_channel">
     <span class="channel_platform"><%= ea_hvid.channel.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true) %></span>
       (<span class="channel_type"><%= ea_hvid.channel.channel_type.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true) %></span>)
     by <span class="channel_owner"><%= ea_hvid.channel.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true) %></span>
         </td>
-        <td class="item_title"><%= ea_hvid.title_or_alt %></td>
+        <td class="item_title"><span class="title"><%= ea_hvid.title_or_alt %></span><%= sprintf('&nbsp;<span class="note">%s</span>', h(this_model_note)).html_safe if is_self %></td>
         <td class="URI"><%= link_to_youtube('Link', ea_hvid.uri) %></td>
         <td class="item_musics"><%= ea_hvid.musics.uniq.map{|i| link_to(i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), i)}.join(t(:comma)).html_safe %></td>
         <td class="item_release_date"><%= date2text(ea_hvid.release_date) %></td> <%# defined in ModuleCommon %>
