@@ -37,6 +37,7 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     engage_how_composer = engage_hows( :engage_how_composer )
     engage_how_player   = engage_hows( :engage_how_player   )
 
+    memoe = "my random memo"
     music = nil
     hstmpl = {
       "langcode"=>"en",
@@ -48,7 +49,7 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
       @f_artist_name=>"ＡI  ", "year_engage"=>"",
       "engage_hows"=>["", engage_how_composer.id.to_s, engage_how_player.id.to_s],
       "contribution"=>"",
-      "note"=>""}
+      "note"=>"", "memo_editor" => memoe}
 
     # Creation success
     assert_difference('Music.count*10 + Engage.count', 12) do
@@ -67,6 +68,7 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 2, engs.size
     assert_equal artists(:artist_ai).title, engs.first.artist.title  # It is "Ai" in the fixutre (not "AI")
     assert_equal @editor, music.translations.first.create_user, "(NOTE: for some reason, created_user_id is nil) User=#{@editor.inspect} / ModuleWhodunnit.whodunnit=#{ModuleWhodunnit.whodunnit.inspect} / PaperTrail.request.whodunnit=#{PaperTrail.request.whodunnit.inspect} / Translation(=music.translations.first)="+music.translations.first.inspect
+    assert_equal memoe,   music.memo_editor
 
     # Failure due to non-existent Artist
     assert_difference('Music.count', 0) do
@@ -140,10 +142,13 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should show music" do
+    assert((memoe=@music.memo_editor).strip.present?, "fixture testing")
+
     get music_url(@music)
     assert_response :success
     #refute css_select('div.link-edit-destroy a')[0].text.include? "Edit"
     w3c_validate "Music show"  # defined in test_helper.rb (see for debugging help)
+    assert_equal 0, css_select("body dd.item_memo_editor").size, "should be Harami editor_only, but..."
 
     ## Artist table with another music
     mus = musics(:music_how)
@@ -181,6 +186,15 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     assert_includes all_ehows[1], "2025", "The second entry should be the second-oldest one, but..."
     assert_equal art2.title, css_select(basecsstxt + ' td.titles-en')[1].text.sub(/\s*\[.+/, "").strip
     assert_equal art3.title, css_select(basecsstxt + ' td.title-ja')[0].text.strip
+
+    sign_in @editor
+    abi = Ability.new(@editor)
+    assert abi.can?(:update, Music)
+
+    get music_url(@music)
+    assert_equal 1, css_select("body dd.item_memo_editor").size
+    assert_equal memoe, css_select("body dd.item_memo_editor").text.strip
+    sign_out @editor
   end
 
   test "should get edit" do
@@ -197,6 +211,8 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     assert css_select('a').any?{|i| /\AShow\b/ =~ i.text.strip}  # More fine-tuning for CSS-selector is needed!
     css = css_select('div.link-edit-destroy a')
     assert(css.empty? || !css[0].text.include?("Edit"))
+    css = css_select('div.editor_only.memo_editor textarea')
+    refute css.empty?
 
     sign_out @editor
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2025_04_01_205458) do
+ActiveRecord::Schema[7.0].define(version: 2025_04_01_212120) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -399,6 +399,7 @@ ActiveRecord::Schema[7.0].define(version: 2025_04_01_205458) do
     t.text "note"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "memo_editor", comment: "Internal-use memo for Editors"
     t.index ["genre_id"], name: "index_musics_on_genre_id"
     t.index ["place_id"], name: "index_musics_on_place_id"
     t.check_constraint "year IS NULL OR year > 0", name: "check_musics_on_year"

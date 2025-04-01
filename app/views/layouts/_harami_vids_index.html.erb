@@ -90,10 +90,10 @@
      <% end %>
         <td class="date_ja"><%= sprintf "%s %s", date2text(harami_vid.release_date), ((dura=sec2hms_or_ms(harami_vid.duration, return_nil: true)) ? '('+dura+')' : "") %></td> <%# defined in ModuleCommon %>
      <% if for_owner %>
-        <td><%= harami_vid.channel.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %> </td> <%# prefer_shorter: false (Default) %>
+        <td><%= harami_vid.channel.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %> </td> <%# prefer_shorter: false (Default); n.b., if prefer_shorter==true, the *wider* "ユーチューブ" would be used as opposed to "Youtube" %>
         <td><%= harami_vid.channel.channel_type.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true) %> </td>
      <% else %>
-        <td><%= harami_vid.channel.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true) %> </td>
+        <td><%= harami_vid.channel.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true) %>/<%= harami_vid.channel.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></td>
      <% end %>
      <% if music %>
        <% assoc = harami_vid.harami_vid_music_assocs.where(music: music).first %>

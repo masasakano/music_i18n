@@ -23,16 +23,7 @@
     <dd class="item_genre"><%= sprintf('%s [%s]', *(%w(ja en).map{|i| @music.genre.title(langcode: i) || ''})) rescue 'nil' %></dd>
   <dt title="HaramiVid"><strong><%= link_to t(:HaramiVid), "#sec_harami_vids_for" %>:</strong></dt>
     <dd><%= t(:times, count: @music.harami_vids.count) %></dd>
-  <dt class="item_note" title="Note"> <%= t("tables.note") %>:</dt>
-    <dd class="item_note"><%= sanitized_html(auto_link(@music.note)).html_safe %></dd>
-  <% if can_update %>
-   <div class="editor_only">
-     <dt>Updated at:</dt>
-      <dd><%= @music.updated_at %></dd>
-     <dt>Created at:</dt>
-      <dd><%= @music.created_at %></dd>
-   </div>
-  <% end %>
+  <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @music, model4ability: can_update} %>
 </dl>
 </div>
  </section> <%# closing section id="sec_primary_show" %>

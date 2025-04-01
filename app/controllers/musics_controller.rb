@@ -2,6 +2,7 @@
 class MusicsController < ApplicationController
   include ModuleCommon # for split_hash_with_keys
   include ModuleGridController # for set_grid
+  include ModuleMemoEditor   # for memo_editor attribute
 
   skip_before_action :authenticate_user!, :only => [:index, :show]  # Revert application_controller.rb so Index is viewable by anyone.
   load_and_authorize_resource except: [:index, :show, :new, :create]  # excludes :new and :create and manually authorize! in the methods (otherwise the default private method "*_params" seems to be read!)
@@ -10,7 +11,8 @@ class MusicsController < ApplicationController
   before_action :event_params_two, only: [:update, :create]
 
   # Symbol of the main parameters in the Form (except "place_id"), which exist in DB
-  MAIN_FORM_KEYS = %w(year genre_id note)
+  MAIN_FORM_KEYS ||= []
+  MAIN_FORM_KEYS.concat(%w(year genre_id note))
 
   # Permitted main parameters for params(), used for update and create
   PARAMS_MAIN_KEYS = ([

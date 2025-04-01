@@ -63,7 +63,7 @@ class MusicsGrid < ApplicationGrid
   column_n_harami_vids    # defined in application_grid.rb
 
   column_note             # defined in application_grid.rb
-  columns_upd_created_at  # defined in application_grid.rb
+  columns_upd_created_at(Music)  # defined in application_grid.rb
 
   column_actions(with_destroy: false) do |record| # defined in application_grid.rb
     # This is relevant only when User can :update

@@ -46,10 +46,18 @@
     <%= form.number_field :year, class: 'input_year' %>
   </div>
 
+  <%# Should replace the following several lines with this once migrated to simple_form: %>
+  <%# render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: Artist, skip_ability_check: true} %>
   <div class="field">
     <%= form.label :note %>
     <%= form.text_area :note %>
   </div>
+  <% if can? :edit, Music %>
+  <div class="field editor_only memo_editor">
+    <%= form.label "memo_editor (Non-public memo/note viewable only for editors)" %>
+    <%= form.text_area :memo_editor %>
+  </div>
+  <% end %>
 
   <% if music.new_record? %>
     <div class="register_assoc_artist">

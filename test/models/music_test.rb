@@ -3,13 +3,14 @@
 #
 # Table name: musics
 #
-#  id         :bigint           not null, primary key
-#  note       :text
-#  year       :integer
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
-#  genre_id   :bigint           not null
-#  place_id   :bigint           not null
+#  id                                         :bigint           not null, primary key
+#  memo_editor(Internal-use memo for Editors) :text
+#  note                                       :text
+#  year                                       :integer
+#  created_at                                 :datetime         not null
+#  updated_at                                 :datetime         not null
+#  genre_id                                   :bigint           not null
+#  place_id                                   :bigint           not null
 #
 # Indexes
 #
