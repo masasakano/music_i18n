@@ -119,7 +119,6 @@ class HaramiVidsTest < ApplicationSystemTestCase
     vid_prms[:timing] = 370
     fill_in "Timing", with: vid_prms[:timing]
 
-###########  This is now disabled in new...  Modify the system test!!
     fill_autocomplete('featuring Artist', with: 'AI', select: 'AI [')  # defined in test_helper.rb
     find_field("(Music) Instrument").select "Vocal"
     find_field("How they collaborate").select "Chorus"
@@ -175,9 +174,12 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
     click_on "Update Harami vid", match: :first
 
-    ### Checking flash messages
+    ### Checking flash messages (the submit must have failed.)
+    assert_match(/\bprohibited this HaramiVid from being saved\b/, find_all(css_for_flash(:alert, category: :error_explanation))[0].text)
     assert_match(/\bEvent.* must be checked\b/, find_all(css_for_flash(:alert, category: :error_explanation))[0].text)  # TODO: two matches...
     check 'UnknownEventItem'  # In fact, this should be forcibly checked again in default when an error takes you back to the screen after unchecked.
+    select 'street playing', from: 'Additional Event', match: :first  # in the same way; Although a new Event is specified, "New EventItem" is not chosen, so this should take no effect (after Git a2869ee).  Note a new Event is always selected as long as HaramiVid is already associated with an Event.  Before Git-commit a2869ee, whenever a new Event is selected, a new EventItem is always created, where the EventItem to which a newly specified Music would be associated was completely independently specified, and this test was written as such.
+
     click_on "Update Harami vid", match: :first
 
     assert_match(/HaramiVid was successfully updated\b/, find_all(css_for_flash(:success)).first.text)  # defined in test_helper.rb
@@ -185,8 +187,29 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
     sel = "section#harami_vids_show_unique_parameters dl "+"dd.item_event ol.list_event_items"
     assert_match(/\b#{Regexp.quote(vid_prms[:music_title])}\b/, find(sel+" li:nth-child(1)").text)
-    assert_match(/\bfeat.+ Artists \(None\)/, find(sel+" li:nth-child(2)").text)  # Though a new EventItem is created, the existing EventItem is checked for the new featuring-Artist, and hence the second one has no featuring Artists. 
-    assert_match(/\bfeaturing Artist.+\bThe Proclaimers\b/i,                 find(sel).text)
+    assert_equal 1, find_all(sel+" li").size
+    assert_match(/\bfeaturing Artist.+\bThe Proclaimers\b/i,    find(sel).text)
+    assert_match(/\bfeat.+ Artists.+\bThe Proclaimers/,         find(sel+" li:nth-child(1)").text)
+    assert_selector sel+" a"
+
+    ## Now, we add a new EventItem without associated Music or featuring/collaborating Artist
+    find("#main_edit_button").click
+
+    choose 'new EventItem'   # This becomes mandatory at Git a2869ee (it used to be not).
+    # find('section#form_choose_event_item_for_new_music_artist fieldset input#harami_vid_form_new_artist_collab_event_item_0').choose  # More precise way to specify Radio-button choose
+    select 'street playing', from: 'Additional Event', match: :first  # in the same way
+
+    # fill_in('featuring Artist', with: "")  # To reset the featuring Artist; should be unnecessary!
+    click_on "Update Harami vid", match: :first
+
+    assert_match(/HaramiVid was successfully updated\b/, find_all(css_for_flash(:success)).first.text)  # defined in test_helper.rb
+    _check_at_show(vid_prms)
+
+    sel = "section#harami_vids_show_unique_parameters dl "+"dd.item_event ol.list_event_items"
+    assert_match(/\b#{Regexp.quote(vid_prms[:music_title])}\b/, find(sel+" li:nth-child(1)").text)
+    assert_match(/\bfeaturing Artist.+\bThe Proclaimers\b/i,    find(sel).text)
+    assert_match(/\bfeat.+ Artists.+\bThe Proclaimers/,         find(sel+" li:nth-child(1)").text)
+    assert_match(/\bfeat.+ Artists \(None\)/,                   find(sel+" li:nth-child(2)").text)  # Though a new EventItem is created, the existing EventItem is checked for the new featuring-Artist, and hence the second one has no featuring Artists. 
     assert_selector sel+" a"
 
     click_on "Back"

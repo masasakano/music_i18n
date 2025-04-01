@@ -72,6 +72,7 @@
   </div>
 
 <hr>
+<section id="form_harami_vid_contents">
 <h2>Contents</h2>
 
     <%= f.input :reference_harami_vid_id, as: :hidden %>
@@ -79,6 +80,7 @@
   <% display_new_event_item_form = !harami_vid.new_record? %>
   <% if !harami_vid.new_record? || (given_ref && given_ref.event_items.exists?) %> <%# For update, the following is always displayed; for create, it is only if reference HaramiVid is specified and it has an EventItem(s) %>
     <% display_new_event_item_form = false %>
+    <section id="form_update_event_item_association_field">
     <div class="update_event_item_association_field">
     <h4><%= t("harami_vids.associated_event_event_items") %></h4>
 
@@ -108,11 +110,13 @@
       Strangely, no existing items are defined. Please register a new Event(Item) below.
     <% end %>
     </div>
-  <% end %> <!-- if !harami_vid.new_record? || given_ref -->
+    </section>  <!-- section id="form_update_event_item_association_field" -->
+  <% end %> <%# if !harami_vid.new_record? || (given_ref && given_ref.event_items.exists?) %>
 
   <!-- New EventItem -->
    <% if !given_ref %>
     <% if !harami_vid.new_record? || display_new_event_item_form %>
+    <section id="form_choose_event_item_for_new_music_artist">
     <h4><%= t("harami_vids.event_item_for_new_collab_artist") %></h4>
       <%= f.input :form_new_artist_collab_event_item, as: :radio_buttons,
         collection: (co=collection_event_items_for_new_artist_collab(harami_vid, sorted_eei: sorted_event_event_items)),
@@ -130,14 +134,15 @@
           label: t(:additional).capitalize+" "+t(:Event)+"(Item)",
           input_html: { multiple: false } %> <%# default_event_for_new_event_item() defined in /app/helpers/harami_vids_helper.rb %>
      </div>
-    <% end %>
+    </section> <!-- section id="form_choose_event_item_for_new_music_artist" -->
+    <% end %> <%# if !harami_vid.new_record? || display_new_event_item_form %>
 
   <!-- New Associated Music -->
     <div class="register_assoc_music">
     <h4><%= (harami_vid.new_record? ? "" : "("+t(:additional).capitalize+") ")+t(:Music) %> <span class="small">(<%= t("harami_vids.music_title_comment") %>)</span></h4>  <%# Additional Music %>
     <div class="register_assoc_music_field">
-      <%= f.input :music_name, label: t("layouts.fields.music_title") #, hint: t('layouts.fields.hint_music_auto')
-      %>
+      <%= f.input :music_name, label: t("layouts.fields.music_title"), input_html: {"data-1p-ignore" => true}
+      %> <%# , hint: t('layouts.fields.hint_music_auto') %>
      <div class="form_new_model_info">
       <%= f.input :music_year, label: t("harami_vids.field_music_year") %>
       <%= f.input :music_genre, label: t(:Genre)+" (new Music only)",
@@ -175,6 +180,7 @@
     </div> <!-- div class="form_new_model_info" -->
 
    <%# if ! harami_vid.new_record? %>
+    <section id="form_register_collab_artist_field">
     <div class="register_collab_artist_field">
     <h4><%= (harami_vid.new_record? ? "" : "("+t(:additional).capitalize+") ") %><%= t('harami_vids.field_artist_collabs_w_harami') %></h4>
 
@@ -185,7 +191,7 @@
           prompt: t('harami_vids.form_prompt_collab'),
           hint: t('harami_vids.field_music_collab_hint') %> <%# defined in harami_vids_helper.rb %>
       <%= f.input :artist_name_collab,  label: t('harami_vids.form_artist_collabs'),
-          hint: t("layouts.fields.hint_create_if_non_existent", link: link_to(t("layouts.do_create_lower"), new_artist_path)).html_safe %>
+          hint: t("layouts.fields.hint_create_if_non_existent", link: link_to(t("layouts.do_create_lower"), new_artist_path)).html_safe, input_html: {"data-1p-ignore" => true} %>
      <div class="form_new_model_info">
       <%= f.input :form_play_role,
         collection: ordered_models_form(PlayRole), selected: (harami_vid.form_play_role || PlayRole.default(:HaramiVid)),
@@ -195,9 +201,11 @@
         label: t("Instrument") %>
      </div>
     </div> <!-- div class="register_collab_artist_field" -->
+    </section>  <!-- section="form_register_collab_artist_field" -->
    <%# end %>  <%# if ! harami_vid.new_record? %>
 
    <% end %>  <!-- if !given_ref -->
+  </section> <!-- section id="form_harami_vid_contents" -->
   </div> <!-- div class="form-inputs" -->
 
   <div class="form-actions">
