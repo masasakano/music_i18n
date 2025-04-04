@@ -29,8 +29,7 @@
         <span class="editor_only">[Raw-value=<%= event.start_time %>]
           <% hs_consistency = @event.period_consistency_with_group %>
           <% is_consistent = !((false == hs_consistency[:start_time]) || (false == hs_consistency[:start_time_err])) %>
-          <%= html_consistent_or_inconsistent(is_consistent, postfix: " with EventGroup (#{(evgr=event.event_group).start_date} (± #{evgr.start_date_err}) - #{evgr.end_date} (± #{evgr.end_date_err}))".html_safe) %>  <%# defined in application_helper.rb %>
-          <%= hs_consistency.inspect %>
+          <%= html_consistent_or_inconsistent(is_consistent, postfix: " with EventGroup in #{(false == hs_consistency[:start_time]) ? 'Time' : 'Err'} (#{(evgr=event.event_group).start_date} (± #{evgr.start_date_err}) - #{evgr.end_date} (± #{evgr.end_date_err}))".html_safe) %>  <%# defined in application_helper.rb %>
         </span>
       <% end %>
     </dd>

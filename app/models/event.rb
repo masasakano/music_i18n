@@ -502,7 +502,7 @@ class Event < BaseWithTranslation
       reths[:start_time] = false if (start_time < evgr_start_time_min)
     end
     if (egd=event_group.end_date)
-      evgr_end_time_max = (egd - (event_group.end_date_err ? event_group.end_date_err : 0).days).end_of_day
+      evgr_end_time_max = (egd + (event_group.end_date_err ? event_group.end_date_err : 0).days).end_of_day
       reths[:start_time] = false if (evgr_end_time_max < start_time)
     end
 
