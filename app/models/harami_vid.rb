@@ -267,6 +267,57 @@ class HaramiVid < BaseWithTranslation
     nil
   end
 
+  # New HaramiVid where all associations are copied and new
+  #
+  # Harami1129 association is not copied.
+  #
+  # NOTE: uri must be set before save!
+  #
+  # @param uri: [String, NilClass] 
+  # @param translation: [Translation, Symbol, NilClass] if :default, "(Copy)" is prefixed.
+  def deepcopy(uri: nil, translation: nil, **trans_kwds)
+    if !translation && trans_kwds.empty?
+      raise ArgumentError, "Either translation or keyword parameters for Translation must be given."
+    end
+
+    # This should copy channel, place, note
+    newmdl = dup
+    newmdl.uri = uri  # nil in default
+
+    if :default == translation
+      trans = best_translation.dup
+      trans.weight = Float::INFINITY
+
+      ["", "alt_"].each do |prefix|
+        metho = prefix + "title"
+        trans.send(metho+"=", "(Copy) " + trans.send(metho)) if trans.send(metho).present?
+        metho = prefix + "ruby"
+        trans.send(metho+"=",  "(コピー) " + trans.send(metho)) if trans.send(metho).present?
+        metho = prefix + "romaji"
+        trans.send(metho+"=",  "(kopii) " + trans.send(metho)) if trans.send(metho).present?
+      end
+    elsif !translation
+      trans = Translation.new(translation)
+    end
+
+    newmdl.unsaved_translations << trans
+
+    harami_vid_music_assocs.order(:timing).each do |assoc|
+      new_assoc = assoc.dup
+      new_assoc.harami_vid = nil
+      new_assoc.timing = nil
+      newmdl.harami_vid_music_assocs << new_assoc
+    end
+
+    harami_vid_event_item_assocs.order(:timing).each do |assoc|
+      new_assoc = assoc.dup
+      new_assoc.harami_vid = nil
+      newmdl.harami_vid_event_item_assocs << new_assoc
+    end
+
+    newmdl
+  end
+
   # Associates a Music to self consistently (in terms of HaramiVidMusicAssoc and ArtistMusicPlay through HaramiVidMusicAssoc )
   #
   # ArtistMusicPlay is required for {EventItem} to associate a Music; so it increases by 1 (unless already existent).
@@ -742,7 +793,8 @@ class HaramiVid < BaseWithTranslation
   #   where all HaramiVid in the same Event would be shown, i.e., if the video belongs to
   #   a default Event, the table would include hundreds of other HaramiVid-s that
   #   belong to the same default/unknown Event.
-  #   This potentially leads to a memory error.
+  #   This potentially leads to a memory error (now the Views are coded so that they limit the maximum
+  #   number of rows displayed; then a memory error can be avoided).
   # @param include_self: [Boolean] If true (Def: false), self (HaramiVid) is included in return.
   # @return [HaramiVid::ActiveRecord_Relation] Other HaramiVids that share the same Event(s)
   def other_harami_vids_of_event(exclude_unknown: true, include_self: false)

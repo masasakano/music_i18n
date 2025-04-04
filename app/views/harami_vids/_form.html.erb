@@ -236,7 +236,7 @@
 
 <% if ! harami_vid.new_record? %>
 <hr>
-<%= render partial: 'harami_vids/other_harami_vids_table', locals: {harami_vid: harami_vid} %>
+<%= render partial: 'harami_vids/other_harami_vids_table', locals: {harami_vid: harami_vid, mark_self: true} %> <%# NOTE: harami_vid is guaranteed not to be a new_record %>
 <hr>
 <%= render partial: 'harami_vids/harami1129_table', locals: {harami_vid: harami_vid, add_buttons: true} %>
 <hr>

@@ -49,7 +49,7 @@ module HaramiMusicI18n
 
     # Year of the first (potential) Event. This is used as the lower threshold (plus 1)
     # for the year to be provided for the form in default and also as the default first year of 
-    # EventGroup (and hence Event and EventItem).
+    # EventGroup.
     yea = ((ye=ENV["MUSIC_I18N_DEF_FIRST_EVENT_YEAR"]).present? ? ye.to_i : 2019)
     config.music_i18n_def_first_event_year = ((yea > 0) ? yea : 2019)
 
@@ -69,6 +69,9 @@ module HaramiMusicI18n
 
     # default country code
     config.primary_country = (ENV['MUSIC_I18N_DEFAULT_COUNTRY'] || "JPN")
+
+    # default maximum number of rows for Table (to prevent a potential server crush)
+    config.def_view_max_nrows = (ENV['DEF_VIEW_MAX_NROWS'].present? ? ENV['DEF_VIEW_MAX_NROWS'].to_i : 400)
 
     # Do not change this (unless you search and change all of then consistently)
     config.primary_artist_titles = {

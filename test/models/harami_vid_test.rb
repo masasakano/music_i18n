@@ -448,6 +448,66 @@ class HaramiVidTest < ActiveSupport::TestCase
     refute hvid.is_place_all_consistent?(strict: false)
   end
 
+  test "deepcopy" do
+    ms = __method__.to_s
+    h1129 = mk_h1129_live_streaming(ms, do_test: false)  # defined in /test/helpers/model_helper.rb
+    hvid = h1129.harami_vid
+    hvid.update!(place: places(:perth_uk), note: "naiyo")
+    assert_equal 1, hvid.event_items.count, "sanity check"
+    assert_equal 1, hvid.musics.count, "sanity check"
+    assert_equal 1, hvid.artists.count, "sanity check"
+    assert_equal 1, hvid.artist_music_plays.count, "sanity check"
+    assert hvid.events.first.default?, "sanity check"
+
+    # Adds another Artist for Engage
+    mus = hvid.musics.first
+    assert_equal 1, mus.engages.count
+    eng2 = mus.engages.first.dup
+    eng2.engage_how = engage_hows(:engage_how_producer)
+    eng2.save!
+    mus.reload
+    assert_equal 2, mus.engages.count
+    assert_equal 1, mus.artists.distinct.count
+
+    Engage.create!(music: mus, artist: Artist.default(:HaramiVid), engage_how: EngageHow.unknown, contribution: 1)
+    hvid.reload
+    assert_equal 2, hvid.artists.uniq.count, "sanity check"  # hvid.artists.distinct.count => ERROR:  for SELECT DISTINCT,...
+    assert_equal 3, mus.engages.count
+
+    # Adds another Artist to AMP
+    amptmp = hvid.artist_music_plays.first.dup
+    amptmp.artist = artists(:artist2)
+    amptmp.play_role = play_roles(:play_role_inst_player)  # Not the "main" instrument-player
+    amptmp.instrument = Instrument.unknown  # so that PlayRole and Instrument are consistent
+    amptmp.save!
+    hvid.reload
+    assert_equal 2, hvid.artist_music_plays.count, "sanity check"
+    #hvid.artist_music_plays.reset
+
+    assert_raises(ArgumentError){
+      hvid.deepcopy() }  # translation-related arguments missing.
+
+    # Now, for HaramiVid, (EventItems, Musics, Artists, Engages, ArtistMusicPlay)==[1,1,2,3,2]
+    hvcopies = []
+    hvcopies << hvid.deepcopy(translation: :default)
+    assert     hvcopies[-1].new_record?
+    assert_nil hvcopies[-1].uri
+    refute hvcopies[-1].save, "URI should be nil, hence should fail to save, but..."
+    hvcopies[-1].uri = "https://youtu.be/dummy"
+    hvcopies[-1].save!
+
+    hvcopies[-1].reload
+    refute_nil             hvcopies[-1].uri
+    refute_equal hvid.uri, hvcopies[-1].uri
+    refute_equal hvid.title, hvcopies[-1].title
+    assert_equal hvid.place, hvcopies[-1].place
+    assert_equal hvid.note,  hvcopies[-1].note
+    assert_equal hvid.musics, hvcopies[-1].musics
+    assert_equal hvid.artists.order(:id).uniq, hvcopies[-1].artists.order(:id).uniq
+    assert_equal hvid.event_items.distinct.order(:id), hvcopies[-1].event_items.distinct.order(:id)
+    assert_equal hvid.artist_music_plays.distinct.order(:id), hvcopies[-1].artist_music_plays.distinct.order(:id)
+  end
+
   test "create_basic!" do
     mdl = nil
     assert_nothing_raised{

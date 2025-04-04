@@ -1,7 +1,7 @@
 
-<%# local variables: harami_vids, optional: musics (:all or Array or nil; musics to display), music (if for a particular Music - displaying timing), with_place, for_owner (Channel or ChannelOwner), sort_asc: false %>
+<%# local variables: harami_vids, optional: musics (:all or Array or nil; musics to display), music (if for a particular Music - displaying timing), with_place, for_owner (Channel or ChannelOwner), sort_asc: false, max_nrows: nil, ignore_max_nrows: false %>
 <%# @example
-      render partial: 'layouts/harami_vids_index', locals: {harami_vids: @music.harami_vids.order("harami_vids.release_date" => :desc).distinct, music: @music, with_place: false, for_owner: false }
+      render partial: 'layouts/harami_vids_index', locals: {harami_vids: @music.harami_vids.order("harami_vids.release_date" => :desc).distinct, music: @music, with_place: false, for_owner: false}
  %>
 
 <% if !defined?(musics)
@@ -10,7 +10,7 @@
 <% if !defined?(music)
      music = nil
    else
-     musics = nil
+     musics = nil if music
    end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
 <% if !defined?(with_place)
      with_place = nil
@@ -22,42 +22,63 @@
      sort_asc = false
    end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
 <% asc_desc = (sort_asc ? :asc : :desc) %>
+<% if !defined?(max_nrows)
+     max_nrows = nil
+   end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
+<% max_nrows ||= Rails.configuration.def_view_max_nrows %>
+<% if !defined?(ignore_max_nrows)
+     ignore_max_nrows = false
+   end %>
 
 <div id="harami_vids">
 <table id="harami_vids_index_table">
   <thead>
+    <% ncols = 0 %>
     <tr>
      <% if (can_update = can?(:update, HaramiVid)) %>
       <th class="editor_only">pID</th>
+      <% ncols += 1 %>
      <% end %>
       <th><%= t("harami_vids.table_head_date") %> (<%= t("tables.duration_none") %>)</th>
+      <% ncols += 1 %>
      <% if for_owner %>
       <th><%= t("harami_vids.table_head_ChannelPlatform") %></th>
       <th><%= t("harami_vids.table_head_ChannelType") %></th>
+      <% ncols += 2 %>
      <% else %>
       <th><%= t(:Channel) %></th>
+      <% ncols += 1 %>
      <% end %>
       <th><%= t("home.index.vid_title") %></th>
+      <% ncols += 1 %>
      <% if musics %>
       <th><%= t("Musics") %></th>
+      <% ncols += 1 %>
      <% end %>
      <% if music %>
       <th><%= t("harami_vids.table_head_timing") %></th>
       <th><%= t("harami_vids.table_head_completeness") %></th>
+      <% ncols += 2 %>
      <% end %>
      <% if with_place %>
       <th><%= t(:Place) %></th>
+      <% ncols += 1 %>
      <% end %>
       <% if (canread_evit=can?(:read, EventItem)) %>  <%# In future, this may be released public (if most EventItems are checked valid) %>
       <th class="editor_only"><%= t("EventItems") %></th>
+      <% ncols += 1 %>
       <% end %>
      <% if (can_read_h1129 = can?(:read, Harami1129)) %>
       <th title="Number of Harami1129 entries" class="editor_only"># H1129s/Musics</th>
+      <% ncols += 1 %>
      <% end %>
       <th title="Note in this DB"><%= t("tables.note").capitalize %></th>
-      <th class="actions"<%= can_update ? ' colspan="2"'.html_safe : '' %>></th>
+      <% colspan = (can_update ? 2 : 1) %>
+      <th class="actions"<%= sprintf(' colspan="%d"', colspan).html_safe if 1 != colspan %>></th>
+      <% ncols += colspan+1 %>
 <% if false %>
         <th colspan="2" class="editor_only">HaramiVidMusicAssoc</th>
+        <% ncols += 1 %>
 <% end %>
     </tr>
   </thead>
@@ -83,8 +104,13 @@
     <% end %>
 <% end %> <%# I don't understand this clause - the sentence below should actually fail with this, but it doesn't... I put it into if-false... %>
     <%# (ary &&= ary2).uniq.each do |harami_vid| %>
-    <% ary.uniq.each do |harami_vid| %>
+    <% ary.uniq.each_with_index do |harami_vid, i_hvid| %>
       <tr>
+        <% if !!ignore_max_nrows && i_hvid >= max_nrows %>
+          <td colspan="<%= ncols %>"><%= t("tables.too_many_rows") %></td>
+      </tr>
+          <% break %>
+        <% end %>
      <% if can_update %>
         <td class="number editor_only"><%= link_to harami_vid.id, harami_vid %></td>
      <% end %>

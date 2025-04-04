@@ -125,7 +125,7 @@ module HaramiVidsHelper
 
   private
 
-    # Set @event_event_items and @original_event_items
+    # Set @event_event_items
     #
     # @event_event_items is a Hash with each key (of Integer, {Event#id}) pointing to
     # an Array of EventItems that HaramiVid has_many:

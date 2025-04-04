@@ -51,6 +51,10 @@ class ApplicationGrid < Datagrid::Base
     50 => 50,
     100 => 100,
   }
+  if 100 <= Rails.configuration.def_view_max_nrows
+    MAX_PER_PAGES[100] = 100
+  end
+
 
   # Datagrid enum extra for the max entries per page for pegination for authenticated users
   MAX_PER_PAGES_EXTRA = {
@@ -63,6 +67,11 @@ class ApplicationGrid < Datagrid::Base
       "4(Dev)" => 4,
     },
   }
+  MAX_PER_PAGES_EXTRA["helper"][100] = 100 if 100 > Rails.configuration.def_view_max_nrows
+  MAX_PER_PAGES_EXTRA["helper"].merge!({
+      400 => 400,
+      "ALL" => -1,  # -1 is passed to params
+  })
 
   # Absolute maximum limit for pagination.
   HARD_MAX_PER_PAGE = 10000

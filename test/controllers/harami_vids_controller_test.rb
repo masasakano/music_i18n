@@ -1206,12 +1206,13 @@ end
   end
 
   test "should show MusicAssoc in harami_vid" do
-    hvid = harami_vids(:harami_vid3)
+    hvid3 = hvid = harami_vids(:harami_vid3)
     mu1 = hvid.musics.order(Arel.sql('CASE WHEN timing IS NULL THEN 0 ELSE 1 END, timing')).first
     hvma = hvid.harami_vid_music_assocs.where(music: mu1).first
     assert mu1, "sanity check of MusicAssoc fixtures"
 
     get harami_vid_url(hvid)
+
     csstxt_tbl = 'table#music_table_for_hrami_vid'
     assert_equal 1, css_select(csstxt_tbl).size
     csstxt_tbl_rows  = csstxt_tbl + ' tbody tr'
@@ -1227,7 +1228,38 @@ end
 
 #    assert_select csstxt_tbl_row1td1+" a", count: 0
 #    # assert_no_select csstxt_tbl_row1td1+" a"  # this raises NoMethodError
-    
+
+    # Checks Other-HaramiVid table
+    ms = __method__.to_s
+    h1129 = mk_h1129_live_streaming(ms, do_test: true)  # defined in /test/helpers/model_helper.rb
+    hvid = h1129.harami_vid
+    assert_equal 1, hvid.event_items.count, "sanity check"
+    assert hvid.events.first.default?
+    hvid.events.first.reload
+    assert_operator 1, :<=, hvid.events.first.harami_vids.count, "sanity check"
+    assert_equal 1, hvid.events.first.harami_vids.count
+
+    get harami_vid_url(hvid)
+
+    css1 = "section#harami_vids_show_other_harami_vids table tbody tr"
+    assert_equal 1, css_select(css1).size, css_select("section#harami_vids_show_other_harami_vids").to_s
+    assert_equal 1, css_select(css1+" td.item_title").size, css_select(css1+" td.item_title").to_s
+
+    ## Added a HaramiVid for the Event
+    hvid_copied1 = hvid.deepcopy(uri: hvid.uri+"ABC", translation: :default)
+    assert_difference('hvid.events.first.harami_vids.count'){
+      hvid_copied1.save!
+    }
+    hvid.events.reset
+
+    get harami_vid_url(hvid)
+
+    assert_equal 2, css_select(css1).size, css_select("section#harami_vids_show_other_harami_vids").to_s
+    assert_equal 2, css_select(css1+" td.item_title").size, css_select(css1+" td.item_title").to_s
+
+
+    # Checks with Editor
+    hvid = hvid3
     sign_in @editor_harami
     get harami_vid_url(hvid)
     assert_equal "1", css_select(csstxt_tbl_row1td1).first.text.strip  # sequential number

@@ -47,6 +47,47 @@ class ActiveSupport::TestCase
     assert_includes evit_ids, h1129_evit.id, "(#{caller_info}) EventItem (#{str2identify_fixture(h1129_evit, :machine_title)}) of Harami1129 (#{str2identify_fixture(h1129)}) is inconsistent with those of HaraimVid (#{str2identify_fixture(hvid)})"
   end
 
+  # Returns a Harami1129 of a live-streaming with a singer and song and associated HaramiVid and Event
+  #
+  # @example
+  #    h1129 = mk_h1129_live_streaming(__method__.to_s, do_test: true)  # defined in /test/helpers/model_helper.rb
+  #    hvid = h1129.harami_vid
+  #
+  # @param nameroot [String] Root of the names of Singer (Artist), Song (Music), HaramiVid-title, etc.
+  # @return [Harami1129]
+  def mk_h1129_live_streaming(nameroot="mk_hvid_live_streaming", do_test: false)
+    ms = __method__.to_s
+    hscorrect = {title: "【生配信】東京リベンジャーズ特集:"+nameroot+"t", singer: nameroot+"a", song: nameroot+"m", release_date: (rdate=Date.today-2.days), link_root: "youtu.be/"+nameroot, link_time: 778, id_remote: _get_unique_id_remote, last_downloaded_at: DateTime.now}  # defined in test_helper.rb
+    h1129 = Harami1129.create_manual!(**hscorrect)
+    assert h1129.valid?     if do_test # Should never fail, but playing safe
+    assert h1129.created_at if do_test
+
+    str_equation = 'HaramiVid.count*10000 + Artist.count*1000 + Music.count*100 + Engage.count*10'
+    str_eq2      = 'HaramiVidEventItemAssoc.count*1000+Event.count*100 + EventItem.count*10 + ArtistMusicPlay.count'
+
+    ## before internal_insertion
+    pstat = h1129.populate_status(use_cache: true)
+    assert_equal :no_insert, pstat.status(:ins_title) if do_test
+    assert_equal "\u274c",   pstat.marker(:ins_title) if do_test
+    assert_nil h1129.reload.harami_vid if do_test
+
+    ## run internal_insertion
+    if do_test
+      str_equation = 'HaramiVid.count*10000 + Artist.count*1000 + Music.count*100 + Engage.count*10'
+      assert_difference(str_equation, 11110) do
+        h1129.insert_populate
+      end
+    else
+        h1129.insert_populate
+    end
+
+    h1129.reload
+    assert_operator(h1129.created_at, :<, h1129.harami_vid.created_at, "sanity check. HaramiVid is newly created from h1129.") if do_test
+    assert h1129.event_item if do_test
+
+    h1129
+  end
+
   # Returns a String like '"My Title1"; note="Event1ForX"'
   #
   # Perhaps you may put the return inside a pair of parentheses

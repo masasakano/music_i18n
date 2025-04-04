@@ -13,6 +13,7 @@ This system is the framework to deal with this type of complex and dynamic cases
 
 ### Environmental variables ###
 
+* `DEF_VIEW_MAX_NROWS` : Default maximum number of rows displayed in a Table.  If unspecified, `config.def_view_max_nrows` set in  `/config/application.rb` is used.
 * `LOAD_COUNTRIES` : Comma-separated ISO-3166-1 Alpha-2 country code, which will be loaded in seeding. Else all the countries are loaded
 * `URI_HARAMI1129` : URI to download Harami1129 data
 * `STATIC_PAGE_ROOT` : Root directory URI to load StaticPage-s in seeds

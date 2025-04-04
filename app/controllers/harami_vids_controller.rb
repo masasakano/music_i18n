@@ -197,7 +197,7 @@ class HaramiVidsController < ApplicationController
         harami_vid:  @ref_harami_vid,
         harami_vid2: (@harami_vid.new_record? ? nil : @harami_vid),
       }
-      set_event_event_items(**hsprm)
+      set_event_event_items(**hsprm)  # defined in /app/helpers/harami_vids_helper.rb
     end
 
     ###########################

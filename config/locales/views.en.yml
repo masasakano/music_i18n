@@ -56,6 +56,7 @@ en:
     Show: "Detail"
     note_this_model_default: "[SELF]"
     note_this_model: "[This %{kwd}]"
+    too_many_rows: "(……and more. The rest is trimmed.)"
 
   application:
     menu_harami_vids: "HARAMIchan's Videos"

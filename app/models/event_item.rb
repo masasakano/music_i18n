@@ -513,6 +513,8 @@ class EventItem < ApplicationRecord
 
   # "Deep" copy/duplication
   #
+  # WARNING & TODO: Rails defines Hash#deep_dup (and also ActiveRecord#deep_dup which works in a similar way as dup), so this method name is confusing!
+  #
   # Returns a dup of self (EventItem), where
   #   * machine_title is (has to be) unique
   #   * weight is nil

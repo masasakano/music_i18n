@@ -1,6 +1,13 @@
-<%# Local variables: harami_vid, optional: mark_self [Boolean] (Def: false) %>
+<%# Local variables: harami_vid, optional: mark_self [Boolean] (Def: false), max_nrows: (nil), ignore_max_nrows: false %>
 <% if !defined?(mark_self)
      mark_self = false
+   end %>
+<% if !defined?(max_nrows)
+     max_nrows = nil
+   end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
+<% max_nrows ||= Rails.configuration.def_view_max_nrows %>
+<% if !defined?(ignore_max_nrows)
+     ignore_max_nrows = false
    end %>
 
 <% this_model_note = t("tables.note_this_model", kwd: t(:video)) %>
@@ -12,32 +19,49 @@
 
 <table id="other_harami_vids_table_for_hrami_vid">
   <thead>
+    <% ncols = 0 %>
     <tr>
-      <th><%= (can_edit=can?(:edit, harami_vid)) ? "pID" : "" %></th>
+      <th<%= ' class="editor_only"'.html_safe if (can_edit=can?(:edit, harami_vid)) %>><%= can_edit ? "pID" : "" %></th>
+      <% ncols += 1 %>
       <th><%= t(:Channel) %></th>
+      <% ncols += 1 %>
       <th class="item_title"><%= t("home.index.vid_title")%></th>
+      <% ncols += 1 %>
       <th>URI</th>
+      <% ncols += 1 %>
       <th><%= link_to t('Musics'), musics_url %></th>
+      <% ncols += 1 %>
       <th><%= t("tables.release_date") %></th>
+      <% ncols += 1 %>
       <th><%= t("tables.duration_none") %></th>
+      <% ncols += 1 %>
       <th>
       <% if can? :index, Place %>
         <%= link_to t('Place'), places_url %>
       <% else %>
         Place
       <% end %>
+      <% ncols += 1 %>
       </th>
       <th><%= t('EventItems') %></th>
-      <% tbody_exists = harami_vid.other_harami_vids_of_event.present? %>
-      <th colspan="<%= (can_edit && tbody_exists) ? 2 : 1 %>"></th>
+      <% other_hvids_rela = harami_vid.other_harami_vids_of_event(exclude_unknown: false, include_self: true) %>
+      <% tbody_exists = other_hvids_rela.present? %>
+      <% colspan = ((can_edit && tbody_exists) ? 2 : 1) %>
+      <th class="actions"<%= sprintf(' colspan="%d"', colspan).html_safe if 1 != colspan %>></th>
+      <% ncols += colspan %>
     </tr>
   </thead>
 
   <tbody>
     <% all_evits = harami_vid.events.uniq.map{|eev| eev.event_items}.flatten %>
-    <% harami_vid.other_harami_vids_of_event(include_self: true).each_with_index do |ea_hvid, i_mus| %>
+    <% other_hvids_rela.each_with_index do |ea_hvid, i_hvid| %>
       <tr<%= ' class="self_in_table"'.html_safe if (is_self=(mark_self && ea_hvid == harami_vid)) %>>
-        <td><%= can_edit ? link_to(ea_hvid.id, ea_hvid) : i_mus+1 %></td>
+        <% if !!ignore_max_nrows && i_hvid >= max_nrows %>
+          <td colspan="<%= ncols %>"><%= t("tables.too_many_rows") %></td>
+      </tr>
+          <% break %>
+        <% end %>
+        <td<%= ' class="editor_only"'.html_safe if can_edit %>><%= can_edit ? link_to(ea_hvid.id, ea_hvid) : i_hvid+1 %></td>
         <td class="item_channel">
     <span class="channel_platform"><%= ea_hvid.channel.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true) %></span>
       (<span class="channel_type"><%= ea_hvid.channel.channel_type.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true) %></span>)
