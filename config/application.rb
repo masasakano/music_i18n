@@ -73,6 +73,15 @@ module HaramiMusicI18n
     # default maximum number of rows for Table (to prevent a potential server crush)
     config.def_view_max_nrows = (ENV['DEF_VIEW_MAX_NROWS'].present? ? ENV['DEF_VIEW_MAX_NROWS'].to_i : 400)
 
+    # default maximum number of Event rows per EventGroup for Table for Public
+    config.max_events_per_group_public = 100
+
+    # default maximum number of HaramiVid rows per Event for Table for Editors (to prevent a potential server crush)
+    config.max_harami_vids_per_event_editor = 15
+
+    # default maximum number of HaramiVid rows per Event for Table for Public (to prevent a potential server crush)
+    config.max_harami_vids_per_event_public =  5
+
     # Do not change this (unless you search and change all of then consistently)
     config.primary_artist_titles = {
       ja: {

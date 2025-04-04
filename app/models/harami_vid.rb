@@ -289,12 +289,11 @@ class HaramiVid < BaseWithTranslation
       trans.weight = Float::INFINITY
 
       ["", "alt_"].each do |prefix|
-        metho = prefix + "title"
-        trans.send(metho+"=", "(Copy) " + trans.send(metho)) if trans.send(metho).present?
-        metho = prefix + "ruby"
-        trans.send(metho+"=",  "(コピー) " + trans.send(metho)) if trans.send(metho).present?
-        metho = prefix + "romaji"
-        trans.send(metho+"=",  "(kopii) " + trans.send(metho)) if trans.send(metho).present?
+        revised_strs = _unique_copy_title(trans, prefix)  # its elements may be nil
+        %w(title ruby romaji).each_with_index do |metho_root, i|
+          metho = prefix + metho_root
+          trans.send(metho+"=", revised_strs[i]) if revised_strs[i]
+        end
       end
     elsif !translation
       trans = Translation.new(translation)
@@ -309,7 +308,7 @@ class HaramiVid < BaseWithTranslation
       newmdl.harami_vid_music_assocs << new_assoc
     end
 
-    harami_vid_event_item_assocs.order(:timing).each do |assoc|
+    harami_vid_event_item_assocs.each do |assoc|
       new_assoc = assoc.dup
       new_assoc.harami_vid = nil
       newmdl.harami_vid_event_item_assocs << new_assoc
@@ -317,6 +316,39 @@ class HaramiVid < BaseWithTranslation
 
     newmdl
   end
+
+  # Returns a unique String (and its ruby and romaji) for a copied title.
+  #
+  # Note that the prefix for title can be "(Copy) ", "(Copy2) ", "(Copy3) ", "(Copy9) ", "(Copy10) ", etc, i.e., no "Copy1"
+  # If self does not have a significant +title+ (or +ruby+ or +romaji+), the returned one for it is nil.
+  # This means the return can be +[nil, nil, nil]+ (if, for example, self does not have alt_title and if method_prefix=="alt_").
+  #
+  # @param trans [Translation] reference Translation
+  # @param method_prefix [String] "" (for title) or "alt_" (for alt_title)
+  # @param num_ini: [Integer] Starting number for the copies
+  # @return [Array<String, NilClass>] 3-element Array of a unique String of "(Copy23) My Original title" etc, and its ruby and romaji
+  def _unique_copy_title(trans, method_prefix, num_ini: 1)
+    metho = method_prefix+"title"
+    return [nil, nil, nil] if (org_title=trans.send(metho)).blank?
+
+    orig_strs = [org_title] + %w(ruby romaji).map{|metho_root|
+      metho = method_prefix + metho_root
+      (str=trans.send(metho)).present? ? str : nil
+    }
+
+    (num_ini..).each do |num|
+      raise "Something has gone very wrong!" if num > 10001
+
+      num_postfix = ((1==num) ? "" : sprintf("%d", num))
+
+      new_strs = %w(Copy コピー kopii).map.with_index{ |new_prefix, i| 
+        orig_strs[i] ? sprintf("(%s%s) %s", new_prefix, num_postfix, orig_strs[i]) : nil 
+      }
+
+      return new_strs if !Translation.find_by(translatable_type: self.class.name, method_prefix + "title" => new_strs[0])
+    end
+  end
+  private :_unique_copy_title
 
   # Associates a Music to self consistently (in terms of HaramiVidMusicAssoc and ArtistMusicPlay through HaramiVidMusicAssoc )
   #

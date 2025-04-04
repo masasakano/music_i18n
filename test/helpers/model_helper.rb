@@ -57,7 +57,7 @@ class ActiveSupport::TestCase
   # @return [Harami1129]
   def mk_h1129_live_streaming(nameroot="mk_hvid_live_streaming", do_test: false)
     ms = __method__.to_s
-    hscorrect = {title: "【生配信】東京リベンジャーズ特集:"+nameroot+"t", singer: nameroot+"a", song: nameroot+"m", release_date: (rdate=Date.today-2.days), link_root: "youtu.be/"+nameroot, link_time: 778, id_remote: _get_unique_id_remote, last_downloaded_at: DateTime.now}  # defined in test_helper.rb
+    hscorrect = {title: "【生配信】東京リベンジャーズ特集 (nameroot(in #{__method__})=#{nameroot.inspect})", singer: nameroot+"a", song: nameroot+"m", release_date: (rdate=Date.today-2.days), link_root: "youtu.be/"+nameroot, link_time: 778, id_remote: _get_unique_id_remote, last_downloaded_at: DateTime.now}  # defined in test_helper.rb
     h1129 = Harami1129.create_manual!(**hscorrect)
     assert h1129.valid?     if do_test # Should never fail, but playing safe
     assert h1129.created_at if do_test

@@ -506,6 +506,19 @@ class HaramiVidTest < ActiveSupport::TestCase
     assert_equal hvid.artists.order(:id).uniq, hvcopies[-1].artists.order(:id).uniq
     assert_equal hvid.event_items.distinct.order(:id), hvcopies[-1].event_items.distinct.order(:id)
     assert_equal hvid.artist_music_plays.distinct.order(:id), hvcopies[-1].artist_music_plays.distinct.order(:id)
+
+    # Tests the second copy
+    hvcopies << hvid.deepcopy(uri: hvcopies[0].uri+"2", translation: :default)
+    hvcopies[-1].save!
+    hvid_tra = hvid.best_translation
+    assert hvid_tra.title.present?, "testing fixtures"
+    refute hvid_tra.ruby.present?, "testing fixtures"
+    refute hvid_tra.alt_title.present?, "testing fixtures"
+
+    tra = hvcopies[-1].best_translation
+    assert_equal sprintf("(Copy2) %s", hvid_tra.title), tra.title
+    assert_nil   tra.ruby
+    assert_nil   tra.alt_title
   end
 
   test "create_basic!" do

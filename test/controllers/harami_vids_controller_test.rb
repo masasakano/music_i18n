@@ -1232,7 +1232,7 @@ end
     # Checks Other-HaramiVid table
     ms = __method__.to_s
     h1129 = mk_h1129_live_streaming(ms, do_test: true)  # defined in /test/helpers/model_helper.rb
-    hvid = h1129.harami_vid
+    hvid_created = hvid = h1129.harami_vid
     assert_equal 1, hvid.event_items.count, "sanity check"
     assert hvid.events.first.default?
     hvid.events.first.reload
@@ -1241,9 +1241,9 @@ end
 
     get harami_vid_url(hvid)
 
-    css1 = "section#harami_vids_show_other_harami_vids table tbody tr"
-    assert_equal 1, css_select(css1).size, css_select("section#harami_vids_show_other_harami_vids").to_s
-    assert_equal 1, css_select(css1+" td.item_title").size, css_select(css1+" td.item_title").to_s
+    css1_debug = "section#harami_vids_show_other_harami_vids"
+    css1       = "section#harami_vids_show_other_harami_vids table tbody tr"
+    assert_equal 1, css_select(css1+" td.item_title").size, css_select(css1_debug).to_s
 
     ## Added a HaramiVid for the Event
     hvid_copied1 = hvid.deepcopy(uri: hvid.uri+"ABC", translation: :default)
@@ -1254,9 +1254,20 @@ end
 
     get harami_vid_url(hvid)
 
-    assert_equal 2, css_select(css1).size, css_select("section#harami_vids_show_other_harami_vids").to_s
+    assert_equal 2, css_select(css1).size, css_select(css1_debug).to_s
     assert_equal 2, css_select(css1+" td.item_title").size, css_select(css1+" td.item_title").to_s
 
+    ## Added many HaramiVid-s for the Event
+    (2..52).each do |num|
+      hvid.deepcopy(uri: hvid.uri+"ABC#{num}", translation: :default).save!
+    end
+    hvid.reload
+    assert_equal 53, hvid.other_harami_vids_of_event(exclude_unknown: false, include_self: true).count
+
+    get harami_vid_url(hvid)
+
+    assert_equal 5*3+1, css_select(css1).size #, css_select(css1_debug).to_s  # 5 == config.max_harami_vids_per_event_public; "+1" is necessary as the last row is purely for a notice message of "too many rows" etc.
+    assert_equal 5*3,   css_select(css1+" td.item_title").size #, css_select(css1+" td.item_title").to_s
 
     # Checks with Editor
     hvid = hvid3
@@ -1272,6 +1283,10 @@ end
     csstxt_tbl_row1tdlast_a = csstxt_tbl_rows + ":first-child td:last-child a"
     assert_select csstxt_tbl_row1tdlast_a
     assert_match(/\b#{hvma.id}\b/i, css_select(csstxt_tbl_row1tdlast_a).text)
+
+    get harami_vid_url(hvid_created)
+    assert_equal 15*3+1, css_select(css1).size #, css_select(css1_debug).to_s  # 15 == config.max_harami_vids_per_event_editor; "+1" is necessary as the last row is purely for a notice message of "too many rows" etc.
+    assert_equal 15*3,   css_select(css1+" td.item_title").size #, css_select(css1+" td.item_title").to_s
     sign_out @editor_harami
   end
 

@@ -17,11 +17,12 @@
     <span><%= harami_vid.events.uniq.map{|i| i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true)}.join(" | ") %></span>
   </h3>
 
+  <% can_edit = can?(:edit, harami_vid) %>
 <table id="other_harami_vids_table_for_hrami_vid">
   <thead>
     <% ncols = 0 %>
     <tr>
-      <th<%= ' class="editor_only"'.html_safe if (can_edit=can?(:edit, harami_vid)) %>><%= can_edit ? "pID" : "" %></th>
+      <th<%= ' class="editor_only"'.html_safe if can_edit %>><%= can_edit ? "pID" : "" %></th>
       <% ncols += 1 %>
       <th><%= t(:Channel) %></th>
       <% ncols += 1 %>
@@ -53,10 +54,11 @@
   </thead>
 
   <tbody>
+    <% max_harami_vids_per_event = (can_edit ? Rails.configuration.max_harami_vids_per_event_editor : Rails.configuration.max_harami_vids_per_event_public)*3 %>
     <% all_evits = harami_vid.events.uniq.map{|eev| eev.event_items}.flatten %>
     <% other_hvids_rela.each_with_index do |ea_hvid, i_hvid| %>
       <tr<%= ' class="self_in_table"'.html_safe if (is_self=(mark_self && ea_hvid == harami_vid)) %>>
-        <% if !!ignore_max_nrows && i_hvid >= max_nrows %>
+        <% if !ignore_max_nrows && i_hvid >= [max_nrows, max_harami_vids_per_event].min %>
           <td colspan="<%= ncols %>"><%= t("tables.too_many_rows") %></td>
       </tr>
           <% break %>
