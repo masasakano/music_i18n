@@ -1056,6 +1056,25 @@ module ApplicationHelper
     sprintf("%3d%%", num*100).sub(/^\s/, "")
   end
 
+  
+  # Returns I18n Period range (in Date) string from Date
+  #
+  # @param date_from [Date]
+  # @param date_to [Date]
+  # @param langcode: [String, Symbol] Default: +I18n.locale+
+  # @param undefined_period_str: [Object] when a period is basically undefined (from too early in date to too late), this Object is returned (Def: "").
+  # @return [String]
+  def period_date2text(date_from, date_to, langcode: I18n.locale, undefined_period_str: "")
+    period_strs = [date_from, date_to].map{ |ed|
+      date2text(ed.year, ed.month, ed.day, langcode: langcode, lower_end_str: "", upper_end_str: "") # defined in module_common.rb
+    }
+
+    return undefined_period_str if period_strs.all?(&:blank?)
+
+    range_separator = (("ja" == langcode.to_s) ? " 〜 " : " &ndash; ").html_safe
+    period_strs.join(range_separator).html_safe
+  end
+
   # to suppress warning, mainly that in Ruby-2.7.0:
   #   "Passing the keyword argument as the last hash parameter is deprecated"
   #

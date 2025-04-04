@@ -484,6 +484,43 @@ class Event < BaseWithTranslation
     !unknown?
   end
 
+  # Returns Hash information of consistency of Date/Time of self (<Event) and EventGroup
+  #
+  # @return [Hash] {start_time: , start_time_err: , duration_hour: }.with_indifferent_access, where the values are [Boolean, NilClass]. True means consistent. nil means unknown or irrelevant (like duration is nil).
+  def period_consistency_with_group
+    reths = {
+      start_time: nil,
+      start_time_err: nil,
+      duration_hour: nil,
+    }.with_indifferent_access
+
+    return reths if !start_time || !event_group || !event_group.start_date && !event_group.end_date
+
+    reths[:start_time] = true
+    if (egd=event_group.start_date)
+      evgr_start_time_min = (egd - (event_group.start_date_err ? event_group.start_date_err : 0).days).beginning_of_day
+      reths[:start_time] = false if (start_time < evgr_start_time_min)
+    end
+    if (egd=event_group.end_date)
+      evgr_end_time_max = (egd - (event_group.end_date_err ? event_group.end_date_err : 0).days).end_of_day
+      reths[:start_time] = false if (evgr_end_time_max < start_time)
+    end
+
+    if start_time_err
+      if evgr_start_time_min && evgr_end_time_max && evgr_start_time_min < evgr_end_time_max
+        duration_max = evgr_end_time_max - evgr_start_time_min
+        reths[:start_time_err] = (start_time_err.seconds <= duration_max)
+      end
+    end
+
+    if duration_hour && evgr_end_time_max
+      ev_start_time_min = (start_time_err ? start_time - start_time_err.seconds : start_time)
+      reths[:duration_hour] = (ev_start_time_min + duration_hour.hours <= evgr_end_time_max)
+    end
+
+    return reths
+  end
+
   ########## callbacks ########## 
 
   def add_parent_in_create_callback

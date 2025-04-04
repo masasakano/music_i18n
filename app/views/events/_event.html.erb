@@ -11,17 +11,36 @@
     </div>
   <% end %>
   <dt><strong><%= t(:EventGroup) %>:</strong></dt>
-    <dd><%= link_to event.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), event_group_url(event.event_group), title: event.event_group.note %></dd>
+    <dd><%= link_to event.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), event_group_url(event.event_group), title: event.event_group.note %>
+      <% period_text = period_date2text((eg=event.event_group).start_date, eg.end_date) %> <%# defined in application_helper.rb %>
+      <%= ("("+period_text+")").html_safe unless period_text.blank? %>
+    </dd>
   <dt class="item_place"> <%= t("tables.place_country") %>:</dt>
-    <dd class="item_place"><%= event.place ? show_pref_place_country(event.place) : "" %></dd>  <%# defined in places_helper.rb %>
-  <dt><strong><%= t("tables.start_time") %> [<%= t("events.time_zone_preposition") %> <%= Rails.configuration.music_i18n_def_timezone_str %>]:</strong></dt>
-    <dd><%= event.string_time_err2uptomin %> (± <%= time_in_units(event.start_time_err, for_editor: can_update_gen) %>)
-      <% if can_update_gen %> 
-        <span class="moderator_only">[Raw-value=<%= event.start_time %>]</span>
+    <dd class="item_place"><%= event.place ? show_pref_place_country(event.place) : "" %>  <%# defined in places_helper.rb %>
+      <% evgr_place_str = h((evgr_place=event.event_group.place).blank? ? "nil" : show_pref_place_country(evgr_place)) %> <%# TODO: the link part in Place is printed in white (while the rest is in red) in the statement below %>
+      <% is_consistent = (event.place && (evgr_place=event.event_group.place).encompass?(event.place)) %>
+      <% if can_update_gen %>
+        <span class="editor_only"><%= html_consistent_or_inconsistent(is_consistent, postfix: " with EventGroup (#{evgr_place_str})".html_safe) %></span>  <%# defined in application_helper.rb %>
       <% end %>
-    </dd> <%# in module_common.rb %>
+  </dd>
+  <dt><strong><%= t("tables.start_time") %> [<%= t("events.time_zone_preposition") %> <%= Rails.configuration.music_i18n_def_timezone_str %>]:</strong></dt>
+    <dd><%= event.string_time_err2uptomin %> (± <%= time_in_units(event.start_time_err, for_editor: can_update_gen) %>) <%# in module_common.rb %>
+      <% if can_update_gen %> 
+        <span class="editor_only">[Raw-value=<%= event.start_time %>]
+          <% hs_consistency = @event.period_consistency_with_group %>
+          <% is_consistent = !((false == hs_consistency[:start_time]) || (false == hs_consistency[:start_time_err])) %>
+          <%= html_consistent_or_inconsistent(is_consistent, postfix: " with EventGroup (#{(evgr=event.event_group).start_date} (± #{evgr.start_date_err}) - #{evgr.end_date} (± #{evgr.end_date_err}))".html_safe) %>  <%# defined in application_helper.rb %>
+          <%= hs_consistency.inspect %>
+        </span>
+      <% end %>
+    </dd>
   <dt><strong><%= t("events.Duration") %> [<%= t(:hour) %>]:</strong></dt>
-    <dd><%= event.duration_hour %></dd>
+    <dd><%= event.duration_hour %>
+      <% if can_update_gen %> 
+        <% is_consistent = (false != hs_consistency[:duration_hour]) %>
+        <span class="editor_only"><%= html_consistent_or_inconsistent(is_consistent, postfix: " with EventGroup".html_safe) %></span>  <%# defined in application_helper.rb %>
+      <% end %>
+  </dd>
   <dt><strong><%= t("events.n_event_items_long") %> / <%= t("tables.n_harami_vids_long") %> / <%= t("datagrid.form.n_musics_general") %><%= ":" if !can_update_gen %>
     <% if can_update_gen %>
       <span class="editor_only">
