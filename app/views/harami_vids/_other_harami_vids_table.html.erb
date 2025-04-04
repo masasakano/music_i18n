@@ -45,7 +45,7 @@
       <% ncols += 1 %>
       </th>
       <th><%= t('EventItems') %></th>
-      <% other_hvids_rela = harami_vid.other_harami_vids_of_event(exclude_unknown: false, include_self: true) %>
+      <% other_hvids_rela = harami_vid.other_harami_vids_of_event(exclude_unknown: false, include_self: true).order(:release_date) %>
       <% tbody_exists = other_hvids_rela.present? %>
       <% colspan = ((can_edit && tbody_exists) ? 2 : 1) %>
       <th class="actions"<%= sprintf(' colspan="%d"', colspan).html_safe if 1 != colspan %>></th>

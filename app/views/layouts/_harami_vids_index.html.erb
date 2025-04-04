@@ -106,7 +106,7 @@
     <%# (ary &&= ary2).uniq.each do |harami_vid| %>
     <% ary.uniq.each_with_index do |harami_vid, i_hvid| %>
       <tr>
-        <% if !!ignore_max_nrows && i_hvid >= max_nrows %>
+        <% if !ignore_max_nrows && i_hvid >= max_nrows %>
           <td colspan="<%= ncols %>"><%= t("tables.too_many_rows") %></td>
       </tr>
           <% break %>
