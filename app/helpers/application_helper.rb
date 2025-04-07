@@ -317,7 +317,7 @@ module ApplicationHelper
   # @param root_kwd [String]
   # @option timing [Integer, NilClass] in second
   # @param long: [Boolean] if false (Def), youtu.be, else www.youtube.com
-  # @param with_http: [Boolean] if true (Def: false), returned string contains "https://"
+  # @param with_http: [Boolean, Symbol] if true (Def: false), returned string contains "https://". If :HaramiVid, it follows the standard of the current uri attribute values in HaramiVid in DB. The default follows with_scheme in {ApplicationHelper._normalized_uri_youtube_core}
   # @return [String] youtu.be/Wfwe3f8 etc
   def self.uri_youtube(root_kwd, timing=nil, long: false, with_http: false)
     raise "(#{__method__}) nil is not allowed for root_kwd" if !root_kwd
@@ -325,8 +325,7 @@ module ApplicationHelper
 
     root_kwd = _prepend_youtube(root_kwd)
 
-    hs2pass = {long: long, with_host: true, with_time: false, with_query: true}
-    hs2pass.merge!({with_scheme: true}) if with_http
+    hs2pass = {long: long, with_host: true, with_time: false, with_query: true, with_scheme: with_http}
     normalized_txt = normalized_uri_youtube(root_kwd, **hs2pass)
     platform = normalized_txt.platform  # singleton method
     uri = URI.parse( normalized_txt )
@@ -345,7 +344,7 @@ module ApplicationHelper
 
   # Guesses the site platform and returns it.
   #
-  # @parm str [String] may include "http://" or not.  Query parameters can be included, too.
+  # @parm str [String, URI] may include "http://" or not.  Query parameters can be included, too.
   # @return [Symbol, String, NilClass] nil if input is blank. Symbols like (:youtube, :tiktok). String for domain ("www." is removed) if there is a valid host. Otherwise, the input String as it is.
   def self.guess_site_platform(str)
     return nil if str.blank?
@@ -368,7 +367,7 @@ module ApplicationHelper
   end
 
 
-  # Returns parsed URI whether the input has a schme (https) at the head or not
+  # Returns parsed URI whether the input has a scheme (https) at the head or not
   #
   # If the input *looks like* a URI but does not have a scheme, a scheme is added.
   # Otherwise, the input String is treated as it is.
@@ -421,9 +420,19 @@ module ApplicationHelper
   # For Youtube links, most query parameteres are removed (but v and maybe t (if with_time is true)).
   # For other sites, they are preserved unless with_query is false.
   #
+  # @example Youtube
+  #    k = "https://Youtu.Be:80/BBBCCCCQxU4?si=AAA5OOL6ivmJX999&t=53s&link=youtu.be&list=OLAK5uy_k-vV"
+  #    normalized_uri_youtube(k, with_scheme: false, with_query: true, with_time: false, with_host: false) # => "BBBCCCCQxU4"
+  #    normalized_uri_youtube(k, with_scheme: false, with_query: true, with_time: false, with_host: true) # => "youtu.be/BBBCCCCQxU4"
+  #    normalized_uri_youtube(k, with_scheme: true,  with_query: false, with_time: true, with_host: true) # => "https://youtu.be/BBBCCCCQxU4?t=53"
+  # @example other platforms
+  #    k = "https://www.EXAMPLE.com/LIVE/watch?v=BBBCCCCQxU4&t=53&si=XXX"
+  #    normalized_uri_youtube(k, with_scheme: false, with_query: true,  with_time: false, with_host: false) # => "LIVE/watch?v=BBBCCCCQxU4&t=53&si=XXX"
+  #    normalized_uri_youtube(k, with_scheme: false, with_query: false, with_time: false, with_host: false) # => "LIVE/watch"
+  #
   # @param uri_str [String] e.g., "https://www.youtube.com/watch?v=IrH3iX6c2IA" ; a simple String "IrH3iX6c2IA" is invalid.
   # @param long: [Boolean] if false (Def), youtu.be, else www.youtube.com ; for any other URIs, ignored.
-  # @param with_scheme: [Boolean] if true (Def: false), returned string contains "https://" . Even if this is false, the returns String contains any other schems like "sftp" than "https" as long as with_host is true
+  # @param with_scheme: [Boolean] if true (Def: false), returned string contains "https://" . Even if this is false, the returns String contains any other schemes like "sftp" than "https" as long as with_host is true
   # @param with_host: [Boolean]
   # @param with_query: [Boolean] For Youtube, this is ignored. Recommended to set true.
   # @param with_time: [Boolean] Only for Youtube.
@@ -447,8 +456,15 @@ module ApplicationHelper
   end
 
   # internal method.  See {ApplicationHelper.normalized_uri_youtube} for detail
+  #
+  # @note if the original contains the unsafe scheme and if the platform is a known one,
+  #    the scheme is replaced with "https".
+  # @note if with_host==true and if the original input contains other than "https",
+  #    the output will include the scheme regardless of the given +with_scheme+ parameter
   def self._normalized_uri_youtube_core(uri_str, long: false, with_scheme: false, with_host: true, with_time: false, with_query: true)
     raise "(#{__method__}) nil is not allowed for uri_str" if uri_str.blank?
+    with_scheme = HaramiVid.uri_in_db_with_scheme? if :HaramiVid == with_scheme
+    raise ArgumentError, "(#{__method__}) with_scheme must be Boolean or :HaramiVid, but (#{with_scheme.inspect})" if ![true, false].include?(with_scheme)
 
     ## NOTE: manual processing instead of letting URI.parse() to judge is necessary
     #    because "youtube.com:8080/" is considered to have uri.scheme of "youtube.com" (!)
@@ -462,7 +478,16 @@ module ApplicationHelper
     ret.instance_eval{singleton_class.class_eval { attr_accessor "platform" }} if !ret.respond_to?(:platform)  # these 2 linew are equivalent to ModuleCommon#set_singleton_method_val
     ret.platform = uri.platform  # Define Singleton method String#platform
 
-    ret << (uri.scheme + "://") if with_scheme || (("https" != uri.scheme) && with_host)
+    if "http" == uri.scheme && ret.platform.is_a?(Symbol)
+      uri.scheme = "https"  # For major sites, unsafe scheme "http" is replaced with "https".
+    end
+
+    if with_scheme
+      ret << (uri.scheme + "://") 
+    elsif ("https" != uri.scheme) && with_host
+      Rails.logger.info("NOTE(#{__method__}): A non-standard scheme is given with with_host=true; so even though with_scheme=true is specified, the scheme is forcibly added to the output. URI-string=#{uri_str.inspect}")
+      ret << (uri.scheme + "://") 
+    end
     ret << uri.host             if with_scheme || with_host  # with_scheme has a priority.
     ret << (":"+uri.port.to_s)  if uri.port.present? && ![80, 443].include?(uri.port)
     ret << (ret.blank? ? uri.path.sub(%r@\A/@, '') : uri.path)

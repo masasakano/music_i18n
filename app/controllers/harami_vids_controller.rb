@@ -27,7 +27,7 @@ class HaramiVidsController < ApplicationController
     "artist_name", "artist_sex", "form_engage_hows", "form_engage_year", "form_engage_contribution",
     "artist_name_collab", "form_instrument", "form_play_role",
     "music_collab", "music_name", "music_timing", "music_genre", "music_year",
-    "reference_harami_vid_id",  # For GET in new
+    "reference_harami_vid_kwd", "reference_harami_vid_id",  # these two for GET in new
     "uri_playlist_en", "uri_playlist_ja",
     "release_date(1i)", "release_date(2i)", "release_date(3i)",  # Date-related parameters
   ])
@@ -58,8 +58,15 @@ class HaramiVidsController < ApplicationController
   # GET /harami_vids/new
   def new
     @harami_vid = HaramiVid.new
-    _set_reference_harami_vid_id  # sets reference_harami_vid_id, release_date, place, and @event_event_items, maybe @ref_harami_vid via GET method
+    _import_reference  # sets reference_harami_vid_id, reference_harami_vid_kwd, release_date, place, and @event_event_items, maybe @ref_harami_vid_id and @ref_harami_vid via GET method
     @places = Place.all  # necessary??
+    if @harami_vid.errors.any?
+      hsstatus = {status: :unprocessable_entity}
+      respond_to do |format|
+        format.html { render __method__,               **hsstatus }
+        format.json { render json: @harami_vid.errors, **hsstatus }
+      end
+    end
   end
 
   # GET /harami_vids/1/edit
@@ -69,8 +76,34 @@ class HaramiVidsController < ApplicationController
       flash[:warning] << "Please make sure to add an Event(Item)."
     end
 
-    _set_reference_harami_vid_id  # sets reference_harami_vid_id, release_date, place, and @event_event_items, maybe @ref_harami_vid via GET method
+    _import_reference  # sets reference_harami_vid_kwd, release_date, place, and @event_event_items, maybe @ref_harami_vid via GET method
     @places = Place.all  # necessary??
+    if @harami_vid.errors.any?
+      render_method = ((ref_harami_vid_id && :edit == __method__) ? :show : __method__)
+      hsstatus = {status: :unprocessable_entity}
+      respond_to do |format|
+        format.html { render render_method,            **hsstatus }
+        format.json { render json: @harami_vid.errors, **hsstatus }
+      end
+    elsif @do_redirect
+      case @do_redirect
+      when :edit  # directed to a different HaramiVid, referencing this HaramiVid
+        uri2pass = edit_harami_vid_url(@ref_harami_vid_id, params: {reference_harami_vid_id: pid=(@harami_vid.id)})  # n.b., @ref_harami_vid is not set here.
+        respond_to do |format|
+          format.html { redirect_to uri2pass, notice: "Edit with the reference HaramiVid of pID=#{pid}" }
+          format.json { render :edit, status: :ok, location: edit_harami_vid_url(@ref_harami_vid) }
+        end
+      when :new
+        respond_to do |format|
+          format.html { redirect_to new_harami_vid_url(params: {reference_harami_vid_id: pid=(@harami_vid.id), uri: @harami_vid.reference_harami_vid_kwd}), notice: "New with the reference HaramiVid of pID=#{pid}" }
+          format.json { render  :new, status: :ok, location: new_harami_vid_url }
+        end
+      else
+        raise
+      end
+    else
+      ## Default (i.e., with no reference HaramiVid specified)
+    end
   end
 
   # POST /harami_vids
@@ -93,7 +126,7 @@ class HaramiVidsController < ApplicationController
 
     @music_collab_collection = collection_musics_with_evit(@harami_vid)  # collection used in Form to select a Music to add a collab-Artist
 
-    _set_reference_harami_vid_id  # Sets reference_harami_vid_id, @event_event_items, @ref_harami_vid
+    _import_reference  # Sets reference_harami_vid_kwd, @event_event_items, @ref_harami_vid
 
     add_unsaved_trans_to_model(@harami_vid, @hstra) # defined in application_controller.rb
     result = def_respond_to_format(@harami_vid){  # defined in application_controller.rb
@@ -112,7 +145,7 @@ class HaramiVidsController < ApplicationController
   # PATCH/PUT /harami_vids/1.json
   def update
     @music_collab_collection = collection_musics_with_evit(@harami_vid)  # collection used in Form to select a Music to add a collab-Artist
-    _set_reference_harami_vid_id  # Sets reference_harami_vid_id, @event_event_items, @ref_harami_vid
+    _import_reference  # Sets reference_harami_vid_kwd, @event_event_items, @ref_harami_vid
 
     def_respond_to_format(@harami_vid, :updated){
       create_update_core{
@@ -161,27 +194,36 @@ class HaramiVidsController < ApplicationController
       set_hsparams_main_tra(:harami_vid, array_keys: [:event_item_ids]) # defined in application_controller.rb
     end
 
-    # Sets reference_harami_vid_id, @event_event_items, @ref_harami_vid, and maybe release_date and place
+    # Sets reference_harami_vid_id, @ref_harami_vid_id, @ref_harami_vid, reference_harami_vid_kwd, @event_event_items, @ref_harami_vid, and maybe release_date and place
     #
     # See {#set_event_event_items} for @event_event_items.
     # @ref_harami_vid is the ID of the reference HaramiVid given (which may be passed to +new+ and then +create+).
     #
     # @note
-    #   GET parameter +reference_harami_vid_id+ is passed as the root-level parameter in params,
+    #   GET parameter +reference_harami_vid_kwd+ is passed as the root-level parameter in params,
     #   NOT inside +harami_vids: {}+
     #
     # @return [void]
-    def _set_reference_harami_vid_id
+    def _import_reference
       @original_event_items = @harami_vid.event_items.to_a  # to preserve the originally associated EventItems
 
-      return if  @hsmain && (prm=@hsmain[:reference_harami_vid_id]).blank?
-      return if !@hsmain && (prm=params.permit(:reference_harami_vid_id)[:reference_harami_vid_id]).blank?
+      pid_in, kwd_in, uri_in = %i(reference_harami_vid_id reference_harami_vid_kwd uri).map{|prm|
+        val = ((@hsmain && :uri != prm) ? @hsmain[prm] : params.permit(prm)[prm])  # In Edit, uri is passed as normal in @hsmain,so uri has to be taken from the direct GET parameter
+        val.respond_to?(:strip) ? val.strip : val
+      }
+      return if [pid_in, kwd_in].all?(&:blank?) && (@harami_vid.new_record? ? uri_in.blank? : true)   # No Reference HaramiVid (or URI for "new") is specified.
 
-      @harami_vid.reference_harami_vid_id ||= prm  # via either POST (@hsmain) or GET method; for POST this should have been already set.
-      @ref_harami_vid = HaramiVid.find(prm)
+      _set_ref_harami_vid_id(pid_in, kwd_in, uri_in)  # @ref_harami_vid and uri may be set, too.
+      return if @harami_vid.errors.any?
+      _set_ref_harami_vid_edit(kwd_in) if !@harami_vid.new_record? && kwd_in.present?
+      @harami_vid.errors.add(:reference_harami_vid_kwd, "The specified reference URI is identical to self.") if @ref_harami_vid_id == @harami_vid.id
+      return if @harami_vid.errors.any? || @do_redirect || !@ref_harami_vid  # errors has a priority over @do_redirect
 
+      # Set some parameters if processing continues (namely, if it is not redirected to somewhere).
       case action_name
       when "new"
+        raise "Should never happen." if !@harami_vid.new_record?
+        # NOTE: "uri" in GET paraeter, if specified, has been already set (in _set_ref_harami_vid_id).
         @harami_vid.release_date = @ref_harami_vid.release_date
         @harami_vid.place        = @ref_harami_vid.place
       when "edit"
@@ -199,6 +241,82 @@ class HaramiVidsController < ApplicationController
       }
       set_event_event_items(**hsprm)  # defined in /app/helpers/harami_vids_helper.rb
     end
+
+
+    # Sets @ref_harami_vid_id, and also @ref_harami_vid if the former is set.
+    #
+    # Also sets @harami_vid.uri for "new"
+    #
+    # @param pid [Integer, String, NilClass] has to be stripped if String
+    # @param kwd [Integer, String, NilClass] has to be stripped if String, 
+    # @param uri_in [String, NilClass] has to be stripped
+    # @return [void]
+    def _set_ref_harami_vid_id(pid, kwd, uri_in)
+      if pid.present?
+        @harami_vid.reference_harami_vid_id ||= pid   # via either POST (@hsmain) or GET method; for POST this should have been already set.
+        @ref_harami_vid_id = pid.to_i  # Integer or undefined (nil).
+      end
+
+      @ref_harami_vid = HaramiVid.find(@ref_harami_vid_id) if @ref_harami_vid_id
+
+      if @harami_vid.new_record?
+        if kwd.present?
+          @harami_vid.errors.add :base, "Wrong parameter reference_harami_vid_kwd (#{kwd.inspect}) is specified for new."
+          return
+        end
+        @harami_vid.uri = uri_in if @harami_vid.uri.blank? && uri_in.present?  # NOTE: GET "uri" parameter is valid only for "new", not "update"
+      else
+        if @ref_harami_vid_id && kwd.present?
+          @harami_vid.errors.add :base, "In edit, reference_harami_vid_id (#{@ref_harami_vid_id}) and reference_harami_vid_kwd (#{kwd.inspect}) should not be simultaneously specified."
+          return
+        end
+      end
+    end  # def _set_ref_harami_vid_id(pid, kwd, uri_in)
+    private :_set_ref_harami_vid_id
+
+
+    # Sets @ref_harami_vid for "edit" only from :reference_harami_vid_kwd
+    #
+    # It may be nil, but else @ref_harami_vid_id is also set 
+    # Also @ref_harami_vid_uri and @do_redirect (either :edit or :new) is set.
+    #
+    # @param kwd [Integer, String] has to be stripped if String. The caller must assure it is present.
+    # @return [void]
+    def _set_ref_harami_vid_edit(kwd)
+      return if @harami_vid.new_record? || kwd.blank?  # just playing safe.
+
+      @harami_vid.reference_harami_vid_kwd ||= kwd  # via either POST (@hsmain) or GET method; for POST this should have been already set.  # This parameter is invalid in "new" (see above)
+
+      # If pID is specified in reference_harami_vid_kwd (in "edit"), it has to be an existing valid HaramiVid pID.
+      # If it is an invalid ID, the error should be caught here so that the same Show page displays the result.
+      # NOTE: @ref_harami_vid is NOT set.
+      if /\A\d+\Z/ =~ (kwd)
+        @ref_harami_vid_id = kwd.to_i
+        if !HaramiVid.exists?(@ref_harami_vid_id)
+          @harami_vid.errors.add :reference_harami_vid_kwd, "The specified reference pID is invalid."
+          # Note that the idencality of the pIDs of specified and self is checked at the caller side.
+        else
+          @do_redirect = :edit
+        end
+        return
+      end
+
+      # Now, reference_harami_vid_kwd must be a URI.  If an existing HaramiVid contains it, redirects to :edit, else :new.
+      uri = ApplicationHelper.parsed_uri_with_or_not(kwd)
+      if !uri.scheme
+        @harami_vid.errors.add :reference_harami_vid_kwd, "The specified reference URI does not look like a valid URI."
+        return
+      end
+      @ref_harami_vid_uri = uri.to_s
+
+      # All DB values of Harami#uri should be accompanied with a scheme (usually "https") according to the DB standard, but it may not be so, yet, in reality. Handles the case.
+      @ref_harami_vid = HaramiVid.find_by_uri(uri)
+      @ref_harami_vid_id = @ref_harami_vid.id if @ref_harami_vid
+      @do_redirect = (@ref_harami_vid ? :edit : :new)
+
+      @ref_harami_vid
+    end  # def _set_ref_harami_vid_edit
+    private :_set_ref_harami_vid_edit
 
     ###########################
 
@@ -353,7 +471,7 @@ class HaramiVidsController < ApplicationController
     # Basically, all the EventItems that are *NOT* specified in :event_item_ids
     # are destroyed.
     #
-    # See {#set_event_event_items} and {#_set_reference_harami_vid_id} about @event_event_items and @original_event_items
+    # See {#set_event_event_items} and {#_import_reference} about @event_event_items and @original_event_items
     def update_event_item_assocs
       @assocs[:dissociated_event_items] = nil
       return if !@prms_all[:event_item_ids]
@@ -368,7 +486,7 @@ class HaramiVidsController < ApplicationController
       # If @harami_vid has no EventItems, both @harami_vid.event_items is empty AT THE MOMENT
       # though later processing may modify it.  Instance variable @original_event_items
       # (set in {#set_event_event_items}) preserves the Array of EventItems, and so it should be
-      # empty, and also @event_event_items (see {#set_event_event_items} and {#_set_reference_harami_vid_id}) is empty.
+      # empty, and also @event_event_items (see {#set_event_event_items} and {#_import_reference}) is empty.
       # The surest way to check the existence of EventItem before processing is
       # +!@original_event_items.empty?+
       #
@@ -386,7 +504,7 @@ class HaramiVidsController < ApplicationController
       end
 
       @harami_vid.reload
-      #_set_reference_harami_vid_id  # set @event_event_items
+      #_import_reference  # set @event_event_items
 
       @event_event_items.each_value do |ar_event_items|  # The key is ID for Event (identical to eeit.event.id), value is an Array of EventItem-s
         ar_event_items.each do |eeit|
@@ -864,7 +982,7 @@ begin
 
       @assocs[:artist_music_play_haramis] ||= []  # should be empty at this stage.
 
-      if @original_event_items.empty?  # See {#_set_reference_harami_vid_id}
+      if @original_event_items.empty?  # See {#_import_reference}
         arin = (@assocs[:new_event_item].present? ? [@assocs[:new_event_item]] : [])
         if !arin.empty? || @harami_vid.event_items.exists?
           @assocs[:artist_music_play_haramis] = @harami_vid.associate_harami_existing_musics_plays(*arin, music_except: @assocs[:music])  # form_attr: :base

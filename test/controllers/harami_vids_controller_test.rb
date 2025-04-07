@@ -27,7 +27,7 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
       "form_channel_type"    =>ChannelType.default(:HaramiVid).id.to_s,
       "form_channel_platform"=>ChannelPlatform.default(:HaramiVid).id.to_s,
       ### (NOT Used anymore) "form_event_items" => [events(:ev_harami_lucky2023).event_items.first, Event.unknown.event_items.first].map(&:id).map(&:to_s),
-     # "event_item_ids" => [...]   # existing EventItems, mandatory for update, but should not be usually included in create unless "reference_harami_vid_id" is specified with GET
+     # "event_item_ids" => [...]   # existing EventItems, mandatory for update, but should not be usually included in create unless "reference_harami_vid_kwd" is specified with GET
       "form_new_artist_collab_event_item" => HaramiVidsController::DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_s,  # ==0; For new event.
       "form_new_event" => events(:ev_harami_lucky2023).id.to_s,  # A new EventItem should be created
       "artist_name"=>"",
@@ -43,7 +43,7 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
       "music_genre"=>Genre.default(:HaramiVid).id.to_s,
       "music_year"=>"1984",
       "note"=>"",
-      #"reference_harami_vid_id" => "",  # GET parameter
+      #"reference_harami_vid_kwd" => "",  # GET parameter
        # "uri_playlist_en"=>"", "uri_playlist_ja"=>"",
     }.merge(
       get_params_from_date_time(Date.new(2024, 2, 28), "release_date")  # defined in application_helper.rb
@@ -95,9 +95,12 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, (n_evit1=hv1.event_items.uniq.size), 'sanity check (but it may change in future - what matter is the relation with the one "after").'
     get new_harami_vid_url, params: { "reference_harami_vid_id" => hv1.id.to_s }  # In GET, it is at the top level and NOT under harami_vids: {}
     assert_response :success
-    assert_equal n_evit1, css_select('fieldset.harami_vid_event_items input[type="checkbox"]').size, "All EventItems loaded from GET reference_harami_vid_id params should be listed, but..."
+    assert_equal n_evit1, css_select('fieldset.harami_vid_event_items input[type="checkbox"]').size, "All EventItems loaded from GET reference_harami_vid_kwd params should be listed, but..."
     assert_equal n_evit1, css_select('fieldset.harami_vid_event_items input[type="checkbox"][checked="checked"]').size
     w3c_validate "HaramiVid new"  # defined in test_helper.rb (see for debugging help)
+
+    get new_harami_vid_url, params: { "reference_harami_vid_kwd" => hv1.id.to_s }  # Invalid parameter for new
+    assert_response :unprocessable_entity
   end
 
   test "should create harami_vid" do
@@ -264,6 +267,7 @@ if true
     assert_equal Country['JPN'],  mu_last.country  # Same.
 
     follow_redirect!
+    assert_response :success
     csstmp="section#harami_vids_show_unique_parameters dl dd.item_uri a"
     assert  css_select(csstmp)[0]
     assert_equal "https://"+mdl_last.uri, css_select(csstmp)[0]["href"]
@@ -328,6 +332,7 @@ if true
     assert_equal @def_update_params["form_engage_contribution"].to_f, eng_last.contribution
 
     follow_redirect!
+    assert_response :success
     csstmp="section#harami_vids_show_unique_parameters dl dd.item_uri a"
     assert  css_select(csstmp)[0]
     assert_equal "https://"+mdl_last.uri, css_select(csstmp)[0]["href"]
@@ -577,7 +582,7 @@ end
              "place.prefecture_id.country_id"=>hvid7.country.id.to_s,
              "place.prefecture_id"=>hvid7.prefecture.id.to_s, "place"=>hvid7.place.id.to_s,
              "event_item_ids" => hvid7.event_items.ids.map(&:to_s),
-             "reference_harami_vid_id" => "",
+             "reference_harami_vid_kwd" => "",
              "note"=>(hvid7.note+"02"),
              form_new_artist_collab_event_item: (evit2chk=hvid7.event_items.first).id.to_s,
              form_new_event: "",
@@ -738,7 +743,7 @@ end
     hvid6_update_prms = hvid6_prms.merge(
       {
         "event_item_ids" => hvid6.event_items.ids.map(&:to_s),
-        "reference_harami_vid_id" => "",
+        "reference_harami_vid_kwd" => "",
         form_new_artist_collab_event_item: (evit2chk=hvid6.event_items.first).id.to_s,  # hvid6's own EventItem
         form_new_event: "",
         music_name: mu_tit,
@@ -802,7 +807,7 @@ end
 
     refute_includes hvid6.artist_collabs, art2  # which hvid7 includes.
 
-    ## check edit screen with GET params reference_harami_vid_id
+    ## check edit screen with GET params reference_harami_vid_kwd
 
     assert_equal 1, (n_evit5=hvid5.event_items.uniq.size), 'sanity check (but it may change in future - what matter is the relation with the one "after").'
     assert_equal 1, (n_evit6=hvid6.event_items.uniq.size), 'sanity check (but it may change in future - what matter is the relation with the one "after").'
@@ -833,7 +838,7 @@ end
 
     hvid6_update_prms = hvid6_prms.merge(
       {
-        "reference_harami_vid_id" => "",
+        "reference_harami_vid_kwd" => "",
         # form_new_artist_collab_event_item: HaramiVidsController::DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_s,  # As in hvid6_prms.
         form_new_event: evt_kagawa_unkpla.id.to_i.to_s,
         note: (newn = hvid6.note+"08"),
@@ -1015,7 +1020,7 @@ end
     assert_equal new_evit2, new_evit
 
     ## TODO
-    # Check out what happen when duplication between the existing EventItems and GET-specified reference_harami_vid_id 
+    # Check out what happen when duplication between the existing EventItems and GET-specified reference_harami_vid_kwd 
     
     #flash_regex_assert(%r@<a [^>]*href="/channels/\d+[^>]*>new Channel.+is created@, msg=nil, type: nil)  # defined in test_helper.rb
   end # test "should create harami_vid" do
@@ -1063,7 +1068,7 @@ end
       "form_engage_hows"=>"",
       "form_engage_year"=>"",
       "form_engage_contribution"=>"",
-      "reference_harami_vid_id"=>"",  # For GET in new
+      "reference_harami_vid_kwd"=>"",  # For GET in new
     }.with_indifferent_access
 
 
@@ -1291,25 +1296,78 @@ end
   end
 
   test "should fail/succeed to get edit" do
+    css_evits_fieldset = 'section#form_update_event_item_association_field fieldset'
+    css_evits       = css_evits_fieldset + ' input[type="checkbox"]'
+    css_evits_label = css_evits_fieldset + ' label'
+    css_uri = 'section#sec_primary_input div.harami_vid_uri input'
+    uri_hvid1 = @harami_vid.uri
+
+    hvid2 = harami_vids(:harami_vid2)
+    refute((evits1=@harami_vid.event_items).empty?, "testing fixtures")
+    refute((evits2=      hvid2.event_items).empty?, "testing fixtures")
+    assert_equal 1, @harami_vid.events.count, "testing fixtures"  # NOTE: If the number of associated Events (NOT EventItems) is more than 1, the following tests may need updating accordingly.
+    assert_equal 1,       hvid2.events.count, "testing fixtures"
+
+    ## By an unauthorized user
+    get harami_vid_url(@harami_vid)  # Show is allowed by general users
+    assert_response :success
+    assert_equal evits1.size, css_select("dd.item_event ol.list_event_items li").size
+
     get edit_harami_vid_url(@harami_vid)
     assert_response :redirect
-    assert_redirected_to new_user_session_path
+    assert_redirected_to new_user_session_path, "Non-authorized users should not be allowed, but..."
 
+    ## By an editor
     sign_in @editor_harami
-    get edit_harami_vid_url(@harami_vid, params: {reference_harami_vid_id: harami_vids(:harami_vid2).id})
+    get edit_harami_vid_url(@harami_vid)
     assert_response :success
+    assert_equal ApplicationHelper.parsed_uri_with_or_not(uri_hvid1).to_s, css_select(css_uri)[0]["value"]  # the value in the form should be a valid URI with a scheme, regardless of how it is stored in the DB.
+    assert_equal evits1.size, (css=css_select(css_evits)).size
+
+    # provides pID for a reference HaramiVid
+    get edit_harami_vid_url(@harami_vid, params: {reference_harami_vid_id: hvid2.id.to_s})
+    assert_response :success
+    assert_equal ApplicationHelper.parsed_uri_with_or_not(uri_hvid1).to_s, css_select(css_uri)[0]["value"]
+    assert_equal evits1.size + evits2.size, (css=css_select(css_evits)).size, "CSS="+css.to_s+" / "+css_select(css_evits_label).to_s+" / "+evits1.inspect
+
+    # provides URI for a reference (existing) HaramiVid => redirected to "edit"
+    get edit_harami_vid_url(@harami_vid, params: {reference_harami_vid_kwd: hvid2.uri})
+    assert_response :redirect
+    assert_redirected_to edit_harami_vid_path(hvid2, params: {reference_harami_vid_id: @harami_vid.id})
+    follow_redirect!
+    assert_response :success
+    assert_equal evits1.size + evits2.size, (css=css_select(css_evits)).size, "CSS="+css.to_s+" / "+css_select(css_evits_label).to_s+" / "+evits1.inspect
+    css = sprintf('%s[value="%s"]', css_uri, ApplicationHelper.normalized_uri_youtube(hvid2.uri, with_scheme: true))
+    assert_equal 1, css_select(css).size, "It should be on the edit page of hvid2 now, so the main URI on the form should be as such, but...  html="+css_select(css_uri).to_s
+
+    # provides URI with no HaramiVids matches => redirected to "new"
+    tmpuri = "https://www.example.com/aruyo"
+    get edit_harami_vid_url(@harami_vid, params: {reference_harami_vid_kwd: tmpuri})
+    assert_response :redirect
+    assert_redirected_to new_harami_vid_path(params: {reference_harami_vid_id: @harami_vid.id, uri: tmpuri})
+
+    follow_redirect!
+    assert_response :success # "new"
+    assert_equal evits1.size, (css=css_select(css_evits)).size, "CSS="+css.to_s+" / "+css_select(css_evits_label).to_s+" / "+evits1.inspect
+    css = sprintf('%s[value="%s"]', css_uri, ApplicationHelper.normalized_uri_youtube(tmpuri, with_scheme: true))
+    assert_equal 1, css_select(css).size, "It should be on the NEW page with a preset URI and with a reference to @harami_vid now, so the main URI on the form should be as such, but...  html="+css_select(css_uri).to_s
 
     # invalid ID is given as a GET parameter.
     assert_raises(ActiveRecord::RecordNotFound){
-      get edit_harami_vid_url(@harami_vid, params: {reference_harami_vid_id: HaramiVid.last.id+1})
+      get edit_harami_vid_url(@harami_vid, params: {reference_harami_vid_id: (HaramiVid.last.id+1).to_s})
       #assert_response :unprocessable_entity
     }
-    sign_out @editor_harami
+
+    sign_out @editor_harami  # should have been automartically signed out.
 
     
     [@moderator_harami, @sysadmin].each do |user|
       sign_in user
-      get edit_harami_vid_url(@harami_vid, params: {reference_harami_vid_id: harami_vids(:harami_vid2).id})
+      #get edit_harami_vid_url(@harami_vid, params: {reference_harami_vid_kwd: hvid2.id})
+      get edit_harami_vid_url(@harami_vid, params: {reference_harami_vid_kwd: hvid2.id.to_s})  # pID for "kwd"
+      assert_response :redirect
+      assert_redirected_to edit_harami_vid_path(hvid2, params: {reference_harami_vid_id: @harami_vid.id})
+      follow_redirect!
       assert_response :success
       sign_out user
     end

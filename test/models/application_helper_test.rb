@@ -43,6 +43,21 @@ class ModuleCommonTest < ActiveSupport::TestCase
    #exp = "https://www.youtube.com/watch?v=BBBCCCCQxU4&t=53"
     assert_equal exp, val
 
+    k2r =         "youtu.be/abcdefghi01"
+    k2  = "http://"+k2r
+    val = AH.normalized_uri_youtube(k2, long: false, with_scheme: false, with_host: true,  with_time: true)
+    exp = k2r
+    assert_equal exp, val, "unsafe 'http://' should be handled correctly, but..."
+
+    val = AH.normalized_uri_youtube(k2, long: false, with_scheme: true, with_host: true,  with_time: true)
+    exp = "https://"+k2r
+    assert_equal exp, val, "unsafe 'http://' should be replaced with 'https', but..."
+
+    k3  = "gopher://"+k2r
+    val = AH.normalized_uri_youtube(k3, long: false, with_scheme: false, with_host: true,  with_time: true)
+    exp = k3
+    assert_equal exp, val, "for gopher etc, with_scheme should be ignored if with_host==true, but..."
+
     ### standard full-forms
     k = "www.youtube.com/watch?v=BBBCCCCQxU4&t=53"
 
@@ -90,6 +105,9 @@ class ModuleCommonTest < ActiveSupport::TestCase
     exp = "www.example.com/LIVE/watch"
     assert_equal exp, val, "long and with_time are ignored."
 
+    val = AH.normalized_uri_youtube(k, long: false, with_scheme: :HaramiVid, with_query: false, with_time: false, with_host: true)
+    assert_equal exp, val, "long and with_time are ignored."
+
     val = AH.normalized_uri_youtube(k, long: false, with_scheme: true,  with_query: false, with_time: false, with_host: false)
     exp = "https://www.example.com/LIVE/watch"
     assert_equal exp, val, "long and with_time are ignored."
@@ -105,6 +123,17 @@ class ModuleCommonTest < ActiveSupport::TestCase
     val = AH.normalized_uri_youtube(k, long: false, with_scheme: false, with_query: false, with_time: false, with_host: false)
     exp = "abc/def"
     assert_equal exp, val, "If both with_scheme and with_host are false, even the non-standard scheme is NOT included."
+
+    val = AH.normalized_uri_youtube(k, long: false, with_scheme: false, with_query: false, with_time: false, with_host: false)
+    exp = "abc/def"
+    assert_equal exp, val, "If both with_scheme and with_host are false, even the non-standard scheme is NOT included."
+  end
+
+  test "guess_site_platform" do
+    assert_equal :youtube, AH.guess_site_platform("www.youtube.com/?watch=abc")
+    assert_equal :youtube, AH.guess_site_platform("youtu.be/abc")
+    assert_equal :tiktok,  AH.guess_site_platform("tiktok.com/?t=abcd")
+    assert_equal "example.com",  AH.guess_site_platform("https://www.example.com/abcd")
   end
 
   test "sanitized_html" do
@@ -175,7 +204,9 @@ class ModuleCommonTest < ActiveSupport::TestCase
     a, b = ["v=#{rk}", "t=5s"]
     assert_includes [a+"&"+b, b+"&"+a].map{|i| "www.youtube.com/watch?" + i}, AH.uri_youtube(rk, timing=5, long: true,  with_http: false)
     rk="www.tiktok.com/@someone/video/7258229581717556498"
-    assert_equal "https://"+rk, AH.uri_youtube(rk+"?is_from_webapp=1&sender_device=pc&web_id=7380717489888399999", timing=5, long: true,  with_http: true)
+    assert_equal "https://"+rk, AH.uri_youtube((rk2=rk+"?is_from_webapp=1&sender_device=pc&web_id=7380717489888399999"), timing=5, long: true,  with_http: true)
+    assert_equal            rk, AH.uri_youtube(rk2, timing=5, long: true,  with_http: false)
+    assert_equal            rk, AH.uri_youtube(rk2, timing=5, long: true,  with_http: :HaramiVid), "NOTE: Specification may have changed?! (See Haramivid.uri_in_db_with_scheme?)"
   end
  
   test "self.parsed_uri_with_or_not" do

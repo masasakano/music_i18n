@@ -841,6 +841,13 @@ module ModuleCommon
     raise ERR_CLASS_SEND_COMMON[kind], get_err_msg(kind, *(args+['']*10))
   end
 
+  # @param uri [URI]
+  # @return [String] without the part "http://"
+  def uri_string_without_scheme(uri)
+    return uri.to_s if !uri.scheme
+    uri.to_s.sub(%r@\A#{Regexp.quote(uri.scheme+"://")}@, "")
+  end
+
   # Returns a Wikipedia URI for the specified language
   #
   # Based on the attributes of wiki_ja or wiki_en

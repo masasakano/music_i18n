@@ -75,7 +75,8 @@
 <section id="form_harami_vid_contents">
 <h2>Contents</h2>
 
-    <%= f.input :reference_harami_vid_id, as: :hidden %>
+    <%= f.input :reference_harami_vid_kwd, as: :hidden %>
+    <%= f.input :reference_harami_vid_id,  as: :hidden %>
 
   <% display_new_event_item_form = !harami_vid.new_record? %>
   <% if !harami_vid.new_record? || (given_ref && given_ref.event_items.exists?) %> <%# For update, the following is always displayed; for create, it is only if reference HaramiVid is specified and it has an EventItem(s) %>

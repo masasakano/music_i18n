@@ -137,15 +137,15 @@ module HaramiVidsHelper
     #
     # maybe the sum of EventItems for two HaramiVids
     #
-    # This routine may be called twice - once as a before_action callback and later from _set_reference_harami_vid_id
-    # When called from _set_reference_harami_vid_id , +harami_vid2+(!) is @harami_vid, and +harami_vid+ is
-    # @ref_harami_vid (which corresponds to ID of @harami_vid.reference_harami_vid_id)
+    # This routine may be called twice - once as a before_action callback and later from +_import_reference+
+    # When called from +_import_reference+, +harami_vid2+(!) is @harami_vid, and +harami_vid+ is
+    # @ref_harami_vid (which corresponds to ID of @harami_vid.reference_harami_vid_kwd)
     def set_event_event_items(harami_vid: @harami_vid, harami_vid2: nil)
       @event_event_items = {}  # Always initialized. This was not defined for "show", "new"
       ary = [(harami_vid || @harami_vid).id, (harami_vid2 ? harami_vid2.id : nil)].compact.uniq  # uniq should never be used, but playing safe
       EventItem.joins(:harami_vid_event_item_assocs).where("harami_vid_event_item_assocs.harami_vid_id" => ary).order("event_id", "start_time", "duration_minute", "event_ratio").distinct.each do |event_item|
         # Because of "distinct", order by "xxx.yyy" would not work...
-        # For "edit", this will be overwritten later if reference_harami_vid_id is specified by GET
+        # For "edit", this will be overwritten later if reference_harami_vid_kwd is specified by GET
         @event_event_items[event_item.event.id] ||= []
         @event_event_items[event_item.event.id] << event_item
       end

@@ -311,6 +311,11 @@ input[type="text"].input_12em {
     max-width: 11.5em;
 }
 
+input[type="text"].input_uri {
+    min-width:   60em;
+    max-width: 130.0em;
+}
+
 input[type="submit"] {
   margin-top: 1em;
 }

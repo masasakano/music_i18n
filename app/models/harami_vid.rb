@@ -109,7 +109,10 @@ class HaramiVid < BaseWithTranslation
   attr_accessor :music_genre
   attr_accessor :music_year
   attr_accessor :form_new_artist_collab_event_item
-  attr_accessor :reference_harami_vid_id
+  attr_accessor :reference_harami_vid_id   # String/Integer of pID of the HaramiVid to import (aka reference) its EventItem-s, used (optionally) in "new" and "edit" in Controller
+  attr_accessor :reference_harami_vid_kwd  # This is a String of either pID or URI (with or without a scheme part), used only in "edit" in Controller.  If this is an Integer(-like String), it is the pID of HaramiVid to edit to which the page should be redirected with a query parameter of reference_harami_vid_id of the current HaramiVid pID.  If this is a URI-like String, (1) if there is a HaramiVid with the URI in the DB, the page should be redirected to its HaramiVid#edit (with a query parameter of reference_harami_vid_id of the current HaramiVid pID), and (2) else, the page should be redirected to HaramiVid#new with two query parameters of reference_harami_vid_id of the current HaramiVid pID and "uri" of this reference_harami_vid_kwd .
+  # Example 1:  harami_vids/123/edit?reference_harami_vid_kwd=456          # => redirected to harami_vids/456/edit?reference_harami_vid_id=123
+  # Example 2:  harami_vids/123/edit?reference_harami_vid_kwd=example.com/XYZ  # => redirected to harami_vids/new/?reference_harami_vid_id=123&uri=example.com/XYZ
   attr_accessor :missing_music_ids
 
   attr_accessor :form_info  # various information about the result of form inputs, especially in create.
@@ -141,6 +144,34 @@ class HaramiVid < BaseWithTranslation
   # to Harami1129 before the execution.
   # For :event_item, the value is +HaramiVid.event_items.ids+ (Array!)
   attr_accessor :columns_for_harami1129
+
+  # Returns true if at least one of {HaramiVid#uri} contains a "http" scheme prefix.
+  #
+  # According to the DB standard, they all should have the scheme prefix.
+  # But this library does not, at the time of writing (v.1.21.1), which may change in the future.
+  #
+  # The actual values in the DB are regulated by the before-validation callback {normalize_uri},
+  # which calls {HaramiVid.normalized_uri}, in which with_scheme is the key value.
+  #
+  # @TODO:
+  #   "http" may accidentally get in. It may be worth considering...
+  def self.uri_in_db_with_scheme?
+    !!HaramiVid.where("uri LIKE 'http://%' OR uri LIKE 'https://%'").first
+  end
+
+  # Find a HaramiVid that has the given URI
+  #
+  # @param uri [URI, String]
+  # @param with_time: [Boolean] The default here is false, the opposite of the routine this calls.
+  # @return [HaramiVid, NilClass]
+  def self.find_by_uri(uri, with_time: false)
+    uri_norm = normalized_uri(uri.to_s, with_time: with_time)  # This removes the scheme and "www."
+    uri_wh_wo_schemes = [true, false].map{|i|
+      ApplicationHelper.normalized_uri_youtube(uri_norm, with_scheme: i, with_time: with_time, with_host: true)
+    }
+
+    HaramiVid.where(uri: uri_wh_wo_schemes).first
+  end
 
   # True if self.place is consistent with those of EventItem-s and Event-s
   #
@@ -192,6 +223,24 @@ class HaramiVid < BaseWithTranslation
       (strict ? (place == evit_cover_pla) : place.encompass?(evit_cover_pla))
   end
 
+  # Regulates how {HaramiVid#uri} is saved on the DB
+  #
+  # The scheme is excluded, unless it is an unusual scheme like "gopher://".
+  # Except for the most popular few websites, the unsafe scheme "http://" may remain
+  # in an unlikely case where a user attempts to input a URI with "http" as opposed to "https".
+  # See {ApplicationHelper._normalized_uri_youtube_core} for detail.
+  #
+  # Also, the prefix "www." is removed, too.
+  #
+  # @return [String] returns the normalized URI as saved to the DB.  Time parameter remains as specified.
+  def self.normalized_uri(uri,  with_time: true)
+    ApplicationHelper.normalized_uri_youtube(uri, long: false, with_scheme: false, with_host: true,  with_time: with_time).sub(/\Awww\./, "")
+  end
+
+  # @return [String, NilClass] returns the normalized URI as saved to the DB.  Used in the callback {#normalize_uri}
+  def normalized_uri(with_time: true)
+    uri.present? ? self.class.send(__method__, uri, with_time: with_time) : nil
+  end
 
   # Returns {HaramiVidMusicAssoc#timing} of a {Music} in {HaramiVid}, assuming there is only one timing
   #
@@ -1015,8 +1064,10 @@ class HaramiVid < BaseWithTranslation
   #   "https://www.youtube.com/live/vXABC6EvPXc?si=OOMorKVoVqoh-S5h?t=24"
   #
   # In fact, time-query-parameter is not recommended...
+  #
+  # @return [String, NilClass]
   def normalize_uri
-    self.uri = ApplicationHelper.normalized_uri_youtube(uri, long: false, with_scheme: false, with_host: true,  with_time: true) if uri.present?
+    self.uri = normalized_uri
   end
  
 

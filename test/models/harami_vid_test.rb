@@ -31,6 +31,8 @@
 require 'test_helper'
 
 class HaramiVidTest < ActiveSupport::TestCase
+  AH = ApplicationHelper
+
   test "constraints" do
     pf1 = Place.first
     uri1 = 'http://youtu.be/abcd'
@@ -107,6 +109,56 @@ class HaramiVidTest < ActiveSupport::TestCase
       end
       assert_not   hvid.uri_changed?
       assert_equal h1129.ins_release_date, hvid.release_date
+    end
+  end
+
+  test "self.uri_in_db_with_scheme?" do
+    # So far, "uri" in all HaramiVid fixtures lack the scheme, "https://"
+    refute HaramiVid.uri_in_db_with_scheme?, "Failed.  Maybe because the specification has changed?!!"
+
+    # Once "http://..." is added to a single HaramiVid record, the behaviour changes.
+    uriroot = "youtu.be/abcdefghi"
+    uri = "http://"+uriroot
+    hvid1 = HaramiVid.create_basic!(title: __method__.to_s+"01", langcode: "ja", is_orig: true, uri: uri+"01", release_date: (dat_hvid=Date.new(2024,3,5)), channel: (chan=Channel.default(:HaramiVid)))
+    hvid1.reload
+    assert_equal uriroot+"01", hvid1.uri
+    refute HaramiVid.uri_in_db_with_scheme?
+
+    hvid2 = HaramiVid.new(uri: uri+"02", release_date: dat_hvid, channel: chan)
+    hvid2.save!(validate: false)
+    hvid2.reload
+    assert_equal uri+"02", hvid2.uri
+    assert HaramiVid.uri_in_db_with_scheme?
+  end
+
+  test "self.find_by_uri" do
+    hvid1 = harami_vids(:harami_vid1)
+    assert(uri0=hvid1.uri)
+    refute_match(%r@^(https://)?www\.@ , uri0)
+    
+
+    2.times.each do |ith|
+      uri0_wo_scheme = uri0.sub(%r@^https?://@, "")
+      assert_equal hvid1, HaramiVid.find_by_uri(uri0_wo_scheme)
+
+      u1 = AH.normalized_uri_youtube(uri0, long: true, with_scheme: true, with_query: true, with_time: false, with_host: true)
+      assert_equal hvid1, HaramiVid.find_by_uri(u1)
+
+      u2 = AH.normalized_uri_youtube(uri0, long: true, with_scheme: true, with_query: true, with_time: false, with_host: true).sub(%r@/www\.@, "/").sub(%r@^www\.@, "")
+      refute_equal u1, u2
+      assert_equal hvid1, HaramiVid.find_by_uri(u2)
+
+      u  = "www."+AH.normalized_uri_youtube(uri0, long: true, with_scheme: false, with_query: true, with_time: false, with_host: true).sub(%r@^www\.@, "")
+      assert_equal hvid1, HaramiVid.find_by_uri(u)
+
+      u  = AH.normalized_uri_youtube(uri0, long: true, with_scheme: false, with_query: true, with_time: false, with_host: true)
+      assert_equal hvid1, HaramiVid.find_by_uri(u)
+
+      break if ith >= 1
+      uri0 = "www.example.com/abc"
+      hvid1.update!(uri: uri0)
+      refute_equal uri0_wo_scheme, hvid1.uri
+      uri0_wo_scheme = uri0.sub(%r@^https?://@, "")
     end
   end
 

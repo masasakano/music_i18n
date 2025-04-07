@@ -72,8 +72,6 @@ class ArtistMusicPlays::EditMultisControllerTest < ActionDispatch::IntegrationTe
       "cover_ratio"=>nil,
       "note"=>nil,
       "to_destroy"=>nil,
-      #"reference_harami_vid_id" => "",  # GET parameter
-       # "uri_playlist_en"=>"", "uri_playlist_ja"=>"",
     }.with_indifferent_access
   end
 
