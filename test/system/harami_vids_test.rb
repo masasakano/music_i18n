@@ -345,6 +345,19 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_selector "h1", text: "HARAMIchan-featured Videos"  # locale: harami_vid_long: 
     assert_equal "01:12", trs[0].find(timing_a_css).text, "value should be updated, but..."
     assert_equal "Edit", trs[0].find(submit_css)["value"]
+
+    hvid2 = harami_vids(:harami_vid2)
+    page.find('input#pid_edit_harami_vid_with_ref').fill_in with: hvid2.uri  # This is unique!
+    url = edit_harami_vid_url(hvid, params: {reference_harami_vid_kwd: hvid2.uri})
+    urlmod = url.sub(/\?locale=en&/, "?")  # locale does something wrong...
+    css = 'a#href_edit_harami_vid_with_ref'
+    assert_selector css
+    assert_selector sprintf('%s[href="%s"]', css, urlmod)
+
+    page.find(css).click
+    assert_selector "div.alert"
+    assert_match(/Edit with the reference HaramiVid of pID=#{hvid.id}/, page.find_all("div.alert")[0]['innerHTML'])
+    assert_match(/Editing Harami Vid \(ID=#{hvid2.id}\)/, page.find_all("h1")[0]['innerHTML'])
   end
 
   # test "destroying a Harami vid" do

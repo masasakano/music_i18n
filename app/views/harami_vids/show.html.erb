@@ -1,3 +1,4 @@
+<%= render partial: 'layouts/form_print_errors', locals: {model: @harami_vid} %>
 
 <h1><%= t(".harami_vid_long")%> <%= "[HaramiVid]" if (canedit=can?(:edit, @harami_vid)) %> (<%= @harami_vid.release_date %>) <%= ((@harami_vid.channel && (owner=@harami_vid.channel.channel_owner) != Artist.default(:HaramiVid)) ? "by #{owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)}" : "") %></h1>
 

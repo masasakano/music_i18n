@@ -9,12 +9,14 @@ modifyHrefByInput("pid_edit_harami_vid_with_ref", "href_edit_harami_vid_with_ref
 //   modifyHrefByInput("pid_edit_harami_vid_with_ref", "href_edit_harami_vid_with_ref")
 export function modifyHrefByInput(input_id, href_id){
 	const currentURL = new URL(window.location.href);
-	const refid  = 'reference_harami_vid_id';
+	const refid  = 'reference_harami_vid_kwd';
 
 	// Function to update the URL based on input changes
   function updateURL() {
 		// Get the path
-    const newPath = currentURL.pathname.split('/').slice(0, -1).concat('new').join('/');
+    //const newPath = currentURL.pathname.split('/').slice(0, -1).concat('new').join('/');
+    //const newUrl = new URL(newPath, currentURL.origin);
+    const newPath = currentURL.pathname.concat('/edit');
     const newUrl = new URL(newPath, currentURL.origin);
 
 		// Get pID (from the DL list -- though well possible to get from the path)
@@ -27,14 +29,15 @@ export function modifyHrefByInput(input_id, href_id){
     newUrl.searchParams.delete(refid);
     newUrl.searchParams.delete('uri');
 
-		// Set the 'reference_harami_vid_id' and 'uri' query parameters (if it has a value)
-    newUrl.searchParams.set(refid, localid);
+		//// Set the 'reference_harami_vid_id' and 'uri' query parameters (if it has a value)
+    //newUrl.searchParams.set(refid, localid);
     if (formValue) {
-      newUrl.searchParams.set('uri', formValue);
+    //  newUrl.searchParams.set('uri', formValue);
+      newUrl.searchParams.set(refid, formValue);
     }
 
 		let constructedUrl = newUrl.toString();
-    // console.log("Constructed URL:", constructedUrl);
+    console.log("Constructed URL:", constructedUrl);
 
 		// Update the href attribute of the <a> tag
     $('#'+href_id).attr('href', constructedUrl);

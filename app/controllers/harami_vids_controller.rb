@@ -93,7 +93,7 @@ class HaramiVidsController < ApplicationController
     _import_reference  # sets reference_harami_vid_kwd, release_date, place, and @event_event_items, maybe @ref_harami_vid via GET method
     @places = Place.all  # necessary??
     if @harami_vid.errors.any?
-      render_method = ((ref_harami_vid_id && :edit == __method__) ? :show : __method__)
+      render_method = ((@ref_harami_vid_id && :edit == __method__) ? :show : __method__)
       hsstatus = {status: :unprocessable_entity}
       respond_to do |format|
         format.html { render render_method,            **hsstatus }
@@ -230,7 +230,7 @@ class HaramiVidsController < ApplicationController
       _set_ref_harami_vid_id(pid_in, kwd_in, uri_in)  # @ref_harami_vid and uri may be set, too.
       return if @harami_vid.errors.any?
       _set_ref_harami_vid_edit(kwd_in) if !@harami_vid.new_record? && kwd_in.present?
-      @harami_vid.errors.add(:reference_harami_vid_kwd, "The specified reference URI is identical to self.") if @ref_harami_vid_id == @harami_vid.id
+      @harami_vid.errors.add(:reference_harami_vid_kwd, " The specified reference URI is identical to self.") if @ref_harami_vid_id == @harami_vid.id
       return if @harami_vid.errors.any? || @do_redirect || !@ref_harami_vid  # errors has a priority over @do_redirect
 
       # Set some parameters if processing continues (namely, if it is not redirected to somewhere).
