@@ -5,6 +5,7 @@ class HaramiVidsController < ApplicationController
   include HaramiVidsHelper # for set_event_event_items (common with HaramiVids::FetchYoutubeDataController) and collection_musics_with_evit
   include ModuleGridController # for set_grid
   include ModuleMemoEditor   # for memo_editor attribute
+  include ModuleYoutubeApiAux # defined in /app/controllers/concerns/module_youtube_api_aux.rb
 
   skip_before_action :authenticate_user!, :only => [:index, :show]
   load_and_authorize_resource except: [:index, :show, :create] # This sets @harami_vid for  :edit, :update, :destroy
@@ -60,6 +61,19 @@ class HaramiVidsController < ApplicationController
     @harami_vid = HaramiVid.new
     _import_reference  # sets reference_harami_vid_id, reference_harami_vid_kwd, release_date, place, and @event_event_items, maybe @ref_harami_vid_id and @ref_harami_vid via GET method
     @places = Place.all  # necessary??
+
+    # If on Youtube, some data are loaded.
+    if @harami_vid.uri.present?
+      if :youtube == ApplicationHelper.guess_site_platform(@harami_vid.uri)
+        # When URI is specified in GET, it has been redirected from "edit", and the URI
+        # is guaranteed to correspond to no existing HaramiVid.
+        new_harami_vid_from_youtube_api(@harami_vid, flash_on_error: true, use_cache_test: Rails.env.test?)
+        if !@harami_vid.channel
+          @harami_vid.channel = Channel.unknown
+        end
+      end
+    end
+
     if @harami_vid.errors.any?
       hsstatus = {status: :unprocessable_entity}
       respond_to do |format|

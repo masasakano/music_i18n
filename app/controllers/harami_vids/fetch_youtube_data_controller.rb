@@ -11,7 +11,6 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
   include ApplicationHelper
   include ModuleHaramiVidEventAux # some constants and methods common with HaramiVids::FetchYoutubeDataController
   include HaramiVidsHelper # for set_event_event_items (common with HaramiVidsController)
-  include ModuleGuessPlace  # for guess_place
   include ModuleYoutubeApiAux # defined in /app/controllers/concerns/module_youtube_api_aux.rb
 
   before_action :set_countries, only: [:create, :update] # defined in application_controller.rb
@@ -71,28 +70,9 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
 
     # this is within a DB transaction (see {#create})
     def create_harami_vid_from_youtube_api
-      set_youtube  # sets @youtube; defined in ModuleYoutubeApiAux
-      get_yt_video(@harami_vid, set_instance_var: true, model: true, use_cache_test: @use_cache_test) # sets @yt_video # defined in module_youtube_api_aux.rb
-      return if !@yt_video
+      new_harami_vid_from_youtube_api(@harami_vid, uri: nil, flash_on_error: false, use_cache_test: @use_cache_test) # defined in ModuleYoutubeApiAux
+      return if !@harami_vid.channel
 
-      snippet = @yt_video.snippet
-      get_yt_channel(snippet.channel_id, kind: :id_at_platform) # setting @yt_channel
-      channel = get_channel(snippet)
-      return _return_no_channel_err(snippet) if !channel
-
-      @harami_vid.channel = channel
-      @harami_vid.duration = ActiveSupport::Duration.parse(@yt_video.content_details.duration).in_seconds
-      _adjust_date(snippet)
-
-      titles = get_youtube_titles(snippet)
-      tras = []
-      titles.each_pair do |lc, tit|
-        next if tit.blank? || tit.strip.blank?
-        tras << Translation.preprocessed_new(title: tit, langcode: lc.to_s, is_orig: (lc.to_s == snippet.default_language))
-      end
-      @harami_vid.unsaved_translations = tras
-
-      @harami_vid.place = self.class.guess_place(titles["ja"])
       _set_up_event_item_and_associate()  # setting EventItem association; this should come after @harami_vid.place is set up.
     end
 
@@ -151,13 +131,6 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
       @harami_vid.event_items.reset
     end
 
-    # @return [NilClass]
-    def _return_no_channel_err(snippet)
-      msg = sprintf("Channel is not found. Define the channel first: ID=\"%s\", Name=\"%s\" [%s]", snippet.channel_id, snippet.channel_title, (snippet.default_language || nil))
-      @harami_vid.errors.add :base, msg
-      nil
-    end
-
     # For update. @harami_vid.channel is set if possible.
     # @return [void]
     def _check_and_set_channel(snippet)
@@ -173,15 +146,6 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
         flash[:warning] ||= []
         flash[:warning] << msg
         logger.warn msg
-      end
-    end
-
-    def _adjust_date(snippet)
-      date = snippet.published_at.to_date # => DateTime
-      if @harami_vid.release_date != date
-        flash[:notice] ||= []
-        flash[:notice] << "Release-Date is updated to #{date}"
-        @harami_vid.release_date = date
       end
     end
 

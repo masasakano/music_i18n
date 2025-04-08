@@ -2,11 +2,10 @@
 #
 # This Rake task saves the Youtube-API data with Marshal on a file to avoid repeated
 # Google/Youtube API calls during testing.
-# This Rake task saves the Youtube-API data with Marshal on a file to avoid repeated
 #
-# In HaramiVids::FetchYoutubeDataController, ENV["UPDATE_YOUTUBE_MARSHAL"] is looked up at,
-# but this Rake task does not and saves/updates the file always, as long as
-# the retrieval of the meta data from Youtube is successful.
+# HaramiVids::FetchYoutubeDataController, which uses Youtube API, looks up
+# at ENV["UPDATE_YOUTUBE_MARSHAL"], but this Rake task does not and always saves/updates the file,
+# as long as the retrieval of the meta data from Youtube is successful.
 #
 # Usage: bin/rails save_marshal_youtube
 #

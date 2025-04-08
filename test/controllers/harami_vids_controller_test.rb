@@ -5,6 +5,8 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
   # add this
   include Devise::Test::IntegrationHelpers
 
+  URI_ZENZENZENSE = "https://www.youtube.com/watch?v=hV_L7BkwioY" # HARAMIchan Zenzenzense; martialled data from Youtube; harami1129s(:harami1129_zenzenzense1).link_root; see also /test/helpers/marshaled.rb and setup in /test/controllers/harami_vids/fetch_youtube_data_controller_test.rb
+
   setup do
     @harami_vid = harami_vids(:harami_vid1)
     @sysadmin  = users(:user_sysadmin)
@@ -19,7 +21,8 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
 
     @def_place = places(:tocho)
     @def_update_params = {  # NOTE: Identical to @def_create_params except for those unique to create!
-      "uri"=>"https://youtu.be/InitialUri", "duration"=>"56",
+      "uri"=>"https://youtu.be/InitialUri",  # This can also be a GET parameter
+      "duration"=>"56",
       # "release_date(1i)"=>"2024", "release_date(2i)"=>"2", "release_date(3i)"=>"28",   ## see below
       "place.prefecture_id.country_id"=>@def_place.country.id.to_s,
       "place.prefecture_id"=>@def_place.prefecture_id.to_s, "place"=>@def_place.id.to_s,
@@ -44,6 +47,7 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
       "music_year"=>"1984",
       "note"=>"",
       #"reference_harami_vid_kwd" => "",  # GET parameter
+      #"reference_harami_vid_id" => "",  # GET parameter
        # "uri_playlist_en"=>"", "uri_playlist_ja"=>"",
     }.merge(
       get_params_from_date_time(Date.new(2024, 2, 28), "release_date")  # defined in application_helper.rb
@@ -744,6 +748,7 @@ end
       {
         "event_item_ids" => hvid6.event_items.ids.map(&:to_s),
         "reference_harami_vid_kwd" => "",
+        #"reference_harami_vid_id" => "",
         form_new_artist_collab_event_item: (evit2chk=hvid6.event_items.first).id.to_s,  # hvid6's own EventItem
         form_new_event: "",
         music_name: mu_tit,
@@ -839,6 +844,7 @@ end
     hvid6_update_prms = hvid6_prms.merge(
       {
         "reference_harami_vid_kwd" => "",
+        #"reference_harami_vid_id" => "",
         # form_new_artist_collab_event_item: HaramiVidsController::DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_s,  # As in hvid6_prms.
         form_new_event: evt_kagawa_unkpla.id.to_i.to_s,
         note: (newn = hvid6.note+"08"),
@@ -1068,7 +1074,8 @@ end
       "form_engage_hows"=>"",
       "form_engage_year"=>"",
       "form_engage_contribution"=>"",
-      "reference_harami_vid_kwd"=>"",  # For GET in new
+      "reference_harami_vid_kwd"=>"",  # For GET
+      "reference_harami_vid_id"=>"",  # For GET
     }.with_indifferent_access
 
 
@@ -1145,7 +1152,7 @@ end
       "form_engage_hows"=>"",
       "form_engage_year"=>"",
       "form_engage_contribution"=>"",
-      "reference_harami_vid_id"=>hvid_ref.id.to_s,  # For GET in new
+      "reference_harami_vid_id"=>hvid_ref.id.to_s,  # For GET in new/edit
       note: (newnote="Updated test 1129"),
     }.with_indifferent_access
 
@@ -1341,7 +1348,8 @@ end
     assert_equal 1, css_select(css).size, "It should be on the edit page of hvid2 now, so the main URI on the form should be as such, but...  html="+css_select(css_uri).to_s
 
     # provides URI with no HaramiVids matches => redirected to "new"
-    tmpuri = "https://www.example.com/aruyo"
+    tmpuri = URI_ZENZENZENSE  # Youtube marshal-led data
+    assert_nil HaramiVid.find_by_uri(tmpuri), "sanity check"
     get edit_harami_vid_url(@harami_vid, params: {reference_harami_vid_kwd: tmpuri})
     assert_response :redirect
     assert_redirected_to new_harami_vid_path(params: {reference_harami_vid_id: @harami_vid.id, uri: tmpuri})
@@ -1351,6 +1359,8 @@ end
     assert_equal evits1.size, (css=css_select(css_evits)).size, "CSS="+css.to_s+" / "+css_select(css_evits_label).to_s+" / "+evits1.inspect
     css = sprintf('%s[value="%s"]', css_uri, ApplicationHelper.normalized_uri_youtube(tmpuri, with_scheme: true))
     assert_equal 1, css_select(css).size, "It should be on the NEW page with a preset URI and with a reference to @harami_vid now, so the main URI on the form should be as such, but...  html="+css_select(css_uri).to_s
+    css = 'section#sec_primary_input div.harami_vid_duration input[type="text"]'
+    assert_operator 11, :<, css_select(css)[0]["value"].to_f, "HTML="+css_select(css).to_s
 
     # invalid ID is given as a GET parameter.
     assert_raises(ActiveRecord::RecordNotFound){

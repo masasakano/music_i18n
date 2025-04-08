@@ -30,7 +30,8 @@ This system is the framework to deal with this type of complex and dynamic cases
 * `USE_W3C_SERVER_VALIDATOR` : (*recommended not to be set*) if "1", this uses the original W3C server for W3C validation.
 * `URI_HARAMI1129_LOCALTEST` : (*recommended*) the URI to access instead of `URI_HARAMI1129` for testing, e.g., `test/controllers/harami1129s/data/harami1129_sample.html`
 * `SKIP_YOUTUBE_MARSHAL` : In testing, if this is set, marshal-ed data are not used, and the testing scripts access Youtube with the API whenever necessary.
-* `UPDATE_YOUTUBE_MARSHAL` : set this if you want to *update* the marshal-ed Youtube data from the remote Youtube server.  If this is set, `SKIP_YOUTUBE_MARSHAL` is ignored and treated as set.  Note that even if this is set, this does *not* create the marshal-ed data. For creating them, use `lib/tasks/save_marshal_youtube.rake`
+  * `UPDATE_YOUTUBE_MARSHAL` : set this if you want to *update* the marshal-ed Youtube data from the remote Youtube server.  If this is set, `SKIP_YOUTUBE_MARSHAL` is ignored and treated as set.  Note that even if this is set, this does *not* create the marshal-ed data. For creating them, use `lib/tasks/save_marshal_youtube.rake`
+  * For more detail about caching, refer to the comment at the head of `app/controllers/concerns/module_youtube_api_aux.rb`
 * `CAPYBARA_LONGER_TIMEOUT` : If set with an integer in second, Capybara system-tests wait for a longer wait time in specific blocks (see method `with_longer_wait` in `/test/helpers/test_system_helper.rb`).
 
 ##### Preparation for testing #####

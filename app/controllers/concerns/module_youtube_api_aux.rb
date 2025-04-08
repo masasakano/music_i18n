@@ -6,9 +6,50 @@
 #
 # @example
 #   include ModuleYoutubeApiAux
-#   set_youtube                   # sets @youtube
+#   set_youtube                   # sets @youtube. ENV["YOUTUBE_API_KEY"] has to be set appropriately beforehand.
 #   get_yt_video(HaramiVid.last)  # sets @yt_video
 #   ActiveSupport::Duration.parse(@yt_video.content_details.duration).in_seconds  # => Float
+#
+# == Marshal (cache mechanism)
+#
+# For Video information access, {#get_yt_video} accesses the remote YouTube API.
+# Similarly, for channel information access, #{get_yt_channel} is responsible.
+#
+# Caching in testing works as follows
+#
+# * When {#get_yt_video} (or #{get_yt_channel}) is called with the optional parameter `use_cache_test: true`,
+#   if searches for a Youtube cache data and uses them if found.  If not, it simply accesses remote.
+#   * For example, in +get_yt_video("xyz123abc")+, where +"xyz123abc"+ is the unique Youtube ID for the video,
+#     it uses the cached data if it has been already cached (see below to see what data are cached). 
+#   * For this reason, testing a failure case (i.e., not finding the marshal-led data locally
+#     or maybe even in a remote site) always accesses the remote.
+#   * In the test environment, `use_cache_test: true` is ON in default.  Otherwise, no.
+#     So, in the standard use, this always skips the cache.
+# * Cached data are stored in /test/fixtures/data as specified in +ApplicationHelper::DEF_FIXTURE_DATA_DIR+.
+#   * Cached data are registered in the git repository for a semi-permanent use.  Indeed, otherwise, it would not work well as a cache, depending on the environment!
+# * Index (look-up table) for the cached data is defined in the hard-coded constant +MARSHALED+
+#   defined in +Rails.root.join("test/helpers/marshaled")+, which is loaddd only in some specific test files
+#   and only when some conditions are met (see {#get_yt_video} for example).
+#   * To see what is available as the cache, see the source code of above-mentioned +MARSHALED+ or +setup+ in +/test/controllers/harami_vids/fetch_youtube_data_controller_test.rb+
+# * To register a new cache data,
+#   1. you must first modify the file (look-up table)
+#   2. Second, run the rake task: `lib/tasks/save_marshal_youtube.rake`  (use is like: bin/rails save_marshal_youtube)
+# * If you want to *update* the cache, either run the rake task or seet +ENV["UPDATE_YOUTUBE_MARSHAL"]+ and run your standard test routines that use the cached data.
+# * In some testing, if you do not want to use caching, set +ENV["SKIP_YOUTUBE_MARSHAL"]+ and run the test.
+# * The main module for Youtube-API interface, including caching, is +/app/controllers/concerns/module_youtube_api_aux.rbmodule_youtube_api_aux.rb+,
+#   whereas the main front-end controller for it is +/app/controllers/harami_vids/fetch_youtube_data_controller.rb+
+#
+# If use_cache_test is true, the cache (marshal-ed data at 
+# instead of accessing remote Google/Youtube-API (as long as the cache exists,
+# which should be always the case once the cache has been created).
+# Even When +use_cache_test+ is true, if either of ENV["SKIP_YOUTUBE_MARSHAL"]
+# and ENV["UPDATE_YOUTUBE_MARSHAL"] is set positive, the marshal-ed cache is *NOT*
+# read, but this accesses the remobe Youtube-API.
+#
+# Also, if ENV["UPDATE_YOUTUBE_MARSHAL"] is set positive AND if +use_cache_test+ is true
+# the cache is updated, as long as the file already exists. In practice, this happens
+# only in the test environment (because this method is always called with +use_cache_test: false+
+# except in the test environment).
 #
 # == NOTE
 #
@@ -30,6 +71,7 @@ module ModuleYoutubeApiAux
   extend ActiveSupport::Concern  # In Rails, the 3 lines above can be replaced with this.
 
   include ApplicationHelper
+  include ModuleGuessPlace  # for guess_place
 
   # Kind parameter of this class to Youtube-Ruby-API filter keyword
   KIND2YTFILTER = {
@@ -397,10 +439,108 @@ module ModuleYoutubeApiAux
     ret_msgs.join(" ")
   end
 
+  # returns a new (unsaved) HaramiVid
+  #
+  # This routine does not care about potential duplication with existing records.
+  # The caller should check with +HaramiVid.find_by_uri+
+  #
+  # If the Channel found is not registered in the DB, this routine either
+  # returns immediately (if flash_on_error is false (Def)), or carries on
+  # processing.  In either way, +HaramiVid#channel+ is set nil.  The caller
+  # must handle it.
+  #
+  # This routine does nothing about EventItem or Music association.
+  #
+  # @note Caller should check and handles (1) whether it is on Youtube, (2) potential duplication
+  #   on the existing HaramiVid (if new/create), (3) channel may be nil.
+  #
+  # @option harami_vid [HaramiVid]
+  # @param uri: [String] This can be given instead. If harami_vid is given and if its uri is blank?, this substitutes it.
+  # @param flash_on_error: [Boolean] If false (Def), if the Channel found is not registered in DB, this sets an error on the model (HaramiVid) and returns immediately. If true, this sets only a flash warning message and continues processing. Either way, the caller must take care of the Channel.
+  # @return [HaramiVid, NilClass] nil if fails to get API. If Channel is not registered, HaramiVid#channel is nil. In either way, the given HaramiVid is desructively modified.
+  def new_harami_vid_from_youtube_api(harami_vid=(@harami_vid || HaramiVid.new), uri: nil, flash_on_error: false, use_cache_test: @use_cache_test)
+    set_youtube  # sets @youtube
+    harami_vid.uri = uri if uri.present? && harami_vid.uri.blank?
+    get_yt_video(harami_vid, set_instance_var: true, model: true, use_cache_test: @use_cache_test) # sets @yt_video
+    return if !@yt_video
+
+    snippet = @yt_video.snippet
+    get_yt_channel(snippet.channel_id, kind: :id_at_platform) # setting @yt_channel
+    harami_vid.channel = _get_channel_maybe_set_error(snippet, harami_vid, flash_on_error: flash_on_error)
+    return if !harami_vid.channel && !flash_on_error
+
+    harami_vid.duration = ActiveSupport::Duration.parse(@yt_video.content_details.duration).in_seconds
+    _adjust_date(snippet, harami_vid)
+
+    titles, tras = _set_titles_translations(snippet, flash_on_error: flash_on_error)
+    harami_vid.unsaved_translations = tras
+    harami_vid.place = self.class.guess_place(titles["ja"] || "")  # to guarantee the given parameter is non-nil.
+
+    flash[:notice] ||= []
+    flash[:notice] << "Imported data from Youtube"
+    harami_vid
+  end
 
   #################
   private 
   #################
+
+
+    # @param snippet
+    # @param model [ActiveRecord] usually HaramiVid
+    # @return [Channel, NilClass]
+    def _get_channel_maybe_set_error(snippet, model, flash_on_error: false)
+      channel = get_channel(snippet)  # @yt_channel must be set.
+      _return_no_channel_err(snippet, model, flash_on_error: flash_on_error) if !channel
+      channel
+    end
+
+    # Sets up an error or flash message
+    #
+    # Unless with_flash is given true, an error is set on the model,
+    # which should raise an unprocessable error downstream.
+    #
+    # @param snippet
+    # @param model [ActiveRecord, NilClass] as long as flash_on_error is false (Def), this is mandatory.  Error will be set.
+    # @param flash_on_error: [Boolean] usually HaramiVid
+    # @return [void]
+    def _return_no_channel_err(snippet, model=nil, flash_on_error: false)
+      msg_adjective = (flash_on_error ? "later" : "first")
+      msg = sprintf("Channel is not found. Define the channel %s: ID=\"%s\", Name=\"%s\" [%s]", msg_adjective, snippet.channel_id, snippet.channel_title, (snippet.default_language || nil))
+      if flash_on_error
+        flash[:warning] ||= []
+        flash[:warning] << msg
+      else
+        model.errors.add :base, msg
+      end
+      nil
+    end
+
+    # @param snippet
+    # @param flash_on_error: [Boolean] If false (Def), this is for create. Else for new. Flash message are set accordingly if more than 1 Translation is registered on Youtube.
+    # @return [Array<Array<String>, Array<Translation>>]
+    def _set_titles_translations(snippet, flash_on_error: false)
+      titles = get_youtube_titles(snippet)
+
+      tras = []
+      titles.each_pair do |lc, tit|
+        next if tit.blank? || tit.strip.blank?
+        tras << Translation.preprocessed_new(title: tit, langcode: lc.to_s, is_orig: (lc.to_s == snippet.default_language))
+      end
+
+      if (tras_size=tras.size) > 1
+        severity, msg =
+          if flash_on_error
+            [:warning, sprintf("More than one (=%d) Translations are registered on Youtube, but only one of them is loaded so far. You may import them later after save.", tras_size)]
+          else
+            [:notice, sprintf("%d Translations are defined.", tras_size)]
+          end
+        flash[severity] ||= []
+        flash[severity] << msg
+      end
+
+      [titles, tras]
+    end
 
     # gets PrmChannelRemote from objects
     # @param yid [String, PrmChannelRemote, Channel]
@@ -517,6 +657,17 @@ module ModuleYoutubeApiAux
         end
       mdl.errors.add(:base, "Non-Youtube video is unsupported.") if mdl
       return nil 
+    end
+
+    def _adjust_date(snippet, model=@harami_vid)
+      date = snippet.published_at.to_date # => DateTime
+      if model.release_date != date
+        model.release_date = date
+        if !model.new_record?
+          flash[:notice] ||= []
+          flash[:notice] << "Release-Date is updated to #{date}"
+        end
+      end
     end
 
     # @param root_kwd [String] root filename for the marshal-led data.

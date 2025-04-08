@@ -28,6 +28,7 @@ module ModuleGuessPlace
     # @param fallback: [Object] the last resort if def_country is nil and finding nothing.
     # @return [Place]
     def guess_place(strin, def_country: Rails.application.config.primary_country, fallback: Place.unknown)
+      strin ||= "" if Rails.env.production?  # to play safe...
       pla_cand = _check_with_all_places_ja(strin)
       return pla_cand if pla_cand
 
