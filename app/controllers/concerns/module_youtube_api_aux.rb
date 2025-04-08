@@ -455,10 +455,11 @@ module ModuleYoutubeApiAux
   #   on the existing HaramiVid (if new/create), (3) channel may be nil.
   #
   # @option harami_vid [HaramiVid]
-  # @param uri: [String] This can be given instead. If harami_vid is given and if its uri is blank?, this substitutes it.
+  # @param uri: [String, NilClass] This can be given instead. If harami_vid is given and if its uri is blank?, this substitutes it.
+  # @param place: [Place, NilClass] If specified, this is propagated to the new HaramiVid. Else, the default determination algorithm is adopted.
   # @param flash_on_error: [Boolean] If false (Def), if the Channel found is not registered in DB, this sets an error on the model (HaramiVid) and returns immediately. If true, this sets only a flash warning message and continues processing. Either way, the caller must take care of the Channel.
   # @return [HaramiVid, NilClass] nil if fails to get API. If Channel is not registered, HaramiVid#channel is nil. In either way, the given HaramiVid is desructively modified.
-  def new_harami_vid_from_youtube_api(harami_vid=(@harami_vid || HaramiVid.new), uri: nil, flash_on_error: false, use_cache_test: @use_cache_test)
+  def new_harami_vid_from_youtube_api(harami_vid=(@harami_vid || HaramiVid.new), uri: nil, place: nil, flash_on_error: false, use_cache_test: @use_cache_test)
     set_youtube  # sets @youtube
     harami_vid.uri = uri if uri.present? && harami_vid.uri.blank?
     get_yt_video(harami_vid, set_instance_var: true, model: true, use_cache_test: @use_cache_test) # sets @yt_video
@@ -474,7 +475,7 @@ module ModuleYoutubeApiAux
 
     titles, tras = _set_titles_translations(snippet, flash_on_error: flash_on_error)
     harami_vid.unsaved_translations = tras
-    harami_vid.place = self.class.guess_place(titles["ja"] || "")  # to guarantee the given parameter is non-nil.
+    harami_vid.place = (place || self.class.guess_place(titles["ja"] || ""))
 
     flash[:notice] ||= []
     flash[:notice] << "Imported data from Youtube"

@@ -67,7 +67,8 @@ class HaramiVidsController < ApplicationController
       if :youtube == ApplicationHelper.guess_site_platform(@harami_vid.uri)
         # When URI is specified in GET, it has been redirected from "edit", and the URI
         # is guaranteed to correspond to no existing HaramiVid.
-        new_harami_vid_from_youtube_api(@harami_vid, flash_on_error: true, use_cache_test: Rails.env.test?)
+        place2pass = ([Place.unknown, Country.primary.unknown_prefecture.unknown_place].include?(@harami_vid.place) ? nil : @harami_vid.place)  # Unless the place of the reference HaramiVid is insignificant (either completely unknown or default), it is propagated to the new HaramiVid. The latter may also be nil, technically (though it should never happen in practice).
+        new_harami_vid_from_youtube_api(@harami_vid, place: place2pass, flash_on_error: true, use_cache_test: Rails.env.test?)
         if !@harami_vid.channel
           @harami_vid.channel = Channel.unknown
         end

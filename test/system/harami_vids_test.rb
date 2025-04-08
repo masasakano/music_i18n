@@ -346,7 +346,12 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_equal "01:12", trs[0].find(timing_a_css).text, "value should be updated, but..."
     assert_equal "Edit", trs[0].find(submit_css)["value"]
 
+    pla_hvid = places(:perth_aus)
+    hvid.update!(place: pla_hvid)  # Place: Perth, Australia
+
     hvid2 = harami_vids(:harami_vid2)
+    assert hvid2.place
+    refute hvid2.place.unknown?
     page.find('input#pid_edit_harami_vid_with_ref').fill_in with: hvid2.uri  # This is unique!
     url = edit_harami_vid_url(hvid, params: {reference_harami_vid_kwd: hvid2.uri})
     urlmod = url.sub(/\?locale=en&/, "?")  # locale does something wrong...
@@ -358,6 +363,12 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_selector "div.alert"
     assert_match(/Edit with the reference HaramiVid of pID=#{hvid.id}/, page.find_all("div.alert")[0]['innerHTML'])
     assert_match(/Editing Harami Vid \(ID=#{hvid2.id}\)/, page.find_all("h1")[0]['innerHTML'])
+    css = 'section#sec_primary_input select#harami_vid_place\.prefecture_id\.country_id option[selected="selected"]'
+    assert_selector css
+    refute_equal pla_hvid.country.id.to_s, (res=page.find(css))["value"], "Selected=#{res['outerHTML']}"  # For edit, if a significant Place is already defined, it should not be updated (by contrast, in "new", a significant Place is propagated, as tested in harami_vids_controller_test.rb).
+    assert_equal hvid2.place.country.id.to_s, (res=page.find(css))["value"], "Selected=#{res['outerHTML']}"  # For edit, if a significant Place is already defined, it should not be updated.
+    css = 'section#sec_primary_input select#harami_vid_place optgroup option[selected="selected"]'
+    assert_equal hvid2.place.id.to_s, (res=page.find(css))["value"], "Selected=#{res['outerHTML']}"  # For edit, if a significant Place is already defined, it should not be updated.
   end
 
   # test "destroying a Harami vid" do

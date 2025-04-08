@@ -1348,6 +1348,8 @@ end
     assert_equal 1, css_select(css).size, "It should be on the edit page of hvid2 now, so the main URI on the form should be as such, but...  html="+css_select(css_uri).to_s
 
     # provides URI with no HaramiVids matches => redirected to "new"
+    pla_hvid = places(:perth_aus)
+    @harami_vid.update!(place: pla_hvid)  # Place: Perth, Australia
     tmpuri = URI_ZENZENZENSE  # Youtube marshal-led data
     assert_nil HaramiVid.find_by_uri(tmpuri), "sanity check"
     get edit_harami_vid_url(@harami_vid, params: {reference_harami_vid_kwd: tmpuri})
@@ -1361,6 +1363,10 @@ end
     assert_equal 1, css_select(css).size, "It should be on the NEW page with a preset URI and with a reference to @harami_vid now, so the main URI on the form should be as such, but...  html="+css_select(css_uri).to_s
     css = 'section#sec_primary_input div.harami_vid_duration input[type="text"]'
     assert_operator 11, :<, css_select(css)[0]["value"].to_f, "HTML="+css_select(css).to_s
+    css = 'section#sec_primary_input select#harami_vid_place\.prefecture_id\.country_id option[selected="selected"]'
+    assert_equal pla_hvid.country.id.to_s, (res=css_select(css)[0])["value"], "Selected=#{res.to_s}"  # By contrast, in "edit", Place is not propagated as tested in /test/system/harami_vids_test.rb
+    css = 'section#sec_primary_input select#harami_vid_place optgroup option[selected="selected"]'
+    assert_equal pla_hvid.id.to_s, (res=css_select(css)[0])["value"], "Selected=#{res.to_s}"
 
     # invalid ID is given as a GET parameter.
     assert_raises(ActiveRecord::RecordNotFound){
