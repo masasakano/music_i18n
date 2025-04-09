@@ -4,6 +4,7 @@ require 'test_helper'
 #require Rails.root.to_s+'/app/helpers/application_helper'
 
 class SeedsSeedsTest < ActiveSupport::TestCase
+
   #setup do
   #end
 
@@ -49,6 +50,7 @@ class SeedsSeedsTest < ActiveSupport::TestCase
   test "run seeds" do
     return if !is_env_set_positive?("DO_TEST_SEEDS")  # defined in application_helper.rb 
     require(Rails.root.to_s+"/db/seeds.rb")
+    require(Rails.root.to_s+"/db/seeds/common.rb")
 
     ### This probably would be the case if STDOUT/STDERR is temporarily suppressed.
     #if !is_env_set_positive?("PARALLEL_WORKERS")
@@ -68,16 +70,7 @@ class SeedsSeedsTest < ActiveSupport::TestCase
       # It seems EventItems can be destroy_all-ed regardless of ApplicationRecord.allow_destroy_all. Strange! Check it out.
       # Maybe destroy_all attempts to destroy everything WITHOUT rollback even if one of the destroy-attempts failed?
 
-      [StaticPage, ArtistMusicPlay, PlayRole, Instrument, HaramiVidMusicAssoc, ModelSummary, PageFormat,
-       Harami1129, Harami1129Review, HaramiVid, Engage, EngageHow,
-       EventItem, Event, EventGroup,
-       #ChannelArtistAssoc,
-       Channel, ChannelPlatform, ChannelType, ChannelOwner,
-       Artist, Music, Genre, 
-       Place, Prefecture, Country, CountryMaster,
-       SiteCategory,
-       UserRoleAssoc, User, Role, RoleCategory,
-       Sex, Translation].each do |klass|
+      Seeds::Common::ORDERED_MODELS_TO_DESTROY.each do |klass|
          if User != klass
            klass.destroy_all
            next

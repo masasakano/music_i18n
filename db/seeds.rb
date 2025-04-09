@@ -20,6 +20,8 @@
 #
 #     Translation.update_all(create_user_id: myself.id, update_user_id: myself.id)
 
+require_relative("seeds/common")
+
 class Object
   # To mark this process is running seeding
   FLAG_SEEDING = true
@@ -780,14 +782,30 @@ end
 # Some files depend on other files, which must be run before them.
 # Generates the order.
 rootdirs = [Rails.root, 'db', 'seeds']
-allfiles = Dir[File.join(*(rootdirs+['*.rb']))].map{|s| s.sub(%r@.*\/db/seeds/(.+).rb@, '\1')}.sort{ |a, b|
-  result = %w(seeds_user user seeds_event_group event_group instrument play_role channels).each do |kwd|  # WARNING: Be careful of plural and singular!
-    reverse = ("channels" == kwd)
-    ret = _return_priority(a,b,kwd, reverse: reverse)
-    break ret if ret
-  end
-  result.respond_to?(:divmod) ? result : (a<=>b)  # result is either an Integer or (the original keyword) Array
-}.map{|i| File.join(*(rootdirs+[i+'.rb']))}
+#allfiles = Dir[File.join(*(rootdirs+['*.rb']))].map{|s| s.sub(%r@.*\/db/seeds/(.+).rb@, '\1')}.sort{ |a, b|
+#  result = %w(seeds_user user seeds_event_group event_group instrument play_role channels).each do |kwd|  # WARNING: Be careful of plural and singular!
+#    reverse = ("channels" == kwd)
+#    ret = _return_priority(a,b,kwd, reverse: reverse)
+#    break ret if ret
+#  end
+#  result.respond_to?(:divmod) ? result : (a<=>b)  # result is either an Integer or (the original keyword) Array
+#}.map{|i| File.join(*(rootdirs+[i+'.rb']))}
+allfiles = Seeds::Common::ORDERED_MODELS_TO_DESTROY.reverse.map{ |mdl|  # defined in ./seeds/common.rb
+  fname = mdl.name.underscore
+  [fname, fname.pluralize].find{ |f|
+    abspath = File.join(*(rootdirs+[f+'.rb']))
+    File.exist?(abspath) && (break(abspath))
+  }
+}.compact
+############warn "WARN: #{allfiles.inspect}"
+ignored_files = Dir[File.join(*(rootdirs+['*.rb']))].map{ |absf|
+  next if "common.rb" == File.basename(absf)  # Skipping reading the common included Module
+  allfiles.include?(absf) ? nil : absf
+}.compact
+if !ignored_files.empty? 
+  warn("WARNING: Some seeds files are not run: #{ignored_files.map{|i| i.sub(%r@.*(/db/seeds/.+\.rb)@, '\1')}.inspect}")
+end
+
 #puts "DEBUG: seeding order:" ######### for DEBUG
 #puts allfiles.map{|i| "    "+File.basename(i)}.join("\n") ######### for DEBUG
 
@@ -801,11 +819,11 @@ allfiles.each do |seed|
     camel = File.basename(seed, ".rb").camelize
     begin
       klass =
-        if /\ASeeds/ =~ camel
-          camel.singularize.constantize      # e.g., SeedsUser
-        else
+#        if /\ASeeds/ =~ camel
+#          camel.singularize.constantize      # e.g., SeedsUser
+#        else
           Seeds.const_get(camel) # e.g., Seeds::PlayRole
-        end
+#        end
     rescue NameError
       # maybe seeds_user.rb in the production environment, where SeedsUser is deliberately undefined.
       puts "NOTE: skip running "+seedfile2print #if $DEBUG

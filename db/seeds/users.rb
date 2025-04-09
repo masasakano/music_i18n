@@ -1,5 +1,7 @@
 # coding: utf-8
 
+require_relative("common.rb")  # defines: module Seeds
+
 include ModuleCommon  # for seed_fname2print
 
 puts "DEBUG: start "+seed_fname2print(__FILE__) if $DEBUG
@@ -33,9 +35,16 @@ end
 #
 # If $DEBUG is set, more information is printed.
 #
-module SeedsUser
+# Model: User
+#
+module Seeds::Users
+  extend Seeds::Common
+
   # Everything is a function
   module_function
+
+  # Corresponding Active Record class
+  RECORD_CLASS = self.name.split("::")[-1].singularize.constantize  # User
 
   # @param key [String] maybe "ModeratorAll", "ModeratorTranslation", "EditorGeneralJa", "NoRole", etc
   def get_hash4user(key)
@@ -149,5 +158,5 @@ module SeedsUser
 
     diff_entries.sum
   end
-end    # module SeedsUser
+end    # module Seeds::Users
 

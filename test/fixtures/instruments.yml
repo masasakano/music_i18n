@@ -13,7 +13,7 @@
 #  index_instruments_on_weight  (weight)
 #
 
-<% Seeds::Instrument::SEED_DATA.each_pair do |ekey, edata| %>
+<% Seeds::Instruments::SEED_DATA.each_pair do |ekey, edata| %>
 instrument_<%= ekey %>:
   weight: <%= edata[:weight] %>
   note: Instrument<%= ekey.to_s.camelize %>

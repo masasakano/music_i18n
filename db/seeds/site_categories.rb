@@ -2,14 +2,14 @@
 
 require_relative("common.rb")  # defines: module Seeds
 
-# Model: SiteCategories
+# Model: SiteCategory
 #
 # NOTE: This has to be loaded before Uri.
 module Seeds::SiteCategories
   extend Seeds::Common
 
   # Corresponding Active Record class
-  RECORD_CLASS = self.name.split("::")[-1].singularize.constantize # Channel
+  RECORD_CLASS = self.name.split("::")[-1].singularize.constantize # SiteCategory
 
   # Everything is a function
   module_function
@@ -25,7 +25,7 @@ module Seeds::SiteCategories
       summary:  "Unknown category",
       note: nil,
       memo_editor: nil,
-      #regex: Proc.new{RECORD_CLASS.unknown}  # to check potential duplicates for ChannelTypes
+      #regex: Proc.new{RECORD_CLASS.unknown}  # to check potential duplicates for ...
     },
     main: {
       ja: '主サイト/ホームページ',
@@ -48,9 +48,9 @@ module Seeds::SiteCategories
       weight: 120,
       summary: "Encyclopedia except Wikipedia",
     },
-    chronology: {
+    chronicle: {
       ja: '年表',
-      en: 'Chronology',
+      en: 'Chronicle',
       orig_langcode: nil,
       weight: 200,
       summary: nil,

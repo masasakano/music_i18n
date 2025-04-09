@@ -1,5 +1,7 @@
 # coding: utf-8
 
+require_relative("common.rb")  # defines: module Seeds
+
 include ModuleCommon  # for seed_fname2print
 
 puts "DEBUG: start "+seed_fname2print(__FILE__) if $DEBUG
@@ -8,11 +10,13 @@ puts "DEBUG: start "+seed_fname2print(__FILE__) if $DEBUG
 # Model: EventGroup
 #
 # NOTE: Place must be loaded beforehands!
-module SeedsEventGroup
+module Seeds::EventGroups
   include ModuleCommon  # for DEF_EVENT_START_YEAR etc
 
   # Everything is a function
   module_function
+
+  RECORD_CLASS = self.name.split("::")[-1].singularize.constantize  # EventGroup
 
   Places = {
     world: nil,
@@ -317,5 +321,5 @@ module SeedsEventGroup
     n_changed*7  # not accurate, but basically, per EventGroup, 1 Evnet, 2x2 Translations, and 1 EventItem are created.
   end  # def load_seeds
 
-end  # module SeedsEventGroup
+end  # module Seeds::EventGroups
 

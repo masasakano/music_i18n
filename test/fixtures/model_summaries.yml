@@ -16,7 +16,7 @@
 # Originally created with
 # % bin/rails r 'File.open("#{Rails.root}/test/fixtures/tmp4.yml", "w"){|file| file.write ModelSummary.all.map{ |m| m.attributes.except("created_at", "updated_at")}.to_yaml}'
 
-<% Seeds::ModelSummary::SEED_DATA.each_pair do |ekey, edata| %>
+<% Seeds::ModelSummaries::SEED_DATA.each_pair do |ekey, edata| %>
 model_summary_<%= ekey %>:
   modelname: <%= edata[:modelname] %>
   note: <%= edata[:note].present? ? edata[:note] : "ModelSummary"+ekey.to_s.camelize %>

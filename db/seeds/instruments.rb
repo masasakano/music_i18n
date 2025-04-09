@@ -4,11 +4,11 @@ require(File.dirname(__FILE__)+"/common.rb")  # defines: module Seeds
 
 # Model: Instrument
 #
-module Seeds::Instrument
+module Seeds::Instruments
   extend Seeds::Common
 
   # Corresponding Active Record class
-  RECORD_CLASS = self.name.split("::")[-1].constantize # Instrument
+  RECORD_CLASS = self.name.split("::")[-1].singularize.constantize # Instrument
 
   # Everything is a function
   module_function
@@ -193,5 +193,5 @@ module Seeds::Instrument
     _load_seeds_core(%i(weight note))  # defined in seeds_common.rb, using Instrument (==RECORD_CLASS)
   end
 
-end  # module Seeds::Instrument
+end  # module Seeds::Instruments
 

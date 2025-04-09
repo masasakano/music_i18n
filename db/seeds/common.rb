@@ -20,6 +20,21 @@ module Seeds
       sysadmin: nil
     }
 
+    # When you destroy all Models (to reset and rerun seeding for testing),
+    # you should do it in this order.  Similarly, this is the order
+    # in which you should seed without violating the association rules.
+    ORDERED_MODELS_TO_DESTROY = [
+      StaticPage, ArtistMusicPlay, PlayRole, Instrument, HaramiVidMusicAssoc, ModelSummary, PageFormat,
+      Harami1129, Harami1129Review, HaramiVid, Engage, EngageHow,
+      EventItem, Event, EventGroup,
+      Channel, ChannelPlatform, ChannelType, ChannelOwner,
+      Artist, Music, Genre, 
+      Place, Prefecture, Country, CountryMaster,
+      SiteCategory,
+      UserRoleAssoc, User, Role, RoleCategory,
+      Sex, Translation,
+    ]
+
     # Returns a YAML-safe title (or alt_title)
     #
     # When a String is very long, it may cause an Error. This routine circumvents it.
@@ -62,7 +77,7 @@ module Seeds
     #      user_create_id: :special_sysadmin_id,  # special meaniing
     #      user_update_id: Proc.new{|ehs, key| ehs[:user_create_id]+1 if :singer == key.to_sym },  # silly example
     #      note: nil,
-    #      regex: /^(歌手|singer)/i,  # to check potential duplicates based on Translations (c.f., seeds_event_group.rb), but is irrelevant to this method; basically, this may be used to determine `model` by the caller before calling this method.
+    #      regex: /^(歌手|singer)/i,  # to check potential duplicates based on Translations (c.f., seeds/event_groups.rb), but is irrelevant to this method; basically, this may be used to determine `model` by the caller before calling this method.
     #    }
     #
     # @param model [ActiveRecord]

@@ -9,11 +9,11 @@ require_relative "common.rb"  # defines: module Seeds
 
 # Model: ModelSummary
 #
-module Seeds::ModelSummary
+module Seeds::ModelSummaries
   extend Seeds::Common
 
   # Corresponding Active Record class
-  RECORD_CLASS = self.name.split("::")[-1].constantize # Instrument
+  RECORD_CLASS = self.name.split("::")[-1].singularize.constantize  # ModelSummary
 
   # Everything is a function
   module_function
@@ -145,5 +145,5 @@ module Seeds::ModelSummary
     _load_seeds_core(%i(modelname note), find_by: :modelname)  # defined in seeds_common.rb, using Instrument (==RECORD_CLASS)
   end  # def load_seeds
 
-end    # module Seeds::ModelSummary
+end    # module Seeds::ModelSummaries
 

@@ -25,7 +25,7 @@
 #
 
 # key examples: evgr_unknown evgr_single_streets evgr_harami_jp2023s evgr_harami_concerts
-<% SeedsEventGroup::SEED_DATA.map{|ev| [ev[:key], ev]}.to_h.each_pair do |ekey, edata| %>
+<% Seeds::EventGroups::SEED_DATA.map{|ev| [ev[:key], ev]}.to_h.each_pair do |ekey, edata| %>
 evgr_<%= ekey %>:
   start_date:     <%= edata[:start_date] %>
   start_date_err: <%= edata[:start_date_err] %> 

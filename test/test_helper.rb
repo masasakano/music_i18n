@@ -11,7 +11,7 @@ Dir[Rails.root.to_s+"/db/seeds/*.rb"].uniq.each do |seed|
   next if /^seeds_/ =~ File.basename(seed)  # Skipping reading the old-style Modules
   require seed
 end
-require Rails.root.to_s+"/db/seeds/seeds_event_group" # EventGroup
+require Rails.root.to_s+"/db/seeds/event_groups" # EventGroup
 
 ActiveRecord::FixtureSet.context_class.include Seeds
 

@@ -15,7 +15,7 @@
 #  index_play_roles_on_weight  (weight)
 #
 
-<% Seeds::PlayRole::SEED_DATA.each_pair do |ekey, edata| %>
+<% Seeds::PlayRoles::SEED_DATA.each_pair do |ekey, edata| %>
 play_role_<%= ekey %>:
   mname: <%= edata[:mname] %>
   weight: <%= edata[:weight] %>

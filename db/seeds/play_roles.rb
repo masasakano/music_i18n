@@ -1,10 +1,10 @@
 # coding: utf-8
 
-require(File.dirname(__FILE__)+"/common.rb")  # defines: module Seeds
+require_relative("common.rb")  # defines: module Seeds
 
 # Model: PlayRole
 #
-module Seeds::PlayRole
+module Seeds::PlayRoles
   extend Seeds::Common
   #include ModuleCommon  # for ...
 
@@ -12,7 +12,7 @@ module Seeds::PlayRole
   module_function
 
   # Corresponding Active Record class
-  RECORD_CLASS = self.name.split("::")[-1].constantize  # PlayRole
+  RECORD_CLASS = self.name.split("::")[-1].singularize.constantize  # PlayRole
 
   # Data to seed
   # NOTE: Make sure these to be consistent with /test/fixtures/play_roles.yml and translations.yml
@@ -177,5 +177,5 @@ module Seeds::PlayRole
     _load_seeds_core(%i(weight note)){|ehs, _| RECORD_CLASS.find_or_initialize_by(mname: ehs[:mname])}  # mname is already set, and so it is not specified for _load_seeds(); n.b., RECORD_CLASS == PlayRole
   end
 
-end  # module Seeds::PlayRole
+end  # module Seeds::PlayRoles
 

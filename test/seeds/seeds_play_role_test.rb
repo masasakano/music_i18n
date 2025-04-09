@@ -1,7 +1,7 @@
 # coding: utf-8
 
 require 'test_helper'
-require(Rails.root.to_s+"/db/seeds/play_role.rb")
+require(Rails.root.to_s+"/db/seeds/play_roles.rb")
 
 class SeedsPlayRoleTest < ActiveSupport::TestCase
   setup do
@@ -15,10 +15,10 @@ class SeedsPlayRoleTest < ActiveSupport::TestCase
 
   test "SeedsPlayRole.load_seeds" do
     assert_equal 0, PlayRole.count, "sanity check"
-    n_seeds = Seeds::PlayRole::SEED_DATA.keys.count
+    n_seeds = Seeds::PlayRoles::SEED_DATA.keys.count
     nt_be4 = Translation.count
 
-    n_changed = Seeds::PlayRole.load_seeds
+    n_changed = Seeds::PlayRoles.load_seeds
 
     nt_aft = Translation.count
     assert_operator 1, :<, n_changed 
