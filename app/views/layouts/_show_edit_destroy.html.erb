@@ -1,0 +1,26 @@
+
+<%# imported local variables: [mandatory] model, [optional] destroyable (Boolean. At the model level like association prohibition (so that the button is dimmed), NOT the controller/user level) %>
+<%# @example:  render 'layouts/show_edit_destroy', locals: {model: @my_model, destroyable: !@my_model.child_cars.exists?} %>
+
+<% if !defined? destroyable
+     destroyable = nil
+   end %>  <%# This has to be written over multiple lines. %>
+
+<% if can? :update, model %>
+  <section id="edit_destroy_in_show">
+    <span class="lead">
+      <%= link_to "Edit this #{model.class.name}", Rails.application.routes.url_helpers.polymorphic_path(model, action: :edit) %>
+    </span>
+
+    <% if can?(:destroy, model) %>
+      <span class="text-end">
+        <% if destroyable %>
+          <%= button_to "Destroy", model, method: :delete, data: { confirm: t('are_you_sure') } %>
+        <% else %>
+          <form class="button_to"><input disabled="disabled" type="submit" value="Destroy"></form>
+        <% end %>
+      </span>
+    <% end %>
+  </section>
+<% end %>
+

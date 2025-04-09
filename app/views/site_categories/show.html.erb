@@ -1,0 +1,19 @@
+
+<h1>Site Category: <%= @site_category.title_or_alt(langcode: I18n.locale) %></h1>
+
+<hr>
+<section id="sec_primary">
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @site_category} %>
+<hr>
+
+<%= render @site_category %>
+
+<%= render partial: 'layouts/show_edit_destroy', locals: {model: @site_category, destroyable: true} %> <%# !@site_category.uris.exists? %>
+
+
+</section> <%# closing section id="sec_primary" %>
+
+<hr>
+  <%= link_to t("layouts.back_to_index"), site_categories_path %>
+
+

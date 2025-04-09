@@ -51,6 +51,8 @@ ja:
   romaji: ローマ字
   ruby: フリガナ
   ruby_short: 読み
+  SiteCategory: "サイト種別"
+  SiteCategories: "サイト種別"
   Sex: "性別"
   s_time: "秒"
   terms_of_service: 利用規約

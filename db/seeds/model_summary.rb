@@ -108,6 +108,10 @@ module Seeds::ModelSummary
       ja: "県または州",
       en: "Prefecture or state",
     },
+    SiteCategory: {
+      ja: "ウェブサイト種別",
+      en: "Website category",
+    },
     Sex: {
       ja: "性別",
       en: "Sex",

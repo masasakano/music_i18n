@@ -82,6 +82,8 @@ en:
   romaji: romaji
   ruby: ruby
   ruby_short: ruby
+  SiteCategory: "Site Category"
+  SiteCategories: "Site Categories"
   Sex: "Sex"
   s_time: "s"
   terms_of_service: Terms of Service

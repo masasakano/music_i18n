@@ -1,0 +1,67 @@
+<h1>Site categories</h1>
+
+<div id="site_categories">
+<section id="site_categories_index_table">
+  <table>
+  <thead>
+    <tr>
+     <% if (caneditgen=can?(:edit, SiteCategory))  %>
+      <th class="editor_only">ID</th>
+     <% end %>
+       <%= render "layouts/title_alt_ja_en_table", model: nil, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
+     <% if caneditgen %>
+      <th title="Unique permanent name.">Machine name</th>
+      <th title="Weight for sorting.">Weight</th>
+     <% end %>
+      <th title="Brief summary">Summary</th>
+      <th title="Note in this DB">Note</th>
+      <% if caneditgen %>
+        <th title="Whether editor's memo exists">Memo?</th>
+        <th colspan="3"></th>
+      <% else %>
+        <th></th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @site_categories.order(:weight).each do |model| %>
+      <tr>
+        <% if caneditgen  %>
+          <td class="editor_only"><%= link_to(model.id, model) %></td>
+       <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
+          <td class="editor_only item_mname"><%= model.mname %></td>
+          <td class="editor_only item_weight"><%= model.weight %></td>
+        <% end %>
+          <td class="item_summary"><%= model.summary %></td>
+          <td class="item_note"><%= model.note %></td>
+        <% if caneditgen  %>
+          <td class="editor_only item_memo_editor_present"><%= "Y" if model.memo_editor.present? %></td>
+        <% end %>
+
+        <td><%= link_to t("tables.Show"), model %></td>
+        <% if can? :update, model  %>
+          <td class="editor_only"><%= link_to 'Edit', edit_site_category_path(model) %></td>
+         <% if can? :destroy, model %>
+          <td class="editor_only"><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+         <% else %>
+          <td class="editor_only"></td>
+         <% end %>
+        <% else %>
+          <td colspan="2" class="editor_only"></td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+
+  </table>
+</section>  <!-- section id="site_categories_index_table" -->
+</div>
+
+<br>
+
+<% if can? :create, SiteCategory %>
+ <div class="button_new">
+  <%= button_to 'New SiteCategory', new_site_category_path, method: :get %>
+ </div>
+<% end %>

@@ -152,7 +152,7 @@ class Ability
 #           print "DEBUG:abi03: ";p(i.user.an_admin? && (!uhrc || uhrc && i.user.highest_role_in(hrc) < uhrc))
         i.user.an_admin? && (uhrc = user.highest_role_in(hrc); !uhrc || uhrc && i.user.highest_role_in(hrc) < uhrc)
       }
-      can :read, [Instrument, ChannelType]
+      can :read, [Instrument, ChannelType, SiteCategory]
     end
 
     ## General-JA moderator only
@@ -160,6 +160,7 @@ class Ability
       can :read, [CountryMaster]
       can(:update, CountryMasters::CreateCountriesController)
       can(:ud, ChannelType){|mdl| (cruser=mdl.create_user) && ((cruser == user) || (!mdl.unknown? && !cruser.superior_to?(user, rc_general_ja))) }  # can update/destroy unless the record was created by a superior in General-JA (i.e., an admin) (though cannot if there's a dependent Channel).
+      can([:cru, :destroy], SiteCategory){|mdl| (!mdl.unknown? && "main" != mdl.mname) }  # can create/update/destroy except for "unknown" (though cannot destroy if there's a dependent Uri).  At the time of writing, SiteCategory.default(:HaramiVid) returns SiteCategory.unknown.
     end
 
     ## HaramiVid moderator only
@@ -196,6 +197,7 @@ class Ability
       can :manage, ModelSummary
       can :cru, PlayRole  # Even an admin cannot destroy one, but the sysadmin.
       can(:ud, [ChannelPlatform, ChannelOwner, Channel]){|mdl| !mdl.unknown?}  # ChannelPlatform.unknown can be managed by only sysadmin # (unless there's a dependent HaramiVid or Channel)
+      can(:cru, SiteCategory){|mdl| !mdl.unknown? }  # admin can create/edit even mname==:main (but still NOT unknown).
     else
       #can(:update, Country)  # There is nothing (but note) to update in Country as the ISO-numbers are definite. Translation for Country is a different story, though.
       cannot :manage_prefecture_jp, Prefecture  # cannot edit Country in Prefecture to Japan
@@ -209,5 +211,6 @@ class Ability
 
     cannot(:destroy, [Channel]){                                   |mdl| mdl.unknown? || mdl.harami_vids.exists?}
     cannot(:destroy, [ChannelPlatform, ChannelOwner, ChannelType]){|mdl| mdl.unknown? || mdl.channels.exists?}  # ChannelPlatform.unknown can be managed by only sysadmin
+    cannot(:destroy, [SiteCategory]){                              |mdl| mdl.unknown?} # || mdl.uris}  # can be managed by only sysadmin
   end
 end

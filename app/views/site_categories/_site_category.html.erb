@@ -1,0 +1,26 @@
+<section id="sec_primary_show">
+<div id="<%= dom_id site_category %>">
+<% model = site_category %>
+<dl>
+  <% if (can_update_gen=can?(:update, SiteCategory)) %>
+   <div class="editor_only">
+    <dt>pID (<%= model.class.name %>)</dt>
+    <dd> <%= model.id %></dd>
+   </div>
+   <div class="editor_only">
+    <dt class="item_id_mname" title="machine name">Machine name:</dt>
+    <dd class="item_id_mname"><%= model.mname %></dd>
+
+    <dt class="item_id_weight"> Weight:</dt>
+    <dd class="item_id_weight"><%= model.weight %></dd>
+   </div>
+  <% end %>
+
+    <dt class="item_id_summary"> Summary:</dt>
+    <dd class="item_id_summary"><%= model.summary %></dd>
+
+  <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: model, model4ability: can_update_gen} %>
+</dl>
+</div>
+</section>  <%# closing section id="sec_primary_show" %>
+

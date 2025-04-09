@@ -75,6 +75,7 @@ class SeedsSeedsTest < ActiveSupport::TestCase
        Channel, ChannelPlatform, ChannelType, ChannelOwner,
        Artist, Music, Genre, 
        Place, Prefecture, Country, CountryMaster,
+       SiteCategory,
        UserRoleAssoc, User, Role, RoleCategory,
        Sex, Translation].each do |klass|
          if User != klass

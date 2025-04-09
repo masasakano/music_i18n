@@ -2679,7 +2679,7 @@ channel_platform_two_en:
   note: ChannelPlatformTwo
 
 <% klass_str = "ChannelType" %>
-<% (Seeds.const_get(klass_str+"s"))::SEED_DATA.each_pair do |ekey, edata| %>
+<% (Seeds.const_get(klass_str.pluralize))::SEED_DATA.each_pair do |ekey, edata| %>
  <% %i(en ja fr).each do |langcode| %>
    <% next if edata[langcode].blank? %>
 <%= klass_str.underscore %>_<%= ekey %>_<%= langcode %>:
@@ -2726,7 +2726,7 @@ channel_type_two_en:
 
 # skip those with themselves=true as their Translations have to be exact.
 <% klass_str = "ChannelOwner" %>
-<% (Seeds.const_get(klass_str+"s"))::SEED_DATA.each_pair do |ekey, edata| %>
+<% (Seeds.const_get(klass_str.pluralize))::SEED_DATA.each_pair do |ekey, edata| %>
  <% next if edata[:themselves] %>
  <% %i(en ja fr).each do |langcode| %>
    <% next if edata[langcode].blank? %>
@@ -2836,7 +2836,7 @@ channel_owner_two_en:
   note: ChannelOwnerTwo
 
 <% klass_str = "Channel" %>
-<% (Seeds.const_get(klass_str+"s"))::SEED_DATA.each_pair do |ekey, edata| %>
+<% (Seeds.const_get(klass_str.pluralize))::SEED_DATA.each_pair do |ekey, edata| %>
  <% %i(en ja fr).each do |langcode| %>
    <% next if edata[langcode].blank? %>
 <%= klass_str.underscore %>_<%= ekey %>_<%= langcode %>:
@@ -2861,7 +2861,6 @@ channel_one_en:
   update_user_id: user_translator
   note: ChannelOne
 
-
 channel_two_en:
   translatable: two (Channel)
   langcode: en
@@ -2872,4 +2871,39 @@ channel_two_en:
   update_user_id: user_translator
   note: ChannelTwo
 
+<% klass_str = "SiteCategory" %>
+<% (Seeds.const_get(klass_str.pluralize))::SEED_DATA.each_pair do |ekey, edata| %>
+ <% %i(en ja fr).each do |langcode| %>
+   <% next if edata[langcode].blank? %>
+<%= klass_str.underscore %>_<%= ekey %>_<%= langcode %>:
+  translatable: <%= klass_str.underscore %>_<%= ekey %> (<%= klass_str %>)
+  langcode: <%= langcode %>
+  title:     <%= Seeds::Common.yaml_title(edata[langcode], :title) %>
+  alt_title: <%= Seeds::Common.yaml_title(edata[langcode], :alt_title) %>
+  weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
+  create_user: user_syshelper
+  update_user: user_syshelper
+  note: <%= klass_str %><%= ekey.to_s.camelize %><%= langcode.to_s.capitalize %>
+ <% end %>
+<% end %>
+
+site_category_one_en:
+  translatable: one (SiteCategory)
+  langcode: en
+  title: SiteCategoryOne
+  is_orig: true
+  weight: 0
+  create_user_id: user_translator
+  update_user_id: user_translator
+  note: SiteCategoryOne
+
+site_category_two_en:
+  translatable: two (SiteCategory)
+  langcode: en
+  title: SiteCategoryTwo
+  is_orig: true
+  weight: 0
+  create_user_id: user_translator
+  update_user_id: user_translator
+  note: SiteCategoryTwo
 

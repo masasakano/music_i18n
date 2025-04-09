@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2025_04_01_212120) do
+ActiveRecord::Schema[7.0].define(version: 2025_04_08_204816) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -502,6 +502,19 @@ ActiveRecord::Schema[7.0].define(version: 2025_04_01_212120) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["iso5218"], name: "index_sexes_on_iso5218", unique: true
+  end
+
+  create_table "site_categories", comment: "Site category for Uri", force: :cascade do |t|
+    t.string "mname", null: false, comment: "Unique machine name"
+    t.float "weight"
+    t.text "summary", comment: "Short summary"
+    t.text "note"
+    t.text "memo_editor", comment: "Internal-use memo for Editors"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["mname"], name: "index_site_categories_on_mname", unique: true
+    t.index ["summary"], name: "index_site_categories_on_summary"
+    t.index ["weight"], name: "index_site_categories_on_weight"
   end
 
   create_table "static_pages", comment: "Static HTML Pages", force: :cascade do |t|

@@ -1,0 +1,45 @@
+
+<%= render partial: 'layouts/form_print_errors', locals: {model: @site_category} %>
+
+<% if ! @site_category.new_record? %>
+<hr>
+<% end %>
+<section id="sec_primary">
+<% if ! @site_category.new_record? %>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @site_category, add_buttons: true} %>
+<hr>
+
+<h2>Unique parameters</h2>
+<% end %>
+
+<div id="form_main">
+
+<%= simple_form_for(@site_category) do |f| %>
+ <section id="sec_primary_input">
+  <% if @site_category.new_record? %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: @site_category, trans: Translation.new, disable_is_orig: false, is_simple_form: true} %>
+  <% end %>
+  <%= f.error_notification %>
+  <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
+
+  <div class="form-inputs">
+    <%= f.input :mname, hint: "Semi-permanent unique name (do not alter this!)" %>
+    <%= f.input :weight, hint: "Smaller value means a higher priority in display." %>
+    <%= f.input :summary, hint: "Longer description." %>
+
+    <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: SiteCategory, skip_ability_check: true} %>
+  </div>
+
+  <div class="form-actions">
+    <%= f.submit %> <%# Default one aesthetically does not work well...:  f.button :submit %>
+  </div>
+  <div class="actions">
+  <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  </div>
+ </section> <!-- section id="sec_primary_input" -->
+<% end %>
+
+</div> <!-- div id="form_main" -->
+
+</section> <!-- section id="sec_primary" -->
+

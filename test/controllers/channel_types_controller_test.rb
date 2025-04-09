@@ -22,7 +22,7 @@ class ChannelTypesControllerTest < ActionDispatch::IntegrationTest
       "title"=>"The Tｅst7",
       "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
       "best_translation_is_orig"=>str_form_for_nil,  # radio-button returns "on" for nil
-    }
+    }.with_indifferent_access
   end
 
   teardown do
@@ -78,7 +78,7 @@ class ChannelTypesControllerTest < ActionDispatch::IntegrationTest
     if !is_env_set_positive?('SKIP_W3C_VALIDATE') && !ApplicationController::FORM_TERNARY_UNDEFINED_VALUE
       warn "WARNING(#{__FILE__}:#{caller_locations(1, 1).first.lineno}) This w3c_validate may generate the following error, originating in a simple_form bug (Issue #1840 at https://github.com/heartcombo/simple_form/issues/1840) : The value of the “for” attribute of the “label” element must be the ID of a non-hidden form control."
     end
-    w3c_validate "Prefecture new"  # defined in test_helper.rb (see for debugging help)
+    w3c_validate "ChannelType new"  # defined in test_helper.rb (see for debugging help)
   end
 
   test "should create channel_type" do

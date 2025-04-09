@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  resources :site_categories
   resources :channels
   namespace :channels do
     resources :fetch_youtube_channels, only: [:update]  # may add :create in future

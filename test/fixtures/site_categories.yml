@@ -1,0 +1,41 @@
+# == Schema Information
+#
+# Table name: site_categories
+#
+#  id                                         :bigint           not null, primary key
+#  mname(Unique machine name)                 :string           not null
+#  note                                       :text
+#  memo_editor(Internal-use memo for Editors) :text
+#  summary(Short summary)                     :text
+#  weight                                     :float
+#  created_at                                 :datetime         not null
+#  updated_at                                 :datetime         not null
+#
+# Indexes
+#
+#  index_site_categories_on_mname    (mname) UNIQUE
+#  index_site_categories_on_summary  (summary)
+#  index_site_categories_on_weight   (weight)
+#
+
+<% Seeds::SiteCategories::SEED_DATA.each_pair do |ekey, edata| %>
+site_category_<%= ekey %>:
+  mname: <%= edata[:mname] %>
+  weight: <%= edata[:weight] %>
+  note: SiteCategory<%= ekey.to_s.camelize %>
+  memo_editor: <%= edata[:memo_editor] %>
+<% end %>
+
+one:
+  mname: MySringOne
+  weight: 600.5
+  summary: MyText
+  note: MyTextOne
+  memo_editor: MyText
+
+two:
+  mname: MyStringTwo
+  weight: 602.5
+  summary: MyText
+  note: MyTextTwo
+  memo_editor: MyText
