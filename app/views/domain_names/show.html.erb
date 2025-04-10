@@ -1,0 +1,17 @@
+<h1>Domain Name: <%= @domain_name.title_or_alt(langcode: I18n.locale) %></h1>
+
+<hr>
+<section id="sec_primary">
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @domain_name} %>
+<hr>
+
+<%= render @domain_name %>
+
+<%= render partial: 'layouts/show_edit_destroy', locals: {model: @domain_name, destroyable: true} %> <%# How about associations? %>
+
+
+</section> <%# closing section id="sec_primary" %>
+
+<hr>
+  <%= link_to t("layouts.back_to_index"), domain_names_path %>
+

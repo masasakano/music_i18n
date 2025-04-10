@@ -30,6 +30,7 @@ module Seeds
       Channel, ChannelPlatform, ChannelType, ChannelOwner,
       Artist, Music, Genre, 
       Place, Prefecture, Country, CountryMaster,
+      DomainName,
       SiteCategory,
       UserRoleAssoc, User, Role, RoleCategory,
       Sex, Translation,

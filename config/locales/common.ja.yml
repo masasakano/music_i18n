@@ -18,6 +18,8 @@ ja:
   comma: "、"
   detail: 詳細
   display_name: 表示名
+  DomainName: "ドメイン名"
+  DomainNames: "ドメイン名"
   eg_independent: "例: "
   error: エラー
   etc: 他

@@ -152,7 +152,7 @@ class Ability
 #           print "DEBUG:abi03: ";p(i.user.an_admin? && (!uhrc || uhrc && i.user.highest_role_in(hrc) < uhrc))
         i.user.an_admin? && (uhrc = user.highest_role_in(hrc); !uhrc || uhrc && i.user.highest_role_in(hrc) < uhrc)
       }
-      can :read, [Instrument, ChannelType, SiteCategory]
+      can :read, [Instrument, ChannelType, SiteCategory, DomainName]
     end
 
     ## General-JA moderator only
@@ -160,7 +160,8 @@ class Ability
       can :read, [CountryMaster]
       can(:update, CountryMasters::CreateCountriesController)
       can(:ud, ChannelType){|mdl| (cruser=mdl.create_user) && ((cruser == user) || (!mdl.unknown? && !cruser.superior_to?(user, rc_general_ja))) }  # can update/destroy unless the record was created by a superior in General-JA (i.e., an admin) (though cannot if there's a dependent Channel).
-      can([:cru, :destroy], SiteCategory){|mdl| (!mdl.unknown? && "main" != mdl.mname) }  # can create/update/destroy except for "unknown" (though cannot destroy if there's a dependent Uri).  At the time of writing, SiteCategory.default(:HaramiVid) returns SiteCategory.unknown.
+      can([:crud], SiteCategory){|mdl| (!mdl.unknown? && "main" != mdl.mname) }  # can create/update/destroy except for "unknown" (though cannot destroy if there's a dependent DomainName).  At the time of writing, SiteCategory.default(:HaramiVid) returns SiteCategory.unknown.
+      can([:crud], DomainName){|mdl| !mdl.unknown? }  # can create/update/destroy except for "unknown" (though cannot destroy if there's a dependent Uri or Domain).
     end
 
     ## HaramiVid moderator only
@@ -211,6 +212,6 @@ class Ability
 
     cannot(:destroy, [Channel]){                                   |mdl| mdl.unknown? || mdl.harami_vids.exists?}
     cannot(:destroy, [ChannelPlatform, ChannelOwner, ChannelType]){|mdl| mdl.unknown? || mdl.channels.exists?}  # ChannelPlatform.unknown can be managed by only sysadmin
-    cannot(:destroy, [SiteCategory]){                              |mdl| mdl.unknown?} # || mdl.uris}  # can be managed by only sysadmin
+    cannot(:destroy, [SiteCategory, DomainName]){                  |mdl| mdl.unknown?}  # can be managed by only sysadmin
   end
 end

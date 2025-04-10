@@ -62,15 +62,15 @@ class SiteCategoriesController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
-    def set_site_category
-      @site_category = SiteCategory.find(params[:id])
-    end
+    ## Use callbacks to share common setup or constraints between actions.
+    #def set_site_category
+    #  @site_category = SiteCategory.find(params[:id])
+    #end
 
-    # Only allow a list of trusted parameters through.
-    def site_category_params
-      params.require(:site_category).permit(:mname, :weight, :summary, :note, :memo_editor, :null, :false)
-    end
+    ## Only allow a list of trusted parameters through.
+    #def site_category_params
+    #  params.require(:site_category).permit(:mname, :weight, :summary, :note, :memo_editor, :null, :false)
+    #end
 
 
     # Sets @hsmain and @hstra and @prms_all from params

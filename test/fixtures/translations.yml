@@ -2893,8 +2893,8 @@ site_category_one_en:
   title: SiteCategoryOne
   is_orig: true
   weight: 0
-  create_user_id: user_translator
-  update_user_id: user_translator
+  create_user_id: user_moderator
+  update_user_id: user_moderator
   note: SiteCategoryOne
 
 site_category_two_en:
@@ -2903,7 +2903,43 @@ site_category_two_en:
   title: SiteCategoryTwo
   is_orig: true
   weight: 0
-  create_user_id: user_translator
-  update_user_id: user_translator
+  create_user_id: user_moderator
+  update_user_id: user_moderator
   note: SiteCategoryTwo
+
+<% klass_str = "DomainName" %>
+<% (Seeds.const_get(klass_str.pluralize))::SEED_DATA.each_pair do |ekey, edata| %>
+ <% %i(en ja fr).each do |langcode| %>
+   <% next if edata[langcode].blank? %>
+<%= klass_str.underscore %>_<%= ekey %>_<%= langcode %>:
+  translatable: <%= klass_str.underscore %>_<%= ekey %> (<%= klass_str %>)
+  langcode: <%= langcode %>
+  title:     <%= Seeds::Common.yaml_title(edata[langcode], :title) %>
+  alt_title: <%= Seeds::Common.yaml_title(edata[langcode], :alt_title) %>
+  weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
+  create_user: user_syshelper
+  update_user: user_syshelper
+  note: <%= klass_str %><%= ekey.to_s.camelize %><%= langcode.to_s.capitalize %>
+ <% end %>
+<% end %>
+
+domain_name_one_en:
+  translatable: one (DomainName)
+  langcode: en
+  title: DomainNameOne
+  is_orig: true
+  weight: 0
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: DomainNameOne
+
+domain_name_two_en:
+  translatable: two (DomainName)
+  langcode: en
+  title: DomainNameTwo
+  is_orig: true
+  weight: 0
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: DomainNameTwo
 

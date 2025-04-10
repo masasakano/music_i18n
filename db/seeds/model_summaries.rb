@@ -48,6 +48,10 @@ module Seeds::ModelSummaries
       ja: "国のマスターデータベース",
       en: "Master DB for Country",
     },
+    DomainName: {
+      ja: "ドメインの名前(ドメインにエイリアスがあっても名前は唯一)",
+      en: "Name of domain (a unified name for a domain with multiple aliases)",
+    },
     Engage: {
       ja: "ArtistとMusicとEngageHowと年と貢献度の関係(中間DB)",
       en: "Engagement between Artist, Music, EngageHow, year and degree of contribution (Intermediate DB)",

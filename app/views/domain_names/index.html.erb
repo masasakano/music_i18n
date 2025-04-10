@@ -1,19 +1,19 @@
-<h1>Site categories</h1>
+<h1>Domain names</h1>
 
-<div id="site_categories">
-<section id="site_categories_index_table">
+<div id="domain_names">
+<section id="domain_names_index_table">
+
   <table>
   <thead>
     <tr>
-     <% if (caneditgen=can?(:edit, SiteCategory))  %>
+     <% if (caneditgen=can?(:edit, DomainName))  %>
       <th class="editor_only">ID</th>
      <% end %>
        <%= render "layouts/title_alt_ja_en_table", model: nil, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
      <% if caneditgen %>
-      <th class="editor_only" title="Unique permanent name.">Machine name</th>
       <th class="editor_only" title="Weight for sorting.">Weight</th>
      <% end %>
-      <th title="Brief summary">Summary</th>
+      <th title="SiteCategory"><%= t(:SiteCategory) %></th>
       <th title="Note in this DB">Note</th>
       <% if caneditgen %>
         <th class="editor_only" title="Whether editor's memo exists">Memo?</th>
@@ -25,15 +25,14 @@
   </thead>
 
   <tbody>
-    <% @site_categories.order(:weight).each do |model| %>
+    <% @domain_names.order(:weight).each do |model| %>
       <tr>
         <% if caneditgen  %>
           <td class="editor_only"><%= link_to(model.id, model) %></td>
        <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
-          <td class="editor_only item_mname"><%= model.mname %></td>
           <td class="editor_only item_weight"><%= model.weight %></td>
         <% end %>
-          <td class="item_summary"><%= model.summary %></td>
+          <td class="item_site_category"><%= link_to((sc=model.site_category).title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "CO", article_to_head: true), model, title: sc.mname) if model.site_category %></td>
           <td class="item_note"><%= model.note %></td>
         <% if caneditgen  %>
           <td class="editor_only item_memo_editor_present"><%= "Y" if model.memo_editor.present? %></td>
@@ -41,7 +40,7 @@
 
         <td><%= link_to t("tables.Show"), model %></td>
         <% if can? :update, model  %>
-          <td class="editor_only"><%= link_to 'Edit', edit_site_category_path(model) %></td>
+          <td class="editor_only"><%= link_to 'Edit', edit_domain_name_path(model) %></td>
          <% if can? :destroy, model %>
           <td class="editor_only"><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
          <% else %>
@@ -55,13 +54,14 @@
   </tbody>
 
   </table>
-</section>  <!-- section id="site_categories_index_table" -->
+</section>  <!-- section id="domain_names_index_table" -->
 </div>
 
 <br>
 
-<% if can? :create, SiteCategory %>
+<% if can? :create, DomainName %>
  <div class="button_new">
-  <%= button_to 'New SiteCategory', new_site_category_path, method: :get %>
+  <%= button_to 'New DomainName', new_domain_name_path, method: :get %>
  </div>
 <% end %>
+

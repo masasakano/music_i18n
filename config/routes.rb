@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  resources :domain_names
   resources :site_categories
   resources :channels
   namespace :channels do

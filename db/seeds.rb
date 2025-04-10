@@ -782,14 +782,6 @@ end
 # Some files depend on other files, which must be run before them.
 # Generates the order.
 rootdirs = [Rails.root, 'db', 'seeds']
-#allfiles = Dir[File.join(*(rootdirs+['*.rb']))].map{|s| s.sub(%r@.*\/db/seeds/(.+).rb@, '\1')}.sort{ |a, b|
-#  result = %w(seeds_user user seeds_event_group event_group instrument play_role channels).each do |kwd|  # WARNING: Be careful of plural and singular!
-#    reverse = ("channels" == kwd)
-#    ret = _return_priority(a,b,kwd, reverse: reverse)
-#    break ret if ret
-#  end
-#  result.respond_to?(:divmod) ? result : (a<=>b)  # result is either an Integer or (the original keyword) Array
-#}.map{|i| File.join(*(rootdirs+[i+'.rb']))}
 allfiles = Seeds::Common::ORDERED_MODELS_TO_DESTROY.reverse.map{ |mdl|  # defined in ./seeds/common.rb
   fname = mdl.name.underscore
   [fname, fname.pluralize].find{ |f|
@@ -797,7 +789,7 @@ allfiles = Seeds::Common::ORDERED_MODELS_TO_DESTROY.reverse.map{ |mdl|  # define
     File.exist?(abspath) && (break(abspath))
   }
 }.compact
-############warn "WARN: #{allfiles.inspect}"
+
 ignored_files = Dir[File.join(*(rootdirs+['*.rb']))].map{ |absf|
   next if "common.rb" == File.basename(absf)  # Skipping reading the common included Module
   allfiles.include?(absf) ? nil : absf
@@ -818,12 +810,7 @@ allfiles.each do |seed|
     require seed
     camel = File.basename(seed, ".rb").camelize
     begin
-      klass =
-#        if /\ASeeds/ =~ camel
-#          camel.singularize.constantize      # e.g., SeedsUser
-#        else
-          Seeds.const_get(camel) # e.g., Seeds::PlayRole
-#        end
+      klass = Seeds.const_get(camel) # e.g., Seeds::PlayRole
     rescue NameError
       # maybe seeds_user.rb in the production environment, where SeedsUser is deliberately undefined.
       puts "NOTE: skip running "+seedfile2print #if $DEBUG
