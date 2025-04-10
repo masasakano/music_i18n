@@ -48,7 +48,7 @@ module Seeds::ModelSummaries
       ja: "国のマスターデータベース",
       en: "Master DB for Country",
     },
-    DomainName: {
+    DomainTitle: {
       ja: "ドメインの名前(ドメインにエイリアスがあっても名前は唯一)",
       en: "Name of domain (a unified name for a domain with multiple aliases)",
     },

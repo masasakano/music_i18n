@@ -1,6 +1,6 @@
 # == Schema Information
 #
-# Table name: domain_names
+# Table name: domain_titles
 #
 #  id                                         :bigint           not null, primary key
 #  memo_editor(Internal-use memo for Editors) :text
@@ -12,16 +12,16 @@
 #
 # Indexes
 #
-#  index_domain_names_on_site_category_id  (site_category_id)
-#  index_domain_names_on_weight            (weight)
+#  index_domain_titles_on_site_category_id  (site_category_id)
+#  index_domain_titles_on_weight            (weight)
 #
 # Foreign Keys
 #
 #  fk_rails_...  (site_category_id => site_categories.id)
 #
 
-<% Seeds::DomainNames::SEED_DATA.each_pair do |ekey, edata| %>
-domain_name_<%= ekey %>:
+<% Seeds::DomainTitles::SEED_DATA.each_pair do |ekey, edata| %>
+domain_title_<%= ekey %>:
   <%# site_category_id: %= (pro=edata[:site_category]) ? pro.call.id : nil %>
   site_category: site_category_<%= (pro=edata[:site_category_key]) ? pro.to_s : "unknown" %>
   weight: <%= edata[:weight] %>

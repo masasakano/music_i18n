@@ -2907,7 +2907,7 @@ site_category_two_en:
   update_user_id: user_moderator
   note: SiteCategoryTwo
 
-<% klass_str = "DomainName" %>
+<% klass_str = "DomainTitle" %>
 <% (Seeds.const_get(klass_str.pluralize))::SEED_DATA.each_pair do |ekey, edata| %>
  <% %i(en ja fr).each do |langcode| %>
    <% next if edata[langcode].blank? %>
@@ -2923,23 +2923,23 @@ site_category_two_en:
  <% end %>
 <% end %>
 
-domain_name_one_en:
-  translatable: one (DomainName)
+domain_title_one_en:
+  translatable: one (DomainTitle)
   langcode: en
-  title: DomainNameOne
+  title: DomainTitleOne
   is_orig: true
   weight: 0
   create_user_id: user_moderator
   update_user_id: user_moderator
-  note: DomainNameOne
+  note: DomainTitleOne
 
-domain_name_two_en:
-  translatable: two (DomainName)
+domain_title_two_en:
+  translatable: two (DomainTitle)
   langcode: en
-  title: DomainNameTwo
+  title: DomainTitleTwo
   is_orig: true
   weight: 0
   create_user_id: user_moderator
   update_user_id: user_moderator
-  note: DomainNameTwo
+  note: DomainTitleTwo
 

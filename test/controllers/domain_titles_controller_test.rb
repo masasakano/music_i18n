@@ -1,12 +1,12 @@
 # coding: utf-8
 require "test_helper"
 
-class DomainNamesControllerTest < ActionDispatch::IntegrationTest
+class DomainTitlesControllerTest < ActionDispatch::IntegrationTest
   # add this
   include Devise::Test::IntegrationHelpers
 
   setup do
-    @domain_name = domain_names(:one)
+    @domain_title = domain_titles(:one)
     @site_category = site_categories(:one)
     @sysadmin  = users(:user_sysadmin)
     @syshelper = users(:user_syshelper)
@@ -34,39 +34,39 @@ class DomainNamesControllerTest < ActionDispatch::IntegrationTest
   # ---------------------------------------------
 
   test "should get index" do
-    assert_operator 1, :<=, @domain_name.translations.size, "fixture testing: "+@domain_name.translations.inspect
-    assert DomainName.unknown.unknown?, "fixture testing: "+DomainName.all.inspect
+    assert_operator 1, :<=, @domain_title.translations.size, "fixture testing: "+@domain_title.translations.inspect
+    assert DomainTitle.unknown.unknown?, "fixture testing: "+DomainTitle.all.inspect
 
-    get domain_names_url
+    get domain_titles_url
     assert_response :redirect
     assert_redirected_to new_user_session_path
 
     sign_in @editor_harami
-    get domain_names_url
+    get domain_titles_url
     assert_response :redirect
     assert_redirected_to root_path
     sign_out @editor_harami
 
     sign_in @trans_moderator
-    get domain_names_url
+    get domain_titles_url
     assert_response :success
     w3c_validate "Site Category index"  # defined in test_helper.rb (see for debugging help)
     sign_out @trans_moderator
   end
 
-  test "should show domain_name" do
-    get domain_name_url(@domain_name)
+  test "should show domain_title" do
+    get domain_title_url(@domain_title)
     assert_response :redirect
     assert_redirected_to new_user_session_path
 
     sign_in @translator
-    get domain_name_url(@domain_name)
+    get domain_title_url(@domain_title)
     assert_response :redirect
     assert_redirected_to root_path
     sign_out @translator
 
     sign_in @trans_moderator
-    get domain_name_url(@domain_name)
+    get domain_title_url(@domain_title)
     assert_response :success, "Any moderator should be able to read, but..."
     w3c_validate "Site Category show"  # defined in test_helper.rb (see for debugging help)
     sign_out @trans_moderator
@@ -74,56 +74,56 @@ class DomainNamesControllerTest < ActionDispatch::IntegrationTest
 
   test "should get new" do
     sign_in @trans_moderator
-    get new_domain_name_url
+    get new_domain_title_url
     assert_response :redirect
     assert_redirected_to root_path
     sign_out @trans_moderator
 
-    refute Ability.new(@moderator_harami).can?(:new, DomainName)
+    refute Ability.new(@moderator_harami).can?(:new, DomainTitle)
 
     sign_in @moderator_ja
-    get new_domain_name_url
+    get new_domain_title_url
     assert_response :success
   end
 
-  test "should create/update/destroy domain_name by moderator" do
+  test "should create/update/destroy domain_title by moderator" do
     hs2pass = @hs_create_lang.merge({ site_category_id: @site_category.id.to_s, note: "test-create", memo_editor: "test-editor", weight: 111.24} )
     assert_no_difference("ChannelType.count") do
-      post domain_names_url, params: { domain_name: hs2pass }
+      post domain_titles_url, params: { domain_title: hs2pass }
     end
 
     [@translator, @trans_moderator].each do |ea_user|
       sign_in ea_user
-      assert_no_difference("DomainName.count") do
-        post domain_names_url, params: { domain_name: hs2pass }
+      assert_no_difference("DomainTitle.count") do
+        post domain_titles_url, params: { domain_title: hs2pass }
       end
       assert_redirected_to root_path
       sign_out ea_user
     end
 
     sign_in @moderator_ja
-    assert_difference("DomainName.count") do
-      post domain_names_url, params: { domain_name: hs2pass }
+    assert_difference("DomainTitle.count") do
+      post domain_titles_url, params: { domain_title: hs2pass }
       assert_response :redirect
     end
-    assert_redirected_to domain_name_url(new_mdl2 = DomainName.last)
+    assert_redirected_to domain_title_url(new_mdl2 = DomainTitle.last)
 
-    assert_no_difference("DomainName.count") do
-      post domain_names_url, params: { domain_name: hs2pass.merge({title: ""}) }
+    assert_no_difference("DomainTitle.count") do
+      post domain_titles_url, params: { domain_title: hs2pass.merge({title: ""}) }
       assert_response :unprocessable_entity, "should have failed due to null title, but..."
     end
 
-    assert_difference("DomainName.count") do
-      post domain_names_url, params: { domain_name: hs2pass.merge({title: new_mdl2.title}) }
-      assert_response :redirect, "identical title is allowed for DomainName! (unless one of the Domains are identical)"  ############################################ TODO
+    assert_difference("DomainTitle.count") do
+      post domain_titles_url, params: { domain_title: hs2pass.merge({title: new_mdl2.title}) }
+      assert_response :redirect, "identical title is allowed for DomainTitle! (unless one of the Domains are identical)"  ############################################ TODO
     end
 
     hs2pass2 = hs2pass.merge({title: new_mdl2.title+"01", })
-    assert_difference("DomainName.count") do  # "should succeede, but..."
-      post domain_names_url, params: { domain_name: hs2pass2 }
+    assert_difference("DomainTitle.count") do  # "should succeede, but..."
+      post domain_titles_url, params: { domain_title: hs2pass2 }
       assert_response :redirect
     end
-    assert_redirected_to domain_name_url(new_mdl3 = DomainName.last)
+    assert_redirected_to domain_title_url(new_mdl3 = DomainTitle.last)
 
     ### update/patch
 
@@ -131,8 +131,8 @@ class DomainNamesControllerTest < ActionDispatch::IntegrationTest
                  note: new_mdl3.note,
                  memo_editor: new_mdl3.memo_editor,
                  weight: new_mdl3.weight }.with_indifferent_access
-    patch domain_name_url(new_mdl3), params: { domain_name: hsupdate.merge(note: "aruyo") }
-    assert_redirected_to domain_name_url(new_mdl3)
+    patch domain_title_url(new_mdl3), params: { domain_title: hsupdate.merge(note: "aruyo") }
+    assert_redirected_to domain_title_url(new_mdl3)
     assert_equal "aruyo", new_mdl3.reload.note
 
     sign_out @moderator_ja
@@ -141,37 +141,37 @@ class DomainNamesControllerTest < ActionDispatch::IntegrationTest
     sign_in @translator
 
     note3 = "aruyo3"
-    patch domain_name_url(new_mdl3), params: { domain_name: hsupdate.merge(note: note3) }
+    patch domain_title_url(new_mdl3), params: { domain_title: hsupdate.merge(note: note3) }
     assert_response :redirect
     assert_redirected_to root_path, "should be redirected before entering Controller"
     refute_equal note3, new_mdl3.reload.note
 
     ### destroy
 
-    assert_no_difference("DomainName.count") do
-      delete domain_name_url(new_mdl3)
+    assert_no_difference("DomainTitle.count") do
+      delete domain_title_url(new_mdl3)
       assert_response :redirect
     end
     sign_out @translator
 
     sign_in @moderator_ja
-    assert_difference("DomainName.count", -1) do
-      delete domain_name_url(new_mdl3)
+    assert_difference("DomainTitle.count", -1) do
+      delete domain_title_url(new_mdl3)
       assert_response :redirect
     end
-    assert_redirected_to domain_names_url
+    assert_redirected_to domain_titles_url
     sign_out @moderator_ja
   end
 
   test "should get edit" do
     sign_in @translator
-    get edit_domain_name_url(@domain_name)
+    get edit_domain_title_url(@domain_title)
     assert_response :redirect
     assert_redirected_to root_path
     sign_out @translator
 
     sign_in @moderator_ja
-    get edit_domain_name_url(@domain_name)
+    get edit_domain_title_url(@domain_title)
     assert_response :success
     sign_out @moderator_ja
   end

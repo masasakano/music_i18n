@@ -1,6 +1,6 @@
 # == Schema Information
 #
-# Table name: domain_names
+# Table name: domain_titles
 #
 #  id                                         :bigint           not null, primary key
 #  memo_editor(Internal-use memo for Editors) :text
@@ -12,8 +12,8 @@
 #
 # Indexes
 #
-#  index_domain_names_on_site_category_id  (site_category_id)
-#  index_domain_names_on_weight            (weight)
+#  index_domain_titles_on_site_category_id  (site_category_id)
+#  index_domain_titles_on_weight            (weight)
 #
 # Foreign Keys
 #
@@ -21,10 +21,10 @@
 #
 require "test_helper"
 
-class DomainNameTest < ActiveSupport::TestCase
+class DomainTitleTest < ActiveSupport::TestCase
 
   test "associations" do
-    dname = domain_names(:one)
+    dname = domain_titles(:one)
     assert dname.site_category
     assert dname.valid?
     dname.site_category = nil

@@ -1,12 +1,12 @@
-<h1>Domain names</h1>
+<h1>Domain Titles</h1>
 
-<div id="domain_names">
-<section id="domain_names_index_table">
+<div id="domain_titles">
+<section id="domain_titles_index_table">
 
   <table>
   <thead>
     <tr>
-     <% if (caneditgen=can?(:edit, DomainName))  %>
+     <% if (caneditgen=can?(:edit, DomainTitle))  %>
       <th class="editor_only">ID</th>
      <% end %>
        <%= render "layouts/title_alt_ja_en_table", model: nil, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
@@ -25,7 +25,7 @@
   </thead>
 
   <tbody>
-    <% @domain_names.order(:weight).each do |model| %>
+    <% @domain_titles.order(:weight).each do |model| %>
       <tr>
         <% if caneditgen  %>
           <td class="editor_only"><%= link_to(model.id, model) %></td>
@@ -40,7 +40,7 @@
 
         <td><%= link_to t("tables.Show"), model %></td>
         <% if can? :update, model  %>
-          <td class="editor_only"><%= link_to 'Edit', edit_domain_name_path(model) %></td>
+          <td class="editor_only"><%= link_to 'Edit', edit_domain_title_path(model) %></td>
          <% if can? :destroy, model %>
           <td class="editor_only"><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
          <% else %>
@@ -54,14 +54,14 @@
   </tbody>
 
   </table>
-</section>  <!-- section id="domain_names_index_table" -->
+</section>  <!-- section id="domain_titles_index_table" -->
 </div>
 
 <br>
 
-<% if can? :create, DomainName %>
+<% if can? :create, DomainTitle %>
  <div class="button_new">
-  <%= button_to 'New DomainName', new_domain_name_path, method: :get %>
+  <%= button_to 'New DomainTitle', new_domain_title_path, method: :get %>
  </div>
 <% end %>
 

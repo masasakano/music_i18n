@@ -187,15 +187,15 @@ ActiveRecord::Schema[7.0].define(version: 2025_04_09_152806) do
     t.index ["iso3166_n3_code"], name: "index_country_masters_on_iso3166_n3_code", unique: true
   end
 
-  create_table "domain_names", comment: "Single domain name of all the alias domains", force: :cascade do |t|
+  create_table "domain_titles", comment: "Domain title of a set of domains including aliases", force: :cascade do |t|
     t.bigint "site_category_id", null: false
     t.float "weight", comment: "weight to sort this model index"
     t.text "note"
     t.text "memo_editor", comment: "Internal-use memo for Editors"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["site_category_id"], name: "index_domain_names_on_site_category_id"
-    t.index ["weight"], name: "index_domain_names_on_weight"
+    t.index ["site_category_id"], name: "index_domain_titles_on_site_category_id"
+    t.index ["weight"], name: "index_domain_titles_on_weight"
   end
 
   create_table "engage_hows", force: :cascade do |t|
@@ -649,7 +649,7 @@ ActiveRecord::Schema[7.0].define(version: 2025_04_09_152806) do
   add_foreign_key "channels", "users", column: "create_user_id", on_delete: :nullify
   add_foreign_key "channels", "users", column: "update_user_id", on_delete: :nullify
   add_foreign_key "countries", "country_masters", on_delete: :restrict
-  add_foreign_key "domain_names", "site_categories"
+  add_foreign_key "domain_titles", "site_categories"
   add_foreign_key "engages", "artists", on_delete: :cascade
   add_foreign_key "engages", "engage_hows", on_delete: :restrict
   add_foreign_key "engages", "musics", on_delete: :cascade

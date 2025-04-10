@@ -21,7 +21,7 @@ class SeedsSeedsTest < ActiveSupport::TestCase
   #  "ChannelOwner",
   #  "ChannelPlatform",
   #  "ChannelType",
-  #  "DomainName",
+  #  "DomainTitle",
   #  "Engage",
   #  "PlayRole",
   #  "EngageHow",

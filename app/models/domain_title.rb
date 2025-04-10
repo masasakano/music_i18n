@@ -1,7 +1,7 @@
 # coding: utf-8
 # == Schema Information
 #
-# Table name: domain_names
+# Table name: domain_titles
 #
 #  id                                         :bigint           not null, primary key
 #  memo_editor(Internal-use memo for Editors) :text
@@ -13,14 +13,14 @@
 #
 # Indexes
 #
-#  index_domain_names_on_site_category_id  (site_category_id)
-#  index_domain_names_on_weight            (weight)
+#  index_domain_titles_on_site_category_id  (site_category_id)
+#  index_domain_titles_on_weight            (weight)
 #
 # Foreign Keys
 #
 #  fk_rails_...  (site_category_id => site_categories.id)
 #
-class DomainName < BaseWithTranslation
+class DomainTitle < BaseWithTranslation
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
 

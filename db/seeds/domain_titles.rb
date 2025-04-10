@@ -4,14 +4,14 @@ require_relative("common.rb")  # defines: module Seeds
 require_relative("channel_platforms.rb")
 require_relative("site_categories.rb")
 
-# Model: Channels
+# Model: DomainTitle
 #
 # NOTE: SiteCategory must be loaded beforehand!
-module Seeds::DomainNames
+module Seeds::DomainTitles
   extend Seeds::Common
 
   # Corresponding Active Record class
-  RECORD_CLASS = self.name.split("::")[-1].singularize.constantize # DomainName
+  RECORD_CLASS = self.name.split("::")[-1].singularize.constantize # DomainTitle
 
   # Everything is a function
   module_function
@@ -26,10 +26,10 @@ module Seeds::DomainNames
       weight: 10,
       # site_category: Proc.new{SiteCategory.unknown(reload: true)},
       site_category: Proc.new{SiteCategory.find_by(mname: "unknown") || raise(SiteCategory.all.inspect)},
-      site_category_key: :unknown,  # used for test fixtures /test/fixtures/domain_names.yml
+      site_category_key: :unknown,  # used for test fixtures /test/fixtures/domain_titles.yml
       note: nil,
       memo_editor: nil,
-      regex: Proc.new{RECORD_CLASS.unknown}  # to check potential duplicates for DomainName
+      regex: Proc.new{RECORD_CLASS.unknown}  # to check potential duplicates for DomainTitle
     },
     haramichan_main: {
       ja: ['ハラミちゃんホームページ', 'ハラミちゃん'],
