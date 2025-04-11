@@ -1,14 +1,25 @@
-<%# local vars: form, model4ability, (optional) skip_ability_check (Def: false) %>
+<%# local vars: form, model4ability, (optional) skip_ability_check (Def: false), show_weight(Boolean (Def: true)) %>
 <%#   NOTE: form for SimpleForm. model4ability may be a model instance or model class, used for an Ability check.  Former is recommended. %>
-<%# USAGE:  render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: Artist.first, skip_ability_check: true} %>
+<%#   NOTE: You may specify skip_ability_check=true because if the user has a priviledge to edit the model, they are likely to be allowed to edit memo_editor (and weight). %>
+<%#   NOTE: If the model has a weight, unless show_weight is given false, it is displayed as editor-only. %>
+<%# USAGE:  render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: Artist.first, skip_ability_check: true, , show_weight: false} %>
 
 <% if !defined?(skip_ability_check) %>
   <% skip_ability_check = false %>
 <% end %>
+<% if !defined?(show_weight) %>
+  <% show_weight = true %>
+<% end %>
+
+<% if show_weight && model4ability.has_attribute?(:weight) && (skip_ability_check || canupdate=can?(:update, model4ability)) %>
+  <div class="editor_only weight">
+  <%= form.input :weight, hint: "Smaller value (> 0) means a higher priority in display." %>
+  </div>
+<% end %>
 
   <%= form.input :note %>
 
-<% if model4ability.has_attribute?(:memo_editor) && (skip_ability_check || can?(:update, model4ability)) %>
+<% if model4ability.has_attribute?(:memo_editor) && (skip_ability_check || canupdate || canupdate.nil? && can?(:update, model4ability)) %>
   <div class="editor_only memo_editor">
   <%= form.input :memo_editor, hint: "Non-public memo/note viewable only for editors" %>
   </div>

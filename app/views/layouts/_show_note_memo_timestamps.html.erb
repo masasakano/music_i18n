@@ -1,20 +1,33 @@
-<%# local vars: model, (optional) model4ability (Model or Boolean), show_timestamp(Boolean) %>
+<%# local vars: model, (optional) model4ability (Model or Boolean), show_weight(Boolean (Def: true)), show_timestamp(Boolean) %>
 <%#   NOTE: model4ability may be a model instance or model class or Boolean, used for an Ability check. In default (if not given), model is used.  If TrueClass, the boolean value is used, skipping the ability check, where the value is interpreted as the permission to display Editor's Note. %>
+<%#   NOTE: If the model does not have "memo_editor" it is simply not displayed. %>
+<%#   NOTE: If the model has a weight, unless show_weight is given false, it is displayed as editor-only. %>
 <%#   NOTE: If show_timestamp (Boolean) is not given, the same check for model4ability is applied. %>
-<%# USAGE:  render partial: 'layouts/show_note_memo_timestamps', locals: {model: artist, model4ability: !!can_update_gen} %>
+
+<%# USAGE:  render partial: 'layouts/show_note_memo_timestamps', locals: {model: music, model4ability: !!can_update_gen} %>
 
 <% if !defined?(model4ability) %>
   <% model4ability = model %>
+<% end %>
+<% if !defined?(show_weight) %>
+  <% show_weight = true %>
 <% end %>
 <% show_editor_note = ((true == model4ability) || model4ability && can?(:update, model4ability)) %>
 <% if !defined?(show_timestamp) %>
   <% show_timestamp = show_editor_note %>
 <% end %>
 
+<% if show_weight && model.has_attribute?(:weight) %>
+  <div class="editor_only weight">
+  <dt class="item_weight">Weight:</dt>
+    <dd class="item_weight"><%= model.weight %></dd>
+  </div>
+<% end %>
+
   <dt class="item_note"><%= t("tables.note").capitalize %>:</dt>
     <dd class="item_note"><%= sanitized_html(auto_link(model.note)).html_safe %></dd>
 
-<% if model.has_attribute?(:memo_editor) && show_editor_note %>
+<% if show_editor_note && model.has_attribute?(:memo_editor) %>
   <div class="editor_only memo_editor">
   <dt class="item_memo_editor">Editor's memo:</dt>
     <dd class="item_memo_editor"><%= sanitized_html(auto_link(model.memo_editor)).html_safe %></dd>

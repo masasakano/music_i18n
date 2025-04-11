@@ -2,7 +2,7 @@
 <div id="<%= dom_id domain_title %>">
 <% model = domain_title %>
 <dl>
-  <% if (can_update_gen=can?(:update, SiteCategory)) %>
+  <% if (can_update_gen=can?(:update, DomainTitle)) %>
    <div class="editor_only">
     <dt>pID (<%= model.class.name %>)</dt>
     <dd> <%= model.id %></dd>
@@ -14,7 +14,7 @@
   <% end %>
 
     <dt class="item_id_site_category"> <%= t(:SiteCategory) %>:</dt>
-    <dd class="item_id_site_category"><%= link_to((sc=model.site_category).title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "CO", article_to_head: true), model, title: sc.mname) if model.site_category %></dd>
+    <dd class="item_id_site_category"><%= link_to((sc=model.site_category).title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "CO", article_to_head: true), sc, title: sc.mname) if model.site_category %></dd>
   <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: model, model4ability: can_update_gen} %>
 </dl>
 </div>

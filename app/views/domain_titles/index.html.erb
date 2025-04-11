@@ -29,10 +29,12 @@
       <tr>
         <% if caneditgen  %>
           <td class="editor_only"><%= link_to(model.id, model) %></td>
+        <% end %>
        <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
+        <% if caneditgen  %>
           <td class="editor_only item_weight"><%= model.weight %></td>
         <% end %>
-          <td class="item_site_category"><%= link_to((sc=model.site_category).title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "CO", article_to_head: true), model, title: sc.mname) if model.site_category %></td>
+          <td class="item_site_category"><%= link_to((sc=model.site_category).title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "CO", article_to_head: true), sc, title: sc.mname) if model.site_category %></td>
           <td class="item_note"><%= model.note %></td>
         <% if caneditgen  %>
           <td class="editor_only item_memo_editor_present"><%= "Y" if model.memo_editor.present? %></td>

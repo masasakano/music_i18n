@@ -77,7 +77,7 @@ module Seeds::DomainTitles
     chronicle_harami: {
       ja: Seeds::ChannelPlatforms::SEED_DATA[:harami_event_list][:ja],
       en: Seeds::ChannelPlatforms::SEED_DATA[:harami_event_list][:en],
-      orig_langcode: 'en',
+      orig_langcode: 'ja',
       site_category: Proc.new{SiteCategory.find_by(mname: "chronicle")},
       site_category_key: :chronicle,
     },

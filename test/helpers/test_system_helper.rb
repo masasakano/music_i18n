@@ -1,7 +1,7 @@
 # coding: utf-8
 require "test_helper"
 
-# @example
+# @example Already required in test_helper
 #    require "helpers/test_system_helper"
 #
 class ActiveSupport::TestCase
@@ -135,5 +135,62 @@ class ActiveSupport::TestCase
     opts[:locale] = locale if I18n.locale
     label_str = I18n.t('layouts.new_translations.'+kind.to_s, **opts)
     find_field(label_str, match: :first).fill_in with: title_str
+  end
+
+  # logon in a system test
+  def logon_system_test(user)
+  end
+
+  # performs log on
+  def login_or_fail_index(user)
+    #visit new_user_session_path  # already on this page.
+    fill_in "Email", with: user.email
+    fill_in "Password", with: '123456'  # from users.yml
+    click_on "Log in"
+  end
+
+  # performs log on and assertion
+  #
+  # When returned, user_succeed is still logged on (unless it is specified nil)
+  #
+  # @example Simplest form
+  #   assert_index_fail_succeed(Domain.new, user_succeed: @trans_moderator)  # defined in test_system_helper.rb
+  #
+  # @example Full form
+  #   assert_index_fail_succeed(Domain.new, "Domains", user_fail: @editor_harami, user_succeed: @trans_moderator)  # defined in test_system_helper.rb
+  #
+  # @param index_path [String, ActiveRecord] Either the index path or a Model record
+  # @param h1_title [String, NilClass] h1 title string for index page. If nil, it is guessed from the model, assuming the first argument is a model (NOT the path String)
+  # @param user_fail: [User, NilClass] who fails to see the index page. if nil, the non-authorized user.
+  # @param user_user_succeed: [User, NilClass] who succcessfully sees the index page
+  def assert_index_fail_succeed(model, h1_title=nil, user_fail: nil, user_succeed: nil)
+    index_path = model
+    index_path = Rails.application.routes.url_helpers.polymorphic_path(model.class) if model.respond_to?(:destroy!) 
+    h1_title ||= model.class.name.underscore.pluralize.split("_").map(&:capitalize).join(" ")  # e.g., "Event Items"
+
+    ## Failing
+    if user_fail
+      visit new_user_session_path
+      assert_current_path new_user_session_path
+
+      login_or_fail_index(user_fail)
+
+      visit index_path
+      assert_current_path root_path
+      click_on "Log out", match: :first
+      assert_text "Signed out successfully"
+    end
+
+    return if !user_succeed
+
+    ## Succeeding
+    visit index_path
+    assert_current_path new_user_session_path
+    assert_text "You need to sign in or sign up"
+
+    login_or_fail_index(user_succeed)
+
+    assert_selector "h1", text: h1_title
+    assert_text "Signed in successfully"
   end
 end

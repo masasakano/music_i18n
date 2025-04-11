@@ -24,9 +24,8 @@
 
   <div class="form-inputs">
     <%= f.association :site_category, include_blank: false, default: SiteCategory.unknown.id %>
-    <%= f.input :weight, hint: "Smaller value means a higher priority in display." %>
 
-    <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: DomainTitle, skip_ability_check: true} %>
+    <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: DomainTitle, skip_ability_check: true} %> <%# weight, note, memo_editor %>
   </div>
 
   <div class="form-actions">

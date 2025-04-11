@@ -49,8 +49,10 @@ en:
   comma: ", "
   detail: Detail
   display_name: Display Name
-  DomainName: "Domain name"
-  DomainNames: "Domain names"
+  Domain: "Domain"
+  Domains: "Domains"
+  DomainTitle: "Domain title"
+  DomainTitles: "Domain titles"
   eg_independent: "e.g., "
   error: error
   etc: etc

@@ -24,7 +24,6 @@
 
   <div class="form-inputs">
     <%= f.input :mname, hint: "Semi-permanent unique name (do not alter this!)" %>
-    <%= f.input :weight, hint: "Smaller value means a higher priority in display." %>
     <%= f.input :summary, hint: "Longer description." %>
 
     <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: SiteCategory, skip_ability_check: true} %>
