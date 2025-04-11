@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2025_04_09_152806) do
+ActiveRecord::Schema[7.0].define(version: 2025_04_10_141109) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -196,6 +196,17 @@ ActiveRecord::Schema[7.0].define(version: 2025_04_09_152806) do
     t.datetime "updated_at", null: false
     t.index ["site_category_id"], name: "index_domain_titles_on_site_category_id"
     t.index ["weight"], name: "index_domain_titles_on_weight"
+  end
+
+  create_table "domains", comment: "Domain or any subdomain", force: :cascade do |t|
+    t.string "domain", comment: "Domain or any subdomain such as abc.def.com"
+    t.bigint "domain_title_id", null: false
+    t.float "weight", comment: "weight to sort this model within DomainTitle"
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["domain"], name: "index_domains_on_domain", unique: true
+    t.index ["domain_title_id"], name: "index_domains_on_domain_title_id"
   end
 
   create_table "engage_hows", force: :cascade do |t|
@@ -650,6 +661,7 @@ ActiveRecord::Schema[7.0].define(version: 2025_04_09_152806) do
   add_foreign_key "channels", "users", column: "update_user_id", on_delete: :nullify
   add_foreign_key "countries", "country_masters", on_delete: :restrict
   add_foreign_key "domain_titles", "site_categories"
+  add_foreign_key "domains", "domain_titles", on_delete: :cascade
   add_foreign_key "engages", "artists", on_delete: :cascade
   add_foreign_key "engages", "engage_hows", on_delete: :restrict
   add_foreign_key "engages", "musics", on_delete: :cascade

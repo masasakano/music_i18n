@@ -1,0 +1,35 @@
+
+<%= render partial: 'layouts/form_print_errors', locals: {model: @domain} %>
+
+<% if ! @domain.new_record? %>
+<hr>
+<% end %>
+<section id="sec_primary">
+
+<div id="form_main">
+
+<%= simple_form_for(@domain) do |f| %>
+ <section id="sec_primary_input">
+  <%= f.error_notification %>
+  <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
+
+  <div class="form-inputs">
+    <%= f.input :domain, placeholder: "www.example.com  (no path element)" %>
+    <%= f.association :domain_title, include_blank: false, default: DomainTitle.unknown.id, hint: ("If not listed, "+link_to("create one", new_domain_title_path)).html_safe %>
+
+    <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: Domain, skip_ability_check: true} %> <%# weight, note, memo_editor %>
+  </div>
+
+  <div class="form-actions">
+    <%= f.submit %> <%# Default one aesthetically does not work well...:  f.button :submit %>
+  </div>
+  <div class="actions">
+  <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  </div>
+ </section> <!-- section id="sec_primary_input" -->
+<% end %>
+
+</div> <!-- div id="form_main" -->
+
+</section> <!-- section id="sec_primary" -->
+

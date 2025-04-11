@@ -1,0 +1,21 @@
+<section id="sec_primary_show">
+<div id="<%= dom_id domain %>">
+<% model = domain %>
+<dl>
+  <% can_update_gen=can?(:update, Domain) %>
+  <% if can_update_gen %>
+   <div class="editor_only">
+    <dt>pID (<%= model.class.name %>)</dt>
+    <dd> <%= model.id %></dd>
+   </div>
+  <% end %>
+  
+    <dt class="item_id_domain"> <%= t(:Domain) %>:</dt>
+    <dd class="item_id_domain"><%= link_to(model.domain) if model.domain %></dd>  <%# Rails prohibits a null value, but playing safe %>
+    <dt class="item_id_domain_title"> <%= t(:DomainTitle) %>:</dt>
+    <dd class="item_id_domain_title"><%= link_to(model.domain_title.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "CO", article_to_head: true), model.domain_title, title: "Generic name") if model.domain_title %></dd>
+
+  <%=  render partial: 'layouts/show_note_memo_timestamps', locals: {model: model, model4ability: !!can_update_gen} %>
+</dl>
+</div>
+</section>  <%# closing section id="sec_primary_show" %>

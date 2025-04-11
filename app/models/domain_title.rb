@@ -42,6 +42,7 @@ class DomainTitle < BaseWithTranslation
   }.with_indifferent_access
 
   belongs_to :site_category
+  has_many :domains, dependent: :destroy  # cascade in DB. But this should be checked in Rails controller level!
 
   validates_numericality_of :weight, allow_nil: true
   validates :weight, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true

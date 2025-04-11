@@ -813,7 +813,7 @@ allfiles.each do |seed|
       klass = Seeds.const_get(camel) # e.g., Seeds::PlayRole
     rescue NameError
       # maybe seeds_user.rb in the production environment, where SeedsUser is deliberately undefined.
-      puts "NOTE: skip running "+seedfile2print #if $DEBUG
+      puts "NOTE: skip running (maybe due to the wrong module name) "+seedfile2print #if $DEBUG
       next
     end
     if !klass.respond_to? :load_seeds 

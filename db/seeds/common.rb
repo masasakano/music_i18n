@@ -30,7 +30,7 @@ module Seeds
       Channel, ChannelPlatform, ChannelType, ChannelOwner,
       Artist, Music, Genre, 
       Place, Prefecture, Country, CountryMaster,
-      DomainName,
+      Domain, DomainTitle,
       SiteCategory,
       UserRoleAssoc, User, Role, RoleCategory,
       Sex, Translation,
@@ -228,7 +228,7 @@ module Seeds
         end
         self::MODELS[key] =  model
 
-        n_changed += translation_save(model, ehs)
+        n_changed += translation_save(model, ehs) if model.respond_to?(:best_translations)
       end
 
       n_changed

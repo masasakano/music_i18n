@@ -30,5 +30,32 @@ class DomainTitleTest < ActiveSupport::TestCase
     dname.site_category = nil
     refute dname.valid?
   end
+
+  test "has_many domains" do
+    d1 = Domain.new(domain: "a.xyz.com")
+    d2 = Domain.new(domain: "b.xyz.com")
+    dt = domain_titles(:one)
+
+    assert_difference('dt.domains.count', 2){
+      assert_difference('Domain.count', 2){
+        dt.domains << d1
+        dt.domains << d2
+      }
+    }
+    assert d1.id
+    assert d2.id
+    assert_equal dt, d1.domain_title
+    assert_equal dt, d2.domain_title
+    n_child_domains = dt.domains.count
+    assert_operator 2, :<=, n_child_domains
+
+    ## cascade deletion in the model-level.
+    dt.domains.reset
+    assert_difference('DomainTitle.count', -1){
+      assert_difference('Domain.count', -n_child_domains){
+        dt.destroy
+      }
+    }
+  end
 end
 

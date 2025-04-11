@@ -1,0 +1,65 @@
+<h1>Domains</h1>
+
+<div id="domains">
+<section id="domains_index_table">
+
+  <table>
+  <thead>
+    <tr>
+     <% if (caneditgen=can?(:edit, Domain))  %>
+      <th class="editor_only">ID</th>
+     <% end %>
+      <th title="Domain"><%= t(:Domain) %></th>
+      <th title="DomainTitle"><%= t(:DomainTitle) %></th>
+     <% if caneditgen %>
+      <th class="editor_only" title="Weight for sorting.">Weight</th>
+     <% end %>
+      <th title="Note in this DB">Note</th>
+      <% if caneditgen %>
+        <th class="editor_only" colspan="3"></th>
+      <% else %>
+        <th></th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @domains.each do |model| %>  <%# already sorted by the controller %>
+      <tr>
+        <% if caneditgen  %>
+          <td class="editor_only"><%= link_to(model.id, model) %></td>
+        <% end %>
+          <td class="item_domain"><%= link_to(model.domain, "https://"+model.domain, target: "_blank") if model.domain %></td>  <%# Rails prohibits a null value, but playing safe %>
+          <td class="item_domain_title"><%= link_to(model.domain_title.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "(undefined)", article_to_head: true), model.domain_title, title: "Generic title for the domain") if model.domain_title %></td> <%# Rails prohibits a null value, but playing safe %>
+        <% if caneditgen  %>
+          <td class="editor_only item_weight"><%= model.weight %></td>
+        <% end %>
+          <td class="item_note"><%= model.note %></td>
+
+        <td><%= link_to t("tables.Show"), model %></td>
+        <% if can? :update, model  %>
+          <td class="editor_only"><%= link_to 'Edit', edit_domain_path(model) %></td>
+         <% if can? :destroy, model %>
+          <td class="editor_only"><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+         <% else %>
+          <td class="editor_only"></td>
+         <% end %>
+        <% else %>
+          <td colspan="2" class="editor_only"></td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+
+  </table>
+</section>  <!-- section id="domains_index_table" -->
+</div>
+
+<br>
+
+<% if can? :create, Domain %>
+ <div class="button_new">
+  <%= button_to 'New Domain', new_domain_path, method: :get %>
+ </div>
+<% end %>
+

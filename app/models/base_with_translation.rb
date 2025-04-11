@@ -1200,7 +1200,17 @@ class BaseWithTranslation < ApplicationRecord
   #    For example,  is_orig: true
   # @return [BaseWithTranslation::ActiveRecord_Relation, Array<BaseWithTranslation>] Note this returns SQL-string or Hash if debug_return_sql is true
   def self.select_regex(*args, debug_return_sql: false, **restkeys)
-    rela = select_translations_regex(*args, debug_return_sql: false, **restkeys)
+    begin
+       rela = select_translations_regex(*args, debug_return_sql: false, **restkeys)
+    rescue ArgumentError => err
+      if args[0].is_a?(Regexp)
+        msg = "BaseWithTranslation.#{__method__.to_s} must be given two arguments like (:titles, /ABC/), but the given arguments seems wrong: #{args.inspect}"
+        warn msg
+        logger.error msg
+      end
+      raise
+    end
+
     if rela.respond_to?(:to_sql)
       _select_regex_sql(rela.to_sql, debug_return_sql: debug_return_sql)
     else

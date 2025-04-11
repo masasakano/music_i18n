@@ -1,0 +1,14 @@
+<h1><%= t(:Domain) %>: <%= @domain.domain %></h1>
+
+<hr>
+<section id="sec_primary">
+
+<%= render @domain %>
+
+<%= render partial: 'layouts/show_edit_destroy', locals: {model: @domain, destroyable: true} %> <%# How about associations? %>
+
+</section> <%# closing section id="sec_primary" %>
+
+<hr>
+  <%= link_to t("layouts.back_to_index"), domains_path %>
+

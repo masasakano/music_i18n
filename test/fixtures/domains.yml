@@ -1,0 +1,39 @@
+# == Schema Information
+#
+# Table name: domains
+#
+#  id                                                   :bigint           not null, primary key
+#  domain(Domain or any subdomain such as abc.def.com)  :string
+#  note                                                 :text
+#  weight(weight to sort this model within DomainTitle) :float
+#  created_at                                           :datetime         not null
+#  updated_at                                           :datetime         not null
+#  domain_title_id                                      :bigint           not null
+#
+# Indexes
+#
+#  index_domains_on_domain           (domain) UNIQUE
+#  index_domains_on_domain_title_id  (domain_title_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (domain_title_id => domain_titles.id) ON DELETE => cascade
+#
+
+<% Seeds::Domains::SEED_DATA.each_pair do |ekey, edata| %>
+domain_<%= ekey %>:
+  domain: <%= edata[:domain] %>
+  domain_title: domain_title_<%= (pro=edata[:domain_title_key]) ? pro.to_s : "unknown" %>
+  weight: <%= edata[:weight] %>
+  note: SiteCategory<%= ekey.to_s.camelize %>
+<% end %>
+
+one:
+  domain: www1.one.com
+  domain_title: one
+  note: MyTextDomain1
+
+two:
+  domain: www2.two.com
+  domain_title: two
+  note: MyTextDomain2
