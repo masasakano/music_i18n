@@ -1,13 +1,29 @@
 
-<%# imported local variables: [mandatory] model, [optional] destroyable (Boolean. At the model level like association prohibition (so that the button is dimmed), NOT the controller/user level) %>
+<%# imported local variables: [mandatory] model, [optional] destroyable (Boolean. At the model level like association prohibition (so that the button is dimmed), NOT the controller/user level), permission_level [Symbol, String] (:editor (Def), :moderator, :any; used for CSS) %>
 <%# @example:  render 'layouts/show_edit_destroy', locals: {model: @my_model, destroyable: !@my_model.child_cars.exists?} %>
 
 <% if !defined? destroyable
      destroyable = nil
    end %>  <%# This has to be written over multiple lines. %>
+<% if !defined? permission_level
+     permission_level = :editor
+   end %>  <%# This has to be written over multiple lines. %>
+
+<% permission_level ||= :editor
+   permission_css =
+     case (s=permission_level.to_s)
+     when "editor", "moderator"
+       sprintf(' class="%s_only"', s).html_safe
+     when "any"
+       "".html_safe
+     else
+       raise "Invalid local parameter permission_level in /app/views/layouts/_show_edit_destroy.html.erb"
+     end
+%>
 
 <% if can? :update, model %>
   <section id="edit_destroy_in_show">
+   <div<%= permission_css %>>
     <span class="lead">
       <%= link_to "Edit this #{model.class.name}", Rails.application.routes.url_helpers.polymorphic_path(model, action: :edit) %>
     </span>
@@ -21,6 +37,7 @@
         <% end %>
       </span>
     <% end %>
+   </div>
   </section>
 <% end %>
 

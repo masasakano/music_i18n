@@ -10,5 +10,11 @@
 </section> <%# closing section id="sec_primary" %>
 
 <hr>
+
+<h2>Sibling Domains</h2>
+
+<%= render partial: 'layouts/domains_index', locals: {domains: @domain.domain_title.domains.left_joins(:domain_title).order("domain_titles.weight", "domains.weight", "domains.created_at"), with_parent: false, this_model: @domain} %>
+
+<hr>
   <%= link_to t("layouts.back_to_index"), domains_path %>
 

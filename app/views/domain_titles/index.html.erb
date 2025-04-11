@@ -14,6 +14,7 @@
       <th class="editor_only" title="Weight for sorting.">Weight</th>
      <% end %>
       <th title="SiteCategory"><%= t(:SiteCategory) %></th>
+      <th title="Number of registered Domains">#Domains</th>
       <th title="Note in this DB">Note</th>
       <% if caneditgen %>
         <th class="editor_only" title="Whether editor's memo exists">Memo?</th>
@@ -35,6 +36,7 @@
           <td class="editor_only item_weight"><%= model.weight %></td>
         <% end %>
           <td class="item_site_category"><%= link_to((sc=model.site_category).title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "CO", article_to_head: true), sc, title: sc.mname) if model.site_category %></td>
+          <td class="item_ndomains text-end"><%= model.domains.count %></td>
           <td class="item_note"><%= model.note %></td>
         <% if caneditgen  %>
           <td class="editor_only item_memo_editor_present"><%= "Y" if model.memo_editor.present? %></td>

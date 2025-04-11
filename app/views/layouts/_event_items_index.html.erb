@@ -41,7 +41,7 @@
   </thead>
 
   <tbody>
-    <% event_items.order(:start_time, :weight, :publish_date).each do |event_item| %>
+    <% event_items.joins(:event).order("events.start_time", :weight, :publish_date).each do |event_item| %>
       <tr<%= ' class="self_in_table"'.html_safe if (is_self=(this_event_item && event_item == this_event_item)) %>>
         <% if canedit %>
           <td class="editor_only"><%= link_to event_item.id, event_item %></td>
