@@ -59,7 +59,13 @@ class ArtistTest < ActiveSupport::TestCase
 
     # Successful save.
     art.birth_day   = 28
+    assert art.new_record?
+    assert art.valid?
     assert_nothing_raised{ art.save! }
+
+    refute art.valid?  # Translation must be added once created!
+    art.translations.create!(langcode: "en", title: "tmp01-#{__method__.to_s}")
+    assert art.valid?
 
     ## Foreign key dependency
 
@@ -136,6 +142,15 @@ class ArtistTest < ActiveSupport::TestCase
     assert     art2.valid?  # comparing with Translations
     art2.place = art1.place
     assert_not art2.valid?  # validation fails again.
+
+    # validation should pass
+    pla = places(:tocho)
+    hsin = {langcode: "en", title: "for-val03-#{__method__.to_s}", sex: Sex.second, place: pla, birth_year: 2000, birth_month: 1, birth_day: 1, note: "art3"}
+    art3 = Artist.create_basic!(**hsin)
+    art4 = nil
+    assert_nothing_raised{
+      art4 = Artist.create_basic!(**(hsin.merge({birth_year: 1999, note: "art4"}))) }
+    refute art4.update(birth_year: art3.birth_year)  # should fail as only the difference is "note"
   end
 
   test "callback before_validation add_place_for_validation" do

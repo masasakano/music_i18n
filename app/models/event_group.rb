@@ -259,7 +259,9 @@ class EventGroup < BaseWithTranslation
 
     evt = Event.initialize_with_def_time(event_group: self)
     evt.unsaved_translations = unsaved_transs
-    (self.events << evt).last
+    evt.save!
+    evt
+    #(self.events << evt).last
   end
 
   # Callback to delete the last-remaining "unknown" Event

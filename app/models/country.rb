@@ -146,6 +146,11 @@ class Country < BaseWithTranslation
   # e.g., Country['Canada','en',true].best_translation('ja')
   ALLOW_IDENTICAL_TITLE_ALT = true
 
+  # Optional constant for a subclass of {BaseWithTranslation} to define the scope
+  # of required uniqueness of title and alt_title.
+  # Disabled because a custom +validate_translation_callback+ is implemented instead.
+  TRANSLATION_UNIQUE_SCOPES = :disable
+
   belongs_to :country_master, optional: true  # e.g., Country.unknown does not have a Parent.
   has_many :prefectures, dependent: :destroy
   has_many :places, through: :prefectures
@@ -477,7 +482,7 @@ class Country < BaseWithTranslation
   # @param record [Translation]
   # @return [Array] of Error messages, or empty Array if everything passes
   def validate_translation_callback(record)
-    msg = msg_validate_double_nulls(record)
+    msg = msg_if_validate_double_nulls(record)
     return [msg] if msg
 
     tit     = record.title

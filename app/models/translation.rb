@@ -67,6 +67,7 @@ class Translation < ApplicationRecord
   belongs_to :translatable, polymorphic: true
   belongs_to :create_user, class_name: "User", foreign_key: "create_user_id", optional: true
   belongs_to :update_user, class_name: "User", foreign_key: "update_user_id", required: false
+  #belongs_to :sex, -> { where(translations: { translatable_type: 'Sex' }) }, foreign_key: 'translatable_id'  # This for some reason invalidates "<<" ...  # cf. https://veelenga.github.io/joining-polymorphic-associations/
 
   class OneSignificanceValidator < ActiveModel::Validator
     def validate(record)
@@ -118,17 +119,99 @@ class Translation < ApplicationRecord
 
       ## Custom callback of the parent
       parent = (record.translatable || (record.translatable_type.constantize rescue nil)) # This returns either a model OR for a new record, a model class.  For the latter, validate_translation_callback must be defined as a class method in the model class to be executed.
+      return if !parent
+
       #if parent.respond_to? :validate_translation_for_new_base_callback
       #  # for new record, defined in base_with_translation.rb
       #  parent.validate_translation_for_new_base_callback(record)
       #end
 
-      if parent.respond_to? :validate_translation_callback
+      if parent.respond_to?(:validate_translation_callback) && 
+         (parent.force_validate_translation ||
+          record.new_record? ||
+          1 == parent.translations.count ||
+          parent.validate_translation_callback( Translation.find record.id ))  # If multiple Translations exist for the parent and if somehow not all of them are valid in the parent's context, we do not perform this validation.
         [parent.validate_translation_callback(record)].flatten.compact.each do |msg|
           record.errors.add :base, msg
         end
       end
+
+      return if record.translatable.blank?
+      # now, parent == record.translatable (guaranteed)
+
+      scope_prms = nil
+      if parent.class.const_defined?(:TRANSLATION_UNIQUE_SCOPES)
+        scope_prms = 
+          case (ar = parent.class::TRANSLATION_UNIQUE_SCOPES)
+          when :disable
+            return
+          when :default
+            nil
+          else
+            ar
+          end
+      end
+      scope_prms ||= []
+
+      scope, ar_titles = _build_unique_scope(record, scope_prms)
+
+      if scope.exists?
+        fmt = ((2 == ar_titles.size) ? '(either of %s)' : '%s')
+        msg = sprintf("Same Translation #{fmt} has been already taken for langcode=%s by Translation-pIDs=%s", ar_titles.inspect, record.langcode.inspect, scope.ids.inspect)
+        record.errors.add :base, msg
+      end
     end
+
+    # Returns a scope
+    #
+    # @param record [Translation]
+    # @param scope_prms [Array] attributes to take into account
+    # @return [ActiveRecord::AssociationRelation<Translation>]
+    def _build_unique_scope(record, scope_prms)
+      parent = record.translatable
+      tbl_name = record.translatable_type.constantize.table_name
+
+      strictly_unique = true
+      strictly_unique = parent.class::TRANSLATION_STRICTLY_UNIQUE_TITLES if parent.class.const_defined?(:TRANSLATION_STRICTLY_UNIQUE_TITLES)
+
+      scope_hash = (BASE_TRANSLATION_UNIQUE_SCOPES.map{|i| [sprintf("%s.%s", record.class.table_name, i.to_s), record.send(i)]} +
+                    scope_prms.map{|i| _build_optional_unique_pair(parent, i, tbl_name: tbl_name)}).to_h
+      # scope = Translation.joins(tbl_name.singularize).where(scope_hash).where.not(id: record.id)  # With an added belongs_to with an explicit foreign_key etc, this should work, but it didn't...
+      # scope = Translation.includes(tbl_name.singularize).where(scope_hash).where.not(id: record.id)  # This should work, but it didn't...
+      scope = Translation.joins(sprintf("INNER JOIN %s ON translations.translatable_id = %s.id", *([tbl_name]*2))).where(scope_hash).where.not(id: record.id)
+
+      tit, alt_tit = %i(title alt_title).map{|i| (s=record.send(i)) ? s.strip : nil }
+      artit = [tit, alt_tit]
+      scope = 
+        if strictly_unique
+          artit = artit.map{|i| i.present? ? i : nil}.compact
+          scope.where(title: artit).or(scope.where(alt_title: artit))
+        else
+          scope.where(title: (tit.present? ? tit : [nil, ""]), alt_title: (alt_tit.present? ? alt_tit : [nil, ""])).where.not(title: tit, alt_title: alt_tit)
+        end
+
+      [scope, artit]
+    end
+    private :_build_unique_scope
+
+    # Returns a pair of key and value to match in search of the existing record set
+    #
+    # @param parent [BaseWithTranslation] translatable (i.e., parent of Translation)
+    # @param att [String, Symbol] attribute name
+    # @param tbl_name [String] table name for record
+    # @return [Array] 2-element of key and value
+    def _build_optional_unique_pair(parent, att, tbl_name: nil)
+      tbl_name ||= parent.class.table_name
+      value =
+        if %w(create_user update_user).include?(att.to_s)
+          ModuleWhodunnit.whodunnit
+        else
+          parent.send(att)
+        end
+
+      [sprintf("%s.%s", tbl_name, att.to_s), value]
+    end
+    private :_build_optional_unique_pair
 
     # A(title, alt_title) should not be B(title, alt_title) or its reverse.
     #
@@ -210,6 +293,8 @@ class Translation < ApplicationRecord
     en: 3,  # "AI" => %w(AI); "ers" => ["Ray Peterson", "Proclaimers, The",  ...]
   }.with_indifferent_access
 
+  BASE_TRANSLATION_UNIQUE_SCOPES = %i(translatable_type langcode)
+
   validates :title, uniqueness: { scope: [:alt_title, :ruby, :alt_ruby, :romaji, :alt_romaji, :langcode, :translatable_type, :translatable_id] }
   # NOTE: PostgreSQL does not validate the values when one of any values (whether
   #   existing or new) is null.  But Rails does.
@@ -217,7 +302,7 @@ class Translation < ApplicationRecord
   validates :langcode, presence: true, length: {is: 2}
 
   validate :asian_char_validator
-  validates_with OneSignificanceValidator, fields: TRANSLATED_KEYS
+  validates_with OneSignificanceValidator, fields: %w(title alt_title)  # TRANSLATED_KEYS
   validates_with UniqueCombiValidator
 
   #### After much thought, this validation is removed, because such Translation-s should never be directly saved in reality.
@@ -1539,7 +1624,17 @@ class Translation < ApplicationRecord
     }
   end
 
-  # Simpler method of update or create
+  # [OBSOLETE] Simpler method of update or create
+  #
+  # == WARNING
+  #
+  # This is obsolete partly because picking up the right Translation highly
+  # depends on its {#translatable} and is basically impossible strictly speaking,
+  # and partly because a contradictory identification is possible; for example,
+  # when the specified title matches record1 and alt_title does record2,
+  # the identification is ambiguous.
+  #
+  # == Description
   #
   # Wrapper of either {Translation.update_or_create_regex!} or
   # {ModuleCommon#update_or_create_by_with_notouch!}

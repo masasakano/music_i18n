@@ -116,7 +116,8 @@ class TranslationTest < ActiveSupport::TestCase
     tit     = 'Abc'
     alt_tit = 'Xyz'
     trans1 = Translation.create!(title: tit, alt_title: alt_tit, **hsbase)
-    Translation.create!(title: "", alt_title: nil, romaji: "something", **hsbase)
+    # Translation.create!(title: "", alt_title: nil, romaji: "something", **hsbase)  # This combination used to be allowed up to circa v.1.22
+    refute Translation.new(title: "", alt_title: nil, romaji: "something", **hsbase).valid?  # This combination is prohibited after circa v.1.22
     assert_raises(ActiveRecord::RecordInvalid){
       Translation.create!(title: tit, alt_title: alt_tit, romaji: "something", **hsbase)
     }
@@ -441,7 +442,7 @@ class TranslationTest < ActiveSupport::TestCase
     assert_equal 'test12', trb2.note
     assert_equal translatable_tmpl, trb2.translatable
 
-    ## new (b/c of combination of title and alt_title)
+    ## new (b/c of combination of title and alt_title) -- this generally violates the uniquness validation, but Artist is an exception because Artist::TRANSLATION_STRICTLY_UNIQUE_TITLES==false
     trb3 = Translation.update_or_create_by!(title: 'this e1', alt_title: 'Alt13', note: 'test13', langcode: 'en', translatable: hs2pass[:translatable])
     assert_not_equal trb1.id,  trb3.id
     assert_equal 'this e1', trb3.title

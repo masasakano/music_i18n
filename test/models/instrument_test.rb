@@ -33,7 +33,7 @@ class InstrumentTest < ActiveSupport::TestCase
     assert_match(/\bpiano\b/i, Instrument.default(:HaramiVid).title(langcode: "en"))
   end
 
-  test "uniqueness" do
+  test "weight" do
     #assert_raises(ActiveRecord::RecordInvalid){
     #  Instrument.create!( note: "") }     # When no entries have the default value, this passes!
     assert_raises(ActiveRecord::RecordInvalid){
@@ -42,6 +42,27 @@ class InstrumentTest < ActiveSupport::TestCase
       Instrument.create!( weight: "abc") }
     assert_raises(ActiveRecord::RecordInvalid){
       Instrument.create!( weight: -4) }
+  end
+  
+  test "uniqueness" do
+    unique_weight = Instrument.order(weight: :desc).first.weight
+    refute_equal Float::INFINITY, unique_weight
+    hsin = {langcode: "en", weight: unique_weight+1, title: "for-val03-#{__method__.to_s}", note: "inst3"}
+    inst3 = Instrument.create_basic!(**hsin)
+    inst4 = nil
+    assert_raises(ActiveRecord::RecordInvalid){
+      inst4 = Instrument.create_basic!(**(hsin.merge({weight: inst3.weight+1, note: "inst4"}))) }
+    assert_nothing_raised{
+      inst4 = Instrument.create_basic!(**(hsin.merge({title: inst3.title+"-4", weight: inst3.weight+1, note: "inst4"}))) }
+
+    assert inst4.valid?
+    tra = inst4.translations.first
+    assert tra.valid?
+
+    tra.title = hsin[:title]
+    refute tra.valid?
+    assert inst4.valid?
+    assert_nothing_raised{ inst4.update!(note: 'something44') }
   end
 
   test "associations via ArtistMusicPlayTest" do

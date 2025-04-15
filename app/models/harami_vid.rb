@@ -46,6 +46,10 @@ class HaramiVid < BaseWithTranslation
   # this constant should be true (for example, {Music#title}).
   ARTICLE_TO_TAIL = false  # because title is a sentence.
 
+  # Optional constant for a subclass of {BaseWithTranslation} to define the scope
+  # of required uniqueness of title and alt_title.
+  TRANSLATION_UNIQUE_SCOPES = %i(uri)
+
   # If the place column is nil, insert {Place.unknown}
   # where the callback is defined in the parent class.
   # Note there is no DB restriction, but the Rails valiation prohibits nil.
@@ -125,7 +129,7 @@ class HaramiVid < BaseWithTranslation
     Place.unknown ||
     Place.first ||
     if Rails.env == 'test'
-#if defined?("places") && respond_to?(:places)  # In a very odd occasions, this would be needed, though this insertion would fail a HaramiVid Controller test.
+#if defined?("places") && respond_to?(:places)  # In a very odd occasions, this would be needed, though this insertion would fail a HaramiVid Controller test.  Note that if you use this, /db/seeds/users.rb may fail with "Users.load_seeds is not defined."  Thn, comment out these again, and run the test again, and it should work.
 ##if true
       places(:unknown_place_unknown_prefecture_japan) || nil  # In the test environment, a constant should not be assigned to a model.
 #else

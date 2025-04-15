@@ -128,7 +128,7 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
     # 3rd time of :artist_with_id  - success
     assert_difference("ChannelOwner.count") do
       post channel_owners_url, params: { channel_owner: hs }
-      assert_response :redirect
+      assert_response :redirect #, " Error-message: "+css_select('div#error_explanation').to_s
     end
     mdl_last2 = ChannelOwner.last
     assert mdl_last2.themselves

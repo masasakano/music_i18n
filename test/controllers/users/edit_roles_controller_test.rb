@@ -24,7 +24,7 @@ class Users::EditRolesControllerTest < ActionDispatch::IntegrationTest
     sign_in users(:user_editor_general_ja)  # Editor cannot manage anyone else.
     patch users_edit_role_url(users(:user_editor_general_ja2))
     assert_response :redirect
-    # assert_redirected_to root_url  # Root URL?? (because alraedy signed in)
+    # assert_redirected_to root_url  # Root URL?? (because already signed in)
   end
 
   test "editor should manage update self" do

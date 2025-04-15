@@ -40,4 +40,32 @@ class GenreTest < ActiveSupport::TestCase
     assert     genre.not_disagree?(Genre.unknown)
     assert     genre.not_disagree?(Genre.unknown, allow_nil: false), "Genre.unknown=#{Genre.unknown.inspect}"
   end
+
+  test "uniqueness" do
+    unique_weight = Genre.where.not(weight: [nil, Float::INFINITY]).order(weight: :desc).first.weight
+    refute_equal Float::INFINITY, unique_weight
+
+    hsin = {langcode: "en", weight: unique_weight+1, title: "for-val03-#{__method__.to_s}", note: "record3"}
+    record3 = Genre.create_basic!(**hsin)
+    record4 = nil
+
+    hs_base = hsin.merge({weight: record3.weight+1, note: "record4"})
+    assert_raises(ActiveRecord::RecordInvalid, "Creation with an identical title should fail, but..."){
+      record4 = Genre.create_basic!( **hs_base) }
+    assert_raises(ActiveRecord::RecordInvalid, "Creation with an identical title should fail, but..."){
+      record4 = Genre.create_basic!(**(hs_base.merge({alt_title: record3.title+"04",}))) }
+    assert_raises(ActiveRecord::RecordInvalid, "Creation with an identical alt_title should fail, but..."){
+      record4 = Genre.create_basic!(**(hs_base.merge({title: nil, alt_title: record3.title,}))) }
+    assert_nothing_raised{
+      record4 = Genre.create_basic!(**(hs_base.merge({title: nil, alt_title: record3.title+"-4"}))) }
+
+    assert record4.valid?
+    tra = record4.translations.first
+    assert tra.valid?
+
+    tra.title = hsin[:title]
+    refute tra.valid?
+    assert record4.valid?
+    assert_nothing_raised{ record4.update!(note: 'something44') }
+  end
 end

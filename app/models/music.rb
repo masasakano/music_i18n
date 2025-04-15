@@ -39,6 +39,12 @@ class Music < BaseWithTranslation
   # this constant should be true (for example, {Music#title}).
   ARTICLE_TO_TAIL = true
 
+  # Optional constant for a subclass of {BaseWithTranslation}. The unique constraint for
+  # Translations of Music is more complex than ordinary models, given that it depends
+  # on many-to-many associated Artist-s. For example, famously there are two songs, "M".
+  # Therefore, the standard unique Translation constraints should be disabled.
+  TRANSLATION_UNIQUE_SCOPES = :disable
+
   # If the place column is nil, insert {Place.unknown} and {Genre.unknown}
   # where the callbacks are defined in the parent class.
   # Note there is no DB restriction, but the Rails valiation prohibits nil.

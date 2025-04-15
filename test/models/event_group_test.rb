@@ -165,6 +165,9 @@ class EventGroupTest < ActiveSupport::TestCase
 
   test "date order" do
     evgr = EventGroup.create!(start_date: Date.new(2000, 3, 3), end_date: Date.new(2000, 3, 1), start_date_err: 0)  # should be OK because end_date_err is nil
+    refute evgr.valid?  # Title  (Tanslation) must exist.
+    evgr.translations.create!(langcode: "en", title: "tekitoh-#{__method__.to_s}")
+    assert evgr.valid?
     assert_raises(ActiveRecord::RecordInvalid){ evgr.update!(start_date_err: -8) }
     evgr.reload
     assert_nothing_raised{ evgr.update!(end_date_err: 5) }

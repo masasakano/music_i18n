@@ -42,6 +42,11 @@ class Event < BaseWithTranslation
   # this constant should be true (for example, {Music#title}).
   ARTICLE_TO_TAIL = true
 
+  # Optional constant for a subclass of {BaseWithTranslation}.
+  # Here, we implement +validate_translation_unique_within_parent+
+  # in +validate_translation_callback+ instead. Hence we disable this.
+  TRANSLATION_UNIQUE_SCOPES = :disable
+
   before_validation :add_parent_in_create_callback
   before_destroy :delete_remaining_unknwon_event_item_callback  # must come before has_many
   # NOTE: after_first_translation_hook
@@ -188,7 +193,10 @@ class Event < BaseWithTranslation
     return hsret if !event_group || !event_group.start_date
 
     hsret[:start_time]     = TimeAux.to_time_midday_utc(event_group.start_date)  # to make it midday in UTC/GMT
-    hsret[:start_time_err] = TimeAux.to_time_midday_utc(event_group.end_date) - hsret[:start_time] if (event_group.end_date)
+    if event_group.start_date && event_group.start_date_err && event_group.end_date && event_group.end_date_err
+      candtime = TimeAux.to_time_midday_utc(event_group.end_date) + event_group.end_date_err.abs.days - (TimeAux.to_time_midday_utc(event_group.start_date) - event_group.start_date_err.abs.days) + 1.days  # TimeZone is tricky, so the UTC-midday is used first, and then a margin of 24 hours is added.
+      hsret[:start_time_err] = candtime if candtime > 0
+    end
 
     hsret
   end

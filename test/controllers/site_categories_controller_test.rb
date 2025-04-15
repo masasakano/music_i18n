@@ -121,10 +121,16 @@ class SiteCategoriesControllerTest < ActionDispatch::IntegrationTest
       assert_response :unprocessable_entity, "should have failed due to an identical mname, but..."
     end
 
-    hs2pass2 = hs2pass.merge({title: new_mdl2.title+"01", mname: __method__.to_s+"03", })
-    assert_difference("SiteCategory.count") do  # "should succeede, but..."
+    hs2pass2 = hs2pass.merge({mname: __method__.to_s+"03", })
+    assert_no_difference("SiteCategory.count") do  # "should succeede, but..."
       post site_categories_url, params: { site_category: hs2pass2 }
-      assert_response :redirect
+      assert_response :unprocessable_entity#, "should have failed due to an identical translation regardless of mname, but..."
+      # assert_response :redirect, " Error-message: "+css_select('div#error_explanation').to_s  # If Translation uniquness depends on mname, this is the one.  (But mname should be irrelevant.)
+    end
+
+    assert_difference("SiteCategory.count") do  # "should succeede, but..."
+      post site_categories_url, params: { site_category: hs2pass2.merge({title: new_mdl2.title+"09979", mname: __method__.to_s+"03"}) }
+      assert_response :redirect#, " Error-message: "+css_select('div#error_explanation').to_s  # If Translation uniquness depends on mname, this is the one.  (But mname should be irrelevant.)
     end
     assert_redirected_to site_category_url(new_mdl3 = SiteCategory.last)
 

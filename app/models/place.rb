@@ -38,6 +38,11 @@ class Place < BaseWithTranslation
   # this constant should be true (for example, {Music#title}).
   ARTICLE_TO_TAIL = true
 
+  # Optional constant for a subclass of {BaseWithTranslation}.
+  # Title must be unique only within this context.
+  # Alternatively you may set +:disable+ ant instead write a custom +validate_translation_callback+
+  TRANSLATION_UNIQUE_SCOPES = %w(prefecture_id)
+
   belongs_to :prefecture
   has_one :country, through: :prefecture
   has_many :harami_vids
@@ -430,10 +435,11 @@ class Place < BaseWithTranslation
   end
 
 
-  # Validates if a {Translation} is unique within the parent ({Prefecture})
-  #
-  # Fired from {Translation}
-  def validate_translation_callback(record)
-    validate_translation_unique_within_parent(record)
-  end
+  ### This is replaced with the constant TRANSLATION_UNIQUE_SCOPES
+  ## Validates if a {Translation} is unique within the parent ({Prefecture})
+  ##
+  ## Fired from {Translation}
+  #def validate_translation_callback(record)
+  #  validate_translation_unique_within_parent(record)
+  #end
 end

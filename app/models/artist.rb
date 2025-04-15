@@ -58,6 +58,18 @@ class Artist < BaseWithTranslation
   # this constant should be true (for example, {Music#title}).
   ARTICLE_TO_TAIL = true
 
+  # Optional constant for a subclass of {BaseWithTranslation}.
+  # Title must be unique only within this context.
+  # Alternatively you may set +:disable+ ant instead write a custom +validate_translation_callback+
+  # +:unique_combination?+ is another (similar) validation for Artist.
+  TRANSLATION_UNIQUE_SCOPES = %w(sex_id place_id birth_day birth_month birth_year)
+
+  # Optional constant for a subclass of {BaseWithTranslation}, when TRANSLATION_UNIQUE_SCOPES is defined.
+  # If true (Default), a word used in +title+ should not appear even in +alt_title+ and vice versa.
+  # If false, the uniquewness is based on the combination of both.  For the sub-classes where many editors may work on,
+  # false would be more appropriate so that other editors can propose similar but partially different Translations.
+  TRANSLATION_STRICTLY_UNIQUE_TITLES = false
+
   # callback to make sure place and sex are set if nil.
   # Note calling "valid?" would force self to have a {Place} and {Sex}
   before_validation :add_place_for_validation

@@ -584,7 +584,8 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_raises(ActiveRecord::RecordInvalid){
       sex.save! }
     assert_equal n_sexes, Sex.count
-    assert_match(/Translation.+\bexists\b/, sex.errors.full_messages.to_s)
+    #assert_match(/Translation.+\bexists\b/, sex.errors.full_messages.to_s)
+    assert_match(/Same Translation .+ has been already taken/, sex.errors.full_messages.to_s)
 
     #assert_no_difference('Translation.count') do
     assert_no_difference('Translation.count*1000 + Sex.count') do
@@ -675,7 +676,8 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     assert_nothing_raised(){ # Fine if no Translation parameters are specified.
       mdl = EngageHow.create!(weight: 0.86) }
     mdl.valid?
-    assert mdl.valid?, "error: "+mdl.errors.full_messages.inspect  # => "Langcode no langcode (langguage code) is specified..."
+    #assert mdl.valid?, "error: "+mdl.errors.full_messages.inspect  # => "Langcode no langcode (langguage code) is specified..."
+    refute mdl.valid?, "error: "+mdl.errors.full_messages.inspect  # => "Langcode no langcode (langguage code) is specified..."
 
     mdl = EngageHow.new(weight: 0.22, title: 'xx') #langcode: "ja") #
     mdl.valid?
@@ -890,28 +892,123 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     assert_equal 88, art0.get_unique_weight(trao, priority: :highest)
   end  # test "get_unique_weight" do
 
-  def _prepare_artists_with_trans
-    # For Artist, Sex is mandatory. As long as birth_year or place differ, identical Translation-s are allowed.
-    tras = [
-      {ja: Translation.new(title: "何か000",         is_orig: false, langcode: "ja"),
-       en: Translation.new(title: "Something000",    is_orig: true,  langcode: "en")}.with_indifferent_access,
-      {ja: Translation.new(title: "何か001",         is_orig: false, langcode: "ja"),
-       en: Translation.new(title: "Something001",    is_orig: true,  langcode: "en"),
-       fr: Translation.new(title: "Quelquechose001", is_orig: false, langcode: "fr")}.with_indifferent_access
-    ]
-    art0 = Artist.new(sex: Sex[0], birth_year: 1999)
-    art0.unsaved_translations = tras[0].values
-    art0.save!
-    art1 = Artist.new(sex: Sex[1], birth_year: 2000)
-    art1.unsaved_translations = tras[1].values
-    art1.save!
+  test "validate_trans0" do
+    sex = Sex.new(iso5218: 997)
+    assert sex.valid?
+    sex.save!
+    assert_equal 0, sex.translations.count, "sanity check"
+    assert_equal [0, 0], [sex.translations.count, sex.reload.translations.count], "sanity check"
 
-    art0_org = art0.dup
-    art0.reload
-    art1_org = art1.dup
-    art1.reload
+#print "DEBUG:test-base:0s:sex= ";p sex
+    title_sure = "tmp-title-"+__method__.to_s
+    lc0 = "en"
+    tra00 = Translation.new(langcode: lc0, title: title_sure, romaji: "something999")
+    assert_difference('Translation.count'){
+#print "DEBUG:test-base:0t:sql= ";p sex.translations.to_sql
+      # sex.translations.create!(langcode: lc0, title: title_sure, romaji: "something999")
+      sex.translations << tra00
+    }
+    sex.translations.reset
+    assert_equal 1, sex.translations.count, "sanity check"
+    assert_equal [1, 1], [sex.translations.count, sex.reload.translations.count], "sanity check"
 
-    [art0, art1, tras]
+    tra1 = sex.translations.first
+    tra1.title = ""
+    refute tra1.valid?, "Translation = #{tra1.inspect}"
+    tra1.save!(validate: false)
+
+    assert tra1.title.blank?
+    refute tra1.valid?
+
+    assert sex.valid?
+    refute sex.translations.all?(&:valid?)
+    sex.translations.reset
+    assert sex.translations.first.title.blank?
+#print "DEBUG:test-base:se:valid=#{sex.valid?.inspect} : tra1= ";p tra1
+    refute sex.translations.all?(&:valid?)
+    assert sex.valid?
+
+    tra0 = Translation.new(langcode: :en)
+    refute tra0.valid?
+#print "DEBUG:test-base:00:valid=#{tra0.valid?.inspect} : tra= ";p [tra0, tra0.translatable_id]
+    assert_no_difference('Translation.count'){
+      assert tra0.new_record?
+      sex.translations << tra0
+#print "DEBUG:test-base:00:f0=#{tra0.valid?.inspect} : tra= ";p [tra0, tra0.translatable_id]
+#print "DEBUG:test-base:00-f1:valid=#{tra0.valid?.inspect} : [tra.errors,self.errors]= ";p [tra0.errors, sex.errors]
+      assert_nil tra0.id
+      # refute tra0.new_record?
+      refute sex.valid?
+      #sex.save!
+    }
+    assert_equal [1, 1], [sex.translations.count, sex.reload.translations.count]
+
+    tra0.title = tit_mod = "nanika0"
+#print "DEBUG:test-base:00:valid=#{tra0.valid?.inspect} : tra= ";p [tra0, tra0.translatable_id]
+    assert_difference('Translation.count'){
+      sex.translations << tra0
+      refute tra0.new_record?
+      #sex.save!
+    }
+    tra1 = Translation.where(translatable_type: 'Sex').order(created_at: :desc).first
+    assert_equal tra0, tra1
+#print "DEBUG:test-base:05:valid=#{tra1.valid?.inspect}  : tra= ";p [tra1, tra1.translatable_id]
+#print "DEBUG:test-base:06:ID(sex,tra.translatable_type)= ";p [sex.id, tra1.translatable_type]
+    $stdout.sync = true
+    assert tra1.id
+    sex.translations.reset
+#print "DEBUG:test-base:07:nTras=#{sex.translations.count} : sex= ";p sex
+    assert_equal [2, 2], [sex.translations.count, sex.reload.translations.count]
+    # tra2= sex.translations.first
+    sex.save!
+    sex.update!(iso5218: 998)
+#print "DEBUG:test-base:21:sex= ";p [sex, sex.valid?]
+
+    ## Adding a new (valid) Translation, then tries to change its alt_title to something invalid
+    tra3 = Translation.new(langcode: lc0, title: "dummy3_"+__method__.to_s, alt_title: tit_mod)
+    refute tra3.errors.any?
+#print "DEBUG:test-base:24:####################tra00= ";p tra00
+    assert_no_difference('Translation.count'){
+      sex.translations << tra3 }
+    refute tra3.id
+    assert tra3.new_record?
+#print "DEBUG:test-base:31:err= ";p tra3.errors.any?
+    assert tra3.errors.any?
+    
+    tra3.alt_title = 'a temporary 3'
+    assert_difference('Translation.count'){
+      sex.translations << tra3 }
+    assert tra3.id
+    refute tra3.new_record?
+
+    ## Forces to update with an invalid alt_title (for a preparation for the next test)
+    tra3.alt_title = tit_mod
+    refute tra3.valid?
+    refute tra3.save
+    tra3.save!(validate: false)
+    tra3.reload
+    refute tra3.valid?
+    assert_equal tit_mod, tra3.alt_title, "sanity check"
+
+    ## Even when sex has a combination of invalid Translations, a new Translation should be able to be associated.
+    tra4 = Translation.new(langcode: lc0, title: "dummy4_"+__method__.to_s, alt_title: 'a temporary 4')
+    assert_difference('Translation.count'){
+      sex.translations << tra4 }  
+
+    ## Forces to update with an invalid alt_title (for a preparation for the next test)
+    tra4.alt_title = tit_mod
+    refute tra4.valid?
+    refute tra4.save
+    tra4.save!(validate: false)
+    tra4.reload
+    refute tra4.valid?
+    assert_equal tit_mod, tra4.alt_title, "sanity check"
+
+    ## Even when updating does not completely resolve the invalid set of associated Translations, update should be allowed (otherwise it could never be solved!)
+    assert tra4.update(alt_title: s=(tra4.title+"_valid4"))
+    tra4.reload
+    assert tra4.valid?
+    assert_equal s, tra4.alt_title, "sanity check"
   end
 
   test "_merge_lang_orig01" do
@@ -2248,6 +2345,30 @@ end
     assert_equal se[5], sexes[5], "trass[:ja] = #{trass[:ja].inspect}"
     assert_equal se[9], sexes[6], "trans = #{[se[9],sexes[6]].map{|i| i.translations.pluck(:langcode, :is_orig, :title, :alt_title, :weight)}.inspect}\n all: #{sexes.select("translations.title as tit,translations.alt_title as alt, translations.weight as wei").map{|i| [i.tit, i.alt, i.wei]}.inspect}"
   end
+
+    def _prepare_artists_with_trans
+      # For Artist, Sex is mandatory. As long as birth_year or place differ, identical Translation-s are allowed.
+      tras = [
+        {ja: Translation.new(title: "何か000",         is_orig: false, langcode: "ja"),
+         en: Translation.new(title: "Something000",    is_orig: true,  langcode: "en")}.with_indifferent_access,
+        {ja: Translation.new(title: "何か001",         is_orig: false, langcode: "ja"),
+         en: Translation.new(title: "Something001",    is_orig: true,  langcode: "en"),
+         fr: Translation.new(title: "Quelquechose001", is_orig: false, langcode: "fr")}.with_indifferent_access
+      ]
+      art0 = Artist.new(sex: Sex[0], birth_year: 1999)
+      art0.unsaved_translations = tras[0].values
+      art0.save!
+      art1 = Artist.new(sex: Sex[1], birth_year: 2000)
+      art1.unsaved_translations = tras[1].values
+      art1.save!
+
+      art0_org = art0.dup
+      art0.reload
+      art1_org = art1.dup
+      art1.reload
+
+      [art0, art1, tras]
+    end  # def _prepare_artists_with_trans
 
 end
 

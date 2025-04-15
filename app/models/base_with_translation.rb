@@ -15,8 +15,46 @@
 # to check the identicalness of title and alt_title and raise an alert:
 #     ALLOW_IDENTICAL_TITLE_ALT = true/false
 #
-# Add the following if the class should not allow multiple identical title/alt_title .
-# As a counter-example, Music does NOT include this (famously there are two songs, "M").
+# Also, they can optionaly define +TRANSLATION_UNIQUE_SCOPES+, which is looked at regardless of +ALLOW_IDENTICAL_TITLE_ALT+
+# and is one of nil and +:disable+ and an Array of parameters to pass Relation#where
+# to define a scope.  This constant controls the unique constraint for the associated Translation.
+# If nil (Default), no title or +alt_title+ should match another title or +alt_title+
+# in the same +translatable_type+ and +create_user+ of Translaion.
+# If :disable, no unique constraint is applied.
+# If Array, each element is a Symbol or String of an attribute of the {BaseWithTranslation}
+# or two special cases of +create_user+ and +update_user+ for attributes of {Translation}.
+# (TODO: Hash with a Range or Array for the element should also be accepted?)
+# If +create_user+ is included, it means that an identical title etc is allowed as long as the users
+# who created the record differ (In default, *create_user* is irrelevant, that is, a user is not permitted
+# to create a {BaseWithTranslation} record with an existing title within the other constraints).
+#
+# In assessingthe uniqueness, child classes may define a boolean constant +TRANSLATION_STRICTLY_UNIQUE_TITLES+ (experimentary);
+# If true (Default), a word used in +title+ should not appear even in +alt_title+ and vice versa.
+# If false, the uniquewness is based on the combination of both.  For the sub-classes where many editors may work on,
+# false would be more appropriate so that other editors can propose similar but partially different Translations
+# (cf., Artist).
+#
+# For example, if
+#
+#     TRANSLATION_UNIQUE_SCOPES = [:birth_year, :create_user]
+#
+# the scope (for Artist) for Translation +tra+ will be like (though Rails "joins" is not used in the actual implementation at the time of writing!):
+#
+#     Translation.joins(:artist).
+#                 where(translatable_type: "Artist", langcode: tra.langcode,
+#                       "artists.birth_year": tra.birth_year, "translations.create_user": ModuleWhodunnit.whodunnit).where.not(id: tra.id)
+#
+# An alternative way is setting +TRANSLATION_UNIQUE_SCOPES=:disable+ and adding the following, which surveys
+# all the +belongs_to+ relations and sets the unique constraint in the context of the identical set of parents
+# (n.b., the method would be inappropriate for some models like HaramiVid, where its uniqueness is unrelated to
+# its +belongs_to+ {HaramiVid#place}):
+#
+#     def validate_translation_callback(record)
+#       validate_translation_unique_within_parent(record)
+#     end
+#
+# Also, if the class simply should not allow multiple identical title/alt_title the following would do.
+# As a counter-example, Music does NOT include this (because, for example, famously there are two songs, "M").
 #
 #     def validate_translation_callback(record)
 #       validate_translation_neither_title_nor_alt_exist(record)  # defined in ModuleCommon included in this file.
@@ -40,6 +78,16 @@
 # which would mess up Rails +permit+, especially with authorization (with CanCanCan).
 # Consult EventGroup Controller and views for how to do it. Both Controller and
 # Views should be carefully adjusted.  There are several helper methods.
+#
+# If a subclass wants create without Translation to be totally banned, set
+#
+#    validate :valid_present_unsaved_translations, on: :create
+#
+# Also, a sub-class may define a Hash +VALIDATE_TRANSLATION_PRMS+ (experimental) with keys of (at most)
+#
+#    allow_absence: false,    # If true, the total absence of Translations is allowed, in which case the rest is skipped.
+#    allow_absence_on_create: true,  # looked up only if !allow_absence. If true (Def), absense of Translation is allowed only on create, i.e, Translation must be created immediately after create.
+#
 #
 # == Methods of title, langcode etc
 #
@@ -453,6 +501,7 @@ class BaseWithTranslation < ApplicationRecord
   end
 
   validates_with UnsavedTranslationsValidator
+  validate  :validate_translation_base
 
   ## Each subclass should define this; list of the default unique keys
   ## required to narrows down the selections for searching for the candidates
@@ -481,6 +530,20 @@ class BaseWithTranslation < ApplicationRecord
   # Hash to specify the priority among the available locales
   HS_LOCALE_PRIORITY = AVAILABLE_LOCALES.map.with_index{|lc, i| [lc, i]}.to_h # Index mapping
 
+  # This is used in the validation method {#validate_translation_base} to control Translation-related varidations.
+  #
+  # Each sub-class can define a Hash +VALIDATE_TRANSLATION_PRMS+ in the same or abridged format to override this.
+  #
+  # If positive, the validation of each of the associated Translations is called,
+  # when self is validated. Each validation by Translation calls the method
+  # `validate_translation_callback` of its `belongs_to` if it is defined.
+  #
+  # See {#validate_translation_base} for detail.
+  TEMPLATE_VALIDATE_TRANSLATION_PRMS = {
+    allow_absence: false,    # If true, the total absence of Translations is allowed, in which case the rest is skipped.
+    allow_absence_on_create: true,  # looked up only if !allow_absence. If true (Def), absense of Translation is allowed only on create, i.e, Translation must be created immediately after create.
+  }.with_indifferent_access
+
   alias_method :inspect_orig, :inspect if ! self.method_defined?(:inspect_orig)
 
   # Unsaved {Translation}-s for a new record which would be created when self is saved.
@@ -508,6 +571,14 @@ class BaseWithTranslation < ApplicationRecord
   # Method (Symbol) to be used to find the matched {Translation}
   # See the Array {Translation::MATCH_METHODS} and method {Translation.find_by_a_title}
   attr_accessor :match_method
+
+  # If true, {Translation#valid?} never skips {+BaseWithTranslation#validate_translation_callback+ 
+  #
+  # When there are multiple invalid Translation-s associated to BaseWithTranslation,
+  # {Translation#valid?} skips the validation {BaseWithTranslation#validate_translation_callback}
+  # to avoid the situation where such invalid Translation-s can never be updated (to fix the inconsistency).
+  # This prevents the skipping.
+  attr_accessor :force_validate_translation
 
   # Initialization of {BaseWithTranslation#unsaved_translations}
   # in{BaseWithTranslation#new} (in any of its child classes).
@@ -4227,6 +4298,96 @@ tra_orig.save!
     end
   end
 
+  # Translation-related validation
+  #
+  # This is always fired in validation.  In the U/I implementation of this framework,
+  # the main parameters of a {BaseWithTranslation}-subclass model (such as the birth year of an Artist)
+  # are edited separately from its title and langcode etc ({Translaton}).  So, the "validities" of
+  # {BaseWithTranslation} and its associated Translations should be decoupled in principle.
+  #
+  # If their validities were linked, an editor would not be able to edit a main parameter
+  # of a model if its Translations on DB violated a validation rule (although it should never
+  # happen in normal operations, but it can happen when the validation rule set is modified).
+  #
+  # There are two exceptions.
+  # One is on-create. On craete, if either @unsaved_translations or temporaliry associated
+  # Translation-s violate a validation rule, creating a BaseWithTranslation should fail.
+  #
+  # The other is a freshly created {BaseWithTranslation}. In principle, a {BaseWithTranslation}
+  # instance must be accompanied with at least one Translation. The exceptio nis on create, having
+  # no associated Translations had better be allowed. Once an instance is created, an association
+  # to a Translation(s) shuld be created immediately.
+  #
+  # To ensure this flow, i.e., to ensure that the developer follows the flow, of adding a Translation
+  # always immediately after on-create, the absence of an associated Translation is regarded
+  # as, in default, invaid of {BaseWithTranslation} except for on-create.
+  # Indeed, since there is no associated Translation, errors can be only reported on {BaseWithTranslation#errors}.
+  # Basically, although you can create a {BaseWithTranslation#errors} without a Translation,
+  # you cannot edit it before associating a Translation.
+  #
+  # This default behaviour can be customized by a subclass by defining
+  # {TEMPLATE_VALIDATE_TRANSLATION_PRMS}:
+  #
+  # * allow_absence [Boolean] If true, the total absence of Translations is allowed, in which case the rest is skipped.
+  # * allow_absence_on_create [Boolean] looked up only if !allow_absence
+  #
+  # The validation flow is
+  #
+  # 1. in validating (typically before saving) BaseWithTranslation,
+  #    1. nominal individual validations
+  #    2. +validates_with UnsavedTranslationsValidator+ : (on-create only) most basic validations only, given that +translatable_type+ is not defined but @unsaved_translations is (however, this should be merged to the standard validation of Translation?)
+  #    3. +validate  :validate_translation_base+ fires. This basically checks the presence/absence of associated Translations.
+#, if {BaseWithTranslation#force_validate_translation}, {Translation#valid?} (the content of which is described in (3) below!) for all the associated Translations, which sets only {Translation#errors}, NOT {BaseWithTranslation#errors}, meaning the result of Translation-validataion does not automatically prevents updating {BaseWithTranslation}, such as {BaseWithTranslation#note}
+  # 2. in creating BaseWithTranslation,
+  #    1. Subclass may define +validate :valid_present_unsaved_translations, on: :create+
+  #       in which case @unsaved_translations (or associated Translation) must be defined for a new record,
+  #       or otherwise the validation would fail.
+  #    2. +after_create+ callback of {BaseWithTranslation#save_unsaved_translations} fires,
+  #       in which, if temporarily associated Translations exist, {Translation#save} is fired,
+  #       where fires the validation of Translation (see (3)).
+  #       If {Translation#save} (or {Translation#valid?}} fails, saving {BaseWithTranslation} rollbacks.
+  # 3. in validating Translation only (typically before saving Translation only)
+  #    1. nominal individual validations for the Translation
+  #    2. if Translation is {#new_record?} or if there is no sibling {Translation} or if {BaseWithTranslation#force_validate_translation} is true, the Translation fires +BaseWithTranslation#validate_translation_callback+ of its parent (if it is present)
+  #       * This sets {Translation#errors} if there are errors.
+  #    2. Else, fires +Parent#validate_translation_callback+ *for that on DB* and confirms the Translation is {#valid?}
+  #       1. if it is {#valid?}, Translation fires +Parent#validate_translation_callback+ in the same way as above, setting {Translation#errors} accordingly.
+  #       2. if NOT {#valid?} (which should never happen ideally but can happen if some past processing
+  #          had done something wrong), +Parent#validate_translation_callback+ is NOT fired. This is because
+  #          it is difficult for +Parent#validate_translation_callback+ to validate all associated Translations
+  #          but replacing only one of them with the new unsaved one and also because it could report an error
+  #          regardless of the candidate {Translation} to validate if other existing Translations alone violated the constraints.
+  #
+  # See {TEMPLATE_VALIDATE_TRANSLATION_PRMS} for customizing options.
+  # To summarize,
+  #
+  # * allow_absence [Boolean] If true, the total absence of Translations is allowed, in which case the rest is skipped.
+  # * allow_absence_on_create [Boolean] looked up only if !allow_absence
+  #
+  # @return [void]
+  def validate_translation_base
+    hs_prms = TEMPLATE_VALIDATE_TRANSLATION_PRMS
+    hs_prms = hs_prms.merge(self.class::VALIDATE_TRANSLATION_PRMS) if self.class.const_defined?(:VALIDATE_TRANSLATION_PRMS)
+
+    if !translations.exists?
+      if !hs_prms[:allow_absence] && (!hs_prms[:allow_absence_on_create] || !new_record?)
+        errors.add(:title, " (Tanslation) must exist.")
+      end
+      return
+    end
+
+    ## Commented out because the validation failure in an associated Translation should not affect the parent, except for its absence (as checked above)
+    #
+    ## {#force_validate_translation} is taken into account.
+    #translations.each do |etra|
+#print "DEBUG(base):24324: ";p etra; $stdout.sync
+    #  next if etra.valid?
+    #  etra.errors.full_messages.each do |msg|
+    #    errors.add(:base, " (Tanslation) "+msg)
+    #  end
+    #end
+  end
+
   # Validates translation immediately before it is saved/updated.
   #
   # Validation of {Translation} fails if any of to-be-saved
@@ -4244,7 +4405,7 @@ tra_orig.save!
   # @param record [Translation]
   # @return [Array] of Error messages, or empty Array if everything passes
   def validate_translation_neither_title_nor_alt_exist(record)
-    msg = msg_validate_double_nulls(record) # defined in app/models/concerns/translatable.rb
+    msg = msg_if_validate_double_nulls(record) # defined in app/models/concerns/translatable.rb
     return [msg] if msg
 
     tit     = record.title
@@ -4308,7 +4469,7 @@ tra_orig.save!
   # @param parent_klass: [BaseWithTranslation, NilClass] parent class that self belongs_to. Unless self has multiple parents, this can be guessed.
   # @return [Array] of Error messages, or empty Array if everything passes
   def validate_translation_unique_within_parent(record, parent_klass: nil)
-    msg = msg_validate_double_nulls(record)
+    msg = msg_if_validate_double_nulls(record)
     return [msg] if msg
 
     ### To achieve with a single SQL query, the following is the one (for Prefecture)??

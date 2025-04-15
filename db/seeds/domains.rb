@@ -39,7 +39,7 @@ module Seeds::Domains
       # domain_title_key: :youtube,  # set below in one go as the default.
       weight: 10,
     },
-    youtube_short: {
+    youtube_short: {  # "*_short" is ignored in seeding Uri-s (see uris.rb)
       domain: "youtu.be",
       domain_title: Proc.new{DomainTitle.select_regex(:titles, /\Ayoutube\z/i || raise(DomainTitle.all.inspect)).first},
       # domain_title_key: :youtube,  # set below in one go as the default.
@@ -72,13 +72,13 @@ module Seeds::Domains
       domain_title: Proc.new{DomainTitle.select_regex(:titles, /\Awikipedia\z/i || raise(DomainTitle.all.inspect)).first},
       weight: 10,
     },
-    wikipedia_en: {
+    wikipedia_en: {  # "*_en" specifies the langcode in seeding Uri-s (see uris.rb)
       domain: "en.wikipedia.org",
       domain_title: Proc.new{DomainTitle.select_regex(:titles, /\Awikipedia\z/i || raise(DomainTitle.all.inspect)).first},
       domain_title_key: :wikipedia,  # defined ./domain_titles.rb ; used for test fixtures /test/fixtures/domains.yml
       weight: 100,
     },
-    wikipedia_ja: {
+    wikipedia_ja: {  # "*_ja" specifies the langcode in seeding Uri-s (see uris.rb)
       domain: "ja.wikipedia.org",
       domain_title: Proc.new{DomainTitle.select_regex(:titles, /\Awikipedia\z/i || raise(DomainTitle.all.inspect)).first},
       domain_title_key: :wikipedia,  # defined ./domain_titles.rb ; used for test fixtures /test/fixtures/domains.yml
@@ -104,7 +104,7 @@ module Seeds::Domains
   #
   # @return [Integer] Number of created/updated entries
   def load_seeds
-    _load_seeds_core(%i(domain domain_title note), find_by: :domain)  # defined in seeds/common.rb, using RECORD_CLASS
+    _load_seeds_core(%i(domain domain_title weight note), find_by: :domain)  # defined in seeds/common.rb, using RECORD_CLASS
   end
 
 end  # module Seeds::Channels

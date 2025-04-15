@@ -23,6 +23,10 @@ class Genre < BaseWithTranslation
   # this constant should be true (for example, {Music#title}).
   ARTICLE_TO_TAIL = true
 
+  # Optional constant for a subclass of {BaseWithTranslation} to define the scope
+  # of required uniqueness of title and alt_title.
+  #TRANSLATION_UNIQUE_SCOPES = :default
+
   has_many :musics,  dependent: :restrict_with_exception
 
   # NOTE: UNKNOWN_TITLES required to be defined for the methods included from ModuleUnknown. alt_title can be also defined as an Array instead of String.

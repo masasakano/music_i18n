@@ -49,7 +49,10 @@ class ChannelOwner < BaseWithTranslation
   # this constant should be true (for example, {Music#title}).
   ARTICLE_TO_TAIL = true
 
-  # NOTE: see below validate_translation_callback
+  # Optional constant for a subclass of {BaseWithTranslation} to define the scope
+  # of required uniqueness of title and alt_title.
+  # Disabled because a custom +validate_translation_callback+ is implemented instead.
+  TRANSLATION_UNIQUE_SCOPES = :disable
 
   validates_presence_of :artist_id, if: :themselves, message: " can't be blank when 'themselves?' is checked."
 
