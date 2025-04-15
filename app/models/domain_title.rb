@@ -36,16 +36,22 @@ class DomainTitle < BaseWithTranslation
 
   # Optional constant for a subclass of {BaseWithTranslation} to define the scope
   # of required uniqueness of title and alt_title.
+  # This is disabled because the callback is defined below, although it is not
+  # quite sufficient...  See unit model tests for what is desirable.
+  # TODO: update
   TRANSLATION_UNIQUE_SCOPES = :disable
 
   # Validates translation immediately before it is added.
   #
   # Called by a validation in {Translation}
+  # Basically, Translations must be unique.
+  #
+  # @note This is not sufficient for DomainTitle (and the routine is obsolete anyway), but I leave it for now.
   #
   # @param record [Translation]
   # @return [Array] of Error messages, or empty Array if everything passes
   def validate_translation_callback(record)
-    validate_translation_neither_title_nor_alt_exist(record)  # defined in BaseWithTranslation
+    validate_translation_unique_title_alt(record)  # defined in BaseWithTranslation
   end
 
   # NOTE: UNKNOWN_TITLES required to be defined for the methods included from ModuleUnknown. alt_title can be also defined as an Array instead of String.
@@ -57,6 +63,7 @@ class DomainTitle < BaseWithTranslation
 
   belongs_to :site_category
   has_many :domains, dependent: :destroy  # cascade in DB. But this should be checked in Rails controller level!
+#  has_many :uris,    dependent: :restrict_with_exception  # Exception in DB, too.
 
   validates_numericality_of :weight, allow_nil: true
   validates :weight, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true

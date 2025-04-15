@@ -479,6 +479,10 @@ class Country < BaseWithTranslation
   #
   # Called by a validation in {Translation}
   #
+  # @note
+  #    This is similar to {BaseWithTranslation#validate_translation_unique_title_alt}
+  #    (or I am pretty sure it is based on this method but updated).
+  #
   # @param record [Translation]
   # @return [Array] of Error messages, or empty Array if everything passes
   def validate_translation_callback(record)

@@ -26,18 +26,11 @@ class EngageHow < BaseWithTranslation
   # this constant should be true (for example, {Music#title}).
   ARTICLE_TO_TAIL = true
 
-  has_many :engages, dependent: :restrict_with_exception
+  # Optional constant for a subclass of {BaseWithTranslation} to define the scope
+  # of required uniqueness of title and alt_title.
+  #TRANSLATION_UNIQUE_SCOPES = :default
 
-  # Validates translation immediately before it is added.
-  #
-  # Called by a validation in {Translation}
-  # Basically, Translations must be unique.
-  #
-  # @param record [Translation]
-  # @return [Array] of Error messages, or empty Array if everything passes
-  def validate_translation_callback(record)
-    validate_translation_neither_title_nor_alt_exist(record)  # defined in BaseWithTranslation
-  end
+  has_many :engages, dependent: :restrict_with_exception
 
   validates_presence_of :weight  # Because of the DB default value, this does nothing in practice.
   validates :weight, :numericality => { :greater_than_or_equal_to => 0 }

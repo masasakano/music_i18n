@@ -101,16 +101,16 @@ class Translation < ApplicationRecord
     # (4) BAD if ((new.title exists in titles) && (new.alt_title exists in alt_titles))
     # (5) others: e.g., BAD if in Music, (2) and if Composer-Artist and Year exist.
     #
-    # {Country} implements its unique +validate_translation_callback+
+    # Some subclass of {BaseWithTranslation} (e.g., {Country}, {Music}) implement their unique +validate_translation_callback+
     # which is called from this method.
     # {BaseWithTranslation} contains helper methods for +validate_translation_callback+
-    # which are used in {Place}, {Sex} etc, wrapped inside +validate_translation_callback+:
+    # wrapped inside +validate_translation_callback+:
     #
-    # * +validate_translation_neither_title_nor_alt_exist+
-    # * +validate_translation_unique_within_parent+
+    # * +validate_translation_unique_title_alt+  # (obsolete) ; use instead the constant TRANSLATION_UNIQUE_SCOPES
+    # * +validate_translation_unique_within_parent+  # setting the constant TRANSLATION_UNIQUE_SCOPES may be clearer.
     #
-    # This somehow validates as long as translatable_type is significant even if
-    # translatable_id is not.
+    # This *somehow* validates as long as {Translation#translatable_type} is significant even when
+    # {Translation#translatable_id} is not.
     #
     def validate(record)
       # return if !record.translatable_type || !record.translatable_id

@@ -33,16 +33,6 @@ class Sex < BaseWithTranslation
   validates_uniqueness_of :iso5218
   validates :iso5218, presence: true
 
-  ## Validates translation immediately before it is added.
-  ##
-  ## Called by a validation in {Translation}
-  ##
-  ## @param record [Translation]
-  ## @return [Array] of Error messages, or empty Array if everything passes
-  #def validate_translation_callback(record)
-  #  validate_translation_neither_title_nor_alt_exist(record)  # defined in BaseWithTranslation
-  #end
-
   # All possible ISO5218 numbers (the constant name is ISO5218+"capital-S")
   ISO5218S = [0, 1, 2, 9]
 

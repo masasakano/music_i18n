@@ -34,18 +34,6 @@ class PlayRole < BaseWithTranslation
   # of required uniqueness of title and alt_title.
   #TRANSLATION_UNIQUE_SCOPES = :default
 
-  ## Validates translation immediately before it is added.
-  ##
-  ## Called by a validation in {Translation}
-  ##
-  ## Basically, Translations must be unique.
-  ##
-  ## @param record [Translation]
-  ## @return [Array] of Error messages, or empty Array if everything passes
-  #def validate_translation_callback(record)
-  #  validate_translation_neither_title_nor_alt_exist(record)  # defined in BaseWithTranslation
-  #end
-
   has_many :artist_music_plays, dependent: :restrict_with_exception  # dependent is a key / Basically PlayRole should not be easily destroyed - it may be merged instead.
   %i(event_items artists musics instruments).each do |esym|
     has_many esym, -> {distinct}, through: :artist_music_plays

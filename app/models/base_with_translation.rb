@@ -10,6 +10,8 @@
 #   class MyChildKlass < BaseWithTranslation
 #     MAIN_UNIQUE_COLS = []
 #     ARTICLE_TO_TAIL = true
+#     #TRANSLATION_UNIQUE_SCOPES = :default   # ==nil  # or :disable or %i(prefecture_id birth_year)
+#     #TRANSLATION_STRICTLY_UNIQUE_TITLES = true  # (Default)
 #
 # They can also define the following to bypass the validation by Translation
 # to check the identicalness of title and alt_title and raise an alert:
@@ -49,27 +51,23 @@
 # (n.b., the method would be inappropriate for some models like HaramiVid, where its uniqueness is unrelated to
 # its +belongs_to+ {HaramiVid#place}):
 #
-#     def validate_translation_callback(record)
-#       validate_translation_unique_within_parent(record)
-#     end
-#
-# Also, if the class simply should not allow multiple identical title/alt_title the following would do.
-# As a counter-example, Music does NOT include this (because, for example, famously there are two songs, "M").
-#
-#     def validate_translation_callback(record)
-#       validate_translation_neither_title_nor_alt_exist(record)  # defined in ModuleCommon included in this file.
-#     end
-#
-# Alternatively, add the following to validate the uniquness of translations 
-# against its parent (like Place and Prefecture; +Place.unknown+ have many identical titles for different {Prefecture}).
-#
 #     # Validates if a {Translation} is unique within the parent
 #     #
 #     # Fired from {Translation}
 #     #
 #     # @param record [Translation]
+#     # @return [Array] of Error messages, or empty Array if everything passes
 #     def validate_translation_callback(record)
-#       validate_translation_unique_within_parent(record)
+#       validate_translation_unique_within_parent(record)  # defined in BaseWithTranslation
+#     end
+#
+# Also, if the class simply should not allow multiple identical title/alt_title the following might do (thouygh it is obsolete!).
+# As a counter-example, Music does NOT include this (because, for example, famously there are two songs, "M").
+#
+#     # @param record [Translation]
+#     # @return [Array] of Error messages, or empty Array if everything passes
+#     def validate_translation_callback(record)
+#       validate_translation_unique_title_alt(record)  # defined in BaseWithTranslation
 #     end
 #
 # To Create with the UI is tricky.  You would want a Translation as an input
@@ -4394,17 +4392,21 @@ tra_orig.save!
   # title and alt_title matches an existing title or alt_title
   # of any {Translation} belonging to the same {Translation#translatable} class.
   #
+  # == WARNING
+  #
+  # This routine is now obsolete!
+  #
   # == Usage
   #
   # In a model (a child of BaseWithTranslation), define a public method:
   #
   #   def validate_translation_callback(record)
-  #     validate_translation_neither_title_nor_alt_exist(record)
+  #     validate_translation_unique_title_alt(record)  # defined in BaseWithTranslation
   #   end
   #
   # @param record [Translation]
   # @return [Array] of Error messages, or empty Array if everything passes
-  def validate_translation_neither_title_nor_alt_exist(record)
+  def validate_translation_unique_title_alt(record)
     msg = msg_if_validate_double_nulls(record) # defined in app/models/concerns/translatable.rb
     return [msg] if msg
 
@@ -4458,10 +4460,10 @@ tra_orig.save!
   # Note: {Translation}.joins(:translatable) would lead to ActiveRecord::EagerLoadPolymorphicError
   #  as of Ruby 6.0.
   #
-  # @example for model Place
-  #   class Place
+  # @example for model Prefecture
+  #   class Prefecture
   #     def validate_translation_callback(record)
-  #       validate_translation_unique_within_parent(record)
+  #       validate_translation_unique_within_parent(record)  # defined in BaseWithTranslation
   #     end
   #   end
   #

@@ -566,12 +566,6 @@ class Event < BaseWithTranslation
   end
   private :delete_remaining_unknwon_event_item_callback
 
-  # Validates if a {Translation} is unique within the parent ({Prefecture})
-  #
-  # Fired from {Translation}
-  def validate_translation_callback(record)
-    validate_translation_unique_within_parent(record)
-  end
 end
 
 class <<  Event

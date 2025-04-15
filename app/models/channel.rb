@@ -59,9 +59,14 @@ class Channel < BaseWithTranslation
     id_human_at_platform: "handle",
   }.with_indifferent_access
 
+  # Optional constant for a subclass of {BaseWithTranslation} to define the scope
+  # of required uniqueness of title and alt_title.
+  # No Translation-related model-specific validations for Channel. See the comment for the callback below.
+  TRANSLATION_UNIQUE_SCOPES = :disable
+
   ### This validation is NOT activated so a same Translation is allowed as long as the 3 unique parameters are accepted.
   #def validate_translation_callback(record)
-  #  validate_translation_neither_title_nor_alt_exist(record)  # defined in BaseWithTranslation
+  #  validate_translation_unique_title_alt(record)  # defined in BaseWithTranslation
   #end
 
   belongs_to :channel_owner

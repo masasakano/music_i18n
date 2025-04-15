@@ -264,7 +264,6 @@ class ChannelOwner < BaseWithTranslation
   # @param record [Translation]
   # @return [Array] of Error messages, or empty Array if everything passes
   def validate_translation_callback(trans)
-    #arret = validate_translation_neither_title_nor_alt_exist(trans)  # defined in BaseWithTranslation
     arret = []
     if find_all_same_trans(trans).exists?
       return [" ChannelOnwer with an equivalent Translation "+(themselves ? "for the same Artist" : "among those related to no Artists")+" already exists (language=#{trans.langcode})."]
