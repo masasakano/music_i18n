@@ -26,7 +26,9 @@
 #  fk_rails_...  (update_user_id => users.id) ON DELETE => nullify
 #
 class ChannelOwner < BaseWithTranslation
-  include ModuleWhodunnit # for set_create_user, set_update_user
+  # handles create_user, update_user attributes
+  include ModuleCreateUpdateUser
+  #include ModuleWhodunnit # for set_create_user, set_update_user
 
   include ModuleCommon # for ChannelOwner.new_unique_max_weight
 
@@ -65,12 +67,7 @@ class ChannelOwner < BaseWithTranslation
   # Translation has to be unique per "themselves"
   validate :combination_themselves_unique_translation
 
-  before_create     :set_create_user       # This always sets non-nil weight. defined in /app/models/concerns/module_whodunnit.rb
-  before_save       :set_update_user       # defined in /app/models/concerns/module_whodunnit.rb
-
   belongs_to :artist, optional: true
-  belongs_to :create_user, class_name: "User", foreign_key: "create_user_id", optional: true
-  belongs_to :update_user, class_name: "User", foreign_key: "update_user_id", required: false
   has_many :channels, -> {distinct}, dependent: :restrict_with_exception  # dependent is a key / Basically this should not be easily destroyed - it may be merged instead.
   has_many :harami_vids, -> {distinct}, through: :channels
 

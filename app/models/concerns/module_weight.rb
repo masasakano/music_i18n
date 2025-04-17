@@ -2,7 +2,7 @@
 #
 # This assumes that weight can be nil/null.
 #
-# The model that includes this module should have a (set of) model test as follow:
+# The model that includes this module should have a (set of) model test as follows:
 #
 #    test "weight validations" do
 #      mdl = my_models(:one)

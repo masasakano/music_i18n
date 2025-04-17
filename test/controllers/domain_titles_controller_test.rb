@@ -50,7 +50,7 @@ class DomainTitlesControllerTest < ActionDispatch::IntegrationTest
     sign_in @trans_moderator
     get domain_titles_url
     assert_response :success
-    w3c_validate "Site Category index"  # defined in test_helper.rb (see for debugging help)
+    w3c_validate "Domain titles index"  # defined in test_helper.rb (see for debugging help)
     sign_out @trans_moderator
   end
 

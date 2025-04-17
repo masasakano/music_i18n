@@ -49,24 +49,22 @@
 class Translation < ApplicationRecord
   include ModuleCommon
   extend  ModuleCommon
-  include ModuleWhodunnit # for set_create_user, set_update_user
+
+  # handles create_user, update_user attributes
+  include ModuleCreateUpdateUser
+  #include ModuleWhodunnit # for set_create_user, set_update_user
+
   using ModuleHashExtra  # for extra methods, e.g., Hash#values_blank_to_nil
 
   before_validation :move_articles_to_tail
   after_validation  :revert_articles
   before_save       :move_articles_to_tail
-  before_create     :set_create_user       # This always sets non-nil weight. defined in /app/models/concerns/module_whodunnit.rb
-  before_save       :set_update_user       # defined in /app/models/concerns/module_whodunnit.rb
   after_save        :reset_backup_6params  # to reset the temporary instance variable
   after_save        :call_after_save_translatable_callback  # to call after_save_translatable_callback in translatable if present
 
-  #after_create :set_create_user
   after_create :call_after_first_translation_hook
-  #after_update :set_update_user
 
   belongs_to :translatable, polymorphic: true
-  belongs_to :create_user, class_name: "User", foreign_key: "create_user_id", optional: true
-  belongs_to :update_user, class_name: "User", foreign_key: "update_user_id", required: false
   #belongs_to :sex, -> { where(translations: { translatable_type: 'Sex' }) }, foreign_key: 'translatable_id'  # This for some reason invalidates "<<" ...  # cf. https://veelenga.github.io/joining-polymorphic-associations/
 
   class OneSignificanceValidator < ActiveModel::Validator

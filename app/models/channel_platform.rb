@@ -26,7 +26,9 @@ class ChannelPlatform < BaseWithTranslation
   # Class-method helpers
   include ClassMethodHelper
 
-  include ModuleWhodunnit # for set_create_user, set_update_user
+  # handles create_user, update_user attributes
+  include ModuleCreateUpdateUser
+  #include ModuleWhodunnit # for set_create_user, set_update_user
 
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
@@ -45,11 +47,11 @@ class ChannelPlatform < BaseWithTranslation
   # of required uniqueness of title and alt_title.
   #TRANSLATION_UNIQUE_SCOPES = :default
 
-  before_create     :set_create_user       # This always sets non-nil weight. defined in /app/models/concerns/module_whodunnit.rb
-  before_save       :set_update_user       # defined in /app/models/concerns/module_whodunnit.rb
+#  before_create     :set_create_user       # This always sets non-nil weight. defined in /app/models/concerns/module_whodunnit.rb
+#  before_save       :set_update_user       # defined in /app/models/concerns/module_whodunnit.rb
+#  belongs_to :create_user, class_name: "User", foreign_key: "create_user_id", optional: true
+#  belongs_to :update_user, class_name: "User", foreign_key: "update_user_id", required: false
 
-  belongs_to :create_user, class_name: "User", foreign_key: "create_user_id", optional: true
-  belongs_to :update_user, class_name: "User", foreign_key: "update_user_id", required: false
   has_many :channels, -> {distinct}, dependent: :restrict_with_exception  # dependent is a key / Basically this should not be easily destroyed - it may be merged instead.
 
   validates_presence_of   :mname
