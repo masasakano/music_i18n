@@ -52,6 +52,9 @@ module Seeds::Channels
       id_human_at_platform: '@officialyoutubechannel8034',
       note: nil,
     },
+    ########## NOTE
+    # Automatic creation of Channel fixtures fail!
+    # Therefore, if you add an entry here, please manually update channels.yml
   }.with_indifferent_access  # SEED_DATA
 
   # Set the common create_user, update_user, regex

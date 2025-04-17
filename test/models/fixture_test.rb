@@ -86,6 +86,20 @@ class FixtureTest < ActiveSupport::TestCase
     }.with_indifferent_access
   end
 
+  test "all valid" do
+    # Note: Fixtures of Channel must be manually updated every time seeds is updated.  It may cause an error here!.
+    Rails.application.eager_load!
+    ActiveRecord::Base.descendants.select{|i| !i.abstract_class? && !i.name.include?('::') && i.table_name == i.name.underscore.pluralize}.sort{|a,b| a.name <=> b.name}.each do |model|
+      if !model
+        print "strange model: "; p model
+        next
+      end
+      model.all.each do |record|
+        assert record.valid?, "Fixture validate error: record=#{record.inspect}"+" ERROR=#{record.valid?; record.errors.inspect}"
+      end
+    end
+  end
+
   test "fixtures should have significant weights" do
     [EngageHow, PlayRole].each do |klass|
       refute EngageHow.where(weight: nil).exists?, "class=#{klass.name}"

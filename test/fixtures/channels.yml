@@ -91,3 +91,13 @@ channel_haramichan_youtube_main:
   update_user: 
   note: ChannelHaramichanYoutubeMain
 
+channel_kohmi_youtube_main:
+  channel_owner: channel_owner_kohmi
+  channel_type: channel_type_main
+  channel_platform: channel_platform_youtube
+  id_at_platform: "UCPkjL7jAJhrZ3e4-NlsGt-Q"
+  id_human_at_platform: "@officialyoutubechannel8034"
+  create_user: user_syshelper
+  update_user: 
+  note: ChannelKohmiYoutubeMain
+
