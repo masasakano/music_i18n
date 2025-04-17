@@ -20,6 +20,9 @@ class PlayRole < BaseWithTranslation
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
 
+  ## Commented out because this contradicts:   not null
+  # include ModuleWeight  # adds a validation
+
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []
 

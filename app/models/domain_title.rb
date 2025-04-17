@@ -23,6 +23,7 @@
 class DomainTitle < BaseWithTranslation
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
+  include ModuleWeight  # adds a validation
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []
@@ -63,8 +64,4 @@ class DomainTitle < BaseWithTranslation
 
   belongs_to :site_category
   has_many :domains, dependent: :destroy  # cascade in DB. But this should be checked in Rails controller level!
-#  has_many :uris,    dependent: :restrict_with_exception  # Exception in DB, too.
-
-  validates_numericality_of :weight, allow_nil: true
-  validates :weight, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
 end

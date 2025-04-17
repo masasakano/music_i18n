@@ -54,5 +54,8 @@ class EngageHowTest < ActiveSupport::TestCase
     eh_unk = EngageHow.unknown
     eh1    = EngageHow.where('id <> ?', eh_unk.id).first
     assert_operator eh1, '<', eh_unk
+
+    mdl = engage_hows( :engage_how_1 )
+    user_assert_model_weight(mdl, allow_nil: true)  # defined in test_helper.rb
   end
 end

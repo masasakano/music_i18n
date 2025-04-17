@@ -134,6 +134,11 @@ class TranslationTest < ActiveSupport::TestCase
 #end
   end
 
+  test "validations" do
+    mdl = translations(:gare_lyon_france_fr)
+    user_assert_model_weight(mdl, allow_nil: true)  # defined in test_helper.rb
+  end
+
   test "class method preprocessed_6params" do
     hs = {:title => "\tＡi  \u3000", 'alt_title' => " Lｕnch   time", :alt_ruby => "ﾗｼﾞ･ｵ\n"}
     exp= {:title => "Ai", 'alt_title' => "Lunch time", :alt_ruby => "ラジ・オ"}

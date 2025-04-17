@@ -299,7 +299,10 @@ class Translation < ApplicationRecord
   # NOTE: PostgreSQL does not validate the values when one of any values (whether
   #   existing or new) is null.  But Rails does.
 
-  validates :langcode, presence: true, length: {is: 2}
+  validates :langcode, presence: true, length: {is: 2}, format: {with: /\A[a-z]{2}\z/i}  # ISO 639-1 only
+  #validates :langcode, presence: true, length: {in: (2..5)}, format: {with: /\A[a-z]{2}(\-[a-z]{2})?\z/i}  # Limited set of IETF language tag (ISO 639-1 + optional region subtag; e.g., en-GB)
+
+  validates :weight, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
 
   validate :asian_char_validator
   validates_with OneSignificanceValidator, fields: %w(title alt_title)  # TRANSLATED_KEYS

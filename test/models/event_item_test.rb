@@ -64,6 +64,11 @@ class EventItemTest < ActiveSupport::TestCase
       EventItem.create!(machine_title: "naiyo1", event: evit1.event, event_ratio: 1.5) }  # [0, 1] is allowed.
   end
 
+  test "validations" do
+    mdl = event_items(:one)
+    user_assert_model_weight(mdl, allow_nil: true)  # defined in test_helper.rb
+  end
+
   test "associations via ArtistMusicPlayTest" do
     evi0 = EventItem.create!(machine_title: "EvI0 ArtistMusicPlayTest", event: Event.first)
     art0 = Artist.create!(sex: Sex.first).with_translation(langcode: "en", is_orig: "true", title: "Sam0 ArtistMusicPlayTest")

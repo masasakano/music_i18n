@@ -31,6 +31,7 @@
 #
 class Event < BaseWithTranslation
   include ModuleEventAux  # for self.def_event_tra_new etc
+  include ModuleWeight  # adds a validation
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []

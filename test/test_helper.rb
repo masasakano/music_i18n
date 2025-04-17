@@ -205,9 +205,10 @@ class ActiveSupport::TestCase
   # @param with_html: [Boolean] if true (Def: false), HTML (as opposed to a plain text) is evaluated with regex.
   # @param kwds: [Hash] Optional hash to be passed to {#css_for_flash}, notably +extra+
   def flash_regex_assert(regex, msg=nil, type: nil, with_html: false, **kwds)
-    bind = caller_locations(1,1)[0]  # Ruby 2.0+
-    caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
-    # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
+    caller_info = _get_caller_info_message(bind_offset: 0)
+    #bind = caller_locations(1,1)[0]  # Ruby 2.0+
+    #caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
+    ## NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
 
     csstext = css_select(css_for_flash(type, **kwds)).send(with_html ? :inner_html : :text)
     msg2pass = (msg || sprintf("Fails in flash(%s)-message regexp matching for: ", (type || "ALL")))+csstext.inspect
@@ -233,9 +234,10 @@ class ActiveSupport::TestCase
   #   This is useful to further edit the returned CSS in case there are more than one "OR" condition.
   # @return [String] CSS for Flash-message part; e.g., ".alert, div#error_explanation"
   def css_for_flash(type=nil, category: :both, extra: nil, extra_attributes: nil, return_array: false)
-    bind = caller_locations(1,1)[0]  # Ruby 2.0+
-    caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
-    # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
+    caller_info = _get_caller_info_message(bind_offset: 0)
+    #bind = caller_locations(1,1)[0]  # Ruby 2.0+
+    #caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
+    ## NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
 
     extra_attributes =
       if extra_attributes.blank?
@@ -284,9 +286,10 @@ class ActiveSupport::TestCase
   #   This is useful to further edit the returned CSS in case there are more than one "OR" condition.
   # @return [String] CSS for Flash-message part; e.g., ".alert, div#error_explanation"
   def xpath_for_flash(type=nil, category: :both, extras: nil, extra_attributes: nil, return_array: false)
-    bind = caller_locations(1,1)[0]  # Ruby 2.0+
-    caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
-    # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
+    caller_info = _get_caller_info_message(bind_offset: 0)
+    #bind = caller_locations(1,1)[0]  # Ruby 2.0+
+    #caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
+    ## NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
 
     extras = [] if extras.blank?
 
@@ -332,9 +335,10 @@ class ActiveSupport::TestCase
   # This tests both a flash and screen. In some cases, the previous flash remains
   # in testing.  In such case, specify +screen_test_only: true+
   def my_assert_no_alert_issued(screen_test_only: false)
-    bind = caller_locations(1,1)[0]  # Ruby 2.0+
-    caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
-    # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
+    caller_info = _get_caller_info_message(bind_offset: 0)
+    #bind = caller_locations(1,1)[0]  # Ruby 2.0+
+    #caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
+    ## NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
 
     assert  flash[:alert].blank?, "Failed(#{caller_info}) with Flash-alert: "+(flash[:alert] || "") if !screen_test_only
     msg_alert = css_select(".alert").text.strip
@@ -352,9 +356,10 @@ class ActiveSupport::TestCase
   # @param refute [Boolean] if true (Def: false), returns true if NOT updated. cf. user_refute_updated_attr?
   # @param bind_offset [Integer] offset for caller_locations (used for displaying the caller routine)
   def user_assert_updated_attr?(model, attr, msg=nil, inspect: true, refute: false, bind_offset: 0)
-    bind = caller_locations(1+bind_offset, 1)[0]  # Ruby 2.0+
-    caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
-    # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
+    caller_info = _get_caller_info_message(bind_offset: bind_offset)
+    #bind = caller_locations(1+bind_offset, 1)[0]  # Ruby 2.0+
+    #caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
+    ## NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
 
     upd, msg2pass = _reload_and_get_message(model, msg, inspect, attr, caller_info)
     if refute
@@ -381,9 +386,10 @@ class ActiveSupport::TestCase
   # @param refute [Boolean] if true (Def: false), returns true if NOT updated. cf. user_refute_updated_attr?
   # @param bind_offset [Integer] offset for caller_locations (used for displaying the caller routine)
   def user_assert_updated?(model, msg=nil, inspect: true, refute: false, bind_offset: 0)
-    bind = caller_locations(1+bind_offset, 1)[0]  # Ruby 2.0+
-    caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
-    # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
+    caller_info = _get_caller_info_message(bind_offset: bind_offset)
+    #bind = caller_locations(1+bind_offset, 1)[0]  # Ruby 2.0+
+    #caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
+    ## NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
 
     upd, msg2pass = _reload_and_get_message(model, msg, inspect, :updated_at, caller_info)
     if refute
@@ -397,7 +403,7 @@ class ActiveSupport::TestCase
   #
   # i.e., true if instance is NOT updated.
   #
-  # @param model [Model]
+  # @param model [ActiveRecord]
   # @param msg [String] message parameter for assert/refute
   # @param inspect [Boolean] if true, the difference would be printed if failed.
   def user_refute_updated?(model, msg=nil, inspect: true)
@@ -410,9 +416,59 @@ class ActiveSupport::TestCase
     #assert_equal upd, model.updated_at, msg2pass
   end
 
+
+  # collecgion of basic model-testings of weight like a negative value.
+  #
+  # At return, the status of the model unchanges from what was passed.
+  #
+  # @example
+  #     user_assert_model_weight(model, allow_nil: true)  # defined in test_helper.rb
+  #
+  # @param model [ActiveRecord] should be valid
+  # @param allow_nil: [Boolean] 
+  def user_assert_model_weight(model, allow_nil: true)  # allow_duplication??
+    caller_info_prefix = sprintf("(%s):", _get_caller_info_message(bind_offset: 0))  # defined in test_helper.rb
+    assert model.valid?, "#{caller_info_prefix} The passed Model has to be valid, but... Errors=#{model.valid?; model.errors.inspect} Model=#{model.inspect}"
+
+    backup_weight = model.weight
+    begin
+      model.weight = nil
+      if allow_nil
+        assert_nil model.weight, "#{caller_info_prefix} nil weight should be allowed, but..." 
+      else
+        refute_nil model.weight, "#{caller_info_prefix} nil weight should be prohibited, but..."
+      end
+      model.weight = "nai-weight"
+      refute model.valid?, "#{caller_info_prefix} Non-numeric-type weight should not be allowed, but..."
+      model.weight = -3
+      refute model.valid?, "#{caller_info_prefix} Negative weight should not be allowed, but..."
+      model.weight = 4
+      assert model.valid?, "#{caller_info_prefix} Sanity check-1 failed."
+    ensure
+      model.weight = backup_weight
+      assert model.valid?, "#{caller_info_prefix} Sanity check-2 failed."
+    end
+  end
+
+
+  # Returns the String for the caller information
+  #
+  # @example
+  #    assert abc, sprintf("(%s): abc=%s", _get_caller_info_message(bind_offset: 0), abc.inspect)  # defined in test_helper.rb
+  #
+  # @param bind_offset: [Integer] offset for caller_locations (used for displaying the caller routine). Default assumes this method is called in a test library method that is called from an original test routine.
+  # @return [String]
+  def _get_caller_info_message(bind_offset: 0)
+    bind = caller_locations(2+bind_offset, 1)[0]  # Ruby 2.0+
+
+    # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
+    sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
+  end
+  private :_get_caller_info_message
+
   # Internal common routine.
   #
-  # @param model [Model]
+  # @param model [ActiveRecord]
   # @param msg [String] message parameter for assert
   # @param inspect [Boolean] if true, the difference would be printed if failed.
   # @param attr [Symbol] Attribute
@@ -457,9 +513,10 @@ class ActiveSupport::TestCase
     ## Or, more strictly,
     #selector = %Q{ul.ui-autocomplete li.ui-menu-item div.ui-menu-item-wrapper:contains("#{options[:select]}")}  # has to be double quotations (b/c of the sentence below)
 
-    bind = caller_locations(1,1)[0]  # Ruby 2.0+
-    caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
-    # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
+    caller_info = _get_caller_info_message(bind_offset: bind_offset)
+    #bind = caller_locations(1,1)[0]  # Ruby 2.0+
+    #caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
+    ## NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
 
     # page.should have_selector selector  # I think this is for RSpec only. # This ensures to wait for the popup to appear.
     #print "DEBUG: "; p page.find('ul.ui-autocomplete div.ui-menu-item-wrapper')['innerHTML']

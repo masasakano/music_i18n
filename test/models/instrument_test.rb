@@ -34,6 +34,10 @@ class InstrumentTest < ActiveSupport::TestCase
   end
 
   test "weight" do
+    mdl = instruments(:instrument_piano)
+    user_assert_model_weight(mdl, allow_nil: true)  # defined in test_helper.rb
+    ## Model contains validates_presence_of, but for some reason (maybe because of DB default?), "allow_nil: true" works...
+
     #assert_raises(ActiveRecord::RecordInvalid){
     #  Instrument.create!( note: "") }     # When no entries have the default value, this passes!
     assert_raises(ActiveRecord::RecordInvalid){

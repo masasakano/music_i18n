@@ -58,7 +58,7 @@ class EventItem < ApplicationRecord
 
   validates_presence_of   :machine_title
   validates_uniqueness_of :machine_title
-  %i(start_time_err duration_minute duration_minute_err event_ratio).each do |ec|
+  %i(start_time_err duration_minute duration_minute_err event_ratio weight).each do |ec|
     validates ec, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true
   end
   %i(event_ratio).each do |ec|

@@ -70,6 +70,10 @@ class ChannelTypeTest < ActiveSupport::TestCase
     refute  mdl.valid?
     mdl.weight = -4
     refute  mdl.valid?
+
+    mdl = channel_types(:channel_type_main)
+    user_assert_model_weight(mdl, allow_nil: true)  # defined in test_helper.rb
+    ## Model contains validates_presence_of, but for some reason (maybe because of DB default?), "allow_nil: true" works...
   end
 
   test "associations" do

@@ -26,6 +26,11 @@
 require 'test_helper'
 
 class RoleTest < ActiveSupport::TestCase
+  test "weight validations" do
+    mdl = roles(:translator)
+    user_assert_model_weight(mdl, allow_nil: true)  # defined in test_helper.rb
+  end
+
   test "has_many through" do
     assert_equal 1,       Role.find(1).users.size
     assert_equal 'a@example.com', Role.find(1).users[0].email

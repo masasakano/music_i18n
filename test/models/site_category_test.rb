@@ -41,8 +41,7 @@ class SiteCategoryTest < ActiveSupport::TestCase
 
   test "validation" do
     mdl = site_categories(:one)
-    mdl.weight = -4
-    refute mdl.valid?
+    user_assert_model_weight(mdl, allow_nil: true)  # defined in test_helper.rb
   end
 
   test "associations" do

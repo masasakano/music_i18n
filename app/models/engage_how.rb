@@ -16,6 +16,9 @@ class EngageHow < BaseWithTranslation
   # Class-method helpers
   include ClassMethodHelper
 
+  ## Commented out because this contradicts:   validates_presence_of :weight
+  # include ModuleWeight  # adds a validation
+
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []
 

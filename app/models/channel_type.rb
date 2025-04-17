@@ -29,6 +29,9 @@ class ChannelType < BaseWithTranslation
 
   include ModuleCommon # for ChannelType.new_unique_max_weight
 
+  ## Commented out because this contradicts:   not null
+  # include ModuleWeight  # adds a validation
+
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
 

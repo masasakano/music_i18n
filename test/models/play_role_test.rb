@@ -19,6 +19,10 @@ require "test_helper"
 
 class PlayRoleTest < ActiveSupport::TestCase
   test "uniqueness" do
+    mdl = play_roles( :play_role_conductor )
+    user_assert_model_weight(mdl, allow_nil: true)  # defined in test_helper.rb
+    ## Model contains validates_presence_of, but for some reason (maybe because of DB default?), "allow_nil: true" works...
+
     mdl0 = PlayRole.first.dup
     assert_raises(ActiveRecord::RecordInvalid){ # ActiveRecord::NotNullViolation at DB level
       PlayRole.create!(mname: nil,  weight: 12345) }

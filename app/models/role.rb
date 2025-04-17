@@ -25,6 +25,9 @@
 #
 class Role < ApplicationRecord
 
+  include ModuleCommon
+  include ModuleWeight  # adds a validation
+
   belongs_to :role_category
   has_many :user_role_assocs
   has_many :users, through: :user_role_assocs
@@ -34,8 +37,6 @@ class Role < ApplicationRecord
   validates(:name,   uniqueness: { scope: :role_category_id }, allow_nil: true) if self.column_names.include? 'name' # if clause for the fresh migration purpose only.
   validates :weight, uniqueness: { scope: :role_category_id }, allow_nil: false
   validates_presence_of :weight
-
-  include ModuleCommon
 
   MAIN_UNIQUE_COLS = %i(uname)
   RNAME_SYSADMIN = 'admin'                     # Default sysadmin (root) name  (unique name in each RoleCategory).

@@ -45,15 +45,7 @@ class DomainTest < ActiveSupport::TestCase
     rec.domain_title = @domain_title
     assert rec.valid?
 
-    weight0 = rec.weight
-    rec.weight = nil
-    assert rec.valid?
-    rec.weight = -3
-    refute rec.valid?
-    rec.weight = Float::INFINITY
-    assert rec.valid?
-    rec.weight = weight0
-    assert rec.valid?, "play safe."
+    user_assert_model_weight(rec, allow_nil: true)  # defined in test_helper.rb
 
     core_domain = "www.naiyo.museum"
     rec.domain = "https://#{core_domain}:80/abc"

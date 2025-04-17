@@ -12,6 +12,7 @@
 class Genre < BaseWithTranslation
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
+  include ModuleWeight  # adds a validation
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []

@@ -11,6 +11,11 @@
 require 'test_helper'
 
 class GenreTest < ActiveSupport::TestCase
+  test "validations" do
+    mdl = genres(:genre_classic)
+    user_assert_model_weight(mdl, allow_nil: true)  # defined in test_helper.rb
+  end
+
   test "unknown" do
     assert Genre.unknown
     assert_operator 0, '<', Genre.unknown.id

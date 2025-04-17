@@ -20,6 +20,8 @@
 #  fk_rails_...  (domain_title_id => domain_titles.id) ON DELETE => cascade
 #
 class Domain < ApplicationRecord
+  include ModuleWeight  # adds a validation
+
   belongs_to :domain_title
 
   # NOTE: UNKNOWN_TITLES used in ModuleUnknown (this model does not include it, but this uses the same-name one anyway).
@@ -45,8 +47,6 @@ class Domain < ApplicationRecord
   validates :domain, presence: true
   validates_uniqueness_of :domain
   validates_format_of :domain, with: REGEXP_DOMAIN
-  validates_numericality_of :weight, allow_nil: true
-  validates :weight, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
 
   # @param reload [void] Always ignored. Just for conistency with ModuleUnknown
   def self.unknown(reload: nil)
