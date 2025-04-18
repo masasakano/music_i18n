@@ -73,6 +73,7 @@ en:
   index: Index
   Instrument: "(Music) Instrument"
   Instrument_pl_short: "Instruments"
+  language: language
   log_out: Log out
   Music: Music
   Musics: Musics
@@ -89,6 +90,8 @@ en:
   SiteCategory: "Site Category"
   SiteCategories: "Site Categories"
   Sex: "Sex"
+  Url: "URL"
+  Urls: "URLs"
   s_time: "s"
   terms_of_service: Terms of Service
   title: name

@@ -53,5 +53,403 @@ class ActiveSupport::TestCase
     assert css, "(#{__method__}) called from #{caller_info}): H2 does not seem to exist."
     assert_equal "All registered translated names", (css && css.text), "(#{__method__}) called from #{caller_info}): No Translation table seems to exist."
   end
+
+
+  # Test get-index for an access-restricted page
+  #
+  # Public access should be completely banned.
+  #
+  # @param model [Class] ActiveRecord
+  # @yield [User] Anything while the user is successfully authorized, i.e., only for viewings by success_users
+  def assert_authorized_index(model, fail_users: [], success_users: [], h1_title: nil, &bl)
+    index_path = Rails.application.routes.url_helpers.polymorphic_path(model)
+    h1_title ||= model.name.pluralize
+    _assert_authorized_get_set(index_path, model_record=model, fail_users: fail_users, success_users: success_users, h1_title_regex: h1_title, include_w3c_validate: true, &bl)
+  end
+
+
+  # Test get-show for an access-restricted page
+  #
+  # Public access should be completely banned.
+  #
+  # @param record [ActiveRecord]
+  # @yield [User] Anything while the user is successfully authorized, i.e., only for viewings by success_users
+  def assert_authorized_show(record, fail_users: [], success_users: [], h1_title_regex: nil, &bl)
+    show_path = Rails.application.routes.url_helpers.polymorphic_path(record)
+
+    if h1_title_regex.blank?
+      tit = 
+        %i(title_or_alt title).each do |metho|
+          break record.send(metho) if record.respond_to?(metho)
+          nil
+        end
+
+      re = (tit.respond_to?(:gsub) ? ".+"+Regexp.quote(tit) : "")
+      h1_title_regex = /^#{Regexp.quote(record.class.name)}#{re}/
+    end
+
+    _assert_authorized_get_set(show_path, model_record=record, fail_users: fail_users, success_users: success_users, h1_title_regex: h1_title_regex, include_w3c_validate: true, &bl)
+  end
+
+
+  # Test get-new for an access-restricted page
+  #
+  # @param model [Class] ActiveRecord
+  # @yield [User] Anything while the user is successfully authorized, i.e., only for viewings by success_users
+  def assert_authorized_new(model, fail_users: [], success_users: [], h1_title_regex: nil, &bl)
+    new_path = Rails.application.routes.url_helpers.polymorphic_path(model, action: :new)
+    h1_title_regex ||= /^New #{Regexp.quote(model.name)}/
+
+    base_proc = proc{|user|
+      assert css_select("section#form_edit_translation input##{model.name.underscore}_alt_title").present?, "#{_get_caller_info_message(bind_offset: -1, prefix: true)} New should have a field for alt_title, but..." if model.method_defined?(:alt_title)  # used in BaseWithTranslation only
+      assert css_select("section#sec_primary textarea##{model.name.underscore}_note").present?, "#{_get_caller_info_message(bind_offset: -1, prefix: true)} New should have a field for note, but..."  # "note" is applicable in any model of this framework
+    }
+
+    _assert_authorized_get_set(new_path, model_record=model, fail_users: fail_users, success_users: success_users, h1_title_regex: h1_title_regex, include_w3c_validate: true, base_proc: base_proc, &bl)
+  end
+
+
+  # Test get-new for an access-restricted page
+  #
+  # @param record [ActiveRecord]
+  # @yield [User] Anything while the user is successfully authorized, i.e., only for viewings by success_users
+  def assert_authorized_edit(record, fail_users: [], success_users: [], h1_title_regex: nil, &bl)
+    edit_path = Rails.application.routes.url_helpers.polymorphic_path(record, action: :edit)
+    h1_title_regex ||= /^Edit(ing)? #{Regexp.quote(record.class.name)}/
+
+    _assert_authorized_get_set(edit_path, model_record=record, fail_users: fail_users, success_users: success_users, h1_title_regex: h1_title_regex, include_w3c_validate: true, &bl)
+  end
+
+
+  # Test HTTP-get for the unauthorized and authorized for an action to an access-restricted page
+  #
+  # Public access is assumed to be completely banned.
+  #
+  # @param path [String]
+  # @option model_record [Class<ActiveRecord>, ActiveRecord] Unless include_w3c_validate is true, this is not used...
+  # @param params [Hash]
+  # @param fail_users: [Array<User>] Unauthorized users
+  # @param success_users: [Array<User>] Authorized users
+  # @param h1_title_regex: [Regexp, String, NilClass] If String, a complete match
+  # @param include_w3c_validate: [Boolean] If true, may w3c-validate
+  # @param bind_offset: [Integer] Depth of the call (to get caller information for error messages)
+  # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block.
+  # @yield [User] Anything while the user is successfully authorized, i.e., only for viewings by success_users
+  def _assert_authorized_get_set(path, model_record=nil, params: nil, fail_users: [], success_users: [], h1_title_regex: nil, include_w3c_validate: true, bind_offset: 1, base_proc: nil, &bl)
+    model = (model_record.respond_to?(:name) ? model_record : model_record.class)
+    model_w3c_validate = (include_w3c_validate ? model : nil)
+
+    # h1_title ||= model.name.pluralize
+    h1_title = h1_title_regex if !h1_title_regex.respond_to?(:named_captures)
+
+    ## Public access forbidden
+    _assert_login_demanded(path, bind_offset: bind_offset)
+
+    ## Forbidden because not sufficiently authorized though authenticated
+    fail_users.each do |user|
+      _assert_unauthorized_access(path, user, params: params, bind_offset: bind_offset)
+    end
+
+    ## Access granted for the sufficiently authorized
+    success_users.each do |user|
+      _assert_authorized_access(path, user, params: params, h1_title_regex: h1_title_regex, model_w3c_validate: model_w3c_validate, bind_offset: bind_offset, base_proc: base_proc, &bl)
+    end
+  end
+  private :_assert_authorized_get_set
+
+  # Test access denied by non-authenticated
+  #
+  # @param path [String] path to access
+  # @param params [Hash, NilClass]
+  # @param bind_offset: [Integer] Depth of the call (to get caller information for error messages)
+  def _assert_login_demanded(path, params: nil, bind_offset:  2-BASE_CALLER_INFO_BIND_OFFSET)
+    caller_info_prefix = sprintf("(%s):", _get_caller_info_message(bind_offset: bind_offset))  # defined in test_helper.rb
+
+    get path, params: params
+    assert_response :redirect, "#{caller_info_prefix}: Public access to #{path} should be denied but is not..."
+    assert_redirected_to new_user_session_path
+  end
+  private :_assert_login_demanded
+
+  # Test access denied by authenticated but not sufficiently authorized
+  #
+  # @param path [String] path to access
+  # @param user [User]
+  # @param params [Hash, NilClass]
+  # @param bind_offset: [Integer] Depth of the call (to get caller information for error messages)
+  # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block.
+  # @yield [User] Anything while the user is logged in.
+  def _assert_unauthorized_access(path, user, params: nil, bind_offset: 2-BASE_CALLER_INFO_BIND_OFFSET, base_proc: nil)
+    caller_info_prefix = sprintf("(%s):", _get_caller_info_message(bind_offset: bind_offset))  # defined in test_helper.rb
+
+    sign_in user
+    get path, params: params
+    assert_response :redirect, "#{caller_info_prefix}: User=#{user.display_name.inspect} should NOT be able to access #{path} but they are..."
+    assert_redirected_to root_path
+
+    base_proc.call(user) if base_proc
+    yield if block_given?
+    sign_out user
+  end
+  private :_assert_unauthorized_access
+
+
+  # Test access of POST/DELETE/PATCH denied by authenticated but not sufficiently authorized to either :create or :destroy or :update
+  #
+  # @example create
+  #    hs2pass = { langcode: "ja", title: "The Test", best_translation_is_orig: str_form_for_nil, site_category_id: @site_category.id.to_s }.with_indifferent_access
+  #    assert_equal :create, assert_unauthorized_post(nil, DomainTitle, params: hs2pass, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+  #
+  # @example destroy
+  #    assert_equal :destroy, assert_unauthorized_post(User.first, Artist.first, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+  #
+  # @example update 1 (checking also if attributes have unchanged)
+  #    note3 = "aruyo3"
+  #    action = assert_unauthorized_post(mymdl, user: @translator, params: {note: note3}, unchanged_attrs: [:note, :memo_editor], bind_offset: 0){ # defined in /test/helpers/controller_helper.rb
+  #      refute_equal note3, mymdl.reload.note
+  #    }
+  #    assert :update, action
+  # 
+  # @example update 2
+  #    mdlp = Parent.last
+  #    action = assert_unauthorized_post(mymdl, user: @translator, params: {parent: mdlp}, bind_offset: 0){ # defined in /test/helpers/controller_helper.rb
+  #      refute_equal mdlp.id, mymdl.parent.id  # If more complicated comparison is required.
+  #    }
+  #    assert :update, action
+  #
+  # @param model_record [Class<ActiveRecord>, ActiveRecord] Class for :create and ActiveRecord for :destroy
+  # @param user [User, NilClass]  nil means public (or a user already logged in)
+  # @param path_or_action [String, Symbol, NilClass] path to access or action or Symbol of :create or :destroy or :update
+  # @param params: [Hash, NilClass]
+  # @param method: [Symbol, String, NilClass] :post (Def) or :delete or :patch. If nil, guessed from other parameters.
+  # @param diff_count_command: [String, NilClass] Count method like 'Article.count*10 + Author.count'. In default, it is guessed from model_record
+  # @param unchanged_attrs: [Array<Symbol>] Attributes that should not change after :update. Looked up only if action is :update.
+  # @param bind_offset: [Integer] Depth of the call (to get caller information for error messages); 0 if you directly call this from your test script and want to know the caller location in your test-script.
+  # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block.
+  # @yield [User] Anything while the user is logged in.
+  # @return [Symbol] action like :create (to check if this method is performing as intended)
+  def assert_unauthorized_post(model_record, user: nil, path_or_action: nil, params: nil, method: nil, diff_count_command: nil, unchanged_attrs: [], bind_offset: 2-BASE_CALLER_INFO_BIND_OFFSET, base_proc: nil)
+    user_txt = (user ? user.display_name.inspect : 'Unauthenticated(Public)')
+    action, method, path, model, opts = _get_action_method_path(model_record, path_or_action, method, params)
+
+    caller_info_prefix = _get_caller_info_message(bind_offset: bind_offset, prefix: true)  # defined in test_helper.rb
+    diff_count_command ||= model.name+".count"
+    unchanged_attrs = [unchanged_attrs].flatten
+    orig_attrs = unchanged_attrs.map{|i| model_record.send(i)} if :update == action
+
+    msg = sprintf("DEBUG(%s:%s): %s Path=%s, action=%s, method=%s, Examining-command=%s params=%s", File.basename(__FILE__), __method__, caller_info_prefix, path, action.inspect, method.inspect, diff_count_command.inspect, opts.inspect)
+    Rails.logger.debug msg
+
+    sign_in user if user
+    assert_no_difference(diff_count_command, "#{caller_info_prefix} User=#{user_txt} should NOT be able to #{action} at #{path} but they are (according to #{diff_count_command.inspect})...") do
+      send(method, path, **opts)
+    end
+
+    assert_redirected_to root_path, "#{caller_info_prefix} User=#{user_txt} should be redirected to Root-path after denied access to #{action} at #{path} but..." if user
+
+    if :update == action
+      model_record.reload
+      unchanged_attrs.each_with_index do |eatt, i|
+        assert_equal orig_attrs[i], model_record.send(eatt)
+      end
+    end
+
+    base_proc.call(user) if base_proc
+    yield if block_given?
+    sign_out user if user
+
+    action
+  end
+
+  # Test successful access by sufficiently authorized
+  #
+  # @param path [String] path to access
+  # @param user [User]
+  # @param params [Hash, NilClass]
+  # @param h1_title_regex: [Regexp, String] If String, a complete match
+  # @param include_w3c_validate: [Class, NilClass] ActiveRecord class. In specified, may w3c-validate
+  # @param bind_offset: [Integer] Depth of the call (to get caller information for error messages)
+  # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block.
+  # @yield [User] Anything while the user is logged in.
+  def _assert_authorized_access(path, user, params: nil, h1_title_regex: nil, model_w3c_validate: nil, bind_offset: 2-BASE_CALLER_INFO_BIND_OFFSET, base_proc: nil)
+    caller_info_prefix = sprintf("(%s):", _get_caller_info_message(bind_offset: bind_offset))  # defined in test_helper.rb
+    # h1_title ||= model.name.pluralize
+    h1_title = h1_title_regex if !h1_title_regex.respond_to?(:named_captures)
+
+    sign_in user
+    get path, params: params
+    assert_response :success, "#{caller_info_prefix}: User=#{user.display_name.inspect} should be able to access #{path} but they are not..."
+
+    if h1_title_regex
+      tit = css_select('h1')[0]
+      assert tit, "#{caller_info_prefix}: H1 does not seem to exist."
+      if h1_title
+        assert_equal h1_title, tit.text.strip, "#{caller_info_prefix}: H1 title differs from the expected #{h1_title.inspect}: #{tit.inspect}"
+      else
+        assert_match h1_title_regex, tit.text.strip, "#{caller_info_prefix}: H1 title does not match #{h1_title_regex.inspect}: #{tit.inspect}"
+      end
+    end
+
+    w3c_validate "#{model_w3c_validate.name} - #{path}" if model_w3c_validate # defined in test_helper.rb (see for debugging help)
+
+    base_proc.call(user) if base_proc
+    yield(user) if block_given?
+    sign_out user
+  end
+  private :_assert_authorized_access
+
+
+  # Test POST/DELETE/PATCH by sufficiently authorized, which may succeed (at least in authorization) or fail (due to another condition)
+  #
+  # @example create fails (diff_num: 0)
+  #    hs2pass = { langcode: "ja", title: "The Test", best_translation_is_orig: str_form_for_nil, site_category_id: @site_category.id.to_s }.with_indifferent_access
+  #    assert_authorized_post(DomainTitle, user: @admin, params: {title: ""}, diff_num: 0, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+  #
+  # @example create succeeds, returning the craeted model
+  #    sign_in @moderator_ja
+  #    action, record = assert_unauthorized_post(DomainTitle, params: hs2pass, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+  #    assert_equal :create, action
+  #    assert record.id  # should be true (because diff_num=1 has been already tested, meaning a record has been craeted)
+  #
+  # @example destroy
+  #    action, _ = assert_authorized_post(Music.last, user: @moderator, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+  #    assert_equal :destroy, action
+  #
+  # @example update 1
+  #    action, mdl2 = assert_authorized_post(mdl1, params: {note: "aruyo"}, updated_attrs: [:note], bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+  #    assert_equal :update, action
+  #    assert_equal mdl2, mdl1  # sanity check; NOTE mdl2 is already reloaded.
+  #
+  # @example update 2 (passing Hash for updated_attrs; you can actually check if the attribute unchanges because the algorithm does not check if the value is updated but checks if the value is equal to the given one.)
+  #    action, _ = assert_authorized_post(mdl1, params: {note: "aruyo"}, updated_attrs: {note: "aruyo"}, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+  #    assert_equal :update, action
+  #
+  # @param model_record [Class<ActiveRecord>, ActiveRecord] Class for :create and ActiveRecord for :destroy and :update
+  # @param user: [User, NilClass]  nil means either public or a user is already logged in
+  # @param path_or_action [String, Symbol, NilClass] path to access or action or Symbol of :create or :destroy of :update
+  # @param params: [Hash, NilClass] innermost Hash of params
+  # @param method: [Symbol, String, NilClass] :post (Def: :create) or :delete (for :destroy) or :patch (for :update).  If nil, guessed from other parameters.
+  # @param diff_count_command: [String, NilClass] Count method like 'Article.count*10 + Author.count'. In default, it is guessed from model_record
+  # @param diff_num: [Integer, NilClass] 1 or 0 or -1 in Default for respective actions of :create and :update and :destroy
+  # @param updated_attrs: [Array<Symbol>, Hash] Attributes that should be updated after :update/:create, which you want to check (this does not need to be a complete list at all!). If Hash, +{key => expected-value}+. If Array, the expected values are taken from the given +params+.
+  # @param err_msg: [String, NilClass] Custom error message for assert_response
+  # @param bind_offset: [Integer] Depth of the call (to get caller information for error messages); 0 if you directly call this from your test script and want to know the caller location in your test-script.
+  # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block.
+  # @yield [User] Anything while the user is logged in.
+  # @return [Array<Symbol, ActiveRecord, NilClass>] Pair of Array. 1st element is action. 2nd element is, if successful (in :create), returns the created (or updated) model, else nil.
+  def assert_authorized_post(model_record, user: nil, path_or_action: nil, params: nil, method: nil, diff_count_command: nil, diff_num: nil, updated_attrs: [], err_msg: nil, bind_offset: 2-BASE_CALLER_INFO_BIND_OFFSET, base_proc: nil)
+    user_txt = (user ? user.display_name.inspect : 'Unauthenticated(Public)')
+    action, method, path, model, opts = _get_action_method_path(model_record, path_or_action, method, params)
+
+    updated_attrs ||= {}
+    if !updated_attrs.respond_to?(:merge)
+      updated_attrs = [updated_attrs].flatten
+      hs = (params || {}).merge({}).with_indifferent_access
+      updated_attrs = updated_attrs.map{|eatt|
+        raise ArgumentError, "Specified attribute (#{eatt.inspect}) not present in params." if !hs.has_key?(eatt)
+        [eatt, hs[eatt]]
+      }.to_h.with_indifferent_access
+    end
+
+    diff_num ||=
+      case action
+      when :create
+        1
+      when :destroy
+        -1
+      when :update
+        0
+      else
+        raise "should never happen."
+      end
+
+    exp_response = ((0 == diff_num && action != :update) ? :unprocessable_entity : :redirect)
+
+    caller_info_prefix = _get_caller_info_message(bind_offset: bind_offset, prefix: true)  # defined in test_helper.rb
+    diff_count_command ||= model.name+".count"
+
+    msg = sprintf("DEBUG(%s:%s): %s Path=%s, action=%s, method=%s, Examining-command=%s (expected_diff=%s) params=%s", File.basename(__FILE__), __method__, caller_info_prefix, path, action.inspect, method.inspect, diff_count_command.inspect, diff_num.inspect, opts.inspect)
+    Rails.logger.debug msg
+
+    sign_in user if user
+    assert_difference(diff_count_command, diff_num, "#{caller_info_prefix} User=#{user_txt} should #{action} at #{path} but failed (according to #{diff_count_command.inspect}; expected difference of #{diff_num})...") do
+      send(method, path, **opts)
+      msg = "#{caller_info_prefix} User=#{user_txt}" + (err_msg.present? ? ": "+err_msg : "should get response #{exp_response.inspect} after #{action} at #{path}, but...")
+      assert_response exp_response, msg
+    end
+
+    ret = ((:update == action) ? model_record.reload : nil)
+    if :redirect == exp_response
+      redirect_path_arg =
+        case action
+        when :create
+          ret = model.last
+        when :destroy
+          model
+        when :update
+          model_record
+        else
+          raise "should never happen."
+        end
+      assert_redirected_to( path2=Rails.application.routes.url_helpers.polymorphic_path(redirect_path_arg), "#{caller_info_prefix} User=#{user_txt} should be redirected to #{path2} after #{action} at #{path} but..." )
+    end
+
+    if [:create, :update].include? action
+      updated_attrs.each_pair do |eatt, exp|
+        assert_equal exp, ret.send(eatt)
+      end
+    end
+
+    base_proc.call(user) if base_proc
+    yield if block_given?
+    sign_out user if user
+
+    [action, ret]
+  end  # def assert_authorized_post(model_record, ...)
+
+  # Internal routine to process arguments
+  #
+  # @param model_record [Class<ActiveRecord>, ActiveRecord] Class for :create and ActiveRecord for :destroy
+  # @option path_or_action [String, Symbol, NilClass] path to access or action or Symbol of :create or :destroy
+  # @param method: [Symbol, String, NilClass] either :post (Def) or :delete. If nil, path must be an action, and this is automatically set.
+  # @param params: [Hash, NilClass]
+  # @return [Array] [action, method, path, model, hs_params]  Here, hs_params can be directly passed to POST like:  +post path, **hs_params+
+  def _get_action_method_path(model_record, path_or_action, method, params)
+    model = (model_record.respond_to?(:name) ? model_record : model_record.class)
+    path = path_or_action
+
+    case path_or_action
+    when :create, :destroy, :update
+      path, action = nil, path_or_action
+    end
+
+    action ||=
+      if (model == model_record)
+        :create
+      elsif params.present?
+        :update
+      else
+        :destroy
+      end
+
+    method ||=
+      case action
+      when :create
+        :post
+      when :update
+        :patch
+      when :destroy
+        :delete
+      else
+        raise "should never: #{action.inspect}"
+      end
+        
+    path ||= Rails.application.routes.url_helpers.polymorphic_path(model_record)
+
+    hs_params = (params.present? ? {params: { model.name.underscore => params }} : {})
+
+    [action, method, path, model, hs_params]
+  end
+  private :_get_action_method_path
 end
 

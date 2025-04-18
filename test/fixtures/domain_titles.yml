@@ -25,7 +25,7 @@ domain_title_<%= ekey %>:
   <%# site_category_id: %= (pro=edata[:site_category]) ? pro.call.id : nil %>
   site_category: site_category_<%= (pro=edata[:site_category_key]) ? pro.to_s : "unknown" %>
   weight: <%= edata[:weight] %>
-  note: SiteCategory<%= ekey.to_s.camelize %>
+  note: DomainTitle<%= ekey.to_s.camelize %>
   memo_editor: <%= edata[:memo_editor] %>
 <% end %>
 

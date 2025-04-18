@@ -31,98 +31,38 @@ class DomainsControllerTest < ActionDispatch::IntegrationTest
   test "should get index" do
     assert Domain.unknown.unknown?, "fixture testing: "+Domain.all.inspect
 
-    get domains_url
-    assert_response :redirect
-    assert_redirected_to new_user_session_path
-
-    sign_in @editor_harami
-    get domains_url
-    assert_response :redirect
-    assert_redirected_to root_path
-    sign_out @editor_harami
-
-    sign_in @trans_moderator
-    get domains_url
-    assert_response :success
-    w3c_validate "Site Category index"  # defined in test_helper.rb (see for debugging help)
-    sign_out @trans_moderator
+    assert_authorized_index(Domain, fail_users: [@editor_harami], success_users: [@trans_moderator], h1_title: "Domains") # defined in /test/helpers/controller_helper.rb
   end
 
-  test "should show domain" do
-    get domain_url(@domain)
-    assert_response :redirect
-    assert_redirected_to new_user_session_path
+  test "should show/new/edit domain" do
+    # Any moderator should be able to read
+    assert_authorized_show(@domain, fail_users: [@translator], success_users: [@trans_moderator], h1_title_regex: /^Domain: +#{Regexp.quote(@domain.domain)}/) # defined in /test/helpers/controller_helper.rb
 
-    sign_in @translator
-    get domain_url(@domain)
-    assert_response :redirect
-    assert_redirected_to root_path
-    sign_out @translator
-
-    sign_in @trans_moderator
-    get domain_url(@domain)
-    assert_response :success, "Any moderator should be able to read, but..."
-    w3c_validate "Site Category show"  # defined in test_helper.rb (see for debugging help)
-    sign_out @trans_moderator
-  end
-
-  test "should get new" do
-    sign_in @trans_moderator
-    get new_domain_url
-    assert_response :redirect
-    assert_redirected_to root_path
-    sign_out @trans_moderator
-
+    assert_authorized_new(  Domain, fail_users: [@trans_moderator], success_users: [@moderator_ja], h1_title_regex: nil)
     refute Ability.new(@moderator_harami).can?(:new, Domain)
 
-    sign_in @moderator_ja
-    get new_domain_url
-    assert_response :success
+    assert_authorized_edit(@domain, fail_users: [@translator], success_users: [@moderator_ja], h1_title_regex: nil)
   end
 
   test "should create/update/destroy domain by moderator" do
     hs2pass = @hs_base.merge({ note: "test-create", weight: 111.24} )
-    assert_no_difference("ChannelType.count") do
-      post domains_url, params: { domain: hs2pass }
-    end
-
-    [@translator, @trans_moderator].each do |ea_user|
-      sign_in ea_user
-      assert_no_difference("Domain.count") do
-        post domains_url, params: { domain: hs2pass }
-      end
-      assert_redirected_to root_path
-      sign_out ea_user
+    [nil, @translator, @trans_moderator].each do |ea_user|
+      assert_equal :create, assert_unauthorized_post(Domain, user: ea_user, params: hs2pass, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
     end
 
     sign_in @moderator_ja
-    assert_difference("Domain.count") do
-      post domains_url, params: { domain: hs2pass }
-      assert_response :redirect
-    end
-    assert_redirected_to domain_url(new_mdl2 = Domain.last)
+    action, new_mdl2 = assert_authorized_post(Domain, params: hs2pass, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+    assert_equal :create, action
 
-    assert_no_difference("Domain.count") do
-      post domains_url, params: { domain: hs2pass }
-      assert_response :unprocessable_entity, "should have failed due to unique constraint, but..."
-    end
+    assert_equal :create, assert_authorized_post(Domain, params: hs2pass, diff_num: 0, err_msg: "should have failed due to unique constraint, but Response is...", bind_offset: 0).first # defined in /test/helpers/controller_helper.rb
+    # assert_authorized_post(Domain, params: hs2pass.merge(domain: "yy.com"), diff_num: 0, err_msg: "should have failed due to unique constraint, but Response is...", bind_offset: 0)  ## This expectantly fails!  A test of assert_authorized_post() itself.
 
-    assert_no_difference("Domain.count") do
-      post domains_url, params: { domain: hs2pass.merge({domain: ""}) }
-      assert_response :unprocessable_entity, "should have failed due to null title, but..."
-    end
-
-    assert_no_difference("Domain.count") do
-      post domains_url, params: { domain: hs2pass.merge({domain: new_mdl2.domain+".012" }) }
-      assert_response :unprocessable_entity, "should have failed due to the invalid domain name, but..."
-    end
+    assert_equal :create, assert_authorized_post(Domain, params: hs2pass.merge({domain: ""}), diff_num: 0, err_msg: "should have failed due to null title, but Response is...", bind_offset: 0).first
+    assert_equal :create, assert_authorized_post(Domain, params: hs2pass.merge({domain: new_mdl2.domain+".012" }), diff_num: 0, err_msg: "should have failed due to the invalid domain name, but Response is...", bind_offset: 0).first
 
     hs2pass2 = hs2pass.merge({domain: "another."+new_mdl2.domain, })
-    assert_difference("Domain.count") do  # "should succeed, but..."
-      post domains_url, params: { domain: hs2pass2 }
-      assert_response :redirect
-    end
-    assert_redirected_to domain_url(new_mdl3 = Domain.last)
+    action, new_mdl3 = assert_authorized_post(Domain, params: hs2pass2, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+    assert_equal :create, action
 
     ### update/patch
 
@@ -131,50 +71,28 @@ class DomainsControllerTest < ActionDispatch::IntegrationTest
                  domain_title_id: new_mdl3.domain_title.id.to_s,
                  note: new_mdl3.note,
                  weight: new_mdl3.weight }.with_indifferent_access
-    patch domain_url(new_mdl3), params: { domain: hsupdate.merge(note: "aruyo") }
-    assert_redirected_to domain_url(new_mdl3)
-    assert_equal "aruyo",   new_mdl3.reload.note
-    assert_equal newdomain, new_mdl3.reload.domain
+    
+    action, _ = assert_authorized_post(new_mdl3, params: hsupdate.merge(note: "aruyo"), updated_attrs: [:note, :domain], bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+    assert_equal :update, action
 
     sign_out @moderator_ja
 
     # User trans-editor
-    sign_in @translator
 
     note3 = "aruyo3"
-    patch domain_url(new_mdl3), params: { domain: hsupdate.merge(note: note3) }
-    assert_response :redirect
-    assert_redirected_to root_path, "should be redirected before entering Controller"
-    refute_equal note3, new_mdl3.reload.note
-
+    assert_equal :update, assert_unauthorized_post(new_mdl3, user: @translator, params: hsupdate.merge(note: note3), unchanged_attrs: [:note], bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+    
     ### destroy
 
-    assert_no_difference("Domain.count") do
-      delete domain_url(new_mdl3)
-      assert_response :redirect
+    ## fail
+    [nil, @translator].each do |ea_user|
+      assert_equal :destroy, assert_unauthorized_post(new_mdl3, user: ea_user, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
     end
-    sign_out @translator
 
-    sign_in @moderator_ja
-    assert_difference("Domain.count", -1) do
-      delete domain_url(new_mdl3)
-      assert_response :redirect
-    end
-    assert_redirected_to domains_url
-    sign_out @moderator_ja
-  end
+    ## success
+    action, _ =assert_authorized_post(new_mdl3, user: @moderator_ja, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+    assert_equal :destroy, action
 
-  test "should get edit" do
-    sign_in @translator
-    get edit_domain_url(@domain)
-    assert_response :redirect
-    assert_redirected_to root_path
-    sign_out @translator
-
-    sign_in @moderator_ja
-    get edit_domain_url(@domain)
-    assert_response :success
-    sign_out @moderator_ja
   end
 
 end

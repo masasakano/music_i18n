@@ -42,6 +42,7 @@ ja:
   index: 一覧
   Instrument: 楽器
   Instrument_pl_short: 楽器
+  language: 言語
   log_out: ログアウト
   Music: 楽曲
   Musics: 楽曲
@@ -58,6 +59,8 @@ ja:
   SiteCategory: "サイト種別"
   SiteCategories: "サイト種別"
   Sex: "性別"
+  Url: "URL"
+  Urls: "URL"
   s_time: "秒"
   terms_of_service: 利用規約
   title: 名称

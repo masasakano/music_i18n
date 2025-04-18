@@ -2,6 +2,7 @@
 <%#   NOTE: model4ability may be a model instance or model class or Boolean, used for an Ability check. In default (if not given), model is used.  If TrueClass, the boolean value is used, skipping the ability check, where the value is interpreted as the permission to display Editor's Note. %>
 <%#   NOTE: If the model does not have "memo_editor" it is simply not displayed. %>
 <%#   NOTE: If the model has a weight, unless show_weight is given false, it is displayed as editor-only. %>
+<%#   NOTE: This also shows create/update_user column if the model has them. %>
 <%#   NOTE: If show_timestamp (Boolean) is not given, the same check for model4ability is applied. %>
 
 <%# USAGE:  render partial: 'layouts/show_note_memo_timestamps', locals: {model: music, model4ability: !!can_update_gen} %>
@@ -33,6 +34,15 @@
     <dd class="item_memo_editor"><%= sanitized_html(auto_link(model.memo_editor)).html_safe %></dd>
   </div>
 <% end %>
+
+ <% if model.respond_to?(:create_user) && can?(:update, Users::EditRolesController) %>
+   <div class="moderator_only">
+   <% %w(create_user update_user).each do |metho| %>
+    <dt class="item_id_<%= metho %>"><%= metho %>:</dt>
+    <dd class="item_id_<%= metho %>"><%= ur = model.send(metho); link_to(ur.display_name, ur) if ur %></dd>
+   <% end %>
+   </div>
+ <% end %>
 
   <% if show_timestamp %>
     <div class="editor_only">

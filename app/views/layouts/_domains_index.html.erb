@@ -1,0 +1,64 @@
+<%# Local variables: domains [Array<Domain>] (must be sorted!), optional: with_parent (Def: true), this_model [Domain] %>
+<%#   Example:  render partial: 'layouts/domains_index', locals: {domains: my_domains.left_joins(:domain_title).order("domain_titles.weight", "domains.weight", "domains.created_at"), with_parent: false} %>
+<% if !defined?(with_parent)
+     with_parent = true
+   end %>
+<% if !defined?(this_model)
+     this_model = nil
+   end %>
+
+<section id="domains_index_table">
+<table>
+  <thead>
+    <tr>
+       <% if (caneditgen=can?(:edit, Domain))  %>
+        <th class="editor_only">pID</th>
+       <% end %>
+      <th title="Domain"><%= t(:Domain) %></th>
+       <% if with_parent %>
+        <th title="DomainTitle"><%= t(:DomainTitle) %></th>
+       <% end %>
+       <% if caneditgen %>
+        <th class="editor_only" title="Weight for sorting.">Weight</th>
+       <% end %>
+      <th title="Note in this DB">Note</th>
+       <% if caneditgen %>
+         <th class="editor_only" colspan="3"></th>
+       <% else %>
+         <th></th>
+       <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% domains.each do |model| %>  <%# should be already sorted by the caller (or controller) %>
+      <tr<%= ' class="self_in_table"'.html_safe if (is_self=(this_model && model == this_model)) %>>
+         <% if caneditgen  %>
+          <td class="editor_only text-end"><%= link_to(model.id, model) %></td>
+         <% end %>
+        <td class="item_domain"><%= link_to(model.domain, "https://"+model.domain, target: "_blank") if model.domain %></td>  <%# Rails prohibits a null value, but playing safe %>
+         <% if with_parent %>
+          <td class="item_domain_title"><%= link_to(model.domain_title.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "(undefined)", article_to_head: true), model.domain_title, title: "Generic title for the domain") if model.domain_title %></td> <%# Rails prohibits a null value, but playing safe %>
+         <% end %>
+         <% if caneditgen  %>
+          <td class="editor_only item_weight"><%= model.weight %></td>
+         <% end %>
+        <td class="item_note"><%= model.note %></td>
+
+        <td><%= link_to t("tables.Show"), model %></td>
+        <% if can? :update, model  %>
+          <td class="editor_only"><%= link_to 'Edit', edit_domain_path(model) %></td>
+         <% if can? :destroy, model %>
+          <td class="editor_only"><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+         <% else %>
+          <td class="editor_only"></td>
+         <% end %>
+        <% elsif caneditgen %>
+          <td colspan="2" class="editor_only"></td>
+        <% end %>
+      </tr>
+    <% end %> <%# domains.each do |model| %>
+  </tbody>
+</table>
+</section> <!-- section id="domains_index_table" -->
+

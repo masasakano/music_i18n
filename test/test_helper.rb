@@ -21,6 +21,9 @@ class ActiveSupport::TestCase
 
   DEF_RELPATH_HARAMI1129_LOCALTEST = 'test/controllers/harami1129s/data/harami1129_sample.html'
 
+  # Used in the method {#_get_caller_info_message}. 0 means the caller (of the method) itself. 1 means its parent.
+  BASE_CALLER_INFO_BIND_OFFSET = 1
+
   # Run tests in parallel with specified workers
   parallelize(workers: :number_of_processors)
 
@@ -456,13 +459,19 @@ class ActiveSupport::TestCase
   # @example
   #    assert abc, sprintf("(%s): abc=%s", _get_caller_info_message(bind_offset: 0), abc.inspect)  # defined in test_helper.rb
   #
-  # @param bind_offset: [Integer] offset for caller_locations (used for displaying the caller routine). Default assumes this method is called in a test library method that is called from an original test routine.
+  # @example displays the exact line where an error occurs
+  #    assert false, _get_caller_info_message(bind_offset: -1, prefix: true)+" Something went wrong."
+  #
+  # @param bind_offset: [Integer] offset for caller_locations (used for displaying the caller routine). Default (=0) assumes this method is called in a test library method that is called from an original test routine. Therefore, specify "-1" to get the information of the caller itself (Second example above).
+  # @param fmt: [String] sprintf format. It must contain %s (for path) and %d (or %s) (for line number) in this order.
+  # @param prefix: [Boolean] If true (Def: false), the return is enclosed with a pair of parentheses, followed by a colon
   # @return [String]
-  def _get_caller_info_message(bind_offset: 0)
-    bind = caller_locations(2+bind_offset, 1)[0]  # Ruby 2.0+
+  def _get_caller_info_message(bind_offset: 0, fmt: "%s:%d", prefix: false)
+    bind = caller_locations(1+BASE_CALLER_INFO_BIND_OFFSET+bind_offset, 1)[0]  # Ruby 2.0+
 
     # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
-    sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
+    ret = sprintf fmt, bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
+    (prefix ? sprintf("(%s):", ret) : ret)
   end
   private :_get_caller_info_message
 

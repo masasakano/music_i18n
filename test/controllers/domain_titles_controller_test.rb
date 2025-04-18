@@ -37,81 +37,29 @@ class DomainTitlesControllerTest < ActionDispatch::IntegrationTest
     assert_operator 1, :<=, @domain_title.translations.size, "fixture testing: "+@domain_title.translations.inspect
     assert DomainTitle.unknown.unknown?, "fixture testing: "+DomainTitle.all.inspect
 
-    get domain_titles_url
-    assert_response :redirect
-    assert_redirected_to new_user_session_path
-
-    sign_in @editor_harami
-    get domain_titles_url
-    assert_response :redirect
-    assert_redirected_to root_path
-    sign_out @editor_harami
-
-    sign_in @trans_moderator
-    get domain_titles_url
-    assert_response :success
-    w3c_validate "Domain titles index"  # defined in test_helper.rb (see for debugging help)
-    sign_out @trans_moderator
+    assert_authorized_index(DomainTitle, fail_users: [@editor_harami], success_users: [@trans_moderator], h1_title: "Domain Titles") # defined in /test/helpers/controller_helper.rb
   end
 
-  test "should show domain_title" do
-    get domain_title_url(@domain_title)
-    assert_response :redirect
-    assert_redirected_to new_user_session_path
-
-    sign_in @translator
-    get domain_title_url(@domain_title)
-    assert_response :redirect
-    assert_redirected_to root_path
-    sign_out @translator
-
-    sign_in @trans_moderator
-    get domain_title_url(@domain_title)
-    assert_response :success, "Any moderator should be able to read, but..."
-    w3c_validate "Site Category show"  # defined in test_helper.rb (see for debugging help)
-    sign_out @trans_moderator
-  end
-
-  test "should get new" do
-    sign_in @trans_moderator
-    get new_domain_title_url
-    assert_response :redirect
-    assert_redirected_to root_path
-    sign_out @trans_moderator
+  test "should show/new/edit domain_title" do
+    assert_authorized_show(@domain_title, fail_users: [@translator], success_users: [@trans_moderator], h1_title_regex: /^Domain Title: +#{Regexp.quote(@domain_title.title_or_alt)}/) # defined in /test/helpers/controller_helper.rb
 
     refute Ability.new(@moderator_harami).can?(:new, DomainTitle)
+    assert_authorized_new(  DomainTitle, fail_users: [@trans_moderator], success_users: [@moderator_ja], h1_title_regex: nil)
 
-    sign_in @moderator_ja
-    get new_domain_title_url
-    assert_response :success
+    assert_authorized_edit(@domain_title, fail_users: [@translator], success_users: [@moderator_ja], h1_title_regex: nil)
   end
 
   test "should create/update/destroy domain_title by moderator" do
     hs2pass = @hs_create_lang.merge({ site_category_id: @site_category.id.to_s, note: "test-create", memo_editor: "test-editor", weight: 111.24} )
-    assert_no_difference("ChannelType.count") do
-      post domain_titles_url, params: { domain_title: hs2pass }
-    end
 
-    [@translator, @trans_moderator].each do |ea_user|
-      sign_in ea_user
-      assert_no_difference("DomainTitle.count") do
-        post domain_titles_url, params: { domain_title: hs2pass }
-      end
-      assert_redirected_to root_path
-      sign_out ea_user
+    [nil, @translator, @trans_moderator].each do |ea_user|
+      assert_equal :create, assert_unauthorized_post(DomainTitle, user: ea_user, params: hs2pass, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
     end
 
     sign_in @moderator_ja
-    assert_difference("DomainTitle.count") do
-      post domain_titles_url, params: { domain_title: hs2pass }
-      assert_response :redirect
-    end
-    assert_redirected_to domain_title_url(new_mdl2 = DomainTitle.last)
-
-    assert_no_difference("DomainTitle.count") do
-      post domain_titles_url, params: { domain_title: hs2pass.merge({title: ""}) }
-      assert_response :unprocessable_entity, "should have failed due to null title, but..."
-    end
+    assert_equal :create, assert_authorized_post(DomainTitle, params: hs2pass.merge({title: ""}), diff_num: 0, bind_offset: 0).first # defined in /test/helpers/controller_helper.rb
+    action, new_mdl2 = assert_authorized_post(DomainTitle, params: hs2pass, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+    assert_equal :create, action
 
 ### TODO
 #    assert_difference("DomainTitle.count") do
@@ -120,11 +68,8 @@ class DomainTitlesControllerTest < ActionDispatch::IntegrationTest
 #    end
 
     hs2pass2 = hs2pass.merge({title: new_mdl2.title+"01", })
-    assert_difference("DomainTitle.count") do  # "should succeede, but..."
-      post domain_titles_url, params: { domain_title: hs2pass2 }
-      assert_response :redirect
-    end
-    assert_redirected_to domain_title_url(new_mdl3 = DomainTitle.last)
+    action, new_mdl3 = assert_authorized_post(DomainTitle, params: hs2pass2, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+    assert_equal :create, action
 
     ### update/patch
 
@@ -132,49 +77,35 @@ class DomainTitlesControllerTest < ActionDispatch::IntegrationTest
                  note: new_mdl3.note,
                  memo_editor: new_mdl3.memo_editor,
                  weight: new_mdl3.weight }.with_indifferent_access
-    patch domain_title_url(new_mdl3), params: { domain_title: hsupdate.merge(note: "aruyo") }
-    assert_redirected_to domain_title_url(new_mdl3)
-    assert_equal "aruyo", new_mdl3.reload.note
 
+    action, tmp = assert_authorized_post(new_mdl3, params: hsupdate.merge(note: "aruyo"), updated_attrs: [:note], bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+    assert_equal :update, action
+    assert_equal tmp, new_mdl3  # sanity check, or test of  assert_authorized_post() itself.
+
+    ### This fails expectedly in assertion!  This is the test of assert_authorized_post() itself.
+    # assert_authorized_post(new_mdl3, params: hsupdate.merge(note: "aruyo"), updated_attrs: {note: 'wrong'}, bind_offset: 0)
+
+    assert_raises(ArgumentError){
+      assert_authorized_post(new_mdl3, params: hsupdate.merge(note: "aruyo"), updated_attrs: [:note, :id], bind_offset: 0) }
     sign_out @moderator_ja
 
-    # User trans-editor
-    sign_in @translator
-
+    # User trans-editor denied access to update
     note3 = "aruyo3"
-    patch domain_title_url(new_mdl3), params: { domain_title: hsupdate.merge(note: note3) }
-    assert_response :redirect
-    assert_redirected_to root_path, "should be redirected before entering Controller"
-    refute_equal note3, new_mdl3.reload.note
+    action = assert_unauthorized_post(new_mdl3, user: @translator, params: hsupdate.merge(note: note3), unchanged_attrs: [:site_category_id, :memo_editor], bind_offset: 0){ # defined in /test/helpers/controller_helper.rb
+      refute_equal note3, new_mdl3.reload.note
+    }
+    assert :update, action
 
     ### destroy
 
-    assert_no_difference("DomainTitle.count") do
-      delete domain_title_url(new_mdl3)
-      assert_response :redirect
+    ## fail
+    [nil, @translator].each do |ea_user|
+      assert_equal :destroy, assert_unauthorized_post(new_mdl3, user: ea_user, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
     end
-    sign_out @translator
 
-    sign_in @moderator_ja
-    assert_difference("DomainTitle.count", -1) do
-      delete domain_title_url(new_mdl3)
-      assert_response :redirect
-    end
-    assert_redirected_to domain_titles_url
-    sign_out @moderator_ja
-  end
-
-  test "should get edit" do
-    sign_in @translator
-    get edit_domain_title_url(@domain_title)
-    assert_response :redirect
-    assert_redirected_to root_path
-    sign_out @translator
-
-    sign_in @moderator_ja
-    get edit_domain_title_url(@domain_title)
-    assert_response :success
-    sign_out @moderator_ja
+    ## success
+    action, _ =assert_authorized_post(new_mdl3, user: @moderator_ja, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+    assert_equal :destroy, action
   end
 
 end
