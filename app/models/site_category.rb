@@ -4,11 +4,11 @@
 # Table name: site_categories
 #
 #  id                                         :bigint           not null, primary key
+#  memo_editor(Internal-use memo for Editors) :text
 #  mname(Unique machine name)                 :string           not null
 #  note                                       :text
-#  memo_editor(Internal-use memo for Editors) :text
 #  summary(Short summary)                     :text
-#  weight                                     :float
+#  weight(weight to sort this model in index) :float
 #  created_at                                 :datetime         not null
 #  updated_at                                 :datetime         not null
 #
@@ -39,7 +39,9 @@ class SiteCategory < BaseWithTranslation
   # of required uniqueness of title and alt_title.
   #TRANSLATION_UNIQUE_SCOPES = :default
 
-  #has_many :uris, dependent: :restrict_with_exception  # dependent is a key / Basically this should not be easily destroyed - it may be merged instead.  # NOTE: you may add(?) -> {distinct}
+  has_many :domain_title
+  has_many :domains, through: :domain_title  # NOTE: you may add(?) -> {distinct}
+  has_many :urls,    through: :domain_title  # NOTE: you may add(?) -> {distinct}
 
   validates_presence_of   :mname
   validates_uniqueness_of :mname

@@ -3,11 +3,11 @@
 # Table name: site_categories
 #
 #  id                                         :bigint           not null, primary key
+#  memo_editor(Internal-use memo for Editors) :text
 #  mname(Unique machine name)                 :string           not null
 #  note                                       :text
-#  memo_editor(Internal-use memo for Editors) :text
 #  summary(Short summary)                     :text
-#  weight                                     :float
+#  weight(weight to sort this model in index) :float
 #  created_at                                 :datetime         not null
 #  updated_at                                 :datetime         not null
 #

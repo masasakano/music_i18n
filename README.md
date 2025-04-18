@@ -133,8 +133,32 @@ Thus, you must write the fixtures according to this way, and for that, your ERB-
 How to generate a new ActiveRecord model with Translation.
 
 1. `bin/rails generate scaffold MyModel ...` (scaffoling) or generate model.
-2. You may edit the migration file, e.g., adding a comment for DB table/columns like `t.text :memo_editor, comment: "Internal-use memo for Editors"`. Then, run DB migration.
-3. Adjust seeds-related files and fixtures.  In this framework, many fixtures are loaded from the seeds file (so that fixtures mimic the real situation), where the Rails naming convention is often assumed.
+2. Edit the migration file. In addition to possibly adding comments for DB table/columns like `t.text :memo_editor, comment: "Internal-use memo for Editors"`, an important point is to edit the *down* direction so the down-migration will destroy some related DB records. Two obvious classes to look at are Translation (polymorphicaly associated) and ModelSummary (and its Translations).  Do as follows for example (n.b., it is important not to use currently existing models as they may not exist at the time of future migrations, hence the new definitions of the model classes inside the migration file):
+
+   ```ruby
+   class CreateMyModels < ActiveRecord::Migration[7.0]
+     class Translation < ActiveRecord::Base
+     end
+     class ModelSummary < ActiveRecord::Base
+     end
+   
+     def change
+       create_table :my_models, comment: 'MyModel blah blah...' do |t|
+         # ...
+         t.timestamps
+       end
+   
+       modelname = "MyModel"
+       reversible do |direction|
+         direction.down do
+           record = ModelSummary.where(modelname: modelname).first
+           record.destroy if record  # This should destroy its Translations
+           Translation.where(translatable_type: modelname).delete_all  # Note: destroy_all may cause violations
+         end
+       end
+   ```
+3. Run DB migration.
+4. Adjust seeds-related files and fixtures.  In this framework, many fixtures are loaded from the seeds file (so that fixtures mimic the real situation), where the Rails naming convention is often assumed.
    1. First, create `/db/seeds/my_models.rb` (plural), referring to, say, `channels.rb` in the same directory.
       1. At the top, you should load other seeding files that your model depends on, if any.
       2. Make sure the module name matches your model name.
@@ -144,7 +168,7 @@ How to generate a new ActiveRecord model with Translation.
    4. In the constant Hash `SEED_DATA` in `/db/seeds/model_summaries.rb`, add a new entry, which is a human-readable description of the model mostly served for the editors of the website.
       * On the website, it is displayed at `/model_summaries` (providing you are logged on and have a suitable priviledge).
    5. Run the seed test to confirm the seeds files have been written right: `DO_TEST_SEEDS=1 bin/rails test test/seeds/seeds_*rb`
-4. In the model file, `/app/models/my_model.rb`,
+5. In the model file, `/app/models/my_model.rb`,
    1. change the parent class from `ApplicationRecord` to `BaseWithTranslation`
    2. You may include `ModuleUnknown` if your model has the method `unknown` and `ModuleWhodunnit` if the model contains an attribute(s) like `create_user`
    3. define the constant `ARTICLE_TO_TAIL` appropriately, which is used in methods of BaseWithTranslation. It is true, if the title is very short like one to a few words, else false (i.e., if the title of the model is usually a sentence).
@@ -153,7 +177,7 @@ How to generate a new ActiveRecord model with Translation.
       * You may also define `self.default`, which may simply return `MyModel.unknown` providing that you have included `ModuleUnknown`
    6. Define the translation-related callback `validate_translation_callback` used in BaseWithTranslation.  Usually, you would need at least `validate_translation_neither_title_nor_alt_exist`
    7. Define desired associations, validations, and methods if any.
-5. In the controller file,
+6. In the controller file,
    1. Add usful modules at the top, including `ModuleCommon` (general-purpose module), `ModuleMemoEditor` (if editor-only `memo_editor` attribute is included in the model). If you use the gridder for index, add also `ModuleGridController`.
    2. Adjust the access permission (for CanCanCan).  In default (as defined in ApplicationController), unauthorized user are prohibited to access any of the methods.  
       * For a (rare) publicly viewable model, `skip_before_action :authenticate_user!, only: [:index, :show]` is essential.
@@ -161,23 +185,23 @@ How to generate a new ActiveRecord model with Translation.
    3. Adjust the params handling.
       * Since Translation-related attributes like `title` are **not** part of this model's attributes, the Rails default `params` does not work well in processing the form input including `title` etc. Refer to, for example, `domain_names_controller.rb`, to see how to handle the case neatly. In short, you define the class constant `MAIN_FORM_KEYS` (maybe also employing `PARAMS_PLACE_KEYS` if your edit-form contains a Place selection), and `before_action` method (say, `model_params_multi`) for `:create` and `:update`, in which `set_hsparams_main_tra(:my_model)` (defined in the parent class in `application_controller.rb`) is called (n.b., for the class without Translation, call `set_hsparams_main_tra(:my_model)` instead). It sets three instance variables of Arrays, `@hsmain`, `@hstra`, and `@prms_all`, which contains the form parameters except Translation-related ones, only Translation-related ones, and both, respectively.
       * For processing the final outputs in `:create` and `:update`, `def_respond_to_format()` (again defined in `application_controller.rb`) is a handy method.
-6. Edit the access-permission setting file for CanCanCan: `/app/models/ability.rb`
+7. Edit the access-permission setting file for CanCanCan: `/app/models/ability.rb`
    1. In default, no action is allowed for anyone but authorized users with a role (as defined in UserRoleAssoc). So, you must explicity allow certain methods to certain roles (or higher-rank ones).
-7. Edit Views, in particular forms.  The key is to include the Translation-model part. Consult the Views for DomainName, for example.  Also, flash is handled in the application layout. So, you can remove the flash-related parts from the views. Here are some useful helpers (layouts).
+8. Edit Views, in particular forms.  The key is to include the Translation-model part. Consult the Views for DomainName, for example.  Also, flash is handled in the application layout. So, you can remove the flash-related parts from the views. Here are some useful helpers (layouts).
    1. partial `'layouts/form_print_errors'` displays an error message contained in the model.
    2. partial `'layouts/all_registered_translations'` displays the Translation in Show and also Edit.
    3. partial `'layouts/partial_new_translations'` presents the form for title and translation-related field. Here, `disable_is_orig: false` should be given in most cases, which hides the field to choose the original language, unless the model is about a general stuff like an animal, which has no original language defined but can be equally expressed in any language.
    4. partial `'layouts/form_note_memo_editor'` displays note-related part of the form in SimpleForm %>
    5. partial `'layouts/show_edit_destroy'` shows the footer like Edit button
-8. Internationalization(I18n) / Localization (L10n)
+9. Internationalization(I18n) / Localization (L10n)
   * Edit translation fixtures of at least `/config/locales/common.en.yml` and `common.ja.yml`, registering how the new model is called (to display). You may also add other model-specific translations in `view.en.yml` etc.
-9. Edit fixtures.  In particular, you must add entries in `translations.yml`.  Note that you can embed a piece of Ruby code in the ERB format to import the translations of your model records automatically imported from the seed files, where you should have already written the translations.  See the example for DomainName.
-   * *NOTE*: `/test/models/fixture_test.rb` performs a basic check of fixture integrity, which would fail if you have forgotten to include Translation fixtures for your new model.
-10. Edit your test files
+10. Edit fixtures.  In particular, you must add entries in `translations.yml`.  Note that you can embed a piece of Ruby code in the ERB format to import the translations of your model records automatically imported from the seed files, where you should have already written the translations.  See the example for DomainName.
+    * *NOTE*: `/test/models/fixture_test.rb` performs a basic check of fixture integrity, which would fail if you have forgotten to include Translation fixtures for your new model.
+11. Edit your test files
     1. Model tests. Basic tests for validations and associations should be included at least.
     2. Controller tests. Basic tests for validations and associations should be included at least.
        1. You should add `include Devise::Test::IntegrationHelpers` and `teadown` for cache-clearing, providing at least some actions like editing/destroying a record would need an authorized priviledge.
-11. Execute seeding (`bin/rails db:seed`), providing the seeding tests succeed. Execute a couple of times (in the development environment) to confirm no errors would be raised.  If it does, seeding may fail in the production evironment!
+12. Execute seeding (`bin/rails db:seed`), providing the seeding tests succeed. Execute a couple of times (in the development environment) to confirm no errors would be raised.  If it does, seeding may fail in the production evironment!
     * A case of failure is that a model has a machine-name attribute, which is used in idnetifying a duplication, and yet the machine-name is modified either in the seed file or on the website.  In this case, their Translations may raise a violation.
 
 
