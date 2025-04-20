@@ -72,3 +72,17 @@ two:
   update_user: user_moderator
   note: UrlMyNoteOne
   memo_editor: UrlMyMemoTwo
+
+artist1_wiki_en:
+  url: "https://en.wikipedia.org/wiki/XYZ"
+  url_normalized: "en.wikipedia.org/wiki/XYZ"
+  domain: domain_wikipedia_en
+  url_langcode: en
+  weight: 108.5
+  published_date: 
+  last_confirmed_date: 
+  create_user: user_editor_general_ja
+  update_user: user_moderator
+  note: NoteUrlWikeEnArtist1
+  memo_editor: MemoUrlWikeEnArtist1
+  

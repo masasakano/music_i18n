@@ -2456,20 +2456,38 @@ genre_modern_inst_ja:
   update_user_id: 
   note: GenreModernInstJa
 
-<% Seeds::ModelSummaries::SEED_DATA.each_pair do |ekey, edata| %>
- <% %i(en ja fr).each do |langcode| %>
-   <% next if edata[langcode].blank? %>
-model_summary_<%= ekey %>_<%= langcode %>:
-  translatable: model_summary_<%= ekey %> (ModelSummary)
+# excluding EventGroup, Event, ChannelOwner, and Channel (not sure why Channel should be excluded, but tests fail)
+<% %w(ModelSummary PlayRole Instrument ChannelPlatform ChannelType SiteCategory DomainTitle Url).each do |modelname| %>
+  <% Seeds.const_get(modelname.pluralize)::SEED_DATA.each_pair do |ekey, edata| %>
+    <% %i(en ja fr).each do |langcode| %>
+      <% next if edata[langcode].blank? %>
+<%= modelname.underscore %>_<%= ekey %>_<%= langcode %>:
+  translatable: <%= modelname.underscore %>_<%= ekey %> (<%= modelname %>)
   langcode: <%= langcode %>
   title:     <%= Seeds::Common.yaml_title(edata[langcode], :title) %>
   alt_title: <%= Seeds::Common.yaml_title(edata[langcode], :alt_title) %>
   weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
   create_user_id: user_moderator
   update_user_id: user_moderator
-  note: ModelSummary<%= ekey.to_s.camelize %><%= langcode.to_s.capitalize %>
- <% end %>
+  note: <%= modelname %><%= ekey.to_s.camelize %><%= langcode.to_s.capitalize %>
+    <% end %>
+  <% end %>
 <% end %>
+
+##<% Seeds::ModelSummaries::SEED_DATA.each_pair do |ekey, edata| %>
+# <% %i(en ja fr).each do |langcode| %>
+#   <% next if edata[langcode].blank? %>
+#model_summary_<%= ekey %>_<%= langcode %>:
+#  translatable: model_summary_<%= ekey %> (ModelSummary)
+#  langcode: <%= langcode %>
+#  title:     <%= Seeds::Common.yaml_title(edata[langcode], :title) %>
+#  alt_title: <%= Seeds::Common.yaml_title(edata[langcode], :alt_title) %>
+#  weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
+#  create_user_id: user_moderator
+#  update_user_id: user_moderator
+#  note: ModelSummary<%= ekey.to_s.camelize %><%= langcode.to_s.capitalize %>
+# <% end %>
+#<% end %>
 #model_summary_HaramiVid_ja:
 #  translatable: model_summary_HaramiVid (ModelSummary)
 #  langcode: ja
@@ -2603,50 +2621,7 @@ ev_three_en:
   update_user_id: user_moderator
   note: EventThreeGroupStreetInUnknownTokyoEn
 
-<% Seeds::PlayRoles::SEED_DATA.each_pair do |ekey, edata| %>
- <% %i(en ja fr).each do |langcode| %>
-   <% next if edata[langcode].blank? %>
-play_role_<%= ekey %>_<%= langcode %>:
-  translatable: play_role_<%= ekey %> (PlayRole)
-  langcode: <%= langcode %>
-  title:     <%= Seeds::Common.yaml_title(edata[langcode], :title) %>
-  alt_title: <%= Seeds::Common.yaml_title(edata[langcode], :alt_title) %>
-  weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
-  create_user_id: user_moderator
-  update_user_id: user_moderator
-  note: PlayRole<%= ekey.to_s.camelize %><%= langcode.to_s.capitalize %>
- <% end %>
-<% end %>
-
-<% Seeds::Instruments::SEED_DATA.each_pair do |ekey, edata| %>
- <% %i(en ja fr).each do |langcode| %>
-   <% next if edata[langcode].blank? %>
-instrument_<%= ekey %>_<%= langcode %>:
-  translatable: instrument_<%= ekey %> (Instrument)
-  langcode: <%= langcode %>
-  title:     <%= Seeds::Common.yaml_title(edata[langcode], :title) %>
-  alt_title: <%= Seeds::Common.yaml_title(edata[langcode], :alt_title) %>
-  weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
-  create_user_id: user_moderator
-  update_user_id: user_moderator
-  note: Instrument<%= ekey.to_s.camelize %><%= langcode.to_s.capitalize %>
- <% end %>
-<% end %>
-
-<% Seeds::ChannelPlatforms::SEED_DATA.each_pair do |ekey, edata| %>
- <% %i(en ja fr).each do |langcode| %>
-   <% next if edata[langcode].blank? %>
-channel_platform_<%= ekey %>_<%= langcode %>:
-  translatable: channel_platform_<%= ekey %> (ChannelPlatform)
-  langcode: <%= langcode %>
-  title:     <%= Seeds::Common.yaml_title(edata[langcode], :title) %>
-  alt_title: <%= Seeds::Common.yaml_title(edata[langcode], :alt_title) %>
-  weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
-  create_user_id: user_moderator
-  update_user_id: user_moderator
-  note: ChannelPlatform<%= ekey.to_s.camelize %><%= langcode.to_s.capitalize %>
- <% end %>
-<% end %>
+## ChannelPlatform specific
 
 channel_platform_oricon_ja:
   translatable: channel_platform_oricon (ChannelPlatform)
@@ -2678,21 +2653,7 @@ channel_platform_two_en:
   update_user_id: user_translator
   note: ChannelPlatformTwo
 
-<% klass_str = "ChannelType" %>
-<% (Seeds.const_get(klass_str.pluralize))::SEED_DATA.each_pair do |ekey, edata| %>
- <% %i(en ja fr).each do |langcode| %>
-   <% next if edata[langcode].blank? %>
-<%= klass_str.underscore %>_<%= ekey %>_<%= langcode %>:
-  translatable: <%= klass_str.underscore %>_<%= ekey %> (<%= klass_str %>)
-  langcode: <%= langcode %>
-  title:     <%= Seeds::Common.yaml_title(edata[langcode], :title) %>
-  alt_title: <%= Seeds::Common.yaml_title(edata[langcode], :alt_title) %>
-  weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
-  create_user: user_syshelper
-  update_user: user_syshelper
-  note: <%= klass_str %><%= ekey.to_s.camelize %><%= langcode.to_s.capitalize %>
- <% end %>
-<% end %>
+## ChannelType specific
 
 channel_type_dictionary_ja:
   translatable: channel_type_dictionary (ChannelType)
@@ -2871,21 +2832,7 @@ channel_two_en:
   update_user_id: user_translator
   note: ChannelTwo
 
-<% klass_str = "SiteCategory" %>
-<% (Seeds.const_get(klass_str.pluralize))::SEED_DATA.each_pair do |ekey, edata| %>
- <% %i(en ja fr).each do |langcode| %>
-   <% next if edata[langcode].blank? %>
-<%= klass_str.underscore %>_<%= ekey %>_<%= langcode %>:
-  translatable: <%= klass_str.underscore %>_<%= ekey %> (<%= klass_str %>)
-  langcode: <%= langcode %>
-  title:     <%= Seeds::Common.yaml_title(edata[langcode], :title) %>
-  alt_title: <%= Seeds::Common.yaml_title(edata[langcode], :alt_title) %>
-  weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
-  create_user: user_syshelper
-  update_user: user_syshelper
-  note: <%= klass_str %><%= ekey.to_s.camelize %><%= langcode.to_s.capitalize %>
- <% end %>
-<% end %>
+## SiteCategory specific
 
 site_category_one_en:
   translatable: one (SiteCategory)
@@ -2907,21 +2854,7 @@ site_category_two_en:
   update_user_id: user_moderator
   note: SiteCategoryTwo
 
-<% klass_str = "DomainTitle" %>
-<% (Seeds.const_get(klass_str.pluralize))::SEED_DATA.each_pair do |ekey, edata| %>
- <% %i(en ja fr).each do |langcode| %>
-   <% next if edata[langcode].blank? %>
-<%= klass_str.underscore %>_<%= ekey %>_<%= langcode %>:
-  translatable: <%= klass_str.underscore %>_<%= ekey %> (<%= klass_str %>)
-  langcode: <%= langcode %>
-  title:     <%= Seeds::Common.yaml_title(edata[langcode], :title) %>
-  alt_title: <%= Seeds::Common.yaml_title(edata[langcode], :alt_title) %>
-  weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
-  create_user: user_syshelper
-  update_user: user_syshelper
-  note: <%= klass_str %><%= ekey.to_s.camelize %><%= langcode.to_s.capitalize %>
- <% end %>
-<% end %>
+## DomainTitle specific
 
 domain_title_one_en:
   translatable: one (DomainTitle)
@@ -2943,21 +2876,7 @@ domain_title_two_en:
   update_user_id: user_moderator
   note: DomainTitleTwo
 
-<% klass_str = "Url" %>
-<% (Seeds.const_get(klass_str.pluralize))::SEED_DATA.each_pair do |ekey, edata| %>
- <% %i(en ja fr).each do |langcode| %>
-   <% next if edata[langcode].blank? %>
-<%= klass_str.underscore %>_<%= ekey %>_<%= langcode %>:
-  translatable: <%= klass_str.underscore %>_<%= ekey %> (<%= klass_str %>)
-  langcode: <%= langcode %>
-  title:     <%= Seeds::Common.yaml_title(edata[langcode], :title) %>
-  alt_title: <%= Seeds::Common.yaml_title(edata[langcode], :alt_title) %>
-  weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
-  create_user: user_syshelper
-  update_user: user_syshelper
-  note: <%= klass_str %><%= ekey.to_s.camelize %><%= langcode.to_s.capitalize %>
- <% end %>
-<% end %>
+## Url specific
 
 url_one_en:
   translatable: one (Url)
@@ -2973,6 +2892,16 @@ url_two_en:
   translatable: two (Url)
   langcode: en
   title: "www.mydomain.org:80/def?myquery=5&other=6"
+  is_orig: true
+  weight: 0
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: UrlTwo
+
+url_artist1_wiki_en_en:
+  translatable: artist1_wiki_en (Url)
+  langcode: en
+  title: "Madonna Wikipedia (en)"
   is_orig: true
   weight: 0
   create_user_id: user_moderator
