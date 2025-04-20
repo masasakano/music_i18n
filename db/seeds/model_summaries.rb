@@ -54,7 +54,7 @@ module Seeds::ModelSummaries
     },
     DomainTitle: {
       ja: "ドメインの名前(ドメインにエイリアスがあっても名前は唯一)",
-      en: "Name of domain (a unified name for a domain with multiple aliases)",
+      en: "Title of domain (a unified name for a domain with multiple aliases)",
     },
     Engage: {
       ja: "ArtistとMusicとEngageHowと年と貢献度の関係(中間DB)",
@@ -127,6 +127,10 @@ module Seeds::ModelSummaries
     Translation: {
       ja: "翻訳(曲名、地名など)",
       en: "Translation (of Musics, Places etc)",
+    },
+    Url: {
+      ja: "URL (HaramiVidのURLを除く)",
+      en: "URL (except for those for HaramiVids)",
     },
     User: {
       ja: "登録ユーザー",

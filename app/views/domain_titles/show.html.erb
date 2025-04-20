@@ -7,7 +7,7 @@
 
 <%= render @domain_title %>
 
-<%= render partial: 'layouts/show_edit_destroy', locals: {model: @domain_title, destroyable: true} %> <%# How about associations? %>
+<%= render partial: 'layouts/show_edit_destroy', locals: {model: @domain_title, destroyable: @domain_title.destroyable?} %> <%# How about associations? %>
 
 
 </section> <%# closing section id="sec_primary" %>
@@ -18,6 +18,14 @@
 <h2>Domains for this DomainTitle</h2>
 
 <%= render partial: 'layouts/domains_index', locals: {domains: @domain_title.domains.left_joins(:domain_title).order("domain_titles.weight", "domains.weight", "domains.created_at"), with_parent: false, } %>
+</section>
+
+<hr>
+
+<section id="urls_table_for_domain_title">
+<h2>Urls for this DomainTitle</h2>
+
+<%= render partial: 'layouts/urls_index', locals: {urls: @domain_title.urls.left_joins(:domain).left_joins(:domain_title).order("domain_titles.weight", "domain_titles.created_at", "domains.weight", "domains.created_at", "urls.weight", "urls.created_at"), with_parent: false} %>
 </section>
 
 <hr>

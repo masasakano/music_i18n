@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  resources :urls
   resources :domains
   resources :domain_titles
   resources :site_categories

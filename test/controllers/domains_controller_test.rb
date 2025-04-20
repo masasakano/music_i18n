@@ -45,23 +45,34 @@ class DomainsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should create/update/destroy domain by moderator" do
+    def_bind_offset = -1
     hs2pass = @hs_base.merge({ note: "test-create", weight: 111.24} )
     [nil, @translator, @trans_moderator].each do |ea_user|
-      assert_equal :create, assert_unauthorized_post(Domain, user: ea_user, params: hs2pass, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+      assert_equal :create, assert_unauthorized_post(Domain, user: ea_user, params: hs2pass, bind_offset: def_bind_offset) # defined in /test/helpers/controller_helper.rb
     end
 
     sign_in @moderator_ja
-    action, new_mdl2 = assert_authorized_post(Domain, params: hs2pass, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+    action, new_mdl2 = assert_authorized_post(Domain, params: hs2pass, bind_offset: def_bind_offset) # defined in /test/helpers/controller_helper.rb
     assert_equal :create, action
 
-    assert_equal :create, assert_authorized_post(Domain, params: hs2pass, diff_num: 0, err_msg: "should have failed due to unique constraint, but Response is...", bind_offset: 0).first # defined in /test/helpers/controller_helper.rb
-    # assert_authorized_post(Domain, params: hs2pass.merge(domain: "yy.com"), diff_num: 0, err_msg: "should have failed due to unique constraint, but Response is...", bind_offset: 0)  ## This expectantly fails!  A test of assert_authorized_post() itself.
+    assert_equal :create, assert_authorized_post(Domain, params: hs2pass, diff_num: 0, err_msg: "should have failed due to unique constraint, but Response is...", bind_offset: def_bind_offset).first # defined in /test/helpers/controller_helper.rb
+    # assert_authorized_post(Domain, params: hs2pass.merge(domain: "yy.com"), diff_num: 0, err_msg: "should have failed due to unique constraint, but Response is...", bind_offset: def_bind_offset)  ## This expectantly fails!  A test of assert_authorized_post() itself.
 
-    assert_equal :create, assert_authorized_post(Domain, params: hs2pass.merge({domain: ""}), diff_num: 0, err_msg: "should have failed due to null title, but Response is...", bind_offset: 0).first
-    assert_equal :create, assert_authorized_post(Domain, params: hs2pass.merge({domain: new_mdl2.domain+".012" }), diff_num: 0, err_msg: "should have failed due to the invalid domain name, but Response is...", bind_offset: 0).first
+    assert_equal :create, assert_authorized_post(Domain, params: hs2pass.merge({domain: ""}), diff_num: 0, err_msg: "should have failed due to null title, but Response is...", bind_offset: def_bind_offset).first
+    assert_equal :create, assert_authorized_post(Domain, params: hs2pass.merge({domain: new_mdl2.domain+".012" }), diff_num: 0, err_msg: "should have failed due to the invalid domain name, but Response is...", bind_offset: def_bind_offset).first
 
-    hs2pass2 = hs2pass.merge({domain: "another."+new_mdl2.domain, })
-    action, new_mdl3 = assert_authorized_post(Domain, params: hs2pass2, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+    refute_match(/^www\./, new_mdl2.domain)
+    hs2pass2 = hs2pass.merge({domain: "www."+new_mdl2.domain, domain_title_id: ""})  # DomainTitle should be set to an existing one
+    action, new_mdl3 = assert_authorized_post(Domain, params: hs2pass2, diff_count_command: 'Translation.count*100 + DomainTitle.count*10 + Domain.count', diff_num: 1, bind_offset: -1){ |user, record| # defined in /test/helpers/controller_helper.rb
+    }
+    assert_equal :create, action
+    follow_redirect!
+    flash_regex_assert(/DomainTitle .*\bidentified\b/, type: :notice)
+
+    hs2pass4 = hs2pass.merge({domain: "completely-new.com", domain_title_id: ""})  # DomainTitle should be created.
+    action, new_mdl4 = assert_authorized_post(Domain, params: hs2pass4, diff_count_command: 'Translation.count*100 + DomainTitle.count*10 + Domain.count', diff_num: 111, bind_offset: -1) # defined in /test/helpers/controller_helper.rb
+    follow_redirect!
+    flash_regex_assert(/DomainTitle .*\bcreated\b/, type: :notice)
     assert_equal :create, action
 
     ### update/patch
@@ -72,25 +83,38 @@ class DomainsControllerTest < ActionDispatch::IntegrationTest
                  note: new_mdl3.note,
                  weight: new_mdl3.weight }.with_indifferent_access
     
-    action, _ = assert_authorized_post(new_mdl3, params: hsupdate.merge(note: "aruyo"), updated_attrs: [:note, :domain], bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+    action, _ = assert_authorized_post(new_mdl3, params: hsupdate.merge(note: "aruyo"), updated_attrs: [:note, :domain], bind_offset: def_bind_offset) # defined in /test/helpers/controller_helper.rb
     assert_equal :update, action
+
+    dom_txt = "update.com"
+    action, _ = assert_authorized_post(new_mdl4, params: hsupdate.merge({domain: "www."+dom_txt, domain_title_id: "", note: "aruy4_1"}), updated_attrs: [:note, :domain], diff_count_command: 'Translation.count*100 + DomainTitle.count*10 + Domain.count', diff_num: 110, bind_offset: def_bind_offset){ |user, record| # defined in /test/helpers/controller_helper.rb
+      assert_equal @moderator_ja, user, "sanity check" 
+      assert record.domain_title
+      assert_equal dom_txt, record.domain_title.title
+    }
+    assert_equal :update, action
+    dt4 = new_mdl4.reload.domain_title
+
+    action, _ = assert_authorized_post(new_mdl4, params: hsupdate.merge({domain: dom_txt, domain_title_id: "", note: "aruy4_2"}), updated_attrs: [:note, :domain], diff_count_command: 'Translation.count*100 + DomainTitle.count*10 + Domain.count', diff_num: 0, bind_offset: def_bind_offset) # defined in /test/helpers/controller_helper.rb
+    assert_equal :update, action
+    assert_equal dt4, new_mdl4.reload.domain_title
 
     sign_out @moderator_ja
 
     # User trans-editor
 
     note3 = "aruyo3"
-    assert_equal :update, assert_unauthorized_post(new_mdl3, user: @translator, params: hsupdate.merge(note: note3), unchanged_attrs: [:note], bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+    assert_equal :update, assert_unauthorized_post(new_mdl3, user: @translator, params: hsupdate.merge(note: note3), unchanged_attrs: [:note], bind_offset: def_bind_offset) # defined in /test/helpers/controller_helper.rb
     
     ### destroy
 
     ## fail
     [nil, @translator].each do |ea_user|
-      assert_equal :destroy, assert_unauthorized_post(new_mdl3, user: ea_user, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+      assert_equal :destroy, assert_unauthorized_post(new_mdl3, user: ea_user, bind_offset: def_bind_offset) # defined in /test/helpers/controller_helper.rb
     end
 
     ## success
-    action, _ =assert_authorized_post(new_mdl3, user: @moderator_ja, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+    action, _ =assert_authorized_post(new_mdl3, user: @moderator_ja, bind_offset: def_bind_offset) # defined in /test/helpers/controller_helper.rb
     assert_equal :destroy, action
 
   end

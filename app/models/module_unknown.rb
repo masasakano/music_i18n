@@ -47,7 +47,7 @@ module ModuleUnknown
     #
     # @return [ApplicationRecord]
     def _unknown_forcible
-      self.find_by_regex(:titles, /\A\s*(#{self::UNKNOWN_TITLES.values.inject([]){|i,j| i+[j].flatten}.map{|k| Regexp.quote(k)}.join('|')})\s*\z/i, sql_regexp: true)
+      self.find_by_regex(:titles, /\A\s*(#{self::UNKNOWN_TITLES.values.map{|k| k.respond_to?(:compact) ? k.compact : k}.inject([]){|i,j| i+[j].flatten}.map{|k| Regexp.quote(k)}.join('|')})\s*\z/i, sql_regexp: true)
     end
     private :_unknown_forcible
   end

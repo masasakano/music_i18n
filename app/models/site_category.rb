@@ -41,7 +41,7 @@ class SiteCategory < BaseWithTranslation
 
   has_many :domain_title
   has_many :domains, through: :domain_title  # NOTE: you may add(?) -> {distinct}
-  has_many :urls,    through: :domain_title  # NOTE: you may add(?) -> {distinct}
+  has_many :urls,    through: :domains       # NOTE: you may add(?) -> {distinct}
 
   validates_presence_of   :mname
   validates_uniqueness_of :mname

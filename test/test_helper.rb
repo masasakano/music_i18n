@@ -195,8 +195,11 @@ class ActiveSupport::TestCase
   #
   # == Debugging
   #
-  # You may add +follow_redirect!+ before calling this in some cases.
-  # For debugging, insert the following statemets (refer to #{css_for_flash})
+  # You may add
+  #   follow_redirect!
+  # before calling this in some cases.
+  # For debugging, insert one of the following statemets (refer to #{css_for_flash})
+  #   print "DEBUG:for-flash0: #{css_select(css_for_flash).to_s}\n"
   #   print "DEBUG:for-flash1: #{css_select('div#error_explanation').to_html}\n"
   #   print "DEBUG:for-flash2: #{css_select('p.alert').to_html}\n"
   #
@@ -227,6 +230,9 @@ class ActiveSupport::TestCase
   #      # => "div#body_main div.alert.alert-warning a em, div#body_main div#error_explanation.alert.alert-warning a em"
   #    css_for_flash([:alert, :success], category: :div, extra_attributes: ["cls1", "cls2"])
   #      # => "div#body_main div.alert.alert-danger.cls1.cls2, div#body_main div.alert.alert-success.cls1.cls2"
+  #
+  # @example printing the flash/error message in Controller tests
+  #    puts css_select(css_for_flash).to_s 
   #
   # @param type: [Symbol, Array<Symbol>, NilClass] :notice, :alert, :warning, :success or their array.
   #    If nil, everything defined in {ApplicationController::FLASH_CSS_CLASSES}
@@ -272,13 +278,13 @@ class ActiveSupport::TestCase
 
   # Returns the XPATH string to extract the flash messages.
   #
-  # @example
+  # @example  (I am not sure if these actually work...)
   #    xpath_for_flash(:notice, category: :error_explanation)
-  #      # => "div#body_main div.alert.alert-info.notice"
-  #    css_for_flash(:warning, category: :both, extra: "a em")
-  #      # => "div#body_main div.alert.alert-warning a em, div#body_main div#error_explanation.alert.alert-warning a em"
-  #    css_for_flash([:alert, :success], category: :div, extra_attributes: ["cls1", "cls2"])
-  #      # => "div#body_main div.alert.alert-danger.cls1.cls2, div#body_main div.alert.alert-success.cls1.cls2"
+  #      # => "//div[@id='body_main']/div[@id='error_explanation'][contains(@class, 'notice')][contains(@class, 'alert')][contains(@class, 'alert-info')][1]"
+  #    xpath_for_flash(:warning, category: :both, extras: %w(a em))  # NOTE: extras is an Array!
+  #      # => "//div[@id='body_main']/div[contains(@class, 'alert')][contains(@class, 'alert-warning')]//a//em[1]|//div[@id='body_main']/div[@id='error_explanation'][contains(@class, 'alert')][contains(@class, 'alert-warning')]//a//em[1]"
+  #    xpath_for_flash([:alert, :success], category: :div, extra_attributes: ["cls1", "cls2"])
+  #      # => "//div[@id='body_main']/div[contains(@class, 'alert')][contains(@class, 'alert-danger')][contains(@class, 'cls1')][contains(@class, 'cls2')][1]|//div[@id='body_main']/div[contains(@class, 'alert')][contains(@class, 'alert-success')][contains(@class, 'cls1')][contains(@class, 'cls2')][1]"
   #
   # @param type: [Symbol, Array<Symbol>, NilClass] :notice, :alert, :warning, :success or their array.
   #    If nil, everything defined in {ApplicationController::FLASH_CSS_CLASSES}

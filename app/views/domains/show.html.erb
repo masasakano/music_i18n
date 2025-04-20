@@ -5,7 +5,7 @@
 
 <%= render @domain %>
 
-<%= render partial: 'layouts/show_edit_destroy', locals: {model: @domain, destroyable: true} %> <%# How about associations? %>
+<%= render partial: 'layouts/show_edit_destroy', locals: {model: @domain, destroyable: @domain.destroyable?} %> <%# How about associations? %>
 
 </section> <%# closing section id="sec_primary" %>
 
@@ -14,6 +14,14 @@
 <h2>Sibling Domains</h2>
 
 <%= render partial: 'layouts/domains_index', locals: {domains: @domain.domain_title.domains.left_joins(:domain_title).order("domain_titles.weight", "domains.weight", "domains.created_at"), with_parent: false, this_model: @domain} %>
+
+<hr>
+
+<section id="urls_table_for_domain">
+<h2>Urls for this Domain</h2>
+
+<%= render partial: 'layouts/urls_index', locals: {urls: @domain.urls.left_joins(:domain).left_joins(:domain_title).order("domain_titles.weight", "domain_titles.created_at", "domains.weight", "domains.created_at", "urls.weight", "urls.created_at"), with_parent: false} %>
+</section>
 
 <hr>
   <%= link_to t("layouts.back_to_index"), domains_path %>

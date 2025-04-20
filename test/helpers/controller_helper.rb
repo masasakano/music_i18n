@@ -2,6 +2,7 @@
 require "test_helper"
 
 class ActiveSupport::TestCase
+  UNAUTHENTICATED_USER_NAME = 'Unauthenticated(Public)'
 
   # @note The definition name should not begin with "test_" because otherwise the definition
   #       would be actually run in every testing, maybe scores of times in total!
@@ -60,7 +61,7 @@ class ActiveSupport::TestCase
   # Public access should be completely banned.
   #
   # @param model [Class] ActiveRecord
-  # @yield [User] Anything while the user is successfully authorized, i.e., only for viewings by success_users
+  # @yield [User, ActiveRecord] Anything while the user is successfully authorized, i.e., only for viewings by success_users
   def assert_authorized_index(model, fail_users: [], success_users: [], h1_title: nil, &bl)
     index_path = Rails.application.routes.url_helpers.polymorphic_path(model)
     h1_title ||= model.name.pluralize
@@ -73,7 +74,7 @@ class ActiveSupport::TestCase
   # Public access should be completely banned.
   #
   # @param record [ActiveRecord]
-  # @yield [User] Anything while the user is successfully authorized, i.e., only for viewings by success_users
+  # @yield [User, ActiveRecord] Anything while the user is successfully authorized, i.e., only for viewings by success_users
   def assert_authorized_show(record, fail_users: [], success_users: [], h1_title_regex: nil, &bl)
     show_path = Rails.application.routes.url_helpers.polymorphic_path(record)
 
@@ -95,7 +96,7 @@ class ActiveSupport::TestCase
   # Test get-new for an access-restricted page
   #
   # @param model [Class] ActiveRecord
-  # @yield [User] Anything while the user is successfully authorized, i.e., only for viewings by success_users
+  # @yield [User, ActiveRecord] Anything while the user is successfully authorized, i.e., only for viewings by success_users
   def assert_authorized_new(model, fail_users: [], success_users: [], h1_title_regex: nil, &bl)
     new_path = Rails.application.routes.url_helpers.polymorphic_path(model, action: :new)
     h1_title_regex ||= /^New #{Regexp.quote(model.name)}/
@@ -112,7 +113,7 @@ class ActiveSupport::TestCase
   # Test get-new for an access-restricted page
   #
   # @param record [ActiveRecord]
-  # @yield [User] Anything while the user is successfully authorized, i.e., only for viewings by success_users
+  # @yield [User, ActiveRecord] Anything while the user is successfully authorized, i.e., only for viewings by success_users
   def assert_authorized_edit(record, fail_users: [], success_users: [], h1_title_regex: nil, &bl)
     edit_path = Rails.application.routes.url_helpers.polymorphic_path(record, action: :edit)
     h1_title_regex ||= /^Edit(ing)? #{Regexp.quote(record.class.name)}/
@@ -134,7 +135,7 @@ class ActiveSupport::TestCase
   # @param include_w3c_validate: [Boolean] If true, may w3c-validate
   # @param bind_offset: [Integer] Depth of the call (to get caller information for error messages)
   # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block.
-  # @yield [User] Anything while the user is successfully authorized, i.e., only for viewings by success_users
+  # @yield [User, ActiveRecord] Anything while the user is successfully authorized, i.e., only for viewings by success_users
   def _assert_authorized_get_set(path, model_record=nil, params: nil, fail_users: [], success_users: [], h1_title_regex: nil, include_w3c_validate: true, bind_offset: 1, base_proc: nil, &bl)
     model = (model_record.respond_to?(:name) ? model_record : model_record.class)
     model_w3c_validate = (include_w3c_validate ? model : nil)
@@ -178,7 +179,7 @@ class ActiveSupport::TestCase
   # @param params [Hash, NilClass]
   # @param bind_offset: [Integer] Depth of the call (to get caller information for error messages)
   # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block.
-  # @yield [User] Anything while the user is logged in.
+  # @yield [User, NilClass] 2-elements. Anything while the user is logged in.
   def _assert_unauthorized_access(path, user, params: nil, bind_offset: 2-BASE_CALLER_INFO_BIND_OFFSET, base_proc: nil)
     caller_info_prefix = sprintf("(%s):", _get_caller_info_message(bind_offset: bind_offset))  # defined in test_helper.rb
 
@@ -187,8 +188,8 @@ class ActiveSupport::TestCase
     assert_response :redirect, "#{caller_info_prefix}: User=#{user.display_name.inspect} should NOT be able to access #{path} but they are..."
     assert_redirected_to root_path
 
-    base_proc.call(user) if base_proc
-    yield if block_given?
+    base_proc.call(user, nil) if base_proc
+    yield(user, nil) if block_given?
     sign_out user
   end
   private :_assert_unauthorized_access
@@ -225,11 +226,10 @@ class ActiveSupport::TestCase
   # @param diff_count_command: [String, NilClass] Count method like 'Article.count*10 + Author.count'. In default, it is guessed from model_record
   # @param unchanged_attrs: [Array<Symbol>] Attributes that should not change after :update. Looked up only if action is :update.
   # @param bind_offset: [Integer] Depth of the call (to get caller information for error messages); 0 if you directly call this from your test script and want to know the caller location in your test-script.
-  # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block.
-  # @yield [User] Anything while the user is logged in.
+  # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block. [User, (Class<ActiveRecord>, ActiveRecord]Class<ActiveRecord>)] is passed. The 2nd element is the given model_record
+  # @yield [User, (Class<ActiveRecord>, ActiveRecord)] Executed while the user is logged in, after evaluation. The 2nd element is the given model_record
   # @return [Symbol] action like :create (to check if this method is performing as intended)
   def assert_unauthorized_post(model_record, user: nil, path_or_action: nil, params: nil, method: nil, diff_count_command: nil, unchanged_attrs: [], bind_offset: 2-BASE_CALLER_INFO_BIND_OFFSET, base_proc: nil)
-    user_txt = (user ? user.display_name.inspect : 'Unauthenticated(Public)')
     action, method, path, model, opts = _get_action_method_path(model_record, path_or_action, method, params)
 
     caller_info_prefix = _get_caller_info_message(bind_offset: bind_offset, prefix: true)  # defined in test_helper.rb
@@ -241,11 +241,14 @@ class ActiveSupport::TestCase
     Rails.logger.debug msg
 
     sign_in user if user
+    user_txt, user_current = _get_quoted_user_display_name(user, model)
+
     assert_no_difference(diff_count_command, "#{caller_info_prefix} User=#{user_txt} should NOT be able to #{action} at #{path} but they are (according to #{diff_count_command.inspect})...") do
       send(method, path, **opts)
     end
 
-    assert_redirected_to root_path, "#{caller_info_prefix} User=#{user_txt} should be redirected to Root-path after denied access to #{action} at #{path} but..." if user
+    assert_response :redirect, "#{caller_info_prefix} User=#{user_txt} should be redirected after denied access to #{action} at #{path} but ..." if user
+    assert_redirected_to root_path, "#{caller_info_prefix} User=#{user_txt} should be redirected to Root-path after denied access to #{action} at #{path} but it is actually redirected to #{response.redirect_url.inspect}..." if user
 
     if :update == action
       model_record.reload
@@ -254,8 +257,8 @@ class ActiveSupport::TestCase
       end
     end
 
-    base_proc.call(user) if base_proc
-    yield if block_given?
+    base_proc.call(user || user_current, model_record) if base_proc
+    yield(user || user_current, model_record) if block_given?
     sign_out user if user
 
     action
@@ -270,15 +273,18 @@ class ActiveSupport::TestCase
   # @param include_w3c_validate: [Class, NilClass] ActiveRecord class. In specified, may w3c-validate
   # @param bind_offset: [Integer] Depth of the call (to get caller information for error messages)
   # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block.
-  # @yield [User] Anything while the user is logged in.
+  # @yield [User, nil] Anything while the user is logged in.
   def _assert_authorized_access(path, user, params: nil, h1_title_regex: nil, model_w3c_validate: nil, bind_offset: 2-BASE_CALLER_INFO_BIND_OFFSET, base_proc: nil)
     caller_info_prefix = sprintf("(%s):", _get_caller_info_message(bind_offset: bind_offset))  # defined in test_helper.rb
     # h1_title ||= model.name.pluralize
     h1_title = h1_title_regex if !h1_title_regex.respond_to?(:named_captures)
 
-    sign_in user
+    sign_in user if user
     get path, params: params
-    assert_response :success, "#{caller_info_prefix}: User=#{user.display_name.inspect} should be able to access #{path} but they are not..."
+    user_current = response.request.env['warden'].user  ## if a user is already logged in
+    user_txt = ((u=(user || user_current)) ? u.display_name.inspect : UNAUTHENTICATED_USER_NAME)
+
+    assert_response :success, "#{caller_info_prefix}: User=#{user_txt} should be able to access #{path} but they are not..."
 
     if h1_title_regex
       tit = css_select('h1')[0]
@@ -292,9 +298,9 @@ class ActiveSupport::TestCase
 
     w3c_validate "#{model_w3c_validate.name} - #{path}" if model_w3c_validate # defined in test_helper.rb (see for debugging help)
 
-    base_proc.call(user) if base_proc
-    yield(user) if block_given?
-    sign_out user
+    base_proc.call(user || user_current, nil) if base_proc
+    yield(user || user_current, nil) if block_given?
+    sign_out user if user
   end
   private :_assert_authorized_access
 
@@ -334,11 +340,10 @@ class ActiveSupport::TestCase
   # @param updated_attrs: [Array<Symbol>, Hash] Attributes that should be updated after :update/:create, which you want to check (this does not need to be a complete list at all!). If Hash, +{key => expected-value}+. If Array, the expected values are taken from the given +params+.
   # @param err_msg: [String, NilClass] Custom error message for assert_response
   # @param bind_offset: [Integer] Depth of the call (to get caller information for error messages); 0 if you directly call this from your test script and want to know the caller location in your test-script.
-  # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block.
-  # @yield [User] Anything while the user is logged in.
+  # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block. [User, ActiveRecord] is passed.
+  # @yield [User, ActiveRecord] Executed while the user is logged in after running other tests.
   # @return [Array<Symbol, ActiveRecord, NilClass>] Pair of Array. 1st element is action. 2nd element is, if successful (in :create), returns the created (or updated) model, else nil.
   def assert_authorized_post(model_record, user: nil, path_or_action: nil, params: nil, method: nil, diff_count_command: nil, diff_num: nil, updated_attrs: [], err_msg: nil, bind_offset: 2-BASE_CALLER_INFO_BIND_OFFSET, base_proc: nil)
-    user_txt = (user ? user.display_name.inspect : 'Unauthenticated(Public)')
     action, method, path, model, opts = _get_action_method_path(model_record, path_or_action, method, params)
 
     updated_attrs ||= {}
@@ -364,18 +369,18 @@ class ActiveSupport::TestCase
       end
 
     exp_response = ((0 == diff_num && action != :update) ? :unprocessable_entity : :redirect)
-
-    caller_info_prefix = _get_caller_info_message(bind_offset: bind_offset, prefix: true)  # defined in test_helper.rb
     diff_count_command ||= model.name+".count"
 
+    caller_info_prefix = _get_caller_info_message(bind_offset: bind_offset, prefix: true)  # defined in test_helper.rb
     msg = sprintf("DEBUG(%s:%s): %s Path=%s, action=%s, method=%s, Examining-command=%s (expected_diff=%s) params=%s", File.basename(__FILE__), __method__, caller_info_prefix, path, action.inspect, method.inspect, diff_count_command.inspect, diff_num.inspect, opts.inspect)
     Rails.logger.debug msg
 
     sign_in user if user
-    assert_difference(diff_count_command, diff_num, "#{caller_info_prefix} User=#{user_txt} should #{action} at #{path} but failed (according to #{diff_count_command.inspect}; expected difference of #{diff_num})...") do
+    user_txt, user_current = _get_quoted_user_display_name(user, model)
+
+    assert_difference(diff_count_command, diff_num, "#{_get_caller_info_message(bind_offset: bind_offset, prefix: true)} User=#{user_txt} should #{action} at #{path} but failed (according to #{diff_count_command.inspect}; expected difference of #{diff_num})...") do
       send(method, path, **opts)
-      msg = "#{caller_info_prefix} User=#{user_txt}" + (err_msg.present? ? ": "+err_msg : "should get response #{exp_response.inspect} after #{action} at #{path}, but...")
-      assert_response exp_response, msg
+      assert_response exp_response, ("#{_get_caller_info_message(bind_offset: bind_offset, prefix: true)} User=#{user_txt}" + (err_msg.present? ? ": "+err_msg : " should get response #{exp_response.inspect} after #{action} at #{path}, but status=#{response.status}..."))
     end
 
     ret = ((:update == action) ? model_record.reload : nil)
@@ -391,21 +396,44 @@ class ActiveSupport::TestCase
         else
           raise "should never happen."
         end
-      assert_redirected_to( path2=Rails.application.routes.url_helpers.polymorphic_path(redirect_path_arg), "#{caller_info_prefix} User=#{user_txt} should be redirected to #{path2} after #{action} at #{path} but..." )
+      assert_redirected_to( path2=Rails.application.routes.url_helpers.polymorphic_path(redirect_path_arg), "#{_get_caller_info_message(bind_offset: bind_offset, prefix: true)} User=#{user_txt} should be redirected to #{path2} after #{action} at #{path} but..." )
     end
+
+    record_after =
+      if :destroy == action
+        model_record  # This is usually ActiveRecord, though this may be a Class (Model) if the user passes so, specifiying the path directly
+      elsif ret.respond_to?(:id)
+        ret    # :update or successful :create
+      else
+        model  # This is the case when :create and creation fails.
+      end
+
 
     if [:create, :update].include? action
       updated_attrs.each_pair do |eatt, exp|
         assert_equal exp, ret.send(eatt)
       end
     end
-
-    base_proc.call(user) if base_proc
-    yield if block_given?
+    base_proc.call(user || user_current, record_after) if base_proc
+    yield(user || user_current, record_after) if block_given?
     sign_out user if user
 
     [action, ret]
   end  # def assert_authorized_post(model_record, ...)
+
+  # @param model [ActiveRecord]
+  # @return [Array<String, User>] 2-element Array of User display-name double-quoted and User
+  def _get_quoted_user_display_name(user, model)
+    return [user.display_name.inspect, user] if user
+
+    # Gets a user-name if already logged-in.
+    get Rails.application.routes.url_helpers.polymorphic_path(model)  # GET Index. Unless you make an HTTP request, you cannot get it...
+    if (logged_user=response.request.env['warden'].user)  ## if a user is already logged in
+      [logged_user.display_name.inspect, logged_user]
+    else
+      [UNAUTHENTICATED_USER_NAME, nil]
+    end
+  end
 
   # Internal routine to process arguments
   #

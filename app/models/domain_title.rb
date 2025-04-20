@@ -64,4 +64,28 @@ class DomainTitle < BaseWithTranslation
 
   belongs_to :site_category
   has_many :domains, dependent: :destroy  # cascade in DB. But this should be checked in Rails controller level!
+  has_many :urls, through: :domains       # This prohibits cascade destroys - you must destroy all Urls first.
+
+  # An alternative constructor (unsaved, but ready to be saved)
+  #
+  # @param url_str [String]
+  # @return [DomainTitle]
+  def self.new_from_url(url_str)
+    ret = DomainTitle.new(site_category: SiteCategory.unknown)
+    domain_txt = Domain.extracted_normalized_domain(url_str, with_www: false)  # without "www."
+    ret.unsaved_translations << Translation.new(title: domain_txt, langcode: "en", is_orig: nil, weight: Float::INFINITY)
+    ret
+  end
+
+  # Returns the highest-priority Domain
+  #
+  # @return [Domain, NilClass] nil only in an unlikely case of no child Domains.
+  def primary_domain
+    domains.order(:weight).first
+  end
+
+  # At the association level (NOT the user-permission level)
+  def destroyable?
+    !urls.exists?
+  end
 end

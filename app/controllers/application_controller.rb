@@ -751,6 +751,21 @@ class ApplicationController < ActionController::Base
     model.logger_after_create(extra_str: extra_str, execute_class: self.class, method_txt: method_txt, header_txt: "Created", user: current_user)  # defined in application_record.rb
   end
 
+  # Helper method to add a flash message
+  #
+  # @example
+  #    add_flash_message(:warning, "Strange input")  # defined in application_controller.rb
+  #
+  # @param type [String, Symbol] :alert, :warning, :success, :notice
+  # @param msg [String] Message to add
+  # @return [Array] of flash of the type
+  def add_flash_message(type, msg)
+    raise "Wrong flash type of #{type.inspect}" if !FLASH_CSS_CLASSES.include?(type.to_s)
+    flash[type.to_sym] ||= []
+    flash[type.to_sym] << msg
+    flash[type.to_sym]
+  end
+
   ######################## Callbacks
 
   # Callback

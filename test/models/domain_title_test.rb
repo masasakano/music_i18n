@@ -54,23 +54,42 @@ class DomainTitleTest < ActiveSupport::TestCase
     n_child_domains = dt.domains.count
     assert_operator 2, :<=, n_child_domains
 
-    assert dt.uris.exists?
+    assert dt.urls.exists?
     assert_raises(ActiveRecord::DeleteRestrictionError){
       dt.destroy}
-    assert dt.uris.exists?
+    assert dt.urls.exists?
     # assert_raises(ActiveRecord::InvalidForeignKey){ # PG::ForeignKeyViolation  # At DB level.
     #   dt.delete }
     ### This would raise an error in the next access to the DB (I guess the Rails test frame fails?):
     # ActiveRecord::StatementInvalid: PG::InFailedSqlTransaction: ERROR:  current transaction is aborted, commands ignored until end of transaction block
 
-    ## cascade deletion in the model-level.
-    dt.uris.destroy_all
+    ## cannot cascade deletion in the model-level because of dependent (grandchildren) Urls.
+    assert dt.urls.exists?
+    assert_raises(ActiveRecord::DeleteRestrictionError){
+      dt.domains.destroy_all
+    }
+
+    dt.urls.each do |url|
+      url.destroy
+    end
+
+    #assert_nothing_raised(){
+    #  dt.domains.destroy_all
+    #}
     dt.domains.reset
-    assert_difference('DomainTitle.count', -1){
+    assert_difference('DomainTitle.count', -1){  # cascade destruction of Domains is allowed unless there are dependent Urls
       assert_difference('Domain.count', -n_child_domains){
         dt.destroy
       }
     }
+  end
+
+  test "methods" do
+    url = "abc.naiyo.com"
+    dt = DomainTitle.new_from_url("www."+url)
+    assert dt.new_record?
+    assert dt.valid?
+    assert_equal url, dt.title
   end
 end
 

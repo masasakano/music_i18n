@@ -1,0 +1,48 @@
+<%= render partial: 'layouts/form_print_errors', locals: {model: @url} %>
+
+<% if ! @url.new_record? %>
+<hr>
+<% end %>
+<section id="sec_primary">
+<% if ! @url.new_record? %>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @url, add_buttons: true} %>
+<hr>
+
+<h2>Unique parameters</h2>
+<% end %>
+
+<div id="form_main">
+
+<%= simple_form_for(@url) do |f| %>
+ <section id="sec_primary_input">
+  <% if @url.new_record? %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: @url, trans: Translation.new, disable_is_orig: false, is_simple_form: true} %>
+  <% end %>
+  <%= f.error_notification %>
+  <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
+
+  <div class="form-inputs">
+    <%= f.input :url %>
+    <%# f.input :url_normalized %>
+    <%= f.input :url_langcode, input_html: {class: "input_shortest", type: "text"}, hint: "2-letter code (or blank), e.g., en, ja, fr, es (Spanish), it (Italian), de (German), ko (Korean), zh (Chinese)" %>
+    <%= f.association :domain, label_method: :domain, include_blank: '(Automatically assigned)', default: nil, hint: "Usually no need to set or modify. If you manually edit it, be carefu!" %>
+    <% %i(published_date last_confirmed_date).each do |eat|  %>
+      <%= f.input eat, start_year: get_form_start_year(@url.send(eat))-10, end_year: Date.current.year %>
+    <% end %>
+
+    <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: Url, skip_ability_check: true} %> <%# weight, note, memo_editor %>
+  </div>
+
+  <div class="form-actions">
+    <%= f.submit %> <%# Default one aesthetically does not work well...:  f.button :submit %>
+  </div>
+  <div class="actions">
+  <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  </div>
+ </section> <!-- section id="sec_primary_input" -->
+<% end %>
+
+</div> <!-- div id="form_main" -->
+
+</section> <!-- section id="sec_primary" -->
+

@@ -1,0 +1,46 @@
+<% model = @url %>
+<section id="sec_primary_show">
+<div id="<%= dom_id model %>">
+<dl>
+  <% if (can_update_gen=can?(:update, Url)) %>
+   <div class="editor_only">
+    <dt>pID (<%= model.class.name %>)</dt>
+    <dd> <%= model.id %></dd>
+   </div>
+  <% end %>
+    <dt class="item_id_langcode"> <%= t(:language).capitalize %>:</dt>
+    <dd class="item_id_langcode"><%= lc = model.url_langcode; sprintf("%s (%s)", get_language_name(lc, in_locale: I18n.locale), lc) if lc.present? %></dd> <%# defined in module_common.rb %>
+    <% msg = t(:external_link)+(can_update_gen ? " (the value as stored in DB)" : "") %>
+    <dt class="item_id_url" title="<%= msg %>"> <%= t(:Url) %>:</dt>
+    <dd class="item_id_url"><%= link_to(model.url, model.url, target: "_blank", title: msg) if model.url.present? %></dd>
+  <% if can_update_gen %>
+   <div class="editor_only">
+    <dt class="item_id_url">Normalized URL:</dt>
+    <dd class="item_id_url"><%= url.url_normalized %></dd>
+   </div>
+  <% end %>
+    <dt class="item_id_domain"> <%= t(:DomainTitle) %>:</dt>
+    <dd class="item_id_domain"><%= link_to((sc=model.domain_title).title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "CO", article_to_head: true), sc, title: t(:DomainTitle)) if model.domain_title %> 
+      (<%= link_to((sc=model.site_category).title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "CO", article_to_head: true), sc, title: t(:SiteCategory)) if model.site_category %>)
+      <% if can_update_gen %>
+        <span class="editor_only item_domain">
+          / <%= link_to t(:Domain), model.domain %>: <%= model.domain.domain %>
+        </span>
+      <% end %>
+    </dd>
+    <dt class="item_id_published_date"><%= t("tables.publish_date") %>:</dt>
+    <dd class="item_id_published_date"><%= model.published_date %></dd>
+  <% if can_update_gen %>
+   <div class="editor_only">
+    <dt class="item_id_last_confirmed_date">Last confirmed date:</dt>
+    <dd class="item_id_last_confirmed_date"><%= model.last_confirmed_date %></dd>
+   </div>
+  <% end %>
+
+  <%# NOTE: showing weight, note, memop_editor, create/update_user, timestamps %>
+  <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: model, model4ability: can_update_gen} %>
+</dl>
+</div>
+</section>  <%# closing section id="sec_primary_show" %>
+
+</div>

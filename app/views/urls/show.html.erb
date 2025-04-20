@@ -1,0 +1,19 @@
+
+<h1>Url: <%= @url.title_or_alt(langcode: I18n.locale) %></h1>
+
+<hr>
+<section id="sec_primary">
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @url} %>
+<hr>
+
+<%= render @url %>
+
+<%= render partial: 'layouts/show_edit_destroy', locals: {model: @url, destroyable: true} %> <%# How about associations? %>
+
+
+</section> <%# closing section id="sec_primary" %>
+
+<hr>
+  <%= link_to t("layouts.back_to_index"), urls_path %>
+
+

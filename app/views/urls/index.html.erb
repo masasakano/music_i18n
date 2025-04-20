@@ -1,0 +1,18 @@
+<h1>Urls</h1>
+
+<% urls = @urls %>
+
+<div id="urls">
+<%= render partial: 'layouts/urls_index', locals: {urls: @urls, with_parent: false} %>
+
+</div> <!-- div id="urls" -->
+
+<br>
+
+<% if can? :create, Url %>
+ <div class="button_new">
+  <%= button_to 'New Url', new_url_path, method: :get %>
+ </div>
+<% end %>
+
+

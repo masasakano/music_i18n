@@ -1,0 +1,71 @@
+<%# Local variables: urls [Array<Domain>] (must be sorted!), optional: with_parent (Def: true), this_model [Domain] %>
+<%#   Example:  render partial: 'layouts/urls_index', locals: {urls: my_urls.left_joins(:domain).left_joins(:domain_title).order("domain_titles.weight", "domain_titles.created_at", "domains.weight", "domains.created_at", "urls.weight", "urls.created_at"), with_parent: false} %>
+
+<% if !defined?(with_parent)
+     with_parent = true
+   end %>
+<% if !defined?(this_model)
+     this_model = nil
+   end %>
+
+<section id="urls_index_table">
+<table>
+  <thead>
+    <tr>
+       <% if (caneditgen=can?(:edit, Url))  %>
+        <th class="editor_only">pID</th>
+       <% end %>
+      <th title="locale"><%= t(:language) %></th>
+      <th title="Url"><%= t(:Url) %></th>
+       <% if (caneditgen=can?(:edit, Url))  %>
+      <th class="editor_only" title="Normalized URL for internal searching/indexing">Normalized</th>
+      <th class="editor_only" title="Domain"><%= t(:Domain) %></th>
+       <% end %>
+      <th title="DomainTitle"><%= t(:DomainTitle) %></th>
+       <% if caneditgen %>
+        <th class="editor_only" title="Weight for sorting.">Weight</th>
+       <% end %>
+      <th title="Note in this DB">Note</th>
+       <% if caneditgen %>
+         <th class="editor_only" colspan="3"></th>
+       <% else %>
+         <th></th>
+       <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% urls.each do |model| %>  <%# should be already sorted by the caller (or controller) %>
+      <tr<%= ' class="self_in_table"'.html_safe if (is_self=(this_model && model == this_model)) %>>
+         <% if caneditgen  %>
+          <td class="editor_only text-end item_pid"><%= link_to(model.id, model) %></td>
+         <% end %>
+        <td class="item_url_langcode text-center"><%= model.url_langcode %></td>
+        <td class="item_url"><%= link_to(model.url, model.url, target: "_blank") if model.url %></td>  <%# Rails prohibits a null value, but playing safe %>
+         <% if (caneditgen=can?(:edit, Url))  %>
+        <td class="editor_only item_url_normalized"><%= model.url_normalized %></td>
+        <td class="editor_only item_domain">(<%= link_to "Record", model.domain %>) <%= model.domain.domain %></td>
+         <% end %>
+        <td class="item_domain_title"><%= link_to(model.domain_title.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "(undefined)", article_to_head: true), model.domain_title, title: "Generic title for the domain") if model.domain_title %></td> <%# Rails prohibits a null value, but playing safe %>
+         <% if caneditgen  %>
+          <td class="editor_only item_weight"><%= model.weight %></td>
+         <% end %>
+        <td class="item_note"><%= model.note %></td>
+
+        <td><%= link_to t("tables.Show"), model %></td>
+        <% if can? :update, model  %>
+          <td class="editor_only"><%= link_to 'Edit', edit_url_path(model) %></td>
+         <% if can? :destroy, model %>
+          <td class="editor_only"><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+         <% else %>
+          <td class="editor_only"></td>
+         <% end %>
+        <% elsif caneditgen %>
+          <td colspan="2" class="editor_only"></td>
+        <% end %>
+      </tr>
+    <% end %> <%# urls.each do |model| %>
+  </tbody>
+</table>
+</section> <!-- section id="urls_index_table" -->
+

@@ -54,6 +54,6 @@ class DomainTest < ActiveSupport::TestCase
     assert rec.valid?
 
     rec.save!
-    assert_equal core_domain, rec.domain, "should be normalized, but..."
+    assert_equal core_domain, rec.reload.domain, "should be normalized, but..."
   end
 end

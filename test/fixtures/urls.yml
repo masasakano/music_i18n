@@ -1,0 +1,74 @@
+# == Schema Information
+#
+# Table name: urls
+#
+#  id                                              :bigint           not null, primary key
+#  last_confirmed_date                             :date
+#  memo_editor                                     :text
+#  note                                            :text
+#  published_date                                  :date
+#  url(valid URL/URI including https://)           :string           not null
+#  url_langcode(2-letter locale code)              :string
+#  url_normalized(URL part excluding https://www.) :string
+#  weight(weight to sort this model)               :float
+#  created_at                                      :datetime         not null
+#  updated_at                                      :datetime         not null
+#  create_user_id                                  :bigint
+#  domain_id                                       :bigint           not null
+#  update_user_id                                  :bigint
+#
+# Indexes
+#
+#  index_urls_on_create_user_id        (create_user_id)
+#  index_urls_on_domain_id             (domain_id)
+#  index_urls_on_last_confirmed_date   (last_confirmed_date)
+#  index_urls_on_published_date        (published_date)
+#  index_urls_on_update_user_id        (update_user_id)
+#  index_urls_on_url                   (url)
+#  index_urls_on_url_and_url_langcode  (url,url_langcode) UNIQUE
+#  index_urls_on_url_langcode          (url_langcode)
+#  index_urls_on_url_normalized        (url_normalized)
+#  index_urls_on_weight                (weight)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (create_user_id => users.id) ON DELETE => nullify
+#  fk_rails_...  (domain_id => domains.id)
+#  fk_rails_...  (update_user_id => users.id) ON DELETE => nullify
+#
+
+<% Seeds::Urls::SEED_DATA.each_pair do |ekey, edata| %>
+url_<%= ekey %>:
+  url: <%= edata[:url] %>
+  url_normalized: <%= edata[:url_normalized] %>
+  domain: domain_<%= (pro=edata[:domain_key]) ? pro.to_s : "unknown" %>
+  url_langcode: <%= edata[:url_langcode] %>
+  weight: <%= edata[:weight] %>
+  note: Url<%= ekey.to_s.camelize %>
+<% end %>
+
+one:
+  url: "https://www.mydomain.org/abc"
+  url_normalized: "www.mydomain.org/abc"
+  domain: one
+  url_langcode: en
+  weight: 100.5
+  published_date: 2025-04-01
+  last_confirmed_date: 2025-04-15
+  create_user: user_editor
+  update_user: user_moderator
+  note: UrlMyTextOne
+  memo_editor: UrlMyMemoOne
+
+two:
+  url: "https://www.mydomain.org:80/def?myquery=5&other=6"
+  url_normalized: "mydomain.org/abc?myquery=5&other=6"
+  domain: two
+  url_langcode: 
+  weight: 108.5
+  published_date: 2025-04-02
+  last_confirmed_date: 2025-04-12
+  create_user: user_editor_general_ja
+  update_user: user_moderator
+  note: UrlMyNoteOne
+  memo_editor: UrlMyMemoTwo

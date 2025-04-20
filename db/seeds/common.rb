@@ -30,7 +30,7 @@ module Seeds
       Channel, ChannelPlatform, ChannelType, ChannelOwner,
       Artist, Music, Genre, 
       Place, Prefecture, Country, CountryMaster,
-      Domain, DomainTitle,
+      Url, Domain, DomainTitle,
       SiteCategory,
       UserRoleAssoc, User, Role, RoleCategory,
       Sex, Translation,
@@ -132,7 +132,8 @@ module Seeds
         model.save!(validate: do_validate)  # Model saved.  This should not raise an Exception, for Countries should have been already defined!
       rescue ActiveRecord::RecordInvalid, ActiveRecord::InvalidForeignKey
         klass_name = (self.const_defined?(:RECORD_CLASS) ? self::RECORD_CLASS.name : "Model")
-        msg = "ERROR(#{__FILE__}:#{__method__}): #{klass_name}#save! failed while attempting to save model=#{model.inspect} for Seed of ja=(#{seed1[:ja]}).  This should never happen, except after a direct Database manipulation (such as DB migration rollback) has left some orphan Translations WITHOUT a parent; check out the log file for a WARNING message."
+        unsaved_inspect = ((model.id.nil? && model.respond_to?(:unsaved_translations)) ? sprintf(" with unsaved-Translations %s", model.unsaved_translations.inspect) : "")
+        msg = "ERROR(#{__FILE__}:#{__method__}): #{klass_name}#save! failed while attempting to save model=#{model.inspect}#{unsaved_inspect} for Seed of ja=(#{seed1[:ja]}).  This should never happen, except after a direct Database manipulation (such as DB migration rollback) has left some orphan Translations WITHOUT a parent; check out the log file for a WARNING message."
         warn msg
         Rails.logger.error msg
         raise
@@ -221,9 +222,13 @@ module Seeds
           end
 
         model ||= klass.new
-
         if model.new_record?
-          n_changed += model_save(model, ehs, attrs: attrs, proc_b4validate: proc_b4validate)
+          begin
+            n_changed += model_save(model, ehs, attrs: attrs, proc_b4validate: proc_b4validate)
+          rescue  # ActiveRecord::RecordInvalid, ActiveRecord::InvalidForeignKey
+            warn "ERROR(#{File.basename __FILE__}:#{__method__}): while handling SEED[key=#{key.inspect}]: #{ehs.inspect}"
+            raise
+          end
           model.reload
         end
         self::MODELS[key] =  model

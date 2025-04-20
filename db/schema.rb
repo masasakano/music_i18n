@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2025_04_10_141109) do
+ActiveRecord::Schema[7.0].define(version: 2025_04_11_152629) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -528,7 +528,7 @@ ActiveRecord::Schema[7.0].define(version: 2025_04_10_141109) do
 
   create_table "site_categories", comment: "Site category for Uri", force: :cascade do |t|
     t.string "mname", null: false, comment: "Unique machine name"
-    t.float "weight"
+    t.float "weight", comment: "weight to sort this model in index"
     t.text "summary", comment: "Short summary"
     t.text "note"
     t.text "memo_editor", comment: "Internal-use memo for Editors"
@@ -587,6 +587,32 @@ ActiveRecord::Schema[7.0].define(version: 2025_04_10_141109) do
     t.index ["translatable_type"], name: "index_translations_on_translatable_type"
     t.index ["update_user_id"], name: "index_translations_on_update_user_id"
     t.index ["weight"], name: "index_translations_on_weight"
+  end
+
+  create_table "urls", comment: "URLs maybe including query parameters", force: :cascade do |t|
+    t.string "url", null: false, comment: "valid URL/URI including https://"
+    t.string "url_normalized", comment: "URL part excluding https://www."
+    t.bigint "domain_id", null: false
+    t.string "url_langcode", comment: "2-letter locale code"
+    t.float "weight", comment: "weight to sort this model"
+    t.date "published_date"
+    t.date "last_confirmed_date"
+    t.bigint "create_user_id"
+    t.bigint "update_user_id"
+    t.text "note"
+    t.text "memo_editor"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["create_user_id"], name: "index_urls_on_create_user_id"
+    t.index ["domain_id"], name: "index_urls_on_domain_id"
+    t.index ["last_confirmed_date"], name: "index_urls_on_last_confirmed_date"
+    t.index ["published_date"], name: "index_urls_on_published_date"
+    t.index ["update_user_id"], name: "index_urls_on_update_user_id"
+    t.index ["url", "url_langcode"], name: "index_urls_on_url_and_url_langcode", unique: true
+    t.index ["url"], name: "index_urls_on_url"
+    t.index ["url_langcode"], name: "index_urls_on_url_langcode"
+    t.index ["url_normalized"], name: "index_urls_on_url_normalized"
+    t.index ["weight"], name: "index_urls_on_weight"
   end
 
   create_table "user_role_assocs", force: :cascade do |t|
@@ -690,6 +716,9 @@ ActiveRecord::Schema[7.0].define(version: 2025_04_10_141109) do
   add_foreign_key "static_pages", "page_formats", on_delete: :restrict
   add_foreign_key "translations", "users", column: "create_user_id"
   add_foreign_key "translations", "users", column: "update_user_id"
+  add_foreign_key "urls", "domains"
+  add_foreign_key "urls", "users", column: "create_user_id", on_delete: :nullify
+  add_foreign_key "urls", "users", column: "update_user_id", on_delete: :nullify
   add_foreign_key "user_role_assocs", "roles", on_delete: :cascade
   add_foreign_key "user_role_assocs", "users", on_delete: :cascade
 end
