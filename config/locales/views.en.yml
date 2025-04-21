@@ -323,6 +323,9 @@ en:
     show:
       is_orig: "Is this the original language?"
 
+  urls:
+    title: Description
+
   artist_music_plays:
     destroy_success: 'Artist-Playing association was successfully destroyed.'
 

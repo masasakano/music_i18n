@@ -40,6 +40,9 @@ class Channel < BaseWithTranslation
   include ModuleCreateUpdateUser
   #include ModuleWhodunnit # for set_create_user, set_update_user
 
+  # polymorphic many-to-many with Url
+  include Anchorable
+
   include ModuleCommon # for ChannelOwner.new_unique_max_weight
 
   # defines {#unknown?} and +self.class.unknown+
@@ -256,5 +259,39 @@ class Channel < BaseWithTranslation
   #  self
   #end
 
+end
+
+class << Channel
+  alias_method :create_basic_bwt!, :create_basic! if !self.method_defined?(:create_basic_bwt!)
+  alias_method :initialize_basic_bwt, :initialize_basic if !self.method_defined?(:initialize_basic_bwt!)
+
+  # Finds a combination that does not exist (to circumvent a validation violation).
+  def _find_creatable_channel_combinations
+    ChannelOwner.ids.each do |owner|
+      ChannelPlatform.ids.each do |platform|
+        ChannelType.ids.each do |type|
+          hstry = {
+            channel_owner_id: owner,
+            channel_platform_id: platform,
+            channel_type_id: type
+          }
+          return hstry if !Channel.find_by(**hstry)
+        end
+      end
+    end 
+  end
+  private :_find_creatable_channel_combinations
+  
+  # Wrapper of {BaseWithTranslation.create_basic!}
+  def create_basic!(*args, **kwds, &blok)
+    hsprm = _find_creatable_channel_combinations
+    create_basic_bwt!(*args, **(hsprm.merge(kwds)), &blok)
+  end
+
+  # Wrapper of {BaseWithTranslation.initialize_basic!}
+  def initialize_basic(*args, **kwds, &blok)
+    hsprm = _find_creatable_channel_combinations
+    initialize_basic_bwt(*args, **(hsprm.merge(kwds)), &blok)
+  end
 end
 

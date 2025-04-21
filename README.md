@@ -167,9 +167,11 @@ How to generate a new ActiveRecord model with Translation.
       3. Write your seeds.
    2. In `/db/seeds/common.rb`, add your new model (MyModel) in the Array `ORDERED_MODELS_TO_DESTROY`. Here, the order matters. Your model should be placed so that any model befoer your model can be destroyed freely and that destroying your model would not violate any constraints posed by the remaining models. It is basically the reverse list of building models.
    3. Edit (or create if not present) the fixture file of your new model at `/test/fixtures/my_models.yml`
-   4. In the constant Hash `SEED_DATA` in `/db/seeds/model_summaries.rb`, add a new entry, which is a human-readable description of the model mostly served for the editors of the website.
+   4. Edit the fixture `/test/fixtures/translations.yml`
+      1. In addition to the Translation fixtures for your manually-added new test models (at `/test/fixtures/my_models.yml`), add your model name in the outer-most ERB-type triple-nested iterator somewhere lower down (search by keywords of "SEED_DATA.each_pair" to find it).  This adds Translations corresponding to your fixture models of your new model created according to the new seed files.
+   5. In the constant Hash `SEED_DATA` in `/db/seeds/model_summaries.rb`, add a new entry, which is a human-readable description of the model mostly served for the editors of the website.
       * On the website, it is displayed at `/model_summaries` (providing you are logged on and have a suitable priviledge).
-   5. Run the seed test to confirm the seeds files have been written right: `DO_TEST_SEEDS=1 bin/rails test test/seeds/seeds_*rb`
+   6. Run the seed test to confirm the seeds files have been written right: `DO_TEST_SEEDS=1 bin/rails test test/seeds/seeds_*rb`
 5. In the model file, `/app/models/my_model.rb`,
    1. change the parent class from `ApplicationRecord` to `BaseWithTranslation`
    2. You may include `ModuleUnknown` if your model has the method `unknown` and `ModuleWhodunnit` if the model contains an attribute(s) like `create_user`

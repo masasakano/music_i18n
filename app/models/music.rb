@@ -24,6 +24,9 @@
 #
 class Music < BaseWithTranslation
 
+  # polymorphic many-to-many with Url
+  include Anchorable
+
   # Used for the instance method {#unknown?} whereas the class method #{unknown} is overwritten.
   #
   # {Mucic.unknown} has {Genre.unknown} (and probably {Place.unknown} and undefined year).

@@ -20,6 +20,9 @@
 #  fk_rails_...  (prefecture_id => prefectures.id) ON DELETE => cascade
 #
 class Place < BaseWithTranslation
+  # polymorphic many-to-many with Url
+  include Anchorable
+
   include ModuleCountryLayered  # for more_significant_than?
 
   # define method "mname" et
@@ -443,3 +446,24 @@ class Place < BaseWithTranslation
   #  validate_translation_unique_within_parent(record)
   #end
 end
+
+
+class << Place
+  alias_method :create_basic_bwt!, :create_basic! if !self.method_defined?(:create_basic_bwt!)
+  alias_method :initialize_basic_bwt, :initialize_basic if !self.method_defined?(:initialize_basic_bwt!)
+
+  # Wrapper of {BaseWithTranslation.create_basic!}
+  def create_basic!(*args, prefecture: nil, prefecture_id: nil, **kwds, &blok)
+    prefecture_id ||= (prefecture ? prefecture.id : (Prefecture.unknown || Prefecture.create_basic!).id)
+    create_basic_bwt!(*args, prefecture_id: prefecture_id, **kwds, &blok)
+  end
+
+  # Wrapper of {BaseWithTranslation.initialize_basic!}
+  # Unlike {#create_basic!}, an existing Prefecture is used, which is assumed to exist.
+  def initialize_basic(*args, prefecture: nil, prefecture_id: nil, **kwds, &blok)
+    prefecture_id ||= (prefecture ? prefecture.id : (Prefecture.unknown || Prefecture.first).id)
+    initialize_basic_bwt(*args, prefecture_id: prefecture_id, **kwds, &blok)
+  end
+end
+
+

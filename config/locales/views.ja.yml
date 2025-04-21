@@ -339,6 +339,9 @@ ja:
     show:
       is_orig: "これが原語か?"
 
+  urls:
+    title: 説明
+
   artist_music_plays:
     destroy_success: 'コラボArtistの1関連項目が削除されました。'
 

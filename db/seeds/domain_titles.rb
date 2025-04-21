@@ -35,7 +35,8 @@ module Seeds::DomainTitles
       ja: ['ハラミちゃんホームページ', 'ハラミちゃん'],
       en: ["HARAMIchan website", 'Harami-chan'],
       orig_langcode: 'ja',
-      site_category: Proc.new{SiteCategory.unknown(reload: true)},
+      weight: 10,
+      site_category: Proc.new{SiteCategory.find_by(mname: "main")},
       site_category_key: :main,
     },
     youtube: {
@@ -78,6 +79,7 @@ module Seeds::DomainTitles
       ja: Seeds::ChannelPlatforms::SEED_DATA[:harami_event_list][:ja],
       en: Seeds::ChannelPlatforms::SEED_DATA[:harami_event_list][:en],
       orig_langcode: 'ja',
+      weight: 10,
       site_category: Proc.new{SiteCategory.find_by(mname: "chronicle")},
       site_category_key: :chronicle,
     },

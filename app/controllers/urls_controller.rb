@@ -78,22 +78,26 @@ class UrlsController < ApplicationController
   # If @url.domain_id is blank, assign one, potentially creating Domain (and maybe DomainTitle)
   #
   # @note
-  #   The caller should put the call in a DB transaction.
+  #   The caller should put the call in a DB transaction because this method may save records in DB.
   #
   # @param url2save [Url] If called from an instance method, pass @url
-  # @return [Url]
+  # @return [Url] +errors.any?+ is true if an error happens and finding/creating has failed.
   def find_or_create_and_assign_domain(url2save)
-    return url2save if !url2save.domain_id.blank?
-    begin
-      url2save.domain = Domain.find_or_create_domain_by_url!(url2save.url) 
-    rescue => err
-      url2save.errors.add :domain_id, err.message
-    end
+    return url2save if !url2save.domain_id.blank?  # domain_id is already set.
 
-    return url2save if url2save.errors.any? || !url2save.domain
+    return url2save if !(ret=url2save.find_or_create_and_reset_domain_id)  # +errors+ should have been set.
 
-    url2save.domain.notice_messages.each do |em|
-      add_flash_message(:notice, em)
+    return url2save if url2save.errors.any? || !url2save.domain  # This should be unnecesary and redundant, but playing safe.
+
+    if (msgs=url2save.domain.notice_messages).present?
+      # Transfers notice messages to flash.
+      msgs.each do |em|
+        add_flash_message(:notice, em)
+      end
+    else
+      # should never happen, but playing safe...
+      logger.error("ERROR: Uri#domain contains nil notice_messages, which should never happen after Domain has been either found or created successfully according in Domain.find_or_create_domain_by_url!")
+      logger.error("ERROR: Here, Uri/Domain has pIDs=#{[url2save.id, url2save.domain.id]} / url=#{url2save.url.inspect})")
     end
     url2save
   end

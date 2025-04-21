@@ -33,6 +33,9 @@ class HaramiVid < BaseWithTranslation
   include ApplicationHelper # for link_to_youtube
   include ModuleCommon # for convert_str_to_number_nil, set_singleton_method_val etc
 
+  # polymorphic many-to-many with Url
+  include Anchorable
+
   before_validation :add_def_channel
   before_validation :normalize_uri
 

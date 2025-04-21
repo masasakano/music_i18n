@@ -24,7 +24,7 @@ module Seeds
     # you should do it in this order.  Similarly, this is the order
     # in which you should seed without violating the association rules.
     ORDERED_MODELS_TO_DESTROY = [
-      StaticPage, ArtistMusicPlay, PlayRole, Instrument, HaramiVidMusicAssoc, ModelSummary, PageFormat,
+      StaticPage, Anchoring, ArtistMusicPlay, PlayRole, Instrument, HaramiVidMusicAssoc, ModelSummary, PageFormat,
       Harami1129, Harami1129Review, HaramiVid, Engage, EngageHow,
       EventItem, Event, EventGroup,
       Channel, ChannelPlatform, ChannelType, ChannelOwner,
@@ -185,12 +185,17 @@ module Seeds
     # All seeded records for the class are created, if not yet created.  At the same time,
     # this sets hash +self::MODELS+ with a key of +self::SEED_DATA+ for the model (regardless of new or existing).
     #
-    # In default, the Hash of +SEEDS[][:regex]+ is used to identify the existing record;
-    # it is either Regexp or Proc (see @yield for the parameters). Alternatively, a block can be given to implement
-    # an algorithm by the caller.  Or, if +find_by+ option is given, the specified
-    # attribute is used to find the existing one (n.b., the given block has a higher priority).
+    # The determination of the existing record is performed in the following priority:
     #
-    # In none of the above is provided, the exact title in a standard language is used to find one (duplications are not checked).
+    # 1. If a block is given (see @yield for the given arguments), it should return either
+    #    a matched model or nil.
+    # 2. If +SEEDS[][:regex]+ is defined non-nil,
+    #    1. if it is a Regexp, it is used to identify the existing record with Translation,
+    #    2. if it is a Proc (see @yield for the given arguments), it is called,
+    # 3. If +find_by+ option is given, the specified attribute is used to find the existing one
+    #    (e.g., +find_by :mname+ means the record with the same +mname+ as in +SEEDS[][:mname]+ is searched for).
+    # 4. If none of the above is provided, the exact title in a standard language is used to find one,
+    #    where duplications are not checked.
     #
     # @example
     #    _load_seeds_core(%i(weight note))  # ActiveRecord Class is derived from RECORD_CLASS.
@@ -211,12 +216,12 @@ module Seeds
         model =
           if block_given?
             yield(ehs, key)
-          elsif find_by
-            klass.find_by(**({find_by.to_sym => ehs[find_by]}))
           elsif ehs[:regex].respond_to?(:call)
             ehs[:regex].call(ehs, key)  # passing the current SEED Hash and the main key for the Hash
           elsif ehs[:regex]
             klass.find_by_regex(:titles, ehs[:regex])
+          elsif find_by
+            klass.find_by(**({find_by.to_sym => ehs[find_by]}))
           else  # If :regex is not found in self::SEED_DATA, the exact :title (but not :alt_title) is used to identify the existing record.
             _find_bwt_from_exact_translations(ehs, klass: nil)
           end

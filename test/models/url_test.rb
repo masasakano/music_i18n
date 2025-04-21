@@ -144,4 +144,71 @@ class UrlTest < ActiveSupport::TestCase
     assert dt.domains.include?(url.domain)
     assert_equal dt.site_category, url.site_category
   end
+
+  test "polymorphic-relations" do
+    arclasses = [Artist, Channel, Event, EventGroup, HaramiVid, Music, Place]
+    equation = arclasses.map{|i| i.name+".count*100000"}.join(" + ")+' + DomainTitle.count*10000 + Domain.count*1000 + Anchoring.count*100 + Translation.count*10 + Url.count'
+
+    url1 = urls(:one)
+    refute_includes url1.translations.to_sql, "anchor"  # this happened when has_many is doubly defined for Translation
+    assert url1.translations.exists?
+    assert_equal 1, url1.anchorings.count
+    assert_includes arclasses, (parent1=url1.anchoring_parents.first).class
+    assert_equal 1, parent1.translations.count
+
+    defurl="example.com/new-poly/"
+    arclasses.each do |model|
+      url = nil
+      assert_difference('Translation.count*10 + Url.count', 11){
+        url = Url.create_basic!(title: "new-#{__method__}", langcode: "en", url: defurl, domain: url1.domain)
+      }
+      metho = model.name.underscore.pluralize
+      refute url.anchorings.exists?
+      refute url.send(metho).exists?
+
+      tit = "#{metho}-test"
+      record = model.create_basic!(title: tit, langcode: "en")
+      anchor = nil
+
+      # test of creation Anchoring and deletion of Url
+      assert_difference('Anchoring.count'){
+        anchor = record.add_url(url)  # defined in anchorable.rb
+      }
+      refute anchor.errors.any?
+      [url, record].each do |em|
+        assert_equal 1, em.anchorings.count
+      end
+      assert_equal 1, url.send(metho).count
+      assert_equal 1, record.urls.count
+
+      assert_difference(equation, -111){
+        url.destroy
+      }
+      refute Anchoring.exists?(anchor.id), "should have been cascade-destroyed, but..."
+
+      # test of creation Anchoring and Url and deletion of Url
+      urlstr = (tit+defurl).gsub(/_/, "")  # "_" is an invalid domain name?
+      assert_difference(equation, 11121, "creation Uri fails for #{model.name}..."){
+        anchor = record.create_assign_url(urlstr)  # defined in anchorable.rb
+        refute anchor.errors.any?, "creation Uri fails for #{model.name} urlstr=#{urlstr.inspect}... errors="+anchor.errors.full_messages.inspect
+      }
+      assert_equal 1, record.anchorings.count  # "record" should have been already reset (reloaded)
+      assert_equal 1, record.urls.count
+
+      url = record.urls.first
+      assert_equal 1, url.anchorings.count
+      assert_equal 1, url.send(metho).count
+
+      next if EventGroup == model  # destroying EvengGroup is tricky?  So, skippint it for now...
+
+      assert_difference(equation, -100110, "wrong numbers after #{model.name} is destroyed..."){
+        record.destroy
+      }
+      refute Anchoring.exists?(anchor.id), "should have been cascade-destroyed after #{model.name} is destroyed, but..."
+    end
+
+    assert_difference(equation, -111, "Destroying Url should not destroy its parent Anchorable (Channel in this case)"){  # p parent1.class  #=> Channel
+      url1.destroy
+    }
+  end
 end

@@ -40,6 +40,8 @@ class Url < BaseWithTranslation
   # handles create_user, update_user attributes
   include ModuleCreateUpdateUser
 
+  extend ModuleCommon  # for contain_asian_char?
+
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
   include ModuleWeight  # adds a validation
@@ -77,6 +79,13 @@ class Url < BaseWithTranslation
   has_one :domain_title, through: :domain
   has_one :site_category, through: :domain_title
 
+  has_many :anchorings, dependent: :destroy
+  ## Below, ChannelPlatform is not included because it should be related to DomainTitle. You should not include Translation here because Url already has_many Translation-s.
+  %w(Artist Channel Event EventGroup HaramiVid Music Place).each do |em|
+    has_many em.underscore.pluralize.to_sym, through: :anchorings, source: :anchorable, source_type: em
+    # or surely(?) # has_many em.underscore.pluralize.to_sym, through: :anchorings, source: :anchorable, source_type: em
+  end
+
   validates :url, presence: true
   validates :url, uniqueness: {scope: :url_langcode, case_sensitive: false}
   validate  :url_validity  # Should have a valid host with/without a scheme.
@@ -93,6 +102,85 @@ class Url < BaseWithTranslation
   # @return [String]
   def self.normalized_url(url_in)
     ModuleUrlUtil.normalized_url(url_in, with_scheme: false, with_www: false, with_port: false, with_extra_trailing_slash: false, with_path: true, with_query: true, with_fragment: true)
+  end
+
+  # @param url [String, Url]
+  # @return [Translation] initialized and unsaved. {Translation#translatable} is unset.
+  def self.def_translation_from_url(url, title: nil, langcode: nil, is_orig: nil, **kwds)
+    urlstr = (url.respond_to?(:url) ? url.url : url.to_s)
+    title = normalized_url(urlstr) if title.blank?
+    langcode = (contain_asian_char?(title) ? "ja" : "en") if langcode.blank?
+    Translation.new(title: title, langcode: langcode, is_orig: is_orig, **kwds)
+  end
+
+  # Alternative constructor from String URL
+  #
+  # @param urlstr [String] mandatory.
+  # @param **kwds [Hash] You can initialize any of the standard attributes of Url, plus its Translation. All are optional, and can be automatically set.
+  # @return [Url] In failing, +errors+ may be set or +id+ may be nil. +domain+ may be set and +domain.notice_messages+ may be significant (to show as flash messages).
+  def self.find_or_create_url_from_str(urlstr, url_langcode: nil, domain: nil, domain_id: nil, weight: nil, published_date: nil, last_confirmed_date: nil, note: nil, memo_editor: nil, title: nil, langcode: nil, is_orig: nil, alt_title: nil)
+    newurl = self.new(url: normalized_url(urlstr),
+                     url_langcode: url_langcode,
+                     weight: weight,
+                     published_date: published_date,
+                     last_confirmed_date: last_confirmed_date,
+                     note: note,
+                     memo_editor: memo_editor)
+    newurl.domain    = domain    if domain
+    newurl.domain_id = domain_id if domain_id
+
+    newurl.unsaved_translations << def_translation_from_url(newurl, title: title, langcode: langcode, is_orig: is_orig, alt_title: alt_title)
+
+    ret = newurl.find_or_create_and_reset_domain_id
+    return newurl if !ret  # "newurl.errors" should have been set.  "newurl.id" is nil.
+
+    newurl.save
+    newurl  # In failing, "newurl.errors" should be set.  If successful, a Translation should have been also created.
+  end
+
+  # Returns an Array of old Child Anchoring records
+  #
+  # @return [Array<ActiveRecords>]
+  def anchoring_parents
+    anchorings.map(&:anchorable)
+    #anchorings.map{|i| i.anchorable}  # NOTE: anchorings.map(&anchorable) would not work for some reason!!
+  end
+
+  # If {#domain_id} is blank, assign one according to url, potentially creating Domain (and maybe DomainTitle), and reset domain_id
+  #
+  # If {#domain_id} is non-blank, nothing is done and returns self.
+  #
+  # 1. If {#domain_id} is not blanck, this method does nothing and returns self.
+  # 2. If Domain (and maybe also DomainTitle) is either successfully found or created,
+  #    this method returns self (hence truthy).  +self.domain.notice_messages+
+  #    contains 1 (if only a Domain is created) or 2 (if both are created) messages.
+  #    The caller (Controller?) may use it, for flash messaging etc.
+  # 3. If the creation of Domain or DomainTitle has failed, this method returns nil.
+  #    +self.errors+ contains the error message.
+  #
+  # @note
+  #   The caller should put the call of this method in a DB transaction because this method may save records in DB.
+  #
+  # @example  use of a transaction before saving.
+  #    ActiveRecord::Base.transaction(requires_new: true) do
+  #      if !find_or_create_and_reset_domain_id || !save
+  #        raise ActiveRecord::Rollback, "Force rollback."
+  #      end
+  #    end
+  #    # If rolled back,  self.domain_id  may point to a non-existing Domain.
+  #
+  # @return [Url, NilClass] self or nil (if an error happens in creating Domain or DomainTitle)
+  def find_or_create_and_reset_domain_id
+    return self if !domain_id.blank?
+
+    begin
+      self.domain = Domain.find_or_create_domain_by_url!(url) 
+    rescue => err
+      errors.add :domain_id, err.message
+      return  # an error happens.
+    end
+
+    self
   end
 
   private

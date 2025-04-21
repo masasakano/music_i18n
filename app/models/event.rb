@@ -30,6 +30,9 @@
 #  fk_rails_...  (place_id => places.id) ON DELETE => nullify
 #
 class Event < BaseWithTranslation
+  # polymorphic many-to-many with Url
+  include Anchorable
+
   include ModuleEventAux  # for self.def_event_tra_new etc
   include ModuleWeight  # adds a validation
 

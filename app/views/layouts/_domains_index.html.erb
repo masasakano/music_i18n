@@ -31,7 +31,7 @@
   </thead>
 
   <tbody>
-    <% domains.each do |model| %>  <%# should be already sorted by the caller (or controller) %>
+    <% domains.left_joins(domain_title: :translations).order("domain_titles.weight", "translations.title", "domains.weight", "domains.created_at").uniq.each do |model| %>  <%# should be already sorted by the caller (or controller) %>
       <tr<%= ' class="self_in_table"'.html_safe if (is_self=(this_model && model == this_model)) %>>
          <% if caneditgen  %>
           <td class="editor_only text-end"><%= link_to(model.id, model) %></td>

@@ -13,6 +13,9 @@
       <th class="editor_only" title="Unique permanent name.">Machine name</th>
       <th class="editor_only" title="Weight for sorting.">Weight</th>
      <% end %>
+      <th title="Number of registered DomainTitles">#DTitles</th>
+      <th title="Number of registered Domains">#Domains</th>
+      <th title="Number of registered Urls">#Urls</th>
       <th title="Brief summary">Summary</th>
       <th title="Note in this DB">Note</th>
       <% if caneditgen %>
@@ -33,6 +36,9 @@
           <td class="editor_only item_mname"><%= model.mname %></td>
           <td class="editor_only item_weight"><%= model.weight %></td>
         <% end %>
+          <td class="item_ndomaintitles text-end"><%= model.domain_titles.count %></td>
+          <td class="item_ndomains text-end"><%= model.domains.count %></td>
+          <td class="item_nurls text-end"><%= model.urls.distinct.count %></td>
           <td class="item_summary"><%= model.summary %></td>
           <td class="item_note"><%= model.note %></td>
         <% if caneditgen  %>

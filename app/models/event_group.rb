@@ -30,6 +30,9 @@ class EventGroup < BaseWithTranslation
   #    to see how {ApplicationRecord.allow_destroy_all} affects behaviours
   #    of the destroy action.
 
+  # polymorphic many-to-many with Url
+  include Anchorable
+
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
 

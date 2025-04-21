@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2025_04_11_152629) do
+ActiveRecord::Schema[7.0].define(version: 2025_04_20_133845) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -40,6 +40,18 @@ ActiveRecord::Schema[7.0].define(version: 2025_04_11_152629) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "anchorings", comment: "Polymorphic join talbe between Url and others", force: :cascade do |t|
+    t.bigint "url_id", null: false
+    t.string "anchorable_type", null: false
+    t.bigint "anchorable_id", null: false
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["anchorable_type", "anchorable_id"], name: "index_anchorings_on_anchorable"
+    t.index ["url_id", "anchorable_type", "anchorable_id"], name: "index_url_anchorables", unique: true
+    t.index ["url_id"], name: "index_anchorings_on_url_id"
   end
 
   create_table "artist_music_plays", comment: "EventItem-Artist-Music-PlayRole-Instrument association", force: :cascade do |t|
@@ -666,6 +678,7 @@ ActiveRecord::Schema[7.0].define(version: 2025_04_11_152629) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "anchorings", "urls", on_delete: :cascade
   add_foreign_key "artist_music_plays", "artists", on_delete: :cascade
   add_foreign_key "artist_music_plays", "event_items", on_delete: :cascade
   add_foreign_key "artist_music_plays", "instruments", on_delete: :cascade

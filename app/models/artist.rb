@@ -43,6 +43,9 @@ class Artist < BaseWithTranslation
   #  end
   #  art1.reload.destroy
 
+  # polymorphic many-to-many with Url
+  include Anchorable
+
   include ModuleUnknown
 
   # defines +self.class.primary+

@@ -1,0 +1,43 @@
+# == Schema Information
+#
+# Table name: anchorings
+#
+#  id              :bigint           not null, primary key
+#  anchorable_type :string           not null
+#  note            :text
+#  created_at      :datetime         not null
+#  updated_at      :datetime         not null
+#  anchorable_id   :bigint           not null
+#  url_id          :bigint           not null
+#
+# Indexes
+#
+#  index_anchorings_on_anchorable  (anchorable_type,anchorable_id)
+#  index_anchorings_on_url_id      (url_id)
+#  index_url_anchorables           (url_id,anchorable_type,anchorable_id) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (url_id => urls.id) ON DELETE => cascade
+#
+
+one:
+  url: one
+  anchorable: one (Channel)
+  note: NoteAnchoringOne
+
+two:
+  url: two
+  anchorable: two (Channel)
+  note: NoteAnchoringTwo
+
+url_haramichan_main_artist_harami:
+  url: url_haramichan_main
+  anchorable: artist_harami (Artist)
+  note: NoteAnchoring_url_haramichan_main_artist_harami
+
+artist1_wiki_en_artist1:
+  url: artist1_wiki_en
+  anchorable: artist1 (Artist)
+  note: NoteAnchoring_artist1_wiki_en_artist1
+

@@ -18,7 +18,7 @@ class DomainTitlesController < ApplicationController
 
   # GET /domain_titles or /domain_titles.json
   def index
-    @domain_titles = DomainTitle.order(:weight)
+    @domain_titles = DomainTitle.all  # not sorted/ordered!  You may use: joins(:translations).joins(:site_category).order("site_categories.weight", "domain_titles.weight", "translations.title").uniq  (distinct would raise an error.)
   end
 
   # GET /domain_titles/1 or /domain_titles/1.json

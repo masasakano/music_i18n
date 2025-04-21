@@ -18,7 +18,7 @@ class DomainsController < ApplicationController
 
   # GET /domains or /domains.json
   def index
-    @domains = Domain.left_joins(:domain_title).order("domain_titles.weight", "domains.weight", "domains.created_at")
+    @domains = Domain.all  # not sorted; the caller may use sorting/ordering like:  left_joins(domain_title: :translations).order("domain_titles.weight", "translations.title", "domains.weight", "domains.created_at").uniq  (distinct would fail)
   end
 
   # GET /domains/1 or /domains/1.json

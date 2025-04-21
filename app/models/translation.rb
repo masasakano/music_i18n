@@ -155,7 +155,7 @@ class Translation < ApplicationRecord
 
       if scope.exists?
         fmt = ((2 == ar_titles.size) ? '(either of %s)' : '%s')
-        msg = sprintf("Same Translation #{fmt} has been already taken for langcode=%s by Translation-pIDs=%s", ar_titles.inspect, record.langcode.inspect, scope.ids.inspect)
+        msg = sprintf("Same Translation #{fmt} (langcode=%s, type=%s) has been already taken by Translation-pIDs=%s", ar_titles.inspect, record.langcode.inspect, record.translatable_type.inspect, scope.ids.inspect)
         record.errors.add :base, msg
       end
     end

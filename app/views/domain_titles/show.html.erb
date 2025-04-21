@@ -15,7 +15,7 @@
 <hr>
 
 <section id="domains_table_for_domain_title">
-<h2>Domains for this DomainTitle</h2>
+<h2>Domains for this DomainTitle (n=<%= @domain_title.domains.count %>)</h2>
 
 <%= render partial: 'layouts/domains_index', locals: {domains: @domain_title.domains.left_joins(:domain_title).order("domain_titles.weight", "domains.weight", "domains.created_at"), with_parent: false, } %>
 </section>
@@ -23,9 +23,9 @@
 <hr>
 
 <section id="urls_table_for_domain_title">
-<h2>Urls for this DomainTitle</h2>
+<h2>Urls for this DomainTitle (n=<%= @domain_title.urls.count %>)</h2>
 
-<%= render partial: 'layouts/urls_index', locals: {urls: @domain_title.urls.left_joins(:domain).left_joins(:domain_title).order("domain_titles.weight", "domain_titles.created_at", "domains.weight", "domains.created_at", "urls.weight", "urls.created_at"), with_parent: false} %>
+<%= render partial: 'layouts/urls_index', locals: {urls: @domain_title.urls.left_joins(:domain).left_joins(:domain_title).order("domain_titles.weight", "domain_titles.created_at", "domains.weight", "domains.created_at", "urls.weight", "urls.created_at"), with_grandparent: false} %>
 </section>
 
 <hr>

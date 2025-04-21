@@ -104,7 +104,8 @@ class Ability
       #can(:new, ChannelOwners::CreateWithArtistsController){|mdl| mdl.is_a?(Artist) && Proc.new{can? :update, mdl}}  # This does not work because (1) the controller does not follow the convention naming and (2) "new" method ignores the block. See, for actual implementation, /app/controllers/channel_owners/create_with_artists_controller.rb
       can(:ud, ChannelPlatform){|mdl| mdl.create_user && ((mdl.create_user == user) || (!mdl.unknown? && user.abs_superior_to?(mdl.create_user, except: rc_trans))) }  # can update/edit only if it was created by the user or by a translator. (unless there's a dependent Channel)
       can(:ud, [ChannelOwner]){|mdl| mdl.create_user == user} # (unless there's a dependent Channel)
-      can(:crud, [Url]){|mdl| !mdl.unknown?}
+      can(:cr, [Url])
+      can(:ud, [Url]){|mdl| !mdl.unknown?}
     end
 
     ## General-JA editor only
@@ -154,7 +155,8 @@ class Ability
         i.user.an_admin? && (uhrc = user.highest_role_in(hrc); !uhrc || uhrc && i.user.highest_role_in(hrc) < uhrc)
       }
       can :read, [Instrument, ChannelType, SiteCategory, Domain, DomainTitle]
-      can(:crud, [Url]){|mdl| !mdl.unknown?}
+      can(:cr, [Url])
+      can(:ud, [Url]){|mdl| !mdl.unknown?}
     end
 
     ## General-JA moderator only

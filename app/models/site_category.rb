@@ -39,9 +39,9 @@ class SiteCategory < BaseWithTranslation
   # of required uniqueness of title and alt_title.
   #TRANSLATION_UNIQUE_SCOPES = :default
 
-  has_many :domain_title
-  has_many :domains, through: :domain_title  # NOTE: you may add(?) -> {distinct}
-  has_many :urls,    through: :domains       # NOTE: you may add(?) -> {distinct}
+  has_many :domain_titles
+  has_many :domains, through: :domain_titles  # NOTE: you may add(?) -> {distinct}
+  has_many :urls,    through: :domains        # NOTE: you may add(?) -> {distinct}
 
   validates_presence_of   :mname
   validates_uniqueness_of :mname
