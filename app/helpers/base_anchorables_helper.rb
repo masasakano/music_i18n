@@ -1,4 +1,4 @@
-module Artists::AnchoringsHelper
+module BaseAnchorablesHelper
   include ModuleCommon  # for get_language_name
 
   def path_anchoring(anchoring, parent: nil, action: :show, for_url: false)

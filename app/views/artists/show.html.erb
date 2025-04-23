@@ -45,7 +45,7 @@
 </dl>
 
 <%= turbo_frame_tag "artists_anchorings_"+dom_id(@artist) do %>
-  <%= render partial: 'layouts/show_anchorings_index', locals: {record: @artist} %>
+  <%= render partial: 'layouts/index_anchorings', locals: {record: @artist} %>
 <% end %>
 
 </div>

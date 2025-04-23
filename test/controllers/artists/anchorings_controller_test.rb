@@ -7,7 +7,7 @@ class Artists::AnchoringsControllerTest < ActionDispatch::IntegrationTest
 
   # path helpers
   include Rails.application.routes.url_helpers
-  include Artists::AnchoringsHelper  # for path_anchoring
+  include BaseAnchorablesHelper  # for path_anchoring
 
   setup do
     @url = urls(:one)
@@ -157,6 +157,20 @@ end # if false
 #      }
 #    end
 
+    # Edit
+    sign_in @moderator_all
+    get edit_artist_anchoring_path(id: new_mdl4.id, artist_id: new_mdl4.anchorable.id)
+    assert_response :success, "User=#{@moderator_all} should be able to access #{path} but they are not..."
+    # regex = %r@\A(/[a-z]{2})?/artists/#{new_mdl4.anchorable.id}/anchorings/#{new_mdl4.id}(\?.+)?\z@
+    regex = %r@\A(/[a-z]{2})?/artists/(\d+)/anchorings/(\d+)(\?.+)?\z@
+    assert_match(regex, attri=css_select("form.edit_anchoring")[0]["action"].to_s)
+    match = regex.match attri
+    assert_equal new_mdl4.id,            match[3].to_i, "second path-ID should be for Anchoring, but..."
+    refute_equal new_mdl4.anchorable.id, match[3].to_i, "second path-ID should NOT be for Anchorable, but it is for the same as for Anchoring(!), i.e., the ID for Anchoring is used twice in the path: #{attri}"
+    assert_equal new_mdl4.anchorable.id, match[2].to_i, "first path-ID should be for Anchorable, but..."
+    sign_out @moderator_all
+
+
     # hsupdate = @hs_base.merge( hs2add )  # No language-related fields
     hsupdate = hsprms.merge({url_form: hsprms[:url_form]+"-updated"})  # No language-related fields
 
@@ -165,6 +179,13 @@ end # if false
     action, _ = assert_authorized_post(anchoring, user: @moderator_ja, path_or_action: paths[:show], redirected_to: path_anchoring(anchoring, action: :show), params: hsupdate, method: :patch, diff_count_command: calc_count_exp, diff_num: 0, updated_attrs: [:note], bind_offset: def_bind_offset){ |user, record|  # path_anchoring() defined in Artists::AnchoringsHelper
       assert record.url
       refute_equal urlstr_orig, record.url.url
+    } # defined in /test/helpers/controller_helper.rb
+    assert_equal :update, action
+
+    url_orig = anchoring.url.url
+    action, _ = assert_authorized_post(anchoring, user: @moderator_ja, path_or_action: paths[:show], redirected_to: path_anchoring(anchoring, action: :show), params: hsupdate.merge({url_form: ""}), method: :patch, diff_count_command: calc_count_exp, diff_num: 0, updated_attrs: [:note], exp_response: :unprocessable_entity, bind_offset: def_bind_offset){ |user, record|  # path_anchoring() defined in Artists::AnchoringsHelper
+      assert record.url
+      assert_equal url_orig, record.url.url
     } # defined in /test/helpers/controller_helper.rb
     assert_equal :update, action
 

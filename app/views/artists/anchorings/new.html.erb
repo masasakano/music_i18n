@@ -2,6 +2,6 @@
 
 <% new_turbo_tag = dom_id(Anchoring.new) %>  <%# "new_anchoring" %>
 <%= turbo_frame_tag new_turbo_tag do %>
-  <%= render 'form', artist: @artist, anchoring: @anchoring %>
+  <%= render 'form', anchoring: @anchoring %>
 <% end %>
 

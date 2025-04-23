@@ -10,7 +10,7 @@
 
 <div id="form_main">
 
-<%= simple_form_for [:artist, anchoring], html: { data: { turbo_frame: dom_id(anchoring) } } do |f| %>
+<%= simple_form_for [@anchorable, anchoring], html: { data: { turbo_frame: dom_id(anchoring) } } do |f| %>
   <%= f.error_notification %>
   <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
 

@@ -341,12 +341,13 @@ class ActiveSupport::TestCase
   # @param diff_count_command: [String, NilClass] Count method like 'Article.count*10 + Author.count'. In default, it is guessed from model_record
   # @param diff_num: [Integer, NilClass] 1 or 0 or -1 in Default for respective actions of :create and :update and :destroy. If this is 0 in :create, it is interpreted as no Model being expected to be created (but the authorization passes).
   # @param updated_attrs: [Array<Symbol>, Hash] Attributes that should be updated after :update/:create, which you want to check (this does not need to be a complete list at all!). If Hash, +{key => expected-value}+. If Array, the expected values are taken from the given +params+.
+  # @param exp_response: [Symbol, String, NilClass] If you expect this to fail, specify :unprocessable_entity
   # @param err_msg: [String, NilClass] Custom error message for assert_response
   # @param bind_offset: [Integer] Depth of the call (to get caller information for error messages); 0 if you directly call this from your test script and want to know the caller location in your test-script.
   # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block. [User, ActiveRecord] is passed.
   # @yield [User, ActiveRecord] Executed while the user is logged in after running other tests.
   # @return [Array<Symbol, ActiveRecord, NilClass>] Pair of Array. 1st element is action. 2nd element is, if successful (in :create), returns the created (or updated) model, else nil.
-  def assert_authorized_post(model_record, user: nil, path_or_action: nil, redirected_to: nil, params: nil, method: nil, diff_count_command: nil, diff_num: nil, updated_attrs: [], err_msg: nil, bind_offset: 2-BASE_CALLER_INFO_BIND_OFFSET, base_proc: nil)
+  def assert_authorized_post(model_record, user: nil, path_or_action: nil, redirected_to: nil, params: nil, method: nil, diff_count_command: nil, diff_num: nil, updated_attrs: [], exp_response: nil, err_msg: nil, bind_offset: 2-BASE_CALLER_INFO_BIND_OFFSET, base_proc: nil)
     action, method, path, model, opts = _get_action_method_path(model_record, path_or_action, method, params)
 
     updated_attrs = _get_hash_attrs_from_array_or_hash(updated_attrs, params)
@@ -360,7 +361,7 @@ class ActiveSupport::TestCase
         raise "should never happen."
       end
 
-    exp_response = ((0 == diff_num && action != :update) ? :unprocessable_entity : :redirect)
+    exp_response ||= ((0 == diff_num && action != :update) ? :unprocessable_entity : :redirect)
     diff_count_command ||= model.name+".count"
 
     caller_info_prefix = _get_caller_info_message(bind_offset: bind_offset, prefix: true)  # defined in test_helper.rb
@@ -383,7 +384,7 @@ class ActiveSupport::TestCase
     end
 
     if :redirect == exp_response
-      redirected_to_path = _get_expected_redirected_to_after_post(redirected_to)
+      redirected_to_path = _get_expected_redirected_to_after_post(redirected_to, action, model, model_record)
       assert_redirected_to(redirected_to_path, "#{_get_caller_info_message(bind_offset: bind_offset, prefix: true)} User=#{user_txt} should be redirected to #{redirected_to_path} after #{action} at #{path} but..." )
     end
 
@@ -440,15 +441,16 @@ class ActiveSupport::TestCase
   # Get the expected path of redirected_to from the argument
   #
   # @param redirected_to: [String, Proc, NilClass] Usually guessed from path. If Proc, it is called on the spot (which can be helpful in :create)
+  # @param action: [Symbol]
   # @return [String]
-  def _get_expected_redirected_to_after_post(redirected_to)
+  def _get_expected_redirected_to_after_post(redirected_to, action, model, model_record)
     if redirected_to
       redirected_to
     elsif redirected_to.respond_to?(:call)
       redirected_to.call
     else
       redirect_path_arg =
-        case action
+        case (action.to_sym rescue action)
         when :create
           model.last
         when :destroy
@@ -542,6 +544,8 @@ class ActiveSupport::TestCase
         "Forbidden"
       when 404
         "Not Found"
+      when 422
+        ":unprocessable_entity"
       when 500
         "Internal Server Error"
       else
