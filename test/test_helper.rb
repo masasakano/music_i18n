@@ -21,6 +21,9 @@ class ActiveSupport::TestCase
 
   DEF_RELPATH_HARAMI1129_LOCALTEST = 'test/controllers/harami1129s/data/harami1129_sample.html'
 
+  # Default value for bind_offset in {#_get_caller_info_message}
+  DEF_CALLER_INFO_BIND_OFFSET = nil
+
   # Used in the method {#_get_caller_info_message}. 0 means the caller (of the method) itself. 1 means its parent.
   BASE_CALLER_INFO_BIND_OFFSET = 1
 
@@ -212,9 +215,6 @@ class ActiveSupport::TestCase
   # @param kwds: [Hash] Optional hash to be passed to {#css_for_flash}, notably +extra+
   def flash_regex_assert(regex, msg=nil, type: nil, with_html: false, **kwds)
     caller_info = _get_caller_info_message(bind_offset: 0)
-    #bind = caller_locations(1,1)[0]  # Ruby 2.0+
-    #caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
-    ## NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
 
     csstext = css_select(css_for_flash(type, **kwds)).send(with_html ? :inner_html : :text)
     msg2pass = (msg || sprintf("Fails in flash(%s)-message regexp matching for: ", (type || "ALL")))+csstext.inspect
@@ -244,9 +244,6 @@ class ActiveSupport::TestCase
   # @return [String] CSS for Flash-message part; e.g., ".alert, div#error_explanation"
   def css_for_flash(type=nil, category: :both, extra: nil, extra_attributes: nil, return_array: false)
     caller_info = _get_caller_info_message(bind_offset: 0)
-    #bind = caller_locations(1,1)[0]  # Ruby 2.0+
-    #caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
-    ## NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
 
     extra_attributes =
       if extra_attributes.blank?
@@ -296,9 +293,6 @@ class ActiveSupport::TestCase
   # @return [String] CSS for Flash-message part; e.g., ".alert, div#error_explanation"
   def xpath_for_flash(type=nil, category: :both, extras: nil, extra_attributes: nil, return_array: false)
     caller_info = _get_caller_info_message(bind_offset: 0)
-    #bind = caller_locations(1,1)[0]  # Ruby 2.0+
-    #caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
-    ## NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
 
     extras = [] if extras.blank?
 
@@ -345,9 +339,6 @@ class ActiveSupport::TestCase
   # in testing.  In such case, specify +screen_test_only: true+
   def my_assert_no_alert_issued(screen_test_only: false)
     caller_info = _get_caller_info_message(bind_offset: 0)
-    #bind = caller_locations(1,1)[0]  # Ruby 2.0+
-    #caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
-    ## NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
 
     assert  flash[:alert].blank?, "Failed(#{caller_info}) with Flash-alert: "+(flash[:alert] || "") if !screen_test_only
     msg_alert = css_select(".alert").text.strip
@@ -364,11 +355,8 @@ class ActiveSupport::TestCase
   # @param inspect [Boolean] if true, the difference would be printed if failed.
   # @param refute [Boolean] if true (Def: false), returns true if NOT updated. cf. user_refute_updated_attr?
   # @param bind_offset [Integer] offset for caller_locations (used for displaying the caller routine)
-  def user_assert_updated_attr?(model, attr, msg=nil, inspect: true, refute: false, bind_offset: 0)
+  def user_assert_updated_attr?(model, attr, msg=nil, inspect: true, refute: false, bind_offset: DEF_CALLER_INFO_BIND_OFFSET)
     caller_info = _get_caller_info_message(bind_offset: bind_offset)
-    #bind = caller_locations(1+bind_offset, 1)[0]  # Ruby 2.0+
-    #caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
-    ## NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
 
     upd, msg2pass = _reload_and_get_message(model, msg, inspect, attr, caller_info)
     if refute
@@ -382,7 +370,7 @@ class ActiveSupport::TestCase
   #
   # @param #see user_assert_updated_attr?
   def user_refute_updated_attr?(model, attr, msg=nil, inspect: true)
-    user_assert_updated_attr?(model, attr, msg=nil, inspect: true, refute: true, bind_offset: 1)
+    user_assert_updated_attr?(model, attr, msg=nil, inspect: true, refute: true)
   end
 
   # assert if the instance is updated, checking updated_at 
@@ -393,12 +381,9 @@ class ActiveSupport::TestCase
   # @param msg [String] message parameter for assert
   # @param inspect [Boolean] if true, the difference would be printed if failed.
   # @param refute [Boolean] if true (Def: false), returns true if NOT updated. cf. user_refute_updated_attr?
-  # @param bind_offset [Integer] offset for caller_locations (used for displaying the caller routine)
-  def user_assert_updated?(model, msg=nil, inspect: true, refute: false, bind_offset: 0)
+  # @param bind_offset [Integer, NilClass] offset for caller_locations (used for displaying the caller routine)
+  def user_assert_updated?(model, msg=nil, inspect: true, refute: false, bind_offset: DEF_CALLER_INFO_BIND_OFFSET)
     caller_info = _get_caller_info_message(bind_offset: bind_offset)
-    #bind = caller_locations(1+bind_offset, 1)[0]  # Ruby 2.0+
-    #caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
-    ## NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
 
     upd, msg2pass = _reload_and_get_message(model, msg, inspect, :updated_at, caller_info)
     if refute
@@ -417,12 +402,6 @@ class ActiveSupport::TestCase
   # @param inspect [Boolean] if true, the difference would be printed if failed.
   def user_refute_updated?(model, msg=nil, inspect: true)
     user_assert_updated?(model, msg=nil, inspect: true, refute: true, bind_offset: 1)
-    #bind = caller_locations(1,1)[0]  # Ruby 2.0+
-    #caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
-    ## NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
-    #
-    #upd, msg2pass = _reload_and_get_message(model, msg, inspect, :updated_at, caller_info)
-    #assert_equal upd, model.updated_at, msg2pass
   end
 
 
@@ -462,18 +441,28 @@ class ActiveSupport::TestCase
 
   # Returns the String for the caller information
   #
-  # @example
-  #    assert abc, sprintf("(%s): abc=%s", _get_caller_info_message(bind_offset: 0), abc.inspect)  # defined in test_helper.rb
+  # @example To display the location of the last caller in the *_test.rb file.
+  #    assert abc, sprintf("(%s): abc=%s", _get_caller_info_message, abc.inspect)  # defined in test_helper.rb
   #
   # @example displays the exact line where an error occurs
-  #    assert false, _get_caller_info_message(bind_offset: -1, prefix: true)+" Something went wrong."
+  #    assert false, _get_caller_info_message(bind_offset: -1, prefix: true)+" Error occurs exactly at this line."
   #
-  # @param bind_offset: [Integer] offset for caller_locations (used for displaying the caller routine). Default (=0) assumes this method is called in a test library method that is called from an original test routine. Therefore, specify "-1" to get the information of the caller itself (Second example above).
+  # @param bind_offset: [Integer, NilClass] offset for caller_locations (used for displaying the caller routine). In default (=nil), the last location in *_test.rb (such as, inside a block). If this is 0, it is useful in the case where this method is called in a test library method that is called from an original test routine. Therefore, specify "-1" to get the information of the caller itself (Second example above).
   # @param fmt: [String] sprintf format. It must contain %s (for path) and %d (or %s) (for line number) in this order.
   # @param prefix: [Boolean] If true (Def: false), the return is enclosed with a pair of parentheses, followed by a colon
   # @return [String]
-  def _get_caller_info_message(bind_offset: 0, fmt: "%s:%d", prefix: false)
-    bind = caller_locations(1+BASE_CALLER_INFO_BIND_OFFSET+bind_offset, 1)[0]  # Ruby 2.0+
+  def _get_caller_info_message(bind_offset: DEF_CALLER_INFO_BIND_OFFSET, fmt: "%s:%d", prefix: false)
+    if !bind_offset
+      bind = caller_locations.each{|i| break i if /_test\.rb$/ =~ i.absolute_path }
+      if bind.respond_to? :absolute_path
+        bind_offset = nil
+      else
+        bind = nil
+        bind_offset = BASE_CALLER_INFO_BIND_OFFSET  # in failure (meaning when this method is NOT called from a Rails test file)
+      end
+    end
+
+    bind ||= caller_locations(1+BASE_CALLER_INFO_BIND_OFFSET+bind_offset, 1)[0]  # Ruby 2.0+
 
     # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
     ret = sprintf fmt, bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
@@ -528,7 +517,7 @@ class ActiveSupport::TestCase
     ## Or, more strictly,
     #selector = %Q{ul.ui-autocomplete li.ui-menu-item div.ui-menu-item-wrapper:contains("#{options[:select]}")}  # has to be double quotations (b/c of the sentence below)
 
-    caller_info = _get_caller_info_message(bind_offset: bind_offset)
+    caller_info = _get_caller_info_message()
     #bind = caller_locations(1,1)[0]  # Ruby 2.0+
     #caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
     ## NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"

@@ -102,8 +102,8 @@ class ActiveSupport::TestCase
     h1_title_regex ||= /^New #{Regexp.quote(model.name)}/
 
     base_proc = proc{|user|
-      assert css_select("section#form_edit_translation input##{model.name.underscore}_alt_title").present?, "#{_get_caller_info_message(bind_offset: -1, prefix: true)} New should have a field for alt_title, but..." if model.method_defined?(:alt_title)  # used in BaseWithTranslation only
-      assert css_select("section#sec_primary textarea##{model.name.underscore}_note").present?, "#{_get_caller_info_message(bind_offset: -1, prefix: true)} New should have a field for note, but..."  # "note" is applicable in any model of this framework
+      assert css_select("section#form_edit_translation input##{model.name.underscore}_alt_title").present?, "#{_get_caller_info_message(prefix: true)} New should have a field for alt_title, but..." if model.method_defined?(:alt_title)  # used in BaseWithTranslation only
+      assert css_select("section#sec_primary textarea##{model.name.underscore}_note").present?, "#{_get_caller_info_message(prefix: true)} New should have a field for note, but..."  # "note" is applicable in any model of this framework
     }
 
     _assert_authorized_get_set(new_path, model_record=model, fail_users: fail_users, success_users: success_users, h1_title_regex: h1_title_regex, include_w3c_validate: true, base_proc: base_proc, &bl)
@@ -133,10 +133,10 @@ class ActiveSupport::TestCase
   # @param success_users: [Array<User>] Authorized users
   # @param h1_title_regex: [Regexp, String, NilClass] If String, a complete match
   # @param include_w3c_validate: [Boolean] If true, may w3c-validate
-  # @param bind_offset: [Integer] Depth of the call (to get caller information for error messages)
+  # @param bind_offset: [Integer, NilClass] Depth of the call (to get caller information for error messages)
   # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block.
   # @yield [User, ActiveRecord] Anything while the user is successfully authorized, i.e., only for viewings by success_users
-  def _assert_authorized_get_set(path, model_record=nil, params: nil, fail_users: [], success_users: [], h1_title_regex: nil, include_w3c_validate: true, bind_offset: 1, base_proc: nil, &bl)
+  def _assert_authorized_get_set(path, model_record=nil, params: nil, fail_users: [], success_users: [], h1_title_regex: nil, include_w3c_validate: true, bind_offset: DEF_CALLER_INFO_BIND_OFFSET, base_proc: nil, &bl)
     model = (model_record.respond_to?(:name) ? model_record : model_record.class)
     model_w3c_validate = (include_w3c_validate ? model : nil)
 
@@ -162,8 +162,8 @@ class ActiveSupport::TestCase
   #
   # @param path [String] path to access
   # @param params [Hash, NilClass]
-  # @param bind_offset: [Integer] Depth of the call (to get caller information for error messages)
-  def _assert_login_demanded(path, params: nil, bind_offset:  2-BASE_CALLER_INFO_BIND_OFFSET)
+  # @param bind_offset: [Integer, NilClass] Depth of the call (to get caller information for error messages)
+  def _assert_login_demanded(path, params: nil, bind_offset: DEF_CALLER_INFO_BIND_OFFSET)
     caller_info_prefix = sprintf("(%s):", _get_caller_info_message(bind_offset: bind_offset))  # defined in test_helper.rb
 
     get path, params: params
@@ -177,10 +177,10 @@ class ActiveSupport::TestCase
   # @param path [String] path to access
   # @param user [User, Nilclass] nil means unauthenticated
   # @param params [Hash, NilClass]
-  # @param bind_offset: [Integer] Depth of the call (to get caller information for error messages)
+  # @param bind_offset: [Integer, NilClass] Depth of the call (to get caller information for error messages)
   # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block.
   # @yield [User, NilClass] 2-elements. Anything while the user is logged in.
-  def _assert_unauthorized_access(path, user, params: nil, bind_offset: 2-BASE_CALLER_INFO_BIND_OFFSET, base_proc: nil)
+  def _assert_unauthorized_access(path, user, params: nil, bind_offset: DEF_CALLER_INFO_BIND_OFFSET, base_proc: nil)
     caller_info_prefix = sprintf("(%s):", _get_caller_info_message(bind_offset: bind_offset))  # defined in test_helper.rb
 
     sign_in user if user
@@ -199,21 +199,21 @@ class ActiveSupport::TestCase
   #
   # @example create
   #    hs2pass = { langcode: "ja", title: "The Test", best_translation_is_orig: str_form_for_nil, site_category_id: @site_category.id.to_s }.with_indifferent_access
-  #    assert_equal :create, assert_unauthorized_post(nil, DomainTitle, params: hs2pass, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+  #    assert_equal :create, assert_unauthorized_post(nil, DomainTitle, params: hs2pass) # defined in /test/helpers/controller_helper.rb
   #
   # @example destroy
-  #    assert_equal :destroy, assert_unauthorized_post(User.first, Artist.first, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+  #    assert_equal :destroy, assert_unauthorized_post(User.first, Artist.first) # defined in /test/helpers/controller_helper.rb
   #
   # @example update 1 (checking also if attributes have unchanged)
   #    note3 = "aruyo3"
-  #    action = assert_unauthorized_post(mymdl, user: @translator, params: {note: note3}, unchanged_attrs: [:note, :memo_editor], bind_offset: 0){ # defined in /test/helpers/controller_helper.rb
+  #    action = assert_unauthorized_post(mymdl, user: @translator, params: {note: note3}, unchanged_attrs: [:note, :memo_editor]){ # defined in /test/helpers/controller_helper.rb
   #      refute_equal note3, mymdl.reload.note
   #    }
   #    assert :update, action
   # 
   # @example update 2
   #    mdlp = Parent.last
-  #    action = assert_unauthorized_post(mymdl, user: @translator, params: {parent: mdlp}, bind_offset: 0){ # defined in /test/helpers/controller_helper.rb
+  #    action = assert_unauthorized_post(mymdl, user: @translator, params: {parent: mdlp}){ # defined in /test/helpers/controller_helper.rb
   #      refute_equal mdlp.id, mymdl.parent.id  # If more complicated comparison is required.
   #    }
   #    assert :update, action
@@ -225,11 +225,11 @@ class ActiveSupport::TestCase
   # @param method: [Symbol, String, NilClass] :post (Def) or :delete or :patch. If nil, guessed from other parameters.
   # @param diff_count_command: [String, NilClass] Count method like 'Article.count*10 + Author.count'. In default, it is guessed from model_record
   # @param unchanged_attrs: [Array<Symbol>] Attributes that should not change after :update. Looked up only if action is :update.
-  # @param bind_offset: [Integer] Depth of the call (to get caller information for error messages); 0 if you directly call this from your test script and want to know the caller location in your test-script.
+  # @param bind_offset: [Integer, NilClass] Depth of the call (to get caller information for error messages); 0 if you directly call this from your test script and want to know the caller location in your test-script.
   # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block. [User, (Class<ActiveRecord>, ActiveRecord]Class<ActiveRecord>)] is passed. The 2nd element is the given model_record
   # @yield [User, (Class<ActiveRecord>, ActiveRecord)] Executed while the user is logged in, after evaluation. The 2nd element is the given model_record
   # @return [Symbol] action like :create (to check if this method is performing as intended)
-  def assert_unauthorized_post(model_record, user: nil, path_or_action: nil, params: nil, method: nil, diff_count_command: nil, unchanged_attrs: [], bind_offset: 2-BASE_CALLER_INFO_BIND_OFFSET, base_proc: nil)
+  def assert_unauthorized_post(model_record, user: nil, path_or_action: nil, params: nil, method: nil, diff_count_command: nil, unchanged_attrs: [], bind_offset: DEF_CALLER_INFO_BIND_OFFSET, base_proc: nil)
     action, method, path, model, opts = _get_action_method_path(model_record, path_or_action, method, params)
 
     caller_info_prefix = _get_caller_info_message(bind_offset: bind_offset, prefix: true)  # defined in test_helper.rb
@@ -273,10 +273,10 @@ class ActiveSupport::TestCase
   # @param params [Hash, NilClass]
   # @param h1_title_regex: [Regexp, String] If String, a complete match
   # @param include_w3c_validate: [Class, NilClass] ActiveRecord class. In specified, may w3c-validate
-  # @param bind_offset: [Integer] Depth of the call (to get caller information for error messages)
+  # @param bind_offset: [Integer, NilClass] Depth of the call (to get caller information for error messages)
   # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block.
   # @yield [User, nil] Anything while the user is logged in.
-  def _assert_authorized_access(path, user, params: nil, h1_title_regex: nil, model_w3c_validate: nil, bind_offset: 2-BASE_CALLER_INFO_BIND_OFFSET, base_proc: nil)
+  def _assert_authorized_access(path, user, params: nil, h1_title_regex: nil, model_w3c_validate: nil, bind_offset: DEF_CALLER_INFO_BIND_OFFSET, base_proc: nil)
     caller_info_prefix = sprintf("(%s):", _get_caller_info_message(bind_offset: bind_offset))  # defined in test_helper.rb
     # h1_title ||= model.name.pluralize
     h1_title = h1_title_regex if !h1_title_regex.respond_to?(:named_captures)
@@ -311,25 +311,25 @@ class ActiveSupport::TestCase
   #
   # @example create fails (diff_num: 0)
   #    hs2pass = { langcode: "ja", title: "The Test", best_translation_is_orig: str_form_for_nil, site_category_id: @site_category.id.to_s }.with_indifferent_access
-  #    assert_authorized_post(DomainTitle, user: @admin, params: {title: ""}, diff_num: 0, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+  #    assert_authorized_post(DomainTitle, user: @admin, params: {title: ""}, diff_num: 0) # defined in /test/helpers/controller_helper.rb
   #
   # @example create succeeds, returning the craeted model
   #    sign_in @moderator_ja
-  #    action, record = assert_unauthorized_post(DomainTitle, params: hs2pass, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+  #    action, record = assert_unauthorized_post(DomainTitle, params: hs2pass) # defined in /test/helpers/controller_helper.rb
   #    assert_equal :create, action
   #    assert record.id  # should be true (because diff_num=1 has been already tested, meaning a record has been craeted)
   #
   # @example destroy
-  #    action, _ = assert_authorized_post(Music.last, user: @moderator, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+  #    action, _ = assert_authorized_post(Music.last, user: @moderator) # defined in /test/helpers/controller_helper.rb
   #    assert_equal :destroy, action
   #
   # @example update 1
-  #    action, mdl2 = assert_authorized_post(mdl1, params: {note: "aruyo"}, updated_attrs: [:note], bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+  #    action, mdl2 = assert_authorized_post(mdl1, params: {note: "aruyo"}, updated_attrs: [:note]) # defined in /test/helpers/controller_helper.rb
   #    assert_equal :update, action
   #    assert_equal mdl2, mdl1  # sanity check; NOTE mdl2 is already reloaded.
   #
   # @example update 2 (passing Hash for updated_attrs; you can actually check if the attribute unchanges because the algorithm does not check if the value is updated but checks if the value is equal to the given one.)
-  #    action, _ = assert_authorized_post(mdl1, params: {note: "aruyo"}, updated_attrs: {note: "aruyo"}, bind_offset: 0) # defined in /test/helpers/controller_helper.rb
+  #    action, _ = assert_authorized_post(mdl1, params: {note: "aruyo"}, updated_attrs: {note: "aruyo"}) # defined in /test/helpers/controller_helper.rb
   #    assert_equal :update, action
   #
   # @param model_record [Class<ActiveRecord>, ActiveRecord] Class for :create and ActiveRecord for :destroy and :update
@@ -343,11 +343,11 @@ class ActiveSupport::TestCase
   # @param updated_attrs: [Array<Symbol>, Hash] Attributes that should be updated after :update/:create, which you want to check (this does not need to be a complete list at all!). If Hash, +{key => expected-value}+. If Array, the expected values are taken from the given +params+.
   # @param exp_response: [Symbol, String, NilClass] If you expect this to fail, specify :unprocessable_entity
   # @param err_msg: [String, NilClass] Custom error message for assert_response
-  # @param bind_offset: [Integer] Depth of the call (to get caller information for error messages); 0 if you directly call this from your test script and want to know the caller location in your test-script.
+  # @param bind_offset: [Integer, NilClass] Depth of the call (to get caller information for error messages); 0 if you directly call this from your test script and want to know the caller location in your test-script.
   # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block. [User, ActiveRecord] is passed.
   # @yield [User, ActiveRecord] Executed while the user is logged in after running other tests.
   # @return [Array<Symbol, ActiveRecord, NilClass>] Pair of Array. 1st element is action. 2nd element is, if successful (in :create), returns the created (or updated) model, else nil.
-  def assert_authorized_post(model_record, user: nil, path_or_action: nil, redirected_to: nil, params: nil, method: nil, diff_count_command: nil, diff_num: nil, updated_attrs: [], exp_response: nil, err_msg: nil, bind_offset: 2-BASE_CALLER_INFO_BIND_OFFSET, base_proc: nil)
+  def assert_authorized_post(model_record, user: nil, path_or_action: nil, redirected_to: nil, params: nil, method: nil, diff_count_command: nil, diff_num: nil, updated_attrs: [], exp_response: nil, err_msg: nil, bind_offset: DEF_CALLER_INFO_BIND_OFFSET, base_proc: nil)
     action, method, path, model, opts = _get_action_method_path(model_record, path_or_action, method, params)
 
     updated_attrs = _get_hash_attrs_from_array_or_hash(updated_attrs, params)
