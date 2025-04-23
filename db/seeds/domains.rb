@@ -29,9 +29,15 @@ module Seeds::Domains
     },
     haramichan_main: {
       domain: "harami-piano.com",
-      domain_title: Proc.new{DomainTitle.select_regex(:titles, /^ハラミちゃん(.*(ホームページ|ウェブサイト|Website))$/ || raise(DomainTitle.all.inspect)).first},
-      domain_title_key: :haramichan_main,  # defined ./domain_titles.rb ; used for test fixtures /test/fixtures/domains.yml
+      domain_title: Proc.new{DomainTitle.select_regex(:titles, /^ハラミちゃん(.*(公式)?(ホームページ|ウェブサイト|Website))$/ || raise(DomainTitle.all.inspect)).first},
+      domain_title_key: :haramichan_main,  # defined in ./domain_titles.rb ; used for test fixtures /test/fixtures/domains.yml
       weight: 10,
+    },
+    kohmi_main: {
+      domain: "www.hirose-kohmi.com",
+      domain_title: Proc.new{DomainTitle.select_regex(:titles, /^広瀬香美(.*(公式)?(ホームページ|ウェブサイト|Website))$/ || raise(DomainTitle.all.inspect)).first},
+      domain_title_key: :kohmi_main,
+      #weight: 1000,
     },
     youtube: {
       domain: "www.youtube.com",
@@ -42,8 +48,7 @@ module Seeds::Domains
     youtube_short: {  # "*_short" is ignored in seeding Uri-s (see uris.rb)
       domain: "youtu.be",
       domain_title: Proc.new{DomainTitle.select_regex(:titles, /\Ayoutube\z/i || raise(DomainTitle.all.inspect)).first},
-      # domain_title_key: :youtube,  # set below in one go as the default.
-      domain_title_key: :youtube,  # defined ./domain_titles.rb ; used for test fixtures /test/fixtures/domains.yml
+      domain_title_key: :youtube,  # defined in ./domain_titles.rb ; used for test fixtures /test/fixtures/domains.yml
       weight: 1000,
     },
     tiktok: {

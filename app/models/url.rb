@@ -104,11 +104,13 @@ class Url < BaseWithTranslation
     ModuleUrlUtil.normalized_url(url_in, with_scheme: false, with_www: false, with_port: false, with_extra_trailing_slash: false, with_path: true, with_query: true, with_fragment: true)
   end
 
+  # Returns the default Translation if the given title is blank
+  #
   # @param url [String, Url]
   # @return [Translation] initialized and unsaved. {Translation#translatable} is unset.
   def self.def_translation_from_url(url, title: nil, langcode: nil, is_orig: nil, **kwds)
     urlstr = (url.respond_to?(:url) ? url.url : url.to_s)
-    title = normalized_url(urlstr) if title.blank?
+    title = URI.decode_www_form_component(normalized_url(urlstr)) if title.blank?
     langcode = (contain_asian_char?(title) ? "ja" : "en") if langcode.blank?
     Translation.new(title: title, langcode: langcode, is_orig: is_orig, **kwds)
   end
@@ -116,9 +118,10 @@ class Url < BaseWithTranslation
   # Alternative constructor from String URL
   #
   # @param urlstr [String] mandatory.
+  # @param site_category_id: [NilClass, String, Integer] Used only in creating DomainTitle. ignored if nil. auto-guessed if "".  See {Domain.find_or_initialize_domain_title_to_assign} and {Domain.guess_site_category}
   # @param **kwds [Hash] You can initialize any of the standard attributes of Url, plus its Translation. All are optional, and can be automatically set.
   # @return [Url] In failing, +errors+ may be set or +id+ may be nil. +domain+ may be set and +domain.notice_messages+ may be significant (to show as flash messages).
-  def self.find_or_create_url_from_str(urlstr, url_langcode: nil, domain: nil, domain_id: nil, weight: nil, published_date: nil, last_confirmed_date: nil, note: nil, memo_editor: nil, title: nil, langcode: nil, is_orig: nil, alt_title: nil)
+  def self.find_or_create_url_from_str(urlstr, site_category_id: nil, url_langcode: nil, domain: nil, domain_id: nil, weight: nil, published_date: nil, last_confirmed_date: nil, note: nil, memo_editor: nil, title: nil, langcode: nil, is_orig: nil, alt_title: nil)
     newurl = self.new(url: normalized_url(urlstr),
                      url_langcode: url_langcode,
                      weight: weight,
@@ -131,7 +134,7 @@ class Url < BaseWithTranslation
 
     newurl.unsaved_translations << def_translation_from_url(newurl, title: title, langcode: langcode, is_orig: is_orig, alt_title: alt_title)
 
-    ret = newurl.find_or_create_and_reset_domain_id
+    ret = newurl.find_or_create_and_reset_domain_id(site_category_id: site_category_id)
     return newurl if !ret  # "newurl.errors" should have been set.  "newurl.id" is nil.
 
     newurl.save
@@ -148,7 +151,7 @@ class Url < BaseWithTranslation
 
   # If {#domain_id} is blank, assign one according to url, potentially creating Domain (and maybe DomainTitle), and reset domain_id
   #
-  # If {#domain_id} is non-blank, nothing is done and returns self.
+  # If {#domain_id} is non-blank, nothing is done and returns self in default unless +force+ is true.
   #
   # 1. If {#domain_id} is not blanck, this method does nothing and returns self.
   # 2. If Domain (and maybe also DomainTitle) is either successfully found or created,
@@ -169,12 +172,14 @@ class Url < BaseWithTranslation
   #    end
   #    # If rolled back,  self.domain_id  may point to a non-existing Domain.
   #
+  # @param force [Boolean] If true (Def: false), {Domain} is reassigned (maybe created) even if self.domain is present.
+  # @param site_category_id: [NilClass, String, Integer] Used only in creating DomainTitle. ignored if nil. auto-guessed if "".  See {Domain.find_or_initialize_domain_title_to_assign} and {Domain.guess_site_category}
   # @return [Url, NilClass] self or nil (if an error happens in creating Domain or DomainTitle)
-  def find_or_create_and_reset_domain_id
-    return self if !domain_id.blank?
+  def find_or_create_and_reset_domain_id(force: false, site_category_id: nil)
+    return self if !domain_id.blank? && !force
 
     begin
-      self.domain = Domain.find_or_create_domain_by_url!(url) 
+      self.domain = Domain.find_or_create_domain_by_url!(url, site_category_id: site_category_id)
     rescue => err
       errors.add :domain_id, err.message
       return  # an error happens.
@@ -183,13 +188,48 @@ class Url < BaseWithTranslation
     self
   end
 
+  # Resets Domain if self's {#domain} has changed (but not saved) in default.
+  #
+  # self is not saved, but Domain (and DomainTite) may be created.
+  # If Domain (or DomainTite) was attempted to be created but if it has failed,
+  # self.errors is set.
+  #
+  # self.domain.notice_messages should be significant after this call
+  # if a Domain is searched for (namely, if self.url has not changed in the first place, the message is not defined).
+  #
+  # In default, if the the unsaved {#url} has not changed from the DB value,
+  # this method does nothing, providing +site_category_id+ is nil or +force+ is true.
+  #
+  # If site_category_id is nil, this method does not alter the associattion to SiteCategory.
+  # If it is significant, this method changes the associated {DomainTitle#site_category_id}.
+  # And also (**IMPORTANT**), if it is an empty String (""), this resets the associated {DomainTitle#site_category_id}
+  # to a new value(!!) because the selection must have been altered delibrerately in the form.
+  # Note that if site_category_id is non-nil, new Domain and DomainTitle may be created
+  # even if {#url} is unchanged, because {Domain#domain} is reassessed.  With an inline-U/I,
+  # such a discrepancy should have never happened anyway, though it can happen through
+  # the dedicated Url-edit U/I.
+  #
+  # @param force: [Boolean] Def: false
+  # @param site_category_id: [NilClass, String, Integer] no change if nil. auto-guessed if "".  See {Domain.find_or_initialize_domain_title_to_assign} and {Domain.guess_site_category}
+  # @return [Boolean] true if updated.  nil if an unlikely case of url being blank?
+  def reset_assoc_domain(force: false, site_category_id: nil)
+    return if url.blank?
+    return self.domain if !force && !url_changed? && (site_category_id.nil? || site_category_id.to_s.strip == domain_title.site_category_id.to_s)
+    domain_title_bkup = self.domain_title
+    domain_bkup       = self.domain
+
+    find_or_create_and_reset_domain_id(force: force, site_category_id: site_category_id)  # maybe a created one.
+
+    self.domain != domain_bkup || self.domain_title != domain_title_bkup
+  end
+
   private
 
     # Callback to make "url" a valid URI, as long as it appears to be valid.
     #
     # e.g., "abc.x/345" is not a valid URI because there is no domain of "x"
     def add_scheme_to_url
-      self.url = ModuleUrlUtil.scheme_and_uri_string(self.url).join if !self.url
+      self.url = ModuleUrlUtil.url_prepended_with_scheme(self.url)
     end
 
     # Callback to set url_normalized
@@ -200,7 +240,7 @@ class Url < BaseWithTranslation
     #
     # The callback {add_scheme_to_url} is assumed to be called before this.
     def normalize_url
-      self.url_normalized = self.class.normalized_url(url)
+      self.url_normalized = URI.decode_www_form_component(self.class.normalized_url(url))
     end
 
     # Callback to modify url_langcode

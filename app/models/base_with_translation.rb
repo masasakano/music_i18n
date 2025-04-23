@@ -2310,6 +2310,11 @@ class BaseWithTranslation < ApplicationRecord
     ## NOTE: Do NOT modify i (like i.strip) because "i" has a Singleton method #lcode
   end
 
+  # @return [String] handy alias for Views
+  def title_or_alt_for_selection
+    title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "(UNDEFINED)", article_to_head: true)
+  end
+
   # Array of either 1 or 2 elements of String (title)
   #
   # NOTE: This method makes sense only when both +langcode+ and +prioritize_orig+

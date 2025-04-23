@@ -44,7 +44,7 @@ module Seeds::Urls
       end  # Setting non-duplicate weights
 
     hs_dt = Seeds::DomainTitles::SEED_DATA[key_dt]
-    raise "ERROR: inconsistent! No DomainTitles data found for the key #{[epk, key_dt].inspect}" if !hs_dt
+    raise "ERROR: inconsistent! No DomainTitles data found for the keys (#{epk.inspect} (Domain) and #{key_dt.inspect} (DomainTitle)" if !hs_dt
 
     u_url = "https://" + hs_domain[:domain]
     u_norm = Url.normalized_url(u_url)

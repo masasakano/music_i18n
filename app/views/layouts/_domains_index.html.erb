@@ -48,11 +48,11 @@
         <td><%= link_to t("tables.Show"), model %></td>
         <% if can? :update, model  %>
           <td class="editor_only"><%= link_to 'Edit', edit_domain_path(model) %></td>
-         <% if can? :destroy, model %>
-          <td class="editor_only"><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
-         <% else %>
-          <td class="editor_only"></td>
-         <% end %>
+          <td class="editor_only">
+          <% if model.destroyable? && can?(:destroy, model) %>
+            <%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %>
+          </td>
+          <% end %>
         <% elsif caneditgen %>
           <td colspan="2" class="editor_only"></td>
         <% end %>

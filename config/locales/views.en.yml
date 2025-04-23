@@ -308,6 +308,10 @@ en:
       N_Musics: "#Musics"
       N_Artists: "#Artists"
 
+  site_categories:
+    table_head:
+      site_category_short: "Category"
+
   translations:
     table_head:
       Is_orig: "Orig?"

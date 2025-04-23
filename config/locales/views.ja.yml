@@ -305,6 +305,15 @@ ja:
     show:
       year_unknown: 年不明
 
+  engages:
+    engage_how: "関わり方"
+
+  engage_multi_hows:
+    index:
+      assoc_engage: "(他のArtistとこの曲「%{music_title}」)"
+    table_head:
+      how_related: 関連
+
   prefectures:
     show:
       h2_artists: "この県・州出身のアーティスト"
@@ -315,14 +324,9 @@ ja:
       N_Musics: "登録楽曲数"
       N_Artists: "出身音楽家数"
 
-  engages:
-    engage_how: "関わり方"
-
-  engage_multi_hows:
-    index:
-      assoc_engage: "(他のArtistとこの曲「%{music_title}」)"
+  site_categories:
     table_head:
-      how_related: 関連
+      site_category_short: "種別"
 
   translations:
     table_head:

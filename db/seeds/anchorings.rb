@@ -20,11 +20,18 @@ module Seeds::Anchorings
   # Data to seed
   SEED_DATA = {
     url_haramichan_main_artist_harami: {
-      url_id: Proc.new{domain = DomainTitle.select_regex(:titles, /^ハラミちゃん(.*(ホームページ|ウェブサイト|Website))$/, sql_regexp: true).order(:created_at).first.domains.order(:created_at).first; cand = domain.urls.where(url: "https://"+domain.domain).order(:created_at); (cand.exists? ? cand.first : domain.urls.order(:created_at).first).id},
+      url_id: Proc.new{domain = DomainTitle.select_regex(:titles, /^ハラミちゃん(.*(公式)?(ホームページ|ウェブサイト|(Official\s+)?Website))$/i, sql_regexp: true).order(:created_at).first.domains.order(:created_at).first; cand = domain.urls.where(url: "https://"+domain.domain).order(:created_at); (cand.exists? ? cand.first : domain.urls.order(:created_at).first).id},
       anchorable_type: "Artist",
       anchorable_id: Proc.new{Artist.default(:HaramiVid).id},
       note: "HARAMIchan Homepage",
       regex: Proc.new{Artist.default(:HaramiVid).urls.order(:created_at).first},  # existing record
+    },
+    url_kohmi_main_artist_kohmi: {
+      url_id: Proc.new{domain = DomainTitle.select_regex(:titles, /^(広瀬香美|Kohmi\s+Hirose('s)?\s+)(.*(公式)?(ホームページ|ウェブサイト|(Official\s+)?Website))$/i, sql_regexp: true).order(:created_at).first.domains.order(:created_at).first; cand = domain.urls.where(url: "https://"+domain.domain).order(:created_at); (cand.exists? ? cand.first : domain.urls.order(:created_at).first).id},
+      anchorable_type: "Artist",
+      anchorable_id: Proc.new{Artist.select_regex(:title, /^(広瀬\s*香美|Kohmi\s+Hirose)$/i, sql_regexp: true).order(:created_at).first.id},
+      note: "Kohmi Hirose Homepage",
+      regex: Proc.new{Artist.select_regex(:title, /^(広瀬\s*香美|Kohmi\s+Hirose)$/i, sql_regexp: true).order(:created_at).first.urls.order(:created_at).first},  # existing record
     },
   }.with_indifferent_access  # SEED_DATA
 

@@ -85,7 +85,7 @@ module ModuleUrlUtil
   end # def normalized_url(url_in)
 
 
-  # Returns 3-element Array of a networkk scheme (like "https") and that without it
+  # Returns 3-element Array of a network scheme (like "https") and that without it
   #
   # The first element may be blank ("").
   # The second element is a separator ("://"), which is blank if the first element is blank.
@@ -111,6 +111,18 @@ module ModuleUrlUtil
     return ["", "", uri] if Domain::REGEXP_DOMAIN !~ uri.sub(%r@/.*@, "")
     
     ["https", "://", uri]
+  end
+
+  # Returns a URL-String with a guaranteed scheme, as long as its Domain is valid.
+  #
+  # This always returns String even if the input is nil.
+  #
+  # @param url [Url, String, NilClass]
+  # @return [String]
+  def url_prepended_with_scheme(url)
+    urlstr = (url.respond_to?(:url) ? url.url : url).to_s.strip
+    return urlstr if urlstr.empty?
+    scheme_and_uri_string(urlstr).join
   end
 
   #################

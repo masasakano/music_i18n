@@ -29,10 +29,12 @@
        <% end %>
        <% if with_grandparent %>
       <th title="DomainTitle"><%= t(:DomainTitle) %></th>
+      <th title="SiteCategory"><%= t("site_categories.table_head.site_category_short") %></th>
        <% end %>
        <% if caneditgen %>
         <th class="editor_only" title="Weight for sorting.">Weight</th>
        <% end %>
+      <th title="Linked">Linked</th>
       <th title="Note in this DB">Note</th>
        <% if caneditgen %>
          <th class="editor_only" colspan="3"></th>
@@ -43,33 +45,35 @@
   </thead>
 
   <tbody>
-    <% urls.each do |model| %>  <%# should be already sorted by the caller (or controller) %>
-      <tr<%= ' class="self_in_table"'.html_safe if (is_self=(this_model && model == this_model)) %>>
+    <% urls.each do |record| %>  <%# should be already sorted by the caller (or controller) %>
+      <tr<%= ' class="self_in_table"'.html_safe if (is_self=(this_model && record == this_model)) %>>
          <% if caneditgen  %>
-          <td class="editor_only text-end item_pid"><%= link_to(model.id, model) %></td>
+          <td class="editor_only text-end item_pid"><%= link_to(record.id, record) %></td>
          <% end %>
-        <td class="item_url_langcode text-center"><%= model.url_langcode %></td>
-        <td class="item_url"><%= link_to(model.url, model.url, target: "_blank") if model.url %></td>  <%# Rails prohibits a null value, but playing safe %>
-        <td class="item_title"><%= model.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "(undefined)", article_to_head: true) %></td>
+        <td class="item_url_langcode text-center"><%= record.url_langcode %></td>
+        <td class="item_url"><%= link_to(URI.decode_www_form_component(record.url), record.url, target: "_blank") if record.url %></td>  <%# Rails prohibits a null value, but playing safe %>
+        <td class="item_title"><%= record.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "(undefined)", article_to_head: true) %></td>
          <% if (caneditgen=can?(:edit, Url))  %>
-        <td class="editor_only item_url_normalized"><%= model.url_normalized %></td>
+        <td class="editor_only item_url_normalized"><%= record.url_normalized %></td>
           <% if with_parent %>
-        <td class="editor_only item_domain">(<%= link_to "Record", model.domain %>) <%= model.domain.domain %></td>
+        <td class="editor_only item_domain">(<%= link_to "Record", record.domain %>) <%= record.domain.domain %></td>
           <% end %>
          <% end %>
          <% if with_grandparent %>
-        <td class="item_domain_title"><%= link_to(model.domain_title.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "(undefined)", article_to_head: true), model.domain_title, title: "Generic title for the domain") if model.domain_title %></td> <%# Rails prohibits a null value, but playing safe %>
+        <td class="item_domain_title"><%= link_to(record.domain_title.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "(undefined)", article_to_head: true), record.domain_title, title: "Generic title for the domain") if record.domain_title %></td> <%# Rails prohibits a null value, but playing safe %>
+        <td class="item_site_category" title="SiteCategory"><%= record.domain_title.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "(undefined)", article_to_head: true) if record.site_category %></td>
          <% end %>
          <% if caneditgen  %>
-          <td class="editor_only item_weight"><%= model.weight %></td>
+          <td class="editor_only item_weight"><%= record.weight %></td>
          <% end %>
-        <td class="item_note"><%= model.note %></td>
+        <td class="item_linked"><%= record.anchoring_parents.map{|parent| link_to parent.class.name, parent, title: parent.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "(undefined)")}.join(", ").html_safe %></td>
+        <td class="item_note"><%= record.note %></td>
 
-        <td><%= link_to t("tables.Show"), model %></td>
-        <% if can? :update, model  %>
-          <td class="editor_only"><%= link_to 'Edit', edit_url_path(model) %></td>
-         <% if can? :destroy, model %>
-          <td class="editor_only"><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+        <td><%= link_to t("tables.Show"), record %></td>
+        <% if can? :update, record  %>
+          <td class="editor_only"><%= link_to 'Edit', edit_url_path(record) %></td>
+         <% if can? :destroy, record %>
+          <td class="editor_only"><%= link_to 'Destroy', record, method: :delete, data: { confirm: t('are_you_sure') } %></td>
          <% else %>
           <td class="editor_only"></td>
          <% end %>
@@ -77,7 +81,7 @@
           <td colspan="2" class="editor_only"></td>
         <% end %>
       </tr>
-    <% end %> <%# urls.each do |model| %>
+    <% end %> <%# urls.each do |record| %>
   </tbody>
 </table>
 </section> <!-- section id="urls_index_table" -->

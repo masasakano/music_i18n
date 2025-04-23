@@ -1,8 +1,11 @@
 
-<%# valiables: form, model, trans, disable_is_orig(Boolean), is_simple_form(Boolean), only_title(Boolean) %>
+<%# valiables: form, model, trans, disable_is_orig(Boolean), is_simple_form(Boolean), only_title(Boolean), as_text(Boolean; if true, the type is "text" else "string") %>
   <% modelname = model.class.name %>
 
-<% as_txt = ((defined?(as_text) && as_text) ? :text : :string)  %>
+<% if !defined?(as_text)
+     as_text = false
+   end %>
+<% as_txt = (as_text ? :text : :string)  %>
 
 <% if defined?(is_simple_form) && is_simple_form  %>
   <%# form.error_notification %>  <%# Rails scaffolding default, but the errors should be printed above this in this app. %>
@@ -18,7 +21,7 @@
     <%= form.input :best_translation_is_orig, label: 'これが原語か?', hint: "(注: 「冷蔵庫」などの一般名詞は「定義不能(Undefined)」)", required: true, as: :radio_buttons, item_wrapper_class: 'inline', collection: [['Yes', true], ['No', false], ['Undefined', ApplicationController::FORM_TERNARY_UNDEFINED_VALUE]], checked: ApplicationController.returned_str_from_form(model.best_translation_is_orig.nil? ? ApplicationController::FORM_TERNARY_UNDEFINED_VALUE : model.best_translation_is_orig) %> <%# nil means it inherits the previous input after a failed attempt %> <%# nil is replaced with a default value because setting this nil results in an error: The value of the “for” attribute of the “label” element must be the ID of a non-hidden form control; in short, ID="artist_best_translation_is_orig" and label-FOR="artist_best_translation_is_orig_" %>
   <% end %>
   <% titlabel=t('layouts.new_translations.title', model: modelname) %>
-  <%= form.input :title,  label: titlabel, placeholder: (('Artist'==model.class.name) ? ' ('+t('layouts.new_translations.note_re_group')+') ' : "")+t('eg_independent')+'The '+(('Artist'==model.class.name) ? 'Beatles' : 'Ocean'), required: true, as: as_txt, input_html: {value: value_a_title_in_form(model, :title)} %>  <%# langcode_checked defined in translations_helper.rb %>
+  <%= form.input :title,  label: titlabel, placeholder: (('Artist'==model.class.name) ? ' ('+t('layouts.new_translations.note_re_group')+') ' : "")+t('eg_independent')+'The '+(('Artist'==model.class.name) ? 'Beatles' : 'Ocean'), required: true, as: as_txt, input_html: {value: value_a_title_in_form(model, :title)} %>
  <% if !(defined?(only_title) && only_title) %>
   <%= form.input :ruby,   label: titlabel+' - '+t('ruby'), placeholder: '(全角片仮名で)'+t('eg_independent')+(('Artist'==model.class.name) ? 'ザ・ビートルズ' : 'ジ・オーシャン'), as: as_txt, input_html: {value: value_a_title_in_form(model, :ruby)} %>
   <%= form.input :romaji, label: titlabel+' - '+t('romaji'), hint: '(ヘボン式推奨: chi, shi等)', placeholder: '(ヘボン式推奨: chi, shi等)', as: as_txt, input_html: {value: value_a_title_in_form(model, :romaji)} %>

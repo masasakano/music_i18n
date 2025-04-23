@@ -1,0 +1,38 @@
+<%# Local variables: record [BaseWithTranslation] (child of Anchoring), optional: NONE %>
+<%#   Example:  render partial: 'layouts/show_anchorings_index', locals: {record: @artist} %>
+
+<%# if !defined?(with_parent)
+     with_parent = true
+   end %>
+
+<% canedit_gen = can?(:edit, record.class) %>
+<% canedit_url_gen = can?(:edit, Url) %>
+<% prm_parent_lower = record.class.name.underscore %>
+<% path_base = prm_parent_lower + "_anchoring_path" %>
+<% prm_parent_key = prm_parent_lower + "_id" %>
+<% turbo_tag_index = dom_id(record)+"_anchorings" %>
+<%# turbo_frame_tag "anchoring_"+dom_id(record) do %>
+  <% anchorings = record.anchorings %>
+  <section id="anchoring_index_<%= record.class.name %>" class="anchoring_index">
+    <% paths = { new: send("new_"+ path_base, prm_parent_key => record.id), }.with_indifferent_access %> <%# Note: The direct argument assignment of "record" (or (anchoring, record) for :edit) returns the path without a locale, so it is not ideal, hence the use of "artrist_id: art1" %>
+    <% if anchorings.exists? || canedit_gen %>
+      <h3>Links</h3>
+      <ul>
+        <% anchorings.joins(:url).joins(url: :site_category).order("site_categories.weight", "anchorings.created_at").each do |anchoring| %>
+         <%= turbo_frame_tag turbo_tag_index do %>
+            <%= render partial: "/layouts/show_anchoring", locals: {anchoring: anchoring, skip_header: true, canedit_url_gen: canedit_url_gen } %> 
+         <% end %>
+        <% end %>
+      </ul>
+      <% if can?(:edit, record) %>
+        <div class="editor_only">
+          <% new_turbo_tag = dom_id(Anchoring.new) %>
+          <%= turbo_frame_tag new_turbo_tag do %>
+          <% end %>
+          <%= link_to 'New Anchoring', paths[:new], data: { turbo_frame:  new_turbo_tag } %>
+        </div>
+      <% end %>
+    <% end %> <%# if anchorings.exists? || canedit_gen %>
+  </section> <!-- section id="anchoring_index_..." class="anchoring_index" -->
+<%# end %> <%# turbo_frame_tag "anchoring_"+dom_id(record) do %>
+

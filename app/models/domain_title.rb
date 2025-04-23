@@ -69,10 +69,11 @@ class DomainTitle < BaseWithTranslation
   # An alternative constructor (unsaved, but ready to be saved)
   #
   # @param url_str [String]
+  # @param site_category_id: [NilClass, String, Integer] "" would raise an error.  If nil, Default is used.
   # @return [DomainTitle]
-  def self.new_from_url(url_str)
-    ret = DomainTitle.new(site_category: SiteCategory.unknown)
-    domain_txt = Domain.extracted_normalized_domain(url_str, with_www: false)  # without "www."
+  def self.new_from_url(url_str, site_category_id: nil)
+    ret = DomainTitle.new(site_category_id: (site_category_id || SiteCategory.unknown.id))
+    domain_txt = URI.decode_www_form_component(Domain.extracted_normalized_domain(url_str, with_www: false))  # without "www."
     ret.unsaved_translations << Translation.new(title: domain_txt, langcode: "en", is_orig: nil, weight: Float::INFINITY)
     ret
   end
@@ -89,3 +90,22 @@ class DomainTitle < BaseWithTranslation
     !urls.exists?
   end
 end
+
+
+class << DomainTitle
+  alias_method :create_basic_bwt!, :create_basic! if !self.method_defined?(:create_basic_bwt!)
+  alias_method :initialize_basic_bwt, :initialize_basic if !self.method_defined?(:initialize_basic_bwt!)
+
+  # Wrapper of {BaseWithTranslation.create_basic!}
+  def create_basic!(*args, site_category: nil, site_category_id: nil, **kwds, &blok)
+    site_category_id ||= (site_category ? site_category.id : (SiteCategory.unknown || SiteCategory.create_basic!(*args)).id)
+    create_basic_bwt!(*args, site_category_id: site_category_id, **kwds, &blok)
+  end
+
+  # Wrapper of {BaseWithTranslation.initialize_basic!}
+  def initialize_basic(*args, site_category: nil, site_category_id: nil, **kwds, &blok)
+    site_category_id ||= (site_category ? site_category.id : (SiteCategory.unknown || SiteCategory.first).id)
+    initialize_basic_bwt(*args, site_category_id: site_category_id, **kwds, &blok)
+  end
+end
+

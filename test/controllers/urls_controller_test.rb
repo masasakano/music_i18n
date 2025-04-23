@@ -101,8 +101,8 @@ class UrlsControllerTest < ActionDispatch::IntegrationTest
     path4 = "/ab.html?q=3&r=6"
     note4 = "note4"
     hs2pass4 = hs2pass.merge(title: "new 4 pass", url: "www."+new_dom+path4, domain_id: "", note: note4)
-    action, new_mdl4 = assert_authorized_post(Url, params: hs2pass4, diff_count_command: calc_count_exp, diff_num: 1011, updated_attrs: [:url, :note], bind_offset: -1){ |user, record| # defined in /test/helpers/controller_helper.rb
-      assert_equal "www."+new_dom, record.domain.domain
+    action, new_mdl4 = assert_authorized_post(Url, params: hs2pass4, diff_count_command: calc_count_exp, diff_num: 1011, updated_attrs: {url: "https://www."+new_dom+path4, note: note4}, bind_offset: -1){ |user, record| # defined in /test/helpers/controller_helper.rb
+      assert_equal "www."+new_dom, record.domain.domain, "Domain prefix 'www'?"
       assert_equal new_mdl3.domain_title, record.domain_title
     }
     assert_equal :create, action
@@ -120,12 +120,12 @@ class UrlsControllerTest < ActionDispatch::IntegrationTest
     new_dom6 = "another-new.org"
     note6 = "note6"
     hsupd6 = @hs_base.merge( hs2add ).merge({url: "www."+new_dom6, domain_id: "", note: note6})  # No language-related fields
-    action, _ = assert_authorized_post(new_mdl4, params: hsupd6, updated_attrs: [:url, :note], diff_count_command: calc_count_exp, diff_num: 1110, bind_offset: def_bind_offset){ |user, record| # defined in /test/helpers/controller_helper.rb
+    action, _ = assert_authorized_post(new_mdl4, params: hsupd6, updated_attrs: {url: "https://www."+new_dom6, note: note6}, diff_count_command: calc_count_exp, diff_num: 1110, bind_offset: def_bind_offset){ |user, record| # defined in /test/helpers/controller_helper.rb
       assert_equal @moderator_ja, user, "sanity check" 
       assert record.domain
-      assert_equal "www."+new_dom6, record.domain.domain
+      assert_equal "www."+new_dom6, record.domain.domain, "Domain check..."
       assert_equal        new_dom6, record.domain_title.title, "www. should be removed from[ DomainTitle"
-      assert_equal "www."+new_dom6, record.url, "sanity check"  # should have been already checked by assert_authorized_post()
+      assert_equal "https://www."+new_dom6, record.url, "sanity check"  # should have been already checked by assert_authorized_post()
     }
     assert_equal :update, action
     dt6 = new_mdl4.reload.domain_title
@@ -134,13 +134,12 @@ class UrlsControllerTest < ActionDispatch::IntegrationTest
     path7 = "/?q=345"
     note7 = "note7"
     hsupd7 = @hs_base.merge( hs2add ).merge({url: (url7=new_dom6+path7), domain_id: "", note: note7})  # No language-related fields
-    action, _ = assert_authorized_post(new_mdl4, params: hsupd7, updated_attrs: [:url, :note], diff_count_command: calc_count_exp, diff_num: 10, bind_offset: def_bind_offset){ |user, record| # defined in /test/helpers/controller_helper.rb
+    action, _ = assert_authorized_post(new_mdl4, params: hsupd7, updated_attrs: {url: "https://"+url7, note: note7}, diff_count_command: calc_count_exp, diff_num: 10, bind_offset: def_bind_offset){ |user, record| # defined in /test/helpers/controller_helper.rb
       assert_equal @moderator_ja, user, "sanity check" 
       assert record.domain
       assert_equal new_dom6, record.domain.domain
       assert_equal new_dom6, record.domain_title.title
       assert_equal      dt6, record.domain_title
-      assert_equal url7, record.url, "sanity check"  # should have been already checked by assert_authorized_post()
     }
     assert_equal :update, action
 

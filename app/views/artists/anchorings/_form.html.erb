@@ -1,0 +1,36 @@
+<%# Local variables: anchoring [Anchoring], optional: NONE %>
+
+<% canedit_gen = can?(:edit, anchoring.anchorable.class) %> 
+<% url = (anchoring.url || @url) %> 
+
+<section id="sec_primary">
+<% if ! url.new_record? %>
+  <strong><%= url.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: (canedit_gen ? "(UNDEFINED)" : "")) %></strong>:
+<% end %>
+
+<div id="form_main">
+
+<%= simple_form_for [:artist, anchoring], html: { data: { turbo_frame: dom_id(anchoring) } } do |f| %>
+  <%= f.error_notification %>
+  <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
+
+ <section id="sec_primary_input">
+  <div class="form-inputs">
+    <%= f.input :url_form, label: "URL" %>
+    <%= f.input :url_langcode, input_html: {class: "input_shortest", type: "text"}, hint: "Language for the URI in 2-letter code (or blank), e.g., en, ja, fr, es (Spanish), it (Italian), de (German), ko (Korean), zh (Chinese)" %>
+    <%= f.input :site_category_id, label_method: :title_or_alt_for_selection, collection: SiteCategory.order(:weight), required: false, hint: "automatically determined if specified nil." %>
+  <% if url.new_record? %>
+    <%= f.input :title,  label: t("urls.title"), required: false, as: :string, input_html: {value: value_a_title_in_form(url, :title)} %>
+  <% end %>
+
+    <%= f.input :note, hint: "Note for Anchoring (join model); for Url#note, write it later." %>
+  </div>
+  <div class="actions">
+  <%= f.submit %> <%# Default one aesthetically does not work well...:  f.button :submit %>
+  </div>
+ </section> <!-- section id="sec_primary_input" -->
+<% end %>
+
+</div> <!-- div id="form_main" -->
+</section> <!-- section id="sec_primary" -->
+

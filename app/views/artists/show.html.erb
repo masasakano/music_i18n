@@ -43,6 +43,11 @@
 
   <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @artist, model4ability: can_update} %>
 </dl>
+
+<%= turbo_frame_tag "artists_anchorings_"+dom_id(@artist) do %>
+  <%= render partial: 'layouts/show_anchorings_index', locals: {record: @artist} %>
+<% end %>
+
 </div>
   </section> <%# closing section id="sec_primary_show" %>
 

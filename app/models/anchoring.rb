@@ -23,4 +23,29 @@
 class Anchoring < ApplicationRecord
   belongs_to :url
   belongs_to :anchorable, polymorphic: true
+
+  has_one :domain,        through: :url
+  has_one :domain_title,  through: :url
+  has_one :site_category, through: :url
+
+  # methods for the sake of forms. Except for title, langcode, url_form, and they are from the parent Url.
+  FORM_ACCESSORS = %i(site_category_id title langcode is_orig url_form url_langcode weight domain_id published_date last_confirmed_date memo_editor)
+
+  # attr_accessor for forms 
+  FORM_ACCESSORS.each do |metho|
+    attr_accessor metho
+  end
+
+  attr_accessor :site_category_id  # purely for forms.  The association does not define this method, hence no conflict.
+  ## Below does not work well!  Anyway, it seems SimpleForm takes care of +site_category_id+
+  ## such that it would load the existing {self#site_category} to +site_category_id+
+  ## so the simple attr_accessor works best!
+  #def site_category_id
+  #  site_category ? site_category.id : nil
+  #end
+  #attr_writer :site_category_id
+
+  def site_category_label
+    site_category.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "(UNDEFINED)") if site_category.present?
+  end
 end

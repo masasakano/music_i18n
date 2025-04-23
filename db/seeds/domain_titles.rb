@@ -39,6 +39,14 @@ module Seeds::DomainTitles
       site_category: Proc.new{SiteCategory.find_by(mname: "main")},
       site_category_key: :main,
     },
+    kohmi_main: {
+      ja: ['広瀬香美ホームページ', '広瀬香美'],
+      en: ["Kohmi Hirose Official Website", 'Kohmi Hirose'],
+      orig_langcode: 'ja',
+      weight: 10,
+      site_category: Proc.new{SiteCategory.find_by(mname: "main")},
+      site_category_key: :main,
+    },
     youtube: {
       ja: Seeds::ChannelPlatforms::SEED_DATA[:youtube][:ja],
       en: Seeds::ChannelPlatforms::SEED_DATA[:youtube][:en],

@@ -165,6 +165,7 @@ class UrlTest < ActiveSupport::TestCase
       metho = model.name.underscore.pluralize
       refute url.anchorings.exists?
       refute url.send(metho).exists?
+      assert_equal "https://"+defurl, url.reload.url  # test of before_validation add_scheme_to_url
 
       tit = "#{metho}-test"
       record = model.create_basic!(title: tit, langcode: "en")

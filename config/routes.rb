@@ -104,7 +104,9 @@ Rails.application.routes.draw do
   end
   resources :musics
   resources :genres
-  resources :artists
+  resources :artists do
+    resources :anchorings, controller: 'artists/anchorings'
+  end
   resources :translations
   resources :places
   resources :prefectures

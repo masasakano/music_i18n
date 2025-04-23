@@ -10,9 +10,19 @@
   <% end %>
     <dt class="item_id_langcode"> <%= t(:language).capitalize %>:</dt>
     <dd class="item_id_langcode"><%= lc = model.url_langcode; sprintf("%s (%s)", get_language_name(lc, in_locale: I18n.locale), lc) if lc.present? %></dd> <%# defined in module_common.rb %>
-    <% msg = t(:external_link)+(can_update_gen ? " (the value as stored in DB)" : "") %>
-    <dt class="item_id_url" title="<%= msg %>"> <%= t(:Url) %>:</dt>
-    <dd class="item_id_url"><%= link_to(model.url, model.url, target: "_blank", title: msg) if model.url.present? %></dd>
+    <% msg0 = t(:external_link) %>
+    <% msg_editor1, msg_editor2  = (can_update_gen ? [" (the value as stored in DB)", " (human-readable)"] : ["", ""]) %>
+    <dt class="item_id_url" title="<%= msg0 %>"> <%= t(:Url) %>:</dt>
+    <dd class="item_id_url">
+      <% if model.url.present? %>
+        <% decoded = URI.decode_www_form_component(model.url) %>
+        <% is_identical = (decoded == model.url) %>
+        <%= link_to(decoded, model.url, target: "_blank", title: (is_identical ? msg_editor1 : msg_editor2)) %>
+    <% end %>
+    </dd>
+    <% if model.url.present? && !is_identical %>
+      <dd class="item_id_url_encoded"><%= link_to(model.url, model.url, target: "_blank", title: msg_editor1) %></dd>
+    <% end %>
   <% if can_update_gen %>
    <div class="editor_only">
     <dt class="item_id_url">Normalized URL:</dt>

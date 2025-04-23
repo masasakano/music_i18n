@@ -168,14 +168,14 @@ class ActiveSupport::TestCase
 
     get path, params: params
     assert_response :redirect, "#{caller_info_prefix}: Public access to #{path} should be denied but is not..."
-    assert_redirected_to new_user_session_path
+    assert_redirected_to new_user_session_path, "#{caller_info_prefix}: Wrong redirection from #{path} ..."
   end
   private :_assert_login_demanded
 
   # Test access denied by authenticated but not sufficiently authorized
   #
   # @param path [String] path to access
-  # @param user [User]
+  # @param user [User, Nilclass] nil means unauthenticated
   # @param params [Hash, NilClass]
   # @param bind_offset: [Integer] Depth of the call (to get caller information for error messages)
   # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block.
@@ -183,14 +183,14 @@ class ActiveSupport::TestCase
   def _assert_unauthorized_access(path, user, params: nil, bind_offset: 2-BASE_CALLER_INFO_BIND_OFFSET, base_proc: nil)
     caller_info_prefix = sprintf("(%s):", _get_caller_info_message(bind_offset: bind_offset))  # defined in test_helper.rb
 
-    sign_in user
+    sign_in user if user
     get path, params: params
     assert_response :redirect, "#{caller_info_prefix}: User=#{user.display_name.inspect} should NOT be able to access #{path} but they are..."
-    assert_redirected_to root_path
+    assert_redirected_to (user ? root_path : new_user_session_path)
 
     base_proc.call(user, nil) if base_proc
     yield(user, nil) if block_given?
-    sign_out user
+    sign_out user if user
   end
   private :_assert_unauthorized_access
 
@@ -241,7 +241,7 @@ class ActiveSupport::TestCase
     Rails.logger.debug msg
 
     sign_in user if user
-    user_txt, user_current = _get_quoted_user_display_name(user, model)
+    user_txt, user_current = _get_quoted_user_display_name(user, model, path)
 
     assert_no_difference(diff_count_command, "#{caller_info_prefix} User=#{user_txt} should NOT be able to #{action} at #{path} but they are (according to #{diff_count_command.inspect})...") do
       send(method, path, **opts)
@@ -250,6 +250,9 @@ class ActiveSupport::TestCase
     assert_response :redirect, "#{caller_info_prefix} User=#{user_txt} should be redirected after denied access to #{action} at #{path} but ..." if user
     assert_redirected_to root_path, "#{caller_info_prefix} User=#{user_txt} should be redirected to Root-path after denied access to #{action} at #{path} but it is actually redirected to #{response.redirect_url.inspect}..." if user
 
+    # called before the final asserts and yield
+    base_proc.call(user || user_current, record_after) if base_proc
+
     if :update == action
       model_record.reload
       unchanged_attrs.each_with_index do |eatt, i|
@@ -257,7 +260,6 @@ class ActiveSupport::TestCase
       end
     end
 
-    base_proc.call(user || user_current, model_record) if base_proc
     yield(user || user_current, model_record) if block_given?
     sign_out user if user
 
@@ -333,37 +335,27 @@ class ActiveSupport::TestCase
   # @param model_record [Class<ActiveRecord>, ActiveRecord] Class for :create and ActiveRecord for :destroy and :update
   # @param user: [User, NilClass]  nil means either public or a user is already logged in
   # @param path_or_action [String, Symbol, NilClass] path to access or action or Symbol of :create or :destroy of :update
+  # @param redirected_to: [String, Proc, NilClass] Usually guessed from path. If Proc, it is called on the spot (which can be helpful in :create)
   # @param params: [Hash, NilClass] innermost Hash of params
   # @param method: [Symbol, String, NilClass] :post (Def: :create) or :delete (for :destroy) or :patch (for :update).  If nil, guessed from other parameters.
   # @param diff_count_command: [String, NilClass] Count method like 'Article.count*10 + Author.count'. In default, it is guessed from model_record
-  # @param diff_num: [Integer, NilClass] 1 or 0 or -1 in Default for respective actions of :create and :update and :destroy
+  # @param diff_num: [Integer, NilClass] 1 or 0 or -1 in Default for respective actions of :create and :update and :destroy. If this is 0 in :create, it is interpreted as no Model being expected to be created (but the authorization passes).
   # @param updated_attrs: [Array<Symbol>, Hash] Attributes that should be updated after :update/:create, which you want to check (this does not need to be a complete list at all!). If Hash, +{key => expected-value}+. If Array, the expected values are taken from the given +params+.
   # @param err_msg: [String, NilClass] Custom error message for assert_response
   # @param bind_offset: [Integer] Depth of the call (to get caller information for error messages); 0 if you directly call this from your test script and want to know the caller location in your test-script.
   # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block. [User, ActiveRecord] is passed.
   # @yield [User, ActiveRecord] Executed while the user is logged in after running other tests.
   # @return [Array<Symbol, ActiveRecord, NilClass>] Pair of Array. 1st element is action. 2nd element is, if successful (in :create), returns the created (or updated) model, else nil.
-  def assert_authorized_post(model_record, user: nil, path_or_action: nil, params: nil, method: nil, diff_count_command: nil, diff_num: nil, updated_attrs: [], err_msg: nil, bind_offset: 2-BASE_CALLER_INFO_BIND_OFFSET, base_proc: nil)
+  def assert_authorized_post(model_record, user: nil, path_or_action: nil, redirected_to: nil, params: nil, method: nil, diff_count_command: nil, diff_num: nil, updated_attrs: [], err_msg: nil, bind_offset: 2-BASE_CALLER_INFO_BIND_OFFSET, base_proc: nil)
     action, method, path, model, opts = _get_action_method_path(model_record, path_or_action, method, params)
 
-    updated_attrs ||= {}
-    if !updated_attrs.respond_to?(:merge)
-      updated_attrs = [updated_attrs].flatten
-      hs = (params || {}).merge({}).with_indifferent_access
-      updated_attrs = updated_attrs.map{|eatt|
-        raise ArgumentError, "Specified attribute (#{eatt.inspect}) not present in params." if !hs.has_key?(eatt)
-        [eatt, hs[eatt]]
-      }.to_h.with_indifferent_access
-    end
+    updated_attrs = _get_hash_attrs_from_array_or_hash(updated_attrs, params)
 
     diff_num ||=
       case action
-      when :create
-        1
-      when :destroy
-        -1
-      when :update
-        0
+      when :create;   1
+      when :destroy; -1
+      when :update;   0
       else
         raise "should never happen."
       end
@@ -376,27 +368,23 @@ class ActiveSupport::TestCase
     Rails.logger.debug msg
 
     sign_in user if user
-    user_txt, user_current = _get_quoted_user_display_name(user, model)
+    user_txt, user_current = _get_quoted_user_display_name(user, model, path)
+    model_last_be4 = model.order(:created_at, :id).last if :create == action
 
     assert_difference(diff_count_command, diff_num, "#{_get_caller_info_message(bind_offset: bind_offset, prefix: true)} User=#{user_txt} should #{action} at #{path} but failed (according to #{diff_count_command.inspect}; expected difference of #{diff_num})...") do
       send(method, path, **opts)
-      assert_response exp_response, ("#{_get_caller_info_message(bind_offset: bind_offset, prefix: true)} User=#{user_txt}" + (err_msg.present? ? ": "+err_msg : " should get response #{exp_response.inspect} after #{action} at #{path}, but status=#{response.status}..."))
+      assert_response exp_response, ("#{_get_caller_info_message(bind_offset: bind_offset, prefix: true)} User=#{user_txt}" + (err_msg.present? ? ": "+err_msg : " should get response #{exp_response.inspect} after #{action} at #{path}, but status=#{_http_status_inspect(response.status)}..."))
     end
 
     ret = ((:update == action) ? model_record.reload : nil)
+    if (:create == action && 0 != diff_num)
+      ret = model.order(:created_at, :id).last
+      refute_equal model_last_be4, ret if model_last_be4  # as long as there is a single model before processing.
+    end
+
     if :redirect == exp_response
-      redirect_path_arg =
-        case action
-        when :create
-          ret = model.last
-        when :destroy
-          model
-        when :update
-          model_record
-        else
-          raise "should never happen."
-        end
-      assert_redirected_to( path2=Rails.application.routes.url_helpers.polymorphic_path(redirect_path_arg), "#{_get_caller_info_message(bind_offset: bind_offset, prefix: true)} User=#{user_txt} should be redirected to #{path2} after #{action} at #{path} but..." )
+      redirected_to_path = _get_expected_redirected_to_after_post(redirected_to)
+      assert_redirected_to(redirected_to_path, "#{_get_caller_info_message(bind_offset: bind_offset, prefix: true)} User=#{user_txt} should be redirected to #{redirected_to_path} after #{action} at #{path} but..." )
     end
 
     record_after =
@@ -408,26 +396,82 @@ class ActiveSupport::TestCase
         model  # This is the case when :create and creation fails.
       end
 
+    # called before the final asserts and yield
+    base_proc.call(user || user_current, record_after) if base_proc
 
     if [:create, :update].include? action
-      updated_attrs.each_pair do |eatt, exp|
-        assert_equal exp, ret.send(eatt)
-      end
+       if :create == action && 0 == diff_num
+         # skips  (b/c no Model is expected to be created)
+       else
+         assert ret, "#{_get_caller_info_message(bind_offset: bind_offset, prefix: true)} User=#{user_txt} failed with Update or Create, although the diff_num test passed (meaning redirection or some after-processing went wrong?)."
+         updated_attrs.each_pair do |eatt, exp|
+           assert_equal exp, ret.send(eatt), "#{_get_caller_info_message(bind_offset: bind_offset, prefix: true)} User=#{user_txt} checking the updated status of attr=(#{eatt}) fails."
+         end
+       end
     end
-    base_proc.call(user || user_current, record_after) if base_proc
+
+    # called right at the end
     yield(user || user_current, record_after) if block_given?
     sign_out user if user
 
     [action, ret]
   end  # def assert_authorized_post(model_record, ...)
 
+  # Get a Hash from Array/Hash.  If Array, the expected path of redirected_to from the argument
+  #
+  # @param attrs [Hash, Array, NilClass] if Hash, does nothing. If Array, convers it into Hash, referring to template params
+  #    e.g., if Array is [:a, :c], and templates is {a: 1, b: 2, }
+  # @param params
+  # @return [Hash] with_indifferent_access
+  def _get_hash_attrs_from_array_or_hash(attrs, params)
+    attrs = {}.with_indifferent_access if attrs.blank?
+    return attrs if attrs.respond_to?(:merge)
+
+    raise ArgumentError, "Null params given despite a significant set of attributes to compare (#{attrs.inspect}) are specified." if !params
+    attrs = [attrs].flatten.map(&:to_s)
+    reths = params.with_indifferent_access.slice(*(attrs)).with_indifferent_access
+    if attrs.size != reths.keys.size
+      raise ArgumentError, "Some specified attributes (#{(attrs - reths.keys).inspect}) not present in params."
+    end
+    reths
+  end
+  private :_get_hash_attrs_from_array_or_hash
+
+  # Get the expected path of redirected_to from the argument
+  #
+  # @param redirected_to: [String, Proc, NilClass] Usually guessed from path. If Proc, it is called on the spot (which can be helpful in :create)
+  # @return [String]
+  def _get_expected_redirected_to_after_post(redirected_to)
+    if redirected_to
+      redirected_to
+    elsif redirected_to.respond_to?(:call)
+      redirected_to.call
+    else
+      redirect_path_arg =
+        case action
+        when :create
+          model.last
+        when :destroy
+          model
+        when :update
+          model_record
+        else
+          raise "should never happen."
+        end
+      Rails.application.routes.url_helpers.polymorphic_path(redirect_path_arg)
+    end
+  end
+  private :_get_expected_redirected_to_after_post
+
   # @param model [ActiveRecord]
   # @return [Array<String, User>] 2-element Array of User display-name double-quoted and User
-  def _get_quoted_user_display_name(user, model)
+  def _get_quoted_user_display_name(user, model, path)
     return [user.display_name.inspect, user] if user
 
     # Gets a user-name if already logged-in.
-    get Rails.application.routes.url_helpers.polymorphic_path(model)  # GET Index. Unless you make an HTTP request, you cannot get it...
+    get path
+    #get Rails.application.routes.url_helpers.polymorphic_path(model)  # GET Index. Unless you make an HTTP request, you cannot get it... (This does not work for more complicated paths.)
+
     if (logged_user=response.request.env['warden'].user)  ## if a user is already logged in
       [logged_user.display_name.inspect, logged_user]
     else
@@ -479,5 +523,32 @@ class ActiveSupport::TestCase
     [action, method, path, model, hs_params]
   end
   private :_get_action_method_path
+
+  # @return [String] Inspect String of HTTP response code
+  def _http_status_inspect(status)
+    description =
+      case status.to_s.to_i
+      when 200
+        "OK"
+      when 204
+        "No Content"
+      when 302
+        "Found (Redirect)"
+      when 400
+        "Bad Request"
+      when 401
+        "Unauthorized"
+      when 403
+        "Forbidden"
+      when 404
+        "Not Found"
+      when 500
+        "Internal Server Error"
+      else
+        nil
+      end
+
+    description ? sprintf("%s <%s>", status, description) : status.to_s
+  end
 end
 

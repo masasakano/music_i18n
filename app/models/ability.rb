@@ -178,7 +178,7 @@ class Ability
 
     ## General-JA or HaramiVid moderator only
     if user.qualified_as?(:moderator, rc_general_ja) || user.qualified_as?(:moderator, rc_harami)
-      can :crud, [EventGroup, Event, EventItem, Instrument]  # later excluded for "unknown?"
+      can :crud, [EventGroup, Event, EventItem, Instrument, Anchoring]  # later excluded for "unknown?"
       can :cr, ChannelType
       can :destroy, EventItems::DestroyWithAmpsController
       can(:destroy_with_amps, EventItem){|mdl| mdl.harami1129s.empty? && mdl.harami_vids.count <= 1 && mdl.associated_amps_all_duplicated?}

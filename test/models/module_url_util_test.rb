@@ -36,7 +36,12 @@ class ModuleUrlUtilTest < ActiveSupport::TestCase
     assert_equal %w(https :// example.com/abc?q=), scheme_and_uri_string("example.com/abc?q=")
     assert_equal %w(https :// example.com/abc?q=), scheme_and_uri_string("https://example.com/abc?q=")
     assert_equal   %w(ftp :// example.com/abc?q=), scheme_and_uri_string("ftp://example.com/abc?q=")
-    assert_equal ["", "", "wrong.x/some"], scheme_and_uri_string("wrong.x/some")
+    url = "example.com/new-poly///"
+    assert_equal ["https", "://", url], scheme_and_uri_string(url)
+    url = "example.co/new-poly/"
+    assert_equal ["https", "://", url], scheme_and_uri_string(url)
+    url = "wrong.x/some"
+    assert_equal ["",      "",    url], scheme_and_uri_string(url)
   end
 
 end

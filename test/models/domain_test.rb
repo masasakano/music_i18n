@@ -56,4 +56,43 @@ class DomainTest < ActiveSupport::TestCase
     rec.save!
     assert_equal core_domain, rec.reload.domain, "should be normalized, but..."
   end
+
+  test "self.guess_site_category" do
+    scat = site_categories(:site_category_chronicle)
+    dom_obj = scat.domains.first
+    ar = dom_obj.domain.split(".")
+    assert_equal scat, Domain.guess_site_category(dom_obj.domain)
+    assert_equal scat, Domain.guess_site_category("https://"+dom_obj.domain)
+    u = ar[-2..-1].join(".")
+    assert_equal scat, Domain.guess_site_category(u)
+    assert_equal scat, Domain.guess_site_category("https://"+u)
+    u = "abc.def-ghi."+ar[-2..-1].join(".")
+    assert_equal scat, Domain.guess_site_category(u)
+    assert_equal scat, Domain.guess_site_category("https://"+u+"/xxx.html?y=5")
+  end
+
+  test "reset_site_category" do
+    scat = site_categories(:site_category_chronicle)
+    dom  = domains(:one)
+    dtit = dom.domain_title
+    assert_equal dom.site_category, dtit.site_category, "sanity check"
+    refute_equal scat,  dom.site_category, "testing fixtures"
+
+    dom_tmpl = scat.domains.first
+    ar = dom_tmpl.domain.split(".")
+    url_str = "https://ab.cd.ef.ghi-jk."+ar[-2..-1].join(".")+"/xxx/yy#zz"
+    
+    dom.reset_site_category!(url_str)
+    assert_equal scat,  dom.reload.site_category
+    assert_equal scat, dtit.reload.site_category
+#  end
+#
+#  test "create_basic!" do
+#    url_str = "https://ab.cd.ef.ghi-jk."+ar[-2..-1].join(".")+"/xxx/yy#zz"
+#    scat = site_categories(:site_category_chronicle)
+#    dom  = domains(:one)
+#    dom.reset_site_category!(url_str)
+    dom2 = Domain.create_basic!(domain: "abcdefg."+dom.domain, site_category_id: "")
+    assert_equal scat,  dom2.site_category
+  end
 end

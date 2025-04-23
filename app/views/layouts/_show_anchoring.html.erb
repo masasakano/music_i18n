@@ -1,0 +1,64 @@
+<%# Local variables: anchoring [Anchoring], optional: skip_header [Boolean: Def(false)], canedit_url_gen [Bool]  %>
+  <%# skip_header=true should be specified for non-turbo inclusiong of this partial. %>
+
+<% if !defined?(skip_header)
+     skip_header = false
+   end %>
+<% if !defined?(canedit_url_gen)
+     canedit_url_gen = can?(:edit, Url)
+   end %>
+
+<% category_title = (anchoring.site_category ? anchoring.site_category.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: (canedit_url_gen ? "(UNDEFINED)" : "")) : anchoring.inspect) %>
+
+<% record = anchoring.anchorable %>
+<% if !record %>
+  <% if can?(:edit, Url) %>
+    <span class="moderator_only">Anchoring pID=<%= anchoring.id %> : anchorable is nil.</span>
+    <% return %>
+  <% else %>
+    <% raise "Contact the site developer (Anchoring=#{anchoring.inspect})" %>
+  <% end %>
+<% end %>
+
+<% if !skip_header %>
+  <h1>Anchoring with <%= link_to record.class.name, record %> for <%= anchoring.url.url %></h1>
+<% end %>
+
+<% prm_parent_lower = record.class.name.underscore %>
+<% path_base = prm_parent_lower + "_anchoring_path" %>
+<% prm_parent_key = prm_parent_lower + "_id" %>
+
+         <% paths ||= {}.with_indifferent_access %>
+         <% paths[:new] ||= send("new_"+ path_base, prm_parent_key => record.id) %> <%# Note: The direct argument assignment of "record" (or (anchoring, record) for :edit) returns the path without a locale, so it is not ideal, hence the use of "artrist_id: art1" %>
+         <% hsprms = {:id => anchoring, prm_parent_key.to_sym => record.id} %>
+         <% paths[:edit]    = send("edit_"+path_base, **hsprms) %>
+         <% paths[:destroy] = send(        path_base, **hsprms) %>
+         <% notetxt = nil %>
+         <% if (hs={Anchoring: anchoring.note, Url: anchoring.url.note}).values.any?(&:present?)
+              canedit_url_gen = can?(:edit, Url)
+              notetxt = sprintf(" (%s: %s)", t("tables.note"), hs.map{|k, v| v.blank? ? nil : (canedit_url_gen ? '<span class="editor_only">'+"[#{k}]</span> " : "")+sanitize(v)}.compact.join(" | ")).html_safe
+            end %>
+
+
+           <%# turbo_frame_tag dom_id(anchoring, :edit), src: paths[:edit], loading: :lazy do %>
+           <%= turbo_frame_tag dom_id(anchoring) do %>
+            <li>
+             <%= category_title %>:
+             <% if (lcode=anchoring.url.url_langcode).present? %>
+               <%= sprintf " [%s] ", get_language_name(lcode, in_locale: I18n.locale) %>
+             <% end %>
+             <%= link_to((u=anchoring.url).title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: (canedit_url_gen ? "[UNDEFINED Title] "+u.url : u.url)), u.url) %>
+            <% if can? :edit, record %>
+              <span class="editor_only">[<%= link_to("Record", anchoring.url, title: "Internal Show page") %>]</span>
+            <% end %>
+             &nbsp; <%= notetxt %>
+            <% if can? :edit, record %>
+              <span class="editor_only">
+                <%= button_to "Edit", paths[:edit], method: :get, form_class: "inline_form", class: "text-end", style: "display: inline-block; margin-top: -1em; padding-top: 0em; padding-bottom: 0em; margin-bottom: -1em;" %>
+                / <%= link_to 'Destroy', paths[:destroy], data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' } %>
+              </span>
+            <% end %>
+  <%= render partial: "/layouts/flash_display" %>
+            </li>
+           <% end %> <%# turbo_frame_tag dom_id(anchoring) do %>
+

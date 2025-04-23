@@ -196,6 +196,9 @@ module ModuleCommon
   #     # => French
   #   get_language_name("eu")
   #     # => "EU"  # (Basque language) if the name is not found, the upper-case locale is returned.
+  #
+  # @param langcode [String]
+  # @param in_locale: [String, Symbol] The special case of :native or a standard 2-letter locale
   def get_language_name(langcode, in_locale: :native)
     raise if langcode.blank?
     display_locale = ((:native == in_locale) ? langcode : in_locale).to_s
