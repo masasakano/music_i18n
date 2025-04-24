@@ -72,6 +72,13 @@ class SiteCategory < BaseWithTranslation
     self.unknown
   end
 
+  # @param urs_str: [String] any URL-type String
+  # @return [SiteCategory, NilClass]
+  def self.find_by_urlstr(*arg, **kwds)
+    dt = DomainTitle.send(__method__, *arg, **kwds)
+    dt.site_category if dt
+  end
+
 end
 
 

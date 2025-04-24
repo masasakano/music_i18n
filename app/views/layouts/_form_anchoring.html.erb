@@ -17,7 +17,7 @@
  <section id="sec_primary_input">
   <div class="form-inputs">
     <%= f.input :url_form, label: "URL" %>
-    <%= f.input :url_langcode, input_html: {class: "input_shortest", type: "text"}, hint: "Language for the URI in 2-letter code (or blank), e.g., en, ja, fr, es (Spanish), it (Italian), de (German), ko (Korean), zh (Chinese)" %>
+    <%= f.input :url_langcode, input_html: {class: "input_shortest", type: "text"}, hint: "Language for the URI in 2-letter code (or blank), e.g., en, ja, fr, es (Spanish), it (Italian), de (German), ko (Korean), zh (Chinese). Blank if the website provides separate contents at a single URI, depending on viewer's language/location." %>
     <%= f.input :site_category_id, label_method: :title_or_alt_for_selection, collection: SiteCategory.order(:weight), required: false, hint: "automatically determined if specified nil." %>
   <% if url.new_record? %>
     <%= f.input :title,  label: t("urls.title"), required: false, as: :string, input_html: {value: value_a_title_in_form(url, :title)} %>

@@ -50,7 +50,7 @@ module Seeds::DomainTitles
     youtube: {
       ja: Seeds::ChannelPlatforms::SEED_DATA[:youtube][:ja],
       en: Seeds::ChannelPlatforms::SEED_DATA[:youtube][:en],
-      en: Seeds::ChannelPlatforms::SEED_DATA[:youtube][:fr],
+      fr: Seeds::ChannelPlatforms::SEED_DATA[:youtube][:fr],
       orig_langcode: 'en',
       site_category: Proc.new{SiteCategory.find_by(mname: "main")},
       site_category_key: :main,
@@ -83,7 +83,7 @@ module Seeds::DomainTitles
       site_category: Proc.new{SiteCategory.find_by(mname: "wikipedia")},
       site_category_key: :wikipedia,
     },
-    chronicle_harami: {
+    chronicle_harami: {  # Make sure this is the first seeded one in SiteCategory.mname == "chronicle". See /app/controllers/base_anchorables_controller.rb
       ja: Seeds::ChannelPlatforms::SEED_DATA[:harami_event_list][:ja],
       en: Seeds::ChannelPlatforms::SEED_DATA[:harami_event_list][:en],
       orig_langcode: 'ja',

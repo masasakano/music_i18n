@@ -84,12 +84,26 @@ class DomainTitleTest < ActiveSupport::TestCase
     }
   end
 
-  test "methods" do
+  test "DomainTitle.new_from_url and .find_by_urlstr" do
     url = "abc.naiyo.com"
     dt = DomainTitle.new_from_url("www."+url)
     assert dt.new_record?
     assert dt.valid?
     assert_equal url, dt.title
+
+    ### DomainTitle.find_by_urlstr
+
+    url_str = "abc.naiyo.com"
+    d1 = Domain.find_or_create_domain_by_url!(       url_str, site_category_id: nil)
+    d2 = Domain.find_or_create_domain_by_url!("www."+url_str, site_category_id: nil)
+    dt1 = d1.domain_title
+    d3 = Domain.create!(domain: "different-name.org", domain_title: dt1)
+    assert_equal [d1, d2, d3], dt1.domains.order(:created_at)
+
+    assert_equal dt1, DomainTitle.find_by_urlstr(       url_str)
+    assert_equal dt1, DomainTitle.find_by_urlstr("www."+url_str)
+    assert_equal dt1, DomainTitle.find_by_urlstr("https://www."+url_str+"/")
+    assert_equal dt1, DomainTitle.find_by_urlstr("https://www."+url_str+"/xyz.html")
   end
 end
 

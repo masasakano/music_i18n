@@ -64,6 +64,12 @@
     </div>
   <% end %>
   <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: event, model4ability: !!can_update_gen} %>
+
+<%= turbo_frame_tag "events_anchorings_"+dom_id(@event) do %>
+  <%= render partial: 'layouts/index_anchorings', locals: {record: @event} %>
+<% end %>
+
+
 </dl>
 </section> <!-- section id="primary_contents" -->
 

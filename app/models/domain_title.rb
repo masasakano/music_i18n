@@ -78,6 +78,13 @@ class DomainTitle < BaseWithTranslation
     ret
   end
 
+  # @param urs_str: [String] any URL-type String
+  # @return [DomainTitle, NilClass]
+  def self.find_by_urlstr(url_str)
+    dom = Domain.find_domain_by_both_urls(url_str) #, is_normalized_no_www: false)  # 
+    dom.domain_title if dom
+  end
+
   # Returns the highest-priority Domain
   #
   # @return [Domain, NilClass] nil only in an unlikely case of no child Domains.

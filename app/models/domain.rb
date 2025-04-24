@@ -75,24 +75,38 @@ class Domain < ApplicationRecord
     cand ? cand.site_category : SiteCategory.unknown
   end
 
-  # Finds Domain with Domain of with or without "www."
-  #
-  # @param url_str [String]
-  # @param except: [Integer, String, ActiveRecord, NilClass] basically, excluding self (if called from an instance method).
-  # @return [Domain, NilClass]
-  def self.find_domain_by_both_urls(url_str, except: nil) #, is_normalized_no_www: false)  # 
-    domain_norm_no_www = extracted_normalized_domain(url_str.strip).sub(/\Awww\./, "")
-    except_id = (except.respond_to?(:id) ? except.id : except)
-    # domain_norm_no_www = (is_normalized_no_www ? url_str : extracted_normalized_domain(url_str.strip).sub(/\Awww\./, ""))  ## NOTE: Sometimes, the caller actually preprocesses the String. Then, to process it here again would be an overlap, so I once included the argument to indicate it. However, I have encountered a case, where the caller wrongly passed the unprocessed argument, yet tagging it processed. It took half an hour to pin down where.  So, it is much safer (and far more productive for developers) to process it here whatever even though it could be in some cases a bit redundant.
-    where(domain: [domain_norm_no_www, "www."+domain_norm_no_www]).where.not(id: except_id).first
-  end
-
   # Finds Domain with the exact Domain from the given URL String
   #
   # @param url_str [String]
   # @return [Domain, NilClass]
   def self.find_domain_by_url(url_str)
     where(domain: extracted_normalized_domain(url_str.strip)).first
+  end
+
+  # Finds Domain with Domain of with or without "www."
+  #
+  # @param url_str [String, URI]
+  # @param except: [Integer, String, ActiveRecord, NilClass] for the purpose of specifying self when called from an instance method.
+  # @return [Domain, NilClass]
+  def self.find_domain_by_both_urls(url_str, except: nil) #, is_normalized_no_www: false)  # 
+    domain_norm_no_www = extracted_normalized_domain(url_str.to_s.strip).sub(/\Awww\./, "")
+    except_id = (except.respond_to?(:id) ? except.id : except)
+    # domain_norm_no_www = (is_normalized_no_www ? url_str : extracted_normalized_domain(url_str.strip).sub(/\Awww\./, ""))  ## NOTE: Sometimes, the caller actually preprocesses the String. Then, to process it here again would be an overlap, so I once included the argument to indicate it. However, I have encountered a case, where the caller wrongly passed the unprocessed argument, yet tagging it processed. It took half an hour to pin down where.  So, it is much safer (and far more productive for developers) to process it here whatever even though it could be in some cases a bit redundant.
+    where(domain: [domain_norm_no_www, "www."+domain_norm_no_www]).where.not(id: except_id).first
+  end
+  class << self
+    alias_method :find_by_both_urls, :find_domain_by_both_urls if ! self.method_defined?(:find_by_both_urls) # Preferred to  "alias"
+  end
+
+  # Finds all Domains from URL (String)
+  #
+  # @return [Domain::ActiveRecord_Relation] maybe empty.
+  def self.find_all_siblings_by_urlstr(url_str, except: nil)
+    dt = DomainTitle.find_by_urlstr(url_str)
+
+    return self.none if !dt
+    return dt.domains if !except
+           dt.domains.where.not(id: except.id)
   end
 
   # Find {Domain} or create one, maybe along with DomainTitle

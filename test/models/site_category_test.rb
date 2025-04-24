@@ -47,4 +47,22 @@ class SiteCategoryTest < ActiveSupport::TestCase
   test "associations" do
     # assert_nothing_raised{ SiteCategory.first.uris }
   end
+
+  test "SiteCategory.find_by_urlstr" do
+    ### SiteCategory.find_by_urlstr
+    sc_media = site_categories(:site_category_media)
+
+    url_str = "abc.naiyo.com"
+    d1 = Domain.find_or_create_domain_by_url!(       url_str, site_category_id: nil)
+    d2 = Domain.find_or_create_domain_by_url!("www."+url_str, site_category_id: nil)
+    dt1 = d1.domain_title
+    dt1.update!(site_category: sc_media)
+    d3 = Domain.create!(domain: "different-name.org", domain_title: dt1)
+    assert_equal [d1, d2, d3], dt1.domains.order(:created_at), 'sanity check'
+
+    assert_equal sc_media, SiteCategory.find_by_urlstr(       url_str)
+    assert_equal sc_media, SiteCategory.find_by_urlstr("www."+url_str)
+    assert_equal sc_media, SiteCategory.find_by_urlstr("https://www."+url_str+"/")
+    assert_equal sc_media, SiteCategory.find_by_urlstr("https://www."+url_str+"/xyz.html")
+  end
 end

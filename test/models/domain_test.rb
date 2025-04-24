@@ -95,4 +95,23 @@ class DomainTest < ActiveSupport::TestCase
     dom2 = Domain.create_basic!(domain: "abcdefg."+dom.domain, site_category_id: "")
     assert_equal scat,  dom2.site_category
   end
+
+  test "Domain.find_all_siblings_by_urlstr" do
+    url_str = "abc.aruyo.com"
+    d1 = Domain.find_or_create_domain_by_url!(       url_str, site_category_id: nil)
+    d2 = Domain.find_or_create_domain_by_url!("www."+url_str, site_category_id: nil)
+    dt1 = d1.domain_title
+    d3 = Domain.create!(domain: "different-name.org", domain_title: dt1)
+
+    exp = [d1, d2, d3]
+    assert_equal exp, dt1.domains.order(:created_at), 'sanity check'
+
+    assert_equal exp, Domain.find_all_siblings_by_urlstr(       url_str).order(:created_at).to_a
+    assert_equal exp, Domain.find_all_siblings_by_urlstr("www."+url_str).order(:created_at).to_a
+    assert_equal exp[0..1],
+                      Domain.find_all_siblings_by_urlstr("www."+url_str, except: d3).order(:created_at).to_a
+    assert_equal exp, Domain.find_all_siblings_by_urlstr("https://www."+url_str+"/").order(:created_at).to_a
+    assert_equal exp, Domain.find_all_siblings_by_urlstr("https://www."+url_str+"/xyz.html").order(:created_at).to_a
+    assert_equal  [], Domain.find_all_siblings_by_urlstr("random.non-existent.org").order(:created_at).to_a
+  end
 end

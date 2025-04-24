@@ -30,7 +30,9 @@ Rails.application.routes.draw do
     resources :destroy_with_amps, only: [:destroy]
     resources :resettle_new_events, only: [:update]
   end
-  resources :events
+  resources :events do
+    resources :anchorings, controller: 'events/anchorings'
+  end
   resources :harami1129_reviews
   resources :event_groups
   resources :model_summaries
