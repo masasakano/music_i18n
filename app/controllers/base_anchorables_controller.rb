@@ -86,13 +86,12 @@ class BaseAnchorablesController < ApplicationController
         format.json { head :no_content }
       else
         format.html { redirect_to path_back, status: :unprocessable_entity }
-        format.turbo_stream
         format.json { render json: @anchoring.errors, status: :unprocessable_entity }
       end
     end
   end
 
-  private  ##################
+  private  ########################################################################
 
     # key name to be used for Anchoring path helpers, e.g., "artist_id"
     #

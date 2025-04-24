@@ -14,9 +14,7 @@ class ActiveSupport::TestCase
   # @param col_name: [Symbol, String] an exsiting column
   # @param extra_colnames: [Array<Symbol, String>] form parameters that are mandatory, e.g., :langcode
   def run_test_create_null(klass, col_name: :note, extra_colnames: [])
-    bind = caller_locations(1,1)[0]  # Ruby 2.0+
-    caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
-    # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
+    caller_info = _get_caller_info_message
 
     camel_str = (klass.respond_to?(:name) ? klass.name : klass.to_s.camelize)
     snake_str = camel_str.underscore
@@ -46,9 +44,7 @@ class ActiveSupport::TestCase
   # @example
   #   assert_base_with_translation_show_h2  # defined in /test/helpers/controller_helper.rb
   def assert_base_with_translation_show_h2
-    bind = caller_locations(1,1)[0]  # Ruby 2.0+
-    caller_info = sprintf "%s:%d", bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
-    # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
+    caller_info = _get_caller_info_message
 
     css = css_select('h2')[0]
     assert css, "(#{__method__}) called from #{caller_info}): H2 does not seem to exist."
@@ -383,11 +379,6 @@ class ActiveSupport::TestCase
       refute_equal model_last_be4, ret if model_last_be4  # as long as there is a single model before processing.
     end
 
-    if :redirect == exp_response
-      redirected_to_path = _get_expected_redirected_to_after_post(redirected_to, action, model, model_record)
-      assert_redirected_to(redirected_to_path, "#{_get_caller_info_message(bind_offset: bind_offset, prefix: true)} User=#{user_txt} should be redirected to #{redirected_to_path} after #{action} at #{path} but..." )
-    end
-
     record_after =
       if :destroy == action
         model_record  # This is usually ActiveRecord, though this may be a Class (Model) if the user passes so, specifiying the path directly
@@ -396,6 +387,11 @@ class ActiveSupport::TestCase
       else
         model  # This is the case when :create and creation fails.
       end
+
+    if :redirect == exp_response
+      redirected_to_path = _get_expected_redirected_to_after_post(redirected_to, action, model, model_record, record_after)
+      assert_redirected_to(redirected_to_path, "#{_get_caller_info_message(bind_offset: bind_offset, prefix: true)} User=#{user_txt} should be redirected to #{redirected_to_path} after #{action} at #{path} but..." )
+    end
 
     # called before the final asserts and yield
     base_proc.call(user || user_current, record_after) if base_proc
@@ -443,11 +439,11 @@ class ActiveSupport::TestCase
   # @param redirected_to: [String, Proc, NilClass] Usually guessed from path. If Proc, it is called on the spot (which can be helpful in :create)
   # @param action: [Symbol]
   # @return [String]
-  def _get_expected_redirected_to_after_post(redirected_to, action, model, model_record)
-    if redirected_to
+  def _get_expected_redirected_to_after_post(redirected_to, action, model, model_record, record_after)
+    if redirected_to.respond_to?(:call)
+      redirected_to.call(record_after)
+    elsif redirected_to
       redirected_to
-    elsif redirected_to.respond_to?(:call)
-      redirected_to.call
     else
       redirect_path_arg =
         case (action.to_sym rescue action)
