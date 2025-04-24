@@ -603,26 +603,52 @@ class BaseWithTranslation < ApplicationRecord
     trans = translations
     n_trans = (trans.size rescue nil) # Number of total translations
     l_trans = (n_trans ? trans.pluck(:langcode).uniq.size : nil)  # Number of unique languages
-    origtr  = (trans.find_by(is_orig: true) rescue nil)
-    extra =
-      if n_trans && n_trans > 0
-        title = 
-          if !origtr.respond_to? :title
-            # nil
-            Translation.sort(trans).pluck(:title, :alt_title).transpose.flatten.compact.first rescue nil
+    if n_trans && n_trans > 0
+      tran = origtr  = (trans.find_by(is_orig: true) rescue nil)
+      if origtr && %i(title alt_title langcode).all?{|k| origtr.respond_to?(k)}
+        is_orig_str = "Orig"
+      else
+        ## Original routine, where title has a priority over any alt_title
+        # tit = ( Translation.sort(trans).pluck(:title, :alt_title).transpose.flatten.compact.first rescue nil )
+        ## In the current algorithm below, the highest-priority Translation's value has a priority, be it title or alt_title
+        tran = (Translation.sort(trans).first rescue nil)
+        tran &&= nil if !(%i(title alt_title langcode).all?{|k| tran.respond_to?(k)})
+        is_orig_str = "NoOrig"
+      end
+
+      if tran
+        lc = tran.langcode
+        lc = "nil" if lc.blank?
+        tit =
+          if (t=tran.title).present?
+            t.inspect
           else
-            tit1 = origtr.title
-            if tit1
-              tit1.inspect
-            else
-              tit2 = origtr.alt_title
-              tit2 ? tit2.inspect+"[alt]" : 'nil'
-            end
+            t = tran.alt_title
+            t.present? ? t.inspect+"[alt]" : 'nil'
           end
-        "; Translation(id=#{origtr.id rescue 'nil'}/L=#{l_trans}/N=#{n_trans}): #{title} (#{origtr.langcode rescue 'nil'})"
+      end
+    end
+    extra =
+      if is_orig_str && tit && lc
+      #if n_trans && n_trans > 0
+      #  title = 
+      #    if !origtr.respond_to? :title
+      #      # nil
+      #      Translation.sort(trans).pluck(:title, :alt_title).transpose.flatten.compact.first rescue nil
+      #    else
+      #      tit1 = origtr.title
+      #      if tit1
+      #        tit1.inspect
+      #      else
+      #        tit2 = origtr.alt_title
+      #        tit2 ? tit2.inspect+"[alt]" : 'nil'
+      #      end
+      #    end
+      #  "; Translation(id=#{origtr.id rescue 'nil'}/L=#{l_trans}/N=#{n_trans}): #{title} (#{origtr.langcode rescue 'nil'})"
+        "; Translation(id=#{tran.id rescue 'nil'}/L=#{l_trans}/N=#{n_trans}): #{tit} (#{lc}:#{is_orig_str})"
       elsif unsaved_translations && unsaved_translations.size > 0  # It should never be nil, except those of fixtures called through #all??
         unsa = unsaved_translations
-        "; Translation(unsaved(n=#{unsa.size})[0]): #{unsa[0].title} (#{unsa[0].langcode rescue 'nil'})"
+        "; Translation(unsaved(n=#{unsa.size})[0]): #{unsa[0].title.inspect} (#{unsa[0].langcode rescue 'nil'})"
       else
         "; Translation: None"
       end

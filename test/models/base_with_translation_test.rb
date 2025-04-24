@@ -2346,6 +2346,35 @@ end
     assert_equal se[9], sexes[6], "trans = #{[se[9],sexes[6]].map{|i| i.translations.pluck(:langcode, :is_orig, :title, :alt_title, :weight)}.inspect}\n all: #{sexes.select("translations.title as tit,translations.alt_title as alt, translations.weight as wei").map{|i| [i.tit, i.alt, i.wei]}.inspect}"
   end
 
+  test "inspect" do
+    str = Country["GB"].inspect
+    assert_match(/\(en:Orig\)>\z/, str)
+
+    str = Country["JP"].inspect
+    assert_match(/\(ja:Orig\)>\z/, str)
+
+    record = channel_types(:channel_type_main)
+    assert_nil record.orig_langcode, 'testing fixtures'
+    str = record.inspect
+    assert_match(/\b(Translation.+\bchannel.+)/, str)  # ...; Translation(id=nil/L=3/N=3): "Primary channel" (en:NoOrig)>
+    refute_match(/(nil|none)/i, $1)
+
+    sex = Sex.new
+    str = sex.inspect
+    assert_match(/Translation\b.*\bNone\b/, str)
+    refute_match(/\bnaiyo\b/, str)
+
+    sex.unsaved_translations << Translation.new(title: "naiyo")
+    str = sex.inspect
+    assert_match(/\bnaiyo\b/, str)
+    assert_match(/\bunsaved.+\bnaiyo\b/, str)
+    refute_match(/\bunsaved.+\bnaiyo\b\(en/, str)
+
+    sex.unsaved_translations.first.langcode = "zh"
+    str = sex.inspect
+    assert_match(/\bunsaved.+\bnaiyo\b["]?\s*\(zh/, str)
+  end
+
     def _prepare_artists_with_trans
       # For Artist, Sex is mandatory. As long as birth_year or place differ, identical Translation-s are allowed.
       tras = [

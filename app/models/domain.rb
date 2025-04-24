@@ -79,7 +79,7 @@ class Domain < ApplicationRecord
   #
   # @param url_str [String]
   # @return [Domain, NilClass]
-  def self.find_domain_by_url(url_str)
+  def self.find_by_urlstr(url_str)
     where(domain: extracted_normalized_domain(url_str.strip)).first
   end
 
@@ -88,14 +88,11 @@ class Domain < ApplicationRecord
   # @param url_str [String, URI]
   # @param except: [Integer, String, ActiveRecord, NilClass] for the purpose of specifying self when called from an instance method.
   # @return [Domain, NilClass]
-  def self.find_domain_by_both_urls(url_str, except: nil) #, is_normalized_no_www: false)  # 
+  def self.find_by_both_urls(url_str, except: nil) #, is_normalized_no_www: false)  # 
     domain_norm_no_www = extracted_normalized_domain(url_str.to_s.strip).sub(/\Awww\./, "")
     except_id = (except.respond_to?(:id) ? except.id : except)
     # domain_norm_no_www = (is_normalized_no_www ? url_str : extracted_normalized_domain(url_str.strip).sub(/\Awww\./, ""))  ## NOTE: Sometimes, the caller actually preprocesses the String. Then, to process it here again would be an overlap, so I once included the argument to indicate it. However, I have encountered a case, where the caller wrongly passed the unprocessed argument, yet tagging it processed. It took half an hour to pin down where.  So, it is much safer (and far more productive for developers) to process it here whatever even though it could be in some cases a bit redundant.
     where(domain: [domain_norm_no_www, "www."+domain_norm_no_www]).where.not(id: except_id).first
-  end
-  class << self
-    alias_method :find_by_both_urls, :find_domain_by_both_urls if ! self.method_defined?(:find_by_both_urls) # Preferred to  "alias"
   end
 
   # Finds all Domains from URL (String)
@@ -119,7 +116,7 @@ class Domain < ApplicationRecord
   # @return [Domain, NilClass]
   def self.find_or_create_domain_by_url!(url_str, site_category_id: nil)
     domain_norm = extracted_normalized_domain(url_str.strip)
-    record = find_domain_by_url(domain_norm)
+    record = find_by_urlstr(domain_norm)
 
     if record
       record.notice_messages ||= []
@@ -183,7 +180,7 @@ class Domain < ApplicationRecord
     return if domain.blank?  # self is not valid?
 
     domain_norm_no_www = self.class.extracted_normalized_domain(domain.strip).sub(/\Awww\./, "")
-    if (record = self.class.find_domain_by_both_urls(domain_norm_no_www))
+    if (record = self.class.find_by_both_urls(domain_norm_no_www))
       ret = record.domain_title  ## DomainTitle identified and assigned
       return ret  # DomainTitle
     end
