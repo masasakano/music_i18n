@@ -21,10 +21,10 @@ module Anchorable
   #   The caller may put the call to this method in a DB transaction because this method saves records in DB.
   #
   # @param urlstr [String] of URL/URI
-  # @param **kwds [Hash] For the other options, see {Url.find_or_create_url_from_str}
+  # @param **kwds [Hash] For the other options, see {Url.create_url_from_str}
   # @return [Anchoring] its id is nil if faling in saving, where errors should be set and its url_id may be nil (though there is a very small chance Url/Domain/DomainTitle may have been created, but somehow saving Anchoring failed)
   def create_assign_url(urlstr, **kwds)
-    url = Url.find_or_create_url_from_str(urlstr, **kwds)
+    url = Url.create_url_from_str(urlstr, **kwds)
     add_url(url)
   end
 

@@ -104,7 +104,35 @@ class Url < BaseWithTranslation
   # @param url_in [String]
   # @return [String]
   def self.normalized_url(url_in)
-    ModuleUrlUtil.normalized_url(url_in, with_scheme: false, with_www: false, with_port: false, trim_insignificant_prefix_slash: true, with_path: true, truncate_trailing_slashes: true, with_query: true, with_fragment: true, decode_all: true, downcase_domain: true)
+    ModuleUrlUtil.normalized_url(
+      url_in,
+      with_scheme: false,
+      with_www: false,
+      with_port: false,
+      trim_insignificant_prefix_slash: true,
+      with_path: true,
+      truncate_trailing_slashes: true,
+      with_query: true,
+      with_fragment: true,
+      decode_all: true,
+      downcase_domain: true)
+  end
+
+  # @return [String] as saved for the main attribute {#url}
+  def self.minimum_adjusted_url(url_in)
+    ModuleUrlUtil.normalized_url(
+      url_in,
+      with_scheme: true,
+      with_www: true,
+      with_port: true,
+      trim_insignificant_prefix_slash: true,
+      with_path: true,
+      truncate_trailing_slashes: true,
+      with_query: true,
+      with_fragment: true,
+      decode_all: false,
+      downcase_domain: false,
+      delegate_special: true)
   end
 
   # Returns the default Translation if the given title is blank
@@ -118,6 +146,16 @@ class Url < BaseWithTranslation
     Translation.new(title: title, langcode: langcode, is_orig: is_orig, **kwds)
   end
 
+  # Search and find a Url from String URL.
+  #
+  # Url is unique by {#url_normalized}
+  #
+  # @param urlstr [String] mandatory.
+  # @return [Url, NilClass]
+  def self.find_url_from_str(urlstr)
+    find_by(url_normalized: normalized_url(urlstr))
+  end
+
   # Alternative constructor from String URL
   #
   # {Url#url} is as the user (editor) specifies — no change or normalization, including case-sensitivity,
@@ -128,7 +166,7 @@ class Url < BaseWithTranslation
   # @param site_category_id: [NilClass, String, Integer] Used only in creating DomainTitle. ignored if nil. auto-guessed if "".  See {Domain.find_or_initialize_domain_title_to_assign} and {Domain.guess_site_category}
   # @param **kwds [Hash] You can initialize any of the standard attributes of Url, plus its Translation. All are optional, and can be automatically set.
   # @return [Url] In failing, +errors+ may be set or +id+ may be nil. +domain+ may be set and +domain.notice_messages+ may be significant (to show as flash messages).
-  def self.find_or_create_url_from_str(urlstr, site_category_id: nil, url_langcode: nil, domain: nil, domain_id: nil, weight: nil, published_date: nil, last_confirmed_date: nil, note: nil, memo_editor: nil, title: nil, langcode: nil, is_orig: nil, alt_title: nil)
+  def self.create_url_from_str(urlstr, site_category_id: nil, url_langcode: nil, domain: nil, domain_id: nil, weight: nil, published_date: nil, last_confirmed_date: nil, note: nil, memo_editor: nil, title: nil, langcode: nil, is_orig: nil, alt_title: nil)
     newurl = self.new(url: urlstr,
                      url_langcode: url_langcode,
                      weight: weight,
@@ -242,19 +280,7 @@ class Url < BaseWithTranslation
     # Callback to adjust "url", trimming an unnecessary prefix slash(es), truncating multiple slashes at the tail
     #
     def adjust_url_minimum
-      self.url = ModuleUrlUtil.normalized_url(
-                   self.url, 
-                   with_scheme: true,
-                   with_www: true,
-                   with_port: true,
-                   trim_insignificant_prefix_slash: true,
-                   with_path: true,
-                   truncate_trailing_slashes: true,
-                   with_query: true,
-                   with_fragment: true,
-                   decode_all: false,
-                   downcase_domain: false,
-                   delegate_special: true)
+      self.url = self.class.minimum_adjusted_url(self.url)
     end
 
     # Callback to set url_normalized

@@ -212,10 +212,12 @@ class ActiveSupport::TestCase
   #    If nil, everything defined in {ApplicationController::FLASH_CSS_CLASSES}
   #    Note that the actual CSS is "alert-danger" (Bootstrap) for :alert, etc.
   # @param with_html: [Boolean] if true (Def: false), HTML (as opposed to a plain text) is evaluated with regex.
-  # @param kwds: [Hash] Optional hash to be passed to {#css_for_flash}, notably +extra+
-  def flash_regex_assert(regex, msg=nil, type: nil, with_html: false, **kwds)
+  # @param is_debug: [Boolean] if true (Def: false), prints the CSS selector information
+  # @param kwds: [Hash] Optional hash to be passed to {#css_for_flash}, notably +category+ and +extra+
+  def flash_regex_assert(regex, msg=nil, type: nil, with_html: false, is_debug: false, **kwds)
     caller_info = _get_caller_info_message(bind_offset: 0)
 
+    printf "DEBUG(#{__method__}): css_for_flash(ARG=#{[type, kwds].inspect})=( %s )\n", css_for_flash(type, **kwds) if is_debug
     csstext = css_select(css_for_flash(type, **kwds)).send(with_html ? :inner_html : :text)
     msg2pass = (msg || sprintf("Fails in flash(%s)-message regexp matching for: ", (type || "ALL")))+csstext.inspect
     assert_match(regex, csstext, "(#{caller_info}): "+msg2pass)
@@ -237,12 +239,12 @@ class ActiveSupport::TestCase
   # @param type: [Symbol, Array<Symbol>, NilClass] :notice, :alert, :warning, :success or their array.
   #    If nil, everything defined in {ApplicationController::FLASH_CSS_CLASSES}
   #    Note that the actual CSS is "alert-danger" (Bootstrap) for :alert, etc.
-  # @param category: [Symbol] :both, :error_explanation (for save/update), :div (normal flash)
+  # @param category: [Symbol] :all (:both), :error_explanation (for save/update), :form (simple_form), :div (normal flash)
   # @param extra: [String, NilClass] Extra CSS following the returned CSS-selector (placed after a space!)
   # @param extra_attributes: [String, Array, NilClass] Extra CSS classes (attributes) to append the last element in the returned CSS-selector (placed without a space)
   #   This is useful to further edit the returned CSS in case there are more than one "OR" condition.
   # @return [String] CSS for Flash-message part; e.g., ".alert, div#error_explanation"
-  def css_for_flash(type=nil, category: :both, extra: nil, extra_attributes: nil, return_array: false)
+  def css_for_flash(type=nil, category: :all, extra: nil, extra_attributes: nil, return_array: false)
     caller_info = _get_caller_info_message(bind_offset: 0)
 
     extra_attributes =
@@ -258,19 +260,25 @@ class ActiveSupport::TestCase
       raise "(#{caller_info}) (#{__FILE__}) Flash type (#{types.inspect}) must be included in ApplicationController::FLASH_CSS_CLASSES="+ApplicationController::FLASH_CSS_CLASSES.keys.map(&:to_sym).inspect
     end
 
+    cat4form="div.invalid-feedback"
     categories = 
       case category.to_sym
-      when :both
+      when :all, :both
         ["div", "div#error_explanation"]
       when :error_explanation
         ["div#error_explanation", "div.error_explanation"]  # the latter is needed when called from turbo.
+      when :form  # simple_form / displayed under each field
+        [cat4form]
       else
         ["div"]
       end
+    return cat4form if :form == category.to_sym
+    ar0 = ([:all, :both].include?(category.to_sym) ? [cat4form] : [])
+    ## NOTE: The SimpleForm CSS for error message does not include anything like "alert". So a separate handling is required... Needs refactoring. TODO.
 
-    categories.map{|ea_cat|
+    (ar0 + categories.map{|ea_cat|
       types.map{|i| "div#body_main "+ea_cat+"."+(ApplicationController::FLASH_CSS_CLASSES[i].strip.split+extra_attributes).join(".")+(extra.present? ? " "+extra : "")}.join(", ")  # "div#body_main p.alert.alert-danger, div#body_main p.alert.alert-warning" etc
-    }.join(", ")
+    }).compact.join(", ")
   end
 
   # Returns the XPATH string to extract the flash messages.

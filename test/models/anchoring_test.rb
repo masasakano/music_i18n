@@ -32,4 +32,11 @@ class AnchoringTest < ActiveSupport::TestCase
     assert_equal anch.url,     urls(:url_haramichan_main)
     assert_equal anch.anchorable, artists(:artist_harami)
   end
+
+  test "uniquness constraint" do
+    anc = Anchoring.first
+    b = anc.dup
+    refute b.valid?
+    assert_equal :url_form, b.errors.first.attribute, b.errors.inspect
+  end
 end

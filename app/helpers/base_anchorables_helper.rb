@@ -1,11 +1,13 @@
 module BaseAnchorablesHelper
   include ModuleCommon  # for get_language_name
 
-  # @param anchoring [Anchoring, NilClass] mandatory except for actions of :index or :create or :new
-  # @param parent [BaseWithTranslation, NilClass] mandatory for actions of :index or :create or :new, else optional.
-  def path_anchoring(anchoring=nil, parent: nil, action: :show, for_url: false)
+  # Path helper for Anchoring
+  #
+  # @param anchoring [Anchoring, BaseWithTranslation, NilClass] Either Anchoring or its anchorable record. For actions of :index or :create or :new, you can leave this blank and instead specify +parent+ (obsolete)
+  # @param for_url [Boolean] if true, URL instead of Path is returned
+  def path_anchoring(anchoring=nil, action: :show, for_url: false)
     suffix = (for_url ? "url" : "path")
-    parent ||= anchoring.anchorable   # the latter assumes anchorable is significant.
+    parent = (anchoring.respond_to?(:anchorable) ? anchoring.anchorable : anchoring)  # the latter assumes anchorable is significant.
       
     prm_parent_lower = parent.class.name.underscore
     path_base = prm_parent_lower + "_anchoring_"+suffix

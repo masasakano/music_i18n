@@ -28,6 +28,8 @@ class Anchoring < ApplicationRecord
   has_one :domain_title,  through: :url
   has_one :site_category, through: :url
 
+  validate :unique_within_anchorable
+
   # methods for the sake of forms. Except for title, langcode, url_form, and they are from the parent Url.
   FORM_ACCESSORS = %i(site_category_id title langcode is_orig url_form url_langcode weight domain_id published_date last_confirmed_date memo_editor)
 
@@ -61,4 +63,15 @@ class Anchoring < ApplicationRecord
       sprintf("%s(%s),", $1, url_str)
     }
   end
+
+  private
+
+    # Validating the uniqueness of Anchoring within an anchorable
+    def unique_within_anchorable
+      if anchorable.anchorings.where(url_id: url_id).where.not(id: id).exists?
+        errors.add :url_form, url.url+" is already registered for this record."
+      end
+    end
+
+
 end

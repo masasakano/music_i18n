@@ -45,7 +45,12 @@ class BaseAnchorablesController < ApplicationController
     opts[:is_orig]  = @anchoring.is_orig  if [true, false].include? @anchoring.is_orig
 
     status, msgs = _create_update_core(@anchoring){ |anchoring|
-      anchoring.url = Url.find_or_create_url_from_str(anchoring.url_form, **opts)
+      if (anchoring.url = Url.find_url_from_str(anchoring.url_form))
+        add_flash_message(:alert, "Url is already registered. The submitted information is not used to update the URL except for association Note.")  # defined in application_controller.rb
+        anchoring.url  # not used by the caller, but playing safe.
+      else
+        anchoring.url = Url.create_url_from_str(anchoring.url_form, **opts)
+      end
     }
     respond_to do |format|
       if status
@@ -155,12 +160,13 @@ class BaseAnchorablesController < ApplicationController
 
     # Core routine of create/update
     #
-    # The caller should set/update anchoring.url here, which is performed within a DB transaction.
-    # +anchoring.errors+ is set in failing (which includes the error messages in creating Url, Domain, DomainTitle).
+    # The caller should set/update anchoring.url here (in the yield block), which is performed within a DB transaction.
+    # If any of the processing fails +anchoring.errors+ is set (which includes the error messages
+    # in creating Url, Domain, DomainTitle).
     #
     # @param anchoring [Anchoring]
     # @return [Array] 2-element Array of [Boolean, Array<String>] of the save-status (true if successful) and messages.
-    # @yield [Anchoring] The caller should set/update anchoring.url here, which is within a DB transaction.  Its return value can be anything (not used here).
+    # @yield [Anchoring] The caller should set/update anchoring.url here, which is within a DB transaction.  Its return value can be anything (not used here). If anchoring.url.errors.any?, the process stops and rollbacks.
     def _create_update_core(anchoring=@anchoring)
       status, msgs = [nil, nil]
 
@@ -190,14 +196,19 @@ class BaseAnchorablesController < ApplicationController
     def _adjust_for_wikipedia(anchoring=@anchoring)
       url_w_scheme = ModuleUrlUtil.url_prepended_with_scheme(anchoring.url_form)
       return if url_w_scheme.blank?
-      urin = Addressable::URI.parse(url_w_scheme)
-      return if /^([a-z]{2})\.wikipedia\.org$/ !~ urin.host.downcase  # Not Wikipedia
+      begin
+        urin = Addressable::URI.parse(url_w_scheme)
+        return if urin.host.blank? || /^([a-z]{2})\.wikipedia\.org$/ !~ urin.host.downcase  # Not Wikipedia
 
-      site_lang = $1
-      anchoring.url_langcode = site_lang if anchoring.url_langcode.blank?
-      return if !anchoring.new_record? || !anchoring.title.blank?
+        site_lang = $1
+        anchoring.url_langcode = site_lang if anchoring.url_langcode.blank?
+        return if !anchoring.new_record? || !anchoring.title.blank?
 
-      anchoring.title = Addressable::URI.unencode(urin.path.sub(%r@^/?wiki/@, ""))  # or URI.decode_www_form_component
+        anchoring.title = Addressable::URI.unencode(urin.path.sub(%r@^/?wiki/@, ""))  # or URI.decode_www_form_component
+      rescue Addressable::URI::InvalidURIError => err
+        logger.error "ERROR(Addressable::URI::InvalidURIError): for the input of #{anchoring.url_form.inspect}"
+        return
+      end
       anchoring.langcode = site_lang
       anchoring.is_orig = true
     end
@@ -208,7 +219,12 @@ class BaseAnchorablesController < ApplicationController
     def _adjust_for_harami_chronicle(anchoring=@anchoring)
       url_w_scheme = ModuleUrlUtil.url_prepended_with_scheme(anchoring.url_form)
       return if url_w_scheme.blank?
-      urin = Addressable::URI.parse(url_w_scheme)
+      begin
+        urin = Addressable::URI.parse(url_w_scheme)
+      rescue Addressable::URI::InvalidURIError => err
+        logger.error "ERROR(Addressable::URI::InvalidURIError): for the input of #{anchoring.url_form.inspect}"
+        return
+      end
 
       dom = Domain.find_by_both_urls(url_w_scheme)
       return if !dom

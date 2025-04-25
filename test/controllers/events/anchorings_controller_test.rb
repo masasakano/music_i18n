@@ -15,6 +15,7 @@ class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @url = urls(:one)
     @anchorable = @event = events(:three)
+    @anchorabl2 = events(:ev_harami_lucky2023)
     @domain = domains(:one)
     @site_category = site_categories(:one)
     @sysadmin  = users(:user_sysadmin)
@@ -57,9 +58,41 @@ class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
   test "should create/update/destroy anchoring by moderator" do
     # defined in /test/helpers/controller_anchorable_helper.rb
     opt_users = {fail_users: [], success_users: [@moderator_all]}  # only a single success_users is valid for :create, whereas multiple fail_users can be tested.
-    new_anchorings = _assert_create_anchoring_urls_domains(@anchorable, **opt_users)
+    new_anchorings = _assert_create_anchoring_urls_domains(@anchorable, **opt_users)  # defined in controller_anchorable_helper.rb
     new1 = new_anchorings.first
-    new3 = _assert_create_anchoring_url_wiki(   @anchorable, **opt_users)
+
+    # Attempting to create an identical Anchoring 
+    sc_media = site_categories(:site_category_media)  # trying a different SiteCategory
+    res = _refute_create_identical_anchoring( new1, title: "unique new4 title", site_category_id: sc_media.id.to_s, **opt_users)  # testing failed creation, redirection etc.
+    flash_regex_assert(/\bis already registered\b/, "Identical Anchoring should fail... ", type: :alert, category: :all, is_debug: false) # defined in test_helper.rb  # error message defined in :create in base_anchorables_controller.rb
+
+    # Creating a Url and Artist-Anchoring
+    this_classname = @anchorable.class.name
+    artist_anc = nil
+    artist = artists(:artist1)
+    fmt = "Anchoring.where(anchorable_type: '%s').count"
+    assert_no_difference(sprintf(fmt, this_classname)){
+      assert_difference( sprintf(fmt, 'Artist')+' + Url.count*10 + Translation.count*100', 111){
+        artist_anc = _assert_create_anchoring_url_wiki( artist, **opt_users)
+      }
+    }
+
+    # Creating an Event-Anchoring for the SAME Url as with Artist - should succeed.
+    note4 = "anc-only-4"
+    new_anc4 = nil
+    fmt = sprintf("Anchoring.where(anchorable_type: '%%s', url_id: %d).count", artist_anc.url.id)
+    assert_difference(sprintf(fmt, this_classname)){
+      assert_no_difference( sprintf(fmt, 'Artist')){
+        new_anc4 = _assert_create_anchoring_existing_url(artist_anc, @anchorable, note: note4, is_debug: false, **opt_users)
+      }
+    }
+
+    # The same but with another Event
+    note5 = "anc-only-5"
+    new_anc5 = nil
+    assert_difference(sprintf(fmt, this_classname)){
+      new_anc5 = _assert_create_anchoring_existing_url(artist_anc, @anchorabl2, note: note5, **opt_users)
+    }
 
     _refute_public_accesses_to_anchorables(new1)
     _assert_authorized_gets_to_anchorables(new1, **opt_users)  # :new, :edit : disallowed
@@ -104,16 +137,17 @@ end # if false
     ## any editor can manage Event, thus Event/Anchoring
 
     sign_in @moderator_ja
+    path_create = path_anchoring(@anchorable, action: :create)
 
     ## Successful creation of Anchoring and Url with existing Domain and DomainTitle
-    action, new_mdl2 = assert_authorized_post(Anchoring, user: @moderator_ja, path_or_action: paths[:create], redirected_to: proc_art0_path, params: hsprms, method: :post, diff_count_command: calc_count_exp, diff_num: 11001){ |_, _| # defined in /test/helpers/controller_helper.rb
+    action, new_mdl2 = assert_authorized_post(Anchoring, user: @moderator_ja, path_or_action: path_create, redirected_to: proc_art0_path, params: hsprms, method: :post, diff_count_command: EQUATION_MODEL_COUNT, diff_num: 10011){ |_, _| # defined in /test/helpers/controller_helper.rb
       assert_equal "https://"+newurl, Anchoring.last.url.url }
     assert_equal :create, action
 
     ## Chronicle URL addition
     chronicle = "https://nannohi-db.blog.jp/archives/8522599.html"
     hschronicle = hsprms.merge({url_form: chronicle, title: "", url_langcode: "", site_category_id: ""})
-    action, new_mdl5 = assert_authorized_post(Anchoring, user: @moderator_ja, path_or_action: paths[:create], redirected_to: proc_art0_path, params: hschronicle, method: :post, diff_count_command: calc_count_exp, diff_num: 11001){ |user, record| # defined in /test/helpers/controller_helper.rb
+    action, new_mdl5 = assert_authorized_post(Anchoring, user: @moderator_ja, path_or_action: path_create, redirected_to: proc_art0_path, params: hschronicle, method: :post, diff_count_command: EQUATION_MODEL_COUNT, diff_num: 10011){ |user, record| # defined in /test/helpers/controller_helper.rb
       assert_equal chronicle, record.url.url
       assert_equal "ja",      record.url.url_langcode.to_s
       sc = site_categories(:site_category_chronicle)
@@ -126,11 +160,12 @@ end # if false
     }
     assert_equal :create, action
 
+    
 
     ### update/patch
 
 #    [nil, @translator].each do |ea_user|  # @trans_moderator may be pviviledged?
-#      assert_unauthorized_post(anchoring, user: ea_user, path_or_action: paths[:show], params: hsprms, method: :patch, diff_count_command: calc_count_exp){ |user, record|
+#      assert_unauthorized_post(anchoring, user: ea_user, path_or_action: paths[:show], params: hsprms, method: :patch, diff_count_command: EQUATION_MODEL_COUNT){ |user, record|
 #        assert_equal urlstr_orig, record.url.url
 #      }
 #    end
@@ -143,7 +178,7 @@ end # if false
     ## standard update
     path4 = event_anchoring_path(id: new_mdl4.id, event_id: new_mdl4.anchorable.id)
     #note4 = "upd4"
-    action, _ = assert_authorized_post(new_mdl4, user: @moderator_ja, path_or_action: path4, redirected_to: path_anchoring(new_mdl4, action: :show), params: hsupdate, method: :patch, diff_count_command: calc_count_exp, diff_num: 0, updated_attrs: [:note]){ |user, record|  # path_anchoring() defined in Artists::AnchoringsHelper
+    action, _ = assert_authorized_post(new_mdl4, user: @moderator_ja, path_or_action: path4, redirected_to: path_anchoring(new_mdl4, action: :show), params: hsupdate, method: :patch, diff_count_command: EQUATION_MODEL_COUNT, diff_num: 0, updated_attrs: [:note]){ |user, record|  # path_anchoring() defined in Artists::AnchoringsHelper
       assert record.url
       if urlstr_orig.nil?
         refute_nil record.url.url

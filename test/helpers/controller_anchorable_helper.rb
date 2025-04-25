@@ -63,14 +63,14 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
   # @param anchoring [Anchoring]
   def _refute_public_accesses_to_anchorables(anchoring)
     %i(new edit).each do |action|
-      _assert_login_demanded(path_anchoring(anchoring, action: action)) # defined in /test/helpers/controller_helper.rb
+      _assert_login_demanded(path_anchoring(anchoring, action: action)) # defined in /test/helpers/controller_helper.rb / base_anchorables_helper.rb
     end
   end
 
   # @param anchoring [Anchoring]
   def _assert_authorized_gets_to_anchorables(anchoring, fail_users: [], success_users: [])
     %i(new edit).each do |action|
-      path = path_anchoring(anchoring, action: action)
+      path = path_anchoring(anchoring, action: action)  # defined in base_anchorables_helper.rb
       model_record = ((:new == action) ? Anchoring : anchoring) 
       _assert_authorized_get_set(path, model_record, fail_users: fail_users, success_users: success_users, h1_title_regex: nil) # defined in /test/helpers/controller_helper.rb
     end
@@ -84,7 +84,7 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
   # @param parent_record [BaseWithTranslation] like Artist instance
   # @param success_users: [Array<User>] only a single user is tested so far...(mandatory)
   # @return [Array<Anchoring>] created one.
-  def _assert_create_anchoring_urls_domains(parent_record, fail_users: [], success_users: [])
+  def _assert_create_anchoring_urls_domains(parent_record, fail_users: [], success_users: [], is_debug: false)
     ##### Creating Domain, DomainTitle
     non_existing_domain = "non-existing1.example.com"
     url1 = sprintf("%s/%s/%s", non_existing_domain, parent_record.class.name, "newabc.html?q=123&r=456#anch")
@@ -93,7 +93,8 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
     new1 = _assert_create_anchoring_url_core(parent_record,
               fail_users: fail_users, success_users: success_users,
               url_str: url1, note: note1,
-              diff_num: 21111)
+              diff_num: 21111,
+              is_debug: is_debug)
     
     assert_equal SiteCategory.unknown, new1.site_category, "SiteCategory should be the unknown one, but..."   # this should have been checked in updated_attrs
     assert_includes new1.url.title,          non_existing_domain
@@ -110,7 +111,8 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
               url_str: url2, note: note2,
               title: title2,
               url_langcode: url_langcode2,
-              diff_num: 10011)
+              diff_num: 10011,
+              is_debug: is_debug)
     
     assert_equal SiteCategory.unknown, new2.site_category, "#{_get_caller_info_message(prefix: true)} SiteCategory should be the unknown one, but..."   # this should have been checked in updated_attrs
     assert_equal title2,        new2.url.title, "#{_get_caller_info_message(prefix: true)} title unexpected..."
@@ -123,12 +125,13 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
     [new1, new2]
   end # def _assert_create_anchoring_url_domains
   
+
   ## Successful creation of Anchoring and Url with wiki (hence existing Domain and DomainTitle)
   #
   # @param parent_record [BaseWithTranslation] like Artist instance
   # @param success_users: [Array<User>] only a single user is tested so far...(mandatory)
   # @return [Anchoring] created one.
-  def _assert_create_anchoring_url_wiki(parent_record, fail_users: [], success_users: [])
+  def _assert_create_anchoring_url_wiki(parent_record, fail_users: [], success_users: [], is_debug: false)
     tnow = Time.now.utc
 
     ##### Creating Domain, DomainTitle
@@ -139,7 +142,8 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
     new3 = _assert_create_anchoring_url_core(parent_record,
               fail_users: fail_users, success_users: success_users,
               url_str: url3, note: note3,
-              diff_num: 10011)
+              diff_num: 10011,
+              is_debug: is_debug)
     
     assert_equal "ja", new3.url.orig_langcode.to_s
     trans = new3.url.orig_translation
@@ -155,23 +159,54 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
     new3
   end
 
+  ## Failed in creation of Anchoring because its URL matches an existing one
+  #
+  # @param ref_anchoring [Anchoring]
+  # @param success_users: [Array<User>] only a single user is tested so far...(mandatory)
+  # @return [Array<Anchoring>] created one.
+  def _refute_create_identical_anchoring(ref_anchoring, fail_users: [], success_users: [], **opts)
+    opts = {note: 'should fail..', diff_num: 0, is_create: true}.merge(opts)
+    _assert_create_anchoring_url_core(ref_anchoring,
+                                      fail_users: fail_users, success_users: success_users, **opts)
+  end
+
+  ## Should create a new Anchoring (=association) for an existing Url for a model
+  #
+  # as long as the model does not already have an Anchoring for the Url.
+  #
+  # @param ref_anchoring [Anchoring]
+  # @param anchorable [BaseWithTranslation, NilClass] can be nil only IF ref_anchoring is dup-ped and already set for the associting BaseWithTranslation but not saved (i.e., new_record?)
+  # @param success_users: [Array<User>] only a single user is tested so far...(mandatory)
+  # @param is_debug [Boolean] to display the error message in saving
+  # @return [Anchoring] created one.
+  def _assert_create_anchoring_existing_url(ref_anchoring, anchorable=nil, fail_users: [], success_users: [], **opts)
+    if anchorable
+      ref_anchoring = ref_anchoring.dup
+      ref_anchoring.anchorable_type = anchorable.class.name
+      ref_anchoring.anchorable_id   = anchorable.id
+    end
+
+    opts = {note: 'should succeed in creating an Anchoring..', diff_num: 1, is_create: true}.merge(opts)
+
+    _assert_create_anchoring_url_core(ref_anchoring,
+                                      fail_users: fail_users, success_users: success_users, **opts)
+  end
+
   # :update version of _assert_create_anchoring_url_core
   #
-  # @param record2upd [Anchoring] the one to update 
+  # @param record2upd [Anchoring] the one to update. The values here are set for the form.
   # @param diff_num [Integer] Default is 0. Be warned that some type of updates create new models of Domain, DomainTilte (and its Translation).
+  # @param is_debug [Boolean] to display the error message in saving
+  # @return [Anchoring] created one.
   def _assert_update_anchoring_url(record2upd, diff_num: 0, **opts)
     parent_record = record2upd.anchorable
     _assert_create_anchoring_url_core(parent_record, diff_num: diff_num, **(opts.merge({is_create: false})))
   end
 
-  # :update version of _assert_create_anchoring_url_core
-  def _assert_update_anchoring_url_core(parent_record, fail_users: [], success_users: [], **opts)
-    _assert_create_anchoring_url_core(parent_record, **(opts.merge({is_create: true})))
-  end
 
   ## Successful creation of Anchoring and Url
   #
-  # @param parent_record [BaseWithTranslation] like Artist instance
+  # @param parent_record [BaseWithTranslation, Anchoring] like Artist instance. Or, existing Anchoring instance can be given for a reference OR to update it (in combination of (is_create: false)).
   # @param success_users: [Array<User>] only a single user is tested so far...(mandatory)
   # @param title: [String] non-nil
   # @param url_langcode: [String, NilClass]
@@ -181,23 +216,36 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
   # @param site_category_id: [String] if nil, Default is used.
   # @param note: [String] if nil, Default is used.
   # @param is_create: [Boolean] Def: true
+  # @oaram is_debug: [Boolean] If true (Def: false), error message in saving is displayed to STDOUT
   # @return [Anchoring] created one.
   # @yield [Anchoring] Hash [allopts] to be passed to {#assert_authorized_post} is given and you can modify and return it. Useful for :update. If the block returns nil, allopts is not modified.
-  def _assert_create_anchoring_url_core(parent_record, fail_users: [], success_users: [], title: "", url_langcode: nil, url_str: nil, domain_prefix: "", path_suffix: "", diff_num: 21111, site_category_id: nil, note: nil, is_create: true)
+  def _assert_create_anchoring_url_core(parent_record, fail_users: [], success_users: [], title: "", url_langcode: nil, url_str: nil, domain_prefix: "", path_suffix: "", diff_num: 21111, site_category_id: nil, note: nil, is_create: true, is_debug: false)
+    if parent_record.respond_to?(:anchorable)
+      anchoring = parent_record
+      parent_record = parent_record.anchorable
+    end
+
     raise ArgumentError, "single user only so far" if 1 != success_users.size
-    path = path_anchoring(Anchoring, parent: parent_record, action: :create)
+    path = path_anchoring(parent_record, action: :create)  # defined in base_anchorables_helper.rb
 
     opts = { path_id_symbol(parent_record) => parent_record.id }
-    proc_record_path = Proc.new{|record| event_anchoring_path(id: record.id, **opts)}
+    path_create_method_str = parent_record.class.name.underscore + "_anchoring_path"
+    proc_record_path = Proc.new{|record| send(path_create_method_str, id: record.id, **opts)}
 
     if !url_str
-      domain_str = domain_prefix + "non-existing1.example.com"
-      url_str = sprintf("%s/%s/%s", domain_str, parent_record.class.name, "newabc#{path_suffix}?q=123&r=456#anch")
+      url_str = 
+        if anchoring 
+          anchoring.url.url
+        else
+          domain_str = domain_prefix + "non-existing1.example.com"
+          sprintf("%s/%s/%s", domain_str, parent_record.class.name, "newabc#{path_suffix}?q=123&r=456#anch")
+        end
     end
+
     note ||= "note-1"
 
     hsprms = _build_params(
-      Anchoring,
+      anchoring || Anchoring,
       title: title,
       url_form: url_str,
       note: (note || "note-1")
@@ -214,6 +262,7 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
       method: (:is_create ? :post : :patch),
       diff_count_command: EQUATION_MODEL_COUNT, updated_attrs: %i(note),
       diff_num: (diff_num || 21111),
+      is_debug: is_debug,
     }
 
     allopts = (yield(allopts) || allopts) if block_given?
@@ -224,8 +273,10 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
 
     re = Regexp.new(%r@https?://@)
     action, new_mdl = assert_authorized_post(Anchoring, **allopts){ |_, record| # defined in /test/helpers/controller_helper.rb
-      assert_match(re, record.url.url)  # NOTE: url_form becomes nil after "reload"; hence you would either check it here in the yield block or include it in updated_attrs as a Hash like {url: nerurl3}
-      assert_equal url_str.sub(re, ""), record.url.url.sub(re, "")
+      if record.respond_to?(:url)  # this is the Anchoring class when failing.
+        assert_match(re, record.url.url)  # NOTE: url_form becomes nil after "reload"; hence you would either check it here in the yield block or include it in updated_attrs as a Hash like {url: nerurl3}
+        assert_equal url_str.sub(re, ""), record.url.url.sub(re, "")
+      end
     }
     assert_equal((:is_create ? :create : :update), action, "#{_get_caller_info_message(prefix: true)} should never fail, but...")
     new_mdl

@@ -210,7 +210,26 @@ class UrlTest < ActiveSupport::TestCase
     assert_equal dt.site_category, url.site_category
   end
 
-  test "self.find_or_create_url_from_str" do
+  test "self.find_url_from_str" do
+    url1str = "http://abc.com:80/?#"
+    sc1 = site_categories(:site_category_media)
+    url1 = Url.create_basic!(url: url1str, note: "url1")
+    dt1  = url1.domain_title
+    dt1.update!(site_category_id: sc1.id)
+    url1.reload
+
+    assert_nil         Url.find_url_from_str("my.non-existent.com")
+    assert_equal url1, Url.find_url_from_str(url1str)
+    assert_equal url1, Url.find_url_from_str("abc.com")
+    assert_equal url1, Url.find_url_from_str("https://abc.com:443")
+    assert_equal url1, Url.find_url_from_str("https://abc.com:443///")
+    assert_equal url1, Url.find_url_from_str("abc.com///#")
+    assert_equal url1, Url.find_url_from_str("abc.com//?")
+    assert_nil         Url.find_url_from_str("abc.com/xxx?#")
+    assert_nil         Url.find_url_from_str("abc.com//xxx")
+  end
+
+  test "self.create_url_from_str" do
     # The part below is repeated twice, hence a method.
     def mytest_url_dom_dt(url, urlstr, s1, s2, nth, msg)  # nth means n-th call.
       dom = url.domain
@@ -233,7 +252,7 @@ class UrlTest < ActiveSupport::TestCase
 
     ## decoded input
     urlstr = "WWW."+(s1="お名前.com")+":8080"+(s2="/some/path?q=日本語&r=国&w=ABC#zy")
-    url = Url.find_or_create_url_from_str(urlstr)
+    url = Url.create_url_from_str(urlstr)
     mytest_url_dom_dt(url, urlstr, s1, s2, 1, "No scheme, with 'WWW.'")
     tra = url.translations.first
     assert_equal urlstr.sub(%r@^www\.+@i, "").sub(%r@^([^:/]+)(?::\d+)?(/|$)@, '\1\2'), tra.title

@@ -339,11 +339,12 @@ class ActiveSupport::TestCase
   # @param updated_attrs: [Array<Symbol>, Hash] Attributes that should be updated after :update/:create, which you want to check (this does not need to be a complete list at all!). If Hash, +{key => expected-value}+. If Array, the expected values are taken from the given +params+.
   # @param exp_response: [Symbol, String, NilClass] If you expect this to fail, specify :unprocessable_entity
   # @param err_msg: [String, NilClass] Custom error message for assert_response
+  # @oaram is_debug: [Boolean] If true (Def: false), error message in saving is displayed to STDOUT
   # @param bind_offset: [Integer, NilClass] Depth of the call (to get caller information for error messages); 0 if you directly call this from your test script and want to know the caller location in your test-script.
   # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block. [User, ActiveRecord] is passed.
   # @yield [User, ActiveRecord] Executed while the user is logged in after running other tests.
   # @return [Array<Symbol, ActiveRecord, NilClass>] Pair of Array. 1st element is action. 2nd element is, if successful (in :create), returns the created (or updated) model, else nil.
-  def assert_authorized_post(model_record, user: nil, path_or_action: nil, redirected_to: nil, params: nil, method: nil, diff_count_command: nil, diff_num: nil, updated_attrs: [], exp_response: nil, err_msg: nil, bind_offset: DEF_CALLER_INFO_BIND_OFFSET, base_proc: nil)
+  def assert_authorized_post(model_record, user: nil, path_or_action: nil, redirected_to: nil, params: nil, method: nil, diff_count_command: nil, diff_num: nil, updated_attrs: [], exp_response: nil, err_msg: nil, is_debug: false, bind_offset: DEF_CALLER_INFO_BIND_OFFSET, base_proc: nil)
     action, method, path, model, opts = _get_action_method_path(model_record, path_or_action, method, params)
 
     updated_attrs = _get_hash_attrs_from_array_or_hash(updated_attrs, params)
@@ -370,6 +371,7 @@ class ActiveSupport::TestCase
 
     assert_difference(diff_count_command, diff_num, "#{_get_caller_info_message(bind_offset: bind_offset, prefix: true)} User=#{user_txt} should #{action} at #{path} but failed (according to #{diff_count_command.inspect}; expected difference of #{diff_num})...") do
       send(method, path, **opts)
+      (puts "DEBUG(#{File.basename __FILE__}:#{__method__}): Error in saving ActiveRecord =========="; puts css_select(css_for_flash).to_s) if is_debug  # defined in test_helper.rb
       assert_response exp_response, ("#{_get_caller_info_message(bind_offset: bind_offset, prefix: true)} User=#{user_txt}" + (err_msg.present? ? ": "+err_msg : " should get response #{exp_response.inspect} after #{action} at #{path}, but status=#{_http_status_inspect(response.status)}..."))
     end
 
