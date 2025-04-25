@@ -48,6 +48,14 @@ class SiteCategoryTest < ActiveSupport::TestCase
     # assert_nothing_raised{ SiteCategory.first.uris }
   end
 
+  test "default" do
+    sc1 = site_categories(:site_category_other)
+    assert (scd=SiteCategory.default)
+    assert_equal sc1, scd
+    assert scd.default?
+    refute site_categories(:site_category_unknown).default?
+  end
+
   test "SiteCategory.find_by_urlstr" do
     ### SiteCategory.find_by_urlstr
     sc_media = site_categories(:site_category_media)

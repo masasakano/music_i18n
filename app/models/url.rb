@@ -1,3 +1,4 @@
+# coding: utf-8
 # == Schema Information
 #
 # Table name: urls
@@ -71,6 +72,7 @@ class Url < BaseWithTranslation
 
   # Callback
   before_validation :add_scheme_to_url
+  before_validation :adjust_url_minimum  # trimming an unnecessary prefix slash(es), truncating multiple slashes at the tail
   before_validation :normalize_url
   before_validation :normalize_url_langcode
 
@@ -87,8 +89,9 @@ class Url < BaseWithTranslation
   end
 
   validates :url, presence: true
-  validates :url, uniqueness: {scope: :url_langcode, case_sensitive: false}
-  validate  :url_validity  # Should have a valid host with/without a scheme.
+  validates :url,            uniqueness: {case_sensitive: false, scope: :url_langcode}
+  validates :url_normalized, uniqueness: {case_sensitive: false}  # scheme, port, "www." do not matter. case-insensitive INCLUDING the path/query/fragment part. Empty query/fragment ignored.
+  validate  :url_validity   # Should have a valid host with/without a scheme.
   validates :url_langcode, length: {is: 2}, format: {with: /\A[a-z]{2}\z/i}, allow_nil: true, allow_blank: true  # so far, "-" etc are not allowed.
   validates :last_confirmed_date, comparison: { greater_than_or_equal_to: :published_date }, allow_nil: true
 
@@ -101,7 +104,7 @@ class Url < BaseWithTranslation
   # @param url_in [String]
   # @return [String]
   def self.normalized_url(url_in)
-    ModuleUrlUtil.normalized_url(url_in, with_scheme: false, with_www: false, with_port: false, with_extra_trailing_slash: false, with_path: true, with_query: true, with_fragment: true)
+    ModuleUrlUtil.normalized_url(url_in, with_scheme: false, with_www: false, with_port: false, trim_insignificant_prefix_slash: true, with_path: true, truncate_trailing_slashes: true, with_query: true, with_fragment: true, decode_all: true, downcase_domain: true)
   end
 
   # Returns the default Translation if the given title is blank
@@ -110,19 +113,23 @@ class Url < BaseWithTranslation
   # @return [Translation] initialized and unsaved. {Translation#translatable} is unset.
   def self.def_translation_from_url(url, title: nil, langcode: nil, is_orig: nil, **kwds)
     urlstr = (url.respond_to?(:url) ? url.url : url.to_s)
-    title = URI.decode_www_form_component(normalized_url(urlstr)) if title.blank?
+    title = normalized_url(urlstr) if title.blank?  # URI.decode_www_form_component would fail in Domain with non-ASCII
     langcode = (contain_asian_char?(title) ? "ja" : "en") if langcode.blank?
     Translation.new(title: title, langcode: langcode, is_orig: is_orig, **kwds)
   end
 
   # Alternative constructor from String URL
   #
+  # {Url#url} is as the user (editor) specifies — no change or normalization, including case-sensitivity,
+  # except that a null query or fragment is removed and multiple trailing slashes are
+  # truncated to one as in before_validation.  And a scheme ("https://") is added if not present.
+  #
   # @param urlstr [String] mandatory.
   # @param site_category_id: [NilClass, String, Integer] Used only in creating DomainTitle. ignored if nil. auto-guessed if "".  See {Domain.find_or_initialize_domain_title_to_assign} and {Domain.guess_site_category}
   # @param **kwds [Hash] You can initialize any of the standard attributes of Url, plus its Translation. All are optional, and can be automatically set.
   # @return [Url] In failing, +errors+ may be set or +id+ may be nil. +domain+ may be set and +domain.notice_messages+ may be significant (to show as flash messages).
   def self.find_or_create_url_from_str(urlstr, site_category_id: nil, url_langcode: nil, domain: nil, domain_id: nil, weight: nil, published_date: nil, last_confirmed_date: nil, note: nil, memo_editor: nil, title: nil, langcode: nil, is_orig: nil, alt_title: nil)
-    newurl = self.new(url: normalized_url(urlstr),
+    newurl = self.new(url: urlstr,
                      url_langcode: url_langcode,
                      weight: weight,
                      published_date: published_date,
@@ -180,7 +187,7 @@ class Url < BaseWithTranslation
 
     begin
       self.domain = Domain.find_or_create_domain_by_url!(url, site_category_id: site_category_id)
-    rescue => err
+    rescue Domains::CascadeSaveError => err
       errors.add :domain_id, err.message
       return  # an error happens.
     end
@@ -232,6 +239,24 @@ class Url < BaseWithTranslation
       self.url = ModuleUrlUtil.url_prepended_with_scheme(self.url)
     end
 
+    # Callback to adjust "url", trimming an unnecessary prefix slash(es), truncating multiple slashes at the tail
+    #
+    def adjust_url_minimum
+      self.url = ModuleUrlUtil.normalized_url(
+                   self.url, 
+                   with_scheme: true,
+                   with_www: true,
+                   with_port: true,
+                   trim_insignificant_prefix_slash: true,
+                   with_path: true,
+                   truncate_trailing_slashes: true,
+                   with_query: true,
+                   with_fragment: true,
+                   decode_all: false,
+                   downcase_domain: false,
+                   delegate_special: true)
+    end
+
     # Callback to set url_normalized
     #
     # Prefix "https" is allowed, but removed on save.
@@ -240,7 +265,7 @@ class Url < BaseWithTranslation
     #
     # The callback {add_scheme_to_url} is assumed to be called before this.
     def normalize_url
-      self.url_normalized = URI.decode_www_form_component(self.class.normalized_url(url))
+      self.url_normalized = Addressable::URI.unencode(self.class.normalized_url(url))  # URI.decode_www_form_component would fail in Domain with non-ASCII
     end
 
     # Callback to modify url_langcode
@@ -251,9 +276,44 @@ class Url < BaseWithTranslation
 
     # Should have a valid host with/without a scheme
     def url_validity
-      if ModuleUrlUtil.scheme_and_uri_string(url).first.blank?
-        errors.add(:url, " url does not appear to be a valid URI")
+      if !ModuleUrlUtil.valid_url_like?(url)
+        errors.add(:url, " url does not appear to be a valid URL")
       end
     end
 
 end
+
+
+class << Url
+  alias_method :create_basic_bwt!, :create_basic! if !self.method_defined?(:create_basic_bwt!)
+  alias_method :initialize_basic_bwt, :initialize_basic if !self.method_defined?(:initialize_basic_bwt!)
+
+  # Wrapper of {BaseWithTranslation.create_basic!}
+  #
+  # "url" is mandatory
+  def create_basic!(*args, domain: nil, domain_id: nil, **kwds, &blok)
+    opts = _get_options_for_create_basic(domain, domain_id, kwds)
+    create_basic_bwt!(*args, **opts, &blok)
+  end
+
+  # Wrapper of {BaseWithTranslation.initialize_basic!}
+  def initialize_basic(*args, domain: nil, domain_id: nil, **kwds, &blok)
+    opts = _get_options_for_create_basic(domain, domain_id, kwds)
+    initialize_basic_bwt(*args, **opts, &blok)
+  end
+
+    def _get_options_for_create_basic(domain, domain_id, kwds)
+      opts = {}.merge(kwds).with_indifferent_access
+      if !opts.has_key?(:title) || opts[:title].blank?
+        opts[:title] = "create-basic-"+(opts[:url] || "blank-domain-#{rand.to_s}")
+      end
+      if !opts.has_key?(:langcode) || opts[:langcode].blank?
+        opts[:langcode] = "ja"
+      end
+      domain_id ||= (domain ? domain.id : (Domain.unknown || Domain.create_basic!(*args)).id)
+      opts[:domain_id] = domain_id
+      opts
+    end
+    private :_get_options_for_create_basic
+end
+

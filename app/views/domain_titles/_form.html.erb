@@ -23,7 +23,7 @@
   <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
 
   <div class="form-inputs">
-    <%= f.association :site_category, include_blank: false, default: SiteCategory.unknown.id %>
+    <%= f.association :site_category, include_blank: false, default: SiteCategory.default.id %>
 
     <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: DomainTitle, skip_ability_check: true} %> <%# weight, note, memo_editor %>
   </div>

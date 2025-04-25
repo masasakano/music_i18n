@@ -69,7 +69,11 @@ class SiteCategory < BaseWithTranslation
     #  logger.warn("WARNING(#{File.basename __FILE__}:#{__method__}): Failed to identify the default #{self.class.name}!")
     #end
 
-    self.unknown
+    find_by(mname: "other") || unknown || first
+  end
+
+  def default?
+    self == self.class.default
   end
 
   # @param urs_str: [String] any URL-type String

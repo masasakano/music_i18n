@@ -48,4 +48,17 @@ class Anchoring < ApplicationRecord
   def site_category_label
     site_category.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "(UNDEFINED)") if site_category.present?
   end
+
+
+  alias_method :inspect_orig, :inspect if ! self.method_defined?(:inspect_orig)
+
+  def inspect
+    inspect_orig.sub(/(, url_id: (\d+)),/){
+      url_str = "nil"
+      if (u=Url.find($2)) && (u.url.present?)
+        (url_str = Addressable::URI.unencode(u.url)) rescue nil
+      end
+      sprintf("%s(%s),", $1, url_str)
+    }
+  end
 end

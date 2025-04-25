@@ -21,6 +21,8 @@
 #  fk_rails_...  (site_category_id => site_categories.id)
 #
 class DomainTitle < BaseWithTranslation
+  extend ModuleCommon  # for guess_lang_code
+
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
   include ModuleWeight  # adds a validation
@@ -72,9 +74,9 @@ class DomainTitle < BaseWithTranslation
   # @param site_category_id: [NilClass, String, Integer] "" would raise an error.  If nil, Default is used.
   # @return [DomainTitle]
   def self.new_from_url(url_str, site_category_id: nil)
-    ret = DomainTitle.new(site_category_id: (site_category_id || SiteCategory.unknown.id))
-    domain_txt = URI.decode_www_form_component(Domain.extracted_normalized_domain(url_str, with_www: false))  # without "www."
-    ret.unsaved_translations << Translation.new(title: domain_txt, langcode: "en", is_orig: nil, weight: Float::INFINITY)
+    ret = DomainTitle.new(site_category_id: (site_category_id || SiteCategory.default.id))  # A fallback is unknown
+    domain_txt = Addressable::URI.unencode(Domain.extracted_normalized_domain(url_str, with_www: false))  # without "www."
+    ret.unsaved_translations << Translation.new(title: domain_txt, langcode: guess_lang_code(domain_txt), is_orig: nil, weight: Float::INFINITY)
     ret
   end
 

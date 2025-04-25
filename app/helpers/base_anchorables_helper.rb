@@ -38,4 +38,16 @@ module BaseAnchorablesHelper
   def path_id_symbol(record)
     ((record.respond_to?(:anchorable) ? record.anchorable.class : record.class).name.underscore + "_id").to_sym
   end
+
+  #
+  # @param record [Anchoring]
+  # @return [String] The title header for each link in the embedded Anchoring-Show
+  def link_show_header(record)
+    anchorable = record.anchorable
+    sctit = record.site_category.title_or_alt(    langcode: I18n.locale, prefer_shorter: true, lang_fallback_option: :either, str_fallback: "")
+    tdtit = (dt=record.domain_title).title_or_alt(langcode: I18n.locale, prefer_shorter: true, lang_fallback_option: :either, str_fallback: (can?(:edit, Artist) ? "(UNDEFINED)" : nil))
+    tdtit = nil if dt.domains.pluck(:domain).map{|es| es.sub(/^www\./, "")}.uniq.include?(tdtit)  # If the title is just a URL, it is not displayed.
+
+    sprintf("(%s)", [sctit, tdtit].compact.join(": "))
+  end
 end

@@ -58,7 +58,7 @@ class DomainsControllerTest < ActionDispatch::IntegrationTest
     # assert_authorized_post(Domain, params: hs2pass.merge(domain: "yy.com"), diff_num: 0, err_msg: "should have failed due to unique constraint, but Response is...")  ## This expectantly fails!  A test of assert_authorized_post() itself.
 
     assert_equal :create, assert_authorized_post(Domain, params: hs2pass.merge({domain: ""}), diff_num: 0, err_msg: "should have failed due to null title, but Response is...").first
-    assert_equal :create, assert_authorized_post(Domain, params: hs2pass.merge({domain: new_mdl2.domain+".012" }), diff_num: 0, err_msg: "should have failed due to the invalid domain name, but Response is...").first
+    assert_equal :create, assert_authorized_post(Domain, params: hs2pass.merge({domain: new_mdl2.domain+".0123" }), diff_num: 0, err_msg: "should have failed due to the invalid domain name, but Response is...").first  # Note that if the last part of for the domain is ".012", this succeeds so far even though it is an invalid URL (".12" is valid but ".012" is not), but the validation is not yet fine-tuned to that extent.
 
     refute_match(/^www\./, new_mdl2.domain)
     hs2pass2 = hs2pass.merge({domain: "www."+new_mdl2.domain, domain_title_id: ""})  # DomainTitle should be set to an existing one

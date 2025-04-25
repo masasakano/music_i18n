@@ -14,7 +14,7 @@ class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @url = urls(:one)
-    @event = events(:three)
+    @anchorable = @event = events(:three)
     @domain = domains(:one)
     @site_category = site_categories(:one)
     @sysadmin  = users(:user_sysadmin)
@@ -56,10 +56,10 @@ class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
 
   test "should create/update/destroy anchoring by moderator" do
     # defined in /test/helpers/controller_anchorable_helper.rb
-    opt_users = {fail_users: [], success_users: [@moderator_all]}
-    news = _assert_create_anchoring_urls_domains(@event, **opt_users)
-    new1 = news.first
-    new2 = _assert_create_anchoring_url_wiki(   @event, **opt_users)
+    opt_users = {fail_users: [], success_users: [@moderator_all]}  # only a single success_users is valid for :create, whereas multiple fail_users can be tested.
+    new_anchorings = _assert_create_anchoring_urls_domains(@anchorable, **opt_users)
+    new1 = new_anchorings.first
+    new3 = _assert_create_anchoring_url_wiki(   @anchorable, **opt_users)
 
     _refute_public_accesses_to_anchorables(new1)
     _assert_authorized_gets_to_anchorables(new1, **opt_users)  # :new, :edit : disallowed
@@ -75,12 +75,12 @@ class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
     url0 = anchoring.url
 
     paths = {
-      create:    event_anchorings_path(event_id: @event.id),
-      new:   new_event_anchoring_path( event_id: @event.id),
-      # edit: edit_event_anchoring_path(id: anchoring.id, event_id: @event.id),
-      # show:      event_anchoring_path(id: anchoring.id, event_id: @event.id),
+      create:    event_anchorings_path(event_id: @anchorable.id),
+      new:   new_event_anchoring_path( event_id: @anchorable.id),
+      # edit: edit_event_anchoring_path(id: anchoring.id, event_id: @anchorable.id),
+      # show:      event_anchoring_path(id: anchoring.id, event_id: @anchorable.id),
     }.with_indifferent_access
-    proc_art0_path = Proc.new{event_anchoring_path(id: Anchoring.last.id, event_id: @event.id)}  ############ ????
+    proc_art0_path = Proc.new{event_anchoring_path(id: Anchoring.last.id, event_id: @anchorable.id)}  ############ ????
 
     hsprms = @hs_base.merge({
       # id: anchoring.id.to_s,
@@ -137,7 +137,7 @@ end # if false
 
     ## hsupdate = @hs_base.merge( hs2add )  # No language-related fields
     #hsupdate = hsprms.merge({url_form: hsprms[:url_form]+"-updated"})  # No language-related fields
-    new_mdl4 = news.last
+    new_mdl4 = new_anchorings.last
     hsupdate = _build_params(new_mdl4, url_form: (urlstr_orig=new_mdl4.url.url)+"-updated", note: (note4 = "upd4"))
 
     ## standard update

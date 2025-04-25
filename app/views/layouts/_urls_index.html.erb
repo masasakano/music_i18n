@@ -51,7 +51,7 @@
           <td class="editor_only text-end item_pid"><%= link_to(record.id, record) %></td>
          <% end %>
         <td class="item_url_langcode text-center"><%= record.url_langcode %></td>
-        <td class="item_url"><%= link_to(URI.decode_www_form_component(record.url), record.url, target: "_blank") if record.url %></td>  <%# Rails prohibits a null value, but playing safe %>
+        <td class="item_url"><%= link_to(Addressable::URI.unencode(record.url), record.url, target: "_blank") if record.url %></td>  <%# Rails prohibits a null value, but playing safe %>
         <td class="item_title"><%= record.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "(undefined)", article_to_head: true) %></td>
          <% if (caneditgen=can?(:edit, Url))  %>
         <td class="editor_only item_url_normalized"><%= record.url_normalized %></td>

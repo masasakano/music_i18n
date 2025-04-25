@@ -4325,6 +4325,8 @@ tra_orig.save!
       translation.save!
       @unsaved_translations.pop
     end
+
+    translations.reset  # Without this, the association would not be updated, which may cause a surprise.
   end
 
   # Translation-related validation

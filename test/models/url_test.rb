@@ -1,3 +1,4 @@
+# coding: utf-8
 # == Schema Information
 #
 # Table name: urls
@@ -80,33 +81,14 @@ class UrlTest < ActiveSupport::TestCase
 
     assert url.valid?, "errors="+url.errors.inspect
 
-
-    #   one:
-    #   url: "https://www.mydomain.org/abc"
-    #   url_normalized: "www.mydomain.org/abc"
-    #   domain_title: one
-    #   url_langcode: en
-    #   weight: 100.5
-    #   published_date: 2025-04-01
-    #   last_confirmed_date: 2025-04-15
-    #   create_user: user_editor
-    #   update_user: user_moderator
-    #   note: UrlMyTextOne
-    #   memo_editor: UrlMyMemoOne
-    # 
-    # two:
-    #   url: "https://www.mydomain.org:80/def?myquery=5&other=6"
-    #   url_normalized: "mydomain.org/abc?myquery=5&other=6"
-    #   domain_title: two
-    #   url_langcode: 
-    #   weight: 108.5
-    #   published_date: 2025-04-02
-    #   last_confirmed_date: 2025-04-12
-    #   create_user: user_editor_general_ja
-    #   update_user: user_moderator
-    #   note: UrlMyNoteOne
-    #   memo_editor: UrlMyMemoTwo
-
+    urlstr1 = "www.MySite.com:443/ABC"
+    url1 = Url.new(url: "https://"+urlstr1, domain: Domain.first)
+    url1.unsaved_translations << Translation.new(title: "url-1", langcode: "en")
+    url1.save!
+    urlstr2 = ("http://"+urlstr1.downcase).sub(/443/, "80")  # Protocol is "http" (NOT https), ports differ, cases for both Domain and Path differ. Some differences are significant IN PRINCIPLE, but they are regarded as identical here.
+    url2 = Url.new(url: urlstr2, domain: Domain.second)
+    url2.unsaved_translations << Translation.new(title: "url-2", langcode: "en")
+    refute url2.valid?, "validate should fail because case-insensitive URL, and schemes and ports do not matter, but..."
   end
 
   test "unknown" do
@@ -126,15 +108,98 @@ class UrlTest < ActiveSupport::TestCase
 
     s = "abc.com/?q="
     assert_equal s, Url.normalized_url("https://"+s)
+
+    s = "https://"+(s1="お名前.com")+":8080"+(s2="/some/path?q=日本語&r=国&w=ABC#zy")
+    assert_equal s1+s2, Url.normalized_url(s)
+    assert_equal s1+s2, Url.normalized_url(Addressable::URI.encode(s))
+
+    s0 = s.sub(/\.com/, ".COM")
+    encoded = Addressable::URI.encode(s0)
+    refute_equal s, encoded, 'sanity check'
+    newurl = Url.new(url: encoded, domain: Domain.first)
+    newurl.unsaved_translations << Translation.new(title: "tekito", langcode: "en")
+    newurl.save!
+    assert_equal encoded, newurl.url,            'shuld be raw, but...'
+    assert_equal s1+s2,   newurl.url_normalized, 'shuld be decoded+downcased, but...'
+
+    # changes it to test :update
+    newurl.update!(url: "another.com")
+    refute_equal encoded, newurl.url
+    refute_equal s1+s2,   newurl.url_normalized
+    newurl.update!(url: encoded)
+    assert_equal encoded, newurl.url,            'shuld be raw (again), but...'
+    assert_equal s1+s2,   newurl.url_normalized, 'shuld be decoded+downcased (again), but...'
   end
 
   test "normalized url" do
     dt = DomainTitle.unknown
     pri_domain_str = dt.primary_domain.domain
     assert pri_domain_str, 'sanity check'
-    url_str = "https://"+pri_domain_str.sub(%r@^(https?://)?(www\.)@, "").capitalize.sub(/\.com/, ".COM")+"/abc"
+    url_root = pri_domain_str.sub(%r@^(https?://)?(www\.)?@, "fff.")
+    url_str = "https://"+url_root.capitalize.sub(/\.com/, ".COM")
+    url_exp = url_root
 
-    url_obj = URI.parse(url_str)
+    url = Url.create_basic!(url: url_str)
+    assert_equal url_str, url.url
+    assert_equal url_exp, url.url_normalized
+
+    url.update!(url: url_str+"///")
+    assert_equal url_str, url.url
+    assert_equal url_exp, url.url_normalized
+
+    url.update!(url: url_str+"/?#")
+    assert_equal url_str, url.url
+    assert_equal url_exp, url.url_normalized
+
+    url.update!(url: url_str+"/a///#")
+    assert_equal url_str+"/a/", url.url
+    assert_equal url_exp+"/a/", url.url_normalized
+
+    url.update!(url: url_str.sub(%r@/abc@, "////?#"))  # "....com////?#"
+    exp = url_str.sub(%r@/abc@, "")
+    assert_equal exp,          url.url
+    assert_equal exp.downcase.sub(%r@^https://@, ""), url.url_normalized
+  end
+
+  test "before_validation to url" do
+    ["abc.x/345", "http://localhost"].each do |urlin|
+      url = Url.initialize_basic(url: urlin)
+      refute url.valid?, "URL=#{urlin} should be invalid, but..."
+    end
+
+    urlin = "abc.DEF.com"
+    url = Url.create_basic!(url: urlin)
+    assert_equal "https://"+urlin, url.url
+
+    url.update!(url:     urlin+"/")
+    assert_equal "https://"+urlin, url.url
+
+    url.update!(url:     urlin+"///")
+    assert_equal "https://"+urlin, url.url
+
+    url.update!(url:     urlin+"/?")
+    assert_equal "https://"+urlin, url.url
+
+    url.update!(url:     urlin+"/#")
+    assert_equal "https://"+urlin, url.url
+
+    url.update!(url:     urlin+"/a///")
+    assert_equal "https://"+urlin+"/a/", url.url
+
+    url.update!(url:     urlin+"/a?")
+    assert_equal "https://"+urlin+"/a", url.url
+
+    url.update!(url:     urlin+"/a#")
+    assert_equal "https://"+urlin+"/a", url.url
+
+    url.update!(url:     urlin+"/a?#")
+    assert_equal "https://"+urlin+"/a", url.url
+
+    url.update!(url:     urlin+"/a?q=#")
+    assert_equal "https://"+urlin+"/a?q=", url.url
+
+    url.update!(url: "WWW."+urlin)
+    assert_equal "https://WWW."+urlin, url.url, "should not be downcased with 'www.', but..."
   end
 
   test "associations" do
@@ -144,6 +209,45 @@ class UrlTest < ActiveSupport::TestCase
     assert dt.domains.include?(url.domain)
     assert_equal dt.site_category, url.site_category
   end
+
+  test "self.find_or_create_url_from_str" do
+    # The part below is repeated twice, hence a method.
+    def mytest_url_dom_dt(url, urlstr, s1, s2, nth, msg)  # nth means n-th call.
+      dom = url.domain
+      dt  = url.domain_title
+
+      refute url.errors.any?
+      refute url.new_record?
+      assert_equal "https://"+urlstr.sub(%r@^https://@, ""), url.url, "Failed in #{nth.ordinalize} call (#{msg})..."
+      assert_equal s1+s2, url.url_normalized, "url_normalized should be decoded always, but..."
+
+      assert_equal 1, url.translations.count
+
+      assert_equal 1, dt.translations.count
+      tra = dt.translations.first
+      assert_equal s1.sub(/^www./i, ""), tra.title, "Translation title of DomainTitle should be decoded always, but..."
+      assert_equal "ja", tra.langcode
+
+      assert_match(/^[a-z.お名前]+$/, dom.domain, 'should be downcased, but...')
+    end
+
+    ## decoded input
+    urlstr = "WWW."+(s1="お名前.com")+":8080"+(s2="/some/path?q=日本語&r=国&w=ABC#zy")
+    url = Url.find_or_create_url_from_str(urlstr)
+    mytest_url_dom_dt(url, urlstr, s1, s2, 1, "No scheme, with 'WWW.'")
+    tra = url.translations.first
+    assert_equal urlstr.sub(%r@^www\.+@i, "").sub(%r@^([^:/]+)(?::\d+)?(/|$)@, '\1\2'), tra.title
+    assert_equal "ja",   tra.langcode
+
+    ## encoded input
+    encoded = Addressable::URI.encode("https://"+urlstr)
+    url.update!(url: encoded)
+    mytest_url_dom_dt(url, encoded, s1, s2, 2, "Encoded with scheme")
+    tra = url.translations.first
+    assert_equal urlstr.sub(%r@^www\.+@i, "").sub(%r@^([^:/]+)(?::\d+)?(/|$)@, '\1\2'), tra.title, "Translation title of Url should be decoded always, but..."
+    assert_equal "ja",   tra.langcode
+  end
+
 
   test "polymorphic-relations" do
     arclasses = [Artist, Channel, Event, EventGroup, HaramiVid, Music, Place]

@@ -328,7 +328,7 @@ module ApplicationHelper
     hs2pass = {long: long, with_host: true, with_time: false, with_query: true, with_scheme: with_http}
     normalized_txt = normalized_uri_youtube(root_kwd, **hs2pass)
     platform = normalized_txt.platform  # singleton method
-    uri = URI.parse( normalized_txt )
+    uri = Addressable::URI.parse( normalized_txt )
 
     return uri.to_s if :youtube != platform
 
@@ -348,8 +348,8 @@ module ApplicationHelper
   # @return [Symbol, String, NilClass] nil if input is blank. Symbols like (:youtube, :tiktok). String for domain ("www." is removed) if there is a valid host. Otherwise, the input String as it is.
   def self.guess_site_platform(str)
     return nil if str.blank?
-    uri = URI.parse(str)
-    uri = URI.parse("https://"+str) if !uri.host
+    uri = Addressable::URI.parse(str)
+    uri = Addressable::URI.parse("https://"+str) if !uri.host
     return nil if !uri.host
     
     case (host=uri.host.sub(/\Awww\./, "").downcase)
@@ -373,7 +373,7 @@ module ApplicationHelper
   # Otherwise, the input String is treated as it is.
   #
   # @parm uri_str [String] may include "http://" or not.
-  # @return [URI] 
+  # @return [Addressable::URI] 
   def self.parsed_uri_with_or_not(uri_str, def_scheme: "https")
     uri_str2pass = 
       if %r@\A([^:/]+:///?)?((?:www\.)[^.]|youtu.be/)(.+)@ =~ uri_str
@@ -382,7 +382,7 @@ module ApplicationHelper
         uri_str
       end
 
-    URI.parse(uri_str2pass)
+    Addressable::URI.parse(uri_str2pass)
   end
 
   # @param uri [URI::Generic]
@@ -469,7 +469,7 @@ module ApplicationHelper
     ## NOTE: manual processing instead of letting URI.parse() to judge is necessary
     #    because "youtube.com:8080/" is considered to have uri.scheme of "youtube.com" (!)
     s = ((%r@\A[a-z]{2,9}://?@ !~ uri_str.strip) ? "https://" : "")+uri_str  # "telnet" and "gopher" are the longest and "ftp" is the shortest I can think of, hence {2, 9}.
-    uri = URI.parse(s)
+    uri = Addressable::URI.parse(s)
 
     # This sets an instance variable: uri.platform
     adjust_queries!(uri, long: long, with_query: with_query, with_time: with_time)

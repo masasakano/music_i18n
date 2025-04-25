@@ -12,7 +12,7 @@
 <% prm_parent_key = prm_parent_lower + "_id" %>
 <% turbo_tag_index = dom_id(record)+"_anchorings" %>
 <%# turbo_frame_tag "anchoring_"+dom_id(record) do %>
-  <% anchorings = record.anchorings %>
+  <% anchorings = record.anchorings.joins(:site_category).joins(:domain_title).joins(:url).order("site_categories.weight", "domain_titles.weight", "urls.created_at") %>
   <section id="anchoring_index_<%= record.class.name %>" class="anchoring_index">
     <% paths = { new: send("new_"+ path_base, prm_parent_key => record.id), }.with_indifferent_access %> <%# Note: The direct argument assignment of "record" (or (anchoring, record) for :edit) returns the path without a locale, so it is not ideal, hence the use of "artrist_id: art1" %>
     <% if anchorings.exists? || canedit_gen %>

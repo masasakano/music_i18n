@@ -1351,6 +1351,18 @@ module ModuleCommon
     end
   end
 
+  # Error message
+  #
+  # @example
+  #    rescue => err
+  #      raise Domains::CascadeSaveError, "Failed. Message: "+compile_captured_err_msg(err)
+  #
+  # @param err [Exception]
+  # @return [String]
+  def compile_captured_err_msg(err)
+    sprintf("<%s> %s", err.class.name, err.message)
+  end
+
   # Define singleton accessor (or reader) method to an Object with an initil value
   #
   # @example

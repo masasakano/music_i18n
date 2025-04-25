@@ -190,14 +190,14 @@ class BaseAnchorablesController < ApplicationController
     def _adjust_for_wikipedia(anchoring=@anchoring)
       url_w_scheme = ModuleUrlUtil.url_prepended_with_scheme(anchoring.url_form)
       return if url_w_scheme.blank?
-      urin = URI.parse(url_w_scheme)
+      urin = Addressable::URI.parse(url_w_scheme)
       return if /^([a-z]{2})\.wikipedia\.org$/ !~ urin.host.downcase  # Not Wikipedia
 
       site_lang = $1
       anchoring.url_langcode = site_lang if anchoring.url_langcode.blank?
       return if !anchoring.new_record? || !anchoring.title.blank?
 
-      anchoring.title = URI.decode_www_form_component(urin.path.sub(%r@^/?wiki/@, ""))
+      anchoring.title = Addressable::URI.unencode(urin.path.sub(%r@^/?wiki/@, ""))  # or URI.decode_www_form_component
       anchoring.langcode = site_lang
       anchoring.is_orig = true
     end
@@ -208,7 +208,7 @@ class BaseAnchorablesController < ApplicationController
     def _adjust_for_harami_chronicle(anchoring=@anchoring)
       url_w_scheme = ModuleUrlUtil.url_prepended_with_scheme(anchoring.url_form)
       return if url_w_scheme.blank?
-      urin = URI.parse(url_w_scheme)
+      urin = Addressable::URI.parse(url_w_scheme)
 
       dom = Domain.find_by_both_urls(url_w_scheme)
       return if !dom

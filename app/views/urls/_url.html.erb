@@ -15,7 +15,7 @@
     <dt class="item_id_url" title="<%= msg0 %>"> <%= t(:Url) %>:</dt>
     <dd class="item_id_url">
       <% if model.url.present? %>
-        <% decoded = URI.decode_www_form_component(model.url) %>
+        <% decoded = Addressable::URI.unencode(model.url) %>
         <% is_identical = (decoded == model.url) %>
         <%= link_to(decoded, model.url, target: "_blank", title: (is_identical ? msg_editor1 : msg_editor2)) %>
     <% end %>

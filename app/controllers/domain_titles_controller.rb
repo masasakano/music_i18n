@@ -27,7 +27,7 @@ class DomainTitlesController < ApplicationController
 
   # GET /domain_titles/new
   def new
-    @domain_title = DomainTitle.new
+    @domain_title = DomainTitle.new(site_category: SiteCategory.default)
   end
 
   # GET /domain_titles/1/edit

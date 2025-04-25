@@ -21,6 +21,10 @@
 #
 class Domain < ApplicationRecord
   include ModuleWeight  # adds a validation
+  extend ModuleWeight   # for compile_captured_err_msg
+
+  include ModuleUrlUtil
+  extend ModuleUrlUtil
 
   belongs_to :domain_title
 
@@ -39,19 +43,13 @@ class Domain < ApplicationRecord
   # Specific to this model
   UNKNOWN_TITLE = UNKNOWN_TITLES[:en].first
 
-  # String expression of the core part of Regular expression of a Domain
-  # c.f., https://stackoverflow.com/questions/1128168/validation-for-url-domain-using-regex-rails/16931672
-  REGEXP_DOMAIN_CORE_STR = "(?-mix:[a-z0-9]+([\\-\\.]{1}[a-z0-9]+)*\\.[a-z]{2,63})"
-
-  # Regular expression of a Domain to be saved in DB
-  REGEXP_DOMAIN = /\A#{REGEXP_DOMAIN_CORE_STR}\z/
-
   # Callback
   before_validation :normalize_domain
 
   validates :domain, presence: true
   validates_uniqueness_of :domain
-  validates_format_of :domain, with: REGEXP_DOMAIN
+  # validates_format_of :domain, with: REGEXP_DOMAIN
+  validate  :validate_decoded_regexp
 
   # @param reload [void] Always ignored. Just for conistency with ModuleUnknown
   def self.unknown(reload: nil)
@@ -65,14 +63,14 @@ class Domain < ApplicationRecord
   # @param url [String, Url]
   # @return [SiteCategory] gussed based on the given url
   def self.guess_site_category(url)
-    uri = URI.parse( ModuleUrlUtil.url_prepended_with_scheme(url) )
-    return SiteCategory.unknown if uri.host.blank?
+    uri = Addressable::URI.parse( url_prepended_with_scheme(url) )  # defined in ModuleUrlUtil
+    return SiteCategory.unknown if uri.host.blank?  # abnormal situation!
 
     /([^.]+\.[^.]+)$/ =~ uri.host
     top_domain = $1
 
     cand = Domain.where(domain: top_domain).or(Domain.where("domain LIKE ?", "%"+top_domain)).order(:created_at).first
-    cand ? cand.site_category : SiteCategory.unknown
+    cand ? cand.site_category : SiteCategory.default
   end
 
   # Finds Domain with the exact Domain from the given URL String
@@ -130,18 +128,29 @@ class Domain < ApplicationRecord
     record.notice_messages ||= []
     dt = record.find_or_initialize_domain_title_to_assign(site_category_id: site_category_id)  # This would never be an Integer b/c record is a new_record?
     if !dt  # This happens only if record.domain.blank? for an "existing" Domain - should never happen!
-      record.save!  # should fail.
-      return record
+      raise Domains::CascadeSaveError, "Failing to find or initialize DomainTitle with #{url_str}"
     end
 
     msgs = []
     ActiveRecord::Base.transaction(requires_new: true) do
+      was_dt_new = dt.new_record?
       if dt.new_record?
-        dt.save! 
+        begin
+          dt.save! 
+        rescue => err
+          raise Domains::CascadeSaveError, "Failed in saving DomainTitle with #{url_str} . Message: "+compile_captured_err_msg(err)
+        end
         msgs.push "DomainTitle created: "+dt.reload.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "")
       end
       record.domain_title_id = dt.id
-      record.save!
+
+      begin
+        record.save!
+      rescue => err
+        msg_dt = sprintf("after successfully creating DomainTitle (pID=%d)", dt.id)
+        err_msg = sprintf("Failed in creating Domain with #{url_str} %s. Message: %s", msg_dt, compile_captured_err_msg(err))
+        raise Domains::CascadeSaveError, err_msg
+      end
       msgs.push "Domain created: "+record.domain.to_s
     end
     record.notice_messages.concat msgs
@@ -163,11 +172,17 @@ class Domain < ApplicationRecord
     end
     return if domain.site_category.id.to_s == site_category_id.to_s
 
-    ## DomainTitle updates (bang)
-    domain.domain_title.update!(site_category_id: site_category_id)
+    begin
+      ## DomainTitle updates (bang)
+      domain.domain_title.update!(site_category_id: site_category_id)
+    rescue => err
+      pid_dt = ((dt=domain.domain_title) ? dt.id : "nil")
+      err_msg = sprintf("Failed in updating DomainTitle (pID=%s) with SiteCategory (pID=%s). Message: %s", pid_dt, site_category_id.inspect, compile_captured_err_msg(err))
+      raise Domains::CascadeSaveError, err_msg
+    end
 
     domain.notice_messages ||= []
-    domain.notice_messages.push "DomainTitle's SiteCategory updated to #{domain.site_category.title_or_alt(prefer_shorter: false, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "(NO TITLE)", article_to_head: true)}"
+    domain.notice_messages.push "SiteCategory for DomainTitle (Domain: #{domain.domain.sub(/^www\./, '')}) updated to #{domain.site_category.title_or_alt(prefer_shorter: false, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "(NO TITLE)", article_to_head: true)}"
     domain
   end
 
@@ -197,17 +212,25 @@ class Domain < ApplicationRecord
   # Wrapper of ModuleUrlUtil.normalized_url with a specific combination of options
   #
   # This extracts a domain part from a given URI, excluding the scheme, preserving "www.",
-  # with no trailing forward slash (at the end of the domain), path, or queries/fragments
+  # with no port, no trailing forward slash (at the end of the domain), path, or queries/fragments
+  #
   # This may be used by a Controller?
   #
   # @note
   #   port is ignored.  Ideally, port number should be held as a different attribute/column. TODO?
   #
-  # @param url_in [String]
+  # @param url_in [String] or domain. With or without a scheme.
   # @param with_www: [Boolean] If true (Def), the "www." part in the path is, if present, not trimmed.  If the input does not have it, the return does not have it, either.
   # @return [String]
-  def self.extracted_normalized_domain(url_in, with_www: true)
-    ModuleUrlUtil.normalized_url(url_in, with_scheme: false, with_www: with_www, with_port: false, with_path: false, with_extra_trailing_slash: true, with_query: false, with_fragment: false, delegate_special: false)
+  def self.extracted_normalized_domain(url_in, with_www: true, with_path: false)
+    normalized_url(url_in,
+               with_scheme: false,
+               with_www: with_www,
+               with_port: false,
+               with_path: with_path,
+               decode_all: true,
+               downcase_domain: true,
+               delegate_special: true) # defined in ModuleUrlUtil
   end
 
   # Reassesses and maybe resets the associated {SiteCategory} with the parent DomainTitle
@@ -270,16 +293,26 @@ class Domain < ApplicationRecord
     # Prefix "https" is allowed, but removed on save.
     # Port number is allowed, but removed on save.
     # A trailing forward slash is allowed, but removed on save.
+    #
+    # There are almost countless combinations for encoding.  Therefore, `Domain#domain` is decoded
+    # on DB record.  Also, downcased.
+    #
+    # Note that this callback does NOT remove the path part so that if there is a path part,
+    # a validation will fail.  User is responsible (deliberately).
     def normalize_domain
-      ### This class method modifies the input too aggressively; it removes the path part.
-      ### For a Model it is too aggressive.  If a path part is included, it should fail a vlidation.
-      # self.domain = self.class.extracted_normalized_domain(domain)
-
-      if /\A\s*(?:(?:https?|file):\/\/)?(#{REGEXP_DOMAIN_CORE_STR})(?::[0-9]{1,5})?(?:\/)?\s*\z/ix =~ domain
-        # Assuming a path part is NOT included.
-        self.domain = $1.downcase  # excluding a scheme and a port if any
-      end
-
+      self.domain = self.class.extracted_normalized_domain(domain, with_path: true)
     end
+
+    # validate "domain" with Regexp
+    # 
+    # When Domain is created/updated automatically, {Domain#domain} is automatically encoded.
+    # However, when it is manually edited via Domain-specific UI, the user's input is respected.
+    # So, +before_validation+ is not used.
+    def validate_decoded_regexp
+      if !ModuleUrlUtil.valid_domain_like?(domain)
+        errors.add(:domain, "domain attribute does not constitute a valid domain.")
+      end
+    end
+
 end
 

@@ -209,6 +209,76 @@ How to generate a new ActiveRecord model with Translation.
     * A case of failure is that a model has a machine-name attribute, which is used in idnetifying a duplication, and yet the machine-name is modified either in the seed file or on the website.  In this case, their Translations may raise a violation.
 
 
+### Procedure to define a new association of a model to Url through polymorphic Anchoring
+
+The join class *Anchoring* provides a polymorphic many-to-many association between *Url* and other classes (of *BaseWithTranslation*, a subclass of *ActiveRecord*).  Here is a standard procedure to define it to a new model.  Whereas the modification to the model is tiny (just one line!), you are most likely to need a new Controller for it, which needs a bit more work. In the following procedure, you add an editing interface of Url in the Show page of the model, where an editor can edit it on the spot.
+
+Here, let us call the new model the "target model" *Target*.
+
+Almost all the methods for Controller and layouts for Views are already provided.  So, only you need is basically to link them to your Cnotroller and View, along with an added line to your routes file.
+
+1. In the model file of *Target* (`/app/models/target.rb`), adds a line (maybe at the top though anywhere is acceptable): `include Anchorable`
+2. Run (at your shell): `bin/rails generate controller targets/anchorings --no-helper` which will generate
+   * This generates a template Controller and test files, along with the directory like `/app/controllers/targets/`
+   * In fact, instead you can just manually create new directories and copy and paste the files, changing the file names appropriately, of 1 Controller, 1 controller test, and many views from respective template files from another model like `/app/controllers/events/anchorings_controller.rb` and `test/controllers/events/anchorings_controller_test.rb` and `/app/views/events/anchorings/` 
+3. Edit your route file `/config/routes.rb` , adding the following lines.  Rails-generate does not automatically modify the route for the nested resources.
+
+   ```ruby
+   resources :targets do
+     resources :anchorings, controller: 'targets/anchorings'
+   end
+   ```
+4. Edit your controller file.  Your Controller file needs only 3 lines; the Controller should be a child class of `BaseAnchorablesController` and defines your model-specific constant `ANCHORABLE_CLASS` .  All the methods (like `show` and `create`) are defined in the parent class.
+
+   ```ruby
+   class Events::AnchoringsController < BaseAnchorablesController
+     ANCHORABLE_CLASS = Target
+   end
+   ```
+5. Copy your view files from a template, `/app/views/events/anchorings/` 
+   * You discard the auto-generated View files by `rails generate`
+   * In this case, the file names are also identical. So you can actually copy the directory as a whole.
+6. Edit the View file for Show for *Target* (either `/app/views/targets/show.html.erb` or its standard partial `_target.html.erb`)
+
+   ```ruby
+   <%= turbo_frame_tag "targets_anchorings_"+dom_id(@target) do %>
+     <%= render partial: 'layouts/index_anchorings', locals: {record: @target} %>
+   <% end %>
+   ```
+7. Edit the Controller-test file (`/test/controllers/targets/anchorings_controller_test.rb`)
+   * A nominal way is just to copy a template from ``/test/controllers/events/anchorings_controller_test.rb` and change the instance variable `@event` and its content at the top with your fixture record for *Target*
+   * The copied file then tests basic CRUD with the newly associated *Target*-*Anchoring* (and *Url*). The key is a few lines near the top:
+   
+     ```ruby
+     require "helpers/controller_anchorable_helper"
+     
+     class Targets::AnchoringsControllerTest < ActionDispatch::IntegrationTest
+       include ActiveSupport::TestCase::ControllerAnchorableHelper
+       include BaseAnchorablesHelper  # for path_anchoring
+     ```
+   * If a test fails, it may be because of permission.  Access to some models are more restricted than others.  You may edit the `success_users`.
+   * You may add some more specific tests, including system tests.
+
+Finally, if you decide to add more (Controller) methods or tests, you may want to add them to `BaseAnchorablesController` or `helpers/controller_anchorable_helper`, respectively, because most of them should be applicable across all *anchorable* models.
+
+##### Comment about descriptions and notes related to URL #####
+
+A few *titles* and *notes* are available for *Url*, *Anchoring*, and related relations.  Here is a breakdown.  Here, `i18n` (=internationalization) means different texts can be given for separate languages.
+
+* *SiteCategory*: `title` (i18n): describing the biggest category of the site, such as, "Priimary (website)", "Media", "Encyclopedia"
+* *DomainTitle*: `title` (i18n): describing what the domain is, e.g., "Youtube", "Instagram", "Wikipedia". Many of the DomainTitles can be simply the domain address, though.
+* *Url*: `title` (i18n): describing what the URL/URI is, e.g., "2025 Yahoo-news interview of HARAMIchan", "Budokan".
+* *Url*: `note`: any additional comment about the URL/URI, e.g., "The access is limited within Japan", "Grand overview of Budokan". This can be edited only in the specific *Url* edit page (and **not** in the Show page of target models)
+* *Anchoring*: `note`: describing the relation with the Target record or context about the URL, e.g., "Media report" (for Event-model association), "First-played place" (for Music-model association).
+
+Here, `Url#title` and `Url#note` are URL-specific and association-wide; so you should not give an association-specific description, for example, explaining why this link is listed in the Show page is inappropriate for them.  Remember the same URL may be referred to from completely different pages!  For example, the last example of *Anchoring* shows it well. It describes why the URL (for the Wikipedia entry of "Budokan" is listed in the Music#show page, whereas the explanation would be out of context in other pages.
+
+In each target-model Show page, each item is displayed in a form of
+
+    (SiteCategory#title: DomainTitle#title) [Url#url_langcode] Url#title (NOTE: Url#note; Anchoring#note)
+
+where `Url#title` is highlighted as the anchor.  In the on-the-spot edit screen, an editor can edit `Anchoring#note` but NOT `Url#note` (visit the specific-edit page of *Url* to edit `Url#note`).
+
 ### Static page strategy ###
 
 **Requirements**:

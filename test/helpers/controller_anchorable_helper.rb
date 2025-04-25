@@ -156,8 +156,12 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
   end
 
   # :update version of _assert_create_anchoring_url_core
-  def _assert_update_anchoring_url(parent_record, fail_users: [], success_users: [], **opts)
-    _assert_create_anchoring_url_core(parent_record, **(opts.merge({is_create: true})))
+  #
+  # @param record2upd [Anchoring] the one to update 
+  # @param diff_num [Integer] Default is 0. Be warned that some type of updates create new models of Domain, DomainTilte (and its Translation).
+  def _assert_update_anchoring_url(record2upd, diff_num: 0, **opts)
+    parent_record = record2upd.anchorable
+    _assert_create_anchoring_url_core(parent_record, diff_num: diff_num, **(opts.merge({is_create: false})))
   end
 
   # :update version of _assert_create_anchoring_url_core
