@@ -2,7 +2,7 @@
 require "test_helper"
 require "helpers/controller_anchorable_helper"
 
-class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
+class HaramiVids::AnchoringsControllerTest < ActionDispatch::IntegrationTest
   include ActiveSupport::TestCase::ControllerAnchorableHelper
   
   # add this
@@ -14,8 +14,8 @@ class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @url = urls(:one)
-    @anchorable = @event = events(:three)
-    @anchorabl2 = events(:ev_harami_lucky2023)
+    @anchorable = @harami_vid = harami_vids(:harami_vid1)
+    @anchorabl2 = harami_vids(:harami_vid2)
     @domain = domains(:one)
     @site_category = site_categories(:one)
     @sysadmin  = users(:user_sysadmin)
@@ -59,7 +59,7 @@ class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
     # defined in /test/helpers/controller_anchorable_helper.rb
     opt_users = {fail_users: [], success_users: [@moderator_all]}  # only a single success_users is valid for :create, whereas multiple fail_users can be tested.
     ## access to parent's show and anchoring's new
-    _assert_authorized_get_to_parent(@anchorable, **opt_users)
+    _assert_authorized_get_to_parent(@anchorable, **opt_users, h1_title_regex: /\bHARAMIchan\b.+\bvideo\b/i)  # defined in controller_anchorable_helper.rb  # Wording from t("harami_vids.show.harami_vid_long") in view.en.yml
     n_asserts = _assert_authorized_gets_to_anchorables(@anchorable, **opt_users)
     assert_equal 1*(opt_users[:fail_users].size + opt_users[:success_users].size), n_asserts, "#{_get_caller_info_message(prefix: true)} sanity check failed; should have assesed access to :new only, but..."
 
@@ -86,7 +86,7 @@ class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
       }
     }
 
-    # Creating an Event-Anchoring for the SAME Url as with Artist - should succeed.
+    # Creating an HaramiVid-Anchoring for the SAME Url as with Artist - should succeed.
     note4 = "anc-only-4"
     fmt = sprintf("Anchoring.where(anchorable_type: '%%s', url_id: %d).count", artist_anc.url.id)
     assert_difference(sprintf(fmt, this_classname)){
@@ -95,7 +95,7 @@ class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
       }
     }
 
-    # The same but with another Event
+    # The same but with another HaramiVid
     note5 = "anc-only-5"
     assert_difference(sprintf(fmt, this_classname)){
       ancs << _assert_create_anchoring_existing_url(artist_anc, @anchorabl2, note: note5, **opt_users)

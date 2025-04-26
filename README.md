@@ -221,24 +221,24 @@ Almost all the methods for Controller and layouts for Views are already provided
 2. Run (at your shell): `bin/rails generate controller targets/anchorings --no-helper` which will generate
    * This generates a template Controller and test files, along with the directory like `/app/controllers/targets/`
    * In fact, instead you can just manually create new directories and copy and paste the files, changing the file names appropriately, of 1 Controller, 1 controller test, and many views from respective template files from another model like `/app/controllers/events/anchorings_controller.rb` and `test/controllers/events/anchorings_controller_test.rb` and `/app/views/events/anchorings/` 
-3. Edit your route file `/config/routes.rb` , adding the following lines.  Rails-generate does not automatically modify the route for the nested resources.
+3. Edit your route file `/config/routes.rb` , adding the following lines (replacing *:targets* according to your class name).  Rails-generate does not automatically modify the route for the nested resources.
 
    ```ruby
    resources :targets do
      resources :anchorings, controller: 'targets/anchorings'
    end
    ```
-4. Edit your controller file.  Your Controller file needs only 3 lines; the Controller should be a child class of `BaseAnchorablesController` and defines your model-specific constant `ANCHORABLE_CLASS` .  All the methods (like `show` and `create`) are defined in the parent class.
+4. Edit your controller file (`/app/controllers/targets/anchorings_controller.rb`). A key is **to replace the parent class**.  The Controller file needs only 3 lines as follows (make sure to change the class name according to your *Target* class name); the Controller should be a child class of `BaseAnchorablesController` and defines your model-specific constant `ANCHORABLE_CLASS` .  All the methods (like `show` and `create`) are defined in the parent class.
 
    ```ruby
-   class Events::AnchoringsController < BaseAnchorablesController
-     ANCHORABLE_CLASS = Target
+   class Targets::AnchoringsController < BaseAnchorablesController
+     ANCHORABLE_CLASS = self.name.split(":").first.singularize.constantize  # Event class
    end
    ```
 5. Copy your view files from a template, `/app/views/events/anchorings/` 
    * You discard the auto-generated View files by `rails generate`
    * In this case, the file names are also identical. So you can actually copy the directory as a whole.
-6. Edit the View file for Show for *Target* (either `/app/views/targets/show.html.erb` or its standard partial `_target.html.erb`)
+6. Edit the View file for Show for *Target* (either `/app/views/targets/show.html.erb` or its standard partial `_target.html.erb`), addig the following (making sure to change the name `target` to your model name).
 
    ```ruby
    <%= turbo_frame_tag "targets_anchorings_"+dom_id(@target) do %>
@@ -246,17 +246,18 @@ Almost all the methods for Controller and layouts for Views are already provided
    <% end %>
    ```
 7. Edit the Controller-test file (`/test/controllers/targets/anchorings_controller_test.rb`)
-   * A nominal way is just to copy a template from ``/test/controllers/events/anchorings_controller_test.rb` and change the instance variable `@event` and its content at the top with your fixture record for *Target*
+   * A nominal way is just to copy the contents from a template at `/test/controllers/events/anchorings_controller_test.rb` and change the instance variable `@event` and its content at the top with your fixture record for *Target*
    * The copied file then tests basic CRUD with the newly associated *Target*-*Anchoring* (and *Url*). The key is a few lines near the top:
    
      ```ruby
+     require "test_helper"
      require "helpers/controller_anchorable_helper"
      
      class Targets::AnchoringsControllerTest < ActionDispatch::IntegrationTest
        include ActiveSupport::TestCase::ControllerAnchorableHelper
        include BaseAnchorablesHelper  # for path_anchoring
      ```
-   * If a test fails, it may be because of permission.  Access to some models are more restricted than others.  You may edit the `success_users`.
+   * If a test fails, it may be because of permission because the editing permission follows that of the parent class (*Target* in this case), which varies.  Access to some models are more restricted than others.  You may edit the `success_users` in the test file.
    * You may add some more specific tests, including system tests.
 
 Finally, if you decide to add more (Controller) methods or tests, you may want to add them to `BaseAnchorablesController` or `helpers/controller_anchorable_helper`, respectively, because most of them should be applicable across all *anchorable* models.

@@ -332,6 +332,29 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert act.html_safe?
   end
 
+  test "publicly_viewable?" do
+    hvid = harami_vids(:harami_vid1)
+    assert publicly_viewable?(hvid)
+    assert_equal true, publicly_viewable?(hvid)
+    assert publicly_viewable?(hvid, method: :show)
+    assert publicly_viewable?(hvid, method: :read)
+    assert publicly_viewable?(HaramiVid, method: :index)
+    refute h1_note_editor_only(hvid).present?, "'Editor-only' note should not appear on public pages, but..."
+    refute h1_note_editor_only(hvid, method: :show).present?
+
+    role = Role.first
+    refute publicly_viewable?(role)
+    refute publicly_viewable?(role, method: :show)
+    refute publicly_viewable?(role, method: :read)
+    refute publicly_viewable?(Role, method: :index)
+
+    assert publicly_viewable?(nil, permissive: true)
+    assert publicly_viewable?(nil)
+    assert publicly_viewable?(5 )
+    assert_raises(){ publicly_viewable?(nil, permissive: false) }
+    assert_raises(){ publicly_viewable?(  5, permissive: false) }
+  end
+
   test "print_1or2digits" do
     assert_equal "0.0",  print_1or2digits(0)
     assert_equal "1.0",  print_1or2digits(1)

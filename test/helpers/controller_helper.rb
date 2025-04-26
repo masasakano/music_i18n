@@ -70,8 +70,9 @@ class ActiveSupport::TestCase
   # Public access should be completely banned.
   #
   # @param record [ActiveRecord]
+  # @param opts [Hash] Notably, you may give +{skip_public_access_check: true}+
   # @yield [User, ActiveRecord] Anything while the user is successfully authorized, i.e., only for viewings by success_users
-  def assert_authorized_show(record, fail_users: [], success_users: [], h1_title_regex: nil, &bl)
+  def assert_authorized_show(record, fail_users: [], success_users: [], h1_title_regex: nil, include_w3c_validate: true, **opts, &bl)
     show_path = Rails.application.routes.url_helpers.polymorphic_path(record)
 
     if h1_title_regex.blank?
@@ -85,7 +86,7 @@ class ActiveSupport::TestCase
       h1_title_regex = /^#{Regexp.quote(record.class.name)}#{re}/
     end
 
-    _assert_authorized_get_set(show_path, model_record=record, fail_users: fail_users, success_users: success_users, h1_title_regex: h1_title_regex, include_w3c_validate: true, &bl)
+    _assert_authorized_get_set(show_path, model_record=record, fail_users: fail_users, success_users: success_users, h1_title_regex: h1_title_regex, include_w3c_validate: include_w3c_validate, **opts, &bl)
   end
 
 
@@ -128,11 +129,13 @@ class ActiveSupport::TestCase
   # @param fail_users: [Array<User>] Unauthorized users
   # @param success_users: [Array<User>] Authorized users
   # @param h1_title_regex: [Regexp, String, NilClass] If String, a complete match
+  # @param skip_public_access_check: [Boolean] Unless true (Def: false), this checks whether public access is ceratinly banned.
   # @param include_w3c_validate: [Boolean] If true, may w3c-validate
   # @param bind_offset: [Integer, NilClass] Depth of the call (to get caller information for error messages)
   # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block.
   # @yield [User, ActiveRecord] Anything while the user is successfully authorized, i.e., only for viewings by success_users
-  def _assert_authorized_get_set(path, model_record=nil, params: nil, fail_users: [], success_users: [], h1_title_regex: nil, include_w3c_validate: true, bind_offset: DEF_CALLER_INFO_BIND_OFFSET, base_proc: nil, &bl)
+  def _assert_authorized_get_set(path, model_record=nil, params: nil, fail_users: [], success_users: [], h1_title_regex: nil, skip_public_access_check: false, include_w3c_validate: true, bind_offset: DEF_CALLER_INFO_BIND_OFFSET, base_proc: nil, &bl)
+    raise ArgumentError, "At least one user must be specified." if fail_users.empty? && success_users.empty?
     model = (model_record.respond_to?(:name) ? model_record : model_record.class)
     model_w3c_validate = (include_w3c_validate ? model : nil)
 
@@ -140,7 +143,7 @@ class ActiveSupport::TestCase
     h1_title = h1_title_regex if !h1_title_regex.respond_to?(:named_captures)
 
     ## Public access forbidden
-    _assert_login_demanded(path, bind_offset: bind_offset)
+    _assert_login_demanded(path, bind_offset: bind_offset) unless skip_public_access_check
 
     ## Forbidden because not sufficiently authorized though authenticated
     fail_users.each do |user|
@@ -268,7 +271,7 @@ class ActiveSupport::TestCase
   # @param user [User]
   # @param params [Hash, NilClass]
   # @param h1_title_regex: [Regexp, String] If String, a complete match
-  # @param include_w3c_validate: [Class, NilClass] ActiveRecord class. In specified, may w3c-validate
+  # @param model_w3c_validate: [Class, NilClass] ActiveRecord class. In specified, may w3c-validate
   # @param bind_offset: [Integer, NilClass] Depth of the call (to get caller information for error messages)
   # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block.
   # @yield [User, nil] Anything while the user is logged in.

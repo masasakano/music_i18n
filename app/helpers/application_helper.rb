@@ -1100,6 +1100,32 @@ module ApplicationHelper
     period_strs.join(range_separator).html_safe
   end
 
+  # @param record [ActiveRecord, Class<ActiveRecord>, Sombol]
+  # @param method: [Symbol, ActiveRecord, Class<ActiveRecord] this can be like :crud or :ud as defined in ability.rb
+  # @param permissive: [Symbol] If true (Def), a strange value is allowed, and returns true in that case (to play safe for in cases such that the result is not critical for the Website like for H1 title.  If false, raises an error in such a case.
+  # @return [String] html_safe String to display if the page is editor-only? (maybe moderator or admin only)
+  def publicly_viewable?(record, method: :show, permissive: true)
+    if !record.respond_to?(:attribute_names)  # this should never happen!
+      return true if permissive
+      raise ArgumentError, "Strange argument to #{File.basename __FILE__}:#{__method__} of [record, method]=#{[record, method].inspect}"
+    end
+
+    Ability.new(nil).can?(method, record)
+  end
+
+  # @param record [ActiveRecord, Class<ActiveRecord>]
+  # @param method: [Symbol] this can be like :crud or :ud as defined in ability.rb
+  # @return [String] html_safe String to display if the page is editor-only? (maybe moderator or admin only)
+  def h1_note_editor_only(record, method: :show)
+    return "" if publicly_viewable?(record, method: method, permissive: true)
+
+    ret = <<__EOD__
+<span class="editor_only text-red">&nbsp;&nbsp;[Editor-only Page]</span>
+__EOD__
+    ret.html_safe
+  end
+
+
   # to suppress warning, mainly that in Ruby-2.7.0:
   #   "Passing the keyword argument as the last hash parameter is deprecated"
   #

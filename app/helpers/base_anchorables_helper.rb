@@ -6,6 +6,11 @@ module BaseAnchorablesHelper
   # @param anchoring [Anchoring, BaseWithTranslation, NilClass] Either Anchoring or its anchorable record. For actions of :index or :create or :new, you can leave this blank and instead specify +parent+ (obsolete)
   # @param for_url [Boolean] if true, URL instead of Path is returned
   def path_anchoring(anchoring=nil, action: :show, for_url: false)
+    is_anchorable = anchoring.respond_to?(:anchorable) 
+    if !is_anchorable && !anchoring.respond_to?(:anchorings)
+      raise ArgumentError, "(#{File.basename __FILE__}:#{__method__}): First argument must be either an Anchoring record or its anchorable target record, but it is not (maybe a class is given?): #{anchoring.inspect}"
+    end
+
     suffix = (for_url ? "url" : "path")
     parent = (anchoring.respond_to?(:anchorable) ? anchoring.anchorable : anchoring)  # the latter assumes anchorable is significant.
       

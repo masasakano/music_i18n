@@ -98,13 +98,17 @@ Rails.application.routes.draw do
     #patch     :internal_insertions, to: 'internal_insertions#update_all'
     #put       :internal_insertions, to: 'internal_insertions#update_all'  # Patch and Put does not work: Rails.application.routes.recognize_path("/harami1129s/internal_insertions", method: :put) #=> {:controller=>"harami1129s", :action=>"update", :id=>"internal_insertions"}
   end
-  resources :harami_vids
+  resources :harami_vids do
+    resources :anchorings, controller: 'harami_vids/anchorings'
+  end
   namespace :harami_vids do
     resources :fetch_youtube_data, only: [:create, :update]
     resources :update_places,      only: [:show,   :update]
     resources :add_missing_music_to_evits, only: [:show,   :update]
   end
-  resources :musics
+  resources :musics do
+    resources :anchorings, controller: 'musics/anchorings'
+  end
   resources :genres
   resources :artists do
     resources :anchorings, controller: 'artists/anchorings'

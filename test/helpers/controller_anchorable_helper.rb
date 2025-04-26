@@ -67,16 +67,42 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
     end
   end
 
-  # @param anchoring [Anchoring]
+  # Tests authorized accesses to the parent page, where Anchoring-s are listed in the first place
+  #
+  # @param anchoring [Anchoring, BaseWithTranslation]
+  # @return [Integer] Number of asserts executed
+  def _assert_authorized_get_to_parent(anchoring, fail_users: [], success_users: [], h1_title_regex: nil, **opts)
+    raise ArgumentError, "At least one user must be specified." if fail_users.empty? && success_users.empty?
+    parent = (anchoring.respond_to?(:anchorable) ? anchoring.anchorable : anchoring)
+    #path = Rails.application.routes.url_helpers.polymorphic_path(parent)
+    #_assert_authorized_get_set(path, parent, model_record, fail_users: fail_users, success_users: success_users, h1_title_regex: nil) # defined in /test/helpers/controller_helper.rb
+    if !h1_title_regex
+      title_core = Regexp.quote(parent.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true))
+      h1_title_regex = /\b#{title_core}\b/
+    end
+
+    assert_authorized_show(parent, h1_title_regex: h1_title_regex, skip_public_access_check: true, fail_users: fail_users, success_users: success_users, **opts){ |user, record|
+      assert_match(/^Links\b/, css_select('h3.links_anchoring').first.text.strip)  # defined in /app/views/layouts/_index_anchorings.html.erb
+    }
+  end
+
+  # Tests authorized accesses to :new and maybe :edit
+  #
+  # @param anchoring [Anchoring, BaseWithTranslation] If the target record (of BaseWithTranslation like Artist), namely "anchorable", is given, only :new is tested, not :edit
+  # @return [Integer] Number of asserts executed
   def _assert_authorized_gets_to_anchorables(anchoring, fail_users: [], success_users: [])
+    raise ArgumentError, "At least one user must be specified." if fail_users.empty? && success_users.empty?
+    n_asserts = 0
     %i(new edit).each do |action|
+      next if :edit == action && !anchoring.respond_to?(:anchorable)
+      if :new
+      end
       path = path_anchoring(anchoring, action: action)  # defined in base_anchorables_helper.rb
       model_record = ((:new == action) ? Anchoring : anchoring) 
       _assert_authorized_get_set(path, model_record, fail_users: fail_users, success_users: success_users, h1_title_regex: nil) # defined in /test/helpers/controller_helper.rb
+      n_asserts += 1
     end
-
-    # hs2pass5 = hsprms.merge({url_form: "https://naiyo.com/abc", note: "invisible5"})
-    # assert_equal :create, assert_unauthorized_post(Anchoring, user: nil, params: hs2pass5, path_or_action: paths[:create]) # defined in /test/helpers/controller_helper.rb
+    return n_asserts
   end
 
   ## Successful creation of Anchoring and Url with NON-existing Domain and DomainTitle and then with existing ones

@@ -83,6 +83,10 @@
   <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @harami_vid, model4ability: HaramiVid} %>
  </dl>
  </section> <!-- section id="harami_vids_show_unique_parameters" -->
+
+   <%= turbo_frame_tag "harami_vids_anchorings_"+dom_id(@harami_vid) do %>
+     <%= render partial: 'layouts/index_anchorings', locals: {record: @harami_vid} %>
+   <% end %>
 </section> <!-- section id="harami_vids_show_parameters" -->
 
 <% if can? :update, @harami_vid %>

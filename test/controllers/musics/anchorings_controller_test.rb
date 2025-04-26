@@ -2,7 +2,7 @@
 require "test_helper"
 require "helpers/controller_anchorable_helper"
 
-class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
+class Musics::AnchoringsControllerTest < ActionDispatch::IntegrationTest
   include ActiveSupport::TestCase::ControllerAnchorableHelper
   
   # add this
@@ -14,8 +14,8 @@ class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @url = urls(:one)
-    @anchorable = @event = events(:three)
-    @anchorabl2 = events(:ev_harami_lucky2023)
+    @anchorable = @music = musics(:music1)
+    @anchorabl2 = musics(:music2)
     @domain = domains(:one)
     @site_category = site_categories(:one)
     @sysadmin  = users(:user_sysadmin)
