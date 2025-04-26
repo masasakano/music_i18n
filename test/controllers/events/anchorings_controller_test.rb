@@ -58,12 +58,12 @@ class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
   test "should create/update/destroy anchoring by moderator" do
     # defined in /test/helpers/controller_anchorable_helper.rb
     opt_users = {fail_users: [], success_users: [@moderator_all]}  # only a single success_users is valid for :create, whereas multiple fail_users can be tested.
-    new_anchorings = _assert_create_anchoring_urls_domains(@anchorable, **opt_users)  # defined in controller_anchorable_helper.rb
-    new1 = new_anchorings.first
+    ancs = new_anchorings = _assert_create_anchoring_urls_domains(@anchorable, **opt_users)  # defined in controller_anchorable_helper.rb
+    ancs[0] = new_anchorings.first
 
     # Attempting to create an identical Anchoring 
     sc_media = site_categories(:site_category_media)  # trying a different SiteCategory
-    res = _refute_create_identical_anchoring( new1, title: "unique new4 title", site_category_id: sc_media.id.to_s, **opt_users)  # testing failed creation, redirection etc.
+    res = _refute_create_identical_anchoring( ancs[0], title: "unique new4 title", site_category_id: sc_media.id.to_s, **opt_users)  # testing failed creation, redirection etc.
     flash_regex_assert(/\bis already registered\b/, "Identical Anchoring should fail... ", type: :alert, category: :all, is_debug: false) # defined in test_helper.rb  # error message defined in :create in base_anchorables_controller.rb
 
     # Creating a Url and Artist-Anchoring
@@ -79,115 +79,59 @@ class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
 
     # Creating an Event-Anchoring for the SAME Url as with Artist - should succeed.
     note4 = "anc-only-4"
-    new_anc4 = nil
     fmt = sprintf("Anchoring.where(anchorable_type: '%%s', url_id: %d).count", artist_anc.url.id)
     assert_difference(sprintf(fmt, this_classname)){
       assert_no_difference( sprintf(fmt, 'Artist')){
-        new_anc4 = _assert_create_anchoring_existing_url(artist_anc, @anchorable, note: note4, is_debug: false, **opt_users)
+        ancs << _assert_create_anchoring_existing_url(artist_anc, @anchorable, note: note4, is_debug: false, **opt_users)
       }
     }
 
     # The same but with another Event
     note5 = "anc-only-5"
-    new_anc5 = nil
     assert_difference(sprintf(fmt, this_classname)){
-      new_anc5 = _assert_create_anchoring_existing_url(artist_anc, @anchorabl2, note: note5, **opt_users)
+      ancs << _assert_create_anchoring_existing_url(artist_anc, @anchorabl2, note: note5, **opt_users)
     }
 
-    _refute_public_accesses_to_anchorables(new1)
-    _assert_authorized_gets_to_anchorables(new1, **opt_users)  # :new, :edit : disallowed
+    ## Anotehr Wikipedia URL creation
+    wiki = "https://ja.wikipedia.org/wiki/清塚信也"
+    ancs << _assert_create_anchoring_url_wiki(@anchorable, url_wiki: wiki, wiki_name: "清塚信也", **opt_users)
+    assert ancs[-1].is_a?(Anchoring)
 
-    calc_count_exp = 'Anchoring.count*10000 + Translation.count*1000 + DomainTitle.count*100 + Domain.count*10 + Url.count'
-
-    newurl = @domain.domain+"/newabc.html?q=123&r=456#anch"
-    #hs2add = { url: newurl, domain_id: @domain.id.to_s, note: "test-create", memo_editor: "test-editor", weight: 111.24}
-    #hs2pass = @hs_create_lang.merge(@hs_base).merge( hs2add )
-
-    anchoring = Anchoring.first
-    art0 = anchoring.anchorable
-    url0 = anchoring.url
-
-    paths = {
-      create:    event_anchorings_path(event_id: @anchorable.id),
-      new:   new_event_anchoring_path( event_id: @anchorable.id),
-      # edit: edit_event_anchoring_path(id: anchoring.id, event_id: @anchorable.id),
-      # show:      event_anchoring_path(id: anchoring.id, event_id: @anchorable.id),
-    }.with_indifferent_access
-    proc_art0_path = Proc.new{event_anchoring_path(id: Anchoring.last.id, event_id: @anchorable.id)}  ############ ????
-
-    hsprms = @hs_base.merge({
-      # id: anchoring.id.to_s,
-      event_id: art0.id.to_s,
-      url_form: newurl,
-    })
-
-    urlstr_orig = url0.url
-
-    scat = site_categories(:site_category_media)
-    hsupdate = hsprms.merge({id: anchoring.id.to_s, url_form: hsprms[:url_form]+"-updated"},
-                             site_category_id: scat.id.to_s)  # No language-related fields
-    refute_equal anchoring.site_category, SiteCategory.find(hsupdate[:site_category_id]), 'testing fixtures'
-
-if false    
-end # if false
-
-    ## Public should not access edit etc.
-    hs2pass5 = hsprms.merge({url_form: "https://naiyo.com/abc", note: "invisible5"})
-    # [nil].each do |ea_user|  # @trans_moderator may be pviviledged?
-    ## any editor can manage Event, thus Event/Anchoring
-
-    sign_in @moderator_ja
-    path_create = path_anchoring(@anchorable, action: :create)
-
-    ## Successful creation of Anchoring and Url with existing Domain and DomainTitle
-    action, new_mdl2 = assert_authorized_post(Anchoring, user: @moderator_ja, path_or_action: path_create, redirected_to: proc_art0_path, params: hsprms, method: :post, diff_count_command: EQUATION_MODEL_COUNT, diff_num: 10011){ |_, _| # defined in /test/helpers/controller_helper.rb
-      assert_equal "https://"+newurl, Anchoring.last.url.url }
-    assert_equal :create, action
+    ## Access Forbidden
+    _refute_public_accesses_to_anchorables(ancs[0])
+    _assert_authorized_gets_to_anchorables(ancs[0], **opt_users)  # :new, :edit : disallowed
 
     ## Chronicle URL addition
-    chronicle = "https://nannohi-db.blog.jp/archives/8522599.html"
-    hschronicle = hsprms.merge({url_form: chronicle, title: "", url_langcode: "", site_category_id: ""})
-    action, new_mdl5 = assert_authorized_post(Anchoring, user: @moderator_ja, path_or_action: path_create, redirected_to: proc_art0_path, params: hschronicle, method: :post, diff_count_command: EQUATION_MODEL_COUNT, diff_num: 10011){ |user, record| # defined in /test/helpers/controller_helper.rb
-      assert_equal chronicle, record.url.url
-      assert_equal "ja",      record.url.url_langcode.to_s
-      sc = site_categories(:site_category_chronicle)
-      assert_equal sc,        record.site_category
-      # trans = record.url.orig_translation
-      # assert_equal "ハラミちゃんが表紙の「月刊ショパン5月号」発売", trans.title
-      # assert_equal "ja",       trans.langcode
-      assert_operator new_mdl2.created_at, :>, record.domain.created_at, "Existing Domain should have been identified, but..."
-      assert_operator new_mdl2.created_at, :>, record.domain_title.created_at
-    }
-    assert_equal :create, action
-
-    
+    ancs << _assert_create_anchoring_url_chronicle(@anchorable, **opt_users)
+    assert ancs[-1].is_a?(Anchoring)
+   
 
     ### update/patch
+
+    note7 = "upd-7"
+    newurl = (origurl=ancs[0].url.url)+"-updated0"
+    ancs << _assert_update_anchoring_url(ancs[0], url_str: newurl, note: note7, **opt_users)
+    assert_equal ancs[0].id, ancs[-1].id
+    assert_equal newurl,     ancs[-1].url.url
+    assert_equal note7,      ancs[-1].note
+
+    ## Attempting to chante the url to an existing one => should fail.
+    note8 = "upd-8"
+    tmpurl = ancs[2].url.url  # should conflict
+    upd = ancs[0].updated_at
+    pid = ancs[0].id
+    ancs << _assert_update_anchoring_url(ancs[0], url_str: tmpurl, note: note8, exp_response: :unprocessable_entity, **opt_users)
+    assert_equal ancs[0].id, ancs[-1].id
+    assert_equal newurl,     ancs[-1].reload.url.url
+    assert_equal pid,        ancs[-1].id
+    assert_equal upd,        ancs[-1].reload.updated_at
+    refute_equal note8,      ancs[-1].note
 
 #    [nil, @translator].each do |ea_user|  # @trans_moderator may be pviviledged?
 #      assert_unauthorized_post(anchoring, user: ea_user, path_or_action: paths[:show], params: hsprms, method: :patch, diff_count_command: EQUATION_MODEL_COUNT){ |user, record|
 #        assert_equal urlstr_orig, record.url.url
 #      }
 #    end
-
-    ## hsupdate = @hs_base.merge( hs2add )  # No language-related fields
-    #hsupdate = hsprms.merge({url_form: hsprms[:url_form]+"-updated"})  # No language-related fields
-    new_mdl4 = new_anchorings.last
-    hsupdate = _build_params(new_mdl4, url_form: (urlstr_orig=new_mdl4.url.url)+"-updated", note: (note4 = "upd4"))
-
-    ## standard update
-    path4 = event_anchoring_path(id: new_mdl4.id, event_id: new_mdl4.anchorable.id)
-    #note4 = "upd4"
-    action, _ = assert_authorized_post(new_mdl4, user: @moderator_ja, path_or_action: path4, redirected_to: path_anchoring(new_mdl4, action: :show), params: hsupdate, method: :patch, diff_count_command: EQUATION_MODEL_COUNT, diff_num: 0, updated_attrs: [:note]){ |user, record|  # path_anchoring() defined in Artists::AnchoringsHelper
-      assert record.url
-      if urlstr_orig.nil?
-        refute_nil record.url.url
-      else
-        refute_equal urlstr_orig, record.url.url
-      end
-      assert_equal note4, record.note, "updated Anchoring: #{record.inspect} / #{record.url.inspect} / #{record.url.url.inspect}"
-    } # defined in /test/helpers/controller_helper.rb
-    assert_equal :update, action
 
   end
 end
