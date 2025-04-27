@@ -344,20 +344,64 @@ module ModuleCommon
   #   time_in_units(event.start_time_err)
   #    # => "0.5 [days] | 12 [hrs] | 720 [mins]"
   #
+  # @param time [Numeric, ActiveSupport::Duration] in seconds if Numeric
+  # @param units: [Symbol, Array<Symbol>] either :auto3 or one or more of [:day, :hour, :min].
+  #    If :auto3, meaningless unit numbers (too large or too smalle) are automatically removed,
+  #    and the number of significant digits are trimmed up to 3, or 2 if < 1.
+  # @param langcode: [Symbol]
+  # @param to_html [Boolean] #TODO (to include the real value as CSS title?)
+  # @param for_editor [Boolean]
   # @return [String] time expressed in three or so units.
-  def time_in_units(time, units: [:day, :hour, :min], langcode: I18n.locale, for_editor: false)
-    arret = units.map{|eunit|
-      case eunit.to_sym
-      when :day
-        [(time ? time.second.in_days.to_s : nil),    I18n.t(:days,          locale: langcode)]
-      when :hour
-        [(time ? time.second.in_hours.to_s : nil),   I18n.t(:hours_short,   locale: langcode)]
-      when :min
-        [(time ? time.second.in_minutes.to_s : nil), I18n.t(:minutes_short, locale: langcode)]
+  def time_in_units(time, units: :auto3, langcode: I18n.locale, trim: false, for_editor: false)
+    fmteach = "%s [%s]"
+    du = time
+    du = time.seconds if time && !time.respond_to?(:in_seconds)
+
+    def_units3 = [:day, :hour, :min]
+    units3 = ((:auto3 == units) ? [:day, :hour, :min] : units)
+    units3 = [units3[-1]] if du == 0.minutes
+
+    if du > 1000.days
+      ret = sprintf(fmteach, I18n.t(:infinity), I18n.t(:days, locale: langcode))
+      if for_editor
+        return ret.sub(/ /, " ([Editor] #{du.in_days.to_s}) ")
       else
-        raise "not yet supported..."
+        return ret
+      end
+    end
+
+
+    hs_method_trans = {
+      day:  [:in_days,    :days],
+      hour: [:in_hours,   :hours_short],
+      min:  [:in_minutes, :minutes_short],
+    }.with_indifferent_access
+
+    arret = units3.map{|eunit|
+      case eunit.to_sym
+      when *def_units3
+        [(du ? du.send(hs_method_trans[eunit][0]) : nil), I18n.t(hs_method_trans[eunit][1], locale: langcode)]
+      else
+        raise ArgumentError, "not yet supported... (#{eunit.to_sym.inspect})"
       end
     }
+
+    if (:auto3 == units)
+      arret = arret.map.with_index{|ea, i|
+        next nil if !ea[0] || (ea[0] < 0.1 && arret.size-1 != i)  # If the input is very small, the least significant unit should be preserved.
+        snum = sprintf("%.3G", ea[0])
+        next nil if snum.include?("E")
+        ea[0] =
+          if /\.(\d\d)\d/ !~ snum
+            snum
+          else
+            ("00" == $1) ? nil : sprintf("%.2f", ea[0])
+          end
+        ea
+      }.compact
+    else
+      arret.map!{|ea| ea[0] = ea[0].to_s if ea[0]; ea}
+    end
     str2add = ((for_editor && arret.map(&:first).compact.empty?) ? " (<em>UNDEFINED</em>)" : "")
 
     retstr = arret.map{|ea|

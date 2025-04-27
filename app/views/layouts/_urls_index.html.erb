@@ -1,4 +1,4 @@
-<%# Local variables: urls [Array<Domain>] (must be sorted!), optional: with_parent (Def: true, displaying the column of parent), with_grandparent (Def: true), this_model [Domain] %>
+<%# Local variables: urls [Array<Domain>] (must be sorted!), optional: with_parent (Def: true, displaying the column of parent), with_grandparent (Def: true), this_model [Url], with_dates: [Boolean] (Def: false) %>
 <%#   Example:  render partial: 'layouts/urls_index', locals: {urls: my_urls.left_joins(:domain).left_joins(:domain_title).order("domain_titles.weight", "domain_titles.created_at", "domains.weight", "domains.created_at", "urls.weight", "urls.created_at"), with_parent: false} %>
 
 <% if !defined?(with_parent)
@@ -9,6 +9,9 @@
    end %>
 <% if !defined?(this_model)
      this_model = nil
+   end %>
+<% if !defined?(with_dates)
+     with_dates = false
    end %>
 
 <section id="urls_index_table">
@@ -30,6 +33,10 @@
        <% if with_grandparent %>
       <th title="DomainTitle"><%= t(:DomainTitle) %></th>
       <th title="SiteCategory"><%= t("site_categories.table_head.site_category_short") %></th>
+       <% end %>
+       <% if with_dates && caneditgen %>
+        <th class="editor_only" title="Published date">Published</th>
+        <th class="editor_only" title="Last confirmed date">Confirmed</th>
        <% end %>
        <% if caneditgen %>
         <th class="editor_only" title="Weight for sorting.">Weight</th>
@@ -62,6 +69,10 @@
          <% if with_grandparent %>
         <td class="item_domain_title"><%= link_to(record.domain_title.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "(undefined)", article_to_head: true), record.domain_title, title: "Generic title for the domain") if record.domain_title %></td> <%# Rails prohibits a null value, but playing safe %>
         <td class="item_site_category" title="SiteCategory"><%= record.domain_title.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "(undefined)", article_to_head: true) if record.site_category %></td>
+         <% end %>
+         <% if with_dates && caneditgen %>
+          <td class="editor_only" title="Published date"><%= record.published_date %></td>
+          <td class="editor_only" title="Last-confirmed date"><%= record.last_confirmed_date %></td>
          <% end %>
          <% if caneditgen  %>
           <td class="editor_only item_weight"><%= record.weight %></td>

@@ -1,5 +1,5 @@
 
-<h1><%= t("EventGroup", count: 2).pluralize(2, I18n.locale) %></h1>
+<h1><%= t("EventGroup", count: 2).pluralize(2, I18n.locale) %> <%= h1_note_editor_only(EventGroup, method: :index) %></h1>
 
 <div id="event_groups">
 <table id="event_groups_index_table">

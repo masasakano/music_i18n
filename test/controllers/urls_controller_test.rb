@@ -48,7 +48,7 @@ class UrlsControllerTest < ActionDispatch::IntegrationTest
   # ---------------------------------------------
 
   test "should get index" do
-    assert_authorized_index(Url, fail_users: [@translator], success_users: [@editor_ja, @editor_harami], h1_title: nil) # defined in /test/helpers/controller_helper.rb
+    assert_authorized_index(Url, fail_users: [@translator], success_users: [@editor_ja, @editor_harami], h1_title: "Urls   [Editor-only Page]") # defined in /test/helpers/controller_helper.rb
   end
 
 

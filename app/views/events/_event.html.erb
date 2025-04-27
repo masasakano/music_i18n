@@ -57,12 +57,6 @@
         </span>
       <% end %>
     </dd>
-  <% if can_update_gen %>
-    <div class="editor_only">
-      <dt><strong>Weight:</strong></dt>
-      <dd><%= event.weight %></dd>
-    </div>
-  <% end %>
   <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: event, model4ability: !!can_update_gen} %>
 
 <%= turbo_frame_tag "events_anchorings_"+dom_id(@event) do %>

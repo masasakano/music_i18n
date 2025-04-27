@@ -100,7 +100,7 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
       path = path_anchoring(anchoring, action: action)  # defined in base_anchorables_helper.rb
       model_record = ((:new == action) ? Anchoring : anchoring) 
       _assert_authorized_get_set(path, model_record, fail_users: fail_users, success_users: success_users, h1_title_regex: nil) # defined in /test/helpers/controller_helper.rb
-      n_asserts += 1
+      n_asserts += fail_users.size + success_users.size
     end
     return n_asserts
   end
@@ -276,7 +276,7 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
   # @param note: [String] if nil, Default is used.
   # @param is_create: [Boolean] Def: true
   # @param action:  [Symbol] experimental...
-  # @param exp_response: [Symbol, Integer] passed to assert_authorized_post
+  # @param exp_response: [Symbol, Integer] Expected response by success_users.  passed to assert_authorized_post
   # @param updated_attrs: [Array] passed to assert_authorized_post. Default is %i(note) unless (exp_response: :unprocessable_entity)
   # @oaram is_debug: [Boolean] If true (Def: false), error message in saving is displayed to STDOUT
   # @return [Anchoring] created one.
@@ -329,23 +329,26 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
 
     updated_attrs ||= ((:unprocessable_entity == exp_response) ? [] : %i(note))
     allopts = {
-      user: success_users.first,
       path_or_action: path,
-      redirected_to: proc_record_path,
       params: hsprms,
       method: (is_create ? :post : :patch),
       diff_count_command: EQUATION_MODEL_COUNT,
-      updated_attrs: updated_attrs,
-      diff_num: (diff_num || 21111),
-      exp_response: exp_response,
       is_debug: is_debug,
     }
 
     allopts = (yield(allopts) || allopts) if block_given?
 
     fail_users.each do |euser|
-      assert_authorized_post(Anchoring, **(allopts.merge({user: euser, diff_num: 0, exp_response: :unprocessable_entity}))) # defined in /test/helpers/controller_helper.rb
+      assert_unauthorized_post(Anchoring, **(allopts.merge({user: euser}))) # defined in /test/helpers/controller_helper.rb
     end
+
+    allopts.merge!({
+                     user: success_users.first,
+                     redirected_to: proc_record_path,
+                     updated_attrs: updated_attrs,
+                     diff_num: (diff_num || 21111),
+                     exp_response: exp_response,
+                   })
 
     re = Regexp.new(%r@https?://@)
     model_record = ((:create == action) ? Anchoring : anchoring) 

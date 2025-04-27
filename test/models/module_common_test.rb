@@ -305,6 +305,32 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_equal "1984年2月3日 04:——", time_err2uptomin(time, 70.minute, langcode: "ja")
   end
 
+  test "time_in_units" do
+    ar3 = [:day, :hour, :min]
+    assert_raises(ArgumentError){ time_in_units(1, units: [:naiyo]) }
+    assert_equal "0.5 [days] | 12.0 [hrs] | 720.0 [mins]", time_in_units(720*60, units: ar3)
+    assert_equal "0.5 [日] | 12.0 [時間] | 720.0 [分]",    time_in_units(720*60, units: ar3, langcode: "ja")
+    assert_equal "0.5 [days] | 12.0 [hrs] | 720.0 [mins]", time_in_units(720.minutes, units: ar3)
+    assert_equal "0.5 [days] | 12.0 [hrs] | 720.0 [mins]", time_in_units(720.minutes, units: ar3)
+    assert_equal "0.5 [days]",                             time_in_units(720.minutes, units: [:day])
+    assert_equal "0.5 [days] | 12.0 [hrs]",                time_in_units(720.minutes, units: [:day, :hour])
+    
+    assert_equal "0.5 [days] | 12 [hrs] | 720 [mins]", time_in_units(720.minutes, units: :auto3)
+    assert_equal "0.5 [days] | 12 [hrs] | 720 [mins]", time_in_units(720.minutes)
+    assert_equal "42.5 [days]",        time_in_units(42.5.days)
+    assert_equal "4 [days] | 96 [hrs]", time_in_units(4.days)
+    assert_equal "4.25 [days] | 102 [hrs]", time_in_units(4.25.days)
+    assert_equal "4.26 [days] | 102 [hrs]", time_in_units(4.259.days)
+    assert_equal "0 [mins]", time_in_units(0)
+    assert_equal "0.70 [days] | 16.7 [hrs]", time_in_units(1001.minutes)
+    assert_equal "0.10 [days] | 2.5 [hrs] | 150 [mins]", time_in_units(150.minutes)
+    assert_equal "0.11 [days] | 2.58 [hrs] | 155 [mins]", time_in_units(155.minutes)  # day for %.2f, hr for %.3g
+    assert_equal "2.3 [hrs] | 138 [mins]", time_in_units(0.096.days)
+    assert_equal "5.75 [mins]", time_in_units(0.096.hours)
+    assert_equal "infinity [days]", time_in_units(Float::INFINITY)
+    assert_equal "infinity [days]", time_in_units(1001.days)
+  end
+
   test "order_prioritized_with" do
     sex = Sex.third
     assert_equal sex, order_prioritized_with(Sex,     sex).first

@@ -224,11 +224,12 @@ class ActiveSupport::TestCase
   # @param method: [Symbol, String, NilClass] :post (Def) or :delete or :patch. If nil, guessed from other parameters.
   # @param diff_count_command: [String, NilClass] Count method like 'Article.count*10 + Author.count'. In default, it is guessed from model_record
   # @param unchanged_attrs: [Array<Symbol>] Attributes that should not change after :update. Looked up only if action is :update.
+  # @oaram is_debug: [Boolean] If true (Def: false), error message in saving is displayed to STDOUT
   # @param bind_offset: [Integer, NilClass] Depth of the call (to get caller information for error messages); 0 if you directly call this from your test script and want to know the caller location in your test-script.
   # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block. [User, (Class<ActiveRecord>, ActiveRecord]Class<ActiveRecord>)] is passed. The 2nd element is the given model_record
   # @yield [User, (Class<ActiveRecord>, ActiveRecord)] Executed while the user is logged in, after evaluation. The 2nd element is the given model_record
   # @return [Symbol] action like :create (to check if this method is performing as intended)
-  def assert_unauthorized_post(model_record, user: nil, path_or_action: nil, params: nil, method: nil, diff_count_command: nil, unchanged_attrs: [], bind_offset: DEF_CALLER_INFO_BIND_OFFSET, base_proc: nil)
+  def assert_unauthorized_post(model_record, user: nil, path_or_action: nil, params: nil, method: nil, diff_count_command: nil, unchanged_attrs: [], is_debug: false, bind_offset: DEF_CALLER_INFO_BIND_OFFSET, base_proc: nil)
     action, method, path, model, opts = _get_action_method_path(model_record, path_or_action, method, params)
 
     caller_info_prefix = _get_caller_info_message(bind_offset: bind_offset, prefix: true)  # defined in test_helper.rb
@@ -242,7 +243,7 @@ class ActiveSupport::TestCase
     sign_in user if user
     user_txt, user_current = _get_quoted_user_display_name(user, model, path)
 
-    assert_no_difference(diff_count_command, "#{caller_info_prefix} User=#{user_txt} should NOT be able to #{action} at #{path} but they are (according to #{diff_count_command.inspect})...") do
+    assert_no_difference(diff_count_command, "#{caller_info_prefix} (#{self.class.name}) User=#{user_txt} should NOT be able to #{action} at #{path} but they are (according to #{diff_count_command.inspect})...") do
       send(method, path, **opts)
     end
 
@@ -272,10 +273,11 @@ class ActiveSupport::TestCase
   # @param params [Hash, NilClass]
   # @param h1_title_regex: [Regexp, String] If String, a complete match
   # @param model_w3c_validate: [Class, NilClass] ActiveRecord class. In specified, may w3c-validate
+  # @oaram is_debug: [Boolean] If true (Def: false), error message in saving is displayed to STDOUT
   # @param bind_offset: [Integer, NilClass] Depth of the call (to get caller information for error messages)
   # @param base_proc: [Proc, NilClass] a Proc to run prior to the given block.
   # @yield [User, nil] Anything while the user is logged in.
-  def _assert_authorized_access(path, user, params: nil, h1_title_regex: nil, model_w3c_validate: nil, bind_offset: DEF_CALLER_INFO_BIND_OFFSET, base_proc: nil)
+  def _assert_authorized_access(path, user, params: nil, h1_title_regex: nil, model_w3c_validate: nil, is_debug: false, bind_offset: DEF_CALLER_INFO_BIND_OFFSET, base_proc: nil)
     caller_info_prefix = sprintf("(%s):", _get_caller_info_message(bind_offset: bind_offset))  # defined in test_helper.rb
     # h1_title ||= model.name.pluralize
     h1_title = h1_title_regex if !h1_title_regex.respond_to?(:named_captures)

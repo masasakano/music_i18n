@@ -1,9 +1,9 @@
-<h1>Urls</h1>
+<h1>Urls <%= h1_note_editor_only(Harami1129, method: :index) %></h1>
 
 <% urls = @urls %>
 
 <div id="urls">
-<%= render partial: 'layouts/urls_index', locals: {urls: @urls, with_parent: false} %>
+<%= render partial: 'layouts/urls_index', locals: {urls: @urls, with_parent: true, with_dates: true} %>
 
 </div> <!-- div id="urls" -->
 

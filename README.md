@@ -211,6 +211,12 @@ How to generate a new ActiveRecord model with Translation.
 
 ### Procedure to define a new association of a model to Url through polymorphic Anchoring
 
+#### Framework
+
+In this framework, the ActiveRecord/BaseWithTranslation model *Url* holds *Url* records in a polymorphic way so that the information can be associated to any class, as long as the basic association setups of `has_many` and `belongs_to` are defined mutually. Each 
+
+#### Procedure
+
 The join class *Anchoring* provides a polymorphic many-to-many association between *Url* and other classes (of *BaseWithTranslation*, a subclass of *ActiveRecord*).  Here is a standard procedure to define it to a new model.  Whereas the modification to the model is tiny (just one line!), you are most likely to need a new Controller for it, which needs a bit more work. In the following procedure, you add an editing interface of Url in the Show page of the model, where an editor can edit it on the spot.
 
 Here, let us call the new model the "target model" *Target*.
@@ -220,7 +226,7 @@ Almost all the methods for Controller and layouts for Views are already provided
 1. In the model file of *Target* (`/app/models/target.rb`), adds a line (maybe at the top though anywhere is acceptable): `include Anchorable`
 2. Run (at your shell): `bin/rails generate controller targets/anchorings --no-helper` which will generate
    * This generates a template Controller and test files, along with the directory like `/app/controllers/targets/`
-   * In fact, instead you can just manually create new directories and copy and paste the files, changing the file names appropriately, of 1 Controller, 1 controller test, and many views from respective template files from another model like `/app/controllers/events/anchorings_controller.rb` and `test/controllers/events/anchorings_controller_test.rb` and `/app/views/events/anchorings/` 
+   * In fact, instead you can just manually create new directories and copy and paste the files, changing the file names appropriately, of 1 Controller, 1 controller test, and many views from respective template files from another model like `/app/controllers/musics/anchorings_controller.rb` and `test/controllers/musics/anchorings_controller_test.rb` and `/app/views/musics/anchorings/` Each of them contains only a few lines, which require to be modified according to your target class name.
 3. Edit your route file `/config/routes.rb` , adding the following lines (replacing *:targets* according to your class name).  Rails-generate does not automatically modify the route for the nested resources.
 
    ```ruby
@@ -232,10 +238,10 @@ Almost all the methods for Controller and layouts for Views are already provided
 
    ```ruby
    class Targets::AnchoringsController < BaseAnchorablesController
-     ANCHORABLE_CLASS = self.name.split(":").first.singularize.constantize  # Event class
+     ANCHORABLE_CLASS = self.name.split(":").first.singularize.constantize  # Music class
    end
    ```
-5. Copy your view files from a template, `/app/views/events/anchorings/` 
+5. Copy your view files from a template, `/app/views/musics/anchorings/` 
    * You discard the auto-generated View files by `rails generate`
    * In this case, the file names are also identical. So you can actually copy the directory as a whole.
 6. Edit the View file for Show for *Target* (either `/app/views/targets/show.html.erb` or its standard partial `_target.html.erb`), addig the following (making sure to change the name `target` to your model name).
@@ -246,18 +252,16 @@ Almost all the methods for Controller and layouts for Views are already provided
    <% end %>
    ```
 7. Edit the Controller-test file (`/test/controllers/targets/anchorings_controller_test.rb`)
-   * A nominal way is just to copy the contents from a template at `/test/controllers/events/anchorings_controller_test.rb` and change the instance variable `@event` and its content at the top with your fixture record for *Target*
-   * The copied file then tests basic CRUD with the newly associated *Target*-*Anchoring* (and *Url*). The key is a few lines near the top:
+   * A nominal way is just to copy the contents from a template at `/test/controllers/musics/anchorings_controller_test.rb` and change the contents of the two instance variables `@anchorable` and `@anchorabl2` in +setup+ with your fixture record for *Target*
+   * The copied file then tests basic CRUD with the newly associated *Target*-*Anchoring* (and *Url*). A key is a few lines near the top. Basically, your *ControllerTest* class should be a subclass of the custom *BaseAnchoringsControllerTest*:
    
      ```ruby
      require "test_helper"
-     require "helpers/controller_anchorable_helper"
-     
-     class Targets::AnchoringsControllerTest < ActionDispatch::IntegrationTest
-       include ActiveSupport::TestCase::ControllerAnchorableHelper
-       include BaseAnchorablesHelper  # for path_anchoring
+     require "controllers/base_anchorings_controller_test.rb"
+
+     class Musics::AnchoringsControllerTest < BaseAnchoringsControllerTest  # < ActionDispatch::IntegrationTest
      ```
-   * If a test fails, it may be because of permission because the editing permission follows that of the parent class (*Target* in this case), which varies.  Access to some models are more restricted than others.  You may edit the `success_users` in the test file.
+   * If a test fails, it may be because of permission because the editing permission follows that of the parent class (*Target* in this case), which varies.  Access to some models are more restricted than others.  You may edit the `fail_users` and `success_users` in the test file.
    * You may add some more specific tests, including system tests.
 
 Finally, if you decide to add more (Controller) methods or tests, you may want to add them to `BaseAnchorablesController` or `helpers/controller_anchorable_helper`, respectively, because most of them should be applicable across all *anchorable* models.
@@ -279,6 +283,55 @@ In each target-model Show page, each item is displayed in a form of
     (SiteCategory#title: DomainTitle#title) [Url#url_langcode] Url#title (NOTE: Url#note; Anchoring#note)
 
 where `Url#title` is highlighted as the anchor.  In the on-the-spot edit screen, an editor can edit `Anchoring#note` but NOT `Url#note` (visit the specific-edit page of *Url* to edit `Url#note`).
+
+#### Framework for Url and Anchoring, including testing ####
+
+Here I present an in-depth description of the framework.
+
+##### Models
+
+* *Url* `belongs_to` *Anchoring*
+  * *Url* `has_many` *Anchorings* and many "anchorables" (i.e., "targets" with the notation above) through *Anchorings* (in a polymorphic way)
+* *Anchoring* `has_many` *Urls* and `has_many` "anchorables" in a polymorphic way
+* "anchorable" `belongs_to` *Anchoring*
+  * "anchorable" `has_many` *Anchorings* and many *Urls* through *Anchorings*
+
+To illustrate the relations:
+
+    Url → (has_many)        → Anchorings → (EACH belongs_to)      → anchorable
+    Url ← (EACH belongs_to) ← Anchorings ← (polymorphic has_many) ← anchorable
+
+Because of the polymorphic relations, Rails provides no built-in methods for `Url#anchorables`; I define it so that it returns a Ruby Array of "anchorables" as opposed to the DB records or its relation, which is a standard (and only) way.
+
+In practice, in the current setting, *Url* and all the *anchorable* class are subclasses of *BaseWithTranslation*, which is a subclass of *ActiveRecord*; accordingly, they also have polimorphically many *Translations*.  Although this relation is not an absolute requirement for "anchorable" classes, many of the methods and framework scheme assume that it is the case.
+
+A utility module *Anchorable* is defined, which can be (and are) included in each anchorable class, setting up the association and providing several methods.
+
+##### Controllers
+
+*Url* itself can be fully edited with its standard RESTful user-interface (UI) by permitted editors through *UrlsController*.
+However, it does not provide functionality to edit its associations to "anchorables", that is, (join-table records) *Anchorings*.
+
+Instead, the framework provides an on-the-spot UI for editing the associations inside the Show page of each *anchorable* through *Targets::AnchoringsController*, where "Targets" is the pluralized-CamelCase name of the target ActiveRecord class, such as, *Musics*. Any editor who is permitted to edit the Show page of the record is granted to edit/create/destroy the association of new or existing URLs.  Within the UI, they can **edit** a limited portion of information of the associated *Url* and (in an even more limited way) its parent *Domain*, but they cannot **destroy** a Url record through the UI.
+
+Here, each controller *Targets::AnchoringsController* is a subclass of *BaseAnchorablesController*, which is a subclass of the standard *ApplicationController*.  *BaseAnchorablesController* provides most (or virtually all) of the required methods, such as :show, :update, :destroy for each subclass, so each subclass hardly defines its own method.
+*BaseAnchorablesController* includes the *BaseAnchorablesHelper* module, which contains a few utility methods.
+
+##### Views
+
+The index part for *Anchorings* is displayed in the *Show* page of each record of "anchorable", and the part is within a turbo-frame in order that the clicking/tapping hyper-links in it would be intercepted by the Turbo AJAX (by standard browsers). *Targets::AnchoringsController* renders a partial for Turbo, which will be interpreted by the browser with Turbo (JavaScript), providing an on-the-spot editing functionality of *Anchorings*.
+
+##### Testing
+
+Each testing Controller is like *Targets::AnchoringsControllerTest* and is defined as a subclass of *BaseAnchoringsControllerTest*, which is a subclass of the standard *ActionDispatch::IntegrationTest*.
+*BaseAnchoringsControllerTest* basically defines the standard testing flow. So, each subclass like *Musics::AnchoringsControllerTest* needs the minimum set of test suite.  Indeed, apart from the model-dependent permission issues, they are designed to behave in an almost identical way, regardless of the class of the *anchorable*.
+
+*BaseAnchoringsControllerTest* includes the helper *ActiveSupport::TestCase::ControllerAnchorableHelper* (found at the time of writing in `/test/controllers/musics/anchorings_controller_test.rb` though the location is not right...), which defines wrappers of most of test assertions.  Most of the actual assertions are defined in the custom helper
+found in `/test/helpers/controller_helper.rb` which I developed as a generic framework for popular Controller tests. Since it is a genral framework, *ActiveSupport::TestCase::ControllerAnchorableHelper* has been developed to provide wrappers that are tailor-made for testing *Anchoring* associations.
+Note that *ActiveSupport::TestCase::ControllerAnchorableHelper* (and *BaseAnchoringsControllerTest*) include the module *BaseAnchorablesHelper*.
+
+The above-described framework follows the DRY principle, and indeed, the amount of code required to write when introducing a new *anchorable* class is minimum. The downside is, however, that it is not always easy to pin down **where** and what causes an assertion failure when one happens.  I have coded so that some of the test assertions report some caller information, using Ruby's bind information, but admittedly many of them do not. Let us hope an error will not happen often!
+
 
 ### Static page strategy ###
 

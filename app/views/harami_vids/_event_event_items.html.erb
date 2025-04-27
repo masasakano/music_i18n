@@ -48,7 +48,7 @@
               <% link_txt_extra = "" %>
               <% if canindex_evit %>  <%# Strictly, this should be: can? :show, event_item %>
                 <% link_txt_extra = ": " + trimmed_event_item_machine_title_to_display(event_item) %> <%# defined in harami_vids_helper.rb %>
-                <% tit = sprintf("%s (ID=%d; Assoc-IDs=%s)", event_item.machine_title, event_item.id, HaramiVidEventItemAssoc.where(harami_vid: @harami_vid, event_item: event_item).order(:id).ids.inspect) %>
+                <% tit = sprintf("%s (ID=%d(w=%s); Assoc-IDs=%s)", event_item.machine_title, event_item.id, ((w=event_item.weight) ? "%.3g"%w : "nil"), HaramiVidEventItemAssoc.where(harami_vid: @harami_vid, event_item: event_item).order(:id).ids.inspect) %>
                 (<%= eii+1 %><span class="editor_only"><%= link_to "#{link_txt_extra}", event_item, title: tit %></span>)
               <% else %>
                 (<%= eii+1 %>)
