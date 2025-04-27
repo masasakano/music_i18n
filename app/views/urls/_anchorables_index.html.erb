@@ -1,0 +1,57 @@
+<%# Local variables: url [Url], optional: this_model [BaseWithTranslation] %>
+<%#   Example:  render partial: 'anchorables_index', locals: {url: my_url} %>
+
+<% if !defined?(this_model)
+     this_model = nil
+   end %>
+<% is_moderator = (current_user && current_user.moderator?) %>
+
+<section id="anchorables_index_table">
+<table>
+  <thead>
+    <tr>
+       <% if (caneditgen=can?(:edit, Url))  %>
+        <th class="editor_only">pID</th>
+       <% end %>
+       <% if is_moderator %>
+        <th class="moderator_only" title="pID of Anchoring">Anchoring</th>
+       <% end %>
+      <th title="Class"><%= t("urls.anchorable_type") %></th>
+       <%= render "layouts/title_alt_ja_en_table", model: nil, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
+      <th title="Note of Anchor"><%= t("tables.note") %></th>
+       <% if is_moderator %>
+      <th title="Anchoring">Created (UTC)</th>
+      <th title="Anchoring">Updated (UTC)</th>
+       <% end %>
+      <th></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% url.sorted_anchorables.each do |record| %>
+      <% anchoring = record.anchorings.find_by(url_id: url.id) %>
+      <% can_show = can?(:show, record) %>
+      <tr<%= ' class="self_in_table"'.html_safe if (is_self=(this_model && record == this_model)) %>>
+         <% if caneditgen  %>
+          <td class="editor_only text-end item_pid" title="pID of anchorable"><%= can_show ? link_to(record.id, record) : record.id %></td>
+         <% end %>
+         <% if is_moderator %>
+           <td class="moderator_only text-end item_anchoring_pid" title="pID of Anchoring">
+             <%= can_show ? link_to((i=anchoring.id), Rails.application.routes.url_helpers.polymorphic_path(record)+'#'+dom_id(anchoring)) : i %>
+           </td>
+         <% end %>
+      <td title="Class"><%= link_to t(s=record.class.name, default: s), record %></td>
+       <%= render "layouts/title_alt_ja_en_table", model: record, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
+        <td class="item_note"><%= anchoring.note %></td>
+         <% if is_moderator %>
+           <td class="item_created_at"><%= ctime=anchoring.created_at.utc %></td>
+           <% not_updated = (utime=anchoring.updated_at.utc == ctime) %>
+           <td class="item_updated_at<%= ' align-c' if not_updated %>"><%= (not_updated ? '&mdash;'.html_safe : utime) %></td>
+         <% end %>
+        <td><%= link_to t("tables.Show"), record %></td>
+      </tr>
+    <% end %> <%# urls.each do |record| %>
+  </tbody>
+</table>
+</section> <!-- section id=anchorables_index_table" -->
+

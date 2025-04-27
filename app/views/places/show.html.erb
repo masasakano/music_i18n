@@ -1,7 +1,7 @@
 
 <% country_name = @place.country.title_or_alt %>
 <% prefecture_name = @place.prefecture.title_or_alt %>
-<h1>Place: <%= @place.title_or_alt %> (&lt; <%= prefecture_name %> &lt; <%= country_name %>)</h1>
+<h1>Place: <%= @place.title_or_alt %> (&lt; <%= prefecture_name %> &lt; <%= country_name %>) <%= h1_note_editor_only(@place, method: :show) %></h1>
 
 <hr>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: @place, add_buttons: true} %>
@@ -25,13 +25,12 @@
   <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @place, model4ability: canedit_place} %>
 </dl>
 
-<%= link_to 'Back to Index', places_path %>
-<% if can? :edit, @place %>
-  <br>
-  <span class="lead editor_only">
-  <%= link_to 'Edit', edit_place_path(@place) %>
-  </span>
-<% end %>
+      
+<%= editor_only_safe_html(Place, method: :index, tag: "span", text: link_to(t('layouts.back_to_index'), places_path)+"<br>".html_safe) %>
+<%= editor_only_safe_html(@place, method: :edit, tag: "span", html_class: "lead"){ <<__EOF__
+  #{link_to 'Edit', edit_place_path(@place)} <br>
+__EOF__
+} %>
 <% if can_create_pla=can?(:create, Place) %>
   <% pref_title = @place.prefecture.title_or_alt_tuple_str("[", "]", langcode: I18n.locale) %>
 <p class="lead editor_only">
@@ -95,17 +94,20 @@
   <% end %>
 <% end %>
 
-<% if can? :index, Event %>
   <hr>
 
+  <%= editor_only_safe_html(Event, method: :index){  # Table ordered in the partial
+      ret = <<__EOF__
   <section id="event_table">
-  <h3 title="Events one of EventItems of which is held at this Place"><%= t(:Events) %> (<%= @place.title_or_alt(prefer_shorter: true, lang_fallback_option: :either, str_fallback: "") %>)</h3>
+  <h3 title="Events one of EventItems of which is held at this Place">#{t(:Events)} (#{@place.title_or_alt(prefer_shorter: true, lang_fallback_option: :either, str_fallback: "")})</h3>
   
-  <%= render partial: 'layouts/events_index', locals: {events: @place.events_thru_event_items.distinct, with_place: false} %> <%# ordered in the partial %>
+  #{render partial: 'layouts/events_index', locals: {events: @place.events_thru_event_items.distinct, with_place: false}}
   </section>
-<% end %>
-
 <hr>
+__EOF__
+      ret.html_safe  # essential.
+} %>
+
 
 <section id="sec_harami_vids_for">
 <section id="harami_vid_table">  <%# obsolete... %>

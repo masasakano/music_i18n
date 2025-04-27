@@ -458,4 +458,10 @@ class PrefectureTest < ActiveSupport::TestCase
     assert_equal 37,       Prefecture[/香川/, Country[392]].iso3166_loc_code
     assert_nil             Prefecture['香川', Country[392]] # b/c title="香川県"
   end
+
+  test "orderd_all_jp_prioritized(" do
+    cntry = Country.primary
+    assert_equal cntry, Prefecture.orderd_all_jp_prioritized.first.country
+    refute_equal cntry, Prefecture.orderd_all_jp_prioritized.last.country
+  end
 end

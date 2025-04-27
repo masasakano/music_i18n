@@ -100,6 +100,7 @@ ja:
     reset_button: "リセット (初期状態に戻す)"
     submit_button: '送信'
     Show: "詳細"
+    view_searching_index: "検索付き詳細一覧を見る"
 
     fields:
       music_title: "楽曲の名前"
@@ -177,6 +178,7 @@ ja:
       musics_multi: '曲(部分一致)'
       n_musics_general: "曲数"
       n_amps: 演奏関与数
+      prefectures: "県・州(複数可)"
       by_harami: "本人動画?"
       by_harami_full: "本人制作動画か?"
       uri_playlist: "セトリURI [%{langcode}]"
@@ -345,6 +347,8 @@ ja:
 
   urls:
     title: 説明
+    anchorable_type: リンク元
+    anchorable_type_full: リンク元一覧
 
   artist_music_plays:
     destroy_success: 'コラボArtistの1関連項目が削除されました。'

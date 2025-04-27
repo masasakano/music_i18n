@@ -430,7 +430,7 @@ EOF
       ### Row 2 (0th line is skipped)
       art = reths[:artists][2]
       assert_not   art.errors.present?
-      assert_nil   art.title(langcode: 'en')
+      assert_nil   art.title(langcode: 'en', lang_fallback: false), "art=#{art.inspect} / art.translations=#{art.translations.inspect}"
       assert_equal 'SMAP男', art.title(langcode: 'ja')
       assert_equal 'SMAP男', art.title
       assert_equal 'ja',     art.orig_langcode

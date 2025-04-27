@@ -1119,12 +1119,69 @@ module ApplicationHelper
   def h1_note_editor_only(record, method: :show)
     return "" if publicly_viewable?(record, method: method, permissive: true)
 
-    ret = <<__EOD__
-<span class="editor_only text-red">&nbsp;&nbsp;[Editor-only Page]</span>
-__EOD__
-    ret.html_safe
+    ret = '<span class="editor_only text-red">&nbsp;&nbsp;[Editor-only Page]</span>'.html_safe
   end
 
+  # Returns a block of safe-HTML in a div/span of editor/moderator-only IF it is viewable by the user.
+  #
+  # If the input is not HTML-safe, it is sanitized. Note that this sanitization usually preserves
+  # HTML ankers (links), though not an entire table.  Given that manual sanitization one by one
+  # followed by manual +html_safe+ is human-error prone, not to mark it as +html_safe_ but
+  # to leave it to Rails would be perhaps better in most cases (I think)?
+  #
+  # This method is particularly useful when you think the component may become public
+  # in the future; with this method, the part is guaranteed NOT to be enclosed
+  # with the editor-only style once it has become public.  For the standard "Edit"/"Create"
+  # links, the standard ERB writing may suffice.
+  #
+  # @example
+  #    editor_only_safe_html(@place, method: :edit, tag: "span", html_class: "lead"){ <<__EOF__
+  #       #{link_to 'Edit', edit_place_path(@place)} <br>
+  #    __EOF__
+  #    }
+  #
+  # @example
+  #    can_index = can?(:index, Event)
+  #    editor_only_safe_html(:pass, can_index, text: link_to(t('layouts.back_to_index'), placec_path)+"<br>".html_safe)
+  #
+  #
+  # @param record [ActiveRecord, Class<ActiveRecord>, Symbol] If Symbol of :pass, the Boolean value of the method is used for ability check.
+  # @param method: [Symbol, Boolean] Mandatory, unlike {#publicly_viewable?}. This can be like :crud or :ud as defined in ability.rb .  Or, if +record+ is :pass, this Boolean value is used and detailed ability check is skipped, and the unauthenticated is assumed to be prohibited to access.
+  # @param tag: [String] "div"(Def) or "span". Or, "p" if you want.
+  # @param html_class: [String] space-separated CSS classes for the tag.
+  # @param only: [Symbol, String] If Symbol like :editor, "editor_only" is the CSS class. Or you can explicitly specify the CSS class in String.
+  # @param text: [String, NilClass] you can supply the enclosed text either with this argument or through yield.
+  # @param permissive: [Boolean] Default is false, unlike {#publicly_viewable?}.  Use so unless the permission is not a big-deal one.
+  # @return [String] html_safe String to display if the page is editor-only? (maybe moderator or admin only)
+  # @yield Returned text will be inside the block.
+  def editor_only_safe_html(record, method:, tag: "div", html_class: "", only: :editor, text: nil, permissive: false)
+    if !permissive
+      if !((:pass == record && [true, false, nil].include?(method)) || 
+           (record.respond_to?(:attribute_names) && method.is_a?(Symbol)))
+        msg = "ERROR(#{__method__}): Wrong argument: [record, method]=#{[record, method].inspect}"
+        logger.error msg
+        raise ArgumentError, msg
+      end
+    end
+
+    return "" if (:pass == record && !method) || (:pass != record && !can?(method, record))
+
+    html_classes = [html_class.present? ? html_class : nil]
+
+    # Adds "editor_only" to the output CSS
+    if (:pass == record && method) || !publicly_viewable?(record, method: method, permissive: permissive)
+      html_classes.push(only.is_a?(Symbol) ? (only.to_s+"_only") : only)
+    end
+    out_class_str = sanitize(html_classes.compact.join(" "))
+
+    if block_given?
+      warn "WARNING(#{__method__}): Argument text is ignored as a block is also given." if text.present?
+      text = yield
+    end
+    text = text.to_s
+    text = sanitize(text) if !text.html_safe?
+    sprintf('<%s class="%s">%s</%s>', tag, out_class_str, text, tag).html_safe
+  end
 
   # to suppress warning, mainly that in Ruby-2.7.0:
   #   "Passing the keyword argument as the last hash parameter is deprecated"

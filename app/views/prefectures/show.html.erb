@@ -1,6 +1,7 @@
 
+
 <% country_name = @prefecture.country.title_or_alt(langcode: I18n.locale) %>
-<h1>Prefecture: <%= my_title = @prefecture.title_or_alt_tuple_str("[", "]", langcode: I18n.locale) %> (&lt; <%= country_name %>)</h1>
+<h1>Prefecture: <%= my_title = @prefecture.title_or_alt_tuple_str("[", "]", langcode: I18n.locale) %> (&lt; <%= country_name %>) <%= h1_note_editor_only(@prefecture, method: :show) %></h1>
 
 <hr>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: @prefecture} %>
@@ -53,26 +54,31 @@
 
 <%= render partial: '/layouts/places_in_prefecture', locals: {prefecture: @prefecture, places: @places, pref_title: my_title} %>
 
-<% if can? :create, Place %>
-<p class="lead">
-  <%= link_to sprintf('Create a new Place in Prefecture "%s"', my_title), new_place_path(place: {prefecture_id: @prefecture.id}) %>
-</p>
-<% end %>
+  <%= editor_only_safe_html(Place, method: :create){ <<__EOF__
+  <p class="lead">
+    #{link_to sprintf('Create a new Place in Prefecture "%s"', my_title), new_place_path(place: {prefecture_id: @prefecture.id})}
+  </p>
+__EOF__
+      } %>
 
 <p>
-<%= link_to t('layouts.back_to_index'), prefectures_path %>
+  <%= editor_only_safe_html(Place, method: :index){
+      link_to t('layouts.view_searching_index'), places_path(params: {places_grid: {prefecture_id: [@prefecture.id]}}) } %>
 </p>
 
 <hr>
 
+  <%= editor_only_safe_html(Event, method: :index){
+      ret = <<__EOF__
 <section id="section_event_table">
-
-<h2><%= t(".events_in_prefecture", this_pref: my_title) %></h2>
-
-<%= render partial: "layouts/events_index", locals: {events: @prefecture.events, hide_prefecture: true} %>
+<h2>#{t('.events_in_prefecture', this_pref: my_title)}</h2>
+#{render partial: 'layouts/events_index', locals: {events: @prefecture.events, hide_prefecture: true}}
+#{link_to t('layouts.view_searching_index'), events_path(params: {events_grid: {prefecture_id: [@prefecture.id]}}) }
 </section> <!-- section id="section_event_table" -->
-
 <hr>
+__EOF__
+      ret.html_safe  # essential.
+} %>
 
 <section id="harami_vid_table">
 <h2><%= t("show.h2_harami_vid") %></h2>

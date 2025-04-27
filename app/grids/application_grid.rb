@@ -565,9 +565,26 @@ class ApplicationGrid < Datagrid::Base
     end
   end 
 
+  # @return Proc to select prefectures
+  def self.proc_select_prefectures
+    Prefecture.orderd_all_jp_prioritized.map{|rec|
+      tit = sprintf("%s < %s", rec.title_or_alt_for_selection, rec.title_or_alt_for_selection)
+      [tit, rec.id]
+    }.uniq
+  end
+
+  # Add column :prefecture
+  def self.column_prefecture(header: Proc.new{I18n.t(:Prefecture)}, **opts)
+    column(:prefecture, mandatory: true, header: header, order: proc { |scope|
+             scope.order(:prefecture_id)
+      }) do |record|
+      record.prefecture.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)
+    end
+  end 
+
   # Add column :place
   def self.column_place(header: Proc.new{I18n.t('tables.place')}, **opts)
-    column(:place, header: Proc.new{I18n.t('tables.place')}) do |record|
+    column(:place, header: header) do |record|
       record.place.pref_pla_country_str(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true)
     end
   end 

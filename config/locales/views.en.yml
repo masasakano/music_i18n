@@ -100,6 +100,7 @@ en:
     reset_button: "Reset (Start Over)"
     submit_button: 'Submit'
     Show: "Detail"
+    view_searching_index: "View seachable full index"
 
     fields:
       music_title: "Song/Music name"
@@ -161,6 +162,7 @@ en:
       musics_multi: 'Musics (partial match)'
       n_musics_general: "# of Musics"
       n_amps: "# of plays"
+      prefectures: "Prefecture(s)"
       by_harami: "By Harami?"
       by_harami_full: "Produced by HARAMIchan?"
       uri_playlist: "Comment URI list [%{langcode}]"
@@ -274,7 +276,7 @@ en:
     form_prompt_collab: "Newly specified Music (if any)"
     Duplicate: "Duplicate"
     show:
-      harami_vid_long: "HARAMIchan-featured Videos"
+      harami_vid_long: "HARAMIchan-featured Video"
       artist_collabs: "featuring Artists"
       Other_HaramiVids_for_these_EventItems: Other videos for these EventItems
       Other_HaramiVids_for_Event: "Other videos for this Event(s)"
@@ -329,6 +331,8 @@ en:
 
   urls:
     title: Description
+    anchorable_type: From
+    anchorable_type_full: Objects anchored from
 
   artist_music_plays:
     destroy_success: 'Artist-Playing association was successfully destroyed.'

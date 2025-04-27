@@ -16,7 +16,7 @@
   <section id="anchoring_index_<%= record.class.name %>" class="anchoring_index">
     <% paths = { new: send("new_"+ path_base, prm_parent_key => record.id), }.with_indifferent_access %> <%# Note: The direct argument assignment of "record" (or (anchoring, record) for :edit) returns the path without a locale, so it is not ideal, hence the use of "artrist_id: art1" %>
     <% if anchorings.exists? || canedit_gen %>
-      <h3 class="links_anchoring">Links</h3>
+      <h3 class="links_anchoring"><%= t(:external_link).capitalize.pluralize %></h3>
       <ul>
         <% anchorings.joins(:url).joins(url: :site_category).order("site_categories.weight", "anchorings.created_at").each do |anchoring| %>
          <%= turbo_frame_tag turbo_tag_index do %>

@@ -87,6 +87,14 @@ class Url < BaseWithTranslation
     has_many em.underscore.pluralize.to_sym, through: :anchorings, source: :anchorable, source_type: em
     # or surely(?) # has_many em.underscore.pluralize.to_sym, through: :anchorings, source: :anchorable, source_type: em
   end
+  def anchorables
+    anchorings.map(&:anchorable)
+  end
+  def sorted_anchorables
+    anchorables.sort_by{|a| [a.class.name,
+                             a.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "\uFFFD", article_to_head: false),
+                             a.id] }
+  end
 
   validates :url, presence: true
   validates :url,            uniqueness: {case_sensitive: false, scope: :url_langcode}

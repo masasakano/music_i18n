@@ -14,6 +14,14 @@
 </section> <%# closing section id="sec_primary" %>
 
 <hr>
+
+<section id="anchorables_index">
+<h2><%= t("urls.anchorable_type_full").capitalize %></h2>
+
+<%= render partial: 'anchorables_index', locals: {url: @url} %>
+</section>
+
+<hr>
   <%= link_to t("layouts.back_to_index"), urls_path %>
 
 

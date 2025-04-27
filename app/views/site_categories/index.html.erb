@@ -32,7 +32,9 @@
       <tr>
         <% if caneditgen  %>
           <td class="editor_only"><%= link_to(model.id, model) %></td>
+        <% end %>
        <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
+        <% if caneditgen  %>
           <td class="editor_only item_mname"><%= model.mname %></td>
           <td class="editor_only item_weight"><%= model.weight %></td>
         <% end %>

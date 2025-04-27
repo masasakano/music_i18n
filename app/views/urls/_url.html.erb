@@ -20,8 +20,10 @@
         <%= link_to(decoded, model.url, target: "_blank", title: (is_identical ? msg_editor1 : msg_editor2)) %>
     <% end %>
     </dd>
-    <% if model.url.present? && !is_identical %>
-      <dd class="item_id_url_encoded"><%= link_to(model.url, model.url, target: "_blank", title: msg_editor1) %></dd>
+    <% if model.url.present? && !is_identical && can_update_gen %>
+      <div class="editor_only">
+        <dd class="item_id_url_encoded"><%= link_to(model.url, model.url, target: "_blank", title: msg_editor1) %></dd>
+      </div>
     <% end %>
   <% if can_update_gen %>
    <div class="editor_only">

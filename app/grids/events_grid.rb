@@ -9,15 +9,20 @@ class EventsGrid < ApplicationGrid
 
   filter_n_column_id(:event_url)  # defined in application_grid.rb
 
+  filter(:event_group, :enum, dummy: true, select: Proc.new{
+           EventGroup.all.order(:start_date).map{|i| [s=i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true), i.id]}},
+         header: Proc.new{I18n.t(:EventGroup, default: "Event Group")}) do |value|  # Only for PostgreSQL!
+    self.joins(:event_group).where("event_group.id" => [value].flatten)
+  end
+
   filter_include_ilike(:title_ja, header: Proc.new{I18n.t("datagrid.form.title_ja_en", default: "Title [ja+en] (partial-match)")}, input_options: {autocomplete: 'off'})
 
   filter(:start_time, :datetime, range: true, header: Proc.new{I18n.t('tables.start_time')+" (< #{Date.current.to_s})"}) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
   filter(:duration_hour, :float, range: true, header: Proc.new{I18n.t('tables.duration_hour')}) # float in DB # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
 
-  filter(:event_group, :enum, dummy: true, select: Proc.new{
-           EventGroup.all.order(:start_date).map{|i| [s=i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true), i.id]}},
-         header: Proc.new{I18n.t(:EventGroup, default: "Event Group")}) do |value|  # Only for PostgreSQL!
-    self.joins(:event_group).where("event_group.id" => [value].flatten)
+  filter(:prefecture_id, :enum, multiple: true, include_blank: true,
+         header: Proc.new{I18n.t("datagrid.form.prefectures")}, select: proc_select_prefectures) do |values|  # defined in application_grid.rb
+    self.joins(:place).where("places.prefecture_id": values)
   end
 
 #  filter_partial_str(:artists, header: Proc.new{I18n.t('datagrid.form.artists_multi')})

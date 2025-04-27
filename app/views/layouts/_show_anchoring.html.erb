@@ -40,7 +40,7 @@
 
            <%# turbo_frame_tag dom_id(anchoring, :edit), src: paths[:edit], loading: :lazy do %>
            <%= turbo_frame_tag dom_id(anchoring) do %>
-            <li>
+            <li id="<%= dom_id(anchoring) %>">
              <%= link_show_header(anchoring) %>  <%# defined in base_anchorables_helper.rb %>
              <% if (lcode=anchoring.url.url_langcode).present? %>
                <%= sprintf " [%s] ", get_language_name(lcode, in_locale: I18n.locale) %>

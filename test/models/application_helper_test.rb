@@ -332,6 +332,15 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert act.html_safe?
   end
 
+  test "print_1or2digits" do
+    assert_equal "0.0",  print_1or2digits(0)
+    assert_equal "1.0",  print_1or2digits(1)
+    assert_equal "0.3",  print_1or2digits(0.3)
+    assert_equal "0.33", print_1or2digits(0.33)
+    assert_equal "0.33", print_1or2digits(0.3333)
+    assert_equal "0.34", print_1or2digits(0.3399)
+  end
+
   test "publicly_viewable?" do
     hvid = harami_vids(:harami_vid1)
     assert publicly_viewable?(hvid)
@@ -351,17 +360,8 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert publicly_viewable?(nil, permissive: true)
     assert publicly_viewable?(nil)
     assert publicly_viewable?(5 )
-    assert_raises(){ publicly_viewable?(nil, permissive: false) }
-    assert_raises(){ publicly_viewable?(  5, permissive: false) }
-  end
-
-  test "print_1or2digits" do
-    assert_equal "0.0",  print_1or2digits(0)
-    assert_equal "1.0",  print_1or2digits(1)
-    assert_equal "0.3",  print_1or2digits(0.3)
-    assert_equal "0.33", print_1or2digits(0.33)
-    assert_equal "0.33", print_1or2digits(0.3333)
-    assert_equal "0.34", print_1or2digits(0.3399)
+    assert_raises(ArgumentError){ publicly_viewable?(nil, permissive: false) }
+    assert_raises(ArgumentError){ publicly_viewable?(  5, permissive: false) }
   end
 
   private

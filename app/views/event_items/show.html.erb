@@ -1,3 +1,5 @@
+<h1>EventItem: <%= @event_item.machine_title.sub(/\s*_<_[^<]*$/, "").sub(%r@_in_\S+\s*\(\S+/\S+\)\s*$@, "").tr("-_", " -") %> <%= h1_note_editor_only(@event_item, method: :show) %></h1>
+
 <%= render @event_item %>
 
 <div>

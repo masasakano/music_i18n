@@ -82,7 +82,7 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
     end
 
     assert_authorized_show(parent, h1_title_regex: h1_title_regex, skip_public_access_check: true, fail_users: fail_users, success_users: success_users, **opts){ |user, record|
-      assert_match(/^Links\b/, css_select('h3.links_anchoring').first.text.strip)  # defined in /app/views/layouts/_index_anchorings.html.erb
+      assert_match(/^External links\b/, css_select('h3.links_anchoring').first.text.strip)  # defined in /app/views/layouts/_index_anchorings.html.erb
     }
   end
 

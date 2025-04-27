@@ -12,15 +12,8 @@ class PlacesGrid < ApplicationGrid
   filter_ilike_title(:ja)  # defined in application_grid.rb
   filter_ilike_title(:en)  # defined in application_grid.rb
 
-  filter(:prefecture_id, :enum, multiple: true, include_blank: true, header: Proc.new{I18n.t(:Prefecture)},
-         select: Proc.new{
-           def_country = Country.primary
-           sql = "CASE prefectures.country_id WHEN #{def_country.id rescue 0} THEN 0 ELSE 1 END"
-           Prefecture.joins(:places).order(Arel.sql(sql), "prefectures.country_id", "prefectures.id").map{|rec|
-             tit = sprintf("%s < %s", rec.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), rec.country.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true))
-             [tit, rec.id]
-           }.uniq
-         })
+  filter(:prefecture_id, :enum, multiple: true, include_blank: true,
+         header: Proc.new{I18n.t("datagrid.form.prefectures")}, select: proc_select_prefectures)  # defined in application_grid.rb
 
   column_names_max_per_page_filters  # defined in base_grid.rb
 
@@ -30,11 +23,7 @@ class PlacesGrid < ApplicationGrid
 
   column_all_titles  # defined in application_grid.rb
 
-  column(:prefecture, mandatory: true, header: Proc.new{I18n.t(:Prefecture)}, order: proc { |scope|
-           scope.order(:prefecture_id)
-    }) do |record|
-    record.prefecture.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)
-  end
+  column_prefecture
 
   column(:country, mandatory: true, header: Proc.new{I18n.t(:Country)}, order: proc { |scope|
            scope.joins(:prefecture).order("prefectures.country_id")

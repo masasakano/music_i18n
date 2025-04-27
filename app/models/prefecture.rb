@@ -293,6 +293,15 @@ class Prefecture < BaseWithTranslation
     ret
   end
 
+  # Ordered Prefecture where Country.primary comes first
+  #
+  # @return [Prefecture::ActiveRecord_Relation]
+  def self.orderd_all_jp_prioritized(rela=self.all)
+    def_country = Country.primary
+    sql = "CASE prefectures.country_id WHEN #{def_country.id rescue 0} THEN 0 ELSE 1 END"
+    rela.joins(:places).order(Arel.sql(sql), "prefectures.country_id", "prefectures.id")
+  end
+
   # Adds Place(UnknownPlaceXxx) after the first Translation creation of Prefecture
   #
   # Called by an after_create callback in translation.rb

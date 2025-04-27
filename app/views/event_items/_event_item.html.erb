@@ -6,7 +6,7 @@
     <dd> <%= @event_item.id %></dd>
   <% end %>
 
-  <dt><strong>Machine title:</strong></dt>
+  <dt title="machine_title"><strong>Machine title:</strong></dt>
     <dd><%= event_item.machine_title %></dd>
   <dt><strong><%= t("events.parent_event") %>:</strong></dt>
     <dd><%= link_to event_item.event.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), event_url(event_item.event) %> &lt; EventGroup(<%= link_to event_item.event.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), event_item.event.event_group %>)</dd>
