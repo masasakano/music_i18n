@@ -54,7 +54,7 @@ module BaseAnchorablesHelper
     sctit = record.site_category.title_or_alt(    langcode: I18n.locale, prefer_shorter: true, lang_fallback_option: :either, str_fallback: "")
     tdtit = (dt=record.domain_title).title_or_alt(langcode: I18n.locale, prefer_shorter: true, lang_fallback_option: :either, str_fallback: (can?(:edit, Artist) ? "(UNDEFINED)" : nil))
     tdtit = nil if dt.domains.pluck(:domain).map{|es| es.sub(/^www\./, "")}.uniq.include?(tdtit)  # If the title is just a URL, it is not displayed.
-    tdtit &&= nil if sctit.downcase.strip.gsub(/[[:space:]]+/, "") == tdtit.downcase.strip.gsub(/[[:space:]]+/, "")
+    tdtit &&= nil if tdtit && (sctit.downcase.strip.gsub(/[[:space:]]+/, "") == tdtit.downcase.strip.gsub(/[[:space:]]+/, ""))
 
     sprintf("(%s)", [sctit, tdtit].compact.join(": "))
   end

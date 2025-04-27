@@ -30,9 +30,6 @@ Rails.application.routes.draw do
     resources :destroy_with_amps, only: [:destroy]
     resources :resettle_new_events, only: [:update]
   end
-  resources :events do
-    resources :anchorings, controller: 'events/anchorings'
-  end
   resources :harami1129_reviews
   resources :event_groups
   resources :model_summaries
@@ -98,21 +95,12 @@ Rails.application.routes.draw do
     #patch     :internal_insertions, to: 'internal_insertions#update_all'
     #put       :internal_insertions, to: 'internal_insertions#update_all'  # Patch and Put does not work: Rails.application.routes.recognize_path("/harami1129s/internal_insertions", method: :put) #=> {:controller=>"harami1129s", :action=>"update", :id=>"internal_insertions"}
   end
-  resources :harami_vids do
-    resources :anchorings, controller: 'harami_vids/anchorings'
-  end
   namespace :harami_vids do
     resources :fetch_youtube_data, only: [:create, :update]
     resources :update_places,      only: [:show,   :update]
     resources :add_missing_music_to_evits, only: [:show,   :update]
   end
-  resources :musics do
-    resources :anchorings, controller: 'musics/anchorings'
-  end
   resources :genres
-  resources :artists do
-    resources :anchorings, controller: 'artists/anchorings'
-  end
   resources :translations
   resources :places
   resources :prefectures
@@ -120,6 +108,13 @@ Rails.application.routes.draw do
   resources :roles
   resources :role_categories
   resources :sexes
+
+  ## WARNING: It seems the following MUST come after namespace definitions (of :artists and :musics, specifically).  Otherwise, auto-completion would not work...
+  %w(artists events harami_vids musics places).each do |model_plural|
+    resources model_plural.to_sym do
+      resources :anchorings, controller: model_plural+'/anchorings'
+    end
+  end
 
   mount RailsAdmin::Engine => '/admin', as: 'rails_admin'
   # devise_for :users  # Default

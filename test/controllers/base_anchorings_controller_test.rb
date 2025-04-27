@@ -29,6 +29,7 @@ class BaseAnchoringsControllerTest < ActionDispatch::IntegrationTest
     @translator      = users(:user_translator)            # Translator can read but not create/delete.
     @moderator_ja    = users(:user_moderator_general_ja)  #
     @editor_ja       = users(:user_editor_general_ja)     # Same as Harami-editor
+    @user_no_role    = users(:user_no_role)   # authenticated but with no role
 
     # str_form_for_nil = ApplicationController.returned_str_from_form(ApplicationController::FORM_TERNARY_UNDEFINED_VALUE)
     @hs_create_lang = {
