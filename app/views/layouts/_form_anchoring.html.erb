@@ -29,8 +29,11 @@
   <%= f.submit %> <%# Default one aesthetically does not work well...:  f.button :submit %>
   </div>
  </section> <!-- section id="sec_primary_input" -->
-<% end %>
+<% end %> <%# simple_form_for [@anchorable, anchoring] ... %>
 
+  <div class="form-cancel-back">
+    <%= link_to sanitize("&larr; Cancel..."),  Rails.application.routes.url_helpers.polymorphic_path(@anchoring.anchorable) %>
+  </div>
 </div> <!-- div id="form_main" -->
 </section> <!-- section id="sec_primary" -->
 
