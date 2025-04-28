@@ -28,7 +28,7 @@ class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
     @moderator_ja    = users(:user_moderator_general_ja)  # 
     @editor_ja       = users(:user_editor_general_ja)     # Same as Harami-editor
 
-    str_form_for_nil = ApplicationController.returned_str_from_form(ApplicationController::FORM_TERNARY_UNDEFINED_VALUE)
+    #str_form_for_nil = ApplicationController.returned_str_from_form(ApplicationController::FORM_TERNARY_UNDEFINED_VALUE)
     @hs_create_lang = {
       "title"=>"The Tｅst12",
     }.with_indifferent_access
@@ -72,7 +72,7 @@ class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
 
     # Attempting to create an identical Anchoring 
     sc_media = site_categories(:site_category_media)  # trying a different SiteCategory
-    res = _refute_create_identical_anchoring( ancs[0], title: "unique new4 title", site_category_id: sc_media.id.to_s, **opt_users)  # testing failed creation, redirection etc.
+    _ = _refute_create_identical_anchoring( ancs[0], title: "unique new4 title", site_category_id: sc_media.id.to_s, **opt_users)  # testing failed creation, redirection etc.
     flash_regex_assert(/\bis already registered\b/, "Identical Anchoring should fail... ", type: :alert, category: :all, is_debug: false) # defined in test_helper.rb  # error message defined in :create in base_anchorables_controller.rb
 
     # Creating a Url and Artist-Anchoring
@@ -135,6 +135,122 @@ class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
     assert_equal pid,        ancs[-1].id
     assert_equal upd,        ancs[-1].reload.updated_at
     refute_equal note8,      ancs[-1].note
+
+
+    ##### Event-Anchoring-specific tests! (not because unique to Event-specific, but to avoid repeated tests)
+    ####opt_users = {fail_users: [], success_users: [@moderator_all]}  # only a single success_users is valid for :create, whereas multiple fail_users can be tested.
+    url_unk = Url.unknown
+    url_unk.update!(url: url_unk.url.sub(/^https/, "http"))  # "http://example.com" actually responds, but "https" does not.
+    url_unk_http_orig = url_unk.url
+    tit_orig = url_unk.title
+
+    assert_equal "http://", url_unk.url[0,7], "test fixtures (which are actually seeds)"
+    refute_includes @anchorable.urls, url_unk, "sanity check (of fixtures)"
+    refute_includes        url_unk.translations.pluck(:title), "Example Domain", 'tests fixtures'
+    assert_operator 1, :<, url_unk.translations.count, 'tests fixtures'
+    css_checkbox = "#anchoring_fetch_h1"
+
+    ## Preparation - destroying most Translations but one from the Url (Url.unknown)
+    url_unk.translations.find_by(langcode: "ja").destroy
+    url_unk.translations.reset
+    Translation.sort(url_unk.translations).reverse[1..-1].each do |etra|
+      etra.destroy!
+    end
+    url_unk.translations.reset
+    assert_equal 1, url_unk.translations.count, "sanity check: #{url_unk.translations.inspect}"
+    url_unk.translations.first.update!(langcode: "pt")
+    url_unk.translations.reset
+    assert_equal ["pt"], url_unk.translations.pluck(:langcode).flatten
+
+    ## First Anchoring creation for an existing Url succeeds, but fetch_h1 must be ignored for an existing Url.
+    #
+    # :new screen
+    _assert_authorized_gets_to_anchorables(@anchorable, methods: %i(new), fail_users: [], success_users: [@sysadmin]){
+      nodes = css_select(css_checkbox)
+      assert  nodes.present?  # The option should be provided on the form.
+      assert_equal 1, nodes.size, "fetch_h1 checkbox now should appear and be checked in :new"
+      assert is_checkbox_checked?(nodes[0])  # defined in test_helper.rb
+    }
+
+    # :create => succeed
+    anchoring = @anchorable.anchorings.find_by(url_id: url_unk.id)
+    note9 = "note9"
+    anc9 = _assert_create_anchoring_url_core( @anchorable,
+              fail_users: [], success_users: [@sysadmin],  # because accessing Url.unknown
+              diff_num: 1,
+              url_str: url_unk_http_orig,  note: note9,
+              fetch_h1: "1",  # Suppose the user sets this so.
+            )
+
+    refute       anc9.new_record?
+    assert_equal url_unk, anc9.url
+    assert_equal note9,   anc9.note
+    url_unk.reload
+    assert_equal url_unk_http_orig, url_unk.url
+    assert_equal tit_orig,          url_unk.title, 'should have not changed, but...'
+
+    ## Url/Anchoring update with fetch_h1 succeeds for the Url with a single Translations.
+    #
+    # :edit screen
+    _assert_authorized_gets_to_anchorables(anc9, methods: %i(edit), fail_users: [], success_users: [@sysadmin]){ |user, curpath|
+      nodes = css_select(css_checkbox)
+      assert  nodes.present?  # The option should be provided on the form.
+      assert_equal 1, nodes.size, "fetch_h1 checkbox now should appear though it should be uncheced on access to :edit always"
+      refute is_checkbox_checked?(nodes[0])  # In :edit, fetch_h1 checkbox is unchecked in default.  # defined in test_helper.rb
+    }
+
+    # :update -> success
+    refute anc9.new_record?, 'sanity check'
+    note10 = "note10"
+    anca = _assert_create_anchoring_url_core( anc9,
+              is_create: false, fail_users: [], success_users: [@sysadmin],  # because accessing Url.unknown
+              diff_num: 0,
+              url_str: url_unk_http_orig,  note: note10,
+              fetch_h1: "1") # Suppose the user sets this so.
+
+    assert_equal anca,   anc9, "sanity check"
+    assert_equal note10, anc9.note, "updated?"
+    url_unk.reload
+    assert_equal 1, url_unk.translations.count
+    tra = url_unk.translations.first
+    refute_equal tit_orig,         tra.title, 'should have changed, but...'
+    assert_equal "Example Domain", tra.title, 'should have been updated to this, fetched H1, but...'
+    assert_equal "pt",             tra.langcode, 'langcode should remain, but...'
+
+    ## Another Preparation - adding a Translation to Url (Url.unknown)
+    assert_includes  url_unk.translations.pluck(:title), "Example Domain", "should have one"
+    url_unk.translations.first.update!(title: "back-to-original")
+    url_unk.translations << Translation.new(title: "dummy10", langcode: "fr", is_orig: false)
+    url_unk.translations.reset
+    assert_equal 2, url_unk.translations.count, 'sanity check'
+    refute_includes  url_unk.translations.pluck(:title), "Example Domain", "should NOT have one"
+
+    #  Then, the attempt of updating with fetch_h1 should fail, because Url has multiple Translations.
+    #
+    # :edit screen
+    _assert_authorized_gets_to_anchorables(anc9, methods: %i(edit), fail_users: [], success_users: [@sysadmin]){
+      assert css_select(css_checkbox).blank?, 'The checkbox should not be provided on the form in the first place, but...'
+    }
+
+    # :update -> fail
+    note11 = "note11"
+    ancb = _assert_create_anchoring_url_core( anc9,
+              is_create: false, fail_users: [], success_users: [@sysadmin],  # because accessing Url.unknown
+              diff_num: 0,
+              url_str: url_unk_http_orig,  note: note11,
+              fetch_h1: "1",  # Suppose the user sets this so.
+              exp_response: :unprocessable_entity
+            )
+
+    assert_equal ancb,   anc9, "sanity check"
+    refute_equal note11, anc9.note, "not updated?"
+    url_unk.reload
+    refute_includes  url_unk.translations.pluck(:title), "Example Domain", "should not updated."
+
+    refute_equal tit_orig,         url_unk.title, 'should have changed, but...'
+    refute_equal "Example Domain", url_unk.title, 'should have been updated to this, fetched H1, but...'
+    refute_includes  url_unk.translations.pluck(:title), "Example Domain", "not included in any of Translatons, but..."
+
 
 #    [nil, @translator].each do |ea_user|  # @trans_moderator may be pviviledged?
 #      assert_unauthorized_post(anchoring, user: ea_user, path_or_action: paths[:show], params: hsprms, method: :patch, diff_count_command: EQUATION_MODEL_COUNT){ |user, record|

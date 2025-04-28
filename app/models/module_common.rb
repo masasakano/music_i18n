@@ -63,6 +63,9 @@ module ModuleCommon
   # Default end_year of {EventGroup} etc
   DEF_EVENT_END_YEAR   = TimeAux::DEF_LAST_DATE_TIME.year   # defined in /lib/time_aux.rb
 
+  # Default network timout in seconds
+  DEF_NETWORK_TIMEOUT_SEC = 8
+
   extend ActiveSupport::Concern
   module ClassMethods
     # Returns a new unique weight (used for new)
@@ -1393,6 +1396,103 @@ module ModuleCommon
     else
       str         # String
     end
+  end
+
+  # Fetch H1-s of a URL, returning Nokogiri::XML::NodeSet (like an Array)
+  #
+  # @example to get the stripped text (or nil) of third H1 (which usually returns nil as there should be no "third" H1); n.b., this would filter out the component of class="text-muted"
+  #    ModuleCommon.fetch_url_node("http://example.com", css: "h1")&.at(2)&.text&.strip
+  #
+  # @example to get the raw HTML of first H1 (or nil), including the <h1> tags and maybe trailing newlines (n.b., to_html is an alias)
+  #    ModuleCommon.fetch_url_node("http://example.com", css: "h1")&.first&.children.to_s
+  #
+  # @example to get the stripped raw HTML of first H1 (or nil), excluding the <h1> tags
+  #    ModuleCommon.fetch_url_node("http://example.com", css: "h1")&.first&.children.to_s&.strip
+  #
+  # @param url [String] URL
+  # @param css: [String] mandatory, e.g., "h1"
+  # @param timeout_sec: [Numeric] timeout
+  # @return [Nokogiri::XML::NodeSet, NilClass] nil if something goes wrong in accessing the URL (Error is captured inside).
+  def self.fetch_url_node(url, css:, timeout_sec: DEF_NETWORK_TIMEOUT_SEC)
+    begin
+      Timeout::timeout(timeout_sec*2, Timeout::Error) do  # This includes Nokogiri's processing time
+        html = URI.open(url, read_timeout: timeout_sec).read
+        # return Nokogiri::HTML.parse(html).at_css(css)&.text&.strip  # first element
+        return Nokogiri::HTML(html).css(css)        # last element; this is network-heavy, though...
+      end
+    rescue OpenURI::HTTPError,  # e.g., "401 Unauthorized"
+           Nokogiri::XML::XPath::SyntaxError,
+           Net::ReadTimeout,
+           Timeout::Error,
+           SocketError,   # e.g., "Failed to open TCP connection to example.jp:80 (getaddrinfo: nodename nor servname provided, or not known)"
+           OpenSSL::SSL::SSLError => er  # e.g., "SSL_connect returned=1 errno=0 peeraddr=157.7.236.66:443 state=error: unexpected eof while reading", e.g., https://example1.net
+      msg = "ERROR(#{__method__}): (#{er.class.name}) in fetching H1 from ( #{url} ) with message: #{er.message}"
+    rescue => er
+      msg = "ERROR(#{__method__}): [Unrecognized!] (#{er.class.name}) in fetching H1 from ( #{url} ) with message: #{er.message}"
+    end
+
+    warn msg
+    logger.warn msg
+    nil
+  end
+
+  # Sorted Array of Nokogiri HTML Element with the best effort
+  #
+  # @example to get the stripped text (or nil) of the most likely H1; n.b., this would filter out the component of class="text-muted"
+  #    node_or_nil = ModuleCommon.fetch_url_node("http://example.com", css: "h1")
+  #    ModuleCommon.ordered_xml_nodes(node_or_nil)&.first&.text&.strip
+  #
+  # @example alias
+  #    ModuleCommon.ordered_xml_nodes("http://example.com", css: "h1")&.first&.to_s&.strip
+  #
+  # @param [Nokogiri::XML::NodeSet, String, NilClass] Either NodeSet or String (of URL).  In the case of the latter, "css" option is mandatory; see {ModuleCommon.fetch_url_node}
+  # @return [Array<Nokogiri::XML::Element>, NilClass] nil only when nil is given
+  def self.ordered_xml_nodes(node, **opts)
+    return  if !node
+    node = fetch_url_node(node, **opts)
+    return  if !node
+    return node.to_a if 1 == node.size
+
+    node.reject{ |en|
+      (en[:display].present? ? ("none" == en[:display].strip.downcase) : false)
+    }.reverse.sort_by{ |en|
+      order = (en[:order] ? en[:order].to_s.split[0].to_s.to_i : Float::INFINITY)
+      klass = (en[:class] ? en[:class].strip.split : [])
+      [
+        order,
+        klass.include?("order-first"),
+       !klass.include?("order-last"),
+        ((m=(/(?:\A|\s)order-(\d+)(?:\s|\z)/.match(klass.join(" ")))) ? m[1].to_i : Float::INFINITY),
+       !klass.include?("sr-only"),
+      ].map{|i|
+        case i
+        when true
+          -1
+        when false
+          1
+        when nil
+          9
+        when Numeric
+          i
+        else
+          logger.error("ERROR(#{File.basename __FILE__}:#{__method__}): Sorting Array unexpectedly returns non-Numeric value of (#{i}) while sorting: #{node.inspect}")
+          Float::INFINITY
+        end
+      }
+    }
+  end
+
+  # @example
+  #    fetch_url_h1(ModuleCommon.ordered_nodes("http://example.com", css: "h1")&.first&.to_s&.strip
+  #
+  # @param url [String] URL string
+  # @param css: [String, NilClass] ignored (forcibly overwritten with "h1")
+  # @return [String, NilClass] nil if something goes wrong (Error is captured inside).
+  def fetch_url_h1(url, css: nil, **opts)
+    nodes = ModuleCommon.ordered_xml_nodes(url, css: "h1", **opts)
+    return if !nodes
+
+    nodes.first&.text&.strip    # most likely element
   end
 
   # Error message

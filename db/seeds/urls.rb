@@ -46,7 +46,7 @@ module Seeds::Urls
     hs_dt = Seeds::DomainTitles::SEED_DATA[key_dt]
     raise "ERROR: inconsistent! No DomainTitles data found for the keys (#{epk.inspect} (Domain) and #{key_dt.inspect} (DomainTitle)" if !hs_dt
 
-    u_url = "https://" + hs_domain[:domain]
+    u_url = ((:unknown == epk.to_sym) ? "http://" : "https://") + hs_domain[:domain]  # http://example.com responds but https does not.
     u_norm = Url.normalized_url(u_url)
     next if SEED_DATA.find{ |_, val| u_norm == val[:url_normalized] }  # Virtually identical urls for the top-level URI for a Doamin are excluded (like www.youtube.com and youtube.com and youtu.be, while twitter.com and x.com are regarded separate)
 
@@ -54,7 +54,7 @@ module Seeds::Urls
       orig_langcode: hs_dt[:orig_langcode],
       url: u_url,
       url_normalized: u_norm,
-      domain:     Proc.new{Domain.find_by(domain: hs_domain[:domain])},
+      domain:     Proc.new{d=Domain.find_by(domain: Domain.extracted_normalized_domain(hs_domain[:domain]))},
       domain_key: epk,
       url_langcode: url_langcode,
       weight: cur_weight,

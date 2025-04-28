@@ -15,6 +15,7 @@ class BaseAnchorablesController < ApplicationController
   end
 
   def new
+    @anchoring.fetch_h1 = true  # true in default on :new
     @url = Url.new
     authorize! __method__, @anchorable.class
     #render turbo_stream: turbo_stream.replace("new_anchoring_form", partial: 'form', locals: { record: @anchorable, anchoring: @anchoring })
@@ -25,10 +26,12 @@ class BaseAnchorablesController < ApplicationController
 
   def edit
     if @anchoring.url
+      @anchoring.fetch_h1 = false
       @anchoring.url_form = @anchoring.url.url
       @anchoring.site_category_id = ((sc=@anchoring.site_category) ? sc.id : nil)
 
-      (Anchoring::FORM_ACCESSORS - %i(site_category_id title langcode is_orig url_form note)).each do |metho|
+      #(Anchoring::FORM_ACCESSORS - %i(site_category_id title langcode is_orig url_form note)).each do |metho|
+      Anchoring::URL_ATTRIBUTES.each do |metho|
         @anchoring.send(metho.to_s+"=", @anchoring.url.send(metho))
       end
     end
@@ -37,26 +40,31 @@ class BaseAnchorablesController < ApplicationController
   def create
     authorize! __method__, @anchorable.class
     @anchoring.assign_attributes(anchoring_params)
-    _adjust_for_wikipedia(@anchoring)
-    _adjust_for_harami_chronicle(@anchoring)
+    _preprocess_received_prms(@anchoring)
 
     opts = %i(site_category_id url_langcode weight title).map{|metho| [metho, @anchoring.send(metho)]}.to_h  # langcode is guessed from title in Url.def_translation_from_url()
     opts[:langcode] = @anchoring.langcode if @anchoring.langcode.present?  # not via Website UI but by some methods
     opts[:is_orig]  = @anchoring.is_orig  if [true, false].include? @anchoring.is_orig
 
-    status, msgs = _create_update_core(@anchoring){ |anchoring|
-      if (anchoring.url = Url.find_url_from_str(anchoring.url_form))
-        add_flash_message(:alert, "Url is already registered. The submitted information is not used to update the URL except for association Note.")  # defined in application_controller.rb
-        anchoring.url  # not used by the caller, but playing safe.
-      else
-        anchoring.url = Url.create_url_from_str(anchoring.url_form, **opts)
-      end
-    }
+    status = !@anchoring.errors.any?  # false if very erroneous in pre-processing (maybe without UI)
+    if status
+      status, msgs = _create_update_core(@anchoring){ |anchoring|
+        if (anchoring.url = Url.find_url_from_str(anchoring.url_form))
+          add_flash_message(:alert, "Url is already registered. The submitted information is not used to update the URL except for association Note.")  # defined in application_controller.rb
+          anchoring.fetch_h1 = false  # Without this setting, the process would still fetch an H1 from a remote URL before attempting to save Url, which is bound to fail due to violation of the unique constraint.
+          anchoring.url  # not used by the caller, but playing safe.
+        else
+          anchoring.url = Url.create_url_from_str(anchoring.url_form, **opts)
+        end
+      }
+    end
+
     respond_to do |format|
       if status
         format.html { redirect_to path_anchoring(@anchoring, action: :show), notice: msgs }
         format.turbo_stream
       else
+        @anchoring.fetch_h1 = false if @anchoring.title.present?  # Not fetching remote again once title has been set.
         path = path_anchoring(@anchoring, action: :new) # defined in Artists::AnchoringsHelper
         format.html { render :new, status: :unprocessable_entity }
       end
@@ -66,12 +74,14 @@ class BaseAnchorablesController < ApplicationController
   def update
     @anchoring.assign_attributes(anchoring_params)
     _transfer_prms_from_anchoring_to_url(@anchoring)
-    _adjust_for_wikipedia(@anchoring)
-    _adjust_for_harami_chronicle(@anchoring)
+    _preprocess_received_prms(@anchoring)
 
-    status, msgs = _create_update_core(@anchoring){ |anchoring|
-      anchoring.url.reset_assoc_domain(force: true, site_category_id: @anchoring.site_category_id) if anchoring.url
-    }
+    status = !@anchoring.errors.any?  # false if very erroneous (maybe without UI)
+    if status
+      status, msgs = _create_update_core(@anchoring){ |anchoring|
+        anchoring.url.reset_assoc_domain(force: true, site_category_id: @anchoring.site_category_id) if anchoring.url
+      }
+    end
 
     respond_to do |format|
       if status
@@ -124,9 +134,9 @@ class BaseAnchorablesController < ApplicationController
       authorize! method.to_sym, @anchorable  # Authorize according to the same-name method for anchorable (like Artist)
     end
 
-    # 
+    # @todo: Replace the content with Anchoring::FORM_ACCESSORS (?)
     def anchoring_params
-      params.require(:anchoring).permit(:site_category_id, :title, :langcode, :url_form, *UrlsController::MAIN_FORM_KEYS)  # this is more permissive than the actual form parameters; langcode and many in MAIN_FORM_KEYS are not provided to UI (see _transfer_prms_from_anchoring_to_url for detail)
+      params.require(:anchoring).permit(:site_category_id, :title, :langcode, :fetch_h1, :url_form, *UrlsController::MAIN_FORM_KEYS)  # this is more permissive than the actual form parameters; langcode and many in MAIN_FORM_KEYS are not provided to UI (see _transfer_prms_from_anchoring_to_url for detail)
     end
 
     # transfer parameters from Anchoring to (existing) Url
@@ -135,7 +145,7 @@ class BaseAnchorablesController < ApplicationController
     #
     # c.f. Anchoring::FORM_ACCESSORS
     def _transfer_prms_from_anchoring_to_url(anchoring, url=anchoring.url)
-      url.url = Url.normalized_url(anchoring.url_form)
+      url.url = anchoring.url_form
       url.url_langcode = anchoring.url_langcode
       url.weight       = anchoring.weight if anchoring.weight.present?
     end
@@ -175,10 +185,18 @@ class BaseAnchorablesController < ApplicationController
         msgs = anchoring.url.domain.notice_messages if anchoring.url && anchoring.url.domain  # Domain was created/found etc when the domain part of Url#url changed.
 
         status = !anchoring.url.errors.any?  # Domain/DomainTitle creation fails.  url.errors is set.
-        status &&= anchoring.url.save  # Url update fails (e.g., an invalid URL is specified).
-        _transfer_error_from_url(anchoring) if !status
-        status &&= anchoring.save      # Anchoring update fails (unexpectedly).
+        if status
+          status &&= anchoring.url.save  # Url update fails (e.g., an invalid URL is specified).
+          if status
+            status &&= anchoring.url.update_best_translation(anchoring.title) if anchoring.title.present? && !anchoring.new_record?
+          end
+          _transfer_error_from_url(anchoring) if !status
 
+          if status
+            status &&= anchoring.save  # Anchoring update fails (unexpectedly).
+          end
+        end
+ 
         raise ActiveRecord::Rollback, "Force rollback." if !status
       end
 
@@ -192,12 +210,54 @@ class BaseAnchorablesController < ApplicationController
     end
     private :_create_update_core
 
+    # Auto-adjusts some parameters
+    def _preprocess_received_prms(anchoring=@anchoring)
+      _adjust_for_title(@anchoring)
+      _adjust_for_wikipedia(@anchoring)
+      _adjust_for_harami_chronicle(@anchoring)
+    end
+
+    # Fetch H1 from remote URL
+    #
+    # @return [NilClass, String] If H1-URL-fetching is requested and a significant H1 is obtained,
+    #   returns the String, else nil.
+    def _adjust_for_title(anchoring=@anchoring)
+      anchoring.http_url = (ModuleUrlUtil.url_prepended_with_scheme(anchoring.url_form, invalid: "") || "")
+      return if !(should_fetch=get_bool_from_params(anchoring.fetch_h1))  # defined in application_helper.rb
+      if !is_fetch_h1_allowed?(anchoring)           # defined in /app/helpers/base_anchorables_helper.rb
+        anchoring.errors.add(:fetch_h1, "should not fetch remote H1") if should_fetch
+        anchoring.title = nil  # should be reduncant for access through UI, but playing safe.
+        return
+      end
+
+      cand = fetch_url_h1(anchoring.http_url)  # defined in module_common.rb
+      msg = "WARNING: "
+      if cand
+        cand_nosp = cand.gsub(/[[:space:]]/, "")
+        ssiz = cand_nosp.strip.size
+        if (/^[\p{Punctuation}\p{InCJKSymbolsAndPunctuation}]+$/ !~ cand_nosp) &&
+           ( ssiz > 2 || 
+             ssiz == 2 && /^[[:alnum:][:ascii:]]+$/ !~ candstrip )
+
+          anchoring.title = cand.strip 
+          logger.info "Successfully fetched H1 from #{anchoring.http_url}: "+anchoring.url_form.inspect
+          return anchoring.url_form
+        end
+        msg << " H1 in the URL looks too short and wrong: " + cand.strip.inspect
+      else
+        msg << "URL is inaccessible"
+      end
+
+      add_flash_message(:warning, msg) # defined in application_controller.rb
+      nil
+    end
+
     # Auto-adjusts some parameters for Wikipedia
     def _adjust_for_wikipedia(anchoring=@anchoring)
-      url_w_scheme = ModuleUrlUtil.url_prepended_with_scheme(anchoring.url_form)
-      return if url_w_scheme.blank?
+      return if anchoring.http_url.blank?
+
       begin
-        urin = Addressable::URI.parse(url_w_scheme)
+        urin = Addressable::URI.parse(anchoring.http_url)
         return if urin.host.blank? || /^([a-z]{2})\.wikipedia\.org$/ !~ urin.host.downcase  # Not Wikipedia
 
         site_lang = $1
@@ -217,16 +277,16 @@ class BaseAnchorablesController < ApplicationController
     # Auto-adjusts some parameters for Wikipedia
     #
     def _adjust_for_harami_chronicle(anchoring=@anchoring)
-      url_w_scheme = ModuleUrlUtil.url_prepended_with_scheme(anchoring.url_form)
-      return if url_w_scheme.blank?
+      return if anchoring.http_url.blank?
+
       begin
-        urin = Addressable::URI.parse(url_w_scheme)
+        urin = Addressable::URI.parse(anchoring.http_url)
       rescue Addressable::URI::InvalidURIError => err
         logger.error "ERROR(Addressable::URI::InvalidURIError): for the input of #{anchoring.url_form.inspect}"
         return
       end
 
-      dom = Domain.find_by_both_urls(url_w_scheme)
+      dom = Domain.find_by_both_urls(anchoring.http_url)
       return if !dom
 
       sc = dom.site_category

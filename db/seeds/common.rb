@@ -21,8 +21,8 @@ module Seeds
     }
 
     # When you destroy all Models (to reset and rerun seeding for testing),
-    # you should do it in this order.  Similarly, this is the order
-    # in which you should seed without violating the association rules.
+    # you should do it in this order.  Conversely, seeding should be done
+    # in the reverse order so you can seed without violating the association rules.
     ORDERED_MODELS_TO_DESTROY = [
       StaticPage, Anchoring, ArtistMusicPlay, PlayRole, Instrument, HaramiVidMusicAssoc, ModelSummary, PageFormat,
       Harami1129, Harami1129Review, HaramiVid, Engage, EngageHow,

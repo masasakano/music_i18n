@@ -385,6 +385,10 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert significantly_changed?(pro)
   end
 
+  test "fetch_url_h1" do
+    assert_equal "Example Domain", fetch_url_h1("http://example.com")
+  end
+
   private
     # Returns true if Ruby and PosgreSQL results match.
     def _match_rb_psql_regexp?(conn, re_ruby, str, regexp_should_succed=true)

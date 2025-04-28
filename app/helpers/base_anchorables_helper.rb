@@ -58,4 +58,9 @@ module BaseAnchorablesHelper
 
     sprintf("(%s)", [sctit, tdtit].compact.join(": "))
   end
+
+  # True if updating Url's title with remote H1 is permitted through the anchorable UI.
+  def is_fetch_h1_allowed?(anchoring)
+      ((anchoring.new_record? || !anchoring.url) && anchoring.title.blank?) || (!anchoring.new_record? && anchoring.url.translations.count <= 1)
+  end
 end

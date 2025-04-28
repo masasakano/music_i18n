@@ -5,7 +5,7 @@
 
 <section id="sec_primary">
 <% if ! url.new_record? %>
-  <strong><%= url.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: (canedit_gen ? "(UNDEFINED)" : "")) %></strong>:
+  <strong>Title:</strong> <%= url.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: (canedit_gen ? "(UNDEFINED)" : "")) %>
 <% end %>
 
 <div id="form_main">
@@ -16,11 +16,14 @@
 
  <section id="sec_primary_input">
   <div class="form-inputs">
-    <%= f.input :url_form, label: "URL", place_holder: "Do not put a redirecting URL like 't.co'" %>
+    <%= f.input :url_form, label: "URL", place_holder: "Do not put a redirecting URL like 't.co'", required: true %>
     <%= f.input :url_langcode, input_html: {class: "input_shortest", type: "text"}, hint: "Language for the URI in 2-letter code (or blank), e.g., en, ja, fr, es (Spanish), it (Italian), de (German), ko (Korean), zh (Chinese). Blank if the website provides separate contents at a single URI, depending on viewer's language/location." %>
     <%= f.input :site_category_id, label_method: :title_or_alt_for_selection, collection: SiteCategory.order(:weight), required: false, hint: "automatically determined if specified nil." %>
   <% if url.new_record? %>
     <%= f.input :title,  label: t("urls.title"), required: false, as: :string, input_html: {value: value_a_title_in_form(url, :title)} %>
+  <% end %>
+  <% if is_fetch_h1_allowed?(anchoring) %>  <%# defined in /app/helpers/base_anchorables_helper.rb %>
+    <%= f.input :fetch_h1,  label: t("anchorings.edit.fetch_h1_title")+(anchoring.new_record? ? "" : " (Caution!)"), required: false, as: :boolean %>
   <% end %>
 
     <%= f.input :note, hint: "Note for Anchoring (join model); for Url#note, write it later." %>

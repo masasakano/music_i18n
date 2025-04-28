@@ -678,9 +678,9 @@ module ApplicationHelper
     case prmval
     when "", nil  # This should not be the case if params()
       nil
-    when "0", 0, "false"
+    when "0", 0, "false", false  # TrueClass, FalseClass are not the values in params.  But playing safe...
       false
-    when "1", 1, "true"
+    when "1", 1, "true", true
       true
     else
       raise "Unexpected params value=(#{prmval})."

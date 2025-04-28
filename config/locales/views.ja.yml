@@ -206,6 +206,10 @@ ja:
       merge_if_possible: "この行は衝突する項目を除いて自動的にマージされます"
       merge_always: "この行は自動的にマージされます"
 
+  anchorings:
+    edit:
+      fetch_h1_title: "リモートURLのH1でタイトルを置き換える場合はチェック"
+
   artists:
     index:
       birth_year: "誕生年"

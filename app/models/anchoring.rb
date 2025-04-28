@@ -30,15 +30,25 @@ class Anchoring < ApplicationRecord
 
   validate :unique_within_anchorable
 
-  # methods for the sake of forms. Except for title, langcode, url_form, and they are from the parent Url.
-  FORM_ACCESSORS = %i(site_category_id title langcode is_orig url_form url_langcode weight domain_id published_date last_confirmed_date memo_editor)
+  # :note only
+  NATIVE_ATTRIBUTES = %i(note)
+
+  # Attributees of {Url} to br (possibly) used for the Anchoring form
+  URL_ATTRIBUTES = %i(url_langcode weight domain_id published_date last_confirmed_date memo_editor)
+
+  # Form keys that are not the attributes of Url, nor the original method of Anchoring (== :note)
+  # fetch_h1 is a checkbox to load H1 from the remote URL to initialize or update the title
+  NATIVE_FORM_ACCESSORS = %i(site_category_id title langcode is_orig fetch_h1 url_form)
+
+  # Required methods for the sake of forms. Except for those in {NATIVE_FORM_ACCESSORS} and
+  # {NATIVE_ATTRIBUTES}, they are from the parent Url (= {URL_ATTRIBUTES}).
+  FORM_ACCESSORS = NATIVE_ATTRIBUTES + URL_ATTRIBUTES + NATIVE_FORM_ACCESSORS
 
   # attr_accessor for forms 
-  FORM_ACCESSORS.each do |metho|
+  (NATIVE_FORM_ACCESSORS + URL_ATTRIBUTES).each do |metho|
     attr_accessor metho
   end
-
-  attr_accessor :site_category_id  # purely for forms.  The association does not define this method, hence no conflict.
+  #attr_accessor :site_category_id  # This is set above.  # purely for forms.  The association does not define this method, hence no conflict.
   ## Below does not work well!  Anyway, it seems SimpleForm takes care of +site_category_id+
   ## such that it would load the existing {self#site_category} to +site_category_id+
   ## so the simple attr_accessor works best!
@@ -46,6 +56,9 @@ class Anchoring < ApplicationRecord
   #  site_category ? site_category.id : nil
   #end
   #attr_writer :site_category_id
+
+  # URL in String (never nil) prefixed with a scheme (typically "https://"), used during form-processing.
+  attr_accessor :http_url
 
   def site_category_label
     site_category.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "(UNDEFINED)") if site_category.present?

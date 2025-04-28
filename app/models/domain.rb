@@ -21,7 +21,8 @@
 #
 class Domain < ApplicationRecord
   include ModuleWeight  # adds a validation
-  extend ModuleWeight   # for compile_captured_err_msg
+
+  extend ModuleCommon   # for compile_captured_err_msg
 
   include ModuleUrlUtil
   extend ModuleUrlUtil
@@ -75,10 +76,10 @@ class Domain < ApplicationRecord
 
   # Finds Domain with the exact Domain from the given URL String
   #
-  # @param url_str [String]
+  # @param url_str [String, NilClass]
   # @return [Domain, NilClass]
   def self.find_by_urlstr(url_str)
-    where(domain: extracted_normalized_domain(url_str.strip)).first
+    where(domain: extracted_normalized_domain(url_str)).first
   end
 
   # Finds Domain with Domain of with or without "www."
@@ -109,11 +110,11 @@ class Domain < ApplicationRecord
   # Returned Domain may have {Domain#notice_messages} (Array<String>)
   # for flash (notice) messages.
   #
-  # @param url_str [String] With or without "www."; the difference is significant in creating a new Domain
+  # @param url_str [String, NilClass] With or without "www."; the difference is significant in creating a new Domain
   # @param site_category_id: [NilClass, String, Integer] Used only in create. ignored if nil. auto-guessed if "". See {Domain.find_or_initialize_domain_title_to_assign} and {Domain.guess_site_category}
   # @return [Domain, NilClass]
   def self.find_or_create_domain_by_url!(url_str, site_category_id: nil)
-    domain_norm = extracted_normalized_domain(url_str.strip)
+    domain_norm = extracted_normalized_domain(url_str)
     record = find_by_urlstr(domain_norm)
 
     if record
@@ -128,7 +129,7 @@ class Domain < ApplicationRecord
     record.notice_messages ||= []
     dt = record.find_or_initialize_domain_title_to_assign(site_category_id: site_category_id)  # This would never be an Integer b/c record is a new_record?
     if !dt  # This happens only if record.domain.blank? for an "existing" Domain - should never happen!
-      raise Domains::CascadeSaveError, "Failing to find or initialize DomainTitle with #{url_str}"
+      raise Domains::CascadeSaveError, "Failing to find or initialize DomainTitle with URL: "+(url_str.blank? ? '""' : url_str)
     end
 
     msgs = []

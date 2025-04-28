@@ -189,6 +189,10 @@ en:
       merge_if_possible: "This row is automatically merged except for conflicting records."
       merge_always: "This row is automatically merged."
 
+  anchorings:
+    edit:
+      fetch_h1_title: "Tick this to update the title with H1 on the remote URL"
+
   artists:
     index:
       birth_year: "Birth year"

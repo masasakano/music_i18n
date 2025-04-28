@@ -267,6 +267,37 @@ class UrlTest < ActiveSupport::TestCase
     assert_equal "ja",   tra.langcode
   end
 
+  test "self.create_url_from_str failing" do
+    assert_raises(Domains::CascadeSaveError){
+      Domain.find_or_create_domain_by_url!("日本語のダメなヤツ") }
+    url = Url.create_url_from_str("日本語のダメなヤツ")
+    assert url.errors.any?
+    assert_includes url.errors.full_messages.join(" "), "日本語のダメなヤツ"
+
+    urlstr = "https://this.some-non-exitent.org/abc"
+    url1 = Url.create_url_from_str(urlstr)
+    assert url1.valid?
+    url2 = Url.create_url_from_str(urlstr)
+    refute url2.valid?
+  end
+
+  test "update translation externally" do
+    url1 = urls(:one)
+    assert_equal 1, url1.translations.count
+    assert url1.update_best_translation("Something")
+
+    url1.reload
+    assert_equal "Something", url1.title
+
+    assert url1.update_best_translation("何か")
+    url1.reload
+    tra = url1.best_translation
+    assert_equal "何か", tra.title
+    assert_equal "ja",   tra.langcode
+
+    url1.translations << Translation.new(title: "another title", langcode: "fr", is_orig: false)  # very different language
+    refute url1.update_best_translation("third attempt fails")
+  end
 
   test "polymorphic-relations" do
     arclasses = [Artist, Channel, Event, EventGroup, HaramiVid, Music, Place]

@@ -271,13 +271,26 @@ module ModuleUrlUtil
   # This always returns String even if the input is nil.
   #
   # @param url [Url, String, NilClass]
-  # @return [String]
-  def url_prepended_with_scheme(url)
+  # @param invalid: [NilClass, String<"">, Symbol<:original>] One of nil, "", and :original .
+  #    In default (:original), when the input url does not look like a valid URL, this method makes
+  #     the best effort and returns a strip-ped given String.
+  #    If nil or "", nil or "", respectively, is returned in such a case.
+  # @return [String] or nil if (invalid: nil) (NOT default)
+  def url_prepended_with_scheme(url, invalid: :original)
     urlstr = (url.respond_to?(:url) ? url.url : url).to_s.strip
     uri = get_uri(urlstr)
-    return urlstr if !valid_url_like?(uri)
+    return uri.to_s if valid_url_like?(uri)
 
-    uri.to_s
+    case invalid
+    when :original
+      urlstr
+    when ""
+      ""
+    when nil
+      nil
+    else
+      raise ArgumentError, "(#{File.basename __FILE__}:{__method__}): Wrong 'invalid' is given: #{invalid.inspect}"
+    end
   end
 
   #################

@@ -9,6 +9,7 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
   # Base arguments for Anchorings testing.  There should always be present.
   BASE_ARGS = {
     # title: "",  # mandatory on create, non-existent otherwise.
+    fetch_h1: "0", # In reality (production), this is "1"(true) in default in :create (but "0" in :update). However, for Controller testing, this is set "0". Note that this option is not given to the form on View in some cases (e.g., if Urs has multiple Translations on :eidt)!
     url_form: "",  # mandatory
     url_langcode: "",
     #domain_id: "",  # mandatory at the model level but not in Controller
@@ -30,7 +31,7 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
   # @param title: [String] mandatory on :create
   # @return [Hash] 
   def _build_params(anchoring, title: nil, **opts)
-    param_keys = %i(url_form url_langcode note site_category_id)
+    param_keys = BASE_ARGS.keys.map(&:to_sym)
     reths = 
       if !anchoring.respond_to?(:new_record?) || anchoring.new_record?
         raise ArgumentError, "String Title must be given (which may be empty). anchoring=#{anchoring.inspect}" if !title
@@ -51,6 +52,8 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
             anchoring.url.url
           when :site_category_id
             anchoring.site_category.id
+          when :fetch_h1, :note
+            anchoring.send(ek)
           else
             anchoring.url.send(ek)
           end
@@ -90,20 +93,23 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
   #
   # @param anchoring [Anchoring, BaseWithTranslation] If the target record (of BaseWithTranslation like Artist), namely "anchorable", is given, only :new is tested, not :edit
   # @return [Integer] Number of asserts executed
-  def _assert_authorized_gets_to_anchorables(anchoring, fail_users: [], success_users: [])
+  # @yield Block can be given, which is assessed on successful access while logged on.
+  def _assert_authorized_gets_to_anchorables(anchoring, methods: %i(new edit), fail_users: [], success_users: [], &bl)
     raise ArgumentError, "At least one user must be specified." if fail_users.empty? && success_users.empty?
     n_asserts = 0
-    %i(new edit).each do |action|
-      next if :edit == action && !anchoring.respond_to?(:anchorable)
-      if :new
+    [methods].flatten.each do |action|
+      if :edit == action && !anchoring.respond_to?(:anchorable)
+        raise ArgumentError, "#{_get_caller_info_message(prefix: true)} You must provide Anchoring specifically for :edit" if 1 == methods.size
+        next
       end
       path = path_anchoring(anchoring, action: action)  # defined in base_anchorables_helper.rb
       model_record = ((:new == action) ? Anchoring : anchoring) 
-      _assert_authorized_get_set(path, model_record, fail_users: fail_users, success_users: success_users, h1_title_regex: nil) # defined in /test/helpers/controller_helper.rb
+      _assert_authorized_get_set(path, model_record, fail_users: fail_users, success_users: success_users, h1_title_regex: nil, &bl) # defined in /test/helpers/controller_helper.rb
       n_asserts += fail_users.size + success_users.size
     end
     return n_asserts
   end
+
 
   ## Successful creation of Anchoring and Url with NON-existing Domain and DomainTitle and then with existing ones
   #
@@ -142,7 +148,7 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
     
     assert_equal SiteCategory.unknown, new2.site_category, "#{_get_caller_info_message(prefix: true)} SiteCategory should be the unknown one, but..."   # this should have been checked in updated_attrs
     assert_equal title2,        new2.url.title, "#{_get_caller_info_message(prefix: true)} title unexpected..."
-    assert_equal url_langcode2, new2.url.url_langcode
+    assert_equal url_langcode2, new2.url.url_langcode, "#{_get_caller_info_message(prefix: true)} url_langcode unexpected..."
     assert_equal new1.domain, new2.domain, "#{_get_caller_info_message(prefix: true)} Domain should unchange, but..."
     assert_equal (dt=new1.domain_title), (dt2=new2.domain_title), "#{_get_caller_info_message(prefix: true)} DomainTitle should unchange, but..."
     assert_includes dt.title, dt2.title
@@ -257,6 +263,7 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
   # @param record2upd [Anchoring] the one to update. The values here are set for the form.
   # @param diff_num [Integer] Default is 0. Be warned that some type of updates create new models of Domain, DomainTilte (and its Translation).
   # @param is_debug [Boolean] to display the error message in saving
+  # @param opts [Hash] Here, exp_response [Symbol, String] is often used. For failing to update, specify :unprocessable_entity
   # @return [Anchoring] created one.
   def _assert_update_anchoring_url(record2upd, diff_num: 0, **opts)
     _assert_create_anchoring_url_core(record2upd, diff_num: diff_num, **(opts.merge({is_create: false})))
@@ -281,8 +288,32 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
   # @oaram is_debug: [Boolean] If true (Def: false), error message in saving is displayed to STDOUT
   # @return [Anchoring] created one.
   # @yield [Anchoring] Hash [allopts] to be passed to {#assert_authorized_post} is given and you can modify and return it. Useful for :update. If the block returns nil, allopts is not modified.
-  def _assert_create_anchoring_url_core(parent_record, fail_users: [], success_users: [], title: "", url_langcode: nil, url_str: nil, domain_prefix: "", path_suffix: "", diff_num: 21111, site_category_id: nil, note: nil, is_create: true, action: nil, exp_response: nil, updated_attrs: nil, is_debug: false)
+  def _assert_create_anchoring_url_core(parent_record, fail_users: [], success_users: [], title: "", url_str: nil, domain_prefix: "", path_suffix: "", diff_num: 21111, is_create: true, action: nil, exp_response: nil, updated_attrs: nil, base_proc: nil, is_debug: false, **opts)
+    ## opts:  url_langcode, site_category_id, note, fetch_h1
     raise ArgumentError, "At least one user must be specified." if fail_users.empty? && success_users.empty?
+    opts = opts.merge{}
+    opts.each_pair do |ek, ev|
+      msg = 
+        if !BASE_ARGS.keys.map(&:to_sym).include?(ek)
+          "Wrong optional key specified (#{ek.inspect}) #{opts.inspect} #{BASE_ARGS.keys.sort.map(&:to_sym)}"
+        elsif (ek == :url_form && ev.present?)
+          if url_str.blank?
+            url_str = ev
+            next
+          else
+            "Key (#{ek.inspect}) should be :url_str"
+          end
+        end
+      raise ArgumentError, msg if msg
+
+      # basically, fetch_h1 is ALWAYS set false, unless explicitly specified, unlike Development/Production
+      #
+      # Otherwise, the parameter may remain nil (which may not be the case in the actual forms.
+      # However, it has been so; hence don't fix it if it ain't broken...)
+      opts[ek] = BASE_ARGS[ek] if BASE_ARGS[ek].present? && opts[ek].blank?
+      ## opts:  url_langcode, site_category_id, note, fetch_h1
+    end
+
     if parent_record.respond_to?(:anchorable)
       anchoring = parent_record
       parent_record = parent_record.anchorable
@@ -300,9 +331,9 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
         raise
       end
 
-    opts = { path_id_symbol(parent_record) => parent_record.id }
+    opts2pass = { path_id_symbol(parent_record) => parent_record.id }
     path_generate_method_str = parent_record.class.name.underscore + "_anchoring_path"
-    proc_record_path = Proc.new{|record| send(path_generate_method_str, id: record.id, **opts)}  # Redirected path for create & update
+    proc_record_path = Proc.new{|record| send(path_generate_method_str, id: record.id, **opts2pass)}  # Redirected path for create & update
     # NOTE: For :destroy, it should be plural: "_anchorings_path"
 
     if !url_str
@@ -315,17 +346,28 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
         end
     end
 
+    note = opts[:note]
     note ||= "note-1"
 
-    hsprms = _build_params(
-      anchoring || Anchoring,
+    opts2pass = opts.merge({
       title: title,
       url_form: url_str,
       note: (note || "note-1")
-    ) # Title, SiteCategory auto-guessed. url_langcode is nil in default.
+    })
 
-    hsprms[:url_langcode]     = url_langcode.to_s     if url_langcode
-    hsprms[:site_category_id] = site_category_id.to_s if site_category_id
+    hsprms = _build_params(anchoring || Anchoring, **opts2pass)
+    #  anchoring || Anchoring,
+    #  title: title,
+    #  url_form: url_str,
+    #  note: (note || "note-1")
+    #) # Title, SiteCategory auto-guessed. url_langcode is nil in default.
+
+    #(BASE_ARGS.keys.map(&:to_sym) - %i(note url_form)).each do |ek|
+    #  ## url_langcode, site_category_id, note, fetch_h1
+    #  hsprms[ek] = opts[ek].to_s  if opts[ek]
+    #end
+    ##hsprms[:url_langcode]     = url_langcode.to_s     if url_langcode
+    ##hsprms[:site_category_id] = site_category_id.to_s if site_category_id
 
     updated_attrs ||= ((:unprocessable_entity == exp_response) ? [] : %i(note))
     allopts = {
@@ -348,6 +390,7 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
                      updated_attrs: updated_attrs,
                      diff_num: (diff_num || 21111),
                      exp_response: exp_response,
+                     base_proc: base_proc,
                    })
 
     re = Regexp.new(%r@https?://@)

@@ -584,6 +584,25 @@ class ActiveSupport::TestCase
     pid_str.to_i
   end
 
+  # Status of a Checkbox (boolean)
+  #
+  # It is tricky because
+  #
+  # * If checked, "checked=checked" is the case, though its values can vary in practice (officially "checked" or an empty String. The value attribute may be "1".
+  # * If unchecked, "checked" attribute should be absent. The value attribute may still be "1"(!); it may be "0" but no guarantee!
+  #
+  # @example
+  #    is_checkbox_checked?(css_select("#anchoring_fetch_h1")[0])  #=> true/false
+  #    is_checkbox_checked?(".anchoring_fetch_h1", -1)             #=> true/false (last-matching)
+  #
+  # @param css [HtmlTag]
+  # @param index [Integer, NilClass]  If css is the CSS String, this is mandatory.
+  def is_checkbox_checked?(css, index=nil)
+    checkbox = (css.respond_to?(:attributes) ? css : css_select(css, index))
+    raise "CSS-Node looks wrong: #{[css, checkbox].inspect}" if !checkbox
+    checkbox['checked'].present?
+  end
+
   # Get a unique id_remote for Harami1129
   #
   # @param *rest [Integer] (Multiple) integer that should be avoided (maybe the previous yet-unsaved outputs of this method)

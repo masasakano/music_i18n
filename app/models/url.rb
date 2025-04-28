@@ -276,6 +276,39 @@ class Url < BaseWithTranslation
     self.domain != domain_bkup || self.domain_title != domain_title_bkup
   end
 
+  # called from Anchoring Controller
+  #
+  # @param title_str [String]
+  # @return [Boolean, NilClass]
+  def update_best_translation(title_str)
+    translations.reset
+    metho, tra = 
+      if (cnt=translations.count) > 1
+        errors.add(:title, "Url has multiple translaitons, so a simple update is rejected. Update it with the dedicated UI.")
+        return
+      elsif cnt == 1
+        ["update", translations.first]
+      else
+        ["create", Translation.new(translatable_type: self.class.name, translatable_id: self.id)]
+      end
+
+    tra.title = title_str
+    guessed_lcode = guess_lang_code(title_str)
+    if guessed_lcode == "ja"  # to avoid potential violation.
+      msg = sprintf("Locale of Translation changed from %s to %s.", tra.langcode.inspect, '"ja"') if tra.langcode != "ja"
+      tra.langcode = "ja"
+    end
+
+    status = tra.save
+    return status if status
+    #  add_flash_message(:notice, msg) if msg
+
+    tra.errors.each do |err|
+      errors.add(:title, "Failed to #{method} Translation#title (#{title_str.inspect}) failed.")
+    end
+    nil
+  end
+
   private
 
     # Callback to make "url" a valid URI, as long as it appears to be valid.

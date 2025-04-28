@@ -226,7 +226,7 @@ Almost all the methods for Controller and layouts for Views are already provided
 1. In the model file of *Target* (`/app/models/target.rb`), adds a line (maybe at the top though anywhere is acceptable): `include Anchorable`
 2. Run (at your shell): `bin/rails generate controller targets/anchorings --no-helper` which will generate
    * This generates a template Controller and test files, along with the directory like `/app/controllers/targets/`
-   * In fact, instead you can just manually create new directories and copy and paste the files, changing the file names appropriately, of 1 Controller, 1 controller test, and many views from respective template files from another model like `/app/controllers/musics/anchorings_controller.rb` and `test/controllers/musics/anchorings_controller_test.rb` and `/app/views/musics/anchorings/` Each of them contains only a few lines, which require to be modified according to your target class name.
+   * In fact, instead you can just manually create new directories and copy and paste the files, changing the file names appropriately, of 1 Controller, 1 controller test, and many views from respective template files from another model like `/app/controllers/places/anchorings_controller.rb` and `test/controllers/places/anchorings_controller_test.rb` and `/app/views/places/anchorings/` Each of them contains only a few lines, which require to be modified according to your target class name.
 3. Edit your route file `/config/routes.rb` , adding the following lines (replacing *:targets* according to your class name).  Rails-generate does not automatically modify the route for the nested resources.
 
    ```ruby
@@ -238,10 +238,10 @@ Almost all the methods for Controller and layouts for Views are already provided
 
    ```ruby
    class Targets::AnchoringsController < BaseAnchorablesController
-     ANCHORABLE_CLASS = self.name.split(":").first.singularize.constantize  # Music class
+     ANCHORABLE_CLASS = self.name.split(":").first.singularize.constantize  # Place class
    end
    ```
-5. Copy your view files from a template, `/app/views/musics/anchorings/` 
+5. Copy your view files from a template, `/app/views/places/anchorings/` 
    * You discard the auto-generated View files by `rails generate`
    * In this case, the file names are also identical. So you can actually copy the directory as a whole.
 6. Edit the View file for Show for *Target* (either `/app/views/targets/show.html.erb` or its standard partial `_target.html.erb`), addig the following (making sure to change the name `target` to your model name).
@@ -252,14 +252,14 @@ Almost all the methods for Controller and layouts for Views are already provided
    <% end %>
    ```
 7. Edit the Controller-test file (`/test/controllers/targets/anchorings_controller_test.rb`)
-   * A nominal way is just to copy the contents from a template at `/test/controllers/musics/anchorings_controller_test.rb` and change the contents of the two instance variables `@anchorable` and `@anchorabl2` in +setup+ with your fixture record for *Target*
+   * A nominal way is just to copy the contents from a template at `/test/controllers/places/anchorings_controller_test.rb` and change the contents of the two instance variables `@anchorable` and `@anchorabl2` in +setup+ with your fixture record for *Target*
    * The copied file then tests basic CRUD with the newly associated *Target*-*Anchoring* (and *Url*). A key is a few lines near the top. Basically, your *ControllerTest* class should be a subclass of the custom *BaseAnchoringsControllerTest*:
    
      ```ruby
      require "test_helper"
      require "controllers/base_anchorings_controller_test.rb"
 
-     class Musics::AnchoringsControllerTest < BaseAnchoringsControllerTest  # < ActionDispatch::IntegrationTest
+     class Places::AnchoringsControllerTest < BaseAnchoringsControllerTest  # < ActionDispatch::IntegrationTest
      ```
    * If a test fails, it may be because of permission because the editing permission follows that of the parent class (*Target* in this case), which varies.  Access to some models are more restricted than others.  You may edit the `fail_users` and `success_users` in the test file.
    * You may add some more specific tests, including system tests.
@@ -324,13 +324,13 @@ The index part for *Anchorings* is displayed in the *Show* page of each record o
 ##### Testing
 
 Each testing Controller is like *Targets::AnchoringsControllerTest* and is defined as a subclass of *BaseAnchoringsControllerTest*, which is a subclass of the standard *ActionDispatch::IntegrationTest*.
-*BaseAnchoringsControllerTest* basically defines the standard testing flow. So, each subclass like *Musics::AnchoringsControllerTest* needs the minimum set of test suite.  Indeed, apart from the model-dependent permission issues, they are designed to behave in an almost identical way, regardless of the class of the *anchorable*.
+*BaseAnchoringsControllerTest* basically defines the standard testing flow. So, each subclass like *Places::AnchoringsControllerTest* needs the minimum set of test suite.  Indeed, apart from the model-dependent permission issues, they are designed to behave in an almost identical way, regardless of the class of the *anchorable*.
 
-*BaseAnchoringsControllerTest* includes the helper *ActiveSupport::TestCase::ControllerAnchorableHelper* (found at the time of writing in `/test/controllers/musics/anchorings_controller_test.rb` though the location is not right...), which defines wrappers of most of test assertions.  Most of the actual assertions are defined in the custom helper
-found in `/test/helpers/controller_helper.rb` which I developed as a generic framework for popular Controller tests. Since it is a genral framework, *ActiveSupport::TestCase::ControllerAnchorableHelper* has been developed to provide wrappers that are tailor-made for testing *Anchoring* associations.
+*BaseAnchoringsControllerTest* includes the helper *ActiveSupport::TestCase::ControllerAnchorableHelper* (found at the time of writing in `/test/controllers/musics/anchorings_controller_test.rb` though the location is not right...), which defines wrappers of most of test assertions.  Most of the actual assertions are defined in the custom helpers
+in `/test/helpers/controller_helper.rb` which I developed as a generic framework for popular Controller tests. Since it is a genral framework, *ActiveSupport::TestCase::ControllerAnchorableHelper* has been developed to provide wrappers that are tailor-made for testing *Anchoring* associations.
 Note that *ActiveSupport::TestCase::ControllerAnchorableHelper* (and *BaseAnchoringsControllerTest*) include the module *BaseAnchorablesHelper*.
 
-The above-described framework follows the DRY principle, and indeed, the amount of code required to write when introducing a new *anchorable* class is minimum. The downside is, however, that it is not always easy to pin down **where** and what causes an assertion failure when one happens.  I have coded so that some of the test assertions report some caller information, using Ruby's bind information, but admittedly many of them do not. Let us hope an error will not happen often!
+The above-described framework follows the DRY principle, and indeed, the amount of code required to write when introducing a new *anchorable* class is minimum. The downside is, however, that it is not always easy to pin down **where** and what causes an assertion failure when one happens.  I have coded so that some of the test assertions report some caller information, using Ruby's bind information, but admittedly many of them do not.  Among the Anchoring-associated classes, the testings for `Music`, `Place`, and `HaramiVid` follow this principle diligently, and so they have very little unique test code but some parameters. By contrast, those for Event are deliberately left more primitive, though still heavily using the above-mentioned framework. In addition, some tests that should not be repeated (such as, network-dependent ones) are defined only in Event-Anchoring testings. Finally, The tests for Artist-Anchoring are most primitive, but again I leave them as they are, because they give slightly independent way of testing, even though the current testing framework have evolved from the their testing.
 
 
 ### Static page strategy ###

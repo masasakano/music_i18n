@@ -39,18 +39,19 @@ module Seeds::Domains
       domain_title_key: :kohmi_main,
       #weight: 1000,
     },
-    youtube: {
-      domain: "www.youtube.com",
+    youtube: {   ## Shortly befor commit 928d8e5, Domain's before_validation callback normalizes this domain to "youtu.be". for this reason, attempts of re-seeding of "www.youtube.com" would fail because the uniqueness check is based on the "domain" value in this hash; i.e., the seeding algorithm thinks this is not unique, but Domain model says it is.
+      domain: "youtu.be",
+      # domain: "www.youtube.com",
       domain_title: Proc.new{DomainTitle.select_regex(:titles, /\Ayoutube\z/i || raise(DomainTitle.all.inspect)).first},
-      # domain_title_key: :youtube,  # set below in one go as the default.
+        domain_title_key: :youtube,  # set below in one go as the default.
       weight: 10,
     },
-    youtube_short: {  # "*_short" is ignored in seeding Uri-s (see uris.rb)
-      domain: "youtu.be",
-      domain_title: Proc.new{DomainTitle.select_regex(:titles, /\Ayoutube\z/i || raise(DomainTitle.all.inspect)).first},
-      domain_title_key: :youtube,  # defined in ./domain_titles.rb ; used for test fixtures /test/fixtures/domains.yml
-      weight: 1000,
-    },
+    # youtube_short: {  # "*_short" is ignored in seeding Uri-s (see uris.rb)
+    #   domain: "youtu.be",
+    #   domain_title: Proc.new{DomainTitle.select_regex(:titles, /\Ayoutube\z/i || raise(DomainTitle.all.inspect)).first},
+    #   domain_title_key: :youtube,  # defined in ./domain_titles.rb ; used for test fixtures /test/fixtures/domains.yml
+    #   weight: 1000,
+    # },
     tiktok: {
       domain: "www.tiktok.com",
       domain_title: Proc.new{DomainTitle.select_regex(:titles, /\Atiktok\z/i || raise(DomainTitle.all.inspect)).first},
