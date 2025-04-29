@@ -129,7 +129,7 @@ class Domain < ApplicationRecord
     record.notice_messages ||= []
     dt = record.find_or_initialize_domain_title_to_assign(site_category_id: site_category_id)  # This would never be an Integer b/c record is a new_record?
     if !dt  # This happens only if record.domain.blank? for an "existing" Domain - should never happen!
-      raise Domains::CascadeSaveError, "Failing to find or initialize DomainTitle with URL: "+(url_str.blank? ? '""' : url_str)
+      raise HaramiMusicI18n::Domains::CascadeSaveError, "Failing to find or initialize DomainTitle with URL: "+(url_str.blank? ? '""' : url_str)
     end
 
     msgs = []
@@ -139,7 +139,7 @@ class Domain < ApplicationRecord
         begin
           dt.save! 
         rescue => err
-          raise Domains::CascadeSaveError, "Failed in saving DomainTitle with #{url_str} . Message: "+compile_captured_err_msg(err)
+          raise HaramiMusicI18n::Domains::CascadeSaveError, "Failed in saving DomainTitle with #{url_str} . Message: "+compile_captured_err_msg(err)
         end
         msgs.push "DomainTitle created: "+dt.reload.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "")
       end
@@ -150,7 +150,7 @@ class Domain < ApplicationRecord
       rescue => err
         msg_dt = sprintf("after successfully creating DomainTitle (pID=%d)", dt.id)
         err_msg = sprintf("Failed in creating Domain with #{url_str} %s. Message: %s", msg_dt, compile_captured_err_msg(err))
-        raise Domains::CascadeSaveError, err_msg
+        raise HaramiMusicI18n::Domains::CascadeSaveError, err_msg
       end
       msgs.push "Domain created: "+record.domain.to_s
     end
@@ -179,7 +179,7 @@ class Domain < ApplicationRecord
     rescue => err
       pid_dt = ((dt=domain.domain_title) ? dt.id : "nil")
       err_msg = sprintf("Failed in updating DomainTitle (pID=%s) with SiteCategory (pID=%s). Message: %s", pid_dt, site_category_id.inspect, compile_captured_err_msg(err))
-      raise Domains::CascadeSaveError, err_msg
+      raise HaramiMusicI18n::Domains::CascadeSaveError, err_msg
     end
 
     domain.notice_messages ||= []

@@ -288,7 +288,7 @@ class TranslationTest < ActiveSupport::TestCase
     trans = Translation.select_regex(:all, /aLe/i, langcode: 'en', translatable_type: Sex,
               where: ['id <> ?', female_id]).first
     assert_nil           trans.matched_attribute
-    assert_raises(MultiTranslationError::AmbiguousError){ trans.matched_string } # (kwd, value) must be explicitly specified in Translation#matched_string because matched_attribute has not been defined. Note Translation was likely created by {Translation.select_regex} as opposed to by {Translation.find_by_regex}, which would set matched_attribute.
+    assert_raises(HaramiMusicI18n::MultiTranslationError::AmbiguousError){ trans.matched_string } # (kwd, value) must be explicitly specified in Translation#matched_string because matched_attribute has not been defined. Note Translation was likely created by {Translation.select_regex} as opposed to by {Translation.find_by_regex}, which would set matched_attribute.
     assert_equal 'male', trans.matched_string(:all, /aLe/i)
     assert_equal :title, trans.get_matched_attribute(:all, /aLe/i)
     assert_equal :title, trans.set_matched_attribute(:all, /aLe/i)
@@ -425,9 +425,9 @@ class TranslationTest < ActiveSupport::TestCase
     assert_equal 'test08', tra8.note
     assert_equal translatable_tmpl, tra8.translatable
 
-    assert_raises(MultiTranslationError::AmbiguousError){
+    assert_raises(HaramiMusicI18n::MultiTranslationError::AmbiguousError){
       p Translation.update_or_create_regex!(:title, 'naiyo', langcode: 'ja') }
-    assert_raises(MultiTranslationError::AmbiguousError){
+    assert_raises(HaramiMusicI18n::MultiTranslationError::AmbiguousError){
       p Translation.update_or_create_regex!(:title, 'naiyo', translatable: hs2pass[:translatable]) }
     assert_raises(ActiveModel::UnknownAttributeError){
       p tra1 = Translation.update_or_create_regex!(:title, trans_tmpl.title, alt_title: 'Alt01', note: 'test01', naiyo: 'err', **hs2pass) }

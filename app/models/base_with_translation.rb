@@ -990,7 +990,7 @@ class BaseWithTranslation < ApplicationRecord
       if existings.count > 1 
         msg = "More than 1 #{self.name}-s (Total: #{existings.size}) exist #{existings.inspect} for the given translations #{trans.inspect}"
         logger.error msg+".  existings="+existings.inspect
-        raise MultiTranslationError::AmbiguousError, msg
+        raise HaramiMusicI18n::MultiTranslationError::AmbiguousError, msg
       end
     end
 
@@ -2001,7 +2001,7 @@ class BaseWithTranslation < ApplicationRecord
     att ||= matched_attribute
     return trans.matched_string(att: att) if trans && att
 
-    raise MultiTranslationError::AmbiguousError, "(kwd, value) must be explicitly specified in #{self.class.name}##{__method__} because matched_attribute has not been defined. Note Translation was likely created by Translation.select_regex as opposed to by Translation.find_by_regex, which would set matched_attribute." if [kwd, value].compact.empty?
+    raise HaramiMusicI18n::MultiTranslationError::AmbiguousError, "(kwd, value) must be explicitly specified in #{self.class.name}##{__method__} because matched_attribute has not been defined. Note Translation was likely created by Translation.select_regex as opposed to by Translation.find_by_regex, which would set matched_attribute." if [kwd, value].compact.empty?
     if !trans
       trans = find_translation_by_regex(kwd, value, *args, **restkeys)
       return trans.matched_string
@@ -2745,7 +2745,7 @@ class BaseWithTranslation < ApplicationRecord
     #### retracted because we should accept any language at this level!
     # if !AVAILABLE_LOCALES.include? langcode.to_sym
     #   logger.warn "(#{__method__}) langcode=#{langcode} unavailable in the environment (available=#{I18n.available_locales.inspect})."
-    #   # MultiTranslationError::UnavailableLocaleError
+    #   # HaramiMusicI18n::MultiTranslationError::UnavailableLocaleError
     # end
 
     mdls =

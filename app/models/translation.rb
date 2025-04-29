@@ -512,7 +512,7 @@ class Translation < ApplicationRecord
   def matched_string(kwd=nil, value=nil, att: nil)
     att ||= matched_attribute
     if !att
-      raise MultiTranslationError::AmbiguousError, "(kwd, value) must be explicitly specified in #{self.class.name}##{__method__} because matched_attribute has not been defined. Note Translation was likely created by Translation.select_regex as opposed to by Translation.find_by_regex, which would set matched_attribute." if [kwd, value].compact.empty?
+      raise HaramiMusicI18n::MultiTranslationError::AmbiguousError, "(kwd, value) must be explicitly specified in #{self.class.name}##{__method__} because matched_attribute has not been defined. Note Translation was likely created by Translation.select_regex as opposed to by Translation.find_by_regex, which would set matched_attribute." if [kwd, value].compact.empty?
       att = get_matched_attribute(kwd, value)
     end
 
@@ -1618,7 +1618,7 @@ class Translation < ApplicationRecord
       # do nothing
     else
       msg = "(#{__method__}): Contact the code developer (Not both (langcode translatable (or _type & _id)) are specified to create in Translation: #{base_opts.inspect})."
-      raise MultiTranslationError::AmbiguousError, msg
+      raise HaramiMusicI18n::MultiTranslationError::AmbiguousError, msg
     end
     self.create!(**(mainarg.merge(base_opts).merge(**new_opts))){ |record|
       yield record if block_given?

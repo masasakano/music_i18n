@@ -268,7 +268,7 @@ class UrlTest < ActiveSupport::TestCase
   end
 
   test "self.create_url_from_str failing" do
-    assert_raises(Domains::CascadeSaveError){
+    assert_raises(HaramiMusicI18n::Domains::CascadeSaveError){
       Domain.find_or_create_domain_by_url!("日本語のダメなヤツ") }
     url = Url.create_url_from_str("日本語のダメなヤツ")
     assert url.errors.any?
@@ -365,5 +365,10 @@ class UrlTest < ActiveSupport::TestCase
     assert_difference(equation, -111, "Destroying Url should not destroy its parent Anchorable (Channel in this case)"){  # p parent1.class  #=> Channel
       url1.destroy
     }
+  end
+
+  test "HaramiMusicI18n::Urls::NotAnchorableError" do
+    assert_raise(HaramiMusicI18n::Urls::NotAnchorableError){
+    raise HaramiMusicI18n::Urls::NotAnchorableError }
   end
 end

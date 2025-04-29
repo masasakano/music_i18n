@@ -233,7 +233,7 @@ class Url < BaseWithTranslation
 
     begin
       self.domain = Domain.find_or_create_domain_by_url!(url, site_category_id: site_category_id)
-    rescue Domains::CascadeSaveError => err
+    rescue HaramiMusicI18n::Domains::CascadeSaveError => err
       errors.add :domain_id, err.message
       return  # an error happens.
     end
@@ -307,6 +307,11 @@ class Url < BaseWithTranslation
       errors.add(:title, "Failed to #{method} Translation#title (#{title_str.inspect}) failed.")
     end
     nil
+  end
+
+  # Transfer URL from anchorable#note
+  #
+  def self.transfer_from_note
   end
 
   private

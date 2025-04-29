@@ -589,7 +589,7 @@ artrans.each do |ea_hs|
   hs_main, hs_trans = split_hash_with_keys(ea_hs, %i(note birth_day birth_month birth_year wiki_ja wiki_en sex place))
   begin
     record = Artist.update_or_create_with_translations!(hs_main, nil, mainkeys=%i(birth_day birth_month birth_year), **hs_trans)
-  rescue MultiTranslationError::AmbiguousError => er
+  rescue HaramiMusicI18n::MultiTranslationError::AmbiguousError => er
     # Skip, because at least one entry already exists.
     warn "WARNING: Multiple entries for a seeded Artist are found. Your existing record may have duplications: "+er.message
     next
@@ -662,7 +662,7 @@ artrans.each do |ea_hs|
   begin
     record = Music.update_or_create_with_translations!(hs_main, nil, mainkeys=%i(year), **hs_trans)
     n_musics += 1 if record.saved_changes?
-  rescue MultiTranslationError::AmbiguousError => er
+  rescue HaramiMusicI18n::MultiTranslationError::AmbiguousError => er
     # Skip, because at least one entry already exists.
     warn "WARNING: Multiple entries for a seeded Music are found. Your existing record may have duplications: "+er.message
   end

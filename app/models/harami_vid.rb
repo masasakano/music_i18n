@@ -678,7 +678,7 @@ class HaramiVid < BaseWithTranslation
   # @param dryrun: [Boolean] If true (Def: false), nothing is saved but {HaramiVid#columns_for_harami1129} for the returned value is set.
   # @return [Harami1129] {Translation} is associated via either {#translations} or {#unsaved_translations}
   #   Note the caller has no need to receive the return as the contents of self is modified anyway, though not saved, yet.
-  # @raise [MultiTranslationError::InsufficientInformationError] if a new record cannot be created.
+  # @raise [HaramiMusicI18n::MultiTranslationError::InsufficientInformationError] if a new record cannot be created.
   def set_with_harami1129(harami1129, updates: [], force: false, dryrun: false)
     self.columns_for_harami1129 = {:be4 => {}, :aft => {}}
     if updates.include?(:ins_link_root)
@@ -688,7 +688,7 @@ class HaramiVid < BaseWithTranslation
       self.columns_for_harami1129[:aft][:ins_link_root] = uri
     elsif self.new_record?
       msg = "(#{__method__}) HaramiVid is a new record, yet :ins_link_root is not specified (link_root=#{harami1129.link_root.inspect}, updates=#{updates.inspect}). Contact the code developer."
-      raise MultiTranslationError::InsufficientInformationError, msg
+      raise HaramiMusicI18n::MultiTranslationError::InsufficientInformationError, msg
     end
 
     self.columns_for_harami1129[:be4][:ins_release_date] = release_date

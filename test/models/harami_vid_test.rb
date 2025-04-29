@@ -170,7 +170,7 @@ class HaramiVidTest < ActiveSupport::TestCase
     assert_not harami_vid.changed?
 
     # 1st try
-    assert_raises(MultiTranslationError::InsufficientInformationError){
+    assert_raises(HaramiMusicI18n::MultiTranslationError::InsufficientInformationError){
       harami_vid.set_with_harami1129(h1129, updates: %i(ins_title ins_release_date)) } #  HaramiVid is a new record, yet :ins_link_root is not specified. Contact the code developer.
 
     # 2nd try

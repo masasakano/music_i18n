@@ -1499,7 +1499,7 @@ module ModuleCommon
   #
   # @example
   #    rescue => err
-  #      raise Domains::CascadeSaveError, "Failed. Message: "+compile_captured_err_msg(err)
+  #      raise HaramiMusicI18n::Domains::CascadeSaveError, "Failed. Message: "+compile_captured_err_msg(err)
   #
   # @param err [Exception]
   # @return [String]
