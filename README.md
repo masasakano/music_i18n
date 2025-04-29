@@ -332,6 +332,83 @@ Note that *ActiveSupport::TestCase::ControllerAnchorableHelper* (and *BaseAnchor
 
 The above-described framework follows the DRY principle, and indeed, the amount of code required to write when introducing a new *anchorable* class is minimum. The downside is, however, that it is not always easy to pin down **where** and what causes an assertion failure when one happens.  I have coded so that some of the test assertions report some caller information, using Ruby's bind information, but admittedly many of them do not.  Among the Anchoring-associated classes, the testings for `Music`, `Place`, and `HaramiVid` follow this principle diligently, and so they have very little unique test code but some parameters. By contrast, those for Event are deliberately left more primitive, though still heavily using the above-mentioned framework. In addition, some tests that should not be repeated (such as, network-dependent ones) are defined only in Event-Anchoring testings. Finally, The tests for Artist-Anchoring are most primitive, but again I leave them as they are, because they give slightly independent way of testing, even though the current testing framework have evolved from the their testing.
 
+### Strategy for URL normalization
+
+This framework keeps each URL as a unique record in the class *Url* with a major exception of those of *HaramiVid*, which is dedicated for the URLs of the primary Artist's videos.  In either case, the algorithm to guess the uniquness is important; otherwise you might end up with many URL records that basically point to the same content. The cause of such duplication is, in a word, there are usually more than one, or many, ways to express the same URL. An editor may input (copy & paste?) URLs they see in creating/editing an entry on a website, which may inadvertently vary. Here are some popular causes.
+
+* **Path-level forwarding*/*redirection**
+  * e.g., www.youtube.com/watch?v=XXX, www.youtube.com/shorts/XXX, and www.youtube.com/live/XXX
+* **(Domain-level) forwarding*/*redirection**
+  * **www**: e.g., `www.example.com` and `example.com`
+  * **locale**: e.g., `en.example.com` and `ja.example.com`
+  * **country**: e.g., `google.com` and `google.co.jp`
+  * **shortner**: e.g., `youtu.be` (shortened) and `youtube.com`
+  * **domain switch**: e.g., Twitter.com and X.com
+* **Full forwarding*/*redirection**
+  * e.g., tinyurl.com, bit.ly, t.co
+* **query and fragment parameters in the URL**
+  * **tracking queries**: e.g., `si=XXX` on Youtube, but note `v=XXX` on Youtube is essential
+  * **fragment**: `abc#xy123` (to point to a point on the page)
+* **scheme**
+  * e.g., `http` and `https`. People often simply omit the scheme part.
+* **port**
+  * e.g., `example.com:80`, `example.com:443`
+* **case sensitivity**
+  * Domain part is case-insensitive. Path part usually is case-sensitive, but may not be. The consecutive forward slashes in the path part are insignificant as a convention.
+* **encoding**
+  * **IDN**: `お名前.com` and `%E3%81%8A%E5%90%8D%E5%89%8D.com`
+
+Basically, there are an arbitray number of combinations to express the same content.
+To make the matter worse, the insignificance for these varieties entirely depend on each website...  For Youtube, for example, some query parameters are vital whereas some are not at all (perhaps except for the adverts you end up seeing).
+
+Therefore, a URL normalization is a key to maintain the uniquness of each record (at a best-effort basis).
+
+#### classes and module in this framework
+
+In this framework, URLs are basically kept in two models: *HaramiVid* and *Url*. The latter is the dedicated model for the video URLs for the primary artist. Eeverything else is stored in the former and used in a polymorphic way from other models.
+
+For Youtube URLs, which are the primary URLs for the former, HaramiVid sotred them with the shortened form of youtu.be/XXX with no query parameters. Timing can be significant in some cases (which works like the URL fragment). The timings are stored as `HaramiVidMusicAssoc#timing`.
+
+A non-trivial part is that when a user supplies a URL-look String without a scheme, to judge whether it is a Internet-valid URL or not. They are not a valid URI. However, some valid URIs are not Internet-valid URLs.  If the potntial schemes are limited to either `http` or `https`, the algorithm would be greatly simple.  However, to accept a general URL is tricky; for eample, `sftp::` is a perfectly valid scheme.  To address these issues, I basically develop custom routines which primarily relies on `Addressable::URI` to make sure the algorithm is right and also future-proof.
+
+the main class *Url* has a multiple structures as follows.
+
+* Column `url`: everything inclusive except preceding and trailing spaces, but stored in the decoded way (because once it is fully decoded, it is unique within UTF-8). For Youtube URLs, it is the same as with HaramiVid but timing parameters preserved.
+* Column `url_normalized`: the normalized URL, where the scheme, preceding `www.`, port parts are removed, the domain part is downcase, and everythig is fully decoded. This is used for uniquness testing among *Url* records.
+* Column `domain_id`: Pointing the parent class *Domain*, which keeps only the domain part without the trailing forward slash `/`.
+* *DomainTitle* : Parent class of *Oomain*, expessing an organization that maintain the children *Domains*.  Most typically, *Domains* with and without the prefix `www.` belong to a single *DomainTitle*
+* The parent class of *DomainTitle* is *SiteCategory*.
+* Funciton module *ModuleUrlUtil* have many utility functions.
+
+The following methods are used commonly (they are extensively unit-tested).
+
+* `ModuleUrlUtil.normalized_url`
+  * Do-it-all URL normalizer.  Basically, this is the one all the other methods in this framework use with varying parameters according to their individual needs.  This only decodes the URL, not the other way around.  In this framework, we only deal with Internet URLs, not the whole set of URI.
+* `ModuleUrlUtil.valid_url_like?`
+  * Any String that passes this test is regarded as a valid URL (or that can be compiled into a valid URI by adding a scheme part) in this framework.
+* `ModuleUrlUtil.valid_domain_like?`
+  * Any String that passes this test is regarded as a valid domain.
+* `ModuleUrlUtil.get_uri`
+  * returning a valid URI object, providing the given String passes the test by `ModuleUrlUtil.valid_url_like?`
+* `ModuleUrlUtil.url_prepended_with_scheme`
+  * returning a valid URI String, prepending the scheme `https://` if required, providing the given String passes the test by `ModuleUrlUtil.valid_url_like?`
+* `Url.find_url_from_str`
+  * Find the *Url* from a given URL-like String (if on the DB)
+* `Url.minimum_adjusted_url`
+  * the filters used to generate `Url#url` before-save
+* `Url.self.normalized_url`
+  * the filters used to generate `Url#url_normalized` before-save
+* `Domain.find_by_urlstr`
+  * Find the *Domain* of a given URL-like String (if on the DB)
+* `Domain.extracted_normalized_domain`
+  * the filters used to generate `Domain#domain` before-save
+* `DomainTitle.find_by_urlstr`
+  * Find the *DomainTitle* of a given URL-like String (if on the DB)
+* `SiteCategory.find_by_urlstr`
+  * Find the *SiteCategory* of a given URL-like String (if on the DB)
+
+In this framework, we basically use `Addressable::URI`, as opposed to the traditional `URI` class/module. because the former is greatly more advanced, including the handling of IDNs.
+
 
 ### Static page strategy ###
 

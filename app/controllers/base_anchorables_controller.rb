@@ -256,19 +256,14 @@ class BaseAnchorablesController < ApplicationController
     def _adjust_for_wikipedia(anchoring=@anchoring)
       return if anchoring.http_url.blank?
 
-      begin
-        urin = Addressable::URI.parse(anchoring.http_url)
-        return if urin.host.blank? || /^([a-z]{2})\.wikipedia\.org$/ !~ urin.host.downcase  # Not Wikipedia
+      urin = ModuleUrlUtil.get_uri(anchoring.http_url)
+      return if urin.blank? || urin.host.blank? || /^([a-z]{2})\.wikipedia\.org$/ !~ urin.host.downcase  # Not Wikipedia
 
-        site_lang = $1
-        anchoring.url_langcode = site_lang if anchoring.url_langcode.blank?
-        return if !anchoring.new_record? || !anchoring.title.blank?
+      site_lang = $1
+      anchoring.url_langcode = site_lang if anchoring.url_langcode.blank?
+      return if !anchoring.new_record? || !anchoring.title.blank?
 
-        anchoring.title = Addressable::URI.unencode(urin.path.sub(%r@^/?wiki/@, ""))  # or URI.decode_www_form_component
-      rescue Addressable::URI::InvalidURIError => err
-        logger.error "ERROR(Addressable::URI::InvalidURIError): for the input of #{anchoring.url_form.inspect}"
-        return
-      end
+      anchoring.title = Addressable::URI.unencode(urin.path.sub(%r@^/?wiki/@, ""))  # or URI.decode_www_form_component
       anchoring.langcode = site_lang
       anchoring.is_orig = true
     end
@@ -279,24 +274,15 @@ class BaseAnchorablesController < ApplicationController
     def _adjust_for_harami_chronicle(anchoring=@anchoring)
       return if anchoring.http_url.blank?
 
-      begin
-        urin = Addressable::URI.parse(anchoring.http_url)
-      rescue Addressable::URI::InvalidURIError => err
-        logger.error "ERROR(Addressable::URI::InvalidURIError): for the input of #{anchoring.url_form.inspect}"
-        return
-      end
-
-      dom = Domain.find_by_both_urls(anchoring.http_url)
-      return if !dom
-
-      sc = dom.site_category
+      dt = DomainTitle.find_by_urlstr(anchoring.http_url)
+      return if !dt
+      sc = dt.site_category
       return if "chronicle" != sc.mname
-      return if dom.domain_title != sc.domain_titles.order(:created_at).first  # Chronicle but not the default (=first seeded) one.
+      return if dt != sc.domain_titles.order(:created_at).first  # Chronicle but not the default (=first seeded) one.
 
       ## Only for new_record? so far
-      return if !@anchoring.new_record?
+      return if !anchoring.new_record?
       anchoring.url_langcode = "ja" if anchoring.url_langcode.blank?
-      #@anchoring.title = 
     end
     private :_adjust_for_harami_chronicle
 
