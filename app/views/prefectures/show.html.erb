@@ -68,17 +68,14 @@ __EOF__
 
 <hr>
 
-  <%= editor_only_safe_html(Event, method: :index){
-      ret = <<__EOF__
-<section id="section_event_table">
-<h2>#{t('.events_in_prefecture', this_pref: my_title)}</h2>
-#{render partial: 'layouts/events_index', locals: {events: @prefecture.events, hide_prefecture: true}}
-#{link_to t('layouts.view_searching_index'), events_path(params: {events_grid: {prefecture_id: [@prefecture.id]}}) }
-</section> <!-- section id="section_event_table" -->
-<hr>
-__EOF__
-      ret.html_safe  # essential.
-} %>
+<%= editor_only_safe_html(Event, method: :index) do %>
+  <%= tag.section id: "section_event_table" do %>
+    <h2><%= t('.events_in_prefecture', this_pref: my_title) %></h2>
+    <%= render partial: 'layouts/events_index', locals: {events: @prefecture.events, hide_prefecture: true} %>
+    <%= link_to t('layouts.view_searching_index'), events_path(params: {events_grid: {prefecture_id: [@prefecture.id]}}) %>
+  <% end %> <!-- section id="section_event_table" -->
+  <hr>
+<% end %>
 
 <section id="harami_vid_table">
 <h2><%= t("show.h2_harami_vid") %></h2>

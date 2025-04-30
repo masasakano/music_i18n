@@ -68,7 +68,8 @@
 
 <br>
 
-<%= editor_only_safe_html(Prefecture, method: :create, html_class: "new_button_on_index"){
-      button_to 'Create New Prefecture', new_prefecture_path, method: :get } %>
+<%= editor_only_safe_html(Prefecture, method: :create, class: "new_button_on_index") do %>
+  <%= button_to 'Create New Prefecture', new_prefecture_path, method: :get %>
+<% end %>
 <%# link_to 'New Prefecture', new_prefecture_path %>
 

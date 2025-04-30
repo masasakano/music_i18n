@@ -1124,21 +1124,21 @@ module ApplicationHelper
 
   # Returns a block of safe-HTML in a div/span of editor/moderator-only IF it is viewable by the user.
   #
-  # If the input is not HTML-safe, it is sanitized. Note that this sanitization usually preserves
-  # HTML ankers (links), though not an entire table.  Given that manual sanitization one by one
-  # followed by manual +html_safe+ is human-error prone, not to mark it as +html_safe_ but
-  # to leave it to Rails would be perhaps better in most cases (I think)?
+  # If the input is not HTML-safe, it is sanitized according to the standard `sanitize` helper
+  # (See your initilizer to see the available anchors).
+  # The recommended way is to give the content as the ERB block (see an example below).
+  # Then, the content is sanitized (or not for the part you choose so) acccording to the ERB standard way.
   #
-  # This method is particularly useful when you think the component may become public
+  # This method is a handy helper for anything related to the Editor-privilege. In particularly
+  # this is most useful when you think the component may become public
   # in the future; with this method, the part is guaranteed NOT to be enclosed
-  # with the editor-only style once it has become public.  For the standard "Edit"/"Create"
-  # links, the standard ERB writing may suffice.
+  # with the editor-only style once it has become public.
   #
   # @example
-  #    editor_only_safe_html(@place, method: :edit, tag: "span", html_class: "lead"){ <<__EOF__
-  #       #{link_to 'Edit', edit_place_path(@place)} <br>
-  #    __EOF__
-  #    }
+  #    <%= editor_only_safe_html(@place, method: :edit, tag: "span", class: "lead") do %>
+  #      <%= link_to 'Edit', edit_place_path(@place) %>
+  #      <br>
+  #    <% end %>
   #
   # @example
   #    can_index = can?(:index, Event)
@@ -1147,14 +1147,14 @@ module ApplicationHelper
   #
   # @param record [ActiveRecord, Class<ActiveRecord>, Symbol] If Symbol of :pass, the Boolean value of the method is used for ability check.
   # @param method: [Symbol, Boolean] Mandatory, unlike {#publicly_viewable?}. This can be like :crud or :ud as defined in ability.rb .  Or, if +record+ is :pass, this Boolean value is used and detailed ability check is skipped, and the unauthenticated is assumed to be prohibited to access.
-  # @param tag: [String] "div"(Def) or "span". Or, "p" if you want.
-  # @param html_class: [String] space-separated CSS classes for the tag.
+  # @param tag: [String] "div"(Def) or "span". Or, "p" if you want.  (For developers: the namespace collides with the default helper method +tag+ inside this method, so be careful!)
+  # @param class: [String] space-separated CSS classes for the tag.
   # @param only: [Symbol, String] If Symbol like :editor, "editor_only" is the CSS class. Or you can explicitly specify the CSS class in String.
   # @param text: [String, NilClass] you can supply the enclosed text either with this argument or through yield.
   # @param permissive: [Boolean] Default is false, unlike {#publicly_viewable?}.  Use so unless the permission is not a big-deal one.
   # @return [String] html_safe String to display if the page is editor-only? (maybe moderator or admin only)
   # @yield Returned text will be inside the block.
-  def editor_only_safe_html(record, method:, tag: "div", html_class: "", only: :editor, text: nil, permissive: false)
+  def editor_only_safe_html(record, method:, tag: "div", class: "", only: :editor, text: nil, permissive: false)
     if !permissive
       if !((:pass == record && [true, false, nil].include?(method)) || 
            (record.respond_to?(:attribute_names) && method.is_a?(Symbol)))
@@ -1166,21 +1166,24 @@ module ApplicationHelper
 
     return "" if (:pass == record && !method) || (:pass != record && !can?(method, record))
 
-    html_classes = [html_class.present? ? html_class : nil]
+    html_classes = [(obj=binding.local_variable_get(:class)).present? ? obj : nil].compact
 
     # Adds "editor_only" to the output CSS
     if (:pass == record && method) || !publicly_viewable?(record, method: method, permissive: permissive)
-      html_classes.push(only.is_a?(Symbol) ? (only.to_s+"_only") : only)
+      html_classes.push(only.is_a?(Symbol) ? (only.to_s+"_only") : only)  # no need of h() or sanitize because the tag helper takes care of it.
     end
-    out_class_str = sanitize(html_classes.compact.join(" "))
 
     if block_given?
       warn "WARNING(#{__method__}): Argument text is ignored as a block is also given." if text.present?
-      text = yield
+      text = capture{(s=yield); s.html_safe? ? s : sanitize(s)}  ## NOTE: capture{}  is the key!!  sanitize() is unnecessary for the ERB block but maybe is for a direct block input.
+    elsif !text.respond_to?(:html_safe?)
+      raise ArgumentError, "text must be a String, be it a direct argument or yield block."
     end
-    text = text.to_s
-    text = sanitize(text) if !text.html_safe?
-    sprintf('<%s class="%s">%s</%s>', tag, out_class_str, text, tag).html_safe
+
+    text = sanitize(text) if !text.html_safe?  # capture-d text seems always html_safe. However, text passed as an argument may not be.
+    # Note: Array#html_safe? exists but Array#html_safe does not, and raises NoMethodError  
+
+    ApplicationController.helpers.tag.send(tag, text, class: html_classes)
   end
 
   # to suppress warning, mainly that in Ruby-2.7.0:

@@ -91,6 +91,6 @@
   </div>
 <% end %>
 <% end %> <%# if false %>
-<%= editor_only_safe_html(Event,     method: :create, html_class: "new_button_on_index"){ button_to 'Create Event', new_event_path, method: :get } %>
+<%= editor_only_safe_html(Event,     method: :create, class: "new_button_on_index"){ button_to 'Create Event', new_event_path, method: :get } %>
 <%= editor_only_safe_html(EventGroup, method: :index){ link_to "EventGroup index", event_groups_path } %>
 

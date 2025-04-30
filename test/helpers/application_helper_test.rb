@@ -37,13 +37,17 @@ class ApplicationHelperTest < ActionView::TestCase
     assert_equal("",  editor_only_safe_html(music,  method: :edit, text: "abc"))
     exp = '<div class="">abc</div>'
     assert_equal exp, editor_only_safe_html(Music, method: :index, text: "abc")
+
     exp = '<div class="">9</div>'
-    assert_equal exp, editor_only_safe_html(Music, method: :index, text: 9)  # should be stringfied.
-    assert_equal exp, editor_only_safe_html(Music, method: :index, text: nil){9}
+    assert_equal exp, editor_only_safe_html(Music, method: :index, text: 9)
+    exp = '<div class=""></div>'
+    assert_equal exp, editor_only_safe_html(Music, method: :index, text: nil){9} # 9 should be stringfied.
+    assert_raises(StandardError) {
+                      editor_only_safe_html(Music, method: :index, text: [])  } # NoMethodError caused by sanitize()  # but the error type may change in the future
 
     mu = musics(:music1)
     exp = '<p class="x &lt;">abc</p>'
-    act = editor_only_safe_html(mu,    method: :show, tag: "p", html_class: "x <"){ "abc" }
+    act = editor_only_safe_html(mu,    method: :show, tag: "p", class: "x <"){ "abc" }
     assert_equal exp, act
     assert       act.html_safe?
 
@@ -69,10 +73,10 @@ class ApplicationHelperTest < ActionView::TestCase
     #@current_user = users(:user_sysadmin)
 
     exp = '<p class="x &lt; editor_only">abc</p>'
-    act = editor_only_safe_html(music,  method: :edit, tag: "p", html_class: "x <"){ "abc"}
+    act = editor_only_safe_html(music,  method: :edit, tag: "p", class: "x <"){ "abc"}
     assert_equal exp, act
 
-    act = editor_only_safe_html(Role,    method: :edit, tag: "p", html_class: "x <"){ "abc"}
+    act = editor_only_safe_html(Role,    method: :edit, tag: "p", class: "x <"){ "abc"}
     assert_equal  "", act, "Editor cannot edit Role, but..."
 
     exp = '<div class="moderator_only">AAA<script></div>'
@@ -81,7 +85,7 @@ class ApplicationHelperTest < ActionView::TestCase
     assert       act.html_safe?
 
     exp = '<div class="x &lt; my_klass">AAA</div>'
-    act = editor_only_safe_html(music,  method: :edit, html_class: "x <", only: "my_klass"){ "AAA<script>" }
+    act = editor_only_safe_html(music,  method: :edit, class: "x <", only: "my_klass"){ "AAA<script>" }
     assert_equal exp, act
     assert       act.html_safe?
 
@@ -93,11 +97,11 @@ class ApplicationHelperTest < ActionView::TestCase
         editor_only_safe_html(:abc, method: :edit,                    text: "xyz") }
 
     exp = '<div class="x &lt; my_klass">AAA</div>'
-    act = editor_only_safe_html(:pass,  method: true, html_class: "x <", only: "my_klass"){ "AAA<script>" }
+    act = editor_only_safe_html(:pass,  method: true, class: "x <", only: "my_klass"){ "AAA<script>" }
     assert_equal exp, act
 
     exp = '<div class="x &lt; my_klass">AAA</div>'
-    act = editor_only_safe_html(:pass,  method: false, html_class: "x <", only: "my_klass"){ "AAA<script>" }
+    act = editor_only_safe_html(:pass,  method: false, class: "x <", only: "my_klass"){ "AAA<script>" }
     assert_equal "", act
   end
 

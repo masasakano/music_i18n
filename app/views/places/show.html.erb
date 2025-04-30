@@ -32,10 +32,9 @@
      <%= render partial: 'layouts/index_anchorings', locals: {record: @place} %>
    <% end %>
 
-<%= editor_only_safe_html(@place, method: :edit, tag: "span", html_class: "lead"){ <<__EOF__
-  #{link_to 'Edit', edit_place_path(@place)} <br>
-__EOF__
-} %>
+<%= editor_only_safe_html(@place, method: :edit, tag: "div", class: "lead") do %>
+  <%= link_to 'Edit', edit_place_path(@place) %>
+<% end %>
 <% if can_create_pla=can?(:create, Place) %>
   <% pref_title = @place.prefecture.title_or_alt_tuple_str("[", "]", langcode: I18n.locale) %>
 <p class="lead editor_only">
