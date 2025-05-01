@@ -42,7 +42,7 @@ class BaseAnchorablesController < ApplicationController
     @anchoring.assign_attributes(anchoring_params)
     _preprocess_received_prms(@anchoring)
 
-    opts = %i(site_category_id url_langcode weight title).map{|metho| [metho, @anchoring.send(metho)]}.to_h  # langcode is guessed from title in Url.def_translation_from_url()
+    opts = %i(site_category_id url_langcode weight title domain_id).map{|metho| [metho, @anchoring.send(metho)]}.to_h  # langcode is guessed from title in Url.def_translation_from_url()
     opts[:langcode] = @anchoring.langcode if @anchoring.langcode.present?  # not via Website UI but by some methods
     opts[:is_orig]  = @anchoring.is_orig  if [true, false].include? @anchoring.is_orig
 
@@ -74,6 +74,7 @@ class BaseAnchorablesController < ApplicationController
   def update
     @anchoring.assign_attributes(anchoring_params)
     _transfer_prms_from_anchoring_to_url(@anchoring)
+    @anchoring.domain_id = @anchoring.url&.domain&.id  # This will prevent domain_id reset in _adjust_for_harami_chronicle called from the next line
     _preprocess_received_prms(@anchoring)
 
     status = !@anchoring.errors.any?  # false if very erroneous (maybe without UI)
@@ -253,19 +254,19 @@ class BaseAnchorablesController < ApplicationController
     end
 
     # Auto-adjusts some parameters for Wikipedia
+    #
     def _adjust_for_wikipedia(anchoring=@anchoring)
       return if anchoring.http_url.blank?
 
-      urin = ModuleUrlUtil.get_uri(anchoring.http_url)
-      return if urin.blank? || urin.host.blank? || /^([a-z]{2})\.wikipedia\.org$/ !~ urin.host.downcase  # Not Wikipedia
+      hs_revised = Url.params_for_wiki(anchoring.http_url)
+      return if !hs_revised
 
-      site_lang = $1
-      anchoring.url_langcode = site_lang if anchoring.url_langcode.blank?
+      anchoring.url_langcode = hs_revised[:url_langcode]
       return if !anchoring.new_record? || !anchoring.title.blank?
 
-      anchoring.title = Addressable::URI.unencode(urin.path.sub(%r@^/?wiki/@, ""))  # or URI.decode_www_form_component
-      anchoring.langcode = site_lang
-      anchoring.is_orig = true
+      %w(title langcode is_orig).each do |metho|
+        anchoring.send(metho+"=", hs_revised[metho]) if anchoring.send(metho).blank?  # title is likely to have been already defined in _adjust_for_title()
+      end
     end
     private :_adjust_for_wikipedia
 
@@ -274,15 +275,12 @@ class BaseAnchorablesController < ApplicationController
     def _adjust_for_harami_chronicle(anchoring=@anchoring)
       return if anchoring.http_url.blank?
 
-      dt = DomainTitle.find_by_urlstr(anchoring.http_url)
-      return if !dt
-      sc = dt.site_category
-      return if "chronicle" != sc.mname
-      return if dt != sc.domain_titles.order(:created_at).first  # Chronicle but not the default (=first seeded) one.
+      hs_revised = Url.params_for_harami_chronicle(anchoring.http_url)
+      return if !hs_revised
 
       ## Only for new_record? so far
       return if !anchoring.new_record?
-      anchoring.url_langcode = "ja" if anchoring.url_langcode.blank?
+      anchoring.url_langcode = hs_revised[:url_langcode] if anchoring.url_langcode.blank?
     end
     private :_adjust_for_harami_chronicle
 

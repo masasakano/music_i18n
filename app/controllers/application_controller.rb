@@ -644,6 +644,8 @@ class ApplicationController < ActionController::Base
   #
   # For example, errors[:start_time_err] is transferred (copied) to errors[:form_start_err]
   #
+  # See {ModuleCommon#compile_captured_err_msg} (in case of Rails Exception)
+  #
   # @param mdl [ApplicationRecord] like @event
   # @param mdl_attr: [String, Symbol] Attribute for which an error is raised (such as "not Numeric")
   # @param form_attr: [String, Symbol] Attribute used in the form

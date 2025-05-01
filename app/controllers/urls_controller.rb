@@ -85,8 +85,7 @@ class UrlsController < ApplicationController
   def find_or_create_and_assign_domain(url2save)
     return url2save if !url2save.domain_id.blank?  # domain_id is already set.
 
-    return url2save if !(ret=url2save.find_or_create_and_reset_domain_id)  # +errors+ should have been set.
-
+    return url2save if !(ret=url2save.find_or_create_and_reset_domain_id)  # Returns only if an error has happened in creation of Domain/DomainTitle (as deemed necessary) for +url2save+, in which case +url2save.errors+ should have been set.
     return url2save if url2save.errors.any? || !url2save.domain  # This should be unnecesary and redundant, but playing safe.
 
     if (msgs=url2save.domain.notice_messages).present?

@@ -293,6 +293,46 @@ module ModuleUrlUtil
     end
   end
 
+  # Extracts all the URL-like Strings, returning Array of valid URL-String and its original String.
+  #
+  # Each element in the returned Array is a pair of Array of Strings, consisting of
+  # a "valid" Internet URL prefixed with a scheme (usually "https://") and its raw-extracted String.
+  #
+  # Note that there can be a duplication even in the second element, let alone the first element of the pairs.
+  #
+  # @example
+  #    extract_url_like_string_and_raws("x\nhttp://example.com\nyoutu.be/XXX?t=53 [https://naiyo] (www.abc.org/?q=1#X) http://t.co/#X")
+  #      # => [["http://example.com",        "http://example.com"],
+  #      #     ["https://youtu.be/XXX?t=53",  "youtu.be/XXX?t=53"],
+  #      #     ["https://www.abc.org/?q=1#X", "www.abc.org/?q=1#X"],
+  #      #     ["http://t.co/#X",             "http://t.co/#X"]]
+  #
+  # @return [Array<String, String>] [[<Proper-URL-String>, <Raw-String>], ...]
+  def extract_url_like_string_and_raws(strin)
+    extract_raw_url_like_strings(strin).map{|es|
+      (s=url_prepended_with_scheme(es, invalid: nil)) ? [s, es] : nil
+    }.compact
+  end
+
+
+  # Each element in the returned Array is a "raw" String which has no guarantee to be a valid URL.
+  #
+  # Note that this extracts Strin starting with "www."
+  # As an exception, this extracts String like "youtu.be/XXX" or "youtube.com/XXX" (but NOT "youtu.be/" alone).
+  # The preceding characters are checked; "xyoutu.be/XXX" or "x.youtu.be/XXX" would be rejected.
+  #
+  # This also removes the links in Markdown or in <a> tags, as they should stay in note
+  # and not be transferred to Url.
+  #
+  # @return [Array<String>] e.g., ["http://example.com", "youtu.be/XXX?t=53", "https://naiyo", "www.abc.org/?q=1#X" "http://t.co/#X"]
+  def extract_raw_url_like_strings(strin)
+  renderer = Redcarpet::Render::HTML.new(prettify: true)
+  markdown = Redcarpet::Markdown.new(renderer, {autolink: true})
+  
+  mded_str = ActionController::Base.helpers.strip_tags( markdown.render(strin) ).gsub(/(\?[a-z]\S*=\S*)&amp;/i, '\1&')
+  mded_str.scan(%r@(?:(?:\b(?:https?|s?ftp))://|(?<=^|[<\[\(\s])(?:www\.|youtube\.com/|youtu.be/))[^>\)\]\s]+(?=[>\)\]\s]|$)@)
+  end
+
   #################
   private 
   #################

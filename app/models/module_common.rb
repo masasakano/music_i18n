@@ -1412,8 +1412,9 @@ module ModuleCommon
   # @param url [String] URL
   # @param css: [String] mandatory, e.g., "h1"
   # @param timeout_sec: [Numeric] timeout
+  # @param capture_exception: [Boolean] if true (Def), all errors are captured and this returns nil in case of error.
   # @return [Nokogiri::XML::NodeSet, NilClass] nil if something goes wrong in accessing the URL (Error is captured inside).
-  def self.fetch_url_node(url, css:, timeout_sec: DEF_NETWORK_TIMEOUT_SEC)
+  def self.fetch_url_node(url, css:, timeout_sec: DEF_NETWORK_TIMEOUT_SEC, capture_exception: true)
     begin
       Timeout::timeout(timeout_sec*2, Timeout::Error) do  # This includes Nokogiri's processing time
         html = URI.open(url, read_timeout: timeout_sec).read
@@ -1426,13 +1427,15 @@ module ModuleCommon
            Timeout::Error,
            SocketError,   # e.g., "Failed to open TCP connection to example.jp:80 (getaddrinfo: nodename nor servname provided, or not known)"
            OpenSSL::SSL::SSLError => er  # e.g., "SSL_connect returned=1 errno=0 peeraddr=157.7.236.66:443 state=error: unexpected eof while reading", e.g., https://example1.net
+      raise if !capture_exception
       msg = "ERROR(#{__method__}): (#{er.class.name}) in fetching H1 from ( #{url} ) with message: #{er.message}"
     rescue => er
+      raise if !capture_exception
       msg = "ERROR(#{__method__}): [Unrecognized!] (#{er.class.name}) in fetching H1 from ( #{url} ) with message: #{er.message}"
     end
 
     warn msg
-    logger.warn msg
+    Rails.logger.warn msg
     nil
   end
 
@@ -1496,6 +1499,8 @@ module ModuleCommon
   end
 
   # Error message
+  #
+  # See {ApplicationController#transfer_error_to_form} for {ActiveRecord#errors}
   #
   # @example
   #    rescue => err

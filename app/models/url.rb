@@ -103,6 +103,8 @@ class Url < BaseWithTranslation
   validates :url_langcode, length: {is: 2}, format: {with: /\A[a-z]{2}\z/i}, allow_nil: true, allow_blank: true  # so far, "-" etc are not allowed.
   validates :last_confirmed_date, comparison: { greater_than_or_equal_to: :published_date }, allow_nil: true
 
+  attr_accessor :original_path  # Input path (String) used in some methods. Not used in forms.
+
   # Wrapper of ModuleUrlUtil.normalized_url with a specific combination of options
   #
   # excluding the scheme, "www.", and the trailing forward slash only IF the URL is just a domain part.
@@ -156,12 +158,17 @@ class Url < BaseWithTranslation
 
   # Search and find a Url from String URL.
   #
-  # Url is unique by {#url_normalized}
+  # {Url#original_path} is set.
+  #
+  # @note
+  #   Url is unique by {#url_normalized}
   #
   # @param urlstr [String] mandatory.
   # @return [Url, NilClass]
   def self.find_url_from_str(urlstr)
-    find_by(url_normalized: normalized_url(urlstr))
+    (ret = find_by(url_normalized: normalized_url(urlstr))) || return
+    ret.original_path = urlstr
+    ret
   end
 
   # Alternative constructor from String URL
@@ -191,6 +198,7 @@ class Url < BaseWithTranslation
     return newurl if !ret  # "newurl.errors" should have been set.  "newurl.id" is nil.
 
     newurl.save
+    newurl.original_path = urlstr
     newurl  # In failing, "newurl.errors" should be set.  If successful, a Translation should have been also created.
   end
 
@@ -234,7 +242,7 @@ class Url < BaseWithTranslation
     begin
       self.domain = Domain.find_or_create_domain_by_url!(url, site_category_id: site_category_id)
     rescue HaramiMusicI18n::Domains::CascadeSaveError => err
-      errors.add :domain_id, err.message
+      errors.add :domain_id, compile_captured_err_msg(err)  # defined in ModuleCommon (to clarify for editors what error is raised)
       return  # an error happens.
     end
 
@@ -279,17 +287,17 @@ class Url < BaseWithTranslation
   # called from Anchoring Controller
   #
   # @param title_str [String]
-  # @return [Boolean, NilClass]
+  # @return [Boolean, String, NilClass] nil if update failed, in which case {#errors} is set
   def update_best_translation(title_str)
     translations.reset
-    metho, tra = 
+    tra = 
       if (cnt=translations.count) > 1
         errors.add(:title, "Url has multiple translaitons, so a simple update is rejected. Update it with the dedicated UI.")
         return
       elsif cnt == 1
-        ["update", translations.first]
+        translations.first
       else
-        ["create", Translation.new(translatable_type: self.class.name, translatable_id: self.id)]
+        Translation.new(translatable_type: self.class.name, translatable_id: self.id)
       end
 
     tra.title = title_str
@@ -300,7 +308,7 @@ class Url < BaseWithTranslation
     end
 
     status = tra.save
-    return status if status
+    return (msg || status) if status
     #  add_flash_message(:notice, msg) if msg
 
     tra.errors.each do |err|
@@ -309,9 +317,188 @@ class Url < BaseWithTranslation
     nil
   end
 
-  # Transfer URL from anchorable#note
+#  # @return []
+#  def self.find_or_create_and_associate_url_from_note(anchorable, urlstr, remove_or_replace: :remove, remove_existing: true)
+#
+#
+#
+#    if !(anchoring_existed=anchoring)
+#      anchoring = Anchoring.new(url_id: url.id)
+#      anchorable.anchorings << anchoring
+#      if anchoring.new_record?  # i.e., error in creating
+#raise "todo"
+#      end
+#    end
+#
+#    return [anchoring, (xxxxxx? ? :url_existing : :url_created), (anchoring_existed ? :anchoring_existing : :anchoring_created)]if :none == remove_or_replace
+#
+#    search_remove_or_replace_url_from_note(anchoring, remove_or_replace: remove_or_replace, remove_existing: remove_existing)
+#  end
+
   #
-  def self.transfer_from_note
+  # @example
+  #    Url.find_multi_urls_from_note(Place.last){|valid_path, orig_path| true }
+  #      # => e.g., [u=Url.unknown, ["https://www.some.org/ab?q=3#x", "www.some.org/ab?q=3#x"], Url.second]
+  #      #    # u.original_path == "www.example.com" (for example!)
+  #
+  # @param anchorable [ActiveRecord, String] anchorable one, or its anchorable_type (namely its class name)
+  # @param id_anchorable [Integer, String, NilClass] pID of anchorable. mandatory when anchorable is anchorable_type.
+  # @param remove_from_note: [Boolean] If true, not only (potentially creating Urls, anchorable#note is updated with the URL-string parts removed
+  # @param fetch_h1: [Boolean] If true, fetches the title from the remote URL on create.
+  # @return [Array<Url, Array<String, String>>]
+  def self.find_or_create_multi_urls_from_note(anchorable, id_anchorable=nil, remove_from_note: false, fetch_h1: false, &bl)
+    # Array of either Url or Array[ValidPathString, OrigString]
+    url_or_strarys = find_multi_urls_from_note(anchorable, id_anchorable, &bl)
+
+    # Processing in the reverse order because the URLs embedded at the tail of Note should be removed first.
+    artmp = []
+    arret = url_or_strarys.reverse.map{ |url_or_strary|
+      next nil if artmp.include? url_or_strary  # duplication to be truncated
+      artmp << url_or_strary  # to check duplication in the later processes in this iterator.  The last element may be overwritten a few lines below.
+      next url_or_strary if !url_or_strary.respond_to?(:flatten)
+
+      paths = {}.with_indifferent_access
+      path[:valid], path[:orig] = url_or_strary
+      hsopts = (block_given? ? yield(path[:valid], path[:orig]) : params_for_harami_chronicle(path[:valid]))
+
+      artmp[-1] = create_url_from_str(path[:orig], **hsopts)
+      # site_category_id: nil, url_langcode: nil, domain: nil, domain_id: nil, weight: nil, published_date: nil, last_confirmed_date: nil, note: nil, memo_editor: nil, title: nil, langcode: nil, is_orig: nil, alt_title: nil)
+    }.compact
+
+    return arret if !remove_from_note
+
+    arret.each do |url|
+      status = url.remove_str_from_note(anchorable)  # assuming url.original_path is defined; any Url processed here should have it defined.
+      Rails.logger.error("ERROR(#{__method__}): saving #{anchorable.class.name}#note somehow failed: String-to-remove=(#{url.original_path.inspect}), anchorable="+anchorable.inspect) if !status
+    end
+    arret  # of Url-s. They may have errors. Also, anchorable may have errors.
+  end
+
+  # Removed {#original_path} string from anchorable#note, saving anchorable.
+  #
+  # Assuming {#original_path} is defined; any Url processed here should have it defined.
+  # The caller should check with the anchorable for errors.any?
+  #
+  # @param anchorable [ActiveRecord] its note is now modified.
+  # @return [Boolean, NilClass] true if saving succeeds, false if fails. nil if the proposition is weirdly not satisfied
+  def remove_str_from_note(anchorable)
+    if original_path.blank?
+      Rails.logger.error "ERROR(#{__method__}): Url#original_path is blank, which should never happen: "+inspect
+      return
+    elsif !anchorable.note
+      Rails.logger.error "ERROR(#{__method__}): #{anchorable.class.name}#note for pID=(#{anchorable.id}) is nil, which should never happen: Url="+inspect
+      return
+    end
+     
+    last_match_position = nil
+    anchorable.note.scan(/#{Regexp.quote(original_path)}/){ last_match_position = Regexp.last_match.begin(0) }
+
+    anchorable.note[last_match_position, original_path.size] = ""
+    anchorable.save   # WARNING: may set anchorable.errors
+  end
+
+  # Find existing Urls from anchorable#note String
+  #
+  # Returning an Array of (possibly) mixtures of {Url}-s and an Arrays of
+  # pairs of a Url-valid String and its original extracted String,
+  # based on the output of {ModuleUrlUtil#extract_url_like_string_and_raws}, preserving
+  # its order. Chances are multiple Url instances
+  # pointing to a common DB Url record may be contained in the Array.
+  #
+  # Some of the elements are filtered out in return.
+  # The caller may pass a block for the filtering purpose to return true for selecting or false to filter out,
+  # based on the same 2 arguments (valid path and original String).
+  # If no block is given, the default filtering method is applied.
+  #
+  # For each Url returned, {Url#original_path{ is set.
+  #
+  # @example
+  #    Url.find_multi_urls_from_note(Place.last){|valid_path, orig_path| true }
+  #      # => e.g., [u=Url.unknown, ["https://www.some.org/ab?q=3#x", "www.some.org/ab?q=3#x"], Url.second]
+  #      #    # u.original_path == "www.example.com" (for example!)
+  #
+  # @param anchorable [ActiveRecord, String] anchorable one, or its anchorable_type (namely its class name)
+  # @param id_anchorable [Integer, String, NilClass] pID of anchorable. mandatory when anchorable is anchorable_type.
+  # @return [Array<Url, Array<String, String>>]
+  def self.find_multi_urls_from_note(anchorable, id_anchorable=nil)
+    anchorable = _get_anchorable_from_arg(anchorable, id_anchorable)
+    ModuleUrlUtil.extract_url_like_string_and_raws(anchorable.note).map{ |valid_path_str, orig_str| # [%w(https://youtu.be/XXX youtu.be/XXX), ...]
+      if (block_given? ? yield(valid_path_str, orig_str) : valid_url_str_to_transfer_from_note?(valid_path_str))
+        find_url_from_str(orig_str) || [valid_path_str, orig_str]  # the former sets {#original_path}
+      else
+        nil
+      end
+    }.compact
+  end
+
+  # @return [Boolean] true if the path can be transferred from anchorable#note to Url.
+  def self.valid_url_str_to_transfer_from_note?(valid_path, _=nil)
+    return true if params_for_wiki(valid_path)
+    return true if params_for_harami_chronicle(valid_path)
+    return true if Rails.env.test? && (u=find_url_from_str(valid_path)) && u.domain.unknown?  # In test environment, there is quite a overload...
+    false
+  end
+
+  # Transfer Harmai-Chronicle-URL from anchorable#note
+  #
+  # @param anchorable [ActiveRecord, String] anchorable one, or its anchorable_type (namely its class name)
+  # @param id_anchorable [Integer, String, NilClass] pID of anchorable. mandatory when anchorable is anchorable_type.
+  # @return [ActiveRecord] anchorable one
+  def self._get_anchorable_from_arg(anchorable, id_anchorable)
+    return anchorable if anchorable.respond_to?(:anchorings)
+    raise HaramiMusicI18n::Urls::NotAnchorableError, "Argument is neither anchorable ActiveRecord nor its class name" if !anchorable.respond_to?(:constantize)
+
+    begin
+      anchorable.constantize.find(id_anchorable)
+    rescue NoMethodError, NameError  # former for nil etc, latter for "lower_case_string" etc.
+      raise ArgumentError, "Url.#{__method__}: Argument (#{anchorable.inspect}) is neither anchorable ActiveRecord nor its class name"
+    end
+  end
+  private_class_method :_get_anchorable_from_arg
+
+  # Returns a params Hash if the given String is from Wikipedia
+  #
+  # @todo caching mechanism as this is called twice from Url
+  #
+  # @param urin [String] any String, maybe looking like URL, e.g., http://example.com, www.example.com/abc
+  # @return [Hash, NilClass] if the given String is like URL and that of Wikipedia, returns params-like Hash (with_indifferent_access) to update, else nil.
+  def self.params_for_wiki(urlstr)
+    urin = ModuleUrlUtil.get_uri(urlstr)
+    return if urin.blank? || urin.host.blank? || /^([a-z]{2})\.wikipedia\.org$/ !~ (dom=urin.host.downcase)  # Not Wikipedia
+
+    reths = {}.with_indifferent_access
+    reths["url_langcode"] = $1
+    reths["domain_id"]    = Domain.find_by(domain: dom)&.id  # Integer or potentially nil.
+
+    reths["title"] = Addressable::URI.unencode(urin.path.sub(%r@^/?wiki/@, ""))
+    reths["langcode"] = reths["url_langcode"]
+    reths["is_orig"] = true
+    reths
+  end
+
+  # Returns a params Hash if the given String is from Harami-Chronicle
+  #
+  # @todo caching mechanism as this is called twice from Url
+  #
+  # @param urin [String] any String, maybe looking like URL, e.g., http://example.com, www.example.com/abc
+  # @return [Hash, NilClass] if the given String is like URL and that of Harami-Chronicle, returns params-like Hash (with_indifferent_access) to update, else nil.
+  def self.params_for_harami_chronicle(urlstr)
+    dt = DomainTitle.find_by_urlstr(urlstr)
+    return if !dt
+    sc = dt.site_category
+    return if !sc || "chronicle" != sc.mname
+    return if dt != sc.domain_titles.order(:created_at).first  # Chronicle but not the default (=first seeded) one.
+
+    reths = {}.with_indifferent_access
+    urin = ModuleUrlUtil.get_uri(urlstr)
+    dt.domains.each do |domain|
+      if domain.domain == urin.host
+        reths["domain_id"] = domain.id if reths["domain_id"].blank?
+        break
+      end
+    end
+    reths["url_langcode"] = "ja"
+    reths
   end
 
   private
