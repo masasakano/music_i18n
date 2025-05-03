@@ -167,7 +167,7 @@ class Anchoring < ApplicationRecord
     anchorable.anchorings.each do |anc|
       next if urls.include? anc.url
       ret_ancs << anc
-      anchorable.note << " "+Addressable::URI.unencode(Addressable::URI.unencode(anc.url.url))  # for some reason, double unencode (decode) is necessary...
+      anchorable.note << " "+Addressable::URI.unencode(anc.url.url)
     end
 
     anchorable.send(bang ? :save! : :save) if !ret_ancs.empty?

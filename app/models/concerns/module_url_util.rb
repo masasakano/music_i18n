@@ -177,7 +177,7 @@ module ModuleUrlUtil
   # @param downcase: [Boolean] if true (Def), the domain is downcased except for the IDN part.
   # @return [Boolean]
   def encoded_case_sensitive_domain(domain_str, downcase: true)
-    ret = Addressable::URI.encode(domain_str)
+    ret = encoded_urlstr_if_decoded(domain_str)
     return ret if !downcase
     ret.downcase.gsub(/%([a-f0-9]{2})/){'%'+$1.upcase}
   end
@@ -286,6 +286,9 @@ module ModuleUrlUtil
       urlstr
     when ""
       ""
+    when :nil
+      warn "WARNING: ':nil' is wrong. You should specify nil. Here :nil is interpreted as nil temporarily."
+      nil
     when nil
       nil
     else
@@ -333,6 +336,16 @@ module ModuleUrlUtil
   
     mded_str = ActionController::Base.helpers.strip_tags( markdown.render(strin) ).gsub(/(\?[a-z]\S*=\S*)&amp;/i, '\1&').gsub(/\\n/, "\n")
     mded_str.scan(%r@(?:(?:\b(?:https?|s?ftp))://|(?<=^|[<\[\(\s])(?:www\.|youtube\.com/|youtu.be/))[^>\)\]\s]+(?=[>\)\]\s]|$)@m)
+  end
+
+  # @note
+  #   The traditional URI raises URI::InvalidURIError in encountering non-ASCII
+  #   characters, but Addressable::URI is fine.
+  #   Also, Addressable::URI.unencode can decode the entire URL, whereas URI.decode_www_form_component cannot.
+  #
+  # @return [String] Encoded URL-string only if it has been decoded.
+  def encoded_urlstr_if_decoded(urlstr)
+    (/%[a-f0-9]{2}/i =~ urlstr) ? urlstr : Addressable::URI.encode(urlstr)
   end
 
   #################

@@ -157,4 +157,14 @@ class ModuleUrlUtilTest < ActiveSupport::TestCase
 
     assert_equal [], extract_url_like_string_and_raws(nil)
   end
+
+  test "decoded_urlstr_if_encoded" do
+    dec = "https://example.com/"
+    assert_equal dec, encoded_urlstr_if_decoded(dec)
+
+    dec = "https://ja.wikipedia.org/wiki/さくら_(タレント)"
+    enc = "https://ja.wikipedia.org/wiki/%E3%81%95%E3%81%8F%E3%82%89_(%E3%82%BF%E3%83%AC%E3%83%B3%E3%83%88)"
+    assert_equal enc, encoded_urlstr_if_decoded(dec)
+    assert_equal enc, encoded_urlstr_if_decoded(enc)
+  end
 end

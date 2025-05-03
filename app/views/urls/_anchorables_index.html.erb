@@ -20,8 +20,8 @@
        <%= render "layouts/title_alt_ja_en_table", model: nil, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
       <th title="Note of Anchor"><%= t("tables.note") %></th>
        <% if is_moderator %>
-      <th title="Anchoring">Created (UTC)</th>
-      <th title="Anchoring">Updated (UTC)</th>
+      <th class="moderator_only" title="Anchoring">Created (UTC)</th>
+      <th class="moderator_only" title="Anchoring">Updated (UTC)</th>
        <% end %>
       <th></th>
     </tr>
@@ -44,9 +44,9 @@
        <%= render "layouts/title_alt_ja_en_table", model: record, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
         <td class="item_note"><%= anchoring.note %></td>
          <% if is_moderator %>
-           <td class="item_created_at"><%= ctime=anchoring.created_at.utc %></td>
+           <td class="moderator_only item_created_at"><%= ctime=anchoring.created_at.utc %></td>
            <% not_updated = (utime=anchoring.updated_at.utc == ctime) %>
-           <td class="item_updated_at<%= ' align-c' if not_updated %>"><%= (not_updated ? '&mdash;'.html_safe : utime) %></td>
+           <td class="moderator_only item_updated_at<%= ' align-c' if not_updated %>"><%= (not_updated ? '&mdash;'.html_safe : utime) %></td>
          <% end %>
         <td><%= link_to t("tables.Show"), record %></td>
       </tr>

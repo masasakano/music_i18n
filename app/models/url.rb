@@ -63,6 +63,14 @@ class Url < BaseWithTranslation
   # this constant should be true (for example, {Music#title}).
   ARTICLE_TO_TAIL = true
 
+  # Basically, Translation never violates uniquness because URL aliases are possible!  (We don't prohibit URL aliases.)
+  # If URL aliases are considered in the future, the uniquness can be able to be assessed if
+  #   Url#domain, Url#url_langcode
+  #   Translation#title-ISH, Translation#langcode
+  #   Not-Alias
+  # are all identical, perhaps.
+  TRANSLATION_UNIQUE_SCOPES = :disable  # changed from :default
+
   # Optional constant for a subclass of {BaseWithTranslation} to define the scope
   # of required uniqueness of title and alt_title.
   #TRANSLATION_UNIQUE_SCOPES = :default
@@ -183,13 +191,16 @@ class Url < BaseWithTranslation
   # except that a null query or fragment is removed and multiple trailing slashes are
   # truncated to one as in before_validation.  And a scheme ("https://") is added if not present.
   #
+  # {#was_created?}, {#domain_found?} (or not), {#original_path} are set.
+  #
   # @param urlstr [String] mandatory
   # @param encode: [NilClass, Boolean] If true (Def: false), encode urlstr
   # @param site_category_id: [NilClass, String, Integer] Used only in creating DomainTitle. ignored if nil. auto-guessed if "".  See {Domain.find_or_initialize_domain_title_to_assign} and {Domain.guess_site_category}
   # @param **kwds [Hash] You can initialize any of the standard attributes of Url, plus its Translation. All are optional, and can be automatically set.
   # @return [Url] In failing, +errors+ may be set or +id+ may be nil. +domain+ may be set and +domain.notice_messages+ may be significant (to show as flash messages).
-  def self.create_url_from_str(urlstr, encode: false, site_category_id: nil, url_langcode: nil, domain: nil, domain_id: nil, weight: nil, published_date: nil, last_confirmed_date: nil, note: nil, memo_editor: nil, title: nil, langcode: nil, is_orig: nil, alt_title: nil)
-    newurl = self.new(url: (encode ? Addressable::URI.encode(urlstr) : urlstr),
+  def self.create_url_from_str(urlstr, encode: false, site_category_id: nil, url_langcode: nil, domain: nil, domain_id: nil, weight: nil, published_date: nil, last_confirmed_date: nil, note: nil, memo_editor: nil, title: nil, langcode: nil, is_orig: nil, alt_title: nil, fetch_h1: false)  # fetch_h1 is totally ignored for now!
+    raise ArgumentError, 'fetch_h1 unsupported' if fetch_h1
+    newurl = self.new(url: (encode ? ModuleUrlUtil::encoded_urlstr_if_decoded(urlstr) : urlstr),
                      url_langcode: url_langcode,
                      weight: weight,
                      published_date: published_date,
@@ -198,7 +209,7 @@ class Url < BaseWithTranslation
                      memo_editor: memo_editor)
     newurl.domain    = domain    if domain
     newurl.domain_id = domain_id if domain_id
-    newurl.was_created = true
+    newurl.was_created = true  # domain_found will be set in find_or_create_and_reset_domain_id
     newurl.original_path = urlstr  # as given (without encode/unencode processing here)
 
     newurl.unsaved_translations << def_translation_from_url(newurl, title: title, langcode: langcode, is_orig: is_orig, alt_title: alt_title)
@@ -208,6 +219,56 @@ class Url < BaseWithTranslation
 
     newurl.save
     newurl  # In failing, "newurl.errors" should be set.  If successful, a Translation should have been also created.
+  end
+
+  # @return [Url, NilClass] {#was_found} is set.
+  def self.find_url_from_wikipedia_str(urlstr, url_langcode: nil)
+    find_url_from_str( _construct_valid_url_from_wikipedia_str(urlstr, url_langcode: url_langcode) )
+  end
+
+  # @return [String, NilClass] valid URL-string with a scheme or nil if blank or invalid.
+  def self._construct_valid_url_from_wikipedia_str(urlstr, url_langcode: nil)
+    return if urlstr.blank?
+    urlstr = urlstr.strip
+    url_w_scheme = ModuleUrlUtil.url_prepended_with_scheme(urlstr, invalid: nil)  # return may be nil.
+    if url_w_scheme
+      uri = ModuleUrlUtil.get_uri(url_w_scheme)
+      # (/^([a-z]{2})\./ =~ uri.host) && url_langcode ||= $1
+    elsif !url_langcode.present?
+      raise "Not like Wikipedia URL (or you should specify url_langcode)."
+    else
+      urltmp = 
+        if /^#{url_langcode}\./ =~ urlstr  # if no scheme
+          "https://"+urlstr
+        else                         # if only path part
+          "https://#{url_langcode}.wikipedia.org/wiki/"+urlstr
+        end
+      uri = ModuleUrlUtil.get_uri(urltmp)
+      return if !uri
+    end
+    urlstr = uri.to_s
+  end
+  private_class_method :_construct_valid_url_from_wikipedia_str
+
+  # Wrapper of create_url_from_str
+  #
+  # @return [Url, NilClass]
+  def self.find_or_create_url_from_wikipedia_str(urlstr_in, url_langcode: nil, domain_id: nil, anchorable: nil, **opts)
+    urlstr = _construct_valid_url_from_wikipedia_str(urlstr_in, url_langcode: url_langcode) || return
+    url = find_url_from_wikipedia_str(urlstr, url_langcode: url_langcode)
+    return url if url  # {#waf_found} is set.
+
+    hsopts = params_for_wiki(urlstr)
+    hsopts ||= {
+      url_langcode: url_langcode,
+      domain_id: (domain_id || Domain.find_by(domain: "w.wiki")&.id),  # Integer or potentially nil.
+    }
+    if hsopts[:title].blank? && anchorable.respond_to?(:title)
+      hsopts[:title] = anchorable.title+" (Wikipedia)"  # This happens only for "w.wiki" Domain.  So, exceptionally, a postfix is appended (because we don't know exactly what the Wikipedia title would be, which can be essential in using the Wikipedia API)
+    end
+
+    opts2pass = opts.merge(indifferent_access_to_sym_keys(hsopts))
+    create_url_from_str(urlstr, **opts2pass)  # was_created? and domain_found? are set.
   end
 
   # Returns an Array of old Child Anchoring records

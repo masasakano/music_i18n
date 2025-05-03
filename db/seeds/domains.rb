@@ -90,6 +90,12 @@ module Seeds::Domains
       domain_title_key: :wikipedia,  # defined ./domain_titles.rb ; used for test fixtures /test/fixtures/domains.yml
       weight: 110,
     },
+    wikipedia_short: {  # "*_short" would be ignored in Url-seeding
+      domain: "w.wiki",
+      domain_title: Proc.new{DomainTitle.select_regex(:titles, /\Awikipedia\z/i || raise(DomainTitle.all.inspect)).first},
+      domain_title_key: :wikipedia,  # defined ./domain_titles.rb ; used for test fixtures /test/fixtures/domains.yml
+      weight: 990,
+    },
     chronicle_harami: {
       domain: "nannohi-db.blog.jp",
       domain_title: Proc.new{DomainTitle.select_regex(:titles, /\A(Harami(\-?chan('?s)?)?\s*Chronicle\z|ハラミちゃん活動の記録(.+Chronicle|\z))/i || raise(DomainTitle.all.inspect)).first},

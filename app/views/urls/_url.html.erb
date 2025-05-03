@@ -31,9 +31,9 @@
     <dd class="item_id_url"><%= url.url_normalized %></dd>
    </div>
   <% end %>
-    <dt class="item_id_domain"> <%= t(:DomainTitle) %>:</dt>
+    <dt class="item_id_domain"> <%= t(:DomainTitle) %> [<%= t("site_categories.table_head.site_category_short") %>]:</dt>
     <dd class="item_id_domain"><%= link_to((sc=model.domain_title).title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "CO", article_to_head: true), sc, title: t(:DomainTitle)) if model.domain_title %> 
-      (<%= link_to((sc=model.site_category).title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "CO", article_to_head: true), sc, title: t(:SiteCategory)) if model.site_category %>)
+      [<%= link_to((sc=model.site_category).title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "CO", article_to_head: true), sc, title: t(:SiteCategory)) if model.site_category %>]
       <% if can_update_gen %>
         <span class="editor_only item_domain">
           / <%= link_to t(:Domain), model.domain %>: <%= model.domain.domain %>

@@ -1205,6 +1205,8 @@ module ModuleCommon
       end
     end
   end
+  alias_method :transfer_errors_from, :transfer_errors if ! self.method_defined?(:transfer_errors_from)
+
 
   # Returns 2-element Array of PostgreSQL Regexp String and Options converted from Ruby Regexp
   #

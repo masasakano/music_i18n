@@ -91,6 +91,35 @@ class UrlTest < ActiveSupport::TestCase
     refute url2.valid?, "validate should fail because case-insensitive URL, and schemes and ports do not matter, but..."
   end
 
+  test "validation of Translation" do
+    dom1 = Domain.first
+    dom2 = Domain.second
+    tit0 = "OK-Title"
+    locale = "en"
+    
+    # Basically, Translation never violates uniquness because URL aliases are possible!
+    # If URL aliases are considered in the future, the uniquness can be able to be assessed if
+    #   Url#domain, Url#url_langcode
+    #   Translation#title-ISH, Translation#langcode
+    #   Not-Alias
+    # are all identical.
+    url1 = Url.create_basic!(url: "https://ab1.com/a", domain: Domain.first, url_langcode: "en", title: tit0, langcode: "en")
+    url2 = Url.create_basic!(url: "https://ab1.com/b", domain: Domain.first, url_langcode: "en", title: "dummy", langcode: "en")
+    assert url2.valid?
+
+    # sets the title of the Translation of Url to tit
+    # @return [Translation]
+    def _set_tra2(url, tit)
+      url.translations.reset
+      tra = url.translations.first
+      tra.title = tit
+      tra
+    end
+
+    tra = _set_tra2(url2, tit0)
+    assert tra.valid?
+  end
+
   test "unknown" do
     assert(url=Url.unknown, Url.all.inspect)
     assert url.unknown?
@@ -561,7 +590,6 @@ class UrlTest < ActiveSupport::TestCase
       ancs = []
       assert_difference(exp_calc, 3){
         # Everything (Urls, Domains, DomainTitles) should have been created but Anchoring.
-#debugger
         ancs = Anchoring.find_or_create_multi_from_note(plas[1], notes[1], remove_from_note: false, fetch_h1: false)
       }
       assert_equal 3,       ancs.size    # first and last are ignored.
@@ -621,7 +649,6 @@ class UrlTest < ActiveSupport::TestCase
 
     t_before = Time.now
     assert_difference(exp_calc, 223){
-
       ancs = Anchoring.find_or_create_multi_from_note(plas[1], notes[1], remove_from_note: true, fetch_h1: false)
     }
 
@@ -664,6 +691,36 @@ class UrlTest < ActiveSupport::TestCase
     assert_includes plas[1].note, wiki_ja
   end  # test "Anchoring. and Url.find_or_create_multi_from_note" do
 
+  test "self.find_or_create_url_from_wikipedia_str" do
+    exp_calc = 'DomainTitle.count*1000 + Domain.count*1000 + Translation.count*100 + Url.count*10 + Anchoring.count'
+    art = artists(:artist_kohmi)
+    art_title = art.title
+
+    url = nil
+    urlstrs = ["https://ja.wikipedia.org/wiki/%E3%81%95%E3%81%8F%E3%82%89_(%E3%82%BF%E3%83%AC%E3%83%B3%E3%83%88)"]
+    url = _confirm_url_in_create_url_from_wikipedia_str(exp_calc, urlstrs[0], urlstrs[0], art)
+    url.destroy!
+
+    urlstrs[1] = "ja.wikipedia.org/wiki/%E3%81%95%E3%81%8F%E3%82%89_(%E3%82%BF%E3%83%AC%E3%83%B3%E3%83%88)"
+    url = _confirm_url_in_create_url_from_wikipedia_str(exp_calc, urlstrs[1], urlstrs[0], art)
+    url.destroy!
+
+    urlstrs[2] = "%E3%81%95%E3%81%8F%E3%82%89_(%E3%82%BF%E3%83%AC%E3%83%B3%E3%83%88)"
+    url = _confirm_url_in_create_url_from_wikipedia_str(exp_calc, urlstrs[1], urlstrs[0], art)
+    url.destroy!
+
+    urlstrs[3] = "w.wiki/Abc123"
+    assert_difference(exp_calc, 110){
+      url = Url.find_or_create_url_from_wikipedia_str(urlstrs[3], url_langcode: "ja", anchorable: art, encode: true)
+      assert url.was_created?
+      assert_equal "https://"+urlstrs[3], url.url  # Same as full URL
+      assert_equal "ja", url.url_langcode
+      assert_equal "wikipedia", url.site_category.mname
+      refute url.errors.any?, url.errors.full_messages.inspect
+    }
+    assert_equal art_title+" (Wikipedia)", url.title
+  end
+
   private
 
     # "reverse"-action should have done nothing on anchorable#note (for whatever reason)
@@ -676,4 +733,18 @@ class UrlTest < ActiveSupport::TestCase
       assert_includes anchorable.note, kwd_url
     end
 
+    #
+    def _confirm_url_in_create_url_from_wikipedia_str(exp_calc, urlstr, urlfull, artist)
+      url = nil
+      assert_difference(exp_calc, 110){
+        url = Url.find_or_create_url_from_wikipedia_str(urlstr, url_langcode: "ja", anchorable: artist, encode: true)
+        assert url.was_created?
+        assert_equal urlfull, url.url  # Same as full URL
+        assert_equal "ja", url.url_langcode
+        assert_equal "wikipedia", url.site_category.mname
+        refute url.errors.any?
+      }
+      assert_equal "さくら_(タレント)", url.title
+      url
+    end
 end
