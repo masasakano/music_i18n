@@ -810,13 +810,14 @@ allfiles.each do |seed|
     require seed
     camel = File.basename(seed, ".rb").camelize
     begin
-      klass = Seeds.const_get(camel) # e.g., Seeds::PlayRole
+      klass = Seeds.const_get(camel) # e.g., PlayRoles (for Seeds::PlayRoles)
     rescue NameError
       # maybe seeds_user.rb in the production environment, where SeedsUser is deliberately undefined.
       puts "NOTE: skip running (maybe due to the wrong module name) "+seedfile2print #if $DEBUG
       next
     end
     if !klass.respond_to? :load_seeds 
+      next if "Users" == camel  # Seeds::Users.load_seeds undefined in production (Seeds::Users used to be undefined in production but the situation may have changed in /db/seeds/common.rb )
       raise sprintf("ERROR(%s): In (%s), %s.%s is not defined.", File.basename(__FILE__), seedfile2print, camel, "load_seeds")
     end
     increment = klass.load_seeds  # execute the method in an external file
