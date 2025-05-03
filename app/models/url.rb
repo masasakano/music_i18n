@@ -49,6 +49,10 @@ class Url < BaseWithTranslation
 
   #include ModuleUrlUtil # self.class.normalized_url etc.  # Using it (in the class method with the same name) without including it.
 
+  include ModuleWasFound # defines attr_writers @was_found, @was_created and their questioned-readers. (8 methods)
+  define_was_found_for("domain")       # defined in ModuleWasFound; defines domain_found? etc. (8 methods)
+  define_was_found_for("domain_title") # defined in ModuleWasFound; defines domain_title_found? etc. (8 methods)
+
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []
 
@@ -168,6 +172,8 @@ class Url < BaseWithTranslation
   def self.find_url_from_str(urlstr)
     (ret = find_by(url_normalized: normalized_url(urlstr))) || return
     ret.original_path = urlstr
+    ret.was_found = true
+    ret.domain_found = true if ret.domain
     ret
   end
 
@@ -177,12 +183,13 @@ class Url < BaseWithTranslation
   # except that a null query or fragment is removed and multiple trailing slashes are
   # truncated to one as in before_validation.  And a scheme ("https://") is added if not present.
   #
-  # @param urlstr [String] mandatory.
+  # @param urlstr [String] mandatory
+  # @param encode: [NilClass, Boolean] If true (Def: false), encode urlstr
   # @param site_category_id: [NilClass, String, Integer] Used only in creating DomainTitle. ignored if nil. auto-guessed if "".  See {Domain.find_or_initialize_domain_title_to_assign} and {Domain.guess_site_category}
   # @param **kwds [Hash] You can initialize any of the standard attributes of Url, plus its Translation. All are optional, and can be automatically set.
   # @return [Url] In failing, +errors+ may be set or +id+ may be nil. +domain+ may be set and +domain.notice_messages+ may be significant (to show as flash messages).
-  def self.create_url_from_str(urlstr, site_category_id: nil, url_langcode: nil, domain: nil, domain_id: nil, weight: nil, published_date: nil, last_confirmed_date: nil, note: nil, memo_editor: nil, title: nil, langcode: nil, is_orig: nil, alt_title: nil)
-    newurl = self.new(url: urlstr,
+  def self.create_url_from_str(urlstr, encode: false, site_category_id: nil, url_langcode: nil, domain: nil, domain_id: nil, weight: nil, published_date: nil, last_confirmed_date: nil, note: nil, memo_editor: nil, title: nil, langcode: nil, is_orig: nil, alt_title: nil)
+    newurl = self.new(url: (encode ? Addressable::URI.encode(urlstr) : urlstr),
                      url_langcode: url_langcode,
                      weight: weight,
                      published_date: published_date,
@@ -191,6 +198,8 @@ class Url < BaseWithTranslation
                      memo_editor: memo_editor)
     newurl.domain    = domain    if domain
     newurl.domain_id = domain_id if domain_id
+    newurl.was_created = true
+    newurl.original_path = urlstr  # as given (without encode/unencode processing here)
 
     newurl.unsaved_translations << def_translation_from_url(newurl, title: title, langcode: langcode, is_orig: is_orig, alt_title: alt_title)
 
@@ -198,7 +207,6 @@ class Url < BaseWithTranslation
     return newurl if !ret  # "newurl.errors" should have been set.  "newurl.id" is nil.
 
     newurl.save
-    newurl.original_path = urlstr
     newurl  # In failing, "newurl.errors" should be set.  If successful, a Translation should have been also created.
   end
 
@@ -207,7 +215,6 @@ class Url < BaseWithTranslation
   # @return [Array<ActiveRecords>]
   def anchoring_parents
     anchorings.map(&:anchorable)
-    #anchorings.map{|i| i.anchorable}  # NOTE: anchorings.map(&anchorable) would not work for some reason!!
   end
 
   # If {#domain_id} is blank, assign one according to url, potentially creating Domain (and maybe DomainTitle), and reset domain_id
@@ -237,6 +244,7 @@ class Url < BaseWithTranslation
   # @param site_category_id: [NilClass, String, Integer] Used only in creating DomainTitle. ignored if nil. auto-guessed if "".  See {Domain.find_or_initialize_domain_title_to_assign} and {Domain.guess_site_category}
   # @return [Url, NilClass] self or nil (if an error happens in creating Domain or DomainTitle)
   def find_or_create_and_reset_domain_id(force: false, site_category_id: nil)
+    set_domain_found_true if domain.present?
     return self if !domain_id.blank? && !force
 
     begin
@@ -246,6 +254,7 @@ class Url < BaseWithTranslation
       return  # an error happens.
     end
 
+    set_domain_found_if_true( self.domain.was_found? ) if domain.present?  # defined in ModuleWasFound
     self
   end
 
@@ -275,11 +284,13 @@ class Url < BaseWithTranslation
   # @return [Boolean] true if updated.  nil if an unlikely case of url being blank?
   def reset_assoc_domain(force: false, site_category_id: nil)
     return if url.blank?
+    self.domain_found = true if self.domain  # should be always true.
     return self.domain if !force && !url_changed? && (site_category_id.nil? || site_category_id.to_s.strip == domain_title.site_category_id.to_s)
     domain_title_bkup = self.domain_title
     domain_bkup       = self.domain
 
     find_or_create_and_reset_domain_id(force: force, site_category_id: site_category_id)  # maybe a created one.
+    set_domain_found_if_true( self.domain.was_found? )  # defined in ModuleWasFound
 
     self.domain != domain_bkup || self.domain_title != domain_title_bkup
   end
@@ -317,38 +328,24 @@ class Url < BaseWithTranslation
     nil
   end
 
-#  # @return []
-#  def self.find_or_create_and_associate_url_from_note(anchorable, urlstr, remove_or_replace: :remove, remove_existing: true)
-#
-#
-#
-#    if !(anchoring_existed=anchoring)
-#      anchoring = Anchoring.new(url_id: url.id)
-#      anchorable.anchorings << anchoring
-#      if anchoring.new_record?  # i.e., error in creating
-#raise "todo"
-#      end
-#    end
-#
-#    return [anchoring, (xxxxxx? ? :url_existing : :url_created), (anchoring_existed ? :anchoring_existing : :anchoring_created)]if :none == remove_or_replace
-#
-#    search_remove_or_replace_url_from_note(anchoring, remove_or_replace: remove_or_replace, remove_existing: remove_existing)
-#  end
-
+  # Find Urls for anchorable#note, creating ones that are not present, optionally removing the URL-Stgings in the note
+  #
+  # If the same-ISH URL-Strings appear in the note, only the last one is (optionally) removed.
+  # Accordingly, the order of the returned Array of Urls is *reversed* from the URL-like Strings
+  # in the note.
   #
   # @example
-  #    Url.find_multi_urls_from_note(Place.last){|valid_path, orig_path| true }
-  #      # => e.g., [u=Url.unknown, ["https://www.some.org/ab?q=3#x", "www.some.org/ab?q=3#x"], Url.second]
+  #    Url.find_or_create_multi_from_note(Place.last){|valid_path, orig_path| true }
+  #      # => e.g., [u=Url.unknown, Url("https://www.some.org/ab?q=3#x"), ...]
   #      #    # u.original_path == "www.example.com" (for example!)
   #
   # @param anchorable [ActiveRecord, String] anchorable one, or its anchorable_type (namely its class name)
   # @param id_anchorable [Integer, String, NilClass] pID of anchorable. mandatory when anchorable is anchorable_type.
-  # @param remove_from_note: [Boolean] If true, not only (potentially creating Urls, anchorable#note is updated with the URL-string parts removed
   # @param fetch_h1: [Boolean] If true, fetches the title from the remote URL on create.
-  # @return [Array<Url, Array<String, String>>]
-  def self.find_or_create_multi_urls_from_note(anchorable, id_anchorable=nil, remove_from_note: false, fetch_h1: false, &bl)
+  # @return [Array<Url>]
+  def self.find_or_create_multi_from_note(anchorable, id_anchorable=nil, fetch_h1: false, &bl)
     # Array of either Url or Array[ValidPathString, OrigString]
-    url_or_strarys = find_multi_urls_from_note(anchorable, id_anchorable, &bl)
+    url_or_strarys = find_multi_from_note(anchorable, id_anchorable, &bl)
 
     # Processing in the reverse order because the URLs embedded at the tail of Note should be removed first.
     artmp = []
@@ -357,23 +354,31 @@ class Url < BaseWithTranslation
       artmp << url_or_strary  # to check duplication in the later processes in this iterator.  The last element may be overwritten a few lines below.
       next url_or_strary if !url_or_strary.respond_to?(:flatten)
 
-      paths = {}.with_indifferent_access
-      path[:valid], path[:orig] = url_or_strary
-      hsopts = (block_given? ? yield(path[:valid], path[:orig]) : params_for_harami_chronicle(path[:valid]))
+      path_valid, path_orig = url_or_strary
+      hsopts = _prepare_create_opts_from_ary(path_valid, path_orig, fetch_h1, &bl)
 
-      artmp[-1] = create_url_from_str(path[:orig], **hsopts)
-      # site_category_id: nil, url_langcode: nil, domain: nil, domain_id: nil, weight: nil, published_date: nil, last_confirmed_date: nil, note: nil, memo_editor: nil, title: nil, langcode: nil, is_orig: nil, alt_title: nil)
+      artmp[-1] = create_url_from_str(path_orig, encode: true, **hsopts)&.tap(&:set_was_created_true)  # Url#original_path will be set
     }.compact
 
-    return arret if !remove_from_note
-
-    arret.each do |url|
-      status = url.remove_str_from_note(anchorable)  # assuming url.original_path is defined; any Url processed here should have it defined.
-      Rails.logger.error("ERROR(#{__method__}): saving #{anchorable.class.name}#note somehow failed: String-to-remove=(#{url.original_path.inspect}), anchorable="+anchorable.inspect) if !status
-    end
-    arret  # of Url-s. They may have errors. Also, anchorable may have errors.
+    arret  # of Url-s. They may have errors.
   end
 
+  # @return [Hash] with Symbol keys
+  def self._prepare_create_opts_from_ary(path_valid, path_orig, fetch_h1)
+    hsopts = ((block_given? ? yield(path_valid, path_orig) : _params_for_website(path_valid)) || {})
+    return indifferent_access_to_sym_keys(hsopts) if !fetch_h1  # defined in module_common.rb
+
+    h1 = fetch_url_h1(path_valid)  # defined in module_common.rb; return is guaranteed to be a String already stripped.
+    if h1.blank?  # singleton method {#message}
+      ## Warning for console
+      warn h1.message 
+    else
+      hsopts[:title] = h1
+    end
+    indifferent_access_to_sym_keys(hsopts)  # defined in module_common.rb
+  end
+  private_class_method :_prepare_create_opts_from_ary
+  
   # Removed {#original_path} string from anchorable#note, saving anchorable.
   #
   # Assuming {#original_path} is defined; any Url processed here should have it defined.
@@ -390,10 +395,9 @@ class Url < BaseWithTranslation
       return
     end
      
-    last_match_position = nil
-    anchorable.note.scan(/#{Regexp.quote(original_path)}/){ last_match_position = Regexp.last_match.begin(0) }
-
-    anchorable.note[last_match_position, original_path.size] = ""
+    last_match_info = nil
+    anchorable.note.scan(/(\s*<?#{Regexp.quote(original_path)}>?\s*)/){ last_match_info = [Regexp.last_match.begin(0), $1.size] }
+    anchorable.note[last_match_info[0], last_match_info[1]] = " "  # Enclosing spaces are truncated to one space (NOT zero)
     anchorable.save   # WARNING: may set anchorable.errors
   end
 
@@ -413,18 +417,18 @@ class Url < BaseWithTranslation
   # For each Url returned, {Url#original_path{ is set.
   #
   # @example
-  #    Url.find_multi_urls_from_note(Place.last){|valid_path, orig_path| true }
+  #    Url.find_multi_from_note(Place.last){|valid_path, orig_path| true }
   #      # => e.g., [u=Url.unknown, ["https://www.some.org/ab?q=3#x", "www.some.org/ab?q=3#x"], Url.second]
   #      #    # u.original_path == "www.example.com" (for example!)
   #
   # @param anchorable [ActiveRecord, String] anchorable one, or its anchorable_type (namely its class name)
   # @param id_anchorable [Integer, String, NilClass] pID of anchorable. mandatory when anchorable is anchorable_type.
   # @return [Array<Url, Array<String, String>>]
-  def self.find_multi_urls_from_note(anchorable, id_anchorable=nil)
+  def self.find_multi_from_note(anchorable, id_anchorable=nil)
     anchorable = _get_anchorable_from_arg(anchorable, id_anchorable)
     ModuleUrlUtil.extract_url_like_string_and_raws(anchorable.note).map{ |valid_path_str, orig_str| # [%w(https://youtu.be/XXX youtu.be/XXX), ...]
       if (block_given? ? yield(valid_path_str, orig_str) : valid_url_str_to_transfer_from_note?(valid_path_str))
-        find_url_from_str(orig_str) || [valid_path_str, orig_str]  # the former sets {#original_path}
+        find_url_from_str(orig_str) || [valid_path_str, orig_str]  # the former sets {#original_path} and {#was_found?}==true
       else
         nil
       end
@@ -439,6 +443,13 @@ class Url < BaseWithTranslation
     false
   end
 
+  # @return [Hash, nil] nil if not in one of the candidate websites examined in this method
+  def self._params_for_website(valid_path, _=nil)
+    params_for_wiki(valid_path) ||
+      params_for_harami_chronicle(valid_path)
+  end
+  private_class_method :_params_for_website
+
   # Transfer Harmai-Chronicle-URL from anchorable#note
   #
   # @param anchorable [ActiveRecord, String] anchorable one, or its anchorable_type (namely its class name)
@@ -449,10 +460,13 @@ class Url < BaseWithTranslation
     raise HaramiMusicI18n::Urls::NotAnchorableError, "Argument is neither anchorable ActiveRecord nor its class name" if !anchorable.respond_to?(:constantize)
 
     begin
-      anchorable.constantize.find(id_anchorable)
+      ret = anchorable.constantize.find(id_anchorable)
     rescue NoMethodError, NameError  # former for nil etc, latter for "lower_case_string" etc.
       raise ArgumentError, "Url.#{__method__}: Argument (#{anchorable.inspect}) is neither anchorable ActiveRecord nor its class name"
     end
+
+    raise HaramiMusicI18n::Urls::NotAnchorableError, "Argument is not anchorable ActiveRecord" if !ret.respond_to?(:anchorings)
+    ret
   end
   private_class_method :_get_anchorable_from_arg
 

@@ -542,6 +542,19 @@ class BaseWithTranslation < ApplicationRecord
     allow_absence_on_create: true,  # looked up only if !allow_absence. If true (Def), absense of Translation is allowed only on create, i.e, Translation must be created immediately after create.
   }.with_indifferent_access
 
+  # Common Translation-related Form tags for a new translatable
+  FORM_TRANSLATION_NEW_TAGS = {
+    langcode: :langcode,
+    is_orig:  :is_orig,
+    best_translation_is_orig: :best_translation_is_orig,  # for simple_form
+    title:          :title,                               # for default form
+    ruby:           :ruby,
+    romaji:         :romaji,
+    alt_title:  :alt_title,
+    alt_ruby:   :alt_ruby,
+    alt_romaji: :alt_romaji,
+  }.with_indifferent_access
+
   alias_method :inspect_orig, :inspect if ! self.method_defined?(:inspect_orig)
 
   # Unsaved {Translation}-s for a new record which would be created when self is saved.

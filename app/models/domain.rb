@@ -27,6 +27,9 @@ class Domain < ApplicationRecord
   include ModuleUrlUtil
   extend ModuleUrlUtil
 
+  include ModuleWasFound # defines attr_writers @was_found, @was_created and their questioned-readers. (4 methods)
+  define_was_found_for("domain_title")  # defined in ModuleWasFound; defines domain_found? etc. (4 methods)
+
   belongs_to :domain_title
 
   has_many :urls,    dependent: :restrict_with_exception  # Exception in DB, too.
@@ -91,7 +94,7 @@ class Domain < ApplicationRecord
     domain_norm_no_www = extracted_normalized_domain(url_str.to_s.strip).sub(/\Awww\./, "")
     except_id = (except.respond_to?(:id) ? except.id : except)
     # domain_norm_no_www = (is_normalized_no_www ? url_str : extracted_normalized_domain(url_str.strip).sub(/\Awww\./, ""))  ## NOTE: Sometimes, the caller actually preprocesses the String. Then, to process it here again would be an overlap, so I once included the argument to indicate it. However, I have encountered a case, where the caller wrongly passed the unprocessed argument, yet tagging it processed. It took half an hour to pin down where.  So, it is much safer (and far more productive for developers) to process it here whatever even though it could be in some cases a bit redundant.
-    where(domain: [domain_norm_no_www, "www."+domain_norm_no_www]).where.not(id: except_id).first
+    where(domain: [domain_norm_no_www, "www."+domain_norm_no_www]).where.not(id: except_id).first&.tap(&:set_was_found_true)
   end
 
   # Finds all Domains from URL (String)
@@ -115,7 +118,7 @@ class Domain < ApplicationRecord
   # @return [Domain, NilClass]
   def self.find_or_create_domain_by_url!(url_str, site_category_id: nil)
     domain_norm = extracted_normalized_domain(url_str)
-    record = find_by_urlstr(domain_norm)
+    record = find_by_urlstr(domain_norm)&.tap(&:set_was_found_true)
 
     if record
       record.notice_messages ||= []
@@ -124,7 +127,7 @@ class Domain < ApplicationRecord
       return record
     end
 
-    record = Domain.new(domain: domain_norm)
+    record = Domain.new(domain: domain_norm)&.tap(&:set_was_created_true)
 
     record.notice_messages ||= []
     dt = record.find_or_initialize_domain_title_to_assign(site_category_id: site_category_id)  # This would never be an Integer b/c record is a new_record?
@@ -144,6 +147,7 @@ class Domain < ApplicationRecord
         msgs.push "DomainTitle created: "+dt.reload.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "")
       end
       record.domain_title_id = dt.id
+      record.set_domain_title_created_true
 
       begin
         record.save!

@@ -1172,15 +1172,36 @@ module ModuleCommon
 
   # Transfer Errors from "other" model to self
   #
+  # The destination key (=attribute) in self.errors is
+  #
+  # 1. mappings[other_key] if exists
+  # 2. just other_key if the method other_key exists in self (like :id (if ever!))
+  # 3. else :base
+  #
+  # @example
+  #   transfer_errors(url, prefix: "[Url] ", mappings: {note: :base))
+  #
   # @param other [ActiveModel]
   # @param prefix: [String] Prefix for each error message, if any.
-  def transfer_errors(other, prefix: '')
+  # @param mappings: [Hash<Symbol => Symbol>] with (key, value) of Symbol(Attribute) of other and myself
+  #    other#note usually differs from self.note (in Form), hence the default.
+  def transfer_errors(other, prefix: "", mappings: {note: :base})
     #other.errors.group_by_attribute.each_pair do |ek, ea_errs|
-    other.errors.messages.each_pair do |ek, ea_messages|
-      # ek: Error_Type(e.g., :title), ea_err: Array[<ActiveModel::Errors>, ...]
-      next if !ea_messages  # Should not be needed, but play safe.
+    mappings_keys = mappings.keys(&:to_sym)
+    other.errors.messages.each_pair do |eatt, ea_messages|
+      # eatt: Error_Attribute(e.g., :alt_title), ea_err: Array[<ActiveModel::Errors>, ...]
+      next if !ea_messages  # Should not be needed, but play safe.  Note that an empty message is possible!
+      to_att =
+        if mappings_keys.include?(eatt)
+          mappings[eatt]
+        elsif respond_to?(eatt)
+          eatt
+        else
+          :base
+        end
+
       ea_messages.each do |message|
-        errors.add ek, prefix+message
+        errors.add to_att, prefix+message
       end
     end
   end
@@ -1486,17 +1507,49 @@ module ModuleCommon
   end
 
   # @example
-  #    fetch_url_h1(ModuleCommon.ordered_nodes("http://example.com", css: "h1")&.first&.to_s&.strip
+  #    fetch_url_h1("http://example.com", css: "h1")
   #
   # @param url [String] URL string
-  # @param css: [String, NilClass] ignored (forcibly overwritten with "h1")
+  # @param css: [String, NilClass] "h1" in default.
   # @return [String, NilClass] nil if something goes wrong (Error is captured inside).
-  def fetch_url_h1(url, css: nil, **opts)
-    nodes = ModuleCommon.ordered_xml_nodes(url, css: "h1", **opts)
-    return if !nodes
+  def fetch_url_h1(url, css: nil, capture_exception: false, **opts)
+    css = "h1" if css.blank?
+    retstr = ""
+    set_singleton_method_val(:message, nil, target: retstr, clobber: true)  # defined in module_common.rb
 
-    nodes.first&.text&.strip    # most likely element
+    begin
+      nodes = ModuleCommon.ordered_xml_nodes(url, css: css, capture_exception: capture_exception, **opts)
+    rescue => er
+      retstr.message = "ERROR: "+compile_captured_err_msg(er)
+      return retstr
+    end
+
+    raise "should never happen..." if !nodes && !capture_exception
+
+    cand = nodes.first&.text&.strip    # most likely H1 element (as nodes have been already sorted)
+
+    if cand
+      cand ||= ""
+      cand_nosp = cand.gsub(/[[:space:]]/, "")
+      ssiz = cand_nosp.strip.size
+      if (/^[\p{Punctuation}\p{InCJKSymbolsAndPunctuation}]+$/ !~ cand_nosp) &&
+         ( ssiz > 2 || 
+           ssiz == 2 && /^[[:alnum:][:ascii:]]+$/ !~ cand )
+
+        msg = "Successfully fetched H1 from #{url}: "+cand
+        Rails.logger.info msg
+        retstr.message = msg
+        retstr.replace cand
+        return retstr
+      end
+
+      retstr.message = "WARNING: H1 in the URL looks too short and wrong: " + cand.inspect
+    else  # only if capture_exception is specified true and error occurred 
+      retstr.message = "WARNING: URL is inaccessible: #{url}"
+    end
+    retstr
   end
+
 
   # Error message
   #
@@ -1583,6 +1636,41 @@ module ModuleCommon
       target.send(method.to_s+"=", initial_value)
     end
     target.send(method)
+  end
+
+  # Returns a Hash with Symbol keys converted from a with_indifferent_access Hash
+  #
+  # @example
+  #    hs = {a: 5, "b" => 3}.with_indifferent_access
+  #    a_method(**(indifferent_access_to_sym_keys(hs)))
+  #
+  # @param hsin [Hash] with_indifferent_access
+  # @return [Hash
+  def indifferent_access_to_sym_keys(hsin)
+    hsin.map do |k, v|
+     [k.to_sym, v]
+    end.to_h
+  end
+
+  # 
+  #
+  # @param *models [Class, String] model1, model2, ...
+  # @param set_at: [Integer] if this is specified, all the values are set to this value (NOT counting).
+  # @return [Hash] model counts like {Translation: 3000, Url: 200, Anchoring: 300} etc - counts in records .with_indifferent_access
+  def self.model_counts(*models, set_at: nil)
+    [models].flatten.map{|i| i.respond_to?(:constantize) ? i.constantize : i }.map{|model|
+      [model.name, (set_at || model.count)]
+    }.to_h.with_indifferent_access
+  end
+
+  # @param hs1 [Hash] Output of {#model_counts} (Before)
+  # @param hs2 [Hash] (After)
+  # @return [Hash] model counts like {Translation: 2, Url: 2, Anchoring: 3} etc - increments in records .with_indifferent_access
+  def self.model_count_diffs(hs1, hs2)
+    raise ArgumentError if hs1.keys.sort != hs2.keys.sort
+    hs2.map{ |model, counts|
+      [model, counts - hs1[model]]
+    }.to_h.with_indifferent_access
   end
 
   # Returns "/db/seeds/users.rb" etc. from __FILE__

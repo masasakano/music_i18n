@@ -231,25 +231,15 @@ class BaseAnchorablesController < ApplicationController
         return
       end
 
-      cand = fetch_url_h1(anchoring.http_url)  # defined in module_common.rb
-      msg = "WARNING: "
-      if cand
-        cand_nosp = cand.gsub(/[[:space:]]/, "")
-        ssiz = cand_nosp.strip.size
-        if (/^[\p{Punctuation}\p{InCJKSymbolsAndPunctuation}]+$/ !~ cand_nosp) &&
-           ( ssiz > 2 || 
-             ssiz == 2 && /^[[:alnum:][:ascii:]]+$/ !~ candstrip )
+      cand = fetch_url_h1(anchoring.http_url)  # defined in module_common.rb; cand is guaranteed to be a String already stripped.
 
-          anchoring.title = cand.strip 
-          logger.info "Successfully fetched H1 from #{anchoring.http_url}: "+anchoring.url_form.inspect
-          return anchoring.url_form
-        end
-        msg << " H1 in the URL looks too short and wrong: " + cand.strip.inspect
-      else
-        msg << "URL is inaccessible"
+      if cand.present?
+        anchoring.title = cand
+        logger.info cand.message  # singleton method {#message} defined in fetch_url_h1
+        return cand
       end
 
-      add_flash_message(:warning, msg) # defined in application_controller.rb
+      add_flash_message(:warning, cand.message) # defined in application_controller.rb  # singleton method {#message} defined in fetch_url_h1
       nil
     end
 

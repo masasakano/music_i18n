@@ -324,13 +324,15 @@ module ModuleUrlUtil
   # This also removes the links in Markdown or in <a> tags, as they should stay in note
   # and not be transferred to Url.
   #
+  # @param strin [String, NilClass]
   # @return [Array<String>] e.g., ["http://example.com", "youtu.be/XXX?t=53", "https://naiyo", "www.abc.org/?q=1#X" "http://t.co/#X"]
   def extract_raw_url_like_strings(strin)
-  renderer = Redcarpet::Render::HTML.new(prettify: true)
-  markdown = Redcarpet::Markdown.new(renderer, {autolink: true})
+    return [] if !strin
+    renderer = Redcarpet::Render::HTML.new(prettify: true)
+    markdown = Redcarpet::Markdown.new(renderer, {autolink: true})
   
-  mded_str = ActionController::Base.helpers.strip_tags( markdown.render(strin) ).gsub(/(\?[a-z]\S*=\S*)&amp;/i, '\1&')
-  mded_str.scan(%r@(?:(?:\b(?:https?|s?ftp))://|(?<=^|[<\[\(\s])(?:www\.|youtube\.com/|youtu.be/))[^>\)\]\s]+(?=[>\)\]\s]|$)@)
+    mded_str = ActionController::Base.helpers.strip_tags( markdown.render(strin) ).gsub(/(\?[a-z]\S*=\S*)&amp;/i, '\1&').gsub(/\\n/, "\n")
+    mded_str.scan(%r@(?:(?:\b(?:https?|s?ftp))://|(?<=^|[<\[\(\s])(?:www\.|youtube\.com/|youtu.be/))[^>\)\]\s]+(?=[>\)\]\s]|$)@m)
   end
 
   #################

@@ -389,6 +389,53 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_equal "Example Domain", fetch_url_h1("http://example.com")
   end
 
+  test "transfer_errors" do
+    sex = Sex.new(iso5218: nil)
+    sex.unsaved_translations << Translation.new(title: "random", langcode: "en")
+    refute sex.valid?
+    assert sex.new_record?, 'sanity check'
+    assert sex.errors.any?, 'sanity check'
+
+    assert_equal 1, sex.errors.size
+    assert_equal [:iso5218], sex.errors.attribute_names
+    assert_equal 1, sex.errors.messages_for(sex.errors.attribute_names.first).size
+    errmsg1 = sex.errors.messages_for(:iso5218)
+
+    errmsgs = {}
+    [:iso5218, :note, Sex::FORM_TRANSLATION_NEW_TAGS[:alt_title], :arbitrary].each_with_index do |tag, i_err|
+      errmsgs[tag] = "#{tag.to_s}-error"
+      sex.errors.add tag, errmsgs[tag]
+      assert_equal i_err+2, sex.errors.size
+      assert_includes sex.errors.attribute_names, tag
+      assert_equal ((:iso5218 == tag) ? 2 : 1), sex.errors.messages_for(tag).size
+    end
+
+    assert_equal 5, sex.errors.full_messages.size, 'sanity check'
+    assert_equal 4, sex.errors.attribute_names.size
+
+    record = Country.last
+    errmsgs[:base]  = errmsgs[:arbitrary]  # preparation (the error is transferred to Attribute :base)
+    errmsgs[:myown] = errmsgs[:iso5218]    # preparation
+
+    refute record.errors.any?, 'sanity check'
+    record.transfer_errors(sex, mappings: {iso5218: :myown})
+
+    assert record.errors.any?
+    assert_equal 5, record.errors.size
+    assert_equal 4, record.errors.attribute_names.size
+    assert_includes record.errors.messages_for(:myown), errmsgs[:iso5218]
+
+    [:note, Sex::FORM_TRANSLATION_NEW_TAGS[:alt_title]].each do |tag|
+      assert_equal(   sex.errors.messages_for(tag),
+                   record.errors.messages_for(tag) )
+    end
+
+    [[:iso5218, :myown], [:arbitrary, :base]].each do |from, to|
+      assert_equal(   sex.errors.messages_for(from),
+                   record.errors.messages_for(to) )
+    end
+  end
+
   private
     # Returns true if Ruby and PosgreSQL results match.
     def _match_rb_psql_regexp?(conn, re_ruby, str, regexp_should_succed=true)

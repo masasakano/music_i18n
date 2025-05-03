@@ -140,4 +140,21 @@ class ModuleUrlUtilTest < ActiveSupport::TestCase
     org = "WWW.%E9%9F%B3.Abc.楽.ORG"
     assert_equal "www.%E9%9F%B3.abc.楽.org", downcased_domain(org)
   end
+
+  test "extract_raw_url_like_strings" do
+    strin = 'x\nhttp://example.com\nyoutu.be/XXX?t=53 [https://naiyo] www.abc.org/?q=1&r=2#X <a href="http://z.com/j">Ignored</a> [ignore this](http://y.com/k) <http://picked-up.com/ttt> https://t.co/#X'
+
+    exp1 = ["http://example.com", "youtu.be/XXX?t=53", "https://naiyo", "www.abc.org/?q=1&r=2#X", "http://picked-up.com/ttt", "https://t.co/#X"]
+    assert_equal exp1, extract_raw_url_like_strings(strin)
+
+
+    exp2 = [["http://example.com",             exp1[0]],
+            ["https://youtu.be/XXX?t=53",      exp1[1]],
+            ["https://www.abc.org/?q=1&r=2#X", exp1[3]],
+            [exp1[4],                          exp1[4]],
+            [exp1[5],                          exp1[5]]]
+    assert_equal exp2, extract_url_like_string_and_raws(strin)
+
+    assert_equal [], extract_url_like_string_and_raws(nil)
+  end
 end

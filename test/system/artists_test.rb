@@ -114,7 +114,7 @@ class ArtistsTest < ApplicationSystemTestCase
     assert_equal stats1[:i_page],      stats3[:i_page] 
     assert_equal stats1[:i_from],      stats3[:i_from] 
     #assert_equal stats1[:i_to],        stats3[:i_to] 
-    assert_operator stats1[:n_cur], :>, stats3[:n_cur]  # Number decreased after filtering.
+    assert_operator stats1[:n_cur], :>, stats3[:n_cur], page.find('div.datagrid-actions')['outerHTML']  # Number decreased after filtering. ## NOTE: If this fails, the server's response is too slow and may be still processing the submission; to avoid it, you would need assert_selector to match the NOT-disabled <input type="submit" name="commit" value="Apply" class="datagrid-submit" data-disable-with="Apply"> (or "適用"). However, I do not know the exact CSS/XPath for assert_selector to match, yet. The error message here should print out?  Maybe:  assert_selector('input[type="submit"]:not([disabled])')  or "visible: true" (??)
     assert_equal stats1[:n_grand_tot], stats3[:n_grand_tot]  # Total number for the model remains the same
 
     # sanity checks of fixtures

@@ -27,6 +27,8 @@ class DomainTitle < BaseWithTranslation
   include ModuleUnknown
   include ModuleWeight  # adds a validation
 
+  include ModuleWasFound # defines attr_writers @was_found, @was_created and their questioned-readers. (4 methods)
+
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []
 
@@ -74,7 +76,7 @@ class DomainTitle < BaseWithTranslation
   # @param site_category_id: [NilClass, String, Integer] "" would raise an error.  If nil, Default is used.
   # @return [DomainTitle]
   def self.new_from_url(url_str, site_category_id: nil)
-    ret = DomainTitle.new(site_category_id: (site_category_id || SiteCategory.default.id))  # A fallback is unknown
+    ret = DomainTitle.new(site_category_id: (site_category_id || SiteCategory.default.id))&.tap(&:set_was_created_true)  # A fallback is unknown
     domain_txt = Addressable::URI.unencode(Domain.extracted_normalized_domain(url_str, with_www: false))  # without "www."
     ret.unsaved_translations << Translation.new(title: domain_txt, langcode: guess_lang_code(domain_txt), is_orig: nil, weight: Float::INFINITY)
     ret
@@ -84,7 +86,7 @@ class DomainTitle < BaseWithTranslation
   # @return [DomainTitle, NilClass]
   def self.find_by_urlstr(url_str)
     dom = Domain.find_by_both_urls(url_str) #, is_normalized_no_www: false)
-    dom.domain_title if dom
+    dom.domain_title&.tap(&:set_was_found_true) if dom
   end
 
   # Returns the highest-priority Domain
