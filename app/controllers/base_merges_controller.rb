@@ -29,8 +29,6 @@ class BaseMergesController < ApplicationController
     year: 'year',    # Music only
     sex: 'sex',           # Artist only
     birthday: 'birthday', # Artist only
-    wiki_en: 'wiki_en',   # Artist only
-    wiki_ja: 'wiki_ja',   # Artist only
     note: 'note',
   }.with_indifferent_access
 
@@ -328,7 +326,7 @@ class BaseMergesController < ApplicationController
              CheckedDisabled.new(chkmodels, ea_fmk, checked_index: _checked_index(ea_fmk){torfs.find_index{|tf| tf}}, disabled: (1 == torfs.compact.size))
            when :prefecture_place
              CheckedDisabled.new(chkmodels, :place, checked_index: _checked_index(ea_fmk))
-           when :genre, :year, :sex, :wiki_en, :wiki_ja
+           when :genre, :year, :sex
              CheckedDisabled.new(chkmodels, ea_fmk, checked_index: _checked_index(ea_fmk))
            when :birthday
              CheckedDisabled.new(chkmodels, :any_birthdate_defined?, checked_index: _checked_index(ea_fmk))
@@ -337,9 +335,10 @@ class BaseMergesController < ApplicationController
            when :other_music_id, :other_music_title, :other_artist_id, :other_artist_title
              next  # ignoredd!
            else
-             logger.warning "Unexpected key (#{ea_fmk}). Contact the code developer."
+             msg = "Unexpected key (#{ea_fmk}). Contact the code developer."
+             logger.warn msg
              #next
-             raise
+             raise msg
            end
         ]
       }.compact.to_h

@@ -563,30 +563,35 @@ artrans = [
     'en' => {title: Artist::UnknownArtist['en'], weight: 0, },
     'fr' => {title: Artist::UnknownArtist['fr'], weight: 0, }}},
   { note: nil, birth_day: 21, birth_month: 1,
-    wiki_ja: 'w.wiki/3JVi', sex: female, place: Place.unknown(country: japan), translations:
+#   #wiki_ja: 'w.wiki/3JVi',
+    sex: female, place: Place.unknown(country: japan), translations:
    {'ja' => {title: 'ハラミちゃん', ruby: 'ハラミチャン', romaji: 'Haramichan', alt_title: 'ハラミ', alt_ruby: 'ハラミ', alt_romaji: 'Harami', weight: 0, is_orig: true},
     'en' => {title: 'HARAMIchan', alt_title: 'Harami-chan', weight: 10, is_orig: false, }}},
   { note: nil, birth_day: 12, birth_month: 4, birth_year: 1966,
-    wiki_ja: 'w.wiki/3cyo', wiki_en: 'Kohmi_Hirose', sex: female, place: Place.unknown(country: japan), translations:
+#   #wiki_ja: 'w.wiki/3cyo', wiki_en: 'Kohmi_Hirose',
+    sex: female, place: Place.unknown(country: japan), translations:
    {'ja' => {title: '広瀬香美', ruby: 'ヒロセコウミ', romaji: 'HIROSE Kohmi', weight: 0, is_orig: true},
     'en' => {title: 'Kohmi Hirose', weight: 0, is_orig: false, }}},
   { note: nil, birth_day: 6, birth_month: 3, birth_year: 1995,
-    wiki_ja: 'w.wiki/3Jvj', wiki_en: 'Aimyon', sex: female, place: Place.unknown(prefecture: Prefecture[/兵庫県/, japan]), translations:
+#   #wiki_ja: 'w.wiki/3Jvj', wiki_en: 'Aimyon',
+    sex: female, place: Place.unknown(prefecture: Prefecture[/兵庫県/, japan]), translations:
    {'ja' => {title: 'あいみょん', ruby: 'アイミョン', romaji: 'Aimyon', weight: 0, is_orig: true},
     'en' => {title: 'Aimyon', weight: 0, is_orig: false, }}},
   { note: nil, birth_day: 19, birth_month: 1, birth_year: 1954,
-    wiki_ja: '%E6%9D%BE%E4%BB%BB%E8%B0%B7%E7%94%B1%E5%AE%9F', wiki_en: 'Yumi_Matsutoya', sex: female, place: Place.unknown(prefecture: Prefecture[/東京都/, japan]), translations:
+#   #wiki_ja: '%E6%9D%BE%E4%BB%BB%E8%B0%B7%E7%94%B1%E5%AE%9F', wiki_en: 'Yumi_Matsutoya',
+    sex: female, place: Place.unknown(prefecture: Prefecture[/東京都/, japan]), translations:
    {'ja' => {title: '荒井由実', ruby: 'アライユミ', romaji: 'ARAI Yumi', alt_title: 'ユーミン', alt_ruby: 'ユーミン', alt_romaji: 'Yuumin', weight: 0, is_orig: true},
     'en' => {title: 'Yumi Arai', weight: 0, is_orig: false, }}},
   { note: nil, birth_day: 29, birth_month: 11, birth_year: 1976,
-    wiki_ja: '%E6%9D%BE%E4%BB%BB%E8%B0%B7%E7%94%B1%E5%AE%9F', wiki_en: 'Yumi_Matsutoya', sex: female, place: Place.unknown(prefecture: Prefecture[/東京都/, japan]), translations:
+#   #wiki_ja: '%E6%9D%BE%E4%BB%BB%E8%B0%B7%E7%94%B1%E5%AE%9F', wiki_en: 'Yumi_Matsutoya',
+    sex: female, place: Place.unknown(prefecture: Prefecture[/東京都/, japan]), translations:
    {'ja' => {title: '松任谷由実', ruby: 'マツトウヤユミ', romaji: 'MATSUTOUYA Yumi', alt_title: 'ユーミン', alt_ruby: 'ユーミン', alt_romaji: 'Yuumin', weight: 0, is_orig: true},
     'en' => {title: 'Yumi Matsutoya', alt_title: 'Yuming', weight: 0, is_orig: false, }}},
 ]
 
 n_artists = 0
 artrans.each do |ea_hs|
-  hs_main, hs_trans = split_hash_with_keys(ea_hs, %i(note birth_day birth_month birth_year wiki_ja wiki_en sex place))
+  hs_main, hs_trans = split_hash_with_keys(ea_hs, %i(note birth_day birth_month birth_year sex place))
   begin
     record = Artist.update_or_create_with_translations!(hs_main, nil, mainkeys=%i(birth_day birth_month birth_year), **hs_trans)
   rescue HaramiMusicI18n::MultiTranslationError::AmbiguousError => er

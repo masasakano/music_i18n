@@ -4,7 +4,7 @@ class Artists::MergesController < BaseMergesController
   MODEL_SYM = :artist
 
   # Array of used keys in the form of the class like :other_music_id (or :other_artist_id)
-  FORM_MERGE_KEYS = %i(other_artist_id other_artist_title to_index lang_orig lang_trans engage prefecture_place sex birthday wiki_en wiki_ja note)
+  FORM_MERGE_KEYS = %i(other_artist_id other_artist_title to_index lang_orig lang_trans engage prefecture_place sex birthday note)  ## memo_editor)
 
   before_action :set_artist,  only: [:new]
   before_action :set_artists, only: [:edit, :update]

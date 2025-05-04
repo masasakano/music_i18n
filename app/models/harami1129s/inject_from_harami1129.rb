@@ -21,7 +21,7 @@ class Harami1129s::InjectFromHarami1129 < ApplicationRecord
       ins_title: {translations: :title},
     },
     artist: {
-      # ["id", "sex_id", "place_id", "birth_year", "birth_month", "birth_day", "wiki_ja", "wiki_en", "note", "created_at", "updated_at"]
+      # ["id", "sex_id", "place_id", "birth_year", "birth_month", "birth_day", "note", "created_at", "updated_at"]
       ins_singer: {translations: :title},
       ins_singer__01: Proc.new{|i| (i ? {:sex =>   guess_sex(i)} : nil)},  ## Double "__" means not mandatory to identify a record to update.
       ins_singer__02: Proc.new{|i| (i ? {:place => guess_japan_from_char(i)} : nil)},

@@ -898,9 +898,14 @@ module ModuleCommon
     uri.to_s.sub(%r@\A#{Regexp.quote(uri.scheme+"://")}@, "")
   end
 
-  # Returns a Wikipedia URI for the specified language
+  # [HISTORICAL] [OBSOLETE] Returns a Wikipedia URI for the specified language
   #
   # Based on the attributes of wiki_ja or wiki_en
+  #
+  # == WARNING
+  #
+  # This deals with Artist#wiki_ja and Artist#wiki_en which Artist used to have
+  # up to commit 9db008f (v.1.24)
   #
   # @param langcode [String] e.g., 'ja'
   # @return [String, NilClass] nil if not defined
@@ -910,7 +915,7 @@ module ModuleCommon
     main.blank? ? nil : get_wiki_uri(langcode, main)
   end
 
-  # Returns a Wikipedia URI for the specified language
+  # [HISTORICAL] [OBSOLETE] Returns a Wikipedia URI for the specified language
   #
   # Note that wiki_en may already contain a Spanish or German link etc.
   # In that case, langcode is ignored.

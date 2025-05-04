@@ -22,8 +22,6 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
       prefecture_place: '0',
       sex: '1',
       birthday: '0',
-      wiki_en: '1',
-      wiki_ja: '0',
     }
   end
 
@@ -117,15 +115,10 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
     #  prefecture_place: '0', # => @artist
     #  sex: '1',
     #  birthday: '0',
-    #  wiki_en: '1',   # "abc"    <=> nil    (see immediate below)
-    #  wiki_ja: '0',   # "日本00" <=> "日本other"
 
     @artist.update!(created_at: DateTime.new(1))  # very old creation.
-    @artist.update!(wiki_en: "abc", wiki_ja: '日本00')
-    @other.update!( wiki_en: nil,   wiki_ja: '日本other')  # testing nil (so, the other one is adopted)
     @artist.update!(birth_year:  nil, birth_month: 9, birth_day: nil) # this will be chosen b/c at least one of them is non-nil.
     @other.update!( birth_year: 1990, birth_month: 2, birth_day: 3)
-    @other.update!( wiki_en: nil,   wiki_ja: '日本other')  # testing nil (so, the other one is adopted)
     artist_bkup = @artist.dup
     other_bkup = @other.dup
     refute @artist.destroyed?, 'sanity check-artist-kubota'
@@ -137,8 +130,6 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
     sex_bkup1   = @other.sex
     birthday_bkup0 = [@artist.birth_year, @artist.birth_month, @artist.birth_day]
     birthday_bkup1 = [@other.birth_year,  @other.birth_month,  @other.birth_day]
-    wikien_bkup1   = @artist.wiki_en  # because @other.wiki_en.nil?
-    wikija_bkup1   = @artist.wiki_ja
 
     # These tests do not cover many potentials, to be honest!
     engage2change11 = engages(:engage_kubota_ihojin1_1) # changed to belong to AI (no change in other parameters)
@@ -222,9 +213,6 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
     ar_birth = [birthday_bkup1[0], birthday_bkup0[1], birthday_bkup1[2]] # [1990, 9, 3]
     assert_equal ar_birth, [@other.birth_year, @other.birth_month, @other.birth_day], "[Model1,2]=#{arbt.inspect}"
 
-    assert_equal wikien_bkup1, @other.wiki_en
-    assert_equal wikija_bkup1, @other.wiki_ja
-
     # note
     str = other_bkup.note+" "+artist_bkup.note
     assert_equal str, @other.note
@@ -282,16 +270,7 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
       prefecture_place: nil,
       sex: nil,
       birthday: nil,
-      wiki_en: '0',  # "my_wiki_en0" <=> "my_wiki_en1"  (these are set immediate below)
-      wiki_ja: '1',  # "my_wiki_ja0" <=> "my_wiki_ja1"
     }
-
-    # Sets wiki_en|ja
-    artist_origs.each_with_index do |art, i|
-      art.update!(%w(en ja).map{|j| s="wiki_"+j; [s, "my_#{s}#{i}"]}.to_h)
-    end
-    wikien_bkup0   = artist_origs[0].wiki_en
-    wikija_bkup1   = artist_origs[1].wiki_ja
 
     assert_difference('Artist.count', -1) do
       assert_difference('Translation.count', 0) do # should not change b/c original translations are completely different (one of them used to be deleted, up to Git-commit ae38d91.
@@ -349,10 +328,6 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
 
     assert_equal engages[1].artist, engages[0].artist  # it was just reloaded in the method above.
     assert_equal cont_old, engages[1].contribution  # no change
-
-    # wiki_en|ja
-    assert_equal wikien_bkup0, artist_origs[1].wiki_en
-    assert_equal wikija_bkup1, artist_origs[1].wiki_ja
   end # test "should update2" do
 
 

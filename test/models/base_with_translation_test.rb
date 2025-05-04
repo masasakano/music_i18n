@@ -1945,14 +1945,11 @@ mdl.translations.first.translatable_id = EngageHow.second.id
 
     assert_equal 1985, hsmdl[:artists][1].birth_year
     assert_nil hsmdl[:artists][1].birth_day, 'Sanity check...'
-    assert                                   hsmdl[:artists][0].wiki_en, 'Sanity check...'
-    assert_equal assc_prms[:art_wiki_en][0], hsmdl[:artists][0].wiki_en, 'Sanity check...'
-    assert_nil hsmdl[:artists][1].wiki_ja,   'Sanity check...'
     assert_nil hsmdl[:artists][1].birth_day, 'Sanity check...'
 
     # Initial values
     [0, 1].each do |i|
-      %w(sex birth_year birth_month birth_day place wiki_en wiki_ja).each do |ek|
+      %w(sex birth_year birth_month birth_day place).each do |ek|
         # e.g., hsmdl[:sexes][0-1],  hsmdl[:places][0-1] 
         hsmdl[ek.pluralize.to_sym] ||= []
         hsmdl[ek.pluralize.to_sym][i] = hsmdl[:artists][i].send ek
@@ -1993,7 +1990,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     hsmdl[:artists][1].reload
 
     hspri = {default: :other, lang_orig: :other, lang_trans: :self, engages: :self, sex: :self, prefecture_place: :self, note: :other}
-      # =>Selected: Orig(:other(Specified)), Trans(:self(Def)), engage(:self(Def)), sex(:self(Forced)), birth(:other(Def)), place(:self(Specified)), wiki_en(:self(Forced)), wiki_ja(None)
+      # =>Selected: Orig(:other(Specified)), Trans(:self(Def)), engage(:self(Def)), sex(:self(Forced)), birth(:other(Def)), place(:self(Specified))
 
     ## Run (dryrun) - merging Artists
     hsret = nil
@@ -2030,14 +2027,10 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal hsmdl[:birth_years][1], hsret[:bday3s][:birth_year]
       assert_equal hsmdl[:birth_months][0],hsret[:bday3s][:birth_month]
       assert_equal hsmdl[:places][0],      hsret[:prefecture_place]
-      assert_equal hsmdl[:wiki_ens][0],    hsret[:wiki_en]
-      assert_nil                           hsret[:wiki_ja]
       assert_equal hsmdl[:sexes][0],       new_art.sex
       assert_equal hsmdl[:birth_years][1], new_art.birth_year
       assert_equal hsmdl[:birth_months][0],new_art.birth_month
       assert_equal hsmdl[:places][0],      new_art.place
-      assert_equal hsmdl[:wiki_ens][0],    new_art.wiki_en
-      assert_nil                           new_art.wiki_ja
 
       #### save! ####
 
@@ -2063,8 +2056,6 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal hsmdl[:birth_years][1], new_art.birth_year
       assert_equal hsmdl[:birth_months][0],new_art.birth_month
       assert_equal hsmdl[:places][0],      new_art.place
-      assert_equal hsmdl[:wiki_ens][0],    new_art.wiki_en
-      assert_nil                           new_art.wiki_ja
 
     ## Prepares for merging Musics
 
@@ -2156,14 +2147,14 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       mu_genre: [nil, genres(:genre_classic)],  # Genre.default: Pops (nil means unchange, i.e., Pops)
       mu_place: [places(:unknown_place_liverpool_uk),              places(:unknown_place_unknown_prefecture_uk)],
       mu_note: ['mu-note0', 'mu-note1'],
+      mu_memo_editor: ['mu-memoEd0', 'mu-memoEd1'],
       art_sex: [Sex[:male], nil],
       art_place: [places(:unknown_place_unknown_prefecture_world), places(:unknown_place_unknown_prefecture_uk)],
       art_birth_year:  [1975, nil],
       art_birth_month: [nil, 11],
       art_birth_day:   [nil, nil],
-      art_wiki_en: ["en.wikipedia.org/wiki/Oasis_%28band%29", nil],
-      art_wiki_ja: [nil, nil],
       art_note: [nil, nil],
+      art_memo_editor: [nil, nil],
     }
 
     arprev = []
@@ -2214,11 +2205,11 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       hsmdl[:artists][i] = hsmdl[:engages][i].artist
       hsmdl[:hvmas][i] = eh.harami_vid.harami_vid_music_assocs.find_by(music: hsmdl[:musics][i])
 
-      %w(year genre place note).each do |es|
+      %w(year genre place note memo_editor).each do |es|
         val = assc_prms[("mu_"+es).to_sym][i]
         hsmdl[:musics][i].update!(es => val) if val
       end
-      %w(sex place birth_year birth_month birth_day wiki_en wiki_ja note).each do |es|
+      %w(sex place birth_year birth_month birth_day note memo_editor).each do |es|
         val = assc_prms[("art_"+es).to_sym][i]
         hsmdl[:artists][i].update!(es => val) if val
       end

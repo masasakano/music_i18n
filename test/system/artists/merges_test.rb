@@ -77,8 +77,6 @@ class Artists::MergesTest < ApplicationSystemTestCase
     select('香川県',  from: '都道府県')
 
     choose '不明'  # Sex  # a name, id, or label text matching
-    wiki_new = "Wiki_Aya_Kubota"
-    fill_in "Wikipedia (英語) URI", with: wiki_new # <label for="artist_wiki_en">/label>
     ##find_field('Year').fill_in with: '2001'
     testnote1 = "my test note for kubota new"
     find_field('artist_note').fill_in with: testnote1
@@ -168,17 +166,6 @@ class Artists::MergesTest < ApplicationSystemTestCase
     assert_equal 'not known', page.find(css_trow+' td:nth-child(2)').text
     assert_selector css_trow+' td:nth-child(2) input:disabled:not(:checked)'
     assert_selector css_trow+' td:nth-child(3) input:disabled:checked'
-
-    # Wiki En => the new one only
-    css_trow = 'form tbody tr#merge_edit_wiki_en'
-    assert_equal wiki_new,    page.find(css_trow+' td:nth-child(2) label').text
-    assert_selector css_trow+' td:nth-child(2) input:disabled:checked'
-    refute_selector css_trow+' td:nth-child(3) input'  # non-existent
-
-    # Wiki Ja => both are nil.
-    css_trow = 'form tbody tr#merge_edit_wiki_ja'
-    refute_selector css_trow+' td:nth-child(2) input'  # non-existent
-    refute_selector css_trow+' td:nth-child(3) input'  # non-existent
 
     # note: always no user check as they are simply merged.
     css_trow = 'form tbody tr#merge_edit_note'

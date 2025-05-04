@@ -744,7 +744,7 @@ class UrlTest < ActiveSupport::TestCase
         assert_equal "wikipedia", url.site_category.mname
         refute url.errors.any?
       }
-      assert_equal "さくら_(タレント)", url.title
+      assert_equal "さくら (タレント)", url.title
       url
     end
 end

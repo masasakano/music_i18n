@@ -8,8 +8,6 @@
 #  birth_year                                 :integer
 #  memo_editor(Internal-use memo for Editors) :text
 #  note                                       :text
-#  wiki_en                                    :text
-#  wiki_ja                                    :text
 #  created_at                                 :datetime         not null
 #  updated_at                                 :datetime         not null
 #  place_id                                   :bigint           not null
@@ -33,8 +31,8 @@ artist1:
   birth_year: 1
   birth_month: 1
   birth_day: 1
-  wiki_ja: ja.wikipedia.org/wiki/ABC
-  wiki_en: en.wikipedia.org/wiki/XYZ
+#  wiki_ja: ja.wikipedia.org/wiki/ABC  # [HISTORICAL] [OBSOLETE]
+#  wiki_en: en.wikipedia.org/wiki/XYZ  # [HISTORICAL] [OBSOLETE]
   note: Artist-1-UnknownPlaceUnknownPrefectureJapan
   memo_editor: Artist-1-MemoEditor
 
@@ -44,8 +42,6 @@ artist2:
   birth_year: 
   birth_month: 12
   birth_day: 25
-  wiki_ja: 
-  wiki_en: 
   note: Artist-2-UnknownPlaceUnknownPrefectureUk-Lennon
 
 artist3:
@@ -54,8 +50,7 @@ artist3:
   birth_year: 
   birth_month: 1
   birth_day: 21
-  wiki_ja: ja.wikipedia.org/wiki/%E3%83%8F%E3%83%A9%E3%83%9F%E3%81%A1%E3%82%83%E3%82%93
-  wiki_en: 
+#  wiki_ja: ja.wikipedia.org/wiki/%E3%83%8F%E3%83%A9%E3%83%9F%E3%81%A1%E3%82%83%E3%82%93  # [HISTORICAL] [OBSOLETE]
   note: Artist-3-UnknownPlaceUnknownPrefectureJapan-Harami
 
 artist4:
@@ -64,8 +59,6 @@ artist4:
   birth_year: 
   birth_month: 1
   birth_day: 24
-  wiki_ja: ja.wikipedia.org/wiki/Artist4
-  wiki_en: 
   note: Artist-4-UnknownPlaceUnknownPrefectureJapan
 
 artist99:
@@ -77,8 +70,6 @@ artist_unknown:
   birth_year:
   birth_month:
   birth_day: 
-  wiki_ja:
-  wiki_en:
   sex_id: 0
   place: unknown_place_unknown_prefecture_world
   note: ArtistUnknown

@@ -197,43 +197,6 @@
       <td class="merged_column" id="merged_to_birthday"><%= merged_model.birthday_string %></td>
     </tr>
 
-    <%#  ----------- wiki_ens ------------ %>
-    <tr id="merge_edit_wiki_en"><th>Wikipedia[en]</th>
-      <% labe = BaseMergesController::FORM_MERGE[:wiki_en] %>
-      <% ch_dis = all_checked_disabled[:wiki_en] %>
-      <% all_nulls = models.all?{|em| em.wiki_en.blank?} %>
-      <% models[0..1].each_with_index do |em, i| %>
-      <td>
-        <% if !(str = em.wiki_en).blank?  %>
-        <%= form.radio_button(labe, i, checked: (i==ch_dis.checked_index), disabled: ch_dis.disabled?) %>
-          <%= form.label labe, str, :value => i %>
-        <% end %>
-        <% if ch_dis.disabled? && 1 == i && !all_nulls %>
-          <%= form.hidden_field labe, value: ch_dis.checked_index %>
-        <% end %>
-      </td>
-      <% end %>
-      <td class="merged_column" id="merged_to_wiki_en"><%= merged_model.wiki_en %></td>
-    </tr>
-
-    <%#  ----------- wiki_jas ------------ %>
-    <tr id="merge_edit_wiki_ja"><th>Wikipedia[ja]</th>
-      <% labe = BaseMergesController::FORM_MERGE[:wiki_ja] %>
-      <% ch_dis = all_checked_disabled[:wiki_ja] %>
-      <% all_nulls = models.all?{|em| em.wiki_ja.blank?} %>
-      <% models[0..1].each_with_index do |em, i| %>
-      <td>
-        <% if !(str = em.wiki_ja).blank?  %>
-        <%= form.radio_button(labe, i, checked: (i==ch_dis.checked_index), disabled: ch_dis.disabled?) %>
-          <%= form.label labe, str, :value => i %>
-        <% end %>
-        <% if ch_dis.disabled? && 1 == i && !all_nulls %>
-          <%= form.hidden_field labe, value: ch_dis.checked_index %>
-        <% end %>
-      </td>
-      <% end %>
-      <td class="merged_column" id="merged_to_wiki_ja"><%= merged_model.wiki_ja %></td>
-    </tr>
   <% end %> <%# -- else %> <%# -- if is_music %>
 
   <% if !is_music && models[0].respond_to?(:channel_owner) %> <%# =========== Artists only ============ %>

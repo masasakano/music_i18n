@@ -108,6 +108,7 @@ class ArtistsTest < ApplicationSystemTestCase
     #find_field("Sex").choose('not known')  # invalid b/c "for" are inconsistent.
     click_on "Apply"
 
+    assert_selector('input[type="submit"]:not([disabled])')
     stats3 = _get_stats
     assert_equal "Grand total", stats3[:word_tot]
 

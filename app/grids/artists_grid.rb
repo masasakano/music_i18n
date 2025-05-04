@@ -67,20 +67,6 @@ class ArtistsGrid < ApplicationGrid
   column_n_models_belongs_to(:n_musics, :musics, distinct: false, header: Proc.new{I18n.t('tables.n_musics')})
   column_n_harami_vids    # defined in application_grid.rb
 
-  %w(ja en).each do |elc|
-    kwd = 'wiki_'+elc
-    column(kwd, mandatory: false, order: false, header: Proc.new{I18n.t('tables.'+kwd)}) do |record|
-      uri = record.wiki_uri(elc)
-      if uri.blank?
-        '——'
-      else
-        str_link = File.basename(uri)
-        str_link = CGI.unescape(str_link) if str_link.include? '%'
-        ActionController::Base.helpers.link_to(str_link, uri, target: "_blank")
-      end
-    end
-  end
-
   column_note             # defined in application_grid.rb
   columns_upd_created_at(Artist)  # defined in application_grid.rb
 

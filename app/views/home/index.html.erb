@@ -12,7 +12,7 @@
 <p><%= @message %></p>
 
 <p><%= link_to t('.harami_vids_index'), harami_vids_path %> | <%= link_to t('.musics_index'), musics_path %> | <%= link_to t('.artists_index'), artists_path %>
-  <% if can? :index, Translation %>
+  <%= editor_only_safe_html(Translation, method: :index, tag: "span") do %>
     | <%= link_to 'Translations/翻訳', translations_path %>
   <% end %>
 </p>
@@ -59,12 +59,12 @@
 
 <div id="home_bottom">
 <p><%= link_to t('.harami_vids_index'), harami_vids_path %> | <%= link_to t('.musics_index'), musics_path %> | <%= link_to t('.artists_index'), artists_path %>
-  <% if can? :index, Translation %>
+  <%= editor_only_safe_html(Translation, method: :index, tag: "span") do %>
     | <%= link_to 'Translations/翻訳', translations_path %>
   <% end %>
 </p>
 <p>
-  <a href="https://harami-piano.com/"><%= t('Harami') %> Website</a> | <a href="https://www.youtube.com/channel/UCr4fZBNv69P-09f98l7CshA" title="Harami-chan's YouTube channel"><%= t('.youtube_channel') %></a> | @harami_piano <a href="https://twitter.com/harami_piano">Twitter</a> | <a href="https://www.instagram.com/harami_piano">Instagram</a> | <a href="https://www.tiktok.com/@haramipiano">TikTok</a> | <%= art = Artist['ハラミちゃん']; art.link_to_wikipedia('Wikipedia') if art %>
+  <a href="https://harami-piano.com/"><%= t('Harami') %> Website</a> | <a href="https://www.youtube.com/channel/UCr4fZBNv69P-09f98l7CshA" title="Harami-chan's YouTube channel"><%= t('.youtube_channel') %></a> | @harami_piano <a href="https://twitter.com/harami_piano">Twitter</a> | <a href="https://www.instagram.com/harami_piano">Instagram</a> | <a href="https://www.tiktok.com/@haramipiano">TikTok</a> | <%= art = Artist.default; art.link_to_wikipedia('Wikipedia') if art %>
 </p>
 
 <% if user_signed_in? %>

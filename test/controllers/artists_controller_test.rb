@@ -68,27 +68,6 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     w3c_validate "Artist show-editor"  # defined in test_helper.rb (see for debugging help)
     assert_equal 1, css_select("body dd.item_memo_editor").size
     assert_equal memoe, css_select("body dd.item_memo_editor").text.strip
-
-    # tests of display of wiki
-    wiki_en_root = "en.wikipedia.org/wiki/Ben_E._King"
-    hs = {
-      "wiki_en"=>"https://"+wiki_en_root,
-      "wiki_ja"=>"%E3%83%99%E3%83%B3%E3%83%BBE%E3%83%BB%E3%82%AD%E3%83%B3%E3%82%B0",
-      }
-    patch artist_url @artist, params: { artist: hs }
-    assert_response :redirect
-    assert_redirected_to artist_url @artist
-
-    follow_redirect!
-    assert_equal(@editor.display_name, current_user_display_name(is_system_test: false))  # defined in test_helper.rb
-    assert_equal 1, css_select('dt#show_wikipedia_ja').size
-    #puts "DEBUG: HTML:\n"+css_select('dt#show_wikipedia').to_html
-    css = css_select('dd#show_wikipedia_dd_ja a')
-    assert_equal "https://ja.wikipedia.org/wiki/"+hs["wiki_ja"], css[0]["href"]
-    assert_equal "ja.wikipedia.org/wiki/ベン・E・キング",        css[0].text
-    css = css_select('dd#show_wikipedia_dd_en a')
-    assert_equal "https://en.wikipedia.org/wiki/Ben_E._King", CGI.unescape(css[0]["href"])
-    assert_equal wiki_en_root, css[0].text
   end
 
   test "should fail/succeed to get new" do
@@ -125,7 +104,7 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
         "place.prefecture_id.country_id"=>Country['JPN'].id.to_s,
         "place.prefecture_id"=>"", "place_id"=>"",
         "sex_id"=>Sex.unknown.id.to_s,
-        "birth_year"=>"", "birth_month"=>"", "birth_day"=>"", "wiki_en"=>"", "wiki_ja"=>"",
+        "birth_year"=>"", "birth_month"=>"", "birth_day"=>"",
         #"music"=>"", "engage_how"=>[""],
         "note"=>"", "memo_editor" => memoe}
       post artists_url, params: { artist: hs }
@@ -168,7 +147,7 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
       "place.prefecture_id.country_id"=>Country['AUS'].id.to_s,
       "place.prefecture_id"=>"", "place_id"=>"",
       "sex_id"=>Sex.unknown.id.to_s,
-      "birth_year"=>"", "birth_month"=>"", "birth_day"=>"", "wiki_en"=>"", "wiki_ja"=>"",
+      "birth_year"=>"", "birth_month"=>"", "birth_day"=>"",
       "note"=>""}
     hs = {}.merge hs_tmpl
     patch artist_url @artist, params: { artist: hs }

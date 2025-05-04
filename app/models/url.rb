@@ -545,7 +545,7 @@ class Url < BaseWithTranslation
     reths["url_langcode"] = $1
     reths["domain_id"]    = Domain.find_by(domain: dom)&.id  # Integer or potentially nil.
 
-    reths["title"] = Addressable::URI.unencode(urin.path.sub(%r@^/?wiki/@, ""))
+    reths["title"] = Addressable::URI.unencode(urin.path.sub(%r@^/?wiki/@, "")).gsub(/_/, " ")
     reths["langcode"] = reths["url_langcode"]
     reths["is_orig"] = true
     reths

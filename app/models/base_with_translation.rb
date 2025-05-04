@@ -3230,8 +3230,6 @@ class BaseWithTranslation < ApplicationRecord
   #   genre: Genre
   #   year: Integer
   #   sex: Sex
-  #   wiki_en: String
-  #   wiki_ja: String
   #   harami_vid_music_assocs: Hash{remained: [HaramiVidMusicAssocs...], destroy: [HaramiVidMusicAssocs...], n_destroyed: Integer}
   #   note: String
   #   created_at: DateTime(?)
@@ -3271,7 +3269,7 @@ class BaseWithTranslation < ApplicationRecord
       hs = _merge_engages(other, priority: _priority2pass(priorities, :engages))  # updates Harami1129#engage_id, too
       hsmodel.merge!(hs) if hs  # keys of :engage and (probably?) :harami1129
       hsmodel[:bday3s] = _merge_birthday(  other, priority: _priority2pass(priorities, :birthday))
-      %i(prefecture_place genre year sex wiki_en wiki_ja).each do |metho| 
+      %i(prefecture_place genre year sex).each do |metho| 
         #next if !priorities.has_key?(metho)
         hsmodel[metho] = _merge_overwrite(other, metho, priority: _priority2pass(priorities, metho))
       end

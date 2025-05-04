@@ -12,7 +12,7 @@ class ArtistsController < ApplicationController
 
   # Symbol of the main parameters in the Form (except "place_id")
   MAIN_FORM_KEYS ||= []
-  MAIN_FORM_KEYS.concat(%w(sex_id birth_year birth_month birth_day wiki_ja wiki_en note))
+  MAIN_FORM_KEYS.concat(%w(sex_id birth_year birth_month birth_day note))
 
   # Permitted main parameters for params(), used for update
   PARAMS_MAIN_KEYS = ([
@@ -41,7 +41,7 @@ class ArtistsController < ApplicationController
   # GET /artists/new
   def new
     @artist = Artist.new
-    params.permit(:sex_id, :place_id, :birth_year, :birth_month, :birth_day, :wiki_ja, :wiki_en, :note)
+    params.permit(:sex_id, :place_id, :birth_year, :birth_month, :birth_day, :note)
     @artist.sex ||= Sex.unknown
   end
 
@@ -52,7 +52,7 @@ class ArtistsController < ApplicationController
   # POST /artists
   # POST /artists.json
   def create
-    # Parameters: {"authenticity_token"=>"[FILTERED]", "artist"=>{"langcode"=>"en", "title"=>"AI", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "place.prefecture_id.country_id"=>"3153", "place.prefecture_id"=>"", "place_id"=>"", "sex_id"=>"0", "birth_year"=>"", "birth_month"=>"", "birth_day"=>"", "wiki_en"=>"", "wiki_ja"=>"", "note"=>""}, "commit"=>"Create Artist"}
+    # Parameters: {"authenticity_token"=>"[FILTERED]", "artist"=>{"langcode"=>"en", "title"=>"AI", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "place.prefecture_id.country_id"=>"3153", "place.prefecture_id"=>"", "place_id"=>"", "sex_id"=>"0", "birth_year"=>"", "birth_month"=>"", "birth_day"=>"", "note"=>""}, "commit"=>"Create Artist"}
 
     @artist = Artist.new(@hsmain)
     authorize! __method__, @artist
@@ -103,6 +103,6 @@ class ArtistsController < ApplicationController
     #
     # @note This is automatically read for :new in load_and_authorize_resource
     def artist_params
-      params.require(:artist).permit(:sex_id, :place_id, :birth_year, :birth_month, :birth_day, :wiki_ja, :wiki_en, :note)
+      params.require(:artist).permit(:sex_id, :place_id, :birth_year, :birth_month, :birth_day, :note)
     end
 end

@@ -35,12 +35,6 @@
       <% end %>
     </dd>
 
-<% %w(ja en).each do |lcode| %>
-  <dt id="show_wikipedia_<%= lcode %>"><strong>Wikipedia <%= sprintf("[%s]", t("locale.capital."+lcode, default: lcode.upcase)) %>:</strong></dt>
-    <dd id="show_wikipedia_dd_<%= lcode %>"><%= uri=@artist.wiki_uri(lcode);
-      (uri.blank? ? '——' : link_to_from_root_str(CGI.unescape(uri.sub(%r@^https?://@, "")), uri, target: "_blank")) %></dd>
-<% end %>
-
   <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @artist, model4ability: can_update} %>
 </dl>
 

@@ -28,9 +28,6 @@
   <%= f.input :birth_month, label: t("artists._form.birth_month"), placeholder: 'e.g., 12', in: 0..12, as: :integer %>
   <%= f.input :birth_day,   label: t("artists._form.birth_day"), placeholder: 'e.g., 25', in: 0..31, as: :integer %>
 
-  <%= f.input :wiki_en, label: 'Wikipedia ('+t("locale.long.en")+') URI', as: :url %>
-  <%= f.input :wiki_ja, label: 'Wikipedia ('+t("locale.long.ja")+') URI', as: :url %>
-
   <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: Artist, skip_ability_check: true} %>
 
   <%= f.submit %>

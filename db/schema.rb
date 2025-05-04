@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2025_05_03_224914) do
+ActiveRecord::Schema[7.0].define(version: 2025_05_04_003453) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -79,8 +79,6 @@ ActiveRecord::Schema[7.0].define(version: 2025_05_03_224914) do
     t.integer "birth_year"
     t.integer "birth_month"
     t.integer "birth_day"
-    t.text "wiki_ja"
-    t.text "wiki_en"
     t.text "note"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false

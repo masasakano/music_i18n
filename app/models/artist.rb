@@ -9,8 +9,6 @@
 #  birth_year                                 :integer
 #  memo_editor(Internal-use memo for Editors) :text
 #  note                                       :text
-#  wiki_en                                    :text
-#  wiki_ja                                    :text
 #  created_at                                 :datetime         not null
 #  updated_at                                 :datetime         not null
 #  place_id                                   :bigint           not null
@@ -52,7 +50,7 @@ class Artist < BaseWithTranslation
   include ModulePrimaryArtist
 
   # For the translations to be unique (required by BaseWithTranslation).
-  MAIN_UNIQUE_COLS = %i(birth_day birth_month birth_year wiki_en wiki_ja place_id sex_id)
+  MAIN_UNIQUE_COLS = %i(birth_day birth_month birth_year place_id sex_id)
 
   # Each subclass of {BaseWithTranslation} should define this constant; if this is true,
   # the definite article in each {Translation} is moved to the tail when saved in the DB,
@@ -180,8 +178,6 @@ class Artist < BaseWithTranslation
         place: nil,
         sex_id: nil,
         sex: nil,
-        wiki_en: nil,  # This is ignored (b/c not used for identification).
-        wiki_ja: nil,  # This is ignored (b/c not used for identification).
         note: nil,     # This is ignored (b/c not used for identification).
         match_method_upto: :optional_article_ilike,
         **transkeys
@@ -235,8 +231,6 @@ class Artist < BaseWithTranslation
         birth_year: nil,
         place: nil,
         sex: nil,
-        wiki_en: nil,  # This is ignored in identification.
-        wiki_ja: nil,  # This is ignored in identification.
         note: nil,     # This is ignored in identification.
         **opts)
 
@@ -246,8 +240,6 @@ class Artist < BaseWithTranslation
       birth_year:  birth_year,
       place: place,
       sex: sex,
-      wiki_en: wiki_en,
-      wiki_ja: wiki_ja,
       note: note,
     }
 
@@ -355,10 +347,7 @@ class Artist < BaseWithTranslation
   # @param langcode [String]
   # @return [String, NilClass] Root of Wikipedia link or nil if not found
   def _raw_link_to_wikipedia_single(langcode)
-    method = 'wiki_'+langcode
-    return nil if !respond_to? method
-    ret = send(method)
-    ret.blank? ? nil : ret
+    urls.joins(:site_category).where("site_categories.mname" => "wikipedia").find_by("url_langcode" => langcode)&.url
   end
   private :_raw_link_to_wikipedia_single
 
