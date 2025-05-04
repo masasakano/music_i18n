@@ -48,7 +48,7 @@ module ModuleUrlUtil
   # Queries and fragments are preserved.
   # IDNs and international characters in other parts are all decoded.
   #
-  # For :youtube, "youtu.be" is returned.
+  # For :youtube, "youtu.be" is returned in default (unless +delegate_special: :false+ is set), and with_query (and with_fragment and with_www and with_port) are ignored except for "t=XXX", i.e., if you want to leave t=XXX, specify +with_query: :true+ (Default)
   #
   # @example
   #   "example.com/abc?q=1&r=2#xyz" == Url.self.normalized_url("ftp://www.example.com/abc?q=1&r=2#xyz")
@@ -89,7 +89,15 @@ module ModuleUrlUtil
     return url_in.strip if uri.host.blank? || !valid_domain_like?(uri.host)  # invalid URI;  NOT decoded/unencoded, but as it is
 
     if delegate_special && :youtube == ApplicationHelper.guess_site_platform(uri.to_s)
-      return ApplicationHelper.normalized_uri_youtube(uri.to_s, long: false, with_scheme: false, with_host: true, with_time: false, with_query: true).sub(%r@/+$@, "")
+      ret = ApplicationHelper.normalized_uri_youtube(uri.to_s, long: false, with_scheme: with_scheme, with_host: true, with_time: with_query, with_query: true).sub(%r@/+$@, "")
+      return ret if ret.blank? || with_path
+      return normalized_url(ret,
+                            with_scheme: with_scheme,
+                            with_www: with_www,
+                            trim_insignificant_prefix_slash: trim_insignificant_prefix_slash,
+                            with_path: false,
+                            truncate_trailing_slashes: truncate_trailing_slashes,
+                            delegate_special: false)
     end
 
     urlstr = ""

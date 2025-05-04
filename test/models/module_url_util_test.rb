@@ -38,7 +38,7 @@ class ModuleUrlUtilTest < ActiveSupport::TestCase
     assert_equal "Abc.com/File.html#MyHeAd", normalized_url(trying, with_query: false, downcase_domain: false)
 
     s = "www.YouTube.COM/watch?v=abcdefghi&si=12345"
-    assert_equal "youtu.be/abcdefghi", normalized_url("http://"+s, with_www: true, with_path: false)  # options are ignored!
+    assert_equal "youtu.be",           normalized_url("http://"+s, with_www: true, with_path: false)  # with_path is specially treated.
     assert_equal "www.youtube.com",    normalized_url("http://"+s, with_www: true, with_path: false, delegate_special: false)
 
     s = "お名前.com"
@@ -48,6 +48,19 @@ class ModuleUrlUtilTest < ActiveSupport::TestCase
     assert_equal "a."+s,     normalized_url("https://WWW.A.%E3%81%8A%E5%90%8D%E5%89%8D.Com:80/")
     exp = "%E3%81%8A%E5%90%8D%E5%89%8D.com"
     assert_equal exp, normalized_url("https://WWW.%E3%81%8A%E5%90%8D%E5%89%8D.Com:80/", decode_all: false)
+  end
+
+  test "ModuleUrlUtil.normalized_url youtube" do
+    str = "https://youtube.com/watch?v=abc&some=9&t=33"
+    exp =         "youtube.com/watch?v=abc&some=9&t=33"
+    assert_equal exp, normalized_url(str, delegate_special: false, with_scheme: false, with_query: true)
+   #exp =            "youtu.be/abc?some=9&t=33"
+    exp =            "youtu.be/abc?t=33"
+    assert_equal exp, normalized_url(str, delegate_special: true,  with_scheme: false, with_query: true)  # In Youtube all queries but time are ignored regardless of with_query(!); see ApplicationHelper.normalized_uri_youtube
+    exp =    "https://youtu.be/abc"
+    assert_equal exp, normalized_url(str, delegate_special: true,  with_scheme: true,  with_query: false)
+    exp =            "youtu.be"
+    assert_equal exp, normalized_url(str, delegate_special: true,  with_scheme: false, with_query: false, with_path: false)
   end
 
   test "get_uri" do

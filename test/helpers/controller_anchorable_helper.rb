@@ -399,7 +399,7 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
     action, new_mdl = assert_authorized_post(model_record, **allopts){ |_, record| # defined in /test/helpers/controller_helper.rb
       if record.respond_to?(:url) && (:unprocessable_entity != exp_response)  # this is the Anchoring class when failing.
         assert_match(re, record.url.url)  # NOTE: url_form becomes nil after "reload"; hence you would either check it here in the yield block or include it in updated_attrs as a Hash like {url: nerurl3}
-        assert_equal url_str.sub(re, ""), record.url.url.sub(re, "")
+        assert_equal url_str.sub(re, ""), record.url.url.sub(re, ""), "#{_get_caller_info_message(prefix: true)} URLs are inconsistent..." if :youtube != ApplicationHelper.guess_site_platform(url_str)  # Youtube links are custom modified
       end
     }
     assert_equal((is_create ? :create : :update), action, "#{_get_caller_info_message(prefix: true)} should never fail, but...")

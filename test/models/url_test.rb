@@ -296,6 +296,13 @@ class UrlTest < ActiveSupport::TestCase
     assert_equal "ja",   tra.langcode
   end
 
+  test "self.create_url_from_str youtube" do
+    urlstr = "https://www.youtube.com/watch?v=harami_vid1&lc=UgxffvDXzEaXVHqYcMF4AaABAg"
+    url = Url.create_url_from_str(urlstr)
+    refute url.errors.any?, url.errors.messages.inspect
+    assert url.id
+  end
+
   test "self.create_url_from_str failing" do
     assert_raises(HaramiMusicI18n::Domains::CascadeSaveError){
       Domain.find_or_create_domain_by_url!("日本語のダメなヤツ") }

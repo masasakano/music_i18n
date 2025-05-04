@@ -142,7 +142,7 @@ class Domain < ApplicationRecord
         begin
           dt.save! 
         rescue => err
-          raise HaramiMusicI18n::Domains::CascadeSaveError, "Failed in saving DomainTitle with #{url_str} . Message: "+compile_captured_err_msg(err)
+          raise HaramiMusicI18n::Domains::CascadeSaveError, "Failed in saving DomainTitle for domain #{domain_norm.inspect} for URL #{url_str.inspect} . Message: "+compile_captured_err_msg(err)
         end
         msgs.push "DomainTitle created: "+dt.reload.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "")
       end
@@ -152,7 +152,7 @@ class Domain < ApplicationRecord
       begin
         record.save!
       rescue => err
-        msg_dt = sprintf("after successfully creating DomainTitle (pID=%d)", dt.id)
+        msg_dt = sprintf("after successfully creating DomainTitle (pID=%d, unless rolled-back)", dt.id)
         err_msg = sprintf("Failed in creating Domain with #{url_str} %s. Message: %s", msg_dt, compile_captured_err_msg(err))
         raise HaramiMusicI18n::Domains::CascadeSaveError, err_msg
       end

@@ -45,7 +45,7 @@
              <% if (lcode=anchoring.url.url_langcode).present? %>
                <%= sprintf " [%s] ", get_language_name(lcode, in_locale: I18n.locale) %>
              <% end %>
-             <%= link_to((u=anchoring.url).title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: (canedit_url_gen ? "[UNDEFINED Title] "+u.url : u.url)), u.url) %>
+             <%= link_to((u=anchoring.url).title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: (canedit_url_gen ? "[UNDEFINED Title] "+u.url : u.url)), u.url, target: "_blank") %>
             <% if can? :edit, record %>
               <span class="editor_only">[<%= link_to("Record", anchoring.url, title: "Internal Show page") %>]</span>
             <% end %>

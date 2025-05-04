@@ -196,6 +196,8 @@ class BaseAnchorablesController < ApplicationController
           if status
             status &&= anchoring.save  # Anchoring update fails (unexpectedly).
           end
+        else
+          _transfer_error_from_url(anchoring)
         end
  
         raise ActiveRecord::Rollback, "Force rollback." if !status

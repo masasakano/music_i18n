@@ -8,30 +8,35 @@ class ModuleCommonTest < ActiveSupport::TestCase
   AH = ApplicationHelper
 
   test "normalized_uri_youtube" do
-    k = "https://Youtu.Be:80/BBBCCCCQxU4?si=AAA5OOL6ivmJX999&t=53s&link=youtu.be&list=OLAK5uy_k-vV"
+    query_lc = "lc=UgxffvDXzEaXVHqYcMF4AaABAg"
+    k = "https://Youtu.Be:80/BBBCCCCQxU4?si=AAA5OOL6ivmJX999&t=53s&link=youtu.be&list=OLAK5uy_k-vV&"+query_lc
 
-    val = AH.normalized_uri_youtube(k, long: false, with_scheme: false, with_query: true,  with_time: false, with_host: false)
-    exp = "BBBCCCCQxU4"
+    val = AH.normalized_uri_youtube(k, long: false, with_scheme: false, with_query: false, with_time: false, with_host: false)
+    exp = identifier = "BBBCCCCQxU4"
     assert_equal exp, val
     assert_equal exp, AH.get_id_youtube_video(k)
     assert_equal exp, AH.get_id_youtube_video(exp)
     assert_equal exp, AH.get_id_youtube_video("Youtu.Be:80/"+exp)
 
-    val = AH.normalized_uri_youtube(k, long: false, with_scheme: false, with_query: true,  with_time: false, with_host: true)
+    val = AH.normalized_uri_youtube(k, long: false, with_scheme: false, with_query: false, with_time: false, with_host: true)
     exp = "youtu.be/BBBCCCCQxU4"
     assert_equal exp, val
 
-    val = AH.normalized_uri_youtube(k, long: false, with_scheme: false, with_query: false, with_time: false, with_host: true)
-    exp = "youtu.be/BBBCCCCQxU4"
+    val = AH.normalized_uri_youtube(k, long: false, with_scheme: false, with_query: true,  with_time: false, with_host: true)
+    exp = "youtu.be/BBBCCCCQxU4?lc=UgxffvDXzEaXVHqYcMF4AaABAg"
     assert_equal exp, val
 
     val = AH.normalized_uri_youtube(k, long: false, with_scheme: false, with_query: false, with_time: true,  with_host: true)
     exp = "youtu.be/BBBCCCCQxU4?t=53"
     assert_equal exp, val
 
-    val = AH.normalized_uri_youtube(k, long: true,  with_scheme: false, with_query: true,  with_time: false, with_host: true)
+    val = AH.normalized_uri_youtube(k, long: true,  with_scheme: false, with_query: false, with_time: false, with_host: true)
     exp = "www.youtube.com/watch?v=BBBCCCCQxU4"
     assert_equal exp, val
+
+    val = AH.normalized_uri_youtube(k, long: true,  with_scheme: false, with_query: true,  with_time: false, with_host: true)
+    exp2= [a=["v="+identifier, query_lc], a.reverse].map{|ea| "www.youtube.com/watch?"+ea[0]+"&"+ea[1]}  # i.e., "www.youtube.com/watch?v=BBBCCCCQxU4&lc=UgxffvDXzEaXVHqYcMF4AaABAg" or its query parameters order reversed
+    assert_includes exp2, val
 
     val = AH.normalized_uri_youtube(k, long: true,  with_scheme: false, with_query: false, with_time: true,  with_host: true)
     exp = "www.youtube.com/watch?t=53&v=BBBCCCCQxU4"

@@ -96,6 +96,14 @@ class DomainTest < ActiveSupport::TestCase
     assert_equal scat,  dom2.site_category
   end
 
+  test "Domain.find_or_create_domain_by_url!" do
+    urlstr = "https://www.youtube.com/watch?v=harami_vid1&lc=UgxffvDXzEaXVHqYcMF4AaABAg"
+    dom = Domain.find_or_create_domain_by_url!(urlstr, site_category_id: nil)
+    refute dom.errors.any?, dom.errors.messages.inspect
+    assert dom.id
+
+  end
+
   test "Domain.find_all_siblings_by_urlstr" do
     url_str = "abc.aruyo.com"
     d1 = Domain.find_or_create_domain_by_url!(       url_str, site_category_id: nil)
@@ -113,5 +121,13 @@ class DomainTest < ActiveSupport::TestCase
     assert_equal exp, Domain.find_all_siblings_by_urlstr("https://www."+url_str+"/").order(:created_at).to_a
     assert_equal exp, Domain.find_all_siblings_by_urlstr("https://www."+url_str+"/xyz.html").order(:created_at).to_a
     assert_equal  [], Domain.find_all_siblings_by_urlstr("random.non-existent.org").order(:created_at).to_a
+  end
+
+  test "Domain.extracted_normalized_domain" do
+    assert_equal "abc.aruyo.com", Domain.extracted_normalized_domain("abc.aruyo.com/xyz")
+    assert_equal "abc.aruyo.com", Domain.extracted_normalized_domain("https://abc.aruyo.com/xyz")
+    assert_equal "youtu.be",      Domain.extracted_normalized_domain("youtu.be/yyy")
+    urlstr = "https://www.youtube.com/watch?v=harami_vid1&lc=UgxffvDXzEaXVHqYcMF4AaABAg"
+    assert_equal "youtu.be",      Domain.extracted_normalized_domain(urlstr)
   end
 end

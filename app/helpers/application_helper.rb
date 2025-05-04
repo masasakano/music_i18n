@@ -6,6 +6,17 @@ module ApplicationHelper
   # Default directory for test fixtute data
   DEF_FIXTURE_DATA_DIR = Rails.root.join(*(%w(test fixtures data))).to_s
 
+  # Default URL query key parameters to consider (in this framework) on Youtube
+  #
+  # * "v" (video identifier) is always considered regardless of the specification here.
+  # * "t" (timing parameter) is specially handled, and specification here is irrelevant. See relevant methods.
+  # * "lc" is for a comment, i.e., comment-highlighting.
+  # * "list" is for a Playlist.
+  # * "link" is how the URL is accessed(?)
+  # * "si" seems to be for tracking.
+  # * ... and many more.
+  DEF_YOUTUBE_SIGNIFICANT_QUERY_KEYS = %w(lc)
+
   CSS_CLASSES = {
     consistency_place: "consistency_place",
   }.with_indifferent_access
@@ -311,8 +322,11 @@ module ApplicationHelper
 
   # Returns a YouTube URI with/without the preceeding "https//"
   #
-  # Now this is a wrapper of {ApplicationHelper.normalized_uri_youtube}.
+  # This is a wrapper of {ApplicationHelper.normalized_uri_youtube} to get a full valid URI/URL,
+  # with/without a timing parameter but nothing else.
+  #
   # Use {ApplicationHelper.get_id_youtube_video} if you only want the ID String.
+  # Or, for full control, use the said method.
   #
   # @param root_kwd [String]
   # @option timing [Integer, NilClass] in second
@@ -327,10 +341,13 @@ module ApplicationHelper
 
     hs2pass = {long: long, with_host: true, with_time: false, with_query: true, with_scheme: with_http}
     normalized_txt = normalized_uri_youtube(root_kwd, **hs2pass)
-    platform = normalized_txt.platform  # singleton method
+    if :youtube == normalized_txt.platform  # singleton method
+      normalized_txt = normalized_uri_youtube(root_kwd, **(hs2pass.merge({with_query: false})))  # This removes some default white-listed query parameters, including "lc"; see DEF_YOUTUBE_SIGNIFICANT_QUERY_KEYS
+    end
+
     uri = Addressable::URI.parse( normalized_txt )
 
-    return uri.to_s if :youtube != platform
+    return uri.to_s if :youtube != normalized_txt.platform
 
     timing = nil if timing == "" || timing == "0" || timing == "0s" || timing == 0
     if timing
@@ -417,7 +434,8 @@ module ApplicationHelper
   #   "https://www.youtube.com/live/vXABC6EvPXc?si=OOMorKVoVqoh-S5h?t=24"
   #   "https://www.youtube.com/embed/agbNymZ7vqZ"
   #
-  # For Youtube links, most query parameteres are removed (but v and maybe t (if with_time is true)).
+  # For Youtube links, most query parameteres are removed (but v and lc (if with_query is true (Def))
+  # and t (if with_time is true)), which can be controlled with +white_list+ argument.
   # For other sites, they are preserved unless with_query is false.
   #
   # @example Youtube
@@ -434,13 +452,14 @@ module ApplicationHelper
   # @param long: [Boolean] if false (Def), youtu.be, else www.youtube.com ; for any other URIs, ignored.
   # @param with_scheme: [Boolean] if true (Def: false), returned string contains "https://" . Even if this is false, the returns String contains any other schemes like "sftp" than "https" as long as with_host is true
   # @param with_host: [Boolean]
-  # @param with_query: [Boolean] For Youtube, this is ignored. Recommended to set true.
+  # @param with_query: [Boolean] For Youtube, this is used in conjuntion with +white_list+ (see {DEF_YOUTUBE_SIGNIFICANT_QUERY_KEYS} for detail; many parameters are filtered out even when this is true. For any other URLs, this means for all query parameters. Recommended to set true.
   # @param with_time: [Boolean] Only for Youtube.
-  # @return [String] youtu.be/Wfwe3f8 etc
+  # @param white_list: [Array<String>] Only for Youtuber. Only listed ones survive even when with_query==true. "lc" is for a comment, i.e., comment-highlighting.
+  # @return [String] youtu.be/Wfwe3f8 etc; the singleton method :platform is defined.
   def self.normalized_uri_youtube(uri_str, with_query: true, **kwds)
-  #def self.normalized_uri_youtube(uri_str, long: false, with_scheme: false, with_host: true, with_time: false, with_query: true)
     ret, uri = _normalized_uri_youtube_core(uri_str, with_query: with_query, **kwds)
 
+    # Note: for Youtube in the "long" format, the query parameter "v" is essential.
     if (:youtube == uri.platform || with_query) && uri.query.present?
       ret << "?"+uri.query
     end
@@ -461,7 +480,7 @@ module ApplicationHelper
   #    the scheme is replaced with "https".
   # @note if with_host==true and if the original input contains other than "https",
   #    the output will include the scheme regardless of the given +with_scheme+ parameter
-  def self._normalized_uri_youtube_core(uri_str, long: false, with_scheme: false, with_host: true, with_time: false, with_query: true)
+  def self._normalized_uri_youtube_core(uri_str, long: false, with_scheme: false, with_host: true, with_time: false, with_query: true, white_list: DEF_YOUTUBE_SIGNIFICANT_QUERY_KEYS)
     raise "(#{__method__}) nil is not allowed for uri_str" if uri_str.blank?
     with_scheme = HaramiVid.uri_in_db_with_scheme? if :HaramiVid == with_scheme
     raise ArgumentError, "(#{__method__}) with_scheme must be Boolean or :HaramiVid, but (#{with_scheme.inspect})" if ![true, false].include?(with_scheme)
@@ -472,7 +491,7 @@ module ApplicationHelper
     uri = Addressable::URI.parse(s)
 
     # This sets an instance variable: uri.platform
-    adjust_queries!(uri, long: long, with_query: with_query, with_time: with_time)
+    adjust_queries!(uri, long: long, with_query: with_query, with_time: with_time, white_list: white_list)
 
     ret = ""
     ret.instance_eval{singleton_class.class_eval { attr_accessor "platform" }} if !ret.respond_to?(:platform)  # these 2 linew are equivalent to ModuleCommon#set_singleton_method_val
@@ -495,17 +514,15 @@ module ApplicationHelper
     [ret, uri]
   end
 
-  # Rewrites the given URI model, maybe removing some query parameters
+  # Rewrites the given URI model, maybe modifying the host and/or removing some (or most) query parameters
   #
-  # Note that this method does NOT add a new query parameters like timing,
-  # and works purely based on the given String.  To add a query parameter,
-  # see {self.uri_youtube}
-  #
-  # @param uri [URI] already properly parsed URI
-  # @param long: [Boolean] if false (Def), youtu.be, else www.youtube.com ; for any other URIs, ignored.
+  # @param uri [URI] This must be an already properly parsed URI
+  # @param long: [Boolean] Only for Youtube. If false (Def), youtu.be, else www.youtube.com
   # @param with_time: [Boolean] Only for Youtube.
-  # @return [String] youtu.be/Wfwe3f8 etc
-  def self.adjust_queries!(uri, long: false, with_query: true, with_time: false)
+  # @param with_query: [Boolean] For Youtube, all queries but white listed ones are ignored even if this is set true. The time parameter is independent and depends on with_time. For every other URI, whether all queries are taken into account or not.
+  # @param white_list: [Array<String>] Only for Youtuber. Only listed ones survive even when with_query==true. "lc" is for a comment, i.e., comment-highlighting.
+  # @return [URI] the same as the given main parameter, which is destructively modified.
+  def self.adjust_queries!(uri, long: false, with_query: true, with_time: false, white_list: DEF_YOUTUBE_SIGNIFICANT_QUERY_KEYS)
     uri.host = uri.host.downcase
     platform = guess_site_platform(uri.to_s)
 
@@ -521,19 +538,18 @@ module ApplicationHelper
         uri.path = uri.path.sub(%r@\A/(shorts|live|embed)/@, '/')
 
         identifier = (query_hs["v"] || uri.path.sub(%r@\A/@, ""))
+        slice_keys = ([(long ? "v" : nil), (with_time ? "t" : nil)] + (with_query ? white_list : [])).compact
+        query_hs = query_hs.slice(*slice_keys)
+        query_hs["t"].sub!(/s\z/, "") if query_hs.has_key?("t")
 
         if long
           uri.host = "www.youtube.com"
           uri.path = "/watch"
-          query_hs = query_hs.slice("v", "t")
           query_hs["v"] = identifier
         else
           uri.host = "youtu.be"
           uri.path = "/"+identifier
-          query_hs = query_hs.slice("t")
         end
-        query_hs = query_hs.slice("v") if !with_time
-        query_hs["t"].sub!(/s\z/, "") if query_hs.has_key?("t")
       when :tiktok
         query_hs = query_hs.except("is_from_webapp", "sender_device", "web_id", "utm_source")
       when :instagram

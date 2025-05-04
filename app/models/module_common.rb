@@ -1569,7 +1569,7 @@ module ModuleCommon
   # @param err [Exception]
   # @return [String]
   def compile_captured_err_msg(err)
-    sprintf("<%s> %s", err.class.name, err.message)
+    sprintf("&lt;%s&gt; %s", err.class.name, err.message)
   end
 
   # Define singleton accessor (or reader) method to an Object with an initil value
