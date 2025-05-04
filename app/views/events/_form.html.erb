@@ -29,9 +29,6 @@
   <%# f.input :duration_hour_err, label: "Duration error [second]" %>
 
   <%= render partial: "layouts/select_country_prefecture_place", locals: {form: f, model: event, is_simple_form: true} %>
-  <div class="editor_only">
-  <%= f.input :weight, hint: "used to sort Events (within an EvengGroup) for displaying; 0 has the highest priority; a lower (positive) number means a higher priority." %>
-  </div>
 
   <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: event, skip_ability_check: true} %>
 

@@ -17,10 +17,18 @@
  <section id="sec_primary_input">
   <div class="form-inputs">
     <%= f.input :url_form, label: "URL", place_holder: "Do not put a redirecting URL like 't.co'", required: true %>
-    <%= f.input :url_langcode, input_html: {class: "input_shortest", type: "text"}, hint: "Language for the URI in 2-letter code (or blank), e.g., en, ja, fr, es (Spanish), it (Italian), de (German), ko (Korean), zh (Chinese). Blank if the website provides separate contents at a single URI, depending on viewer's language/location." %>
-    <%= f.input :site_category_id, label_method: :title_or_alt_for_selection, collection: SiteCategory.order(:weight), required: false, hint: "automatically determined if specified nil." %>
+    <% collec = BaseWithTranslation::AVAILABLE_LOCALES.map{ |es| [BaseWithTranslation::LANGUAGE_TITLES[I18n.locale][es.to_s], es] } %>
+    <%= f.input :url_langcode, as: :select,
+              collection: collec, include_blank: true,
+              value_method: :last,
+              label_method: :first,
+              input_html: {class: 'input_shorter'} %>
+    <%= f.input :site_category_id, label_method: :title_or_alt_for_selection, collection: SiteCategory.order(:weight), required: false, hint: "automatically determined if specified nil.", input_html: {class: 'input_middle'} %>
   <% if url.new_record? %>
-    <%= f.input :title,  label: t("urls.title"), required: false, as: :string, input_html: {value: value_a_title_in_form(url, :title)} %>
+    <% hint_str = sprintf("You may leave it blank to autoload.")
+       hint_str = sprintf("e.g.: セットリスト %s生配信/演奏/メドレー (Youtubeコメント)", @anchorable.release_date.strftime('%Y-%m-%d')) if @anchorable.is_a?(HaramiVid) && @anchorable.release_date.present?
+      %>
+    <%= f.input :title,  label: t("urls.title"), required: false, as: :string, input_html: {value: value_a_title_in_form(url, :title)}, hint: hint_str %>
   <% end %>
   <% if is_fetch_h1_allowed?(anchoring) %>  <%# defined in /app/helpers/base_anchorables_helper.rb %>
     <%= f.input :fetch_h1,  label: t("anchorings.edit.fetch_h1_title")+(anchoring.new_record? ? "" : " (Caution!)"), required: false, as: :boolean %>

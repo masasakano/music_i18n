@@ -284,7 +284,7 @@ form div.memo_editor {
     }
 }
 
-form div.field, form div.form-inputs {
+form div.field, form div.form-inputs, form.simple_form {
   input[type="text"].input_shortest {
     min-width: 5em;
     max-width: 6em;
@@ -527,6 +527,15 @@ select.form-control  {
     max-width: 50em;
   background: var(--form-bg-color);
 }
+select.form-control.input_shorter {
+    min-width: 9em;
+    max-width: 10em;
+}
+select.form-control.input_middle {
+    min-width: 10em;
+    max-width: 15em;
+}
+
 select.form-control:focus  {
   background:   var(--form-bg-color-focus);
   border-width: var(--form-border-width);
