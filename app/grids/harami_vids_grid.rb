@@ -136,13 +136,6 @@ class HaramiVidsGrid < ApplicationGrid
     ##}  # defined in application_helper.rb
   end
 
-  column(:uri_playlist_ja, mandatory: false, order: false, header: Proc.new{I18n.t('datagrid.form.uri_playlist', langcode: "ja")}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
-    link_to_youtube record.uri_playlist_ja, record.uri_playlist_ja
-  end
-  column(:uri_playlist_en, mandatory: false, order: false, header: Proc.new{I18n.t('datagrid.form.uri_playlist', langcode: "en")}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
-    link_to_youtube record.uri_playlist_en, record.uri_playlist_en
-  end
-
   column_note             # defined in application_grid.rb
   columns_upd_created_at(HaramiVid)  # defined in application_grid.rb
 

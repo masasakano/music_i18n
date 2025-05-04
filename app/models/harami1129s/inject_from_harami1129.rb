@@ -15,19 +15,19 @@ class Harami1129s::InjectFromHarami1129 < ApplicationRecord
   # in case the Proc needs more flexible manipulation.
   MAPPING_HARAMI1129 = {
     harami_vid: {
-      # ["id", "release_date", "duration", "uri", "place_id", "harami_vid_id", "event_itm_id", "uri_playlist_ja", "uri_playlist_en", "note", "created_at", "updated_at"]
+      # ["id", "release_date", "duration", "uri", "place_id", "harami_vid_id", "event_itm_id", "note", "memo_editor", "created_at", "updated_at"]
       ins_release_date: :release_date,
       ins_link_root: Proc.new{|i| {:uri => (i ? 'youtu.be/'+i : nil)}},
       ins_title: {translations: :title},
     },
     artist: {
-      # ["id", "sex_id", "place_id", "birth_year", "birth_month", "birth_day", "note", "created_at", "updated_at"]
+      # ["id", "sex_id", "place_id", "birth_year", "birth_month", "birth_day", "note", "memo_editor", "created_at", "updated_at"]
       ins_singer: {translations: :title},
       ins_singer__01: Proc.new{|i| (i ? {:sex =>   guess_sex(i)} : nil)},  ## Double "__" means not mandatory to identify a record to update.
       ins_singer__02: Proc.new{|i| (i ? {:place => guess_japan_from_char(i)} : nil)},
     },
     music: {
-      # ["id", "year", "place_id", "genre_id", "note", "created_at", "updated_at"]
+      # ["id", "year", "place_id", "genre_id", "note", "memo_editor", "created_at", "updated_at"]
       ins_song: {translations: :title},
       ins_singer__01: Proc.new{|i| (i ? {:place => guess_japan_from_char(i)} : nil)},  ## Double "__" means not mandatory to identify a record to update.
     },

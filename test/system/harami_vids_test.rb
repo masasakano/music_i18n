@@ -257,10 +257,11 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
   test "edit music timing (and note) at show" do
     hvid = harami_vids :harami_vid3
+    h1_tit = "HARAMIchan-featured Video (2020-10-31) by HARAMIchan"
 
     # unauthenticated user
     visit harami_vid_path(hvid)
-    assert_selector "h1", text: "HARAMIchan-featured Videos"  # locale: harami_vid_long: 
+    assert_selector "h1", text: h1_tit   # locale: harami_vid_long: 
     assert_includes trans_titles_in_table.values.flatten, hvid.title_or_alt(langcode: "en", lang_fallback_option: :either)
 
     trs_css = "section#harami_vids_show_musics table tbody tr td.item_timing"
@@ -289,8 +290,9 @@ class HaramiVidsTest < ApplicationSystemTestCase
     click_on "Log in"
     assert_selector "h1", text: "HARAMIchan"
 
+    h1_tit_ed = "HARAMIchan-featured Video [HaramiVid] (2020-10-31) by HARAMIchan"
     visit harami_vid_path(hvid)
-    assert_selector "h1", text: "HARAMIchan-featured Videos"  # locale: harami_vid_long: 
+    assert_selector "h1", text: h1_tit_ed  # locale: harami_vid_long: 
 
     trs = find_all(trs_css)
     timing_a_css = 'span.timing-hms a'
@@ -327,7 +329,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     # Show mode again after "cancelling"
     assert_selector (trs_css+" "+submit_css)
     trs = find_all(trs_css)
-    assert_selector "h1", text: "HARAMIchan-featured Videos"  # locale: harami_vid_long: 
+    assert_selector "h1", text: h1_tit_ed  # locale: harami_vid_long: 
     assert_equal sec2hms_or_ms(hvma2.timing), trs[0].find(timing_a_css).text, "value should be reverted back, but..."
     trs[0].find(submit_css).click
 
@@ -342,7 +344,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     #   At the top, "Success" message is displayed... (but nobody would notice it!)
     assert_selector (trs_css+" "+submit_css)
     trs = find_all(trs_css)
-    assert_selector "h1", text: "HARAMIchan-featured Videos"  # locale: harami_vid_long: 
+    assert_selector "h1", text: h1_tit_ed  # locale: harami_vid_long: 
     assert_equal "01:12", trs[0].find(timing_a_css).text, "value should be updated, but..."
     assert_equal "Edit", trs[0].find(submit_css)["value"]
 

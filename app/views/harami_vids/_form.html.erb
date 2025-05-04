@@ -59,9 +59,6 @@
       input_html: { multiple: false } %>
 <% end %>
 
-    <%= f.input :uri_playlist_en, as: :url %>
-    <%= f.input :uri_playlist_ja, as: :url %>
-
     <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: HaramiVid, skip_ability_check: true} %>
 
   <div class="form-actions">

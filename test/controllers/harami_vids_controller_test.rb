@@ -48,7 +48,6 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
       "note"=>"",
       #"reference_harami_vid_kwd" => "",  # GET parameter
       #"reference_harami_vid_id" => "",  # GET parameter
-       # "uri_playlist_en"=>"", "uri_playlist_ja"=>"",
     }.merge(
       get_params_from_date_time(Date.new(2024, 2, 28), "release_date")  # defined in application_helper.rb
     ).with_indifferent_access

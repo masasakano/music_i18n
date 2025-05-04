@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2025_05_04_003453) do
+ActiveRecord::Schema[7.0].define(version: 2025_05_04_182650) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -395,8 +395,6 @@ ActiveRecord::Schema[7.0].define(version: 2025_05_04_003453) do
     t.float "duration", comment: "Total duration in seconds"
     t.text "uri", comment: "(YouTube) URI of the video"
     t.bigint "place_id", comment: "The main place where the video was set in"
-    t.string "uri_playlist_ja", comment: "URI option part for the YouTube comment of the music list in Japanese"
-    t.string "uri_playlist_en", comment: "URI option part for the YouTube comment of the music list in English"
     t.text "note"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false

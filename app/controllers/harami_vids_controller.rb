@@ -29,7 +29,6 @@ class HaramiVidsController < ApplicationController
     "artist_name_collab", "form_instrument", "form_play_role",
     "music_collab", "music_name", "music_timing", "music_genre", "music_year",
     "reference_harami_vid_kwd", "reference_harami_vid_id",  # these two for GET in new
-    "uri_playlist_en", "uri_playlist_ja",
     "release_date(1i)", "release_date(2i)", "release_date(3i)",  # Date-related parameters
   ])
 
@@ -186,12 +185,12 @@ class HaramiVidsController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def harami_vid_params
-      params.require(:harami_vid).permit(:release_date, :duration, :uri, :"place.prefecture_id.country_id", :"place.prefecture_id", :place, :place_id, :uri_playlist_ja, :uri_playlist_en, :artist, :engage_how2, :music, :music_timing, :channel, :note)
+      params.require(:harami_vid).permit(:release_date, :duration, :uri, :"place.prefecture_id.country_id", :"place.prefecture_id", :place, :place_id, :artist, :engage_how2, :music, :music_timing, :channel, :note, :memo_editor)
     end
 
     # Only those that are direct parameters of HaramiVid
     def sliced_harami_vid_params
-      prmret = harami_vid_params.slice(:release_date, :duration, :uri, :uri_playlist_ja, :uri_playlist_en, :note)
+      prmret = harami_vid_params.slice(:release_date, :duration, :uri, :note, :memo_editor)
       {place_id: harami_vid_params[:place]}.merge prmret
     end
 
@@ -1223,5 +1222,5 @@ end
 end
 
 ###########################
-# params: {"_method"=>"patch", "authenticity_token"=>"[FILTERED]", "harami_vid"=>{"uri"=>"youtu.be/2EZ5-nyu1Dg", "release_date(1i)"=>"2024", "release_date(2i)"=>"5", "release_date(3i)"=>"10", "duration"=>"842.0", "place.prefecture_id.country_id"=>"5798", "place.prefecture_id"=>"6654", "place"=>"6749", "form_channel_owner"=>"3", "form_channel_type"=>"12", "form_channel_platform"=>"2", "event_item_ids"=>["", "20"], "form_new_event"=>"", "uri_playlist_en"=>"", "uri_playlist_ja"=>"", "note"=>"", "music_name"=>"", "music_year"=>"", "music_genre"=>"122", "music_timing"=>"", "artist_name"=>"", "artist_sex"=>"0", "form_engage_hows"=>"72", "form_engage_year"=>"", "form_engage_contribution"=>"", "artist_name_collab"=>"", "form_instrument"=>"2", "form_play_role"=>"2"}, "commit"=>"Update Harami vid", "controller"=>"harami_vids", "action"=>"update", "id"=>"1046", "locale"=>"en"}
+# params: {"_method"=>"patch", "authenticity_token"=>"[FILTERED]", "harami_vid"=>{"uri"=>"youtu.be/2EZ5-nyu1Dg", "release_date(1i)"=>"2024", "release_date(2i)"=>"5", "release_date(3i)"=>"10", "duration"=>"842.0", "place.prefecture_id.country_id"=>"5798", "place.prefecture_id"=>"6654", "place"=>"6749", "form_channel_owner"=>"3", "form_channel_type"=>"12", "form_channel_platform"=>"2", "event_item_ids"=>["", "20"], "form_new_event"=>"", "note"=>"", "memo_editor"=>"", "music_name"=>"", "music_year"=>"", "music_genre"=>"122", "music_timing"=>"", "artist_name"=>"", "artist_sex"=>"0", "form_engage_hows"=>"72", "form_engage_year"=>"", "form_engage_contribution"=>"", "artist_name_collab"=>"", "form_instrument"=>"2", "form_play_role"=>"2"}, "commit"=>"Update Harami vid", "controller"=>"harami_vids", "action"=>"update", "id"=>"1046", "locale"=>"en"}
 

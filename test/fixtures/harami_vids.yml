@@ -2,18 +2,16 @@
 #
 # Table name: harami_vids
 #
-#  id                                                                                     :bigint           not null, primary key
-#  duration(Total duration in seconds)                                                    :float
-#  note                                                                                   :text
-#  release_date(Published date of the video)                                              :date
-#  uri((YouTube) URI of the video)                                                        :text
-#  uri_playlist_en(URI option part for the YouTube comment of the music list in English)  :string
-#  uri_playlist_ja(URI option part for the YouTube comment of the music list in Japanese) :string
-#  created_at                                                                             :datetime         not null
-#  updated_at                                                                             :datetime         not null
-#  channel_id                                                                             :bigint
-#  place_id(The main place where the video was set in)                                    :bigint
-#  memo_editor(Internal-use memo for Editors)                                             :text
+#  id                                                  :bigint           not null, primary key
+#  duration(Total duration in seconds)                 :float
+#  memo_editor(Internal-use memo for Editors)          :text
+#  note                                                :text
+#  release_date(Published date of the video)           :date
+#  uri((YouTube) URI of the video)                     :text
+#  created_at                                          :datetime         not null
+#  updated_at                                          :datetime         not null
+#  channel_id                                          :bigint
+#  place_id(The main place where the video was set in) :bigint
 #
 # Indexes
 #
@@ -33,8 +31,8 @@ harami_vid1:
   duration: 
   uri: youtu.be/harami_vid1
   place: 
-  uri_playlist_ja: "https://www.youtube.com/watch?v=harami_vid1&lc=MyString"
-  uri_playlist_en: "https://www.youtube.com/watch?v=harami_vid1&lc=MyString"
+#  uri_playlist_ja: "https://www.youtube.com/watch?v=harami_vid1&lc=MyString"  # legacy column
+#  uri_playlist_en: "https://www.youtube.com/watch?v=harami_vid1&lc=MyString"  # legacy column
   channel: channel_haramichan_youtube_main
   note: HaramiVid1
   memo_editor: MemoEditorHaramiVid1
@@ -44,8 +42,6 @@ harami_vid2:
   duration: 180.0
   uri: youtu.be/harami_vid2
   place: tocho
-  uri_playlist_ja: "https://www.youtube.com/watch?v=harami_vid2&lc=MyString"
-  uri_playlist_en: "https://www.youtube.com/watch?v=harami_vid2&lc=MyString"
   channel: channel_haramichan_youtube_main
   note: HaramiVid2
 
@@ -54,8 +50,6 @@ harami_vid3:
   duration: 180.0
   uri: youtu.be/harami_vid3
   place: place_harami_vid3
-  uri_playlist_ja: 
-  uri_playlist_en: 
   channel: channel_haramichan_youtube_main
   note: HaramiVid3
 
@@ -64,8 +58,6 @@ harami_vid4:
   duration: 400.0
   uri: youtu.be/harami_vid4
   place: tocho
-  uri_playlist_ja: 
-  uri_playlist_en: 
   channel: channel_haramichan_youtube_main
   note: HaramiVid4
 
@@ -74,8 +66,6 @@ harami_vid5:
   duration: 
   uri: youtu.be/harami_vid5
   place: 
-  uri_playlist_ja: 
-  uri_playlist_en: 
   channel: 
   note: HaramiVid5 for testing seeds with no HaramiVidEventItemAssoc or channel
 
@@ -84,8 +74,6 @@ harami_vid_ihojin1:
   duration: 170.0
   uri: youtu.be/ABCD_iho
   place: place_harami_vid3
-  uri_playlist_ja: 
-  uri_playlist_en: 
   channel: channel_haramichan_youtube_main
   note: HaramiVidIhojin1 with three HaramiVidEventItemAssocs
 
@@ -94,8 +82,6 @@ harami_vid_50anni:
   duration: 
   uri: youtu.be/RrJqQ789
   place: 
-  uri_playlist_ja: 
-  uri_playlist_en: 
   channel: channel_haramichan_youtube_main
   note: HaramiVid50anniversary, title modified
 
@@ -104,8 +90,6 @@ harami_vid_paris1:
   duration: 
   uri: youtu.be/xxx_harami_vid_paris_pirates
   place: montparnasse_france
-  uri_playlist_ja: 
-  uri_playlist_en: 
   channel: channel_haramichan_youtube_main
   note: HaramiVidInParis1
 
@@ -114,8 +98,6 @@ one:
   duration: 
   uri: youtu.be/one
   place: 
-  uri_playlist_ja: 
-  uri_playlist_en: 
   channel: channel_haramichan_youtube_main
   note: HaramiVidOne
 
@@ -124,8 +106,6 @@ two:
   duration: 
   uri: youtu.be/two
   place: 
-  uri_playlist_ja: 
-  uri_playlist_en: 
   channel: channel_haramichan_youtube_main
   note: HaramiVidTwo
 
@@ -134,8 +114,6 @@ three:
   duration: 
   uri: youtu.be/three
   place: 
-  uri_playlist_ja: 
-  uri_playlist_en: 
   channel: channel_haramichan_youtube_main
   note: HaramiVidThree for street-piano single shot with 1 music
 
@@ -144,8 +122,6 @@ four:
   duration: 
   uri: youtu.be/four
   place: unknown_place_unknown_prefecture_japan
-  uri_playlist_ja: 
-  uri_playlist_en: 
   channel: channel_haramichan_youtube_main
   note: HaramiVidFour for street-piano single shot with 1 music somewhere in Japan
 

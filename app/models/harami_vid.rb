@@ -3,18 +3,16 @@
 #
 # Table name: harami_vids
 #
-#  id                                                                                     :bigint           not null, primary key
-#  duration(Total duration in seconds)                                                    :float
-#  note                                                                                   :text
-#  release_date(Published date of the video)                                              :date
-#  uri((YouTube) URI of the video)                                                        :text
-#  uri_playlist_en(URI option part for the YouTube comment of the music list in English)  :string
-#  uri_playlist_ja(URI option part for the YouTube comment of the music list in Japanese) :string
-#  created_at                                                                             :datetime         not null
-#  updated_at                                                                             :datetime         not null
-#  channel_id                                                                             :bigint
-#  place_id(The main place where the video was set in)                                    :bigint
-#  memo_editor(Internal-use memo for Editors)                                             :text
+#  id                                                  :bigint           not null, primary key
+#  duration(Total duration in seconds)                 :float
+#  memo_editor(Internal-use memo for Editors)          :text
+#  note                                                :text
+#  release_date(Published date of the video)           :date
+#  uri((YouTube) URI of the video)                     :text
+#  created_at                                          :datetime         not null
+#  updated_at                                          :datetime         not null
+#  channel_id                                          :bigint
+#  place_id(The main place where the video was set in) :bigint
 #
 # Indexes
 #

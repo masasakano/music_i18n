@@ -68,18 +68,6 @@
   </dd>
   </div>
 
-  <% if canedit %>
-    <div class="editor_only">
-      <dt> <%= t("datagrid.form.uri_playlist", langcode: t("locale.long.ja")) %>:</dt>
-      <dd><%= uri=@harami_vid.uri_playlist_ja; (uri.blank? ? '' : link_to_youtube(uri, uri)) %></dd>
-    </div>
-
-    <div class="editor_only">
-      <dt> <%= t("datagrid.form.uri_playlist", langcode: t("locale.long.en")) %>:</dt>
-      <dd><%= uri=@harami_vid.uri_playlist_en; (uri.blank? ? '' : link_to_youtube(uri, uri)) %></dd>
-    </div>
-  <% end %>
-
   <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @harami_vid, model4ability: HaramiVid} %>
  </dl>
  </section> <!-- section id="harami_vids_show_unique_parameters" -->
