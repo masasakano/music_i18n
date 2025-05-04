@@ -69,6 +69,13 @@ module Seeds::SiteCategories
       weight: 700,
       summary: nil,
     },
+    sns: {
+      ja: ['SNS', 'ソーシャルメディア'],
+      en: ['Social media', 'Social networking service'],
+      orig_langcode: nil,
+      weight: 800,
+      summary: "Contents sharing services including Youtube",
+    },
     other: {
       ja: 'その他',
       en: ['Other', 'Miscellaneous'],
