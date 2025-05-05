@@ -3,7 +3,15 @@
 <% urls = @urls %>
 
 <div id="urls">
-<%= render partial: 'layouts/urls_index', locals: {urls: @urls, with_parent: true, with_dates: true} %>
+<%= datagrid_form_with model: @grid, url: urls_path %>
+
+<%= paginate(@grid.assets) %>
+<%= datagrid_table @grid %>
+<%= paginate(@grid.assets) %>
+
+<%= render "layouts/grid_table_tail", klass: Url %>
+
+<%# render partial: 'layouts/urls_index', locals: {urls: @urls, with_parent: true, with_dates: true} %>
 
 </div> <!-- div id="urls" -->
 

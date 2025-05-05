@@ -680,7 +680,9 @@ class ApplicationController < ActionController::Base
 #logger.warn("=============================[cur_page, n_per_page, asset.size, tot]="+[cur_page, n_per_page, asset.size, tot_count].inspect)
     # n_selected_pages = [(cur_page-1)*n_per_page+asset.size, tot_count].min  # playing safe though it should be: ((cur_page-1)*n_per_page+asset.size == tot_count)
     asize = (asset.size.respond_to?(:size) ? asset.size.size : asset.size)
-    n_selected_pages = [(cur_page-1)*n_per_page+asize, tot_count].min  # playing safe though it should be: ((cur_page-1)*n_per_page+asset.size == tot_count)
+    # n_selected_pages = [(cur_page-1)*n_per_page+asize, tot_count].min  # playing safe though it should be: ((cur_page-1)*n_per_page+asset.size == tot_count)
+    #### I didn't understand the statement above... Anyway the result was wrong in Url#index.  So I have modified it as follows:
+    n_selected_pages = [cur_page*n_per_page, tot_count].min
   
     sprintf(
       "%s (%d—%d)/%d [%s: %d]",

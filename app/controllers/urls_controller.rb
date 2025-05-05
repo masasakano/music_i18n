@@ -1,5 +1,6 @@
 class UrlsController < ApplicationController
   include ModuleCommon  # for contain_asian_char, txt_place_pref_ctry
+  include ModuleGridController # for set_grid
   include ModuleMemoEditor   # for memo_editor attribute
 
   # before_action :set_url, only: %i[ show edit update destroy ]
@@ -24,6 +25,7 @@ class UrlsController < ApplicationController
   # GET /urls or /urls.json
   def index
     @urls = Url.left_joins(:domain).left_joins(:domain_title).order("domain_titles.weight", "domain_titles.created_at", "domains.weight", "domains.created_at", "urls.weight", "urls.created_at")
+    set_grid(Url, hs_def: {order: :updated_at, descending: true})  # setting @grid; defined in concerns/module_grid_controller.rb
   end
 
   # GET /urls/1 or /urls/1.json

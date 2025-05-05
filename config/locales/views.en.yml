@@ -337,6 +337,8 @@ en:
     title: Description
     anchorable_type: From
     anchorable_type_full: Objects anchored from
+    table_head:
+      n_links: "#links"
 
   artist_music_plays:
     destroy_success: 'Artist-Playing association was successfully destroyed.'

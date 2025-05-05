@@ -353,6 +353,8 @@ ja:
     title: 説明
     anchorable_type: リンク元
     anchorable_type_full: リンク元一覧
+    table_head:
+      n_links: "被引用"
 
   artist_music_plays:
     destroy_success: 'コラボArtistの1関連項目が削除されました。'

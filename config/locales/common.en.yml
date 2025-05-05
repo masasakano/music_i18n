@@ -75,6 +75,7 @@ en:
   Instrument: "(Music) Instrument"
   Instrument_pl_short: "Instruments"
   language: language
+  language_short: lang
   log_out: Log out
   Music: Music
   Musics: Musics
