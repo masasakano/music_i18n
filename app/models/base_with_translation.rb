@@ -605,6 +605,52 @@ class BaseWithTranslation < ApplicationRecord
     ret
   end
 
+
+  # Improved inspect, where DB accesses only once (for Translation)
+  #
+  # The "title" displayed is either title or alt_title; in the latter case '[alt]' is appended.
+  #
+  # L and N means the numbers of the unique languages and total translations, respectively.
+  #
+  # In the older version, it accesses DB 3 times per inspect just to get information of Translation.
+  # As a result, the log file (for development and test) was littered with a huge number of DB access records,
+  # many of which were made just to print out the +inspect+ information of the obtained model.
+  #
+  # @note
+  #    +inspect+ is such an essential method that this method is designed to be future-prone.
+  #    This method should never fail and be designed to always return String no matter what.
+  #
+  # @return [String]
+  def inspect
+    artrans = (Translation.sort(translations).to_a rescue nil)   # just one-time DB access
+    n_trans = (artrans.size rescue nil) # Number of total translations
+    l_trans = (n_trans ? (artrans.map(&:langcode).uniq.size rescue nil) : nil)  # Number of unique languages; it should never fail but playing safe.
+    if n_trans && n_trans > 0
+      is_orig_str = ((artrans.find_all(&:is_orig).first ? "Orig" : "NoOrig") rescue nil)
+
+      if (tran=artrans.first)  # This should never be nil, but playing safe.
+        lc = tran.langcode if tran.respond_to?(:langcode)  # This is always defined (unless Translation drastically changes)
+        tit =
+          if tran.respond_to?(:title) && (t=tran.title).present?  # It should alywas have the method, but playing safe.
+            t.inspect
+          else
+            (tran.respond_to?(:alt_title) && (t=tran.alt_title).present?) ? t.inspect+"[alt]" : 'nil'  # It should alywas have the method, but playing safe.
+          end
+      end
+    end
+    extra =
+      if is_orig_str && tit && lc
+        "; Translation(id=#{tran.id rescue 'nil'}/L=#{l_trans}/N=#{n_trans}): #{tit} (#{lc}:#{is_orig_str})"
+      elsif ((unsaved_translations && unsaved_translations.size > 0) rescue nil) # It should never be nil, except those of fixtures called through #all??
+        unsa = unsaved_translations
+        "; Translation(unsaved(n=#{unsa.size})[0]): #{unsa[0].title.inspect} (#{unsa[0].langcode rescue 'nil'})"
+      else
+        "; Translation: None"
+      end
+    errmsg = (errors.present? ? '; @errors='+errors.messages.inspect : "")
+    inspect_orig[0..-2]+extra+errmsg+">"
+  end
+
   # Displays (the original) Translation information, too.
   #
   # It is either title or alt_title; in the latter case '[alt]' is appended.
@@ -612,7 +658,7 @@ class BaseWithTranslation < ApplicationRecord
   # L and N means the numbers of the unique languages and total translations, respectively.
   #
   # @return [String]
-  def inspect
+  def inspect_legacy  # DB-heavy one  # See "def inspect" above.
     trans = translations
     n_trans = (trans.size rescue nil) # Number of total translations
     l_trans = (n_trans ? trans.pluck(:langcode).uniq.size : nil)  # Number of unique languages

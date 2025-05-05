@@ -2338,11 +2338,35 @@ end
   end
 
   test "inspect" do
-    str = Country["GB"].inspect
-    assert_match(/\(en:Orig\)>\z/, str)
+    str = (cntry=Country["GB"]).inspect
+    assert_match(/\(en:Orig\)>\z/, str, "Trans="+cntry.translations.inspect)
 
-    str = Country["JP"].inspect
+    jp = Country["JP"]
+    str = jp.inspect
     assert_match(/\(ja:Orig\)>\z/, str)
+    assert_equal 3, jp.translations.count, "fixture testing: 'Japan' has 3 Translations (ja, en, fr)"
+    assert_equal 3, jp.translations.pluck(:langcode).flatten.uniq.size, "fixture testing: 'Japan' has 3-language Translations"
+    assert_match(%r@/L=3/N=3\b@, str)  # ...; Translation(id=12345/L=3/N=3): "日本国" (ja:Orig)>
+    assert_match(%r@\b日本@, str)      # The word "日本" must appear somewhere (because it is the original language)
+    assert_match(%r@[oO]rig@, str)     # The word "orig" (i.e., original language) should appear somewhere
+
+    jp.translations.each do |eatra|
+      eatra.update!(is_orig: nil)
+    end
+    jp.translations.reset
+    str = jp.inspect
+    assert_match(%r@\bJapan\b|日本@, str)  # Even when is_orig=nil for all, the title should be printed.
+
+    jp_en = jp.translations.find_by(langcode: "en")
+    if jp_en.title.present?
+      jp_en.update!(title: nil, alt_title: "Japan")
+    end
+    ## Now, destroys Translaton-Ja.  Then, Translation-en (with no title but alt_title) should be the first priority.
+    jp.translations.find_by(langcode: "ja").destroy
+    jp.translations.reset
+    assert_equal jp_en, Translation.sort(jp.translations).first, 'sanity check'
+    str = jp.inspect
+    assert_match(%r@\bJapan@, str)  # No Ja translations, so English must come first.
 
     record = channel_types(:channel_type_main)
     assert_nil record.orig_langcode, 'testing fixtures'
@@ -2364,6 +2388,10 @@ end
     sex.unsaved_translations.first.langcode = "zh"
     str = sex.inspect
     assert_match(/\bunsaved.+\bnaiyo\b["]?\s*\(zh/, str)
+
+    sex.valid?  # => false because iso5218 is undefined.
+    str = sex.inspect
+    assert_match(/\berrors?\b/i, str)
   end
 
     def _prepare_artists_with_trans
