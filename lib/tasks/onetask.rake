@@ -132,12 +132,12 @@ namespace :onetask do
     if ancs.empty?
       puts "No change in #{args[:anchorable_type]}(#{args[:anchorable_id]})#note"
     else
-      printf("Imported %d Urls of [%s]:\n",
+      printf("Exported %d Urls of [%s]:\n",
              ancs.size,
              ancs.map{|ea| sprintf "%s (Url=%d/Anchoring=%d)", Addressable::URI.unencode(ea.url.url), ea.url.id, ea.id}.join(", ")
             )
       printf("Resultant %s(%s)#note: %s\n",
-             args[:anchorable_type], args[:anchorable_type],
+             args[:anchorable_type], args[:anchorable_id],
              args[:anchorable_type].constantize.find(args[:anchorable_id]).note )
     end
   end

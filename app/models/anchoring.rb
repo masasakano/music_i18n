@@ -70,36 +70,44 @@ class Anchoring < ApplicationRecord
 
   # Wrapper of {Anchoring.find_or_create_multi_from_note}, called from Rake task of DB migration
   #
+  # @param verbose [Boolean] true in default (from Rake task). Migration calls this with (verbose: false
   # @return [Hash] {Translation: 2, Url: 2, Anchoring: 3} etc - increments in records
-  def self.task_find_or_create_multi_from_note(anchorable, id_anchorable=nil, **opts, &bl)
+  def self.task_find_or_create_multi_from_note(anchorable, id_anchorable=nil, verbose: true, **opts, &bl)
     models = MODELS_TO_COUNT_IN_MIGRATION
     anchorable = Url.send(:_get_anchorable_from_arg, anchorable, id_anchorable)
     printf "Anchorable: %s(pID=%d): %s\n", anchorable.class.name, anchorable.id, (anchorable.respond_to?(:title_or_alt_for_selection) ? anchorable.title_or_alt_for_selection.inspect : "")
     note_is_blank = (note=anchorable.note).blank?
-    printf "  note(before): %s\n", (note_is_blank ? "[:blank:]" : note.inspect)
+    msg_be4 = sprintf("  note(before): %s\n", (note_is_blank ? "[:blank:]" : note.inspect))
+    print msg_be4 if verbose
     return ModuleCommon.model_counts(*models, set_at: 0) if note_is_blank
 
+    is_found_one = false
     ActiveRecord::Base.transaction(requires_new: true) do
       # Inside a Transasction so that the counts of the models are accurate
       counts_be4 = ModuleCommon.model_counts(*models)  # defiend in ModuleCommon
       find_or_create_multi_from_note(anchorable, id_anchorable, **opts, &bl).each_with_index do |anc, i_th|
+        is_found_one = true
+        print msg_be4 if !verbose  # At least one Anchoring is being processed.
         if anc.blank?
           puts "WARNING: Blank Anchorable... skipped." 
           next
         end
         begin
-          printf("%d: %s : Url(%d:%s: %s)-Anchoring(%d:%s)%s\n",
-                 i_th+1, anc.url.original_path,
-                 anc.url.id, (anc.was_created? && anc.url_found? ? "found" : "created"), 
+          errmsg = " : ERROR(Anchoring): " + anc.errors.messages.inspect if anc.errors.any?
+          printf("%d(%s): %s : Url(%s:%s: %s)-Anchoring(%s:%s)%s%s\n",
+                 i_th+1, (anc.errors.any? ? "FAIL!" : "ok"),
+                 anc.url.original_path,
+                 (anc.url.id || "nil"), (anc.was_created? && anc.url_found? ? "found" : "created"), 
                  anc.url.title_or_alt_for_selection.inspect,
-                 anc.id,     (anc.was_found? ? "found" : "created"), 
-                 (anc.was_created? && anc.domain_created? ? " (Domain created)" : "") )
+                 (anc.id || "nil"),     (anc.was_found? ? "found" : "created"), 
+                 (anc.was_created? && anc.domain_created? ? " (Domain created)" : ""),
+                 errmsg )
         rescue HaramiMusicI18n::ModuleWasFounds::InconsistencyInWasFoundError => er
           puts "WARNING: <InconsistencyInWasFoundError> for Anchoring(#{anc.id})"
         end
       end
 
-      printf "  note(after):  %s\n", anchorable.note.inspect
+      printf("  note(after):  %s\n", anchorable.note.inspect) if (is_found_one || verbose)
       ModuleCommon.model_count_diffs(counts_be4, ModuleCommon.model_counts(*models))  # defiend in ModuleCommon
     end
   end
@@ -141,7 +149,7 @@ class Anchoring < ApplicationRecord
       anchoring.set_domain_found_if_true(url.domain_found?)
 
       if url.new_record?
-        transfer_errors(url, prefix: "[Url] ", mappings: {url_langcode: :url_langcode, site_category: :site_category, note: :base})
+        anchoring.transfer_errors(url, prefix: "[Url] ", mappings: {url_langcode: :url_langcode, site_category: :site_category, note: :base})
       else
         anchorable.anchorings << anchoring
       end
@@ -195,10 +203,10 @@ class Anchoring < ApplicationRecord
     mappings = {url: :url_form,
                 note: :base, is_orig: :base, langcode: :base, weight: :base}
                   # url_langcode: :url_langcode, site_category_id: :site_category_id,  # taken care of by default
-    if anchorable.errors.any?
+    if anchorable && anchorable.errors.any?
       transfer_errors(anchorable, prefix: "[#{anchorable.class.name}] ", mappings: mappings)  # defined in ModuleCommon
     end
-    if url.errors.any?
+    if url && url.errors.any?
       transfer_errors(url, prefix: "[Url] ", mappings: mappings)  # defined in ModuleCommon
     end
   end

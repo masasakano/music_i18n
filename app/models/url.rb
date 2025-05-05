@@ -410,7 +410,7 @@ class Url < BaseWithTranslation
 
     # Processing in the reverse order because the URLs embedded at the tail of Note should be removed first.
     artmp = []
-    arret = url_or_strarys.reverse.map{ |url_or_strary|
+    arret = url_or_strarys.reverse.uniq.map{ |url_or_strary|
       next nil if artmp.include? url_or_strary  # duplication to be truncated
       artmp << url_or_strary  # to check duplication in the later processes in this iterator.  The last element may be overwritten a few lines below.
       next url_or_strary if !url_or_strary.respond_to?(:flatten)

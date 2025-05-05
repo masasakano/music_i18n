@@ -343,7 +343,8 @@ module ModuleUrlUtil
     markdown = Redcarpet::Markdown.new(renderer, {autolink: true})
   
     mded_str = ActionController::Base.helpers.strip_tags( markdown.render(strin) ).gsub(/(\?[a-z]\S*=\S*)&amp;/i, '\1&').gsub(/\\n/, "\n")
-    mded_str.scan(%r@(?:(?:\b(?:https?|s?ftp))://|(?<=^|[<\[\(\s])(?:www\.|youtube\.com/|youtu.be/))[^>\)\]\s]+(?=[>\)\]\s]|$)@m)
+    # mded_str.scan(%r@(?:(?:\b(?:https?|s?ftp))://|(?<=^|[<\[\(\s])(?:www\.|youtube\.com/|youtu.be/))[^>\)\]\s]+(?=[>\)\]\s]|$)@m)  ## This would remove the closed parenthesis from "https://en.wikipedia.org/wiki/Burn_(Deep_Purple_album)"
+    mded_str.scan(%r@(?:(?:\b(?:https?|s?ftp))://|(?<=^|[<\s])(?:www\.|youtube\.com/|youtu.be/))[^>\s]+(?=[>\s]|$)@m)
   end
 
   # @note

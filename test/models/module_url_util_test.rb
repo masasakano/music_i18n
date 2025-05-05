@@ -155,7 +155,7 @@ class ModuleUrlUtilTest < ActiveSupport::TestCase
   end
 
   test "extract_raw_url_like_strings" do
-    strin = 'x\nhttp://example.com\nyoutu.be/XXX?t=53 [https://naiyo] www.abc.org/?q=1&r=2#X <a href="http://z.com/j">Ignored</a> [ignore this](http://y.com/k) <http://picked-up.com/ttt> https://t.co/#X'
+    strin = 'x\nhttp://example.com\nyoutu.be/XXX?t=53 [ https://naiyo ] www.abc.org/?q=1&r=2#X <a href="http://z.com/j">Ignored</a> [ignore this](http://y.com/k) <http://picked-up.com/ttt> https://t.co/#X'
 
     exp1 = ["http://example.com", "youtu.be/XXX?t=53", "https://naiyo", "www.abc.org/?q=1&r=2#X", "http://picked-up.com/ttt", "https://t.co/#X"]
     assert_equal exp1, extract_raw_url_like_strings(strin)
@@ -169,6 +169,8 @@ class ModuleUrlUtilTest < ActiveSupport::TestCase
     assert_equal exp2, extract_url_like_string_and_raws(strin)
 
     assert_equal [], extract_url_like_string_and_raws(nil)
+    expstr = "https://en.wikipedia.org/wiki/Burn_(Deep_Purple_album)"
+    assert_equal [[expstr, expstr]], extract_url_like_string_and_raws("  "+expstr)
   end
 
   test "decoded_urlstr_if_encoded" do
