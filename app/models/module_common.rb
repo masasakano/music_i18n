@@ -354,7 +354,7 @@ module ModuleCommon
   # @param langcode: [Symbol]
   # @param to_html [Boolean] #TODO (to include the real value as CSS title?)
   # @param for_editor [Boolean]
-  # @return [String] time expressed in three or so units.
+  # @return [String] time expressed in three or so units. html_safe
   def time_in_units(time, units: :auto3, langcode: I18n.locale, trim: false, for_editor: false)
     fmteach = "%s [%s]"
     du = time
@@ -365,9 +365,9 @@ module ModuleCommon
     units3 = [units3[-1]] if du == 0.minutes
 
     if du > 1000.days
-      ret = sprintf(fmteach, I18n.t(:infinity), I18n.t(:days, locale: langcode))
+      ret =  ERB::Util.html_escape(sprintf(fmteach, I18n.t(:infinity), I18n.t(:days, locale: langcode)))
       if for_editor
-        return ret.sub(/ /, " ([Editor] #{du.in_days.to_s}) ")
+        return ret.sub(/ /, sprintf('<span class="editor_only">([Editor] %s) </span>', du.in_days.to_s)).html_safe
       else
         return ret
       end

@@ -254,6 +254,9 @@ ja:
       for_all_rows: "全項目は、"
       see_event_page: "イベントのページを参照"
 
+  domain_titles:
+    harami_chronicle: "ハラミちゃん活動の記録〜Harami Chronicle〜"
+
   events:
     parent_event: "(親)Event"
     Duration: "期間"
@@ -355,6 +358,8 @@ ja:
     anchorable_type_full: リンク元一覧
     table_head:
       n_links: "被引用"
+    link:
+      Show: リンク情報
 
   artist_music_plays:
     destroy_success: 'コラボArtistの1関連項目が削除されました。'

@@ -151,7 +151,7 @@ class EventGroup < BaseWithTranslation
   # See {EventGroup.guessed_best_or_nil} for keywords.
   #
   # @option context [Symbol, String]
-  # @return [EventItem, Event]
+  # @return [EventGroup]
   def self.default(context=nil, **kwd)
     guessed = guessed_best_or_nil(context, **kwd)
     return guessed if guessed

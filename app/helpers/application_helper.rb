@@ -1151,7 +1151,7 @@ module ApplicationHelper
   # with the editor-only style once it has become public.
   #
   # @example
-  #    <%= editor_only_safe_html(@place, method: :edit, tag: "span", class: "lead") do %>
+  #    <%= editor_only_safe_html(@place, method: :edit, tag: "span", class: "lead", title: "not for public") do %>
   #      <%= link_to 'Edit', edit_place_path(@place) %>
   #      <br>
   #    <% end %>
@@ -1168,9 +1168,10 @@ module ApplicationHelper
   # @param only: [Symbol, String] If Symbol like :editor, "editor_only" is the CSS class. Or you can explicitly specify the CSS class in String.
   # @param text: [String, NilClass] you can supply the enclosed text either with this argument or through yield.
   # @param permissive: [Boolean] Default is false, unlike {#publicly_viewable?}.  Use so unless the permission is not a big-deal one.
+  # @param opts: [Hash] Any additional parameters (e.g., "title") are passed to ApplicationController.helpers.tag
   # @return [String] html_safe String to display if the page is editor-only? (maybe moderator or admin only)
   # @yield Returned text will be inside the block.
-  def editor_only_safe_html(record, method:, tag: "div", class: "", only: :editor, text: nil, permissive: false)
+  def editor_only_safe_html(record, method:, tag: "div", class: "", only: :editor, text: nil, permissive: false, **opts)
     if !permissive
       if !((:pass == record && [true, false, nil].include?(method)) || 
            (record.respond_to?(:attribute_names) && method.is_a?(Symbol)))
@@ -1199,7 +1200,7 @@ module ApplicationHelper
     text = sanitize(text) if !text.html_safe?  # capture-d text seems always html_safe. However, text passed as an argument may not be.
     # Note: Array#html_safe? exists but Array#html_safe does not, and raises NoMethodError  
 
-    ApplicationController.helpers.tag.send(tag, text, class: html_classes)
+    ApplicationController.helpers.tag.send(tag, text, class: html_classes, **opts)
   end
 
   # to suppress warning, mainly that in Ruby-2.7.0:

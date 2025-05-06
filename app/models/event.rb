@@ -530,8 +530,42 @@ class Event < BaseWithTranslation
       reths[:duration_hour] = (ev_start_time_min + duration_hour.hours <= evgr_end_time_max)
     end
 
-    return reths
+    return reths.with_indifferent_access
+  end # def period_consistency_with_group
+  private :period_consistency_with_group
+
+  # @param [Symbol, String] Attribute (start_time|start_time_err|duration_hour)
+  def period_consistent_with_parent_about?(att, reload: false)
+    if !@period_consistencies_with_parent || reload
+      @period_consistencies_with_parent = period_consistency_with_group
+    end
+    @period_consistencies_with_parent[att]
   end
+
+  # Array of Attributes that are *inconsistent* 
+  #
+  # Here, if either of self and EventGroup has a nil period value, it is regarded as NOT inconsistent.
+  #
+  # @param [Array<Symbol>] (start_time|start_time_err|duration_hour)
+  def period_inconsistencies_with_parent(reload: false)
+    @period_consistencies_with_parent = period_consistency_with_group if !@period_consistencies_with_parent || reload
+    @period_consistencies_with_parent.map{ |ek, ev|
+      (false != ev) ? nil : ek.to_sym
+    }.compact
+  end
+
+
+  # Number of Musics, counted through HaramiVidMusicAssocs:  Musics -> HaramiVidMusicAssocs -> HaramiVids -> HaramiVidEventItemAssocs -> EventItems -> Event
+  def n_musics_used_in_harami_vids
+    # Music.joins(:harami_vids).joins("INNER JOIN harami_vid_event_item_assocs ON harami_vid_event_item_assocs.harami_vid_id = harami_vids.id").joins("INNER JOIN event_items ON harami_vid_event_item_assocs.event_item_id = event_items.id").joins("INNER JOIN events ON event_items.event_id = events.id").where("events.id = ?", id).distinct.count
+    Music.joins(harami_vids: :event_items).where("event_items.event_id" => id).distinct.count
+  end 
+
+  # Number of Musics, counted through ArtistMusicPlays:  Musics -> ArtistMusicPlays -> EventItems ->  Event
+  def n_musics_played_in_harami_vids
+    # Music.joins(:event_items).joins("INNER JOIN events ON event_items.event_id = events.id").where("events.id = ?", id).distinct.count
+    Music.joins(:event_items).where("event_items.event_id" => id).distinct.count
+  end 
 
   ########## callbacks ########## 
 

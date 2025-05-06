@@ -123,6 +123,13 @@ module HaramiVidsHelper
     harami_vid.events.order(created_at: :desc).first
   end
 
+  # @param harami_vid: [HaramiVid] 
+  # @return [ActiveRecord::Relation<Url>] of Harami-Chronicle Urls for HaramiVid
+  def harami_vid_harami_chronicle_urls(harami_vid: )
+    dt_h_chronicle = DomainTitle.joins(:site_category).where("site_categories.mname" => "chronicle").order("domain_titles.created_at").first
+    Url.joins(:domain).joins(events: :harami_vids).where("domains.domain_title_id" => dt_h_chronicle.id).where("harami_vids.id" => harami_vid.id)
+  end
+
   private
 
     # Set @event_event_items

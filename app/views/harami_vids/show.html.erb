@@ -75,6 +75,22 @@
    <%= turbo_frame_tag "harami_vids_anchorings_"+dom_id(@harami_vid) do %>
      <%= render partial: 'layouts/index_anchorings', locals: {record: @harami_vid} %>
    <% end %>
+
+   <section id="harami_chronicle_list">  <%# This lists the (Harami-Chronicle) Url-s for Events, not for HaramiVid itself %>
+     <% urls = harami_vid_harami_chronicle_urls(harami_vid: @harami_vid) %> <%# defined in harami_vids_helper.rb %>
+     <% if urls.present? %>
+       <h4><%= t("domain_titles.harami_chronicle") %></h4>
+       <ul>
+         <% urls.each do |url| %>
+           <li><%= link_to url.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), url.url, target: "_blank" %>
+               <%= editor_only_safe_html(url, method: :show, tag: "span") do %>
+                 [<%= link_to t('urls.link.Show'), url %>]
+               <% end %>
+           </li>
+         <% end %> 
+       </ul>
+     <% end %>
+   </section>
 </section> <!-- section id="harami_vids_show_parameters" -->
 
 <% if can? :update, @harami_vid %>

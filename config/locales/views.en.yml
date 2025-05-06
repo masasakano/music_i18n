@@ -221,6 +221,9 @@ en:
     show:
       harami_vid_table_title: "Registered HaramiVids in this Channel Owner"
 
+  domain_titles:
+    harami_chronicle: "HARAMIchan Chronicle"
+
   event_groups:
     num_id: "#num"
     start_date: Start Date
@@ -339,6 +342,8 @@ en:
     anchorable_type_full: Objects anchored from
     table_head:
       n_links: "#links"
+    link:
+      Show: Link-info
 
   artist_music_plays:
     destroy_success: 'Artist-Playing association was successfully destroyed.'

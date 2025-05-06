@@ -303,6 +303,64 @@ class EventTest < ActiveSupport::TestCase
     assert events(:ev_evgr_single_streets_unknown_japan).open_ended?
   end
 
+  test "n_musics_appearing_in_harami_vids" do
+    count_exp = %w(Event EventItem HaramiVid Music ArtistMusicPlay HaramiVidMusicAssoc HaramiVidEventItemAssoc).map{|i| i+".count"}.join("+")
+    evgr = event_groups(:evgr_single_streets)
+    artist = artists(:artist1)
+    play_role = play_roles(:play_role_unknown)
+    instrument = instruments(:instrument_piano)
+    ev1 = Event.create_basic!(title: "ev-_#{__method__}-1", langcode: "en", event_group: evgr)
+    evits = []
+    hvids = []
+    muss  = []
+    amps  = []
+    (0..1).each do |i|
+      evits << EventItem.create!(event: ev1, machine_title: "evit_#{__method__}_#{i}", note: "evit#{i}")
+      hvids << HaramiVid.create_basic!(title: "hvid-_#{__method__}-#{i}", langcode: "en", uri: "https://youtu.be/#{__method__.to_s.gsub(/\s/, '')}_#{i}", note: "hv#{i}")
+      hvids[-1].event_items << evits[-1]
+      (0..2).each do |j|
+        assert_difference(count_exp, 3){
+          muss << Music.create_basic!(title: "music-_#{__method__}-#{i}#{j}", langcode: "en", note: "mu#{i}#{j}")
+          hvids[i].musics << muss[-1]  # each HaramiVid has 3 separate Musics
+          amps << ArtistMusicPlay.create!(artist: artist, music: muss[-1], event_item: evits[-1], play_role: play_role, instrument: instrument, note: "amp#{i}#{j}")
+          muss[-1].artist_music_plays.reset
+          assert_equal 1, muss[-1].harami_vids.count
+        }
+      end
+      assert_equal 3, hvids[i].musics.count
+      evits[-1].musics.reset
+    end
+
+    # Now,
+    #   hvids[0] -- muss[0..2] -- evits[0] -- amps[0..2](muss[0..2])
+    #   hvids[1] -- muss[3..5] -- evits[1] -- amps[3..5](muss[3..5])
+
+    ev1.event_items.reset
+    assert_equal 3, ev1.event_items.count # including Unknown
+    assert evits.all?{ |evit| assert_includes  ev1.event_items, evit }
+
+    assert_equal 6, ev1.n_musics_appearing_in_harami_vids, Music.joins(harami_vids: :event_items).where("event_items.event_id" => ev1.id).distinct.to_sql
+    assert_equal 6, ev1.n_musics_played_in_harami_vids
+
+    hvids[0].musics << muss[5] 
+    amps << ArtistMusicPlay.create!(artist: artist, music: muss[5], event_item: evits[0], play_role: play_role, instrument: instrument, note: "amp-add0")
+    evits[0].artist_music_plays.reset
+    muss[5 ].artist_music_plays.reset
+    assert_equal 6, ev1.n_musics_appearing_in_harami_vids, 'duplication (via different HaramiVidMusicAssoc) should be truncated.'
+    assert_equal 6, ev1.n_musics_played_in_harami_vids,    'duplication (via different ArtistMusicPlay) should be truncated.'
+
+    muss[0].harami_vid_music_assocs.find_by(harami_vid_id: hvids[0]).destroy!
+    muss[0].harami_vids.reset
+    refute  HaramiVidMusicAssoc.where(music_id: muss[0]).exists?
+    assert_equal 5, ev1.n_musics_appearing_in_harami_vids, '-1 b/c mus[0] is not included in any HaramiVidMusicAssoc (including those related to hvids[0]).'
+    assert_equal 6, ev1.n_musics_played_in_harami_vids,    'unaffected.'
+
+    muss[1].artist_music_plays.first.destroy!
+    refute ArtistMusicPlay.where(music_id: muss[1].id).exists?
+    assert_equal 5, ev1.n_musics_appearing_in_harami_vids, 'unaffected.'
+    assert_equal 5, ev1.n_musics_played_in_harami_vids,    '-1 b/c mus[0] is not included in any ArtistMusicPlay (including those related to evits[0]).'
+  end
+
   test "association" do
     event = Event.first
     assert_nothing_raised{ event.event_items }

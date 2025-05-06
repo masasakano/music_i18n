@@ -10,11 +10,12 @@
       <dd> <%= @event.id %></dd>
     </div>
   <% end %>
+
   <dt><strong><%= t(:EventGroup) %>:</strong></dt>
     <dd><%= link_to event.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), event_group_url(event.event_group), title: event.event_group.note %>
-      <% period_text = period_date2text((eg=event.event_group).start_date, eg.end_date) %> <%# defined in application_helper.rb %>
-      <%= ("("+period_text+")").html_safe unless period_text.blank? %>
+      <%=  events_show_event_group_period(event.event_group) %>  <%# defined in events_helper.rb %>
     </dd>
+
   <dt class="item_place"> <%= t("tables.place_country") %>:</dt>
     <dd class="item_place"><%= event.place ? show_pref_place_country(event.place) : "" %>  <%# defined in places_helper.rb %>
       <% evgr_place_str = h((evgr_place=event.event_group.place).blank? ? "nil" : show_pref_place_country(evgr_place)) %> <%# TODO: the link part in Place is printed in white (while the rest is in red) in the statement below %>
@@ -23,40 +24,42 @@
         <span class="editor_only"><%= html_consistent_or_inconsistent(is_consistent, postfix: " with EventGroup (#{evgr_place_str})".html_safe) %></span>  <%# defined in application_helper.rb %>
       <% end %>
   </dd>
+
   <dt><strong><%= t("tables.start_time") %> [<%= t("events.time_zone_preposition") %> <%= Rails.configuration.music_i18n_def_timezone_str %>]:</strong></dt>
     <dd><%= event.string_time_err2uptomin %> (± <%= time_in_units(event.start_time_err, for_editor: can_update_gen) %>) <%# in module_common.rb %>
-      <% if can_update_gen %> 
-        <span class="editor_only">[Raw-value=<%= event.start_time %>]
-          <% hs_consistency = @event.period_consistency_with_group %>
-          <% is_consistent = !((false == hs_consistency[:start_time]) || (false == hs_consistency[:start_time_err])) %>
-          <%= html_consistent_or_inconsistent(is_consistent, postfix: " with EventGroup in #{(false == hs_consistency[:start_time]) ? 'Time' : 'Err'} (#{(evgr=event.event_group).start_date} (± #{evgr.start_date_err}) - #{evgr.end_date} (± #{evgr.end_date_err}))".html_safe) %>  <%# defined in application_helper.rb %>
-        </span>
+      <%= editor_only_safe_html(:pass, method: can_update_gen, tag: "span") do %>
+        [Raw-value=<%= event.start_time %>]
+        <%= events_inconsistent_time_warning_word(event) %>
       <% end %>
     </dd>
+
   <dt><strong><%= t("events.Duration") %> [<%= t(:hour) %>]:</strong></dt>
     <dd><%= event.duration_hour %>
-      <% if can_update_gen %> 
-        <% is_consistent = (false != hs_consistency[:duration_hour]) %>
-        <span class="editor_only"><%= html_consistent_or_inconsistent(is_consistent, postfix: " with EventGroup".html_safe) %></span>  <%# defined in application_helper.rb %>
+      <%= editor_only_safe_html(:pass, method: can_update_gen, tag: "span") do %>
+        <%= html_consistent_or_inconsistent((false != @event.period_consistent_with_parent_about?(:duration_hour)),
+               postfix: " with EventGroup".html_safe) %>  <%# defined in application_helper.rb %>
       <% end %>
   </dd>
-  <dt><strong><%= t("events.n_event_items_long") %> / <%= t("tables.n_harami_vids_long") %> / <%= t("datagrid.form.n_musics_general") %><%= ":" if !can_update_gen %>
-    <% if can_update_gen %>
-      <span class="editor_only">
-        / <%= t("datagrid.form.n_musics_general") %> (playing)
+
+  <dt><strong>
+        <%= t("events.n_event_items_long") %>
+      / <%= t("tables.n_harami_vids_long") %>
+      / <%= t("datagrid.form.n_musics_general") %><%= ":" if !can_update_gen %>
+    <%= editor_only_safe_html(:pass, method: can_update_gen, tag: "span") do %>
+      / <%= t("datagrid.form.n_musics_general") %> (playing)
+    <% end %>
+  </strong></dt>
+   <dd><%= event.event_items.distinct.count %>
+      / <%= event.harami_vids.distinct.count %>
+      / <%= n1 = @event.n_musics_used_in_harami_vids %> 
+    <%= editor_only_safe_html(:pass, method: can_update_gen, tag: "span") do %>  <%# consistency checking %>
+      / <%= n2 = @event.n_musics_played_in_harami_vids %>
+      <% if n1 != n2 %>
+        &nbsp; (← <span class="lead text-red"><strong>Inconsistent</strong></span>)
+      <% end %>
       </span>
     <% end %>
-     </strong></dt>
-    <dd><%= event.event_items.distinct.count %> / <%= event.harami_vids.distinct.count %> / <%= n1=Music.joins(:harami_vids).joins("INNER JOIN harami_vid_event_item_assocs ON harami_vid_event_item_assocs.harami_vid_id = harami_vids.id").joins("INNER JOIN event_items ON harami_vid_event_item_assocs.event_item_id = event_items.id").joins("INNER JOIN events ON event_items.event_id = events.id").where("events.id = ?", @event.id).distinct.count %>
-      <% if can_update_gen %>
-        <span class="editor_only">
-        / <%= n2=Music.joins(:event_items).joins("INNER JOIN events ON event_items.event_id = events.id").where("events.id = ?", @event.id).distinct.count %>
-        <% if n1 != n2 %>
-          &nbsp; (← <span class="lead text-red"><strong>Inconsistent</strong></span>)
-        <% end %>
-        </span>
-      <% end %>
-    </dd>
+   </dd>
   <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: event, model4ability: !!can_update_gen} %>
 
 <%= turbo_frame_tag "events_anchorings_"+dom_id(@event) do %>
