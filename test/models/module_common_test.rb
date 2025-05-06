@@ -330,6 +330,7 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_equal "infinity [days]", time_in_units(Float::INFINITY)
     assert_equal "infinity [days]", time_in_units(1001.days)
     assert_equal "infinity [days]", time_in_units(nil)
+    assert_equal 'infinity<span class="editor_only">([Editor] nil) </span>[days]', time_in_units(nil, for_editor: true)
   end
 
   test "order_prioritized_with" do

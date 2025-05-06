@@ -369,7 +369,7 @@ module ModuleCommon
     if !du || du > THRESHOLD_INFINITE_PERIOD.days
       ret =  ERB::Util.html_escape(sprintf(fmteach, I18n.t(:infinity), I18n.t(:days, locale: langcode)))
       if for_editor
-        return ret.sub(/ /, sprintf('<span class="editor_only">([Editor] %s) </span>', du.in_days.to_s)).html_safe
+        return ret.sub(/ /, sprintf('<span class="editor_only">([Editor] %s) </span>', ERB::Util.html_escape(du.respond_to?(:in_days) ? du.in_days.to_s : du.inspect))).html_safe
       else
         return ret
       end
