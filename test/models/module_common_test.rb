@@ -329,6 +329,7 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_equal "5.75 [mins]", time_in_units(0.096.hours)
     assert_equal "infinity [days]", time_in_units(Float::INFINITY)
     assert_equal "infinity [days]", time_in_units(1001.days)
+    assert_equal "infinity [days]", time_in_units(nil)
   end
 
   test "order_prioritized_with" do

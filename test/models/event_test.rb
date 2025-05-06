@@ -339,25 +339,25 @@ class EventTest < ActiveSupport::TestCase
     assert_equal 3, ev1.event_items.count # including Unknown
     assert evits.all?{ |evit| assert_includes  ev1.event_items, evit }
 
-    assert_equal 6, ev1.n_musics_appearing_in_harami_vids, Music.joins(harami_vids: :event_items).where("event_items.event_id" => ev1.id).distinct.to_sql
+    assert_equal 6, ev1.n_musics_used_in_harami_vids, Music.joins(harami_vids: :event_items).where("event_items.event_id" => ev1.id).distinct.to_sql
     assert_equal 6, ev1.n_musics_played_in_harami_vids
 
     hvids[0].musics << muss[5] 
     amps << ArtistMusicPlay.create!(artist: artist, music: muss[5], event_item: evits[0], play_role: play_role, instrument: instrument, note: "amp-add0")
     evits[0].artist_music_plays.reset
     muss[5 ].artist_music_plays.reset
-    assert_equal 6, ev1.n_musics_appearing_in_harami_vids, 'duplication (via different HaramiVidMusicAssoc) should be truncated.'
+    assert_equal 6, ev1.n_musics_used_in_harami_vids, 'duplication (via different HaramiVidMusicAssoc) should be truncated.'
     assert_equal 6, ev1.n_musics_played_in_harami_vids,    'duplication (via different ArtistMusicPlay) should be truncated.'
 
     muss[0].harami_vid_music_assocs.find_by(harami_vid_id: hvids[0]).destroy!
     muss[0].harami_vids.reset
     refute  HaramiVidMusicAssoc.where(music_id: muss[0]).exists?
-    assert_equal 5, ev1.n_musics_appearing_in_harami_vids, '-1 b/c mus[0] is not included in any HaramiVidMusicAssoc (including those related to hvids[0]).'
+    assert_equal 5, ev1.n_musics_used_in_harami_vids, '-1 b/c mus[0] is not included in any HaramiVidMusicAssoc (including those related to hvids[0]).'
     assert_equal 6, ev1.n_musics_played_in_harami_vids,    'unaffected.'
 
     muss[1].artist_music_plays.first.destroy!
     refute ArtistMusicPlay.where(music_id: muss[1].id).exists?
-    assert_equal 5, ev1.n_musics_appearing_in_harami_vids, 'unaffected.'
+    assert_equal 5, ev1.n_musics_used_in_harami_vids, 'unaffected.'
     assert_equal 5, ev1.n_musics_played_in_harami_vids,    '-1 b/c mus[0] is not included in any ArtistMusicPlay (including those related to evits[0]).'
   end
 

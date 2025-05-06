@@ -66,6 +66,12 @@ module ModuleCommon
   # Default network timout in seconds
   DEF_NETWORK_TIMEOUT_SEC = 8
 
+  # If a period is longer than this number (no units here), it is regarded as infinite.
+  #
+  # @example
+  #    raise "Strange." if period > THRESHODL_INFINITE_PERIOD = 1000.days
+  THRESHOLD_INFINITE_PERIOD = 1000
+
   extend ActiveSupport::Concern
   module ClassMethods
     # Returns a new unique weight (used for new)
@@ -360,11 +366,7 @@ module ModuleCommon
     du = time
     du = time.seconds if time && !time.respond_to?(:in_seconds)
 
-    def_units3 = [:day, :hour, :min]
-    units3 = ((:auto3 == units) ? [:day, :hour, :min] : units)
-    units3 = [units3[-1]] if du == 0.minutes
-
-    if du > 1000.days
+    if !du || du > THRESHOLD_INFINITE_PERIOD.days
       ret =  ERB::Util.html_escape(sprintf(fmteach, I18n.t(:infinity), I18n.t(:days, locale: langcode)))
       if for_editor
         return ret.sub(/ /, sprintf('<span class="editor_only">([Editor] %s) </span>', du.in_days.to_s)).html_safe
@@ -373,6 +375,9 @@ module ModuleCommon
       end
     end
 
+    def_units3 = [:day, :hour, :min]
+    units3 = ((:auto3 == units) ? [:day, :hour, :min] : units)
+    units3 = [units3[-1]] if du == 0.minutes
 
     hs_method_trans = {
       day:  [:in_days,    :days],
