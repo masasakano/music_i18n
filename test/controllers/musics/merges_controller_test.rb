@@ -1,7 +1,9 @@
 # coding: utf-8
 require "test_helper"
+require_relative "../concerns/base_merges_helper"
 
 class Musics::MergesControllerTest < ActionDispatch::IntegrationTest
+  include ActiveSupport::TestCase::BaseMergesHelper
   # add this
   include Devise::Test::IntegrationHelpers
 
@@ -62,15 +64,17 @@ class Musics::MergesControllerTest < ActionDispatch::IntegrationTest
     } # This deactivates sign_in !!
     
     sign_in @editor
-    get musics_edit_merges_url(@music, params: {other_music_id: musics(:music_ihojin1).id})
+    get musics_edit_merges_url(@music, params: {other_music_id: @music.id})
     assert_response :redirect
     assert_redirected_to musics_new_merges_path
  
-    get musics_edit_merges_url(@music, params: {other_music_id: musics(:music_ihojin2).id})
+    get musics_edit_merges_url(@music, params: {other_music_id: @other.id})
     assert_response :success
  
-    get musics_edit_merges_url(@music, params: {music: {other_music_id: musics(:music_ihojin2).id}})
+    @other.update!(memo_editor: "MemoEditorUpdatedforTestOther")
+    get musics_edit_merges_url(@music, params: {music: {other_music_id: @other.id}})
     assert_response :success
+############    _assert_edit_html_note_memo_editor(@music, @other)  # defined in ActiveSupport::TestCase::BaseMergesHelper
  
     titnew = "異邦人でっしゃろ"
     mu2 = Music.create_with_orig_translation!(note: 'MergesController-temp-creation', translation: {title: titnew, langcode: 'ja'})  # Create another Music containing "異邦人" in the title

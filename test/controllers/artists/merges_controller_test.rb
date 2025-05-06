@@ -1,7 +1,9 @@
 # coding: utf-8
 require "test_helper"
+require_relative "../concerns/base_merges_helper"
 
 class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
+  include ActiveSupport::TestCase::BaseMergesHelper
   # add this
   include Devise::Test::IntegrationHelpers
 
@@ -67,8 +69,10 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
     get artists_edit_merges_url(@artist, params: {other_artist_id: @other.id})
     assert_response :success
  
+    @other.update!(memo_editor: "MemoEditorArtistAi")
     get artists_edit_merges_url(@artist, params: {artist: {other_artist_id: @other.id}})
     assert_response :success
+    _assert_edit_html_note_memo_editor(@artist, @other)  # defined in ActiveSupport::TestCase::BaseMergesHelper
 
     get artists_edit_merges_url(@artist, params: {artist: {other_artist_title: "久保田" }})
     assert_response :redirect

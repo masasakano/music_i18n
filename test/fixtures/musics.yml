@@ -82,6 +82,7 @@ music_ihojin1:
   place: unknown_place_unknown_prefecture_japan
   genre: genre_unknown
   note: MusicIhojin1
+  memo_editor: MemoEditor_Music_Ihojin1
 
 music_ihojin2:
   year: 1981

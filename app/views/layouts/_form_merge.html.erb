@@ -254,6 +254,7 @@
     </tr>
 
     <%#  ----------- notes ------------ %>
+<% if false %>
     <tr id="merge_edit_note"><th title="<%= t('merges.edit.merge_always', default: 'This row is automatically merged.') %>">Note</th>
       <% models[0..1].each_with_index do |em, i| %>
       <td title="<%= t('merges.edit.merge_always') %>">
@@ -262,6 +263,18 @@
       <% end %>
       <td class="merged_column" id="merged_to_note"><%= auto_link50(merged_model.note) %></td>
     </tr>
+<% else %>
+    <% %w(note memo_editor).each do |eatt| %>
+      <tr id="merge_edit_<%= eatt %>"><th title="<%= t('merges.edit.merge_always', default: 'This row is automatically merged.') %>"><%= eatt.capitalize %></th>
+        <% models[0..1].each_with_index do |em, i| %>
+          <td title="<%= t('merges.edit.merge_always') %>">
+            <%= auto_link50(em.send(eatt)) %>
+          </td>
+        <% end %>
+        <td class="merged_column" id="merged_to_note"><%= auto_link50(merged_model.send(eatt)) %></td>
+      </tr>
+    <% end %>
+<% end %>
   </tbody>
 </table>
 

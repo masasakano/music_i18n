@@ -1471,30 +1471,30 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     iho2_note_orig = iho2.note
 
     iho1.note = "  " + iho1_note_orig + "  "  # should be stripped.
-    iho1.send(:_merge_note, iho2, priority: :self)
+    iho1.send(:_merge_note_type, iho2, priority: :self)
     assert_equal iho1_note_orig+" "+iho2_note_orig, iho1.note
     assert_equal iho2_note_orig,                    iho2.note
     iho1.reload
 
-    iho1.send(:_merge_note, iho2, priority: :other)
+    iho1.send(:_merge_note_type, iho2, priority: :other)
     assert_equal iho2_note_orig+" "+iho1_note_orig, iho1.note
     assert_equal iho2_note_orig,                    iho2.note
     iho1.reload
 
     m_un.note = nil
-    iho1.send(:_merge_note, m_un, priority: :other)
+    iho1.send(:_merge_note_type, m_un, priority: :other)
     assert_equal iho1_note_orig, iho1.note, "if one of them is blank, it should be ignored (1)"
     iho1.reload
     m_un.reload
 
     m_un.note = nil
-    m_un.send(:_merge_note, iho2, priority: :self)
+    m_un.send(:_merge_note_type, iho2, priority: :self)
     assert_equal iho2_note_orig, m_un.note, "if one of them is blank, it should be ignored (2)"
     m_un.reload
 
     m_un.note = nil
     iho2.note = ""
-    m_un.send(:_merge_note, iho2, priority: :self)
+    m_un.send(:_merge_note_type, iho2, priority: :self)
     assert  m_un.note.blank?, "if both are blank, the result should be blank, too"
     m_un.reload
     iho2.reload
@@ -2109,7 +2109,8 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     assert_equal assc_prms[:mu_genre][1],      new_mu.genre
     assert_equal assc_prms[:mu_year][0],       new_mu.year
     assert_equal assc_prms[:mu_place][0],      new_mu.place
-    assert_equal [assc_prms[:mu_note][1], assc_prms[:mu_note][0]].join(" "), new_mu.note
+    assert_equal [assc_prms[:mu_note][1],        assc_prms[:mu_note][0]].join(" "),        new_mu.note  # NOTE: Here, the priority for "note" is explicitly specified, which is supported at the Model level, whereas Views provides no such options; thus in reality, the priority of "note" always simply follows the user-specified default priority, unlike the tested case below.
+    assert_equal [assc_prms[:mu_memo_editor][0], assc_prms[:mu_memo_editor][1]].join(" "), new_mu.memo_editor
     #puts "DEBUG: "+new_mu.inspect  # => #<Music id: 999, year: 1994, place_id: 888, genre_id: 777, note: "mu-note1 mu-note0", created_at...; Translation(id=666/L=2/N=4): "Digsy's Dinner0" (en)>
     #puts "DEBUG: "+Translation.sort(new_mu.translations).inspect  # => #<ActiveRecord::AssociationRelation [#<Translation title: "Digsy's Dinner0", is_orig: true>, #<Translation "ディグジーA", is_orig: false>, #<Translation "ディグジーX">, #<Translation "Digsy's Dinner1">]>
     #  raise ActiveRecord::Rollback, "Force rollback."

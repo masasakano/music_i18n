@@ -108,6 +108,7 @@ artist_saki_kubota:
   place: unknown_place_unknown_prefecture_japan
   birth_month: 9
   note: Artist-SakiKubota
+  memo_editor: MemoEditorArtistSakiKubota
 
 artist_spitz:
   sex_id: 1

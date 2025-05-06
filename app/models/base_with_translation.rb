@@ -3325,7 +3325,8 @@ class BaseWithTranslation < ApplicationRecord
       hs = _merge_channel_owners(other, priority: _priority2pass(priorities, :channel_owner))  # nil if for Music
       hsmodel.merge!(hs) if hs  # keys of :channel_owner, :channel, and maybe :harami_vid
 
-      hsmodel[:note]   = _merge_note(  other, priority: _priority2pass(priorities, :note))
+      hsmodel[:note]        = _merge_note_type(other, priority: _priority2pass(priorities, :note))
+      hsmodel[:memo_editor] = _merge_note_type(other, priority: _priority2pass(priorities, :memo_editor), att: :memo_editor) if respond_to?(:memo_editor)
       hsmodel[:created_at] = _merge_created_at(other)
 
       hsmodel[:harami1129_review] = _update_harami1129_review_after_merge(hsmodel, user: user)
@@ -3490,7 +3491,7 @@ class BaseWithTranslation < ApplicationRecord
     return bday3s
   end
 
-  # notes are, unlike other parameters, simply merged.
+  # notes and memo_editors are, unlike other parameters, simply merged.
   #
   # The note for the preferred comes first.
   # In an unlikely case of both notes being identical, one of them is discarded.
@@ -3499,11 +3500,13 @@ class BaseWithTranslation < ApplicationRecord
   #
   # @param other [BaseWithTranslation] of the same class as self
   # @param priority: [Symbol] (:self(Def)|:other)
+  # @param att: [String, Symbol] :note (Def) or :memo_editor
+  # @param target: [ActiveRecord] for which notes (or else) are merged (Def: self)
   # @return [String]
-  def _merge_note(other, priority: :self)
-    self.note = _prioritized_models(other, priority, __method__).map{|i| (i.note.strip rescue nil)}.compact.uniq.join(" ")
+  def _merge_note_type(other, priority: :self, att: :note, target: self)
+    target.send(att.to_s+"=", _prioritized_models(other, priority, __method__).map{|em| self==em ? target : em}.map{|i| (i.send(att).strip rescue nil)}.compact.uniq.join(" "))
   end
-  private :_merge_note
+  private :_merge_note_type
 
   # Append note to Model
   #
