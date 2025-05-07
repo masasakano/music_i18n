@@ -10,23 +10,25 @@
 <% if !defined?(model4ability) %>
   <% model4ability = model %>
 <% end %>
-<% if !defined?(show_weight) %>
-  <% show_weight = true %>
-<% end %>
 <% show_editor_note = ((true == model4ability) || model4ability && can?(:update, model4ability)) %>
 <% if !defined?(show_timestamp) %>
   <% show_timestamp = show_editor_note %>
 <% end %>
+<% if !defined?(show_weight) %>
+  <% show_weight = true %>
+<% end %>
 
-<% if show_weight && model.has_attribute?(:weight) %>
+<% if show_weight && show_editor_note && model.has_attribute?(:weight) %>
   <div class="editor_only weight">
   <dt class="item_weight">Weight:</dt>
     <dd class="item_weight"><%= model.weight %></dd>
   </div>
 <% end %>
 
+  <div> <%# Once dt is insde a div, all other dt-s must be inside a div, apparently. %>
   <dt class="item_note"><%= t("tables.note").capitalize %>:</dt>
     <dd class="item_note"><%= sanitized_html(auto_link(model.note)).html_safe %></dd>
+  </div>
 
 <% if show_editor_note && model.has_attribute?(:memo_editor) %>
   <div class="editor_only memo_editor">
@@ -36,18 +38,20 @@
 <% end %>
 
  <% if model.respond_to?(:create_user) && can?(:update, Users::EditRolesController) %>
-   <div class="moderator_only">
    <% %w(create_user update_user).each do |metho| %>
+   <div class="moderator_only">
     <dt class="item_id_<%= metho %>"><%= metho %>:</dt>
     <dd class="item_id_<%= metho %>"><%= ur = model.send(metho); link_to(ur.display_name, ur) if ur %></dd>
-   <% end %>
    </div>
+   <% end %>
  <% end %>
 
-  <% if show_timestamp %>
+  <% if show_editor_note && show_timestamp %>
     <div class="editor_only">
       <dt>updated_at:</dt>
         <dd><%= model.updated_at %> <span class="font-smaller" style="margin-left: 1em;">(<%= (model.updated_at && model.created_at && model.updated_at - model.created_at > 1.seconds) ? (Time.current - model.updated_at < 1.seconds ? "<strong>Updated now!</strong>".html_safe : "Updated since creation") : "Never modified since creation" %>)</span></dd>
+    </div>
+    <div class="editor_only"> <%# Once dt is insde a div, every single dt-s must be inside an independent div, apparently. %>
       <dt>created_at:</dt>
         <dd><%= model.created_at %></dd>
     </div>

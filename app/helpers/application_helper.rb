@@ -1160,6 +1160,11 @@ module ApplicationHelper
   #    can_index = can?(:index, Event)
   #    editor_only_safe_html(:pass, can_index, text: link_to(t('layouts.back_to_index'), placec_path)+"<br>".html_safe)
   #
+  # @example to make a form inline and editor_only
+  #    <%= editor_only_safe_html(record, method: :edit, tag: "div", class: "disp-inline") do %>
+  #      <%= button_to "Edit", paths[:edit], method: :get, form_class: "inline_form", class: "text-end", style: "margin-top: -1em; padding-top: 0em; padding-bottom: 0em; margin-bottom: -1em;" %>
+  #      / <%= link_to 'Destroy', paths[:destroy], data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' } %>
+  #    <% end %>
   #
   # @param record [ActiveRecord, Class<ActiveRecord>, Symbol] If Symbol of :pass, the Boolean value of the method is used for ability check.
   # @param method: [Symbol, Boolean] Mandatory, unlike {#publicly_viewable?}. This can be like :crud or :ud as defined in ability.rb .  Or, if +record+ is :pass, this Boolean value is used and detailed ability check is skipped, and the unauthenticated is assumed to be prohibited to access.

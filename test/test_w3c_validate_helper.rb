@@ -58,8 +58,10 @@ module TestW3cValidateHelper
   # The caller information is printed if fails.
   #
   # If the error message is insufficient, you may simply print out 'response.body',
+  # or somewhere most relevant like +puts css_select('section#sec_primary').to_s+
   # before the calling statement in the caller, or better
   #
+  #   setup_w3c_validator!  # setting up @validator
   #   @validator.validate_text(response.body).debug_messages.each do |key, value|
   #     puts "#{key}: #{value}"
   #   end

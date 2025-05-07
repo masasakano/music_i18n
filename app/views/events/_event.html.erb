@@ -11,11 +11,14 @@
     </div>
   <% end %>
 
+  <div>
   <dt><strong><%= t(:EventGroup) %>:</strong></dt>
     <dd><%= link_to event.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), event_group_url(event.event_group), title: event.event_group.note %>
       <%=  events_show_event_group_period(event.event_group) %>  <%# defined in events_helper.rb %>
     </dd>
+  </div>
 
+  <div>
   <dt class="item_place"> <%= t("tables.place_country") %>:</dt>
     <dd class="item_place"><%= event.place ? show_pref_place_country(event.place) : "" %>  <%# defined in places_helper.rb %>
       <% evgr_place_str = h((evgr_place=event.event_group.place).blank? ? "nil" : show_pref_place_country(evgr_place)) %> <%# TODO: the link part in Place is printed in white (while the rest is in red) in the statement below %>
@@ -24,7 +27,9 @@
         <span class="editor_only"><%= html_consistent_or_inconsistent(is_consistent, postfix: " with EventGroup (#{evgr_place_str})".html_safe) %></span>  <%# defined in application_helper.rb %>
       <% end %>
   </dd>
+  </div>
 
+  <div>
   <dt><strong><%= t("tables.start_time") %> [<%= t("events.time_zone_preposition") %> <%= Rails.configuration.music_i18n_def_timezone_str %>]:</strong></dt>
     <dd><%= event.string_time_err2uptomin %> (± <%= time_in_units(event.start_time_err, for_editor: can_update_gen) %>) <%# in module_common.rb %>
       <%= editor_only_safe_html(:pass, method: can_update_gen, tag: "span") do %>
@@ -32,7 +37,9 @@
         <%= events_inconsistent_time_warning_word(event) %>
       <% end %>
     </dd>
+  </div>
 
+  <div>
   <dt><strong><%= t("events.Duration") %> [<%= t(:hour) %>]:</strong></dt>
     <dd><%= event.duration_hour %>
       <%= editor_only_safe_html(:pass, method: can_update_gen, tag: "span") do %>
@@ -40,7 +47,9 @@
                postfix: " with EventGroup".html_safe) %>  <%# defined in application_helper.rb %>
       <% end %>
   </dd>
+  </div>
 
+  <div>
   <dt><strong>
         <%= t("events.n_event_items_long") %>
       / <%= t("tables.n_harami_vids_long") %>
@@ -60,6 +69,7 @@
       </span>
     <% end %>
    </dd>
+  </div>
   <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: event, model4ability: !!can_update_gen} %>
 
 <%= turbo_frame_tag "events_anchorings_"+dom_id(@event) do %>

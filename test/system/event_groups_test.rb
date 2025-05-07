@@ -24,12 +24,14 @@ class EventGroupsTest < ApplicationSystemTestCase
     fill_in "Email", with: @moderator.email
     fill_in "Password", with: '123456'  # from users.yml
     click_on "Log in"
+    assert_text "Music i18n"
 
     visit event_groups_url
     assert_selector "h1", text: "Event Group"
     n_event_groups_be4 = page.all("div#event_groups table tr").size - 1
     click_on "Create EventGroup"
 
+    assert_selector "h1", text: "New EventGroup"
     page_find_sys(:trans_new, :langcode_radio, model: EventGroup).choose('English')  # defined in helpers/test_system_helper
 
     # label_str = I18n.t('layouts.new_translations.title', model: 'EventGroup')

@@ -45,8 +45,10 @@ class PlayRolesTest < ApplicationSystemTestCase
     fill_in "Password", with: '123456'  # from users.yml
     click_on "Log in"
 
-    visit play_roles_url  # index page
-    click_on "New PlayRole"
+    #visit play_roles_url  # index page
+    #assert_text "PlayRole index"
+    #click_on "New PlayRole"
+    assert_selector "h1", text: "New PlayRole"  # should be redirected back to PlayRole#index.
 
     assert_text "conductor" # inside a table
     assert_equal "unknown", find(:xpath, "//table//tr[last()]//td[2]").text, "reference table should have been sorted by weight, but..."
@@ -68,8 +70,10 @@ class PlayRolesTest < ApplicationSystemTestCase
     fill_in "Email", with: @syshelper.email
     fill_in "Password", with: '123456'  # from users.yml
     click_on "Log in"
+    assert_text "Music i18n"
 
     visit play_role_url(@play_role)
+    assert_text "Edit this PlayRole"
     click_on "Edit this PlayRole", match: :first
 
     assert_text "conductor" # inside a table

@@ -32,10 +32,14 @@ class InstrumentsTest < ApplicationSystemTestCase
     fill_in "Email", with: @moderator_gen.email
     fill_in "Password", with: '123456'  # from users.yml
     click_on "Log in"
+    assert_text "New Instrument"
 
     visit instruments_url
+    assert_selector "h1", text: "Instruments"
     n_records_be4 = page.all("div#instruments table tr").size - 1
+
     click_on "New Instrument"
+    assert_text "New Instrument"
 
     page.find('form div.field.radio_langcode').choose('English')
     page.find('input#instrument_title').fill_in with: 'Tekitoh'  # This is unique!

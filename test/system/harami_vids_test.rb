@@ -57,6 +57,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     fill_autocomplete('#harami_vids_grid_artists', use_find: true, with: 'nnon', select: (tit="John Lennon"))  # defined in test_helper.rb
     click_on "Apply"
 
+    assert_selector('input[type="submit"]:not([disabled])')
     assert_equal 1, find_all(css_table).size
   end
 

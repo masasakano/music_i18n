@@ -18,7 +18,7 @@ class EngageHowsTest < ApplicationSystemTestCase
     visit engage_hows_url
     assert_selector "h1", text: "EngageHows"
 
-    click_on "New EngageHow"
+    click_on "Create New EngageHow"
     assert_text "New EngageHow"
     assert_selector "h1", text: "New EngageHow"
 

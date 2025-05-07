@@ -16,12 +16,19 @@
     <dd class="item_pid"> <%= @artist.id %></dd>
    </div>
   <% end %>
+  <div>
   <dt class="item_place"> <%= t("tables.place_country", default: "Place (Country)") %>:</dt>
     <dd class="item_place"><%= show_pref_place_country(@artist.place) %></dd>  <%# defined in places_helper.rb %>
+  </div>
+  <div>
   <dt title="Birthday"><strong><%= t("artists.show.birthday", default: "Birthday") %>:</strong></dt>
     <dd><%= @artist.birthday_string %></dd>
+  </div>
+  <div>
   <dt title="Sex"><strong><%= t("Sex") %>:</strong></dt>
     <dd><%= @artist.sex.title langcode: I18n.locale, lang_fallback: true %></dd>
+  </div>
+  <div>
   <dt title="ChannelOwner"><strong><%= t("ChannelOwner") %>:</strong></dt>
     <dd>
       <% if (owner=@artist.channel_owner) %>
@@ -34,7 +41,7 @@
         → <%= link_to t("layouts.create_model", model: t(:ChannelOwner)), channel_owners_create_with_artists_new_url( params: {channel_owner: {artist_id: @artist.id}}) %>
       <% end %>
     </dd>
-
+  </div>
   <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @artist, model4ability: can_update} %>
 </dl>
 

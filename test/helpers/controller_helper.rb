@@ -299,7 +299,7 @@ class ActiveSupport::TestCase
       end
     end
 
-    w3c_validate "#{model_w3c_validate.name} - #{path}" if model_w3c_validate # defined in test_helper.rb (see for debugging help)
+    w3c_validate "#{model_w3c_validate.name} - #{path}" if model_w3c_validate  # defined in /test/test_w3c_validate_helper.rb (see for debugging help)
 
     base_proc.call(user || user_current, nil) if base_proc
     yield(user || user_current, path) if block_given?

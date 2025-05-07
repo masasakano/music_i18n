@@ -13,8 +13,10 @@
    </div>
   <% end %>
 
+  <div>
     <dt class="item_id_site_category"> <%= t(:SiteCategory) %>:</dt>
     <dd class="item_id_site_category"><%= link_to((sc=model.site_category).title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "CO", article_to_head: true), sc, title: sc.mname) if model.site_category %></dd>
+  </div>
   <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: model, model4ability: can_update_gen} %>
 </dl>
 </div>
