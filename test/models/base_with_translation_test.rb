@@ -1813,15 +1813,18 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     iho2.reload
 
     ## Test of updating "timing" only, where both Musics have a similar HaramiVidMusicAssoc with
-    ## a only difference of timing.  A positive timing would be always adopted.
+    ## only differences of timing and note.  A positive timing would be always adopted.
     ActiveRecord::Base.transaction(requires_new: true) do
       hspri = {default: :self, year: :self, note: :self}
       # Check of updating "timing"
       iho1_hvma1.reload  # This does not exist in iho2 (according to Fixture; see a sanity check above)
+      assert iho1_hvma1.note.present?, 'sanity check of the prepared data'
       hvma_collide = HaramiVidMusicAssoc.new(iho1_hvma1.attributes)
       hvma_collide.music = iho2
       hvma_collide.id = nil
       hvma_collide.timing = 77
+      hvma_collide.note = "TestNoteForDuplication"  # While this HaramiVidMusicAssoc should disappear in merging, this note should be appended to hsmdl[:hvmas][0]
+      hvmas_note_expected = [iho1_hvma1.note, hvma_collide.note].join(" ") 
       hvma_collide.save!
       iho2.save!
       iho2.reload
@@ -1833,8 +1836,10 @@ mdl.translations.first.translatable_id = EngageHow.second.id
 
       assert_equal iho1_hvmas_size+iho2_hvmas_size, hsmodel[:harami_vid_music_assocs].size, "Failed: #{hsmodel[:harami_vid_music_assocs].inspect}"
       
-      assert_equal 77, iho1_hvma1.reload.timing
+      iho1_hvma1.reload
+      assert_equal 77, iho1_hvma1.timing
       assert_not Music.exists?(iho2.id)
+      assert_equal hvmas_note_expected, iho1_hvma1.note  # note appended?
       raise ActiveRecord::Rollback, "Force rollback."
     end
     iho1.reload
@@ -1869,6 +1874,25 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       refute_equal hsmdl[:hvmas][0].music, hsmdl[:hvmas][1].music, 'Sanity check...'
       assert_equal hsmdl[:musics][1],      hsmdl[:hvmas][1].music, 'Sanity check...'
       assert_equal hsmdl[:musics][0], hsmdl[:amps][0][0].music, 'Sanity check...'
+
+      ## One more prep (adds a duplicated Anchoring, and another fresh Anchoring to other)
+      assert_equal 1, hsmdl[:musics][0].anchorings.count, 'sanity check...'
+      assert_equal 1, hsmdl[:musics][1].anchorings.count, 'sanity check...'
+      refute_equal hsmdl[:musics][0].anchorings.first, (anc1=hsmdl[:musics][1].anchorings.first), 'sanity check...'
+
+      other_url2 = Url.create_basic!(title: "MergeTest2", langcode: "en", domain: domains(:domain_wikipedia), url: "https://en.wikipedia.org/wiki/MergeTest2")
+      other_anc2 = Anchoring.create!(anchorable: hsmdl[:musics][1], url: other_url2, note: nil)
+      hsmdl[:musics][1].anchorings.reset
+      assert_equal 2, hsmdl[:musics][1].anchorings.count, 'sanity check...'
+
+      anc_dup = anc1.dup
+      anc_dup.anchorable = hsmdl[:musics][0]
+      anc_dup.note = "Duplicated..."
+      anc_dup.save!
+      hsmdl[:musics][0].anchorings.reset
+
+      exp_note = [anc1.note, anc_dup.note].join(" ")  # the other has a priority (see "hspri" below)
+      anc1_created_at = anc1.created_at
 
     #  ActiveRecord::Base.transaction(requires_new: true) do
         genre_org = hsmdl[:musics][0].genre
@@ -1906,6 +1930,18 @@ mdl.translations.first.translatable_id = EngageHow.second.id
         refute_equal engs[0].artist, engs[1].artist,  "Now Music should have two Artists."
         hsmdl[:hvmas][1].reload
         assert_equal new_mu, hsmdl[:hvmas][1].music,  "Now HaramiVidMusicAssoc should have been updated (its Music should have been transferred)."
+
+        ## Anchorings
+        assert_equal 3, new_mu.anchorings.count  # 4 Anchorings in total between self and other, two of which are duplicates.
+        [0,1].each do |i|
+          assert  new_mu.anchorings.find{|anc| hsmdl[:urls][i] == anc.url}
+        end
+        assert_includes new_mu.anchorings, anc_dup
+        assert_includes new_mu.anchorings, other_anc2  # updated one (i.e., anchorable_id is modified) from other
+        refute  Anchoring.exists?(hsmdl[:mu_anchorings][1].id), 'should have been cascade-destroyed, but...'
+        anc_dup.reload
+        assert_equal exp_note, anc_dup.note, "note should be merged, but..."
+        anc1_created_at = anc1.created_at,   "created_at should be updated, but..."
 
         ## The two association of Harami1129, which should have not changed (in terms of ID)
         [0,1].each do |i|
@@ -2031,6 +2067,9 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal hsmdl[:birth_years][1], new_art.birth_year
       assert_equal hsmdl[:birth_months][0],new_art.birth_month
       assert_equal hsmdl[:places][0],      new_art.place
+      assert_equal 2, new_art.anchorings.count
+      assert_includes new_art.anchorings, hsmdl[:art_anchorings][0]
+      refute_includes new_art.anchorings, hsmdl[:art_anchorings][1]  # Artist not yet saved, so this is not reflected, yet.
 
       #### save! ####
 
@@ -2056,6 +2095,9 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal hsmdl[:birth_years][1], new_art.birth_year
       assert_equal hsmdl[:birth_months][0],new_art.birth_month
       assert_equal hsmdl[:places][0],      new_art.place
+
+      assert_includes new_art.anchorings, hsmdl[:art_anchorings][0]
+      assert_includes new_art.anchorings, hsmdl[:art_anchorings][1]  # Artist saved, so this new association is established.
 
     ## Prepares for merging Musics
 
@@ -2139,7 +2181,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       song:   ["Digsy's Dinner0", "Digsy's Dinner1"],
       release_date: [Date.new(2010, 2, 5), Date.new(2011, 3, 6)],
       link_root:    ["youtu.be/oasis_0", "youtu.be/oasis_1"],
-      link_time:    [nil, 134],
+      link_time:    [nil, 134],  # => HaramiVidMusicAssoc#timing  (Do not change these as they are tested!)
     }
     assc_prms = {
       eng_year: [1994, nil],
@@ -2149,6 +2191,8 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       mu_place: [places(:unknown_place_liverpool_uk),              places(:unknown_place_unknown_prefecture_uk)],
       mu_note: ['mu-note0', 'mu-note1'],
       mu_memo_editor: ['mu-memoEd0', 'mu-memoEd1'],
+      mu_anc_note:    ['mu_anc_note0', 'mu_anc_note1'],
+      hvma_note:      ['hvma_note0', 'hvma_note1'],
       art_sex: [Sex[:male], nil],
       art_place: [places(:unknown_place_unknown_prefecture_world), places(:unknown_place_unknown_prefecture_uk)],
       art_birth_year:  [1975, nil],
@@ -2156,6 +2200,8 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       art_birth_day:   [nil, nil],
       art_note: [nil, nil],
       art_memo_editor: [nil, nil],
+      art_anc_note:    ['art_anc_note0', 'art_anc_note1'],
+      url: [0, 1].map{|i| Url.create_basic!(title: "MergeTest#{i}", langcode: "en", domain: domains(:domain_wikipedia), url: "https://en.wikipedia.org/wiki/MergeTest#{i}")}
     }
 
     arprev = []
@@ -2178,11 +2224,14 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       musics:  [],
       artists: [],
       hvmas: [], # HaramiVidMusicAssoc
+      mu_anchorings: [],
+      art_anchorings: [],
       engages: [],
       ch_owners: [],
       channels: [],
       ev_its: [], # EventItem
       amps: [],  # ArtistMusicPlay (Array of Arrays)
+      urls: assc_prms[:url], 
     }
       
     # Create two Harami1129
@@ -2205,6 +2254,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       hsmdl[:musics][i]  = hsmdl[:engages][i].music
       hsmdl[:artists][i] = hsmdl[:engages][i].artist
       hsmdl[:hvmas][i] = eh.harami_vid.harami_vid_music_assocs.find_by(music: hsmdl[:musics][i])
+      hsmdl[:hvmas][i].update!(note: assc_prms[:hvma_note][i])  # Adds note to HaramiVidMusicAssoc
 
       %w(year genre place note memo_editor).each do |es|
         val = assc_prms[("mu_"+es).to_sym][i]
@@ -2217,6 +2267,11 @@ mdl.translations.first.translatable_id = EngageHow.second.id
 
       hsmdl[:ev_its][i] = eh.event_item
       hsmdl[:amps][i] ||= []
+
+      hsmdl[:mu_anchorings][i]  = Anchoring.create!(anchorable: hsmdl[:musics][i],  url: assc_prms[:url][i], note: assc_prms[:mu_anc_note][i])
+      hsmdl[:musics][i].anchorings.reset
+      hsmdl[:art_anchorings][i] = Anchoring.create!(anchorable: hsmdl[:artists][i], url: assc_prms[:url][i], note: assc_prms[:art_anc_note][i])
+      hsmdl[:artists][i].anchorings.reset
     end
 
     hsmdl[:h1129s].each_index do |i|

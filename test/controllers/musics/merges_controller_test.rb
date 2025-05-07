@@ -1,9 +1,9 @@
 # coding: utf-8
 require "test_helper"
-require_relative "../concerns/base_merges_helper"
+require_relative "../concerns/base_merges_controller_helper"
 
 class Musics::MergesControllerTest < ActionDispatch::IntegrationTest
-  include ActiveSupport::TestCase::BaseMergesHelper
+  include ActiveSupport::TestCase::BaseMergesControllerHelper
   # add this
   include Devise::Test::IntegrationHelpers
 
@@ -74,7 +74,7 @@ class Musics::MergesControllerTest < ActionDispatch::IntegrationTest
     @other.update!(memo_editor: "MemoEditorUpdatedforTestOther")
     get musics_edit_merges_url(@music, params: {music: {other_music_id: @other.id}})
     assert_response :success
-############    _assert_edit_html_note_memo_editor(@music, @other)  # defined in ActiveSupport::TestCase::BaseMergesHelper
+    _assert_edit_html_note_memo_editor(@music, @other)  # defined in ActiveSupport::TestCase::BaseMergesControllerHelper
  
     titnew = "異邦人でっしゃろ"
     mu2 = Music.create_with_orig_translation!(note: 'MergesController-temp-creation', translation: {title: titnew, langcode: 'ja'})  # Create another Music containing "異邦人" in the title
@@ -96,6 +96,21 @@ class Musics::MergesControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     follow_redirect!
     flash_regex_assert(/\bNo Music matches/, msg=nil, type: :alert)  # defined in test_helper.rb
+
+    ## Testing HaramiVidMusicAssoc merging in edit screen.
+    # preparing a HaramiVidMusicAssoc that should be merged into one.
+    hvma1 = @music.harami_vid_music_assocs.first
+    hvma2 = hvma1.dup
+    hvma2.music = @other
+    hvma2.timing = 77
+    hvma2.note  = hvma1.note[3..-1]+"-TestNoteForDuplication"  # this note should be *appended* in merging.
+    hvma2.save!
+    @other.harami_vids.reset
+    refute_equal hvma1.note, hvma2.note
+
+    get musics_edit_merges_url(@music, params: {music: {other_music_id: @other.id}})
+    assert_response :success
+    _assert_edit_html_hvma_note(@music, @other)  # defined in ActiveSupport::TestCase::BaseMergesControllerHelper
   end
 
   ## @music is merged into @other
@@ -203,7 +218,7 @@ class Musics::MergesControllerTest < ActionDispatch::IntegrationTest
     assert_equal trans2remain_weight, trans2remain.weight
     trans2change.reload
     refute_equal trans2change_weight, trans2change.weight
-    #assert_equal 13, trans2change.weight, "Should be ((17.5-10)/2).to_i == 13, but...(#{trans2change.weight})"  # Current result (as of 5 February 2024) seems correct, i.e., self-consistent in terms of the weights with other Translations, thouth the weight calculation has changed (old algorithm is found in merge_lang_trans() /app/controllers/base_merges_controller.rb in e.g., Git-commit e152d9c). I have not yet considered well enough how to test them in the current algorithm, hence commenting this out, though not ideal!
+    #assert_equal 13, trans2change.weight, "Should be ((17.5-10)/2).to_i == 13, but...(#{trans2change.weight})"  # Current result (as of 5 February 2024) seems correct, i.e., self-consistent in terms of the weights with other Translations, thouth the weight calculation has changed (old algorithm is found in merge_lang_trans() /app/controllers/base_merges_controller_controller.rb in e.g., Git-commit e152d9c). I have not yet considered well enough how to test them in the current algorithm, hence commenting this out, though not ideal!
     assert_equal @other.id, trans2change.translatable_id, "Associated Music should have changed"
 
 #puts "DEBUG362(#{File.basename __FILE__}): trans2change2=#{et=trans2change2;sprintf("(%s (%s, w=%s, %s))", et.title.inspect, et.is_orig.inspect, et.weight, et.id)}"

@@ -1,3 +1,4 @@
+<%# Local variables: models [Array<BaseWithTranslation>], merged_model [BaseWithTranslation], all_checked_disabled  %>
 <%# NOTE: Argument "models" should be an 2-element Array of base-model and merge-model %>
 
 <%= render partial: 'layouts/form_print_errors', locals: {model: models} %>
@@ -224,7 +225,7 @@
         <%= ary.compact.map{|ea| link_to(ea[1], event_path(ea[0]))}.join(", ").html_safe %>
       </td>
       <% end %>
-      <td class="merged_column" id="merged_to_artist_music_play"><% ary = merged_model.hsmerged[:artist_music_play][:remained].map{|em| [em.event_item.event, sprintf("%s (%s)", em.send(metho).title_or_alt(prefer_alt: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true), em.event_item.start_time.strftime("%Y-%m"))]} %>
+      <td class="merged_column" id="merged_to_artist_music_play"><% ary = merged_model.hsmerged[:artist_music_play][:remained].map{|em| [em.event_item.event, h(sprintf("%s (%s)", em.send(metho).title_or_alt(prefer_alt: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true), em.event_item.start_time.strftime("%Y-%m")))]} %>
         <%= ary.compact.map(&:last).join(", ").html_safe %>
       </td>
     </tr>
@@ -235,11 +236,31 @@
       <% models[0..1].each_with_index do |em, i| %>
       <td title="<%= t('merges.edit.merge_always') %>">
         <% all_hvs.push em.harami_vids.ids.sort %>
-        <%= all_hvs[-1].compact.map{|eid| link_to(eid, harami_vid_path(eid))}.join(", ").html_safe %>
+        <%= all_hvs[-1].compact.map{|eid| link_to(eid, harami_vid_path(eid), title: HaramiVid.find(eid).title)}.join(", ").html_safe %>
       </td>
       <% end %>
-      <td class="merged_column" id="merged_to_harami_vid"><%= all_hvs.flatten.sort.map(&:to_s).join(", ") %></td>
+      <%= base_merges_merged_column_td("harami_vid") do %>  <%# id="merged_to_harami_vid_music_assoc" class="merged_column" %> <%# defined in base_merges_helper.rb %>
+        <% if merged_model.hsmerged[:harami_vid_music_assocs].present? %> <%# =========== Musics only ============ %>
+          <%= merged_model.hsmerged[:harami_vid_music_assocs][:remained].flatten.map(&:harami_vid_id).sort.uniq.join(", ") %>
+        <% else %>
+          <%= all_hvs.flatten.sort.map(&:to_s).join(", ") %>
+        <% end %>
+      <% end %>
     </tr>
+
+  <% if is_music && models[0].respond_to?(:harami_vid_music_assocs) %> <%# =========== Musics only ============ %>
+    <%#  ----------- HaramiVidMusicAssocs (for merging notes) ------------ %>
+    <tr id="merge_edit_harami_vid_music_assocs"><th title="<%= "HaramiVidMusicAssocs: "+t('merges.edit.merge_always', default: 'This row is automatically merged.') %>">HVMAs</th>
+      <% models[0..1].each_with_index do |em, i| %>
+        <%= base_merges_to_merge_column_td do %>  <%# defined in base_merges_helper.rb %>
+          <%= base_merges_hvma_to_merge_content(em) %>
+        <% end %>
+      <% end %>
+      <%= base_merges_merged_column_td("harami_vid_music_assoc") do %>  <%# id="merged_to_harami_vid_music_assoc" class="merged_column" %> <%# defined in base_merges_helper.rb %>
+        <%= base_merges_hvma_merged_content(merged_model) %> <%# defined in base_merges_helper.rb %>
+      <% end %>
+    </tr>
+  <% end %> <%# if is_music %>
 
     <%#  ----------- Harami1129s ------------ %>
     <tr id="merge_edit_harami1129s"><th title="<%= t('merges.edit.merge_always', default: 'This row is automatically merged.') %>">Harami1129s</th>
@@ -247,23 +268,25 @@
       <% models[0..1].each_with_index do |em, i| %>
       <td title="<%= t('merges.edit.merge_always') %>">
         <% all_hvs.push em.harami1129s.ids.sort %>
-        <%= all_hvs[-1].compact.map{|eid| link_to(eid, harami1129_path(eid))}.join(", ").html_safe %>
+        <%= all_hvs[-1].compact.map{|eid| link_to(eid, harami1129_path(eid), title: Harami1129.find(eid).title)}.join(", ").html_safe %>
       </td>
       <% end %>
       <td class="merged_column" id="merged_to_harami1129"><%= all_hvs.flatten.sort.map(&:to_s).join(", ") %></td>
     </tr>
 
-    <%#  ----------- notes ------------ %>
-<% if false %>
-    <tr id="merge_edit_note"><th title="<%= t('merges.edit.merge_always', default: 'This row is automatically merged.') %>">Note</th>
+    <%#  ----------- Anchoring ------------ %>
+    <tr id="merge_edit_anchorings"><th title="<%= "Anchorings: "+t('merges.edit.merge_always', default: 'This row is automatically merged.') %>">Anchorings</th>
       <% models[0..1].each_with_index do |em, i| %>
-      <td title="<%= t('merges.edit.merge_always') %>">
-        <%= auto_link50(em.note) %>
-      </td>
+        <%= base_merges_to_merge_column_td do %>  <%# defined in base_merges_helper.rb %>
+          <%= base_merges_anchoring_to_merge_content(em) %>
+        <% end %>
       <% end %>
-      <td class="merged_column" id="merged_to_note"><%= auto_link50(merged_model.note) %></td>
+      <%= base_merges_merged_column_td("anchoring") do %>  <%# id="merged_to_anchoring' class="merged_column" %> <%# defined in base_merges_helper.rb %>
+        <%= base_merges_anchoring_merged_content(merged_model) %> <%# defined in base_merges_helper.rb %>
+      <% end %>
     </tr>
-<% else %>
+
+    <%#  ----------- notes ------------ %>
     <% %w(note memo_editor).each do |eatt| %>
       <tr id="merge_edit_<%= eatt %>"><th title="<%= t('merges.edit.merge_always', default: 'This row is automatically merged.') %>"><%= eatt.capitalize %></th>
         <% models[0..1].each_with_index do |em, i| %>
@@ -271,10 +294,9 @@
             <%= auto_link50(em.send(eatt)) %>
           </td>
         <% end %>
-        <td class="merged_column" id="merged_to_note"><%= auto_link50(merged_model.send(eatt)) %></td>
+        <td class="merged_column" id="merged_to_<%= eatt %>"><%= auto_link50(merged_model.send(eatt)) %></td>
       </tr>
     <% end %>
-<% end %>
   </tbody>
 </table>
 

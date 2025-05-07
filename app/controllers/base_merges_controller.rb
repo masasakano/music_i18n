@@ -4,6 +4,42 @@
 # {CheckedDisabled} defined in +/lib/checked_disabled.rb+ is a key helper class.
 #
 # Child classes are so far {Musics::MergesController} and {Artists::MergesController} .
+#
+# == Basic algorithm of update
+#
+# In a word, (a subclass of) this Controller processes params, working out
+# which record to merge to (say, recordA), runs +recordA.merge_other(other)+,
+# and, if successful, redirects to recordA-Show.
+#
+# === Detailed description
+#
+# In +update+ in each Sublcass Controller, the two models for merging are listed in an Array
+# like @musics or @artists in the order of the record taken from the requested HTTP path
+# followed by the other record;
+# i.e., @musics[0] is the HTTP-requested record and @musics[1] is the other.
+#
+# In the UI, the user (editor) can specify to which record they are merged; parameter +to_index+
+# which is either 0 or 1, as in the index for @musics, i.e., 0 for the record corresponding to
+# the HTTP path and 1 for the other.
+#
+# The subClass works as follows when it receives params;
+#
+# 1. constructs the Array of the two records, [self, other], with {#get_other_model}
+#    The method works on either pID or Title (because edit accepts the title as a GET parameter);
+#    but for update, it should be pID.
+# 2. for other parameters, internally constructs (no worries, you don't have to fully understand it)
+#    +@all_checked_disabled+ with {#all_checked_disabled}, which is a Hash of keys of attributes and
+#    values of {CheckedDisabled} instances (which just holds information ofthe "index" of which parameter
+#    to select and the attribute value).
+# 3. {#get_self_other_priorities} (which is a wrapper of {#_build_priorities}) then converts
+#    the values of +@all_checked_disabled+ into either :self or :other, referring to +to_index+;
+#    for example, if the user inputs +to_index=1+ and inputs 1 for Sex, :self is the priority for Sex, or else :other.
+#    Here, to_index=1 and this means the record merged to is the record that is NOT in the HTTP request path.
+# 4. Subclass Controller then run +merge_to_model.merge_other+ defined in {BaseWithTranslation#merge_other},
+#    where it selects +merge_to_model+ depending on +to_index+; if it is 0, +merge_to_model+ is the record
+#    in the HTTP request path, and vice versa.
+# 5. If successful, {#_update_render} redirects to the Show-path of +merge_to_model+
+#
 class BaseMergesController < ApplicationController
   # GET parameter "to_submit"
   #
@@ -194,7 +230,7 @@ class BaseMergesController < ApplicationController
     # Arguments from the arguments of the parent method
     #
     # @param model [BaseWithTranslation]
-    # @param to_index [Integer, String, NilClass] In default, taken from params()
+    # @param to_index [Integer, String, NilClass] In default, taken from params(). Either 0 or 1.
     # @return [Array<Integer, Hash<Symbol, Symbol>] [to_index, priorities]
     def _build_priorities(model, to_index=nil)
       hs_params = (s=self.class::MODEL_SYM; params.has_key?(s) ? params.require(s) : nil) 

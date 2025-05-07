@@ -3250,7 +3250,7 @@ class BaseWithTranslation < ApplicationRecord
   end
   private :_priority2pass
 
-  # Returns the merged self (either Artist or Music)
+  # Returns the merged self (either Artist or Music), while destroying the +other+
   #
   # If an error raises in any of the save, it rollbacks.
   # Even if +save_destroy: false+, the related models like {Translation} are STILL updated!
@@ -3277,7 +3277,9 @@ class BaseWithTranslation < ApplicationRecord
   #   year: Integer
   #   sex: Sex
   #   harami_vid_music_assocs: Hash{remained: [HaramiVidMusicAssocs...], destroy: [HaramiVidMusicAssocs...], n_destroyed: Integer}
+  #   anchorings: Hash{remained: [Anchoring...], destroy: [Anchoring...], n_destroyed: Integer}
   #   note: String
+  #   memo_editor: String
   #   created_at: DateTime(?)
   #   destroyed: Array[Model, ...]
   #
@@ -3324,6 +3326,8 @@ class BaseWithTranslation < ApplicationRecord
       hsmodel[:artist_music_play] = _merge_artist_music_plays(other, priority: _priority2pass(priorities, :artist_music_play))
       hs = _merge_channel_owners(other, priority: _priority2pass(priorities, :channel_owner))  # nil if for Music
       hsmodel.merge!(hs) if hs  # keys of :channel_owner, :channel, and maybe :harami_vid
+      hsmodel[:anchorings] = 
+        _merge_anchorings(other, priority: _priority2pass(priorities, :anchorings))
 
       hsmodel[:note]        = _merge_note_type(other, priority: _priority2pass(priorities, :note))
       hsmodel[:memo_editor] = _merge_note_type(other, priority: _priority2pass(priorities, :memo_editor), att: :memo_editor) if respond_to?(:memo_editor)
@@ -3497,6 +3501,9 @@ class BaseWithTranslation < ApplicationRecord
   # In an unlikely case of both notes being identical, one of them is discarded.
   #
   # As a retult of this, {#note} becomes non-nil but maybe blank.
+  #
+  # Note that for subsidiary models like HaramiVidMusicAssoc, +_append_note!+
+  # may be used instead of this method.
   #
   # @param other [BaseWithTranslation] of the same class as self
   # @param priority: [Symbol] (:self(Def)|:other)
@@ -4103,7 +4110,7 @@ tra_orig.save!
 
   # merging HaramiVidMusicAssoc
   #
-  # Many HaramiVidMusicAssoc may be updated in DB.
+  # Many HaramiVidMusicAssoc may be updated in DB after this method.
   # However, this does not destroy HaramiVidMusicAssoc to discard. To do that,
   # They should be cascade-deleted when a Music/HaramiVid is destroyed.
   # If you want to do it explicitly, do:
@@ -4144,6 +4151,52 @@ tra_orig.save!
     {remained: remains, destroy: to_destroys}.with_indifferent_access
   end
   private :_merge_harami_vid_music_assocs
+
+
+  # merging Anchorings
+  #
+  # For Anchoring, priority matters only for the order of merging note
+  # in case Anchorings for a common Url exist for both self and other.
+  # As long as self's Anchoring for the Url exists, the pID of "merged"
+  # Anchoring is always that of self's Anchoring. If only other
+  # has the Anchoring, the Anchoring is transferred to self,
+  # i.e., the anchorable ID of the Anchoring is edited.
+  #
+  # After merging, Anchoring#created_at becomes the older of the two,
+  # again regardless of the specified priority.
+  #
+  # The modified Anchorings are saved on DB (if indeed revised). However, this method
+  # does not destroy the Anchorings to-be-unnecessary; they should
+  # be cascade-destroyed once the parent anchorable (namely, +other+) is destroyed.
+  #
+  # @param other [BaseWithTranslation] of the same class as self. This method makes sense only for anchorable (maybe Url in the future but not now)
+  # @param priority: [Symbol] (:self(Def)|:other)
+  # @return [Hash<Array<Anchoring>>, NilClass] nil if self does not have anchorings method (never happen so far)
+  def _merge_anchorings(other, priority: :self)
+    return if !respond_to?(:anchorings)
+    raise "Should not happen. Contact the code developer." if !other.respond_to?(:anchorings)
+
+    remains = anchorings.to_a
+    to_destroys = []
+
+    other.anchorings.each do |anchoring|
+      existing_anc = remains.find{|i| i.url == anchoring.url}
+      if !existing_anc
+        anchoring.update!(anchorable: self)
+        remains.push anchoring
+        next
+      end
+
+      to_destroys.push anchoring
+      _append_note!(existing_anc, anchoring, reverse: (priority != :self))
+      existing_anc.created_at = _older_created_at(existing_anc, anchoring)
+      existing_anc.save!
+    end
+
+    {remained: remains, destroy: to_destroys}.with_indifferent_access
+  end
+  private :_merge_anchorings
+
 
   # Update/Create {Harami1129Review} after merging Artist/Music
   #

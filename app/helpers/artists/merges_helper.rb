@@ -1,2 +1,0 @@
-module Artists::MergesHelper
-end
