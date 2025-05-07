@@ -109,6 +109,7 @@ class HaramiVidsGrid < ApplicationGrid
     sprintf("%s [%s]", (can?(:read, cha) ? link_to(tit, channel_path(cha)) : tit), kind).html_safe
   end
 
+  # ChannelOwner/Platform are shown to public, too. ChannelOwner's link is shown only for editors.
   column_model_trans_belongs_to(:channel_owner, header: Proc.new{I18n.t("harami_vids.table_head_ChannelOwner", default: "Owner")}, with_link: :class)  # defined in application_grid.rb
   column_model_trans_belongs_to(:channel_platform, header: Proc.new{I18n.t("harami_vids.table_head_ChannelPlatform", default: "Platform")}, with_link: false)  # defined in application_grid.rb
 

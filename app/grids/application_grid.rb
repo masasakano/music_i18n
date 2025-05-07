@@ -556,7 +556,7 @@ class ApplicationGrid < Datagrid::Base
           if @can_models.has_key?(model_sym)
             @can_models[model_sym]
           else
-            @can_models[model_sym] = can?(:read, record.class)
+            @can_models[model_sym] = can?(:read, mdl.class)
           end
         else
           with_link
