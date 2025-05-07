@@ -70,7 +70,7 @@ class HaramiVidsGrid < ApplicationGrid
   end
 
   column_n_models_belongs_to(:n_musics, :musics, distinct: false, header: Proc.new{I18n.t('tables.n_musics')})
-  column_n_models_belongs_to(:n_amps, :artist_music_plays, distinct: false, header: Proc.new{I18n.t('datagrid.form.n_amps')})
+  column_n_models_belongs_to(:n_amps, :artist_music_plays, distinct: false, editor_only: true, header: Proc.new{I18n.t('datagrid.form.n_amps')})
 
   column(:musics,  html: true, mandatory: true, header: I18n.t(:Musics)) do |record|
     print_list_inline(record.musics.uniq){ |tit, model|  # SELECT "dintinct" would not work well with ordering.

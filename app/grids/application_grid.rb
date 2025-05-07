@@ -598,9 +598,11 @@ class ApplicationGrid < Datagrid::Base
   # @param metho [Symbol] e.g., :musics
   # @param header [Proc, String, NilClass, FalseClass] if nil (Def), replaced with a guessed Default. If false, no header is passed.
   # @param order [Proc, NilClass, FalseClass] if nil (Def), sorted by Translation. If false, no order is defined.
-  def self.column_n_models_belongs_to(model_sym, metho, distinct: false, header: nil, order: nil, tag_options: {class: ["align-cr", "align-r-padding3"]}, **opts)
+  # @param editor_only: [Boolean] if true (Def: false), editor-only.
+  def self.column_n_models_belongs_to(model_sym, metho, distinct: false, header: nil, order: nil, editor_only: false, tag_options: {class: ["align-cr", "align-r-padding3"]}, **opts)
     header = Proc.new{I18n.t('tables.'+model_sym.to_s)} if header.nil?
     opts = opts.merge({header: header}) if header
+    opts = opts.merge({if: Proc.new{ApplicationGrid.qualified_as?(:editor)}}) if editor_only
 
     order = proc { |scope| scope.left_joins(metho).group(:id).order("COUNT(#{metho}.id)")} if order.nil?
     opts = opts.merge({order: order}) if order
