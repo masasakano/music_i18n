@@ -52,22 +52,22 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
 
   test "should get index" do
     get events_url
-    assert_response :redirect
-    assert_redirected_to root_path, "This can be new_user_session_path, depending how it is written in controller."
+    # assert_response :redirect
+    # assert_redirected_to root_path, "This can be new_user_session_path, depending how it is written in controller."
 
-    sign_in @editor_ja  ########### This should be unnecessary once index becomes public!
-    get events_url
+    # sign_in @editor_ja  ########### This should be unnecessary once index becomes public! => so be it.
+    # get events_url
     assert_response :success
     assert_match(/\bPlace\b/, css_select("table").text)
 #puts response.body
     w3c_validate "Event index"  # defined in test_helper.rb (see for debugging help)
-    sign_out @editor_ja
+    # sign_out @editor_ja
 
-    #css_events = "table#events_index_table tbody tr"
-    #assert_operator 0, :<, css_select(css_events).size, "rows (defined in Fixtures) should exist, but..."
-  end
+    css_events = "table.datagrid-table tbody tr"
+    assert_operator 0, :<, css_select(css_events).size, "rows (defined in Fixtures) should exist, but..."
+  # end
 
-  test "should get new" do
+  # test "should get new" do
     refute EventsController::MAIN_FORM_KEYS.include?("naiyo")
     assert EventsController::MAIN_FORM_KEYS.include?("note")
     assert EventsController::MAIN_FORM_KEYS.include?("memo_editor")

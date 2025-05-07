@@ -45,7 +45,7 @@
 <section id="harami_vids_for_event">
 <h2><%= t("events.harami_vids_for_this_event") %> (<%= @event.harami_vids.distinct.count %> <%= t(:videos) %>)</h2>
 
-<%= render partial: "layouts/harami_vids_index", locals: {harami_vids: @event.harami_vids.distinct, sort_asc: true, with_place: true, max_nrows: Rails.configuration.max_harami_vids_per_event_editor} %>
+<%= render partial: "layouts/harami_vids_index", locals: {harami_vids: @event.harami_vids.distinct, sort_asc: true, with_place: true, max_nrows: Rails.configuration.max_harami_vids_per_event_editor*3} %>
 
 </section>
 

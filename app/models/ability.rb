@@ -46,8 +46,8 @@ class Ability
     can :index, Artists::Merges::ArtistWithIdsController
 
     can :manage, :session
-    can :read, [HaramiVid, Music, Artist]
-    can :show, [EventGroup, Event]
+    can :read, [HaramiVid, Music, Artist, Event]
+    can :show, [EventGroup]
     #can :read, :all   # permissions for every user, even if not logged in
     #can :read, [Artist, Music, Country, Prefecture, Place, Genre]
     can :show, Prefecture

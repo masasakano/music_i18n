@@ -41,7 +41,7 @@
 
   <div>
   <dt><strong><%= t("events.Duration") %> [<%= t(:hour) %>]:</strong></dt>
-    <dd><%= event.duration_hour %>
+    <dd><%= event.duration_hour.present? ? ("%.3g" % event.duration_hour) : "" %>
       <%= editor_only_safe_html(:pass, method: can_update_gen, tag: "span") do %>
         <%= html_consistent_or_inconsistent((false != @event.period_consistent_with_parent_about?(:duration_hour)),
                postfix: " with EventGroup".html_safe) %>  <%# defined in application_helper.rb %>
@@ -51,15 +51,18 @@
 
   <div>
   <dt><strong>
-        <%= t("events.n_event_items_long") %>
-      / <%= t("tables.n_harami_vids_long") %>
+    <% canshow_evit_gen = can?(:show, EventItem) %>
+        <%= t("tables.n_harami_vids_long") %>
       / <%= t("datagrid.form.n_musics_general") %><%= ":" if !can_update_gen %>
     <%= editor_only_safe_html(:pass, method: can_update_gen, tag: "span") do %>
       / <%= t("datagrid.form.n_musics_general") %> (playing)
     <% end %>
+    <%= editor_only_safe_html(:pass, method: canshow_evit_gen, tag: "span") do %>
+      / <%= t("events.n_event_items_long") %>
+    <% end %>
   </strong></dt>
-   <dd><%= event.event_items.distinct.count %>
-      / <%= event.harami_vids.distinct.count %>
+    <dd>
+        <%= event.harami_vids.distinct.count %>
       / <%= n1 = @event.n_musics_used_in_harami_vids %> 
     <%= editor_only_safe_html(:pass, method: can_update_gen, tag: "span") do %>  <%# consistency checking %>
       / <%= n2 = @event.n_musics_played_in_harami_vids %>
@@ -67,6 +70,9 @@
         &nbsp; (← <span class="lead text-red"><strong>Inconsistent</strong></span>)
       <% end %>
       </span>
+      <%= editor_only_safe_html(:pass, method: canshow_evit_gen, tag: "span") do %>
+      / <%= event.event_items.distinct.count %>
+      <% end %>
     <% end %>
    </dd>
   </div>

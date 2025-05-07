@@ -1,6 +1,6 @@
 <% canupdate_evgr = can?(:update, EventGroup) %>
 <% my_title = (canupdate_evgr ? @event_group.title_or_alt_tuple_str(langcode: I18n.locale) : @event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true)) %>
-<h1><%= t("EventGroup") %>: <%= my_title %></h1>
+<h1><%= t("EventGroup") %>: <%= my_title %><%= h1_note_editor_only(@event_group, method: :show) %></h1>
 
 <% canupdate = can?(:update, @event_group) %>
 

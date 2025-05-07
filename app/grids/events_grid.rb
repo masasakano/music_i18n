@@ -79,6 +79,7 @@ class EventsGrid < ApplicationGrid
     ERB::Util.html_escape(record.place.pref_pla_country_str(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true)) #+ txt_caution
   end
 
+  column_n_models_belongs_to(:n_harami_vids, :harami_vids, distinct: true, mandatory: true, header: Proc.new{I18n.t('tables.n_harami_vids')})
   #column(:n_amps, tag_options: {class: ["align-cr", "editor_only"]}, header: Proc.new{I18n.t('datagrid.form.n_amps')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
   #  record.artist_music_plays.uniq.count
   #end

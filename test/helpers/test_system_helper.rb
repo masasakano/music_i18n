@@ -26,6 +26,10 @@ class ActiveSupport::TestCase
     #       'form fieldset.%s_best_translation_is_orig'
   end
 
+  TEXT_ASSERTED ||= {}.with_indifferent_access
+  TEXT_ASSERTED[:login] ||= {}.with_indifferent_access
+  TEXT_ASSERTED[:login][:signed_in] = TEXT_ASSERTED[:login][:logged_in] = "Signed in successfully"
+
   # Temporarily sets a longe wait time for the specific block (in case the machine is slow)
   #
   # To activate it, +ENV["CAPYBARA_LONGER_TIMEOUT"]+ must be set with an Integer in second.
@@ -110,13 +114,37 @@ class ActiveSupport::TestCase
   # Returns a Hash of Arrays of title-s and alt_title-s in the translation table in Show etc.
   #
   # @example
-  #    assert_includes trans_titles_in_table.values.flatten.map(&:downcase), "My own title".downcase  # defined in test_system_helper.rb
+  #    assert_includes trans_titles_in_table(langcode: "en", fallback: true).values.flatten.map(&:downcase), "My own title".downcase  # defined in test_system_helper.rb
   #
-  # @return [Hash<String => Array>] String of either title or alt_title (with_indifferent_access)
-  def trans_titles_in_table
+  # @param model [Class<ActiveRecord>, String, NilClass] model name, e.g., "harami_vid"
+  # @param langcode [String, NilClass, Symbol] langcode (locale). If nil, all languages.
+  # @param fallback [Boolean] If true (Def) and if langcode is specified, yet if no significant results are found, the results for all languages are returned.
+  # @return [Hash<String => Array>] String of either title or alt_title (in this order for keys) (with_indifferent_access)
+  def trans_titles_in_table(model: nil, langcode: nil, fallback: true)
+    css_lang = (langcode.present? ? ".lc_#{langcode}" : "")
+
+    model_singular = 
+      if model.respond_to?(:name)
+        model.name.underscore
+      elsif model.blank?
+        m = %r@^/?(?:[a-z]{2}/)?([a-z0-9_]{3,})@.match( page.current_path )
+        if !m
+          Rails.logger.error "ERROR(#{File.basename __FILE__}:#{__method__}): failed to guess the model-name, so the CSS cannot be constructed..."
+          return css_lang
+        else
+          m[1].singularize
+        end
+      else
+        model.to_s.underscore.singularize
+      end
+
     hscss = {title: [], alt_title: []}
-    hscss[:title] = find_all('section#sec_primary_trans table#all_registered_translations_harami_vid tbody tr.trans_row td.trans_title').to_a
-    hscss[:alt_title] = find_all('section#sec_primary_trans table#all_registered_translations_harami_vid tbody tr.trans_row td.trans_title').to_a
+    basecss_tr = "section#sec_primary_trans table#all_registered_translations_#{model_singular} tbody tr.trans_row"+css_lang
+    hscss[:title]     = find_all(basecss_tr+" td.trans_title").to_a
+    hscss[:alt_title] = find_all(basecss_tr+" td.trans_alt_title").to_a
+    if langcode.present? && fallback && %i(title alt_title).all?{|i| hscss[i].empty?}
+      return send(__method__, langcode: nil)
+    end
     hscss = hscss.map{|k, v| [k, v.map(&:text).map(&:strip)]}.to_h
     hscss[:alt_title].map!{|et| et.sub!(/(\s*\[.*\|.*\])?\z/, '')}
     hscss.with_indifferent_access

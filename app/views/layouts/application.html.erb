@@ -40,7 +40,7 @@
       </button>
       <div class="collapse navbar-collapse" id="navbarColor02">
         <ul class="navbar-nav me-auto">
-        <% def_editor_menus = %w(Channel EventGroup Event Harami1129 Prefecture Translation) %>
+        <% def_editor_menus = %w(Channel EventGroup Harami1129 Prefecture Translation Url) %>
         <% Rails.application.eager_load! %>
         <% ActiveRecord::Base.descendants.select{|i| !i.abstract_class? && !i.name.include?('::') && i.table_name == i.name.underscore.pluralize}.sort{|a,b| a.name <=> b.name}.each do |model| %>
           <% next if !def_editor_menus.include?(model.name) %>
@@ -97,6 +97,9 @@
           </li>
           <li class="nav-item">
             <%= link_to t('application.menu_artists'), artists_path, class: "nav-link" %>
+          </li>
+          <li class="nav-item">
+            <%= link_to t('application.menu_events'), events_path, class: "nav-link" %>
           </li>
           <li class="nav-item">
             <%= link_to t('application.about_us'), StaticPagesController.public_path('about_us'), class: "nav-link" %>
