@@ -1,0 +1,13 @@
+<%# local vars: form, (optional) record [ActiveRecord] (Def: nil) %>
+<%#   NOTE: if record is present? a simple method check is performed to make this a bit more robust. Not essential. %>
+<%# USAGE:  render partial: 'layouts/form_wiki_url', locals: {form: f, record: @artist} %>
+
+<% if !defined?(record) %>
+  <% record = nil %>
+<% end %>
+
+<% if !record || record.respond_to?(:wiki_url) %>
+  <%= form.input :wiki_url, placeholder: "https://en.wikipedia.org/wiki/Johnny_(Singer)", hint: "Full URL. Language is automatically guessed.", input_html: { class: "form_wiki_url"} %>
+<% end %>
+
+

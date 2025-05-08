@@ -625,6 +625,13 @@ class ApplicationGrid < Datagrid::Base
     end
   end
 
+  # Add column wiki_any
+  def self.column_wiki_url(header: "Wikipedia")
+    column(:wiki_any, dummy: true, mandatory: true, html: true, header: header, tag_options: {class: ["text-center"]}) do |record|
+      record.url_wiki_any
+    end
+  end 
+
   # Add column :note
   def self.column_note(**opts)
     column(:note, html: true, order: false, header: Proc.new{I18n.t("tables.note", default: "Note")}, **opts){ |record|

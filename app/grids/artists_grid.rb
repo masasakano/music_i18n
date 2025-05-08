@@ -67,6 +67,7 @@ class ArtistsGrid < ApplicationGrid
   column_n_models_belongs_to(:n_musics, :musics, distinct: false, header: Proc.new{I18n.t('tables.n_musics')})
   column_n_harami_vids    # defined in application_grid.rb
 
+  column_wiki_url         # defined in application_grid.rb
   column_note             # defined in application_grid.rb
   columns_upd_created_at(Artist)  # defined in application_grid.rb
 

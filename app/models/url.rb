@@ -199,7 +199,7 @@ class Url < BaseWithTranslation
   # @param **kwds [Hash] You can initialize any of the standard attributes of Url, plus its Translation. All are optional, and can be automatically set.
   # @return [Url] In failing, +errors+ may be set or +id+ may be nil. +domain+ may be set and +domain.notice_messages+ may be significant (to show as flash messages).
   def self.create_url_from_str(urlstr, encode: false, site_category_id: nil, url_langcode: nil, domain: nil, domain_id: nil, weight: nil, published_date: nil, last_confirmed_date: nil, note: nil, memo_editor: nil, title: nil, langcode: nil, is_orig: nil, alt_title: nil, fetch_h1: false)  # fetch_h1 is totally ignored for now!
-    raise ArgumentError, 'fetch_h1 unsupported' if fetch_h1
+    raise ArgumentError, 'positive fetch_h1 unsupported so far' if fetch_h1
     newurl = self.new(url: (encode ? ModuleUrlUtil::encoded_urlstr_if_decoded(urlstr) : urlstr),
                      url_langcode: url_langcode,
                      weight: weight,
@@ -221,18 +221,55 @@ class Url < BaseWithTranslation
     newurl  # In failing, "newurl.errors" should be set.  If successful, a Translation should have been also created.
   end
 
+  # @param urlstr [String, NilClass] this may be just a partial String like "HARAMIchan" (at the time of writing).
+  # @param assess_host_part: [Boolean] if true (Def: false) and if +urlstr+ contradicts a Wikipedia Domain, returns nil. Else, no Domain check is performed.
   # @return [Url, NilClass] {#was_found} is set.
-  def self.find_url_from_wikipedia_str(urlstr, url_langcode: nil)
-    find_url_from_str( _construct_valid_url_from_wikipedia_str(urlstr, url_langcode: url_langcode) )
+  def self.find_url_from_wikipedia_str(urlstr, url_langcode: nil, assess_host_part: false)
+    find_url_from_str( _construct_valid_url_from_wikipedia_str(urlstr, url_langcode: url_langcode, assess_host_part: assess_host_part) )
   end
 
+  # Wrapper of create_url_from_str
+  #
+  # @param assess_host_part: [Boolean] if true (Def: false) and if +urlstr+ contradicts a Wikipedia Domain, returns nil. Else, no Domain check is performed.
+  # @param urlstr [String, NilClass] this may be just a partial String like "HARAMIchan" (at the time of writing).
+  # @return [Url, NilClass]
+  def self.find_or_create_url_from_wikipedia_str(urlstr_in, url_langcode: nil, domain_id: nil, anchorable: nil, assess_host_part: false, **opts)
+    urlstr = _construct_valid_url_from_wikipedia_str(urlstr_in, url_langcode: url_langcode, assess_host_part: assess_host_part) || return
+    url = find_url_from_wikipedia_str(urlstr, url_langcode: url_langcode, assess_host_part: assess_host_part)
+    return url if url  # {#was_found} is set.
+
+    hsopts = params_for_wiki(urlstr)
+    hsopts ||= {
+      url_langcode: url_langcode,
+      domain_id: (domain_id || Domain.find_by(domain: "w.wiki")&.id),  # Integer or potentially nil.
+    }
+    if hsopts[:title].blank? && anchorable.respond_to?(:title)
+      hsopts[:title] = anchorable.title+" (Wikipedia)"  # This happens only for "w.wiki" Domain.  So, exceptionally, a postfix is appended (because we don't know exactly what the Wikipedia title would be, which can be essential in using the Wikipedia API)
+    end
+
+    opts2pass = opts.merge(indifferent_access_to_sym_keys(hsopts))
+    create_url_from_str(urlstr, **opts2pass)  # was_created? and domain_found? are set.
+  end
+
+  # Returns a valid Url String for a proper Wikipedia Url (with a scheme) or nil
+  #
+  # This method was developed to deal with the legacy wiki_ja/en attributes of Artist,
+  # which may not contain a scheme part or even domain part.  For this reason,
+  # the default of +assess_host_part+ is false, which means if the given argument is
+  # "http://example.com", the returned String will be "http://example.com" despite
+  # it is nothing like Wikipedia Url.
+  #
+  # @param urlstr [String, NilClass] this may be just a partial String like "HARAMIchan" (at the time of writing).
+  # @param url_langcode: [String, NilClass] locale
+  # @param assess_host_part: [Boolean] if true (Def: false) and if +urlstr+ contradicts a Wikipedia Domain, returns nil. Else, no Domain check is performed.
   # @return [String, NilClass] valid URL-string with a scheme or nil if blank or invalid.
-  def self._construct_valid_url_from_wikipedia_str(urlstr, url_langcode: nil)
+  def self._construct_valid_url_from_wikipedia_str(urlstr, url_langcode: nil, assess_host_part: false)
     return if urlstr.blank?
     urlstr = urlstr.strip
     url_w_scheme = ModuleUrlUtil.url_prepended_with_scheme(urlstr, invalid: nil)  # return may be nil.
     if url_w_scheme
       uri = ModuleUrlUtil.get_uri(url_w_scheme)
+      return nil if assess_host_part && !in_wikipedia?(url_w_scheme)
       # (/^([a-z]{2})\./ =~ uri.host) && url_langcode ||= $1
     elsif !url_langcode.present?
       raise "Not like Wikipedia URL (or you should specify url_langcode)."
@@ -250,25 +287,20 @@ class Url < BaseWithTranslation
   end
   private_class_method :_construct_valid_url_from_wikipedia_str
 
-  # Wrapper of create_url_from_str
-  #
-  # @return [Url, NilClass]
-  def self.find_or_create_url_from_wikipedia_str(urlstr_in, url_langcode: nil, domain_id: nil, anchorable: nil, **opts)
-    urlstr = _construct_valid_url_from_wikipedia_str(urlstr_in, url_langcode: url_langcode) || return
-    url = find_url_from_wikipedia_str(urlstr, url_langcode: url_langcode)
-    return url if url  # {#waf_found} is set.
+  # @param uri [URI, Url, Domain, String]
+  # @return [Boolean] true if the given +uri+ looks like Wikipedia's one
+  def self.in_wikipedia?(uri)
+    return ("wikipedia" == uri.site_category.mname) if uri.respond_to?(:site_category)
 
-    hsopts = params_for_wiki(urlstr)
-    hsopts ||= {
-      url_langcode: url_langcode,
-      domain_id: (domain_id || Domain.find_by(domain: "w.wiki")&.id),  # Integer or potentially nil.
-    }
-    if hsopts[:title].blank? && anchorable.respond_to?(:title)
-      hsopts[:title] = anchorable.title+" (Wikipedia)"  # This happens only for "w.wiki" Domain.  So, exceptionally, a postfix is appended (because we don't know exactly what the Wikipedia title would be, which can be essential in using the Wikipedia API)
-    end
+    # Now, either URI (Addressable::URI) or String
+    domain_str = (uri.respond_to?(:host) ? uri : (ModuleUrlUtil.get_uri_from_any(uri.to_s, invalid: nil) || (return false))).host
+    raise ArgumentError, "No proper domain-like URI (or String) is specified." if domain_str.blank?
+    return true if SiteCategory.find_by(mname: "wikipedia").domains.find_by(domain: domain_str)
+    !!(%r@^[a-z]{2}\.wikipedia\.org$@i =~ domain_str)
+  end
 
-    opts2pass = opts.merge(indifferent_access_to_sym_keys(hsopts))
-    create_url_from_str(urlstr, **opts2pass)  # was_created? and domain_found? are set.
+  def in_wikipedia?
+    self.class.send(__method__, self)
   end
 
   # Returns an Array of old Child Anchoring records

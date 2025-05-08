@@ -487,11 +487,12 @@ class ApplicationController < ActionController::Base
   # * @hsmain (for model-specific parameters) and
   # * @prms_all (ActionController::Parameters / includin all parameters permitted under the model, e.g., params[:music]).  Those in multiple layers are not permitted.
   #
-  # The caller Controler should define 2 or 3 Array constants of Symbols:
+  # The caller Controler should define 2 or 3 (and 1 more optional) Array constants of Symbols:
   #
   # * +PARAMS_MAIN_KEYS+: The attributes input in the form that agree with the form keywords
   # * +MAIN_FORM_KEYS+: The form keywords that do not exist in the attributes like :is_this_form_used
   # * +PARAMS_ARRAY_KEYS+: Key for a 1-level nested Array in params, eg., +{music: {..., engage_hows: [1,2,3]}}+.  This key **must** exist in either of the above Array constants.
+  # * +MAIN_FORM_BOOL_KEYS+: (optional) List of keys for which the attributes should be converted into a boolean or nil (from "0", "1", "", or true, "true" etc; the latters may appear in testing). Ideally, Controllers should call {#convert_param_bool} to get a boolean value and Controller-test scripts should call get_params_from_bool (defiend in test_helper.rb) for the reverse action, but we may forget...
   #
   # @param model_name [String, Symbol] model name like "event_group"
   # @param additional_keys: [Array<Symbol>] Additional keys (usually Translation related used by {#set_hsparams_main_tra})
@@ -510,6 +511,12 @@ class ApplicationController < ActionController::Base
     hsall = params.require(model_name).permit(*allkeys, **hs_array_keys)
     @hsmain = hsall.slice(*(self.class::MAIN_FORM_KEYS)).to_h  # nb, "place.prefecture_id" is ignored.
     @hsmain[:place_id] = helpers.get_place_from_params(hsall).id if !allkeys.map{|ek| ek.respond_to?(:to_sym) ? ek.to_sym : nil}.map(&:to_s).grep(/\Aplace(_id)?\z/).empty? #.include?(:place_id)   # Modified (overwritten)  # defined in application_helper.rb
+    if self.class.const_defined?(:MAIN_FORM_BOOL_KEYS)
+      self.class::MAIN_FORM_BOOL_KEYS.each do |ek|
+        next if !@hsmain.has_key?(ek)
+        @hsmain[ek] = convert_param_bool(@hsmain[ek], true_int: 1)
+      end
+    end
     @prms_all = hsall
   end
 
@@ -519,18 +526,22 @@ class ApplicationController < ActionController::Base
   #
   # @param hash [Hash]
   # @param *keys [Array<Symbol,String>]
+  # @param **opts [Hash] specify true_int (see {#convert_param_bool})
   # @return [Hash]
-  def convert_params_bool(hash, *keys)
+  def convert_params_bool(hash, *keys, **opts)
     reths = hash.dup
     keys.each do |ek|
       raise ArgumentError, "(#{File.basename __FILE__}) key=#{ek} not exists. Contact the code developer." if !reths.has_key? ek
       reths[ek] =
-        convert_param_bool(reths[ek])
+        convert_param_bool(reths[ek], **opts)
     end
     reths
   end
 
-  # Core routine of {#$convert_params_bool}
+  # Core routine of {#convert_params_bool}
+  #
+  # For a checkbox, a form returns "1" when checked. Therefore, true_int is usually "1" (!!).  So, you should explicitly specify true_int!
+  # My reverse method +get_params_from_bool+ defined in test_helper.rb defines it so, indeed.
   #
   # @param val [String, NilClass]
   # @param true_int: [Integer] Integer meaning true

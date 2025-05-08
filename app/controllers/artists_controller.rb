@@ -3,6 +3,7 @@ class ArtistsController < ApplicationController
   include ModuleCommon # for split_hash_with_keys
   include ModuleGridController # for set_grid
   include ModuleMemoEditor   # for memo_editor attribute
+  include ModuleWikiUrl  # for wiki_url fetch_h1_wiki methods
 
   skip_before_action :authenticate_user!, :only => [:index, :show]  # Revert application_controller.rb so Index is viewable by anyone.
   load_and_authorize_resource except: [:index, :show, :create]  # excludes :create and manually authorize! in __create__ (otherwise the default private method "*_params" seems to be read!)
@@ -41,7 +42,7 @@ class ArtistsController < ApplicationController
   # GET /artists/new
   def new
     @artist = Artist.new
-    params.permit(:sex_id, :place_id, :birth_year, :birth_month, :birth_day, :note)
+    #params.permit(:sex_id, :place_id, :birth_year, :birth_month, :birth_day, :note)
     @artist.sex ||= Sex.unknown
   end
 
@@ -54,7 +55,7 @@ class ArtistsController < ApplicationController
   def create
     # Parameters: {"authenticity_token"=>"[FILTERED]", "artist"=>{"langcode"=>"en", "title"=>"AI", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "place.prefecture_id.country_id"=>"3153", "place.prefecture_id"=>"", "place_id"=>"", "sex_id"=>"0", "birth_year"=>"", "birth_month"=>"", "birth_day"=>"", "note"=>""}, "commit"=>"Create Artist"}
 
-    @artist = Artist.new(@hsmain)
+    @record = @artist = Artist.new(@hsmain)
     authorize! __method__, @artist
 
     add_unsaved_trans_to_model(@artist, @hstra) # defined in application_controller.rb
@@ -69,6 +70,7 @@ class ArtistsController < ApplicationController
   # PATCH/PUT /artists/1
   # PATCH/PUT /artists/1.json
   def update
+    @record = @artist
     def_respond_to_format(@artist, :updated){
       @artist.update(@hsmain)
     } # defined in application_controller.rb

@@ -903,38 +903,6 @@ module ModuleCommon
     uri.to_s.sub(%r@\A#{Regexp.quote(uri.scheme+"://")}@, "")
   end
 
-  # [HISTORICAL] [OBSOLETE] Returns a Wikipedia URI for the specified language
-  #
-  # Based on the attributes of wiki_ja or wiki_en
-  #
-  # == WARNING
-  #
-  # This deals with Artist#wiki_ja and Artist#wiki_en which Artist used to have
-  # up to commit 9db008f (v.1.24)
-  #
-  # @param langcode [String] e.g., 'ja'
-  # @return [String, NilClass] nil if not defined
-  # @raise [NoMethodError] if "wiki_ja" etc is not defined in the model class
-  def wiki_uri(langcode)
-    main = public_send('wiki_'+langcode)
-    main.blank? ? nil : get_wiki_uri(langcode, main)
-  end
-
-  # [HISTORICAL] [OBSOLETE] Returns a Wikipedia URI for the specified language
-  #
-  # Note that wiki_en may already contain a Spanish or German link etc.
-  # In that case, langcode is ignored.
-  #
-  # @param langcode [String] e.g., 'ja'
-  # @param term [String] e.g., 'w.wiki/3cyo', 'Kohmi_Hirose'
-  # @return [String] e.g., 'https://w.wiki/3cyo', 'https://en.wikipedia.org/wiki/Kohmi_Hirose'
-  def get_wiki_uri(langcode, term)
-    return term if %r@\Ahttps?://@ =~ term
-    return 'https://'+term if %r@\A[a-z]{2}\.wikipedia\.org/@ =~ term
-    'https://' + ((%r(\.wiki/) =~ term) ? "" : langcode + '.wikipedia.org/wiki/') + term
-  end
-  private :get_wiki_uri
-
   # Removes the beginning and/or end of String constraint in Regexp
   #
   # Considers '\A', '^', '$', '\Z', '\z'

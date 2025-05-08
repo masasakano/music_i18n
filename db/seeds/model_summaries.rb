@@ -53,8 +53,8 @@ module Seeds::ModelSummaries
       en: "Domain",
     },
     DomainTitle: {
-      ja: "ドメインの名前(ドメインにエイリアスがあっても名前は唯一)",
-      en: "Title of domain (a unified name for a domain with multiple aliases)",
+      ja: "ドメインの名前(ドメインにエイリアスがあっても名前は唯一)。「www.」有無は通常エイリアス。一方、(ja|en).wikipedia.orgは内容が異なるから、別DomainTitle。",
+      en: "Title of domain (a unified name for a domain with multiple aliases). Prefixes of 'www.' or not are usually aliasses, whereas (ja|en).wikipedia.org are separate because their contents differ.",
     },
     Engage: {
       ja: "ArtistとMusicとEngageHowと年と貢献度の関係(中間DB)",

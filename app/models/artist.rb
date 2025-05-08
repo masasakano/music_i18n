@@ -102,6 +102,10 @@ class Artist < BaseWithTranslation
   validate :is_birth_date_valid?
   validate :unique_combination?
 
+  # for controller's sake
+  attr_accessor :wiki_url
+  attr_accessor :fetch_h1_wiki
+
   # Default Artist names (titles). Used in {Artist.default}
   DEF_ARTIST_TITLES = %w(ハラミちゃん HARAMIchan Harami-chan)
 

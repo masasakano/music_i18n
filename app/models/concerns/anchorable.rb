@@ -48,5 +48,23 @@ module Anchorable
     self.anchorings.reset
     ret
   end
+
+  # @return [Url] of Wikipedia link for the language
+  def url_wiki_any(locale=I18n.locale, fallback: true)
+    prime_langcode = locale&.to_s
+    langcodes = ([prime_langcode, nil] + I18n.available_locales.map(&:to_s)).uniq
+
+    # join_sql = "INNER JOIN unnest('{#{langcodes.join(',')}}'::text[]) WITH ORDINALITY t(url_langcode, ord) USING (url_langcode)"
+    # urls.joins(Arel.sql(join_sql)).order("t.ord")
+    ### This does not sort the record as expected...
+
+    url = urls.joins(:site_category).where("site_category.mname" => "wikipedia").to_a.sort_by{|url|
+      langcodes.find_index{|i| i == url.url_langcode} || Float::INFINITY
+    }.first
+    return nil if !url || !fallback && url.url_langcode.to_s != locale.to_s
+
+    lname = ((lc=url.url_langcode).present? ? get_language_name(lc, in_locale: I18n.locale) : "Default")
+    ActionController::Base.helpers.link_to(lname, url.url, target: "_blank")
+  end
 end
 

@@ -31,6 +31,9 @@ module ModuleUrlUtil
   # [Obsolete] (see above) Regular expression of a Domain to be saved in DB
   REGEXP_DOMAIN = /\A#{REGEXP_DOMAIN_CORE_STR}\z/
 
+  # The default value for the optional argument :invalid for url_prepended_with_scheme
+  DEF_INVALID_ARG_IN_URL_PREPENDED_WITH_SCHEME = :original
+
   module ClassMethods
   end
 
@@ -198,6 +201,20 @@ module ModuleUrlUtil
     domain_str.gsub(/(?<!%|%[0-9A-Fa-f])([A-Z])/){|a| $&.downcase}
   end
 
+  # Wrapper of {#get_uri} and {#url_prepended_with_scheme}, accepting even insufficient Url-like Strings (e.g., "example.com")
+  #
+  # Unlike {#get_uri}, this returns the +invalid+ value (like nil) when the given argument
+  # does not seem to constitute a valid (not URI but) URL, except when the given argument
+  # is already a URI.
+  #
+  # @param url [Url, String, NilClass]
+  # @param invalid: [NilClass, String<"">, Symbol<:original>] See {#url_prepended_with_scheme}
+  # @return [String] or nil (or any Object) if (invalid: nil) which is NOT default
+  def get_uri_from_any(url, invalid: DEF_INVALID_ARG_IN_URL_PREPENDED_WITH_SCHEME)
+    return url if url.respond_to?(:query_values) && !url.respond_to?(__method__) # i.e., Addressable::URI or URI and NOT Url
+    get_uri( url_prepended_with_scheme(url, invalid: invalid) )
+  end
+
   # Returns Addressable::URI object for any String input.
   #
   # As long as the given String constitutes a valid URI (if maybe without a scheme), 
@@ -244,7 +261,7 @@ module ModuleUrlUtil
   # @note
   #    {ApplicationHelper.parsed_uri_with_or_not} does a similar job, technically.
   #
-  # @param uri_str [String] URI-like String with/without a scheme part
+  # @param uri_str [String, NilClass] URI-like String with/without a scheme part
   # @return [Addressable::URI, NilClass] trimmed. nil if either the input is nil or the given String
   #    is so invalid to the extent to raise Addressable::URI::InvalidURIError .
   #    If the input is /^\s+$/, return is {Addressable::URI#blank?} == true
@@ -280,11 +297,12 @@ module ModuleUrlUtil
   #
   # @param url [Url, String, NilClass]
   # @param invalid: [NilClass, String<"">, Symbol<:original>] One of nil, "", and :original .
-  #    In default (:original), when the input url does not look like a valid URL, this method makes
+  #    In default (:original, as defined in {DEF_INVALID_ARG_IN_URL_PREPENDED_WITH_SCHEME}),
+  #    when the input url does not look like a valid URL, this method makes
   #     the best effort and returns a strip-ped given String.
   #    If nil or "", nil or "", respectively, is returned in such a case.
   # @return [String] or nil if (invalid: nil) (NOT default)
-  def url_prepended_with_scheme(url, invalid: :original)
+  def url_prepended_with_scheme(url, invalid: DEF_INVALID_ARG_IN_URL_PREPENDED_WITH_SCHEME)
     urlstr = (url.respond_to?(:url) ? url.url : url).to_s.strip
     uri = get_uri(urlstr)
     return uri.to_s if valid_url_like?(uri)

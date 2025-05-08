@@ -67,6 +67,7 @@
    <% end %>
   </div>
 
+  <%= render partial: 'layouts/form_wiki_url', locals: {form: f, record: place} %>
   <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: Place, skip_ability_check: true} %>
 
   <%# The following is used if a Prefecture is specified in GET for new. %>

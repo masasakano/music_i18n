@@ -728,6 +728,23 @@ class UrlTest < ActiveSupport::TestCase
     assert_equal art_title+" (Wikipedia)", url.title
   end
 
+  test "in_wikipedia" do
+    assert urls(:url_wikipedia_ja).in_wikipedia?
+    assert Url.in_wikipedia?( SiteCategory.find_by(mname: "wikipedia").domains.first )
+    assert Url.in_wikipedia?( ModuleUrlUtil.get_uri("https://en.wikipedia.org/wiki/something") )
+      # non-Wikipedia URI is not tested so far.
+
+    refute Url.in_wikipedia?( nil )
+    refute Url.in_wikipedia?( "" )
+    refute Url.in_wikipedia?( "https://example.com/wiki/something" )
+    refute Url.in_wikipedia?( "https://en.example.com/wiki/something" )
+    assert Url.in_wikipedia?( "https://w.wiki/something" )
+    assert Url.in_wikipedia?( "https://en.wikipedia.org/wiki/something" )
+    assert Url.in_wikipedia?( "https://ja.wikipedia.org/wiki/something" )
+    assert Url.in_wikipedia?( "https://de.wikipedia.org/wiki/something" )
+    
+  end
+
   private
 
     # "reverse"-action should have done nothing on anchorable#note (for whatever reason)

@@ -96,17 +96,23 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     # Creation success
     memoe = "my random memo"
     artist = nil
-    assert_difference('Artist.count', 1) do
-      hs = {
-        "langcode"=>"en",
-        "title"=>"The Tｅst",
-        "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
-        "place.prefecture_id.country_id"=>Country['JPN'].id.to_s,
-        "place.prefecture_id"=>"", "place_id"=>"",
-        "sex_id"=>Sex.unknown.id.to_s,
-        "birth_year"=>"", "birth_month"=>"", "birth_day"=>"",
-        #"music"=>"", "engage_how"=>[""],
-        "note"=>"", "memo_editor" => memoe}
+    wiki_lcode = "pt"
+    wiki_test = "https://"+wiki_lcode+".wikipedia.org/wiki/Test_Entry_(Singer_name)"
+    wiki_test_tit = "Test Entry (Singer name)"
+    hs = {
+      "langcode"=>"en",
+      "title"=>"The Tｅst",
+      "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
+      "place.prefecture_id.country_id"=>Country['JPN'].id.to_s,
+      "place.prefecture_id"=>"", "place_id"=>"",
+      "sex_id"=>Sex.unknown.id.to_s,
+      "birth_year"=>"", "birth_month"=>"", "birth_day"=>"",
+      "wiki_url"=>wiki_test,  # used on create only
+      "fetch_h1_wiki"=>get_params_from_bool(false),  # defined in test_helper.rb
+      #"music"=>"", "engage_how"=>[""],
+      "note"=>"", "memo_editor" => memoe}
+
+    assert_difference('DomainTitle.count*10000 + Domain.count*1000 + Url.count*100 + Anchoring.count*10 + Artist.count', 11111) do
       post artists_url, params: { artist: hs }
       assert_response :redirect
       artist = Artist.last
@@ -118,6 +124,19 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 'Test, The', artist.title
     assert_equal 'en', artist.orig_langcode
     assert artist.place.covered_by? Country['JPN']
+
+    follow_redirect!
+    flash_regex_assert(/Url record created/i, "from ArtistsController: ")
+    flash_regex_assert(/Successfully created Anchoring/i, "from ArtistsController: ")
+    assert_equal 1, artist.urls.count
+    url = artist.urls.first
+    assert_equal wiki_test,     url.url
+    assert_equal wiki_lcode,    url.url_langcode
+    assert_equal wiki_test_tit, url.title
+
+    # should fail gracefully
+    post artists_url, params: { artist: hs }
+    assert_response :unprocessable_entity
   end
 
   test "should fail/succeed to get edit" do

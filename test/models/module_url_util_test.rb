@@ -93,6 +93,13 @@ class ModuleUrlUtilTest < ActiveSupport::TestCase
     # str = "urn:isbn:0451450523"  # a valid URI
     # u = get_uri(str)
     # assert_equal ["https", "urn:isbn", 451450523, "", nil, nil], [u.scheme, u.host, u.port, u.path, u.query, u.fragment]  # no path but a significant port (BECAUSE "https://" is internally prepended!)
+
+    str = "invalidcom"
+    assert(u = get_uri(str))
+    assert_equal str, u.host
+    refute(get_uri_from_any(str, invalid: nil))
+    assert(get_uri_from_any(Url.first, invalid: nil))
+    assert(get_uri_from_any(Url.last, invalid: nil))
   end
 
   test "valid_url_like?" do
@@ -182,4 +189,5 @@ class ModuleUrlUtilTest < ActiveSupport::TestCase
     assert_equal enc, encoded_urlstr_if_decoded(dec)
     assert_equal enc, encoded_urlstr_if_decoded(enc)
   end
+
 end

@@ -136,6 +136,11 @@ class ActiveSupport::TestCase
   #
   # The input should be String.
   #
+  # My reverse method +convert_param_bool+ defined in application_controller.rb
+  # works in the opposite way in default...  So, you may calle it, explicitly specifying +true_int+ optional parameter like:
+  #
+  #    convert_param_bool(params[:models][my_param], true_int: 1)
+  #
   # @param prmval [String, NilClass] params['is_ok']
   # @return [Boolean, NilClass]
   def get_params_from_bool(val)
