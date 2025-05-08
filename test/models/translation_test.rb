@@ -814,5 +814,16 @@ class TranslationTest < ActiveSupport::TestCase
     #tra = Translation.new(langcode: "en", title: "The RubyRail", alt_title: "RubyRail, The", translatable: kampai)
     #refute tra.save, "title==alt_title should not be allowed, but..."
   end
+
+  test "ALLOW_IDENTICAL_TITLE_ALT" do
+    sex = Sex.create_basic!(iso5218: 999, title: "A・RA・SHI", langcode: "en", is_orig: true)
+    sex.translations << (tra=Translation.new(title: "A.Ra.Shi", langcode: "ja", is_orig: false))
+    result = nil
+    assert_nothing_raised{
+      result = tra.update(title: "A・RA・SHI", alt_title:  "A・RA・SHI") }
+    refute result
+    Sex.const_set(:ALLOW_IDENTICAL_TITLE_ALT, true)
+    assert tra.update(title: "A・RA・SHI", alt_title:  "A・RA・SHI")
+  end
 end
 

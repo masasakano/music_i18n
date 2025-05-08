@@ -221,7 +221,7 @@ class Translation < ApplicationRecord
     # @see https://stackoverflow.com/questions/74403065/how-to-find-records-in-postgresql-matching-a-combination-of-a-pair-of-nullable-s
     def _validate_unique_tit_alt_tit_pair(record)
       title, alt_title = %i(title alt_title).map{|i| record.send(i).to_s}
-      if title.present? && title == alt_title && (!record.translatable || !record.translatable.class::ALLOW_IDENTICAL_TITLE_ALT)
+      if title.present? && title == alt_title && (!record.translatable || !record.translatable.class.const_defined?(:ALLOW_IDENTICAL_TITLE_ALT) || !record.translatable.class::ALLOW_IDENTICAL_TITLE_ALT)
         record.errors.add :base, "title and alt_title must differ."
         return
       end
