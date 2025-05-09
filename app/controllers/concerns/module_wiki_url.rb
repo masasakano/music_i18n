@@ -84,13 +84,13 @@ module ModuleWikiUrl
 
     anc = Anchoring.find_or_initialize_by(anchorable: @record, url: url)
     if !anc.new_record?
-      add_flash_message(:notice, "Anchoring already exists for URL=<#{url}>. No change.")
+      add_flash_message(:notice, "Anchoring already exists for URL: #{url.url}  No change.")
       return
     end
 
-    msg = sprintf(" for URL=<#{url}>")
+    msg = sprintf(" for URL %s ", url.url)
     if anc.save
-      add_flash_message(:notice, sprintf("Successfully created Anchoring (pID=\d)", anc.id)+msg)
+      add_flash_message(:notice, sprintf("Successfully created Anchoring (pID=%d)", anc.id)+msg)
     else
       add_flash_message(:alert, sprintf("Failed to create Anchoring%s. Errors: %s", msg, anc.errors.messages.inspect))
     end

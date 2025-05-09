@@ -4,6 +4,7 @@ class PlacesController < ApplicationController
   include ApplicationHelper
   include ModuleGridController # for set_grid
   include ModuleMemoEditor   # for memo_editor attribute
+  include ModuleWikiUrl  # for wiki_url fetch_h1_wiki methods
 
   #before_action :set_place, only: [:show, :edit, :update, :destroy]
   load_and_authorize_resource
@@ -48,7 +49,7 @@ class PlacesController < ApplicationController
 
     hsmain = params[:place].slice(*MAIN_FORM_KEYS)
     # pref = (pref_id_str.blank? ? nil : Prefecture.find(params[:place][:prefecture].to_i))
-    @place = Place.new(**(hsmain.merge({prefecture_id: params[:place][:prefecture].to_i})))
+    @record = @place = Place.new(**(hsmain.merge({prefecture_id: params[:place][:prefecture].to_i})))
     %w(prev_model_name prev_model_id).each do |metho|
       @place.send( metho+"=", params.require(:place).permit(metho)[metho] )
     end
@@ -66,6 +67,7 @@ class PlacesController < ApplicationController
   # PATCH/PUT /places/1
   # PATCH/PUT /places/1.json
   def update
+    @record = @place
     def_respond_to_format(@place, :updated){
       @place.update(place_params)
     } # defined in application_controller.rb

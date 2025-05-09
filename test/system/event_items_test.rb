@@ -65,6 +65,7 @@ class EventItemsTest < ApplicationSystemTestCase
     fill_in "Email", with: @editor_harami.email
     fill_in "Password", with: '123456'  # from users.yml
     click_on "Log in"
+    assert_text "Signed in successfully"
 
     visit event_item_url(@event_item)
     click_on "Edit this EventItem", match: :first

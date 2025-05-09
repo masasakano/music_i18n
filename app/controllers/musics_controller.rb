@@ -3,6 +3,7 @@ class MusicsController < ApplicationController
   include ModuleCommon # for split_hash_with_keys
   include ModuleGridController # for set_grid
   include ModuleMemoEditor   # for memo_editor attribute
+  include ModuleWikiUrl  # for wiki_url fetch_h1_wiki methods
 
   skip_before_action :authenticate_user!, :only => [:index, :show]  # Revert application_controller.rb so Index is viewable by anyone.
   load_and_authorize_resource except: [:index, :show, :new, :create]  # excludes :new and :create and manually authorize! in the methods (otherwise the default private method "*_params" seems to be read!)
@@ -13,6 +14,7 @@ class MusicsController < ApplicationController
   # Symbol of the main parameters in the Form (except "place_id"), which exist in DB
   MAIN_FORM_KEYS ||= []
   MAIN_FORM_KEYS.concat(%w(year genre_id note))
+  MAIN_FORM_KEYS.concat(%w(artist_name engage_hows year_engage contribution))
 
   # Permitted main parameters for params(), used for update and create
   PARAMS_MAIN_KEYS = ([
@@ -55,7 +57,7 @@ class MusicsController < ApplicationController
   def create
     # Parameters: {"authenticity_token"=>"[FILTERED]", "music"=>{"langcode"=>"ja", "is_orig"=>"nil", "title"=>"The Lunch Time", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "place.prefecture_id.country_id"=>"", "place.prefecture_id"=>"", "place_id"=>"", "genre_id"=>"", "year"=>"", "note"=>"", "artist_name"=>"", "year_engage"=>"", "engage_hows"=>["", "592497512", "746859435"], "contribution"=>""}, "commit"=>"Create Music"}
 
-    @music = Music.new(@hsmain)
+    @record = @music = Music.new(@hsmain)
     authorize! __method__, @music
     add_unsaved_trans_to_model(@music, @hstra) # defined in application_controller.rb
 
@@ -105,6 +107,7 @@ class MusicsController < ApplicationController
   def update
     # Parameters: {"authenticity_token"=>"[FILTERED]", "music"=>{"place.prefecture_id.country_id"=>"", "place.prefecture_id"=>"", "place_id"=>"", "genre_id"=>"", "year"=>"", "note"=>""}, "commit"=>"Create Music"}
 
+    @record = @place
     def_respond_to_format(@music, :updated){
       @music.update(@hsmain)
     } # defined in application_controller.rb

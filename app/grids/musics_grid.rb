@@ -62,6 +62,7 @@ class MusicsGrid < ApplicationGrid
 
   column_n_harami_vids    # defined in application_grid.rb
 
+  column_wiki_url         # defined in application_grid.rb
   column_note             # defined in application_grid.rb
   columns_upd_created_at(Music)  # defined in application_grid.rb
 

@@ -106,7 +106,8 @@ class MusicsTest < ApplicationSystemTestCase
 
     # Test of dropdown-menu
     assert_selector 'div#div_select_country', text: "Country"
-    assert_selector 'div#div_select_prefecture', visible: :hidden
+    #assert_selector 'div#div_select_prefecture', visible: :hidden
+    assert_selector 'div#div_select_place div.form-group.music_place', visible: :hidden
 
     # Music#new page
     assert_selector "h1", text: "New Music"
@@ -114,22 +115,28 @@ class MusicsTest < ApplicationSystemTestCase
     fill_autocomplete('Associated Artist name', with: 'RCサクセ', select: 'RCサクセション')  # defined in test_helper.rb
     assert_equal 'RCサクセション', find_field('Artist name').value
 
-    select_form_eh = page.find('form div.field select#music_engage_hows')
-    select_form_eh.select('Arranger')
-    select_form_eh.select('Conductor')
+    # select_form_eh = page.find('form div.field select#music_engage_hows')
+    # select_form_eh.select('Arranger')
+    # select_form_eh.select('Conductor')
+    check_form_eh = page.find('form fieldset.form-group.music_engage_hows')
+    # html body div#body_main section#sec_primary form#new_music.simple_form.new_music section#sec_primary_input div.register_assoc_artist div.register_assoc_artist_field fieldset.form-group.check_boxes.required.music_engage_hows div.inline input#music_engage_hows_77.form-check-input.check_boxes.required
+    check('Arranger')
+    check('Conductor')
 
     # label_str = I18n.t('layouts.new_translations.model_language', model: 'Music')
     # find_field(label_str).choose('English')  ## Does not work b/c the label is just a <span>!
-    page.find(PAGECSS[:new_trans_lang_radios]).choose('English')  # defined in test_helper.rb
+    # page.find(PAGECSS[:new_trans_lang_radios]).choose('English')  # defined in test_helper.rb  # only for old-fashioned forms
+    page.find("section#form_edit_translation fieldset.form-group.radio_buttons.music_langcode").choose('English')  # for siple_form
 
     tit1 = 'Tekitoh___1'
     fill_in_new_title_with(Music, tit1)  # defined in test_system_helper.rb
 
     assert     find_field('Country')
     assert_selector    'form div#div_select_country'
-    assert_selector    'form div#div_select_prefecture', visible: :hidden
-    assert_no_selector 'form div#div_select_prefecture'  # display: none
-    assert_no_selector 'form div#div_select_place'       # display: none
+    #assert_selector    'form div#div_select_prefecture', visible: :hidden
+    #assert_no_selector 'form div#div_select_prefecture'  # display: none
+    #assert_no_selector 'form div#div_select_place'       # display: none  # only for old-fashioned forms
+    assert_no_selector 'div#div_select_place div.form-group.music_place' ## , visible: :hidden (for CSS display: none)  # for siple_form
 
     #selector = %Q{form div#div_select_country select option:contains("Japan")}
     #page.execute_script %Q{ $('#{selector}').trigger('mouseenter').click() }

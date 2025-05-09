@@ -11,6 +11,7 @@
 <h2>Unique parameters</h2>
 <% end %>
 
+<% if false %> <%# ################################################# %>
 <%= form_with(model: music, local: true, id: "form_musics_new_primary") do |form| %>
 
  <section id="sec_primary_input">
@@ -103,6 +104,66 @@
   </div>
  </section> <%# Closing section id="sec_primary_input" %>
 <% end %>
+<% else %> <%# ################################################# %>
+
+<%= simple_form_for music, id: "form_musics_new_primary" do |f| %>
+ <section id="sec_primary_input">
+  <% if music.new_record? %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: music, trans: Translation.new, disable_is_orig: true, is_simple_form: true} %>
+  <% end %>
+
+  <%= render partial: "layouts/select_country_prefecture_place", locals: {form: f, model: music, is_simple_form: true} %>
+
+  <% collec = Genre.order(:weight).map {|es| [es.title(langcode: I18n.locale, lang_fallback: true), es.id] } %>
+  <%= f.association :genre, label: t('Genre'), required: true, multiple: false, include_blank: true, collection: collec %>
+  <%= f.input :year,  label: t('Year_Title'), placeholder: 'e.g., 1999',  as: :integer, input_html: {class: ['input_year']} %>
+
+  <%= render partial: 'layouts/form_wiki_url', locals: {form: f, record: music} %>
+  <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: Artist, skip_ability_check: true} %>
+
+
+  <% if music.new_record? %>
+    <div class="register_assoc_artist">
+    <h4><%= t('layouts.new_musics.assoc_artist_head') %></h4>
+      <% if !@artist_name  %>
+        <div class="new_artist_link"><p>(<%= t('layouts.new_musics.note_new_artist') %><%= link_to(t('layouts.new_musics.create_new_artist'), new_artist_path, target: "_blank") %>) </p></div>
+      <% end%>
+    <div class="register_assoc_artist_field">
+      <% label_artist = sprintf '%s %s', t('layouts.new_musics.associated_artist_name'), (music.new_record? ? '' : 'to add ')%>
+      <% if @artist_name  %>
+        <%= f.input :artist_name, dummy: true, label: label_artist, input_html: {"data-1p-ignore": true, value: @artist_name, readonly: true} %>
+        <%# form.text_field 'artist_name', value: @artist_name, readonly: true, "data-1p-ignore": true %>
+      <% else %>
+        <%= f.input :artist_name, dummy: true, label: label_artist, placeholder: 'eg., "欅坂46", "Beatles, The", "The Beatles"', input_html: {"data-1p-ignore": true} %>
+        <%# form.text_field 'artist_name', placeholder: 'eg., "欅坂46", "Beatles, The", "The Beatles"', "data-1p-ignore": true %>
+        <%= content_tag :div, '', id: 'suggestions', data: {items: Artist.titles_for_form} %>
+      <% end%>
+
+      <% collec = EngageHow.order(:weight).map{|es| [es.title(langcode: I18n.locale, lang_fallback: true, str_fallback: "NONE"), es.id] } %>
+      <%= f.input :engage_hows, label: 'EngageHow('+t('layouts.new_musics.allow_multi')+')', required: true, as: :check_boxes, multiple: true, include_blank: true, collection: collec, item_wrapper_class: 'inline', checked: music.engage_hows %>
+      <%# form.collection_select :engage_hows, EngageHow.all.order(:weight), :id, Proc.new{|i| i.title(langcode: I18n.locale, str_fallback: "NONE")}, {include_blank: true}, {multiple: true} %> <%# If left empty (instead of "NONE"), it would violate the HTML spec: Element “option” without attribute “label” must not be empty. %>
+
+    <div class="field music_year_engage">
+      <%# s_help = t('layouts.new_musics.year_engagement_hint'); form.label :year_engage, t('layouts.new_musics.year_engagement'), title: s_help %>
+      <%# form.number_field :year_engage, class: 'input_year', placeholder: music.year, title: s_help %>
+      <%= f.input :year_engage, label: t('layouts.new_musics.year_engagement'), hint: t('layouts.new_musics.year_engagement_hint'), placeholder: music.year, input_html: {class: ['input_year']} %>
+    </div>
+
+      <%# s_help = t('attr.contribution_hint'); form.label :contribution, t('attr.contribution')+'(0.0-1.0)', title: s_help %>
+      <%# form.text_field :contribution, placeholder: s_help, class: 'input_float' %>
+      <%= f.input :contribution, label: t('attr.contribution'), hint: t('attr.contribution_hint'), input_html: {class: ['input_float']} %>
+    </div>
+    </div>
+  <% end %>
+
+  <%= f.submit %>
+  <div class="actions">
+  <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  </div>
+ </section> <!-- section id="sec_primary_input" -->
+<% end %>
+
+<% end %> <%# ################################################# %>
 
 <%= render partial: 'layouts/link_merge_destroy', locals: {model: music, is_to_edit: !music.new_record? } %>
 </section> <%# Closing section id="sec_primary" %>

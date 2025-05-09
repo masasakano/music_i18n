@@ -55,6 +55,10 @@ class Place < BaseWithTranslation
   has_many :events
   has_many :events_thru_event_items, -> {distinct}, through: :event_items, source: :event
 
+  # for controller's sake
+  attr_accessor :wiki_url
+  attr_accessor :fetch_h1_wiki
+
   UnknownPlace = {
     "en" => 'UnknownPlace',
     "ja" => 'どこかの場所',

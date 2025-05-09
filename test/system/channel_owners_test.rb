@@ -50,6 +50,7 @@ class ChannelOwnersTest < ApplicationSystemTestCase
     fill_in "Email", with: @moderator_gen.email
     fill_in "Password", with: '123456'  # from users.yml
     click_on "Log in"
+    assert_text "Signed in successfully"
 
     visit channel_owners_url
     n_records_be4 = page.all("div#channel_owners table tr").size - 1

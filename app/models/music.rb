@@ -76,6 +76,14 @@ class Music < BaseWithTranslation
 
   validates :year, numericality: { allow_nil: true, greater_than: 0, message: "(%{value}) must be positive." }
 
+  # for controller's sake
+  attr_accessor :artist_name
+  attr_accessor :engage_hows
+  attr_accessor :year_engage
+  attr_accessor :contribution
+  attr_accessor :wiki_url
+  attr_accessor :fetch_h1_wiki
+
   UNKNOWN_TITLES = UnknownMusic = {
     "ja" => '何かの曲',
     "en" => 'UnknownMusic',

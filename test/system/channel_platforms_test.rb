@@ -32,7 +32,7 @@ class ChannelPlatformsTest < ApplicationSystemTestCase
   end
 
   test "should create channel platform" do
-    newchan = "New Channel Platform"
+    newchan = "Create ChannelPlatform"
     visit new_channel_platform_url  # direct jump -> fail
     refute_text newchan
     assert_text "You need to sign in or sign up"
@@ -42,7 +42,11 @@ class ChannelPlatformsTest < ApplicationSystemTestCase
     fill_in "Password", with: '123456'  # from users.yml
     click_on "Log in"
 
+    assert_text "Signed in successfully"
+    assert_text "New Channel Platform"
+
     visit channel_platforms_url
+    assert_text "Channel Platforms"
     n_records_be4 = page.all("div#channel_platforms table tr").size - 1
     click_on "New ChannelPlatform"
 
@@ -55,7 +59,7 @@ class ChannelPlatformsTest < ApplicationSystemTestCase
 
     assert_text "prohibited"
     assert_text "Mname has already been taken"
-    assert_selector "h1", text: newchan
+    assert_selector "h1", text: "New Channel Platform"
 
     ############ Language-related values in the form have disappered after failed save!
     page.find('form div.field.radio_langcode').choose('English')

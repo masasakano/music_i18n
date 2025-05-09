@@ -41,6 +41,7 @@ class PlacesGrid < ApplicationGrid
   #   record.musics.uniq.count
   # end
 
+  column_wiki_url         # defined in application_grid.rb
   column_note             # defined in application_grid.rb
   columns_upd_created_at(Place)  # defined in application_grid.rb
 
