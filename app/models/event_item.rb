@@ -55,6 +55,7 @@ class EventItem < ApplicationRecord
        # This means you should merge the EventItem to another or something before destroy.
   has_many :harami_vids, -> {distinct}, through: :harami_vid_event_item_assocs  # if the unique constraint is on for Association, `distinct` is redundant
   has_many :harami1129s, dependent: :restrict_with_exception  # dependent is a key
+  has_many :harami_vid_music_assocs, through: :harami_vids  # The other route is via :artist_music_plays via :musics
 
   validates_presence_of   :machine_title
   validates_uniqueness_of :machine_title
