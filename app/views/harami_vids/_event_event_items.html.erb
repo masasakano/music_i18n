@@ -8,10 +8,11 @@
    end %>
 
 <%= turbo_frame_tag "show_events_"+dom_id(@harami_vid) do %>
-    <% sorted_event_event_items = sorted_event_event_items_by_timing(@harami_vid, @event_event_items) if sorted_event_event_items.blank? %> <%# defined in app/helpers/harami_vids_helper.rb %>
+    <% sorted_event_event_items = sorted_event_event_items_by_timing(@harami_vid, @event_event_items) if sorted_event_event_items.blank? %> <%# defined in app/helpers/harami_vids_helper.rb, sorting the varible by Music timing %>
     <% def_artist = Artist.default(:HaramiVid) %>
     <% canindex_evit = can? :index, EventItem %>
     <% canread_h1129 = can? :read, Harami1129 %>
+    <% canedit_hvid_gen = can?(:edit, HaramiVid) %>
     <% canedit_hvid = can? :edit, @harami_vid %>
     <% canedit_evt = can? :edit, Event %>
     <% if !from_non_turbo && canedit_hvid %>  <%#  flash messages  %>
@@ -19,7 +20,7 @@
       <%= render partial: "/layouts/flash_display" %>
     <% end %>
     <ul>
-    <% evevits = sorted_event_event_items.map{|ek, ev| [Event.find(ek), ev] }.to_h %> <%# defined in HaramiVidsHelper, sorting the varible by Music timing %>
+    <% evevits = sorted_event_event_items.map{|ek, ev| [Event.find(ek), ev] }.to_h %>
     <% evevits.each_pair do |event, ar_event_items| %>
       <li>
         <% event_title = event.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>
@@ -37,7 +38,7 @@
           <% ar_event_items.sort{|a,b|
                res = ((a.weight ? a.weight : Float::INFINITY) <=> (b.weight ? b.weight : Float::INFINITY))
                next res if res != 0
-               res = ((a.start_time ? a.start_time : Float::INFINITY) <=> (b.start_time ? b.start_time : Float::INFINITY))
+               res = ((a.start_time ? a.start_time : TimeAux::DEF_LAST_DATE_TIME) <=> (b.start_time ? b.start_time : TimeAux::DEF_LAST_DATE_TIME))
                next res if res != 0
                res = ((a.start_time_err ? a.start_time_err : Float::INFINITY) <=> (b.start_time_err ? b.start_time_err : Float::INFINITY))
              }.each_with_index do |event_item, eii| %>
@@ -63,10 +64,10 @@
               <%= t("harami_vids.show.artist_collabs", default: "featuring Artists") %>
               (<%= show_list_featuring_artists(event_item) %>)  <%# defined in harami_vids_helper.rb %>
                <% if @harami_vid.release_date && event_item.start_time && event_item.start_time_err && (event_item.start_time_err < 604800) %>
-                 (<%= date2text(event_item.start_time.to_date) %>) <%# defined in ModuleCommon %>
+                 (<%= date2text(event_item.start_time.to_date) rescue "NONE" %>) <%# defined in ModuleCommon; rescue only in unlikely cases of EventTime#start_time of nil %>
                <% elsif canedit_evt %>
                  <span class="editor_only">
-                 (<%= date2text(event_item.start_time.to_date) %>) <%# defined in ModuleCommon %>
+                 (<%= date2text(event_item.start_time.to_date) rescue "NONE" %>) <%# defined in ModuleCommon %>
                  </span>
                <% end %>
               <span class="text-nowrap">
@@ -100,20 +101,36 @@
               <% if 0 != n_amps %>  <%# if event_item.artist_music_plays.exists? %>
                 <%= render partial: "layouts/artist_music_plays", locals: {artist_music_plays: event_item.artist_music_plays, harami_vid: @harami_vid} %>
               <% end %>
-              <% if canedit_hvid && !(all_missings=missing_musics_from_evits(harami_vid: @harami_vid, artist: def_artist)).empty? %>
+              <% if canedit_hvid && (missing_musics=@harami_vid.missing_musics_from_amps(artist: def_artist)).exists? %>
                 <div class="add_missing_musics editor_only">
+                 <section id="missing_musics_from_amps_event_item_<%= event_item.id %>" class="missing_musics_from_amps"> 
                   <p class="add_missing_musics editor_only lead"><strong>Missing Musics in EventItem-<%= def_artist.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></strong></p>
-                  <%  set_missing_music_ids(all_missings, harami_vid: @harami_vid) %> <%# defined in HaramiVids::AddMissingMusicToEvitsHelper %>
+                  <% @harami_vid.missing_music_ids = missing_musics.ids %>
                   <%= simple_form_for @harami_vid, method: :patch, url: harami_vids_add_missing_music_to_evit_url(@harami_vid) do |f1| %>
                     <%= f1.simple_fields_for :add_missing_music_to_evit do |f2| %>
                       <%= f2.input :musics_event_item_id, as: :hidden, input_html: { value: event_item.id } %>
-                      <%# f2.input :missing_music_ids, as: :check_boxes, collection: collection_missing_musics(all_missings), multiple: true, item_wrapper_class: 'inline' %> <%# defined in HaramiVids::AddMissingMusicToEvitsHelper %>
-                      <%= f2.collection_check_boxes :missing_music_ids, collection_missing_musics(all_missings), :last, :first, checked: @harami_vid.missing_music_ids %> <%# defined in HaramiVids::AddMissingMusicToEvitsHelper %>
+                      <%# f2.input :missing_music_ids, as: :check_boxes, collection: collection_missing_musics(missing_musics), multiple: true, item_wrapper_class: 'inline' %> <%# defined in HaramiVids::AddMissingMusicToEvitsHelper %>
+                      <%= f2.collection_check_boxes :missing_music_ids, collection_missing_musics(missing_musics), :last, :first, checked: @harami_vid.missing_music_ids %> <%# defined in HaramiVids::AddMissingMusicToEvitsHelper %>
                     <% end %>
                     <%= f1.submit sprintf("Add Musics to this EventItem (%s) for %s", event_item.id, def_artist.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)) %>
                   <% end %>
+                 </section>
                 </div>
               <% end %>
+
+              <% if canedit_hvid_gen && (missing_musics=@harami_vid.missing_musics_from_hvmas(event_item: event_item)).exists? %>
+                <div class="add_missing_musics editor_only">
+                 <section id="missing_musics_from_hvmas_event_item_<%= event_item.id %>" class="missing_musics_from_hvmas editor_only"> 
+                  <p class="add_missing_musics editor_only lead"><strong>Missing Musics in HaramiVidMusicAssocs</strong></p>
+                  <ul>
+                    <% missing_musics.each do |music| %>
+                      <li><%= link_to music.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "NONE"), music %></li>
+                    <% end %>
+                  </ul>
+                 </section>
+                </div>
+              <% end %>
+
               <% if !from_non_turbo && canedit_hvid %>
                 <%= render partial: 'layouts/form_print_errors', locals: {model: @harami_vid, error_explanation_for_class: true} %>
                 <%= render partial: "/layouts/flash_display" %>

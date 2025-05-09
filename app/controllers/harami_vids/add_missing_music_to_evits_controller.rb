@@ -6,7 +6,7 @@ class HaramiVids::AddMissingMusicToEvitsController < ApplicationController
   before_action :set_event_item
 
   def show
-    set_missing_music_ids(harami_vid: @harami_vid)
+    @harami_vid.missing_music_ids = @harami_vid.missing_musics_from_amps
   end
 
   def update

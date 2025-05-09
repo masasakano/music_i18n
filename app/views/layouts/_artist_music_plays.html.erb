@@ -29,7 +29,7 @@
      if no_sort
        artist_music_plays
      else
-       hvma_joined_artist_music_plays(artist_music_plays, db_columns, harami_vid: harami_vid)
+       hvma_joined_artist_music_plays(artist_music_plays, db_columns, harami_vid: harami_vid)  # should be uniq-qued
      end
 %> <%# HaramiVidMusicAssocs-joined relation; defined in artist_music_plays_helper.rb %>
 <%
@@ -96,7 +96,7 @@
       <% if distinguished_artist %>
         <tr><th colspan="<%= allcolspan %>" class="text-center">For <%= (0 == i_rela) ? "this Artist" : "the other Artists" %></th></tr>
       <% end %>
-      <% rela.uniq.each_with_index do |amp, i_amp| %>
+      <% rela.uniq.each_with_index do |amp, i_amp| %> <%# uniq is essential (as distinct would not work) %>
         <tr>
          <% if canedit_hvid %>
           <td class="editor_only text-end"><%= amp.id %></td>

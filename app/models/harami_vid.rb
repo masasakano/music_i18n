@@ -206,6 +206,10 @@ class HaramiVid < BaseWithTranslation
   # @param strict [Boolean[  see above.
   def is_place_all_consistent?(strict: true)
     return false if !place
+    if event_items.pluck(:place_id).any?(&:nil?) || events.pluck(:place_id).any?(&:nil?)
+      # in unlikely cases of EventItem#place or Event#place being nil (should never happen)
+      return !strict
+    end
 
     evit_plas, ev_plas =
       [event_items.left_joins(:place),
@@ -1075,6 +1079,43 @@ class HaramiVid < BaseWithTranslation
     self.uri = normalized_uri
   end
  
+  # (distinct) Musics that exist in HaramiVidMusicAssocs but not in ArtistMuscPlays
+  #
+  # Kind of reverse of {#missing_musics_from_hvmas}
+  #
+  # @param artist [Artist] if specified, returns the missing Musics from ArtistMuscPlays for the Artist
+  # @return [Music::ActiveRecord_Relation]
+  def missing_musics_from_amps(artist: nil)
+    amp_rela = Music.joins(artist_music_plays: {event_item: :harami_vid_event_item_assocs}).where("harami_vid_event_item_assocs.harami_vid_id" => id)
+    amp_rela = amp_rela.where("artist_music_plays.artist_id" => artist.id) if artist
+    existing_ids = amp_rela.distinct.ids
+    ## NOTE: self.musics.where.not(...) would raise:  PG::InvalidColumnReference: ERROR:  for SELECT DISTINCT, ORDER BY expressions must appear in select list
+    Music.joins(:harami_vid_music_assocs).where("harami_vid_music_assocs.harami_vid_id" => id).where.not("musics.id" => existing_ids).distinct
+  end
+
+ 
+  # (distinct) Musics that exist in ArtistMuscPlays but not in HaramiVidMusicAssocs
+  #
+  # Kind of reverse of {#missing_musics_from_amps}
+  #
+  # @param event_item [EventItem] if specified, returns the missing Musics from ArtistMuscPlays for the EventItem
+  # @return [Music::ActiveRecord_Relation]
+  def missing_musics_from_hvmas(event_item: nil)
+    existing_ids = Music.joins(:harami_vid_music_assocs).where("harami_vid_music_assocs.harami_vid_id" => id).distinct.ids
+    hs_where = {"harami_vid_event_item_assocs.harami_vid_id": id}
+    hs_where.merge!( {"event_items.id": event_item.id} )  if event_item
+    Music.joins(artist_music_plays: {event_item: :harami_vid_event_item_assocs}).where(**hs_where).where.not("musics.id" => existing_ids).distinct
+  end
+
+  # Total number of inconsistent Musics for self
+  #
+  # @example to find all HaramiVids with inconcistency
+  #    HaramiVid.all.find_all{|record| record.n_inconsistent_musics > 0}
+  #
+  # @return [Integer]
+  def n_inconsistent_musics
+    missing_musics_from_amps.count + missing_musics_from_hvmas.count
+  end
 
   private    ################### Callbacks
 

@@ -37,6 +37,7 @@ class ArtistMusicPlay < ApplicationRecord
   belongs_to :music
   belongs_to :play_role
   belongs_to :instrument
+  has_many :harami_vid_event_item_assocs, through: :event_item
   delegate :harami_vids, to: :event_item
 
   attr_accessor :to_destroy  # dummy accessor for simple_form

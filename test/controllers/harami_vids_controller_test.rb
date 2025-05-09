@@ -1389,6 +1389,122 @@ end
     w3c_validate "HaramiVid edit"  # defined in test_helper.rb (see for debugging help)
   end
 
+  ### show event-items
+  test "should show event-item tables right" do
+    art0  = Artist.default(:HaramiVid)
+    art1  = Artist.default(:artist_ai)
+    pr0   = PlayRole.default(:HaramiVid)
+    pr1   = play_roles(:play_role_singer)
+    inst0 = instruments(:instrument_piano)
+    inst1 = instruments(:instrument_vocal)
+
+    hvid = harami_vids(:harami_vid5)  # sort of blank HaramiVid
+    assert hvid.musics.blank?,  'test fixtures'
+    assert hvid.event_items.blank?,  'test fixtures'
+
+    evit = event_items(:evit_three_single_streets_unknown)
+    event = evit.event
+
+    assert evit.artist_music_plays.blank?,  'test fixtures'
+    hvid.update!(place: evit.place)   # just to make it consistent.
+
+    # prepares HaramiVidMusicAssoc-s
+    mus = [musics(:music1), musics(:music2), musics(:music3)]
+    hvmas = []
+    mus.each do |emu|
+      hvid.musics << emu
+      hvmas << HaramiVidMusicAssoc.find_by(harami_vid: hvid, music: emu)
+    end
+    assert_equal 3, hvid.musics.count
+
+    hvmas[0].update!(timing: nil)
+    hvmas[1].update!(timing: 300)
+    hvmas[2].update!(timing: 600)
+
+    assert_equal 2, hvid.harami_vid_music_assocs.pluck(:timing).flatten.compact.size
+
+    # prepares HaramiVidEventItemAssoc-s and ArtistMusicPlay-s
+    hvid.event_items << evit
+    assert_equal 1, hvid.event_items.count
+    opt_amps = {artist: art0, play_role: pr0, instrument: inst0}
+    opt_amps1= {artist: art1, play_role: pr1, instrument: inst1}
+
+    # 4 ArtistMusicPlay-s in total, but only 2 consistent with HaramiVidMusicAssoc-s
+    amps = []
+    amps[0] = ArtistMusicPlay.create!(event_item: evit, music: mus[0], **opt_amps)   # consistent with HVMAs
+    amps[1] = ArtistMusicPlay.create!(event_item: evit, music: mus[0], **opt_amps1)  # consistent with HVMAs
+      # mus[1] is missing from AMPs
+    amps[2] = ArtistMusicPlay.create!(event_item: evit, music: mus[2], **opt_amps)   # consistent with HVMAs
+    mu_extras = [musics(:music99), musics(:music_light)]
+    amps[3] = ArtistMusicPlay.create!(event_item: evit, music: mu_extras[0], **opt_amps) # extra
+    amps[4] = ArtistMusicPlay.create!(event_item: evit, music: mu_extras[1], **opt_amps) # extra
+    amps[5] = ArtistMusicPlay.create!(event_item: evit, music: mu_extras[1], **opt_amps1) # extra
+
+    hvid.reload
+    assert_equal amps.size, hvid.artist_music_plays.count, 'sanity check'
+
+    assert_equal 3, event.n_musics_used_in_harami_vids   # counting via HaramiVidMusicAssocs (& HaramiVidEventItemAssocs)
+    assert_equal 4, event.n_musics_played_in_harami_vids # (== mus.size-1+mu_extras.size) counting via ArtistMusicPlays (& HaramiVidEventItemAssocs)
+    # <- 2 consistent ones, and 1 unique one for the former and 2 for the latter, some with multiple AMPs
+
+    #### testing!  ####
+    #
+    ## model testing
+    assert_equal 1, hvid.missing_musics_from_amps.count
+    assert_equal 2, hvid.missing_musics_from_hvmas.count
+
+    ## controller testing
+    get harami_vid_url(hvid)
+    assert_response :success
+
+    css_music_tbody = "section#harami_vids_show_musics table#music_table_for_hrami_vid tbody"
+    assert_equal 1, css_select(css_music_tbody).size, 'sanity check'
+    assert_equal 3, css_select(css_music_tbody+" tr").size                      # 3 HaramiVidMusicAssocs
+
+    css_event_ul = "section#harami_vids_show_unique_parameters dd.item_event ul"
+    assert_equal 1, css_select(css_event_ul+" > li").size                      # One Event
+    assert_equal 1, css_select(css_event_ul+" > li ol.list_event_items").size  # One EventItem
+    css_event_item_tbody = css_event_ul+" table.artist_music_plays tbody" 
+    assert_equal amps.size, css_select(css_event_item_tbody+" tr").size  # 6 ArtistMusicPlays
+    css_missing_div = css_event_ul+" > li div.add_missing_musics"
+    assert_equal 0, css_select(css_missing_div).size, "Unauthorized should not see missing marks for Music"
+
+    sign_in @editor_harami 
+    get harami_vid_url(hvid)
+    assert_response :success
+    assert_equal 2, css_select(css_missing_div).size, css_select(css_event_ul+" > li").to_s
+    css_missing_sec1 = css_missing_div+" section.missing_musics_from_amps"
+    assert_equal 1, css_select(css_missing_sec1).size, css_select(css_event_ul+" > li").to_s
+    assert_operator 1,:<, css_select(css_missing_sec1+" input").size, css_select(css_missing_div).to_s
+    assert_equal 1, css_select(css_missing_sec1+" input[type=checkbox]").size, css_select(css_missing_div).to_s
+    css_missing_sec2 = css_missing_div+" section.missing_musics_from_hvmas"
+    assert_equal 2, css_select(css_missing_sec2+" ul li").size
+    
+    ## adds another EventItem, which should change none of the existings, but with a new row for EventItem-ArtistMusicPlay.
+    #
+    evit2 = EventItem.initialize_new_template(event, prefix="test2-{__method__}")
+    # evit2= EventItem.create!(event: event, machine_title: "test2-{__method__}")
+    evit2.save!  # EventItem has to be consistent with Event in many senses, like start_time, place, etc.  That's why EventItem.initialize_new_template() is used.
+    assert_difference('HaramiVidEventItemAssoc.count'){
+      hvid.event_items << evit2
+    }
+    assert_equal event, evit2.event, 'sanity check'  # EventItems belonging to a common Event
+    amps << ArtistMusicPlay.create!(event_item: evit2, music: mus[0], **opt_amps)  # consistent with HVMAs
+    amps << ArtistMusicPlay.create!(event_item: evit2, music: mu_extras[1], **opt_amps) # extra, the same as with evit
+
+    assert_equal 1, hvid.missing_musics_from_amps.count
+    assert_equal 2, hvid.missing_musics_from_hvmas.count
+
+    get harami_vid_url(hvid)
+    assert_response :success
+    assert_equal 4, css_select(css_missing_div).size, css_select(css_event_ul+" > li").to_s
+    assert_operator 1,:<, css_select(css_missing_sec1+" input").size, css_select(css_missing_div).to_s
+    assert_equal 2, css_select(css_missing_sec1+" input[type=checkbox]").size, css_select(css_missing_div).to_s  # +1 due to an additional EventItem/ArtistMusicPlay
+    assert_equal 3, css_select(css_missing_sec2+" ul li").size  # +1 due to the other additional EventItem/ArtistMusicPlay
+
+    sign_out @editor_harami 
+  end
+
   test "should fail to update harami_vid" do
     patch harami_vid_url(@harami_vid), params: { harami_vid: { note: 'abc' } }
   #  assert_redirected_to harami_vid_url(@harami_vid)

@@ -561,7 +561,7 @@ class Event < BaseWithTranslation
     Music.joins(harami_vids: :event_items).where("event_items.event_id" => id).distinct.count
   end 
 
-  # Number of Musics, counted through ArtistMusicPlays:  Musics -> ArtistMusicPlays -> EventItems ->  Event
+  # Number of Musics, counted through ArtistMusicPlays:  Musics -> ArtistMusicPlays -> EventItems (<- HaramiVidEventItemAssocs) ->  Event
   def n_musics_played_in_harami_vids
     # Music.joins(:event_items).joins("INNER JOIN events ON event_items.event_id = events.id").where("events.id = ?", id).distinct.count
     Music.joins(:event_items).where("event_items.event_id" => id).distinct.count

@@ -107,7 +107,7 @@ class MusicsController < ApplicationController
   def update
     # Parameters: {"authenticity_token"=>"[FILTERED]", "music"=>{"place.prefecture_id.country_id"=>"", "place.prefecture_id"=>"", "place_id"=>"", "genre_id"=>"", "year"=>"", "note"=>""}, "commit"=>"Create Music"}
 
-    @record = @place
+    @record = @music
     def_respond_to_format(@music, :updated){
       @music.update(@hsmain)
     } # defined in application_controller.rb

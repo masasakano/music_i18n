@@ -37,7 +37,7 @@
 
   <tbody>
     <% asterisk = (can_edit ? ('<span title="'+t('datagrid.footnote.is_original')+'">*</span>') : "").html_safe %>
-    <% artist.musics.uniq.each do |music| %>
+    <% artist.musics.order(:year).uniq.each do |music| %>
       <tr>
      <% if can_edit %>
       <td title="DB pID" class="number editor_only"><%= link_to music.id, music %></td>

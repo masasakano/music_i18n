@@ -65,7 +65,7 @@ class ArtistsGrid < ApplicationGrid
   # column_model_trans_belongs_to(:channel_owner, header: Proc.new{I18n.t('ChannelOwner')}, with_link: :class)  # defined in application_grid.rb
 
   column_n_models_belongs_to(:n_musics, :musics, distinct: false, header: Proc.new{I18n.t('tables.n_musics')})
-  column_n_harami_vids    # defined in application_grid.rb
+  column_n_harami_vids(:n_harami_vids_short, mandatory: true) # defined in application_grid.rb
 
   column_wiki_url         # defined in application_grid.rb
   column_note             # defined in application_grid.rb

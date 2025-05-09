@@ -40,18 +40,21 @@ module ArtistMusicPlaysHelper
 
   # Returns HaramiVidMusicAssocs-joined ArtistMusicPlays for HaramiVid
   #
-  # @param artist_music_plays [Relation] of {ArtistMusicPlay}-s
+  # @param artist_music_plays [ArtistMusicPlay::ActiveRecord_Relation]
   # @param ordered_db_columns [Array<String>] DB-column-names to use to sort Relation. See {#get_ordered_amp_arrays}
   # @param harami_vid: [ActiveRecord] HaramiVid. If this is specified, +artist_music_plays+ is for the HaramiVid. If not it is for an EventItem (it can be for mutiple EventItem-s, if desired).
-  # @return [Relation]
+  # @return [Relation] the caller should uniq this! (distinct woulds not work in PostgreSQL...)
   def hvma_joined_artist_music_plays(rela_base, ordered_db_columns, harami_vid: nil)
+    rela_base = ArtistMusicPlay.where(id: rela_base.ids)
    rela_base =
      if harami_vid
-       rela_base.joins(event_item: :harami_vids).joins("INNER JOIN harami_vid_music_assocs ON harami_vid_music_assocs.harami_vid_id = harami_vids.id")
+       # rela_base.joins(event_item: :harami_vids).left_joins(harami_vids: :harami_vid_music_assocs)  # this does not work... ARtistMusicPlay.delegate is perhaps wrong?
+       rela_base.joins(event_item: :harami_vids).joins("LEFT JOIN harami_vid_music_assocs ON harami_vid_music_assocs.harami_vid_id = harami_vids.id")
      else
-       rela_base.joins("INNER JOIN harami_vid_event_item_assocs ON harami_vid_event_item_assocs.event_item_id = artist_music_plays.event_item_id").joins("INNER JOIN harami_vid_music_assocs ON harami_vid_music_assocs.harami_vid_id = harami_vid_event_item_assocs.harami_vid_id")
+       # rela_base.joins("INNER JOIN harami_vid_event_item_assocs ON harami_vid_event_item_assocs.event_item_id = artist_music_plays.event_item_id").joins("LEFT JOIN harami_vid_music_assocs ON harami_vid_music_assocs.harami_vid_id = harami_vid_event_item_assocs.harami_vid_id")
+       rela_base.joins(:harami_vid_event_item_assocs).left_joins(music: :harami_vid_music_assocs)
      end
-   rela_base = rela_base.where('artist_music_plays.music_id = harami_vid_music_assocs.music_id')
-   rela_base.order(*ordered_db_columns)
+#   rela_base = rela_base.where('artist_music_plays.music_id = harami_vid_music_assocs.music_id')
+   rela_base.order(*ordered_db_columns)  # distinct would raise PG::InFailedSqlTransaction 
   end
 end

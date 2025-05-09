@@ -571,6 +571,10 @@ class HaramiVidTest < ActiveSupport::TestCase
     assert_nil   tra.alt_title
   end
 
+  ### The following tested in /test/controllers/harami_vids_controller_test.rb
+  # test "missing_musics_from_amps and missing_musics_from_hvmas" do
+  # end
+
   test "create_basic!" do
     mdl = nil
     assert_nothing_raised{

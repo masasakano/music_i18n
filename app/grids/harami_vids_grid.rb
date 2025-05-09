@@ -49,6 +49,15 @@ class HaramiVidsGrid < ApplicationGrid
     value ? (allids=HaramiVid.joins(:artist_music_plays).where.not("artist_music_plays.artist_id" => Artist.default(:HaramiVid).id).distinct.ids; self.where(id: allids)) : self
   end
 
+  ###### this works only in limited occasions for some unknown reason...
+  #
+  # filter(:n_inconsistent, :integer, dummy: true, default: false,, range: true, header: "#Inconsistency", tag_options: {class: ["editor_only"]}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |range|  # displayed only for editors
+  #   allids = self.all.find_all{ |record|
+  #     range.include? record.n_inconsistent_musics
+  #   }.map(&:id)
+  #   self.where(id: allids)
+  # end
+
   column_names_max_per_page_filters  # defined in base_grid.rb ; calling column_names_filter() and filter(:max_per_page)
 
   ####### Columns #######
@@ -136,6 +145,21 @@ class HaramiVidsGrid < ApplicationGrid
     ##  can?(:read, Artist) ? link_to(tit, artist_path(model)) : tit
     ##}  # defined in application_helper.rb
   end
+
+
+##### NOTE: for some reason, this seems to work only in limited occassions and does not sort the entire table records...
+#  column(:n_inconsistent, dummy: true, html: true, header: "#Inconsistent", tag_options: {class: "editor_only text-end"} # , order: proc {|scope|
+#     #  # WARNING: Rails takes all records of the model on memory and calculates the result.  Very inefficient.
+#     #  allids = scope.all.sort_by{ |record|
+#     #    [record.missing_musics_from_amps.count + record.missing_musics_from_hvmas.count, (record.release_date || Date.today), record.id]
+#     #  }.map(&:id)
+#     #  join_sql = "INNER JOIN unnest('{#{allids.join(',')}}'::int[]) WITH ORDINALITY t(id, ord) USING (id)"  # PostgreSQL specific.
+#     #  scope.where(id: allids).joins(join_sql).order("t.ord")
+#     #      }
+#  ) do |record|
+#    nret = record.missing_musics_from_amps.count + record.missing_musics_from_hvmas.count
+#    (nret == 0) ? "" : nret.to_s
+#  end
 
   column_note             # defined in application_grid.rb
   columns_upd_created_at(HaramiVid)  # defined in application_grid.rb
