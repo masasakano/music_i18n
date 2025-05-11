@@ -102,7 +102,6 @@
   <% end %> <%# if !harami_vid.new_record? || (given_ref && given_ref.event_items.exists?) %>
 
   <% if !given_ref %>
-    <!-- New EventItem -->
     <%= render partial: 'form_add_evit_music_collab', locals: {f: f, harami_vid: harami_vid, sorted_event_event_items: sorted_event_event_items, display_new_event_item_form: display_new_event_item_form } %>
   <% end %>  <!-- if !given_ref -->
   </section> <!-- section id="form_harami_vid_contents" -->
