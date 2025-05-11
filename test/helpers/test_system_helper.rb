@@ -169,6 +169,16 @@ class ActiveSupport::TestCase
   def logon_system_test(user)
   end
 
+  # @example
+  #    login_at_root_path(@editor_ja)  # defined in test_system_helper.rb
+  def login_at_root_path(user)
+    visit new_user_session_path
+    fill_in "Email", with: @editor_harami.email
+    fill_in "Password", with: '123456'  # from users.yml
+    click_on "Log in"
+    assert_selector "h1", text: "HARAMIchan"
+  end
+
   # performs log on
   def login_or_fail_index(user)
     #visit new_user_session_path  # already on this page.

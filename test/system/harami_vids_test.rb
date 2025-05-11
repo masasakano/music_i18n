@@ -19,6 +19,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     @sysadmin = users(:user_sysadmin)
     @h1_title = "Channels"
     @h1_index = "HARAMIchan's Videos"
+    @update_haramivid_button = "Update Harami vid"
     @button_text = {
       create: "Create Channel",
       update: "Update Channel",
@@ -173,7 +174,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     find_field("(Music) Instrument").select(vid_prms[:instrument_edit]="Vocal")
     find_field("How they collaborate").select(vid_prms[:collab_how_edit]= "Singer")
 
-    click_on "Update Harami vid", match: :first
+    click_on @update_haramivid_button, match: :first
 
     ### Checking flash messages (the submit must have failed.)
     assert_match(/\bprohibited this HaramiVid from being saved\b/, find_all(css_for_flash(:alert, category: :error_explanation))[0].text)
@@ -181,7 +182,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     check 'UnknownEventItem'  # In fact, this should be forcibly checked again in default when an error takes you back to the screen after unchecked.
     select 'street playing', from: 'Additional Event', match: :first  # in the same way; Although a new Event is specified, "New EventItem" is not chosen, so this should take no effect (after Git a2869ee).  Note a new Event is always selected as long as HaramiVid is already associated with an Event.  Before Git-commit a2869ee, whenever a new Event is selected, a new EventItem is always created, where the EventItem to which a newly specified Music would be associated was completely independently specified, and this test was written as such.
 
-    click_on "Update Harami vid", match: :first
+    click_on @update_haramivid_button, match: :first
 
     assert_match(/HaramiVid was successfully updated\b/, find_all(css_for_flash(:success)).first.text)  # defined in test_helper.rb
     _check_at_show(vid_prms)
@@ -201,7 +202,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     select 'street playing', from: 'Additional Event', match: :first  # in the same way
 
     # fill_in('featuring Artist', with: "")  # To reset the featuring Artist; should be unnecessary!
-    click_on "Update Harami vid", match: :first
+    click_on @update_haramivid_button, match: :first
 
     assert_match(/HaramiVid was successfully updated\b/, find_all(css_for_flash(:success)).first.text)  # defined in test_helper.rb
     _check_at_show(vid_prms)
@@ -372,6 +373,45 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_equal hvid2.place.country.id.to_s, (res=page.find(css))["value"], "Selected=#{res['outerHTML']}"  # For edit, if a significant Place is already defined, it should not be updated.
     css = 'section#sec_primary_input select#harami_vid_place optgroup option[selected="selected"]'
     assert_equal hvid2.place.id.to_s, (res=page.find(css))["value"], "Selected=#{res['outerHTML']}"  # For edit, if a significant Place is already defined, it should not be updated.
+  end
+
+  test "visiting edit" do
+    # Prep
+    tit2 = "test-#{__method__}-2"
+    hvid2 = HaramiVid.create_basic!(title: tit2, langcode: "en", uri: "http://youtu.be/2dummytest2")
+    mu = musics(:music1)
+    hvid2.musics << mu
+    # with an associated Music with nil timing; no associated EventItem
+    #hvid2.harami_vid_music_assocs.find_by(music: mu).update!(timing: 15)
+    #assert_nil hvid2.timing(mu), 'sanity check'
+
+    login_at_root_path(@editor_harami)  # defined in test_system_helper.rb
+
+    click_on @h1_index, match: :first
+    assert_selector "h1", text: @h1_index
+
+    visit edit_harami_vid_path(hvid2)
+    assert_text tit2
+
+    css_td = "table#music_table_for_hrami_vid tbody tr td.item_timing"
+    css_edit = css_td + " input[type=submit][value=Edit]"
+    find(css_edit).click
+
+    css_form_timing = css_td+" input[name=form_timing]"
+    assert_selector css_form_timing
+    find(css_form_timing).fill_in with: 75
+    find(css_td+" input[type=submit][value=Submit]").click
+
+    assert_selector css_edit
+    assert_equal "01:15", (lines=find(css_td).text.split("\n")).first.strip, "Video timing should have been updated, but..."
+    assert_includes        lines[1].strip, "uccessfully updated"
+
+    fill_in "Video length", with: "1:12"
+    click_on @update_haramivid_button, match: :first
+
+    assert_selector "h1", text: "HARAMIchan-featured Video"
+    assert_text tit2
+    assert_equal "72.0 (01:12)", find("section.show_unique_parameters dl dd.item_duration").text.strip
   end
 
   # test "destroying a Harami vid" do

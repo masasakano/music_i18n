@@ -106,6 +106,48 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
+  test "should get edit" do
+    get edit_harami_vid_url @harami_vid
+    assert_response :redirect
+    assert_redirected_to new_user_session_path
+
+    [@trans_moderator, @moderator_ja].each do |user|
+      sign_in user
+      get edit_harami_vid_url @harami_vid
+      assert_response :redirect, "should be banned for #{user.display_name}, but allowed..."
+      assert_redirected_to root_path
+      sign_out user
+    end
+
+    sign_in @editor_harami
+    get edit_harami_vid_url @harami_vid
+    assert_response :success
+
+    hvid2 = HaramiVid.create_basic!(title: "test-#{__method__}-2", langcode: "en", uri: "http://youtu.be/2dummytest2")
+    # no associated EventItem
+
+    get edit_harami_vid_url hvid2
+    assert_response :success, 'should succeed without associated event_items, but...'
+
+    mu = musics(:music1)
+    hvid2.musics << mu
+    get edit_harami_vid_url hvid2
+    assert_response :success, 'should succeed with a music but without associated event_items, but...'
+    assert_nil hvid2.timing(mu), 'sanity check'
+    hvid2.harami_vid_music_assocs.find_by(music: mu).update!(timing: 15)
+
+    get edit_harami_vid_url hvid2
+    assert_response :success, 'should succeed with a music but without associated event_items, but...'
+    assert_equal 1, css_select("div#footer span.lang_switcher_ja").size
+    assert_equal 1, css_select("select#harami_vid_form_new_event").size
+    # assert_equal 1, css_select("select#harami_vid_form_new_event option:checked").size
+    assert_select 'select#harami_vid_form_new_event'
+    assert_select 'select#harami_vid_form_new_event[selected]', false
+    assert_select 'select#harami_vid_form_new_event[selected]', count: 0
+
+    sign_out @editor_harami
+  end # test "should get edit" do
+
   test "should create harami_vid" do
     assert_no_difference('HaramiVid.count') do
       post harami_vids_url, params: { harami_vid: @def_create_params }
