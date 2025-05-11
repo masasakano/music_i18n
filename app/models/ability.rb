@@ -182,6 +182,7 @@ class Ability
       can :cr, ChannelType
       can :destroy, EventItems::DestroyWithAmpsController
       can(:destroy_with_amps, EventItem){|mdl| mdl.harami1129s.empty? && mdl.harami_vids.count <= 1 && mdl.associated_amps_all_duplicated?}
+      can :index, DiagnoseController
     end
 
     ## Translation moderator only

@@ -1,0 +1,240 @@
+<h1>Diagnosis</h1>
+
+<section id="diagnosis_harami_vid">
+<h2>HaramiVids with problems</h2>
+
+<dl>
+  <dt>Checked:</dt>
+  <dd><%= @problems_keys[:HaramiVid].uniq.map(&:to_s).join(", ") %></dd>  <%# no need of uniq but just to play safe. %>
+  <dt>Problems found:</dt>
+  <dd><%= @problems[:HaramiVid].values.flatten.uniq.map(&:to_s).join(", ") %></dd>
+</dl>
+
+<% n_allcols = 12 %>
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>pID</th>
+      <th><%= t("harami_vids.table_head_date") %></th>
+      <th><%= t("tables.duration_nounit") %></th>
+      <th><%= t(:Channel) %></th>
+      <th><%= t("home.index.vid_title") %></th>
+<% if false %>
+      <th><%= t("Musics") %></th>
+     <% if music %>
+      <th><%= t("harami_vids.table_head_timing") %></th>
+      <th><%= t("harami_vids.table_head_completeness") %></th>
+     <% end %>
+<% end %>
+      <th><%= t(:Place) %></th>
+      <th title="Number of EventItems">#EvIts</th>
+      <th title="Inconsistent #Musics">#Inconsis.Mus</th>
+      <th title="Number of Music entries">#Musics</th>
+      <th title="Number of Harami1129 entries">#H1129s</th>
+      <th title="Note in this DB"><%= t("tables.note").capitalize %></th>
+      <th class="actions" colspan="2"></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% ind = 0 %>
+    <% @problems[:HaramiVid].each_pair do |record, reasons| %>
+      <% ind += 1 %>
+      <% if ind >= 100 %>
+        <tr><td colspan="<%= n_allcols %>">Not displayed anymore because of too many records (total: <%= @problems[:HaramiVid].size %>)</td></tr>
+        <% break %>
+      <% end %>
+      <tr id="problem_harami_vid_<%= record.id %>">
+        <td><%= ind+1 %></td>
+        <td><%= link_to record.id, record %></td>
+        <td>
+          <%= record.release_date %>
+          <%= print_warning_or_normal(reasons, "no_release_date") %>
+        </td>
+        <td>
+          <%= print_warning_or_normal(reasons, "no_duration") do %>
+            <%= record.duration ? sec2hms_or_ms(record.duration) : "" %>
+          <% end %>
+        </td>
+        <td>
+          <% if reasons.include? "no_channel_id" %>
+            <span class="text-warning-regular">NONE</span>
+          <% else %>
+            <%= record.channel ? link_to(record.channel.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), record.channel) : "" %>
+          <% end %>
+        </td>
+        <td>
+          <%= print_warning_or_normal(reasons, "no_uri", red_word: "NONE: Blank URI") do %>
+            <%= record.uri ? link_to_youtube(record.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), record.uri) : "" %>
+          <% end %>
+        </td>
+        <td>
+          <%= print_warning_or_normal(reasons, "no_place_id") do %>
+            <%= record.place ? record.txt_place_pref_ctry(without_country_maybe: true) : "" %>
+          <% end %>
+        </td>
+        <td class="text-end">
+          <%= print_warning_or_normal(reasons, "no_event_items") do %>
+            <%= record.event_items.count %>
+          <% end %>
+        </td>
+        <td class="text-end">
+          <% if reasons.include? "inconsistent_n_musics" %>  <%# This calculation needs DB access, so it runs only if necessary %>
+            <span class="text-warning-regular">INCONSISTENT</span>: <%= record.n_inconsistent_musics %>
+          <% end %>
+        </td>
+        <td class="text-end">
+          <%= print_warning_or_normal(reasons, "no_musics") do %>
+            <%= record.musics.count %>
+          <% end %>
+        </td>
+        <td class="text-end">
+          <%= record.harami1129s.count %>
+        </td>
+        <td><%= auto_link50(record.note) %></td>
+        <td class="actions"><%= link_to "Show", record %></td>
+        <td class="actions"><%= link_to "Edit", edit_harami_vid_path(record) %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+</section> <!-- section id="diagnosis_harami_vid" --> 
+
+<hr>
+
+<section id="diagnosis_music">
+<h2>Musics with problems</h2>
+
+<dl>
+  <dt>Checked:</dt>
+  <dd><%= @problems_keys[:Music].uniq.map(&:to_s).join(", ") %></dd>  <%# no need of uniq but just to play safe. %>
+  <dt>Problems found:</dt>
+  <dd><%= @problems[:Music].values.flatten.uniq.map(&:to_s).join(", ") %></dd>
+</dl>
+
+<% n_allcols = 11 %>
+  
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th title="DB pID">pID</th>
+      <th title="best locale quoted">[LC] <%= t("tables.title_name_ja") %></th>
+      <th title="first published year"><%= t('tables.year').capitalize %></th>
+      <th><%= t('Genre').capitalize %></th>
+      <th>#Engage</th>
+      <th title="Place"><%= t("tables.place_country") %></th>
+      <th><%= t('artists.tablehead.n_harami_vids') %></th>
+      <th>Note</th>
+      <th colspan="2" title="Show/Edit Music">Music</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% ind = 0 %>
+    <% @problems[:Music].each_pair do |record, reasons| %>
+      <% ind += 1 %>
+      <% if ind >= 100 %>
+        <tr><td colspan="<%= n_allcols %>">Not displayed anymore because of too many records (total: <%= @problems[:Music].size %>)</td></tr>
+        <% break %>
+      <% end %>
+      <tr id="problem_music_<%= record.id %>">
+        <td><%= ind+1 %></td>
+        <td title="DB pID" class="number"><%= link_to record.id, record %></td>
+        <td>[<%= record.best_translation.langcode %>] <%= record.title_or_alt %></td>
+        <td>
+          <%= record.year %>
+          <%= print_warning_or_normal(reasons, "no_year") %>
+        </td>
+        <td>
+          <%= print_warning_or_normal(reasons, "no_genre_id") do %>
+            <%= record.genre ? record.genre.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true) : "" %>
+          <% end %>
+        </td>
+        <td>
+          <%= print_warning_or_normal(reasons, "no_engages") do %>
+            <%= record.engages.count %>
+          <% end %>
+        </td>
+        <td>
+          <%= print_warning_or_normal(reasons, "no_place_id") do %>
+            <%= record.place ? record.txt_place_pref_ctry(without_country_maybe: true) : "" %>
+          <% end %>
+        </td>
+        <td>
+          <%= print_warning_or_normal(reasons, "no_harami_vids") do %>
+            <%= record.harami_vids.count %>
+          <% end %>
+        </td>
+        <td><%= auto_link50(record.note) %></td>
+        <td><%= link_to t("tables.Show"), record %></td>
+        <td><%= link_to 'Edit', edit_music_path(record) %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+</section> <!-- section id="diagnosis_music" -->
+
+<hr>
+
+<section id="diagnosis_artist">
+<h2>Artists with problems</h2>
+
+<dl>
+  <dt>Checked:</dt>
+  <dd><%= @problems_keys[:Artist].uniq.map(&:to_s).join(", ") %></dd>  <%# no need of uniq but just to play safe. %>
+  <dt>Problems found:</dt>
+  <dd><%= @problems[:Artist].values.flatten.uniq.map(&:to_s).join(", ") %></dd>
+</dl>
+
+<% n_allcols = 11 %>
+  
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th title="DB pID">pID</th>
+      <th title="best locale quoted">[LC] <%= t("tables.title_name_ja") %></th>
+      <th><%= t(:Sex).capitalize %></th>
+      <th>#Engages</th>
+      <th>#Amps</th>
+      <th title="Place"><%= t("tables.place_country") %></th>
+      <th>Note</th>
+      <th colspan="2" title="Show/Edit Artist">Artist</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% ind = 0 %>
+    <% @problems[:Artist].each_pair do |record, reasons| %>
+      <% ind += 1 %>
+      <% if ind >= 100 %>
+        <tr><td colspan="<%= n_allcols %>">Not displayed anymore because of too many records (total: <%= @problems[:Artist].size %>)</td></tr>
+        <% break %>
+      <% end %>
+      <tr id="problem_artist_<%= record.id %>">
+        <td><%= ind+1 %></td>
+        <td title="DB pID" class="number"><%= link_to record.id, record %></td>
+        <td>[<%= record.best_translation.langcode %>] <%= record.title_or_alt(lang_fallback_option: :either) %></td>
+        <td>
+          <%= print_warning_or_normal(reasons, "no_sex_id") do %>
+            <%= record.sex ? record.sex.title_or_alt(prefer_shorter: true) : "" %>
+          <% end %>
+        </td>
+        <td> <%= record.engages.count %> </td>
+        <td> <%= record.artist_music_plays.count %> </td>
+        <td>
+          <%= print_warning_or_normal(reasons, "no_place_id") do %>
+            <%= record.place ? record.txt_place_pref_ctry(without_country_maybe: true) : "" %>
+          <% end %>
+        </td>
+        <td><%= auto_link50(record.note) %></td>
+        <td><%= link_to t("tables.Show"), record %></td>
+        <td><%= link_to 'Edit', edit_artist_path(record) %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+</section> <!-- section id="diagnosis_artist" -->
+
+
