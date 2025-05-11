@@ -40,7 +40,7 @@
     <% ind = 0 %>
     <% @problems[:HaramiVid].each_pair do |record, reasons| %>
       <% ind += 1 %>
-      <% if ind >= 100 %>
+      <% if ind >= DiagnoseController::MAX_NROWS_DIAGNOSIS_TABLE %>
         <tr><td colspan="<%= n_allcols %>">Not displayed anymore because of too many records (total: <%= @problems[:HaramiVid].size %>)</td></tr>
         <% break %>
       <% end %>
@@ -134,7 +134,7 @@
     <% ind = 0 %>
     <% @problems[:Music].each_pair do |record, reasons| %>
       <% ind += 1 %>
-      <% if ind >= 100 %>
+      <% if ind >= DiagnoseController::MAX_NROWS_DIAGNOSIS_TABLE %>
         <tr><td colspan="<%= n_allcols %>">Not displayed anymore because of too many records (total: <%= @problems[:Music].size %>)</td></tr>
         <% break %>
       <% end %>
@@ -208,7 +208,7 @@
     <% ind = 0 %>
     <% @problems[:Artist].each_pair do |record, reasons| %>
       <% ind += 1 %>
-      <% if ind >= 100 %>
+      <% if ind >= DiagnoseController::MAX_NROWS_DIAGNOSIS_TABLE %>
         <tr><td colspan="<%= n_allcols %>">Not displayed anymore because of too many records (total: <%= @problems[:Artist].size %>)</td></tr>
         <% break %>
       <% end %>

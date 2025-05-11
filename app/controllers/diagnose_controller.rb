@@ -1,4 +1,7 @@
 class DiagnoseController < ApplicationController
+  # Maximum number of rows to display
+  MAX_NROWS_DIAGNOSIS_TABLE = ((envmax=ENV['MAX_NROWS_DIAGNOSIS_TABLE'].present? && envmax.to_i > 0) ? envmax.to_i : 50)
+
   def index
     authorize! :index, DiagnoseController
     methods2examine = {
@@ -31,12 +34,28 @@ class DiagnoseController < ApplicationController
         _set_all_no_association_for_attr(wrongs, HaramiVid, eatt)  # => "no_event_items" => [ActiveRocord, ...]
       end
 
-      wrongs["inconsistent_n_musics"] = HaramiVid.all.find_all{|record| record.n_inconsistent_musics > 0}
+      wrongs["inconsistent_n_musics"] = _find_inconsistent_harami_vid_n_musics_upto_limit  # Search iterations are limited.
 
       %w(duration place_id).each do |eatt|  # Less serious inconsistencies
         _set_all_no_value_for_attr(wrongs, HaramiVid, eatt)  # => "no_release_date", "no_place_id" => [ActiveRocord, ...]
       end
       wrongs
+    end
+
+    # Equivalent to
+    #
+    #    HaramiVid.all.find_all{|record| record.n_inconsistent_musics > 0}
+    #
+    # but limiting the search iterations up to {MAX_NROWS_DIAGNOSIS_TABLE}
+    # to limit DB accesses.
+    def _find_inconsistent_harami_vid_n_musics_upto_limit
+      ret = []
+      HaramiVid.all.each do |hvid|
+        next if hvid.n_inconsistent_musics <= 0
+        ret << hvid 
+        break if ret.size > MAX_NROWS_DIAGNOSIS_TABLE + 2
+      end
+      ret
     end
 
     ## TODO:
