@@ -74,7 +74,7 @@ class HaramiVidsGrid < ApplicationGrid
   column(:release_date, mandatory: true, header: Proc.new{I18n.t('tables.release_date')})
   #date_column(:release_date, mandatory: true)  # => ERROR...
 
-  column(:duration, order: :duration, tag_options: {class: ["align-cr"]}, header: Proc.new{I18n.t('tables.duration_none')}) do |record| # float in DB # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
+  column(:duration, order: :duration, tag_options: {class: ["align-cr"]}, header: Proc.new{I18n.t('tables.duration_nounit')}) do |record| # float in DB # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
     sec2hms_or_ms(record.duration, return_nil: true)  # in application_helper.rb
   end
 

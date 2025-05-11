@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  resources :diagnose, only: [:index]
   resources :urls
   resources :domains
   resources :domain_titles

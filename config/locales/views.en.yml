@@ -45,7 +45,7 @@ en:
     Page_n: "Page %{count}"
     publish_date: "Publish Date"
     release_date: "Date"
-    duration_none: Length
+    duration_nounit: Length
     duration: "Length[s]"
     duration_hour: "Duration[hr]"
     start_time: "Start Date/Time"

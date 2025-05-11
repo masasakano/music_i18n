@@ -45,7 +45,7 @@ ja:
     Page_n: "第%{count}頁 "
     publish_date: "放映(出版)日"
     release_date: "公開日"
-    duration_none: "長さ"
+    duration_nounit: "長さ"
     duration: "長さ[秒]"
     duration_hour: "時間[h]"
     start_time: 開始日時
