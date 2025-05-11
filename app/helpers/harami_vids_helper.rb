@@ -124,10 +124,24 @@ module HaramiVidsHelper
   end
 
   # @param harami_vid: [HaramiVid] 
-  # @return [ActiveRecord::Relation<Url>] of Harami-Chronicle Urls for HaramiVid
+  # @return [Url::ActiveRecord::Relation, Url::ActiveRecord_Associations_CollectionProxy] of Harami-Chronicle Urls for HaramiVid
   def harami_vid_harami_chronicle_urls(harami_vid: )
     dt_h_chronicle = DomainTitle.joins(:site_category).where("site_categories.mname" => "chronicle").order("domain_titles.created_at").first
     Url.joins(:domain).joins(events: :harami_vids).where("domains.domain_title_id" => dt_h_chronicle.id).where("harami_vids.id" => harami_vid.id).distinct
+  end
+
+  # @return [EventItem::ActiveRecord_Relation, EventItem::ActiveRecord_Associations_CollectionProxy]
+  def get_event_items_relation_from_harami_vid(harami_vid, given_ref, sorted_event_event_items)
+    collec = harami_vid.event_items
+    collec_is_empty = !harami_vid.event_items.exists?
+    if given_ref
+      collec2 = given_ref.event_items
+      return (collec_is_empty ? collec2 : collec.or(collec2)).distinct
+    elsif !collec_is_empty
+      collec3 = sorted_event_item_collection(collec, harami_vid, sorted_eei: sorted_event_event_items)  # defined in event_items_helper.rb
+      return collec3 if collec3
+    end
+    collec
   end
 
   private

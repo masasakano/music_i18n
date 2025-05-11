@@ -577,7 +577,7 @@ class Url < BaseWithTranslation
     reths["url_langcode"] = $1
     reths["domain_id"]    = Domain.find_by(domain: dom)&.id  # Integer or potentially nil.
 
-    reths["title"] = Addressable::URI.unencode(urin.path.sub(%r@^/?wiki/@, "")).gsub(/_/, " ")
+    reths["title"] = Addressable::URI.unencode(urin.path.sub(%r@^/?wiki/@, "")).gsub(/_/, " ")  # n.b., the main path part for Wikipedia title may include forward slashes "/"; e.g., https://ja.wikipedia.org/wiki/%E6%AE%8B%E9%9F%BF%E6%95%A3%E6%AD%8C/%E6%9C%9D%E3%81%8C%E6%9D%A5%E3%82%8B
     reths["langcode"] = reths["url_langcode"]
     reths["is_orig"] = true
     reths

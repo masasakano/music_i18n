@@ -1,0 +1,97 @@
+<%# local vars: f, harami_vid, sorted_event_event_items (optional) record [ActiveRecord] (Def: nil) %>
+<%#   NOTE: "f" for the form object. %>
+<%# USAGE:  render partial: 'form_add_evit_music_collab', locals: {f: f, harami_vid: harami_vid, sorted_event_event_items: sorted_event_event_items, display_new_event_item_form: display_new_event_item_form } %>
+
+<% if !defined?(record) %>
+  <% record = nil %>
+<% end %>
+
+  <% if !harami_vid.new_record? || display_new_event_item_form %>
+    <!-- New EventItem -->
+    <section id="form_choose_event_item_for_new_music_artist">
+    <h4><%= t("harami_vids.event_item_for_new_collab_artist") %></h4>
+      <%= f.input :form_new_artist_collab_event_item, as: :radio_buttons,
+        collection: (co=collection_event_items_for_new_artist_collab(harami_vid, sorted_eei: sorted_event_event_items)),
+        label_method: :second, value_method: :first,
+        allow_blank: false, 
+        checked: (harami_vid.form_new_artist_collab_event_item || co.last),
+        label: "Event(Item) for "+t(:additional).capitalize+' '+t(:Music)+' '+t(:or)+' '+t('layouts.new')+" "+t('harami_vids.form_artist_collabs'),
+        item_wrapper_class: 'inline'
+      %>  <%# defined in event_items_helper.rb %>
+    <%# For create/new, the same field appeaers much earlier. %>
+     <div class="form_new_model_info">
+      <%= f.input :form_new_event,
+        collection: form_selct_collections(Event.left_joins(:place).order(:start_time, :event_group_id, "places.prefecture_id", "places.id")), include_blank: true,
+          selected: ((v=harami_vid.form_new_event).present? ? v : ((v2=default_event_for_new_event_item(harami_vid)) ? v2.id : nil)),
+          label: t(:additional).capitalize+" "+t(:Event)+"(Item)",
+          input_html: { multiple: false } %> <%# default_event_for_new_event_item() defined in /app/helpers/harami_vids_helper.rb %>
+     </div>
+    </section> <!-- section id="form_choose_event_item_for_new_music_artist" -->
+  <% end %> <%# if !harami_vid.new_record? || display_new_event_item_form %>
+
+  <!-- New Associated Music -->
+    <div class="register_assoc_music">
+    <h4><%= (harami_vid.new_record? ? "" : "("+t(:additional).capitalize+") ")+t(:Music) %> <span class="small">(<%= t("harami_vids.music_title_comment") %>)</span></h4>  <%# Additional Music %>
+      <div class="register_assoc_music_field">
+        <%= f.input :music_name, label: t("layouts.fields.music_title"), input_html: {"data-1p-ignore" => true}
+        %> <%# , hint: t('layouts.fields.hint_music_auto') %>
+       <div class="form_new_model_info">
+        <%= f.input :music_year, label: t("harami_vids.field_music_year") %>
+        <%= f.input :music_genre, label: t(:Genre)+" (new Music only)",
+          collection: ordered_models_form(Genre), include_blank: false,
+          selected: (harami_vid.music_genre || Genre.default(:HaramiVid).id) %>
+       </div>
+        <%= f.input :music_timing, label: t("harami_vids.table_head_timing"), hint: t('harami_vids.music_timing_hint'), placeholder: t(:eg_independent)+'72 ['+t(:s_time)+'] '+t(:or)+' 01:12', as: :string %>
+      </div>
+    </div>
+
+    <div class="form_new_model_info register_assoc_artist">
+    <h5 title="楽曲のオリジナル歌手あるいは作詞作曲者(新規アーティスト作成も可)"><%= t('layouts.new_musics.assoc_artist_head') %></h5>
+      <% if !@artist_name  %>
+       <div class="new_artist_link"><p><%# t('layouts.new_musics.note_new_artist') %><%# link_to(t('layouts.new_musics.create_new_artist'), new_artist_path, target: "_blank") %> </p></div>  <%# Message of "Create it first" is now removed. %>
+      <% end%>
+      <div class="register_assoc_artist_field">
+        <%= f.input :artist_name,    label: t('layouts.new_musics.associated_artist_name'), placeholder: 'eg., "欅坂46", "Beatles, The", "The Beatles"', input_html: {"data-1p-ignore" => true} %>
+
+       <div class="form_new_model_info">
+        <%= f.input :artist_sex,
+          collection: ordered_models_form(Sex), selected: (harami_vid.artist_sex || Sex.unknown),
+          label: t(:Sex)+" (new Artist only)", hint: " Only for a new Artist" %>
+       </div>
+
+        <%= f.input :form_engage_hows,
+          collection: ordered_models_form(EngageHow), selected: (harami_vid.form_engage_hows || EngageHow.default(:HaramiVid)),
+            label: t("harami_vids.engage_how") %>  <%# +t('layouts.new_musics.allow_multi'); multiple is not allowed for now... %>
+
+        <%= f.input :form_engage_year, label: t('layouts.new_musics.year_engagement') %>
+
+        <%= f.input :form_engage_contribution, label: t('attr.contribution').capitalize+' (0.0-1.0)', hint: t('attr.contribution_hint') %>
+      </div> <!-- div class="register_assoc_artist_field" -->
+    </div> <!-- div class="form_new_model_info register_assoc_artist" -->
+
+   <%# if ! harami_vid.new_record? %>
+    <section id="form_register_collab_artist_field">
+    <div class="register_collab_artist_field">
+    <h4><%= (harami_vid.new_record? ? "" : "("+t(:additional).capitalize+") ") %><%= t('harami_vids.field_artist_collabs_w_harami') %></h4>
+
+      <%= f.input :music_collab,
+        collection: collection_musics_with_evit(harami_vid),
+          label: t(:Music).capitalize,
+          include_blank: true, input_html: { multiple: false },
+          prompt: t('harami_vids.form_prompt_collab'),
+          hint: t('harami_vids.field_music_collab_hint') %> <%# defined in harami_vids_helper.rb %>
+      <%= f.input :artist_name_collab,  label: t('harami_vids.form_artist_collabs'),
+          hint: t("layouts.fields.hint_create_if_non_existent", link: link_to(t("layouts.do_create_lower"), new_artist_path)).html_safe, input_html: {"data-1p-ignore" => true} %>
+     <div class="form_new_model_info">
+      <%= f.input :form_play_role,
+        collection: ordered_models_form(PlayRole), selected: (harami_vid.form_play_role || PlayRole.default(:HaramiVid)),
+        label: "How they collaborate" %>
+      <%= f.input :form_instrument,
+        collection: ordered_models_form(Instrument), selected: (harami_vid.form_instrument || Instrument.default(:HaramiVid)),
+        label: t("Instrument") %>
+     </div>
+    </div> <!-- div class="register_collab_artist_field" -->
+    </section>  <!-- section="form_register_collab_artist_field" -->
+   <%# end %>  <%# if ! harami_vid.new_record? %>
+
+
