@@ -59,17 +59,29 @@
 <% end %>
 </section>
 
+<%= editor_only_safe_html(EventItem, method: :create, tag: "div") do %>
 <hr>
 
-<section id="section_event_group_show_harami_vids_events">
+  <% if n_events > Rails.configuration.def_view_max_nrows - 1 %>
+    <p>
+      There are so many (<%= n_events %>) Events in this group
+      <%= editor_only_safe_html(EventGroup, method: :create, tag: "span", only: :moderator) do %> <%# defined in application_helper.rb %>
+      (&gt; <%= Rails.configuration.def_view_max_nrows %>)
+      <% end %>
+      that the Event-HaramiVid table would be too large and so is not shown.  See each Event for detail.
+    </p>
+  <% else %>
+    <section id="section_event_group_show_harami_vids_events">
+    
+    <h2><%= t("event_groups.show.harami_vid_table_title") %> (<%= n_harami_vids %> <%= t(:videos) %>)</h2>
+    
+    <%= render partial: "layouts/events_harami_vids_index", locals: {events: @event_group.events, with_place_public: true, max_n_events: (cancreate_evt ? nil : Rails.configuration.max_events_per_group_public), max_harami_vids_per_event:  (cancreate_evt ? Rails.configuration.max_harami_vids_per_event_editor : Rails.configuration.max_harami_vids_per_event_public) } %>  <%# Some EventGroups have too many HaramiVid-s, so they are trimmed. %>
+    
+    </section> <%# section id="section_event_group_show_harami_vids_events" %>
+  <% end %>
+<% end %> <%# editor_only_safe_html(EventItem, method: :create, tag: "div") do %>
 
-<h2><%= t("event_groups.show.harami_vid_table_title") %> (<%= n_harami_vids %> <%= t(:videos) %>)</h2>
-
-<%= render partial: "layouts/events_harami_vids_index", locals: {events: @event_group.events, with_place_public: true, max_n_events: (cancreate_evt ? nil : Rails.configuration.max_events_per_group_public), max_harami_vids_per_event:  (cancreate_evt ? Rails.configuration.max_harami_vids_per_event_editor : Rails.configuration.max_harami_vids_per_event_public) } %>  <%# Some EventGroups have too many HaramiVid-s, so they are trimmed. %>
-
-</section> <%# section id="section_event_group_show_harami_vids_events" %>
-
-<% if can? :index, EventGroup %>  <%# EventGroup-index will perhaps become public in the future... %>
+<%= editor_only_safe_html(EventGroup, method: :index, tag: "div") do %>  <%# EventGroup-index will perhaps become public in the future... %>
 <hr>
 
   <section id="section_event_group_show_footer">
@@ -77,5 +89,5 @@
   <%= link_to t("layouts.back_to_index"), event_groups_path %>
   </p>
   </section>
-<% end %>
+<% end %> <%# editor_only_safe_html(EventGroup, method: :index, tag: "div") do %>
 

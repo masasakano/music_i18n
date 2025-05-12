@@ -1,6 +1,4 @@
-<p id="notice"><%= notice %></p>
-
-<h1>Places</h1>
+<h1>Places <%= h1_note_editor_only(Place, method: :index) %></h1>
 
 <% if true %>
 <%= datagrid_form_with model: @grid, url: places_path %>

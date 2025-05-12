@@ -1,6 +1,4 @@
-<p id="notice"><%= notice %></p>
-
-<h1>Prefectures</h1>
+<h1>Prefectures <%= h1_note_editor_only(Prefecture, method: :index) %></h1>
 
 <% canedit=can?(:edit, Prefecture) %>
 <% can_create_pla = can?(:create, Place) %>

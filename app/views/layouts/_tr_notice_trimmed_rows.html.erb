@@ -1,0 +1,18 @@
+<%# local vars: colspan [Integer], trimmed_rows, all_rows [Integer] (Number of rows); (optional) for_td [Boolean] ("td" if true, else "th"; Def: true), link_path [String] (path to direct to another page if any; Def: nil) %>
+  <%# NOTE: This partial shows a row spanning the table, explaining the remaining rows are trimmed. %>
+<%# example:  render partial: "/layouts/tr_notice_trimmed_rows", locals: {colspan: 10, trimmed_rows: 123, all_rows: 400, link_path: event_path(event)+"#harami_vids_for_event" } %>
+
+<% if !defined? for_td
+    for_td = true
+  end %>
+<% td_or_tr = (for_td ? "td" : "th") %>
+<% if !defined? link_path
+    link_path = nil
+  end %>
+
+  <tr><<%= td_or_tr %> colspan="<%= colspan %>"><%= t("event_groups.show.trim_hvid_table_to", trimmed_rows: trimmed_rows, all_rows: all_rows) %>
+    <% if link_path %>
+      <%= t("event_groups.show.for_all_rows") %><%= link_to t("event_groups.show.see_event_page"), link_path %>
+    <% end %>
+    </<%= td_or_tr %>>
+  </tr>

@@ -1,5 +1,6 @@
 <%# local vars: events (Relation), (optional) with_place_public, max_n_events (maximum number of Events to display; Def: nil), harami_vids_without_events (Array), max_harami_vids_per_event (maximum number of HaramiVids per event to display; Def: nil) %>
   <%# NOTE: Although this lists Events and its HaramiVids in principle, this also allows listing of (extra) HaramiVids that have no associagted Events in addition to Events.  Ruby Array harami_vids_without_events specifies those HaramiVids of such a type. %>
+  <%# NOTE: Regardless of the values passed as optional parameters, the absolute maximum mumber of rows in tbody is regulated with Rails.configuration.def_view_max_nrows (see /config/application.rb)  %>
 <%# example:  %>
 <% if !defined? with_place_public 
     with_place_public = false
@@ -58,6 +59,7 @@
      end %>
   <tbody>
     <%# start_row = -1 %>
+    <% irow_abs = 0 %>  <%# i-th row number, inherited to "render" of child-tables %>
     <% evit_offset = 0 %>
     <% stop_rows = max_harami_vids_per_event %>
     <% all_rows.each do |event| %>
@@ -66,26 +68,43 @@
       <%# stop_rows = max_n_events - start_row - 1 if max_n_events && (next_last_row > max_n_events) %>
       <%# start_row = next_last_row %>
       <tr class="text-center">
+        <% irow_abs += 1 %>
         <% tit = event.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true).sub(/\s+<\s+[^<]+\z/, "")
            tit_html = (can?(:read, event) ? link_to(tit, event) : tit)
            date = event.string_time_err2uptomin
            pla_txt = ((pla=event.place) ? event.txt_place_pref_ctry : (cancreate_evt ? "(UNDEFINED)" : "&mdash;")) %>
         <th colspan="<%= cspan %>"> <%= t(:Event) %>: <%= tit_html %> / <%= sprintf("%s / %s", date, pla_txt) %> / <%= t("tables.n_harami_vids_short") %>=<%= n_hvids = event.harami_vids.distinct.count %></th>
       </tr>
+      <% if irow_abs < Rails.configuration.def_view_max_nrows - 2  %>
       <%= render partial: "layouts/harami_vids_index_tbody_part", locals: {harami_vids: event.harami_vids, event: event, can_update_hvids: can_update_hvids, canread_evit: canread_evit, can_read_h1129: can_read_h1129, canread_pla: canread_pla, canread_mus: canread_mus, with_place: (with_place_public || can_update_hvids), evit_offset: evit_offset, with_place_public: with_place_public, stop_rows: stop_rows } %>
       <% evit_offset += event.event_items.distinct.count %>
       <%# break if stop_rows %>
       <% if max_harami_vids_per_event && max_harami_vids_per_event < n_hvids %> 
-        <tr><td colspan="<%= cspan %>"><%= t("event_groups.show.trim_hvid_table_to", trimmed_rows: max_harami_vids_per_event, all_rows: n_hvids) %>
-          <%= t("event_groups.show.for_all_rows") %><%= link_to t("event_groups.show.see_event_page"), event_path(event)+"#harami_vids_for_event" %>
+        <%=  render partial: "layouts/tr_notice_trimmed_rows", locals: {colspan: cspan, trimmed_rows: max_harami_vids_per_event, all_rows: n_hvids, link_path: event_path(event)+"#harami_vids_for_event" } %>
 </td></tr>
       <% end %>
-    <% end %>
+      <% end %>
+      <% irow_abs += [n_hvids, max_harami_vids_per_event+1].min %> <%# +1 taking account of the extra row to explain why the rows have been trimmed in case of too many rows %>
+      <% if irow_abs >= Rails.configuration.def_view_max_nrows - 1 %>
+        <% n_all_rows = n_events+((events.size > 0) ? events.first.event_group.harami_vids.count : 0) %>
+        <%=  render partial: "layouts/tr_notice_trimmed_rows", locals: {colspan: cspan, trimmed_rows: Rails.configuration.def_view_max_nrows, all_rows: n_all_rows, for_td: false } %>
+        <% break %> <%# all_rows.each do |event| %>
+      <% end %>
+    <% end %> <%# all_rows.each do |event| %>
     <% if !stop_rows && harami_vids_without_events.present? %>
         <tr class="text-center">
           <th colspan="<%= cspan %>"> Undefined </th>
         </tr>
+      <% irow_abs_pre = irow_abs %>
+      <% irow_abs += 1 %>
+      <% if irow_abs < Rails.configuration.def_view_max_nrows - 2  %>
         <%= render partial: "layouts/harami_vids_index_tbody_part", locals: {harami_vids: harami_vids_without_events.sort{|a,b| (a.release_date <=> b.release_date) rescue 0 }, event: nil, can_update_hvids: can_update_hvids, canread_evit: canread_evit, can_read_h1129: can_read_h1129, canread_pla: canread_pla, canread_mus: canread_mus, with_place: (with_place_public || can_update_hvids), evit_offset: evit_offset, with_place_public: with_place_public, stop_rows: stop_rows } %>
+        <% irow_abs += harami_vids_without_events.size %> <%# +1 taking account of the extra row to explain why the rows have been trimmed in case of too many rows %>
+      <% end %>
+      <% if irow_abs >= Rails.configuration.def_view_max_nrows - 1 %>
+        <% n_all_rows = n_events+((events.size > 0) ? events.first.event_group.harami_vids.count : 0) %>
+        <%=  render partial: "layouts/tr_notice_trimmed_rows", locals: {colspan: cspan, trimmed_rows: Rails.configuration.def_view_max_nrows-irow_abs_pre, all_rows: harami_vids_without_events } %>
+      <% end %>
     <% end %>
   </tbody>
   <% if !display_all_events %>

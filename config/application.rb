@@ -71,7 +71,7 @@ module HaramiMusicI18n
     config.primary_country = (ENV['MUSIC_I18N_DEFAULT_COUNTRY'] || "JPN")
 
     # default maximum number of rows for Table (to prevent a potential server crush)
-    config.def_view_max_nrows = (ENV['DEF_VIEW_MAX_NROWS'].present? ? ENV['DEF_VIEW_MAX_NROWS'].to_i : 400)
+    config.def_view_max_nrows = (ENV['DEF_VIEW_MAX_NROWS'].present? ? ENV['DEF_VIEW_MAX_NROWS'].to_i : 150)
 
     # default maximum number of Event rows per EventGroup for Table for Public
     config.max_events_per_group_public = 100
