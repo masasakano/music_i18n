@@ -25,27 +25,22 @@
 
 <%= render @event_group, locals: { n_events: n_events, n_harami_vids: n_harami_vids } %>   <%# for some reason, n_harami_vids is not passed... hence it is redefiend (recalculated in ./_event_group.html.erb %>
 
-<div id="event_group_show_footer_controller">
+<%= editor_only_safe_html(EventGroup, method: :index, tag: "div", id: "event_group_show_footer_controller") do %> <%# defined in application_helper.rb %>
   <p>
-    <% if canupdate %>
-      <span class="lead moderator_only"><%= link_to "Edit this EventGroup", edit_event_group_path(@event_group) %> |</span>
+    <%= editor_only_safe_html(:pass, method: canupdate, only: :moderator, tag: "span", class: "lead") do %> <%# defined in application_helper.rb %>
+      <%= link_to "Edit this EventGroup", edit_event_group_path(@event_group) %> |
     <% end %>
-  <%= link_to t("layouts.back_to_index"), event_groups_path %>
+    <%= link_to t("layouts.back_to_index"), event_groups_path %>
   </p>
 
-<% if can?(:destroy, EventGroup) %>
-<div class="text-end moderator_only"> <%# bootstrap 5 %>
-<% if can?(:destroy, @event_group) && @event_group.destroyable? %>
-  <%= button_to "Destroy this EventGroup", @event_group, method: :delete %>
-  </div>
-<% elsif current_user && current_user.an_admin? %>
-  <p>
-  (Child Events (descendants) exist or this is "unknown?", so this cannot be destroyed.)
-  </p>
+  <%= editor_only_safe_html(@event_group, method: :destroy, only: :moderator, class: "text-end moderator_only") do %> <%# defined in application_helper.rb %>
+    <% if @event_group.destroyable? %>
+      <%= button_to "Destroy this EventGroup", @event_group, method: :delete %>
+    <% else %>
+      <form class="button_to" title='(Child Events (descendants) exist or this is "unknown?", so this cannot be destroyed.)'><input disabled="disabled" type="submit" value="Destroy"></form>
+    <% end %>
+  <% end %>
 <% end %>
-</div>
-<% end %>
-</div> <!-- div id="event_group_show_footer_controller" -->
 
 <hr>
 
@@ -59,10 +54,25 @@
 <% end %>
 </section>
 
-<%= editor_only_safe_html(EventItem, method: :create, tag: "div") do %>
+<%
+   can_show_vid_table = can?(:create, EventItem)
+   display_ev_vid_index, for_public = 
+     if @event_group.harami_vids.count < [Rails.configuration.def_view_max_nrows - 30, 10].max
+       [true, true]
+     elsif n_events > Rails.configuration.def_view_max_nrows - 1
+       [false, false]
+     else
+       [true, false]
+     end
+%>
+
+<% if !for_public && can_show_vid_table %>
+  <div class="editor_only">
+<% end %>
+<% if display_ev_vid_index && for_public || can_show_vid_table %>
 <hr>
 
-  <% if n_events > Rails.configuration.def_view_max_nrows - 1 %>
+  <% if !display_ev_vid_index %>  <%# Below would be for editor_only %>
     <p>
       There are so many (<%= n_events %>) Events in this group
       <%= editor_only_safe_html(EventGroup, method: :create, tag: "span", only: :moderator) do %> <%# defined in application_helper.rb %>
@@ -70,16 +80,19 @@
       <% end %>
       that the Event-HaramiVid table would be too large and so is not shown.  See each Event for detail.
     </p>
-  <% else %>
+  <% else %> <%# i.e., display_ev_vid_index==true regardless of for_public and can_show_vid_table %>
     <section id="section_event_group_show_harami_vids_events">
-    
+
     <h2><%= t("event_groups.show.harami_vid_table_title") %> (<%= n_harami_vids %> <%= t(:videos) %>)</h2>
-    
+
     <%= render partial: "layouts/events_harami_vids_index", locals: {events: @event_group.events, with_place_public: true, max_n_events: (cancreate_evt ? nil : Rails.configuration.max_events_per_group_public), max_harami_vids_per_event:  (cancreate_evt ? Rails.configuration.max_harami_vids_per_event_editor : Rails.configuration.max_harami_vids_per_event_public) } %>  <%# Some EventGroups have too many HaramiVid-s, so they are trimmed. %>
-    
+
     </section> <%# section id="section_event_group_show_harami_vids_events" %>
   <% end %>
-<% end %> <%# editor_only_safe_html(EventItem, method: :create, tag: "div") do %>
+<% end %> <%# if display_ev_vid_index && for_public || can_show_vid_table %>
+<% if !for_public && can_show_vid_table %>
+  </div>  <!-- /div class="editor_only" -->
+<% end %>
 
 <%= editor_only_safe_html(EventGroup, method: :index, tag: "div") do %>  <%# EventGroup-index will perhaps become public in the future... %>
 <hr>
