@@ -81,14 +81,14 @@ class HaramiVidsGrid < ApplicationGrid
   column_n_models_belongs_to(:n_musics, :musics, distinct: false, header: Proc.new{I18n.t('tables.n_musics')})
   column_n_models_belongs_to(:n_amps, :artist_music_plays, distinct: false, editor_only: true, header: Proc.new{I18n.t('datagrid.form.n_amps')})
 
-  column(:musics,  html: true, mandatory: true, header: I18n.t(:Musics)) do |record|
+  column(:musics,  html: true, mandatory: true, header: Proc.new{I18n.t(:Musics)}) do |record|
     onecanread ||= (can?(:read, EventItem) ? 1 : 0)
     list_linked_musics(record.musics, with_link: (onecanread==1), with_bf_for_trimmed: true) # defined in MusicsHelper
     #print_list_inline(record.musics.uniq){ |tit, model|  # SELECT "dintinct" would not work well with ordering.
     #  can?(:read, EventItem) ? link_to(tit, music_path(model)) : tit
     #}  # defined in application_helper.rb
   end
-  column(:artists, html: true, mandatory: true, header: I18n.t(:Artists)) do |record|
+  column(:artists, html: true, mandatory: true, header: Proc.new{I18n.t(:Artists)}) do |record|
     onecanread ||= (can?(:read, EventItem) ? 1 : 0)
     list_linked_artists(record.artists, with_link: (onecanread==1), with_bf_for_trimmed: true) # defined in ArtistsHelper
   end

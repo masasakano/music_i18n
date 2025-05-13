@@ -104,6 +104,7 @@ en:
   hour: hour
   minutes_short: mins
   minute: minute
+  artist_postfix: artist
   music_noun: song
   time_second: second
   video:  video

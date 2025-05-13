@@ -891,7 +891,7 @@ module ApplicationHelper
       with_link ? link_to(ea[0], send(model.name.underscore+"_path", ea[1])) : h(ea[0])
     }
 
-    if !links[-1]
+    if !links.empty? && !links[-1]
       links.compact!
       notice_txt = sanitize(t('tables.trimmed_from', all_rows: arsels.size, items: items_suffix))
       notice_txt = sprintf("<strong>%s</strong>", notice_txt) if with_bf_for_trimmed
