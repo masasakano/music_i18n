@@ -79,15 +79,19 @@ class EventItemsGrid < ApplicationGrid
   end
 
   column(:musics,  html: true, mandatory: true, header: I18n.t(:Musics)) do |record|
+    onecanread ||= (can?(:read, EventItem) ? 1 : 0)
+    ### This does not work with PostgreSQL sorting error... (with Translation.sort)
+    # list_linked_musics(record.musics, with_link: (onecanread==1), with_bf_for_trimmed: true) # defined in MusicsHelper
     print_list_inline(record.musics.uniq){ |tit, model|  # SELECT "dintinct" would not work well with ordering.
       titmod = definite_article_to_head(tit)
-      can?(:read, EventItem) ? link_to(titmod, music_path(model)) : titmod
+      (onecanread==1) ? link_to(titmod, music_path(model)) : titmod
     }  # defined in application_helper.rb
   end
   column(:artists, html: true, mandatory: true, header: I18n.t(:Artists)) do |record|
+    onecanread ||= (can?(:read, EventItem) ? 1 : 0)
     print_list_inline(record.artists.uniq){ |tit, model|  # SELECT "dintinct" would not work well with ordering.
       titmod = definite_article_to_head(tit)
-      can?(:read, EventItem) ? link_to(titmod, artist_path(model)) : titmod
+      (onecanread==1) ? link_to(titmod, artist_path(model)) : titmod
     }  # defined in application_helper.rb
   end
 

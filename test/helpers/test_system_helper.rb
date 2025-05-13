@@ -171,12 +171,24 @@ class ActiveSupport::TestCase
 
   # @example
   #    login_at_root_path(@editor_ja)  # defined in test_system_helper.rb
-  def login_at_root_path(user)
-    visit new_user_session_path
+  #
+  # @example
+  #    visit new_event_item_url  # direct jump -> fail
+  #    refute_text "New EventItem"
+  #    assert_text "You need to sign in or sign up"
+  #    login_at_root_path(@moderator_all, with_visit: false, new_h1: "New EventItem")
+  #
+  # @param with_visit: [Boolean] if true (Def), this method visit the new_user_session page
+  # @param new_h1: [String, NilClass] if with_visit is false, this is mandatory! H1 text after login.
+  def login_at_root_path(user, with_visit: true, new_h1: nil)
+    if with_visit
+      visit new_user_session_path 
+      assert_selector "h1", text: "Log in"
+    end
     fill_in "Email", with: @editor_harami.email
     fill_in "Password", with: '123456'  # from users.yml
     click_on "Log in"
-    assert_selector "h1", text: "HARAMIchan"
+    assert_selector "h1", text: (new_h1 || "HARAMIchan")
   end
 
   # performs log on

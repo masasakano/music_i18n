@@ -82,16 +82,15 @@ class HaramiVidsGrid < ApplicationGrid
   column_n_models_belongs_to(:n_amps, :artist_music_plays, distinct: false, editor_only: true, header: Proc.new{I18n.t('datagrid.form.n_amps')})
 
   column(:musics,  html: true, mandatory: true, header: I18n.t(:Musics)) do |record|
-    print_list_inline(record.musics.uniq){ |tit, model|  # SELECT "dintinct" would not work well with ordering.
-      titmod = definite_article_to_head(tit)
-      can?(:read, EventItem) ? link_to(titmod, music_path(model)) : titmod
-    }  # defined in application_helper.rb
+    onecanread ||= (can?(:read, EventItem) ? 1 : 0)
+    list_linked_musics(record.musics, with_link: (onecanread==1), with_bf_for_trimmed: true) # defined in MusicsHelper
+    #print_list_inline(record.musics.uniq){ |tit, model|  # SELECT "dintinct" would not work well with ordering.
+    #  can?(:read, EventItem) ? link_to(tit, music_path(model)) : tit
+    #}  # defined in application_helper.rb
   end
   column(:artists, html: true, mandatory: true, header: I18n.t(:Artists)) do |record|
-    print_list_inline(record.artists.uniq){ |tit, model|  # SELECT "dintinct" would not work well with ordering.
-      titmod = definite_article_to_head(tit)
-      can?(:read, EventItem) ? link_to(titmod, artist_path(model)) : titmod
-    }  # defined in application_helper.rb
+    onecanread ||= (can?(:read, EventItem) ? 1 : 0)
+    list_linked_artists(record.artists, with_link: (onecanread==1), with_bf_for_trimmed: true) # defined in ArtistsHelper
   end
 
   # column_place  # defined in application_grid.rb
@@ -131,7 +130,6 @@ class HaramiVidsGrid < ApplicationGrid
   column(:collabs, html: true, header: Proc.new{I18n.t("harami_vids.table_head_collabs", default: "featuring Artists")}) do |record|
     def_artist = Artist.default(:HaramiVid)
     print_list_inline(record.artist_collabs.where.not(id: def_artist.id).distinct){ |tit, model|
-      tit = definite_article_to_head(tit)
       can?(:read, Artist) ? link_to(tit, artist_path(model)) : tit
     }  # defined in application_helper.rb
   end

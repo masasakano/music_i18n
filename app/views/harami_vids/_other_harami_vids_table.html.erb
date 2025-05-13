@@ -55,7 +55,7 @@
 
   <tbody>
     <% max_harami_vids_per_event = (can_edit ? Rails.configuration.max_harami_vids_per_event_editor : Rails.configuration.max_harami_vids_per_event_public)*3 %>
-    <% all_evits = harami_vid.events.uniq.map{|eev| eev.event_items}.flatten %>
+    <% hs_evits = prepare_evit_list_for_table(harami_vid.events) %>
     <% other_hvids_rela.each_with_index do |ea_hvid, i_hvid| %>
       <tr<%= ' class="self_in_table"'.html_safe if (is_self=(mark_self && ea_hvid == harami_vid)) %>>
         <% if !ignore_max_nrows && i_hvid >= [max_nrows, max_harami_vids_per_event].min %>
@@ -71,17 +71,13 @@
         </td>
         <td class="item_title"><span class="title"><%= ea_hvid.title_or_alt %></span><%= sprintf('&nbsp;<span class="note">%s</span>', h(this_model_note)).html_safe if is_self %></td>
         <td class="URI"><%= link_to_youtube('Link', ea_hvid.uri) %></td>
-        <td class="item_musics"> <%= list_linked_musics(ea_hvid.musics) %> <%# defined in MusicsHelper %>
+        <td class="item_musics"> <%= list_linked_musics(ea_hvid.musics, with_link: false) %> <%# defined in MusicsHelper %>
         </td>
         <td class="item_release_date"><%= date2text(ea_hvid.release_date) %></td> <%# defined in ModuleCommon %>
         <td class="item_duration"><%= ea_hvid.duration ? sec2hms_or_ms(ea_hvid.duration) : "" %></td>
         <td class="item_place"><%= ea_hvid.place ? ea_hvid.txt_place_pref_ctry(without_country_maybe: true) : "" %></td>
         <td class="item_event_items text-end">
-          <%= all_evits.map.with_index{|ea_evit, ind|
-            next nil if !ea_evit.harami_vids.include?(ea_hvid)
-            '<span title="'+h(ea_evit.machine_title)+'">' +
-            (can?(:read, ea_evit) ? link_to(ind+1, ea_evit) : (ind+1).to_s) + '</span>'
-          }.compact.join(t(:comma)).html_safe %>
+          <%= evit_list_for_hvid(ea_hvid, hs_evits) %>
         </td>
         <td><%= link_to(t("tables.Show"), ea_hvid) if can?(:read, ea_hvid) %></td>
        <% if can_edit %>

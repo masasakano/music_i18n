@@ -20,4 +20,17 @@ module ArtistsHelper
               }.join(" / ")).html_safe
     }.join(t(:comma)).html_safe
   end
+
+  # Returns String of html_safe (HTML-anchored) Artist-titles up to a given maximum number.
+  #
+  # If it exceeds the given maximum number, a notice is appended.
+  #
+  # @example
+  #    <%= list_linked_artists(ea_hvid.artists) %> <%# defined in ArtistsHelper %>
+  #
+  # @param with_link: [Boolean] if true (Def), link_to is employed.
+  # @return comma-separated html_safe Strings for many Artist links
+  def list_linked_artists(rela, max_items: 10, with_link: true, with_bf_for_trimmed: false)
+    print_list_inline_upto(rela, model: Music, items_suffix: t(:music_noun).pluralize(I18n.locale), max_items: max_items, with_link: with_link, with_bf_for_trimmed: with_bf_for_trimmed)
+  end
 end

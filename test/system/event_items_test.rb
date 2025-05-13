@@ -37,13 +37,15 @@ class EventItemsTest < ApplicationSystemTestCase
     refute_text "New EventItem"
     assert_text "You need to sign in or sign up"
 
-    #visit new_user_session_path  # already on this page.
-    fill_in "Email", with: @moderator_all.email
-    fill_in "Password", with: '123456'  # from users.yml
-    click_on "Log in"
+    login_at_root_path(@moderator_all, with_visit: false, new_h1: "New EventItem")
+    ##visit new_user_session_path  # already on this page.
+    #fill_in "Email", with: @moderator_all.email
+    #fill_in "Password", with: '123456'  # from users.yml
+    #click_on "Log in"
 
-    visit event_items_url  # index page
-    click_on "New EventItem"
+    ## Already on New EventItem page
+    # visit event_items_url  # index page
+    # click_on "New EventItem"
 
     fill_in "Machine title", with: "my_new_title"
     select('Japan',  from: 'Country')

@@ -17,6 +17,9 @@ module ApplicationHelper
   # * ... and many more.
   DEF_YOUTUBE_SIGNIFICANT_QUERY_KEYS = %w(lc)
 
+  # Default maximum number of items to list before truncated
+  DEF_MAX_ITEMS_PER_CELL = 10
+
   CSS_CLASSES = {
     consistency_place: "consistency_place",
   }.with_indifferent_access
@@ -862,10 +865,42 @@ module ApplicationHelper
   # @yield [String] html_safe [String, Model] is given. Should return the String for each item.
   def print_list_inline(ary, separator: I18n.t(:comma, default: ", "))
     ary.map{|em|
-      tit = (em.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)).html_safe
+      tit = (em.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true)).html_safe
       (block_given? ? yield(tit, em) : tit)
     }.join(separator).html_safe
   end
+
+  # Returning a html_safe inline String for display for an relation (Not Array) up to a max size
+  #
+  # If the result exceeds the given maximum number, a notice is appended.
+  #
+  # @example
+  #    print_list_inline_upto(Music.all, model: Music, items_suffix: t(:music_noun).pluralize(I18n.locale), max_items: 20, with_link: false)
+  #
+  # @param rela [ActiveRecord::Relation]
+  # @param model: [Class<ActiveRecord>] e.g., Music
+  # @param items_suffix: e.g., + t(:music_noun).pluralize(I18n.locale)+
+  # @param max_items: Maximum number of items to print/process
+  # @param with_link: [Boolean] if true (Def), link_to is employed.
+  # @param with_bf_for_trimmed:  [Boolean] if true (Def: false) and if the list reaches the maximum number, the notice is printed in <strong>
+  # @return comma-separated html_safe Strings for many Music links
+  def print_list_inline_upto(rela, model:, items_suffix: "items", max_items: DEF_MAX_ITEMS_PER_CELL, with_link: true, with_bf_for_trimmed: false)
+    arsels = model.collection_ids_titles_or_alts_for_form(rela, prioritize_is_orig: false)
+    links = arsels.map.with_index{|ea, i|
+      next nil if i > max_items-1
+      with_link ? link_to(ea[0], send(model.name.underscore+"_path", ea[1])) : h(ea[0])
+    }
+
+    if !links[-1]
+      links.compact!
+      notice_txt = sanitize(t('tables.trimmed_from', all_rows: arsels.size, items: items_suffix))
+      notice_txt = sprintf("<strong>%s</strong>", notice_txt) if with_bf_for_trimmed
+      links.push notice_txt
+    end
+
+    links.join(t(:comma)).html_safe
+  end
+
 
   # Grid index path helper
   #

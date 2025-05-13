@@ -62,21 +62,16 @@ module MusicsHelper
     }.compact.join(" \n")
   end
 
+  # Returns String of html_safe (HTML-anchored) Music-titles up to a given maximum number.
+  #
+  # If it exceeds the given maximum number, a notice is appended.
+  #
   # @example
-  #    
+  #    <%= list_linked_musics(ea_hvid.musics) %> <%# defined in MusicsHelper %>
+  #
+  # @param with_link: [Boolean] if true (Def), link_to is employed.
   # @return comma-separated html_safe Strings for many Music links
-  def list_linked_musics(rela, max_num: 10)
-    arsels = Music.collection_ids_titles_or_alts_for_form(rela, prioritize_is_orig: false)
-    links = arsels.map.with_index{|ea, i|
-      next nil if i > max_num-1
-      link_to(ea[0], music_path(ea[1]))
-    }
-
-    if !links[-1]
-      links.compact!
-      links.push t('tables.trimmed_from', all_rows: arsels.size, items: t(:music_noun).pluralize(I18n.locale))
-    end
-
-    links.join(t(:comma)).html_safe
+  def list_linked_musics(rela, max_items: 10, with_link: true, with_bf_for_trimmed: false)
+    print_list_inline_upto(rela, model: Music, items_suffix: t(:music_noun).pluralize(I18n.locale), max_items: max_items, with_link: with_link, with_bf_for_trimmed: with_bf_for_trimmed)
   end
 end

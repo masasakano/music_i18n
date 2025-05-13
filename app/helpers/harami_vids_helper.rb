@@ -144,6 +144,25 @@ module HaramiVidsHelper
     collec
   end
 
+  # @return [Hash] pID(EventItem) => LinkText  (link only for Editors) for HaramiVid
+  def prepare_evit_list_for_table(events)
+    can_read = can?(:read, EventItem)
+    hs_evits = {}  # pID => txt [String]
+    events.order(:start_time, :event_group_id).uniq.map{|eev| eev.event_items}.flatten.each_with_index do |ea_evit, ind|  # EAch-EVent-ITem
+      link_txt = (can_read ? link_to(ind+1, ea_evit) : (ind+1).to_s)
+      hs_evits[ea_evit.id] = sprintf('<span title="%s">%s</span>', h(ea_evit.machine_title), link_txt).html_safe
+    end
+    hs_evits
+  end
+
+  # @return [String] List of (possibly) links of numbered EventItem-s.
+  def evit_list_for_hvid(hvid, hs_evits)
+    hvid_evids = hvid.event_items.ids
+    hs_evits.map{|pid, linktxt|
+      hvid_evids.include?(pid) ? linktxt : nil
+    }.compact.join(t(:comma)).html_safe
+  end
+
   private
 
     # Set @event_event_items
