@@ -61,4 +61,22 @@ module MusicsHelper
       end
     }.compact.join(" \n")
   end
+
+  # @example
+  #    
+  # @return comma-separated html_safe Strings for many Music links
+  def list_linked_musics(rela, max_num: 10)
+    arsels = Music.collection_ids_titles_or_alts_for_form(rela, prioritize_is_orig: false)
+    links = arsels.map.with_index{|ea, i|
+      next nil if i > max_num-1
+      link_to(ea[0], music_path(ea[1]))
+    }
+
+    if !links[-1]
+      links.compact!
+      links.push t('tables.trimmed_from', all_rows: arsels.size, items: t(:music_noun).pluralize(I18n.locale))
+    end
+
+    links.join(t(:comma)).html_safe
+  end
 end

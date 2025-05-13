@@ -309,8 +309,9 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
 
     evit.reload
     stime = evit.start_time
-    assert_equal stime, evit_stime_2yr, "EventItem start time should not be updated this time because of other HaramiVid, but..."
-
+    # refute evit.event.default?  # Apparently, Event is a default one.
+    # assert_equal stime, evit_stime_2yr, "EventItem start time should not be updated this time because of other HaramiVid, but..."
+    #### Correction: EventItem start time can be updated when Event is a default one.  (updated in 2025 May at ver.2.0)
 
     ## WARNING: This always accesses Google Youtube API.
     ## 6th and errorneous run (only if indicated so!)

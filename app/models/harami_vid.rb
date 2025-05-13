@@ -806,7 +806,7 @@ class HaramiVid < BaseWithTranslation
         event_items << harami1129.event_item if !dryrun || self.new_record?  # HaramiVidEventItemAssoc is immediately created unless self is a new record
         [harami1129.event_item.id]
       else
-        columns_for_harami1129[:be4][:event_item]
+        columns_for_harami1129[:be4][:event_item]  # identical to :be4
       end
 
     ## A {Place} may be assigned here

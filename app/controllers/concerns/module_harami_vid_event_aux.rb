@@ -40,7 +40,7 @@ module ModuleHaramiVidEventAux
   # as long as it does not contradict release_date of the related HaramiVids.
   # This usually happens an EventItem for a default Event is assigned to a HaramiVid,
   # where the start time of the Event is often (though not always) much earlier.
-  THRE_DURATION_UPDATE_EVENT_START_TIME = 11.months
+  THRE_DURATION_UPDATE_EVENT_START_TIME = 5.months
 
   # Automatically-assigned start-date/time is earlier than the reference point than this period
   #
@@ -65,10 +65,13 @@ module ModuleHaramiVidEventAux
       cand_epoch = candidate_new_start_time(harami_vid)
       return false if cand_epoch <= evit.start_time  # Already adjusted or manually set
 
-      earliest_epoch = utc_middle_of_day(harami_vid.release_date) - THRE_DURATION_UPDATE_EVENT_START_TIME # defined in module_common.rb
+      earliest_epoch = utc_middle_of_day(harami_vid.release_date) - THRE_DURATION_UPDATE_EVENT_START_TIME # utc_middle_of_day() defined in module_common.rb
       # return false if cand_epoch < earliest_epoch  # should never happen by definition of both values
       t = evit.harami_vids.where.not("harami_vids.id = ?", harami_vid.id).pluck(:release_date).flatten.compact.sort.first 
       return false if t && t < cand_epoch
+
+      return true if evit.event && evit.event.default?  # If Event is a default one, the next condition does not make sense because there can be many HaramiVids whose start_time/date is earlier. 
+
       t = evit.event.harami_vids.joins(events: {harami_vids: :harami_vid_music_assocs}).where("harami_vid_music_assocs.music_id" => evit.musics.ids).distinct.pluck(:release_date).flatten.compact.sort.first
                                # joins("INNER JOIN harami_vid_music_assocs ON harami_vid_music_assocs.harami_vid_id = harami_vids.id")
       return false if t && t < cand_epoch
@@ -106,9 +109,10 @@ module ModuleHaramiVidEventAux
   #
   # @param event [Event, EventItem] can be an unsaved one
   # @param harami_vid [HaramiVid]
+  # @param music_name: [String, NilClass] Music title, used for a new EventItem#machine_title
   # @return [NilClass, Array<EventItem, Array<String>>] 2-elements Array or nil (if not processed at all). 1st is the created EventItem to associate to HaramiVid. 2nd is an Array of Flash messages for :warning (or nil)
-  def create_event_item_from_harami_vid(evt_kind, harami_vid=@harami_vid)
-    evt_kind = _new_event_or_item_for_harami_vid(evt_kind, harami_vid) if evt_kind.respond_to?(:event_items) && evt_kind.id
+  def create_event_item_from_harami_vid(evt_kind, harami_vid=@harami_vid, music_name: nil)
+    evt_kind = _new_event_or_item_for_harami_vid(evt_kind, harami_vid, music_name: music_name) if evt_kind.respond_to?(:event_items) && evt_kind.id
     # The above is run in HaramiVid#create, where an existing Event is given as evt_kind.
     # When called from FetchYoutubeDataController, it is either an unsaved Event or EventItem
 
@@ -145,22 +149,22 @@ module ModuleHaramiVidEventAux
     ret_msgs
   end
 
-
   ################ methods for mostly internal use
 
   # Returns a new unsaved Event or unsaved EventItem for HaramiVid
   #
   # @param event [Event]
   # @param harami_vid [HaramiVid]
+  # @param music_name: [String, NilClass] Music title, used for a new EventItem#machine_title
   # @return [Event, EventItem] Either unsaved Event or unsaved EventItem
-  def _new_event_or_item_for_harami_vid(event, harami_vid=@harami_vid)
+  def _new_event_or_item_for_harami_vid(event, harami_vid=@harami_vid, music_name: nil)
     opts = 
       if event.default? && harami_vid.place.present? && (!event.place || event.place.encompass_strictly?(harami_vid.place))
         {place: harami_vid.place, event_group: event.event_group} # => unsaved Event or unsaved EventItem
       else
         {event: event} # => unsaved EventItem
       end
-    EventItem.new_default(:HaramiVid, save_event: false, **opts)
+    EventItem.new_default(:HaramiVid, music_name, save_event: false, **opts)
   end
 
   # Updates publish_date, (optionally) start_time, duration and their erros of the EventItem, using information from the HaramiVid
@@ -179,7 +183,7 @@ module ModuleHaramiVidEventAux
   def _update_event_item_from_harami_vid(evit, harami_vid=@harami_vid, skip_update_start_time: true, force_update_start_time: false)
     hsin, ret_msgs = _hs_update_event_item_from_harami_vid(evit, harami_vid, skip_update_start_time: skip_update_start_time, force_update_start_time: force_update_start_time)
 
-    if !hsin.empty? && !evit.update!(hsin)
+    if !hsin.empty? && !evit.update(hsin)
       evit.errors.full_messages.each do |em|
         harami_vid.errors.add :base, "Failed in updating an EventItem: "+em
       end

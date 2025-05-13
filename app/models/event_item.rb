@@ -186,15 +186,21 @@ class EventItem < ApplicationRecord
       ja: evgr && evgr.title_or_alt(langcode: "ja", lang_fallback_option: :never, str_fallback: nil, article_to_head: true),  # maybe identical to "en" IF Event has only "ja". evgr is nil if artit is given as an argument.
     }.with_indifferent_access
 
+    popped = false
     if evgr && evgr_titles[:ja].present? && !evgr_titles[:ja].strip.empty? && /#{Regexp.quote(evgr_titles[:ja])}.?\Z/ =~ artit[0]
       if artit[1].present? && !artit[1].strip.empty?  # should be always the case, but playing safe.
         artit[0].sub!(/#{Regexp.quote(evgr_titles[:ja])}(.?)\Z/, artit[1].strip+'\1')
         artit.pop
+        popped = true
       end
     else # if !evgr || 1 == evgr_titles.values.uniq.size  # evgr is nil if artit is given as an argument.
       artit.pop if /#{Regexp.quote(artit[1])}.?\Z/ =~ artit[0]
+      popped = true
     end
 
+    if !popped && artit.size >= 2  # The latter condition is redundant, but playing safe.
+      artit = artit[0..-2]+["<", artit[-1]] 
+    end
     [UNKNOWN_TITLE_PREFIXES[:en], artit.join("_").gsub(/ +/, "_").gsub(/__+/, "_")]
   end
 
@@ -293,14 +299,16 @@ class EventItem < ApplicationRecord
   # contexts; see {EventGroup.guessed_best} for detail.
   #
   # @option context [Symbol, String]
+  # @option prefix [String, NilClass] Default is {DEFAULT_UNIQUE_TITLE_PREFIX}
   # @param place: [Place, NilClass]
   # @param event: [Event, NilClass] If specified non-nil, the Event is used without deriving an Event. If this is specified, place and event_group are ignored.
   # @param event_group: [EventGroup, NilClass]
   # @option save_event: [Boolean] If specified, always return EventItem, where a new Event may be created. Unlike {EventItem.default}, the default is true(!)
   # @param **kwd [Hash] See {EventGroup.guessed_best_or_nil} and {Event.default} for keywords (:ref_title, :year, :date, :place_confidence)
   # @return [EventItem, Event] it is guaranteed to be EventItem if save_event is true.
-  def self.new_default(context=nil, place: nil, event: nil, event_group: nil, save_event: true, **kwd)
-    return new_default_for_event(event, save_event: save_event) if event
+  def self.new_default(context=nil, prefix=DEFAULT_UNIQUE_TITLE_PREFIX, place: nil, event: nil, event_group: nil, save_event: true, **kwd)
+    prefix ||= DEFAULT_UNIQUE_TITLE_PREFIX
+    return new_default_for_event(event, prefix, save_event: save_event) if event
 
     def_event = default(context, place: place, event_group: event_group, save_event: false, **kwd)
     if def_event.class == self
@@ -319,9 +327,10 @@ class EventItem < ApplicationRecord
 
   # @option save_event: [Boolean] If specified true, returned EventItem exists; otherwise unsaved new_record?
   # @return [EventItem]
-  def self.new_default_for_event(event, save_event: false)
+  def self.new_default_for_event(event, prefix=DEFAULT_UNIQUE_TITLE_PREFIX, save_event: false)
+    prefix = DEFAULT_UNIQUE_TITLE_PREFIX if prefix.blank?
     raise "Contact the code developer (wrong argument for method)." if !event
-    evit = initialize_new_template(event)
+    evit = initialize_new_template(event, prefix)
     if !evit  # should never happen...
       raise "#{File.basename __FILE__}:(#{__method__}) unexpectedly nil is returned from #{self.name}.initialize_new_template(#{event.inspect})"
     end

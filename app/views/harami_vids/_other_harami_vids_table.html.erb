@@ -71,7 +71,8 @@
         </td>
         <td class="item_title"><span class="title"><%= ea_hvid.title_or_alt %></span><%= sprintf('&nbsp;<span class="note">%s</span>', h(this_model_note)).html_safe if is_self %></td>
         <td class="URI"><%= link_to_youtube('Link', ea_hvid.uri) %></td>
-        <td class="item_musics"><%= ea_hvid.musics.uniq.map{|i| link_to(i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), i)}.join(t(:comma)).html_safe %></td>
+        <td class="item_musics"> <%= list_linked_musics(ea_hvid.musics) %> <%# defined in MusicsHelper %>
+        </td>
         <td class="item_release_date"><%= date2text(ea_hvid.release_date) %></td> <%# defined in ModuleCommon %>
         <td class="item_duration"><%= ea_hvid.duration ? sec2hms_or_ms(ea_hvid.duration) : "" %></td>
         <td class="item_place"><%= ea_hvid.place ? ea_hvid.txt_place_pref_ctry(without_country_maybe: true) : "" %></td>

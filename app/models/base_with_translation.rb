@@ -2402,6 +2402,13 @@ class BaseWithTranslation < ApplicationRecord
 
   # Wrapper of {self.collection_ids_titles_or_alts}
   #
+  # Definite articles are brought to the head.
+  #
+  # @example
+  #    Music.collection_ids_titles_or_alts_for_form(HaramiVid.second.musics, prioritize_is_orig: false).map{|ea|
+  #      link_to(ea[0], music_path(ea[1]))
+  #    }.join(t(:comma)).html_safe
+  #
   # @param fmt: [String] sprintf format. Make sure that this is consistent with id_assocs, i.e., the number of "%s" contained must be 1+id_assocs.size
   # @param str_fallback: [String] Fallback String in case neither title nor alt_title exists, which might happen if some of the id_assocs records do not exist in the first place!
   # @return [Array<Array<String, Integer>>] The order is [Title, pID] (reverse of {self.collection_ids_titles_or_alts})
@@ -2409,7 +2416,7 @@ class BaseWithTranslation < ApplicationRecord
     ar2process = collection_ids_titles_or_alts(rela, **opts)
     ar2process.map{ |eary|
       [
-       sprintf(fmt, *(eary[1..-1].map{|es| es.blank? ? str_fallback : es})),
+       sprintf(fmt, *(eary[1..-1].map{|es| es.blank? ? str_fallback : definite_article_to_head(es)})),  # defined in ModuleCommon
        eary[0]
       ]
     }

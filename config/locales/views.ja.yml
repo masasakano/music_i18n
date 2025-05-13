@@ -57,6 +57,7 @@ ja:
     note_this_model_default: "[自身]"
     note_this_model: "[この%{kwd}]"
     too_many_rows: "(……他多数。残りは割愛。)"
+    trimmed_from: "……他多数(全%{all_rows}%{items})。"
 
   application:
     menu_harami_vids: "ハラミちゃん動画"

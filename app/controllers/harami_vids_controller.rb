@@ -1057,7 +1057,18 @@ end
     #
     # @param evt_kind [Event, EventItem] Either Event or EventItem
     def set_up_event_item_and_associate(event)
-      evit, msgs = create_event_item_from_harami_vid(event, harami_vid=@harami_vid)  # defined in concerns/module_harami_vid_event_aux.rb
+      mu_name = 
+        if @assocs[:music_collab].present?
+          @assocs[:music_collab].title_or_alt
+        elsif @hsmain[:music_collab].present?
+          Music.find(@hsmain[:music_collab]).title_or_alt
+        elsif @assocs[:music].present?
+          @assocs[:music].title_or_alt
+        else
+          nil
+        end
+
+      evit, msgs = create_event_item_from_harami_vid(event, harami_vid=@harami_vid, music_name: mu_name)  # defined in concerns/module_harami_vid_event_aux.rb
 
       if evit && msgs.present?  # evit should be always present when msgs is present, but playing safe
         flash[:warning] ||= []

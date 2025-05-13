@@ -56,6 +56,7 @@ class Harami1129 < ApplicationRecord
   extend  ModuleCommon
   include ModuleCommon  # preprocess_space_zenkaku etc
   include ModuleGuessPlace  # for guess_place
+  include ModuleHaramiVidEventAux  # for _update_event_item_from_harami_vid  # NOTE this is a Controller concern...
 
   # Prefix for the column names inserted from the raw columns
   PREFIX_INSERTED_WITHIN = 'ins_'
@@ -1058,7 +1059,7 @@ class Harami1129 < ApplicationRecord
         enga.save! if enga.changed?  # redundant, as it should have been already saved.
         self.engage     = enga
 
-        set_event_item_ref(enga, hvid)
+        set_event_item_ref(enga, hvid)  # Uses an existing HaramiVid#event_items if exists? or newly creates an EventItem
         hvid.set_with_harami1129_event_item_assoc(self, dryrun: dryrun)  # HaramiVid#place may be modified.
         save!
 
@@ -1087,7 +1088,7 @@ class Harami1129 < ApplicationRecord
         h1129.event_item
       else
         (_find_evit_in_harami_vid(enga, hvid, guessed_place: guessed_place) ||  # takes from HaramiVid (this happens when HaramiVid for the same URI is created before Harami1129)
-         create_event_item_ref(hvid.event_items.first, guessed_place: guessed_place)) # create one.
+         create_event_item_ref(hvid.event_items.first, guessed_place: guessed_place, harami_vid: hvid)) # create one.
       end
 
     create_def_amp!(enga, guessed_place: nil)
@@ -1135,14 +1136,17 @@ class Harami1129 < ApplicationRecord
   # Create a new event_item to belongs_to
   #
   # @param template [EentItem, NilClass] template if any. Its Event is used.
+  # @param harami_vid [HaramiVid] mandatory
   # @return [EentItem, NilClass] newly created one; nil if failed.
-  def create_event_item_ref(template=nil, guessed_place: nil)
+  def create_event_item_ref(template=nil, harami_vid: , guessed_place: nil)
     event = (template ? template.event : nil)
     guessed_place ||= self.class.guess_place(ins_title)  # defined in /app/models/concerns/module_guess_place.rb
+
     evt_kind =  EventItem.new_default(:harami1129, event: event, place: guessed_place, save_event: false, ref_title: ins_title, date: ins_release_date, place_confidence: :low)  # Either Event or EventItem
     if EventItem == evt_kind.class
       evit = evt_kind
       if evit.save
+        _update_event_item_from_harami_vid(evit, harami_vid, skip_update_start_time: false)  # defined in ModuleHaramiVidEventAux
         return evit.reload
       else
         logger.error("ERROR(#{File.basename __FILE__}:#{__method__}): for some reason, EventItem failed to be saved! EventItem=#{evt_kind.inspect}")
@@ -1153,7 +1157,9 @@ class Harami1129 < ApplicationRecord
     # evt_kind is an Event (NOT EventItem)
     if evt_kind.save   # Just to play VERY safe (so as not to stop processing with a risk of Harami1129#event_item being nil.
       evt_kind.event_items.reset
-      return evt_kind.event_items.first
+      evit = evt_kind.event_items.first
+      _update_event_item_from_harami_vid(evit, harami_vid, skip_update_start_time: false)  # defined in ModuleHaramiVidEventAux
+      return evit
     else
       logger.error("ERROR(#{File.basename __FILE__}:#{__method__}): for some reason, Event failed to be saved! Event=#{evt_kind.inspect}")
       return

@@ -5,6 +5,7 @@ class EventItems::ResettleNewEventsController < ApplicationController
   include ModuleCommon  # for preprocess_space_zenkaku
   include ModuleHaramiVidEventAux # for _hs_adjust_event_item_duration
   include ModuleEventAux::ClassMethods # for self.def_event_title_postfix
+  include ModuleHaramiVidEventAux  # for _update_event_item_from_harami_vid
 
   # When Event Title is not found AT ALL (which should never happen), this is used.
   FALLBACK_EVENT_TITLE = "EventWithNoTitle"
@@ -83,14 +84,36 @@ raise if @event.id
     def set_new_event
       old_event = @event_item.event
 
+      # If EventItem has only one HaramiVid, its start_time may be modified.  EventItem is updated on DB here.
+      if 1 == @event_item.harami_vids.count && (evitstt=@event_item.start_time) && (evgrstd=@event_item.event_group&.start_date) && (evitstt.to_date - evgrstd).abs <= 10
+        hvid = @event_item.harami_vids.first
+        set_event_item_duration(skip_update_start_time: false)
+        if hvid.errors.any?
+          add_flash_message(:warning, hvid.errors.full_messages)
+        end
+      end
+
       # old_event.dup has pretty much all the information, because only direct :has_many
       # of an Event are EventItem-s and Translation-s, and the rest is through
       # EventItems. The EventItem will migrate (resettle) to the new Event in this Controller.
       # Translation will be of course created.
       @event = old_event.dup
+      @event.start_time     = @event_item.start_time     if @event_item.start_time 
+      @event.start_time_err = @event_item.start_time_err if @event_item.start_time_err
+      @event.duration_hour = 
+        if @event_item.duration_minute
+          @event_item.duration_minute * 60
+        else
+          [(@event.duration_hour || Event::DEF_TIME_PARAMS[:DURATION]), Event::DEF_TIME_PARAMS[:DURATION]].min
+        end
 
       @event.unsaved_translations = _new_evt_tras
       @event.place = _most_significant_place
+      msg = sprintf("Resettled from %s (pID=%d) on %s",
+                    ActionController::Base.helpers.link_to("EventItem", event_item_path(@event_item)),
+                    @event_item.id,
+                    Date.current.to_s)
+      @event.memo_editor = [((existing=@event.memo_editor).blank? ? nil : existing), msg].join(" ") 
     end
 
     def update_event_item_no_save
@@ -104,9 +127,9 @@ raise if @event.id
     # Update (without save) publish_date, (optionally) start_time, duration and their erros of an EventItem, using information from the HaramiVid
     #
     # The default parity for Option skip_update_start_time is opposite to in the original module_harami_vid_event_aux.rb
-    def set_event_item_duration(skip_update_start_time: false)
-      return if !@harami_vid
-      hs2update, ret_msgs = _hs_update_event_item_from_harami_vid(@event_item, @harami_vid, skip_update_start_time: skip_update_start_time, force_update_start_time: false)  # defined in module_harami_vid_event_aux.rb
+    def set_event_item_duration(harami_vid=@harami_vid, skip_update_start_time: false)
+      return if !harami_vid
+      hs2update, ret_msgs = _hs_update_event_item_from_harami_vid(@event_item, harami_vid, skip_update_start_time: skip_update_start_time, force_update_start_time: false)  # defined in module_harami_vid_event_aux.rb
       if ret_msgs.present?
         flash[:warning] ||= []
         flash[:warning].concat ret_msgs

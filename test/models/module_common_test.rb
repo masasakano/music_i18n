@@ -450,6 +450,14 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_equal exp, uniq_dbl_ary_by(ar, 2, maxsize: 2)
   end
 
+  test "camel_cased_truncated" do
+    assert_equal "KingArthur", camel_cased_truncated("KING Arthur")
+    assert_equal "KingArthur", camel_cased_truncated("king arthur")
+    assert_equal "KingArthur", camel_cased_truncated("king arthur, the")
+    assert_equal "HeyHeyJump", camel_cased_truncated("Hey! hey! jump.")
+    assert_equal "ArtMusicTitle", camel_cased_truncated("art-music TITLE")
+  end
+
   private
     # Returns true if Ruby and PosgreSQL results match.
     def _match_rb_psql_regexp?(conn, re_ruby, str, regexp_should_succed=true)

@@ -1661,6 +1661,12 @@ module ModuleCommon
     arret
   end
 
+  # @return [String, NilClass] Camel-cased title or nil. This is more for an internal use. Punctuations are removed
+  def camel_cased_truncated(tit)
+    return if tit.blank?
+    tit.sub(/,\s*(the|le|la|les|l'|los)/i, "").gsub(/\s+/, "_").underscore.camelize.gsub(/[\-()]/, "_").gsub(/[「」『』<>{},!.?*$#\[\]]/, "")  # an article at the tail is removed
+  end
+
   # 
   #
   # @param *models [Class, String] model1, model2, ...

@@ -57,6 +57,7 @@ en:
     note_this_model_default: "[SELF]"
     note_this_model: "[This %{kwd}]"
     too_many_rows: "(……and more. The rest is trimmed.)"
+    trimmed_from: "……and more (%{all_rows} %{items} in total)."
 
   application:
     menu_harami_vids: "HARAMIchan's Videos"

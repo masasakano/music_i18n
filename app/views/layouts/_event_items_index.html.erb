@@ -13,8 +13,10 @@
 <table id="event_items_index_table">
   <thead>
     <tr>
+      <% cspan = 12 %>
       <% if (canedit=can?(:edit, EventItem)) %>
         <th class="editor_only">ID</th>
+        <% cspan += 1 %>
       <% end %>
       <th>Machine Title</th>
       <th>From Time</th>
@@ -28,20 +30,28 @@
         <% if with_event %>
       <th>Event</th>
       <th>EventGroup</th>
+          <% cspan += 2 %>
         <% end %>
       <th title="Number of associated HaramiVids">#HVids</th>
       <th title="Number of played-Music associations">#Plays</th>
       <th title="Note in this DB">Note</th>
       <% if (canupdate=can?(:update, EventItem)) %>
         <th colspan="3"></th>
+        <% cspan += 3 %>
       <% else %>
         <th></th>
+        <% cspan += 1 %>
       <% end %>
     </tr>
   </thead>
 
   <tbody>
-    <% event_items.joins(:event).order("events.start_time", :weight, :publish_date).each do |event_item| %>
+<%# event_items.joins(:event).order("events.start_time", :weight, :publish_date).each do |event_item| %>
+    <% event_items.joins(:event).order("events.start_time", :weight, :publish_date).each_with_index do |event_item, irow| %>
+      <% if irow > Rails.configuration.def_view_max_nrows - 1 %>
+        <%=  render partial: "layouts/tr_notice_trimmed_rows", locals: {colspan: cspan, trimmed_rows: Rails.configuration.def_view_max_nrows, all_rows: event_items.count, for_td: true } %>
+        <% break %>
+      <% end %>
       <tr<%= ' class="self_in_table"'.html_safe if (is_self=(this_event_item && event_item == this_event_item)) %>>
         <% if canedit %>
           <td class="editor_only"><%= link_to event_item.id, event_item %></td>
