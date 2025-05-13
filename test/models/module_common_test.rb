@@ -438,6 +438,18 @@ class ModuleCommonTest < ActiveSupport::TestCase
     end
   end
 
+  test "uniq_dbl_ary_by" do
+    ar = [[3,?a,?c], [4,?a,?d], [3,?x,?y]]
+    exp = [[3,?a,?c], [4,?a,?d]]
+    assert_equal exp, uniq_dbl_ary_by(ar, 0)
+    exp = [[3,?a,?c], [3,?x,?y]] 
+    assert_equal exp, uniq_dbl_ary_by(ar, 1)
+    exp = [[3,?a,?c], [4,?a,?d], [3,?x,?y]] 
+    assert_equal exp, uniq_dbl_ary_by(ar, 2)
+    exp = [[3,?a,?c], [4,?a,?d]]
+    assert_equal exp, uniq_dbl_ary_by(ar, 2, maxsize: 2)
+  end
+
   private
     # Returns true if Ruby and PosgreSQL results match.
     def _match_rb_psql_regexp?(conn, re_ruby, str, regexp_should_succed=true)

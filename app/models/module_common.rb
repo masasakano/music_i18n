@@ -1632,6 +1632,35 @@ module ModuleCommon
     end.to_h
   end
 
+  # Uniq Double-ARraY BY an index.
+  #
+  # @example
+  #    ar = [[3,?a,?c], [4,?a,?d], [3,?x,?y]]
+  #    uniq_dbl_ary_by(ar, 0)
+  #      #=>[[3,?a,?c], [4,?a,?d]]
+  #    uniq_dbl_ary_by(ar, 1)
+  #      #=>[[3,?a,?c], [3,?x,?y]] 
+  #    uniq_dbl_ary_by(ar, 2)
+  #      #=>[[3,?a,?c], [4,?a,?d], [3,?x,?y]] 
+  #    uniq_dbl_ary_by(ar, 2, maxsize: 2)
+  #      #=>[[3,?a,?c], [4,?a,?d]]
+  #
+  # @param ary [Array]
+  # @param ind [Integer] index
+  # @param maxsize: [Numeric] The maximum size of the returned Array
+  # @return [Array]
+  def uniq_dbl_ary_by(ary, ind, maxsize: Float::INFINITY)
+    seens = []
+    arret = []
+    ary.each do |ea|
+      next if seens.include?(ea[ind])
+      seens << ea[ind]
+      arret << ea
+      break if arret.size >= maxsize
+    end
+    arret
+  end
+
   # 
   #
   # @param *models [Class, String] model1, model2, ...

@@ -2400,6 +2400,106 @@ class BaseWithTranslation < ApplicationRecord
     title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "(UNDEFINED)", article_to_head: true)
   end
 
+  # Wrapper of {self.collection_ids_titles_or_alts}
+  #
+  # @param fmt: [String] sprintf format. Make sure that this is consistent with id_assocs, i.e., the number of "%s" contained must be 1+id_assocs.size
+  # @param str_fallback: [String] Fallback String in case neither title nor alt_title exists, which might happen if some of the id_assocs records do not exist in the first place!
+  # @return [Array<Array<String, Integer>>] The order is [Title, pID] (reverse of {self.collection_ids_titles_or_alts})
+  def self.collection_ids_titles_or_alts_for_form(rela=self.all, fmt: "%s", str_fallback: "", **opts)
+    ar2process = collection_ids_titles_or_alts(rela, **opts)
+    ar2process.map{ |eary|
+      [
+       sprintf(fmt, *(eary[1..-1].map{|es| es.blank? ? str_fallback : es})),
+       eary[0]
+      ]
+    }
+  end
+
+  # Collection of [id, title, [title, ...]] used for form-selection
+  #
+  # Language fallback is always ON for any of the assocs specified.
+  #
+  # You may usually specify +prioritize_is_orig: false+ for the website use! 
+  #
+  # @note
+  #   The standard order in the form is [Title, pID].  See the wrapper {self.collection_ids_titles_or_alts_for_form}
+  #
+  # @example
+  #    rela = Event.where(id: [1,2,3,4]).order(:start_time)
+  #    Event.collection_ids_titles_or_alts(rela.order(:start_time), prioritize_is_orig: false)
+  #      # => [[2, "EvTitle2"], [4, "EvTitle4"], ...]  # 4 elements
+  #
+  # @example title for EventGroup (which Event belongs_to) is also included in return
+  #    rela = Event.where(id: [1,2,3,4]).order(:start_time)
+  #    Event.collection_ids_titles_or_alts(rela.order(:start_time), langcode: "en", prioritize_is_orig: false, id_assocs: [EventGroup])
+  #      # => [[2, "EvTitle2", "Group1"], [4, "EvTitle4", "Group3"], ...]  # 4 elements
+  #
+  # @example  (not tested...) title for random joined models can be also included.
+  #    rela = Event.joins(:place).where(id: [1,2,3,4]).order("events.weight")
+  #    Event.collection_ids_titles_or_alts(rela.order(:start_time), prioritize_is_orig: false, id_assocs: [EventGroup, ["Place", "places.id"]])
+  #      # => [[2, "EvTitle2", "Group1", "Place1"], [4, "EvTitle4", "Group3", "Place3"], ...]  # 4 elements
+  #
+  # @note Although this method in principle preserves the number of the given entries,
+  #    it usually does not work well with ActiveRecord/SQL +limit(n)+ statement; this is because
+  #    the SQL +limit+ works on the joined model, which would work on a greater number of rows
+  #    of records during processing because each record may have multiple translations across languages.
+  #
+  # @param rela [ActiveRecord_Relation]
+  # @param langcode: [String, Symbol] locale for the most desirable language
+  # @param id_assocs: [Array<Array<String>, Class>] SQL expression the attribute corresponding to translatable_type and _id;
+  #    e.g., ["Place", "places.id"] => translatable_type = 'Place' and translatable_id = places.id
+  #    A short form of a class of e.g., EventGroup is allowed instead, IF the record belongs to the model, i.e., 
+  #           translatable_type = 'EventGroup' and translatable_id = self.table_name+".event_group_id"
+  # @param prioritize_is_orig: [Boolean] if true (Def), is_orig is prioritized over langcode.  For Website, you may set this false!  See {Translation.sort} for detail.
+  # @return [Array] [[id, title_or_lat, [title_or_alt, [...]]], [...]]
+  def self.collection_ids_titles_or_alts(rela=self.all, id_assocs: [], langcode: I18n.locale, prioritize_is_orig: true)
+    raise ArgumentError, "(#{__method__}) id_assocs must be an Array." if !id_assocs.respond_to?(:map)
+    my_tblname = self.table_name
+    artra = id_assocs.map.with_index{|eary, i|
+      if eary.respond_to?(:table_name)
+        ttype = eary.name  # Translatable_TYPE
+        tidst = sprintf("%s.%s_id", my_tblname, eary.table_name.singularize)  # Translatable_ID-STring
+      else
+        ttype, tidst = eary
+      end
+      talias = tidst.gsub(/\./, "_")+"_tra"  # SQL DB Alias for the translations table
+
+      [talias, ttype, tidst]  # DB-Alias, translatable_type, translatable_id
+    }
+
+    rela_join = rela.joins(:translations)
+    artra.each do |ea|
+      rela_join = rela_join.joins(
+        Arel.sql("LEFT JOIN translations #{ea[0]} ON #{ea[0]}.translatable_type = '#{ea[1]}' AND #{ea[0]}.translatable_id = #{ea[2]}")
+      )
+    end
+    
+    rela2ret = Translation.sort(rela_join, langcode: langcode.to_s, prioritize_is_orig: prioritize_is_orig)
+    artra.each do |ea|
+      rela2ret = Translation.sort(rela2ret, langcode: langcode.to_s, t_alias: ea[0], prioritize_is_orig: prioritize_is_orig)
+    end
+
+    pluck_prms = [my_tblname+".id", ["translations.title", "translations.alt_title"]]
+    artra.each do |ea|
+      pluck_prms << [ea[0]+".title", ea[0]+".alt_title"]
+    end
+    # Got [[:id, [:title, :alt_title], (["assocs0.title", "assocs0.alt_title"], (["assocs1.title", ...]))], ...]
+
+    pluck_prms.flatten!
+    artmp = uniq_dbl_ary_by(rela2ret.pluck(*pluck_prms),  0, maxsize: rela.count)  # defined in module_common.rb
+    _squash_title_alt(artmp)
+  end
+
+  def self._squash_title_alt(ary)
+    ary.map{ |eary|
+      [eary[0]] + eary[1..-1].each_slice(2).to_a.map{|epair|
+                   (v=epair.first).present? ? v : epair.last
+                 }
+    }
+  end
+  private_class_method :_squash_title_alt
+
+
   # Array of either 1 or 2 elements of String (title)
   #
   # NOTE: This method makes sense only when both +langcode+ and +prioritize_orig+

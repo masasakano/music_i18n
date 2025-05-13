@@ -1,18 +1,9 @@
 # coding: utf-8
 module EventsHelper
-  # @param rela [Relation] Either Event or its relation like Event.all
-  def form_selct_collections(rela)
-    rela = rela.all if !rela.respond_to? :map
-    rela.map{|i|
-      evt_tit = i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)
-begin      
-      grp_tit = i.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)
-rescue
-  print "DEBUG:helper1234: ev="; p [i, i.event_group]
-  raise
-end
-      [sprintf("%s [%s]", evt_tit, grp_tit), i.id]
-    }
+  def form_all_event_collection(rela=Event.all)
+    rela2pass = rela.left_joins(:place).order(:start_time, :event_group_id, "places.prefecture_id", "places.id")
+
+    Event.collection_ids_titles_or_alts_for_form(rela2pass, fmt: "%s [%s]", str_fallback: "NONE", id_assocs: [EventGroup], prioritize_is_orig: false)
   end
 
   # @param rela [Relation] Either EventGroup or its relation like EventGroup.all

@@ -3,6 +3,7 @@ require 'test_helper'
 
 class BaseWithTranslationTest < ActiveSupport::TestCase
   include ApplicationHelper # for suppress_ruby270_warnings()
+  include ModuleCommon
 
   setup do
     # Without this, current_user may(!) exist if you run Controller or Integration tests at the same time.
@@ -2391,6 +2392,37 @@ end
     assert_equal se[4], sexes[4]
     assert_equal se[5], sexes[5], "trass[:ja] = #{trass[:ja].inspect}"
     assert_equal se[9], sexes[6], "trans = #{[se[9],sexes[6]].map{|i| i.translations.pluck(:langcode, :is_orig, :title, :alt_title, :weight)}.inspect}\n all: #{sexes.select("translations.title as tit,translations.alt_title as alt, translations.weight as wei").map{|i| [i.tit, i.alt, i.wei]}.inspect}"
+  end
+
+  test "self.collection_ids_titles_or_alts" do
+    evs = []
+    evs << events(:ev_evgr_unknown_unknown)
+    evs << events(:ev_evgr_single_streets_unknown)
+    evs << events(:ev_evgr_street_events_unknown)
+    evs << events(:ev_evgr_harami_guests_unknown)
+    evs << events(:ev_evgr_harami_concerts_unknown)
+    # All have Japanese translations.
+
+    rela = Event.where(id: evs.map(&:id))
+
+    act = Event.collection_ids_titles_or_alts(rela.order(:start_time), langcode: "ja", prioritize_is_orig: false)
+    assert_equal rela.count, act.size
+    assert act.all?{|ar| 2 == ar.size}
+    assert act.all?{|ar| ar.first > 0}  # should be all Numeric (pID)
+    assert act.all?{|ar| ar[1].size > 0}
+
+    act = Event.collection_ids_titles_or_alts(rela.order(:start_time), id_assocs: [EventGroup], langcode: "ja", prioritize_is_orig: false)
+    assert_equal rela.count, act.size
+    assert act.all?{|ar| 3 == ar.size}
+    assert act.all?{|ar| ar.first > 0}  # should be all Numeric (pID)
+    assert act.all?{|ar| "ja" == guess_lang_code(ar[2])}  # defined in module_common.rb  (included at the top)
+
+    act = Event.collection_ids_titles_or_alts_for_form(rela.order(:start_time), fmt: "%s < %s", str_fallback: "NONE", id_assocs: [EventGroup], langcode: "ja", prioritize_is_orig: false)
+    assert_equal rela.count, act.size
+    assert act.all?{|ar| 2 == ar.size}
+    assert act.all?{|ar| ar[1] > 0}  # should be all Numeric (pID); the order is reversed from collection_ids_titles_or_alts
+    assert act.all?{|ar| "ja" == guess_lang_code(ar[0])}  # defined in module_common.rb  (included at the top); the order is reversed from collection_ids_titles_or_alts
+    assert act.all?{|ar| ar[0].include?(" < ") }  # defined in module_common.rb  (included at the top)
   end
 
   test "inspect" do
