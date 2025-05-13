@@ -70,7 +70,7 @@ module ModuleHaramiVidEventAux
       t = evit.harami_vids.where.not("harami_vids.id = ?", harami_vid.id).pluck(:release_date).flatten.compact.sort.first 
       return false if t && t < cand_epoch
 
-      return true if evit.event && evit.event.default?  # If Event is a default one, the next condition does not make sense because there can be many HaramiVids whose start_time/date is earlier. 
+      return true if (evt=evit.event) && !evt.new_record? && evt.default?  # If Event is a default one, the next condition does not make sense because there can be many HaramiVids whose start_time/date is earlier. 
 
       t = evit.event.harami_vids.joins(events: {harami_vids: :harami_vid_music_assocs}).where("harami_vid_music_assocs.music_id" => evit.musics.ids).distinct.pluck(:release_date).flatten.compact.sort.first
                                # joins("INNER JOIN harami_vid_music_assocs ON harami_vid_music_assocs.harami_vid_id = harami_vids.id")
