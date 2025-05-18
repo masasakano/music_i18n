@@ -55,7 +55,7 @@
 
   <tbody>
     <% max_harami_vids_per_event = (can_edit ? Rails.configuration.max_harami_vids_per_event_editor : Rails.configuration.max_harami_vids_per_event_public)*3 %>
-    <% hs_evits = prepare_evit_list_for_table(harami_vid.events) %>
+    <% hs_evits = prepare_evit_list_for_table(harami_vid) %> <%# defined in harami_vids_helper.rb %>
     <% other_hvids_rela.each_with_index do |ea_hvid, i_hvid| %>
       <tr<%= ' class="self_in_table"'.html_safe if (is_self=(mark_self && ea_hvid == harami_vid)) %>>
         <% if !ignore_max_nrows && i_hvid >= [max_nrows, max_harami_vids_per_event].min %>
@@ -77,7 +77,7 @@
         <td class="item_duration"><%= ea_hvid.duration ? sec2hms_or_ms(ea_hvid.duration) : "" %></td>
         <td class="item_place"><%= ea_hvid.place ? ea_hvid.txt_place_pref_ctry(without_country_maybe: true) : "" %></td>
         <td class="item_event_items text-end">
-          <%= evit_list_for_hvid(ea_hvid, hs_evits) %>
+          <%= evit_list_for_hvid(ea_hvid, hs_evits) %> <%# defined in harami_vids_helper.rb %>
         </td>
         <td><%= link_to(t("tables.Show"), ea_hvid) if can?(:read, ea_hvid) %></td>
        <% if can_edit %>

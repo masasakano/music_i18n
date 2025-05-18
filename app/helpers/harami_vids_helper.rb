@@ -145,12 +145,19 @@ module HaramiVidsHelper
   end
 
   # @return [Hash] pID(EventItem) => LinkText  (link only for Editors) for HaramiVid
-  def prepare_evit_list_for_table(events)
+  def prepare_evit_list_for_table(harami_vid)
+    events = harami_vid.events
+    parent_evits = harami_vid.event_items
+
     can_read = can?(:read, EventItem)
     hs_evits = {}  # pID => txt [String]
     events.order(:start_time, :event_group_id).uniq.map{|eev| eev.event_items}.flatten.each_with_index do |ea_evit, ind|  # EAch-EVent-ITem
-      link_txt = (can_read ? link_to(ind+1, ea_evit) : (ind+1).to_s)
-      hs_evits[ea_evit.id] = sprintf('<span title="%s">%s</span>', h(ea_evit.machine_title), link_txt).html_safe
+      link_core = ((incl=parent_evits.include?(ea_evit)) ? tag.span(class: ["text-warning-regular"]){(ind+1).to_s} : (ind+1).to_s)
+      link_txt = (can_read ? link_to(link_core, ea_evit) : link_core)
+      hs_evits[ea_evit.id] = (
+        tag.span(title: h(ea_evit.machine_title), class: ["text-warning-regular": parent_evits.include?(ea_evit)]){ link_txt } +
+        (incl ? tag.span(title: t("harami_vids.show.CommonEventItem")){tag.sup(){"†"}} : "")
+      ).html_safe
     end
     hs_evits
   end

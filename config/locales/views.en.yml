@@ -290,6 +290,7 @@ en:
       Other_HaramiVids_for_these_EventItems: Other videos for these EventItems
       Other_HaramiVids_for_Event: "Other videos for this Event(s)"
       destroy_music_from_this_vid: Remove registered Music from this video
+      CommonEventItem: "Common EventItem with this HaramiVideo"
     edit:
       artist_collabs_title: "collaborating Artists"
       identical_amp: "An identical combination (Music, Instrument, etc) for an existing association for the collab-Artist is specified. You can register a new combination but not a duplication."
