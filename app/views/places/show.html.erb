@@ -53,44 +53,10 @@
 
 <hr>
 
-<h3><%= t(:Musics) %> (<%= @place.title_or_alt(prefer_shorter: true, lang_fallback_option: :either, str_fallback: "") %>)</h3>
+<h2><%= t(:Musics) %> (<%= @place.title_or_alt(prefer_shorter: true, lang_fallback_option: :either, str_fallback: "") %>)</h2>
 
-<table>
-  <thead>
-    <tr>
-      <th>曲名</th>
-      <th>英語名</th>
-      <th>Year</th>
-      <th>Genre</th>
-      <th><%= t(:Artist) %></th>
-      <th><%= t("tables.n_harami_vids_short") %></th>
-      <th><%= t("tables.note").capitalize %></th>
-      <% if can? :edit, Music %>
-        <th colspan="2" title="Show/Edit Artist">Action</th>
-      <% else %>
-        <th title="Show Artist">Action</th>
-      <% end %>
-    </tr>
-  </thead>
+  <%= render partial: 'layouts/musics_table', locals: {musics: @place.musics.uniq} %>
 
-  <tbody>
-    <% @place.musics.uniq.each do |music| %>
-      <tr>
-        <td><%= music.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true) %></td>
-        <td><%= sprintf '%s [%s]', *(%i(title alt_title).map{|i| music.send(i, langcode: 'en') || ''}) %></td>
-        <td><%= music.year %></td>
-        <td><%= music.genre.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true) %></td>
-        <td><%= music.engages.joins(:engage_how).order('engage_hows.weight').pluck(:artist_id).uniq.map{|i| art = Artist.find(i); sprintf '%s [%s]', link_to(art.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true), art), h(art.engage_how_titles(music).join(', '))}.join(', ').html_safe %></td>
-        <td><%= music.harami_vids.count.to_s+'回' %></td>
-        <td><%= auto_link50(music.note) %></td>
-        <td><%= link_to 'Show', music %></td>
-        <% if can? :update, music %>
-          <td><%= link_to 'Edit', edit_music_path(music) %></td>
-        <% end %>
-      </tr>
-    <% end %>
-  </tbody>
-</table>
 <% if false %>
   <% if can? :create, Music %>
     <% if defined?(add_buttons) && add_buttons %>
@@ -101,24 +67,21 @@
   <% end %>
 <% end %>
 
-  <hr>
+<hr>
 
-  <%= editor_only_safe_html(Event, method: :index){  # Table ordered in the partial
-      ret = <<__EOF__
+<%= editor_only_safe_html(Event, method: :index) do %>
   <section id="event_table">
-  <h3 title="Events one of EventItems of which is held at this Place">#{t(:Events)} (#{@place.title_or_alt(prefer_shorter: true, lang_fallback_option: :either, str_fallback: "")})</h3>
+  <h3 title="Events one of EventItems of which is held at this Place"><%= t(:Events) %> (<%= @place.title_or_alt(prefer_shorter: true, lang_fallback_option: :either, str_fallback: "") %>)</h3>
   
-  #{render partial: 'layouts/events_index', locals: {events: @place.events_thru_event_items.distinct, with_place: false}}
+    <%= render partial: 'layouts/events_index', locals: {events: @place.events_thru_event_items.distinct, with_place: false} %>
   </section>
 <hr>
-__EOF__
-      ret.html_safe  # essential.
-} %>
+<% end %>
 
 
 <section id="sec_harami_vids_for">
 <section id="harami_vid_table">  <%# obsolete... %>
-<h3><%= t("show.h2_harami_vid") %> (<%= @place.title_or_alt(prefer_shorter: true, lang_fallback_option: :either, str_fallback: "") %>)</h3>
+<h2><%= t("show.h2_harami_vid") %> (<%= @place.title_or_alt(prefer_shorter: true, lang_fallback_option: :either, str_fallback: "") %>)</h2>
 
   <% harami_vids_without_events = @place.harami_vids.left_joins(:harami_vid_event_item_assocs).where("harami_vid_event_item_assocs.event_item_id IS NULL") %>  <%# HaramiVids at the Place with no associated EventItems %>
   <% events = Event.where(id: @place.harami_vids.joins(:events).distinct.select("events.id AS evt_id").map(&:evt_id)) %>

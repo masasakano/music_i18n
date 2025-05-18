@@ -883,15 +883,33 @@ module ApplicationHelper
   # @param max_items: Maximum number of items to print/process
   # @param with_link: [Boolean] if true (Def), link_to is employed.
   # @param with_bf_for_trimmed:  [Boolean] if true (Def: false) and if the list reaches the maximum number, the notice is printed in <strong>
+  # @param uniq: [Boolean] if true (Def), the result is uniq-qed. Note the max-number (which is printed when the maximum number is reached) is still the non-uniqqed one.
   # @return comma-separated html_safe Strings for many Music links
-  def print_list_inline_upto(rela, model:, items_suffix: "items", max_items: DEF_MAX_ITEMS_PER_CELL, with_link: true, with_bf_for_trimmed: false)
+  def print_list_inline_upto(rela, model:, items_suffix: "items", max_items: DEF_MAX_ITEMS_PER_CELL, with_link: true, with_bf_for_trimmed: false, uniq: true)
     arsels = model.collection_ids_titles_or_alts_for_form(rela, prioritize_is_orig: false)
-    links = arsels.map.with_index{|ea, i|
-      next nil if i > max_items-1
-      with_link ? link_to(ea[0], send(model.name.underscore+"_path", ea[1])) : h(ea[0])
-    }
+    flag_max_reached = false
+    if !uniq
+      links = arsels.map.with_index{|ea, i|
+        next nil if i > max_items-1
+        with_link ? link_to(ea[0], send(model.name.underscore+"_path", ea[1])) : h(ea[0])
+      }
+    else  ########## This else clause suffices and the IF clause above can be removed.
+      records = []
+      links = []
+      i = 0
+      arsels.each do |ea|
+        next if uniq && records.include?(ea[1])
+        records.push ea[1]  # pID of ActiveRecord
+        links.push(with_link ? link_to(ea[0], send(model.name.underscore+"_path", ea[1])) : h(ea[0]))
+        i += 1
+        if i >= max_items
+          flag_max_reached = true
+          break
+        end
+      end
+    end
 
-    if !links.empty? && !links[-1]
+    if !links.empty? && (!links[-1] || flag_max_reached)
       links.compact!
       notice_txt = sanitize(t('tables.trimmed_from', all_rows: arsels.size, items: items_suffix))
       notice_txt = sprintf("<strong>%s</strong>", notice_txt) if with_bf_for_trimmed
@@ -1203,15 +1221,19 @@ module ApplicationHelper
   #
   # @param record [ActiveRecord, Class<ActiveRecord>, Symbol] If Symbol of :pass, the Boolean value of the method is used for ability check.
   # @param method: [Symbol, Boolean] Mandatory, unlike {#publicly_viewable?}. This can be like :crud or :ud as defined in ability.rb .  Or, if +record+ is :pass, this Boolean value is used and detailed ability check is skipped, and the unauthenticated is assumed to be prohibited to access.
-  # @param tag: [String] "div"(Def) or "span". Or, "p" if you want.  (For developers: the namespace collides with the default helper method +tag+ inside this method, so be careful!)
+  # @param tag: [String] "div"(Def) or "span", or "p", "th", "td" etc.  (For developers: the namespace collides with the default helper method +tag+ inside this method, so be careful!)
   # @param class: [String] space-separated CSS classes for the tag.
   # @param only: [Symbol, String] If Symbol like :editor, "editor_only" is the CSS class. Or you can explicitly specify the CSS class in String.
   # @param text: [String, NilClass] you can supply the enclosed text either with this argument or through yield.
   # @param permissive: [Boolean] Default is false, unlike {#publicly_viewable?}.  Use so unless the permission is not a big-deal one.
+  # @param strip: [Boolean, NilClass] If true, text (or yield) is stripped. In default (nil), this is false if tag is "div" or "p" else true (like tag is "span" or "td").  This usually affects just an aesthetic point in the generated HTML.
   # @param opts: [Hash] Any additional parameters (e.g., "title") are passed to ApplicationController.helpers.tag
   # @return [String] html_safe String to display if the page is editor-only? (maybe moderator or admin only)
   # @yield Returned text will be inside the block.
-  def editor_only_safe_html(record, method:, tag: "div", class: "", only: :editor, text: nil, permissive: false, **opts)
+  def editor_only_safe_html(record, method:, tag: "div", class: "", only: :editor, text: nil, permissive: false, strip: nil, **opts)
+    if strip.nil?
+      strip = (%w(div p).include?(tag) ? false : true)
+    end
     if !permissive
       if !((:pass == record && [true, false, nil].include?(method)) || 
            (record.respond_to?(:attribute_names) && method.is_a?(Symbol)))
@@ -1240,6 +1262,7 @@ module ApplicationHelper
     text = sanitize(text) if !text.html_safe?  # capture-d text seems always html_safe. However, text passed as an argument may not be.
     # Note: Array#html_safe? exists but Array#html_safe does not, and raises NoMethodError  
 
+    text = text.strip.html_safe if strip
     ApplicationController.helpers.tag.send(tag, text, class: html_classes, **opts)
   end
 

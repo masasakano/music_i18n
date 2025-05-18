@@ -10,21 +10,25 @@
     <tr>
       <% can_create_event = can?(:create, Event) %>
       <% can_show_event   = can?(:show,   Event) %>
+      <% cspan = 8 %>
       <th<%= ' class="editor_only"'.html_safe if can_create_event %>><%= can_create_event ? "ID" : "" %></th>
       <th><%= t(:title).capitalize %></th>
       <th><%= t("tables.start_time") %></th>
       <th><%= t("tables.duration_hour") %></th>
       <th><%= t(:Place) %></th>
-     <% if can_create_event %>
-      <th class="editor_only" title="<%= t("events.n_event_items_long") %>"><%= t("events.n_event_items_short") %></th>
+     <%= editor_only_safe_html(:pass, method: can_create_event, tag: "th", title: t("events.n_event_items_long")) do %>
+      <% cspan += 1 %>
+      <%= t("events.n_event_items_short") %>
      <% end %>
       <th title="<%= t("tables.n_harami_vids") %>"><%= t("tables.n_harami_vids_short") %></th>
-     <% if can_create_event %>
-      <th class="editor_only">Weight</th>
+     <%= editor_only_safe_html(:pass, method: can_create_event, tag: "th") do %>
+      <% cspan += 1 %>
+      Weight
      <% end %>
       <th class="" title="Note in this DB"><%= t("tables.note") %></th>
      <% if can_create_event %>
        <th colspan="3"></th>
+       <% cspan += 2 %>
      <% elsif can_show_event %>
        <th></th>
      <% end %>
@@ -32,23 +36,30 @@
   </thead>
 
   <tbody>
+    <% n_events = events.distinct.count %>
     <% i_event = 0 %>
-    <% events.order("events.start_time", "weight").distinct.distinct.each do |event| %>
+    <% events.order("events.start_time", "weight").distinct.each do |event| %>
       <% nvids = event.harami_vids.distinct.count %>
       <% next if nvids <= 0 && !can_create_event %>  <%# Not shows Events with no HaramiVids for public %>
       <% i_event += 1 %>
+
+      <% if i_event > Rails.configuration.def_view_max_nrows %>
+        <%= render partial: "layouts/tr_notice_trimmed_rows", locals: {colspan: cspan, trimmed_rows: Rails.configuration.def_view_max_nrows, all_rows: n_events, for_td: true } %>
+        <% break %>
+      <% end %>
+
       <tr>
         <td<%= ' class="editor_only"'.html_safe if can_create_event %>><%= can_create_event ? link_to(event.id, event) : i_event %></td>
         <td><%= link_to event.title_or_alt(langcode: I18n.locale), event_url(event) %></td>
         <td><%= event.string_time_err2uptomin %></td>
         <td class="text-end"><%= event.duration_hour.present? ? ("%.3g" % event.duration_hour) : "" %></td>
         <td><%= (pla=event.place) ? (hide_prefecture ? link_to(pla.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true), pla) : event.txt_place_pref_ctry(without_country_maybe: true)) : "" %></td>
-       <% if can_create_event %>
-        <td class="editor_only text-end"><%= event.event_items.count %></td>
+       <%= editor_only_safe_html(:pass, method: can_create_event, tag: "td", class: "text-end") do %>
+        <%= event.event_items.count %>
        <% end %>
         <td class="text-end"><%= nvids %></td>
-       <% if can_create_event %>
-        <td class="editor_only text-end"><%= event.weight %></td>
+       <%= editor_only_safe_html(:pass, method: can_create_event, tag: "td", class: "text-end") do %>
+        <%= event.weight %>
        <% end %>
         <td class=""><%= auto_link50(event.note) %></td>
        <% if can_show_event %>

@@ -65,7 +65,7 @@ module TranslationsHelper
     end
   end
 
-  # @param model [BaseWithTranslation]
+  # @param model [BaseWithTranslation, NilClass]
   # @param key [Symobol, String] :title, :alt_title, :ruby, etc.
   # @return [String] checked for select in Form
   def value_a_title_in_form(model, key)

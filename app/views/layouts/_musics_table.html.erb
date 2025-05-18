@@ -1,0 +1,63 @@
+<%# local vars: musics %>
+
+<% can_update = can?(:update, Music) %>
+
+<table>
+  <thead>
+    <% cspan = 9 %>
+    <tr>
+      <%= editor_only_safe_html(:pass, method: can_update, tag: "th") do %>
+        pID
+        <% cspan += 1 %>
+      <% end %>
+
+      <%= render partial: "layouts/thead_title_ja_alt_en", locals: {can_update: can_update} %>
+
+      <th><%= t('tables.year') %></th>
+      <th><%= t(:Genre) %></th>
+      <th><%= t(:Artist) %></th>
+      <th><%= t("tables.n_harami_vids_short") %></th>
+      <th><%= t("tables.note").capitalize %></th>
+      <% if can_update %>
+        <th colspan="2" class="editor_only" title="Show/Edit Music">Actions</th>
+        <% cspan += 1 %>
+      <% else %>
+        <th title="Show Music"></th>
+      <% end %>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% (uniqqed_musics=musics.uniq).each_with_index do |music, irow| %>
+      <% if irow >= Rails.configuration.def_view_max_nrows - 1 %>
+        <%=  render partial: "layouts/tr_notice_trimmed_rows", locals: {colspan: cspan, trimmed_rows: Rails.configuration.def_view_max_nrows, all_rows: uniqqed_musics.size, for_td: true } %>
+        <% break %>
+      <% end %>
+
+      <tr>
+        <%= editor_only_safe_html(:pass, method: can_update, tag: "td") do %>
+          <%= link_to music.id, music %>
+        <% end %>
+
+        <%= render partial: "layouts/tbody_title_ja_alt_en", locals: {model: music, can_update: can_update} %>
+        <td><%= music.year %></td>
+        <td><%= music.genre.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true) %></td>
+        <td>
+          <%  art = music.most_significant_artist %>
+          <%= link_to art.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "[UNDEFINED]", article_to_head: true), art %>
+          <%# music.engages.joins(:engage_how).order('engage_hows.weight').pluck(:artist_id).uniq.map{|i| art = Artist.find(i); sprintf '%s [%s]', link_to(art.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true), art), h(art.engage_how_titles(music).join(', '))}.join(', ').html_safe %>  <%# for listing all realted Artists... %>
+        </td>
+
+        <td><%= music.harami_vids.count.to_s+'回' %></td>
+        <td class="text-start"><%= auto_link50(music.note) %></td>
+        <td><%= link_to t('tables.Show').capitalize, music %></td>
+        <%= editor_only_safe_html(:pass, method: can_update, tag: "td") do %>
+          <% if can? :update, music %>
+            <%= link_to 'Edit', edit_music_path(music) %>
+          <% end %>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+

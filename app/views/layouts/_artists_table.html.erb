@@ -4,9 +4,11 @@
 
 <table>
   <thead>
+    <% cspan = 7 %>
     <tr>
-      <% if can_update %>
-        <th class="editor_only">pID</th>
+      <%= editor_only_safe_html(:pass, method: can_update, tag: "th") do %>
+        pID
+        <% cspan += 1 %>
       <% end %>
 
       <%= render partial: "layouts/thead_title_ja_alt_en", locals: {can_update: can_update} %>
@@ -16,6 +18,7 @@
       <th><%= t("tables.note").capitalize %></th>
       <% if can_update %>
         <th colspan="2" class="editor_only" title="Show/Edit Artist">Actions</th>
+        <% cspan += 1 %>
       <% else %>
         <th title="Show Artist"></th>
       <% end %>
@@ -23,10 +26,15 @@
   </thead>
 
   <tbody>
-    <% artists.uniq.each do |artist| %>
+    <% (uniqqed_artists=artists.uniq).each_with_index do |artist, irow| %>
+      <% if irow >= Rails.configuration.def_view_max_nrows - 1 %>
+        <%=  render partial: "layouts/tr_notice_trimmed_rows", locals: {colspan: cspan, trimmed_rows: Rails.configuration.def_view_max_nrows, all_rows: uniqqed_artists.size, for_td: true } %>
+        <% break %>
+      <% end %>
+
       <tr>
-        <% if can_update %>
-          <td class="editor_only"><%= link_to artist.id, artist %></td>
+        <%= editor_only_safe_html(:pass, method: can_update, tag: "td") do %>
+          <%= link_to artist.id, artist %>
         <% end %>
 
         <%= render partial: "layouts/tbody_title_ja_alt_en", locals: {model: artist, can_update: can_update} %>
@@ -36,12 +44,10 @@
         <td class="text-center"><%= artist.sex.title langcode: I18n.locale, lang_fallback: true %></td>
         <td class="text-start"><%= auto_link50(artist.note) %></td>
         <td><%= link_to t('tables.Show').capitalize, artist %></td>
-        <% if can_update %>
-          <td class="editor_only">
-            <% if can? :update, artist %>
-              <%= link_to 'Edit', edit_artist_path(artist) %>
-            <% end %>
-          </td>
+        <%= editor_only_safe_html(:pass, method: can_update, tag: "td") do %>
+          <% if can? :update, artist %>
+            <%= link_to 'Edit', edit_artist_path(artist) %>
+          <% end %>
         <% end %>
       </tr>
     <% end %>

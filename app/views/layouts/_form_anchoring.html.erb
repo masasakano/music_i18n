@@ -4,7 +4,7 @@
 <% url = (anchoring.url || @url) %> 
 
 <section id="sec_primary">
-<% if ! url.new_record? %>
+<% if url && !url.new_record? %>
   <strong>Title:</strong> <%= url.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: (canedit_gen ? "(UNDEFINED)" : "")) %>
 <% end %>
 
@@ -24,7 +24,7 @@
               label_method: :first,
               input_html: {class: 'input_shorter'} %>
     <%= f.input :site_category_id, label_method: :title_or_alt_for_selection, collection: SiteCategory.order(:weight), required: false, hint: "automatically determined if specified nil.", input_html: {class: 'input_middle'} %>
-  <% if url.new_record? %>
+  <% if anchoring.new_record? || url && url.new_record? %>
     <% hint_str = sprintf("You may leave it blank to autoload.")
        hint_str = sprintf("e.g.: セットリスト %s生配信/演奏/メドレー (Youtubeコメント)", @anchorable.release_date.strftime('%Y-%m-%d')) if @anchorable.is_a?(HaramiVid) && @anchorable.release_date.present?
       %>

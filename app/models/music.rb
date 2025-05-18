@@ -99,7 +99,8 @@ class Music < BaseWithTranslation
   def sorted_artists
     #artists.joins(engages: :engage_how).order("engage_hows.weight NULLS LAST", "engages.contribution DESC NULLS LAST", "engages.year NULLS FIRST")  # This seems to work
     #artists.joins(engages: :engage_how).order(Arel.sql('CASE WHEN engage_hows.weight IS NULL THEN 1 ELSE 0 END, engage_hows.weight')).order(Arel.sql("CASE WHEN engages.contribution IS NULL THEN 1 ELSE 0 END, engages.contribution DESC")).order(Arel.sql("CASE WHEN engages.year IS NULL THEN 0 ELSE 1 END, engages.year"))  # This works.
-    artists.joins(engages: :engage_how).order(Arel.sql('engage_hows.weight NULLS LAST, engages.contribution DESC NULLS LAST, engages.year NULLS FIRST, artists.birth_year NULLS FIRST'))  # This _should_ sort in the order of EngageHow#weight and then Engage#contribution (DESC).
+    # artists.joins(engages: :engage_how).order(Arel.sql(...))  ## NOTE: This would DOUBLY join engages like "INNER JOIN engages ON artists.id = engages.artist_id INNER JOIN engages engages_artists ON engages_artists.artist_id = artists.id" and hence would join lots of unnecessary rows and mess up the result!!  This is because Music#artists would internally join engages and then joins(engages: :engage_how) would INDEPENDENTLY join engage_hows for which the WHERE clause (WHERE engages.music_id = ?) is irrelevant!!
+    artists.joins("JOIN engage_hows ON engages.engage_how_id = engage_hows.id").order(Arel.sql('engage_hows.weight NULLS LAST, engages.contribution DESC NULLS LAST, engages.year NULLS FIRST, artists.birth_year NULLS FIRST'))  # This _should_ sort in the order of EngageHow#weight and then Engage#contribution (DESC).
   end
 
   # Returns the most significant artist
