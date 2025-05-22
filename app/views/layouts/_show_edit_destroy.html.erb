@@ -1,6 +1,7 @@
 
 <%# imported local variables: [mandatory] model, [optional] destroyable (Boolean. At the model level like association prohibition (so that the button is dimmed), NOT the controller/user level), permission_level [Symbol, String] (:editor (Def), :moderator, :any; used for CSS) %>
 <%# @example:  render 'layouts/show_edit_destroy', locals: {model: @my_model, destroyable: !@my_model.child_cars.exists?} %>
+<%# TODO: This should be merged to _link_edit_destroy_index.html.erb %>
 
 <% if !defined? destroyable
      destroyable = nil

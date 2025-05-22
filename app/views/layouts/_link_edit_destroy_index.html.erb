@@ -1,0 +1,73 @@
+<%# taking variables: record and is_to_edit, optional: only [Symbol] (:editor (Def) or :moderator), below_destroy [String] %>
+<%# Description: is_to_edit is true if it is for "edit" screen, else (if it is "Show" screen) false. below_destroy : HTML inserted below the destroy link/button inside the editor_only block %>
+<%# NOTE: This is very similar to _show_edit_destroy.html.erb (but this applies to :edit, too.) %>
+
+<% if !defined? only
+     only = :editor
+   end %>  <%# This has to be written over multiple lines. %>
+<% if !defined? below_destroy
+     below_destroy = nil
+   end %>  <%# This has to be written over multiple lines. %>
+
+<% model_name = record.class.name %>
+<% model_underscore = model_name.underscore %>
+<% can_update = (!record.new_record? && can?(:update, record)) %>
+
+<%= editor_only_safe_html(:pass, method: can_update, only: only, tag: "div", class: "link-edit-destroy") do %> <%# defined in application_helper.rb %>
+
+  <% if !is_to_edit %>
+   <section id="edit_destroy_in_show">
+    <%#path_edit = send("edit_"+model_underscore+"_path", record) %>
+    <% path_edit = Rails.application.routes.url_helpers.polymorphic_path(record, action: :edit) %> <%# e.g., edit_music_path(record) %>
+    <%= tag.span class: "lead" do %>
+      <%= link_to "Edit this #{record.class.name}", path_edit, class: "link-edit" %>
+    <% end %>
+  <% end %>
+
+  <% if can?(:destroy, record) %>
+    <div class="actions">
+      <% do_respond = record.respond_to?(:destroyable?) %>
+      <% if do_respond %>
+        <div class="actions-destroy actions-destroy-align-r">
+          <% if record.destroyable? %>
+            <% msg2confirm = h(t('are_you_sure')) %>
+            <%= button_to "Destroy this #{record.class.name}", record, method: :delete, data: { confirm: msg2confirm } %>
+          <% else %>
+            <form class="button_to"><input disabled="disabled" type="submit" value="Destroy"></form>
+            (<%= model_name %> has dependent children or is "unknown?", and so cannot be destroyed.)
+          <% end %>
+        </div>
+      <% else %>
+        &nbsp;&nbsp; / <%= link_to 'Destroy', record, method: :delete, data: { confirm: msg2confirm } %>
+        (<%= tag.span "EDITOR: destroyable? is not defined, so destroying may fail.", class: "text-red" %>)
+      <% end %>
+    </div>
+  <% end %>
+
+  <% if below_destroy %>
+    <br>
+    <%= below_destroy.html_safe? ? below_destroy : sanitize(below_destroy) %>
+  <% end %>
+  <% if !is_to_edit %>
+   </section>
+  <% end %>
+<% end %> <%# editor_only_safe_html(:pass, ...) %>
+
+<% show_link = nil %>
+<% if is_to_edit %>
+  <% if "Artist" == model_name && record.new_record? && can_update %>
+    <p class="artist-caution-in-add-music-below-form">
+      (<%= t("artists.new.please_add_music", default: "Please add a Music(s) once you have created an Artist." ) %>)
+    </p>
+  <% end %>
+  <% show_link = link_to('Show', record) %>
+<% end %>
+  
+<%= tag.p class: "navigate-link-below-form" do %>
+  <%= show_link %>
+  <%= editor_only_safe_html(record.class, method: :index, tag: "span") do %> <%# defined in application_helper.rb %>
+    <%= " | " if show_link %>
+    <%= link_to(t("layouts.back_to_index"), send(model_underscore.pluralize+"_path")) %>
+  <% end %>
+<% end %>
+

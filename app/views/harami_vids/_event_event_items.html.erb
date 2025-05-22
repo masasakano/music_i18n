@@ -23,13 +23,7 @@
     <% evevits = sorted_event_event_items.map{|ek, ev| [Event.find(ek), ev] }.to_h %>
     <% evevits.each_pair do |event, ar_event_items| %>
       <li>
-        <% event_title = event.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>
-        <% if can? :read, event %>
-          <%= link_to event_title, event %>
-        <% else %>
-          <%= event_title %>
-        <% end %>
-         [<%= event.event_group.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %>]
+        <%= event_and_group_html(event, with_link: true) %> <%# defined in events_helper.rb %>
          <% if canedit_evt %>
            <span class="editor_only">(<%= date2text(event.start_time.to_date) %> <%# defined in ModuleCommon %>
             / <%= (ev_pla=event.place) ? show_pref_place_country(ev_pla) : "Place=nil" %>)</span>  <%# Place should never be nil but playing safe. %>

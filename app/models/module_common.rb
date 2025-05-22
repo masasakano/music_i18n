@@ -314,7 +314,7 @@ module ModuleCommon
     return "&mdash;".html_safe if !time
     if  err.blank?
       err = time.error if time.respond_to?(:error)
-      err ||= 0.second
+      err ||= Float::INFINITY.seconds
     end
     err = err.second if !err.respond_to? :in_seconds
     year   = time.year

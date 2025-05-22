@@ -861,11 +861,13 @@ module ApplicationHelper
   # Printing an array/relation inline for display
   #
   # @param ary [:map] Array or relation of Models.
+  # @param skip_title: [Boolean] if true (Def: false), skips getting title in this routine (it is determined in the given block).
   # @return [String] html_safe
-  # @yield [String] html_safe [String, Model] is given. Should return the String for each item.
-  def print_list_inline(ary, separator: I18n.t(:comma, default: ", "))
+  # @yield [String] html_safe [String, Model] is given. Should return the html_safe String for each item.
+  def print_list_inline(ary, separator: I18n.t(:comma, default: ", "), skip_title: false)
+    raise ArgumentError, [skip_title, block_given?].inspect if skip_title && !block_given?
     ary.map{|em|
-      tit = (em.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true)).html_safe
+      tit = (skip_title ? nil : (em.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true)).html_safe)
       (block_given? ? yield(tit, em) : tit)
     }.join(separator).html_safe
   end

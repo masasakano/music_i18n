@@ -14,7 +14,7 @@
 
 <section id="harami_vids_show_other_harami_vids">
   <h3 title="Excluding uncategorized Event's HaramiVids"><%= t("harami_vids.show.Other_HaramiVids_for_Event") %>:
-    <span><%= harami_vid.events.uniq.map{|i| i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true)}.join(" | ") %></span>
+    <span><%= events_and_groups_html(harami_vid) %></span> <%# defined in harami_vids_helper.rb %>
   </h3>
 
   <% can_edit = can?(:edit, harami_vid) %>

@@ -4,7 +4,5 @@
 
 <br>
 
-<div>
-  <%= link_to "Show this EventGroup", @event_group %> |
-  <%= link_to "Back to Index", event_groups_path %>
-</div>
+<%= render partial: 'layouts/link_edit_destroy_index', locals: {record: @event_group, is_to_edit: true, only: :moderator } %>
+

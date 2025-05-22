@@ -52,4 +52,34 @@ module EventsHelper
 
     html_consistent_or_inconsistent(!is_inconsistent, postfix: postfix)   # defined in application_helper.rb
   end
+
+  # @param with_link: [Boolean] if true (Def), anchored HTML is returned.
+  # @param with_group_link: [Boolean, Symbol] the same as above, but for with_link. If Def(:with_link), it is linked to :with_link
+  # @param with_group: [Boolean] if true (Def), EventGroup is included in the returned HTML.
+  # @param fmt: [String] sprintf Format for output. Looked up ONLY when with_group is true (Def). Must contain two "%s"-s
+  # @return [String] html_safe String like "My Event [Foo Group]"; here, EventGroup title is prefer_shorter
+  def event_and_group_html(event, with_link: true, with_group_link: :with_link, with_group: true, fmt: "%s [%s]")
+    with_group_link = with_link if :with_link == with_group_link
+
+    event_title_raw = event.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true)
+    event_title = event_title_raw.sub(/ < [^<]+$/, "")
+    event_html = 
+      if with_link && can?(:read, event)
+        link_to event_title, event, title: h(event_title_raw)
+      else
+        h(event_title)
+      end
+    return event_html if !with_group
+
+    eg = event.event_group
+    tit = eg.title_or_alt_for_selection
+    group_html = 
+      if with_group_link && can?(:read, eg)
+        link_to tit, eg
+      else
+        h(tit)
+      end
+
+    sprintf(h(fmt), event_html, group_html).html_safe
+  end
 end

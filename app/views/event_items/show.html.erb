@@ -2,45 +2,7 @@
 
 <%= render @event_item %>
 
-<div>
-
-<%# ---- taken from layouts/_link_merge_destroy.html.erb ---- %>
-
-<% model = @event_item %>
-<% model_name = model.class.name %>
-<% model_underscore = model_name.underscore %>
-<% can_update = (!model.new_record? && can?(:update, model)) %>
-<% can_update_in_show = (can_update && true ) %>
-<% if can_update_in_show %>
-  <div class="link-edit-destroy">
-    <% path_edit = send("edit_"+model_underscore+"_path", model) %> <%# e.g., edit_music_path(model) %>
-    <span class="lead"><%= link_to "Edit this EventItem", path_edit, class: "link-edit" %></span> | <%# -------- show only %>
-<% end %>
-  <%= link_to "Back to EventItem index", event_items_path %>
-<% if !model.new_record? && (can?(:destroy, model) || can?(:update, model) && can?(:update, model)) %>
-  <% if can_update %>
-  <div class="actions-destroy actions-destroy-align-r">
-   <div class="actions">
-  <% end %>
-
-     <% if can?(:destroy, model) && model.destroyable?  %> <%# && !model.harami1129s.exists? %>
-      <% msg2confirm = (t('are_you_sure')+" "+t("are_you_sure_but_merge")).html_safe %>
-       <%= button_to 'Destroy', model, method: :delete, data: { confirm: msg2confirm } %>
-     <% else %>
-       <%# ----- In "show", nothing related to "Destroy" is shown. %> <%# I think this is redundant and unnecessary, because when it is a new record, this point should not be reached in the first place. %>
-       <form class="button_to"><input disabled="disabled" type="submit" value="Destroy"></form>
-       (<%= model_name %> has dependent HaramiVids and/or Harami1129s and so cannot be destroyed.)
-     <% end %>
-  <% if can_update %>
-   </div>
-  </div>
-  <% end %>
-<% end %>
-<% if can_update_in_show %>
-  </div>
-<% end %>
-    
-</div>
+<%= render partial: 'layouts/link_edit_destroy_index', locals: {record: @event_item, is_to_edit: false, only: :editor} %> <%# dependent HaramiVids and/or Harami1129s %>
 
 <hr>
 

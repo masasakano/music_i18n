@@ -84,6 +84,8 @@
   <% if ! prefecture.new_record? %>
     <%= link_to 'Show', prefecture %> |
   <% end %>
-  <%= link_to 'Back to Index', prefectures_path %>
+  <%= editor_only_safe_html(Prefecture, method: :index, tag: "span") do %> <%# defined in application_helper.rb %>
+   <%= link_to 'Back to Index', prefectures_path %>
+  <% end %>
 </p>
 

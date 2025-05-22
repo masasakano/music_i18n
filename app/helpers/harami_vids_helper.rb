@@ -170,6 +170,12 @@ module HaramiVidsHelper
     }.compact.join(t(:comma)).html_safe
   end
 
+  # @return [String] safe_html of title of (potentially multiple) Event(s)
+  def events_and_groups_html(harami_vid, separator: " | ", **opts)
+    n_events = harami_vid.events.distinct.count
+    harami_vid.events.uniq.map{|event| event_and_group_html(event, with_group: (1==n_events), **opts)}.join(separator).html_safe # defined in events_helper.rb
+  end
+
   private
 
     # Set @event_event_items

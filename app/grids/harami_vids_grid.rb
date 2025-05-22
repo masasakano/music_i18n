@@ -122,9 +122,11 @@ class HaramiVidsGrid < ApplicationGrid
   column_model_trans_belongs_to(:channel_platform, header: Proc.new{I18n.t("harami_vids.table_head_ChannelPlatform", default: "Platform")}, with_link: false)  # defined in application_grid.rb
 
   column(:events, html: true, header: Proc.new{I18n.t(:Events)}) do |record|
-    print_list_inline(record.events.distinct){ |tit, model|
-      can?(:read, EventItem) ? link_to(tit, event_path(model)) : tit
-    }  # defined in application_helper.rb
+    can_read_event_item = can?(:read, EventItem) if can_read_event_item.nil?
+    events_and_groups_html(record, with_link: can_read_event_item, with_group_link: false)  # defined in harami_vids_helper.rb
+    #print_list_inline(record.events.distinct, skip_title: true){ |_, model|
+    #  can_read_event_item ? link_to(tit, event_path(model)) : tit
+    #}  # defined in application_helper.rb
   end
 
   column(:collabs, html: true, header: Proc.new{I18n.t("harami_vids.table_head_collabs", default: "featuring Artists")}) do |record|

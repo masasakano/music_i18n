@@ -331,6 +331,7 @@
 #     # => [Translation, [Translation, ...]]  (searching only those related to self; in practice, useful only when self has multiple translations in a language)
 #   b.titles(langcode: nil, lang_fallback_option: :never, str_fallback: nil)
 #   b.title_or_alt(prefer_shorter: false, prefer_alt: false, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true)
+#   b.title_or_alt_for_selection
 #   b.title(langcode: nil, lang_fallback: false, str_fallback: nil) # See below re fallback
 #   b.ruby
 #   b.romaji
