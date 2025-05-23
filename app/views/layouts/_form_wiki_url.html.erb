@@ -8,6 +8,13 @@
 
 <% if !record || record.respond_to?(:wiki_url) %>
   <%= form.input :wiki_url, placeholder: "https://en.wikipedia.org/wiki/Johnny_(Singer)", hint: "Full URL. Language is automatically guessed.", input_html: { class: "form_wiki_url"} %>
+  <% if record.anchorings.exists? %>
+    <ul>
+      <% record.anchorings.each do |anchoring| %>
+        <li><%= link_to(Addressable::URI.unencode(u=anchoring.url.url), u, title: u, target: "_blank") %></li>
+      <% end %>
+    </ul>
+  <% end %>
 <% end %>
 
 
