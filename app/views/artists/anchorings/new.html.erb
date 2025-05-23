@@ -3,6 +3,6 @@
 <% new_turbo_tag = dom_id(Anchoring.new) %>  <%# "new_anchoring" %>
 <%= turbo_frame_tag new_turbo_tag do %>
   <%= render 'form', anchoring: @anchoring %>
-  <%= link_to sanitize("&larr; Cancel..."),  Rails.application.routes.url_helpers.polymorphic_path(@anchoring.anchorable) %> <br>
+  <%= link_to sanitize("&larr; Cancel..."),  Rails.application.routes.url_helpers.polymorphic_path(@anchoring.anchorable, only_path: true) %> <br>
 <% end %>
 

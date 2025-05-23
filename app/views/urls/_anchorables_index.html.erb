@@ -37,7 +37,7 @@
          <% end %>
          <% if is_moderator %>
            <td class="moderator_only text-end item_anchoring_pid" title="pID of Anchoring">
-             <%= can_show ? link_to((i=anchoring.id), Rails.application.routes.url_helpers.polymorphic_path(record)+'#'+dom_id(anchoring)) : i %>
+             <%= can_show ? link_to((i=anchoring.id), Rails.application.routes.url_helpers.polymorphic_path(record, only_path: true)+'#'+dom_id(anchoring)) : i %>
            </td>
          <% end %>
       <td title="Class"><%= link_to t(s=record.class.name, default: s), record %></td>

@@ -18,7 +18,7 @@
   <% if !is_to_edit %>
    <section id="edit_destroy_in_show">
     <%#path_edit = send("edit_"+model_underscore+"_path", record) %>
-    <% path_edit = Rails.application.routes.url_helpers.polymorphic_path(record, action: :edit) %> <%# e.g., edit_music_path(record) %>
+    <% path_edit = Rails.application.routes.url_helpers.polymorphic_path(record, action: :edit, only_path: true) %> <%# e.g., edit_music_path(record) %>
     <%= tag.span class: "lead" do %>
       <%= link_to "Edit this #{record.class.name}", path_edit, class: "link-edit" %>
     <% end %>

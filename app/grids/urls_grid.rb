@@ -95,7 +95,7 @@ class UrlsGrid < ApplicationGrid
     print_list_inline(record.anchorables){ |tit, anchorable|  # SELECT "dintinct" would not work well with ordering.
       titmod = definite_article_to_head(tit)
       next titmod if !can?(:read, anchorable)
-      ret = link_to(truncate(titmod, length: 30), Rails.application.routes.url_helpers.polymorphic_path(anchorable))
+      ret = link_to(truncate(titmod, length: 30), Rails.application.routes.url_helpers.polymorphic_path(anchorable, only_path: true))
       anc = anchorable.anchorings.find_by(url_id: record.id)
       postfix = ERB::Util.html_escape(anc.note.strip).gsub(/"/, '&quot;') if anc.note.present?
       sprintf('[%s] %s<span title="(Anchoring#note) %s">†</span>', anchorable.class.name, ret, postfix).html_safe

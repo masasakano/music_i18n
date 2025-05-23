@@ -89,14 +89,14 @@ class BaseAnchorablesController < ApplicationController
         format.html { redirect_to path_anchoring(@anchoring, action: :show), notice: msgs }
       else
         #path = url_anchoring(@anchoring, action: :edit) # defined in Artists::AnchoringsHelper
-        ## path = Rails.application.routes.url_helpers.polymorphic_path(@anchoring.anchorable, action: :edit)
+        ## path = Rails.application.routes.url_helpers.polymorphic_path(@anchoring.anchorable, action: :edit, only_path: true)
         format.html { render :edit, status: :unprocessable_entity }
       end
     end
   end
 
   def destroy
-    path_back = Rails.application.routes.url_helpers.polymorphic_path(@anchoring.anchorable.class)
+    path_back = Rails.application.routes.url_helpers.polymorphic_path(@anchoring.anchorable.class, only_path: true)
     respond_to do |format|
       if @anchoring.destroy
         format.html { redirect_to path_back, notice: "Link was successfully destroyed." }

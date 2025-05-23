@@ -57,7 +57,7 @@ class TranslationsGrid < ApplicationGrid
     sprintf(
       "%s (%s)",
       record.translatable_type,
-      ActionController::Base.helpers.link_to(record.translatable_id, Rails.application.routes.url_helpers.polymorphic_path(record))
+      ActionController::Base.helpers.link_to(record.translatable_id, Rails.application.routes.url_helpers.polymorphic_path(record, only_path: true))
     ).html_safe
   end
 

@@ -621,7 +621,7 @@ class ApplicationGrid < Datagrid::Base
     column_n_models_belongs_to(model_sym, metho, **opts) do |record, count|
       link_txt = I18n.t(:times_hon, count: count)
       next link_txt if count == 0
-      ActionController::Base.helpers.link_to(link_txt, Rails.application.routes.url_helpers.polymorphic_path(record)+"#sec_harami_vids_for")
+      ActionController::Base.helpers.link_to(link_txt, Rails.application.routes.url_helpers.polymorphic_path(record, only_path: true)+"#sec_harami_vids_for")
     end
   end
 

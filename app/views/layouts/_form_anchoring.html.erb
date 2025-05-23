@@ -43,7 +43,7 @@
 <% end %> <%# simple_form_for [@anchorable, anchoring] ... %>
 
   <div class="form-cancel-back">
-    <%= link_to sanitize("&larr; Cancel..."),  Rails.application.routes.url_helpers.polymorphic_path(@anchoring.anchorable) %>
+    <%= link_to sanitize("&larr; Cancel..."),  Rails.application.routes.url_helpers.polymorphic_path(@anchoring.anchorable, only_path: true) %>
   </div>
 </div> <!-- div id="form_main" -->
 </section> <!-- section id="sec_primary" -->
