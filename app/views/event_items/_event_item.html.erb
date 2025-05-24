@@ -9,9 +9,12 @@
   <dt title="machine_title"><strong>Machine title:</strong></dt>
     <dd><%= event_item.machine_title %></dd>
   <dt><strong><%= t("events.parent_event") %>:</strong></dt>
-    <dd><%= event_and_group_html(event_item.event, fmt: "%s < EventGroup(%s)") %></dd> <%# defined in events_helper.rb, where fmt is HTML-sanitized %>
-    <dd><strong># of EventItems of the Event</strong>: <%= @event_item.siblings.count+1 %>
-      (including this<%= " and Unknown" if @event_item.siblings.include?(@event_item.unknown_sibling) %>) </dd>
+    <dd><%= event_and_group_html(ev=event_item.event, fmt: "%s < EventGroup(%s)") %></dd> <%# defined in events_helper.rb, where fmt is HTML-sanitized %>
+    <%= editor_only_safe_html(event_item, method: :show, tag: "dd") do %> <%# defined in application_helper.rb %>
+    <strong># of EventItems of the Event</strong>: <%= @event_item.siblings.count+1 %>
+      (including this<%= " and Unknown" if @event_item.siblings.include?(@event_item.unknown_sibling) %>)
+      / (Time-parameters(Event): <%= ev.start_time %> / Duration=<%= hour = ev.duration_hour; (hour ? hour.hours.in_minutes : "nil") %> [min])
+    <% end %>
     <% if canedit && @event_item.harami_vids.uniq.size == 1 && (@event_item.siblings(exclude_unknown: true).exists? || (sibs=@event_item.siblings(exclude_unknown: false)).count == 1 && @event_item.event.harami_vids.where.not(id: @event_item.harami_vids.first.id).exists?) %> <%# If the sibling EventItems are only Unknown withtou HaramiVids, there is no point to "resettle" with a new Event. NOTE the condition here is slightly different from that in /app/views/harami_vids/_event_event_items.html.erb %>
       <span class="editor_only associate_to_new_event">
         <dd> <%= link_to 'Associate to a new Event', event_items_resettle_new_event_url(@event_item), method: :patch, data: { confirm: t('are_you_sure') }, title: 'Creating a new Event and associating this EventItem to it.', class: "button_like" %>
@@ -24,15 +27,27 @@
       <% if canedit %>
         <% is_consistent = event_item.place_consistent? %>
         <% ev_place_str = h((ev_pla=event_item.event.place).blank? ? "nil" : show_pref_place_country(ev_pla)) if !is_consistent %> <%# TODO: the link part in Place is printed in white (while the rest is in red) in the statement below %>
-        <%= html_consistent_or_inconsistent(is_consistent, postfix: " with Event (#{ev_place_str})".html_safe) %>  <%# defined in application_helper.rb %>
+        <%= html_consistent_or_inconsistent(is_consistent, postfix: sprintf(" with Event (%s)", h(ev_place_str)).html_safe) %>  <%# defined in application_helper.rb %>
       <% end %>
     </dd>  <%# defined in places_helper.rb %>
 
   <dt><strong>Start time [in <%= Rails.configuration.music_i18n_def_timezone_str %>] (± days/hrs/mins):</strong></dt>
-    <dd><%= event_item.string_time_err2uptomin %> (± <%= time_in_units(event_item.start_time_err, for_editor: canedit) %>) <span class="moderator_only">[Raw-value=<%= event_item.start_time %>]</span></dd> <%# in module_common.rb %>
+    <dd><%= event_item.string_time_err2uptomin %> (± <%= time_in_units(event_item.start_time_err, for_editor: canedit) %>) <span class="moderator_only">[Raw-value=<%= event_item.start_time %>]</span> <%# in module_common.rb %>
+      <% if canedit %>
+        <% hsstr = %i(start_time start_time_err).map{|key| v=str_data_to_be_imported_for(event_item, key); v ? [key, v] : nil}.compact.to_h %> <%# defined in event_items_helper.rb %>
+        <% postfix = sprintf(" with Event %s", h(hsstr.inspect)).html_safe %>
+        <%= html_consistent_or_inconsistent(hsstr.empty?, postfix: postfix) %>  <%# defined in application_helper.rb %>
+      <% end %>
+      </dd>
   <dt><strong><%= t("events.Duration") %> [<%= t(:minute) %>] (± <%= t(:minutes_short) %>):</strong></dt>
     <% err = event_item.duration_err_with_unit %>
-    <dd><%= event_item.duration_minute %> <span class="moderator_only"> [=Raw-value] </span>(± <%= err ? err.in_minutes : "&mdash;".html_safe %> [<%= t(:minutes_short) %>]<span class="moderator_only"> /Raw-value=<%= event_item.duration_minute_err %></span>) </dd>
+    <dd><%= event_item.duration_minute %> <span class="moderator_only"> [=Raw-value] </span>(± <%= err ? err.in_minutes : "&mdash;".html_safe %> [<%= t(:minutes_short) %>]<span class="moderator_only"> /Raw-value=<%= event_item.duration_minute_err %></span>)
+      <% if canedit %>
+        <% hsstr = %i(duration_minute duration_minute_err).map{|key| v=str_data_to_be_imported_for(event_item, key); v ? [key, v] : nil}.compact.to_h %> <%# defined in event_items_helper.rb %>
+        <% postfix = sprintf(" with Event %s", h(hsstr.inspect)).html_safe %>
+        <%= html_consistent_or_inconsistent(hsstr.empty?, postfix: postfix) %>  <%# defined in application_helper.rb %>
+      <% end %>
+    </dd>
   <dt><strong><%= t("tables.publish_date", default: "Published on YYYY-MM-DD") %>:</strong></dt>
     <% da = event_item.publish_date %>
     <% end_str = (canedit ? nil : "&mdash;".html_safe) %>

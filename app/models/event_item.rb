@@ -87,6 +87,20 @@ class EventItem < ApplicationRecord
 
   PREFIX_MACHINE_TITLE_DUPLICATE = "copy"  # followed by (potentially a number and) a hyphen "-", as in EventItem default (EventItem.get_unique_title)
 
+  # Attributes (Symbol) whose values must be consistent with the parent Event; if not, their values should be adjusted accordingly.
+  # Note that there is no constraint given to duration_minute_err from Event.
+  # However, if duration_minute is set, duration_minute_err (in seconds) should not be
+  # larger than duration_minute in general (although it could be potentially the case, technically).
+  # For this reason, the order of thei Array matters (in {#_reloaded_data_to_import_parent})
+  ATTRS_TO_BE_CONSISTENT_WITH_PARENT = %i(start_time start_time_err duration_minute duration_minute_err publish_date place)
+
+  # Maximum (longest) duration that may be imported from Event when duration_minute is nil.
+  #
+  # If duration_minute is nil, duration of Event may be imported.
+  # However, if the latter is longer than this, the value is not imported,
+  # as the value would be unreasonably large, and {#duration_minute} may as well remain nil.
+  MAX_DURATION_TO_IMPORT = 1.days
+
   redefine_inspect(cols_yield: %w(event_id place_id)){ |record, col_name, self_record|
     case col_name
     when "event_id"
@@ -428,11 +442,23 @@ class EventItem < ApplicationRecord
   #
   # This may set @warnings[key]
   #
+  # @todo :duration_minute_err
+  #   If self.duration_minute is set at a larger value than the duration of Event
+  #   and so is self.duration_minute_err,
+  #   but if a smaller value is given on submit (and "match_parent" in Form is true),
+  #   then refhs[:duration_minute] is nil (because no change is required), and as a result,
+  #   this routine below for :duration_minute_err must refer to self.duration_minute 
+  #   to determine the new :duration_minute_err, the value of which is much larger
+  #   than the new duration_minute, as opposed to the equal value to it.
+  #   This is a slight bug.
+  #
   # @param key [String, Symbol] key (column name or one without ID)
+  # @param refhs [Hash] Hash of {key => value} for the other "key" parameters; at the momement, this is used only for :duration_minute_err (though it should be used for :start_time_err too).
+  # @param refval [Object] If given, and if non-nil, its value is referenced instead of the DB attribute of self.
   # @return [Object] nil if no update is needed
-  def imported_data_from_associates(key)
+  def imported_data_from_associates(key, refhs: {}, refval: nil)
     return nil if !event  # should never happen, but playing safe
-    orig_val = send(key)
+    orig_val = (refval || send(key))  # This may not work for start_time because start_time(1i) etc should be taken into account
 
     retval = 
       case key.to_sym
@@ -441,14 +467,25 @@ class EventItem < ApplicationRecord
         (val && (!orig_val || orig_val < val)) ? val : nil
       when :start_time_err
         val=event.start_time_err
-        (val && (!orig_val || orig_val > val)) ? val : nil
+        (val && (!orig_val || (orig_val=orig_val.to_f) > val)) ? val : nil
       when :duration_minute
         val=event.duration_hour
-        (val && (!orig_val || orig_val > val*60)) ? val*60 : nil
+        (val && ((!orig_val && val <= MAX_DURATION_TO_IMPORT.in_hours) || (orig_val && (orig_val=orig_val.to_f) > val*60))) ? val*60 : nil
+      when :duration_minute_err
+        if refhs.blank?
+          warn "WARNING(#{__method__}): refhs is not given, but it should for #{key.inspect}"
+          nil
+        elsif (dura_min=(refhs[:duration_minute] || duration_minute)) && (!orig_val || (dura_min > 0.1 && (orig_val=orig_val.to_f) > 1 && dura_min.ceil*60+1 < orig_val.to_f))
+          # NOTE: this does not work perfectly in a particular case. See the main comment above for detail.
+          dura_min.ceil*60
+        else
+          nil
+        end
       when :publish_date
         nil
       when :place
         val=event.place
+        orig_val = Place.find(orig_val) if orig_val && !orig_val.respond_to?(:prefecture)
         (val && (!orig_val || orig_val.encompass_strictly?(val) || !orig_val.not_disagree?(val))) ? event.place : nil
       else
         raise ArgumentError, "#{File.basename __FILE__}:(#{__method__}) Wrong key (#{key})."
@@ -473,16 +510,36 @@ class EventItem < ApplicationRecord
     return retval 
   end
 
+  #
+  # @example to get the duration_hour value if inconsistent with the parent Event
+  #   self.data_to_import_parent(reload: true)[:duration_hour]
+  #
+  # @param reload: [Boolean] if true (Def: false), accesses DB and re-examine the data.
+  # @param hsmain: [Hash] this is basically (EventItem-related) params Hash in Controller. If given and the value for a key is non-nil, its value is examined as opposed to the DB attribute value of self in reloading (providing that reloading (or first loading) is necessary).
+  # @return [Hash] (with_indifferent_access) key (EventItem attribute) to value to be imported from the parent Event,
+  #    which is nil if no update is required.
+  def data_to_import_parent(reload: false, hsmain: {})
+    if !@data_to_import_parent || reload
+      @warnings = nil  # reset
+      @data_to_import_parent = _reloaded_data_to_import_parent(hsmain: hsmain)
+    end
+    @data_to_import_parent
+  end
+
   # this sets @warnings, too.
   #
-  # @return [Hash] (with_indifferent_access) key to value of a newly imported value,
+  # @param hsmain: [Hash] See {#data_to_import_parent}
+  # @return [Hash] (with_indifferent_access) key (EventItem attribute) to value to be imported from the parent Event,
   #    which is nil if no update is required.
-  def data_to_import_parent
-    return({}.with_indifferent_access) if !event  # should never happen, but playing safe
-    %i(start_time start_time_err duration_minute publish_date place).map{|ek|
-      [ek, imported_data_from_associates(ek)]
-    }.to_h.with_indifferent_access
+  def _reloaded_data_to_import_parent(hsmain: {})
+    reths = {}.with_indifferent_access
+    return reths if !event  # should never happen, but playing safe
+    ATTRS_TO_BE_CONSISTENT_WITH_PARENT.each do |ek|
+      reths[ek] = imported_data_from_associates(ek, refhs: reths, refval: hsmain[ek])  # hsmain[ek] may well be nil.
+    end
+    reths
   end
+  private :_reloaded_data_to_import_parent
 
   # Last release_date among the associated {HaramiVid}-s
   def all_release_dates
@@ -607,7 +664,7 @@ class EventItem < ApplicationRecord
       elsif last_release_date && last_release_date < val.to_date
         return(@warnings[key] = "Start time is later than the (latest) release-date of the associated video(s).")
       end
-    when :start_time_err
+    when :start_time_err, :duration_minute_err
         # do nothing
     when :duration_minute
       if event && event.duration_hour*60 < val

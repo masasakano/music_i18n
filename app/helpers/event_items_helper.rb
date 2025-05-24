@@ -34,17 +34,27 @@ module EventItemsHelper
   # @param record [EventItem]
   # @return [String]
   def hint_for_data_to_be_imported(record)
-    record.data_to_import_parent.map{ |ek, ev|
-      next nil if ev.blank?
-      str_ev = 
-        if ev.respond_to? :current
-          ev.current.to_s.inspect
-        elsif ev.respond_to? :encompass?
-          "<"+show_pref_place_country(ev, hyperlink: false, prefer_shorter: true)+">"  # defined in places_helper.rb
-        else
-          ev.to_s
-        end
+    EventItem::ATTRS_TO_BE_CONSISTENT_WITH_PARENT.map{|ek|
+      (str_ev = str_data_to_be_imported_for(record, ek)) || (next nil)
       sprintf("%s => %s", ek, str_ev)
     }.compact.join("; ")
+  end
+
+  # This method returns String to be printed.
+  #
+  # To get the Ruby value to be imported, simply use record.
+  #
+  # @param record [EventItem]
+  # @param key [Symbol, String] of an EventItem attribute
+  # @return [String, NilClass] nil if no need of importing Event data for the key
+  def str_data_to_be_imported_for(record, key)
+    (val = record.data_to_import_parent(hsmain: (@hsmain || {}))[key]) || return
+    if val.respond_to? :current
+      val.current.to_s.inspect
+    elsif val.respond_to? :encompass?
+      "<"+show_pref_place_country(val, hyperlink: false, prefer_shorter: true)+">"  # defined in places_helper.rb
+    else
+      val.to_s
+    end
   end
 end

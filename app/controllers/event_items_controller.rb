@@ -128,7 +128,7 @@ class EventItemsController < ApplicationController
       use_place_id = !@hsmain.keys.include?("place")
       @event_item.event_id = @hsmain[:event_id] if @hsmain[:event_id]
 
-      hs2update = @event_item.data_to_import_parent  # This sets @event_item.warnings
+      hs2update = @event_item.data_to_import_parent(hsmain: @hsmain)  # This sets @event_item.warnings
       hs2update.each_pair do |ek, ev|
         next if !ev
         if "start_time_err" == ek
