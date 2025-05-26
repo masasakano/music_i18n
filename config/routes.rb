@@ -27,6 +27,7 @@ Rails.application.routes.draw do
   resources :play_roles
   resources :event_items
   namespace :event_items do
+    resources :nominal_machine_titles, only: [:show, :update]
     resources :match_parents,     only: [:update]
     resources :deep_duplicates,   only: [:create]
     resources :destroy_with_amps, only: [:destroy]

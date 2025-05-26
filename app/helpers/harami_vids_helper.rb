@@ -63,10 +63,10 @@ module HaramiVidsHelper
   #     Event1-pID =>
   #       [EventItem1  (1st, 4th, 8th Music),
   #        EventItem2  (7th, 9th Music)]
-  #     Event2-pID) =>
+  #     Event2-pID =>
   #       [EventItem1  (2nd, 3rd Music),
   #        EventItem2  (3rd, 6th, Music)]  (duplicated)
-  #     Event3-pID) =>
+  #     Event3-pID =>
   #       [EventItem1  (5th Music), ]
   #   }
   #

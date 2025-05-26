@@ -39,9 +39,8 @@ class ApplicationHelperTest < ActionView::TestCase
     assert_equal exp, editor_only_safe_html(Music, method: :index, text: "abc")
 
     exp = '<div class="">9</div>'
-    assert_equal exp, editor_only_safe_html(Music, method: :index, text: 9)
-    exp = '<div class=""></div>'
-    assert_equal exp, editor_only_safe_html(Music, method: :index, text: nil){9} # 9 should be stringfied.
+    assert_equal exp, editor_only_safe_html(Music, method: :index, text: 9) # 9 should be stringfied.
+    assert            editor_only_safe_html(Music, method: :index, text: nil){"  "}.blank?
     assert_raises(StandardError) {
                       editor_only_safe_html(Music, method: :index, text: [])  } # NoMethodError caused by sanitize()  # but the error type may change in the future
 

@@ -37,7 +37,7 @@ class EventItems::MatchParentsControllerTest < ActionDispatch::IntegrationTest
   # add to here
   # ---------------------------------------------
 
-  test "should get update" do
+  test "should patch update" do
     patch event_items_match_parent_url(@event_item), params: { event_item: {}}
     assert_response :redirect
     assert_redirected_to new_user_session_path

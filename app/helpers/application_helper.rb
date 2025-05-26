@@ -1200,6 +1200,10 @@ module ApplicationHelper
   # The recommended way is to give the content as the ERB block (see an example below).
   # Then, the content is sanitized (or not for the part you choose so) acccording to the ERB standard way.
   #
+  # If the content turns out to be empty (after strip), this returns nil.
+  # However, if you use yield (in ERB), make sure the last statement returns nil
+  # (maybe IF clause or even <% nil %> (a slight bug...)
+  #
   # This method is a handy helper for anything related to the Editor-privilege. In particularly
   # this is most useful when you think the component may become public
   # in the future; with this method, the part is guaranteed NOT to be enclosed
@@ -1264,8 +1268,8 @@ module ApplicationHelper
     text = sanitize(text) if !text.html_safe?  # capture-d text seems always html_safe. However, text passed as an argument may not be.
     # Note: Array#html_safe? exists but Array#html_safe does not, and raises NoMethodError  
 
-    text = text.strip.html_safe if strip
-    ApplicationController.helpers.tag.send(tag, text, class: html_classes, **opts)
+    text = text.strip.html_safe if text.present? && strip
+    text.present? ? ApplicationController.helpers.tag.send(tag, text, class: html_classes, **opts) : ""
   end
 
   # to suppress warning, mainly that in Ruby-2.7.0:

@@ -7,7 +7,7 @@
   <% end %>
 
   <dt title="machine_title"><strong>Machine title:</strong></dt>
-    <dd><%= event_item.machine_title %></dd>
+    <%= render partial: "event_items/nominal_machine_titles/show_machine_title", locals: {canedit: canedit} %>
   <dt><strong><%= t("events.parent_event") %>:</strong></dt>
     <dd><%= event_and_group_html(ev=event_item.event, fmt: "%s < EventGroup(%s)") %></dd> <%# defined in events_helper.rb, where fmt is HTML-sanitized %>
     <%= editor_only_safe_html(event_item, method: :show, tag: "dd") do %> <%# defined in application_helper.rb %>

@@ -35,6 +35,7 @@
 #
 class EventItem < ApplicationRecord
   include ModuleCommon
+  include ArtistMusicPlaysHelper  # for get_ordered_amp_arrays and hvma_joined_artist_music_plays
 
   before_destroy :prevent_destroy_unknown  # must come before has_many
 
@@ -363,22 +364,26 @@ class EventItem < ApplicationRecord
   # A separator becomes blank if postfix is blank.
   #
   # @param prefix [String]
+  # @param rela: [ActiveRecord, ActiveRecord::Relation] Def: self
   # @param postfix: [String]
   # @param separator: [String]
   # @return [String] unique machine_title
-  def self.get_unique_title(prefix, postfix: "", separator: "-")
-    get_unique_string(:machine_title, prefix: prefix, postfix: postfix, separator: "", separator2: separator) # defined in /app/models/concerns/module_application_base.rb
+  def self.get_unique_title(prefix, rela: self, postfix: "", separator: "-")
+    get_unique_string(:machine_title, rela: rela, prefix: prefix, postfix: postfix, separator: "", separator2: separator) # defined in /app/models/concerns/module_application_base.rb
   end
 
-  # Wrapper of {EventTitle.get_unique_title}
+  # Wrapper of {EventItem.get_unique_title}
   #
   # An eaxmple is ""
   #
   # @option prefix [String]
+  # @param rela: [ActiveRecord, ActiveRecord::Relation] Def: self
   # @param postfix: [String, Symbol] If :default, a combined title of Event and EventGroup is used.
   # @param separator: [String]
+  # @param separator_group: [String, NilClass] separator between Event and EventGroup titles.  The same as separator in default.
   # @return [String] unique machine_title
-  def default_unique_title(prefix=DEFAULT_UNIQUE_TITLE_PREFIX, postfix: :default, separator: "-")
+  def default_unique_title(prefix=DEFAULT_UNIQUE_TITLE_PREFIX, rela: self.class, postfix: :default, separator: "-", separator_group: nil)
+    separator_group ||= separator
     if :default == postfix
       postfix =
         if event
@@ -386,13 +391,59 @@ class EventItem < ApplicationRecord
             definite_article_to_head(model.title(langcode: "en", lang_fallback: true, str_fallback: "")).gsub(/ +/, "_").gsub(/__+/, "_")
           }
           artit.pop if /#{Regexp.quote(artit[1])}.?\Z/ =~ artit[0]  # to avoid duplication of EventGroup name; this can happen because Event Translation may well include EventGroup Translation at the tail.
-          artit.join(separator)
+          artit.join(separator_group)
         else
           ""
         end
     end
-    self.class.get_unique_title(prefix, postfix: postfix, separator: separator)
+    self.class.get_unique_title(prefix, rela: rela, postfix: postfix, separator: separator)
   end
+
+  # Returns the "nominal" machine title
+  #
+  # It is in a form of
+  #   MyMusicTitle-Event_title_here_<_Event_Group_title
+  #
+  # Wrapper of {#default_unique_title}
+  #
+  # @param except_self: [Boolean] if true (Def), the returned String may be identical to {#machine_title}; else never.
+  # @return [String] nominal unique machine_title
+  def nominal_unique_title(except_self: true)
+    rela = (except_self ? self.class.where.not(id: id) : self.class)
+    prefix = (_music_prefix_for_nominal_unique_title || DEFAULT_UNIQUE_TITLE_PREFIX)
+
+    default_unique_title(prefix, rela: rela, separator_group: "_<_")
+  end
+
+  # Default prefix (=Music-title) for the nominal unique machine_title if any
+  #
+  # @return [NilClass, String] nil if something goes wrong.
+  def _music_prefix_for_nominal_unique_title
+    # Gets a HaramiVid that is a child of self (EventItem) and has Musics.
+    # Here, INNER JOIN means HaramiVids that do not have Musics are excluded.
+    #
+    # NOTE: All HaramiVid-s should have (through HaramiVidMusicAssocs) all Musics that self (=EventItem) has (through ArtistMusicAssoc).
+    #  The caller should call this method only when self has Musics, so there should be
+    #  no need of filtering out here. However, things may have gone wrong, so this is necessary to play safe.
+    harami_vid = harami_vids.joins(:harami_vid_music_assocs).distinct.first
+    return if !harami_vid
+
+    distinguished_artist = Artist.primary
+    db_columns, _, _ = get_ordered_amp_arrays(distinguished_artist) # defined in artist_music_plays_helper.rb
+    amp = hvma_joined_artist_music_plays(artist_music_plays, db_columns, harami_vid: harami_vid).where(artist_id: distinguished_artist.id).uniq.first # defined in artist_music_plays_helper.rb / uniq is necessary.
+    return if !amp  # This should never be the case, but playing safe.
+
+    prefix = amp.music.title_or_alt(prefer_shorter: true, lang_fallback_option: :either, str_fallback: nil, langcode: nil, prioritize_orig: true, article_to_head: true)
+    return nil if !prefix  # This should never be the case, but playing safe.
+    prefix = camel_cased_truncated(prefix) # defined in module_common.rb
+
+    n_amps = artist_music_plays.count
+    evits = harami_vid.event_items.where("event_items.event_id": event_id).where.not("event_items.id": id).joins(:artist_music_plays).group('event_items.id').having('COUNT(artist_music_plays.id) > ?', n_amps)  # Array of EventItems that belong to the common Event as self for a common HaramiVid and that has more ArtistMusicPlays than self
+    prefix << "_shorts" if evits.exists?
+
+    prefix
+  end
+  private :_music_prefix_for_nominal_unique_title
 
   # True if all the ArtistMusicPlay-s are "duplicated", meaning
   # they all are associated for different EventItems as well.

@@ -76,7 +76,7 @@ module ModuleApplicationBase
   #     # => channel-2"
   #
   # @param col [String, Symbol] DB column name
-  # @param rela: [ActiveRecord::Relation] Def: self
+  # @param rela: [ActiveRecord, ActiveRecord::Relation] Def: self
   # @param prefix: [String]
   # @param postfix: [String]
   # @param separator: [String] For the former separator between prefix and number.

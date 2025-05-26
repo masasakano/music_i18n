@@ -40,10 +40,10 @@ module ArtistMusicPlaysHelper
 
   # Returns HaramiVidMusicAssocs-joined ArtistMusicPlays for HaramiVid
   #
-  # @param artist_music_plays [ArtistMusicPlay::ActiveRecord_Relation]
+  # @param rela_base [ArtistMusicPlay::ActiveRecord_Relation]
   # @param ordered_db_columns [Array<String>] DB-column-names to use to sort Relation. See {#get_ordered_amp_arrays}
   # @param harami_vid: [ActiveRecord] HaramiVid. If this is specified, +artist_music_plays+ is for the HaramiVid. If not it is for an EventItem (it can be for mutiple EventItem-s, if desired).
-  # @return [Relation] the caller should uniq this! (distinct woulds not work in PostgreSQL...)
+  # @return [ArtistMusicPlay::ActiveRecord_Relation] the caller should uniq this! (distinct woulds not work in PostgreSQL...)
   def hvma_joined_artist_music_plays(rela_base, ordered_db_columns, harami_vid: nil)
     rela_base = ArtistMusicPlay.where(id: rela_base.ids)
     rela_ret =
