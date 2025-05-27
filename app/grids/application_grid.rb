@@ -644,11 +644,24 @@ class ApplicationGrid < Datagrid::Base
   # @param model_klass [ActiveRecord] Model class
   def self.columns_upd_created_at(model_klass=nil)
     common_opts = {tag_options: {class: ["editor_only"]}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)}}
-    if model_klass && model_klass.has_attribute?(:memo_editor)
-      opts = common_opts.merge({tag_options: common_opts[:tag_options].merge({class: common_opts[:tag_options][:class]+["text-center"]})})
-      column(:memo_editor_exists, html: true, mandatory: true, order: false, header: "Memo?", **opts){ |record|
-        record.memo_editor.present? && record.memo_editor.strip.present? ? "Y" : nil
-      }
+    has_memo_editor = model_klass && model_klass.has_attribute?(:memo_editor)
+    header, header_title =
+            if has_memo_editor
+              ["Note/Memo?", "Has note and/or memo_editor?"]
+            else
+              ["Note?",      "Has note?"]
+            end
+    opts = common_opts.merge({tag_options: common_opts[:tag_options].merge({class: common_opts[:tag_options][:class]+["text-center"], title: header_title})})
+    column(:memo_editor_exists, html: true, mandatory: true, order: false, header: header, **opts){ |record|
+      contents = [record.note.present? ? "Y" : nil]
+      contents << (record.memo_editor.present? ? "Y" : nil) if has_memo_editor
+      if contents.compact.empty?
+        nil
+      else
+        contents.map{|i| i ? i : "N"}.join(" / ")
+      end
+    }
+    if has_memo_editor
       column(:memo_editor, html: true, order: false, header: "Editor's Memo", **common_opts){ |record|
         sanitized_html(auto_link50(record.memo_editor)).html_safe
       }

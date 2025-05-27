@@ -17,7 +17,7 @@ class EventsGrid < ApplicationGrid
 
   filter_include_ilike(:title_ja, header: Proc.new{I18n.t("datagrid.form.title_ja_en", default: "Title [ja+en] (partial-match)")}, input_options: {autocomplete: 'off'})
 
-  filter(:start_time, :datetime, range: true, header: Proc.new{I18n.t('tables.start_time')+" (< #{Date.current.to_s})"}) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
+  filter(:start_time, :date, range: true, header: Proc.new{I18n.t('tables.start_time')+" (< #{Date.current.to_s})"}) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
   filter(:duration_hour, :float, range: true, header: Proc.new{I18n.t('tables.duration_hour')}) # float in DB # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
 
   filter(:prefecture_id, :enum, multiple: true, include_blank: true,
@@ -72,6 +72,7 @@ class EventsGrid < ApplicationGrid
   end
 
   column(:place, html: true, mandatory: true, header: Proc.new{I18n.t('tables.place')}) do |record|
+    next nil if record.place
     #txt_caution = "".html_safe
     #if can?(:read, Event) && !record.is_place_all_consistent?(strict: true)
     #  txt_caution = '<span title="Inconsistent with Events and/or Events">†</span>'.html_safe
