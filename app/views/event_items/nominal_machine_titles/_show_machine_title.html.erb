@@ -10,7 +10,7 @@
       <% nominal_title = @event_item.nominal_unique_title(except_self: true) %>
       <% if ![nominal_title, nominal_title.sub(/_shorts?\-/, ""), nominal_title.sub(/\-/, "_shorts-")].include?(mct) %>
         <strong>Nominal title:</strong><br> <%= nominal_title %>
-        <%= form_tag(event_items_nominal_machine_title_path(@event_item), method: "patch", style: "display: inline-block; margin-top: -1em; padding-top: 0em; padding-bottom: 0em;") do %>
+        <%= form_tag(event_items_nominal_machine_title_path(@event_item), method: "patch", class: "inline_form_tight") do %>
           <%= submit_tag "Update to this MachineTitle", style: "display: inline-block" %>
         <% end %>
       <% end %>

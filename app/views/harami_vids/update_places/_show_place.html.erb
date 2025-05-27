@@ -14,7 +14,7 @@
         <br>
         <div class="editor_only harami_vids_update_place">
           / In EventItem(s): <%= show_pref_place_country(evit_place) %>
-          <%= button_to "Update Place", harami_vids_update_place_path(@harami_vid), method: :patch, form_class: "inline_form", class: "text-end", style: "display: inline-block; margin-top: -1em; padding-top: 0em; padding-bottom: 0em; margin-bottom: -1em;" %>
+          <%= button_to "Update Place", harami_vids_update_place_path(@harami_vid), method: :patch, form_class: "inline_form_tight", class: "text-end inline_form_tightest" %>
         </div>
       <% end %>
       <% if !from_non_turbo && canupdate %>

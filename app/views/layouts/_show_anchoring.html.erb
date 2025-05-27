@@ -51,7 +51,7 @@
             <% end %>
              &nbsp; <%= notetxt %>
             <%= editor_only_safe_html(record, method: :edit, tag: "div", class: "disp-inline") do %>
-                <%= button_to "Edit", paths[:edit], method: :get, form_class: "inline_form", class: "text-end", style: "margin-top: -1em; padding-top: 0em; padding-bottom: 0em; margin-bottom: -1em;" %>
+                <%= button_to "Edit", paths[:edit], method: :get, form_class: "inline_form_tight", class: "text-end" %>
                 / <%= link_to 'Destroy', paths[:destroy], data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' } %>
             <% end %>
   <%= render partial: "/layouts/flash_display" %>

@@ -31,12 +31,7 @@
 
   <div>
   <dt><strong><%= t("tables.start_time") %> [<%= t("events.time_zone_preposition") %> <%= Rails.configuration.music_i18n_def_timezone_str %>]:</strong></dt>
-    <dd><%= event.string_time_err2uptomin %> (± <%= time_in_units(event.start_time_err, for_editor: can_update_gen) %>) <%# in module_common.rb %>
-      <%= editor_only_safe_html(:pass, method: can_update_gen, tag: "span") do %>
-        [Raw-value=<%= event.start_time %>]
-        <%= events_inconsistent_time_warning_word(event) %>
-      <% end %>
-    </dd>
+    <%= render partial: "events/align_start_time_with_vid/show_start_time", locals: {can_update_gen: can_update_gen} %>
   </div>
 
   <div>

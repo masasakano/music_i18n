@@ -166,12 +166,11 @@ raise if @event.id
       return nil if !str
 
       tit_prefix = preprocess_space_zenkaku(str.gsub(Unicode::Emoji::REGEX, " "), article_to_tail=false, strip_all: true)  # Regex in require "unicode/emoji"
-      ## tit = tit_prefix + self.def_event_title_postfix(langcode, @event.event_group, prefer_en: true) 
-      #tit = tit_prefix + self.try_load(langcode, @event.event_group, prefer_en: true) 
-      tit = tit_prefix + def_event_title_postfix(langcode, @event.event_group, prefer_en: true) 
-      ret_lcode = (contain_asian_char?(tit) ? "ja" : langcode) # defiend in ModuleCommon
+      ##tit = tit_prefix + self.try_load(langcode, @event.event_group, prefer_en: true) 
+      #tit = tit_prefix + def_event_title_postfix(langcode, @event.event_group, prefer_en: true) 
+      ret_lcode = (contain_asian_char?(tit_prefix) ? "ja" : langcode) # defiend in ModuleCommon
 
-      Translation.new(langcode: ret_lcode, is_orig: (tra ? tra.is_orig : nil), title: tit)
+      Translation.new(langcode: ret_lcode, is_orig: (tra ? tra.is_orig : nil), title: tit_prefix)
     end
 
     # EentItem.place should be the narrowest.
@@ -191,12 +190,7 @@ raise if @event.id
     # @return [String] New machine_title. Uniqueness is guaranteed; this ultimately calls get_unique_string in /app/models/concerns/module_application_base.rb
     def _updated_machine_title
       _, postfix = EventItem.unknown_machine_title_prefix_postfix(@event)
-      prefix =
-        if @harami_vid && @harami_vid.musics.exists?
-          @harami_vid.musics.first.title_or_alt(prefer_shorter: true, lang_fallback_option: :either, str_fallback: EventItem::DEFAULT_UNIQUE_TITLE_PREFIX, article_to_head: true)
-        else
-          EventItem::DEFAULT_UNIQUE_TITLE_PREFIX
-        end
+      prefix = (@event_item.music_prefix_for_nominal_unique_title(harami_vid: @harami_vid) || DEFAULT_UNIQUE_TITLE_PREFIX)  # cf. EventItem#nominal_unique_title
 
       EventItem::get_unique_title(prefix, postfix: postfix)
     end

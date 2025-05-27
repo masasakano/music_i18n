@@ -407,25 +407,27 @@ class EventItem < ApplicationRecord
   # Wrapper of {#default_unique_title}
   #
   # @param except_self: [Boolean] if true (Def), the returned String may be identical to {#machine_title}; else never.
+  # @param harami_vid: [HaramiVid, NilClass] to refer to in order to guess the Music title. It can be guessed.
   # @return [String] nominal unique machine_title
-  def nominal_unique_title(except_self: true)
+  def nominal_unique_title(except_self: true, harami_vid: nil)
     rela = (except_self ? self.class.where.not(id: id) : self.class)
-    prefix = (_music_prefix_for_nominal_unique_title || DEFAULT_UNIQUE_TITLE_PREFIX)
+    prefix = (music_prefix_for_nominal_unique_title(harami_vid: harami_vid) || DEFAULT_UNIQUE_TITLE_PREFIX)
 
     default_unique_title(prefix, rela: rela, separator_group: "_<_")
   end
 
   # Default prefix (=Music-title) for the nominal unique machine_title if any
   #
+  # @param harami_vid: [HaramiVid, NilClass] to refer to in order to guess the Music title. It can be guessed.
   # @return [NilClass, String] nil if something goes wrong.
-  def _music_prefix_for_nominal_unique_title
+  def music_prefix_for_nominal_unique_title(harami_vid: nil)
     # Gets a HaramiVid that is a child of self (EventItem) and has Musics.
     # Here, INNER JOIN means HaramiVids that do not have Musics are excluded.
     #
     # NOTE: All HaramiVid-s should have (through HaramiVidMusicAssocs) all Musics that self (=EventItem) has (through ArtistMusicAssoc).
     #  The caller should call this method only when self has Musics, so there should be
     #  no need of filtering out here. However, things may have gone wrong, so this is necessary to play safe.
-    harami_vid = harami_vids.joins(:harami_vid_music_assocs).distinct.first
+    harami_vid ||= harami_vids.joins(:harami_vid_music_assocs).distinct.first
     return if !harami_vid
 
     distinguished_artist = Artist.primary
@@ -443,7 +445,6 @@ class EventItem < ApplicationRecord
 
     prefix
   end
-  private :_music_prefix_for_nominal_unique_title
 
   # True if all the ArtistMusicPlay-s are "duplicated", meaning
   # they all are associated for different EventItems as well.

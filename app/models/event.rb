@@ -60,6 +60,7 @@ class Event < BaseWithTranslation
   has_one :prefecture, through: :place
   has_one :country, through: :prefecture
   has_many :event_items, dependent: :restrict_with_exception
+  has_many :harami_vid_event_item_assocs, through: :event_items, dependent: :restrict_with_exception
   has_many :harami_vids, through: :event_items, dependent: :restrict_with_exception
   has_many :harami1129s, through: :event_items, dependent: :restrict_with_exception
   has_many :artist_collabs, -> {distinct}, through: :event_items, source: :artists
@@ -566,6 +567,26 @@ class Event < BaseWithTranslation
     # Music.joins(:event_items).joins("INNER JOIN events ON event_items.event_id = events.id").where("events.id = ?", id).distinct.count
     Music.joins(:event_items).where("event_items.event_id" => id).distinct.count
   end 
+
+
+  # Returns a new candidate pair of {#start_time} and {#start_time_err} or nil
+  #
+  # @return [NilClass, Array<Time, Float>] return Time if start_time seems far too early for any of the associated HaramiVid (n.b., start_time_err is bigint on DB)
+  def cand_new_time_if_seems_too_early
+    return nil if unknown? || default?(:HaramiVid)  # start_time of Unknown or Default must be manually adjusted if ever
+
+    margin = 2.days
+    earliest_release_time = (harami_vids.order(:release_date).first.release_date.to_time(:utc) + 12.hours).in_time_zone
+    earliest_cand_time = earliest_release_time - ModuleHaramiVidEventAux::OFFSET_PERIOD_FROM_REFERENCE
+    earliest_cand_time_err_sec = (ModuleHaramiVidEventAux::OFFSET_PERIOD_FROM_REFERENCE+24.hours).in_seconds
+    if !start_time ||
+       (start_time < earliest_cand_time-margin && (!start_time_err || start_time + start_time_err.seconds > earliest_release_time))
+      # Basically, true if Event#start_time is months earlier than the earilies associated HaramiVid, yet its error is huge, which suggests Event#start_time is just a default value.
+      return [earliest_cand_time, earliest_cand_time_err_sec]
+    end
+
+    nil
+  end
 
   ########## callbacks ########## 
 

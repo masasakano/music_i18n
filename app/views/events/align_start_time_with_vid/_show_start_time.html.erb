@@ -1,0 +1,29 @@
+<%# Assumed instance variables: @event, (optional) canedit, can_update_gen %>
+
+<% if !defined? canedit
+     canedit = can?(:edit, @event)
+   end %>
+<% if !defined? can_update_gen
+     can_update_gen = (canedit || can?(:update, Event))
+   end %>
+
+<%= turbo_frame_tag "start_time_"+dom_id(@event) do %>
+    <dd><%= @event.string_time_err2uptomin %> (± <%= time_in_units(@event.start_time_err, for_editor: can_update_gen) %>) <%# in module_common.rb %>
+      <%= editor_only_safe_html(:pass, method: can_update_gen, tag: "span") do %>
+        [Raw-value=<%= @event.start_time %>]
+        <%= events_inconsistent_time_warning_word(@event) %>
+      <% end %>
+    </dd>
+
+    <% ar_cand_start_time = @event.cand_new_time_if_seems_too_early %>
+    <%= editor_only_safe_html(:pass, method: canedit, tag: "dd") do %> <%# defined in application_helper.rb %>
+      <% if ar_cand_start_time.present? %>
+        (<strong>Suggested start_time:</strong> <%= ar_cand_start_time[0] %> ± <%= err=ar_cand_start_time[1] %> [sec] (<%= err.seconds.in_days %> [days]))
+        <%= form_tag(events_align_start_time_with_vid_path(@event), method: "patch", class: "inline_form_tight") do %>
+          <%= submit_tag "Update to this StartTime", style: "display: inline-block" %>
+        <% end %>
+      <% end %>
+      <%= render partial: "/layouts/flash_display" %>
+    <% end %>
+<% end %>
+

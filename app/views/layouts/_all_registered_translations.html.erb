@@ -71,7 +71,7 @@
     <tr class="lang_banner_<%= lcode %>"><th colspan="<%= allcolspan %>" class="middle_row"><%= get_language_name(lcode) %> <%# defined in module_common.rb %>
       <%= sprintf("(%s)", get_language_name(lcode, in_locale: I18n.locale)) if I18n.locale.to_s != lcode %>
       <% if add_button && (tra1 && tra1.creatable_other?(user: current_user, langcode: lcode) || (!tra1 && flag_ables[:destroyable])) %>
-        <%= button_to t('layouts.add_translation'), new_translation_path, form_class: "inline_form button_to", method: :get, params: { a_token: nil, langcode: lcode, translatable_type: model.class.name, translatable_id: model.id } %>
+        <%= button_to t('layouts.add_translation'), new_translation_path, form_class: "inline_form_tight button_to", method: :get, params: { a_token: nil, langcode: lcode, translatable_type: model.class.name, translatable_id: model.id } %>
       <% end %>
       </th></tr>
     <% alltra.each_with_index do |tra, i| %>

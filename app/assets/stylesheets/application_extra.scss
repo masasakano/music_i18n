@@ -264,8 +264,23 @@ form.datagrid-form {
 }
 
 form.inline_form {
-  display: inline;
+  display: inline;  /* This puts the form in the next line? */
   display: inline-block;
+  padding-bottom: 0em;
+}
+
+form.inline_form_tight {
+  display: inline-block;
+  margin-top: -1em;  /* Without this, a significant margin would appear. */
+  padding-top: 0em;
+  padding-bottom: 0em;
+}
+
+.inline_form_tightest {  /* both form and input */
+  display: inline-block;
+  margin-top: -1em;  /* Without this, a significant margin would appear. */
+  margin-bottom: -1em;
+  padding-top: 0em;
   padding-bottom: 0em;
 }
 

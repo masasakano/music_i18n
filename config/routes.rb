@@ -25,6 +25,9 @@ Rails.application.routes.draw do
   end
   resources :instruments
   resources :play_roles
+  namespace :events do
+    resources :align_start_time_with_vid, only: [:show, :update]
+  end
   resources :event_items
   namespace :event_items do
     resources :nominal_machine_titles, only: [:show, :update]
