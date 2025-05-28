@@ -1200,7 +1200,7 @@ module ApplicationHelper
   # The recommended way is to give the content as the ERB block (see an example below).
   # Then, the content is sanitized (or not for the part you choose so) acccording to the ERB standard way.
   #
-  # If the content turns out to be empty (after strip), this returns nil.
+  # If the content turns out to be empty (after strip), this returns nil, unless show_always is true.
   # However, if you use yield (in ERB), make sure the last statement returns nil
   # (maybe IF clause or even <% nil %> (a slight bug...)
   #
@@ -1225,6 +1225,11 @@ module ApplicationHelper
   #      / <%= link_to 'Destroy', paths[:destroy], data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' } %>
   #    <% end %>
   #
+  # @example table cell which may be empty - show_always=true
+  #    <%= editor_only_safe_html(:pass, method: can_update, tag: "td", show_always: true) do %>
+  #       <%= link_to(art.title_or_alt_for_selection, art) if art %>
+  #     <% end %>
+  #
   # @param record [ActiveRecord, Class<ActiveRecord>, Symbol] If Symbol of :pass, the Boolean value of the method is used for ability check.
   # @param method: [Symbol, Boolean] Mandatory, unlike {#publicly_viewable?}. This can be like :crud or :ud as defined in ability.rb .  Or, if +record+ is :pass, this Boolean value is used and detailed ability check is skipped, and the unauthenticated is assumed to be prohibited to access.
   # @param tag: [String] "div"(Def) or "span", or "p", "th", "td" etc.  (For developers: the namespace collides with the default helper method +tag+ inside this method, so be careful!)
@@ -1233,10 +1238,11 @@ module ApplicationHelper
   # @param text: [String, NilClass] you can supply the enclosed text either with this argument or through yield.
   # @param permissive: [Boolean] Default is false, unlike {#publicly_viewable?}.  Use so unless the permission is not a big-deal one.
   # @param strip: [Boolean, NilClass] If true, text (or yield) is stripped. In default (nil), this is false if tag is "div" or "p" else true (like tag is "span" or "td").  This usually affects just an aesthetic point in the generated HTML.
+  # @param show_always: [Boolean] If true (Def: false), tag is output even when the stripped text is empty. Specify true for <td> etc.
   # @param opts: [Hash] Any additional parameters (e.g., "title") are passed to ApplicationController.helpers.tag
   # @return [String] html_safe String to display if the page is editor-only? (maybe moderator or admin only)
   # @yield Returned text will be inside the block.
-  def editor_only_safe_html(record, method:, tag: "div", class: "", only: :editor, text: nil, permissive: false, strip: nil, **opts)
+  def editor_only_safe_html(record, method:, tag: "div", class: "", only: :editor, text: nil, permissive: false, strip: nil, show_always: false, **opts)
     if strip.nil?
       strip = (%w(div p).include?(tag) ? false : true)
     end
@@ -1269,7 +1275,7 @@ module ApplicationHelper
     # Note: Array#html_safe? exists but Array#html_safe does not, and raises NoMethodError  
 
     text = text.strip.html_safe if text.present? && strip
-    text.present? ? ApplicationController.helpers.tag.send(tag, text, class: html_classes, **opts) : ""
+    (text.present? || show_always) ? ApplicationController.helpers.tag.send(tag, text, class: html_classes, **opts) : ""
   end
 
   # to suppress warning, mainly that in Ruby-2.7.0:
