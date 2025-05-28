@@ -54,11 +54,11 @@
         <td><%= event.string_time_err2uptomin %></td>
         <td class="text-end"><%= event.duration_hour.present? ? ("%.3g" % event.duration_hour) : "" %></td>
         <td><%= (pla=event.place) ? (hide_prefecture ? link_to(pla.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true), pla) : event.txt_place_pref_ctry(without_country_maybe: true)) : "" %></td>
-       <%= editor_only_safe_html(:pass, method: can_create_event, tag: "td", class: "text-end") do %>
+       <%= editor_only_safe_html(:pass, method: can_create_event, tag: "td", class: "text-end", show_always: true) do %>
         <%= event.event_items.count %>
        <% end %>
         <td class="text-end"><%= nvids %></td>
-       <%= editor_only_safe_html(:pass, method: can_create_event, tag: "td", class: "text-end") do %>
+       <%= editor_only_safe_html(:pass, method: can_create_event, tag: "td", class: "text-end", show_always: true) do %>
         <%= event.weight %>
        <% end %>
         <td class=""><%= auto_link50(event.note) %></td>

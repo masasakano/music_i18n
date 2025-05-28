@@ -569,14 +569,17 @@ class Event < BaseWithTranslation
   end 
 
 
-  # Returns a new candidate pair of {#start_time} and {#start_time_err} or nil
+  # Returns a new candidate pair of {#start_time} and {#start_time_err} or nil (if no need to modify or Event has no HaramiVids)
   #
   # @return [NilClass, Array<Time, Float>] return Time if start_time seems far too early for any of the associated HaramiVid (n.b., start_time_err is bigint on DB)
   def cand_new_time_if_seems_too_early
     return nil if unknown? || default?(:HaramiVid)  # start_time of Unknown or Default must be manually adjusted if ever
 
+    hvid = harami_vids.order(:release_date).first
+    return nil if !hvid
+
     margin = 2.days
-    earliest_release_time = (harami_vids.order(:release_date).first.release_date.to_time(:utc) + 12.hours).in_time_zone
+    earliest_release_time = (hvid.release_date.to_time(:utc) + 12.hours).in_time_zone
     earliest_cand_time = earliest_release_time - ModuleHaramiVidEventAux::OFFSET_PERIOD_FROM_REFERENCE
     earliest_cand_time_err_sec = (ModuleHaramiVidEventAux::OFFSET_PERIOD_FROM_REFERENCE+24.hours).in_seconds
     if !start_time ||
