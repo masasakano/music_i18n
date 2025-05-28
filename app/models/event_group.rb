@@ -247,24 +247,10 @@ class EventGroup < BaseWithTranslation
   #
   # @return [Event]
   def after_first_translation_hook
-    hstrans = best_translations
-    hs2pass = {}
-    unsaved_transs = []
-    Event::UNKNOWN_TITLES.each_pair do |lc, ea_title|
-      unsaved_transs << Translation.new(
-        title: [ea_title].flatten.first,
-        alt_title: [ea_title].flatten[1],
-        langcode: lc,
-        is_orig:  (hstrans.key?(lc) && hstrans[lc].respond_to?(:is_orig) ? hstrans[lc].is_orig : nil),
-        weight: 0,
-      )
-    end
-
     evt = Event.initialize_with_def_time(event_group: self)
-    evt.unsaved_translations = unsaved_transs
+    evt.unsaved_translations = add_translations_after_first_create(Event)
     evt.save!
     evt
-    #(self.events << evt).last
   end
 
   # Callback to delete the last-remaining "unknown" Event

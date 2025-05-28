@@ -1016,7 +1016,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     ## Test of "priority: :self". Both have different ja&en, is_orig=true(en)
     #ActiveRecord::Base.transaction(requires_new: true) do
       art0, art1, tras = _prepare_artists_with_trans
-      art1.best_translation("fr").update!(is_orig: nil)
+      art1.best_translation("fr").update!(is_orig: nil, skip_singularize_is_orig_callback: true)
       assert_equal 1, art1.translations.where(is_orig: nil).count
       assert_equal 2, art0.translations.size
       assert_equal 3, art1.translations.size
@@ -1043,7 +1043,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     ## Same as above but for "priority: :other".
     #ActiveRecord::Base.transaction(requires_new: true) do
       art0, art1, tras = _prepare_artists_with_trans
-      art1.best_translation("fr").update!(is_orig: nil)
+      art1.best_translation("fr").update!(is_orig: nil, skip_singularize_is_orig_callback: true)
       tras0_ids = tras.map{|i| i[:en].id}  # English(is_orig=true) translation IDs
 
       art0.send(:_merge_lang_orig, art1, priority: :other)
@@ -1068,7 +1068,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     ## Test of "priority: :self". art0:(ja)is_orig, art1:(en)is_orig, different ja&en
     #ActiveRecord::Base.transaction(requires_new: true) do
       art0, art1, tras = _prepare_artists_with_trans
-      art1.best_translation("fr").update!(is_orig: nil)
+      art1.best_translation("fr").update!(is_orig: nil, skip_singularize_is_orig_callback: true)
       art0.reset_orig_langcode("ja")
       art0.reload
       art1_orig_tr = art1.orig_translation 
@@ -1101,7 +1101,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     ## Same as above but for "priority: :other".
     #ActiveRecord::Base.transaction(requires_new: true) do
       art0, art1, tras = _prepare_artists_with_trans
-      art1.best_translation("fr").update!(is_orig: nil)
+      art1.best_translation("fr").update!(is_orig: nil, skip_singularize_is_orig_callback: true)
       art0.reset_orig_langcode("ja")
 
       art0.send(:_merge_lang_orig, art1, priority: :other)
@@ -1128,7 +1128,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       art0, art1, tras = _prepare_artists_with_trans
       art0.translations.update_all(is_orig: false)
       art1.translations.update_all(is_orig: false)
-      art1.best_translation("fr").update!(is_orig: nil)
+      art1.best_translation("fr").update!(is_orig: nil, skip_singularize_is_orig_callback: true)
 
       ret = art0.send(:_merge_lang_orig, art1, priority: :other)
 
@@ -1147,11 +1147,13 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     ActiveRecord::Base.transaction(requires_new: true) do
       art0, art1, tras = _prepare_artists_with_trans
       art0.translations.update_all(is_orig: false)
-      art1.best_translation("fr").update!(is_orig: nil)
-      art1.orig_translation.update!(weight: 67)
-      art1.with_translation(langcode: "en", title: "Something011", is_orig: true, weight: 89)
+      art1.best_translation("fr").update!(is_orig: nil, skip_singularize_is_orig_callback: true)
+      art1.orig_translation.update!(weight: 67, skip_singularize_is_orig_callback: true)
+      # art1.with_translation(langcode: "en", title: "Something011", is_orig: true, weight: 89)
+      art1.translations << Translation.new(langcode: "en", title: "Something011", is_orig: true, weight: 89, skip_singularize_is_orig_callback: true)
+#debugger
       art1.reload
-      assert_equal 1, art1.translations.where(is_orig: nil).count
+      assert_equal 1, art1.translations.where(is_orig: nil).count, "trass="+art1.translations.pluck(:langcode, :title, :is_orig, :weight).inspect
       assert_equal 2, art0.translations.size
       assert_equal 4, art1.translations.size
       assert_equal 2, art1.translations.where(langcode: "en").count
@@ -1181,11 +1183,11 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     ## In base_with_translation.rb: "# Condition: Both have orig && langcode-s differ && priority==:other"
     #ActiveRecord::Base.transaction(requires_new: true) do
       art0, art1, tras = _prepare_artists_with_trans
-      art0.best_translations["ja"].update!(is_orig: true)
-      art0.best_translations["en"].update!(is_orig: true)
-      art1.best_translation("fr").update!(is_orig: nil)
-      art1.orig_translation.update!(weight: 67)  # :en
-      art1.with_translation(langcode: "en", title: "Something011", is_orig: true, weight: 89)
+      art0.best_translations["ja"].update!(is_orig: true, skip_singularize_is_orig_callback: true)
+      art0.best_translations["en"].update!(is_orig: true, skip_singularize_is_orig_callback: true)
+      art1.best_translation("fr").update!(is_orig: nil, skip_singularize_is_orig_callback: true)
+      art1.orig_translation.update!(weight: 67, skip_singularize_is_orig_callback: true)  # :en
+      art1.with_translation(langcode: "en", title: "Something011", is_orig: true, weight: 89, skip_singularize_is_orig_callback: true)
 
       ## Sanity checks
       art0.reload
@@ -1222,7 +1224,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     #ActiveRecord::Base.transaction(requires_new: true) do
       art0, art1, tras = _prepare_artists_with_trans
       #art0.reset_orig_langcode("ja")
-      art1.best_translation("fr").update!(is_orig: nil)
+      art1.best_translation("fr").update!(is_orig: nil, skip_singularize_is_orig_callback: true)
       assert_equal 1, art1.translations.where(is_orig: nil).count
       assert_equal 2, art0.translations.size
       assert_equal 3, art1.translations.size
@@ -1259,7 +1261,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       art1.reset_orig_langcode("ja")
       art1_ja = art1.best_translation("ja")
       art1_ja.update!(title: tras[0][:ja].title)
-      art1.best_translation("fr").update!(is_orig: nil)
+      art1.best_translation("fr").update!(is_orig: nil, skip_singularize_is_orig_callback: true)
       assert_equal 1, art1.translations.where(is_orig: nil).count
       assert_equal 2, art0.translations.size
       assert_equal 3, art1.translations.size
@@ -1298,7 +1300,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       art0_ja = art0.best_translation("ja")
       art1_ja = art1.best_translation("ja")
       art1_ja.update!(title: tras[0][:ja].title)
-      art1.best_translation("fr").update!(is_orig: nil)
+      art1.best_translation("fr").update!(is_orig: nil, skip_singularize_is_orig_callback: true)
       assert_equal 1, art1.translations.where(is_orig: nil).count
       assert_equal 2, art0.translations.size
       assert_equal 3, art1.translations.size
@@ -1339,9 +1341,9 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       art1_en = art1.best_translation("en")
       art1_en.update!(alt_title: "brand-new")
       art1_ja1.update!(weight: 100)
-      art1.with_translation(title: new_self_tit, langcode: "ja", weight: 20000)
+      art1.with_translation(title: new_self_tit, langcode: "ja", weight: 20000, skip_singularize_is_orig_callback: true)
       art1_ja2 = art1.translations.where(langcode: "ja", weight: 20000).first  # This conflicts with art0_ja (for self)
-      art1.best_translation("fr").update!(is_orig: nil)
+      art1.best_translation("fr").update!(is_orig: nil, skip_singularize_is_orig_callback: true)
       art0.reload
       art1.reload
       assert_equal 2, art1.translations.where(is_orig: nil).count, "art1.tras="+art1.translations.where(is_orig: nil).inspect # with fr and new ja
@@ -1385,20 +1387,20 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       art0_en = art0.best_translation("en")
       art0_ja.update!(weight: 200)
       new_self_tit = "新しいselfタイトル"
-      art0.with_translation(title: new_self_tit, langcode: "ja", weight: 300)
+      art0.with_translation(title: new_self_tit, langcode: "ja", weight: 300, skip_singularize_is_orig_callback: true)
       art0_ja2 = art0.translations.where(langcode: "ja", weight: 300).first
       art1_ja1= art1.best_translation("ja")
       art1_en = art1.best_translation("en")
       art1_en.update!(alt_title: "brand-new")
       art1_ja1.update!(weight: 100)
-      art1.with_translation(title: new_self_tit, langcode: "ja", weight: 20000)
+      art1.with_translation(title: new_self_tit, langcode: "ja", weight: 20000, skip_singularize_is_orig_callback: true)
       art1_ja2 = art1.translations.where(langcode: "ja", weight: 20000).first  # This conflicts with art0_ja2 (for self)
         # Here we have craeted new Japanese Translations with a common titl for both art0 and art1.
         # Because they are newly added, they will be evaluated AFTER the first one when that in art1 is added to art0.
         # This means the unrelated first JA Translation in art0 was test-destroyed.
         # Thus, this tests _attempt_add_other_trans()
 
-      art1.best_translation("fr").update!(is_orig: nil)
+      art1.best_translation("fr").update!(is_orig: nil, skip_singularize_is_orig_callback: true)
       art0.reload
       art1.reload
       assert_equal 2, art1.translations.where(is_orig: nil).count, "art1.tras="+art1.translations.where(is_orig: nil).inspect # with fr and new ja
@@ -2002,10 +2004,11 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     t0_0 = hsmdl[:artists][0].translations.find_by(title: "オーーア")
     hsmdl[:artists][0].with_translation(title: "オアシス", langcode: "ja", note: "Added Japanese Trans for 0", is_orig: true)
     t0_1 = hsmdl[:artists][0].translations.find_by(title: "オアシス")
-    hsmdl[:artists][1].with_translation(title: "オアシス", langcode: "ja", is_orig: false, weight: 11, note: "Added Japanese Trans for 1")
+    hsmdl[:artists][1].translations << Translation.new(title: "オアシス", langcode: "ja", is_orig: false, weight: 11, note: "Added Japanese Trans for 1", skip_singularize_is_orig_callback: true)
     t1_1 = hsmdl[:artists][1].translations.find_by(title: "オアシス")  # => will be destroyed
     hsmdl[:artists][0].reset_orig_langcode(t0_1)
-    hsmdl[:artists][1].with_translation(title: "Oaiis", langcode: "fr", note: "Added French Trans for 1")
+
+    hsmdl[:artists][1].translations << Translation.new(title: "Oaiis", langcode: "fr", note: "Added French Trans for 1", note: "Added Japanese Trans for 1", skip_singularize_is_orig_callback: true)
     cur_locale = I18n.locale
     begin
       I18n.locale = :en

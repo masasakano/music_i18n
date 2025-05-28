@@ -24,6 +24,7 @@
 #  fk_rails_...  (country_id => countries.id) ON DELETE => cascade
 #
 class Prefecture < BaseWithTranslation
+  include ModuleUnknown  # for only add_translations_after_first_create
   include ModuleCountryLayered  # for more_significant_than?
 
   # define method "mname" et
@@ -66,7 +67,7 @@ class Prefecture < BaseWithTranslation
   # iso3166_a3_code of Countries whose Prefectures are complete. Their Prefectures cannot be destroyed in default.
   COUNTRIES_WITH_COMPLETE_PREFECTURES = %w(JPN)
 
-  UnknownPrefecture = {
+  UNKNOWN_TITLES = UnknownPrefecture = {
     'en' => 'UnknownPrefecture',
     'ja' => 'どこかの都道府県',
     'fr' => 'ComtéInconnu',
@@ -152,6 +153,8 @@ class Prefecture < BaseWithTranslation
   # @example unknown prefecture in Japan
   #    Prefecture.unknown(country: 'JPN')
   #
+  # @note This overwrites the method defined in ModuleUnknown
+  #
   # @param country: [Country, NilClass, String] String as the registered English name.
   # @param prefecture: [Prefecture, NilClass, String] String as the registered Prefecture name.
   # @return [Prefecture]
@@ -165,6 +168,12 @@ class Prefecture < BaseWithTranslation
   end
 
   # Returns true if self is one of the unknown prefectures
+  #
+  # @note This overwrites the method defined in ModuleUnknown
+  #    This is necessary because {ModuleUnknown#unknown?} uses its self.unknown
+  #    which is overwritten in this class.
+  #    Basically, ModuleUnknown assumes there is only one "uknown" instance per class
+  #    whereas there are many "uknown" instances in {Prefecture}
   def unknown?
     title(langcode: 'en') == UnknownPrefecture['en']
   end
@@ -306,20 +315,11 @@ class Prefecture < BaseWithTranslation
   #
   # Called by an after_create callback in translation.rb
   def after_first_translation_hook
-    hstrans = best_translations
-    hs2pass = {}
-    Place::UnknownPlace.each_pair do |lc, ea_title|
-      # lc = 'en' if !Place::UnknownPlace.keys.include?(lc)
-      # # cname = (ev.title || ev.alt_title)  # Country name
-      hs2pass[lc] = {
-        title: ea_title,
-        langcode: lc,
-        is_orig:  (hstrans.key?(lc) && hstrans[lc].respond_to?(:is_orig) ? hstrans[lc].is_orig : nil),
-        weight: 0,
-      }
-    end
-
-    Place.create_with_translations!({prefecture: self}, **({translations: hs2pass}))
+    plac = Place.new(prefecture: self)
+    plac.unsaved_translations = add_translations_after_first_create(Place)
+    plac.save!
+    places.reset
+    plac
   end
 
 

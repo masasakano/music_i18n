@@ -59,7 +59,7 @@ class Place < BaseWithTranslation
   attr_accessor :wiki_url
   attr_accessor :fetch_h1_wiki
 
-  UnknownPlace = {
+  UNKNOWN_TITLES = UnknownPlace = {
     "en" => 'UnknownPlace',
     "ja" => 'どこかの場所',
     "fr" => 'PlaceInconnue',

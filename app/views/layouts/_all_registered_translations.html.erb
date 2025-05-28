@@ -1,11 +1,15 @@
-<%# local variables: model, (optional) title_kwd=(|name|title), add_button %>
+<%# local variables: model, (optional) title_kwd=(|name|title), add_button, show_single [Boolean] (Def: false) %>
   <%# for example, if title_kwd=="name", t('translations.table_head.Title_name') is used %>
+  <%# If show_single is true (Def: false), only a single entry per language is displayed for public (but all entries are still displayed for Harami-Editors). %>
 <% if !defined?(title_kwd)
      title_kwd = nil
    end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
 <% if !defined?(add_button)
      add_button = true
-   end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
+   end %>
+<% if !defined?(show_single)
+     show_single = false
+   end %>
 <%
   title_kwd =
     if title_kwd.blank?
@@ -23,6 +27,7 @@
 
 <table id="all_registered_translations_<%= get_modelname(model) %>" class="all_registered_translations">
   <% allcolspan = 5
+     can_edit_gen = can?(:edit, HaramiVid)
      allcolspan += ((can_edit=can?(:edit, Translation)) ? 1 : 0)
      allcolspan += ((can_index=can?(:index, Translation)) ? 1 : 0) # showing SELF or not
      allcolspan += ((can_crud=can?(:crud, Translation))  ? 1 : 0)  # showing Weight column
@@ -75,7 +80,8 @@
       <% end %>
       </th></tr>
     <% alltra.each_with_index do |tra, i| %>
-    <tr class="trans_row lc_<%= lcode %>">
+      <% klass_editor_only = ((show_single && can_edit_gen && i>0) ? " editor_only" : "") %>
+    <tr class="trans_row lc_<%= lcode %><%= klass_editor_only %>">
       <td><%= i+1 %><%= ('<span title="'+t("datagrid.footnote.is_original")+'">*</span>').html_safe if tra.is_orig %></td>
       <% if can_edit %>
       <td class="trans_is_orig editor_only"><%= tra.is_orig_str %></td>
@@ -135,7 +141,8 @@
         <% end %>
       <% end %>
     </tr>
-    <% end %>
+      <% break if show_single && !can_edit_gen %>
+    <% end %> <%# alltra.each_with_index do |tra, i| %>
   <% end %>
   </tbody>
 </table>

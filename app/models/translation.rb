@@ -60,6 +60,7 @@ class Translation < ApplicationRecord
   after_validation  :revert_articles
   before_save       :move_articles_to_tail
   after_save        :reset_backup_6params  # to reset the temporary instance variable
+  after_save        :singularize_is_orig   # If is_orig==true, makes all the other is_orig false.  If nil, nullifies all the others.
   after_save        :call_after_save_translatable_callback  # to call after_save_translatable_callback in translatable if present
 
   after_create :call_after_first_translation_hook
@@ -334,6 +335,9 @@ class Translation < ApplicationRecord
   # Skip move_articles_to_tail (before_validation and before_save) callbacks,
   # meaning the 6 columns like "title" are saved as they are.
   attr_accessor :skip_preprocess_callback
+
+  # Skip singularize_is_orig callback (mainly used for testing)
+  attr_accessor :skip_singularize_is_orig_callback
 
   # Returns true if the current user is allowed to edit self.
   #
@@ -1919,12 +1923,14 @@ class Translation < ApplicationRecord
   # @param lcode [String, NilClass] The redundant (same-meaning) argument to "langcode:"
   # @param langcode: [String, NilClass] e.g., 'ja'
   # @param exclude_self: [Boolean] (Def: false)
+  # @param reset: [Boolean] if true (Def), ActiveRecord_relation is reset.
   # @return [Translation::AssociationRelation]
-  def siblings(lcode=nil, langcode: nil, exclude_self: true)
+  def siblings(lcode=nil, langcode: nil, exclude_self: true, reset: true)
     lcode ||= langcode
     lcode = (lcode || self.langcode).to_s if :all != lcode
 
     return self.class.none if !translatable.respond_to? :translations  # Practically: translatable.nil?
+    translatable.translations.reset if reset
     ret = translatable.translations
     ret = ret.where(langcode: lcode) if !lcode.blank? && :all != lcode
     ret = ret.where.not(id: id) if exclude_self
@@ -2142,6 +2148,27 @@ class Translation < ApplicationRecord
   # Callback after_save
   def reset_backup_6params
     @backup_6params = nil
+  end
+
+  # Callback after_save
+  #
+  # If is_orig==true, makes all the other is_orig false.  If nil, nullifies all the others.
+  #
+  # @note
+  #   if self.skip_singularize_is_orig_callback is true, this is skipped.
+  #   You must specify it always in saving regardless of what you are saving/updating, e.g.,:
+  #     update(weight: 5, skip_singularize_is_orig_callback: true)
+  def singularize_is_orig
+    return if skip_singularize_is_orig_callback  # skipping this callback
+    case is_orig
+    when true
+      siblings(langcode: :all, exclude_self: true).update_all(is_orig: false)
+    when nil
+      # NOTE: update_all skips callbacks, so this would not cause an infinite loop.
+      siblings(langcode: :all, exclude_self: true).update_all(is_orig: nil)
+    else
+      # do nothing
+    end
   end
 
   # Callback after_save

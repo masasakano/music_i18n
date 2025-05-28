@@ -717,16 +717,20 @@ class TranslationTest < ActiveSupport::TestCase
     ts = []
     (0..9).each do |i|
       ori = ((rand(0..1) == 0) ? false : nil)
-      ts[i] = Translation.create!(translatable: sex, langcode: 'en', is_orig: ori, title: 'T'+i.to_s, weight: rand)
+      ts[i] = Translation.create!(translatable: sex, langcode: 'en', is_orig: ori, title: 'T'+i.to_s, weight: rand, skip_singularize_is_orig_callback: true)
     end
-    ts[10] = Translation.create!(translatable: sex, langcode: 'en', is_orig: true, title: 'T10', weight: rand)
+    ts[10] = Translation.create!(translatable: sex, langcode: 'en', is_orig: true, title: 'T10', weight: rand, skip_singularize_is_orig_callback: true)
+    assert ts[10].is_orig
     (11..20).each do |i|
       ori = ((rand(0..1) == 0) ? false : nil)
-      ts[i] = Translation.create!(translatable: sex, langcode: 'en', is_orig: ori, title: 'T'+i.to_s, weight: rand)
+      ts[i] = Translation.create!(translatable: sex, langcode: 'en', is_orig: ori, title: 'T'+i.to_s, weight: rand, skip_singularize_is_orig_callback: true)
     end
+    sex.translations.reset
+    assert_equal 21, sex.translations.count
+
     tra = Translation.find_by_a_title(:titles, 'T', translatable: sex)
-    assert_equal     ts[10], tra
-    assert_equal     ts[10], Translation.sort(sex.translations).first
+    assert_equal     ts[10], tra, Translation.sort(sex.translations).pluck(:title, :is_orig, :weight).inspect
+    assert_equal     ts[10], Translation.sort(sex.translations).first, Translation.sort(sex.translations).pluck(:title, :is_orig, :weight).inspect
 
     t_alias = "tras"
     tmpjoins = "INNER JOIN translations #{t_alias} ON #{t_alias}.translatable_type = 'Sex' AND #{t_alias}.translatable_id = #{sex.id}"
@@ -747,12 +751,14 @@ class TranslationTest < ActiveSupport::TestCase
       # Tests of consider_is_orig and also Array of Translations.
       # temporarily changes ts[10].weight
       ts[10].update!(weight: sex.translations.order(weight: :desc).first.weight+10)
-      assert_equal   ts[10], Translation.sort(sex.translations).first
+      sex.translations.reset
+      assert_equal   ts[10], Translation.sort(sex.translations).first, Translation.sort(sex.translations).pluck(:title, :is_orig, :weight).inspect
       refute_equal   ts[10], (tra1st=Translation.sort(sex.translations, consider_is_orig: false).first)
       assert_equal   ts[10], Translation.sort(ts, consider_is_orig: true).first
       assert_equal   tra1st, Translation.sort(ts, consider_is_orig: false).first
       raise ActiveRecord::Rollback, "Force rollback."
     end
+    sex.translations.reset
 
     # weight
     ts[10].update! is_orig: false, weight: 2
@@ -775,15 +781,15 @@ class TranslationTest < ActiveSupport::TestCase
     entrans = kampai.translations_with_lang(langcode: "en")
     assert_operator entrans.second.weight, :<, kampai_worst.weight, 'sanity check'
 
-    ts[21] = Translation.create!(translatable: sex, langcode: 'en', is_orig: nil, title: 'W', weight: Float::INFINITY)
-    ts[22] = Translation.create!(translatable: sex, langcode: 'en', is_orig: nil, title: 'X', weight: nil)
+    ts[21] = Translation.create!(translatable: sex, langcode: 'en', is_orig: nil, title: 'W', weight: Float::INFINITY, skip_singularize_is_orig_callback: true)
+    ts[22] = Translation.create!(translatable: sex, langcode: 'en', is_orig: nil, title: 'X', weight: nil, skip_singularize_is_orig_callback: true)
     ts[22].reload
     assert_equal Float::INFINITY, ts[22].weight, 'NOTE: This only sometimes fails for an unknown reason ("setup do" should circumvent it now). ts[22]='+ts[22].inspect  # because of set_create_user callback
     ts[22].weight = nil
     ts[22].save!(validate: false)
     assert_nil ts[22].weight
-    ts[23] = Translation.create!(translatable: sex, langcode: 'en', is_orig: nil, title: 'Y', weight: nil)
-    ts[24] = Translation.create!(translatable: sex, langcode: 'en', is_orig: nil, title: 'Z', weight: Float::INFINITY)
+    ts[23] = Translation.create!(translatable: sex, langcode: 'en', is_orig: nil, title: 'Y', weight: nil, skip_singularize_is_orig_callback: true)
+    ts[24] = Translation.create!(translatable: sex, langcode: 'en', is_orig: nil, title: 'Z', weight: Float::INFINITY, skip_singularize_is_orig_callback: true)
     t_sibs = ts[20].siblings(exclude_self: false)
     assert_equal 25, t_sibs.count
     assert_equal ts[22], t_sibs[-1] # X
@@ -794,8 +800,8 @@ class TranslationTest < ActiveSupport::TestCase
     # testing weight=10, Infinity for both is_orig=true
     mus = Music.create!(note: 'new Mu')
     mtras = []
-    mtras[0] = Translation.create!(translatable: mus, langcode: 'ja', is_orig: true, title: "日本語音楽00", weight: Float::INFINITY)
-    mtras[1] = Translation.create!(translatable: mus, langcode: 'ja', is_orig: true, title: "日本語音楽01", weight: 10)
+    mtras[0] = Translation.create!(translatable: mus, langcode: 'ja', is_orig: true, title: "日本語音楽00", weight: Float::INFINITY, skip_singularize_is_orig_callback: true)
+    mtras[1] = Translation.create!(translatable: mus, langcode: 'ja', is_orig: true, title: "日本語音楽01", weight: 10, skip_singularize_is_orig_callback: true)
     assert_equal mtras[1], Translation.sort(mtras).first
 
 
@@ -824,6 +830,33 @@ class TranslationTest < ActiveSupport::TestCase
     refute result
     Sex.const_set(:ALLOW_IDENTICAL_TITLE_ALT, true)
     assert tra.update(title: "A・RA・SHI", alt_title:  "A・RA・SHI")
+  end
+
+  test "singularize_is_orig callback" do
+    sex = Sex.create_basic!(iso5218: 999, title: "abc", langcode: "en", is_orig: true)
+    tra_en1 = sex.translations.first
+    tra_en1.update!(weight: 100)
+
+    sex.translations << Translation.new(title: "日本語の1", langcode: "ja", is_orig: true, weight: 100)
+    tra_ja1 = sex.translations.order(created_at: :desc).first
+    assert tra_ja1.is_orig
+    refute tra_en1.reload.is_orig
+
+    sex.translations << Translation.new(title: "日本語の2", langcode: "ja", is_orig: true, weight: 90)
+    tra_ja2 = sex.translations.order(created_at: :desc).first
+    assert tra_ja2.is_orig
+    refute tra_ja1.reload.is_orig
+    refute tra_en1.reload.is_orig
+
+    tra_en1.update!(is_orig: true)
+    assert tra_en1.is_orig
+    refute tra_ja1.reload.is_orig
+    refute tra_ja2.reload.is_orig
+
+    tra_ja1.update!(is_orig: nil)
+    assert_nil tra_en1.reload.is_orig
+    assert_nil tra_ja1.reload.is_orig
+    assert_nil tra_ja2.reload.is_orig
   end
 end
 

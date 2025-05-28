@@ -124,6 +124,7 @@
 #
 class Country < BaseWithTranslation
   include Rails.application.routes.url_helpers
+  include ModuleUnknown
   include ModuleCountryLayered  # for more_significant_than?
 
   # for set_singleton_unknown
@@ -158,7 +159,7 @@ class Country < BaseWithTranslation
 
   validates_uniqueness_of :iso3166_n3_code, allow_nil: true
 
-  UnknownCountry = {
+  UNKNOWN_TITLES = UnknownCountry = {
     'en' => 'World',
     'ja' => '世界',
     'fr' => 'Monde',
@@ -195,18 +196,6 @@ class Country < BaseWithTranslation
     else
       super(value, langcode, with_alt)
     end
-  end
-
-  # Returns the unknown {Country}
-  #
-  # @return [Country]
-  def self.unknown
-     self[UnknownCountry['en'], 'en']
-  end
-
-  # Returns true if self is one of the unknown country
-  def unknown?
-    title(langcode: 'en') == UnknownCountry['en']
   end
 
   # Unknown {Prefecture} belonging to self
@@ -459,20 +448,11 @@ class Country < BaseWithTranslation
   #
   # @return [Prefecture]
   def after_first_translation_hook
-    hstrans = best_translations
-    hs2pass = {}
-    Prefecture::UnknownPrefecture.each_pair do |lc, ea_title|
-      # lc = 'en' if !Prefecture::UnknownPrefecture.keys.include?(lc)
-      # # cname = (ev.title || ev.alt_title)  # Country name
-      hs2pass[lc] = {
-        title: ea_title,
-        langcode: lc,
-        is_orig:  (hstrans.key?(lc) && hstrans[lc].respond_to?(:is_orig) ? hstrans[lc].is_orig : nil),
-        weight: 0,
-      }
-    end
-
-    Prefecture.create_with_translations!({country: self}, translations: hs2pass)
+    pref = Prefecture.new(country: self)
+    pref.unsaved_translations = add_translations_after_first_create(Prefecture)
+    pref.save!
+    prefectures.reset
+    pref
   end
 
   # Validates translation immediately before it is added.

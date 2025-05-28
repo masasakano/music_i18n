@@ -178,7 +178,7 @@ class CountryTest < ActiveSupport::TestCase
     newp.reload
     assert_equal 'Catalonia', newp.with_orig_translation(langcode: 'en', title: 'Catalonia').orig_translation.title
     prefecture_trans = newp.prefectures[0].orig_translation
-    assert_equal 'UnknownPrefecture', prefecture_trans.title
+    assert_equal 'UnknownPrefecture', prefecture_trans.title, "prefs="+newp.prefectures.inspect
     assert_equal 'en',                prefecture_trans.langcode
     assert                            prefecture_trans.original?
     assert_equal 0,                   prefecture_trans.weight

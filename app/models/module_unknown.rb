@@ -60,5 +60,28 @@ module ModuleUnknown
   def unknown?
     (respond_to?(:mname) && "unknown" == mname.to_s) || (self == self.class.unknown)
   end
+
+  # Core routine to add multiple Translation for the after_create callback
+  #
+  # @param child_class [Class<ActiveRecord>] e.g., Prefecture when called from Country's after_create
+  # @return [Array<Translation>] unsaved Translations
+  def add_translations_after_first_create(child_class)
+    hstrans = best_translations
+    is_orig_exist = !!orig_translation
+
+    unsaved_transs = []
+    child_class.const_get(:UNKNOWN_TITLES).each_pair do |lc, ea_title|
+      unsaved_transs << Translation.new(
+        title: [ea_title].flatten.first,
+        alt_title: [ea_title].flatten[1],  # maybe nil
+        langcode: lc,
+        is_orig:  (hstrans.key?(lc) && hstrans[lc].respond_to?(:is_orig) ? hstrans[lc].is_orig : (is_orig_exist ? false : nil)),
+        weight: 0,
+      )
+    end
+
+    unsaved_transs
+  end
+
 end
 
