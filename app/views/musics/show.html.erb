@@ -21,7 +21,11 @@
   </div>
   <div>
   <dt class="item_place"> <%= t("tables.place_country", default: "Place (Country)") %>:</dt>
-    <dd class="item_place"><%= show_pref_place_country(@music.place) %></dd>  <%# defined in places_helper.rb %>
+    <dd class="item_place"><%= show_pref_place_country(@music.place) %>  <%# defined in places_helper.rb %>
+      <%= editor_only_safe_html(@music, method: :edit, tag: "span") do %> <%# defined in application_helper.rb %>
+        <%= html_consistent_or_inconsistent(!@music.world_to_update_to_japan?, postfix: " with Title or lead-Artist's Country (Japan)".html_safe) %>  <%# defined in application_helper.rb %>
+      <% end %>
+      </dd>
   </div>
   <div>
   <dt class="item_genre" title="Genre"><strong><%= s=t(:Genre); can?(:update, Genre) ? (link_to s, genres_url) : s %>:</strong></dt>

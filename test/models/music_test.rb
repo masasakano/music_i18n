@@ -240,21 +240,100 @@ class MusicTest < ActiveSupport::TestCase
     assert_equal art2, mus.most_significant_artist
     assert_equal art2, mus.sorted_artists.first, "art1 is lower because of year"
 
-    engs[:a1h2].update!(year: 1920, contribution: 0.1)
-    engs[:a2h2].update!(year: 1999, contribution: 0.9)
-    assert_equal art2, mus.sorted_artists.first, "art2 is higher because of contribution regardless of year"
+    engs[:a1h2].update!(year: 1999, contribution: 0.9)
+    engs[:a2h2].update!(year: 1920, contribution: 0.1)
+    assert_equal art2, mus.sorted_artists.first, "art2 is higher because of year regardless of contribution"
 
-    engs[:a1h2].update!(year: 1920, contribution: 0.5)
-    engs[:a2h2].update!(year: 1999, contribution: 0.5)
+    engs[:a1h2].update!(year: 1999, contribution: 0.9)
+    engs[:a2h2].update!(year: 1999, contribution: 0.1)
     mus.engages.reset
-    assert_equal art1, mus.sorted_artists.first, "art1 is higher because of year with the same contribution"
+    assert_equal art1, mus.sorted_artists.first, "art1 is higher because of contribution with the same year"
 
-    engs[:a1h2].update!(year: 2010, contribution: nil)
-    engs[:a2h2].update!(year: 1999, contribution: 0.9)
+    engs[:a1h2].update!(year: 1999, contribution: nil)
+    engs[:a2h2].update!(year: 1999, contribution: 0.1)
+    assert_equal art1, mus.sorted_artists.first, "art2 is higher because of NULL(-last) contribution"
     mus.reload
-    ## print "DEBUG:3243:"; p [mus.engages.where(artist_id: art1).joins(:engage_how).order("engage_hows.weight").first, mus.engages.where(artist_id: art2).joins(:engage_how).order("engage_hows.weight").first].map{|i| [i.engage_how.weight, i.contribution, i.year]}.inspect
-    #assert_equal art1, mus.sorted_artists.first, "art1 is higher because of nil contribution"
-    ########### For some reason thid does not work........  TODO
+  end
+
+  test "world_to_update_to_japan" do
+    jp = Country.primary
+    jp_pla_unknown = jp.unknown_prefecture.unknown_place
+    mus = Music.create_basic!(title: "test-#{__method__}-1", langcode: "en", is_orig: true, genre: Genre.unknown, place: Country.unknown.unknown_prefecture.unknown_place)
+    tra_en = mus.best_translation
+    assert_equal Country.unknown, mus.country
+    refute_equal jp,              mus.country
+
+    art1 = artists(:artist_harami)
+    art2 = artists(:artist_kohmi)
+    assert_equal jp, art1.country, "test fixtures"
+    assert_equal jp, art2.country, "test fixtures"
+    art_uk = artists(:artist_proclaimers)
+    refute_equal jp, art_uk.country, "test fixtures"
+    refute_equal Country.unknown, art_uk.country, "test fixtures"
+
+    assert_raises(ArgumentError){ Music.world_to_update_to_japan(:naiyo) }
+    refute Music.world_to_update_to_japan(:lang_ja,   musics: mus).exists?
+    refute Music.world_to_update_to_japan(:artist_jp, musics: mus).exists?
+    refute mus.world_to_update_to_japan?
+
+    mus.translations << Translation.new(title: "日本語の歌だよん", langcode: "ja", is_orig: true)
+    tra_ja = mus.best_translation
+    refute tra_en.reload.is_orig, 'sanity check'
+    assert tra_ja.is_orig, 'sanity check'
+    mus.translations.reset
+
+    assert Music.world_to_update_to_japan(:lang_ja,   musics: mus).exists?
+    refute Music.world_to_update_to_japan(:artist_jp, musics: mus).exists?
+    assert mus.world_to_update_to_japan?( :lang_ja)
+    assert mus.world_to_update_to_japan?([:lang_ja])
+    refute mus.world_to_update_to_japan?(:artist_jp)
+    assert mus.world_to_update_to_japan?
+
+    tra_en.update!(is_orig: true)
+    assert tra_en.is_orig, 'sanity check'
+    refute tra_ja.reload.is_orig, 'sanity check'
+    mus.translations.reset
+    refute mus.world_to_update_to_japan?
+
+    eng_player = engage_hows(:engage_how_player)
+    eng_singer = engage_hows(:engage_how_singer_original)
+    eng1 = Engage.create!(music: mus, artist: art1, engage_how: eng_player, contribution: 0.9, year: 2020)
+    mus.engages.reset
+    art1.engages.reset
+    assert_equal 1, mus.artists.count
+
+    refute mus.world_to_update_to_japan?( :lang_ja)
+    assert mus.world_to_update_to_japan?(:artist_jp)
+    assert mus.world_to_update_to_japan?
+
+    eng2   = Engage.create!(music: mus, artist: art2,   engage_how: eng_singer, contribution: 0.3, year: 2020)
+    eng_uk = Engage.create!(music: mus, artist: art_uk, engage_how: eng_singer, contribution: 0.4, year: 2020)
+    mus.engages.reset
+    art2.engages.reset
+    art_uk.engages.reset
+    assert_equal 3, mus.artists.count
+    refute mus.world_to_update_to_japan?  # b/c a UK Artist is the lead singer with a greater contribution.
+
+    eng2.update!(contribution: 0.5)
+    mus.engages.reset
+    art2.engages.reset
+    assert mus.world_to_update_to_japan?(:artist_jp)  # b/c a Japanese Artist is the lead singer with a greater contribution.
+
+    eng_uk.update!(year: 2019)
+    mus.engages.reset
+    art_uk.engages.reset
+    refute mus.world_to_update_to_japan?  # b/c a UK Artist is the lead singer who came earlier than the Japanese singer.
+
+    eng_uk.update!(engage_how: eng_player)
+    mus.engages.reset
+    art_uk.engages.reset
+    assert mus.world_to_update_to_japan?(:artist_jp)  # b/c a Japanese Artist is the lead singer with no other singers.
+
+    mus.update!(place: jp_pla_unknown)
+    refute mus.world_to_update_to_japan?  # b/c Music#place is already in Japan.
+
+    mus.update!(place: places(:tocho))
+    refute mus.world_to_update_to_japan?  # b/c Music#place is already in Japan.
   end
 
   test "populate_csv" do

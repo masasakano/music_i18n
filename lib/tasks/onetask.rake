@@ -3,6 +3,7 @@
 # * onetask:fetch_url_h1
 # * onetask:import_urls_from_note
 # * onetask:export_urls_to_note
+# * onetask:manage_music_country
 #
 namespace :onetask do
   # Task: onetask:fetch_url_h1
@@ -141,5 +142,40 @@ namespace :onetask do
              args[:anchorable_type].constantize.find(args[:anchorable_id]).note )
     end
   end
+
+  # Task: onetask:manage_music_country
+  #
+  # Usage: bin/rails 'onetask:manage_music_country[show|update_all,pID|nil]'
+  #
+  # NOTE: As for the output keywords
+  #   lang_ja: Music's original language is JA
+  #   artist_jp: Music's lead Artist's Country is Japan.
+  #
+  desc "Show or update (all) Music#country to Japan if neccesary 'manage_music_country[show|update_all,pID|nil]'"
+  task :manage_music_country, [:task, :music_id] => :environment do |t, args|
+    music_id = (args[:music_id].present? ? args[:music_id] : nil)
+    jp = Country.primary
+    jp_place = jp.unknown_prefecture.unknown_place
+
+    Music::CONTEXTS_TO_UPDATE_TO_JAPAN.each do |context|
+      rela = Music.world_to_update_to_japan(context, musics: music_id)
+
+      print "Music(s) to update for #{context.to_s}: "+(music_id ? "" : "\n")
+      pp rela
+      case args[:task].downcase
+      when "show"
+        # do nothing
+      when "update_all"
+        next if rela.update_all(place_id: jp_place.id)
+        warn "ERROR: Something went wrong."
+        exit 1
+      else
+        warn "ERROR: Invalid option given (#{args[:task]})"
+        warn "  USAGE: bin/rails 'onetask:manage_music_country[show|update_all,pID|nil]'"
+        exit 1
+      end
+    end
+  end
+
 end
 

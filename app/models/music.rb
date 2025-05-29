@@ -48,6 +48,9 @@ class Music < BaseWithTranslation
   # Therefore, the standard unique Translation constraints should be disabled.
   TRANSLATION_UNIQUE_SCOPES = :disable
 
+  # Contexts to examine whether Music#place is updated to Japan-Unknown-Place
+  CONTEXTS_TO_UPDATE_TO_JAPAN = %w(lang_ja artist_jp)
+
   # If the place column is nil, insert {Place.unknown} and {Genre.unknown}
   # where the callbacks are defined in the parent class.
   # Note there is no DB restriction, but the Rails valiation prohibits nil.
@@ -60,6 +63,7 @@ class Music < BaseWithTranslation
   has_many :engages, dependent: :destroy
 
   has_many :artists, through: :engages
+  has_many :artist_translations, through: :artists, source: "translations"
 
   has_many :harami_vid_music_assocs, dependent: :destroy
   has_many :harami_vids, through: :harami_vid_music_assocs
@@ -90,6 +94,72 @@ class Music < BaseWithTranslation
     "fr" => 'MusiqueInconnue',
   }
 
+  # Scope to get Musics based on their "lead artist" determined by EngageHow#weight
+  #
+  # @param cntries [Country, Array<Country>, NilClass] the Country of the lead Artist. If nil, no filtering is applied.
+  scope :with_lead_artist, ->(cntries) do
+    # Define the lead artist subquery (lateral join)
+    # This finds the Engage record whose associated EngageHow has the minimum weight for each Music
+    lead_artist_engage_sql = <<-SQL
+      INNER JOIN LATERAL (
+        SELECT e_inner.*
+        FROM engages AS e_inner
+        INNER JOIN engage_hows AS eh_inner ON eh_inner.id = e_inner.engage_how_id
+        INNER JOIN artists AS art_inner ON art_inner.id = e_inner.artist_id
+        WHERE e_inner.music_id = musics.id
+        ORDER BY #{Music.sql_order_artists(engages: 'e_inner', engage_hows: 'eh_inner', artists: 'art_inner')}
+        LIMIT 1
+      ) AS lead_engage ON TRUE
+    SQL
+
+    # Join musics to their lead_engage, then to the artist through lead_engage
+    ret = joins(Arel.sql(lead_artist_engage_sql))
+            .joins(Arel.sql('INNER JOIN artists ON artists.id = lead_engage.artist_id')) # Join to the artist through the lead_engage alias
+    if cntries.present?
+      #ret = ret.joins(artists: :country)  # NOTE: this would not work because this would freshly join "artists" as opposed to using the above-joined artists
+      join_artist_country_sql = <<-SQL
+        INNER JOIN places artist_places ON artist_places.id = artists.place_id
+        INNER JOIN prefectures artist_prefectures ON artist_prefectures.id = artist_places.prefecture_id
+      SQL
+      ret = ret.joins(join_artist_country_sql).where("artist_prefectures.country_id": cntries)  # n.b., joining countries is unnecessary.
+    end
+    ret.distinct
+  end
+
+  # SQL for ORDER Artists
+  #
+  # In the order of
+  #   EngageHow#weight, Engage#year, contribution, birth_year, Artist#creatd_at
+  # so the result has no ambiguity.
+  #
+  # Note that "year" should not come before EngageHow#weight.  For example,
+  # a Composer may have composed a song a year before it was officially released
+  # as a song by a singer; then the song is usually recognised as the singer's song.
+  #
+  # An exception is that the music was first composed as an instrumental piece
+  # and lyrics was added (years) later.  The case is not dealt well in this framework currently.
+  #
+  # A fundamental difficulty is whom a song is known with may vary sometimes;
+  # e.g., "Jupiter" is definitely Holst's piece, but a Japanese song "Jupiter"
+  # with new Japanese lyrics is known as Ayaka Hirahara's song, which is not wrong.
+  # Hirahara did not "cover" it, so she is technically the "original singer" of the song.
+  #
+  # @param enagages: [String, NilClass] SQL alias for Engage
+  def self.sql_order_artists(engages: nil, engage_hows: nil, artists: nil)
+    engages     ||= "engages"
+    engage_hows ||= "engage_hows"
+    artists     ||= "artists"
+    arret = [
+      [engage_hows+".weight",   "ASC",  "NULLS LAST"],
+      [engages+".year",         "ASC",  "NULLS LAST"],
+      [engages+".contribution", "DESC", "NULLS FIRST"],  # DESC & NULLS FIRST means that null comes LAST
+      [artists+".birth_year",   "ASC",  "NULLS LAST"],
+      [artists+".created_at",   "ASC",  "NULLS LAST"]
+    ].map{|ea|
+      ea.join(" ")
+    }.join(", ")
+  end
+
   # NOTE: Music#artists cannot be followed by "distinct"; you must use "uniq" to
   #   obtain the list of unique Artists.  In default, it contains all the Engages,
   #   which some artists have more than one (like a composer and lyricist)
@@ -98,9 +168,9 @@ class Music < BaseWithTranslation
   #
   def sorted_artists
     #artists.joins(engages: :engage_how).order("engage_hows.weight NULLS LAST", "engages.contribution DESC NULLS LAST", "engages.year NULLS FIRST")  # This seems to work
-    #artists.joins(engages: :engage_how).order(Arel.sql('CASE WHEN engage_hows.weight IS NULL THEN 1 ELSE 0 END, engage_hows.weight')).order(Arel.sql("CASE WHEN engages.contribution IS NULL THEN 1 ELSE 0 END, engages.contribution DESC")).order(Arel.sql("CASE WHEN engages.year IS NULL THEN 0 ELSE 1 END, engages.year"))  # This works.
+    #artists.joins(engages: :engage_how).order(Arel.sql('CASE WHEN engage_hows.weight IS NULL THEN 1 ELSE 0 END, engage_hows.weight')).order(Arel.sql("CASE WHEN engages.year IS NULL THEN 0 ELSE 1 END, engages.year")).order(Arel.sql("CASE WHEN engages.contribution IS NULL THEN 1 ELSE 0 END, engages.contribution DESC"))  # This works.
     # artists.joins(engages: :engage_how).order(Arel.sql(...))  ## NOTE: This would DOUBLY join engages like "INNER JOIN engages ON artists.id = engages.artist_id INNER JOIN engages engages_artists ON engages_artists.artist_id = artists.id" and hence would join lots of unnecessary rows and mess up the result!!  This is because Music#artists would internally join engages and then joins(engages: :engage_how) would INDEPENDENTLY join engage_hows for which the WHERE clause (WHERE engages.music_id = ?) is irrelevant!!
-    artists.joins("JOIN engage_hows ON engages.engage_how_id = engage_hows.id").order(Arel.sql('engage_hows.weight NULLS LAST, engages.contribution DESC NULLS LAST, engages.year NULLS FIRST, artists.birth_year NULLS FIRST'))  # This _should_ sort in the order of EngageHow#weight and then Engage#contribution (DESC).
+    artists.joins("JOIN engage_hows ON engages.engage_how_id = engage_hows.id").order(Arel.sql(self.class.sql_order_artists))  # This _should_ sort in the order of EngageHow#weight and then Engage#contribution (DESC) etc.  # I am pretty sure that  joins(engages: :engage_how) would not work well with this ordering.
   end
 
   # Returns the most significant artist
@@ -110,10 +180,8 @@ class Music < BaseWithTranslation
   # @note in case you want the whole list, "distinct" is unsable. Use Ruby uniq instead.
   # @return [Artist, NilClass]
   def most_significant_artist
-    # artists.joins(:engages).joins("INNER JOIN engage_hows ON engages.engage_how_id = engage_hows.id").order("engage_hows.weight", "engages.contribution", "engages.year", "artists.birth_year").first
     sorted_artists.first
   end
-
   # Returns the unknown {Music} with {Genre.unknown}
   #
   # @return [Music]
@@ -129,6 +197,43 @@ class Music < BaseWithTranslation
       find_by_regex(:title, UnknownMusic["en"], langcode: "en",
                    where: sprintf("trans2.translatable_type = 'Genre' AND trans2.title = '%s' AND trans2.langcode = 'en'", Genre::UnknownGenre["en"]),
                    joins: "INNER JOIN musics ON translations.translatable_id = musics.id INNER JOIN genres ON musics.genre_id = genres.id INNER JOIN translations trans2 ON musics.genre_id = genres.id")
+  end
+
+  # Return Music-Relation of Country.unknown that should be updated to Japan
+  #
+  # @param context [String, Symbol]
+  # @param musics [NilClass, Integer, Music, Array<Integer, Music>] to check only this (or these) Music(s)
+  # @return [Music::Relation]
+  def self.world_to_update_to_japan(context, musics: nil)
+    if !CONTEXTS_TO_UPDATE_TO_JAPAN.include?(context.to_s)
+      raise ArgumentError, "unsupported context: #{context}"
+    end
+
+    music_where = (musics.present? ? {"musics.id": musics} : nil)
+    jp = Country.primary
+    jp_place = jp.unknown_prefecture.unknown_place
+
+    ret = 
+      case context.to_sym
+      when :lang_ja
+        joins(:translations).where("translations.is_orig": true, "translations.langcode": "ja")
+      when :artist_jp
+        with_lead_artist(jp)
+      else
+        raise  # should never happen
+      end
+
+    ret = ret.where("musics.place_id": Place.unknown)  # Music of Place.unknown only, exlucding Musics with more precice Places associated
+    ret = ret.where(**music_where) if music_where
+    ret = ret.distinct
+  end
+
+  # If self is at Country.unknown that should be updated to Japan?
+  def world_to_update_to_japan?(contexts=nil)
+    contexts ||= CONTEXTS_TO_UPDATE_TO_JAPAN
+    [contexts].flatten.any?{ |cont|
+      self.class.world_to_update_to_japan(cont, musics: self).exists?
+    }
   end
 
   # Wrapper of +Music.engages << mus+, and retursn the created Engage
