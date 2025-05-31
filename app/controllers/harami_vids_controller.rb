@@ -798,17 +798,25 @@ end
       # tit, _, _ = Artist.resolve_base_with_translation_with_id_str(@hsmain[prm_key])
 
       # getting an existing record (Music|Artist)
+      # (1) if pID is given
+      if @hsmain[prm_key].present? && /\A[1-9]\d*\z/ =~ @hsmain[prm_key]
+        existing_record = klass.find(@hsmain[prm_key])
+        return existing_record if existing_record
+      end
+
+      # (2) if there is a match
       existing_record = BaseMergesController.other_model_from_ac(klass.new, @hsmain[prm_key], controller: self)
       return existing_record if existing_record || find_only
 
-      ## New record
+      ## (3) for New record
       if @hsmain[prm_key].present? && /(?:\p{Hiragana}|\p{Katakana}|[一-龠々])/ =~ @hsmain[prm_key] && (jpn=Country.find_by(iso3166_n3_code: 392))  # If Artist/Music title contains a Japanese (or Chinese) character, the default place is set at Japan's unknown Place.
         pla = jpn.unknown_prefecture.unknown_place
       end
       pla ||= Place.unknown
 
+      # if "{xyz}" is given, the pair of curly brackets is removed. So, a new Music like "M" can be created without "finding" a match.
       hs2pass = {
-        title: @hsmain[prm_key],
+        title: (@hsmain[prm_key] ? @hsmain[prm_key].strip.sub(/\A\{(.+)\}\z/, '\1') : nil),
         langcode: (contain_asian_char?(@hsmain[prm_key]) ? "ja" : "en"),
         is_orig: true,
         place: pla,

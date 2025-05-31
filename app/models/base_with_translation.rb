@@ -1367,7 +1367,7 @@ class BaseWithTranslation < ApplicationRecord
     end
 
     if rela.respond_to?(:to_sql)
-      _select_regex_sql(rela.to_sql, debug_return_sql: debug_return_sql)
+      _select_regex_sql(rela, debug_return_sql: debug_return_sql)
     else
       _select_regex_ruby(*args, debug_return_sql: debug_return_sql, **restkeys)
     end
@@ -1376,11 +1376,11 @@ class BaseWithTranslation < ApplicationRecord
 
   # {BaseWithTranslation.select_regex} for String or Regexp with +sql_regexp: true+ inputs.
   #
-  # @param rela [String] SQL string output of Translation::ActiveRecord_Relation (initiated by {Translation}). See {BaseWithTranslation.select_regex}.
+  # @param rela [Translation::ActiveRecord_Relation] See {BaseWithTranslation.select_regex}.
   # @param debug_return_sql [Boolean] Debug option (Def: false). If true, returns a SQL-string, instead of ActiveRecord_Relation
   # @return [BaseWithTranslation::ActiveRecord_Relation] Note this returns SQL-string if debug_return_sql is true
-  def self._select_regex_sql(rela_sql, debug_return_sql: false)
-    ret = self.joins(:translations).where(_extract_where_clause(rela_sql))
+  def self._select_regex_sql(rela, debug_return_sql: false)
+    ret = self.joins(:translations).where(_extract_where_clause(rela.unscope(:order).to_sql))
     (debug_return_sql ? ret.to_sql : ret)
   end
   private_class_method :_select_regex_sql
@@ -1412,6 +1412,8 @@ class BaseWithTranslation < ApplicationRecord
   # Returns the WHERE clause part in String, which can be fed to +where+ directly.
   #
   # @note This method can handle a SQL statement with a simple JOIN (with a simple arithmatics) and/or ORDER, but not much more!
+  #
+  # @todo refactoring is highly desirable... (this method directly handles a SQL statement!)
   #
   # @param sql_str [String] String of a SQL (result of .to_sql)
   # @return [String] WHERE clause
@@ -1450,12 +1452,15 @@ class BaseWithTranslation < ApplicationRecord
   # @example Returning Translations containing "procla" excluding IDs of 5 or 8.
   #    Artist.select_partial_str(:titles, ['Procla', 'Lenno']).where.not("translations.id": [5, 8])
   #
+  # @note to revive the order by Translation so the shortest Translation comes first (n.b., you cannot combine ORDER about joined models and DISTINCT in PostgreSQL)
+  #    klass.select_partial_str(...).except(:distinct).order(Translation.arel_order_by_min_title_length).uniq
+  #
   # @param *args: [Array]
   # @param **restkeys: [Hash] 
   # @return [BaseWithTranslation::ActiveRecord_Relation]
   def self.select_partial_str(*args, **restkeys)
     rela = select_translations_partial_str(*args, **restkeys)
-    _select_regex_sql(rela.to_sql).distinct  #, debug_return_sql: debug_return_sql)  # see _select_regex_sql for debugging.
+    _select_regex_sql(rela).distinct  #, debug_return_sql: debug_return_sql)  # see _select_regex_sql for debugging.
   end
 
   # Returns Relation of {BaseWithTranslation} that have one of the {Translation}-s.

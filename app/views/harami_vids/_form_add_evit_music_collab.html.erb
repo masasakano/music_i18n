@@ -33,7 +33,7 @@
     <div class="register_assoc_music">
     <h4><%= (harami_vid.new_record? ? "" : "("+t(:additional).capitalize+") ")+t(:Music) %> <span class="small">(<%= t("harami_vids.music_title_comment") %>)</span></h4>  <%# Additional Music %>
       <div class="register_assoc_music_field">
-        <%= f.input :music_name, label: t("layouts.fields.music_title"), input_html: {"data-1p-ignore" => true}
+        <%= f.input :music_name, label: t("layouts.fields.music_title"), input_html: {"data-1p-ignore" => true}, hint: "Start inputting title or pID; for exact match, use curly-brackets like '{M}'."
         %> <%# , hint: t('layouts.fields.hint_music_auto') %>
        <div class="form_new_model_info">
         <%= f.input :music_year, label: t("harami_vids.field_music_year") %>
@@ -51,7 +51,7 @@
        <div class="new_artist_link"><p><%# t('layouts.new_musics.note_new_artist') %><%# link_to(t('layouts.new_musics.create_new_artist'), new_artist_path, target: "_blank") %> </p></div>  <%# Message of "Create it first" is now removed. %>
       <% end%>
       <div class="register_assoc_artist_field">
-        <%= f.input :artist_name,    label: t('layouts.new_musics.associated_artist_name'), placeholder: 'eg., "欅坂46", "Beatles, The", "The Beatles"', input_html: {"data-1p-ignore" => true} %>
+        <%= f.input :artist_name,    label: t('layouts.new_musics.associated_artist_name'), placeholder: 'eg., "欅坂46", "Beatles, The", "The Beatles"', input_html: {"data-1p-ignore" => true}, hint: "Start inputting title or pID; for exact match, use curly-brackets like '{M}'." %>
 
        <div class="form_new_model_info">
         <%= f.input :artist_sex,

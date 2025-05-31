@@ -324,8 +324,8 @@ class TranslationTest < ActiveSupport::TestCase
     # checking SQL to confirm the OR clause is enclosed with parentheses
     # so AND-OR conditions are correct.
     rela = Translation.select_partial_str(:titles, str, not_clause: {id: [proclaimers_en.id, process.translations.first.id]}, **defopts)
-    str_after_or = /.*?(?=\(regexp_match)/.match(rela.to_sql).post_match  # "(regexp_match(translate(title, ' ', ''), 'proc', 'in') IS NOT NULL OR regexp_match(translate(alt_title, ' ', ''), 'proc', 'in') IS NOT NULL)"
-    mat = /(\((?>[^()]+|(\g<1>))*\))/.match(str_after_or)  # matching strings inside matched parentheses
+    str_after_or = /.*?(?=\(regexp_match)/.match(rela.to_sql.sub(/\s+ORDER BY\s.+/m, "")).post_match  # "(regexp_match(translate(title, ' ', ''), 'proc', 'in') IS NOT NULL OR regexp_match(translate(alt_title, ' ', ''), 'proc', 'in') IS NOT NULL)  ORDER BY LEAST(NULLIF(LENGTH(TRIM(title)), 0), NULLIF(LENGTH(TRIM(alt_title)), 0)) ASC NULLS LAST"
+    mat = /(\((?>[^()]+|(\g<1>))*\))/m.match(str_after_or)  # matching strings inside matched parentheses
     assert_equal str_after_or.length, mat[0].length, "the entier OR clause should be inside the parentheses, but..."
     assert_equal 1, rela.count, "NOT clause should work, but..."
 

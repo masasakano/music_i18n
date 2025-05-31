@@ -339,6 +339,27 @@ class Translation < ApplicationRecord
   # Skip singularize_is_orig callback (mainly used for testing)
   attr_accessor :skip_singularize_is_orig_callback
 
+  # to gets Arel.sql to order by the minimum length of (title, alt_title), ignoring blank ones.
+  #
+  # @example
+  #    klass.joins(:translations).distinct.except(:distinct).order(Translation.arel_order_by_min_title_length("translations")).uniq
+  def self.arel_order_by_min_title_length(db_alias=self.table_name)
+    # Custom SQL expression to calculate the length to sort by
+    order_expression = <<-SQL
+      LEAST(
+        NULLIF(LENGTH(TRIM(#{db_alias}.title)), 0),
+        NULLIF(LENGTH(TRIM(#{db_alias}.alt_title)), 0)
+      ) ASC NULLS LAST
+    SQL
+
+    Arel.sql(order_expression)
+  end
+
+  # Scope to order by the minimum length of (title, alt_title), ignoring blank ones.
+  scope :order_by_min_title_length, -> {
+    order(Translation.arel_order_by_min_title_length(Translation.table_name))
+  }
+
   # Returns true if the current user is allowed to edit self.
   #
   # Creator of the entry can edit it.
@@ -1081,7 +1102,6 @@ class Translation < ApplicationRecord
     translation
   end
 
-
   # wrapper of {Translation.select_regex}
   #
   # The search word is String, as given by a human over a UI (or its Array).
@@ -1089,6 +1109,11 @@ class Translation < ApplicationRecord
   # All spaces, including newlines, are ignored (both in query string and DB).
   # Also, this deals with definite articles, i.e., both "The Beat" and "Beatles, Th" match
   # "Beatles, The".
+  #
+  # The result is sorted in the order of the smallest length between (title, alt_title);
+  # so there is a slight hiccup -- if "a123" matches a title and if alt_title is "x",
+  # the Translation would have the highest priority because of the length 1 of alt_title
+  # even though alt_title has nothing to do with the search word.
   #
   # If value is a String and if its length is less than min_ja_chars (for ja),
   # only the exact match is returned.
@@ -1125,7 +1150,7 @@ class Translation < ApplicationRecord
       end
     regex = (str2re.empty? ? "" : Regexp.new(str2re, (ignore_case ? Regexp::IGNORECASE : 0)))
     #regex = Regexp.new(str2re, Regexp::EXTENDED | Regexp::MULTILINE | (ignore_case ? Regexp::IGNORECASE : 0))
-    select_regex(kwd, regex, sql_regexp: true, space_sensitive: false, **restkeys)
+    select_regex(kwd, regex, sql_regexp: true, space_sensitive: false, **restkeys).order_by_min_title_length
   end
 
   # Is it suitable for Regexp search?
