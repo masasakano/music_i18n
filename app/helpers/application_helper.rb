@@ -1158,11 +1158,12 @@ module ApplicationHelper
   # @param date_from [Date]
   # @param date_to [Date]
   # @param langcode: [String, Symbol] Default: +I18n.locale+
-  # @param undefined_period_str: [Object] when a period is basically undefined (from too early in date to too late), this Object is returned (Def: "").
+  # @param undefined_period_str: [Object] when a period is basically undefined at both ends (from too early in date to too late), this Object is returned (Def: "").
   # @return [String]
   def period_date2text(date_from, date_to, langcode: I18n.locale, undefined_period_str: "")
     period_strs = [date_from, date_to].map{ |ed|
-      date2text(ed.year, ed.month, ed.day, langcode: langcode, lower_end_str: "", upper_end_str: "") # defined in module_common.rb
+      ar_ymd = (ed ? %i(year month day).map{|em| ed.send(em)} : Array.new(3))
+      date2text(*ar_ymd, langcode: langcode, lower_end_str: "", upper_end_str: "") # defined in module_common.rb
     }
 
     return undefined_period_str if period_strs.all?(&:blank?)

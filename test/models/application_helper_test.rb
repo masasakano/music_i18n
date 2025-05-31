@@ -369,6 +369,15 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_raises(ArgumentError){ publicly_viewable?(  5, permissive: false) }
   end
 
+  test "period_date2text" do
+    from = Date.new(2020, 10, 20)
+    to   = Date.new(2020, 11, 21)
+    assert_equal "2020年10月20日 〜 2020年11月21日", period_date2text(from, to, langcode: :ja, undefined_period_str: "QQ")
+    assert_equal " 〜 2020年11月21日", period_date2text(nil,  to, langcode: :ja, undefined_period_str: "QQ")
+    assert_equal "2020年10月20日 〜 ", period_date2text(from, nil, langcode: :ja, undefined_period_str: "QQ")
+    assert_equal "QQ", period_date2text(nil, nil, langcode: :ja, undefined_period_str: "QQ")
+  end
+
   private
 end
 
