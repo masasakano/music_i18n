@@ -241,15 +241,16 @@ class ApplicationGrid < Datagrid::Base
   # For example, if an Artist has two names of "ZZZ" and "AAA" and if the former has
   # the lower weight than the latter, the Artist must come after any other Artists.
   #
+  # Note that +except(:limit)+ is a key.
+  #
   # @param scope [Relation] 
-  # @param klass [Class<ActiveRecord>] like Artist
   # @param langcode [String] like "en"
-  def self.scope_with_trans_order(scope, klass, langcode=nil)
-    model_plural = klass.name.underscore.pluralize
-    sql = "LEFT OUTER JOIN translations ON translations.translatable_type = '#{klass.name}' AND translations.translatable_id = #{model_plural}.id" + (langcode ? " AND translations.langcode = '#{langcode.to_s}'" : "")
+  def self.scope_with_trans_order(scope, langcode=nil)
+    model_plural = scope.klass.name.underscore.pluralize
+    sql = "LEFT OUTER JOIN translations ON translations.translatable_type = '#{scope.klass.name}' AND translations.translatable_id = #{model_plural}.id" + (langcode ? " AND translations.langcode = '#{langcode.to_s}'" : "")
     #ids = scope.joins(sql).order(Arel.sql("CONCAT(title, alt_title)")).pluck("#{model_plural}.id", :weight).sort{|a,b| ((cmp=a[0]<=>b[0]) != 0) ? cmp : a[1]<=>b[1]}.map(&:first).uniq  # title or alt_title !
 #puts "DEBUG: scope-sql="+scope.joins(sql).order(Arel.sql("CONCAT(title, alt_title)")).to_sql
-    ids = scope.joins(sql).order(Arel.sql("CONCAT(title, alt_title)")).pluck("#{model_plural}.id", :weight) #, "translations.id")
+    ids = scope.except(:limit).joins(sql).order(Arel.sql("CONCAT(title, alt_title)")).pluck("#{model_plural}.id", :weight) #, "translations.id")
 #print "DEBUG:ids=";p ids.map{|i| [i, Artist.find(i[0]).title, Translation.find(i[2]).title]}
 
     hs_weight = {}  # weights[id] = {id: i, weight: w}  # to temporarily record the sorted-positional-index i and weight for BestWithTranslation.
@@ -471,7 +472,7 @@ class ApplicationGrid < Datagrid::Base
   def self.column_title_en(klass, mandatory: nil)
     mandatory2pass = (mandatory.nil? ? (I18n.locale.to_sym != :ja) : mandatory)
     column(:title_en, mandatory: mandatory2pass, header: Proc.new{I18n.t('tables.title_en')}, order: proc { |scope|
-      scope_with_trans_order(scope, klass, langcode="en")  # defined in base_grid.rb
+      scope_with_trans_order(scope, langcode="en")  # defined in base_grid.rb
     }) do |record|
       tit = _column_title_core(record, "en")
       block_given? ? yield(record, tit) : tit
@@ -487,43 +488,44 @@ class ApplicationGrid < Datagrid::Base
   end
   private_class_method :_column_title_core
 
+  # @param attrs [Array<String, Symbol>] mandatory; e.g., ("ruby", "romaji")
+  def self.ja_collate_order(scope, *attrs)
+    #order_str = Arel.sql("convert_to(title, 'UTF8')")
+    attrs = attrs.flatten
+    order_str = ((1 == attrs.size) ? sprintf('CONCAT(%s COLLATE "ja-x-icu")', attrs.first.to_s) : attrs.flatten.map{|es| es.to_s+' COLLATE "ja-x-icu"'}.join(", "))  # So far, CONCAT is used NOT to concat but normalize nil and blank.  CONCAT is not reversible.
+    scope.left_joins(:translations).where("translations.langcode": "ja").order(Arel.sql(order_str))
+  end
+
   # Add columns title_ja, ruby_... for a {BaseWithTranslation} model etc.
   #
   # Returns multi-HTML-line text to list translations of title (or alt_title) in other languages than En/Ja
   def self.column_all_titles
     column(:title_ja, mandatory: true, header: Proc.new{I18n.t('tables.title_ja')}, order: proc { |scope|
-      #order_str = Arel.sql("convert_to(title, 'UTF8')")
-      order_str = Arel.sql('title COLLATE "ja-x-icu"')
-      scope.left_joins(:translations).where("langcode = 'ja'").order(order_str) #.order("title")
-      #scope.left_joins("LEFT OUTER JOIN translations ON translations.translatable_type = 'Artist' AND translations.translatable_id = artists.id AND translations.langcode = 'ja'").order(order_str) #.order("title")
+      ja_collate_order(scope, :title)
     }) do |record|
-      html_titles(record, col: :title, langcode: "ja", is_orig_char: "*") # defined in base_grid.rb
+      html_titles(record, col: :title, langcode: "ja", is_orig_char: "*")
     end
 
     column(:ruby_romaji_ja, header: Proc.new{I18n.t('tables.ruby_romaji')}, order: proc { |scope|
-      order_str = Arel.sql('ruby COLLATE "ja-x-icu", romaji COLLATE "ja-x-icu"')
-      scope.joins(:translations).where("langcode = 'ja'").order(order_str) #order("ruby").order("romaji")
-      #scope.left_joins("LEFT OUTER JOIN translations ON translations.translatable_type = 'Artist' AND translations.translatable_id = artists.id AND translations.langcode = 'ja'").order(order_str) #order("ruby").order("romaji")  # for some reason this does not work!
+      ja_collate_order(scope, :ruby, :romaji)
     }) do |record|
-      str_ruby_romaji(record)  # If NULL, nothing is displayed. # defined in base_grid.rb
+      str_ruby_romaji(record)  # If NULL, nothing is displayed.
     end
 
     column(:alt_title_ja, mandatory: true, header: Proc.new{I18n.t('tables.alt_title_ja')}, order: proc { |scope|
-      order_str = Arel.sql('alt_title COLLATE "ja-x-icu"')
-      scope.joins(:translations).where("langcode = 'ja'").order(order_str)
-      #scope.left_joins("LEFT OUTER JOIN translations ON translations.translatable_type = 'Artist' AND translations.translatable_id = artists.id AND translations.langcode = 'ja'").order(order_str) #.order("title")
+      ja_collate_order(scope, :alt_title)
     }) do |record|
-      str_ruby_romaji(record, col: :alt_title)  # If NULL, nothing is displayed. # defined in base_grid.rb
+      html_titles(record, col: :alt_title, langcode: "ja")
     end
 
     column(:title_en, mandatory: true, header: Proc.new{I18n.t('tables.title_en_alt')}, order: proc { |scope|
-      scope_with_trans_order(scope, Artist, langcode="en")  # defined in base_grid.rb
+      scope_with_trans_order(scope, langcode="en")
     }) do |record|
-      html_title_alts(record, is_orig_char: "*")  # defined in base_grid.rb
+      html_title_alts(record, is_orig_char: "*")
     end
 
     column(:other_lang, header: Proc.new{I18n.t('layouts.Other_language_short')}) do |record|
-      titles_other_langs(record, is_orig_char: "*")  # defined in base_grid.rb
+      titles_other_langs(record, is_orig_char: "*")
     end
   end
 
