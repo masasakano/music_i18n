@@ -55,7 +55,7 @@
 
 <h2><%= t(:Musics) %> (<%= @place.title_or_alt(prefer_shorter: true, lang_fallback_option: :either, str_fallback: "") %>)</h2>
 
-  <%= render partial: 'layouts/musics_table', locals: {musics: @place.musics.uniq} %>
+  <%= render partial: 'layouts/musics_table', locals: {musics: @place.musics.uniq, with_place: false} %>
 
 <% if false %>
   <% if can? :create, Music %>

@@ -93,3 +93,11 @@ __EOF__
   <%= render partial: 'layouts/artists_table', locals: {artists: @prefecture.artists} %>
 </section>
 
+<hr>
+
+<section id="music_table">
+<h2><%= t(".n_musics_long") %></h2>
+
+  <%= render partial: 'layouts/musics_table', locals: {musics: @prefecture.musics.uniq, with_place: false} %>
+</section>
+

@@ -1,3 +1,4 @@
+<%# TODO: refactoring: unify with /app/views/layouts/_musics_table.html.erb (considering Hotwire) %>
 <section id="harami_vids_show_musics">
 <h3>Musics for HaramiVid (<%= harami_vid.release_date %>)</h3>
 
@@ -30,7 +31,7 @@
       <th><%= link_to t(:Artists), artists_url %></th>
       <th title="<%= t('harami_vids.table_head_title_music_timing') %>"><%= t("harami_vids.table_head_timing") %></th>
       <th colspan="<%= can?(:update, Music) ? 2 : 1 %>"><%= t(:Music) %></th>
-      <th><%= t("artists.tablehead.n_harami_vids") %></th>
+      <th><%= t("tables.n_harami_vids_short") %></th>
       <%# if canedit_mus=(can? :edit, Music) %>
         <th><%= t("tables.note") %> (<%= t("engage_multi_hows.table_head.how_related") %>)</th>
       <%# end %>
@@ -54,13 +55,13 @@
           <span title="<%= helptxt %>"><%= i_mus+1 %></span>
         </td>
        <% if canedit_mus %>
-        <td class="text-end editor_only"><%= link_to(music.id, music) %></td>
+        <td class="text-end editor_only item_pid"><%= link_to(music.id, music) %></td>
        <% end %>
         <td class="item_title"><%= t = music.title_or_alt; t ? link_to(t, music) : '' %></td>
         <td class="item_year"><%= music.year %></td>
-        <td class="item_genre"><%= music.genre.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></td>
+        <td class="item_genre"><%= genre = music.genre; genre ? genre.title_or_alt_for_selection : "" %></td>
         <td class="item_place"><%= music.place ? h(music.txt_place_pref_ctry) : "" %></td>
-        <td class="item_artists"><%= music.artists.uniq.map{|i| sprintf '%s [%s]', link_to(i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i), h(i.engage_how_titles(music, langcode: I18n.locale, lang_fallback_option: :either).join(', '))}.join(', ').html_safe %></td>
+        <td class="item_artists"><%= music.artists.uniq.map{|i| sprintf '%s [%s]', link_to(i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), i), h(i.engage_how_titles(music, langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true).join(', '))}.join(', ').html_safe %></td>
         <td class="item_timing">
           <%# timings = (hvmas=harami_vid.harami_vid_music_assocs.where(music: music)).pluck(:timing).select{|j| j.present?} %>
           <%# @timing = hvma.timing %>
