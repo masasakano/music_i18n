@@ -2,6 +2,7 @@
 
 require 'net/http'  # for Net::HTTP
 include StaticPagesHelper
+include ModuleRedcarpetAux
 
 # == Schema Information
 #
@@ -42,16 +43,6 @@ class StaticPage < ApplicationRecord
   validates_presence_of	[:langcode, :mname, :title]
   validates :mname, uniqueness: { scope: :langcode }, allow_nil: false
   validates :title, uniqueness: { scope: :langcode }, allow_nil: false
-
-  MD_EXTENSIONS = {
-    no_intra_emphasis: true,
-    tables: true,
-    fenced_code_blocks: true,
-    autolink: true,
-    strikethrough: true,
-    space_after_headers: true,
-    superscript: true,
-  }
 
   # Returns the model based on mname (and locale)
   #
@@ -110,9 +101,7 @@ class StaticPage < ApplicationRecord
       html = fcontent
       fmt_mname = PageFormat::FULL_HTML
     when 'md', 'text'
-      renderer = Redcarpet::Render::HTML.new(prettify: true)
-      markdown = Redcarpet::Markdown.new(renderer, MD_EXTENSIONS)
-      html = markdown.render(fcontent)
+      html = MDRENDERER.render(fcontent)  # defined in ModuleRedcarpetAux; fcontent is never nil
       fmt_mname = PageFormat::MARKDOWN
     when 'json'
       raise 'JSON unsupported, yet, for file='+fname
@@ -187,11 +176,9 @@ class StaticPage < ApplicationRecord
   def render(**ext)
       case page_format
       when PageFormat[PageFormat::FULL_HTML], PageFormat[PageFormat::FILTERED_HTML]
-        ERB.new(content).result(binding).html_safe
+        ERB.new(content || "").result(binding).html_safe
       when PageFormat[PageFormat::MARKDOWN]
-        renderer = Redcarpet::Render::HTML.new(prettify: true)
-        markdown = Redcarpet::Markdown.new(renderer, MD_EXTENSIONS.merge(ext))
-        markdown.render(ERB.new(content).result(binding)).html_safe
+        MDRENDERER.render(ERB.new(content || "").result(binding)).html_safe  # defined in ModuleRedcarpetAux
       else
         raise 'Unsupported PageFormat. contact the code developer: '+page_format.inspect
       end

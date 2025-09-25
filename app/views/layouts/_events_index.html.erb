@@ -61,7 +61,7 @@
        <%= editor_only_safe_html(:pass, method: can_create_event, tag: "td", class: "text-end", show_always: true) do %>
         <%= event.weight %>
        <% end %>
-        <td class=""><%= auto_link50(event.note) %></td>
+        <td class=""><%= ModuleRedcarpetAux.md2safehtml(event.note) %></td>
        <% if can_show_event %>
         <td class="actions"><%= link_to t("tables.Show"), event %></td>
        <% end %>

@@ -13,8 +13,7 @@
   <dd><%= @engage.year ? @engage.year : '&mdash;'.html_safe %></dd>
   <dt>Contribution</dt>
   <dd><%= @engage.contribution ? @engage.contribution : '&mdash;'.html_safe %></dd>
-  <dt>Note</dt>
-  <dd><%= auto_link(@engage.note) %></dd>
+  <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @engage, model4ability: can?(:edit, @engage)} %>
 </dl>
 
 <%= link_to 'Edit', edit_engage_multi_how_path(@engage) %> |

@@ -37,21 +37,26 @@ class EngageHowsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in @moderator
     assert_no_difference('EngageHow.count') do
-      post engage_hows_url, params: { translation: {is_orig: '1'}, engage_how: { note: @engage_how.note } }
+      assert_raises(ActionController::ParameterMissing){
+        # post engage_hows_url, params: { translation: {is_orig: '1'}, engage_how: { note: @engage_how.note } } }  # old-style params
+        post engage_hows_url, params: { engage_how: { is_orig: '1', note: @engage_how.note } }
+      }
     end
-    #assert_match(/\bno langcode\b/i, flash.alert, "output: #{css_select('div#body_main').to_html}")
-    assert_match(/\bno langcode\b/i, css_select('div#error_explanation ul').text, "output: #{css_select('div#body_main').to_html}")
-    assert_response :unprocessable_entity # 422
+    #assert_match(/\bno langcode\b/i, css_select('div#error_explanation ul').text, "output: #{css_select('div#body_main').to_html}")
+    #assert_response :unprocessable_entity # 422
 
+    sign_in @moderator
     # Creation failures
     assert_no_difference('EngageHow.count') do
-      post engage_hows_url, params: { translation: { langcode: 'ja', is_orig: '0', title: 'abc', alt_title: 'abc' }, engage_how: {note: ''} }
+      #post engage_hows_url, params: { translation: { langcode: 'ja', is_orig: '0', title: 'abc', alt_title: 'abc' }, engage_how: {note: ''} }
+      post engage_hows_url, params: { engage_how: { langcode: 'ja', is_orig: '0', title: 'abc', alt_title: 'abc', note: ''} }
     end
     assert_response :unprocessable_entity # 422
 
     # Creation success
     assert_difference('EngageHow.count') do
-      post engage_hows_url, params: { translation: { langcode: 'ja', is_orig: '-99', title: 'new test 1' }, engage_how: {note: ''} }
+      #post engage_hows_url, params: { translation: { langcode: 'ja', is_orig: '-99', title: 'new test 1' }, engage_how: {note: ''} }
+      post engage_hows_url, params: { engage_how: { langcode: 'ja', is_orig: '-99', title: 'new test 1', note: ''} }
     end
     eh_last = EngageHow.last
     assert_redirected_to engage_how_url(eh_last)

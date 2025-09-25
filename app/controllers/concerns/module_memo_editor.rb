@@ -33,6 +33,8 @@
 # == NOTE
 #
 module ModuleMemoEditor
+  include ModuleRedcarpetAux
+
   def self.included(base)
     if base.const_defined?(:MAIN_FORM_KEYS)
       base.const_get(:MAIN_FORM_KEYS).push "memo_editor"

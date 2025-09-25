@@ -1,5 +1,5 @@
 <h2>A Translation for <%= link_to @translation.translatable_type, @translation.translatable %>
-  <% if can? :crud, Translation %>
+  <% if cancrud=can?(:crud, Translation) %>
     ID=<%= @translation.translatable.id %>
     (Translation ID=<%= @translation.id %>)
   <% end %>
@@ -38,15 +38,7 @@
     <dd><%= @translation.weight %></dd>
   <% end %>
 
-  <dt> Create user and when:</dt>
-  <dd><%= user = @translation.create_user; user ? link_to(user.display_name, user_path(user)) : nil %> at <%= @translation.created_at %></dd>
-
-  <dt> Last-update user and when:</dt>
-  <dd><%= user = @translation.update_user; user ? link_to(user.display_name, user_path(user)) : nil %> at <%= @translation.updated_at %></dd>
-
-  <dt> Note:</dt>
-  <dd><%= auto_link(@translation.note) %></dd>
-
+  <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @translation, model4ability: cancrud} %>
 </dl>
 
 <% if user_signed_in? && @translation.editable?(user: current_user) %>

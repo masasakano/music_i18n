@@ -65,7 +65,8 @@
       <% end %>
         <td class="text-end"><%= place.harami_vids.count.to_s %></td>
         <td class="text-end"><%= place.events.count.to_s %></td>
-        <td class="text-start"><%= auto_link50(place.note) %></td>
+        <td class="text-start"><%= ModuleRedcarpetAux.md2safehtml(place.note) %></td>
+
       <% if canedit_pla  %>
         <td class="editor_only text-center">
           <%= place.memo_editor.present? && (tit=place.memo_editor.strip).present? ? sprintf('<span title="%s">Y</span>', h(tit)).html_safe : nil %>

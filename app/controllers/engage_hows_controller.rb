@@ -4,7 +4,8 @@ class EngageHowsController < ApplicationController
   before_action :model_params_multi, only: [:create, :update]
 
   # Symbol of the main parameters in the Form (except "place_id"), which exist in DB
-  MAIN_FORM_KEYS = %i(weight note)
+  MAIN_FORM_KEYS ||= []
+  MAIN_FORM_KEYS.concat %i(weight note)
 
   # Permitted main parameters for params(), used for update and create
   PARAMS_MAIN_KEYS = MAIN_FORM_KEYS
@@ -31,91 +32,38 @@ class EngageHowsController < ApplicationController
   # POST /engage_hows or /engage_hows.json
   def create
 #logger.debug "DEBUG:Start: EngageHow.count="+EngageHow.count.to_s
-    received = engage_how_params
-    hsmain      = stripped_params received[:note] # stripped_params defiend in Parent
-    hstrnas_prm = stripped_params received[:translation]
-
-    hstrnas_prm[:is_orig] = (hstrnas_prm[:is_orig] ? hstrnas_prm[:is_orig].to_i : -99) # n.b., should never be nil if submitted normally.
-    hstrnas_prm[:is_orig] =
-      if hstrnas_prm[:is_orig] == 0
-        false
-      elsif hstrnas_prm[:is_orig] > 0
-        true
-      else
-        nil
-      end
-
-if false
-    messages = []
-    if Translation.valid_main_params? hstrnas_prm, messages: messages
-      hs_trans = {translation: hstrnas_prm}
-#logger.debug "DEBUG:hs_trans=#{hs_trans.inspect}"
-      begin
-        @engage_how = EngageHow.create_with_translation!(hsmain, **hs_trans)
-      rescue ActiveRecord::RecordInvalid => err
-        messages << err.message
-      rescue ArgumentError => err
-        raise if !err.message.include? 'update_or_create_translation_core' # ArgumentError ((update_or_create_translation_core) title is mandatory but is unspecified.):
-        messages << 'title is mandatory but is unspecified.'
-      end
-    end
-
-    if !@engage_how
-      #@engage_how = EngageHow.new(note: hsmain[:note])
-      @engage_how = EngageHow.new(@hsmain)  # defined in model_params_multi
-      @engage_how.errors.add :base, (messages[0] || "Invalid Translation")
-    end
-
-    result_save = false
-    if @engage_how.errors.size == 0
-      begin
-        result_save = @engage_how.save
-      rescue ActiveRecord::RecordInvalid
-        # If Translation is invalid, this exception is raised.
-      end
-    end
-
-    respond_to do |format|
-      if result_save
-        format.html { redirect_to @engage_how, success: "EngageHow was successfully created." } # "success" defined in /app/controllers/application_controller.rb
-        format.json { render :show, status: :created, location: @engage_how }
-      else
-        flash.alert = messages[0]
-        logger.info "failed in creating #{@engage_how.class.name}: messages=#{messages.inspect}"
-        #format.html { redirect_to new_engage_how_url, alert: messages[0] }
-        format.html { render :new, status: :unprocessable_entity } # NOTE: alert: messages[0] does not work.
-        format.json { render json: @engage_how.errors, status: :unprocessable_entity }
-      end
-    end
-else
     @engage_how = EngageHow.new(@hsmain)  # defined in model_params_multi
     authorize! __method__, @engage_how
 
-    add_unsaved_trans_to_model(@engage_how, hstrnas_prm, force_is_orig_true: false) # defined in application_controller.rb
-    def_respond_to_format(     @engage_how)              # defined in application_controller.rb
-end
+    add_unsaved_trans_to_model(@engage_how, @hstra, force_is_orig_true: false) # defined in application_controller.rb
+    ensure_trans_exists_in_params("engage_how")  # defined in application_controller.rb
+    def_respond_to_format(@engage_how)              # defined in application_controller.rb
   end
 
   # PATCH/PUT /engage_hows/1 or /engage_hows/1.json
   def update
-    respond_to do |format|
-      if @engage_how.update(params.require(:engage_how).permit(:weight, :note))
-        format.html { redirect_to @engage_how, notice: "Engage how was successfully updated." }
-        format.json { render :show, status: :ok, location: @engage_how }
-      else
-        format.html { render :edit, status: :unprocessable_entity }
-        format.json { render json: @engage_how.errors, status: :unprocessable_entity }
-      end
-    end
+    def_respond_to_format(@engage_how, :updated){
+      @engage_how.update(@hsmain)
+    } # defined in application_controller.rb
+    #respond_to do |format|
+    #  if @engage_how.update(params.require(:engage_how).permit(:weight, :note))
+    #    format.html { redirect_to @engage_how, notice: "Engage how was successfully updated." }
+    #    format.json { render :show, status: :ok, location: @engage_how }
+    #  else
+    #    format.html { render :edit, status: :unprocessable_entity }
+    #    format.json { render json: @engage_how.errors, status: :unprocessable_entity }
+    #  end
+    #end
   end
 
   # DELETE /engage_hows/1 or /engage_hows/1.json
   def destroy
-    @engage_how.destroy
-    respond_to do |format|
-      format.html { redirect_to engage_hows_url, notice: "EngageHow was successfully destroyed." }
-      format.json { head :no_content }
-    end
+    def_respond_to_format_destroy(@engage_how)  # defined in application_controller.rb
+    #@engage_how.destroy
+    #respond_to do |format|
+    #  format.html { redirect_to engage_hows_url, notice: "EngageHow was successfully destroyed." }
+    #  format.json { head :no_content }
+    #end
   end
 
   private
@@ -124,21 +72,13 @@ end
       @engage_how = EngageHow.find(params[:id])
     end
 
-    # Only allow a list of trusted parameters through. create only (NOT update)
-    def engage_how_params
-      #params.require(:engage_how).permit([translation: [:langcode, :is_orig, :title, :alt_title, :ruby, :alt_ruby, :romaji, :alt_romaji], engage_how: [:note]])
-      params.require([:translation, :engage_how])
-      # params[:translation].require([:title]) # raises, if title is left empty, which can happen, ActionController::ParameterMissing: param is missing or the value is empty: title
-
-      params.permit([translation: [:langcode, :is_orig, :title, :alt_title, :ruby, :alt_ruby, :romaji, :alt_romaji], engage_how: [:weight, :note]])
-    end
-
     # Sets @hsmain and @hstra and @prms_all from params
     #
     # +action_name+ (+create+ ?) is checked inside!
     #
     # @return NONE
     def model_params_multi
-      set_hsparams_main_tra(:engage_how) # defined in application_controller.rb
+      #set_hsparams_main_tra(:engage_how) # defined in application_controller.rb
+      hsall = set_hsparams_main_tra(:engage_how) # defined in application_controller.rb
     end
 end

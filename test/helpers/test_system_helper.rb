@@ -183,7 +183,7 @@ class ActiveSupport::TestCase
   def login_at_root_path(user, with_visit: true, new_h1: nil)
     if with_visit
       visit new_user_session_path 
-      assert_selector "h1", text: "Log in"
+      assert_selector "h2", text: "Log in"
     end
     fill_in "Email", with: @editor_harami.email
     fill_in "Password", with: '123456'  # from users.yml

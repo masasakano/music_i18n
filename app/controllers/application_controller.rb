@@ -138,6 +138,11 @@ class ApplicationController < ActionController::Base
   # In default, +is_orig+ is forced to be true! (unless force_is_orig_true is given false and is_orig is included in params)
   # This is so because the +is_orig+ choice is not given to the user in create in UI.
   #
+  # Note that although a Translation is almost always associated as an unsaved_translation to
+  # the original instance, there is no guarantee that the Translation is valid.
+  # As an extreme case (which should never happen via U/I), if the given langcode in params
+  # is nil, the Translation is automatically invalid.
+  #
   # @example
   #   hsmain = params[:place].slice('note')
   #   @place = Place.new(**(hsmain.merge({prefecture_id: params[:place][:prefecture].to_i})))
@@ -478,6 +483,26 @@ class ApplicationController < ActionController::Base
     @hstra = @prms_all.slice(*PARAMS_TRANS_KEYS).to_h  # defined in application_controller.rb
     @prms_all
   end
+
+  # Ensures minimum Translation-related parameters exist (on create)
+  #
+  # This is usually put in the "create" in Controller
+  #
+  # When +check_title_presence+ is true, this raises ActionController::ParameterMissing
+  # if neither of title and alt_title exist.  Usually, it should be dealt in a different way
+  # from Ruby-level exception, though (hence its default being false).
+  #
+  # @example ensure_trans_exists_in_params("engage_how")  # defined in application_controller.rb
+  #
+  # @raise ActionController::ParameterMissing
+  def ensure_trans_exists_in_params(mdl_name, check_title_presence: false)
+    mdl_name = mdl_name.class.name if !mdl_name.respond_to?(:to_sym)
+    mdl_name_us = mdl_name.to_s.underscore
+
+    params.require(mdl_name_us).require(:langcode)
+    params.require(mdl_name_us).require(:title) if check_title_presence && params[mdl_name_us][:alt_title].blank?
+  end
+
 
   # Set two instance variables @hsmain and @prms_all 
   #

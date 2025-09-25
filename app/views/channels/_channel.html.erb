@@ -46,7 +46,7 @@
   </dd>
   <dt class="item_id_human_at_platform"> <%= t("channels.show.id_human_at_platform") %>:</dt>
   <dd class="item_id_human_at_platform"><%= link_to_channel(model.id_human_at_platform, kind: "handle", platform: model.channel_platform) %>
-  <% if can?(:update, model) %>
+  <% if (can_update=can?(:update, model)) %>
     <% if model.on_youtube? && model.id_at_platform.present? && model.id_human_at_platform.blank? %>
       <div class="editor_only">
         <%= form_with method: :patch, model: model, url: channels_fetch_youtube_channel_path(model), local: true do |form| %> <%# scope: :article %>
@@ -72,20 +72,7 @@
     <dd><%= m=model.channel_platform; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), channel_platform_path(m)) %></dd>
   <dt title="Channel type."><%= t("harami_vids.table_head_ChannelType") %>:</dt>
     <dd><%= m=model.channel_type; link_to(m.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), channel_type_path(m)) %></dd>
-  <dt title="Note"><%= t("tables.note")%>:</dt>
-    <dd><%= auto_link50(model.note) %></dd>
- <% if can? :update, Users::EditRolesController %>
-  <div class="editor_only">
-   <% %w(create_user update_user).each do |metho| %>
-  <dt><%= metho %>:</dt>
-    <dd><%= ur = channel.send(metho); link_to(ur.display_name, ur) if ur %></dd>
-   <% end %>
-  </div>
- <% end %>
- <% if can? :edit, channel %>
-  <dt>updated_at:</dt>
-    <dd><%= channel.updated_at %></dd>
- <% end %>
+  <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: channel, model4ability: can_update} %>
 </dl>
 </div>
 

@@ -67,7 +67,8 @@ class ActiveSupport::TestCase
 
   # CSS for pages
   PAGECSS = {
-    new_trans_lang_radios: 'form div.field.radio_langcode',  # eg: page.find(PAGECSS[:new_trans_lang_radios]).choose('English')
+    # new_trans_lang_radios: 'form div.field.radio_langcode',  # eg: page.find(PAGECSS[:new_trans_lang_radios]).choose('English')  # if NOT simple_form
+    new_trans_lang_radios: 'form.simple_form fieldset.radio_buttons.choose_langcode',  # for simple_form
     show: {
       pid: ".show_unique_parameters dd.item_pid", # see retrieve_pid_in_show() below
     },

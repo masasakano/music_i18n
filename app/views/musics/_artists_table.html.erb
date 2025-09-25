@@ -50,12 +50,12 @@
         <td class="cell_birthday"><%= sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
                   i = artist.send m; (i.blank? ? '——' : i.to_s)}) %></td>
         <td class="text-center cell_sex"><%= artist.sex.title langcode: I18n.locale, lang_fallback: true %></td>
-        <td class="cell_note"><%= sanitized_html(auto_link50(artist.note)).html_safe %></td>
+        <td class="cell_note"><%= ModuleRedcarpetAux.md2safehtml(artist.note) %></td>
         <td class="cell_action_show"><%= link_to t("tables.Show"), artist %></td>
         <% if can? :update, artist %>
           <td class="editor_only cell_action"><%= link_to 'Edit', edit_artist_path(artist) %></td>
         <% end %>
-        <td class="cell_note_engage_how"><%= sanitized_html(auto_link50(compile_engage_notes(artist, music))).html_safe %></td> <%# defined in musics_helper.rb %>
+        <td class="cell_note_engage_how"><%= ModuleRedcarpetAux.md2safehtml(compile_engage_notes(artist, music)) %></td>
         <% if can? :update, artist %>
           <td class="editor_only text-center cell_action cell_edit_engage"><%= link_to 'Edit', edit_engage_multi_how_path(engage) %></td> <%# "engage" is set above %>
         <% end %>

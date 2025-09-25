@@ -55,6 +55,8 @@ class MusicsTest < ApplicationSystemTestCase
 
     fill_autocomplete('#musics_grid_title_ja', use_find: true, with: 'ストー', select: title_ja)  # defined in test_helper.rb
     click_on "Apply"
+
+    assert_text title_ja
     n_trs_story = page.find_all("tr").size
     assert_operator n_trs0, :>, n_trs_story, "The number of table rows should have (greatly) decreased, but..."
 

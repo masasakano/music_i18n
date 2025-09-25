@@ -12,7 +12,7 @@
         <th>Created</th>
         <th>Updated</th>
       <% end %>
-      <% if can? :update, ChannelOwner %>
+      <% if canupdate=can?(:update, ChannelOwner) %>
         <th colspan="3"></th>
       <% else %>
         <th></th>
@@ -27,7 +27,7 @@
        <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
 
         <td><%= model.themselves %></td>
-        <td><%= auto_link50(model.note) %></td>
+        <td><%= ModuleRedcarpetAux.md2safehtml(model.note) %></td>
       <% if can? :update, Users::EditRolesController %>
         <td><%= ur = model.create_user; link_to(ur.display_name, ur) if ur %></th>
         <td><%= ur = model.update_user; link_to(ur.display_name, ur) if ur %></th>

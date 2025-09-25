@@ -59,7 +59,7 @@
         </td>
 
         <td class="item_n_vids text-end"><%= music.harami_vids.count.to_s %></td>
-        <td class="item_note text-start"><%= auto_link50(music.note) %></td>
+        <td class="item_note text-start"><%= ModuleRedcarpetAux.md2safehtml(music.note) %></td>
         <td><%= link_to t('tables.Show').capitalize, music %></td>
         <%= editor_only_safe_html(:pass, method: can_update, tag: "td") do %>
           <% if can? :update, music %>

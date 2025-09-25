@@ -98,7 +98,7 @@
         <td class="align-r trans_weight moderator_only"><%= tra.weight%></td>
       <% end %>
       <% if can_show %>
-        <td class="editor_only"><%= auto_link50(tra.note) %></td>
+        <td class="editor_only"><%= ModuleRedcarpetAux.md2safehtml(tra.note) %></td>
       <% end %>
       <% if defined?(myself) && tra == myself %>
         <td colspan="2" class="align-c trans_action editor_only" style="<%= (flag_ables[:demotable] || flag_ables[:promotable]) ? 'border-right-style: none;' : ''  %>"><strong>SELF</strong></td>  <%# Called from Translation-Edit %>

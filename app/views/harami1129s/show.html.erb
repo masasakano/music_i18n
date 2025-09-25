@@ -136,7 +136,7 @@
   </table>
   </dd>
 
-  <% if can? :edit, @harami1129 %>  <%# Because this "not_music" entry should be removed... %>
+  <% if canedit=can?(:edit, @harami1129) %>  <%# Because this "not_music" entry should be removed... %>
   <dt>NOT music video?:</dt>
   <dd>
       <%= @harami1129.not_music ? 'True' : (@harami1129.not_music.nil? ? 'nil' : 'False') %>
@@ -197,11 +197,7 @@
     <% end %>
     </dd>
 
-  <dt id="h1129_note_dt">Note:</dt>
-  <dd id="h1129_note_dd">
-  <%= auto_link(@harami1129.note) %>
-  </dd>
-
+  <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @harami1129, model4ability: canedit} %>
 </dl>
     
 <h3>Summary</h3>

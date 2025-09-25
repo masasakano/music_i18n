@@ -41,13 +41,13 @@
          </td>
        <% end %>
         <td class="text-end"><%= model.iso3166_loc_code %></td>
-        <td><%= auto_link50(model.orig_note) %></td>
+        <td><%= auto_link50(model.orig_note) %></td>  <%# always standard text %>
         <td><%= model.start_date %></td>
         <td><%= model.end_date %></td>
         <td class="text-end"><%= model.harami_vids.count %></td>
         <td class="text-end"><%= model.events.distinct.count %></td>
         <td class="text-end"><%= model.artists.count %></td>
-        <td><%= auto_link50(model.note) %></td>
+        <td><%= ModuleRedcarpetAux.md2safehtml(model.note) %></td>
         <td><%= link_to 'Show', model %></td>
        <% if canedit %>
         <% if (can? :edit, model) %>

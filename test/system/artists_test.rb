@@ -221,12 +221,20 @@ class ArtistsTest < ApplicationSystemTestCase
     new_btyear = 1150
     choose("female")
     fill_in "Birth year", with: new_btyear  # Because of a different birth_year from the existing AI, the new Artist with the idencical name is accepted!
+    markd_text = "1st-Artist"
+    markd_link = sprintf("/artists/%d", Artist.first.id)
+    markd = sprintf("See [%s](%s).", markd_text, markd_link)
+    fill_in 'Note', with: markd
 
     click_on @button_text[:create]
 
     # assert_match(/ prohibited /, page_find_sys(:error_div, :title).text)  # Artist with the same name is OK unless other information is identical.
 
     assert_text "successfully created."
+    assert_text "See "+markd_text+"."
+    raw_href = Nokogiri::HTML(find("dd.item_note a")['outerHTML']).at('a')['href']
+    assert_equal markd_link, raw_href
+    # assert_equal markd_link, find("dd.item_note a").native["href"], "a="+find("dd.item_note a")['outerHTML']  # This would return(!) something like: http://127.0.0.1:56690/artists/7033903
 
     assert_selector "h1", text: "Artist: "+@artist.title  # Same title as the existing Artist
     assert (artist_pid=retrieve_pid_in_show)   # Should be visible for Editor # defined in test_helper.rb
@@ -272,9 +280,14 @@ class ArtistsTest < ApplicationSystemTestCase
 
     # submission succeess
     engage_strs = [:engage_how_lyricist_ja, :engage_how_composer_ja].map{|i| translations(i).title}
-    select_from_txt = 'EngageHow('+I18n.t('layouts.new_musics.allow_multi', locale: "ja")+')'
-    select engage_strs[0], from: select_from_txt
-    select engage_strs[1], from: select_from_txt
+    ## EngageHow-s used to be select box, but it is now checkboxes in SimpleForm
+    #select_from_txt = 'EngageHow('+I18n.t('layouts.new_musics.allow_multi', locale: "ja")+')'
+    #select engage_strs[0], from: select_from_txt
+    #select engage_strs[1], from: select_from_txt
+    chkboxes = find('fieldset.music_engage_hows')  # should be in the order of (0)Singer-Original, (1)Cover, (2)Lyricist, (3)Translator, (4)Composer
+    chkboxes.all('input[type="checkbox"]')[2].check
+    chkboxes.all('input[type="checkbox"]')[4].check
+
     find(:xpath, xpath_submit).click  # "登録する"
 
     assert_text "Music was successfully created"

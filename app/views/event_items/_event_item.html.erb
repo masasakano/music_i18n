@@ -67,12 +67,7 @@
         / <%= event_item.harami1129s.distinct.count %>
       <% end %>
     </dd>
-  <dt><%= t("tables.note").capitalize %>:</dt>
-    <dd><%= sanitized_html(auto_link(event_item.note)).html_safe %></dd>
-  <% if canedit %>
-  <dt>updated_at:</dt>
-    <dd><%= event_item.updated_at %></dd>
-  <% end %>
+  <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: event_item, model4ability: canedit} %>
 </dl>
 
 </div>

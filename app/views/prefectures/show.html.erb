@@ -39,8 +39,7 @@
       <dd> <%= @prefecture.musics.count.to_s %></dd>
     </div>
   <% end %>
-  <dt><%= t("tables.note").capitalize %></dt>
-  <dd><%= auto_link(@prefecture.note) %></dd>
+  <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @prefecture, model4ability: canedit} %></td>
 </dl>
 
 <p>

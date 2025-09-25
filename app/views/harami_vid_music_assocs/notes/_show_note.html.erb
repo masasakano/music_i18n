@@ -7,7 +7,7 @@
   <span class="note text-start">
     <% title_txt = "Note for this association" %>
     <% title_txt << "; HaramiVidMusicAssc(ID=#{@hvma.id})" if can?(:edit, HaramiVid) %>
-    <span title="<%= title_txt %>"><%= @hvma.note %></span>
+    <span title="<%= title_txt %>"><%= ModuleRedcarpetAux.md2safehtml(@hvma.note) %></span>
   </span>
   <% if can? :edit, @hvma.harami_vid %>
     <%= button_to "Edit", edit_harami_vid_music_assocs_note_path(@hvma), method: :get, form_class: "inline_form_tight", class: "text-end inline_form_tightest" %>

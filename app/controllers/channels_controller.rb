@@ -3,6 +3,7 @@ class ChannelsController < ApplicationController
   include ModuleCommon
   include ApplicationHelper
   include ModuleGridController # for set_grid
+  include ModuleMemoEditor   # for memo_editor attribute; this includes ModuleRedcarpetAux; NOTE ChannelOwner does not have the memo_editor column at the time of writing.
 
   #before_action :set_channel, only: %i[ show edit update destroy ]
   load_and_authorize_resource except: [:new, :create] # This sets @channel
@@ -12,7 +13,8 @@ class ChannelsController < ApplicationController
   #PARAMS_KEY_AC = BaseMerges::BaseWithIdsController.formid_autocomplete_with_id(Artist).to_sym
 
   # Symbol of the main parameters in the Form (except "place_id"), which exist in DB
-  MAIN_FORM_KEYS = %i(id_at_platform id_human_at_platform channel_owner_id channel_platform_id channel_type_id note)
+  MAIN_FORM_KEYS ||= []
+  MAIN_FORM_KEYS.concat(%i(id_at_platform id_human_at_platform channel_owner_id channel_platform_id channel_type_id note))
 
   # Permitted main parameters for params(), used for update and create
   PARAMS_MAIN_KEYS = MAIN_FORM_KEYS #+ [PARAMS_KEY_AC] # == :artist_with_id

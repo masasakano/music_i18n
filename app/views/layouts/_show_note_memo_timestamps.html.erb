@@ -27,13 +27,13 @@
 
   <div> <%# Once dt is insde a div, all other dt-s must be inside a div, apparently. %>
   <dt class="item_note"><%= t("tables.note").capitalize %>:</dt>
-    <dd class="item_note"><%= sanitized_html(auto_link(model.note)).html_safe %></dd>
+    <dd class="item_note"><%= ModuleRedcarpetAux.md2safehtml(model.note) %></dd>
   </div>
 
 <% if show_editor_note && model.has_attribute?(:memo_editor) %>
   <div class="editor_only memo_editor">
   <dt class="item_memo_editor">Editor's memo:</dt>
-    <dd class="item_memo_editor"><%= sanitized_html(auto_link(model.memo_editor)).html_safe %></dd>
+    <dd class="item_memo_editor"><%= ModuleRedcarpetAux.md2safehtml(model.memo_editor) %></dd>
   </div>
 <% end %>
 

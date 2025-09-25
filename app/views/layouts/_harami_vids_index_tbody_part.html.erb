@@ -118,8 +118,7 @@
      <% if can_read_h1129 %>
         <td class="number editor_only"><%= harami_vid.harami1129s.distinct.count %> / <%= harami_vid.musics.uniq.count %></td>
      <% end %>
-        <td><%= auto_link50(harami_vid.note) %></td>
-
+        <td><%= ModuleRedcarpetAux.md2safehtml(harami_vid.note) %></td>
         <td class="actions"><%= link_to t("tables.Show"), harami_vid %></td>
       </tr>
     <% end %> <%# ary.uniq.each_with_index do |harami_vid, i_row| %>

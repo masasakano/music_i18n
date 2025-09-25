@@ -29,11 +29,13 @@ class EngageHowsTest < ApplicationSystemTestCase
     assert_text "must exist"
 
     newname = 'ある名前t02'
-    find_field("EngageHow正式名称", match: :first).fill_in with: newname
+    #find_field("EngageHow正式名称", match: :first).fill_in with: newname
+    find_field("EngageHow Full Title", match: :first).fill_in with: newname
+    # all('input.required').first.set newname  ## an alternative way... but this does not work!
     fill_in "Note", with: 'create test02'
+#take_screenshot
     click_on "Create EngageHow"
-
-    assert_text "was successfully created"
+    assert_text "was successfully created"  ## For some reason, it raises an error of "At least either of Title and AltTitle must exist." despite the fact the screenshot shows a significant title in the field, and indeed, a manual trial works!
     click_on "Back"
 
     assert_selector "h1", text: "EngageHows"

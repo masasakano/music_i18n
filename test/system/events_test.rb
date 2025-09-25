@@ -101,7 +101,7 @@ class EventsTest < ApplicationSystemTestCase
     assert_text "Number of EventItems"
     assert_text "Editor's memo"
 
-    click_on "Back"
+    click_on "Back", match: :first
 
     n_events = page.all("div#events table tr").size - 1
     assert_equal(n_events_be4+1, n_events)
@@ -122,7 +122,7 @@ class EventsTest < ApplicationSystemTestCase
     click_on "Update Event"
 
     assert_text "Event was successfully updated"
-    click_on "Back"
+    click_on "Back", match: :first
 
     ## test "should destroy Event" do
     visit event_url(@event)

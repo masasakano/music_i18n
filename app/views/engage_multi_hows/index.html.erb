@@ -111,7 +111,7 @@
           <td><%= engage_how = engage.engage_how; link_to engage_how.title_or_alt(langcode: I18n.locale), engage_how %></td>
           <td><%= engage.year ? engage.year : '&mdash;'.html_safe %></td>
           <td><%= engage.contribution ? engage.contribution : '&mdash;'.html_safe %></td>
-          <td><%= auto_link50(engage.note) %></td>
+          <td><%= ModuleRedcarpetAux.md2safehtml(engage.note) %></td>
           <td><%= engage.harami1129s.count %></td>
           <td></td>
           <td><%= link_to 'Show', engage %></td>

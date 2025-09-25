@@ -142,6 +142,7 @@
       <% collec = EngageHow.order(:weight).map{|es| [es.title(langcode: I18n.locale, lang_fallback: true, str_fallback: "NONE"), es.id] } %>
       <%= f.input :engage_hows, label: 'EngageHow('+t('layouts.new_musics.allow_multi')+')', required: true, as: :check_boxes, multiple: true, include_blank: true, collection: collec, item_wrapper_class: 'inline', checked: music.engage_hows %>
       <%# form.collection_select :engage_hows, EngageHow.all.order(:weight), :id, Proc.new{|i| i.title(langcode: I18n.locale, str_fallback: "NONE")}, {include_blank: true}, {multiple: true} %> <%# If left empty (instead of "NONE"), it would violate the HTML spec: Element “option” without attribute “label” must not be empty. %>
+      <%# NOTE: JS validation may raise 'Error! At least one enagegement needs to be specified when Artist is given.' %>
 
     <div class="field music_year_engage">
       <%# s_help = t('layouts.new_musics.year_engagement_hint'); form.label :year_engage, t('layouts.new_musics.year_engagement'), title: s_help %>

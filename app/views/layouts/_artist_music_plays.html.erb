@@ -116,7 +116,8 @@
            <td class="editor_only"><%= amp.send(att) %></td>
           <% end %>
          <% end %>
-          <td><%= auto_link50(amp.note) %></td>
+          <td><%= ModuleRedcarpetAux.md2safehtml(amp.note) %></td>
+
          <% if canedit_amp %>
           <td class="editor_only">
             <% if can? :update, amp %>

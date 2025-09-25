@@ -1,3 +1,4 @@
+# coding: utf-8
 module Anchorable
   extend ActiveSupport::Concern
   included do
@@ -49,8 +50,9 @@ module Anchorable
     ret
   end
 
+  # @param lname: [String, NilClass] if blank, "日本語" or "Enlgish" etc.
   # @return [Url] of Wikipedia link for the language
-  def url_wiki_any(locale=I18n.locale, fallback: true)
+  def url_wiki_any(locale=I18n.locale, lname: nil, fallback: true)
     prime_langcode = locale&.to_s
     langcodes = ([prime_langcode, nil] + I18n.available_locales.map(&:to_s)).uniq
 
@@ -63,8 +65,8 @@ module Anchorable
     }.first
     return nil if !url || !fallback && url.url_langcode.to_s != locale.to_s
 
-    lname = ((lc=url.url_langcode).present? ? get_language_name(lc, in_locale: I18n.locale) : "Default")
-    ActionController::Base.helpers.link_to(lname, url.url, target: "_blank")
+    lname = ((lc=url.url_langcode).present? ? get_language_name(lc, in_locale: I18n.locale) : "Default") if lname.blank?
+    ActionController::Base.helpers.link_to(lname, url.url, title: "Wikipedia", target: "_blank")
   end
 end
 

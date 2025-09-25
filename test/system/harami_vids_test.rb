@@ -241,7 +241,8 @@ class HaramiVidsTest < ApplicationSystemTestCase
     visit grid_index_path_helper(HaramiVid, column_names: ["events", "collabs"], max_per_page: 25)
     assert_selector "h1", text: @h1_index
 
-    tit_lucky = events(:ev_harami_lucky2023).title(langcode: "en")  # HARAMIchan at LuckyFes 2023
+    evt = events(:ev_harami_lucky2023)
+    tit_lucky = evt.title(langcode: "en")  # HARAMIchan at LuckyFes 2023
     assert_text "The Proclaimers"  # NOT "Proclaimers, The"
     assert_text tit_lucky  # in "feat. Artists"
     assert_selector CSSGRIDS[:th_events],  text: "Events"
@@ -251,8 +252,9 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_equal    htmlcapy_hed.text, "Events"
     htmlcapy_evt = page.all(CSSGRIDS[:tb_tr])[-1].all('td')[5]
     htmlcapy_art = page.all(CSSGRIDS[:tb_tr])[-1].all('td')[6]
-    assert_equal    htmlcapy_evt.text, tit_lucky 
-    assert_includes htmlcapy_evt['innerHTML'], tit_lucky
+    tit_exp = sprintf("%s [%s]", tit_lucky, evt.event_group.title(langcode: "en"))
+    assert_equal    htmlcapy_evt.text, tit_exp
+    assert_includes htmlcapy_evt['innerHTML'], tit_exp
     refute_includes htmlcapy_evt['innerHTML'], "<a"  # link hidden for unauthorized in Events
     assert_includes htmlcapy_art['innerHTML'], "<a"  # link visible to anyone in feat. Artists
   end

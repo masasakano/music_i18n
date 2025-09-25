@@ -5,12 +5,44 @@
 
 <% if ! engage_how.new_record? %>
 <hr>
+<section id="sec_primary">
 <%= render partial: 'layouts/all_registered_translations', locals: {model: engage_how, add_buttons: true} %>
 <hr>
 
+<h2>Unique parameters</h2>
 <% end %>
 
+<% submit_label = (engage_how.new_record? ? "Create" : "Update") %>
 <% title_weight = 'Lower means a higher priority.' %>
+
+<% if engage_how.new_record? %>
+<hr>
+<% end %>
+<div id="form_main">
+
+<%= simple_form_for(engage_how) do |f| %>
+ <section id="sec_primary_input">
+  <% if engage_how.new_record? %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: engage_how, trans: Translation.new, disable_is_orig: true, is_simple_form: true} %>
+  <% end %>
+<hr>
+  <div class="form-inputs">
+    <%= f.input :weight, placeholder: title_weight, hint: title_weight, label_html: {title: title_weight}, input_html: {title: title_weight} %>
+    <%= f.input :note %>
+  </div>
+
+  <div class="form-actions">
+    <%= f.submit submit_label+ " EngageHow" %>
+  </div>
+  <div class="actions">
+  <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+  </div>
+ </section> <!-- section id="sec_primary_input" -->
+<% end %>
+
+</div> <!-- div id="form_main" -->
+
+<% if false %>
 <% if engage_how.new_record? %>
   <%= simple_form_for Translation.new, url: engage_hows_url do |form| %>
     <% # name="translation[langcode]" => params(:translation => {})
@@ -43,5 +75,7 @@
     <%= form.submit %>
   <% end %>
 <% end %>
+<% end %> <%# if false %>
 
+</section> <!-- section id="sec_primary" -->
 

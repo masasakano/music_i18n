@@ -42,7 +42,7 @@
         <td><%= sprintf '%s年%s月%s日', *(%i(birth_year birth_month birth_day).map{|m|
                   i = artist.send m; (i.blank? ? '——' : i.to_s)}) %></td>
         <td class="text-center"><%= artist.sex.title langcode: I18n.locale, lang_fallback: true %></td>
-        <td class="text-start"><%= auto_link50(artist.note) %></td>
+        <td class="text-start"><%= ModuleRedcarpetAux.md2safehtml(artist.note) %></td>
         <td><%= link_to t('tables.Show').capitalize, artist %></td>
         <%= editor_only_safe_html(:pass, method: can_update, tag: "td") do %>
           <% if can? :update, artist %>

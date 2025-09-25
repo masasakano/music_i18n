@@ -637,7 +637,7 @@ class ApplicationGrid < Datagrid::Base
   # Add column :note
   def self.column_note(**opts)
     column(:note, html: true, order: false, header: Proc.new{I18n.t("tables.note", default: "Note")}, **opts){ |record|
-      sanitized_html(auto_link50(record.note)).html_safe
+      ModuleRedcarpetAux.md2safehtml(record.note)
     }
   end 
 
@@ -665,7 +665,7 @@ class ApplicationGrid < Datagrid::Base
     }
     if has_memo_editor
       column(:memo_editor, html: true, order: false, header: "Editor's Memo", **common_opts){ |record|
-        sanitized_html(auto_link50(record.memo_editor)).html_safe
+        ModuleRedcarpetAux.md2safehtml(record.memo_editor)
       }
     end
     column(:updated_at, header: Proc.new{I18n.t('tables.updated_at')}, **common_opts)

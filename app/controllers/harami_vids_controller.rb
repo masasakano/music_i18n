@@ -4,7 +4,7 @@ class HaramiVidsController < ApplicationController
   include ModuleHaramiVidEventAux # some constants and methods common with HaramiVids::FetchYoutubeDataController
   include HaramiVidsHelper # for set_event_event_items (common with HaramiVids::FetchYoutubeDataController) and collection_musics_with_evit
   include ModuleGridController # for set_grid
-  include ModuleMemoEditor   # for memo_editor attribute
+  include ModuleMemoEditor   # for memo_editor attribute; this includes ModuleRedcarpetAux
   include ModuleYoutubeApiAux # defined in /app/controllers/concerns/module_youtube_api_aux.rb
 
   skip_before_action :authenticate_user!, :only => [:index, :show]

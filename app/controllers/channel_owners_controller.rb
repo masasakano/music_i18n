@@ -1,5 +1,7 @@
 # coding: utf-8
 class ChannelOwnersController < ApplicationController
+  include ModuleMemoEditor   # for memo_editor attribute; this includes ModuleRedcarpetAux; NOTE ChannelOwner does not have the memo_editor column at the time of writing.
+
   #before_action :set_channel_owner, only: %i[ show edit update destroy ]
   load_and_authorize_resource except: [:create] # This sets @channel_owner
   before_action :model_params_multi, only: [:create, :update]
@@ -8,7 +10,9 @@ class ChannelOwnersController < ApplicationController
   PARAMS_KEY_AC = ChannelOwner::PARAMS_KEY_AC
 
   # Symbol of the main parameters in the Form (except "place_id"), which exist in DB
-  MAIN_FORM_KEYS = %i(themselves artist_id artist_with_id note) + [PARAMS_KEY_AC]  # artist_id is hidden
+  MAIN_FORM_KEYS ||= []
+  MAIN_FORM_KEYS.concat(%i(themselves artist_id artist_with_id note))  # artist_id is hidden
+  MAIN_FORM_KEYS.concat([PARAMS_KEY_AC])
 
   # Permitted main parameters for params(), used for update and create
   PARAMS_MAIN_KEYS = MAIN_FORM_KEYS
