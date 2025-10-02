@@ -1218,7 +1218,7 @@ module ApplicationHelper
   #
   # @example
   #    can_index = can?(:index, Event)
-  #    editor_only_safe_html(:pass, can_index, text: link_to(t('layouts.back_to_index'), placec_path)+"<br>".html_safe)
+  #    editor_only_safe_html(:pass, method: can_index, text: link_to(t('layouts.back_to_index'), placec_path)+"<br>".html_safe)
   #
   # @example to make a form inline and editor_only
   #    <%= editor_only_safe_html(record, method: :edit, tag: "div", class: "disp-inline") do %>

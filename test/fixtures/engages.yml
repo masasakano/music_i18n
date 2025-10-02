@@ -33,7 +33,7 @@ engage1:
   engage_how: engage_how_1
   contribution: 
   year: 1999
-  note: MyText
+  note: "Must be in **bold** font."
 
 engage2:
   music: music2

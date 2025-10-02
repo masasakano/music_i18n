@@ -727,7 +727,6 @@ class TranslationTest < ActiveSupport::TestCase
     end
     sex.translations.reset
     assert_equal 21, sex.translations.count
-
     tra = Translation.find_by_a_title(:titles, 'T', translatable: sex)
     assert_equal     ts[10], tra, Translation.sort(sex.translations).pluck(:title, :is_orig, :weight).inspect
     assert_equal     ts[10], Translation.sort(sex.translations).first, Translation.sort(sex.translations).pluck(:title, :is_orig, :weight).inspect
@@ -735,13 +734,17 @@ class TranslationTest < ActiveSupport::TestCase
     t_alias = "tras"
     tmpjoins = "INNER JOIN translations #{t_alias} ON #{t_alias}.translatable_type = 'Sex' AND #{t_alias}.translatable_id = #{sex.id}"
     assert_raises(ActiveRecord::StatementInvalid){
-      ## Test of NOT specifying the table_alias when it is necessary.
+      ## Test of NOT specifying the table_alias when it is necessary — this should raise an error.
       ActiveRecord::Base.transaction(requires_new: true) do
         # transaction is needed; otherwise raises: ActiveRecord::StatementInvalid: PG::InFailedSqlTransaction: ERROR:  current transaction is aborted, commands ignored until end of transaction block
         Translation.sort(Sex.joins(tmpjoins), langcode: "en").select(:title).first
+          # Translation.sort(Sex.joins(tmpjoins), langcode: "en").select(:title).explain  # for debugging
         # ActiveRecord::StatementInvalid: PG::UndefinedTable: ERROR:  invalid reference to FROM-clause entry for table "translations"
         # LINE 1: ... AND tras.translatable_id = 10 ORDER BY CASE WHEN translatio...
         #                                                              ^
+        # In the PostgreSQL log:
+        # 2025-11-02 12:34:12.345 GMT [4544] ERROR:  invalid reference to FROM-clause entry for table "translations" at character 141
+        # 2025-11-02 12:34:12.345 GMT [4544] HINT:  Perhaps you meant to reference the table alias "tras".
       end
     }
     res = Translation.sort(Sex.joins(tmpjoins), langcode: "en", t_alias: t_alias)

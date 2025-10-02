@@ -1,12 +1,13 @@
 # coding: utf-8
 module MusicsHelper
 
+  # @param with_note: [Boolean] if true, all Engage#note for the music and artist is also included in the returned object
   # @return [Array[String,Engage]] maybe hyperlink (if permitted)
-  def engage_title_link(music, artist)
+  def engage_title_link(music, artist, with_note: false)
     ## construct a Hash (key of year (9999 for nil)) of Arrays of Hashes
     hsyear = {}  #
     artist.engage_how_list(music).each do |ea_hs|  # [Engage,Title,Year,Contribution]
-      if hsyear.keys.include?(yr=(ea_hs[:year] || 9999))
+      if hsyear.keys.include?(yr=(ea_hs[:year] || 9999))  # 9999 is an impossibly large year used for sorting (see below)
         hsyear[yr] << ea_hs
       else
         hsyear[yr] = [ea_hs]
@@ -31,6 +32,14 @@ module MusicsHelper
           '<span class="editor_only">;f=' + conts.map{|i| i ? i : "nil"}.join("/") + "</span>"
         end
 
+      if with_note
+        notes = hsyear[eyr].map{ |ehs| ehs[:note].present? ? ehs[:note] : nil}
+        compact_notes = notes.compact.map(&:strip)
+        if !compact_notes.empty?
+          contribution_str << editor_only_safe_html(:pass, method: can_update, tag: "span", text: ModuleRedcarpetAux.md2safehtml(";"+compact_notes.join("/")))
+        end
+      end
+
       hsyear[eyr].map{ |ehs|
         dagger_contribution =
           if ehs[:contribution] && ehs[:contribution] != 1
@@ -49,7 +58,7 @@ module MusicsHelper
     [retstr, hsyear.first[1].first[:engage]]
   end
 
-  # You may encupsule it sanitized_html(with auto_link50(...)).html_safe
+  # You may encupsule this with ModuleRedcarpetAux.md2safehtml() or sanitized_html(with auto_link50(...)).html_safe
   #
   # @return [String] to show in a cell in Artist-Engage table in Music#show
   def compile_engage_notes(artist, music)

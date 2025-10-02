@@ -40,7 +40,7 @@
   <tbody>
     <% asterisk = (can_edit ? ('<span title="'+t('datagrid.footnote.is_original')+'">*</span>') : "").html_safe %>
     <% artist.musics.order(:year).uniq.each do |music| %>
-      <tr>
+      <tr id="tr_<%= dom_id(music) %>_in_table_musics">
      <% if can_edit %>
       <td title="DB pID" class="number editor_only"><%= link_to music.id, music %></td>
      <% end %>
@@ -67,7 +67,7 @@
         <td> <%= linktxt %> </td>
         <%= editor_only_safe_html(:pass, method: can_update, tag: "td", show_always: true) do %> <%# defined in application_helper.rb %>
           <% music.artists.where.not(id: artist.id).distinct.map{ |art|
-               sprintf("%s[%s]", link_to(art.title_or_alt_for_selection, art), engage_title_link(music, art).first)
+               sprintf("%s[%s]", link_to(art.title_or_alt_for_selection, art), engage_title_link(music, art, with_note: true).first)
              }.join(", ").html_safe %>
         <% end %>
         <td class="cell_note_engage_how"><%= ModuleRedcarpetAux.md2safehtml(compile_engage_notes(artist, music)) %></td> <%# defined in musics_helper.rb %>

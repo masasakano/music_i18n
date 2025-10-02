@@ -292,6 +292,8 @@ class Translation < ApplicationRecord
     en: 3,  # "AI" => %w(AI); "ers" => ["Ray Peterson", "Proclaimers, The",  ...]
   }.with_indifferent_access
 
+  # For any pair of {Translation}-s, if these differ, identical ones are allowed
+  # (least requirement, though maybe insufficient, e.g., two Artists with an identical name with separate birthdays are allowed).
   BASE_TRANSLATION_UNIQUE_SCOPES = %i(translatable_type langcode)
 
   validates :title, uniqueness: { scope: [:alt_title, :ruby, :alt_ruby, :romaji, :alt_romaji, :langcode, :translatable_type, :translatable_id] }

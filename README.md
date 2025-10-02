@@ -43,6 +43,8 @@ Unless `SKIP_W3C_VALIDATE` is "1", run your (W3C) VNU server in a separate termi
     nu.validator.servlet.Main 8888
 ```
 
+Note that you may explicitly set the environmental variable `HOMEBREW_CELLAR` to `/usr/local/Cellar` for macOS Intel.
+
 ### Database ###
 
 This app assumes a PostgreSQL database.

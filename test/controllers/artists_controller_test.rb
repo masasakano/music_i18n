@@ -65,9 +65,20 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
 
     get artist_url(@artist)
     assert_response :success
-    w3c_validate "Artist show-editor"  # defined in test_helper.rb (see for debugging help)
     assert_equal 1, css_select("body dd.item_memo_editor").size
     assert_equal memoe, css_select("body dd.item_memo_editor").text.strip
+
+    mus1 = musics(:music1)
+    assert_difference("Music.find(#{mus1.id}).engages.count") do
+      Engage.create!(music: mus1, artist: artists(:artist2), note: "Must be in *Italic* font.")  # should be rendered to HTML
+    end
+
+    get artist_url(@artist)
+    assert_response :success
+    assert_includes css_select("table#table_musics_by tr strong").text, "bold"  # Markdown-originating HTML should exist (see fixtures :engage1)
+    assert_includes css_select("table#table_musics_by tr em").text, "Italic"    # Markdown-originating HTML should exist (see above)
+
+    w3c_validate "Artist show-editor"  # defined in test_helper.rb (see for debugging help)
   end
 
   test "should fail/succeed to get new" do

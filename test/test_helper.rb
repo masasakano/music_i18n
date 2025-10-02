@@ -40,6 +40,42 @@ class ActiveSupport::TestCase
   include Devise::Test::IntegrationHelpers
   include Warden::Test::Helpers
 
+  # Suppresses STDOUT temporarily
+  #
+  # @return [String] STDOUT
+  # @yield Inside the given block, STDOUT is suppressed
+  def with_captured_stdout
+    syncval = $stdout.sync
+    begin
+      $stdout.sync = true
+      original_stdout = $stdout
+      $stdout = StringIO.new
+      yield
+      $stdout.string
+    ensure
+      $stdout = original_stdout  # restore $stdout to its previous value
+      $stdout.sync = syncval
+    end
+  end
+
+  # Suppresses STDERR temporarily
+  #
+  # @return [String] STDERR
+  # @yield Inside the given block, STDERR is suppressed
+  def with_captured_stderr
+    syncval = $stderr.sync
+    begin
+      $stderr.sync = true
+      original_stderr = $stderr
+      $stderr = StringIO.new
+      yield
+      $stderr.string
+    ensure
+      $stderr = original_stderr  # restore $stderr to its previous value
+      $stderr.sync = syncval
+    end
+  end
+
   ## helper to enable PaperTrail on specific tests
   def with_versioning
     was_enabled = PaperTrail.enabled?
