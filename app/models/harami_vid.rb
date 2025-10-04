@@ -130,9 +130,14 @@ class HaramiVid < BaseWithTranslation
     Place.unknown ||
     Place.first ||
     if Rails.env == 'test'
-#if defined?("places") && respond_to?(:places)  # In a very odd occasions, this would be needed, though this insertion would fail a HaramiVid Controller test.  Note that if you use this, /db/seeds/users.rb may fail with "Users.load_seeds is not defined."  Thn, comment out these again, and run the test again, and it should work.
+#if defined?("places") && respond_to?(:places)  # In a very odd occasions, this would be needed, though this insertion would fail a HaramiVid Controller test.  Note that if you use this, /db/seeds/users.rb may fail with "Users.load_seeds is not defined."  Then, comment out these again, and run the test again, and it should work.
 ##if true
-      places(:unknown_place_unknown_prefecture_japan) || nil  # In the test environment, a constant should not be assigned to a model.
+      begin
+        places(:unknown_place_unknown_prefecture_japan) || nil  # In the test environment, a constant should not be assigned to a model.
+      rescue NoMethodError
+        warn "For some unknown (maybe cache-related) reason, this sometimes fails in testing.  If it happens, have a look at this point /app/models/harami_vid.rb and temporarily uncomment the if-clause, run tests, and comment-out again the if-clause before proceeding."
+        raise
+      end
 #else
 #  nil
 #end
