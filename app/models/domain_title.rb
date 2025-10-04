@@ -76,7 +76,10 @@ class DomainTitle < BaseWithTranslation
   # @param site_category_id: [NilClass, String, Integer] "" would raise an error.  If nil, Default is used.
   # @return [DomainTitle]
   def self.new_from_url(url_str, site_category_id: nil)
-    ret = DomainTitle.new(site_category_id: (site_category_id || SiteCategory.default.id))&.tap(&:set_was_created_true)  # A fallback is unknown
+    ret = DomainTitle.new(site_category_id: (site_category_id || SiteCategory.default&.id))&.tap(&:set_was_created_true)  # A fallback is unknown
+    if !ret.site_category_id
+      raise HaramiMusicI18n::InconsistentDataIntegrityError, "Strangely, SiteCategory.default is undefined. Run seeding on SiteCategory"
+    end
     domain_txt = Addressable::URI.unencode(Domain.extracted_normalized_domain(url_str, with_www: false))  # without "www."
     ret.unsaved_translations << Translation.new(title: domain_txt, langcode: guess_lang_code(domain_txt), is_orig: nil, weight: Float::INFINITY)
     ret

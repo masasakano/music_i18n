@@ -1,19 +1,38 @@
 class TransferWikilinksToUrl < ActiveRecord::Migration[7.0]
   ## NOTE ###########
   #
-  # This migratio handles existing data on DB tables of Artist, Anchoring, and Url.
+  # This migration handles existing data on DB tables of Artist, Anchoring, and Url,
+  # transferring (or strictly, copying) the existing contents of old-school wiki_en, wiki_ja columns to Url
+  # before the old-school columns will be deleted in the next migration.
+  #
   # You may set ENV['FORCE_RUN_MIGRATION_TRANSFER_WIKILINKS'] = "1"
-  # if you encounter a problem and want to skip this migration.
+  # if you encounter a problem during this migration and want to skip this migration.
   #
   # Skipping would not be critical for the integration of the data at all,
   # but you may lose some data about Wikipedia links.
+  #y
+  # If you migrate from scratch, this migration in practice does nothing
+  # regardless of the value or status of ENV['FORCE_RUN_MIGRATION_TRANSFER_WIKILINKS']
+  # because there should be no relevant data in the Artist table (or any table!).
   #
-  # Note this migration does depend on the seeding introduced in commit 9db008f
+  # Note this migration does depend on the seeding introduced in commit 9db008f 
+  # (such as +SiteCategory.default+ etc?).
+  # However, seeding with /db/seeds.rb in the latest version would not work before all the migrations
+  # have been completed.  For this reason, if your data have been (for some bizarre reason)
+  # set with the Rails app in an old version developed before this migration was introduced, then
+  # you should use the seed file /db/seeds.rb in the Rails app at the time to execute (re-)seeding.
+  # In reality, I can hardly imagine if there is such a case ever.
+  #
+
+  include ApplicationHelper # for is_env_set_positive?
 
   module OneTimeRake
     class Artist < ActiveRecord::Base
     end
   end
+
+  MSG_INCONSISTENT_DATA_INTEGRITY_ERROR = "Anchors are not created because an inconsistency in data integrity was found, likely the undefined SiteCategory.default (it is not yet seeded?)."
+  MSG_INCONSISTENT_DATA_INTEGRITY_ERROR_SKIP = " To force continue the migration, skipping transferring wiki_en|ja, specify the environmental variable FORCE_RUN_MIGRATION_TRANSFER_WIKILINKS=1 - be warned that Artist#wiki_en|ja will disappear in a subsequent migration."
 
   # Copy Artist#wiki_ja|en to Url
   def up
@@ -22,18 +41,30 @@ class TransferWikilinksToUrl < ActiveRecord::Migration[7.0]
     hsret = {n_imported: 0,
              n_found: 0}
 
+    inconsistent_data_integrity_error_raised = false
     OneTimeRake::Artist.all.each do |artist|
       begin
         ar = import_urls_from_artist_wiki(artist)
         hsret[:n_imported] += ar[0]
         hsret[:n_found]    += ar[1]
+      rescue HaramiMusicI18n::InconsistentDataIntegrityError
+        inconsistent_data_integrity_error_raised = true
       end
     end
 
     printf("======= Statistics\n")
     printf(" Number of examined Artists: %d\n", OneTimeRake::Artist.all.count)
-    printf(" Number of wiki_ja|en found: %d\n", hsret[:n_found])
-    printf(" Number  Anchorings created: %d\n", hsret[:n_imported])
+
+    if inconsistent_data_integrity_error_raised
+      if is_env_set_positive?("FORCE_RUN_MIGRATION_TRANSFER_WIKILINKS")  # This should never happen because it should have been checked at the beginning of the process.
+        warn "WARNING: "+MSG_INCONSISTENT_DATA_INTEGRITY_ERROR
+      else
+        raise HaramiMusicI18n::InconsistentDataIntegrityError, MSG_INCONSISTENT_DATA_INTEGRITY_ERROR+MSG_INCONSISTENT_DATA_INTEGRITY_ERROR_SKIP
+      end
+    else
+      printf(" Number of wiki_ja|en found: %d\n", hsret[:n_found])
+      printf(" Number  Anchorings created: %d\n", hsret[:n_imported])
+    end
   end
 
   # Copy Anchoring for wikipedia to Artist#wiki_ja|en
@@ -78,6 +109,7 @@ class TransferWikilinksToUrl < ActiveRecord::Migration[7.0]
 
     n_imported = 0
     n_found = 0
+    inconsistent_data_integrity_error_raised = false
     %w(en ja).each do |locale|
       urlstr = urlstr_orig = artist_in_db.send("wiki_"+locale)
       next if urlstr.blank?
@@ -86,7 +118,14 @@ class TransferWikilinksToUrl < ActiveRecord::Migration[7.0]
       catch(:lcode_loop){
         anc = nil
         ActiveRecord::Base.transaction(requires_new: true) do      
-          url = Url.find_or_create_url_from_wikipedia_str(urlstr, url_langcode: locale, anchorable: artist, encode: true, fetch_h1: false)  # no fetch_h1 implemented anyway.
+          begin
+            url = Url.find_or_create_url_from_wikipedia_str(urlstr, url_langcode: locale, anchorable: artist, encode: true, fetch_h1: false)  # no fetch_h1 implemented anyway.
+          rescue HaramiMusicI18n::InconsistentDataIntegrityError
+            inconsistent_data_integrity_error_raised = true
+            warn sprintf("ERROR: Artist(%s): Neither URL[%s]( %s ) nor its Anchoring failed to be created: %s\n", artist.id, locale, urlstr_orig, "InconsistentDataIntegrityError")
+            throw(:lcode_loop, :inconsistent_data_integrity_error)
+          end
+
           artist.anchorings.find_by(url_id: url.id) && throw(:lcode_loop, :all_found)  # Already set up
 
           anc = Anchoring.new(anchorable_type: "Artist", anchorable_id: artist.id).tap(&:set_was_created_true).tap(&:set_domain_found_true)  # Wikipedia Domain should be present.
@@ -108,6 +147,10 @@ class TransferWikilinksToUrl < ActiveRecord::Migration[7.0]
         end
       }
     end # %w(en ja).each do |locale|
+
+    if inconsistent_data_integrity_error_raised
+      raise HaramiMusicI18n::InconsistentDataIntegrityError, MSG_INCONSISTENT_DATA_INTEGRITY_ERROR
+    end
 
     printf("__Artist(%s): %d/%d anchors created/found.\n", artist.id, n_imported, n_found)  if n_found > 0
     [n_imported, n_found]

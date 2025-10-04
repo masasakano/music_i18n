@@ -296,6 +296,12 @@ class Translation < ApplicationRecord
   # (least requirement, though maybe insufficient, e.g., two Artists with an identical name with separate birthdays are allowed).
   BASE_TRANSLATION_UNIQUE_SCOPES = %i(translatable_type langcode)
 
+  # PostgreSQL collation with which Strings are compared
+  DEF_COLLATE_TO = "C.UTF-8"
+
+  # PostgreSQL collation for langcode with which Strings are compared
+  LANGCODE_COLLATE_TO = "en_GB.UTF-8"
+
   validates :title, uniqueness: { scope: [:alt_title, :ruby, :alt_ruby, :romaji, :alt_romaji, :langcode, :translatable_type, :translatable_id] }
   # NOTE: PostgreSQL does not validate the values when one of any values (whether
   #   existing or new) is null.  But Rails does.
@@ -340,6 +346,53 @@ class Translation < ApplicationRecord
 
   # Skip singularize_is_orig callback (mainly used for testing)
   attr_accessor :skip_singularize_is_orig_callback
+
+  # Returns Array for "where" clause, in which Collation is specified.
+  #
+  # @example  Here, "*" is not necessary because of how where() works.
+  #    rela.where(*Translation.tuple_collate_equal({title: "ABC"}))
+  #    rela.where(Translation.tuple_collate_equal("title", "ABC", collate_to: "C"))
+  #
+  # @apram *args [Array<Hash, Array, String>] 2-element Array of column-name (e.g., :title) and value, or 1-element Hash for it.
+  # @param t_alias: [String, NilClass] DB table alias for Translation table, if the given +rela+ uses it. Default is {Translation.table_name} (= "translations")
+  # @return [Array] a 2-element Array feedable to a where clause in Relation.
+  def self.tuple_collate_equal(*args, t_alias: nil, collate_to: DEF_COLLATE_TO)
+    t_alias ||= table_name
+    colname, value =
+             if 1 == args.size && args[0].respond_to?(:each_pair)
+               args[0].to_a.flatten
+             elsif 2 == (a=args.flatten).size
+               a
+             else
+               raise ArgumentError, "Translation.tuple_collate_equal(#{args.inspect.sub(/\A\[(.*)\]\z/, '')}) - should be a 1-element Hash or 2-element Array/Tuple"
+             end
+
+    [sprintf('"%s"."%s" COLLATE "%s" = ?', t_alias, colname.to_s, collate_to.strip), value]
+  end
+
+  # Returns Relation containing a new where clause in which Collation is considered for title, ruby, etc.
+  #
+  # @example  Here, "*" is not necessary because of how where() works.
+  #    rela.where(*Translation.tuple_collate_equal({title: "ABC"}))
+  #    rela.where(Translation.tuple_collate_equal("title", "ABC", collate_to: "C"))
+  #
+  # @param base_rela [#where] in practice, either ActiveRecord::Relation or Class<Translation>
+  # @param colname [String, Symbol] :alt_title etc
+  # @param value [String, Object] the expected value of colname
+  # @param kwds [Hash] see {Translation.tuple_collate_equal}
+  # @return [ActiveRecord::Relation]
+  def self.relation_with_maybe_collate_equal(base_rela, colname, value, **kwds)
+    case colname.to_s
+    when "langcode"
+      # for "langcode", it has to be ASCII and extra spaces should be ignored (it should never contain spaces anyway, but playing safe)
+      base_rela.where(tuple_collate_equal(colname, value, **(kwds.merge({collate_to: en_GB.UTF-8}))))
+    when *(%w(title alt_title ruby alt_ruby romaji alt_romaji))
+      base_rela.where(tuple_collate_equal(colname, value, **kwds))
+    else  # maybe not String like Integer
+      base_rela.where({colname => value})
+    end
+  end
+
 
   # to gets Arel.sql to order by the minimum length of (title, alt_title), ignoring blank ones.
   #
@@ -855,6 +908,7 @@ class Translation < ApplicationRecord
   #    translatable_type: [Class, String] that is, the orresponding Class of the translation,
   #      which you most likely want to specify.
   #    translatable_id: [Integer, Array] To find a Translation for a particular object(s).
+  #    t_alias: SQL-query alias for Translation table.
   # @return [Relation] an empty Relation if not found. If found, the singleton
   #    methods {#match_method}, value_searched and common_sql are defined
   #    for the returned Relation to allow the caller to access these values.
@@ -895,7 +949,8 @@ class Translation < ApplicationRecord
 
     res = []  # if no methods are given in the arguments, this will be returned.
     accept_match_methods.each do |method|
-      res = build_sql_match(method, allkeys, value, common_sql, where: where, joins: joins, not_clause: not_clause)
+      t_alias = restkeys[:t_alias]
+      res = build_sql_match(method, allkeys, value, common_sql, where: where, joins: joins, not_clause: not_clause, t_alias: restkeys[:t_alias])
       if res.exists?
         ret = sort(res)
 
@@ -924,9 +979,10 @@ class Translation < ApplicationRecord
   # @param where: [String, Array<String, Hash, Array>, NilClass] Rails where clause. See #{Translation.select_regex} for detail.
   # @param joins: [String, Array<String, Hash, Array>, NilClass] Rails joins clause. See #{Translation.select_regex} for detail.
   # @param not_clause: [String, Array<String, Hash, Array>, NilClass] Rails not.where clause. See #{Translation.select_regex} for detail.
+  # @param t_alias: [String, NilClass] SQL-query alias for Translation table. Default: "translations"
   # @return [ActiveRecord::QueryMethods::WhereChain] Resultant WHERE
-  def self.build_sql_match(method, allkeys, value, common_sql, where: nil, joins: nil, not_clause: nil)
-    ary = allkeys.map{|i| build_sql_match_one(method, i, value)}
+  def self.build_sql_match(method, allkeys, value, common_sql, where: nil, joins: nil, not_clause: nil, t_alias: nil)
+    ary = allkeys.map{|i| build_sql_match_one(method, i, value, t_alias: t_alias)}
     # self.where(common_sql + ' AND ('+ary.join(' OR ')+')')
     make_joins_where(where, joins, not_clause).where(common_sql + ' AND ('+ary.join(' OR ')+')')
   end
@@ -937,9 +993,10 @@ class Translation < ApplicationRecord
   # @param method [Symbol] (:exact_absolute, :exact_absolute, :exact, :exact_ilike, :optional_article, :optional_article_ilike, :include, :include_ilike)
   # @param key [Symbol, String] (:title, :alt_title, :ruby, ...)
   # @param value [String] Title to query for. This has to be String.
+  # @param t_alias: [String, NilClass] SQL-query alias for Translation table. Default: "translations"
   # @return [String] Resultant SQL string to execute in WHERE
-  def self.build_sql_match_one(method, key, value)
-    tbl = table_name
+  def self.build_sql_match_one(method, key, value, t_alias: nil)
+    tbl = (t_alias || table_name)
     value = value.gsub(/'/, "''")
     case method
     when :exact_absolute
@@ -1012,10 +1069,11 @@ class Translation < ApplicationRecord
   # @param key [Symbol, String] (:title, :alt_title, :ruby, ...)
   # @param value [String] Title to query for. This has to be String.
   # @param common_sql [String] Common SQL query string
+  # @param t_alias: [String, NilClass] SQL-query alias for Translation table. Default: "translations"
   # @return [Symbol]
-  def self.find_matched_attribute_after_find_by_a_title(method, allkeys, value, common_sql)
+  def self.find_matched_attribute_after_find_by_a_title(method, allkeys, value, common_sql, t_alias: nil)
     allkeys.each do |key|
-      return key if build_sql_match(method, [key], value, common_sql).exists?
+      return key if build_sql_match(method, [key], value, common_sql, t_alias: t_alias).exists?
     end
     raise 'Strange...'
   end
@@ -1358,11 +1416,12 @@ class Translation < ApplicationRecord
   #
   #   SELECT "translations".* FROM "translations" WHERE "translations"."langcode" = $1
   #     AND "translations"."translatable_type" = $2
-  #     AND ((((("translations"."title" = $3 OR "translations"."alt_title" = $4)
-  #           OR "translations"."ruby" = $5)
-  #           OR "translations"."alt_ruby" = $6)
-  #           OR "translations"."romaji" = $7)
-  #           OR "translations"."alt_romaji" = $8) LIMIT $9
+  #     AND ("translations"."title" COLLATE \"C.UTF-8\" = $3)
+  #           OR ("translations"."alt_title" COLLATE \"C.UTF-8\" = $4)
+  #           OR ("translations"."ruby" COLLATE \"C.UTF-8\" = $5)
+  #           OR ("translations"."alt_ruby" COLLATE \"C.UTF-8\" = $6)
+  #           OR ("translations"."romaji" COLLATE \"C.UTF-8\" = $7)
+  #           OR ("translations"."alt_romaji" COLLATE \"C.UTF-8\" = $8) LIMIT $9
   #    [["langcode", "en"], ["translatable_type", "Sex"],
   #     ["title", "male"], ["alt_title", "male"], ["ruby", "male"],
   #     ["alt_ruby", "male"], ["romaji", "male"], ["alt_romaji", "male"], ["LIMIT", 11]]
@@ -1388,6 +1447,7 @@ class Translation < ApplicationRecord
   # @param **restkeys [Hash] simply ignored.
   # @return [Translation::ActiveRecord_Relation]
   def self.select_regex_string(common_opts, allkeys, value, where, joins, not_clause=nil, space_sensitive: false, scope: nil, **restkeys)
+    t_alias = table_name
     base_rela = make_joins_where(where, joins, not_clause, parent: (scope || self).where(common_opts))
     return base_rela if (allkeys.empty? || value.blank?)
 
@@ -1399,7 +1459,8 @@ class Translation < ApplicationRecord
       if value.respond_to?(:named_captures)
         _psql_where_regexp(base_rela, ek, re_str, reopts, space_sensitive: space_sensitive)
       else
-        base_rela.where({ek => value})
+        relation_with_maybe_collate_equal(base_rela, ek, value, t_alias: t_alias)
+        #base_rela.where({ek => value})  # deprecated
       end
     }
 

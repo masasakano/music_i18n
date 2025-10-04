@@ -36,6 +36,8 @@ module ApplicationHelper
   end
 
   # true if the environmental variable is set and non-false
+  #
+  # @param key [String] name of the environmental variable
   def is_env_set_positive?(key)
     ENV.keys.include?(key.to_s) && !(%w(0 false FALSE f F)<<"").include?(ENV[key])
   end

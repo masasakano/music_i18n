@@ -257,12 +257,27 @@ module Seeds
               arwrong = klass.find_all_inconsistent_translations(artrans).compact
               if !arwrong.empty?
                 arlcs = arwrong.map{|i| i[:langcode].to_s}
-                msg = "WARNING: One or more Translations #{arlcs.inspect} for a seed have apparently changed from the defaults! Check out #{klass.name}.find(#{cand.id}) :\n Expected[langcode, title]=#{artrans.map{|i| i.values.flatten}.inspect}\n  Reality[langcode, title]=#{cand.translations.pluck(:langcode, :title)}"
+                msg = "WARNING: One or more Translations #{arlcs.inspect} for a seed have apparently changed from the defaults! Check out #{klass.name}.find(#{cand.id}) :\n Expected[langcode, title]=#{_sort_langcode_title(artrans.map{|i| i.values.flatten}).inspect}\n  Reality[langcode, title]=#{_sort_langcode_title(cand.translations.pluck(:langcode, :title))}"
                 Rails.logger.warn msg
                 warn msg
               end
             end
             cand
     end
+
+    # nil comes first (not by choice but because it is easier to code)
+    #
+    # @param aryin [Array] Double Array of [[langcode, title], ...]
+    def _sort_langcode_title(aryin)
+      aryin.sort{ |a, b|
+        res = ((a[0] || "") <=> (b[0] || ""))
+        if res != 0
+          res
+        else
+          ((a[1] || "") <=> (b[1] || ""))
+        end
+      }
+    end
+    private :_sort_langcode_title
   end # moduleCommon
 end # module Seeds

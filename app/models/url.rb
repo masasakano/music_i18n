@@ -345,6 +345,8 @@ class Url < BaseWithTranslation
     rescue HaramiMusicI18n::Domains::CascadeSaveError => err
       errors.add :domain_id, compile_captured_err_msg(err)  # defined in ModuleCommon (to clarify for editors what error is raised)
       return  # an error happens.
+    # rescue HaramiMusicI18n::InconsistentDataIntegrityError
+      ## This happens when SiteCategory.default is undefined (which should never happen in normal operations).
     end
 
     set_domain_found_if_true( self.domain.was_found? ) if domain.present?  # defined in ModuleWasFound
