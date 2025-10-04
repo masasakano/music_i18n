@@ -406,7 +406,8 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
     assert_selector css_edit
     assert_equal "01:15", (lines=find(css_td).text.split("\n")).first.strip, "Video timing should have been updated, but..."
-    assert_includes        lines[1].strip, "uccessfully updated"
+    #assert_includes        lines[1].strip, "uccessfully updated"
+    assert_includes        lines.join(" ").strip, "uccessfully updated"  # There is also a warning message: "Please make sure to add an Event(Item)."
 
     fill_in "Video length", with: "1:12"
     click_on @update_haramivid_button, match: :first
