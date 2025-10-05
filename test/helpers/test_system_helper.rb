@@ -28,7 +28,10 @@ class ActiveSupport::TestCase
 
   TEXT_ASSERTED ||= {}.with_indifferent_access
   TEXT_ASSERTED[:login] ||= {}.with_indifferent_access
-  TEXT_ASSERTED[:login][:signed_in] = TEXT_ASSERTED[:login][:logged_in] = "Signed in successfully"
+  TEXT_ASSERTED[:login][:signed_in] = TEXT_ASSERTED[:login][:logged_in] = "Signed in successfully."
+  TEXT_ASSERTED[:login][:signed_in_fail] = TEXT_ASSERTED[:login][:logged_in_fail] = "Invalid Email or password."
+  TEXT_ASSERTED[:login][:signed_out] = TEXT_ASSERTED[:login][:logged_out] = "Signed out successfully."
+  TEXT_ASSERTED[:login][:need] = "You need to sign in or sign up"
 
   # Temporarily sets a longe wait time for the specific block (in case the machine is slow)
   #
@@ -192,11 +195,26 @@ class ActiveSupport::TestCase
   end
 
   # performs log on
-  def login_or_fail_index(user)
+  #
+  # @param succeed: [Boolean] if true (Default), should sign in successfully.
+  def login_or_fail_index(user, succeed: true)
     #visit new_user_session_path  # already on this page.
     fill_in "Email", with: user.email
     fill_in "Password", with: '123456'  # from users.yml
     click_on "Log in"
+    exp = TEXT_ASSERTED[:login][(succeed ? :signed_in : :signed_in_fail)]
+    assert_selector "body div.alert", text: exp
+  end
+
+  # performs log out
+  #
+  # @example
+  #   logout_from_menu # defined in test_system_helper.rb
+  def logout_from_menu
+    assert page.find(:xpath, "//div[@id='navbar_top']//a[text()='Log out']").click
+    assert_selector :xpath, xpath_for_flash(:notice, category: :div), text: TEXT_ASSERTED[:login][:signed_out]  # Notice message issued.
+                          # "//div[@id='body_main']/p[contains(@class, 'notice')][1]" (and more)
+    # assert_equal "Signed out successfully.", page.find(:xpath, xpath_for_flash(:notice, category: :div)).text.strip  # Notice message issued.
   end
 
   # performs log on and assertion
@@ -218,17 +236,18 @@ class ActiveSupport::TestCase
     index_path = Rails.application.routes.url_helpers.polymorphic_path(model.class) if model.respond_to?(:destroy!) 
     h1_title ||= model.class.name.underscore.pluralize.split("_").map(&:capitalize).join(" ")  # e.g., "Event Items"
 
-    ## Failing
+    ## Failing in displaying index (although Login itself should succeed)
     if user_fail
       visit new_user_session_path
+      assert_selector "h2", text: "Log in"
       assert_current_path new_user_session_path
 
-      login_or_fail_index(user_fail)
+      login_or_fail_index(user_fail, succeed: true)
 
       visit index_path
-      assert_current_path root_path
-      click_on "Log out", match: :first
-      assert_text "Signed out successfully"
+      assert_selector "h1"  # Root
+      assert_current_path root_path  # should be redirected (from Index) to Root path
+      logout_from_menu
     end
 
     return if !user_succeed
@@ -236,11 +255,12 @@ class ActiveSupport::TestCase
     ## Succeeding
     visit index_path
     assert_current_path new_user_session_path
-    assert_text "You need to sign in or sign up"
+    assert_text TEXT_ASSERTED[:login][:need]
+    assert_selector :xpath, xpath_for_flash(:alert, category: :div), text: TEXT_ASSERTED[:login][:need]
+    # assert page.find(:xpath, xpath_for_flash(:alert, category: :div)).text.strip.include?("need to sign in")  # redundant
 
-    login_or_fail_index(user_succeed)
+    login_or_fail_index(user_succeed, succeed: true)
 
     assert_selector "h1", text: h1_title
-    assert_text "Signed in successfully"
   end
 end

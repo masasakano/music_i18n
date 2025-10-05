@@ -189,31 +189,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
     artistz = []  # Artists after "Populated"  (artists() is Rails' function to get a fixture)
 
     ## first, testing Harami1129Review (for authorization etc)
-    visit harami1129_reviews_url  # should be redirected to new_user_session_path
-    assert page.find(:xpath, xpath_for_flash(:alert, category: :div)).text.strip.include?("need to sign in") # defined in test_helper.rb
-                # "//div[@id='body_main']/p[contains(@class, 'alert-danger')][1]" (and more)
-
-    fill_in "Email", with: @moderator_ja.email  # General-only moderator
-    fill_in "Password", with: '123456'  # from users.yml
-    click_on "Log in"
-
-    assert_equal "Signed in successfully.",  page.find(:xpath, xpath_for_flash(:notice, category: :div)).text.strip  # Notice message issued.
-                                              # "//div[@id='body_main']/p[contains(@class, 'notice')][1]" (and more)
-    assert_selector "h1", text: "HARAMIchan"  # Here, @moderator_ja is not qualified to view Harami1129Review, so the login page would not go back to Harami1129Review-index but is redirected to Home.
-    refute_selector "h1", text: "Harami1129 Reviews"
-
-    assert page.find(:xpath, "//div[@id='navbar_top']//a[text()='Log out']").click
-    assert_equal "Signed out successfully.", page.find(:xpath, xpath_for_flash(:notice, category: :div)).text.strip  # Notice message issued.
-    assert_selector "h1", text: "HARAMIchan"
-
-    visit harami1129_reviews_url  # should be redirected to new_user_session_path
-    assert page.find(:xpath, xpath_for_flash(:alert, category: :div)).text.strip.include?("need to sign in")
-    fill_in "Email", with: @moderator_harami.email  # Harami-only moderator
-    fill_in "Password", with: '123456'  # from users.yml
-    click_on "Log in"
-
-    assert_equal "Signed in successfully.",  page.find(:xpath, xpath_for_flash(:notice, category: :div)).text.strip  # Notice message issued.
-    assert_selector "h1", text: "Harami1129 Reviews"
+    assert_index_fail_succeed(Harami1129Review.new, "Harami1129 Reviews", user_fail: @moderator_ja, user_succeed: @moderator_harami)  # defined in test_system_helper.rb
     
     assert_equal N_FIXTURES_HARAMI1129_REVIEW, page.find_all(:xpath, "//table[@id='harami1129_reviews_index']//tbody//tr").size, "should display 2 entries as defined in the fixture harami1129_review"
     assert_equal N_FIXTURES_HARAMI1129_REVIEW, Harami1129Review.count

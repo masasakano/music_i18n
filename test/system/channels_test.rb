@@ -52,7 +52,8 @@ class ChannelsTest < ApplicationSystemTestCase
     fill_in "Password", with: '123456'  # from users.yml
     click_on "Log in"
 
-    visit channels_url
+    #visit channels_url
+    assert_selector "h1", text: @h1_title
     n_records_be4 = page.all("div#channels table tr").size - 1
     click_on "New Channel"
 
