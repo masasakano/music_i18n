@@ -819,9 +819,20 @@ class ApplicationController < ActionController::Base
       devise_parameter_sanitizer.permit(:account_update, keys: [:display_name])
     end
 
+    # around_action
+    #
+    # With this,
+    #
+    # 1. if /ja/places is requested, the internally-used locale is ja (Japanese).
+    # 2. if /places is requested, the URL does not change, while
+    #    the internally-used locale is set according to the user request
+    #    determined with Gem http_accept_language (or site default if none is requested).
+    # 3. The root paths (like "/" and "/ja") are correctly handled, too.
+    #
     # From https://guides.rubyonrails.org/i18n.html#managing-the-locale-across-requests
     def switch_locale(&action)
-      locale = (params[:locale].blank? ? I18n.default_locale : params[:locale])
+      # locale = (params[:locale].blank? ? I18n.default_locale : params[:locale])
+      locale = (params[:locale].blank? ? (http_accept_language.compatible_language_from(I18n.available_locales) || I18n.default_locale) : params[:locale])  # defined by Gem http_accept_language
       I18n.with_locale(locale, &action)
     end
 

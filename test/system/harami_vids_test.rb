@@ -177,6 +177,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     click_on @update_haramivid_button, match: :first
 
     ### Checking flash messages (the submit must have failed.)
+    assert_text 'prohibited this HaramiVid from being saved'
     assert_match(/\bprohibited this HaramiVid from being saved\b/, find_all(css_for_flash(:alert, category: :error_explanation))[0].text)
     assert_match(/\bEvent.* must be checked\b/, find_all(css_for_flash(:alert, category: :error_explanation))[0].text)  # TODO: two matches...
     check 'UnknownEventItem'  # In fact, this should be forcibly checked again in default when an error takes you back to the screen after unchecked.
@@ -184,6 +185,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
     click_on @update_haramivid_button, match: :first
 
+    assert_text 'HaramiVid was successfully updated'
     assert_match(/HaramiVid was successfully updated\b/, find_all(css_for_flash(:success)).first.text)  # defined in test_helper.rb
     _check_at_show(vid_prms)
 
@@ -204,6 +206,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     # fill_in('featuring Artist', with: "")  # To reset the featuring Artist; should be unnecessary!
     click_on @update_haramivid_button, match: :first
 
+    assert_text 'HaramiVid was successfully updated'
     assert_match(/HaramiVid was successfully updated\b/, find_all(css_for_flash(:success)).first.text)  # defined in test_helper.rb
     _check_at_show(vid_prms)
 

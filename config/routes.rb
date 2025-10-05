@@ -1,4 +1,10 @@
 Rails.application.routes.draw do
+  ####### This part MUST precede any other lines!!
+  #filter :extension #, :exclude => %r(^admin/)
+  filter :locale#,    :exclude => /^\/admin/
+  default_url_options(locale: I18n.locale) if Rails.env.test?
+  ####### Up to here
+
   resources :diagnose, only: [:index]
   resources :urls
   resources :domains
@@ -53,9 +59,6 @@ Rails.application.routes.draw do
     end
   end
   resources :page_formats
-  #filter :extension #, :exclude => %r(^admin/)
-  filter :locale#,    :exclude => /^\/admin/
-  default_url_options(locale: I18n.locale) if Rails.env.test?
 
   resources :static_pages
   resources :country_masters
