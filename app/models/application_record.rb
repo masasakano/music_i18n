@@ -3,6 +3,11 @@
 class ApplicationRecord < ActiveRecord::Base
   self.abstract_class = true
 
+  # PostgreSQL collation name for the locale (key)
+  #
+  # e.g., "C" => "C.UTF-8", "en_GB" => "en_GB.UTF-8" (on macOS/BSD), "C.utf8" (on Linux), "invalid" => "C"
+  @@cached_utf8collations = {C: nil}.with_indifferent_access
+
   extend ModuleApplicationBase
 
   # The default logger_title
@@ -14,6 +19,38 @@ class ApplicationRecord < ActiveRecord::Base
 
   # ID of the Model corresponding to {#prev_model_name}
   attr_accessor :prev_model_id
+
+  # Checks if a specific collation name exists in the PostgreSQL catalog.
+  def self.collation_available?(collation_name)
+    return true if %w(C POSIX).include?(collation_name.upcase)
+
+    1 == connection.select_value("SELECT 1 FROM pg_collation WHERE collname = '#{connection.quote_string(collation_name)}'")
+  rescue ActiveRecord::StatementInvalid, ActiveRecord::NoDatabaseError
+    false
+  end
+
+  # Returns (maybe cached) default PostgreSQL UTF-8 collation, depending on the platform
+  #
+  # @return [String] guaranteed to be a valid String
+  def self.utf8collation
+    @@cached_utf8collations["C"] ||=
+      case RUBY_PLATFORM
+      when /darwin/i  # perhaps /darwin|bsd/i would also do
+        "C.UTF-8"
+      when /linux/i
+        "C.utf8"
+      else
+        utf8collation_for("C")
+      end
+  end
+
+  # Returns (maybe cached) default PostgreSQL UTF-8 collation, depending on the platform
+  #
+  # @param loc [String] locale, e.g., "en_GB"
+  # @return [String] like "en_GB.UTF-8"
+  def self.utf8collation_for(loc)
+    @@cached_utf8collations[loc] ||= (%w(UTF-8 utf8).map{ loc+"."+_1 }.find{collation_available?(_1)} || "C")
+  end
 
   # String to output for a logger output to explain the model
   #

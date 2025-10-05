@@ -296,12 +296,6 @@ class Translation < ApplicationRecord
   # (least requirement, though maybe insufficient, e.g., two Artists with an identical name with separate birthdays are allowed).
   BASE_TRANSLATION_UNIQUE_SCOPES = %i(translatable_type langcode)
 
-  # PostgreSQL collation with which Strings are compared
-  DEF_COLLATE_TO = "C.UTF-8"
-
-  # PostgreSQL collation for langcode with which Strings are compared
-  LANGCODE_COLLATE_TO = "en_GB.UTF-8"
-
   validates :title, uniqueness: { scope: [:alt_title, :ruby, :alt_ruby, :romaji, :alt_romaji, :langcode, :translatable_type, :translatable_id] }
   # NOTE: PostgreSQL does not validate the values when one of any values (whether
   #   existing or new) is null.  But Rails does.
@@ -356,7 +350,8 @@ class Translation < ApplicationRecord
   # @apram *args [Array<Hash, Array, String>] 2-element Array of column-name (e.g., :title) and value, or 1-element Hash for it.
   # @param t_alias: [String, NilClass] DB table alias for Translation table, if the given +rela+ uses it. Default is {Translation.table_name} (= "translations")
   # @return [Array] a 2-element Array feedable to a where clause in Relation.
-  def self.tuple_collate_equal(*args, t_alias: nil, collate_to: DEF_COLLATE_TO)
+  def self.tuple_collate_equal(*args, t_alias: nil, collate_to: nil)
+    collate_to ||= ApplicationRecord.utf8collation  # "C.UTF-8" (BSD) or "C.utf8" (Linux)
     t_alias ||= table_name
     colname, value =
              if 1 == args.size && args[0].respond_to?(:each_pair)
@@ -385,7 +380,8 @@ class Translation < ApplicationRecord
     case colname.to_s
     when "langcode"
       # for "langcode", it has to be ASCII and extra spaces should be ignored (it should never contain spaces anyway, but playing safe)
-      base_rela.where(tuple_collate_equal(colname, value, **(kwds.merge({collate_to: en_GB.UTF-8}))))
+      collate_to = ApplicationRecord.utf8collation_for("en_US")  # "en_US.UTF-8" (BSD) or "en_US.utf8" (Linux)
+      base_rela.where(tuple_collate_equal(colname, value, **(kwds.merge({collate_to: collate_to}))))
     when *(%w(title alt_title ruby alt_ruby romaji alt_romaji))
       base_rela.where(tuple_collate_equal(colname, value, **kwds))
     else  # maybe not String like Integer
@@ -1412,7 +1408,7 @@ class Translation < ApplicationRecord
   # for a given value of String (or nil). SQL is used to search the match.
   # If Regexp, Ruby engine is used (hence more resource intensive) as in {Translation.select_regex_rubyregex}.
   #
-  # The created SQL is like (alltrans.to_sql):
+  # The created SQL is like (alltrans.to_sql) on macOS/BSD ("C.utf8" on Linux):
   #
   #   SELECT "translations".* FROM "translations" WHERE "translations"."langcode" = $1
   #     AND "translations"."translatable_type" = $2

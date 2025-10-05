@@ -160,4 +160,3 @@ group :development, :test do
   gem 'minitest-reporters', '~> 1', '>= 1.4.3'  # depending on rubocop
   gem 'w3c_validators', '~> 1', '>= 1.3.6'
 end
-gem "sassc-rails"
