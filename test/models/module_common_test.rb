@@ -1,5 +1,7 @@
 # coding: utf-8
 
+# coding: utf-8
+
 require 'test_helper'
 
 class ModuleCommonTest < ActiveSupport::TestCase
@@ -295,7 +297,7 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert obj.respond_to?(:naiyo?)
     assert_equal 8, obj2.naiyo?
 
-    assert "".set_singleton_method_val(:empty?, target: obj2, reader: true, derive: true)
+    assert String.new.set_singleton_method_val(:empty?, target: obj2, reader: true, derive: true)
     assert obj2.respond_to?(:empty?)
     assert obj2.empty?
   end

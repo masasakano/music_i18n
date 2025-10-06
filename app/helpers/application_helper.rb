@@ -97,7 +97,7 @@ module ApplicationHelper
   def best_translation_with_asterisk(record, is_orig_char: nil, **kwds)
     tit = record.title(**kwds)
 
-    ret = (tit.present? ? h(tit) : "")
+    ret = (tit.present? ? h(tit) : String.new)
     set_singleton_method_val(:lcode, tit.lcode, target: ret) if tit.respond_to?(:lcode)  # Define Singleton method String#lcode # defined in module_common.rb
     return ret if ret.blank?
 
@@ -196,13 +196,13 @@ module ApplicationHelper
   #
   # @return [String]
   def get_html_head_title
-    retstr = ""
+    retstr = String.new
     hsroute = Rails.application.routes.recognize_path(pat=url_for)  # :only_path is true <https://api.rubyonrails.org/classes/ActionView/RoutingUrlFor.html>
     model_name = hsroute[:controller].singularize.camelize
     # e.g., hsroute === {:controller=>"play_roles", :action=>"index", :locale=>"ja"}
     retstr = model_name
-    record = ""
-    title = ""
+    record = String.new
+    title = String.new
 
     begin
       model_class = model_name.constantize
@@ -221,7 +221,7 @@ module ApplicationHelper
         end
       title = 
         if !record
-          ""
+          String.new
         elsif BaseWithTranslation == model_class.superclass
           record.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)
         else
@@ -230,7 +230,7 @@ module ApplicationHelper
             s = record.send(candkey)
             break s.to_s.strip if s.present?
           end
-          str ? str : ""
+          str ? str : String.new
         end
     end
 
@@ -254,7 +254,7 @@ module ApplicationHelper
     retstr << langcode_str
 
   rescue  # to make sure a page is displayed no matter what!
-    retstr || ""
+    retstr || String.new
   end # def get_html_head_title
 
 
@@ -498,7 +498,7 @@ module ApplicationHelper
     # This sets an instance variable: uri.platform
     adjust_queries!(uri, long: long, with_query: with_query, with_time: with_time, white_list: white_list)
 
-    ret = ""
+    ret = String.new
     ret.instance_eval{singleton_class.class_eval { attr_accessor "platform" }} if !ret.respond_to?(:platform)  # these 2 linew are equivalent to ModuleCommon#set_singleton_method_val
     ret.platform = uri.platform  # Define Singleton method String#platform
 
@@ -1065,11 +1065,11 @@ module ApplicationHelper
     return "".html_safe if is_consistent && !print_consistent
     raise ArgumentError, "postfix #{postfix.inspect} is NOT html_safe." if !postfix.html_safe?
 
-    tag_class = ERB::Util.html_escape(span_class.present? ? [CSS_CLASSES[:consistency_place], (span_class.present? ? span_class : nil)].compact.join(" ") : "")
+    tag_class = ERB::Util.html_escape(span_class.present? ? [CSS_CLASSES[:consistency_place], (span_class.present? ? span_class : nil)].compact.join(" ") : String.new)
 
     core_html =
       if is_consistent
-        (print_consistent ? "consistent"+postfix : "").html_safe
+        (print_consistent ? "consistent"+postfix : String.new).html_safe
       else
         ('<span class="lead text-red"><strong>INCONSISTENT</strong>'+postfix+'</span>').html_safe
       end
@@ -1138,7 +1138,7 @@ module ApplicationHelper
   # @param num [Numeric, String]
   # @return [String] "" if nil is given.
   def print_1or2digits(num)
-    return "" if !num
+    return String.new if !num
     fmt = ((num*10 == (num*10).to_i) ? "%3.1f" : "%4.2f")
     sprintf(fmt, num)
   end
@@ -1150,7 +1150,7 @@ module ApplicationHelper
   # @param num [Numeric, String]
   # @return [String] "" if nil is given.  Examples: " 0%", " 1%", "23%", "100%"
   def print_percent_2digits(num)
-    return "" if !num || num < 0 || num > 1
+    return String.new if !num || num < 0 || num > 1
     sprintf("%3d%%", num*100).sub(/^\s/, "")
   end
 
@@ -1191,7 +1191,7 @@ module ApplicationHelper
   # @param method: [Symbol] this can be like :crud or :ud as defined in ability.rb
   # @return [String] html_safe String to display if the page is editor-only? (maybe moderator or admin only)
   def h1_note_editor_only(record, method: :show)
-    return "" if publicly_viewable?(record, method: method, permissive: true)
+    return String.new if publicly_viewable?(record, method: method, permissive: true)
 
     ret = '<span class="editor_only text-red">&nbsp;&nbsp;[Editor-only Page]</span>'.html_safe
   end
@@ -1258,7 +1258,7 @@ module ApplicationHelper
       end
     end
 
-    return "" if (:pass == record && !method) || (:pass != record && !can?(method, record))
+    return String.new if (:pass == record && !method) || (:pass != record && !can?(method, record))
 
     html_classes = [(obj=binding.local_variable_get(:class)).present? ? obj : nil].compact
 
@@ -1278,7 +1278,7 @@ module ApplicationHelper
     # Note: Array#html_safe? exists but Array#html_safe does not, and raises NoMethodError  
 
     text = text.strip.html_safe if text.present? && strip
-    (text.present? || show_always) ? ApplicationController.helpers.tag.send(tag, text, class: html_classes, **opts) : ""
+    (text.present? || show_always) ? ApplicationController.helpers.tag.send(tag, text, class: html_classes, **opts) : String.new
   end
 
   # to suppress warning, mainly that in Ruby-2.7.0:

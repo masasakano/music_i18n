@@ -27,7 +27,7 @@ module MusicsHelper
       }
       contribution_str =
         if !can_update || conts.compact.empty?
-          ""
+          String.new
         else
           '<span class="editor_only">;f=' + conts.map{|i| i ? i : "nil"}.join("/") + "</span>"
         end

@@ -5,7 +5,7 @@
 
 <%= turbo_frame_tag "note_"+dom_id(@hvma) do %>
   <span class="note text-start">
-    <% title_txt = "Note for this association" %>
+    <% title_txt = +"Note for this association" %>
     <% title_txt << "; HaramiVidMusicAssc(ID=#{@hvma.id})" if can?(:edit, HaramiVid) %>
     <span title="<%= title_txt %>"><%= ModuleRedcarpetAux.md2safehtml(@hvma.note) %></span>
   </span>

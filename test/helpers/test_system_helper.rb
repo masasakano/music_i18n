@@ -253,10 +253,11 @@ class ActiveSupport::TestCase
     return if !user_succeed
 
     ## Succeeding
-    visit index_path
+    visit index_path  # should be redirected to new_user_session_path
     assert_current_path new_user_session_path
     assert_text TEXT_ASSERTED[:login][:need]
     assert_selector :xpath, xpath_for_flash(:alert, category: :div), text: TEXT_ASSERTED[:login][:need]
+                # "//div[@id='body_main']/p[contains(@class, 'alert-danger')][1]" (and more)
     # assert page.find(:xpath, xpath_for_flash(:alert, category: :div)).text.strip.include?("need to sign in")  # redundant
 
     login_or_fail_index(user_succeed, succeed: true)

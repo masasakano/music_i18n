@@ -57,7 +57,7 @@ class UrlsController < ApplicationController
   def update
     def_respond_to_format(@url, :updated){
       if !@hsmain[:domain_id].nil? && @hsmain[:domain_id].blank?  # If nil, it is not from Web HTTP, but artificial testing, so we ignore it.  Note that since we use @hsmain, I am not sure if the key exists in the passed params or not.
-        @url.domain_id = ""
+        @url.domain_id = nil
         @url.url = @hsmain[:url]  # These two assignments are essential to auto-update domain_id
         find_or_create_and_assign_domain(@url)
       end

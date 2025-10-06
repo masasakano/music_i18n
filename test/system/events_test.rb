@@ -42,6 +42,7 @@ class EventsTest < ApplicationSystemTestCase
     assert_selector(css_link, text: ev_title)
 
     click_on ev_title, match: :first
+    assert_selector "h1", text: "Event: "+ev_title
     assert_text "Number of registered HaramiVids"
     assert (ev_tit2 = trans_titles_in_table(langcode: "en", fallback: true).values.flatten.first)  # defined in test_system_helper.rb
     assert_equal ev_title, ev_tit2, "Should be back to the Event#show, but..."

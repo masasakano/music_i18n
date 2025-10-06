@@ -2024,7 +2024,7 @@ class BaseWithTranslation < ApplicationRecord
     rela2 = 
       case lang_fallback_option
       when :never
-        where_langcode = (langcode.present? ? sprintf(" AND langcode = '%s'", langcode) : "")
+        where_langcode = (langcode.present? ? sprintf(" AND langcode = '%s'", langcode) : String.new)
         rela.joins(join_strs[0] + where_langcode + join_strs[1])
       when :either, :both
         rela.joins(join_strs.join(""))
@@ -2558,7 +2558,7 @@ class BaseWithTranslation < ApplicationRecord
   # @return [String] Either "Queen" (maybe empty) or "Queen (クイーン)". Guaranteed to return String.
   def title_or_alt_tuple_str(open_pare="(", close_pare=")", normalize_definite_article: true, **opts)
     arret = title_or_alt_tuple(prioritize_orig: true, **opts)
-    return "" if arret[0].blank?
+    return String.new if arret[0].blank?
     arret.map!{|i| (i && normalize_definite_article) ? definite_article_to_head(i) : i}
     return arret[0] if arret.size == 1
     sprintf("%s "+open_pare+"%s"+close_pare, *arret)
@@ -2950,7 +2950,7 @@ class BaseWithTranslation < ApplicationRecord
   # @return [BaseWithTranslation, NilClass] nil if not found.
   def best_translation(langcodearg=nil, langcode: nil, fallback: true)  # langcode given both in the main argument and option to be in line with {#titles} etc.
     langcode = (langcodearg || langcode).to_s
-    langcode = "" if "all" == langcode
+    langcode = String.new if "all" == langcode
     tras = ((new_record? && @unsaved_translations.present?) ? unsaved_translations : translations)
     return Translation.sort(tras).first if langcode.blank?
 

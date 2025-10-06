@@ -88,6 +88,7 @@ class ArtistsTest < ApplicationSystemTestCase
 
     ## English sorting (the total number should not change)
     page.find(CSSGRIDS[:th_title_en_a_desc]).click
+    assert_selector "h1", text: "アーティスト"
     stats2 = _get_stats
     assert_equal "全登録数", stats2[:word_tot]
 
@@ -99,6 +100,7 @@ class ArtistsTest < ApplicationSystemTestCase
 
     ## transited to English
     page.find(@css_swithcer_en+" a").click
+    assert_selector "h1", text: @h1_title
     assert_equal "English", page.find(@css_swithcer_en).text
     refute_selector                   @css_swithcer_en+" a"
     assert_equal "日本語",  page.find(@css_swithcer_ja+" a").text
@@ -108,15 +110,16 @@ class ArtistsTest < ApplicationSystemTestCase
     #find_field("Sex").choose('not known')  # invalid b/c "for" are inconsistent.
     click_on "Apply"
 
-    assert_selector('input[type="submit"]:not([disabled])')
+    assert_selector('input[type="submit"]:not([disabled])')  # This seems to work (in HaramiVid system tests); see below.
+    assert_selector "h1", text: @h1_title
     stats3 = _get_stats
     assert_equal "Grand total", stats3[:word_tot]
 
     assert_equal stats1[:i_page],      stats3[:i_page] 
     assert_equal stats1[:i_from],      stats3[:i_from] 
     #assert_equal stats1[:i_to],        stats3[:i_to] 
-    assert_selector('input[type="submit"]:not([disabled])')  # This seems to work (in HaramiVid system tests); see below.
-    assert_operator stats1[:n_cur], :>, stats3[:n_cur], page.find('div.datagrid-actions')['outerHTML']  # Number decreased after filtering. ## NOTE: If this fails, the server's response is too slow and may be still processing the submission; to avoid it, you would need assert_selector to match the NOT-disabled <input type="submit" name="commit" value="Apply" class="datagrid-submit" data-disable-with="Apply"> (or "適用"). However, I do not know the exact CSS/XPath for assert_selector to match, yet. The error message here should print out?  Maybe:  assert_selector('input[type="submit"]:not([disabled])')  or "visible: true" (??)
+    assert_operator stats1[:n_cur], :>, stats3[:n_cur], page.find('p.pagenation_stats')['outerHTML']  # Number decreased after filtering. ## NOTE: If this fails, the server's response is too slow and may be still processing the submission; to avoid it, you would need assert_selector to match the NOT-disabled <input type="submit" name="commit" value="Apply" class="datagrid-submit" data-disable-with="Apply"> (or "適用"). However, I do not know the exact CSS/XPath for assert_selector to match, yet. The error message here should print out?  Maybe:  assert_selector('input[type="submit"]:not([disabled])')  or "visible: true" (??)
+    #assert_operator stats1[:n_cur], :>, stats3[:n_cur], page.find('div.datagrid-actions')['outerHTML']  # Number decreased after filtering. ## NOTE: If this fails, the server's response is too slow and may be still processing the submission; to avoid it, you would need assert_selector to match the NOT-disabled <input type="submit" name="commit" value="Apply" class="datagrid-submit" data-disable-with="Apply"> (or "適用"). However, I do not know the exact CSS/XPath for assert_selector to match, yet. The error message here should print out?  Maybe:  assert_selector('input[type="submit"]:not([disabled])')  or "visible: true" (??)
     assert_equal stats1[:n_grand_tot], stats3[:n_grand_tot]  # Total number for the model remains the same
 
     # sanity checks of fixtures

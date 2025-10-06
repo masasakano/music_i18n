@@ -103,7 +103,7 @@ module ModuleUrlUtil
                             delegate_special: false)
     end
 
-    urlstr = ""
+    urlstr = String.new
     urlstr << uri.scheme << "://" if with_scheme && uri.scheme.present?
     host =
       if decode_all
@@ -113,7 +113,7 @@ module ModuleUrlUtil
       end
 
     urlstr << (with_www ? host : host.sub(/\Awww\./, ""))
-    urlstr << ((with_port && uri.port.present?) ? ":#{uri.port}" : "")  # port is Integer
+    urlstr << ((with_port && uri.port.present?) ? ":#{uri.port}" : String.new)  # port is Integer
 
     return urlstr if !with_path
 
@@ -311,7 +311,7 @@ module ModuleUrlUtil
     when :original
       urlstr
     when ""
-      ""
+      String.new
     when :nil
       warn "WARNING: ':nil' is wrong. You should specify nil. Here :nil is interpreted as nil temporarily."
       nil

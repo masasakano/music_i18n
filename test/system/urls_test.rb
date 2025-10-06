@@ -33,15 +33,16 @@ class UrlsTest < ApplicationSystemTestCase
     css_n_records = "div#"+model.class.name.underscore.pluralize+" table tr"
     newh1 = "New Url"
 
-    visit urls_url  # direct jump -> fail
-    assert_text "You need to sign in or sign up"
-    refute_text newh1
+    assert_index_fail_succeed(new_url_url, newh1, user_fail: nil, user_succeed: @moderator_gen)  # defined in test_system_helper.rb
 
+    #visit urls_url  # direct jump -> fail
+    #assert_text "You need to sign in or sign up"
+    #refute_text newh1
 
-    fill_in "Email", with: @moderator_gen.email
-    fill_in "Password", with: '123456'  # from users.yml
-    click_on "Log in"
-    # assert_selector "h1", text: newh1
+    #fill_in "Email", with: @moderator_gen.email
+    #fill_in "Password", with: '123456'  # from users.yml
+    #click_on "Log in"
+    ## assert_selector "h1", text: newh1
 
     visit urls_url
     assert_selector "h1", text: @h1_title

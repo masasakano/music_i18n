@@ -914,7 +914,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     assert_equal [1, 1], [sex.translations.count, sex.reload.translations.count], "sanity check"
 
     tra1 = sex.translations.first
-    tra1.title = ""
+    tra1.title = String.new
     refute tra1.valid?, "Translation = #{tra1.inspect}"
     tra1.save!(validate: false)
 
@@ -1496,7 +1496,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     m_un.reload
 
     m_un.note = nil
-    iho2.note = ""
+    iho2.note = String.new
     m_un.send(:_merge_note_type, iho2, priority: :self)
     assert  m_un.note.blank?, "if both are blank, the result should be blank, too"
     m_un.reload
@@ -2008,7 +2008,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     t1_1 = hsmdl[:artists][1].translations.find_by(title: "オアシス")  # => will be destroyed
     hsmdl[:artists][0].reset_orig_langcode(t0_1)
 
-    hsmdl[:artists][1].translations << Translation.new(title: "Oaiis", langcode: "fr", note: "Added French Trans for 1", note: "Added Japanese Trans for 1", skip_singularize_is_orig_callback: true)
+    hsmdl[:artists][1].translations << Translation.new(title: "Oaiis", langcode: "fr", note: "Added French Trans for 1", skip_singularize_is_orig_callback: true)
     cur_locale = I18n.locale
     begin
       I18n.locale = :en

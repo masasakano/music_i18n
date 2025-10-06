@@ -39,7 +39,7 @@ class Harami1129s::DownloadHarami1129 < ApplicationRecord
     def initialize
       @last_err = nil
       @msg = []
-      @alert = ""
+      @alert = String.new
       @num_errors = nil
       @harami1129 = nil
       @harami1129s = []

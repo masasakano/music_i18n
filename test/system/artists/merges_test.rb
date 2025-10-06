@@ -237,6 +237,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
       
       # id_h1129 = find("dd#h1129_id_dd").text.to_i
       click_on "Populate"  # Creating Artist (<=Singer) and Music (<= Song)
+      assert_selector :xpath, xpath_for_flash(:notice, category: :div), text: "Successfully populated."
       assert_selector "h1", text: "HARAMI1129 Entry"
 
       h1129_populateds = h1129s.map{|record| Harami1129.find(record.id)}
@@ -311,6 +312,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
 
     ## jumping to merging page failed
     assert_selector "h1", text: "Merge Artists (#{h1129s[0].singer.strip})"
+    assert_selector :xpath, xpath_for_flash(:alert, category: :div), text: "Identical Artists specified"
     assert page.find(:xpath, xpath_for_flash(:alert, category: :div)).text.strip.include?("Identical Artists specified")  # Warning message "Identical Artists specified. Try a different title or ID." issued.
 
     ## try with a correct record

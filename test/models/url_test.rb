@@ -59,7 +59,7 @@ class UrlTest < ActiveSupport::TestCase
     url.domain = url1.domain
     assert url.valid?
 
-    url.domain_id = ""
+    url.domain_id = nil
     refute url.valid?
     refute url.save
     url.domain = url1.domain

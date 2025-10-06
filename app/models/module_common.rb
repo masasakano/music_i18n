@@ -591,7 +591,7 @@ module ModuleCommon
   # @return [String] never includes nil
   def partition_root_article(instr)
     mat = /,\s+(#{DEFINITE_ARTICLES_REGEXP_STR})\Z/i.match instr  # In the DB, a space follows a comma!
-    mat ? [mat.pre_match, mat[1]] : [instr, ""]
+    mat ? [mat.pre_match, mat[1]] : [instr, String.new]
   end
 
   # Returns a string without a definite article
@@ -683,7 +683,7 @@ module ModuleCommon
   def definite_article_with_or_not_at_tail_regexp(instr)
     mat1 = /\A(#{DEFINITE_ARTICLES_REGEXP_STR})\b\s*(\S.*)\z/i.match instr
     mat2 = /\A(.+),\s*(#{DEFINITE_ARTICLES_REGEXP_STR})\z/i.match instr
-    ret3 = (mat1 && mat1[1] || mat2 && mat2[2] || "")
+    ret3 = (mat1 && mat1[1] || mat2 && mat2[2] || String.new)
     ret2 = (mat1 && mat1[2] || mat2 && mat2[1] || instr)
     ret1 = (ret3.empty? ? /\A(#{Regexp.quote ret2})(,\s*(#{DEFINITE_ARTICLES_REGEXP_STR}))?\z/i : /\A(#{Regexp.quote ret2})(,\s*(#{ret3}))?\z/i)
     [ret1, ret2, ret3]
@@ -1228,7 +1228,7 @@ module ModuleCommon
   def regexp_ruby_to_postgres(regex)
     mat = /\A\(\?([a-z]*)(?:\-([a-z]*))?:(.+)\)\z/.match regex.to_s # separate Regexp options and contents.
     raise "Contact the code developer: regex=#{regex.inspect}" if !mat # sanity check
-    opts = ""
+    opts = String.new
     opts << ?i if  mat[1].include? ?i
     opts << ((mat[1].include?(?m)) ? ?w : ?n)  # the meanings are very different!
     opts << ?x if  mat[1].include? ?x
@@ -1265,7 +1265,7 @@ module ModuleCommon
   # @param place [Place]
   # @return [String]
   def inspect_place_helper(str)
-    return "" if place.blank?
+    return String.new if place.blank?
 
     s_pla = (place.title_or_alt(str_fallback: "") rescue "")
     s_pref = (place.prefecture.title_or_alt(str_fallback: "") rescue "")
@@ -1386,7 +1386,7 @@ module ModuleCommon
   def convert_str_to_number_nil(str)
     str = str.presence
     return str if !str.respond_to?(:gsub)  # nil may be returned
-    str.strip!
+    str = str.strip
 
     if /\A([+\-]?((0|[1-9][\d_]*)?\.[0-9][\d_]*|(0|[1-9][\d_]*)\.?)([Ee][+\-]?\d[\d_]*)?)\z/ =~ str
       if /\A[+\-]?[\d_]+\z/ =~ str
@@ -1494,13 +1494,13 @@ module ModuleCommon
   # @return [String, NilClass] nil if something goes wrong (Error is captured inside).
   def fetch_url_h1(url, css: nil, capture_exception: false, **opts)
     css = "h1" if css.blank?
-    retstr = ""
+    retstr = String.new
     set_singleton_method_val(:message, nil, target: retstr, clobber: true)  # defined in module_common.rb
 
     begin
       nodes = ModuleCommon.ordered_xml_nodes(url, css: css, capture_exception: capture_exception, **opts)
     rescue => er
-      retstr.message = "ERROR: "+compile_captured_err_msg(er)
+      retstr.message = ("ERROR: "+compile_captured_err_msg(er)).freeze
       return retstr
     end
 
@@ -1509,7 +1509,7 @@ module ModuleCommon
     cand = nodes.first&.text&.strip    # most likely H1 element (as nodes have been already sorted)
 
     if cand
-      cand ||= ""
+      cand ||= "" #String.new
       cand_nosp = cand.gsub(/[[:space:]]/, "")
       ssiz = cand_nosp.strip.size
       if (/^[\p{Punctuation}\p{InCJKSymbolsAndPunctuation}]+$/ !~ cand_nosp) &&
@@ -1523,9 +1523,9 @@ module ModuleCommon
         return retstr
       end
 
-      retstr.message = "WARNING: H1 in the URL looks too short and wrong: " + cand.inspect
+      retstr.message = ("WARNING: H1 in the URL looks too short and wrong: " + cand.inspect).freeze
     else  # only if capture_exception is specified true and error occurred 
-      retstr.message = "WARNING: URL is inaccessible: #{url}"
+      retstr.message =  "WARNING: URL is inaccessible: #{url}"
     end
     retstr
   end

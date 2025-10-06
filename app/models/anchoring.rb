@@ -171,7 +171,7 @@ class Anchoring < ApplicationRecord
     urls = Url.find_multi_from_note(anchorable)
 
     ret_ancs = []
-    anchorable.note ||= ""
+    anchorable.note ||= String.new
     anchorable.anchorings.each do |anc|
       next if urls.include? anc.url
       ret_ancs << anc

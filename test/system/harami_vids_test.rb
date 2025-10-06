@@ -46,6 +46,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     click_on "Apply"
 
     assert_selector "h1", text: @h1_index
+    assert_text tit
     size_aft = find_all(css_table).size
     assert_operator size_be4, :>, size_aft
     assert_equal 1, size_aft

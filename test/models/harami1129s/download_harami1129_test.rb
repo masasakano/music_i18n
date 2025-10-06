@@ -37,7 +37,7 @@ EOF
 EOF
     end
 
-    exp.chop!
+    exp = exp.chop
     assert_equal exp, Klass.generate_sample_html_table(sample, html_fmt: Klass::HARAMI1129_HTML_FMT)
   end
 

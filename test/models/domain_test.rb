@@ -30,7 +30,7 @@ class DomainTest < ActiveSupport::TestCase
     @domain_title = domain_titles(:one)
 
     rec = Domain.new(domain_title: @domain_title)
-    rec.domain = ""
+    rec.domain = String.new
     refute rec.valid?, "presence of domain-check failed."
 
     rec = domains(:one).dup

@@ -57,8 +57,9 @@ class MusicsTest < ApplicationSystemTestCase
     click_on "Apply"
 
     assert_text title_ja
+    assert_selector "td", text: title_ja
     n_trs_story = page.find_all("tr").size
-    assert_operator n_trs0, :>, n_trs_story, "The number of table rows should have (greatly) decreased, but..."
+    assert_operator n_trs0, :>, n_trs_story, "The number of table rows should have (greatly) decreased, but...: "+page.find('p.pagenation_stats')['innerHTML']
 
     xpath_music_index_row_of_story = sprintf("//table[contains(@class, 'datagrid-table')]/tbody/tr[td[contains(@data-column, '%s') and text()='%s']]", "title_ja", title_ja )
     # assert_selector :xpath, "//table[contains(@class, 'musics_grid')]/tbody/tr"

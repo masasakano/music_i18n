@@ -65,6 +65,7 @@ class EngagesTest < ApplicationSystemTestCase
     select('Arranger',  from: 'EngageHow')
     select('Conductor', from: 'EngageHow')
     click_on "Submit"
+    assert_selector :xpath, xpath_for_flash(:success, category: :div), text: "was successfully created."  # Notice message issued.
 
     # Music#show page
     #  assert_text "Engage was successfully created"  # flash message...
@@ -78,6 +79,7 @@ class EngagesTest < ApplicationSystemTestCase
       eb.check()
     end
     click_on "Submit"
+    assert_selector :xpath, xpath_for_flash(:success, category: :div), text: "Engages successfully."  # Notice message issued.
 
     # EngageMultiHows#edit page
     sel = "//tr[td//text()[contains(., 'RCサクセション')]]"  # in "Artists for Music:..." table

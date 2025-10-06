@@ -329,7 +329,7 @@ class ApplicationGrid < Datagrid::Base
     artit = cols.map{|i| record.send(i, langcode: langcode, lang_fallback: false, str_fallback: "")}
     retstr =
       if artit[1..2].all?(&:blank?)
-        ((col == :alt_title) ? ERB::Util.html_escape(sprintf(fmt1, artit[0])) : "")
+        ((col == :alt_title) ? ERB::Util.html_escape(sprintf(fmt1, artit[0])) : String.new)
       else
         ERB::Util.html_escape(sprintf(fmt1+fmt2, *artit))
       end
@@ -379,7 +379,7 @@ class ApplicationGrid < Datagrid::Base
       end
     }
 
-    ret = ""
+    ret = String.new
     ret << sprintf("[%s] ", safe_html_in_tagpair(ERB::Util.html_escape(langcode), tag_class: "translation-locale")) if with_locale_prefix
     ret << artits[0..1].join("")
     return ret.html_safe if artits[2].blank?

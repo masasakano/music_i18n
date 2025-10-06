@@ -271,7 +271,7 @@ module ModuleHaramiVidEventAux
       end
     end
 
-    msg_add = ""
+    msg_add = String.new
     if evit.unknown?
       msg = :should_be_set 
       msg_add = "('Unknown') "

@@ -219,7 +219,7 @@ class BaseMergesController < ApplicationController
         if controller.flash[:warning]
           controller.flash[:warning] << "  " 
         else
-          controller.flash[:warning] = ""
+          controller.flash[:warning] = String.new
         end
         controller.flash[:warning] << sprintf("Found more than 1 %s for word=(%s); the first one is adopted.", model.class.name, search_word.strip)
       end

@@ -1,7 +1,7 @@
 source 'https://rubygems.org'
 git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
-ruby '3.1.2'
+ruby '3.4.6'
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails', branch: "main"
 #gem 'rails', '~>6.1'
@@ -18,7 +18,8 @@ gem "sprockets-rails"
 gem 'pg', '>= 0.18', '< 2.0'
 # Use the Puma web server [https://github.com/puma/puma]
 #gem 'puma', '~> 4.1'  # Rails 6
-gem 'puma', '~> 6.4'   # >=5.0 for Rails 7.0 default
+#gem 'puma', '~> 6.4'   # >=5.0 for Rails 7.0 default
+gem 'puma', '~> 7.0'
 ## Use SCSS for stylesheets (obsolete as of 2019)
 #  https://sass-lang.com/ruby-sass
 #  https://github.com/rails/sass-rails
@@ -40,7 +41,7 @@ gem 'redis', '~> 5.0'
 # gem 'bcrypt', '~> 3.1.7'
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
-gem "tzinfo-data", platforms: %i[ mingw mswin x64_mingw jruby ]
+gem "tzinfo-data", platforms: %i[ jruby windows ]  # %i[mingw mswin x64_mingw] deprecated in at least Ruby 3.4
 
 # Reduces boot times through caching; required in config/boot.rb
 #gem 'bootsnap', '>= 1.4.2', require: false
@@ -75,13 +76,21 @@ gem "sassc-rails"
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
 # gem "image_processing", "~> 1.2"
 
+########## added in upgrading Ruby from 3.1 to 3.4.6
+gem "nkf"
+gem "bigdecimal"
+gem "mutex_m"
+gem "drb"
+gem "benchmark"
+gem "open-uri"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
-  gem "debug", platforms: %i[ mri mingw x64_mingw ]
+  gem "debug", platforms: %i[ mri windows ]  # %i[mingw x64_mingw] (and :mswin though not used here) deprecated in at least Ruby 3.4
 
   #### Rails 6: see https://blog.saeloun.com/2021/09/29/rails-7-ruby-debug-replaces-byebug.html
   ## Call 'byebug' anywhere in the code to stop execution and get a debugger console
-  #gem 'byebug', platforms: [:mri, :mingw, :x64_mingw]
+  #gem 'byebug', platforms: [:mri, :mingw, :x64_mingw]  # Add :windows while %i[mingw x64_mingw] deprecated in at least Ruby 3.4 (Note that this Gem is deprecated anyway)
 end
 
 ### Personal addition
