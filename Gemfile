@@ -15,7 +15,7 @@ gem 'concurrent-ruby', '1.3.4'
 gem "sprockets-rails"
 
 # Use pg as the database for Active Record
-gem 'pg', '>= 0.18', '< 2.0'
+gem 'pg', '>= 1.5', '< 2.0'
 # Use the Puma web server [https://github.com/puma/puma]
 #gem 'puma', '~> 4.1'  # Rails 6
 #gem 'puma', '~> 6.4'   # >=5.0 for Rails 7.0 default
@@ -76,14 +76,6 @@ gem "sassc-rails"
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
 # gem "image_processing", "~> 1.2"
 
-########## added in upgrading Ruby from 3.1 to 3.4.6
-gem "nkf"
-gem "bigdecimal"
-gem "mutex_m"
-gem "drb"
-gem "benchmark"
-gem "open-uri"
-
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ]  # %i[mingw x64_mingw] (and :mswin though not used here) deprecated in at least Ruby 3.4
@@ -120,13 +112,10 @@ group :test do
   gem 'selenium-webdriver'
 end
 
-### Ruby 3 requirement
-gem 'rexml', '~> 3.2', '>= 3.2.5'
-
 ### User-added
-gem 'rails-i18n', '~> 7.0.0' # For 7.0.0
+gem 'rails-i18n', '~> 7.0.0' # For Rails 7.0 and 7.1
 gem 'i18n-timezones'
-gem 'devise'
+gem 'devise', '~> 4.9'
 gem 'devise-i18n'
 gem 'jquery-rails'  # required for toastr
 gem 'toastr-rails'
@@ -137,7 +126,7 @@ gem 'datagrid', '~> 2.0'  # merged from its branch: 'version-2'
 gem 'rubytree', '~> 2', '>= 2.0.0'
 gem 'slim_string', '~> 1', '>= 1.0.1'
 gem 'simple_form', '~> 5', '>= 5.1.0'
-gem 'paper_trail', '~> 15', '>= 15.0.0'  # used to use 12.0 up to Rails 6.0 (which causes error in Rails 6.1); recommended to update to 13.0 with the condition to switch the column type: @see my comment about "yaml" in config/application.rb
+gem 'paper_trail', '~> 15', '>= 15.0.0'  # used to use 12.0 up to Rails 6.0 (which causes error in Rails 6.1); recommended to update to 13.0 with the condition to switch the column type: @see my comment about "yaml" in config/application.rb; at least 16 for Rails 8
 # gem 'high_voltage', '~> 3.1', '>= 3.1.2'
 gem 'http_accept_language'
 # gem 'routing-filter', '~> 0', '>= 0.6.3' # Only git HEAD works with Rails 6.1.
@@ -150,15 +139,26 @@ gem 'plain_text'     # used in /lib/reverse_sql_order.rb
 gem 'rails-html-sanitizer'  # https://github.com/rails/rails-html-sanitizer
 gem 'i18n_data'  # for language names (and country names)
 gem 'diff-lcs', '~> 1.5', '>= 1.5.1'
-gem 'unicode-emoji', '~> 3', '>= 3.5'
-gem 'google-apis-youtube_v3', '~> 0.45.0'
+gem 'unicode-emoji', '~> 4', '>= 4.1'
+gem 'google-apis-youtube_v3', '~> 0.57'
 gem 'rails_autolink', '~> 1.1', '>= 1.1.8'
+
+### Ruby 3 requirement
+gem 'rexml', '~> 3.2', '>= 3.2.5'
 
 # Necessary in Ruby 3.1
 gem 'net-smtp', require: false #, '~> 0.3', '>= 0.3.1'
 gem 'net-imap', require: false #
 gem 'net-pop', require: false  # needs in production in Rails-6.1 Ruby-3.1: https://stackoverflow.com/a/72474475/3577922
 gem 'matrix'  # This may not be necessary in other than test, but is included anyway.
+
+# Necessary in upgrading Ruby from 3.1 to 3.4.6
+gem "nkf"
+gem "bigdecimal"
+gem "mutex_m"
+gem "drb"
+gem "benchmark"
+gem "open-uri"
 
 group :development do
   gem 'annotate'
