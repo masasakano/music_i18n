@@ -33,13 +33,15 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should get index" do
+    user_moderator = users(:user_moderator)
+if false
     get '/users/sign_in'
     sign_in users(:user_moderator)  # Harami moderator
-    post user_session_url
+    #post user_session_url
 
-    # If you want to test that things are working correctly, uncomment this below:
-    follow_redirect!
-    assert_response :success
+    ## If you want to test that things are working correctly, uncomment this below:
+    #follow_redirect!
+    #assert_response :success
 
     get translations_url
     assert_redirected_to root_url
@@ -47,6 +49,15 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     sign_in @translator
     get translations_url
     assert_response :success
+else
+    ### This practically tests assert_controller_index_fail_succeed in test_helper.rb
+    assert_controller_index_fail_succeed(translations_url, user_fail: nil, user_succeed: nil)  # defined in test_helper.rb
+    assert_controller_index_fail_succeed(translations_url, user_fail: user_moderator, user_succeed: @translator)  # defined in test_helper.rb
+    sign_out @translator
+    assert_controller_index_fail_succeed(Translation,      user_fail: user_moderator, user_succeed: @translator)  # defined in test_helper.rb
+    sign_out @translator
+    assert_controller_index_fail_succeed(Translation.second, user_fail: users(:user_no_role), user_succeed: @translator)  # defined in test_helper.rb
+end
   end
 
   test "should fail get new" do

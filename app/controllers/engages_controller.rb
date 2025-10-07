@@ -55,7 +55,7 @@ class EngagesController < ApplicationController
     hsbase = hsbase.slice(*(%i(music_id year contribution note)))
 
     begin
-      ActiveRecord::Base.transaction do
+      ActiveRecord::Base.transaction(requires_new: true) do
         specified_engage_how_ids.each do |ehid|
           @engage = Engage.new(**(hsbase.merge({engage_how_id: ehid, artist: artist})))
           @engage.save!

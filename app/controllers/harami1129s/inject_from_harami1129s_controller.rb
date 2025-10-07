@@ -200,23 +200,23 @@ class Harami1129s::InjectFromHarami1129sController < ApplicationController
     # Gets the parameters to update (basically, those that are nil in the existing record)
     hsmain = get_hsmain_to_update(harami1129, model_class, {model_snake => retrow}.merge(crows), model_snake)
 
-    # Save or updates.  If adding a Translaiton faile, rollbacks.
+    # Save or updates.  If adding a Translaiton fails, rollbacks.
     begin
-      ActiveRecord::Base.transaction do
+      ActiveRecord::Base.transaction(requires_new: true) do
         retrow.updates!(**hsmain)
         if retrow.translations.count == 0
           # Translations created, NOT updated (n.b., to update, use with_updated_translations())
           hstrans = hash_for_trans(harami1129, model_class)
           retrow.with_translations(**hstrans)
         end
-        return retrow
       end
     rescue
       msgtail = (hstrans ? " with Translation=#{hstrans.inspect}" : "")
       logger.error "Create/Update failed for #{model_class.name} with hsmain=#{hsmain.inspect}"+msgtail
       raise
     end
-  end
+    retrow
+  end # def inject_to_a_table(model_snake, harami1129, crows)
 
 
   # Returns the destination model instance to which the record is either

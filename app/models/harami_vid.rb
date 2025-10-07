@@ -943,14 +943,19 @@ class HaramiVid < BaseWithTranslation
 
     evit = nil
 
+    return_now = false
     ActiveRecord::Base.transaction(requires_new: true) do
       evit = _new_evit_if_live_streaming(evit_prev)
-      return if !evit
+      if !evit
+        return_now = true
+        raise ActiveRecord::Rollback  # In Rails-7.2, escaping the transaction block with return would lead to commit of the DB transactions!
+      end
       self.event_items << evit  # Creates a HaramiVidEventItemAssoc
       _copy_amps_to_new_evit(evit_prev, evit) if evit_prev  # Creates {ArtistMusicPlay}-s 
       _create_amps_from_hvmas(evit)  if create_amps         # Creates {ArtistMusicPlay}-s 
       _reset_h1129_evit_new(evit_prev, evit) if evit_prev && transfer_h1129
     end
+    return if return_now
 
     evit.harami_vid_event_item_assocs.reset
     evit.artist_music_plays.reset

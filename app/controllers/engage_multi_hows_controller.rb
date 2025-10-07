@@ -48,7 +48,7 @@ class EngageMultiHowsController < ApplicationController
     n_destroyed = 0
     n_new = 0
     begin
-      ActiveRecord::Base.transaction do
+      ActiveRecord::Base.transaction(requires_new: true) do
         # Creates (multiple) Engages if specified
         hs, hsprm = split_hash_with_keys(newhs, ['engage_how'])
         hsprm.select!{|k,v| !v.blank?}

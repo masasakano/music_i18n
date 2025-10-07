@@ -18,7 +18,7 @@ class UserRoleAssocController < ApplicationController
     authorize! :update, (@user.user_role_assocs.first || (Role[:moderator, :translation] || User.roots[0]).user_role_assocs.first), :message => "Unable to access this update of UserRoleAssoc..."  ###### forces to get something existing (so Editor cannnot access but moderator can)...
     tgt_role_unames = @user.roles.map{|i| (i.uname || i.name)}
     alert = nil
-    ActiveRecord::Base.transaction do
+    ActiveRecord::Base.transaction(requires_new: true) do
       RoleCategory.tree(force_update: true).each do |ea_rct|
       #RoleCategory.tree.each do |ea_rct|
         eak = User::ROLE_FORM_RADIO_PREFIX+ea_rct.name

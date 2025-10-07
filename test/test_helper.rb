@@ -645,6 +645,56 @@ class ActiveSupport::TestCase
     checkbox['checked'].present?
   end
 
+  # performs log on and assertion to see if the HTTP response is :success
+  #
+  # This assumes that no one is logged on when called.
+  # Also, the access by the non-authenticated user to the path is assumed to fail.
+  #
+  # WARNING: When returned, user_succeed is still logged on (unless it is specified nil)
+  #
+  # @example with path
+  #   assert_controller_index_fail_succeed(translations_url, user_fail: users(:user_moderator), user_succeed: @translator)  # defined in test_helper.rb
+  #   sign_out @translator
+  #
+  # @example with Class; checking :index
+  #   assert_controller_index_fail_succeed(EngageHow, user_fail: nil, user_succeed: users(:user_moderator))  # defined in test_helper.rb
+  #   sign_out users(:user_moderator)
+  #
+  # @example with Instance; checking :show
+  #   assert_controller_index_fail_succeed(Country.unknown, user_fail: nil, user_succeed: nil)  # defined in test_helper.rb
+  #
+  # @param path2get [String, ActiveRecord, Class] Either the GET access path or Model class or instance
+  # @param h1_title [String, NilClass] h1 title string for index page. If nil, it is guessed from the model, assuming the first argument is a model (NOT the path String)
+  # @param user_fail: [User, NilClass] who fails to see the index page. if nil, the non-authorized user.
+  # @param user_user_succeed: [User, NilClass] who succcessfully sees the index page
+  def assert_controller_index_fail_succeed(path2get, user_fail: nil, user_succeed: nil)
+    if path2get.respond_to?(:rewhere) || path2get.respond_to?(:destroy!)
+      # gets the path of either :index or :show
+      path2get = Rails.application.routes.url_helpers.polymorphic_path(path2get)
+    end
+    # h1_title ||= model.class.name.underscore.pluralize.split("_").map(&:capitalize).join(" ")  # e.g., "Event Items"
+
+    # get '/users/sign_in'
+
+    ## Failing in displaying index (although Login itself should succeed)
+    fmt1 = "(%s): GET %s should be :redirect, but..."
+    fmt2 = "(%s): GET %s should be redirected to #{user_fail ? 'Root' : 'Login'}, but..."
+    path_redirected = (user_fail ? root_url : new_user_session_path)
+
+    sign_in  user_fail if user_fail
+    get path2get
+    assert_response          :redirect,   sprintf(fmt1, _get_caller_info_message, path2get)  # defined in test_helper.rb
+    assert_redirected_to path_redirected, sprintf(fmt2, _get_caller_info_message, path2get)  # defined in test_helper.rb
+    sign_out user_fail if user_fail
+
+    return if !user_succeed
+
+    ## Succeeding
+    sign_in  user_succeed
+    get path2get
+    assert_response :success, sprintf("(%s): GET %s should succeed, but...", _get_caller_info_message, path2get)  # defined in test_helper.rb
+  end
+
   # Get a unique id_remote for Harami1129
   #
   # @param *rest [Integer] (Multiple) integer that should be avoided (maybe the previous yet-unsaved outputs of this method)

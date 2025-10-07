@@ -15,12 +15,8 @@ class EngageHowsControllerTest < ActionDispatch::IntegrationTest
   # ---------------------------------------------
 
   test "should get index" do
-    get engage_hows_url
-    assert_response :redirect
-
-    sign_in @moderator
-    get engage_hows_url
-    assert_response :success
+    assert_controller_index_fail_succeed(EngageHow, user_fail: nil, user_succeed: @moderator)  # defined in test_helper.rb
+    sign_out @moderator
   end
 
   test "should get new" do
