@@ -28,5 +28,13 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_equal exp, xpath_for_flash([:alert, :success], category: :div, extra_attributes: ["cls1", "cls2"])
   end
 
+  test "recognize_path_with_static_page" do
+    exp = {controller: "places", action: "index"}
+    assert_equal exp, recognize_path_with_static_page("/places")
+
+    assert_raises(ActionController::RoutingError){
+      recognize_path_with_static_page("/non_existent", method: "POST")
+    }
+  end
 end
 

@@ -38,17 +38,11 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
       get artists_new_merges_url  # ID must be given for this :new
     }
 
-    # Fail: No privilege
-    get artists_new_merges_url(@artist)
-    assert_response :redirect
-    assert_redirected_to new_user_session_path
-
-    sign_in @editor
-
-    get artists_new_merges_url(@artist)
-    assert_response :success
+    # Fail if No privilege
+    assert_controller_index_fail_succeed(artists_new_merges_url(@artist), user_fail: nil, user_succeed: @editor)  # defined in test_helper.rb
 
     assert_match(/Other artist/i, css_select('form div.field label').text)
+    sign_out @editor
   end
 
   test "should get edit" do
@@ -61,10 +55,9 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_user_session_path
 
     sign_in @editor
-    assert_raise(ActionController::ParameterMissing){
-      get artists_edit_merges_url(@artist)
-    } # This deactivates sign_in !!
-    
+    assert_controller_dispatch_exception(artists_edit_merges_url(@artist), err_class: ActionController::ParameterMissing, method: :get)  # defined in test_helper.rb
+    # This deactivates sign_in !!
+
     sign_in @editor
     get artists_edit_merges_url(@artist, params: {other_artist_id: @other.id})
     assert_response :success

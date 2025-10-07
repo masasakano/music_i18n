@@ -82,20 +82,19 @@ class StaticPagesControllerTest < ActionDispatch::IntegrationTest
     path = StaticPagesController.public_path(@static_page, locale=nil)
     assert_equal '/'+@static_page.mname, path  # in Fixture
     get path
-    assert_response 301 # Moved Permanently
+    assert_response :redirect # :moved_permanently 301
     assert_redirected_to Addressable::URI.parse(static_page_url(@static_page)).path
 
     %w(en ja).each do |elc|
       path = StaticPagesController.public_path(@static_page, locale=elc)
       assert_equal "/#{elc}/"+@static_page.mname, path  # in Fixture
       get path
-      assert_response 301 # Moved Permanently
+      assert_response :redirect # :moved_permanently 301
       assert_redirected_to '/'+elc+Addressable::URI.parse(static_page_url(@static_page)).path
     end
 
     path = StaticPagesController.public_path(@static_page, locale='JA')
-    assert_raises(ActionController::RoutingError){ get path }
-    # assert_response 404 # NOT found
+    assert_controller_dispatch_exception(path)  # defined in test_helper.rb
   end
 
   test "should show static_page" do

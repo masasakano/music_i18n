@@ -20,23 +20,21 @@ class EngageHowsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should get new" do
-    sign_in @moderator
-    get new_engage_how_url
-    assert_response :success
+    assert_controller_index_fail_succeed(new_engage_how_url, user_fail: nil, user_succeed: @moderator)  # defined in test_helper.rb
+    sign_out @moderator
   end
 
   test "should create engage_how" do
     sign_in @moderator
 
     # Creation failure
-    assert_raises(ActionController::ParameterMissing){ post engage_hows_url, params: { engage_how: { note: @engage_how.note } } }
+    assert_controller_dispatch_exception(engage_hows_url, err_class: ActionController::ParameterMissing, method: :post, hsparams: { engage_how: { note: @engage_how.note } })  # defined in test_helper.rb
 
     sign_in @moderator
     assert_no_difference('EngageHow.count') do
-      assert_raises(ActionController::ParameterMissing){
-        # post engage_hows_url, params: { translation: {is_orig: '1'}, engage_how: { note: @engage_how.note } } }  # old-style params
-        post engage_hows_url, params: { engage_how: { is_orig: '1', note: @engage_how.note } }
-      }
+      hsparams = { engage_how: { is_orig: '1', note: @engage_how.note } }
+      assert_controller_dispatch_exception(engage_hows_url, err_class: ActionController::ParameterMissing, method: :post, hsparams: hsparams)  # defined in test_helper.rb
+#        post engage_hows_url, params: { engage_how: { is_orig: '1', note: @engage_how.note } }
     end
     #assert_match(/\bno langcode\b/i, css_select('div#error_explanation ul').text, "output: #{css_select('div#body_main').to_html}")
     #assert_response :unprocessable_content # 422

@@ -182,9 +182,9 @@ class EventItems::AddMissingMusicsControllerTest < ActionDispatch::IntegrationTe
 
     assert_match(/#{Regexp.quote(muss[2].title_or_alt(langcode: I18n.locale, lang_fallback_option: :either))}/, css_select("div.add_missing_musics").text)  # spaces are omitted in "text", so the word boundary does not make sense.
 
-    assert_raises(ActiveRecord::RecordNotFound){
-      patch harami_vids_add_missing_music_to_evit_url(hvid), params: { harami_vid: {add_missing_music_to_evit: hsin.merge({missing_music_ids: [Music.order(:id).last.id+1]}) } }
-    }
+    hsparams = { harami_vid: {add_missing_music_to_evit: hsin.merge({missing_music_ids: [Music.order(:id).last.id+1]}) } }
+    assert_controller_dispatch_exception(harami_vids_add_missing_music_to_evit_url(hvid), err_class: ActiveRecord::RecordNotFound, method: :patch, hsparams: hsparams)  # defined in test_helper.rb
+
     assert_raises(StandardError){
       # Tests of Music that exists but is not associated to this HaramiVid through HaramiVidMusicAssoc  => should fail.
       patch harami_vids_add_missing_music_to_evit_url(hvid), params: { harami_vid: {add_missing_music_to_evit: hsin.merge({missing_music_ids: [Music.unknown.id]}) } }

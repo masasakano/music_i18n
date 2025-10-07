@@ -645,6 +645,52 @@ class ActiveSupport::TestCase
     checkbox['checked'].present?
   end
 
+  # This is usually called by a Controller test after GET/PATCH etc.
+  #
+  # @return [String] e.g., "<404: Not Found>"
+  def response_status_text(status_code=response.status)
+    sprintf(" <%s: %s>", status_code, Rack::Utils::HTTP_STATUS_CODES[status_code])
+  end
+
+  # Wrapper of +Rails.application.routes.recognize_path+
+  #
+  # This app captures any path in routes; if it is not recognized by existing models,
+  # it is paseed to {StaticPagePublicsController}. Therefore,
+  #   Rails.application.routes.recognize_path("/non_existent")
+  #      # => {controller: "static_page_publics", action: "show", path: "non_existent"}
+  #
+  # {StaticPagePublicsController#show} may raise ActionController::RoutingError,
+  # just the same as +recognize_path()+ does when an invalid path is given.
+  #
+  # In Rails-7.1 and later, Exceptions are captured in test environments
+  # with the default config parameter (usually defined in /config/environments/test.rb )
+  #    Rails.application.config.action_dispatch.show_exceptions == :rescuable
+  # In such a case, it is impossible to pin down which error was raised
+  # after GET (or PATCH or whatever) in a test suite in Rails-7.1 because
+  # it only sees the page of 404.
+  #
+  # This method behaves the same as +Rails.application.routes.recognize_path+
+  # taking into account the algorithm of {StaticPagePublicsController}, i.e.,
+  # if {StaticPagePublicsController} raises an Exception for the given path, this will. 
+  #
+  # @example
+  #    recognize_path_with_static_page("/places")
+  #      # => {controller: "places", action: "index"}
+  #    recognize_path_with_static_page("/non_existent", method: "POST")
+  #      # => ActionController::RoutingError
+  #
+  # @param path [String]
+  # @param **kwds [Hash] "method:" etc
+  # @return [Hash]
+  # @raise ActionController::RoutingError
+  def recognize_path_with_static_page(path, *arg, **kwds)
+    hs = Rails.application.routes.recognize_path(path, *arg, **kwds)
+    return hs if "static_page_publics" != hs[:controller]
+
+    _ = StaticPagePublicsController.static_page_from_path(path)  # may raise ActionController::RoutingError
+    ret
+  end
+
   # performs log on and assertion to see if the HTTP response is :success
   #
   # This assumes that no one is logged on when called.
@@ -665,7 +711,7 @@ class ActiveSupport::TestCase
   #
   # @param path2get [String, ActiveRecord, Class] Either the GET access path or Model class or instance
   # @param h1_title [String, NilClass] h1 title string for index page. If nil, it is guessed from the model, assuming the first argument is a model (NOT the path String)
-  # @param user_fail: [User, NilClass] who fails to see the index page. if nil, the non-authorized user.
+  # @param user_fail: [User, Array<User>, NilClass] who fail(s) to see the index page. Even if nil, the non-authorized user is tested.
   # @param user_user_succeed: [User, NilClass] who succcessfully sees the index page
   def assert_controller_index_fail_succeed(path2get, user_fail: nil, user_succeed: nil)
     if path2get.respond_to?(:rewhere) || path2get.respond_to?(:destroy!)
@@ -677,22 +723,88 @@ class ActiveSupport::TestCase
     # get '/users/sign_in'
 
     ## Failing in displaying index (although Login itself should succeed)
-    fmt1 = "(%s): GET %s should be :redirect, but..."
+    fmt1 = "(%s): GET %s should be :redirect for User='%s', but... %s"
     fmt2 = "(%s): GET %s should be redirected to #{user_fail ? 'Root' : 'Login'}, but..."
-    path_redirected = (user_fail ? root_url : new_user_session_path)
 
-    sign_in  user_fail if user_fail
-    get path2get
-    assert_response          :redirect,   sprintf(fmt1, _get_caller_info_message, path2get)  # defined in test_helper.rb
-    assert_redirected_to path_redirected, sprintf(fmt2, _get_caller_info_message, path2get)  # defined in test_helper.rb
-    sign_out user_fail if user_fail
+    user_fails = (user_fail ? [user_fail].flatten.compact : [])
+    user_fails = ([nil]+user_fails)
+
+    user_fails.each do |user|
+      username = (user ? user.display_name : "Unauthenticated")
+      path_redirected = (user ? root_url : new_user_session_path)
+      sign_in  user if user
+      get path2get
+      assert_response          :redirect,   sprintf(fmt1, _get_caller_info_message, path2get, username, response_status_text)  # defined in test_helper.rb
+      assert_redirected_to path_redirected, sprintf(fmt2, _get_caller_info_message, path2get)  # defined in test_helper.rb
+      sign_out user if user
+    end
 
     return if !user_succeed
 
     ## Succeeding
     sign_in  user_succeed
     get path2get
-    assert_response :success, sprintf("(%s): GET %s should succeed, but...", _get_caller_info_message, path2get)  # defined in test_helper.rb
+    assert_response :success, sprintf("(%s): GET %s should succeed, but...", _get_caller_info_message, path2get, response_status_text)  # defined in test_helper.rb
+  end # def assert_controller_index_fail_succeed(path2get, user_fail: nil, user_succeed: nil)
+
+
+  # performs assertion of errors raised in a Controller
+  #
+  # This accomodates the varied Controller-test behaviour, which depends on the config setting of
+  #   Rails.application.config.action_dispatch.show_exceptions
+  # (usually defined in /config/environments/test.rb )
+  # In default, it is false before Rails-7.1 (later replaced with :none) and :rescuable in Rails-7.1 or later.
+  #
+  # @example
+  #   assert_controller_dispatch_exception(path, err_class: ActionController::RoutingError)  # defined in test_helper.rb
+  #
+  # @example
+  #   assert_controller_dispatch_exception(path, err_class: ActionController::ParameterMissing, method: :post, hsparams: { engage_how: { note: @engage_how.note } })  # defined in test_helper.rb
+  #
+  # @example
+  #   assert_controller_dispatch_exception(path, err_class: ActionController::ParameterMissing, method: :patch)  # defined in test_helper.rb
+  #
+  # @example This always fails
+  #   assert_controller_dispatch_exception("/")
+  #
+  # @param path [String] to test
+  # @param err_class: [Exception] exception that should be raised
+  # @param method: [Symbol, String] :get, :patch, etc
+  # @return [void]
+  def assert_controller_dispatch_exception(path, err_class: ActionController::RoutingError, method: :get, hsparams: nil)
+    fmt = "(%s): "+sprintf("%s %s should fail ", method.to_s.upcase, path).gsub(/%/, "%%") + "%s #{err_class.name}, but..."
+
+    # For ActionController::RoutingError, it can be checked with a low-level method
+    # regardless of Rails-7.0/7.1.  For ActiveRecord::RecordNotFound, a low-level examination
+    # is trickier, and the exception is not supported, yet.
+    if err_class == ActionController::RoutingError
+      assert_raises(err_class, sprintf(fmt, _get_caller_info_message, "by")){
+        recognize_path_with_static_page(path, method: method) }  # defined in test_helper.rb
+    end
+
+    case Rails.application.config.action_dispatch.show_exceptions
+    when :rescuable  # Default in Rails-7.1.  err_class is irrelevant so far...
+      exp_resp =
+        case err_class.to_s  # case uses "===" to compare. So, "==" comparison with Class does not work, hence to_i (!!)
+        when "ActionController::RoutingError", "ActiveRecord::RecordNotFound"
+          :missing   # :not_found 404
+        when "ActionController::ParameterMissing"
+          :bad_request
+        else
+          :error  # may not work...
+        end
+
+      send(method, path, params: hsparams)
+      response_text = sprintf(" <%s: %s>", response.status, Rack::Utils::HTTP_STATUS_CODES[response.status])
+#assert_response :missing
+      assert_response exp_resp, sprintf(fmt, _get_caller_info_message, "deu to")+response_text
+        # => (/test/controllers/abc_controller_test.rb:123): GET /naiyo should fail due to ActionController::RoutingError, but... <404: Not Found>
+    when nil, false, :none  # false used to be default before Rails-7.1
+      assert_raises(err_class, sprintf(fmt, _get_caller_info_message, "with")){ send(method, path, params: hsparams) }  # defined in test_helper.rb
+        # => (/test/controllers/abc_controller_test.rb:123): GET /naiyo should fail with ActionController::RoutingError, but...
+    else
+      ## I don't know...
+    end
   end
 
   # Get a unique id_remote for Harami1129

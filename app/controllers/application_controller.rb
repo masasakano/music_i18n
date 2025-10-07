@@ -15,7 +15,7 @@ class ApplicationController < ActionController::Base
   before_action :configure_permitted_parameters, if: :devise_controller?
   before_action :set_paper_trail_whodunnit
   before_action :set_translation_whodunnit
-  before_action :set_current_user_for_grid, except: [:destroy]
+  before_action :set_current_user_for_grid #, except: [:destroy]  # This "except" clause would raise AbstractController::ActionNotFound exception in Rails-7.1 or later in the Controllers that do not define :destroy method, unless config.action_controller.raise_on_missing_callback_actions is set false. The "except" method is handled inside :set_current_user_for_grid
   ## Uncomment this (as well as the method below) to investigate problems related to params()
   #before_action :debug_ctrl_print2
 
@@ -853,6 +853,7 @@ class ApplicationController < ActionController::Base
     # @note Setting ApplicationGrid Class instance variable does not work well
     #   (it seems to be reset when the Class file is reread, though object_id unchanges...)
     def set_current_user_for_grid
+      return if :destroy == action_name.to_sym  # emulating "except: [:destroy]"
       ApplicationGrid.send(:remove_const, :CURRENT_USER) if ApplicationGrid.const_defined?(:CURRENT_USER)  # because this may be called multiple times in tests or when cached.
       ApplicationGrid.const_set(:CURRENT_USER, current_user)
     end

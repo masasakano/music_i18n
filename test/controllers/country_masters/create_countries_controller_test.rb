@@ -33,8 +33,8 @@ class CountryMasters::CreateCountriesControllerTest < ActionDispatch::Integratio
 
   test "should not post update if logged in as a moderator" do
     sign_in @moderator
-    assert_raises(ActiveRecord::RecordNotFound){
-      post country_masters_create_countries_path(CountryMaster.order(:id).last.id+1)}
+    path = country_masters_create_countries_path(CountryMaster.order(:id).last.id+1)
+    assert_controller_dispatch_exception(path, err_class: ActiveRecord::RecordNotFound, method: :post)  # defined in test_helper.rb
 
     ability = Ability.new(@moderator)
     assert ability.can?(:update, CountryMasters::CreateCountriesController)

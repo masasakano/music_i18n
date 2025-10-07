@@ -18,9 +18,8 @@ class UserRoleAssocControllerTest < ActionDispatch::IntegrationTest
     user = @sysadmin
 
     sign_in(user)
-    assert_raises(ActionController::RoutingError){ # No route matches [GET] "/user_role_assoc/1"
-      get user_role_assoc_url(user)
-    }
+    assert_controller_dispatch_exception(user_role_assoc_url(user))  # defined in test_helper.rb
+     # No route matches [GET] "/user_role_assoc/1"
 
     sign_in(user)
     allrolenames = user.roles.map(&:name)

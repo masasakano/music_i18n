@@ -50,24 +50,21 @@ class Users::DeactivateUsersControllerTest < ActionDispatch::IntegrationTest
 
   test "should patch update" do
     @user = users(:user_captain)
-    assert_raises(ActionController::RoutingError){ # No route matches [GET] "/users/1234/deactivate_users"
-      get   users_do_deactivate_users_path(@user)
-    }
+    path2test = users_do_deactivate_users_path(@user)
+    assert_controller_dispatch_exception(path2test, err_class: ActionController::RoutingError)  # defined in test_helper.rb
+     # No route matches [GET] "/users/1234/deactivate_users"
 
     # Sign in as a sysadmin
     sign_in(@sysadmin)
     assert(@sysadmin.sysadmin?)
-    assert_raises(ActionController::ParameterMissing){
-      patch users_do_deactivate_users_path(@user)
-    }
-#print 'DEBUG90: user=';p @user
-#print 'DEBUG91: path=';p users_do_deactivate_users_path(@user)
+    assert_controller_dispatch_exception(path2test, err_class: ActionController::ParameterMissing, method: :patch)  # defined in test_helper.rb
+      # params MUST be passed, or else ActionController::ParameterMissing is raised.
 
     # sysadmin deactivates a user
     sign_in(@sysadmin)
     old_id   = @user.id
     old_name = @user.display_name
-    patch users_do_deactivate_users_path(@user), params: {user: {User::DEACTIVATE_METHOD_FORM_NAME => 'rename'}}
+    patch path2test, params: {user: {User::DEACTIVATE_METHOD_FORM_NAME => 'rename'}}
     assert_response :redirect, "response: 302 !== #{response.code.inspect} for path=#{users_edit_deactivate_users_path(@user.id)}"
     assert_equal users_url, response.headers['Location']
 

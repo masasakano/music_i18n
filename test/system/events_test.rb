@@ -20,6 +20,7 @@ class EventsTest < ApplicationSystemTestCase
     click_on "Apply", match: :first
 
     assert_selector('input[type="submit"]:not([disabled])')
+    assert_selector "h1", text: @h1_title  # for some reason, this line helps suppressing Selenium::WebDriver::Error::UnknownError
 
     css_table_tr = "table.datagrid-table tbody tr"
     assert_operator 0, :<, find_all(css_table_tr).size

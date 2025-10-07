@@ -75,21 +75,7 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should get new" do
-    get new_harami_vid_url
-    assert_response :redirect
-    assert_redirected_to new_user_session_path
-
-    [@trans_moderator, @moderator_ja].each do |user|
-      sign_in user
-      get new_harami_vid_url
-      assert_response :redirect, "should be banned for #{user.display_name}, but allowed..."
-      assert_redirected_to root_path
-      sign_out user
-    end
-
-    sign_in @editor_harami
-    get new_harami_vid_url
-    assert_response :success
+    assert_controller_index_fail_succeed(new_harami_vid_url, user_fail: [@trans_moderator, @moderator_ja], user_succeed: @editor_harami)  # defined in test_helper.rb
     sign_out @editor_harami
 
     sign_in @moderator_harami
@@ -107,21 +93,8 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should get edit" do
-    get edit_harami_vid_url @harami_vid
-    assert_response :redirect
-    assert_redirected_to new_user_session_path
-
-    [@trans_moderator, @moderator_ja].each do |user|
-      sign_in user
-      get edit_harami_vid_url @harami_vid
-      assert_response :redirect, "should be banned for #{user.display_name}, but allowed..."
-      assert_redirected_to root_path
-      sign_out user
-    end
-
-    sign_in @editor_harami
-    get edit_harami_vid_url @harami_vid
-    assert_response :success
+    assert_controller_index_fail_succeed(edit_harami_vid_url(@harami_vid), user_fail: [@trans_moderator, @moderator_ja], user_succeed: @editor_harami)  # defined in test_helper.rb
+    # sign_out @editor_harami
 
     hvid2 = HaramiVid.create_basic!(title: "test-#{__method__}-2", langcode: "en", uri: "http://youtu.be/2dummytest2")
     # no associated EventItem
@@ -1410,10 +1383,8 @@ end
     assert_equal pla_hvid.id.to_s, (res=css_select(css)[0])["value"], "Selected=#{res.to_s}"
 
     # invalid ID is given as a GET parameter.
-    assert_raises(ActiveRecord::RecordNotFound){
-      get edit_harami_vid_url(@harami_vid, params: {reference_harami_vid_id: (HaramiVid.last.id+1).to_s})
-      #assert_response :unprocessable_content
-    }
+    hsparams = {reference_harami_vid_id: (HaramiVid.last.id+1).to_s}
+    assert_controller_dispatch_exception(edit_harami_vid_url(@harami_vid), err_class: ActiveRecord::RecordNotFound, method: :get, hsparams: hsparams)  # defined in test_helper.rb
 
     sign_out @editor_harami  # should have been automartically signed out.
 

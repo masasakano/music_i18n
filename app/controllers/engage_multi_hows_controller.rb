@@ -3,7 +3,7 @@
 class EngageMultiHowsController < ApplicationController
   include ModuleCommon # for split_hash_with_keys
 
-  before_action :set_engages, only: %i( index new )  # Unusual, but for index only.
+  before_action :set_engages, only: %i( index )  # Unusual, but for index only.
   load_and_authorize_resource :engage
 
   # GET parameters of {Artist} and {Music} IDs are mandatory.

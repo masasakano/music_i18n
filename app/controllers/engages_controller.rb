@@ -5,7 +5,7 @@ class EngagesController < ApplicationController
   # "edit" and "update" are eliminated for the sake of simplicity;
   # these actions are handled by {EngageMultiHowsController}
   before_action :set_engage, only: %i( new )
-  before_action :authorize_roughly, only: %i( index, new, create, destroy ) # show is accepted public
+  before_action :authorize_roughly, only: %i( index new create destroy ) # show is accepted public
 
   # GET /engages or /engages.json
   def index

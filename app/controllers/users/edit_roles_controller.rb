@@ -1,5 +1,5 @@
 class Users::EditRolesController < ApplicationController
-  before_action :set_user, only: [:show, :edit, :update, :destroy]
+  before_action :set_user, only: [:update] # only: [:show, :edit, :update, :destroy]
   #load_and_authorize_resource :user
   load_and_authorize_resource :user
 

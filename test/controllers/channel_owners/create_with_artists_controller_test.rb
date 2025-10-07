@@ -30,9 +30,8 @@ class ChannelOwners::CreateWithArtistsControllerTest < ActionDispatch::Integrati
     # This would forcibly log out the user!
     # Hence, if this is put in the middle of the following tests (before the final one), this would mess up the subsequent rests!
     sign_in @editor_ja
-    assert_raises(ActionController::ParameterMissing){
-      get channel_owners_create_with_artists_new_url }
-    # assert_response :unprocessable_content
+    assert_controller_dispatch_exception(channel_owners_create_with_artists_new_url, err_class: ActionController::ParameterMissing, method: :get)  # defined in test_helper.rb
+    sign_out @editor_ja
   end
 
   test "should get new" do

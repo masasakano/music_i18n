@@ -129,6 +129,35 @@ class ApplicationRecord < ActiveRecord::Base
       errors.add form_attr, ": Existing #{model.class.name} is not found, yet failed to create a new one: "+msg
     end
   end
+
+  # Temporarily setting Rails-app config value ina block
+  #
+  # @example
+  #   ApplicationRecord.with_config(Rails.application.config.i18n, "fallbacks", [:fr]) do
+  #     # ...
+  #   end
+  #
+  # @note
+  #   Rails' system, middleware, etc may load the config file at boot
+  #   and may never look up it again.  For example, the value of
+  #   +config.action_dispatch.show_exceptions+ is read only once, apparently.
+  #
+  # @param config_object [Object] like +Rails.application.config.i18n+
+  # @param setting_name [String] e.g., "fallbacks"
+  # @param temp_value [Object] e.g., +[:fr]+
+  def self.with_config(config_object, setting_name, temp_value)
+    orig_value = config_object.public_send(setting_name)
+
+    begin
+      # Use the public accessor method for the best practice.
+      # NOTE: config_object.instance_variable_set('@' + setting_name, temp_value) would be thread-unsafe.
+      config_object.public_send("#{setting_name}=", temp_value)
+
+      yield
+    ensure
+      config_object.public_send("#{setting_name}=", orig_value)
+    end
+  end
 end
 
 class << ApplicationRecord

@@ -43,8 +43,8 @@ module ModuleWikiUrl
       const_set(:MAIN_FORM_BOOL_KEYS, [:fetch_h1_wiki])
     end
       
-
-    after_action :add_wiki_url, only: [:create, :update]  # Views likely do not provide the option in :edit (hence :update)
+    # The "only" clause below might raise AbstractController::ActionNotFound exception in Rails-7.1 or later in the Controllers that do not define the corresponding method (if there is any such Controller, however unlikely!), unless config.action_controller.raise_on_missing_callback_actions is set false. The "only" method is instead handled inside the callback
+    after_action :add_wiki_url #, only: [:create, :update]  # Views likely do not provide the option in :edit (hence :update)
   end
 
   #module ClassMethods
@@ -57,6 +57,8 @@ module ModuleWikiUrl
   # If the main processing fails, the wiki_url entry the user has input should remain because @record.wiki_url unchanges.
   #
   def add_wiki_url
+    return unless [:create, :update].include?(action_name.to_sym)  # emulating "only: [:create, :update]". Note that Views likely do not provide the option in :edit (hence :update)
+
     if !@record
       msg = "@record is undefined in Controller #{self.class.name}, so wiki_url cannot be processed."
       msg_warn = "ERROR(#{File.basename __FILE__}:#{__method__}) "+msg 
