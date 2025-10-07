@@ -75,12 +75,12 @@ class SexesControllerTest < ActionDispatch::IntegrationTest
     assert_difference('Sex.count', 0) do
         post sexes_url, params: { sex: { iso5218: nil } }
     end
-    assert_response :unprocessable_entity  # Because of failure due to null constraint (default used to be :success till Rails 6.0?)
+    assert_response :unprocessable_content  # Because of failure due to null constraint (default used to be :success till Rails 6.0?)
 
     assert_difference('Sex.count', 0) do
         post sexes_url, params: { sex: { iso5218: @sex.iso5218 } }
     end
-    assert_response :unprocessable_entity  # Because of failure due to unique constraint
+    assert_response :unprocessable_content  # Because of failure due to unique constraint
   end
 
   test "should fail to show sex" do
@@ -132,7 +132,7 @@ class SexesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to sex_url(@sex)
 
     patch sex_url(@sex), params: { sex: { iso5218: Sex.third.iso5218, note: 'random' } }
-    assert_response :unprocessable_entity  # Because of failure due to unique constraint
+    assert_response :unprocessable_content  # Because of failure due to unique constraint
   end
 
   test "should fail to destroy sex" do

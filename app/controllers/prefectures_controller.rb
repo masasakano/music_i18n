@@ -79,8 +79,8 @@ class PrefecturesController < ApplicationController
         format.json { head :no_content }
       else
         @places = @prefecture.places  # as in "show"
-        format.html { render :show, status: :unprocessable_entity }
-        format.json { render json: @prefecture.errors, status: :unprocessable_entity }
+        format.html { render :show, status: :unprocessable_content }
+        format.json { render json: @prefecture.errors, status: :unprocessable_content }
       end
     end
   end

@@ -103,7 +103,7 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
     w3c_validate "HaramiVid new"  # defined in test_helper.rb (see for debugging help)
 
     get new_harami_vid_url, params: { "reference_harami_vid_kwd" => hv1.id.to_s }  # Invalid parameter for new
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
   end
 
   test "should get edit" do
@@ -172,7 +172,7 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
 if true
     assert_no_difference("HaramiVid.count") do
       post harami_vids_url, params: { harami_vid: @def_create_params.merge({title: 'some', uri: 'https://youtu.be/naiyo', form_channel_owner: ChannelOwner.order(:id).last.id+1})}
-      assert_response :unprocessable_entity
+      assert_response :unprocessable_content
     end
 #end
 #if false # temporary skip
@@ -204,12 +204,12 @@ if true
     assert_no_difference("Channel.count") do
       assert_no_difference("HaramiVid.count") do
         post harami_vids_url, params: { harami_vid: @def_create_params.merge(hsnew)}
-        assert_response :unprocessable_entity
+        assert_response :unprocessable_content
 
         uri2test = ApplicationHelper.normalized_uri_youtube(@def_create_params[:uri], long: true, with_scheme: true, with_host: true)
         assert_includes uri2test, "https://www.youtube.com/watch?v=", 'sanity check'
         post harami_vids_url, params: { harami_vid: @def_create_params.merge(hsnew).merge({uri: uri2test})}
-        assert_response :unprocessable_entity
+        assert_response :unprocessable_content
       end
     end
 
@@ -653,7 +653,7 @@ end
 
     ## should fail because hvid6, which shares the specified EventItem, does not have the new Music!  ####
     patch harami_vid_url(hvid7), params: { harami_vid: hvid7_prms_fail }
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
 
     ## should succeed now
     hvid7_prms = hvid7_prms_fail.merge({
@@ -719,7 +719,7 @@ end
 
     assert_no_difference("Event.count + EventItem.count") do
       patch harami_vid_url(hvid7), params: { harami_vid: hvid7_prms_collab_fail }
-      assert_response :unprocessable_entity, 'should raise an error because hvid6 that shares the specified EvnetItem for new-collab is not associated with the music, but...'
+      assert_response :unprocessable_content, 'should raise an error because hvid6 that shares the specified EvnetItem for new-collab is not associated with the music, but...'
     end
 
 
@@ -1412,7 +1412,7 @@ end
     # invalid ID is given as a GET parameter.
     assert_raises(ActiveRecord::RecordNotFound){
       get edit_harami_vid_url(@harami_vid, params: {reference_harami_vid_id: (HaramiVid.last.id+1).to_s})
-      #assert_response :unprocessable_entity
+      #assert_response :unprocessable_content
     }
 
     sign_out @editor_harami  # should have been automartically signed out.

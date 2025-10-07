@@ -32,7 +32,7 @@ module AutoCompleteIndex
     if !permitted
       return respond_to do |format|
         format.html { }
-        format.json { render json: {error: "Forbidden request #{path.inspect}" }, status: :unprocessable_entity }
+        format.json { render json: {error: "Forbidden request #{path.inspect}" }, status: :unprocessable_content }
       end
     end
 

@@ -257,7 +257,7 @@ class ApplicationController < ActionController::Base
         mdl.errors.add :base, alert if alert.present? # alert is, if present, included in the instance
         opts = get_html_safe_flash_hash(alert: alert, **hsflash)
         opts.delete :alert  # because alert is contained in the model itself.
-        hsstatus = {status: :unprocessable_entity}
+        hsstatus = {status: :unprocessable_content}
         format.html { render render_err,       **(hsstatus.merge opts) } # notice (and/or warning) is, if any, passed as an option.
         format.json { render json: mdl.errors, **hsstatus }
       end
@@ -290,7 +290,7 @@ class ApplicationController < ActionController::Base
       hsopt = {notice: "#{mdl.class.name} was successfully destroyed."}
       fmt_json = Proc.new { head :no_content }
     else
-      hsopt = {status: :unprocessable_entity}  # alert is contained in the model
+      hsopt = {status: :unprocessable_content}  # alert is contained in the model
       fmt_json = Proc.new { render json: mdl.errors, **hsopt }
     end
 

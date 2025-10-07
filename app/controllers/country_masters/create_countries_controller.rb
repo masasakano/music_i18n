@@ -15,8 +15,8 @@ class CountryMasters::CreateCountriesController < ApplicationController
         format.json { render :show, status: :created, location: @country }
       else
         format.html { redirect_to @country_master, alert: @country_master.errors.full_messages }
-        #format.html { render "country_masters/show", status: :unprocessable_entity, location: @country_master }
-        format.json { render json: @country_master.errors, status: :unprocessable_entity }
+        #format.html { render "country_masters/show", status: :unprocessable_content, location: @country_master }
+        format.json { render json: @country_master.errors, status: :unprocessable_content }
       end
     end
   end

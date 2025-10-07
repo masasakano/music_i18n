@@ -80,7 +80,7 @@ class InstrumentsControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference("Instrument.count") do
       post instruments_url, params: { instrument: { note: "", weight: 12345 } }
     end
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
   end
 
   test "should show instrument" do

@@ -117,7 +117,7 @@ class ChannelTypesControllerTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("ChannelType.count") do
       post channel_types_url, params: { channel_type: hs2pass.merge({mname: "foobaa", weight: ChannelType.new_unique_max_weight}) }
-      assert_response :unprocessable_entity
+      assert_response :unprocessable_content
     end
 
     assert_difference("ChannelType.count") do

@@ -97,7 +97,7 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("ChannelOwner.count") do
       post channel_owners_url, params: { channel_owner: hs2pass.merge({ note: "same translation. should fail", themselves: true }) }
-      assert_response :unprocessable_entity
+      assert_response :unprocessable_content
     end
 
     # Test of :artist_with_id
@@ -119,7 +119,7 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
     # 2nd time of :artist_with_id  - fails
     assert_no_difference("ChannelOwner.count") do
       post channel_owners_url, params: { channel_owner: hs }
-      assert_response :unprocessable_entity
+      assert_response :unprocessable_content
     end
 
     # Change the status of JohnLennon Channel Owner to not-themselves.
@@ -141,7 +141,7 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
     hs4th.merge!(art_lennon.best_translation.attributes.slice(*%w(langcode title ruby romaji alt_title alt_ruby alt_romaji)))
     assert_no_difference("ChannelOwner.count") do
       post channel_owners_url, params: { channel_owner: hs4th }
-      assert_response :unprocessable_entity
+      assert_response :unprocessable_content
     end
 
     sign_out @editor_ja
@@ -306,7 +306,7 @@ end
     # Uncheck "themselves" => fails (because the same translation with themselves=false exists.)
       hs_a4 = hs_a2.merge({note: "a99"})
       patch channel_owner_url(mdl_last1), params: { channel_owner: hs_a4 }
-      assert_response :unprocessable_entity
+      assert_response :unprocessable_content
       mdl_last1.reload
       refute_equal "a99", mdl_last1.note, 'sanity check'
       assert_equal "a019", mdl_last1.note

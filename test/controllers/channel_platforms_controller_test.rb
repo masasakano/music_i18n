@@ -82,7 +82,7 @@ class ChannelPlatformsControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference("ChannelPlatform.count") do
       post channel_platforms_url, params: { channel_platform: { note: "", mname: "foobaa" } }
     end
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
   end
 
   test "should show channel_platform" do

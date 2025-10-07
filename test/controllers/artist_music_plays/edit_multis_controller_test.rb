@@ -144,7 +144,7 @@ class ArtistMusicPlays::EditMultisControllerTest < ActionDispatch::IntegrationTe
     assert_no_difference("HaramiVid.count + HaramiVidEventItemAssoc.count") do
       assert_no_difference("ArtistMusicPlay.count") do
         post artist_music_plays_edit_multis_path(params: {artist_music_play: hsin})
-        assert_response :unprocessable_entity
+        assert_response :unprocessable_content
         flash_regex_assert(/\bCover(\s|_|)ratio must be greater than or equal to 0\b/i) # defined in test_helper.rb
       end
     end
@@ -253,7 +253,7 @@ class ArtistMusicPlays::EditMultisControllerTest < ActionDispatch::IntegrationTe
     assert_no_difference("HaramiVid.count + HaramiVidEventItemAssoc.count") do
       assert_no_difference("ArtistMusicPlay.count") do
         patch artist_music_plays_edit_multi_path(@amps[:harami][0], params: {artist_music_play: hsin})
-        assert_response :unprocessable_entity
+        assert_response :unprocessable_content
         flash_regex_assert(/\Instrument must exist\b/i) # defined in test_helper.rb
       end
     end

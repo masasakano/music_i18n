@@ -147,7 +147,7 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
 
     # should fail gracefully
     post artists_url, params: { artist: hs }
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
   end
 
   test "should fail/succeed to get edit" do

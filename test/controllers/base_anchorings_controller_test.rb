@@ -165,7 +165,7 @@ class BaseAnchoringsControllerTest < ActionDispatch::IntegrationTest
     tmpurl = ancs[2].url.url  # should conflict
     upd = ancs[0].updated_at
     pid = ancs[0].id
-    ancs << _assert_update_anchoring_url(ancs[0], url_str: tmpurl, note: note8, exp_response: :unprocessable_entity, **opt_users)
+    ancs << _assert_update_anchoring_url(ancs[0], url_str: tmpurl, note: note8, exp_response: :unprocessable_content, **opt_users)
     assert_equal ancs[0].id, ancs[-1].id
     assert_equal newurl,     ancs[-1].reload.url.url
     assert_equal pid,        ancs[-1].id

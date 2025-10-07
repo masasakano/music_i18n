@@ -100,7 +100,7 @@ class ChannelsControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference("Channel.count") do
       post channels_url, params: { channel: hs2pass.merge({ note: "same parameters. should fail" }) }
     end
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
 
     platform_fb = channel_platforms(:channel_platform_facebook)
     assert_difference("Channel.count", 1, "An existing translation should be allowed as long as the combination of the main three parameters is unique, but...") do
@@ -221,14 +221,14 @@ class ChannelsControllerTest < ActionDispatch::IntegrationTest
       # Testing updating id_human_at_platform - 1 character is too short.
       tmpid_human = "X"
       patch channel_url(@channel2), params: {channel: update_paramss[2][:channel].merge({id_human_at_platform: tmpid_human}.with_indifferent_access) }
-      assert_response :unprocessable_entity
+      assert_response :unprocessable_content
       assert_nil  @channel2.reload.id_human_at_platform  # no change
 
       # Testing updating id_at_platform - 1 character is too short.
       assert_nil  @channel2.id_at_platform  # sanity check
       tmpid_human = "X"
       patch channel_url(@channel2), params: {channel: update_paramss[2][:channel].merge({id_at_platform: tmpid_human}.with_indifferent_access) }
-      assert_response :unprocessable_entity
+      assert_response :unprocessable_content
       assert_nil  @channel2.reload.id_at_platform  # no change
     sign_out @moderator_harami
 

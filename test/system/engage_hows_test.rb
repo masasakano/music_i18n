@@ -25,7 +25,7 @@ class EngageHowsTest < ApplicationSystemTestCase
     fill_in "Note", with: 'create test01'
     click_on "Create EngageHow"
 
-    # assert_response :unprocessable_entity # invalid in system tests.
+    # assert_response :unprocessable_content # invalid in system tests.
     assert_text "must exist"
 
     newname = 'ある名前t02'

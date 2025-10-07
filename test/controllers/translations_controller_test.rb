@@ -145,7 +145,7 @@ if false
     assert_difference('Translation.count', 0, 'failed: response='+@response.body) do
       post translations_url, params: { translation: { alt_title: 'abcd4', is_orig: false, langcode: 'en', translatable_type: @music.class.name, translatable_id: @music.id, } }
     end
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     assert_includes css_select('div#error_explanation ul li').map(&:text).join(" "), 'must be unique'
       #<h2>2 errors prohibited this translation from being saved:</h2>
       #  <li>Title has already been taken
@@ -202,7 +202,7 @@ if false
     play_role_unk = PlayRole.unknown?
     play_role_unk.update!(create_user_id: @general_moderator, update_user_id: @general_moderator)
     get edit_translation_url(play_role_unk)
-    assert_response :unprocessable_entity, 'Should fail due to unknown PlayRole'
+    assert_response :unprocessable_content, 'Should fail due to unknown PlayRole'
     sign_out(@general_moderator)
 
     sign_in @admin
@@ -228,7 +228,7 @@ if false
     assert_equal parent, @tra_mu.translatable, 'Sanity check of fixture failed...'
     parent = @tra_mu.translatable
     patch translation_url(@tra_mu), params: { translation: { title: @tra_mu_by_mod.title, is_orig: false, langcode: 'en', translatable_type: parent.class.name, translatable_id: parent.id, } }
-    assert_response :unprocessable_entity, 'Should fail due to unique constraint, but?'
+    assert_response :unprocessable_content, 'Should fail due to unique constraint, but?'
 
     patch translation_url(@tra_mu), params: { translation: { alt_title: 'abcde', is_orig: false, langcode: 'en', translatable_type: parent.class.name, translatable_id: parent.id, } }
     assert_redirected_to translation_url(@tra_mu)

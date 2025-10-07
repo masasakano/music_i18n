@@ -97,7 +97,7 @@ class MusicsController < ApplicationController
         format.json { render :show, status: :created, location: @music }
       else
         format.html { render :new }
-        format.json { render json: @music.errors, status: :unprocessable_entity }
+        format.json { render json: @music.errors, status: :unprocessable_content }
       end
     end
   end

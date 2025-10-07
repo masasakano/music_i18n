@@ -66,7 +66,7 @@ class BaseAnchorablesController < ApplicationController
       else
         @anchoring.fetch_h1 = false if @anchoring.title.present?  # Not fetching remote again once title has been set.
         path = path_anchoring(@anchoring, action: :new) # defined in Artists::AnchoringsHelper
-        format.html { render :new, status: :unprocessable_entity }
+        format.html { render :new, status: :unprocessable_content }
       end
     end
   end
@@ -90,7 +90,7 @@ class BaseAnchorablesController < ApplicationController
       else
         #path = url_anchoring(@anchoring, action: :edit) # defined in Artists::AnchoringsHelper
         ## path = Rails.application.routes.url_helpers.polymorphic_path(@anchoring.anchorable, action: :edit, only_path: true)
-        format.html { render :edit, status: :unprocessable_entity }
+        format.html { render :edit, status: :unprocessable_content }
       end
     end
   end
@@ -103,8 +103,8 @@ class BaseAnchorablesController < ApplicationController
         format.turbo_stream
         format.json { head :no_content }
       else
-        format.html { redirect_to path_back, status: :unprocessable_entity }
-        format.json { render json: @anchoring.errors, status: :unprocessable_entity }
+        format.html { redirect_to path_back, status: :unprocessable_content }
+        format.json { render json: @anchoring.errors, status: :unprocessable_content }
       end
     end
   end

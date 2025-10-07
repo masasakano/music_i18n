@@ -57,7 +57,7 @@ class CountryMasters::CreateCountriesControllerTest < ActionDispatch::Integratio
     assert_no_difference("Country.count") do
       post country_masters_create_countries_path(@country_master.id)
       assert_response :redirect
-      #assert_response :unprocessable_entity
+      #assert_response :unprocessable_content
     end
     assert_redirected_to @country_master
     follow_redirect!

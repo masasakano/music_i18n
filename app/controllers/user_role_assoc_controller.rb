@@ -54,7 +54,7 @@ class UserRoleAssocController < ApplicationController
       else
         logger.error "FAIL in save (to update roles for User ID=#{@user.id} (#{@user.display_name}): Messages: "+@user.errors.full_messages.inspect
         format.html { redirect_to user_path(@user), alert: "Failed in updating roles for User ID=#{@user.id} (#{@user.display_name})." }
-        format.json { render json: @user.errors, status: :unprocessable_entity }
+        format.json { render json: @user.errors, status: :unprocessable_content }
       end
     end
   end

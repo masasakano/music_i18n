@@ -25,7 +25,7 @@ module ActionDispatch::IntegrationTest::TranslationCommon
     assert_no_difference(com2count) do
       assert_no_difference('Translation.count') do
         post send(url), params: { klass_dcase => hsparam.merge({"title"=>""})}
-        assert_response :unprocessable_entity #, "message is : "+flash.inspect
+        assert_response :unprocessable_content #, "message is : "+flash.inspect
       end
     end
   
@@ -34,7 +34,7 @@ module ActionDispatch::IntegrationTest::TranslationCommon
     assert_no_difference(com2count) do
       assert_no_difference('Translation.count') do
         post send(url), params: { klass_dcase => hsparam}
-        assert_response :unprocessable_entity #, "message is : "+flash.inspect
+        assert_response :unprocessable_content #, "message is : "+flash.inspect
       end
     end
 
@@ -44,7 +44,7 @@ module ActionDispatch::IntegrationTest::TranslationCommon
     assert_no_difference(com2count) do
       assert_no_difference('Translation.count') do
         post send(url), params: { klass_dcase => hsparam.merge({"title"=>title2})}
-        assert_response :unprocessable_entity #, "message is : "+flash.inspect
+        assert_response :unprocessable_content #, "message is : "+flash.inspect
       end
     end
   end

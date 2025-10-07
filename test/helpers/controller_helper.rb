@@ -30,7 +30,7 @@ class ActiveSupport::TestCase
       #post send(snake_str.pluralize+"_url"), params: { snake_str => { col_name => "" }}
       # assert flash[:alert].present?, "Did not fail with Flash-alert for a null create."  # flash does not work well for some reason in this helper thought it would work if directly included in a Controller test.
     end
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     assert_includes css_select('.alert-danger h2').text, "prohibited", "Called from #{caller_info}"
     
     css1 = ".alert-danger #error_explanation_list"
@@ -342,7 +342,7 @@ class ActiveSupport::TestCase
   # @param diff_count_command: [String, NilClass] Count method like 'Article.count*10 + Author.count'. In default, it is guessed from model_record
   # @param diff_num: [Integer, NilClass] 1 or 0 or -1 in Default for respective actions of :create and :update and :destroy. If this is 0 in :create, it is interpreted as no Model being expected to be created (but the authorization passes).
   # @param updated_attrs: [Array<Symbol>, Hash] Attributes that should be updated after :update/:create, which you want to check (this does not need to be a complete list at all!). If Hash, +{key => expected-value}+. If Array, the expected values are taken from the given +params+.
-  # @param exp_response: [Symbol, String, NilClass] If you expect this to fail, specify :unprocessable_entity
+  # @param exp_response: [Symbol, String, NilClass] If you expect this to fail, specify :unprocessable_content
   # @param err_msg: [String, NilClass] Custom error message for assert_response
   # @oaram is_debug: [Boolean] If true (Def: false), error message in saving is displayed to STDOUT
   # @param bind_offset: [Integer, NilClass] Depth of the call (to get caller information for error messages); 0 if you directly call this from your test script and want to know the caller location in your test-script.
@@ -363,7 +363,7 @@ class ActiveSupport::TestCase
         raise "should never happen."
       end
 
-    exp_response ||= ((0 == diff_num && action != :update) ? :unprocessable_entity : :redirect)
+    exp_response ||= ((0 == diff_num && action != :update) ? :unprocessable_content : :redirect)
     diff_count_command ||= model.name+".count"
 
     #caller_info_prefix = _get_caller_info_message(bind_offset: bind_offset, prefix: true)  # defined in test_helper.rb
@@ -556,7 +556,7 @@ class ActiveSupport::TestCase
       when 404
         "Not Found"
       when 422
-        ":unprocessable_entity"
+        ":unprocessable_content"
       when 500
         "Internal Server Error"
       else

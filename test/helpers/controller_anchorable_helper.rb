@@ -263,7 +263,7 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
   # @param record2upd [Anchoring] the one to update. The values here are set for the form.
   # @param diff_num [Integer] Default is 0. Be warned that some type of updates create new models of Domain, DomainTilte (and its Translation).
   # @param is_debug [Boolean] to display the error message in saving
-  # @param opts [Hash] Here, exp_response [Symbol, String] is often used. For failing to update, specify :unprocessable_entity
+  # @param opts [Hash] Here, exp_response [Symbol, String] is often used. For failing to update, specify :unprocessable_content
   # @return [Anchoring] created one.
   def _assert_update_anchoring_url(record2upd, diff_num: 0, **opts)
     _assert_create_anchoring_url_core(record2upd, diff_num: diff_num, **(opts.merge({is_create: false})))
@@ -284,7 +284,7 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
   # @param is_create: [Boolean] Def: true
   # @param action:  [Symbol] experimental...
   # @param exp_response: [Symbol, Integer] Expected response by success_users.  passed to assert_authorized_post
-  # @param updated_attrs: [Array] passed to assert_authorized_post. Default is %i(note) unless (exp_response: :unprocessable_entity)
+  # @param updated_attrs: [Array] passed to assert_authorized_post. Default is %i(note) unless (exp_response: :unprocessable_content)
   # @oaram is_debug: [Boolean] If true (Def: false), error message in saving is displayed to STDOUT
   # @return [Anchoring] created one.
   # @yield [Anchoring] Hash [allopts] to be passed to {#assert_authorized_post} is given and you can modify and return it. Useful for :update. If the block returns nil, allopts is not modified.
@@ -369,7 +369,7 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
     ##hsprms[:url_langcode]     = url_langcode.to_s     if url_langcode
     ##hsprms[:site_category_id] = site_category_id.to_s if site_category_id
 
-    updated_attrs ||= ((:unprocessable_entity == exp_response) ? [] : %i(note))
+    updated_attrs ||= ((:unprocessable_content == exp_response) ? [] : %i(note))
     allopts = {
       path_or_action: path,
       params: hsprms,
@@ -397,7 +397,7 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
     model_record = ((:create == action) ? Anchoring : anchoring) 
 
     action, new_mdl = assert_authorized_post(model_record, **allopts){ |_, record| # defined in /test/helpers/controller_helper.rb
-      if record.respond_to?(:url) && (:unprocessable_entity != exp_response)  # this is the Anchoring class when failing.
+      if record.respond_to?(:url) && (:unprocessable_content != exp_response)  # this is the Anchoring class when failing.
         assert_match(re, record.url.url)  # NOTE: url_form becomes nil after "reload"; hence you would either check it here in the yield block or include it in updated_attrs as a Hash like {url: nerurl3}
         assert_equal url_str.sub(re, ""), record.url.url.sub(re, ""), "#{_get_caller_info_message(prefix: true)} URLs are inconsistent..." if :youtube != ApplicationHelper.guess_site_platform(url_str)  # Youtube links are custom modified
       end

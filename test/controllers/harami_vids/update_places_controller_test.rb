@@ -71,7 +71,7 @@ class HaramiVids::UpdatePlacesControllerTest < ActionDispatch::IntegrationTest
           assert_no_difference("Translation.count") do
             assert_no_difference("Channel.count") do
               patch harami_vids_update_place_url(hvid)
-              assert_response :unprocessable_entity
+              assert_response :unprocessable_content
             end
           end
         end
@@ -91,7 +91,7 @@ class HaramiVids::UpdatePlacesControllerTest < ActionDispatch::IntegrationTest
     evit.update!(place: pla_lyon)
     assert_nil  get_evit_place_if_need_updating(hvid) # defined in HaramiVids::UpdatePlacesHelper
     patch harami_vids_update_place_url(hvid)
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     hvid.reload
     assert_equal pla_orig,        hvid.place
     assert_equal updated_at_orig, hvid.updated_at
@@ -102,7 +102,7 @@ class HaramiVids::UpdatePlacesControllerTest < ActionDispatch::IntegrationTest
     updated_at_ori2 = hvid.updated_at
     assert_nil  get_evit_place_if_need_updating(hvid) # defined in HaramiVids::UpdatePlacesHelper
     patch harami_vids_update_place_url(hvid)
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     hvid.reload
     assert_equal pla_tokyo,       hvid.place
     assert_equal updated_at_ori2, hvid.updated_at
@@ -150,7 +150,7 @@ class HaramiVids::UpdatePlacesControllerTest < ActionDispatch::IntegrationTest
     assert          css_select("dd.item_place div.harami_vids_update_place").blank?
 
     patch harami_vids_update_place_url(hvid)
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     hvid.reload
     assert_equal pla_paris_unknown,     hvid.place
     assert_equal updated_at_ori3, hvid.updated_at

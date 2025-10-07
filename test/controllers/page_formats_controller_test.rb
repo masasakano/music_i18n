@@ -68,12 +68,12 @@ class PageFormatsControllerTest < ActionDispatch::IntegrationTest
     assert_difference('PageFormat.count', 0) do
         post page_formats_url, params: { page_format: { mname: nil } }
     end
-    assert_response :unprocessable_entity  # Because of failure due to null constraint
+    assert_response :unprocessable_content  # Because of failure due to null constraint
 
     assert_difference('PageFormat.count', 0) do
         post page_formats_url, params: { page_format: { mname: @page_format.mname } }
     end
-    assert_response :unprocessable_entity  # Because of failure due to unique constraint
+    assert_response :unprocessable_content  # Because of failure due to unique constraint
   end
 
   test "should fail to show page_format" do
@@ -125,7 +125,7 @@ class PageFormatsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in @admin
     patch page_format_url(@page_format), params: { page_format: { mname: page_formats(:page_format_filtered_html).mname, note: 'random' } }
-    assert_response :unprocessable_entity  # Because of failure due to unique constraint
+    assert_response :unprocessable_content  # Because of failure due to unique constraint
   end
 
   test "should fail to destroy page_format" do

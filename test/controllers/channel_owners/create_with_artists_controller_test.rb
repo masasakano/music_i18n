@@ -32,7 +32,7 @@ class ChannelOwners::CreateWithArtistsControllerTest < ActionDispatch::Integrati
     sign_in @editor_ja
     assert_raises(ActionController::ParameterMissing){
       get channel_owners_create_with_artists_new_url }
-    # assert_response :unprocessable_entity
+    # assert_response :unprocessable_content
   end
 
   test "should get new" do

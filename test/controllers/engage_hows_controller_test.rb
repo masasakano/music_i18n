@@ -43,7 +43,7 @@ class EngageHowsControllerTest < ActionDispatch::IntegrationTest
       }
     end
     #assert_match(/\bno langcode\b/i, css_select('div#error_explanation ul').text, "output: #{css_select('div#body_main').to_html}")
-    #assert_response :unprocessable_entity # 422
+    #assert_response :unprocessable_content # 422
 
     sign_in @moderator
     # Creation failures
@@ -51,7 +51,7 @@ class EngageHowsControllerTest < ActionDispatch::IntegrationTest
       #post engage_hows_url, params: { translation: { langcode: 'ja', is_orig: '0', title: 'abc', alt_title: 'abc' }, engage_how: {note: ''} }
       post engage_hows_url, params: { engage_how: { langcode: 'ja', is_orig: '0', title: 'abc', alt_title: 'abc', note: ''} }
     end
-    assert_response :unprocessable_entity # 422
+    assert_response :unprocessable_content # 422
 
     # Creation success
     assert_difference('EngageHow.count') do

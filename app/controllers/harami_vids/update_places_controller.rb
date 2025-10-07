@@ -28,7 +28,7 @@ class HaramiVids::UpdatePlacesController < ApplicationController
           hsflash[ek] = flash[ek] if flash[ek].present?
         end
         opts = get_html_safe_flash_hash(alert: @harami_vid.errors.full_messages, **hsflash)
-        hsstatus = {status: :unprocessable_entity}.merge(opts)
+        hsstatus = {status: :unprocessable_content}.merge(opts)
         format.html { render :show, **hsstatus } # notice (and/or warning) is, if any, passed as an option.  # NOTE: this is usually :edit, but only in this case this is :show (!)
         #format.html { render :edit, **(opts) } # notice (and/or warning) is, if any, passed as an option.
         format.json { render json: @harami_vid.errors, **hsstatus }

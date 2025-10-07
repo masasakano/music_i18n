@@ -25,7 +25,7 @@ class Artists::Merges::ArtistWithIdsControllerTest < ActionDispatch::Integration
     sign_in @editor
     fpath = '/en/random'
     get artists_merges_artist_with_ids_path(@artist,  params: {keyword: "nno", path: fpath}, format: :json)
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     hs = @response.parsed_body
     assert_equal 'error', hs.keys[0]  # {"error":"Forbidden request to \"/en/random\""}
 

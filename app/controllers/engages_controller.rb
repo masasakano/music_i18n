@@ -66,7 +66,7 @@ class EngagesController < ApplicationController
       logger.debug msg
       return respond_to do |format|
         format.html { render :new, music_id: @engage.music_id }  # music_id (as an argument for render) is probably redundant
-        format.json { render json: @engage.errors, status: :unprocessable_entity }
+        format.json { render json: @engage.errors, status: :unprocessable_content }
       end
     end
 

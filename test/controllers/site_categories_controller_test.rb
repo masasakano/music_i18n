@@ -107,24 +107,24 @@ class SiteCategoriesControllerTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("SiteCategory.count") do
       post site_categories_url, params: { site_category: hs2pass.merge({title: "", mname: __method__.to_s+"03"}) }
-      assert_response :unprocessable_entity, "should have failed due to null title, but..."
+      assert_response :unprocessable_content, "should have failed due to null title, but..."
     end
 
     assert_no_difference("SiteCategory.count") do
       post site_categories_url, params: { site_category: hs2pass.merge({title: new_mdl2.title, mname: __method__.to_s+"03"}) }
-      assert_response :unprocessable_entity, "should have failed due to an identical title, but..."
+      assert_response :unprocessable_content, "should have failed due to an identical title, but..."
     end
 
     hs2pass2 = hs2pass.merge({title: new_mdl2.title+"01", mname: new_mdl2.mname, })
     assert_no_difference("SiteCategory.count") do
       post site_categories_url, params: { site_category: hs2pass2 }
-      assert_response :unprocessable_entity, "should have failed due to an identical mname, but..."
+      assert_response :unprocessable_content, "should have failed due to an identical mname, but..."
     end
 
     hs2pass2 = hs2pass.merge({mname: __method__.to_s+"03", })
     assert_no_difference("SiteCategory.count") do  # "should succeede, but..."
       post site_categories_url, params: { site_category: hs2pass2 }
-      assert_response :unprocessable_entity#, "should have failed due to an identical translation regardless of mname, but..."
+      assert_response :unprocessable_content#, "should have failed due to an identical translation regardless of mname, but..."
       # assert_response :redirect, " Error-message: "+css_select('div#error_explanation').to_s  # If Translation uniquness depends on mname, this is the one.  (But mname should be irrelevant.)
     end
 

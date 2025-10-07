@@ -55,8 +55,8 @@ class ModelSummariesController < ApplicationController
         format.html { redirect_to model_summary_url(@model_summary), notice: "ModelSummary was successfully created." }
         format.json { render :show, status: :created, location: @model_summary }
       else
-        format.html { render :new, status: :unprocessable_entity }
-        format.json { render json: @model_summary.errors, status: :unprocessable_entity }
+        format.html { render :new, status: :unprocessable_content }
+        format.json { render json: @model_summary.errors, status: :unprocessable_content }
       end
     end
   end

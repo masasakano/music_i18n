@@ -55,15 +55,15 @@ class StaticPagesControllerTest < ActionDispatch::IntegrationTest
     assert_difference('StaticPage.count', 0) do
       post static_pages_url, params: { static_page: hs_param }
     end
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     assert_difference('StaticPage.count', 0) do
       post static_pages_url, params: { static_page: hs_param.merge({title: 'new-t0'}) }
     end
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     assert_difference('StaticPage.count', 0) do
       post static_pages_url, params: { static_page: hs_param.merge({mname: 'new-m0'}) }
     end
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
 
     with_versioning do
       assert_difference('StaticPage.count', 1) do

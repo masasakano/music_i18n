@@ -81,8 +81,8 @@ class ArtistMusicPlays::EditMultisController < ApplicationController
   def do_format_html(stats=nil)
     if @amp && @amp.errors.present?
       respond_to do |format|
-        format.html { render :index, status: :unprocessable_entity}  # A bit unusual, but render :index
-        format.json { render json: @amp.errors, status: :unprocessable_entity }
+        format.html { render :index, status: :unprocessable_content}  # A bit unusual, but render :index
+        format.json { render json: @amp.errors, status: :unprocessable_content }
       end
     else
       msg = sprintf "Created %d, updated %d, and destroyed %d ArtistMusicPlays successfully.", stats[:created].size, stats[:updated].size, stats[:n_destroyed]

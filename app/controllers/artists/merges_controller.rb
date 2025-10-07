@@ -21,7 +21,7 @@ class Artists::MergesController < BaseMergesController
     if msg  # e.g., when non-existent Artist-ID is specified by the user.
       return respond_to do |format|
         format.html { redirect_to artists_new_merges_path(@artists[0]), alert: msg } # status: redirect
-        format.json { render json: {error: msg}, status: :unprocessable_entity }
+        format.json { render json: {error: msg}, status: :unprocessable_content }
       end
     end
     @merged_artist = get_merged_model(@artists)  # defined in base_merges_controller.rb

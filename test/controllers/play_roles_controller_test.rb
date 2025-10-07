@@ -67,7 +67,7 @@ class PlayRolesControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference("PlayRole.count") do
       post play_roles_url, params: { play_role: { mname: "naiyo1", note: "", weight: 12345 } }
     end
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
   end
 
   test "should show play_role" do

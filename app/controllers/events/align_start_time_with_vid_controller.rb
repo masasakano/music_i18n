@@ -13,7 +13,7 @@ class Events::AlignStartTimeWithVidController < ApplicationController
       elsif @event.update(start_time: ar_cand_start_time[0], start_time_err: ar_cand_start_time[1])
         format.html { redirect_to events_align_start_time_with_vid_path(@event), notice: "start_time(_err) were successfully updated." }
       else
-        format.html { render :show, status: :unprocessable_entity }
+        format.html { render :show, status: :unprocessable_content }
       end
     end
   end

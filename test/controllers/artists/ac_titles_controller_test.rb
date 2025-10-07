@@ -16,7 +16,7 @@ class Artists::AcTitlesControllerTest < ActionDispatch::IntegrationTest
   test "should get index" do
     fpath = '/en/random'
     get artists_ac_titles_path( params: {keyword: "nno", path: fpath}, format: :json)
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     hs = @response.parsed_body
     assert_equal 'error', hs.keys[0]  # {"error":"Forbidden request to \"/en/random\""}
 

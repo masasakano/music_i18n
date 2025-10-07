@@ -108,8 +108,8 @@ class EngageMultiHowsController < ApplicationController
     # is called when encountering an error.
     if @engage && @engage.errors.present?
       respond_to do |format|
-        format.html { render :index, status: :unprocessable_entity }  # A bit unusual, but render :index
-        format.json { render json: @engage.errors, status: :unprocessable_entity }
+        format.html { render :index, status: :unprocessable_content }  # A bit unusual, but render :index
+        format.json { render json: @engage.errors, status: :unprocessable_content }
       end
     else
       respond_to do |format|

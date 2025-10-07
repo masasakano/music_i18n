@@ -11,7 +11,7 @@ class EventItems::NominalMachineTitlesController < ApplicationController
       if @event_item.update(machine_title: nominal_title)
         format.html { redirect_to event_items_nominal_machine_title_path(@event_item), notice: "machine_title was successfully updated." }
       else
-        format.html { render :show, status: :unprocessable_entity }
+        format.html { render :show, status: :unprocessable_content }
       end
     end
   end

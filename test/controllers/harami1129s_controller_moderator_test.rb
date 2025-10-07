@@ -58,7 +58,7 @@ class Harami1129sControllerModeratorTest < ActionDispatch::IntegrationTest
 
     # Nothing should change because of the contradiction.
     patch harami1129_url(h1129, params: { harami1129: hs })
-    assert_response :unprocessable_entity  # => <422: Unprocessable Entity>
+    assert_response :unprocessable_content  # => <422: Unprocessable Entity>
     #assert (200...299).include?(response.code.to_i), "Response.code=#{response.code} is NOT 200"  # should not be like :redirect or 403 forbidden
     h1129.reload
     %i(engage title ins_release_date ins_at not_music).each do |ek|

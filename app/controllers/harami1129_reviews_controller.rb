@@ -31,8 +31,8 @@ class Harami1129ReviewsController < ApplicationController
         format.html { redirect_to harami1129_review_url(@harami1129_review), notice: "Harami1129 review was successfully created." }
         format.json { render :show, status: :created, location: @harami1129_review }
       else
-        format.html { render :new, status: :unprocessable_entity }
-        format.json { render json: @harami1129_review.errors, status: :unprocessable_entity }
+        format.html { render :new, status: :unprocessable_content }
+        format.json { render json: @harami1129_review.errors, status: :unprocessable_content }
       end
     end
   end
@@ -44,8 +44,8 @@ class Harami1129ReviewsController < ApplicationController
         format.html { redirect_to harami1129_review_url(@harami1129_review), notice: "Harami1129 review was successfully updated." }
         format.json { render :show, status: :ok, location: @harami1129_review }
       else
-        format.html { render :edit, status: :unprocessable_entity }
-        format.json { render json: @harami1129_review.errors, status: :unprocessable_entity }
+        format.html { render :edit, status: :unprocessable_content }
+        format.json { render json: @harami1129_review.errors, status: :unprocessable_content }
       end
     end
   end

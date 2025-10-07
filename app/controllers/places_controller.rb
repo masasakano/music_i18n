@@ -165,13 +165,13 @@ class PlacesController < ApplicationController
       respond_to do |format|
         case request.path  # Go back to the original page...
         when edit_place_path(@place.id)
-          format.html { render :edit, status: :unprocessable_entity, alert: msg }
+          format.html { render :edit, status: :unprocessable_content, alert: msg }
         when      place_path(@place.id)
-          format.html { render :show, status: :unprocessable_entity, alert: msg }
+          format.html { render :show, status: :unprocessable_content, alert: msg }
         else
           format.html { redirect_to places_url, alert: msg }
         end
-        format.json { render json: mdl.errors, status: :unprocessable_entity }
+        format.json { render json: mdl.errors, status: :unprocessable_content }
       end
     end
 end

@@ -35,7 +35,7 @@ class Harami1129s::PopulatesController < ApplicationController
           hsflash[ek] = flash[ek] if flash[ek].present?
         end
         opts = get_html_safe_flash_hash(alert: @harami1129.errors.full_messages, **hsflash)
-        hsstatus = {status: :unprocessable_entity}
+        hsstatus = {status: :unprocessable_content}
         # Since this is "recirect_to", everything must be passed as flash (not in the form of @record.errors)
         format.html { redirect_to @harami1129, **(opts) } # notice (and/or warning) is, if any, passed as an option.
         format.json { render json: @harami1129.errors, **hsstatus }

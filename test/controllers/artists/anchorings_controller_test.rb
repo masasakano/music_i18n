@@ -182,7 +182,7 @@ end # if false
     assert_equal :update, action
 
     url_orig = anchoring.url.url
-    action, _ = assert_authorized_post(anchoring, user: @moderator_ja, path_or_action: paths[:show], redirected_to: path_anchoring(anchoring, action: :show), params: hsupdate.merge({url_form: ""}), method: :patch, diff_count_command: calc_count_exp, diff_num: 0, updated_attrs: [:note], exp_response: :unprocessable_entity){ |user, record|  # path_anchoring() defined in Artists::AnchoringsHelper
+    action, _ = assert_authorized_post(anchoring, user: @moderator_ja, path_or_action: paths[:show], redirected_to: path_anchoring(anchoring, action: :show), params: hsupdate.merge({url_form: ""}), method: :patch, diff_count_command: calc_count_exp, diff_num: 0, updated_attrs: [:note], exp_response: :unprocessable_content){ |user, record|  # path_anchoring() defined in Artists::AnchoringsHelper
       assert record.url
       assert_equal url_orig, record.url.url
     } # defined in /test/helpers/controller_helper.rb

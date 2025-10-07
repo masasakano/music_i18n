@@ -33,7 +33,7 @@ class CountriesController < ApplicationController
         format.json { render :show, status: :created, location: @country }
       else
         format.html { render :new }
-        format.json { render json: @country.errors, status: :unprocessable_entity }
+        format.json { render json: @country.errors, status: :unprocessable_content }
       end
     end
   end
@@ -47,7 +47,7 @@ class CountriesController < ApplicationController
         format.json { render :show, status: :ok, location: @country }
       else
         format.html { render :edit }
-        format.json { render json: @country.errors, status: :unprocessable_entity }
+        format.json { render json: @country.errors, status: :unprocessable_content }
       end
     end
   end

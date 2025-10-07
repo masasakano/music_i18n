@@ -67,7 +67,7 @@ class Translations::DemotesController < ApplicationController
       msg = (opts[:alert] || opts[:warning])
       respond_to do |format|
         format.html { redirect_to (request.referrer || @translation), **opts }
-        format.json { render json: [msg], status: :unprocessable_entity }
+        format.json { render json: [msg], status: :unprocessable_content }
       end
     end
   end

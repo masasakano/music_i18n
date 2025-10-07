@@ -431,7 +431,7 @@ class BaseMergesController < ApplicationController
       opts = get_html_safe_flash_hash(alert: msg1)  # defined in /app/controllers/application_controller.rb
 
       respond_to do |format|
-        hsstatus = {status: :unprocessable_entity}
+        hsstatus = {status: :unprocessable_content}
         format.html { redirect_to send(path_show, mu_to), **(hsstatus.merge opts) }
         format.json { render json: errmsgs, **hsstatus }
       end

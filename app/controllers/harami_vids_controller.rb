@@ -75,7 +75,7 @@ class HaramiVidsController < ApplicationController
     end
 
     if @harami_vid.errors.any?
-      hsstatus = {status: :unprocessable_entity}
+      hsstatus = {status: :unprocessable_content}
       respond_to do |format|
         format.html { render __method__,               **hsstatus }
         format.json { render json: @harami_vid.errors, **hsstatus }
@@ -94,7 +94,7 @@ class HaramiVidsController < ApplicationController
     @places = Place.all  # necessary??
     if @harami_vid.errors.any?
       render_method = ((@ref_harami_vid_id && :edit == __method__) ? :show : __method__)
-      hsstatus = {status: :unprocessable_entity}
+      hsstatus = {status: :unprocessable_content}
       respond_to do |format|
         format.html { render render_method,            **hsstatus }
         format.json { render json: @harami_vid.errors, **hsstatus }

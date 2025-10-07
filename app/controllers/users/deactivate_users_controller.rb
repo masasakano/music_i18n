@@ -161,7 +161,7 @@ class Users::DeactivateUsersController < ApplicationController
         else
           logger.error "FAIL in save (to deactivate a user (#{orgname}; ID=#{@user.id})): Messages: "+@user.errors.full_messages.inspect
           format.html { render :edit, alert: "Failed in processing (#{orgname}) for an unknown reason." }
-          format.json { render json: @user.errors, status: :unprocessable_entity }
+          format.json { render json: @user.errors, status: :unprocessable_content }
         end
       end
     end

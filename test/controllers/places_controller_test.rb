@@ -126,7 +126,7 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
     place = nil
     assert_difference('Place.count', 0) do
       post places_url, params: { place: hs2pass.merge({"title"=>"test2", "prefecture"=>""})}
-      assert_response :unprocessable_entity #, "message is : "+flash.inspect
+      assert_response :unprocessable_content #, "message is : "+flash.inspect
     end
 
     # Translation-related tests
@@ -244,7 +244,7 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
     assert_difference('Place.count', 0) do
       assert_difference('Translation.count', 0) do
         delete place_url(@place)
-        #assert_response :unprocessable_entity
+        #assert_response :unprocessable_content
         assert_response :redirect
         assert_redirected_to places_path  # Because no current page is given.
       end

@@ -205,19 +205,19 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
 
     patch prefecture_url(@prefecture), params: { prefecture: { country_id: Country['AUS'].id.to_s } }
     assert_response :redirect, "Even moderator should not be able to edit Prefectures in Japan" # due to "ability"-level check
-    #assert_response :unprocessable_entity, "moderatora cannot change a JPN prefecure to another country"
+    #assert_response :unprocessable_content, "moderatora cannot change a JPN prefecure to another country"
 
     patch prefecture_url(@prefecture), params: { prefecture: { iso3166_loc_code: 9998 } }
     assert_response :redirect, "Even moderator should not be able to edit Prefectures in Japan" # due to "ability"-level check
-    #assert_response :unprocessable_entity, "moderatora cannot change iso3166_loc_code of a JPN prefecure"
+    #assert_response :unprocessable_content, "moderatora cannot change iso3166_loc_code of a JPN prefecure"
 
     patch prefecture_url(@prefecture), params: { prefecture: { note: note2 } }
     assert_response :redirect, "Even moderator should not be able to edit Prefectures in Japan" # due to "ability"-level check
-    #assert_response :unprocessable_entity, "moderatora cannot change note of a JPN prefecure"
+    #assert_response :unprocessable_content, "moderatora cannot change note of a JPN prefecure"
 
     pref_liverpool = prefectures(:liverpool)
     patch prefecture_url(pref_liverpool), params: { prefecture: { country_id: Country['JPN'].id.to_s } }
-    assert_response :unprocessable_entity, "moderatora cannot change the country of a non-JPN prefecure to Japan" # due to Controller-level check (see _get_warning_msg())
+    assert_response :unprocessable_content, "moderatora cannot change the country of a non-JPN prefecure to Japan" # due to Controller-level check (see _get_warning_msg())
   end
 
   test "syshelper should update for prefecture in Japan" do
@@ -274,7 +274,7 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
     assert_difference('Prefecture.count', 0) do
       assert_no_difference('Translation.count') do
         delete prefecture_url(liverpool)
-        assert_response :unprocessable_entity  #, "Prefecture with significant Places should not be destroyed"
+        assert_response :unprocessable_content  #, "Prefecture with significant Places should not be destroyed"
         assert_equal URI.parse(prefecture_path(liverpool)).path, request.path
       end
     end
@@ -316,7 +316,7 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference('Prefecture.count') do
       assert_no_difference('Translation.count') do
         delete prefecture_url(shimane)
-        assert_response :unprocessable_entity #, "Prefecture with significant child Places should not be destroyed" # in Japan or elsewhere evey by an admin at the Controller level (though possible in the Model level; see models/prefecture.rb).
+        assert_response :unprocessable_content #, "Prefecture with significant child Places should not be destroyed" # in Japan or elsewhere evey by an admin at the Controller level (though possible in the Model level; see models/prefecture.rb).
         assert_equal URI.parse(prefecture_path(shimane)).path, request.path
       end
     end

@@ -29,8 +29,8 @@ class PlayRolesController < ApplicationController
         format.html { redirect_to play_role_url(@play_role), notice: "PlayRole was successfully created." }
         format.json { render :show, status: :created, location: @play_role }
       else
-        format.html { render :new, status: :unprocessable_entity }
-        format.json { render json: @play_role.errors, status: :unprocessable_entity }
+        format.html { render :new, status: :unprocessable_content }
+        format.json { render json: @play_role.errors, status: :unprocessable_content }
       end
     end
   end
@@ -42,8 +42,8 @@ class PlayRolesController < ApplicationController
         format.html { redirect_to play_role_url(@play_role), notice: "PlayRole was successfully updated." }
         format.json { render :show, status: :ok, location: @play_role }
       else
-        format.html { render :edit, status: :unprocessable_entity }
-        format.json { render json: @play_role.errors, status: :unprocessable_entity }
+        format.html { render :edit, status: :unprocessable_content }
+        format.json { render json: @play_role.errors, status: :unprocessable_content }
       end
     end
   end

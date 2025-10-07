@@ -129,7 +129,7 @@ class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
     tmpurl = ancs[2].url.url  # should conflict
     upd = ancs[0].updated_at
     pid = ancs[0].id
-    ancs << _assert_update_anchoring_url(ancs[0], url_str: tmpurl, note: note8, exp_response: :unprocessable_entity, **opt_users)
+    ancs << _assert_update_anchoring_url(ancs[0], url_str: tmpurl, note: note8, exp_response: :unprocessable_content, **opt_users)
     assert_equal ancs[0].id, ancs[-1].id
     assert_equal newurl,     ancs[-1].reload.url.url
     assert_equal pid,        ancs[-1].id
@@ -239,7 +239,7 @@ class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
               diff_num: 0,
               url_str: url_unk_http_orig,  note: note11,
               fetch_h1: "1",  # Suppose the user sets this so.
-              exp_response: :unprocessable_entity
+              exp_response: :unprocessable_content
             )
 
     assert_equal ancb,   anc9, "sanity check"

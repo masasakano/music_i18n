@@ -320,7 +320,7 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
       assert_no_difference("ArtistMusicPlay.count + Music.count + Artist.count + Engage.count + HaramiVidMusicAssoc.count + HaramiVidEventItemAssoc.count + Event.count + EventItem.count + Channel.count + HaramiVid.count") do
         assert_no_difference("Translation.count") do
           patch harami_vids_fetch_youtube_datum_path(hvid), params: { harami_vid: { fetch_youtube_datum: hsin } }
-          assert_response :unprocessable_entity
+          assert_response :unprocessable_content
         end
       end
 
