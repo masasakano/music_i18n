@@ -12,6 +12,17 @@ module HaramiMusicI18n
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 6.1
 
+    ## Added to suppress the warning message everywhere of
+    ##   DEPRECATION WARNING: Support for `config.active_support.cache_format_version = 6.1` has been deprecated and will be removed in Rails 7.2.
+    ## See: https://guides.rubyonrails.org/upgrading_ruby_on_rails.html#new-activesupport-cache-serialization-format
+    ## Below can be simplified, one day, with  config.load_defaults 7.0
+    config.active_support.cache_format_version = 7.0
+
+    # Please, add to the `ignore` list any other `lib` subdirectories that do
+    # not contain `.rb` files, or that should not be reloaded or eager loaded.
+    # Common ones are `templates`, `generators`, or `middleware`, for example.
+    #config.autoload_lib(ignore: %w(assets tasks))  # commented out b/c lib is not eager loaded.
+
     # Configuration for the application, engines, and railties goes here.
     #
     # These settings can be overridden in specific environments using the files
