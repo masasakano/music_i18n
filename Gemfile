@@ -6,10 +6,10 @@ ruby '3.4.6'
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails', branch: "main"
 #gem 'rails', '~>6.1'
 #gem 'rails', '~> 7.0', '>= 7.0.4'
-gem 'rails', '~> 7.1.5'
+gem 'rails', '~> 7.2.2'
 
-# Add this line to fix the Logger NameError in Rails 7.0.x  ############
-gem 'concurrent-ruby', '1.3.4'
+## Add this line to fix the Logger NameError in Rails 7.0.x  ############
+#gem 'concurrent-ruby', '1.3.4'
 
 # The original asset pipeline for Rails [https://github.com/rails/sprockets-rails]
 gem "sprockets-rails"
@@ -154,10 +154,7 @@ gem 'matrix'  # This may not be necessary in other than test, but is included an
 
 # Necessary in upgrading Ruby from 3.1 to 3.4.6
 gem "nkf"
-gem "bigdecimal"
-gem "mutex_m"
-gem "drb"
-gem "benchmark"
+# gem "benchmark"
 gem "open-uri"
 
 group :development do
