@@ -52,7 +52,7 @@ harami_home_unknown_prefecture_japan:
 
 unknown_place_tokyo_japan:
   prefecture: tokyo
-  note: MyTextTokyo
+  note: UnknownPlaceInTokyo
 
 tocho:
   prefecture: tokyo

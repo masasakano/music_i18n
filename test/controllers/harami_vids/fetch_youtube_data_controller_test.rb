@@ -16,7 +16,7 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @harami_vid = harami_vids(:harami_vid1)
-    @sysadmin  = users(:user_sysadmin)
+    #@sysadmin  = users(:user_sysadmin)
     @syshelper = users(:user_syshelper)
     @moderator_all   = users(:user_moderator_all)         # General-JA Moderator can manage.
     @moderator_harami= users(:user_moderator)             # Harami Moderator can manage.

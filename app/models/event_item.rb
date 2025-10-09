@@ -36,6 +36,11 @@
 class EventItem < ApplicationRecord
   include ModuleCommon
   include ArtistMusicPlaysHelper  # for get_ordered_amp_arrays and hvma_joined_artist_music_plays
+  include ModuleDefaultPlace # add_default_place (callback) etc
+
+  # Although Place is allowed to be nil on DB level, leaving it nil is undesirable.
+  # Controller should take care of it.  But this is a safety net
+  before_save :gurantee_place
 
   before_destroy :prevent_destroy_unknown  # must come before has_many
 
@@ -742,6 +747,13 @@ class EventItem < ApplicationRecord
   private :_set_warnings
 
   ########## callbacks ########## 
+
+  # Callback (just the minimum, as this should not be needed as long as Controllers work fine)
+  def gurantee_place
+    return if place
+    place = ((event && event.place) || add_default_place)  # defined in ModuleDefaultPlace
+  end
+  private :gurantee_place
 
   # see {#destroyable?}
   def prevent_destroy_unknown

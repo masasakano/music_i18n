@@ -550,9 +550,11 @@ end
     ).with_indifferent_access
     assert_equal 1, hvid6.event_items.count, "sanity check..."
     assert  (pl6=hvid6.event_items.first.place), "sanity check..."  # It is UnknownPlace in Shimane
-    refute_equal HaramiVid::DEF_PLACE, pl6
-    assert HaramiVid::DEF_PLACE, "sanity-check: Place.first=#{Place.first.inspect}"  # This should never fail, but it did in some (rare) odd occasions....
-    assert HaramiVid::DEF_PLACE.encompass_strictly?(pl6)
+
+    def_pla = HaramiVid.default_place
+    refute_equal def_pla, pl6
+    assert def_pla, "sanity-check: Place.first=#{Place.first.inspect}"  # This should never fail, but it did in some (rare) odd occasions....
+    assert def_pla.encompass_strictly?(pl6)
     assert_equal 4, hvid6.artist_music_plays.count, "sanity check..."
     assert_equal 2, hvid6.musics.count, "sanity check..."
 

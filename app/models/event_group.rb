@@ -39,7 +39,12 @@ class EventGroup < BaseWithTranslation
   # define method "mname" et
   include ModuleMname
 
-  before_create :add_place_in_create_callback
+  include ModuleDefaultPlace # add_default_place (callback) etc
+
+  # callback to make sure place is set if nil.
+  # Note calling "valid?" would force self to have a {Place}
+  before_save :add_default_place  # defined in ModuleDefaultPlace
+
   before_destroy :delete_remaining_unknwon_event_callback  # must come before has_many
   # NOTE: after_first_translation_hook
 
@@ -233,10 +238,6 @@ class EventGroup < BaseWithTranslation
 
 
   ########## callbacks ########## 
-
-  def add_place_in_create_callback
-    self.place = Place.unknown if !place
-  end
 
   # Adds Event(UnknownEvent) after the first Translation creation of EventGroup
   #

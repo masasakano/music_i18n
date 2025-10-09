@@ -35,6 +35,7 @@ class Event < BaseWithTranslation
 
   include ModuleEventAux  # for self.def_event_tra_new etc
   include ModuleWeight  # adds a validation
+  include ModuleDefaultPlace # add_default_place (callback) etc
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []
@@ -52,6 +53,7 @@ class Event < BaseWithTranslation
   TRANSLATION_UNIQUE_SCOPES = :disable
 
   before_validation :add_parent_in_create_callback
+  before_save :gurantee_place
   before_destroy :delete_remaining_unknwon_event_item_callback  # must come before has_many
   # NOTE: after_first_translation_hook
 
@@ -598,6 +600,13 @@ class Event < BaseWithTranslation
     self.place = event_group.place if !place
   end
   private :add_parent_in_create_callback
+
+  # Callback (just the minimum, as this should not be needed as long as Controllers work fine)
+  def gurantee_place
+    return if place
+    place = ((event_group && event_group.place) || add_default_place)  # defined in ModuleDefaultPlace
+  end
+  private :gurantee_place
 
   # Adds EventItem(UnknownEventItem) after the first Translation creation of EventGroup
   #

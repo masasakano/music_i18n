@@ -7,7 +7,8 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @music = musics(:music1)
-    @editor = roles(:general_ja_editor).users.first  # Editor can manage.
+    @editor = users(:user_editor_general_ja)  # Editor can manage.
+    # @editor = roles(:general_ja_editor).users.first  # This would occasionally be nil (due to caching implemented in root-Role or sysadmin?)
     @moderator_all   = users(:user_moderator_all)    # Allmighty Moderator can manage.
     @f_artist_name = "artist_name"
   end

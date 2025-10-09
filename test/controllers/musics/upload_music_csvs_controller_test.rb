@@ -6,7 +6,7 @@ class Musics::UploadMusicCsvsControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
   setup do
-    @editor = roles(:general_ja_editor).users.first  # Editor can manage.
+    @editor = users(:user_editor_general_ja)  # Editor can manage.
   end
 
   teardown do

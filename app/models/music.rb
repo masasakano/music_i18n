@@ -32,6 +32,8 @@ class Music < BaseWithTranslation
   # {Mucic.unknown} has {Genre.unknown} (and probably {Place.unknown} and undefined year).
   include ModuleUnknown
 
+  include ModuleDefaultPlace # add_default_place (callback) etc
+
   # For the translations to be unique (required by BaseWithTranslation).
   # MAIN_UNIQUE_COLS = %i(year place_id)  # More complicated - it depends on Artist
 

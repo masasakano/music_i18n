@@ -9,8 +9,10 @@ if !Rails.env.development? && !Rails.env.test?
   puts "  NOTE(#{seed_fname2print(__FILE__)}): skips because it is in neither Development nor Test environments."
   return 
 elsif !User.exists?  # Administrator must exist for this script to be run.
-  puts "  NOTE(#{seed_fname2print(__FILE__)}): skipped because no users exist. Once the sysadmin is created, run this (i.e., bin/rails db:seed) again."
-  return 
+  if !Rails.env.test?  # If test environment in Rails-7.2, this seems to be called before User fixtures are read, meaning an Administrator never defined at this stage.  However, this file is NOT run, yet and will be only when other Users are created.  So, reading this find won't be a trouble and rather desirable in test environment.
+    puts "  NOTE(#{seed_fname2print(__FILE__)}): skipped because no users exist. Once the sysadmin is created, run this (i.e., bin/rails db:seed) again."
+    return
+  end
 end
 
 # The following would not be read in Production/Test environments, meaning the module SeedsUser is not defined.

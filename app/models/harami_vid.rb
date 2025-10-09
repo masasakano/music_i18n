@@ -30,12 +30,19 @@ class HaramiVid < BaseWithTranslation
   include Rails.application.routes.url_helpers
   include ApplicationHelper # for link_to_youtube
   include ModuleCommon # for convert_str_to_number_nil, set_singleton_method_val etc
+  include ModuleDefaultPlace # add_default_place (callback) etc
 
   # polymorphic many-to-many with Url
   include Anchorable
 
   before_validation :add_def_channel
   before_validation :normalize_uri
+
+  # If the place column is nil, insert {Place.unknown}
+  # where the callback is defined in the parent class.
+  # Note there is no DB restriction, but the Rails validation prohibits nil.
+  # Therefore this method has to be called before each validation.
+  before_validation :add_default_place  # defined in ModuleDefaultPlace
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = %i(uri)
@@ -50,12 +57,6 @@ class HaramiVid < BaseWithTranslation
   # Optional constant for a subclass of {BaseWithTranslation} to define the scope
   # of required uniqueness of title and alt_title.
   TRANSLATION_UNIQUE_SCOPES = %i(uri)
-
-  # If the place column is nil, insert {Place.unknown}
-  # where the callback is defined in the parent class.
-  # Note there is no DB restriction, but the Rails valiation prohibits nil.
-  # Therefore this method has to be called before each validation.
-  before_validation :add_default_place
 
 #################################
 #  after_create :save_unsaved_associates  # callback to create(-only) @unsaved_channel,  @unsaved_artist, @unsaved_music
@@ -122,29 +123,45 @@ class HaramiVid < BaseWithTranslation
 
   attr_accessor :form_info  # various information about the result of form inputs, especially in create.
 
-#  require "translation"  # Without these, tests sometimes fail...
-#  require "translatable.rb"
-#  require "place"
-  DEF_PLACE = (
-    (Place.unknown(country: Country['JPN']) rescue nil) ||
-    Place.unknown ||
-    Place.first ||
-    if Rails.env == 'test'
-#if defined?("places") && respond_to?(:places)  # In a very odd occasions, this would be needed, though this insertion would fail a HaramiVid Controller test.  Note that if you use this, /db/seeds/users.rb may fail with "Users.load_seeds is not defined."  Then, comment out these again, and run the test again, and it should work.
-##if true
+  # two constants used in the class method default_place (thus also add_default_place), both defined in ModuleDefaultPlace
+  #
+  # The statements may fail in testing (though never in development/production as long as the data are seeded)
+  # at this (early?) stage in the processing chain.  However, if they fail, Proc are substituted instead,
+  # and they will be called later, by which time the statements should work.
+  DEF_FIRST_CANDIDATE_PLACE = (Place.unknown(country: Country['JPN']) rescue Proc.new{Place.unknown(country: Country['JPN'])})
+  if Rails.env == 'test'
+    DEF_LATTER_CANDIDATE_PLACE =
       begin
-        places(:unknown_place_unknown_prefecture_japan) || nil  # In the test environment, a constant should not be assigned to a model.
+        places(:unknown_place_unknown_prefecture_japan)  # In the test environment, a constant should not be assigned to a model.
       rescue NoMethodError
-        warn "For some unknown (maybe cache-related) reason, this sometimes fails in testing.  If it happens, have a look at this point /app/models/harami_vid.rb and temporarily uncomment the if-clause, run tests, and comment-out again the if-clause before proceeding."
-        raise
+        begin
+          Proc.new{places(:unknown_place_unknown_prefecture_japan)}
+        rescue
+          warn "For some unknown (maybe cache-related) reason, this used to fail in testing. It should be OK now. The botch fix used to be this (when there was no Proc like above): have a look at this point /app/models/harami_vid.rb and temporarily uncomment the if-clause (to never fail at this point), run tests, and comment-out again the if-clause before proceeding, and then tests will succeed."
+          nil
+        end
       end
-#else
-#  nil
-#end
-    else
-      raise('No Place is defined, hence HaramiVid fails to be created/updated.: '+Place.all.inspect)
-    end
-  )
+  end  # else, this constant is not defined.
+#  DEF_PLACE = (
+#    (Place.unknown(country: Country['JPN']) rescue nil) ||
+#    Place.unknown ||
+#    Place.first ||
+#    if Rails.env == 'test'
+##if defined?("places") && respond_to?(:places)  # In a very odd occasions, this would be needed, though this insertion would fail a HaramiVid Controller test.  Note that if you use this, /db/seeds/users.rb may fail with "Users.load_seeds is not defined."  Then, comment out these again, and run the test again, and it should work.
+###if true
+#      begin
+#        places(:unknown_place_unknown_prefecture_japan) || nil  # In the test environment, a constant should not be assigned to a model.
+#      rescue NoMethodError
+#        warn "For some unknown (maybe cache-related) reason, this sometimes fails in testing.  If it happens, have a look at this point /app/models/harami_vid.rb and temporarily uncomment the if-clause, run tests, and comment-out again the if-clause before proceeding."
+#        raise
+#      end
+##else
+##  nil
+##end
+#    else
+#      raise('No Place is defined, hence HaramiVid fails to be created/updated.: '+Place.all.inspect)
+#    end
+#  )
 
   # Hash with keys of Symbols of the columns to each String
   # value like 'youtu.be/yfasl23v'
@@ -1128,10 +1145,6 @@ class HaramiVid < BaseWithTranslation
   end
 
   private    ################### Callbacks
-
-    def add_default_place
-      self.place = (DEF_PLACE || Place.first) if !self.place
-    end
 
     # Channel is automatically associated with Translations after_create
     def save_unsaved_associates  # callback to create(-only) 

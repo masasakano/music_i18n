@@ -550,7 +550,7 @@ class HaramiVidsController < ApplicationController
     # @return [void]
     def _update_hvid_place_by_event_items
       @harami_vid.event_items.reset
-      return if (pla_hvid=@harami_vid.place) && HaramiVid::DEF_PLACE != @harami_vid.place  # A significant Place is already (manually) defined.
+      return if (pla_hvid=@harami_vid.place) && @harami_vid.add_default_place != @harami_vid.place  # A significant Place is already (manually) defined.
       return if !@harami_vid.event_items.exists?
       pla_cand = _place_event_items
       return if !pla_cand

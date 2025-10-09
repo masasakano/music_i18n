@@ -4845,11 +4845,6 @@ tra_orig.save!
     end
 
 
-    ## before_validation callback, which may be defined in a child Class ({HaramiVid}, {Music})
-    def add_default_place
-      self.place = ((self.class.const_defined?(:DEF_PLACE) && self.class::DEF_PLACE) || Place.unknown || Place.first) if !self.place
-    end
-
     ## before_validation callback, which may be defined in a child Class ({Music})
     def add_default_genre
       self.genre = (Genre.unknown || Genre.first) if !self.genre

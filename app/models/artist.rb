@@ -49,6 +49,8 @@ class Artist < BaseWithTranslation
   # defines +self.class.primary+
   include ModulePrimaryArtist
 
+  include ModuleDefaultPlace # add_default_place (callback) etc
+
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = %i(birth_day birth_month birth_year place_id sex_id)
 
@@ -73,7 +75,7 @@ class Artist < BaseWithTranslation
 
   # callback to make sure place and sex are set if nil.
   # Note calling "valid?" would force self to have a {Place} and {Sex}
-  before_validation :add_place_for_validation
+  before_validation :add_default_place  # defined in ModuleDefaultPlace
   before_validation :add_sex_for_validation
 
   belongs_to :sex   # Withtout allowing nil, this prohibits nil in validation
@@ -373,14 +375,6 @@ class Artist < BaseWithTranslation
     end
 
     trans.hs_key_attributes(*additional_cols)
-  end
-
-  # before_validation callback
-  #
-  # {Place} is forcibly added if not set, yet!
-  def add_place_for_validation
-    return if place
-    self.place = Place.unknown
   end
 
   # before_validation callback

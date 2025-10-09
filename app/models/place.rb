@@ -54,6 +54,7 @@ class Place < BaseWithTranslation
   has_many :event_items
   has_many :events
   has_many :events_thru_event_items, -> {distinct}, through: :event_items, source: :event
+  has_many :event_groups
 
   # for controller's sake
   attr_accessor :wiki_url
@@ -191,6 +192,34 @@ class Place < BaseWithTranslation
   # @return [Place]
   def unknown_sibling
     self.prefecture.unknown_place
+  end
+
+  # Returns the most-fitting Unknown {Place} for the given keyword
+  #
+  # The given kwd can be
+  #
+  # * Proc : to derive one of the following on the spot (useful in testing)
+  # * +nil+ : this returns +nil+
+  # * Place : returned immediately
+  # * {Prefecture} : {Prefecture.unknown_place}
+  # * Country : {Country.unknown_place}
+  # * String : One of A2 (like "JP") or A3 ("JPN") code of {Country}
+  # * Integer : N3 code (like 392) of {Country}
+  #
+  # This would never raise an Exception.  If an Exception is raised internally
+  # (because the Translation table does not exist during initialization etc),
+  # this returns nil.
+  #
+  # @param kwd [Proc, NilClass, Place, Prefecture, Country, String, Integer, Regexp
+  # @return [Place, NilClass]
+  def self.unknown_place_from_any(kwd)
+    kwd = kwd.call if kwd.respond_to?(:call)
+    return nil if !kwd
+    return kwd if [:prefecture_id, :covered_by_permissively?].all?{kwd.respond_to?(_1)}
+    return kwd.unknown_place if kwd.respond_to?(:unknown_place)
+    Country[kwd]&.unknown_place 
+  rescue
+    nil
   end
 
   # returns a minimal covering place.

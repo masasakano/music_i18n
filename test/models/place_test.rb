@@ -403,5 +403,21 @@ class PlaceTest < ActiveSupport::TestCase
     assert_equal unknown_pla_world, Place.minimal_covering_place(tocho, nil, tocho)
     assert_equal unknown_pla_world, Place.minimal_covering_place(nil)
   end
+
+  test "unknown_place_from_any" do
+    assert_nil Place.unknown_place_from_any(nil)
+    pla = places(:tocho)
+    assert_equal pla, Place.unknown_place_from_any(pla)
+    pref = pla.prefecture
+    assert_equal places(:unknown_place_tokyo_japan), Place.unknown_place_from_any(pref)
+
+    exp = places(:unknown_place_unknown_prefecture_japan)
+    assert_equal exp, Place.unknown_place_from_any(pref.country)
+    assert_equal exp, Place.unknown_place_from_any(countries(:japan))
+    assert_equal exp, Place.unknown_place_from_any("JP")
+    assert_equal exp, Place.unknown_place_from_any("JPN")
+    assert_equal exp, Place.unknown_place_from_any(392)
+    assert_nil Place.unknown_place_from_any("XXX")
+  end
 end
 

@@ -205,6 +205,13 @@ class Country < BaseWithTranslation
     prefectures.joins(:translations).where("translations.langcode='en' AND translations.title = ?", Prefecture::UnknownPrefecture['en']).first
   end
 
+  # Unknown {Place} belonging to self's UnknownPrefecture
+  #
+  # @return [Place]
+  def unknown_place
+    unknown_prefecture&.unknown_place
+  end
+
   # Unknown {Country} belonging to self
   #
   # @return [Country]
