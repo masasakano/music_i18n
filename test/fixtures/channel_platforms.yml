@@ -37,11 +37,11 @@ channel_platform_oricon:
 one:
   mname: MyString1
   note: MyText
-  create_user: user_sysadmin
-  update_user: user_sysadmin
+  create_user: user_syshelper
+  update_user: user_syshelper
 
 two:
   mname: MyString2
   note: MyText
-  create_user: user_sysadmin
-  update_user: user_sysadmin
+  create_user: user_syshelper
+  update_user: user_syshelper

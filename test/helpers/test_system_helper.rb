@@ -183,12 +183,12 @@ class ActiveSupport::TestCase
   #
   # @param with_visit: [Boolean] if true (Def), this method visit the new_user_session page
   # @param new_h1: [String, NilClass] if with_visit is false, this is mandatory! H1 text after login.
-  def login_at_root_path(user, with_visit: true, new_h1: nil)
+  def login_at_root_path(user=@editor_harami, with_visit: true, new_h1: nil)
     if with_visit
       visit new_user_session_path 
       assert_selector "h2", text: "Log in"
     end
-    fill_in "Email", with: @editor_harami.email
+    fill_in "Email", with: user.email
     fill_in "Password", with: '123456'  # from users.yml
     click_on "Log in"
     assert_selector "h1", text: (new_h1 || "HARAMIchan")
@@ -263,5 +263,35 @@ class ActiveSupport::TestCase
     login_or_fail_index(user_succeed, succeed: true)
 
     assert_selector "h1", text: h1_title
+  end
+
+  # Tests if a Destroy button exists
+  #
+  # @return [String] Xpath
+  def assert_find_destroy_button
+    xpath = sprintf(XPATHS[:form][:fmt_button_submit], 'Destroy')  # defined in test_helper.rb
+      # "//form[contains(@class, 'button_to')]//button[@type='submit'][contains(text(), 'Destroy')]"
+    assert_selector :xpath, xpath  # Rails-7.2
+    # assert_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']" # Rails-7.1 or earlier (or maybe config.load_defaults 6.1)
+    xpath
+  end
+
+  # Tests if Destroy succeeds
+  #
+  # @example
+  #
+  # @param xpath [String, Symbol] XPath or :first. If :first, a simple algorithm is used.
+  # @param obj_title [String] "ChannelOwner" etc, which appears as H1
+  # @return [void]
+  def assert_destroy_with_text(xpath, obj_title)
+    accept_alert do
+      if :first == xpath
+        click_on "Destroy", match: :first
+      else
+        find(:xpath, xpath).click
+      end
+    end
+    
+    assert_text obj_title+" was successfully destroyed"
   end
 end

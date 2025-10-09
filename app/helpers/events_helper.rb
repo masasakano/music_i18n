@@ -65,7 +65,7 @@ module EventsHelper
     event_title = event_title_raw.sub(/ < [^<]+$/, "")
     event_html = 
       if with_link && can?(:read, event)
-        link_to event_title, event, title: h(event_title_raw)
+        link_to( event_title, event, title: h(event_title_raw), data: { turbo: false } )
       else
         h(event_title)
       end

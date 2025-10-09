@@ -2,6 +2,15 @@
 require "application_system_test_case"
 
 class HaramiVidsTest < ApplicationSystemTestCase
+  # XPath (Rails-7.2) for table cell in Music Table in HaramiVid#show
+  XPATH_MUSIC_TD = "//table[@id='music_table_for_hrami_vid']//tbody//tr//td"
+
+  XPATH_TD_TIMING = XPATH_MUSIC_TD + "[contains(@class, 'item_timing')]"
+  XPATH_TD_NOTE   = XPATH_MUSIC_TD + "[contains(@class, 'item_note')]"
+
+  # XPath (Rails-7.2) for Edit button in a table cell for timing
+  XPATH_TD_TIMING_EDIT = XPATH_TD_TIMING + sprintf(XPATHS[:form][:fmt_any_button_submit], 'Edit') # defined in test_helper.rb # (Rails-7.2)
+
   setup do
     @harami_vid = harami_vids(:harami_vid1)
     @channel1 = @channel = channels(:one)
@@ -32,7 +41,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     Rails.cache.clear
   end
 
-  test "public visiting the index" do
+  test "public visiting HaramiVid#index" do
     visit harami_vids_url
     assert_selector "h1", text: @h1_index
     assert_no_selector "div#new_harami_vid_link"
@@ -45,7 +54,9 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
     click_on "Apply"
 
+    assert_selector('input[type="submit"][value="Apply"]:not([disabled])')
     assert_selector "h1", text: @h1_index
+    assert_selector "table", text: "Give Peace"
     assert_text tit
     size_aft = find_all(css_table).size
     assert_operator size_be4, :>, size_aft
@@ -59,7 +70,8 @@ class HaramiVidsTest < ApplicationSystemTestCase
     fill_autocomplete('#harami_vids_grid_artists', use_find: true, with: 'nnon', select: (tit="John Lennon"))  # defined in test_helper.rb
     click_on "Apply"
 
-    assert_selector('input[type="submit"]:not([disabled])')
+    assert_selector('input[type="submit"][value="Apply"]:not([disabled])')
+    assert_selector "table", text: "John Lennon"
     assert_equal 1, find_all(css_table).size
   end
 
@@ -241,7 +253,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
   end
   private :_check_at_show
 
-  test "visiting the index as a guest" do
+  test "visiting HaramiVid#index as a guest" do
     visit grid_index_path_helper(HaramiVid, column_names: ["events", "collabs"], max_per_page: 25)
     assert_selector "h1", text: @h1_index
 
@@ -263,7 +275,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_includes htmlcapy_art['innerHTML'], "<a"  # link visible to anyone in feat. Artists
   end
 
-  test "edit music timing (and note) at show" do
+  test "edit music timing (and note) at HaramiVid#show" do
     hvid = harami_vids :harami_vid3
     h1_tit = "HARAMIchan-featured Video (2020-10-31) by HARAMIchan"
 
@@ -272,7 +284,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_selector "h1", text: h1_tit   # locale: harami_vid_long: 
     assert_includes trans_titles_in_table.values.flatten, hvid.title_or_alt(langcode: "en", lang_fallback_option: :either)
 
-    trs_css = "section#harami_vids_show_musics table tbody tr td.item_timing"
+    trs_css = "section#harami_vids_show_musics table tbody tr td.item_timing"  # <=> XPATH_TD_TIMING (Rails-7.2)
     trs = find_all(trs_css)
 
     assert_includes hvid.harami_vid_music_assocs, (hvma1=harami_vid_music_assocs(:harami_vid_music_assoc3))  # check fixtures
@@ -292,11 +304,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
       trs[0].find('form') }
 
     # HaramiEditor
-    visit new_user_session_path
-    fill_in "Email", with: @editor_harami.email
-    fill_in "Password", with: '123456'  # from users.yml
-    click_on "Log in"
-    assert_selector "h1", text: "HARAMIchan"
+    login_at_root_path(user=@editor_harami)  # defined in test_system_helper.rb
 
     h1_tit_ed = "HARAMIchan-featured Video [HaramiVid] (2020-10-31) by HARAMIchan"
     visit harami_vid_path(hvid)
@@ -307,13 +315,16 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_equal sec2hms_or_ms(hvma2.timing), trs[0].find(timing_a_css).text
     submit_css = "form input[value=Edit]"
 
-    assert_selector (trs_css+" "+submit_css)
-    trs[0].find(submit_css).click
-
-    assert_selector (trs_css_note+" "+submit_css)
+    ### Rails-7.1
+    # assert_selector (trs_css+" "+submit_css)
+    # trs[0].find(submit_css).click
+    # assert_selector (trs_css_note+" "+submit_css)
+    assert_selector :xpath, XPATH_TD_TIMING_EDIT 
+    assert_selector :xpath, XPATH_TD_NOTE 
+    find_all(:xpath, XPATH_TD_TIMING_EDIT)[0].click
 
     # Edit mode
-    assert_selector trs_css+' input#form_timing'  # This must come BEFORE the assert_raises below because this method would wait (for up to a couple of seconds) till the condition is satisfied as a result of JavaScript's updating the page.
+    with_longer_wait{ assert_selector(trs_css+' input#form_timing') } # This must come BEFORE the assert_raises below because this method would wait (for up to a couple of seconds) till the condition is satisfied as a result of JavaScript's updating the page.
     trs = find_all(trs_css)
     assert_raises(Capybara::ElementNotFound){
       trs[0].find(timing_a_css) }  # In the Edit-mode row, there is no value and link displayed.
@@ -323,7 +334,11 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_equal "commit", trs[0].find('input[type=submit]')["name"]
 
     trs[0].find('input#form_timing').fill_in with: "-6"
-    trs[0].find('input[type=submit]').click
+    find(:xpath, XPATH_TD_TIMING+"//input[@type='submit']").click
+    #find_all(:xpath, XPATH_TD_TIMING).find('input[type=submit]').click
+    
+    ### Rails-7.1
+    # trs[0].find('input[type=submit]').click
 
     # After an erroneous submit
     with_longer_wait{ assert_selector trs_css+' div.error_explanation'}  # defined in test_system_helper.rb ; use with CAPYBARA_LONGER_TIMEOUT=3
@@ -335,26 +350,35 @@ class HaramiVidsTest < ApplicationSystemTestCase
     trs[0].find("a").click
 
     # Show mode again after "cancelling"
-    assert_selector (trs_css+" "+submit_css)
+    assert_selector :xpath, XPATH_TD_TIMING_EDIT
+    ### Rails-7.1
+    # assert_selector (trs_css+" "+submit_css)
     trs = find_all(trs_css)
     assert_selector "h1", text: h1_tit_ed  # locale: harami_vid_long: 
     assert_equal sec2hms_or_ms(hvma2.timing), trs[0].find(timing_a_css).text, "value should be reverted back, but..."
-    trs[0].find(submit_css).click
+    ### Rails-7.1
+    # trs[0].find(submit_css).click
+    find_all(:xpath, XPATH_TD_TIMING_EDIT)[0].click
 
     # Edit mode
     assert_selector trs_css+' input#form_timing'
     trs = find_all(trs_css)
     assert_equal sec2hms_or_ms(hvma2.timing), trs[0].find('input#form_timing')["value"]
     trs[0].find('input#form_timing').fill_in with: "72"
-    trs[0].find('input[type=submit]').click
+    find(:xpath, XPATH_TD_TIMING+"//input[@type='submit']").click
+    ### Rails-7.1
+    # trs[0].find('input[type=submit]').click
 
     # Show mode again after successful submission
     #   At the top, "Success" message is displayed... (but nobody would notice it!)
-    assert_selector (trs_css+" "+submit_css)
+    assert_selector :xpath, XPATH_TD_TIMING_EDIT
+    ### Rails-7.1
+    # assert_selector (trs_css+" "+submit_css)
     trs = find_all(trs_css)
     assert_selector "h1", text: h1_tit_ed  # locale: harami_vid_long: 
     assert_equal "01:12", trs[0].find(timing_a_css).text, "value should be updated, but..."
-    assert_equal "Edit", trs[0].find(submit_css)["value"]
+    ### Rails-7.1 (it is already tested above in Rails-7.2)
+    # assert_equal "Edit", trs[0].find(submit_css)["value"]
 
     pla_hvid = places(:perth_aus)
     hvid.update!(place: pla_hvid)  # Place: Perth, Australia
@@ -381,7 +405,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_equal hvid2.place.id.to_s, (res=page.find(css))["value"], "Selected=#{res['outerHTML']}"  # For edit, if a significant Place is already defined, it should not be updated.
   end
 
-  test "visiting edit" do
+  test "visiting HaramiVid#edit" do
     # Prep
     tit2 = "test-#{__method__}-2"
     hvid2 = HaramiVid.create_basic!(title: tit2, langcode: "en", uri: "http://youtu.be/2dummytest2")
@@ -400,16 +424,21 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_text tit2
 
     css_td = "table#music_table_for_hrami_vid tbody tr td.item_timing"
-    css_edit = css_td + " input[type=submit][value=Edit]"
-    find(css_edit).click
+    ### Rails-7.1
+    # css_edit = css_td + " input[type=submit][value=Edit]"
+    # find(css_edit).click
+    find(:xpath, XPATH_TD_TIMING_EDIT).click  # XPATH for Rails-7.2 View
 
     css_form_timing = css_td+" input[name=form_timing]"
-    assert_selector css_form_timing
+    with_longer_wait{ assert_selector css_form_timing }
     find(css_form_timing).fill_in with: 75
     find(css_td+" input[type=submit][value=Submit]").click
 
-    assert_selector css_edit
-    assert_equal "01:15", (lines=find(css_td).text.split("\n")).first.strip, "Video timing should have been updated, but..."
+    assert_selector(:xpath, XPATH_TD_TIMING_EDIT)
+    ### Rails-7.1
+    # assert_selector css_edit
+    exp = "01:15 Edit"  # Rails-7.2 (<button>);  "01:15" in Rails-7.1 (<input>)
+    assert_equal exp, (lines=find(css_td).text.split("\n")).first.strip, "Video timing should have been updated, but..."
     #assert_includes        lines[1].strip, "uccessfully updated"
     assert_includes        lines.join(" ").strip, "uccessfully updated"  # There is also a warning message: "Please make sure to add an Event(Item)."
 

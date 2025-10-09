@@ -13,17 +13,18 @@ class SeedsSeedsTest < ActiveSupport::TestCase
   # Rails.application.eager_load! 
   # ActiveRecord::Base.descendants.select{|i| !i.abstract_class? && !i.name.include?('::') && i.table_name == i.name.underscore.pluralize}.sort{|a,b| a.name <=> b.name}.map(&:name)
   #   # =>
-  # ["Artist",
-  #  "Country",
-  #  "CountryMaster",
+  # ["Anchoring",
+  #  "ArtistMusicPlay",
+  #  "Artist",
   #  "Channel",
-  #  "ChannelArtistAssoc",
   #  "ChannelOwner",
   #  "ChannelPlatform",
   #  "ChannelType",
+  #  "Country",
+  #  "CountryMaster",
+  #  "Domain",
   #  "DomainTitle",
   #  "Engage",
-  #  "PlayRole",
   #  "EngageHow",
   #  "Event",
   #  "EventGroup",
@@ -32,11 +33,14 @@ class SeedsSeedsTest < ActiveSupport::TestCase
   #  "Harami1129",
   #  "Harami1129Review",
   #  "HaramiVid",
+  #  "HaramiVidEventItemAssoc",
   #  "HaramiVidMusicAssoc",
+  #  "Instrument",
   #  "ModelSummary",
   #  "Music",
   #  "PageFormat",
   #  "Place",
+  #  "PlayRole",
   #  "Prefecture",
   #  "RedirectRule",
   #  "RequestEnvironmentRule",
@@ -46,10 +50,12 @@ class SeedsSeedsTest < ActiveSupport::TestCase
   #  "Sex",
   #  "StaticPage",
   #  "Translation",
+  #  "Url",
   #  "User",
   #  "UserRoleAssoc"]
   #
   test "run seeds" do
+    assert true  # To circumvent the warning of no assertions (in Rails-7.2)
     return if !is_env_set_positive?("DO_TEST_SEEDS")  # defined in application_helper.rb 
     require(Rails.root.to_s+"/db/seeds.rb")
     require(Rails.root.to_s+"/db/seeds/common.rb")
@@ -82,6 +88,8 @@ class SeedsSeedsTest < ActiveSupport::TestCase
     ensure
       ApplicationRecord.allow_destroy_all = false
     end
+
+    Rails.cache.clear
 
     assert_equal 0, EventItem.count, "All EventItems should have been destroyed, but..."
     assert_equal 0, Event.count, "All Events should have been destroyed, but..."

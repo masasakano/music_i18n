@@ -44,9 +44,9 @@ class SiteCategoryTest < ActiveSupport::TestCase
     user_assert_model_weight(mdl, allow_nil: true)  # defined in test_helper.rb
   end
 
-  test "associations" do
-    # assert_nothing_raised{ SiteCategory.first.uris }
-  end
+  #test "associations" do
+  #  # assert_nothing_raised{ SiteCategory.first.uris }
+  #end
 
   test "default" do
     sc1 = site_categories(:site_category_other)

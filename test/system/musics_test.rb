@@ -13,7 +13,7 @@ class MusicsTest < ApplicationSystemTestCase
     Rails.cache.clear
   end
 
-  test "visiting the index and then new" do
+  test "visiting Music#index and then new" do
     # Music#index
     visit musics_url
     assert_selector "h1", text: "Musics"

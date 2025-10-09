@@ -26,8 +26,25 @@ module ModuleUnknown
 
   extend ActiveSupport::Concern
   module ClassMethods
+    # Returns the sole "unknown" object
+    #
+    # Unless +reload+ is specified true or in the test environment,
+    # this utilises its own cache.
+    #
+    # @note
+    #   In the test environment, this always reloads.
+    #   In Rails-7.2, it seems some sort of caching mechanism (or internal handling
+    #   of Ruby variables changed, and as a result, the value of
+    #   the Ruby variable of ActiveRecord instance tend to persist.
+    #   For example, if the DB value of an ActiveRecord instance +abc+
+    #   has been indirectly destroyed (without +abc.destroy+ etc),
+    #   such as cascade destroyal, +abc.id+ still returns a positive value.
+    #   Similarly, this {#unknown} method does not work well in some tests,
+    #   returning the already destroyed instance, in some cases.
+    #   This is why +reload+ option is true in the test environment in default.
+    #
     # @return [ApplicationRecord] attribute "mname"="unknown" may be set.
-    def unknown(reload: false)
+    def unknown(reload: Rails.env.test?)
       #@record_unknown ||= self[[self::UNKNOWN_TITLES['en']].flatten.first, 'en']
       if reload || !@record_unknown
         @record_unknown = _unknown_forcible

@@ -1818,7 +1818,7 @@ harami_vid_paris1_ja:
   translatable: harami_vid_paris1
   translatable_type: HaramiVid
   langcode: ja
-  title: パリの最初
+  title: パリの最初の動画
   alt_title: 
   ruby: 
   alt_ruby: 
@@ -1834,7 +1834,7 @@ harami_vid_paris1_en:
   translatable: harami_vid_paris1
   translatable_type: HaramiVid
   langcode: en
-  title: First one for the Paris series
+  title: First vid for the Paris series
   is_orig: false
   weight: 0
   create_user: user_two

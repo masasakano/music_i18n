@@ -184,9 +184,9 @@ class FixtureTest < ActiveSupport::TestCase
     HaramiVid.all.each do |hvid|
       assert_consistent_music_assocs_for_harami_vid(hvid)  # defined in model_helper.rb
     end
-  end
+  #end
 
-  test "fixtures consistency between Harami112, Engage, EventItem, HaramiVidMusicAssoc, HaramiVidEventItemAssoc" do
+  #test "fixtures consistency between Harami112, Engage, EventItem, HaramiVidMusicAssoc, HaramiVidEventItemAssoc" do
     Harami1129.all.each do |h1129|
       assert (eng=h1129.engage) if h1129.engage_id
       assert (evit=h1129.event_item) if h1129.event_item_id

@@ -25,7 +25,7 @@ class ChannelTypesTest < ApplicationSystemTestCase
   # add to here
   # ---------------------------------------------
 
-  test "visiting the index" do
+  test "visiting ChannelType#index" do
     visit channel_types_url
     assert_text "You need to sign in or sign up"
 
@@ -112,7 +112,14 @@ class ChannelTypesTest < ApplicationSystemTestCase
 
     ## test "should destroy ChannelType" do
     visit channel_type_url(mdl2)
+    assert_selector "h1", text: "Channel Type:"
     assert_match(/\AChannel\s*Type:/, page.find("h1").text)
+
+if true
+    xpath = assert_find_destroy_button  # defined in test_system_helper.rb
+    assert_destroy_with_text(xpath, "ChannelType")  # defined in test_system_helper.rb
+    # click_on "Destroy", match: :first  # not work as "Destroy" is now in Translation table, too.
+else
     assert_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']"
 
     accept_alert do
@@ -121,7 +128,7 @@ class ChannelTypesTest < ApplicationSystemTestCase
     end
 
     assert_text "ChannelType was successfully destroyed"
-
+end
     # should be in the Index page
     assert_selector "h1", text: @h1_title  # should be redirected back to index.
     n_records = page.all("div#channel_types table tr").size - 1

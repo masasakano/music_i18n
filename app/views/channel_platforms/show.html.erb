@@ -13,7 +13,7 @@
     <% end %>
 
     <% if can?(:destroy, @channel_platform) %>
-  <%= button_to "Destroy", @channel_platform, method: :delete %>
+  <%= button_to "Destroy", @channel_platform, method: :delete, data: { confirm: t('are_you_sure') } %>
     <% end %>
 </div>
 

@@ -7,6 +7,8 @@ require "helpers/controller_helper"
 require "helpers/test_system_helper"
 require_relative './test_w3c_validate_helper'
 
+
+# require(Rails.root.to_s+"/db/seeds/common.rb")  # This is implicitly invoked below.
 Dir[Rails.root.to_s+"/db/seeds/*.rb"].uniq.each do |seed|
   next if /^seeds_/ =~ File.basename(seed)  # Skipping reading the old-style Modules
   require seed
@@ -149,6 +151,20 @@ class ActiveSupport::TestCase
   XPATHGRIDS.merge!({
     td_title: XPATHGRIDS[:tb_tr]+"//td[@data-column='title']",  # for Harami1129
   })
+
+  # XPATH-related parameters
+  #
+  # fmt is for sprintf
+  XPATHS = {
+    form: {
+      fmt_button_submit:      "//form[contains(@class, 'button_to')]//button[@type='submit'][contains(text(), '%s')]", # 1 parameter: Label like "Destroy" for a button compiled by button_to (Rails-7.2)
+      fmt_any_button_submit: "//form//button[@type='submit'][contains(text(), '%s')]", # 1 parameter: Label like "Destroy" (Rails-7.2)
+    }.with_indifferent_access,
+    all_translation_table: { # table ID is like "#all_registered_translations_music"
+      buton_add_trans:    "//table[contains(@class, 'all_registered_translations')]//tr[contains(@class, 'lang_banner')]//form[contains(@class, 'button_to')]//button[@type='submit'][contains(text(), '%s')]", # 1 parameter (hence containing multiple components): Label ('Add translation') (Rails-7.2)
+      buton_add_trans_lc: "//table[contains(@class, 'all_registered_translations')]//tr[contains(@class, 'lang_banner_%s')]//form[contains(@class, 'button_to')]//button[@type='submit'][contains(text(), '%s')]", # 2 parameters: locale, Label ('Add translation') (Rails-7.2)
+    }.with_indifferent_access,
+  }.with_indifferent_access
 
   # @example
   #   css_grid_input_range(Artist, "birth_year", fromto: :to)

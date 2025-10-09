@@ -3,6 +3,7 @@
 <h1><%= t(".harami_vid_long")%> <%= "[HaramiVid]" if (canedit=can?(:edit, @harami_vid)) %> (<%= @harami_vid.release_date %>) <%= ((@harami_vid.channel && (owner=@harami_vid.channel.channel_owner) != Artist.default(:HaramiVid)) ? "by #{owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)}" : "") %></h1>
 
 <hr>
+<section id="sec_primary">
 <section id="harami_vids_show_parameters">
 <%= render partial: 'layouts/all_registered_translations', locals: {model: @harami_vid, add_buttons: false, show_single: true} %>
  <section id="harami_vids_show_unique_parameters" class="show_unique_parameters">
@@ -118,6 +119,7 @@
     <a href="#" id="href_edit_harami_vid_with_ref" class="button_like">Edit/Create another HaramiVid</a>
   </div>
 <% end %>
+</section> <%# closing section id="sec_primary" %>
 
   <%# button_to 'Edit another HaramiVid', "#", method: :get, id: "href_edit_harami_vid_with_ref", form_css: "inline_form" %>
 

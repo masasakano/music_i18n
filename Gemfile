@@ -8,9 +8,6 @@ ruby '3.4.6'
 #gem 'rails', '~> 7.0', '>= 7.0.4'
 gem 'rails', '~> 7.2.2'
 
-## Add this line to fix the Logger NameError in Rails 7.0.x  ############
-#gem 'concurrent-ruby', '1.3.4'
-
 # The original asset pipeline for Rails [https://github.com/rails/sprockets-rails]
 gem "sprockets-rails"
 

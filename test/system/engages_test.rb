@@ -30,14 +30,20 @@ class EngagesTest < ApplicationSystemTestCase
     page.find(:xpath, sel).click_link("Edit", match: :first)
 
     txt_create_en = "Create a new Engage"
-    str = page.find(:css, 'form.button_to.inline_form input')["value"]
-    assert_equal txt_create_en, str, "button text is wrong: "+str.inspect
+    xpath = sprintf(XPATHS[:form][:fmt_button_submit], txt_create_en)  # defined in test_helper.rb
+    assert_selector :xpath, xpath  # Rails-7.2
+    ## up to Rails-7.1
+    # str = page.find(:css, 'form.button_to.inline_form input')["value"]
+    # assert_equal txt_create_en, str, "button text is wrong: "+str.inspect
 
     # Language switcher test for Engage#new
     click_on "日本語", match: :first
     txt_create_ja = "Engage新規作成"
-    str = page.find(:css, 'form.button_to.inline_form input')["value"]
-    assert_equal txt_create_ja, str, "button text is wrong: "+str.inspect
+    xpath = sprintf(XPATHS[:form][:fmt_button_submit], txt_create_ja)  # defined in test_helper.rb
+    assert_selector :xpath, xpath  # Rails-7.2
+    ## up to Rails-7.1
+    # str = page.find(:css, 'form.button_to.inline_form input')["value"]
+    # assert_equal txt_create_ja, str, "button text is wrong: "+str.inspect
 
     # EngageMultiHows#edit page
     click_on txt_create_ja  # "Engage新規作成"

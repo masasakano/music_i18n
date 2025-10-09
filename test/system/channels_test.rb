@@ -28,7 +28,7 @@ class ChannelsTest < ApplicationSystemTestCase
   # add to here
   # ---------------------------------------------
 
-  test "visiting the index" do
+  test "visiting Channel#index" do
     visit channels_url
     assert_text "You need to sign in or sign up"
 
@@ -98,7 +98,12 @@ class ChannelsTest < ApplicationSystemTestCase
 
     ## test "should destroy Channel" do
     visit channel_url(mdl2)
+    assert_selector "h1", text: "Channel:"
     assert_match(/\AChannel:/, page.find("h1").text)
+if true
+    xpath = assert_find_destroy_button  # defined in test_system_helper.rb
+    assert_destroy_with_text(xpath, "Channel")  # defined in test_system_helper.rb
+else
     assert_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']"
 
     accept_alert do
@@ -107,7 +112,7 @@ class ChannelsTest < ApplicationSystemTestCase
     end
 
     assert_text "Channel was successfully destroyed"
-
+end
     # should be in the Index page
     assert_selector "h1", text: @h1_title  # should be redirected back to index.
     n_records = page.all("div#channels table tr").size - 1

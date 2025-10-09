@@ -43,8 +43,8 @@ channel_type_dictionary:
 one:
   mname: MyString1
   weight: 840.1
-  create_user: user_sysadmin
-  update_user: user_sysadmin
+  create_user: user_syshelper
+  update_user: user_syshelper
   note: MyText
 
 two:

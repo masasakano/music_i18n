@@ -5,6 +5,7 @@
 <% mo_title = model.title_or_alt %>
 <h1>Merge <%= model_underscore.camelize.pluralize %> (<%= mo_title %>)</h1> <%# e.g., Musics (Let It Be) %>
 
+<section id="sec_primary">
   <%= render partial: 'layouts/form_print_errors', locals: {model: model} %>
 
 <% path_edit = send(model_underscore.pluralize + "_edit_merges_path", model) %> <%# e.g., musics_edit_merges_path() %>
@@ -27,6 +28,7 @@
   <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
   </div>
 <% end %>
+</section>
 
 <% path_show = send(model_underscore + "_path", model) %>
 <%= link_to "Back to "+model_underscore.camelize+" ID="+model.id.to_s, path_show %>: (<%= mo_title %>)<br>

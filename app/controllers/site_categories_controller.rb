@@ -53,12 +53,13 @@ class SiteCategoriesController < ApplicationController
 
   # DELETE /site_categories/1 or /site_categories/1.json
   def destroy
-    @site_category.destroy
+    def_respond_to_format_destroy(@site_category)  # defined in application_controller.rb
+    #@site_category.destroy
 
-    respond_to do |format|
-      format.html { redirect_to site_categories_url, notice: "Site category was successfully destroyed." }
-      format.json { head :no_content }
-    end
+    #respond_to do |format|
+    #  format.html { redirect_to site_categories_url, notice: "SiteCategory was successfully destroyed." }
+    #  format.json { head :no_content }
+    #end
   end
 
   private

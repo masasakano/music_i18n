@@ -25,7 +25,7 @@ class SiteCategoriesTest < ApplicationSystemTestCase
   # add to here
   # ---------------------------------------------
 
-  test "visiting the index" do
+  test "visiting SiteCategory#index" do
     visit site_categories_url
     assert_text "You need to sign in or sign up"
 
@@ -113,7 +113,15 @@ class SiteCategoriesTest < ApplicationSystemTestCase
 
     ## test "should destroy SiteCategory" do
     visit site_category_url(mdl2)
+    assert_selector "h1", text: "Site Category:"
     assert_match(/\ASite\s*Category:/, page.find("h1").text)
+
+if true
+    xpath = assert_find_destroy_button  # defined in test_system_helper.rb
+    assert_destroy_with_text(xpath, "SiteCategory")  # defined in test_system_helper.rb
+    # click_on "Destroy", match: :first  # not work as "Destroy" is now in Translation table, too.
+
+else
     assert_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']"
 
     accept_alert do
@@ -123,7 +131,7 @@ class SiteCategoriesTest < ApplicationSystemTestCase
 
     #assert_text "SiteCategory was successfully destroyed"
     assert_text "was successfully destroyed"
-
+end
     # should be in the Index page
     assert_selector "h1", text: @h1_title  # should be redirected back to index.
     n_records = page.all("div#site_categories table tr").size - 1

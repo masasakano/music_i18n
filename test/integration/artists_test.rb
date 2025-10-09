@@ -46,16 +46,30 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     follow_redirect!
     assert_response :success
 
-    user = users(:user_sysadmin)
+    #user = users(:user_sysadmin)
+    user = users(:user_syshelper)
     sign_in(user)
     get path
     assert_response :success
 
+    css_navbar = css_select("div#navbar_top")
+    assert_match(/(log|sign)\s?out/i, css_navbar.css('a').text)  # signed in for sure.
+    assert_includes css_navbar.text, "Admin"  # signed in as an admin
+
     csssel = css_select('table tbody th')
     assert_includes csssel[0].text, '日本語'
-    assert_match(/add translation/i, csssel[0].css('form input')[0].attributes['value'].text)
+    assert_match(/add translation/i, csssel[0].css('form button')[0].text)  # Rails-7.2
+
+    assert csssel[0].css('form input')
+    assert csssel[0].css('form input')[0]
+    ### worked up to Rails-7.1 (or maybe due to config.load_defaults 6.1)
+    # assert csssel[0].css('form input')[0].attributes['value'], "HTML="+csssel[0].css('form input')[0].to_s
+    # assert_match(/add translation/i, csssel[0].css('form input')[0].attributes['value'].text)
+
     assert_includes csssel[1].text, 'English'
-    assert_match(/add translation/i, csssel[1].css('form input')[0].attributes['value'].text)
+    assert_match(/add translation/i, csssel[0].css('form button')[0].text)  # Rails-7.2
+    ### up to Rails-7.1 (or maybe due to config.load_defaults 6.1)
+    # assert_match(/add translation/i, csssel[1].css('form input')[0].attributes['value'].text)
 
     csssel = css_select('table tbody tr')
     assert_not   csssel[1].css('td a').empty?
@@ -80,7 +94,9 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
 
     csssel = css_select('table tbody th')
     assert_includes csssel[0].text, '日本語'
-    assert_match(/add translation/i, csssel[0].css('form input')[0].attributes['value'].text)
+    assert_match(/add translation/i, csssel[0].css('form button')[0].text)  # Rails-7.2
+    ### worked up to Rails-7.1 (or maybe due to config.load_defaults 6.1)
+    # assert_match(/add translation/i, csssel[0].css('form input')[0].attributes['value'].text)
     assert_includes csssel[1].text, 'English'
     assert   csssel[1].css('form').empty?
 

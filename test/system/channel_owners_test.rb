@@ -27,7 +27,7 @@ class ChannelOwnersTest < ApplicationSystemTestCase
   # ---------------------------------------------
 
 
-  test "visiting the index" do
+  test "visiting ChannelOwner#index" do
     visit channel_owners_url
     assert_text "You need to sign in or sign up"
 
@@ -98,14 +98,11 @@ class ChannelOwnersTest < ApplicationSystemTestCase
 
     ## test "should destroy ChannelOwner" do
     visit channel_owner_url(mdl2)
+    assert_selector "h1", text: "Channel Owner:"
     assert_match(/\AChannel\s*Owner:/, page.find("h1").text)
-    assert_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']"
 
-    accept_alert do
-      click_on "Destroy", match: :first
-    end
-
-    assert_text "ChannelOwner was successfully destroyed"
+    xpath = assert_find_destroy_button  # defined in test_system_helper.rb
+    assert_destroy_with_text(xpath, "ChannelOwner")  # defined in test_system_helper.rb
 
     # should be in the Index page
     assert_selector "h1", text: @h1_title  # should be redirected back to index.

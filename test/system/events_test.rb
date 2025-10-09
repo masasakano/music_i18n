@@ -10,7 +10,7 @@ class EventsTest < ApplicationSystemTestCase
     @h1_title = "Events"
   end
 
-  test "visiting the index, show, HaramiVid#show" do
+  test "visiting the Event#index, show, then HaramiVid#show" do
     ## Events#index
     visit events_url
     assert_selector "h1", text: @h1_title
@@ -41,8 +41,11 @@ class EventsTest < ApplicationSystemTestCase
 
     css_link = "section#harami_vids_show_unique_parameters dl dd.item_event a"
     assert_selector(css_link, text: ev_title)
+    assert_text "featuring Artists"  # shown below Event
 
     click_on ev_title, match: :first
+    # find_all("section#harami_vids_show_unique_parameters dd.item_event li a")[0].click  # an exact link to click with CSS
+
     assert_selector "h1", text: "Event: "+ev_title
     assert_text "Number of registered HaramiVids"
     assert (ev_tit2 = trans_titles_in_table(langcode: "en", fallback: true).values.flatten.first)  # defined in test_system_helper.rb

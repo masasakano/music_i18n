@@ -4,6 +4,17 @@ require "application_system_test_case"
 class Artists::MergesTest < ApplicationSystemTestCase
   N_FIXTURES_HARAMI1129_REVIEW = 2
 
+  XPATH_ADD_TRANSLATION = sprintf(XPATHS[:all_translation_table][:buton_add_trans], I18n.t("layouts.add_translation", locale: :en)) # 'Add translation'
+  XPATH_DIV_LINK_EDIT_DESTROY = "//div[contains(@class, 'link-edit-destroy')]"
+
+  # XPath (Rails-7.2) for Buttons of "Merge with another Artist" or Music
+  XPATH_MERGE_BUTTONS = %w(Artist Music).map{
+    [_1, XPATH_DIV_LINK_EDIT_DESTROY + sprintf(XPATHS[:form][:fmt_button_submit], "Merge with another #{_1}") ]  # defined in test_helper.rb
+  }.to_h.with_indifferent_access
+
+  # XPATH for the ID column in the Merge-examination table
+  XPATH_MERGED_ID_TD3 = "//form//tbody//tr[@id='merge_edit_merge_to']//td[3]"
+
   setup do
     @artist = artists(:artist_saki_kubota)
     @moderator        = users(:user_moderator_general_ja)
@@ -18,7 +29,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
     Rails.cache.clear
   end
 
-  test "visiting the index and then new" do
+  test "Artist-merge from visiting Artist#index" do
     visit new_user_session_path
     fill_in "Email", with: @moderator.email
     fill_in "Password", with: '123456'  # from users.yml
@@ -95,25 +106,29 @@ class Artists::MergesTest < ApplicationSystemTestCase
     ### Show page
     assert_text "Artist was successfully created"
     assert_selector "h1", text: "久保田"
+
     css_edit_button = 'div.link-edit-destroy a'  # Specify the first one.
     # css_edit_button = 'div.link-edit-destroy span > a:nth-child(1)'  # With this, even page.find(css_edit_button) works, but this is prone to a potential future HTML change.
     css_merge_edit = 'div.actions-destroy-align-r form:nth-child(1) > input'
     css_merge = 'div.link-edit-destroy ' + css_merge_edit
     txt_merge = "Merge with another Artist"
 
-    assert_selector css_edit_button  # , text: 'Edit'  ('編集')
-    assert_equal txt_merge, page.find(css_merge)["value"]
     css_align_r = 'div.actions-destroy-align-r'
     refute page.find(css_align_r).text.include?("cannot be destroyed")
-    page.find_all(css_edit_button).first.click
-    
-    ### Edit page
-    refute_selector css_edit_button  # , text: 'Edit'  ('編集') # NON-existing
-    assert_equal txt_merge, page.find(css_merge_edit)["value"]
-    refute page.find(css_align_r).text.include?("cannot be destroyed")
 
-    assert_equal 2, page.all('p.navigate-link-below-form a').size  # Show and "Badk to Index"
-    click_on txt_merge
+    ## Rails-7.1 or earlier
+    #assert_selector css_edit_button  # , text: 'Edit'  ('編集')
+    #assert_equal txt_merge, page.find(css_merge)["value"]
+
+    #page.find_all(css_edit_button).first.click
+    
+    # assert_equal 2, page.all('p.navigate-link-below-form a').size  # Show and "Back to Index"
+
+    assert_selector :xpath, XPATH_MERGE_BUTTONS[:Artist] # defined at the top
+    find(:xpath, XPATH_MERGE_BUTTONS[:Artist]).click
+    assert_selector "h1", text: "Merge Artists"
+    assert_text "Index"  # "Artist Index" near the bottom
+    # click_on txt_merge  # This works, too.
 
     ### Merge new
 #page.find(css_swithcer_en).click  ###### Language switching to English; for some reason, it seems t has been already in English..... Check it out!
@@ -180,7 +195,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
     assert_selector "h1", text: @artist.title
   end
 
-  test "populate Harami1129s and merge artists" do
+  test "merge artists after populating Harami1129s" do
     h1129s = [harami1129s(:harami1129_sting1), harami1129s(:harami1129_sting2)]
     h1129_populateds = []
     h1129_engages = []  # engage is not yet set, before populate.
@@ -202,6 +217,10 @@ class Artists::MergesTest < ApplicationSystemTestCase
 
     assert_selector "h1", text: "Harami1129s"
 
+    xpath_div_insert  = "//div[@id='form_insert_data']"
+    xpath_div_populate = "//div[@id='show_populate_button']"
+    xpath_populate_button = xpath_div_populate + sprintf(XPATHS[:form][:fmt_button_submit], 'Populate')  # defined in test_helper.rb  # Rails-7.2
+
     (0..1).each do |i_h1129|
       h1129 = h1129s[i_h1129]
 
@@ -211,14 +230,17 @@ class Artists::MergesTest < ApplicationSystemTestCase
         assert_selector "h1", text: "HARAMI1129 Entry"
         assert_equal h1129.id, page.find("dl#h1129_main_dl dd#h1129_id_dd").text.to_i
         assert_selector 'form div.actions input[type="submit"][value="Insert within Table"]'
-        refute_selector 'form div.actions input[type="submit"][value="Populate"]'
+        refute_selector 'form div.actions input[type="submit"][value="Populate"]'  # Rails-7.1
+        refute_selector :xpath, xpath_populate_button  # Rails-7.2
         click_on "Insert within Table"
 
         assert_selector "h1", text: "HARAMI1129 Entry"
         msg_notice = page.find(:xpath, xpath_for_flash(:notice, category: :div)).text.strip  # Notice message issued.
         assert_match(/ID=#{h1129.id}\b.+\bupdated for ins_COLUMNS/, msg_notice)  # ID=12345 in Harami1129 is updated for ins_COLUMNS.
         assert_equal h1129.id, page.find("dl#h1129_main_dl dd#h1129_id_dd").text.to_i
-        assert_selector 'form input[type="submit"][value="Populate"]'
+        assert_selector :xpath, xpath_populate_button
+        ## Rails-7.1 or earlier
+        # assert_selector 'form input[type="submit"][value="Populate"]'
       end
 
       # Click "Show"
@@ -280,7 +302,10 @@ class Artists::MergesTest < ApplicationSystemTestCase
 
     ## merging - option is not provided because the user is an only-Harami1129 moderator
     visit artist_path(art_ids[0])
-    assert_selector :xpath, "//input[@type='submit' and @value='Add translation']"
+
+    assert_selector :xpath, XPATH_ADD_TRANSLATION  # defined at the top
+    ## Rails-7.1
+    # assert_selector :xpath, "//input[@type='submit' and @value='Add translation']"
     refute_selector :xpath, "//input[@type='submit' and @value='Merge with another Artist']"
 
     ## Logout and back in as a full moderator.
@@ -344,8 +369,10 @@ class Artists::MergesTest < ApplicationSystemTestCase
     click_on "Reload"
 
     assert_selector "h1", text: "Merge Artists"
+    assert_selector('input[type="submit"]:not([disabled])')  # All of "Reload", "Reset", "Submit" are disabled while being processed.
     assert_match(/Back to\b.* ID.+#{art_ids[0]}\b/, page.find("p.navigate-link-below-form > a:nth-child(1)").text.strip)
-    assert_match(/\b#{art_ids[1]}\b/, page.find(:xpath, "//form//tbody//tr[@id='merge_edit_merge_to']//td[3]").text.strip, "should have changed to (#{art_ids[1]}), but...")  # ID=874 etc. (the "second"-Artist ID) in the column "Merged"
+    assert_selector :xpath, XPATH_MERGED_ID_TD3, text: art_ids[1].to_s  # defined at the top
+    assert_match(/ID\s?=\s?\b#{art_ids[1]}\b/, page.find(:xpath, XPATH_MERGED_ID_TD3).text.strip, "should have changed to (#{art_ids[1]}), but...")  # ID=874 etc. (the "second"-Artist ID) in the column "Merged"
     tra = artistz[1].orig_translation
     assert_match(/\b#{tra.langcode}\b.+#{tra.title}\b/m, page.find(:xpath, "//form//tbody//tr[@id='merge_edit_orig_language']//td[3]").text.strip, 'This time, "スティング" should exist in the column for the merged result, but...') # swapped!
     tra = artistz[0].translations.first
@@ -386,10 +413,15 @@ class Artists::MergesTest < ApplicationSystemTestCase
     musicz = mus_ids.map{|i| Music.find i}
 
     visit music_path(mus_ids[0])
-    assert_selector :xpath, "//input[@type='submit' and @value='Add translation']"
+    assert_selector :xpath, XPATH_ADD_TRANSLATION  # defined at the top
+    ## Rails-7.1
+    # assert_selector :xpath, "//input[@type='submit' and @value='Add translation']"
     assert_selector :xpath, "//div[contains(@class, 'link-edit-destroy')]//div[contains(@class, 'actions-destroy')]//input[@disabled='disabled' and @type='submit' and @value='Destroy']"  # "Destroy button for Music should be disabled, but..."
-    assert_selector :xpath, "//input[@type='submit' and @value='Merge with another Music']"
-    page.find(:xpath, "//section[@id='sec_primary']//input[@type='submit' and @value='Merge with another Music']").click
+    assert_selector :xpath, XPATH_MERGE_BUTTONS[:Music]  # defined at the top  # Rails-7.2
+    find(:xpath, XPATH_MERGE_BUTTONS[:Music]).click
+    ## Rails-7.1
+    # assert_selector :xpath, "//input[@type='submit' and @value='Merge with another Music']"
+    # page.find(:xpath, "//section[@id='sec_primary']//input[@type='submit' and @value='Merge with another Music']").click
 
     assert_selector "h1", text: "Merge Musics (#{h1129_populateds[0].ins_song.strip})"
     fill_in "Music-ID (to merge this with)", with: mus_ids[1]
@@ -419,8 +451,10 @@ class Artists::MergesTest < ApplicationSystemTestCase
     click_on "Reload"
 
     assert_selector "h1", text: "Merge Musics"
+    assert_selector('input[type="submit"]:not([disabled])')  # All of "Reload", "Reset", "Submit" are disabled while being processed.
+    assert_selector :xpath, XPATH_MERGED_ID_TD3, text: mus_ids[1].to_s  # defined at the top
     assert_match(/Back to\b.* ID.+#{mus_ids[0]}\b/, page.find("p.navigate-link-below-form > a:nth-child(1)").text.strip)
-    assert_match(/\b#{mus_ids[1]}\b/, page.find(:xpath, "//form//tbody//tr[@id='merge_edit_merge_to']//td[3]").text.strip, "should have changed to (#{mus_ids[1]}), but...")  # ID=874 etc. (the "second"-Music ID) in the column "Merged"
+    assert_match(/ID\s?=\s?\b#{mus_ids[1]}\b/, page.find(:xpath, XPATH_MERGED_ID_TD3).text.strip, "should have changed to (#{mus_ids[1]}), but...")  # ID=874 etc. (the "second"-Music ID) in the column "Merged"
     assert_equal "music_lang_orig_1", page.find_field(name: "music[lang_orig]", checked: true)["id"], "Right-hand side should be checked, but..."
     assert_equal "1", page.find(:xpath, '//form//*[@id="merge_edit_orig_language"]//input[@id="music_lang_orig_1"]').value
     tra = musicz[1].orig_translation

@@ -17,7 +17,7 @@ class ChannelPlatformsTest < ApplicationSystemTestCase
   # add to here
   # ---------------------------------------------
 
-  test "visiting the index" do
+  test "visiting ChannelPlatform#index" do
     visit channel_platforms_url
     assert_text "You need to sign in or sign up"
 
@@ -89,7 +89,12 @@ class ChannelPlatformsTest < ApplicationSystemTestCase
 
     ## test "should destroy ChannelPlatform" do
     visit channel_platform_url(mdl2)
+    assert_selector "h1", text: "Channel Platform:"
     assert_match(/\AChannel\s*Platform:/, page.find("h1").text)
+if true
+    xpath = assert_find_destroy_button  # defined in test_system_helper.rb
+    assert_destroy_with_text(xpath, "ChannelPlatform")  # defined in test_system_helper.rb
+else
     assert_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']"
 
     find(:xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']").click
@@ -98,7 +103,7 @@ class ChannelPlatformsTest < ApplicationSystemTestCase
 #    end
 
     assert_text "ChannelPlatform was successfully destroyed"
-
+end
     # should be in the Index page
     assert_selector "h1", text: @h1_title  # should be redirected back to index.
     n_records = page.all("div#channel_platforms table tr").size - 1
