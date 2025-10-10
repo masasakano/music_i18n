@@ -201,7 +201,7 @@ class Ability
       can :manage, [Genre, EngageHow]
       #can :manage_iso3166_jp, Prefecture  # redundant
       can :manage, ModelSummary
-      can :cru, PlayRole  # Even an admin cannot destroy one, but the sysadmin.
+      can :crud, PlayRole  # an admin may be allowed to destroy one only IF destroyable? (with no dependent children)
       can(:ud, [ChannelPlatform, ChannelOwner, Channel]){|mdl| !mdl.unknown?}  # ChannelPlatform.unknown can be managed by only sysadmin # (unless there's a dependent HaramiVid or Channel)
       can(:cru, SiteCategory){|mdl| !mdl.unknown? }  # admin can create/edit even mname==:main (but still NOT unknown).
     else

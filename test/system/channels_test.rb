@@ -41,7 +41,7 @@ class ChannelsTest < ApplicationSystemTestCase
     assert_text "Signed in successfully"
   end
 
-  test "should create channel" do
+  test "should create Channel" do
     newchan = "New Channel"
     visit channels_url  # direct jump -> fail
     refute_text newchan
@@ -82,8 +82,9 @@ class ChannelsTest < ApplicationSystemTestCase
     ## "should update Channel" do
     mdl2 = Channel.last
     visit channel_url(mdl2)
-    click_on "Edit this Channel", match: :first
+    assert_selector "h1", text: "Channel:"
 
+    click_on "Edit this Channel", match: :first
     assert_selector "h1", text: "Editing Channel"
 
     fill_in "Note", with: "something_else"
@@ -94,25 +95,16 @@ class ChannelsTest < ApplicationSystemTestCase
     # Confirming the record has been updated.
     ### todo...
 
-    click_on "Back"
+    #click_on "Back"
 
     ## test "should destroy Channel" do
     visit channel_url(mdl2)
     assert_selector "h1", text: "Channel:"
     assert_match(/\AChannel:/, page.find("h1").text)
-if true
+
     xpath = assert_find_destroy_button  # defined in test_system_helper.rb
     assert_destroy_with_text(xpath, "Channel")  # defined in test_system_helper.rb
-else
-    assert_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']"
 
-    accept_alert do
-      find(:xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']").click
-      #click_on "Destroy", match: :first  # not work as "Destroy" is now in Translation table, too.
-    end
-
-    assert_text "Channel was successfully destroyed"
-end
     # should be in the Index page
     assert_selector "h1", text: @h1_title  # should be redirected back to index.
     n_records = page.all("div#channels table tr").size - 1

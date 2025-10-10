@@ -7,15 +7,7 @@
 
 <%= render @instrument %>
 
-<div>
-    <% if can? :update, @instrument %>
-  <%= link_to "Edit this Instrument", edit_instrument_path(@instrument) %> |
-    <% end %>
-
-    <% if can?(:destroy, @instrument) %>
-  <%= button_to "Destroy", @instrument, method: :delete %>
-    <% end %>
-</div>
+<%= render partial: 'layouts/show_edit_destroy', locals: {model: @instrument, destroyable: !@instrument.unknown?} %>
 
 <hr>
   <%= link_to t("layouts.back_to_index"), instruments_path %>

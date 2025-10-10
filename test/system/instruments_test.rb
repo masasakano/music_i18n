@@ -10,7 +10,7 @@ class InstrumentsTest < ApplicationSystemTestCase
     @h1_title = "Instruments"
   end
 
-  test "visiting the index" do
+  test "visiting Instrument index" do
     visit instruments_url
     assert_text "You need to sign in or sign up"
 
@@ -23,7 +23,7 @@ class InstrumentsTest < ApplicationSystemTestCase
     assert_text "Signed in successfully"
   end
 
-  test "should create engage play how" do
+  test "should create Instrument and destroy" do
     visit new_instrument_url  # direct jump -> fail
     refute_text "New Instrument"
     assert_text "You need to sign in or sign up"
@@ -76,17 +76,17 @@ class InstrumentsTest < ApplicationSystemTestCase
     click_on "Update Instrument"
 
     assert_text "Instrument was successfully updated"
-    click_on "Back"
+    #click_on "Back"
 
-    ## test "should destroy Instrument" do
+    ## test "should destroy Instrument" ##
     visit instrument_url(mdl2)
-    assert_match(/\AInstrument:/, page.find("h1").text)
-    assert_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']"
+    assert_selector "h1", text: "Instrument: "+mdl2.title
+    assert_selector "th", text: "Title"
 
-    find(:xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']").click
-    # click_on "Destroy", match: :first  # not work as "Destroy" is now in Translation table, too.
-
-    assert_text "Instrument was successfully destroyed"
+    xpath = assert_find_destroy_button  # defined in test_system_helper.rb
+    with_longer_wait(1) {
+      assert_destroy_with_text(xpath, "Instrument")  # defined in test_system_helper.rb
+    }
 
     # should be in the Index page
     assert_selector "h1", text: @h1_title  # should be redirected back to index.

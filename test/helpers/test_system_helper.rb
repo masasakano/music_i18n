@@ -35,7 +35,7 @@ class ActiveSupport::TestCase
 
   # Temporarily sets a longe wait time for the specific block (in case the machine is slow)
   #
-  # To activate it, +ENV["CAPYBARA_LONGER_TIMEOUT"]+ must be set with an Integer in second.
+  # To activate it, either specify the time directly or set +ENV["CAPYBARA_LONGER_TIMEOUT"]+ set with an Integer in second.
   # Then, when the environmental variable is not set (the machine is not slow), 
   # none of these blocks would wait too long.
   #
@@ -43,8 +43,8 @@ class ActiveSupport::TestCase
   #   with_longer_wait{ assert_selector 'section#mypart div.error_explanation'}
   #   # defined in test_system_helper.rb ; use with CAPYBARA_LONGER_TIMEOUT=3
   #
-  def with_longer_wait
-    if (ti=ENV["CAPYBARA_LONGER_TIMEOUT"]).present?
+  def with_longer_wait(ti=ENV["CAPYBARA_LONGER_TIMEOUT"])
+    if ti.present?
       Capybara.using_wait_time(ti.to_i){ yield }
     else
       yield
@@ -267,12 +267,17 @@ class ActiveSupport::TestCase
 
   # Tests if a Destroy button exists
   #
+  # @param should_succeed: [Boolean] false if you expect the button not to be found, making sure the page has been loaded.
   # @return [String] Xpath
-  def assert_find_destroy_button
+  def assert_find_destroy_button(should_succeed: true)
     xpath = sprintf(XPATHS[:form][:fmt_button_submit], 'Destroy')  # defined in test_helper.rb
       # "//form[contains(@class, 'button_to')]//button[@type='submit'][contains(text(), 'Destroy')]"
-    assert_selector :xpath, xpath  # Rails-7.2
-    # assert_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']" # Rails-7.1 or earlier (or maybe config.load_defaults 6.1)
+    if should_succeed
+      assert_selector :xpath, xpath  # Rails-7.2
+      # assert_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']" # Rails-7.1 or earlier (or maybe config.load_defaults 6.1)
+    else
+      assert_no_xpath(xpath)
+    end
     xpath
   end
 

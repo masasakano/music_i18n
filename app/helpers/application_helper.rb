@@ -792,7 +792,7 @@ module ApplicationHelper
           # So, the solution would be, submission from `new` with query parameters
           # should preserve the given GET parameters.  It is perhaps the case for Engage.
           # Check it out.
-          str_link = link_to(lc2display, url_for(locale: elc, params: request.query_parameters.except("locale")))
+          str_link = link_to(lc2display, url_for(locale: elc, params: request.query_parameters.except("locale")), data: { turbo: false })
 
           #logger.info "ERROR01: (#{err.class.name}) #{err}"
           #logger.info "ERROR02: query=#{request.query_parameters.inspect}"

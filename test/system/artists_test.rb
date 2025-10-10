@@ -75,9 +75,11 @@ class ArtistsTest < ApplicationSystemTestCase
     refute_selector                   @css_swithcer_en+" a"
     assert_equal "日本語",  page.find(@css_swithcer_ja).text
     assert_equal "日本語",  page.find(@css_swithcer_ja+" a").text
-    page.find(@css_swithcer_ja+" a").click
 
     ## transited to Japanese
+    page.find(@css_swithcer_ja+" a").click
+    assert_selector "h1", text: "アーティスト"
+
     refute_selector                   @css_swithcer_ja+" a"
     assert_equal "English", page.find(@css_swithcer_en).text
     assert_equal "English", page.find(@css_swithcer_en+" a").text

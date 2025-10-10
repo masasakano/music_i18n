@@ -7,17 +7,9 @@
 
 <%= render @play_role %>
 
-<div>
-    <% if can? :update, @play_role %>
-  <%= link_to "Edit this PlayRole", edit_play_role_path(@play_role) %> |
-    <% end %>
-  <%= link_to "Back to PlayRole index", play_roles_path %>
+<%= render partial: 'layouts/show_edit_destroy', locals: {model: @play_role, destroyable: @play_role.destroyable?} %>
 
-    <% if can?(:destroy, @play_role) %>
-    <%# if !@play_role.play_role_items.exists? && can?(:destroy, @play_role) %>
-  <%= button_to "Destroy", @play_role, method: :delete %>
-    <% end %>
-</div>
+  <%= link_to "Back to PlayRole index", play_roles_path %>
 
 <% if false %>
 <% if can? :read, EventItem %>  <%# should be redundant %>

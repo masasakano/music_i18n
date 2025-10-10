@@ -55,6 +55,11 @@ class PlayRole < BaseWithTranslation
     "fr" => ['Relation inconnue entre Engage-EventItem', 'Relation inconnue'],
   }.with_indifferent_access
 
+  # This does not take into account the user's permission.
+  def destroyable?
+    !artist_music_plays.exists? && !unknown?
+  end
+
   # Returning a default Model in the given context
   #
   # place is ignored so far.

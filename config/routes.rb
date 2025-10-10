@@ -2,7 +2,7 @@ Rails.application.routes.draw do
   ####### This part MUST precede any other lines!!
   #filter :extension #, :exclude => %r(^admin/)
   filter :locale#,    :exclude => /^\/admin/
-  default_url_options(locale: I18n.locale) if Rails.env.test?
+  default_url_options(locale: I18n.locale) if Rails.env.test?  # manually defined in application_controller.rb
   ####### Up to here
 
   resources :diagnose, only: [:index]

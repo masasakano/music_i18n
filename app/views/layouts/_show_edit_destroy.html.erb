@@ -1,6 +1,7 @@
 
 <%# imported local variables: [mandatory] model, [optional] destroyable (Boolean. At the model level like association prohibition (so that the button is dimmed), NOT the controller/user level), permission_level [Symbol, String] (:editor (Def), :moderator, :any; used for CSS) %>
-<%# @example:  render 'layouts/show_edit_destroy', locals: {model: @my_model, destroyable: !@my_model.child_cars.exists?} %>
+<%# NOTE: "Destroy button" is NOT displayed at all if it is not editable (not permitted to edit) for the user at all.  The disabled button is displayed if it is not destoyable due to, for example, the presence of the dependent children. %>
+<%# @example:  render partial: 'layouts/show_edit_destroy', locals: {model: @my_model, destroyable: !@my_model.child_cars.exists?} %>
 <%# TODO: This should be merged to _link_edit_destroy_index.html.erb %>
 
 <% if !defined? destroyable
