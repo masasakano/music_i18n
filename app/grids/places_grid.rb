@@ -12,8 +12,13 @@ class PlacesGrid < ApplicationGrid
   filter_ilike_title(:ja)  # defined in application_grid.rb
   filter_ilike_title(:en)  # defined in application_grid.rb
 
-  filter(:prefecture_id, :enum, multiple: true, include_blank: true,
-         header: Proc.new{I18n.t("datagrid.form.prefectures")}, select: proc_select_prefectures)  # defined in application_grid.rb
+  begin
+    filter(:prefecture_id, :enum, multiple: true, include_blank: true,
+           header: Proc.new{I18n.t("datagrid.form.prefectures")},
+           select: proc_select_prefectures)  # defined in application_grid.rb
+  rescue ActiveRecord::StatementInvalid
+    # This may happen only at the first deploy when even a DB-schema is not yet created.
+  end
 
   column_names_max_per_page_filters  # defined in base_grid.rb
 

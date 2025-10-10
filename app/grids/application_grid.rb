@@ -646,7 +646,13 @@ class ApplicationGrid < Datagrid::Base
   # @param model_klass [ActiveRecord] Model class
   def self.columns_upd_created_at(model_klass=nil)
     common_opts = {tag_options: {class: ["editor_only"]}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)}}
-    has_memo_editor = model_klass && model_klass.has_attribute?(:memo_editor)
+    has_memo_editor = model_klass &&
+      begin
+        model_klass.has_attribute?(:memo_editor)
+      rescue ActiveRecord::StatementInvalid
+        # This may happen only at the first deploy when even a DB-schema is not yet created.
+        nil
+      end
     header, header_title =
             if has_memo_editor
               ["Note/Memo?", "Has note and/or memo_editor?"]

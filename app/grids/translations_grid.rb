@@ -1,8 +1,12 @@
 # coding: utf-8
 class TranslationsGrid < ApplicationGrid
 
+  begin
   TransModerator = Role['moderator', 'translation']
   Translator     = Role['editor',    'translation']
+  rescue ActiveRecord::StatementInvalid
+    # This happens only at the first deploy when DB records are not yet seeded.
+  end
 
   scope do
     Translation.all

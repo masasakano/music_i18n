@@ -31,10 +31,15 @@ class Role < ApplicationRecord
   belongs_to :role_category
   has_many :user_role_assocs
   has_many :users, through: :user_role_assocs
-  validates(:uname, uniqueness: { case_sensitive: false }, allow_nil: true) if self.column_names.include? 'uname' # if clause for the fresh migration purpose only.
-  validates(:name,  format: { with: /\A[a-z][a-z0-9_]*\z/, message: "only allows alphabets, numbers, and underscores" }) if self.column_names.include? 'name' # if clause for the fresh migration purpose only.
-  validates(:uname, format: { with: /\A[a-z][a-z0-9_]*\z/, message: "only allows alphabets, numbers, and underscores" }, allow_nil: true) if self.column_names.include? 'uname'
-  validates(:name,   uniqueness: { scope: :role_category_id }, allow_nil: true) if self.column_names.include? 'name' # if clause for the fresh migration purpose only.
+  begin
+    validates(:uname, uniqueness: { case_sensitive: false }, allow_nil: true) if self.column_names.include? 'uname' # if clause for the fresh migration purpose only.
+    validates(:name,  format: { with: /\A[a-z][a-z0-9_]*\z/, message: "only allows alphabets, numbers, and underscores" }) if self.column_names.include? 'name' # if clause for the fresh migration purpose only.
+    validates(:uname, format: { with: /\A[a-z][a-z0-9_]*\z/, message: "only allows alphabets, numbers, and underscores" }, allow_nil: true) if self.column_names.include? 'uname'
+    validates(:name,   uniqueness: { scope: :role_category_id }, allow_nil: true) if self.column_names.include? 'name' # if clause for the fresh migration purpose only.
+  rescue ActiveRecord::StatementInvalid
+    # This may happen only at the first deploy when even a DB-schema is not yet created.
+  end
+
   validates :weight, uniqueness: { scope: :role_category_id }, allow_nil: false
   validates_presence_of :weight
 

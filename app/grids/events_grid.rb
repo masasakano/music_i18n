@@ -20,9 +20,14 @@ class EventsGrid < ApplicationGrid
   filter(:start_time, :date, range: true, header: Proc.new{I18n.t('tables.start_time')+" (< #{Date.current.to_s})"}) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
   filter(:duration_hour, :float, range: true, header: Proc.new{I18n.t('tables.duration_hour')}) # float in DB # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
 
-  filter(:prefecture_id, :enum, multiple: true, include_blank: true,
-         header: Proc.new{I18n.t("datagrid.form.prefectures")}, select: proc_select_prefectures) do |values|  # defined in application_grid.rb
-    self.joins(:place).where("places.prefecture_id": values)
+  begin
+    filter(:prefecture_id, :enum, multiple: true, include_blank: true,
+           header: Proc.new{I18n.t("datagrid.form.prefectures")},
+           select: proc_select_prefectures) do |values|  # defined in application_grid.rb
+      self.joins(:place).where("places.prefecture_id": values)
+    end
+  rescue ActiveRecord::StatementInvalid
+    # This may happen only at the first deploy when even a DB-schema is not yet created.
   end
 
 #  filter_partial_str(:artists, header: Proc.new{I18n.t('datagrid.form.artists_multi')})
