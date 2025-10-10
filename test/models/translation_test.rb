@@ -66,12 +66,11 @@ class TranslationTest < ActiveSupport::TestCase
   end
 
   test "constraints various" do
-    collation_name = ApplicationRecord.utf8collation  # "C.UTF-8" (BSD) or "C.utf8" (Linux)
+    collation_name = ApplicationRecord.utf8collation  # "und-x-icu" (more general than "C.UTF-8" (BSD) or "C.utf8" (Linux))
     if /darwin|bsd/i =~ RUBY_PLATFORM
-      assert_equal "C.UTF-8", collation_name
-      loc = "en_GB"
-      assert_equal loc+".UTF-8", ApplicationRecord.utf8collation_for(loc)
-      assert_equal "C",          ApplicationRecord.utf8collation_for("naiyo")
+      assert_equal "und-x-icu", collation_name
+      loc = "en"
+      assert_equal loc+"-x-icu", ApplicationRecord.utf8collation_for(loc)
     end
 
     t_jp_sql= Translation.select_regex(:title, 'Japan', langcode: 'en', translatable_type: Country, debug_return_sql: true)
@@ -103,7 +102,6 @@ class TranslationTest < ActiveSupport::TestCase
     assert_raises(ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique){
       p Translation.create!(translatable_type: "Country", translatable_id: countries(:japan).id, **hs)
     }  # PG::NotNullViolation (though it is caught by Rails validation before passed to the DB)
-
 
     t_jp_en.reload
     t_jp_en.alt_title = nil
@@ -274,7 +272,7 @@ class TranslationTest < ActiveSupport::TestCase
   end
 
   test "unit-testing Translation.tuple_collate_equal" do
-    collation_name = ApplicationRecord.utf8collation  # "C.UTF-8" (BSD) or "C.utf8" (Linux)
+    collation_name = ApplicationRecord.utf8collation  # "und-x-icu" (more general than "C.UTF-8" (BSD) or "C.utf8" (Linux))
     exp = ['"translations"."tit" COLLATE "'+collation_name+'" = ?', "v1"]
     act = Translation.tuple_collate_equal(:tit, "v1")
     assert_equal exp, act
@@ -295,7 +293,7 @@ class TranslationTest < ActiveSupport::TestCase
     out_sql = Translation.select_regex(nil, nil, translatable_type: Sex, debug_return_sql: true)
     assert_equal("SELECT \"translations\".* FROM \"translations\" WHERE \"translations\".\"translatable_type\" = 'Sex'", out_sql)
     out_sql = Translation.select_regex([:title, :alt_title, :ruby], 'naiyo', translatable_type: Sex, debug_return_sql: true)
-    collation_name = ApplicationRecord.utf8collation  # "C.UTF-8" (BSD) or "C.utf8" (Linux)
+    collation_name = ApplicationRecord.utf8collation  # "und-x-icu" (more general than "C.UTF-8" (BSD) or "C.utf8" (Linux))
     # exp="SELECT \"translations\".* FROM \"translations\" WHERE \"translations\".\"translatable_type\" = 'Sex' AND (\"translations\".\"title\" COLLATE \"#{collation_name}\" = 'naiyo' OR \"translations\".\"alt_title\" COLLATE \"#{collation_name}\" = 'naiyo' OR \"translations\".\"ruby\" COLLATE \"#{collation_name}\" = 'naiyo')"  # Rails-7.1 or earlier
     exp = "SELECT \"translations\".* FROM \"translations\" WHERE \"translations\".\"translatable_type\" = 'Sex' AND ((\"translations\".\"title\" COLLATE \"#{collation_name}\" = 'naiyo') OR (\"translations\".\"alt_title\" COLLATE \"#{collation_name}\" = 'naiyo') OR (\"translations\".\"ruby\" COLLATE \"#{collation_name}\" = 'naiyo'))"  # Rails-7.2 or later
     assert_equal exp, out_sql

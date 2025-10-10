@@ -3,10 +3,29 @@
 class ApplicationRecord < ActiveRecord::Base
   self.abstract_class = true
 
+  DEF_UTF8_COLLATION = "und-x-icu"
+
   # PostgreSQL collation name for the locale (key)
   #
   # e.g., "C" => "C.UTF-8", "en_GB" => "en_GB.UTF-8" (on macOS/BSD), "C.utf8" (on Linux), "invalid" => "C"
-  @@cached_utf8collations = {C: nil}.with_indifferent_access
+  @@cached_utf8collations = {
+    libc: {
+      C:   {}.with_indifferent_access,  # (redundant) initialization, the value of which is set in self.utf8collation()
+    }.with_indifferent_access,
+    icu: {  #  (International Components for Unicode)
+      C:   DEF_UTF8_COLLATION,  # Defined for convenience. Technically, this should be nil b/c it does not exist.
+      und: DEF_UTF8_COLLATION,  # (undetermined) the most generic one
+      en: {
+        und: "en-x-icu",
+        GB:  "en-GB-x-icu",
+        US:  "en-US-x-icu",  # `en-US-u-va-posix-x-icu` etc
+      }.with_indifferent_access,
+      ja: "ja-x-icu",
+      ko: "ko-x-icu",
+      fr: "fr-x-icu",
+      de: "de-x-icu",
+    }.with_indifferent_access
+  }.with_indifferent_access
 
   extend ModuleApplicationBase
 
@@ -29,28 +48,109 @@ class ApplicationRecord < ActiveRecord::Base
     false
   end
 
-  # Returns (maybe cached) default PostgreSQL UTF-8 collation, depending on the platform
+  # Wrapper of {ApplicationRecord.utf8collation}
   #
-  # @return [String] guaranteed to be a valid String
-  def self.utf8collation
-    @@cached_utf8collations["C"] ||=
-      case RUBY_PLATFORM
-      when /darwin/i  # perhaps /darwin|bsd/i would also do
-        "C.UTF-8"
-      when /linux/i
-        "C.utf8"
-      else
-        utf8collation_for("C")
-      end
+  # You can specify the locale like "en_GB" as it is.
+  #
+  # @example
+  #    ApplicationRecord.utf8collation_for()
+  #      # => "und-x-icu"   # DEF_UTF8_COLLATION
+  #    ApplicationRecord.utf8collation_for("en_GB")
+  #      # => "en-GB-x-icu"
+  #    ApplicationRecord.utf8collation_for("en_GB", provider: "libc")
+  #      # => "en_GB.UTF-8"  # (if macOS)
+  #
+  # @param loc [String, NilClass] locale, e.g., "en_GB". If ommitted, "und" (undetermined) if provider=="icu", else "C".
+  # @para provider: [String, Symbol, NilClass] Either "icu" or "libc"
+  #    For lang of "und", this has to be +:icu+
+  # @return [String] like "en_GB.UTF-8"
+  def self.utf8collation_for(loc=nil, provider: nil)
+    lang, dialect = [nil, nil]
+    lang, dialect = loc.split("_") if loc
+    utf8collation(lang, provider: provider, dialect: dialect)
   end
 
   # Returns (maybe cached) default PostgreSQL UTF-8 collation, depending on the platform
   #
-  # @param loc [String] locale, e.g., "en_GB"
-  # @return [String] like "en_GB.UTF-8"
-  def self.utf8collation_for(loc)
-    @@cached_utf8collations[loc] ||= (%w(UTF-8 utf8).map{ loc+"."+_1 }.find{collation_available?(_1)} || "C")
-  end
+  # See the wrapper {ApplicationRecord.utf8collation_for}
+  #
+  # @para lang [String, Symbol, NilClass] "und" (undetermined) in Default, or "C" is default if provider=="libc".
+  # @para provider: [String, Symbol, NilClass] Either "icu" or "libc"
+  #    For lang of "und", this has to be +:icu+
+  # @para dialect: [String, Symbol, NilClass] :und (undetermined (for naming here)), "US", "GB", etc if any
+  #    For lang of "C", this has to be +:und+
+  # @return [String] guaranteed to be a valid String. e.g., "und-x-icu" or "C.UTF-8"
+  def self.utf8collation(lang=nil, provider: nil, dialect: nil)
+    provider ||= "icu"
+    provider = provider.to_s
+    dialect ||= :und
+    dialect   = dialect.to_s
+    lang    ||= ((provider == "icu") ? "und" : "C")
+    lang = lang.to_s
+    case provider
+    when "icu"
+      if @@cached_utf8collations[:icu].has_key?(lang)
+        return @@cached_utf8collations[:icu][lang] if !@@cached_utf8collations[:icu][lang].respond_to?(:has_key?)
+        cand = @@cached_utf8collations[:icu][lang][dialect]
+        return cand if cand.present?
+        msg = sprintf("WARNING: Unexpected language-dialect combination (%s_%s) specified for method(%s) in %s  Returning the default value.", lang, dialect, __method__, __FILE__)
+        warn msg+" See log for the backtrace."
+        logger.warn msg+" Backtrace: \n"+caller.join("\n")
+        return send(__method__, lang, provider: provider)
+      else
+        msg = sprintf("WARNING: Unexpected language (%s) specified for method(%s) in %s  Returning the default value.", lang, __method__, __FILE__)
+        warn msg+" See log for the backtrace."
+        logger.warn msg+" Backtrace: \n"+caller.join("\n")
+        return send(__method__)
+      end
+    when "libc"
+      raise ArgumentError, "'und' unacceptable for 'libc': Parameters: "+[lang, provider, dialect].inspect if "und" == lang.downcase
+      raise ArgumentError, "dialect makes no sense for lang='C': Parameters: "+[lang, provider, dialect].inspect if "C" == lang && "und" != dialect.downcase
+
+      @@cached_utf8collations[:libc][lang] = {}.with_indifferent_access if !@@cached_utf8collations[:libc].has_key?(lang)
+
+      lang_dia = lang
+      lang_dia += (("und" == dialect.downcase) ? "" : "_" + dialect)
+
+      return @@cached_utf8collations[:libc][lang][dialect] if @@cached_utf8collations[:libc][lang][dialect]
+
+      begin
+        collation_name = lang_dia +
+          case RUBY_PLATFORM
+          when /linux/i
+            ".utf8"
+          # when /darwin/i  # Maybe "bsd", too?
+          #   ".UTF-8"
+          else  # This should be the standard convention.
+            ".UTF-8"
+          end
+
+        @@cached_utf8collations[:libc][lang][dialect] = 
+          if collation_available?(collation_name)
+            collation_name
+          else
+            if "und" == dialect
+              if "C" == lang
+                msg = sprintf("WARNING: Collation-name is unavailable on this platform (%s in %s).  Returning 'C' instead.", collation_name, __method__, __FILE__)
+                warn msg+" See log for the backtrace."
+                logger.warn msg+" Backtrace: \n"+caller.join("\n")
+                "C"
+              else
+                send(__method__, "C", provider: provider, dialect: :und)
+              end
+            else
+              send(__method__, lang, provider: provider, dialect: :und)
+            end
+          end
+      rescue => err
+        # Above is not tested, hence this blanket rescue.
+        logger.error "ERROR: unexpected error caught in method (#{__method__}): #{err.class.name}: #{err.message}  Backtrace: \n"+caller.join("\n")
+        return "C"
+      end
+    else
+      raise ArgumentError, "Parameters: "+[lang, provider, dialect].inspect
+    end
+  end # self.utf8collation()
 
   # String to output for a logger output to explain the model
   #

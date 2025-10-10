@@ -78,7 +78,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_equal ar, ar2
 
     ret = Sex.select_regex(:title, 'male', debug_return_sql: true)
-    assert_equal "SELECT \"sexes\".* FROM \"sexes\" INNER JOIN \"translations\" ON \"translations\".\"translatable_type\" = 'Sex' AND \"translations\".\"translatable_id\" = \"sexes\".\"id\" WHERE (\"translations\".\"translatable_type\" = 'Sex' AND (\"translations\".\"title\" COLLATE \"C.UTF-8\" = 'male'))", ret
+    assert_equal "SELECT \"sexes\".* FROM \"sexes\" INNER JOIN \"translations\" ON \"translations\".\"translatable_type\" = 'Sex' AND \"translations\".\"translatable_id\" = \"sexes\".\"id\" WHERE (\"translations\".\"translatable_type\" = 'Sex' AND (\"translations\".\"title\" COLLATE \"und-x-icu\" = 'male'))", ret
 
     ret = Sex.select_regex(:title, /^male/, debug_return_sql: true, sql_regexp: true)
     assert_equal "SELECT \"sexes\".* FROM \"sexes\" INNER JOIN \"translations\" ON \"translations\".\"translatable_type\" = 'Sex' AND \"translations\".\"translatable_id\" = \"sexes\".\"id\" WHERE (\"translations\".\"translatable_type\" = 'Sex' AND (regexp_match(translations.title, '^male', 'n') IS NOT NULL))", ret

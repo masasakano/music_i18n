@@ -351,7 +351,7 @@ class Translation < ApplicationRecord
   # @param t_alias: [String, NilClass] DB table alias for Translation table, if the given +rela+ uses it. Default is {Translation.table_name} (= "translations")
   # @return [Array] a 2-element Array feedable to a where clause in Relation.
   def self.tuple_collate_equal(*args, t_alias: nil, collate_to: nil)
-    collate_to ||= ApplicationRecord.utf8collation  # "C.UTF-8" (BSD) or "C.utf8" (Linux)
+    collate_to ||= ApplicationRecord.utf8collation  # "und-x-icu" (more general than "C.UTF-8" (BSD) or "C.utf8" (Linux))
     t_alias ||= table_name
     colname, value =
              if 1 == args.size && args[0].respond_to?(:each_pair)
@@ -369,6 +369,7 @@ class Translation < ApplicationRecord
   #
   # @example  Here, "*" is not necessary because of how where() works.
   #    rela.where(*Translation.tuple_collate_equal({title: "ABC"}))
+  #    rela.where(Translation.tuple_collate_equal("title", "ABC", collate_to: ApplicationRecord.utf8collation))
   #    rela.where(Translation.tuple_collate_equal("title", "ABC", collate_to: "C"))
   #
   # @param base_rela [#where] in practice, either ActiveRecord::Relation or Class<Translation>
@@ -380,7 +381,7 @@ class Translation < ApplicationRecord
     case colname.to_s
     when "langcode"
       # for "langcode", it has to be ASCII and extra spaces should be ignored (it should never contain spaces anyway, but playing safe)
-      collate_to = ApplicationRecord.utf8collation_for("en_US")  # "en_US.UTF-8" (BSD) or "en_US.utf8" (Linux)
+      collate_to = ApplicationRecord.utf8collation  # "und-x-icu" (more general than "C.UTF-8" (BSD) or "C.utf8" (Linux))
       base_rela.where(tuple_collate_equal(colname, value, **(kwds.merge({collate_to: collate_to}))))
     when *(%w(title alt_title ruby alt_ruby romaji alt_romaji))
       base_rela.where(tuple_collate_equal(colname, value, **kwds))
