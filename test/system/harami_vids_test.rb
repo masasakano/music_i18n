@@ -72,7 +72,8 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
     assert_selector('input[type="submit"][value="Apply"]:not([disabled])')
     assert_selector "table", text: "John Lennon"
-    assert_equal 1, find_all(css_table).size
+    assert_text 'Page 1 (1—1)/1'  # Page 1 (1—1)/1 [Grand total: 12]
+    assert_equal 1, find_all(css_table).size, find_all(css_table).to_a.map{|i| i['innerHTML']}.inspect
   end
 
   test "visiting the index and then creating one" do

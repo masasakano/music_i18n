@@ -124,13 +124,13 @@ class PlayRolesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should destroy play_role" do
-    sign_in @syshelper
+    sign_in @moderator_all  # used to be rejected even for @syshelper (till v.2.5)
     assert_no_difference("PlayRole.count") do
       delete play_role_url(@play_role)
       assert_response :redirect
     end
     assert_redirected_to root_path, "Failure in deletion leads to Root-path"
-    sign_out @syshelper
+    sign_out @moderator_all
 
     sign_in @sysadmin
     assert_difference("PlayRole.count", -1) do

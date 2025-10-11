@@ -99,8 +99,8 @@ Rails.application.configure do
   # Chaning a password(!) may do the trick.
   # cf. https://stackoverflow.com/a/63141980/3577922
   config.action_mailer.smtp_settings = {
-    user_name:      (ENV["RAILS_USER_NAME"]       || Rails.application.credentials.mail_username),
-    password:       (ENV["RAILS_MAILER_PASSWORD"] || Rails.application.credentials.mail_password),
+    user_name:      (ENV["RAILS_USER_NAME"]       || Rails.application.credentials.dig(:smtp, :user_name)),  # used to be (Rails-6?) Rails.application.credentials.mail_username
+    password:       (ENV["RAILS_MAILER_PASSWORD"] || Rails.application.credentials.dig(:smtp, :password)),   # used to be (Rails-6?) Rails.application.credentials.mail_password
     domain:         (ENV["RAILS_MAILER_DOMAIN"]   || 'gmail.com'),
     address:        (ENV["RAILS_MAILER_ADDRESS"]  || 'smtp.gmail.com'),
     port:           (ENV["RAILS_MAILER_PORT"]     || '587'),
