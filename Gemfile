@@ -6,7 +6,7 @@ ruby '3.4.6'
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails', branch: "main"
 #gem 'rails', '~>6.1'
 #gem 'rails', '~> 7.0', '>= 7.0.4'
-gem 'rails', '~> 7.2.2'
+gem 'rails', '~> 8.0.3'
 
 # The original asset pipeline for Rails [https://github.com/rails/sprockets-rails]
 gem "sprockets-rails"
@@ -110,7 +110,7 @@ group :test do
 end
 
 ### User-added
-gem 'rails-i18n', '~> 7.0.0' # For Rails 7.0 and 7.1
+gem 'rails-i18n', '~> 8.0.0' # For Rails 8
 gem 'i18n-timezones'
 gem 'devise', '~> 4.9'
 gem 'devise-i18n'
@@ -123,7 +123,7 @@ gem 'datagrid', '~> 2.0'  # merged from its branch: 'version-2'
 gem 'rubytree', '~> 2', '>= 2.0.0'
 gem 'slim_string', '~> 1', '>= 1.0.1'
 gem 'simple_form', '~> 5', '>= 5.1.0'
-gem 'paper_trail', '~> 15', '>= 15.0.0'  # used to use 12.0 up to Rails 6.0 (which causes error in Rails 6.1); recommended to update to 13.0 with the condition to switch the column type: @see my comment about "yaml" in config/application.rb; at least 16 for Rails 8
+gem 'paper_trail', '~> 16', '>= 16.0.0'  # used to use 12.0 up to Rails 6.0 (which causes error in Rails 6.1); recommended to update to 13.0 with the condition to switch the column type: @see my comment about "yaml" in config/application.rb; at least 16 for Rails 8
 # gem 'high_voltage', '~> 3.1', '>= 3.1.2'
 gem 'http_accept_language'
 # gem 'routing-filter', '~> 0', '>= 0.6.3' # Only git HEAD works with Rails 6.1.
@@ -155,7 +155,10 @@ gem "nkf"
 gem "open-uri"
 
 group :development do
-  gem 'annotate'
+  # gem 'annotate', '>= 3.2.0'  # This works only up to Rails 7
+  # gem 'annotate', github: 'https://github.com/ctran/annotate_models'  # As of October 2025, gemspec of annotate Gem prohibits ActiveRecord (hence Rails) Ver.8.
+  ### In fact, 'annotate' Gem is not maintained anymore.  A fork 'annotaterb' has been created and maintained, and practically replaces it.
+  gem 'annotaterb', '~> 4.13'  # migrated from 'annotate' in Rails 8
   gem 'kramdown', require: false
 end
 

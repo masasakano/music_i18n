@@ -38,15 +38,15 @@ module HaramiMusicI18n
     #config.i18n.fallbacks = [:en, :ja]
 
     # Without this, test/controllers/static_pages_controller_test.rb
-    # might occasionally (though not always!) fail with
+    # might occasionally (though not always?) fail with
     #   Psych::DisallowedClass: Tried to load unspecified class: ActiveSupport::TimeWithZone
-    # although ideally (for PaperTrail version 13+), this should be omitted.
-    # Up to PaperTrail version 12, only ActiveSupport::TimeWithZone was needed(?), seemingly.
-    # However, tests pass usually and fail only occasionally...
+    # As of version 16 with Rails 8.0, tests fail unless specifyibg 3 classes in the Array below
+    # (it is three likely becaseu this app does not use other data types monitored by PaperTrail?).
     # @see https://github.com/paper-trail-gem/paper_trail/blob/master/doc/pt_13_yaml_safe_load.md
     # @see https://stackoverflow.com/questions/72970170/upgrading-to-rails-6-1-6-1-causes-psychdisallowedclass-tried-to-load-unspecif
     config.active_record.yaml_column_permitted_classes = [
-      ActiveSupport::TimeWithZone, ActiveSupport::TimeZone, Time
+      ActiveSupport::TimeWithZone, ActiveSupport::TimeZone, Time #,
+      # ActiveRecord::Type::Time::Value, BigDecimal, Date, Symbol
     ]
     #config.active_record.use_yaml_unsafe_load = true  # The last resort
 
