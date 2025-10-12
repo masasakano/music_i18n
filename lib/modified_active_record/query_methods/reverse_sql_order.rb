@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 require "plain_text"
-# require "active_record/relation/query_methods"
+require "active_record/relation/query_methods"  # If this raise NameError, the timing to require this file must be wrong -- probably too early.  This file should be require-d at the end of app/models/application_record.rb after ApplicationRecord has been created.  See the comment in the file.
 
 # See the comment lines (far) below for detail of this file and what this does.
 

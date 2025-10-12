@@ -1,7 +1,7 @@
 
 # Superclass of Musics::MergesController etc
 #
-# {CheckedDisabled} defined in +./concerns/checked_disabled.rb+ is a key helper class.
+# {CheckedDisabled} defined in +/app/value_objects/checked_disabled.rb+ is a key helper class.
 #
 # Child classes are so far {Musics::MergesController} and {Artists::MergesController} .
 #
