@@ -441,9 +441,9 @@ class Place < BaseWithTranslation
     !has_descendants? && !unknown?
   end
 
-  # Used in the class {CheckedDisabled}
+  # Used in the class {CheckedDisabled} defined in /app/controllers/concerns/
   #
-  # Return {CheckedDisabled}.
+  # Return {CheckedDisabled} or nil.
   # If one of them is {#covered_by?} the other, the index is used.
   # If there is none, returns nil.
   #

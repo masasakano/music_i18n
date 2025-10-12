@@ -100,9 +100,9 @@ class Sex < BaseWithTranslation
      iso5218 == 0
   end
 
-  # Used in the class {CheckedDisabled}
+  # Used in the class {CheckedDisabled} defined in /app/controllers/concerns/
   #
-  # Return {CheckedDisabled} if the index that is the first significant one,
+  # Return {CheckedDisabled} if the index is the first significant one,
   # (preferably defcheck_index if that is OK), i.e., not unknown.
   # If there is none, returns nil.
   #

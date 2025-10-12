@@ -267,4 +267,6 @@ class << ApplicationRecord
 end
 ApplicationRecord.allow_destroy_all = false
 
-require "reverse_sql_order"   # A user monkey patch to modify reverse_sql_order() in ActiveRecord::QueryMethods::WhereChain
+## This has to be placed here because otherwise referring to ActiveRecord::QueryMethods would return NameError (uninitialized constant ActiveRecord::Relation::QueryMethods) for some unknown reason; it seems defining ApplicationRecord finalises the settings of ActiveRecord, hence the NameError when called before the finalization.
+require 'modified_active_record/query_methods/reverse_sql_order.rb' # A monkey patch to modify reverse_sql_order() in ActiveRecord::QueryMethods::WhereChain
+

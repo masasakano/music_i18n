@@ -16,7 +16,7 @@ module HaramiMusicI18n
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.
-    #config.autoload_lib(ignore: %w[assets tasks])  # commented out b/c lib is not eager loaded.
+    config.autoload_lib(ignore: %w[assets tasks templates ext modified_active_record])
 
     # Configuration for the application, engines, and railties goes here.
     #
@@ -121,11 +121,8 @@ I18n.available_locales = [:ja, :en, :fr]  # ko, zh, ...
 # Set default locale to something other than :en
 #I18n.default_locale = :pt
 
-## Masa added
-require 'role_category_node'  # load class RoleCategoryNode < Tree::TreeNode
-require 'local/tree/tree_node'  # modifies Tree::TreeNode#<=>
-require "checked_disabled"    # A general class used for Form
-#require "reverse_sql_order"   # A monkey patch to modify reverse_sql_order() in ActiveRecord::QueryMethods::WhereChain
-require "time_with_error"  # TimeWithError: a subclass of Time
-require "time_aux"  # Time-related auxiliary module TimeAux
+## Masa added monkey-patches - remove them once the problems have been sorted
+#require 'lib/ext/routing_filter/adapters/routers/journey.rb'  # monkey-patch for Gem routing-fiter Ver. 0.7.0 for Rails-8.0
+#require 'lib/ext/tree/tree_node'  # modifies Tree::TreeNode#<=>
+## NOTE: A monkey patch to modify reverse_sql_order() in ActiveRecord::QueryMethods::WhereChain, 'modified_active_record/query_methods/reverse_sql_order.rb', has to be require-d at the end of app/models/application_record.rb (see the comment in the file)
 

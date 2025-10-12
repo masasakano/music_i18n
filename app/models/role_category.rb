@@ -1,7 +1,7 @@
 # coding: utf-8
 
+## auto-loaded from concerns/ hence commented out
 # require 'role_category_node'  # load class RoleCategoryNode < Tree::TreeNode
-## For some reason, this does not work...  It is put instead in /config/application.rb
 
 # = Class RoleCategory to repsent the categories for Role
 #
