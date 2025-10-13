@@ -16,10 +16,19 @@ class MusicsTest < ApplicationSystemTestCase
   test "visiting Music#index and then new" do
     # Music#index
     visit musics_url
-    assert_selector "h1", text: "Musics"
+    assert_selector "h1", text: (h1tit="Musics")
     assert_no_selector 'form.button_to'  # No button if not logged-in.
 
     n_trs0 = page.find_all("tr").size
+
+    # testing Language switch
+    click_on "日本語", match: :first
+    assert_selector "h1", text: (h1tit_ja=I18n.t(:Music, locale: :ja))
+    assert_equal h1tit_ja, (act_ja=find("h1").text).strip  # to confirm it is NOT "楽曲s"
+    refute_equal "s", act_ja[-1]
+
+    click_on "English", match: :first
+    assert_selector "h1", text: h1tit
 
     genre_word = 'Classic'
     genre = Genre.find_by_regex(:title, /^#{genre_word}$/)

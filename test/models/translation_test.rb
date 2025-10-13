@@ -893,5 +893,12 @@ class TranslationTest < ActiveSupport::TestCase
     assert_nil tra_ja1.reload.is_orig
     assert_nil tra_ja2.reload.is_orig
   end
+
+  test "Rails inflection initializer" do
+    mu_ja = I18n.t("Music", locale: :ja)
+    mu_ja_plural = mu_ja.pluralize(8, :ja)
+    assert_equal mu_ja, mu_ja_plural  # to confirm it is NOT "楽曲s"
+    refute_equal "s",   mu_ja_plural
+  end
 end
 
