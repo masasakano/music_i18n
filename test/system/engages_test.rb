@@ -48,6 +48,7 @@ class EngagesTest < ApplicationSystemTestCase
     # EngageMultiHows#edit page
     click_on txt_create_ja  # "Engage新規作成"
 
+    assert_selector "h1", text: "New Engage for Music"  # Japanese not yet supported
     str = page.find(:css, 'h1').text
     # assert_match(/^New Engage for Music\b/, str, "H1 is wrong: "+str.inspect)  # Japanese text should be set!
 

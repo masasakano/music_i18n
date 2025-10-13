@@ -99,5 +99,9 @@ yarn-debug.log*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
 
-
 /config/credentials/development.key
+
+# yard doc
+/.yardoc
+/doc
+

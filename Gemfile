@@ -160,6 +160,7 @@ group :development do
   ### In fact, 'annotate' Gem is not maintained anymore.  A fork 'annotaterb' has been created and maintained, and practically replaces it.
   gem 'annotaterb', '~> 4.13'  # migrated from 'annotate' in Rails 8
   gem 'kramdown', require: false
+  gem 'yard-activerecord'
 end
 
 group :development, :test do

@@ -161,6 +161,7 @@ How to generate a new ActiveRecord model with Translation.
        # ...
      end
    ```
+
 3. Run DB migration.
 4. Adjust seeds-related files and fixtures.  In this framework, many fixtures are loaded from the seeds file (so that fixtures mimic the real situation), where the Rails naming convention is often assumed.
    1. First, create `/db/seeds/my_models.rb` (plural), referring to, say, `channels.rb` in the same directory.
