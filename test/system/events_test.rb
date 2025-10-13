@@ -21,6 +21,9 @@ class EventsTest < ApplicationSystemTestCase
 
     assert_selector('input[type="submit"]:not([disabled])')
     assert_selector "h1", text: @h1_title  # for some reason, this line helps suppressing Selenium::WebDriver::Error::UnknownError
+    evgr = event_groups(:evgr_single_streets)
+    n_filtered_records = Event.where(event_group_id: evgr.id).count
+    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: n_filtered_records) # defined in test_helper.rb
 
     css_table_tr = "table.datagrid-table tbody tr"
     assert_operator 0, :<, find_all(css_table_tr).size

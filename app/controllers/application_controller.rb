@@ -714,21 +714,60 @@ class ApplicationController < ActionController::Base
 #logger.warn("=============================[asset]="+asset.inspect)
 #logger.warn("=============================[count]="+asset.count.inspect)
 #logger.warn("=============================[cur_page, n_per_page, asset.size, tot]="+[cur_page, n_per_page, asset.size, tot_count].inspect)
-    # n_selected_pages = [(cur_page-1)*n_per_page+asset.size, tot_count].min  # playing safe though it should be: ((cur_page-1)*n_per_page+asset.size == tot_count)
+
     asize = (asset.size.respond_to?(:size) ? asset.size.size : asset.size)
-    # n_selected_pages = [(cur_page-1)*n_per_page+asize, tot_count].min  # playing safe though it should be: ((cur_page-1)*n_per_page+asset.size == tot_count)
-    #### I didn't understand the statement above... Anyway the result was wrong in Url#index.  So I have modified it as follows:
     n_selected_pages = [cur_page*n_per_page, tot_count].min
-  
-    sprintf(
-      "%s (%d—%d)/%d [%s: %d]",
-      I18n.t("tables.Page_n", count: cur_page, default: "Page "+cur_page.to_s),
-      [(cur_page-1)*n_per_page+1, n_selected_pages].min,  # maybe 0
-      n_selected_pages,  
-      tot_count,
-      I18n.t("tables.grand_total_entries", default: "Grand total"),
-      klass.count
-    )
+
+    str_info_entry_page_numbers_core(
+      start_entry: [(cur_page-1)*n_per_page+1, n_selected_pages].min,  # maybe 0
+      end_entry: n_selected_pages,
+      cur_page: cur_page,
+      n_filtered_entries: tot_count,
+      n_all_entries: klass.count
+    ) rescue "***"  # never raises an Exception even if something completely unexpected is passed as an argument
+  end
+
+  # Core part for String for the statistics information in a Grid view
+  #
+  # Except for testing, both of start_entry and cur_page should be an Integer.
+  #
+  # @param n_filtered_entries: [Integer] mandatory: Number of the filtered entries
+  # @param text_only: [Boolean] if true (Def: false), returns a simple text String; otherwise XPath
+  # @param cur_page: [Integer, NilClass] Current page number.
+  # @param start_entry: [Integer, NilClass] Def: 1. If nil, this method returns only "/123" (Number of the filtered entries)
+  # @param end_entry: [Integer, NilClass] This is equal to, or (usually in tests) smaller than, the maximum number of entries per page on Grid. If nil (Def), the same as +n_filtered_entries+, i.e., all the entries are assumed to be displayed in this page.
+  # @param n_all_entries: [Integer, NilClass] If nil (Def), this part is not included in the returned String.
+  # @param langcode: [Symbol, String] :en (Def)
+  # @return [String]
+  def self.str_info_entry_page_numbers_core(n_filtered_entries:, cur_page: 1, start_entry: nil, end_entry: nil, n_all_entries: nil, langcode: I18n.locale)
+    if !n_filtered_entries.respond_to?(:floor)
+      msg = "ERROR(#{File.basename __FILE__}:#{__method__}): n_filtered_entries should be an Integer, but is strange (#{n_filtered_entries.inspect}). Contact the code developer."
+      raise ArgumentError, msg
+    elsif (!start_entry || !cur_page) && !Rails.env.test?
+      msg = "WARNING(#{File.basename __FILE__}:#{__method__}): start_entry should never be nil except for testing purposes (#{start_entry.inspect}). Contact the code developer."
+      warn msg
+      logger.warn msg
+    end
+
+    fmt   = String.new
+    arprm = Array.new
+    if start_entry && cur_page
+      fmt << "%s (%d—%d)"  # should not use "=" (!)
+      arprm = [I18n.t("tables.Page_n", count: cur_page, default: "Page "+cur_page.to_s, locale: langcode),
+               start_entry,
+               (end_entry || n_filtered_entries),]
+    end
+
+    fmt << "/%d"
+    arprm << n_filtered_entries
+
+    if n_all_entries
+      fmt << " [%s: %d]"
+      arprm << I18n.t("tables.grand_total_entries", default: "Grand total", locale: langcode)
+      arprm << n_all_entries
+    end
+
+    sprintf(fmt, *arprm)
   end
 
   # params returns "ins_at(1i)", "ins_at(2i)" etc.  Returns the converted Date or Time.

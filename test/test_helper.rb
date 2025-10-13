@@ -143,6 +143,7 @@ class ActiveSupport::TestCase
   XPATHGRIDS = {
     form: "/form[contains(@class, 'datagrid-form')]",  # used to be form#new_artists_grid in DataGrid Ver.1
     table: "/table[contains(@class, 'datagrid-table')]",  # used to contain 'table.artists_grid' in DataGrid Ver.1
+    pagenation_stats: "/*[#{ModuleCommon.xpath_contain_css(ApplicationGrid::CSS_CLASSES[:pagenation_stats])}]",  # unique to this app as defined in app/views/layouts/_grid_table_tail.html.erb
   }.with_indifferent_access
   XPATHGRIDS.merge!({
     th_tr: XPATHGRIDS[:table]+'//thead//tr',
@@ -165,6 +166,47 @@ class ActiveSupport::TestCase
       buton_add_trans_lc: "//table[contains(@class, 'all_registered_translations')]//tr[contains(@class, 'lang_banner_%s')]//form[contains(@class, 'button_to')]//button[@type='submit'][contains(text(), '%s')]", # 2 parameters: locale, Label ('Add translation') (Rails-7.2)
     }.with_indifferent_access,
   }.with_indifferent_access
+
+  # XPath to match certain statistics on the Grid-index-view statistics line
+  #
+  # @see ApplicationController.str_info_entry_page_numbers_core
+  #
+  # @example In system tests, the following three are in practice equivalent (if in English environment)
+  #   assert_text 'Page 1 (1—3)/3'  # Page 1 (1—3)/3 [Grand total: 12]
+  #   assert_text             xpath_grid_pagenation_stats_with(n_filtered_entries: 3, text_only: true)
+  #   assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: 3, text_only: false)
+  #   # Debug(to see the text in the block): p find(:xpath, XPATHGRIDS[:pagenation_stats]).text
+  #
+  # @example
+  #   assert_text '第1頁 (1—3)/3 [全登録数: 99]'
+  #   assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: 3, n_all_entries: 99, locale: :ja)
+  #   # Debug(to see the text in the block): p find(:xpath, XPATHGRIDS[:pagenation_stats])['innerHTML']
+  #
+  # @param n_filtered_entries: [Integer] mandatory: Number of the filtered entries
+  # @param text_only: [Boolean] if true (Def: false), returns a simple text String; otherwise XPath
+  # @param start_entry: [Integer, NilClass] Def: 1. If nil, this returns only "/123" (Number of the filtered entries)
+  # @param end_entry: [Integer, NilClass] This is equal to, or (usually in tests) smaller than, the maximum number of entries per page on Grid. If nil (Def), the same as n_filtered_entries.
+  # @param n_all_entries: [Integer, NilClass] If nil (Def), this part is not included in the returned String.
+  # @param langcode: [Symbol, String] :en (Def)
+  # @return [String] Either XPath or text for the pagenation stats part on Grid
+  def xpath_grid_pagenation_stats_with(n_filtered_entries: , text_only: false, cur_page: 1, start_entry: 1,  end_entry: nil, n_all_entries: nil, langcode: :en)
+
+    exp_txt = ApplicationController.str_info_entry_page_numbers_core(
+      n_filtered_entries: n_filtered_entries,
+      start_entry: start_entry,
+      end_entry: end_entry,
+      cur_page: cur_page,
+      n_all_entries: n_all_entries,
+      langcode: langcode
+    )
+
+    return exp_txt if text_only
+
+    sprintf("/%s[%s]",  # the leading '/' is essential.
+            XPATHGRIDS[:pagenation_stats],
+            ModuleCommon.xpath_contain_text(exp_txt, case_insensitive: false))  # CSS is case-sensitive.
+    # "//*[contains(concat(' ', normalize-space(@class), ' '), ' pagenation_stats ')][contains(., 'MY_TEXT_XXX')]"
+  end
 
   # @example
   #   css_grid_input_range(Artist, "birth_year", fromto: :to)

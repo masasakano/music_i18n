@@ -76,6 +76,11 @@ class ApplicationGrid < Datagrid::Base
   # Absolute maximum limit for pagination.
   HARD_MAX_PER_PAGE = 10000
 
+  # CSS Class-es
+  CSS_CLASSES = {
+    pagenation_stats: "pagenation_stats"
+  }.with_indifferent_access
+
   # Get the max value
   #
   # @note Only a loose check with the allowed values of {MAX_PER_PAGES} is in place.

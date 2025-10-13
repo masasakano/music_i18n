@@ -30,7 +30,7 @@ class ArtistsTest < ApplicationSystemTestCase
   # ---------------------------------------------
 
   def _get_stats
-    stats_str = page.find('.pagenation_stats').text
+    stats_str = page.find("."+ApplicationGrid::CSS_CLASSES[:pagenation_stats]).text  # ".pagenation_stats"
     mat = %r@(?:Page |第)\s*(\d+)\s*頁? \((\d+)[^\d]+(\d+)\)\s*/\s*(\d+) [^G]+(Grand total|全登録数)[^\d]+(\d+)@.match(stats_str)
     stats = {
       i_page: mat[1].to_i,
@@ -135,6 +135,10 @@ class ArtistsTest < ApplicationSystemTestCase
     page.all(csses[:input_sex])[2].set(false)  # any sex
     fill_in "artists_grid_title_en", with: "Z"
     click_on "Apply"
+
+    # the number of rows should have decreased to 2 (or so)
+    n_all_zs = Artist.joins(:translations).where("translations.title ILIKE '%Z%'").distinct.count
+    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: n_all_zs) # defined in test_helper.rb
 
     # ascending order
     page.find(CSSGRIDS[:th_title_en_a_asc]).click

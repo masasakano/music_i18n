@@ -30,6 +30,9 @@ class MusicsTest < ApplicationSystemTestCase
     select(genre_word,  from: 'Genre')  # t(:Genre)
     click_on "Apply"
 
+    n_filtered_records = Music.where(genre_id: genre.id).count
+    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: n_filtered_records) # defined in test_helper.rb
+
     mu_classic = classic_mus.first
     one_title = mu_classic.title_or_alt(langcode: "en", lang_fallback_option: :either)
     assert one_title.present?, "sanity check"
@@ -56,6 +59,7 @@ class MusicsTest < ApplicationSystemTestCase
     fill_autocomplete('#musics_grid_title_ja', use_find: true, with: 'ストー', select: title_ja)  # defined in test_helper.rb
     click_on "Apply"
 
+    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: 1) # Only 1 row; defined in test_helper.rb
     assert_text title_ja
     assert_selector "td", text: title_ja
     n_trs_story = page.find_all("tr").size
@@ -169,6 +173,7 @@ class MusicsTest < ApplicationSystemTestCase
     click_on "Apply"
 
     assert_selector "h1", text: "Musics"
+    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: 1) # Only 1 row; defined in test_helper.rb
     assert_selector css_to+"[value='1299']"  # The field should keep the input value
     assert_equal 1, (trs=page.find_all("tbody tr")).size, "The number of table-body rows for Musics in the 13th century should be one (just created), but..."
     assert_includes trs[0].text, tit1

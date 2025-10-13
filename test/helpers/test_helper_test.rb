@@ -36,5 +36,12 @@ class ModuleCommonTest < ActiveSupport::TestCase
       recognize_path_with_static_page("/non_existent", method: "POST")
     }
   end
+
+  test "xpath_grid_pagenation_stats_with" do
+    exp_txt = 'Page 1 (1—3)/3'
+    assert_equal exp_txt, xpath_grid_pagenation_stats_with(n_filtered_entries: 3, text_only: true)
+    exp = "//*[contains(concat(' ', normalize-space(@class), ' '), ' pagenation_stats ')][contains(., '#{exp_txt}')]"  # see XPATHGRIDS in test_helper.rb for the CSS @class name
+    assert_equal exp,     xpath_grid_pagenation_stats_with(n_filtered_entries: 3, text_only: false)
+  end
 end
 

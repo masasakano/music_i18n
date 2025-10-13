@@ -55,6 +55,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     click_on "Apply"
 
     assert_selector('input[type="submit"][value="Apply"]:not([disabled])')
+    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: 1) # defined in test_helper.rb
     assert_selector "h1", text: @h1_index
     assert_selector "table", text: "Give Peace"
     assert_text tit
@@ -73,6 +74,8 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_selector('input[type="submit"][value="Apply"]:not([disabled])')
     assert_selector "table", text: "John Lennon"
     assert_text 'Page 1 (1—1)/1'  # Page 1 (1—1)/1 [Grand total: 12]
+    assert_text             xpath_grid_pagenation_stats_with(n_filtered_entries: 1, text_only: true)
+    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: 1, text_only: false)
     assert_equal 1, find_all(css_table).size, find_all(css_table).to_a.map{|i| i['innerHTML']}.inspect
   end
 

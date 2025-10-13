@@ -1,6 +1,6 @@
 <%# local variables: klass %>
 
-<p class="pagenation_stats">
+<p class="<%= ApplicationGrid::CSS_CLASSES[:pagenation_stats] %>">
   <%= ApplicationController.str_info_entry_page_numbers(@grid, klass) %>
 </p>
 <% if can? :edit, klass %>

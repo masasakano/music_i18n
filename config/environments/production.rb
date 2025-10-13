@@ -92,7 +92,7 @@ Rails.application.configure do
   #   password: Rails.application.credentials.dig(:smtp, :password),
   #   address: "smtp.example.com",
      port: 587,
-     authentication: :plain
+     authentication: :plain,
     ### if using Gmail
     #user_name:      Rails.application.credentials.mail_username,
     #password:       Rails.application.credentials.mail_password,

@@ -1530,6 +1530,70 @@ module ModuleCommon
     retstr
   end
 
+  # Returns the XPath expression to contain all the given texts somewhere
+  #
+  # Problematic characters (single quotes) are properly escaped.
+  #
+  # @example
+  #    "//a[" + ModuleCommon.xpath_contain_text("Click", "Button", case_insensitive: false) + "]"
+  #      # => "//a[contains(., 'Click') and contains(., 'button')]"
+  #
+  # @param texts [String, Array<String>] "Click", "Button"
+  # @param case_insensitive: [Boolean] if true (Default), basic case-insensitive search is made (only for ASCII alphabets)
+  # @return [String] e.g., `[contains(., 'Click') and contains(., 'button')]`
+  def self.xpath_contain_text(*texts, **opts)
+    raise ArgumentError, "no significant argument specified" if texts.empty?
+    texts.flatten.map{
+      xpath_contain_text_single(_1, **opts)
+    }.join(" and ")
+  end
+
+  # Returns a single component of XPath contains function in Ruby String
+  #
+  # Problematic characters (single quotes) are properly escaped.
+  #
+  # Note that this uses +translate()+ for case-insensitive search valid only for ASCII alphabets.
+  # In XPath-2.0, the following more elegant forms for the case-insensitive search are defined,
+  # but XPath-2.0 is not widely available, yet.
+  #
+  # 1. +contains(lower-case(.),'test')+
+  # 2. +matches(.,'test', 'i')+
+  #
+  # @param text [String]
+  # @param case_insensitive: [Boolean] if true (Default), basic case-insensitive search is made (only for ASCII alphabets)
+  # @return [String] e.g., `contains(., 'Click')]`
+  def self.xpath_contain_text_single(text, case_insensitive: true)
+    term1 = (case_insensitive ? "translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz')" : ".")
+    term2 = (case_insensitive ? text.downcase : text)
+    term2 =
+      if term2.include?("'")
+         "concat('" + term2.split("'").join(%q@',"'",'@) + "')"
+      else
+         "'" + term2 + "'"
+      end
+
+    sprintf("contains(%s, %s)", term1, term2)
+  end
+
+  # Returns the XPath expression to contain all the CSSs for inside a pair of brackets
+  #
+  # Note that
+  #   contains(@class, 'abc')
+  # would be insufficient, matching the CSS of "abc-xyz", too, for example.
+  #
+  # @example
+  #    "//p[" + ModuleCommon.xpath_contain_css("foo", "baa") + "]"
+  #      # => "//p[contains(concat(' ', normalize-space(@class), ' '), ' foo ') and contains(concat(' ', normalize-space(@class), ' baa '))]"
+  #
+  # @param texts [String, Array<String>] "Click", "Button"
+  # @param case_insensitive: [Boolean] if true (Default), basic case-insensitive search is made (only for ASCII alphabets)
+  # @return [String] e.g., `[contains(., 'Click') and contains(., 'button')]`
+  def self.xpath_contain_css(*csss)
+    raise ArgumentError, "no significant argument specified" if csss.empty?
+    csss.flatten.map{
+      sprintf "contains(concat(' ', normalize-space(@class), ' '), ' %s ')", _1
+    }.join(" and ")
+  end
 
   # Error message
   #

@@ -6,6 +6,7 @@ require 'test_helper'
 
 class ModuleCommonTest < ActiveSupport::TestCase
   include ModuleCommon
+  MC = ModuleCommon
 
   test "date2text" do
     assert_equal '——年8月——日', date2text(nil,  8, "", langcode: "ja")
@@ -252,6 +253,27 @@ class ModuleCommonTest < ActiveSupport::TestCase
       123
     }
     assert_equal 123, ret
+  end
+
+  test "xpath_contain_text" do
+    exp = "contains(., 'CLick')"
+    assert_equal exp, MC.xpath_contain_text_single('CLick', case_insensitive: false)
+
+    exp = "contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'), 'click')"
+    assert_equal exp, MC.xpath_contain_text_single('CLick', case_insensitive: true)
+
+    act = MC.xpath_contain_text_single("Dr X's sign", case_insensitive: false)
+    exp = %q@contains(., concat('Dr X',"'",'s sign'))@  # '
+    assert_equal exp, act
+
+    act = MC.xpath_contain_text("Dr X's sign", "CLick", case_insensitive: false)
+    exp = %q@contains(., concat('Dr X',"'",'s sign')) and contains(., 'CLick')@  # '
+    assert_equal exp, act
+  end
+
+  test "xpath_contain_css" do
+    exp = "contains(concat(' ', normalize-space(@class), ' '), ' foo ') and contains(concat(' ', normalize-space(@class), ' '), ' baa ')"
+    assert_equal exp, ModuleCommon.xpath_contain_css("foo", "baa")
   end
 
   test "singleton_method_val" do
