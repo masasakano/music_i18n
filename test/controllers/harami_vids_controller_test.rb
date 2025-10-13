@@ -138,7 +138,7 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
     end
 
     sign_in @editor_harami
-    run_test_create_null(Channel, extra_colnames: %i(title langcode)) # defined in /test/helpers/controller_helper.rb
+    run_test_create_null(Channel, extra_colnames: %i(title langcode)) # defined in test_controller_helper.rb
     ## null imput should fail.
 
 #if false # temporary skip

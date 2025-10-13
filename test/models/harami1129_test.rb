@@ -681,7 +681,7 @@ class Harami1129Test < ActiveSupport::TestCase
 
   test "insert_populate live-streaming" do
     ms = __method__.to_s
-    h1129 = mk_h1129_live_streaming(ms, do_test: true)  # defined in /test/helpers/model_helper.rb
+    h1129 = mk_h1129_live_streaming(ms, do_test: true)  # defined in test_controller_helper.rb
     hvid = h1129.harami_vid
 
     evit = h1129.event_item

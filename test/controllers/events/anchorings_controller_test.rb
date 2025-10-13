@@ -1,6 +1,6 @@
 # coding: utf-8
 require "test_helper"
-require "helpers/controller_anchorable_helper"
+require "controller_anchorable_helper"
 
 class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
   include ActiveSupport::TestCase::ControllerAnchorableHelper
@@ -56,7 +56,7 @@ class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
   # ---------------------------------------------
 
   test "should create/update/destroy anchoring by moderator" do
-    # defined in /test/helpers/controller_anchorable_helper.rb
+    # defined in controller_anchorable_helper.rb
     opt_users = {fail_users: [], success_users: [@moderator_all]}  # only a single success_users is valid for :create, whereas multiple fail_users can be tested.
     ## access to parent's show and anchoring's new
     _assert_authorized_get_to_parent(@anchorable, **opt_users)

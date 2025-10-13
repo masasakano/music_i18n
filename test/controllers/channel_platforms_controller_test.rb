@@ -70,7 +70,7 @@ class ChannelPlatformsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in @editor_ja
     #sign_in @syshelper
-    run_test_create_null(ChannelPlatform) # defined in /test/helpers/controller_helper.rb
+    run_test_create_null(ChannelPlatform) # defined in test_controller_helper.rb
 
     assert_difference("ChannelPlatform.count") do
       post channel_platforms_url, params: { channel_platform: hs2pass }

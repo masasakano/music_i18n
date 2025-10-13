@@ -55,7 +55,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
     #assert_selector "h1", text: "New Artist"
     # label_str = I18n.t('layouts.new_translations.model_language', model: 'Music')
     # find_field(label_str).choose('English')  ## Does not work b/c the label is just a <span>!
-    page_find_sys(:trans_new, :langcode_radio, model: Artist).choose('日本語')  # defined in helpers/test_system_helper
+    page_find_sys(:trans_new, :langcode_radio, model: Artist).choose('日本語')  # defined in test_system_helper
     #choose '日本語'  # a name, id, or label text matching
     fill_in "artist_title", with: "久保田" # <input placeholder="例: The Beatles" type="text" name="artist[title]" id="artist_title">
     ## Alternative

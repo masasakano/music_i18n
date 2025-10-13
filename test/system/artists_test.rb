@@ -223,8 +223,8 @@ class ArtistsTest < ApplicationSystemTestCase
     click_on "New Artist"
 
     assert_selector "h1", text: new_model_title
-    assert_no_selector css_query(:trans_new, :is_orig_radio, model: Prefecture)  # "is_orig selection should not be provided, but..."  # css_query defined in helpers/test_system_helper
-    page_find_sys(:trans_new, :langcode_radio, model: Artist).choose('English')  # defined in helpers/test_system_helper
+    assert_no_selector css_query(:trans_new, :is_orig_radio, model: Prefecture)  # "is_orig selection should not be provided, but..."  # css_query defined in test_system_helper
+    page_find_sys(:trans_new, :langcode_radio, model: Artist).choose('English')  # defined in test_system_helper
 
     page.find('input#artist_title').fill_in with: @artist.title  # This is a duplicate.
 

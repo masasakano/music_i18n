@@ -1,6 +1,5 @@
 # coding: utf-8
 require "application_system_test_case"
-require "helpers/test_system_helper"
 
 class ChannelTypesTest < ApplicationSystemTestCase
   setup do
@@ -55,7 +54,7 @@ class ChannelTypesTest < ApplicationSystemTestCase
     n_records_be4 = page.all("div#channel_types table tr").size - 1
     click_on "New ChannelType"
 
-    page_find_sys(:trans_new, :langcode_radio, model: ChannelType).choose('English')  # defined in helpers/test_system_helper
+    page_find_sys(:trans_new, :langcode_radio, model: ChannelType).choose('English')  # defined in test_system_helper
     str_form_for_nil = ApplicationController.returned_str_from_form(ApplicationController::FORM_TERNARY_UNDEFINED_VALUE)
     assert_equal str_form_for_nil, page_get_val(:trans_new, :is_orig, model: ChannelType), "is_orig should be Undefined in Default, but..."
     page_find_sys(:trans_new, :is_orig_radio, model: @channel_type).choose('Yes')
@@ -77,10 +76,10 @@ class ChannelTypesTest < ApplicationSystemTestCase
     assert_selector "h1", text: newchan
 
     # Language-related values in the form are also preserved.
-    # Here, page_get_val() defined in helpers/test_system_helper
+    # Here, page_get_val() defined in test_system_helper
     assert_equal "en",   page_get_val(:trans_new, :langcode, model: ChannelType), "Language should have been set English in the previous attempt, but..."
     assert_equal str_form_for_nil, page_get_val(:trans_new, :is_orig, model: ChannelType), "is_orig should be Undefined, but..."
-    page_find_sys(:trans_new, :is_orig_radio, model: @channel_type).choose('No')  # defined in helpers/test_system_helper
+    page_find_sys(:trans_new, :is_orig_radio, model: @channel_type).choose('No')  # defined in test_system_helper
     assert_equal ApplicationController.returned_str_from_form(false), page_get_val(:trans_new, :is_orig, model: ChannelType), "is_orig should be false, but..."
     page.find('input#channel_type_title').fill_in with: 'Tekitoh'  # This is unique!
     fill_in "Mname", with: "teki_toh"

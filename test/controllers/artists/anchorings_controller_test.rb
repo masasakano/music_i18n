@@ -91,7 +91,7 @@ class Artists::AnchoringsControllerTest < ActionDispatch::IntegrationTest
     action, mdl1 = assert_authorized_post(anchoring, user: @moderator_ja, path_or_action: paths[:show], redirected_to: path_anchoring(anchoring, action: :show), params: hsupdate, method: :patch, diff_count_command: calc_count_exp, diff_num: 0, updated_attrs: [:note]){ |user, record|  # path_anchoring() defined in Artists::AnchoringsHelper
       assert record.url
       refute_equal urlstr_orig, record.url.url
-    } # defined in /test/helpers/controller_helper.rb
+    } # defined in test_controller_helper.rb
     assert_equal :update, action
     assert_equal scat, mdl1.reload.site_category
 if false    
@@ -107,13 +107,13 @@ end # if false
 
     _assert_authorized_get_set(paths[:edit],Anchoring, fail_users: [], success_users: [@editor_ja, @editor_harami], h1_title_regex: nil)
 
-    # assert_equal :create, assert_unauthorized_post(Anchoring, user: nil, params: hs2pass5, path_or_action: paths[:create]) # defined in /test/helpers/controller_helper.rb
+    # assert_equal :create, assert_unauthorized_post(Anchoring, user: nil, params: hs2pass5, path_or_action: paths[:create]) # defined in test_controller_helper.rb
     # end
 
     sign_in @moderator_ja
 
     ## Successful creation of Anchoring and Url with existing Domain and DomainTitle
-    action, new_mdl2 = assert_authorized_post(Anchoring, user: @moderator_ja, path_or_action: paths[:create], redirected_to: proc_art0_path, params: hsprms, method: :post, diff_count_command: calc_count_exp, diff_num: 11001){ |_, _| # defined in /test/helpers/controller_helper.rb
+    action, new_mdl2 = assert_authorized_post(Anchoring, user: @moderator_ja, path_or_action: paths[:create], redirected_to: proc_art0_path, params: hsprms, method: :post, diff_count_command: calc_count_exp, diff_num: 11001){ |_, _| # defined in test_controller_helper.rb
       assert_equal "https://"+newurl, Anchoring.last.url.url }
     assert_equal :create, action
 
@@ -122,7 +122,7 @@ end # if false
     note3   = "arunote3"
     hsprms3 = hsprms.merge({url_form: newurl3, note: note3, site_category_id: ""})  # SiteCategory auto-guessed.
     sccat = SiteCategory.find hsprms[:site_category_id]
-    action, new_mdl3 = assert_authorized_post(Anchoring, user: @moderator_ja, path_or_action: paths[:create], redirected_to: proc_art0_path, params: hsprms3, method: :post, diff_count_command: calc_count_exp, diff_num: 12111, updated_attrs: %i(note)){ |_, record| # defined in /test/helpers/controller_helper.rb
+    action, new_mdl3 = assert_authorized_post(Anchoring, user: @moderator_ja, path_or_action: paths[:create], redirected_to: proc_art0_path, params: hsprms3, method: :post, diff_count_command: calc_count_exp, diff_num: 12111, updated_attrs: %i(note)){ |_, record| # defined in test_controller_helper.rb
       assert_equal "https://"+newurl3, record.url.url  # NOTE: url_form becomes nil after "reload"; hence you would either check it here in the yield block or include it in updated_attrs as a Hash like {url: nerurl3}
       assert_equal new_mdl2.site_category, record.site_category, "SiteCategory should agree because of auto-guess, but..."   # this should have been checked in updated_attrs
     }
@@ -132,7 +132,7 @@ end # if false
     ## Wikipedia URL addition
     wiki = "ja.wikipedia.org/wiki/%E5%B0%8F%E6%9E%97%E5%B9%B8%E5%AD%90#%E5%87%BA%E6%BC%94" # "/wiki/小林幸子#出演"
     hswiki = hsprms.merge({url_form: wiki, title: "", url_langcode: "", site_category_id: ""})
-    action, new_mdl4 = assert_authorized_post(Anchoring, user: @moderator_ja, path_or_action: paths[:create], redirected_to: proc_art0_path, params: hswiki, method: :post, diff_count_command: calc_count_exp, diff_num: 11001){ |user, record| # defined in /test/helpers/controller_helper.rb
+    action, new_mdl4 = assert_authorized_post(Anchoring, user: @moderator_ja, path_or_action: paths[:create], redirected_to: proc_art0_path, params: hswiki, method: :post, diff_count_command: calc_count_exp, diff_num: 11001){ |user, record| # defined in test_controller_helper.rb
       assert_equal "https://"+wiki, record.url.url
       assert_equal "ja", record.url.orig_langcode.to_s
       trans = record.url.orig_translation
@@ -144,7 +144,7 @@ end # if false
     assert_equal :create, action
 
 #
-#    assert_equal :create, assert_authorized_post(Url, params: hs2pass.merge({title: ""}), diff_num: 0, err_msg: "null title should not be allowed, but Response is...").first # defined in /test/helpers/controller_helper.rb
+#    assert_equal :create, assert_authorized_post(Url, params: hs2pass.merge({title: ""}), diff_num: 0, err_msg: "null title should not be allowed, but Response is...").first # defined in test_controller_helper.rb
 #
 #    assert_equal :create, assert_authorized_post(Url, params: hs2pass2.merge({url: "abc.x/invalid" }), diff_num: 0, err_msg: "should have failed due to the invalid URI, but Response is...").first
 
@@ -178,14 +178,14 @@ end # if false
     action, _ = assert_authorized_post(anchoring, user: @moderator_ja, path_or_action: paths[:show], redirected_to: path_anchoring(anchoring, action: :show), params: hsupdate, method: :patch, diff_count_command: calc_count_exp, diff_num: 0, updated_attrs: [:note]){ |user, record|  # path_anchoring() defined in Artists::AnchoringsHelper
       assert record.url
       refute_equal urlstr_orig, record.url.url
-    } # defined in /test/helpers/controller_helper.rb
+    } # defined in test_controller_helper.rb
     assert_equal :update, action
 
     url_orig = anchoring.url.url
     action, _ = assert_authorized_post(anchoring, user: @moderator_ja, path_or_action: paths[:show], redirected_to: path_anchoring(anchoring, action: :show), params: hsupdate.merge({url_form: ""}), method: :patch, diff_count_command: calc_count_exp, diff_num: 0, updated_attrs: [:note], exp_response: :unprocessable_content){ |user, record|  # path_anchoring() defined in Artists::AnchoringsHelper
       assert record.url
       assert_equal url_orig, record.url.url
-    } # defined in /test/helpers/controller_helper.rb
+    } # defined in test_controller_helper.rb
     assert_equal :update, action
 
   end

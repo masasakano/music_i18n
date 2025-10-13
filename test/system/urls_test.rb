@@ -51,7 +51,7 @@ class UrlsTest < ApplicationSystemTestCase
     click_on newh1
     assert_selector "h1", text: newh1
 
-    page_find_sys(:trans_new, :langcode_radio, model: model.class).choose('English')  # defined in helpers/test_system_helper
+    page_find_sys(:trans_new, :langcode_radio, model: model.class).choose('English')  # defined in test_system_helper
     str_form_for_nil = ApplicationController.returned_str_from_form(ApplicationController::FORM_TERNARY_UNDEFINED_VALUE)
     assert_equal str_form_for_nil, page_get_val(:trans_new, :is_orig, model: model.class), "Selection of is_orig should be presented and is Undefined in Default, but... #{str_form_for_nil.inspect} != #{page_get_val(:trans_new, :is_orig, model: model.class).inspect}}"  # NOTE: if Capybara::ElementNotFound appears, check the form for the option "disable_is_orig" passed to a layout.
     page_find_sys(:trans_new, :is_orig_radio, model: model).choose('Yes')

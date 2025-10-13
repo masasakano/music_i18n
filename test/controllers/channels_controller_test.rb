@@ -87,7 +87,7 @@ class ChannelsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in @editor_ja
     #sign_in @syshelper
-    run_test_create_null(Channel, extra_colnames: %i(title langcode)) # defined in /test/helpers/controller_helper.rb
+    run_test_create_null(Channel, extra_colnames: %i(title langcode)) # defined in test_controller_helper.rb
     ## null imput should fail.
 
     assert_difference("Channel.count") do
@@ -120,7 +120,7 @@ class ChannelsControllerTest < ActionDispatch::IntegrationTest
     sign_in @translator
     get channel_url(@channel)
     assert_response :success, "Any editor should be able to read, but..."
-    assert_base_with_translation_show_h2  # defined in /test/helpers/controller_helper.rb
+    assert_base_with_translation_show_h2  # defined in test_controller_helper.rb
   end
 
   test "should get edit" do
@@ -147,7 +147,7 @@ class ChannelsControllerTest < ActionDispatch::IntegrationTest
     sign_in @moderator_ja
     get edit_channel_url(@channel)
     assert_response :success, "superior should be able to edit the entry created by subordinate, but..."
-    assert_base_with_translation_show_h2  # defined in /test/helpers/controller_helper.rb
+    assert_base_with_translation_show_h2  # defined in test_controller_helper.rb
     sign_out @moderator_ja
   end
 

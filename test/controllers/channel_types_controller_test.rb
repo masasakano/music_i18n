@@ -99,7 +99,7 @@ class ChannelTypesControllerTest < ActionDispatch::IntegrationTest
     sign_in @moderator_ja
     #sign_in @syshelper
 
-    run_test_create_null(ChannelType, extra_colnames: [:langcode]) # defined in /test/helpers/controller_helper.rb
+    run_test_create_null(ChannelType, extra_colnames: [:langcode]) # defined in test_controller_helper.rb
 
     assert_difference("ChannelType.count") do
       post channel_types_url, params: { channel_type: hs2pass }

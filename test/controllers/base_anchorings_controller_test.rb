@@ -1,6 +1,6 @@
 # coding: utf-8
 require "test_helper"
-require "helpers/controller_anchorable_helper"
+require "controller_anchorable_helper"
 
 class BaseAnchoringsControllerTest < ActionDispatch::IntegrationTest
   include ActiveSupport::TestCase::ControllerAnchorableHelper
@@ -87,7 +87,7 @@ class BaseAnchoringsControllerTest < ActionDispatch::IntegrationTest
   def do_basic_tests_single_user(h1_title_regex: nil, fail_users: [], success_user: nil)
     success_users = (success_user ? [success_user] : []).flatten
 
-    # defined in /test/helpers/controller_anchorable_helper.rb
+    # defined in test_controller_helper.rb controller_anchorable_helper.rb
     opt_users = {fail_users: fail_users, success_users: success_users}  # only a single success_users is valid for :create, whereas multiple fail_users can be tested.
 
     ## Testing access to parent's show.

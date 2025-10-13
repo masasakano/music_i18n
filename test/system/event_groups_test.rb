@@ -1,6 +1,5 @@
 # coding: utf-8
 require "application_system_test_case"
-require "helpers/test_system_helper"
 
 class EventGroupsTest < ApplicationSystemTestCase
   setup do
@@ -32,7 +31,7 @@ class EventGroupsTest < ApplicationSystemTestCase
     click_on "Create EventGroup"
 
     assert_selector "h1", text: "New EventGroup"
-    page_find_sys(:trans_new, :langcode_radio, model: EventGroup).choose('English')  # defined in helpers/test_system_helper
+    page_find_sys(:trans_new, :langcode_radio, model: EventGroup).choose('English')  # defined in test_system_helper
 
     # label_str = I18n.t('layouts.new_translations.title', model: 'EventGroup')
     page.find('input#event_group_title').fill_in with: 'Tekitoh'  # This is unique!

@@ -48,7 +48,7 @@ class UrlsControllerTest < ActionDispatch::IntegrationTest
   # ---------------------------------------------
 
   test "should get index" do
-    assert_authorized_index(Url, fail_users: [@translator], success_users: [@editor_ja, @editor_harami], h1_title: "Urls   [Editor-only Page]") # defined in /test/helpers/controller_helper.rb
+    assert_authorized_index(Url, fail_users: [@translator], success_users: [@editor_ja, @editor_harami], h1_title: "Urls   [Editor-only Page]") # defined in test_controller_helper.rb
   end
 
 
@@ -69,18 +69,18 @@ class UrlsControllerTest < ActionDispatch::IntegrationTest
     hs2pass = @hs_create_lang.merge(@hs_base).merge( hs2add )
 
     [nil, @translator].each do |ea_user|  # @trans_moderator may be pviviledged?
-      assert_equal :create, assert_unauthorized_post(Url, user: ea_user, params: hs2pass) # defined in /test/helpers/controller_helper.rb
+      assert_equal :create, assert_unauthorized_post(Url, user: ea_user, params: hs2pass) # defined in test_controller_helper.rb
     end
 
     sign_in @moderator_ja
     ## Successful creation of Url with existing Domain and DomainTitle
-    action, new_mdl2 = assert_authorized_post(Url, params: hs2pass, diff_count_command: calc_count_exp, diff_num: 1001) # defined in /test/helpers/controller_helper.rb
+    action, new_mdl2 = assert_authorized_post(Url, params: hs2pass, diff_count_command: calc_count_exp, diff_num: 1001) # defined in test_controller_helper.rb
     assert_equal :create, action
 
     hs2pass2 = hs2pass.merge(title: "new 2 pass")  # makes title be different in default.
-    assert_equal :create, assert_authorized_post(Url, params: hs2pass2, diff_num: 0, err_msg: "should have failed due to unique constraint of url, but Response is...").first # defined in /test/helpers/controller_helper.rb
+    assert_equal :create, assert_authorized_post(Url, params: hs2pass2, diff_num: 0, err_msg: "should have failed due to unique constraint of url, but Response is...").first # defined in test_controller_helper.rb
 
-    assert_equal :create, assert_authorized_post(Url, params: hs2pass.merge({title: ""}), diff_num: 0, err_msg: "null title should not be allowed, but Response is...").first # defined in /test/helpers/controller_helper.rb
+    assert_equal :create, assert_authorized_post(Url, params: hs2pass.merge({title: ""}), diff_num: 0, err_msg: "null title should not be allowed, but Response is...").first # defined in test_controller_helper.rb
 
     assert_equal :create, assert_authorized_post(Url, params: hs2pass2.merge({url: "abc.x/invalid" }), diff_num: 0, err_msg: "should have failed due to the invalid URI, but Response is...").first
 
@@ -89,7 +89,7 @@ class UrlsControllerTest < ActionDispatch::IntegrationTest
     path = "/ab.html?q=3"
     note3 = "note3"
     hs2pass3 = hs2pass.merge(title: "new 3 pass", url: new_dom+path, domain_id: "", note: note3)
-    action, new_mdl3 = assert_authorized_post(Url, params: hs2pass3, diff_count_command: calc_count_exp, diff_num: 2111, updated_attrs: [:note]){ |user, record| # defined in /test/helpers/controller_helper.rb
+    action, new_mdl3 = assert_authorized_post(Url, params: hs2pass3, diff_count_command: calc_count_exp, diff_num: 2111, updated_attrs: [:note]){ |user, record| # defined in test_controller_helper.rb
       assert_equal new_dom, record.domain.domain
       assert_equal new_dom, record.domain_title.title
       assert_equal "new 3 pass", record.title
@@ -100,7 +100,7 @@ class UrlsControllerTest < ActionDispatch::IntegrationTest
     path4 = "/ab.html?q=3&r=6"
     note4 = "note4"
     hs2pass4 = hs2pass.merge(title: "new 4 pass", url: "www."+new_dom+path4, domain_id: "", note: note4)
-    action, new_mdl4 = assert_authorized_post(Url, params: hs2pass4, diff_count_command: calc_count_exp, diff_num: 1011, updated_attrs: {url: "https://www."+new_dom+path4, note: note4}){ |user, record| # defined in /test/helpers/controller_helper.rb
+    action, new_mdl4 = assert_authorized_post(Url, params: hs2pass4, diff_count_command: calc_count_exp, diff_num: 1011, updated_attrs: {url: "https://www."+new_dom+path4, note: note4}){ |user, record| # defined in test_controller_helper.rb
       assert_equal "www."+new_dom, record.domain.domain, "Domain prefix 'www'?"
       assert_equal new_mdl3.domain_title, record.domain_title
     }
@@ -112,14 +112,14 @@ class UrlsControllerTest < ActionDispatch::IntegrationTest
 
     ## standard update
     note3 = "aruyo3"
-    action, _ = assert_authorized_post(new_mdl2, params: hsupdate.merge(note: note3), updated_attrs: [:note]) # defined in /test/helpers/controller_helper.rb
+    action, _ = assert_authorized_post(new_mdl2, params: hsupdate.merge(note: note3), updated_attrs: [:note]) # defined in test_controller_helper.rb
     assert_equal :update, action
 
     ## Should create Domain and DomainTitle in this update Url
     new_dom6 = "another-new.org"
     note6 = "note6"
     hsupd6 = @hs_base.merge( hs2add ).merge({url: "www."+new_dom6, domain_id: "", note: note6})  # No language-related fields
-    action, _ = assert_authorized_post(new_mdl4, params: hsupd6, updated_attrs: {url: "https://www."+new_dom6, note: note6}, diff_count_command: calc_count_exp, diff_num: 1110){ |user, record| # defined in /test/helpers/controller_helper.rb
+    action, _ = assert_authorized_post(new_mdl4, params: hsupd6, updated_attrs: {url: "https://www."+new_dom6, note: note6}, diff_count_command: calc_count_exp, diff_num: 1110){ |user, record| # defined in test_controller_helper.rb
       assert_equal @moderator_ja, user, "sanity check" 
       assert record.domain
       assert_equal "www."+new_dom6, record.domain.domain, "Domain check..."
@@ -133,7 +133,7 @@ class UrlsControllerTest < ActionDispatch::IntegrationTest
     path7 = "/?q=345"
     note7 = "note7"
     hsupd7 = @hs_base.merge( hs2add ).merge({url: (url7=new_dom6+path7), domain_id: "", note: note7})  # No language-related fields
-    action, _ = assert_authorized_post(new_mdl4, params: hsupd7, updated_attrs: {url: "https://"+url7, note: note7}, diff_count_command: calc_count_exp, diff_num: 10){ |user, record| # defined in /test/helpers/controller_helper.rb
+    action, _ = assert_authorized_post(new_mdl4, params: hsupd7, updated_attrs: {url: "https://"+url7, note: note7}, diff_count_command: calc_count_exp, diff_num: 10){ |user, record| # defined in test_controller_helper.rb
       assert_equal @moderator_ja, user, "sanity check" 
       assert record.domain
       assert_equal new_dom6, record.domain.domain
@@ -147,17 +147,17 @@ class UrlsControllerTest < ActionDispatch::IntegrationTest
     # User trans-editor (fails)
 
     note4 = "aruyo4"
-    assert_equal :update, assert_unauthorized_post(new_mdl2, user: @translator, params: hsupdate.merge(note: note4), unchanged_attrs: [:note]) # defined in /test/helpers/controller_helper.rb
+    assert_equal :update, assert_unauthorized_post(new_mdl2, user: @translator, params: hsupdate.merge(note: note4), unchanged_attrs: [:note]) # defined in test_controller_helper.rb
 
     ### destroy
 
     ## fail
     [nil, @translator].each do |ea_user|
-      assert_equal :destroy, assert_unauthorized_post(new_mdl2, user: ea_user) # defined in /test/helpers/controller_helper.rb
+      assert_equal :destroy, assert_unauthorized_post(new_mdl2, user: ea_user) # defined in test_controller_helper.rb
     end
 
     ## success
-    action, _ =assert_authorized_post(new_mdl2, user: @moderator_ja) # defined in /test/helpers/controller_helper.rb
+    action, _ =assert_authorized_post(new_mdl2, user: @moderator_ja) # defined in test_controller_helper.rb
     assert_equal :destroy, action
 
   end

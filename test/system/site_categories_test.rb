@@ -1,6 +1,5 @@
 # coding: utf-8
 require "application_system_test_case"
-require "helpers/test_system_helper"
 
 class SiteCategoriesTest < ApplicationSystemTestCase
   setup do
@@ -56,7 +55,7 @@ class SiteCategoriesTest < ApplicationSystemTestCase
     n_records_be4 = page.all("div#site_categories table tr").size - 1
     click_on "New SiteCategory"
 
-    page_find_sys(:trans_new, :langcode_radio, model: SiteCategory).choose('English')  # defined in helpers/test_system_helper
+    page_find_sys(:trans_new, :langcode_radio, model: SiteCategory).choose('English')  # defined in test_system_helper
     str_form_for_nil = ApplicationController.returned_str_from_form(ApplicationController::FORM_TERNARY_UNDEFINED_VALUE)
     assert_equal str_form_for_nil, page_get_val(:trans_new, :is_orig, model: SiteCategory), "Selection of is_orig should be presented and is Undefined in Default, but... #{str_form_for_nil.inspect} != #{page_get_val(:trans_new, :is_orig, model: SiteCategory).inspect}}"  # NOTE: if Capybara::ElementNotFound appears, check the form for the option "disable_is_orig" passed to a layout.
     page_find_sys(:trans_new, :is_orig_radio, model: @site_category).choose('Yes')
@@ -78,10 +77,10 @@ class SiteCategoriesTest < ApplicationSystemTestCase
     assert_selector "h1", text: newchan
 
     # Language-related values in the form are also preserved.
-    # Here, page_get_val() defined in helpers/test_system_helper
+    # Here, page_get_val() defined in test_system_helper
     assert_equal "en",   page_get_val(:trans_new, :langcode, model: SiteCategory), "Language should have been set English in the previous attempt, but..."
     assert_equal str_form_for_nil, page_get_val(:trans_new, :is_orig, model: SiteCategory), "is_orig should be Undefined, but..."
-    page_find_sys(:trans_new, :is_orig_radio, model: @site_category).choose('No')  # defined in helpers/test_system_helper
+    page_find_sys(:trans_new, :is_orig_radio, model: @site_category).choose('No')  # defined in test_system_helper
     assert_equal ApplicationController.returned_str_from_form(false), page_get_val(:trans_new, :is_orig, model: SiteCategory), "is_orig should be false, but..."
     page.find('input#site_category_title').fill_in with: 'Tekitoh'  # This is unique!
     fill_in "Mname", with: "teki_toh"

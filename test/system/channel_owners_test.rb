@@ -56,7 +56,7 @@ class ChannelOwnersTest < ApplicationSystemTestCase
     n_records_be4 = page.all("div#channel_owners table tr").size - 1
     click_on "New ChannelOwner"
 
-    page_find_sys(:trans_new, :langcode_radio, model: ChannelOwner).choose('English')  # defined in helpers/test_system_helper
+    page_find_sys(:trans_new, :langcode_radio, model: ChannelOwner).choose('English')  # defined in test_system_helper
 
     page.find('input#channel_owner_title').fill_in with: 'Tekitoh'  # This is unique!
 

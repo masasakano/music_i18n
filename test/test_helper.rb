@@ -2,9 +2,10 @@
 ENV['RAILS_ENV'] ||= 'test'
 require_relative '../config/environment'
 require 'rails/test_help'
-require "helpers/model_helper"
-require "helpers/controller_helper"
-require "helpers/test_system_helper"
+require "test_model_helper"
+require "test_controller_helper"
+require "test_system_helper"
+# require "controller_anchorable_helper.rb"  # required in each test file that requires this.
 require_relative './test_w3c_validate_helper'
 
 

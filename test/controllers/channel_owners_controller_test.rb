@@ -82,7 +82,7 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
 
     sign_in @editor_ja
     #sign_in @syshelper
-    run_test_create_null(ChannelOwner, extra_colnames: %i(title langcode themselves)) # defined in /test/helpers/controller_helper.rb
+    run_test_create_null(ChannelOwner, extra_colnames: %i(title langcode themselves)) # defined in test_controller_helper.rb
 
     # completely new Channel unrelated to an Artist
     assert_difference("ChannelOwner.count") do
@@ -176,7 +176,7 @@ end
     sign_in @translator
     get channel_owner_url(@channel_owner)
     assert_response :success, "Any editor should be able to read, but..."
-    assert_base_with_translation_show_h2  # defined in /test/helpers/controller_helper.rb
+    assert_base_with_translation_show_h2  # defined in test_controller_helper.rb
   end
 
   test "should get edit" do
@@ -202,7 +202,7 @@ end
     sign_in @moderator_ja
     get edit_channel_owner_url(@channel_owner)
     assert_response :success, "superior should be able to edit the entry created by subordinate, but..."
-    assert_base_with_translation_show_h2  # defined in /test/helpers/controller_helper.rb
+    assert_base_with_translation_show_h2  # defined in test_controller_helper.rb
     sign_out @moderator_ja
   end
 

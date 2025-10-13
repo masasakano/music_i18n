@@ -57,7 +57,7 @@ class ChannelsTest < ApplicationSystemTestCase
     n_records_be4 = page.all("div#channels table tr").size - 1
     click_on "New Channel"
 
-    page_find_sys(:trans_new, :langcode_radio, model: Channel).choose('English')  # defined in helpers/test_system_helper
+    page_find_sys(:trans_new, :langcode_radio, model: Channel).choose('English')  # defined in test_system_helper
 
     page.find('input#channel_title').fill_in with: 'Tekitoh'  # This is unique!
 

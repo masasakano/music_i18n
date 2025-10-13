@@ -95,7 +95,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     click_on exp
 
     vid_prms = {}
-    page_find_sys(:trans_new, :langcode_radio, model: HaramiVid).choose('English')  # defined in helpers/test_system_helper
+    page_find_sys(:trans_new, :langcode_radio, model: HaramiVid).choose('English')  # defined in test_system_helper
     vid_prms[:title] = 'NewEnglishHaramiVid37'
     page.find('input#harami_vid_title').fill_in with: vid_prms[:title]  # This is unique!
     vid_prms[:uri] = "youtu.be/anexample37"

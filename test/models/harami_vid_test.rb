@@ -500,7 +500,7 @@ class HaramiVidTest < ActiveSupport::TestCase
 
   test "deepcopy" do
     ms = __method__.to_s
-    h1129 = mk_h1129_live_streaming(ms, do_test: false)  # defined in /test/helpers/model_helper.rb
+    h1129 = mk_h1129_live_streaming(ms, do_test: false)  # defined in test_controller_helper.rb
     hvid = h1129.harami_vid
     hvid.update!(place: places(:perth_uk), note: "naiyo")
     assert_equal 1, hvid.event_items.count, "sanity check"
