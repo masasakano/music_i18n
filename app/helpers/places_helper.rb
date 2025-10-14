@@ -20,7 +20,7 @@ module PlacesHelper
 
     pla_title =
       if hyperlink && can?(:read, pla)
-        link_to (ar[0].blank? ? "NO-TRANSLATION" : ar[0]), pla
+        link_to (ar[0].blank? ? "NO-TRANSLATION" : ar[0]), pla, data: {turbo: false}
       else
         h(ar[0])
       end

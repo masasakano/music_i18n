@@ -19,10 +19,9 @@ class EventGroupsTest < ApplicationSystemTestCase
   #end
 
   test "should create event group" do
-    visit new_user_session_path
-    fill_in "Email", with: @moderator.email
-    fill_in "Password", with: '123456'  # from users.yml
-    click_on "Log in"
+    assert_index_fail_succeed(edit_event_group_url(@event_group))  # defined in test_system_helper.rb
+
+    login_at_root_path(user=@moderator, with_visit: true)
     assert_text "Music i18n"
 
     visit event_groups_url
@@ -56,11 +55,13 @@ class EventGroupsTest < ApplicationSystemTestCase
     assert_selector    'form div#div_select_prefecture'  # Now JS made it appear
     assert     find_field('Prefecture')                  # Now JS made it appear
 
+    # Below the values of @event_group are referred to in order that they are guaranteed to be mutually consistent.
+    new_end_year = [@event_group.end_date.year, Date.current.year-EventGroupsHelper::ALLOWANCE_YEARS_START_YEAR_FOR_NEW].max
     select @event_group.start_date.year,  from: "event_group_start_date_1i"
     select @event_group.start_date.strftime('%B'), from: "event_group_start_date_2i"
     select @event_group.start_date.strftime('%-d'), from: "event_group_start_date_3i"
     fill_in "± days (Start)", with: ""
-    select @event_group.end_date.year,  from: "event_group_end_date_1i"
+    select new_end_year,                         from: "event_group_end_date_1i"
     select @event_group.end_date.strftime('%B'), from: "event_group_end_date_2i"
     select @event_group.end_date.strftime('%-d'), from: "event_group_end_date_3i"
     fill_in "± days (End)", with: ""

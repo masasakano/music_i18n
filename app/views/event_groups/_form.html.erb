@@ -17,16 +17,11 @@
 
   <%= render partial: "layouts/select_country_prefecture_place", locals: {form: f, model: event_group, is_simple_form: true} %>
 
-  <% dat = event_group.start_date %>
-  <% dat_or_this = (dat ? dat : Date.current) %>
-  <% end_y = [dat_or_this+21.year, Date.current].min.year + 1 %>
-  <%= f.input :start_date, start_year: get_form_start_year(dat), end_year: end_y %>
+  <% start_y, end_y = evgr_start_date_select_range_start_end_year(event_group) %> <%# defined in event_groups_helper.rb %>
+  <%= f.input :start_date, start_year: start_y, end_year: end_y %>
   <%= f.input :start_date_err, label: "± days (Start)" %>
 
-  <% start_y = (dat ? dat.year : TimeAux::DEF_FIRST_DATE_TIME.year) %> <%# dat === Start-date in DB %>
-  <% dat_end = event_group.end_date %>
-  <% end_y = ((start_y >= Date.current.year + EventGroupsController::OFFSET_LARGE_YEAR) ? start_y : [start_y, Date.current.year, dat_end.year].max + 5) %>  <%# Selection end is +5 years %>
-  <% dat_or_this = (dat_end ? dat_end : TimeAux::DEF_LAST_DATE_TIME.to_date) %>
+  <% start_y, end_y = evgr_end_date_select_range_start_end_year(event_group) %> <%# defined in event_groups_helper.rb %>
   <%= f.input :end_date, start_year: start_y, end_year: end_y %>
   <%= f.input :end_date_err, label: "± days (End)" %>
 

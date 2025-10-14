@@ -65,6 +65,13 @@ class ApplicationController < ActionController::Base
     notice:  "notice alert alert-info",
   }.with_indifferent_access
 
+  # CSS Class-es
+  CSS_CLASSES = {
+    show: {
+      sec_id_edit_destroy_in_show: "edit_destroy_in_show",
+    },
+  }.with_indifferent_access
+
   tmp_params_trans_keys = [:langcode, :title, :ruby, :romaji, :alt_title, :alt_ruby, :alt_romaji]
 
   PARAMS_NAMES = {

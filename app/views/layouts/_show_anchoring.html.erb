@@ -47,7 +47,7 @@
              <% end %>
              <%= link_to((u=anchoring.url).title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: (canedit_url_gen ? "[UNDEFINED Title] "+u.url : u.url)), u.url, target: "_blank") %>
             <%= editor_only_safe_html(Url, method: :show, tag: "span") do %>
-              [<%= link_to(t('urls.link.Show'), anchoring.url, title: "Internal Url-Show page") %>]
+              [<%= link_to(t('urls.link.Show'), anchoring.url, title: "Internal Url-Show page", data: {turbo: false}) %>]
             <% end %>
              &nbsp; <%= notetxt %>
             <%= editor_only_safe_html(record, method: :edit, tag: "div", class: "disp-inline") do %>

@@ -15,8 +15,8 @@
 
 <%= editor_only_safe_html(:pass, method: can_update, only: only, tag: "div", class: "link-edit-destroy") do %> <%# defined in application_helper.rb %>
 
-  <% if !is_to_edit %>
-   <section id="edit_destroy_in_show">
+  <% if !is_to_edit %> <%# If in "Edit", neither this part not "section" is displayed. %>
+   <section id="<%= ApplicationController::CSS_CLASSES[:show][:sec_id_edit_destroy_in_show] %>">
     <%#path_edit = send("edit_"+model_underscore+"_path", record) %>
     <% path_edit = Rails.application.routes.url_helpers.polymorphic_path(record, action: :edit, only_path: true) %> <%# e.g., edit_music_path(record) %>
     <%= tag.span class: "lead" do %>
@@ -49,7 +49,7 @@
     <%= below_destroy.html_safe? ? below_destroy : sanitize(below_destroy) %>
   <% end %>
   <% if !is_to_edit %>
-   </section>
+   </section> <%# Unless it is in "Edit". %>
   <% end %>
 <% end %> <%# editor_only_safe_html(:pass, ...) %>
 

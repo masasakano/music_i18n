@@ -3,7 +3,7 @@ module HaramiVidsHelper
   def show_list_featuring_artists(event_item)
     msg = event_item.artists.map{|ea_art|
       tit = ea_art.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true)
-      (can?(:show, ea_art) ? link_to(tit, ea_art) : h(tit))
+      (can?(:show, ea_art) ? link_to(tit, ea_art, data: {turbo: false}) : h(tit))
     }.join(t(:comma, default: ", ")).html_safe
     msg.present? ? msg : t(:None)
   end
@@ -153,7 +153,7 @@ module HaramiVidsHelper
     hs_evits = {}  # pID => txt [String]
     events.order(:start_time, :event_group_id).uniq.map{|eev| eev.event_items}.flatten.each_with_index do |ea_evit, ind|  # EAch-EVent-ITem
       link_core = ((incl=parent_evits.include?(ea_evit)) ? tag.span(class: ["text-warning-regular"]){(ind+1).to_s} : (ind+1).to_s)
-      link_txt = (can_read ? link_to(link_core, ea_evit) : link_core)
+      link_txt = (can_read ? link_to(link_core, ea_evit, data: {turbo: false}) : link_core)
       hs_evits[ea_evit.id] = (
         tag.span(title: h(ea_evit.machine_title), class: ["text-warning-regular": parent_evits.include?(ea_evit)]){ link_txt } +
         (incl ? tag.span(title: t("harami_vids.show.CommonEventItem")){tag.sup(){"†"}} : "")

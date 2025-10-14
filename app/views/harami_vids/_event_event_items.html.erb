@@ -44,7 +44,7 @@
               <% if canindex_evit %>  <%# Strictly, this should be: can? :show, event_item %>
                 <% link_txt_extra = ": " + trimmed_event_item_machine_title_to_display(event_item) %> <%# defined in harami_vids_helper.rb %>
                 <% tit = sprintf("%s (ID=%d(w=%s); Assoc-IDs=%s)", event_item.machine_title, event_item.id, ((w=event_item.weight) ? "%.3g"%w : "nil"), HaramiVidEventItemAssoc.where(harami_vid: @harami_vid, event_item: event_item).order(:id).ids.inspect) %>
-                (<%= eii+1 %><span class="editor_only"><%= link_to "#{link_txt_extra}", event_item, title: tit %></span>)
+                (<%= eii+1 %><span class="editor_only"><%= link_to "#{link_txt_extra}", event_item, title: tit, data: {turbo: false} %></span>)
               <% else %>
                 (<%= eii+1 %>)
               <% end %>
@@ -118,7 +118,7 @@
                   <p class="add_missing_musics editor_only lead"><strong>Missing Musics in HaramiVidMusicAssocs</strong></p>
                   <ul>
                     <% missing_musics.each do |music| %>
-                      <li><%= link_to music.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "NONE"), music %></li>
+                      <li><%= link_to music.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "NONE"), music, data: {turbo: false} %></li>
                     <% end %>
                   </ul>
                  </section>

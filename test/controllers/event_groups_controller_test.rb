@@ -62,7 +62,8 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     get new_event_group_url
     assert_response :success
 
-    exp = (TimeAux::DEF_FIRST_DATE_TIME+1.day).year
+    # exp = (TimeAux::DEF_FIRST_DATE_TIME+1.day).year
+    exp = Date.current.year
     assert_equal exp, css_select('select#event_group_start_date_1i option[selected=selected]')[0]["value"].to_i, "Default year should be selected, but..."
     w3c_validate "EventGroup new"  # defined in test_helper.rb (see for debugging help)
   end

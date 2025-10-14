@@ -108,7 +108,7 @@
              <% model = amp.send(att) %>
              <% metho = ((:music == att) ? :title_maybe_with_artist : :title_or_alt) %>
              <% tit = model.send(metho, **title_opts) %>
-             <%= canshows[att] ? link_to(tit, model) : tit %>
+             <%= canshows[att] ? link_to(tit, model, data: {turbo: false}) : tit %>
            </td>
          <% end %>
          <% if canedit_evit %>
@@ -122,7 +122,7 @@
           <td class="editor_only">
             <% if can? :update, amp %>
               <% hsprms = %i(event_item_id music_id artist_id).map{|i| [i, amp.send(i)]}.to_h %>
-              <%= link_to 'Edit', edit_artist_music_plays_edit_multi_path(amp) %> <%# edit_artist_music_plays_edit_multi_path(amp, params: ...) %>
+              <%= link_to 'Edit', edit_artist_music_plays_edit_multi_path(amp), data: {turbo: false} %> <%# edit_artist_music_plays_edit_multi_path(amp, params: ...) %>
               <%# link_to 'Edit', artist_music_plays_edit_multis_path(params: {artist_music_play: hsprms}) %> <%# edit_artist_music_plays_edit_multi_path(amp, params: ...) %>
             <% end %>
           </td>

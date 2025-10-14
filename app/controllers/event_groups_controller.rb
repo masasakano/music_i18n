@@ -44,7 +44,7 @@ class EventGroupsController < ApplicationController
   end
 
   def _prepare_dates_for_form
-    @event_group.start_date = TimeAux::DEF_FIRST_DATE_TIME.to_date if !@event_group.start_date
+    @event_group.start_date = Date.current if !@event_group.start_date  # This used to be TimeAux::DEF_FIRST_DATE_TIME.to_date
     @event_group.end_date = (Date.current+(OFFSET_LARGE_YEAR+1).year).end_of_year if !@event_group.end_date || (@event_group.end_date > Date.current + OFFSET_LARGE_YEAR.year)
   end
 

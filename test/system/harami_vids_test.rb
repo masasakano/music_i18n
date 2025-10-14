@@ -409,10 +409,11 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_equal hvid2.place.id.to_s, (res=page.find(css))["value"], "Selected=#{res['outerHTML']}"  # For edit, if a significant Place is already defined, it should not be updated.
   end
 
-  test "visiting HaramiVid#edit" do
+  test "visiting-HaramiVid#edit" do
     # Prep
     tit2 = "test-#{__method__}-2"
-    hvid2 = HaramiVid.create_basic!(title: tit2, langcode: "en", uri: "http://youtu.be/2dummytest2")
+    date_str = "2025-01-23"
+    hvid2 = HaramiVid.create_basic!(title: tit2, langcode: "en", uri: "http://youtu.be/2dummytest2", release_date: Date.parse(date_str))
     mu = musics(:music1)
     hvid2.musics << mu
     # with an associated Music with nil timing; no associated EventItem
@@ -424,6 +425,41 @@ class HaramiVidsTest < ApplicationSystemTestCase
     click_on @h1_index, match: :first
     assert_selector "h1", text: @h1_index
 
+    visit harami_vid_path(hvid2)
+    assert_selector "h1", text: date_str
+
+    find(:xpath, "//a[@data-turbo-frame='new_anchoring'][contains(.,'New Anchoring')]").click
+    css_submit_anchoring = "input[value='Create Anchoring']"
+    # <input type="submit" name="commit" value="Create Anchoring" data-disable-with="Create Anchoring">
+    assert_selector css_submit_anchoring
+
+    ## Create Url and Anchoring
+    fill_in "URL", with: (anchor_url="https://example.com/"+tit2)
+    select "Other", from: "Site category"
+    fill_in "Description", with: (url_tit="my test description 2")
+    uncheck "Tick this to update the title with H1 on the remote URL"
+    click_on "Create Anchoring"
+    refute_selector css_submit_anchoring
+
+    # move to Edit
+    find("#"+ApplicationController::CSS_CLASSES[:show][:sec_id_edit_destroy_in_show]+" a.edit_link").click
+    assert_selector "h1", text: "Editing Harami"
+    assert_selector "h1", text: sprintf("Vid (ID=%d)", hvid2.id)
+    
+    # back to Show
+    visit harami_vid_path(hvid2)
+    assert_selector "h1", text: date_str
+    assert_text tit2
+
+    # Visiting Url#show
+    assert_selector "#anchoring_index_HaramiVid ul li a"  # Anchoring should have appeared
+    xpath = "//*[@id='anchoring_index_HaramiVid']//ul//li//a[contains(.,'Link-info')]"
+      # <a title="Internal Url-Show page" href="/en/urls/56">Link-info</a>
+    find(:xpath, xpath).click
+    assert_selector "h1", text: "Url: "+url_tit
+    assert_text anchor_url
+
+    # move to Edit
     visit edit_harami_vid_path(hvid2)
     assert_text tit2
 
@@ -447,11 +483,23 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_includes        lines.join(" ").strip, "uccessfully updated"  # There is also a warning message: "Please make sure to add an Event(Item)."
 
     fill_in "Video length", with: "1:12"
+
+    selbox_text = "Additional Event"
+    selbox = find_field(selbox_text)
+    select selbox.find('option:last-child').text, from: selbox_text
+
     click_on @update_haramivid_button, match: :first
 
     assert_selector "h1", text: "HARAMIchan-featured Video"
     assert_text tit2
+    css_evit = "section#harami_vids_show_unique_parameters dd.item_event li ol li a"
+    assert_selector css_evit  # This appears for the first time.
     assert_equal "72.0 (01:12)", find("section.show_unique_parameters dl dd.item_duration").text.strip
+
+    # EventItem page
+    find_all(css_evit).first.click
+    assert_selector "h1", text: "EventItem: "
+    assert_text tit2  # HaramiVid should be included in a table.
   end
 
   # test "destroying a Harami vid" do

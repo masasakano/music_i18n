@@ -2,7 +2,6 @@
 require "test_helper"
 
 # @example Already required in test_helper
-#    require "helpers/test_system_helper"
 #
 class ActiveSupport::TestCase
 
@@ -69,7 +68,7 @@ class ActiveSupport::TestCase
 
 
   # @example Controller test
-  #   assert_empty css_select(css_query(:trans_new, :is_orig_radio, model: Model))  # defined in helpers/test_system_helper
+  #   assert_empty css_select(css_query(:trans_new, :is_orig_radio, model: Model))  # defined in test_system_helper
   # 
   # @example System test
   #   assert_no_selector css_query(:trans_new, :is_orig_radio, model: Prefecture)
@@ -82,10 +81,10 @@ class ActiveSupport::TestCase
   end 
 
   # @example
-  #   assert_match(/ prohibited /, page_find_sys(:error_div, :title).text)  # defined in helpers/test_system_helper
-  #   page_find_sys(:trans_new, :langcode_radio, model: MyModel).choose('English')  # defined in helpers/test_system_helper
+  #   assert_match(/ prohibited /, page_find_sys(:error_div, :title).text)  # defined in test_system_helper
+  #   page_find_sys(:trans_new, :langcode_radio, model: MyModel).choose('English')  # defined in test_system_helper
   #    Old forms: page.find('form div.field.radio_langcode').choose('English')
-  #   page_find_sys(:trans_new, :is_orig_radio, model: @channel_type).choose('No')  # defined in helpers/test_system_helper
+  #   page_find_sys(:trans_new, :is_orig_radio, model: @channel_type).choose('No')  # defined in test_system_helper
   # 
   def page_find_sys(*args, **kwds)
     page.find(css_query(*args, **kwds))
@@ -94,7 +93,7 @@ class ActiveSupport::TestCase
   # Gets a field value, like a radio-button etc.
   #
   # @example Get a value for radio-buttons for "is_orig" in Page "new" for MyModel (e.g., ChannelType)
-  #   assert_equal "on",   page_get_val(:trans_new, :is_orig, model: "my_model"), "is_orig should be Undefined, but..."  # defined in helpers/test_system_helper
+  #   assert_equal "on",   page_get_val(:trans_new, :is_orig, model: "my_model"), "is_orig should be Undefined, but..."  # defined in test_system_helper
   #   assert_equal "true", page_get_val(:trans_new, :is_orig, model:  my_model),  "is_orig should be true, but..."
   #
   # @example
@@ -221,20 +220,23 @@ class ActiveSupport::TestCase
   #
   # When returned, user_succeed is still logged on (unless it is specified nil)
   #
-  # @example Simplest form
+  # @example Simplest form, asserting non-authenticated cannot access the URL
+  #   assert_index_fail_succeed(edit_place_url(@place))  # defined in test_system_helper.rb
+  #
+  # @example Simple form
   #   assert_index_fail_succeed(Domain.new, user_succeed: @trans_moderator)  # defined in test_system_helper.rb
   #
   # @example Full form
   #   assert_index_fail_succeed(Domain.new, "Domains", user_fail: @editor_harami, user_succeed: @trans_moderator)  # defined in test_system_helper.rb
   #
   # @param index_path [String, ActiveRecord] Either the index path or a Model record
-  # @param h1_title [String, NilClass] h1 title string for index page. If nil, it is guessed from the model, assuming the first argument is a model (NOT the path String)
+  # @param h1_title [String, NilClass] h1 title string of the page (Model-index?) after successful login. If nil and if user_succeed is non-nil, it is guessed from the model, assuming the first argument is a model (NOT the path String).
   # @param user_fail: [User, NilClass] who fails to see the index page. if nil, the non-authorized user.
   # @param user_user_succeed: [User, NilClass] who succcessfully sees the index page
   def assert_index_fail_succeed(model, h1_title=nil, user_fail: nil, user_succeed: nil)
     index_path = model
     index_path = Rails.application.routes.url_helpers.polymorphic_path(model.class) if model.respond_to?(:destroy!) 
-    h1_title ||= model.class.name.underscore.pluralize.split("_").map(&:capitalize).join(" ")  # e.g., "Event Items"
+    h1_title ||= model.class.name.underscore.pluralize.split("_").map(&:capitalize).join(" ") if user_succeed.present?  # e.g., "Event Items"
 
     ## Failing in displaying index (although Login itself should succeed)
     if user_fail

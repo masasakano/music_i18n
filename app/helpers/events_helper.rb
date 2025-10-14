@@ -75,7 +75,7 @@ module EventsHelper
     tit = eg.title_or_alt_for_selection
     group_html = 
       if with_group_link && can?(:read, eg)
-        link_to tit, eg
+        link_to tit, eg, data: {turbo: false}
       else
         h(tit)
       end
