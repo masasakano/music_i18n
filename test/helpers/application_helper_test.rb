@@ -104,5 +104,27 @@ class ApplicationHelperTest < ActionView::TestCase
     assert_equal "", act
   end
 
+  test "sorted_title_ids" do
+    org_locale = I18n.locale
+    begin
+      I18n.locale = "en"
+      ary = sorted_title_ids(ChannelOwner.all, method: :title_or_alt_for_selection_optimum).map(&:first)
+      assert_includes ary, "HARAMIchan"
+      assert_includes ary, "Kohmi Hirose"
+      assert_operator ary.find_index("HARAMIchan"), :<, ary.find_index("Kohmi Hirose")
+
+      ctype = channel_types(:channel_type_sub)
+      assert_equal ["Side channel", "Secondary"], [ctype.title, ctype.alt_title].sort.reverse, "fixture sanity check..."
+      rela_ctype = ChannelType.where(id: ctype.id)
+      ary = sorted_title_ids(rela_ctype, method: :title_or_alt_for_selection_optimum).map(&:first)
+      assert_equal "Side channel", ary[0]
+      ary = sorted_title_ids(rela_ctype, method: :title_or_alt, langcode: I18n.locale).map(&:first)
+      assert_equal "Side channel", ary[0]
+      ary = sorted_title_ids(rela_ctype, method: :title_or_alt, langcode: I18n.locale, prefer_shorter: true).map(&:first)
+      assert_equal "Secondary", ary[0]
+    ensure
+      I18n.locale = org_locale
+    end
+  end
 end
 

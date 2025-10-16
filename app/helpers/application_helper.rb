@@ -1122,11 +1122,13 @@ module ApplicationHelper
   #   Otherwise, "en" would be used.  Be warned!
   #
   # @param ary [Relation, Array<BaseWithTranslation>]
+  # @param method: [Symbol, String] {BaseWithTranslation} method name (Def: :title_or_alt), e.g., :title_or_alt_for_selection_optimum
+  # @param opts: [Hash] passed to the method
   # @return [Array<String, Integer>]
-  def sorted_title_ids(ary, **opts)
+  def sorted_title_ids(ary, method: :title_or_alt, **opts)
     hsopts = {langcode: I18n.locale, lang_fallback_option: :either}.merge opts
     ary.map{|i|
-      str = i.title_or_alt(**opts)
+      str = i.send(method, **opts)
       [str.tr('ア-ンA-Z', 'あ-んa-z'), str, i.id]
     }.sort{|a,b| a[0] <=> b[0]}.map{
       |j| j[1..2]

@@ -2820,7 +2820,7 @@ channel_one_en:
   weight: 0
   create_user_id: user_translator
   update_user_id: user_translator
-  note: ChannelOne
+  note: ChannelOneEn
 
 channel_two_en:
   translatable: two (Channel)
@@ -2830,7 +2830,38 @@ channel_two_en:
   weight: 0
   create_user_id: user_translator
   update_user_id: user_translator
-  note: ChannelTwo
+  note: ChannelTwoEn
+
+channel_haramichan_youtube_sub_en:
+  translatable: channel_haramichan_youtube_sub (Channel)
+  langcode: en
+  title: "HARAMI_PIANO 2ND"
+  is_orig: false
+  weight: 0
+  create_user: user_syshelper
+  update_user_id: 
+  note: ChannelHaramiSubEn
+
+channel_haramichan_youtube_sub_ja:
+  translatable: channel_haramichan_youtube_sub (Channel)
+  langcode: ja
+  title: "ハラミちゃんの日常"
+  is_orig: true
+  weight: 0
+  create_user: user_syshelper
+  update_user_id: 
+  note: ChannelHaramiSubJa
+
+channel_haramichan_instagram_main_ja:
+  translatable: channel_haramichan_instagram_main (Channel)
+  langcode: ja
+  title: "ハラミちゃん"
+  is_orig: true
+  weight: 0
+  create_user: user_syshelper
+  update_user_id: 
+  note: ChannelHaramiInstagramJa
+
 
 ## SiteCategory specific
 
@@ -2842,7 +2873,7 @@ site_category_one_en:
   weight: 0
   create_user_id: user_moderator
   update_user_id: user_moderator
-  note: SiteCategoryOne
+  note: SiteCategoryOneEn
 
 site_category_two_en:
   translatable: two (SiteCategory)
@@ -2852,7 +2883,7 @@ site_category_two_en:
   weight: 0
   create_user_id: user_moderator
   update_user_id: user_moderator
-  note: SiteCategoryTwo
+  note: SiteCategoryTwoEn
 
 ## DomainTitle specific
 
@@ -2864,7 +2895,7 @@ domain_title_one_en:
   weight: 0
   create_user_id: user_moderator
   update_user_id: user_moderator
-  note: DomainTitleOne
+  note: DomainTitleOneEn
 
 domain_title_two_en:
   translatable: two (DomainTitle)
@@ -2874,7 +2905,7 @@ domain_title_two_en:
   weight: 0
   create_user_id: user_moderator
   update_user_id: user_moderator
-  note: DomainTitleTwo
+  note: DomainTitleTwoEn
 
 ## Url specific
 

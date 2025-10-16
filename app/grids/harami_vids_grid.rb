@@ -16,15 +16,21 @@ class HaramiVidsGrid < ApplicationGrid
   filter(:release_date, :date, range: true, header: Proc.new{I18n.t('tables.release_date')+" (< #{Date.current.to_s})"}) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
 
   filter(:channel_owner, :enum, dummy: true, multiple: false, include_blank: true, select: Proc.new{
-           sorted_title_ids(ChannelOwner.joins(channels: :harami_vids).distinct, langcode: I18n.locale)},  # filtering out those none of HaramiVid belong to; sorted_title_ids() defined in application_helper.rb
+           sorted_title_ids(ChannelOwner.joins(channels: :harami_vids).distinct, method: :title_or_alt_for_selection_optimum)},  # filtering out those none of HaramiVid belong to; sorted_title_ids() defined in application_helper.rb
          header: Proc.new{I18n.t("harami_vids.table_head_ChannelOwner", default: "Channel owner")}) do |value|  # Only for PostgreSQL!
     list = [value].flatten.map{|i| i.blank? ? nil : i}.compact
     self.joins(channel: :channel_owner).where("channel_owner.id" => list)
   end
+  filter(:channel_platform, :enum, dummy: true, select: Proc.new{
+           ChannelPlatform.joins(channels: :harami_vids).distinct.map{ [_1.title_or_alt_for_selection_optimum, _1.id]}.sort},  # filtering out those which none of HaramiVid belong to
+         header: Proc.new{I18n.t("harami_vids.table_head_ChannelPlatform", default: "Channel platform")}) do |value|  # Only for PostgreSQL!
+    self.joins(:channel).where("channels.channel_platform_id" => [value].flatten)
+  end
   filter(:channel_type, :enum, dummy: true, select: Proc.new{
-           ChannelType.joins(channels: :harami_vids).distinct.order(:weight).map{|i| [s=i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i.id]}},  # filtering out those none of HaramiVid belong to
+           # ChannelType.joins(channels: :harami_vids).distinct.order(:weight).map{|i| [s=i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i.id]}},  # filtering out those none of HaramiVid belong to
+           ChannelType.joins(channels: :harami_vids).distinct.order(:weight).map{[_1.title_or_alt_for_selection_optimum, _1.id]}},  # filtering out those none of HaramiVid belong to
          header: Proc.new{I18n.t("harami_vids.table_head_ChannelType", default: "Channel type")}) do |value|  # Only for PostgreSQL!
-    self.joins(channel: :channel_type).where("channel_type.id" => [value].flatten)
+    self.joins(:channel).where("channels.channel_type_id" => [value].flatten)
   end
 
   filter_partial_str(:artists, header: Proc.new{I18n.t('datagrid.form.artists_multi')})
@@ -111,7 +117,7 @@ class HaramiVidsGrid < ApplicationGrid
   # column_model_trans_belongs_to(:channel, header: label_proc, with_link: :class)  # defined in application_grid.rb
   column(:channel, html: true, header: label_proc) do |record|
     tit = ((cha=record.channel) ? cha.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) : nil)
-    kind = ((cha && typ=cha.channel_type) ? typ.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) : "").sub(/の?チャンネル|\s*channel/i, "")
+    kind = ((cha && typ=cha.channel_type) ? typ.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) : "").sub(/の?チャンネル|\-?\s*\bchannel\b|\-?\bchaines?\-?\s*|\-?\bmanaging\-?\s*/i, "")
     next "" if !tit
     tit = h(definite_article_to_head(tit))
     sprintf("%s [%s]", (can?(:read, cha) ? link_to(tit, channel_path(cha)) : tit), kind).html_safe

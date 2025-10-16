@@ -114,7 +114,7 @@ three:
   duration: 
   uri: youtu.be/three
   place: 
-  channel: channel_haramichan_youtube_main
+  channel: channel_haramichan_youtube_sub
   note: HaramiVidThree for street-piano single shot with 1 music
 
 four:
@@ -122,6 +122,6 @@ four:
   duration: 
   uri: youtu.be/four
   place: unknown_place_unknown_prefecture_japan
-  channel: channel_haramichan_youtube_main
+  channel: channel_haramichan_instagram_main
   note: HaramiVidFour for street-piano single shot with 1 music somewhere in Japan
 

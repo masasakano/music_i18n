@@ -42,9 +42,11 @@ class HaramiVidsTest < ApplicationSystemTestCase
   end
 
   test "public visiting HaramiVid#index" do
+    n_tot_entries = HaramiVid.count
     visit harami_vids_url
     assert_selector "h1", text: @h1_index
     assert_no_selector "div#new_harami_vid_link"
+    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: n_tot_entries) # defined in test_helper.rb
 
     css_table = CSSGRIDS[:tb_tr]
     size_be4 = find_all(css_table).size
@@ -55,6 +57,8 @@ class HaramiVidsTest < ApplicationSystemTestCase
     click_on "Apply"
 
     assert_selector('input[type="submit"][value="Apply"]:not([disabled])')
+    assert_text 'Page 1 (1—1)/1'  # Page 1 (1—1)/1 [Grand total: 12]
+    assert_text             xpath_grid_pagenation_stats_with(n_filtered_entries: 1, text_only: true)
     assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: 1) # defined in test_helper.rb
     assert_selector "h1", text: @h1_index
     assert_selector "table", text: "Give Peace"
@@ -64,8 +68,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_equal 1, size_aft
 
     click_on "Reset"
-
-    assert_selector "h1", text: @h1_index
+    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: n_tot_entries) # defined in test_helper.rb
     assert_equal size_be4, find_all(css_table).size  # size should be refreshed.
 
     fill_autocomplete('#harami_vids_grid_artists', use_find: true, with: 'nnon', select: (tit="John Lennon"))  # defined in test_helper.rb
@@ -73,13 +76,71 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
     assert_selector('input[type="submit"][value="Apply"]:not([disabled])')
     assert_selector "table", text: "John Lennon"
-    assert_text 'Page 1 (1—1)/1'  # Page 1 (1—1)/1 [Grand total: 12]
-    assert_text             xpath_grid_pagenation_stats_with(n_filtered_entries: 1, text_only: true)
-    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: 1, text_only: false)
+    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: 1) # defined in test_helper.rb
     assert_equal 1, find_all(css_table).size, find_all(css_table).to_a.map{|i| i['innerHTML']}.inspect
+
+    click_on "Reset"
+    assert_selector "table", text: "John Lennon"
+    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: n_tot_entries) # defined in test_helper.rb
+    assert_equal size_be4, find_all(css_table).size  # size should be refreshed.
+
+    ## Now displaying 3 more columns
+    fill_in "(Original) Artist", with: nil
+    check "Type"
+    check "Owner"
+    check "Platform"
+
+    refute_includes find_all("table th").to_a.map(&:text), "Platform"
+    n_ths = find_all("table th").size
+    click_on "Apply"
+    assert_selector "table th", text: "Platform"
+    assert_selector('input[type="submit"][value="Apply"]:not([disabled])')
+    assert_includes find_all("table th").to_a.map{ _1.text.sub(/\n.+/m, "") }, "Platform"  # th == "Platform\n↑ ↓"
+    assert_equal n_ths+3, find_all("table th").size
+
+    ## Now, selecting HARAMIchan Side Channel only (on Youtube).
+    select_owner = page.find('#harami_vids_grid_channel_owner')
+    select_type  = page.find('#harami_vids_grid_channel_type')
+    assert select_owner
+    n_owner_having_vids = ChannelOwner.joins(:channels).joins(channels: :harami_vids).distinct.count
+    assert_operator n_owner_having_vids, :<=, ChannelOwner.count
+    assert_operator n_owner_having_vids, :<, (si = select_owner.find_all('option').size), select_owner.find_all('option').to_a.map{|i| i['innerHTML']}
+    assert_equal    n_owner_having_vids+1, si  # +1 for NULL option (i.e., select none)
+    select_owner.select "HARAMIchan" 
+    select_type.select  "Side"  # "Side channel" 
+    # ch_harami_youtube_main = channels(:channel_haramichan_youtube_main)
+    ch_harami_youtube_sub  = channels(:channel_haramichan_youtube_sub)
+    ch_harami_instagram_main = channels(:channel_haramichan_instagram_main)
+
+    click_on "Apply"
+    # exp_n_vids = HaramiVid.joins(:channel).where("channels.id" => [ch_harami_youtube_main, ch_harami_youtube_sub].map(&:id)).distinct.count  # Both Main and Side channels of Youtube
+    exp_n_vids = HaramiVid.joins(:channel).where("channels.id": ch_harami_youtube_sub.id).distinct.count
+    assert_operator exp_n_vids, :>, 0, "Sanity check of fixtures: Number of HaramiVid on SideChannel should be 1 (or larger), but..."
+    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: exp_n_vids) # defined in test_helper.rb
+    assert_selector('input[type="submit"][value="Apply"]:not([disabled])')
+
+    all_tds = find_all("table td").to_a.map(&:text).join(" ")  # "HARAMI_PIANO 2nd [Side]"
+    assert_includes all_tds, "[Side]"
+    refute_includes all_tds, "Instagram"
+    # assert_selector "table td", text: "[Side]"
+    # refute_selector "table td", text: "Instagram"
+
+    ## Now, selecting HARAMIchan (whatever-type) Channel on Instagram only.
+    exp_n_vids = HaramiVid.joins(:channel).where("channels.id": ch_harami_instagram_main.id).distinct.count
+    assert_operator exp_n_vids, :>, 0, "Sanity check of fixtures: Number of HaramiVid on Instagram should be 1 (or larger), but..."
+
+    select_type.select  ""  # NONE
+    select_platform = page.find('#harami_vids_grid_channel_platform')
+    select_platform.select "Instagram"
+
+    click_on "Apply"
+    refute_selector "table td", text: "[Side]"  # Essential because the number of entries has not change in "Apply"!
+    assert_selector "table td", text: "Instagram"
+    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: exp_n_vids) # defined in test_helper.rb
+    assert_selector('input[type="submit"][value="Apply"]:not([disabled])')
   end
 
-  test "visiting the index and then creating one" do
+  test "visiting HaramiVid index and then creating one" do
     visit new_user_session_path
     fill_in "Email", with: @editor_harami.email
     fill_in "Password", with: '123456'  # from users.yml
@@ -119,7 +180,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     page.find('div#div_select_place div.form-group').select "Takamatsu Station"
 
     assert_equal "HARAMIchan", find_field('Channel Owner').find('option[selected]').text
-    find_field('Channel Type').select('Side channel')
+    find_field('Channel Type').select('Other')
     assert_match(/street playing/, find_field('Event', match: :first).find('option[selected]').text)
     vid_prms[:note] = "temperary note 37"
     fill_in "Note", with: vid_prms[:note]
@@ -147,7 +208,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     ### Checking flash messages
     assert_text "HaramiVid was successfully created"
     assert_match(/HaramiVid was successfully created\b/, find_all(css_for_flash(:success)).first.text)  # defined in test_helper.rb # There are multiple matches likely because of Turbo-frames
-    assert_match(/Side channel\b.+ was created\b/, find_all(css_for_flash(:notice)).first.text)
+    assert_match(/Other\b.* was created\b/, find_all(css_for_flash(:notice)).first.text)
     assert_match(/\bnew channel\b/i,               find_all(css_for_flash(:notice)+" a").first.text)  # <a> link should be active.
 
     ### checking the create-result in Show
@@ -181,7 +242,8 @@ class HaramiVidsTest < ApplicationSystemTestCase
     find("div.harami_vid_release_date select#harami_vid_release_date_3i").select vid_prms[:date_edit].day
     page.has_field?('section#sec_primary_input checkboxes', checked: true)
     assert_equal "HARAMIchan",   find_field('Channel Owner').find('option[selected]').text
-    assert_equal 'Side channel', find_field('Channel Type').find('option[selected]').text
+    assert_equal 'Other types', find_field('Channel Type').find('option[selected]').text
+    # assert_equal 'Side channel', find_field('Channel Type').find('option[selected]').text
 
     uncheck 'UnknownEventItem'  # should be invalid because it is an "unknown" EventItem and also it has an Artist
     select 'street playing', from: 'Additional Event', match: :first  # in the same way
@@ -246,7 +308,8 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_equal (vid_prms[:date_edit] || vid_prms[:date]).to_s, find(selector_dl+"dd.item_release_date").text
     assert_equal vid_prms[:duration], find(selector_dl+"dd.item_duration").text.to_f
     assert_selector selector_dl+"dd.item_channel a"
-    assert_match(/Side channel\b/, find(selector_dl+"dd.item_channel").text)
+    # assert_match(/Side channel\b/, find(selector_dl+"dd.item_channel").text)
+    assert_match(/Other types\b/, find(selector_dl+"dd.item_channel").text)
 
     sel = selector_dl+"dd.item_event ol.list_event_items li:first-child"
     assert_match(/\b#{Regexp.quote(vid_prms[:music_title])}\b/, find(sel).text)

@@ -556,6 +556,19 @@ class BaseWithTranslation < ApplicationRecord
     alt_romaji: :alt_romaji,
   }.with_indifferent_access
 
+  # The String returned in an unusual case of neither title nor alt_title is present?
+  #
+  # Used in {#title_or_alt_for_selection} and {#title_or_alt_for_selection_optimum}
+  DEF_STR_NULL_TITLE_SELECTION = "(UNDEFINED)"
+
+  # Number of the maximum number of characters to be the selected title for the optimum selection.
+  #
+  # Used in {#title_or_alt_for_selection_optimum} .
+  # For example, if title is 50 characters long and alt_title is 40, the latter is selected.
+  # However, if title is 9 characters long and alt_title is 5, the former is selected
+  # because 15 is below this threshold.
+  SELECTION_OPTIMUM_MAX_NCHARS = 25
+
   alias_method :inspect_orig, :inspect if ! self.method_defined?(:inspect_orig)
 
   # Unsaved {Translation}-s for a new record which would be created when self is saved.
@@ -2401,8 +2414,32 @@ class BaseWithTranslation < ApplicationRecord
     ## NOTE: Do NOT modify i (like i.strip) because "i" has a Singleton method #lcode
   end
 
+  # Best Translaiton's title or alt_title of the specified language, where a shorter one between title and alt is preferred.
+  #
   # @return [String] handy alias for Views
   def title_or_alt_for_selection
+    title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: DEF_STR_NULL_TITLE_SELECTION, article_to_head: true)
+  end
+
+  # Similar to {#title_or_alt_for_selection} but title is preferred as long as its length is within the threshold ({SELECTION_OPTIMUM_MAX_NCHARS}), or otherwise the shorter one is preferred like {#title_or_alt_for_selection}
+  #
+  # @return [String] handy alias for Views
+  def title_or_alt_for_selection_optimum
+    trans = Translation.sort(Translation.where(translatable_type: self.class.name, translatable_id: id), consider_is_orig: !I18n.locale, langcode: I18n.locale, prioritize_is_orig: true).first
+
+    if trans.title.blank?
+      if trans.alt_title.blank?
+        logger.warn "WARNING: Translaton ID=#{trans.id} has neither title nor alt_title."
+        return DEF_STR_NULL_TITLE_SELECTION
+      else
+        return definite_article_to_head(trans.alt_title.strip)
+      end
+    elsif trans.alt_title.blank? || ((len=trans.title.strip.length) <= SELECTION_OPTIMUM_MAX_NCHARS) || (len <= trans.alt_title.strip.length)
+      return definite_article_to_head(trans.title.strip)
+    else
+      return definite_article_to_head(trans.alt_title.strip)
+    end
+
     title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "(UNDEFINED)", article_to_head: true)
   end
 
