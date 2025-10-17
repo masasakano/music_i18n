@@ -19,7 +19,7 @@
 <% end %>
 
 <% if !skip_header %>
-  <h1>Anchoring with <%= link_to record.class.name, record %> for <%= anchoring.url.url %></h1>
+  <h1>Anchoring with <%= link_to record.class.name, record, data: {turbo: false} %> for <%= anchoring.url.url %></h1>
 <% end %>
 
 <% prm_parent_lower = record.class.name.underscore %>
@@ -54,7 +54,6 @@
                 <%= button_to "Edit", paths[:edit], method: :get, form_class: "inline_form_tight", class: "text-end" %>
                 / <%= link_to 'Destroy', paths[:destroy], data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' } %>
             <% end %>
-  <%= render partial: "/layouts/flash_display" %>
             </li>
            <% end %> <%# turbo_frame_tag dom_id(anchoring) do %>
 

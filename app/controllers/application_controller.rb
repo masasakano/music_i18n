@@ -92,6 +92,11 @@ class ApplicationController < ActionController::Base
   # Default unit used in Event/EventItem Forms for Time-related errors.  This can be overwritten by DEF_FORM_TIME_ERR_UNIT in each Controller class!
   DEF_FORM_TIME_ERR_UNIT = "day"
 
+  # Turbo-frame IDs
+  TURBE_IDS = {
+    flash_turbo_anchorings: "flash_turbo_anchorings",
+  }.with_indifferent_access
+
   def default_url_options(options={})
     #Rails.application.default_url_options = Rails.application.routes.default_url_options = { locale: I18n.locale }
     { locale: I18n.locale }.merge options
@@ -844,12 +849,19 @@ class ApplicationController < ActionController::Base
   #
   # @param type [String, Symbol] :alert, :warning, :success, :notice
   # @param msg [String] Message to add
+  # @param now: [Boolean] set this true if called from Turbo so that this uses +flash.now+ (Def: false) 
   # @return [Array] of flash of the type
-  def add_flash_message(type, msg)
+  def add_flash_message(type, msg, now: false)
     raise "Wrong flash type of #{type.inspect}" if !FLASH_CSS_CLASSES.include?(type.to_s)
-    flash[type.to_sym] ||= []
-    flash[type.to_sym] << msg
-    flash[type.to_sym]
+    if now
+      flash.now[type.to_sym] ||= []
+      flash.now[type.to_sym] << msg
+      flash.now[type.to_sym]
+    else
+      flash[type.to_sym] ||= []
+      flash[type.to_sym] << msg
+      flash[type.to_sym]
+    end
   end
 
   ######################## Callbacks

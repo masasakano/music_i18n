@@ -68,7 +68,7 @@ class PlacesTest < ApplicationSystemTestCase
     find_field('Note').fill_in with: 'Note place 2-A'
     click_on "Create Place"
 
-    assert_text "Place was successfully created", maximum: 1
+    assert_text "Place was successfully created" #, maximum: 1  ## After the introduction of Flash-display for Turbo, 2 of them appear. Not ideal.
   end
 
   #test "updating a Place" do

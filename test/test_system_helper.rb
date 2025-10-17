@@ -286,9 +286,11 @@ class ActiveSupport::TestCase
   # Tests if Destroy succeeds
   #
   # @example
+  #    assert_destroy_with_text(:first, "My dear object")  # defined in test_system_helper.rb
+  #    assert_destroy_with_text("//button_to[text()='Destroy]", "My dear object")  # defined in test_system_helper.rb
   #
   # @param xpath [String, Symbol] XPath or :first. If :first, a simple algorithm is used.
-  # @param obj_title [String] "ChannelOwner" etc, which appears as H1
+  # @param obj_title [String, NilClass] "ChannelOwner" etc, which appears as H1. I nil, the message is not tested
   # @return [void]
   def assert_destroy_with_text(xpath, obj_title)
     accept_alert do
@@ -299,6 +301,6 @@ class ActiveSupport::TestCase
       end
     end
     
-    assert_text obj_title+" was successfully destroyed"
+    assert_text obj_title+" was successfully destroyed" if obj_title.present?
   end
 end

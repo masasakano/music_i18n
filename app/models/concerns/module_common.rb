@@ -1766,24 +1766,28 @@ module ModuleCommon
   end
 
 
-  # Returns the XPath expression to contain all the CSSs for inside a pair of brackets
+  # Returns the XPath expression to contain all the CSSs for inside a pair of brackets (or including them)
   #
   # Note that
   #   contains(@class, 'abc')
-  # would be insufficient, matching the CSS of "abc-xyz", too, for example.
+  # would be insufficient, matching the CSS of "abc-xyz", too, for example, hence this method.
   #
   # @example
-  #    "//p[" + ModuleCommon.xpath_contain_css("foo", "baa") + "]"
+  #      "//" + ModuleCommon.xpath_contain_css(complete_for: "p"", ["foo", "baa"])
   #      # => "//p[contains(concat(' ', normalize-space(@class), ' '), ' foo ') and contains(concat(' ', normalize-space(@class), ' baa '))]"
+  #    ==
+  #    "//p[" + ModuleCommon.xpath_contain_css("foo", "baa") + "]"
   #
   # @param texts [String, Array<String>] "Click", "Button"
-  # @param case_insensitive: [Boolean] if true (Default), basic case-insensitive search is made (only for ASCII alphabets)
+  # @param complete_for: [String, NilClass] if given (Def: nil), returns a complete XPath for the tag (without preceding forward slashes)
   # @return [String] e.g., `[contains(., 'Click') and contains(., 'button')]`
-  def self.xpath_contain_css(*csss)
+  def self.xpath_contain_css(*csss, complete_for: nil)
     raise ArgumentError, "no significant argument specified" if csss.empty?
-    csss.flatten.map{
-      sprintf "contains(concat(' ', normalize-space(@class), ' '), ' %s ')", _1
-    }.join(" and ")
+    ret = csss.flatten.map{
+            sprintf "contains(concat(' ', normalize-space(@class), ' '), ' %s ')", _1
+          }.join(" and ")
+    return ret if !complete_for
+    complete_for + "[" + ret + "]"
   end
 
   # Returns the XPath expression to contain all the given texts somewhere

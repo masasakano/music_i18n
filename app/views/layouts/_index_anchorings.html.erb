@@ -17,12 +17,15 @@
     <% paths = { new: send("new_"+ path_base, prm_parent_key => record.id), }.with_indifferent_access %> <%# Note: The direct argument assignment of "record" (or (anchoring, record) for :edit) returns the path without a locale, so it is not ideal, hence the use of "artrist_id: art1" %>
     <% if anchorings.exists? || canedit_gen %>
       <h3 class="links_anchoring"><%= t(:external_link).capitalize.pluralize(I18n.locale) %></h3>
-      <ul>
-        <% anchorings.joins(:url).joins(url: :site_category).order("site_categories.weight", "anchorings.created_at").each do |anchoring| %>
-         <%= turbo_frame_tag turbo_tag_index do %>
+      <ul class="anchoring_list">
+        <%= turbo_frame_tag turbo_tag_index do %>
+          <% anchorings.joins(:url).joins(url: :site_category).order("site_categories.weight", "anchorings.created_at").each do |anchoring| %>
             <%= render partial: "/layouts/show_anchoring", locals: {anchoring: anchoring, skip_header: true, canedit_url_gen: canedit_url_gen } %> 
-         <% end %>
+          <%  end %>
         <% end %>
+    <div id="<%= ApplicationController::TURBE_IDS[:flash_turbo_anchorings] %>" class="flash">
+      <%= render "layouts/flash_display" %>
+    </div>        
       </ul>
       <% if can?(:edit, record) %>
         <div class="editor_only">

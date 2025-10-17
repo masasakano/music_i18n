@@ -1283,6 +1283,13 @@ module ApplicationHelper
     (text.present? || show_always) ? ApplicationController.helpers.tag.send(tag, text, class: html_classes, **opts) : String.new
   end
 
+  # Helper for flash messages for Hotwire/Turbo
+  #
+  # @param turbo_key [Symbol, String] turbo-fame ID, e.g., :flash_turbo_anchorings
+  def flash_for_turbo_stream(turbo_key)
+    turbo_stream.update ApplicationController::TURBE_IDS[turbo_key], partial: "layouts/flash_display"
+  end
+
   # to suppress warning, mainly that in Ruby-2.7.0:
   #   "Passing the keyword argument as the last hash parameter is deprecated"
   #

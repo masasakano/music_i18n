@@ -109,6 +109,16 @@ class ActiveSupport::TestCase
   #
   # fmt is for sprintf
   XPATHS = {
+    anchoring: {
+      section_fmt: "//*[@id='anchoring_index_%s']",  # for sprintf, where %s is like HaramiVid
+      list: (anchoring_list="//"+ModuleCommon.xpath_contain_css("anchoring_list", complete_for: "ul")),  # more accurately, preceded with sprintf(XPATHS[:anchoring][:section_fmt], MyModel.name)
+      item: (anchoring_item=anchoring_list+"//li"),  # more accurately, preceded with sprintf(XPATHS[:anchoring][:section_fmt], MyModel.name)
+      new_link:     "//a[@data-turbo-frame='new_anchoring'][contains(.,'New Anchoring')]",  # more accurately, preceded with sprintf(XPATHS[:anchoring][:section_fmt], MyModel.name)
+      edit_button:  anchoring_item+"//button[contains(@type, 'submit')][contains(.,'Edit')]",
+      destroy_link: anchoring_item+"//a[@data-turbo-method='delete'][contains(.,'Destroy')]",
+      form_new:   (anchoring_form_new="//form[@id='new_anchoring']"),  # more accurately, preceded with sprintf(XPATHS[:anchoring][:section_fmt], MyModel.name)
+      form_edit: (anchoring_form_edit=anchoring_list+"//form[" + ModuleCommon.xpath_contain_css('edit_anchoring') + "]"),
+    },
     form: {
       fmt_button_submit:      "//form[contains(@class, 'button_to')]//button[@type='submit'][contains(text(), '%s')]", # 1 parameter: Label like "Destroy" for a button compiled by button_to (Rails-7.2)
       fmt_any_button_submit: "//form//button[@type='submit'][contains(text(), '%s')]", # 1 parameter: Label like "Destroy" (Rails-7.2)
@@ -842,6 +852,15 @@ class ActiveSupport::TestCase
   #    xpath_for_flash([:alert, :success], category: :div, extra_attributes: ["cls1", "cls2"])
   #      # => "//div[@id='body_main']/div[contains(@class, 'alert')][contains(@class, 'alert-danger')][contains(@class, 'cls1')][contains(@class, 'cls2')][1]|//div[@id='body_main']/div[contains(@class, 'alert')][contains(@class, 'alert-success')][contains(@class, 'cls1')][contains(@class, 'cls2')][1]"
   #
+  # @example  Flash for Error for Turbo
+  #    xpath_for_flash(:alert, category: :div, xpath_head: "//form[@id='form_new_anchoring']//")  # defined in test_helper.rb
+  #      # => "//form[@id='form_new_anchoring']//div[contains(@class, 'alert')][contains(@class, 'alert-danger')]"
+  #
+  # @note
+  #   Because of potential "OR" conditions, you should not prepend the returned String
+  #   with another XPath, but explicitly specify +xpath_head+ (which should usually include
+  #   a single trailing forward slash; see below)
+  #
   # @param type: [Symbol, Array<Symbol>, NilClass] :notice, :alert, :warning, :success or their array.
   #    If nil, everything defined in {ApplicationController::FLASH_CSS_CLASSES}
   #    Note that the actual CSS is "alert-danger" (Bootstrap) for :alert, etc.
@@ -849,8 +868,12 @@ class ActiveSupport::TestCase
   # @param extras: [Array<String>, NilClass] Extra tags following the returned CSS-selector (placed after a space!)
   # @param extra_attributes: [String, Array, NilClass] Extra CSS classes (attributes) to append the last element in the returned CSS-selector (placed without a space)
   #   This is useful to further edit the returned CSS in case there are more than one "OR" condition.
+  # @param xpath_head: [String] XPath to begin with. Should be prefixed with +//+. Also, This should
+  #   usually include a *single* trailing forward slash UNLESS this XPath *must* come immediately before
+  #   the XPath for the flash messages, in which case *no trailing slash* should be put on this.
+  #   The default is "//div[@id='body_main']", meaning the flash part should appear immediately after div#body_main
   # @return [String] CSS for Flash-message part; e.g., ".alert, div#error_explanation"
-  def xpath_for_flash(type=nil, category: :both, extras: nil, extra_attributes: nil, return_array: false)
+  def xpath_for_flash(type=nil, category: :both, extras: nil, extra_attributes: nil, return_array: false, xpath_head: "//div[@id='body_main']/")
     caller_info = _get_caller_info_message(bind_offset: 0)
 
     extras = [] if extras.blank?
@@ -872,11 +895,11 @@ class ActiveSupport::TestCase
     categories = 
       case category.to_sym
       when :both
-        ["div", "div[@id='error_explanation']"]
+        [category_tag, category_tag+"[@id='error_explanation']"]
       when :error_explanation
-        [       "div[@id='error_explanation']"]
+        [              category_tag+"[@id='error_explanation']"]
       else
-        ["div"]
+        [category_tag]
       end
 
     categories.map{|ea_cat|
@@ -887,7 +910,7 @@ class ActiveSupport::TestCase
         ([str0] + extras).join("//")
       }
       css_klasses.map{|ea_xpk|
-        sprintf("//div[@id='body_main']/%s%s[1]", ea_cat, ea_xpk)  # the flash part should appear immediately after div#body_main
+        sprintf(xpath_head+"%s%s[1]", ea_cat, ea_xpk)
       }
     }.flatten.join("|")
   end # def xpath_for_flash()

@@ -3,18 +3,18 @@
 <% canedit_gen = can?(:edit, anchoring.anchorable.class) %> 
 <% url = (anchoring.url || @url) %> 
 
-<section id="sec_primary">
+<%# section id="sec_primary" %> <%# === removed because there can be multiple forms of this type in a sinble page %>  
 <% if url && !url.new_record? %>
   <strong>Title:</strong> <%= url.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: (canedit_gen ? "(UNDEFINED)" : "")) %>
 <% end %>
 
-<div id="form_main">
+<div class="form_anchoring_main"> <%# === WARNING: Do not use "id" here %>  
 
-<%= simple_form_for [@anchorable, anchoring], html: { data: { turbo_frame: dom_id(anchoring) } } do |f| %>
+<%= simple_form_for [@anchorable, anchoring], html: { id: "form_"+dom_id(anchoring), data: { turbo_frame: dom_id(anchoring) } } do |f| %>  <%# Default id for form tag would be "new_anchoring", identical to that of turbo-frame %>
   <%= f.error_notification %>
   <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
 
- <section id="sec_primary_input">
+ <%# section id="sec_primary_input" %> <%# === removed because there can be multiple forms of this type in a sinble page %>  
   <div class="form-inputs">
     <%= f.input :url_form, label: "URL", place_holder: "Do not put a redirecting URL like 't.co'", required: true %>
     <% collec = BaseWithTranslation::AVAILABLE_LOCALES.map{ |es| [BaseWithTranslation::LANGUAGE_TITLES[I18n.locale][es.to_s], es] } %>
@@ -39,12 +39,10 @@
   <div class="actions">
   <%= f.submit %> <%# Default one aesthetically does not work well...:  f.button :submit %>
   </div>
- </section> <!-- section id="sec_primary_input" -->
 <% end %> <%# simple_form_for [@anchorable, anchoring] ... %>
 
   <div class="form-cancel-back">
     <%= link_to sanitize("&larr; Cancel..."),  Rails.application.routes.url_helpers.polymorphic_path(@anchoring.anchorable, only_path: true) %>
   </div>
-</div> <!-- div id="form_main" -->
-</section> <!-- section id="sec_primary" -->
+</div> <!-- div class="form_anchoring_main" -->
 

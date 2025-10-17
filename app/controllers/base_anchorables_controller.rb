@@ -9,6 +9,9 @@ class BaseAnchorablesController < ApplicationController
   before_action :set_new_anchoring, only:       [:new, :create]
   before_action :auth_for!    , except: [:index, :new, :create, :show]
 
+  # Flash warning message.
+  MSG_URL_ALREADY_REGISTERED = "Url is already registered."
+
   def index
     key = params_id
     @anchorings = Anchoring.where(key => params[key])  # no ordering/sorting here.
@@ -50,7 +53,7 @@ class BaseAnchorablesController < ApplicationController
     if status
       status, msgs = _create_update_core(@anchoring){ |anchoring|
         if (anchoring.url = Url.find_url_from_str(anchoring.url_form))
-          add_flash_message(:alert, "Url is already registered. The submitted information is not used to update the URL except for association Note.")  # defined in application_controller.rb
+          add_flash_message(:alert, MSG_URL_ALREADY_REGISTERED+" The submitted information is not used to update the URL except for association's Note.", now: true)  # defined in application_controller.rb
           anchoring.fetch_h1 = false  # Without this setting, the process would still fetch an H1 from a remote URL before attempting to save Url, which is bound to fail due to violation of the unique constraint.
           anchoring.url  # not used by the caller, but playing safe.
         else
@@ -59,15 +62,18 @@ class BaseAnchorablesController < ApplicationController
       }
     end
 
-    respond_to do |format|
-      if status
+    if status
+      respond_to do |format|
         format.html { redirect_to path_anchoring(@anchoring, action: :show), notice: msgs }
-        format.turbo_stream
-      else
+        format.turbo_stream { flash.now[:notice] = msgs }
+          ## In Turbo-access, turbo_stream is rendered with /*(e.g.,places)/anchorings/create.turbo_stream.erb
+      end
+    else
+      ## regardless of the format, including Turbo
         @anchoring.fetch_h1 = false if @anchoring.title.present?  # Not fetching remote again once title has been set.
         path = path_anchoring(@anchoring, action: :new) # defined in Artists::AnchoringsHelper
-        format.html { render :new, status: :unprocessable_content }
-      end
+        render :new, status: :unprocessable_content
+          ## In Turbo-access, this replaces the contents of turbo_frame_tag(dom_id(Anchoring.new)) in /*(e.g.,places)/anchorings/new.html.erb, which imports _form.html.erb, importing /layouts/_form_anchoring.html.erb, where +f.error_notification+ is displayed near the top below a title (if conditions are met) in the CSS class "alerg-danger" inside form#new_anchorig.  The message is like: "Please review the problems below:"
     end
   end
 
@@ -84,23 +90,25 @@ class BaseAnchorablesController < ApplicationController
       }
     end
 
-    respond_to do |format|
-      if status
+    if status
+      respond_to do |format|
         format.html { redirect_to path_anchoring(@anchoring, action: :show), notice: msgs }
-      else
+        format.turbo_stream { flash.now[:notice] = msgs }
+      end
+    else
         #path = url_anchoring(@anchoring, action: :edit) # defined in Artists::AnchoringsHelper
         ## path = Rails.application.routes.url_helpers.polymorphic_path(@anchoring.anchorable, action: :edit, only_path: true)
-        format.html { render :edit, status: :unprocessable_content }
-      end
+        render :edit, status: :unprocessable_content
     end
   end
 
   def destroy
+    msgs = ["Link was successfully destroyed."]
     path_back = Rails.application.routes.url_helpers.polymorphic_path(@anchoring.anchorable.class, only_path: true)
     respond_to do |format|
       if @anchoring.destroy
-        format.html { redirect_to path_back, notice: "Link was successfully destroyed." }
-        format.turbo_stream
+        format.html { redirect_to path_back, notice: msgs }
+        format.turbo_stream { flash.now[:notice] = msgs }
         format.json { head :no_content }
       else
         format.html { redirect_to path_back, status: :unprocessable_content }
@@ -181,6 +189,7 @@ class BaseAnchorablesController < ApplicationController
     def _create_update_core(anchoring=@anchoring)
       status, msgs = [nil, nil]
 
+      n_urls_before = Url.count
       ActiveRecord::Base.transaction(requires_new: true) do
         yield(anchoring)
         msgs = anchoring.url.domain.notice_messages if anchoring.url && anchoring.url.domain  # Domain was created/found etc when the domain part of Url#url changed.
@@ -205,8 +214,21 @@ class BaseAnchorablesController < ApplicationController
 
       if status
         msgs ||= []
-        msgs.push "Url was successfully updated: "+anchoring.url.url
-        # NOTE: whether created or not is a bit tricky to find, hence "updated".
+        url_status_msg = 
+          if n_urls_before < Url.count
+            "an existing Url: "
+          else
+            "a newly created Url: "
+          end
+
+        msgs.push sprintf("Anchoring was successfully updated/created with %s: %s",
+                          url_status_msg,
+                          anchoring.url.url)
+        # NOTE: In this process, you can (technically) reassign an existing Anchoring
+        #   to another (new or existing) Uri with the same Anchoring#id.  However,
+        #   since Anchoring is a join model, it should be stated as "Anchoring is created".
+        #   However, if an Anchoring#note is updated, it is a genuine "update" of Anchoring.
+        #   This situation is not obvious, so the message here is deliberately ambiguous: "updated/created"
       end
 
       [status, msgs]
@@ -241,7 +263,7 @@ class BaseAnchorablesController < ApplicationController
         return cand
       end
 
-      add_flash_message(:warning, cand.message) # defined in application_controller.rb  # singleton method {#message} defined in fetch_url_h1
+      add_flash_message(:warning, cand.message, now: true) # defined in application_controller.rb  # singleton method {#message} defined in fetch_url_h1
       nil
     end
 
