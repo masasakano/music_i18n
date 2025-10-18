@@ -1,0 +1,6 @@
+
+<% turbo_tag_index = dom_id(@anchoring.anchorable)+"_anchorings" %>
+<%= turbo_stream.append turbo_tag_index, partial: "/layouts/show_anchoring", locals: { anchoring: @anchoring, skip_header: true } %>
+<%= turbo_stream.update Anchoring.new, "" %>
+<%= flash_for_turbo_stream(:flash_turbo_anchorings) %> <%# defined in application_helper.rb %>
+
