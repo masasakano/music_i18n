@@ -35,9 +35,9 @@ gem "jbuilder" #, "~> 2.7"
 gem "tzinfo-data", platforms: %i[ windows jruby ]  # %i[mingw mswin x64_mingw] deprecated in at least Ruby 3.4
 
 # Use the database-backed adapters for Rails.cache, Active Job, and Action Cable
-#gem "solid_cache"  # Included (i.e., ON) in Rails-8.0 default
-#gem "solid_queue"  # Included (i.e., ON) in Rails-8.0 default
-#gem "solid_cable"  # Included (i.e., ON) in Rails-8.0 default
+gem "solid_cache"  # Included (i.e., ON) in Rails-8.0 default
+gem "solid_queue"  # Included (i.e., ON) in Rails-8.0 default
+gem "solid_cable"  # Included (i.e., ON) in Rails-8.0 default
 
 # Reduces boot times through caching; required in config/boot.rb
 #gem 'bootsnap', '>= 1.4.2', require: false
