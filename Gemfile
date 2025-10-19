@@ -1,15 +1,17 @@
-source 'https://rubygems.org'
+source "https://rubygems.org"
 git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
-ruby '3.4.6'
+ruby "3.4.6"
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails', branch: "main"
 #gem 'rails', '~>6.1'
 #gem 'rails', '~> 7.0', '>= 7.0.4'
-gem 'rails', '~> 8.0.3'
+gem "rails", "~> 8.0.3"
 
 # The original asset pipeline for Rails [https://github.com/rails/sprockets-rails]
 gem "sprockets-rails"
+# The modern asset pipeline for Rails [https://github.com/rails/propshaft]
+#gem "propshaft"  # Included (i.e., ON) in Rails-8.0 default
 
 # Use pg as the database for Active Record
 gem 'pg', '>= 1.5', '< 2.0'
@@ -17,6 +19,39 @@ gem 'pg', '>= 1.5', '< 2.0'
 #gem 'puma', '~> 4.1'  # Rails 6
 #gem 'puma', '~> 6.4'   # >=5.0 for Rails 7.0 default
 gem 'puma', '~> 7.0'
+# Use JavaScript with ESM import maps [https://github.com/rails/importmap-rails]
+#gem "importmap-rails"  # Included (i.e., ON) in Rails-8.0 default
+# Hotwire's SPA-like page accelerator [https://turbo.hotwired.dev]
+gem "turbo-rails"
+# Hotwire's modest JavaScript framework [https://stimulus.hotwired.dev]
+gem "stimulus-rails"
+# Build JSON APIs with ease [https://github.com/rails/jbuilder]
+gem "jbuilder" #, "~> 2.7"
+
+# Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
+# gem "bcrypt", "~> 3.1.7"
+
+# Windows does not include zoneinfo files, so bundle the tzinfo-data gem
+gem "tzinfo-data", platforms: %i[ windows jruby ]  # %i[mingw mswin x64_mingw] deprecated in at least Ruby 3.4
+
+# Use the database-backed adapters for Rails.cache, Active Job, and Action Cable
+#gem "solid_cache"  # Included (i.e., ON) in Rails-8.0 default
+#gem "solid_queue"  # Included (i.e., ON) in Rails-8.0 default
+#gem "solid_cable"  # Included (i.e., ON) in Rails-8.0 default
+
+# Reduces boot times through caching; required in config/boot.rb
+#gem 'bootsnap', '>= 1.4.2', require: false
+gem "bootsnap", require: false  # NOTE: This was necessary to avoid: realpath_cache.rb:17:in `dirname": no implicit conversion of nil into String (TypeError)
+
+# Deploy this application anywhere as a Docker container [https://kamal-deploy.org]
+#gem "kamal", require: false  # Included (i.e., ON) in Rails-8.0 default
+
+# Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
+#gem "thruster", require: false  # Included (i.e., ON) in Rails-8.0 default
+
+# Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
+# gem "image_processing", "~> 1.2"
+
 ## Use SCSS for stylesheets (obsolete as of 2019)
 #  https://sass-lang.com/ruby-sass
 #  https://github.com/rails/sass-rails
@@ -26,35 +61,17 @@ gem 'puma', '~> 7.0'
 #gem 'webpacker', '~> 5.0'  # Rails 6.1 default (was 4.0 in Rails 6.0)
 ## Turbolinks makes navigating your web application faster. Read more: https://github.com/turbolinks/turbolinks
 #gem 'turbolinks', '~> 5'  # Rails 6
-# Build JSON APIs with ease. Read more: https://github.com/rails/jbuilder
-gem 'jbuilder' #, '~> 2.7'
 # Use Redis adapter to run Action Cable in production
 gem 'redis', '~> 5.0'
 
 # Use Kredis to get higher-level data types in Redis [https://github.com/rails/kredis]
 # gem "kredis"
 
-# Use Active Model has_secure_password
-# gem 'bcrypt', '~> 3.1.7'
-
-# Windows does not include zoneinfo files, so bundle the tzinfo-data gem
-gem "tzinfo-data", platforms: %i[ jruby windows ]  # %i[mingw mswin x64_mingw] deprecated in at least Ruby 3.4
-
-# Reduces boot times through caching; required in config/boot.rb
-#gem 'bootsnap', '>= 1.4.2', require: false
-gem 'bootsnap', require: false  # NOTE: This was necessary to avoid: realpath_cache.rb:17:in `dirname': no implicit conversion of nil into String (TypeError)
-
 gem 'listen', '~> 3' #, '~> 3.2'  # This seems necessary from bootsnap (for booting, i.e., ./bin/dev) despite the fact it is not included in Rails 7 default Gemfile...
 
 ######### Rails 7 default with --css=bootstrap
 # Bundle and transpile JavaScript [https://github.com/rails/jsbundling-rails]
 gem "jsbundling-rails"
-
-# Hotwire's SPA-like page accelerator [https://turbo.hotwired.dev]
-gem "turbo-rails"
-
-# Hotwire's modest JavaScript framework [https://stimulus.hotwired.dev]
-gem "stimulus-rails"
 
 # Bundle and process CSS [https://github.com/rails/cssbundling-rails]
 gem "cssbundling-rails"
@@ -70,26 +87,28 @@ gem "cssbundling-rails"
 # NOTE: sass is defined in package.json (in the same way as in Rails-7+bootstrap default)
 gem "sassc-rails"
 
-# Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-# gem "image_processing", "~> 1.2"
-
 group :development, :test do
+  gem 'dotenv-rails' #, groups: [:development, :test]  # User-added; this may need to come before some Gems
+
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
-  gem "debug", platforms: %i[ mri windows ]  # %i[mingw x64_mingw] (and :mswin though not used here) deprecated in at least Ruby 3.4
+  gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"  # %i[mingw x64_mingw] (and :mswin though not used here) deprecated in at least Ruby 3.4
+
+  # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
+  gem "brakeman", require: false
+
+  # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
+  gem "rubocop-rails-omakase", require: false
 
   #### Rails 6: see https://blog.saeloun.com/2021/09/29/rails-7-ruby-debug-replaces-byebug.html
   ## Call 'byebug' anywhere in the code to stop execution and get a debugger console
   #gem 'byebug', platforms: [:mri, :mingw, :x64_mingw]  # Add :windows while %i[mingw x64_mingw] deprecated in at least Ruby 3.4 (Note that this Gem is deprecated anyway)
 end
 
-### Personal addition
-
-gem 'dotenv-rails', groups: [:development, :test]  # User-added; this may need to come before some Gems
-
 group :development do
-  # Access an interactive console on exception pages or by calling 'console' anywhere in the code.
+  # Use console on exceptions pages [https://github.com/rails/web-console]
   #gem 'web-console', '>= 3.3.0'
-  gem 'web-console' #, '~> 4.2'
+  gem "web-console" #, '~> 4.2'
+  ## Access an interactive console on exception pages or by calling 'console' anywhere in the code.
 
   #gem 'listen', '~> 3' #, '~> 3.2'
 
@@ -105,8 +124,8 @@ end
 group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   # Adds support for Capybara system testing and selenium driver
-  gem 'capybara' #, '>= 2.15'
-  gem 'selenium-webdriver'
+  gem "capybara" #, ">= 2.15"
+  gem "selenium-webdriver"
 end
 
 ### User-added
