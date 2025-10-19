@@ -180,6 +180,9 @@ group :development do
   gem 'annotaterb', '~> 4.13'  # migrated from 'annotate' in Rails 8
   gem 'kramdown', require: false
   gem 'yard-activerecord'
+  gem "rubocop-erb", require: false
+  # gem "herb", require: false  # It seems "rubocop-erb" depends on this, so this is installed anyway.
+  gem "erb_lint", require: false
 end
 
 group :development, :test do
