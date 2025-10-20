@@ -216,6 +216,132 @@ class ActiveSupport::TestCase
     # assert_equal "Signed out successfully.", page.find(:xpath, xpath_for_flash(:notice, category: :div)).text.strip  # Notice message issued.
   end
 
+  # Tests CRUD of Anchoring in Show page
+  #
+  # When returning, User user_succeed is signed in and in the page of Show.
+  #
+  # NOTE: this method should NOT be called twice within a method.
+  #
+  # @example
+  #   assert_anchoring_crud_in_show(@artist, h1_title=nil)  # defined in test_system_helper.rb
+  #
+  # @example
+  #   assert_anchoring_crud_in_show(@artist, skip_login: true)  # defined in test_system_helper.rb
+  #
+  # @param record [ActiveRecord] a Model record (n.b., String for the Show path is NOT accepted.)
+  # @param h1_title [String, NilClass] h1 title string of the page (Model-index?) after successful login. If nil and if user_succeed is non-nil, it is guessed from the model, assuming the first argument is a model (NOT the path String).
+  # @param user_fail: [User, NilClass] who fails to see the index page. if nil, the non-authorized user.
+  # @param user_user_succeed: [User, NilClass] who succcessfully sees the index page
+  # @param skip_login: [Boolean] If false (Def), call {#assert_index_fail_succeed}. If true, the caller must have signed in before the call.
+  # @param skip_visit: [Boolean] Relevant only if `skip_login=true`. If false (Def), this method visits Show page. If true, the caller must have visited the page before the call.
+  def assert_anchoring_crud_in_show(record, h1_title = nil, skip_login: false, skip_visit: false, user_fail: nil, user_succeed: nil, locale: nil)
+    create_anchoring_button_txt = "Create Anchoring"
+    raise ArgumentError, "user_fail not yet supported... Sorry! " if user_fail
+    raise ArgumentError, "user_succeed not yet supported... Sorry! " if user_succeed
+
+    skip_visit = false if !skip_login
+    # if !record.respond_to?(:save!)
+    #   path2visit = record
+    # elsif !skip_login || !skip_visit
+    path2visit = Rails.application.routes.url_helpers.polymorphic_path(record, locale: locale)  # without locale! :show should not be given!
+    # end
+
+    unless skip_visit
+      visit path2visit
+      h1_title ||= record.title(langcode: locale)
+      assert_selector "h1", text: h1_title
+      assert_selector "h3", text: I18n.t(:external_link, locale: locale).capitalize.pluralize(locale)  # "Anchorings"
+      assert_empty page.find_all(:xpath, XPATHS[:anchoring][:item]), "xpath="+XPATHS[:anchoring][:item]  # No Anchoring (yet); defined in test_helper.rb
+    end
+
+    find(:xpath, XPATHS[:anchoring][:new_link]).click
+    css_submit_anchoring = "input[value='#{create_anchoring_button_txt}']"
+    # <input type="submit" name="commit" value="Create Anchoring" data-disable-with="Create Anchoring">
+    assert_selector css_submit_anchoring
+    xpath_item = XPATHS[:anchoring][:item] # defined in test_helper.rb
+    refute_selector :xpath, xpath_item, wait: 0  # 0 Anchoring
+
+    ## Create Url and Anchoring
+    anchor_url = "https://example.com/"+record.class.name
+    fill_in "URL", with: anchor_url
+    select "Other", from: "Site category"
+    fill_in "Description", with: (url_tit="my test description 2")
+    uncheck "Tick this to update the title with H1 on the remote URL"
+    click_on create_anchoring_button_txt
+    refute_selector css_submit_anchoring
+
+    record.anchorings.reset
+    assert_equal 1, record.anchorings.count
+
+    cssid_section = "anchoring_index_#{record.class.name}"
+    xpath_section = "##{cssid_section} ul li a"
+    assert_selector xpath_section  # Anchoring should have appeared
+
+    ## Edit Anchoring
+    assert_selector xpath_section  # Anchoring should have appeared
+    assert_equal 1, find_all(:xpath, XPATHS[:anchoring][:item]).size  # 1 Anchoring; defined in test_helper.rb
+
+    find(:xpath, XPATHS[:anchoring][:edit_button]).click
+    xpath_textarea = XPATHS[:anchoring][:form_edit] + "//textarea[@id='anchoring_note']"
+    assert_selector :xpath, xpath_textarea
+    note_try = "my-anchoring-note-123"
+    find(:xpath, xpath_textarea).fill_in with: note_try
+
+    ## Update Anchoring
+    click_on "Update Anchoring"
+    refute_selector :xpath, xpath_textarea  # form should have disappeared
+    assert_equal 1, find_all(:xpath, xpath_item).size  # 1 Anchoring remains; defined in test_helper.rb
+    assert_includes find(:xpath, xpath_item).text, note_try  # The (edited) added "note" should appear.
+
+    ## Attempt to Create Url and Anchoring identical to an (=the) existing Anchoring
+    find(:xpath, XPATHS[:anchoring][:new_link]).click
+    assert_selector css_submit_anchoring
+
+    fill_in "URL", with: anchor_url
+    click_on create_anchoring_button_txt
+
+    refute_selector :xpath, css_submit_anchoring
+    assert_selector :xpath, xpath_for_flash(:alert, category: :div, xpath_head: "//form[@id='form_new_anchoring']//"), text: "eview the problem", wait: 2  # defined in test_helper.rb
+    # "Please review the problems below:"  (SimpleForm default)
+    assert_selector('input[type="submit"][value="'+create_anchoring_button_txt+'"]:not([disabled])')
+    assert_selector "div.invalid-feedback", text: test_msg=" is already registered"  # should be displayed below the URL form field (SimpleForm)
+    #  Url form https://... is already registered. The submitted information is not used to update the URL except for association Note.
+
+    click_on "Cancel"
+    refute_text test_msg
+
+    # Visiting Url#show
+    xpath = "//*[@id='#{cssid_section}']//ul//li//a[contains(.,'Link-info')]"
+    #   <a title="Internal Url-Show page" href="/en/urls/56">Link-info</a>
+    turbo_id = dom_id(record)+"_anchorings"
+    assert_selector :xpath, "//*[@id='#{cssid_section}']//turbo-frame[@id='#{turbo_id}']"
+
+    assert_selector "##{turbo_id}", text: "Link-info", wait: 5
+    within "#"+turbo_id do
+      assert_text "Link-info"
+      assert_selector :xpath, xpath
+    end
+    assert_equal "false", find(:xpath, xpath)["data-turbo"]
+
+    find(:xpath, xpath).click
+    assert_selector "h1", text: "Url: "+url_tit
+    assert_text anchor_url
+
+
+    ## Destroy Anchoring
+    visit path2visit
+    assert_selector xpath_section  # Anchoring should exist
+
+    xpath_destroy = XPATHS[:anchoring][:destroy_link]
+    assert_selector :xpath, xpath_destroy
+
+    last_url = Url.last
+    assert_destroy_with_text(xpath_destroy, nil) # , last_url.title)  # defined in test_system_helper.rb
+    # find(:xpath, xpath_destroy).click
+    refute_selector :xpath, xpath_item  # 0 Anchoring after the existing one has disappeared.
+    # assert_text "successfully destroyed", wait: 0
+  end  # def assert_anchoring_crud_in_show()
+
   # performs log on and assertion
   #
   # When returned, user_succeed is still logged on (unless it is specified nil)
