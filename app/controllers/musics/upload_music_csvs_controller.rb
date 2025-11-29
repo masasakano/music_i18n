@@ -3,6 +3,8 @@
 # Controller to populate an uploaded file to the DB
 class Musics::UploadMusicCsvsController < ApplicationController
  
+  include ModuleUploadCsv
+
   before_action :authorize_for_edit, only: [:create]
 
   # Allowed maximum lines (including blank lines!)
@@ -14,45 +16,11 @@ class Musics::UploadMusicCsvsController < ApplicationController
     params.permit!
     uploaded_io = params[:file]
 
-    if uploaded_io.blank?
-      csv_str = nil
-      msg_alert = 'No CSV file is specified.' 
-      respond_to do |format|
-        format.html { redirect_to new_music_url, alert: msg_alert } # , notice: msg_alert
-        format.json { head :no_content }
-      end
-      return
-    end
-
-    csv_str = uploaded_io.read.force_encoding('UTF-8')
-    msg = sprintf "CSV file (Size=%d[bytes]) uploaded by User(ID=%d): (%s)", csv_str.bytesize, current_user.id, uploaded_io.original_filename
-    logger.info msg
-
-    if !csv_str.valid_encoding?
-      msg_alert ||= 'Uploaded file contains an invalid sequence as UTF-8 encoding.'
-      respond_to do |format|
-        format.html { redirect_to musics_url, notice: msg_alert, alert: msg_alert }
-        format.json { head :no_content }
-      end
-      return
-    end
-
-    nlines = csv_str.chomp.split.size
-    msg = sprintf "CSV file (%s): nLines=%d, nChars=%d", uploaded_io.original_filename, nlines, csv_str.size
-    logger.info msg
-
-    begin
-      if nlines > MAX_LINES
-        csv_str = csv_str.chomp.split[0, MAX_LINES].join("\n")
-      end
-      hsret = Music.populate_csv(csv_str)
-    rescue => er
-      # Without rescuing, the error message might not be recorded anywhere.
-      msg = "ERROR in Music.populate_csv: err="+er.inspect
-      logger.error msg
-      warn msg
-      raise
-    end
+    hsret = populate_csv_file(uploaded_io, in_redirect_path: new_music_url, in_redirect_path_invalid_encoding: musics_path){ |csv_str|
+      # the latter path should be new_music_url, too; but leaving it as musics_path for now for the sake of testing...
+      Music.populate_csv(csv_str)
+    }
+    return if !hsret
 
     @input_lines, @changes, @csv, @artists, @musics, @engages = hsret.slice(*(%i(input_lines changes csv artists musics engages))).values
     @errors = @musics.map.with_index{ |mus, i|
