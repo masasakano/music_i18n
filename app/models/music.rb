@@ -34,6 +34,13 @@ class Music < BaseWithTranslation
 
   include ModuleDefaultPlace # add_default_place (callback) etc
 
+  # CSV format; used in ModuleCsvAux etc
+  # NOTE: This MUST come before: include ModuleCsvAux
+  MUSIC_CSV_FORMAT = %i(row music_ja ruby romaji music_en year country artist_ja artist_en langcode genre how memo)
+
+  # CSV-related. Also defining Music::ResultLoadCsv 
+  include ModuleCsvAux
+
   # For the translations to be unique (required by BaseWithTranslation).
   # MAIN_UNIQUE_COLS = %i(year place_id)  # More complicated - it depends on Artist
 
@@ -396,33 +403,6 @@ class Music < BaseWithTranslation
     super(mainprms, titles, *args, prms_to_find: prms_to_find, **opts)
   end
 
-  MUSIC_CSV_FORMAT = %i(row music_ja ruby romaji music_en year country artist_ja artist_en langcode genre how memo)
-
-  # Class to hold the result of a CSV-row load
-  class ResultLoadCsv
-    # String to represent a null EngageHow, because "how" in the CSV is invalid.
-    # Note if null is given it will be {EngageHow.default} (="Singer(Original)")
-    # as long as Artist is defined (else {EngageHow.unknown}).
-    EngageHowInvalid = 'InvalidHow'
-
-    Music::MUSIC_CSV_FORMAT.each do |k|
-      attr_accessor k
-    end
-
-    # @option hs [Hash] model#changes_to_save (Hash of {str=>[bef, aft]})
-    def initialize(hs=nil)
-      if hs
-        hs.each_pair do |ek, ev|
-          instance_variable_set('@'+ek.to_s, ev)
-        end
-      end
-    end
-
-    def inspect
-      sprintf "#<Music::RLC: %s>", Music::MUSIC_CSV_FORMAT.map{|i| (res=send(i)) ? sprintf("@%s=%s", i.to_s, res.inspect) : nil}.compact.join(", ")
-    end
-  end
-
   # Populate the data to several DB tables received as a CSV file
   #
   # CSV format is defined in {Music::MUSIC_CSV_FORMAT}
@@ -498,7 +478,7 @@ class Music < BaseWithTranslation
       next if '#' == ea_li.strip[0,1]
       csv = CSV.parse(ea_li.strip)[0] || next  # for the blank line, csv.nil? (n.b. without strip, a line with a space would be significant.)
 
-      hsrow = convert_csv_to_hash(csv)
+      hsrow = convert_csv_to_hash(csv)  # defined in ModuleCsvAux
       # Guaranteed there is no "" but nil.
 
       arcsv[iline] = hsrow
@@ -654,94 +634,6 @@ end
     model
   end
   private_class_method :update_or_create_from_a_csv
-
-
-  # Converts a row of the loaded CSV to Hash and returns it.
-  #
-  # nil and an empty string becomes nil.
-  # Integer is converted. Place, Genre, EngageHow, are created.
-  #
-  # @param csv [CSV]
-  # @return [Hash]
-  def self.convert_csv_to_hash(csv)
-    i_of_csv = array_to_hash(MUSIC_CSV_FORMAT)
-    engage_how_default = EngageHow.default
-    genre_default = Genre.default
-    MUSIC_CSV_FORMAT.map{ |ek|
-      [ek, convert_csv_to_hash_core(
-         ek,
-         csv[i_of_csv[ek]],
-         genre_default: genre_default,
-         engage_how_default: engage_how_default
-       )]
-    }.to_h
-  end
-  private_class_method :convert_csv_to_hash
-
-  # Returns a converted Object.
-  #
-  # Note neither {Genre} nor {EngageHow} should neve be nil.
-  # If nil, the input is ill-formatted.
-  #
-  # @param ek [Symbol] as in {Music::MUSIC_CSV_FORMAT}
-  # @param str_in [String, NilClass] CSV cell
-  # @param genre_default: [Genre, FalseClass, NilClass] (to avoid accessing DB every time this is called.) If false (Def), nothing is set. If nil, Default one is set.
-  # @param engage_how_default: [EngageHow, FalseClass, NilClass]
-  # @return [NilClass, String, Integer, Genre, EngageHow, Place]
-  def self.convert_csv_to_hash_core(ek, str_in, genre_default: false, engage_how_default: false)
-    genre_default = Genre.default if genre_default.nil?
-    engage_how_default = EngageHow.default if engage_how_default.nil?
-    str = (str_in ? str_in.strip : nil)
-    str = nil if str.blank?
-    case ek.to_s
-    when 'row', /_(ja|en)/, 'ruby', 'romaji'
-      str
-    when 'langcode'
-      str ? str.downcase : nil
-    when 'memo'
-      str ? preprocess_space_zenkaku(str) : nil
-    when 'year'
-      (str && /\A\d+\z/ =~ str) ? str.to_i : nil  # nil if a non-number-like String
-    when 'genre'
-      if str
-        if /^\d+$/ =~ str
-          Genre.find_by_id(str.to_i) || nil
-        else
-          Genre[/#{Regexp.quote(str)}/i]
-        end
-      elsif !genre_default
-        raise ArgumentError, "genre_default must be specified (nil or else)."
-      else
-        genre_default
-      end
-    when 'how'
-      if str
-        if /^\d+$/ =~ str
-          EngageHow.find_by_id(str.to_i) || nil
-        else
-          EngageHow[/#{Regexp.quote(str)}/i]
-        end
-      elsif !engage_how_default
-        raise ArgumentError, "engage_how_default must be specified (nil or else)."
-      else
-        engage_how_default
-      end
-    when 'country'
-      if str
-        if (cnt = Country[str])
-          Place.unknown(country: cnt)
-        else
-          arg = ((/\A+d+\n/ =~ str) ? str.to_i : Regexp.quote(str))
-          (pref = Prefecture[arg]) ? Place.unknown(prefecture: pref) : nil
-        end
-      else
-        nil
-      end
-    else
-      raise "ek is (#{ek.inspect})"
-    end
-  end
-  private_class_method :convert_csv_to_hash_core
 
 end
 

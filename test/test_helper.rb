@@ -239,6 +239,11 @@ class ActiveSupport::TestCase
   #   #                  ev_its amps urls)
   #   #   where urls are Array<Url>
   #
+  # @note
+  #   It seems the associated HaramiVidMusicAssoc-s (hvmas) and ArtistMusicPlay-s (amps)
+  #   to the first HaramiVid are inconsistent; 6 amps for 2 Musics are associated
+  #   whereas only 1 Music is associated to HaramiVid with hvmas.
+  #
   # @return [Array] h1129_prms(Hash(Array[0..1])), assc_prms(Hash(Array[0..1])), hsmdl(Hash(Array[0..1]))
   def prepare_h1129s1(release_dates: nil)
     # cf. test "create_manual"  in harami1129_test.rb
