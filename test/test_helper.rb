@@ -229,6 +229,147 @@ class ActiveSupport::TestCase
     end
     private :_reload_and_get_message
 
+  # Prepare Array of Harami1129
+  #
+  # @example
+  #   h1129_prms, assc_prms, hsmdl = prepare_h1129s1  # defined in test/models/base_with_translation_test.rb
+  #   h1129_prms, assc_prms, hsmdl = prepare_h1129s1(release_dates: [Date.new(2020, 2, 5), Date.new(2021, 3, 6)])
+  #   # hsmdl.keys == %i(h1129s musics artists hvmas engages
+  #   #                  mu_anchorings art_anchorings ch_owners channels
+  #   #                  ev_its amps urls)
+  #   #   where urls are Array<Url>
+  #
+  # @return [Array] h1129_prms(Hash(Array[0..1])), assc_prms(Hash(Array[0..1])), hsmdl(Hash(Array[0..1]))
+  def prepare_h1129s1(release_dates: nil)
+    # cf. test "create_manual"  in harami1129_test.rb
+    h1129_prms = {
+      title:  ["A video 0", "A video 1"],
+      singer: ["OasIs", "OasYs"],
+      song:   ["Digsy's Dinner0", "Digsy's Dinner1"],
+      release_date: (release_dates || [Date.new(2010, 2, 5), Date.new(2011, 3, 6)]),
+      link_root:    ["youtu.be/oasis_0", "youtu.be/oasis_1"],
+      link_time:    [nil, 134],  # => HaramiVidMusicAssoc#timing  (Do not change these as they are tested!)
+    }
+    assc_prms = {
+      eng_year: [1994, nil],
+      eng_contribution: [0, 0.9],
+      mu_year:  [1994, nil],
+      mu_genre: [nil, genres(:genre_classic)],  # Genre.default: Pops (nil means unchange, i.e., Pops)
+      mu_place: [places(:unknown_place_liverpool_uk),              places(:unknown_place_unknown_prefecture_uk)],
+      mu_note: ['mu-note0', 'mu-note1'],
+      mu_memo_editor: ['mu-memoEd0', 'mu-memoEd1'],
+      mu_anc_note:    ['mu_anc_note0', 'mu_anc_note1'],
+      hvma_note:      ['hvma_note0', 'hvma_note1'],
+      art_sex: [Sex[:male], nil],
+      art_place: [places(:unknown_place_unknown_prefecture_world), places(:unknown_place_unknown_prefecture_uk)],
+      art_birth_year:  [1975, nil],
+      art_birth_month: [nil, 11],
+      art_birth_day:   [nil, nil],
+      art_note: [nil, nil],
+      art_memo_editor: [nil, nil],
+      art_anc_note:    ['art_anc_note0', 'art_anc_note1'],
+      url: [0, 1].map{|i| Url.create_basic!(title: "MergeTest#{i}", langcode: "en", domain: domains(:domain_wikipedia), url: "https://en.wikipedia.org/wiki/MergeTest#{i}")}
+    }
+
+    arprev = []
+    arhsin = (0..1).map{|i|
+      idr = _get_unique_id_remote(*arprev)   # defined in test_helper.rb
+      arprev.push idr
+      hs = {
+        id_remote: idr,
+        last_downloaded_at: DateTime.now-1000,
+      }
+      h1129_prms.each_pair do |ek, ea|
+        hs[ek] = ea[i]
+      end
+      hs
+    }  # Array of Hash
+
+    hsmdl = {
+      h1129s: [],
+      hvids: [],
+      musics:  [],
+      artists: [],
+      hvmas: [], # HaramiVidMusicAssoc
+      mu_anchorings: [],
+      art_anchorings: [],
+      engages: [],
+      ch_owners: [],
+      channels: [],
+      ev_its: [], # EventItem
+      amps: [],  # ArtistMusicPlay (Array of Arrays)
+      urls: assc_prms[:url], 
+    }
+      
+    # Create two Harami1129
+    hsmdl[:h1129s] = (0..1).map{|i|
+      Harami1129.create_manual!(**(arhsin[i]))
+    }
+
+    (0..1).each do |i|
+      msg = []
+      hsmdl[:h1129s][i].insert_populate(messages: msg, dryrun: false)
+      # insert_populate_true_dryrun(messages: [], allow_null_engage: true, dryrun: nil)
+    end
+
+    hsmdl[:h1129s].each_with_index do |eh, i|
+      hsmdl[:engages][i] = eh.engage
+      %w(year contribution).each do |es|
+        val = assc_prms[("eng_"+es).to_sym][i]
+        hsmdl[:engages][i].update!(es => val) if val
+      end
+      hsmdl[:musics][i]  = hsmdl[:engages][i].music
+      hsmdl[:artists][i] = hsmdl[:engages][i].artist
+      hsmdl[:hvmas][i] = eh.harami_vid.harami_vid_music_assocs.find_by(music: hsmdl[:musics][i])
+      hsmdl[:hvmas][i].update!(note: assc_prms[:hvma_note][i])  # Adds note to HaramiVidMusicAssoc
+
+      %w(year genre place note memo_editor).each do |es|
+        val = assc_prms[("mu_"+es).to_sym][i]
+        hsmdl[:musics][i].update!(es => val) if val
+      end
+      %w(sex place birth_year birth_month birth_day note memo_editor).each do |es|
+        val = assc_prms[("art_"+es).to_sym][i]
+        hsmdl[:artists][i].update!(es => val) if val
+      end
+
+      hsmdl[:ev_its][i] = eh.event_item
+      hsmdl[:amps][i] ||= []
+
+      hsmdl[:mu_anchorings][i]  = Anchoring.create!(anchorable: hsmdl[:musics][i],  url: assc_prms[:url][i], note: assc_prms[:mu_anc_note][i])
+      hsmdl[:musics][i].anchorings.reset
+      hsmdl[:art_anchorings][i] = Anchoring.create!(anchorable: hsmdl[:artists][i], url: assc_prms[:url][i], note: assc_prms[:art_anc_note][i])
+      hsmdl[:artists][i].anchorings.reset
+    end
+
+    hsmdl[:h1129s].each_index do |i|
+      j = (i-1).abs  # to use j, this has to come after all other models are set.
+      hsmdl[:musics][i].artist_music_plays << ArtistMusicPlay.new(artist: hsmdl[:artists][i], event_item: hsmdl[:ev_its][i], play_role: PlayRole.default(:HaramiVid), instrument: Instrument.default(:HaramiVid), cover_ratio: 0.5+i*0.1)
+      hsmdl[:amps][i] << hsmdl[:musics][i].artist_music_plays.last
+    begin
+      hsmdl[:musics][i].artist_music_plays << ArtistMusicPlay.new(artist: hsmdl[:artists][j], event_item: hsmdl[:ev_its][j], play_role: PlayRole.unknown, instrument: Instrument.unknown, cover_ratio: 0.2+j*0.1)
+    rescue  # This SOMETIMES raises ActiveRecord::InvalidForeignKey exception... Strange! (DB-level error should never be raised.)
+      hsmdl[:musics][i].artist_music_plays << ArtistMusicPlay.new(artist: hsmdl[:artists][j], event_item: hsmdl[:ev_its][j], play_role: play_roles(:play_role_host), instrument: Instrument.unknown, cover_ratio: 0.2+j*0.1)
+    end
+      hsmdl[:amps][i] << hsmdl[:musics][i].artist_music_plays.last
+      hsmdl[:musics][i].artist_music_plays << ArtistMusicPlay.new(artist: hsmdl[:artists][j], event_item: hsmdl[:ev_its][j], play_role: PlayRole.unknown, instrument: instruments(:instrument_guitar), cover_ratio: 0.8+j*0.1) if i==1  # unique to i==1
+      hsmdl[:amps][i] << hsmdl[:musics][i].artist_music_plays.last  if i==1
+      hsmdl[:musics][i].artist_music_plays << ArtistMusicPlay.new(artist: artists(:artist_ai), event_item: hsmdl[:ev_its][0], play_role: PlayRole.unknown, instrument: instruments(:instrument_piano), cover_ratio: 0.05+j*0.1)  # Like the above, this SOMETIMES raises ActiveRecord::InvalidForeignKey exception... Strange! (DB-level error should never be raised.)
+      hsmdl[:amps][i] << hsmdl[:musics][i].artist_music_plays.last
+
+      hsmdl[:ch_owners][i] = ChannelOwner.create_basic!(themselves: true, artist: hsmdl[:artists][i])
+      hsmdl[:channels][i] ||= []
+      hsmdl[:channels][i] << Channel.create_basic!(title: "chan_h1_#{i}", langcode: :en, channel_owner: hsmdl[:ch_owners][i], channel_type: ChannelType.default(:HaramiVid), channel_platform: ChannelPlatform.default(:HaramiVid))
+      hsmdl[:channels][i] << Channel.create_basic!(title: "chan_h1_#{i+5}", langcode: :en, channel_owner: hsmdl[:ch_owners][i], channel_type: ChannelType.unknown, channel_platform: ChannelPlatform.unknown)
+      
+      hsmdl[:hvids][i] ||= []
+      hsmdl[:hvids][i] << hsmdl[:hvmas][i].harami_vid.update!(channel: hsmdl[:channels][i][1])
+      hsmdl[:hvids][i] << HaramiVid.create_basic!(title: "hvid_h1_#{i}", langcode: :en, channel: hsmdl[:channels][i][0], note: "new test HVid")
+    end
+
+    [h1129_prms, assc_prms, hsmdl]
+  end # def prepare_h1129s1(release_dates: nil)
+
+
   # collection of basic model-testings of weight like a negative value.
   #
   # At return, the status of the model unchanges from what was passed.

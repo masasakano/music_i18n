@@ -3,7 +3,7 @@
 # Common module for uploading a CSV file
 #
 # @example
-#   include ModuleHaramiVidEventAux
+#   include ModuleUploadCsv
 #
 # == NOTE
 #
@@ -52,6 +52,11 @@ module ModuleUploadCsv
     begin
       if nlines > MAX_LINES
         csv_str = csv_str.chomp.split[0, MAX_LINES].join("\n")
+        msg1 = "WARNING: CSV file "
+        msg2 = sprintf "(%s) ", uploaded_io.original_filename
+        msg3 = sprintf "is trimmed to %d lines from %d lines.", MAX_LINES, nlines
+        logger.warn msg1+msg2+msg3
+        add_flash_message(:warning, msg1+msg3)  # defined in application_controller.rb
       end
       return yield(csv_str)
     rescue => er

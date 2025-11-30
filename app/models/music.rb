@@ -666,11 +666,12 @@ end
   def self.convert_csv_to_hash(csv)
     i_of_csv = array_to_hash(MUSIC_CSV_FORMAT)
     engage_how_default = EngageHow.default
+    genre_default = Genre.default
     MUSIC_CSV_FORMAT.map{ |ek|
       [ek, convert_csv_to_hash_core(
          ek,
          csv[i_of_csv[ek]],
-         genre_default: Genre.default,
+         genre_default: genre_default,
          engage_how_default: engage_how_default
        )]
     }.to_h
@@ -684,10 +685,12 @@ end
   #
   # @param ek [Symbol] as in {Music::MUSIC_CSV_FORMAT}
   # @param str_in [String, NilClass] CSV cell
-  # @param genre_default: [Genre] (to avoid accessing DB every time this is called.)
-  # @param engage_how_default: [EngageHow]
+  # @param genre_default: [Genre, FalseClass, NilClass] (to avoid accessing DB every time this is called.) If false (Def), nothing is set. If nil, Default one is set.
+  # @param engage_how_default: [EngageHow, FalseClass, NilClass]
   # @return [NilClass, String, Integer, Genre, EngageHow, Place]
-  def self.convert_csv_to_hash_core(ek, str_in, genre_default: , engage_how_default: )
+  def self.convert_csv_to_hash_core(ek, str_in, genre_default: false, engage_how_default: false)
+    genre_default = Genre.default if genre_default.nil?
+    engage_how_default = EngageHow.default if engage_how_default.nil?
     str = (str_in ? str_in.strip : nil)
     str = nil if str.blank?
     case ek.to_s
@@ -706,8 +709,10 @@ end
         else
           Genre[/#{Regexp.quote(str)}/i]
         end
+      elsif !genre_default
+        raise ArgumentError, "genre_default must be specified (nil or else)."
       else
-        Genre.default
+        genre_default
       end
     when 'how'
       if str
@@ -716,6 +721,8 @@ end
         else
           EngageHow[/#{Regexp.quote(str)}/i]
         end
+      elsif !engage_how_default
+        raise ArgumentError, "engage_how_default must be specified (nil or else)."
       else
         engage_how_default
       end
