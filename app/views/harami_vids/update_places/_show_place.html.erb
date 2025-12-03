@@ -1,9 +1,6 @@
+<%# locals: (from_non_turbo: nil) %>
 
 <%# Assumed instance variables: @harami_vid; local variables: (optional) from_non_turbo: Def(false) true if requested from show.html.erb %>
-
-<% if !defined?(from_non_turbo)
-     from_non_turbo = false
-   end %>
 
     <%= turbo_frame_tag "update_place_"+dom_id(@harami_vid) do %>
       <%= show_pref_place_country(@harami_vid.place) %> <%# defined in places_helper.rb %>

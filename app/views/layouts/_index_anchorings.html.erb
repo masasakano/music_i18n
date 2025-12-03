@@ -1,9 +1,7 @@
+<%# locals: (record: , from_non_turbo: nil) %>
+
 <%# Local variables: record [BaseWithTranslation] (child of Anchoring), optional: NONE %>
 <%#   Example:  render partial: 'layouts/index_anchorings', locals: {record: @anchorable} %>
-
-<%# if !defined?(with_parent)
-     with_parent = true
-   end %>
 
 <% canedit_gen = can?(:edit, record.class) %>
 <% canedit_url_gen = can?(:edit, Url) %>
@@ -23,9 +21,11 @@
             <%= render partial: "/layouts/show_anchoring", locals: {anchoring: anchoring, skip_header: true, canedit_url_gen: canedit_url_gen } %> 
           <%  end %>
         <% end %>
+   <% if !from_non_turbo  %>
     <div id="<%= ApplicationController::TURBE_IDS[:flash_turbo_anchorings] %>" class="flash">
       <%= render "layouts/flash_display" %>
     </div>        
+   <% end %>
       </ul>
       <% if can?(:edit, record) %>
         <div class="editor_only">

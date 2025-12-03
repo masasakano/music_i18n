@@ -1,9 +1,12 @@
 # coding: utf-8
 require 'test_helper'
 
-class Musics::UploadMusicCsvsControllerTest < ActionDispatch::IntegrationTest
+class Musics::UploadHvmaCsvsControllerTest < ActionDispatch::IntegrationTest
   # add this
   include Devise::Test::IntegrationHelpers
+
+  # CSS for table-row in the associated Music table for HaramiVid
+  CSS_MUSIC_TR = "section#harami_vids_show_musics table tbody tr"
 
   setup do
     @editor    = users(:user_editor)  # HaramiVid editor can manage
@@ -65,7 +68,7 @@ class Musics::UploadMusicCsvsControllerTest < ActionDispatch::IntegrationTest
     previous_str = _str_user_id_display_name(ModuleWhodunnit.whodunnit)  #  just to (potentially) suppress mal-functioning in setting this...
 
     assert_equal 1, (si=@hvids.first.musics.size), 'sanity check with the prepared data'
-    assert_equal si, css_select("section#harami_vids_show_musics table tbody tr").size
+    assert_equal si, css_select(CSS_MUSIC_TR).size
 
     ## should not create when no file is specified"
     assert_no_difference(count_eq) do
@@ -93,21 +96,27 @@ class Musics::UploadMusicCsvsControllerTest < ActionDispatch::IntegrationTest
     amp_exist  = @hvids.first.artist_music_plays.where(artist_id: Artist.default(:HaramiVid), music_id: old_music).first
 
     ## Creation success
-debugger
+#debugger
     assert_difference(count_eq, 133) do
       _post2create  # POST to upload a CSV file
       assert_response :success
-print "DEBUG:27: \n"
-pp HaramiVidMusicAssoc.order(created_at: :desc)[0..2]
+#print "DEBUG:27: \n"
+#pp HaramiVidMusicAssoc.order(created_at: :desc)[0..2]
     end
-#print "DEBUG:26: \n"; puts css_select("section#harami_vids_show_musics")
 
     hvid = @hvids.first.reload
-    assert_equal hvid.musics.size, css_select("section#harami_vids_show_musics table tbody tr").size
+    assert_equal hvid.musics.size, css_select(CSS_MUSIC_TR).size
+    assert_equal 4, hvid.musics.size  # sanity check - according to the sample (see far below; [雨, "Light, The", 乾杯])
+    assert css_select(csstmp=(CSS_MUSIC_TR+"#"+dom_id(old_music))).present?, "Music table not containing the already-associated Music: Failed CSS = "+csstmp.inspect # + "\n"+css_select(CSS_MUSIC_TR)
+    %i(music_rain music_kampai music_light).each do |ek|
+      # Music table contains the newly associated Musics?
+      mu = musics(ek)
+      assert css_select(CSS_MUSIC_TR+"#"+dom_id(mu)).present?, "Music (#{ek.inspect} / #{mu.title_or_alt}) is not listed in Music table..."
+    end
 
     hvma_exist.reload
     assert_equal old_music,               hvma_exist.music
-    assert_equal @updated_timing,         hvma_exist.timing  # =17
+    assert_equal @updated_timing,         hvma_exist.timing, "timing for the existing Music should be updated to #{hvma_exist.timing}, but..."  # =17  # 
     refute_equal old_timing,              hvma_exist.timing
 
     ## Second newest one is Music "The Light"
@@ -121,8 +130,14 @@ pp HaramiVidMusicAssoc.order(created_at: :desc)[0..2]
     assert_equal amp_exist.artist,     amp_light.artist
     assert_equal amp_exist.event_item, amp_light.event_item
 
-print "DEBUG:58: \n"
-puts css_select("div.alert")
+    assert_equal @music_en_test_title, Translation.last.title  # New English title  (English title in CSV is imported for Music with JA title as is_orig)
+    assert_equal @music_en_test_title, musics(:music_rain).title(langcode: :en)
+    assert_includes css_select("div.alert.alert-info.notice").first.text, _music_note_csv(:music_kampai), "should be imported b/c that on DB has no Music#note, but..."
+    refute_includes css_select("div.alert.alert-info.notice").first.text, _music_note_csv(:music_light), "should have no flash message after this is ignored b/c that on DB already contains this, too."
+    assert_includes css_select("div.alert.alert-warning").first.text, _music_note_csv(:music_rain), "should be skipped b/c that on DB already has something different already."
+
+#print "DEBUG:58: \n"
+#puts css_select("div.alert")
 ##puts css_select("dd#item_event")
 ##puts css_select("section#harami_vids_show_musics")
     # Repeated "creation" success, doing nothing
@@ -179,8 +194,14 @@ puts css_select("div.alert")
         hvma_note: "HMVA-0-note"
       )
 
-      # Adjusting Fixture-related records
-      mu = musics(:music_kampai)
+      # Preparation: Adjusting Fixture-related records
+      mu_key = :music_light
+      mu = musics(mu_key)
+      mu.update!(note: mu.note.to_s + " ; " + _music_note_csv(mu_key))
+
+      mu_key = :music_kampai
+      mu = musics(mu_key)
+      mu.update!(note: "")
       if !mu.artists.exists?
         art_tsuyoshi = Artist.create_basic!(title: "Tsuyoshi", langcode: "en", is_orig: true, sex: Sex[:male])
         mu.engages << Engage.new(artist: art_tsuyoshi, engage_how: engage_hows(:engage_how_singer_original))
@@ -197,11 +218,13 @@ puts css_select("div.alert")
         artist: mu.artists.first.title,
         header: "1. Manually added Kampai",
         hvma_note: "HMVA-1-note",
+        music_note: _music_note_csv(mu_key),  # should be imported b/c that on DB has no Music#note
         year: 1901  # totally inconsistent (but music.year.nil? is true, so this is ignored but raises a warning only)
       )
 
       # Fixture Music (Year not specified, but ignored -> succeeds)
-      mu = musics(:music_light)
+      mu_key = :music_light
+      mu = musics(mu_key)
       arret << _mk_csv_ary_row(
         "02:22",  # timing (one of seconds and MM:DD and HH:MM:DD)
         nil,
@@ -209,6 +232,7 @@ puts css_select("div.alert")
         artist: artists(:artist_proclaimers).title,
         header: "2. Manually added The Light",
         hvma_note: "HMVA-2-note",
+        music_note: _music_note_csv(mu_key),  # should be skipped b/c that on DB already contains this (see "preparation" above).
         year: nil
       )
 
@@ -247,13 +271,16 @@ puts css_select("div.alert")
       )
 
       # Existing Music with no English title to add a new English title -> succeeds
+      mu_key = :music_rain
+      mu = musics(mu_key)
       arret << _mk_csv_ary_row(
         "05:55",  # timing (one of seconds and MM:DD and HH:MM:DD)
         @music_rain.title(langcode: :ja),  # Test of JA title
         @music_en_test_title,  # New English title
         artist: @music_rain.artists.first.title,
         header: "6. Existing Music/Artist to add the first English title",
-        hvma_note: "HMVA-6-note"
+        hvma_note: "HMVA-6-note",
+        music_note: _music_note_csv(mu_key)  # should be ignored b/c that on DB has something different already
       )
     end
 
@@ -298,6 +325,11 @@ puts css_select("div.alert")
       post harami_vid_upload_hvma_csv_url(harami_vid_id: @hvids.first.id),
            params: {upload_hvma_csv: { file: uploaded_file } }
       ## c.f., musics_upload_music_csvs_url, params: { file: fixture_file_upload('music_artists_3rows.csv', 'text/csv') }
+    end
+
+    # Common routine to post
+    def _music_note_csv(key)
+      "Music-Note-#{key}"
     end
 end
 

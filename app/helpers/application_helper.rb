@@ -1283,11 +1283,34 @@ module ApplicationHelper
     (text.present? || show_always) ? ApplicationController.helpers.tag.send(tag, text, class: html_classes, **opts) : String.new
   end
 
+  # True if either flash[TYPE] or @main_record.alert_messages[TYPE] is present?
+  #
+  # @param flash_type [String, Symbol] :alert, :warning, :notice, :succeed. See {ApplicationController::FLASH_CSS_CLASSES}
+  def flash_alert_defined?(flash_type)
+    flash[flash_type].present? || flash_main_record_defined?(flash_type)
+  end
+
+  # Array fo flash[TYPE] or @main_record.alert_messages[TYPE] is present?
+  #
+  # @param flash_type [String, Symbol] :alert, :warning, :notice, :succeed. See {ApplicationController::FLASH_CSS_CLASSES}
+  # @return [Array]
+  def flash_alert_all_messages(flash_type)
+    arret = []
+    arret.concat [flash[flash_type]].flatten                       if flash[flash_type].present?
+    arret.concat [@main_record.alert_messages[flash_type]].flatten if flash_main_record_defined?(flash_type)
+    arret
+  end
+
   # Helper for flash messages for Hotwire/Turbo
   #
   # @param turbo_key [Symbol, String] turbo-fame ID, e.g., :flash_turbo_anchorings
   def flash_for_turbo_stream(turbo_key)
     turbo_stream.update ApplicationController::TURBE_IDS[turbo_key], partial: "layouts/flash_display"
+  end
+
+  # if @main_record.alert_messages[flash_type] is defined?
+  def flash_main_record_defined?(flash_type)
+    @main_record && @main_record.respond_to?(:alert_messages) && @main_record.alert_messages[flash_type].present?
   end
 
   # to suppress warning, mainly that in Ruby-2.7.0:

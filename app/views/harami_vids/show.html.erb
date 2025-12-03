@@ -74,7 +74,7 @@
  </section> <!-- section id="harami_vids_show_unique_parameters" -->
 
    <%= turbo_frame_tag "harami_vids_anchorings_"+dom_id(@harami_vid) do %>
-     <%= render partial: 'layouts/index_anchorings', locals: {record: @harami_vid} %>
+     <%= render partial: 'layouts/index_anchorings', locals: {record: @harami_vid, from_non_turbo: true} %>
    <% end %>
 
    <section id="harami_chronicle_list">  <%# This lists the (Harami-Chronicle) Url-s for Events, not for HaramiVid itself %>

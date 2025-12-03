@@ -1,3 +1,4 @@
+<%# locals: (from_non_turbo: nil) %>
 
 <%# Assumed instance variables: @hvma %>
 
@@ -13,6 +14,8 @@
     <%= button_to "Edit", edit_harami_vid_music_assocs_note_path(@hvma), method: :get, form_class: "inline_form_tight", class: "text-end inline_form_tightest" %>
   <% end %>
 
+ <% if !from_non_turbo  %>
   <%= render partial: "/layouts/flash_display" %>
+ <% end %>
 <% end %>
 

@@ -1620,6 +1620,8 @@ class HaramiVid < BaseWithTranslation
         s_link = ActionController::Base.helpers.link_to(record.class.name, "#"+obj_dom_id, title: "pID=#{record.id}")
         alert_messages[:warning] << sprintf("WARNING: Given %s for %s#note is ignored for Music %s.", s_link, ERB::Util.html_escape(note2add.inspect), ERB::Util.html_escape(mu_tit.inspect)).html_safe
         return
+      else
+        # If the existing ActiveRecord#note contains the one in CSV, it is skipped.
       end
       nil
     end

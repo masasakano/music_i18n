@@ -4,10 +4,12 @@
 <%# Example: see /app/views/harami_vids/update_places/_show_place.html.erb and also 'render partial: "/harami_vids/update_places/show_place"' in /app/views/harami_vids/show.html.erb %>
 
           <% ApplicationController::FLASH_CSS_CLASSES.keys.each do |ek| %>
-            <% next if flash[ek].blank? %>
+            <% next if !flash_alert_defined?(ek) %> <%# defined in ApplicationHelper %>
+            <%# next if flash[ek].blank? %>
             <div class="alert alert-dismissible fade show <%= ApplicationController::FLASH_CSS_CLASSES[ek] %>" role="alert">
-              <%= [flash[ek]].flatten.map{|i| (flash[:html_safe] && flash[:html_safe][ek]) ? i : sanitized_html(i)}.join("<br>").html_safe %>  <%# "a" tag etc are allowed. Defined in application_helper.rb  See also /config/application.rb %>
+              <%= flash_alert_all_messages(ek).map{|i| (flash[:html_safe] && flash[:html_safe][ek]) ? i : sanitized_html(i)}.join("<br>").html_safe %>  <%# "a" tag etc are allowed. Defined in application_helper.rb  See also /config/application.rb %>
               <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
           <% end %>
 
+          <% flash.discard %> <%# this may not work well... %>

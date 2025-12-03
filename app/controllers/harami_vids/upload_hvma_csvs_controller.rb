@@ -30,7 +30,7 @@ class HaramiVids::UploadHvmaCsvsController < ApplicationController
     set_flash_messages
 
     respond_to do |format|
-      format.html { render 'harami_vids/show', status: :ok }
+      format.html { render 'harami_vids/show', status: :ok, notice: "CSV uploaded." }
       format.json { render 'harami_vids/show', status: :ok, location: @harami_vid }
     end
   end
@@ -43,7 +43,7 @@ class HaramiVids::UploadHvmaCsvsController < ApplicationController
     end
 
     def authorize_for_edit
-      @harami_vid = HaramiVid.find(params[:harami_vid_id])
+      @main_record = @harami_vid = HaramiVid.find(params[:harami_vid_id])
 
       if !current_user
         head :unauthorized
@@ -63,11 +63,13 @@ class HaramiVids::UploadHvmaCsvsController < ApplicationController
         add_flash_message(:warning, "WARNING: More than #{MAX_LINES} lines in the input CSV is ignored!")  # defined in application_controller.rb
       end
 
-      @harami_vid.alert_messages.each_pair do |etype, eary|
-        eary.each do |msg|
-          add_flash_message(etype, msg)  # defined in application_controller.rb
-        end
-      end
+      ### This may (or frequently for large data) raise ActionDispatch::Cookies::CookieOverflow
+      #@harami_vid.alert_messages.each_pair do |etype, eary|
+      #  eary.each do |msg|
+      #    add_flash_message(etype, msg)  # defined in application_controller.rb
+      #  end
+      #end
+
       add_flash_message(:notice, msg_stats_summary)  # defined in application_controller.rb
     end
 
