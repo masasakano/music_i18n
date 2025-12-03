@@ -1289,6 +1289,35 @@ class BaseWithTranslation < ApplicationRecord
     model
   end
 
+  # Searches based on a title
+  #
+  # If the exact match is found, it is returned. If not, other candidates are searched.
+  #
+  # @return [Relation] Most probable candidates for a title. Maybe empty.
+  def self.probable_candidates(kwd, langcode: nil)
+    search_word = preprocess_space_zenkaku(kwd, article_to_tail=true, strip_all: true)
+    objs = select_regex(:titles, search_word, langcode: langcode, sql_regexp: true)
+    return objs if objs.exists?  # Exact match with an article
+
+    if "en" == guess_lang_code(search_word) && /, The\z/ !~ search_word
+      objs = select_regex(:titles, search_word+", The", langcode: langcode, sql_regexp: true)
+      return objs if objs.exists?  # Exact match except for an article
+    end
+
+    regexsearch_word = Regexp.quote(definite_article_stripped(search_word))
+
+    # Regexp search (case-sensitive, forward match)
+    objs = select_regex(:titles, /\A#{regexsearch_word}/, langcode: langcode, sql_regexp: true)
+    return objs if objs.exists?  # Exact match except for an article
+
+    # Regexp search (case-insensitive, forward match, ignoring spaces)
+    objs = select_regex(:titles, /\A#{regexsearch_word.gsub(/\s+/, '\s*')}/i, langcode: langcode, sql_regexp: true)
+    return objs if objs.exists?  # Exact match except for an article
+
+    # Regexp search (case-insensitive, partial search, ignoring spaces)
+    objs = select_regex(:titles, /#{regexsearch_word.gsub(/\s+/, '\s*')}/i, langcode: langcode, sql_regexp: true)
+  end
+
   # Returns an Array of {BaseWithTranslation} with the specified title (or alt_title)
   #
   # So far, both {Translation#title} and {Translation#alt_title} are considered.

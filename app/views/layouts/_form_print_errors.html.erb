@@ -15,7 +15,7 @@
     <ul id="error_explanation_list">
      <% models.each do |eam| %>
       <% eam.errors.full_messages.each do |message| %>
-        <li><%= sanitized_html(message).html_safe %></li>  <%# "a" tag etc are allowed. Defined in application_helper.rb  See also /config/application.rb %>
+        <li><%= message.html_safe? ? message : sanitized_html(message).html_safe %></li>  <%# "a" tag etc are allowed. Defined in application_helper.rb  See also /config/application.rb %>
       <% end %>
      <% end %>
     </ul>

@@ -35,6 +35,13 @@ class HaramiVid < BaseWithTranslation
   # polymorphic many-to-many with Url
   include Anchorable
 
+  # CSV format; used in ModuleCsvAux, /test/controllers/harami_vids/upload_hvma_csvs_controller_test.rb
+  # NOTE: This MUST come before: include ModuleCsvAux
+  MUSIC_CSV_FORMAT = %i(header timing music_ja music_en artist hvma_note year music_note event_item_id memo)
+
+  # CSV-related. Also defining HaramiVid::ResultLoadCsv 
+  include ModuleCsvAux
+
   before_validation :add_def_channel
   before_validation :normalize_uri
 
@@ -43,6 +50,9 @@ class HaramiVid < BaseWithTranslation
   # Note there is no DB restriction, but the Rails validation prohibits nil.
   # Therefore this method has to be called before each validation.
   before_validation :add_default_place  # defined in ModuleDefaultPlace
+
+#################################
+#  after_create :save_unsaved_associates  # callback to create(-only) @unsaved_channel,  @unsaved_artist, @unsaved_music
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = %i(uri)
@@ -57,9 +67,6 @@ class HaramiVid < BaseWithTranslation
   # Optional constant for a subclass of {BaseWithTranslation} to define the scope
   # of required uniqueness of title and alt_title.
   TRANSLATION_UNIQUE_SCOPES = %i(uri)
-
-#################################
-#  after_create :save_unsaved_associates  # callback to create(-only) @unsaved_channel,  @unsaved_artist, @unsaved_music
 
   belongs_to :place     # see: before_validation and "validates :place, presence: true"
   belongs_to :channel   # see: before_validation :add_def_channel
@@ -171,6 +178,17 @@ class HaramiVid < BaseWithTranslation
   # to Harami1129 before the execution.
   # For :event_item, the value is +HaramiVid.event_items.ids+ (Array!)
   attr_accessor :columns_for_harami1129
+
+  # Internal container to hold messages (Hash of Arrays) for flash in Controllers, like :alert (for Error(!)), :warning, :notice
+  def alert_messages
+    if !@alert_messages
+      @alert_messages = {}.with_indifferent_access
+      ApplicationController::FLASH_CSS_CLASSES.each_key do |ek|
+        @alert_messages[ek] = []
+      end
+    end
+    @alert_messages
+  end
 
   # Returns true if at least one of {HaramiVid#uri} contains a "http" scheme prefix.
   #
@@ -1144,6 +1162,149 @@ class HaramiVid < BaseWithTranslation
     missing_musics_from_amps.count + missing_musics_from_hvmas.count
   end
 
+
+  # Load (or populate) HaramiVidMusicAssoc according to the data in a CSV file
+  #
+  # CSV format is defined in {HaramiVid::MUSIC_CSV_FORMAT}
+  #
+  # This method does **not** register (or update) a new Music or Artist information to DB,
+  # but only a {HaramiVidMusicAssoc} basically, except that an EN Translation may be created
+  # and/or {Music#note} and/or {HaramiVidMusicAssoc#note} may be updated.
+  # For a completely new Music or Artist, register it with the standard method
+  # of either via UI or CSV uploading.
+  #
+  # When an inconsistency is found, this either raise an error or warning in flash.
+  #
+  # If an error is raised, a CSV file to register the corresponding Music(s) is
+  # also displayed in flash for convenience.
+  #
+  # WARNING: the use of double-quotations in the CSV must be valid!
+  #
+  # == Rules
+  #
+  # 1. +timing+ in the CSV is either a single Integer-type String (for seconds) or in the format of "(HH:)MM:DD".
+  # 2. If +music_ja+ is an integer-like String and if +music_en+ is blank,
+  #    the number is regarded as +Music#id+.  In this case, Music is immediately identified.
+  #    * If +music_en+ is present, they are always assumed to be Title of the Music
+  # 3. If +artist+ is an integer-like String, the exact title is searched for an Artist first,
+  #    and then failing it, the number is regarded as +Artist#id+
+  # 4. +artist+ is mandatory except for the case where +Music#id+ is specified in +music_ja+ 
+  # 5. Unless Music has been identified with pID, a Music is searched for with a title of either +music_ja+ or +music_en+ and +artist+. Here, lower and upper-case differences and presence of an article are ignored.  For the title matching, +langcode+ is irrelevant.
+  # 6. If Music has been identified,
+  #    1. If {Music#year} and +year+ in the input CSV are both present and if they contradict, the row is not processed (an *error*).
+  #    2. If {Music#year} is present and if +year+ is not, +year+ in the input CSV is ignored, and the process continues.
+  #    2. If {Music#year} is blank and if +year+ is present in the input CSV, the +year+ is NOT imported to the {Music} and *warning* is issued.
+  #    3. If +music_en+ exists and if {Music#title} for EN is absent, the +music_en+ in CSV is imported to {Translation}.  Note that this is because English title is often new information which should be sooner or later imported to DB.
+  #    4. If +music_en+ exists and if {Music#title} for EN exists but contradicts it, a *warning* is issued.
+  #    5. +hvma_note+ is imported unless the corresponding non-blank {HaramiVidMusicAssoc#note} exists.  In the latter case, it is warned unless the latter has the identical note.
+  #    6. +music_note+ is imported unless a non-blank {Music#note} exists.  In the latter case, it is warned unless the latter is included in the former.
+  # 7. Once a Music has been identified, HaramiVidMusicAssoc is searched for, using
+  #    the Artist information.  If successful,
+  #    1. if {HaramiVidMusicAssoc#timing} is blank, it is updated with +timing+ in the CSV.
+  #    2. if not, and if it contradicts +timing+ in the CSV, a *warning* is issued.
+  #    3. the same for {HaramiVidMusicAssoc#note}, except that the inclusion of +hvma_note+ in {HaramiVidMusicAssoc#note} is treated like the identicality,
+  #
+  # If an Exception was raised, which never should happen, every change on DB for the CSV row would roll back,
+  # whereas the changes that have been made up to the previous CSV row would remain.
+  #
+  # == Rules
+  #
+  # @return [Hash<Array>, NilClass] Keys:
+  #     [input_lines, changes, csv, artists, musics, hvmas, amps, stats]
+  #   where the values are Array except for +stats+, which is {ModuleCsvAux::StatsSuccessFailure}
+  #   The array index corresponds to the line number (start from 0).
+  #   Use Array[x].errors.present? to see if the element at Line +x+ has been really saved.
+  #   Elements can be nil for non-CSV lines (blank or comment lines)
+  #   or if they have not been even attempted to be saved;
+  #   for example, if Music is not identified, no element for Music-Array, let alone
+  #   hvmas-Array (for HaramiVidMusicAssoc), is defined.  For this reason,
+  #   if the first line is a comment line, csv[0] is nil.
+  #   "changes" has an Array of {HaramiVid::ResultLoadCsv} with a method like +:music_ja+ returning +[old, new]+
+  #   "csv" has an Array of Hash with the keys as in #{HaramiVid::MUSIC_CSV_FORMAT}
+  #   NOTE!!: to access {#translations} you must {#reload}
+  def populate_hvma_csv(strin)
+    allstats = StatsSuccessFailure.new  # defined in ModuleCsvAux
+    artists = []
+    musics  = []
+    hvmas = []
+    amps = []
+    arret = []
+    arcsv = []
+    input_lines = []
+    iline = -1
+
+    #ActiveRecord::Base.transaction do
+    #
+    ### NOTE: This transaction decorator results in a weird behaviour.
+    # Basically, a new_record (with @errors set) is somehow saved in the DB
+    # (without associated translations), which should have not been.
+    # Because this method relies on the situations where the returned objects
+    # can be saved or a new_record?, this is bad.  Hence the transaction is
+    # not activated at the moment.  Records say a similar thing happened
+    # in the past like Rails 3.1.0.
+    # http://alwayscoding.ca/momentos/2012/06/05/transactions-and-new-record/
+    # However in the case of Rails 3.1.0, a new_record was NOT saved even though
+    # new_record? returns false, whereas in this case of
+    # Rails 6.1, the record is actually saved in the DB.
+    strin.each_line do |ea_li|
+    #results = strin.encode('UTF-8', undef: :replace, crlf_newline: true).split("\n").map do |ea_li|  # This may be used if the parent wants to know the status of assessment result of each line. In this case, simple :rejected is rare, so this is an overkill.
+    ##CSV.parse(strin) do |csv|  # this would raise an Exception when a comment line contains an "invalid" format (i.e., "misuse" of double quotations).
+      iline += 1
+      flag_change_dbs = []  # Later sets true when something on DB has changed.
+      ea_li.chomp!
+      input_lines[iline] = ea_li
+      #next if !csv[0] || '#' == csv[0].strip[0,1]  # for the last line, csv==[]
+      next if ea_li.blank?
+      next if '#' == ea_li.strip[0,1]
+
+      csv = CSV.parse(ea_li.strip)[0] || next  # for the blank line, csv.nil? (n.b. without strip, a line with a space would be significant.)
+      allstats.attempted_rows += 1
+
+      arcsv[iline] = hsrow = self.class.convert_csv_to_hash(csv)  # defined in ModuleCsvAux
+      # Guaranteed there is no "" but nil.
+
+      musics[iline], mu_tit, artists[iline], art_tit = _determine_music_artist_from_csv(hsrow, iline: iline)
+      if !musics[iline]
+        allstats.rejected_rows += 1
+        next
+      end
+
+      rlc = ResultLoadCsv.new  # dynamically defined class in ModuleCsvAux to hold information of what have changed
+      arret[iline] = rlc
+
+      ActiveRecord::Base.transaction(requires_new: true) do
+        result = _update_note_from_csv(musics[iline], hsrow, :music_note, mu_tit, rlc, do_update: true)
+        flag_change_dbs << _update_allstats(:musics, result, allstats)  # updates allstats
+
+        result = _create_music_en_trans_from_csv(musics[iline], hsrow[:music_en], mu_tit, rlc)  # nil or String or Hash
+        flag_change_dbs << _update_allstats(:translations, result, allstats)  # updates allstats
+
+        hvma = HaramiVidMusicAssoc.find_or_initialize_by(harami_vid: self, music: musics[iline])  # NOTE: Assuming only 1 HaramiVidMusicAssoc is associated to HaramiVid-Music combination
+
+        _ = _update_hvma_timing_from_csv(hvma, hsrow, mu_tit, rlc)  # The returned value is an Integer if timing will be updated, i.e., the current one is nil and new one is significant.
+
+        result = _update_note_from_csv(hvma, hsrow, :hvma_note, mu_tit, rlc, do_update: false)
+        flag_change_dbs << _update_allstats(:harami_vid_music_assocs, result, allstats)  # updates allstats
+        flag_change_dbs << _save_set_allstats(hvma, mu_tit, musics[iline], allstats)
+
+        hvmas[iline] = hvma
+
+        if hvma.id_previously_changed? && (hsrow[:event_item_id] || (evit = event_items.first))  # i.e., if hvma used to be a new_record?
+          event_item_ids = [evit ? evit.id : hsrow[:event_item_id]]
+          amp = ArtistMusicPlay.initialize_default_artist(:HaramiVid, music: musics[iline], event_item_ids: event_item_ids)
+          flag_change_dbs << _save_set_allstats(amp, mu_tit, musics[iline], allstats){
+            logger.error sprintf("ERROR: Failed for some reason to save ArtistMusicPlay for Music (pID=%d: %s) with EventItem (pID=%d)", musics[iline].id, mu_tit.inspect, event_item_ids.first)  # Records information of EventItem
+          }
+          amps[iline] = amp
+          # NOTE: ResultLoadCsv records changes related to only the CSV column. ArtistMusicPlay is not one of them. So, ResultLoadCsv is not updated for this change.
+        end
+      end # ActiveRecord::Base.transaction(requires_new: true) do
+      allstats.unchanged_rows += 1 if !flag_change_dbs.any?
+    end
+
+    { input_lines: input_lines, changes: arret, csv: arcsv, artists: artists, musics: musics, hvmas: hvmas, amps: amps, stats: allstats }
+  end # def populate_hvma_csv(strin)
+ 
   private    ################### Callbacks
 
     # Channel is automatically associated with Translations after_create
@@ -1196,6 +1357,386 @@ class HaramiVid < BaseWithTranslation
       eng.timing = music_timing.to_i if music_timing.present?
       eng.save!
     end
+
+    # Determines and returns Music & Artist from CSV-based data
+    #
+    # @param hsrow [Hash] Data imported from CSV. See {ModuleCsvAux#convert_csv_to_hash_core}
+    # @param iline: [Integer] Line number in the input CSV file (for Error message)
+    # @return [NilClass, Array<Music, String, Artist, String>] If something fails, nil is returned, while self#errors is set.
+    #    Otherwise, 4-element Array of Music and its title (likely as given in the CSV), and Artist and its title
+    def _determine_music_artist_from_csv(hsrow, iline: nil)
+      # If +music_ja+ is an integer-like String and if +music_en+ is blank, Music is identified and replaces with the title-String
+      if !hsrow[:music_ja] && !hsrow[:music_en]
+        alert_messages[:alert] << "Neither of Music titles is specified."
+        return
+      end
+
+      if !hsrow[:music_en] && /\A\d+\z/ =~ (pidstr=hsrow[:music_ja].strip)
+        music  = self.class.record_or_title_from_integer(hsrow[:music_ja], Music, search_integer_title: false) # defined in ModuleCsvAux
+        mu_tit = definite_article_to_head(music.title_or_alt(langcode: nil)) # best Translation (b/c no title is specified in CSV)
+        artist = hsrow[:artist]  # nil is allowed
+        art_tit= hsrow[:artist]
+        return [music, mu_tit, artist, art_tit]  # Found!
+      end
+
+      ## First, gets Artist(s)
+      # Here, arts is ActiveRecord::Relation (multiple candidates of Artist), and artist is a single Artist
+      # art_tit is the title of Artist, usually the given one in CSV.
+      arts, artist, art_tit = _determine_artist_from_csv(hsrow)
+      return if !art_tit  # Artist does not exist.
+      arts ||= Artist.where(id: artist.id)  # if hsrow[:artist] is an Artist, this has not been defined while only +artist+ is defined. 
+
+      # NOTE: hsrow[:artist] (thouhg not used hereafter) is either an Artist (==artist) or String art_tit ; see ModuleCsvAux#convert_csv_to_hash_core
+
+      ## Second, gets Music-s candidates
+      muss, music, mu_tit = _determine_musics_from_csv(hsrow, arts, art_tit, iline: iline)
+      return if !mu_tit
+      return [music, mu_tit, _narrowed_down_artist(artist, arts, music), art_tit] if music
+
+      ## multiple Musics remain for the given title(s), Artist, and maybe year...
+
+      str_muss = relation2links(muss, distinct: true){ |record, title|  # defined in ModuleCommon
+        [sprintf("%s (by %s)", definite_article_to_head(record.title_or_alt(langcode: nil)), definite_article_to_head(record.most_significant_artist.title_or_alt(langcode: nil))),
+         "(pID=#{record.id})"]
+      }.join("; ")
+      msg = ERB::Util.html_escape("WARNING: Multiple Musics (for Artist #{art_tit.inspect}) are found: ") + str_muss
+      alert_messages[:warning] << msg.html_safe
+
+      music = muss.first
+      return [music, mu_tit, _narrowed_down_artist(artist, arts, music), art_tit]
+    end
+    private :_determine_music_artist_from_csv
+
+    # Determines and returns Artist(s) from CSV-based data
+    #
+    # If something goes wrong, nil is returned, while self.errors is set.
+    # Otherwise, 3rd element +art_tit+ (String) is guaranteed to be defined.
+    # Relation (1st) is usually defined but can be nil if pID is the given title in CSV.
+    # artist (2nd) is only defined if a single Artist is determined.
+    #
+    # @param hsrow [Hash]
+    # @return [NilClass, Array<Artist::Relation, Artist, String>] If something fails, nil is returned, while self#errors is set.
+    #    Otherwise, 3-element Array of Artist::Relation (or nil), Single Artist or nil, and its title (likely as given in the CSV)
+    def _determine_artist_from_csv(hsrow)
+      if hsrow[:artist].respond_to? :engages
+        # NOTE: if CSV contains an Integer and if it is a pID, hsrow[:artist] should be Artist. see ModuleCsvAux#convert_csv_to_hash_core
+        artist = hsrow[:artist]  # Artist instance.
+        art_tit= definite_article_to_head(artist.title_or_alt(langcode: nil)) # best Translation (b/c no title is specified in CSV)
+        return [nil, artist, art_tit]
+      end
+
+      # Here, arts is ActiveRecord::Relation, and artist is a single Artist
+      art_tit= hsrow[:artist]  # as in CSV input; n.b., hsrow[:artist] is guaranteed to be String.
+      arts = _guessed_model_insts(hsrow, :artist, Artist)
+      if arts.blank?
+        alert_messages[:alert] << "No Artist is specified in Line=#{iline} for "+_str_music_with_csv_titles(hsrow)+"."
+        return
+      end
+
+      return [arts, ((1 == arts.distinct.count) ? arts.first : nil), art_tit]
+    end
+    private :_determine_artist_from_csv
+
+
+    # Returns a single Artist, narrowed down from the given Music.
+    #
+    # @param artist [Artist, NilClass]
+    # @param artist_rela [Artist::Relation]
+    # @param music [Music, NilClass]
+    def _narrowed_down_artist(artist, artist_rela, music)
+      return artist if artist
+      artist ||= arts.joins(:musics).where(:"musics.id" => music.id).first
+      return artist if artist
+
+      msg = sprintf "WARNING: Strangely, Music (pID=%d) does not associate Artists: %s", music.id, arts.inspect
+      logger.warn msg
+      alert_messages[:warning] << msg
+      artist_rela.first
+    end
+    private :_narrowed_down_artist
+
+
+    # Determines multiple (or single) Music(s) from CSV-based data
+    #
+    # If something goes wrong, nil is returned, while self.errors is set.
+    # Otherwise, 3rd element +art_tit+ (String) is guaranteed to be defined.
+    # Relation (1st) is usually defined but can be nil if pID is the given title in CSV.
+    # artist (2nd) is only defined if a single Artist is determined.
+    #
+    # == Algorithm
+    #
+    # The first job is to determine which of :music_ja and :music_en is the likely String
+    # for Music.  :music_ja has a higher priority; i.e., if Music is "loosely" found in
+    # the search with :music_ja, :music_en is not searched for anymore.  In other words,
+    # not both of them have to match the title of Music.  For the "loose" search,
+    # we first start searching with the given title only; later, we constrain further
+    # with the Artist (in the CSV) and maybe :year.
+    #
+    # The searches start from the exact partten match, but progress to less strict searches
+    # with case-insensitive matches and finally partial matches.  For this reason,
+    # an unregistered Music with a very short name may be recognised as an existing Music
+    # the title of which happens to include the search String.  A later manual modification
+    # is required.
+    #
+    # @param hsrow [Hash] Data imported from CSV. See {ModuleCsvAux#convert_csv_to_hash_core}
+    # @param arts [Artist::Relation]
+    # @param art_tit [String] Artist title, usually takenn from CSV (unless pID for Artist is specified in CSV)
+    # @param iline: [Integer] Line number in the input CSV file (for Error message)
+    # @return [NilClass, Array<Music::Relation, Music, String>] If something fails, nil is returned, while self#errors is set.
+    #    Otherwise, 3-element Array of Music::Relation (or nil), Single Music or nil, and its title (likely as given in the CSV)
+    def _determine_musics_from_csv(hsrow, arts, art_tit, iline: nil)
+      muss_without_artist = nil
+      mu_tit = nil
+
+      %i(music_ja music_en).each do |ek|
+        ## Music-search, solely relying on the given Music Title
+        if (muss_without_artist = _guessed_model_insts(hsrow, ek, Music, report_error: ("music_ja" == ek.to_s)))
+          mu_tit = hsrow[ek]
+          break
+        end
+      end
+
+      if !muss_without_artist
+        alert_messages[:alert] << _str_music_with_csv_titles(hsrow)+" is not found"+(iline ? " at Line=#{iline}." : ".")
+        return
+      end
+
+      # At least 1 Music has been picked up, although we still have to check with the given Artist(s).
+      muss_without_artist_size = muss_without_artist.distinct.count
+
+      muss2 = muss_without_artist.joins(:artists).where(:"artists.id" => arts.ids)
+      case muss2.distinct.count
+      when 0
+        # No Music is found for the Title and Artist.
+        links_mu  = relation2links(muss_without_artist, distinct: true){ |record, title|  # defined in ModuleCommon
+          [record.id.to_s, definite_article_to_head(record.title_or_alt)]
+        }
+        links_art = relation2links(arts, distinct: true){ |record, title|  # defined in ModuleCommon
+          [record.id.to_s, definite_article_to_head(record.title_or_alt)]
+        }
+        msg = sprintf("%s pID(s)=[%s] %s pID(s)=[%s]",
+                      ERB::Util.html_escape("ERROR: "+_str_music_with_csv_titles(hsrow)+" for Artist #{art_tit.inspect}"),
+                      links_art.join(", ").html_safe,
+                      ERB::Util.html_escape("is not found, although Musics with the title exist"),
+                      links_mu.join(", ").html_safe)
+        alert_messages[:alert] << msg.html_safe
+        return
+      when 1
+        # The simplest case: Only 1 Music for the Title and Artist is identified.
+        music = muss2.first
+        if hsrow[:year].blank? || music.year.blank? || (hsrow[:year].to_i == music.year)
+          return [muss2, music, mu_tit]
+        else
+          s_link = ActionController::Base.helpers.link_to(mu_tit.inspect, Rails.application.routes.url_helpers.music_path(music), title: "pID=#{music.id}")
+          msg = "ERROR: Music #{s_link} has year=(#{music.year.inspect}) has the specified title and Artist but inconsistent year (specified=#{hsrow[:year].inspect}). Skip."
+          alert_messages[:alert] << msg.html_safe
+          return
+        end
+      end
+
+      # Multiple Musics found for the Title and Artist
+      return [muss2, nil, mu_tit] if hsrow[:year].blank?
+
+      # If year is specified in CSV, we narrow it down.
+      muss3 = muss2.where(year: hsrow[:year].to_i).or(muss2.where(year: nil))
+      case muss3.distinct.count
+      when 0
+        str_muss = relation2links(muss2, distinct: true){ |record, title|  # defined in ModuleCommon
+          [sprintf("%s (Year=%s)", definite_article_to_head(record.title_or_alt(langcode: nil)), record.year.inspect),
+           "(pID=#{record.id})"]
+        }.join("; ")
+        msg = ERB::Util.html_escape("ERROR: Musics that agree with title #{mu_tit.inspect} are all inconsistent with specified year (#{hsrow[:year]}): ") + str_muss
+        alert_messages[:alert] << msg.html_safe
+        return
+      when 1
+        # Only 1 record exists where either the years agree or year on DB only is NULL
+        music = muss3.first
+        return [muss3, music, mu_tit]
+      else
+        # Musics are narrowed down, but still multiple Musics remain.
+        return [muss3, nil, mu_tit]
+      end
+    end
+    private :_determine_musics_from_csv
+
+
+    # Internal routine
+    #
+    # @param hsrow [Hash] Data imported from CSV. See {ModuleCsvAux#convert_csv_to_hash_core}
+    # @param kwd [Symbol] Key for +hsrow+, either :musics or :artists
+    # @param klass [Class] either Music or Artist
+    # @return [Relation<Artist,Music>, NilClass]
+    def _guessed_model_insts(hsrow, kwd, klass, report_error: true)
+      if hsrow[kwd].blank?
+        # errors.add(kwd, klass.name+" is not specified.") if report_error
+        return nil
+      else
+        search_word = definite_article_to_tail(hsrow[kwd].strip)
+        arret = klass.select_regex(:titles, search_word, sql_regexp: true)
+        return arret if arret.exists?
+
+        arret = klass.select_regex(:titles, /#{Regexp.quote(search_word)}/, sql_regexp: true)
+        return arret if arret.exists?
+
+        alert_messages[:alert] << klass.name+" #{hsrow[kwd].strip.inspect} is not found." if report_error
+        return nil
+      end
+    end
+    private :_guessed_model_insts
+
+
+    # Internal routine to update note for Music or HVMA
+    #
+    # @param record [ActiveRecord] ActiveRecord instance
+    # @param in_note [String, NilClass] note in the input CSV
+    # @param mu_tit [String] Title for Music for message
+    # @param rlc [HaramiVid::ResultLoadCsv] to record the change
+    # @param do_update: [Boolean] if true (Def: false), commit to saving.
+    # @return [NilClass, Hash] nil if skipped or do_update is falsy. Else, Hash with keys including
+    #    :updated and :failed with a value of 1 or 0. See {ModuleCsvAux::StatsSuccessFailure}
+    def _update_note_from_csv(record, hsrow, kwd, mu_tit, rlc, do_update: false)
+      in_note = hsrow[kwd]
+      note2add = (in_note.present? ? preprocess_space_zenkaku(in_note, strip_all: true) : nil)
+
+      if record.note.blank?
+        record.note = note2add
+        rlc.send kwd.to_s+'=', [nil, note2add]
+        notice_msg = sprintf("%s#note %s is added to Music %s", record.class.name, note2add.inspect, mu_tit.inspect)
+        if do_update
+          if record.save
+            alert_messages[:notice] << notice_msg
+            return StatsSuccessFailure.initial_hash_for_key(updated: 1)
+          else
+            transfer_errors(record, prefix: "[#{record.class.name}] Failed to add note #{note2add.inspect} for Music #{mu_tit.inspect} (pID=#{record.id})")
+            return StatsSuccessFailure.initial_hash_for_key(failed: 1)
+          end
+        else
+          alert_messages[:notice] << notice_msg
+          return
+        end
+      elsif note2add && !record.note.include?(note2add)
+        obj = (record.respond_to?(:music) && record.music || record)
+        obj_dom_id = obj.model_name.singular+"_"+obj.id.to_s  # dom_id (a view helper) is replicated...
+        s_link = ActionController::Base.helpers.link_to(record.class.name, "#"+obj_dom_id, title: "pID=#{record.id}")
+        alert_messages[:warning] << sprintf("WARNING: Given %s for %s#note is ignored for Music %s.", s_link, ERB::Util.html_escape(note2add.inspect), ERB::Util.html_escape(mu_tit.inspect)).html_safe
+        return
+      end
+      nil
+    end
+    private :_update_note_from_csv
+
+
+    # Common method to handle the returned value from sub-methods
+    #
+    # @param model_key [Symbol, String] :musics, :translations etc that may have been updated
+    # @param hsin [Hash, NilClass] nil if the process has been basically skipped without a message.  If Hash, it may contain :notice, :warning, and :created (Integer) etc.
+    # @param allstats [StatsSuccessFailure] The contents may be updated destructively.
+    # @return [Boolean] true if anything on DB has changed.
+    def _update_allstats(model_key, hsin, allstats)
+      return if !hsin
+
+      return false if !hsin.has_key?(StatsSuccessFailure.initial_hash_for_key.keys.first)  # "created", "failed"
+
+      allstats.add_stat_hash_to(hsin, model_key) || raise("Nothing changed, but this should never happen...")  # either :created or :failed
+      (hsin[:failed] != 0)  # Note if all values in hsin were zero, it would raise an error in StatsSuccessFailure#add_stat_hash_to defined in ModuleCsvAux 
+    end
+    private :_update_allstats
+
+
+    # May create the first EN Translation for Music
+    #
+    # If EN lang is not is_orig and if Music has no EN translation
+    # and if :music_en in CSV is significant, the first EN Translation for Music
+    # is createdhere.
+    #
+    # @param record [ActiveRecord] Music or ActiveRecord instance
+    # @param tit_en [String, NilClass] note in the input CSV
+    # @param mu_tit [String] Title for Music for message
+    # @param rlc [HaramiVid::ResultLoadCsv] to record the change
+    # @return [NilClass, Hash] nil if skipped. Hash with key of :warning if attempted to save it, be it successful or not.
+    #    Else, Hash of which the keys include :created and :failed with a value of 1 or 0. See {ModuleCsvAux::StatsSuccessFailure}
+    def _create_music_en_trans_from_csv(record, tit_en, mu_tit, rlc)
+      return if tit_en.blank? || "en" == record.orig_langcode.to_s
+      if record.translations.where(langcode: "en").exists?
+        return if record.translations.where(langcode: "en").pluck(:title, :alt_title).flatten.compact.include?(definite_article_to_tail(tit_en)) # Exact match between DB and CSV
+        alert_messages[:warning] << sprintf("WARNING: EN-title #{tit_en.inspect} for Music in CSV is inconsistent with those in DB #{record.title_or_alt(langcode: "en").inspect} for Music #{mu_tit.inspect}")
+        return
+      end
+
+      tra = Translation.new(title: definite_article_to_tail(tit_en), langcode: "en") 
+      record.translations << tra  # save
+
+      if tra.errors.any?
+        transfer_errors(tra, prefix: "[Translation(EN)] #{definite_article_to_tail(tit_en).inspect} for Music #{mu_tit.inspect} (pID=#{record.id}): ")
+        return StatsSuccessFailure.initial_hash_for_key(failed: 1)
+      else
+        return StatsSuccessFailure.initial_hash_for_key(created: 1)
+      end
+    end
+    private :_create_music_en_trans_from_csv
+
+
+    # Internal routine to update timing
+    #
+    # @param record [ActiveRecord] ActiveRecord instance
+    # @param hsrow [Hash] Data imported from CSV. See {ModuleCsvAux#convert_csv_to_hash_core}
+    # @param mu_tit [String] Title for Music for message
+    # @param rlc [HaramiVid::ResultLoadCsv] to record the change
+    # @return [NilClass, Integer] nil if skipped. Otherwise Integer (of timing)
+    def _update_hvma_timing_from_csv(record, hsrow, mu_tit, rlc)
+      timing = hsrow[:timing]
+      timing_csv = (timing.present? ? timing.to_i : nil)
+      if record.new_record?
+        record.timing = timing_csv
+        return
+      end
+
+      if !timing_csv || (record.timing.present? && record.timing == timing_csv)
+        return
+      elsif record.timing.blank?
+        record.timing = timing_csv
+        rlc.timing = [nil, timing_csv]
+        alert_messages[:notice] << sprintf("NOTE: Timing for Music %s is updated to %d.", mu_tit.inspect, timing_csv)
+        record.timing
+      else
+        alert_messages[:warning] << sprintf("WARNING: Timing on DB (%d) for Music %s is inconsistent with the given one (%d) and is NOT updated.", record.timing, mu_tit.inspect, timing_csv)
+        return
+      end
+    end
+    private :_update_hvma_timing_from_csv
+
+    # Common method to handle the returned value from sub-methods
+    #
+    # @param record [ActiveRecord] to save
+    # @param mu_tit [String] Musit title, likely taken from CSV
+    # @param music [Music] parent Music for record
+    # @param allstats [StatsSuccessFailure] The contents may be updated destructively.
+    # @param model_key: [NilClass, Symbol, String] :harami_vid_music_assocs or :artist_music_plays (auto-set from record)
+    # @return [Boolean] true if anything on DB has changed.
+    # @yield [ActiveRecord] called when record#save fails.
+    def _save_set_allstats(record, mu_tit, music, allstats, model_key: nil)
+      model_key ||= record.class.name.underscore.pluralize.to_sym
+      ret = false
+      if record.save
+        ret = record.saved_changes?
+        kwd = :created
+      else
+        yield(record) if block_given?
+        transfer_errors(record, prefix: "[#{record.class.name}] (pID=#{record.id.inspect}) Failed to save for some reason for Music(pID=#{music.id}) #{mu_tit.inspect}")
+        kwd = :updated
+      end
+      allstats.add_stat_hash_to(StatsSuccessFailure.initial_hash_for_key(**{kwd => 1}), model_key) || raise("Nothing changed, but this should never happen...")  # either :created or :failed
+      ret
+    end
+    private :_save_set_allstats
+
+
+    # @param hsrow [Hash] Data imported from CSV. See {ModuleCsvAux#convert_csv_to_hash_core}
+    # @return [String]
+    def _str_music_with_csv_titles(hsrow)
+      "Music with title (#{hsrow[:music_ja].inspect} / #{hsrow[:music_en].inspect})"
+    end # def _str_music_with_csv_titles()
+    private :_str_music_with_csv_titles
 
 end
 

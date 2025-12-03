@@ -45,11 +45,11 @@
     <% harami_vid.musics.order(:timing).each_with_index do |music, i_mus| %>
       <% hvmas = harami_vid.harami_vid_music_assocs.where(music: music) %>
       <% @hvma = hvma = hvmas.first %>  <%# Instance variable required for an embedded HTML %>
-      <tr>
+      <% assoc_pid = (hvma && hvma.id ? hvma.id : "'Not found strangely.'") %>  <%# Usually Integer, but maybe String. %>
+      <tr id="#{dom_id(music)}">
         <td>
           <% helptxt = "sequential number" %>
           <% if canedit_hvid %>
-            <% assoc_pid = (hvma && hvma.id ? hvma.id : "'Not found strangely.'") %>  <%# Usually Integer, but maybe String. %>
             <% helptxt += " (Assoc pID=#{assoc_pid})" %>
           <% end %>
           <span title="<%= helptxt %>"><%= i_mus+1 %></span>

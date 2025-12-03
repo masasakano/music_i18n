@@ -102,3 +102,9 @@ music_light:
   genre: genre_pop
   note: MusicLight with no harami_vids
 
+music_rain:
+  year: 2021
+  place: unknown_place_unknown_prefecture_japan
+  genre: genre_pop
+  note: MusicRain with no harami_vids
+

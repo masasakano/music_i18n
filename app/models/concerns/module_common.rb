@@ -377,6 +377,30 @@ module ModuleCommon
     tit.sub(/,\s*(the|le|la|les|l'|los)/i, "").gsub(/\s+/, "_").underscore.camelize.gsub(/[\-()]/, "_").gsub(/[「」『』<>{},!.?*$#\[\]]/, "")  # an article at the tail is removed
   end
 
+  # Convert a HMS-type String to Integer second
+  #
+  # @example
+  #   '12:34:56'.split(':').map(&:to_i).inject(0) { |a, b| a * 60 + b }
+  #   # => 45296
+  #   '34:56'.split(':').map(&:to_i).inject(0) { |a, b| a * 60 + b }
+  #   # => 2096
+  #
+  # @see https://stackoverflow.com/a/27982733/3577922 
+  #
+  # @param str [String]
+  # @param blank_is_nil: [Boolean] if true (Def: false) and if "" is given, nil is returned.
+  # @return [Integer] in seconds.  If nil is given, nil is returned.
+  def hms2sec(str, blank_is_nil: false)
+    return str if !str
+    return nil if blank_is_nil && str.blank?
+    str = str.strip
+    sign = ((/\A\-/ =~ str) ? -1 : 1)
+    str = str[1..-1] if sign == -1
+    sign * str.split(':').map(&:to_i).inject(0){ |a, b| a * 60 + b }
+  end
+  ########## TODO ###########
+  #  This method should be migrated from ApplicationHelper (!)
+
   # Removes the beginning and/or end of String constraint in Regexp
   #
   # Considers '\A', '^', '$', '\Z', '\z'
@@ -558,6 +582,45 @@ module ModuleCommon
         end
       }
     end
+  end
+
+  # Returns an Array of each element of html-safe String of link_to Record-show
+  #
+  # @example Default
+  #   relation2links(Artist.all)  # defined in ModuleCommon
+  #     # => ['<a href="/en/artists/5" title="(pID=5)">Queen</a>', '<a href="/en/artists/8" title="(pID=8)">The Beatles</a>', ...]
+  #     # NOTE: the locale is I18n.locale as opposed to the is_orig one
+  #   relation2links(Artist.all).inspect.html_safe
+  #     # => html_safe String
+  #
+  # @example with Block (here, "the" is placed at the tail).
+  #   relation2links(Artist.all, distinct: true){ |record, title|  # defined in ModuleCommon
+  #     [record.title_or_alt, record.id.to_s]
+  #   }
+  #     # => ['<a href="/en/artists/5" title="5">Queen</a>',       '<a href="/en/artists/8" title="8">Beatles, The</a>', ...]
+  #
+  # @param rela [ActiveRecord::Relation] This has to be Relation unless a block is given, in which case an Array is also accepted.
+  # @return [Array<String#html_safe>]
+  # @yield [ActiveRecord] should return a 2-element Array of String for Linked-String and title-for-a-tag.
+  def relation2links(rela, distinct: true)
+    rela = rela.distinct if distinct
+    if !block_given?
+      title_method = :id
+      %i(title_or_alt_for_selection title).each do |em|
+        title_method = em if rela.klass.method_defined? em
+        break
+      end
+    end
+
+    rela.map{|record|
+      if block_given?
+        linked, s_title = yield(record) if block_given?
+      else
+        linked  = record.send(title_method)
+        s_title = sprintf("(pID=%d)", record.id)
+      end
+      ActionController::Base.helpers.link_to(linked, Rails.application.routes.url_helpers.music_path(record), title: s_title)
+    }
   end
 
   # ActiveRecord#changed? returns true even if nil is changed into blank like "".

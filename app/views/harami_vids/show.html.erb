@@ -51,7 +51,7 @@
   <div>
   <dt class="item_event"> <%= t(:Events) %> [<%= t(:EventGroup)%>]:</dt>
   <dd class="item_event">
-    <%= render partial: "event_event_items", locals: {from_non_turbo: true} %>
+    <%= render partial: "harami_vids/event_event_items", locals: {from_non_turbo: true} %>
   </dd>
   </div>
 
@@ -125,13 +125,13 @@
 <%= link_to t("layouts.back_to_index"), harami_vids_path %>
 
 <hr>
-<%= render partial: 'music_table', locals: {harami_vid: @harami_vid, add_buttons: true} %>
+<%= render partial: 'harami_vids/music_table', locals: {harami_vid: @harami_vid, add_buttons: true} %>
 <hr>
-<%= render partial: 'other_harami_vids_table', locals: {harami_vid: @harami_vid, mark_self: true} %>
+<%= render partial: 'harami_vids/other_harami_vids_table', locals: {harami_vid: @harami_vid, mark_self: true} %>
 <% if can? :read, Harami1129 %>
  <div class="editor_only">
   <hr>
-  <%= render partial: 'harami1129_table', locals: {harami_vid: @harami_vid, add_buttons: true} %>
+  <%= render partial: 'harami_vids/harami1129_table', locals: {harami_vid: @harami_vid, add_buttons: true} %>
  </div>
 <% end %>
 

@@ -1375,6 +1375,31 @@ music_light_en:
   note: MusicLightEn
 # create_user: user_sysadmin   not working....
     
+music_rain_ja:
+  translatable: music_rain (Music)
+  langcode: ja
+  title: "雨"
+  alt_title: 
+  ruby: "アメ"
+  alt_ruby: 
+  romaji: "Ame"
+  alt_romaji: 
+  is_orig: true
+  weight: 0
+  create_user_id: 1
+  update_user_id: 1
+  note: MusicRainJa
+
+music_rain_en:
+  translatable: music_rain (Music)
+  langcode: en
+  title: "Rain"
+  is_orig: false
+  weight: 100
+  create_user_id: 1
+  update_user_id: 1
+  note: MusicRainEn
+
 artist_unknown_en:
   translatable: artist_unknown
   translatable_type: Artist

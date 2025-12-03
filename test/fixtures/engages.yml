@@ -131,4 +131,27 @@ engage_proclaimers_light:
   year: 1994
   note: proclaimers's The Light
 
+engage_haramichan_rain_composer:
+  music: music_rain
+  artist: artist_harami
+  engage_how: engage_how_composer
+  contribution: 1
+  year: 2021
+  note: HARAMIchan's Rain Composer
+
+engage_haramichan_rain_arranger:
+  music: music_rain
+  artist: artist_harami
+  engage_how: engage_how_arranger
+  contribution: 1
+  year: 2021
+  note: HARAMIchan's Rain Arranger
+
+engage_haramichan_rain_player:
+  music: music_rain
+  artist: artist_harami
+  engage_how: engage_how_player
+  contribution: 1
+  year: 2021
+  note: HARAMIchan's Rain Player
 

@@ -2,13 +2,9 @@
 
 # Controller to populate an uploaded file to the DB
 class Musics::UploadMusicCsvsController < ApplicationController
- 
   include ModuleUploadCsv
 
   before_action :authorize_for_edit, only: [:create]
-
-  # Allowed maximum lines (including blank lines!)
-  MAX_LINES = 250
 
   # POST /musics/upload_music_csvs
   # POST /musics/upload_music_csvs.json (???)
@@ -36,7 +32,7 @@ class Musics::UploadMusicCsvsController < ApplicationController
 
     respond_to do |format|
       format.html { render :index, status: :ok, notice: 'CSV uploaded.' }
-      format.json { render :index, status: :ok, location: @harami1129 }
+      format.json { render :index, status: :ok, location: new_music_url }
     end
   end
 

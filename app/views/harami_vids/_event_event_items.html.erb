@@ -7,6 +7,7 @@
      from_non_turbo = false
    end %>
 
+<% set_event_event_items if !@event_event_items %> <%# defined in HaramiVidsHelper %>
 <%= turbo_frame_tag "show_events_"+dom_id(@harami_vid) do %>
     <% sorted_event_event_items = sorted_event_event_items_by_timing(@harami_vid, @event_event_items) if sorted_event_event_items.blank? %> <%# defined in app/helpers/harami_vids_helper.rb, sorting the varible by Music timing %>
     <% def_artist = Artist.default(:HaramiVid) %>
