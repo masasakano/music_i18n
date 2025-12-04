@@ -111,3 +111,83 @@
 </table>
 </section> <!-- section id="harami_vids_show_musics" -->
 
+<%# ------------------------------------------------------------------- %>
+
+<% if can?(:update, harami_vid) %>
+<section id="harami_vids_hvma_csv_form">
+<h4 id="csv_file_upload">CSV file upload</h4>
+
+<%= form_tag(harami_vid_upload_hvma_csv_path(harami_vid_id: harami_vid.id), multipart: true) do |form| %>
+  <label for="upload_hvma_csv_csv_direct">Direct input:</label>
+  <%= text_area_tag "upload_hvma_csv[csv_direct]", harami_vid.csv_direct, size: "80x10", class: "csv-textarea", placeholder: "Paste CSV data here, e.g.,\n
+ # This line is ignored as a comment line. MAX: #{Musics::UploadMusicCsvsController::MAX_LINES} lines.
+1:1/20,,糸,Thread,中島みゆき,この日だけのスペシャルコラボ,1992,ロングヒット,,曲名と人名以外は空欄でも良い
+2:2/20,240,シェイク,,SMAP,,1996,SMAPの代表曲,,タイミングはHH:MM:SSでも秒数でも
+3曲目,5:20,,Let It Be,\"Beatles, The\",,1969,,,曲名や人命にコンマが入る時は二重引用符で囲う
+4曲目,8:30,456,,789,,,,1234,曲名のpIDを記述するのは和名曲名欄で英語曲名は空欄に" %><br>
+  <label for="upload_hvma_csv_file">Or, upload CSV (.csv) file:</label>
+  <%= file_field_tag 'upload_hvma_csv[file]', accept: 'text/csv' %>
+  <div class="actions">
+    <%= submit_tag "Submit/Upload", name: nil %>
+  </div>
+<% end %>
+
+<section id="harami_vids_hvma_csv_format">
+<h5>CSV file format</h5>
+
+<div class="show_or_hide" style="display: none;">
+
+<p>
+This is a way to mass-register many Music-s with timing to this HaramiVid, uploading a CSV file.
+</p>
+<p>
+  <strong>NOTE</strong>: Both Music and Artist in each CSV row must be already registered in the Database.  But worry not, you can anyway attempt the CSV file.  The rows containing Music or Artist will be displayed as a CSV file, which you can upload separately to register them at <%= link_to "Music#new page", new_music_url+"#music_csv_form" %>.
+</p>
+<p>
+If you use a spreadsheet software (such as Google-Sheet, LibreOffice/Calc, MicroSoft/Excel, Apple/Numbers), you can choose &quot;CSV&quot; in exporting. Just make sure to choose the newline of LF and delimter of a comma.
+</p>
+<p>
+(なお、ここでは(CSV標準から外れるが)、「#」から始まる行は自動的にコメント行として無視されることと定義する。)
+</p>
+<p>
+<strong>Our format</strong>: (<%= Music::MUSIC_CSV_FORMAT.map(&:to_s).join(', ') %>)
+</p>
+
+<ol> <%# HaramiVid::MUSIC_CSV_FORMAT = %i(header timing music_ja music_en artist hvma_note year music_note event_item_id memo) %>
+  <li><strong>header</strong>: row header (any human-readable comment)</li>
+  <li><strong>timing</strong>: timing ([sec] or (HH:)MM:SS)</li>
+  <li><strong>music_ja</strong>: Music title in Japanese (or pID)</li>
+  <li><strong>music_en</strong>: Music title in English
+    <% if can?(:update, Translation) %>
+      (maybe your own translation)
+    <% end %>
+  </li>
+  <li><strong>artist</strong>: Artist title (or pID)</li>
+  <li><strong>hvma_note</strong>: Note for Association</li>
+  <li><strong>year</strong>: (Release or composed) Year</li>
+  <li><strong>music_note</strong>: Note for Music</li>
+  <li><strong>event_item_id</strong>: EventItem pID or leave it blank</li>
+  <li><strong>memo</strong>: Human-readable memo (ignored)</li>
+</ol>
+
+<h5>Example</h5>
+
+<pre>
+ # abc.csv これはコメント行です。
+1:1/20,,糸,Thread,中島みゆき,この日だけのスペシャルコラボ,1992,ロングヒット,,タイミングは空欄でも良い
+2:2/20,240,シェイク,,SMAP,,1996,SMAPの代表曲,12345,EventItemのpIDはもし分かればで十分
+(3),5:20,レット・イット・ビー,Let It Be,"Beatles, The",,1969,,,曲名や人命にコンマが入る時は二重引用符で囲うこと
+4曲目,8:30,456,,789,,,,1234,曲名のpIDを記述するのは和名曲名欄で英語名曲名は空欄に
+
+</pre>
+
+<%= render partial: "layouts/csv_format_common", locals: {base_h: 5} %>
+</div>
+
+(……<a id="Link_show_or_hide" title="Show or hide" href="#">Show</a>)
+
+</section> <!-- section id="harami_vids_hvma_csv_format" -->
+</section> <!-- section id="harami_vids_hvma_csv_form" -->
+
+<% end %> <%# if can?(:update, harami_vid) %>
+

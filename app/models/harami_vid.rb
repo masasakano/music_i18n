@@ -130,6 +130,8 @@ class HaramiVid < BaseWithTranslation
 
   attr_accessor :form_info  # various information about the result of form inputs, especially in create.
 
+  attr_accessor :csv_direct # for /app/controllers/harami_vids/upload_hvma_csvs_controller.rb
+
   # two constants used in the class method default_place (thus also add_default_place), both defined in ModuleDefaultPlace
   #
   # The statements may fail in testing (though never in development/production as long as the data are seeded)
@@ -1257,13 +1259,19 @@ class HaramiVid < BaseWithTranslation
       next if ea_li.blank?
       next if '#' == ea_li.strip[0,1]
 
-      csv = CSV.parse(ea_li.strip)[0] || next  # for the blank line, csv.nil? (n.b. without strip, a line with a space would be significant.)
       allstats.attempted_rows += 1
+
+      begin
+        csv = CSV.parse(ea_li.strip)[0] || next  # for the blank line, csv.nil? (n.b. without strip, a line with a space would be significant.)
+      rescue CSV::MalformedCSVError => er
+        alert_messages[:alert] << "ERROR(#{er.class.name}) at Line #{iline} with message (#{er.message.sub(/ in line 1.?$/, '')}): Original CSV line: "+ea_li.strip
+        next
+      end
 
       arcsv[iline] = hsrow = self.class.convert_csv_to_hash(csv)  # defined in ModuleCsvAux
       # Guaranteed there is no "" but nil.
 
-      musics[iline], mu_tit, artists[iline], art_tit = _determine_music_artist_from_csv(hsrow, iline: iline)
+      musics[iline], mu_tit, artists[iline], art_tit = _determine_music_artist_from_csv(hsrow, ea_li, iline: iline)
       if !musics[iline]
         allstats.rejected_rows += 1
         next
@@ -1361,13 +1369,14 @@ class HaramiVid < BaseWithTranslation
     # Determines and returns Music & Artist from CSV-based data
     #
     # @param hsrow [Hash] Data imported from CSV. See {ModuleCsvAux#convert_csv_to_hash_core}
+    # @param org_line [String] Original (chomped) line
     # @param iline: [Integer] Line number in the input CSV file (for Error message)
     # @return [NilClass, Array<Music, String, Artist, String>] If something fails, nil is returned, while self#errors is set.
     #    Otherwise, 4-element Array of Music and its title (likely as given in the CSV), and Artist and its title
-    def _determine_music_artist_from_csv(hsrow, iline: nil)
+    def _determine_music_artist_from_csv(hsrow, org_line, iline: nil)
       # If +music_ja+ is an integer-like String and if +music_en+ is blank, Music is identified and replaces with the title-String
       if !hsrow[:music_ja] && !hsrow[:music_en]
-        alert_messages[:alert] << "Neither of Music titles is specified."
+        alert_messages[:alert] << "Neither of Music titles is specified. CSV-row: "+org_line
         return
       end
 
@@ -1382,14 +1391,14 @@ class HaramiVid < BaseWithTranslation
       ## First, gets Artist(s)
       # Here, arts is ActiveRecord::Relation (multiple candidates of Artist), and artist is a single Artist
       # art_tit is the title of Artist, usually the given one in CSV.
-      arts, artist, art_tit = _determine_artist_from_csv(hsrow)
+      arts, artist, art_tit = _determine_artist_from_csv(hsrow, org_line, iline: iline)
       return if !art_tit  # Artist does not exist.
       arts ||= Artist.where(id: artist.id)  # if hsrow[:artist] is an Artist, this has not been defined while only +artist+ is defined. 
 
       # NOTE: hsrow[:artist] (thouhg not used hereafter) is either an Artist (==artist) or String art_tit ; see ModuleCsvAux#convert_csv_to_hash_core
 
       ## Second, gets Music-s candidates
-      muss, music, mu_tit = _determine_musics_from_csv(hsrow, arts, art_tit, iline: iline)
+      muss, music, mu_tit = _determine_musics_from_csv(hsrow, org_line, arts, art_tit, iline: iline)
       return if !mu_tit
       return [music, mu_tit, _narrowed_down_artist(artist, arts, music), art_tit] if music
 
@@ -1415,9 +1424,11 @@ class HaramiVid < BaseWithTranslation
     # artist (2nd) is only defined if a single Artist is determined.
     #
     # @param hsrow [Hash]
+    # @param org_line [String] Original (chomped) line
+    # @param iline: [Integer] Line number in the input CSV file (for Error message)
     # @return [NilClass, Array<Artist::Relation, Artist, String>] If something fails, nil is returned, while self#errors is set.
     #    Otherwise, 3-element Array of Artist::Relation (or nil), Single Artist or nil, and its title (likely as given in the CSV)
-    def _determine_artist_from_csv(hsrow)
+    def _determine_artist_from_csv(hsrow, org_line, iline: nil)
       if hsrow[:artist].respond_to? :engages
         # NOTE: if CSV contains an Integer and if it is a pID, hsrow[:artist] should be Artist. see ModuleCsvAux#convert_csv_to_hash_core
         artist = hsrow[:artist]  # Artist instance.
@@ -1429,7 +1440,7 @@ class HaramiVid < BaseWithTranslation
       art_tit= hsrow[:artist]  # as in CSV input; n.b., hsrow[:artist] is guaranteed to be String.
       arts = _guessed_model_insts(hsrow, :artist, Artist)
       if arts.blank?
-        alert_messages[:alert] << "No Artist is specified in Line=#{iline} for "+_str_music_with_csv_titles(hsrow)+"."
+        alert_messages[:alert] << "No Artist is specified"+(iline ? "in Line=#{iline}" : "")+" for "+_str_music_with_csv_titles(hsrow)+". CSV-row: "+org_line
         return
       end
 
@@ -1479,12 +1490,13 @@ class HaramiVid < BaseWithTranslation
     # is required.
     #
     # @param hsrow [Hash] Data imported from CSV. See {ModuleCsvAux#convert_csv_to_hash_core}
+    # @param org_line [String] Original (chomped) line
     # @param arts [Artist::Relation]
     # @param art_tit [String] Artist title, usually takenn from CSV (unless pID for Artist is specified in CSV)
     # @param iline: [Integer] Line number in the input CSV file (for Error message)
     # @return [NilClass, Array<Music::Relation, Music, String>] If something fails, nil is returned, while self#errors is set.
     #    Otherwise, 3-element Array of Music::Relation (or nil), Single Music or nil, and its title (likely as given in the CSV)
-    def _determine_musics_from_csv(hsrow, arts, art_tit, iline: nil)
+    def _determine_musics_from_csv(hsrow, org_line, arts, art_tit, iline: nil)
       muss_without_artist = nil
       mu_tit = nil
 
@@ -1497,7 +1509,7 @@ class HaramiVid < BaseWithTranslation
       end
 
       if !muss_without_artist
-        alert_messages[:alert] << _str_music_with_csv_titles(hsrow)+" is not found"+(iline ? " at Line=#{iline}." : ".")
+        alert_messages[:alert] << _str_music_with_csv_titles(hsrow)+" is not found"+(iline ? " at Line=#{iline}" : "")+". CSV-row: "+org_line
         return
       end
 
@@ -1615,10 +1627,16 @@ class HaramiVid < BaseWithTranslation
           return
         end
       elsif note2add && !record.note.include?(note2add)
-        obj = (record.respond_to?(:music) && record.music || record)
-        obj_dom_id = obj.model_name.singular+"_"+obj.id.to_s  # dom_id (a view helper) is replicated...
-        s_link = ActionController::Base.helpers.link_to(record.class.name, "#"+obj_dom_id, title: "pID=#{record.id}")
-        alert_messages[:warning] << sprintf("WARNING: Given %s for %s#note is ignored for Music %s.", s_link, ERB::Util.html_escape(note2add.inspect), ERB::Util.html_escape(mu_tit.inspect)).html_safe
+        tgtpath = 
+          if record.respond_to?(:music)  # HaramiVidMusicAssoc (possibly also ArtistMusicPlay in the future?)
+            music = record.music
+            obj_dom_id = music.model_name.singular+"_"+music.id.to_s  # dom_id (a view helper) is replicated...
+            Rails.application.routes.url_helpers.polymorphic_path(self) + obj_dom_id  # HaramiVid-show (NOTE: the current CREATE path differs!)
+          else
+            Rails.application.routes.url_helpers.polymorphic_path(record)
+          end
+        s_link = ActionController::Base.helpers.link_to(record.class.name, tgtpath, title: "pID=#{record.id}")
+        alert_messages[:warning] << sprintf("WARNING: Given %s for %s#note is ignored for Music %s.", ERB::Util.html_escape(note2add.inspect), s_link, ERB::Util.html_escape(mu_tit.inspect)).html_safe
         return
       else
         # If the existing ActiveRecord#note contains the one in CSV, it is skipped.

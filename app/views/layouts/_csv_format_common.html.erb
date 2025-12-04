@@ -1,0 +1,32 @@
+<%# locals: (base_h: 4) %>
+
+<section id="csv_format_description_note">
+<%= tag.send("h"+base_h.to_s, "注意点") %>
+
+<ol>
+  <li>ルビやローマ字をつける時は、必ず日本語曲名を記載すること。</li>
+  <li>日本語名称は、原則として空白は入れない。姓名の間にも空白なし(例: 「広瀬香美」)。英語など欧州言語の空白に対応するのは「・」(なかぐろ)(例: 「ザ・タイマーズ」)。アラビア語の「al-」は「アル=」。</li>
+  <li>日本語仮名はいわゆる全角カナ。半角カナは使用しない。数字とアルファベットはASCII(アクセント付きアルファベットの場合はUTF-8: 例「fhána」)、すなわち全角数字や全角アルファベットは使用しない。</li>
+  <li>音楽家と曲の関係は、後で追加や編集可能(作詞作曲や共同作曲など)。ここでは上のうちで一つだけ指定すること。</li>
+  <li>欧州言語での定冠詞(The や Lesなど)は。普通に表記しても、コンマに続いて後置しても良い(例: 「Les Misérables」「&quot;Misérables, Les&quot;」)。後者の場合は、二重引用符で括ることを忘れずに。日本語化してカタカナ表記する場合は前者に限る。</li>
+</ol> 
+</section> <!-- section id="csv_format_description_note" -->
+
+<section id="csv_format_description_detail">
+<%= tag.send("h"+base_h.to_s, "Detail") %>
+
+The CSV is a file format of (strictly speaking, there are a few variants in the CSV formats, but this is the accepted format here):
+
+<ol>
+  <li><strong><%= Musics::UploadMusicCsvsController::MAX_LINES %> lines at maximum</strong>,</li>
+  <li>Filename must have a suffix of <dfn>.csv</dfn>,</li>
+  <li>each line ending with a newline (LF) represents a record,</li>
+  <li>each line contains an arbitrary number of items, the meaning of each item of which depends on the interpreter,</li>
+  <li>items in each line is separated by a single ASCII comma &ldquo;,&rdquo;,</li>
+  <li>each item may be enclosed within a pair of ASCII double quotation marks &ldquo;&quot;&rdquo;, but to do that you must enclose the entire item, that is, you cannot enclose only a part of the item with a pair of double quatation mark</li>
+  <li>to include a comma in an item, you must enclose the entire item with a pair of ASCII double quotation marks &ldquo;&quot;&rdquo;,</li>
+  <li>to escape a double quotation mark character, i.e., to include a double quotation mark character in an item, doulbe it, i.e., any two consequtive double quotation marks &ldquo;&quot;&quot;&rdquo; is interpreted as a single double quotation in the.</li>
+  <li>(though it is not in the CSV standard) any line beginning with a &ldquo;#&rdquo; (possibly preceding with whitespaces) is interpreted as a comment and is ignored.</li>
+</ol>
+</section> <!-- section id="csv_format_description_detail" -->
+

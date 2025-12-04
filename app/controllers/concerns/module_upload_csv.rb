@@ -26,7 +26,7 @@ module ModuleUploadCsv
   #     Music.populate_csv(csv_str)
   #   }
   #
-  # @param uploaded_io [IO] uploaded_io for the CSV file
+  # @param uploaded_io [IO, String] uploaded_io for the CSV file or String
   # @param in_redirect_path: [String] Recommended to specify (e.g., +new_music_url+) though not mandatory (+root_path+ in Default)
   # @param in_redirect_path_invalid_encoding: [NilClass, String] In default, the same as in_redirect_path
   # @return [Hash, NilClass] if falsy, something went wrong.
@@ -36,9 +36,10 @@ module ModuleUploadCsv
     if uploaded_io.blank?
       return _format_if_err_in_csv("No CSV file is specified.", in_redirect_path)
     end
+    original_filename = (uploaded_io.respond_to?(:original_filename) ? uploaded_io.original_filename : "STDIN")
 
-    csv_str = uploaded_io.read.force_encoding('UTF-8')
-    msg = sprintf "Controller(%s): CSV file (Size=%d[bytes]) uploaded by User(ID=%d): (%s)", self.class.name, csv_str.bytesize, current_user.id, uploaded_io.original_filename
+    csv_str = (uploaded_io.respond_to?(:gsub) ? uploaded_io : uploaded_io.read.force_encoding('UTF-8'))
+    msg = sprintf "Controller(%s): CSV file (Size=%d[bytes]) uploaded by User(ID=%d): (%s)", self.class.name, csv_str.bytesize, current_user.id, original_filename
     logger.info msg
 
     if !csv_str.valid_encoding?
@@ -46,14 +47,14 @@ module ModuleUploadCsv
     end
 
     nlines = csv_str.chomp.split.size
-    msg = sprintf "CSV file (%s): nLines=%d, nChars=%d", uploaded_io.original_filename, nlines, csv_str.size
+    msg = sprintf "CSV file (%s): nLines=%d, nChars=%d", original_filename, nlines, csv_str.size
     logger.info msg
 
     begin
       if nlines > MAX_LINES
         csv_str = csv_str.chomp.split[0, MAX_LINES].join("\n")
         msg1 = "WARNING: CSV file "
-        msg2 = sprintf "(%s) ", uploaded_io.original_filename
+        msg2 = sprintf "(%s) ", original_filename
         msg3 = sprintf "is trimmed to %d lines from %d lines.", MAX_LINES, nlines
         logger.warn msg1+msg2+msg3
         add_flash_message(:warning, msg1+msg3)  # defined in application_controller.rb

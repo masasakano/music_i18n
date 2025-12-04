@@ -73,14 +73,14 @@ class Musics::UploadHvmaCsvsControllerTest < ActionDispatch::IntegrationTest
     ## should not create when no file is specified"
     assert_no_difference(count_eq) do
       post harami_vid_upload_hvma_csv_url(harami_vid_id: @hvids.first.id),
-           params: {upload_hvma_csv: { file: "" } }
+           params: {upload_hvma_csv: { file: "", csv_direct: ""  } }
         # => e.g., http://www.example.com/harami_vids/980190967/upload_hvma_csv?locale=en
-      assert_response :redirect
-      assert_redirected_to @hvids.first
+      assert_response :unprocessable_content
+      #assert_redirected_to @hvids.first
     end
-    follow_redirect!
-    assert_includes css_select("div.alert").text, "No CSV file"
-    flash.clear  # follow_redirect! AND this line are essential.  Othewise flash from this persists in the next POST!
+    #follow_redirect!
+    assert_includes css_select("div.alert").text, "Either of uploading file or direct-input must be present"  # "No CSV file"
+    flash.clear  # follow_redirect! (if necessary) AND this line are essential.  Othewise flash from this persists in the next POST!
 
     assert_equal @release_dates, @hvids.map(&:release_date), "sanity check..."
     assert_nil   @allmdls[:hvmas].first.timing, "sanity check..."
@@ -323,7 +323,7 @@ class Musics::UploadHvmaCsvsControllerTest < ActionDispatch::IntegrationTest
       )
 
       post harami_vid_upload_hvma_csv_url(harami_vid_id: @hvids.first.id),
-           params: {upload_hvma_csv: { file: uploaded_file } }
+           params: {upload_hvma_csv: { file: uploaded_file, csv_direct: "" } }
       ## c.f., musics_upload_music_csvs_url, params: { file: fixture_file_upload('music_artists_3rows.csv', 'text/csv') }
     end
 

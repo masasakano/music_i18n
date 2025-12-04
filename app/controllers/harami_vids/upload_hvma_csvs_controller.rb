@@ -9,9 +9,20 @@ class HaramiVids::UploadHvmaCsvsController < ApplicationController
 
   # POST /harami_vid_music_assocs/upload_hvma_csvs
   def create
-    uploaded_io = upload_hvma_csvs_params[:file]  # IO object.
+    render_path = 'harami_vids/show'
+    uploaded_io, csv_direct = upload_hvma_csvs_params.slice(:file, :csv_direct).values  # IO object, String.
 
-    hsret = populate_csv_file(uploaded_io, in_redirect_path: harami_vid_url(@harami_vid)){ |csv_str|
+    if uploaded_io.blank? && csv_direct.blank? || uploaded_io.present? && csv_direct.present?
+      @harami_vid.errors.add :csv_direct, " Either of uploading file or direct-input must be present, NOT neither or both."
+      respond_to do |format|
+        hsstatus = {status: :unprocessable_content}
+        format.html { render template: render_path,    **hsstatus }
+        format.json { render json: @harami_vid.errors, **hsstatus }
+      end
+      return
+    end
+
+    hsret = populate_csv_file((uploaded_io || csv_direct), in_redirect_path: harami_vid_url(@harami_vid)){ |csv_str|  # defined in ModuleUploadCsv
       # the latter path should be new_music_url, too; but leaving it as musics_path for now for the sake of testing...
       @harami_vid.populate_hvma_csv(csv_str)
     }
@@ -30,8 +41,8 @@ class HaramiVids::UploadHvmaCsvsController < ApplicationController
     set_flash_messages
 
     respond_to do |format|
-      format.html { render 'harami_vids/show', status: :ok, notice: "CSV uploaded." }
-      format.json { render 'harami_vids/show', status: :ok, location: @harami_vid }
+      format.html { render template: render_path, status: :ok }
+      format.json { render template: render_path, status: :ok, location: @harami_vid }
     end
   end
 
@@ -39,7 +50,7 @@ class HaramiVids::UploadHvmaCsvsController < ApplicationController
 
   private
     def upload_hvma_csvs_params
-      params.require(:upload_hvma_csv).permit(:file)
+      params.require(:upload_hvma_csv).permit(:file, :csv_direct)
     end
 
     def authorize_for_edit
