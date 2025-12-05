@@ -3,7 +3,7 @@
 # Controller to populate an uploaded file to the DB
 class HaramiVids::UploadHvmaCsvsController < ApplicationController
   include ModuleUploadCsv
- 
+
   # This sets @harami_vid
   before_action :authorize_for_edit, only: [:create]
 
@@ -28,16 +28,12 @@ class HaramiVids::UploadHvmaCsvsController < ApplicationController
     }
     return if !hsret
 
+    # Here, @changes is either (nil, false, base::ResultLoadCsv); nil if not evaluated and false for CSV-format error; RLC#music_ja returns an Array
     @input_lines, @changes, @csv, @artists, @musics, @hvmas, @amps, @stats = hsret.slice(*(%i(input_lines changes csv artists musics hvmas amps stats))).values
-    @musics.each_index do |iline|
-      next if !hsret[:musics][iline]
-      %i(musics hvmas amps).each do |k_model|
-        next if !hsret[k_model][iline] || !hsret[k_model][iline].errors.any?
-        prefix = sprintf("[%s/pID=%s] for Music (pID=%d: %s) ", hsret[k_model][iline].class.name, hsret[k_model][iline].id.inspect, hsret[:musics][iline].id, hsret[:musics][iline].best_translation)
-        @harami_vid.transfer_errors(hsret[:musics][iline], prefix: prefix)
-      end
-    end
+    @unimported_csvs     = get_unimported_csvs
+    @missing_musics_csv  = get_missing_musics_csv  # always String, maybe ""
 
+    # sets flash messages based on HaramiVid#alert_messages
     set_flash_messages
 
     respond_to do |format|
@@ -61,8 +57,8 @@ class HaramiVids::UploadHvmaCsvsController < ApplicationController
         raise ActionController::RoutingError.new('Not authenticated...')
       elsif !can?(:edit, @harami_vid)
         logger.info sprintf('(%s#%s) User (ID=%d) access forbidden to HaramiVid(ID=%d)', self.class.name, __method__, current_user.id, @harami_vid.id)
-        render(:file => File.join(Rails.root, 'public/403.html'), :status => :forbidden, :layout => false)
-        #render status: :forbidden
+        render(file: File.join(Rails.root, "public/403.html"), status: :forbidden, layout: false)
+        # render status: :forbidden
         raise ActionController::RoutingError.new('Not authorized...')
       end
     end
@@ -75,11 +71,11 @@ class HaramiVids::UploadHvmaCsvsController < ApplicationController
       end
 
       ### This may (or frequently for large data) raise ActionDispatch::Cookies::CookieOverflow
-      #@harami_vid.alert_messages.each_pair do |etype, eary|
-      #  eary.each do |msg|
-      #    add_flash_message(etype, msg)  # defined in application_controller.rb
-      #  end
-      #end
+      # @harami_vid.alert_messages.each_pair do |etype, eary|
+      #   eary.each do |msg|
+      #     add_flash_message(etype, msg)  # defined in application_controller.rb
+      #   end
+      # end
 
       add_flash_message(:notice, msg_stats_summary)  # defined in application_controller.rb
     end
@@ -115,4 +111,66 @@ class HaramiVids::UploadHvmaCsvsController < ApplicationController
               item_keys.join("/"),
               msg_detail
     end
+
+
+    # Returns CSV rows that have caused erroneous results, such as, unidentified Music on DB
+    #
+    # @return [String] Never nil.
+    def get_unimported_csvs
+      ret = @input_lines.map.with_index{ |input_line, iline|
+        next input_line if @csv[iline].blank? && (false == @changes[iline])  # CSV-format error
+        next if @csv[iline].blank?                # Comment or blank line
+        next input_line if @musics[iline].blank?  # CSV-row, but Music is NOT identified
+        nil
+      }.compact.join("\n")
+      ret.present? ? ret+"\n" : ret
+    end
+
+
+    # Builds and returns a CSV of the missing Musics
+    #
+    # @return [String] Never nil
+    def get_missing_musics_csv
+      # Among hsmap_hvid_csv, %w(hvma_note event_item_id memo) are ignored as they are irrelevant to Music model instances.
+      hsmap_hvid_csv = array_to_hash(HaramiVid::MUSIC_CSV_FORMAT).with_indifferent_access  # defined in ModuleCommon
+      hsmap_mu_csv   = array_to_hash(Music::MUSIC_CSV_FORMAT).with_indifferent_access      # defined in ModuleCommon
+
+      default_objs = {
+        genre:      Genre.default(:HaramiVid).title(langcode: :en),
+        engage_how: EngageHow.default(:HaramiVid).title(langcode: :en),
+        country:    nil, # Country.unknown.title(langcode: :en),  # This should be auto-determined in CSV-import.
+      }.with_indifferent_access
+
+      @csv.map.with_index{ |csv, iline|  # The last few lines may be missing if they are not imported to CSV.
+        next if csv.blank?
+        next if @musics[iline].present?
+        arrow4csv = []
+        Music::MUSIC_CSV_FORMAT.each do |mu_csv_key| 
+          arrow4csv[hsmap_mu_csv[mu_csv_key]] = 
+            case mu_csv_key.to_s
+            when "row"
+              # Each row now begins with "Timing=nil;" etc
+              sprintf("Timing=%s", csv["timing"].inspect) + # For user information
+                ((s=csv["header"]) ? ";"+s : "")
+            when *(%w(music_ja music_en year))
+              csv[mu_csv_key]
+            when "memo"
+              csv["music_note"]
+            when *(%w(artist_ja artist_en))
+              hvid_artist = csv["artist"]
+              mu_key = "artist_" + guess_lang_code(hvid_artist)  # defined in ModuleCommon
+              (mu_key == mu_csv_key) ?  hvid_artist : nil
+            when "langcode"
+              (csv["music_ja"].present? ? "ja" : "en")
+            when *(%w(genre how country))
+              default_objs[mu_csv_key]
+            when *(%w(ruby romaji))
+              # ignores
+            else
+              raise "Contact the code developer: key=#{mu_csv_key.inspect}."   # Music::MUSIC_CSV_FORMAT is updated???
+            end
+        end
+        arrow4csv.present? ? arrow4csv.to_csv : nil
+      }.compact.join
+    end  # def missing_musics_csv
 end

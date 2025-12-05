@@ -32,7 +32,7 @@ module ModuleCsvAux
     def initialize
       @stats = {
         attempted_rows: 0,
-        attempted_models: 0,
+        attempted_models: 0, # Models attempted to create or update.
         rejected_rows: 0,  # The number of the CSV rows that are totally rejected and ignored, e.g., matched Record is Not Found.
         unchanged_rows: 0,  # The number of the CSV rows that changed nothing on DB, perhaps no need to change (b/c identical) or perhaps partially rejected.
       }.with_indifferent_access
@@ -182,7 +182,7 @@ module ModuleCsvAux
     end
 
     base::ResultLoadCsv.define_method :inspect do
-      sprintf "#<#{base.name}::RLC: %s>", self::MUSIC_CSV_FORMAT.map{|i| (res=send(i)) ? sprintf("@%s=%s", i.to_s, res.inspect) : nil}.compact.join(", ")
+      sprintf "#<#{base.name}::ResultLoadCsv %s>", base::MUSIC_CSV_FORMAT.map{|i| sprintf("@%s=%s", i.to_s, instance_variable_get("@"+i.to_s).inspect)}.join(", ")
     end
   end  # def self.included(base)
 

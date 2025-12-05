@@ -94,15 +94,23 @@ class Musics::UploadHvmaCsvsControllerTest < ActionDispatch::IntegrationTest
     old_music  = hvma_exist.music
     old_timing = hvma_exist.timing
     amp_exist  = @hvids.first.artist_music_plays.where(artist_id: Artist.default(:HaramiVid), music_id: old_music).first
+    mu_kampai = musics(:music_kampai)
+    mu_kampai_updated_at = mu_kampai.updated_at
+    mu_kampai_note       = mu_kampai.note
+    refute_equal @kampai_csv_year, mu_kampai.year, "#{[@kampai_csv_year, mu_kampai.year].inspect}"
 
-    ## Creation success
+    ## Create success
 #debugger
     assert_difference(count_eq, 133) do
       _post2create  # POST to upload a CSV file
       assert_response :success
-#print "DEBUG:27: \n"
-#pp HaramiVidMusicAssoc.order(created_at: :desc)[0..2]
     end
+
+    mu_kampai.reload
+    assert_operator mu_kampai_updated_at, :<, mu_kampai.updated_at  # b/c its note should be updated.
+    assert_nil  mu_kampai.year  # year is not updated from CSV even though Music.year is nil on DB.
+    # assert_equal @kampai_csv_year, mu_kampai.year
+    refute_equal mu_kampai.note, mu_kampai_note  # note should be updated
 
     hvid = @hvids.first.reload
     assert_equal hvid.musics.size, css_select(CSS_MUSIC_TR).size
@@ -134,12 +142,72 @@ class Musics::UploadHvmaCsvsControllerTest < ActionDispatch::IntegrationTest
     assert_equal @music_en_test_title, musics(:music_rain).title(langcode: :en)
     assert_includes css_select("div.alert.alert-info.notice").first.text, _music_note_csv(:music_kampai), "should be imported b/c that on DB has no Music#note, but..."
     refute_includes css_select("div.alert.alert-info.notice").first.text, _music_note_csv(:music_light), "should have no flash message after this is ignored b/c that on DB already contains this, too."
-    assert_includes css_select("div.alert.alert-warning").first.text, _music_note_csv(:music_rain), "should be skipped b/c that on DB already has something different already."
+    msg_warning = css_select("div.alert.alert-warning").first.text
+    assert_includes msg_warning, _music_note_csv(:music_rain), "should be skipped b/c that on DB already has something different already."
+    assert_match(/\b#{Regexp.quote(mu_kampai.title_or_alt)}\b.+\b(nil|none)\b.+\b[Yy]ear\b.?.?\b#{@kampai_csv_year.to_s}\b/i, msg_warning, "Message for Music#year not beng updated should be displayed, but...")
+    if false
+      print "DEBUG:40: [warnings]\n"
+      puts css_select("div.alert.alert-warning").to_s
+    end
+    msg_error_html = css_select("div.alert.alert-danger").to_s
+    msg_error      = css_select("div.alert.alert-danger").first.text
+    assert_includes msg_error, "inconsistent year"
+    assert_includes msg_error, "CSV::MalformedCSVError"
+    assert_includes msg_error, "although Musics with the title exist"
+    assert_includes msg_error_html, "</a>", "HTML anchors/links should be valid, but..."
+    if false
+      print "DEBUG:45: [errors]\n"
+      puts css_select("div.alert.alert-danger").to_s
+    end
 
-#print "DEBUG:58: \n"
+    ## Checking statistical info
+    nlines = (@csvfile_str.chomp+"\n").count("\n")
+    stat_str = css_select("div.alert.notice.alert-info").text.sub(/.*\bSummary: /m, "")
+    mat = %r@[^\d]+(?<ncsvs>[\d]+) CSV rows[^\d]+(?<nlines>[\d]+) lines? of input file\b[^\d]+(?<nrejects>[\d]+) rows?\b[^\d]+\bno matching Musics?\b[^\d]+(?<unchanged>[\d]+) rows?\b[^\d]+no changes?[^\d]+(?<accepted>[\d]+) rows? accepeted\b@.match(stat_str)
+
+    assert_equal nlines, mat[:nlines].to_i
+    ### Summary: Out of 4 CSV rows found in 4 lines of input file, 2 rows found no matching Music, 1 rows resulted in no changes, 1 rows accepeted for change on DB records.  Total number of model-records attempted to change is 0; 1 created, 0 updated, 0 failed.  Detail(created/updated/consistent/rejected/failed): Music (0/0/0/0/0); Artist (0/0/0/0/0); HaramiVidMusicAssoc (1/0/0/0/0); ArtistMusicPlay (0/0/0/0/0); Translation (0/0/0/0/0).  
+    
+    if false
+      print "DEBUG:50: [CSV-file]\n"
+      puts @csvfile_str
+    end
 #puts css_select("div.alert")
+#puts css_select("#show_unimported_csvs_textarea")
 ##puts css_select("dd#item_event")
 ##puts css_select("section#harami_vids_show_musics")
+
+    ar_csvfile_str = @csvfile_str.chomp.split(/\n/)
+
+    ## Checking unimported CSVs (to re-feed once the problems have been fixed)
+    unimported_csvs_str = css_select("#unimported_csvs_textarea").text.sub(/\A(\s*\n)+/m, "").sub(/\s*\z/m, "")
+    n_unimported_csvs_str = unimported_csvs_str.count("\n") + 1
+    assert_equal 4, n_unimported_csvs_str, "Too many rows? : "+unimported_csvs_str  # see below for the rejected rows.
+
+    assert_includes unimported_csvs_str, ar_csvfile_str.grep(/#{Regexp.quote(musics(:music1).title(langcode: :en))}/).first, "Inconsistent-Artist CSV row should be displayed, but..."
+    assert_includes unimported_csvs_str, ar_csvfile_str.grep(/ある新曲候補/).first, "New-Music CSV row should be displayed, but..."
+    assert_includes unimported_csvs_str, ar_csvfile_str[-1], "Erroneous-formatted CSV row should be displayed, but..."
+    refute_includes unimported_csvs_str, ar_csvfile_str.grep(/\A\s*#/).first, "Comment-line should not be displayed, but..."
+
+    if false
+      print "DEBUG:68: \n"
+      puts css_select("#missing_musics_csv_textarea")
+    end
+    ## Checking missing Musics CSVs (to feed to Music#new)
+    missing_musics_csvs_str = css_select("#missing_musics_csv_textarea").text.sub(/\A(\s*\n)+/m, "").sub(/\s*\z/m, "")
+    ar_missing_musics_csvs_str = missing_musics_csvs_str.split(/\n/)
+    n_missing_musics_csvs_str = missing_musics_csvs_str.count("\n") + 1
+    assert_equal n_unimported_csvs_str-1, n_missing_musics_csvs_str, "Too many rows? : "+missing_musics_csvs_str
+
+    assert_includes missing_musics_csvs_str, musics(:music1).title(langcode: :en)
+    assert_includes missing_musics_csvs_str, "ある新曲候補"
+    rex = %r@^Timing=(?<timing>\d+)[^\n]+,ある新曲候補,@m
+    mat = rex.match(missing_musics_csvs_str)
+    assert_equal 284, mat[:timing].to_i  # 04:44
+    assert_match(%r@,ある新曲候補,(?:[^\n]+,|)A certain candiate song,@m, missing_musics_csvs_str)  # ja/en titles
+    tit = definite_article_to_head(musics(:music3).title(langcode: :en))
+    assert_match(%r@,#{Regexp.quote(tit)},#{@music3_csv_year},@m, missing_musics_csvs_str)  # en title, year
+
     # Repeated "creation" success, doing nothing
     assert_no_difference(count_eq) do
       _post2create  # POST to upload a CSV file
@@ -164,7 +232,7 @@ class Musics::UploadHvmaCsvsControllerTest < ActionDispatch::IntegrationTest
     # @param music_en [String, NilClass] if nil and if music_ja is Music, pID is given to the music_ja column in the returned Array.
     # @param artist [Artist, String, NilClass] Artist or Artist#title
     # @return [Array] Single Array
-    def _mk_csv_ary_row(timing, music_ja=nil, music_en=nil, music: nil, artist: nil, header: nil, hvma_note: nil, year: nil, music_note: nil)
+    def _mk_csv_ary_row(timing, music_ja=nil, music_en=nil, music: nil, artist: nil, header: nil, hvma_note: nil, year: nil, music_note: nil, memo: nil)
       is_timing_hvma = timing.respond_to?(:timing)
 
       ## c.f., HaramiVid::MUSIC_CSV_FORMAT
@@ -179,7 +247,7 @@ class Musics::UploadHvmaCsvsControllerTest < ActionDispatch::IntegrationTest
         # (music ? music.genre.id : nil),                    # Music-genre
         # ((music && music.place) ? music.place.country.iso3166_a3_code : nil), # Music-place
         (music_note.present? ? music_note : (music ? music.note : nil)),
-      ]
+      ]+(memo ? [nil, memo] : [])
     end
 
     # @return [Array] Double Array
@@ -201,7 +269,7 @@ class Musics::UploadHvmaCsvsControllerTest < ActionDispatch::IntegrationTest
 
       mu_key = :music_kampai
       mu = musics(mu_key)
-      mu.update!(note: "")
+      mu.update!(year: nil, note: "")
       if !mu.artists.exists?
         art_tsuyoshi = Artist.create_basic!(title: "Tsuyoshi", langcode: "en", is_orig: true, sex: Sex[:male])
         mu.engages << Engage.new(artist: art_tsuyoshi, engage_how: engage_hows(:engage_how_singer_original))
@@ -209,17 +277,23 @@ class Musics::UploadHvmaCsvsControllerTest < ActionDispatch::IntegrationTest
         assert_equal "Tsuyoshi", mu.artists.first.title
       end
 
+      ######## CSV data
+      # Out of 7 rows (+ 1 comment line added in _create_csv_file()),
+      #   1 row has CSV-format error (adjusted in _create_csv_file()),
+      #   3 rows are imported more or less successfully (some Translation or note may not be imported)
+      #
+      
       # Fixture Music (titles are given -> succeeds & creates HaramiVidMusicAssoc)
       arret << _mk_csv_ary_row(
         "01:10",  # timing (one of seconds and MM:DD and HH:MM:DD)
         mu.title(langcode: :ja),
         mu.title(langcode: :en),
-        music: mu,
+        music: mu,  # Music#note is taken from this
         artist: mu.artists.first.title,
         header: "1. Manually added Kampai",
         hvma_note: "HMVA-1-note",
         music_note: _music_note_csv(mu_key),  # should be imported b/c that on DB has no Music#note
-        year: 1901  # totally inconsistent (but music.year.nil? is true, so this is ignored but raises a warning only)
+        year: (@kampai_csv_year=1901)  # totally strange year but music.year.nil? is true, so this is ignored but raises a warning only
       )
 
       # Fixture Music (Year not specified, but ignored -> succeeds)
@@ -245,7 +319,7 @@ class Musics::UploadHvmaCsvsControllerTest < ActionDispatch::IntegrationTest
         artist: mu.artists.first.title,
         header: "3. Manually added Give Peace a Chance Music3 with the wrong year",
         hvma_note: "HMVA-3-note",
-        year: mu.year + 5  # inconsistent, hence this fails
+        year: (@music3_csv_year = mu.year + 5)  # inconsistent, hence this fails
       )
 
       # Fixture Music (inconsistent Artist -> fails)
@@ -254,10 +328,12 @@ class Musics::UploadHvmaCsvsControllerTest < ActionDispatch::IntegrationTest
         "03:33",  # timing (one of seconds and MM:DD and HH:MM:DD)
         nil,
         mu.title(langcode: :en),
-        music: mu,
+        # music: mu,  # Music#note is taken from this
         artist: artists(:artist_spitz).title,
         header: "4. Manually added Music1 with a different Artist",
-        hvma_note: "HMVA-4-note"
+        hvma_note: "HMVA-4-note",
+        music_note: mu.note,
+        memo: "No.4-memo"
       )
 
       # Totally new Music with an existing Artist -> fails
@@ -281,6 +357,18 @@ class Musics::UploadHvmaCsvsControllerTest < ActionDispatch::IntegrationTest
         header: "6. Existing Music/Artist to add the first English title",
         hvma_note: "HMVA-6-note",
         music_note: _music_note_csv(mu_key)  # should be ignored b/c that on DB has something different already
+      )
+
+      # Erroneous-formatted CSV (everything else is legit) (-> fails)  # See near the end of _create_csv_file() where this is changed errorneous
+      mu = musics(:music2)
+      arret << _mk_csv_ary_row(
+        "06:10",  # timing (one of seconds and MM:DD and HH:MM:DD)
+        nil,
+        definite_article_to_head(mu.title(langcode: :en)),  # defined in ModuleCommon
+        artist: mu.artists.first.title,
+        header: "7. mal-formatted CSV causing Error",
+        hvma_note: "HMVA-7-note",
+        year: nil,
       )
     end
 
@@ -307,7 +395,8 @@ class Musics::UploadHvmaCsvsControllerTest < ActionDispatch::IntegrationTest
       assert_equal ary2[0][2], csv_first_row_ary[2].to_i, "sanity check: should be pID"
 
       ioret = Tempfile.open(["temporary_csv", ".csv"])
-      ioret.puts csv_string
+      @csvfile_str = " # to-be-ignored comment line\n"+csv_string.to_s.sub(/,[^,]*\n?\z/m, ',errorneous CSV with unclosed double-quote " >'+"\n")
+      ioret.puts @csvfile_str
       ioret.rewind
       ioret
     end

@@ -1235,19 +1235,6 @@ class HaramiVid < BaseWithTranslation
     input_lines = []
     iline = -1
 
-    #ActiveRecord::Base.transaction do
-    #
-    ### NOTE: This transaction decorator results in a weird behaviour.
-    # Basically, a new_record (with @errors set) is somehow saved in the DB
-    # (without associated translations), which should have not been.
-    # Because this method relies on the situations where the returned objects
-    # can be saved or a new_record?, this is bad.  Hence the transaction is
-    # not activated at the moment.  Records say a similar thing happened
-    # in the past like Rails 3.1.0.
-    # http://alwayscoding.ca/momentos/2012/06/05/transactions-and-new-record/
-    # However in the case of Rails 3.1.0, a new_record was NOT saved even though
-    # new_record? returns false, whereas in this case of
-    # Rails 6.1, the record is actually saved in the DB.
     strin.each_line do |ea_li|
     #results = strin.encode('UTF-8', undef: :replace, crlf_newline: true).split("\n").map do |ea_li|  # This may be used if the parent wants to know the status of assessment result of each line. In this case, simple :rejected is rare, so this is an overkill.
     ##CSV.parse(strin) do |csv|  # this would raise an Exception when a comment line contains an "invalid" format (i.e., "misuse" of double quotations).
@@ -1264,11 +1251,12 @@ class HaramiVid < BaseWithTranslation
       begin
         csv = CSV.parse(ea_li.strip)[0] || next  # for the blank line, csv.nil? (n.b. without strip, a line with a space would be significant.)
       rescue CSV::MalformedCSVError => er
-        alert_messages[:alert] << "ERROR(#{er.class.name}) at Line #{iline} with message (#{er.message.sub(/ in line 1.?$/, '')}): Original CSV line: "+ea_li.strip
+        alert_messages[:alert] << "ERROR(#{er.class.name}) at Line #{iline} with message (#{er.message.sub(/ in line 1.?$/, '')}): [Original CSV line] "+ea_li.strip
+        arret[iline] = false  # Array "change" has +false+ as a special case (of CSV-format-Error)
         next
       end
 
-      arcsv[iline] = hsrow = self.class.convert_csv_to_hash(csv)  # defined in ModuleCsvAux
+      arcsv[iline] = hsrow = self.class.convert_csv_to_hash(csv).with_indifferent_access  # defined in ModuleCsvAux
       # Guaranteed there is no "" but nil.
 
       musics[iline], mu_tit, artists[iline], art_tit = _determine_music_artist_from_csv(hsrow, ea_li, iline: iline)
@@ -1351,7 +1339,7 @@ class HaramiVid < BaseWithTranslation
 
       hvma = HaramiVidMusicAssoc.find_or_initialize_by(harami_vid: self, music: @unsaved_music)
       hvma.timing = music_timing.to_i if music_timing.present?  # it has been validated to be numeric if present.
-      if result = hvma.save
+      if !hvma.save
         msg = "Something goes wrong in saving Music-Video association"
         errors.add :music_name, msg
         logger.error msg
@@ -1376,7 +1364,7 @@ class HaramiVid < BaseWithTranslation
     def _determine_music_artist_from_csv(hsrow, org_line, iline: nil)
       # If +music_ja+ is an integer-like String and if +music_en+ is blank, Music is identified and replaces with the title-String
       if !hsrow[:music_ja] && !hsrow[:music_en]
-        alert_messages[:alert] << "Neither of Music titles is specified. CSV-row: "+org_line
+        alert_messages[:alert] << "ERROR: Neither of Music titles is specified. [CSV-row] "+org_line
         return
       end
 
@@ -1431,16 +1419,21 @@ class HaramiVid < BaseWithTranslation
     def _determine_artist_from_csv(hsrow, org_line, iline: nil)
       if hsrow[:artist].respond_to? :engages
         # NOTE: if CSV contains an Integer and if it is a pID, hsrow[:artist] should be Artist. see ModuleCsvAux#convert_csv_to_hash_core
-        artist = hsrow[:artist]  # Artist instance.
+        artist = hsrow[:artist]  # (single) Artist instance.
         art_tit= definite_article_to_head(artist.title_or_alt(langcode: nil)) # best Translation (b/c no title is specified in CSV)
         return [nil, artist, art_tit]
       end
 
-      # Here, arts is ActiveRecord::Relation, and artist is a single Artist
       art_tit= hsrow[:artist]  # as in CSV input; n.b., hsrow[:artist] is guaranteed to be String.
-      arts = _guessed_model_insts(hsrow, :artist, Artist)
+      if art_tit.blank?
+        alert_messages[:alert] << "ERROR: "+klass.name+" #{hsrow[kwd].strip.inspect} is NULL on CSV."
+        return
+      end
+
+      # Here, arts is ActiveRecord::Relation
+      arts = _guessed_model_insts(hsrow, :artist, Artist, report_error: false)
       if arts.blank?
-        alert_messages[:alert] << "No Artist is specified"+(iline ? "in Line=#{iline}" : "")+" for "+_str_music_with_csv_titles(hsrow)+". CSV-row: "+org_line
+        alert_messages[:alert] << "ERROR: Specified Artist is not found on DB "+(iline ? "in Line=#{iline}" : "")+" - you must manually register Artist first. [CSV-row] "+org_line
         return
       end
 
@@ -1456,7 +1449,7 @@ class HaramiVid < BaseWithTranslation
     # @param music [Music, NilClass]
     def _narrowed_down_artist(artist, artist_rela, music)
       return artist if artist
-      artist ||= arts.joins(:musics).where(:"musics.id" => music.id).first
+      artist ||= arts.joins(:musics).where("musics.id": music.id).first
       return artist if artist
 
       msg = sprintf "WARNING: Strangely, Music (pID=%d) does not associate Artists: %s", music.id, arts.inspect
@@ -1509,14 +1502,14 @@ class HaramiVid < BaseWithTranslation
       end
 
       if !muss_without_artist
-        alert_messages[:alert] << _str_music_with_csv_titles(hsrow)+" is not found"+(iline ? " at Line=#{iline}" : "")+". CSV-row: "+org_line
+        alert_messages[:alert] << "ERROR: "+_str_music_with_csv_titles(hsrow)+" is not found"+(iline ? " at Line=#{iline}" : "")+". [CSV-row] "+org_line
         return
       end
 
       # At least 1 Music has been picked up, although we still have to check with the given Artist(s).
       muss_without_artist_size = muss_without_artist.distinct.count
 
-      muss2 = muss_without_artist.joins(:artists).where(:"artists.id" => arts.ids)
+      muss2 = muss_without_artist.joins(:artists).where("artists.id": arts.ids)
       case muss2.distinct.count
       when 0
         # No Music is found for the Title and Artist.
@@ -1536,11 +1529,12 @@ class HaramiVid < BaseWithTranslation
       when 1
         # The simplest case: Only 1 Music for the Title and Artist is identified.
         music = muss2.first
+        s_link = ActionController::Base.helpers.link_to(mu_tit.inspect, Rails.application.routes.url_helpers.music_path(music), title: "pID=#{music.id}")
         if hsrow[:year].blank? || music.year.blank? || (hsrow[:year].to_i == music.year)
+          alert_messages[:warning] << "WARNING: Music #{s_link} has year=nil while CSV specifies Year=#{hsrow[:year]}. You may manually update it.".html_safe if music.year.blank?
           return [muss2, music, mu_tit]
         else
-          s_link = ActionController::Base.helpers.link_to(mu_tit.inspect, Rails.application.routes.url_helpers.music_path(music), title: "pID=#{music.id}")
-          msg = "ERROR: Music #{s_link} has year=(#{music.year.inspect}) has the specified title and Artist but inconsistent year (specified=#{hsrow[:year].inspect}). Skip."
+          msg = "ERROR: Music #{s_link} at year=(#{music.year.inspect}) has the specified title and Artist but an inconsistent year (CSV-specified=#{hsrow[:year].inspect}). Skip."
           alert_messages[:alert] << msg.html_safe
           return
         end
@@ -1575,7 +1569,7 @@ class HaramiVid < BaseWithTranslation
     # Internal routine
     #
     # @param hsrow [Hash] Data imported from CSV. See {ModuleCsvAux#convert_csv_to_hash_core}
-    # @param kwd [Symbol] Key for +hsrow+, either :musics or :artists
+    # @param kwd [Symbol] Key for +hsrow+, one of :music_ja, :music_en, and :artist
     # @param klass [Class] either Music or Artist
     # @return [Relation<Artist,Music>, NilClass]
     def _guessed_model_insts(hsrow, kwd, klass, report_error: true)
@@ -1584,13 +1578,10 @@ class HaramiVid < BaseWithTranslation
         return nil
       else
         search_word = definite_article_to_tail(hsrow[kwd].strip)
-        arret = klass.select_regex(:titles, search_word, sql_regexp: true)
-        return arret if arret.exists?
+        rela = klass.probable_candidates(search_word)
+        return rela if rela.exists?
 
-        arret = klass.select_regex(:titles, /#{Regexp.quote(search_word)}/, sql_regexp: true)
-        return arret if arret.exists?
-
-        alert_messages[:alert] << klass.name+" #{hsrow[kwd].strip.inspect} is not found." if report_error
+        alert_messages[:alert] << "ERROR: #{+klass.name} for #{hsrow[kwd].strip.inspect} is not found." if report_error
         return nil
       end
     end
@@ -1600,7 +1591,8 @@ class HaramiVid < BaseWithTranslation
     # Internal routine to update note for Music or HVMA
     #
     # @param record [ActiveRecord] ActiveRecord instance
-    # @param in_note [String, NilClass] note in the input CSV
+    # @param hsrow [Hash] Data imported from CSV. See {ModuleCsvAux#convert_csv_to_hash_core}
+    # @param kwd [Symbol] Key for +hsrow+, either :hvma_note or :music_note
     # @param mu_tit [String] Title for Music for message
     # @param rlc [HaramiVid::ResultLoadCsv] to record the change
     # @param do_update: [Boolean] if true (Def: false), commit to saving.
@@ -1612,7 +1604,7 @@ class HaramiVid < BaseWithTranslation
 
       if record.note.blank?
         record.note = note2add
-        rlc.send kwd.to_s+'=', [nil, note2add]
+        rlc.send kwd.to_s+"=", [nil, note2add]
         notice_msg = sprintf("%s#note %s is added to Music %s", record.class.name, note2add.inspect, mu_tit.inspect)
         if do_update
           if record.save
@@ -1757,8 +1749,7 @@ class HaramiVid < BaseWithTranslation
       "Music with title (#{hsrow[:music_ja].inspect} / #{hsrow[:music_en].inspect})"
     end # def _str_music_with_csv_titles()
     private :_str_music_with_csv_titles
-
-end
+end # class HaramiVid < BaseWithTranslation
 
 
 class << HaramiVid

@@ -619,7 +619,7 @@ module ModuleCommon
         linked  = record.send(title_method)
         s_title = sprintf("(pID=%d)", record.id)
       end
-      ActionController::Base.helpers.link_to(linked, Rails.application.routes.url_helpers.music_path(record), title: s_title)
+      ActionController::Base.helpers.link_to(linked, Rails.application.routes.url_helpers.polymorphic_path(record), title: s_title)
     }
   end
 
@@ -640,9 +640,10 @@ module ModuleCommon
   #
   # The destination key (=attribute) in self.errors is
   #
-  # 1. mappings[other_key] if exists
-  # 2. just other_key if the method other_key exists in self (like :id (if ever!))
-  # 3. else :base
+  # 1. if to_method is non-nil, there is no distinction (b/c +errors+ is not used) but the key name (like :base) is included at the head as a String, else
+  # 2. mappings[other_key] if exists
+  # 3. just other_key if the method other_key exists in self (like :id (if ever!))
+  # 4. else :base
   #
   # @example
   #   transfer_errors(url, prefix: "[Url] ", mappings: {note: :base))
@@ -651,7 +652,13 @@ module ModuleCommon
   # @param prefix: [String] Prefix for each error message, if any.
   # @param mappings: [Hash<Symbol => Symbol>] with (key, value) of Symbol(Attribute) of other and myself
   #    other#note usually differs from self.note (in Form), hence the default.
-  def transfer_errors(other, prefix: "", mappings: {note: :base})
+  # @to_method: [NilClass, Symbol, Array<Symbol>] if nil, transferred to ActiveRecord#errors.
+  #    If Array<Symbol> or Symbol, the first element is a method, and subsequent elements
+  #    are the contents of +[]+ to return an Array, where +mappings+ is ignored.  For example, if this is
+  #      +to_method: [:alert_messages, :artists, :something]+
+  #    each +error+ is transferred to
+  #      self.alert_messages[:artists][:something] << error
+  def transfer_errors(other, prefix: "", mappings: {note: :base}, to_method: nil)
     #other.errors.group_by_attribute.each_pair do |ek, ea_errs|
     mappings_keys = mappings.keys(&:to_sym)
     other.errors.messages.each_pair do |eatt, ea_messages|
@@ -666,8 +673,22 @@ module ModuleCommon
           :base
         end
 
+      if to_method
+        to_method = [to_method].flatten
+        to_obj = self.to_method[0]
+        if to_method[1..-1]
+          to_method[1..-1].each do |em|
+            to_obj = to_obj[em]
+          end
+        end
+      end
+
       ea_messages.each do |message|
-        errors.add to_att, prefix+message
+        if to_method
+          to_obj << "(#{eatt.to_s}) "+prefix+message
+        else
+          errors.add to_att, prefix+message
+        end
       end
     end
   end

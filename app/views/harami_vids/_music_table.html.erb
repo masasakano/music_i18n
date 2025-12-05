@@ -117,13 +117,27 @@
 <section id="harami_vids_hvma_csv_form">
 <h4 id="csv_file_upload">CSV file upload</h4>
 
+<% if @unimported_csvs.present? %>
+  <div id="show_unimported_csvs_textarea">
+    <label for="unimported_csvs_textarea" title="CSV rows that have DB-unregistered Music or some inconsistency with DB.">Erroneous rows:</label>
+    <%= text_area_tag :unimported_csvs_textarea, @unimported_csvs, cols: 90, rows: @unimported_csvs.chomp.split(/\n/).size, readonly: true, class: "textarea-readonly" %>
+  </div>
+<% end %>
+
+<% if @missing_musics_csv.present? %>
+  <div id="show_missing_musics_csv_textarea">
+    <label for="missing_musics_csv_textarea" title="Musics CSV to register in Music#new.">Missing Musics (→ <%= link_to "Music/new", new_music_path+"#music_csv_form" %>):</label>
+    <%= text_area_tag :missing_musics_csv_textarea, @missing_musics_csv, cols: 90, rows: @missing_musics_csv.chomp.split(/\n/).size, readonly: true, class: "textarea-readonly" %>
+  </div>
+<% end %>
+
 <%= form_tag(harami_vid_upload_hvma_csv_path(harami_vid_id: harami_vid.id), multipart: true) do |form| %>
   <label for="upload_hvma_csv_csv_direct">Direct input:</label>
   <%= text_area_tag "upload_hvma_csv[csv_direct]", harami_vid.csv_direct, size: "80x10", class: "csv-textarea", placeholder: "Paste CSV data here, e.g.,\n
  # This line is ignored as a comment line. MAX: #{Musics::UploadMusicCsvsController::MAX_LINES} lines.
 1:1/20,,糸,Thread,中島みゆき,この日だけのスペシャルコラボ,1992,ロングヒット,,曲名と人名以外は空欄でも良い
 2:2/20,240,シェイク,,SMAP,,1996,SMAPの代表曲,,タイミングはHH:MM:SSでも秒数でも
-3曲目,5:20,,Let It Be,\"Beatles, The\",,1969,,,曲名や人命にコンマが入る時は二重引用符で囲う
+3曲目,5:20,,Let It Be,\"Beatles, The\",,1969,,,曲名や人名にコンマが入る時は二重引用符で囲う
 4曲目,8:30,456,,789,,,,1234,曲名のpIDを記述するのは和名曲名欄で英語曲名は空欄に" %><br>
   <label for="upload_hvma_csv_file">Or, upload CSV (.csv) file:</label>
   <%= file_field_tag 'upload_hvma_csv[file]', accept: 'text/csv' %>
@@ -176,7 +190,7 @@ If you use a spreadsheet software (such as Google-Sheet, LibreOffice/Calc, Micro
  # abc.csv これはコメント行です。
 1:1/20,,糸,Thread,中島みゆき,この日だけのスペシャルコラボ,1992,ロングヒット,,タイミングは空欄でも良い
 2:2/20,240,シェイク,,SMAP,,1996,SMAPの代表曲,12345,EventItemのpIDはもし分かればで十分
-(3),5:20,レット・イット・ビー,Let It Be,"Beatles, The",,1969,,,曲名や人命にコンマが入る時は二重引用符で囲うこと
+(3),5:20,レット・イット・ビー,Let It Be,"Beatles, The",,1969,,,曲名や人名にコンマが入る時は二重引用符で囲うこと
 4曲目,8:30,456,,789,,,,1234,曲名のpIDを記述するのは和名曲名欄で英語名曲名は空欄に
 
 </pre>
