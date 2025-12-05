@@ -274,12 +274,15 @@ class TranslationTest < ActiveSupport::TestCase
   test "unit-testing Translation.tuple_collate_equal" do
     collation_name = ApplicationRecord.utf8collation  # "und-x-icu" (more general than "C.UTF-8" (BSD) or "C.utf8" (Linux))
     exp = ['"translations"."tit" COLLATE "'+collation_name+'" = ?', "v1"]
-    act = Translation.tuple_collate_equal(:tit, "v1")
+    act = Translation.tuple_collate_equal(:tit, "v1", space_sensitive: true)
     assert_equal exp, act
-    act = Translation.tuple_collate_equal(["tit", "v1"])
+    act = Translation.tuple_collate_equal(["tit", "v1"], space_sensitive: true)
     assert_equal exp, act
     exp = ['"ta"."tit" COLLATE "C" = ?', "v1"]
-    act = Translation.tuple_collate_equal({tit: "v1"}, t_alias: "ta", collate_to: "C")
+    act = Translation.tuple_collate_equal({tit: "v1"}, t_alias: "ta", collate_to: "C", space_sensitive: true)
+    assert_equal exp, act
+    exp = ["REGEXP_REPLACE(\"translations\".\"tit\", '[ -]', '', 'g') COLLATE \"#{collation_name}\" = ?", "v1"]
+    act = Translation.tuple_collate_equal(:tit, "v1", space_sensitive: false)
     assert_equal exp, act
   end
 
@@ -329,6 +332,80 @@ class TranslationTest < ActiveSupport::TestCase
     # exp="SELECT \"translations\".* FROM \"translations\" WHERE \"translations\".\"langcode\" = 'en' AND \"translations\".\"translatable_type\" = 'Sex' AND (id <> 2) AND (regexp_match(translations.title, 'aLe', 'in') IS NOT NULL OR regexp_match(translations.alt_title, 'aLe', 'in') IS NOT NULL)"  # Rails-7.1 or earlier
     exp = "SELECT \"translations\".* FROM \"translations\" WHERE \"translations\".\"langcode\" = 'en' AND \"translations\".\"translatable_type\" = 'Sex' AND (id <> 2) AND ((regexp_match(translations.title, 'aLe', 'in') IS NOT NULL) OR (regexp_match(translations.alt_title, 'aLe', 'in') IS NOT NULL))"  # Rails-7.2 or later
     assert_equal exp, out_sql
+  end
+
+  test "Translation.select_regex for ILIKE" do
+    female = Sex[2]
+    tra_female = female.translations.where(langcode: "en")
+
+    common_run___opts = { langcode: 'en', translatable_type: Sex, sql_regexp: true }
+    common_debug_opts = common_run___opts.merge({ debug_return_sql: true })
+
+    ## Exact match
+    kwd = "female"
+    opts = {exact_match: true, case_sensitive: true}.merge(common_run___opts)
+    rela    = Translation.select_regex(:titles, kwd, **opts)
+    assert_equal tra_female.ids.sort, rela.ids.sort
+    out_sql = Translation.select_regex(:titles, kwd, debug_return_sql: true, **opts)
+    exp = "SELECT \"translations\".* FROM \"translations\" WHERE \"translations\".\"langcode\" = 'en' AND \"translations\".\"translatable_type\" = 'Sex' AND ((\"translations\".\"title\" COLLATE \"und-x-icu\" = '#{kwd}') OR (\"translations\".\"alt_title\" COLLATE \"und-x-icu\" = '#{kwd}'))"  # Rails-7.2 or later
+    assert_equal exp, out_sql
+
+    %w(Female fema Fema).each do |kwd|
+      rela  = Translation.select_regex(:titles, kwd, **opts)
+      assert_empty  rela
+    end
+
+    ## Case-insensitive exact match
+    kwd = "Female"
+    opts = {exact_match: true, case_sensitive: false}.merge(common_run___opts)
+    rela    = Translation.select_regex(:titles, kwd, **opts)
+    assert_equal tra_female.ids.sort, rela.ids.sort
+    out_sql = Translation.select_regex(:titles, kwd, debug_return_sql: true, **opts)
+    exp = "SELECT \"translations\".* FROM \"translations\" WHERE \"translations\".\"langcode\" = 'en' AND \"translations\".\"translatable_type\" = 'Sex' AND (\"translations\".\"title\" COLLATE \"und-x-icu\" ILIKE '#{kwd}' OR \"translations\".\"alt_title\" COLLATE \"und-x-icu\" ILIKE '#{kwd}')"  # Rails-8.0 or later
+    assert_equal exp, out_sql
+
+    %w(fema Fema).each do |kwd|
+      rela  = Translation.select_regex(:titles, kwd, **opts)
+      assert_empty  rela
+    end
+
+    ## Partial match
+    kwd = "fema"
+    opts = {exact_match: false, case_sensitive: true}.merge(common_run___opts)
+    rela    = Translation.select_regex(:titles, kwd, **opts)
+    assert_equal tra_female.ids.sort, rela.ids.sort
+    out_sql = Translation.select_regex(:titles, kwd, debug_return_sql: true, **opts)
+    exp = "SELECT \"translations\".* FROM \"translations\" WHERE \"translations\".\"langcode\" = 'en' AND \"translations\".\"translatable_type\" = 'Sex' AND (\"translations\".\"title\" COLLATE \"und-x-icu\" LIKE '%#{kwd}%' OR \"translations\".\"alt_title\" COLLATE \"und-x-icu\" LIKE '%#{kwd}%')"  # Rails-8.0 or later
+    assert_equal exp, out_sql
+
+    %w(Female Fema).each do |kwd|
+      rela  = Translation.select_regex(:titles, kwd, **opts)
+      assert_empty  rela
+    end
+
+    ## Case-insensitive Partial match
+    kwd = "Fema"
+    opts = {exact_match: false, case_sensitive: false}.merge(common_run___opts)
+    rela    = Translation.select_regex(:titles, kwd, **opts)
+    assert_equal tra_female.ids.sort, rela.ids.sort
+    out_sql = Translation.select_regex(:titles, kwd, debug_return_sql: true, **opts)
+    exp = "SELECT \"translations\".* FROM \"translations\" WHERE \"translations\".\"langcode\" = 'en' AND \"translations\".\"translatable_type\" = 'Sex' AND (\"translations\".\"title\" COLLATE \"und-x-icu\" ILIKE '%#{kwd}%' OR \"translations\".\"alt_title\" COLLATE \"und-x-icu\" ILIKE '%#{kwd}%')"  # Rails-8.0 or later
+    assert_equal exp, out_sql
+
+    %w(female emal Female Fema).each do |kwd|
+      rela  = Translation.select_regex(:titles, kwd, **opts)
+      refute_empty  rela
+    end
+
+    ## Case-insensitive Partial match (returning multiple)
+    kwd = "aLe"  # should match 'male' and 'female'
+    rela = rela_male_female = Translation.select_regex(:titles, kwd, **opts)
+    assert_equal 2, rela.count
+
+    ## Space-hyphen-ignored Case-insensitive Partial match (returning multiple)
+    kwd = "-a-L e -"  # should match 'male' and 'female'
+    rela    = Translation.select_regex(:titles, kwd, space_sensitive: false, **opts)
+    assert_equal rela_male_female.ids.sort, rela.ids.sort
   end
 
   test "Translation.select_partial_str" do

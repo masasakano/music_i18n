@@ -349,8 +349,12 @@ class Translation < ApplicationRecord
   #
   # @apram *args [Array<Hash, Array, String>] 2-element Array of column-name (e.g., :title) and value, or 1-element Hash for it.
   # @param t_alias: [String, NilClass] DB table alias for Translation table, if the given +rela+ uses it. Default is {Translation.table_name} (= "translations")
+  # @param collate_to: [String, NilClass] Def (nil) is taken from {ApplicationRecord.utf8collation}
+  # @param exact_match: [Boolean] if false (Def: true), partial mathces are accepted.
+  # @param case_sensitive: [Boolean] if true (Def), case-sensitive maches are performed.
+  # @param space_sensitive: [Boolean] If false (Def), spaces and dashes are ignored (though UTF-8 dashes may be incomplete).
   # @return [Array] a 2-element Array feedable to a where clause in Relation.
-  def self.tuple_collate_equal(*args, t_alias: nil, collate_to: nil)
+  def self.tuple_collate_equal(*args, t_alias: nil, collate_to: nil, exact_match: true, case_sensitive: true, space_sensitive: false)
     collate_to ||= ApplicationRecord.utf8collation  # "und-x-icu" (more general than "C.UTF-8" (BSD) or "C.utf8" (Linux))
     t_alias ||= table_name
     colname, value =
@@ -362,8 +366,47 @@ class Translation < ApplicationRecord
                raise ArgumentError, "Translation.tuple_collate_equal(#{args.inspect.sub(/\A\[(.*)\]\z/, '')}) - should be a 1-element Hash or 2-element Array/Tuple"
              end
 
-    [sprintf('"%s"."%s" COLLATE "%s" = ?', t_alias, colname.to_s, collate_to.strip), value]
+    equality_sign =
+      if case_sensitive 
+        (exact_match ? "=" : "LIKE")
+      else
+        "ILIKE"
+      end
+
+    left_most, rval = both_sides_with_space_sensitivity(t_alias, colname.to_s, value, space_sensitive: space_sensitive)
+
+    lside = left_most + sprintf(' COLLATE "%s" %s ', collate_to.strip, equality_sign)
+
+    if "=" == equality_sign
+      [lside + "?", value]
+    else
+      [lside + right_side_partial_or_space_sensitive(value, exact_match: exact_match, space_sensitive: space_sensitive)]
+    end
+    # [sprintf('"%s"."%s" COLLATE "%s" %s ?', t_alias, colname.to_s, collate_to.strip, equality_sign), value]
   end
+
+  # @param space_sensitive: [Boolean] If false (Def), spaces and dashes are ignored (though UTF-8 dashes may be incomplete).
+  # @return [Array<String>] The left and right sides for an (I)LIKE statement, without a COLLATE part, where spaces and hyphes may be deleted.
+  def self.both_sides_with_space_sensitivity(t_alias, colname, value, space_sensitive: false)
+    if space_sensitive
+      [sprintf('"%s"."%s"', t_alias, colname), value]
+    else
+      [sprintf('REGEXP_REPLACE("%s"."%s",'+" '[ -]', '', 'g')", t_alias, colname),
+       value.gsub(/[\s\-]+/, "")]
+    end
+  end
+  private_class_method :both_sides_with_space_sensitivity
+
+  # @param space_sensitive: [Boolean] If false (Def), spaces and dashes are ignored (though UTF-8 dashes may be incomplete).
+  # @return [String] The right-side for an (I)LIKE statement
+  def self.right_side_partial_or_space_sensitive(value, exact_match: true, space_sensitive: false)
+    ret = value
+    ret = ret.gsub(/[\s\p{Dash}]/u, "") if !space_sensitive
+    ret = sanitize_sql_like(ret)
+    ret = "%" + ret + "%"         if !exact_match
+    "'#{ret}'"
+  end
+  private_class_method :right_side_partial_or_space_sensitive
 
   # Returns Relation containing a new where clause in which Collation is considered for title, ruby, etc.
   #
@@ -375,16 +418,19 @@ class Translation < ApplicationRecord
   # @param base_rela [#where] in practice, either ActiveRecord::Relation or Class<Translation>
   # @param colname [String, Symbol] :alt_title etc
   # @param value [String, Object] the expected value of colname
+  # @param exact_match: [Boolean] if false (Def: true), partial mathces are accepted.
+  # @param case_sensitive: [Boolean] if true (Def), case-sensitive maches are performed.
+  # @param space_sensitive: [Boolean] If false (Def), spaces and dashes are ignored (though UTF-8 dashes may be incomplete).
   # @param kwds [Hash] see {Translation.tuple_collate_equal}
   # @return [ActiveRecord::Relation]
-  def self.relation_with_maybe_collate_equal(base_rela, colname, value, **kwds)
+  def self.relation_with_maybe_collate_equal(base_rela, colname, value, exact_match: true, case_sensitive: true, space_sensitive: false, **kwds)
     case colname.to_s
     when "langcode"
       # for "langcode", it has to be ASCII and extra spaces should be ignored (it should never contain spaces anyway, but playing safe)
       collate_to = ApplicationRecord.utf8collation  # "und-x-icu" (more general than "C.UTF-8" (BSD) or "C.utf8" (Linux))
       base_rela.where(tuple_collate_equal(colname, value, **(kwds.merge({collate_to: collate_to}))))
-    when *(%w(title alt_title ruby alt_ruby romaji alt_romaji))
-      base_rela.where(tuple_collate_equal(colname, value, **kwds))
+    when /(?:^(?:file|dir|base)?|_)name$/, *(%w(title alt_title ruby alt_ruby romaji alt_romaji))
+      base_rela.where(tuple_collate_equal(colname, value, exact_match: exact_match, case_sensitive: case_sensitive, space_sensitive: space_sensitive, **kwds))
     else  # maybe not String like Integer
       base_rela.where({colname => value})
     end
@@ -1001,7 +1047,7 @@ class Translation < ApplicationRecord
     when :exact
       sprintf("%s.%s = '%s'", tbl, key.to_s, definite_article_to_tail(value))  # defined in module_common.rb
     when :exact_ilike
-      sprintf("%s.%s ILIKE '%s'", tbl, key.to_s, definite_article_to_tail(value).gsub(/([%_])/, '\1'*2))
+      sprintf("%s.%s ILIKE '%s'", tbl, key.to_s, sanitize_sql_like(definite_article_to_tail(value).gsub(/([%_])/, '\1'*2)))
     when :optional_article, :optional_article_ilike, :include, :include_ilike
       re_core = regexp_ruby_to_postgres(ModuleCommon::DEFINITE_ARTICLES_REGEXP_STR)[0].gsub(/'/, "''") # defined in module_common.rb
       re_str = '(?i)(, ('+re_core+'))?$'
@@ -1283,11 +1329,18 @@ class Translation < ApplicationRecord
   #    See "where" for detail.
   # @param sql_regexp [Boolean] If true (Def: false), and if +value+ (the 2nd argument) is Regexp, PostgreSQL +regexp_match()+ is used. Efficient!
   #    See {ModuleCommon#regexp_ruby_to_postgres} for detail of Ruby-PostgreSQL Regexp conversion.
-  # @param space_sensitive [Boolean] This is referred to ONLY WHEN +value+ is Regexp and +sql_regexp+ is true.
-  #    If true (Def; n.b., the default in {Translation.select_regex_string} is false!),
+  # @param exact_match: [Boolean] if false (Def: true), partial mathces are accepted. Only relevant when +value+ is String, i.e., non-Regexp search.
+  # @param case_sensitive: [Boolean] if true (Def), case-sensitive maches are performed. Only relevant when +value+ is String, i.e., non-Regexp search.
+  # @param space_sensitive [Boolean] This is referred to ONLY WHEN +sql_regexp+ is true AND.
+  #    +value+ is Regexp or 
+  #    If true as in Default (NOTE: Default in {Translation.select_regex_string} is false(!)),
   #    spaces in DB entries are significant.
-  #    Note that even if false (Def), this method does nothing to the input +value+ (Regexp)
-  #    and so it is the caller's responsibility to set the Regexp +value+ accordingly.
+  #    If false and if +value+ is String, spaces and also dash-like characters (like a hyphen)
+  #    are all ignored, although the handling of the dash-like characters is not perfect.
+  #    If false and if input +value+ is Regexp, the dash-like characters are *significant*.
+  #    Also, note that this method does (and can) nothing to the input +value+ (Regexp),
+  #    so it is the caller's responsibility to set the Regexp +value+ accordingly, i.e.,
+  #    the Regexp should have no significant spaces.
   # @param debug_return_sql [Boolean] Debug option (Def: false). If true, returns a SQL-string or Hash (see {Translation.self.select_regex_rubyregex} for detail), instead of ActiveRecord_Relation or Array
   # @param scope [Relation, Class] scope (Relation) of {Translation} if any
   # @param langcode: [String, NilClass] Optional argument, e.g., 'ja'. If nil, all languages.
@@ -1297,13 +1350,13 @@ class Translation < ApplicationRecord
   # @return [Translation::ActiveRecord_Relation, Array<Translation>] Note this returns SQL-string or Hash if debug_return_sql is true
   # @note To developers. Technically, option +space_sensitive+ can be taken into account
   #    for any Regexp +value+, regardless of +sql_regexp+
-  def self.select_regex(kwd, value, where: nil, joins: nil, not_clause: nil, sql_regexp: false, space_sensitive: true, debug_return_sql: false, **restkeys)
+  def self.select_regex(kwd, value, where: nil, joins: nil, not_clause: nil, sql_regexp: false, exact_match: true, case_sensitive: true, space_sensitive: true, debug_return_sql: false, **restkeys)
     allkeys = get_allkeys_for_select_regex(kwd)
     common_opts = init_common_opts_for_select(**restkeys)
 
     ret =
       if allkeys.empty? || value.blank? || value.respond_to?(:gsub) || (sql_regexp && value.respond_to?(:named_captures))
-        select_regex_string(common_opts, allkeys, value, where, joins, not_clause, space_sensitive: space_sensitive, **restkeys) # => Translation::ActiveRecord_Relation
+        select_regex_string(common_opts, allkeys, value, where, joins, not_clause, exact_match: exact_match, case_sensitive: case_sensitive, space_sensitive: space_sensitive, **restkeys) # => Translation::ActiveRecord_Relation
       elsif value.respond_to?(:named_captures)
         select_regex_rubyregex( common_opts, allkeys, value, where, joins, not_clause, debug_return_sql: debug_return_sql, **restkeys) # => Array<Translation>
       else
@@ -1436,14 +1489,22 @@ class Translation < ApplicationRecord
   # @param where: [String, Array<String, Hash, Array>, NilClass] See {Translation.select_regex} for detail.
   # @param joins: [String, Array<String, Hash, Array>, NilClass] See {Translation.select_regex} for detail.
   # @param not_clause: [String, Array<String, Hash, Array>, NilClass]
-  # @param space_sensitive [Boolean] This is referred to ONLY WHEN +value+ is Regexp.
-  #    If true (Def: false), spaces in DB entries are significant.
-  #    Note that even if false (Def), this method does nothing to the input +value+
-  #    and so it is the caller's responsibility to adjust Regexp +value+ accordingly.
+  # @param exact_match: [Boolean] if false (Def: true), partial mathces are accepted.
+  # @param case_sensitive: [Boolean] if true (Def), case-sensitive maches are performed.
+  # @param space_sensitive [Boolean] This is referred to ONLY WHEN +sql_regexp+ is true AND.
+  #    +value+ is Regexp or 
+  #    If true (Def: false) (NOTE: Default in {Translation.select_regex} is true(!)),
+  #    spaces in DB entries are significant.
+  #    If false and if +value+ is String, spaces and also dash-like characters (like a hyphen)
+  #    are all ignored, although the handling of the dash-like characters is not perfect.
+  #    If false and if input +value+ is Regexp, the dash-like characters are *significant*.
+  #    Also, note that this method does (and can) nothing to the input +value+ (Regexp),
+  #    so it is the caller's responsibility to set the Regexp +value+ accordingly, i.e.,
+  #    the Regexp should have no significant spaces.
   # @param scope [Relation, Class] scope (Relation) of {Translation} if any
   # @param **restkeys [Hash] simply ignored.
   # @return [Translation::ActiveRecord_Relation]
-  def self.select_regex_string(common_opts, allkeys, value, where, joins, not_clause=nil, space_sensitive: false, scope: nil, **restkeys)
+  def self.select_regex_string(common_opts, allkeys, value, where, joins, not_clause=nil, exact_match: true, case_sensitive: true, space_sensitive: false, scope: nil, **restkeys)
     t_alias = table_name
     base_rela = make_joins_where(where, joins, not_clause, parent: (scope || self).where(common_opts))
     return base_rela if (allkeys.empty? || value.blank?)
@@ -1456,7 +1517,7 @@ class Translation < ApplicationRecord
       if value.respond_to?(:named_captures)
         _psql_where_regexp(base_rela, ek, re_str, reopts, space_sensitive: space_sensitive)
       else
-        relation_with_maybe_collate_equal(base_rela, ek, value, t_alias: t_alias)
+        relation_with_maybe_collate_equal(base_rela, ek, value, t_alias: t_alias, exact_match: exact_match, case_sensitive: case_sensitive, space_sensitive: space_sensitive)
         #base_rela.where({ek => value})  # deprecated
       end
     }
@@ -1508,9 +1569,8 @@ class Translation < ApplicationRecord
 
   # Core routine for {Translation.select_regex} for Regexp input
   #
-  # Search {Translation} to find matching {BaseWithTranslation}-s
-  # for a given value of Regexp. 
-  # Ruby engine is used.
+  # Searches {Translation} for a given value of Ruby Regexp and returns a Ruby Array.
+  # Ruby engine for Regexp is used.
   #
   # @param common_opts [Hash<Symbol, Object>] e.g., {:langcode=>"en", :translatable_type=>"Country"}
   # @param allkeys [Array<Symbol>] %i(title alt_title) etc
@@ -1521,7 +1581,7 @@ class Translation < ApplicationRecord
   # @param scope [Relation, Class] scope (Relation) of {Translation} if any
   # @param debug_return_sql [Boolean] Debug option (Def: false). If true, returns a SQL-string or Hash with a key for attribute (Symbol) and value of an identical SQL-string, instead of Array.
   # @param **restkeys [Hash] simply ignored.
-  # @return [Array<BaseWithTranslation>]
+  # @return [Array<Translation>]
   def self.select_regex_rubyregex(common_opts, allkeys, regex, where, joins, not_clause=nil, scope: nil,  debug_return_sql: false, **restkeys)
     
     alltrans = make_joins_where(where, joins, not_clause, parent: (scope || self).where(common_opts))

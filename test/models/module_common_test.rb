@@ -412,7 +412,7 @@ class ModuleCommonTest < ActiveSupport::TestCase
   end
 
   test "fetch_url_h1" do
-    assert_equal "Example Domain", fetch_url_h1("http://example.com")
+    assert_equal "Example Domain", fetch_url_h1("http://example.com"), "This may fail if the network connection is unsable..."
   end
 
   test "transfer_errors" do
