@@ -338,7 +338,8 @@ class TranslationTest < ActiveSupport::TestCase
     female = Sex[2]
     tra_female = female.translations.where(langcode: "en")
 
-    common_run___opts = { langcode: 'en', translatable_type: Sex, sql_regexp: true }
+    trans_main_opts   = { langcode: 'en', translatable_type: 'Sex' }
+    common_run___opts = trans_main_opts.merge({ sql_regexp: true })
     common_debug_opts = common_run___opts.merge({ debug_return_sql: true })
 
     ## Exact match
@@ -406,6 +407,27 @@ class TranslationTest < ActiveSupport::TestCase
     kwd = "-a-L e -"  # should match 'male' and 'female'
     rela    = Translation.select_regex(:titles, kwd, space_sensitive: false, **opts)
     assert_equal rela_male_female.ids.sort, rela.ids.sort
+
+    kwd = "NotKnown"
+    rela    = Translation.select_regex(:titles, kwd, space_sensitive: false, **opts)
+    assert_equal 1,      rela.count
+    assert_equal Sex[0], rela.first.translatable, "lack of a space and wrong cases in the search keyword should not affect the result, but..."
+
+    kwd = "Ale"
+    parent = Translation.select_regex(:titles, kwd, space_sensitive: false, **opts)
+    sq = Translation.search_by_affinity([:title, :alt_title, :romaji, :alt_romaji], kwd, parent: parent, order_or_where: :order, debug_return_content_sql: true)
+#print "DEBUG:5 \n"
+#pp sq
+    assert_equal [Sex[1], Sex[2]].map{|i| i.title(langcode: :en)}, parent.order(Arel.sql sq).pluck(:title)
+
+    ActiveRecord::Base.transaction(requires_new: true) do
+      tmptit = "ALE"
+      tra = Translation.new(title: tmptit, langcode: "en", weight: 100)
+      Sex[2].translations << tra
+      rela = Translation.search_by_affinity([:title, :alt_title, :romaji, :alt_romaji], kwd, order_or_where: :both).where(**trans_main_opts)
+      assert_equal 3,      rela.count, rela.inspect
+      assert_equal tmptit, rela.pluck(:title).first
+    end
   end
 
   test "Translation.select_partial_str" do

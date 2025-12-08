@@ -1578,7 +1578,7 @@ class HaramiVid < BaseWithTranslation
         return nil
       else
         search_word = definite_article_to_tail(hsrow[kwd].strip)
-        rela = klass.probable_candidates(search_word)
+        rela = klass.select_by_kwd(search_word)
         return rela if rela.exists?
 
         alert_messages[:alert] << "ERROR: #{+klass.name} for #{hsrow[kwd].strip.inspect} is not found." if report_error

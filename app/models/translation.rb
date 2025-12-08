@@ -54,6 +54,9 @@ class Translation < ApplicationRecord
   include ModuleCreateUpdateUser
   #include ModuleWhodunnit # for set_create_user, set_update_user
 
+  # for affinity-searching and ordering/sorting
+  include DbSearchOrder
+
   using ModuleHashExtra  # for extra methods, e.g., Hash#values_blank_to_nil
 
   before_validation :move_articles_to_tail
@@ -353,7 +356,7 @@ class Translation < ApplicationRecord
   # @param exact_match: [Boolean] if false (Def: true), partial mathces are accepted.
   # @param case_sensitive: [Boolean] if true (Def), case-sensitive maches are performed.
   # @param space_sensitive: [Boolean] If false (Def), spaces and dashes are ignored (though UTF-8 dashes may be incomplete).
-  # @return [Array] a 2-element Array feedable to a where clause in Relation.
+  # @return [Array] a 1- or 2-element Array feedable to a where clause in Relation.  1-element means the full SQL statement, and 2-element is for like +["title = ?", "xyz"]+
   def self.tuple_collate_equal(*args, t_alias: nil, collate_to: nil, exact_match: true, case_sensitive: true, space_sensitive: false)
     collate_to ||= ApplicationRecord.utf8collation  # "und-x-icu" (more general than "C.UTF-8" (BSD) or "C.utf8" (Linux))
     t_alias ||= table_name

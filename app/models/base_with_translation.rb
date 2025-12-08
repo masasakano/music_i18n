@@ -1289,12 +1289,12 @@ class BaseWithTranslation < ApplicationRecord
     model
   end
 
-  # Searches based on a title
+  # Searches based on a keyword, including title
   #
-  # If the exact match is found, it is returned. If not, other candidates are searched.
+  # If the exact match is found, it is returned as Relation. If not, other candidates are searched.
   #
   # @return [Relation] Most probable candidates for a title. Maybe empty.
-  def self.probable_candidates(kwd, langcode: nil)
+  def self.select_by_kwd(kwd, langcode: nil)
     search_word = preprocess_space_zenkaku(kwd, article_to_tail=true, strip_all: true)
     objs = select_regex(:titles, search_word, langcode: langcode, sql_regexp: true)
     return objs if objs.exists?  # Exact match with an article
@@ -2755,7 +2755,9 @@ class BaseWithTranslation < ApplicationRecord
   end
   private :put_a_title
 
-  # Defines %i(title= alt_title= ruby= alt_ruby= romaji= alt_romaji= langcode= is_orig= weight=)
+  # Defines %i(title= alt_title= ruby= alt_ruby= romaji= alt_romaji= langcode= is_orig= weight=) as in attr_writer
+  #
+  # See #{put_a_title} and its comment lines for detail.
   Translation::TRANSLATION_PARAM_KEYS.each do |metho|
     metho_i = (metho.to_s + "=").to_sym
     define_method(metho_i) do |arg|
@@ -4941,20 +4943,30 @@ class << BaseWithTranslation
   #
   #    record = Artist.create_basic!  # => ok.
   #
-  # @param translation: [Translation, Nilclass] if given, this (unsaved) Translation is used instead.
+  # @param translation: [Translation, Nilclass] if given, this (unsaved) Translation is used instead
+  #    on the condition of none of the translation-related parameters like :title or :alt_title
+  #    (defined in Translation::TRANSLATION_PARAM_KEYS) being specified.
   #    You can give an existing Translation as long as it belongs to a different parent class
   #    (if it belongs to the same class, it is likely to raise a unique-violation-related Exception).
   def create_basic!(*args, translation: nil, **kwds, &blok)
     model = create_basic_application_original!(*args, **kwds, &blok)
     model.reload
     if model.translations.exists?
+      # If any of the translation-related parameters like :title is specified, this should
+      # be always the case.  See {#put_a_title}, which defines +title=+ etc, where
+      # @unsaved_translations are set accordingly.
+      if 1 == model.translations.size  # This should be always the case, but playing safe.
+        tra =model.translations.first
+        tra.update!(note: "Trans-"+(kwds[:note] || "")) if tra.note.blank?  # This should be always blank, but playing safe.
+      end
       model
     else
+      # i.e., if none of the translation-related parameters like :title is specified.
       if translation
         translation.translatable = nil
         model.translations << translation
       else
-        model.with_translation(**_prepare_hash_basic_translation(translation))
+        model.with_translation(**_prepare_hash_basic_translation(translation, note: (kwds[:note] || "")))
       end
       model
     end
@@ -4966,17 +4978,17 @@ class << BaseWithTranslation
   def initialize_basic(*args, translation: nil, **kwds, &blok)
     model = super(*args, **kwds, &blok)
     if model.unsaved_translations.empty? && model.instance_variable_get(:@title).blank? && model.instance_variable_get(:@langcode).blank?
-      model.unsaved_translations << Translation.new(_prepare_hash_basic_translation(translation))
+      model.unsaved_translations << Translation.new(_prepare_hash_basic_translation(translation, note: (kwds[:note] || "")))
     end
     model
   end
 
   private
-  def _prepare_hash_basic_translation(translation)
+  def _prepare_hash_basic_translation(translation, note: "")
     if translation 
       translation.attributes.except(*(%w(id translatable_type translatable_id created_at updated_at)))
     else
-      {langcode: "en", title: name+"-basic-"+rand(0.429).to_s, is_orig: true, weight: 1000}
+      {langcode: "en", title: name+"-basic-"+rand(0.429).to_s, is_orig: true, weight: 1000, note: "Trans-"+note.to_s}
     end
   end
 end
