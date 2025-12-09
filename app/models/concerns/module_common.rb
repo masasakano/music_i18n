@@ -213,6 +213,53 @@ module ModuleCommon
     end
   end
 
+
+  # Returns the next (positive or negative) Array index in the extreme-end Bsearch (binary-search)
+  #
+  # If a negative index is given, returns zero (if it was -1) or a positive index.
+  # If zero or a positive index is given, returns a negative index.
+  # If Bsearch should finish, returns nil.
+  #
+  # @param ind [Integer] Index of an Array
+  # @param ary_or_size [Array, Integer] Reference Array or its size
+  # @param n_trimmed: [Integer, NilClass] if running B-search over a partial Array (from the head of Array), specify its size. This must be no larger than +ary_or_size+
+  # @return [Integer, NilClass] the next Array index (either positive or negative), or nil if the loop should end here.
+  def index_next_bsearch(i_now, ary_or_size, n_trimmed: nil)
+    n_max_steps = (ary_or_size.respond_to?(:flatten) ? ary_or_size.size : ary_or_size)  # NOTE: Integer#size is defined(!), so respond_to?(:size) is inappropriate
+    n_trimmed ||= n_max_steps
+    return nil if n_max_steps <= 0 || n_trimmed <= 0
+    i_negative_offset = n_trimmed - n_max_steps  # negative offset from -1; e.g., if this is -2, the search would start from -3.
+
+    if i_now >= 0
+      # returning a negative value
+      i_next = -(i_now + 2) + i_negative_offset
+      i_next_positive = index_positive_array(i_next, n_max_steps)
+      ((i_next_positive <= i_now) ? nil : i_next)
+    else
+      # returning a positive value
+      i_now_positive = index_positive_array(i_now, n_max_steps)
+      i_next = index_positive_array(-(i_now-i_negative_offset+1), n_max_steps)
+      ((i_now_positive <= i_next) ? nil : i_next)
+    end
+  end
+
+  # @param ind [Integer] Index of an Array
+  # @param ary_or_size [Array, Integer] Reference Array or its size
+  # @return [Integer] positive index of an Array as long as ind is within a valid range.
+  #    If a too small (i.e., highly negative) ind is given, this would return a negative index.
+  def index_positive_array(ind, ary_or_size)
+    ind >= 0 ? ind : ((ary_or_size.respond_to?(:flatten) ? ary_or_size.size : ary_or_size) + ind)  # NOTE: Integer#size is defined(!), so respond_to?(:size) is inappropriate
+  end
+
+  # @param ind [Integer] Index of an Array
+  # @param ary_or_size [Array, Integer] Reference Array or its size
+  # @return [Integer] negative index of an Array as long as ind is within a valid range.
+  #    If ind is negative, the value is returned as it is.
+  #    If a too large ind is given, this would return a positive index.
+  def index_negative_array(ind, ary_or_size)
+    ind < 0 ? ind : (-(ary_or_size.respond_to?(:flatten) ? ary_or_size.size : ary_or_size) + ind)  # NOTE: Integer#size is defined(!), so respond_to?(:size) is inappropriate
+  end
+
   # Returns a Hash with Symbol keys converted from a with_indifferent_access Hash
   #
   # @example
@@ -485,6 +532,18 @@ module ModuleCommon
                    gsub(/(?<!\\)((?:\\\\)*)(\\)b/, '\1\y').  # other(\b) => \y
                    gsub(/\uFFFD/, '\b')  # replaces back [\b] (i.e., \b inside Range)
     return [restr, opts]
+  end
+
+  # @example
+  #   sql_tbl_col_str("sexes", "iso5218")  # defined in ModuleCommon
+  #   sql_tbl_col_str(Sex, :iso5218)  # defined in ModuleCommon
+  #
+  # @param tbl [String, Symbol, ActiveRecord] Table name
+  # @param col [String, Symbol] Column name
+  # @return [String] Escaped "TableName.ColName"
+  def sql_tbl_col_str(tbl, col)
+    tbl = tbl.table_name if tbl.respond_to?(:table_name)
+    sprintf '"%s".%s', tbl.to_s, col.to_s
   end
 
   ################################################################

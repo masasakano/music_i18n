@@ -240,6 +240,57 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_equal(-5_6.23_43e-52_3 , convert_str_to_number_nil(" -5_6.23_43e-52_3 "))
   end
 
+  test "index_next_bsearch" do
+    assert_nil index_next_bsearch(-1, 0)
+
+    assert_nil index_next_bsearch(-1, 1)
+    assert_nil index_next_bsearch(-1, [9])
+
+    assert_equal  0, index_next_bsearch(-1, 2)
+    assert_equal  0, index_next_bsearch(-1, [8, 9])
+    assert_nil       index_next_bsearch( 0, 2)
+    assert_nil       index_next_bsearch( 0, [8, 9])
+
+    assert_equal  0, index_next_bsearch(-1, 3)
+    assert_equal(-2, index_next_bsearch( 0, 3))
+    assert_nil       index_next_bsearch(-2, 3)
+
+    assert_equal  0, index_next_bsearch(-1, 4)
+    assert_equal(-2, index_next_bsearch( 0, 4))
+    assert_equal  1, index_next_bsearch(-2, 4)
+    assert_nil       index_next_bsearch( 1, 4)
+
+    assert_equal  0, index_next_bsearch(-1, 5)
+    assert_equal(-2, index_next_bsearch( 0, 5))
+    assert_equal  1, index_next_bsearch(-2, 5)
+    assert_equal -3, index_next_bsearch( 1, 5)
+    assert_nil       index_next_bsearch(-3, 5)
+
+    assert_equal  0, index_next_bsearch(-2, 5, n_trimmed: 4)
+    assert_equal(-3, index_next_bsearch( 0, 5, n_trimmed: 4))
+    assert_equal  1, index_next_bsearch(-3, 5, n_trimmed: 4)
+    assert_nil       index_next_bsearch( 1, 5, n_trimmed: 4)
+
+    assert_equal  0, index_next_bsearch(-3, 5, n_trimmed: 3)
+    assert_equal(-4, index_next_bsearch( 0, 5, n_trimmed: 3))
+    assert_nil       index_next_bsearch(-4, 5, n_trimmed: 3)
+  end
+
+  test "index_positive_array and index_negative_array" do
+    assert_equal 0, index_positive_array(0, 5)
+    assert_equal 1, index_positive_array(1, 5)
+    assert_equal 4, index_positive_array(-1, 5)
+    assert_equal 3, index_positive_array(-2, 5)
+    assert_equal 2, index_positive_array(-3, 5)
+
+    assert_equal(-8, index_negative_array(-8, 5))
+    assert_equal(-5, index_negative_array(0, 5))
+    assert_equal(-4, index_negative_array(1, 5))
+    assert_equal(-3, index_negative_array(2, 5))
+    assert_equal(-2, index_negative_array(3, 5))
+    assert_equal(-1, index_negative_array(4, 5))
+  end
+
   test "capture_stderr" do
     output = Artist.capture_stderr{
       warn "abc"

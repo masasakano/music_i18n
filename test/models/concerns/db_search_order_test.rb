@@ -29,36 +29,52 @@ class ConcernsDbSearchOrderTest < ActiveSupport::TestCase
     cols = %i(title alt_title romaji)  # order matters
     kwd = kwd_exact
 
-    rela = Translation.search_by_affinity(:title, kwd, order_or_where: :both, upto: :exact)
-    assert_equal [tras[:s11].id], rela.ids, "SQL="+rela.to_sql
-       # "SQL-core="+Translation.search_by_affinity(:title, kwd, order_or_where: :both, upto: :exact, debug_return_content_sql: true).join("\n")
+    rela = Translation.find_all_by_affinity( :title, kwd, order_or_where: :both, upto: :exact)
+    rel2 = Translation.find_all_best_matches(:title, kwd, parent: nil, upto: :exact)
+    exp = [tras[:s11].id]
+    assert_equal exp, rela.ids, "SQL="+rela.to_sql
+       # "SQL-core="+Translation.find_all_by_affinity(:title, kwd, order_or_where: :both, upto: :exact, debug_return_content_sql: true).join("\n")
+    assert_equal exp, rel2.ids
 
-    rela = Translation.search_by_affinity(:title, kwd, order_or_where: :both)
+    rela = Translation.find_all_by_affinity(:title, kwd, order_or_where: :both)
     assert_includes rela.to_sql.downcase, "where"
     assert_includes rela.to_sql.downcase, "order"
-    rela = Translation.search_by_affinity(:title, kwd, order_or_where: :where)
+    rela = Translation.find_all_by_affinity(:title, kwd, order_or_where: :where)
     assert_includes rela.to_sql.downcase, "where"
     refute_includes rela.to_sql.downcase, "order"
-    rela = Translation.search_by_affinity(:title, kwd, order_or_where: :order)
+    rela = Translation.find_all_by_affinity(:title, kwd, order_or_where: :order)
     refute_includes rela.to_sql.downcase, "where"
     assert_includes rela.to_sql.downcase, "order"
 
     rela_base = Translation.where(translatable_type: "Sex")
-    rela = Translation.search_by_affinity(:title, kwd, order_or_where: :where, parent: rela_base)
-    assert_equal [tras[:s11].id], rela.ids, "Option parent somehow does not work..."  # "parent" option shoud not cause an error at least.
+    rela = Translation.find_all_by_affinity( :title, kwd, order_or_where: :where, parent: rela_base)
+    rel2 = Translation.find_all_best_matches(:title, kwd, parent: rela_base)
+    exp = [tras[:s11].id]
+    assert_equal exp, rela.ids, "Option parent somehow does not work..."  # "parent" option shoud not cause an error at least.
+    assert_equal exp, rel2.ids
 
     t_alias = "tra"
     sql = "INNER JOIN translations #{t_alias} ON tra.translatable_type = 'Sex' AND tra.translatable_id = sexes.id"
-    rela = Translation.search_by_affinity(:title, kwd, order_or_where: :where, parent: Sex.joins(sql), t_alias: t_alias)
-    assert_equal [records[:s11].id], rela.ids, "Option t_alias somehow does not work...: "+rela.to_sql
+    rela = Translation.find_all_by_affinity( :title, kwd, order_or_where: :where, parent: Sex.joins(sql), t_alias: t_alias)
+    rel2 = Translation.find_all_best_matches(:title, kwd, parent: Sex.joins(sql), t_alias: t_alias)
+    exp = [records[:s11].id]
+    assert_equal exp, rela.ids, "Option t_alias somehow does not work...: "+rela.to_sql
+    assert_equal exp, rel2.ids
 
     prl11 = PlayRole.create_basic!(title: "dummy-PR", alt_ruby: kwd_exact, langcode: "fr", note: "PlayRole", mname: "test_prl11", weight: 1234567) # unique mname and weight are mandatory.
     tra_prl11 = prl11.best_translation
-    rela = Translation.search_by_affinity([:alt_ruby, :title], kwd, order_or_where: :both)  # NOTE: the order of [:alt_ruby, :title] (!!)
+    rela = Translation.find_all_by_affinity( [:alt_ruby, :title], kwd, order_or_where: :both)  # NOTE: the order of [:alt_ruby, :title] (!!)
+    rel2 = Translation.find_all_best_matches([:alt_ruby, :title], kwd)
     assert_equal 2, rela.count
-    assert_equal [tra_prl11.id, tras[:s11].id], rela.ids, "sanity check"  # Translation for PlayRole of alt_ruby should come first (see the line above)
-    rela = Translation.search_by_affinity([:alt_ruby, :title], kwd, order_or_where: :both, parent: rela_base)
-    assert_equal [tras[:s11].id], rela.ids, "Option parent is somehow ignored..."  # "parent" option is definitly working.
+    exp = [tra_prl11.id, tras[:s11].id]
+    assert_equal exp, rela.ids, "sanity check"  # Translation for PlayRole of alt_ruby should come first (see the line above)
+    assert_equal exp, rel2.ids
+
+    rela = Translation.find_all_by_affinity( [:alt_ruby, :title], kwd, order_or_where: :both, parent: rela_base)
+    rel2 = Translation.find_all_best_matches([:alt_ruby, :title], kwd,                        parent: rela_base)
+    exp = [tras[:s11].id]
+    assert_equal exp, rela.ids, "Option parent is somehow ignored..."  # "parent" option is definitly working.
+    assert_equal exp, rel2.ids
 
     ### From now on, it is limited to Translation-s for Sex
 
@@ -66,76 +82,119 @@ class ConcernsDbSearchOrderTest < ActiveSupport::TestCase
     def_opts = def_opts_min.merge({order_or_where: :both})
 
     kwd = kwd_exact.capitalize  # "TEST 333 Dayo"  # NOT exact, but Case-insensitive match
-    rela = Translation.search_by_affinity(:title, kwd, upto: :exact, **def_opts)
+    rela = Translation.find_all_by_affinity( :title, kwd, upto: :exact, **def_opts)
+    rel2 = Translation.find_all_best_matches(:title, kwd, upto: :exact, **def_opts_min)
     assert_empty  rela.ids
+    assert_empty  rel2.ids
 
-    rela = Translation.search_by_affinity(:title, kwd, upto: :caseInsensitive, **def_opts)
-    assert_equal [tras[:s11].id], rela.ids
-    rela = Translation.search_by_affinity(:title, kwd, upto: nil, **def_opts)
-    assert_equal [tras[:s11].id], rela.ids
+    rela = Translation.find_all_by_affinity( :title, kwd, upto: :case_insensitive, **def_opts)
+    rel2 = Translation.find_all_best_matches(:title, kwd, upto: :case_insensitive, **def_opts_min)
+    exp = [tras[:s11].id]
+    assert_equal exp, rela.ids
+    assert_equal exp, rel2.ids
+
+    rela = Translation.find_all_by_affinity( :title, kwd, upto: nil, **def_opts)
+    rel2 = Translation.find_all_best_matches(:title, kwd, upto: nil, **def_opts_min)
+    assert_equal exp, rela.ids
+    assert_equal exp, rel2.ids
 
     ["TEST333Dayo", "TE〜ST — - 333-Dayo"].each do |kwd| # Space-insensitive exact match, Space-insensitive exact match (also about a dash/hyphen/mdash)
-      rela = Translation.search_by_affinity(:title, kwd, upto: :caseInsensitive, **def_opts)
+      rela = Translation.find_all_by_affinity( :title, kwd, upto: :case_insensitive, **def_opts)
+      rel2 = Translation.find_all_best_matches(:title, kwd, upto: :case_insensitive, **def_opts_min)
       assert_empty  rela.ids
-      rela = Translation.search_by_affinity(:title, kwd, upto: :spaceInsensitiveExact, **def_opts)
-      assert_equal [tras[:s11].id], rela.ids
+      assert_empty  rel2.ids
+
+      rela = Translation.find_all_by_affinity( :title, kwd, upto: :space_insensitive_exact, **def_opts)
+      rel2 = Translation.find_all_best_matches(:title, kwd, upto: :space_insensitive_exact, **def_opts_min)
+      exp = [tras[:s11].id]
+      assert_equal exp, rela.ids
+      assert_equal exp, rel2.ids
     end
+#debugger
 
     kwd = " ST33 3Day " # Space-insensitive partial match (also about a dash/hyphen/mdash)
-    rela = Translation.search_by_affinity(:title, kwd, upto: :caseInsensitive, **def_opts)
+    rela = Translation.find_all_by_affinity( :title, kwd, upto: :case_insensitive, **def_opts)
+    rel2 = Translation.find_all_best_matches(:title, kwd, upto: :case_insensitive, **def_opts_min)
     assert_empty  rela.ids
-    rela = Translation.search_by_affinity(:title, kwd, upto: :spaceInsensitiveExact, **def_opts)
+    assert_empty  rel2.ids
+
+    rela = Translation.find_all_by_affinity( :title, kwd, upto: :space_insensitive_exact, **def_opts)
+    rel2 = Translation.find_all_best_matches(:title, kwd, upto: :space_insensitive_exact, **def_opts_min)
     assert_empty  rela.ids
-    rela = Translation.search_by_affinity(:title, kwd, upto: :spaceInsensitivePartial, **def_opts)
-    assert_equal [tras[:s11].id], rela.ids
-    rela = Translation.search_by_affinity(:title, kwd, upto: nil, **def_opts)
-    assert_equal [tras[:s11].id], rela.ids
+    assert_empty  rel2.ids
+
+    exp = [tras[:s11].id]
+    rela = Translation.find_all_by_affinity( :title, kwd, upto: :space_insensitive_partial, **def_opts)
+    rel2 = Translation.find_all_best_matches(:title, kwd, upto: :space_insensitive_partial, **def_opts_min)
+    assert_equal exp, rela.ids
+    assert_equal exp, rel2.ids
+
+    rela = Translation.find_all_by_affinity( :title, kwd, upto: nil, **def_opts)
+    assert_equal exp, rela.ids
 
     #### Tests with title, alt_title, romaji
 
     kwd = kwd_exact
 
-    opts = def_opts.merge({parent: def_opts[:parent].where(langcode: "ja")})
-    rela = Translation.search_by_affinity(cols, kwd, upto: :exact, **opts)
-    assert_equal [tras[:s13].id], rela.ids, "romaji should be searched, but...: "+rela.inspect  # langcode restriction
+    hs = {parent: def_opts[:parent].where(langcode: "ja")}
+    opts = def_opts.merge(hs)
+    opt2 = def_opts_min.merge(hs)
+    rela = Translation.find_all_by_affinity( cols, kwd, upto: :exact, **opts)
+    rel2 = Translation.find_all_best_matches(cols, kwd, upto: :exact, **opt2)
+    exp = [tras[:s13].id]
+    assert_equal exp, rela.ids, "romaji should be searched, but...: "+rela.inspect  # langcode restriction
+    assert_equal exp, rel2.ids
 
-    rela = Translation.search_by_affinity(cols, kwd, upto: :exact, **def_opts)
+    rela = Translation.find_all_by_affinity( cols, kwd, upto: :exact, **def_opts)
+    rel2 = Translation.find_all_best_matches(cols, kwd, upto: :exact, **def_opts_min)
     exp = [tras[:s11].id, tras[:s13].id]
+    assert_equal tras[:s11].title, tras[:s13].romaji, 'santy check'
     assert_equal exp, rela.ids  # tras[:s12] is Caplitalized, hence not satisfying the condition.
+    assert_equal exp, rel2.ids
 
-    rela = Translation.search_by_affinity(cols, kwd.capitalize, upto: :exact, **def_opts)
+    rela = Translation.find_all_by_affinity( cols, kwd.capitalize, upto: :exact, **def_opts)
     exp = [tras[:s12].id]
     assert_equal exp, rela.ids, "kwd=#{kwd.capitalize.inspect} / tra=#{tras[:s12].inspect}"
 
-    rela = Translation.search_by_affinity(cols, kwd, upto: :caseInsensitive, **def_opts)
     exp = [tras[:s11].id, tras[:s13].id, tras[:s12].id]
+    ex2 = [tras[:s11].id, tras[:s13].id]
+    rela = Translation.find_all_by_affinity( cols, kwd, upto: :case_insensitive, **def_opts)
+    rel2 = Translation.find_all_best_matches(cols, kwd, upto: :case_insensitive, **def_opts_min)
     assert_equal exp, rela.ids, "three records should match and be returned in the order of title (exact), romaji (exact), alt_title (case-insensitive), but..."
+    assert_equal ex2, rel2.ids, "This should differ from the above, but..."
 
     ### Added one with romaji of 1-character less
     records[:s23] = _create_new_sex(title: "dummy-23",  alt_title: "", romaji: kwd_exact.chop, note: "23")
     set_tras.call(tras, [:s23])
     kwd = kwd_exact.chop
 
-    rela = Translation.search_by_affinity(cols, kwd, upto: :spaceInsensitiveExact, **def_opts)
+    rela = Translation.find_all_by_affinity( cols, kwd, upto: :space_insensitive_exact, **def_opts)
+    rel2 = Translation.find_all_best_matches(cols, kwd, upto: :space_insensitive_exact, **def_opts_min)
     exp = [tras[:s23].id]
     assert_equal exp, rela.ids  # tras[:s12] is Caplitalized, hence not satisfying the condition.
+    assert_equal exp, rel2.ids
 
-    rela = Translation.search_by_affinity(cols, kwd, upto: :spaceInsensitivePartial, **def_opts)
+    rela = Translation.find_all_by_affinity( cols, kwd, upto: :space_insensitive_partial, **def_opts)
+    rel2 = Translation.find_all_best_matches(cols, kwd, upto: :space_insensitive_partial, **def_opts_min)
+    # print "DEBUG:234: kwd=#{kwd.inspect}: "; pp [tras[:s23], tras[:s11], tras[:s12], tras[:s13]]
     exp = [tras[:s23].id, tras[:s11].id, tras[:s12].id, tras[:s13].id]
-    assert_equal exp, rela.ids, "s23-romaji should come first because it is the only :spaceInsensitiveExact match, and the rest follows, but...: "+rela.inspect
+    ex2 = [tras[:s23].id]
+    assert_equal [[tras[:s23].id, kwd]], Translation.where(romaji: kwd).pluck(:id, :romaji), "sanity-check; only one entry has an exact match"
+    assert_equal exp, rela.ids, "s23-romaji should come first because it is the only :space_insensitive_exact match, and the rest follows, but...: "+rela.inspect
+    assert_equal ex2, rel2.ids
 
-    ### tests of alt_title with :spaceInsensitiveExact
+    ### tests of alt_title with :space_insensitive_exact
     ar = kwd_exact.split 
     kwd = (["— -〜"+ar[0].upcase]+ar[1..-1]).join(" ").chop
     atit = (ar[0..-2]+["〜"+ar[-1].upcase.chop.sub(/(.)(..)/, '\1〜\2')+"— -"]).join(" ")
     assert_equal atit.downcase.gsub(/[\s—〜\-]/, ""), kwd.downcase.gsub(/[\s—〜\-]/, ""), 'sanity check'
     records[:s32] = _create_new_sex(title: nil,  alt_title: atit, romaji: "", note: "32")
     set_tras.call(tras, [:s32])
-
-    rela = Translation.search_by_affinity(cols, kwd, upto: :spaceInsensitiveExact, **def_opts)
+    rela = Translation.find_all_by_affinity( cols, kwd, upto: :space_insensitive_exact, **def_opts)
+    rel2 = Translation.find_all_best_matches(cols, kwd, upto: :space_insensitive_exact, **def_opts_min)
     exp = [tras[:s32].id, tras[:s23].id]
     assert_equal exp, rela.ids  # both kwd and records are space-insensitive. alt_title should come first.
-
+    assert_equal exp, rel2.ids
   end
 
   private

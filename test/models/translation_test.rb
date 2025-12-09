@@ -415,7 +415,7 @@ class TranslationTest < ActiveSupport::TestCase
 
     kwd = "Ale"
     parent = Translation.select_regex(:titles, kwd, space_sensitive: false, **opts)
-    sq = Translation.search_by_affinity([:title, :alt_title, :romaji, :alt_romaji], kwd, parent: parent, order_or_where: :order, debug_return_content_sql: true)
+    sq = Translation.find_all_by_affinity([:title, :alt_title, :romaji, :alt_romaji], kwd, parent: parent, order_or_where: :order, debug_return_content_sql: true)
 #print "DEBUG:5 \n"
 #pp sq
     assert_equal [Sex[1], Sex[2]].map{|i| i.title(langcode: :en)}, parent.order(Arel.sql sq).pluck(:title)
@@ -424,7 +424,7 @@ class TranslationTest < ActiveSupport::TestCase
       tmptit = "ALE"
       tra = Translation.new(title: tmptit, langcode: "en", weight: 100)
       Sex[2].translations << tra
-      rela = Translation.search_by_affinity([:title, :alt_title, :romaji, :alt_romaji], kwd, order_or_where: :both).where(**trans_main_opts)
+      rela = Translation.find_all_by_affinity([:title, :alt_title, :romaji, :alt_romaji], kwd, order_or_where: :both).where(**trans_main_opts)
       assert_equal 3,      rela.count, rela.inspect
       assert_equal tmptit, rela.pluck(:title).first
     end

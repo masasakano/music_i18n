@@ -2,7 +2,8 @@ module DbSearchOrder
   extend ActiveSupport::Concern
 
   # Step to sort the result of matching [Array<Symbol>]
-  PSQL_MATCH_ORDER_STEPS = [:exact, :caseInsensitive, :spaceInsensitiveExact, :spaceInsensitivePartial]
+  # See also {Translation::MATCH_METHODS}
+  PSQL_MATCH_ORDER_STEPS = [:exact, :case_insensitive, :space_insensitive_exact, :space_insensitive_partial]
 
   # dash/hyphen-like characters
   #
@@ -21,7 +22,7 @@ module DbSearchOrder
   PSQL_UNICODE_ALL_MIDDLE_PUNCT = '\s' + PSQL_UNICODE_DASH + PSQL_UNICODE_MIDDLE_DOT + PSQL_UNICODE_EQUAL
 
   module ClassMethods
-    # Searches records by columns (title, alt_title, ruby, alt_romaji, etc) affinity, prioritizing matches.
+    # Find all records by columns (title, alt_title, ruby, alt_romaji, etc) affinity, prioritizing matches.
     #
     # This categorizes the conditions and score them as follows in the case of searching for 3 +cols+
     # of +title+, +alt_title+, +romaji+ as an example:
@@ -34,11 +35,11 @@ module DbSearchOrder
     # where "Space-Insensitive" means the search ignores any spaces and dash/hyphen/equal-like characters.
     #
     # Note that the preceding and trailing spaces are significant unless specified so
-    # (i.e., +upto+ of +:spaceInsensitiveExact+ or +:spaceInsensitivePartial+) and that
+    # (i.e., +upto+ of +:space_insensitive_exact+ or +:space_insensitive_partial+) and that
     # most characters like ASCII "&" and the Zenkaku one are not aggressively collated.
     #
     # @example of the order_sql created
-    #    Translation.search_by_affinity([:title, :alt_title, :ruby, :alt_ruby], "XXX", t_alias: "t")
+    #    Translation.find_all_by_affinity([:title, :alt_title, :ruby, :alt_ruby], "XXX", t_alias: "t")
     #      ## created order_sql:
     #      # CASE
     #      #   WHEN t.title = 'XXX' THEN 1
@@ -64,22 +65,22 @@ module DbSearchOrder
     # @param parent [Translation::ActiveRecord_Relation, NilClass] Base relation
     # @param upto: [Symbol, NilClass] Up to which step of {PSQL_MATCH_ORDER_STEPS} or nil (Default, meaning all steps)
     # @param upto: nil, debug_return_content_sql: false)
-    def search_by_affinity(columns, raw_kwd, order_or_where:, order_by_created_at: false, t_alias: nil, parent: nil, upto: nil, debug_return_content_sql: false)
+    def find_all_by_affinity(columns, raw_kwd, order_or_where:, order_by_created_at: false, t_alias: nil, parent: nil, upto: nil, debug_return_content_sql: false)
       raise ArgumentError, "order_or_where="+order_or_where.inspect if ![:order, :where, :both].include?(order_or_where)
       raise ArgumentError, [columns, raw_kwd].inspect if columns.blank? || raw_kwd.blank?
       columns = [columns].flatten.map(&:to_s)
       t_alias ||= self.table_name
       base_rela = (parent || self.all)
-      index_upto = (upto ? PSQL_MATCH_ORDER_STEPS.find_index(upto) : PSQL_MATCH_ORDER_STEPS.size-1)
+      index_upto = (upto ? PSQL_MATCH_ORDER_STEPS.find_index(upto.to_sym) : PSQL_MATCH_ORDER_STEPS.size-1)
       raise ArgumentError, "upto is not one of PSQL_MATCH_ORDER_STEPS: "+upto.inspect if !index_upto  # if upto is not one of PSQL_MATCH_ORDER_STEPS
 
       ## Preparation: quote and, if needed, truncate the input keyword (Ruby)
       quoted_kwd = connection.quote(raw_kwd)
 
-      if index_upto >= PSQL_MATCH_ORDER_STEPS.find_index(:caseInsensitive)
+      if index_upto >= PSQL_MATCH_ORDER_STEPS.find_index(:case_insensitive)
         quoted_kwd_like = sanitize_sql_like(quoted_kwd)
 
-        if index_upto >= PSQL_MATCH_ORDER_STEPS.find_index(:spaceInsensitiveExact)
+        if index_upto >= PSQL_MATCH_ORDER_STEPS.find_index(:space_insensitive_exact)
           truncated_kwd_base = raw_kwd.to_s.downcase.gsub(/[\s\p{Dash}]/u, "")  # space-eliminated and downcased
           quoted_truncated_kwd_base = connection.quote(truncated_kwd_base)
           truncated_kwd_like = sanitize_sql_like(truncated_kwd_base)
@@ -100,7 +101,7 @@ module DbSearchOrder
       # Iteratively builds clauses for the four cases (the Array elements are for human readability only).
       PSQL_MATCH_ORDER_STEPS.each_with_index do |match_type, i_step|
         # Storing OR conditions for multiple columns; reset at every loop so that
-        # only the ones for the last outer-loop (e.g., :caseInsensitive) remain.
+        # only the ones for the last outer-loop (e.g., :case_insensitive) remain.
         where_conditions = []
 
         columns.each do |col|
@@ -111,11 +112,11 @@ module DbSearchOrder
             case match_type
             when :exact
               sprintf '"%s"."%s" = %s', t_alias, col, quoted_kwd
-            when :caseInsensitive
+            when :case_insensitive
               sprintf '"%s"."%s" ILIKE %s', t_alias, col, quoted_kwd_like  # ==: "LOWER(#{t_alias}.#{col}) = LOWER(#{quoted_kwd})"
-            when :spaceInsensitiveExact
+            when :space_insensitive_exact
               sprintf("%s ILIKE   '%s'",   truncate_where_sql.call(col), truncated_kwd_like)
-            when :spaceInsensitivePartial
+            when :space_insensitive_partial
               sprintf("%s ILIKE '%%%s%%'", truncate_where_sql.call(col), truncated_kwd_like)
             else
               raise "Should never happen. Contact the code developer. "+match_type.inspect
@@ -157,6 +158,78 @@ module DbSearchOrder
         ret = ret.order('"'+t_alias+'".created_at' => :desc) if order_by_created_at
       end
       ret
-    end # def search_by_affinity()
+    end # def find_all_by_affinity()
+
+
+    # Finds the smallest number of the most likely matches by iteratively
+    # checking the strictest affinity level first.
+    #
+    # The order of checking is like, with regard to {PSQL_MATCH_ORDER_STEPS},
+    #
+    # 1. The least significant index, treated as negative (either -1 or as converted from +upto+ if specified)
+    # 2. The most significant index: 0
+    # 3. The second least significant index, "(1) - 1"
+    # 4. The second most significant index: 1
+    # 5. and so on.
+    #
+    # @param columns [String, Array<String, Symbol>] of the columns in the order of priority
+    # @param raw_kwd [String] Keyword to search with
+    # @param order_by_created_at: [Boolean] If true (Def: false), the newest one comes first as the final condition for sorting/ordering.
+    # @param t_alias: [String, NilClass] DB table alias for the table.
+    # @param parent [ActiveRecord_Relation, NilClass] Base relation
+    # @param upto: [Symbol, NilClass] Up to which step of {PSQL_MATCH_ORDER_STEPS} or nil (Default, meaning all steps)
+    def find_all_best_matches(columns, raw_kwd, order_by_created_at: false, t_alias: nil, parent: nil, upto: nil)
+      t_alias ||= self.table_name
+      n_steps = PSQL_MATCH_ORDER_STEPS.size
+      i_begin = (upto ? PSQL_MATCH_ORDER_STEPS.find_index(upto.to_sym) : n_steps-1)  # positive index
+      n_steps_mod = i_begin + 1  # if upto==::case_insensitive, yielding i_begin==1, n_steps_mod==2, while n_steps==4
+      i_now = index_negative_array(i_begin, n_steps)  # negative index
+      last_relas = {where: (parent || self.all), both: nil, ids: nil, tra_ids: nil}.with_indifferent_access
+      curr_relas = {where: nil,                  both: nil, ids: nil, tra_ids: nil}.with_indifferent_access
+
+      def get_hs_where_ids(relas, t_alias)
+        hsmap = {ids: :id, tra_ids: sql_tbl_col_str(t_alias, :id).to_sym}
+        [:ids, :tra_ids].map{|k| (ar=relas[k]) ? [hsmap[k], ar] : nil}.compact.to_h
+      end
+
+      100.times.each do  # 100 as a conservative safety net.  This should not loop more than the size of PSQL_MATCH_ORDER_STEPS
+        # Get the relation using only the WHERE clause up to the current strictness level.
+        # This determines the *set* of matches at this level of strictness.
+        %i(where both).each do |ek|
+          curr_relas[ek] = find_all_by_affinity(columns, raw_kwd, order_or_where: ek, upto: PSQL_MATCH_ORDER_STEPS[i_now], t_alias: t_alias, parent: last_relas[:where])
+        end
+
+        return curr_relas[:both] if (1 == n_steps_mod)
+
+        i_next = index_next_bsearch(i_now, n_steps, n_trimmed: n_steps_mod)  # defined in ModuleCommon
+
+        curr_relas[:ids]     = curr_relas[:where].distinct.ids
+        cur_siz = curr_relas[:ids].size
+        curr_relas[:tra_ids] = curr_relas[:where].pluck(sql_tbl_col_str(t_alias, :id)).uniq  # defined in ModuleCommon
+
+        if (0 == cur_siz && i_begin == index_positive_array(i_now, n_steps)) ||  # if no records are found at the first step; defined in ModuleCommon
+           (1 == cur_siz) ||  # if narrowed down to 1 record
+           (0 < cur_siz && (!i_next || 0 <= i_now)) # if multiple AND (last-step or index is non-negative (i.e., will not be narrowed down further))
+          # Returning the currently obtained Relation
+          return curr_relas[:both].where(get_hs_where_ids(last_relas, t_alias))
+        elsif (0 == cur_siz) && (!i_next || i_now < 0)
+          # Returning the Relation obtained in the last (<-if i_now is positive) or second-last (<-if negative) step.
+          # If getting NONE yet if this is the last step, or if the previous iteration at a negative index (which is either the last or second-last) must have found *multiple* candidates
+          return last_relas[:both].where(get_hs_where_ids(last_relas, t_alias))
+        else  # [implicitly] i_next is guaranteed to be truthy
+          if (0 == cur_siz && i_now >= 0)
+            i_now = i_next
+            next
+          elsif (1 < cur_siz && i_now.negative?)
+            last_relas.merge!(curr_relas)
+            i_now = i_next
+            next
+          else
+            raise "Should never come here... Contact the code developer."
+          end
+        end # if (1 == cur_siz) || (0 < cur_siz && 0 <= i_now) || (0 == cur_siz && i_begin == index_positive_array(i_now, n_steps))
+      end # 100.times.each do
+      raise "Should never come here after loop... Contact the code developer."
+    end # def find_all_best_matches()
   end # module ClassMethods
 end # module DbSearchOrder
