@@ -278,6 +278,8 @@ class Translation < ApplicationRecord
   # * :optional_article_ilike / Match if a definite-article is ignored (case-insensitive)
   # * :include / The string is a part of it
   # * :include_ilike / Same but case-insensitive
+  #
+  # See also {DbSearchOrder::PSQL_MATCH_ORDER_STEPS}
   MATCH_METHODS = [:exact, :exact_ilike, :optional_article_ilike, :include, :include_ilike]
 
   # All the accepted {Translation::MATCH_METHODS}
@@ -1046,34 +1048,22 @@ class Translation < ApplicationRecord
     value = value.gsub(/'/, "''")
     case method
     when :exact_absolute
-      sprintf("%s.%s = '%s'", tbl, key.to_s, value)
+      sprintf('"%s".%s'+" = '%s'", tbl, key.to_s, value)
     when :exact
-      sprintf("%s.%s = '%s'", tbl, key.to_s, definite_article_to_tail(value))  # defined in module_common.rb
+      sprintf('"%s".%s'+" = '%s'", tbl, key.to_s, definite_article_to_tail(value))  # defined in module_common.rb
     when :exact_ilike
-      sprintf("%s.%s ILIKE '%s'", tbl, key.to_s, sanitize_sql_like(definite_article_to_tail(value).gsub(/([%_])/, '\1'*2)))
+      sprintf('"%s".%s'+" ILIKE '%s'", tbl, key.to_s, sanitize_sql_like(definite_article_to_tail(value).gsub(/([%_])/, '\1'*2)))
     when :optional_article, :optional_article_ilike, :include, :include_ilike
-      re_core = regexp_ruby_to_postgres(ModuleCommon::DEFINITE_ARTICLES_REGEXP_STR)[0].gsub(/'/, "''") # defined in module_common.rb
-      re_str = '(?i)(, ('+re_core+'))?$'
+      # Strip definite articles from both the test and DB strings.
       s_stripped = definite_article_stripped(value).gsub(/([%_])/, '\1'*2)
-      case method
-      when :optional_article, :optional_article_ilike
-        operator = ((method == :optional_article) ? 'LIKE' : 'ILIKE')
-        sprintf("regexp_replace(%s.%s, '%s', '') %s '%s'",
-              tbl,
-              key.to_s,
-              re_str,
-              operator,
-              s_stripped )
-      when :include, :include_ilike
-        # Strip definite articles from both the test and DB strings.
-        operator = ((method == :include) ? 'LIKE' : 'ILIKE')
-        sprintf("regexp_replace(%s.%s, '%s', '') %s '%%%s%%'",
-              tbl,
-              key.to_s,
-              re_str,
-              operator,
-              s_stripped )
-      end
+      fmt, operator = 
+        case method
+        when :optional_article, :optional_article_ilike
+          ["%s %s '%s'",     ((method == :optional_article) ? 'LIKE' : 'ILIKE')]
+        when :include, :include_ilike
+          ["%s %s '%%%s%%'", ((method == :include) ? 'LIKE' : 'ILIKE')]
+        end
+      sprintf(fmt, psql_definite_article_stripped(key, t_alias: t_alias), operator, s_stripped) # defined in module_common.rb
     else
       raise
     end

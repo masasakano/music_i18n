@@ -3,7 +3,7 @@ module DbSearchOrder
 
   # Step to sort the result of matching [Array<Symbol>]
   # See also {Translation::MATCH_METHODS}
-  PSQL_MATCH_ORDER_STEPS = [:exact, :case_insensitive, :space_insensitive_exact, :space_insensitive_partial]
+  PSQL_MATCH_ORDER_STEPS = [:exact, :case_insensitive, :optional_article_ilike, :space_insensitive_exact, :space_insensitive_partial]
 
   # dash/hyphen-like characters
   #
@@ -38,6 +38,8 @@ module DbSearchOrder
     # (i.e., +upto+ of +:space_insensitive_exact+ or +:space_insensitive_partial+) and that
     # most characters like ASCII "&" and the Zenkaku one are not aggressively collated.
     #
+    # See {Translation.build_sql_match_one}
+    #
     # @example of the order_sql created
     #    Translation.find_all_by_affinity([:title, :alt_title, :ruby, :alt_ruby], "XXX", t_alias: "t")
     #      ## created order_sql:
@@ -63,31 +65,41 @@ module DbSearchOrder
     # @param order_by_created_at: [Boolean] Only relevant when +order_or_where+ is NOT +:where+.  If true (Def: false), the newest one comes first as the final condition for sorting/ordering.  Give false (Def) if you call this from a parent or grandparent.
     # @param t_alias: [String, NilClass] DB table alias for Translation table, if the given +rela+ uses it. Default is {Translation.table_name} (= "translations")
     # @param parent [Translation::ActiveRecord_Relation, NilClass] Base relation
-    # @param upto: [Symbol, NilClass] Up to which step of {PSQL_MATCH_ORDER_STEPS} or nil (Default, meaning all steps)
-    # @param upto: nil, debug_return_content_sql: false)
-    def find_all_by_affinity(columns, raw_kwd, order_or_where:, order_by_created_at: false, t_alias: nil, parent: nil, upto: nil, debug_return_content_sql: false)
+    # @param upto: [Symbol, NilClass] Up to which step of +order_steps+ or nil, which is Default and means all steps.  See {PSQL_MATCH_ORDER_STEPS} for the step names.
+    # @param order_steps: [Array<Symbol>] Steps (Def: {PSQL_MATCH_ORDER_STEPS}).
+    # @param debug_return_content_sql: [Boolean] If true (Def: false), this returns either a SQL String for the core part (either :order or :where) or its Array (if +upto+ is :both)
+    # @return [ActiveRecord::Relation]
+    def find_all_by_affinity(columns, raw_kwd, order_or_where:, order_by_created_at: false, t_alias: nil, parent: nil, upto: nil, order_steps: PSQL_MATCH_ORDER_STEPS, debug_return_content_sql: false)
       raise ArgumentError, "order_or_where="+order_or_where.inspect if ![:order, :where, :both].include?(order_or_where)
       raise ArgumentError, [columns, raw_kwd].inspect if columns.blank? || raw_kwd.blank?
       columns = [columns].flatten.map(&:to_s)
       t_alias ||= self.table_name
       base_rela = (parent || self.all)
-      index_upto = (upto ? PSQL_MATCH_ORDER_STEPS.find_index(upto.to_sym) : PSQL_MATCH_ORDER_STEPS.size-1)
-      raise ArgumentError, "upto is not one of PSQL_MATCH_ORDER_STEPS: "+upto.inspect if !index_upto  # if upto is not one of PSQL_MATCH_ORDER_STEPS
+      index_upto = (upto ? order_steps.find_index(upto.to_sym) : order_steps.size-1)
+      raise ArgumentError, "upto is not one of order_steps: "+upto.inspect if !index_upto  # if upto is not one of order_steps
+      raw_kwd_article_tail = definite_article_to_tail(raw_kwd)  # defined in module_common.rb
 
       ## Preparation: quote and, if needed, truncate the input keyword (Ruby)
-      quoted_kwd = connection.quote(raw_kwd)
+      quoted_raw_kwd = connection.quote(raw_kwd)
+      quoted_kwd = connection.quote(raw_kwd_article_tail)
 
-      if index_upto >= PSQL_MATCH_ORDER_STEPS.find_index(:case_insensitive)
-        quoted_kwd_like = sanitize_sql_like(quoted_kwd)
+      if index_upto >= order_steps.find_index(:case_insensitive)
+        quoted_raw_kwd_like = sanitize_sql_like(quoted_raw_kwd)
 
-        if index_upto >= PSQL_MATCH_ORDER_STEPS.find_index(:space_insensitive_exact)
-          truncated_kwd_base = raw_kwd.to_s.downcase.gsub(/[\s\p{Dash}]/u, "")  # space-eliminated and downcased
-          quoted_truncated_kwd_base = connection.quote(truncated_kwd_base)
-          truncated_kwd_like = sanitize_sql_like(truncated_kwd_base)
+        if index_upto >= order_steps.find_index(:optional_article_ilike)
+          kwd_no_article = definite_article_stripped(raw_kwd.to_s.downcase).strip  # downcased, definitely-article-stripped, space-stripped at head & tail
+          quoted_kwd_no_article = connection.quote(kwd_no_article)
 
-          # Helper for space/hyphen/equal removal for WHERE and ORDER clauses (relying on ILIKE).
-          # NOTE(alternative, with "LIKE"): "REGEXP_REPLACE(LOWER(#{t_alias}.#{col}), '[#{PSQL_UNICODE_ALL_MIDDLE_PUNCT}]', '', 'g')"
-          truncate_where_sql = ->(col) { "REGEXP_REPLACE(\"#{t_alias}\".\"#{col}\", '[#{PSQL_UNICODE_ALL_MIDDLE_PUNCT}]', '', 'g')" }
+          if index_upto >= order_steps.find_index(:space_insensitive_exact)
+            truncated_kwd_base = kwd_no_article.gsub(/[\s\p{Dash}]/u, "")  # definitely-article-stripped, space-stripped, and downcased
+            quoted_truncated_kwd_base = connection.quote(truncated_kwd_base)
+            truncated_kwd_like = sanitize_sql_like(truncated_kwd_base)
+
+            # Helper to return the left side for removing space/hyphen/equal signs and a definite article (ia any) for WHERE and ORDER clauses (for ILIKE).
+            # NOTE(alternatively, with "LIKE" (if ignoring handling of a definite article)): "REGEXP_REPLACE(LOWER(#{t_alias}.#{col}), '[#{PSQL_UNICODE_ALL_MIDDLE_PUNCT}]', '', 'g')"
+
+            truncate_where_sql = ->(col) { "REGEXP_REPLACE(#{psql_definite_article_stripped(col, t_alias: t_alias)}, '[#{PSQL_UNICODE_ALL_MIDDLE_PUNCT}]', '', 'g')" }
+          end
         end
       end
 
@@ -99,7 +111,7 @@ module DbSearchOrder
       # --- Build the ORDER BY and WHERE conditions ---
 
       # Iteratively builds clauses for the four cases (the Array elements are for human readability only).
-      PSQL_MATCH_ORDER_STEPS.each_with_index do |match_type, i_step|
+      order_steps.each_with_index do |match_type, i_step|
         # Storing OR conditions for multiple columns; reset at every loop so that
         # only the ones for the last outer-loop (e.g., :case_insensitive) remain.
         where_conditions = []
@@ -110,15 +122,21 @@ module DbSearchOrder
           # Determines the SQL expression based on the match type
           condition_sql =
             case match_type
+            when :exact_absolute
+              sprintf '"%s"."%s" = %s', t_alias, col, quoted_raw_kwd
             when :exact
               sprintf '"%s"."%s" = %s', t_alias, col, quoted_kwd
-            when :case_insensitive
-              sprintf '"%s"."%s" ILIKE %s', t_alias, col, quoted_kwd_like  # ==: "LOWER(#{t_alias}.#{col}) = LOWER(#{quoted_kwd})"
+            when :case_insensitive, :exact_ilike
+              sprintf '"%s"."%s" ILIKE %s', t_alias, col, quoted_raw_kwd_like  # ==: "LOWER(#{t_alias}.#{col}) = LOWER(#{quoted_kwd})"
+            when :optional_article_ilike, :optional_article
+              like = ((:optional_article_ilike == match_type) ? "ILIKE" : "LIKE")
+              sprintf("%s %s %s", psql_definite_article_stripped(col, t_alias: t_alias), like, quoted_kwd_no_article) # defined in module_common.rb
             when :space_insensitive_exact
               sprintf("%s ILIKE   '%s'",   truncate_where_sql.call(col), truncated_kwd_like)
             when :space_insensitive_partial
               sprintf("%s ILIKE '%%%s%%'", truncate_where_sql.call(col), truncated_kwd_like)
             else
+              # cannot handle :include, :include_ilike unlike {Translation.build_sql_match_one}
               raise "Should never happen. Contact the code developer. "+match_type.inspect
             end
 
@@ -128,7 +146,7 @@ module DbSearchOrder
         end # columns.each do |col|
 
         break if  (i_step >= index_upto)
-      end # PSQL_MATCH_ORDER_STEPS.each_with_index do |match_type, i_step|
+      end # order_steps.each_with_index do |match_type, i_step|
 
       # ELSE clause for ORDER BY
       order_sql << "  -- Default/No-match (Lowest priority)\n  ELSE #{score+1}\nEND"

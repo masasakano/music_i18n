@@ -705,11 +705,11 @@ class TranslationTest < ActiveSupport::TestCase
   test "find_by_a_title" do
     key = :title
     value = 'abc'
-    exp = "translations.title = 'abc'"
+    exp = "\"translations\".title = 'abc'"
     assert_equal exp, Translation.send(:build_sql_match_one, :exact, key, value)
-    exp = "translations.title ILIKE 'abc'"
+    exp = "\"translations\".title ILIKE 'abc'"
     assert_equal exp, Translation.send(:build_sql_match_one, :exact_ilike, key, value)
-    assert_equal "regexp_replace(translations.title,", Translation.send(:build_sql_match_one, :include_ilike, key, value+", The").sub(/ .*/, '')
+    assert_equal 'regexp_replace("translations".title,', Translation.send(:build_sql_match_one, :include_ilike, key, value+", The").sub(/ .*/, '')
     exp = " ILIKE '%abc%'"
     assert_equal exp, Translation.send(:build_sql_match_one, :include_ilike, key, value+", The")[-14..-1]
 

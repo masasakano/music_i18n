@@ -163,6 +163,49 @@ class ConcernsDbSearchOrderTest < ActiveSupport::TestCase
     assert_equal exp, rela.ids, "three records should match and be returned in the order of title (exact), romaji (exact), alt_title (case-insensitive), but..."
     assert_equal ex2, rel2.ids, "This should differ from the above, but..."
 
+    ### Testing :optional_article_ilike
+
+    kwd = "The "+kwd_exact
+    rela = Translation.find_all_by_affinity( cols, kwd, upto: :exact, **def_opts)
+    assert_empty rela
+
+    [:optional_article_ilike, :space_insensitive_exact].each do |upto|
+      rela = Translation.find_all_by_affinity( cols, kwd, upto: upto, **def_opts)
+      rel2 = Translation.find_all_best_matches(cols, kwd, upto: upto, **def_opts_min)
+      exp = [tras[:s11].id, tras[:s12].id, tras[:s13].id]
+      refute_empty rela
+      assert_equal exp, rela.ids, "three records should match and be returned in the order of title, alt_title, romaji because they all match only at :optional_article_ilike (which is also case-insensitive), but..."
+      assert_equal exp, rel2.ids, "the same as above, unlike the test above without 'The'"
+    end
+
+    ActiveRecord::Base.transaction(requires_new: true) do
+      tras[:s11].update!(title: tras[:s11].title+", The")
+
+      kwd = "The "+kwd_exact
+      rela = Translation.find_all_by_affinity( cols, kwd, upto: :exact, **def_opts)
+      assert_equal [tras[:s11].id], rela.ids, "'The ' at the head should match that at the tail, but..."
+
+      kwd = kwd_exact
+
+      rela = Translation.find_all_by_affinity( cols, kwd, upto: :exact, **def_opts)
+      assert_equal [tras[:s13].id], rela.ids  # :s11 now has "The" while :s13 does NOT. So, :s13 should match
+
+      rela = Translation.find_all_by_affinity( cols, kwd, upto: :case_insensitive, **def_opts)
+      exp = [tras[:s13], tras[:s12]].map(&:id)  # :s11 is excluded because of its "The"
+      assert_equal exp, rela.ids  # :s11 now has "The", so does not match.
+
+      [:optional_article_ilike, :space_insensitive_exact].each do |upto|
+        rela = Translation.find_all_by_affinity( cols, kwd, upto: upto, **def_opts)
+        rel2 = Translation.find_all_best_matches(cols, kwd, upto: upto, **def_opts_min)
+        exp = [tras[:s13], tras[:s12], tras[:s11]].map(&:id)
+        ex2 = [tras[:s13].id]
+        assert_equal exp, rela.ids, "all three should match, but..."
+        assert_equal ex2, rel2.ids, "Only one of them is the exact match, but..."
+      end
+
+      raise ActiveRecord::Rollback, "Force rollback."
+    end
+
     ### Added one with romaji of 1-character less
     records[:s23] = _create_new_sex(title: "dummy-23",  alt_title: "", romaji: kwd_exact.chop, note: "23")
     set_tras.call(tras, [:s23])

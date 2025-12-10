@@ -479,6 +479,19 @@ module ModuleCommon
   # SQL related
   ################################################################
 
+  # @param col [Symbol, String] (:title, :alt_title, :ruby, ...)
+  # @param t_alias: [String, NilClass] SQL-query alias for Translation table. Default: "translations"
+  # @return [String] Resultant SQL string (with +regexp_replace+) usually used in the left side.
+  def psql_definite_article_stripped(col, t_alias: nil)
+    tbl = (t_alias || Translation.table_name)
+    re_core = regexp_ruby_to_postgres(DEFINITE_ARTICLES_REGEXP_STR)[0].gsub(/'/, "''") # defined in module_common.rb
+    re_str = '(?i)(, ('+re_core+'))?$'
+    sprintf("regexp_replace(\"%s\".%s, '%s', '')",
+            tbl,
+            col.to_s,
+            re_str)
+  end
+
   # Returns 2-element Array of PostgreSQL Regexp String and Options converted from Ruby Regexp
   #
   # In PostgreSQL, *ARE* (Advanced Regexp) is assumed to be used in default.
