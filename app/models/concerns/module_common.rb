@@ -1673,7 +1673,9 @@ module ModuleCommon
   # @return [String]
   def zenkaku_to_ascii(instr, **opts)
     if !instr
-      raise TypeError, "(#{__method__}) Given string is nil but it has to be a String."
+      raise TypeError, "(#{File.basename(__FILE__)}:#{__method__}) Given string is nil but it has to be a String."
+    elsif !instr.respond_to? :split
+      raise TypeError, "(#{File.basename(__FILE__)}:#{__method__}) Given ARG is not String: "+instr.inspect
     end
     opts = _getNkfRelatedOptions(opts)
     z_spaces = (opts[:Z] || 2)

@@ -25,6 +25,7 @@ class Musics::UploadHvmaCsvsControllerTest < ActionDispatch::IntegrationTest
     @music_en_test_title = "This-is-Test-title-for-RAIN"
     @music_rain.translations.where(langcode: "en").destroy_all  # Deletes all EN Translations
     @iocsv = _create_csv_file  # Temporary CSV file
+    @count_eq = 'Music.count*10000 + Artist.count*3000 + Engage.count*1000 + Translation.count*100 + HaramiVidMusicAssoc.count*10 + ArtistMusicPlay.count*1'
   end
 
   teardown do
@@ -58,8 +59,6 @@ class Musics::UploadHvmaCsvsControllerTest < ActionDispatch::IntegrationTest
 #  end
 
   test "should create" do
-    count_eq = 'Music.count*10000 + Artist.count*3000 + Engage.count*1000 + Translation.count*100 + HaramiVidMusicAssoc.count*10 + ArtistMusicPlay.count*1'
-
     sign_in @editor
 
     # get artists_url
@@ -71,7 +70,7 @@ class Musics::UploadHvmaCsvsControllerTest < ActionDispatch::IntegrationTest
     assert_equal si, css_select(CSS_MUSIC_TR).size
 
     ## should not create when no file is specified"
-    assert_no_difference(count_eq) do
+    assert_no_difference(@count_eq) do
       post harami_vid_upload_hvma_csv_url(harami_vid_id: @hvids.first.id),
            params: {upload_hvma_csv: { file: "", csv_direct: ""  } }
         # => e.g., http://www.example.com/harami_vids/980190967/upload_hvma_csv?locale=en
@@ -101,7 +100,7 @@ class Musics::UploadHvmaCsvsControllerTest < ActionDispatch::IntegrationTest
 
     ## Create success
 #debugger
-    assert_difference(count_eq, 133) do
+    assert_difference(@count_eq, 133) do
       _post2create  # POST to upload a CSV file
       assert_response :success
     end
@@ -163,8 +162,7 @@ class Musics::UploadHvmaCsvsControllerTest < ActionDispatch::IntegrationTest
     ## Checking statistical info
     nlines = (@csvfile_str.chomp+"\n").count("\n")
     stat_str = css_select("div.alert.notice.alert-info").text.sub(/.*\bSummary: /m, "")
-    mat = %r@[^\d]+(?<ncsvs>[\d]+) CSV rows[^\d]+(?<nlines>[\d]+) lines? of input file\b[^\d]+(?<nrejects>[\d]+) rows?\b[^\d]+\bno matching Musics?\b[^\d]+(?<unchanged>[\d]+) rows?\b[^\d]+no changes?[^\d]+(?<accepted>[\d]+) rows? accepeted\b@.match(stat_str)
-
+    mat = %r@[^\d]+(?<ncsvs>[\d]+) CSV rows[^\d]+(?<nlines>[\d]+) lines? of input file\b[^\d]+(?<nrejects>[\d]+) rows?\b[^\d]+\bno matching Musics?\b[^\d]+(?<unchanged>[\d]+) rows?\b[^\d]+no changes?[^\d]+(?<accepted>[\d]+) models?\b[^\d]* accepeted\b@.match(stat_str)
     assert_equal nlines, mat[:nlines].to_i
     ### Summary: Out of 4 CSV rows found in 4 lines of input file, 2 rows found no matching Music, 1 rows resulted in no changes, 1 rows accepeted for change on DB records.  Total number of model-records attempted to change is 0; 1 created, 0 updated, 0 failed.  Detail(created/updated/consistent/rejected/failed): Music (0/0/0/0/0); Artist (0/0/0/0/0); HaramiVidMusicAssoc (1/0/0/0/0); ArtistMusicPlay (0/0/0/0/0); Translation (0/0/0/0/0).  
     
@@ -209,9 +207,32 @@ class Musics::UploadHvmaCsvsControllerTest < ActionDispatch::IntegrationTest
     assert_match(%r@,#{Regexp.quote(tit)},#{@music3_csv_year},@m, missing_musics_csvs_str)  # en title, year
 
     # Repeated "creation" success, doing nothing
-    assert_no_difference(count_eq) do
+    assert_no_difference(@count_eq) do
       _post2create  # POST to upload a CSV file
       assert_response :success
+    end
+    sign_out @editor
+  end
+
+  test "should create with csv_direct with the example CSV on the Show page" do
+    sign_in @editor
+
+    art_miyuki = Artist.create_basic!(title: "中島みゆき", langcode: "ja", is_orig: true, sex: Sex["female"], place: places(:unknown_place_shimane_japan))
+    mus_ito = Music.create_basic!(title: "糸", langcode: "ja", is_orig: true, place: places(:unknown_place_unknown_prefecture_japan))
+    eng_ito = Engage.create!(music: mus_ito, artist: art_miyuki, engage_how: EngageHow.default(:HaramiVid), year: nil)
+    art_miyuki.musics.reset
+    mus_ito.artists.reset
+    art_smap = Artist.create_basic!(title: "SMAP", langcode: "en", is_orig: true, sex: Sex["male"], place: places(:unknown_place_tokyo_japan))
+
+    # Only the first row exists.
+    # Second row is valid for Artist, but the Music does not exist.
+    # Third row contains Music and Artist neither of which is on DB
+    # Fourth row's pID for Music does not exist, while its pID for Artist exists.
+    csv_direct = " # abc.csv これはコメント行です。\r\n1:1/20,,糸,Thread,中島みゆき,この日だけのスペシャルコラボ,1992,ロングヒット,,タイミングは空欄でも良い\r\n2:2/20,240,シェイク,,SMAP,,1996,SMAPの代表曲,12345,EventItemのpIDはもし分かればで十分\r\n(3),5:20,レット・イット・ビー,Let It Be,\"Beatles, The\",,1969,,,曲名や人名にコンマが入る時は二重引用符で囲うこと\r\n4曲目,8:30,#{Music.order(:id).last.id+1},,#{art_miyuki.id},,,,1234,曲名のpIDを記述するのは和名曲名欄で英語名曲名は空欄に"
+
+    assert_difference(@count_eq, 111) do
+      post harami_vid_upload_hvma_csv_url(harami_vid_id: @hvids.first.id),
+         params: {upload_hvma_csv: { csv_direct: csv_direct } }  # "file" (for uploaded file) is NOT even included in params (according to Log)
     end
     sign_out @editor
   end

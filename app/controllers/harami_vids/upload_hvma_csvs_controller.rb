@@ -94,11 +94,11 @@ class HaramiVids::UploadHvmaCsvsController < ApplicationController
 
       msg_detail = stats_models.map{ |ek_top, ehs|
         next nil if "engages" == ek_top.to_s
-        msg = item_keys.map{ |ek| ehs[ek].to_s }.join("/")
+        msg = item_keys.map{ |ek| ehs[ek].to_s }.join("/")  # TODO: stats for created and updated do not look right.....
         sprintf "%s (%s)", ek_top.singularize.camelize, msg
       }.compact.join("; ")
 
-      sprintf "Summary: Out of %d CSV rows found in %d lines of input file, %d rows found no matching Music, %d rows resulted in no changes, %d rows accepeted for change on DB records.  Total number of model-records attempted to change is %d; %d created, %d updated, %d failed.  Detail(%s): %s.",
+      sprintf "Summary: Out of %d CSV rows found in %d lines of input file, %d rows found no matching Music, %d rows matched but resulted in no changes, %d models (NOT rows) accepeted for change on DB records.  Total number of model-records attempted to change is %d; %d created, %d updated, %d failed.  Detail(%s): %s.",
               @stats.attempted_rows,
               @input_lines.size,
               @stats.rejected_rows,
@@ -145,6 +145,7 @@ class HaramiVids::UploadHvmaCsvsController < ApplicationController
         next if csv.blank?
         next if @musics[iline].present?
         arrow4csv = []
+        artist_titles = {}.with_indifferent_access  # reset for every Music
         Music::MUSIC_CSV_FORMAT.each do |mu_csv_key| 
           arrow4csv[hsmap_mu_csv[mu_csv_key]] = 
             case mu_csv_key.to_s
@@ -157,9 +158,17 @@ class HaramiVids::UploadHvmaCsvsController < ApplicationController
             when "memo"
               csv["music_note"]
             when *(%w(artist_ja artist_en))
-              hvid_artist = csv["artist"]
-              mu_key = "artist_" + guess_lang_code(hvid_artist)  # defined in ModuleCommon
-              (mu_key == mu_csv_key) ?  hvid_artist : nil
+              artist4music = csv["artist"]
+              if artist4music.respond_to?(:gsub)
+                mu_key = "artist_" + guess_lang_code(artist4music)  # defined in ModuleCommon
+                (mu_key == mu_csv_key.to_s) ?  artist4music : nil
+              else  # Artist model instance.
+                # Initializes artist_titles for this Music if not yet.
+                artist_titles = artist4music.title_or_alt_hash([:ja, :en], ensure_lc: "ja") if artist_titles.empty? # defined in BaseWithTranslation
+
+                langcode = mu_csv_key.to_s.split(/_/)[-1]  # ja or en
+                artist_titles[langcode]
+              end
             when "langcode"
               (csv["music_ja"].present? ? "ja" : "en")
             when *(%w(genre how country))

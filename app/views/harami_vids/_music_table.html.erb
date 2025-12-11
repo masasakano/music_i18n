@@ -141,13 +141,9 @@
 4曲目,8:30,456,,789,,,,1234,曲名のpIDを記述するのは和名曲名欄で英語曲名は空欄に" %><br>
   <label for="upload_hvma_csv_file">Or, upload CSV (.csv) file:</label>
   <%= file_field_tag 'upload_hvma_csv[file]', accept: 'text/csv' %>
-  <div class="actions">
-    <%= submit_tag "Submit/Upload", name: nil %>
-  </div>
-<% end %>
 
 <section id="harami_vids_hvma_csv_format">
-<h5>CSV file format</h5>
+  <div><strong>CSV file format (Help)</strong></div>
 
 <div class="show_or_hide" style="display: none;">
 
@@ -186,7 +182,7 @@ If you use a spreadsheet software (such as Google-Sheet, LibreOffice/Calc, Micro
 
 <h5>Example</h5>
 
-<pre>
+<pre style="margin-left: 1em; filter: brightness(0.8); background-image: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)); background-blend-mode: multiply; ">
  # abc.csv これはコメント行です。
 1:1/20,,糸,Thread,中島みゆき,この日だけのスペシャルコラボ,1992,ロングヒット,,タイミングは空欄でも良い
 2:2/20,240,シェイク,,SMAP,,1996,SMAPの代表曲,12345,EventItemのpIDはもし分かればで十分
@@ -201,6 +197,11 @@ If you use a spreadsheet software (such as Google-Sheet, LibreOffice/Calc, Micro
 (……<a id="Link_show_or_hide" title="Show or hide" href="#">Show</a>)
 
 </section> <!-- section id="harami_vids_hvma_csv_format" -->
+
+  <div class="actions">
+    <%= submit_tag "Submit/Upload", name: nil %>
+  </div>
+<% end %>  <%# form_tag(harami_vid_upload_hvma_csv_path(harami_vid_id: harami_vid.id), multipart: true) do |form| %>
 </section> <!-- section id="harami_vids_hvma_csv_form" -->
 
 <% end %> <%# if can?(:update, harami_vid) %>

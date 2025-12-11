@@ -1368,12 +1368,14 @@ class HaramiVid < BaseWithTranslation
         return
       end
 
-      if !hsrow[:music_en] && /\A\d+\z/ =~ (pidstr=hsrow[:music_ja].strip)
-        music  = self.class.record_or_title_from_integer(hsrow[:music_ja], Music, search_integer_title: false) # defined in ModuleCsvAux
-        mu_tit = definite_article_to_head(music.title_or_alt(langcode: nil)) # best Translation (b/c no title is specified in CSV)
-        artist = hsrow[:artist]  # nil is allowed
-        art_tit= hsrow[:artist]
-        return [music, mu_tit, artist, art_tit]  # Found!
+      if !hsrow[:music_en]
+        ret = self.class.record_or_title_from_integer(hsrow[:music_ja], Music, search_integer_title: false) # defined in ModuleCsvAux
+        # ret is Music only if Music-ja is an Integer-like String AND if it can be interpreted as Music-pID.
+        if ret.respond_to?(:artists)
+          music = ret
+          mu_tit = definite_article_to_head(music.title_or_alt(langcode: nil)) # best Translation (b/c no title is specified in CSV)
+          return [music, mu_tit, artist=hsrow[:artist], art_tit=hsrow[:artist]]  # Music is found! nil is allowed for Artist.
+        end
       end
 
       ## First, gets Artist(s)
@@ -1392,7 +1394,7 @@ class HaramiVid < BaseWithTranslation
 
       ## multiple Musics remain for the given title(s), Artist, and maybe year...
 
-      str_muss = relation2links(muss, distinct: true){ |record, title|  # defined in ModuleCommon
+      str_muss = relation2links(muss, distinct: false){ |record, title|  # defined in ModuleCommon
         [sprintf("%s (by %s)", definite_article_to_head(record.title_or_alt(langcode: nil)), definite_article_to_head(record.most_significant_artist.title_or_alt(langcode: nil))),
          "(pID=#{record.id})"]
       }.join("; ")
@@ -1433,11 +1435,11 @@ class HaramiVid < BaseWithTranslation
       # Here, arts is ActiveRecord::Relation
       arts = _guessed_model_insts(hsrow, :artist, Artist, report_error: false)
       if arts.blank?
-        alert_messages[:alert] << "ERROR: Specified Artist is not found on DB "+(iline ? "in Line=#{iline}" : "")+" - you must manually register Artist first. [CSV-row] "+org_line
+        alert_messages[:alert] << "ERROR: Specified Artist is not found on DB "+(iline ? "in Line=#{iline+1}" : "")+" - you must manually register Artist first. [CSV-row] "+org_line
         return
       end
 
-      return [arts, ((1 == arts.distinct.count) ? arts.first : nil), art_tit]
+      return [arts, ((1 == arts.count) ? arts.first : nil), art_tit]  # arts.distinct.count should be unnecessary
     end
     private :_determine_artist_from_csv
 
@@ -1502,21 +1504,21 @@ class HaramiVid < BaseWithTranslation
       end
 
       if !muss_without_artist
-        alert_messages[:alert] << "ERROR: "+_str_music_with_csv_titles(hsrow)+" is not found"+(iline ? " at Line=#{iline}" : "")+". [CSV-row] "+org_line
+        alert_messages[:alert] << "ERROR: "+_str_music_with_csv_titles(hsrow)+" is not found"+(iline ? " at Line=#{iline+1}" : "")+". [CSV-row] "+org_line
         return
       end
 
       # At least 1 Music has been picked up, although we still have to check with the given Artist(s).
-      muss_without_artist_size = muss_without_artist.distinct.count
+      muss_without_artist_size = muss_without_artist.count # muss_without_artist.distinct.count should be unnecessary
 
       muss2 = muss_without_artist.joins(:artists).where("artists.id": arts.ids)
-      case muss2.distinct.count
+      case muss2.count # muss2.distinct.count
       when 0
         # No Music is found for the Title and Artist.
-        links_mu  = relation2links(muss_without_artist, distinct: true){ |record, title|  # defined in ModuleCommon
+        links_mu  = relation2links(muss_without_artist, distinct: false){ |record, title|  # defined in ModuleCommon
           [record.id.to_s, definite_article_to_head(record.title_or_alt)]
         }
-        links_art = relation2links(arts, distinct: true){ |record, title|  # defined in ModuleCommon
+        links_art = relation2links(arts, distinct: false){ |record, title|  # defined in ModuleCommon
           [record.id.to_s, definite_article_to_head(record.title_or_alt)]
         }
         msg = sprintf("%s pID(s)=[%s] %s pID(s)=[%s]",
@@ -1545,9 +1547,9 @@ class HaramiVid < BaseWithTranslation
 
       # If year is specified in CSV, we narrow it down.
       muss3 = muss2.where(year: hsrow[:year].to_i).or(muss2.where(year: nil))
-      case muss3.distinct.count
+      case muss3.count # muss3.distinct.count
       when 0
-        str_muss = relation2links(muss2, distinct: true){ |record, title|  # defined in ModuleCommon
+        str_muss = relation2links(muss2, distinct: false){ |record, title|  # defined in ModuleCommon
           [sprintf("%s (Year=%s)", definite_article_to_head(record.title_or_alt(langcode: nil)), record.year.inspect),
            "(pID=#{record.id})"]
         }.join("; ")
@@ -1578,7 +1580,7 @@ class HaramiVid < BaseWithTranslation
         return nil
       else
         search_word = definite_article_to_tail(hsrow[kwd].strip)
-        rela = klass.select_by_kwd(search_word)
+        rela = klass.select_by_kwd(search_word, distinct: true)
         return rela if rela.exists?
 
         alert_messages[:alert] << "ERROR: #{+klass.name} for #{hsrow[kwd].strip.inspect} is not found." if report_error

@@ -1293,29 +1293,52 @@ class BaseWithTranslation < ApplicationRecord
   #
   # If the exact match is found, it is returned as Relation. If not, other candidates are searched.
   #
-  # @return [Relation] Most probable candidates for a title. Maybe empty.
-  def self.select_by_kwd(kwd, langcode: nil)
-    search_word = preprocess_space_zenkaku(kwd, article_to_tail=true, strip_all: true)
-    objs = select_regex(:titles, search_word, langcode: langcode, sql_regexp: true)
-    return objs if objs.exists?  # Exact match with an article
+  # == Algorithm
+  #
+  # The candidates are searched in the order of {DbSearchOrder::PSQL_MATCH_ORDER_STEPS}
+  # up to +:space_insensitive_exact+, i.e., the keyword must agree with one of :title,
+  # :alt_title, :ruby and :romaji (or its +alt_+ versions) in case-insensitive,
+  # definite-article-insensitive, space-hyphen-insensitive searches.  For example,
+  # the given keyword of "space-ship" would match "Spaceship" and "The SPACE SHIP"
+  # but would not match "spaceship fantasy".
+  #
+  # The return may contain sorted multiple candidates only if the first match-method that returns
+  # significant results contains multiple candidates, where they are sorted in the order of
+  # "title", "alt_title", "ruby", and so on.  Foe example, if the given keyword is "Love" for Music,
+  # the return will include perhaps multiple songs that have +title+ or +alt_title+ (in this order)
+  # of exactly "Love" (but *NOT* "love" (case-sensitivity) or "The Love" (definite article)).
+  #
+  # @return [Relation] Most probable candidates for a title. Maybe empty. It is distinct/uniq in default.
+  def self.select_by_kwd(kwd, langcode: nil, distinct: true)
 
-    if "en" == guess_lang_code(search_word) && /, The\z/ !~ search_word
-      objs = select_regex(:titles, search_word+", The", langcode: langcode, sql_regexp: true)
-      return objs if objs.exists?  # Exact match except for an article
+    search_word = preprocess_space_zenkaku(kwd, article_to_tail=true, strip_all: true)
+    kwd_article_tail = definite_article_to_tail(search_word)
+
+    columns = [:title, :alt_title].concat(
+      if "ja" == guess_lang_code(kwd) # defined in ModuleCommon
+        [:ruby, :alt_ruby]
+      else
+        [:romaji, :alt_romaji]
+      end
+    )
+
+    parent = self.joins(:translations)
+    if langcode
+      parent = parent.where("translations.langcode": langcode.to_s.strip.downcase)
     end
 
-    regexsearch_word = Regexp.quote(definite_article_stripped(search_word))
+    rela = Translation.find_all_best_matches(columns, kwd_article_tail, order_by_created_at: true, t_alias: "translations", parent: parent, upto: :space_insensitive_exact)
+    distinct ? distinct_select_by_kwd(rela) : rela
+  end
 
-    # Regexp search (case-sensitive, forward match)
-    objs = select_regex(:titles, /\A#{regexsearch_word}/, langcode: langcode, sql_regexp: true)
-    return objs if objs.exists?  # Exact match except for an article
-
-    # Regexp search (case-insensitive, forward match, ignoring spaces)
-    objs = select_regex(:titles, /\A#{regexsearch_word.gsub(/\s+/, '\s*')}/i, langcode: langcode, sql_regexp: true)
-    return objs if objs.exists?  # Exact match except for an article
-
-    # Regexp search (case-insensitive, partial search, ignoring spaces)
-    objs = select_regex(:titles, /#{regexsearch_word.gsub(/\s+/, '\s*')}/i, langcode: langcode, sql_regexp: true)
+  # Mimic +SELECT DISTINCT+ with Ruby-uniq for the return from {BaseWithTranslation.select_by_kwd}
+  #
+  # @param rela [ActiveRecord::Relation]
+  # @return [ActiveRecord::Relation]
+  def self.distinct_select_by_kwd(rela)
+    tra_id_sql = "translations.id"
+    tra_ids = rela.pluck(self.table_name+".id", tra_id_sql).uniq { |artist_id, translation_id| artist_id }.map(&:last)
+    rela.where(tra_id_sql => tra_ids)
   end
 
   # Returns an Array of {BaseWithTranslation} with the specified title (or alt_title)
@@ -2472,6 +2495,33 @@ class BaseWithTranslation < ApplicationRecord
     title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "(UNDEFINED)", article_to_head: true)
   end
 
+  # Returns a Hash with keys of langcodes and values of (best) either title or +alt_title+, whichever present.
+  #
+  # @example
+  #   hs = Music.first.title_or_alt_hash(["ja", "en"])
+  #     # => if Music has no Japanese or English Translation-s, +hs+ will be empty?
+  #
+  # @example
+  #   hs = Music.first.title_or_alt_hash([:ja, :en], ensure_lc: "ja")
+  #     # => +hs["ja"]+ may be a Korean title if neither of :ja and :en exists.
+  #
+  # @param ar_langcodes [Array<String, Symbol>] of langcodes (=locales)
+  # @param ensure_lc: [String, Symbol, NilClass] If specified (Def: nil), and if none of the +ar_langcodes+ is significant, the element for the langcode is ensured to be present (say, "ko").
+  # @param langcode: [Object] Always ignored (explicitly placed here in order to avoid implicitly being included in opts)
+  # @param **opts [Hash] @see title_or_alt
+  #    Note the +langcode+ and +lang_fallback_option+ options are ignored.
+  # @return [Hash] with_indifferent_access with keys of langcode
+  def title_or_alt_hash(ar_langcodes, ensure_lc: nil, **opts)
+    hsret = {}.with_indifferent_access
+    [ar_langcodes].flatten.map(&:to_s).each do |elc|
+      hsret[elc] = title_or_alt(**(opts.merge({langcode: elc, lang_fallback_option: :never})))
+    end
+    if ensure_lc && hsret.values.compact.empty?
+      hsret[elc] = title_or_alt(**(opts.merge({langcode: ensure_lc, lang_fallback_option: :either})))
+    end
+    hsret
+  end
+
   # Wrapper of {self.collection_ids_titles_or_alts}
   #
   # Definite articles are brought to the head.
@@ -3006,7 +3056,8 @@ class BaseWithTranslation < ApplicationRecord
   # Best {Translation} for a specific language with fallback algorithms.
   #
   # If langcode is nil, the standard sorting/ordering (based on is_orig
-  # and weight) regardless of langcode is applied and fallback is ignored.
+  # and weight) regardless of langcode is applied, where fallback is
+  # always true regardless of the specified value.
   #
   # If fallback==false (Def: true), the result is the same as
   # {#best_translations}[your_langcode]

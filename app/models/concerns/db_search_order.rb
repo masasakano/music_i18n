@@ -2,8 +2,10 @@ module DbSearchOrder
   extend ActiveSupport::Concern
 
   # Step to sort the result of matching [Array<Symbol>]
-  # See also {Translation::MATCH_METHODS}
-  PSQL_MATCH_ORDER_STEPS = [:exact, :case_insensitive, :optional_article_ilike, :space_insensitive_exact, :space_insensitive_partial]
+  # See also {Translation::MATCH_METHODS} which also defines :exact_absolute,
+  # :exact_ilike (same as :case_insensitive), :optional_article_like, 
+  # :include, :include_ilike
+  PSQL_MATCH_ORDER_STEPS = [:exact, :case_insensitive, :optional_article_ilike, :space_insensitive_exact, :space_insensitive_forward, :space_insensitive_partial]
 
   # dash/hyphen-like characters
   #
@@ -27,10 +29,13 @@ module DbSearchOrder
     # This categorizes the conditions and score them as follows in the case of searching for 3 +cols+
     # of +title+, +alt_title+, +romaji+ as an example:
     #
-    # * Exact Match: title (Score 0) > alt_title (Score 1) > romaji (Score 2)
-    # * Case-Insensitive Match: title (Score 3) > alt_title (Score 4) > romaji (Score 5)
-    # * Space-Insensitive Exact Match: title (Score 6) > alt_title (Score 7) > romaji (Score 8)
-    # * Space-Insensitive Partial Match: title (Score 9) > alt_title (Score 10) > romaji (Score 11)
+    # * Exact Match: title (Score 1) > alt_title (Score 2) > romaji (Score 3)
+    # * Case-Insensitive Match: title (Score 4) > alt_title (Score 5) > romaji (Score 6)
+    # * Case-Insensitive Definite-article-insensitive Match: title (Score 7) > alt_title (Score 8) > romaji (Score 9)
+    # * Space-Insensitive Exact Match: title (Score 10) > alt_title (Score 11) > romaji (Score 12)
+    # * Space-Insensitive Forward Match: title (Score 13) > alt_title (Score 14) > romaji (Score 15)
+    # * Space-Insensitive Partial Match: title (Score 16) > alt_title (Score 17) > romaji (Score 18)
+    # * Other (Score 19; though this should never happen, because WHERE condition should have filtered out them, unless +order_or_where: :order+ and inconsistent +parent+ is specified)
     #
     # where "Space-Insensitive" means the search ignores any spaces and dash/hyphen/equal-like characters.
     #
@@ -50,13 +55,17 @@ module DbSearchOrder
     #      #   WHEN t.alt_ruby = 'XXX' THEN 4
     #      #   WHEN "t"."title" ILIKE 'XXX' THEN 5
     #      #   // ....
-    #      #   WHEN REGEXP_REPLACE("t"."title"), '[\s\xAD\u002D\u058A\u...]', '', 'g') = 'XXX' THEN 9
+    #      #   WHEN REGEXP_REPLACE("t"."title"), '\, (the|le|...)$', '', 'i') = 'XXX' THEN 9
     #      #   // ....
-    #      #   WHEN REGEXP_REPLACE("t"."title"), '[\s\xAD\u002D\u058A\u...]', '', 'g') LIKE '%XXX%' THEN 13
+    #      #   WHEN REGEXP_REPLACE(REGEXP_REPLACE("t".title, ...), '[\s\xAD\u002D\u058A\u...]', '', 'g') = 'XXX' THEN 13
     #      #   // ....
-    #      #   WHEN REGEXP_REPLACE("t"."alt_ruby"), '[\s\xAD\u002D\u058A\u...]', '', 'g') LIKE '%XXX%' THEN 16
+    #      #   WHEN REGEXP_REPLACE(REGEXP_REPLACE("t".title, ...), '[\s\xAD\u002D\u058A\u...]', '', 'g') ILIKE 'XXX%' THEN 17
+    #      #   // ....
+    #      #   WHEN REGEXP_REPLACE(REGEXP_REPLACE("t".title, ...), '[\s\xAD\u002D\u058A\u...]', '', 'g') ILIKE '%XXX%' THEN 21
+    #      #   // ....
+    #      #   WHEN REGEXP_REPLACE(REGEXP_REPLACE("t".alt_ruby, ...), '[\s\xAD\u002D\u058A\u...]', '', 'g') ILIKE '%XXX%' THEN 24
     #      #   -- Default/No Match (Lowest Priority)
-    #      #   ELSE 17
+    #      #   ELSE 25
     #      # END
     #
     # @param columns [String, Array<String, Symbol>] of the columns in the order of priority
@@ -133,6 +142,8 @@ module DbSearchOrder
               sprintf("%s %s %s", psql_definite_article_stripped(col, t_alias: t_alias), like, quoted_kwd_no_article) # defined in module_common.rb
             when :space_insensitive_exact
               sprintf("%s ILIKE   '%s'",   truncate_where_sql.call(col), truncated_kwd_like)
+            when :space_insensitive_forward
+              sprintf("%s ILIKE '%s%%'",   truncate_where_sql.call(col), truncated_kwd_like)
             when :space_insensitive_partial
               sprintf("%s ILIKE '%%%s%%'", truncate_where_sql.call(col), truncated_kwd_like)
             else

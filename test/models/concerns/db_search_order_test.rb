@@ -238,6 +238,23 @@ class ConcernsDbSearchOrderTest < ActiveSupport::TestCase
     exp = [tras[:s32].id, tras[:s23].id]
     assert_equal exp, rela.ids  # both kwd and records are space-insensitive. alt_title should come first.
     assert_equal exp, rel2.ids
+
+    ### tests of :space_insensitive_forward
+    kwdtmp = kwd_exact[1..-1]
+    kwd = kwdtmp[0..1]+" "+kwdtmp[2..-1]
+    cnt_orig1 = Translation.find_all_by_affinity( cols, kwd, upto: :space_insensitive_partial, **def_opts).count
+    cnt_orig2 = Translation.find_all_best_matches(cols, kwd, upto: :space_insensitive_partial, **def_opts_min).count
+    assert_operator 1, :<, cnt_orig1
+    assert_operator 1, :<, cnt_orig2
+
+    records[:s42] = _create_new_sex(title: nil,  alt_title: kwdtmp.capitalize+" extra-tail", romaji: "", note: "32")  # This is longer than other Translation records, but forward-matches (in a case-insensitive, space-insensitive search)
+    trans_s42 = records[:s42].best_translation
+    rela = Translation.find_all_by_affinity( cols, kwd, upto: :space_insensitive_partial, **def_opts)
+    rel2 = Translation.find_all_best_matches(cols, kwd, upto: :space_insensitive_partial, **def_opts_min)
+    assert_equal cnt_orig1+1, rela.count
+    assert_equal trans_s42, rela.first  # should be sorted
+    assert_equal 1,         rel2.count, "Only 1 matches :space_insensitive_forward, so only that should be returned, but..."
+    assert_equal trans_s42, rel2.first
   end
 
   private
