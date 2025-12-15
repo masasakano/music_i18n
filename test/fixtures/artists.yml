@@ -110,6 +110,14 @@ artist_saki_kubota:
   note: Artist-SakiKubota
   memo_editor: MemoEditorArtistSakiKubota
 
+artist_mariah:
+  sex_id: 2
+  place: unknown_place_unknown_prefecture_world
+  birth_year: 1969
+  birth_month: 3
+  birth_day: 27
+  note: Artist-Mariah
+
 artist_spitz:
   sex_id: 1
   place: unknown_place_unknown_prefecture_japan
@@ -126,6 +134,30 @@ artist_psy:
   birth_year: 1977
   place: unknown_place_unknown_prefecture_world
   note: Artist-Psy
+
+artist_hoshino:
+  sex_id: 1
+  birth_year: 1981
+  birth_month: 1
+  birth_day: 28
+  place: unknown_place_unknown_prefecture_japan
+  note: Artist-Hoshino
+
+artist_kuwata:
+  sex_id: 1
+  birth_year: 1956
+  birth_month: 2
+  birth_day: 26
+  place: unknown_place_unknown_prefecture_japan
+  note: Artist-Kuwata
+
+artist_yuming:
+  sex_id: 2
+  birth_year: 1976
+  birth_month: 11
+  birth_day: 29
+  place: unknown_place_tokyo_japan
+  note: Artist-Yuming
 
 artist_zombies:
   sex_id: 9

@@ -155,3 +155,51 @@ engage_haramichan_rain_player:
   year: 2021
   note: HARAMIchan's Rain Player
 
+engage_all_i_want_for_christmas_mariah_singer:
+  music: music_all_i_want_for_christmas_mariah
+  artist: artist_mariah
+  engage_how: engage_how_singer_original
+  contribution: 1.0
+  year: 1994
+  note: Engage-Mariah-AllIWantForChristmas-Singer
+
+engage_kohmi_gerende_singer:
+  music: music_gerende
+  artist: artist_kohmi
+  engage_how: engage_how_singer_original
+  contribution: 1.0
+  year: 1995
+  note: Engage-Kohmi-Gerende-Singer
+
+engage_kohmi_gerende_composer:
+  music: music_gerende
+  artist: artist_kohmi
+  engage_how: engage_how_composer
+  contribution: 1.0
+  year: 1995
+  note: Engage-Kohmi-Gerende-Composer
+
+engage_hoshino_koi_singer:
+  music: music_koi_hoshino
+  artist: artist_hoshino
+  engage_how: engage_how_singer_original
+  contribution: 1.0
+  year: 2016
+  note: Engage-Hoshino-Koi-Singer
+
+engage_kuwata_shiroi_koibitotachi_singer:
+  music: music_shiroi_koibitotachi
+  artist: artist_kuwata
+  engage_how: engage_how_singer_original
+  contribution: 1.0
+  year: 2001
+  note: Engage-Kuwata-Shiroi-Koibitotachi-Singer
+
+engage_yuming_koibito_santa_singer:
+  music: music_koibito_santa
+  artist: artist_yuming
+  engage_how: engage_how_singer_original
+  contribution: 1.0
+  year: 1980
+  note: Engage-Yuming-Koibito-Santa-Singer
+

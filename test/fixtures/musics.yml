@@ -108,3 +108,33 @@ music_rain:
   genre: genre_pop
   note: MusicRain with no harami_vids
 
+music_all_i_want_for_christmas_mariah:
+  year: 1994
+  place: unknown_place_unknown_prefecture_world
+  genre: genre_pop
+  note: MusicAllIWantForChristmasMariah with no harami_vids
+
+music_gerende:
+  year: 1995
+  place: unknown_place_unknown_prefecture_japan
+  genre: genre_pop
+  note: MusicGerende with no harami_vids
+
+music_koibito_santa:
+  year: 1980
+  place: unknown_place_unknown_prefecture_japan
+  genre: genre_pop
+  note: MusicKoibitoSanta with no harami_vids
+
+music_koi_hoshino:
+  year: 2016
+  place: unknown_place_unknown_prefecture_japan
+  genre: genre_pop
+  note: MusicKoiHoshino with no harami_vids
+
+music_shiroi_koibitotachi:
+  year: 2001
+  place: unknown_place_unknown_prefecture_japan
+  genre: genre_pop
+  note: MusicShiroiKoibitotachi with no harami_vids
+

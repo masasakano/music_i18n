@@ -72,6 +72,21 @@ class ApplicationController < ActionController::Base
     },
   }.with_indifferent_access
 
+  # Information for Grids index pages
+  GRID_INFOS = {
+    # Here, +s*+ and +i_*+ are for String and Integer, respectively, corresponding to the Array
+    # +:entry_fmts+, except for +i_page+, which is the Integer part of the "si_page", which consists of
+    # String(s) of "Page" or else and an Integer in +:entry_fmts+, where the combination depends on the locale, e.g., "第9頁".
+    entry_fmt_keys: %i(si_page i_start i_end n_entries s_total n_total i_page),
+    # The even number indices (from 0) are for parameters for sprintf and odd number ones
+    # are Strings for punctuations and spaces in between.
+    entry_fmts: ["%s",  # ["Page"+PageNumber] (combined String, as the order depends on the locale)
+                      " (", "%d", "—", "%d", ")/",  # start_entry, end_entry
+                      "%d",                         # (filetered) total entry
+                      " [", "%s", ": ",             # String "Grand total"
+                      "%d", "]"]                    # Grand total entry
+  }.with_indifferent_access
+
   tmp_params_trans_keys = [:langcode, :title, :ruby, :romaji, :alt_title, :alt_ruby, :alt_romaji]
 
   PARAMS_NAMES = {
@@ -747,7 +762,7 @@ class ApplicationController < ActionController::Base
   # @param text_only: [Boolean] if true (Def: false), returns a simple text String; otherwise XPath
   # @param cur_page: [Integer, NilClass] Current page number.
   # @param start_entry: [Integer, NilClass] Def: 1. If nil, this method returns only "/123" (Number of the filtered entries)
-  # @param end_entry: [Integer, NilClass] This is equal to, or (usually in tests) smaller than, the maximum number of entries per page on Grid. If nil (Def), the same as +n_filtered_entries+, i.e., all the entries are assumed to be displayed in this page.
+  # @param end_entry: [Integer, NilClass] This is equal to, or (usually in tests) smaller than, the maximum number of entries per page on Grid. If nil (Def), the smaller between {ApplicationGrid::DEF_MAX_PER_PAGE} and +n_filtered_entries+.
   # @param n_all_entries: [Integer, NilClass] If nil (Def), this part is not included in the returned String.
   # @param langcode: [Symbol, String] :en (Def)
   # @return [String]
@@ -764,17 +779,17 @@ class ApplicationController < ActionController::Base
     fmt   = String.new
     arprm = Array.new
     if start_entry && cur_page
-      fmt << "%s (%d—%d)"  # should not use "=" (!)
+      fmt << GRID_INFOS[:entry_fmts][0..5].join("").sub(%r@/?\z@, "")  # "%s (%d—%d)"
       arprm = [I18n.t("tables.Page_n", count: cur_page, default: "Page "+cur_page.to_s, locale: langcode),
                start_entry,
-               (end_entry || n_filtered_entries),]
+               (end_entry || [ApplicationGrid::DEF_MAX_PER_PAGE, n_filtered_entries].min) ]
     end
 
-    fmt << "/%d"
+    fmt << GRID_INFOS[:entry_fmts][5..6].join("").sub(%r@\A(.*)/@, "/")  # "/%d"
     arprm << n_filtered_entries
 
     if n_all_entries
-      fmt << " [%s: %d]"
+      fmt << GRID_INFOS[:entry_fmts][7..-1].join("")  # " [%s: %d]"
       arprm << I18n.t("tables.grand_total_entries", default: "Grand total", locale: langcode)
       arprm << n_all_entries
     end

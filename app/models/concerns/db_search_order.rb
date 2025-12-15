@@ -43,6 +43,8 @@ module DbSearchOrder
     # (i.e., +upto+ of +:space_insensitive_exact+ or +:space_insensitive_partial+) and that
     # most characters like ASCII "&" and the Zenkaku one are not aggressively collated.
     #
+    # In the same category, the shorter ones come first.
+    #
     # See {Translation.build_sql_match_one}
     #
     # @example of the order_sql created
@@ -71,7 +73,7 @@ module DbSearchOrder
     # @param columns [String, Array<String, Symbol>] of the columns in the order of priority
     # @param raw_kwd [String] Keyword to search with
     # @param order_or_where: [Symbol] (mandatory) :order or :where or :both
-    # @param order_by_created_at: [Boolean] Only relevant when +order_or_where+ is NOT +:where+.  If true (Def: false), the newest one comes first as the final condition for sorting/ordering.  Give false (Def) if you call this from a parent or grandparent.
+    # @param order_by_created_at: [Boolean] Only relevant when +order_or_where+ is NOT +:where+.  If true (Def: false), the newest Translation comes first as the final condition for sorting/ordering, or else in a crude alphabetical order of +:title+ (regardless of whether +:title+ is significant or not).
     # @param t_alias: [String, NilClass] DB table alias for Translation table, if the given +rela+ uses it. Default is {Translation.table_name} (= "translations")
     # @param parent [Translation::ActiveRecord_Relation, NilClass] Base relation
     # @param upto: [Symbol, NilClass] Up to which step of +order_steps+ or nil, which is Default and means all steps.  See {PSQL_MATCH_ORDER_STEPS} for the step names.
@@ -183,8 +185,14 @@ module DbSearchOrder
       ret = ret.where(Arel.sql(where_sql)) if :order != order_or_where
       if :where != order_or_where
         ret = ret.order(Arel.sql(order_sql))
-        ret = ret.order(Arel.sql("LENGTH(\"#{t_alias}\".\"#{columns.first.to_s}\") ASC"))
-        ret = ret.order('"'+t_alias+'".created_at' => :desc) if order_by_created_at
+        min_len = (truncated_kwd_base || kwd_no_article || raw_kwd.strip).size
+        ret = sorted_by_min_valid_length_title_or_alt(ret, min_len, t_alias: t_alias)
+        ret =
+          if order_by_created_at
+            ret.order('"'+t_alias+'".created_at' => :desc)
+          else
+            ret.order('"'+t_alias+'".title')
+          end
       end
       ret
     end # def find_all_by_affinity()
@@ -260,5 +268,38 @@ module DbSearchOrder
       end # 100.times.each do
       raise "Should never come here after loop... Contact the code developer."
     end # def find_all_best_matches()
+
+    # Sort {Translation} in the ascending order of the length of either +title+ or +alt_title+
+    #
+    # For sorting,
+    #
+    # 1. Either of the columns that is shorter than the given +min_len+ is ignored,
+    # 2. The shorter of the two is used for comparison.
+    #
+    # Note that you might think condition 1 may be unnecessary because such too-short rows should
+    # have been filtered out.  However, (1) some +:alt_title+ may be much shorter than +:title+
+    # that has matched or vice versa, (2) +order_or_where+ in +find_all_by_affinity+ may be :order,
+    # in which case such too-short rows may remain.
+    #
+    # @param rela [ActiveRecord::Relation] The Relation of Translation records (or a relation joined to translations).
+    # @param min_len [Integer] The minimum length required for a title/alt_title to be considered for sorting.
+    # @param t_alias: [String, NilClass] DB table alias for the table.
+    # @return [ActiveRecord::Relation] The ordered Relation.
+    def sorted_by_min_valid_length_title_or_alt(rela, min_len, t_alias: nil)
+      min_len_safe = min_len.to_i  # Ensure min_len is an integer
+
+      # Finds the shorter of title and alt_title, providing longer than min_len, using LEAST().
+      # PostgreSQL LEAST() function ignores NULL values when comparing, which comes last in default in PostgreSQL.
+      # NOTE: -- Effective length for 'title': returns NULL if too short, otherwise returns length
+      sort_sql = <<-SQL.squish
+        LEAST(
+          (CASE WHEN LENGTH("#{t_alias}".title)     < #{min_len_safe} THEN NULL ELSE LENGTH("#{t_alias}".title)     END),
+          (CASE WHEN LENGTH("#{t_alias}".alt_title) < #{min_len_safe} THEN NULL ELSE LENGTH("#{t_alias}".alt_title) END)
+        )
+      SQL
+
+      rela.order(Arel.sql("#{sort_sql} ASC"))
+    end # def sorted_by_min_valid_length_title_or_alt(rela, min_len, t_alias: nil)
+    private :sorted_by_min_valid_length_title_or_alt
   end # module ClassMethods
 end # module DbSearchOrder

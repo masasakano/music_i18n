@@ -12,6 +12,71 @@ class MusicsTest < ApplicationSystemTestCase
     # when controller is using cache it may be a good idea to reset it afterwards
     Rails.cache.clear
   end
+  # add to here
+  # ---------------------------------------------
+
+  test "visiting Music#index by public" do
+    # Music#index
+    visit musics_url
+    assert_selector "h1", text: (h1tit="Musics")
+    assert_no_selector 'form.button_to'  # No button if not logged-in.
+
+    hsinfo = get_grid_pagenation_stats  # defined in test_helper.rb
+    assert_equal 1,           hsinfo[:i_page]
+    assert_equal Music.count, hsinfo[:n_total]
+    assert_equal Music.count, hsinfo[:n_entries]
+
+    muss = [:music_koi_hoshino, :music_all_i_want_for_christmas_mariah, :music_koibito_santa, :music_shiroi_koibitotachi, :music_gerende].map{ musics(_1) }  # Order in the table by the title "恋"
+    ## In this order b/c (1) forward-match first, (2) shorter matchiing-translation (or its ALT, strictly speaking)
+
+    title_jas = muss.map{ _1.title(langcode: :ja) }
+    assert_equal "恋", title_jas[0], 'sanity check of fixture.'
+    mu_ihojin = musics(:music_ihojin1)
+    title_ihojin = mu_ihojin.title(langcode: :ja)
+
+    (title_jas+[title_ihojin]).each do |ew|
+      assert_selector :xpath, "/"+XPATHGRIDS[:td_title_ja]+"[text()='#{ew}']"
+    end
+
+    ### Music-search: "恋"
+    n_ac_rows_exp = Music.select_regex(:titles, "恋", sql_regexp: true, exact_match: true).distinct.count  # likely 1 (unless fixtures are updated as such).
+    all_cands = fill_autocomplete('#musics_grid_title_ja', use_find: true, with: "恋", select: "恋"){ |elements|  # "恋"; defined in test_helper.rb
+      # For the length=1 Japanese word, only the exact match is provided for auto-complete.
+      assert_equal n_ac_rows_exp, elements.size
+      assert_equal "恋", elements[0].text.strip
+    }
+    assert_equal "恋", all_cands[0].text.strip
+
+    click_on "Apply"
+    assert_selector('input[type="submit"][value="Apply"]:not([disabled])')  # Necessary
+    n_tbl_rows_exp = Music.select_regex(:titles, "恋", sql_regexp: true, exact_match: false).distinct.count  # likely 5 (unless fixtures are updated as such).
+    refute_equal n_ac_rows_exp, n_tbl_rows_exp  # the former does not include "恋人" etc.
+    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: n_tbl_rows_exp, n_all_entries: hsinfo[:n_total], langcode: :en)
+
+    ### Music-search: "恋人"
+    n_rows_exp = Music.select_regex(:titles, "恋人", sql_regexp: true, exact_match: false).distinct.count  # likely 3 (unless fixtures are updated as such).
+    assert_operator n_rows_exp, :<, n_tbl_rows_exp, "Number of Musics including '恋人' should be smaller than those including '恋', but..."
+    all_cands = fill_autocomplete('#musics_grid_title_ja', use_find: true, with: "恋人", select: "恋人", ignore_suggestion: true){ |elements|  # input "恋人" (NOT "恋人はサンタクロース" etc); defined in test_helper.rb
+      # For the length=2 Japanese word, partial patches are performed.
+      assert_equal n_rows_exp, elements.size
+      muss[1..2].each do |emu|
+        assert_includes elements.map(&:text), emu.title
+      end
+## This test should pass. ###################      assert_equal muss[1].title, elements[0].text.strip
+    }
+
+    click_on "Apply"
+    assert_selector('input[type="submit"][value="Apply"]:not([disabled])')  # Necessary
+
+    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: n_rows_exp, n_all_entries: hsinfo[:n_total], langcode: :en)
+    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: n_rows_exp)  # should be equivalent to the above
+
+    tds = find_all(CSSGRIDS[:td_title_ja])
+    muss[1..3].each do |emu|
+## This test should pass. ###################      assert_includes tds.map(&:text), emu.title
+    end
+## This test should pass. ###################    assert_equal muss[1..3].map(&:title), tds[0..2].map{ _1.text.strip }
+  end
 
   test "visiting Music#index and then new" do
     # Music#index

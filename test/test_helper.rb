@@ -102,7 +102,9 @@ class ActiveSupport::TestCase
     tb_tr: XPATHGRIDS[:table]+'//tbody//tr',
   })
   XPATHGRIDS.merge!({
-    td_title: XPATHGRIDS[:tb_tr]+"//td[@data-column='title']",  # for Harami1129
+    td_title:    XPATHGRIDS[:tb_tr]+"//td[@data-column='title']",  # for Harami1129
+    td_title_ja: XPATHGRIDS[:tb_tr]+"//td[@data-column='title_ja']",
+    td_title_en: XPATHGRIDS[:tb_tr]+"//td[@data-column='title_en']",
   })
 
   # XPATH-related parameters
@@ -120,12 +122,12 @@ class ActiveSupport::TestCase
       form_edit: (anchoring_form_edit=anchoring_list+"//form[" + ModuleCommon.xpath_contain_css('edit_anchoring') + "]"),
     },
     form: {
-      fmt_button_submit:      "//form[contains(@class, 'button_to')]//button[@type='submit'][contains(text(), '%s')]", # 1 parameter: Label like "Destroy" for a button compiled by button_to (Rails-7.2)
-      fmt_any_button_submit: "//form//button[@type='submit'][contains(text(), '%s')]", # 1 parameter: Label like "Destroy" (Rails-7.2)
+      fmt_button_submit:      "//form[contains(@class, 'button_to')]//button[@type='submit'][contains(., '%s')]", # 1 parameter: Label like "Destroy" for a button compiled by button_to (Rails-7.2)
+      fmt_any_button_submit: "//form//button[@type='submit'][contains(., '%s')]", # 1 parameter: Label like "Destroy" (Rails-7.2)
     }.with_indifferent_access,
     all_translation_table: { # table ID is like "#all_registered_translations_music"
-      buton_add_trans:    "//table[contains(@class, 'all_registered_translations')]//tr[contains(@class, 'lang_banner')]//form[contains(@class, 'button_to')]//button[@type='submit'][contains(text(), '%s')]", # 1 parameter (hence containing multiple components): Label ('Add translation') (Rails-7.2)
-      buton_add_trans_lc: "//table[contains(@class, 'all_registered_translations')]//tr[contains(@class, 'lang_banner_%s')]//form[contains(@class, 'button_to')]//button[@type='submit'][contains(text(), '%s')]", # 2 parameters: locale, Label ('Add translation') (Rails-7.2)
+      buton_add_trans:    "//table[contains(@class, 'all_registered_translations')]//tr[contains(@class, 'lang_banner')]//form[contains(@class, 'button_to')]//button[@type='submit'][contains(., '%s')]", # 1 parameter (hence containing multiple components): Label ('Add translation') (Rails-7.2)
+      buton_add_trans_lc: "//table[contains(@class, 'all_registered_translations')]//tr[contains(@class, 'lang_banner_%s')]//form[contains(@class, 'button_to')]//button[@type='submit'][contains(., '%s')]", # 2 parameters: locale, Label ('Add translation') (Rails-7.2)
     }.with_indifferent_access,
   }.with_indifferent_access
 
@@ -835,13 +837,29 @@ class ActiveSupport::TestCase
   #     <div id="ui-id-2" tabindex="-1" class="ui-menu-item-wrapper">OneCandidate</div>
   #   </li>
   #
+  # This method returns +Nokogiri::XML::NodeSet+ of `<li>`-s (like an Array) for the auto-complete candidates.
+  # Or, you can give a block, to which +Capybara::Result+ of `<li>`-s (like an Array, but
+  # its contents are fluid and change when the HTML changes, unlike Nokogiri instances) is given.
+  #
   # @example
-  #   fill_autocomplete('Title', with: 'Madon', select: "Madonna")  # defined in test_helper.rb
-  #   fill_autocomplete('#musics_grid_title_ja', use_find: true, with: 'Peace a', select: "Give Peace")  # defined in test_helper.rb
+  #   cands = fill_autocomplete('Title', with: 'Madon', select: "Madonna")  # defined in test_helper.rb
+  #   assert_equal 1,      cands.size
+  #   assert_equal "Love", cands[0].text.strip
+  #
+  # @example
+  #   fill_autocomplete('#musics_grid_title_ja', use_find: true, with: 'Peace a', select: "Give Peace"){ |elements|  # defined in test_helper.rb
+  #     assert_equal 1,      elements.size
+  #     assert_equal "Love", elements[0].text.strip
+  #   }
   #
   # @param field [String] either Text or CSS
   # @param use_find: [Boolean] if true (Def: false), page.find(field) is used to fill in.
-  def fill_autocomplete(field, use_find: false, **options)
+  # @param with: [String] Mandatory. +with+ option for +fill_in+, i.e., the word to fill in the field.
+  # @param select: [String] The word(s) to select on auto-complete
+  # @param ignore_suggestion: [Boolean] Unless true (Def: false), the suggested title from +select+ is auto-filled in.
+  # @return [Nokogiri::XML::NodeSet]
+  # @yield [Capybara::Result] Basically, an Array of +Capybara::Node::Element+ (unlike the returned value of +Nokogiri::XML::NodeSet+, which is very similar but differs)
+  def fill_autocomplete(field, use_find: false, ignore_suggestion: false, **options)
     if use_find
       page.find(field).fill_in(with: options[:with])
       prefix = ""
@@ -853,7 +871,8 @@ class ActiveSupport::TestCase
     page.execute_script %Q{ $('#{prefix+field}').trigger('focus') }
     page.execute_script %Q{ $('#{prefix+field}').trigger('keydown') }
 
-    selector = %Q{ul.ui-autocomplete li.ui-menu-item:contains("#{options[:select]}")}  # has to be double quotations (b/c of the sentence below)
+    selector_base = "ul.ui-autocomplete li.ui-menu-item"
+    selector = selector_base+%Q{:contains("#{options[:select]}")}  # has to be double quotations (b/c of the sentence below)
     ## Or, more strictly,
     #selector = %Q{ul.ui-autocomplete li.ui-menu-item div.ui-menu-item-wrapper:contains("#{options[:select]}")}  # has to be double quotations (b/c of the sentence below)
 
@@ -866,13 +885,18 @@ class ActiveSupport::TestCase
     #print "DEBUG: "; p page.find('ul.ui-autocomplete div.ui-menu-item-wrapper')['innerHTML']
     ## assert page.has_selector? selector  # Does not work (maybe b/c it is valid only for jQuery; officially CSS does not support "contains" selector, which is deprecated): Selenium::WebDriver::Error::InvalidSelectorError: invalid selector: An invalid or illegal selector was specified
     begin
+      if block_given?
+        yield(find_all(selector_base))
+      end
+      ret_cands = capture_nokogiri_snapshot(selector_base) # defined in /test/support/snapshot_helper.rb
       assert_selector selector.sub(/:contains.*/, ''), wait: 3  # This MAY ensure to wait for the popup to appear??
       flag = true
     ensure
       warn "ERROR: Failed when called from (#{caller_info})" if !flag
     end
 
-    page.execute_script %Q{ $('#{selector}').trigger('mouseenter').click() }
+    page.execute_script %Q{ $('#{selector}').trigger('mouseenter').click() } unless ignore_suggestion
+    ret_cands
   end
 
   # Get Integer PID from Show page in Model.
@@ -1061,6 +1085,67 @@ class ActiveSupport::TestCase
     }.flatten.join("|")
   end # def xpath_for_flash()
 
+  # Wrapper of get_grid_pagenation_stats
+  #
+  # @param #see get_grid_pagenation_stats
+  # @return [Integer] Current number of the total entries in the current Grid table.
+  def get_grid_pagenation_n_total(**kwds)
+    get_grid_pagenation_stats(**kwds)[:n_total]  # @see ApplicationController::GRID_INFOS[:entry_fmt_keys]
+  end # get_grid_pagenation_n_total
+
+  # Returns a Hash for pagenation information on a Grid index page
+  #
+  # If system test (Def), +find+ is used.  However, you should note that
+  # the pagenation information is always displayed on an index page, so +find+
+  # does not do good much except after a transition from a non-Grid-inex page.
+  #
+  # @see ApplicationController::GRID_INFOS
+  #
+  # @example
+  #    hs_stats = get_grid_pagenation_stats  # defined in test_helper.rb; see for keys ApplicationController::GRID_INFOS[:entry_fmt_keys]
+  #
+  # @return [Hash<Integer>] Keys from {ApplicationController::GRID_INFOS[:entry_fmt_keys]} with Integer values
+  def get_grid_pagenation_stats(langcode: I18n.locale, for_system_test: true)
+    metho = (for_system_test ? :find : :css_select) 
+    i = -1
+    regex_txt = Regexp.quote(ApplicationController::GRID_INFOS[:entry_fmts].join("")).gsub(/%([sd])/){
+      i += 1
+      case (key=ApplicationController::GRID_INFOS[:entry_fmt_keys][i])[0, 1]
+      when "s"
+        if (k="si_page") == key.to_s
+          i_test = 2019
+          "(?<#{k}>" + Regexp.quote(I18n.t("tables.Page_n", count: i_test, default: "Page "+i_test.to_s, locale: langcode)).sub(/#{i_test.to_s}/, "(?<i_page>\\d+)") + ")"
+        else
+          "(?<#{key}>[^:(]+)"
+        end
+      when "i", "n"
+        "(?<#{key}>\\d+)"
+      else
+        raise "#{key[0, 1].inspect} in #{key.inspect}"
+      end
+    }
+
+    begin
+      text = send(metho, :xpath, "/"+XPATHGRIDS[:pagenation_stats]).text
+    rescue NoMethodError #=> err
+      ## This should never happen.
+      #    eval error: undefined method 'document' for an instance of Symbol
+      #    => NoMethodError: undefined method 'document' for an instance of Symbol
+      #    NoMethodError: undefined method 'find' for an instance of ModuleCommonTest
+      msg = "ERROR(#{File.basename __FILE__}:#{__method__}): NoMethodError: you may need to give an appropriate for_system_test, or you have not 'visit' a webpage, yet, before your call."
+      warn msg
+      Rails.logger.error msg
+      raise
+    end
+
+    mat = /#{regex_txt}/.match text
+
+    hsret = {}.with_indifferent_access
+    ApplicationController::GRID_INFOS[:entry_fmt_keys].each do |ek|
+      hsret[ek] = mat[ek].to_i  # ek can be Symbol or String
+    end
+    hsret
+  end # get_grid_pagenation_stats()
 
   # XPath to match certain statistics on the Grid-index-view statistics line
   #
@@ -1070,21 +1155,24 @@ class ActiveSupport::TestCase
   #   assert_text 'Page 1 (1—3)/3'  # Page 1 (1—3)/3 [Grand total: 12]
   #   assert_text             xpath_grid_pagenation_stats_with(n_filtered_entries: 3, text_only: true)
   #   assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: 3, text_only: false)
-  #   # Debug(to see the text in the block): p find(:xpath, XPATHGRIDS[:pagenation_stats]).text
+  #   # Debug(to see the text in the block): p find(:xpath, "/"+XPATHGRIDS[:pagenation_stats]).text
   #
   # @example
   #   assert_text '第1頁 (1—3)/3 [全登録数: 99]'
-  #   assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: 3, n_all_entries: 99, locale: :ja)
-  #   # Debug(to see the text in the block): p find(:xpath, XPATHGRIDS[:pagenation_stats])['innerHTML']
+  #   assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: 3, n_all_entries: 99, langcode: :ja)
+  #   # Debug(to see the text in the block): p find(:xpath, "/"+XPATHGRIDS[:pagenation_stats])['innerHTML']
   #
   # @param n_filtered_entries: [Integer] mandatory: Number of the filtered entries
   # @param text_only: [Boolean] if true (Def: false), returns a simple text String; otherwise XPath
   # @param start_entry: [Integer, NilClass] Def: 1. If nil, this returns only "/123" (Number of the filtered entries)
-  # @param end_entry: [Integer, NilClass] This is equal to, or (usually in tests) smaller than, the maximum number of entries per page on Grid. If nil (Def), the same as n_filtered_entries.
-  # @param n_all_entries: [Integer, NilClass] If nil (Def), this part is not included in the returned String.
+  # @param end_entry: [Integer, NilClass] This is equal to, or (usually in tests) smaller than, the maximum number of entries per page on Grid. If nil (Def), the smaller between {ApplicationGrid::DEF_MAX_PER_PAGE} and +n_filtered_entries+.
+  # @param n_all_entries: [Integer, NilClass] If nil (Def), this part is taken from the current page (with +find_all+).
   # @param langcode: [Symbol, String] :en (Def)
+  # @param **opts: [Hash] see #get_grid_pagenation_n_total
   # @return [String] Either XPath or text for the pagenation stats part on Grid
-  def xpath_grid_pagenation_stats_with(n_filtered_entries: , text_only: false, cur_page: 1, start_entry: 1,  end_entry: nil, n_all_entries: nil, langcode: :en)
+  def xpath_grid_pagenation_stats_with(n_filtered_entries: , text_only: false, cur_page: 1, start_entry: 1,  end_entry: nil, n_all_entries: nil, langcode: :en, **opts)
+
+    n_all_entries ||= get_grid_pagenation_n_total(langcode: langcode, **opts)
 
     exp_txt = ApplicationController.str_info_entry_page_numbers_core(
       n_filtered_entries: n_filtered_entries,

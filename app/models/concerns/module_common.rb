@@ -1930,15 +1930,19 @@ module ModuleCommon
   #   contains(@class, 'abc')
   # would be insufficient, matching the CSS of "abc-xyz", too, for example, hence this method.
   #
-  # @example
-  #      "//" + ModuleCommon.xpath_contain_css(complete_for: "p"", ["foo", "baa"])
+  # @example  with +complete_for+
+  #      "//" + ModuleCommon.xpath_contain_css(complete_for: "p", ["foo", "baa"])
   #      # => "//p[contains(concat(' ', normalize-space(@class), ' '), ' foo ') and contains(concat(' ', normalize-space(@class), ' baa '))]"
   #    ==
   #    "//p[" + ModuleCommon.xpath_contain_css("foo", "baa") + "]"
   #
+  # @example  without +complete_for+
+  #      "//p[" + ModuleCommon.xpath_contain_css(complete_for: "p", ["foo"]) + "]"
+  #      # => "//p[contains(concat(' ', normalize-space(@class), ' '), ' foo ')]"
+  #
   # @param texts [String, Array<String>] "Click", "Button"
   # @param complete_for: [String, NilClass] if given (Def: nil), returns a complete XPath for the tag (without preceding forward slashes)
-  # @return [String] e.g., `[contains(., 'Click') and contains(., 'button')]`
+  # @return [String] e.g., `p[contains(concat(' ', normalize-space(@class), ' '), ' round_button ') and ...]`
   def self.xpath_contain_css(*csss, complete_for: nil)
     raise ArgumentError, "no significant argument specified" if csss.empty?
     ret = csss.flatten.map{

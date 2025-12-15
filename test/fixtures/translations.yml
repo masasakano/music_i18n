@@ -1400,6 +1400,73 @@ music_rain_en:
   update_user_id: 1
   note: MusicRainEn
 
+music_gerende_ja:
+  translatable: music_gerende (Music)
+  langcode: ja
+  title: "ゲレンデがとけるほど恋したい"
+  alt_title: 
+  ruby: "ゲレンデガトケルホドコイシタイ"
+  romaji: "Gerende ga tokeru hodo koishitai"
+  is_orig: true
+  weight: 0
+  create_user: user_moderator_translation
+  update_user: user_moderator_translation
+  note: MusicGerendeJa
+
+music_all_i_want_for_christmas_mariah_en:
+  translatable: music_all_i_want_for_christmas_mariah (Music)
+  langcode: en
+  title: "All I Want for Christmas Is You"
+  is_orig: true
+  weight: 0
+  create_user: user_moderator_translation
+  update_user: user_moderator_translation
+  note: MusicAllIWantForChristmasMariahEn
+
+music_all_i_want_for_christmas_mariah_ja:
+  translatable: music_all_i_want_for_christmas_mariah (Music)
+  langcode: ja
+  title: "恋人たちXmas"
+  is_orig: false
+  weight: 0
+  create_user: user_moderator_translation
+  update_user: user_moderator_translation
+  note: MusicAllIWantForChristmasMariahJa-恋人たちのクリスマス
+
+music_koibito_santa_ja:
+  translatable: music_koibito_santa (Music)
+  langcode: ja
+  title: "恋人はサンタクロース"
+  ruby: 
+  romaji: 
+  is_orig: true
+  weight: 0
+  create_user: user_moderator_translation
+  update_user: user_moderator_translation
+  note: MusicKoibitoSantaJa
+
+music_koi_hoshino_ja:
+  translatable: music_koi_hoshino (Music)
+  langcode: ja
+  title: "恋"
+  ruby: 
+  romaji: 
+  is_orig: true
+  weight: 0
+  create_user: user_moderator_translation
+  update_user: user_moderator_translation
+  note: MusicKoiHoshinoJa
+
+music_shiroi_koibitotachi_ja:
+  translatable: music_shiroi_koibitotachi (Music)
+  langcode: ja
+  title: "白い恋人達"
+  is_orig: true
+  weight: 0
+  create_user: user_moderator_translation
+  update_user: user_moderator_translation
+  note: MusicShiroiKoibitotachiJa
+
 artist_unknown_en:
   translatable: artist_unknown
   translatable_type: Artist
@@ -1720,6 +1787,50 @@ artist_spitz_en:
   create_user_id: user_translator2
   update_user_id: user_translator2
   note: Artist-SpitzEn
+
+artist_kuwata_ja:
+  translatable: artist_kuwata (Artist)
+  translatable_type: Artist
+  langcode: ja
+  title: "桑田佳祐"
+  is_orig: true
+  weight: 0
+  create_user_id: user_translator
+  update_user_id: user_translator
+  note: Artist-KuwataJa
+
+artist_hoshino_ja:
+  translatable: artist_hoshino (Artist)
+  translatable_type: Artist
+  langcode: ja
+  title: "星野源"
+  is_orig: true
+  weight: 0
+  create_user_id: user_translator
+  update_user_id: user_translator
+  note: Artist-HoshinoJa
+
+artist_yuming_ja:
+  translatable: artist_yuming (Artist)
+  translatable_type: Artist
+  langcode: ja
+  title: "松任谷由実"
+  is_orig: true
+  weight: 0
+  create_user_id: user_translator
+  update_user_id: user_translator
+  note: Artist-YumingJa
+
+artist_mariah_en:
+  translatable: artist_mariah (Artist)
+  translatable_type: Artist
+  langcode: en
+  title: Mariah Carey
+  is_orig: true
+  weight: 0
+  create_user_id: user_translator
+  update_user_id: user_translator
+  note: Artist-MariahEn
 
 artist_zombies_en1:
   translatable: artist_zombies

@@ -66,7 +66,7 @@ class FixtureTest < ActiveSupport::TestCase
     @def_artist = artists(:artist_harami)
     @allowed = {  # These are allowed for certain incompleteness; e.g., music_kampai has no associated HaramiVid
       harami_vids: %i(
-        music99 music999 music_unknown music_how music_kampai music_robinson music_light music_rain
+        music99 music999 music_unknown music_how music_kampai music_robinson music_light music_all_i_want_for_christmas_mariah music_rain music_gerende music_koibito_santa music_koi_hoshino music_shiroi_koibitotachi
       ).map{|ek| musics(ek)},
       artists: %i(
         music99 music999 music_unknown music_kampai

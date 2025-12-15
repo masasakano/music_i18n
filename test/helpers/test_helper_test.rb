@@ -2,7 +2,7 @@
 
 require 'test_helper'
 
-class ModuleCommonTest < ActiveSupport::TestCase
+class TestHelperTest < ActiveSupport::TestCase
 
   test "css_for_flash" do
     exp = "div#body_main div#error_explanation.notice.alert.alert-info, div#body_main div.error_explanation.notice.alert.alert-info"
@@ -38,10 +38,16 @@ class ModuleCommonTest < ActiveSupport::TestCase
   end
 
   test "xpath_grid_pagenation_stats_with" do
-    exp_txt = 'Page 1 (1—3)/3'
-    assert_equal exp_txt, xpath_grid_pagenation_stats_with(n_filtered_entries: 3, text_only: true)
+    exp_txt = 'Page 1 (1—3)/3 [Grand total: 3]'
+    with_captured_stderr{
+      assert_raises(NoMethodError){ xpath_grid_pagenation_stats_with(n_filtered_entries: 3, text_only: true, for_system_test: true) }
+      # STDERR:  ERROR(test_helper.rb:get_grid_pagenation_stats): NoMethodError: you may need to give an appropriate for_system_test, or you have not 'visit' a webpage, yet, before your call.
+    }
+    n_filtered_entries = 3
+    assert_equal exp_txt, xpath_grid_pagenation_stats_with(n_filtered_entries: n_filtered_entries, text_only: true, n_all_entries: n_filtered_entries)
+
     exp = "//*[contains(concat(' ', normalize-space(@class), ' '), ' pagenation_stats ')][contains(., '#{exp_txt}')]"  # see XPATHGRIDS in test_helper.rb for the CSS @class name
-    assert_equal exp,     xpath_grid_pagenation_stats_with(n_filtered_entries: 3, text_only: false)
+    assert_equal exp,     xpath_grid_pagenation_stats_with(n_filtered_entries: n_filtered_entries, text_only: false, n_all_entries: n_filtered_entries)
   end
 end
 

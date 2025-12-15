@@ -1,7 +1,13 @@
 # coding: utf-8
 require "test_helper"
 
+Dir[Rails.root.join("test", "support", "**", "*.rb")].each do |file|
+  require file
+end
+
 class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
+  include SnapshotHelper
+
   Capybara.configure do |config|
     # see https://rubydoc.info/github/jnicklas/capybara/master/Capybara#configure-class_method
     config.save_path = Rails.root.to_s + "/tmp/screenshots"  # Default is Dir.pwd - the directory where you run rails test
