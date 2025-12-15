@@ -29,7 +29,7 @@ class MusicsTest < ApplicationSystemTestCase
     muss = [:music_koi_hoshino, :music_all_i_want_for_christmas_mariah, :music_koibito_santa, :music_shiroi_koibitotachi, :music_gerende].map{ musics(_1) }  # Order in the table by the title "恋"
     ## In this order b/c (1) forward-match first, (2) shorter matchiing-translation (or its ALT, strictly speaking)
 
-    title_jas = muss.map{ _1.title(langcode: :ja) }
+    title_jas = muss.map{ _1.title(langcode: :ja) }  # title_or_alt may be better, depending on fixtures
     assert_equal "恋", title_jas[0], 'sanity check of fixture.'
     mu_ihojin = musics(:music_ihojin1)
     title_ihojin = mu_ihojin.title(langcode: :ja)
@@ -59,10 +59,10 @@ class MusicsTest < ApplicationSystemTestCase
     all_cands = fill_autocomplete('#musics_grid_title_ja', use_find: true, with: "恋人", select: "恋人", ignore_suggestion: true){ |elements|  # input "恋人" (NOT "恋人はサンタクロース" etc); defined in test_helper.rb
       # For the length=2 Japanese word, partial patches are performed.
       assert_equal n_rows_exp, elements.size
-      muss[1..2].each do |emu|
-        assert_includes elements.map(&:text), emu.title
+      title_jas[1..n_rows_exp].each do |tit_exp|
+        assert_includes elements.map(&:text), tit_exp
       end
-## This test should pass. ###################      assert_equal muss[1].title, elements[0].text.strip
+      assert_equal title_jas[1], elements[0].text.strip
     }
 
     click_on "Apply"
@@ -72,10 +72,10 @@ class MusicsTest < ApplicationSystemTestCase
     assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: n_rows_exp)  # should be equivalent to the above
 
     tds = find_all(CSSGRIDS[:td_title_ja])
-    muss[1..3].each do |emu|
-## This test should pass. ###################      assert_includes tds.map(&:text), emu.title
+    title_jas[1..n_rows_exp].each do |tit_exp|
+      assert_includes tds.map(&:text), tit_exp
     end
-## This test should pass. ###################    assert_equal muss[1..3].map(&:title), tds[0..2].map{ _1.text.strip }
+    assert_equal title_jas[1..n_rows_exp], tds[0..(n_rows_exp-1)].map{ _1.text.strip }
   end
 
   test "visiting Music#index and then new" do

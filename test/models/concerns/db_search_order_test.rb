@@ -257,6 +257,13 @@ class ConcernsDbSearchOrderTest < ActiveSupport::TestCase
     assert_equal trans_s42, rel2.first
   end
 
+  test "Translation.collated_condition_sql" do
+    ini = ["title", "ILIKE", "'abc'"]
+    exp = "title COLLATE \"und-x-icu\" ILIKE 'abc'"
+    assert_equal exp, Translation.collated_condition_sql(*ini)
+    assert_equal exp, Translation.collated_condition_sql( ini)
+  end
+
   private
     # Returns a new valid Sex
     #

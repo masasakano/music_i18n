@@ -444,6 +444,8 @@ class Translation < ApplicationRecord
 
   # to gets Arel.sql to order by the minimum length of (title, alt_title), ignoring blank ones.
   #
+  # See {DbSearchOrder#sorted_by_min_valid_length_title_or_alt}
+  #
   # @example
   #    klass.joins(:translations).distinct.except(:distinct).order(Translation.arel_order_by_min_title_length("translations")).uniq
   def self.arel_order_by_min_title_length(db_alias=self.table_name)
@@ -1450,7 +1452,7 @@ class Translation < ApplicationRecord
   # private_class_method :get_allkeys_for_select_regex
 
 
-  # Core routine for {Translation.select_regex} for String input
+  # Core routine for {Translation.select_regex} for String input or PostgreSQL-compatible Regexp input
   #
   # Search for matching {Translation}-s
   # for a given value of String (or nil). SQL is used to search the match.
