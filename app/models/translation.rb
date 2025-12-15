@@ -1251,6 +1251,65 @@ class Translation < ApplicationRecord
     select_regex(kwd, regex, sql_regexp: true, space_sensitive: false, **restkeys).order_by_min_title_length
   end
 
+  # Similar to {Translation.select_partial_str}, but more sophisticated, especially in sorting.
+  #
+  # This is a wrapper of {DbSearchOrder#find_all_by_affinity}, so
+  # the optional arguments differ from {Translation.select_partial_str}.
+  # Unlike {DbSearchOrder#find_all_by_affinity}, the first argument is the keyword,
+  # and +columns+ is an optional argument (it is automatically set if nil), and
+  # +order_or_where+ is an optional parameter.
+  #
+  # Most notably, the primary argument accepts only a single String, *not* Array.
+  #
+  # If the search keyword +raw_kwd+ is too short (as specified in +min_ja_chars+ and +min_en_chars+),
+  # regardless of the optional argument +order_steps+ (in +restkeys+), only the exact match is
+  # considered (except preceding/trailing spaces and Asian character normalizations).
+  #
+  # @example
+  #   Translation.find_all_by_partial_str("MALE", parent: Sex.joins(:translations))
+  #    # => Relation[Sex[1]("male"), Sex[2]("female")]
+  #   Translation.find_all_by_partial_str("MALE", parent: Sex.joins(:translations)).pluck("translations.title")
+  #    # => ["male", "female"]
+  #   Translation.find_all_by_partial_str("MALE", parent: Sex.joins(:translations)).where("iso5218 > ?", 1)
+  #    # => Relation[Sex[2]("female")]
+  #
+  # @example further ordering
+  #   Translation.find_all_by_partial_str("MALE", parent: Sex.joins(:translations)).order(iso5218: :desc)
+  #    # => Relation[Sex[1]("male"), Sex[2]("female")]  # No change in order because "male" is a better match (case-insensitive exact match)
+  #   Translation.find_all_by_partial_str("ale",  parent: Sex.joins(:translations)).order(iso5218: :desc)
+  #    # => Relation[Sex[1]("male"), Sex[2]("female")]  # No change in order because "male" is a better match ("male" is shorter than "female", where alt_title of "M"/"F" is ignored as they are too short)
+  #   Translation.find_all_by_partial_str("MALE", parent: Sex.joins(:translations)).reorder(iso5218: :desc)
+  #    # => Relation[Sex[2]("female"), Sex[1]("male")]  # use reorder
+  #
+  # @param raw_kwd [String] e.g., "The Beat" and "Beatles".
+  #   Preprocessed with {ModuleCommon#preprocess_space_zenkaku}
+  # @param columns: [Array<String, Symbol>, NilClass] columns to search. If nil, automatically set to
+  #   +[:title, :alt_title, :romaji, :alt_romaji]+ if +raw_kwd+ does NOT contain Asian characters, else
+  #   +[:title, :alt_title, :ruby, :alt_ruby]+.
+  # @param min_matches: [Boolean] if true (Def: false), search attempts stop when matches are found
+  #   in the most strict condition withing the list of conditions specified in +order_steps+ (in +restkeys+).
+  #   For example, if exact matches are found, this does not perform case-insensitive searches.
+  #   Default is false, so with the default +order_steps+, seaches are performed on the basis of
+  #   case-insensitive, definite-article-insensitive, and space-insensitive.  The result is
+  #   sorted (ordered) by the strictness of the conditions, nonetheless, in default (+order_or_where: :both+).
+  # @param order_or_where: [Symbol] (optional) :order or :where or :both (Def)
+  # @param min_ja_chars: [Integer] minimum number of characters to use partial matches when +raw_kwd+ contains Asian characters
+  # @param min_en_chars: [Integer] Same as +min_ja_chars+ but for any other languages.
+  # @return [ActiveRecord::Relation]
+  def self.find_all_by_partial_str(raw_kwd, columns: nil, min_matches: false, order_or_where: :both, min_ja_chars: DEF_MIN_REGEXP_N_CHARS[:ja], min_en_chars: DEF_MIN_REGEXP_N_CHARS[:en], **restkeys)
+    kwd = preprocess_space_zenkaku(raw_kwd, strip_all: true)  # spaces are agressively stripped and truncated
+    has_asian = contain_asian_char?(kwd)
+    columns ||= [:title, :alt_title] +
+                (has_asian ? [:ruby, :alt_ruby] : [:romaji, :alt_romaji])
+
+    if !_should_use_regexp?(kwd, min_ja_chars: min_ja_chars, min_en_chars: min_en_chars)
+      restkeys.merge!({order_steps: :exact})
+    end
+
+    metho = (min_matches ? :find_all_best_matches : :find_all_by_affinity)
+    send(metho, columns, kwd, order_or_where: order_or_where, **restkeys)
+  end
+
   # Is it suitable for Regexp search?
   #
   # @param value [String] e.g., "The Beat" and "Beatles, Th"; assumed to be already stripped.

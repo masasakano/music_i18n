@@ -481,6 +481,19 @@ class TranslationTest < ActiveSupport::TestCase
     assert_equal 1, Translation.select_partial_str(:titles, str, **defopts).pluck(:title).uniq.size, "Default: exact match only"
   end
 
+  test "Translation.find_all_by_partial_str" do
+    parent = Sex.joins(:translations)
+    assert_equal [Sex[1], Sex[2]], Translation.find_all_by_partial_str("MALE", parent: parent).to_a
+    assert_equal [Sex[1], Sex[2]], Translation.find_all_by_partial_str("MALE", parent: parent).order(iso5218: :desc).to_a
+    assert_equal [Sex[1], Sex[2]], Translation.find_all_by_partial_str( "ale", parent: parent).order(iso5218: :desc).to_a
+    assert_equal [Sex[2], Sex[1]], Translation.find_all_by_partial_str("MALE", parent: parent).reorder(iso5218: :desc).to_a
+
+    assert_equal [Sex[1], Sex[2]], Translation.find_all_by_partial_str( "ale", parent: parent, min_matches: false).to_a
+    assert_equal [Sex[1]],         Translation.find_all_by_partial_str("MALE", parent: parent, min_matches: true).to_a
+    assert_equal [Sex[2]],         Translation.find_all_by_partial_str("MALE", parent: parent).where("iso5218 > ?", 1).to_a  # NOTE: Float (like 1.5) would raise ActiveRecord::StatementInvalid: PG::InvalidTextRepresentation
+    assert_equal %w(male female),  Translation.find_all_by_partial_str("MALE", parent: parent).pluck("translations.title")
+  end
+
   test "update_or_create_regex! (and _by!)" do
     trans_tmpl = translations :artist1_en
     tid = trans_tmpl.id

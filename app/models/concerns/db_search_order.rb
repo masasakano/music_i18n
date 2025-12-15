@@ -91,7 +91,7 @@ module DbSearchOrder
       raise ArgumentError, "upto is not one of order_steps: "+upto.inspect if !index_upto  # if upto is not one of order_steps
 
       ## Preparation of modified search-word: quoted and, if needed, truncated ones (processed by Ruby)
-      kwds = kwds_for_affinity_search(raw_kwd, order_steps, index_upto)
+      kwds = _kwds_for_affinity_search(raw_kwd, order_steps, index_upto)
 
       ## helper method (implicitly using the argument t_alias)
       #truncate_where_sql = ->(col) { "REGEXP_REPLACE(#{psql_definite_article_stripped(col, t_alias: t_alias)}, '[#{PSQL_UNICODE_ALL_MIDDLE_PUNCT}]', '', 'g')" }
@@ -188,7 +188,7 @@ module DbSearchOrder
     # @param order_steps: [Array<Symbol>] Steps (Def: {PSQL_MATCH_ORDER_STEPS}).
     # @param index_upto: [Index] upto index (to process) in +order_steps+
     # @return [Hash] .with_indifferent_access
-    def kwds_for_affinity_search(raw_kwd, order_steps, index_upto)
+    def _kwds_for_affinity_search(raw_kwd, order_steps, index_upto)
       kwds = {}.with_indifferent_access
       kwds[:raw_article_tail] = definite_article_to_tail(raw_kwd)  # defined in module_common.rb
 
@@ -216,7 +216,7 @@ module DbSearchOrder
       end
       kwds
     end
-    private :kwds_for_affinity_search
+    private :_kwds_for_affinity_search
 
     # Returns a PostgreSQL conditional statement with COLLATE if specified.
     #
@@ -251,7 +251,9 @@ module DbSearchOrder
     # @param order_by_created_at: [Boolean] If true (Def: false), the newest one comes first as the final condition for sorting/ordering.
     # @param t_alias: [String, NilClass] DB table alias for the table.
     # @param parent [ActiveRecord_Relation, NilClass] Base relation
-    # @param upto: [Symbol, NilClass] Up to which step of {PSQL_MATCH_ORDER_STEPS} or nil (Default, meaning all steps)
+    # @param upto: [Symbol, NilClass] Up to which step of {PSQL_MATCH_ORDER_STEPS} to attepmt (when no matches are found) or nil (Default, meaning all steps)
+    #   Developer's note: +upto+ can be implemented only on this method, but NOT on {find_all_by_affinity}, which runs WHERE only once.
+    # @return [ActiveRecord::Relation]
     def find_all_best_matches(columns, raw_kwd, t_alias: nil, parent: nil, upto: nil, **opts)
       t_alias ||= self.table_name
       n_steps = PSQL_MATCH_ORDER_STEPS.size
@@ -277,7 +279,7 @@ module DbSearchOrder
 
         i_next = index_next_bsearch(i_now, n_steps, n_trimmed: n_steps_mod)  # defined in ModuleCommon
 
-        curr_relas[:ids]     = curr_relas[:where].distinct.ids
+        curr_relas[:ids]     = curr_relas[:where].ids.uniq
         cur_siz = curr_relas[:ids].size
         curr_relas[:tra_ids] = curr_relas[:where].pluck(sql_tbl_col_str(t_alias, :id)).uniq  # defined in ModuleCommon
 
