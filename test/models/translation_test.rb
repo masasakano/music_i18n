@@ -494,6 +494,26 @@ class TranslationTest < ActiveSupport::TestCase
     assert_equal %w(male female),  Translation.find_all_by_partial_str("MALE", parent: parent).pluck("translations.title")
   end
 
+  test "self.find_all_titles_by_partial_str" do
+    ary = Translation.find_all_titles_by_partial_str("male", where: nil)
+    assert_equal Sex[1].title(langcode: :en), ary.first
+    assert_includes ary, "female"
+    ary = Translation.find_all_titles_by_partial_str("male", where: {translatable_type: "Sex"})
+    assert_equal Sex[1].title(langcode: :en), ary.first
+    assert_includes ary, "female"
+
+    ary = Translation.find_all_titles_by_partial_str("Proclaimers", where: {translatable_type: "Artist"})
+    tra_exp = translations(:artist_proclaimers_en)
+    tra_exp.update!(alt_title: "Proclaimers")
+    assert_equal definite_article_to_head(tra_exp.title), ary.first
+    ary = Translation.find_all_titles_by_partial_str("Proclaimers", where: {translatable_type: "Artist"}, definite_article_to_head: false)
+    assert_equal tra_exp.title, ary.first
+    ary = Translation.find_all_titles_by_partial_str("The Proclaimers", where: {translatable_type: "Artist"}, definite_article_to_head: false)
+    assert_equal tra_exp.title, ary.first
+    ary = Translation.find_all_titles_by_partial_str("Proclaimers, The", where: {translatable_type: "Artist"}, definite_article_to_head: false)
+    assert_equal tra_exp.title, ary.first
+  end
+
   test "update_or_create_regex! (and _by!)" do
     trans_tmpl = translations :artist1_en
     tid = trans_tmpl.id

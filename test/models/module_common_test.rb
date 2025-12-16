@@ -195,6 +195,12 @@ class ModuleCommonTest < ActiveSupport::TestCase
     # refute diff_emoji_only?("You?", "You")  # TODO!!!!!!!!!!!!!!
   end
 
+  test "add_sql_clause" do
+    assert_equal({id: 3, abc: 5}, add_sql_clause({abc: 5}, {id: 3}))
+    assert_equal({id: 9},         add_sql_clause({id: 9},  {id: 3}))
+    assert_equal "(id = 3) AND id < 9", add_sql_clause("id < 9", {id: 3})
+  end
+
   test "regexp_ruby_to_postgres" do
     assert_equal ["abc+d", "n"], regexp_ruby_to_postgres(/abc+d/)
     assert_equal ['^ab\Z', 'in'], regexp_ruby_to_postgres(/^ab\z/i)

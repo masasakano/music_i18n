@@ -196,14 +196,14 @@ module DbSearchOrder
       kwds[:quoted_raw] = connection.quote(raw_kwd)
       kwds[:quoted] = connection.quote(kwds[:raw_article_tail])
 
-      if index_upto >= order_steps.find_index(:case_insensitive)
+      if (ind=order_steps.find_index(:case_insensitive)) && index_upto >= ind
         kwds[:quoted_raw_like] = sanitize_sql_like(kwds[:quoted_raw])
 
-        if index_upto >= order_steps.find_index(:optional_article_ilike)
+        if (ind=order_steps.find_index(:optional_article_ilike)) && index_upto >= ind
           kwds[:no_article] = definite_article_stripped(raw_kwd.to_s.downcase).strip  # downcased, definitely-article-stripped, space-stripped at head & tail
           kwds[:quoted_no_article] = connection.quote(kwds[:no_article])
 
-          if index_upto >= order_steps.find_index(:space_insensitive_exact)
+          if (ind=order_steps.find_index(:space_insensitive_exact)) && index_upto >= ind
             kwds[:truncated_base] = kwds[:no_article].gsub(/[\s\p{Dash}]/u, "")  # definitely-article-stripped, space-stripped, and downcased
             # kwds[:quoted_truncated_base] = connection.quote(kwds[:truncated_base])
             kwds[:truncated_like] = sanitize_sql_like(kwds[:truncated_base])

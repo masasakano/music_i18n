@@ -479,6 +479,43 @@ module ModuleCommon
   # SQL related
   ################################################################
 
+  # Add a clause to ActiveRecord +where+, etc.
+  #
+  # Original may be nil, String, Hash, or Array
+  # Clause to add +clause2add+ must be Hash (making sure the keys are Symbols).
+  #
+  # @example Hash
+  #   add_sql_clause({abc: 5}, {id: 3})  # defined in ModuleCommon
+  #     # => {id: 3, abc: 5}
+  #
+  # @example NOT overritten (original has a higher priority)
+  #   add_sql_clause({id: 9}, {id: 3})
+  #     # => {id: 9}
+  #
+  # @example String
+  #   add_sql_clause("id < 9", {id: 3})
+  #     # => "(id = 3) AND id < 9"
+  #
+  # @param original [String, Hash, Array<String, Hash, Array>, NilClass]
+  # @param clause2add [Hash]
+  def add_sql_clause(original, clause2add)
+    if original.nil? || original.respond_to?(:each_pair)
+      clause2add.merge(original || {})
+    elsif original.respond_to?(:gsub)
+      clause2add.map{ |k, v|
+        if v.respond_to? :flatten
+          sprintf "(%s IN (%s))", k.to_s, v.map{ Translation.connection.quote(_1) }.join(", ")
+        else
+          sprintf "(%s = %s)", k.to_s, Translation.connection.quote(v)
+        end
+      }.join(" AND ") + (original.blank? ? "" : " AND " + original)
+    elsif original.respond_to?(:flatten)
+      [clause2add] + original
+    else
+      raise "Unexpected... Contact the code developer: #{original.inspect}"
+    end
+  end
+
   # @param col [Symbol, String] (:title, :alt_title, :ruby, ...)
   # @param t_alias: [String, NilClass] SQL-query alias for Translation table. Default: "translations"
   # @return [String] Resultant SQL string (with +regexp_replace+) usually used in the left side.

@@ -1295,6 +1295,8 @@ class Translation < ApplicationRecord
   # @param order_or_where: [Symbol] (optional) :order or :where or :both (Def)
   # @param min_ja_chars: [Integer] minimum number of characters to use partial matches when +raw_kwd+ contains Asian characters
   # @param min_en_chars: [Integer] Same as +min_ja_chars+ but for any other languages.
+  # @param order_steps: [Array<String, Symbol>] examining methods in this order. Default: {DbSearchOrder::PSQL_MATCH_ORDER_STEPS}
+  #    Specifically, if you want only exact matches (for the stripped String), specify: +order_steps: [:exact]+
   # @return [ActiveRecord::Relation]
   def self.find_all_by_partial_str(raw_kwd, columns: nil, min_matches: false, order_or_where: :both, min_ja_chars: DEF_MIN_REGEXP_N_CHARS[:ja], min_en_chars: DEF_MIN_REGEXP_N_CHARS[:en], **restkeys)
     kwd = preprocess_space_zenkaku(raw_kwd, strip_all: true)  # spaces are agressively stripped and truncated
@@ -1303,11 +1305,99 @@ class Translation < ApplicationRecord
                 (has_asian ? [:ruby, :alt_ruby] : [:romaji, :alt_romaji])
 
     if !_should_use_regexp?(kwd, min_ja_chars: min_ja_chars, min_en_chars: min_en_chars)
-      restkeys.merge!({order_steps: :exact})
+      restkeys.merge!({order_steps: [:exact]})
     end
 
     metho = (min_matches ? :find_all_best_matches : :find_all_by_affinity)
     send(metho, columns, kwd, order_or_where: order_or_where, **restkeys)
+  end
+
+
+  # Wrapper of {Translation.find_all_by_partial_str}, returning a double Array of elements of [{#title}, {#alt_title}, {#langcode}, {#translatable_id}]
+  #
+  # The result is properly sorted by the parent and here uniq-qed for {#translatable_id}.
+  #
+  # See also {Translation.find_all_4cols_by_partial_str}, a wrapper of this method.
+  #
+  # @param raw_kwd [String] e.g., "The Beat" and "Beatles".
+  #   Preprocessed with {ModuleCommon#preprocess_space_zenkaku}
+  # @param **restkeys: [Hash] 
+  # @return [Array<String>]
+  def self.find_all_4cols_by_partial_str(raw_kwd, where: nil, joins: nil, not_clause: nil, **restkeys)
+    ttn = self.table_name
+    rela = self.find_all_by_partial_str(raw_kwd, **restkeys)
+    rela = make_joins_where(where, joins, not_clause, parent: rela) if where || joins || not_clause
+
+    ar2pass = %w(title alt_title langcode translatable_id)
+    arret = rela.pluck(*(ar2pass.map{ ttn+"."+_1 }))
+      .uniq { |_, _, _, translatable_id| translatable_id }
+  end
+
+  # Returns a double Array of 3 columns of [title-or-alt_title, {#langcode}, {#translatable_id}]
+  #
+  # Wrapper of {Translation.find_all_4cols_by_partial_str}
+  #
+  # @return [Array<Array<String>>] [title-or-alt_title, {#langcode}, {#translatable_id}]
+  def self.find_all_3cols_by_partial_str(raw_kwd, **restkeys)
+    arret = find_all_4cols_by_partial_str(raw_kwd, **restkeys)
+    _remove_title_or_alt_from_4cols(raw_kwd, arret)
+  end
+    
+  # Returns a double Array of 3 columns of [title-or-alt_title, {#langcode}, {#translatable_id}],
+  # removing either title or alt_title from the input +ar_cols+,
+  # leaving the most likely one (judging from the length only).
+  #
+  # @return [Array<Array<String>>]
+  def self._remove_title_or_alt_from_4cols(raw_kwd, ar_cols)
+    kwd = preprocess_space_zenkaku(raw_kwd, strip_all: true)  # defined in ModuleCommon; spaces are agressively stripped and truncated
+    kwd_siz = kwd.size
+    kwd_wo_article_siz = definite_article_stripped(kwd).size  # defined in ModuleCommon
+
+    ar_cols.map { |tit, alt_tit, langcode, translatable_id|
+      col1 = 
+        [tit, alt_tit].map { |ev|
+          next [Float::INFINITY, ev] if ev.blank?
+          weight_diff = ev.size - kwd_siz
+          if weight_diff < 0
+            if ev.size < kwd_wo_article_siz
+              [Float::INFINITY, 0, ev]
+            else
+              ## kwd has a definite article, while title may not
+              [weight_diff.abs, 1, ev]
+            end
+          else
+            if (evmod=definite_article_stripped(ev)) != ev
+              ## title has a definite article.
+              if kwd_siz == kwd_wo_article_siz
+                ## title has a definite article, while kwd does not. title is likely to be correct.
+                [(evmod.size - kwd_siz).abs, -1, ev]
+              else
+                ## Both title and kwd have a definite article.  Giving a higher priority (than the perfect match without a definite article).
+                [(evmod.size - kwd_wo_article_siz).abs, -1, ev]
+              end
+            else
+              ## title does not have a definite article.
+              [weight_diff, 0, ev]
+            end
+          end
+        }.sort.first.last  # "first" selects an Array containing either title or alt_title, and last selects a String (title or alt_title)
+      [col1, langcode, translatable_id]
+    }
+  end
+  private_class_method :_remove_title_or_alt_from_4cols
+
+  # Wrapper of {Translation.find_all_by_partial_str}, returning a single Array of Strings ({#title} or {#alt_title})
+  #
+  # @param raw_kwd [String] e.g., "The Beat" and "Beatles".
+  #   Preprocessed with {ModuleCommon#preprocess_space_zenkaku}
+  # @param definite_article_to_head: [Boolean] if true (Def), the definite article in the elements of the returned Array are brought to the head.
+  # @param **restkeys: [Hash] 
+  # @return [Array<String>]
+  def self.find_all_titles_by_partial_str(raw_kwd, definite_article_to_head: true, **restkeys)
+    arret = find_all_3cols_by_partial_str(raw_kwd, **restkeys).map(&:first)
+
+    arret.map!{ definite_article_to_head(_1) } if definite_article_to_head  # defined in ModuleCommon
+    arret
   end
 
   # Is it suitable for Regexp search?

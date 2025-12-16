@@ -529,6 +529,9 @@ class BaseWithTranslation < ApplicationRecord
   # Hash to specify the priority among the available locales
   HS_LOCALE_PRIORITY = AVAILABLE_LOCALES.map.with_index{|lc, i| [lc, i]}.to_h # Index mapping
 
+  # sprintf format for the tail part of auto-completion
+  AUTO_COMPLETE_TAIL_FMT = " [%s] [ID=%s]"
+
   # This is used in the validation method {#validate_translation_base} to control Translation-related varidations.
   #
   # Each sub-class can define a Hash +VALIDATE_TRANSLATION_PRMS+ in the same or abridged format to override this.
@@ -1510,6 +1513,18 @@ class BaseWithTranslation < ApplicationRecord
     Translation.select_partial_str(*args, translatable_type: self.name, **restkeys)
   end
 
+  # Wrapper of {Translation.find_all_titles_by_partial_str}, returning Array of String-titles of only this class
+  #
+  # @param raw_kwd [String] e.g., "The Beat" and "Beatles".
+  #   Preprocessed with {ModuleCommon#preprocess_space_zenkaku}
+  # @param where: [String, Array<String, Hash, Array>, NilClass] Rails "where" clause for complex cases.
+  # @param **restkeys: [Hash] Notably, you may specify +definite_article_to_head: false+ (Def: true)
+  # @return [Array<String>]
+  def self.find_all_titles_by_partial_str(raw_kwd, where: nil, **restkeys)
+    where = add_sql_clause(where, {translatable_type: self.name})  # defined in ModuleCommon
+    Translation.find_all_titles_by_partial_str(raw_kwd, where: where, **restkeys)
+  end
+
   # Wrapper of {BaseWithTranslation.select_translations_partial_str}, returning models
   #
   # Using SQL directly.
@@ -2197,6 +2212,13 @@ class BaseWithTranslation < ApplicationRecord
     self.class.select_translations_partial_str(*args, **restkeys)
   end
 
+  # @return [Array<Array<String>>] [title-or-alt_title, {Translation#langcode}, {Translation#translatable_id}]
+  def find_all_3cols_by_partial_str_except_self(raw_kwd, where: nil, not_clause: nil, **restkeys)
+    where      = add_sql_clause(where, {translatable_type: self.class.name})  # defined in ModuleCommon
+    not_clause = add_sql_clause(not_clause, {translatable_id: self.id})
+    Translation.find_all_3cols_by_partial_str(raw_kwd, where: where, not_clause: not_clause, **restkeys)
+  end
+
   # Wrapper of {Translation.select_regex}, returning {Translation}-s of only this class
   #
   # Search {Translation} to find matching {BaseWithTranslation}-s.
@@ -2226,8 +2248,42 @@ class BaseWithTranslation < ApplicationRecord
   # @return [Array<String>]
   def select_titles_partial_str_except_self(*args, display_id: false, **restkeys)
     select_translations_partial_str_except_self(*args, **restkeys).map{|i| i.translatable}.uniq.map{|em|
-      self.class.base_with_translation_with_id_str(em, print_id: display_id)
+      self.class.candidate_titles_with_id_str(em, print_id: display_id)
+      # self.class.base_with_translation_with_id_str(em, print_id: display_id)
     }
+  end
+
+  # Wrapper of {#find_all_3cols_by_partial_str_except_self}, returning a sorted Array of String (title or alt_title) by matching likelihood
+  #
+  # title for self is excluded from the candidates.
+  #
+  # @param raw_kwd [String] e.g., "The Beat" and "Beatles".
+  # @param display_id [Boolean] If true (Def: false), locale and ID are also printed at the tail.
+  # @param **restkeys: [Hash] 
+  # @return [Array<String>]
+  def candidate_titles_from_partial_str_except_self(raw_kwd, display_id: false, **restkeys)
+    ar3cols = find_all_3cols_by_partial_str_except_self(raw_kwd, **restkeys)
+    ar3cols.map { |ea|
+      self.class.candidate_titles_with_id_str_from_ary(ea, print_id: display_id)
+    }
+  end
+
+  # @param model_or_ary [BaseWithTranslation, Array] if Array, 3-elements of [Title, Langcode, pID(BaseWithTranslation)]
+  # @param print_id [Boolean] If true (Def: true), locale and ID are also printed at the tail. Else, just {#title_or_alt} in the original language (NOT in User's language).
+  # @return [String] to be displayed like "Queen [en] [ID=888]"
+  def self.candidate_titles_with_id_str(model_or_ary, print_id: true)
+    if model_or_ary.respond_to?(:title_or_alt)
+      base_with_translation_with_id_str(model_or_ary, print_id: print_id)
+    else
+      candidate_titles_with_id_str_from_ary(model_or_ary, print_id: print_id)
+    end
+  end
+
+  # @param model [BaseWithTranslation]
+  # @param print_id [Boolean] If true (Def: true), locale and ID are also printed at the tail. Else, just {#title_or_alt} in the original language (NOT in User's language).
+  # @return [String] to be displayed like "Queen [en] [ID=888]"
+  def self.candidate_titles_with_id_str_from_ary(ary, print_id: true)
+    ary[0] + (print_id ? sprintf(AUTO_COMPLETE_TAIL_FMT, ary[1], ary[2].to_i) : "")
   end
 
   # @param model [BaseWithTranslation]
@@ -2235,7 +2291,7 @@ class BaseWithTranslation < ApplicationRecord
   # @return [String] to be displayed like "Queen [en] [ID=888]"
   def self.base_with_translation_with_id_str(model, print_id: true)
     tit = model.title_or_alt
-    tail = (print_id ? sprintf(" [%s] [ID=%s]", tit.lcode, model.id) : "")  # tit.lcode == model.orig_langcode in most cases (for Artist, Music etc), but chances are orig_langcode may remain undefined.
+    tail = (print_id ? sprintf(AUTO_COMPLETE_TAIL_FMT, tit.lcode, model.id) : "")  # tit.lcode == model.orig_langcode in most cases (for Artist, Music etc), but chances are orig_langcode may remain undefined.
     tit + tail
   end
 
@@ -2255,6 +2311,8 @@ class BaseWithTranslation < ApplicationRecord
   #   "Queen [en] [123]"
   # which includes the language and its {BaseWithTranslation} model ID.
   # This method separates them to enable a subsequent DB query.
+  #
+  # See {AUTO_COMPLETE_TAIL_FMT}
   #
   # @example
   #    searched, lcode, model_id = BaseWithTranslation.resolve_base_with_translation_with_id_str(strin)

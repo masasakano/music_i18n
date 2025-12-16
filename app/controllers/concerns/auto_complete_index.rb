@@ -38,7 +38,8 @@ module AutoCompleteIndex
 
     klass = (klass.respond_to?(:where) ? klas : self.class::MODEL_SYM.to_s.classify.constantize)
     model = (klass_id ? klass.find(klass_id) : klass.new)
-    candidates = model.select_titles_partial_str_except_self(:titles, kwd, display_id: do_display_id)
+    # candidates = model.select_titles_partial_str_except_self(:titles, kwd, display_id: do_display_id)
+    candidates = model.candidate_titles_from_partial_str_except_self(kwd, display_id: do_display_id)
 
     respond_to do |format|
       format.html { }

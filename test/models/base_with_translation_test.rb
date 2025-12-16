@@ -189,6 +189,27 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_equal "SELECT DISTINCT \"sexes\".* FROM \"sexes\" INNER JOIN translations ON translations.translatable_id = sexes.id and translations.translatable_type = 'Sex' WHERE (translations.langcode = 'en' AND translations.title = 'male')", ret
   end
 
+  test "self.find_all_titles_by_partial_str" do
+    ary = Sex.find_all_titles_by_partial_str("male")
+    assert_equal Sex[1].title(langcode: :en), ary.first
+    assert_equal 2, ary.size
+    assert_includes ary, "female"
+    ary = Sex.find_all_titles_by_partial_str("male", where: "id > 0")
+    assert_equal Sex[1].title(langcode: :en), ary.first
+    assert_includes ary, "female"
+
+    ary = Artist.find_all_titles_by_partial_str("Proclaimers")
+    tra_exp = translations(:artist_proclaimers_en)
+    tra_exp.update!(alt_title: "Proclaimers")
+    assert_equal definite_article_to_head(tra_exp.title), ary.first
+    ary = Artist.find_all_titles_by_partial_str("Proclaimers", definite_article_to_head: false)
+    assert_equal tra_exp.title, ary.first
+    ary = Artist.find_all_titles_by_partial_str("The Proclaimers", definite_article_to_head: false)
+    assert_equal tra_exp.title, ary.first
+    ary = Artist.find_all_titles_by_partial_str("Proclaimers, The", definite_article_to_head: false)
+    assert_equal tra_exp.title, ary.first
+  end
+  
   # Using the subclass Sex and Country
   test "create_with_translation!" do
     n_orig_sex   = Sex.count
