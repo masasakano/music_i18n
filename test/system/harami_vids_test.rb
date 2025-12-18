@@ -200,6 +200,8 @@ class HaramiVidsTest < ApplicationSystemTestCase
     fill_in "Timing", with: vid_prms[:timing]
 
     fill_autocomplete('featuring Artist', with: 'AI', select: 'AI [')  # defined in test_helper.rb
+    # fill_autocomplete("input#harami_vid_artist_name_collab", use_find: true, with: 'AI', select: 'AI [') # defined in test_helper.rb
+
     find_field("(Music) Instrument").select "Vocal"
     find_field("How they collaborate").select "Chorus"
 

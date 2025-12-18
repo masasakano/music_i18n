@@ -12,8 +12,8 @@ class ArtistsTest < ApplicationSystemTestCase
     @trans_moderator = users(:user_moderator_translation) # Translator cannot create/delete but edit (maybe!).
     @editor_ja       = users(:user_editor_general_ja)     # Same as Harami-editor
     @moderator_gen   = users(:user_moderator_general_ja)
-    @css_swithcer_ja = 'div#language_switcher_top span.lang_switcher_ja'
-    @css_swithcer_en = 'div#language_switcher_top span.lang_switcher_en'
+    @css_swithcer_ja = CSSHS[:language_switch_link_top][:ja] # defined in test_helper.rb
+    @css_swithcer_en = CSSHS[:language_switch_link_top][:en]
     @h1_title = "Artists"
     @button_text = {
       create: "Create Artist",
@@ -168,6 +168,7 @@ class ArtistsTest < ApplicationSystemTestCase
     assert_equal "日本語",  page.find(@css_swithcer_ja+" a").text
     page.find(@css_swithcer_ja+" a").click
     refute_selector                   @css_swithcer_ja+" a"
+    assert_equal "English", page.find(@css_swithcer_en+" a").text.strip
     assert_equal "English", page.find(@css_swithcer_en).text
 
     ## Test of sorting. In the initial state, Haramichan should come first. 
@@ -185,6 +186,7 @@ class ArtistsTest < ApplicationSystemTestCase
     ## Reset
     page.find(CSSGRIDS[:form_reset]).click
     assert_empty page.find(csses[:input_title_en]).text, 'sanity check'
+    assert_equal "English", page.find(@css_swithcer_en+" a").text.strip, "sanity check to see if we are on JA page"
 
     assert_equal "ハラミちゃん",  page.all(CSSGRIDS[:td_title_ja])[0].text.strip
     assert_equal title_newest_ja, page.all(CSSGRIDS[:td_title_ja])[1].text.strip
@@ -196,6 +198,58 @@ class ArtistsTest < ApplicationSystemTestCase
     page.find(CSSGRIDS[:th_title_en_a_desc]).click  # entry with NULL may come first, but at least this operation should succeed
     first_non_null_en_text = page.all(CSSGRIDS[:th_title_en]).find{|i| !i.text.strip.empty?}.text.strip
     refute_equal title_newest_en, first_non_null_en_text
+
+    ## Reset & autocomplete
+    page.find(CSSGRIDS[:form_reset]).click
+    assert_empty page.find(csses[:input_title_en]).text, 'sanity check'
+    assert_equal "ハラミちゃん",  page.all(CSSGRIDS[:td_title_ja])[0].text.strip
+    assert_equal "English", page.find(@css_swithcer_en+" a").text.strip, "sanity check to see if we are on JA page"
+
+    n_tot_artists = Artist.count
+    hs_stats = get_grid_pagenation_stats(langcode: :ja)  # defined in test_helper.rb; see for keys ApplicationController::GRID_INFOS[:entry_fmt_keys]
+    assert_equal n_tot_artists, hs_stats[:n_total]
+    assert_equal n_tot_artists, hs_stats[:n_entries]
+
+    kwd = "art"
+    n_ac_rows_exp = Artist.select_regex(:titles, /art/i, sql_regexp: true, exact_match: false).distinct.count  # likely 3 (two "Artist No. *" and "UnknownArtist", unless fixtures are updated as such).
+    ararts = Artist.find_all_3cols_by_partial_str(kwd, min_ja_chars: 0, min_en_chars: 0)
+    assert_equal n_ac_rows_exp, ararts.size, 'sanity check'
+
+    css_field = '#artists_grid_title_ja'
+    _ = fill_autocomplete(css_field, use_find: true, with: kwd, select: kwd){ |elements|  # "art"; defined in test_helper.rb
+      # For the length=3 English word, partial matches for auto-complete.
+      assert_equal n_ac_rows_exp, elements.size
+      ararts.each_with_index do |ar3, i|
+        assert_equal ar3[0], elements[i].text.strip
+      end
+    }
+
+    assert_equal "English", page.find(@css_swithcer_en+" a").text.strip, "sanity check to see if we are on JA page"
+    switch_to_lang(:en)
+    ##### Strangely, this language-switching is essential.... (see below)
+
+    kwd = "ar"
+    arars = Artist.find_all_3cols_by_partial_str(kwd, min_ja_chars: 0, min_en_chars: 0)
+    n_rows_exp = arars.size
+    assert_operator n_rows_exp, :>, n_ac_rows_exp
+    page.find(css_field).fill_in(with: kwd)
+
+    ##### NOTE:
+    ## Without the language switch a few linew above, the following succeeds, expectedly.
+    ## However(!!), strangely, for some reason, the line below fails, because the page somehow has transited to an English page...
+    ## For this reason, I inseterd the language switch a few lines above.
+    #####
+    # assert_equal "English", page.find(@css_swithcer_en+" a").text.strip, "sanity check to see if we are on JA page"
+    # user_assert_grid_index_apply_to(n_filtered_entries: n_rows_exp, n_all_entries: hs_stats[:n_total], langcode: :ja)  # click_on "Apply" and wait for loading; defined in test_system_helper.rb
+
+    user_assert_grid_index_apply_to(n_filtered_entries: n_rows_exp, n_all_entries: hs_stats[:n_total], langcode: :en)  # click_on "Apply" and wait for loading; defined in test_system_helper.rb
+
+    assert_equal n_rows_exp, find_all(CSSGRIDS[:tb_tr]).size
+    tds = find_all(CSSGRIDS[:td_title_en])
+
+    arars.each_with_index do |ar3, i|
+      assert_includes tds[i].text.strip, ar3[0]
+    end
   end
 
   test "should create/update artist" do

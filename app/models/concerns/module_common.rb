@@ -693,6 +693,23 @@ module ModuleCommon
     end
   end
 
+  # ordered Relation according to an Array of pIDs
+  #
+  # @example
+  #    order_by_given_ids(Sex.all, [2, 0, 1]).first
+  #      # => Sex[2]
+  #
+  # See re sorting: https://stackoverflow.com/questions/10150152/find-model-records-by-id-in-the-order-the-array-of-ids-were-given/68998474#68998474
+  #
+  # @param rela [#joins, Array] Basically, either of ActiveRecord::Relation and Class of ActiveRecord
+  # @param ids [Array]
+  # @return [ActiveRecord::Relation]
+  def order_by_given_ids(rela, ids)
+    join_sql = "INNER JOIN unnest('{#{ids.join(',')}}'::bigint[]) WITH ORDINALITY rank_table(id, ord) USING (id)"  # PostgreSQL specific.
+    rela.joins(join_sql).order("rank_table.ord")
+  end
+
+
   # Returns an Array of each element of html-safe String of link_to Record-show
   #
   # @example Default

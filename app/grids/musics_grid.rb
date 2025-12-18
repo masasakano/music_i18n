@@ -2,6 +2,9 @@
 class MusicsGrid < ApplicationGrid
   extend ApplicationHelper ##################################################################################
 
+  # self.default_order = :created_at
+  # self.default_direction = :desc
+
   scope do
     Music.all
   end
@@ -9,9 +12,10 @@ class MusicsGrid < ApplicationGrid
   ####### Filters #######
 
   filter_n_column_id(:music_url)  # defined in application_grid.rb
-
+  # filter_n_column_id(:music_url, filter_or_column: :filter)  # defined in application_grid.rb
   filter_include_ilike(:title_ja, header: Proc.new{I18n.t("datagrid.form.title_ja_en", default: "Title [ja+en] (partial-match)")})
   filter_include_ilike(:title_en, langcode: 'en', header: Proc.new{I18n.t("datagrid.form.title_en", default: "Title [en] (partial-match)")})
+  # filter_n_column_id(:music_url, filter_or_column: :column)  # defined in application_grid.rb
 
   filter(:year, :integer, range: true, header: Proc.new{I18n.t('tables.year')}) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
 

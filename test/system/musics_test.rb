@@ -47,11 +47,16 @@ class MusicsTest < ApplicationSystemTestCase
     }
     assert_equal "恋", all_cands[0].text.strip
 
-    click_on "Apply"
-    assert_selector('input[type="submit"][value="Apply"]:not([disabled])')  # Necessary
     n_tbl_rows_exp = Music.select_regex(:titles, "恋", sql_regexp: true, exact_match: false).distinct.count  # likely 5 (unless fixtures are updated as such).
-    refute_equal n_ac_rows_exp, n_tbl_rows_exp  # the former does not include "恋人" etc.
-    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: n_tbl_rows_exp, n_all_entries: hsinfo[:n_total], langcode: :en)
+    refute_equal    n_ac_rows_exp,     n_tbl_rows_exp  # the former does not include "恋人" etc.
+    assert_operator n_ac_rows_exp, :<, n_tbl_rows_exp
+
+    user_assert_grid_index_apply_to(n_filtered_entries: n_tbl_rows_exp)  # click_on "Apply" and wait for loading; defined in test_system_helper.rb
+    # click_on "Apply"
+    # assert_selector('input[type="submit"][value="Apply"]:not([disabled])')  # Necessary
+
+    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: n_tbl_rows_exp, n_all_entries: hsinfo[:n_total], langcode: :en)  # This is nearly equivalent to the above in practice
+    assert_equal n_tbl_rows_exp, find_all(CSSGRIDS[:tb_tr]).size
 
     ### Music-search: "恋人"
     n_rows_exp = Music.select_regex(:titles, "恋人", sql_regexp: true, exact_match: false).distinct.count  # likely 3 (unless fixtures are updated as such).
@@ -65,17 +70,18 @@ class MusicsTest < ApplicationSystemTestCase
       assert_equal title_jas[1], elements[0].text.strip
     }
 
-    click_on "Apply"
-    assert_selector('input[type="submit"][value="Apply"]:not([disabled])')  # Necessary
+    user_assert_grid_index_apply_to(n_filtered_entries: n_rows_exp)  # click_on "Apply" and wait for loading; defined in test_system_helper.rb
 
-    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: n_rows_exp, n_all_entries: hsinfo[:n_total], langcode: :en)
-    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: n_rows_exp)  # should be equivalent to the above
+    # assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: n_rows_exp, n_all_entries: hsinfo[:n_total], langcode: :en)
+    # assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: n_rows_exp)  # should be equivalent to the above
 
+    assert_equal n_rows_exp, find_all(CSSGRIDS[:tb_tr]).size
     tds = find_all(CSSGRIDS[:td_title_ja])
     title_jas[1..n_rows_exp].each do |tit_exp|
       assert_includes tds.map(&:text), tit_exp
     end
     assert_equal title_jas[1..n_rows_exp], tds[0..(n_rows_exp-1)].map{ _1.text.strip }
+    # print "DEBUG(#{File.basename __FILE__}): "; puts find(CSSGRIDS[:tbody])['outerHTML']
   end
 
   test "visiting Music#index and then new" do

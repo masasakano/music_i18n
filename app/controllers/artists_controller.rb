@@ -27,11 +27,20 @@ class ArtistsController < ApplicationController
   def index
     @artists = Artist.all
 
-    set_grid(Artist){ |scope, grid_prms|
+    # @see musics_controller.rb
+    set_grid(Artist){ |scope, grid_prms|  # setting @grid; defined in concerns/module_grid_controller.rb
       next scope if grid_prms[:order].present?
+
+      if grid_prms[:title_ja].present?
+        ## Custom sorting/ordering when a title filter is specified.
+        artist_ids = Artist.find_all_translations_by_partial_str(grid_prms[:title_ja], min_ja_chars: 1, min_en_chars: 1).pluck(:translatable_id).uniq
+        scope = order_by_given_ids(scope, artist_ids) # defined in ModuleCommon
+      end
+
+      # HARAMIchan has a higher priority than others (among those that have the same priority)
       harami = Artist.default(:HaramiVid)
       scope.order(Arel.sql("CASE artists.id WHEN #{harami.id rescue 0} THEN 0 ELSE 1 END, created_at DESC"))
-    }  # setting @grid; defined in concerns/module_grid_controller.rb
+    }
   end
 
   # GET /artists/1

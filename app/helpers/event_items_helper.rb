@@ -10,9 +10,7 @@ module EventItemsHelper
       logger.warn("WARNING: Inconsistent EventItem collection between EventItem-IDs of [@event_event_items, @harami_vid.event_items] = #{[evit_ids.sort.uniq, collec.pluck(:id).flatten.uniq].inspect}, which should never happen...")
       nil  # or you may return: @harami_vid.event_items
     else
-     # see re sorting: https://stackoverflow.com/questions/10150152/find-model-records-by-id-in-the-order-the-array-of-ids-were-given/68998474#68998474
-      join_sql = "INNER JOIN unnest('{#{evit_ids.join(',')}}'::int[]) WITH ORDINALITY t(id, ord) USING (id)"  # PostgreSQL-specific
-      EventItem.joins(join_sql).order("t.ord")
+      order_by_given_ids(EventItem, evit_ids) # defined in ModuleCommon
     end
   end
 

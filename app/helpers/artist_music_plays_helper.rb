@@ -68,7 +68,6 @@ module ArtistMusicPlaysHelper
 
     rela_diff = rela_tmp - ar_rela
     ids = (ar_rela + rela_diff).map(&:id)
-    join_sql = "INNER JOIN unnest('{#{ids.join(',')}}'::int[]) WITH ORDINALITY t(id, ord) USING (id)"
-    return ArtistMusicPlay.joins(join_sql).order("t.ord")
+    order_by_given_ids(ArtistMusicPlay, ids) # defined in ModuleCommon
   end
 end

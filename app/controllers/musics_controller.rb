@@ -32,8 +32,17 @@ class MusicsController < ApplicationController
     @musics = Music.all
     set_artist_prms  # set @artist, @artist_name, @artist_title
     @artist_music_ids = (@artist ? @artist.musics.distinct.pluck(:id) : nil)
-    
-    set_grid(Music, hs_def: {order: :updated_at, descending: true})  # setting @grid; defined in concerns/module_grid_controller.rb
+
+    if_hs_def = Proc.new{ |grid_prms|
+      grid_prms[:title_ja].blank?
+    }
+
+    set_grid(Music, hs_def: {order: :updated_at, descending: true}, if_hs_def: if_hs_def) { |scope, grid_prms| # setting @grid; defined in concerns/module_grid_controller.rb
+      next scope if grid_prms[:order].present? && (grid_prms[:order] != :updated_at || !grid_prms[:descending])
+      next scope if grid_prms[:title_ja].blank?
+      music_ids = Music.find_all_translations_by_partial_str(grid_prms[:title_ja], min_ja_chars: 1, min_en_chars: 1).pluck(:translatable_id).uniq
+      order_by_given_ids(scope, music_ids) # defined in ModuleCommon
+    }
   end
 
   # GET /musics/1

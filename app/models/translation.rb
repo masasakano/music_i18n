@@ -1262,7 +1262,7 @@ class Translation < ApplicationRecord
   # Most notably, the primary argument accepts only a single String, *not* Array.
   #
   # If the search keyword +raw_kwd+ is too short (as specified in +min_ja_chars+ and +min_en_chars+),
-  # regardless of the optional argument +order_steps+ (in +restkeys+), only the exact match is
+  # regardless of the optional argument +order_steps+ (in +restkeys+), only the case-sensitive exact match is
   # considered (except preceding/trailing spaces and Asian character normalizations).
   #
   # @example
@@ -1297,7 +1297,7 @@ class Translation < ApplicationRecord
   # @param min_en_chars: [Integer] Same as +min_ja_chars+ but for any other languages.
   # @param order_steps: [Array<String, Symbol>] examining methods in this order. Default: {DbSearchOrder::PSQL_MATCH_ORDER_STEPS}
   #    Specifically, if you want only exact matches (for the stripped String), specify: +order_steps: [:exact]+
-  # @return [ActiveRecord::Relation]
+  # @return [ActiveRecord::Relation] Default is +Translation::Relation+ unless +parent+ is specified.
   def self.find_all_by_partial_str(raw_kwd, columns: nil, min_matches: false, order_or_where: :both, min_ja_chars: DEF_MIN_REGEXP_N_CHARS[:ja], min_en_chars: DEF_MIN_REGEXP_N_CHARS[:en], **restkeys)
     kwd = preprocess_space_zenkaku(raw_kwd, strip_all: true)  # spaces are agressively stripped and truncated
     has_asian = contain_asian_char?(kwd)
@@ -1305,7 +1305,7 @@ class Translation < ApplicationRecord
                 (has_asian ? [:ruby, :alt_ruby] : [:romaji, :alt_romaji])
 
     if !_should_use_regexp?(kwd, min_ja_chars: min_ja_chars, min_en_chars: min_en_chars)
-      restkeys.merge!({order_steps: [:exact]})
+      restkeys.merge!({order_steps: [:exact, :case_insensitive]})
     end
 
     metho = (min_matches ? :find_all_best_matches : :find_all_by_affinity)

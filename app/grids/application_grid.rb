@@ -451,12 +451,13 @@ class ApplicationGrid < Datagrid::Base
   #   filter_n_column_id(:harami_vid_url)  # defined in application_grid.rb
   #
   # @param url_sym [Symbol, String] e.g., :harami_vid_url
-  def self.filter_n_column_id(url_sym, mandatory: false)
-    filter(:id, :integer, range: true, header: "ID", tag_options: {class: ["editor_only"]}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)})  # displayed only for editors
+  def self.filter_n_column_id(url_sym, mandatory: false, filter_or_column: :both)
+    raise ArgumentError, "Contact the code developer" if !%i(both filter column).include?(filter_or_column)
+    filter(:id, :integer, range: true, header: "ID", tag_options: {class: ["editor_only"]}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) if :column != filter_or_column # displayed only for editors
     column(:id, mandatory: mandatory, tag_options: {class: ["align-cr", "editor_only"]}, header: "ID", if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
       to_path = Rails.application.routes.url_helpers.send(url_sym, record, {only_path: true}.merge(ApplicationController.new.default_url_options))
       ActionController::Base.helpers.link_to record.id, to_path
-    end
+    end if :filter != filter_or_column
   end
 
   # Add Column with the single-line HTML text for the translation of title (and alt_title if ever present) in Japanese (ja)
@@ -548,8 +549,7 @@ class ApplicationGrid < Datagrid::Base
              #order_str = Arel.sql('title COLLATE "und-x-icu"')
              #order_str = Arel.sql('title COLLATE "C"')
              self_ids = scope.joins(model_sym).joins(model_sym => "translations").where(:"translations.langcode" => [I18n.locale] + I18n.available_locales).order(order_str).ids.uniq
-             join_sql = "INNER JOIN unnest('{#{self_ids.join(',')}}'::int[]) WITH ORDINALITY t(id, ord) USING (id)"  # PostgreSQL specific.
-             scope.where(id: self_ids).joins(join_sql).order("t.ord")
+             order_by_given_ids(scope.where(id: self_ids), self_ids) # defined in ModuleCommon
            }, **opts) do |record|
       @can_models ||= {}
       mdl = record.send(model_sym)

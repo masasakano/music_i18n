@@ -113,6 +113,32 @@ class ActiveSupport::TestCase
     end
   end 
 
+  # Switch to :ja or :en in system tests, waiting for the page to be loaded.
+  def switch_to_lang(langarg=nil, langcode: nil)
+    langcode = (langarg || langcode)
+    raise ArgumentError, "debug="+[langarg, langcode].inspect if !langcode
+    csslinks = %i(en ja).map{ [_1, CSSHS[:language_switch_link_top][_1]+" a"] }.to_h.with_indifferent_access
+
+    case langcode.to_sym
+    when :ja
+      assert_equal "日本語",  page.find(csslinks[:ja]).text
+      refute_selector         csslinks[:en]
+      page.find(csslinks[:ja]).click
+      assert_selector         csslinks[:en]
+      refute_selector         csslinks[:ja]
+      assert_equal "English", page.find(csslinks[:en]).text
+    when :en
+      assert_equal "English", page.find(csslinks[:en]).text
+      refute_selector         csslinks[:ja]
+      page.find(csslinks[:en]).click
+      assert_selector         csslinks[:ja]
+      refute_selector         csslinks[:en]
+      assert_equal "日本語",  page.find(csslinks[:ja]).text
+    else
+      raise "contact the code developer"
+    end
+  end
+
   # Returns a Hash of Arrays of title-s and alt_title-s in the translation table in Show etc.
   #
   # @example
@@ -391,6 +417,32 @@ class ActiveSupport::TestCase
     login_or_fail_index(user_succeed, succeed: true)
 
     assert_selector "h1", text: h1_title
+  end
+
+  # In Grid-index, this clicks "Apply" and waits for the page to be loaded, checking the change in +n_filtered_entries+
+  #
+  # @example
+  #   user_assert_grid_index_apply_to(n_filtered_entries: 2)  # click_on "Apply" and wait for loading; defined in test_system_helper.rb
+  #
+  # @param #see xpath_grid_pagenation_stats_with
+  # @yield [] optional Block of assertion after clicking "Apply" before this assertion to make sure this assertion waits long enough.
+  #    This is recommended only when +n_filtered_entries == n_all_entries+ (either explicitly or implicitly,
+  #    i.e., when +n_all_entries+ is nil but is gussed from the currently loaded HTML.
+  def user_assert_grid_index_apply_to(n_filtered_entries: , n_all_entries: nil, langcode: :en, **opts)
+    n_all_entries_given = n_all_entries 
+    n_all_entries ||= get_grid_pagenation_n_total(langcode: langcode, for_system_test: true) # defined in test_helper.rb
+    button_name = I18n.t("datagrid.form.search", locale: langcode)
+
+    click_on button_name
+    assert_selector(sprintf('input[type="submit"][value="%s"]:not([disabled])', button_name))  # Necessary
+    if block_given?
+      yield
+    elsif n_all_entries_given.blank? && n_filtered_entries == n_all_entries
+      warn "WARNING: No change in Statistics (n_filtered_entries) is expected, so this assertion may not have waited for long enough!"
+    end
+
+    puts sprintf("(#{__method__}) [Caller-Info] (%s): inner_html=%s", _get_caller_info_message, Nokogiri::HTML(page.html).xpath("/"+XPATHGRIDS[:pagenation_stats])&.inner_html&.strip.inspect) if is_env_set_positive?("PRINT_DEBUG_INFO") # defined in test_helper.rb   # If the line below fails, comment out this line and rerun the test to show the caller.
+    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: n_filtered_entries, n_all_entries: n_all_entries, langcode: langcode)
   end
 
   # Tests if a Destroy button exists

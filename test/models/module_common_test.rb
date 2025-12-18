@@ -422,6 +422,10 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_equal sex, order_prioritized_with(ar_sexes, sex).first
   end
 
+  test "order_by_given_ids" do
+    assert_equal Sex[2], order_by_given_ids(Sex.all, [2, 0, 1]).first
+  end
+
   test "significantly_changed?" do
     pro = PlayRole.create_basic!(title: "test-mu", langcode: "en", is_orig: true, mname: "test12", weight: 7592)
     assert_nil pro.note, 'sanity check'

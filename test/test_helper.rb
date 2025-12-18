@@ -64,6 +64,15 @@ class ActiveSupport::TestCase
     },
   }.with_indifferent_access
 
+  CSSHS = {
+    language_switch_link_top: {
+      div: "div#language_switcher_top"
+    }
+  }.with_indifferent_access
+  %i(en ja).each do |k|
+    CSSHS[:language_switch_link_top][k] = CSSHS[:language_switch_link_top][:div] + " span.lang_switcher_#{k}"
+  end
+
   # CSS for Grids
   CSSGRIDS = {
     form: 'form.datagrid-form',  # used to be form#new_artists_grid in DataGrid Ver.1
@@ -73,8 +82,12 @@ class ActiveSupport::TestCase
   }.with_indifferent_access
   CSSGRIDS.merge!({
     form_reset: CSSGRIDS[:form]+' div.datagrid-actions a.datagrid-reset',
-    th_tr: CSSGRIDS[:table]+' thead tr',
-    tb_tr: CSSGRIDS[:table]+' tbody tr',
+    thead: CSSGRIDS[:table]+' thead',
+    tbody: CSSGRIDS[:table]+' tbody',
+  })
+  CSSGRIDS.merge!({
+    th_tr: CSSGRIDS[:thead]+' tr',
+    tb_tr: CSSGRIDS[:tbody]+' tr',
   })
   CSSGRIDS.merge!({
     th_sex:      CSSGRIDS[:th_tr]+' th[data-column="sex"]',  # used to be "th.sex" in Datagrid Ver.1
@@ -871,6 +884,10 @@ class ActiveSupport::TestCase
     page.execute_script %Q{ $('#{prefix+field}').trigger('focus') }
     page.execute_script %Q{ $('#{prefix+field}').trigger('keydown') }
 
+    ### Gemini suggested the following instead of the two lines above...
+    # page.execute_script %Q{ $('#{prefix+field}').trigger('keyup') }
+    # page.execute_script %Q{ $('#{prefix+field}').trigger('change') }
+
     selector_base = "ul.ui-autocomplete li.ui-menu-item"
     selector = selector_base+%Q{:contains("#{options[:select]}")}  # has to be double quotations (b/c of the sentence below)
     ## Or, more strictly,
@@ -884,12 +901,15 @@ class ActiveSupport::TestCase
     # page.should have_selector selector  # I think this is for RSpec only. # This ensures to wait for the popup to appear.
     #print "DEBUG: "; p page.find('ul.ui-autocomplete div.ui-menu-item-wrapper')['innerHTML']
     ## assert page.has_selector? selector  # Does not work (maybe b/c it is valid only for jQuery; officially CSS does not support "contains" selector, which is deprecated): Selenium::WebDriver::Error::InvalidSelectorError: invalid selector: An invalid or illegal selector was specified
+    puts sprintf("(#{__method__}) [Caller-Info] (%s)", caller_info) if is_env_set_positive?("PRINT_DEBUG_INFO") # defined in test_helper.rb
     begin
+      ### This may contain a previous autocomplete...?
+      # tmp_noko = capture_nokogiri_snapshot(selector_base) # defined in /test/support/snapshot_helper.rb
+      assert_selector selector.sub(/:contains.*/, ''), wait: 3  # This MAY ensure to wait for the popup to appear??
       if block_given?
         yield(find_all(selector_base))
       end
       ret_cands = capture_nokogiri_snapshot(selector_base) # defined in /test/support/snapshot_helper.rb
-      assert_selector selector.sub(/:contains.*/, ''), wait: 3  # This MAY ensure to wait for the popup to appear??
       flag = true
     ensure
       warn "ERROR: Failed when called from (#{caller_info})" if !flag
@@ -1103,6 +1123,7 @@ class ActiveSupport::TestCase
   #
   # @example
   #    hs_stats = get_grid_pagenation_stats  # defined in test_helper.rb; see for keys ApplicationController::GRID_INFOS[:entry_fmt_keys]
+  #     # => {i_start: 1, i_end: 25, n_entries: 13, n_total: 256, i_page: 1, ...}.with_indifferent_access
   #
   # @return [Hash<Integer>] Keys from {ApplicationController::GRID_INFOS[:entry_fmt_keys]} with Integer values
   def get_grid_pagenation_stats(langcode: I18n.locale, for_system_test: true)
@@ -1110,7 +1131,7 @@ class ActiveSupport::TestCase
     i = -1
     regex_txt = Regexp.quote(ApplicationController::GRID_INFOS[:entry_fmts].join("")).gsub(/%([sd])/){
       i += 1
-      case (key=ApplicationController::GRID_INFOS[:entry_fmt_keys][i])[0, 1]
+      case (key=ApplicationController::GRID_INFOS[:entry_fmt_keys][i].to_s)[0, 1]
       when "s"
         if (k="si_page") == key.to_s
           i_test = 2019
@@ -1138,6 +1159,7 @@ class ActiveSupport::TestCase
       raise
     end
 
+    assert_match(/#{regex_txt}/, text, "ERROR( "+_get_caller_info_message()+" ): langcode may be wrong, or maybe the page hasn't been loaded?")
     mat = /#{regex_txt}/.match text
 
     hsret = {}.with_indifferent_access

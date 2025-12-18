@@ -2213,10 +2213,25 @@ class BaseWithTranslation < ApplicationRecord
   end
 
   # @return [Array<Array<String>>] [title-or-alt_title, {Translation#langcode}, {Translation#translatable_id}]
-  def find_all_3cols_by_partial_str_except_self(raw_kwd, where: nil, not_clause: nil, **restkeys)
-    where      = add_sql_clause(where, {translatable_type: self.class.name})  # defined in ModuleCommon
+  def self.find_all_3cols_by_partial_str(raw_kwd, where: nil, **restkeys)
+    where = add_sql_clause(where, {translatable_type: self.name})  # defined in ModuleCommon
+    Translation.find_all_3cols_by_partial_str(raw_kwd, where: where, **restkeys)
+  end
+
+  # @return [Array<Array<String>>] [title-or-alt_title, {Translation#langcode}, {Translation#translatable_id}]
+  def find_all_3cols_by_partial_str_except_self(raw_kwd, not_clause: nil, **restkeys)
     not_clause = add_sql_clause(not_clause, {translatable_id: self.id})
-    Translation.find_all_3cols_by_partial_str(raw_kwd, where: where, not_clause: not_clause, **restkeys)
+    self.class.find_all_3cols_by_partial_str(raw_kwd, not_clause: not_clause, **restkeys)
+  end
+
+  # Wrapper of {Translation.find_all_by_partial_str} to return sorted +Translation::Relation+
+  #
+  # @param #see Translation.find_all_by_partial_str
+  #    NOTE: specify +min_matches: true+ to exclude the matches in lower priorities.
+  # @return [Translation::Relation]
+  def self.find_all_translations_by_partial_str(raw_kwd, **restkeys)
+    parent = Translation.where(translatable_type: self.name)
+    Translation.find_all_by_partial_str(raw_kwd, parent: parent, **restkeys)
   end
 
   # Wrapper of {Translation.select_regex}, returning {Translation}-s of only this class

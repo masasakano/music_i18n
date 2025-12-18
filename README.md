@@ -33,6 +33,7 @@ This system is the framework to deal with this type of complex and dynamic cases
   * `UPDATE_YOUTUBE_MARSHAL` : set this if you want to *update* the marshal-ed Youtube data from the remote Youtube server.  If this is set, `SKIP_YOUTUBE_MARSHAL` is ignored and treated as set.  Note that even if this is set, this does *not* create the marshal-ed data. For creating them, use `lib/tasks/save_marshal_youtube.rake`
   * For more detail about caching, refer to the comment at the head of `app/controllers/concerns/module_youtube_api_aux.rb`
 * `CAPYBARA_LONGER_TIMEOUT` : If set with an integer in second, Capybara system-tests wait for a longer wait time in specific blocks (see method `with_longer_wait` in `/test/helpers/test_system_helper.rb`).
+* `PRINT_DEBUG_INFO` : If set, display some debug information in some tests (especially for system tests, where the location of the error may be hard to pin point). Recommended to be used only temporarily, perhaps with a single test file.
 
 ##### Preparation for testing #####
 
