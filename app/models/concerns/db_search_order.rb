@@ -118,19 +118,19 @@ module DbSearchOrder
             case match_type
             when :exact_absolute
               [sprintf('"%s"."%s"', t_alias, col), "=", kwds[:quoted_raw]]
-            when :exact
+            when :exact  # The definite article moved to the tail.
               [sprintf('"%s"."%s"', t_alias, col), "=", kwds[:quoted]]
             when :case_insensitive, :exact_ilike
-              [sprintf('"%s"."%s"',t_alias, col), "ILIKE", kwds[:quoted_raw_like]]  # ==: "LOWER(#{t_alias}.#{col}) = LOWER(#{kwds[:quoted]})"
+              [sprintf('"%s"."%s"',t_alias, col), "ILIKE", kwds[:quoted_like]]  # ==: "LOWER(#{t_alias}.#{col}) = LOWER(#{kwds[:quoted]})"
             when :optional_article_ilike, :optional_article
               like = ((:optional_article_ilike == match_type) ? "ILIKE" : "LIKE")
-              [psql_definite_article_stripped(col, t_alias: t_alias), like, kwds[:quoted_no_article]] # defined in module_common.rb
-            when :space_insensitive_exact
-              [truncate_where_sql.call(col), "ILIKE", sprintf(  "'%s'",   kwds[:truncated_like])]
+              [psql_definite_article_stripped(col, t_alias: t_alias), like, kwds[:quoted_no_article_like]] # defined in module_common.rb
+            when :space_insensitive_exact  # regardless of the definite article, case-insensitive
+              [truncate_where_sql.call(col), "ILIKE",           kwds[:quoted_truncated_like]]
             when :space_insensitive_forward
-              [truncate_where_sql.call(col), "ILIKE", sprintf(  "'%s%%'", kwds[:truncated_like])]
+              [truncate_where_sql.call(col), "ILIKE",           kwds[:quoted_truncated_like]+" || '%'"]
             when :space_insensitive_partial
-              [truncate_where_sql.call(col), "ILIKE", sprintf("'%%%s%%'", kwds[:truncated_like])]
+              [truncate_where_sql.call(col), "ILIKE", "'%' || "+kwds[:quoted_truncated_like]+" || '%'"]
             else
               # cannot handle :include, :include_ilike unlike {Translation.build_sql_match_one}
               raise "Should never happen. Contact the code developer. "+match_type.inspect
@@ -190,6 +190,7 @@ module DbSearchOrder
     # @return [Hash] .with_indifferent_access
     def _kwds_for_affinity_search(raw_kwd, order_steps, index_upto)
       kwds = {}.with_indifferent_access
+      kwds[:raw] = raw_kwd.dup
       kwds[:raw_article_tail] = definite_article_to_tail(raw_kwd)  # defined in module_common.rb
 
       ## Preparation: quote and, if needed, truncate the input keyword (Ruby)
@@ -197,16 +198,18 @@ module DbSearchOrder
       kwds[:quoted] = connection.quote(kwds[:raw_article_tail])
 
       if (ind=order_steps.find_index(:case_insensitive)) && index_upto >= ind
-        kwds[:quoted_raw_like] = sanitize_sql_like(kwds[:quoted_raw])
+        # kwds[:quoted_raw_like] = sanitize_sql_like(kwds[:quoted_raw])
+        kwds[:quoted_like] = sanitize_sql_like(kwds[:quoted])
 
         if (ind=order_steps.find_index(:optional_article_ilike)) && index_upto >= ind
           kwds[:no_article] = definite_article_stripped(raw_kwd.to_s.downcase).strip  # downcased, definitely-article-stripped, space-stripped at head & tail
-          kwds[:quoted_no_article] = connection.quote(kwds[:no_article])
+          kwds[:quoted_no_article_like] = connection.quote(sanitize_sql_like(kwds[:no_article]))
 
           if (ind=order_steps.find_index(:space_insensitive_exact)) && index_upto >= ind
-            kwds[:truncated_base] = kwds[:no_article].gsub(/[\s\p{Dash}]/u, "")  # definitely-article-stripped, space-stripped, and downcased
+            kwds[:truncated_base] = kwds[:no_article].gsub(/[\s\p{Dash}]/u, "")  # definitely-article-stripped, space-hyphen-stripped, and downcased
             # kwds[:quoted_truncated_base] = connection.quote(kwds[:truncated_base])
             kwds[:truncated_like] = sanitize_sql_like(kwds[:truncated_base])
+            kwds[:quoted_truncated_like] = connection.quote(sanitize_sql_like(kwds[:truncated_base]))
 
             # Helper to return the left side for removing space/hyphen/equal signs and a definite article (ia any) for WHERE and ORDER clauses (for ILIKE).
             # NOTE(alternatively, with "LIKE" (if ignoring handling of a definite article)): "REGEXP_REPLACE(LOWER(#{t_alias}.#{col}), '[#{PSQL_UNICODE_ALL_MIDDLE_PUNCT}]', '', 'g')"
@@ -252,12 +255,16 @@ module DbSearchOrder
     # @param t_alias: [String, NilClass] DB table alias for the table.
     # @param parent [ActiveRecord_Relation, NilClass] Base relation
     # @param upto: [Symbol, NilClass] Up to which step of {PSQL_MATCH_ORDER_STEPS} to attepmt (when no matches are found) or nil (Default, meaning all steps)
-    #   Developer's note: +upto+ can be implemented only on this method, but NOT on {find_all_by_affinity}, which runs WHERE only once.
+    # @param order_steps: [Array<Symbol>] Steps (Def: {PSQL_MATCH_ORDER_STEPS}).
     # @return [ActiveRecord::Relation]
-    def find_all_best_matches(columns, raw_kwd, t_alias: nil, parent: nil, upto: nil, **opts)
+    def find_all_best_matches(columns, raw_kwd, t_alias: nil, parent: nil, upto: nil, order_steps: PSQL_MATCH_ORDER_STEPS, **opts)
       t_alias ||= self.table_name
-      n_steps = PSQL_MATCH_ORDER_STEPS.size
-      i_begin = (upto ? PSQL_MATCH_ORDER_STEPS.find_index(upto.to_sym) : n_steps-1)  # positive index
+      index_upto = (upto ? order_steps.find_index(upto.to_sym) : order_steps.size-1)
+      raise ArgumentError, "upto is not one of order_steps: "+upto.inspect if !index_upto  # if upto is not one of order_steps
+      order_steps_now = order_steps[0..index_upto]
+
+      n_steps = index_upto + 1
+      i_begin = (upto ? order_steps_now.find_index(upto.to_sym) : n_steps-1)  # positive index
       n_steps_mod = i_begin + 1  # if upto==::case_insensitive, yielding i_begin==1, n_steps_mod==2, while n_steps==4
       i_now = index_negative_array(i_begin, n_steps)  # negative index
       last_relas = {where: (parent || self.all), both: nil, ids: nil, tra_ids: nil}.with_indifferent_access
@@ -268,11 +275,11 @@ module DbSearchOrder
         [:ids, :tra_ids].map{|k| (ar=relas[k]) ? [hsmap[k], ar] : nil}.compact.to_h
       end
 
-      100.times.each do  # 100 as a conservative safety net.  This should not loop more than the size of PSQL_MATCH_ORDER_STEPS
+      100.times.each do  # 100 as a conservative safety net.  This should not loop more than the size of +order_steps_now+ (Def: PSQL_MATCH_ORDER_STEPS)
         # Get the relation using only the WHERE clause up to the current strictness level.
         # This determines the *set* of matches at this level of strictness.
         %i(where both).each do |ek|
-          curr_relas[ek] = find_all_by_affinity(columns, raw_kwd, order_or_where: ek, upto: PSQL_MATCH_ORDER_STEPS[i_now], t_alias: t_alias, parent: last_relas[:where], **opts)
+          curr_relas[ek] = find_all_by_affinity(columns, raw_kwd, order_or_where: ek, upto: order_steps_now[i_now], t_alias: t_alias, parent: last_relas[:where], **opts)
         end
 
         return curr_relas[:both] if (1 == n_steps_mod)
@@ -323,7 +330,7 @@ module DbSearchOrder
     # See also {Translation.arel_order_by_min_title_length} and its scope +:order_by_min_title_length+
     #
     # @param rela [ActiveRecord::Relation] The Relation of Translation records (or a relation joined to translations).
-    # @param min_len [Integer] The minimum length required for a title/alt_title to be considered for sorting.
+    # @param min_len [Integer] The minimum length required for a title/alt_title to be considered for sorting (word without the definite article or spaces).
     # @param t_alias: [String, NilClass] DB table alias for the table.
     # @return [ActiveRecord::Relation] The ordered Relation.
     def sorted_by_min_valid_length_title_or_alt(rela, min_len, t_alias: nil)

@@ -109,12 +109,13 @@
 <%= datagrid_table @grid %>
 <%= paginate(@grid.assets) %>
 
-<p class="pagenation_stats">
-  <%= ApplicationController.str_info_entry_page_numbers(@grid, Harami1129) %>
-</p>
+<%= render "layouts/grid_table_tail", klass: Harami1129 %>
 
 <br>
 
-<% if ApplicationGrid.qualified_as?(:an_admin) %>
+<%= editor_only_safe_html(Harami1129, method: :create, only: :admin, tag: "div") do %>
+  <% if false %>
   <span class="admin_only"><%= link_to 'New Harami1129 entry', new_harami1129_path %></span>
+  <% end %>
+  <%= link_to 'New Harami1129 entry', new_harami1129_path %>
 <% end %>

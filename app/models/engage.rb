@@ -260,8 +260,9 @@ class Engage < ApplicationRecord
     singer = harami1129.ins_singer
     return Artist.unknown if singer.blank?
 
-    methods = [:exact, :exact_ilike, :optional_article_ilike] # See Translation::MATCH_METHODS for the other options
-    artist = Artist.find_by_a_title(:titles, singer, accept_match_methods: methods)
+    # methods = [:exact, :exact_ilike, :optional_article_ilike] # See Translation::MATCH_METHODS for the other options
+    # artist = Artist.find_by_a_title(:titles, singer, accept_match_methods: methods)
+    artist = Artist.find_by_partial_str(singer)
     return artist if artist
 
     # No existing Artist is found.
@@ -287,9 +288,20 @@ class Engage < ApplicationRecord
     music_tit  = harami1129.ins_song
     return Music.unknown if music_tit.blank?
 
-    opts = {match_method_upto: :optional_article_ilike} # See Translation::MATCH_METHODS for the other options
-    opts.merge!(artist ? {translatable_id: artist.musics.pluck(:id).flatten.uniq} : {})
-    music = Music.find_by_a_title(:titles, music_tit, **opts)
+#opts = {match_method_upto: :optional_article_ilike} # See Translation::MATCH_METHODS for the other options
+#opts.merge!(artist ? {translatable_id: artist.musics.pluck(:id).flatten.uniq} : {})
+#music = Music.find_by_a_title(:titles, music_tit, **opts)
+    music = Music.find_by_partial_str(music_tit) { |rela|
+      # Basically, if the Artist of the title (ins_singer) exists and if the Artist has
+      # some Musics, Music-search (with ins_song) is limited to the Artist's Musics.
+      # Otherwise, i.e., if there is no Artist of (the title ins_singer) OR if the Artist
+      # has no associated Musics, Music-search is purely based on its title (ins_song).
+      # I *think* (although I wrote the old code of thie part years ago and now don't
+      # understand it 100% now, this is necessary because Artist is always searched for and
+      # created if necessary, *BEFORE* this Music search.  If an Artist has no associated Musics,
+      # it is likely the Artist was created immediately before this method from the same Harami1129 record.
+      (artist && !(ar=artist.musics.pluck(:id).flatten.uniq).empty?) ? rela.where("#{Music.table_name}.id": ar) : rela
+    }
     return music if music
 
     # No existing Music is found.

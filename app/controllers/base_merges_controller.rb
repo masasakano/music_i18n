@@ -215,7 +215,7 @@ class BaseMergesController < ApplicationController
       armodel = model.candidate_bwts_from_ac_str(search_word)
       if armodel.empty?
         return nil
-      elsif armodel.size > 1
+      elsif armodel.uniq.size > 1
         if controller.flash[:warning]
           controller.flash[:warning] << "  " 
         else

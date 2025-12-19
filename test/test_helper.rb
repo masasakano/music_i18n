@@ -1031,6 +1031,26 @@ class ActiveSupport::TestCase
     sprintf 'input[name="%s_grid[%s][%s]"]', model_pl, kwd, from_to
   end
 
+  # Wrapper method to return a HTML String for various class instances
+  #
+  # @param element [Capybara::Node::Element, Nokogiri::XML::NodeSet] result of page.find, css_select, Nokogiri::HTML, Nokogiri::HTML.fragment etc
+  # @param kind: [Symbol, String] :inner or :outer
+  # @return [String] of HTML
+  def get_html(element, kind: :outer)
+    return if !element
+    if :inner == kind.to_sym
+      return element.inner_html if element.respond_to? :inner_html  # Nokogiri
+      if element.respond_to?(:[])
+        return element['innerHTML']  # Capybara
+      end
+    end
+
+    return element.to_html if element.respond_to? :to_html  # Nokogiri or css_select
+    if element.respond_to?(:[])
+      return element['outerHTML']  # Capybara
+    end
+    element.to_s
+  end
 
   # Returns the XPATH string to extract the flash messages.
   #
@@ -1157,6 +1177,11 @@ class ActiveSupport::TestCase
       warn msg
       Rails.logger.error msg
       raise
+    rescue Capybara::ElementNotFound
+      warn "Failed to find XPath with (#{metho}.inspect)...  body_main: "
+      element = send(metho, "div#body_main")
+      warn get_html(element, kind: :inner)  # defined above
+      raise
     end
 
     assert_match(/#{regex_txt}/, text, "ERROR( "+_get_caller_info_message()+" ): langcode may be wrong, or maybe the page hasn't been loaded?")
@@ -1186,13 +1211,13 @@ class ActiveSupport::TestCase
   #
   # @param n_filtered_entries: [Integer] mandatory: Number of the filtered entries
   # @param text_only: [Boolean] if true (Def: false), returns a simple text String; otherwise XPath
-  # @param start_entry: [Integer, NilClass] Def: 1. If nil, this returns only "/123" (Number of the filtered entries)
+  # @param start_entry: [Integer, NilClass, Symbol] If :default (the recommended value for the caller unless the caller is sure to know the value or +cur_page+ is larger than 1), this will be set at 1 or 0 (if 0 == +n_filtered_entries+). If nil, this method returns only "/123" (Number of the filtered entries)
   # @param end_entry: [Integer, NilClass] This is equal to, or (usually in tests) smaller than, the maximum number of entries per page on Grid. If nil (Def), the smaller between {ApplicationGrid::DEF_MAX_PER_PAGE} and +n_filtered_entries+.
   # @param n_all_entries: [Integer, NilClass] If nil (Def), this part is taken from the current page (with +find_all+).
   # @param langcode: [Symbol, String] :en (Def)
   # @param **opts: [Hash] see #get_grid_pagenation_n_total
   # @return [String] Either XPath or text for the pagenation stats part on Grid
-  def xpath_grid_pagenation_stats_with(n_filtered_entries: , text_only: false, cur_page: 1, start_entry: 1,  end_entry: nil, n_all_entries: nil, langcode: :en, **opts)
+  def xpath_grid_pagenation_stats_with(n_filtered_entries: , text_only: false, cur_page: 1, start_entry: :default,  end_entry: nil, n_all_entries: nil, langcode: :en, **opts)
 
     n_all_entries ||= get_grid_pagenation_n_total(langcode: langcode, **opts)
 

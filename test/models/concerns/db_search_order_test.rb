@@ -8,7 +8,7 @@ class ConcernsDbSearchOrderTest < ActiveSupport::TestCase
     ModuleWhodunnit.whodunnit = nil
   end
 
-  test "Translation.select_regex for ILIKE" do
+  test "Translation.find_all_by_affinity and Translation.find_all_best_matches" do
     records = {}
     tras    = {}
     kwd_exact = "test 333 Dayo"  # Should have one exact match and zero more-ambiguous matches
@@ -255,6 +255,20 @@ class ConcernsDbSearchOrderTest < ActiveSupport::TestCase
     assert_equal trans_s42, rela.first  # should be sorted
     assert_equal 1,         rel2.count, "Only 1 matches :space_insensitive_forward, so only that should be returned, but..."
     assert_equal trans_s42, rel2.first
+
+    ### tests of explicit :order_steps
+    order_steps = [:exact, :case_insensitive]
+    tra = records[:s13].best_translation
+    kwd = tra.title.upcase
+
+    act = Translation.find_all_best_matches(cols, kwd, upto: :exact,            order_steps: order_steps, parent: rela_base)
+    refute act.exists?
+    act = Translation.find_all_best_matches(cols, kwd, upto: :case_insensitive, order_steps: order_steps, parent: rela_base)
+    assert_equal tra, act.first
+    assert_raises(ArgumentError){
+          Translation.find_all_best_matches(cols, kwd, upto: :space_insensitive_forward, order_steps: order_steps, parent: rela_base) }
+    act = Translation.find_all_best_matches(cols, kwd, upto: nil,               order_steps: order_steps, parent: rela_base)
+    assert_equal tra, act.first
   end
 
   test "Translation.collated_condition_sql" do
@@ -262,6 +276,26 @@ class ConcernsDbSearchOrderTest < ActiveSupport::TestCase
     exp = "title COLLATE \"und-x-icu\" ILIKE 'abc'"
     assert_equal exp, Translation.collated_condition_sql(*ini)
     assert_equal exp, Translation.collated_condition_sql( ini)
+  end
+
+  test "_kwds_for_affinity_search" do
+    raw_kwd = %Q@The Adam's_A%%le "P-ie"@
+    hsret = Translation.send(:_kwds_for_affinity_search, raw_kwd, DbSearchOrder::PSQL_MATCH_ORDER_STEPS, DbSearchOrder::PSQL_MATCH_ORDER_STEPS.size)
+    arexp = {
+      raw: raw_kwd,
+      raw_article_tail:        %q@Adam's_A%%le "P-ie", The@,
+      quoted_raw:         %q@'The Adam''s_A%%le "P-ie"'@,
+      quoted:                 %q@'Adam''s_A%%le "P-ie", The'@,
+      quoted_like:            %q@'Adam''s\_A\%\%le "P-ie", The'@,
+      no_article:              %q@adam's_a%%le "p-ie"@,
+      quoted_no_article_like: %q@'adam''s\_a\%\%le "p-ie"'@,
+      truncated_base:          %q@adam's_a%%le"pie"@,
+      quoted_truncated_like:  %q@'adam''s\_a\%\%le"pie"'@,
+    }
+
+    arexp.each_key do |ek|
+      assert_equal arexp[ek], hsret[ek], sprintf("[:%s]: (expected) %s <=> (actual) %s", ek.to_s, arexp[ek], hsret[ek])
+    end
   end
 
   private

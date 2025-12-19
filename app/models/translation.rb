@@ -955,7 +955,7 @@ class Translation < ApplicationRecord
   # @param not_clause: [String, Array<String, Hash, Array>, NilClass] Rails not.where clause. See #{Translation.select_regex} for detail.
   # @param **restkeys: [Hash] Any other (exact) constraints to pass to {Translation}, including
   #    langcode: [String, NilClass] Optional argument, e.g., 'ja'. If nil, all languages.
-  #    translatable_type: [Class, String] that is, the orresponding Class of the translation,
+  #    translatable_type: [Class, String] that is, the corresponding Class of the translation,
   #      which you most likely want to specify.
   #    translatable_id: [Integer, Array] To find a Translation for a particular object(s).
   #    t_alias: SQL-query alias for Translation table.
@@ -1200,7 +1200,7 @@ class Translation < ApplicationRecord
     translation
   end
 
-  # wrapper of {Translation.select_regex}
+  # [**OBSOLETE**] wrapper of {Translation.select_regex}
   #
   # The search word is String, as given by a human over a UI (or its Array).
   # Unlike {Translation.select_regex}, this runs {ModuleCommon#preprocess_space_zenkaku}.
@@ -1315,14 +1315,19 @@ class Translation < ApplicationRecord
 
   # Wrapper of {Translation.find_all_by_partial_str}, returning a double Array of elements of [{#title}, {#alt_title}, {#langcode}, {#translatable_id}]
   #
-  # The result is properly sorted by the parent and here uniq-qed for {#translatable_id}.
+  # The result is sorted by the match (in default, unless +order_or_where: :where+ is specified)
+  # and here uniq-qed for {#translatable_id}.  For sorting, see {Translation.find_all_by_partial_str}
+  # and {DbSearchOrder::ClassMethods#find_all_by_affinity}
   #
-  # See also {Translation.find_all_4cols_by_partial_str}, a wrapper of this method.
+  # Note that the match may have been based on another column like +romaji+ or +alt_ruby+,
+  # but information about them is lost in the returned value.
+  #
+  # See also {Translation.find_all_3cols_by_partial_str}, a wrapper of this method.
   #
   # @param raw_kwd [String] e.g., "The Beat" and "Beatles".
   #   Preprocessed with {ModuleCommon#preprocess_space_zenkaku}
   # @param **restkeys: [Hash] 
-  # @return [Array<String>]
+  # @return [Array<Array<String, Integer>>]
   def self.find_all_4cols_by_partial_str(raw_kwd, where: nil, joins: nil, not_clause: nil, **restkeys)
     ttn = self.table_name
     rela = self.find_all_by_partial_str(raw_kwd, **restkeys)
@@ -1336,8 +1341,9 @@ class Translation < ApplicationRecord
   # Returns a double Array of 3 columns of [title-or-alt_title, {#langcode}, {#translatable_id}]
   #
   # Wrapper of {Translation.find_all_4cols_by_partial_str}
+  # The result is sorted by the match and then uniq-qed for {#translatable_id}.
   #
-  # @return [Array<Array<String>>] [title-or-alt_title, {#langcode}, {#translatable_id}]
+  # @return [Array<Array<String, Integer>>] [title-or-alt_title, {#langcode}, {#translatable_id}]
   def self.find_all_3cols_by_partial_str(raw_kwd, **restkeys)
     arret = find_all_4cols_by_partial_str(raw_kwd, **restkeys)
     _remove_title_or_alt_from_4cols(raw_kwd, arret)
@@ -1354,38 +1360,51 @@ class Translation < ApplicationRecord
     kwd_wo_article_siz = definite_article_stripped(kwd).size  # defined in ModuleCommon
 
     ar_cols.map { |tit, alt_tit, langcode, translatable_id|
-      col1 = 
-        [tit, alt_tit].map { |ev|
-          next [Float::INFINITY, ev] if ev.blank?
-          weight_diff = ev.size - kwd_siz
-          if weight_diff < 0
-            if ev.size < kwd_wo_article_siz
-              [Float::INFINITY, 0, ev]
-            else
-              ## kwd has a definite article, while title may not
-              [weight_diff.abs, 1, ev]
-            end
-          else
-            if (evmod=definite_article_stripped(ev)) != ev
-              ## title has a definite article.
-              if kwd_siz == kwd_wo_article_siz
-                ## title has a definite article, while kwd does not. title is likely to be correct.
-                [(evmod.size - kwd_siz).abs, -1, ev]
-              else
-                ## Both title and kwd have a definite article.  Giving a higher priority (than the perfect match without a definite article).
-                [(evmod.size - kwd_wo_article_siz).abs, -1, ev]
-              end
-            else
-              ## title does not have a definite article.
-              [weight_diff, 0, ev]
-            end
-          end
-        }.sort.first.last  # "first" selects an Array containing either title or alt_title, and last selects a String (title or alt_title)
+      col1 = better_match_tit_or_alt(raw_kwd, tit, alt_tit, kwd: kwd, kwd_wo_article_siz: kwd_wo_article_siz)
       [col1, langcode, translatable_id]
     }
   end
   private_class_method :_remove_title_or_alt_from_4cols
 
+  # Returns the better match to keyword between title and alt_title
+  #
+  # @param raw_kwd [String]
+  # @param tit [String]
+  # @param alt_tit [String]
+  # @return [String]
+  def self.better_match_tit_or_alt(raw_kwd, tit, alt_tit, kwd: nil, kwd_wo_article_siz: nil)
+    kwd ||= preprocess_space_zenkaku(raw_kwd, strip_all: true)  # defined in ModuleCommon; spaces are agressively stripped and truncated
+    kwd_siz = kwd.size
+    kwd_wo_article_siz ||= definite_article_stripped(kwd).size  # defined in ModuleCommon
+
+    [tit, alt_tit].map { |ev|
+      next [Float::INFINITY, 9, ev] if ev.blank?
+      weight_diff = ev.size - kwd_siz
+      if weight_diff < 0
+        if ev.size < kwd_wo_article_siz
+          [Float::INFINITY, 0, ev]
+        else
+          ## kwd has a definite article, while title may not
+          [weight_diff.abs, 1, ev]
+        end
+      else
+        if (evmod=definite_article_stripped(ev)) != ev
+          ## title has a definite article.
+          if kwd_siz == kwd_wo_article_siz
+            ## title has a definite article, while kwd does not. title is likely to be correct.
+            [(evmod.size - kwd_siz).abs, -1, ev]
+          else
+            ## Both title and kwd have a definite article.  Giving a higher priority (than the perfect match without a definite article).
+            [(evmod.size - kwd_wo_article_siz).abs, -1, ev]
+          end
+        else
+          ## title does not have a definite article.
+          [weight_diff, 0, ev]
+        end
+      end
+    }.sort.first.last  # "first" selects an Array containing either title or alt_title, and last selects a String (title or alt_title)
+  end
+  
   # Wrapper of {Translation.find_all_by_partial_str}, returning a single Array of Strings ({#title} or {#alt_title})
   #
   # @param raw_kwd [String] e.g., "The Beat" and "Beatles".

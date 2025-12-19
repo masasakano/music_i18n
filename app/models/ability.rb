@@ -170,7 +170,8 @@ class Ability
 
     ## HaramiVid moderator only
     if user.qualified_as?(:moderator, rc_harami)
-      can :crud, [HaramiVid, Harami1129]
+      can :crud, [HaramiVid]
+      can :update, [Harami1129]
       can :cru,  [Harami1129Review]  # Harami1129Review rarely needs to be destroyed.
       can :read, PlayRole
       can(:ud, ChannelType){|mdl| mdl.create_user && mdl.create_user == user }  # can update/destroy only those self has created (though cannot if there's a dependent Channel).
@@ -196,6 +197,7 @@ class Ability
     if user.an_admin?
       #if user.qualified_as? RoleCategory[RoleCategory::MNAME_ROOT]  # Same meaning as user.an_admin?
       can :manage_prefecture_jp, Prefecture
+      can :manage, Harami1129  # Usually no need to create a Harami1129, so create/destroy are left to admin only
       can :manage, StaticPage
       can :manage, CountryMaster
       can :manage, [Genre, EngageHow]

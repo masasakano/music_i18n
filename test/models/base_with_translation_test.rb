@@ -209,7 +209,19 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     ary = Artist.find_all_titles_by_partial_str("Proclaimers, The", definite_article_to_head: false)
     assert_equal tra_exp.title, ary.first
   end
-  
+
+  test "self.find_all_by_associated_partial_str" do
+    art = Artist.default(:HaramiVid)
+    tit = art.title
+    assert_operator Translation::DEF_MIN_REGEXP_N_CHARS[:en], :<=, tit.size, 'sanity check of size; a too short word may yield an unexpected result'
+    assert_equal 1, Artist.find_all_ids_by_partial_str(tit).count, "fixture test"  # to ensure there is no other Artist with a similar name.
+    exp_ids = Music.joins(:engages).where("engages.artist_id": art.id).ids.uniq.sort
+    mus_ids = Music.find_all_by_associated_partial_str(tit, :artists, order_or_where: :where).distinct.ids.uniq.sort
+    assert_equal exp_ids, mus_ids
+    mus_ids = Music.find_all_by_associated_partial_str(tit, "artists").ids.uniq.sort  # "distinct" is NOT alllowed because it is ordered in SQL.
+    assert_equal exp_ids, mus_ids
+  end
+
   # Using the subclass Sex and Country
   test "create_with_translation!" do
     n_orig_sex   = Sex.count
@@ -1172,7 +1184,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       art1.orig_translation.update!(weight: 67, skip_singularize_is_orig_callback: true)
       # art1.with_translation(langcode: "en", title: "Something011", is_orig: true, weight: 89)
       art1.translations << Translation.new(langcode: "en", title: "Something011", is_orig: true, weight: 89, skip_singularize_is_orig_callback: true)
-#debugger
+
       art1.reload
       assert_equal 1, art1.translations.where(is_orig: nil).count, "trass="+art1.translations.pluck(:langcode, :title, :is_orig, :weight).inspect
       assert_equal 2, art0.translations.size

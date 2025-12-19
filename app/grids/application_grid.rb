@@ -190,10 +190,15 @@ class ApplicationGrid < Datagrid::Base
     filter_include_ilike(mainprm, header: header, input_options: input_options, **opts)
   end
 
-  # Used in HaramiVid, Engage, etc.
+  # Used in HaramiVid, Music & Artist (with Engage), etc. to filter records based on an associated model's title
+  #
+  # Since the field should be auto-completed, the matching here can be lax, as
+  # this search is DB-heavy.  For this reason, +min_(en|ja)_chars+ is not specified.
   def self.filter_partial_str(col, type=:string, titles: :titles, self_models: :harami_vids, **kwd)
     filter(col, type, **(_add_filter_data_1p_ignore(kwd))) do |value|  # Only for PostgreSQL!
-      ids = col.to_s.singularize.classify.constantize.select_partial_str(:titles, value, ignore_case: true).map{|eobj| eobj.send(self_models)}.flatten.map(&:id)
+      # ids = col.to_s.singularize.classify.constantize.select_partial_str(:titles, value, ignore_case: true).map{|eobj| eobj.send(self_models)}.flatten.map(&:id)  ## Old way, but this works
+      assoc_plural = col.to_s.pluralize
+      ids = find_all_by_associated_partial_str(value, assoc_plural, order_or_where: :where).ids.uniq  # You may specify +{min_ja_chars: 1, min_en_chars: 1}+ to remove constraints for a very short word.
       self.where(id: ids)
     end
   end

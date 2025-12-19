@@ -761,7 +761,7 @@ class ApplicationController < ActionController::Base
   # @param n_filtered_entries: [Integer] mandatory: Number of the filtered entries
   # @param text_only: [Boolean] if true (Def: false), returns a simple text String; otherwise XPath
   # @param cur_page: [Integer, NilClass] Current page number.
-  # @param start_entry: [Integer, NilClass] Def: 1. If nil, this method returns only "/123" (Number of the filtered entries)
+  # @param start_entry: [Integer, NilClass, Symbol] If :default (the recommended value for the caller unless the caller is sure to know the value or +cur_page+ is larger than 1), this will be set at 1 or 0 (if 0 == +n_filtered_entries+). If nil, this method returns only "/123" (Number of the filtered entries)
   # @param end_entry: [Integer, NilClass] This is equal to, or (usually in tests) smaller than, the maximum number of entries per page on Grid. If nil (Def), the smaller between {ApplicationGrid::DEF_MAX_PER_PAGE} and +n_filtered_entries+.
   # @param n_all_entries: [Integer, NilClass] If nil (Def), this part is not included in the returned String.
   # @param langcode: [Symbol, String] :en (Def)
@@ -774,6 +774,10 @@ class ApplicationController < ActionController::Base
       msg = "WARNING(#{File.basename __FILE__}:#{__method__}): start_entry should never be nil except for testing purposes (#{start_entry.inspect}). Contact the code developer."
       warn msg
       logger.warn msg
+    end
+
+    if :default == start_entry
+      start_entry = ((n_filtered_entries > 0) ? 1 : 0)
     end
 
     fmt   = String.new

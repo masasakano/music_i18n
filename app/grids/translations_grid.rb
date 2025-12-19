@@ -16,8 +16,9 @@ class TranslationsGrid < ApplicationGrid
 
   filter_n_column_id(:translation_url)  # defined in application_grid.rb
 
-  filter(:title, header: 'Title/Ruby keyword (partial match)', input_options: {"data-1p-ignore" => true}) do |value|
-    self.select_partial_str(:all, value, ignore_case: true)  # Only for PostgreSQL!
+  filter(:title, header: 'Title/Ruby keyword (Regexp)', input_options: {placeholder: "Case-insensitive match, eg: ^harami\-?chan", "data-1p-ignore": true}) do |value|
+    # self.select_partial_str(:all, value, ignore_case: true)  # Only for PostgreSQL!
+    self.select_regex(:all, /#{sanitize_regexp_str(value)}/, sql_regexp: true)  # Regexp accepted.
   end
 
   filter(:translatable_type, :enum, header: "Class", checkboxes: true, select: Proc.new{ Translation.all.pluck(:translatable_type).uniq.compact.sort.map{|c| [c, c]} })

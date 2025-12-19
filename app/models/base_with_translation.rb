@@ -1502,7 +1502,7 @@ class BaseWithTranslation < ApplicationRecord
     Translation.find_by_regex(*args, translatable_type: self.name, **restkeys)
   end
 
-  # Wrapper of {Translation.select_partial_str}, returning {Translation}-s of only this class
+  # [**OBSOLETE**] Wrapper of {Translation.select_partial_str}, returning {Translation}-s of only this class
   #
   # Using SQL directly.
   #
@@ -1525,7 +1525,7 @@ class BaseWithTranslation < ApplicationRecord
     Translation.find_all_titles_by_partial_str(raw_kwd, where: where, **restkeys)
   end
 
-  # Wrapper of {BaseWithTranslation.select_translations_partial_str}, returning models
+  # [**OBSOLETE**] Wrapper of {BaseWithTranslation.select_translations_partial_str}, returning models
   #
   # Using SQL directly.
   #
@@ -2198,7 +2198,7 @@ class BaseWithTranslation < ApplicationRecord
     self
   end
 
-  # Wrapper of {BaseWithTranslation.select_translations_partial_str}, excepting {Translation}s of self
+  # [**OBSOLETE**] Wrapper of {BaseWithTranslation.select_translations_partial_str}, excepting {Translation}s of self
   #
   # @param *args: [Array]
   # @param **restkeys: [Hash] should not include the key +not_clause+, unless you know what you're doing!!
@@ -2212,13 +2212,80 @@ class BaseWithTranslation < ApplicationRecord
     self.class.select_translations_partial_str(*args, **restkeys)
   end
 
-  # @return [Array<Array<String>>] [title-or-alt_title, {Translation#langcode}, {Translation#translatable_id}]
+  # Wrapper of {Translation.find_all_3cols_by_partial_str}
+  #
+  # The result is sorted by the match and then uniq-qed for {#translatable_id}.
+  # For sorting, see {DbSearchOrder::ClassMethods#find_all_by_affinity}
+  # 
+  # @param raw_kwd [String] e.g., "The Beat" and "Beatles".
+  #   Preprocessed with {ModuleCommon#preprocess_space_zenkaku}
+  # @param where [String, Hash, Array<String>, NilClass] where clause to pass
+  # @param **restkeys [Hash] See {Translation.find_all_3cols_by_partial_str}. Notably, you may
+  #   specify 1 to +min_(ja|en)_chars+ so as not to restrict searches when a very short keyword is given.
+  #   Or, you may specify +order_or_where: :where+ if you do not need sorting.
+  # @return [Array<Array<String, Integer>>] [title-or-alt_title, {Translation#langcode}, {Translation#translatable_id}]
   def self.find_all_3cols_by_partial_str(raw_kwd, where: nil, **restkeys)
     where = add_sql_clause(where, {translatable_type: self.name})  # defined in ModuleCommon
     Translation.find_all_3cols_by_partial_str(raw_kwd, where: where, **restkeys)
   end
 
-  # @return [Array<Array<String>>] [title-or-alt_title, {Translation#langcode}, {Translation#translatable_id}]
+  # Wrapper of {Translation.find_all_3cols_by_partial_str}
+  #
+  # @param #see {Translation.find_all_3cols_by_partial_str}
+  # @return [Array<Integer>] pIDs of BaseWithTranslation
+  def self.find_all_ids_by_partial_str(*args, **restkeys)
+    find_all_3cols_by_partial_str(*args, **restkeys).map(&:last)  # the last one is translatable_id
+  end
+
+  # Find all self-s based on a keyword ({Translation#title}, +alt_ruby etc).
+  #
+  # @param raw_kwd [String] e.g., "The Beat" and "Beatles".
+  #   Preprocessed with {ModuleCommon#preprocess_space_zenkaku}
+  # @param #see {Translation.find_all_by_partial_str}; You may specify +{order_or_where: :where}+ if you do not care about the order.
+  # @return [BaseWithTranslatio::Relation]
+  def self.find_all_by_partial_str(raw_kwd, *args, **restkeys)
+    opts = {parent: self.joins(:translations)}.merge restkeys
+    Translation.send(__method__, raw_kwd, *args, **opts)
+  end
+
+  # Wrapper of {BaseWithTranslatio.find_all_by_partial_str), returning the first element.
+  #
+  # This sets matched_attribute etc.
+  #
+  # @param raw_kwd [String] e.g., "The Beat" and "Beatles".
+  #   Preprocessed with {ModuleCommon#preprocess_space_zenkaku}
+  # @param #see {Translation.find_all_by_partial_str}; You may specify +{order_or_where: :where}+ if you do not care about the order.
+  # @return [BaseWithTranslation, NilClass]
+  # @yield [BaseWithTranslation::Relation] Relation is given and Relation should be returned before the first one is extracted.
+  def self.find_by_partial_str(raw_kwd, *args, **restkeys)
+    rela = find_all_by_partial_str(raw_kwd, *args, **restkeys)
+    rela = yield(rela) if block_given?
+
+    ret = rela.first
+    return if !ret
+
+    tit, alt_tit, tra_id = rela.limit(1).pluck(*(%w(title alt_title id).map{(Translation.table_name + "." + _1)})).first
+    ret_tit = Translation.better_match_tit_or_alt(raw_kwd, tit, alt_tit)
+
+    ret.matched_translation = Translation.find(tra_id)
+    ret.matched_attribute   = ((ret_tit == tit) ? :title : :alt_title)
+    ret
+  end
+
+  # Find all self-s based on a keyword for {Translation#title}, +alt_ruby etc, of the associated models.
+  #
+  # @param raw_kwd [String] e.g., "The Beat" and "Beatles".
+  #   Preprocessed with {ModuleCommon#preprocess_space_zenkaku}
+  # @param assoc_plural [String, Symbol] e.g., +:artists+
+  # @param #see {Translation.find_all_by_partial_str}; You may specify +{order_or_where: :where}+ if you do not care about the order.
+  # @return [BaseWithTranslatio::Relation]
+  def self.find_all_by_associated_partial_str(raw_kwd, assoc_plural, *args, **restkeys)
+    raise if restkeys.keys.map(&:to_s).include?("parent")
+    parent = self.joins(assoc_plural.to_sym).joins(assoc_plural.to_sym => :translations)
+    Translation.find_all_by_partial_str(raw_kwd, parent: parent, **restkeys)
+  end
+
+  # @return [Array<Array<String, Integer>>] [title-or-alt_title, {Translation#langcode}, {Translation#translatable_id}]
   def find_all_3cols_by_partial_str_except_self(raw_kwd, not_clause: nil, **restkeys)
     not_clause = add_sql_clause(not_clause, {translatable_id: self.id})
     self.class.find_all_3cols_by_partial_str(raw_kwd, not_clause: not_clause, **restkeys)
@@ -2250,7 +2317,7 @@ class BaseWithTranslation < ApplicationRecord
     Translation.select_regex(*args, translatable_type: self.name, **restkeys)
   end
 
-  # Wrapper of {#select_translations_partial_str_except_self}, returning String (title)
+  # [**OBSOLETE**] Wrapper of {#select_translations_partial_str_except_self}, returning String (title)
   #
   # titles for self are excluded for the candidates.
   #
@@ -2358,9 +2425,14 @@ class BaseWithTranslation < ApplicationRecord
     search_str, lcode, model_id = BaseWithTranslation.resolve_base_with_translation_with_id_str(search_word)
     return [self.class.find(model_id)] if model_id
 
-    self.select_translations_partial_str_except_self(
-      :titles, search_str, langcode: lcode
-    ).map{|i| i.translatable}.uniq
+#if true
+    parent = self.class.joins(:translations).where.not("#{self.class.table_name}.id": id)
+    Translation.find_all_by_partial_str(search_word, parent: parent, min_matches: true) # With min_matches, this uses {DbSearchOrder::ClassMethods.find_all_best_matches}
+#else
+#    self.select_translations_partial_str_except_self(
+#      :titles, search_str, langcode: lcode
+#    ).map{|i| i.translatable}.uniq
+#end
   end
 
   # Wrapper of {Translation.select_regex}

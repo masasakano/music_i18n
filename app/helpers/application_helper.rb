@@ -738,8 +738,8 @@ module ApplicationHelper
   #
   # @param artist_name [String] Maybe Integer-String like "56" to mean Artist primary ID
   # @param model [Model] to add errors
-  # @param langcode: [String] To help identify an Artist
-  # @param place: [Place] To help identify an Artist (NOT yet supported!)
+  # @param langcode: [String, NilClass] To help identify an Artist
+  # @param place: [Place, NilClass] To help identify an Artist (NOT yet supported!)
   # @return [Artist, NilClass] nil if not found or specified
   def get_artist_from_params(artist_name, model, langcode: nil, place: nil)
     return nil if artist_name.blank?
@@ -748,9 +748,12 @@ module ApplicationHelper
       when /\A\?(\d+)\z/, /\(ID=(\d+)\)|\?(\d+)\z/i
         Artist.find ($1 || $2).to_i  # "$3" is also desirably OR-ed?
       else
-        opts = {match_method_upto: :optional_article_ilike} # See Translation::MATCH_METHODS for the other options
-        opts.merge!({langcode: langcode})
-        Artist.find_by_a_title :titles, artist_name, **opts
+        ### old-style (which basically works if not quite ideal in some edge cases)
+        # opts = {match_method_upto: :optional_article_ilike} # See Translation::MATCH_METHODS for the other options
+        # opts.merge!({langcode: langcode})
+        # Artist.find_by_a_title :titles, artist_name, **opts
+        art = Artist.find_all_by_partial_str(artist_name)
+        (langcode ? art.where(langcode: langcode) : art).first
       end
     if !artist
       model.errors.add :artist, 'is not registered. Please register the artist first.'

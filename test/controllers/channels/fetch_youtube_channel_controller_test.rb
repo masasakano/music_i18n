@@ -136,7 +136,7 @@ class Channels::FetchYoutubeChannelControllerTest < ActionDispatch::IntegrationT
     refute_equal(*tras.pluck(:title))
 
     tra_en = tras.find_by(langcode: "en")
-    assert_equal user, tra_en.create_user, "translations=#{tras.where(langcode: 'en').order(:weight).inspect}"
+    assert_equal user, tra_en.create_user, "(NOTE: for some reason, this sometimes fails...) translations=#{tras.where(langcode: 'en').order(:weight).inspect}"
 
     ## 2nd and 3rd runs
     ## (id_at_platform and id_human_at_platform are missing, alternatively) 

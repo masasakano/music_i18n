@@ -467,6 +467,14 @@ module ModuleCommon
     Regexp.new str_re, str_opts
   end
 
+  # Sanitize a user-input String for Regular-expression
+  #
+  # @param str [String]
+  # @return [String]
+  def sanitize_regexp_str(str)
+    str.gsub(/#\{/, "")
+  end
+
   # Returns "'abc'" or "nil"
   #
   # @param s [String]
@@ -496,7 +504,7 @@ module ModuleCommon
   #   add_sql_clause("id < 9", {id: 3})
   #     # => "(id = 3) AND id < 9"
   #
-  # @param original [String, Hash, Array<String, Hash, Array>, NilClass]
+  # @param original [String, Hash, Array<String>, NilClass]
   # @param clause2add [Hash]
   def add_sql_clause(original, clause2add)
     if original.nil? || original.respond_to?(:each_pair)

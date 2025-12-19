@@ -134,12 +134,15 @@ class Harami1129sControllerModeratorTest < ActionDispatch::IntegrationTest
     ##### destroy #####
 
     hs['human_uncheck'] = "0"
-    assert_difference('Harami1129.count', -1) do
+    assert_no_difference('Harami1129.count') do  # Moderators are now banned to destroy Harami1129-s
       delete harami1129_url(h1129)
     end
     assert_response :redirect
-    assert_redirected_to harami1129s_url  # Redirected to Harami1129 index
-    assert_nil Harami1129.find_by_id h1129.id
+    assert_redirected_to root_url
+    assert Harami1129.exists?(h1129.id)
+    #### For admin:
+    # assert_redirected_to harami1129s_url  # Redirected to Harami1129 index
+    # assert_nil Harami1129.find_by_id h1129.id
   end
 end
 

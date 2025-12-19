@@ -442,7 +442,7 @@ class ActiveSupport::TestCase
     end
 
     puts sprintf("(#{__method__}) [Caller-Info] (%s): inner_html=%s", _get_caller_info_message, Nokogiri::HTML(page.html).xpath("/"+XPATHGRIDS[:pagenation_stats])&.inner_html&.strip.inspect) if is_env_set_positive?("PRINT_DEBUG_INFO") # defined in test_helper.rb   # If the line below fails, comment out this line and rerun the test to show the caller.
-    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: n_filtered_entries, n_all_entries: n_all_entries, langcode: langcode)
+    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: n_filtered_entries, n_all_entries: n_all_entries, langcode: langcode, **opts)
   end
 
   # Tests if a Destroy button exists

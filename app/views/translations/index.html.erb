@@ -61,19 +61,19 @@
 <% end %>
 
 <%= datagrid_form_with model: @grid, method: :get, url: translations_path %>
-<% nrows = @grid.assets.count %>
 
 <%= paginate(@grid.assets) %>
 <%= datagrid_table @grid %>
 <%= paginate(@grid.assets) %>
 
-<p>
-  <%= ApplicationController.str_info_entry_page_numbers(@grid, Translation) %>
-</p>
+<%= render "layouts/grid_table_tail", klass: Translation %>
 
 <br>
 
 <% if can? :create, Translation %>
-  <%= link_to 'New Translation', new_translation_path %>
+ <div class="button_new">
+  <%= button_to 'Create New Translation', new_translation_path, method: :get %>
+  <%# link_to 'New Translation', new_translation_path %>
+ </div>
 <% end %>
 
