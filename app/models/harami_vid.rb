@@ -1215,7 +1215,8 @@ class HaramiVid < BaseWithTranslation
   #     [input_lines, changes, csv, artists, musics, hvmas, amps, stats]
   #   where the values are Array except for +stats+, which is {ModuleCsvAux::StatsSuccessFailure}
   #   The array index corresponds to the line number (start from 0).
-  #   Use Array[x].errors.present? to see if the element at Line +x+ has been really saved.
+  #   Use Array[i].errors.present? to see if the element at Line +i+ has been really saved,
+  #   where +i+ means a line number (starting from 0) in the input file or (likely multi-line) String.
   #   Elements can be nil for non-CSV lines (blank or comment lines)
   #   or if they have not been even attempted to be saved;
   #   for example, if Music is not identified, no element for Music-Array, let alone
@@ -1259,7 +1260,7 @@ class HaramiVid < BaseWithTranslation
       arcsv[iline] = hsrow = self.class.convert_csv_to_hash(csv).with_indifferent_access  # defined in ModuleCsvAux
       # Guaranteed there is no "" but nil.
 
-      musics[iline], mu_tit, artists[iline], art_tit = _determine_music_artist_from_csv(hsrow, ea_li, iline: iline)
+      musics[iline], mu_tit, artists[iline], _ = _determine_music_artist_from_csv(hsrow, ea_li, iline: iline)  # The last returned values is the title of Artist (either given or that from best_translation)
       if !musics[iline]
         allstats.rejected_rows += 1
         next
@@ -1298,10 +1299,13 @@ class HaramiVid < BaseWithTranslation
       allstats.unchanged_rows += 1 if !flag_change_dbs.any?
     end
 
+    ## If no Music is found, {musics: [nil, nil]} etc, corresponding to Line-0 and Line-1 in the input file.
+    ## {csv: [...]} is never nil unless the input file is blank.
+    ## {changes: [...]} (and hvmas and amps) can be blank, if none of the elements is set.
     { input_lines: input_lines, changes: arret, csv: arcsv, artists: artists, musics: musics, hvmas: hvmas, amps: amps, stats: allstats }
   end # def populate_hvma_csv(strin)
  
-  private    ################### Callbacks
+  private    ################### including Callbacks
 
     # Channel is automatically associated with Translations after_create
     def save_unsaved_associates  # callback to create(-only) 
@@ -1451,9 +1455,13 @@ class HaramiVid < BaseWithTranslation
     # @param music [Music, NilClass]
     def _narrowed_down_artist(artist, artist_rela, music)
       return artist if artist
-      artist ||= arts.joins(:musics).where("musics.id": music.id).first
+      artist ||= Artist.joins(:musics).where("musics.id": music.id).first
       return artist if artist
 
+      # In the current algorithm, this point should never be reached, because this method
+      # is called only after a Music associated with an Artist among a list of Artists has been determined,
+      # and the sole purpose of this method is to determine which of the Artist-s is
+      # the one associated to the Music. But playing safe...
       msg = sprintf "WARNING: Strangely, Music (pID=%d) does not associate Artists: %s", music.id, arts.inspect
       logger.warn msg
       alert_messages[:warning] << msg

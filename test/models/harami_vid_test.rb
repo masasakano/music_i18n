@@ -504,6 +504,11 @@ class HaramiVidTest < ActiveSupport::TestCase
     art = artists(:artist_yuming)
     art_tit = art.title_or_alt
 
+    # Creates an Artist that has a same Translation as :artist_yuming (to test HaramiVid#_narrowed_down_artist)
+    art2 = Artist.create_basic!(title: "dummy-yuming-fr-title", langcode: "fr", is_orig: true, place: places(:tocho), birth_year: 2001)
+    tra_tmp = Translation.new(alt_title: art_tit, langcode: "ja", is_orig: false, weight: 100)
+    art2.translations << tra_tmp
+
     mu1 = Music.create_basic!(title: mu_tit_base.capitalize, langcode: "en", is_orig: true, year: 1999)
     eng1 = Engage.new(artist: art, engage_how: EngageHow.first)
     mu1.engages << eng1
@@ -519,14 +524,27 @@ class HaramiVidTest < ActiveSupport::TestCase
     assert_equal 3, mu1.translations.count, "sanity check"
     assert hvid.event_items.exists?, "sanity check"
 
+    hsret = nil
     csvstr = "Header,00:00,,#{mu_tit_base},#{art_tit}\n"
     assert_difference('Translation.count*100 + HaramiVidMusicAssoc.count*10 + ArtistMusicPlay.count', 11){
       assert_no_difference('Music.count*1000 + Event.count*100 + EventItem.count*10 + HaramiVidEventItemAssoc.count'){
-        # This does not create Model instances (except Translations, which is irrelevant in this case)
-        arhs = hvid.populate_hvma_csv(csvstr)
+        # This creates Association-instances only (except Translations, which is irrelevant in this case)
+        hsret = hvid.populate_hvma_csv(csvstr)
       }
     }
     assert (hvid.alert_messages[:warning].blank? && hvid.alert_messages[:alert].blank?), "msg="+hvid.alert_messages.inspect
+    assert_equal art, hsret[:artists].first
+
+    ## CSV: no artist
+    csvstr = "#comment line\nHeader,00:00,,naiyo,,hvmas-note,1999\n"
+    assert_no_difference('Translation.count*100 + HaramiVidMusicAssoc.count*10 + ArtistMusicPlay.count'){
+      assert_no_difference('Music.count*1000 + Event.count*100 + EventItem.count*10 + HaramiVidEventItemAssoc.count'){
+        hsret = hvid.populate_hvma_csv(csvstr)
+      }
+    }
+    assert (hvid.alert_messages[:warning].blank? && hvid.alert_messages[:alert].present?), "msg="+hvid.alert_messages.inspect
+    assert_equal [nil, nil], hsret[:musics],  "musics="+hsret.inspect
+    assert_equal [nil, nil], hsret[:artists], "artists="+hsret.inspect
   end
 
   test "deepcopy" do
