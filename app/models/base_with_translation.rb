@@ -1292,7 +1292,7 @@ class BaseWithTranslation < ApplicationRecord
     model
   end
 
-  # Searches based on a keyword, including title
+  # [**OBSOLETE**] Searches based on a keyword, including title
   #
   # If the exact match is found, it is returned as Relation. If not, other candidates are searched.
   #
@@ -1334,7 +1334,7 @@ class BaseWithTranslation < ApplicationRecord
     distinct ? distinct_select_by_kwd(rela) : rela
   end
 
-  # Mimic +SELECT DISTINCT+ with Ruby-uniq for the return from {BaseWithTranslation.select_by_kwd}
+  # [**OBSOLETE**] Mimic +SELECT DISTINCT+ with Ruby-uniq for the return from {BaseWithTranslation.select_by_kwd}
   #
   # @param rela [ActiveRecord::Relation]
   # @return [ActiveRecord::Relation]
@@ -2223,6 +2223,8 @@ class BaseWithTranslation < ApplicationRecord
   # @param **restkeys [Hash] See {Translation.find_all_3cols_by_partial_str}. Notably, you may
   #   specify 1 to +min_(ja|en)_chars+ so as not to restrict searches when a very short keyword is given.
   #   Or, you may specify +order_or_where: :where+ if you do not need sorting.
+  #   Also, you may specify +{best_matches_only: true}+ to return only the best matches (e.g., exact matches only if found,
+  #   ignoring those with an extra definite article)
   # @return [Array<Array<String, Integer>>] [title-or-alt_title, {Translation#langcode}, {Translation#translatable_id}]
   def self.find_all_3cols_by_partial_str(raw_kwd, where: nil, **restkeys)
     where = add_sql_clause(where, {translatable_type: self.name})  # defined in ModuleCommon
@@ -2241,7 +2243,7 @@ class BaseWithTranslation < ApplicationRecord
   #
   # @param raw_kwd [String] e.g., "The Beat" and "Beatles".
   #   Preprocessed with {ModuleCommon#preprocess_space_zenkaku}
-  # @param #see {Translation.find_all_by_partial_str}; You may specify +{order_or_where: :where}+ if you do not care about the order.
+  # @param #see {Translation.find_all_by_partial_str}; You may specify +{order_or_where: :where}+ if you do not care about the order. Also, you may specify +{best_matches_only: true}+ to return only the best matches (e.g., exact matches only if found, ignoring those with an extra definite article)
   # @return [BaseWithTranslatio::Relation]
   def self.find_all_by_partial_str(raw_kwd, *args, **restkeys)
     opts = {parent: self.joins(:translations)}.merge restkeys
@@ -2294,7 +2296,7 @@ class BaseWithTranslation < ApplicationRecord
   # Wrapper of {Translation.find_all_by_partial_str} to return sorted +Translation::Relation+
   #
   # @param #see Translation.find_all_by_partial_str
-  #    NOTE: specify +min_matches: true+ to exclude the matches in lower priorities.
+  #    NOTE: specify +best_matches_only: true+ to exclude the matches in lower priorities.
   # @return [Translation::Relation]
   def self.find_all_translations_by_partial_str(raw_kwd, **restkeys)
     parent = Translation.where(translatable_type: self.name)
@@ -2427,7 +2429,7 @@ class BaseWithTranslation < ApplicationRecord
 
 #if true
     parent = self.class.joins(:translations).where.not("#{self.class.table_name}.id": id)
-    Translation.find_all_by_partial_str(search_word, parent: parent, min_matches: true) # With min_matches, this uses {DbSearchOrder::ClassMethods.find_all_best_matches}
+    Translation.find_all_by_partial_str(search_word, parent: parent, best_matches_only: true) # With best_matches_only, this uses {DbSearchOrder::ClassMethods.find_all_best_matches}
 #else
 #    self.select_translations_partial_str_except_self(
 #      :titles, search_str, langcode: lcode

@@ -1170,10 +1170,10 @@ class HaramiVid < BaseWithTranslation
   # CSV format is defined in {HaramiVid::MUSIC_CSV_FORMAT}
   #
   # This method does **not** register (or update) a new Music or Artist information to DB,
-  # but only a {HaramiVidMusicAssoc} basically, except that an EN Translation may be created
-  # and/or {Music#note} and/or {HaramiVidMusicAssoc#note} may be updated.
-  # For a completely new Music or Artist, register it with the standard method
-  # of either via UI or CSV uploading.
+  # but may only create a {HaramiVidMusicAssoc} and {ArtistMusicPlay} basically, and in some cases,
+  # maybe an EN Translation.  But {Music#note} and/or {HaramiVidMusicAssoc#note} may be updated.
+  # If you want to register a timestamp for a completely new Music or Artist, register it first
+  # with the standard method of either via UI or CSV uploading.
   #
   # When an inconsistency is found, this either raise an error or warning in flash.
   #
@@ -1251,7 +1251,7 @@ class HaramiVid < BaseWithTranslation
       begin
         csv = CSV.parse(ea_li.strip)[0] || next  # for the blank line, csv.nil? (n.b. without strip, a line with a space would be significant.)
       rescue CSV::MalformedCSVError => er
-        alert_messages[:alert] << "ERROR(#{er.class.name}) at Line #{iline} with message (#{er.message.sub(/ in line 1.?$/, '')}): [Original CSV line] "+ea_li.strip
+        alert_messages[:alert] << "ERROR(#{er.class.name}) at Line #{iline+1} with message=(#{er.message.sub(/ in line 1.?$/, '')}): [Original CSV line] "+ea_li.strip
         arret[iline] = false  # Array "change" has +false+ as a special case (of CSV-format-Error)
         next
       end
@@ -1397,7 +1397,7 @@ class HaramiVid < BaseWithTranslation
       str_muss = relation2links(muss, distinct: false){ |record, title|  # defined in ModuleCommon
         [sprintf("%s (by %s)", definite_article_to_head(record.title_or_alt(langcode: nil)), definite_article_to_head(record.most_significant_artist.title_or_alt(langcode: nil))),
          "(pID=#{record.id})"]
-      }.join("; ")
+      }.join("; ").html_safe
       msg = ERB::Util.html_escape("WARNING: Multiple Musics (for Artist #{art_tit.inspect}) are found: ") + str_muss
       alert_messages[:warning] << msg.html_safe
 
@@ -1428,7 +1428,7 @@ class HaramiVid < BaseWithTranslation
 
       art_tit= hsrow[:artist]  # as in CSV input; n.b., hsrow[:artist] is guaranteed to be String.
       if art_tit.blank?
-        alert_messages[:alert] << "ERROR: "+klass.name+" #{hsrow[kwd].strip.inspect} is NULL on CSV."
+        alert_messages[:alert] << "ERROR: Artist is NULL on CSV line: "+org_line
         return
       end
 
@@ -1467,7 +1467,11 @@ class HaramiVid < BaseWithTranslation
     # If something goes wrong, nil is returned, while self.errors is set.
     # Otherwise, 3rd element +art_tit+ (String) is guaranteed to be defined.
     # Relation (1st) is usually defined but can be nil if pID is the given title in CSV.
-    # artist (2nd) is only defined if a single Artist is determined.
+    # music (2nd) is only defined if a single Artist is determined.
+    #
+    # Note that even if music exists, meaning a single Artist has been determined,
+    # the first element +Music::Relation+ may still have multiple records, that is,
+    # the single Music with multiple associations (like multiple Engage-s for an Artist).
     #
     # == Algorithm
     #
@@ -1512,7 +1516,7 @@ class HaramiVid < BaseWithTranslation
       muss_without_artist_size = muss_without_artist.count # muss_without_artist.distinct.count should be unnecessary
 
       muss2 = muss_without_artist.joins(:artists).where("artists.id": arts.ids)
-      case muss2.count # muss2.distinct.count
+      case muss2.uniq.size # muss2.distinct.count  # "uniq" is essential because if an Artist associates through multiple Engages, muss2 always has multiple records (and distinct cannot be used here due to the SQL ORDER statements)!
       when 0
         # No Music is found for the Title and Artist.
         links_mu  = relation2links(muss_without_artist, distinct: false){ |record, title|  # defined in ModuleCommon
@@ -1533,7 +1537,10 @@ class HaramiVid < BaseWithTranslation
         music = muss2.first
         s_link = ActionController::Base.helpers.link_to(mu_tit.inspect, Rails.application.routes.url_helpers.music_path(music), title: "pID=#{music.id}")
         if hsrow[:year].blank? || music.year.blank? || (hsrow[:year].to_i == music.year)
-          alert_messages[:warning] << "WARNING: Music #{s_link} has year=nil while CSV specifies Year=#{hsrow[:year]}. You may manually update it.".html_safe if music.year.blank?
+          if music.year.blank?
+            s = (hsrow[:year].blank? ? "" : " (while CSV specifies Year=#{hsrow[:year]})")
+            alert_messages[:warning] << "WARNING: Music #{s_link} has year=nil#{s}. You may MANUALLY update it.".html_safe 
+          end
           return [muss2, music, mu_tit]
         else
           msg = "ERROR: Music #{s_link} at year=(#{music.year.inspect}) has the specified title and Artist but an inconsistent year (CSV-specified=#{hsrow[:year].inspect}). Skip."
@@ -1547,12 +1554,12 @@ class HaramiVid < BaseWithTranslation
 
       # If year is specified in CSV, we narrow it down.
       muss3 = muss2.where(year: hsrow[:year].to_i).or(muss2.where(year: nil))
-      case muss3.count # muss3.distinct.count
+      case muss3.uniq.size # muss3.distinct.count
       when 0
         str_muss = relation2links(muss2, distinct: false){ |record, title|  # defined in ModuleCommon
           [sprintf("%s (Year=%s)", definite_article_to_head(record.title_or_alt(langcode: nil)), record.year.inspect),
            "(pID=#{record.id})"]
-        }.join("; ")
+        }.join("; ").html_safe  # html_safe is essential; othewise the following "+" forcibly escape this!
         msg = ERB::Util.html_escape("ERROR: Musics that agree with title #{mu_tit.inspect} are all inconsistent with specified year (#{hsrow[:year]}): ") + str_muss
         alert_messages[:alert] << msg.html_safe
         return
@@ -1580,11 +1587,9 @@ class HaramiVid < BaseWithTranslation
         return nil
       else
         search_word = definite_article_to_tail(hsrow[kwd].strip)
-        rela = klass.select_by_kwd(search_word, distinct: true)
-        return rela if rela.exists?
-
-        alert_messages[:alert] << "ERROR: #{+klass.name} for #{hsrow[kwd].strip.inspect} is not found." if report_error
-        return nil
+        # rela = klass.select_by_kwd(search_word, distinct: true)  # legacy way
+        rela = klass.find_all_by_partial_str(search_word, best_matches_only: true)
+        (rela.exists? ? rela : nil)  # The caller should decide about error/warning messages
       end
     end
     private :_guessed_model_insts
@@ -1603,6 +1608,7 @@ class HaramiVid < BaseWithTranslation
     def _update_note_from_csv(record, hsrow, kwd, mu_tit, rlc, do_update: false)
       in_note = hsrow[kwd]
       note2add = (in_note.present? ? preprocess_space_zenkaku(in_note, strip_all: true) : nil)
+      return if !note2add
 
       if record.note.blank?
         record.note = note2add
@@ -1620,7 +1626,7 @@ class HaramiVid < BaseWithTranslation
           alert_messages[:notice] << notice_msg
           return
         end
-      elsif note2add && !record.note.include?(note2add)
+      elsif !record.note.include?(note2add)
         tgtpath = 
           if record.respond_to?(:music)  # HaramiVidMusicAssoc (possibly also ArtistMusicPlay in the future?)
             music = record.music

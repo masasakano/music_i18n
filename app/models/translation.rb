@@ -1286,8 +1286,8 @@ class Translation < ApplicationRecord
   # @param columns: [Array<String, Symbol>, NilClass] columns to search. If nil, automatically set to
   #   +[:title, :alt_title, :romaji, :alt_romaji]+ if +raw_kwd+ does NOT contain Asian characters, else
   #   +[:title, :alt_title, :ruby, :alt_ruby]+.
-  # @param min_matches: [Boolean] if true (Def: false), search attempts stop when matches are found
-  #   in the most strict condition withing the list of conditions specified in +order_steps+ (in +restkeys+).
+  # @param best_matches_only: [Boolean] if true (Def: false), search attempts stop when matches are found
+  #   in the most strict condition within the list of conditions specified in +order_steps+ (in +restkeys+).
   #   For example, if exact matches are found, this does not perform case-insensitive searches.
   #   Default is false, so with the default +order_steps+, seaches are performed on the basis of
   #   case-insensitive, definite-article-insensitive, and space-insensitive.  The result is
@@ -1298,7 +1298,7 @@ class Translation < ApplicationRecord
   # @param order_steps: [Array<String, Symbol>] examining methods in this order. Default: {DbSearchOrder::PSQL_MATCH_ORDER_STEPS}
   #    Specifically, if you want only exact matches (for the stripped String), specify: +order_steps: [:exact]+
   # @return [ActiveRecord::Relation] Default is +Translation::Relation+ unless +parent+ is specified.
-  def self.find_all_by_partial_str(raw_kwd, columns: nil, min_matches: false, order_or_where: :both, min_ja_chars: DEF_MIN_REGEXP_N_CHARS[:ja], min_en_chars: DEF_MIN_REGEXP_N_CHARS[:en], **restkeys)
+  def self.find_all_by_partial_str(raw_kwd, columns: nil, best_matches_only: false, order_or_where: :both, min_ja_chars: DEF_MIN_REGEXP_N_CHARS[:ja], min_en_chars: DEF_MIN_REGEXP_N_CHARS[:en], **restkeys)
     kwd = preprocess_space_zenkaku(raw_kwd, strip_all: true)  # spaces are agressively stripped and truncated
     has_asian = contain_asian_char?(kwd)
     columns ||= [:title, :alt_title] +
@@ -1308,7 +1308,7 @@ class Translation < ApplicationRecord
       restkeys.merge!({order_steps: [:exact, :case_insensitive]})
     end
 
-    metho = (min_matches ? :find_all_best_matches : :find_all_by_affinity)
+    metho = (best_matches_only ? :find_all_best_matches : :find_all_by_affinity)
     send(metho, columns, kwd, order_or_where: order_or_where, **restkeys)
   end
 

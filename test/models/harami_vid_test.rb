@@ -498,6 +498,37 @@ class HaramiVidTest < ActiveSupport::TestCase
     refute hvid.is_place_all_consistent?(strict: false)
   end
 
+  test "populate_hvma_csv" do
+    mu_tit_base = "naiyo-experiment-a"
+    hvid = harami_vids(:harami_vid1)
+    art = artists(:artist_yuming)
+    art_tit = art.title_or_alt
+
+    mu1 = Music.create_basic!(title: mu_tit_base.capitalize, langcode: "en", is_orig: true, year: 1999)
+    eng1 = Engage.new(artist: art, engage_how: EngageHow.first)
+    mu1.engages << eng1
+    eng2 = Engage.new(artist: art, engage_how: EngageHow.second)
+    mu1.engages << eng2
+
+    tra1 = mu1.translations.first
+    tra1.update!(weight: 100)
+    tra2 = Translation.new(title: mu_tit_base.upcase, langcode: "en", is_orig: true, weight: 4444444)
+    mu1.translations << tra2
+    tra3 = Translation.new(title: mu_tit_base+", The", langcode: "en", is_orig: true, weight: 3333333)  # This should be completely ignored because DbSearchOrder's find_all_best_matches would eliminate this as a lower-priority one.
+    mu1.translations << tra3
+    assert_equal 3, mu1.translations.count, "sanity check"
+    assert hvid.event_items.exists?, "sanity check"
+
+    csvstr = "Header,00:00,,#{mu_tit_base},#{art_tit}\n"
+    assert_difference('Translation.count*100 + HaramiVidMusicAssoc.count*10 + ArtistMusicPlay.count', 11){
+      assert_no_difference('Music.count*1000 + Event.count*100 + EventItem.count*10 + HaramiVidEventItemAssoc.count'){
+        # This does not create Model instances (except Translations, which is irrelevant in this case)
+        arhs = hvid.populate_hvma_csv(csvstr)
+      }
+    }
+    assert (hvid.alert_messages[:warning].blank? && hvid.alert_messages[:alert].blank?), "msg="+hvid.alert_messages.inspect
+  end
+
   test "deepcopy" do
     ms = __method__.to_s
     h1129 = mk_h1129_live_streaming(ms, do_test: false)  # defined in test_controller_helper.rb

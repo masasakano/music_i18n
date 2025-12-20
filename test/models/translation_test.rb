@@ -488,8 +488,8 @@ class TranslationTest < ActiveSupport::TestCase
     assert_equal [Sex[1], Sex[2]], Translation.find_all_by_partial_str( "ale", parent: parent).order(iso5218: :desc).to_a
     assert_equal [Sex[2], Sex[1]], Translation.find_all_by_partial_str("MALE", parent: parent).reorder(iso5218: :desc).to_a
 
-    assert_equal [Sex[1], Sex[2]], Translation.find_all_by_partial_str( "ale", parent: parent, min_matches: false).to_a
-    assert_equal [Sex[1]],         Translation.find_all_by_partial_str("MALE", parent: parent, min_matches: true).to_a
+    assert_equal [Sex[1], Sex[2]], Translation.find_all_by_partial_str( "ale", parent: parent, best_matches_only: false).to_a
+    assert_equal [Sex[1]],         Translation.find_all_by_partial_str("MALE", parent: parent, best_matches_only: true).to_a
     assert_equal [Sex[2]],         Translation.find_all_by_partial_str("MALE", parent: parent).where("iso5218 > ?", 1).to_a  # NOTE: Float (like 1.5) would raise ActiveRecord::StatementInvalid: PG::InvalidTextRepresentation
     assert_equal %w(male female),  Translation.find_all_by_partial_str("MALE", parent: parent).pluck("translations.title")
   end
