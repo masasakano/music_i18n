@@ -107,10 +107,9 @@ class ConcernsDbSearchOrderTest < ActiveSupport::TestCase
       rela = Translation.find_all_by_affinity( :title, kwd, upto: :space_insensitive_exact, **def_opts)
       rel2 = Translation.find_all_best_matches(:title, kwd, upto: :space_insensitive_exact, **def_opts_min)
       exp = [tras[:s11].id]
-      assert_equal exp, rela.ids
+      assert_equal exp, rela.ids, "kwd=#{kwd.inspect}"
       assert_equal exp, rel2.ids
     end
-#debugger
 
     kwd = " ST33 3Day " # Space-insensitive partial match (also about a dash/hyphen/mdash)
     rela = Translation.find_all_by_affinity( :title, kwd, upto: :case_insensitive, **def_opts)

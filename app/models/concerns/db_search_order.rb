@@ -11,10 +11,10 @@ module DbSearchOrder
   #
   # Unicode "Pd" is: '\u002D\u058A\u05BE\u2010\u2011\u2012\u2013\u2014\u2015\u2E3A\u2E3B\uFE58\uFE63\uFF0D'
   # cf. https://www.compart.com/en/unicode/category/Pd
-  # However, Ruby's [\p{Dash}] may slightly differ as follows.
+  # However, Ruby's +[\p{Dash}]+ may slightly differ as follows; specifically, "・" is not included in +[\p{Dash}]+.
   # cf. https://stackoverflow.com/a/73562709/3577922
   # cf. https://qiita.com/YSRKEN/items/edb5bab23b7d92a3bf63
-  PSQL_UNICODE_DASH = '\xAD\u002D\u058A\u05BE\u1400\u1806\u2010-\u2015\u2E17\u2E1A\u2E3A\u2E3B\u2E40\u301C\u3030\u30A0\uFE31\uFE32\uFE58\uFE63\uFF0D'
+  PSQL_UNICODE_DASH = '\u002D\u00AD\u058A\u05BE\u1400\u1806\u2010-\u2015\u2E17\u2E1A\u2E3A\u2E3B\u2E40\u301C\u3030\u30A0\uFE31\uFE32\uFE58\uFE63\uFF0D'  # n.b., the ASCII hyphen is expressed in Unicode and does not affect Regexp.  '\u00AD' is equivalent to '\xAD' in PostgreSQL
   PSQL_UNICODE_MIDDLE_DOT = '\u00B7\u2022\u0387\u2219\u22C5\u30FB\uFF65'
 
   PSQL_UNICODE_EQUAL = '\u003d\uFF1D'
@@ -22,6 +22,9 @@ module DbSearchOrder
   # Spaces plus middle-point characters like hyphens and equals.
   # Use in PostgreSQL regexp like "[#{PSQL_UNICODE_ALL_MIDDLE_PUNCT}]"
   PSQL_UNICODE_ALL_MIDDLE_PUNCT = '\s' + PSQL_UNICODE_DASH + PSQL_UNICODE_MIDDLE_DOT + PSQL_UNICODE_EQUAL
+
+  # Spaces plus middle-point characters like hyphens and equals for use in Ruby.
+  RUBY_UNICODE_ALL_MIDDLE_PUNCT = '\s' + (PSQL_UNICODE_DASH + PSQL_UNICODE_MIDDLE_DOT + PSQL_UNICODE_EQUAL).gsub(/\\x([0-9a-fA-F]{2})/){$1.hex.chr("UTF-8")}.gsub(/\\u([0-9A-Fa-f]{4})/){ [$1.hex].pack("U") }.sub(/\-/, "\\-")  # Regexp.quote does not work well (because it escapes a hyphen-like character '—' (\u2014), which it should not...)!!!
 
   module ClassMethods
     # Find all records by columns (title, alt_title, ruby, alt_romaji, etc) affinity, prioritizing matches.
@@ -206,7 +209,7 @@ module DbSearchOrder
           kwds[:quoted_no_article_like] = connection.quote(sanitize_sql_like(kwds[:no_article]))
 
           if (ind=order_steps.find_index(:space_insensitive_exact)) && index_upto >= ind
-            kwds[:truncated_base] = kwds[:no_article].gsub(/[\s\p{Dash}]/u, "")  # definitely-article-stripped, space-hyphen-stripped, and downcased
+            kwds[:truncated_base] = kwds[:no_article].gsub(/[#{RUBY_UNICODE_ALL_MIDDLE_PUNCT}]/u, "")  # definitely-article-stripped, space-hyphen-stripped, and downcased; n.b., /[\s\p{Dash}]/u would not include Japanese "nakaguro"
             # kwds[:quoted_truncated_base] = connection.quote(kwds[:truncated_base])
             kwds[:truncated_like] = sanitize_sql_like(kwds[:truncated_base])
             kwds[:quoted_truncated_like] = connection.quote(sanitize_sql_like(kwds[:truncated_base]))

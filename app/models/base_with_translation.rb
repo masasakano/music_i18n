@@ -1144,7 +1144,7 @@ class BaseWithTranslation < ApplicationRecord
     uniq ? ret.uniq : ret  # equality based on BaseWithTranslation#id
   end
 
-  # Wrapper of {Translation.find_by_a_title}
+  # [**OBSOLETE**] Wrapper of {Translation.find_by_a_title}
   #
   # To find the first {Translation} that matches a String and maybe
   # other conditions in {#translations}.

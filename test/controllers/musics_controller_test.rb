@@ -27,6 +27,42 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     if is_env_set_positive?('TEST_STRICT')  # defined in application_helper.rb
       w3c_validate "Music index"  # defined in test_helper.rb (see for debugging help)
     end  # only if TEST_STRICT, because of invalid HTML for datagrid filter for Range
+
+    mu2   = musics(:music2)    # title(en): Give Peace a Chance Music2
+    mu3   = musics(:music3)    # title(en): Give Peace a Chance Music3
+    mu99  = musics(:music99)   # title(en): Give Peace a Chance Music99
+    mu999 = musics(:music999)  # title(en): Give Peace a Chance Music999
+    assert [mu2, mu3, mu99, mu999].all?{ _1.title(langcode: :en).include?("Chance Music") }, 'fixture tests'
+
+    kwd = "ance Music"
+    hs = params_hash_for_index_grid(Music, locale: :en, title_ja: kwd, year: (nil..))  # defined in test_helper.rb
+    get musics_path, params: hs
+    assert_response :success
+
+    hsstats = get_grid_pagenation_stats(langcode: :en, for_system_test: false)  # defined in test_helper.rb
+    assert_operator 4, :<=, hsstats[:n_entries]
+
+    tits = css_select(CSSGRIDS[:td_title_en]).map(&:text)
+    assert_includes [mu2, mu3].map{ _1.title(langcode: :en)}, tits.first
+    assert_equal mu999.title(langcode: :en), tits.last
+
+    ## search based on alt_title with is_orig=false
+    # This "nakaguro" caused a problem.
+    tit3_ja = "チャンス・ミュージック3"
+    assert_difference('Translation.count'){
+      mu3.translations << Translation.new(title: mu3.title(langcode: :en), alt_title: tit3_ja, langcode: "ja", is_orig: false, weight: 100)    # title(en): Give Peace a Chance Music3
+    }
+
+    kwd = tit3_ja[2..-2]
+    hs = params_hash_for_index_grid(Music, locale: :en, title_ja: kwd, year: (nil..))  # defined in test_helper.rb
+    get musics_path, params: hs
+    assert_response :success
+
+    hsstats = get_grid_pagenation_stats(langcode: :en, for_system_test: false)  # defined in test_helper.rb
+    assert_equal 1, hsstats[:n_entries]
+
+    tits = css_select(CSSGRIDS[:td_title_en]).map(&:text)
+    assert_equal mu3.title(langcode: :en), tits.last
   end
 
   test "should create" do

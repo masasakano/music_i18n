@@ -1351,7 +1351,7 @@ class Translation < ApplicationRecord
     
   # Returns a double Array of 3 columns of [title-or-alt_title, {#langcode}, {#translatable_id}],
   # removing either title or alt_title from the input +ar_cols+,
-  # leaving the most likely one (judging from the length only).
+  # leaving the most likely one (judging from the length and the languages).
   #
   # @return [Array<Array<String>>]
   def self._remove_title_or_alt_from_4cols(raw_kwd, ar_cols)
@@ -1366,7 +1366,11 @@ class Translation < ApplicationRecord
   end
   private_class_method :_remove_title_or_alt_from_4cols
 
-  # Returns the better match to keyword between title and alt_title
+  # Returns the *better* match to keyword between title and alt_title
+  #
+  # "better" is based on the length and the languages.  For the latter,
+  # for example, if the search word and +title+ are clearly Japanese and
+  # if +alt_title+ is NOT, +title+ is returned.
   #
   # @param raw_kwd [String]
   # @param tit [String]
@@ -1376,32 +1380,35 @@ class Translation < ApplicationRecord
     kwd ||= preprocess_space_zenkaku(raw_kwd, strip_all: true)  # defined in ModuleCommon; spaces are agressively stripped and truncated
     kwd_siz = kwd.size
     kwd_wo_article_siz ||= definite_article_stripped(kwd).size  # defined in ModuleCommon
+    kwd_locale = guess_lang_code(kwd)  # If both search-word and title/alt are the same languages, 0, else 1.
 
     [tit, alt_tit].map { |ev|
-      next [Float::INFINITY, 9, ev] if ev.blank?
+      next [1, Float::INFINITY, 9, ev] if ev.blank?
       weight_diff = ev.size - kwd_siz
-      if weight_diff < 0
-        if ev.size < kwd_wo_article_siz
-          [Float::INFINITY, 0, ev]
-        else
-          ## kwd has a definite article, while title may not
-          [weight_diff.abs, 1, ev]
-        end
-      else
-        if (evmod=definite_article_stripped(ev)) != ev
-          ## title has a definite article.
-          if kwd_siz == kwd_wo_article_siz
-            ## title has a definite article, while kwd does not. title is likely to be correct.
-            [(evmod.size - kwd_siz).abs, -1, ev]
+      diff_lang = ((guess_lang_code(ev) == kwd_locale) ? 0 : 1)
+      [diff_lang] +
+        if weight_diff < 0
+          if ev.size < kwd_wo_article_siz
+            [Float::INFINITY, 0, ev]
           else
-            ## Both title and kwd have a definite article.  Giving a higher priority (than the perfect match without a definite article).
-            [(evmod.size - kwd_wo_article_siz).abs, -1, ev]
+            ## kwd has a definite article, while title may not
+            [weight_diff.abs, 1, ev]
           end
         else
-          ## title does not have a definite article.
-          [weight_diff, 0, ev]
+          if (evmod=definite_article_stripped(ev)) != ev
+            ## title has a definite article.
+            if kwd_siz == kwd_wo_article_siz
+              ## title has a definite article, while kwd does not. title is likely to be correct.
+              [(evmod.size - kwd_siz).abs, -1, ev]
+            else
+              ## Both title and kwd have a definite article.  Giving a higher priority (than the perfect match without a definite article).
+              [(evmod.size - kwd_wo_article_siz).abs, -1, ev]
+            end
+          else
+            ## title does not have a definite article.
+            [weight_diff, 0, ev]
+          end
         end
-      end
     }.sort.first.last  # "first" selects an Array containing either title or alt_title, and last selects a String (title or alt_title)
   end
   

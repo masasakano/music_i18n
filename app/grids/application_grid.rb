@@ -151,7 +151,8 @@ class ApplicationGrid < Datagrid::Base
       str = preprocess_space_zenkaku(value, article_to_tail=true)
       trans_opts = {accept_match_methods: [:include_ilike]}
       trans_opts[:langcode] = langcode if langcode
-      ids = self.find_all_by_a_title(:titles, str, uniq: true, **trans_opts).map(&:id)
+      # ids = self.find_all_by_a_title(:titles, str, uniq: true, **trans_opts).map(&:id)
+      ids = self.find_all_ids_by_partial_str(str, order_or_where: :where, min_ja_chars: 0, min_en_chars: 0).uniq  # Even 1-character search is accepted (used in tests like /test/system/artists_test.rb ).
       self.where id: ids
     end
   end

@@ -289,7 +289,9 @@ class Music < BaseWithTranslation
   # @return [String]
   def title_maybe_with_artist(**kwds)
     mu_tit = title_or_alt(**kwds)
-    if Music.find_all_by_a_title(:all, mu_tit, uniq: true).size <= 1
+    # if Music.find_all_by_a_title(:all, mu_tit, uniq: true).size <= 1
+    if self.class.find_all_by_partial_str(mu_tit, order_or_where: :where, upto: :space_insensitive_exact).uniq.size <= 1
+      ## Found no Music with a similar name (ignoring the differences in case-sensitivity, a definite article, spaces)
       return mu_tit
     else
       art_tit = most_significant_artist.title_or_alt(langcode: nil, lang_fallback_option: :either, article_to_head: true)

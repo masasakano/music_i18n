@@ -28,9 +28,14 @@ class MusicsGrid < ApplicationGrid
   filter(:artists, :string, header: Proc.new{I18n.t("datagrid.form.artists", default: "Artist (partial-match)")}, input_options: {"data-1p-ignore" => true}) do |value|  # Only for PostgreSQL!
     str = preprocess_space_zenkaku(value, article_to_tail=true)
     trans_opts = {accept_match_methods: [:include_ilike], translatable_type: 'Artist'}
+if false  ############# legacy
     arts = Artist.find Translation.find_all_by_a_title(:titles, value, **trans_opts).uniq.map(&:translatable_id)
     # self.joins(:engages).where('engages.artist_id IN (?)', arts.map(&:id)).distinct  # This would break down when combined with order()
     ids = Music.joins(:engages).where('engages.artist_id IN (?)', arts.map(&:id)).distinct.pluck(:id)
+else
+    art_ids = Artist.find_all_ids_by_partial_str(value, order_or_where: :where).uniq
+    ids = Music.joins(:engages).where('engages.artist_id IN (?)', art_ids)
+end
     self.where id: ids
   end
 

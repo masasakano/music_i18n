@@ -830,6 +830,80 @@ class ActiveSupport::TestCase
     assert_empty msg_alert, "(#{caller_info}):Alert: #{msg_alert}"
   end
 
+  # Returning a Hash for params for an index page of Grids for Controller tests
+  #
+  # Wrapper of {#params_hash_for_index_grid_general}
+  #
+  # @example  No need to include all the parameters for +params+
+  #    hs = params_hash_for_index_grid(Music, locale: :ja, title_en: "Rock", year: (nil..))  # defined in test_helper.rb
+  #    get musics_path, params: hs
+  #    assert_response :success
+  #
+  # @return klass [Class] ActiveRecord class
+  # @param **rest [Hash] see params_hash_for_index_grid_general
+  # @return [Hash]
+  def params_hash_for_index_grid(klass, **rest)
+    hs_default = 
+      case klass.name
+      when "Music"
+        {id: [], title_ja: "", title_en: "", year: [], country: "", artists: ""}
+      else
+        raise "Not supported, yet...  Contact the code developer: "+klass.inspect
+      end
+
+    params_hash_for_index_grid_general(klass, **(hs_default.merge(rest)))
+  end
+
+  # Core routine to return a Hash for params for an index page of Grids
+  #
+  # @example
+  #    hs = params_hash_for_index_grid(:musics_grid, id: [], title_ja: "", title_en: "", year: [], country: "", artists: "")
+  #     # => { locale: "ja", commit: "Apply",
+  #     #      musics_grid: {id: {from: "", to: ""}, title_ja: "ウィ・ウィル・ロック・ユー", title_en: "",
+  #     #        year: {from: "2012", to: ""}, country: "", artists: "", max_per_page: "25"}
+  #    post musics_path, params: hs
+  #
+  # @param klass [Class, String, Symbol] ActiveRecord class or Symbol or String for the main key for +params+.
+  # @param locale: [String, Symbol] langcode like +:en+ (Def).  Note this is NOT +langcode+
+  # @param common_commit: [String, NilClass] Commit option (common for any index), like "Apply" or "適用"
+  # @param max_per_page: [Integer, String, NilClass] Default: {ApplicationGrid::DEF_MAX_PER_PAGE}
+  # @param **rest [Hash] Parameters that should be included in params. The values for any of the keys should never be nil
+  #    in general as long as the key should be included in +params+.
+  #    For a range, either Range or 2-element Array should be given, where elements can be nil.
+  #    A Range of +(nil..)+ is perfectly fine.
+  #    Give nil only if you want the parameter not to be included in params.  Give an empty String +""+
+  #    for the parameters that a user does not set by UI in submitting.
+  # @return [Hash]
+  def params_hash_for_index_grid_general(klass_or_key, locale: :en, common_commit: nil, max_per_page: ApplicationGrid::DEF_MAX_PER_PAGE.to_s, **rest)
+    common_commit ||= I18n.t("datagrid.form.search", locale: locale)
+    hskey = (klass_or_key.respond_to?(:name) ? (klass_or_key.name.underscore.pluralize + "_grid").to_sym : klass_or_key.to_sym)
+
+    hs2pass = rest.map{ |ek, ev|
+      (s=_params_hash_for_index_grid_preprocess(ev)) ? [ek, s] : nil
+    }.compact.to_h
+    hs2pass.merge!( { max_per_page: max_per_page.to_s } )
+
+    {locale: locale, commit: common_commit}.merge({hskey => hs2pass})
+  end
+
+  # Returns a Hash for params for an index page of Grids
+  #
+  # @param value [String, Range, Array, NilClass] For a range, either Range or 2-element Array should be given, where elements can be nil.
+  #    A Range of +(nil..)+ is perfectly fine.
+  #    Give nil only if you want the parameter not to be included in params.  Give an empty String +""+
+  #    for the parameters that a user does not set by UI in submitting.
+  # @return [NilClass, String] nil is returned if value is nil, namely a value for an invalid key.
+  def _params_hash_for_index_grid_preprocess(value)
+    return nil if value.nil?
+    if value.respond_to?(:begin) && value.respond_to?(:end)
+      {from: (value.begin || ""), to: (value.end  || "")}
+    elsif value.respond_to?(:to_a)
+      {from: (value.first || ""), to: (value.last || "")}
+    else
+      value.to_s
+    end
+  end
+  private :_params_hash_for_index_grid_preprocess
 
   # This is usually called by a Controller test after GET/PATCH etc.
   #
@@ -1147,7 +1221,6 @@ class ActiveSupport::TestCase
   #
   # @return [Hash<Integer>] Keys from {ApplicationController::GRID_INFOS[:entry_fmt_keys]} with Integer values
   def get_grid_pagenation_stats(langcode: I18n.locale, for_system_test: true)
-    metho = (for_system_test ? :find : :css_select) 
     i = -1
     regex_txt = Regexp.quote(ApplicationController::GRID_INFOS[:entry_fmts].join("")).gsub(/%([sd])/){
       i += 1
@@ -1166,8 +1239,14 @@ class ActiveSupport::TestCase
       end
     }
 
+    xp = "/"+XPATHGRIDS[:pagenation_stats]
     begin
-      text = send(metho, :xpath, "/"+XPATHGRIDS[:pagenation_stats]).text
+      text =
+        if for_system_test 
+          find(:xpath, xp).text
+        else
+          Nokogiri::HTML(response.body).xpath(xp).first.text
+        end
     rescue NoMethodError #=> err
       ## This should never happen.
       #    eval error: undefined method 'document' for an instance of Symbol
