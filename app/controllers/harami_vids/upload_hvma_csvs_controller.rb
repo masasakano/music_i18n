@@ -159,7 +159,9 @@ class HaramiVids::UploadHvmaCsvsController < ApplicationController
               csv["music_note"]
             when *(%w(artist_ja artist_en))
               artist4music = csv["artist"]
-              if artist4music.respond_to?(:gsub)
+              if artist4music.blank?
+                nil
+              elsif artist4music.respond_to?(:gsub)
                 mu_key = "artist_" + guess_lang_code(artist4music)  # defined in ModuleCommon
                 (mu_key == mu_csv_key.to_s) ?  artist4music : nil
               else  # Artist model instance.
