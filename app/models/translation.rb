@@ -1253,9 +1253,9 @@ class Translation < ApplicationRecord
 
   # Similar to {Translation.select_partial_str}, but more sophisticated, especially in sorting.
   #
-  # This is a wrapper of {DbSearchOrder#find_all_by_affinity}, so
+  # This is a wrapper of {DbSearchOrder::ClassMethods#find_all_by_affinity}, so
   # the optional arguments differ from {Translation.select_partial_str}.
-  # Unlike {DbSearchOrder#find_all_by_affinity}, the first argument is the keyword,
+  # Unlike {DbSearchOrder::ClassMethods#find_all_by_affinity}, the first argument is the keyword,
   # and +columns+ is an optional argument (it is automatically set if nil), and
   # +order_or_where+ is an optional parameter.
   #
@@ -1293,23 +1293,28 @@ class Translation < ApplicationRecord
   #   case-insensitive, definite-article-insensitive, and space-insensitive.  The result is
   #   sorted (ordered) by the strictness of the conditions, nonetheless, in default (+order_or_where: :both+).
   # @param order_or_where: [Symbol] (optional) :order or :where or :both (Def)
+  # @param upto: [Symbol, NilClass] Up to which step of +order_steps+ or nil, which is Default and means all steps.  See {DbSearchOrder::PSQL_MATCH_ORDER_STEPS} for the step names.
   # @param min_ja_chars: [Integer] minimum number of characters to use partial matches when +raw_kwd+ contains Asian characters
   # @param min_en_chars: [Integer] Same as +min_ja_chars+ but for any other languages.
-  # @param order_steps: [Array<String, Symbol>] examining methods in this order. Default: {DbSearchOrder::PSQL_MATCH_ORDER_STEPS}
+  # @param **restkeys [Hash] including @param order_steps [Array<String, Symbol>] examining methods in this order. Default: {DbSearchOrder::PSQL_MATCH_ORDER_STEPS}
   #    Specifically, if you want only exact matches (for the stripped String), specify: +order_steps: [:exact]+
   # @return [ActiveRecord::Relation] Default is +Translation::Relation+ unless +parent+ is specified.
-  def self.find_all_by_partial_str(raw_kwd, columns: nil, best_matches_only: false, order_or_where: :both, min_ja_chars: DEF_MIN_REGEXP_N_CHARS[:ja], min_en_chars: DEF_MIN_REGEXP_N_CHARS[:en], **restkeys)
+  def self.find_all_by_partial_str(raw_kwd, columns: nil, best_matches_only: false, order_or_where: :both, upto: nil, min_ja_chars: DEF_MIN_REGEXP_N_CHARS[:ja], min_en_chars: DEF_MIN_REGEXP_N_CHARS[:en], **restkeys)
     kwd = preprocess_space_zenkaku(raw_kwd, strip_all: true)  # spaces are agressively stripped and truncated
     has_asian = contain_asian_char?(kwd)
     columns ||= [:title, :alt_title] +
                 (has_asian ? [:ruby, :alt_ruby] : [:romaji, :alt_romaji])
 
     if !_should_use_regexp?(kwd, min_ja_chars: min_ja_chars, min_en_chars: min_en_chars)
-      restkeys.merge!({order_steps: [:exact, :case_insensitive]})
+      order_steps = [:exact, :case_insensitive]
+      restkeys.merge!({order_steps: order_steps})
+      if upto && ![:exact, :case_insensitive].include?(upto.to_sym)
+        upto = order_steps.last  # Without this, find_all_by_affinity (in DbSearchOrder) would raise ArgumentError "upto is not one of order_steps".
+      end
     end
 
     metho = (best_matches_only ? :find_all_best_matches : :find_all_by_affinity)
-    send(metho, columns, kwd, order_or_where: order_or_where, **restkeys)
+    send(metho, columns, kwd, order_or_where: order_or_where, upto: upto, **restkeys)
   end
 
 

@@ -1231,6 +1231,21 @@ end
     assert_equal 1, css_select("body dd.item_memo_editor").size
     assert_equal memoe, css_select("body dd.item_memo_editor").text.strip
     sign_out @editor_harami
+
+    # Test of HaramiVid associated with a 1-character Music
+    mu6 = Music.create_basic!(title: "例", langcode: "ja", is_orig: true, year: 2000)   # 1-letter song.
+    artist_ai = artists( :artist_ai )
+    mu6.engages << Engage.new(artist: artist_ai, engage_how: EngageHow.default(:HaramiVid), year: 2000)
+
+    hvid2 = harami_vids(:harami_vid2)
+    hvid2.musics << mu6
+    evit1 = hvid2.event_items.first
+    assert  evit1, 'sanity check'
+    amp1 = ArtistMusicPlay.create!(event_item: evit1, artist: artist_ai, music: mu6, instrument: Instrument.default(:HaramiVid), play_role: PlayRole.default(:HaramiVid))
+    hvid2.artist_music_plays.reset
+
+    get harami_vid_path(hvid2)
+    assert_response :success
   end
 
   test "should show MusicAssoc in harami_vid" do

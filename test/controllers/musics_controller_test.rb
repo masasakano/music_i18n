@@ -65,6 +65,22 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     assert_equal mu3.title(langcode: :en), tits.last
   end
 
+  test "should get show 1" do
+    mu6 = Music.create_basic!(title: "例", langcode: "ja", is_orig: true, year: 2000)   # 1-letter song.
+    artist_ai = artists( :artist_ai )
+    mu6.engages << Engage.new(artist: artist_ai, engage_how: EngageHow.default(:HaramiVid), year: 2000)
+
+    hvid1 = harami_vids(:harami_vid1)
+    hvid1.musics << mu6
+    evit1 = hvid1.event_items.first
+    assert  evit1, 'sanity check'
+    amp1 = ArtistMusicPlay.create!(event_item: evit1, artist: artist_ai, music: mu6, instrument: Instrument.default(:HaramiVid), play_role: PlayRole.default(:HaramiVid))
+    hvid1.artist_music_plays.reset
+
+    get music_path(mu6)
+    assert_response :success
+  end
+
   test "should create" do
     sign_in @editor
     ModuleWhodunnit.whodunnit  #  just to (potentially) suppress mal-functioning in setting this...
