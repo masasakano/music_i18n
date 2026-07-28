@@ -76,14 +76,7 @@ class EventsGrid < ApplicationGrid
     "%.3g" % record.duration_hour
   end
 
-  column(:place, html: true, mandatory: true, header: Proc.new{I18n.t('tables.place')}) do |record|
-    next nil if record.place
-    #txt_caution = "".html_safe
-    #if can?(:read, Event) && !record.is_place_all_consistent?(strict: true)
-    #  txt_caution = '<span title="Inconsistent with Events and/or Events">†</span>'.html_safe
-    #end
-    ERB::Util.html_escape((pla=record.place) && pla.pref_pla_country_str(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true)) #+ txt_caution
-  end
+  column_place  # defined in application_grid.rb
 
   column_n_models_belongs_to(:n_harami_vids, :harami_vids, distinct: true, mandatory: true, header: Proc.new{I18n.t('tables.n_harami_vids')})
   #column(:n_amps, tag_options: {class: ["align-cr", "editor_only"]}, header: Proc.new{I18n.t('datagrid.form.n_amps')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|

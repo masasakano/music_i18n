@@ -1,4 +1,5 @@
 
+<% can_create_pla = can?(:create, Place) %>
 <% country_name = @place.country.title_or_alt %>
 <% prefecture_name = @place.prefecture.title_or_alt %>
 <h1>Place: <%= @place.title_or_alt %> (&lt; <%= prefecture_name %> &lt; <%= country_name %>) <%= h1_note_editor_only(@place, method: :show) %></h1>
@@ -22,6 +23,16 @@
   <dd><%= link_to prefecture_name, prefecture_path(@place.prefecture_id) %></dd>
   <dt><%= t("tables.n_harami_vids_long") %>:</dt>
   <dd><%= @place.harami_vids.count %></dd>
+  <%= editor_only_safe_html(:pass, method: can_create_pla, tag: "div") do %> <%# defined in application_helper.rb %>
+    <dt><%= t("tables.n_events_long") %></dt>
+    <dd><%= @place.events.count.to_s %></dd>
+  <% end %>
+  <dt><%= t("tables.n_artists_long") %></dt>
+  <dd><%= @place.artists.count.to_s %></dd>
+  <%= editor_only_safe_html(:pass, method: can_create_pla, tag: "div") do %> <%# defined in application_helper.rb %>
+    <dt><%= t("tables.n_musics_long") %></dt>
+    <dd> <%= @place.musics.count.to_s %></dd>
+  <% end %>
 
   <% canedit_place=can?(:edit, Place) %>
   <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @place, model4ability: canedit_place} %>
@@ -35,8 +46,8 @@
 <%= editor_only_safe_html(@place, method: :edit, tag: "div", class: "lead") do %>
   <%= link_to 'Edit', edit_place_path(@place) %>
 <% end %>
-<% if can_create_pla=can?(:create, Place) %>
-  <% pref_title = @place.prefecture.title_or_alt_tuple_str("[", "]", langcode: I18n.locale) %>
+<% if can_create_pla && (pref=@place.prefecture) %>
+  <% pref_title = pref.title_or_alt_tuple_str("[", "]", langcode: I18n.locale) %>
 <p class="lead editor_only">
   <%= link_to(sprintf('Create another Place in the same Prefecture "%s"', pref_title), new_place_path(place: {prefecture_id: @place.prefecture_id})) if @place.prefecture_id %>
 </p>

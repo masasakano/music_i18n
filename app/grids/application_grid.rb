@@ -581,7 +581,7 @@ class ApplicationGrid < Datagrid::Base
   # @return Proc to select prefectures
   def self.proc_select_prefectures
     Prefecture.orderd_all_jp_prioritized.map{|rec|
-      tit = sprintf("%s < %s", rec.title_or_alt_for_selection, rec.title_or_alt_for_selection)
+      tit = sprintf("%s < %s", rec.title_or_alt_for_selection, rec.country.title_or_alt_for_selection)
       [tit, rec.id]
     }.uniq
   end

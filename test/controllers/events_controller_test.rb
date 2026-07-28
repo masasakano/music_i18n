@@ -58,7 +58,7 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
     # sign_in @editor_ja  ########### This should be unnecessary once index becomes public! => so be it.
     # get events_url
     assert_response :success
-    assert_match(/\bPlace\b/, css_select("table").text)
+    assert_match(/\bDuration\b/, css_select("table th").text)
 #puts response.body
     w3c_validate "Event index"  # defined in test_helper.rb (see for debugging help)
     # sign_out @editor_ja
@@ -92,7 +92,7 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
     @event.save!(validate: false)  # Without this, the default Unknown Place is assigned in a callback!
     get events_url
     assert_response :success
-    assert_match(/\bPlace\b/, css_select("table").text)
+    assert_match(/\bDuration\b/, css_select("table th").text)
   end
 
   test "should create event" do

@@ -32,7 +32,12 @@ en:
     n_artists: "# of Artists"
     n_artists_short: "#Artists"
     n_artists_long: "Number of registered Artists"
+    n_events: "# of Events"
+    n_events_short: "#Events"
+    n_events_long: "Number of registered Events"
     n_musics: "# of Musics"
+    n_musics_short: "#Musics"
+    n_musics_long: "Number of registered Musics"
     n_harami_vids: "# of HaramiVids"
     n_harami_vids_short: "#Vids"
     n_harami_vids_long: "Number of registered HaramiVids"
@@ -299,6 +304,7 @@ en:
   musics:
     show:
       year_unknown: Year unknown
+      by_unknown: Unknown
 
   engages:
     engage_how: How engaged

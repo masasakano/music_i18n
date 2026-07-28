@@ -20,7 +20,7 @@
 
   <div>
   <dt class="item_place"> <%= t("tables.place_country") %>:</dt>
-    <dd class="item_place"><%= event.place ? show_pref_place_country(event.place) : "" %>  <%# defined in places_helper.rb %>
+    <dd class="item_place"><%= event.place ? show_pref_place_country(event.place, hyperlink: :Prefecture) : "" %>  <%# defined in places_helper.rb %>
       <% evgr_place_str = h((evgr_place=event.event_group.place).blank? ? "nil" : show_pref_place_country(evgr_place)) %> <%# TODO: the link part in Place is printed in white (while the rest is in red) in the statement below %>
       <% is_consistent = (event.place && (evgr_place=event.event_group.place).encompass?(event.place)) %>
       <% if can_update_gen %>

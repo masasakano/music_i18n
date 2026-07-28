@@ -32,7 +32,12 @@ ja:
     n_artists: "アーティストの数"
     n_artists_short: "音楽家数"
     n_artists_long: "登録アーティストの数"
+    n_events: "イベントの数"
+    n_events_short: "イベント数"
+    n_events_long: "登録イベントの数"
     n_musics: 登録曲数
+    n_musics_short: "曲数"
+    n_musics_long: 登録曲数
     n_harami_vids: 登録ハラミ動画数
     n_harami_vids_short: "動画数"
     n_harami_vids_long: "登録ハラミ(関連)動画数"
@@ -316,6 +321,7 @@ ja:
   musics:
     show:
       year_unknown: 年不明
+      by_unknown: 不明の人
 
   engages:
     engage_how: "関わり方"

@@ -5,6 +5,7 @@
 <table>
   <thead>
     <tr>
+     <% can_edit_mus = can?(:edit, music) %>
      <% if (can_edit=can?(:edit, Artist)) %>
       <th title="DB pID" class="editor_only cell_pid">pID</th>
      <% end %>
@@ -28,7 +29,7 @@
         <th title="Show Artist" class="cell_action"><%= t(:Artist) %></th>
       <% end %>
       <th class="cell_note_engage_how"><%= t("tables.note") %> (<%= t("engage_multi_hows.table_head.how_related") %>)</th>
-      <% if can_edit %>
+      <% if can_edit_mus %>
         <th title="Edit (Show) Engagements between Artist and Music" class="editor_only cell_action cell_edit_engage">Engages</th>
       <% end %>
     </tr>
@@ -52,11 +53,15 @@
         <td class="text-center cell_sex"><%= artist.sex.title langcode: I18n.locale, lang_fallback: true %></td>
         <td class="cell_note"><%= ModuleRedcarpetAux.md2safehtml(artist.note) %></td>
         <td class="cell_action_show"><%= link_to t("tables.Show"), artist %></td>
-        <% if can? :update, artist %>
-          <td class="editor_only cell_action"><%= link_to 'Edit', edit_artist_path(artist) %></td>
+        <% if can_edit_mus %>
+          <td class="editor_only cell_action">
+          <% if can? :update, artist %>
+            <%= link_to 'Edit', edit_artist_path(artist) %>
+          <% end %>
+          </td>
         <% end %>
         <td class="cell_note_engage_how"><%= ModuleRedcarpetAux.md2safehtml(compile_engage_notes(artist, music)) %></td>
-        <% if can? :update, artist %>
+        <% if can_edit_mus %>
           <td class="editor_only text-center cell_action cell_edit_engage"><%= link_to 'Edit', edit_engage_multi_how_path(engage) %></td> <%# "engage" is set above %>
         <% end %>
       </tr>

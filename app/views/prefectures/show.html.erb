@@ -31,6 +31,10 @@
   <% end %>
   <dt><%= t("tables.n_harami_vids_long") %></dt>
   <dd><%= @prefecture.harami_vids.count.to_s %></dd>
+  <%= editor_only_safe_html(Prefecture, method: :create, tag: "div") do %> <%# defined in application_helper.rb %>
+    <dt><%= t("tables.n_events_long") %></dt>
+    <dd><%= @prefecture.events.count.to_s %></dd>
+  <% end %>
   <dt><%= t(".n_artists_long") %></dt>
   <dd><%= @prefecture.artists.count.to_s %></dd>
   <% if canedit  %>
