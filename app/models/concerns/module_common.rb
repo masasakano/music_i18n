@@ -1357,9 +1357,11 @@ module ModuleCommon
   #
   # @param without_country_maybe: [Boolean] if true (Def: false), the country information is not printed unless that is the only information or the country is not in the default country. This is mainly used for HaramiVid.
   # @param **opts [Hash] passed to {BaseWithTranslation#title_or_alt}
-  # @return [String] "県 — 場所 (国)"
+  # @return [String] "県 — 場所 (国)", or maybe an empty String in an unlikely case of nil
   def txt_place_pref_ctry(without_country_maybe: false, langcode: I18n.locale, prefer_shorter: true, lang_fallback_option: :either, **opts)
-    (is_a?(Place) ? self : place).pref_pla_country_str(without_country_maybe: without_country_maybe, langcode: langcode, prefer_shorter: prefer_shorter, lang_fallback_option: lang_fallback_option, **opts)
+    pla = (is_a?(Place) ? self : place)
+    return "" if !pla  # if Place is nil
+    pla.pref_pla_country_str(without_country_maybe: without_country_maybe, langcode: langcode, prefer_shorter: prefer_shorter, lang_fallback_option: lang_fallback_option, **opts)
   end
 
   ################################################################

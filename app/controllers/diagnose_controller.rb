@@ -8,6 +8,7 @@ class DiagnoseController < ApplicationController
       HaramiVid: :_get_problematic_harami_vids,
       Music:     :_get_problematic_musics,
       Artist:    :_get_problematic_artists,
+      Event:     :_get_problematic_events,
     }.with_indifferent_access
 
     @problems = {}.with_indifferent_access
@@ -85,8 +86,31 @@ class DiagnoseController < ApplicationController
       wrongs
     end
 
+    def _get_problematic_events
+      wrongs = {}.with_indifferent_access
+      %w(event_group_id place_id start_time).each do |eatt|
+        _set_all_no_value_for_attr(wrongs, Event, eatt)
+      end
+      _set_all_no_value_for_attr(wrongs, Event, "duration_hour"){ |record|
+        next(true) if record.unknown?
+        tit_evgr = ((evgr=record.event_group) ? evgr.title(langcode: :ja) : "")
+        !!((tit=record.title(langcode: :ja)) && tit.present? && /\(.+\)でのイベント\s*(\s+<\s+#{Regexp.quote(tit_evgr)})?\s*\z/m =~ tit)
+      }
+      wrongs
+    end
+
+    # Sets destructively a Relation or Array for the given +wrongs[att]+ Hash
+    #
+    # @return [void]
+    # @yield [ActiveRecord] provides conditions for exceptions; if true, the record is excluded from the returned Array.
     def _set_all_no_value_for_attr(wrongs, model, att)
-      wrongs["no_"+att] = model.where(att => nil)  # wrongs["no_uri"] etc
+      wkey = "no_"+att
+      wrongs[wkey] = model.where(att => nil)  # wrongs["no_uri"] etc
+      return if !block_given?
+      wrongs[wkey] = wrongs[wkey].to_a
+      wrongs[wkey].delete_if do |record| 
+        yield(record)
+      end
     end
 
     def _set_all_no_association_for_attr(wrongs, model, association, att=association)

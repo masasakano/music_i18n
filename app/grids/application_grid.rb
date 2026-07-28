@@ -598,7 +598,7 @@ class ApplicationGrid < Datagrid::Base
   # Add column :place
   def self.column_place(header: Proc.new{I18n.t('tables.place')}, **opts)
     column(:place, header: header) do |record|
-      record.place.pref_pla_country_str(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true)
+      (pla=record.place) && pla.pref_pla_country_str(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true)
     end
   end 
 

@@ -123,6 +123,19 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_equal 1, css_select(".link_back_to_index a").size  # "Back to Index"
     assert_equal 1, css_select("body dd.item_memo_editor").size
+
+    evt_noplace = Event.initialize_with_def_time(event_group: @event_group, duration_hour: 3)
+    evt_noplace.place = nil
+    evt_noplace.title = "Dummy-noplace"
+    evt_noplace.langcode = "en"
+    evt_noplace.is_orig = true
+    evt_noplace.save!
+
+    evt_noplace.place_id = nil
+    evt_noplace.save!(validate: false)  # Without this, the default Unknown Place is assigned in a callback!
+
+    get event_group_url(@event_group)
+    assert_response :success
     sign_out @editor_harami
   end
 

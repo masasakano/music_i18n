@@ -50,7 +50,7 @@
         <td class="editor_only"><%= music.genre.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true) %></td>
      <% end %>
      <% if can_edit %>
-        <td class="editor_only"><%= music.place.pref_pla_country_str(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true) %></td>
+        <td class="editor_only"><%= ERB::Util.html_escape((pla=music.place) && pla.pref_pla_country_str(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true)) %></td>
      <% end %>
         <td class="text-end"><%= music.harami_vids.count.to_s+(("ja"==I18n.locale.to_s) ? '本' : "") %></td>
         <td><%= ModuleRedcarpetAux.md2safehtml(music.note) %></td>

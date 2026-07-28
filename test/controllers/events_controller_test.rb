@@ -86,6 +86,13 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
 
     evgr = EventGroup.create_basic!(title: "new-test group1", langcode: "en", is_orig: true, start_date: Date.new(2012,4,28), start_date_err: 0, place: places(:tocho), note: (newnote="new1"))
     get new_event_url, params: {event_group_id: evgr.id.to_s}
+
+    ## Testing Index for an unusual Event (with no Place defined)
+    @event.place_id = nil 
+    @event.save!(validate: false)  # Without this, the default Unknown Place is assigned in a callback!
+    get events_url
+    assert_response :success
+    assert_match(/\bPlace\b/, css_select("table").text)
   end
 
   test "should create event" do

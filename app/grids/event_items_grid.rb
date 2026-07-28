@@ -71,7 +71,7 @@ class EventItemsGrid < ApplicationGrid
     #if can?(:read, EventItem) && !record.is_place_all_consistent?(strict: true)
     #  txt_caution = '<span title="Inconsistent with EventItems and/or Events">†</span>'.html_safe
     #end
-    ERB::Util.html_escape(record.place.pref_pla_country_str(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true)) #+ txt_caution
+    ERB::Util.html_escape((pla=record.place) && pla.pref_pla_country_str(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true)) #+ txt_caution
   end
 
   column(:n_amps, tag_options: {class: ["align-cr", "editor_only"]}, header: Proc.new{I18n.t('datagrid.form.n_amps')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|

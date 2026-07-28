@@ -20,6 +20,7 @@
 
 <% can_update_hvids = can?(:update, HaramiVid)
    canedit_ev       = can?(:edit, Event)
+   cancreate_evt    = can?(:create, Event)
    canread_evit     = can?(:read, EventItem) %> <%# In future, this may be released public (if most EventItems are checked valid) %>
 <% can_read_h1129   = can?(:read, Harami1129) %>
 <% canread_pla = can?(:read, Place) %>  <%# This is usually public? %>

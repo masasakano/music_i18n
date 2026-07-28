@@ -45,7 +45,7 @@
         <% break %>
       <% end %>
       <tr id="problem_harami_vid_<%= record.id %>">
-        <td><%= ind+1 %></td>
+        <td><%= ind %></td>
         <td><%= link_to record.id, record %></td>
         <td>
           <%= record.release_date %>
@@ -139,7 +139,7 @@
         <% break %>
       <% end %>
       <tr id="problem_music_<%= record.id %>">
-        <td><%= ind+1 %></td>
+        <td><%= ind %></td>
         <td title="DB pID" class="number"><%= link_to record.id, record %></td>
         <td>[<%= record.best_translation.langcode %>] <%= record.title_or_alt %></td>
         <td>
@@ -213,7 +213,7 @@
         <% break %>
       <% end %>
       <tr id="problem_artist_<%= record.id %>">
-        <td><%= ind+1 %></td>
+        <td><%= ind %></td>
         <td title="DB pID" class="number"><%= link_to record.id, record %></td>
         <td>[<%= record.best_translation.langcode %>] <%= record.title_or_alt(lang_fallback_option: :either) %></td>
         <td>
@@ -236,5 +236,80 @@
   </tbody>
 </table>
 </section> <!-- section id="diagnosis_artist" -->
+
+
+<hr>
+
+<section id="diagnosis_event">
+<h2>Events with problems</h2>
+
+<dl>
+  <dt>Checked:</dt>
+  <dd><%= @problems_keys[:Event].uniq.map(&:to_s).join(", ") %></dd>  <%# no need of uniq but just to play safe. %>
+  <dt>Problems found:</dt>
+  <dd><%= @problems[:Event].values.flatten.uniq.map(&:to_s).join(", ") %></dd>
+</dl>
+
+<% n_allcols = 11 %>
+  
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th title="DB pID">pID</th>
+      <th title="best locale and Event title">[LC] <%= t("tables.title_name_ja") %></th>
+      <th title="best EventGroup title">Group</th>
+      <th title="Start-time">Start</th>
+      <th title="Duration-Hour which can be undefined for Unknown ones or place-specific general ones, which are excluded from the output">Duration[hr]</th>
+      <th title="Place"><%= t("tables.place_country") %></th>
+      <th>#Videos</th>
+      <th>#Items</th>
+      <th>Note</th>
+      <th colspan="2" title="Show/Edit Event">Event</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% ind = 0 %>
+    <% @problems[:Event].each_pair do |record, reasons| %>
+      <% ind += 1 %>
+      <% if ind >= DiagnoseController::MAX_NROWS_DIAGNOSIS_TABLE %>
+        <tr><td colspan="<%= n_allcols %>">Not displayed anymore because of too many records (total: <%= @problems[:Event].size %>)</td></tr>
+        <% break %>
+      <% end %>
+      <tr id="problem_event_<%= record.id %>">
+        <td><%= ind %></td>
+        <td title="DB pID" class="number"><%= link_to record.id, record %></td>
+        <td>[<%= record.best_translation.langcode %>] <%= record.title_or_alt(lang_fallback_option: :either) %></td>
+        <td>
+          <%= print_warning_or_normal(reasons, "no_event_group_id") do %>
+            <%= record.event_group ? record.event_group.title_or_alt(prefer_shorter: true) : "" %>
+          <% end %>
+        </td>
+        <td>
+          <%= print_warning_or_normal(reasons, "start_time") do %>
+            <%= record.start_time ? record.start_time.inspect : "" %>
+          <% end %>
+        </td>
+        <td>
+          <%= print_warning_or_normal(reasons, "no_duration_hour") do %>
+            <%= record.duration_hour ? record.duration_hour.to_s : "" %>
+          <% end %>
+        </td>
+        <td>
+          <%= print_warning_or_normal(reasons, "no_place_id") do %>
+            <%= record.place ? record.txt_place_pref_ctry(without_country_maybe: true) : "" %>
+          <% end %>
+        </td>
+        <td> <%= record.harami_vids.count %> </td>
+        <td> <%= record.event_items.count %> </td>
+        <td><%= auto_link50(record.note) %></td>
+        <td><%= link_to t("tables.Show"), record %></td>
+        <td><%= link_to 'Edit', edit_event_path(record) %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+</section> <!-- section id="diagnosis_event" -->
 
 
