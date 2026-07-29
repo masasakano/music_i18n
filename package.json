@@ -1,24 +1,32 @@
 {
   "name": "harami_multilingual",
   "private": "true",
+  "engines": {
+    "node": "24.x",
+    "yarn": "1.x"
+  },
   "dependencies": {
     "@hotwired/stimulus": "^3.2.2",
-    "@hotwired/turbo-rails": "^8.0.13",
+    "@hotwired/turbo-rails": "^8.0.23",
     "@popperjs/core": "^2.11.8",
-    "@rails/actioncable": "^8.0.3",
-    "@rails/activestorage": "^8.0.3",
+    "@rails/actioncable": "8.0.300",
+    "@rails/activestorage": "8.0.300",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
-    "esbuild": "^0.25.10",
-    "jquery": "^3.7.1",
+    "esbuild": "^0.28.1",
+    "jquery": "^4.0.0",
     "jquery-ui-dist": "^1.13.3",
     "rails_admin": "3.3.0",
-    "sass": "^1.93.2",
+    "sass": "^1.102.0",
     "toastr": "^2.1.4"
   },
   "scripts": {
     "build": "esbuild app/javascript/*.js --bundle --sourcemap --outdir=app/assets/builds --public-path=assets",
     "build:css": "sass ./app/assets/stylesheets/application.bootstrap.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules"
   },
-  "version": "2.5"
+  "version": "2.5",
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "@parcel/watcher@2.6.0": true
+  }
 }
