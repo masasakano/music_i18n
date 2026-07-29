@@ -63,4 +63,20 @@ module BaseAnchorablesHelper
   def is_fetch_h1_allowed?(anchoring)
       ((anchoring.new_record? || !anchoring.url) && anchoring.title.blank?) || (!anchoring.new_record? && anchoring.url.translations.count <= 1)
   end
+
+  # @param anchoring [Anchoring]
+  # @param canedit_url_gen [Boolean] for permission
+  # @return [NilClass, String] sanitized Markdown-converted HTML String of {Anchoring#note} and {Url#note}
+  def combined_anchoring_url_notes(anchoring, canedit_url_gen)
+    hs = {Anchoring: anchoring.note, Url: anchoring.url.note}
+    return if !hs.values.any?(&:present?)
+
+    canedit_url_gen = can?(:edit, Url) if canedit_url_gen.nil?
+
+    artxt = hs.map{|k, v|
+      next nil if v.blank?
+      editor_only_safe_html(:pass, method: canedit_url_gen, tag: "span", text: "[#{k}] ") + ModuleRedcarpetAux.md2safehtml(v)  # defined in application_helper.rb
+    }
+    sprintf(" (%s: %s)", h(t("tables.note")), artxt.compact.join(" | ")).html_safe
+  end
 end

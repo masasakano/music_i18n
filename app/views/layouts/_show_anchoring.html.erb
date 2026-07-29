@@ -31,12 +31,6 @@
          <% hsprms = {:id => anchoring, prm_parent_key.to_sym => record.id} %>
          <% paths[:edit]    = send("edit_"+path_base, **hsprms) %>
          <% paths[:destroy] = send(        path_base, **hsprms) %>
-         <% notetxt = nil %>
-         <% if (hs={Anchoring: anchoring.note, Url: anchoring.url.note}).values.any?(&:present?)
-              canedit_url_gen = can?(:edit, Url)
-              notetxt = sprintf(" (%s: %s)", t("tables.note"), hs.map{|k, v| v.blank? ? nil : (canedit_url_gen ? '<span class="editor_only">'+"[#{k}]</span> " : "")+ModuleRedcarpetAux.md2safehtml(v)}.compact.join(" | ")).html_safe
-            end %>
-
 
            <%# turbo_frame_tag dom_id(anchoring, :edit), src: paths[:edit], loading: :lazy do %>
            <%= turbo_frame_tag dom_id(anchoring) do %>
@@ -49,7 +43,7 @@
             <%= editor_only_safe_html(Url, method: :show, tag: "span") do %>
               [<%= link_to(t('urls.link.Show'), anchoring.url, title: "Internal Url-Show page", data: {turbo: false}) %>]
             <% end %>
-             &nbsp; <%= notetxt %>
+             &nbsp; <%= combined_anchoring_url_notes(anchoring, canedit_url_gen) %> <%# defined in base_anchorables_helper.rb %>
             <%= editor_only_safe_html(record, method: :edit, tag: "div", class: "disp-inline") do %>
                 <%= button_to "Edit", paths[:edit], method: :get, form_class: "inline_form_tight", class: "text-end" %>
                 / <%= link_to 'Destroy', paths[:destroy], data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' } %>
