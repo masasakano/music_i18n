@@ -4,9 +4,8 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 ruby "4.0.6"
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails', branch: "main"
-#gem 'rails', '~>6.1'
 #gem 'rails', '~> 7.0', '>= 7.0.4'
-gem "rails", "~> 8.0.3"
+gem "rails", "~> 8.0.5"
 
 # The original asset pipeline for Rails [https://github.com/rails/sprockets-rails]
 gem "sprockets-rails"
@@ -126,7 +125,7 @@ group :test do
   # Adds support for Capybara system testing and selenium driver
   gem "capybara" #, ">= 2.15"
   gem "selenium-webdriver"
-  gem "minitest", "~> 5.0"  ###### WARNING: Temporary fix in Rails-8.0.3 before upgrading to 8.0.5 or 8.1.2
+  gem "minitest"
 end
 
 ### User-added

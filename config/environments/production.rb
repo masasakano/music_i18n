@@ -1,4 +1,3 @@
-require 'uri'
 require "active_support/core_ext/integer/time"
 # NOTE: This is a template for production.rb for Developers to test. Edit it according to the actual production environment.
 
@@ -32,7 +31,7 @@ Rails.application.configure do
 
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
   # Can be used together with config.force_ssl for Strict-Transport-Security and secure cookies.
-  # config.assume_ssl = true
+  config.assume_ssl = true unless ENV["LOCAL_EXPERIMENT"] && /^false|no|0+$/ !~ ENV["LOCAL_EXPERIMENT"].downcase
 
   # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
   config.force_ssl = true unless ENV["LOCAL_EXPERIMENT"] && /^false|no|0+$/ !~ ENV["LOCAL_EXPERIMENT"].downcase
