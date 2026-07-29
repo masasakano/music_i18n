@@ -24,9 +24,5 @@
     "build": "esbuild app/javascript/*.js --bundle --sourcemap --outdir=app/assets/builds --public-path=assets",
     "build:css": "sass ./app/assets/stylesheets/application.bootstrap.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules"
   },
-  "version": "2.5",
-  "allowScripts": {
-    "esbuild@0.28.1": true,
-    "@parcel/watcher@2.6.0": true
-  }
+  "version": "2.5"
 }
