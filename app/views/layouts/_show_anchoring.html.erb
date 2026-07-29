@@ -34,7 +34,7 @@
          <% notetxt = nil %>
          <% if (hs={Anchoring: anchoring.note, Url: anchoring.url.note}).values.any?(&:present?)
               canedit_url_gen = can?(:edit, Url)
-              notetxt = sprintf(" (%s: %s)", t("tables.note"), hs.map{|k, v| v.blank? ? nil : (canedit_url_gen ? '<span class="editor_only">'+"[#{k}]</span> " : "")+sanitize(v)}.compact.join(" | ")).html_safe
+              notetxt = sprintf(" (%s: %s)", t("tables.note"), hs.map{|k, v| v.blank? ? nil : (canedit_url_gen ? '<span class="editor_only">'+"[#{k}]</span> " : "")+ModuleRedcarpetAux.md2safehtml(v)}.compact.join(" | ")).html_safe
             end %>
 
 

@@ -55,8 +55,7 @@
         <dd><%= @country.start_date %></dd>
   <dt>End date</dt>
         <dd><%= @country.end_date %></dd>
-  <dt>Note:</dt>
-  <dd><%= auto_link(@country.note) %></dd>
+  <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @country, model4ability: current_user && current_user.editor?} %>
 </dl>
 
 <% if can? :update, CountryMaster %>
@@ -98,7 +97,7 @@
         <td><%= prefecture.musics.count.to_s %></td>
         <td><%= prefecture.artists.count.to_s %></td>
         <td><%= prefecture.harami_vids.count.to_s %></td>
-        <td><%= auto_link50(prefecture.note) %></td>
+        <td><%= ModuleRedcarpetAux.md2safehtml(prefecture.note) %></td>
         <td><%= link_to 'Show', prefecture %></td>
         <% if can? :update, prefecture %>
           <td><%= link_to 'Edit', edit_prefecture_path(prefecture) %></td>

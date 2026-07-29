@@ -78,7 +78,7 @@
           <td class="editor_only item_weight"><%= record.weight %></td>
          <% end %>
         <td class="item_linked"><%= record.anchoring_parents.map{|parent| link_to parent.class.name, parent, title: parent.title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "(undefined)")}.join(", ").html_safe %></td>
-        <td class="item_note"><%= record.note %></td>
+        <td class="item_note"><%= ModuleRedcarpetAux.md2safehtml(record.note) %></td>
 
         <td><%= link_to t("tables.Show"), record %></td>
         <% if can? :update, record  %>

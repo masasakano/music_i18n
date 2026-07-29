@@ -6,17 +6,16 @@
   <% end %>
   <dt><strong>mname:</strong></dt>
     <dd><%= channel_platform.mname %></dd>
-  <dt>Note:</dt>
-    <dd><%= auto_link(channel_platform.note) %></dd>
+
+  <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @channel_platform, model4ability: can?(:edit, Channel)} %>
+
+<% if false %>  <%# More refined control?? %>
  <% if can? :update, Users::EditRolesController %>
    <% %w(create_user update_user).each do |metho| %>
   <dt><%= metho %>:</dt>
     <dd><%= ur = channel_platform.send(metho); link_to(ur.display_name, ur) if ur %></dd>
    <% end %>
  <% end %>
-  <% if can? :update, channel_platform %>
-  <dt>updated_at:</dt>
-    <dd><%= channel_platform.updated_at %></dd>
-  <% end %>
+<% end %>
 </dl>
 </div>

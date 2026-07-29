@@ -53,7 +53,7 @@
         <td class="editor_only align-cr"><%= s=model.end_date_err; (str.blank? ? "" : s) %></td>
       <% end %>
         <td><%= model.place ? h(model.txt_place_pref_ctry) : "" %></td>
-        <td><%= sanitized_html(auto_link50(model.note)).html_safe %></td>
+        <td><%= ModuleRedcarpetAux.md2safehtml(model.note) %></td>
       <% if can?(:edit, Event) %>
         <td class="editor_only text-center"><%= model.memo_editor.present? && (memo_editor_txt=model.memo_editor.strip).present? ? ('<span title="'+h(memo_editor_txt)+'">Y</span>').html_safe : nil %></td>
       <% end %>

@@ -2,8 +2,6 @@
 
 <%# Assumed instance variables: @hvma %>
 
-<% note = @hvma.note %>
-
 <%= turbo_frame_tag "note_"+dom_id(@hvma) do %>
   <span class="note text-start">
     <% title_txt = +"Note for this association" %>

@@ -43,7 +43,7 @@
         <td><%= translation.weight %></td>
         <td><%= translation.create_user_id ? @hsuser[translation.create_user_id].html_safe : ''%></td>
         <td><%= translation.update_user_id ? @hsuser[translation.update_user_id].html_safe : ''%></td>
-        <td><%= translation.note %></td>
+        <td><%= ModuleRedcarpetAux.md2safehtml(translation.note) %></td>
         <td class="cell_show"><%= link_to 'Show', translation %></td>
         <% if false %>
           <%# This is far too DB-heavy... It may take 1 minute to process 5000 records! Unless serious pagenation is introduced, this is not viable in practice. %>

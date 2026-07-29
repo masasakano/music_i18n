@@ -42,7 +42,7 @@
          <% end %>
       <td title="Class"><%= link_to t(s=record.class.name, default: s), record %></td>
        <%= render "layouts/title_alt_ja_en_table", model: record, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
-        <td class="item_note"><%= anchoring.note %></td>
+        <td class="item_note"><%= ModuleRedcarpetAux.md2safehtml(anchoring.note) %></td>
          <% if is_moderator %>
            <td class="moderator_only item_created_at"><%= ctime=anchoring.created_at.utc %></td>
            <% not_updated = (utime=anchoring.updated_at.utc == ctime) %>
