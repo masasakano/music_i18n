@@ -5,7 +5,7 @@ ruby "4.0.6"
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails', branch: "main"
 #gem 'rails', '~> 7.0', '>= 7.0.4'
-gem "rails", "~> 8.0.5"
+gem "rails", "~> 8.1.3.1"
 
 # The original asset pipeline for Rails [https://github.com/rails/sprockets-rails]
 gem "sprockets-rails"
@@ -142,7 +142,7 @@ gem 'datagrid', '~> 2.0'  # merged from its branch: 'version-2'
 gem 'rubytree', '~> 2', '>= 2.0.0'
 gem 'slim_string', '~> 1', '>= 1.0.1'
 gem 'simple_form', '~> 5', '>= 5.1.0'
-gem 'paper_trail', '~> 16', '>= 16.0.0'  # used to use 12.0 up to Rails 6.0 (which causes error in Rails 6.1); recommended to update to 13.0 with the condition to switch the column type: @see my comment about "yaml" in config/application.rb; at least 16 for Rails 8
+gem 'paper_trail', '~> 17', '>= 17.0'  # used to use 12.0 up to Rails 6.0 (which causes error in Rails 6.1); recommended to update to 13.0 with the condition to switch the column type: @see my comment about "yaml" in config/application.rb; at least 16 for Rails 8.0, and at least 17 for Rails 8.1
 # gem 'high_voltage', '~> 3.1', '>= 3.1.2'
 gem 'http_accept_language'
 # gem 'routing-filter', '~> 0', '>= 0.6.3' # Only git HEAD works with Rails 6.1.

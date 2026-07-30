@@ -30,11 +30,15 @@ Rails.application.configure do
   config.active_storage.service = :local
 
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
-  # Can be used together with config.force_ssl for Strict-Transport-Security and secure cookies.
-  config.assume_ssl = true unless ENV["LOCAL_EXPERIMENT"] && /^false|no|0+$/ !~ ENV["LOCAL_EXPERIMENT"].downcase
+  # NOTE: Can be used together with config.force_ssl for Strict-Transport-Security and secure cookies.  From Rails-8.1, this is NOT set in default.
+  if ENV["LOCAL_EXPERIMENT"]
+    config.assume_ssl = ((/^false|no|0+$/ =~ ENV["LOCAL_EXPERIMENT"].downcase) ? false : true)
+    config.force_ssl  = config.assume_ssl
+  end
 
   # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
-  config.force_ssl = true unless ENV["LOCAL_EXPERIMENT"] && /^false|no|0+$/ !~ ENV["LOCAL_EXPERIMENT"].downcase
+  # NOTE: From Rails-8.1, this is NOT set in default.  See immediately above (config.assume_ssl)
+  # config.force_ssl = true
 
   # Skip http-to-https redirect for the default health check endpoint.
   # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
@@ -43,19 +47,18 @@ Rails.application.configure do
   config.log_tags = [ :request_id ]
   config.logger   = ActiveSupport::TaggedLogging.logger(STDOUT)
 
-  # Use a different logger for distributed setups.
+  ## Use a different logger for distributed setups.
   # require "syslog/logger"
   # config.logger = ActiveSupport::TaggedLogging.new(Syslog::Logger.new 'app-name')
 
-  # Change to "debug" to log everything (including potentially personally-identifiable information!)
+  # Change to "debug" to log everything (including potentially personally-identifiable information!).
   config.log_level = ENV.fetch("RAILS_LOG_LEVEL", ((/^false|no|0+$/ !~ ENV.fetch("LOCAL_EXPERIMENT", "0").downcase) ? "debug" : "info"))
 
   # Prevent health checks from clogging up the logs.
   config.silence_healthcheck_path = "/up"
 
-  # Don't log any deprecations.
+  # Don't log any deprecations. Or, send deprecation notices to registered listeners.
   #config.active_support.report_deprecations = false
-  # Send deprecation notices to registered listeners.
   config.active_support.report_deprecations = ((/^false|no|0+$/ !~ ENV.fetch("LOCAL_EXPERIMENT", "0").downcase) ? :notify : false)  # false in Default in Rails 7 or later
 
   # Log disallowed deprecations. (Added by User)
@@ -85,7 +88,7 @@ Rails.application.configure do
   config.action_mailer.delivery_method = :smtp
   config.action_mailer.default_options = {from: ENV['DEF_EMAIL_FROM']} if !ENV['DEF_EMAIL_FROM'].blank? # if contains a space, that is NOT blank.
 
-  # Specify outgoing SMTP server. Remember to add smtp/* credentials via rails credentials:edit.
+  # Specify outgoing SMTP server. Remember to add smtp/* credentials via bin/rails credentials:edit.
   config.action_mailer.smtp_settings = {
   #   user_name: Rails.application.credentials.dig(:smtp, :user_name),
   #   password: Rails.application.credentials.dig(:smtp, :password),
