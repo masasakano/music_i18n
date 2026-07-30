@@ -24,13 +24,19 @@ end
 
 qm_file_path = qm_file_paths.first
 
-# Original statements of reverse_sql_order as of (Rails) activerecord-7.0.4, which this patch assumes
+# Original statements of reverse_sql_order as of (Rails) activerecord-8.1.3.1, which this patch assumes
 assumed_statements_reverse_sql_order = <<'EOF'
       def reverse_sql_order(order_query)
         if order_query.empty?
-          return [table[primary_key].desc] if primary_key
-          raise IrreversibleOrderError,
-            "Relation has no current order and table has no primary key to be used as default order"
+          if !_reverse_order_columns.empty?
+            return _reverse_order_columns.map { |column| table[column].desc }
+          end
+
+          raise IrreversibleOrderError, <<~MSG.squish
+            Relation has no order values, and #{model} has no order columns to use as a default.
+            Set at least one of `implicit_order_column`, or `primary_key` on the model when no
+            `order `is specified on the relation.
+          MSG
         end
 
         order_query.flat_map do |o|
@@ -63,14 +69,16 @@ actual_statements_reverse_sql_order =
       File.read(qm_file_path),
       /^      def reverse_sql_order\(/
     ),
-    /^      def does_not_support_reverse\?\(/,
+    /^      def _reverse_order_columns\b/,  # The next structure in the original in activerecord-8.1.3.1 (changed from Ver.7)
     inclusive: false
   ).sub(/\n+\z/, "\n")
 
 if assumed_statements_reverse_sql_order != actual_statements_reverse_sql_order
-  msg = "(#{__FILE__}) Method reverse_sql_order.rb in #{qm_file_path} in use currently differs from the one (activerecord-7.0.4) that this patch assumes.  Make sure to compare it with #{__FILE__} and correct the patch to suit the original as soon as possible."
+  msg = "(#{__FILE__}) Method reverse_sql_order.rb in #{qm_file_path} in use currently differs from the one (activerecord-8.1.3.1) that this patch assumes.  Make sure to compare it with #{__FILE__} and correct the patch to suit the original as soon as possible."
   warn msg
   Rails.logger.warn msg
+  Rails.logger.warn "WARNING:Assumed: "+assumed_statements_reverse_sql_order.inspect
+  Rails.logger.warn "WARNING:Actual_: "+actual_statements_reverse_sql_order.inspect
 end
 
 module ActiveRecord
@@ -106,9 +114,15 @@ module ActiveRecord
       #
       def reverse_sql_order(order_query)
         if order_query.empty?
-          return [table[primary_key].desc] if primary_key
-          raise IrreversibleOrderError,
-            "Relation has no current order and table has no primary key to be used as default order"
+          if !_reverse_order_columns.empty?
+            return _reverse_order_columns.map { |column| table[column].desc }
+          end
+
+          raise IrreversibleOrderError, <<~MSG.squish
+            Relation has no order values, and #{model} has no order columns to use as a default.
+            Set at least one of `implicit_order_column`, or `primary_key` on the model when no
+            `order `is specified on the relation.
+          MSG
         end
 
         order_query.flat_map do |o|

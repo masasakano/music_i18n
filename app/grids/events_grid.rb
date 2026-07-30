@@ -9,7 +9,7 @@ class EventsGrid < ApplicationGrid
 
   filter_n_column_id(:event_url)  # defined in application_grid.rb
 
-  filter(:event_group, :enum, dummy: true, select: Proc.new{
+  filter(:event_group, :enum, select: Proc.new{
            EventGroup.all.order(:start_date).map{|i| [s=i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true), i.id]}},
          header: Proc.new{I18n.t(:EventGroup, default: "Event Group")}) do |value|  # Only for PostgreSQL!
     self.joins(:event_group).where("event_group.id" => [value].flatten)
@@ -31,7 +31,7 @@ class EventsGrid < ApplicationGrid
   end
 
 #  filter_partial_str(:artists, header: Proc.new{I18n.t('datagrid.form.artists_multi')})
-#  filter(:artist_collabs, :enum, multiple: true, include_blank: true, dummy: true, header: Proc.new{I18n.t('datagrid.form.artist_collabs_multi', default: "Collab Artists")}, select: Proc.new{
+#  filter(:artist_collabs, :enum, multiple: true, include_blank: true, header: Proc.new{I18n.t('datagrid.form.artist_collabs_multi', default: "Collab Artists")}, select: Proc.new{
 #           sorted_title_ids(Artist.joins(:artist_music_plays).distinct, langcode: I18n.locale)}) do |value|  # Only for PostgreSQL! ; sorted_title_ids() defined in application_helper.rb
 #    list = [value].flatten.map{|i| i.blank? ? nil : i}.compact
 #    if list.empty?
@@ -45,7 +45,7 @@ class EventsGrid < ApplicationGrid
 
 #  filter_partial_str(:musics,  header: Proc.new{I18n.t('datagrid.form.musics_multi')})
 
-#  filter(:collabs_only, :boolean, dummy: true, default: false,
+#  filter(:collabs_only, :boolean, default: false,
 #         header: Proc.new{I18n.t("harami_vids.table_filter_collabs_only", default: "Videos with Collab-Artists only?")}) do |value|
 #    #(value ? self.joins(:artist_music_plays).where.not("artist_music_plays.artist_id" => Artist.default(:Event).id).distinct : self)  # => FATAL: SELECT DISTINCT, ORDER BY expressions must appear...
 #    # NOTE: The first object must be Event and NOT self; if it was self, already "pagered" self (".limit(n)"?) would be passed.

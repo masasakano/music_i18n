@@ -15,18 +15,18 @@ class HaramiVidsGrid < ApplicationGrid
   filter(:duration, :integer, range: true, header: Proc.new{I18n.t('tables.duration')}) # float in DB # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
   filter(:release_date, :date, range: true, header: Proc.new{I18n.t('tables.release_date')+" (< #{Date.current.to_s})"}) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
 
-  filter(:channel_owner, :enum, dummy: true, multiple: false, include_blank: true, select: Proc.new{
+  filter(:channel_owner, :enum, multiple: false, include_blank: true, select: Proc.new{
            sorted_title_ids(ChannelOwner.joins(channels: :harami_vids).distinct, method: :title_or_alt_for_selection_optimum)},  # filtering out those none of HaramiVid belong to; sorted_title_ids() defined in application_helper.rb
          header: Proc.new{I18n.t("harami_vids.table_head_ChannelOwner", default: "Channel owner")}) do |value|  # Only for PostgreSQL!
     list = [value].flatten.map{|i| i.blank? ? nil : i}.compact
     self.joins(channel: :channel_owner).where("channel_owner.id" => list)
   end
-  filter(:channel_platform, :enum, dummy: true, select: Proc.new{
+  filter(:channel_platform, :enum, select: Proc.new{
            ChannelPlatform.joins(channels: :harami_vids).distinct.map{ [_1.title_or_alt_for_selection_optimum, _1.id]}.sort},  # filtering out those which none of HaramiVid belong to
          header: Proc.new{I18n.t("harami_vids.table_head_ChannelPlatform", default: "Channel platform")}) do |value|  # Only for PostgreSQL!
     self.joins(:channel).where("channels.channel_platform_id" => [value].flatten)
   end
-  filter(:channel_type, :enum, dummy: true, select: Proc.new{
+  filter(:channel_type, :enum, select: Proc.new{
            # ChannelType.joins(channels: :harami_vids).distinct.order(:weight).map{|i| [s=i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i.id]}},  # filtering out those none of HaramiVid belong to
            ChannelType.joins(channels: :harami_vids).distinct.order(:weight).map{[_1.title_or_alt_for_selection_optimum, _1.id]}},  # filtering out those none of HaramiVid belong to
          header: Proc.new{I18n.t("harami_vids.table_head_ChannelType", default: "Channel type")}) do |value|  # Only for PostgreSQL!
@@ -34,7 +34,7 @@ class HaramiVidsGrid < ApplicationGrid
   end
 
   filter_partial_str(:artists, header: Proc.new{I18n.t('datagrid.form.artists_multi')})
-  filter(:artist_collabs, :enum, multiple: true, include_blank: true, dummy: true, header: Proc.new{I18n.t('datagrid.form.artist_collabs_multi', default: "Collab Artists")}, select: Proc.new{
+  filter(:artist_collabs, :enum, multiple: true, include_blank: true, header: Proc.new{I18n.t('datagrid.form.artist_collabs_multi', default: "Collab Artists")}, select: Proc.new{
            sorted_title_ids(Artist.joins(:artist_music_plays).distinct, langcode: I18n.locale)}) do |value|  # Only for PostgreSQL! ; sorted_title_ids() defined in application_helper.rb
     list = [value].flatten.map{|i| i.blank? ? nil : i}.compact
     if list.empty?
@@ -48,7 +48,7 @@ class HaramiVidsGrid < ApplicationGrid
 
   filter_partial_str(:musics,  header: Proc.new{I18n.t('datagrid.form.musics_multi')})
 
-  filter(:collabs_only, :boolean, dummy: true, default: false,
+  filter(:collabs_only, :boolean, default: false,
          header: Proc.new{I18n.t("harami_vids.table_filter_collabs_only", default: "Videos with Collab-Artists only?")}) do |value|
     #(value ? self.joins(:artist_music_plays).where.not("artist_music_plays.artist_id" => Artist.default(:HaramiVid).id).distinct : self)  # => FATAL: SELECT DISTINCT, ORDER BY expressions must appear...
     # NOTE: The first object must be HaramiVid and NOT self; if it was self, already "pagered" self (".limit(n)"?) would be passed.
@@ -57,7 +57,7 @@ class HaramiVidsGrid < ApplicationGrid
 
   ###### this works only in limited occasions for some unknown reason...
   #
-  # filter(:n_inconsistent, :integer, dummy: true, default: false,, range: true, header: "#Inconsistency", tag_options: {class: ["editor_only"]}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |range|  # displayed only for editors
+  # filter(:n_inconsistent, :integer, default: false,, range: true, header: "#Inconsistency", tag_options: {class: ["editor_only"]}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |range|  # displayed only for editors
   #   allids = self.all.find_all{ |record|
   #     range.include? record.n_inconsistent_musics
   #   }.map(&:id)
@@ -154,7 +154,7 @@ class HaramiVidsGrid < ApplicationGrid
 
 
 ##### NOTE: for some reason, this seems to work only in limited occassions and does not sort the entire table records...
-#  column(:n_inconsistent, dummy: true, html: true, header: "#Inconsistent", tag_options: {class: "editor_only text-end"} # , order: proc {|scope|
+#  column(:n_inconsistent, html: true, header: "#Inconsistent", tag_options: {class: "editor_only text-end"} # , order: proc {|scope|
 #     #  # WARNING: Rails takes all records of the model on memory and calculates the result.  Very inefficient.
 #     #  allids = scope.all.sort_by{ |record|
 #     #    [record.missing_musics_from_amps.count + record.missing_musics_from_hvmas.count, (record.release_date || Date.today), record.id]

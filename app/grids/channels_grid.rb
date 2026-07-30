@@ -12,21 +12,21 @@ class ChannelsGrid < ApplicationGrid
   filter_ilike_title(:ja)  # defined in application_grid.rb
   filter_ilike_title(:en)  # defined in application_grid.rb
 
-  filter(:channel_owner, :enum, dummy: true, multiple: false, include_blank: true, select: Proc.new{
+  filter(:channel_owner, :enum, multiple: false, include_blank: true, select: Proc.new{
            sorted_title_ids(ChannelOwner.joins(channels: :harami_vids).distinct, langcode: I18n.locale)},  # filtering out those none of HaramiVid belong to; sorted_title_ids() defined in application_helper.rb
          header: Proc.new{I18n.t("harami_vids.table_head_ChannelOwner", default: "Channel owner")}) do |value|  # Only for PostgreSQL!
     list = [value].flatten.map{|i| i.blank? ? nil : i}.compact
     self.where("channel_owner_id" => list)
   end
 
-  filter(:channel_platform, :enum, dummy: true, multiple: false, include_blank: true, select: Proc.new{
+  filter(:channel_platform, :enum, multiple: false, include_blank: true, select: Proc.new{
            sorted_title_ids(ChannelPlatform.joins(channels: :harami_vids).distinct, langcode: I18n.locale)},  # filtering out those none of HaramiVid belong to; sorted_title_ids() defined in application_helper.rb
          header: Proc.new{I18n.t("harami_vids.table_head_ChannelPlatform", default: "Channel platform")}) do |value|  # Only for PostgreSQL!
     list = [value].flatten.map{|i| i.blank? ? nil : i}.compact
     self.where("channel_platform_id" => list)
   end
 
-  filter(:channel_type, :enum, dummy: true, multiple: false, include_blank: true, select: Proc.new{
+  filter(:channel_type, :enum, multiple: false, include_blank: true, select: Proc.new{
            sorted_title_ids(ChannelType.joins(channels: :harami_vids).distinct, langcode: I18n.locale)},  # filtering out those none of HaramiVid belong to; sorted_title_ids() defined in application_helper.rb
          header: Proc.new{I18n.t("harami_vids.table_head_ChannelType", default: "Channel type")}) do |value|  # Only for PostgreSQL!
     list = [value].flatten.map{|i| i.blank? ? nil : i}.compact

@@ -1,7 +1,7 @@
 Rails.application.routes.draw do
   ####### This part MUST precede any other lines!!
-  #filter :extension #, :exclude => %r(^admin/)
-  filter :locale#,    :exclude => /^\/admin/
+  #filter :extension #, exclude: %r(^admin/)
+  filter :locale#,    exclude: /^\/admin/
   default_url_options(locale: I18n.locale) if Rails.env.test?  # manually defined in application_controller.rb
   ####### Up to here
 
@@ -133,11 +133,11 @@ Rails.application.routes.draw do
 
   mount RailsAdmin::Engine => '/admin', as: 'rails_admin'
   # devise_for :users  # Default
-  devise_for :users, :except => [:destroy]
+  devise_for :users, except: [:destroy]
   # devise_for :users, :path_prefix => 'd'  # => /usrs/d/sign_up etc
-  resources :users, :only =>[:show]
-  #match '/users/:id',     to: 'users#show',       via: 'get'
-  #match '/users/:id',     to: 'users#show',  :as => :user,     via: 'get'
+  resources :users, only: [:show]
+  #match '/users/:id', to: 'users#show',            via: 'get'
+  #match '/users/:id', to: 'users#show', as: :user, via: 'get'
   root to: "home#index"
   get 'home/index'
 

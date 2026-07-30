@@ -35,11 +35,11 @@ class UrlsGrid < ApplicationGrid
    ar[0] <=> ar[1]
  }.map{|c| [(c.present? ? c : "None"), c]} }) # ja, en, cn, fr, de, es, it, pt, zh, ...
 
-  filter(:site_category_id, :enum, dummy: true, header: Proc.new{I18n.t(:SiteCategories)}, checkboxes: true, select: Proc.new{ SiteCategory.order(:weight).map{|es| [es.title_or_alt_for_selection, es.id]} }) do |values|
+  filter(:site_category_id, :enum, header: Proc.new{I18n.t(:SiteCategories)}, checkboxes: true, select: Proc.new{ SiteCategory.order(:weight).map{|es| [es.title_or_alt_for_selection, es.id]} }) do |values|
     self.joins(:site_category).where("site_categories.id" => values)
   end
 
-  filter(:anchorable_type, :enum, dummy: true, header: "Classes", checkboxes: true, select: Proc.new{ Anchoring.pluck(:anchorable_type).uniq.compact.sort.map{|c| [c, c]} }) do |values|
+  filter(:anchorable_type, :enum, header: "Classes", checkboxes: true, select: Proc.new{ Anchoring.pluck(:anchorable_type).uniq.compact.sort.map{|c| [c, c]} }) do |values|
     self.joins(:anchorings).where("anchorings.anchorable_type" => values)
   end
 
@@ -87,7 +87,7 @@ class UrlsGrid < ApplicationGrid
   column(:published_date, mandatory: false)
   column(:last_confirmed_date, mandatory: false)
 
-  column(:n_amps, dummy: true, mandatory: true, tag_options: {class: ["text-center"]}, header: Proc.new{I18n.t('urls.table_head.n_links')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
+  column(:n_amps, mandatory: true, tag_options: {class: ["text-center"]}, header: Proc.new{I18n.t('urls.table_head.n_links')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
     record.anchorables.count
   end
 
