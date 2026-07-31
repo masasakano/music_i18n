@@ -60,8 +60,9 @@ gem "bootsnap", require: false  # NOTE: This was necessary to avoid: realpath_ca
 #gem 'webpacker', '~> 5.0'  # Rails 6.1 default (was 4.0 in Rails 6.0)
 ## Turbolinks makes navigating your web application faster. Read more: https://github.com/turbolinks/turbolinks
 #gem 'turbolinks', '~> 5'  # Rails 6
+
 # Use Redis adapter to run Action Cable in production
-gem 'redis', '~> 5.0'
+gem 'redis', '~> 5.0'  ######## NOTE: redis 6.0 was released on 2026-07-31; you may eventually upgrade it.
 
 # Use Kredis to get higher-level data types in Redis [https://github.com/rails/kredis]
 # gem "kredis"
@@ -129,7 +130,7 @@ group :test do
 end
 
 ### User-added
-gem 'rails-i18n', '~> 8.0.0' # For Rails 8
+gem 'rails-i18n', '~> 8.1.0' # For Rails 8
 gem 'i18n-timezones'
 gem 'devise', '~> 4.9'
 gem 'devise-i18n'
@@ -152,7 +153,7 @@ gem 'kaminari-i18n'  # https://github.com/tigrish/kaminari-i18n
 gem 'plain_text'     # used in /lib/reverse_sql_order.rb
 gem 'rails-html-sanitizer'  # https://github.com/rails/rails-html-sanitizer
 gem 'i18n_data'  # for language names (and country names)
-gem 'diff-lcs', '~> 1.5', '>= 1.5.1'
+gem 'diff-lcs', '~> 2.0' #, '>= 2.0.0'
 gem 'unicode-emoji', '~> 4', '>= 4.1'
 gem 'google-apis-youtube_v3', '~> 0.57'
 gem 'rails_autolink', '~> 1.1', '>= 1.1.8'
