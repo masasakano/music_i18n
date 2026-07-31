@@ -27,7 +27,7 @@
 <% prm_parent_key = prm_parent_lower + "_id" %>
 
          <% paths ||= {}.with_indifferent_access %>
-         <% paths[:new] ||= send("new_"+ path_base, prm_parent_key => record.id) %> <%# Note: The direct argument assignment of "record" (or (anchoring, record) for :edit) returns the path without a locale, so it is not ideal, hence the use of "artrist_id: art1" %>
+         <% paths[:new] ||= send("new_"+ path_base, prm_parent_key.to_sym => record.id, locale: I18n.locale) %> <%# Note: The direct argument assignment of "record" (or (anchoring, record) for :edit) returns the path without a locale, so it is not ideal, hence the use of "artrist_id: art1" %>
          <% hsprms = {:id => anchoring, prm_parent_key.to_sym => record.id} %>
          <% paths[:edit]    = send("edit_"+path_base, **hsprms) %>
          <% paths[:destroy] = send(        path_base, **hsprms) %>

@@ -13,21 +13,21 @@ class ChannelsGrid < ApplicationGrid
   filter_ilike_title(:en)  # defined in application_grid.rb
 
   filter(:channel_owner, :enum, multiple: false, include_blank: true, select: Proc.new{
-           sorted_title_ids(ChannelOwner.joins(channels: :harami_vids).distinct, langcode: I18n.locale)},  # filtering out those none of HaramiVid belong to; sorted_title_ids() defined in application_helper.rb
+           ApplicationHelper.sorted_title_ids(ChannelOwner.joins(channels: :harami_vids).distinct, langcode: I18n.locale)},  # filtering out those none of HaramiVid belong to
          header: Proc.new{I18n.t("harami_vids.table_head_ChannelOwner", default: "Channel owner")}) do |value|  # Only for PostgreSQL!
     list = [value].flatten.map{|i| i.blank? ? nil : i}.compact
     self.where("channel_owner_id" => list)
   end
 
   filter(:channel_platform, :enum, multiple: false, include_blank: true, select: Proc.new{
-           sorted_title_ids(ChannelPlatform.joins(channels: :harami_vids).distinct, langcode: I18n.locale)},  # filtering out those none of HaramiVid belong to; sorted_title_ids() defined in application_helper.rb
+           ApplicationHelper.sorted_title_ids(ChannelPlatform.joins(channels: :harami_vids).distinct, langcode: I18n.locale)},  # filtering out those none of HaramiVid belong to
          header: Proc.new{I18n.t("harami_vids.table_head_ChannelPlatform", default: "Channel platform")}) do |value|  # Only for PostgreSQL!
     list = [value].flatten.map{|i| i.blank? ? nil : i}.compact
     self.where("channel_platform_id" => list)
   end
 
   filter(:channel_type, :enum, multiple: false, include_blank: true, select: Proc.new{
-           sorted_title_ids(ChannelType.joins(channels: :harami_vids).distinct, langcode: I18n.locale)},  # filtering out those none of HaramiVid belong to; sorted_title_ids() defined in application_helper.rb
+           ApplicationHelper.sorted_title_ids(ChannelType.joins(channels: :harami_vids).distinct, langcode: I18n.locale)},  # filtering out those none of HaramiVid belong to
          header: Proc.new{I18n.t("harami_vids.table_head_ChannelType", default: "Channel type")}) do |value|  # Only for PostgreSQL!
     list = [value].flatten.map{|i| i.blank? ? nil : i}.compact
     self.where("channel_type_id" => list)
@@ -44,7 +44,7 @@ class ChannelsGrid < ApplicationGrid
 
   # Following is defined in application_grid.rb, not displaying multiple candidate Translations.
   column_title_ja  
-  column_title_en(Channel, mandatory: true)
+  column_title_en(mandatory: true)
 
   column_model_trans_belongs_to(:channel_owner, mandatory: true, header: Proc.new{I18n.t("harami_vids.table_head_ChannelOwner")}, with_link: :class)  # defined in application_grid.rb
   column_model_trans_belongs_to(:channel_platform, mandatory: true, header: Proc.new{I18n.t("harami_vids.table_head_ChannelPlatform")}, with_link: false)  # defined in application_grid.rb
@@ -66,7 +66,7 @@ class ChannelsGrid < ApplicationGrid
           "".html_safe
         end
 
-      safe_html_in_tagpair(safe_content, tag_class: "moderator_only")  # defined in application_helper.rb
+      ApplicationHelper.safe_html_in_tagpair(safe_content, tag_class: "moderator_only")
     end
   end
   

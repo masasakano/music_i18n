@@ -21,7 +21,10 @@ class UsersIntegrationTest < ActionDispatch::IntegrationTest
 
     sign_in( users(:user_two) )
     get user_path(users(:user_two))
-    assert_redirected_to new_user_session_path, 'Login should be needed b/c the user has not been confirmed, but?'  # Devise sing_in route
+    assert_response :redirect
+    mat, redirected = two_prms_redirected_to_fuzzy_locale(new_user_session_path, locale: "en") # defined in test_helper.rb
+    assert_match(mat, redirected, "Login should be needed b/c the user has not been confirmed, but?")  # Devise sing_in route
+    # assert_redirected_to new_user_session_path, 'Login should be needed b/c the user has not been confirmed, but?'  # Devise sing_in route
 
     sign_in( user_no_role )
 

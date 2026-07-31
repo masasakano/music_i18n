@@ -58,8 +58,8 @@ class EventsGrid < ApplicationGrid
 
   # ID first (already defined in the head of the filters section)
 
-  column_title_ja         # defined in application_grid.rb
-  column_title_en(Event)  # defined in application_grid.rb
+  column_title_ja  # defined in application_grid.rb
+  column_title_en  # defined in application_grid.rb
 
   column(:start_time,     mandatory: true,  header: Proc.new{I18n.t('tables.start_time')})
   column(:start_time_err, mandatory: false, header: Proc.new{I18n.t('tables.start_time_err_hr_short')}) do |record|

@@ -110,7 +110,7 @@ raise if @event.id
       @event.unsaved_translations = _new_evt_tras
       @event.place = _most_significant_place
       msg = sprintf("Resettled from %s (pID=%d) on %s",
-                    ActionController::Base.helpers.link_to("EventItem", event_item_path(@event_item)),
+                    helpers.link_to("EventItem", event_item_path(@event_item)),
                     @event_item.id,
                     Date.current.to_s)
       @event.memo_editor = [((existing=@event.memo_editor).blank? ? nil : existing), msg].join(" ") 

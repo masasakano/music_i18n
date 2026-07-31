@@ -394,13 +394,17 @@ class ActiveSupport::TestCase
     if user_fail
       visit new_user_session_path
       assert_selector "h2", text: "Log in"
-      assert_current_path new_user_session_path
+      mat, _ = two_prms_redirected_to_fuzzy_locale(new_user_session_path, act: true, locale: "en") # defined in test_helper.rb
+      assert_match(mat, current_path, "New_user_session_path is unexpected...")
+      # assert_current_path new_user_session_path
 
       login_or_fail_index(user_fail, succeed: true)
 
       visit index_path
       assert_selector "h1"  # Root
-      assert_current_path root_path  # should be redirected (from Index) to Root path
+      mat, _ = two_prms_redirected_to_fuzzy_locale(root_url, act: true, locale: "en") # defined in test_helper.rb
+      assert_match(mat, current_path, "Current-path is unexpected...")
+      # assert_current_path root_path  # should be redirected (from Index) to Root path
       logout_from_menu
     end
 
@@ -408,7 +412,9 @@ class ActiveSupport::TestCase
 
     ## Succeeding
     visit index_path  # should be redirected to new_user_session_path
-    assert_current_path new_user_session_path
+    mat, _ = two_prms_redirected_to_fuzzy_locale(new_user_session_path, act: true, locale: "en") # defined in test_helper.rb
+    assert_match(mat, current_path, "New_user_session_path is unexpected...")
+    # assert_current_path new_user_session_path
     assert_text TEXT_ASSERTED[:login][:need]
     assert_selector :xpath, xpath_for_flash(:alert, category: :div), text: TEXT_ASSERTED[:login][:need]
                 # "//div[@id='body_main']/p[contains(@class, 'alert-danger')][1]" (and more)

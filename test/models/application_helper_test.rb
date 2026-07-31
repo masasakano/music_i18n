@@ -188,7 +188,7 @@ class ModuleCommonTest < ActiveSupport::TestCase
  
   test "link_to_youtube" do
     rk="WeMoOTlQ-Ls"
-    page = Nokogiri::HTML( link_to_youtube(rk, root_kwd=nil, timing=5, long: false, target: true, title: (tit="my_title1")) )
+    page = Nokogiri::HTML( link_to_youtube(rk, root_kwd=nil, timing=5, long: false, target: true, no_fallback: false, title: (tit="my_title1")) )  # if {no_fallback: true} is passed, this will fail.
     exp = "https://youtu.be/WeMoOTlQ-Ls?t=5s"
     assert_equal exp, page.css("a")[0]["href"], "a is #{page.css('a')[0].inspect}"
     assert_equal tit, page.css("a")[0]["title"]
@@ -301,19 +301,19 @@ class ModuleCommonTest < ActiveSupport::TestCase
     assert_equal exp, act
   end
 
-  test "tag_pair_span" do
+  test "AH.tag_pair_span" do
     exp = ['<span class="my1 my2">', '</span>']
-    act = tag_pair_span(tag_class: "my1 my2")
+    act = AH.tag_pair_span(tag_class: "my1 my2")
     assert_equal exp, act
     exp = ['<em>', '</em>']
-    act = tag_pair_span(tag_class: nil, tag: "em")
+    act = AH.tag_pair_span(tag_class: nil, tag: "em")
     assert_equal exp, act
   end
 
-  test "safe_html_in_tagpair" do
-    assert_equal "<em>abc</em>", safe_html_in_tagpair("abc".html_safe, tag_class: "", tag: "em")
+  test "AH.safe_html_in_tagpair" do
+    assert_equal "<em>abc</em>", AH.safe_html_in_tagpair("abc".html_safe, tag_class: "", tag: "em")
     exp =  '<span class="moderator_only smaller">10 &gt; 9<br>8</span>'
-    act = safe_html_in_tagpair("10 &gt; 9<br>8".html_safe, tag_class: "moderator_only smaller")
+    act = AH.safe_html_in_tagpair("10 &gt; 9<br>8".html_safe, tag_class: "moderator_only smaller")
     assert_equal exp, act
   end
 

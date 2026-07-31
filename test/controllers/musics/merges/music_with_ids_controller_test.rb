@@ -18,17 +18,17 @@ class Musics::Merges::MusicWithIdsControllerTest < ActionDispatch::IntegrationTe
   # ---------------------------------------------
 
   test "should get index if logged in as an editor" do
-    get musics_merges_music_with_ids_path(@music,  params: {keyword: "ivepea", path: "/en/musics/#{@music.id}/merges/new"}, format: :json)
-    assert_response 401
+    get musics_merges_music_with_ids_path(@music,  params: {keyword: "ivepea", path: "/en/musics/#{@music.id}/merges/new"}, format: :json, locale: I18n.locale)
+    assert_response 401  # Unauthorized
 
     sign_in @editor
     fpath = '/en/random'
-    get musics_merges_music_with_ids_path(@music,  params: {keyword: "ivepea", path: fpath}, format: :json)
+    get musics_merges_music_with_ids_path(@music,  params: {keyword: "ivepea", path: fpath}, format: :json, locale: I18n.locale)
     assert_response :unprocessable_content
     hs = @response.parsed_body
     assert_equal 'error', hs.keys[0]  # {"error":"Forbidden request to \"/en/random\""}
 
-    get musics_merges_music_with_ids_path(@music,  params: {keyword: "ivepea", path: "/en/musics/#{@music.id}/merges/new"}, format: :json)
+    get musics_merges_music_with_ids_path(@music,  params: {keyword: "ivepea", path: "/en/musics/#{@music.id}/merges/new"}, format: :json, locale: I18n.locale)
     assert_response :success
     ary = @response.parsed_body
     assert_equal Array, ary.class, 'ary='+ary.inspect

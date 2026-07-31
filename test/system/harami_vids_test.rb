@@ -71,6 +71,46 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: n_tot_entries) # defined in test_helper.rb
     assert_equal size_be4, find_all(css_table).size  # size should be refreshed.
 
+    n_def_cols = page.find_all('table.datagrid-table thead tr th').size
+
+    assert_selector    "#harami_vids_grid_column_names_note"         # sanity check
+    assert_no_selector "#harami_vids_grid_column_names_memo_editor"  # This should not be displayed for the public user
+
+    check "harami_vids_grid_column_names_duration"  # HTML ID
+    exp_n_cols = n_def_cols + 1  # Expected numbrer of columns now
+
+    click_on "Apply"
+    assert_selector('input[type="submit"][value="Apply"]:not([disabled])')
+    assert_text             xpath_grid_pagenation_stats_with(n_filtered_entries: n_tot_entries, text_only: true)
+    assert_selector('table.datagrid-table thead tr th:nth-child(4)', text: "Length")
+    assert_selector("table.datagrid-table tbody tr:nth-child(1) td:nth-child(#{exp_n_cols})", text: "Detail")
+    assert_equal exp_n_cols, page.find_all('table.datagrid-table thead tr th').size  # number of columns
+
+    # Checks whether any column can be displayed without crashing
+    check "harami_vids_grid_column_names_n_musics"
+    check "harami_vids_grid_column_names_place"
+    check "harami_vids_grid_column_names_uri"
+    check "harami_vids_grid_column_names_channel"
+    check "harami_vids_grid_column_names_channel_owner"
+    check "harami_vids_grid_column_names_channel_platform"
+    check "harami_vids_grid_column_names_events"
+    check "harami_vids_grid_column_names_collabs"
+    check "harami_vids_grid_column_names_collab_hows"
+    check "harami_vids_grid_column_names_note"
+    exp_n_cols = n_def_cols + 11  # Expected numbrer of columns now
+
+    click_on "Apply"
+    assert_selector('input[type="submit"][value="Apply"]:not([disabled])')
+    assert_text             xpath_grid_pagenation_stats_with(n_filtered_entries: n_tot_entries, text_only: true)
+    assert_selector('table.datagrid-table thead tr th:nth-child(5)', text: "# of Musics")
+    assert_selector("table.datagrid-table tbody tr:nth-child(1) td:nth-child(#{exp_n_cols})", text: "Detail")  # If this succeeds, this means all the selected columns are displayed.
+    assert_equal exp_n_cols, page.find_all('table.datagrid-table thead tr th').size  # see if number of columns does not exceed the expected one, i.e., no extra columns.
+
+    click_on "Reset"
+    assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: n_tot_entries) # defined in test_helper.rb
+    assert_equal size_be4, find_all(css_table).size  # size should be refreshed.
+
+    # Auto-complete
     fill_autocomplete('#harami_vids_grid_artists', use_find: true, with: 'nnon', select: (tit="John Lennon"))  # defined in test_helper.rb
     click_on "Apply"
 
@@ -349,7 +389,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     h1_tit = "HARAMIchan-featured Video (2020-10-31) by HARAMIchan"
 
     # unauthenticated user
-    visit harami_vid_path(hvid)
+    visit harami_vid_path(hvid, locale: I18n.locale)
     assert_selector "h1", text: h1_tit   # locale: harami_vid_long: 
     assert_includes trans_titles_in_table.values.flatten, hvid.title_or_alt(langcode: "en", lang_fallback_option: :either)
 
@@ -376,7 +416,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     login_at_root_path(user=@editor_harami)  # defined in test_system_helper.rb
 
     h1_tit_ed = "HARAMIchan-featured Video [HaramiVid] (2020-10-31) by HARAMIchan"
-    visit harami_vid_path(hvid)
+    visit harami_vid_path(hvid, locale: I18n.locale)
     assert_selector "h1", text: h1_tit_ed  # locale: harami_vid_long: 
 
     trs = find_all(trs_css)
@@ -456,7 +496,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert hvid2.place
     refute hvid2.place.unknown?
     page.find('input#pid_edit_harami_vid_with_ref').fill_in with: hvid2.uri  # This is unique!
-    url = edit_harami_vid_url(hvid, params: {reference_harami_vid_kwd: hvid2.uri})
+    url = edit_harami_vid_url(hvid, params: {reference_harami_vid_kwd: hvid2.uri}, locale: I18n.locale)
     urlmod = url.sub(/\?locale=en&/, "?")  # locale does something wrong...
     css = 'a#href_edit_harami_vid_with_ref'
     assert_selector css
@@ -496,7 +536,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_anchoring_crud_in_show(hvid2, h1_title=date_str, skip_login: true)  # defined in test_system_helper.rb
 
     ## move to Edit
-    visit edit_harami_vid_path(hvid2)
+    visit edit_harami_vid_path(hvid2, locale: I18n.locale)
     assert_text tit2
 
     css_td = "table#music_table_for_hrami_vid tbody tr td.item_timing"

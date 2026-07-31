@@ -18,7 +18,6 @@ class HaramiVids::AnchoringsControllerTest < BaseAnchoringsControllerTest  # < A
   end
 
   # ---------------------------------------------
-
   test "should create/update/destroy anchoring by Harami-editor" do
     do_basic_tests(h1_title_regex: /\bHARAMIchan\b.+\bvideo\b/i, fail_users: [@editor_ja], success_users: [@moderator_all, @editor_harami])   # defined in /test/controllers/base_anchorings_controller_test.rb
   end

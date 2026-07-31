@@ -19,13 +19,13 @@ class Harami1129sGrid < ApplicationGrid
   column(:status_mark, mandatory: true, header: Harami1129::TABLE_STATUS_MARKER[:ins_inconsistent]) do |record|
     record.populate_status.sorted_status(return_markers: true).first
   end
-  column(:id) do |record|
-    to_path = Rails.application.routes.url_helpers.harami1129_url(record, {only_path: true}.merge(ApplicationController.new.default_url_options))
-    ActionController::Base.helpers.link_to record.id, to_path
+  column(:id, html: true) do |record|
+    to_path = harami1129_url(record, {only_path: true}.merge(ApplicationController.new.default_url_options))
+    link_to record.id, to_path
   end
-  column(:id_remote, mandatory: true, tag_options: {class: ["align-cr"]}, header: '#Row') do |record|
-    to_path = Rails.application.routes.url_helpers.harami1129_url(record, {only_path: true}.merge(ApplicationController.new.default_url_options))
-    ActionController::Base.helpers.link_to record.id_remote, to_path
+  column(:id_remote, html: true, mandatory: true, tag_options: {class: ["align-cr"]}, header: '#Row') do |record|
+    to_path = harami1129_url(record, {only_path: true}.merge(ApplicationController.new.default_url_options))
+    link_to record.id_remote, to_path
   end
   column(:singer, mandatory: true) do |record|
     st = record.populate_status
@@ -37,7 +37,7 @@ class Harami1129sGrid < ApplicationGrid
     st.marker(:ins_song) + (record.song || '') +
     ((st.status(:ins_song) == :org_inconsistent) ? " (⇔ "+(st.dest_current(:ins_song) || '""')+")" : '')
   end
-  column(:title, header: 'Title (⇔ Ins_Title)', mandatory: true) do |record|
+  column(:title, html: true, header: 'Title (⇔ Ins_Title)', mandatory: true) do |record|
     st = record.populate_status
     st.marker(:ins_title).html_safe+link_to_youtube(record.title, record.link_root, record.link_time) +
     ((st.status(:ins_title) == :org_inconsistent) ? "<br>⇔ ".html_safe+(st.dest_current(:ins_title) || '""') : '')
@@ -66,14 +66,14 @@ class Harami1129sGrid < ApplicationGrid
   date_column(:ins_release_date)
   column(:ins_link_root)
   column(:ins_link_time)
-  column(:harami_vid_id, header: 'Vid', tag_options: {class: ["align-cr"]}) do |record|
-    (record.harami_vid_id ? ActionController::Base.helpers.link_to(record.harami_vid_id, Rails.application.routes.url_helpers.harami_vid_url(record.harami_vid_id, only_path: true)) : '')
+  column(:harami_vid_id, html: true, header: 'Vid', tag_options: {class: ["align-cr"]}) do |record|
+    (record.harami_vid_id ? link_to(record.harami_vid_id, harami_vid_url(record.harami_vid_id, only_path: true, locale: I18n.locale)) : '')
   end
-  column(:engage_id, tag_options: {class: ["align-cr"]}) do |record|
-    (record.engage_id ? ActionController::Base.helpers.link_to(record.engage_id, Rails.application.routes.url_helpers.engage_url(record.engage_id, only_path: true)) : '')
+  column(:engage_id, html: true, tag_options: {class: ["align-cr"]}) do |record|
+    (record.engage_id ? link_to(record.engage_id, engage_url(record.engage_id, only_path: true, locale: I18n.locale)) : '')
   end
-  column(:event_item_id) do |record|
-    (record.event_item_id ? ActionController::Base.helpers.link_to(record.event_item_id, Rails.application.routes.url_helpers.event_item_url(record.event_item_id, only_path: true)) : '')
+  column(:event_item_id, html: true) do |record|
+    (record.event_item_id ? link_to(record.event_item_id, event_item_url(record.event_item_id, only_path: true, locale: I18n.locale)) : '')
   end
 
   column_note             # defined in application_grid.rb

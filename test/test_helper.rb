@@ -52,8 +52,20 @@ class ActiveSupport::TestCase
   # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
   fixtures :all
 
-  # Disable routing-filter in testing
-  RoutingFilter.active = false
+  class ActionDispatch::IntegrationTest
+    # Re-introduce the global default parameter handler for the test environment
+if true  ### This works
+    setup do
+      self.default_url_options = { locale: I18n.default_locale }
+    end
+else  ### Below does not work well...
+    def default_url_options
+      { locale: I18n.default_locale }
+    end
+end
+  end
+  ## Disable routing-filter in testing  / for routing-filter Gem
+  #RoutingFilter.active = false
 
   # CSS for pages
   PAGECSS = {
@@ -603,6 +615,30 @@ class ActiveSupport::TestCase
   ################################################################
   # Controller-test/params related
   ################################################################
+  
+  # Returns for assert_match the expected redirected path, ignoring the locale prefix
+  #
+  # @example
+  #    assert_response :redirect
+  #    mat, redirected = two_prms_redirected_to_fuzzy_locale(root_url, locale: "ja") # defined in test_helper.rb
+  #    assert_match(mat, redirected, "Redirected-path is wrong.")
+  #
+  # @example for current_path
+  #    mat, _ = two_prms_redirected_to_fuzzy_locale(root_url, act: true, locale: "ja") # defined in test_helper.rb
+  #    assert_match(mat, current_path, "Current-path is wrong.")
+  #
+  # @param exp [String] Expected URL or path, which may or may not have a locale prefix.
+  # @param act: [Object, NilClass] If nil, adopts the redirected path.
+  # @return [Array<Regexp, String>] 2-element Array to feed to assert_match
+  def two_prms_redirected_to_fuzzy_locale(exp, act: nil, locale: I18n.locale)
+    loc = Regexp.quote(locale)
+    act ||= URI.parse(response.redirect_url).path
+    quoted_exp = Regexp.quote(URI.parse(exp).path.sub(%r@^/#{loc}@, ""))
+    suffix = (("/" == quoted_exp[-1, 1]) ? "?" : "")  # esp. to deal with a root-dir case like "/en"
+    [%r@^(/#{loc})?#{quoted_exp}#{suffix}\z@, act]  # defined in test_helper.rb
+  end
+
+
   # performs log on and assertion to see if the HTTP response is :success
   #
   # This assumes that no one is logged on when called.
@@ -628,7 +664,7 @@ class ActiveSupport::TestCase
   def assert_controller_index_fail_succeed(path2get, user_fail: nil, user_succeed: nil)
     if path2get.respond_to?(:rewhere) || path2get.respond_to?(:destroy!)
       # gets the path of either :index or :show
-      path2get = Rails.application.routes.url_helpers.polymorphic_path(path2get)
+      path2get = Rails.application.routes.url_helpers.polymorphic_path(path2get, locale: I18n.locale)
     end
     # h1_title ||= model.class.name.underscore.pluralize.split("_").map(&:capitalize).join(" ")  # e.g., "Event Items"
 
@@ -643,11 +679,13 @@ class ActiveSupport::TestCase
 
     user_fails.each do |user|
       username = (user ? user.display_name : "Unauthenticated")
+      #path_redirected = (user ? (root_url.to_s+"en").sub(%r@/enen/?@, "/") : new_user_session_path)
       path_redirected = (user ? root_url : new_user_session_path)
       sign_in  user if user
       get path2get
       assert_response          :redirect,   sprintf(fmt1, _get_caller_info_message, path2get, username, response_status_text)  # defined in test_helper.rb
-      assert_redirected_to path_redirected, sprintf(fmt2, _get_caller_info_message, path2get)  # defined in test_helper.rb
+      assert_match(%r@^(/en)?#{Regexp.quote(URI.parse(path_redirected).path)}@, URI.parse(response.redirect_url).path, sprintf(fmt2, _get_caller_info_message, path2get))  # defined in test_helper.rb
+      #assert_redirected_to path_redirected, sprintf(fmt2, _get_caller_info_message, path2get), locale: "en"  ### This sometimes fail because of the "sporadic" presense of the locale prefix
       sign_out user if user
     end
 

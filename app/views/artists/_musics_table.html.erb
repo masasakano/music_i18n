@@ -55,7 +55,7 @@
         <td class="text-end"><%= music.harami_vids.count.to_s+(("ja"==I18n.locale.to_s) ? '本' : "") %></td>
         <td><%= ModuleRedcarpetAux.md2safehtml(music.note) %></td>
         <td class="align-r">
-          <%= music.url_wiki_any(lname: "Wikip") %>
+          <%= url_wiki_any(music, lname: "Wikip") %>  <%# defined in application_helper.rb %>
           <%= link_to t("tables.Show"), music %></td>
         <% if can_upd_mus=can?(:update, music) %>
           <td class="editor_only"><%= link_to 'Edit', edit_music_path(music) %></td>

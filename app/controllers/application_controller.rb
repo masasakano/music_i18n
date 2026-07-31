@@ -19,6 +19,7 @@ class ApplicationController < ActionController::Base
   ## Uncomment this (as well as the method below) to investigate problems related to params()
   #before_action :debug_ctrl_print2
 
+  # With around_action, this setting can be thread-safe, and so it is superior to before_action
   around_action :switch_locale
 
   # When a nil is passed as a value in a *collection* to simple_form selections,
@@ -113,7 +114,6 @@ class ApplicationController < ActionController::Base
   }.with_indifferent_access
 
   def default_url_options(options={})
-    #Rails.application.default_url_options = Rails.application.routes.default_url_options = { locale: I18n.locale }
     { locale: I18n.locale }.merge options
   end
 

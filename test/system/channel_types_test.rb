@@ -95,7 +95,7 @@ class ChannelTypesTest < ApplicationSystemTestCase
 
     ## "should update ChannelType" do
     mdl2 = ChannelType.last
-    visit channel_type_url(mdl2)
+    visit channel_type_url(mdl2, locale: I18n.locale)
     click_on "Edit this Channel Type", match: :first
 
     assert_selector "h1", text: "Editing Channel Type"
@@ -110,7 +110,7 @@ class ChannelTypesTest < ApplicationSystemTestCase
     click_on "Back"
 
     ## test "should destroy ChannelType" do
-    visit channel_type_url(mdl2)
+    visit channel_type_url(mdl2, locale: I18n.locale)
     assert_selector "h1", text: "Channel Type:"
     assert_match(/\AChannel\s*Type:/, page.find("h1").text)
 

@@ -75,7 +75,7 @@ class ChannelPlatformsTest < ApplicationSystemTestCase
 
     ## "should update ChannelPlatform" do
     mdl2 = ChannelPlatform.last
-    visit channel_platform_url(mdl2)
+    visit channel_platform_url(mdl2, locale: I18n.locale)
     click_on "Edit this Channel Platform", match: :first
 
     assert_selector "h1", text: "Editing Channel Platform"
@@ -88,7 +88,7 @@ class ChannelPlatformsTest < ApplicationSystemTestCase
     click_on "Back"
 
     ## test "should destroy ChannelPlatform" do
-    visit channel_platform_url(mdl2)
+    visit channel_platform_url(mdl2, locale: I18n.locale)
     assert_selector "h1", text: "Channel Platform:"
     assert_match(/\AChannel\s*Platform:/, page.find("h1").text)
 if true

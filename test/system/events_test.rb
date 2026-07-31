@@ -115,7 +115,7 @@ class EventsTest < ApplicationSystemTestCase
     assert_equal(n_events_be4+1, n_events)
 
     ## "should update Event" do
-    visit event_url(@event)
+    visit event_url(@event, locale: I18n.locale)
     click_on "Edit this Event", match: :first
 
     assert_selector "h1", text: "Editing Event"
@@ -133,7 +133,7 @@ class EventsTest < ApplicationSystemTestCase
     click_on "Back", match: :first
 
     ## test "should destroy Event" do
-    visit event_url(@event)
+    visit event_url(@event, locale: I18n.locale)
     assert_match(/\AEvent:/, page.find("h1").text)
     assert_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy'][@disabled='disabled']"  # "Destroy" button should be disabled because it has child EventItems
     ### This case used not to display the Destroy button at all.

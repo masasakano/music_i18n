@@ -1,9 +1,12 @@
 Rails.application.routes.draw do
-  ####### This part MUST precede any other lines!!
-  #filter :extension #, exclude: %r(^admin/)
-  filter :locale#,    exclude: /^\/admin/
-  default_url_options(locale: I18n.locale) if Rails.env.test?  # manually defined in application_controller.rb
-  ####### Up to here
+  ######## This part MUST precede any other lines!!   (for routing-filter Gem)
+  ##filter :extension #, exclude: %r(^admin/)
+  #filter :locale#,    exclude: /^\/admin/
+  #default_url_options(locale: I18n.locale) if Rails.env.test?  # manually defined in application_controller.rb
+  ######## Up to here
+
+  # Locale-prefix handling in vanilla Rails (used to use routing-filter Gem)
+scope "(:locale)", locale: Regexp.new(I18n.available_locales.map(&:to_s).join("|")) do
 
   resources :diagnose, only: [:index]
   resources :urls
@@ -152,9 +155,20 @@ Rails.application.routes.draw do
 
   # Arbitrary page paths are dealt with StaticPagePublicsController
   get '/static_page_publics', to: 'static_page_publics#index'
-  constraints(lambda { |request| !File.basename(request.fullpath).sub(/\?.*/, '').include?('.') }) do
-    # Except the filenames with a suffix like .jpg or even .html
-    get '*path', to: 'static_page_publics#show'
-  end
+  get "*path", to: "static_page_publics#show", constraints: ->(req) {
+    # Do not intercept framework files, active storage paths, or asset bundles
+    # or the filenames with a suffix like .jpg or even .html (after the query parameter part is removed).
+    !req.path.start_with?("/assets/", "/rails/") && !File.basename(req.fullpath).sub(/\?.*/, '').include?('.')
+  }
+  #constraints(lambda { |request| !File.basename(request.fullpath).sub(/\?.*/, '').include?('.') }) do
+  #  get '*path', to: 'static_page_publics#show'
+  #end
+end # scope "(:locale)", locale: ... do
+
+  # Global Fallback Route: If an unrecognized 2-letter locale block like /zz/ is passed,
+  # it bypasses the scope above. We can catch it here and route it.
+  # For now, this is commented out so that the default handling routine takes care of this (usually Routing-Error).
+  #get "/:invalid_locale/*path", to: "static_pages#show", constraints: { invalid_locale: /[a-z]{2}/ }
+
   # For details on the DSL available within this file, see https://guides.rubyonrails.org/routing.html
 end

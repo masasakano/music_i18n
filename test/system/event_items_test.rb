@@ -69,7 +69,7 @@ class EventItemsTest < ApplicationSystemTestCase
     click_on "Log in"
     assert_text "Signed in successfully"
 
-    visit event_item_url(@event_item)
+    visit event_item_url(@event_item, locale: I18n.locale)
     click_on "Edit this EventItem", match: :first
 
     fill_in "Machine title", with: "my_updated_title"
@@ -80,7 +80,7 @@ class EventItemsTest < ApplicationSystemTestCase
     assert_equal n_events, EventItem.count
 
     # Destroy
-    visit event_item_url(@event_item)
+    visit event_item_url(@event_item, locale: I18n.locale)
     button_text = "Destroy this EventItem"
     
     #assert page.find(:xpath, "//input[@type='submit'][@value='#{button_text}']")["outerHTML"].present?

@@ -16,7 +16,7 @@
 <%= editor_only_safe_html(model, method: :update, only: permission_level, tag: "div") do %> <%# defined in application_helper.rb %>
   <%= tag.section id: ApplicationController::CSS_CLASSES[:show][:sec_id_edit_destroy_in_show] do %>
     <%= tag.span class: ["lead"] do %>
-      <%= link_to "Edit this #{model.class.name}", Rails.application.routes.url_helpers.polymorphic_path(model, action: :edit, only_path: true), class: "edit_link", data: { turbo_frame: "_top" } %>
+      <%= link_to "Edit this #{model.class.name}", polymorphic_path(model, action: :edit, only_path: true), class: "edit_link", data: { turbo_frame: "_top" } %>
     <% end %>
 
     <% if can?(:destroy, model) %>

@@ -19,17 +19,17 @@ class Artists::Merges::ArtistWithIdsControllerTest < ActionDispatch::Integration
   # ---------------------------------------------
 
   test "should get index if logged in as an editor" do
-    get artists_merges_artist_with_ids_path(@artist,  params: {keyword: "nno", path: "/en/artists/#{@artist.id}/merges/new"}, format: :json)
+    get artists_merges_artist_with_ids_path(@artist,  params: {keyword: "nno", path: "/en/artists/#{@artist.id}/merges/new"}, format: :json, locale: I18n.locale)
     assert_response 401
 
     sign_in @editor
     fpath = '/en/random'
-    get artists_merges_artist_with_ids_path(@artist,  params: {keyword: "nno", path: fpath}, format: :json)
+    get artists_merges_artist_with_ids_path(@artist,  params: {keyword: "nno", path: fpath}, format: :json, locale: I18n.locale)
     assert_response :unprocessable_content
     hs = @response.parsed_body
     assert_equal 'error', hs.keys[0]  # {"error":"Forbidden request to \"/en/random\""}
 
-    get artists_merges_artist_with_ids_path(@artist,  params: {keyword: "nno", path: "/en/artists/#{@artist.id}/merges/new"}, format: :json)
+    get artists_merges_artist_with_ids_path(@artist,  params: {keyword: "nno", path: "/en/artists/#{@artist.id}/merges/new"}, format: :json, locale: I18n.locale)
     assert_response :success
     ary = @response.parsed_body
     assert_equal Array, ary.class, 'ary='+ary.inspect
@@ -43,7 +43,7 @@ class Artists::Merges::ArtistWithIdsControllerTest < ActionDispatch::Integration
   #  sign_in @editor
     model = ChannelOwner.first
     %w(new edit edit/123).each do |path_fragment|
-      get artists_merges_artist_with_ids_path(model,  params: {keyword: "enn", path: "/en/channel_owners/#{path_fragment}"}, format: :json)  # "/en/" should not exist??
+      get artists_merges_artist_with_ids_path(model,  params: {keyword: "enn", path: "/en/channel_owners/#{path_fragment}"}, format: :json, locale: I18n.locale)  # "/en/" should not exist??
       assert_response :success, "Failed for path=#{path_fragment.inspect}"
       ary = @response.parsed_body
       assert_match(@re_lennon, ary.sort[0], "(path=#{path_fragment}): Lennon should match but ary="+ary.inspect)

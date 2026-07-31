@@ -254,7 +254,7 @@ class ArtistsTest < ApplicationSystemTestCase
 
   test "should create/update artist" do
     harami = artists(:artist_harami)
-    visit artist_url(harami)
+    visit artist_url(harami, locale: I18n.locale)
     assert_selector "h1", text: sprintf("Artist: %s (%s)", harami.title(langcode: "ja"), harami.title(langcode: "en"))
     xpath_new_music_link = "//section[@id='sec_musics_by']//div[contains(@class, 'link_to_new_music')]//a"
     refute_selector(:xpath, xpath_new_music_link)

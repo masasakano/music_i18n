@@ -35,7 +35,7 @@
         <td><%= model.iso3166_a3_code %></td>
         <td><%= model.iso3166_n3_code %></td>
         <% if can? :read, CountryMaster %>
-          <td><%= model.link_to_master %>
+          <td><%= link_to_master(model) %><%# defined in model.countries_helper.rb %>
         <% end %>
         <td><%= model.independent.inspect %></td>
         <td><%= model.territory %></td>

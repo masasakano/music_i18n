@@ -19,7 +19,7 @@ class EventGroupsTest < ApplicationSystemTestCase
   #end
 
   test "should create event group" do
-    assert_index_fail_succeed(edit_event_group_url(@event_group))  # defined in test_system_helper.rb
+    assert_index_fail_succeed(edit_event_group_url(@event_group, locale: I18n.locale))  # defined in test_system_helper.rb
 
     login_at_root_path(user=@moderator, with_visit: true)
     assert_text "Music i18n"
@@ -78,7 +78,7 @@ class EventGroupsTest < ApplicationSystemTestCase
     assert_equal(n_event_groups_be4+1, n_event_groups)
 
     ## "should update Event group" do
-    visit event_group_url(@event_group)
+    visit event_group_url(@event_group, locale: I18n.locale)
     click_on "Edit this EventGroup", match: :first
 
     assert_selector 'form div#div_select_country'
@@ -102,7 +102,7 @@ class EventGroupsTest < ApplicationSystemTestCase
     page.find("section#section_event_group_show_footer a").click  # "Back to Index"
 
     ## test "should destroy Event group" do
-    visit event_group_url(@event_group)
+    visit event_group_url(@event_group, locale: I18n.locale)
 
     #### This EventGroup has a child and so it is not destroyable!!!!
     #click_on "Destroy this EventGroup", match: :first

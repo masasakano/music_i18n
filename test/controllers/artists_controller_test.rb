@@ -39,6 +39,9 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     assert  (tit=css_select(css_txt+" td")[2].text).present?  # en-title/alt_title
     assert_match(%r@[[:blank:]]+/\s+#{Regexp.quote(alt_tit)}\z@, tit.strip)  # The first blank is not a space(!)
 
+    get "/en/artists"  # Test of routing-filter
+    assert_response :success
+
     if is_env_set_positive?('TEST_STRICT')  # defined in application_helper.rb
       w3c_validate "Artist index"  # defined in test_helper.rb (see for debugging help)
     end  # only if TEST_STRICT, because of invalid HTML for datagrid filter for Range
@@ -82,9 +85,9 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should fail/succeed to get new" do
-    get new_artist_url(@artist)
-    assert_response 401  # Somehow, not  :redirect
-    #assert_redirected_to new_user_session_path
+    get new_artist_url
+    assert_redirected_to new_user_session_path
+    #assert_response 401  # :Unauthorized
 
     sign_in @editor
     get new_artist_url

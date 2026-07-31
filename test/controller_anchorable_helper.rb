@@ -331,9 +331,9 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
         raise
       end
 
-    opts2pass = { path_id_symbol(parent_record) => parent_record.id }
+    opts4path = { path_id_symbol(parent_record) => parent_record.id }
     path_generate_method_str = parent_record.class.name.underscore + "_anchoring_path"
-    proc_record_path = Proc.new{|record| send(path_generate_method_str, id: record.id, **opts2pass)}  # Redirected path for create & update
+    proc_record_path = Proc.new{|record| send(path_generate_method_str, id: record.id, **opts4path)}  # Redirected path for create & update
     # NOTE: For :destroy, it should be plural: "_anchorings_path"
 
     if !url_str

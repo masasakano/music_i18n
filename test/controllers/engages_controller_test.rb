@@ -41,7 +41,9 @@ class EngagesControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference('Engage.count') do
       post engages_url, params: { engage: { artist_name: translations(:artist_rcsuccession_ja).title, music_id: @engage.music.id, engage_how: [engage_hows(:engage_how_composer).id, engage_hows(:engage_how_player).id], year: 1234 } }
       assert_response :redirect
-      assert_redirected_to new_user_session_url
+      mat, redirected = two_prms_redirected_to_fuzzy_locale(new_user_session_path) # defined in test_helper.rb
+      assert_match(mat, redirected, "Redirected-path is wrong.")
+      # assert_redirected_to new_user_session_url
     end
 
     sign_in @editor

@@ -66,7 +66,7 @@ class InstrumentsTest < ApplicationSystemTestCase
 
     ## "should update Instrument" do
     mdl2 = Instrument.last
-    visit instrument_url(mdl2)
+    visit instrument_url(mdl2, locale: I18n.locale)
     click_on "Edit this Instrument", match: :first
 
     assert_selector "h1", text: "Editing Instrument"
@@ -79,7 +79,7 @@ class InstrumentsTest < ApplicationSystemTestCase
     #click_on "Back"
 
     ## test "should destroy Instrument" ##
-    visit instrument_url(mdl2)
+    visit instrument_url(mdl2, locale: I18n.locale)
     assert_selector "h1", text: "Instrument: "+mdl2.title
     assert_selector "th", text: "Title"
 

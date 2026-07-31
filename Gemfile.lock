@@ -397,9 +397,6 @@ GEM
       railties (>= 7.0)
     retriable (4.2.0)
     rexml (3.4.4)
-    routing-filter (0.7.0)
-      actionpack (>= 6.1)
-      activesupport (>= 6.1)
     rubocop (1.88.2)
       json (~> 2.3)
       language_server-protocol (~> 3.17.0.2)
@@ -581,7 +578,6 @@ DEPENDENCIES
   redirector (~> 1.1, >= 1.1.2)
   redis (~> 5.0)
   rexml (~> 3.2, >= 3.2.5)
-  routing-filter (~> 0, >= 0.7.0)
   rubocop-erb
   rubocop-rails-omakase
   rubytree (~> 2, >= 2.0.0)

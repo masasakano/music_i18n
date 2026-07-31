@@ -146,9 +146,6 @@ gem 'simple_form', '~> 5', '>= 5.1.0'
 gem 'paper_trail', '~> 17', '>= 17.0'  # used to use 12.0 up to Rails 6.0 (which causes error in Rails 6.1); recommended to update to 13.0 with the condition to switch the column type: @see my comment about "yaml" in config/application.rb; at least 16 for Rails 8.0, and at least 17 for Rails 8.1
 # gem 'high_voltage', '~> 3.1', '>= 3.1.2'
 gem 'http_accept_language'
-# gem 'routing-filter', '~> 0', '>= 0.6.3' # Only git HEAD works with Rails 6.1.
-# gem 'routing-filter', '~> 0', '>= 0.6.3', git: 'https://github.com/svenfuchs/routing-filter'
-gem 'routing-filter', '~> 0', '>= 0.7.0'  # necessary for Locale/I18n to add the locale prefix like /en/abc/5 in routes
 gem 'redirector', '~> 1.1', '>= 1.1.2'
 gem 'redcarpet', '~> 3', '>= 3.3.4'
 gem 'kaminari-i18n'  # https://github.com/tigrish/kaminari-i18n

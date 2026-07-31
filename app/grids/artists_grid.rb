@@ -58,8 +58,8 @@ class ArtistsGrid < ApplicationGrid
 
   column_place  # defined in application_grid.rb
 
-  column(:channel_owner, tag_options: {class: ["editor_only"]}, header: Proc.new{I18n.t('ChannelOwner')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
-    (co=record.channel_owner) ? ActionController::Base.helpers.link_to(I18n.t("ChannelOwner"), Rails.application.routes.url_helpers.channel_owner_url(co, only_path: true)) : ""
+  column(:channel_owner, html: true, tag_options: {class: ["editor_only"]}, header: Proc.new{I18n.t('ChannelOwner')}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
+    (co=record.channel_owner) ? link_to(I18n.t("ChannelOwner"), channel_owner_url(co, only_path: true, locale: I18n.locale)) : ""
   end
   ### Here, this method below is not called so that the link-text is special and it is not sortable
   # column_model_trans_belongs_to(:channel_owner, header: Proc.new{I18n.t('ChannelOwner')}, with_link: :class)  # defined in application_grid.rb

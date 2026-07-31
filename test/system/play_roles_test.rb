@@ -57,9 +57,9 @@ class PlayRolesTest < ApplicationSystemTestCase
   test "should update PlayRole" do
     n_models = PlayRole.count
 
-    assert_index_fail_succeed(play_role_url(@play_role), "PlayRole", user_fail: @trans_moderator, user_succeed: @syshelper)  # defined in test_system_helper.rb
+    assert_index_fail_succeed(play_role_url(@play_role, locale: I18n.locale), "PlayRole", user_fail: @trans_moderator, user_succeed: @syshelper)  # defined in test_system_helper.rb
     
-    visit play_role_url(@play_role)
+    visit play_role_url(@play_role, locale: I18n.locale)
     assert_text "Edit this PlayRole"
     click_on "Edit this PlayRole", match: :first
 

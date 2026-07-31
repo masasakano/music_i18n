@@ -83,14 +83,18 @@ class StaticPagesControllerTest < ActionDispatch::IntegrationTest
     assert_equal '/'+@static_page.mname, path  # in Fixture
     get path
     assert_response :redirect # :moved_permanently 301
-    assert_redirected_to Addressable::URI.parse(static_page_url(@static_page)).path
+    mat, redirected = two_prms_redirected_to_fuzzy_locale(static_page_url(@static_page, locale: I18n.locale)) # defined in test_helper.rb
+    assert_match(mat, redirected, "Redirected-path is wrong.")
+    # assert_redirected_to Addressable::URI.parse(static_page_url(@static_page)).path
 
     %w(en ja).each do |elc|
       path = StaticPagesController.public_path(@static_page, locale=elc)
       assert_equal "/#{elc}/"+@static_page.mname, path  # in Fixture
       get path
       assert_response :redirect # :moved_permanently 301
-      assert_redirected_to '/'+elc+Addressable::URI.parse(static_page_url(@static_page)).path
+      mat, redirected = two_prms_redirected_to_fuzzy_locale(static_page_url(@static_page, locale: elc), locale: elc) # defined in test_helper.rb
+      assert_match(mat, redirected, "Redirected-path is wrong.")
+      # assert_redirected_to '/'+elc+Addressable::URI.parse(static_page_url(@static_page)).path
     end
 
     path = StaticPagesController.public_path(@static_page, locale='JA')

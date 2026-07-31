@@ -104,7 +104,7 @@ class BaseAnchorablesController < ApplicationController
 
   def destroy
     msgs = ["Link was successfully destroyed."]
-    path_back = Rails.application.routes.url_helpers.polymorphic_path(@anchoring.anchorable.class, only_path: true)
+    path_back = polymorphic_path(@anchoring.anchorable.class, only_path: true)
     respond_to do |format|
       if @anchoring.destroy
         format.html { redirect_to path_back, notice: msgs }

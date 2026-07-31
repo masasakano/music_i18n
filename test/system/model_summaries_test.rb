@@ -64,7 +64,7 @@ class ModelSummariesTest < ApplicationSystemTestCase
     click_on "Back"
 
     ## update 
-    visit model_summary_url(@model_summary)
+    visit model_summary_url(@model_summary, locale: I18n.locale)
     click_on "Edit this ModelSummary", match: :first
 
     fill_in "Note", with: "filled-in-note"
@@ -74,7 +74,7 @@ class ModelSummariesTest < ApplicationSystemTestCase
     click_on "Back"
 
     ## destroy
-    visit model_summary_url(@model_summary)
+    visit model_summary_url(@model_summary, locale: I18n.locale)
     click_on "Destroy this ModelSummary", match: :first
 
     assert_text "ModelSummary was successfully destroyed"

@@ -753,7 +753,7 @@ module ModuleCommon
         linked  = record.send(title_method)
         s_title = sprintf("(pID=%d)", record.id)
       end
-      ActionController::Base.helpers.link_to(linked, Rails.application.routes.url_helpers.polymorphic_path(record), title: s_title)
+      ActionController::Base.helpers.link_to(linked, Rails.application.routes.url_helpers.polymorphic_path(record, locale: I18n.locale), title: s_title)
     }
   end
 

@@ -71,8 +71,8 @@ class UrlsGrid < ApplicationGrid
     auto_link(record.url){|txt| truncate(Addressable::URI.unencode(txt).strip.sub(%r@^https://@, ""), length: 50) if txt }
   }
 
-  column_title_ja         # defined in application_grid.rb
-  column_title_en(Url)  # defined in application_grid.rb
+  column_title_ja  # defined in application_grid.rb
+  column_title_en  # defined in application_grid.rb
 
   column(:url_noralized, mandatory: false, tag_options: { class: ["editor_only"] }, if: Proc.new{ApplicationGrid.qualified_as?(:editor)})
   column(:domain, mandatory: false, html: true, tag_options: { class: ["editor_only"] }, header: Proc.new{I18n.t(:Domain)}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)}, order: ->(scope){
@@ -95,7 +95,7 @@ class UrlsGrid < ApplicationGrid
     print_list_inline(record.anchorables){ |tit, anchorable|  # SELECT "dintinct" would not work well with ordering.
       titmod = definite_article_to_head(tit)
       next titmod if !can?(:read, anchorable)
-      ret = link_to(truncate(titmod, length: 30), Rails.application.routes.url_helpers.polymorphic_path(anchorable, only_path: true))
+      ret = link_to(truncate(titmod, length: 30), polymorphic_path(anchorable, only_path: true))
       anc = anchorable.anchorings.find_by(url_id: record.id)
       postfix = ERB::Util.html_escape(anc.note.strip).gsub(/"/, '&quot;') if anc.note.present?
       sprintf('[%s] %s<span title="(Anchoring#note) %s">†</span>', anchorable.class.name, ret, postfix).html_safe

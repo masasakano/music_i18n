@@ -96,7 +96,7 @@ class SiteCategoriesTest < ApplicationSystemTestCase
 
     ## "should update SiteCategory" do
     mdl2 = SiteCategory.last
-    visit site_category_url(mdl2)
+    visit site_category_url(mdl2, locale: I18n.locale)
     click_on "Edit this SiteCategory", match: :first
 
     assert_selector "h1", text: "Editing SiteCategory"
@@ -111,7 +111,7 @@ class SiteCategoriesTest < ApplicationSystemTestCase
     click_on "Back"
 
     ## test "should destroy SiteCategory" do
-    visit site_category_url(mdl2)
+    visit site_category_url(mdl2, locale: I18n.locale)
     assert_selector "h1", text: "Site Category:"
     assert_match(/\ASite\s*Category:/, page.find("h1").text)
 

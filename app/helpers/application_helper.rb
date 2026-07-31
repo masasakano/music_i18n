@@ -197,7 +197,7 @@ module ApplicationHelper
   # @return [String]
   def get_html_head_title
     retstr = String.new
-    hsroute = Rails.application.routes.recognize_path(pat=url_for)  # :only_path is true <https://api.rubyonrails.org/classes/ActionView/RoutingUrlFor.html>
+    hsroute = recognize_path(pat=url_for)  # :only_path is true <https://api.rubyonrails.org/classes/ActionView/RoutingUrlFor.html>
     model_name = hsroute[:controller].singularize.camelize
     # e.g., hsroute === {:controller=>"play_roles", :action=>"index", :locale=>"ja"}
     retstr = model_name
@@ -299,7 +299,7 @@ module ApplicationHelper
     word = sprintf("%s", uri) if !word
     opts = { title: link_title }.merge(kwds)
     opts[:target] = "_blank" if target
-    ActionController::Base.helpers.link_to word, uri, **opts
+    link_to word, uri, **opts
   end
 
   # Returns an HTML YouTube link
@@ -311,9 +311,10 @@ module ApplicationHelper
   # @param timing [Integer, NilClass] in second
   # @param long [Boolean] if false (Def), youtu.be, else www.youtube.com
   # @param target [Boolean] if true (Def), +target="_blank"+ is added.
+  # @param no_fallback: [Boolean] if true (Def: false), the explicit +link_to+ is always used.
   # @param kwds [Hash] optional arguments passed to link_to
   # @return [String] HTML of <a> for YouTube link
-  def link_to_youtube(word, root_kwd=nil, timing=nil, long: false, target: true, **kwds)
+  def link_to_youtube(word, root_kwd=nil, timing=nil, long: false, target: true, no_fallback: false, **kwds)
     return '' if word.blank?
     word = ((word == :uri) ? nil : word.to_s)
     root_kwd ||= word if word
@@ -322,7 +323,11 @@ module ApplicationHelper
     word = sprintf("%s", uri) if !word
     opts = { title: "Youtube" }.merge(kwds)
     opts[:target] = "_blank" if target
-    ActionController::Base.helpers.link_to word, uri, **opts
+    if no_fallback || defined?(link_to)
+      link_to word, uri, **opts
+    else
+      ActionController::Base.helpers.link_to word, uri, **opts
+    end
   end
 
   # Returns a YouTube URI with/without the preceeding "https//"
@@ -931,7 +936,7 @@ module ApplicationHelper
   #
   def grid_index_path_helper(klass, action: "index", column_names: [], max_per_page: 25)
     klass_plural = (klass.respond_to?(:rewhere) ? klass.name : klass.class.name).underscore.pluralize
-    Rails.application.routes.url_helpers.url_for(
+    url_for(
       only_path: true,
       controller: klass_plural,
       action: action,
@@ -1028,6 +1033,27 @@ module ApplicationHelper
     auto_link(text){|i| truncate(i, length: limit)}
   end
 
+
+  # @param record [ActiveRecord] has to have the method {#urls}
+  # @param lname: [String, NilClass] if blank, "日本語" or "Enlgish" etc.
+  # @return [Url] of Wikipedia link for the language
+  def url_wiki_any(record, locale=I18n.locale, lname: nil, fallback: true)
+    prime_langcode = locale&.to_s
+    langcodes = ([prime_langcode, nil] + I18n.available_locales.map(&:to_s)).uniq
+
+    # join_sql = "INNER JOIN unnest('{#{langcodes.join(',')}}'::text[]) WITH ORDINALITY t(url_langcode, ord) USING (url_langcode)"
+    # urls.joins(Arel.sql(join_sql)).order("t.ord")
+    ### This does not sort the record as expected...
+
+    url = record.urls.joins(:site_category).where("site_category.mname" => "wikipedia").to_a.sort_by{|url|
+      langcodes.find_index{|i| i == url.url_langcode} || Float::INFINITY
+    }.first
+    return nil if !url || !fallback && url.url_langcode.to_s != locale.to_s
+
+    lname = ((lc=url.url_langcode).present? ? get_language_name(lc, in_locale: I18n.locale) : "Default") if lname.blank?
+    link_to(lname, url.url, title: "Wikipedia", target: "_blank")
+  end
+
   # Country list where Japan comes at the top.
   #
   # You may combine this with:
@@ -1079,20 +1105,20 @@ module ApplicationHelper
 
     parenthesized_core_html = ((with_parentheses && !core_html.empty?) ?  ("("+core_html+")").html_safe : core_html)
 
-    safe_html_in_tagpair(prefix + parenthesized_core_html, tag_class: tag_class)
+    ApplicationHelper.safe_html_in_tagpair(prefix + parenthesized_core_html, tag_class: tag_class)
   end
 
   # Pair of html_safe String of (usually) either span (Def) or div
   #
   # @example
-  #   safe_html_in_tagpair("10 &gt; 9<br>8".html_safe, tag_class: "moderator_only smaller")  # defined in application_helper.rb
+  #   ApplicationHelper.safe_html_in_tagpair("10 &gt; 9<br>8".html_safe, tag_class: "moderator_only smaller")
   #   # => '<span class="moderator_only smaller">10 &gt; 9<br>8</span>'  [html_safe-ed]
   #
   # @param safe_content [String] to be encomapassed in a pair of HTML tags. Assumed to be html_safe
   # @param tag_class: [String] String of CSS class(es) like "editor_only my_class1"
   # @param tag: [String] HTML tag (Def: "span")
   # @return [String] html_safe-ed 
-  def safe_html_in_tagpair(safe_content, tag_class: "editor_only", tag: "span")
+  def self.safe_html_in_tagpair(safe_content, tag_class: "editor_only", tag: "span")
     raise "Argument has to be a html_safe String. Contact the code developer." if safe_content.present? && !safe_content.html_safe?
     pair = tag_pair_span(tag_class: tag_class, tag: tag)
     pair[0] + safe_content + pair[1]
@@ -1101,12 +1127,12 @@ module ApplicationHelper
   # Pair of html_safe String of (usually) either span (Def) or div
   #
   # @example
-  #   ary = tag_pair_span(tag_class: "moderator_only") # defined in application_helper.rb
+  #   ary = ApplicationHelper.tag_pair_span(tag_class: "moderator_only")
   #
   # @param tag_class: [String] String of CSS class(es) like "editor_only my_class1"
   # @param tag: [String] HTML tag (Def: "span")
   # @return [Array<String>] 
-  def tag_pair_span(tag_class: "editor_only", tag: "span")
+  def self.tag_pair_span(tag_class: "editor_only", tag: "span")
     safe_tag = (tag.html_safe? ? tag : ERB::Util.html_escape(tag))
     raise if (tag.blank? || /\A[a-z0-9_]+\z/i !~ tag)
     raise if (tag_class.present? && /[<>]/ =~ tag_class)
@@ -1128,7 +1154,7 @@ module ApplicationHelper
   # @param method: [Symbol, String] {BaseWithTranslation} method name (Def: :title_or_alt), e.g., :title_or_alt_for_selection_optimum
   # @param opts: [Hash] passed to the method
   # @return [Array<String, Integer>]
-  def sorted_title_ids(ary, method: :title_or_alt, **opts)
+  def self.sorted_title_ids(ary, method: :title_or_alt, **opts)
     hsopts = {langcode: I18n.locale, lang_fallback_option: :either}.merge opts
     ary.map{|i|
       str = i.send(method, **opts)

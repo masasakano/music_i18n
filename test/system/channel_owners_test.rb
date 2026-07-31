@@ -81,7 +81,7 @@ class ChannelOwnersTest < ApplicationSystemTestCase
 
     ## "should update ChannelOwner" do
     mdl2 = ChannelOwner.last
-    visit channel_owner_url(mdl2)
+    visit channel_owner_url(mdl2, locale: I18n.locale)
     click_on "Edit this Channel Owner", match: :first
 
     assert_selector "h1", text: "Editing Channel Owner"
@@ -97,7 +97,7 @@ class ChannelOwnersTest < ApplicationSystemTestCase
     click_on "Back"
 
     ## test "should destroy ChannelOwner" do
-    visit channel_owner_url(mdl2)
+    visit channel_owner_url(mdl2, locale: I18n.locale)
     assert_selector "h1", text: "Channel Owner:"
     assert_match(/\AChannel\s*Owner:/, page.find("h1").text)
 

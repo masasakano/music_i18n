@@ -16,7 +16,7 @@ class HaramiVidsGrid < ApplicationGrid
   filter(:release_date, :date, range: true, header: Proc.new{I18n.t('tables.release_date')+" (< #{Date.current.to_s})"}) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
 
   filter(:channel_owner, :enum, multiple: false, include_blank: true, select: Proc.new{
-           sorted_title_ids(ChannelOwner.joins(channels: :harami_vids).distinct, method: :title_or_alt_for_selection_optimum)},  # filtering out those none of HaramiVid belong to; sorted_title_ids() defined in application_helper.rb
+           ApplicationHelper.sorted_title_ids(ChannelOwner.joins(channels: :harami_vids).distinct, method: :title_or_alt_for_selection_optimum)},  # filtering out those none of HaramiVid belong to
          header: Proc.new{I18n.t("harami_vids.table_head_ChannelOwner", default: "Channel owner")}) do |value|  # Only for PostgreSQL!
     list = [value].flatten.map{|i| i.blank? ? nil : i}.compact
     self.joins(channel: :channel_owner).where("channel_owner.id" => list)
@@ -35,7 +35,7 @@ class HaramiVidsGrid < ApplicationGrid
 
   filter_partial_str(:artists, header: Proc.new{I18n.t('datagrid.form.artists_multi')})
   filter(:artist_collabs, :enum, multiple: true, include_blank: true, header: Proc.new{I18n.t('datagrid.form.artist_collabs_multi', default: "Collab Artists")}, select: Proc.new{
-           sorted_title_ids(Artist.joins(:artist_music_plays).distinct, langcode: I18n.locale)}) do |value|  # Only for PostgreSQL! ; sorted_title_ids() defined in application_helper.rb
+           ApplicationHelper.sorted_title_ids(Artist.joins(:artist_music_plays).distinct, langcode: I18n.locale)}) do |value|  # Only for PostgreSQL!
     list = [value].flatten.map{|i| i.blank? ? nil : i}.compact
     if list.empty?
       self
@@ -73,14 +73,14 @@ class HaramiVidsGrid < ApplicationGrid
   column_title_ja{|record, tit|  # defined in application_grid.rb
     link_to_youtube tit, record.uri  # not displaying other candidate Translations.
   }
-  column_title_en(HaramiVid){|record, tit|  # defined in application_grid.rb
+  column_title_en{|record, tit|  # defined in application_grid.rb
     link_to_youtube tit, record.uri  # not displaying other candidate Translations.
   }
 
   column(:release_date, mandatory: true, header: Proc.new{I18n.t('tables.release_date')})
   #date_column(:release_date, mandatory: true)  # => ERROR...
 
-  column(:duration, order: :duration, tag_options: {class: ["align-cr"]}, header: Proc.new{I18n.t('tables.duration_nounit')}) do |record| # float in DB # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
+  column(:duration, html: true, order: :duration, tag_options: {class: ["align-cr"]}, header: Proc.new{I18n.t('tables.duration_nounit')}) do |record| # float in DB # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
     sec2hms_or_ms(record.duration, return_nil: true)  # in application_helper.rb
   end
 
@@ -108,7 +108,7 @@ class HaramiVidsGrid < ApplicationGrid
     ERB::Util.html_escape((pla=record.place) && pla.pref_pla_country_str(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true)) + txt_caution
   end
 
-  column(:uri, order: false) do |record|
+  column(:uri, html: true, order: false) do |record|
     link_to_youtube record.uri, record.uri
   end
 

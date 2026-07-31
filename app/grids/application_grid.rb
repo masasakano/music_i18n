@@ -9,7 +9,7 @@ class ApplicationGrid < Datagrid::Base
   # It seems this is irrelevant after all...
   #include Rails.application.routes.url_helpers
 
-  extend ApplicationHelper  # I suppose this is a key (to include path/url helpers and url_for helpers)?
+  #extend ApplicationHelper  # I suppose this is a key (to include path/url helpers and url_for helpers)?
   extend ModuleCommon  # My module
 
   if !defined?(CURRENT_USER)
@@ -120,6 +120,7 @@ class ApplicationGrid < Datagrid::Base
   # Enable forbidden attributes protection
   # self.forbidden_attributes_protection = true
 
+  # You may add `html: true` for the optional argument (to use View's context)
   def self.date_column(name, *args, **opts)
     column(name, *args, **opts) do |model|
       format(block_given? ? yield : model.send(name)) do |date|
@@ -377,21 +378,21 @@ class ApplicationGrid < Datagrid::Base
     artits = ar_titles.map{|j| ERB::Util.html_escape(j)}.map.with_index{|tit, i|
       case i
       when 0, 2
-        tit_html = (tit.present? ? safe_html_in_tagpair(tit, tag_class: "translation-"+((i==0) ? "" : "alt_")+"title lang-#{langcode}") : tit)
+        tit_html = (tit.present? ? ApplicationHelper.safe_html_in_tagpair(tit, tag_class: "translation-"+((i==0) ? "" : "alt_")+"title lang-#{langcode}") : tit)
         if is_orig_char && ((0 == i) || ar_titles[0].blank?)
           (tit_html + is_orig_helper_title(is_orig_char: is_orig_char))
         else
           tit_html
         end
       when 1, 3
-        tit.present? ? sprintf(" [%s]", safe_html_in_tagpair(tit, tag_class: "translation-"+((i==0) ? "" : "alt_")+"ruby lang-#{langcode}")) : ""
+        tit.present? ? sprintf(" [%s]", ApplicationHelper.safe_html_in_tagpair(tit, tag_class: "translation-"+((i==0) ? "" : "alt_")+"ruby lang-#{langcode}")) : ""
       else
         raise "Should never happen"
       end
     }
 
     ret = String.new
-    ret << sprintf("[%s] ", safe_html_in_tagpair(ERB::Util.html_escape(langcode), tag_class: "translation-locale")) if with_locale_prefix
+    ret << sprintf("[%s] ", ApplicationHelper.safe_html_in_tagpair(ERB::Util.html_escape(langcode), tag_class: "translation-locale")) if with_locale_prefix
     ret << artits[0..1].join("")
     return ret.html_safe if artits[2].blank?
     (ret + sprintf(' &nbsp;/ %s%s', *(artits[2..3]))).html_safe
@@ -460,34 +461,44 @@ class ApplicationGrid < Datagrid::Base
   def self.filter_n_column_id(url_sym, mandatory: false, filter_or_column: :both)
     raise ArgumentError, "Contact the code developer" if !%i(both filter column).include?(filter_or_column)
     filter(:id, :integer, range: true, header: "ID", tag_options: {class: ["editor_only"]}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) if :column != filter_or_column # displayed only for editors
-    column(:id, mandatory: mandatory, tag_options: {class: ["align-cr", "editor_only"]}, header: "ID", if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
-      to_path = Rails.application.routes.url_helpers.send(url_sym, record, {only_path: true}.merge(ApplicationController.new.default_url_options))
-      ActionController::Base.helpers.link_to record.id, to_path
+    column(:id, mandatory: mandatory, html: true, tag_options: {class: ["align-cr", "editor_only"]}, header: "ID", if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
+      to_path = send(url_sym, record, {only_path: true}.merge(ApplicationController.new.default_url_options))
+      link_to record.id, to_path
+      #to_path = Rails.application.routes.url_helpers.send(url_sym, record, {only_path: true}.merge(ApplicationController.new.default_url_options))
+      #ActionController::Base.helpers.link_to record.id, to_path
     end if :filter != filter_or_column
   end
 
   # Add Column with the single-line HTML text for the translation of title (and alt_title if ever present) in Japanese (ja)
   #
   # @return [String] html_safe-ed
-  def self.column_title_ja
-    column(:title_ja, mandatory: true, header: Proc.new{I18n.t('tables.title_ja')}, order: proc { |scope|
+  def self.column_title_ja(&block)
+    column(:title_ja, mandatory: true, html: true, header: Proc.new{I18n.t('tables.title_ja')}, order: proc { |scope|
       #order_str = Arel.sql("convert_to(title, 'UTF8')")
       order_str = Arel.sql('title COLLATE "ja-x-icu"')
       scope.joins(:translations).where("langcode = 'ja'").order(order_str) #.order("title")
-    }) do |record|
-      tit = _column_title_core(record, "ja")
-      block_given? ? yield(record, tit) : tit
+    }) do |record|  #, grid|  # the hidden second parameter is the caller's Grid Object like HaramiVidsGrid, and `HaramiVidsGrid.view_context` once worked, but not anymore...
+      tit = ApplicationGrid._column_title_core(record, "ja")
+      block_given? ? instance_exec(record, tit, &block) : tit
+      ### NOTE
+      #block_given? ? yield(record, tit, grid) : tit
+      ## This does not work well if the caller's block uses helper methods usable in only
+      # View's context.  If you pass grid (which is like HaramiVidsGrid), I havre once observed
+      # `grid.view_context.link_to` worked; however, it now raises NoMethodError about `view_context`...
+      # With `instance_exec`, the block seems to be evaluated in this context of
+      # `column(..., html: true){...}`, where View's context is applicable.
     end
   end
 
   # @param mandatory: [Boolean, NilClass] if nil, automatically determined according to I18n.locale.
-  def self.column_title_en(klass, mandatory: nil)
+  def self.column_title_en(mandatory: nil, &block)
     mandatory2pass = (mandatory.nil? ? (I18n.locale.to_sym != :ja) : mandatory)
-    column(:title_en, mandatory: mandatory2pass, header: Proc.new{I18n.t('tables.title_en')}, order: proc { |scope|
-      scope_with_trans_order(scope, langcode="en")  # defined in base_grid.rb
+    column(:title_en, mandatory: mandatory2pass, html: true, header: Proc.new{I18n.t('tables.title_en')}, order: proc { |scope|
+      scope_with_trans_order(scope, langcode="en")
     }) do |record|
-      tit = _column_title_core(record, "en")
-      block_given? ? yield(record, tit) : tit
+      tit = ApplicationGrid._column_title_core(record, "en")
+      #block_given? ? yield(record, tit, grid) : tit
+      block_given? ? instance_exec(record, tit, &block) : tit
     end
   end
 
@@ -498,7 +509,7 @@ class ApplicationGrid < Datagrid::Base
     ret << "/ "+titles[1] if titles[1].present?
     ret
   end
-  private_class_method :_column_title_core
+  # private_class_method :_column_title_core
 
   # @param attrs [Array<String, Symbol>] mandatory; e.g., ("ruby", "romaji")
   def self.ja_collate_order(scope, *attrs)
@@ -511,10 +522,13 @@ class ApplicationGrid < Datagrid::Base
   # Add columns title_ja, ruby_... for a {BaseWithTranslation} model etc.
   #
   # Returns multi-HTML-line text to list translations of title (or alt_title) in other languages than En/Ja
+  #
+  # Warning: +column(html: true)+ would break b/c {ApplicationGrid.html_titles} would not work!
   def self.column_all_titles
     column(:title_ja, mandatory: true, header: Proc.new{I18n.t('tables.title_ja')}, order: proc { |scope|
       ja_collate_order(scope, :title)
     }) do |record|
+      # Avoid column(html: true)
       html_titles(record, col: :title, langcode: "ja", is_orig_char: "*")
     end
 
@@ -588,7 +602,7 @@ class ApplicationGrid < Datagrid::Base
 
   # Add column :prefecture
   def self.column_prefecture(header: Proc.new{I18n.t(:Prefecture)}, **opts)
-    column(:prefecture, mandatory: true, header: header, order: proc { |scope|
+    column(:prefecture, html: true, mandatory: true, header: header, order: proc { |scope|
              scope.order(:prefecture_id)
       }) do |record|
       record.prefecture.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)
@@ -597,7 +611,7 @@ class ApplicationGrid < Datagrid::Base
 
   # Add column :place
   def self.column_place(header: Proc.new{I18n.t('tables.place')}, **opts)
-    column(:place, header: header) do |record|
+    column(:place, html: true, header: header) do |record|
       (pla=record.place) && pla.pref_pla_country_str(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true)
     end
   end 
@@ -621,8 +635,19 @@ class ApplicationGrid < Datagrid::Base
     opts = opts.merge({order: order}) if order
 
     column(model_sym, html: true, tag_options: tag_options, **opts) do |record|
+      # Inside column() is in view_context
       count = record.send(metho).send(distinct ? :distinct : :uniq).count
-      block_given? ? yield(record, count) : count
+      if block_given?
+        link_txt, record, postfix = yield(record, count)
+        if record
+          path = polymorphic_path(record, only_path: true) + postfix
+          link_to(link_txt, path)
+        else
+          link_txt
+        end
+      else
+        count
+      end
     end
   end
 
@@ -632,16 +657,20 @@ class ApplicationGrid < Datagrid::Base
   #    column_n_harami_vids  # defined in application_grid.rb
   def self.column_n_harami_vids(model_sym=:n_harami_vids, metho=:harami_vids, **opts)
     column_n_models_belongs_to(model_sym, metho, **opts) do |record, count|
+      # This blocks returns either a PlainText or Text-to-link and anchor-text
       link_txt = I18n.t(:times_hon, count: count)
-      next link_txt if count == 0
-      ActionController::Base.helpers.link_to(link_txt, Rails.application.routes.url_helpers.polymorphic_path(record, only_path: true)+"#sec_harami_vids_for")
+      if count == 0
+        link_txt 
+      else
+        [link_txt, record, "#sec_harami_vids_for"]
+      end
     end
   end
 
   # Add column wiki_any
   def self.column_wiki_url(header: "Wikipedia")
-    column(:wiki_any, dummy: true, mandatory: true, html: true, header: header, tag_options: {class: ["text-center"]}) do |record|
-      record.url_wiki_any
+    column(:wiki_any, html: true, mandatory: true, html: true, header: header, tag_options: {class: ["text-center"]}) do |record|
+      url_wiki_any(record)   # defined in application_helper.rb
     end
   end 
 
@@ -736,7 +765,7 @@ class ApplicationGrid < Datagrid::Base
         ar4editors.push link_to('Destroy', polymorphic_path(record), method: :delete, data: { confirm: I18n.t('are_you_sure') })
       end
 
-      ar_pair = tag_pair_span(tag_class: tag_class) # defined in application_helper.rb
+      ar_pair = ApplicationHelper.tag_pair_span(tag_class: tag_class) # defined in application_helper.rb
 
       retstr += (ar_pair[0] + " / ".html_safe + ar4editors.join(" / ").html_safe + ar_pair[1]) # should be html_safe as a whole
     end

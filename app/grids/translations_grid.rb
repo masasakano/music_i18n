@@ -58,11 +58,11 @@ class TranslationsGrid < ApplicationGrid
 
   ####### Columns #######
 
-  column(:translatable, mandatory: true) do |record|
+  column(:translatable, mandatory: true, html: true) do |record|
     sprintf(
       "%s (%s)",
-      record.translatable_type,
-      ActionController::Base.helpers.link_to(record.translatable_id, Rails.application.routes.url_helpers.polymorphic_path(record, only_path: true))
+      h(record.translatable_type),
+      link_to(record.translatable_id, polymorphic_path(record, only_path: true))
     ).html_safe
   end
 

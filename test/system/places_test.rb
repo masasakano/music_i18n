@@ -52,7 +52,9 @@ class PlacesTest < ApplicationSystemTestCase
 
     assert_text "AltTitle must exist"   # This would wait.
     assert_text "Prefecture must exist"
-    assert_equal path2place_index, current_path, 'Should be on Index path after erroneous input.'  # NOT "new/" according to Rails convention.
+    mat, _ = two_prms_redirected_to_fuzzy_locale(path2place_index, act: true, locale: I18n.locale) # defined in test_helper.rb
+    assert_match(mat, current_path, "Should be on Index path after erroneous input.")  # NOT "new/" according to Rails convention.
+    # assert_equal path2place_index, current_path, 'Should be on Index path after erroneous input.'  # NOT "new/" according to Rails convention.
 
     select('Japan',  from: 'Country')
     #puts "DEBUG-0x:html="+page.html

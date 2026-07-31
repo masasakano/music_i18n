@@ -81,7 +81,7 @@ class ChannelsTest < ApplicationSystemTestCase
 
     ## "should update Channel" do
     mdl2 = Channel.last
-    visit channel_url(mdl2)
+    visit channel_url(mdl2, locale: I18n.locale)
     assert_selector "h1", text: "Channel:"
 
     click_on "Edit this Channel", match: :first
@@ -98,7 +98,7 @@ class ChannelsTest < ApplicationSystemTestCase
     #click_on "Back"
 
     ## test "should destroy Channel" do
-    visit channel_url(mdl2)
+    visit channel_url(mdl2, locale: I18n.locale)
     assert_selector "h1", text: "Channel:"
     assert_match(/\AChannel:/, page.find("h1").text)
 

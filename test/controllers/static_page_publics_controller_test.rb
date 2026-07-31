@@ -17,7 +17,9 @@ class StaticPagePublicsControllerTest < ActionDispatch::IntegrationTest
   test "only admin should get index" do
     get '/static_page_publics'  # see routes.rb
     assert_response :redirect
-    assert_redirected_to new_user_session_path  # Devise sing_in route
+    mat, redirected = two_prms_redirected_to_fuzzy_locale(new_user_session_path) # defined in test_helper.rb
+    assert_match(mat, redirected, "Redirected-path is wrong.")
+    #assert_redirected_to new_user_session_path  # Devise sing_in route
     #assert_redirected_to root_url
 
     sign_in @admin

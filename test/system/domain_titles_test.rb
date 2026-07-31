@@ -76,7 +76,7 @@ class DomainTitlesTest < ApplicationSystemTestCase
     assert_equal(n_records_be4+1, n_records)
 
     mdl2 = DomainTitle.last
-    visit domain_title_url(mdl2)
+    visit domain_title_url(mdl2, locale: I18n.locale)
 
     click_on "Edit this DomainTitle", match: :first
 
@@ -94,7 +94,7 @@ class DomainTitlesTest < ApplicationSystemTestCase
 
     ## test "should destroy Domain title" do
 
-    visit domain_title_url(mdl2)
+    visit domain_title_url(mdl2, locale: I18n.locale)
     assert_selector "h1", text: "Domain Title:"
     assert_match(/\ADomain\s*Title:/i, page.find("h1").text)
 if true

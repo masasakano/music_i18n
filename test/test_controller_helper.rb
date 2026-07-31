@@ -59,7 +59,7 @@ class ActiveSupport::TestCase
   # @param model [Class] ActiveRecord
   # @yield [User, ActiveRecord] Anything while the user is successfully authorized, i.e., only for viewings by success_users
   def assert_authorized_index(model, fail_users: [], success_users: [], h1_title: nil, &bl)
-    index_path = Rails.application.routes.url_helpers.polymorphic_path(model)
+    index_path = Rails.application.routes.url_helpers.polymorphic_path(model, locale: I18n.locale)
     h1_title ||= model.name.pluralize
     _assert_authorized_get_set(index_path, model_record=model, fail_users: fail_users, success_users: success_users, h1_title_regex: h1_title, include_w3c_validate: true, &bl)
   end
@@ -73,7 +73,7 @@ class ActiveSupport::TestCase
   # @param opts [Hash] Notably, you may give +{skip_public_access_check: true}+
   # @yield [User, ActiveRecord] Anything while the user is successfully authorized, i.e., only for viewings by success_users
   def assert_authorized_show(record, fail_users: [], success_users: [], h1_title_regex: nil, include_w3c_validate: true, **opts, &bl)
-    show_path = Rails.application.routes.url_helpers.polymorphic_path(record)
+    show_path = Rails.application.routes.url_helpers.polymorphic_path(record, locale: I18n.locale)
 
     if h1_title_regex.blank?
       tit = 
@@ -95,7 +95,7 @@ class ActiveSupport::TestCase
   # @param model [Class] ActiveRecord
   # @yield [User, ActiveRecord] Anything while the user is successfully authorized, i.e., only for viewings by success_users
   def assert_authorized_new(model, fail_users: [], success_users: [], h1_title_regex: nil, &bl)
-    new_path = Rails.application.routes.url_helpers.polymorphic_path(model, action: :new)
+    new_path = Rails.application.routes.url_helpers.polymorphic_path(model, action: :new, locale: I18n.locale)
     h1_title_regex ||= /^New #{Regexp.quote(model.name)}/
 
     base_proc = proc{|user|
@@ -112,7 +112,7 @@ class ActiveSupport::TestCase
   # @param record [ActiveRecord]
   # @yield [User, ActiveRecord] Anything while the user is successfully authorized, i.e., only for viewings by success_users
   def assert_authorized_edit(record, fail_users: [], success_users: [], h1_title_regex: nil, &bl)
-    edit_path = Rails.application.routes.url_helpers.polymorphic_path(record, action: :edit)
+    edit_path = Rails.application.routes.url_helpers.polymorphic_path(record, action: :edit, locale: I18n.locale)
     h1_title_regex ||= /^Edit(ing)? #{Regexp.quote(record.class.name)}/
 
     _assert_authorized_get_set(edit_path, model_record=record, fail_users: fail_users, success_users: success_users, h1_title_regex: h1_title_regex, include_w3c_validate: true, &bl)
@@ -471,7 +471,7 @@ class ActiveSupport::TestCase
         else
           raise "should never happen."
         end
-      Rails.application.routes.url_helpers.polymorphic_path(redirect_path_arg)
+      Rails.application.routes.url_helpers.polymorphic_path(redirect_path_arg, locale: I18n.locale)
     end
   end
   private :_get_expected_redirected_to_after_post
@@ -529,7 +529,7 @@ class ActiveSupport::TestCase
         raise "should never: #{action.inspect}"
       end
         
-    path ||= Rails.application.routes.url_helpers.polymorphic_path(model_record)
+    path ||= Rails.application.routes.url_helpers.polymorphic_path(model_record, locale: I18n.locale)
 
     hs_params = (params.present? ? {params: { model.name.underscore => params }} : {})
 

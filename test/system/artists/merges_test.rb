@@ -172,13 +172,15 @@ class Artists::MergesTest < ApplicationSystemTestCase
     assert_selector css_trow+' td:nth-child(3) input:disabled:checked'
 
     css_trow = 'form tbody tr#merge_edit_place'
-    assert               page.find(css_trow+' td:nth-child(2)').text.include?("Kagawa (Japan)")
+    assert               page.find(css_trow+' td:nth-child(2)').text.include?("香川県")
+    # assert               page.find(css_trow+' td:nth-child(2)').text.include?("Kagawa (Japan)")
     assert_selector css_trow+' td:nth-child(2) input:disabled:checked'
     assert_selector css_trow+' td:nth-child(3) input:disabled'
     assert_selector css_trow+' td:nth-child(3) input:not(:checked)'
 
     css_trow = 'form tbody tr#merge_edit_sex'
-    assert_equal 'not known', page.find(css_trow+' td:nth-child(2)').text
+    assert_equal '不明', page.find(css_trow+' td:nth-child(2)').text
+    #assert_equal 'not known', page.find(css_trow+' td:nth-child(2)').text
     assert_selector css_trow+' td:nth-child(2) input:disabled:not(:checked)'
     assert_selector css_trow+' td:nth-child(3) input:disabled:checked'
 
@@ -226,7 +228,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
 
       if 0 == i_h1129
         # internal insertion
-        visit harami1129_url(h1129)
+        visit harami1129_url(h1129, locale: I18n.locale)
         assert_selector "h1", text: "HARAMI1129 Entry"
         assert_equal h1129.id, page.find("dl#h1129_main_dl dd#h1129_id_dd").text.to_i
         assert_selector 'form div.actions input[type="submit"][value="Insert within Table"]'
@@ -301,7 +303,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
     artistz = art_ids.map{|i| Artist.find i}
 
     ## merging - option is not provided because the user is an only-Harami1129 moderator
-    visit artist_path(art_ids[0])
+    visit artist_path(art_ids[0], locale: I18n.locale)
 
     assert_selector :xpath, XPATH_ADD_TRANSLATION  # defined at the top
     ## Rails-7.1
@@ -321,7 +323,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
     assert_selector "h1", text: "HARAMIchan"
 
     ## select a record for merging
-    visit artist_path(art_ids[0])
+    visit artist_path(art_ids[0], locale: I18n.locale)
     assert_selector :xpath, "//div[contains(@class, 'link-edit-destroy')]//div[contains(@class, 'actions-destroy')]//input[@disabled='disabled' and @type='submit' and @value='Destroy']"  # "Destroy button for Artist should be disabled, but..."
     click_on "Merge with another Artist" 
 
@@ -387,7 +389,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
     res = page.all(css_for_flash(:success, category: :div))
     assert res.any?{|i| i.text.include? "successfully merged"}, "failed: all css: #{res.map{|i| i['innerHTML']}.inspect}"
     assert_selector "h1", text: "Artist: #{h1129s[1].singer}"  # "Artist should have the name for the second one (=スティング), but..."
-    assert_equal artist_path(art_ids[1]).sub(/\?.*/, ""), current_path, "Artist-ID should be the second one, but..."
+    assert_equal artist_path(art_ids[1], locale: I18n.locale).sub(/\?.*/, ""), current_path, "Artist-ID should be the second one, but..."
 
     ## In this case, ins_singer-s in Harami1129 have English and Japanese versions, and
     ## so both are accepted as proper translations in Artist.  No entry is added to Harami1129Review
@@ -412,7 +414,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
 
     musicz = mus_ids.map{|i| Music.find i}
 
-    visit music_path(mus_ids[0])
+    visit music_path(mus_ids[0], locale: I18n.locale)
     assert_selector :xpath, XPATH_ADD_TRANSLATION  # defined at the top
     ## Rails-7.1
     # assert_selector :xpath, "//input[@type='submit' and @value='Add translation']"
@@ -471,7 +473,9 @@ class Artists::MergesTest < ApplicationSystemTestCase
     res = page.all(css_for_flash(:success, category: :div))
     assert res.any?{|i| i.text.include? "successfully merged"}, "failed: all css: #{res.inspect}"
     assert_selector "h1", text: "Music: #{h1129s[1].song}"  # "Music should have the name for the first one, but..."
-    assert_equal music_path(mus_ids[1]).sub(/\?.*/, ""), current_path, "Music-ID should be the second one, but..."
+    mat, _ = two_prms_redirected_to_fuzzy_locale(music_path(mus_ids[1], locale: I18n.locale).sub(/\?.*/, ""), act: true, locale: "en") # defined in test_helper.rb
+    assert_match(mat, current_path, "Music-ID should be the second one, but...")
+    # assert_equal music_path(mus_ids[1], locale: I18n.locale).sub(/\?.*/, ""), current_path, "Music-ID should be the second one, but..."
 
     refute       Engage.exists?(h1129_engages[0].id)
     assert       Engage.exists?(h1129_engages[1].id)
