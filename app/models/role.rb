@@ -668,6 +668,10 @@ class Role < ApplicationRecord
     arret
   end
 
+  def destroyable?
+    !users.exists?
+  end
+
   alias_method :inspect_orig, :inspect if ! self.method_defined?(:inspect_orig)
 
   # Alternative inspect

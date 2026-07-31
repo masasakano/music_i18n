@@ -1,6 +1,11 @@
 <p id="notice"><%= notice %></p>
 
 <p>
+  <strong>pID:</strong>
+  <%= @role.id %>
+</p>
+
+<p>
   <strong>Name (unique within RoleCategory):</strong>
   <%= @role.name %>
 </p>
@@ -25,5 +30,27 @@
   <%= auto_link(@role.note) %>
 </p>
 
-<%= link_to 'Edit', edit_role_path(@role) %> |
-<%= link_to 'Back', roles_path %>
+<%= editor_only_safe_html(@role, method: :edit, tag: "span", only: :admin) do %>
+  <%= link_to 'Edit', edit_role_path(@role) %> |
+<% end %>
+<%= link_to 'Index', roles_path %>
+
+<hr>
+
+<table>
+  <thead>
+    <tr><th>pID</th><th>Display_name</th><th>Email</th><th>Last sign-in</th><th>Created at</th></tr>
+  </thead>
+  <tbody>
+    <% @role.users.order("users.created_at").each do |user| %>
+      <tr>
+        <td><%= user.id %></td>
+        <td><%= link_to user.display_name, user %></td>
+        <td><%= user.email.sub(/@.+/, "@...") %></td>
+        <td><%= user.last_sign_in_at %></td>
+        <td><%= user.created_at %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+

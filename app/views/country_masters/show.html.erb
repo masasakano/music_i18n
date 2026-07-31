@@ -1,6 +1,11 @@
 <h1>CountryMaster: <%= tit=@country_master.name_en_full; tit.present? ? tit : @country_master.name_en_short %></h1>
 
 <p>
+  <strong>pID:</strong>
+  <%= @country_master.id %>
+</p>
+
+<p>
   <strong>Code a2:</strong>
   <%= @country_master.iso3166_a2_code %>
 </p>
@@ -61,11 +66,6 @@
 </p>
 
 <p>
-  <strong>Note:</strong>
-  <%= auto_link(@country_master.note) %>
-</p>
-
-<p>
   <strong>Start date:</strong>
   <%= @country_master.start_date %>
 </p>
@@ -73,6 +73,16 @@
 <p>
   <strong>End date:</strong>
   <%= @country_master.end_date %>
+</p>
+
+<p>
+  <strong>Orig Note (Remarks by HirMtsd):</strong>
+  <%= auto_link(@country_master.orig_note) %>
+</p>
+
+<p>
+  <strong>Note:</strong>
+  <%= auto_link(@country_master.note) %>
 </p>
 
 <p>
@@ -95,8 +105,11 @@
   <% end %>
 </p>
 
-<% if current_user.an_admin? %>
+<%# if current_user.an_admin? %>
+<%= editor_only_safe_html(@country_master, method: :manage, only: :admin, tag: "span") do %> <%# defined in application_helper.rb %>
   <%= link_to 'Edit', edit_country_master_path(@country_master) %> (Admin only) |
 <% end %>
-<%= link_to 'Back', country_masters_path %>
+<%= editor_only_safe_html(CountryMaster, method: :index, only: :moderator, tag: "span") do %> <%# defined in application_helper.rb %>
+&nbsp; <%= link_to 'Index', country_masters_path %>
+<% end %>
 

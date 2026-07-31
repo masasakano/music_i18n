@@ -1,7 +1,8 @@
 <p id="alert"><%= alert %></p>
 <p id="notice"><%= notice %></p>
 
-<h1>Static page index (<em>admin only</em>)</h1>
+ <%# defined in application_helper.rb %>
+<%= tag.h1 sanitize("Static page index (<em>admin only</em>)"), class: "admin_only" %>
 
 <% if @static_pages.empty? %>
   <p>None.</p>
@@ -12,7 +13,12 @@
     <dt id="<%= static_page.form_id_model %>">(<%= static_page.langcode.upcase %>) <%= link_to static_page.title, path %></dt>
     <dd id="path_row_<%= static_page.form_id_model %>"><span id="path_<%= static_page.form_id_model %>"><%= path %></span> | <span id="path_helper_<%= static_page.form_id_model %>">StaticPagesController.public_path('<%= static_page.mname %>')</span></dd>
     <dd id="summary_<%= static_page.form_id_model %>"><%= static_page.summary_or_trimmed_content %></dd>
-    <dd><%= link_to 'Show(Internal)', static_page %> / <%= link_to 'Edit', edit_static_page_path(static_page) %></dd>
+    <dd><%= editor_only_safe_html(static_page, method: :show, tag: "span", only: :moderator) do %>
+      <%= link_to 'Show(Internal)', static_page %>
+      <% end %>
+      <%= editor_only_safe_html(static_page, method: :edit, tag: "span", only: :moderator) do %>
+      / <%= link_to 'Edit', edit_static_page_path(static_page) %></dd>
+      <% end %>
   <% end %>
 </dl>
 

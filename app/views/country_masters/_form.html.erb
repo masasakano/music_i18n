@@ -4,9 +4,9 @@
   <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
 
   <div class="form-inputs">
-    <%= f.input :code_a2 %>
-    <%= f.input :code_a3 %>
-    <%= f.input :code_n3 %>
+    <%= f.input :iso3166_a2_code %>
+    <%= f.input :iso3166_a3_code %>
+    <%= f.input :iso3166_n3_code %>
     <%= f.input :name_ja_full %>
     <%= f.input :name_ja_short %>
     <%= f.input :name_en_full %>
@@ -15,10 +15,11 @@
     <%= f.input :name_fr_short %>
     <%= f.input :independent %>
     <%= f.input :territory %>
-    <%= f.input :remark %>
-    <%= f.input :note %>
+    <%= f.input :iso3166_remark %>
     <%= f.input :start_date %>
     <%= f.input :end_date %>
+    <%= f.input :orig_note %>
+    <%= f.input :note %>
   </div>
 
   <div class="form-actions">
