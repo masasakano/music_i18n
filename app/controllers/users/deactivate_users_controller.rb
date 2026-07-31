@@ -114,6 +114,8 @@ class Users::DeactivateUsersController < ApplicationController
     # Deactivate the user by renaming
     #
     def rename_user
+      sign_out(@user) if current_user == @user
+
       newpass = [*(?a..?z),*(?A..?Z),*('0'..'9')].shuffle[0,20].join  # 20 random alphanumeric characters (> Ruby 1.9)
 
       orgname = @user.display_name
@@ -147,21 +149,22 @@ class Users::DeactivateUsersController < ApplicationController
       @user.confirm
       # @see https://rubydoc.info/github/plataformatec/devise/Devise/Models/Confirmable
 
-      respond_to do |format|
-        if @user.save
-          logger.info "User ID=#{@user.id} (#{orgname}) was successfully deactivated (Now, Display_name=#{@user.display_name})."
-          if current_user && current_user.sysadmin?
+      result_save = @user.save  ## NOTE: notification email is sent to the user's fabricated *new* email address, meaning nothing is sent to the user's original address!!
+      logger.info "User ID=#{@user.id} (#{orgname}) was successfully deactivated (Now, Display_name=#{@user.display_name})." if result_save
+
+      if result_save && !(current_user && current_user.sysadmin?)
+        redirect_to root_path, success: "User account was successfully cancelled."
+      else
+        respond_to do |format|
+          if result_save ## (implicitly meaning) && current_user && current_user.sysadmin?
             format.html {redirect_to users_path, success: "User (#{orgname}) was successfully deactivated (Now, Display_name=#{@user.display_name})."}
             ## NOTE: Without format.html{}, it would result in ActionController::UnknownFormat
+            #format.json { render :show, status: :ok, location: @user }
           else
-            redirect_to root_path, success: "User account was successfully cancelled."
+            logger.error "FAIL in save (to deactivate a user (#{orgname}; ID=#{@user.id})): Messages: "+@user.errors.full_messages.inspect
+            format.html { render :edit, alert: "Failed in processing (#{orgname}) for an unknown reason." }
+            format.json { render json: @user.errors, status: :unprocessable_content }
           end
-          #format.json { render :show, status: :ok, location: @user }
-
-        else
-          logger.error "FAIL in save (to deactivate a user (#{orgname}; ID=#{@user.id})): Messages: "+@user.errors.full_messages.inspect
-          format.html { render :edit, alert: "Failed in processing (#{orgname}) for an unknown reason." }
-          format.json { render json: @user.errors, status: :unprocessable_content }
         end
       end
     end

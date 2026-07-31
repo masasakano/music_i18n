@@ -90,6 +90,7 @@ en:
     all_registered: 'All registered '
     translations: translations
     translated_names: translated names
+    back_to_home: 'Back to Welcome page'
     back_to_index: 'Back to Index'
     create_model: "Create a new %{model}"
     do_create_lower: "create it"
@@ -99,6 +100,7 @@ en:
     destroy_button: 'Commit Destroy'
     destroy_link: 'Destroy this'
     destroy_short: 'Destroy'
+    do_edit_lower: "edit"
     editing_guideline: 'Editing Guideline'
     error_in_save: "%{errors} prohibited this %{model} from being saved"
     new: new
@@ -137,6 +139,9 @@ en:
       new:
        used_to_confirm_registration: "used to confirm registration; never disclosed to anyone, including moderators (except system administrators)." 
        public_name: 'Displayed public name to identify yourself'
+
+  user:
+    profile: "User profile"
 
   home:
     index:

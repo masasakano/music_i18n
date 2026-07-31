@@ -1,6 +1,4 @@
-<p id="notice"><%= notice %></p>
-
-<h1>User profile: <%= @user.display_name %></h1>
+<h1><%= t("user.profile") %>: <%= @user.display_name %></h1>
 
 <dl>
 <% if current_user && current_user.sysadmin? %>
@@ -19,22 +17,37 @@
       <dt>Confirmed?</dt>
         <dd>No <%= button_to('Confirm', users_confirm_path(@user), method: :patch) %></dd>
 <% end %>
-      <dt>Numbers of Created(Updated)/Total Entries (of Translations)</dt>
-        <dd><%= @user.created_translations.size %> (<%= @user.updated_translations.size %>) / <%= Translation.count %></dd>
+      <dt>Numbers of Created+Updated=Total Entries by you</dt>
+      <dd><%= @user.n_created_entries %> + <%= @user.n_updated_entries %> = <span class="simple_sum_entries_by_user" title="simle sum"><%= @user.n_total_entries %></span></dd>
+      <dt>Numbers of Created/Updated/Either Translations by you out of Total</dt>
+        <dd><%= @user.created_translations.size %> / <%= @user.updated_translations.size %> / <%= @user.n_created_or_updated_translations %> (out of <%= Translation.count %>)</dd>
 <% if current_user && current_user.moderator? %>
       <dt>Role(s)</dt>
         <dd><%= @user.roles_inspect.map{|i| h(i)}.join('<br />').html_safe %></dd>
 <% end %>
 </dl>
 <% if @user == current_user %>
-  <%= link_to 'Edit', edit_user_registration_path %>
+  <%= link_to t("layouts.do_edit_lower", default: "Edit").capitalize, edit_user_registration_path %>
 <% end %>
 <% if current_user && current_user.moderator? %>
 <%= ((@user == current_user) ? "/" : "") %> <%= link_to 'Index', users_path %>
 <% end %>
-<% if current_user && current_user.abs_superior_to?(@user) %>
-/ <%= label_str = ((current_user == @user) ? 'Cancel' : 'Deactivate'); link_to label_str, users_edit_deactivate_users_path(@user) %>
-  <%= ((current_user == @user) ? 'my' : 'this') %> account
+
+<% if current_user && ((current_user == @user) || current_user.abs_superior_to?(@user)) && !(current_user == @user && current_user.sysadmin?) %>
+  <div class="align-r"> 
+    <% label_str = ((current_user == @user) ? t("devise.registrations.edit.cancel_my_account") : "Deactivate this account") %>
+    <% if @user.destroyable? && (current_user == @user) %>
+      <%= link_to(label_str+"(!)", user_path(@user), method: :delete, data: { turbo_method: :delete, turbo_confirm: t('are_you_sure'), confirm: t('are_you_sure') }) %>  <%# Turbo may not work in some cases... %>
+    <% else %>
+      <%= link_to(label_str, users_do_deactivate_users_path(@user), data: { turbo_method: :delete, turbo_confirm: t('are_you_sure') }) %> <%# Rails-8.1.  Previous: data: { confirm: t('are_you_sure') }, method: :delete %>
+    <% end %>
+    <% if @user.destroyable? %>  <%# && @user.email == @user.get_exuser_email %>
+      <%= editor_only_safe_html(:pass, method: current_user.an_admin?, tag: "span", only: :admin) do %>
+        <br>
+        This User has no dependents. You may destroy the account completely from rails_admin.)
+      <% end %>
+    <% end %>
+   </div>
 <% end %>
 <% if current_user && current_user.roles.exists? %>
   <h3>Roles</h3>
@@ -99,5 +112,8 @@
 <% end %>
 
 <br>
-<%= link_to 'Back to Home', root_path, data: { turbolinks: false } %>
+<%= link_to t("layouts.back_to_home"), root_path, data: { turbolinks: false } %>
+<%= editor_only_safe_html(User, method: :index, tag: "div", only: :moderator) do %>
+  <%= link_to "Index", users_path, data: { turbolinks: false } %>
+<% end %>
 

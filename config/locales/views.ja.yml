@@ -90,6 +90,7 @@ ja:
     all_registered: 'すべての登録'
     translations: '訳語'
     translated_names: '翻訳名称'
+    back_to_home: 'トップに戻る'
     back_to_index: '一覧に戻る'
     create_model: "%{model}新規作成"
     do_create_lower: "新規作成して"
@@ -99,6 +100,7 @@ ja:
     destroy_button: '削除実行'
     destroy_link: '削除する'
     destroy_short: '削除'
+    do_edit_lower: "編集する"
     editing_guideline: '編集方針'
     error_in_save: "%{errors} が出て%{model}の保存に失敗しました"
     new: 新規
@@ -139,6 +141,9 @@ ja:
       new:
        used_to_confirm_registration: "登録確認メールが送信されます。モデレーターまで含めて誰にも非公開です(管理者は除く)" 
        public_name: '公開登録名'
+
+  user:
+    profile: "ユーザー登録情報"
 
   home:
     index:

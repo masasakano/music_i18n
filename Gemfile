@@ -132,7 +132,7 @@ end
 ### User-added
 gem 'rails-i18n', '~> 8.1.0' # For Rails 8
 gem 'i18n-timezones'
-gem 'devise', '~> 4.9'
+gem 'devise', '~> 5.0'
 gem 'devise-i18n'
 gem 'jquery-rails'  # required for toastr
 gem 'toastr-rails'
@@ -182,6 +182,7 @@ group :development do
   gem "rubocop-erb", require: false
   # gem "herb", require: false  # It seems "rubocop-erb" depends on this, so this is installed anyway.
   gem "erb_lint", require: false
+  gem 'letter_opener', '>= 1.10'
 end
 
 group :development, :test do

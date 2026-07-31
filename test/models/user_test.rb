@@ -225,6 +225,26 @@ class UserTest < ActiveSupport::TestCase
     assert  u3.confirmed?
   end
 
+  test "user.n_created_entries" do
+    u3 = User.create! email: 'c@e.com', password: 'abcdef', accept_terms: true
+    assert_equal 0, u3.n_created_entries
+    assert_equal 0, u3.n_updated_entries
+    assert_equal 0, u3.n_total_entries
+    assert u3.destroyable?
+
+    tra5 = Translation.fifth
+    tra5.update!(create_user: u3)
+    chant2 = ChannelType.second
+    chant2.update!(update_user: u3)
+    url2   = Url.second
+    url2.update!(update_user: u3)
+
+    assert_equal 1, u3.n_created_entries
+    assert_equal 2, u3.n_updated_entries
+    assert_equal 3, u3.n_total_entries
+    refute u3.destroyable?
+  end
+
   test "user.roles_in" do
     rolec_g = role_categories(:rc_general_ja)
     role_m = roles( :general_ja_moderator )

@@ -143,5 +143,26 @@ class Users::DeactivateUsersControllerTest < ActionDispatch::IntegrationTest
     #assert_not (200...299).include?(response.code.to_i), "response:(200...299) === #{response.code.inspect} for path=#{users_edit_deactivate_users_path(@user.id)}"  # maybe :redirect or 403 forbidden 
     assert_response :redirect  # 302
   end
+
+  test "a user can destroy themselves if having no contents" do
+    sign_in(@sysadmin)
+    assert_no_difference("User.count"){
+      assert_raises(RuntimeError){
+        delete user_path(@sysadmin)
+        # @sysadmin can never be deleted.  However, this practically tests those owing contents cannot be destroyed, whatever their Role is, because @sysadmin own some contents (like Translation) in Fixtures.
+      }
+    }
+    sign_out(@sysadmin)
+
+    @user = users(:user_captain)
+    sign_in(@user)
+    assert_equal 0, @user.n_total_entries, "sanity check of fixtures"
+    assert @user.destroyable?
+
+    assert_difference("User.count", -1){
+      delete user_path(@user)
+    }
+    sign_out(@user)
+  end
 end
 

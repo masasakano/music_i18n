@@ -41,9 +41,20 @@ class User < ApplicationRecord
   has_many :roles, through: :user_role_assocs
   has_many :created_translations, class_name: "Translation", foreign_key: "create_user_id", dependent: :nullify
   has_many :updated_translations, class_name: "Translation", foreign_key: "update_user_id", dependent: :nullify
+  has_many :created_channels,          class_name: "Channel",         foreign_key: "create_user_id", dependent: :nullify
+  has_many :updated_channels,          class_name: "Channel",         foreign_key: "update_user_id", dependent: :nullify
+  has_many :created_channel_owners,    class_name: "ChannelOwner",    foreign_key: "create_user_id", dependent: :nullify
+  has_many :updated_channel_owners,    class_name: "ChannelOwner",    foreign_key: "update_user_id", dependent: :nullify
   has_many :created_channel_platforms, class_name: "ChannelPlatform", foreign_key: "create_user_id", dependent: :nullify
   has_many :updated_channel_platforms, class_name: "ChannelPlatform", foreign_key: "update_user_id", dependent: :nullify
+  has_many :created_channel_types,     class_name: "ChannelType",     foreign_key: "create_user_id", dependent: :nullify
+  has_many :updated_channel_types,     class_name: "ChannelType",     foreign_key: "update_user_id", dependent: :nullify
+  has_many :created_urls, class_name: "Url", foreign_key: "create_user_id", dependent: :nullify
+  has_many :updated_urls, class_name: "Url", foreign_key: "update_user_id", dependent: :nullify
   has_many :harami1129_reviews, dependent: :nullify
+
+  # Related Child ActiveRecord Classes (excepting Role and Harami1129Review)
+  CHILD_CLASSES = [Translation, Channel, ChannelOwner, ChannelPlatform, ChannelType, Url]
 
   validates_uniqueness_of :email, case_sensitive: false  # As in Default, allow_nil: false (nb empty string is allowed)
 
@@ -285,6 +296,42 @@ class User < ApplicationRecord
       n_unique: (hsid[:created]+hsid[:updated]).uniq.size,
     }
   end
+
+  ######## General Entries related ########
+
+  def destroyable?
+    n_total_entries <= 0
+  end
+
+  def n_created_or_updated_translations
+    Translation.where("translations.create_user_id = ? OR translations.update_user_id = ?", id, id).count
+  end
+
+  # @param mdl [String, Class<ActiveRecord>] one of ChannelType (class) and "ChannelType" and "channel_type(s)"
+  def n_created_entries
+    CHILD_CLASSES.sum{ |em| n_either_entries_single(em, :create) }
+  end
+
+  # @param mdl [String, Class<ActiveRecord>] one of ChannelType (class) and "ChannelType" and "channel_type(s)"
+  def n_updated_entries
+    CHILD_CLASSES.sum{ |em| n_either_entries_single(em, :update) }
+  end
+
+  # @param mdl [String, Class<ActiveRecord>] one of ChannelType (class) and "ChannelType" and "channel_type(s)"
+  def n_total_entries
+    n_created_entries + n_updated_entries
+  end
+
+    # Meta task of the wrapper for {#created_translations}.count etc
+    #
+    # @param mdl [String, Class<ActiveRecord>] one of ChannelType (class) and "ChannelType" and "channel_type(s)"
+    # @param cre_upd [Symbol, String] either :create or :update
+    def n_either_entries_single(mdl, cre_upd)
+      mdl_plural = (mdl.respond_to?(:name) ? mdl.name : mdl.to_s).underscore.pluralize
+      metho = cre_upd.to_s[0..2] + "ated_" + mdl_plural
+      send(metho).count
+    end
+    private :n_either_entries_single
 
   ############ For displaying/printing ############
 

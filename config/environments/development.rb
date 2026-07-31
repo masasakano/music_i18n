@@ -32,7 +32,8 @@ Rails.application.configure do
   config.active_storage.service = :local
 
   # Don't care if the mailer can't send.
-  config.action_mailer.raise_delivery_errors = false
+  #config.action_mailer.raise_delivery_errors = false
+  config.action_mailer.raise_delivery_errors = true
 
   # Make template changes take effect immediately.
   config.action_mailer.perform_caching = false
@@ -90,7 +91,7 @@ Rails.application.configure do
 
   # cf. https://altalogy.com/blog/rails-6-user-accounts-with-3-types-of-roles/
   config.action_mailer.perform_deliveries = true
-  config.action_mailer.delivery_method = :smtp
+  config.action_mailer.delivery_method = :letter_opener  # :smtp
   config.action_mailer.default_options = {from: 'no-reply@example.com'}
   ## NOTE:
   # Gmail accepts any email addresses, but the From address of the sent emails
@@ -107,7 +108,7 @@ Rails.application.configure do
   config.action_mailer.smtp_settings = {
     user_name:      (ENV["RAILS_USER_NAME"]       || Rails.application.credentials.dig(:smtp, :user_name)),  # used to be (Rails-6?) Rails.application.credentials.mail_username
     password:       (ENV["RAILS_MAILER_PASSWORD"] || Rails.application.credentials.dig(:smtp, :password)),   # used to be (Rails-6?) Rails.application.credentials.mail_password
-    domain:         (ENV["RAILS_MAILER_DOMAIN"]   || 'gmail.com'),
+    domain:         (ENV["RAILS_MAILER_DOMAIN"]   || 'example.com'),  # This is also referrenced in notification emails like "Administrator from example.com"
     address:        (ENV["RAILS_MAILER_ADDRESS"]  || 'smtp.gmail.com'),
     port:           (ENV["RAILS_MAILER_PORT"]     || '587'),
     authentication: :plain,

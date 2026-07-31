@@ -64,6 +64,27 @@ class UsersController < ApplicationController
     @roletree = self.class.get_roletree(current_user, @user)
   end
 
+
+  # Note that you may use instead:
+  #
+  #   patch users_do_deactivate_users_path(@user), params: {user: {User::DEACTIVATE_METHOD_FORM_NAME => 'destroy'}}
+  #
+  # DELETE /users/1 or /users/1.json
+  def destroy
+    if !@user.destroyable?
+      raise "User cannot be destroyed due to dependent entries.  This statement should never been issued from U/I.  Contact the code developer."
+    elsif @user.sysadmin?  # This should never happen.
+      raise "sysadmin account cannot be destroyed ever.  This statement should never been issued from U/I.  Contact the code developer."
+    end
+
+    @user.destroy!
+
+    respond_to do |format|
+      format.html { redirect_to root_url, notice: "User account was successfully cancelled." }
+      format.json { head :no_content }
+    end
+  end
+
   # Returns Tree with contents being [{RoleCategory}, ({User::FormOpts}, [{User::FormOpts}, ...])]
   #
   # Note that {RoleCategory.tree} object, which is cached, is destructively modified.

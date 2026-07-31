@@ -133,7 +133,7 @@ Rails.application.routes.draw do
     # devise_for :users  # Default
     devise_for :users, except: [:destroy]
     # devise_for :users, :path_prefix => 'd'  # => /usrs/d/sign_up etc
-    resources :users, only: [:show]
+    resources :users, only: [:show, :destroy]
     #match '/users/:id', to: 'users#show',            via: 'get'
     #match '/users/:id', to: 'users#show', as: :user, via: 'get'
     root to: "home#index"

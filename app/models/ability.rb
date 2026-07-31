@@ -65,12 +65,12 @@ class Ability
     end
 
     can :show,   User  # can view any user's profile.
-    can :update, User, id: user.id
+    can [:update, :destroy], User, id: user.id  # Controller prohibits User from being destroyed if they have dependents.
+    can :destroy, Users::DeactivateUser, id: user.id
 
     ##### Middle-rank role. (editors) #####
 
     if user.editor?  # Harami manager OR HIGHER (but sysadmin)
-      can :destroy, Users::DeactivateUser, id: user.id
       can :update, UserRoleAssoc, user: user
       can :manage, Place
       #can :cru,  [Prefecture]
