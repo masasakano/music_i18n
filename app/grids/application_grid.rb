@@ -3,13 +3,6 @@ class ApplicationGrid < Datagrid::Base
 
   # include Datagrid  # In DataGrid Version 1.  In Version 2, the class should be inherited.
 
-  # User-added! To make path-helpers available across Datagrid classes
-  # However, in some context, you still have to write like (for some reason):
-  #   Rails.application.routes.url_helpers.places_path
-  # It seems this is irrelevant after all...
-  #include Rails.application.routes.url_helpers
-
-  #extend ApplicationHelper  # I suppose this is a key (to include path/url helpers and url_for helpers)?
   extend ModuleCommon  # My module
 
   if !defined?(CURRENT_USER)
@@ -260,10 +253,7 @@ class ApplicationGrid < Datagrid::Base
   def self.scope_with_trans_order(scope, langcode=nil)
     model_plural = scope.klass.name.underscore.pluralize
     sql = "LEFT OUTER JOIN translations ON translations.translatable_type = '#{scope.klass.name}' AND translations.translatable_id = #{model_plural}.id" + (langcode ? " AND translations.langcode = '#{langcode.to_s}'" : "")
-    #ids = scope.joins(sql).order(Arel.sql("CONCAT(title, alt_title)")).pluck("#{model_plural}.id", :weight).sort{|a,b| ((cmp=a[0]<=>b[0]) != 0) ? cmp : a[1]<=>b[1]}.map(&:first).uniq  # title or alt_title !
-#puts "DEBUG: scope-sql="+scope.joins(sql).order(Arel.sql("CONCAT(title, alt_title)")).to_sql
     ids = scope.except(:limit).joins(sql).order(Arel.sql("CONCAT(title, alt_title)")).pluck("#{model_plural}.id", :weight) #, "translations.id")
-#print "DEBUG:ids=";p ids.map{|i| [i, Artist.find(i[0]).title, Translation.find(i[2]).title]}
 
     hs_weight = {}  # weights[id] = {id: i, weight: w}  # to temporarily record the sorted-positional-index i and weight for BestWithTranslation.
     ids.each_with_index do |eaiw, i|
@@ -464,8 +454,6 @@ class ApplicationGrid < Datagrid::Base
     column(:id, mandatory: mandatory, html: true, tag_options: {class: ["align-cr", "editor_only"]}, header: "ID", if: Proc.new{ApplicationGrid.qualified_as?(:editor)}) do |record|
       to_path = send(url_sym, record, {only_path: true}.merge(ApplicationController.new.default_url_options))
       link_to record.id, to_path
-      #to_path = Rails.application.routes.url_helpers.send(url_sym, record, {only_path: true}.merge(ApplicationController.new.default_url_options))
-      #ActionController::Base.helpers.link_to record.id, to_path
     end if :filter != filter_or_column
   end
 
@@ -498,6 +486,7 @@ class ApplicationGrid < Datagrid::Base
     }) do |record|
       tit = ApplicationGrid._column_title_core(record, "en")
       #block_given? ? yield(record, tit, grid) : tit
+                                # See for more detail self.column_title_ja
       block_given? ? instance_exec(record, tit, &block) : tit
     end
   end
@@ -635,7 +624,7 @@ class ApplicationGrid < Datagrid::Base
     opts = opts.merge({order: order}) if order
 
     column(model_sym, html: true, tag_options: tag_options, **opts) do |record|
-      # Inside column() is in view_context
+      # Inside column(html: true) is in view_context
       count = record.send(metho).send(distinct ? :distinct : :uniq).count
       if block_given?
         link_txt, record, postfix = yield(record, count)
@@ -669,7 +658,7 @@ class ApplicationGrid < Datagrid::Base
 
   # Add column wiki_any
   def self.column_wiki_url(header: "Wikipedia")
-    column(:wiki_any, html: true, mandatory: true, html: true, header: header, tag_options: {class: ["text-center"]}) do |record|
+    column(:wiki_any, mandatory: true, html: true, header: header, tag_options: {class: ["text-center"]}) do |record|
       url_wiki_any(record)   # defined in application_helper.rb
     end
   end 
@@ -727,9 +716,6 @@ class ApplicationGrid < Datagrid::Base
   # However, if it is defined in this class as a class method,
   #
   #   1. You need to call it like: ApplicationGrid._column_actions_html()
-  #   2. link_to has to be written as ActionController::Base.helpers.link_to
-  #   3. URL helpers have to be written as Rails.application.routes.url_helpers.polymorphic_path
-  #   4. Most importantly, Ability-related methods of can? cannot be used (and I don't yet know how)
   #
   # For these reasons, they are written in this method.  Nevertheless,
   # the block passed to this method has to be exec-ed with +instance_exec()+
@@ -757,6 +743,7 @@ class ApplicationGrid < Datagrid::Base
 
       if block_given?
         #artmp = yield(record)  # Standard yield would fail if can?() is used in the given block.
+                                # See for more detail self.column_title_ja
         artmp = instance_exec(record, &block)
         ar4editors += [artmp].flatten if artmp && ![artmp].compact.empty?
       end

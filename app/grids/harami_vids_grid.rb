@@ -27,7 +27,6 @@ class HaramiVidsGrid < ApplicationGrid
     self.joins(:channel).where("channels.channel_platform_id" => [value].flatten)
   end
   filter(:channel_type, :enum, select: Proc.new{
-           # ChannelType.joins(channels: :harami_vids).distinct.order(:weight).map{|i| [s=i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), i.id]}},  # filtering out those none of HaramiVid belong to
            ChannelType.joins(channels: :harami_vids).distinct.order(:weight).map{[_1.title_or_alt_for_selection_optimum, _1.id]}},  # filtering out those none of HaramiVid belong to
          header: Proc.new{I18n.t("harami_vids.table_head_ChannelType", default: "Channel type")}) do |value|  # Only for PostgreSQL!
     self.joins(:channel).where("channels.channel_type_id" => [value].flatten)
@@ -130,9 +129,6 @@ class HaramiVidsGrid < ApplicationGrid
   column(:events, html: true, header: Proc.new{I18n.t(:Events)}) do |record|
     can_read_event_item = can?(:read, EventItem) if can_read_event_item.nil?
     events_and_groups_html(record, with_link: can_read_event_item, with_group_link: false)  # defined in harami_vids_helper.rb
-    #print_list_inline(record.events.distinct, skip_title: true){ |_, model|
-    #  can_read_event_item ? link_to(tit, event_path(model)) : tit
-    #}  # defined in application_helper.rb
   end
 
   column(:collabs, html: true, header: Proc.new{I18n.t("harami_vids.table_head_collabs", default: "featuring Artists")}) do |record|
@@ -144,12 +140,6 @@ class HaramiVidsGrid < ApplicationGrid
 
   column(:collab_hows, html: true, header: Proc.new{I18n.t("harami_vids.table_head_collab_hows", default: "collaboration types")}) do |record|
     collab_hows_text(record)
-    #def_artist = Artist.default(:HaramiVid)
-    #record.artist_collabs.where.not(id: def_artist.id).distinct.ids
-    ##print_list_inline(record.artist_collabs.where.not(id: def_artist.id).distinct){ |tit, model|
-    ##  tit = definite_article_to_head(tit)
-    ##  can?(:read, Artist) ? link_to(tit, artist_path(model)) : tit
-    ##}  # defined in application_helper.rb
   end
 
 

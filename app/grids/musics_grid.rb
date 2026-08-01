@@ -12,10 +12,8 @@ class MusicsGrid < ApplicationGrid
   ####### Filters #######
 
   filter_n_column_id(:music_url)  # defined in application_grid.rb
-  # filter_n_column_id(:music_url, filter_or_column: :filter)  # defined in application_grid.rb
   filter_include_ilike(:title_ja, header: Proc.new{I18n.t("datagrid.form.title_ja_en", default: "Title [ja+en] (partial-match)")})
   filter_include_ilike(:title_en, langcode: 'en', header: Proc.new{I18n.t("datagrid.form.title_en", default: "Title [en] (partial-match)")})
-  # filter_n_column_id(:music_url, filter_or_column: :column)  # defined in application_grid.rb
 
   filter(:year, :integer, range: true, header: Proc.new{I18n.t('tables.year')}) # , default: proc { [User.minimum(:logins_count), User.maximum(:logins_count)] }
 
@@ -28,14 +26,8 @@ class MusicsGrid < ApplicationGrid
   filter(:artists, :string, header: Proc.new{I18n.t("datagrid.form.artists", default: "Artist (partial-match)")}, input_options: {"data-1p-ignore" => true}) do |value|  # Only for PostgreSQL!
     str = preprocess_space_zenkaku(value, article_to_tail=true)
     trans_opts = {accept_match_methods: [:include_ilike], translatable_type: 'Artist'}
-if false  ############# legacy
-    arts = Artist.find Translation.find_all_by_a_title(:titles, value, **trans_opts).uniq.map(&:translatable_id)
-    # self.joins(:engages).where('engages.artist_id IN (?)', arts.map(&:id)).distinct  # This would break down when combined with order()
-    ids = Music.joins(:engages).where('engages.artist_id IN (?)', arts.map(&:id)).distinct.pluck(:id)
-else
     art_ids = Artist.find_all_ids_by_partial_str(value, order_or_where: :where).uniq
     ids = Music.joins(:engages).where('engages.artist_id IN (?)', art_ids)
-end
     self.where id: ids
   end
 
@@ -55,17 +47,11 @@ end
   # Valid only for PostgreSQL
   # To make it applicable for other DBs, see  https://stackoverflow.com/a/68998474/3577922)
   column(:artists, html: true, header: Proc.new{I18n.t("application.menu_artists", default: "Artists")}, mandatory: true, order: proc { |scope|
-    #order_str = Arel.sql("convert_to(title, 'UTF8'), convert_to(alt_title, 'UTF8')")
-    #order_str = Arel.sql('title COLLATE "ja_JP", alt_title COLLATE "ja_JP"')
-    #order_str = Arel.sql('title COLLATE "C", alt_title COLLATE "C"')
     order_str = Arel.sql('title COLLATE "ja-x-icu", alt_title COLLATE "ja-x-icu"')
-#Rails.logger.debug sprintf("DEBUG:SCOPE=: #{scope.inspect}")
     ids = Music.joins(:artists).joins("INNER JOIN translations ON translations.translatable_id = artists.id AND translations.translatable_type = 'Artist'").order(order_str).map(&:id).uniq  # if scope is used instead of Music, it seems to be heavily affected by cache
-#Rails.logger.debug sprintf("DEBUG:ids: #{ids.inspect}")
     #scope.joins("INNER JOIN unnest('{#{ids.join(',')}}'::int[]) WITH ORDINALITY t_ord(id, ord) USING (id)").order("t_ord.ord")  # This should work, too, unless there is another JOIN.
     scope.joins("INNER JOIN unnest('{#{ids.join(',')}}'::int[]) WITH ORDINALITY t_ord(id, ord) ON musics.id = t_ord.id").order("t_ord.ord")
   }) do |record|
-    #record.engages.joins(:engage_how).order('engage_hows.weight').pluck(:artist_id).uniq.map{|i| art = Artist.find(i); sprintf '%s [%s]', ActionController::Base.helpers.link_to(art.title_or_alt, Rails.application.routes.url_helpers.artist_path(art, locale: I18n.locale)), ERB::Util.html_escape(art.engage_how_titles(record).join(', '))}.join(', ').html_safe
     record.engages.joins(:engage_how).order('engage_hows.weight').pluck(:artist_id).uniq.map{|i| art = Artist.find(i); sprintf '%s [%s]', link_to(art.title_or_alt, artist_path(art)), html_escape(art.engage_how_titles(record).join(', '))}.join(', ').html_safe  # NOTE: the option "html: true" is essential to use artist_path directly (as opposed to Rails.application.routes.url_helpers.artist_path). Also, in the latter case, "locale: I18n.locale" is essential for some reason (otherwise the URL with no locale is returned).
   end
 
