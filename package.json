@@ -1,6 +1,6 @@
 {
   "name": "harami_multilingual",
-  "private": "true",
+  "private": true,
   "engines": {
     "node": "24.x",
     "yarn": "1.x"
@@ -13,16 +13,22 @@
     "@rails/activestorage": "^8.1",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
+    "nodemon": "^3.1.14",
+    "postcss": "^8.5.25",
+    "postcss-cli": "^11.0.1",
+    "sass": "^1.102.0",
     "esbuild": "^0.28.1",
     "jquery": "^4.0.0",
     "jquery-ui-dist": "^1.13.3",
     "rails_admin": "3.3.0",
-    "sass": "^1.102.0",
     "toastr": "^2.1.4"
   },
   "scripts": {
-    "build": "esbuild app/javascript/*.js --bundle --sourcemap --outdir=app/assets/builds --public-path=assets",
-    "build:css": "sass ./app/assets/stylesheets/application.bootstrap.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules"
+    "build": "esbuild app/javascript/*.js --bundle --sourcemap --format=esm --outdir=app/assets/builds --public-path=/assets",
+    "build:css:compile": "sass ./app/assets/stylesheets/application.bootstrap.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules",
+    "build:css:prefix": "postcss ./app/assets/builds/application.css --use=autoprefixer --output=./app/assets/builds/application.css",
+    "build:css": "yarn build:css:compile && yarn build:css:prefix",
+    "watch:css": "nodemon --watch ./app/assets/stylesheets/ --ext scss --exec \"yarn build:css\""
   },
   "version": "2.5"
 }

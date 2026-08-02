@@ -4,13 +4,10 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 ruby "4.0.6"
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails', branch: "main"
-#gem 'rails', '~> 7.0', '>= 7.0.4'
-gem "rails", "~> 8.1.3.1"
+gem "rails", "~> 8.1.3", ">= 8.1.3.1"
 
-# The original asset pipeline for Rails [https://github.com/rails/sprockets-rails]
-gem "sprockets-rails"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
-#gem "propshaft"  # Included (i.e., ON) in Rails-8.0 default
+gem "propshaft"  # Rails-8.0 default
 
 # Use pg as the database for Active Record
 gem 'pg', '>= 1.5', '< 2.0'
@@ -18,12 +15,18 @@ gem 'pg', '>= 1.5', '< 2.0'
 #gem 'puma', '~> 4.1'  # Rails 6
 #gem 'puma', '~> 6.4'   # >=5.0 for Rails 7.0 default
 gem 'puma', '~> 7.0'
+
 # Use JavaScript with ESM import maps [https://github.com/rails/importmap-rails]
 #gem "importmap-rails"  # Included (i.e., ON) in Rails-8.0 default
+# Bundle and transpile JavaScript [https://github.com/rails/jsbundling-rails]
+gem "jsbundling-rails"  # Rails 7 default with --css=bootstrap
+
 # Hotwire's SPA-like page accelerator [https://turbo.hotwired.dev]
 gem "turbo-rails"
 # Hotwire's modest JavaScript framework [https://stimulus.hotwired.dev]
 gem "stimulus-rails"
+# Bundle and process CSS [https://github.com/rails/cssbundling-rails]
+gem "cssbundling-rails"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder" #, "~> 2.7"
 
@@ -39,53 +42,24 @@ gem "solid_queue"  # Included (i.e., ON) in Rails-8.0 default
 gem "solid_cable"  # Included (i.e., ON) in Rails-8.0 default
 
 # Reduces boot times through caching; required in config/boot.rb
-#gem 'bootsnap', '>= 1.4.2', require: false
 gem "bootsnap", require: false  # NOTE: This was necessary to avoid: realpath_cache.rb:17:in `dirname": no implicit conversion of nil into String (TypeError)
 
 # Deploy this application anywhere as a Docker container [https://kamal-deploy.org]
-#gem "kamal", require: false  # Included (i.e., ON) in Rails-8.0 default
+gem "kamal", require: false  # Rails-8.0 default
 
 # Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
-#gem "thruster", require: false  # Included (i.e., ON) in Rails-8.0 default
+gem "thruster", require: false  # Rails-8.0 default
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-# gem "image_processing", "~> 1.2"
-
-## Use SCSS for stylesheets (obsolete as of 2019)
-#  https://sass-lang.com/ruby-sass
-#  https://github.com/rails/sass-rails
-#  https://rubygems.org/gems/sass-rails
-#gem 'sass-rails', '>= 6'
-## Transpile app-like JavaScript. Read more: https://github.com/rails/webpacker
-#gem 'webpacker', '~> 5.0'  # Rails 6.1 default (was 4.0 in Rails 6.0)
-## Turbolinks makes navigating your web application faster. Read more: https://github.com/turbolinks/turbolinks
-#gem 'turbolinks', '~> 5'  # Rails 6
+gem "image_processing", "~> 1.2"
 
 # Use Redis adapter to run Action Cable in production
-gem 'redis', '~> 5.0'  ######## NOTE: redis 6.0 was released on 2026-07-31; you may eventually upgrade it.
+gem 'redis', '~> 5.0'  ######## NOTE: redis 6.0 was released on 2026-07-31; you may eventually upgrade it.  Or, you may delete it as this is not listed in Rails-8.1 default
 
 # Use Kredis to get higher-level data types in Redis [https://github.com/rails/kredis]
 # gem "kredis"
 
 gem 'listen', '~> 3' #, '~> 3.2'  # This seems necessary from bootsnap (for booting, i.e., ./bin/dev) despite the fact it is not included in Rails 7 default Gemfile...
-
-######### Rails 7 default with --css=bootstrap
-# Bundle and transpile JavaScript [https://github.com/rails/jsbundling-rails]
-gem "jsbundling-rails"
-
-# Bundle and process CSS [https://github.com/rails/cssbundling-rails]
-gem "cssbundling-rails"
-
-# Use Sass to process CSS
-# This is commented out in Rails-7+bootstrap default.
-# However, in this environment, this seems essential.  Without this, Sever returns an Error, demanding `sassc` .
-# If you use this, the develope says: make sure to include in /config/environments/development.rb
-# the line:  config.sass.inline_source_maps = true
-# although in reality it seems to work even without the line in development.rb
-# When something goes wrong, you may encounter errors in "./bin/dev" like:  `method_missing': undefined method `sass'
-# Or it may prompt you to install Gem sass (but don't, because it became obsolete in 2019).
-# NOTE: sass is defined in package.json (in the same way as in Rails-7+bootstrap default)
-gem "sassc-rails"
 
 group :development, :test do
   gem 'dotenv-rails' #, groups: [:development, :test]  # User-added; this may need to come before some Gems
@@ -93,24 +67,20 @@ group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"  # %i[mingw x64_mingw] (and :mswin though not used here) deprecated in at least Ruby 3.4
 
+  # Audits gems for known security defects (use config/bundler-audit.yml to ignore issues)
+  gem "bundler-audit", require: false
+
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem "brakeman", require: false
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
-
-  #### Rails 6: see https://blog.saeloun.com/2021/09/29/rails-7-ruby-debug-replaces-byebug.html
-  ## Call 'byebug' anywhere in the code to stop execution and get a debugger console
-  #gem 'byebug', platforms: [:mri, :mingw, :x64_mingw]  # Add :windows while %i[mingw x64_mingw] deprecated in at least Ruby 3.4 (Note that this Gem is deprecated anyway)
 end
 
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
-  #gem 'web-console', '>= 3.3.0'
   gem "web-console" #, '~> 4.2'
   ## Access an interactive console on exception pages or by calling 'console' anywhere in the code.
-
-  #gem 'listen', '~> 3' #, '~> 3.2'
 
   # Add speed badges [https://github.com/MiniProfiler/rack-mini-profiler]
   # gem "rack-mini-profiler"
@@ -136,8 +106,8 @@ gem 'devise', '~> 5.0'
 gem 'devise-i18n'
 gem 'jquery-rails'  # required for toastr
 gem 'toastr-rails'
-gem 'rails_admin', '~> 3.0'  # For Rails-7; need run:  DISABLE_SPRING=1 bin/rails g rails_admin:install  cf. https://stackoverflow.com/a/72674116
-# gem 'rails_admin', github: 'railsadminteam/rails_admin', branch: 'master'  ## WARNING: (temporary) To avoid loads of deprecation warnings about frozen String issued in Ruby-4.0 (once the patch to fix the issues is merged in the master branch)
+# gem 'rails_admin', '~> 3.0'  # For Rails-7; need run:  DISABLE_SPRING=1 bin/rails g rails_admin:install  cf. https://stackoverflow.com/a/72674116
+gem 'rails_admin', github: 'railsadminteam/rails_admin', branch: 'master'  ## WARNING: (temporary) To avoid loads of deprecation warnings about frozen String issued in Ruby-4.0 (once the patch to fix the issues is merged in the master branch)
 gem 'cancancan'
 # gem 'active_record-postgres-constraints' # Valid up to Rails 6.0 but obsolete (not work) at 6.1.
 gem 'datagrid', '~> 2.0'  # merged from its branch: 'version-2'
@@ -173,9 +143,6 @@ gem "nkf"
 gem "open-uri"
 
 group :development do
-  # gem 'annotate', '>= 3.2.0'  # This works only up to Rails 7
-  # gem 'annotate', github: 'https://github.com/ctran/annotate_models'  # As of October 2025, gemspec of annotate Gem prohibits ActiveRecord (hence Rails) Ver.8.
-  ### In fact, 'annotate' Gem is not maintained anymore.  A fork 'annotaterb' has been created and maintained, and practically replaces it.
   gem 'annotaterb', '~> 4.13'  # migrated from 'annotate' in Rails 8
   gem 'kramdown', require: false
   gem 'yard-activerecord'
