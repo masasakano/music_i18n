@@ -1,7 +1,7 @@
 # coding: utf-8
 # == Schema Information
 #
-# Table name: play_roles
+# Table name: play_roles(Role Artist plays in playing Music in EventItem for ArtistMusicPlay)
 #
 #  id                                                  :bigint           not null, primary key
 #  mname(unique machine name)                          :string           not null

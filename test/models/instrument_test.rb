@@ -1,7 +1,7 @@
 # coding: utf-8
 # == Schema Information
 #
-# Table name: instruments
+# Table name: instruments((Music) Instruments for ArtistMusicPlay to go with PlayRole)
 #
 #  id                                    :bigint           not null, primary key
 #  note                                  :text

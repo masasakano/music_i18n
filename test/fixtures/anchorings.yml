@@ -1,6 +1,6 @@
 # == Schema Information
 #
-# Table name: anchorings
+# Table name: anchorings(Polymorphic join talbe between Url and others)
 #
 #  id              :bigint           not null, primary key
 #  anchorable_type :string           not null

@@ -1,7 +1,7 @@
 # coding: utf-8
 # == Schema Information
 #
-# Table name: channel_platforms
+# Table name: channel_platforms(Platform like Youtube)
 #
 #  id                                                 :bigint           not null, primary key
 #  mname(machine name (alphanumeric characters only)) :string           not null

@@ -1,7 +1,7 @@
 # coding: utf-8
 # == Schema Information
 #
-# Table name: channels
+# Table name: channels(Channel of Youtube etc)
 #
 #  id                                                                     :bigint           not null, primary key
 #  id_at_platform(Channel-ID at the remote platform)                      :string

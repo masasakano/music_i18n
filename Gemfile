@@ -107,10 +107,13 @@ gem 'devise-i18n'
 gem 'jquery-rails'  # required for toastr
 gem 'toastr-rails'
 # gem 'rails_admin', '~> 3.0'  # For Rails-7; need run:  DISABLE_SPRING=1 bin/rails g rails_admin:install  cf. https://stackoverflow.com/a/72674116
-gem 'rails_admin', github: 'railsadminteam/rails_admin', branch: 'master'  ## WARNING: (temporary) To avoid loads of deprecation warnings about frozen String issued in Ruby-4.0 (once the patch to fix the issues is merged in the master branch)
+# gem 'rails_admin', github: 'railsadminteam/rails_admin', branch: 'master'  ## WARNING: (temporary) To avoid loads of deprecation warnings about frozen String issued in Ruby-4.0 (once the patch to fix the issues is merged in the master branch) # This still does not work with Propshaft as of July 2026
+gem 'motor-admin'
+
 gem 'cancancan'
 # gem 'active_record-postgres-constraints' # Valid up to Rails 6.0 but obsolete (not work) at 6.1.
 gem 'datagrid', '~> 2.0'  # merged from its branch: 'version-2'
+gem 'kaminari', '>= 1.2.2'
 gem 'rubytree', '~> 2', '>= 2.0.0'
 gem 'slim_string', '~> 1', '>= 1.0.1'
 gem 'simple_form', '~> 5', '>= 5.1.0'

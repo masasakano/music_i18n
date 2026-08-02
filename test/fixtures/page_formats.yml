@@ -1,6 +1,6 @@
 # == Schema Information
 #
-# Table name: page_formats
+# Table name: page_formats(Format of posts like StaticPage)
 #
 #  id                       :bigint           not null, primary key
 #  description              :text

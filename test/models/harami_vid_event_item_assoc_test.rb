@@ -1,6 +1,6 @@
 # == Schema Information
 #
-# Table name: harami_vid_event_item_assocs
+# Table name: harami_vid_event_item_assocs(Association between HaramiVid and EventItem)
 #
 #  id                                                                          :bigint           not null, primary key
 #  note                                                                        :text

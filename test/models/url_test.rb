@@ -1,7 +1,7 @@
 # coding: utf-8
 # == Schema Information
 #
-# Table name: urls
+# Table name: urls(URLs maybe including query parameters)
 #
 #  id                                              :bigint           not null, primary key
 #  last_confirmed_date                             :date

@@ -1,6 +1,6 @@
 # == Schema Information
 #
-# Table name: domains
+# Table name: domains(Domain or any subdomain)
 #
 #  id                                                   :bigint           not null, primary key
 #  domain(Domain or any subdomain such as abc.def.com)  :string

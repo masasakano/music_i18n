@@ -1,7 +1,7 @@
 # coding: utf-8
 # == Schema Information
 #
-# Table name: static_pages
+# Table name: static_pages(Static HTML Pages)
 #
 #  id                       :bigint           not null, primary key
 #  content                  :text

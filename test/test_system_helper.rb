@@ -279,7 +279,8 @@ class ActiveSupport::TestCase
       assert_selector "h3", text: I18n.t(:external_link, locale: locale).capitalize.pluralize(locale)  # "Anchorings"
       assert_empty page.find_all(:xpath, XPATHS[:anchoring][:item]), "xpath="+XPATHS[:anchoring][:item]  # No Anchoring (yet); defined in test_helper.rb
     end
-
+debugger
+    assert_selector :xpath, XPATHS[:anchoring][:new_link]
     find(:xpath, XPATHS[:anchoring][:new_link]).click
     css_submit_anchoring = "input[value='#{create_anchoring_button_txt}']"
     # <input type="submit" name="commit" value="Create Anchoring" data-disable-with="Create Anchoring">

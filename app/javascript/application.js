@@ -4,6 +4,7 @@
 //   https://github.com/hotwired/turbo-rails#navigate-with-turbo-drive
 //   https://stackoverflow.com/a/71140352/3577922
 // Without this, the JavaScript is fired only when a page is reloaded.
+import "@hotwired/turbo-rails"
 import { Turbo } from "@hotwired/turbo-rails"
 Turbo.session.drive = false
 import "./controllers"
@@ -15,13 +16,13 @@ import * as bootstrap from "bootstrap"
 //import 'popper.js/dist/esm/popper'  // not work in Rails 7
 // import Popper from "popper.js"  // maybe?? see https://github.com/evanw/esbuild/issues/1686
 //import './src/application.scss'  // according to https://gorails.com/forum/install-bootstrap-with-webpack-with-rails-6-beta  but is it necessary??
-import Rails from "@rails/ujs"
+//import Rails from "@rails/ujs"  # Collides with @hotwired/turbo-rails, so should be turned off
 ////import Turbolinks from "turbolinks"  # Webpacker only.
 import * as ActiveStorage from "@rails/activestorage"
 //import "./channels"  // raises JS error in Rails 7
 
 //// The following is from Rails 6.
-Rails.start()
+//Rails.start()  # Obsolete in Rails 7/8
 //Turbolinks.start()
 ActiveStorage.start()
 

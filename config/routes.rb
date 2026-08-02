@@ -1,5 +1,4 @@
 Rails.application.routes.draw do
-
   # Locale-prefix handling in vanilla Rails (used to be done by routing-filter Gem)
   scope "(:locale)", locale: Regexp.new(I18n.available_locales.map(&:to_s).join("|")) do
 
@@ -129,7 +128,11 @@ Rails.application.routes.draw do
       end
     end
 
-    mount RailsAdmin::Engine => '/admin', as: 'rails_admin'
+#    mount RailsAdmin::Engine => '/admin', as: 'rails_admin'
+    authenticate :user, ->(user) { user.an_admin? } do  # NOTE: if not logged-in, Devise would redirects to Sign-In page; else if user is unauthorised, 404.
+      mount Motor::Admin => '/motor_admin', as: :admin_panel  # Gem 'motor-admin'; The default helper root `motor_admin` is modified to `admin_panel`
+    end
+
     # devise_for :users  # Default
     devise_for :users, except: [:destroy]
     # devise_for :users, :path_prefix => 'd'  # => /usrs/d/sign_up etc

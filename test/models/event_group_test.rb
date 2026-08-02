@@ -1,18 +1,18 @@
 # coding: utf-8
 # == Schema Information
 #
-# Table name: event_groups
+# Table name: event_groups(Event Group, mutually exclusive, typically lasting less than a year)
 #
 #  id                                                                                          :bigint           not null, primary key
 #  end_date(if null, end date is undefined.)                                                   :date
 #  end_date_err(Error of end-date in day. 182 or 183 days for one with only a known year.)     :integer
+#  memo_editor(Internal memo for Editors)                                                      :text
 #  note                                                                                        :text
 #  start_date(if null, start date is undefined.)                                               :date
 #  start_date_err(Error of start-date in day. 182 or 183 days for one with only a known year.) :integer
 #  created_at                                                                                  :datetime         not null
 #  updated_at                                                                                  :datetime         not null
 #  place_id                                                                                    :bigint
-#  memo_editor(Internal memo for Editors)                                                      :text
 #
 # Indexes
 #

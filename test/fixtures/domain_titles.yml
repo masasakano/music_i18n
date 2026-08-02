@@ -1,6 +1,6 @@
 # == Schema Information
 #
-# Table name: domain_titles
+# Table name: domain_titles(Domain title of a set of domains including aliases)
 #
 #  id                                         :bigint           not null, primary key
 #  memo_editor(Internal-use memo for Editors) :text

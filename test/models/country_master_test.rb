@@ -1,7 +1,7 @@
 # coding: utf-8
 # == Schema Information
 #
-# Table name: country_masters
+# Table name: country_masters(Country code in JIS X 0304:2011 and ISO 3166-1:2013)
 #
 #  id                                                  :bigint           not null, primary key
 #  end_date                                            :date

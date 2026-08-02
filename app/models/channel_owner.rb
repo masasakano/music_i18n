@@ -1,7 +1,7 @@
 # coding: utf-8
 # == Schema Information
 #
-# Table name: channel_owners
+# Table name: channel_owners(Owner of a Channel)
 #
 #  id                                         :bigint           not null, primary key
 #  note                                       :text

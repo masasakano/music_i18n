@@ -1,6 +1,6 @@
 # == Schema Information
 #
-# Table name: artist_music_plays
+# Table name: artist_music_plays(EventItem-Artist-Music-PlayRole-Instrument association)
 #
 #  id                                                       :bigint           not null, primary key
 #  contribution_artist(Contribution of the Artist to Music) :float

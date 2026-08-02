@@ -1,6 +1,6 @@
 # == Schema Information
 #
-# Table name: harami1129_reviews
+# Table name: harami1129_reviews(Harami1129 for which Artist or Music is updated)
 #
 #  id                                                                      :bigint           not null, primary key
 #  checked(This record of Harami1129 is manually checked)                  :boolean          default(FALSE)

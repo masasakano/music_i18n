@@ -1,6 +1,6 @@
 # == Schema Information
 #
-# Table name: site_categories
+# Table name: site_categories(Site category for Uri)
 #
 #  id                                         :bigint           not null, primary key
 #  memo_editor(Internal-use memo for Editors) :text

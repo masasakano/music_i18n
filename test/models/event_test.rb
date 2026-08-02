@@ -1,7 +1,7 @@
 # coding: utf-8
 # == Schema Information
 #
-# Table name: events
+# Table name: events(Event such as a solo concert)
 #
 #  id                        :bigint           not null, primary key
 #  duration_hour             :float

@@ -1,7 +1,7 @@
 # coding: utf-8
 # == Schema Information
 #
-# Table name: channel_types
+# Table name: channel_types(Channel type like main and sub)
 #
 #  id                                                 :bigint           not null, primary key
 #  mname(machine name (alphanumeric characters only)) :string           not null
