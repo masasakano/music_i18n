@@ -104,14 +104,18 @@ class BaseAnchorablesController < ApplicationController
 
   def destroy
     msgs = ["Link was successfully destroyed."]
-    path_back = polymorphic_path(@anchoring.anchorable.class, only_path: true)
+    path_back = polymorphic_path(@anchoring.anchorable, only_path: true)
     respond_to do |format|
       if @anchoring.destroy
-        format.html { redirect_to path_back, notice: msgs }
+        format.html { redirect_to path_back, notice: msgs, status: :see_other }  # 303. n.b., :ok etc are NOT permitted in HTTP for redirects
         format.turbo_stream { flash.now[:notice] = msgs }
         format.json { head :no_content }
       else
-        format.html { redirect_to path_back, status: :unprocessable_content }
+        format.html { redirect_to path_back, alert: @anchoring.errors.full_messages, status: :see_other }  # 303. n.b., :unprocessable_content is NOT permitted in HTTP for redirects
+        format.turbo_stream do
+          flash.now[:alert] = @anchoring.errors.full_messages
+          render :destroy, status: :unprocessable_entity
+        end
         format.json { render json: @anchoring.errors, status: :unprocessable_content }
       end
     end

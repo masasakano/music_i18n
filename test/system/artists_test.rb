@@ -384,5 +384,17 @@ class ArtistsTest < ApplicationSystemTestCase
 #save_page_auto_fname  # defined in test_system_helper.rb
 #take_screenshot
   end
+
+  test "CRUD of anchoring for Artist" do
+    visit artist_path(@artist, locale: :en)
+    assert_selector "h1", text: @artist.title(langcode: :en)
+    h1_title = find("h1").text
+
+    login_at_root_path(@moderator)  # defined in test_system_helper.rb
+
+    ## Test of CRUD of Anchoring in Show
+    assert_anchoring_crud_in_show(@artist, h1_title, skip_login: true)  # defined in test_system_helper.rb
+  end
+
 end
 

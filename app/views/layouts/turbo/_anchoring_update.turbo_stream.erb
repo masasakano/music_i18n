@@ -1,4 +1,5 @@
+<%# locals: (anchoring: @anchoring) %>
 
-<%= turbo_stream.replace @anchoring %>
+<%= turbo_stream.replace anchoring %>
 <%= flash_for_turbo_stream(:flash_turbo_anchorings) %> <%# defined in application_helper.rb %>
 

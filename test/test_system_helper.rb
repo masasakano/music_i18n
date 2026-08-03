@@ -256,8 +256,8 @@ class ActiveSupport::TestCase
   #
   # @param record [ActiveRecord] a Model record (n.b., String for the Show path is NOT accepted.)
   # @param h1_title [String, NilClass] h1 title string of the page (Model-index?) after successful login. If nil and if user_succeed is non-nil, it is guessed from the model, assuming the first argument is a model (NOT the path String).
-  # @param user_fail: [User, NilClass] who fails to see the index page. if nil, the non-authorized user.
-  # @param user_user_succeed: [User, NilClass] who succcessfully sees the index page
+  # @param user_fail: [User, NilClass] (UNSUPPORTED) who fails to see the page. if nil, the non-authorized user.
+  # @param user_succeed: [User, NilClass] (UNSUPPORTED) who succcessfully sees the index page
   # @param skip_login: [Boolean] If false (Def), call {#assert_index_fail_succeed}. If true, the caller must have signed in before the call.
   # @param skip_visit: [Boolean] Relevant only if `skip_login=true`. If false (Def), this method visits Show page. If true, the caller must have visited the page before the call.
   def assert_anchoring_crud_in_show(record, h1_title = nil, skip_login: false, skip_visit: false, user_fail: nil, user_succeed: nil, locale: nil)
@@ -295,11 +295,15 @@ class ActiveSupport::TestCase
     select "Other", from: "Site category"
     fill_in "Description", with: (url_tit="my test description 2")
     uncheck "Tick this to update the title with H1 on the remote URL"
-    click_on create_anchoring_button_txt
-    refute_selector css_submit_anchoring
+
+    assert_difference("Anchoring.count", 1){
+      click_on create_anchoring_button_txt
+      refute_selector css_submit_anchoring
+    }
 
     record.anchorings.reset
     assert_equal 1, record.anchorings.count
+    created_anc = record.anchorings.first
 
     cssid_section = "anchoring_index_#{record.class.name}"
     xpath_section = "##{cssid_section} ul li a"
@@ -355,19 +359,26 @@ class ActiveSupport::TestCase
     assert_selector "h1", text: "Url: "+url_tit
     assert_text anchor_url
 
+    ## Checking non-turbo access to Edit screen
+    parent_singular = record.class.name.underscore.singularize
+    path2edit = send("edit_#{parent_singular}_anchoring_path", created_anc, locale: I18n.locale, (parent_singular+"_id").to_sym => record.id)
+    visit path2edit
+    assert_selector "h1", text: "Edit Anchoring"  # see /app/views/layouts/_anchoring_edit.html.erb
 
     ## Destroy Anchoring
     visit path2visit
     assert_selector xpath_section  # Anchoring should exist
 
     xpath_destroy = XPATHS[:anchoring][:destroy_link]
-    assert_selector :xpath, xpath_destroy
+    assert_selector :xpath, xpath_destroy, count: 1
 
     last_url = Url.last
-    assert_destroy_with_text(xpath_destroy, nil) # , last_url.title)  # defined in test_system_helper.rb
-    # find(:xpath, xpath_destroy).click
-    refute_selector :xpath, xpath_item  # 0 Anchoring after the existing one has disappeared.
-    # assert_text "successfully destroyed", wait: 0
+    assert_difference("Anchoring.count", -1){
+      assert_destroy_with_text(xpath_destroy, nil) # , last_url.title)  # defined in test_system_helper.rb
+      # find(:xpath, xpath_destroy).click
+
+      refute_selector :xpath, xpath_item  # 0 Anchoring after the existing one has disappeared.
+    }
   end  # def assert_anchoring_crud_in_show()
 
   # performs log on and assertion
@@ -479,7 +490,8 @@ class ActiveSupport::TestCase
   # @param obj_title [String, NilClass] "ChannelOwner" etc, which appears as H1. I nil, the message is not tested
   # @return [void]
   def assert_destroy_with_text(xpath, obj_title)
-    accept_alert do
+    #accept_alert do
+    accept_confirm do
       if :first == xpath
         click_on "Destroy", match: :first
       else

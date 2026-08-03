@@ -170,4 +170,15 @@ class EventsTest < ApplicationSystemTestCase
     #assert_equal(n_events_be4, n_events)
   end
 
+  test "CRUD of anchoring for Event" do
+    login_at_root_path(@moderator)  # defined in test_system_helper.rb
+
+    visit event_path(@event, locale: :en)
+    assert_selector "h1", text: @event.title(langcode: :en)
+    h1_title = find("h1").text
+
+    ## Test of CRUD of Anchoring in Show
+    assert_anchoring_crud_in_show(@event, h1_title, skip_login: true)  # defined in test_system_helper.rb
+  end
+
 end

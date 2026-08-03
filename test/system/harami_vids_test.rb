@@ -607,7 +607,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
     click_on @update_haramivid_button, match: :first
 
-    assert_selector "h1", text: "HARAMIchan-featured Video"
+    with_longer_wait{ assert_selector "h1", text: "HARAMIchan-featured Video" }
     assert_text tit2
     css_evit = "section#harami_vids_show_unique_parameters dd.item_event li ol li a"
     assert_selector css_evit  # This appears for the first time.

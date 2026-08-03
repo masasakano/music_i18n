@@ -260,6 +260,19 @@ class MusicsTest < ApplicationSystemTestCase
 #take_screenshot
   end
 
+  test "CRUD of anchoring for Music" do
+    music = musics(:music_story)
+
+    visit music_path(music, locale: :en)
+    assert_selector "h1", text: music.title(langcode: :en)
+    h1_title = find("h1").text
+
+    login_at_root_path(@moderator)  # defined in test_system_helper.rb
+
+    ## Test of CRUD of Anchoring in Show
+    assert_anchoring_crud_in_show(music, h1_title, skip_login: true)  # defined in test_system_helper.rb
+  end
+
   #test "updating a Music" do
   #  visit musics_url
   #  click_on "Edit", match: :first

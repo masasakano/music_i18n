@@ -11,7 +11,7 @@
     <%= link_to_youtube((timing ? sec2hms_or_ms(timing) : "0"), @hvma.harami_vid.uri, timing, title: title_txt) %> <%# defined in application_helper.rb %> <%# Note: @harami_vid does not work in some cases... %>
   </span>
   <% if can? :edit, @hvma.harami_vid %>
-    <%= link_to "Edit", edit_harami_vid_music_assocs_timing_path(@hvma), class: "text-end inline_form_tightest button_like" %><%# NOTE: "inline_form_tight" for button_to may be implemented... %>
+    <%= link_to "Edit", edit_harami_vid_music_assocs_timing_path(@hvma), class: "edit_link text-end inline_form_tightest button_like" %>
   <% end %>
 
  <% if !from_non_turbo  %>

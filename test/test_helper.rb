@@ -141,7 +141,8 @@ end
       list: (anchoring_list="//"+ModuleCommon.xpath_contain_css("anchoring_list", complete_for: "ul")),  # more accurately, preceded with sprintf(XPATHS[:anchoring][:section_fmt], MyModel.name)
       item: (anchoring_item=anchoring_list+"//li"),  # more accurately, preceded with sprintf(XPATHS[:anchoring][:section_fmt], MyModel.name)
       new_link:     "//a[@data-turbo-frame='new_anchoring'][contains(.,'New Anchoring')]",  # more accurately, preceded with sprintf(XPATHS[:anchoring][:section_fmt], MyModel.name)
-      edit_button:  anchoring_item+"//button[contains(@type, 'submit')][contains(.,'Edit')]",
+      edit_button:  anchoring_item + "//" + ModuleCommon.xpath_contain_css("button_like", "edit_link", complete_for: "a"),
+      #edit_button:  anchoring_item+"//button[contains(@type, 'submit')][contains(.,'Edit')]",
       destroy_link: anchoring_item+"//a[@data-turbo-method='delete'][contains(.,'Destroy')]",
       form_new:   (anchoring_form_new="//form[@id='new_anchoring']"),  # more accurately, preceded with sprintf(XPATHS[:anchoring][:section_fmt], MyModel.name)
       form_edit: (anchoring_form_edit=anchoring_list+"//form[" + ModuleCommon.xpath_contain_css('edit_anchoring') + "]"),

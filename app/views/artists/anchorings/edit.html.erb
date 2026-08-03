@@ -1,13 +1,1 @@
-<main class="container">
-
-  <div class="header">
-    <h1>Edit Anchoring (for Url)</h1>
-  </div>
-
-  <%= turbo_frame_tag dom_id(@anchoring) do %>  <%# "anchoring_123" %>
-    <%= render 'form', anchoring: @anchoring %>
-  <% end %>
-
-
-</main>
-
+<%= render partial: "/layouts/anchoring_edit", locals: {anchoring: @anchoring} %>

@@ -73,6 +73,18 @@ class PlacesTest < ApplicationSystemTestCase
     assert_text "Place was successfully created" #, maximum: 1  ## After the introduction of Flash-display for Turbo, 2 of them appear. Not ideal.
   end
 
+  test "CRUD of anchoring for Place" do
+    place = places(:tocho)
+    login_at_root_path(@moderator)  # defined in test_system_helper.rb
+
+    visit place_path(place, locale: :en)
+    assert_selector "h1", text: place.title(langcode: :en)
+    h1_title = find("h1").text
+
+    ## Test of CRUD of Anchoring in Show
+    assert_anchoring_crud_in_show(place, h1_title, skip_login: true)  # defined in test_system_helper.rb
+  end
+
   #test "updating a Place" do
   #  visit places_url
   #  click_on "Edit", match: :first
