@@ -31,7 +31,7 @@
       <th><%= link_to t(:Artists), artists_url %></th>
       <th title="<%= t('harami_vids.table_head_title_music_timing') %>"><%= t("harami_vids.table_head_timing") %></th>
       <th colspan="<%= can?(:update, Music) ? 2 : 1 %>"><%= t(:Music) %></th>
-      <th><%= t("tables.n_harami_vids_short") %></th>
+      <th title="<%= t("tables.n_harami_vids_long") %>"><%= t("tables.n_harami_vids_short") %></th>
       <%# if canedit_mus=(can? :edit, Music) %>
         <th><%= t("tables.note") %> (<%= t("engage_multi_hows.table_head.how_related") %>)</th>
       <%# end %>

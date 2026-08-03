@@ -329,8 +329,14 @@ class ModuleCommonTest < ActiveSupport::TestCase
   end
 
   test "xpath_contain_css" do
-    exp = "contains(concat(' ', normalize-space(@class), ' '), ' foo ') and contains(concat(' ', normalize-space(@class), ' '), ' baa ')"
+    exp0 = "contains(concat(' ', normalize-space(@class), ' '), ' foo ') and contains(concat(' ', normalize-space(@class), ' '), ' baa ')"
+    exp = exp0.dup
     assert_equal exp, ModuleCommon.xpath_contain_css("foo", "baa")
+    assert_equal exp, ModuleCommon.xpath_contain_css(["foo", "baa"])
+    exp =  "[" + exp0 + "]"
+    assert_equal exp, ModuleCommon.xpath_contain_css("foo", "baa", complete_for: "")
+    exp = "p[" + exp0 + "]"
+    assert_equal exp, ModuleCommon.xpath_contain_css("foo", "baa", complete_for: "p")
   end
 
   test "singleton_method_val" do

@@ -3,13 +3,21 @@ require "application_system_test_case"
 
 class HaramiVidsTest < ApplicationSystemTestCase
   # XPath (Rails-7.2) for table cell in Music Table in HaramiVid#show
-  XPATH_MUSIC_TD = "//table[@id='music_table_for_hrami_vid']//tbody//tr//td"
+  XPATH_MUSIC_TR = "//table[@id='music_table_for_hrami_vid']//tbody//tr"
+  XPATH_MUSIC_TD = XPATH_MUSIC_TR + "//td"
 
-  XPATH_TD_TIMING = XPATH_MUSIC_TD + "[contains(@class, 'item_timing')]"
-  XPATH_TD_NOTE   = XPATH_MUSIC_TD + "[contains(@class, 'item_note')]"
+  XPATH_TIMING_CLASS = ModuleCommon.xpath_contain_css("item_timing", complete_for: "")
+  XPATH_NOTE_CLASS   = ModuleCommon.xpath_contain_css("item_note",   complete_for: "")
+  XPATH_TD_TIMING = XPATH_MUSIC_TD + XPATH_TIMING_CLASS
+  XPATH_TD_NOTE   = XPATH_MUSIC_TD + XPATH_NOTE_CLASS
 
-  # XPath (Rails-7.2) for Edit button in a table cell for timing
-  XPATH_TD_TIMING_EDIT = XPATH_TD_TIMING + sprintf(XPATHS[:form][:fmt_any_button_submit], 'Edit') # defined in test_helper.rb # (Rails-7.2)
+  # XPath for Edit button in a table cell for timing
+  xpath_edit_button_like = sprintf(XPATHS[:anchoring][:fmt_any_button_like], 'Edit')  # defined in test_helper.rb
+  XPATH_TD_TIMING_EDIT = XPATH_TD_TIMING + xpath_edit_button_like
+  XPATH_TD_NOTE_EDIT   = XPATH_TD_NOTE   + xpath_edit_button_like
+
+  XPATH_1STTR_NOTE      = XPATH_MUSIC_TR + "[1]//td" + XPATH_NOTE_CLASS
+  XPATH_1STTR_NOTE_EDIT = XPATH_1STTR_NOTE + xpath_edit_button_like
 
   setup do
     @harami_vid = harami_vids(:harami_vid1)
@@ -393,13 +401,16 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_selector "h1", text: h1_tit   # locale: harami_vid_long: 
     assert_includes trans_titles_in_table.values.flatten, hvid.title_or_alt(langcode: "en", lang_fallback_option: :either)
 
-    trs_css = "section#harami_vids_show_musics table tbody tr td.item_timing"  # <=> XPATH_TD_TIMING (Rails-7.2)
+    css2tr = "section#harami_vids_show_musics table tbody tr"
+    trs_css      = css2tr + " td.item_timing"  # <=> XPATH_TD_TIMING (Rails-7.2)
+    trs_css_note = css2tr + " td.item_note"
     trs = find_all(trs_css)
 
     assert_includes hvid.harami_vid_music_assocs, (hvma1=harami_vid_music_assocs(:harami_vid_music_assoc3))  # check fixtures
     assert hvma1.timing.blank?, 'checking fixtures'
     assert_includes hvid.harami_vid_music_assocs, (hvma2=harami_vid_music_assocs(:harami_vid_music_assoc_3_ihojin1))  # check fixtures
     assert_operator 1, :<, hvma2.timing, 'checking fixtures'
+    assert hvma2.note.present?, 'checking fixtures'
 
     assert_equal sec2hms_or_ms(hvma2.timing), trs[0].find('a').text
     assert_raises(Capybara::ElementNotFound){
@@ -407,7 +418,6 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_equal "0", trs[1].find('a').text  # When timing is nil, a significant text (of "0" as opposed to "00:00") is displayed so that <a> tag is valid.
 
     # for editing note (no web-form for public)
-    trs_css_note = "section#harami_vids_show_musics table tbody tr td.item_note"
     trs = find_all(trs_css_note)
     assert_raises(Capybara::ElementNotFound){
       trs[0].find('form') }
@@ -421,6 +431,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
     trs = find_all(trs_css)
     timing_a_css = 'span.timing-hms a'
+    note_content_css = 'span.hvma-note'
     assert_equal sec2hms_or_ms(hvma2.timing), trs[0].find(timing_a_css).text
     submit_css = "form input[value=Edit]"
 
@@ -428,8 +439,11 @@ class HaramiVidsTest < ApplicationSystemTestCase
     # assert_selector (trs_css+" "+submit_css)
     # trs[0].find(submit_css).click
     # assert_selector (trs_css_note+" "+submit_css)
-    assert_selector :xpath, XPATH_TD_TIMING_EDIT 
-    assert_selector :xpath, XPATH_TD_NOTE 
+    assert_selector :xpath, XPATH_TD_TIMING+"[turbo-frame]"
+    assert_selector :xpath, XPATH_TD_TIMING_EDIT
+    assert_selector :xpath, XPATH_TD_NOTE
+    assert_selector :xpath, XPATH_TD_NOTE+"[turbo-frame]"
+
     find_all(:xpath, XPATH_TD_TIMING_EDIT)[0].click
 
     # Edit mode
@@ -488,6 +502,33 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_equal "01:12", trs[0].find(timing_a_css).text, "value should be updated, but..."
     ### Rails-7.1 (it is already tested above in Rails-7.2)
     # assert_equal "Edit", trs[0].find(submit_css)["value"]
+
+    ### Inline editing Note for HaramiVidMusicAssoc
+    trs = find_all(trs_css_note)
+    assert_equal hvma2.note, trs[0].find(note_content_css).text
+    find_all(:xpath, XPATH_TD_NOTE_EDIT)[0].click
+
+    # Edit mode/screen
+    css_form_key = "#form_note"  # "textarea#form_note"
+    with_longer_wait{ assert_selector(trs_css_note+" "+css_form_key) } # This must come BEFORE the assert_raises below because this method would wait (for up to a couple of seconds) till the condition is satisfied as a result of JavaScript's updating the page.
+    trs = find_all(trs_css_note)
+    assert_raises(Capybara::ElementNotFound){
+      trs[0].find(note_content_css) }  # In the Edit-mode row, there is no value and link displayed.
+    assert trs[1].find(note_content_css).present?  # Other rows unchanged.
+
+    assert_equal hvma2.note.strip, trs[0].find(css_form_key)["value"].strip  # textarea#form_note
+    assert_equal "commit", trs[0].find('input[type=submit]')["name"]
+
+    newnote = "EDITED: "+hvma2.note.strip
+    trs[0].find(css_form_key).fill_in with: newnote
+    find(:xpath, XPATH_TD_NOTE+"//input[@type='submit']").click
+
+    assert_selector :xpath, XPATH_1STTR_NOTE_EDIT            # EDIT button should have appeared in the exact cell.
+    assert_selector :xpath, XPATH_1STTR_NOTE, text: newnote  # note should have been updated.
+    # This is similar to (though the sentence above is more permissive, matching a partial String, while the following is more stringent):
+    #   assert_equal newnote, find_all(trs_css_note)[0].find(note_content_css).text
+
+    ###
 
     pla_hvid = places(:perth_aus)
     hvid.update!(place: pla_hvid)  # Place: Perth, Australia

@@ -4,14 +4,14 @@
 
 <% timing = @hvma.timing %>
 
-<%= turbo_frame_tag "timing_"+dom_id(@hvma) do %>
+<%= turbo_frame_tag dom_id(@hvma, :timing) do %>
   <span class="timing-hms text-start">
     <% title_txt = "Original Vid URI at #{can?(:edit, HaramiVid) ? timing.inspect : timing} sec" %> <%# for Editor, "nil sec" may be displayed. For unauthenticated, it would be " sec" %>
     <% title_txt << "; HaramiVidMusicAssc(ID=#{@hvma.id})" if can?(:edit, HaramiVid) %>
     <%= link_to_youtube((timing ? sec2hms_or_ms(timing) : "0"), @hvma.harami_vid.uri, timing, title: title_txt) %> <%# defined in application_helper.rb %> <%# Note: @harami_vid does not work in some cases... %>
   </span>
   <% if can? :edit, @hvma.harami_vid %>
-    <%= button_to "Edit", edit_harami_vid_music_assocs_timing_path(@hvma), method: :get, form_class: "inline_form_tight", class: "text-end inline_form_tightest" %>
+    <%= link_to "Edit", edit_harami_vid_music_assocs_timing_path(@hvma), class: "text-end inline_form_tightest button_like" %><%# NOTE: "inline_form_tight" for button_to may be implemented... %>
   <% end %>
 
  <% if !from_non_turbo  %>

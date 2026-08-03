@@ -1995,13 +1995,17 @@ module ModuleCommon
   # would be insufficient, matching the CSS of "abc-xyz", too, for example, hence this method.
   #
   # @example  with +complete_for+
-  #      "//" + ModuleCommon.xpath_contain_css(complete_for: "p", ["foo", "baa"])
+  #      "//" + ModuleCommon.xpath_contain_css(["foo", "baa"], complete_for: "p")
   #      # => "//p[contains(concat(' ', normalize-space(@class), ' '), ' foo ') and contains(concat(' ', normalize-space(@class), ' baa '))]"
   #    ==
   #    "//p[" + ModuleCommon.xpath_contain_css("foo", "baa") + "]"
   #
+  # @example  with an empty +complete_for+
+  #      "//p"  + ModuleCommon.xpath_contain_css("foo", complete_for: "")
+  #      # => "//p[contains(concat(' ', normalize-space(@class), ' '), ' foo ')]"
+  #
   # @example  without +complete_for+
-  #      "//p[" + ModuleCommon.xpath_contain_css(complete_for: "p", ["foo"]) + "]"
+  #      "//p[" + ModuleCommon.xpath_contain_css(["foo"], complete_for: "p") + "]"
   #      # => "//p[contains(concat(' ', normalize-space(@class), ' '), ' foo ')]"
   #
   # @param texts [String, Array<String>] "Click", "Button"

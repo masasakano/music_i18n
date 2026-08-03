@@ -145,6 +145,7 @@ end
       destroy_link: anchoring_item+"//a[@data-turbo-method='delete'][contains(.,'Destroy')]",
       form_new:   (anchoring_form_new="//form[@id='new_anchoring']"),  # more accurately, preceded with sprintf(XPATHS[:anchoring][:section_fmt], MyModel.name)
       form_edit: (anchoring_form_edit=anchoring_list+"//form[" + ModuleCommon.xpath_contain_css('edit_anchoring') + "]"),
+      fmt_any_button_like: "//" + ModuleCommon.xpath_contain_css("button_like", complete_for: "a") + "[contains(., '%s')]", # 1 parameter: Label like "Edit"  (NOTE: the last part can be rewritten with ModuleCommon.xpath_contain_text)
     },
     form: {
       fmt_button_submit:      "//form[contains(@class, 'button_to')]//button[@type='submit'][contains(., '%s')]", # 1 parameter: Label like "Destroy" for a button compiled by button_to (Rails-7.2)
