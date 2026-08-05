@@ -58,6 +58,35 @@ class BaseAnchoringsControllerTest < ActionDispatch::IntegrationTest
   # add to here
   # ---------------------------------------------
 
+  test "check view permissions" do
+    hvid = harami_vids(:harami_vid1)
+
+    assert hvid.anchorings.present?, "testing fixtures..."
+    anchoring1 = hvid.anchorings.first
+    assert anchoring1.note.present?, "testing fixtures..."
+
+    _do_tests_always_visible_anchoring(hvid, "Public")
+
+    user = @editor_ja
+    sign_in user
+    _do_tests_always_visible_anchoring(hvid, user.display_name, url: true)
+    sign_out user
+
+    user = @editor_harami
+    sign_in user
+    _do_tests_always_visible_anchoring(hvid, user.display_name, url: true, new: true, edit: true, destroy: true)
+    sign_out user
+  end
+
+    def _do_tests_always_visible_anchoring(hvid, username, **in_privileges)
+      get harami_vid_url(hvid)
+      assert_response :success, "Should be visible for #{username}, but..."
+      noko = Nokogiri::HTML5(response.body)
+
+      assert_view_anchoring(hvid, noko, username, **in_privileges)  # defined in test_helper.rb
+    end
+
+
   # test "should create/update/destroy anchoring by the privileged" do
   #
   # @return [Array<all_anchorings>]

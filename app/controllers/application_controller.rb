@@ -109,7 +109,7 @@ class ApplicationController < ActionController::Base
   DEF_FORM_TIME_ERR_UNIT = "day"
 
   # Turbo-frame IDs
-  TURBE_IDS = {
+  TURBO_IDS = {
     flash_turbo_anchorings: "flash_turbo_anchorings",
   }.with_indifferent_access
 

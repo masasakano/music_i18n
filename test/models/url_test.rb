@@ -342,7 +342,14 @@ class UrlTest < ActiveSupport::TestCase
     url1 = urls(:one)
     refute_includes url1.translations.to_sql, "anchor"  # this happened when has_many is doubly defined for Translation
     assert url1.translations.exists?
-    assert_equal 1, url1.anchorings.count
+
+    ## preparations, where we assumed this Url has only 1 associated Anchoring (which since then has broken down!)
+    ancone = anchorings(:one)
+    assert_equal url1, ancone.url, 'fixture test'
+    url1.anchorings.each do |anc|
+      anc.destroy! unless ancone == anc
+    end
+    assert_equal 1, url1.anchorings.count, 'fixture test'
     assert_includes arclasses, (parent1=url1.anchoring_parents.first).class
     assert_equal 1, parent1.translations.count
 

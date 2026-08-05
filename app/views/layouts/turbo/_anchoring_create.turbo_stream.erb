@@ -1,7 +1,13 @@
 <%# locals: (anchoring: @anchoring) %>
 
-<% turbo_tag_index = dom_id(anchoring.anchorable)+"_anchorings" %>
-<%= turbo_stream.append turbo_tag_index, partial: "/layouts/show_anchoring", locals: { anchoring: anchoring, skip_header: true } %>
-<%= turbo_stream.update Anchoring.new, "" %>
-<%= flash_for_turbo_stream(:flash_turbo_anchorings) %> <%# defined in application_helper.rb %>
+<% turbo_tag_index = dom_id(anchoring.anchorable, :anchorings) %>
+<%= turbo_stream.before "new_anchoring_li" do %><%# should match that in /layouts/anchorings/_index.html.erb %>
+  <%= render partial: "/layouts/anchorings/show", locals: { anchoring: anchoring, skip_header: true } %>
+<% end %>
+<%= turbo_stream.update dom_id(Anchoring.new) do %>
+  <%= editor_only_safe_html(anchoring.anchorable, method: :edit, tag: "span", style: "margin-left: -1em;") do %>
+    <%= link_to('New Anchoring', new_polymorphic_path([anchoring.anchorable, :anchoring]), class: "new_link")  %>
+  <% end %>
+<% end %>
+<%= flash_for_turbo_stream %> <%# defined in application_helper.rb %>
 

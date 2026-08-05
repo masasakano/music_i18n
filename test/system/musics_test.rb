@@ -263,6 +263,9 @@ class MusicsTest < ApplicationSystemTestCase
   test "CRUD of anchoring for Music" do
     music = musics(:music_story)
 
+    ## Test of CRUD of Anchoring in Show for public
+    assert_anchoring_crud_in_show(music, h1_title=music.title_or_alt(langcode: :en), skip_login: true, locale: :en, no_edit: true)  # defined in test_system_helper.rb
+
     visit music_path(music, locale: :en)
     assert_selector "h1", text: music.title(langcode: :en)
     h1_title = find("h1").text

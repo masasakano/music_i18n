@@ -68,6 +68,39 @@ class Ability
     can [:update, :destroy], User, id: user.id  # Controller prohibits User from being destroyed if they have dependents.
     can :destroy, Users::DeactivateUser, id: user.id
 
+    ##### Any role, including helpers #####
+    # NOTE: A non-logged-in user has been set above as User.new
+
+    if user.roles.exists?
+      ## For BaseAnchorablesController for Anchoring
+      # WARNING: Make sure to call this for :new or :create like
+      #     can?(:new, Anchoring.new, Music)  # or Music.new
+      #   and **NOT** `can?(:new, Anchoring, Music)`  which would ignore the block, ie., algorithm!
+      # NOTE: `can` for :index is not implemented because inclusion of Parent class is tricky.
+      #   The headless block may work (unconfirmed), which is not pretty anyway:
+      #       can { |action, subject, extra_parent| if subject.is_a?(Anchoring) && (:index == action.to_sym) ...}
+      [:new, :create, :show, :edit, :update, :destroy].each do |action_name|
+        can action_name, Anchoring do |anchoring, anchorable|
+          parent = anchorable || anchoring.anchorable
+          parent = parent.new if parent.respond_to?(:public_class_method)
+
+          case action_name
+          when :new, :create
+            raise ArgumentError, "Anchorable instance must be provided for #{action_name.inspect} for can? for Anchoring" if !parent
+          end
+
+          if :destroy == action_name
+            # Delegation in case of Anchoring for HaramiVid, where some users can :update HaramiVid but NOT :destroy,
+            # whereas they still should be able to :destroy Anchoring.
+            action_name = :update
+          end
+
+          # Check if the user has permission for that SAME action on the parent anchorable
+          parent && can?(action_name, parent) || user.an_admin?
+        end
+      end
+    end # if user.roles.exists?
+
     ##### Middle-rank role. (editors) #####
 
     if user.editor?  # Harami manager OR HIGHER (but sysadmin)
@@ -97,7 +130,7 @@ class Ability
 
     ## General-JA editor or HaramiVid editor only
     if user.qualified_as?(:editor, rc_general_ja) || user.qualified_as?(:editor, rc_harami)
-      can :crud, [EventItem]  # Maybe Event should be also allowed? (NOTE: the current permission is tested in events_controller_test.rb (Line-65))
+      # can :crud, [EventItem]  # Maybe Event should be also allowed? (NOTE: the current permission is tested in events_controller_test.rb (Line-65))  # EventItem-s are directly related to HaramiVid-s, so out of scope for General-JA editors.
       can(:cr, [Channel])
       can(:ud, [Channel]){|mdl| !mdl.unknown? && (user.an_admin? || !(cuser=mdl.create_user) || !cuser.an_admin?)} # except if there's a dependent HaramiVid
       can :cr, [ChannelPlatform, ChannelOwner]
@@ -119,7 +152,7 @@ class Ability
       can :read,  Harami1129
       can :cru,   HaramiVid
       can :destroy, HaramiVidMusicAssoc
-      can :crud,  Event  # Event can be destroyed only if there are no significant associated EventItem-s or HaramiVid-s anyway.
+      can :crud,  [Event, EventItem]  # Event can be destroyed only if there are no significant associated EventItem-s or HaramiVid-s anyway.
       can :crud,  ArtistMusicPlay  # This is used also for ArtistMusicPlays::EditMultisController
     end
 
@@ -219,6 +252,6 @@ class Ability
 
     cannot(:destroy, [Channel]){                                   |mdl| mdl.unknown? || mdl.harami_vids.exists?}
     cannot(:destroy, [ChannelPlatform, ChannelOwner, ChannelType]){|mdl| mdl.unknown? || mdl.channels.exists?}  # ChannelPlatform.unknown can be managed by only sysadmin
-    cannot(:destroy, [SiteCategory, Domain, DomainTitle]){                  |mdl| mdl.unknown?}  # can be managed by only sysadmin
+    cannot(:destroy, [SiteCategory, Domain, DomainTitle, EventGroup, Event, EventItem, Instrument]){|mdl| mdl.unknown?}  # should never be managed by even sysadmin via U/I due to Rails-level constraints.
   end
 end

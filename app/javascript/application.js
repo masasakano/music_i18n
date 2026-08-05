@@ -108,3 +108,8 @@ import "./modify_href_by_input.js"
 import "./autocomplete_title_public_load_all.js"
 import "./controllers/musics/new_submit_validation.js"
 
+document.addEventListener("turbo:frame-missing", (event) => {
+  console.warn("FOUND THE CULPRIT!");
+  console.warn("Missing Frame ID:", event.detail.response.querySelector("turbo-frame")?.id || "None in response");
+  console.warn("Target URL:", event.detail.visit.location.href);
+});

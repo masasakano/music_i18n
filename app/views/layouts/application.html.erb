@@ -133,8 +133,10 @@
 
     <div id="body_main">
       <%# [alert && 'alert', warning.present? && 'warning', success.present? && 'success', notice && 'notice'].compact.each do |ek| %>
+     <div id="<%= Consts::HtmlIds::FLASH %>">
       <%= render "/layouts/flash_display" %>
       <%# manage_toastr.js wrap the contents  # toastr_flash in /app/helpers/application_helper.rb is not used anymore %>
+     </div>
     <%= yield %>
     </div> <!-- div id="body_main" -->
     <hr>

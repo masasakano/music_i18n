@@ -75,6 +75,11 @@ class PlacesTest < ApplicationSystemTestCase
 
   test "CRUD of anchoring for Place" do
     place = places(:tocho)
+
+    #### Place-show is inaccessible for the public.
+    ## Test of CRUD of Anchoring in Show for public
+    #assert_anchoring_crud_in_show(place, h1_title=place.title_or_alt(langcode: :en, lang_fallback_option: :either), skip_login: true, locale: :en, no_edit: true)  # defined in test_system_helper.rb
+
     login_at_root_path(@moderator)  # defined in test_system_helper.rb
 
     visit place_path(place, locale: :en)

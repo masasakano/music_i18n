@@ -24,6 +24,9 @@ module ApplicationHelper
     consistency_place: "consistency_place",
   }.with_indifferent_access
 
+  # Accepted roles for HTML class attributes of "XXX_only", e.g., "editor_only"
+  PERMITTED_CSS_ONLY_USERS = [:helper, :editor, :moderator, :admin]
+
   # For toastr Gem. From
   # <https://stackoverflow.com/a/58778188/3577922>
   def toastr_flash
@@ -1277,6 +1280,12 @@ module ApplicationHelper
   # @return [String] html_safe String to display if the page is editor-only? (maybe moderator or admin only)
   # @yield Returned text will be inside the block.
   def editor_only_safe_html(record, method:, tag: "div", class: "", only: :editor, text: nil, permissive: false, strip: nil, show_always: false, **opts)
+    unless Rails.env.production?
+      if only.is_a?(Symbol) && !PERMITTED_CSS_ONLY_USERS.include?(only)
+        raise ArgumentError, "Given 'only' option (#{only.inspect}) for XXX_only is not included in the permitted Symbol list #{PERMITTED_CSS_ONLY_USERS.inspect}; if you mean for a general CSS class, specify 'only' in String, not Symbol."
+      end
+    end
+
     if strip.nil?
       strip = (%w(div p).include?(tag) ? false : true)
     end
@@ -1330,11 +1339,17 @@ module ApplicationHelper
     arret
   end
 
-  # Helper for flash messages for Hotwire/Turbo
+  # Helper for updating flash messages for Hotwire/Turbo
   #
-  # @param turbo_key [Symbol, String] turbo-fame ID, e.g., :flash_turbo_anchorings
-  def flash_for_turbo_stream(turbo_key)
-    turbo_stream.update ApplicationController::TURBE_IDS[turbo_key], partial: "layouts/flash_display"
+  # @example
+  #   flash_for_turbo_stream  # defined in application_helper.rb
+  #
+  # @param turbo_key [Symbol, String, NilClass] turbo-fame ID, e.g., :flash_turbo_anchorings.
+  #    Default global (floating) one is {Consts::HtmlIds::FLASH}
+  # @param **kwd [Hash] to pass to turbo_stream.
+  def flash_for_turbo_stream(turbo_key=nil, **kwd)
+    flash_id = (turbo_key ? ApplicationController::TURBO_IDS[turbo_key] : Consts::HtmlIds::FLASH)
+    turbo_stream.update flash_id, partial: "layouts/flash_display", **kwd
   end
 
   # if @main_record.alert_messages[flash_type] is defined?

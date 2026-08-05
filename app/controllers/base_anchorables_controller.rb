@@ -6,11 +6,27 @@ class BaseAnchorablesController < ApplicationController
   skip_before_action :authenticate_user!, only: [:index, :show]
   # load_and_authorize_resource except: [:index, :show, :create]
   before_action :set_anchoring, except: [:index, :new, :create]
-  before_action :set_new_anchoring, only:       [:new, :create]
-  before_action :auth_for!    , except: [:index, :new, :create, :show]
+  before_action :set_new_anchoring, only:       [:new, :create]  # critical
+  before_action :auth_for!    , except: [:index]  # Public users may be banned for :show in limited cases.  :index permission is handled in Views.
 
   # Flash warning message.
   MSG_URL_ALREADY_REGISTERED = "Url is already registered."
+
+  # Handling Authorization failure.  With U/I, this should never happen, providing
+  # the button/link should not be displayed for non-priviledge users in the first place.
+  # But this would be useful for debugging purposes for the developer to know
+  # what has gone wrong.
+  rescue_from CanCan::AccessDenied do |exception|
+    respond_to do |format|
+      format.turbo_stream do
+        flash.now[:alert] = exception.message
+        render turbo_stream: flash_for_turbo_stream(status: :forbidden), status: :forbidden # defined in application_helper.rb
+        #render turbo_stream: turbo_stream.update("global_flash_messages", partial: "layouts/flash_display"), status: :forbidden
+      end
+      format.html { redirect_to root_path, alert: exception.message, status: :see_other }
+      format.json { render json: { error: exception.message }, status: :forbidden }
+    end
+  end
 
   def index
     key = params_id
@@ -20,7 +36,6 @@ class BaseAnchorablesController < ApplicationController
   def new
     @anchoring.fetch_h1 = true  # true in default on :new
     @url = Url.new
-    authorize! __method__, @anchorable.class
     #render turbo_stream: turbo_stream.replace("new_anchoring_form", partial: 'form', locals: { record: @anchorable, anchoring: @anchoring })
   end
 
@@ -41,7 +56,6 @@ class BaseAnchorablesController < ApplicationController
   end
 
   def create
-    authorize! __method__, @anchorable.class
     @anchoring.assign_attributes(anchoring_params)
     _preprocess_received_prms(@anchoring)
 
@@ -139,12 +153,18 @@ class BaseAnchorablesController < ApplicationController
     def set_new_anchoring
       key = params_id
       @anchorable = self.class::ANCHORABLE_CLASS.find params[key]
-      @anchoring = Anchoring.new(anchorable_type: self.class::ANCHORABLE_CLASS.name, anchorable_id: params[key])
+      @anchoring = Anchoring.new(anchorable: @anchorable)
     end
 
     # Common authorization (Note that the action must be Symbol!!)
     def auth_for!(method=action_name)
-      authorize! method.to_sym, @anchorable  # Authorize according to the same-name method for anchorable (like Artist)
+      # Authorize according to the same-name method for anchorable (like Artist)
+      # NOTE: @anchoring is NOT a class but an Anchoring instance for which
+      #   @anchoring.anchorable has been already defined even for :new|:create ({#set_new_anchoring}).
+      #   Therefore it does not have to be, though no harm, like: `authorize! method.to_sym, @anchoring, @anchorable`
+      #   Anyway, the 2nd argument of authorize! should NOT be a class even for :new|:create
+      #   because if a class, the block in ability.rb would be completely ignored.
+      authorize! method.to_sym, @anchoring
     end
 
     # @todo: Replace the content with Anchoring::FORM_ACCESSORS (?)
@@ -220,10 +240,10 @@ class BaseAnchorablesController < ApplicationController
         msgs ||= []
         url_status_msg = 
           if n_urls_before < Url.count
-            "an existing Url: "
+            "a newly created"
           else
-            "a newly created Url: "
-          end
+            "an existing"
+          end + " Url"
 
         msgs.push sprintf("Anchoring was successfully updated/created with %s: %s",
                           url_status_msg,

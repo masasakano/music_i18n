@@ -33,13 +33,8 @@
          <% paths[:destroy] = send(        path_base, **hsprms) %>
 
            <%# turbo_frame_tag dom_id(anchoring, :edit), src: paths[:edit], loading: :lazy do %>
-<% if false %>
-          <li id="<%= dom_id(anchoring) %>">
-           <%#= turbo_frame_tag dom_id(anchoring, :content) do %>
-<% else %>
-           <%= turbo_frame_tag dom_id(anchoring) do %>
-            <li id="li_<%= dom_id(anchoring) %>">
-<% end %>
+          <li id="<%= dom_id(anchoring) %>" class="anchoring-item">
+           <%= turbo_frame_tag dom_id(anchoring, :content) do %>
              <%= link_show_header(anchoring) %>  <%# defined in base_anchorables_helper.rb %>
              <% if (lcode=anchoring.url.url_langcode).present? %>
                <%= sprintf " [%s] ", get_language_name(lcode, in_locale: I18n.locale) %>
@@ -49,15 +44,15 @@
               [<%= link_to(t('urls.link.Show'), anchoring.url, title: "Internal Url-Show page", data: {turbo: false}) %>]
             <% end %>
              &nbsp; <%= combined_anchoring_url_notes(anchoring, canedit_url_gen) %> <%# defined in base_anchorables_helper.rb %>
-            <%= editor_only_safe_html(record, method: :edit, tag: "div", class: "disp-inline") do %>
+            <% privilege_edit_destroy = [:edit, :destroy].map{|em| can?(em, anchoring)} %>
+            <%= editor_only_safe_html(:pass, method: privilege_edit_destroy.any?, tag: "span", class: "disp-inline") do %>
+              <% if privilege_edit_destroy[0] %>
                 <%= link_to "Edit", paths[:edit], class: "edit_link text-end inline_form_tightest button_like" %>
-                / <%= link_to 'Destroy', paths[:destroy], data: { turbo_method: :delete, turbo_confirm: t(:are_you_sure) }, turbo_frame: "_top" %><%# NOTE: If Turbo JS falls back to HTML redirect, the redirect reloads the whole page (_top) cleanly %>
+              <% end %>
+              <% if privilege_edit_destroy[1] %>
+                / <%= link_to 'Destroy', paths[:destroy], data: { turbo_method: :delete, turbo_confirm: t(:are_you_sure) }, turbo_frame: "_top", class: "destroy_link" %><%# NOTE: If Turbo JS falls back to HTML redirect, the redirect reloads the whole page (_top) cleanly %>
+              <% end %>
             <% end %>
-<% if false %>
-           <%# end %> <%# turbo_frame_tag dom_id(anchoring) do %>
-          </li>
-<% else %>
-            </li>
            <% end %> <%# turbo_frame_tag dom_id(anchoring) do %>
-<% end %>
+          </li>
 

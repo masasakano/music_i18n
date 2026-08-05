@@ -260,7 +260,9 @@ class ActiveSupport::TestCase
   # @param user_succeed: [User, NilClass] (UNSUPPORTED) who succcessfully sees the index page
   # @param skip_login: [Boolean] If false (Def), call {#assert_index_fail_succeed}. If true, the caller must have signed in before the call.
   # @param skip_visit: [Boolean] Relevant only if `skip_login=true`. If false (Def), this method visits Show page. If true, the caller must have visited the page before the call.
-  def assert_anchoring_crud_in_show(record, h1_title = nil, skip_login: false, skip_visit: false, user_fail: nil, user_succeed: nil, locale: nil)
+  # @param locale: [String, Symbol] for access path.
+  # @param no_edit: [Boolean] If false (Def: true), onre +read+ among CRUD is tested (for non-authorized users?).  Note that if this is false, even if skip_login==false, this may not logout the user.
+  def assert_anchoring_crud_in_show(record, h1_title = nil, skip_login: false, skip_visit: false, user_fail: nil, user_succeed: nil, locale: nil, no_edit: false)
     create_anchoring_button_txt = "Create Anchoring"
     raise ArgumentError, "user_fail not yet supported... Sorry! " if user_fail
     raise ArgumentError, "user_succeed not yet supported... Sorry! " if user_succeed
@@ -269,25 +271,74 @@ class ActiveSupport::TestCase
     # if !record.respond_to?(:save!)
     #   path2visit = record
     # elsif !skip_login || !skip_visit
+
+    xpath_section = sprintf(XPATHS[:anchoring][:section_fmt], record.class.name)
+    h1_title ||= record.title(langcode: locale)
+
     path2visit = Rails.application.routes.url_helpers.polymorphic_path(record, locale: locale)  # without locale! :show should not be given!
     # end
 
     unless skip_visit
       visit path2visit
-      h1_title ||= record.title(langcode: locale)
       assert_selector "h1", text: h1_title
-      assert_selector "h3", text: I18n.t(:external_link, locale: locale).capitalize.pluralize(locale)  # "Anchorings"
-      assert_empty page.find_all(:xpath, XPATHS[:anchoring][:item]), "xpath="+XPATHS[:anchoring][:item]  # No Anchoring (yet); defined in test_helper.rb
+      text2see = I18n.t(:external_link, locale: locale).capitalize.pluralize(locale)
+      if no_edit && !record.anchorings.exists?
+        # For non-editors, if the Parent does not have any associated Anchorings, the h3 title is not displayed.
+        # See /app/views/layouts/anchorings/_index.html.erb
+        assert_no_selector "h3", text: text2see   # "External links"
+      else
+        assert_selector "h3", text: text2see  # "External links"
+        assert_selector :xpath, xpath_section
+        assert_equal 1, page.find_all(:xpath, XPATHS[:anchoring][:item]).size, _get_caller_info_message(bind_offset: -1, prefix: true)+" xpath="+XPATHS[:anchoring][:item]  # No Anchoring (yet), but the link "New Anchoring" is technically inside the list in an invisible way; defined in test_helper.rb
+        # assert_empty page.find_all(:xpath, XPATHS[:anchoring][:item])
+      end
     end
 
-    xpat = XPATHS[:anchoring][:new_link]
+    if no_edit
+      ### Transaction with Rollback does not work for some reason...
+      # ActiveRecord::Base.transaction(requires_new: true) do
+      begin
+        if !record.anchorings.exists?
+          url = urls(:two)
+          anc_note = "#{__method__}-note"
+          anc = Anchoring.create!(anchorable: record, url: url, note: anc_note)  # An Anchoring is created.
+          visit path2visit
+          assert_selector :xpath, xpath_section
+          assert page.find_all(:xpath, XPATHS[:anchoring][:item]).present?
+        end
+
+        ## cf. /test/controllers/base_anchorings_controller_test.rb
+        noko = Nokogiri::HTML5(page.find("body")[:innerHTML])
+        assert_view_anchoring(record, noko, "Unprivileged")  # defined in test_helper.rb  # should not see "Edit" etc.
+      ensure
+        anc.destroy! if anc
+      end
+      #puts page.find("div#body_main").to_s
+      return
+    end
+
+    ## Opens :new form
+    xpath_new_anchoring_min = "//a[" + ModuleCommon.xpath_contain_text("New Anchoring", case_insensitive: true) + "]"
+    xpat = XPATHS[:anchoring][:new_link]  # in practice: xpath_new_anchoring_max
     assert_selector :xpath, xpat
     find(:xpath, xpat).click
     css_submit_anchoring = "input[value='#{create_anchoring_button_txt}']"
     # <input type="submit" name="commit" value="Create Anchoring" data-disable-with="Create Anchoring">
     assert_selector css_submit_anchoring
     xpath_item = XPATHS[:anchoring][:item] # defined in test_helper.rb
-    refute_selector :xpath, xpath_item, wait: 0  # 0 Anchoring
+    assert_selector :xpath, xpath_item, count: 1, wait: 0  # 1 pseudo li-item (Link to "New Anchoring")
+
+    ## Cancel
+    test_msg = I18n.t("anchorings.edit.fetch_h1_title")
+    assert_text test_msg 
+    click_on "Cancel"
+    refute_text test_msg
+
+    ## Opens :new form again
+    xpat = XPATHS[:anchoring][:new_link]  # in practice: xpath_new_anchoring_max
+    assert_selector :xpath, xpat
+    find(:xpath, xpat).click
+    assert_text test_msg 
 
     ## Create Url and Anchoring
     anchor_url = "https://example.com/"+record.class.name
@@ -295,11 +346,15 @@ class ActiveSupport::TestCase
     select "Other", from: "Site category"
     fill_in "Description", with: (url_tit="my test description 2")
     uncheck "Tick this to update the title with H1 on the remote URL"
+    noko = Nokogiri::HTML5(page.find("body")[:innerHTML])
+    assert noko.xpath(xpath_new_anchoring_min).blank? , _get_caller_info_message(bind_offset: -1, prefix: true)+" new-link should disappear while editing, but..."
 
     assert_difference("Anchoring.count", 1){
       click_on create_anchoring_button_txt
       refute_selector css_submit_anchoring
     }
+    flash_text_system_assert("created", type: :notice, category: :div)  # defined in test_helper.rb
+    flash_regex_assert(/Domain\b.*created.*Anchoring was successfully .*created/i, type: :notice, category: :div, system_test: true)  # defined in test_helper.rb
 
     record.anchorings.reset
     assert_equal 1, record.anchorings.count
@@ -309,21 +364,33 @@ class ActiveSupport::TestCase
     xpath_section = "##{cssid_section} ul li a"
     assert_selector xpath_section  # Anchoring should have appeared
 
+    noko = Nokogiri::HTML5(page.find("body")[:innerHTML])
+    assert noko.xpath(xpath_new_anchoring_min).present?, _get_caller_info_message(bind_offset: -1, prefix: true)+" new-link should be present, but..."
+    assert_view_anchoring(record, noko, "Privileged-"+record.class.name, url: true, new: true, edit: true, destroy: true)  # defined in test_helper.rb
+
     ## Edit Anchoring
     assert_selector xpath_section  # Anchoring should have appeared
-    assert_equal 1, find_all(:xpath, XPATHS[:anchoring][:item]).size  # 1 Anchoring; defined in test_helper.rb
+    assert_equal 2, find_all(:xpath, XPATHS[:anchoring][:item]).size, this_caller_message+" should have 1+1=2 <li>-s for 1 Anchoring and 1 link to New Anchoring"  # 1 Anchoring; defined in test_helper.rb
 
     find(:xpath, XPATHS[:anchoring][:edit_button]).click
     xpath_textarea = XPATHS[:anchoring][:form_edit] + "//textarea[@id='anchoring_note']"
     assert_selector :xpath, xpath_textarea
+    assert_no_link "New Anchoring"
     note_try = "my-anchoring-note-123"
     find(:xpath, xpath_textarea).fill_in with: note_try
 
     ## Update Anchoring
     click_on "Update Anchoring"
     refute_selector :xpath, xpath_textarea  # form should have disappeared
-    assert_equal 1, find_all(:xpath, xpath_item).size  # 1 Anchoring remains; defined in test_helper.rb
-    assert_includes find(:xpath, xpath_item).text, note_try  # The (edited) added "note" should appear.
+    flash_text_system_assert("updated", type: :notice, category: :div)  # defined in test_helper.rb
+    flash_regex_assert(/Anchoring was successfully .*updated/i, type: :notice, category: :div, system_test: true)  # defined in test_helper.rb
+    find("##{Consts::HtmlIds::FLASH} .btn-close").click  # <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    assert_no_selector Consts::HtmlIds::FLASH
+
+    assert_equal 2, find_all(:xpath, xpath_item).size, this_caller_message+" 1 Anchoring (+ 1 link) remains, but..." # defined in test_helper.rb
+    assert_includes find_all(:xpath, xpath_item).first.text, note_try  # The (edited) added "note" should appear.
+    assert_link "New Anchoring"
+    # assert find_all(:xpath, xpath_new_anchoring_min).present?, this_caller_message+" new-link should have reappeared, but..."  # Same as the above.
 
     ## Attempt to Create Url and Anchoring identical to an (=the) existing Anchoring
     find(:xpath, XPATHS[:anchoring][:new_link]).click
@@ -333,8 +400,14 @@ class ActiveSupport::TestCase
     click_on create_anchoring_button_txt
 
     refute_selector :xpath, css_submit_anchoring
+    # Error messages should be displayed
     assert_selector :xpath, xpath_for_flash(:alert, category: :div, xpath_head: "//form[@id='form_new_anchoring']//"), text: "eview the problem", wait: 2  # defined in test_helper.rb
-    # "Please review the problems below:"  (SimpleForm default)
+    flash_regex_assert(/\breview\b.+\bproblems\b/i, type: :alert, category: :all, system_test: true)  # NOT a flash but error-notification?  # defined in test_helper.rb
+
+    # If this raises an Exception, either routes.rb or I18n settings (maybe
+    # in test_helper.rb or application_controller.rb) has something wrong...
+    assert_nothing_raised{polymorphic_path([record, :anchorings], locale: :en)}
+    assert_nothing_raised{polymorphic_path([record, :anchorings])}
     assert_selector('input[type="submit"][value="'+create_anchoring_button_txt+'"]:not([disabled])')
     assert_selector "div.invalid-feedback", text: test_msg=" is already registered"  # should be displayed below the URL form field (SimpleForm)
     #  Url form https://... is already registered. The submitted information is not used to update the URL except for association Note.
@@ -345,10 +418,10 @@ class ActiveSupport::TestCase
     # Visiting Url#show
     xpath = "//*[@id='#{cssid_section}']//ul//li//a[contains(.,'Link-info')]"
     #   <a title="Internal Url-Show page" href="/en/urls/56">Link-info</a>
-    turbo_id = dom_id(record)+"_anchorings"
-    assert_selector :xpath, "//*[@id='#{cssid_section}']//turbo-frame[@id='#{turbo_id}']"
+    turbo_id = dom_id(record, :anchorings)
+    assert_selector :xpath, "//*[@id='#{cssid_section}']//*[@id='#{turbo_id}']"  # ul
 
-    assert_selector "##{turbo_id}", text: "Link-info", wait: 5
+    assert_selector "#"+turbo_id, text: "Link-info", wait: 5
     within "#"+turbo_id do
       assert_text "Link-info"
       assert_selector :xpath, xpath
@@ -377,8 +450,16 @@ class ActiveSupport::TestCase
       assert_destroy_with_text(xpath_destroy, nil) # , last_url.title)  # defined in test_system_helper.rb
       # find(:xpath, xpath_destroy).click
 
-      refute_selector :xpath, xpath_item  # 0 Anchoring after the existing one has disappeared.
+      assert_selector :xpath, xpath_item, count: 1  # 0 Anchoring (+ 1 link for New Anchoring) after the existing one has disappeared.
     }
+    flash_text_system_assert("successfully", type: :notice, category: :div)  # defined in test_helper.rb
+    flash_regex_assert(/was successfully .*(destroy|delet|remov)ed/i, type: :notice, category: :div, system_test: true)  # defined in test_helper.rb  # Here, "Link was", as opposed to "Anchoring was"
+
+    # No JavaScript-related errors?
+    js_errors = page.driver.browser.logs.get(:browser).reject do |entry|
+      entry.message.include?("422 (Unprocessable Content)") # Filter out expected 422 Unprocessable Content network logs
+    end
+    assert_empty js_errors
   end  # def assert_anchoring_crud_in_show()
 
   # performs log on and assertion

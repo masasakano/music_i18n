@@ -1,7 +1,1 @@
-
-<% if false %>
-<h2>Anchoring for <%= link_to @anchoring.url.url, @anchoring.url.url  %></h2>
-<% end %>
-
-<%= render @anchoring %> 
-
+<%= render partial: "/layouts/anchorings/show", locals: { anchoring: @anchoring, skip_header: true } %> 

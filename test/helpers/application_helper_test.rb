@@ -35,6 +35,10 @@ class ApplicationHelperTest < ActionView::TestCase
     @current_user = nil
     assert_raises(ArgumentError){ editor_only_safe_html("") }
 
+    opts = {method: :index, text: "abc", only: :naiyo}
+    assert_raises(ArgumentError){ editor_only_safe_html(Role, **opts) }
+    # This should not raise an Exception in the production environment, though not tested...
+
     assert_equal("",  editor_only_safe_html(Role,  method: :index, text: "abc"))
     assert_equal("",  editor_only_safe_html(music,  method: :edit, text: "abc"))
     exp = '<div class="">abc</div>'
@@ -86,6 +90,8 @@ class ApplicationHelperTest < ActionView::TestCase
     assert       act.html_safe?
 
     exp = '<div class="x &lt; my_klass">AAA</div>'
+    assert_raise(ArgumentError){
+      editor_only_safe_html(music,  method: :edit, class: "x <", only: :my_klass){ "AAA<script>" } }
     act = editor_only_safe_html(music,  method: :edit, class: "x <", only: "my_klass"){ "AAA<script>" }
     assert_equal exp, act
     assert       act.html_safe?

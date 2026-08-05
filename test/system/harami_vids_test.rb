@@ -568,12 +568,15 @@ class HaramiVidsTest < ApplicationSystemTestCase
     #hvid2.harami_vid_music_assocs.find_by(music: mu).update!(timing: 15)
     #assert_nil hvid2.timing(mu), 'sanity check'
 
+    ## Test of CRUD of Anchoring in Show for public
+    assert_anchoring_crud_in_show(hvid2, h1_title=date_str, skip_login: true, locale: :en, no_edit: true)  # defined in test_system_helper.rb
+
     login_at_root_path(@editor_harami)  # defined in test_system_helper.rb
 
     click_on @h1_index, match: :first
     assert_selector "h1", text: @h1_index
 
-    ## Test of CRUD of Anchoring in Show
+    ## Test of CRUD of Anchoring in Show for an editor
     assert_anchoring_crud_in_show(hvid2, h1_title=date_str, skip_login: true)  # defined in test_system_helper.rb
 
     ## move to Edit

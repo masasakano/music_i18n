@@ -31,6 +31,11 @@ two:
   anchorable: two (Channel)
   note: NoteAnchoringTwo
 
+url_one_harami_vid1:
+  url: one
+  anchorable: harami_vid1 (HaramiVid)
+  note: NoteAnchoring_url_one_harami_vid1
+
 url_haramichan_main_artist_harami:
   url: url_haramichan_main
   anchorable: artist_harami (Artist)

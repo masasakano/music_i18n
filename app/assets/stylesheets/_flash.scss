@@ -1,0 +1,16 @@
+#global_flash_messages {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 9999; /* Stay above modals and headers */
+  width: 100%;
+  max-width: 420px;
+  pointer-events: none; /* Allows clicking items under the empty container */
+}
+
+/* Re-enable clicks for the actual flash alerts */
+#global_flash_messages .alert {
+  pointer-events: auto;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+

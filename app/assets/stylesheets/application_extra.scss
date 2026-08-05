@@ -42,6 +42,8 @@ div.toast-error {
 //  padding: 77%;   /* 10px */
 //  font-size: 85%; /* 11px */ }
 
+@use "flash";
+
 ul.ui-autocomplete {
   position: absolute;
   list-style: none;
@@ -643,6 +645,19 @@ a.button_like {
 .channel_part {
     padding-top: 1em;
     margin-bottom: 0.2em;
+}
+
+/* For Anchoring */
+li.new-anchoring-item {
+  list-style-type: none; /* Hides the bullet point */
+  padding-left: 0em;
+  margin-top: 0.5rem;
+  margin-left: 0em;
+}
+
+/* Hide the 'New Anchoring' link whenever ANY form exists inside the wrapper */
+.anchorings-wrapper:has(form) .new_link {
+  display: none;
 }
 
 /*

@@ -40,7 +40,7 @@
  </section> <%# closing section id="sec_primary_show" %>
 
    <%= turbo_frame_tag "places_anchorings_"+dom_id(@place) do %>
-     <%= render partial: 'layouts/index_anchorings', locals: {record: @place} %>
+     <%= render partial: 'layouts/anchorings/index', locals: {record: @place} %>
    <% end %>
 
 <%= editor_only_safe_html(@place, method: :edit, tag: "div", class: "lead") do %>

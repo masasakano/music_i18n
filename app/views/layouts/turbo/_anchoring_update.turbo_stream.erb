@@ -1,5 +1,5 @@
 <%# locals: (anchoring: @anchoring) %>
 
-<%= turbo_stream.replace anchoring %>
-<%= flash_for_turbo_stream(:flash_turbo_anchorings) %> <%# defined in application_helper.rb %>
+<%= turbo_stream.replace anchoring, partial: "/layouts/anchorings/show", locals: { anchoring: anchoring, skip_header: true } %><%# Without "partial", /musics/anchorings/_anchoring.html.erb is referred to %>
+<%= flash_for_turbo_stream %> <%# defined in application_helper.rb %>
 

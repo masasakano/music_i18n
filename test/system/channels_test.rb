@@ -111,4 +111,20 @@ class ChannelsTest < ApplicationSystemTestCase
     assert_equal(n_records_be4, n_records)
 
   end
+
+#  test "CRUD of anchoring for Channel" do
+#    channel = channels(:channel_kohmi_youtube_main)
+#
+#    ## Test of CRUD of Anchoring in Show for public
+#    assert_anchoring_crud_in_show(@event, h1_title=channel.title_or_alt(langcode: :en), skip_login: true, locale: :en, no_edit: true)  # defined in test_system_helper.rb
+#
+#    login_at_root_path(@moderator)  # defined in test_system_helper.rb
+#
+#    visit channel_path(channel, locale: :en)
+#    assert_selector "h1", text: channel.title(langcode: :en)
+#    h1_title = find("h1").text
+#
+#    ## Test of CRUD of Anchoring in Show
+#    assert_anchoring_crud_in_show(channel, h1_title, skip_login: true)  # defined in test_system_helper.rb
+#  end
 end

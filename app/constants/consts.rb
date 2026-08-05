@@ -1,0 +1,3 @@
+module Consts
+end
+

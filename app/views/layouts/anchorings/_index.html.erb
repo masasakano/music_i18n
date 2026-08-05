@@ -8,34 +8,33 @@
 <% prm_parent_lower = record.class.name.underscore %>
 <% path_base = prm_parent_lower + "_anchoring_path" %>
 <% prm_parent_key = prm_parent_lower + "_id" %>
-<% turbo_tag_index = dom_id(record)+"_anchorings" %>
-<%# turbo_frame_tag "anchoring_"+dom_id(record) do %>
+<div class="anchorings-wrapper">
   <% anchorings = record.anchorings.joins(:site_category).joins(:domain_title).joins(:url).order("site_categories.weight", "domain_titles.weight", "urls.created_at") %>
   <section id="anchoring_index_<%= record.class.name %>" class="anchoring_index">
     <% paths = { new: send("new_"+ path_base, prm_parent_key.to_sym => record.id), }.with_indifferent_access %> <%# Note: The direct argument assignment of "record" (or (anchoring, record) for :edit) returns the path without a locale, so it is not ideal, hence the use of "artrist_id: art1" %>
     <% if anchorings.exists? || canedit_gen %>
       <h3 class="links_anchoring"><%= t(:external_link).capitalize.pluralize(I18n.locale) %></h3>
-      <ul class="anchoring_list">
-        <%= turbo_frame_tag turbo_tag_index do %>
+      <% turbo_tag_index = dom_id(record, :anchorings) %>
+        <ul id="<%= turbo_tag_index %>" class="anchoring_list">
           <% anchorings.joins(:url).joins(url: :site_category).order("site_categories.weight", "anchorings.created_at").each do |anchoring| %>
-            <%= render partial: "/layouts/show_anchoring", locals: {anchoring: anchoring, skip_header: true, canedit_url_gen: canedit_url_gen } %> 
+            <%= render partial: "/layouts/anchorings/show", locals: {anchoring: anchoring, skip_header: true, canedit_url_gen: canedit_url_gen } %> 
           <%  end %>
-        <% end %>
-   <% if !from_non_turbo  %>
-    <div id="<%= ApplicationController::TURBE_IDS[:flash_turbo_anchorings] %>" class="flash">
+
+          <%# New Anchoring lives inside its own <li> within the <ul> %>
+          <li id="new_anchoring_li" class="new-anchoring-item"><%# id should match turbo-ID in _anchoring_create.turbo_stream.erb %>
+            <%= turbo_frame_tag dom_id(Anchoring.new) do %>
+              <%= editor_only_safe_html(record, method: :edit, tag: "span", style: "margin-left: -1em; margin-top: 0.5em;") do %><%# Style to shift from the rest of ul lists. %>
+                <%= link_to 'New Anchoring', paths[:new], class: "new_link" %>
+              <% end %>
+            <% end %>
+          </li>
+        </ul>
+   <% if !from_non_turbo  %><%# This IF contents should be reviewed as Flash blocks have changed... %>
+    <div id="<%= ApplicationController::TURBO_IDS[:flash_turbo_anchorings] %>" class="flash">
       <%= render "layouts/flash_display" %>
-    </div>        
+    </div>
    <% end %>
-      </ul>
-      <% if can?(:edit, record) %>
-        <div class="editor_only">
-          <% new_turbo_tag = dom_id(Anchoring.new) %>
-          <%= turbo_frame_tag new_turbo_tag do %>
-          <% end %>
-          <%= link_to 'New Anchoring', paths[:new], data: { turbo_frame:  new_turbo_tag } %>
-        </div>
-      <% end %>
     <% end %> <%# if anchorings.exists? || canedit_gen %>
   </section> <!-- section id="anchoring_index_..." class="anchoring_index" -->
-<%# end %> <%# turbo_frame_tag "anchoring_"+dom_id(record) do %>
+</div>
 

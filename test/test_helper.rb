@@ -52,19 +52,34 @@ class ActiveSupport::TestCase
   # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
   fixtures :all
 
-  class ActionDispatch::IntegrationTest
-    # Re-introduce the global default parameter handler for the test environment
-if true  ### This works
-    setup do
-      self.default_url_options = { locale: I18n.default_locale }
-    end
-else  ### Below does not work well...
-    def default_url_options
-      { locale: I18n.default_locale }
-    end
-end
+  #### Essential setting for path-based I18n
+  #
+  # This re-introduces the global default parameter handler for the test environment.
+  # Without this, path helpers like +polymorphic_path+ in integration/controller tests might
+  # raise an Exception, and would certainly not work without explicitly specifying the option +locale+
+  #
+  # The IF clause is essential; without it, the following settings would make
+  # model unit tests fail becacuse their classes do not have the method +default_url_options+
+  #
+  # Alternatively, this would work for Controller/Integration tests.  You should note that
+  # you must repeat the same setting for +ActionDispatch::SystemTestCase+ for system tests.
+  #
+  # It seems this can be put either at the top level or inside  +class ActiveSupport::TestCase+
+  #
+  #   class ActionDispatch::IntegrationTest
+  #     setup do
+  #       self.default_url_options = { locale: I18n.default_locale }
+  #     end
+  #     #### This does not work:
+  #     #  def default_url_options
+  #     #    { locale: I18n.default_locale }
+  #     #  end
+  #   end
+  setup do
+    self.default_url_options = { locale: I18n.default_locale } if respond_to?(:default_url_options=)
   end
-  ## Disable routing-filter in testing  / for routing-filter Gem
+
+  ## Disable routing-filter in testing  / for (now obsolete) routing-filter Gem
   #RoutingFilter.active = false
 
   # CSS for pages
@@ -140,7 +155,10 @@ end
       section_fmt: "//*[@id='anchoring_index_%s']",  # for sprintf, where %s is like HaramiVid
       list: (anchoring_list="//"+ModuleCommon.xpath_contain_css("anchoring_list", complete_for: "ul")),  # more accurately, preceded with sprintf(XPATHS[:anchoring][:section_fmt], MyModel.name)
       item: (anchoring_item=anchoring_list+"//li"),  # more accurately, preceded with sprintf(XPATHS[:anchoring][:section_fmt], MyModel.name)
-      new_link:     "//a[@data-turbo-frame='new_anchoring'][contains(.,'New Anchoring')]",  # more accurately, preceded with sprintf(XPATHS[:anchoring][:section_fmt], MyModel.name)
+      new_link:     "//*[@id='new_anchoring']//" +
+        ModuleCommon.xpath_contain_css("new_link", complete_for: "a") +
+        "[" + ModuleCommon.xpath_contain_text("New Anchoring", case_insensitive: true) + "]",  # more strictly, preceded with sprintf(XPATHS[:anchoring][:section_fmt], MyModel.name)
+      ## new_link:     "//a[@data-turbo-frame='new_anchoring'][contains(.,'New Anchoring')]",  # more accurately, preceded with sprintf(XPATHS[:anchoring][:section_fmt], MyModel.name)
       edit_button:  anchoring_item + "//" + ModuleCommon.xpath_contain_css("button_like", "edit_link", complete_for: "a"),
       #edit_button:  anchoring_item+"//button[contains(@type, 'submit')][contains(.,'Edit')]",
       destroy_link: anchoring_item+"//a[@data-turbo-method='delete'][contains(.,'Destroy')]",
@@ -206,6 +224,21 @@ end
   # Bind/Caller related
   ################################################################
 
+  # Wrapper to display the immediate caller's location.
+  #
+  # Especially useful for +test_system_helper.rb+, because the system tests
+  # do not display where exactly it fails.
+  # For options, see {#_get_caller_info_message}
+  #
+  # @example
+  #    assert true, this_caller_message+" should be false, but..."  # defined in test_helper.rb
+  #      # printing: "(/test/test_system_helper.rb:359) should be false, but..."
+  #
+  # @param prefix: [Boolean] Default is true, the opposit of {#_get_caller_info_message}(!)
+  def this_caller_message(bind_offset: 1, prefix: true, **opts)
+    _get_caller_info_message(bind_offset: bind_offset, prefix: prefix, **opts)
+  end
+
   # Returns the String for the caller information
   #
   # @example To display the location of the last caller in the *_test.rb file.
@@ -232,7 +265,8 @@ end
     bind ||= caller_locations(1+BASE_CALLER_INFO_BIND_OFFSET+bind_offset, 1)[0]  # Ruby 2.0+
 
     # NOTE: bind.label returns "block in <class:TranslationIntegrationTest>"
-    ret = sprintf fmt, bind.absolute_path.sub(%r@.*(/test/)@, '\1'), bind.lineno
+    pattmp = (bind.absolute_path || bind.path || "<NONE>")  # bind.absolute_path is nil if called from debugger.
+    ret = sprintf fmt, pattmp.sub(%r@.*(/test/)@, '\1'), bind.lineno
     (prefix ? sprintf("(%s):", ret) : ret)
   end
   private :_get_caller_info_message
@@ -760,6 +794,66 @@ end
   end # assert_controller_dispatch_exception()
 
 
+  # Do View-related tests for Anchoring, where at least 1 Anchoring is assumed to be associted for the given record
+  #
+  # @example for Controller tests
+  #   record = musics(:four)
+  #   get harami_vid_url(record)
+  #   noko = Nokogiri::HTML5(response.body)
+  #   assert_view_anchoring(record, noko, "Public", url: false)
+  #
+  # @param record [ActiveRecord] Parent record Anchoring-s are associated to.
+  # @param noko [Nokogiri] of the page. For Controller tests: +Nokogiri::HTML5(response.body)+
+  #    For system tests, +Nokogiri::HTML5(page.find("body")[:innerHTML])+
+  # @param username [String]
+  # @param **in_privileges [Hash] Default: {url: false, new: false, edit: false, destroy: false}
+  #    "url" means whether the link to Url is visible (true) or not. new/edit/destroy links for Anchoring
+  def assert_view_anchoring(record, noko, username, **in_privileges)
+    privileges = {url: false, new: false, edit: false, destroy: false}.with_indifferent_access.merge(in_privileges)
+    raise ArgumentError, "extra keys #{privileges.inspect}" if 4 != privileges.keys.size  # foolproof for developers
+
+    errmsg_prefix = "("+_get_caller_info_message(bind_offset: -1, prefix: true)+")"
+
+    xpath_section = sprintf(XPATHS[:anchoring][:section_fmt], record.class.name)
+    assert noko.xpath(xpath_section).present?, errmsg_prefix+" No visible section"
+    assert noko.xpath(xpath_section+XPATHS[:anchoring][:list]).present?, errmsg_prefix+" No visible UL"
+    xpath_anc_item = xpath_section+XPATHS[:anchoring][:item]
+    nokoitem = noko.xpath(xpath_anc_item)
+    assert nokoitem.present?, errmsg_prefix+"At least 1 item of Anchors should be present for #{username}, but... (see fixtures)"
+    note1st = record.anchorings.first.note
+    assert_includes nokoitem.map(&:inner_html).join, note1st, errmsg_prefix+"Anchoring note should be displayed, but..." if note1st.present?
+
+    xpath_url  = xpath_anc_item+"//a[" + ModuleCommon.xpath_contain_text("Link-info", case_insensitive: true) + "]"  # "Link-info" defined in /app/views/layouts/anchorings/_show.html.erb
+    metho, txtnot = _get_method_and_text_and_xpath(privileges[:url])
+    send metho, noko.xpath(xpath_url).present?, "Link to Url should#{txtnot} be displayed for #{username}, but..."
+
+    ar2pass = [privileges, noko, metho, txtnot, username]
+    _do_tests_contain_css_link("new",     xpath_section,  *ar2pass)
+    _do_tests_contain_css_link("edit",    xpath_anc_item, *ar2pass)
+    _do_tests_contain_css_link("destroy", xpath_anc_item, *ar2pass)
+  end
+
+    # @param boolin [Boolean]
+    def _do_tests_contain_css_link(kwd, pre_xpath, privileges, noko, metho, txtnot, username)
+      errmsg_prefix = _get_caller_info_message(bind_offset: -1, prefix: true) + _get_caller_info_message(bind_offset: 1, prefix: true)
+
+      kwd_lower, kwd_capital = kwd.downcase, kwd.capitalize
+      metho, txtnot, xp = _get_method_and_text_and_xpath(privileges[kwd_lower.to_sym])
+      xpath_dest = pre_xpath + xp + "//" + ModuleCommon.xpath_contain_css(kwd_lower+"_link", complete_for: "a")
+      send metho, noko.xpath(xpath_dest).present?, errmsg_prefix+"Link to #{kwd_capital} should#{txtnot} be displayed for #{username}, but... xpath="+xpath_dest
+    end
+    private :_do_tests_contain_css_link
+
+    # @param boolin [Boolean] true if positive, i.e., the XPath should be visible for the user.
+    # @return [Array] Symbol(method), " not" or "", XPath-for-'editor_only' or ""
+    #    Basically, for :assert, <span class="editor_only"> must be present, whereas
+    #    :refute should reject a "Edit" button etc regardless of the "span" block.
+    def _get_method_and_text_and_xpath(boolin)
+      boolin ? [:assert, "", xpath_editor_only] : [:refute, " not", ""]
+    end
+    private :_get_method_and_text_and_xpath
+
+
   # Convert Ruby Hash to params style
   #
   # Note if the value is nil, it is converted into "";
@@ -812,15 +906,44 @@ end
   #    If nil, everything defined in {ApplicationController::FLASH_CSS_CLASSES}
   #    Note that the actual CSS is "alert-danger" (Bootstrap) for :alert, etc.
   # @param with_html: [Boolean] if true (Def: false), HTML (as opposed to a plain text) is evaluated with regex.
-  # @param is_debug: [Boolean] if true (Def: false), prints the CSS selector information
-  # @param kwds: [Hash] Optional hash to be passed to {#css_for_flash}, notably +category+ and +extra+
-  def flash_regex_assert(regex, msg=nil, type: nil, with_html: false, is_debug: false, **kwds)
+  # @param system_test: [Boolean] For either sysetm tests (true) or Controller tests (Def: false).
+  #    For system tests, make sure that the flash black has already appeared,
+  #    maybe using {#flash_text_system_assert}
+  # @param is_debug: [Boolean] if true (Def: false), prints the CSS selector information. Valid only for Controller tests
+  # @param kwds: [Hash] Optional hash to be passed to {#css_for_flash} or {#xpath_for_flash}, notably +category+ and +extra+
+  def flash_regex_assert(regex, msg=nil, type: nil, with_html: false, system_test: false, is_debug: false, **kwds)
     caller_info = _get_caller_info_message(bind_offset: 0)
 
-    printf "DEBUG(#{__method__}): css_for_flash(ARG=#{[type, kwds].inspect})=( %s )\n", css_for_flash(type, **kwds) if is_debug
-    csstext = css_select(css_for_flash(type, **kwds)).send(with_html ? :inner_html : :text)
+    printf "DEBUG(#{__method__}): css_for_flash(ARG=#{[type, kwds].inspect})=( %s )\n", css_for_flash(type, **kwds) if is_debug && !system_test
+    noko =
+      if system_test
+        Nokogiri::HTML5(page.find("body")[:innerHTML]).xpath( xpath_for_flash(type, **kwds) )
+      else
+        css_select(css_for_flash(type, **kwds))
+      end
+    _flash_regex_assert_core(noko, regex, msg, type: type, with_html: with_html)
+  end
+
+  def _flash_regex_assert_core(noko, regex, msg=nil, type: nil, with_html: false)
+    caller_info = _get_caller_info_message(bind_offset: 1)
+    csstext = noko.send(with_html ? :inner_html : :text)  # For :text, if there are more than one flash messages, they are simply concatnated with no spaces in between.
     msg2pass = (msg || sprintf("Fails in flash(%s)-message regexp matching for: ", (type || "ALL")))+csstext.inspect
     assert_match(regex, csstext, "(#{caller_info}): "+msg2pass)
+  end
+  private :_flash_regex_assert_core
+
+  # System-test asserts (to wait in case)
+  #
+  # @param text [String] Partial match
+  # @param msg [String]  Dummy!
+  # @param type: [Symbol, Array<Symbol>, NilClass] :notice, :alert, :warning, :success or their array.
+  #    If nil, everything defined in {ApplicationController::FLASH_CSS_CLASSES}
+  #    Note that the actual CSS is "alert-danger" (Bootstrap) for :alert, etc.
+  # @param category: [Symbol] :all (:both), :error_explanation (for save/update), :form (simple_form), :div (normal flash)
+  # @param is_debug: [Boolean] if true (Def: false), prints the CSS selector information
+  # @param kwds: [Hash] Optional hash to be passed to asssert_selector
+  def flash_text_system_assert(text, msg=nil, type: nil, category: nil, **kwds)
+    assert_selector :xpath, xpath_for_flash(type, category: category), text: text, **kwds
   end
 
   # Reverse of get_bool_from_params in Application.helper
@@ -1166,15 +1289,30 @@ end
     element.to_s
   end
 
+  # Returns the XPath for the tag with the class "editor_only" etc.
+  #
+  # @param only: [String, Symbol] (editor|moderator|admin)
+  # @param tag: [String] for "editor_only". Default: "*". Maybe "span" etc.  "" is allowed.
+  # @param with_slashes: [Boolean] if true (Def), preceding double slashes are added.
+  # @return [String] e.g., "//*[contains(concat(' ', normalize-space(@class), ' '), ' editor_only ')]"
+  def xpath_editor_only(only: "editor", tag: "*", with_slashes: true)
+    if !ApplicationHelper::PERMITTED_CSS_ONLY_USERS.include?(only.to_sym)
+      raise ArgumentError, "Given 'only' option (#{only.inspect}) for XXX_only is not included in the permitted list #{PERMITTED_CSS_ONLY_USERS.inspect}"
+    end
+
+    prefix = (with_slashes ? "//" : "") 
+    enclosed = prefix + ModuleCommon.xpath_contain_css(only.to_s+"_only", complete_for: tag.to_s)
+  end
+
   # Returns the XPATH string to extract the flash messages.
   #
   # @example  (I am not sure if these actually work...)
   #    xpath_for_flash(:notice, category: :error_explanation)
-  #      # => "//div[@id='body_main']/div[@id='error_explanation'][contains(@class, 'notice')][contains(@class, 'alert')][contains(@class, 'alert-info')][1]"
+  #      # => "//div[@id='body_main']//div[@id='error_explanation'][contains(@class, 'notice')][contains(@class, 'alert')][contains(@class, 'alert-info')][1]"
   #    xpath_for_flash(:warning, category: :both, extras: %w(a em))  # NOTE: extras is an Array!
-  #      # => "//div[@id='body_main']/div[contains(@class, 'alert')][contains(@class, 'alert-warning')]//a//em[1]|//div[@id='body_main']/div[@id='error_explanation'][contains(@class, 'alert')][contains(@class, 'alert-warning')]//a//em[1]"
+  #      # => "//div[@id='body_main']//div[contains(@class, 'alert')][contains(@class, 'alert-warning')]//a//em[1]|//div[@id='body_main']/div[@id='error_explanation'][contains(@class, 'alert')][contains(@class, 'alert-warning')]//a//em[1]"
   #    xpath_for_flash([:alert, :success], category: :div, extra_attributes: ["cls1", "cls2"])
-  #      # => "//div[@id='body_main']/div[contains(@class, 'alert')][contains(@class, 'alert-danger')][contains(@class, 'cls1')][contains(@class, 'cls2')][1]|//div[@id='body_main']/div[contains(@class, 'alert')][contains(@class, 'alert-success')][contains(@class, 'cls1')][contains(@class, 'cls2')][1]"
+  #      # => "//div[@id='body_main']//div[contains(@class, 'alert')][contains(@class, 'alert-danger')][contains(@class, 'cls1')][contains(@class, 'cls2')][1]|//div[@id='body_main']//div[contains(@class, 'alert')][contains(@class, 'alert-success')][contains(@class, 'cls1')][contains(@class, 'cls2')][1]"
   #
   # @example  Flash for Error for Turbo
   #    xpath_for_flash(:alert, category: :div, xpath_head: "//form[@id='form_new_anchoring']//")  # defined in test_helper.rb
@@ -1197,7 +1335,7 @@ end
   #   the XPath for the flash messages, in which case *no trailing slash* should be put on this.
   #   The default is "//div[@id='body_main']", meaning the flash part should appear immediately after div#body_main
   # @return [String] CSS for Flash-message part; e.g., ".alert, div#error_explanation"
-  def xpath_for_flash(type=nil, category: :both, extras: nil, extra_attributes: nil, return_array: false, xpath_head: "//div[@id='body_main']/")
+  def xpath_for_flash(type=nil, category: :both, extras: nil, extra_attributes: nil, return_array: false, xpath_head: "//div[@id='body_main']//")
     caller_info = _get_caller_info_message(bind_offset: 0)
 
     extras = [] if extras.blank?
@@ -1356,7 +1494,7 @@ end
             ModuleCommon.xpath_contain_text(exp_txt, case_insensitive: false))  # CSS is case-sensitive.
     # "//*[contains(concat(' ', normalize-space(@class), ' '), ' pagenation_stats ')][contains(., 'MY_TEXT_XXX')]"
   end
-
+  
   ################################################################
   # Gem related
   ################################################################
@@ -1374,5 +1512,5 @@ end
       PaperTrail.request.enabled = was_enabled_for_request
     end
   end
-
 end
+
