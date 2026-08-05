@@ -59,8 +59,6 @@ gem 'redis', '~> 5.0'  ######## NOTE: redis 6.0 was released on 2026-07-31; you 
 # Use Kredis to get higher-level data types in Redis [https://github.com/rails/kredis]
 # gem "kredis"
 
-gem 'listen', '~> 3' #, '~> 3.2'  # This seems necessary from bootsnap (for booting, i.e., ./bin/dev) despite the fact it is not included in Rails 7 default Gemfile...
-
 group :development, :test do
   gem 'dotenv-rails' #, groups: [:development, :test]  # User-added; this may need to come before some Gems
 
@@ -89,8 +87,9 @@ group :development do
   # Speed up commands on slow machines / big apps [https://github.com/rails/spring]
   #gem 'spring', '~> 4.0'  # >= 3.0 for Rails-7 (or you can remove it)
   #gem 'spring-watcher-listen', '~> 2.0' # This depends on spring (>= 1.2, < 3.0), whereas Rails-7 requires spring >= 3
-end
 
+  #gem 'listen', '~> 3' #, '~> 3.2'  # (The Rails Observer) This is not included in Rails 7 default Gemfile and may be recommended for large apps only.  # see https://guides.rubyonrails.org/asset_pipeline.html#improving-performance-with-file-watchers
+end
 group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   # Adds support for Capybara system testing and selenium driver
