@@ -236,7 +236,7 @@ class ActiveSupport::TestCase
   # @example
   #   logout_from_menu # defined in test_system_helper.rb
   def logout_from_menu
-    assert page.find(:xpath, "//div[@id='navbar_top']//a[text()='Log out']").click
+    assert page.find(:xpath, XPATHS[:user_menu_bar][:logout]).click
     assert_selector :xpath, xpath_for_flash(:notice, category: :div), text: TEXT_ASSERTED[:login][:signed_out]  # Notice message issued.
                           # "//div[@id='body_main']/p[contains(@class, 'notice')][1]" (and more)
     # assert_equal "Signed out successfully.", page.find(:xpath, xpath_for_flash(:notice, category: :div)).text.strip  # Notice message issued.

@@ -6,7 +6,8 @@
   </div>
 
   <%= turbo_frame_tag dom_id(anchoring) do %>  <%# "anchoring_123" %>
-    <%= render 'form', anchoring: anchoring %>
+    <%= render partial: "/layouts/anchorings/form", locals: {anchoring: anchoring} %> 
+    <%# NOTE: +render 'form'+ would refer to _form.html.erb in the caller's directory like views/musics/anchorings/_form.html.erb %>
   <% end %>
 </main>
 

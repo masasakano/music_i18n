@@ -22,7 +22,7 @@
     <% if can?(:destroy, model) %>
       <%= tag.span class: ["text-end"] do %>
         <% if destroyable %>
-          <%= button_to "Destroy", model, method: :delete, data: { confirm: t('are_you_sure') } %>
+          <%= button_to "Destroy", model, method: :delete, form: {data: { turbo: true, turbo_confirm: t('are_you_sure') }} %><%# Before Turbo: method: :delete, data: {confirm: t('are_you_sure')} %>
         <% else %>
           <form class="button_to"><input disabled="disabled" type="submit" value="Destroy"></form>
         <% end %>

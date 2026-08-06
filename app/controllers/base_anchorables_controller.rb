@@ -87,7 +87,7 @@ class BaseAnchorablesController < ApplicationController
         @anchoring.fetch_h1 = false if @anchoring.title.present?  # Not fetching remote again once title has been set.
         path = path_anchoring(@anchoring, action: :new) # defined in Artists::AnchoringsHelper
         render :new, status: :unprocessable_content
-          ## In Turbo-access, this replaces the contents of turbo_frame_tag(dom_id(Anchoring.new)) in /*(e.g.,places)/anchorings/new.html.erb, which imports _form.html.erb, importing /layouts/_form_anchoring.html.erb, where +f.error_notification+ is displayed near the top below a title (if conditions are met) in the CSS class "alerg-danger" inside form#new_anchorig.  The message is like: "Please review the problems below:"
+          ## In Turbo-access, this replaces the contents of turbo_frame_tag(dom_id(Anchoring.new)) in /*(e.g.,places)/anchorings/new.html.erb, which imports _form.html.erb, importing /layouts/anchoring/_form.html.erb, where +f.error_notification+ is displayed near the top below a title (if conditions are met) in the CSS class "alerg-danger" inside form#new_anchorig.  The message is like: "Please review the problems below:"
     end
   end
 

@@ -1,0 +1,12 @@
+<%# locals: (anchoring: @anchoring, anchorable: @anchorable) %>
+
+<h1>New Anchoring (for Url)</h1>
+
+<%= turbo_frame_tag  dom_id(anchoring) do %><%# Note: Here, (dom_id(anchoring) == dom_id(Anchoring.new) == "new_anchoring") %>
+  <% if params[:cancel] %>
+    <%= link_to 'New Anchoring', new_polymorphic_path([anchorable, anchoring]), class: "new_link" %>
+  <% else %>
+    <%= render partial: "/layouts/anchorings/form", locals: {anchoring: anchoring, anchorable: anchorable} %>
+  <% end %>
+<% end %>
+

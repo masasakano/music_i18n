@@ -2008,7 +2008,7 @@ module ModuleCommon
   #      "//p[" + ModuleCommon.xpath_contain_css(["foo"], complete_for: "p") + "]"
   #      # => "//p[contains(concat(' ', normalize-space(@class), ' '), ' foo ')]"
   #
-  # @param texts [String, Array<String>] "Click", "Button"
+  # @param csss [String, Array<String>] Examples: "align-c"; ["font-smaller", "button_like"]
   # @param complete_for: [String, NilClass] if given (Def: nil), returns a complete XPath for the tag (without preceding forward slashes)
   # @return [String] e.g., `p[contains(concat(' ', normalize-space(@class), ' '), ' round_button ') and ...]`
   def self.xpath_contain_css(*csss, complete_for: nil)
