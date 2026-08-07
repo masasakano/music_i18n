@@ -5,7 +5,6 @@
 <%#   with_index_link: Link for Index is inserted if true; in default (nil), true if !is_to_edit (namely if in Show page). %>
 <%#   with_destroy: if true (Def: false), destroyable has a priority over record.destroyable? %>
 <%#   destroyable: Read only when with_destroy is truthy.  Specify true if the record is destroyable by the user with the model-constraint also considered(!). This basically overwrites the result of record.destroyable? %>
-<%# NOTE: This is very similar to _show_edit_destroy.html.erb (but this applies to :edit, too.) %>
 
 <% destory_text = (is_to_edit ? "Destroy this "+record.class.name : "Destroy") if destory_text.blank? %>
 <% with_index_link = !is_to_edit if with_index_link.nil? %>
@@ -17,41 +16,41 @@
 <%= editor_only_safe_html(:pass, method: can_update, only: only, tag: "div", class: "link-edit-destroy") do %> <%# defined in application_helper.rb %>
 
   <% if !is_to_edit %> <%# If in "Edit", neither this part not "section" is displayed. %>
-   <section id="<%= ApplicationController::CSS_CLASSES[:show][:sec_id_edit_destroy_in_show] %>">
+    <section id="<%= ApplicationController::CSS_CLASSES[:show][:sec_id_edit_destroy_in_show] %>">
   <% end %>
-    <div class="actions">
-  <% if !is_to_edit %> <%# If in "Edit", neither this part not "section" is displayed. %>
-    <% path_edit = polymorphic_path(record, action: :edit, only_path: true) %> <%# e.g., edit_music_path(record) %>
-    <%= tag.span class: "lead" do %>
-      <%= link_to "Edit this #{record.class.name}", path_edit, class: "edit_link", data: { turbo_frame: "_top" } %>
-    <% end %>
-  <% end %>
-
-  <% if can?(:destroy, record) %>
-      <% manual_destroyable = (with_destroy && destroyable) %>
-      <% do_respond = record.respond_to?(:destroyable?) %>
-      <% if manual_destroyable || do_respond %>
-        <div class="actions-destroy actions-destroy-align-r">
-          <% if manual_destroyable || record.destroyable? %>
-            <%= destroy_link(record, destory_text, extra_classes: ["destroy_link"]) %><%# defined in application_helper.rb %>
-          <% else %><%# i.e., if !record.destroyable? && (!with_destroy || !destroyable)  %>
-            <form class="button_to"><input disabled="disabled" type="submit" value="Destroy"></form>
-            (<%= model_name %> has dependent children or is "unknown?", and so cannot be destroyed.)
-          <% end %>
-        </div>
-      <% else %>
-        &nbsp;&nbsp; / <%= destroy_link(record, is_button: false, extra_classes: ["destroy_link"]) %>
-        (<%= tag.span "EDITOR: destroyable? is not defined, so destroying may fail.", class: "text-red" %>)
+    <%= tag.div class: "actions" do %>
+      <% if !is_to_edit %> <%# If in "Edit", neither this part not "section" is displayed. %>
+        <% path_edit = polymorphic_path(record, action: :edit, only_path: true) %> <%# e.g., edit_music_path(record) %>
+        <%= tag.span class: "lead" do %>
+          <%= link_to "Edit this #{record.class.name}", path_edit, class: "edit_link", data: { turbo_frame: "_top" } %>
+        <% end %>
       <% end %>
-  <% end %>
-    </div> <!--  div class="actions"-->
 
-  <% if below_destroy %>
-    <br>
-    <%= below_destroy.html_safe? ? below_destroy : sanitize(below_destroy) %>
-  <% end %>
+      <% if can?(:destroy, record) %>
+        <% manual_destroyable = (with_destroy && destroyable) %>
+        <% do_respond = record.respond_to?(:destroyable?) %>
+        <% if manual_destroyable || do_respond %>
+          <%= tag.div class: ["actions-destroy", "actions-destroy-align-r"] do %>
+            <% if manual_destroyable || record.destroyable? %>
+              <%= destroy_link(record, destory_text, extra_classes: ["destroy_link"]) %><%# defined in application_helper.rb %>
+            <% else %><%# i.e., if !record.destroyable? && (!with_destroy || !destroyable)  %>
+              <form class="button_to"><input disabled="disabled" type="submit" value="Destroy"></form>
+              (<%= model_name %> has dependent children or is "unknown?", and so cannot be destroyed.)
+            <% end %>
+          <% end %> <!--  div class="actions-destroy actions-destroy-align-r" -->
+        <% else %>
+          &nbsp;&nbsp; / <%= destroy_link(record, is_button: false, extra_classes: ["destroy_link"]) %>
+          (<%= tag.span "EDITOR: destroyable? is not defined, so destroying may fail.", class: "text-red" %>)
+        <% end %>
+      <% end %>
+    <% end %> <!--  div class="actions"-->
+
+    <% if below_destroy %>
+      <br>
+      <%= below_destroy.html_safe? ? below_destroy : sanitize(below_destroy) %>
+    <% end %>
   <% if !is_to_edit %>
-   </section> <%# Unless it is in "Edit". %>
+    </section> <%# Unless it is in "Edit". %>
   <% end %>
 <% end %> <%# editor_only_safe_html(:pass, ...) %>
 
@@ -66,12 +65,12 @@
 <% end %>
 
 <% if with_index_link %>
-<%= tag.p class: "navigate-link-below-form" do %>
-  <%= show_link %>
-  <%= editor_only_safe_html(record.class, method: :index, tag: "span") do %> <%# defined in application_helper.rb %>
-    <%= show_link ? " | " : "<br>".html_safe %>
-    <%= link_to(t("layouts.back_to_index"), send(model_underscore.pluralize+"_path")) %>
+  <%= tag.p class: "navigate-link-below-form" do %>
+    <%= show_link %>
+    <%= editor_only_safe_html(record.class, method: :index, tag: "span") do %> <%# defined in application_helper.rb %>
+      <%= show_link ? " | " : "<br>".html_safe %>
+      <%= link_to(t("layouts.back_to_index"), send(model_underscore.pluralize+"_path")) %>
+    <% end %>
   <% end %>
-<% end %>
 <% end %>
 
