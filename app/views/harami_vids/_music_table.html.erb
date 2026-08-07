@@ -94,7 +94,7 @@
         <td title="<%= t('harami_vids.show.destroy_music_from_this_vid') %>" class="text-end editor_only">
        <% if can? :destroy, hvma %>
          <% del_text =  t('layouts.destroy_button') + " (#{assoc_pid})" %>
-         <%= link_to del_text, hvma, method: :delete, data: { confirm: t('are_you_sure') }, title: t('harami_vids.show.destroy_music_from_this_vid') %>
+         <%= destroy_link(hvma, del_text, inline: true, extra_classes: ["destroy_link"], title: t('harami_vids.show.destroy_music_from_this_vid')) %>  <%# defined in application_helper.rb %>
        <% end %>
         </td>
       <% end %>

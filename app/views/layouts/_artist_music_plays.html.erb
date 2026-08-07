@@ -130,7 +130,7 @@
          <% if candestroy_amp %>
           <td class="editor_only">
             <% if can? :destroy, amp %>
-              <%= link_to t('layouts.dissociate_this', this_model: t('adjective.this')+t('EventItem')), amp, method: :delete, data: { confirm: t('are_you_sure') }, title: t('event_items.dissociate_hint') %>
+              <%= destroy_link(amp, t('layouts.dissociate_this', this_model: t('adjective.this')+t('EventItem')), inline: true, extra_classes: ["destroy_link"], title: t('event_items.dissociate_hint')) %> <%# defined in application_helper.rb %>
             <% end %>
           </td>
          <% end %>

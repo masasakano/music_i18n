@@ -135,6 +135,31 @@ class Music < BaseWithTranslation
     ret.distinct
   end
 
+  # Runs {#find_all_harami_vids_lacking_hvma} for all Music, finding Music that have HaramiVid-s associated via only with ArtistMusicPlay and NOT with HaramiVidMusicAssoc
+  #
+  # Alternative Rails way:
+  #
+  #    .joins(event_items: :harami_vid_event_item_assocs)
+  #         .joins(
+  #           "LEFT JOIN harami_vid_music_assocs " \
+  #           "ON harami_vid_music_assocs.music_id = musics.id " \
+  #           "AND harami_vid_music_assocs.harami_vid_id = harami_vid_event_item_assocs.harami_vid_id"
+  #         )
+  #         .where(harami_vid_music_assocs: { id: nil })
+  #         .distinct
+  #
+  scope :with_harami_vids_only_via_amp, -> {
+    joins(event_items: :harami_vid_event_item_assocs)
+       .where(
+         "NOT EXISTS (
+           SELECT 1 FROM harami_vid_music_assocs
+           WHERE harami_vid_music_assocs.music_id = musics.id
+             AND harami_vid_music_assocs.harami_vid_id = harami_vid_event_item_assocs.harami_vid_id
+         )"
+       )
+       .distinct
+  }
+
   # SQL for ORDER Artists
   #
   # In the order of
@@ -208,6 +233,16 @@ class Music < BaseWithTranslation
                    joins: "INNER JOIN musics ON translations.translatable_id = musics.id INNER JOIN genres ON musics.genre_id = genres.id INNER JOIN translations trans2 ON musics.genre_id = genres.id")
   end
 
+  # Returns {HaramiVid}-s that are associated self (Music) only via {ArtistMusicPlay}
+  #
+  # @return [ActiveRecord::Relation<HaramiVid>]
+  def find_all_harami_vids_lacking_hvma
+    HaramiVid.joins(event_items: :musics)
+           .where(musics: { id: id })
+           .where.not(id: harami_vids)
+           .distinct
+  end
+  
   # Return Music-Relation of Country.unknown that should be updated to Japan
   #
   # @param context [String, Symbol]

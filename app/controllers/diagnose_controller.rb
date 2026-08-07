@@ -66,6 +66,7 @@ class DiagnoseController < ApplicationController
       %w(genre_id).each do |eatt|
         _set_all_no_value_for_attr(wrongs, Music, eatt)
       end
+      wrongs[:no_hvma_but_amp] = Music.with_harami_vids_only_via_amp
       %w(engages harami_vids).each do |eatt|  # Fairly serious inconsistencies
         _set_all_no_association_for_attr(wrongs, Music, eatt)  # => "no_event_items" => [ActiveRocord, ...]
       end

@@ -60,7 +60,22 @@
 <%= render partial: 'layouts/harami_vids_index', locals: {harami_vids: @music.harami_vids.order("harami_vids.release_date" => :desc), music: @music} %>
 </section>
 
-<% if can? :read, Harami1129 %>
+<% if (rela=@music.find_all_harami_vids_lacking_hvma).exists? %>
+  <%= editor_only_safe_html(:pass, method: can_update, tag: "div", class: "inconsistent_harami_vids") do %>
+    <h4>Inconsistent HaramiVids</h4>
+    <%= tag.span class: "lead text-warning-regular" do %>
+      WARNING: 
+    <% end %>
+    <p>This Music is <span class="lead text-warning-regular">NOT</span> associated to the following HaramiVid-s in the standard way (HaramiVidMusicAssoc) <span class="lead text-warning-regular">but only</span> via Playing (ArtistMusicPlay). You may check them out.</p>
+    <ol>
+      <% rela.each do |em| %>
+        <li>(pID=<%= link_to(em.id, em, class: "text-warning-regular") %>) <%= em.release_date %>: <%= link_to(em.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), em) %></li>
+      <% end %>
+    </ol>
+  <% end %>
+<% end %> <%# if (rela=@music.find_all_harami_vids_lacking_hvma).exists? %>
+
+<%= editor_only_safe_html(Harami1129, method: :read, tag: "div") do %>
   <hr>
   <section id="sec_harami1129s_for">
     <h3>Harami1129s<%= t("show.h2_for") %><%= t("Music") %>: <%= @music.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true) %></h3>

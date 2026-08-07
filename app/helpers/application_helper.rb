@@ -1390,7 +1390,7 @@ module ApplicationHelper
   # @param extra_classes: [Array, String] extra CSS classes for the +<button>+ or +<a>+ tag.
   # @param with_confirm: [Boolean] if true (Def), confirmation-pop up opens.
   # @param confirm_message: [String] Confirmation pop-up message.
-  # @param **kwds: [Hash] any other options to pass to the parent Rails method. e.g., +style: {color: "red"}+
+  # @param **kwds: [Hash] any other options to pass to the parent Rails method. e.g., +style: {color: "red"}+, +title+
   #    Note that +inline+ (and +extra_classes+) and +link_like+ options introduces :class and :form_class options, respectively.
   #    So, if your +**kwds+ option contains them, you have to be responsible for them.
   def destroy_link(path, destory_text="Destroy", is_button: true, inline: false, link_like: false, extra_classes: [], with_confirm: true, confirm_message: t('are_you_sure'), **kwds)
