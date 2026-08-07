@@ -66,13 +66,6 @@ class ApplicationController < ActionController::Base
     notice:  "notice alert alert-info",
   }.with_indifferent_access
 
-  # CSS Class-es
-  CSS_CLASSES = {
-    show: {
-      sec_id_edit_destroy_in_show: "edit_destroy_in_show",
-    },
-  }.with_indifferent_access
-
   # Information for Grids index pages
   GRID_INFOS = {
     # Here, +s*+ and +i_*+ are for String and Integer, respectively, corresponding to the Array

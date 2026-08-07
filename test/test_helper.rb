@@ -1308,8 +1308,8 @@ class ActiveSupport::TestCase
   # @param with_slashes: [Boolean] if true (Def), preceding double slashes are added.
   # @return [String] e.g., "//*[contains(concat(' ', normalize-space(@class), ' '), ' editor_only ')]"
   def xpath_editor_only(only: "editor", tag: "*", with_slashes: true)
-    if !ApplicationHelper::PERMITTED_CSS_ONLY_USERS.include?(only.to_sym)
-      raise ArgumentError, "Given 'only' option (#{only.inspect}) for XXX_only is not included in the permitted list #{PERMITTED_CSS_ONLY_USERS.inspect}"
+    if !ApplicationHelper::PERMITTED_CSS_ONLY_ROLES.include?(only.to_sym)
+      raise ArgumentError, "Given 'only' option (#{only.inspect}) for XXX_only is not included in the permitted list #{PERMITTED_CSS_ONLY_ROLES.inspect}"
     end
 
     prefix = (with_slashes ? "//" : "") 

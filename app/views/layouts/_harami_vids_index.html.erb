@@ -1,3 +1,4 @@
+<%# locals: (harami_vids: , musics: :all, music: nil, with_place: nil, for_owner: false, sort_asc: false, max_nrows: nil, ignore_max_nrows: false, html_id_postfix: "") %>
 
 <%# local variables: harami_vids, optional: musics (:all or Array or nil; musics to display), music (if for a particular Music - displaying timing), with_place, for_owner (Channel or ChannelOwner), sort_asc: false, max_nrows: nil, ignore_max_nrows: false %>
 <%# @example
@@ -30,8 +31,8 @@
      ignore_max_nrows = false
    end %>
 
-<div id="harami_vids">
-<table id="harami_vids_index_table">
+<div id="harami_vids<%= html_id_postfix %>">
+<table id="harami_vids_index_table<%= html_id_postfix %>">
   <thead>
     <% ncols = 0 %>
     <tr>

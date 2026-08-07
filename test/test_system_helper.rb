@@ -193,8 +193,23 @@ class ActiveSupport::TestCase
     find_field(label_str, match: :first).fill_in with: title_str
   end
 
-  # logon in a system test
-  def logon_system_test(user)
+  # assert_selector to ensure the full-page load up to the footer.
+  #
+  # @note This does not work with Turbo!
+  #
+  # @example
+  #    assert_selector "h1,h2", text: "Some Updated Title"
+  #    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+  #
+  # @example with a block that makes sure a new content has already started appearing.
+  #    ensure_page_load_in_full_load do  # defined in test_system_helper.rb
+  #      assert_selector "h1,h2", text: "Some Updated Title"
+  #    end
+  #
+  # @return [void]
+  def ensure_page_load_in_full_load
+    yield if block_given?
+    assert_selector "#footer"
   end
 
   # @example

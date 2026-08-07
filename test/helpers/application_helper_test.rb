@@ -77,19 +77,35 @@ class ApplicationHelperTest < ActionView::TestCase
     @current_user = users(:user_editor)
     #@current_user = users(:user_sysadmin)
 
-    exp = '<p class="x &lt; editor_only">abc</p>'
+    exp = '<p class="x &lt; authorized_only editor_only">abc</p>'
     act = editor_only_safe_html(music,  method: :edit, tag: "p", class: "x <"){ "abc"}
     assert_equal exp, act
 
     act = editor_only_safe_html(Role,    method: :edit, tag: "p", class: "x <"){ "abc"}
     assert_equal  "", act, "Editor cannot edit Role, but..."
 
-    exp = '<div class="moderator_only">AAA<script></div>'
+    exp = '<p class="x y authorized_only">abc</p>'
+    act = editor_only_safe_html(music,  method: :edit, only: :authorized, tag: "p", class: "x y"){ "abc"}
+    assert_equal exp, act, "should have no duplication, but..."
+
+    exp = '<p class="x y authorized_only">abc</p>'
+    act = editor_only_safe_html(music,  method: :edit, only: "authorized_only", tag: "p", class: "x y"){ "abc"}
+    assert_equal exp, act, "should have no duplication, but..."
+
+    exp = '<div class="authorized_only admin_only">abc</div>'
+    act = editor_only_safe_html(music,  method: :edit, only: "admin_only"){ "abc" }
+    assert_equal exp, act, "String should be accepted, but..."
+
+    exp = '<div class="x y authorized_only admin_only some">abc</div>'
+    act = editor_only_safe_html(music,  method: :edit, only: "admin_only some", class: "x y"){ "abc" }
+    assert_equal exp, act, "String should be accepted, but..."
+
+    exp = '<div class="authorized_only moderator_only">AAA<script></div>'
     act = editor_only_safe_html(music,  method: :edit, only: :moderator){ "AAA<script>".html_safe }
     assert_equal exp, act
     assert       act.html_safe?
 
-    exp = '<div class="x &lt; my_klass">AAA</div>'
+    exp = '<div class="x &lt; authorized_only my_klass">AAA</div>'
     assert_raise(ArgumentError){
       editor_only_safe_html(music,  method: :edit, class: "x <", only: :my_klass){ "AAA<script>" } }
     act = editor_only_safe_html(music,  method: :edit, class: "x <", only: "my_klass"){ "AAA<script>" }
@@ -103,12 +119,18 @@ class ApplicationHelperTest < ActionView::TestCase
     assert_raise(ArgumentError){ 
         editor_only_safe_html(:abc, method: :edit,                    text: "xyz") }
 
-    exp = '<div class="x &lt; my_klass">AAA</div>'
+    exp = '<div class="x &lt; authorized_only my_klass">AAA</div>'
     act = editor_only_safe_html(:pass,  method: true, class: "x <", only: "my_klass"){ "AAA<script>" }
     assert_equal exp, act
 
-    exp = '<div class="x &lt; my_klass">AAA</div>'
     act = editor_only_safe_html(:pass,  method: false, class: "x <", only: "my_klass"){ "AAA<script>" }
+    assert_equal "", act
+
+    exp = '<div class="x &lt;">AAA</div>'
+    act = editor_only_safe_html(:pass,  method: true, class: "x <", only: nil){ "AAA<script>" }
+    assert_equal exp, act, "only: nil"
+
+    act = editor_only_safe_html(:pass,  method: false, class: "x <", only: nil){ "AAA<script>" }
     assert_equal "", act
   end
 

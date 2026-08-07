@@ -79,7 +79,7 @@
 <% elsif !@artist.collab_harami_vids.exists? %>
   <%= t(:None) %>
 <% else %>
-  <%= render partial: "layouts/harami_vids_index", locals: {harami_vids: @artist.collab_harami_vids } %>
+  <%= render partial: "layouts/harami_vids_index", locals: {harami_vids: @artist.collab_harami_vids, html_id_postfix: "_featuring" } %>
 <% end %>
 </section> <!-- section id="sec_harami_vids_featuring" -->
 <hr>

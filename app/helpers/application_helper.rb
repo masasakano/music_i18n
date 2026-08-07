@@ -24,8 +24,15 @@ module ApplicationHelper
     consistency_place: "consistency_place",
   }.with_indifferent_access
 
+  # Symbol for the role name for the CSS class always present for any explicitly-marked access-restricted block
+  SYMBOL_MIN_PERMITTED_ROLE = :authorized
+
   # Accepted roles for HTML class attributes of "XXX_only", e.g., "editor_only"
-  PERMITTED_CSS_ONLY_USERS = [:helper, :editor, :moderator, :admin]
+  #
+  # For any explicitly-marked access-restricted block (NOTE: most of the obvious ones,
+  # such as a full-page Edit screen is not marked at all), "authorized_only" is
+  # added in addition to a more specific one, e.g., "admin_only"
+  PERMITTED_CSS_ONLY_ROLES = [SYMBOL_MIN_PERMITTED_ROLE, :helper, :editor, :moderator, :admin]
 
   # For toastr Gem. From
   # <https://stackoverflow.com/a/58778188/3577922>
@@ -769,6 +776,23 @@ module ApplicationHelper
     artist
   end
 
+  # @example
+  #    get_only_css_class(:admin)  # defined in application_helper.rb
+  #
+  # @param role [Symbol] :editor, :admin, etc.
+  # @return [String] "editor_only" etc
+  def get_only_css_class(role=nil)
+    role ||= SYMBOL_MIN_PERMITTED_ROLE
+
+    unless Rails.env.production?
+      if role.is_a?(Symbol) && !PERMITTED_CSS_ONLY_ROLES.include?(role)
+        raise ArgumentError, "Given 'role' option (#{role.inspect}) for XXX_only is not included in the permitted Symbol list #{PERMITTED_CSS_ONLY_ROLES.inspect}"
+      end
+    end
+
+    role.to_s + "_only"
+  end
+
   # @return [String] Language switcher link used in application.html.erb, "html_safe"-ed.
   def language_switcher_link
     locale_cur = (I18n.locale.blank? ? 'en' : I18n.locale)
@@ -1241,7 +1265,7 @@ module ApplicationHelper
   # However, if you use yield (in ERB), make sure the last statement returns nil
   # (maybe IF clause or even <% nil %> (a slight bug...)
   #
-  # This method is a handy helper for anything related to the Editor-privilege. In particularly
+  # This method is a handy helper for anything related to the Editor-privilege. In particular,
   # this is most useful when you think the component may become public
   # in the future; with this method, the part is guaranteed NOT to be enclosed
   # with the editor-only style once it has become public.
@@ -1270,8 +1294,8 @@ module ApplicationHelper
   # @param record [ActiveRecord, Class<ActiveRecord>, Symbol] If Symbol of :pass, the Boolean value of the method is used for ability check.
   # @param method: [Symbol, Boolean] Mandatory, unlike {#publicly_viewable?}. This can be like :crud or :ud as defined in ability.rb .  Or, if +record+ is :pass, this Boolean value is used and detailed ability check is skipped, and the unauthenticated is assumed to be prohibited to access.
   # @param tag: [String] "div"(Def) or "span", or "p", "th", "td" etc.  (For developers: the namespace collides with the default helper method +tag+ inside this method, so be careful!)
-  # @param class: [String] space-separated CSS classes for the tag.
-  # @param only: [Symbol, String] If Symbol like :editor, "editor_only" is the CSS class. Or you can explicitly specify the CSS class in String.
+  # @param class: [String, Array] Array of, or space-separated, CSS classes for the tag.
+  # @param only: [Symbol, String, NilClass] If Symbol like :editor, "editor_only" is the CSS class. Or you can explicitly specify the CSS class in String.  If nil, a simple +<div>+ (or +<span>+ etc) with no specific attributed CSS (but those specified in +class+) is output; n.b., see above for the case of a block with no contents.
   # @param text: [String, NilClass] you can supply the enclosed text either with this argument or through yield.
   # @param permissive: [Boolean] Default is false, unlike {#publicly_viewable?}.  Use so unless the permission is not a big-deal one.
   # @param strip: [Boolean, NilClass] If true, text (or yield) is stripped. In default (nil), this is false if tag is "div" or "p" else true (like tag is "span" or "td").  This usually affects just an aesthetic point in the generated HTML.
@@ -1281,8 +1305,8 @@ module ApplicationHelper
   # @yield Returned text will be inside the block.
   def editor_only_safe_html(record, method:, tag: "div", class: "", only: :editor, text: nil, permissive: false, strip: nil, show_always: false, **opts)
     unless Rails.env.production?
-      if only.is_a?(Symbol) && !PERMITTED_CSS_ONLY_USERS.include?(only)
-        raise ArgumentError, "Given 'only' option (#{only.inspect}) for XXX_only is not included in the permitted Symbol list #{PERMITTED_CSS_ONLY_USERS.inspect}; if you mean for a general CSS class, specify 'only' in String, not Symbol."
+      if only.is_a?(Symbol) && !PERMITTED_CSS_ONLY_ROLES.include?(only)
+        raise ArgumentError, "Given 'only' option (#{only.inspect}) for XXX_only is not included in the permitted Symbol list #{PERMITTED_CSS_ONLY_ROLES.inspect}; if you mean for a general CSS class, specify 'only' in String, not Symbol."
       end
     end
 
@@ -1300,12 +1324,14 @@ module ApplicationHelper
 
     return String.new if (:pass == record && !method) || (:pass != record && !can?(method, record))
 
-    html_classes = [(obj=binding.local_variable_get(:class)).present? ? obj : nil].compact
+    html_classes = [(obj=binding.local_variable_get(:class)).present? ? obj : nil].compact.map(&:split).flatten
 
     # Adds "editor_only" to the output CSS
-    if (:pass == record && method) || !publicly_viewable?(record, method: method, permissive: permissive)
-      html_classes.push(only.is_a?(Symbol) ? (only.to_s+"_only") : only)  # no need of h() or sanitize because the tag helper takes care of it.
+    if only && ((:pass == record && method) || !publicly_viewable?(record, method: method, permissive: permissive))
+      html_classes.push get_only_css_class
+      html_classes.push(only.is_a?(Symbol) ? get_only_css_class(only) : only)  # no need of h() or sanitize because the tag helper takes care of it.
     end
+    html_classes.uniq!
 
     if block_given?
       warn "WARNING(#{__method__}): Argument text is ignored as a block is also given." if text.present?
@@ -1345,7 +1371,7 @@ module ApplicationHelper
   #    destroy_link(record, inline: true, extra_classes: ["destroy_link"])  # defined in application_helper.rb
   #
   # @example  inline link-like
-  #    destroy_link(record, inline: true, link_like: true, extra_classes: ["destroy_link"], confirm_message: t("layouts.OMG_whats_this"), style: "margin-left: -0.6em;")  # defined in application_helper.rb
+  #    destroy_link(record, inline: true, link_like: true, extra_classes: ["destroy_link"], confirm_message: t("Sure?"), style: "margin-left: -0.6em;")  # defined in application_helper.rb
   #
   # @example  using HTML anchor
   #    destroy_link(record, is_button: false, extra_classes: ["destroy_link"])  # defined in application_helper.rb
