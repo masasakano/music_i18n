@@ -8,7 +8,7 @@
 
 <%= render @url %>
 
-<%= render partial: 'layouts/show_edit_destroy', locals: {model: @url, destroyable: true} %> <%# How about associations? %>
+<%= render partial: 'layouts/link_edit_destroy_index', locals: {record: @url, is_to_edit: false, only: :editor} %> <%# How about associations? %>
 
 
 </section> <%# closing section id="sec_primary" %>
@@ -21,7 +21,9 @@
 <%= render partial: 'anchorables_index', locals: {url: @url} %>
 </section>
 
+<%= editor_only_safe_html(Url, method: :index, only: :editor, tag: "div") do %> <%# defined in application_helper.rb %>
 <hr>
   <%= link_to t("layouts.back_to_index"), urls_path %>
+<% end %>
 
 

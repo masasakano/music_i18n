@@ -37,6 +37,9 @@ class ChannelType < BaseWithTranslation
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
 
+  # for destroyable?
+  include ModuleDestroyable
+
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []
 
@@ -67,6 +70,9 @@ class ChannelType < BaseWithTranslation
     "fr" => ['Type de chaine inconnue'],
   }.with_indifferent_access
 
+  # essential for ModuleDestroyable
+  DEPENDENT_CHILDREN = [:channels]
+
   # Returning a default Model in the given context
   #
   # place is ignored so far.
@@ -82,14 +88,5 @@ class ChannelType < BaseWithTranslation
     end
 
     self.unknown
-  end
-
-  # Whether destroyable at Model-level
-  #
-  # Not destroyable if dependent children exist or {#unknown?}.
-  # User-level (authorized) permission is not taken into account.
-  def destroyable?
-    return false if channels.exists?
-    !unknown?
   end
 end

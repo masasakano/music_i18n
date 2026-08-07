@@ -7,8 +7,7 @@
 
 <%= render @domain_title %>
 
-<%= render partial: 'layouts/show_edit_destroy', locals: {model: @domain_title, destroyable: @domain_title.destroyable?} %> <%# How about associations? %>
-
+<%= render partial: 'layouts/link_edit_destroy_index', locals: {record: @domain_title, is_to_edit: false, only: :editor} %>
 
 </section> <%# closing section id="sec_primary" %>
 

@@ -28,7 +28,7 @@ class UrlsTest < ApplicationSystemTestCase
     assert_index_fail_succeed(@url, @h1_title, user_fail: @translator, user_succeed: @trans_moderator)  # defined in test_system_helper.rb
   end
 
-  test "should create url" do
+  test "should create url and destroy" do
     model = @url
     css_n_records = "div#"+model.class.name.underscore.pluralize+" table tr"
     newh1 = "New Url"
@@ -70,7 +70,13 @@ class UrlsTest < ApplicationSystemTestCase
     click_on @button_text[:create]
 
     assert_text "Url was successfully created"
-    click_on "Back"
+    close_flash_windows([:notice, :success])  # defined in test_system_helper.rb
+
+    xp = "div.link-edit-destroy form.button_to button.destroy_link"
+    assert_selector xp, text: "Destroy"
+    assert_destroy_with_text(find(xp), just_click: true, chk_flash: true)  # defined in test_system_helper.rb
+
+    assert_selector "h1", text: "Urls"
 
     ## test "should edit Domain title" do
     #
@@ -85,15 +91,23 @@ class UrlsTest < ApplicationSystemTestCase
     #fill_in "Memo editor", with: @url.memo_editor
     #click_on "Create Url"
 
-
     #click_on "Edit this url", match: :first
   end
 
- 
-# test "should destroy Url" do
-#    visit url_url(@url)
-#    click_on "Destroy this url", match: :first
-#
-#    assert_text "Url was successfully destroyed"
-#  end
+  test "should not see destroy button for Url" do
+    login_from_somewhere @editor_ja.email  # defined in test_system_helper.rb
+
+    anc = Anchoring.first
+    anc.url
+
+    visit url_path(anc.url, locale: I18n.locale)
+    assert_selector "h1", text: anc.url.title_or_alt(lang_fallback_option: :either, langcode: :en)
+
+    # Should not be destroyable due to presence of anchorings.
+    assert_no_selector "div.link-edit-destroy form.button_to button.destroy_link", text: "Destroy"
+
+    click_on "Back to Index", match: :first
+    assert_selector "h1", text: "Urls"
+  end
+
 end

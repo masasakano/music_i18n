@@ -8,7 +8,7 @@
 
 <%= render @site_category %>
 
-<%= render partial: 'layouts/show_edit_destroy', locals: {model: @site_category, destroyable: true} %> <%# !@site_category.uris.exists? %>
+<%= render partial: 'layouts/link_edit_destroy_index', locals: {record: @site_category, is_to_edit: false, only: :admin} %>
 
 
 </section> <%# closing section id="sec_primary" %>

@@ -18,6 +18,9 @@ class Instrument < BaseWithTranslation
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
 
+  # for destroyable?  See {DEPENDENT_CHILDREN}
+  include ModuleDestroyable
+
   ## Commented out because this contradicts:   not null
   # include ModuleWeight  # adds a validation
 
@@ -51,6 +54,9 @@ class Instrument < BaseWithTranslation
     "en" => ['Unknown music instrument', 'Unknown instrument'],
     "fr" => ['Instrument inconnu'],
   }.with_indifferent_access
+
+  # essential for ModuleDestroyable
+  DEPENDENT_CHILDREN = [:artist_music_plays]
 
   # Returning a default Instrument in the given context
   #

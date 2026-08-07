@@ -25,6 +25,10 @@ class DomainTitle < BaseWithTranslation
 
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
+
+  # for destroyable?  See {DEPENDENT_CHILDREN}
+  include ModuleDestroyable
+
   include ModuleWeight  # adds a validation
 
   include ModuleWasFound # defines attr_writers @was_found, @was_created and their questioned-readers. (4 methods)
@@ -66,6 +70,9 @@ class DomainTitle < BaseWithTranslation
     "fr" => ['example.com', "Factice"],
   }.with_indifferent_access
 
+  # essential for ModuleDestroyable
+  DEPENDENT_CHILDREN = [:urls]  # Children Domain may exist, yet destroyable.
+
   belongs_to :site_category
   has_many :domains, dependent: :destroy  # cascade in DB. But this should be checked in Rails controller level!
   has_many :urls, through: :domains       # This prohibits cascade destroys - you must destroy all Urls first.
@@ -97,11 +104,6 @@ class DomainTitle < BaseWithTranslation
   # @return [Domain, NilClass] nil only in an unlikely case of no child Domains.
   def primary_domain
     domains.order(:weight).first
-  end
-
-  # At the association level (NOT the user-permission level)
-  def destroyable?
-    !urls.exists?
   end
 end
 

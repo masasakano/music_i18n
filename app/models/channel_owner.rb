@@ -35,6 +35,9 @@ class ChannelOwner < BaseWithTranslation
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
 
+  # for destroyable?
+  include ModuleDestroyable
+
   # defines +self.class.primary+
   include ModulePrimaryArtist
 
@@ -77,6 +80,9 @@ class ChannelOwner < BaseWithTranslation
     "en" => ['Unknown channel owner'],
     "fr" => ['Propriétaire de chaine inconnu'],
   }.with_indifferent_access
+
+  # essential for ModuleDestroyable
+  DEPENDENT_CHILDREN = [:channels]
 
   alias_method :inspect_orig, :inspect if ! self.method_defined?(:inspect_orig) # Preferred to  alias :text_new :to_s
   include ModuleModifyInspectPrintReference
@@ -176,15 +182,6 @@ class ChannelOwner < BaseWithTranslation
       }.to_h
       best_translations[lc].update_columns(hs)  # skips all validations AND callbacks
     end
-  end
-
-  # Whether destroyable at Model-level
-  #
-  # Not destroyable if dependent children exist or {#unknown?}.
-  # User-level (authorized) permission is not taken into account.
-  def destroyable?
-    return false if channels.exists?
-    !unknown?
   end
 
   ###################

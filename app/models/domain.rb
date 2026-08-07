@@ -20,6 +20,9 @@
 #  fk_rails_...  (domain_title_id => domain_titles.id) ON DELETE => cascade
 #
 class Domain < ApplicationRecord
+  # for destroyable?  See {DEPENDENT_CHILDREN}
+  include ModuleDestroyable
+
   include ModuleWeight  # adds a validation
 
   extend ModuleCommon   # for compile_captured_err_msg
@@ -46,6 +49,9 @@ class Domain < ApplicationRecord
 
   # Specific to this model
   UNKNOWN_TITLE = UNKNOWN_TITLES[:en].first
+
+  # essential for ModuleDestroyable
+  DEPENDENT_CHILDREN = [:urls]  # Children Domain may exist, yet destroyable.
 
   # Callback
   before_validation :normalize_domain
@@ -251,11 +257,6 @@ class Domain < ApplicationRecord
 
     domain_title.update!(site_category: scat)
     scat
-  end
-
-  # At the association level (NOT the user-permission level)
-  def destroyable?
-    !urls.exists?
   end
 
 

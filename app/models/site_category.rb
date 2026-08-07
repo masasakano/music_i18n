@@ -25,6 +25,9 @@ class SiteCategory < BaseWithTranslation
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
 
+  # for destroyable?  See {DEPENDENT_CHILDREN}
+  include ModuleDestroyable
+
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = %i(mname)
 
@@ -56,6 +59,9 @@ class SiteCategory < BaseWithTranslation
     "en" => ['Unknown site category'],
     "fr" => ['Type de site inconnu'],
   }.with_indifferent_access
+
+  # essential for ModuleDestroyable
+  DEPENDENT_CHILDREN = [:domain_titles]
 
   # Returning a default Model in the given context
   #

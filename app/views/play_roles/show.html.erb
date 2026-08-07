@@ -7,9 +7,7 @@
 
 <%= render @play_role %>
 
-<%= render partial: 'layouts/show_edit_destroy', locals: {model: @play_role, destroyable: @play_role.destroyable?} %>
-
-  <%= link_to "Back to PlayRole index", play_roles_path %>
+<%= render partial: 'layouts/link_edit_destroy_index', locals: {record: @play_role, is_to_edit: false, only: :admin} %>
 
 <% if false %>
 <% if can? :read, EventItem %>  <%# should be redundant %>

@@ -20,6 +20,9 @@ class PlayRole < BaseWithTranslation
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
 
+  # for destroyable?  See {DEPENDENT_CHILDREN}
+  include ModuleDestroyable
+
   ## Commented out because this contradicts:   not null
   # include ModuleWeight  # adds a validation
 
@@ -55,10 +58,8 @@ class PlayRole < BaseWithTranslation
     "fr" => ['Relation inconnue entre Engage-EventItem', 'Relation inconnue'],
   }.with_indifferent_access
 
-  # This does not take into account the user's permission.
-  def destroyable?
-    !artist_music_plays.exists? && !unknown?
-  end
+  # essential for ModuleDestroyable
+  DEPENDENT_CHILDREN = [:artist_music_plays]
 
   # Returning a default Model in the given context
   #

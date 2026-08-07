@@ -48,6 +48,9 @@ class Channel < BaseWithTranslation
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
 
+  # for destroyable?  See {DEPENDENT_CHILDREN}
+  include ModuleDestroyable
+
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []
 
@@ -107,6 +110,9 @@ class Channel < BaseWithTranslation
     "en" => ['Unknown channel'],
     "fr" => ['Chaine inconnue'],
   }.with_indifferent_access
+
+  # essential for ModuleDestroyable
+  DEPENDENT_CHILDREN = [:harami_vids]
 
   # @return [Channel]
   def self.primary

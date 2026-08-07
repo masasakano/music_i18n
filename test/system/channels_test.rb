@@ -73,7 +73,7 @@ class ChannelsTest < ApplicationSystemTestCase
 
     assert_text "Channel was successfully created"
 
-    click_on "Back"
+    click_on "Back", match: :first
 
     n_records = page.all("div#channels table tr").size - 1
     assert_equal(n_records_be4+1, n_records)
@@ -95,15 +95,16 @@ class ChannelsTest < ApplicationSystemTestCase
     # Confirming the record has been updated.
     ### todo...
 
-    #click_on "Back"
-
     ## test "should destroy Channel" do
     visit channel_url(mdl2, locale: I18n.locale)
     assert_selector "h1", text: "Channel:"
     assert_match(/\AChannel:/, page.find("h1").text)
 
+    # xp = "div.link-edit-destroy form.button_to button.destroy_link"
     xpath = assert_find_destroy_button  # defined in test_system_helper.rb
-    assert_destroy_with_text(xpath, "Channel")  # defined in test_system_helper.rb
+    assert_difference("Channel.count", -1){
+      assert_destroy_with_text(find(:xpath, xpath), "Channel", just_click: true, chk_flash: true)  # defined in test_system_helper.rb
+    }
 
     # should be in the Index page
     assert_selector "h1", text: @h1_title  # should be redirected back to index.

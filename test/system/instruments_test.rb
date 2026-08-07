@@ -85,7 +85,7 @@ class InstrumentsTest < ApplicationSystemTestCase
 
     xpath = assert_find_destroy_button  # defined in test_system_helper.rb
     with_longer_wait(1) {
-      assert_destroy_with_text(xpath, "Instrument")  # defined in test_system_helper.rb
+      assert_destroy_with_text(xpath, "Instrument", chk_flash: true)  # defined in test_system_helper.rb
     }
 
     # should be in the Index page

@@ -49,9 +49,15 @@ class PlayRolesTest < ApplicationSystemTestCase
     assert_text "PlayRole was successfully created"
     assert_find_destroy_button  # This has no dependent children, hence destroyable.  # defined in test_system_helper.rb
 
-    click_on "Back"
-
     assert_equal n_models+1, PlayRole.count
+
+    xpath = assert_find_destroy_button  # defined in test_system_helper.rb
+    assert_difference("PlayRole.count", -1){
+      assert_destroy_with_text(find(:xpath, xpath), "PlayRole", just_click: true, chk_flash: true)  # defined in test_system_helper.rb
+    }
+
+    # should be in the Index page
+    assert_selector "h1", text: "PlayRole index"  # should be redirected back to index.
   end
 
   test "should update PlayRole" do
@@ -73,7 +79,9 @@ class PlayRolesTest < ApplicationSystemTestCase
     assert @play_role.artist_music_plays.exists?, "sanity check."
     assert_find_destroy_button(should_succeed: false)  # because of dependent children
 
-    click_on "Back"
+    click_on "Back", match: :first
+    assert_selector "h1", text: "PlayRole index"
+
     assert_equal n_models, PlayRole.count
     assert_equal 123456.7, @play_role.reload.weight
   end

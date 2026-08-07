@@ -260,7 +260,7 @@ class ActiveSupport::TestCase
   #    If you have not visited any page, that is the only option.  If you should be on the sign-in page,
   #    specify :signin, or else, providing that you are on some page, 
   #    if :home or :footer, the respective footer login is used, else if :text, simple text assertion is used.
-  def login_from_somewhere(email, password: '123456', from: :signin_page)
+  def login_from_somewhere(email, password: '123456', from: :visit)
     login_word  = "Log in"   # may become "Sign in" ?
     logout_word = "Log out"
 
@@ -268,7 +268,7 @@ class ActiveSupport::TestCase
     case from
     when :visit
       visit new_user_session_path
-      assert_selector "h1", text: login_word
+      assert_selector "h1,h2", text: login_word  # <h2> in Devise
     when :signin
       refute_text logout_word  # sanity check
       # assert_selector "h1", text: login_word  # This should pass, but not executing here for simplicity.
@@ -290,8 +290,10 @@ class ActiveSupport::TestCase
     fill_in "Email", with: email  # All-mighty moderator
     fill_in "Password", with: password
     click_on login_word
-    assert_text logout_word
+    assert_text logout_word  # "Log out" is visible because you have logged in
     assert_text TEXT_ASSERTED[:login][:signed_in]  # defined in test_system_helper.rb
+
+    close_flash_windows([:notice, :success])
   end
 
   # performs log out
@@ -303,6 +305,22 @@ class ActiveSupport::TestCase
     assert page.find(:xpath, XPATHS[:user_menu_bar][:logout]).click
     assert_selector :xpath, xpath_for_flash(:notice, category: :div), text: TEXT_ASSERTED[:login][:signed_out]  # Notice message issued. "Signed out successfully."
     refute_selector :xpath, XPATHS[:user_menu_bar][:top] # User is certainly logged out.
+  end
+
+  # So far, closes only 1 Flash window
+  #
+  # @example 
+  #     close_flash_windows  # defined in test_system_helper.rb
+  #     close_flash_windows([:notice, :success])  # defined in test_system_helper.rb
+  #
+  # @param type [NilClass, Symbol, Array]
+  # @return
+  def close_flash_windows(type=nil)
+    xp = xpath_for_flash(type, category: :div)
+    assert_selector :xpath, xp
+    find_all(:xpath, xp).first.find(".btn-close").click
+    # find("##{Consts::HtmlIds::FLASH} .btn-close").click  would do (for a random type of alert!)
+    # assert_no_selector Consts::HtmlIds::FLASH
   end
 
   # Tests CRUD of Anchoring in Show page
@@ -655,6 +673,7 @@ class ActiveSupport::TestCase
       exp = obj_title+" was successfully destroyed"
       if chk_flash
         flash_text_system_assert(exp, type: :notice, category: :div)  # defined in test_helper.rb
+        close_flash_windows([:notice, :success])
       else
         assert_text exp
       end

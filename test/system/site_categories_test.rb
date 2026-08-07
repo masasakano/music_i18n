@@ -89,7 +89,7 @@ class SiteCategoriesTest < ApplicationSystemTestCase
     assert_text "SiteCategory was successfully created"
     assert_equal 'Tekitoh',  page.find('table#all_registered_translations_site_category tr.lc_en td.trans_title').text
     assert_equal "teki_toh", page.find_all(:xpath, "//dt[@title='machine name']/following-sibling::dd")[0].text
-    click_on "Back"
+    click_on "Back to Index", match: :first
 
     n_records = page.all("div#site_categories table tr").size - 1
     assert_equal(n_records_be4+1, n_records)
@@ -108,29 +108,17 @@ class SiteCategoriesTest < ApplicationSystemTestCase
 
     # Confirming the record has been updated.
     assert_equal "something_else", page.find_all(:xpath, "//dt[@title='machine name']/following-sibling::dd")[0].text
-    click_on "Back"
+    click_on "Back to Index", match: :first
 
     ## test "should destroy SiteCategory" do
     visit site_category_url(mdl2, locale: I18n.locale)
     assert_selector "h1", text: "Site Category:"
     assert_match(/\ASite\s*Category:/, page.find("h1").text)
 
-if true
     xpath = assert_find_destroy_button  # defined in test_system_helper.rb
-    assert_destroy_with_text(xpath, "SiteCategory")  # defined in test_system_helper.rb
+    assert_destroy_with_text(xpath, "SiteCategory", chk_flash: true)  # defined in test_system_helper.rb
     # click_on "Destroy", match: :first  # not work as "Destroy" is now in Translation table, too.
 
-else
-    assert_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']"
-
-    accept_alert do
-      find(:xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']").click
-      # click_on "Destroy", match: :first  # not work as "Destroy" is now in Translation table, too.
-    end
-
-    #assert_text "SiteCategory was successfully destroyed"
-    assert_text "was successfully destroyed"
-end
     # should be in the Index page
     assert_selector "h1", text: @h1_title  # should be redirected back to index.
     n_records = page.all("div#site_categories table tr").size - 1

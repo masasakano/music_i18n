@@ -7,7 +7,5 @@
 
 <%= render @instrument %>
 
-<%= render partial: 'layouts/show_edit_destroy', locals: {model: @instrument, destroyable: !@instrument.unknown?} %>
+<%= render partial: 'layouts/link_edit_destroy_index', locals: {record: @instrument, is_to_edit: false, only: :admin} %>
 
-<hr>
-  <%= link_to t("layouts.back_to_index"), instruments_path %>

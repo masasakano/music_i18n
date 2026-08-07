@@ -7,10 +7,7 @@
 
 <%= render @channel %>
 
-<%= render partial: 'layouts/show_edit_destroy', locals: {model: @channel, destroyable: !@channel.harami_vids.exists?} %>
-
-<hr>
-  <%= link_to t("layouts.back_to_index"), channels_path %>
+<%= render partial: 'layouts/link_edit_destroy_index', locals: {record: @channel, is_to_edit: false, only: :editor} %>
 
 <hr>
 
@@ -19,4 +16,7 @@
 
   <%= render partial: 'layouts/harami_vids_index', locals: {harami_vids: @channel.harami_vids.order("harami_vids.release_date" => :desc).distinct, music: nil} %>
 </section>
+
+<hr>
+  <%= link_to t("layouts.back_to_index"), channels_path %>
 

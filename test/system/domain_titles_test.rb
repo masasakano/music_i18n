@@ -67,7 +67,7 @@ class DomainTitlesTest < ApplicationSystemTestCase
     click_on @button_text[:create]
 
     assert_text "DomainTitle was successfully created"
-    click_on "Back"
+    click_on "Back", match: :first
 
     ## test "should edit Domain title" do
 
@@ -90,7 +90,7 @@ class DomainTitlesTest < ApplicationSystemTestCase
     # Confirming the record has been updated.
     ### todo...
 
-    click_on "Back"
+    click_on "Back", match: :first
 
     ## test "should destroy Domain title" do
 
@@ -98,21 +98,11 @@ class DomainTitlesTest < ApplicationSystemTestCase
     assert_selector "h1", text: "Domain Title:"
     assert_selector "h1", text: mdl2.title
     assert_match(/\ADomain\s*Title:/i, page.find("h1").text)
-if true
+
     xpath = assert_find_destroy_button  # defined in test_system_helper.rb
-    assert_destroy_with_text(xpath, "DomainTitle")  # defined in test_system_helper.rb
+    assert_destroy_with_text(xpath, "DomainTitle", chk_flash: true)  # defined in test_system_helper.rb
     # click_on "Destroy", match: :first  # not work as "Destroy" is now in Translation table, too.
-else
-    assert_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']"
 
-    accept_alert do
-      find(:xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']").click
-      # click_on "Destroy", match: :first  # not work as "Destroy" is now in Translation table, too.
-    end
-
-    #assert_text "DomainTitle was successfully destroyed"
-    assert_text "was successfully destroyed"
-end
     # should be in the Index page
     assert_selector "h1", text: @h1_title  # should be redirected back to index.
     assert_selector css_n_records

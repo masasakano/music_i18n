@@ -45,6 +45,10 @@ class Url < BaseWithTranslation
 
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
+
+  # for destroyable?  See {DEPENDENT_CHILDREN}
+  include ModuleDestroyable
+
   include ModuleWeight  # adds a validation
 
   #include ModuleUrlUtil # self.class.normalized_url etc.  # Using it (in the class method with the same name) without including it.
@@ -81,6 +85,9 @@ class Url < BaseWithTranslation
     "en" => ['example.com'],
     "fr" => ['example.com'],
   }.with_indifferent_access
+
+  # essential for ModuleDestroyable
+  DEPENDENT_CHILDREN = [:anchorings]  # n.b., destroyable at the DB and Rails levels, but prohibits here.
 
   # Callback
   before_validation :add_scheme_to_url
