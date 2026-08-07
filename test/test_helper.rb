@@ -151,6 +151,10 @@ class ActiveSupport::TestCase
   #
   # fmt is for sprintf
   XPATHS = {
+    user_menu_bar: {
+      top: (top="//div[@id='navbar_top']"),
+      logout: top+"//*[text()='Log out']",  # <button> (or used to <a>)
+    },
     anchoring: {
       section_fmt: "//*[@id='anchoring_index_%s']",  # for sprintf, where %s is like HaramiVid
       list: (anchoring_list="//"+ModuleCommon.xpath_contain_css("anchoring_list", complete_for: "ul")),  # more accurately, preceded with sprintf(XPATHS[:anchoring][:section_fmt], MyModel.name)
@@ -171,8 +175,16 @@ class ActiveSupport::TestCase
       fmt_any_button_submit: "//form//button[@type='submit'][contains(., '%s')]", # 1 parameter: Label like "Destroy" (Rails-7.2)
     }.with_indifferent_access,
     all_translation_table: { # table ID is like "#all_registered_translations_music"
-      buton_add_trans:    "//table[contains(@class, 'all_registered_translations')]//tr[contains(@class, 'lang_banner')]//form[contains(@class, 'button_to')]//button[@type='submit'][contains(., '%s')]", # 1 parameter (hence containing multiple components): Label ('Add translation') (Rails-7.2)
-      buton_add_trans_lc: "//table[contains(@class, 'all_registered_translations')]//tr[contains(@class, 'lang_banner_%s')]//form[contains(@class, 'button_to')]//button[@type='submit'][contains(., '%s')]", # 2 parameters: locale, Label ('Add translation') (Rails-7.2)
+      top: (tbl_top=("//" + ModuleCommon.xpath_contain_css("all_registered_translations", complete_for: "table"))),
+      trans_row: (trans_row=(tbl_top + "//" + ModuleCommon.xpath_contain_css("trans_row", complete_for: "tr"))),
+      trans_row_lang_fmt: ((tbl_top + "//" + ModuleCommon.xpath_contain_css(["trans_row", "lc_%s"], complete_for: "tr"))),  # sprintf format for langcode/locale (e.g. "en")
+      banner_row: (banner_row=(tbl_top + "//" + ModuleCommon.xpath_contain_css("lang_banner", complete_for: "tr"))),
+      banner_row_lang_fmt: (banner_row_lang_fmt=banner_row.sub(/(lang_banner)/, '\1_%s')),
+      td_action: trans_row + "//" + ModuleCommon.xpath_contain_css("trans_action", complete_for: "td"),
+         # Tip: To filter down with langcode "ja" in Capybara: .select{|node| node.has_ancestor?("tr.lc_ja", wait: 0)}
+         # Tip: To filter down for :destroy in Capybara:: .select{|node| node.matches_css?(".trans_destroy"), wait: 0)}
+      button_add_trans_fmt:    banner_row + (button_tail="//" + ModuleCommon.xpath_contain_css("button_to", complete_for: "form") + "//button[@type='submit'][contains(., '%s')]"), # 1 parameter (hence containing multiple components): Label ('Add translation') (Rails-7.2)
+      button_add_trans_lc_fmt: banner_row_lang_fmt + button_tail # 2 parameters: locale, Label ('Add translation') (Rails-7.2)
     }.with_indifferent_access,
   }.with_indifferent_access
 

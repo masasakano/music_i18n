@@ -96,7 +96,7 @@ class ChannelTypesTest < ApplicationSystemTestCase
     ## "should update ChannelType" do
     mdl2 = ChannelType.last
     visit channel_type_url(mdl2, locale: I18n.locale)
-    click_on "Edit this Channel Type", match: :first
+    click_on "Edit this ChannelType", match: :first
 
     assert_selector "h1", text: "Editing Channel Type"
 

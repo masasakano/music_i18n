@@ -7,16 +7,5 @@
 
 <%= render @channel_platform %>
 
-<div>
-    <% if can? :update, @channel_platform %>
-  <%= link_to "Edit this Channel Platform", edit_channel_platform_path(@channel_platform) %> |
-    <% end %>
-
-    <% if can?(:destroy, @channel_platform) %>
-  <%= button_to "Destroy", @channel_platform, method: :delete, data: { confirm: t('are_you_sure') } %>
-    <% end %>
-</div>
-
-<hr>
-  <%= link_to t("layouts.back_to_index"), channel_platforms_path %>
+<%= render partial: 'layouts/link_edit_destroy_index', locals: {record: @channel_platform, is_to_edit: false, only: :moderator} %>
 

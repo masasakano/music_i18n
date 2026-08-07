@@ -4,7 +4,7 @@ require "application_system_test_case"
 class Artists::MergesTest < ApplicationSystemTestCase
   N_FIXTURES_HARAMI1129_REVIEW = 2
 
-  XPATH_ADD_TRANSLATION = sprintf(XPATHS[:all_translation_table][:buton_add_trans], I18n.t("layouts.add_translation", locale: :en)) # 'Add translation'
+  XPATH_ADD_TRANSLATION = sprintf(XPATHS[:all_translation_table][:button_add_trans_fmt], I18n.t("layouts.add_translation", locale: :en)) # 'Add translation'
   XPATH_DIV_LINK_EDIT_DESTROY = "//div[contains(@class, 'link-edit-destroy')]"
 
   # XPath (Rails-7.2) for Buttons of "Merge with another Artist" or Music
@@ -311,14 +311,9 @@ class Artists::MergesTest < ApplicationSystemTestCase
     refute_selector :xpath, "//input[@type='submit' and @value='Merge with another Artist']"
 
     ## Logout and back in as a full moderator.
-    page.find(:xpath, "//div[@id='navbar_top']//a[text()='Log out']").click
-    assert_equal "Signed out successfully.", page.find(:xpath, xpath_for_flash(:notice, category: :div)).text.strip  # Notice message issued.
+    logout_from_menu # defined in test_system_helper.rb
 
-    page.find("div#home_bottom a.login-button").click  # In the bottom menu.
-    #visit new_user_session_path  # equivalent.
-    fill_in "Email", with: @moderator_all.email  # All-mighty moderator
-    fill_in "Password", with: '123456'  # from users.yml
-    click_on "Log in"
+    login_from_somewhere(@moderator_all.email, from: :home)  # All-mighty moderator
 
     assert_selector "h1", text: "HARAMIchan"
 
@@ -497,7 +492,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
     #assert_equal N_FIXTURES_HARAMI1129_REVIEW+1, page.find_all(:xpath, "//table[@id='harami1129_reviews_index']//tbody//tr").size, "should display 2 entries as defined in the fixture harami1129_review"
 
     ## Logout just in case.
-    page.find(:xpath, "//div[@id='navbar_top']//a[text()='Log out']").click
+    logout_from_menu # defined in test_system_helper.rb
   end  # test "populate Harami1129s and merge artists" do
 
   private

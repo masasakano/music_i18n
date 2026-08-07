@@ -17,19 +17,23 @@ class Translations::DemotesController < ApplicationController
   #
   # @param tra [Translation]
   # @param user [User]
-  def self.allowed?(tra, user=ModuleWhodunnit.whodunnit)
+  # @param for_destroy: [Boolean[ for the purpose of judging to destroy
+  def self.allowed?(tra, user=ModuleWhodunnit.whodunnit, for_destroy: false)
     # return false if !can?(:update, Translations::DemotesController)  # This check should be done in UI (View). Besides, it is a bit awkward to use "can?" here.
+    return false if !user || !user.roles.exists?
     return false if tra.weight && tra.weight == Float::INFINITY
-    return false if tra.is_orig  # Original one cannot be demoted. Moderator may modify is_orig
-    return false if tra.siblings(exclude_self: false).last == tra
+    return false if tra.is_orig && !for_destroy  # Original one cannot be demoted. Moderator may modify is_orig
+    return false if tra.siblings(exclude_self: false).last == tra && !for_destroy  # Last Translation for a particular language can be destroyed as long as it is not the only one in any language (which is considered in ability.rb).
 
-    role = user.highest_role_in(RoleCategory[RoleCategory::MNAME_TRANSLATION])
-    return false if !tra.create_user
     return true  if  tra.create_user == user
-    other_user = tra.create_user
-    return false if !other_user  # If create_user is undefined weight should be either 0 or Float::INFINITY anyway
-    other_role = other_user.highest_role_in(RoleCategory[RoleCategory::MNAME_TRANSLATION])
-    return false if !role.superior_to?(other_role)  # If you're at the same rank, you cannot demote it.
+    return for_destroy if !tra.create_user
+
+    # tra.create_user is non-nil
+    other_role = tra.create_user.highest_role_in(RoleCategory[RoleCategory::MNAME_TRANSLATION])
+    return true  if !other_role  # create_user does not have a Role for Translation (e.g., HaramiVid editor is not necessarily a Translator but can create the first Translation).
+    role = user.highest_role_in(RoleCategory[RoleCategory::MNAME_TRANSLATION])
+    return false if !role        # user does not have a Role for Translation
+    return false if !role.superior_to?(other_role) && !user.sysadmin?  # If you're at the same rank, you cannot demote it unless you are the sysadmin.
     return true
   end
 

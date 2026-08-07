@@ -231,15 +231,78 @@ class ActiveSupport::TestCase
     assert_selector "body div.alert", text: exp
   end
 
+  # performs log in (log on)
+  #
+  # @example Login by visiting the sign-in page (you may specify +from: :visit+)
+  #   login_from_somewhere(User.second.email)  # defined in test_system_helper.rb
+  #
+  # @example Login from the sign-in page you are on
+  #   visit new_artist_url  # fail
+  #   assert_text "You need to sign in or sign up"  # should be redirected to the sign_in page
+  #   login_from_somewhere(@editor_all.email, from: :signin)  # defined in test_system_helper.rb
+  #   assert_equal @moderator_gen.display_name, current_user_display_name(is_system_test: true)  # defined in test_helper.rb
+  #
+  # @example Login from footer at Home
+  #   visit root_path
+  #   login_from_somewhere(@moderator_gen.email, from: :home)  # defined in test_system_helper.rb
+  #
+  # @example Login from footer
+  #   visit musics_path
+  #   login_from_somewhere(@moderator_all.email, from: :footer)  # defined in test_system_helper.rb
+  #
+  # @example With crude text assertion of "Log in"
+  #   visit musics_path
+  #   login_from_somewhere(@moderator_all.email, from: :text)  # defined in test_system_helper.rb
+  #
+  # @param email [String]
+  # @param password: [String] Default from users.yml (see before digested)
+  # @param from: [Symbol] If :visit (Default), this newly opens up the sign-in page.
+  #    If you have not visited any page, that is the only option.  If you should be on the sign-in page,
+  #    specify :signin, or else, providing that you are on some page, 
+  #    if :home or :footer, the respective footer login is used, else if :text, simple text assertion is used.
+  def login_from_somewhere(email, password: '123456', from: :signin_page)
+    login_word  = "Log in"   # may become "Sign in" ?
+    logout_word = "Log out"
+
+    ## Checking if login is possible (or if a user is NOT logged in already), and moving to Login page
+    case from
+    when :visit
+      visit new_user_session_path
+      assert_selector "h1", text: login_word
+    when :signin
+      refute_text logout_word  # sanity check
+      # assert_selector "h1", text: login_word  # This should pass, but not executing here for simplicity.
+    when :home, :footer
+      block = ((:home == from) ? "#home_bottom" : "#footer_login")
+      login_css = block + " a.login-button"  # In the bottom menu.
+      assert_selector login_css
+      assert_selector login_css, text: login_word
+      page.find(login_css).click
+    when :text
+      assert_text login_word
+      click_on login_word, match: :first
+    else
+      raise ArgumentError
+    end
+
+    assert_text "Password"
+
+    fill_in "Email", with: email  # All-mighty moderator
+    fill_in "Password", with: password
+    click_on login_word
+    assert_text logout_word
+    assert_text TEXT_ASSERTED[:login][:signed_in]  # defined in test_system_helper.rb
+  end
+
   # performs log out
   #
   # @example
   #   logout_from_menu # defined in test_system_helper.rb
   def logout_from_menu
+    assert_selector :xpath, XPATHS[:user_menu_bar][:top] # User is logged is.
     assert page.find(:xpath, XPATHS[:user_menu_bar][:logout]).click
-    assert_selector :xpath, xpath_for_flash(:notice, category: :div), text: TEXT_ASSERTED[:login][:signed_out]  # Notice message issued.
-                          # "//div[@id='body_main']/p[contains(@class, 'notice')][1]" (and more)
-    # assert_equal "Signed out successfully.", page.find(:xpath, xpath_for_flash(:notice, category: :div)).text.strip  # Notice message issued.
+    assert_selector :xpath, xpath_for_flash(:notice, category: :div), text: TEXT_ASSERTED[:login][:signed_out]  # Notice message issued. "Signed out successfully."
+    refute_selector :xpath, XPATHS[:user_menu_bar][:top] # User is certainly logged out.
   end
 
   # Tests CRUD of Anchoring in Show page
@@ -547,6 +610,9 @@ class ActiveSupport::TestCase
 
   # Tests if a Destroy button exists
   #
+  # This should need updates (after the migration to Propshaft from Sprockets)...
+  # This certainly does not find a plain-text link.
+  #
   # @param should_succeed: [Boolean] false if you expect the button not to be found, making sure the page has been loaded.
   # @return [String] Xpath
   def assert_find_destroy_button(should_succeed: true)
@@ -566,20 +632,49 @@ class ActiveSupport::TestCase
   # @example
   #    assert_destroy_with_text(:first, "My dear object")  # defined in test_system_helper.rb
   #    assert_destroy_with_text("//button_to[text()='Destroy]", "My dear object")  # defined in test_system_helper.rb
+  #    assert_destroy_with_text(find("Delete"), just_click: true, chk_flash: true)  # defined in test_system_helper.rb
   #
-  # @param xpath [String, Symbol] XPath or :first. If :first, a simple algorithm is used.
-  # @param obj_title [String, NilClass] "ChannelOwner" etc, which appears as H1. I nil, the message is not tested
+  # @param xpath [String, Symbol, Capybara::Result] XPath or :first. If :first, a simple algorithm is used.
+  # @param obj_title [String, NilClass] "ChannelOwner" etc, which appears in Flash (though only a simple text evaluation is performed). If nil, the message is not tested
+  # @param just_click: [Boolean] If true (Def: false), +xpath.click+ is performed.
+  # @param chk_flash: [Boolean] If false (Def), +assert_text+ is used, else a Flash message is examined.
   # @return [void]
-  def assert_destroy_with_text(xpath, obj_title)
+  def assert_destroy_with_text(xpath, obj_title=nil, just_click: false, chk_flash: false)
     #accept_alert do
     accept_confirm do
       if :first == xpath
         click_on "Destroy", match: :first
+      elsif just_click
+        xpath.click
       else
         find(:xpath, xpath).click
       end
     end
-    
-    assert_text obj_title+" was successfully destroyed" if obj_title.present?
+
+    if obj_title.present?
+      exp = obj_title+" was successfully destroyed"
+      if chk_flash
+        flash_text_system_assert(exp, type: :notice, category: :div)  # defined in test_helper.rb
+      else
+        assert_text exp
+      end
+    end
+  end
+
+  # Returns true if there is no clickable links/forms/buttons inside the given element
+  #
+  # @example
+  #    refute find_all("td").clickable_inside?(node, **kwd)  # defined in test_system_helper.rb
+  #
+  # @param node [Capybara::Result, Capybara::Session] e.g., +find_all("td")+
+  # @param **kwd [Hash] options passed to +.has_no_css?+. e.g., +wait: 0+
+  def clickable_inside?(node, **kwd)
+    node.has_css?(
+      "a[href]:not(.disabled), " \
+      "button:not(:disabled), " \
+      "input[type='submit']:not(:disabled), " \
+      "input[type='button']:not(:disabled)",
+      **kwd
+    )
   end
 end

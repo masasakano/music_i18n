@@ -112,7 +112,7 @@ class Ability
       can :read, [Country, EngageHow, Genre, EventGroup, Event, EventItem]
       can :show,  Translation
       can :ud,     Translation, create_user_id: user.id #, update_user_id: user.id
-      can :ud,     Translation, is_orig: true # can update/delete the original_language one.
+      can [:edit, :update], Translation, is_orig: true # can update the original_language one (though cannot neccesarily destroy).
       can :ud,     Translation, langcode: 'ja' # can update/delete if JA
       cannot(:ud,  Translation){|trans| !trans.translatable || Ability.new(user).cannot?(:update, trans.translatable)}  # "can?" statement works?
       #cannot(:ud,  Translation){|trans| !trans.translatable || %w(Sex Country).include?(trans.translatable_type)}  # I think "can?" statement does not work.
@@ -247,6 +247,11 @@ class Ability
       cannot(:ud, [Translation]){|trans| (!(base=trans.translatable) && trans.create_user_id != user.id && trans.update_user_id != user.id) ||
                                            (base && base.respond_to?(:unknown?) && base.unknown?)} # non-admin cannot edit Translation for +X.unknown+; this is necessary because anything with is_orig=true is usually editable by Translators.
       cannot(:ud, [Translation]){|trans| (base=trans.translatable) && base.respond_to?(:themselves) && base.themselves } # (except for an admin) Cannot edit Translation of ChannelOwner#themselves==true because its Tranlation-s are equivalent to sym-link to the ChannelOwner#artist Translation-s.
+      cannot(:destroy, Translation){|trans|
+        # This is conservative because deletion is rarely required, given that users can add their own Translation-s.
+        !(trans.weight && trans.weight == Float::INFINITY) &&
+        !Translations::DemotesController.allowed?(trans, user, for_destroy: true)
+      }
       cannot(:destroy, Translation){|trans| trans.last_remaining_in_any_languages?}
     end
 

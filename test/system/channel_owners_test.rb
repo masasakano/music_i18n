@@ -73,7 +73,7 @@ class ChannelOwnersTest < ApplicationSystemTestCase
     assert_text "ChannelOwner was successfully created"
     assert_equal 'John Lennon',  page.find('table#all_registered_translations_channel_owner tr.lc_en td.trans_title').text
 
-    click_on "Back"
+    click_on "Back to Index", match: :first
 
     n_records = page.all("div#channel_owners table tr").size - 1
     assert_equal(n_records_be4+1, n_records)
@@ -82,7 +82,7 @@ class ChannelOwnersTest < ApplicationSystemTestCase
     ## "should update ChannelOwner" do
     mdl2 = ChannelOwner.last
     visit channel_owner_url(mdl2, locale: I18n.locale)
-    click_on "Edit this Channel Owner", match: :first
+    click_on "Edit this ChannelOwner", match: :first
 
     assert_selector "h1", text: "Editing Channel Owner"
 
@@ -94,7 +94,7 @@ class ChannelOwnersTest < ApplicationSystemTestCase
     # Confirming the record has been updated.
     ### todo...
 
-    click_on "Back"
+    click_on "Back", match: :first
 
     ## test "should destroy ChannelOwner" do
     visit channel_owner_url(mdl2, locale: I18n.locale)

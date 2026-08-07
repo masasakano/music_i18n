@@ -76,7 +76,7 @@ class ChannelPlatformsTest < ApplicationSystemTestCase
     ## "should update ChannelPlatform" do
     mdl2 = ChannelPlatform.last
     visit channel_platform_url(mdl2, locale: I18n.locale)
-    click_on "Edit this Channel Platform", match: :first
+    click_on "Edit this ChannelPlatform", match: :first
 
     assert_selector "h1", text: "Editing Channel Platform"
 
@@ -91,19 +91,10 @@ class ChannelPlatformsTest < ApplicationSystemTestCase
     visit channel_platform_url(mdl2, locale: I18n.locale)
     assert_selector "h1", text: "Channel Platform:"
     assert_match(/\AChannel\s*Platform:/, page.find("h1").text)
-if true
+
     xpath = assert_find_destroy_button  # defined in test_system_helper.rb
     assert_destroy_with_text(xpath, "ChannelPlatform")  # defined in test_system_helper.rb
-else
-    assert_selector :xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']"
 
-    find(:xpath, "//form[@class='button_to']//input[@type='submit'][@value='Destroy']").click
-#    accept_alert do
-#      click_on "Destroy", match: :first  # not work as "Destroy" is now in Translation table, too.
-#    end
-
-    assert_text "ChannelPlatform was successfully destroyed"
-end
     # should be in the Index page
     assert_selector "h1", text: @h1_title  # should be redirected back to index.
     n_records = page.all("div#channel_platforms table tr").size - 1

@@ -28,9 +28,9 @@
      <% if can?(:destroy, model) && !model.harami_vids.exists? && !model.harami1129s.exists?  && !model.harami1129s.exists? && (!model.respond_to?(:channel_owner) || !model.channel_owner) %>
       <% msg2confirm = (t('are_you_sure')+" "+t("are_you_sure_but_merge")).html_safe %>
       <% if !model.new_record? %>
-       <%= button_to 'Destroy', model, method: :delete, data: { confirm: msg2confirm } %>
+       <%= destroy_link(model, extra_classes: ["destroy_link"], confirm_message: t("layouts.OMG_whats_this")) %><%# defined in application_helper.rb %>
       <% else %>
-  &nbsp;&nbsp; / <%= link_to 'Destroy', model, method: :delete, data: { confirm: msg2confirm } %>
+  &nbsp;&nbsp; / <%= destroy_link(model, is_button: false) %>
       <% end %>
      <% else %>
       <% if !model.new_record? %> <%# ----- In "show", nothing related to "Destroy" is shown. %> <%# I think this is redundant and unnecessary, because when it is a new record, this point should not be reached in the first place. %>

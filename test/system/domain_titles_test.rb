@@ -96,6 +96,7 @@ class DomainTitlesTest < ApplicationSystemTestCase
 
     visit domain_title_url(mdl2, locale: I18n.locale)
     assert_selector "h1", text: "Domain Title:"
+    assert_selector "h1", text: mdl2.title
     assert_match(/\ADomain\s*Title:/i, page.find("h1").text)
 if true
     xpath = assert_find_destroy_button  # defined in test_system_helper.rb

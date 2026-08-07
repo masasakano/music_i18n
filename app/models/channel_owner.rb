@@ -178,6 +178,15 @@ class ChannelOwner < BaseWithTranslation
     end
   end
 
+  # Whether destroyable at Model-level
+  #
+  # Not destroyable if dependent children exist or {#unknown?}.
+  # User-level (authorized) permission is not taken into account.
+  def destroyable?
+    return false if channels.exists?
+    !unknown?
+  end
+
   ###################
 
   # Custom validation

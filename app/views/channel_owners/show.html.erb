@@ -7,23 +7,7 @@
 
 <%= render @channel_owner %>
 
-<div class="editor_only">
-    <% if can? :update, @channel_owner %>
-      <span class="lead">
-        <%= link_to "Edit this Channel Owner", edit_channel_owner_path(@channel_owner) %>
-      </span>
-    <% end %>
-
-    <% if can?(:destroy, @channel_owner) %>
-      <span class="text-end">
-        <% if @channel_owner.harami_vids.exists? %>
-          <form class="button_to"><input disabled="disabled" type="submit" value="Destroy"></form>
-        <% else %>
-          <%= button_to "Destroy", @channel_owner, method: :delete, data: { confirm: t('are_you_sure') } %>
-        <% end %>
-      </span>
-    <% end %>
-</div>
+<%= render partial: 'layouts/link_edit_destroy_index', locals: {record: @channel_owner, is_to_edit: false, only: :moderator} %>
 
 <hr>
 

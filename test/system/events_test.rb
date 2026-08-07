@@ -58,11 +58,7 @@ class EventsTest < ApplicationSystemTestCase
   test "editor should create event" do
     ## Events#index by Editor
     visit root_path
-    click_on "Log in", match: :first
-    fill_in "Email", with: @moderator.email
-    fill_in "Password", with: '123456'  # from users.yml
-    click_on "Log in"
-    assert_text TEXT_ASSERTED[:login][:signed_in]  # defined in test_system_helper.rb
+    login_from_somewhere(@moderator_all.email, from: :text)  # All-mighty moderator
 
     visit events_url
     #Capybara.using_wait_time(2){

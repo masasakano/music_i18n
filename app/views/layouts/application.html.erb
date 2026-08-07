@@ -26,7 +26,7 @@
           / <%= link_to 'Admin_panel', admin_panel_path, class: 'login-button' %><%# rails_admin.dashboard_path with rails_admin %>
         <% end %>
         / User=<strong><span class="navbar_top_display_name"><%= link_to current_user.display_name, user_path(current_user) %></span></strong>
-        / <%= link_to destroy_user_session_path, method: :delete do %><%= t('log_out') %><% end %>)
+        / <%= destroy_link(destroy_user_session_path, t('log_out'), is_button: true, inline: true, link_like: true, extra_classes: "sign_out", with_confirm: false, style: "color: #9999ff; margin-left: -0.6em;") %><%# defined in application_helper.rb %>
       </div>
     <% end %>
 

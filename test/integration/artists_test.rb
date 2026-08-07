@@ -53,7 +53,7 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     css_navbar = css_select("div#navbar_top")
-    assert_match(/(log|sign)\s?out/i, css_navbar.css('a').text)  # signed in for sure.
+    assert_match(/(log|sign)\s?out/i, css_navbar.css('button').text)  # signed in for sure.
     assert_includes css_navbar.text, "Admin"  # signed in as an admin
 
     csssel = css_select('table tbody th')

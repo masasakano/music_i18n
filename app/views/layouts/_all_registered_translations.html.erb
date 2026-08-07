@@ -37,7 +37,7 @@
      flag_ables = {
        demotable:  (can_demote =can?(:update, Translations::DemotesController)),
        promotable: (can_promote=can?(:update, Translations::PromotesController)),
-       destroyable: model.translations.any?{|tra| can? :destroy, tra},
+       destroyable: can?(:destroy, Translation) && model.translations.any?{|tra| can? :destroy, tra},
      }
      action_colspan += flag_ables.values.count(true)
 
@@ -134,7 +134,7 @@
           <% class2add = ((current_user && current_user.qualified_as?(Role::RNAME_MODERATOR, RoleCategory::MNAME_TRANSLATION)) ? "moderator_only" : "editor_only") %> <%# One's own Translation can be destroyed by themselves even if they are Editors. It is the same for Moderators, but Moderators do have more responsibility and so the style of "moderator_only" is used for Destroy regardless of the Translation owned by themselves or not. %>
           <% class2add = "admin_only" if tra.last_remaining_in_any_languages? %>
           <td class="trans_action trans_destroy <%= class2add %>" style="border-left-style: none;">
-            <%= link_to('Destroy', tra, method: :delete, data: { confirm: (t('are_you_sure')).html_safe }) %>
+            <%= destroy_link(tra, is_button: true, inline: true, link_like: true) %>
           </td>
         <% else %>
           <td><span class="cell_disable_link destroy">Destroy</span></td>

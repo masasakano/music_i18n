@@ -4,7 +4,6 @@
 //   https://github.com/hotwired/turbo-rails#navigate-with-turbo-drive
 //   https://stackoverflow.com/a/71140352/3577922
 // Without this, the JavaScript is fired only when a page is reloaded.
-import "@hotwired/turbo-rails"
 import { Turbo } from "@hotwired/turbo-rails"
 Turbo.session.drive = false
 import "./controllers"

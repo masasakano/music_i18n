@@ -1321,6 +1321,73 @@ module ApplicationHelper
     (text.present? || show_always) ? ApplicationController.helpers.tag.send(tag, text, class: html_classes, **opts) : String.new
   end
 
+  # Button/Link for the destroy action, which is tricky and depends on Rails application settings
+  #
+  # +method: delete+ for HTTP is usually blocked by the browser, unless +<button>+ is used,
+  # which Browsers natively interpret.
+  # Therefore, to make a +delete+ request work from a link, usually, JavaScript should be
+  # employed to circumvent it.
+  #
+  # In Rails-7 and later, Turbo is emploeyd.  In addition, if Propshaft is employed, 
+  # how JS works is tricky.  It has certainly changed since the era of Sprockets.
+  # This helper method handles the case across the app.
+  #
+  # Note that if the user disables JS, delete requests are less likely to work,
+  # and for this reason, +button_to+ Rails helper, which creates an HTML native form,
+  # is better for +method: :delete+. %>
+  #
+  # == Old form with Sprockets before Propshaft
+  #
+  #    button_to("Destroy", record, method: :delete, data: { confirm: "Are you sure?" })
+  #    link_to(  "Destroy", record, method: :delete, data: { confirm: "Are you sure?" })
+  #
+  # @example  inline button-like
+  #    destroy_link(record, inline: true, extra_classes: ["destroy_link"])  # defined in application_helper.rb
+  #
+  # @example  inline link-like
+  #    destroy_link(record, inline: true, link_like: true, extra_classes: ["destroy_link"], confirm_message: t("layouts.OMG_whats_this"), style: "margin-left: -0.6em;")  # defined in application_helper.rb
+  #
+  # @example  using HTML anchor
+  #    destroy_link(record, is_button: false, extra_classes: ["destroy_link"])  # defined in application_helper.rb
+  #
+  # For link-text, the following may be useful (See views.en.yml).
+  #
+  #    t("layouts.destroy_button").capitalize  # (en) "Commit Destroy"
+  #    t("layouts.destroy_link").capitalize    # (en) "Destroy this"
+  #    t("layouts.destroy_short").capitalize   # (en) "Destroy"
+  #
+  # @param path [String, ActiveRecord]
+  # @option destory_text [String] String to show. NOTE that the order of path and link-text is the opposite of +link_to+ (!)
+  # @param is_button: [Boolean] if true (Def), +button_to+ is used, else +<a>+
+  # @param inline: [Boolean] inline display if true (Def: false). Valid only if is_button is true.
+  # @param link_like: [Boolean] if true (Def: false), Bootstrap CSS to make it look like a text is employed. Valid only if is_button is true.
+  # @param extra_classes: [Array, String] extra CSS classes for the +<button>+ or +<a>+ tag.
+  # @param with_confirm: [Boolean] if true (Def), confirmation-pop up opens.
+  # @param confirm_message: [String] Confirmation pop-up message.
+  # @param **kwds: [Hash] any other options to pass to the parent Rails method. e.g., +style: {color: "red"}+
+  #    Note that +inline+ (and +extra_classes+) and +link_like+ options introduces :class and :form_class options, respectively.
+  #    So, if your +**kwds+ option contains them, you have to be responsible for them.
+  def destroy_link(path, destory_text="Destroy", is_button: true, inline: false, link_like: false, extra_classes: [], with_confirm: true, confirm_message: t('are_you_sure'), **kwds)
+    classes_str = [extra_classes].flatten.join(" ")
+    if is_button
+      turbohs = { turbo: true }
+      turbohs[:turbo_confirm] = confirm_message if with_confirm
+      opts = { form: {data: turbohs} }
+      classes_str = [classes_str, (link_like ? "btn btn-link p-0 align-baseline" : "")].join(" ")
+      opts[:class] = classes_str if !classes_str.empty?
+      opts[:form_class] = "d-inline" if inline
+      opts.merge! kwds
+      button_to destory_text, path, method: :delete, **opts
+    else  # normal link anchor text
+      turbohs = { turbo: true, turbo_method: :delete }
+      turbohs[:turbo_confirm] = t('are_you_sure') if with_confirm
+      opts = {data: turbohs}
+      opts[:class] = classes_str if !classes_str.empty?
+      opts.merge! kwds
+      link_to destory_text, path, **opts
+    end
+  end
+
   # True if either flash[TYPE] or @main_record.alert_messages[TYPE] is present?
   #
   # @param flash_type [String, Symbol] :alert, :warning, :notice, :succeed. See {ApplicationController::FLASH_CSS_CLASSES}
