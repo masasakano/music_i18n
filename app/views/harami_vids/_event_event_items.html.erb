@@ -1,4 +1,4 @@
-<%# locals: (sorted_event_event_items: nil, from_non_turbo: nil) %>
+<%# locals: (sorted_event_event_items: nil, from_non_turbo: nil, with_edit_links: true) %>
 <%# Assumed instance variables: @harami_vid, @event_event_items; local variables: (optional) sorted_event_event_items (sorted @event_event_items), from_non_turbo: Def(false) true if requested from show.html.erb %>
 
 <% set_event_event_items if !@event_event_items %> <%# sets @event_event_items; defined in HaramiVidsHelper %>
@@ -88,7 +88,7 @@
               <% end %>
               </span>
               <% if 0 != n_amps %>  <%# if event_item.artist_music_plays.exists? %>
-                <%= render partial: "layouts/artist_music_plays", locals: {artist_music_plays: event_item.artist_music_plays, harami_vid: @harami_vid} %>
+                <%= render partial: "layouts/artist_music_plays", locals: {artist_music_plays: event_item.artist_music_plays, harami_vid: @harami_vid, with_edit_links: with_edit_links} %>
               <% end %>
               <% if canedit_hvid && (missing_musics=@harami_vid.missing_musics_from_amps(artist: def_artist)).exists? %>
                 <div class="add_missing_musics editor_only">

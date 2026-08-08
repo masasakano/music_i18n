@@ -6,13 +6,13 @@
 <% end %>
 <section id="sec_primary">
 <% if ! harami_vid.new_record? %>
-<%= render partial: 'layouts/all_registered_translations', locals: {model: harami_vid, add_buttons: true} %>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: harami_vid, add_button: false} %>
 <hr>
 
 <h2>Unique parameters</h2>
 <% end %>
 
-<div id="form_main">
+<%= tag.div id: Consts::HtmlIds::FORM_MAIN do %>
 
 <% given_ref_id = harami_vid.reference_harami_vid_id %>
 <% given_ref = (given_ref_id.present? ? HaramiVid.find(given_ref_id) : nil) %>
@@ -61,7 +61,7 @@
 
     <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: HaramiVid, skip_ability_check: true} %>
 
-  <div class="form-actions">
+  <div class="form-actions submit_second">
     <%= f.submit %>
   </div>
   <div class="actions">
@@ -92,7 +92,7 @@
       include_blank: false,  as: :check_boxes, label: t("EventItems"),
       item_wrapper_class: 'inline', input_html: { checked: true } %>  <%# Not shown at all if there are no EventItems associatined to harami_vid; they all are forcibly checked in default, even after returning to the edit screen.  %>
   <%# cf. https://github.com/heartcombo/simple_form#collection-check-boxes %>
-     <%= render partial: "harami_vids/event_event_items", locals: {sorted_event_event_items: sorted_event_event_items} %> <%# "harami_vids/" required for access from HaramiVids::FetchYoutubeDataController %>
+     <%= render partial: "harami_vids/event_event_items", locals: {sorted_event_event_items: sorted_event_event_items, with_edit_links: false} %> <%# "harami_vids/" required for access from HaramiVids::FetchYoutubeDataController %>
     <% else %>
       <% display_new_event_item_form = true %>
       Strangely, no existing items are defined. Please register a new Event(Item) below.
@@ -117,7 +117,7 @@
  </section> <!-- section id="sec_primary_input" -->
 <% end %> <%# simple_form_for(harami_vid) do |f| %>
 
-</div> <!-- div id="form_main" -->
+<% end %><!-- div id="form_main" --><%# Consts::HtmlIds::FORM_MAIN %>
 
 </section> <!-- section id="sec_primary" -->
 
@@ -129,13 +129,13 @@
 
 <% if ! harami_vid.new_record? %>
 <hr>
-<%= render partial: 'harami_vids/music_table', locals: {harami_vid: harami_vid, add_buttons: true} %> <%# "harami_vids/" required for access from HaramiVids::FetchYoutubeDataController %>
+<%= render partial: 'harami_vids/music_table', locals: {harami_vid: harami_vid, with_edit_links: false, add_buttons: false} %> <%# "harami_vids/" required for access from HaramiVids::FetchYoutubeDataController %>
 
 <% end %>
 
 <% if ! harami_vid.new_record? %>
 <hr>
-<%= render partial: 'harami_vids/other_harami_vids_table', locals: {harami_vid: harami_vid, mark_self: true, max_nrows: Rails.configuration.max_harami_vids_per_event_editor } %> <%# NOTE: harami_vid is guaranteed not to be a new_record %>
+<%= render partial: 'harami_vids/other_harami_vids_table', locals: {harami_vid: harami_vid, mark_self: true, max_nrows: Rails.configuration.max_harami_vids_per_event_editor, with_edit_links: false } %> <%# NOTE: harami_vid is guaranteed not to be a new_record %>
 <hr>
 <%= render partial: 'harami_vids/harami1129_table', locals: {harami_vid: harami_vid, add_buttons: true} %>
 <hr>

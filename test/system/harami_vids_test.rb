@@ -262,8 +262,10 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_match(/\bnew channel\b/i,               find_all(css_for_flash(:notice)+" a").first.text)  # <a> link should be active.
 
     ### checking the create-result in Show
-    _check_at_show(vid_prms)
+    assert_text vid_prms[:title] 
+    assert_selector "#all_registered_translations_harami_vid tbody td", text: vid_prms[:title]  # HARAMIchan's video title is NOT <h1> but inside a table.
 
+    _check_at_show(vid_prms)
     selector_tr = "table#music_table_for_hrami_vid tbody tr "
     assert_equal vid_prms[:music_title],       find(selector_tr+"td.item_title a").text  # link
     music = Music.find(find(selector_tr+"td.item_title a")["href"].to_s.split("/")[-1].to_i)
@@ -281,17 +283,40 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_equal vid_prms[:engage_year],         engage.year
     assert_equal vid_prms[:engage_contribution], engage.contribution
 
+    css_amp_td       = "table.artist_music_plays tbody tr td"
+    css_edit_link    = css_amp_td + "." + Consts::Csses::Layouts::EDIT_LINK_CONTAINER
+    css_destroy_link = css_amp_td + "." + Consts::Csses::Layouts::DESTROY_LINK_CONTAINER
     assert_equal "06:10",       find(selector_tr+"td.item_timing span.text-start").text  #  vid_prms[:timing].to_s == "370"  => 06:10
+    assert_selector css_edit_link   # Edit link in ArtistMusicPlay table
+    assert_selector css_destroy_link
+    assert_selector (cs="section#"+Consts::HtmlIds::HARAMI_VIDS_SHOW_MUSICS)
+    assert_selector        cs+" ."+Consts::Csses::Layouts::EDIT_LINK    # Music-Edit and Turbo-Edit
+    assert_selector        cs+" ."+Consts::Csses::Layouts::DESTROY_LINK # Turbo-Destroy for Music-association (HVMA)
+    assert_selector     "section#"+Consts::HtmlIds::HARAMI_VIDS_HVMA_CSV_FORM
+    assert_selector (cs="section#"+Consts::HtmlIds::HARAMI_VIDS_SHOW_OTHER_HARAMI_VIDS)
+    assert_selector        cs+" ."+Consts::Csses::Layouts::EDIT_LINK    # other-HaramiVid-Edit
 
     find("#main_edit_button").click
     #click_on "Edit"  # => Ambiguous match, found 3 elements matching visible link or button "Edit"
 
     ## Editing
 
+    assert_selector "h1", text: "Editing Harami"
+    refute_selector css_edit_link    # should have disappeared
+    refute_selector css_destroy_link
+    refute_nested_forms  # defined in test_system_helper.rb
+    assert_selector (cs="section#"+Consts::HtmlIds::HARAMI_VIDS_SHOW_MUSICS)
+    refute_selector cs+" form"  # though not nested, the main Form page still should not contain other actions (except signout)
+    refute_selector cs+" ."+Consts::Csses::Layouts::EDIT_LINK
+    refute_selector cs+" ."+Consts::Csses::Layouts::DESTROY_LINK
+    refute_selector "section#"+Consts::HtmlIds::HARAMI_VIDS_HVMA_CSV_FORM
+    assert_selector (cs="section#"+Consts::HtmlIds::HARAMI_VIDS_SHOW_OTHER_HARAMI_VIDS)
+    refute_selector        cs+" ."+Consts::Csses::Layouts::EDIT_LINK    # other-HaramiVid-Edit
+
     vid_prms[:date_edit] = vid_prms[:date] + 1
     find("div.harami_vid_release_date select#harami_vid_release_date_3i").select vid_prms[:date_edit].day
     page.has_field?('section#sec_primary_input checkboxes', checked: true)
-    assert_equal "HARAMIchan",   find_field('Channel Owner').find('option[selected]').text
+    assert_equal "HARAMIchan",  find_field('Channel Owner').find('option[selected]').text
     assert_equal 'Other types', find_field('Channel Type').find('option[selected]').text
     # assert_equal 'Side channel', find_field('Channel Type').find('option[selected]').text
 
@@ -300,13 +325,16 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
     fill_autocomplete('Music name', with: vid_prms[:music_title][0..-2], select: vid_prms[:music_title][0..-2])  # same song; defined in test_helper.rb
     fill_autocomplete('featuring Artist', with: 'Proclai', select: 'Proclaimers')  # defined in test_helper.rb
-    find_field("(Music) Instrument").select(vid_prms[:instrument_edit]="Vocal")
-    find_field("How they collaborate").select(vid_prms[:collab_how_edit]= "Singer")
+    find_field("(Music) Instrument"  ).select(vid_prms[:instrument_edit]="Vocal")  # fixtures/instruments.yml
+    find_field("How they collaborate").select(vid_prms[:collab_how_edit]="Singer") # fixtures/engage_hows.yml
 
-    click_on @update_haramivid_button, match: :first
+    click_button @update_haramivid_button, match: :first
+    ### The following should work, too.
+    #click_on @update_haramivid_button, match: :first
+    #find(".form-actions.submit_first").click
 
     ### Checking flash messages (the submit must have failed.)
-    assert_text 'prohibited this HaramiVid from being saved'
+    assert_text    "prohibited this HaramiVid from being saved"
     assert_match(/\bprohibited this HaramiVid from being saved\b/, find_all(css_for_flash(:alert, category: :error_explanation))[0].text)
     assert_match(/\bEvent.* must be checked\b/, find_all(css_for_flash(:alert, category: :error_explanation))[0].text)  # TODO: two matches...
     check 'UnknownEventItem'  # In fact, this should be forcibly checked again in default when an error takes you back to the screen after unchecked.
@@ -314,7 +342,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
     click_on @update_haramivid_button, match: :first
 
-    assert_text 'HaramiVid was successfully updated'
+    assert_text  "HaramiVid was successfully updated"
     assert_match(/HaramiVid was successfully updated\b/, find_all(css_for_flash(:success)).first.text)  # defined in test_helper.rb
     _check_at_show(vid_prms)
 
@@ -353,7 +381,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_equal vid_prms[:title], find("table#all_registered_translations_harami_vid tr.trans_row.lc_en td.trans_title").text.strip
 
     selector_dl = "section#harami_vids_show_unique_parameters dl "
-    assert_equal vid_prms[:uri],  find(selector_dl+" dd.item_uri a").text
+    assert_selector  (selector_dl+" dd.item_uri a"), text: vid_prms[:uri]
     assert_equal "https://youtu.be/",  find(selector_dl+"dd.item_uri a")["href"].to_s[0,17]
     assert_equal (vid_prms[:date_edit] || vid_prms[:date]).to_s, find(selector_dl+"dd.item_release_date").text
     assert_equal vid_prms[:duration], find(selector_dl+"dd.item_duration").text.to_f
@@ -401,7 +429,8 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_selector "h1", text: h1_tit   # locale: harami_vid_long: 
     assert_includes trans_titles_in_table.values.flatten, hvid.title_or_alt(langcode: "en", lang_fallback_option: :either)
 
-    css2tr = "section#harami_vids_show_musics table tbody tr"
+    css_sec_music = "section#" + Consts::HtmlIds::HARAMI_VIDS_SHOW_MUSICS
+    css2tr = css_sec_music + " table tbody tr"
     trs_css      = css2tr + " td.item_timing"  # <=> XPATH_TD_TIMING (Rails-7.2)
     trs_css_note = css2tr + " td.item_note"
     trs = find_all(trs_css)
@@ -579,10 +608,6 @@ class HaramiVidsTest < ApplicationSystemTestCase
     ## Test of CRUD of Anchoring in Show for an editor
     assert_anchoring_crud_in_show(hvid2, h1_title=date_str, skip_login: true)  # defined in test_system_helper.rb
 
-    ## move to Edit
-    visit edit_harami_vid_path(hvid2, locale: I18n.locale)
-    assert_text tit2
-
     css_td = "table#music_table_for_hrami_vid tbody tr td.item_timing"
     ### Rails-7.1
     # css_edit = css_td + " input[type=submit][value=Edit]"
@@ -601,6 +626,11 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_equal exp, (lines=find(css_td).text.split("\n")).first.strip, "Video timing should have been updated, but..."
     #assert_includes        lines[1].strip, "uccessfully updated"
     assert_includes        lines.join(" ").strip, "uccessfully updated"  # There is also a warning message: "Please make sure to add an Event(Item)."
+
+    ## move to Edit
+    visit edit_harami_vid_path(hvid2, locale: I18n.locale)
+    assert_text tit2
+    assert_selector "h1", text: "Editing"
 
     fill_in "Video length", with: "1:12"
 

@@ -264,8 +264,9 @@ class ArtistsTest < ApplicationSystemTestCase
     refute_text new_model_title
     assert_text "You need to sign in or sign up"  # should be redirected to the sign_in page
 
-    login_from_somewhere(@moderator_gen.email, from: :signin)  # defined in test_system_helper.rb
-    assert_equal(@moderator_gen.display_name, current_user_display_name(is_system_test: true))  # defined in test_helper.rb
+    user = @moderator_all  # users(:user_syshelper)
+    login_from_somewhere(user.email, from: :signin)  # defined in test_system_helper.rb
+    assert_equal(user.display_name, current_user_display_name(is_system_test: true))  # defined in test_helper.rb
 
     visit artists_url
     assert_selector "input#artists_grid_id"
@@ -313,6 +314,7 @@ class ArtistsTest < ApplicationSystemTestCase
     assert_selector :xpath, sprintf(XPATHS[:all_translation_table][:trans_row_lang_fmt], "en")
     assert_text "Add translation"  # Now, the Translation table must be fully loaded.
 
+    xpath_fr_row = sprintf(XPATHS[:all_translation_table][:trans_row_lang_fmt], "fr")
     nodes = nil
     page.using_wait_time(0){
       nodes = find_all :xpath, XPATHS[:all_translation_table][:td_action]
@@ -320,32 +322,32 @@ class ArtistsTest < ApplicationSystemTestCase
       assert(  # When there is only one Translation, "Destroy" link should not be available.
         (ary=nodes.select { |en| en.matches_css?(".trans_destroy") }).empty? ||
         !ary.any? { |en2|
-          en2.clickable_inside?(node)  # defined in test_system_helper.rb
+          clickable_inside?(en2)  # defined in test_system_helper.rb
         }
       )
       # no French Translation
-      assert_empty find_all(:xpath, sprintf(XPATHS[:all_translation_table][:trans_row_lang_fmt], "fr"))
+      assert_empty find_all(:xpath, xpath_fr_row)
       assert_equal 1, find_all(:xpath, XPATHS[:all_translation_table][:trans_row]).size
     }
 
     art_trans1_id = nodes.select { |en| en.matches_css?(".trans_show") }.map{|i| i.find_all("a").first}.first&.[](:href)&.split("/")&.last
     assert art_trans1_id
     art_trans1 = Translation.find art_trans1_id  # Translation of the newly created Artist
-    assert_equal @moderator_gen, art_trans1.create_user
-    assert_equal @moderator_gen, art_trans1.update_user
+    assert_equal user, art_trans1.create_user
+    assert_equal user, art_trans1.update_user
 
-    # Artificially creates another Translation for the created Artist and revisits the page
+    # Artificially creates another Translation (in fr) for the created Artist and revisits the page
     title_fr = "Dummy2"
-    art_trans2 = Translation.create!(title: title_fr, langcode: "fr", is_orig: false, translatable: new_artist)
+    art_trans2 = Translation.create!(title: title_fr, langcode: "fr", is_orig: false, weight: 1000, translatable: new_artist)
     assert_equal 2, new_artist.translations.reset.count
+    assert_equal user, art_trans2.create_user
+    assert_equal user, art_trans2.update_user
 
     # Artificially transfers the ownership of the original Artist Translation to superuser
     sysadmin = users(:user_sysadmin)
     art_trans1.update! create_user: sysadmin, update_user: sysadmin, weight: 0
-    refute_equal @moderator_gen, art_trans1.create_user
-    refute_equal @moderator_gen, art_trans1.update_user
-
-    xpath_fr_row = sprintf(XPATHS[:all_translation_table][:trans_row_lang_fmt], "fr")
+    refute_equal user, art_trans1.create_user
+    refute_equal user, art_trans1.update_user
 
     # Now, checks if the destroy link for (the newly added French) Translation is available.
     page.refresh

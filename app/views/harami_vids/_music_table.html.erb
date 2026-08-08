@@ -1,5 +1,8 @@
+<%# locals: (harami_vid: @harami_vid, unimported_csvs: @unimported_csvs, missing_musics_csv: @missing_musics_csv, add_buttons: true, with_edit_links: true) %>
+  <%# WARNING: add_buttons is not used at the time of writing. %>
+
 <%# TODO: refactoring: unify with /app/views/layouts/_musics_table.html.erb (considering Hotwire) %>
-<section id="harami_vids_show_musics">
+<%= tag.section id: Consts::HtmlIds::HARAMI_VIDS_SHOW_MUSICS do %>
 <h3>Musics for HaramiVid (<%= harami_vid.release_date %>)</h3>
 
 <% canedit_hvid=(can? :edit, HaramiVid) %>
@@ -30,14 +33,14 @@
       </th>
       <th><%= link_to t(:Artists), artists_url %></th>
       <th title="<%= t('harami_vids.table_head_title_music_timing') %>"><%= t("harami_vids.table_head_timing") %></th>
-      <th colspan="<%= can?(:update, Music) ? 2 : 1 %>"><%= t(:Music) %></th>
+      <th colspan="<%= (with_edit_links && can?(:update, Music)) ? 2 : 1 %>"><%= t(:Music) %></th>
       <th title="<%= t("tables.n_harami_vids_long") %>"><%= t("tables.n_harami_vids_short") %></th>
       <%# if canedit_mus=(can? :edit, Music) %>
-        <th><%= t("tables.note") %> (<%= t("engage_multi_hows.table_head.how_related") %>)</th>
+        <th title="<%= canedit_mus ? "HaramiVidMusicAssoc#note" : "Comment for Asssocition" %>"><%= t("tables.note") %> (<%= t("engage_multi_hows.table_head.how_related") %>)</th>
       <%# end %>
-     <% if (can_destroy_assoc=can?(:destroy, HaramiVidMusicAssoc)) %>
-      <th title="<%= t('harami_vids.show.destroy_music_from_this_vid') %>" class="text-end editor_only">Association</th>
-     <% end %>
+      <%= editor_only_safe_html(:pass, method: with_edit_links && (can_destroy_assoc=can?(:destroy, HaramiVidMusicAssoc)), tag: "th", title: t('harami_vids.show.destroy_music_from_this_vid'), class: "text-end") do %>
+        Association
+      <% end %>
     </tr>
   </thead>
 
@@ -46,7 +49,7 @@
       <% hvmas = harami_vid.harami_vid_music_assocs.where(music: music) %>
       <% @hvma = hvma = hvmas.first %>  <%# Instance variable required for an embedded HTML %>
       <% assoc_pid = (hvma && hvma.id ? hvma.id : "'Not found strangely.'") %>  <%# Usually Integer, but maybe String. %>
-      <tr id="<%= dom_id(music) %>">
+      <%= tag.tr id: dom_id(music), class: Consts::Csses::Layouts::TURBO_MANAGED do %>
         <td>
           <% helptxt = "sequential number" %>
           <% if canedit_hvid %>
@@ -63,45 +66,49 @@
         <td class="item_place"><%= music.place ? h(music.txt_place_pref_ctry) : "" %></td>
         <td class="item_artists"><%= music.artists.uniq.map{|i| sprintf '%s [%s]', link_to(i.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true), i), h(i.engage_how_titles(music, langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true).join(', '))}.join(', ').html_safe %></td>
         <td class="item_timing">
-          <%# timings = (hvmas=harami_vid.harami_vid_music_assocs.where(music: music)).pluck(:timing).select{|j| j.present?} %>
-          <%# @timing = hvma.timing %>
-          <% if (timings=hvmas.pluck(:timing).select{|j| j.present?}).count > 1 %>
-            <%# this should not happen, but playing safe... %>
-            <span class="text-start">
-              <%= timings.map{|i| link_to_youtube(sec2hms_or_ms(i), @harami_vid.uri, i, title: "#{i} sec") }.join(', ').html_safe %> / <%# defined in application_helper.rb %>
+          <% if with_edit_links %>
+            <%= render partial: "/harami_vid_music_assocs/timings/show_timing", locals: {from_non_turbo: true} %>  <%# should be  full-load %>
+          <% else %>
+            <%# in case multiple timing is allowed in the future... %>
+            <span class="text-end"> <%# This does not work, and "text-end" should be put in the parent td; however this matters only for Editors, so I leave it for now. %>
+              <%  timings=hvmas.pluck(:timing).select{|j| j.present?} %>
+              <%= timings.map{|i| link_to_youtube(sec2hms_or_ms(i), @harami_vid.uri, i, title: "#{i} sec") }.join(', ').html_safe %> <%# defined in application_helper.rb %>
             </span>
           <% end %>
-
-          <%= render partial: "/harami_vid_music_assocs/timings/show_timing", locals: {from_non_turbo: true} %>  <%# should be  full-load %>
         </td>
         <td class="actions item_music_actions link_show text-center"><%= link_to(t("tables.Show"), music) if can?(:read, music) %></td>
-        <% if canedit_mus %>
-          <td class="actions item_music_actions link_edit text-center editor_only">
+        <%= editor_only_safe_html(:pass, method: (with_edit_links && canedit_mus), tag: "td",
+                                  class: [Consts::Csses::Layouts::ACTION_LINKS_CONTAINER,
+                                          "item_music_actions", "link_edit", "text-center",
+                                          Consts::Csses::Layouts::ACTION_LINKS_CONTAINER]) do %>
             <% if can? :update, music %>
-              <%= link_to 'Edit', edit_music_path(music) %>
+              <%= link_to 'Edit', edit_music_path(music), class: Consts::Csses::Layouts::EDIT_LINK %>
             <% end %>
-          </td>
         <% end %>
         <td class="item_n_vids text-end"><%= music.harami_vids.count.to_s %></td>
         <% hvma = harami_vid.harami_vid_music_assocs.where(music: music).first %>
       <%# if canedit_mus=(can? :edit, Music) %>
         <td class="item_note text-<%= hvma.note.blank? ? "end" : "start" %>">
-          <%= render partial: "/harami_vid_music_assocs/notes/show_note", locals: {from_non_turbo: true} %>
-          <%# hvma.note %>
+          <% if with_edit_links %>
+            <%= render partial: "/harami_vid_music_assocs/notes/show_note", locals: {from_non_turbo: true} %>
+          <% else %>
+            <%= hvma.note %>
+          <% end %>
         </td>
       <%# end %>
-      <% if can_destroy_assoc %>
-        <td title="<%= t('harami_vids.show.destroy_music_from_this_vid') %>" class="text-end editor_only">
+        <%= editor_only_safe_html(:pass, method: (with_edit_links && can_destroy_assoc), tag: "td",
+                                  title: t('harami_vids.show.destroy_music_from_this_vid'),
+                                  class: ["text-end", Consts::Csses::Layouts::TURBO_ACTION]
+                                  ) do %>
        <% if can? :destroy, hvma %>
          <% del_text =  t('layouts.destroy_button') + " (#{assoc_pid})" %>
-         <%= destroy_link(hvma, del_text, inline: true, extra_classes: ["destroy_link"], title: t('harami_vids.show.destroy_music_from_this_vid')) %>  <%# defined in application_helper.rb %>
+         <%= destroy_link(hvma, del_text, inline: true, extra_classes: [Consts::Csses::Layouts::DESTROY_LINK], title: t('harami_vids.show.destroy_music_from_this_vid')) %>  <%# defined in application_helper.rb %>
        <% end %>
-        </td>
       <% end %>
-      </tr>
+      <% end %> <%# tr id="<%= dom_id(music) %>
     <% end %>
 <% if false %>
-    <% if defined?(add_buttons) && add_buttons %>
+    <% if add_buttons %>
       <tr><td colspan="7">
       <%= button_to 'HaramiVid追加', new_harami_vid_music_assoc_path, method: :get, params: { a_token: nil, music_id: music.id } %>
       </td></tr>
@@ -109,12 +116,11 @@
 <% end %>
   </tbody>
 </table>
-</section> <!-- section id="harami_vids_show_musics" -->
 
 <%# ------------------------------------------------------------------- %>
 
-<% if can?(:update, harami_vid) %>
-<section id="harami_vids_hvma_csv_form">
+<%= editor_only_safe_html(:pass, method: (with_edit_links && can?(:update, harami_vid)), tag: "section", id: Consts::HtmlIds::HARAMI_VIDS_HVMA_CSV_FORM) do %>
+  <%# tag.section id: Consts::HtmlIds::HARAMI_VIDS_HVMA_CSV_FORM do %>
 <h4 id="csv_file_upload">CSV file upload</h4>
 
 <% if @unimported_csvs.present? %>
@@ -202,7 +208,7 @@ If you use a spreadsheet software (such as Google-Sheet, LibreOffice/Calc, Micro
     <%= submit_tag "Submit/Upload", name: nil %>
   </div>
 <% end %>  <%# form_tag(harami_vid_upload_hvma_csv_path(harami_vid_id: harami_vid.id), multipart: true) do |form| %>
-</section> <!-- section id="harami_vids_hvma_csv_form" -->
 
-<% end %> <%# if can?(:update, harami_vid) %>
+<% end %><!-- section id="harami_vids_hvma_csv_form" --> <%# editor_only_safe_html(... Consts::HtmlIds::HARAMI_VIDS_HVMA_CSV_FORM) %>
+<% end %><!-- section id="harami_vids_show_musics" --> <%# Consts::HtmlIds::HARAMI_VIDS_SHOW_MUSICS %>
 

@@ -1,14 +1,5 @@
-<%# Local variables: harami_vid, optional: mark_self [Boolean] (Def: false), max_nrows: (nil), ignore_max_nrows: false %>
-<% if !defined?(mark_self)
-     mark_self = false
-   end %>
-<% if !defined?(max_nrows)
-     max_nrows = nil
-   end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
+<%# locals: (harami_vid: , mark_self: false, max_nrows: nil, ignore_max_nrows: false, with_edit_links: true) %>
 <% max_nrows ||= Rails.configuration.def_view_max_nrows %>
-<% if !defined?(ignore_max_nrows)
-     ignore_max_nrows = false
-   end %>
 
 <% this_model_note = t("tables.note_this_model", kwd: t(:video)) %>
 
@@ -47,7 +38,7 @@
       <th><%= t('EventItems') %></th>
       <% other_hvids_rela = harami_vid.other_harami_vids_of_event(exclude_unknown: false, include_self: true).order(:release_date) %>
       <% tbody_exists = other_hvids_rela.present? %>
-      <% colspan = ((can_edit && tbody_exists) ? 2 : 1) %>
+      <% colspan = ((with_edit_links && can_edit && tbody_exists) ? 2 : 1) %>
       <th class="actions"<%= sprintf(' colspan="%d"', colspan).html_safe if 1 != colspan %>></th>
       <% ncols += colspan %>
     </tr>
@@ -80,13 +71,14 @@
           <%= evit_list_for_hvid(ea_hvid, hs_evits) %> <%# defined in harami_vids_helper.rb %>
         </td>
         <td><%= link_to(t("tables.Show"), ea_hvid) if can?(:read, ea_hvid) %></td>
-       <% if can_edit %>
-        <td class="editor_only">
-         <% if can? :update, ea_hvid %>
-          <%= link_to 'Edit', edit_harami_vid_path(ea_hvid) %>
-         <% end %>
-        </td>
-       <% end %>
+        <%= editor_only_safe_html(:pass, method: (with_edit_links && can_edit), tag: "td",
+                                  class: [Consts::Csses::Layouts::ACTION_LINKS_CONTAINER,
+                                          "item_other_harami_vids_actions",
+                                          Consts::Csses::Layouts::ACTION_LINKS_CONTAINER]) do %>
+          <% if can? :update, ea_hvid %>
+            <%= link_to 'Edit', edit_harami_vid_path(ea_hvid), class: Consts::Csses::Layouts::EDIT_LINK %>
+          <% end %>
+        <% end %>
       </tr>
     <% end %>
   </tbody>

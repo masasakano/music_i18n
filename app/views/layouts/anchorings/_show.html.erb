@@ -50,7 +50,6 @@
       <% end %>
       <% if privilege_edit_destroy[1] %>
         / <%= link_to 'Destroy', paths[:destroy], data: { turbo_method: :delete, turbo_confirm: t(:are_you_sure) }, turbo_frame: "_top", class: "destroy_link" %><%# NOTE: If Turbo JS falls back to HTML redirect, the redirect reloads the whole page (_top) cleanly %><%# NOTE: This form slightly differs from +destroy_link()+ in application_helper.rb though both may work... %>
-%>
       <% end %>
     <% end %>
   <% end %> <%# turbo_frame_tag dom_id(anchoring, :content) do %>

@@ -66,7 +66,7 @@ end
   end
 
   test "translator should get new" do
-    [@translator, @general_moderator].each do |euser|
+    [@general_moderator].each do |euser|
       sign_in euser
       get new_translation_url
       assert_response :redirect
@@ -74,9 +74,12 @@ end
       sign_out euser
     end
 
-    sign_in @trans_moderator
-    get new_translation_url
-    assert_response :success
+    [@translator, @trans_moderator].each do |euser|
+      sign_in euser
+      get new_translation_url
+      assert_response :success
+      sign_out euser
+    end
   end
 
 if false

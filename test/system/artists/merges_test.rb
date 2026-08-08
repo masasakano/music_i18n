@@ -4,7 +4,7 @@ require "application_system_test_case"
 class Artists::MergesTest < ApplicationSystemTestCase
   N_FIXTURES_HARAMI1129_REVIEW = 2
 
-  XPATH_ADD_TRANSLATION = sprintf(XPATHS[:all_translation_table][:button_add_trans_fmt], I18n.t("layouts.add_translation", locale: :en)) # 'Add translation'
+  XPATH_ADD_TRANSLATION = sprintf(XPATHS[:all_translation_table][:button_add_trans_lc_fmt], I18n.t("layouts.add_translation", locale: :en)) # 'Add translation'
   XPATH_DIV_LINK_EDIT_DESTROY = "//div[contains(@class, 'link-edit-destroy')]"
 
   # XPath (Rails-7.2) for Buttons of "Merge with another Artist" or Music
@@ -30,6 +30,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
   end
 
   test "Artist-merge from visiting Artist#index" do
+    # login...
     visit new_user_session_path
     fill_in "Email", with: @moderator.email
     fill_in "Password", with: '123456'  # from users.yml
@@ -207,7 +208,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
 
     ## first, testing Harami1129Review (for authorization etc)
     assert_index_fail_succeed(Harami1129Review.new, "Harami1129 Reviews", user_fail: @moderator_ja, user_succeed: @moderator_harami)  # defined in test_system_helper.rb
-    
+
     assert_equal N_FIXTURES_HARAMI1129_REVIEW, page.find_all(:xpath, "//table[@id='harami1129_reviews_index']//tbody//tr").size, "should display 2 entries as defined in the fixture harami1129_review"
     assert_equal N_FIXTURES_HARAMI1129_REVIEW, Harami1129Review.count
 
@@ -258,7 +259,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
         assert_equal exp, _get_h1129_table_cell(ddid, "Internally inserted")
         assert_equal "",  _get_h1129_table_cell(ddid, "Current Destination"), "No destination should be defined for #{ek}, but..."
       end
-      
+
       # id_h1129 = find("dd#h1129_id_dd").text.to_i
       click_on "Populate"  # Creating Artist (<=Singer) and Music (<= Song)
       assert_selector :xpath, xpath_for_flash(:notice, category: :div), text: "Successfully populated."
@@ -305,7 +306,11 @@ class Artists::MergesTest < ApplicationSystemTestCase
     ## merging - option is not provided because the user is an only-Harami1129 moderator
     visit artist_path(art_ids[0], locale: I18n.locale)
 
-    assert_selector :xpath, XPATH_ADD_TRANSLATION  # defined at the top
+    art0 = Artist.find art_ids[0]
+    assert_selector "h1", text: "Artist: "+art0.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true)
+    #assert_selector :xpath, XPATH_ADD_TRANSLATION  # defined at the top  # Harami-Moderator should not see it.
+    refute_selector :xpath, XPATH_ADD_TRANSLATION  # defined at the top
+
     ## Rails-7.1
     # assert_selector :xpath, "//input[@type='submit' and @value='Add translation']"
     refute_selector :xpath, "//input[@type='submit' and @value='Merge with another Artist']"
@@ -410,7 +415,11 @@ class Artists::MergesTest < ApplicationSystemTestCase
     musicz = mus_ids.map{|i| Music.find i}
 
     visit music_path(mus_ids[0], locale: I18n.locale)
-    assert_selector :xpath, XPATH_ADD_TRANSLATION  # defined at the top
+
+    mus0 = Music.find mus_ids[0]
+    assert_selector "h1", text: "Music: "+mus0.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true)
+    refute_selector :xpath, XPATH_ADD_TRANSLATION  # defined at the top
+
     ## Rails-7.1
     # assert_selector :xpath, "//input[@type='submit' and @value='Add translation']"
     assert_selector :xpath, "//div[contains(@class, 'link-edit-destroy')]//div[contains(@class, 'actions-destroy')]//input[@disabled='disabled' and @type='submit' and @value='Destroy']"  # "Destroy button for Music should be disabled, but..."

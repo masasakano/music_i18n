@@ -183,8 +183,7 @@ class ActiveSupport::TestCase
       td_action: trans_row + "//" + ModuleCommon.xpath_contain_css("trans_action", complete_for: "td"),
          # Tip: To filter down with langcode "ja" in Capybara: .select{|node| node.has_ancestor?("tr.lc_ja", wait: 0)}
          # Tip: To filter down for :destroy in Capybara:: .select{|node| node.matches_css?(".trans_destroy"), wait: 0)}
-      button_add_trans_fmt:    banner_row + (button_tail="//" + ModuleCommon.xpath_contain_css("button_to", complete_for: "form") + "//button[@type='submit'][contains(., '%s')]"), # 1 parameter (hence containing multiple components): Label ('Add translation') (Rails-7.2)
-      button_add_trans_lc_fmt: banner_row_lang_fmt + button_tail # 2 parameters: locale, Label ('Add translation') (Rails-7.2)
+      button_add_trans_lc_fmt: banner_row_lang_fmt + "//" + ModuleCommon.xpath_contain_css(Consts::Csses::Layouts::ADD_TRANSLATION_ANCHOR, complete_for: "*"), # 1 parameter (langcode, a.k.a. locale); changed with Propshaft
     }.with_indifferent_access,
   }.with_indifferent_access
 
@@ -1447,9 +1446,9 @@ class ActiveSupport::TestCase
       Rails.logger.error msg
       raise
     rescue Capybara::ElementNotFound
-      warn "Failed to find XPath with (#{metho}.inspect)...  body_main: "
-      element = send(metho, "div#body_main")
-      warn get_html(element, kind: :inner)  # defined above
+      warn "Failed to find XPath with (#{xp.inspect})...  body_main: "
+      #element = send(metho, "div#body_main")   ## metho is undefined...
+      #warn get_html(element, kind: :inner)  # defined above
       raise
     end
 

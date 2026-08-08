@@ -10,6 +10,7 @@
 <% if !defined?(show_single)
      show_single = false
    end %>
+<% with_edit_links = add_button %> <%# for the unified naming convention %>
 <%
   title_kwd =
     if title_kwd.blank?
@@ -22,6 +23,8 @@
   t_alt_title = t([prefix+"AltTitle", title_kwd].compact.join("_"), default: "AltTitle")
 %>
 
+<% can_create = can?(:create, Translation) %>
+
   <section id="sec_primary_trans">
 <h2><%= t("layouts.all_registered") %><%= t("layouts."+(defined?(myself) ? 'translations' : 'translated_names')) %></h2>
 
@@ -32,13 +35,16 @@
      allcolspan += ((can_index=can?(:index, Translation)) ? 1 : 0) # showing SELF or not
      allcolspan += ((can_crud=can?(:crud, Translation))  ? 1 : 0)  # showing Weight column
      allcolspan += ((can_show=can?(:show, Translation))  ? 1 : 0)  # showing Note column
-     action_colspan = ((can_show=can?(:show, Translation))  ? 2 : 0)  # At least, "Show"+"Edit", plus optionally demotable, promotable, destroyable
+     action_colspan = ((can_show=can?(:show, Translation))  ? (with_edit_links ? 2 : 1) : 0)  # At least, "Show"+"Edit", plus optionally demotable, promotable, destroyable, unless add_button==false
 
      flag_ables = {
-       demotable:  (can_demote =can?(:update, Translations::DemotesController)),
-       promotable: (can_promote=can?(:update, Translations::PromotesController)),
+       demotable:   can?(:update,  Translations::DemotesController),
+       promotable:  can?(:update,  Translations::PromotesController),
        destroyable: can?(:destroy, Translation) && model.translations.any?{|tra| can? :destroy, tra},
      }
+     if !with_edit_links
+       flag_ables = flag_ables.map{|k, v| [k, false]}.to_h
+     end
      action_colspan += flag_ables.values.count(true)
 
      allcolspan += action_colspan
@@ -75,8 +81,8 @@
 
     <tr class="lang_banner lang_banner_<%= lcode %>"><th colspan="<%= allcolspan %>" class="middle_row"><%= get_language_name(lcode) %> <%# defined in module_common.rb %>
       <%= sprintf("(%s)", get_language_name(lcode, in_locale: I18n.locale)) if I18n.locale.to_s != lcode %>
-      <% if add_button && (tra1 && tra1.creatable_other?(user: current_user, langcode: lcode) || (!tra1 && flag_ables[:destroyable])) %>
-        <%= button_to t('layouts.add_translation'), new_translation_path, form_class: "inline_form_tight button_to", method: :get, params: { a_token: nil, langcode: lcode, translatable_type: model.class.name, translatable_id: model.id } %>
+      <% if add_button && (tra1 && can_create && tra1.creatable_other?(user: current_user, langcode: lcode) || (!tra1 && flag_ables[:destroyable])) %>
+        <%= link_to t('layouts.add_translation'), new_translation_path(langcode: lcode, translatable_type: model.class.name, translatable_id: model.id), class: "button_like "+Consts::Csses::Layouts::ADD_TRANSLATION_ANCHOR, style: "margin-left: 1em" %><%# alternative: "btn btn-primary btn-sm" %>
       <% end %>
       </th></tr>
     <% alltra.each_with_index do |tra, i| %>
@@ -106,11 +112,13 @@
         <% if can_show %>
           <td class="trans_action trans_show editor_only" style="border-right-style: none;"><%= link_to 'Show', tra %></td>
           <% class2add = ((current_user && can?(:update, tra) && ![tra.create_user, tra.update_user].include?(current_user)) ? "moderator_only" : "editor_only") %>  <%# For one's own Translation (or not editable), it is for "editor_only", else "moderator_only" in order to prompt the user to be more careful %>
-          <td class="trans_action trans_edit <%= class2add %>" style="border-left-style: none;<%= (flag_ables[:demotable] || flag_ables[:promotable]) ? 'border-right-style: none;' : ''  %>">
-          <% if can? :update, tra %>
-            / <%= link_to 'Edit', edit_translation_path(tra) %>
+         <% if with_edit_links %>
+          <td class="trans_action trans_edit <%= class2add %> <%= Consts::Csses::Layouts::EDIT_LINK_CONTAINER %>" style="border-left-style: none;<%= (flag_ables[:demotable] || flag_ables[:promotable]) ? 'border-right-style: none;' : ''  %>">
+          <% if can?(:update, tra) %>
+            / <%= link_to 'Edit', edit_translation_path(tra), class: Consts::Csses::Layouts::EDIT_LINK %>
           <% end %>
           </td>
+         <% end %>
         <% end %>
       <% end %>
       <% if flag_ables[:demotable] %>
@@ -150,7 +158,7 @@
 <div class="editor_only">
  <%= t("layouts.Other_language") %>:
    <span class="lead">
-    <%= link_to t('layouts.add_translation'), new_translation_path(params: { a_token: nil, translatable_type: model.class.name, translatable_id: model.id }) %>
+    <%= link_to t('layouts.add_translation'), new_translation_path(params: { a_token: nil, translatable_type: model.class.name, translatable_id: model.id }), class: Consts::Csses::Layouts::NEW_LINK %>
    </span>
 </div>
 <% end %>

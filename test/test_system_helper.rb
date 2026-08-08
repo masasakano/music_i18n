@@ -651,6 +651,33 @@ class ActiveSupport::TestCase
     assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: n_filtered_entries, n_all_entries: n_all_entries, langcode: langcode, **opts)
   end
 
+  # Making sure there is no nested forms in the page
+  #
+  # A nested form can be terrible.  For example, if a Destroy button
+  # (with `button_to`) is present inside a form, it is *method* "`delete`",
+  # and hence the submit button will send a DELETE response!
+  #
+  # This helper makes sure there is no nested form IN THE MAIN FORM PAGE
+  # in :edit or :new.
+  #
+  # @example
+  #    click_button "Edit"
+  #    assert_selector "h1", text: "Editing "
+  #    refute_nested_forms  # defined in test_system_helper.rb
+  #
+  # @note
+  #   This method ensures that a page is loaded up to a Submit button
+  #   in the main form section, providing the form is in the main page in this app.
+  #   Note that it would not work well alone, technically, if this helper
+  #   is called after an erroneous submission, unless the caller ensures
+  #   that reloading the :edit page has commenced.
+  #
+  def refute_nested_forms
+    assert_selector (s="#"+Consts::HtmlIds::FORM_MAIN)+" input[type=submit],"+s+" button[type=submit]" # to ensure the page is loaded up to the submit button, providing the previous page does not have it.
+    ensure_page_load_in_full_load
+    refute_selector "form form"  # Essential to avoid mal-format and Rails' confusion
+  end
+
   # Tests if a Destroy button exists
   #
   # This should need updates (after the migration to Propshaft from Sprockets)...

@@ -158,7 +158,7 @@ class Ability
 
     ## Translation editor only
     if user.qualified_as?(:editor, rc_trans)
-      can :read, Translation
+      can :cr, Translation
       #cannot(:create, Translation){|trans| !trans.translatable_type || !trans.translatable_type.constantize || Ability.new(user).cannot?(:create, trans.translatable_type.constantize) }
       #can(:new, Translation){|trans| !trans.translatable_type || !trans.translatable_type.constantize || Ability.new(user).can?(:create, trans.translatable_type.constantize) }
       can :manage, [Musics::MergesController, Artists::MergesController]

@@ -58,16 +58,10 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
 
     csssel = css_select('table tbody th')
     assert_includes csssel[0].text, '日本語'
-    assert_match(/add translation/i, csssel[0].css('form button')[0].text)  # Rails-7.2
-
-    assert csssel[0].css('form input')
-    assert csssel[0].css('form input')[0]
-    ### worked up to Rails-7.1 (or maybe due to config.load_defaults 6.1)
-    # assert csssel[0].css('form input')[0].attributes['value'], "HTML="+csssel[0].css('form input')[0].to_s
-    # assert_match(/add translation/i, csssel[0].css('form input')[0].attributes['value'].text)
+    assert_match(/add translation/i, csssel[0].css("."+Consts::Csses::Layouts::ADD_TRANSLATION_ANCHOR)[0].text)  # Rails-8.1
 
     assert_includes csssel[1].text, 'English'
-    assert_match(/add translation/i, csssel[0].css('form button')[0].text)  # Rails-7.2
+    assert_match(/add translation/i, csssel[1].css("."+Consts::Csses::Layouts::ADD_TRANSLATION_ANCHOR)[0].text)  # Rails-8.1
     ### up to Rails-7.1 (or maybe due to config.load_defaults 6.1)
     # assert_match(/add translation/i, csssel[1].css('form input')[0].attributes['value'].text)
 
@@ -94,7 +88,8 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
 
     csssel = css_select('table tbody th')
     assert_includes csssel[0].text, '日本語'
-    assert_match(/add translation/i, csssel[0].css('form button')[0].text)  # Rails-7.2
+    assert_empty csssel[0].css("."+Consts::Csses::Layouts::ADD_TRANSLATION_ANCHOR)  # Rails-8.1
+    #assert_match(/add translation/i, csssel[0].css("."+Consts::Csses::Layouts::ADD_TRANSLATION_ANCHOR)[0].text)  # Rails-8.1
     ### worked up to Rails-7.1 (or maybe due to config.load_defaults 6.1)
     # assert_match(/add translation/i, csssel[0].css('form input')[0].attributes['value'].text)
     assert_includes csssel[1].text, 'English'

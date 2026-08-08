@@ -505,6 +505,13 @@ class Translation < ApplicationRecord
   # Translation Editor can create one.
   # No other users can create one except for the following edge cases.
   #
+  # == IMPORTANT NOTE
+  #
+  # This algorithm is NOT implemented in the Controller, yet!
+  # So, if user fails in
+  #   can?(:create, Translation)
+  # they cannot create a Translation with UI.
+  #
   # == the two edge cases
   #
   # If the user "can" create an instance of {Translation#translatable}.class
@@ -518,12 +525,13 @@ class Translation < ApplicationRecord
   def creatable_other?(user:, langcode: self.langcode)
     lc = langcode.to_s  # NOTE: whereas self.langcode is a DB entry, this langcode is the given argument!
     return false if !user
-    rc_tra = RoleCategory[RoleCategory::MNAME_TRANSLATION]
-    return true if user.qualified_as? :editor, rc_tra
+    # return true if user.qualified_as? :editor, RoleCategory[RoleCategory::MNAME_TRANSLATION]
+    ability = Ability.new(user)
+    return true if ability.can?(:create, Translation)
 
     # Edge cases
     #olc = original_langcode
-    return true if lc == 'ja' && translatable && Ability.new(user).can?(:create, translatable.class)
+    return true if lc == 'ja' && translatable && ability.can?(:create, translatable.class)
     return true if siblings(lc, exclude_self: false).pluck(:create_user_id).include? user.id
     false
   end
