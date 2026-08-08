@@ -64,7 +64,7 @@ class EventItems::DestroyWithAmpsController < ApplicationController
   end
   private :_event_destroyable?
 
-  # Attempts to destory.  If failing, hsopt[:alert] is set.
+  # Attempts to destroy.  If failing, hsopt[:alert] is set.
   #
   # @return [Boolean] true if succeeds. Raises an Exception (Rollback) if fails
   def _destroy_model_set_alert(hsopt, model=@event_item)

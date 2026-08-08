@@ -46,6 +46,9 @@ class Artist < BaseWithTranslation
 
   include ModuleUnknown
 
+  # for destroyable?  See {DEPENDENT_CHILDREN}
+  include ModuleDestroyable
+
   # defines +self.class.primary+
   include ModulePrimaryArtist
 
@@ -95,6 +98,7 @@ class Artist < BaseWithTranslation
   has_many :play_musics, -> {distinct}, through: :artist_music_plays, source: "music"
 
   has_one :channel_owner, dependent: :restrict_with_exception  # dependent is a key; by default, optional: true 
+  has_many :channels, through: :channel_owner
 
   validates :birth_year, numericality: { allow_nil: true, greater_than: 0, message: "(%{value}) must be positive." }
   # ...or validates_numericality_of
@@ -116,6 +120,9 @@ class Artist < BaseWithTranslation
     "en" => 'UnknownArtist',
     "fr" => 'ArtisteInconnu',
   }
+
+  # essential for ModuleDestroyable
+  DEPENDENT_CHILDREN = [:musics, :artist_music_plays, :channel_owner]
 
   # Returns the unknown {Artist} with {Place.unknown} and {Sex.unknown}
   #

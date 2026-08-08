@@ -5,6 +5,7 @@ class MusicsTest < ApplicationSystemTestCase
   setup do
     #@music = musics(:one)
     @moderator = users(:user_moderator_general_ja)
+    @editor_ja       = users(:user_editor_general_ja)
   end
 
   # called after every single test
@@ -259,6 +260,134 @@ class MusicsTest < ApplicationSystemTestCase
     assert_includes trs[0].text, tit1
 #take_screenshot
   end
+
+  test "Music#destroyable?" do
+    csses = {
+      artist: {
+        table_row: (art_row = "#sec_artists_by table tbody tr"),
+        table_engage_edit: art_row + "cell_edit_engage",
+      },
+      hvid: {
+        section: (hsec = "#sec_harami_vids_for"),
+        table_row: hsec + " table tbody tr",
+        sec_inconsistent: "#sec_inconsistent_harami_vids"
+      },
+      destroy_button_in_show: {
+        min: ".link-edit-destroy .destroy_link",
+        strict: sprintf(".%s #%s .destroy_link", get_only_css_class, Consts::HtmlIds::MAIN_LINK_EDIT_MERGE_DESTROY), # defined in application_helper.rb
+      }
+    }.with_indifferent_access
+
+    art = artists(:artist_proclaimers)
+    art_title = art.title(langcode: :en)
+    mu_title = "some music of #{__method__}"
+    hvid_title = "some harami-vid of #{__method__}"
+    hvid_uri = "https://youtu.be/#{__method__}_#{rand(1..1000)}"  # to ensure no duplication
+
+    new_music = Music.create_basic!(title: mu_title, langcode: :en, is_orig: true, year: 2000, note: 'temporary new_music')
+    new_eng = new_music.engages.create!(artist: art, engage_how: EngageHow.third, year: 1999)
+    assert new_music.artists.exists?, 'sanity check'  # Presence of associated Artist should not affect Music#destroyable? anyway
+
+    # Public visit
+    visit music_path(new_music)
+    assert_selector "h1", text: mu_title
+    assert_selector csses[:artist][:table_row]+" td", text: art_title  # Artist Table cell
+    assert_selector csses[:hvid][:section]    # HaramiVid Table
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+
+      # non-existent
+    refute_selector csses[:hvid][:table_row]  # HaramiVid Table rows
+    refute_text hvid_title
+      # not authorized
+    refute_selector csses[:artist][:table_engage_edit]
+    refute_text "Destroy"
+    refute_selector csses[:destroy_button_in_show][:min]  # destroy-button should be visible, but...
+    refute_selector csses[:destroy_button_in_show][:min], text: "Destroy"
+
+    visit edit_music_path(new_music)
+      # refused and redirected to login/signin page
+    assert_selector "h1,h2", text: "Log in"
+    flash_text_system_assert("need to sign in", type: :alert, category: :div)  # defined in test_helper.rb
+    login_from_somewhere(@editor_ja, from: :signin, check_flash: true)  # testing check_flash option here...
+
+    # perhaps directed to :edit page after log in, but forces to visit :show
+    # Now, by Editor
+    visit music_path(new_music)
+      # authenticated and authorized
+    assert_selector csses[:destroy_button_in_show][:min]  # destroy-button should be visible, but...
+    assert_selector csses[:destroy_button_in_show][:min], text: "Destroy"
+    assert_selector csses[:destroy_button_in_show][:strict], text: "Destroy"
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+      # non-existent
+    refute_selector csses[:hvid][:table_row]  # HaramiVid Table rows
+    refute_text hvid_title
+
+    # Makes an associated HaramiVid / join-record HaramiVidMusicAssoc
+    new_hvid  = HaramiVid.create_basic!(title: hvid_title, langcode: :en, is_orig: true, uri: hvid_uri, note: 'temporary new_hvid')
+    new_music.harami_vids << new_hvid   # creating association
+    assert_equal 1, new_music.harami_vids.size   # sanity check
+    assert_equal 1, new_music.harami_vid_music_assocs.size  # sanity check
+    hvma1 = new_music.harami_vid_music_assocs.first
+    hvma1.update!(timing: timing=3599)  # => "59:59"
+
+    # Now, checks if the HaramiVid association appears
+    page.refresh
+    assert_selector csses[:hvid][:table_row]  # HaramiVid Table rows
+    assert_selector csses[:hvid][:table_row]+" td", text: hvid_title  # HaramiVid Table rows
+    assert_selector csses[:hvid][:table_row]+" td", text: "59:59"     # HaramiVid Table rows / timing
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+    refute_selector csses[:destroy_button_in_show][:min]  # destroy-button should be hidden now, but...
+    refute_selector csses[:destroy_button_in_show][:min], text: "Destroy"
+    refute_selector csses[:hvid][:sec_inconsistent]
+
+    # Destroy the association, and checks if the Destroy link reappears
+    hvma1.destroy!
+    page.refresh
+    assert_selector csses[:destroy_button_in_show][:min]  # destroy-button should be visible, but...
+    assert_selector csses[:destroy_button_in_show][:min], text: "Destroy"
+    assert_selector csses[:destroy_button_in_show][:strict], text: "Destroy"
+      # non-existent
+    refute_selector csses[:hvid][:table_row]  # HaramiVid Table rows
+    refute_text hvid_title
+    refute_selector csses[:hvid][:sec_inconsistent]
+
+    # Makes an association HaramiVid<=>EventItem, then EventItem<=>Music/Artist
+    evit = EventItem.second
+    art2 = artists(:artist1)  # different collaboration Artist
+    new_hvid.event_items << evit
+    new_amp = new_music.artist_music_plays.create!(event_item: evit, artist: art2, play_role: PlayRole.first, instrument: Instrument.first)
+    new_music.reload 
+    art2.reload
+    new_hvid.reload 
+    assert art2.collab_harami_vids.exists?, "sanity check"
+    assert art2.play_musics.exists?, "sanity check"
+    assert_equal 1, new_music.artist_music_plays.count, "sanity check"
+    assert_equal 1, new_music.played_harami_vids.count, "sanity check"
+
+    page.refresh
+    assert_selector csses[:hvid][:sec_inconsistent]  # erroneous HaramiVid associated only via ArtistMusicPlay
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+    refute_selector csses[:hvid][:table_row]  # HaramiVid Table rows because of no HaramiVidMusicAssoc
+
+      # Because the Music-association is strange, they should not be destroyed (conservatively)
+    refute_selector csses[:destroy_button_in_show][:min]  # destroy-button should be hidden now, but...
+    refute_selector csses[:destroy_button_in_show][:min], text: "Destroy"
+
+    ## Back to the original
+    new_amp.destroy! 
+    page.refresh
+    assert_selector csses[:destroy_button_in_show][:min]  # destroy-button should be visible, but...
+    assert_selector csses[:destroy_button_in_show][:min], text: "Destroy"
+    assert_selector csses[:destroy_button_in_show][:strict], text: "Destroy"
+
+    ## Music.destroy
+    assert_difference("Music.count", -1){
+      assert_destroy_with_text(:first)  # defined in test_system_helper.rb
+      assert_selector "h1", text: "Musics"
+      refute_selector csses[:hvid][:section]    # HaramiVid Table
+      refute_selector csses[:destroy_button_in_show][:min]
+    }
+  end # test "Music#destroyable?" do
 
   test "CRUD of anchoring for Music" do
     music = musics(:music_story)

@@ -16,7 +16,7 @@
       <% if !is_to_edit %> <%# If in "Edit", neither this part not "section" is displayed. %>
     <% path_edit = send("edit_"+model_underscore+"_path", record) %> <%# e.g., edit_music_path(record) %>
         <%= tag.span class: "lead" do %>
-    <span class="lead"><%= link_to 'Edit', path_edit, class: "link-edit" %></span> <%# -------- show only %>
+          <%= link_to 'Edit', path_edit, class: "link-edit" %> <%# -------- show only %>
         <% end %>
       <% end %>
       <% if (can_destroy || can_merge) %>

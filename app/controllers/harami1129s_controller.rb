@@ -118,7 +118,7 @@ class Harami1129sController < ApplicationController
 
       if helpers.get_bool_from_params hsprm[:destroy_engage]
         if !@harami1129.not_music
-          @harami1129.errors.add :destroy_engage, "needs to be coordinated with 'Not Music' - specify it to destory Engage-Id."
+          @harami1129.errors.add :destroy_engage, "needs to be coordinated with 'Not Music' - specify it to destroy Engage-Id."
         else
           @harami1129.engage_id = nil
         end

@@ -38,7 +38,7 @@
         <% if can?(:update, genre) %>
           <td><%= link_to 'Edit', edit_genre_path(genre) %></td>
         <% end %>
-        <% if can?(:destory, genre) %>
+        <% if can?(:destroy, genre) %>
           <td><%= link_to 'Destroy', genre, method: :delete, data: { confirm: t('are_you_sure') } %></td>
         <% end %>
       </tr>

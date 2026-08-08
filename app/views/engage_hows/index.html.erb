@@ -28,7 +28,7 @@
         <% if can?(:update, model) %>
           <td><%= link_to 'Edit', edit_engage_how_path(model) %></td>
         <% end %>
-        <% if can?(:destory, model) %>
+        <% if can?(:destroy, model) %>
           <td><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
         <% end %>
       </tr>

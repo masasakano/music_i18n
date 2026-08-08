@@ -1322,8 +1322,8 @@ end
     tag_span = css_select(csstxt_tbl_row1td1_span).first
     assert_match(/sequen/i, tag_span["title"], "Inspect: #{tag_span.inspect}")
     assert_match(/pID=#{hvma.id}/i, tag_span["title"])
-
-    csstxt_tbl_row1tdlast_a = csstxt_tbl_rows + ":first-child td:last-child a"
+    css = csstxt_tbl_rows + ":first-child td:last-child"
+    csstxt_tbl_row1tdlast_a = sprintf("%s a,%s button", css, css)  # <a> or <button>
     assert_select csstxt_tbl_row1tdlast_a
     assert_match(/\b#{hvma.id}\b/i, css_select(csstxt_tbl_row1tdlast_a).text)
 

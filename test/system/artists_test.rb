@@ -304,9 +304,9 @@ class ArtistsTest < ApplicationSystemTestCase
 
     css_destroy_button_in_show_min = sprintf(".link-edit-destroy .destroy_link")
     css_destroy_button_in_show_strict = sprintf(".%s #%s .destroy_link", get_only_css_class, Consts::HtmlIds::MAIN_LINK_EDIT_MERGE_DESTROY) # defined in application_helper.rb
-    assert_selector css_destroy_button_in_show_min  # display-button should be visible, but...
+    assert_selector css_destroy_button_in_show_min  # destroy-button should be visible, but...
     assert_selector css_destroy_button_in_show_min, text: "Destroy"
-############# assert_selector css_destroy_button_in_show_strict, text: "Destroy"
+    assert_selector css_destroy_button_in_show_strict, text: "Destroy"
 
     # Checking the Translation table of the created Artist in Artist-Show
     assert_selector :xpath,         XPATHS[:all_translation_table][:banner_row]  # defined in test_helper.rb
@@ -384,81 +384,9 @@ class ArtistsTest < ApplicationSystemTestCase
     assert_no_selector "h1", text: "A Translation"  # Confirms it is NOT Translation-show
     assert_selector    "dt", text: "Channel Owner"  # Confirms it is Artist-show
 
-    ## Artificially adds an associated Music
-    mu_title = "some music of #{__method__}"
-    hvid_title = "some harami-vid of #{__method__}"
-    hvid_url = "https://youtu.be/#{__method__}_#{rand(1..1000)}"  # to ensure no duplication
-    refute_text mu_title
-    refute_text hvid_title
 
-    new_music = Music.create_basic!(title: mu_title, langcode: :en, is_orig: true, year: 2000, note: 'temporary new_music')
-    new_eng = new_artist.engages.create!(music: new_music, engage_how: EngageHow.third, year: 1999)
+    ## Edit Artist  ##############
 
-    # new_music.reload 
-    # new_artist.reload
-    page.refresh
-
-    assert_text mu_title
-    ensure_page_load_in_full_load  # defined in test_system_helper.rb
-    assert_selector "#table_musics_by",           text: mu_title
-    refute_selector "#sec_harami_vids_for",       text: mu_title
-    refute_selector "#sec_harami_vids_featuring", text: mu_title
-    refute_selector css_destroy_button_in_show_min, text: "Destroy"  # Artist is not destroyable b/c an associated child
-
-    # Makes an associated HaramiVid via Music
-    new_hvid  = HaramiVid.create_basic!(title: hvid_title, langcode: :en, is_orig: true, url: hvid_url, note: 'temporary new_hvid')
-    new_hvid  << new_music  # creating join-record HaramiVidMusicAssoc
-
-    page.refresh
-    assert_selector "#sec_harami_vids_for",       text: mu_title
-    assert_selector "#sec_harami_vids_for",       text: hvid_title
-    ensure_page_load_in_full_load  # defined in test_system_helper.rb
-    refute_selector "#sec_harami_vids_featuring", text: mu_title
-    refute_selector css_destroy_button_in_show_min, text: "Destroy"  # Artist is not destroyable b/c an associated child
-
-    # Destroys "Artist<=>Music" association
-    # NOTE: HaramiVid <=> Music remains (b/c of HaramiVidMusicAssoc), but Artist is NOT associated to HaramiVid through Music anymore
-    new_eng.destroy!
-    new_artist.reload
-    new_music.reload 
-    new_hvid.reload 
-    assert new_hvid.musics.exists?, "sanity check"
-    refute new_artist.musics.exists?, "sanity check"
-
-    page.refresh  # -> Back to before, where Artist has no associated Music
-    refute_text mu_title
-    assert_selector css_destroy_button_in_show_min, text: "Destroy"
-
-    # Makes an association HaramiVid<=>EventItem, then EventItem<=>Artist/Music
-    evit = EventItem.second
-    new_hvid.event_items.create!(event_item: evit)
-    new_amp = new_artist.artist_music_plays.create!(event_item: evit, music: new_music, play_role: PlayRole.first, instrument: Instrument.first)
-    new_artist.reload
-    new_music.reload 
-    new_hvid.reload 
-    assert new_artist.collab_harami_vids.exists?, "sanity check"
-    assert new_artist.play_musics.exists?, "sanity check"
-    assert_equal 1, new_artist.artist_music_plays.count, "sanity check"
-
-    page.refresh
-    assert_text mu_title
-    ensure_page_load_in_full_load  # defined in test_system_helper.rb
-    assert_selector "#sec_harami_vids_featuring", text: mu_title
-    refute_selector "#table_musics_by",           text: mu_title
-    refute_selector "#sec_harami_vids_for",       text: mu_title
-    refute_selector css_destroy_button_in_show_min, text: "Destroy"  # Artist is not destroyable b/c an associated child
-
-    # Destroys "Artist<=>EventItem/Music" association, thsu HaramiVid association.
-    # NOTE: HaramiVid <=> Music unaffected (b/c of HaramiVidMusicAssoc).
-    new_eng.destroy!
-    page.refresh
-    # -> Back to before, where Artist has no associated Music
-    refute_text mu_title
-    assert_selector css_destroy_button_in_show_min, text: "Destroy"
-
-############# assert_selector css_destroy_button_in_show_strict, text: "Destroy"
-
-    ## Edit
     page.find("div.link-edit-destroy a.link-edit").click
     assert_selector "h1", text: "Editing Artist: "+@artist.title
 
@@ -540,7 +468,112 @@ class ArtistsTest < ApplicationSystemTestCase
 #take_screenshot
   end
 
+  ## NOTE: See musics_test.rb for test-"Music#destroyable?" for slightly better tests
   test "destroying Artist in Show" do
+    art_title = "some artist of #{__method__}"
+    new_artist = Artist.create_basic!(title: art_title, langcode: :en, is_orig: true, birth_year: 1950, note: 'temporary new_artist')
+
+    css_destroy_button_in_show_min = sprintf(".link-edit-destroy .destroy_link")
+    css_destroy_button_in_show_strict = sprintf(".%s #%s .destroy_link", get_only_css_class, Consts::HtmlIds::MAIN_LINK_EDIT_MERGE_DESTROY) # defined in application_helper.rb
+
+    ## Visits the Artist page by Public
+    visit artist_path(new_artist)
+    assert_selector "h1", text: "Artist: "+art_title
+
+    refute_selector css_destroy_button_in_show_min  # destroy-button should not be visible, but...
+    refute_selector css_destroy_button_in_show_min, text: "Destroy"
+    refute_selector css_destroy_button_in_show_strict, text: "Destroy"
+    refute_text "Destroy"
+
+    login_from_somewhere(@editor_ja, from: :visit)
+    visit artist_path(new_artist)
+      # authenticated and authorized
+
+    assert_selector "h1", text: "Artist: "+art_title
+    assert_selector    "dt", text: "Channel Owner"
+    assert_selector css_destroy_button_in_show_min  # destroy-button should be visible, but...
+    assert_selector css_destroy_button_in_show_min, text: "Destroy"
+    assert_selector css_destroy_button_in_show_strict, text: "Destroy"
+
+    ## Artificially adds an associated Music
+    mu_title = "some music of #{__method__}"
+    hvid_title = "some harami-vid of #{__method__}"
+    hvid_uri = "https://youtu.be/#{__method__}_#{rand(1..1000)}"  # to ensure no duplication
+    refute_text mu_title
+    refute_text hvid_title
+
+    new_music = Music.create_basic!(title: mu_title, langcode: :en, is_orig: true, year: 2000, note: 'temporary new_music')
+    new_eng = new_artist.engages.create!(music: new_music, engage_how: EngageHow.third, year: 1999)
+    new_music.reload 
+    new_artist.reload
+    assert new_artist.musics.exists?, "sanity check"
+
+    page.refresh
+
+    assert_text mu_title
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+    assert_selector "#table_musics_by",           text: mu_title
+    refute_selector "#sec_harami_vids_for",       text: mu_title
+    refute_selector "#sec_harami_vids_featuring", text: mu_title
+    refute_selector css_destroy_button_in_show_min, text: "Destroy"  # Artist is not destroyable b/c an associated child
+
+    # Makes an associated HaramiVid via Music
+    new_hvid  = HaramiVid.create_basic!(title: hvid_title, langcode: :en, is_orig: true, uri: hvid_uri, note: 'temporary new_hvid')
+    new_hvid.musics << new_music  # creating join-record HaramiVidMusicAssoc
+
+    page.refresh
+    assert_selector "#sec_harami_vids_for",       text: mu_title
+    assert_selector "#sec_harami_vids_for",       text: hvid_title
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+    refute_selector "#sec_harami_vids_featuring", text: mu_title
+    refute_selector css_destroy_button_in_show_min, text: "Destroy"  # Artist is not destroyable b/c an associated child
+
+    # Destroys "Artist<=>Music" association
+    # NOTE: HaramiVid <=> Music remains (b/c of HaramiVidMusicAssoc), but Artist is NOT associated to HaramiVid through Music anymore
+    new_eng.destroy!
+    new_artist.reload
+    new_music.reload 
+    new_hvid.reload 
+    assert new_hvid.musics.exists?, "sanity check"
+    refute new_artist.musics.exists?, "sanity check"
+
+    page.refresh  # -> Back to before, where Artist has no associated Music
+    refute_text mu_title
+    assert_selector css_destroy_button_in_show_min, text: "Destroy"
+
+    # Makes an association HaramiVid<=>EventItem, then EventItem<=>Artist/Music
+    evit = EventItem.second
+    new_hvid.event_items << evit
+    new_amp = new_artist.artist_music_plays.create!(event_item: evit, music: new_music, play_role: PlayRole.first, instrument: Instrument.first)
+    new_artist.reload
+    new_music.reload 
+    new_hvid.reload 
+    assert new_artist.collab_harami_vids.exists?, "sanity check"
+    assert new_artist.play_musics.exists?, "sanity check"
+    assert_equal 1, new_artist.artist_music_plays.count, "sanity check"
+
+    page.refresh
+    assert_text mu_title
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+    assert_selector "#sec_harami_vids_featuring", text: mu_title
+    refute_selector "#table_musics_by",           text: mu_title
+    refute_selector "#sec_harami_vids_for",       text: mu_title
+    refute_selector css_destroy_button_in_show_min, text: "Destroy"  # Artist is not destroyable b/c an associated child
+
+    # Destroys "Artist<=>EventItem/Music" association, thus HaramiVid association.
+    # NOTE: HaramiVid <=> Music unaffected (b/c of HaramiVidMusicAssoc).
+    new_amp.destroy!
+    page.refresh
+    # -> Back to before, where Artist has no associated Music
+    refute_text mu_title
+    assert_selector css_destroy_button_in_show_min, text: "Destroy"
+    assert_selector css_destroy_button_in_show_strict, text: "Destroy"
+
+    ## Artist.destroy
+    assert_difference("Artist.count", -1){
+      assert_destroy_with_text(find(css_destroy_button_in_show_strict))  # defined in test_system_helper.rb
+      assert_selector "h1", text: "Artists"
+    }
   end
 
   test "CRUD of anchoring for Artist" do

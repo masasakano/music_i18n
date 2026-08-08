@@ -1,19 +1,22 @@
-<%# locals: (record: , is_to_edit: , only: :editor, below_destroy: nil, with_index_link: nil, destory_text: nil, with_destroy: false, destroyable: nil, can_merge: false) %>
+<%# locals: (record: , is_to_edit: , only: :editor, below_destroy: nil, with_index_link: nil, destroy_text: nil, confirm_message: nil, with_destroy: false, destroyable: nil, can_merge: false) %>
 <%# Description: is_to_edit (mandatory) should be true if it is for "edit" screen, else (if it is "Show" screen) false.  %>
 <%#   below_destroy: HTML inserted below the destroy link/button inside the editor_only block. %>
-<%#   destory_text: Text for Destroy Button (if nil (Def), it depends on is_to_edit - "Destroy" in Show) %>
+<%#   destroy_text: Text for Destroy Button (if nil (Def), it depends on is_to_edit - "Destroy" in Show) %>
 <%#   with_index_link: Link for Index is inserted if true; in default (nil), true if !is_to_edit (namely if in Show page). %>
 <%#   with_destroy: if true (Def: false), destroyable has a priority over record.destroyable? %>
 <%#   destroyable: Read only when with_destroy is truthy.  Specify true if the record is destroyable by the user with the model-constraint also considered(!). This basically overwrites the result of record.destroyable? %>
 
-<% destory_text = (is_to_edit ? "Destroy this "+record.class.name : "Destroy") if destory_text.blank? %>
+<% destroy_text = (is_to_edit ? "Destroy this "+record.class.name : "Destroy") if destroy_text.blank? %>
+<% destroy_link_opts = {extra_classes: ["destroy_link"], confirm_message: confirm_message} %>
 <% with_index_link = !is_to_edit if with_index_link.nil? %>
 
 <% model_name = record.class.name %>
 <% model_underscore = model_name.underscore %>
+
 <% can_update = (!record.new_record? && can?(:update, record)) %>
 <% can_destroy = (can_update && can?(:destroy, record)) %>
 
+<% if !record.new_record? %>
 <%= editor_only_safe_html(:pass, method: can_update, only: !is_to_edit && only, tag: "div", class: "link-edit-destroy") do %>  <%# If in :edit (or :new), "editor_only" css-class is not added, but in :show %> <%# defined in application_helper.rb %>
 
   <% css_is_edit_or_show = (is_to_edit ? "in_edit" : "in_show") %>
@@ -22,7 +25,7 @@
       <% if !is_to_edit %> <%# If in "Edit", this part is not displayed. %>
         <% path_edit = polymorphic_path(record, action: :edit, only_path: true) %> <%# e.g., edit_music_path(record) %>
         <%= tag.span class: "lead" do %>
-          <%= link_to "Edit this #{record.class.name}", path_edit, class: "edit_link link-edit", data: { turbo_frame: "_top" } %><%# link-edit CSS class for backward-compatibility %>
+          <%= link_to "Edit this #{record.class.name}", path_edit, class: "edit_link link-edit", data: { turbo_frame: "_top" } %><%# link-edit CSS class for backward-compatibility %> <%# -------- show only %>
         <% end %>
       <% end %>
 
@@ -31,19 +34,23 @@
         <% do_respond = record.respond_to?(:destroyable?) %>
         <% if manual_destroyable || do_respond %>
           <%= tag.div class: ["actions-destroy", "actions-destroy-align-r"] do %>
+            <% if can_merge %>
+              <%= yield %>
+            <% end %>
+
             <% if manual_destroyable || record.destroyable? %>
-              <%= destroy_link(record, destory_text, extra_classes: ["destroy_link"]) %><%# defined in application_helper.rb %>
+              <%= destroy_link(record, destroy_text, **destroy_link_opts) %><%# defined in application_helper.rb %>
             <% else %><%# i.e., if !record.destroyable? && (!with_destroy || !destroyable)  %>
               <form class="button_to"><input disabled="disabled" type="submit" value="Destroy"></form>
               <% klass = model_name.constantize %>
               <% msg_detail = (klass.const_defined?(:DEPENDENT_CHILDREN) ? " "+klass.const_get(:DEPENDENT_CHILDREN).inspect  : "") %>
-              (<%= model_name %> has dependent children<%= msg_detail %> or is "unknown?", and so cannot be destroyed.)
+              (<%= model_name %> has dependent children<%= msg_detail %> or is "unknown?", so cannot be destroyed.)
             <% end %>
           <% end %> <!--  div class="actions-destroy actions-destroy-align-r" -->
         <% elsif can_merge %>
           <% raise "#{record.class.name} does not have .destroyable? method unexpectedly despite the fact can_merge is true, which is NOT supported here. Contact the code developer." %>
         <% else %>
-          &nbsp;&nbsp; / <%= destroy_link(record, is_button: false, extra_classes: ["destroy_link"]) %>
+          &nbsp;&nbsp; / <%= destroy_link(record, destroy_text, is_button: false, **destroy_link_opts) %>
           (<%= tag.span "EDITOR: destroyable? is not defined, so destroying may fail.", class: "text-red" %>)
         <% end %>
       <% end %>
@@ -55,6 +62,7 @@
     <% end %>
   <% end %><!-- section id="main_link_edit_merge_destroy" -->
 <% end %> <%# editor_only_safe_html(:pass, ...) %>
+<% end %><%# if !record.new_record? %>
 
 <% show_link = nil %>
 <% if is_to_edit %>

@@ -32,6 +32,9 @@ class Music < BaseWithTranslation
   # {Mucic.unknown} has {Genre.unknown} (and probably {Place.unknown} and undefined year).
   include ModuleUnknown
 
+  # for destroyable?  See {DEPENDENT_CHILDREN}
+  include ModuleDestroyable
+
   include ModuleDefaultPlace # add_default_place (callback) etc
 
   # CSV format; used in ModuleCsvAux etc
@@ -86,6 +89,7 @@ class Music < BaseWithTranslation
     has_many esym, -> {distinct}, through: :artist_music_plays
   end
   has_many :play_artists, -> {distinct}, through: :artist_music_plays, source: "artist"
+  has_many :played_harami_vids, -> {distinct}, through: :event_items, source: "harami_vids"
 
   validates :year, numericality: { allow_nil: true, greater_than: 0, message: "(%{value}) must be positive." }
 
@@ -102,6 +106,9 @@ class Music < BaseWithTranslation
     "en" => 'UnknownMusic',
     "fr" => 'MusiqueInconnue',
   }
+
+  # essential for ModuleDestroyable
+  DEPENDENT_CHILDREN = [:harami_vids, :played_harami_vids]
 
   # Scope to get Musics based on their "lead artist" determined by EngageHow#weight
   #

@@ -223,6 +223,7 @@ class ActiveSupport::TestCase
   #
   # @param with_visit: [Boolean] if true (Def), this method visit the new_user_session page
   # @param new_h1: [String, NilClass] if with_visit is false, this is mandatory! H1 text after login.
+  # @see  login_from_somewhere
   def login_at_root_path(user=@editor_harami, with_visit: true, new_h1: nil)
     if with_visit
       visit new_user_session_path 
@@ -237,6 +238,7 @@ class ActiveSupport::TestCase
   # performs log on
   #
   # @param succeed: [Boolean] if true (Default), should sign in successfully.
+  # @see  login_from_somewhere
   def login_or_fail_index(user, succeed: true)
     #visit new_user_session_path  # already on this page.
     fill_in "Email", with: user.email
@@ -269,14 +271,18 @@ class ActiveSupport::TestCase
   #   visit musics_path
   #   login_from_somewhere(@moderator_all.email, from: :text)  # defined in test_system_helper.rb
   #
-  # @param email [String]
+  # @param email [String, User]
   # @param password: [String] Default from users.yml (see before digested)
-  # @param from: [Symbol] If :visit (Default), this newly opens up the sign-in page.
+  # @param from: [Symbol] (:visit|:signin|:home|:footer|:text)
+  #    If :visit (Default), this newly opens up the sign-in page.
   #    If you have not visited any page, that is the only option.  If you should be on the sign-in page,
   #    specify :signin, or else, providing that you are on some page, 
   #    if :home or :footer, the respective footer login is used, else if :text, simple text assertion is used.
-  def login_from_somewhere(email, password: '123456', from: :visit)
-    login_word  = "Log in"   # may become "Sign in" ?
+  # @param check_flash: [Boolean] if true (Def: false), Flash Window is checked, else +assert_text+
+  # @param login_word: [String]  maybe "Sign in" in some environments?
+  def login_from_somewhere(email, password: '123456', from: :visit, check_flash: false, login_word: "Log in")
+    email = email.email if email.respond_to?(:email)
+       
     logout_word = "Log out"
 
     ## Checking if login is possible (or if a user is NOT logged in already), and moving to Login page
@@ -306,7 +312,11 @@ class ActiveSupport::TestCase
     fill_in "Password", with: password
     click_on login_word
     assert_text logout_word  # "Log out" is visible because you have logged in
-    assert_text TEXT_ASSERTED[:login][:signed_in]  # defined in test_system_helper.rb
+    if check_flash
+      flash_text_system_assert(TEXT_ASSERTED[:login][:signed_in], type: [:notice, :success], category: :div)  # defined in test_helper.rb
+    else
+      assert_text              TEXT_ASSERTED[:login][:signed_in]
+    end
 
     close_flash_windows([:notice, :success])
   end
@@ -665,19 +675,25 @@ class ActiveSupport::TestCase
   # @example
   #    assert_destroy_with_text(:first, "My dear object")  # defined in test_system_helper.rb
   #    assert_destroy_with_text("//button_to[text()='Destroy]", "My dear object")  # defined in test_system_helper.rb
-  #    assert_destroy_with_text(find("Delete"), just_click: true, chk_flash: true)  # defined in test_system_helper.rb
+  #    assert_destroy_with_text(find("Delete"), chk_flash: true)  # defined in test_system_helper.rb
+  #
+  # @example
+  #    assert_difference("Artist.count", -1){
+  #      assert_destroy_with_text(:first)  # defined in test_system_helper.rb
+  #      assert_selector "h1", text: "Artists"   ## Essential for assert_difference() to work b/c Flash message is too quick.
+  #    }
   #
   # @param xpath [String, Symbol, Capybara::Result] XPath or :first. If :first, a simple algorithm is used.
   # @param obj_title [String, NilClass] "ChannelOwner" etc, which appears in Flash (though only a simple text evaluation is performed). If nil, the message is not tested
-  # @param just_click: [Boolean] If true (Def: false), +xpath.click+ is performed.
+  # @param just_click: [Boolean] If true (Def: false), +xpath.click+ is performed.  (OBSOLETE: it is automatically judged now.)
   # @param chk_flash: [Boolean] If false (Def), +assert_text+ is used, else a Flash message is examined.
   # @return [void]
-  def assert_destroy_with_text(xpath, obj_title=nil, just_click: false, chk_flash: false)
+  def assert_destroy_with_text(xpath, obj_title=nil, just_click: nil, chk_flash: false)
     #accept_alert do
     accept_confirm do
       if :first == xpath
         click_on "Destroy", match: :first
-      elsif just_click
+      elsif xpath.respond_to? :click
         xpath.click
       else
         find(:xpath, xpath).click

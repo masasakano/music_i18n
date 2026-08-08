@@ -11,7 +11,7 @@
 # * update : [PATCH] /users/123/deactivate_users
 #   * require params[:user][:deactivate_method]
 #   * case    params[:user][:deactivate_method]
-#     * when 'destory': run destroy_completely()
+#     * when 'destroy': run destroy_completely()
 #       * User has children in :user_role_assocs with "dependent: :destroy" and "Translation" with "dependent: :nullify"; n.b., it is handled in Rails level and without it the DB would raise an Exception.
 #     * else (=='rename'): run rename_user()
 # * destroy : [DELETE] /users/123/deactivate_users
@@ -25,7 +25,7 @@
 #     1. if s/he and/or the user to disable the account is an admin, that is the role to evaluate the privilege.
 #     2. if not, s/he is qualified only if s/he is higher in rank in all the {RoleCategory} the user to disable the account belongs to. For example, if s/he has no role in {RoleCategory} Kei, for which the user to disable the account is a {Role} receptionist, s/he is NOT qualified.
 # * update : only if the user is less privileged; otherwise, not authorized (in ability.rb).
-#     * when 'destory': banned (no option is provided in view)
+#     * when 'destroy': banned (no option is provided in view)
 #     * else (=='rename'): run rename_user() only if the user is less privileged; otherwise, not authorized (at the method level).
 # * destroy : [DELETE] /users/123/deactivate_users
 #   * the same as that for a normal user.

@@ -1383,18 +1383,19 @@ module ApplicationHelper
   #    t("layouts.destroy_short").capitalize   # (en) "Destroy"
   #
   # @param path [String, ActiveRecord]
-  # @option destory_text [String] String to show. NOTE that the order of path and link-text is the opposite of +link_to+ (!)
+  # @option destroy_text [String] String to show. NOTE that the order of path and link-text is the opposite of +link_to+ (!)
   # @param is_button: [Boolean] if true (Def), +button_to+ is used, else +<a>+
   # @param inline: [Boolean] inline display if true (Def: false). Valid only if is_button is true.
   # @param link_like: [Boolean] if true (Def: false), Bootstrap CSS to make it look like a text is employed. Valid only if is_button is true.
   # @param extra_classes: [Array, String] extra CSS classes for the +<button>+ or +<a>+ tag.
   # @param with_confirm: [Boolean] if true (Def), confirmation-pop up opens.
-  # @param confirm_message: [String] Confirmation pop-up message.
+  # @param confirm_message: [String, NilClass] Confirmation pop-up message.  If nil, the default is used.
   # @param **kwds: [Hash] any other options to pass to the parent Rails method. e.g., +style: {color: "red"}+, +title+
   #    Note that +inline+ (and +extra_classes+) and +link_like+ options introduces :class and :form_class options, respectively.
   #    So, if your +**kwds+ option contains them, you have to be responsible for them.
-  def destroy_link(path, destory_text="Destroy", is_button: true, inline: false, link_like: false, extra_classes: [], with_confirm: true, confirm_message: t('are_you_sure'), **kwds)
+  def destroy_link(path, destroy_text="Destroy", is_button: true, inline: false, link_like: false, extra_classes: [], with_confirm: true, confirm_message: t('are_you_sure'), **kwds)
     classes_str = [extra_classes].flatten.join(" ")
+    confirm_message ||= t('are_you_sure')
     if is_button
       turbohs = { turbo: true }
       turbohs[:turbo_confirm] = confirm_message if with_confirm
@@ -1403,14 +1404,14 @@ module ApplicationHelper
       opts[:class] = classes_str if !classes_str.empty?
       opts[:form_class] = "d-inline" if inline
       opts.merge! kwds
-      button_to destory_text, path, method: :delete, **opts
+      button_to destroy_text, path, method: :delete, **opts
     else  # normal link anchor text
       turbohs = { turbo: true, turbo_method: :delete }
       turbohs[:turbo_confirm] = t('are_you_sure') if with_confirm
       opts = {data: turbohs}
       opts[:class] = classes_str if !classes_str.empty?
       opts.merge! kwds
-      link_to destory_text, path, **opts
+      link_to destroy_text, path, **opts
     end
   end
 

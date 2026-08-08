@@ -46,7 +46,7 @@ class PrefectureTest < ActiveSupport::TestCase
     pla3 = Place.create!(prefecture: liverpool)
     music3.update!(place: pla3)
 
-    # tests whether it can be destoryed
+    # tests whether it can be destroyed
     liverpool.reload
     assert_equal 3,  liverpool.places.size, "Prefecture 'Liverpool' should have 3 Places (1 was just created), but... Places="+liverpool.places.inspect
     assert_equal 1,  liverpool.places.last.musics.size
@@ -147,13 +147,13 @@ class PrefectureTest < ActiveSupport::TestCase
     assert           newp.places[0].unknown?, "Sanity check - it should be unknown: #{newp.places[0].inspect}"  # NOTE: if this sentence was placed 3 lines above, the following "assert_equal 2" would fail, perhaps because of the caching mechanism...
     pla_unknown_id = newp.places[0].id
     assert_equal 2, newp.places.size, "Sanity check: newp=#{newp.inspect}; pla=#{pla.inspect}"
-    assert_raises(ActiveRecord::RecordNotDestroyed, "Should not be destoryed because significant child Places exist."){
+    assert_raises(ActiveRecord::RecordNotDestroyed, "Should not be destroyed because significant child Places exist."){
       newp.destroy! }
     refute newp.destroy
     assert_match(/\bchild Places?\b/i, newp.errors[:base][0]) # "Destroy failed. Prefecture has significant non-unknown child Places. Delete them first."
 
     newp.force_destroy = true
-    assert newp.destroy, "Should be successfully destoryed because #force_destroy==true"
+    assert newp.destroy, "Should be successfully destroyed because #force_destroy==true"
     refute Prefecture.exists? newp_id
     #refute Place.exists? pla_unknown_id
     refute Place.exists? pla_id

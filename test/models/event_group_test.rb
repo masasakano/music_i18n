@@ -57,7 +57,7 @@ class EventGroupTest < ActiveSupport::TestCase
     refute_empty evgr.events, "sanity check..."
     assert_raises(ActiveRecord::RecordNotDestroyed, ActiveRecord::DeleteRestrictionError, "EVGR=#{evgr.inspect}\n events=#{evgr.events.inspect}"){ evgr.destroy! } # At DB level, <ActiveRecord::InvalidForeignKey> for <"PG::ForeignKeyViolation: ERROR:  update or delete on table "event_groups" violates foreign key constraint "fk_rails_..." on table "events"  DETAIL:  Key (id)=(804171372) is still referenced from table "events".> # ActiveRecord::RecordNotDestroyed is at Rails level.
 
-    # Once the children are destoryed, it is destroyable, except for unknown.
+    # Once the children are destroyed, it is destroyable, except for unknown.
     evione = event_items(:one)
     refute evione.destroyable?
     assert_raises(ActiveRecord::DeleteRestrictionError){evione.destroy}
