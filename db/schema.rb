@@ -861,7 +861,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
     t.text "object"
     t.text "object_changes"
     t.string "whodunnit"
-    t.string "{:null=>false}"
+    t.string "{null: false}"
     t.index ["item_type", "item_id"], name: "index_versions_on_item_type_and_item_id"
   end
 
