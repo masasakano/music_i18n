@@ -32,7 +32,7 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
       ### (NOT Used anymore) "form_event_items" => [events(:ev_harami_lucky2023).event_items.first, Event.unknown.event_items.first].map(&:id).map(&:to_s),
      # "event_item_ids" => [...]   # existing EventItems, mandatory for update, but should not be usually included in create unless "reference_harami_vid_kwd" is specified with GET
       "form_new_artist_collab_event_item" => HaramiVidsController::DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_s,  # ==0; For new event.
-      "form_new_event" => events(:ev_harami_lucky2023).id.to_s,  # A new EventItem should be created
+      "form_new_event_id" => events(:ev_harami_lucky2023).id.to_s,  # A new EventItem should be created
       "artist_name"=>"",
       "form_engage_hows"=>EngageHow.default(:HaramiVid).id.to_s,
       "form_engage_year"=>"1997",
@@ -112,11 +112,11 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
     get edit_harami_vid_url hvid2
     assert_response :success, 'should succeed with a music but without associated event_items, but...'
     assert_equal 1, css_select("div#footer span.lang_switcher_ja").size
-    assert_equal 1, css_select("select#harami_vid_form_new_event").size
-    # assert_equal 1, css_select("select#harami_vid_form_new_event option:checked").size
-    assert_select 'select#harami_vid_form_new_event'
-    assert_select 'select#harami_vid_form_new_event[selected]', false
-    assert_select 'select#harami_vid_form_new_event[selected]', count: 0
+    assert_equal 1, css_select("select#harami_vid_form_new_event_id").size
+    # assert_equal 1, css_select("select#harami_vid_form_new_event_id option:checked").size
+    assert_select 'select#harami_vid_form_new_event_id'
+    assert_select 'select#harami_vid_form_new_event_id[selected]', false
+    assert_select 'select#harami_vid_form_new_event_id[selected]', count: 0
 
     sign_out @editor_harami
   end # test "should get edit" do
@@ -196,7 +196,7 @@ if true
     assert_equal pla_unknown_kagawa, evt_kagawa.place, 'sanity check...'
     hsnew = {uri: uri="youtu.be/0030", form_channel_platform: platform_fb.id, note: "success",
              title: "【瓦町ピアノ】演奏", langcode: "ja",  # existing Place
-             "form_new_event" => evt_kagawa.id,
+             "form_new_event_id" => evt_kagawa.id,
              "place.prefecture_id.country_id"=>pref.country.id.to_s,
              "place.prefecture_id"=>pref.id.to_s, "place"=>pla_kawaramachi.id.to_s,
             }
@@ -372,7 +372,7 @@ end
              artist_name: old_art.title, artist_name_collab: name_a,
              place: pla, note: (newnote=name_a+" collaborates (hvid6).")}
     hvid6_prms = @def_create_params.merge(hsnew)
-    evt = Event.find(hvid6_prms["form_new_event"])
+    evt = Event.find(hvid6_prms["form_new_event_id"])
     #assert_equal 5, evt.event_items.count, "sanity check"
     assert_equal 1, evt.event_items.first.artist_music_plays.where(artist_id: collab_art.id).count, "sanity check; there is already 1"
     assert_no_difference("Event.count", 0) do
@@ -398,7 +398,7 @@ end
 
     evit_last = EventItem.last
     assert_equal 1,         mdl_last.event_items.count
-    assert_equal @def_update_params[:form_new_event], mdl_last.event_items.first.event.id.to_s
+    assert_equal @def_update_params[:form_new_event_id], mdl_last.event_items.first.event.id.to_s
     assert_equal 2,         mdl_last.artist_music_plays.count, "#{mdl_last.artist_music_plays.inspect}"  # 2 (=new RC-Succession+HARAMIchan)
     assert_equal ArtistMusicPlay, mdl_last.artist_music_plays.first.class
     assert_equal 2,         mdl_last.artist_collabs.count
@@ -413,7 +413,7 @@ end
     evt0 = event_groups(:evgr_single_streets).unknown_event
     pla = places(:perth_aus)
     hsnew = {uri: (newuri="youtu.be/0080"), title: (newtit="new80"), music_name: mu_name, artist_name: old_art.title,
-             form_new_event: evt0.id.to_s, artist_name_collab: name_a, music_collab: old_mu.id.to_s,  # same as above. Forms for specifying collaboration is not provided on create...
+             form_new_event_id: evt0.id.to_s, artist_name_collab: name_a, music_collab: old_mu.id.to_s,  # same as above. Forms for specifying collaboration is not provided on create...
              "place.prefecture_id.country_id"=>pla.country.id.to_s, "place.prefecture_id" => pla.prefecture.id.to_s,
              place: pla.id.to_s, note: ("Same artist collaborates with a specified +unknown+ event.")}
     assert_difference("Event.count*10 + EventItem.count", 11) do
@@ -450,7 +450,7 @@ end
     assert (art_colla_tit=art_colla.title_or_alt(langcode: "en", lang_fallback_option: :either, str_fallback: nil, article_to_head: true))
     hsnew = {title: nil, langcode: nil,
              event_item_ids: hvid6.event_items.ids,
-             form_new_event: "",
+             form_new_event_id: "",
              music_name: "",
              music_collab: old_mu.id.to_s,
              artist_name_collab: art_colla_tit,
@@ -491,7 +491,7 @@ end
     assert (art_add_tit=art_add.title_or_alt(langcode: "en", lang_fallback_option: :either, str_fallback: nil, article_to_head: true))
     hsnew = {title: nil, langcode: nil,
              event_item_ids: hvid6.event_items.ids,
-             form_new_event: "",
+             form_new_event_id: "",
              artist_name: art_add_tit,
              artist_name_collab: "",
              form_new_artist_collab_event_item: (evit2chk=hvid6.event_items.first).id.to_s,
@@ -605,7 +605,7 @@ end
              "reference_harami_vid_kwd" => "",
              "note"=>(hvid7.note+"02"),
              form_new_artist_collab_event_item: (evit2chk=hvid7.event_items.first).id.to_s,
-             form_new_event: "",
+             form_new_event_id: "",
              music_name: (mu_tit="Six Thousand"),
              music_year: "2004",
              music_timing: "10:12",  # 612 sec
@@ -633,7 +633,7 @@ end
     ## should succeed now
     hvid7_prms = hvid7_prms_fail.merge({
              form_new_artist_collab_event_item: HaramiVidsController::DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_s,
-             form_new_event: evit2chk.event.id.to_s,})
+             form_new_event_id: evit2chk.event.id.to_s,})
 
     assert_difference("Event.count + EventItem.count", 1) do  # an EventItem is created
       assert_difference("ArtistMusicPlay.count", 1) do  # for default Artist's Music-Event-Play
@@ -686,7 +686,7 @@ end
     hvid7_prms_collab_fail = hvid7_prms_fail.merge({
         "event_item_ids" => hvid7.event_items.ids.map(&:to_s),
         #form_new_artist_collab_event_item: (evit2chk=hvid7.event_items.first).id.to_s,  # Identical to the one before. This was and is the reason of failure; hvid6 has this EventItem, yet hvid6 does not have the Music below (mu_tit) with which a Collab-Artist is attempted to be added.
-        form_new_event: "",
+        form_new_event_id: "",
         music_collab: mus_hvid7.id.to_s,  # existing Music
         artist_name: "",
         artist_name_collab: artists(:artist2).title,
@@ -703,7 +703,7 @@ end
     hvid7_prms_add_collab_art = hvid7_prms_fail.merge({
         "event_item_ids" => hvid7.event_items.ids.map(&:to_s),
         form_new_artist_collab_event_item: evit7.id.to_s,  # Key
-        form_new_event: "",
+        form_new_event_id: "",
         music_collab: mus_hvid7.id.to_s,  # existing Music
         artist_name: "",
         artist_name_collab: (art2=artists(:artist2)).title,
@@ -766,7 +766,7 @@ end
         "reference_harami_vid_kwd" => "",
         #"reference_harami_vid_id" => "",
         form_new_artist_collab_event_item: (evit2chk=hvid6.event_items.first).id.to_s,  # hvid6's own EventItem
-        form_new_event: "",
+        form_new_event_id: "",
         music_name: mu_tit,
         music_timing: (mu_timing="128"),
         artist_name: art_tit_h7,
@@ -862,7 +862,7 @@ end
         "reference_harami_vid_kwd" => "",
         #"reference_harami_vid_id" => "",
         # form_new_artist_collab_event_item: HaramiVidsController::DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_s,  # As in hvid6_prms.
-        form_new_event: evt_kagawa_unkpla.id.to_i.to_s,
+        form_new_event_id: evt_kagawa_unkpla.id.to_i.to_s,
         note: (newn = hvid6.note+"08"),
         "place.prefecture_id.country_id"=>hvid6.country.id.to_s,
         "place.prefecture_id"=>hvid6.prefecture.id.to_s,
@@ -1012,7 +1012,7 @@ end
       {
         event_item_ids: hvid6.event_items.ids.map(&:to_s),
         form_new_artist_collab_event_item: hvid6.event_items.last.id.to_s,
-        form_new_event: events(:ev_harami_lucky2023).id.to_s,  # No new EventItem should be created
+        form_new_event_id: events(:ev_harami_lucky2023).id.to_s,  # No new EventItem should be created
         music_name: "",
         music_collab: "",
         artist_name: "",
@@ -1077,7 +1077,7 @@ end
       "form_channel_platform"=>ChannelPlatform.default(:HaramiVid).id.to_s,
       note: "old-new data",
       form_new_artist_collab_event_item: HaramiVidsController::DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_s,
-      form_new_event: events(:ev_evgr_mvs_unknown).id,
+      form_new_event_id: events(:ev_evgr_mvs_unknown).id,
       music_collab: "",  # ID
       music_name: "",
       music_year: "",
@@ -1155,7 +1155,7 @@ end
       "form_channel_type"    =>chan.channel_type_id.to_s,
       "form_channel_platform"=>chan.channel_platform_id.to_s,
       form_new_artist_collab_event_item: "",
-      form_new_event: "",
+      form_new_event_id: "",
       music_collab: "",  # ID
       music_name: "",
       music_year: "",

@@ -20,9 +20,11 @@
       %>  <%# defined in event_items_helper.rb %>
     <%# For create/new, the same field appeaers much earlier. %>
      <div class="form_new_model_info">
-      <%= f.input :form_new_event,
+       <% selected = ((v=harami_vid.form_new_event_id).present? ? v : ((v2=default_event_for_new_event_item(harami_vid)) ? v2.id : nil)) %> <%# The same Event as that for an associated EventItem, if there is any %>
+       <%= render partial: 'harami_vids/form_select_event', locals: {f: f, harami_vid: harami_vid, selected: selected, is_required: !selected} %> <%# Form for Stimulus Controller %>
+      <%# f.input :form_new_event_id,
           collection: form_all_event_collection, include_blank: true,
-          selected: ((v=harami_vid.form_new_event).present? ? v : ((v2=default_event_for_new_event_item(harami_vid)) ? v2.id : nil)),
+          selected: ((v=harami_vid.form_new_event_id).present? ? v : ((v2=default_event_for_new_event_item(harami_vid)) ? v2.id : nil)),
           label: t(:additional).capitalize+" "+t(:Event)+"(Item)",
           input_html: { multiple: false } %> <%# default_event_for_new_event_item() defined in /app/helpers/harami_vids_helper.rb %>
      </div>

@@ -1,0 +1,13 @@
+<%# locals: () %>
+<turbo-frame id="events_select_frame">
+  <% field_name = params[:select_name].presence || "event_id" %>
+  <% selected   = params[:selected].presence %>
+  <% is_required = ActiveModel::Type::Boolean.new.cast(params[:required]) %>
+  <%= select_tag field_name,
+        options_from_collection_for_select(@events, :id, :title, params[:selected_event_id]),
+        include_blank: @events.any? ? "Select an Event..." : "No events found for this selection",
+        selected: selected,
+        required: is_required,
+        class: "form-select" %>
+</turbo-frame>
+

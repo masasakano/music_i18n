@@ -40,7 +40,11 @@ Rails.application.routes.draw do
       resources :resettle_new_events, only: [:update]
     end
     resources :harami1129_reviews
-    resources :event_groups
+    resources :event_groups do
+      scope module: :event_groups do
+        resources :events, only: [:index]
+      end
+    end
     resources :model_summaries
     namespace :translations do  # "update" is used so that it can be handled with Ability
       get ':id/promotes/update', to: 'promotes#update', as: :update_promotes # => translations_update_promote_path(:id) => /translations/:id/promotes/update

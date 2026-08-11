@@ -1,5 +1,6 @@
 # coding: utf-8
 module EventsHelper
+  # @return [Array<Array<String, Integer>>] [["Playing in Tocho on 2026-01-23 [Streetpiano]", 456], [...], ...]
   def form_all_event_collection(rela=Event.all)
     rela2pass = rela.left_joins(:place).order(:start_time, :event_group_id, "places.prefecture_id", "places.id")
 

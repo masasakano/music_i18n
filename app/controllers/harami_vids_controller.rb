@@ -24,7 +24,7 @@ class HaramiVidsController < ApplicationController
     %i(uri duration note) + [
     "form_channel_owner", "form_channel_type", "form_channel_platform",
     "form_new_artist_collab_event_item", # which EventItem-ID (or new) is used to refer to the new EventItem and/or new Collab.
-    "form_new_event",  # for Event-ID (NOT EventItem) for a new EventItem to add
+    "form_new_event_id",  # for Event-ID (NOT EventItem) for a new EventItem to add
     "artist_name", "artist_sex", "form_engage_hows", "form_engage_year", "form_engage_contribution",
     "artist_name_collab", "form_instrument", "form_play_role",
     "music_collab", "music_name", "music_timing", "music_genre", "music_year",
@@ -73,6 +73,8 @@ class HaramiVidsController < ApplicationController
         end
       end
     end
+
+    @harami_vid.form_new_event_id ||= Event.default(:HaramiVid).id
 
     if @harami_vid.errors.any?
       hsstatus = {status: :unprocessable_content}
@@ -852,8 +854,8 @@ end
     # == Algorithm
     #
     # 1. if +reference_harami_vid_id+ is specified (by GET), this process is totally skipped,
-    #    because U/I disables "form_new_event". Else,
-    # 2. create_an_event_item (this method) / "form_new_event" / @assocs[:new_event_item] and in some cases @assocs[:artist_music_play]
+    #    because U/I disables "form_new_event_id". Else,
+    # 2. create_an_event_item (this method) / "form_new_event_id" / @assocs[:new_event_item] and in some cases @assocs[:artist_music_play]
     #    1. for "update", this can be nil. If so, skipped.
     #    2. for "update", if this parameter is specified
     #       1. Creates a new EventItem.
@@ -878,7 +880,7 @@ end
     # another ArtistMusicPlay if Collab-Artist is also specified.
     def create_an_event_item
 begin
-      prm_name = "form_new_event"
+      prm_name = "form_new_event_id"
       @event_item_for_new_artist_collab ||= 
         if (s=@harami_vid.form_new_artist_collab_event_item).present? && DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_i != s.to_i
           EventItem.find(s)
@@ -1241,5 +1243,5 @@ end
 end
 
 ###########################
-# params: {"_method"=>"patch", "authenticity_token"=>"[FILTERED]", "harami_vid"=>{"uri"=>"youtu.be/2EZ5-nyu1Dg", "release_date(1i)"=>"2024", "release_date(2i)"=>"5", "release_date(3i)"=>"10", "duration"=>"842.0", "place.prefecture_id.country_id"=>"5798", "place.prefecture_id"=>"6654", "place"=>"6749", "form_channel_owner"=>"3", "form_channel_type"=>"12", "form_channel_platform"=>"2", "event_item_ids"=>["", "20"], "form_new_event"=>"", "note"=>"", "memo_editor"=>"", "music_name"=>"", "music_year"=>"", "music_genre"=>"122", "music_timing"=>"", "artist_name"=>"", "artist_sex"=>"0", "form_engage_hows"=>"72", "form_engage_year"=>"", "form_engage_contribution"=>"", "artist_name_collab"=>"", "form_instrument"=>"2", "form_play_role"=>"2"}, "commit"=>"Update Harami vid", "controller"=>"harami_vids", "action"=>"update", "id"=>"1046", "locale"=>"en"}
+# params: {"_method"=>"patch", "authenticity_token"=>"[FILTERED]", "harami_vid"=>{"uri"=>"youtu.be/2EZ5-nyu1Dg", "release_date(1i)"=>"2024", "release_date(2i)"=>"5", "release_date(3i)"=>"10", "duration"=>"842.0", "place.prefecture_id.country_id"=>"5798", "place.prefecture_id"=>"6654", "place"=>"6749", "form_channel_owner"=>"3", "form_channel_type"=>"12", "form_channel_platform"=>"2", "event_item_ids"=>["", "20"], "form_new_event_id"=>"", "note"=>"", "memo_editor"=>"", "music_name"=>"", "music_year"=>"", "music_genre"=>"122", "music_timing"=>"", "artist_name"=>"", "artist_sex"=>"0", "form_engage_hows"=>"72", "form_engage_year"=>"", "form_engage_contribution"=>"", "artist_name_collab"=>"", "form_instrument"=>"2", "form_play_role"=>"2"}, "commit"=>"Update Harami vid", "controller"=>"harami_vids", "action"=>"update", "id"=>"1046", "locale"=>"en"}
 

@@ -92,6 +92,7 @@ class HaramiVid < BaseWithTranslation
   validates_uniqueness_of :uri, allow_nil: true  # allow_blank: false (??)
   validates :uri,   presence: true
   validates :place, presence: true  # NOT DB constraint, but Rails before_validation sets this with a default unknown Place.
+  validates :form_new_event_id, presence: true, on: :create
   #validates :channel, presence: true  # before_validation  is taking care of. NOT DB constraint, but belongs_to constrains.
   validates_numericality_of :duration,     allow_blank: true, greater_than_or_equal_to: 0, message: "(%{value}) must be positive or 0."
   validates_numericality_of :music_timing, allow_blank: true, greater_than_or_equal_to: 0, message: "(%{value}) must be positive or 0."
@@ -104,7 +105,7 @@ class HaramiVid < BaseWithTranslation
   attr_accessor :unsaved_music
   attr_accessor :unsaved_event_item
 
-  attr_accessor :form_new_event
+  attr_accessor :form_new_event_id
   attr_accessor :form_channel_owner
   attr_accessor :form_channel_type
   attr_accessor :form_channel_platform

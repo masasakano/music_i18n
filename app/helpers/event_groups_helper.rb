@@ -10,6 +10,13 @@ module EventGroupsHelper
   # in case the editor wants to set the start_year earlier than the current year.
   ALLOWANCE_YEARS_START_YEAR_FOR_NEW = 5
 
+  # @return [Array<Array<String, Integer>>] [["2026 Tour", 12], [...], ...]
+  def form_all_event_group_collection(rela=EventGroup.all)
+    rela2pass = rela.left_joins(:place).order(:start_date, "places.prefecture_id", "places.id")
+
+    EventGroup.collection_ids_titles_or_alts_for_form(rela2pass, fmt: "%s", str_fallback: "NONE", id_assocs: [], prioritize_is_orig: false)
+  end
+
   # Returns the minimum year to show in a Date/Time form field
   #
   # Used in {EventGroup}, {Event}, {EventItem}, {Url}

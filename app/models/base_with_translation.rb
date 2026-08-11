@@ -2684,10 +2684,16 @@ class BaseWithTranslation < ApplicationRecord
   def self.collection_ids_titles_or_alts_for_form(rela=self.all, fmt: "%s", str_fallback: "", **opts)
     ar2process = collection_ids_titles_or_alts(rela, **opts)
     ar2process.map{ |eary|
-      [
-       sprintf(fmt, *(eary[1..-1].map{|es| es.blank? ? str_fallback : definite_article_to_head(es)})),  # defined in ModuleCommon
-       eary[0]
-      ]
+      begin
+        [
+          sprintf(fmt, *(eary[1..-1].map{|es| es.blank? ? str_fallback : definite_article_to_head(es)})),  # defined in ModuleCommon
+          eary[0]
+        ]
+      rescue ArgumentError
+        # This should never happen as long as collection_ids_titles_or_alts() is working as intended.
+        logger.error "ERROR(#{File.basename __FILE__}:#{__method__}): ArgumentError: "+[fmt, eary[1..-1], ar2process].inspect
+        raise
+      end
     }
   end
 
