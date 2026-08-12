@@ -62,35 +62,41 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
     ## Editor harami is qualified
     sign_in @editor_harami
 
-    assert_difference("Music.count*1000 + Artist.count*100 + Engage.count*10 + HaramiVidMusicAssoc.count", 0) do
-      assert_difference("ArtistMusicPlay.count*1000 + Event.count*100 + EventItem.count*10", 110) do
-        assert_difference("HaramiVidEventItemAssoc.count*10 + HaramiVid.count*1", 11) do
-          assert_difference("Translation.count", 3) do  # JA/EN for new HaramiVid, and JA for new Event "都庁(東京都/日本)でのイベント..."
+    #assert_difference("Music.count*1000 + Artist.count*100 + Engage.count*10 + HaramiVidMusicAssoc.count", 0) do
+    #  assert_difference("ArtistMusicPlay.count*1000 + Event.count*100 + EventItem.count*10", 110) do
+    #    assert_difference("HaramiVidEventItemAssoc.count*10 + HaramiVid.count*1", 11) do
+    #      assert_difference("Translation.count", 3) do  # JA/EN for new HaramiVid, and JA for new Event "都庁(東京都/日本)でのイベント..."
+    assert_no_difference("Music.count*1000 + Artist.count*100 + Engage.count*10 + HaramiVidMusicAssoc.count", 0) do
+      assert_no_difference("ArtistMusicPlay.count*1000 + Event.count*100 + EventItem.count*10", 110) do
+        assert_no_difference("HaramiVidEventItemAssoc.count*10 + HaramiVid.count*1", 11) do
+          assert_no_difference("Translation.count", 3) do  # JA/EN for new HaramiVid, and JA for new Event "都庁(東京都/日本)でのイベント..."
             assert_no_difference("Channel.count") do
               post harami_vids_fetch_youtube_data_path, params: { harami_vid: { fetch_youtube_datum: hsin } }
-assert_response :unprocessable_content
-              assert_response :redirect, "WARNING: At the moment, youtube loading reverts to :new because Event is not selected.  So, the app should be modified to redirect to :new, or better, just loads Youtube on the spot... TODO!"  # this should be put inside assert_difference block to detect potential 422
-              hvid = HaramiVid.last
-              assert_redirected_to hvid
+              assert_response :success
+#              assert_response :redirect, "WARNING: At the moment, youtube loading reverts to :new because Event is not selected.  So, the app should be modified to redirect to :new, or better, just loads Youtube on the spot... TODO!"  # this should be put inside assert_difference block to detect potential 422
+#              hvid = HaramiVid.last
+#              assert_redirected_to hvid
             end
           end
         end
       end
     end
 
-    hvid = HaramiVid.last
+    assert_equal "New Harami Vid", css_select("h1").text
 
-    assert_equal @h1129.link_root, File.basename(hvid.uri), "sanity check..."
-    assert_empty hvid.musics
-    #assert_equal @h1129.song,   hvid.musics.first.title
-    #assert_equal @h1129.singer, hvid.artists.first.title
-    assert_equal @h1129.title,  hvid.title
-    assert_equal channels(:channel_haramichan_youtube_main), hvid.channel
-    assert_equal Event.default(:HaramiVid, place: places(:tocho)), hvid.event_items.first.event
-    assert       hvid.release_date
-    assert_equal hvid.release_date, hvid.event_items.first.publish_date
+    assert_equal @h1129.link_root, File.basename(css_select("#harami_vid_uri").first["value"])
+    assert_equal @h1129.title, css_select("#harami_vid_title").first["value"]
+
+    act_year, act_day = ["1", "3"].map{ css_select('#harami_vid_release_date_'+_1+'i option[selected="selected"]').first["value"].to_i }
+    assert_equal @h1129.release_date.year, act_year
+    assert_equal @h1129.release_date.day,  act_day
+
+    assert_equal channels(:channel_haramichan_youtube_main).channel_owner.id, css_select('#harami_vid_form_channel_owner option[selected="selected"]').first["value"].to_i
 
     sign_out @editor_harami
+    #assert_empty hvid.musics
+    #assert_equal @h1129.song,   hvid.musics.first.title
+    #assert_equal @h1129.singer, hvid.artists.first.title
   end
 
   test "should update" do

@@ -1,7 +1,8 @@
 <h1>New Harami Vid</h1>
 
-<% if @harami_vid.reference_harami_vid_id.blank? %>
-  <%# If reference-ID is given (in GET), Import-Youtube function should not be displayed, for it would ignore the reference-ID. %>
+<% if @harami_vid.reference_harami_vid_id.blank? && @harami_vid.uri.blank? %>
+  <%# If reference-ID is given (in GET), Import-Youtube form should not be displayed, for it would ignore the reference-ID. %>
+  <%# Also, @harami_vid.uri is already defined, it usually means either rendered after a fresh Youtube loading or failed saving attempt in :create, so Import-Youtube form should not be displayed in either case. %>
   <div id="create_by_youtube">
     <%= form_with method: :post, model: HaramiVid, url: harami_vids_fetch_youtube_data_path, local: true, class: "inline_form", style: "margin-bottom: -4em;" do |form| %> <%# scope: :article %>
       <%= form.fields_for :fetch_youtube_datum do |fyd_form| %>
