@@ -1,6 +1,7 @@
 <h1>Prefectures <%= h1_note_editor_only(Prefecture, method: :index) %></h1>
 
 <% canedit=can?(:edit, Prefecture) %>
+<% candestroy=can?(:destroy, Prefecture) %>
 <% can_create_pla = can?(:create, Place) %>
 <table class="table_index table_string">
   <thead>
@@ -52,8 +53,12 @@
        <% if canedit %>
         <% if (can? :edit, model) %>
          <td class="editor_only"><%= link_to('Edit', edit_prefecture_path(model)) if (can? :update, model) %></td>
-         <% if (can? :destroy, model) %>
-          <td class="editor_only"><%= link_to('Destroy', model, method: :delete, data: { confirm: t('are_you_sure') }) if (can?(:destroy, model) && model.destroyable?(with_msg: false)) %></td>
+         <%= editor_only_safe_html(:pass, method: candestroy, only: :moderator, tag: "td", show_always: true, class: "text-end") do %>
+           <% if can?(:destroy, model) && model.destroyable?(with_msg: false) %>
+             <%= destroy_link model, inline: true, is_button: true, extra_classes: ["destroy_link"] %> <%# defined in application_helper.rb %>
+           <% else %>
+             <s title="Cannot destroy by anyone due to data-integration constraints">Destroy</s>
+           <% end %>
          <% end %>
         <% else %>
          <td colspan="2" class="editor_only"></td>

@@ -54,10 +54,6 @@
 <% if current_user && current_user.abs_superior_to?(user) %>
         <td><%= link_to 'Deactivate', users_edit_deactivate_users_path(user) %>
 <% end %>
-<% if false %>
-        <td><%= link_to 'Edit', edit_user_path(user) %></td>
-        <td><%= link_to 'Destroy', user, method: :delete, data: { confirm: t('are_you_sure') } %></td>
-<% end %>
       </tr>
     <% end %>
   </tbody>

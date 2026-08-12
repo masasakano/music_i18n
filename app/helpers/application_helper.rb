@@ -1261,7 +1261,7 @@ module ApplicationHelper
   # The recommended way is to give the content as the ERB block (see an example below).
   # Then, the content is sanitized (or not for the part you choose so) acccording to the ERB standard way.
   #
-  # If the content turns out to be empty (after strip), this returns nil, unless show_always is true.
+  # If the content turns out to be empty (after strip), this returns nil, unless +show_always+ is true.
   # However, if you use yield (in ERB), make sure the last statement returns nil
   # (maybe IF clause or even <% nil %> (a slight bug...)
   #
@@ -1299,7 +1299,7 @@ module ApplicationHelper
   # @param text: [String, NilClass] you can supply the enclosed text either with this argument or through yield.
   # @param permissive: [Boolean] Default is false, unlike {#publicly_viewable?}.  Use so unless the permission is not a big-deal one.
   # @param strip: [Boolean, NilClass] If true, text (or yield) is stripped. In default (nil), this is false if tag is "div" or "p" else true (like tag is "span" or "td").  This usually affects just an aesthetic point in the generated HTML.
-  # @param show_always: [Boolean] If true (Def: false), tag is output even when the stripped text is empty. Specify true for <td> etc.
+  # @param show_always: [Boolean] If true (Def: false), tag is output even when the stripped text is empty, as long as the initial conditions passes. Specify true for <td> etc.
   # @param opts: [Hash] Any additional parameters (e.g., "title") are passed to ApplicationController.helpers.tag
   # @return [String] html_safe String to display if the page is editor-only? (maybe moderator or admin only)
   # @yield Returned text will be inside the block.
@@ -1352,13 +1352,13 @@ module ApplicationHelper
   # See {#destroy_link} for a better description about the background.
   #
   # @example  inline button-like
-  #    destroy_link("Update", record, method: :patch, inline: true, extra_classes: ["destroy_link"])  # defined in application_helper.rb
+  #    not_get_link("Update", record, method: :patch, inline: true, extra_classes: ["destroy_link"])  # defined in application_helper.rb
   #
   # @example  inline link-like
-  #    destroy_link("Update", record, method: :patch, inline: true, link_like: true, extra_classes: ["destroy_link"], confirm_message: t("Sure?"), style: "margin-left: -0.6em;")  # defined in application_helper.rb
+  #    not_get_link("Update", record, method: :patch, inline: true, link_like: true, extra_classes: ["destroy_link"], confirm_message: t("Sure?"), style: "margin-left: -0.6em;")  # defined in application_helper.rb
   #
   # @example  using HTML anchor, but should appear like a button. Note +link_like+ is ignored when +is_button+ is false.
-  #    destroy_link("Create", record, method: :post, is_button: false, extra_classes: ["button_like"])  # defined in application_helper.rb
+  #    not_get_link("Create", record, method: :post, is_button: false, extra_classes: ["destroy_link", "button_like"])  # defined in application_helper.rb
   #
   # @param link_text [String] (Mandatory) String to show. NOTE that the order of path and link-text is the opposite of +link_to+ (!)
   # @param path [String, ActiveRecord]
@@ -1425,7 +1425,7 @@ module ApplicationHelper
   #    destroy_link(record, inline: true, link_like: true, extra_classes: ["destroy_link"], confirm_message: t("Sure?"), style: "margin-left: -0.6em;")  # defined in application_helper.rb
   #
   # @example  using HTML anchor
-  #    destroy_link(record, is_button: false, extra_classes: ["destroy_link"])  # defined in application_helper.rb
+  #    destroy_link(record, is_button: false, extra_classes: ["destroy_link", "button_like"])  # defined in application_helper.rb
   #
   # For link-text, the following may be useful (See views.en.yml).
   #

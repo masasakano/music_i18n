@@ -361,7 +361,11 @@ class Prefecture < BaseWithTranslation
   def destroyable?(with_msg: true)
     return true if force_destroy
 
+    return false if unknown?
+    return false if harami_vids.exists?
+
     #countries = COUNTRIES_WITH_COMPLETE_PREFECTURES.map{|i| Country[i]}.compact
+    ### WARNING: This should come at the end always!!
     return true if (places.size <= 1)
 
     # errors.add :base, "Destroy failed. Prefecture has significant non-unknown child Places. Delete them first." if with_msg

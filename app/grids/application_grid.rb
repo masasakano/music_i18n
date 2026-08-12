@@ -749,7 +749,13 @@ class ApplicationGrid < Datagrid::Base
       end
 
       if with_destroy && can?(:destroy, record)
-        ar4editors.push link_to('Destroy', polymorphic_path(record), method: :delete, data: { confirm: I18n.t('are_you_sure') })
+        ar4editors.push link_to('Destroy', polymorphic_path(record),
+                                class: "destroy_link",
+                                data: { 
+                                  turbo: true,
+                                  turbo_method: :delete,
+                                  turbo_confirm: I18n.t('are_you_sure')
+                                }) # Same as destroy_link() (or its parent not_get_link()) in application_helper.rb (but it is hard to reuse in Grids...)
       end
 
       ar_pair = ApplicationHelper.tag_pair_span(tag_class: tag_class) # defined in application_helper.rb

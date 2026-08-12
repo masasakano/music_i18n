@@ -257,7 +257,7 @@ class Ability
 
     cannot(:destroy, [Channel]){                                   |mdl| mdl.unknown? || mdl.harami_vids.exists?}
     cannot(:destroy, [ChannelPlatform, ChannelOwner, ChannelType]){|mdl| mdl.unknown? || mdl.channels.exists?}  # ChannelPlatform.unknown can be managed by only sysadmin
-    cannot(:destroy, [Artist, Music, SiteCategory, Domain, DomainTitle, EventGroup, Event, EventItem, Instrument]){|mdl| mdl.unknown?}  # should never be managed by even sysadmin via U/I due to Rails-level constraints.
+    cannot(:destroy, [Artist, Music, SiteCategory, Domain, DomainTitle, EventGroup, Event, EventItem, Instrument, Country, Prefecture, Place]){|mdl| mdl.unknown?}  # NOTE: in fact, they should never be managed by even sysadmin via U/I due to Rails-level constraints.  You may check it with record.destroyable? in addition to can?()
     cannot(:destroy, [Artist]){ |mdl| mdl == Artist.primary }
   end
 end

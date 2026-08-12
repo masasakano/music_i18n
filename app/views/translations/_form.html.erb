@@ -110,7 +110,7 @@
   <div class="actions-destroy" style="margin-right: 1em;">
    <div class="actions" style="text-align: right">
      <% if translation.translatable.translations.count > 1 && !translation.is_orig %>
-       <%= button_to 'Destroy', translation, method: :delete, data: { confirm: t('are_you_sure') } %>
+       <%= destroy_link(translation, inline: true, extra_classes: ["destroy_link"]) %> <%# defined in application_helper.rb %>
      <% else %>
        <form class="button_to"><input disabled="disabled" type="submit" value="Destroy"></form>
       <% if translation.is_orig %>
