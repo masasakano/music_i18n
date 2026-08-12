@@ -144,6 +144,7 @@ class HaramiVidsController < ApplicationController
 
     _import_reference  # Sets reference_harami_vid_kwd, @event_event_items, @ref_harami_vid
 
+    @harami_vid.skip_validate_form_new_event_id = true if @event_event_items.present?
     add_unsaved_trans_to_model(@harami_vid, @hstra) # defined in application_controller.rb
     result = def_respond_to_format(@harami_vid){  # defined in application_controller.rb
       create_update_core{

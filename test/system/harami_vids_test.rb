@@ -41,6 +41,13 @@ class HaramiVidsTest < ApplicationSystemTestCase
       create: "Create Channel",
       update: "Update Channel",
     }
+    @text_additional_event = 'Additional Event'
+    @form_html_csses = {
+      event_group: "#event_group_id",
+      year_begin:  "#year_begin",
+      year_end:    "#year_end",
+      event:       "#harami_vid_form_new_event_id"
+    }.with_indifferent_access
   end
 
   # called after every single test
@@ -233,6 +240,71 @@ class HaramiVidsTest < ApplicationSystemTestCase
     vid_prms[:note] = "temperary note 37"
     fill_in "Note", with: vid_prms[:note]
 
+    ## Checkig default Event selection (cascade select with JS)
+    refute_text  @text_additional_event  # Should be simply "Event"
+    assert_text  "Event Group"
+
+    @form_html_csses.each_value do |css|
+      assert_selector css
+    end
+    evgr_default = EventGroup.default(:HaramiVid)
+    evgr_default.unknown_event
+
+    node = find(@form_html_csses[:event_group] + ' option[selected="selected"]')
+    assert_equal evgr_default.title(langcode: :en), node.text, "Default EventGroup for a new Event must be the site-wide Default EventGroup."
+    node = find(@form_html_csses[:year_begin] + ' option[selected="selected"]')
+    assert_equal Rails.configuration.music_i18n_def_first_event_year.to_s, node["value"].to_s, "Default Start-Year msut be the site-wide one."
+    refute_selector  @form_html_csses[:year_end]+' option[selected="selected"]'  # "year-end" has no Default value.
+    node = find(@form_html_csses[:event] + ' option[selected="selected"]')
+    assert_equal evgr_default.unknown_event.title(langcode: :en), node.text
+
+    ## Event selection (cascade select with JS)
+    event_sel = events(:ev_harami_lucky2023)
+    evgr_sel  = event_sel.event_group
+    event_unknown_sibling = event_sel.unknown_sibling
+    assert event_unknown_sibling.unknown?, "sanity check"
+
+    year1st = event_unknown_sibling.start_time.year
+    assert_operator Rails.configuration.music_i18n_def_first_event_year, :<, year1st.to_i, "checking fixure; it should be 2023"
+    event_sel_year = 2025
+    assert_operator event_sel_year, :>, event_unknown_sibling.start_time.year, "fixuture check"
+    ti = Time.zone.local(event_sel_year)
+    evgr_sel.update!(end_date:    ti.end_of_year.to_date)
+    event_sel.update!(start_time: ti.end_of_year-180.day)  # forcifully modified the Time for the tests here.
+
+    evts_in_evgr_sel = Event.where(event_group_id: evgr_sel.id)
+    n_evts_in_evgr_sel = evts_in_evgr_sel.count
+    assert_operator 1, :<, evts_in_evgr_sel.count, "sanity check - the EventGroup must have more than 1 Event"
+    assert_equal 0,        evts_in_evgr_sel.where(start_time: ..Time.zone.local(year1st-1).end_of_year).count, "sanity check - EventGroup should have no Events before its UnknownEvent."
+    assert_operator 0, :<, evts_in_evgr_sel.where(start_time: Time.zone.local(year1st+1).beginning_of_year..).count, "sanity check - the EventGroup must have at least 1 Event other than UnknownEvent"
+
+    css = @form_html_csses[:event] + ' option[selected="selected"]'
+    assert_selector css
+    find(@form_html_csses[:event_group]).select evgr_sel.title_or_alt_for_selection
+    # select evgr_sel.title_or_alt_for_selection, from: 'Eveng Group'  # => Unable to find select box "Eveng Group" that is not disabled
+    refute_selector css  # Event must be selected, once EventGroup selection has been modified.
+    assert_selector @form_html_csses[:event]+sprintf(' option[value="%s"]', event_unknown_sibling.id)  # UnknownEvent must be always available to select.
+
+    # select year-end to the current year
+    refute_selector @form_html_csses[:event]+sprintf(' option[value="%s"]', event_sel.id)  # This Event is out of Year Range.
+    find(@form_html_csses[:year_end]).select Time.current.year
+    assert_selector @form_html_csses[:event]+sprintf(' option[value="%s"]', event_sel.id)  # This Event is out of Year Range.
+
+    # select year-begin to limit the range of year to only current year
+    find(@form_html_csses[:year_begin]).select Time.current.year
+    refute_selector @form_html_csses[:event]+sprintf(' option[value="%s"]', event_sel.id)  # This Event is out of Year Range.
+    assert_selector @form_html_csses[:event]+sprintf(' option[value="%s"]', event_unknown_sibling.id)  # UnknownEvent must be always available to select.
+
+    # select year-begin to accommodate any year
+    find(@form_html_csses[:year_begin]).select year1st
+    assert_selector @form_html_csses[:event]+sprintf(' option[value="%s"]', event_sel.id)  # This Event is out of Year Range.
+
+    ### TODO: testing of submitting immediately, which is bound to fail due to no selection of Events
+
+    # Event selected
+    find(@form_html_csses[:event]).select event_sel.title_or_alt_for_selection
+
+    ## Associated Music/Artist
     fill_autocomplete('Associated Artist name', with: 'Lennon', select: (vid_prms[:engage_artist_text]="John Lennon"))  # defined in test_helper.rb
     find_field("Way of engagement").select(vid_prms[:engage_how_text]="Singer (Cover)")
     fill_in "Year of engagement", with: (vid_prms[:engage_year]=2009)
@@ -296,6 +368,8 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_selector (cs="section#"+Consts::HtmlIds::HARAMI_VIDS_SHOW_OTHER_HARAMI_VIDS)
     assert_selector        cs+" ."+Consts::Csses::Layouts::EDIT_LINK    # other-HaramiVid-Edit
 
+    hvid_created = HaramiVid.find(retrieve_pid_in_show)  # defined in test_helper.rb
+
     find("#main_edit_button").click
     #click_on "Edit"  # => Ambiguous match, found 3 elements matching visible link or button "Edit"
 
@@ -320,8 +394,10 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_equal 'Other types', find_field('Channel Type').find('option[selected]').text
     # assert_equal 'Side channel', find_field('Channel Type').find('option[selected]').text
 
-    uncheck 'UnknownEventItem'  # should be invalid because it is an "unknown" EventItem and also it has an Artist
-    select 'street playing', from: 'Additional Event', match: :first  # in the same way
+    ## NOTE: This means "uncheck" all the EventItems, which is invalid, as at least one of them must be checked.
+    evit_title = hvid_created.event_items.first.machine_title
+    uncheck evit_title
+    #uncheck 'UnknownEventItem'
 
     fill_autocomplete('Music name', with: vid_prms[:music_title][0..-2], select: vid_prms[:music_title][0..-2])  # same song; defined in test_helper.rb
     fill_autocomplete('featuring Artist', with: 'Proclai', select: 'Proclaimers')  # defined in test_helper.rb
@@ -337,8 +413,27 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_text    "prohibited this HaramiVid from being saved"
     assert_match(/\bprohibited this HaramiVid from being saved\b/, find_all(css_for_flash(:alert, category: :error_explanation))[0].text)
     assert_match(/\bEvent.* must be checked\b/, find_all(css_for_flash(:alert, category: :error_explanation))[0].text)  # TODO: two matches...
-    check 'UnknownEventItem'  # In fact, this should be forcibly checked again in default when an error takes you back to the screen after unchecked.
-    select 'street playing', from: 'Additional Event', match: :first  # in the same way; Although a new Event is specified, "New EventItem" is not chosen, so this should take no effect (after Git a2869ee).  Note a new Event is always selected as long as HaramiVid is already associated with an Event.  Before Git-commit a2869ee, whenever a new Event is selected, a new EventItem is always created, where the EventItem to which a newly specified Music would be associated was completely independently specified, and this test was written as such.
+
+    check evit_title  # In fact, this should be forcibly checked again in default when an error takes you back to the screen after unchecked.
+    refute_text  @text_additional_event
+    assert_selector "#form_choose_event_item_for_new_music_artist fieldset.harami_vid_form_new_artist_collab_event_item"
+    assert_selector "input#harami_vid_form_new_artist_collab_event_item_0"
+    assert_selector '#form_choose_event_item_for_new_music_artist fieldset.harami_vid_form_new_artist_collab_event_item input[value="0"]'
+    choose "new EventItem"
+
+    with_longer_wait{assert_text  @text_additional_event}
+    assert_selector "label", text: @text_additional_event
+    assert_selector "#harami_vid_form_new_event_id"
+
+    evgr_ids = hvid_created.events.map(&:event_group_id)
+    assert_equal 1, evgr_ids.uniq.size  # confirming HaramiVid is associated to only 1 EventGroup
+    evgr = EventGroup.find evgr_ids.first
+    assert_equal evgr.title(langcode: :en), find('#event_group_id option[selected="selected"]').text, "Default EventGroup for a new Event must be the same as that of an Event currently associated."
+
+    select 'UnknownEvent', from: 'Additional Event'
+    choose evit_title
+     # Although a new Event is specified, "New EventItem" will not be chosen immediately below, so the new Event selection takes no effect (after Git a2869ee).  Note a new Event is always selected as long as HaramiVid is already associated with an Event.  Before Git-commit a2869ee, whenever a new Event is selected, a new EventItem is always created, where the EventItem to which a newly specified Music would be associated was completely independently specified, and this test was written as such.
+    refute_text  @text_additional_event
 
     click_on @update_haramivid_button, match: :first
 
@@ -358,7 +453,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
     choose 'new EventItem'   # This becomes mandatory at Git a2869ee (it used to be not).
     # find('section#form_choose_event_item_for_new_music_artist fieldset input#harami_vid_form_new_artist_collab_event_item_0').choose  # More precise way to specify Radio-button choose
-    select 'street playing', from: 'Additional Event', match: :first  # in the same way
+    select 'UnknownEvent', from: @text_additional_event
 
     # fill_in('featuring Artist', with: "")  # To reset the featuring Artist; should be unnecessary!
     click_on @update_haramivid_button, match: :first
@@ -367,11 +462,16 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_match(/HaramiVid was successfully updated\b/, find_all(css_for_flash(:success)).first.text)  # defined in test_helper.rb
     _check_at_show(vid_prms)
 
+    sel = "section#harami_vids_show_unique_parameters dl "+"dd.item_event ul li:nth-child(2)"
+    assert_selector sel  # An EventItem belonging to a separate Event has been added.
+
     sel = "section#harami_vids_show_unique_parameters dl "+"dd.item_event ol.list_event_items"
-    assert_match(/\b#{Regexp.quote(vid_prms[:music_title])}\b/, find(sel+" li:nth-child(1)").text)
-    assert_match(/\bfeaturing Artist.+\bThe Proclaimers\b/i,    find(sel).text)
-    assert_match(/\bfeat.+ Artists.+\bThe Proclaimers/,         find(sel+" li:nth-child(1)").text)
-    assert_match(/\bfeat.+ Artists \(None\)/,                   find(sel+" li:nth-child(2)").text)  # Though a new EventItem is created, the existing EventItem is checked for the new featuring-Artist, and hence the second one has no featuring Artists. 
+    assert_match(/\b#{Regexp.quote(vid_prms[:music_title])}\b/, find_all(sel+" li:nth-child(1)").map(&:text).join(" "))
+    assert_match(/\bfeaturing Artist.+\bThe Proclaimers\b/i,    find_all(sel).map(&:text).join(" "))
+    assert_match(/\bfeat.+ Artists.+\bThe Proclaimers/,         find_all(sel+" li:nth-child(1)").map(&:text).join(" "))
+    sel2 ="section#harami_vids_show_unique_parameters dl "+"dd.item_event ul li:nth-child(2) ol.list_event_items"
+    assert_match(/\bfeat.+ Artists \(None\)/,                   find(sel2).text)  # Though a new EventItem is created, the existing EventItem is checked for the new featuring-Artist, and hence the second one has no featuring Artists. 
+    #assert_match(/\bfeat.+ Artists \(None\)/,                   find(sel+" li:nth-child(2)").text)  # This would be the test if the Event for the new EventItem was the same as the first one.
     assert_selector sel+" a"
 
     click_on "Back"
@@ -390,8 +490,8 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_match(/Other types\b/, find(selector_dl+"dd.item_channel").text)
 
     sel = selector_dl+"dd.item_event ol.list_event_items li:first-child"
-    assert_match(/\b#{Regexp.quote(vid_prms[:music_title])}\b/, find(sel).text)
-    assert_match(/\bfeaturing Artist.+\bAI\b/i,                 find(sel).text)
+    assert_match(/\b#{Regexp.quote(vid_prms[:music_title])}\b/, find_all(sel).first.text)
+    assert_match(/\bfeaturing Artist.+\bAI\b/i,                 find_all(sel).first.text)
     assert_selector sel+" a"
 
     assert_text vid_prms[:note]
@@ -634,9 +734,14 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
     fill_in "Video length", with: "1:12"
 
-    selbox_text = "Additional Event"
-    selbox = find_field(selbox_text)
-    select selbox.find('option:last-child').text, from: selbox_text
+    def_event = Event.default(:HaramiVid)
+    evgr = def_event.event_group 
+    choose 'new EventItem'   # This becomes mandatory at Git a2869ee (it used to be not).
+    find(@form_html_csses[:event_group]).select evgr.title_or_alt_for_selection
+    assert_selector @form_html_csses[:event]+sprintf(' option[value="%s"]', def_event.id)  # UnknownEvent must be always available to select regardless of the year selection.
+    #selbox = find_field(@form_html_csses[:event])
+    #select selbox.find('option:last-child').text, from: selbox
+    find(@form_html_csses[:event]+" option:last-child").select_option
 
     click_on @update_haramivid_button, match: :first
 

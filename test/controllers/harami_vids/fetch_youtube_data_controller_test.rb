@@ -68,7 +68,8 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
           assert_difference("Translation.count", 3) do  # JA/EN for new HaramiVid, and JA for new Event "都庁(東京都/日本)でのイベント..."
             assert_no_difference("Channel.count") do
               post harami_vids_fetch_youtube_data_path, params: { harami_vid: { fetch_youtube_datum: hsin } }
-              assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
+assert_response :unprocessable_content
+              assert_response :redirect, "WARNING: At the moment, youtube loading reverts to :new because Event is not selected.  So, the app should be modified to redirect to :new, or better, just loads Youtube on the spot... TODO!"  # this should be put inside assert_difference block to detect potential 422
               hvid = HaramiVid.last
               assert_redirected_to hvid
             end

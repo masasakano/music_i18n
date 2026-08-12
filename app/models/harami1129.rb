@@ -1053,6 +1053,7 @@ class Harami1129 < ApplicationRecord
           logger.info msg "(Harami1129: ID=#{id}) "+msg
         end
 
+        hvid.form_new_event_id ||= Event.unknown.id  # Without this, a validation would fail.
         hvid.save! if hvid.changed?
         messages << "HaramiVid (ID=#{hvid.id.to_s}) is created and assigned." if flag_hvid_recreate
         self.harami_vid = hvid

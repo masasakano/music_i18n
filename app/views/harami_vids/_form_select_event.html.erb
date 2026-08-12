@@ -1,4 +1,5 @@
 <%# locals: (f: , harami_vid: @harami_vid, selected: "", is_required: false) %>
+<%# is_required is true only for :new because an existing HaramiVid should have at least one associated Event %>
 
 <% current_year = Time.current.year %>
 <% year_options = (Rails.configuration.music_i18n_def_first_event_year..current_year).to_a.reverse %>
@@ -66,7 +67,7 @@
 
   <%# Target Event Select %>
   <div class="mb-3" style="margin-top: -1.5em; margin-bottom: 0em; padding-bottom: 0em;">
-    <%= f.label :form_new_event_id, "Event", class: "form-label" %>
+    <%= f.label :form_new_event_id, (is_required ? "Event" : "Additional Event (for EventItem)"), class: "form-label" %>
 
     <turbo-frame id="events_select_frame" data-cascading-select-target="frame">
       <% initial_events =
@@ -79,7 +80,7 @@
       <%= f.input_field :form_new_event_id,
             collection: initial_events,
             required: is_required,
-            label_method: :title_or_alt,
+            label_method: :title_or_alt_for_selection,
             value_method: :id,
             selected: (current_event ? current_event.id : nil),
             include_blank: initial_events.any? ? "Select an Event..." : "Select an Event Group first...",

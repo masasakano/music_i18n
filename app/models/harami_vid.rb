@@ -92,7 +92,8 @@ class HaramiVid < BaseWithTranslation
   validates_uniqueness_of :uri, allow_nil: true  # allow_blank: false (??)
   validates :uri,   presence: true
   validates :place, presence: true  # NOT DB constraint, but Rails before_validation sets this with a default unknown Place.
-  validates :form_new_event_id, presence: true, on: :create
+  validates :form_new_event_id, presence: true, on: :create,
+            unless: -> { skip_validate_form_new_event_id || event_item_ids.present? }  # NOTE: Controllers may need to set skip_validate_form_new_event_id regardless of event_item_ids (because the latter may never be set for HaramiVid model!)
   #validates :channel, presence: true  # before_validation  is taking care of. NOT DB constraint, but belongs_to constrains.
   validates_numericality_of :duration,     allow_blank: true, greater_than_or_equal_to: 0, message: "(%{value}) must be positive or 0."
   validates_numericality_of :music_timing, allow_blank: true, greater_than_or_equal_to: 0, message: "(%{value}) must be positive or 0."
@@ -106,6 +107,7 @@ class HaramiVid < BaseWithTranslation
   attr_accessor :unsaved_event_item
 
   attr_accessor :form_new_event_id
+  attr_accessor :skip_validate_form_new_event_id
   attr_accessor :form_channel_owner
   attr_accessor :form_channel_type
   attr_accessor :form_channel_platform
@@ -376,6 +378,7 @@ class HaramiVid < BaseWithTranslation
   #
   # @param uri: [String, NilClass] 
   # @param translation: [Translation, Symbol, NilClass] if :default, "(Copy)" is prefixed.
+  # @return [HaramiVid] new_record (unsaved, yet)
   def deepcopy(uri: nil, translation: nil, **trans_kwds)
     if !translation && trans_kwds.empty?
       raise ArgumentError, "Either translation or keyword parameters for Translation must be given."
@@ -415,6 +418,7 @@ class HaramiVid < BaseWithTranslation
       newmdl.harami_vid_event_item_assocs << new_assoc
     end
 
+    newmdl.skip_validate_form_new_event_id = true
     newmdl
   end
 
@@ -1735,17 +1739,22 @@ class << HaramiVid
   alias_method :initialize_basic_bwt, :initialize_basic if !self.method_defined?(:initialize_basic_bwt!)
 
   # Wrapper of {BaseWithTranslation.create_basic!}
-  def create_basic!(*args, uri: nil, **kwds, &blok)
-    uri ||= "https://example.com/"+(0...8).map{(65 + rand(26)).chr}.join
-    create_basic_bwt!(*args, uri: uri, **kwds, &blok)
+  def create_basic!(*args, **kwds, &blok)
+    _core_initialize_create_basic(*args, is_create: true,  **kwds, &blok)
   end
 
   # Wrapper of {BaseWithTranslation.initialize_basic!}
-  # Unlike {#create_basic!}, an existing Sex is used, which is assumed to exist.
-  def initialize_basic(*args, uri: nil, **kwds, &blok)
-    uri ||= "https://example.com/"+(0...8).map{(65 + rand(26)).chr}.join
-    initialize_basic_bwt(*args, uri: uri, **kwds, &blok)
+  def initialize_basic(*args, **kwds, &blok)
+    _core_initialize_create_basic(*args, is_create: false, **kwds, &blok)
   end
+
+  private
+    def _core_initialize_create_basic(*args, is_create: true, uri: nil, form_new_event_id: nil, **kwds, &blok)
+      metho = (is_create ? "create" : "initialize") + "_basic_bwt!"
+      uri ||= "https://example.com/"+(0...8).map{(65 + rand(26)).chr}.join
+      form_new_event_id ||= Event.unknown.id
+      send(metho, *args, uri: uri, form_new_event_id: form_new_event_id, **kwds, &blok)
+    end
 end
 
 

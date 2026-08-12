@@ -10,16 +10,35 @@
     <!-- New EventItem -->
     <section id="form_choose_event_item_for_new_music_artist">
     <h4><%= t("harami_vids.event_item_for_new_collab_artist") %></h4>
+
+    <% co = collection_event_items_for_new_artist_collab(harami_vid, sorted_eei: sorted_event_event_items) %> <%# defined in event_items_helper.rb %>
+    <% checked_val = harami_vid.form_new_artist_collab_event_item || co.last&.first %>
+    <% new_event_trigger_val = HaramiVidsController::DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW %>
+    <% my_label = "Event(Item) for " + t(:additional).capitalize + ' ' + t(:Music) + ' ' + t(:or) + ' ' + t('layouts.new') + " " + t('harami_vids.form_artist_collabs') %>
+
+    <%# Determines initial visibility state to avoid UI flashing %>
+    <% show_initially = (checked_val.to_s == new_event_trigger_val.to_s) %>
+
+    <!-- Outer container handles event delegation via change->toggle-element#toggle -->
+    <div data-controller="toggle-element"
+       data-toggle-element-expected-value="<%= new_event_trigger_val %>">
       <%= f.input :form_new_artist_collab_event_item, as: :radio_buttons,
-        collection: (co=collection_event_items_for_new_artist_collab(harami_vid, sorted_eei: sorted_event_event_items)),
-        label_method: :second, value_method: :first,
-        allow_blank: false, 
-        checked: (harami_vid.form_new_artist_collab_event_item || co.last),
-        label: "Event(Item) for "+t(:additional).capitalize+' '+t(:Music)+' '+t(:or)+' '+t('layouts.new')+" "+t('harami_vids.form_artist_collabs'),
-        item_wrapper_class: 'inline'
-      %>  <%# defined in event_items_helper.rb %>
-    <%# For create/new, the same field appeaers much earlier. %>
-     <div class="form_new_model_info">
+          collection: co,
+          label_method: :second, value_method: :first,
+          allow_blank: false, 
+          checked: checked_val,
+          label: my_label,
+          item_wrapper_class: 'inline',
+          input_html: {
+            data: {
+              toggle_element_target: "trigger",
+              action: "change->toggle-element#toggle"
+            }
+          }
+      %>
+    <%# NOTE: For create/new, the same field appeaers much earlier. %>
+     <div class="form_new_model_info <%= 'd-none' unless show_initially %>" 
+          data-toggle-element-target="element">
        <% selected = ((v=harami_vid.form_new_event_id).present? ? v : ((v2=default_event_for_new_event_item(harami_vid)) ? v2.id : nil)) %> <%# The same Event as that for an associated EventItem, if there is any %>
        <%= render partial: 'harami_vids/form_select_event', locals: {f: f, harami_vid: harami_vid, selected: selected, is_required: !selected} %> <%# Form for Stimulus Controller %>
       <%# f.input :form_new_event_id,
@@ -28,6 +47,7 @@
           label: t(:additional).capitalize+" "+t(:Event)+"(Item)",
           input_html: { multiple: false } %> <%# default_event_for_new_event_item() defined in /app/helpers/harami_vids_helper.rb %>
      </div>
+    </div> <!-- div data-controller="toggle-element" -->
     </section> <!-- section id="form_choose_event_item_for_new_music_artist" -->
   <% end %> <%# if !harami_vid.new_record? || display_new_event_item_form %>
 

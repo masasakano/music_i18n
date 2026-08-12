@@ -34,26 +34,28 @@ class HaramiVidTest < ActiveSupport::TestCase
   test "constraints" do
     pf1 = Place.first
     uri1 = 'http://youtu.be/abcd'
+    evt1 = Event.third
     assert_nothing_raised{
-      hv0 = HaramiVid.create!(place: pf1, uri: "https://a.com/b")
+      hv0 = HaramiVid.create!(place: pf1, uri: "https://a.com/b", form_new_event_id: evt1.id)
     }
-    hv1 = HaramiVid.create!(uri: uri1, place: pf1)
+    hv1 = HaramiVid.create!(uri: uri1, place: pf1, form_new_event_id: evt1.id)
     assert_raises(ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique){ # "Validation failed: Uri has already been taken"
-      p HaramiVid.create!(uri: uri1, place: pf1)
+      p HaramiVid.create!(uri: uri1, place: pf1, form_new_event_id: evt1.id)
     }
     
     hv1.with_translation(title: 'my title', langcode: 'en')
 
     uri2 = 'http://youtu.be/uri2'
     assert_nothing_raised{
-      hv2 = HaramiVid.create!(uri: uri2)
+      hv2 = HaramiVid.create!(uri: uri2, form_new_event_id: evt1.id)
       assert hv2.place
     }
   end
 
   test "callbacks" do
+    evt1 = Event.third
     identifier = "BBBCCCCQxU4"
-    hv = HaramiVid.new(uri: "https://www.youtube.com/watch?v="+identifier, title: "naiyo", langcode: "en", channel: Channel.unknown)
+    hv = HaramiVid.new(uri: "https://www.youtube.com/watch?v="+identifier, title: "naiyo", langcode: "en", channel: Channel.unknown, form_new_event_id: evt1.id)
     hv.save!
     assert_equal "youtu.be/"+identifier, hv.uri
     hv2 = hv.dup

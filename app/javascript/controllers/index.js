@@ -9,3 +9,7 @@ application.register("hello", HelloController)
 
 import CascadingSelectController from "./cascading_select_controller"
 application.register("cascading-select", CascadingSelectController)
+
+import ToggleElementController from "./toggle_element_controller"
+application.register("toggle-element", ToggleElementController)
+

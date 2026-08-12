@@ -36,10 +36,11 @@ class HaramiVidMusicAssocTest < ActiveSupport::TestCase
 
   test "dependent on_delete and has_many" do
     ura = harami_vid_music_assocs(:harami_vid_music_assoc1)
+    evt1 = Event.third
     h1 = harami_vids(:harami_vid1)
     m1 = musics(:music1)
     chan = Channel.primary
-    h2 = HaramiVid.create!(title: "another one1", langcode: "en", channel: chan, uri: "https://a.com/b")
+    h2 = HaramiVid.create!(title: "another one1", langcode: "en", channel: chan, uri: "https://a.com/b", form_new_event_id: evt1.id)
 
     n_orig = HaramiVidMusicAssoc.count
     m1hv = m1.harami_vids
