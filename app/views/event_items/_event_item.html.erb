@@ -1,15 +1,13 @@
-<div id="<%= dom_id event_item %>">
+<section id="sec_primary_show">
+<div id="<%= dom_id event_item %>" class="show_unique_parameters">
   <% canedit = can?(:edit, event_item) %>
 <dl>
-  <% if canedit %>
-    <dt>pID (EventItem)</dt>
-    <dd> <%= @event_item.id %></dd>
-  <% end %>
+  <%= render partial: "layouts/show_pid_in_show", locals: {record: @event_item, canedit: canedit} %>
 
-  <dt title="machine_title"><strong>Machine title:</strong></dt>
+  <dt title="machine_title" class="item_machine_title"><strong>Machine title:</strong></dt>
     <%= render partial: "event_items/nominal_machine_titles/show_machine_title", locals: {canedit: canedit} %>
-  <dt><strong><%= t("events.parent_event") %>:</strong></dt>
-    <dd><%= event_and_group_html(ev=event_item.event, fmt: "%s < EventGroup(%s)") %></dd> <%# defined in events_helper.rb, where fmt is HTML-sanitized %>
+  <dt class="item_event"><strong><%= t("events.parent_event") %>:</strong></dt>
+    <dd class="item_event"><%= event_and_group_html(ev=event_item.event, fmt: "%s < EventGroup(%s)") %></dd> <%# defined in events_helper.rb, where fmt is HTML-sanitized %>
     <%= editor_only_safe_html(event_item, method: :show, tag: "dd") do %> <%# defined in application_helper.rb %>
     <strong># of EventItems of the Event</strong>: <%= @event_item.siblings.count+1 %>
       (including this<%= " and Unknown" if @event_item.siblings.include?(@event_item.unknown_sibling) %>)
@@ -17,7 +15,8 @@
     <% end %>
     <% if canedit && @event_item.harami_vids.uniq.size == 1 && (@event_item.siblings(exclude_unknown: true).exists? || (sibs=@event_item.siblings(exclude_unknown: false)).count == 1 && @event_item.event.harami_vids.where.not(id: @event_item.harami_vids.first.id).exists?) %> <%# If the sibling EventItems are only Unknown withtou HaramiVids, there is no point to "resettle" with a new Event. NOTE the condition here is slightly different from that in /app/views/harami_vids/_event_event_items.html.erb %>
       <span class="editor_only associate_to_new_event">
-        <dd> <%= link_to 'Associate to a new Event', event_items_resettle_new_event_url(@event_item), method: :patch, data: { confirm: t('are_you_sure') }, title: 'Creating a new Event and associating this EventItem to it.', class: "button_like" %>
+        <dd> <%# link_to 'Associate to a new Event', event_items_resettle_new_event_url(@event_item), method: :patch, data: { confirm: t('are_you_sure') }, title: 'Creating a new Event and associating this EventItem to it.', class: "button_like" %>
+          <%= non_get_link('Associate to a new Event', event_items_resettle_new_event_url(@event_item), method: :patch, is_button: false, extra_classes: ["button_like"], with_confirm: true) %> <%# defined in application_helper.rb %>
           </dd>
       </span>
     <% end %>
@@ -70,4 +69,5 @@
   <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: event_item, model4ability: canedit} %>
 </dl>
 
-</div>
+</div> <!-- div  class="show_unique_parameters" -->
+</section> <!-- section id="sec_primary_show" -->

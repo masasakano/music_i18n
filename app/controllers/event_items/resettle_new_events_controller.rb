@@ -190,9 +190,9 @@ raise if @event.id
     # @return [String] New machine_title. Uniqueness is guaranteed; this ultimately calls get_unique_string in /app/models/concerns/module_application_base.rb
     def _updated_machine_title
       _, postfix = EventItem.unknown_machine_title_prefix_postfix(@event)
-      prefix = (@event_item.music_prefix_for_nominal_unique_title(harami_vid: @harami_vid) || DEFAULT_UNIQUE_TITLE_PREFIX)  # cf. EventItem#nominal_unique_title
+      prefix = (@event_item.music_prefix_for_nominal_unique_title(harami_vid: @harami_vid) || EventItem::DEFAULT_UNIQUE_TITLE_PREFIX)  # cf. EventItem#nominal_unique_title
 
-      EventItem::get_unique_title(prefix, postfix: postfix)
+      EventItem.get_unique_title(prefix, postfix: postfix)
     end
 
 end

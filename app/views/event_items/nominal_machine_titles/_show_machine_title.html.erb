@@ -5,7 +5,7 @@
    end %>
 
 <%= turbo_frame_tag "machine_title_"+dom_id(@event_item) do %>
-    <dd><%= mct=@event_item.machine_title %></dd>
+    <dd class="item_machine_title"><%= mct=@event_item.machine_title %></dd>
     <%= editor_only_safe_html(:pass, method: canedit, tag: "dd") do %> <%# defined in application_helper.rb %>
       <% nominal_title = @event_item.nominal_unique_title(except_self: true) %>
       <% if ![nominal_title, nominal_title.sub(/_shorts?\-/, ""), nominal_title.sub(/\-/, "_shorts-")].include?(mct) %>

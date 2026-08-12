@@ -1347,6 +1347,57 @@ module ApplicationHelper
     (text.present? || show_always) ? ApplicationController.helpers.tag.send(tag, text, class: html_classes, **opts) : String.new
   end
 
+  # Button/Link for non-GET actions, which is tricky and depends on Rails application settings
+  #
+  # See {#destroy_link} for a better description about the background.
+  #
+  # @example  inline button-like
+  #    destroy_link("Update", record, method: :patch, inline: true, extra_classes: ["destroy_link"])  # defined in application_helper.rb
+  #
+  # @example  inline link-like
+  #    destroy_link("Update", record, method: :patch, inline: true, link_like: true, extra_classes: ["destroy_link"], confirm_message: t("Sure?"), style: "margin-left: -0.6em;")  # defined in application_helper.rb
+  #
+  # @example  using HTML anchor, but should appear like a button. Note +link_like+ is ignored when +is_button+ is false.
+  #    destroy_link("Create", record, method: :post, is_button: false, extra_classes: ["button_like"])  # defined in application_helper.rb
+  #
+  # @param link_text [String] (Mandatory) String to show. NOTE that the order of path and link-text is the opposite of +link_to+ (!)
+  # @param path [String, ActiveRecord]
+  # @param method: [Symbol] (Mandatory) one of :get, :post, :patch, :delete (maybe :put too?)
+  #     In short, :post for Create, :patch for Update, :delete for Destroy
+  # @param is_button: [Boolean] if true (Def), +button_to+ is used, else +<a>+
+  # @param inline: [Boolean] inline display if true (Def: false). Valid only if is_button is true.
+  # @param link_like: [Boolean] if true (Def: false), Bootstrap CSS to make it look like a text is employed. Valid only if is_button is true.
+  # @param extra_classes: [Array, String] extra CSS classes for the +<button>+ or +<a>+ tag.
+  # @param with_confirm: [Boolean] if true (Def), confirmation-pop up opens.
+  # @param confirm_message: [String, NilClass] Confirmation pop-up message.  If nil, the default is used.
+  # @param **kwds: [Hash] any other options to pass to the parent Rails method. e.g., +style: {color: "red"}+, +title+
+  #    Note that +inline+ (and +extra_classes+) and +link_like+ options introduces :class and :form_class options, respectively.
+  #    So, if your +**kwds+ option contains them, you have to be responsible for them.
+  # @return [String]
+  def non_get_link(link_text, path, method: , is_button: true, inline: false, link_like: false, extra_classes: [], with_confirm: true, confirm_message: t('are_you_sure'), **kwds)
+    classes_str = [extra_classes].flatten.join(" ")
+    confirm_message ||= t('are_you_sure')
+    if is_button
+      turbohs = { turbo: true }
+      turbohs[:turbo_confirm] = confirm_message if with_confirm
+      opts = { form: {data: turbohs} }
+      classes_str = [classes_str, (link_like ? "btn btn-link p-0 align-baseline" : "")].join(" ")
+      opts[:class] = classes_str if !classes_str.empty?
+      opts[:form_class] = "d-inline" if inline
+      opts.merge! kwds
+      button_to link_text, path, method: method, **opts
+    else  # normal link anchor text
+      turbohs = { turbo: true, turbo_method: method }
+      turbohs[:turbo_confirm] = t('are_you_sure') if with_confirm
+      opts = {data: turbohs}
+      opts[:class] = classes_str if !classes_str.empty?
+      opts.merge! kwds
+      link_to link_text, path, **opts
+    end
+  end
+
+  # Wrapper of {#non_get_link} specific for Destroy (DELETE)
+  #
   # Button/Link for the destroy action, which is tricky and depends on Rails application settings
   #
   # +method: delete+ for HTTP is usually blocked by the browser, unless +<button>+ is used,
@@ -1383,36 +1434,10 @@ module ApplicationHelper
   #    t("layouts.destroy_short").capitalize   # (en) "Destroy"
   #
   # @param path [String, ActiveRecord]
-  # @option destroy_text [String] String to show. NOTE that the order of path and link-text is the opposite of +link_to+ (!)
-  # @param is_button: [Boolean] if true (Def), +button_to+ is used, else +<a>+
-  # @param inline: [Boolean] inline display if true (Def: false). Valid only if is_button is true.
-  # @param link_like: [Boolean] if true (Def: false), Bootstrap CSS to make it look like a text is employed. Valid only if is_button is true.
-  # @param extra_classes: [Array, String] extra CSS classes for the +<button>+ or +<a>+ tag.
-  # @param with_confirm: [Boolean] if true (Def), confirmation-pop up opens.
-  # @param confirm_message: [String, NilClass] Confirmation pop-up message.  If nil, the default is used.
-  # @param **kwds: [Hash] any other options to pass to the parent Rails method. e.g., +style: {color: "red"}+, +title+
-  #    Note that +inline+ (and +extra_classes+) and +link_like+ options introduces :class and :form_class options, respectively.
-  #    So, if your +**kwds+ option contains them, you have to be responsible for them.
-  def destroy_link(path, destroy_text="Destroy", is_button: true, inline: false, link_like: false, extra_classes: [], with_confirm: true, confirm_message: t('are_you_sure'), **kwds)
-    classes_str = [extra_classes].flatten.join(" ")
-    confirm_message ||= t('are_you_sure')
-    if is_button
-      turbohs = { turbo: true }
-      turbohs[:turbo_confirm] = confirm_message if with_confirm
-      opts = { form: {data: turbohs} }
-      classes_str = [classes_str, (link_like ? "btn btn-link p-0 align-baseline" : "")].join(" ")
-      opts[:class] = classes_str if !classes_str.empty?
-      opts[:form_class] = "d-inline" if inline
-      opts.merge! kwds
-      button_to destroy_text, path, method: :delete, **opts
-    else  # normal link anchor text
-      turbohs = { turbo: true, turbo_method: :delete }
-      turbohs[:turbo_confirm] = t('are_you_sure') if with_confirm
-      opts = {data: turbohs}
-      opts[:class] = classes_str if !classes_str.empty?
-      opts.merge! kwds
-      link_to destroy_text, path, **opts
-    end
+  # @param destroy_text [String] String to show. NOTE that the order of path and link-text is the opposite of +link_to+ and {#non_get_link} (!)
+  # @param #see non_get_link
+  def destroy_link(path, destroy_text="Destroy", with_confirm: true, **kwds)
+    non_get_link(destroy_text, path, method: :delete, with_confirm: with_confirm, **kwds)
   end
 
   # True if either flash[TYPE] or @main_record.alert_messages[TYPE] is present?

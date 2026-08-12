@@ -1,0 +1,8 @@
+<%# locals: (record: , canedit: ) %>
+<%# canedit is Boolean - true if a user is allowed to see pID in Show. %>
+
+<%= editor_only_safe_html(:pass, method: canedit) do %>
+  <dt class="item_pid">pID (<%= record.class.name %>)</dt>
+  <dd class="item_pid"> <%= record.id %></dd>
+<% end %>
+

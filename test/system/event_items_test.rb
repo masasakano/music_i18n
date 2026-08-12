@@ -38,14 +38,11 @@ class EventItemsTest < ApplicationSystemTestCase
     assert_text "You need to sign in or sign up"
 
     login_at_root_path(@moderator_all, with_visit: false, new_h1: "New EventItem")
-    ##visit new_user_session_path  # already on this page.
-    #fill_in "Email", with: @moderator_all.email
-    #fill_in "Password", with: '123456'  # from users.yml
-    #click_on "Log in"
 
     ## Already on New EventItem page
     # visit event_items_url  # index page
     # click_on "New EventItem"
+    assert_selector "h1", text: "New EventItem"
 
     fill_in "Machine title", with: "my_new_title"
     select('Japan',  from: 'Country')
@@ -56,7 +53,47 @@ class EventItemsTest < ApplicationSystemTestCase
     fill_in "Note", with: ""
     click_on "Create Event item"
 
-    assert_text "EventItem was successfully created"
+    msg_flash = "EventItem was successfully created"
+    assert_text msg_flash
+    # close_flash_windows([:notice, :success])  # defined in test_system_helper.rb
+    # refute_text msg_flash
+    assert_text "Edit this EventItem"
+
+    evit = EventItem.find retrieve_pid_in_show  # defined in test_helper.rb
+    parent_event = evit.event
+    css_associate_link = ".associate_to_new_event a"
+    refute_selector css_associate_link
+
+    hvid = harami_vids(:harami_vid2)  # NOTE: At the time of writing, :harami_vid1 has :musics, but no :artist_music_plays (it should have even though it is technically allowed), whereas this :harami_vid2 has both.
+    # mus1 = musics(:music_story)
+    # hvid.musics << mus1
+    # amp1 = ArtistMusicPlay.create!(event_item: evit, artist: Artist.third, music: mus1, play_role: PlayRole.unknown, instrument: Instrument.unknown)
+    assert hvid.musics.exists?, "checking fixtures"
+    assert hvid.artist_music_plays.exists?, "checking fixtures"
+    evit.reload
+
+    assert_difference("HaramiVidEventItemAssoc.count"){
+      evit.harami_vids << hvid }
+
+    page.refresh
+    refute_text msg_flash
+    assert_selector css_associate_link
+
+    css = "dd.item_event"
+    kwd = "UnknownEvent"
+    assert_selector css, text: kwd
+    assert_difference("Event.count"){
+      accept_confirm do
+        click_on "Associate to a new Event"
+      end
+
+      assert_text "EventItem was successfully updated"
+      assert_selector css
+      refute_selector css, text: kwd
+    }
+    evit.reload
+    refute_equal parent_event, evit.event
+take_screenshot
     click_on "Back"
   end
 

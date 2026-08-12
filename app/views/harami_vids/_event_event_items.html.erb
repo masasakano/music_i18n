@@ -83,7 +83,7 @@
               <% end %>
               <% if can?(:update, event_item) && event_item.harami_vids.uniq.size == 1 && event_item.siblings(exclude_unknown: true).exists? %> <%#  NOTE the condition here is slightly different from that in /app/views/event_items/_event_item.html.erb %>
                 <span class="editor_only associate_to_new_event">
-                  [&nbsp;<%= link_to 'Associate to a new Event', event_items_resettle_new_event_url(event_item), method: :patch, data: { confirm: t('are_you_sure') }, title: 'Creating a new Event and associating this EventItem to it.', class: "button_like" %>&nbsp;]
+                  [&nbsp;<%= non_get_link('Associate to a new Event', event_items_resettle_new_event_url(event_item), method: :patch, is_button: false, extra_classes: ["button_like"], with_confirm: true, title: 'Creating a new Event and associating this EventItem to it.') %> <%# defined in application_helper.rb %><%# link_to 'Associate to a new Event', event_items_resettle_new_event_url(event_item), method: :patch, data: { confirm: t('are_you_sure') }, title: 'Creating a new Event and associating this EventItem to it.', class: "button_like" %>&nbsp;]
                 </span>
               <% end %>
               </span>
