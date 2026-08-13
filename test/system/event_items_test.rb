@@ -9,6 +9,13 @@ class EventItemsTest < ApplicationSystemTestCase
     @event       = events(:ev_harami_lucky2023)
     @event_item  = event_items(:evit_1_harami_lucky2023)
     @h1_title = "Event Items"
+
+    @form_html_csses = {  # see harami_vids_test.rb
+      event_group: "#event_group_id",
+      year_begin:  "#year_begin",
+      year_end:    "#year_end",
+      event:       "#event_item_event_id"
+    }.with_indifferent_access
   end
 
   test "visiting the index" do
@@ -44,6 +51,37 @@ class EventItemsTest < ApplicationSystemTestCase
     # click_on "New EventItem"
     assert_selector "h1", text: "New EventItem"
 
+    ## Event selection  (see harami_vids_test.rb where a set of thorough tests for :create is done)
+    ev2select = @event
+    evgr = @event_group
+    assert_equal evgr.id, ev2select.event_group_id
+    assert   evgr.unknown_event,               "checking fixtures to make sure"
+    assert_equal 1, (node=find_all(@form_html_csses[:event]+" option")).size, "node="+find_all(@form_html_csses[:event]).map{_1[:outerHTML]}.inspect
+
+    assert_selector @form_html_csses[:event_group]+' option'
+    refute_selector @form_html_csses[:event_group]+' option[selected="selected"]'
+    # select evgr.title_or_alt_for_selection, from: "Event Group"  # this does not cause an Error, but selects nothing...
+    find(@form_html_csses[:event_group]).select evgr.title_or_alt_for_selection
+    # This should bring up choices for Event to select
+
+    assert_selector @form_html_csses[:event]+sprintf(' option[value="%d"]', evgr.unknown_event.id)
+    assert_equal 2, (node=find_all(@form_html_csses[:event]+" option")).size, "node="+find_all(@form_html_csses[:event]).map{_1[:outerHTML]}.inspect
+
+    year_begin2select = ev2select.start_time.year
+    assert_operator evgr.start_date.year, :<, Time.current.year, "checking fixtures to make sure"
+    assert_operator year_begin2select,    :<, Time.current.year, "checking fixtures to make sure"
+    assert_operator 2, :<=, evgr.events.count, "checking fixtures to make sure"
+    find(@form_html_csses[:year_begin]).select  year_begin2select
+    # This should bring up the LuckyFes Event to select, because year is adjusted to include the year of the Event
+
+    assert_selector @form_html_csses[:event]+sprintf(' option[value="%d"]', ev2select.id)
+
+    # select ev2select.title_or_alt_for_selection, from: "Event", match: :prefer_exact  # Does not work... (Capybara::ElementNotFound)
+    # select ev2select.title_or_alt_for_selection, from: "Event", match: :smart  # Does not work... (Capybara::ElementNotFound)
+    find(@form_html_csses[:event]).select ev2select.title_or_alt_for_selection
+    # find(@form_html_csses[:event]+sprintf(' option[value="%d"]', ev2select.id).select_option  # This is more exact and should work.
+
+    ## The other parameters selection
     fill_in "Machine title", with: "my_new_title"
     select('Japan',  from: 'Country')
     # fill_in "Start Year", with: 2024
@@ -80,7 +118,7 @@ class EventItemsTest < ApplicationSystemTestCase
     assert_selector css_associate_link
 
     css = "dd.item_event"
-    kwd = "UnknownEvent"
+    kwd = ev2select.title_or_alt(langcode: "en")  # "UnknownEvent"
     assert_selector css, text: kwd
     assert_difference("Event.count"){
       accept_confirm do
@@ -93,7 +131,7 @@ class EventItemsTest < ApplicationSystemTestCase
     }
     evit.reload
     refute_equal parent_event, evit.event
-take_screenshot
+
     click_on "Back"
   end
 
@@ -108,6 +146,15 @@ take_screenshot
 
     visit event_item_url(@event_item, locale: I18n.locale)
     click_on "Edit this EventItem", match: :first
+
+    assert_selector @form_html_csses[:event]
+    fmt_sprintf = ' option[selected="selected"][value="%d"]'
+    css = @form_html_csses[:event_group] + sprintf(fmt_sprintf, @event_group.id)
+    assert_selector css
+    css = @form_html_csses[:year_begin] + sprintf(fmt_sprintf, @event.start_time.year)
+    assert_selector css
+    css = @form_html_csses[:event] + sprintf(fmt_sprintf, @event.id)
+    assert_selector css
 
     fill_in "Machine title", with: "my_updated_title"
     click_on "Update Event item"

@@ -1,14 +1,11 @@
-<%# local vars: f, harami_vid, sorted_event_event_items (optional) record [ActiveRecord] (Def: nil) %>
+<%# locals: (f: , harami_vid: , sorted_event_event_items: , display_new_event_item_form: false) %>
 <%#   NOTE: "f" for the form object. %>
 <%# USAGE:  render partial: 'form_add_evit_music_collab', locals: {f: f, harami_vid: harami_vid, sorted_event_event_items: sorted_event_event_items, display_new_event_item_form: display_new_event_item_form } %>
+<%# TODO: (refactoring) display_new_event_item_form may be eliminated? %>
 
-<% if !defined?(record) %>
-  <% record = nil %>
-<% end %>
-
-  <% if !harami_vid.new_record? || display_new_event_item_form %>
-    <!-- New EventItem -->
-    <section id="form_choose_event_item_for_new_music_artist">
+<% if !harami_vid.new_record? || display_new_event_item_form %>
+  <!-- New EventItem -->
+  <section id="form_choose_event_item_for_new_music_artist">
     <h4><%= t("harami_vids.event_item_for_new_collab_artist") %></h4>
 
     <% co = collection_event_items_for_new_artist_collab(harami_vid, sorted_eei: sorted_event_event_items) %> <%# defined in event_items_helper.rb %>
@@ -36,20 +33,16 @@
             }
           }
       %>
-    <%# NOTE: For create/new, the same field appeaers much earlier. %>
-     <div class="form_new_model_info <%= 'd-none' unless show_initially %>" 
+
+      <%# NOTE: For create/new, the same field appeaers much earlier. %>
+      <div class="form_new_model_info <%= 'd-none' unless show_initially %>" 
           data-toggle-element-target="element">
-       <% selected = ((v=harami_vid.form_new_event_id).present? ? v : ((v2=default_event_for_new_event_item(harami_vid)) ? v2.id : nil)) %> <%# The same Event as that for an associated EventItem, if there is any %>
-       <%= render partial: 'layouts/form_select_event', locals: {f: f, harami_vid: harami_vid, selected: selected, is_required: !selected} %> <%# Form for Stimulus Controller %>
-      <%# f.input :form_new_event_id,
-          collection: form_all_event_collection, include_blank: true,
-          selected: ((v=harami_vid.form_new_event_id).present? ? v : ((v2=default_event_for_new_event_item(harami_vid)) ? v2.id : nil)),
-          label: t(:additional).capitalize+" "+t(:Event)+"(Item)",
-          input_html: { multiple: false } %> <%# default_event_for_new_event_item() defined in /app/helpers/harami_vids_helper.rb %>
-     </div>
+        <% selected = ((v=harami_vid.form_new_event_id).present? ? v : ((v2=default_event_for_new_event_item(harami_vid)) ? v2.id : nil)) %> <%# The same Event as that for an associated EventItem, if there is any %> <%# default_event_for_new_event_item() defined in /app/helpers/harami_vids_helper.rb %>
+        <%= render partial: 'layouts/form_select_event', locals: {f: f, record: harami_vid, form_method: :form_new_event_id, selected: selected, is_required: !selected} %> <%# Form for Stimulus Controller %>
+      </div>
     </div> <!-- div data-controller="toggle-element" -->
-    </section> <!-- section id="form_choose_event_item_for_new_music_artist" -->
-  <% end %> <%# if !harami_vid.new_record? || display_new_event_item_form %>
+  </section> <!-- section id="form_choose_event_item_for_new_music_artist" -->
+<% end %> <%# if !harami_vid.new_record? || display_new_event_item_form %>
 
   <!-- New Associated Music -->
     <div class="register_assoc_music">

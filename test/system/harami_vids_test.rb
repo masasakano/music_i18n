@@ -42,7 +42,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
       update: "Update Channel",
     }
     @text_additional_event = 'Additional Event'
-    @form_html_csses = {
+    @form_html_csses = {  # see event_items_test.rb
       event_group: "#event_group_id",
       year_begin:  "#year_begin",
       year_end:    "#year_end",
@@ -286,23 +286,26 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_selector @form_html_csses[:event]+sprintf(' option[value="%s"]', event_unknown_sibling.id)  # UnknownEvent must be always available to select.
 
     # select year-end to the current year
-    refute_selector @form_html_csses[:event]+sprintf(' option[value="%s"]', event_sel.id)  # This Event is out of Year Range.
+    css_event2select = @form_html_csses[:event]+sprintf(' option[value="%s"]', event_sel.id)
+    refute_selector css_event2select  # This Event is out of Year Range.
     find(@form_html_csses[:year_end]).select Time.current.year
-    assert_selector @form_html_csses[:event]+sprintf(' option[value="%s"]', event_sel.id)  # This Event is out of Year Range.
+    assert_selector css_event2select  # Now WITHIN Year Range.
 
     # select year-begin to limit the range of year to only current year
     find(@form_html_csses[:year_begin]).select Time.current.year
-    refute_selector @form_html_csses[:event]+sprintf(' option[value="%s"]', event_sel.id)  # This Event is out of Year Range.
+    refute_selector css_event2select  # This Event is out of Year Range.
     assert_selector @form_html_csses[:event]+sprintf(' option[value="%s"]', event_unknown_sibling.id)  # UnknownEvent must be always available to select.
 
     # select year-begin to accommodate any year
     find(@form_html_csses[:year_begin]).select year1st
-    assert_selector @form_html_csses[:event]+sprintf(' option[value="%s"]', event_sel.id)  # This Event is out of Year Range.
+    assert_selector css_event2select  # Now the Event to select is WITHIN Year Range.
 
     ### TODO: testing of submitting immediately, which is bound to fail due to no selection of Events
 
     # Event selected
-    find(@form_html_csses[:event]).select event_sel.title_or_alt_for_selection
+    find(css_event2select).select_option
+    # find(@form_html_csses[:event]).select event_sel.title_or_alt_for_selection  # This does not work well for some reason... (not causing an Error but not selecting, either)
+    # assert_selector css_event2select+'[selected="selected"]'  # This does not work (perhaps that's how it works).
 
     ## Associated Music/Artist
     fill_autocomplete('Associated Artist name', with: 'Lennon', select: (vid_prms[:engage_artist_text]="John Lennon"))  # defined in test_helper.rb

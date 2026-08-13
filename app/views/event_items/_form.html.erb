@@ -11,9 +11,7 @@
  <section id="sec_primary_input">
 
   <%= f.input :machine_title %>
-  <%= f.association :event, label: t(:Event),
-     collection: form_all_event_collection, include_blank:  false,
-     selected: (event_item.event_id || Event.default(:HaramiVid).id) %>
+  <%= render partial: 'layouts/form_select_event', locals: {f: f, record: event_item, is_required: true} %> <%# Cascade select Form for Stimulus Controller; form_method: :event_id (Def) %>
   <%= f.input :start_time, start_year: get_form_start_year(event_item.start_time), end_year: Date.today.year+1, max_years_allowed: 2100, hint: "If you want to input an earlier year, select the earliest visible year and save it first, then try to update it, where you have a lot more choices for earlier years." %> <%# defined in event_groups_helper.rb %>
   <%= f.input :form_start_err, label: "Error", as: :float %>
   <%= f.input :form_start_err_unit, label: "Error Unit",

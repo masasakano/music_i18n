@@ -51,13 +51,9 @@
     </div>
 
 <% if harami_vid.new_record? && !(given_ref && given_ref.event_items.exists?) %> <%# For update, the following is never displayed; for create, it usually is unless a reference HaramiVid is specified and it has an EventItem(s) %>
-  <%# For update, the same field appears immediately above a new Artist-collab. The reasons are (1) for a new record, EventItem is a must (unless a reference is given), (2) for update, a new EventItem is not often wanted unless the editor wants to associate a Music and maybe a new Artist-collab. %>
-    <%= render partial: 'layouts/form_select_event', locals: {f: f, harami_vid: harami_vid, is_required: true} %> <%# Form for Stimulus Controller %>
-    <%# f.input :form_new_event_id,
-      collection: form_all_event_collection, include_blank: true,
-      selected: (harami_vid.form_new_event_id || (harami_vid.new_record? ? Event.default(:HaramiVid).id : nil)),
-      label: (harami_vid.new_record? ? "" : t(:additional).capitalize+" ")+t(:Event),
-      input_html: { multiple: false } %> <%# form_all_event_collection defined in events_helper.rb %>
+  <%# For :new (:create), this form field always appears here in the main section because it is mandatory for a HaramiVid to be associated with at least one Event.  For :edit (:update), however, this field appears much loser, immediately above a new Artist-collab, and ONLY when "new-event" is selected in the radio button above (controlled by toggle_element_controller.js) because a new EventItem (and associated an Event) is not often wanted unless the editor wants to associate a Music and maybe a new Artist-collab to a new EventItem as opposed to an existing one. %>
+    <%# Cascade dropdown/select Form with Stimulus Controller %>
+    <%= render partial: 'layouts/form_select_event', locals: {f: f, record: harami_vid, form_method: :form_new_event_id, is_required: true} %>
 <% end %>
 
     <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: HaramiVid, skip_ability_check: true} %>

@@ -1,5 +1,7 @@
 module EventGroups
   class EventsController < ApplicationController
+    DEF_YEAR_BEGIN = Time.current.year
+
     def index
       @events = self.class.filter_events(params[:event_group_id], params[:year_begin], params[:year_end])
 
@@ -20,7 +22,7 @@ module EventGroups
         end
 
       # Filter using database-indexed date range
-      year_begin = year_begin_raw.presence ? year_begin_raw.to_i : Time.current.year
+      year_begin = year_begin_raw.presence ? year_begin_raw.to_i : DEF_YEAR_BEGIN
       year_end   = year_end_raw.presence   ? year_end_raw.to_i   : year_begin
       year_begin = 2 if year_begin <= Rails.configuration.music_i18n_def_first_event_year  # year_end = 2019
       year_begin, year_end = year_end, year_begin if year_begin > year_end

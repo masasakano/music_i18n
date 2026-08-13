@@ -83,4 +83,17 @@ module EventsHelper
 
     sprintf(h(fmt), event_html, group_html).html_safe
   end
+
+  # @param [#size] Collection/Array of Events
+  # @return [String]
+  def include_blank_for_event_selection(events)
+    case events.size
+    when 0
+      "Select an Event Group first..."
+    when 1
+      "Select an Event... (NOTE: make sure the year-range is what you intended)"
+    else
+      "Select an Event..."
+    end
+  end
 end
