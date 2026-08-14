@@ -2,6 +2,7 @@
 <h1>Event: <%= @event.title_or_alt(langcode: I18n.locale) %> <%= h1_note_editor_only(@event, method: :show) %></h1>
 
 <hr>
+<section id="sec_primary">
 <%= render partial: 'layouts/all_registered_translations', locals: {model: @event} %>
 <hr>
 
@@ -9,6 +10,8 @@
 
 <% below_destroy = (can?(:create, Event) ? sprintf('<span class="lead">%s</span>', link_to("New Event in the same EventGroup", new_event_path(event_group_id: @event.event_group_id))).html_safe : nil) %>
 <%= render partial: 'layouts/link_edit_destroy_index', locals: {record: @event, is_to_edit: false, only: :editor, below_destroy: below_destroy, with_index_link: true} %>
+
+</section> <!-- section id="sec_primary" -->
 
 <% if can? :read, EventItem %>
 <div class="editor_only">

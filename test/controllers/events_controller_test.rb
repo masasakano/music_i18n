@@ -136,7 +136,7 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
     get event_url(@event)
     assert_response :success
     assert_match(/\bPlace\b/, css_select("body").text)
-    w3c_validate "Event index"  # defined in test_helper.rb (see for debugging help)
+    w3c_validate "Event index"  # defined in test_w3c_validate_helper.rb (see for debugging help)
 
     assert_equal 0, css_select("#link_back_to_index a").size  # "Back to Index"
     assert_equal 0, css_select("body dd.item_memo_editor").size, "should be editor_only, but..."

@@ -70,7 +70,7 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
     assert css_select(csstxt0="table.datagrid-table tbody tr").present?
     assert css_select(csstxt0).any?{|esel| !esel.css('td[data-column="title_ja"]')[0].text.blank?}, "JA titles should not be blank in general, but..."
     if is_env_set_positive?('TEST_STRICT')  # defined in application_helper.rb
-      w3c_validate "HaramiVid index"  # defined in test_helper.rb (see for debugging help)
+      w3c_validate "HaramiVid index"  # defined in test_w3c_validate_helper.rb (see for debugging help)
     end  # only if TEST_STRICT, because of invalid HTML for datagrid filter for Range
   end
 
@@ -86,7 +86,7 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_equal n_evit1, css_select('fieldset.harami_vid_event_items input[type="checkbox"]').size, "All EventItems loaded from GET reference_harami_vid_kwd params should be listed, but..."
     assert_equal n_evit1, css_select('fieldset.harami_vid_event_items input[type="checkbox"][checked="checked"]').size
-    w3c_validate "HaramiVid new"  # defined in test_helper.rb (see for debugging help)
+    w3c_validate "HaramiVid new"  # defined in test_w3c_validate_helper.rb (see for debugging help)
 
     get new_harami_vid_url, params: { "reference_harami_vid_kwd" => hv1.id.to_s }  # Invalid parameter for new
     assert_response :unprocessable_content
@@ -118,6 +118,7 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
     assert_select 'select#harami_vid_form_new_event_id[selected]', false
     assert_select 'select#harami_vid_form_new_event_id[selected]', count: 0
 
+    w3c_validate "Artist edit"  # defined in test_w3c_validate_helper.rb (see for debugging help)
     sign_out @editor_harami
   end # test "should get edit" do
 
@@ -1221,13 +1222,13 @@ end
     assert((memoe=@harami_vid.memo_editor).strip.present?)
     get harami_vid_url(@harami_vid)
     assert_response :success
-    w3c_validate "HaramiVid show"  # defined in test_helper.rb (see for debugging help)
+    w3c_validate "HaramiVid show"  # defined in test_w3c_validate_helper.rb (see for debugging help)
     assert_equal 0, css_select("body dd.item_memo_editor").size, "should be Harami editor_only, but..."
 
     sign_in @editor_harami
     get harami_vid_url(@harami_vid)
     assert_response :success
-    w3c_validate "HaramiVid show-editor"  # defined in test_helper.rb (see for debugging help)
+    w3c_validate "HaramiVid show-editor"  # defined in test_w3c_validate_helper.rb (see for debugging help)
     assert_equal 1, css_select("body dd.item_memo_editor").size
     assert_equal memoe, css_select("body dd.item_memo_editor").text.strip
     sign_out @editor_harami
@@ -1416,7 +1417,7 @@ end
       assert_response :success
       sign_out user
     end
-    w3c_validate "HaramiVid edit"  # defined in test_helper.rb (see for debugging help)
+    w3c_validate "HaramiVid edit"  # defined in test_w3c_validate_helper.rb (see for debugging help)
   end
 
   ### show event-items

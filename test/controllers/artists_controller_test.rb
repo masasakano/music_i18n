@@ -43,7 +43,7 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     if is_env_set_positive?('TEST_STRICT')  # defined in application_helper.rb
-      w3c_validate "Artist index"  # defined in test_helper.rb (see for debugging help)
+      w3c_validate "Artist index"  # defined in test_w3c_validate_helper.rb (see for debugging help)
     end  # only if TEST_STRICT, because of invalid HTML for datagrid filter for Range
   end
 
@@ -52,7 +52,7 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
 
     get artist_url(@artist)
     assert_response :success
-    w3c_validate "Artist show"  # defined in test_helper.rb (see for debugging help)
+    w3c_validate "Artist show"  # defined in test_w3c_validate_helper.rb (see for debugging help)
     #refute css_select('div.link-edit-destroy a')[0].text.include? "Edit"
     assert_equal 0, css_select("body dd.item_memo_editor").size, "should be Harami editor_only, but..."
 
@@ -81,7 +81,7 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     assert_includes css_select("table#table_musics_by tr strong").text, "bold"  # Markdown-originating HTML should exist (see fixtures :engage1)
     assert_includes css_select("table#table_musics_by tr em").text, "Italic"    # Markdown-originating HTML should exist (see above)
 
-    w3c_validate "Artist show-editor"  # defined in test_helper.rb (see for debugging help)
+    w3c_validate "Artist show-editor"  # defined in test_w3c_validate_helper.rb (see for debugging help)
   end
 
   test "should fail/succeed to get new" do
@@ -95,7 +95,7 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
 
     #puts css_select('body')[0].to_html
     #puts response.body
-    w3c_validate "Artist new"  # defined in test_helper.rb (see for debugging help)
+    w3c_validate "Artist new"  # defined in test_w3c_validate_helper.rb (see for debugging help)
 
     css = css_select('p.navigate-link-below-form a')
     assert_equal 1, css.size
@@ -162,7 +162,7 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     # get edit_artist_url(@artist) # This will result in W3C error as the wikipedia page is not a valid URL (without a https://)
     get edit_artist_url(artists(:artist_saki_kubota))
     assert_response :success
-    w3c_validate "Artist edit"  # defined in test_helper.rb (see for debugging help)
+    w3c_validate "Artist edit"  # defined in test_w3c_validate_helper.rb (see for debugging help)
     assert css_select('a').any?{|i| /\AShow\b/ =~ i.text.strip}  # More fine-tuning for CSS-selector is needed!
     css = css_select('div.link-edit-destroy a')
     assert(css.empty? || !css[0].text.include?("Edit"))
