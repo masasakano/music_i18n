@@ -94,14 +94,13 @@
     <%= f.label form_method.to_sym, (is_required ? "Event" : "Additional Event (for EventItem)"), class: "form-label" %>
 
     <turbo-frame id="events_select_frame" data-cascading-select-target="goal"> <%# matches /app/views/event_groups/events/index.html.erb %>
-      <%= f.input_field form_method.to_sym,
-            collection: initial_events,
-            required: is_required,
-            label_method: :title_or_alt_for_selection,
-            value_method: :id,
-            selected: (current_event ? current_event.id : nil),
-            include_blank: include_blank_for_event_selection(initial_events),
-            class: "form-select" %> <%# defiend in events_helper.rb %>
+      <%= render "event_groups/events/select",
+        events: initial_events,
+        field_name: f.field_name(form_method.to_sym),
+        field_id:   f.field_id(  form_method.to_sym),
+        selected: current_event&.id,
+        required: is_required,
+        label_method: :title_or_alt_for_selection %>
     </turbo-frame>
     <%= f.error form_method.to_sym, class: "text-danger small" %>
   </div>

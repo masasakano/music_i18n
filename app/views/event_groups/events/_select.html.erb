@@ -1,0 +1,20 @@
+<%# locals: (
+      events:,
+      field_name:,
+      field_id: nil,
+      selected: nil,
+      required: false,
+      label_method: :title_or_alt_for_selection
+    ) %>
+<% constructed_field_id = field_id.presence || field_name.to_s.gsub(/[\[\]]+/, "_").gsub(/_$/, "")
+   blank_text = include_blank_for_event_selection(events) %> <%# defiend in events_helper.rb %>
+
+<%# Prepends a prompt option (b/c select_tag does not accept Rails option +include_blank+) %>
+<% options_html = options_from_collection_for_select(events, :id, label_method, selected)
+   options_html = options_for_select([[blank_text, ""]]) + options_html if blank_text.present? %>
+
+<%= select_tag field_name,
+      options_html,
+      id: constructed_field_id,
+      required: required,
+      class: "select form-select#{' required' if required}" %>

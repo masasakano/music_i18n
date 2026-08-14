@@ -25,7 +25,7 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     #assert_not (200...299).include?(response.code.to_i)  # maybe :redirect or 403 forbidden
     if is_env_set_positive?('TEST_STRICT')  # defined in application_helper.rb
-      w3c_validate "Music index"  # defined in test_helper.rb (see for debugging help)
+      w3c_validate "Music index"  # defined in test_w3c_validate_helper.rb (see for debugging help)
     end  # only if TEST_STRICT, because of invalid HTML for datagrid filter for Range
 
     mu2   = musics(:music2)    # title(en): Give Peace a Chance Music2
@@ -190,7 +190,8 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
 
     get new_music_url
     assert_response :success
-    w3c_validate "Music new"  # defined in test_helper.rb (see for debugging help)
+
+    w3c_validate "Music new"  # defined in test_w3c_validate_helper.rb (see for debugging help)
     sign_out @editor
   end
 
@@ -200,7 +201,7 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     get music_url(@music)
     assert_response :success
     #refute css_select('div.link-edit-destroy a')[0].text.include? "Edit"
-    w3c_validate "Music show"  # defined in test_helper.rb (see for debugging help)
+    w3c_validate "Music show"  # defined in test_w3c_validate_helper.rb (see for debugging help)
     assert_equal 0, css_select("body dd.item_memo_editor").size, "should be Harami editor_only, but..."
 
     ## Artist table with another music
@@ -259,7 +260,7 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     get edit_music_url(@music)
     assert_response :success
 
-    w3c_validate "Music edit"  # defined in test_helper.rb (see for debugging help)
+    w3c_validate "Music edit"  # defined in test_w3c_validate_helper.rb (see for debugging help)
 
     assert css_select('a').any?{|i| /\AShow\b/ =~ i.text.strip}  # More fine-tuning for CSS-selector is needed!
     css = css_select('div.link-edit-destroy a')

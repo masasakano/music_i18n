@@ -4,6 +4,7 @@
 <hr>
 <% end %>
 <section id="sec_primary">
+  <h2 class="visually-hidden">Editing Music information</h2>
 <% if ! music.new_record? %>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: music, add_buttons: true} %>
 <hr>
@@ -124,6 +125,7 @@
 
   <% if music.new_record? %>
     <div class="register_assoc_artist">
+    <h3 class="visually-hidden">Inputing the first associated Artist</h3>
     <h4><%= t('layouts.new_musics.assoc_artist_head') %></h4>
       <% if !@artist_name  %>
         <div class="new_artist_link"><p>(<%= t('layouts.new_musics.note_new_artist') %><%= link_to(t('layouts.new_musics.create_new_artist'), new_artist_path, target: "_blank") %>) </p></div>

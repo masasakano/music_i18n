@@ -31,7 +31,9 @@
     <%= f.input :duration,   label: t("harami_vids.field_Duration_in_sec"), placeholder: t(:eg_independent)+'72 ['+t(:s_time)+']'+t(:or)+' 01:12', as: :string %>
   <%= render partial: "layouts/select_country_prefecture_place", locals: {form: f, model: harami_vid, is_simple_form: true} %>
 
+  <h3 class="visually-hidden">Editing Channel information</h3>
   <% if ! harami_vid.new_record? %>
+    <h4 class="visually-hidden">Edit panels for existing Channel</h4>
     <h5 class="channel_part">Current Channel name: &ldquo;<%= link_to(harami_vid.channel.title_or_alt(lang_fallback_option: :either), channel_path(harami_vid.channel)) %>&rdquo;</h5>
   <% end %> 
     <%= f.input :form_channel_owner,
@@ -56,6 +58,7 @@
     <%= render partial: 'layouts/form_select_event', locals: {f: f, record: harami_vid, form_method: :form_new_event_id, is_required: true} %>
 <% end %>
 
+  <h3 class="visually-hidden">Edit panels for Note</h3>
     <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: HaramiVid, skip_ability_check: true} %>
 
   <div class="form-actions submit_second">
@@ -68,6 +71,7 @@
 <hr>
 <section id="form_harami_vid_contents">
 <h2>Contents</h2>
+  <h3 class="visually-hidden">Edit panels for associated Contents</h3>
 
     <%= f.input :reference_harami_vid_kwd, as: :hidden %>
     <%= f.input :reference_harami_vid_id,  as: :hidden %>

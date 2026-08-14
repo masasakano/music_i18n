@@ -118,7 +118,7 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
     assert_select 'select#harami_vid_form_new_event_id[selected]', false
     assert_select 'select#harami_vid_form_new_event_id[selected]', count: 0
 
-    w3c_validate "Artist edit"  # defined in test_w3c_validate_helper.rb (see for debugging help)
+    w3c_validate "HaramiVid edit"  # defined in test_w3c_validate_helper.rb (see for debugging help)
     sign_out @editor_harami
   end # test "should get edit" do
 
