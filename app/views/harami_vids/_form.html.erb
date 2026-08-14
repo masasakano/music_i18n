@@ -5,7 +5,9 @@
 <hr>
 <% end %>
 <section id="sec_primary">
-<% if ! harami_vid.new_record? %>
+<% if harami_vid.new_record? %>
+  <h2 class="visually-hidden">Edit panels of all parameters</h2>
+<% else %>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: harami_vid, add_button: false} %>
 <hr>
 

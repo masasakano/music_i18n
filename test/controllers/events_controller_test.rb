@@ -60,7 +60,7 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match(/\bDuration\b/, css_select("table th").text)
 #puts response.body
-    w3c_validate "Event index"  # defined in test_helper.rb (see for debugging help)
+    w3c_validate "Event index"  # defined in test_w3c_validate_helper.rb (see for debugging help)
     # sign_out @editor_ja
 
     css_events = "table.datagrid-table tbody tr"

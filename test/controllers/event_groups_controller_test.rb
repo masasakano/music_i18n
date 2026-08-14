@@ -49,7 +49,7 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     css_events = "td.event_groups_index_table_events"
     assert_operator 0, :<, css_select(css_events).size
     assert_match(/\A\d+\z/, css_select(css_events).first.text.strip)
-    w3c_validate "EventGroup index"  # defined in test_helper.rb (see for debugging help)
+    w3c_validate "EventGroup index"  # defined in test_w3c_validate_helper.rb (see for debugging help)
     sign_out @editor_ja
   end
 
@@ -65,7 +65,7 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     # exp = (TimeAux::DEF_FIRST_DATE_TIME+1.day).year
     exp = Date.current.year
     assert_equal exp, css_select('select#event_group_start_date_1i option[selected=selected]')[0]["value"].to_i, "Default year should be selected, but..."
-    w3c_validate "EventGroup new"  # defined in test_helper.rb (see for debugging help)
+    w3c_validate "EventGroup new"  # defined in test_w3c_validate_helper.rb (see for debugging help)
   end
 
   test "should create event_group" do
@@ -107,15 +107,18 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     get event_group_url(@event_group)
     assert_response :success
     assert_match(/\bPlace\b/, css_select("body").text)
-    w3c_validate "EventGroup show"  # defined in test_helper.rb (see for debugging help)
+
     assert_equal 1, css_select("#table_event_group_show_events").size
     assert_equal 0, css_select("body dd.item_memo_editor").size, "should be editor_only, but..."
 
     assert_equal 0, css_select("#link_back_to_index a").size  # "Back to Index"
+    w3c_validate "EventGroup show"  # defined in test_w3c_validate_helper.rb (see for debugging help)
+
     sign_in @editor_ja  ########### This should be unnecessary once index becomes public!
     get event_group_url(@event_group)
     assert_equal 1, css_select(".link_back_to_index a").size  # "Back to Index"
     assert_equal 0, css_select("body dd.item_memo_editor").size, "should be Harami editor_only, but..."
+    w3c_validate "EventGroup show by EditorJa"  # defined in test_w3c_validate_helper.rb (see for debugging help)
     sign_out @editor_ja
 
     sign_in @editor_harami

@@ -16,7 +16,7 @@
      this_model_note = t("tables.note_this_model", kwd: t(:Place))
    end %>
 
-<section id="places_in_prefecture">
+<section id="sec_places_in_prefecture">
 <h2><%= t("prefectures.show.places_in_prefecture", this_pref: pref_title) %></h2>
 
 <% canshow_pla = can?(:show, Place) %>
@@ -85,5 +85,5 @@
   </tbody>
 </table>
 
-</section> <!-- section id="places_in_prefecture" -->
+</section> <!-- section id="sec_places_in_prefecture" -->
 

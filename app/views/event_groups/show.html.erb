@@ -8,7 +8,7 @@
 <%= render partial: 'layouts/all_registered_translations', locals: {model: @event_group, add_buttons: true} %>
 <hr>
 <% else %>
-<h3><%= t(:title).upcase %></h3>
+<h2><%= t(:title).upcase %></h2>
 
 <dl>
   <% @event_group.best_translations.each_pair do |ek, etra| %>

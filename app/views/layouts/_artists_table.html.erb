@@ -17,7 +17,7 @@
       <th><%= can?(:update, Sex) ? link_to(t('tables.sex'), sexes_url) : t('tables.sex') %></th>
       <th><%= t("tables.note").capitalize %></th>
       <% if can_update %>
-        <th colspan="2" class="editor_only" title="Show/Edit Artist">Actions</th>
+        <th colspan="<%= artists.uniq.present? ? 2 : 1 %>" class="editor_only" title="Show/Edit Artist">Actions</th>
         <% cspan += 1 %>
       <% else %>
         <th title="Show Artist"></th>

@@ -15,7 +15,7 @@
       <th>Song</th>
       <th>Checked?</th>
       <% if can? :update, Harami1129 %>
-        <th colspan="2">Action</th>
+        <th colspan="<%= harami1129s.exists? ? 2 : 1 %>">Action</th>
       <% else %>
         <th>Action</th>
       <% end %>

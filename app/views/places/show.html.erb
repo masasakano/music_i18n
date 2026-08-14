@@ -11,24 +11,30 @@
 
  <section id="sec_primary_show">
 <dl>
-  <% if current_user && current_user.moderator? %>
-    <div class="editor_only">
-      <dt>pID (Place)</dt>
-      <dd> <%= @place.id %></dd>
-    </div>
+  <%= editor_only_safe_html(:pass, method: can_create_pla) do %>
+    <dt>pID (Place)</dt>
+    <dd> <%= @place.id %></dd>
   <% end %>
-  <dt><%= t(:Country) %>:</dt>
-  <dd><%= link_to country_name, country_path(@place.country) %></dd>
-  <dt><%= t(:Prefecture) %>:</dt>
-  <dd><%= link_to prefecture_name, prefecture_path(@place.prefecture_id) %></dd>
-  <dt><%= t("tables.n_harami_vids_long") %>:</dt>
-  <dd><%= @place.harami_vids.count %></dd>
+  <div>
+    <dt><%= t(:Country) %>:</dt>
+    <dd><%= link_to country_name, country_path(@place.country) %></dd>
+  </div>
+  <div>
+    <dt><%= t(:Prefecture) %>:</dt>
+    <dd><%= link_to prefecture_name, prefecture_path(@place.prefecture_id) %></dd>
+  </div>
+  <div>
+    <dt><%= t("tables.n_harami_vids_long") %>:</dt>
+    <dd><%= @place.harami_vids.count %></dd>
+  </div>
   <%= editor_only_safe_html(:pass, method: can_create_pla, tag: "div") do %> <%# defined in application_helper.rb %>
     <dt><%= t("tables.n_events_long") %></dt>
     <dd><%= @place.events.count.to_s %></dd>
   <% end %>
-  <dt><%= t("tables.n_artists_long") %></dt>
-  <dd><%= @place.artists.count.to_s %></dd>
+  <div>
+    <dt><%= t("tables.n_artists_long") %></dt>
+    <dd><%= @place.artists.count.to_s %></dd>
+  </div>
   <%= editor_only_safe_html(:pass, method: can_create_pla, tag: "div") do %> <%# defined in application_helper.rb %>
     <dt><%= t("tables.n_musics_long") %></dt>
     <dd> <%= @place.musics.count.to_s %></dd>

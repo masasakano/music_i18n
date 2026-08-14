@@ -80,7 +80,6 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     sign_in(user) if user
     get root_url
     assert_response :success
-    w3c_validate(dname)  # defined in test_helper.rb (see for debuggin help)
 
     csssel = css_select('div#navbar_top')
     assert_equal((user ? 1 : 0), csssel.size)
@@ -151,5 +150,7 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
       assert_includes     csssel[0].text, 'Log in'
       assert_includes     csssel[0].text, 'Sign up'
     end
+
+    w3c_validate(dname)  # defined in test_w3c_validate_helper.rb (see for debuggin help)
   end
 end

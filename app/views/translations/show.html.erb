@@ -6,37 +6,42 @@
 </h2>
 
 <dl>
+ <%= tag.div do %>
   <dt>Translatable:</dt>
   <dd><%= link_to @translation.translatable_type, @translation.translatable %></dd>
-
+ <% end %>
+ <%= tag.div do %>
   <dt> Langcode:</dt>
   <dd><%= @translation.langcode %></dd>
-
+ <% end %>
+ <%= tag.div do %>
   <dt> Title:</dt>
   <dd><%= @translation.title %></dd>
-
+ <% end %>
+ <%= tag.div do %>
   <dt> Alt title:</dt>
   <dd><%= @translation.alt_title %></dd>
-
+ <% end %>
+ <%= tag.div do %>
   <dt> Ruby:</dt>
   <dd><%= @translation.ruby %></dd>
-
+ <% end %>
+ <%= tag.div do %>
   <dt> Alt ruby:</dt>
   <dd><%= @translation.alt_ruby %></dd>
-
+ <% end %>
+ <%= tag.div do %>
   <dt> Romaji:</dt>
   <dd><%= @translation.romaji %></dd>
-
+ <% end %>
+ <%= tag.div do %>
   <dt> Alt romaji:</dt>
   <dd><%= @translation.alt_romaji %></dd>
-
+ <% end %>
+ <%= tag.div do %>
   <dt><%= t(".is_orig") %>:</dt>
   <dd><%= @translation.is_orig %></dd>
-
-  <% if can? :crud, Translation %>
-    <dt> Weight:</dt>
-    <dd><%= @translation.weight %></dd>
-  <% end %>
+ <% end %>
 
   <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @translation, model4ability: cancrud} %>
 </dl>

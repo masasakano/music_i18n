@@ -66,7 +66,6 @@
       <% if n1 != n2 %>
         &nbsp; (← <span class="lead text-red"><strong>Inconsistent</strong></span>)
       <% end %>
-      </span>
       <%= editor_only_safe_html(:pass, method: canshow_evit_gen, tag: "span") do %>
       / <%= event.event_items.distinct.count %>
       <% end %>

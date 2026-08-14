@@ -47,7 +47,8 @@ class SiteCategoriesControllerTest < ActionDispatch::IntegrationTest
     sign_in @trans_moderator
     get site_categories_url
     assert_response :success
-    w3c_validate "Site Category index"  # defined in test_helper.rb (see for debugging help)
+
+    w3c_validate "Site Category index"  # defined in test_w3c_validate_helper.rb (see for debugging help)
     sign_out @trans_moderator
   end
 

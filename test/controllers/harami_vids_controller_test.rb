@@ -86,6 +86,7 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_equal n_evit1, css_select('fieldset.harami_vid_event_items input[type="checkbox"]').size, "All EventItems loaded from GET reference_harami_vid_kwd params should be listed, but..."
     assert_equal n_evit1, css_select('fieldset.harami_vid_event_items input[type="checkbox"][checked="checked"]').size
+
     w3c_validate "HaramiVid new"  # defined in test_w3c_validate_helper.rb (see for debugging help)
 
     get new_harami_vid_url, params: { "reference_harami_vid_kwd" => hv1.id.to_s }  # Invalid parameter for new

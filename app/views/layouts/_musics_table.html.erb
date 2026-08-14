@@ -26,7 +26,7 @@
       <th><%= t("tables.n_harami_vids_short") %></th>
       <th><%= t("tables.note").capitalize %></th>
       <% if can_update %>
-        <th colspan="2" class="editor_only" title="Show/Edit Music">Actions</th>
+        <th colspan="<%= musics.uniq.present? ? 2 : 1 %>" class="editor_only" title="Show/Edit Music">Actions</th>
         <% cspan += 1 %>
       <% else %>
         <th title="Show Music"></th>
