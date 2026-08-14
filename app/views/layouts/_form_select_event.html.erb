@@ -3,25 +3,40 @@
 <%# selected: the selected Event-ID - usually automatically derived from +record+ and +form_method+ except when a deliberate initial value is given (see /app/views/harami_vids/_form_add_evit_music_collab.html.erb) %>
 <%# is_required is true only for :new because an existing HaramiVid should have at least one associated Event %>
 
-<% current_year = Time.current.year %>
-<% year_options = (Rails.configuration.music_i18n_def_first_event_year..current_year).to_a.reverse %>
+<% year_options = ((Rails.configuration.music_i18n_def_first_event_year || 2019)..Time.current.year).to_a.reverse %>
+<% if year_options.empty? || !Rails.configuration.music_i18n_def_first_event_year %>
+  <%= editor_only_safe_html(Music, method: :edit, tag: "p", class: "lead", title: "not for public") do %>
+    WARNING: Something (config?) goes wrong in _form_select_event.html.erb : <%= [Rails.configuration.music_i18n_def_first_event_year, Time.current.year].inspect %>
+  <% end %>
+<% end %>
 
 <% evt_id = (selected.presence || record.send(form_method).presence) %>
 <% current_event = (evt_id ? Event.find(evt_id) : nil) %>
 <% if current_event %>
-  <% selected_group_id = (current_event&.event_group_id || EventGroup.default(:HaramiVid)) %>
-  <% selected_year_begin = current_event&.start_time&.year || current_year %>
+  <% selected_group_id = (current_event.event_group_id || EventGroup.default(:HaramiVid)) %>
+  <% selected_year_begin = current_event.start_time&.year %>
 <% end %>
+  <%# NOTE: If no Event is currently associated (i.e. when :new), User MUST select one - no Default EventGroup %>
+<% selected_year_begin ||= EventGroups::EventsController::DEF_YEAR_BEGIN %>
 <% selected_year_end = nil %>
 
 <% group_options = [["(All Event Groups)", "all"]] + form_all_event_group_collection %> <%# EventGroup.pluck(:title, :id) %><%# defined in event_groups_helper.rb %>
 
-<div data-controller="cascading-select" 
+<%= stimulus_controller_block(
+      "cascadingSelect",
+      values: {
+        url_template: "/event_groups/:event_group_id/events",
+        select_name: record.class.name.underscore+"[#{form_method}]",
+        selected: evt_id,
+        required: is_required,
+      },
+      style: "margin-bottom: -1.5em; padding-bottom: 0em;") do %> <%# defined in stimulus_helper.rb %>
+<%# div data-controller="cascading-select"
      data-cascading-select-url-template-value="/event_groups/:event_group_id/events"
-     data-cascading-select-select-name-value="<%= record.class.name.underscore %>[<%= form_method %>]"
-     data-cascading-select-selected-value="<%= evt_id %>"
-     data-cascading-select-required-value="<%= is_required %>"
-     style="margin-bottom: -1.5em; padding-bottom: 0em;" > <%# NOTE: evt_id here used to be selected %>
+     data-cascading-select-select-name-value=" %= record.class.name.underscore % [ %= form_method % ]"
+     data-cascading-select-selected-value=" %= evt_id % "
+     data-cascading-select-required-value=" %= is_required % "
+     style="margin-bottom: -1.5em; padding-bottom: 0em;" %>
 
   <!-- Event Group Filter -->
   <div class="mb-3">
@@ -43,7 +58,7 @@
     <div class="col-md-6 mb-3">
       <%= label_tag :year_begin, "Year From (nb. #{Rails.configuration.music_i18n_def_first_event_year} includes before)", class: "form-label" %>
       <%= select_tag :year_begin,
-            options_for_select(year_options, current_event&.start_time&.year.presence || EventGroups::EventsController::DEF_YEAR_BEGIN),
+            options_for_select(year_options, selected_year_begin),
             class: "form-select",
             data: {
               cascading_select_target: "input",
@@ -69,16 +84,16 @@
 
   <%# Target Event Select %>
   <div class="mb-3" style="margin-top: -1.5em; margin-bottom: 0em; padding-bottom: 0em;">
+    <% initial_events =
+         if selected_group_id
+           events = EventGroups::EventsController.filter_events(selected_group_id, selected_year_begin, selected_year_end) if selected_year_begin.present?  # MAIN routine!
+         else
+           []
+         end %>
+
     <%= f.label form_method.to_sym, (is_required ? "Event" : "Additional Event (for EventItem)"), class: "form-label" %>
 
-    <turbo-frame id="events_select_frame" data-cascading-select-target="frame">
-      <% initial_events =
-           if selected_group_id
-             events = EventGroups::EventsController.filter_events(selected_group_id, selected_year_begin, selected_year_end) if selected_year_begin.present?  # MAIN routine!
-           else
-             []
-           end %>
-
+    <turbo-frame id="events_select_frame" data-cascading-select-target="goal"> <%# matches /app/views/event_groups/events/index.html.erb %>
       <%= f.input_field form_method.to_sym,
             collection: initial_events,
             required: is_required,
@@ -91,5 +106,4 @@
     <%= f.error form_method.to_sym, class: "text-danger small" %>
   </div>
 
-</div>
-
+<% end %> <%# stimulus_controller_block(...) %>

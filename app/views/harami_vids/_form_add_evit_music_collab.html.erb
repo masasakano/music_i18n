@@ -17,8 +17,8 @@
     <% show_initially = (checked_val.to_s == new_event_trigger_val.to_s) %>
 
     <!-- Outer container handles event delegation via change->toggle-element#toggle -->
-    <div data-controller="toggle-element"
-       data-toggle-element-expected-value="<%= new_event_trigger_val %>">
+    <%= stimulus_controller_block("toggle-element",
+          values: { expected: new_event_trigger_val }) do %> <%# for toggleElement; defined in stimulus_helper.rb %>
       <%= f.input :form_new_artist_collab_event_item, as: :radio_buttons,
           collection: co,
           label_method: :second, value_method: :first,
@@ -40,7 +40,7 @@
         <% selected = ((v=harami_vid.form_new_event_id).present? ? v : ((v2=default_event_for_new_event_item(harami_vid)) ? v2.id : nil)) %> <%# The same Event as that for an associated EventItem, if there is any %> <%# default_event_for_new_event_item() defined in /app/helpers/harami_vids_helper.rb %>
         <%= render partial: 'layouts/form_select_event', locals: {f: f, record: harami_vid, form_method: :form_new_event_id, selected: selected, is_required: !selected} %> <%# Form for Stimulus Controller %>
       </div>
-    </div> <!-- div data-controller="toggle-element" -->
+    <% end %> <%# stimulus_controller_block("toggle-element" ...) %>
   </section> <!-- section id="form_choose_event_item_for_new_music_artist" -->
 <% end %> <%# if !harami_vid.new_record? || display_new_event_item_form %>
 

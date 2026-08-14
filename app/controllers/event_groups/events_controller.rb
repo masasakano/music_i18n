@@ -3,6 +3,7 @@ module EventGroups
     DEF_YEAR_BEGIN = Time.current.year
 
     def index
+      # In addition, params of :select_name, :selected, :required are directly handled in the ERB teplate: /app/views/event_groups/events/index.html.erb
       @events = self.class.filter_events(params[:event_group_id], params[:year_begin], params[:year_end])
 
       render layout: false
