@@ -1,6 +1,7 @@
-<%# local variables: model, (optional) title_kwd=(|name|title), add_button, show_single [Boolean] (Def: false) %>
+<%# local variables: model, (optional) title_kwd=(|name|title), add_button, show_single [Boolean] (Def: false), with_alt (Def: true), with_ruby (Def: true) %>
   <%# for example, if title_kwd=="name", t('translations.table_head.Title_name') is used %>
   <%# If show_single is true (Def: false), only a single entry per language is displayed for public (but all entries are still displayed for Harami-Editors). %>
+  <%# For general Publics, translation tables in HaramiVid and Event should not show alt_* or ruby/romaji, so both with_alt and with_ruby should be given false. Both with_alt and with_ruby are ignored for Editors. %>
 <% if !defined?(title_kwd)
      title_kwd = nil
    end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
@@ -9,6 +10,12 @@
    end %>
 <% if !defined?(show_single)
      show_single = false
+   end %>
+<% if !defined?(with_alt)
+     with_alt = true
+   end %>
+<% if !defined?(with_ruby)
+     with_ruby = true
    end %>
 <% with_edit_links = add_button %> <%# for the unified naming convention %>
 <%
@@ -24,14 +31,26 @@
 %>
 
 <% can_create = can?(:create, Translation) %>
+<% can_edit_gen = can?(:edit, HaramiVid) %>
+<% 
+   with_alt_orig  = with_alt
+   with_ruby_orig = with_ruby
+%>
+<% if can_edit_gen
+     with_alt  = true
+     with_ruby = true
+   end
+%>
 
   <section id="sec_primary_trans">
 <h2><%= t("layouts.all_registered") %><%= t("layouts."+(defined?(myself) ? 'translations' : 'translated_names')) %></h2>
 
 <table id="all_registered_translations_<%= get_modelname(model) %>" class="all_registered_translations">
-  <% allcolspan = 5
-     can_edit_gen = can?(:edit, HaramiVid)
-     allcolspan += ((can_edit=can?(:edit, Translation)) ? 1 : 0)
+  <% allcolspan = 2
+     allcolspan += 1 if with_ruby
+     allcolspan += (with_ruby ? 2 : 1) if with_alt
+  %>
+  <% allcolspan += ((can_edit=can?(:edit, Translation)) ? 1 : 0)
      allcolspan += ((can_index=can?(:index, Translation)) ? 1 : 0) # showing SELF or not
      allcolspan += ((can_crud=can?(:crud, Translation))  ? 1 : 0)  # showing Weight column
      allcolspan += ((can_show=can?(:show, Translation))  ? 1 : 0)  # showing Note column
@@ -56,9 +75,15 @@
         <th title="<%= t('translations.show.is_orig') %>" class="editor_only"><%= t(prefix+'Is_orig') %></th>
       <% end %>
       <th class="border-end-0"><%= t_title %></th>
-      <th class="border-start-0">[<%= t(prefix+'Ruby_romaji') %>]</th>
-      <th class="border-end-0"><%= t_alt_title %></th>
-      <th class="border-start-0">[<%= t(prefix+'Ruby_romaji') %>]</th>
+     <% if with_ruby %>
+      <th class="border-start-0<%= " editor_only" if !with_ruby_orig %>">[<%= t(prefix+'Ruby_romaji') %>]</th>
+     <% end %>
+     <% if with_alt  %>
+      <th class="border-end-0<%= " editor_only" if !with_alt_orig %>"><%= t_alt_title %></th>
+      <% if with_ruby %>
+      <th class="border-start-0<%= " editor_only" if !with_ruby_orig %>">[<%= t(prefix+'Ruby_romaji') %>]</th>
+      <% end %>
+     <% end %>
       <% if can_index %>
         <th class="editor_only">You?</th>
       <% end %>
@@ -93,10 +118,16 @@
       <td class="trans_is_orig editor_only"><%= tra.is_orig_str %></td>
       <% end %>
       <td class="trans_title border-end-0"><%= tra.title %></td>
-      <td class="trans_ruby_romaji ruby border-start-0"><%= print_two_with_brackets(tra.ruby, tra.romaji) %></td>  <%# defined in translations_helper.rb %>
+     <% if with_ruby %>
+      <td class="trans_ruby_romaji ruby border-start-0<%= " editor_only" if !with_ruby_orig %>"><%= print_two_with_brackets(tra.ruby, tra.romaji) %></td>  <%# defined in translations_helper.rb %>
+     <% end %>
+     <% if with_alt  %>
       <% alt_tit = tra.alt_title; alt_blank = (alt_tit.blank? && can_show) %>
-      <td class="trans_alt_title border-end-0<%= " text-center" if alt_blank %>"><%= alt_blank ? '&mdash;'.html_safe : alt_tit %></td>
-      <td class="trans_alt_ruby_romaji ruby border-start-0"><%= print_two_with_brackets(tra.alt_ruby, tra.alt_romaji) %></td>
+      <td class="trans_alt_title border-end-0<%= " text-center" if alt_blank %><%= " editor_only" if !with_alt_orig %>"><%= alt_blank ? '&mdash;'.html_safe : alt_tit %></td>
+      <% if with_ruby %>
+      <td class="trans_alt_ruby_romaji ruby border-start-0<%= " editor_only" if !with_ruby_orig %>"><%= print_two_with_brackets(tra.alt_ruby, tra.alt_romaji) %></td>
+      <% end %>
+     <% end %>
       <% if can_index %>
         <td class="align-c trans_you editor_only"><%= [tra.create_user_id, tra.update_user_id].include?(current_user.id) ? "Yes" : "" %></td>
       <% end %>

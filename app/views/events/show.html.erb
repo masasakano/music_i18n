@@ -3,7 +3,7 @@
 
 <hr>
 <section id="sec_primary">
-<%= render partial: 'layouts/all_registered_translations', locals: {model: @event} %>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: @event, show_single: true, with_alt: false, with_ruby: false} %>
 <hr>
 
 <%= render @event %>
