@@ -80,4 +80,15 @@ module TranslationsHelper
       ""
     end
   end
+
+  # If {Translation#weight} is too high, the {Translation} may need to be hidden from public display.
+  #
+  # @param trans [Translation]
+  # @param all_trans_of_langcode [#map] Relation or Array of {Translation} for the same translatable and langcode
+  def self.should_hide_for_public?(trans, all_trans_of_langcode)
+    all_trans_of_langcode.size > 1 &&
+      trans.weight &&
+      trans.weight > Translation::THRESHOLD_WEIGHT_VISIBLE &&
+      trans.weight != Float::INFINITY
+  end
 end

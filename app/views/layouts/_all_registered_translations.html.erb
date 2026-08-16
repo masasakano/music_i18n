@@ -111,8 +111,13 @@
       <% end %>
       </th></tr>
     <% alltra.each_with_index do |tra, i| %>
-      <% klass_editor_only = ((show_single && can_edit_gen && i>0) ? " editor_only" : "") %>
-    <tr class="trans_row lc_<%= lcode %><%= klass_editor_only %>">
+      <% is_hidden_trans = false %>
+      <% if TranslationsHelper.should_hide_for_public?(tra, alltra) %>
+        <% is_hidden_trans = true %>
+        <% next if !can_edit_gen %>
+      <% end %>
+      <% klass_editor_only = ((can_edit_gen && ((show_single && i>0) || is_hidden_trans)) ? " editor_only" : "") %>
+    <tr class="trans_row lc_<%= lcode %><%= klass_editor_only %>"<%= ' title="Internal use only and not displayed to the public (due to a very high weight meaning a very low priority)"'.html_safe if is_hidden_trans %>>
       <td><%= i+1 %><%= ('<span title="'+t("datagrid.footnote.is_original")+'">*</span>').html_safe if tra.is_orig %></td>
       <% if can_edit %>
       <td class="trans_is_orig editor_only"><%= tra.is_orig_str %></td>

@@ -301,6 +301,13 @@ class Translation < ApplicationRecord
   # (least requirement, though maybe insufficient, e.g., two Artists with an identical name with separate birthdays are allowed).
   BASE_TRANSLATION_UNIQUE_SCOPES = %i(translatable_type langcode)
 
+  # If {Translation#weight} is larger than this value but not INFINITE (because INFINITE means
+  # auto-generated, and NOT with U/I) and if there are multiple Translations
+  # for the {Translation#translatable} for the {Translation#langcode},
+  # this Translation should be for internal use only (like for typo matches) and
+  # should not be displayed for general public.
+  THRESHOLD_WEIGHT_VISIBLE = Role::DEF_WEIGHT.values.max*10 + [DEF_WEIGHT_INCREMENT_POSITIVE, 100].max * 10  # = 101000
+
   validates :title, uniqueness: { scope: [:alt_title, :ruby, :alt_ruby, :romaji, :alt_romaji, :langcode, :translatable_type, :translatable_id] }
   # NOTE: PostgreSQL does not validate the values when one of any values (whether
   #   existing or new) is null.  But Rails does.

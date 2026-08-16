@@ -293,14 +293,33 @@ class ApplicationGrid < Datagrid::Base
   # @param is_orig_char [String, NilClass] Unless nil, title in a language of is_orig is ticked with this char (Def: nil)
   # @return [String] html_safe-ed
   def self.html_titles(record, col: :title, langcode: "en", is_orig_char: nil)
+    is_editor = !!(CURRENT_USER && CURRENT_USER.editor?) # Ability is not used as it would be too DB-heavy.
     # artit = record.translations_with_lang(langcode.to_s).pluck(col).flatten
     rela = record.translations_with_lang(langcode.to_s)
     artit = rela.pluck(col).flatten
     artit.map{|tit| ERB::Util.html_escape(tit)}
     #artit[0] << is_orig_char if is_orig_char && rela[0] && rela[0].is_orig && current_user && current_user.editor? # Ability is not used as it would be too DB-heavy.
-    artit[0] << %q[<span title="]+I18n.t("datagrid.footnote.is_original")+%q[">]+ERB::Util.html_escape(is_orig_char)+%q[</span>] if is_orig_char && rela[0] && rela[0].is_orig && CURRENT_USER && CURRENT_USER.editor? # Ability is not used as it would be too DB-heavy.
-    artit.join("<br>").html_safe
+    artit[0] << %q[<span title="]+I18n.t("datagrid.footnote.is_original")+%q[">]+ERB::Util.html_escape(is_orig_char)+%q[</span>] if is_orig_char && rela[0] && rela[0].is_orig && is_editor
+
+    _hide_translation_rows_from_public(artit, rela, is_editor: is_editor).join("<br>").html_safe
   end
+
+  # @return [Array] where too-high-weight Translations are either removed (for the public) or HTML-marked for Editors
+  def self._hide_translation_rows_from_public(artit, rela, is_editor: nil)
+    is_editor = CURRENT_USER && CURRENT_USER.editor? if is_editor.nil? # Ability is not used as it would be too DB-heavy.
+    first_exclude_index = rela.find_index{
+      TranslationsHelper.should_hide_for_public?(_1, rela)
+    }
+    arret = artit[0..(first_exclude_index-1)] if first_exclude_index && !is_editor  # remove Translations with too high weight for the public
+    (arret || artit).map.with_index{|val, i|
+      if first_exclude_index && i >= first_exclude_index
+        ('<span class="editor_only" title="Hidden from public display due to a too high weight">' + val + '</span>').html_safe
+      else
+        val
+      end
+    }
+  end
+  private_class_method :_hide_translation_rows_from_public
 
   # String of (alt_title or nothing) plus ruby and romaji for Grid index
   #
@@ -352,9 +371,10 @@ class ApplicationGrid < Datagrid::Base
     artit2 = rela.pluck(:title, :ruby, :alt_title, :alt_ruby)
     is_orig_char_to_pass = (is_orig_char && rela[0] && rela[0].is_orig ? is_orig_char : nil)
 
-    artit2.map{|earow|
+    arret = artit2.map{|earow|
       _html_title_alt_one(earow, langcode: langcode, is_orig_char: is_orig_char_to_pass, with_locale_prefix: with_locale_prefix)
-    }.join("<br>").html_safe
+    }
+    _hide_translation_rows_from_public(arret, rela).join("<br>").html_safe
   end
 
   # Returns a line of the String HTML expression for "title [ruby] / alt_title [alt_ruby]"

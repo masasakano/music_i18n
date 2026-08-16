@@ -55,8 +55,8 @@ class Role < ApplicationRecord
     RNAME_SYSADMIN  => 1,
     RNAME_MODERATOR => 100,
     RNAME_EDITOR    => 1000,
-    RNAME_HELPER    => 100000,
-  }
+    RNAME_HELPER    => 10000,
+  }.with_indifferent_access
 
   DEF_WEIGHT_INCREMENT = 100
 
