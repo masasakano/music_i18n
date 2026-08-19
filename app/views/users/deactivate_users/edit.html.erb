@@ -1,7 +1,5 @@
 <h1>Delete (=deactivate) a user? (<%= @user.display_name %>)</h1>
 
-<p id="notice"><%= notice %></p>
-
 <p>
 Number of <%= link_to 'Translations created/updated by the user', translations_path+sprintf('?user_id=%d', @user.id) %>: <%= (@user.created_translations + @user.updated_translations).uniq.count %>
 </p>
