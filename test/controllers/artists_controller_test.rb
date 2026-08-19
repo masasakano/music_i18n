@@ -21,11 +21,14 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     #assert_not (200...299).include?(response.code.to_i)  # maybe :redirect or 403 forbidden
     assert_nil current_user_display_name(is_system_test: false)  # defined in test_helper.rb
+    assert_includes css_select("head title")[0].text, "Artists"
+    refute_includes css_select("head title")[0].text, "ndex"
 
     art = artists(:artist_proclaimers)
     assert       art.translations.where(langcode: "en").exists?, "sanity check"
     refute       art.translations.where(langcode: "ja").exists?, "sanity check"
     assert_equal "en", art.orig_langcode, "sanity check"
+    assert_equal "en", art.best_translation.langcode, "sanity check"
     tra = art.best_translation
     alt_tit = "alt-proclaimers"
     tra.update!(alt_title: alt_tit)
@@ -39,12 +42,28 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     assert  (tit=css_select(css_txt+" td")[2].text).present?  # en-title/alt_title
     assert_match(%r@[[:blank:]]+/\s+#{Regexp.quote(alt_tit)}\z@, tit.strip)  # The first blank is not a space(!)
 
-    get "/en/artists"  # Test of routing-filter
+    get "/en/artists"  # Test of path-based I18n feature (used to be routing-filter but now with vanilla-Rails)
     assert_response :success
+    assert_includes css_select("head title")[0].text, "Artists"
+    refute_includes css_select("head title")[0].text, "[en]"
 
     if is_env_set_positive?('TEST_STRICT')  # defined in application_helper.rb
       w3c_validate "Artist index"  # defined in test_w3c_validate_helper.rb (see for debugging help)
     end  # only if TEST_STRICT, because of invalid HTML for datagrid filter for Range
+
+    get "/ja/artists"  # Test of path-based I18n feature (for :ja)
+    assert_response :success
+    assert_includes css_select("head title")[0].text, "アーティスト"
+    assert_includes css_select("head title")[0].text, "一覧"  # t(:index)
+    refute_includes css_select("head title")[0].text, "ja"
+    refute_includes css_select("head title")[0].text, "日本語"
+
+    sign_in @editor
+    get "/ja/artists"  # Test of path-based I18n feature (for :ja)
+    assert_response :success
+    assert_includes css_select("head title")[0].text, "Artist index"  # neither plural nor Japanese for Editors but a bare model name followed by action_aname
+    assert_includes css_select("head title")[0].text, "ja"
+    sign_out @editor
   end
 
   test "should show artist" do
@@ -53,6 +72,10 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     get artist_url(@artist)
     assert_response :success
     w3c_validate "Artist show"  # defined in test_w3c_validate_helper.rb (see for debugging help)
+    assert_includes css_select("head title")[0].text, "Artist"  # Singular
+    refute_includes css_select("head title")[0].text, "Show"
+    refute_includes css_select("head title")[0].text, "show"
+    assert_includes css_select("head title")[0].text, @artist.title_or_alt(langcode: "en", lang_fallback_option: :either)
     #refute css_select('div.link-edit-destroy a')[0].text.include? "Edit"
     assert_equal 0, css_select("body dd.item_memo_editor").size, "should be Harami editor_only, but..."
 
@@ -64,12 +87,35 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, css.size
     assert_includes css_select(css_str+" th")[0].text, "한국어"
 
+    ## Test of Show in :ja for public
+    art_proc = artists(:artist_proclaimers)
+    assert       art_proc.translations.where(langcode: "en").exists?, "sanity check"
+    refute       art_proc.translations.where(langcode: "ja").exists?, "sanity check"
+    assert_equal "en", art_proc.orig_langcode, "sanity check"
+    tit_best_en = art_proc.best_translation.title
+    art_proc.translations << Translation.new(title: tit_ja="プロクレイマーズテスト", langcode: "ja", weight: 223, is_orig: false)
+    assert       art_proc.translations.where(langcode: "ja").exists?, "sanity check"
+    refute_equal tit_ja, tit_best_en, "sanity check"
+
+    get artist_url(art_proc, locale: "ja")
+    assert_response :success
+    assert_includes css_select("h1")[0].text, tit_ja
+    assert_includes css_select("head title")[0].text, I18n.t(:Artist, locale: "ja")
+    refute_includes css_select("head title")[0].text, "Show"
+    refute_includes css_select("head title")[0].text, "show"
+    refute_includes css_select("head title")[0].text, "ja"
+    assert_includes css_select("head title")[0].text, definite_article_to_head(tit_best_en), "Always the best_translation title for <title>, but..."
+
+    ## Test of Show for Editor
     sign_in @editor
 
     get artist_url(@artist)
     assert_response :success
     assert_equal 1, css_select("body dd.item_memo_editor").size
     assert_equal memoe, css_select("body dd.item_memo_editor").text.strip
+    assert_includes css_select("h1")[0].text, @artist.best_translation.title
+    assert_includes css_select("head title")[0].text, "Artist show"  # Singular with action_name
+    assert_includes css_select("head title")[0].text, @artist.best_translation.title, "Always the best_translation title for <title>, but..."
 
     mus1 = musics(:music1)
     assert_difference("Music.find(#{mus1.id}).engages.count") do
@@ -92,6 +138,7 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     sign_in @editor
     get new_artist_url
     assert_response :success
+    assert_includes css_select("head title")[0].text, "Artist new"  # Singular with action_name
 
     #puts css_select('body')[0].to_html
     #puts response.body
@@ -160,9 +207,13 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in @editor
     # get edit_artist_url(@artist) # This will result in W3C error as the wikipedia page is not a valid URL (without a https://)
-    get edit_artist_url(artists(:artist_saki_kubota))
+    artist = artists(:artist_saki_kubota)
+    get edit_artist_url(artist)
     assert_response :success
+    assert_includes css_select("head title")[0].text, "Artist edit"  # Singular with action_name
+    assert_includes css_select("head title")[0].text, definite_article_to_head(artist.title_or_alt(langcode: nil))  # Singular with action_name and title  # defined in module_common.rb
     w3c_validate "Artist edit"  # defined in test_w3c_validate_helper.rb (see for debugging help)
+
     assert css_select('a').any?{|i| /\AShow\b/ =~ i.text.strip}  # More fine-tuning for CSS-selector is needed!
     css = css_select('div.link-edit-destroy a')
     assert(css.empty? || !css[0].text.include?("Edit"))

@@ -204,57 +204,68 @@ module ApplicationHelper
   #
   # This method returns always a String no matter what so that no exceptions would be ever raised.
   #
+  # This method utilises the class method +YourController.html_head_title+ if defined,
+  # which is useful for non-RESTful Controllers.
+  #
+  # == Policy
+  #
+  # 1. for the public, a natural general title (plural for :index) in their locale for the model, possibly followed by the record's title (if needed) in the original language (NOT user's locale).
+  # 2. for Editors, either the Model name or Controller name, followed by action_name, possibly followed by the record's title or machine_title (in the original language), followed by the locale.
+  #
   # @return [String]
   def get_html_head_title
     retstr = String.new
-    hsroute = recognize_path(pat=url_for)  # :only_path is true <https://api.rubyonrails.org/classes/ActionView/RoutingUrlFor.html>
+    is_editor = (current_user && current_user.editor? rescue nil)
+    hsroute = Rails.application.routes.recognize_path(pat=url_for)  # :only_path is true <https://api.rubyonrails.org/classes/ActionView/RoutingUrlFor.html> . NOTE: bare `recognize_path` does not work for some reason.
     model_name = hsroute[:controller].singularize.camelize
-    # e.g., hsroute === {:controller=>"play_roles", :action=>"index", :locale=>"ja"}
-    retstr = model_name
-    record = String.new
-    title = String.new
+    # e.g., hsroute == {controller: "play_roles", action: "index", locale: "ja"}
+    #               == {controller: "artists/merges", action: "edit", locale: "en", id: "789884719"}
+
+    # For Editors, the model part for <title> is always singular like "Artist".
+    # For others, it can be (Artists?|アーティスト(\(一覧\))?/"
+    retstr = (is_editor ? model_name : I18n.t(model_name, default: model_name))
+
+    if !is_editor && "index" == hsroute[:action].to_s
+      if "ja" == I18n.locale.to_s
+        retstr << "("+t(:index, default: "一覧")+")"
+      else
+        retstr = retstr.pluralize
+      end
+    end
 
     begin
       model_class = model_name.constantize
     rescue NameError #=> er
-      #print "DEBUG(#{__method__}): #{er.inspect}"
-      return retstr
-    end
-
-    case hsroute[:action]
-    when "show", "edit", "update"
-      record = 
-        begin
-          model_class.find(hsroute[:id])
-        rescue
-          nil
-        end
-      title = 
-        if !record
-          String.new
-        elsif BaseWithTranslation == model_class.superclass
-          record.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)
-        else
-          str = %i(title machine_title mname display_name name).each do |candkey|
-            next if !record.respond_to?(candkey)
-            s = record.send(candkey)
-            break s.to_s.strip if s.present?
-          end
-          str ? str : String.new
-        end
-    end
-
-    action_str = 
-      case hsroute[:action]
-      when "index", "new", "create", "show", "edit", "update", "destroy"
-        hsroute[:action]
-      else
-        ""
+      ## Basically, the Controller is not in the standard model-related one, e.g., Artists::MergesController
+      return retstr if !is_editor
+      retstr = model_name = hsroute[:controller].camelize + "Controller"  # Controller name for Editor
+      begin
+        model_class = model_name.constantize
+      rescue NameError => err
+        # This should never happen except when a random path is requested by the user.
+        Rails.logger.error "#{File.basename __FILE__}:#{__method__}: Should never happen...: "+err.inspect
+        model_class = nil
       end
+    end
 
-    tit_display = ((title.size <= 20) ? title[0..19] : title[0..18]+"…")
-    retstr << sprintf(" %s %s", action_str, tit_display)
+    retstr << " " + hsroute[:action].to_s if is_editor
 
+    title = nil
+    if model_class
+      case hsroute[:action]
+      when "show", "edit", "update"
+        title = _title_from_path(model_class, hsroute)
+      end
+    end
+
+    if title.present?
+      the_title = definite_article_to_head(title)  # defined in module_common.rb
+      retstr << " " + ((the_title.size <= 20) ? the_title : the_title[0..18]+"…")
+    end
+
+    return retstr if !is_editor
+
+    ## Append the locale for Editors only
     langcode_str = (hsroute[:locale] || "")
     if langcode_str.blank? && (fragment=pat.split('/')[0]).size == 2
       langcode_str = ' ['+fragment.upcase+']'
@@ -262,11 +273,57 @@ module ApplicationHelper
     langcode_str = ' ['+langcode_str+']' if langcode_str.present?
 
     retstr << langcode_str
+    retstr
 
   rescue  # to make sure a page is displayed no matter what!
     retstr || String.new
   end # def get_html_head_title
 
+
+    # Routine to determine the human-readable title for a record used as part of +<title>+
+    #
+    # The record is guessed from the given path-like information.
+    # This method utilises the class method +YourController.html_head_title+ if defined,
+    #
+    # @param model_class [Class<ActiveRecord>]  e.g., Artists::MergesController
+    # @param hsroute [Hash] e.g., {controller: "artists/merges", action: "edit", locale: "en", id: "789884719"}
+    # @return [String, NilClass] Title of the record providing that the record is present? (like :show, but NOT :index), else nil.
+    def _title_from_path(model_class, hsroute)
+      return if hsroute[:id].blank?
+
+      if model_class.respond_to?(metho = :html_head_title)
+        begin
+          return model_class.send(metho, hsroute)
+        rescue => err
+          Rails.logger.error "#{File.basename __FILE__}:#{__method__}: Unexpected error for Controller-method #{model_class.name rescue 'UNKNOWN'}.html_head_title...: "+err.inspect
+          return
+        end
+      elsif !model_class.respond_to?(:find)
+        return
+      end
+
+      begin
+        record = model_class.find(hsroute[:id])
+      rescue ActiveRecord::RecordNotFound
+        return
+      rescue => err
+        Rails.logger.error "#{File.basename __FILE__}:#{__method__}: Unexpected Error in finding a record: "+err.inspect
+        return
+      end
+
+      if record.respond_to? :title_or_alt  # i.e., BaseWithTranslation == model_class.superclass
+        return record.title_or_alt(langcode: nil, lang_fallback_option: :either)
+      end
+
+      %i(title machine_title mname display_name name).each do |candkey|
+        next if !record.respond_to?(candkey)
+        if (s=record.send(candkey).presence)
+          return s.to_s.strip
+        end
+      end
+      nil  # Although a record is found, its significant human-readable title is not identified.
+    end
+    private :_title_from_path
 
   # Returns an HTML link for (YouTube) Channel
   #

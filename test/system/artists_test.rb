@@ -51,6 +51,7 @@ class ArtistsTest < ApplicationSystemTestCase
 
     # Artist#index (EN)
     visit artists_url
+    assert_selector "head title", visible: :all, text: "Artists"  # Plural
     assert_selector "h1", text: "Artists"
     assert_no_selector 'form.button_to'  # No button if not logged-in.
     assert_no_selector "input#artists_grid_id"  # No ID filter for general public
@@ -254,8 +255,11 @@ class ArtistsTest < ApplicationSystemTestCase
 
   test "should create/update artist" do
     harami = artists(:artist_harami)
+    tit_best = harami.title(langcode: "ja")
+    assert_equal tit_best, harami.best_translation.title, "testing fixtures"
+
     visit artist_url(harami, locale: I18n.locale)
-    assert_selector "h1", text: sprintf("Artist: %s (%s)", harami.title(langcode: "ja"), harami.title(langcode: "en"))
+    assert_selector "h1", text: sprintf("Artist: %s (%s)", tit_best, harami.title(langcode: "en"))
     xpath_new_music_link = "//section[@id='sec_musics_by']//div[contains(@class, 'link_to_new_music')]//a"
     refute_selector(:xpath, xpath_new_music_link)
 
@@ -274,6 +278,7 @@ class ArtistsTest < ApplicationSystemTestCase
     n_records_be4 = page.all("div#artists table tr").size - 1
     click_on "New Artist"
 
+    assert_selector "head title", visible: :all, text: "Artist new"  # Singular with action_name
     assert_selector "h1", text: new_model_title
     assert_no_selector css_query(:trans_new, :is_orig_radio, model: Prefecture)  # "is_orig selection should not be provided, but..."  # css_query defined in test_system_helper
     page_find_sys(:trans_new, :langcode_radio, model: Artist).choose('English')  # defined in test_system_helper
@@ -298,6 +303,8 @@ class ArtistsTest < ApplicationSystemTestCase
     assert_equal markd_link, raw_href
     # assert_equal markd_link, find("dd.item_note a").native["href"], "a="+find("dd.item_note a")['outerHTML']  # This would return(!) something like: http://127.0.0.1:56690/artists/7033903
 
+    assert_selector "head title", visible: :all, text: "Artist show"  # Singular with action_name
+    assert_selector "head title", visible: :all, text: @artist.title
     assert_selector "h1", text: "Artist: "+@artist.title  # Same title as the existing Artist
     assert (artist_pid=retrieve_pid_in_show)   # Should be visible for Editor # defined in test_helper.rb
     new_artist = Artist.find(artist_pid)

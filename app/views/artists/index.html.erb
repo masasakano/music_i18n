@@ -1,5 +1,3 @@
-<p id="notice"><%= notice %></p>
-
 <h1><%= t("Artist").pluralize(8, I18n.locale) %></h1>
 
 <%= datagrid_form_with model: @grid, method: :get, url: artists_path %>

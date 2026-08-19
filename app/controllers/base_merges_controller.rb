@@ -41,6 +41,8 @@
 # 5. If successful, {#_update_render} redirects to the Show-path of +merge_to_model+
 #
 class BaseMergesController < ApplicationController
+  include ModuleHtmlHeadTitle  # implements the class method :html_head_title
+
   # GET parameter "to_submit"
   #
   # If this is not specified in "new", no submit button will be displayed.

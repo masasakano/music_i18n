@@ -61,6 +61,8 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
     sign_in @editor
     get artists_edit_merges_url(@artist, params: {other_artist_id: @other.id})
     assert_response :success
+    assert_includes css_select("head title")[0].text, "Artists::MergesController edit"  # Singular with action_name
+    assert_includes css_select("head title")[0].text, "ID="  # referring to Artists::MergesController.html_head_title
  
     @other.update!(memo_editor: "MemoEditorArtistAi")
     get artists_edit_merges_url(@artist, params: {artist: {other_artist_id: @other.id}})

@@ -2,6 +2,7 @@ class BaseAnchorablesController < ApplicationController
 
   include ModuleCommon  # for guess_lang_code
   include BaseAnchorablesHelper  # for path_anchoring
+  include ModuleHtmlHeadTitle  # implements the class method :html_head_title (though usually irrelevant except for the unexpected cases where Controller is used for full-page rendering)
 
   skip_before_action :authenticate_user!, only: [:index, :show]
   # load_and_authorize_resource except: [:index, :show, :create]
