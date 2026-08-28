@@ -828,6 +828,21 @@ tocho_ja:
   update_user_id: 
   note: TochoJa
 
+tocho_en:
+  translatable: tocho (Place)
+  langcode: en
+  title: "Tokyo Metropolitan Government Building"
+  alt_title: "Tokyo Met. Gov. Build."
+  ruby: 
+  alt_ruby: 
+  romaji: 
+  alt_romaji: 
+  is_orig: false
+  weight: 100
+  create_user_id: user_moderator
+  update_user_id: user_moderator
+  note: TochoEn
+
 akihabara_ja:
   translatable: akihabara (Place)
   langcode: ja

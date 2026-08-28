@@ -288,6 +288,34 @@ class ArtistsTest < ApplicationSystemTestCase
     new_btyear = 1150
     choose("female")
     fill_in "Birth year", with: new_btyear  # Because of a different birth_year from the existing AI, the new Artist with the idencical name is accepted!
+
+    # checking Place (cascade-)selection
+    tit_uk_en = definite_article_to_head(translations(:uk_en).title)
+    tit_tocho = translations(:tocho_en)
+    tit_takamatsu    = translations(:takamatsu_station_en)
+    tit_takamatsu_en = tit_takamatsu.title.strip
+    css_pref_opt  = "#div_select_prefecture select option"
+    css_place_opt = "#div_select_place select option"
+    assert_field "Country" #, selected: "Unknown"  # should be already selected
+    # select "World", from: "Country"
+    select "UK", from: "Country"
+    select "Liverpool", from: "Prefecture"
+    assert_selector css_pref_opt, text: "UnknownPrefecture"
+    #refute_selector css_pref_opt, text: "Tokyo"  # should be either hidden or not displayed at all
+    assert_selector css_place_opt, text: "Unknown"
+    # assert_field "UnknownPlace", checked: true  # should be already selected
+    refute_selector css_place_opt, text: tit_tocho.title
+    # refute_selector css_place_opt, text: tit_tocho.alt_title
+    select "Japan", from: "Country"
+    ## print "DEBUG: "; p page.find_all("#div_select_prefecture select optgroup").map{_1[:outerHTML]}
+    select "Kagawa", from: "Prefecture", visible: true
+    assert_selector css_pref_opt, text: "UnknownPrefecture"
+    # refute_selector css_pref_opt, text: "Liverpool"  # should be either hidden or not displayed at all
+    select tit_takamatsu_en, from: "Place"
+    assert_selector css_place_opt, text: tit_takamatsu_en
+    refute_selector css_place_opt, text: tit_tocho.title
+    # refute_selector css_place_opt, text: tit_tocho.alt_title
+
     markd_text = "1st-Artist"
     markd_link = sprintf("/artists/%d", Artist.first.id)
     markd = sprintf("See [%s](%s).", markd_text, markd_link)
@@ -315,6 +343,11 @@ class ArtistsTest < ApplicationSystemTestCase
     assert_selector css_destroy_button_in_show_min  # destroy-button should be visible, but...
     assert_selector css_destroy_button_in_show_min, text: "Destroy"
     assert_selector css_destroy_button_in_show_strict, text: "Destroy"
+
+    # Checking Place
+    css_place3_in_show = "#sec_primary_show dl dd.item_place"
+    assert_selector css_place3_in_show, text: "Kagawa"
+    assert_selector css_place3_in_show+" a", text: tit_takamatsu_en
 
     # Checking the Translation table of the created Artist in Artist-Show
     assert_selector :xpath,         XPATHS[:all_translation_table][:banner_row]  # defined in test_helper.rb
@@ -404,11 +437,20 @@ class ArtistsTest < ApplicationSystemTestCase
 
     assert_no_selector('input#artist_title')
 
+    assert_selector css_pref_opt+'[selected="selected"]',  text: "Kagawa"          # Prefecture should be selected
+    assert_selector css_place_opt+'[selected="selected"]', text: tit_takamatsu_en  # Place should be selected
+    select "France", from: "Country"
+    select translations(:prefecture_paris_en).title, from: "Prefecture"
+    montparnasse_tit = places(:montparnasse_france).title_or_alt(langcode: :en, lang_fallback_option: :either)
+    select montparnasse_tit, from: "Place"
+
     page.find_field(name: 'artist[birth_day]').fill_in with: 31
     click_on @button_text[:update]
 
     assert_text "successfully updated."
 
+    assert_selector css_place3_in_show, text: "Paris"  # or Country "the French Republic"
+    assert_selector css_place3_in_show+" a", text: montparnasse_tit
     assert_match(/(\b#{new_btyear}\b.+\b31\b|\b31\b.+\b#{new_btyear}\b)/, page.find_all(:xpath, "//section[@id='sec_primary_show']//dt[@title='Birthday']/following-sibling::dd")[0].text)
 
     assert_equal 1, page.find_all(:xpath, xpath_new_music_link).size

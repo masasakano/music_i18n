@@ -114,6 +114,14 @@ class EventItemTest < ActiveSupport::TestCase
     assert_equal evit, EventItem.unknown
 
     pla = places(:tocho)
+    assert          pla.translations.where(langcode: "ja").exists?, 'fixture check...'
+    pla.translations.where(langcode: "en").each do |tra|
+      tra.destroy!  # to make Place have no English Translation during this test.
+    end
+    pla.reload
+    assert_equal 0, pla.translations.where(langcode: "en").count, 'sanity check...'
+    assert          pla.translations.where(langcode: "ja").exists?, 'fixture check...'
+
     evt = EventItem.default(:Harami1129, place: pla)
     assert_equal Event, evt.class
     assert   evt.new_record?

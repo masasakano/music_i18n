@@ -20,7 +20,9 @@ class Places::AnchoringsControllerTest < BaseAnchoringsControllerTest  # < Actio
   # ---------------------------------------------
 
   test "should create/update/destroy anchoring by editor" do
-    do_basic_tests(fail_users: [@user_no_role], success_users: [@moderator_all, @editor_ja])   #   # defined in /test/controllers/base_anchorings_controller_test.rb
+    title_core = Regexp.quote(@place.title_or_alt(lang_fallback_option: :either, article_to_head: true))  # Essential because the automatic title-guess prefers :en (if there is any), while Place <h1> ignores I18n.locale but displays it in the original language, and in this case (with @place), it is :ja
+    h1_title_regex = /\b#{title_core}\b/
+    do_basic_tests(h1_title_regex: h1_title_regex, fail_users: [@user_no_role], success_users: [@moderator_all, @editor_ja]) # using @anchorable # defined in /test/controllers/base_anchorings_controller_test.rb
   end
 end
 
