@@ -1,7 +1,7 @@
 
 <%# Local variables: form(Form) model(ApplicationRecord) is_simple_form(Boolean) %>
 
-<% @countries   ||= Country.sort_by_best_titles(countries_order_jp_top) %> <%# defined in ApplicationHelper %>
+<% @countries   ||= Country.sorted_for_display %>
 <% @prefectures ||= Prefecture.all %>
 
 <% if is_simple_form %>

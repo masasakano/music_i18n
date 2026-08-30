@@ -2112,7 +2112,7 @@ class BaseWithTranslation < ApplicationRecord
         raise "unsupported."
       end
 
-    sql_order_title = "CASE WHEN #{tblname}.title <> '' THEN #{tblname}.title COLLATE \"ja-x-icu\" ELSE #{tblname}.alt_title COLLATE \"ja-x-icu\" END;"
+    sql_order_title = "CASE WHEN #{tblname}.title <> '' THEN #{tblname}.title COLLATE \"ja-x-icu\" ELSE #{tblname}.alt_title COLLATE \"ja-x-icu\" END"
     sql_order_title = sql_order_title.gsub(/alt_title/, "\uFFFD").gsub(/title/, "alt_title").gsub(/\uFFFD/, "title") if prefer_alt
     rela2.order(Arel.sql(sql_order_title))
   end

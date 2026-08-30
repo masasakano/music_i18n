@@ -158,6 +158,24 @@ class CountryTest < ActiveSupport::TestCase
     refute pref.less_significant_than?(cnt)
   end
 
+  test "self.sorted_for_display" do
+    unk = Country.unknown
+    jpn = Country["JPN"]
+    rela = Country.sorted_for_display(langcode: "ja")
+    assert_equal unk, rela.first
+    assert_equal jpn, rela.second
+    rela = Country.sorted_for_display(langcode: :fr)
+    assert_equal unk, rela.first
+    assert_equal jpn, rela.second
+
+    rela_in = Country.where("countries.iso3166_n3_code < ?", 357) # up to India, excluding Japan
+    cnt_siz = rela_in.count
+    rela = Country.sorted_for_display(rela_in)
+    assert_equal cnt_siz, rela.count
+    assert_equal unk, rela.first
+    assert_nil rela.find_by(id: jpn.id)
+  end
+
   test "hook after new entry 2" do
     c3 = Country[/Australia/, 'en', true]
     t3 = c3.translations_with_lang('en')[0]

@@ -1138,24 +1138,6 @@ module ApplicationHelper
     link_to(lname, url.url, title: "Wikipedia", target: "_blank")
   end
 
-  # Country list where Japan comes at the top.
-  #
-  # You may combine this with:
-  #   Country.sort_by_best_titles(countries_order_jp_top)
-  #
-  # @param rela [Relation, Country]
-  # @return [Relation]
-  def countries_order_jp_top(rela=Country)
-    rela.order(Arel.sql(sql_order_jp_top))
-  end
-
-  # string for ORDER BY sql statements
-  #
-  # @return [String]
-  def sql_order_jp_top
-    "CASE countries.id WHEN #{Country.unknown.id rescue 9} THEN 0 WHEN #{Country['JP'].id rescue 9} THEN 1 ELSE 9 END"
-  end
-
   # returns HTML for consistent or inconsistent Place
   #
   # The default return when inconsistent is:

@@ -228,8 +228,26 @@ class Country < BaseWithTranslation
     iso3166_a3_code == Rails.application.config.primary_country
   end
 
+  # Returns a sorted Country Relation depending on langcode (locale)
+  #
+  # Unknown should come first, and Japan, second.
+  #
+  # @param langcode: [Symbol, String] used for sorting
+  # @return [ActiveRecord::Relation<Country>] 
+  def self.sorted_for_display(rela=self, langcode: I18n.locale)
+    pid_unknown = (unknown.id rescue 0)
+    pid_japan = (find_by("countries.iso3166_n3_code" => 392).id rescue -1)  # or (iso3166_a2_code: "JP")
+    sql_order_jp_top = "CASE countries.id WHEN #{pid_unknown} THEN 0 WHEN #{pid_japan} THEN 1 ELSE 9 END"
 
-  # Modify the parameters inherited from {CountryMaster}
+    case langcode.to_s
+    when "ja"
+      sort_by_best_titles(rela.order(Arel.sql(sql_order_jp_top)), prefer_alt: true)
+    else
+      sql2order = sql_order_jp_top+", name_en_short"
+      rela.left_joins(:country_master).order(Arel.sql(sql2order))
+    end
+  end
+
   # Modify the parameters inherited from {CountryMaster}
   #
   # @example France

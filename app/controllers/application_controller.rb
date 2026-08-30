@@ -907,14 +907,7 @@ class ApplicationController < ActionController::Base
     end
 
     def set_countries
-      @countries = 
-        case I18n.locale.to_s
-        when "ja"
-          Country.sort_by_best_titles(countries_order_jp_top, prefer_alt: true)  # defined in ApplicationHelper
-        else
-          sql2order = sql_order_jp_top+", name_en_short"
-          Country.left_joins(:country_master).order(Arel.sql(sql2order))
-        end
+      @countries = Country.sorted_for_display
       @prefectures = Prefecture.all
     end
 
