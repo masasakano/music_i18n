@@ -24,7 +24,9 @@ class HaramiVidsIntegrationTest < ActionDispatch::IntegrationTest
     get new_harami_vid_path
     assert_response :success
     assert_equal 1, css_select('div#div_select_prefecture').size
-    assert_equal 'field', css_select('div#div_select_prefecture').first.attributes['class'].value # class="field"
+    node = css_select('div#div_select_prefecture').first
+    assert_equal node.css("label").first['for'], node.css("select").first['name'], "label-for should agree with select-name, but..."  # or first.attributes['for'] etc.
+    ## assert_equal 'field', css_select('div#div_select_prefecture').first.attributes['class'].value # class="field"  # "field" has been removed.
     # assert_select "h1", "Welcome#index"
   end
 end

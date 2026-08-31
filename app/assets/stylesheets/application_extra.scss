@@ -502,8 +502,26 @@ div.add_missing_musics {
 .form-control:focus  {
   background: var(--form-bg-color-focus);
 }
+
+/* Similar but slightly lighter colours to other fields for SELECT */
+select.form-control-select  {
+  background-color: darkblue;
+  background-color: hsl(from var(--form-bg-color) h s calc(l + 10));
+  border-width: var(--form-border-width);
+    min-width: 10em;
+    max-width: 40em;
+}
+select.form-control-select:focus  {
+  /* background: dodgerblue; */
+  background-color: hsl(from var(--form-bg-color-focus) h s calc(l + 10));
+}
+
 form div.form_new_model_info{
   padding-left: 3em;
+}
+
+form .cascade_select {
+  padding-top: .5em;
 }
 
 input.form-control  {

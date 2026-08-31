@@ -75,13 +75,16 @@ class EventsTest < ApplicationSystemTestCase
 
     # Test of dropdown-menu
     assert_selector 'div#div_select_country', text: "Country"
-    assert_selector 'div#div_select_place div.form-group', visible: :hidden
+    assert_selector CSSHS[:prefecture_option], text: "UnknownPrefecture"
+    assert_selector CSSHS[:place_option],      text: "UnknownPlace"
+    assert Prefecture.find_by_a_title(:title, "Liverpool"), "fixture test to confirm Liverpool Prefecture"
+    refute_selector CSSHS[:prefecture_option], text: "Liverpool"
+    #assert_selector 'div#div_select_place div.form-group', visible: :hidden  # if with client-side Cascading-Dropdown
 
     assert     find_field('Country')
     assert_selector    'form div#div_select_country'
     #assert_selector    'form div#div_select_prefecture', visible: :hidden
     #assert_no_selector 'form div#div_select_prefecture'  # display: none
-    assert_no_selector 'form div#div_select_place div.form-group'       # display: none
 
     #selector = %Q{form div#div_select_country select option:contains("Japan")}
     #page.execute_script %Q{ $('#{selector}').trigger('mouseenter').click() }

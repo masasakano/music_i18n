@@ -1,0 +1,23 @@
+<%# locals: (
+      records:,
+      field_id: nil,
+      selected: nil,
+      required: false,
+      label_method: nil,
+      blank_text: nil
+    ) %>
+
+<%= render "layouts/select_tag_wrapper",
+      records: records,
+      field_name: "prefecture_id",
+      field_id: field_id,
+      selected: selected,
+      label_method: label_method,
+      required: false,
+      blank_text: blank_text,
+      data: {
+        cascading_select_any_target_param: "places_select_frame",
+        cascading_select_any_url_param: prefecture_places_path(prefecture_id: ":id"),
+        action: "change->cascading-select-any#update"
+      }
+%>

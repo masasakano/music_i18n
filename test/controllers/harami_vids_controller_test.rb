@@ -24,8 +24,6 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
       "uri"=>"https://youtu.be/InitialUri",  # This can also be a GET parameter
       "duration"=>"56",
       # "release_date(1i)"=>"2024", "release_date(2i)"=>"2", "release_date(3i)"=>"28",   ## see below
-      "place.prefecture_id.country_id"=>@def_place.country.id.to_s,
-      "place.prefecture_id"=>@def_place.prefecture_id.to_s, "place"=>@def_place.id.to_s,
       "form_channel_owner"   =>ChannelOwner.primary.id.to_s,
       "form_channel_type"    =>ChannelType.default(:HaramiVid).id.to_s,
       "form_channel_platform"=>ChannelPlatform.default(:HaramiVid).id.to_s,
@@ -125,14 +123,14 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
 
   test "should create harami_vid" do
     assert_no_difference('HaramiVid.count') do
-      post harami_vids_url, params: { harami_vid: @def_create_params }
+      post harami_vids_url, params: _params2give(@def_create_params)
     end
     assert_redirected_to new_user_session_path
 
     [@trans_moderator, @moderator_ja].each do |user|
       sign_in user
       assert_no_difference('HaramiVid.count') do
-        post harami_vids_url, params: { harami_vid: @def_create_params }
+        post harami_vids_url, params: _params2give(@def_create_params)
       end
       assert_response :redirect, "should be banned for #{user.display_name}, but allowed..."
       assert_redirected_to root_path
@@ -146,7 +144,7 @@ class HaramiVidsControllerTest < ActionDispatch::IntegrationTest
 #if false # temporary skip
 if true
     assert_no_difference("HaramiVid.count") do
-      post harami_vids_url, params: { harami_vid: @def_create_params.merge({title: 'some', uri: 'https://youtu.be/naiyo', form_channel_owner: ChannelOwner.order(:id).last.id+1})}
+      post harami_vids_url, params: _params2give(@def_create_params, hs_extra: {title: 'some', uri: 'https://youtu.be/naiyo', form_channel_owner: ChannelOwner.order(:id).last.id+1})
       assert_response :unprocessable_content
     end
 #end
@@ -160,7 +158,7 @@ if true
       assert_no_difference("Music.count + HaramiVidMusicAssoc.count + Artist.count + Engage.count") do
         assert_no_difference("Channel.count") do  # existing Channel is found
           assert_difference("HaramiVid.count + HaramiVidEventItemAssoc.count", 2) do
-            post harami_vids_url, params: { harami_vid: @def_create_params.merge(hsnew)}
+            post harami_vids_url, params: _params2give(@def_create_params, hs_extra: hsnew)
             assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
           end
         end
@@ -178,12 +176,12 @@ if true
     hsnew = {form_channel_platform: channel_platforms(:channel_platform_facebook).id, note: "fail due to unique uri"}
     assert_no_difference("Channel.count") do
       assert_no_difference("HaramiVid.count") do
-        post harami_vids_url, params: { harami_vid: @def_create_params.merge(hsnew)}
+        post harami_vids_url, params: _params2give(@def_create_params, hs_extra: hsnew)
         assert_response :unprocessable_content
 
         uri2test = ApplicationHelper.normalized_uri_youtube(@def_create_params[:uri], long: true, with_scheme: true, with_host: true)
         assert_includes uri2test, "https://www.youtube.com/watch?v=", 'sanity check'
-        post harami_vids_url, params: { harami_vid: @def_create_params.merge(hsnew).merge({uri: uri2test})}
+        post harami_vids_url, params: _params2give(@def_create_params, hs_extra: hsnew.merge({uri: uri2test}))
         assert_response :unprocessable_content
       end
     end
@@ -198,14 +196,12 @@ if true
     assert_equal pla_unknown_kagawa, evt_kagawa.place, 'sanity check...'
     hsnew = {uri: uri="youtu.be/0030", form_channel_platform: platform_fb.id, note: "success",
              title: "【瓦町ピアノ】演奏", langcode: "ja",  # existing Place
-             "form_new_event_id" => evt_kagawa.id,
-             "place.prefecture_id.country_id"=>pref.country.id.to_s,
-             "place.prefecture_id"=>pref.id.to_s, "place"=>pla_kawaramachi.id.to_s,
+             "form_new_event_id" => evt_kagawa.id
             }
     assert_difference("Event.count*100 + EventItem.count*10 + ArtistMusicPlay.count", 110) do  # New unknown Event for the exact Place is created.
       assert_difference("Channel.count") do
         assert_difference("HaramiVid.count + HaramiVidEventItemAssoc.count", 2) do
-          post harami_vids_url, params: { harami_vid: @def_create_params.merge(hsnew)}
+          post harami_vids_url, params: _params2give(@def_create_params, hs_extra: hsnew, place_id: pla_kawaramachi.id)
           assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
         end
       end
@@ -265,7 +261,7 @@ if true
         assert_difference("Music.count + HaramiVidMusicAssoc.count", 2) do
           assert_no_difference("Channel.count") do  # existing Channel is found
             assert_difference("HaramiVid.count + HaramiVidEventItemAssoc.count", 2) do
-              post harami_vids_url, params: { harami_vid: @def_create_params.merge(hsnew)}
+              post harami_vids_url, params: _params2give(@def_create_params, hs_extra: hsnew)
               assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
             end
           end
@@ -301,7 +297,7 @@ if true
         assert_difference("Music.count + HaramiVidMusicAssoc.count", 1) do  # only association is added.
           assert_no_difference("Channel.count") do  # existing Channel is found
             assert_difference("HaramiVid.count + HaramiVidEventItemAssoc.count", 2) do
-              post harami_vids_url, params: { harami_vid: @def_create_params.merge(hsnew)}
+              post harami_vids_url, params: _params2give(@def_create_params, hs_extra: hsnew)
               assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
             end
           end
@@ -329,7 +325,7 @@ if true
         assert_difference("Music.count + HaramiVidMusicAssoc.count", 1) do  # only association with HaramiVid is added.
           assert_no_difference("Channel.count") do  # existing Channel is found
             assert_difference("HaramiVid.count + HaramiVidEventItemAssoc.count", 2) do
-              post harami_vids_url, params: { harami_vid: @def_create_params.merge(hsnew)}
+              post harami_vids_url, params: _params2give(@def_create_params, hs_extra: hsnew)
               assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
             end
           end
@@ -383,7 +379,7 @@ end
           assert_difference("Music.count + HaramiVidMusicAssoc.count", 1) do  # only association is added.
             assert_no_difference("Channel.count") do  # existing Channel is found
               assert_difference("HaramiVid.count + HaramiVidEventItemAssoc.count", 2) do
-                post harami_vids_url, params: { harami_vid: hvid6_prms }
+                post harami_vids_url, params: _params2give(hvid6_prms)
                 assert_response :redirect, "note - this has once(!) raised an error of DEBUG(harami_vids_controller.rb:associate_an_event_item) #<ActiveRecord::RecordNotFound: Couldn't find PlayRole with 'id'=996795243> and I do not know why..."  # this should be put inside assert_difference block to detect potential 422
               end
             end
@@ -416,15 +412,14 @@ end
     pla = places(:perth_aus)
     hsnew = {uri: (newuri="youtu.be/0080"), title: (newtit="new80"), music_name: mu_name, artist_name: old_art.title,
              form_new_event_id: evt0.id.to_s, artist_name_collab: name_a, music_collab: old_mu.id.to_s,  # same as above. Forms for specifying collaboration is not provided on create...
-             "place.prefecture_id.country_id"=>pla.country.id.to_s, "place.prefecture_id" => pla.prefecture.id.to_s,
-             place: pla.id.to_s, note: ("Same artist collaborates with a specified +unknown+ event.")}
+             note: ("Same artist collaborates with a specified +unknown+ event.")}
     assert_difference("Event.count*10 + EventItem.count", 11) do
       assert_difference("ArtistMusicPlay.count", 2) do  # no change in EventItem (non-default (=not-unknown) existing one is used).
         assert_no_difference("Music.count + Artist.count + Engage.count") do
           assert_difference("HaramiVidMusicAssoc.count + HaramiVidEventItemAssoc.count", 2) do  # only association is added.
             assert_no_difference("Channel.count") do  # existing Channel is found
               assert_difference("HaramiVid.count + HaramiVidEventItemAssoc.count", 2) do
-                post harami_vids_url, params: { harami_vid: @def_create_params.merge(hsnew)}
+                post harami_vids_url, params: _params2give(@def_create_params, hs_extra: hsnew, place_id: pla.id)
                 assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
               end
             end
@@ -469,7 +464,7 @@ end
           assert_difference("HaramiVidMusicAssoc.count + HaramiVidEventItemAssoc.count", 0) do  # existing EventItem is used.
             assert_no_difference("Channel.count") do  # existing Channel is found
               assert_no_difference("HaramiVid.count") do
-                patch harami_vid_url(hvid6), params: { harami_vid: hvid6_prms.merge(hsnew) }
+                patch harami_vid_url(hvid6), params: _params2give(hvid6_prms, hs_extra: hsnew, place_id: hvid6)
                 assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
               end
             end
@@ -514,7 +509,7 @@ end
           assert_difference("HaramiVidMusicAssoc.count + HaramiVidEventItemAssoc.count", 1) do  # existing EventItem is used.
             assert_no_difference("Channel.count") do  # existing Channel is found
               assert_no_difference("HaramiVid.count") do
-                patch harami_vid_url(hvid6), params: { harami_vid: hvid6_prms.merge(hsnew) }
+                patch harami_vid_url(hvid6), params: _params2give(hvid6_prms, hs_extra: hsnew, place_id: hvid6)
                 assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
               end
             end
@@ -542,8 +537,6 @@ end
       "form_channel_owner"   =>ChannelOwner.primary.id.to_s,
       "form_channel_type"    =>ChannelType.default(:HaramiVid).id.to_s,
       "form_channel_platform"=>ChannelPlatform.default(:HaramiVid).id.to_s,
-      "place.prefecture_id.country_id"=>hvid6.country.id.to_s,
-      "place.prefecture_id"=>hvid6.prefecture.id.to_s, "place"=>hvid6.place.id.to_s,
       "event_item_ids" => hvid6.event_items.ids.map(&:to_s),
       "reference_harami_vid_id" => hvid6.id.to_s,
       "note"=>(newnote_recr="hvid 7 created from ref"),
@@ -566,7 +559,7 @@ end
           assert_difference("HaramiVidMusicAssoc.count*10 + HaramiVidEventItemAssoc.count", 21) do  # existing EventItem is used.
             assert_no_difference("Channel.count") do  # existing Channel is found
               assert_difference("HaramiVid.count", 1) do
-                post harami_vids_url, params: { harami_vid: hsnew }  # Keys for many parameters do not exist here.
+                post harami_vids_url, params: _params2give(hsnew, place_id: hvid6)  # :create, where Place is the same as hvid6
                 assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
               end
             end
@@ -601,8 +594,6 @@ end
              "form_channel_owner"   =>hvid7.channel_owner.id.to_s,
              "form_channel_type"    =>hvid7.channel_type.id.to_s,
              "form_channel_platform"=>hvid7.channel_platform.id.to_s,
-             "place.prefecture_id.country_id"=>hvid7.country.id.to_s,
-             "place.prefecture_id"=>hvid7.prefecture.id.to_s, "place"=>hvid7.place.id.to_s,
              "event_item_ids" => hvid7.event_items.ids.map(&:to_s),
              "reference_harami_vid_kwd" => "",
              "note"=>(hvid7.note+"02"),
@@ -629,7 +620,7 @@ end
     assert_equal(*([hvid7.musics, hvid7.event_items.first.musics].map{|emo| emo.order(:id).uniq.map{|i| i.note}}+["sanity check..."]))
 
     ## should fail because hvid6, which shares the specified EventItem, does not have the new Music!  ####
-    patch harami_vid_url(hvid7), params: { harami_vid: hvid7_prms_fail }
+    patch harami_vid_url(hvid7), params: _params2give(hvid7_prms_fail, place_id: hvid7)
     assert_response :unprocessable_content
 
     ## should succeed now
@@ -643,7 +634,7 @@ end
           assert_difference("HaramiVidMusicAssoc.count*10 + HaramiVidEventItemAssoc.count", 11) do  # new ones are created
             assert_no_difference("Channel.count") do  # existing Channel is found
               assert_no_difference("HaramiVid.count") do
-                patch harami_vid_url(hvid7), params: { harami_vid: hvid7_prms }
+                patch harami_vid_url(hvid7), params: _params2give(hvid7_prms, place_id: hvid7)
                 assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
                 assert_empty(s=(css_select("#error_explanation_list").to_s), s)
               end
@@ -695,7 +686,7 @@ end
       })
 
     assert_no_difference("Event.count + EventItem.count") do
-      patch harami_vid_url(hvid7), params: { harami_vid: hvid7_prms_collab_fail }
+      patch harami_vid_url(hvid7), params: _params2give(hvid7_prms_collab_fail, place_id: hvid7)
       assert_response :unprocessable_content, 'should raise an error because hvid6 that shares the specified EvnetItem for new-collab is not associated with the music, but...'
     end
 
@@ -717,7 +708,7 @@ end
           assert_no_difference("HaramiVidMusicAssoc.count*10 + HaramiVidEventItemAssoc.count") do
             assert_no_difference("Channel.count") do  # existing Channel is found
               assert_no_difference("HaramiVid.count") do
-                patch harami_vid_url(hvid7), params: { harami_vid: hvid7_prms_add_collab_art }
+                patch harami_vid_url(hvid7), params: _params2give(hvid7_prms_add_collab_art, place_id: hvid7)
                 assert_empty(s=(css_select("#error_explanation_list").to_s), s)
                 assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
               end
@@ -791,7 +782,7 @@ end
           assert_difference("HaramiVidMusicAssoc.count*10 + HaramiVidEventItemAssoc.count", 10) do  # no change in EventItemAssoc as an existing one is used.
             assert_no_difference("Channel.count") do  # existing Channel is found
               assert_no_difference("HaramiVid.count") do
-                patch harami_vid_url(hvid6), params: { harami_vid: hvid6_update_prms }
+                patch harami_vid_url(hvid6), params: _params2give(hvid6_update_prms, place_id: hvid6)
                 assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
                 assert_empty(s=(css_select("#error_explanation_list").to_s), s)
               end
@@ -866,9 +857,6 @@ end
         # form_new_artist_collab_event_item: HaramiVidsController::DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW.to_s,  # As in hvid6_prms.
         form_new_event_id: evt_kagawa_unkpla.id.to_i.to_s,
         note: (newn = hvid6.note+"08"),
-        "place.prefecture_id.country_id"=>hvid6.country.id.to_s,
-        "place.prefecture_id"=>hvid6.prefecture.id.to_s,
-        "place"=>hvid6.place.id.to_s,
         "form_channel_owner"   =>hvid6.channel_owner.id.to_s,
         "form_channel_type"    =>hvid6.channel_type.id.to_s,
         "form_channel_platform"=>hvid6.channel_platform.id.to_s,
@@ -901,7 +889,7 @@ end
           assert_difference("HaramiVidMusicAssoc.count*10 + HaramiVidEventItemAssoc.count", 1) do  # change in EventItemAssoc
             assert_no_difference("Channel.count") do  # existing Channel is found
               assert_no_difference("HaramiVid.count") do
-                patch harami_vid_url(hvid6), params: { harami_vid: hvid6_update_prms }
+                patch harami_vid_url(hvid6), params: _params2give(hvid6_update_prms, place_id: hvid6)
                 assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
                 assert_empty(s=(css_select("#error_explanation_list").to_s), s)
               end
@@ -941,7 +929,7 @@ end
           assert_difference("HaramiVidMusicAssoc.count*10 + HaramiVidEventItemAssoc.count", 1) do  # change in EventItemAssoc
             assert_no_difference("Channel.count") do  # existing Channel is found
               assert_no_difference("HaramiVid.count") do
-                patch harami_vid_url(hvid6), params: { harami_vid: hvid6_update_prms.merge({event_item_ids: hvid6.event_items.ids.map(&:to_s)}) }
+                patch harami_vid_url(hvid6), params: _params2give(hvid6_update_prms, hs_extra: {event_item_ids: hvid6.event_items.ids.map(&:to_s)}, place_id: hvid6)
                 assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
                 assert_empty(s=(css_select("#error_explanation_list").to_s), s)
               end
@@ -982,7 +970,7 @@ end
           assert_difference("HaramiVidMusicAssoc.count*10 + HaramiVidEventItemAssoc.count", 1) do  # change in EventItemAssoc
             assert_no_difference("Channel.count") do  # existing Channel is found
               assert_no_difference("HaramiVid.count") do
-                patch harami_vid_url(hvid6), params: { harami_vid: hvid6_update_prms.merge({event_item_ids: hvid6.event_items.ids.map(&:to_s)}) }
+                patch harami_vid_url(hvid6), params: _params2give(hvid6_update_prms, hs_extra: {event_item_ids: hvid6.event_items.ids.map(&:to_s)}, place_id: hvid6)
                 assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
                 assert_empty(s=(css_select("#error_explanation_list").to_s), s)
               end
@@ -1028,7 +1016,7 @@ end
           assert_no_difference("HaramiVidMusicAssoc.count*10 + HaramiVidEventItemAssoc.count") do  # change in EventItemAssoc
             assert_no_difference("Channel.count") do  # existing Channel is found
               assert_no_difference("HaramiVid.count") do
-                patch harami_vid_url(hvid6), params: { harami_vid: new_prm6 }
+                patch harami_vid_url(hvid6), params: _params2give(new_prm6, place_id: hvid6)
                 assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
                 assert_empty(s=(css_select("#error_explanation_list").to_s), s)
               end
@@ -1071,9 +1059,6 @@ end
       uri: "https://example.com/aruyo",
       duration: "",
       "release_date(1i)"=>"2024", "release_date(2i)"=>"2", "release_date(3i)"=>"28",
-      "place.prefecture_id.country_id"=>@def_place.country.id.to_s,
-      "place.prefecture_id"=>@def_place.prefecture_id.to_s,
-      "place"=>@def_place.id.to_s,
       "form_channel_owner"   =>ChannelOwner.primary.id.to_s,
       "form_channel_type"    =>ChannelType.default(:HaramiVid).id.to_s,
       "form_channel_platform"=>ChannelPlatform.default(:HaramiVid).id.to_s,
@@ -1105,7 +1090,7 @@ end
           assert_difference("Event.count*11 + EventItem.count", 12) do  # 1 Event + 1 EventItem  (Event created because Place is new for the unknown Event!  If Event was not unknown, the existing one should be used in default. EventItem is an unknown one and default one)
             assert_no_difference("Channel.count") do  # existing Channel is found
               assert_no_difference("HaramiVid.count") do
-                patch harami_vid_url(hvid), params: { harami_vid: hsin }
+                patch harami_vid_url(hvid), params: _params2give(hsin, place_id: @def_place)
                 assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
               end
             end
@@ -1150,9 +1135,6 @@ end
     # Adding another EventItem to the HaramiVid should update the corresponding Harami1129#event_item
     hsin = {
       event_item_ids: [evit_new.id.to_s],  # Suppose this was given in edit via GET.
-      "place.prefecture_id.country_id"=>pla.country.id.to_s,
-      "place.prefecture_id"=>pla.prefecture_id.to_s,
-      "place"=>pla.id.to_s,
       "form_channel_owner"   =>chan.channel_owner_id.to_s,
       "form_channel_type"    =>chan.channel_type_id.to_s,
       "form_channel_platform"=>chan.channel_platform_id.to_s,
@@ -1189,7 +1171,7 @@ end
           assert_difference("Event.count*11 + EventItem.count", 0) do  # 1 Event + 1 EventItem  (Event created because Place is new for the unknown Event!  If Event was not unknown, the existing one should be used in default. EventItem is an unknown one and default one)
             assert_no_difference("Channel.count") do  # existing Channel is found
               assert_no_difference("HaramiVid.count*10 + Harami1129.count") do
-                patch harami_vid_url(hvid), params: { harami_vid: hsin }
+                patch harami_vid_url(hvid), params: _params2give(hsin, place_id: hvid)
                 assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
               end
             end
@@ -1396,9 +1378,11 @@ end
     assert_equal 1, css_select(css).size, "It should be on the NEW page with a preset URI and with a reference to @harami_vid now, so the main URI on the form should be as such, but...  html="+css_select(css_uri).to_s
     css = 'section#sec_primary_input div.harami_vid_duration input[type="text"]'
     assert_operator 11, :<, css_select(css)[0]["value"].to_f, "HTML="+css_select(css).to_s
-    css = 'section#sec_primary_input select#harami_vid_place\.prefecture_id\.country_id option[selected="selected"]'
+    # css = 'section#sec_primary_input select#harami_vid_place\.prefecture_id\.country_id option[selected="selected"]'
+    css = CSSHS[:country_option]+'[selected="selected"]'
     assert_equal pla_hvid.country.id.to_s, (res=css_select(css)[0])["value"], "Selected=#{res.to_s}"  # By contrast, in "edit", Place is not propagated as tested in /test/system/harami_vids_test.rb
-    css = 'section#sec_primary_input select#harami_vid_place optgroup option[selected="selected"]'
+    # css = 'section#sec_primary_input select#harami_vid_place optgroup option[selected="selected"]'
+    css = CSSHS[:place_option]+'[selected="selected"]'
     assert_equal pla_hvid.id.to_s, (res=css_select(css)[0])["value"], "Selected=#{res.to_s}"
 
     # invalid ID is given as a GET parameter.
@@ -1410,7 +1394,6 @@ end
     
     [@moderator_harami, @sysadmin].each do |user|
       sign_in user
-      #get edit_harami_vid_url(@harami_vid, params: {reference_harami_vid_kwd: hvid2.id})
       get edit_harami_vid_url(@harami_vid, params: {reference_harami_vid_kwd: hvid2.id.to_s})  # pID for "kwd"
       assert_response :redirect
       assert_redirected_to edit_harami_vid_path(hvid2, params: {reference_harami_vid_id: @harami_vid.id})
@@ -1537,10 +1520,9 @@ end
     sign_out @editor_harami 
   end
 
-  test "should fail to update harami_vid" do
-    patch harami_vid_url(@harami_vid), params: { harami_vid: { note: 'abc' } }
-  #  assert_redirected_to harami_vid_url(@harami_vid)
-    assert_redirected_to new_user_session_path
+  test "should fail to update harami_vid by non-authenticated" do
+    patch harami_vid_url(@harami_vid), params: _params2give(@def_update_params, hs_extra: { note: 'abc' }, place_id: @harami_vid)
+    assert_redirected_to new_user_session_path  # IF authorized, this should be @harami_vid
   end
 
   test "should destroy harami_vid if privileged" do
@@ -1576,6 +1558,22 @@ end
       end
     end
   end
+
+  private
+
+    # Returns Hash to pass the params option
+    #
+    # @example
+    #    patch harami_vid_url(@harami_vid), params: _params2give(hs_extra: {"duration" => 98})
+    #
+    # @param hsmain [Hash] Main Hash (Def: @def_update_params), the value for the key :harami_vid
+    # @param hs_extra: [Hash] to merge to hsmain
+    # @param place_id: [Integer, String, ActiveRecord<Place, HaramiVid>]
+    # @return [Hash] with_indifferent_access
+    def _params2give(hsmain=@def_update_params, hs_extra: {}, place_id: @def_place.id)
+      place_id = place_id.place_id if place_id.respond_to?(:place_id)
+      params_to_give_with_place(:harami_vid, hsmain.with_indifferent_access.merge(hs_extra), place_id: place_id)  # defined in test_helper.rb
+    end
 
 end
 

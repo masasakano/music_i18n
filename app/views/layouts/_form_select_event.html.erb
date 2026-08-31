@@ -13,7 +13,7 @@
 <% evt_id = (selected.presence || record.send(form_method).presence) %>
 <% current_event = (evt_id ? Event.find(evt_id) : nil) %>
 <% if current_event %>
-  <% selected_group_id = (current_event.event_group_id || EventGroup.default(:HaramiVid)) %>
+  <% selected_group_id = (current_event.event_group_id || EventGroup.default(:HaramiVid).id) %>
   <% selected_year_begin = current_event.start_time&.year %>
 <% end %>
   <%# NOTE: If no Event is currently associated (i.e. when :new), User MUST select one - no Default EventGroup %>

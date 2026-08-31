@@ -188,7 +188,7 @@ class HaramiVidsController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def harami_vid_params
-      params.require(:harami_vid).permit(:release_date, :duration, :uri, :"place.prefecture_id.country_id", :"place.prefecture_id", :place, :place_id, :artist, :engage_how2, :music, :music_timing, :channel, :note, :memo_editor)
+      params.require(:harami_vid).permit(:release_date, :duration, :uri, :place_id, :artist, :engage_how2, :music, :music_timing, :channel, :note, :memo_editor)  #  :"place.prefecture_id.country_id", :"place.prefecture_id", :place,
     end
 
     # Only those that are direct parameters of HaramiVid
@@ -1244,5 +1244,5 @@ end
 end
 
 ###########################
-# params: {"_method"=>"patch", "authenticity_token"=>"[FILTERED]", "harami_vid"=>{"uri"=>"youtu.be/2EZ5-nyu1Dg", "release_date(1i)"=>"2024", "release_date(2i)"=>"5", "release_date(3i)"=>"10", "duration"=>"842.0", "place.prefecture_id.country_id"=>"5798", "place.prefecture_id"=>"6654", "place"=>"6749", "form_channel_owner"=>"3", "form_channel_type"=>"12", "form_channel_platform"=>"2", "event_item_ids"=>["", "20"], "form_new_event_id"=>"", "note"=>"", "memo_editor"=>"", "music_name"=>"", "music_year"=>"", "music_genre"=>"122", "music_timing"=>"", "artist_name"=>"", "artist_sex"=>"0", "form_engage_hows"=>"72", "form_engage_year"=>"", "form_engage_contribution"=>"", "artist_name_collab"=>"", "form_instrument"=>"2", "form_play_role"=>"2"}, "commit"=>"Update Harami vid", "controller"=>"harami_vids", "action"=>"update", "id"=>"1046", "locale"=>"en"}
+# params: {"_method"=>"patch", "authenticity_token"=>"[FILTERED]", "country_id"=>"123", "prefecture_id"=>"456", "place_id"=>"789", "harami_vid"=>{"uri"=>"youtu.be/2EZ5-nyu1Dg", "release_date(1i)"=>"2024", "release_date(2i)"=>"5", "release_date(3i)"=>"10", "duration"=>"842.0", "form_channel_owner"=>"3", "form_channel_type"=>"12", "form_channel_platform"=>"2", "event_item_ids"=>["", "20"], "form_new_event_id"=>"", "note"=>"", "memo_editor"=>"", "music_name"=>"", "music_year"=>"", "music_genre"=>"122", "music_timing"=>"", "artist_name"=>"", "artist_sex"=>"0", "form_engage_hows"=>"72", "form_engage_year"=>"", "form_engage_contribution"=>"", "artist_name_collab"=>"", "form_instrument"=>"2", "form_play_role"=>"2"}, "commit"=>"Update Harami vid", "controller"=>"harami_vids", "action"=>"update", "id"=>"1046", "locale"=>"en"}
 

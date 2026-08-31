@@ -38,15 +38,15 @@ class EventGroupsTest < ApplicationSystemTestCase
     # Test of dropdown-menu
     assert_selector 'div#div_select_country', text: "Country"
     
-    assert_selector ActiveSupport::TestCase::CSSQUERIES[:hidden][:place], visible: :hidden
-    assert_selector :xpath, "//form//div[@id='#{ApplicationController::HTML_KEYS[:ids][:div_sel_place]}']//div[contains(@class, 'form-group')]", visible: :hidden
-    assert_equal 0, page.find_all(:xpath, "//form//div[@id='#{ApplicationController::HTML_KEYS[:ids][:div_sel_place]}']//div[contains(@class, 'form-group')][contains(@style,'display: none;')]").size
+    # assert_selector ActiveSupport::TestCase::CSSQUERIES[:hidden][:place], visible: :hidden  # only for old-school client-side cascading-dropdown
+    # assert_selector :xpath, "//form//div[@id='#{ApplicationController::HTML_KEYS[:ids][:div_sel_place]}']//div[contains(@class, 'form-group')]", visible: :hidden
+    # assert_equal 0, page.find_all(:xpath, "//form//div[@id='#{ApplicationController::HTML_KEYS[:ids][:div_sel_place]}']//div[contains(@class, 'form-group')][contains(@style,'display: none;')]").size
 
     assert     find_field('Country')
     assert_selector    'form div#div_select_country'
     #assert_selector    'form div#div_select_prefecture', visible: :hidden
     #assert_no_selector 'form div#div_select_prefecture'  # display: none
-    assert_no_selector ActiveSupport::TestCase::CSSQUERIES[:hidden][:place] # display: none
+    assert_selector ActiveSupport::TestCase::CSSQUERIES[:hidden][:place] # used to be NEGATIVE (display: none) for old-school client-side cascading-dropdown
 
     #selector = %Q{form div#div_select_country select option:contains("Japan")}
     #page.execute_script %Q{ $('#{selector}').trigger('mouseenter').click() }

@@ -228,11 +228,17 @@ class HaramiVidsTest < ApplicationSystemTestCase
     # print "DEBUG:html=";puts page.find('div#div_select_country')['outerHTML']
     assert_selector 'div#div_select_country', text: "Country"
     assert_selector 'div#div_select_prefecture', text: "Prefecture"
-    assert_selector 'div#div_select_place div.form-group', visible: :hidden
+    assert_selector CSSHS[:prefecture_option], text: "UnknownPrefecture"
+    assert_selector CSSHS[:place_option],      text: "UnknownPlace"
+    assert Prefecture.find_by_a_title(:title, "Liverpool"), "fixture test to confirm Liverpool Prefecture"
+    refute_selector CSSHS[:prefecture_option], text: "Liverpool"
+    #assert_selector 'div#div_select_place div.form-group', visible: :hidden  # if with client-side Cascading-Dropdown
+
     page.find('div#div_select_country').select 'Japan'
+    assert_selector CSSHS[:prefecture_option], text: 'Kagawa'
     page.find('div#div_select_prefecture').select 'Kagawa'
-    assert_selector 'div#div_select_place div.form-group'
-    page.find('div#div_select_place div.form-group').select "Takamatsu Station"
+    assert_selector CSSHS[:place_option],     text: "Takamatsu Station"
+    page.find('div#div_select_place select').select "Takamatsu Station"
 
     assert_equal "HARAMIchan", find_field('Channel Owner').find('option[selected]').text
     find_field('Channel Type').select('Other')
@@ -615,7 +621,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     # trs[0].find(submit_css).click
     find_all(:xpath, XPATH_TD_TIMING_EDIT)[0].click
 
-    # Edit mode
+    # Edit mode (timing)
     assert_selector trs_css+' input#form_timing'
     trs = find_all(trs_css)
     assert_equal sec2hms_or_ms(hvma2.timing), trs[0].find('input#form_timing')["value"]
@@ -660,7 +666,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     # This is similar to (though the sentence above is more permissive, matching a partial String, while the following is more stringent):
     #   assert_equal newnote, find_all(trs_css_note)[0].find(note_content_css).text
 
-    ###
+    ### Inputting a reference URI that already exists in DB => Edit mode (NOT new).
 
     pla_hvid = places(:perth_aus)
     hvid.update!(place: pla_hvid)  # Place: Perth, Australia
@@ -679,12 +685,23 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_selector "div.alert"
     assert_match(/Edit with the reference HaramiVid of pID=#{hvid.id}/, page.find_all("div.alert")[0]['innerHTML'])
     assert_match(/Editing Harami Vid \(ID=#{hvid2.id}\)/, page.find_all("h1")[0]['innerHTML'])
-    css = 'section#sec_primary_input select#harami_vid_place\.prefecture_id\.country_id option[selected="selected"]'
+    # css = 'section#sec_primary_input select#harami_vid_place\.prefecture_id\.country_id option[selected="selected"]'  # old one with client-side cascading dropdown
+    css = CSSHS[:country_option]+'[selected="selected"]'
     assert_selector css
+    #print "DEBUG444(Countries): "; puts page.find_all(CSSHS[:country_option]).map{_1[:outerHTML]}
     refute_equal pla_hvid.country.id.to_s, (res=page.find(css))["value"], "Selected=#{res['outerHTML']}"  # For edit, if a significant Place is already defined, it should not be updated (by contrast, in "new", a significant Place is propagated, as tested in harami_vids_controller_test.rb).
     assert_equal hvid2.place.country.id.to_s, (res=page.find(css))["value"], "Selected=#{res['outerHTML']}"  # For edit, if a significant Place is already defined, it should not be updated.
-    css = 'section#sec_primary_input select#harami_vid_place optgroup option[selected="selected"]'
+    # css = 'section#sec_primary_input select#harami_vid_place optgroup option[selected="selected"]'  # old one with client-side cascading dropdown
+    css = CSSHS[:place_option]+'[selected="selected"]'
     assert_equal hvid2.place.id.to_s, (res=page.find(css))["value"], "Selected=#{res['outerHTML']}"  # For edit, if a significant Place is already defined, it should not be updated.
+
+    click_button "Update Harami", match: :first
+
+    flash_regex_assert(/HaramiVid .* successfully updated/, type: [:notice, :success], system_test: true)  # defined in test_helper.rb
+    css = "#harami_vids_show_parameters .show_unique_parameters dd.item_place"
+    assert_selector css, text: hvid2.country.title_or_alt(langcode: :en, lang_fallback_option: :either)
+    assert_includes page.find(css).text, hvid2.place.title_or_alt(langcode: :en, lang_fallback_option: :either)
+    assert_includes page.find(css).text, "INCONSISTENT"  # b/c its Place is inconsistent with the now associated EventItem
   end
 
   test "visiting-HaramiVid#edit" do

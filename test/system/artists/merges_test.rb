@@ -72,7 +72,7 @@ class Artists::MergesTest < ApplicationSystemTestCase
     assert_selector    'form div#div_select_prefecture'
     #assert_no_selector 'form div#div_select_prefecture'  # display: none  # used to be the case!
     #assert_no_selector    'form div#div_select_place'
-    assert_selector ActiveSupport::TestCase::CSSQUERIES[:hidden][:place], visible: :hidden # display: none
+    assert_selector ActiveSupport::TestCase::CSSQUERIES[:hidden][:place] # used to be (visible: :hidden) because of "display: none" when client-side cascading-dropdown
 
     #selector = %Q{form div#div_select_country select option:contains("Japan")}
     #page.execute_script %Q{ $('#{selector}').trigger('mouseenter').click() }

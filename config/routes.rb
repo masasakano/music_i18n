@@ -119,8 +119,18 @@ Rails.application.routes.draw do
     resources :genres
     resources :translations
     resources :places
-    resources :prefectures
-    resources :countries
+
+    resources :prefectures do
+      scope module: :prefectures do
+        resources :places, only: [:index]
+      end
+    end
+    resources :countries do
+      scope module: :countries do
+        resources :prefectures, only: [:index]
+      end
+    end
+
     resources :roles
     resources :role_categories
     resources :sexes

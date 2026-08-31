@@ -780,23 +780,6 @@ module ApplicationHelper
     end
   end
 
-  # Get place from params
-  #
-  # @param hsprm [Hash, Params]
-  # @return [Place]
-  def get_place_from_params(hsprm)
-    return Place.find(hsprm['place_id'].to_i) if !hsprm['place_id'].blank?
-    return Place.find(hsprm['place'].to_i) if !hsprm['place'].blank? && hsprm['place'].respond_to?(:gsub) && /\A\d+\z/ =~ hsprm['place']
-
-    prm = hsprm['place.prefecture_id']
-    return Place.unknown(prefecture: Prefecture.find(prm.to_i)) if !prm.blank?
-
-    prm = hsprm['place.prefecture_id.country_id']
-    return Place.unknown(country: Country.find(prm.to_i)) if !prm.blank?
-
-    Place.unknown
-  end
-
   # Get an Artist from Title (or maybe ID)
   #
   # Permitted formats:

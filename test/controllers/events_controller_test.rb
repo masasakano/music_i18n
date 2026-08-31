@@ -20,8 +20,6 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
       "langcode"=>"ja",
       "title"=>"The Tｅst7",
       "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
-      "place.prefecture_id.country_id"=>Country['JPN'].id.to_s,
-      "place.prefecture_id"=>pla.prefecture.id.to_s, "place_id"=>pla.id.to_s, "place"=>pla.id.to_s,
       "event_group_id"=>@event.event_group.id.to_s,
       "start_year"=>"2024", "start_month"=>"", "start_day"=>"", "start_hour"=>"", "start_minute"=>"",
       "start_err"=>"3", "start_err_unit"=>"hours",
@@ -31,11 +29,10 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
       "note"=>"",
       "memo_editor"=>"",
     }
-    pla = @event.place
+    @place4create = Country.primary.unknown_place
+    @place4update = @event.place
     tim = @event.start_time
     @hs_update = {
-      "place.prefecture_id.country_id"=>pla.country.id.to_s,
-      "place.prefecture_id"=>pla.prefecture.id.to_s, "place_id"=>pla.id.to_s, "place"=>pla.id.to_s,  #  no change
       "event_group_id"=>@event.event_group_id,
       "start_time(1i)"=>"2017", "start_time(2i)"=>tim.month.to_s, "start_time(3i)"=>tim.day.to_s, "start_time(4i)"=>tim.hour.to_s, "start_time(5i)"=>tim.min.to_s,
       "form_start_err"=>"129", "form_start_err_unit"=>"hour",  # updated to 129
@@ -81,7 +78,7 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     # a GET link from EventGroup
-    get new_event_url, params: {event_group_id: EventGroup.last.id.to_s}
+    get new_event_url, params: {event_group_id: EventGroup.last.id.to_s}  # n.b., since this is for new, params is for GET (Do not use _params2give())
     assert_response :success
 
     evgr = EventGroup.create_basic!(title: "new-test group1", langcode: "en", is_orig: true, start_date: Date.new(2012,4,28), start_date_err: 0, place: places(:tocho), note: (newnote="new1"))
@@ -97,20 +94,20 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
 
   test "should create event" do
     assert_no_difference("Event.count") do
-      post events_url, params: { event: @hs_create }
+      post events_url, params: _params2give()
     end
 
     editor = roles(:general_ja_editor).users.first
     sign_in editor
     assert_not Ability.new(editor).can?(:create, Event)
     assert_no_difference("Event.count") do
-      post events_url, params: { event: @hs_create }
+      post events_url, params: _params2give()
     end
 
     sign_in @trans_moderator  # cannot create
     assert_not Ability.new(@trans_moderator).can?(:create, Event)
     assert_no_difference("Event.count") do
-      post events_url, params: { event: @hs_create }
+      post events_url, params: _params2give()
     end
     sign_out @trans_moderator
 
@@ -118,7 +115,7 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
     sign_in @moderator_all
     memo1 = "new-memo-editor"
     assert_difference("Event.count") do
-      post events_url, params: { event: @hs_create.merge({memo_editor: memo1}) }
+      post events_url, params: _params2give(hs_extra: {memo_editor: memo1})
       my_assert_no_alert_issued screen_test_only: true  # defined in /test/test_helper.rb
     end
     assert_redirected_to event_url(Event.last)
@@ -183,21 +180,19 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
 
   test "should update event" do
     #hs = { event: { 
-    #  "place.prefecture_id.country_id"=>@event.place.country.id.to_s,
-    #  "place.prefecture_id"=>@event.place.prefecture.id.to_s, "place_id"=>@event.place.id.to_s,  #  no change
     #  "event_group_id"=>@event.event_group_id,
     #  "start_year"=>"2017", #"start_month"=>"", "start_day"=>"", "start_hour"=>"", "start_minute"=>"",
     #  "start_err"=>"129", "start_err_unit"=>"hour",  # 129 is updated.
     #  #"duration_hour"=>"0.5", "weight"=>"",
     #  "note"=>""
-    #} }
+    #  }, "country_id"=>"123", "prefecture_id"=>"456", "place_id"=>"789"}
 
-    patch event_url(@event), params: {event: @hs_update} #hs
+    patch event_url(@event), params: _params2give(@hs_update, place_id: @place4update)
     assert_response :redirect
     assert_redirected_to new_user_session_path
 
     sign_in @moderator
-    patch event_url(@event), params: {event: @hs_update} #hs
+    patch event_url(@event), params: _params2give(@hs_update, place_id: @place4update)
     assert_redirected_to event_url(@event)
 
     newevt = Event.find @event.id
@@ -206,15 +201,6 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 129*3600, newevt.start_time_err
     assert_equal 129*3600, t.error.in_seconds
     assert_equal @event.place, newevt.place
-    
-    # ### test of "middle" time
-    # # When params{"start_err"=>""}, i.e., Event#start_time_err is set nil,
-    # # and if "month" is blank, the middle of the year (2nd July in a non-leap year)
-    # # should be set as the start_time.
-    # hs2 = hs.merge({ event: { "start_err"=>"", "start_year"=>"2011", "start_month"=>""}})
-    # @event.reload
-    # patch event_url(@event), params: hs2
-    # assert_redirected_to event_url(@event)
 
     # @event.reload
     # t = @event.start_app_time
@@ -248,4 +234,19 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_redirected_to events_url
   end
+
+  private
+
+    # Returns Hash to pass the params option
+    #
+    # @example
+    #    patch event_url(@event), params: _params2give(hs_extra: {"weight" => 0.98})
+    #
+    # @param hsmain [Hash] Main Hash (Def: @hs_create), the value for the key :event
+    # @param hs_extra: [Hash] to merge to hsmain
+    # @param place_id: [Integer, String, ActiveRecord<Place>]
+    # @return [Hash] with_indifferent_access
+    def _params2give(hsmain=@hs_create, hs_extra: {}, place_id: @place4create.id)
+      params_to_give_with_place(Event, hsmain.with_indifferent_access.merge(hs_extra), place_id: place_id)  # defined in test_helper.rb
+    end
 end

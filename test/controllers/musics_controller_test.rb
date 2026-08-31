@@ -97,8 +97,7 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
       "is_orig"=>"en",
       "title"=>"The Lｕnch Time",
       "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
-      "place.prefecture_id.country_id"=>Country['AUS'].id.to_s,
-      "place.prefecture_id"=>"", "place"=>"", "genre_id"=>Genre.unknown.id.to_s, "year"=>"1984",
+      "genre_id"=>Genre.unknown.id.to_s, "year"=>"1984",
       @f_artist_name=>"ＡI  ", "year_engage"=>"",
       "engage_hows"=>["", engage_how_composer.id.to_s, engage_how_player.id.to_s],
       "contribution"=>"",
@@ -106,7 +105,7 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
 
     # Creation success
     assert_difference('Music.count*10 + Engage.count', 12) do
-      post musics_url, params: { music: hstmpl }
+      post musics_url, params: params_to_give_with_place(:music, hstmpl, place_id: Country['AUS'].unknown_place) # defined in test_helper.rb
       assert_response :redirect
       music = Music.order(:created_at).last
       assert_redirected_to music_url music
@@ -125,7 +124,7 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
 
     # Failure due to non-existent Artist
     assert_difference('Music.count', 0) do
-      post musics_url, params: { music: hstmpl.merge({@f_artist_name=>'naiyo'}) }
+      post musics_url, params: params_to_give_with_place(:music, hstmpl.merge({@f_artist_name=>'naiyo'}), place_id: Country['AUS'].unknown_place) # defined in test_helper.rb
       assert_response :success
     end
     sign_out @editor
@@ -141,8 +140,7 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
 
     # Update success
     hs_tmpl = {  # Neither Artist nor Translation-related is accepted in #edit
-      "place.prefecture_id.country_id"=>Country['AUS'].id.to_s,
-      "place.prefecture_id"=>"", "place_id"=>"", "genre_id"=>"", "year"=>"1984",
+      "genre_id"=>"", "year"=>"1984",
       @f_artist_name=>artist2.title_or_alt, "year_engage"=>"", # Artist not accepted in #edit
       "engage_hows"=>["", engage_how1.id.to_s], # Artist not accepted in #edit
       "contribution"=>"",                       # Artist not accepted in #edit
@@ -150,8 +148,7 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     hs = {}.merge hs_tmpl
     assert @music.place.covered_by? Country['JPN']
     assert_difference('Music.count*10 + Engage.count', 0) do
-      #patch music_url(@music, params: { music: hs })
-      patch music_url(@music, {params: { music: hs }}.merge(ApplicationController.new.default_url_options))
+      patch music_url(@music, {params: params_to_give_with_place(:music, hs, place_id: Country['AUS'].unknown_place)}.merge(ApplicationController.new.default_url_options)) # defined in test_helper.rb
       assert_response :redirect
       assert_redirected_to music_url @music
     end
@@ -162,15 +159,12 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
 
     # Update success with a significant place
     place_perth = places( :perth_aus )
-    unknown_prefecture_aus = prefectures( :unknown_prefecture_aus )
     hs = hs_tmpl.merge({
-       'place.prefecture_id' => unknown_prefecture_aus.id,
-       'place_id' => place_perth.id,
        'genre_id' => genre_c.id.to_s,
        'year' => 1990,
     })
     assert_difference('Music.count*10 + Engage.count', 0) do
-      patch music_url @music, params: { music: hs }
+      patch music_url @music, params: params_to_give_with_place(:music, hs, place_id: place_perth) # defined in test_helper.rb
       assert_response :redirect
       assert_redirected_to music_url @music
     end

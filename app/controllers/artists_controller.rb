@@ -62,12 +62,20 @@ class ArtistsController < ApplicationController
   # POST /artists
   # POST /artists.json
   def create
-    # Parameters: {"authenticity_token"=>"[FILTERED]", "artist"=>{"langcode"=>"en", "title"=>"AI", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "place.prefecture_id.country_id"=>"3153", "place.prefecture_id"=>"", "place_id"=>"", "sex_id"=>"0", "birth_year"=>"", "birth_month"=>"", "birth_day"=>"", "note"=>""}, "commit"=>"Create Artist"}
+    # Parameters: {"authenticity_token"=>"[FILTERED]", "artist"=>{"langcode"=>"en", "title"=>"AI", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "place_id"=>"123", "sex_id"=>"0", "birth_year"=>"", "birth_month"=>"", "birth_day"=>"", "note"=>""}, "commit"=>"Create Artist"}  # used to have "place.prefecture_id.country_id"=>"3153", "place.prefecture_id"=>""
 
     @record = @artist = Artist.new(@hsmain)
     authorize! __method__, @artist
 
     add_unsaved_trans_to_model(@artist, @hstra) # defined in application_controller.rb
+    if Place.unknown == @artist.place &&
+       "ja" == (tra=@artist.unsaved_translations.first)&.langcode &&
+       tra.is_orig &&
+       "ja" == guess_lang_code(tra.title || "") &&
+       jpn=Country.find_by(iso3166_n3_code: 392)  # or (iso3166_a2_code: "JP")
+      @artist.place = jpn.unknown_place
+      add_flash_message(:warning, "WARNING: Country (Place) is altered to Japan on :create due to Artist title.")  # defined in application_controller.rb
+    end
     result = def_respond_to_format(@artist)      # defined in application_controller.rb
 
     if result
@@ -96,7 +104,7 @@ class ArtistsController < ApplicationController
   end
 
   private
-    # Sets @hsmain and @hstra from params
+    # Sets @hsmain and @hstra and @prms_all from params
     #
     # +action_name+ (+create+ ?) is checked inside!
     #

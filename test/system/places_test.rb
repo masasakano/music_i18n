@@ -83,7 +83,7 @@ class PlacesTest < ApplicationSystemTestCase
     login_at_root_path(@moderator)  # defined in test_system_helper.rb
 
     visit place_path(place, locale: :en)
-    assert_selector "h1", text: place.title(langcode: :en)
+    assert_selector "h1", text: place.title # H1 for Place is in the original language.
     h1_title = find("h1").text
 
     ## Test of CRUD of Anchoring in Show

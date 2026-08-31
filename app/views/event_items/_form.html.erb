@@ -22,7 +22,8 @@
   <%= f.input :duration_minute, label: t("events.Duration")+" ["+t(:minute)+"]" %>
   <%= f.input :duration_minute_err, label: t("events.DurationError")+" ["+t('time_second')+"]" %>
 
-  <%= render partial: "layouts/select_country_prefecture_place", locals: {form: f, model: event_item, is_simple_form: true} %>
+  <%= render partial: "layouts/form_select_place", locals: {form: f, record: event_item} %>
+
    <% s_hint = hint_for_data_to_be_imported(event_item) %> <%# defined in event_items_helper.rb %>
    <% s_hint = "(all consistent and nothing to be imported)" if s_hint.blank? %>
   <%= f.input :match_parent, label: "Check this to gracefully import Event's data", as: :boolean, unchecked_value: false, hint: ": "+s_hint %>  <%# "This also takes into account already associated HaramiVids' data if there is any." %>

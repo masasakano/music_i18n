@@ -529,8 +529,9 @@ class ApplicationController < ActionController::Base
   # Only allows a list of trusted parameters through and
   # sets Hash-es of
   #
-  # * @hsmain (for model-specific parameters) and
-  # * @prms_all (ActionController::Parameters / includin all parameters permitted under the model, e.g., params[:music]).  Those in multiple layers are not permitted.
+  # * @hsmain (for model-specific parameters)
+  #   * *NOTE*: all parameters in @hsmain are used like Music.new(**@hsmain)
+  # * @prms_all (ActionController::Parameters / including all parameters permitted under the model, e.g., params[:music]).  Those in multiple layers are not permitted. As exceptions, +place_id+, +prefecture_id+, +country_id" may be specifically included here as permitted +Parameters+, even though they (at least the latter two) are passed at the top level and NOT inside the model-name space like +music+.
   #
   # The caller Controler should define 2 or 3 (and 1 more optional) Array constants of Symbols:
   #
@@ -539,9 +540,14 @@ class ApplicationController < ActionController::Base
   # * +PARAMS_ARRAY_KEYS+: Key for a 1-level nested Array in params, eg., +{music: {..., engage_hows: [1,2,3]}}+.  This key **must** exist in either of the above Array constants.
   # * +MAIN_FORM_BOOL_KEYS+: (optional) List of keys for which the attributes should be converted into a boolean or nil (from "0", "1", "", or true, "true" etc; the latters may appear in testing). Ideally, Controllers should call {#convert_param_bool} to get a boolean value and Controller-test scripts should call get_params_from_bool (defiend in test_helper.rb) for the reverse action, but we may forget...
   #
+  # @note
+  #    This routine does not handle Date/Time parameters very well.
+  #    If params contain Date/Time, the caller additionally call
+  #    {#_set_dates_to_hsmain} or {#_set_time_to_hsmain}
+  #
   # @param model_name [String, Symbol] model name like "event_group"
   # @param additional_keys: [Array<Symbol>] Additional keys (usually Translation related used by {#set_hsparams_main_tra})
-  # @return [ActionController::Parameters, Hash] all permitted params
+  # @return [ActionController::Parameters, Hash] all permitted params.  WARNING(obsolete): you should use @prms_all instead!
   def set_hsparams_main(model_name, additional_keys: [], array_keys: [])
     if !self.class.const_defined?(:PARAMS_MAIN_KEYS)
       raise NameError, "uninitialized constant #{self.class.name}::PARAMS_MAIN_KEYS -- you must define it and MAIN_FORM_KEYS in the controller!"
@@ -553,17 +559,44 @@ class ApplicationController < ActionController::Base
       allkeys = allkeys.map{|ek| ary.include?(ek) ? {ek => []} : ek}
     end
 
-    hsall = params.require(model_name).permit(*allkeys, **hs_array_keys)
-    @hsmain = hsall.slice(*(self.class::MAIN_FORM_KEYS)).to_h  # nb, "place.prefecture_id" is ignored.
-    @hsmain[:place_id] = helpers.get_place_from_params(hsall).id if !allkeys.map{|ek| ek.respond_to?(:to_sym) ? ek.to_sym : nil}.map(&:to_s).grep(/\Aplace(_id)?\z/).empty? #.include?(:place_id)   # Modified (overwritten)  # defined in application_helper.rb
+    @prms_all = params.require(model_name).permit(*allkeys, **hs_array_keys)
+    @hsmain = @prms_all.slice(*(self.class::MAIN_FORM_KEYS)).to_h  # nb, "place.prefecture_id" is ignored.
+    if !allkeys.map{|ek| ek.respond_to?(:to_sym) ? ek.to_sym : nil}.map(&:to_s).grep(/\Aplace(_id)?\z/).empty? #.include?(:place_id)   # Modified (overwritten)
+      if params[:place_id].present?
+        @hsmain[:place_id] = params[:place_id]&.to_i
+        @prms_all = @prms_all.merge({place_id: @hsmain[:place_id], 
+                                     prefecture_id: params[:prefecture_id]&.to_i,
+                                     country_id:    params[:country_id]&.to_i   })
+      else  # old, obsolete style
+        @hsmain[:place_id] = get_place_from_params(@prms_all).id 
+      end
+    end
     if self.class.const_defined?(:MAIN_FORM_BOOL_KEYS)
       self.class::MAIN_FORM_BOOL_KEYS.each do |ek|
         next if !@hsmain.has_key?(ek)
         @hsmain[ek] = convert_param_bool(@hsmain[ek], true_int: 1)
       end
     end
-    @prms_all = hsall
+    @prms_all
   end
+
+  # Get place from params
+  #
+  # @param hsprm [Hash, Params]
+  # @return [Place]
+  def get_place_from_params(hsprm)
+    return Place.find(hsprm['place_id'].to_i) if !hsprm['place_id'].blank?
+    return Place.find(hsprm['place'].to_i) if !hsprm['place'].blank? && hsprm['place'].respond_to?(:gsub) && /\A\d+\z/ =~ hsprm['place']
+
+    prm = hsprm['place.prefecture_id']
+    return Place.unknown(prefecture: Prefecture.find(prm.to_i)) if !prm.blank?
+
+    prm = hsprm['place.prefecture_id.country_id']
+    return Place.unknown(country: Country.find(prm.to_i)) if !prm.blank?
+
+    Place.unknown
+  end
+  private :get_place_from_params
 
   # Retunrs a hash where boolean (and nil) values in the specified keys are converetd from String to true/false/nil
   #
@@ -657,7 +690,7 @@ class ApplicationController < ActionController::Base
   #
   # @param prmall [ActionController::Parameters, Hash] all permitted params
   # @param hsmain [Hash] Main Hash from params for Object, excluding translation-related ones
-  def _set_dates_to_hsmain(prmall, hsmain=@hsmain)
+  def _set_dates_to_hsmain(prmall=@prms_all, hsmain=@hsmain)
     %w(start end).each do |col_prefix|
       errcolname = col_prefix+"_date_err"
       err = prmall[errcolname]
@@ -675,7 +708,7 @@ class ApplicationController < ActionController::Base
   #
   # @param prmall [ActionController::Parameters, Hash] all permitted params
   # @param hsmain [Hash] Main Hash from params for Object, excluding translation-related ones
-  def _set_time_to_hsmain(prmall, hsmain=@hsmain)
+  def _set_time_to_hsmain(prmall=@prms_all, hsmain=@hsmain)
     time_err = 
       if prmall[:start_err].blank?
         nil

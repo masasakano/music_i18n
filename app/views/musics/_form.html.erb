@@ -113,7 +113,8 @@
     <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: music, trans: Translation.new, disable_is_orig: true, is_simple_form: true} %>
   <% end %>
 
-  <%= render partial: "layouts/select_country_prefecture_place", locals: {form: f, model: music, is_simple_form: true} %>
+  <%= render partial: "layouts/form_select_place", locals: {form: f, record: music} %>
+  <%# render partial: "layouts/select_country_prefecture_place", locals: {form: f, model: music, is_simple_form: true} %>
 
   <% collec = Genre.order(:weight).map {|es| [es.title(langcode: I18n.locale, lang_fallback: true), es.id] } %>
   <%= f.association :genre, label: t('Genre'), required: true, multiple: false, include_blank: true, collection: collec %>

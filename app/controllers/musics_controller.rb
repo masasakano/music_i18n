@@ -64,7 +64,7 @@ class MusicsController < ApplicationController
   # POST /musics
   # POST /musics.json
   def create
-    # Parameters: {"authenticity_token"=>"[FILTERED]", "music"=>{"langcode"=>"ja", "is_orig"=>"nil", "title"=>"The Lunch Time", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "place.prefecture_id.country_id"=>"", "place.prefecture_id"=>"", "place_id"=>"", "genre_id"=>"", "year"=>"", "note"=>"", "artist_name"=>"", "year_engage"=>"", "engage_hows"=>["", "592497512", "746859435"], "contribution"=>""}, "commit"=>"Create Music"}
+    # Parameters: {"authenticity_token"=>"[FILTERED]", "country_id"=>"123", "prefecture_id"=>"456", "place_id"=>"789", "music"=>{"langcode"=>"ja", "is_orig"=>"nil", "title"=>"The Lunch Time", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "genre_id"=>"", "year"=>"", "note"=>"", "artist_name"=>"", "year_engage"=>"", "engage_hows"=>["", "592497512", "746859435"], "contribution"=>""}, "commit"=>"Create Music"}
 
     @record = @music = Music.new(@hsmain)
     authorize! __method__, @music
@@ -114,8 +114,6 @@ class MusicsController < ApplicationController
   # PATCH/PUT /musics/1
   # PATCH/PUT /musics/1.json
   def update
-    # Parameters: {"authenticity_token"=>"[FILTERED]", "music"=>{"place.prefecture_id.country_id"=>"", "place.prefecture_id"=>"", "place_id"=>"", "genre_id"=>"", "year"=>"", "note"=>""}, "commit"=>"Create Music"}
-
     @record = @music
     def_respond_to_format(@music, :updated){
       @music.update(@hsmain)

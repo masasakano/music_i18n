@@ -4,12 +4,14 @@
 
 import { application } from "./application"
 
-import HelloController from "./hello_controller"
-application.register("hello", HelloController)
+import CascadingSelectAnyController from "./cascading_select_any_controller"
+application.register("cascading-select-any", CascadingSelectAnyController)
 
 import CascadingSelectController from "./cascading_select_controller"
 application.register("cascading-select", CascadingSelectController)
 
+import HelloController from "./hello_controller"
+application.register("hello", HelloController)
+
 import ToggleElementController from "./toggle_element_controller"
 application.register("toggle-element", ToggleElementController)
-

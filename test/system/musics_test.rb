@@ -195,7 +195,11 @@ class MusicsTest < ApplicationSystemTestCase
     # Test of dropdown-menu
     assert_selector 'div#div_select_country', text: "Country"
     #assert_selector 'div#div_select_prefecture', visible: :hidden
-    assert_selector 'div#div_select_place div.form-group.music_place', visible: :hidden
+    assert_selector CSSHS[:prefecture_option], text: "UnknownPrefecture"  # defined in test_helper.rb
+    assert_selector CSSHS[:place_option],      text: "UnknownPlace"
+    assert Prefecture.find_by_a_title(:title, "Liverpool"), "fixture test to confirm Liverpool Prefecture"
+    refute_selector CSSHS[:prefecture_option], text: "Liverpool"
+    #assert_selector 'div#div_select_place div.form-group.music_place', visible: :hidden  # if with client-side Cascading-Dropdown
 
     # Music#new page
     assert_selector "h1", text: "New Music"
@@ -224,7 +228,7 @@ class MusicsTest < ApplicationSystemTestCase
     #assert_selector    'form div#div_select_prefecture', visible: :hidden
     #assert_no_selector 'form div#div_select_prefecture'  # display: none
     #assert_no_selector 'form div#div_select_place'       # display: none  # only for old-fashioned forms
-    assert_no_selector 'div#div_select_place div.form-group.music_place' ## , visible: :hidden (for CSS display: none)  # for siple_form
+    #assert_no_selector 'div#div_select_place div.form-group.music_place' ## , visible: :hidden (for CSS display: none)  # used to be the case for client-side cascading-dropdown for simple_form
 
     #selector = %Q{form div#div_select_country select option:contains("Japan")}
     #page.execute_script %Q{ $('#{selector}').trigger('mouseenter').click() }

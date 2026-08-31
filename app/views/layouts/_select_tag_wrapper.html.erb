@@ -1,0 +1,30 @@
+<%# locals: (
+      records:,
+      field_name:,
+      field_id: nil,
+      selected: nil,
+      required: false,
+      label_method: nil,
+      blank_text: nil,
+      data: {}
+    ) %>
+<%# blank_text: if String is provided, the selection for non-selection is added at the top. %>
+<%# Example:
+    render "layouts/select_tag_wrapper", records: @prefectures,
+           field_name: "prefecture[event_id]", selected: 123,
+           required: true, label_method: :title,
+           blank_text: "(Select an Event)" %>
+
+<% label_method ||= :title_or_alt_for_selection %>
+<% options_html = options_from_collection_for_select(records, :id, label_method, selected) %>
+<% options_html = options_for_select([[blank_text, ""]]) + options_html if blank_text.present? %> <%# Prepends a prompt option (b/c select_tag does not accept Rails option +include_blank+) if %>
+
+<% constructed_field_id = field_id.presence || field_name.to_s.gsub(/[\[\]]+/, "_").gsub(/_$/, "") %>
+
+<%= select_tag field_name,
+      options_html,
+      id: constructed_field_id,
+      required: required,
+      data: data,
+      class: "select#{' required' if required}" %>
+<%#   class: "select form-select form-control-select#{' required' if required}" %>

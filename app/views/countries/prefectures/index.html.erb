@@ -1,0 +1,7 @@
+<turbo-frame id="prefectures_select_frame"> <%# matches /app/views/layouts/_form_select_place.html.erb %>
+  <%= render "countries/prefectures/select",
+        records: @prefectures,
+        selected: @selected_id
+  %>
+</turbo-frame>
+

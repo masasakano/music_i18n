@@ -73,13 +73,13 @@ class DomainsController < ApplicationController
     #  params.require(:domain).permit(:domain, :domain_title_id, :note)
     #end
 
-    # Sets @hsmain and @hstra and @prms_all from params
+    # Sets @hsmain and @prms_all from params (no @hstra)
     #
     # +action_name+ (+create+ ?) is checked inside!
     #
     # @return NONE
     def model_params_multi
-      hsall = set_hsparams_main(:domain) # defined in application_controller.rb
+      set_hsparams_main(:domain) # defined in application_controller.rb
     end
 
     # When {#domain_title_id} is blank, find the right parent {DomainTitle} or initialize one.

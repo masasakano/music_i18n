@@ -1,0 +1,60 @@
+<%# locals: (form: , record: , form_method: :place_id, selected: nil) %>
+<%# Description: selected: Already selected Place-pID if any. %>
+
+ <%# NOTE: maybe Default Country, and Prefecture/Place may be unknown %>
+<% selected_place_id = (selected.presence || record.send(form_method).presence) %>
+<% raise "selected must be pID or nil but looks like ActiveRecord: "+selected.inspect if selected.presence && selected.respond_to?(:id) %>
+<% selected_place = selected_place_id.presence && Place.find(selected_place_id) %> <%# maybe nil %>
+<% selected_country = selected_place&.prefecture&.country || Country.unknown %>
+<% selected_country_id = selected_country.id %>
+<% selected_prefecture = selected_place&.prefecture || selected_country.unknown_prefecture %>
+<% selected_place_id ||= selected_prefecture.unknown_place.id %>
+
+<%= stimulus_controller_block(
+      "cascadingSelectAny",
+      values: {},
+      style: "margin-bottom: -1.5em; padding-bottom: 0em;") do %> <%# defined in stimulus_helper.rb %>
+<%# div data-controller="cascading-select-any"
+     style="margin-bottom: -1.5em; padding-bottom: 0em;" %>
+
+ <div class="cascade_select mb-3">
+  <!-- Country Filter -->
+  <div id="div_select_country">
+    <%= label_tag :country_id, t(:Country).capitalize, class: "form-label" %>
+    <%= select_tag :country_id,
+          options_from_collection_for_select((@countries || Country.sorted_for_display), :id, :title_or_alt_for_selection, selected_country_id),
+          data: {
+            cascading_select_any_target_param: "prefectures_select_frame",
+            cascading_select_any_url_param: country_prefectures_path(country_id: ":id"),
+            action: "change->cascading-select-any#update"
+          } %><%# defined in countries_helper.rb %>
+            <%# Set this to clear Place-select completely after changing Country: cascading_select_any_clear_param: "places_select_frame", %>
+    <%= form.error :country_id, class: "text-danger small" %>
+  </div>
+
+  <%# Target Prefecture Select %>
+  <div id="div_select_prefecture">
+    <%= label_tag :prefecture_id, t(:Prefecture).capitalize, class: "form-label" %>
+
+    <turbo-frame id="prefectures_select_frame"> <%# matches /app/views/countries/prefectures/index.html.erb %>
+      <%= render "countries/prefectures/select",
+            records: selected_country&.prefectures || @prefectures || [],
+            selected: selected_prefecture&.id
+       %><%# NOTE: data-* are defined in /app/views/countries/prefectures/_select.html.erb %>
+    </turbo-frame>
+    <%= form.error :prefecture_id, class: "text-danger small" %>
+  </div>
+
+  <%# Target Place Select %>
+  <div id="div_select_place">
+    <%= form.label :place_id, t(:Place).capitalize, for: :place_id, class: "form-label" %><%# Option "for" is mandatory, or you may use label_tag instead. %>
+    <turbo-frame id="places_select_frame"> <%# matches /app/views/prefectures/places/index.html.erb %>
+      <%= render "prefectures/places/select",
+            records: selected_prefecture&.places|| @places || [],
+            selected: selected_place_id
+       %>
+    </turbo-frame>
+    <%= form.error form_method.to_sym, class: "text-danger small" %>
+  </div>
+ </div> <!-- div class="cascade_select" -->
+<% end %> <%# stimulus_controller_block(...) %>

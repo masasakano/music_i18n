@@ -8,6 +8,7 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @artist = artists(:artist1)
     @editor = roles(:general_ja_editor).users.first  # Editor can manage.
+    @place_unk = Place.unknown
   end
 
   teardown do
@@ -164,8 +165,8 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
       "langcode"=>"en",
       "title"=>"The Tｅst",
       "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
-      "place.prefecture_id.country_id"=>Country['JPN'].id.to_s,
-      "place.prefecture_id"=>"", "place_id"=>"",
+      # "place.prefecture_id.country_id"=>Country['JPN'].id.to_s,
+      # "place.prefecture_id"=>"", "place_id"=>"",
       "sex_id"=>Sex.unknown.id.to_s,
       "birth_year"=>"", "birth_month"=>"", "birth_day"=>"",
       "wiki_url"=>wiki_test,  # used on create only
@@ -173,8 +174,10 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
       #"music"=>"", "engage_how"=>[""],
       "note"=>"", "memo_editor" => memoe}
 
+    assert_equal Country["JP"], Country.primary, "sanity check of initializer"
+
     assert_difference('DomainTitle.count*10000 + Domain.count*1000 + Url.count*100 + Anchoring.count*10 + Artist.count', 11111) do
-      post artists_url, params: { artist: hs }
+      post artists_url, params: params_to_give_with_place(:artist, hs, place_id: Country.primary.unknown_place)  # defined in test_helper.rb
       assert_response :redirect
       artist = Artist.last
       assert_equal "Test, The", artist.title, "Artist: "+artist.inspect
@@ -195,9 +198,29 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     assert_equal wiki_lcode,    url.url_langcode
     assert_equal wiki_test_tit, url.title
 
-    # should fail gracefully
-    post artists_url, params: { artist: hs }
+    # should fail gracefully in an attempt to create an identical-looking Artist
+    # Note: Although places differ, they do NOT disagree (Japan's unknown (existing) and World's unknown (new to create))
+    post artists_url, params: params_to_give_with_place(:artist, hs)  # defined in test_helper.rb
     assert_response :unprocessable_content
+
+    # should succeed because Country differs even though the rest is identical.
+    assert_difference('DomainTitle.count*10000 + Domain.count*1000 + Url.count*100 + Anchoring.count*10 + Artist.count', 11) do
+      post artists_url, params: params_to_give_with_place(:artist, hs, place_id: Country["AUS"].unknown_place)  # defined in test_helper.rb
+      assert_response :redirect
+      artist2 = Artist.last
+      assert_redirected_to artist_url(artist2)
+      refute artist.place.not_disagree?(artist2.place)
+    end
+
+    # should Place automatically modified to Japan because of Japanese title and Place.unknown
+    hs3 = hs.merge({title: "3番目だよ", langcode: "ja", is_orig: true, wiki_url: ""})
+    assert_difference('DomainTitle.count*10000 + Domain.count*1000 + Url.count*100 + Anchoring.count*10 + Artist.count', 1) do
+      post artists_url, params: params_to_give_with_place(:artist, hs3, place_id: Place.unknown)  # defined in test_helper.rb
+      assert_response :redirect
+      artist3 = Artist.last
+      assert_redirected_to artist_url(artist3)
+      assert_equal Country.primary.unknown_place, artist3.place
+    end
   end
 
   test "should fail/succeed to get edit" do
@@ -228,13 +251,11 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
 
     # Update success
     hs_tmpl = {
-      "place.prefecture_id.country_id"=>Country['AUS'].id.to_s,
-      "place.prefecture_id"=>"", "place_id"=>"",
       "sex_id"=>Sex.unknown.id.to_s,
       "birth_year"=>"", "birth_month"=>"", "birth_day"=>"",
       "note"=>""}
     hs = {}.merge hs_tmpl
-    patch artist_url @artist, params: { artist: hs }
+    patch artist_url @artist, params: params_to_give_with_place(:artist, hs_tmpl, place_id: Country['AUS'].unknown_place) # defined in test_helper.rb
     assert_response :redirect
     assert_redirected_to artist_url @artist
 
@@ -246,11 +267,9 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     place_perth = places( :perth_aus )
     unknown_prefecture_aus = prefectures( :unknown_prefecture_aus )
     hs = hs_tmpl.merge({
-       'place.prefecture_id' => unknown_prefecture_aus.id,
-       'place_id' => place_perth.id,
        'birth_year' => 1950
     })
-    patch artist_url @artist, params: { artist: hs }
+    patch artist_url @artist, params: params_to_give_with_place(:artist, hs, place_id: place_perth.id) # defined in test_helper.rb
     assert_response :redirect
     assert_redirected_to artist_url @artist
 

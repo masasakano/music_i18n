@@ -94,7 +94,10 @@ class ActiveSupport::TestCase
   CSSHS = {
     language_switch_link_top: {
       div: "div#language_switcher_top"
-    }
+    },
+    country_option:    "#div_select_country select option",
+    prefecture_option: "#div_select_prefecture select option",
+    place_option:      "#div_select_place select option"
   }.with_indifferent_access
   %i(en ja).each do |k|
     CSSHS[:language_switch_link_top][k] = CSSHS[:language_switch_link_top][:div] + " span.lang_switcher_#{k}"
@@ -1078,6 +1081,28 @@ class ActiveSupport::TestCase
     end
   end
   private :_params_hash_for_index_grid_preprocess
+
+  # params-like Hash with place_id to give in Controller tests
+  #
+  # @example
+  #   params_to_give_with_place(EventItem, {machine_title: "abc", ...}, place_id: @place)  # defined in test_helper.rb
+  #
+  # @param model_snake [String, Symbol, Class] e.g., {EventGroup} or +EventGroup.name.underscore+
+  # @param hs_main [Hash] to give
+  # @param place_id: [Integer, String, ActiveRecord<Place>, NilClass] pID of Place, though Place is accepted. Def: +Place.unknown+
+  # @return [Hash] with_indifferent_access
+  def params_to_give_with_place(model_snake, hs_main, place_id: Place.unknown)
+    model_snake = model_snake.name.underscore if model_snake.respond_to?(:name)
+    place_id = place_id.id if place_id.respond_to?(:prefecture)
+    place_opts = { place_id: place_id&.to_s }.with_indifferent_access
+    if place_id
+      place = Place.find(place_id)
+      place_opts[:prefecture_id] = place.prefecture_id.to_s
+      place_opts[:country_id]    = place.country.id.to_s   # This should never fail except for badly seeded Places
+    end
+
+    { model_snake => hs_main.with_indifferent_access }.with_indifferent_access.merge(place_opts)
+  end
 
   # This is usually called by a Controller test after GET/PATCH etc.
   #

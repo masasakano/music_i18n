@@ -15,7 +15,7 @@
     <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: event_group, trans: Translation.new, disable_is_orig: false, is_simple_form: true} %>
   <% end %>
 
-  <%= render partial: "layouts/select_country_prefecture_place", locals: {form: f, model: event_group, is_simple_form: true} %>
+  <%= render partial: "layouts/form_select_place", locals: {form: f, record: event_group} %>
 
   <% start_y, end_y = evgr_start_date_select_range_start_end_year(event_group) %> <%# defined in event_groups_helper.rb %>
   <%= f.input :start_date, start_year: start_y, end_year: end_y %>

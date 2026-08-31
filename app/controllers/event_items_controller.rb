@@ -106,8 +106,8 @@ class EventItemsController < ApplicationController
     #
     # @return NONE
     def event_item_params
-      hsall = set_hsparams_main(:event_item) # defined in application_controller.rb
-      _set_time_to_hsmain(hsall)  # set start_time and err in @hsmain; defined in application_controller.rb, to handle start_* including start_err
+      set_hsparams_main(:event_item) # defined in application_controller.rb
+      _set_time_to_hsmain  # set start_time and err in @hsmain; defined in application_controller.rb, to handle start_* including start_err
     end
 
     # set @event from a given GET parameter

@@ -294,27 +294,30 @@ class ArtistsTest < ApplicationSystemTestCase
     tit_tocho = translations(:tocho_en)
     tit_takamatsu    = translations(:takamatsu_station_en)
     tit_takamatsu_en = tit_takamatsu.title.strip
+    tit_unk_significant = places(:harami_home_unknown_prefecture_japan).title_or_alt(langcode: :en, lang_fallback_option: :either) 
     css_pref_opt  = "#div_select_prefecture select option"
     css_place_opt = "#div_select_place select option"
     assert_field "Country" #, selected: "Unknown"  # should be already selected
     # select "World", from: "Country"
     select "UK", from: "Country"
+    assert_selector css_pref_opt, text: "Liverpool"  # Without this, the next "select" may not wait long enough.
     select "Liverpool", from: "Prefecture"
     assert_selector css_pref_opt, text: "UnknownPrefecture"
-    #refute_selector css_pref_opt, text: "Tokyo"  # should be either hidden or not displayed at all
+    refute_selector css_pref_opt, text: "Tokyo"  # should be either hidden or not displayed at all
     assert_selector css_place_opt, text: "Unknown"
     # assert_field "UnknownPlace", checked: true  # should be already selected
     refute_selector css_place_opt, text: tit_tocho.title
-    # refute_selector css_place_opt, text: tit_tocho.alt_title
+    refute_selector css_place_opt, text: tit_tocho.alt_title
+    refute_selector css_place_opt, text: tit_unk_significant # New Place candidates for UnknownPrefecture should be set as soon as Country changes, but...
     select "Japan", from: "Country"
     ## print "DEBUG: "; p page.find_all("#div_select_prefecture select optgroup").map{_1[:outerHTML]}
+    assert_selector css_place_opt, text: tit_unk_significant # New Place candidates for UnknownPrefecture should be set as soon as Country changes, but...
     select "Kagawa", from: "Prefecture", visible: true
+    refute_selector css_pref_opt, text: "Liverpool"  # should be either hidden or not displayed at all
     assert_selector css_pref_opt, text: "UnknownPrefecture"
-    # refute_selector css_pref_opt, text: "Liverpool"  # should be either hidden or not displayed at all
-    select tit_takamatsu_en, from: "Place"
     assert_selector css_place_opt, text: tit_takamatsu_en
     refute_selector css_place_opt, text: tit_tocho.title
-    # refute_selector css_place_opt, text: tit_tocho.alt_title
+    select tit_takamatsu_en, from: "Place"
 
     markd_text = "1st-Artist"
     markd_link = sprintf("/artists/%d", Artist.first.id)
@@ -437,6 +440,7 @@ class ArtistsTest < ApplicationSystemTestCase
 
     assert_no_selector('input#artist_title')
 
+    ## Place cascading selection
     assert_selector css_pref_opt+'[selected="selected"]',  text: "Kagawa"          # Prefecture should be selected
     assert_selector css_place_opt+'[selected="selected"]', text: tit_takamatsu_en  # Place should be selected
     select "France", from: "Country"

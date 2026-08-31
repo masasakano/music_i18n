@@ -50,7 +50,7 @@ class EventGroupsController < ApplicationController
 
   # POST /event_groups or /event_groups.json
   def create
-    # Parameters: {"event_group"=>{"langcode"=>"ja", "title"=>"The Test7", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "place.prefecture_id.country_id"=>"338130558", "place.prefecture_id"=>"", "place_id"=>"", "start_date(1i)" =>"1999", "start_date(2i)"=>"12", "start_date(3i)"=>"23", "end_date(1i)"=>"1999", "end_date(2i)"=>"12", "end_date(3i)"=>"29", "start_date_err"=>"", "end_date_err"=>"", "note"=>""}, "locale"=>"en"}
+    # Parameters: {"event_group"=>{"langcode"=>"ja", "title"=>"The Test7", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "place_id"=>"123", "start_date(1i)" =>"1999", "start_date(2i)"=>"12", "start_date(3i)"=>"23", "end_date(1i)"=>"1999", "end_date(2i)"=>"12", "end_date(3i)"=>"29", "start_date_err"=>"", "end_date_err"=>"", "note"=>""}, "locale"=>"en"}
 
     @event_group = EventGroup.new(@hsmain)
     authorize! __method__, @event_group

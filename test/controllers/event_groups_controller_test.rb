@@ -15,8 +15,6 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
       "langcode"=>"ja",
       "title"=>"The Tｅst7",
       "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
-      "place.prefecture_id.country_id"=>Country['JPN'].id.to_s,
-      "place.prefecture_id"=>"", "place_id"=>"",
       "start_date(1i)"=>"1999", "start_date(2i)"=>"1", "start_date(3i)"=>"11",
       "end_date(1i)"=>(Date.current.end_of_year+80.year).year.to_s,
       "end_date(2i)"=>"12", "end_date(3i)"=>"31",
@@ -25,6 +23,7 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
       "start_date_err"=>"", "end_date_err"=>"", 
       "note"=>""
     }
+    @place = Country.primary.unknown_place
   end
 
   teardown do
@@ -70,26 +69,26 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
 
   test "should create event_group" do
     assert_no_difference("EventGroup.count") do
-      post event_groups_url, params: { event_group: @hs_create }
+      post event_groups_url, params: _params2give()
     end
 
     editor = roles(:general_ja_editor).users.first
     sign_in editor
     assert_not Ability.new(editor).can?(:create, EventGroup)
     assert_no_difference("EventGroup.count") do
-      post event_groups_url, params: { event_group: @hs_create }
+      post event_groups_url, params: _params2give()
     end
 
     sign_in @trans_moderator  # cannot create
     assert_not Ability.new(@trans_moderator).can?(:create, EventGroup)
     assert_no_difference("EventGroup.count") do
-      post event_groups_url, params: { event_group: @hs_create }
+      post event_groups_url, params: _params2give()
     end
 
     #sign_in users(:user_sysadmin)  # for DEBUG
     sign_in @moderator
     assert_difference("EventGroup.count") do
-      post event_groups_url, params: { event_group: @hs_create }
+      post event_groups_url, params: _params2give()
     end
     assert_redirected_to event_group_url(EventGroup.last)
     new_evgr = EventGroup.order(:created_at).last
@@ -166,17 +165,16 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     aus = countries(:aus)
     #pref = pla.prefecture
 
-    hs = { event_group: { "start_date(1i)" => @event_group.start_date.year.to_s, "start_date(2i)" => @event_group.start_date.month.to_s, "start_date(3i)" => @event_group.start_date.day.to_s,
-                          "end_date(1i)" => @event_group.end_date.year.to_s, "end_date(2i)" => "11", "end_date(3i)" => @event_group.end_date.day.to_s,
-                          "note" => @event_group.note,
-                          "place.prefecture_id.country_id"=>aus.id.to_s, "place.prefecture_id"=>"", "place" => "" } }
+    hs = { "start_date(1i)" => @event_group.start_date.year.to_s, "start_date(2i)" => @event_group.start_date.month.to_s, "start_date(3i)" => @event_group.start_date.day.to_s,
+           "end_date(1i)" => @event_group.end_date.year.to_s, "end_date(2i)" => "11", "end_date(3i)" => @event_group.end_date.day.to_s,
+           "note" => @event_group.note }
 
-    patch event_group_url(@event_group), params: hs
+    patch event_group_url(@event_group), params: _params2give(hs, place_id: aus.unknown_place)
     assert_response :redirect
     assert_redirected_to new_user_session_path
 
     sign_in @moderator
-    patch event_group_url(@event_group), params: hs
+    patch event_group_url(@event_group), params: _params2give(hs, place_id: aus.unknown_place)
     assert_redirected_to event_group_url(@event_group)
     @event_group.reload
     assert_equal 11, @event_group.end_date.month
@@ -243,4 +241,18 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  private
+
+    # Returns Hash to pass the params option
+    #
+    # @example
+    #    patch event_group_url(@event_group), params: _params2give(hs_extra: {"weight" => 0.98})
+    #
+    # @param hsmain [Hash] Main Hash (Def: @hs_create), the value for the key :event_group
+    # @param hs_extra: [Hash] to merge to hsmain
+    # @param place_id: [Integer, String, ActiveRecord<Place>]
+    # @return [Hash] with_indifferent_access
+    def _params2give(hsmain=@hs_create, hs_extra: {}, place_id: @place.id)
+      params_to_give_with_place(EventGroup, hsmain.with_indifferent_access.merge(hs_extra), place_id: place_id)  # defined in test_helper.rb
+    end
 end

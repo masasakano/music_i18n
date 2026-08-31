@@ -15,11 +15,11 @@ class EventItemsControllerTest < ActionDispatch::IntegrationTest
     @editor_harami   = users(:user_editor)                # Harami Editor can manage.
     @trans_moderator = users(:user_translator)  # Translator cannot create/delete but edit (maybe!).
     @moderator_ja    = users(:user_moderator_general_ja)  # Same as Translator.
-    pla = places(:unknown_place_unknown_prefecture_japan)
+    @place = places(:unknown_place_unknown_prefecture_japan)
     @hs_create = {
       "machine_title"=>"test_ei01",
-      "place.prefecture_id.country_id"=>Country['JPN'].id.to_s,
-      "place.prefecture_id"=>pla.prefecture.id.to_s, "place"=>pla.id.to_s,
+      # "place.prefecture_id.country_id"=>@place.country.id.to_s,
+      # "place.prefecture_id"=>@place.prefecture.id.to_s, "place"=>@place.id.to_s,
       "event_id"=>@event_item.event.id.to_s,
       "start_time(1i)"=>"2024", "start_time(2i)"=>"8", "start_time(3i)"=>"1", "start_time(4i)"=>"12", "start_time(5i)"=>"00",
       "publish_date(1i)"=>"2024", "publish_date(2i)"=>"9", "publish_date(3i)"=>"3",
@@ -29,7 +29,7 @@ class EventItemsControllerTest < ActionDispatch::IntegrationTest
       "duration_minute"=>"20", "duration_minute_err"=>"3.5", "weight"=>"", "event_ratio"=>"0.4",
       "note"=>"",
     }.with_indifferent_access
-    # INFO -- :   Parameters: {"authenticity_token"=>"[FILTERED]", "event_item"=>{"machine_title"=>"", "event_id"=>"10", "start_time(1i)"=>"2019", "start_time(2i)"=>"1", "start_time(3i)"=>"1", "start_time(4i)"=>"12", "start_time(5i)"=>"00", "form_start_err"=>"69959976.0", "form_start_err_unit"=>"hour", "duration_minute"=>"", "duration_minute_err"=>"", "place.prefecture_id.country_id"=>"0", "place.prefecture_id"=>"", "place"=>"", "weight"=>"", "event_ratio"=>"", "note"=>""}, "commit"=>"Submit", "locale"=>"en"}
+    # INFO -- :   Parameters: {"authenticity_token"=>"[FILTERED]", "event_item"=>{"machine_title"=>"", "event_id"=>"10", "start_time(1i)"=>"2019", "start_time(2i)"=>"1", "start_time(3i)"=>"1", "start_time(4i)"=>"12", "start_time(5i)"=>"00", "form_start_err"=>"69959976.0", "form_start_err_unit"=>"hour", "duration_minute"=>"", "duration_minute_err"=>"", "place_id"=>"123", "weight"=>"", "event_ratio"=>"", "note"=>""}, "commit"=>"Submit", "locale"=>"en"}
   end
 
   teardown do
@@ -63,13 +63,13 @@ class EventItemsControllerTest < ActionDispatch::IntegrationTest
 
   test "should create event_item" do
     assert_no_difference("EventItem.count") do
-      post event_items_url, params: { event_item: @hs_create }
+      post event_items_url, params: _params2give()
     end
 
     editor = users(:user_editor)
     sign_in editor
     assert_difference("EventItem.count") do
-      post event_items_url, params: { event_item: @hs_create }
+      post event_items_url, params: _params2give()
       assert_response :redirect
     end
     ei_last = EventItem.last
@@ -107,12 +107,12 @@ class EventItemsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should update event_item" do
-    patch event_item_url(@event_item), params: { event_item: @hs_create.merge({"weight" => 0.98}) }
+    patch event_item_url(@event_item), params: _params2give(hs_extra: {"weight" => 0.98})
     assert_response :redirect
     assert_redirected_to new_user_session_path
 
     sign_in @editor_harami
-    patch event_item_url(@event_item), params: { event_item: @hs_create.merge({"weight" => 0.98}) }
+    patch event_item_url(@event_item), params: _params2give(hs_extra: {"weight" => 0.98})
     assert_redirected_to event_item_url(@event_item)
     assert_equal 0.98, EventItem.find(@event_item.id).weight
 
@@ -131,7 +131,7 @@ class EventItemsControllerTest < ActionDispatch::IntegrationTest
       get_params_from_date_time(@event_item.start_time, "start_time", maxnum=6)).merge(
       {"weight" => @event_item.weight, "place" => @event_item.place.id, "match_parent"=>"1", "note" => (tmptxt="test-match")}
     )
-    patch event_item_url(@event_item), params: { event_item: hs2give }
+    patch event_item_url(@event_item), params: _params2give(hs2give)
     assert_redirected_to event_item_url(@event_item)
 
     @event_item.reload
@@ -146,7 +146,7 @@ class EventItemsControllerTest < ActionDispatch::IntegrationTest
     @event_item.reload
     
     # Test of specifying "match_parent"=>"1" at the same time as the new Event (in this case, reverting back to the original Event)
-    patch event_item_url(@event_item), params: { event_item: hs2give.merge({"event_id" => event.id.to_s, "note" => (tmptxt="test-match2")})}
+    patch event_item_url(@event_item), params: _params2give(hs2give, hs_extra: {"event_id" => event.id.to_s, "note" => (tmptxt="test-match2")})
     assert_redirected_to event_item_url(@event_item)
     @event_item.reload
     assert_equal tmptxt, @event_item.note, 'sanity check'
@@ -170,4 +170,19 @@ class EventItemsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to event_show_url
     #assert_redirected_to event_items_url
   end
+
+  private
+
+    # Returns Hash to pass the params option
+    #
+    # @example
+    #    patch event_item_url(@event_item), params: _params2give(hs_extra: {"weight" => 0.98})
+    #
+    # @param hsmain [Hash] Main Hash (Def: @hs_create), the value for the key :event_item
+    # @param hs_extra: [Hash] to merge to hsmain
+    # @param place_id: [Integer, String, ActiveRecord<Place>]
+    # @return [Hash] with_indifferent_access
+    def _params2give(hsmain=@hs_create, hs_extra: {}, place_id: @place.id)
+      params_to_give_with_place(EventItem, hsmain.with_indifferent_access.merge(hs_extra), place_id: place_id)  # defined in test_helper.rb
+    end
 end
