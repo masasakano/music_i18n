@@ -42,7 +42,7 @@ class Artists::Merges::ArtistWithIdsControllerTest < ActionDispatch::Integration
   #test "should get index even for new/edit paths" do
   #  sign_in @editor
     model = ChannelOwner.first
-    %w(new edit edit/123).each do |path_fragment|
+    %w(new edit 456/edit edit/123).each do |path_fragment|  # "/*/edit/123" is not RESTful but accepted.
       get artists_merges_artist_with_ids_path(model,  params: {keyword: "enn", path: "/en/channel_owners/#{path_fragment}"}, format: :json, locale: I18n.locale)  # "/en/" should not exist??
       assert_response :success, "Failed for path=#{path_fragment.inspect}"
       ary = @response.parsed_body

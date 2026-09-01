@@ -1,4 +1,4 @@
-// Auto-complete Model name with ID for merging
+// Auto-complete a record name with ID for Editors in general
 //
 // Completion with AJAX.
 

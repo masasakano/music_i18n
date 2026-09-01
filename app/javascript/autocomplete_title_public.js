@@ -9,7 +9,7 @@
 //
 // AJAX target algorithm is implemented in /app/controllers/base_auto_complete_titles_controller.rb
 // whose core routine is found in /app/controllers/concerns/auto_complete_index.rb
-// Some path-restriction algoritm is applied there.
+// Some path-restriction algoritm is applied in AutoCompleteIndex module.
 //
 // Example: autocompleteModelWithId("music", id="harami_vids_grid_musics")
 export function autocompleteTitlePublic(to_model, cssid){

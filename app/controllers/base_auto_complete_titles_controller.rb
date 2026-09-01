@@ -4,6 +4,8 @@
 # This can be called by public (not limited to authenticated users)
 #
 # Each subclass Controller must define constant MODEL_SYM like :music
+#
+# @see BaseMerges::BaseWithIdsController
 class BaseAutoCompleteTitlesController < ApplicationController
   include AutoCompleteIndex  # defined in /app/controllers/concerns/auto_complete_index.rb
 
@@ -19,23 +21,10 @@ class BaseAutoCompleteTitlesController < ApplicationController
 
   # The caller's path must be somethings/ (i.e., index).
   # See {#requested_from_permitted_path?} below.
+  # See {BaseMerges::BaseWithIdsController} for auto-complete for authorized users
   def index
-    index_auto_complete(requested_from_permitted_path?, self.class::MODEL_SYM, do_display_id: false)
+    permitted = requested_from_permitted_path?(allow_index_page: true, orgfilename: __FILE__)  # defined in /app/controllers/concerns/auto_complete_index.rb
+    index_auto_complete(permitted, self.class::MODEL_SYM, do_display_id: false)
   end
-
-  private
-    # @rerutn [Boolean] rejects requests if requested from a different page or site from the intended.
-    def requested_from_permitted_path?
-      path_modified = params[:path].sub(%r@^(/?[a-z]{2}/)?@, "")  # to remove the locale part; I am not sure if this is necessary in reality (but just to play safe).
-      fragment = nil
-      if ("static_page_publics" != Rails.application.routes.recognize_path(path_modified)[:controller])
-        Rails.application.eager_load!
-        fragment = (BaseWithTranslation.descendants.map{|ek| ek.name.underscore.pluralize}+%w(engages)).join("|")  # /engages is allowed although it is not BaseWithTranslation.
-        return true if %r@/(#{fragment})/?\z@ =~ params[:path]  # This handles even paths like /children or /novae etc.
-      end
-
-      logger.warn "Rejects AJAX (or HTTP) request to #{__FILE__} from #{params[:path]} / controller=#{Rails.application.routes.recognize_path(path_modified)[:controller].inspect} / fragment=#{fragment.inspect}"
-      false
-    end
 
 end

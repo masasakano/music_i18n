@@ -314,7 +314,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     # assert_selector css_event2select+'[selected="selected"]'  # This does not work (perhaps that's how it works).
 
     ## Associated Music/Artist
-    fill_autocomplete('Associated Artist name', with: 'Lennon', select: (vid_prms[:engage_artist_text]="John Lennon"))  # defined in test_helper.rb
+    fill_autocomplete('Associated Artist name', with: 'Lennon', select: (vid_prms[:engage_artist_text]="John Lennon"))  # defined in test_helper.rb # calling BaseMerges::BaseWithIdsController
     find_field("Way of engagement").select(vid_prms[:engage_how_text]="Singer (Cover)")
     fill_in "Year of engagement", with: (vid_prms[:engage_year]=2009)
     fill_in "Contribution",       with: (vid_prms[:engage_contribution]=0.5)

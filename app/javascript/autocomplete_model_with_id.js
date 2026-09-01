@@ -12,7 +12,7 @@
 // ID for the <input> tag must be in forms of either "artist_with_id" or "channel_owner_artist_with_id"
 //
 // AJAX target algorithm is implemented in /app/controllers/base_merges/base_with_ids_controller.rb
-// Some path-restriction algoritm is applied there.
+// Some path-restriction algoritm is applied in AutoCompleteIndex module.
 export function autocompleteModelWithId(model, to_model=null, cssid=null){
 	var prefix;
 	if (!to_model) {
@@ -28,7 +28,7 @@ export function autocompleteModelWithId(model, to_model=null, cssid=null){
     source: function (req, resp) {
       $.ajax({
         //url: '/'+model+'s/merges/'+model+'_with_ids',  // or source: (?)
-        url: '/'+to_model+'s/merges/'+to_model+'_with_ids',  // or source: (?)
+        url: '/'+to_model+'s/merges/'+to_model+'_with_ids',  // or source: (?)  This is just a path name for Controller (which was named for a historic background in this development), regardless of the path to deal with being for merging or whatever like :new|:edit
         type: 'GET',
         dataType: "json",
         data: {
