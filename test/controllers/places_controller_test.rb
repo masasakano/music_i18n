@@ -56,18 +56,23 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
     get new_place_url(prefecture_id: prefecture_id) # e.g., new?prefecture_id=5
     assert_response :success
 
-    csssel = css_select("select#place_prefecture\\.country_id option[value=#{country_id}]")
+    css = CSSHS[:country_option]+"[value=#{country_id}]"
+    # csssel = css_select("select#place_prefecture\\.country_id option[value=#{country_id}]")  ## old, obsoletestyle
+    csssel = css_select(css)
     assert_equal 'selected', csssel[0]['selected'], "CSS="+csssel[0].inspect
 
-    csssel = css_select("select#place_prefecture optgroup[label=Japan] option[selected=selected]")
+    css = CSSHS[:prefecture_option]+"[selected=selected]"
+    # csssel = css_select("select#place_prefecture optgroup[label=Japan] option[selected=selected]")
+    csssel = css_select(css)
     assert_equal 1, csssel.size, "A Prefecture in Japan should be selected, but... csssel="+csssel.inspect
 
-    csssel = css_select("select#place_prefecture option[value=#{prefecture_id}]")
+    css = CSSHS[:prefecture_option]+"[value=#{prefecture_id}]"
+    # csssel = css_select("select#place_prefecture option[value=#{prefecture_id}]")
+    csssel = css_select(css)
     assert_equal 'selected', csssel[0]['selected'], "CSS="+csssel[0].inspect
 
     get new_place_url(place: {prefecture_id: prefecture_id}) # e.g., new?place[prefecture_id]=5
     assert_response :success
-    assert_equal 'selected', csssel[0]['selected'], "CSS="+csssel[0].inspect
     assert_equal 'Prefecture',  css_select("input#place_prev_model_name")[0]["value"]
     assert_equal prefecture_id, css_select("input#place_prev_model_id")[0]["value"].to_i
 
@@ -75,11 +80,20 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
     get new_place_url(country_id: country_id) # e.g., new?country_id=5
     assert_response :success
 
-    csssel = css_select("select#place_prefecture\\.country_id option[value=#{country_id}]")
+    #csssel = css_select("select#place_prefecture\\.country_id option[value=#{country_id}]")
+    css = CSSHS[:country_option]+"[value=#{country_id}]"
+    csssel = css_select(css)
+# print "DEBUG:sel-country(exp=#{country_id}): "; puts css_select(CSSHS[:country_option]).to_html
     assert_equal 'selected', csssel[0]['selected'], "CSS="+csssel[0].inspect
 
-    csssel = css_select("select#place_prefecture option[selected=selected]")
-    assert_empty  csssel, "No Prefecture should be selected, but... csssel="+csssel.inspect
+    #csssel = css_select("select#place_prefecture option[selected=selected]")
+    css = CSSHS[:prefecture_option]+"[selected=selected]"
+    csssel = css_select(css)
+    # assert_empty  csssel, "No Prefecture should be selected, but... csssel="+csssel.inspect  # This used to be the case when client-side cascading dropdown, but the specification has changed.
+    pid = csssel[0]['value']
+    pref = Prefecture.find pid
+    assert pref.unknown?
+    assert_equal Country.find(country_id), pref.country
   end
 
   test "should NOT create if not privileged" do
@@ -87,11 +101,9 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
       "langcode"=>"en",
       "title"=>"The Tｅst",
       "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
-      "prefecture.country_id"=>Country['JPN'].id.to_s,
-      "prefecture"=>prefectures(:kagawa).id.to_s,
       "note"=>"test-create-place"}
 
-    post places_url, params: { place: hs2pass }
+    post places_url, params: params_to_give_with_place(Place, hs2pass, place_id: prefectures(:kagawa).unknown_place, with_place: false)  # defined in test_helper.rb
     assert_response :redirect
     assert_redirected_to new_user_session_path
   end
@@ -102,15 +114,16 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
       "langcode"=>"en",
       "title"=>"The Tｅst",
       "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
-      "prefecture.country_id"=>Country['JPN'].id.to_s,
-      "prefecture"=>prefectures(:kagawa).id.to_s,
+      # "prefecture.country_id"=>Country['JPN'].id.to_s,
+      # "prefecture"=>prefectures(:kagawa).id.to_s,
       "note"=>note1}
 
     sign_in @editor
 
     # Creation success
     assert_difference('Place.count', 1) do
-      post places_url, params: { place: hs2pass }
+      # post places_url, params: { place: hs2pass }
+      post places_url, params: params_to_give_with_place(Place, hs2pass, place_id: prefectures(:kagawa).unknown_place, with_place: false)  # defined in test_helper.rb
       assert_response :redirect #, "message is : "+flash.inspect
     end
 
@@ -125,7 +138,7 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
     # Creation fails because Prefecture is not specified.
     place = nil
     assert_difference('Place.count', 0) do
-      post places_url, params: { place: hs2pass.merge({"title"=>"test2", "prefecture"=>""})}
+      post places_url, params: params_to_give_with_place(Place, hs2pass.merge({"title"=>"test2"}), place_id: nil, with_place: false)  # defined in test_helper.rb
       assert_response :unprocessable_content #, "message is : "+flash.inspect
     end
 
@@ -140,8 +153,6 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
       "langcode"=>"en",
       "title"=>"The Tｅst",
       "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
-      "prefecture.country_id"=>Country['JPN'].id.to_s,
-      "prefecture"=>prefecture.id.to_s,
       "note"=>note1,
       "prev_model_name"=>'Prefecture',  # suppose the prefecture value is already given.
       "prev_model_id"=>prefecture.id.to_s,
@@ -153,7 +164,9 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
     # Tokyo[title, alt_title]: (ja)["東京都", nil], (en)["Tokyo", "Tôkyô"]
     assert_difference('Place.count') do
       assert_difference('Translation.count') do
-        post places_url, params: { place: hs2pass.merge({"title" => places(:liverpool_street).title(langcode: 'en')}) }
+        # post places_url, params: { place: hs2pass.merge({"title" => places(:liverpool_street).title(langcode: 'en')}) }
+        hs = params_to_give_with_place(Place, hs2pass.merge({"title" => places(:liverpool_street).title(langcode: 'en')}), place_id: prefecture.unknown_place, with_place: false)  # defined in test_helper.rb
+        post places_url, params: hs
         assert_response :redirect, sprintf("Expected response to be a <3XX: redirect>, but was <%s> with flash message: %s", response.code, flash.inspect)
       end
     end

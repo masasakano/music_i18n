@@ -40,8 +40,8 @@ class PlacesIntegrationTest < ActionDispatch::IntegrationTest
       "langcode"=>"en",
       "title"=>"The Tｅst",
       "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
-      "prefecture.country_id"=>Country['JPN'].id.to_s,
-      "prefecture"=>prefectures(:kagawa).id.to_s,
+      # "prefecture.country_id"=>Country['JPN'].id.to_s,  ## old, obsoletestyle
+      # "prefecture"=>prefectures(:kagawa).id.to_s,
       "note"=>"test-create-place",
     }
 
@@ -50,7 +50,8 @@ class PlacesIntegrationTest < ActionDispatch::IntegrationTest
     # Creation success
     place = nil
     assert_difference('Place.count', 1) do
-      post places_url, params: { place: hs2pass }
+      # post places_url, params: { place: hs2pass }
+      post places_url, params: params_to_give_with_place(Place, hs2pass, place_id: prefectures(:kagawa).unknown_place, with_place: false)  # defined in test_helper.rb
       assert_response :redirect
     end
 
@@ -78,8 +79,8 @@ class PlacesIntegrationTest < ActionDispatch::IntegrationTest
     sign_in( users(:user_editor_general_ja) )
     get edit_place_url(tocho)
     assert_response :success
-    assert_equal 'Japan', css_select('select[id="place_prefecture.country_id"] option[selected=selected]').text
-    assert_equal 'Tôkyô', css_select('select#place_prefecture option[selected=selected]').text
+    assert_equal 'Japan', css_select(CSSHS[:country_option]+'[selected=selected]').text
+    assert_equal 'Tokyo', css_select(CSSHS[:prefecture_option]+'[selected=selected]').text # or possibly, 'Tôkyô'
   end
 
   test "can update" do

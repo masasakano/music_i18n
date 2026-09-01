@@ -95,9 +95,12 @@ class ActiveSupport::TestCase
     language_switch_link_top: {
       div: "div#language_switcher_top"
     },
-    country_option:    "#div_select_country select option",
-    prefecture_option: "#div_select_prefecture select option",
-    place_option:      "#div_select_place select option"
+    country_select_div:    (s1="#div_select_country"),
+    country_option:         s1+" select option",
+    prefecture_select_div: (s2="#div_select_prefecture"),
+    prefecture_option:      s2+" select option",
+    place_select_div:      (s3="#div_select_place"),
+    place_option:           s3+" select option",
   }.with_indifferent_access
   %i(en ja).each do |k|
     CSSHS[:language_switch_link_top][k] = CSSHS[:language_switch_link_top][:div] + " span.lang_switcher_#{k}"
@@ -1090,11 +1093,12 @@ class ActiveSupport::TestCase
   # @param model_snake [String, Symbol, Class] e.g., {EventGroup} or +EventGroup.name.underscore+
   # @param hs_main [Hash] to give
   # @param place_id: [Integer, String, ActiveRecord<Place>, NilClass] pID of Place, though Place is accepted. Def: +Place.unknown+
+  # @param with_place: [Boolean] if true (Def), place_id is included; else only prefecture_id and country_id (basically for Place :new|:edit)
   # @return [Hash] with_indifferent_access
-  def params_to_give_with_place(model_snake, hs_main, place_id: Place.unknown)
+  def params_to_give_with_place(model_snake, hs_main, place_id: Place.unknown, with_place: true)
     model_snake = model_snake.name.underscore if model_snake.respond_to?(:name)
     place_id = place_id.id if place_id.respond_to?(:prefecture)
-    place_opts = { place_id: place_id&.to_s }.with_indifferent_access
+    place_opts = (with_place ? { place_id: place_id&.to_s } : {}).with_indifferent_access
     if place_id
       place = Place.find(place_id)
       place_opts[:prefecture_id] = place.prefecture_id.to_s

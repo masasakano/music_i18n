@@ -12,8 +12,8 @@
 <dl>
   <% if (can_update=can?(:update, Artist)) %>
    <div class="editor_only">
-    <dt class="item_pid">pID (<%= @artist.class.name %>)</dt>
-    <dd class="item_pid"> <%= @artist.id %></dd>
+    <dt class="<%= Consts::Csses::Shows::ITEM_PID %>">pID (<%= @artist.class.name %>)</dt>
+    <dd class="<%= Consts::Csses::Shows::ITEM_PID %>"> <%= @artist.id %></dd>
    </div>
   <% end %>
   <div>

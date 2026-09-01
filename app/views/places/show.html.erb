@@ -12,16 +12,16 @@
  <section id="sec_primary_show">
 <dl>
   <%= editor_only_safe_html(:pass, method: can_create_pla) do %>
-    <dt>pID (Place)</dt>
-    <dd> <%= @place.id %></dd>
+    <dt class="<%= Consts::Csses::Shows::ITEM_PID %>">pID (Place)</dt>
+    <dd class="<%= Consts::Csses::Shows::ITEM_PID %>"> <%= @place.id %></dd>
   <% end %>
   <div>
-    <dt><%= t(:Country) %>:</dt>
-    <dd><%= link_to country_name, country_path(@place.country) %></dd>
+    <dt class="<%= Consts::Csses::Shows::ITEM_PREFIX %>country"><%= t(:Country) %>:</dt>
+    <dd class="<%= Consts::Csses::Shows::ITEM_PREFIX %>country"><%= link_to country_name, country_path(@place.country) %></dd>
   </div>
   <div>
-    <dt><%= t(:Prefecture) %>:</dt>
-    <dd><%= link_to prefecture_name, prefecture_path(@place.prefecture_id) %></dd>
+    <dt class="<%= Consts::Csses::Shows::ITEM_PREFIX %>prefecture"><%= t(:Prefecture) %>:</dt>
+    <dd class="<%= Consts::Csses::Shows::ITEM_PREFIX %>prefecture"><%= link_to prefecture_name, prefecture_path(@place.prefecture_id) %></dd>
   </div>
   <div>
     <dt><%= t("tables.n_harami_vids_long") %>:</dt>
@@ -49,8 +49,8 @@
      <%= render partial: 'layouts/anchorings/index', locals: {record: @place} %>
    <% end %>
 
-<%= editor_only_safe_html(@place, method: :edit, tag: "div", class: "lead") do %>
-  <%= link_to 'Edit', edit_place_path(@place) %>
+<%= editor_only_safe_html(@place, method: :edit, tag: "div", class: "lead "+Consts::Csses::Layouts::EDIT_LINK_CONTAINER) do %>
+  <%= link_to 'Edit', edit_place_path(@place), class: Consts::Csses::Layouts::EDIT_LINK+" "+Consts::Csses::Layouts::EDIT_LINK_PRIMARY %>
 <% end %>
 <% if can_create_pla && (pref=@place.prefecture) %>
   <% pref_title = pref.title_or_alt_tuple_str("[", "]", langcode: I18n.locale) %>

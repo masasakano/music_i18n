@@ -1,14 +1,33 @@
-<%# locals: (form: , record: , form_method: :place_id, selected: nil) %>
-<%# Description: selected: Already selected Place-pID if any. %>
+<%# locals: (form: , record: , form_method: nil, selected: nil, with_place_select: true) %>
+<%# Description:
+     record: Place record (maybe new_record). For Place :new, record.prefecture would be nil.
+     form_method: method of +record+ to get Place if with_place_select is true, or else Prefecture. Default is :place_id or :prefecture_id .
+     selected: Already selected Place-pID if any.
+     with_place_select: renders also a Place select if true (Def). Basically, false only for Place :new/:edit
+%>
+<%# NOTE: The HTML-IDs for select tags are country_id, prefecture_id, place_id
+      as opposed to "music_place_id" for +name+ attribute of "music[place_id]" etc.
+%>
 
- <%# NOTE: maybe Default Country, and Prefecture/Place may be unknown %>
-<% selected_place_id = (selected.presence || record.send(form_method).presence) %>
+<%# NOTE: maybe Default Country, and Prefecture/Place may be unknown %>
 <% raise "selected must be pID or nil but looks like ActiveRecord: "+selected.inspect if selected.presence && selected.respond_to?(:id) %>
-<% selected_place = selected_place_id.presence && Place.find(selected_place_id) %> <%# maybe nil %>
-<% selected_country = selected_place&.prefecture&.country || Country.unknown %>
+<% form_method ||= (with_place_select ? :place_id : :prefecture_id) %>
+<% if with_place_select %>
+  <% selected_place_id = (selected.presence || record.send(form_method).presence) %>
+  <% selected_place = selected_place_id.presence && Place.find(selected_place_id) %> <%# maybe nil %>
+<% else %>
+  <% selected_prefecture_id = (selected.presence || record.send(form_method).presence) %>
+  <% selected_prefecture = selected_prefecture_id.presence && Prefecture.find(selected_prefecture_id) %> <%# maybe nil %>
+  <% selected_place = record %>
+<% end %>
+
+<% selected_country = selected_place&.country || selected_prefecture&.country || Country.unknown %>
 <% selected_country_id = selected_country.id %>
-<% selected_prefecture = selected_place&.prefecture || selected_country.unknown_prefecture %>
-<% selected_place_id ||= selected_prefecture.unknown_place.id %>
+<% selected_prefecture ||= selected_place&.prefecture || selected_country.unknown_prefecture %>
+
+<% if with_place_select %>
+  <% selected_place_id ||= selected_prefecture.unknown_place.id %><%# Usually Integer but possibly String if the given +selected+ is String %>
+<% end %>
 
 <%= stimulus_controller_block(
       "cascadingSelectAny",
@@ -33,7 +52,12 @@
   </div>
 
   <%# Target Prefecture Select %>
-  <div id="div_select_prefecture">
+  <% hsdata = {
+        cascading_select_any_target_param: (with_place_select ? "places_select_frame" : nil),
+        cascading_select_any_url_param: prefecture_places_path(prefecture_id: ":id"),
+        action: "change->cascading-select-any#update"
+     } %>
+  <%= tag.div id: "div_select_prefecture", data: hsdata do %>
     <%= label_tag :prefecture_id, t(:Prefecture).capitalize, class: "form-label" %>
 
     <turbo-frame id="prefectures_select_frame"> <%# matches /app/views/countries/prefectures/index.html.erb %>
@@ -43,10 +67,11 @@
        %><%# NOTE: data-* are defined in /app/views/countries/prefectures/_select.html.erb %>
     </turbo-frame>
     <%= form.error :prefecture_id, class: "text-danger small" %>
-  </div>
+  <% end %>
 
   <%# Target Place Select %>
-  <div id="div_select_place">
+ <% if with_place_select %>
+  <%= tag.div id: "div_select_place" do %>
     <%= form.label :place_id, t(:Place).capitalize, for: :place_id, class: "form-label" %><%# Option "for" is mandatory, or you may use label_tag instead. %>
     <turbo-frame id="places_select_frame"> <%# matches /app/views/prefectures/places/index.html.erb %>
       <%= render "prefectures/places/select",
@@ -55,6 +80,7 @@
        %>
     </turbo-frame>
     <%= form.error form_method.to_sym, class: "text-danger small" %>
-  </div>
+  <% end %>
+ <% end %><%# if with_place_select %>
  </div> <!-- div class="cascade_select" -->
 <% end %> <%# stimulus_controller_block(...) %>

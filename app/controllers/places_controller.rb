@@ -30,6 +30,7 @@ class PlacesController < ApplicationController
   def new
     @place = Place.new
     set_prefecture_prms  # set @place.prefecture, maybe also @country
+    @place.prefecture ||= Prefecture.unknown
   end
 
   # GET /places/1/edit
@@ -39,20 +40,16 @@ class PlacesController < ApplicationController
   # POST /places
   # POST /places.json
   def create
-    # Parameters: {"authenticity_token"=>"[FILTERED]", "place"=>{"langcode"=>"ja", "title"=>"", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "prefecture.country_id"=>"5798", "prefecture"=>"", "note"=>""}, "commit"=>"Create Place", "controller"=>"places", "action"=>"create", "locale"=>"en"}
+    # Parameters: {"authenticity_token"=>"[FILTERED]", "place"=>{"langcode"=>"ja", "title"=>"", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "note"=>""}, "country_id"=>"123", prefecture_id"=>"456", "commit"=>"Create Place", "controller"=>"places", "action"=>"create", "locale"=>"en"}  # Used to have "prefecture.country_id"=>"5798", "prefecture"=>"" within "place" when client-side cascading dropdown
     params.permit!
-    #hsprm = params.require(:place).permit(
-    #  :note,
-    #  :"prefecture.country_id", :prefecture, :prefecture_id,  # **NOTE**: redundant...
-    #  *Translation::TRANSLATION_PARAM_KEYS)
-    #  # :langcode, :is_orig, :title, :ruby, :romaji, :alt_title, :alt_ruby, :alt_romaji,
 
     hsmain = params[:place].slice(*MAIN_FORM_KEYS)
-    # pref = (pref_id_str.blank? ? nil : Prefecture.find(params[:place][:prefecture].to_i))
-    @record = @place = Place.new(**(hsmain.merge({prefecture_id: params[:place][:prefecture].to_i})))
-    %w(prev_model_name prev_model_id).each do |metho|
-      @place.send( metho+"=", params.require(:place).permit(metho)[metho] )
+    @place = Place.new(**hsmain)  # Needed for separation of Translation-related parameters
+
+    place_params.each_pair do |metho, ev|
+      @place.send( metho+"=", ev )
     end
+    @record = @place
 
     add_unsaved_trans_to_model(@place) # defined in application_controller.rb
     def_respond_to_format(@place, back_html: prev_redirect_str(@place, get_link: true)) # both defined in application_controller.rb
@@ -69,7 +66,7 @@ class PlacesController < ApplicationController
   def update
     @record = @place
     def_respond_to_format(@place, :updated){
-      @place.update(place_params)
+      @place.update(place_params)  # This takes into account of the top-level params[:prefecture_id]
     } # defined in application_controller.rb
   end
 
@@ -104,8 +101,11 @@ class PlacesController < ApplicationController
     end
 
     # Only allow a list of trusted parameters through.
+    #
+    # The top-level :prefecture_id has a priority over (the standard) +place[prefecture_id]+
     def place_params
-      params.require(:place).permit(:prefecture_id, :prev_model_name, :prev_model_id, *MAIN_FORM_KEYS)  # adding "prefecture.country_id" would cause <400: Bad Request>
+      top_level_pref = params.permit(:prefecture_id).compact_blank  # to ignore in the case where the parameter is present but "" is passed.
+      params.require(:place).permit(:prefecture_id, :prev_model_name, :prev_model_id, *MAIN_FORM_KEYS).merge(top_level_pref)  # WARNING: adding "prefecture.country_id" would cause <400: Bad Request>
     end
 
     # set @country and @place.prefecture from a given URL parameter
@@ -142,6 +142,15 @@ class PlacesController < ApplicationController
         end
       end
 
+      # NOTE: This is a fallback...  Ideally, this should have been already set above!
+      if @place.prefecture.blank?
+        if @prefecture.present?
+          @place.prefecture = @prefecture
+        elsif @country.present?
+          @place.prefecture = @prefecture = @country.unknown_prefecture
+        end
+      end
+
       # Sets the information for the URL to return.
       [@place.prefecture, @country].each do |klass|
         next if !klass
@@ -159,6 +168,14 @@ class PlacesController < ApplicationController
     # @return [Country, NilClass] not meant to be used.
     def _set_country_from_params(country_id_str)
       @country = (country_id_str.blank? ? nil : Country.find(country_id_str.to_i))
+    end
+
+    # @return [Integer] Prefecture-pID in params in either POST (:create) or PUT/PATCH (:update)
+    def _post_prefecture_id_int
+      ret = [params[:prefecture_id], params.dig(:place, :prefecture_id), params.dig(:place, :prefecture)].find(&:present?)
+      return ret.to_i if ret
+      Rails.logger.warn "WARNING: No Prefecture is set for Place #{@place.inspect}, which should never happen. Unknown Prefecture is forcibly set."
+      Prefecture.unknown.id
     end
 
     def _respond_destroy_fail(msg)

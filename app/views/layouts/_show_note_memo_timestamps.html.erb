@@ -20,20 +20,20 @@
 
 <% if show_weight && show_editor_note && model.has_attribute?(:weight) %>
   <div class="editor_only weight">
-  <dt class="item_weight">Weight:</dt>
-    <dd class="item_weight"><%= model.weight %></dd>
+  <dt class="<%=   Consts::Csses::Shows::ITEM_WEIGHT %>">Weight:</dt>
+    <dd class="<%= Consts::Csses::Shows::ITEM_WEIGHT %>"><%= model.weight %></dd>
   </div>
 <% end %>
 
   <div> <%# Once dt is inside a div, all other dt-s must be inside a div, apparently. %>
-  <dt class="item_note"><%= t("tables.note").capitalize %>:</dt>
-    <dd class="item_note"><%= ModuleRedcarpetAux.md2safehtml(model.note) %></dd>
+  <dt class="<%=   Consts::Csses::Shows::ITEM_NOTE %>"><%= t("tables.note").capitalize %>:</dt>
+    <dd class="<%= Consts::Csses::Shows::ITEM_NOTE %>"><%= ModuleRedcarpetAux.md2safehtml(model.note) %></dd>
   </div>
 
 <% if show_editor_note && model.has_attribute?(:memo_editor) %>
   <div class="editor_only memo_editor">
-  <dt class="item_memo_editor">Editor's memo:</dt>
-    <dd class="item_memo_editor"><%= ModuleRedcarpetAux.md2safehtml(model.memo_editor) %></dd>
+  <dt class="<%=   Consts::Csses::Shows::ITEM_MEMO_EDITOR %>">Editor's memo:</dt>
+    <dd class="<%= Consts::Csses::Shows::ITEM_MEMO_EDITOR %>"><%= ModuleRedcarpetAux.md2safehtml(model.memo_editor) %></dd>
   </div>
 <% end %>
 
@@ -48,11 +48,11 @@
 
   <% if show_editor_note && show_timestamp %>
     <div class="editor_only">
-      <dt>updated_at:</dt>
-        <dd><%= model.updated_at %> <span class="font-smaller" style="margin-left: 1em;">(<%= (model.updated_at && model.created_at && model.updated_at - model.created_at > 1.seconds) ? (Time.current - model.updated_at < 1.seconds ? "<strong>Updated now!</strong>".html_safe : "Updated since creation") : "Never modified since creation" %>)</span></dd>
+      <dt class="<%=   Consts::Csses::Shows::ITEM_UPDATED_AT %>">updated_at:</dt>
+        <dd class="<%= Consts::Csses::Shows::ITEM_UPDATED_AT %>"><%= model.updated_at %> <span class="font-smaller" style="margin-left: 1em;">(<%= (model.updated_at && model.created_at && model.updated_at - model.created_at > 1.seconds) ? (Time.current - model.updated_at < 1.seconds ? "<strong>Updated now!</strong>".html_safe : "Updated since creation") : "Never modified since creation" %>)</span></dd>
     </div>
     <div class="editor_only"> <%# Once dt is insde a div, every single dt-s must be inside an independent div, apparently. %>
-      <dt>created_at:</dt>
-        <dd><%= model.created_at %></dd>
+      <dt class="<%=   Consts::Csses::Shows::ITEM_CREATED_AT %>">created_at:</dt>
+        <dd class="<%= Consts::Csses::Shows::ITEM_CREATED_AT %>"><%= model.created_at %></dd>
     </div>
   <% end %>

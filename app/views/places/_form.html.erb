@@ -55,6 +55,9 @@
     <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: place, trans: Translation.new, disable_is_orig: true, is_simple_form: true} %>
   <% end %>
 
+ <% if true %>
+  <%= render partial: "layouts/form_select_place", locals: {form: f, record: place, with_place_select: false} %>
+ <% else %>
   <div class="field" id="<%= ApplicationController::HTML_KEYS[:ids][:div_sel_country] %>"> <%# div_select_country %>
    <%= f.input 'prefecture.country_id', label: t('Country') do %>
     <% country_id = (@country ? @country.id : (place.country ? place.country.id : Country.unknown.id) ) %>
@@ -67,6 +70,7 @@
     <%= f.grouped_collection_select 'prefecture', @countries, :prefectures, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true)}, :id, Proc.new{|i| i.title_or_alt(langcode: I18n.locale, prefer_alt: true, str_fallback: "NONE")}, {include_blank: true, selected: (place.prefecture ? place.prefecture_id : false)} %>
    <% end %>
   </div>
+ <% end %>
 
   <%= render partial: 'layouts/form_wiki_url', locals: {form: f, record: place} %>
   <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: Place, skip_ability_check: true} %>

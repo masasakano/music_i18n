@@ -295,15 +295,15 @@ class ArtistsTest < ApplicationSystemTestCase
     tit_takamatsu    = translations(:takamatsu_station_en)
     tit_takamatsu_en = tit_takamatsu.title.strip
     tit_unk_significant = places(:harami_home_unknown_prefecture_japan).title_or_alt(langcode: :en, lang_fallback_option: :either) 
-    css_pref_opt  = "#div_select_prefecture select option"
-    css_place_opt = "#div_select_place select option"
+    css_pref_opt  = CSSHS[:prefecture_option]  # defined in test_helper.rb
+    css_place_opt = CSSHS[:place_option]       # defined in test_helper.rb
     assert_field "Country" #, selected: "Unknown"  # should be already selected
     # select "World", from: "Country"
     select "UK", from: "Country"
     assert_selector css_pref_opt, text: "Liverpool"  # Without this, the next "select" may not wait long enough.
     select "Liverpool", from: "Prefecture"
     assert_selector css_pref_opt, text: "UnknownPrefecture"
-    refute_selector css_pref_opt, text: "Tokyo"  # should be either hidden or not displayed at all
+    refute_selector css_pref_opt, text: "Tokyo"  # should be either hidden (client-side) or completely absent (server-side cascading-dropdown)
     assert_selector css_place_opt, text: "Unknown"
     # assert_field "UnknownPlace", checked: true  # should be already selected
     refute_selector css_place_opt, text: tit_tocho.title
@@ -313,7 +313,7 @@ class ArtistsTest < ApplicationSystemTestCase
     ## print "DEBUG: "; p page.find_all("#div_select_prefecture select optgroup").map{_1[:outerHTML]}
     assert_selector css_place_opt, text: tit_unk_significant # New Place candidates for UnknownPrefecture should be set as soon as Country changes, but...
     select "Kagawa", from: "Prefecture", visible: true
-    refute_selector css_pref_opt, text: "Liverpool"  # should be either hidden or not displayed at all
+    refute_selector css_pref_opt, text: "Liverpool"  # should be either hidden (client-side) or completely absent (server-side cascading-dropdown)
     assert_selector css_pref_opt, text: "UnknownPrefecture"
     assert_selector css_place_opt, text: tit_takamatsu_en
     refute_selector css_place_opt, text: tit_tocho.title
