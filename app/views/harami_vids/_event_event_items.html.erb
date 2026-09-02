@@ -14,7 +14,7 @@
       <%= render partial: 'layouts/form_print_errors', locals: {model: @harami_vid, error_explanation_for_class: true} %>
       <%= render partial: "/layouts/flash_display" %>
     <% end %>
-    <ul>
+    <ul class="list_events">
     <% evevits = sorted_event_event_items.map{|ek, ev| [Event.find(ek), ev] }.to_h %>
     <% evevits.each_pair do |event, ar_event_items| %>
       <li>
@@ -47,7 +47,7 @@
               <% if (n_amps > 1 || event_item.unknown?) && canedit_hvid &&  %>
                 <div class="editor_only">
                   <%# button_to t("harami_vids.Duplicate"), event_items_deep_duplicates_url, form_class: "button_to inline_form", method: :post, params: { event_item: { deep_duplicates_controller: {event_item_id: event_item.id, harami_vid_id: @harami_vid.id} } } %> <%# This would violate the W3C standards about a nested-form %>
-                  <%= link_to t("harami_vids.Duplicate"), event_items_deep_duplicates_url(event_item: { deep_duplicates_controller: { event_item_id: event_item.id, harami_vid_id: @harami_vid.id} }), class: "button_like", method: :post %>
+                  <%= link_to t("harami_vids.Duplicate"), event_items_deep_duplicates_url(event_item: { deep_duplicates_controller: { event_item_id: event_item.id, harami_vid_id: @harami_vid.id} }), class: "button_like link_duplicate_event_item", data: {turbo: true, turbo_method: :post, turbo_frame: "_top"} %> <%# NOTE: without _top Flash messages would not be displayed. %>
                 </div>
               <% end %>
               <%= t("harami_vids.show.artist_collabs", default: "featuring Artists") %>

@@ -714,6 +714,8 @@ class HaramiVidsTest < ApplicationSystemTestCase
     mu = musics(:music1)
     hvid2.musics << mu
     # with an associated Music with nil timing; no associated EventItem
+    # So, the following is tests of HaramiVid with 1 Music via HaramiVidMusicAssoc with no HaramiVidEventItemAssoc
+
     #hvid2.harami_vid_music_assocs.find_by(music: mu).update!(timing: 15)
     #assert_nil hvid2.timing(mu), 'sanity check'
 
@@ -747,10 +749,13 @@ class HaramiVidsTest < ApplicationSystemTestCase
     #assert_includes        lines[1].strip, "uccessfully updated"
     assert_includes        lines.join(" ").strip, "uccessfully updated"  # There is also a warning message: "Please make sure to add an Event(Item)."
 
-    ## move to Edit
+    ### move to Edit
+    # Select an Event to associate to the Music (which you must)
+    #
     visit edit_harami_vid_path(hvid2, locale: I18n.locale)
     assert_text tit2
     assert_selector "h1", text: "Editing"
+    refute_nested_forms  # defined in test_system_helper.rb
 
     fill_in "Video length", with: "1:12"
 
@@ -771,7 +776,103 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_selector css_evit  # This appears for the first time.
     assert_equal "72.0 (01:12)", find("section.show_unique_parameters dl dd.item_duration").text.strip
 
-    # EventItem page
+    ### Now,
+    # 1. Adds a Music for a new EventItem of a different Event from the existing HaramiVidMusicAssoc
+    # 2. Adds another Music for the same EventItem; so, HaramiVid is associated with 1 EventItem with 2 Musics
+    # 3. Unassociate the first EventItem for the first Music
+    # 4. Deletes the HaramiVidMusicAssoc for the first Music as it has remained a lonely one
+    # 5. Duplicates the associated EventItem
+
+    assert_selector "#main_edit_button"
+    find("#main_edit_button").click
+    # click_on "Edit"  # => Ambiguous match, found 3 elements matching visible link or button "Edit"
+    assert_selector "h1", text: "Editing Harami"
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+
+    choose "new EventItem"
+    event = select_event_lucky2023(event_css: "#harami_vid_form_new_event_id")  # defined in test_system_helper.rb
+
+    mus2 = musics(:music2)
+    tit = mus2.title_or_alt(langcode: "en", lang_fallback_option: :either)
+    fill_in "Music name", with: tit
+    # fill_autocomplete('Music name', with: tit, select: tit)  # defined in test_helper.rb
+
+    click_on @update_haramivid_button, match: :first
+
+    with_longer_wait{ assert_selector "h1", text: "HARAMIchan-featured Video" }
+    new_evit = EventItem.last
+
+    # 2. Adds another Music for the same EventItem; so, HaramiVid is associated with 1 EventItem with 2 Musics
+    # 3. Unassociate the first EventItem for the first Music
+    assert_selector "#main_edit_button"
+    find("#main_edit_button").click
+    assert_selector "h1", text: "Editing Harami"
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+
+    choose new_evit.machine_title
+    mus3 = musics(:music_light)
+    tit = mus3.title_or_alt(langcode: "en", lang_fallback_option: :either)
+    fill_autocomplete('Music name', with: tit, select: tit)  # defined in test_helper.rb
+    # fill_in "Music name", with: tit
+    fill_in "Timing", with: 62
+
+    css = "#form_update_event_item_association_field fieldset.harami_vid_event_items"
+    assert_selector css
+    all_inputs = find_all(css+" input.is-valid")
+    assert_equal 2, all_inputs.size  # 2 EventItems
+    id2preserve = sprintf("harami_vid_event_item_ids_%i", new_evit.id)
+    id2uncheck = all_inputs.map{_1[:id]}.reject{_1 == id2preserve}.join("")
+    refute_includes id2uncheck, id2preserve, "sanity check to ensure this does not include the item to preserve"  # The first EventItem will be removed.
+
+    uncheck id2uncheck
+
+    click_on @update_haramivid_button, match: :first
+    flash_regex_assert(/\bwas successfully\b/, type: [:success, :notice], system_test: true) # defined in test_helper.rb
+    close_flash_windows([:notice, :success])
+    with_longer_wait{ assert_selector "h1", text: "HARAMIchan-featured Video" }
+    # ensure_page_load_in_full_load  # defined in test_system_helper.rb
+
+    css_missing_music_label = ".missing_musics_from_amps .add_missing_musics"
+    assert_selector css_missing_music_label, text: "Missing Musics"  # Music missing in EventItem-s because an EventItem was unchecked in save.
+    assert_selector ".missing_musics_from_amps form"
+
+    # 4. Deletes the HaramiVidMusicAssoc for the first Music as it has remained a lonely one after the associated EventItem has been removed.
+    css = sprintf("#music_table_for_hrami_vid tr#music_%d td:last-of-type .destroy_link", mu.id)
+    assert_selector css
+    assert_selector css, text: "Destroy"
+
+    assert_difference("HaramiVidMusicAssoc.count", -1){
+      accept_confirm do
+        find(css).click  # Destroy
+      end
+      refute_selector css_missing_music_label  # Warning for Musics for EventItem-s has been cleared now.
+      flash_regex_assert(/\bwas successfully destroyed\b/, type: :notice, system_test: true) # defined in test_helper.rb  # For some reason, if this is placed before the +refute+ this tends to fail even with with_longer_wait{} 
+      close_flash_windows([:notice, :success])
+    }
+
+    # 5. Duplicates the associated EventItem
+    css = ".list_event_items .link_duplicate_event_item"
+    assert_selector css
+    assert_selector css, text: "Duplicate"
+    assert_equal 1, page.find_all(css).size
+
+    page.find(css).click
+
+    css = ".list_event_items li a"
+    assert_selector css, text: "copy-"
+    flash_regex_assert(/\bwas successfully created\b/, type: [:notice, :success], system_test: true) # defined in test_helper.rb
+    close_flash_windows([:notice, :success])  # defined in test_system_helper.rb
+
+    assert_equal 1, find_all(".list_events > li").size, "should be only 1 event, but..."
+    css = ".list_event_items li"
+    nodes = find_all(css)
+    assert_equal 2, nodes.size
+    csstr = "table tbody tr"
+    assert_equal( *([0, 1].map{nodes[_1].find_all(csstr).size}) )  # Both EventItems should have the same number of Associations
+    cstd2 = csstr + ":last-of-type td"
+    assert_equal( *([0, 1].map{nodes[_1].find_all(cstd2)[2].text}) )  # Both EventItems' last association's Music should be the same
+
+    # Moves to the first EventItem page
     find_all(css_evit).first.click
     assert_selector "h1", text: "EventItem: "
     assert_text tit2  # HaramiVid should be included in a table.

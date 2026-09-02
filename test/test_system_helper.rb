@@ -332,7 +332,9 @@ class ActiveSupport::TestCase
     refute_selector :xpath, XPATHS[:user_menu_bar][:top] # User is certainly logged out.
   end
 
-  # So far, closes only 1 Flash window
+  # Closes all the Flash window (of the specified types if specified)
+  #
+  # Assertion fails if there is no Flash window of the specified type.
   #
   # @example 
   #     close_flash_windows  # defined in test_system_helper.rb
@@ -343,7 +345,10 @@ class ActiveSupport::TestCase
   def close_flash_windows(type=nil)
     xp = xpath_for_flash(type, category: :div)
     assert_selector :xpath, xp
-    find_all(:xpath, xp).first.find(".btn-close").click
+    # find_all(:xpath, xp).first.find(".btn-close").click
+    find_all(:xpath, xp).each do |en|
+      en.find(".btn-close").click
+    end
     # find("##{Consts::HtmlIds::FLASH} .btn-close").click  would do (for a random type of alert!)
     # assert_no_selector Consts::HtmlIds::FLASH
   end
@@ -650,6 +655,42 @@ class ActiveSupport::TestCase
     puts sprintf("(#{__method__}) [Caller-Info] (%s): inner_html=%s", _get_caller_info_message, Nokogiri::HTML(page.html).xpath("/"+XPATHGRIDS[:pagenation_stats])&.inner_html&.strip.inspect) if is_env_set_positive?("PRINT_DEBUG_INFO") # defined in test_helper.rb   # If the line below fails, comment out this line and rerun the test to show the caller.
     assert_selector :xpath, xpath_grid_pagenation_stats_with(n_filtered_entries: n_filtered_entries, n_all_entries: n_all_entries, langcode: langcode, **opts)
   end
+
+
+  # Helper method to select an Event with cascading-dropdown in :edit
+  #
+  # @return [Event]
+  def select_event_lucky2023(event_sel=events(:ev_harami_lucky2023), event_css: "#event_id")
+    form_html_csses = {  # see event_items_test.rb
+      event_group: "#event_group_id",
+      # year_begin:  "#year_begin",
+      # year_end:    "#year_end",
+      event:       event_css
+    }.with_indifferent_access
+
+    assert_selector form_html_csses[:event_group]
+
+    ## Event selection (cascade select with JS)
+    evgr_sel  = event_sel.event_group
+    # event_unknown_sibling = event_sel.unknown_sibling
+    # assert event_unknown_sibling.unknown?, "sanity check"
+
+    select evgr_sel.title_or_alt_for_selection, from: "Event Group"
+    # find(form_html_csses[:event_group]).select evgr_sel.title_or_alt_for_selection
+
+    event_year = event_sel.start_time.year
+    select event_year, from: "Year From"
+
+    # select event_sel.title_or_alt_for_selection, from: "Event"  # => ambiguous
+    css = sprintf("#%s select", Consts::HtmlIds::TURBO_EVENTS_SELECT_FRAME)
+    assert_selector css
+    css = form_html_csses[:event]+sprintf(' option[value="%s"]', event_sel.id)
+    assert_selector css
+    page.find(css).select_option
+
+    event_sel
+  end # def select_event_lucky2023(event_sel=events(:ev_harami_lucky2023))
+
 
   # Making sure there is no nested forms in the page
   #
