@@ -112,23 +112,23 @@
       </tr>
           <% break %>
         <% end %>
-     <% if can_update %>
-        <td class="number editor_only"><%= link_to harami_vid.id, harami_vid %></td>
-     <% end %>
+        <%= editor_only_safe_html(:pass, method: can_update, tag: "td", show_always: true,  class: ["number", Consts::Csses::Shows::ITEM_PID]) do %>
+          <%= link_to harami_vid.id, harami_vid, class: Consts::Csses::Layouts::SHOW_LINK %>
+        <% end %>
         <td class="date_ja"><%= sprintf "%s %s", date2text(harami_vid.release_date), ((dura=sec2hms_or_ms(harami_vid.duration, return_nil: true)) ? '('+dura+')' : "") %></td> <%# defined in ModuleCommon %>
      <% if for_owner %>
         <td><%= harami_vid.channel.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %> </td> <%# prefer_shorter: false (Default); n.b., if prefer_shorter==true, the *wider* "ユーチューブ" would be used as opposed to "Youtube" %>
         <td><%= harami_vid.channel.channel_type.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true) %> </td>
      <% else %>
-        <td><%= harami_vid.channel.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true) %>/<%= harami_vid.channel.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></td>
+        <td class="<%= Consts::Csses::Shows::ITEM_CHANNEL %>"><%= harami_vid.channel.channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, prefer_shorter: true) %>/<%= harami_vid.channel.channel_platform.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either) %></td>
      <% end %>
      <% if music %>
        <% assoc = harami_vid.harami_vid_music_assocs.where(music: music).first %>
        <% timing = (assoc ? assoc.timing : nil) %>
      <% end %>
-        <td><%= link_to_youtube harami_vid.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), harami_vid.uri, timing, title: t(:external_link) %></td>  <%# defined in app/helpers/application_helper.rb %>
+        <td class="<%= Consts::Csses::Shows::ITEM_TITLE %>"><%= link_to_youtube harami_vid.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either), harami_vid.uri, timing, title: t(:external_link) %></td>  <%# defined in app/helpers/application_helper.rb %>
      <% if musics %>
-        <td><%= harami_vid.musics.map{ |music|
+        <td class="<%= Consts::Csses::Shows::ITEM_MULTIPLE %> <%= Consts::Csses::Shows::ITEM_MUSIC %>"><%= harami_vid.musics.map{ |music|
                next nil if :all != musics && !musics.include?(music)
                mu_tit = music.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either)
                (can?(:read, music) ? link_to(mu_tit, music) : mu_tit)
@@ -140,14 +140,14 @@
         <td class="number"><%= assoc.completeness %></td>
      <% end %>
      <% if with_place %>
-       <td><%= harami_vid.place ? harami_vid.txt_place_pref_ctry(without_country_maybe: true) : "" %>
+       <td class="<%= Consts::Csses::Shows::ITEM_PLACE %>"><%= harami_vid.place ? harami_vid.txt_place_pref_ctry(without_country_maybe: true) : "" %>
          <% if can_update %>
            <%= html_consistent_or_inconsistent(harami_vid.is_place_all_consistent?(strict: true)) %>
          <% end %>
        </td>
      <% end %>
       <% if canread_evit %>
-        <td class="text-center editor_only">
+        <td class="text-center editor_only <%= Consts::Csses::Shows::ITEM_MULTIPLE %> <%= Consts::Csses::Shows::ITEM_EVENT_ITEM %>">
           <%= harami_vid.event_items.map{ |eei|
              if !(ind=event_items.find_index(eei))
                event_items << eei
@@ -162,13 +162,13 @@
      <% if can_read_h1129 %>
         <td class="number editor_only"><%= harami_vid.harami1129s.distinct.count %> / <%= harami_vid.musics.uniq.count %></td>
      <% end %>
-        <td><%= ModuleRedcarpetAux.md2safehtml(harami_vid.note) %></td>
+        <td class="<%= Consts::Csses::Shows::ITEM_NOTE %>"><%= ModuleRedcarpetAux.md2safehtml(harami_vid.note) %></td>
 
-        <td class="actions"><%= link_to t("tables.Show"), harami_vid %></td>
+        <td class="actions"><%= link_to t("tables.Show"), harami_vid, class: Consts::Csses::Layouts::SHOW_LINK %></td>
         <% if can_update %>
           <td class="actions editor_only text-end">
           <% if can? :update, harami_vid  %>
-            <%= link_to 'Edit', edit_harami_vid_path(harami_vid) %>
+            <%= link_to 'Edit', edit_harami_vid_path(harami_vid), class: Consts::Csses::Layouts::EDIT_LINK %>
           <% end %>
           </td>
         <% end %>

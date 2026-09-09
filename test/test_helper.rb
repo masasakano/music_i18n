@@ -934,6 +934,7 @@ class ActiveSupport::TestCase
     printf "DEBUG(#{__method__}): css_for_flash(ARG=#{[type, kwds].inspect})=( %s )\n", css_for_flash(type, **kwds) if is_debug && !system_test
     noko =
       if system_test
+        assert_selector :xpath, xpath_for_flash(type, **kwds)  # to make sure the flash part is loaded
         Nokogiri::HTML5(page.find("body")[:innerHTML]).xpath( xpath_for_flash(type, **kwds) )
       else
         css_select(css_for_flash(type, **kwds))

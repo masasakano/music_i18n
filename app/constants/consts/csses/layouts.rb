@@ -10,6 +10,7 @@ module Consts
       FORM_ACTION_CONTAINER  = "form-actions" # Default in Rails scaffolding for <div> for submission buttons
 
       ACTION_LINKS_CONTAINER = "actions"   # for any of the following or submit_tag (for <td> <div> etc)
+      SHOW_LINK              = "show_link"           # for link
       NEW_LINK               = "new_link"            # for link or button
       EDIT_LINK_CONTAINER    = "edit_link_container" # for Table <td> or <div> or <span> or <p>
       EDIT_LINK_PRIMARY      = "edit_link_primary"   # for the primary link or button for Edit of the main contents

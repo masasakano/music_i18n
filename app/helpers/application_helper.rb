@@ -1389,6 +1389,7 @@ module ApplicationHelper
   # @param is_button: [Boolean] if true (Def), +button_to+ is used, else +<a>+
   # @param inline: [Boolean] inline display if true (Def: false). Valid only if is_button is true.
   # @param link_like: [Boolean] if true (Def: false), Bootstrap CSS to make it look like a text is employed. Valid only if is_button is true.
+  # @param to_top: [Boolean] if true (Def), `data{turbo_frame: "_top"}` is added.  If false and if in the non-turbo context, you may see "Content missing"
   # @param extra_classes: [Array, String] extra CSS classes for the +<button>+ or +<a>+ tag.
   # @param with_confirm: [Boolean] if true (Def), confirmation-pop up opens.
   # @param confirm_message: [String, NilClass] Confirmation pop-up message.  If nil, the default is used.
@@ -1396,11 +1397,12 @@ module ApplicationHelper
   #    Note that +inline+ (and +extra_classes+) and +link_like+ options introduces :class and :form_class options, respectively.
   #    So, if your +**kwds+ option contains them, you have to be responsible for them.
   # @return [String]
-  def non_get_link(link_text, path, method: , is_button: true, inline: false, link_like: false, extra_classes: [], with_confirm: true, confirm_message: t('are_you_sure'), **kwds)
+  def non_get_link(link_text, path, method: , is_button: true, inline: false, link_like: false, to_top: true, extra_classes: [], with_confirm: true, confirm_message: t('are_you_sure'), **kwds)
     classes_str = [extra_classes].flatten.join(" ")
     confirm_message ||= t('are_you_sure')
+    turbohs = { turbo: true }
+    turbohs[:turbo_frame] = "_top"
     if is_button
-      turbohs = { turbo: true }
       turbohs[:turbo_confirm] = confirm_message if with_confirm
       opts = { form: {data: turbohs} }
       classes_str = [classes_str, (link_like ? "btn btn-link p-0 align-baseline" : "")].join(" ")
@@ -1409,7 +1411,7 @@ module ApplicationHelper
       opts.merge! kwds
       button_to link_text, path, method: method, **opts
     else  # normal link anchor text
-      turbohs = { turbo: true, turbo_method: method }
+      turbohs[:turbo_method] = method
       turbohs[:turbo_confirm] = t('are_you_sure') if with_confirm
       opts = {data: turbohs}
       opts[:class] = classes_str if !classes_str.empty?

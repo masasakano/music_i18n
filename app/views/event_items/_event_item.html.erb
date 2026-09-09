@@ -15,8 +15,8 @@
     <% end %>
     <% if canedit && @event_item.harami_vids.uniq.size == 1 && (@event_item.siblings(exclude_unknown: true).exists? || (sibs=@event_item.siblings(exclude_unknown: false)).count == 1 && @event_item.event.harami_vids.where.not(id: @event_item.harami_vids.first.id).exists?) %> <%# If the sibling EventItems are only Unknown withtou HaramiVids, there is no point to "resettle" with a new Event. NOTE the condition here is slightly different from that in /app/views/harami_vids/_event_event_items.html.erb %>
       <span class="editor_only associate_to_new_event">
-        <dd> <%# link_to 'Associate to a new Event', event_items_resettle_new_event_url(@event_item), method: :patch, data: { confirm: t('are_you_sure') }, title: 'Creating a new Event and associating this EventItem to it.', class: "button_like" %>
-          <%= non_get_link('Associate to a new Event', event_items_resettle_new_event_url(@event_item), method: :patch, is_button: false, extra_classes: ["button_like"], with_confirm: true) %> <%# defined in application_helper.rb %>
+        <dd>
+          <%= non_get_link('Associate to a new Event', event_items_resettle_new_event_url(@event_item), method: :patch, is_button: false, extra_classes: ["button_like"], with_confirm: true, title: 'Creating a new Event and associating this EventItem to it.') %> <%# defined in application_helper.rb %>
           </dd>
       </span>
     <% end %>

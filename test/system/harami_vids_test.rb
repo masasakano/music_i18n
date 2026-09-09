@@ -872,6 +872,53 @@ class HaramiVidsTest < ApplicationSystemTestCase
     cstd2 = csstr + ":last-of-type td"
     assert_equal( *([0, 1].map{nodes[_1].find_all(cstd2)[2].text}) )  # Both EventItems' last association's Music should be the same
 
+    link_text = "Associate to a new Event"
+    csslink = css+":last-of-type a"
+    assert_selector csslink, text: link_text
+    csslink = css+":last-of-type .associate_to_new_event a"
+    assert_selector csslink, text: link_text
+    node = page.find_all(csslink)
+    assert_equal 1, node.size
+
+    assert_equal 1, page.find_all("ul.list_events").size
+    assert_selector csstmp="ul.list_events > li"
+    exp_event_title = new_evit.event.title_or_alt_for_selection
+    exp_evgr_title  = new_evit.event_group.title_or_alt_for_selection
+    regex = /\A\s*#{Regexp.quote(exp_event_title)}\s*\[\s*(.+)\s*\]/  # matching EvengGroup title inside an Event line
+    assert_match regex, (evttxt=page.find(csstmp+":first-child").text)  # EventGroup is displayed
+    mat = regex.match evttxt
+    text_evgr = mat[1]  # Displayed EventGroup title
+    assert_equal exp_evgr_title, text_evgr
+    css2 = "ul.list_events > li:nth-child(2)"
+    refute_selector css2
+
+    assert_difference("Event.count"){
+      accept_confirm do
+        node.first.click  # Creates a New Event, redirected to EventItem-show
+      end
+
+      flash_regex_assert(/\bwas successfully updated\b/, type: [:notice, :success], system_test: true) # defined in test_helper.rb
+      close_flash_windows([:notice, :success])  # defined in test_system_helper.rb
+      assert_selector "h1", text: "EventItem"
+    }
+    assert_selector "dd.item_event a"
+    event_line_text = page.find_all("dd.item_event").first.text
+    assert_includes event_line_text, exp_evgr_title, "EventGroup of the newly created Event should match the existing one, but..." 
+    assert_includes event_line_text, tit2  # title of the new Event is made from HaramiVid-title.
+
+    css = "#harami_vids_index_table tbody tr td.actions a."+Consts::Csses::Layouts::SHOW_LINK
+    assert_selector css
+    assert_equal 1, page.find_all(css).size
+    page.find(css).click
+
+    ## HaramiVid-show again
+    assert_selector "h1", text: "Video"
+    assert_selector css2
+    assert_selector css2, text: text_evgr
+    evttxt = page.find(css2).text
+    regex = /\A\s*#{Regexp.quote(tit2)}.+\s*\[\s*(.+)\s*\]/  # matching EvengGroup title inside an Event line
+    assert_equal text_evgr, regex.match(evttxt)[1], "Displayed EventGroup of the newly created Event should match the existing one, but..."
+
     # Moves to the first EventItem page
     find_all(css_evit).first.click
     assert_selector "h1", text: "EventItem: "
