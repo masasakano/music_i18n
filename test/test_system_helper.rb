@@ -332,7 +332,7 @@ class ActiveSupport::TestCase
     refute_selector :xpath, XPATHS[:user_menu_bar][:top] # User is certainly logged out.
   end
 
-  # Closes all the Flash window (of the specified types if specified)
+  # Closes/Clears all the Flash windows (of the specified types if specified)
   #
   # Assertion fails if there is no Flash window of the specified type.
   #
@@ -565,6 +565,7 @@ class ActiveSupport::TestCase
     }
     flash_text_system_assert("successfully", type: :notice, category: :div)  # defined in test_helper.rb
     flash_regex_assert(/was successfully .*(destroy|delet|remov)ed/i, type: :notice, category: :div, system_test: true)  # defined in test_helper.rb  # Here, "Link was", as opposed to "Anchoring was"
+    close_flash_windows(:notice)
 
     # No JavaScript-related errors?
     js_errors = page.driver.browser.logs.get(:browser).reject do |entry|

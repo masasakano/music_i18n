@@ -72,7 +72,16 @@ module ModuleModifyInspectPrintReference
     # @yield With [record, column_name_str, self_record] given, it should return String to display, where column_name is like "sex_id"
     def redefine_inspect(cols_yield: [], yield_nil: false, debug: false)
       cols_yield = cols_yield.map(&:to_s).map{|i| i.sub(/(_id)?$/, "_id")}
-      define_method(:inspect) do 
+      define_method(:inspect) do |depth: 0|
+        def inspect_internal(obj, depth)
+          obj.respond_to?(:inspect_orig) ? (obj.inspect(depth: depth) rescue obj.inspect) : obj.inspect
+        end
+
+        depth += 1
+        if depth > Consts::MAX_INSPECT_DEPTH
+          return sprintf("<%s: %s>", self.class.name, self.id)
+        end
+
         foreign_keys = self.class.reflect_on_all_associations(:belongs_to).map(&:foreign_key)  # e.g., ["sex_id", "create_user_id"]
         return(super()) if foreign_keys.all?{|ecol| !send(ecol)}
 
@@ -80,7 +89,7 @@ module ModuleModifyInspectPrintReference
           next nil if !respond_to?(ecol[0..-4])  # no method "foo_baa" defined for "foo_baa_id" (unlikely case, but playing safe!)
           obj = send(ecol[0..-4])
           if cols_yield.include?(ecol) && block_given? && (obj || yield_nil)
-            value = yield(obj, ecol, self)
+            value = yield(obj, ecol, self, depth)
           elsif !obj
             next [ecol, ""]
           else
@@ -106,7 +115,7 @@ module ModuleModifyInspectPrintReference
           [ecol, value]
         }.compact.to_h.with_indifferent_access
 
-        ret = super()  # This may call BaseWithTranslation#inspect (as opposed to Object#inspect)
+        ret = (super(depth: depth) rescue super())  # This may call BaseWithTranslation#inspect (as opposed to Object#inspect)
         # NOTE: here, "()" is mandatory. Otherwise, raises:  RuntimeError: implicit argument passing of super from method defined by define_method() is not supported. Specify all arguments explicitly.
 
         hsprm.each_pair do |ecol, ev|  # ecol is like "sex_id"

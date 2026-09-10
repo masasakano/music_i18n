@@ -88,7 +88,7 @@ class Place < BaseWithTranslation
   include ModuleModifyInspectPrintReference
 
   # Information of "(Prefecture < Country-Code)" is added.
-  redefine_inspect(cols_yield: %w(prefecture)){ |pref, _|
+  redefine_inspect(cols_yield: %w(prefecture)){ |pref, _, _, _|
     s_pref = pref.title(langcode: 'en', lang_fallback: true)
     country = pref.country
     if country

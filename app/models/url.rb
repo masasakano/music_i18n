@@ -224,7 +224,16 @@ class Url < BaseWithTranslation
     ret = newurl.find_or_create_and_reset_domain_id(site_category_id: site_category_id)
     return newurl if !ret  # "newurl.errors" should have been set.  "newurl.id" is nil.
 
-    newurl.save
+    begin
+      newurl.save
+    rescue HaramiMusicI18n::IndexLimitExceededError => er
+      # save_status = false
+      newurl.id = nil
+      newurl.instance_variable_set(:@new_record, true)
+    rescue ActiveRecord::RecordNotSaved => err
+      logger.error "ERROR(Url.#{__method__}): Exception (#{err.class}): #{err.message}.\n### Backtrace:  \n #{err.backtrace.join("\n")}"
+      newurl.errors.add(:base, err.message)
+    end
     newurl  # In failing, "newurl.errors" should be set.  If successful, a Translation should have been also created.
   end
 

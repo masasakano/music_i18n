@@ -80,14 +80,14 @@ class Prefecture < BaseWithTranslation
   include ModuleModifyInspectPrintReference
 
   # Information of "(Country-Code)" is added.
-  redefine_inspect(cols_yield: %w(country), yield_nil: true){ |country, _, self_record|
+  redefine_inspect(cols_yield: %w(country), yield_nil: true){ |country, _, self_record, _|
     if country
       s_country = country.iso3166_a3_code
       s_country = country.title(langcode: 'en', lang_fallback: true) if s_country.blank?
     else
       s_country = 'nil'
     end
-    sprintf("(%s), force_destroy: %s", s_country, self_record.force_destroy.inspect)
+    sprintf("(%s), force_destroy: %s", s_country, (!!self_record.force_destroy).inspect)  # playing safe in case a complicated value (like self) is set for force_destroy
   }
 
   # Sets {Prefecture::REGEXP_IDENTIFY_MODEL} at the first call

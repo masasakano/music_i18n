@@ -48,7 +48,7 @@ class ArtistMusicPlay < ApplicationRecord
 
   alias_method :inspect_orig, :inspect if ! self.method_defined?(:inspect_orig) # Preferred to  alias :text_new :to_s
   include ModuleModifyInspectPrintReference
-  redefine_inspect(cols_yield: %w(event_item_id)){ |record, _|
+  redefine_inspect(cols_yield: %w(event_item_id)){ |record, _, _, _|
     sprintf("(%s)", record.machine_title)
   }
 

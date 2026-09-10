@@ -65,7 +65,7 @@
   <h3 class="visually-hidden">Edit panels for Note</h3>
     <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: HaramiVid, skip_ability_check: true} %>
 
-  <div class="form-actions submit_second">
+  <div class="form-actions submit_first">
     <%= f.submit %>
   </div>
   <div class="actions">
@@ -112,7 +112,7 @@
   </section> <!-- section id="form_harami_vid_contents" -->
   </div> <!-- div class="form-inputs" -->
 
-  <div class="form-actions">
+  <div class="form-actions submit_second">
     <%= f.submit %>
   </div>
   <div class="actions">

@@ -133,7 +133,7 @@ class Event < BaseWithTranslation
   alias_method :inspect_orig_event, :inspect if ! self.method_defined?(:inspect_orig_event)
   include ModuleModifyInspectPrintReference
 
-  redefine_inspect(cols_yield: %w(event_group_id place_id)){ |record, col_name, self_record|
+  redefine_inspect(cols_yield: %w(event_group_id place_id)){ |record, col_name, self_record, _|
     case col_name
     when "event_group_id"
       "("+record.title_or_alt(langcode: "en", lang_fallback_option: :either, str_fallback: "")+")"

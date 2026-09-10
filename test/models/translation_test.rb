@@ -1026,6 +1026,69 @@ class TranslationTest < ActiveSupport::TestCase
     assert_nil tra_ja2.reload.is_orig
   end
 
+  test "save_with_guard" do
+    # Should fail on :save, :create, :update
+    translatable = Music.last
+    tra = Translation.new(langcode: "en", is_orig: true, translatable: translatable)
+    tra.title = SecureRandom.alphanumeric(9000)  # Must be a random String because an repetitive String is compressed with PostgreSQL's native TOAST before its BTree-indexing upper-limit validation
+    assert_equal false, tra.save
+    assert tra.new_record?
+    assert tra.errors.any?
+
+    ### DEBUG
+    # puts "DEBUG: All errors:"
+    # tra.errors.group_by(&:attribute).each do |attribute, ar_errors|
+    #   puts "[#{attribute.to_s.upcase}] has #{ar_errors.size} errors/issues:"
+    #   ar_errors.each do |error|
+    #     puts "  - #{error.message} (Type: :#{error.type})"
+    #   end
+    # end
+    assert tra.errors[:title].present?
+    assert  tra.errors.added?(:title, SaveIndexGuard::ERROR_TYPE)
+    assert_equal 1, tra.errors.where(:title, SaveIndexGuard::ERROR_TYPE).size  # :index_limit_exceeded
+    assert_equal SaveIndexGuard::ERROR_TYPE, tra.errors.where(:title).first.type
+
+    # tests of a combined index for :save
+    tra.title  = SecureRandom.alphanumeric(1500)
+    tra.romaji = SecureRandom.alphanumeric(1400)
+    assert_equal false, tra.save
+    assert tra.new_record?
+    assert tra.errors.any?
+    assert tra.errors.added?(:title, SaveIndexGuard::ERROR_TYPE)
+    assert tra.errors[:title].present?
+    assert tra.errors[:romaji].blank?
+
+    tra.romaji = SecureRandom.alphanumeric(1600)
+    assert_equal false, tra.save
+    assert tra.errors.added?(:romaji, SaveIndexGuard::ERROR_TYPE)
+    assert tra.errors[:title].blank?
+    assert tra.errors[:romaji].present?
+
+    # tests of counting non-ASCII
+    tra.title = "あかな"+SecureRandom.alphanumeric(2700)
+    tra.romaji = ""
+    tra.langcode = "ja"
+    assert_equal false, tra.save
+    assert tra.new_record?
+    assert tra.errors.any?
+    assert_raises(ActiveRecord::RecordNotSaved){ tra.save! }
+    assert tra.errors[:title].present?
+
+    # :create
+    hs = {title: SecureRandom.alphanumeric(9000), langcode: "en", is_orig: true, translatable: translatable}
+    tra = Translation.create(**hs)
+    assert tra.errors.any?
+    assert  tra.errors.added?(:title, SaveIndexGuard::ERROR_TYPE)
+    assert tra.new_record?
+    assert_raises(ActiveRecord::RecordNotSaved){ Translation.create!(**hs) }
+
+    # :update
+    tra = translations(:channel_platform_one_en)
+    assert tra.update(note: "sanity check to update Translation")
+    refute tra.update(title: SecureRandom.alphanumeric(9000))
+    assert_raises(ActiveRecord::RecordNotSaved){ tra.update!(title: SecureRandom.alphanumeric(9000)) }
+  end
+
   test "Rails inflection initializer" do
     mu_ja = I18n.t("Music", locale: :ja)
     mu_ja_plural = mu_ja.pluralize(8, :ja)

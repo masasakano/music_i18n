@@ -212,8 +212,12 @@ class Anchoring < ApplicationRecord
   end
 
   alias_method :inspect_orig, :inspect if ! self.method_defined?(:inspect_orig)
-  # Modifying {#inspect}
-  def inspect
+  # Modifying {#inspect}, where a dummy argument :depth is accepted, too.
+  def inspect(depth: 0)
+    depth += 1
+    if depth > Consts::MAX_INSPECT_DEPTH
+      return sprintf("<%s: %s>", self.class.name, self.id)
+    end
     inspect_orig.sub(/(, url_id: (\d+)),/){
       url_str = "nil"
       if (u=Url.find($2)) && (u.url.present?)

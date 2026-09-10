@@ -195,6 +195,53 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_selector('input[type="submit"][value="Apply"]:not([disabled])')
   end
 
+  test "minimum creating HaramiVid" do
+    visit harami_vids_path
+    assert_selector "h1", text: "HARAMIchan's Videos"
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+    login_from_somewhere(@editor_harami.email, from: :footer)  # defined in test_system_helper.rb
+    # => ROOT
+
+    clickable_text = "All videos"
+    assert_selector "a", text: clickable_text
+    click_on clickable_text, match: :first
+
+    clickable_text = "Create a new HaramiVid"
+    assert_selector "div#new_harami_vid_link", text: clickable_text
+
+    click_on clickable_text
+    assert_selector "h1", text: "New Harami"
+    clickable_text = "Create Harami vid"
+    assert_selector sprintf('input[type="submit"][value="%s"]', clickable_text)
+
+    # HaramiVid-new - testing an extremely-long title bound to fail to save
+    choose('French')
+    # page_find_sys(:trans_new, :langcode_radio, model: HaramiVid).choose('English')  # defined in test_system_helper
+    select channel_owners(:channel_owner_haramichan).title(langcode: "en"), from: "Channel Owner"
+    select channel_platforms(:channel_platform_instagram).title(langcode: "en"), from: "Channel Platform"
+    fill_in "Uri", match: :first, with: "https://www.instagram/something/abcdefg"
+
+    hvid_tit = SecureRandom.alphanumeric(2000) + " " + SecureRandom.alphanumeric(1000)
+    page.find('input#harami_vid_title').fill_in with: hvid_tit  # This is unique!
+    assert_no_difference('HaramiVid.count'){
+      click_on clickable_text, match: :first
+      flash_text_system_assert("prohibited this HaramiVid", type: :alert, category: :div)  # defined in test_helper.rb
+      flash_text_system_assert("Too large size", type: :alert, category: :div)  # defined in test_helper.rb
+    }
+
+    assert_field "Full Title", with: hvid_tit  # The title should be preserved in the form.
+
+    # Successful :create a HaramiVid
+    fill_in "Full Title", with: hvid_tit[0..249]  # 250 characters
+
+    assert_difference('HaramiVid.count*10 + Translation.count', 11){
+      click_on clickable_text, match: :first
+      flash_text_system_assert("successfully created", type: [:notice, :success], category: :div)  # defined in test_helper.rb
+    }
+    assert_selector "h1", text: "-featured Video"
+    assert_selector "#main_link_edit_merge_destroy a", text: "Edit"
+  end
+
   test "visiting HaramiVid index and then creating one" do
     visit new_user_session_path
     fill_in "Email", with: @editor_harami.email
@@ -729,6 +776,51 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
     ## Test of CRUD of Anchoring in Show for an editor
     assert_anchoring_crud_in_show(hvid2, h1_title=date_str, skip_login: true)  # defined in test_system_helper.rb
+    hvid2.anchorings.reset
+    assert_equal 0, hvid2.anchorings.count
+
+    ## Opens :new form  # cf. test_system_helper.rb
+    xpath_new_anchoring_min = "//a[" + ModuleCommon.xpath_contain_text("New Anchoring", case_insensitive: true) + "]"
+    xpat = XPATHS[:anchoring][:new_link]  # in practice: xpath_new_anchoring_max
+    assert_selector :xpath, xpat
+    find(:xpath, xpat).click
+    css_submit_anchoring = "input[value='#{create_anchoring_button_txt}']"
+    # <input type="submit" name="commit" value="Create Anchoring" data-disable-with="Create Anchoring">
+    assert_selector css_submit_anchoring
+    xpath_item = XPATHS[:anchoring][:item] # defined in test_helper.rb
+    assert_selector :xpath, xpath_item, count: 1, wait: 0  # 1 pseudo li-item (Link to "New Anchoring")
+
+    ## Failed in Create Url and Anchoring due to too long title text
+    anchor_url = "https://example.com/should_fail_due_to_string"
+    fill_in "URL", with: anchor_url
+    select "Other", from: "Site category"
+    fill_in "Description", with: (url_tit=SecureRandom.alphanumeric(2000)+" "+SecureRandom.alphanumeric(1000))
+    uncheck "Tick this to update the title with H1 on the remote URL"
+    noko = Nokogiri::HTML5(page.find("body")[:innerHTML])
+    assert noko.xpath(xpath_new_anchoring_min).blank? , _get_caller_info_message(bind_offset: -1, prefix: true)+" new-link should disappear while editing, but..."
+
+    assert_no_difference("Url.count*10 + Anchoring.count"){
+      click_on create_anchoring_button_txt
+      assert_field "Description", with: url_tit
+      assert_selector "input#anchoring_title[value='#{url_tit}']"  # Same test as above
+      assert_selector css_submit_anchoring
+      assert_text "Please review"
+      assert_text "Too large size"
+    }
+    flash_text_system_assert("Please review", type: :alert, category: :div)  # defined in test_helper.rb
+    flash_text_system_assert("Too large size", type: :alert, category: :div)  # defined in test_helper.rb
+
+    fill_in "Description", with: url_tit[0..2000]
+    assert_difference("Anchoring.count"){
+      click_on create_anchoring_button_txt
+      refute_selector css_submit_anchoring
+    }
+    flash_text_system_assert("Anchoring was successfully", type: [:notice, :success], category: :div)  # defined in test_helper.rb
+    flash_regex_assert(/Domain\b.*\bidentified\b.+Anchoring was successfully .*created/i, type: :notice, category: :div, system_test: true)  # defined in test_helper.rb
+
+    hvid2.anchorings.reset
+    assert_equal 1, hvid2.anchorings.count
+    created_anc = hvid2.anchorings.first
 
     css_td = "table#music_table_for_hrami_vid tbody tr td.item_timing"
     ### Rails-7.1

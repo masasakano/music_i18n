@@ -57,6 +57,9 @@ class Translation < ApplicationRecord
   # for affinity-searching and ordering/sorting
   include DbSearchOrder
 
+  # To gracefully fail in saving a too-large String column
+  include SaveIndexGuard
+
   using ModuleHashExtra  # for extra methods, e.g., Hash#values_blank_to_nil
 
   before_validation :move_articles_to_tail
@@ -352,6 +355,15 @@ class Translation < ApplicationRecord
 
   # Skip singularize_is_orig callback (mainly used for testing)
   attr_accessor :skip_singularize_is_orig_callback
+
+  alias_method :inspect_orig, :inspect if ! self.method_defined?(:inspect_orig)
+
+  # Just to accept the optional argument :depth
+  #
+  # @return [String]
+  def inspect(depth: 0)
+    inspect_orig
+  end
 
   # Returns Array for "where" clause, in which Collation is specified.
   #

@@ -1349,11 +1349,11 @@ class ActiveSupport::TestCase
   #
   # @example  (I am not sure if these actually work...)
   #    xpath_for_flash(:notice, category: :error_explanation)
-  #      # => "//div[@id='body_main']//div[@id='error_explanation'][contains(@class, 'notice')][contains(@class, 'alert')][contains(@class, 'alert-info')][1]"
+  #      # => "//div[@id='body_main']//div[@id='error_explanation'][contains(@class, 'notice')][contains(@class, 'alert')][contains(@class, 'alert-info')]"
   #    xpath_for_flash(:warning, category: :both, extras: %w(a em))  # NOTE: extras is an Array!
-  #      # => "//div[@id='body_main']//div[contains(@class, 'alert')][contains(@class, 'alert-warning')]//a//em[1]|//div[@id='body_main']/div[@id='error_explanation'][contains(@class, 'alert')][contains(@class, 'alert-warning')]//a//em[1]"
+  #      # => "//div[@id='body_main']//div[contains(@class, 'alert')][contains(@class, 'alert-warning')]//a//em|//div[@id='body_main']/div[@id='error_explanation'][contains(@class, 'alert')][contains(@class, 'alert-warning')]//a//em"
   #    xpath_for_flash([:alert, :success], category: :div, extra_attributes: ["cls1", "cls2"])
-  #      # => "//div[@id='body_main']//div[contains(@class, 'alert')][contains(@class, 'alert-danger')][contains(@class, 'cls1')][contains(@class, 'cls2')][1]|//div[@id='body_main']//div[contains(@class, 'alert')][contains(@class, 'alert-success')][contains(@class, 'cls1')][contains(@class, 'cls2')][1]"
+  #      # => "//div[@id='body_main']//div[contains(@class, 'alert')][contains(@class, 'alert-danger')][contains(@class, 'cls1')][contains(@class, 'cls2')]|//div[@id='body_main']//div[contains(@class, 'alert')][contains(@class, 'alert-success')][contains(@class, 'cls1')][contains(@class, 'cls2')]"
   #
   # @example  Flash for Error for Turbo
   #    xpath_for_flash(:alert, category: :div, xpath_head: "//form[@id='form_new_anchoring']//")  # defined in test_helper.rb
@@ -1413,7 +1413,7 @@ class ActiveSupport::TestCase
         ([str0] + extras).join("//")
       }
       css_klasses.map{|ea_xpk|
-        sprintf(xpath_head+"%s%s[1]", ea_cat, ea_xpk)
+        sprintf(xpath_head+"%s%s", ea_cat, ea_xpk)
       }
     }.flatten.join("|")
   end # def xpath_for_flash()

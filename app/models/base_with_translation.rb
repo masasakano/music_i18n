@@ -452,6 +452,7 @@
 #
 class BaseWithTranslation < ApplicationRecord
   self.abstract_class = true
+  after_validation :capture_validation_context  # callback. Save validation_context for :after_create
   after_create :save_unsaved_translations  # callback to create(-only) @unsaved_translations
 
   include Translatable  # Key relation - polymorphic with Translation; defined in /app/models/concerns/translatable.rb
@@ -638,7 +639,15 @@ class BaseWithTranslation < ApplicationRecord
   #    This method should never fail and be designed to always return String no matter what.
   #
   # @return [String]
-  def inspect
+  def inspect(depth: 0)
+    def inspect_internal(obj, depth)
+      obj.respond_to?(:inspect_orig) ? (obj.inspect(depth: depth) rescue obj.inspect) : obj.inspect
+    end
+
+    depth += 1
+    if depth > Consts::MAX_INSPECT_DEPTH
+      return sprintf("<%s: %s>", self.class.name, self.id)
+    end
     artrans = (Translation.sort(translations).to_a rescue nil)   # just one-time DB access
     n_trans = (artrans.size rescue nil) # Number of total translations
     l_trans = (n_trans ? (artrans.map(&:langcode).uniq.size rescue nil) : nil)  # Number of unique languages; it should never fail but playing safe.
@@ -649,9 +658,9 @@ class BaseWithTranslation < ApplicationRecord
         lc = tran.langcode if tran.respond_to?(:langcode)  # This is always defined (unless Translation drastically changes)
         tit =
           if tran.respond_to?(:title) && (t=tran.title).present?  # It should alywas have the method, but playing safe.
-            t.inspect
+            inspect_internal(t, depth)
           else
-            (tran.respond_to?(:alt_title) && (t=tran.alt_title).present?) ? t.inspect+"[alt]" : 'nil'  # It should alywas have the method, but playing safe.
+            (tran.respond_to?(:alt_title) && (t=tran.alt_title).present?) ? inspect_internal(t, depth)+"[alt]" : 'nil'  # It should alywas have the method, but playing safe.
           end
       end
     end
@@ -660,7 +669,7 @@ class BaseWithTranslation < ApplicationRecord
         "; Translation(id=#{tran.id rescue 'nil'}/L=#{l_trans}/N=#{n_trans}): #{tit} (#{lc}:#{is_orig_str})"
       elsif ((unsaved_translations && unsaved_translations.size > 0) rescue nil) # It should never be nil, except those of fixtures called through #all??
         unsa = unsaved_translations
-        "; Translation(unsaved(n=#{unsa.size})[0]): #{unsa[0].title.inspect} (#{unsa[0].langcode rescue 'nil'})"
+        "; Translation(unsaved(n=#{unsa.size})[0]): #{inspect_internal(unsa[0].title, depth)} (#{unsa[0].langcode rescue 'nil'})"
       else
         "; Translation: None"
       end
@@ -3178,7 +3187,7 @@ class BaseWithTranslation < ApplicationRecord
     if !langcode
       # Either is_orig=nil for all Translations or Translation is not defined.
       if !new_record?
-        msg = "(#{__method__}) Failed to determine langcode for self=#{self.inspect} ; continue with a random language."
+        msg = "(#{__method__}) Failed to determine langcode for self=<#{self.class.name}:#{self.id}> ; continue with a random language." # Anything in this String should not refer to a child because this method is often used inside {#inspect}
         logger.warn msg
         # warn msg
       end
@@ -4762,6 +4771,11 @@ tra_orig.save!
     raise # should not come
   end
 
+  # Captures :create, :create!, or any custom context symbol for the use in after_create
+  def capture_validation_context
+    @saved_validation_context = validation_context
+  end
+
   # after_create callback/hook
   #
   # When self is a new record, {Translation} cannot be associated
@@ -4777,14 +4791,17 @@ tra_orig.save!
   # the callback is invoked, perhaps for the purpose of making sure
   # a Translation is created when a model is created.
   #
-  # If one of {Translation} fails to be saved, it raises an Exception
-  # (in {Translation#save!}), hence none of self and {Translation}-s
+  # If one of {Translation} fails to be saved, it raises an Exception,
+  # usually +ActiveRecord::RecordNotSaved+ (like {Translation#save!}),
+  # and hence none of self and {Translation}-s
   # are saved to the DB, either, because the DB rollbacks before
-  # the final commit happens after this callback
+  # the final end of DB transaction that follows this callback
   # (remember this callback comes before the after_commit callback).
   #
-  # Note it does mean even self.save (as opposed to save!) may raise
-  # a validation Exception.
+  # Note this does mean even self.save (as opposed to save!) may raise
+  # an Exception, and it seems there is no way around.  For example,
+  # ActiveRecord::Rollback would not roll back self.save likely because
+  # this after_save block is enclosed upstream in its own DB transaction.
   #
   # @raise [ActiveRecord::RecordInvalid]
   def save_unsaved_translations
@@ -4818,14 +4835,48 @@ tra_orig.save!
     raise ActiveRecord::RecordInvalid.new(self) if self.errors.size > 0
     #raise ActiveRecord::RecordInvalid, self.errors.full_messages.map(&:to_s).join(";") if !ar.empty?  # NOTE: bizzarly raises: NoMethodError: undefined method `errors' for ...:String
 
+    original_was_bang_method = @saved_validation_context.to_s.end_with?('!')  # see after_validation callback {#capture_validation_context}
     @unsaved_translations.reverse!
     @unsaved_translations.reverse.each do |translation|
-      translation.save!
+      if original_was_bang_method
+        translation.save!
+      else
+        unless translation.save
+          culprit_error = translation.errors.find { _1.type == SaveIndexGuard::ERROR_TYPE }  # PG::ProgramLimitExceeded
+          if culprit_error
+            # Translation is passed to the Exception instance.
+            msg = _prepare_record_not_saved_message(translation)
+            errors.add culprit_error.attribute, SaveIndexGuard::ERROR_TYPE, message: msg
+            ## NOTE: self.id remains significant and self.new_record? returns false.
+            #    Although it can be set here like @new_record=true, I am not sure
+            #    if it is the right thing...  Anyway, the caller should evaluate
+            #    the result with self.errors.any? as usual.
+            raise HaramiMusicI18n::IndexLimitExceededError.new(msg, translation)
+          else
+            raise ActiveRecord::RecordNotSaved.new(_prepare_record_not_saved_message(translation), translation)
+          end
+          #raise ActiveRecord::Rollback  # This does NOT work, i.e., this would not rollback BaseWithTranslation (likely because this after_save block is enclosed in its own transaction block)
+        end
+      end
       @unsaved_translations.pop
     end
 
     translations.reset  # Without this, the association would not be updated, which may cause a surprise.
   end
+
+  # @param translation [Translation]
+  # @return [String]
+  def _prepare_record_not_saved_message(translation)
+    culprit_error = translation.errors.find { _1.type == SaveIndexGuard::ERROR_TYPE }  # There should be only one error of this type at most; see SaveIndexGuard
+    if culprit_error
+      # e.g., "[:title] Too large size (currently 3000 bytes) exceeds the DB limit: (en)[title] very long...stri[...] [alt_title] short one"
+      sprintf("[:%s] %s", culprit_error.attribute.to_s, culprit_error.message)
+    else
+      "Failed to save associated translation: "
+    end
+  end
+  private :_prepare_record_not_saved_message
+
 
   # Translation-related validation
   #

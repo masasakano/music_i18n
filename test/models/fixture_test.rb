@@ -88,8 +88,10 @@ class FixtureTest < ActiveSupport::TestCase
 
   test "all valid" do
     # Note: Fixtures of Channel must be manually updated every time seeds is updated.  It may cause an error here!.
+    # Note: DummyIndexedRecord is a temporary Model/table defined in /test/support/save_index_guard_test_helper.rb
+    #       to be used in /test/models/concerns/save_index_guard_test.rb
     Rails.application.eager_load!
-    ActiveRecord::Base.descendants.select{|i| !i.abstract_class? && !i.name.include?('::') && i.table_name == i.name.underscore.pluralize}.sort{|a,b| a.name <=> b.name}.each do |model|
+    ActiveRecord::Base.descendants.select{|i| !i.abstract_class? && !i.name.include?('::') && i.name != "DummyIndexedRecord" && i.table_name == i.name.underscore.pluralize}.sort{|a,b| a.name <=> b.name}.each do |model|
       if !model
         print "strange model: "; p model
         next

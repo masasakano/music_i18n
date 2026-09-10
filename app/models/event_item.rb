@@ -107,7 +107,7 @@ class EventItem < ApplicationRecord
   # as the value would be unreasonably large, and {#duration_minute} may as well remain nil.
   MAX_DURATION_TO_IMPORT = 1.days
 
-  redefine_inspect(cols_yield: %w(event_id place_id)){ |record, col_name, self_record|
+  redefine_inspect(cols_yield: %w(event_id place_id)){ |record, col_name, self_record, _|
     case col_name
     when "event_id"
       "("+record.title_or_alt(langcode: "en", lang_fallback_option: :either, str_fallback: "")+")"

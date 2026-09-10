@@ -7,6 +7,9 @@ class ApplicationController < ActionController::Base
 
   protect_from_forgery with: :exception
 
+  # Globally capture this domain error anywhere it bubbles up out of a save or save!
+  rescue_from HaramiMusicI18n::IndexLimitExceededError, with: :handle_db_index_overflow
+
   ## Uncomment this (as well as the method at the bottom) to investigate problems related to params() and/or authenticate/Controller
   #before_action :debug_ctrl_print1
   before_action :authenticate_user!
@@ -962,6 +965,19 @@ class ApplicationController < ActionController::Base
     #def debug_ctrl_print2
     #  logger.debug("DEBUG(#{File.basename __FILE__})(2:After-befo_action): "+params.inspect)
     #end
+
+  private
+    def handle_db_index_overflow(exception)
+      failed_record = exception.record
+
+      # Logs the exact structural culprit column
+      culprit = failed_record.errors.find { |e| e.type == :index_limit_exceeded }&.attribute
+      Rails.logger.error "Index Limit Breached on column: :#{culprit}"
+
+      # Renders a clean, stylized error page or redirect users back with an alert
+      flash[:error] = "One of the text fields you submitted is too large to be safely saved. Please shorten your input."
+      redirect_back fallback_location: root_path
+    end
 end
 
 Devise::ParameterSanitizer::DEFAULT_PERMITTED_ATTRIBUTES[:sign_up] << :accept_terms

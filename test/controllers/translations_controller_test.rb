@@ -82,20 +82,43 @@ end
     end
   end
 
-if false
-  test "should fail to create translation" do
+  test "should fail to create translation for unauthenticated" do
+    get new_translation_path
+    assert_redirected_to new_user_session_path
+
     assert_difference('Translation.count', 0) do
       post translations_url, params: { translation: { alt_title: 'abcde', is_orig: false, langcode: 'en', translatable_type: @sex.class.name, translatable_id: @sex.id, } }
     end
     assert_redirected_to new_user_session_path
+
+    tra = Translation.create!(title: "very low weight", langcode: "en", is_orig: false, weight: 999999, translatable: @music)
+    get edit_translation_path(tra)
+    assert_redirected_to new_user_session_path
+
+    assert_no_difference('Translation.count') do
+      delete translation_url(tra)
+    end
   end
 
   test "translator should create translation" do
     sign_in @translator
-    assert_difference('Translation.count', 0) do
-      post translations_url, params: { translation: { alt_title: 'abcde', is_orig: false, langcode: 'en', translatable_type: @sex.class.name, translatable_id: @sex.id, } }
+    min_weight = @sex.translations.where(langcode: 'en').order(:weight).first.weight
+    assert_difference('Translation.count') do
+      post translations_url, params: { translation: { alt_title: 'abcde', is_orig: false, langcode: 'en', translatable_type: @sex.class.name, translatable_id: @sex.id, } }  # translator can add Translation for a record that is not editable for themselves.
+      @sex.translations.reset
+      assert_operator min_weight, :<, @sex.translations.order("translations.created_at").last.weight
     end
-    assert_redirected_to root_url
+
+    assert_difference('Translation.count') do
+      post translations_url, params: { translation: { alt_title: 'abcde', is_orig: false, langcode: 'it', translatable_type: @sex.class.name, translatable_id: @sex.id, } }  # translator can add Translation (of any language, let alone a new language like here) for a record that is not editable for themselves.
+      @sex.translations.reset
+      assert_equal @sex.translations.where(langcode: 'it').order(:weight).first.weight, @sex.translations.order("translations.created_at").last.weight
+    end
+
+    ## preparation of @music
+    @music = Music.new(year: 1987, place: places(:unknown_place_unknown_prefecture_japan))
+    @music.unsaved_translations << Translation.new(title: "Initial-日本語のtranslation", langcode: "ja", is_orig: true, weight: 3000000)
+    @music.save!
 
     # 1st creation
     assert_difference('Translation.count', 1) do
@@ -120,7 +143,7 @@ if false
 
     assert_equal @trans_moderator, tra2.create_user
     assert_equal @trans_moderator, tra2.update_user
-    assert_equal @trans_moderator.roles.first.weight, tra2.weight
+    assert_equal @trans_moderator.roles.first.weight, tra2.weight, tra2.inspect + @music.translations.pluck(:weight).inspect
 
     # 3nd creation by another Translator at the same rank
     sign_out @trans_moderator
@@ -164,6 +187,32 @@ if false
       #<h2>2 errors prohibited this translation from being saved:</h2>
       #  <li>Title has already been taken
       #  <li>Combination of (title, alt_title) must be unique: [nil, &quot;abcd4&quot;]</li>
+  end
+
+  test "should gracefully fail to create translation with a very long text" do
+    sign_in @trans_moderator
+    assert_difference('Translation.count', 1, 'sanity check') do
+      post translations_url, params: { translation: { title: 'sanity-check creation', is_orig: true, langcode: 'es', translatable_type: @music.class.name, translatable_id: @music.id } }
+    end
+    tra4edit = Translation.last
+
+    opts = { is_orig: true, langcode: 'es', romaji: SecureRandom.alphanumeric(1400), translatable_type: @music.class.name, translatable_id: @music.id }
+    hs = opts.merge({ title: SecureRandom.alphanumeric(1500) })
+    assert_no_difference('Translation.count'){
+      post translations_url, params: { translation: hs } }
+    assert_response :unprocessable_content
+
+    # :update (PATCH/PUT)
+    tra = translations(:channel_platform_one_en)
+    opts = {}
+    %i(is_orig langcode weight title ruby romaji alt_title alt_ruby alt_romaji translatable_type translatable_id).each do |ek|
+      opts[ek] = tra.send(ek)
+    end
+    opts[:title] = SecureRandom.alphanumeric(9000)
+    assert_no_difference('Translation.count'){
+      patch translation_url(tra), params: { translation: opts } }
+    assert_response :unprocessable_content
+    sign_out @trans_moderator
   end
 
   test "should fail to show translation" do
@@ -213,14 +262,15 @@ if false
     get edit_translation_url(@tra_mu_en_orig)
     assert_response :success, 'original-EN Music title should be editable by evey general-editor, but?'
 
-    play_role_unk = PlayRole.unknown?
-    play_role_unk.update!(create_user_id: @general_moderator, update_user_id: @general_moderator)
-    get edit_translation_url(play_role_unk)
-    assert_response :unprocessable_content, 'Should fail due to unknown PlayRole'
+    play_role_unk = PlayRole.unknown
+    # play_role_unk.update!(create_user_id: @general_moderator, update_user_id: @general_moderator)  # no create_user_id defined
+    get edit_translation_url(play_role_unk.best_translation)
+    assert_response :redirect, "Translation of Unknown PlayRole should not be editable."
+    assert_redirected_to root_url
     sign_out(@general_moderator)
 
     sign_in @admin
-    get edit_translation_url(play_role_unk)
+    get edit_translation_url(play_role_unk.best_translation)
     assert_response :success
   end
 
@@ -273,6 +323,5 @@ if false
     end
     assert_redirected_to translations_url
   end
-end # if false
 end
 
