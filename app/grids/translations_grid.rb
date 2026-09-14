@@ -75,7 +75,7 @@ class TranslationsGrid < ApplicationGrid
   column(:alt_romaji)
 
   column(:is_orig, mandatory: true, header: "Orig?") do |record|
-    record ? 'T' : (record.nil? ? '' : 'F')
+    record.is_orig ? 'T' : (record.is_orig.nil? ? '' : 'F')
   end
 
   column(:weight, mandatory: true, tag_options: {class: ["editor_only"]}, if: Proc.new{ApplicationGrid.qualified_as?(TransModerator)})
