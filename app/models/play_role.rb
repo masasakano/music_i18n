@@ -7,6 +7,7 @@
 #  id                                                  :bigint           not null, primary key
 #  mname(unique machine name)                          :string           not null
 #  note                                                :text
+#  orig_locale(locale of original title)               :string(2)
 #  weight(weight to sort entries in Index for Editors) :float            default(999.0), not null
 #  created_at                                          :datetime         not null
 #  updated_at                                          :datetime         not null
@@ -25,6 +26,9 @@ class PlayRole < BaseWithTranslation
 
   ## Commented out because this contradicts:   not null
   # include ModuleWeight  # adds a validation
+
+  # Minimum requirements for editing Translation (see BaseWithTranslation).
+  TRANSLATION_EDITABLE_IF_AT_LEAST = :moderator?
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []

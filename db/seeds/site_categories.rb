@@ -20,7 +20,7 @@ module Seeds::SiteCategories
       ja: RECORD_CLASS::UNKNOWN_TITLES['ja'],
       en: RECORD_CLASS::UNKNOWN_TITLES['en'],
       fr: RECORD_CLASS::UNKNOWN_TITLES['fr'],
-      orig_langcode: 'en',
+      orig_langcode: nil,  # used to be 'en',
       weight: 0,
       summary:  "Unknown category",
       note: nil,

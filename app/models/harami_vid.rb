@@ -7,6 +7,7 @@
 #  duration(Total duration in seconds)                 :float
 #  memo_editor(Internal-use memo for Editors)          :text
 #  note                                                :text
+#  orig_locale(locale of original title)               :string(2)
 #  release_date(Published date of the video)           :date
 #  uri((YouTube) URI of the video)                     :text
 #  created_at                                          :datetime         not null
@@ -53,6 +54,9 @@ class HaramiVid < BaseWithTranslation
 
 #################################
 #  after_create :save_unsaved_associates  # callback to create(-only) @unsaved_channel,  @unsaved_artist, @unsaved_music
+
+  # Minimum requirements for editing Translation (see BaseWithTranslation).
+  TRANSLATION_EDITABLE_IF_AT_LEAST = :editor?
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = %i(uri)

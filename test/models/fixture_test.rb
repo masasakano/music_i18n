@@ -115,6 +115,17 @@ class FixtureTest < ActiveSupport::TestCase
     BaseWithTranslation.descendants.each do |klass|
       klass.all.each do |obj|
         _assert_fixtures(obj, :translations)
+
+        # Transitional checks: All old fixtures of Translation#is_orig should be consistent with its parent#orig_locale
+        next if Sex == obj.class
+        msg = "Inconsistent orig_locale for "+obj.inspect
+        if obj.translations.pluck(:is_orig).compact.empty?
+          assert_nil obj.orig_locale, msg
+        else
+          trans = obj.translations.find{_1.is_orig}
+          assert trans, "Existing Translations seem inconsistent for "+obj.translations.inspect
+          assert_equal trans.langcode, obj.orig_locale, msg
+        end
       end
     end
   end

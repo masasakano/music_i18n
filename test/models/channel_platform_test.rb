@@ -6,6 +6,7 @@
 #  id                                                 :bigint           not null, primary key
 #  mname(machine name (alphanumeric characters only)) :string           not null
 #  note                                               :text
+#  orig_locale(locale of original title)              :string(2)
 #  created_at                                         :datetime         not null
 #  updated_at                                         :datetime         not null
 #  create_user_id                                     :bigint

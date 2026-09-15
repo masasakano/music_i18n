@@ -11,6 +11,7 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     @translator = users(:user_translator)
     @trans_moderator = users(:user_moderator_translation)
     @general_moderator = users(:user_moderator)  # moderator/general_ja, who is not qualified to manimuplate this model though can read
+    @moderator_all   = users(:user_moderator_all)    # Allmighty Moderator can manage.
     @sex = Sex.second
     @music = Music.second
     @artist = artists(:artist_ai)
@@ -247,6 +248,7 @@ end
     get edit_translation_url(@tra_mu_by_mod)
     assert_redirected_to root_url
 
+    assert Ability.new(@translator).can?(:edit, @tra_mu_ja)
     get edit_translation_url(@tra_mu_ja)
     assert_response :success, 'JA Music Translation should be editable by Translator, but?'
 
@@ -296,6 +298,25 @@ end
 
     patch translation_url(@tra_mu), params: { translation: { alt_title: 'abcde', is_orig: false, langcode: 'en', translatable_type: parent.class.name, translatable_id: parent.id, } }
     assert_redirected_to translation_url(@tra_mu)
+  end
+
+  test "All-mighty Moderator fails to update Sex Translation" do
+    # preparation
+    @sex.orig_locale = "en"
+    @sex.save!
+
+    sign_in @moderator_all
+    tit_orig = @sex.title(langcode: "en")
+    sex_tra_en = @sex.best_translation(langcode: "en")
+
+    ability = Ability.new(@moderator_all)
+    refute ability.can?(:update, sex_tra_en)
+
+    patch translation_url(sex_tra_en), params: { translation: { title: 'abcde'+__method__.to_s, is_orig: true, langcode: 'en', translatable_type: @sex.class.name, translatable_id: @sex.id, } }
+    assert_response :redirect
+    assert_redirected_to root_url
+    @sex.reload
+    assert_equal tit_orig, @sex.title(langcode: "en")  # should have not changed.
   end
 
   test "should fail to destroy translation" do

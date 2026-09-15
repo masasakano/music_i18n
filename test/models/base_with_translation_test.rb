@@ -306,23 +306,23 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
 
     pref_en = Prefecture.select_translations_regex(:title, Prefecture::UnknownPrefecture['en'], langcode: 'en', note: 'UnknownPrefectureUkEn')[0] # Translation of Prefecture
     assert_equal Prefecture::UnknownPrefecture['en'], pref_en.title
-    assert               pref_en.is_orig
+    assert_nil           pref_en.is_orig
     pref_ja = Prefecture.select_translations_regex(:title, Prefecture::UnknownPrefecture['ja'], langcode: 'ja')[0]
     assert_equal Prefecture::UnknownPrefecture['ja'], pref_ja.title
-    assert_not           pref_ja.is_orig
+    assert_nil           pref_ja.is_orig
     pref_fr = Prefecture.select_translations_regex(:title, Prefecture::UnknownPrefecture['fr'], langcode: 'fr')[0]
     assert_equal Prefecture::UnknownPrefecture['fr'], pref_fr.title
-    assert_not           pref_fr.is_orig
+    assert_nil           pref_fr.is_orig
 
     plac_en = Place.select_translations_regex(:title, Place::UnknownPlace['en'], langcode: 'en', note: 'UnknownPlaceUnknownPrefectureUkEn')[0] # Translation of Place
     assert_equal Place::UnknownPlace['en'], plac_en.title
-    assert               plac_en.is_orig
+    assert_nil           plac_en.is_orig
     plac_ja = Place.select_translations_regex(:title, Place::UnknownPlace['ja'], langcode: 'ja')[0]
     assert_equal Place::UnknownPlace['ja'], plac_ja.title
-    assert_not           plac_ja.is_orig
+    assert_nil           plac_ja.is_orig
     plac_fr = Place.select_translations_regex(:title, Place::UnknownPlace['fr'], langcode: 'fr')[0]
     assert_equal Place::UnknownPlace['fr'], plac_fr.title
-    assert_not           plac_fr.is_orig
+    assert_nil           plac_fr.is_orig
   end
 
   # Checking the way to handle (extra) spaces, including multibyte ones. Using the subclass Country.

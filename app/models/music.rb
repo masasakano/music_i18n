@@ -6,6 +6,7 @@
 #  id                                         :bigint           not null, primary key
 #  memo_editor(Internal-use memo for Editors) :text
 #  note                                       :text
+#  orig_locale(locale of original title)      :string(2)
 #  year                                       :integer
 #  created_at                                 :datetime         not null
 #  updated_at                                 :datetime         not null
@@ -43,6 +44,9 @@ class Music < BaseWithTranslation
 
   # CSV-related. Also defining Music::ResultLoadCsv 
   include ModuleCsvAux
+
+  # Minimum requirements for editing Translation (see BaseWithTranslation).
+  TRANSLATION_EDITABLE_IF_AT_LEAST = :editor?
 
   # For the translations to be unique (required by BaseWithTranslation).
   # MAIN_UNIQUE_COLS = %i(year place_id)  # More complicated - it depends on Artist

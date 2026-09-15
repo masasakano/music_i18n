@@ -7,6 +7,7 @@
 #  memo_editor(Internal-use memo for Editors) :text
 #  mname(Unique machine name)                 :string           not null
 #  note                                       :text
+#  orig_locale(locale of original title)      :string(2)
 #  summary(Short summary)                     :text
 #  weight(weight to sort this model in index) :float
 #  created_at                                 :datetime         not null

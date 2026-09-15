@@ -5,6 +5,7 @@
 #
 #  id                                        :bigint           not null, primary key
 #  note                                      :text
+#  orig_locale(locale of original title)     :string(2)
 #  weight(Smaller means higher in priority.) :float
 #  created_at                                :datetime         not null
 #  updated_at                                :datetime         not null
@@ -13,6 +14,9 @@ class Genre < BaseWithTranslation
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
   include ModuleWeight  # adds a validation
+
+  # Minimum requirements for editing Translation (see BaseWithTranslation).
+  TRANSLATION_EDITABLE_IF_AT_LEAST = :an_admin?
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []

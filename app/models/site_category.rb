@@ -7,6 +7,7 @@
 #  memo_editor(Internal-use memo for Editors) :text
 #  mname(Unique machine name)                 :string           not null
 #  note                                       :text
+#  orig_locale(locale of original title)      :string(2)
 #  summary(Short summary)                     :text
 #  weight(weight to sort this model in index) :float
 #  created_at                                 :datetime         not null
@@ -27,6 +28,9 @@ class SiteCategory < BaseWithTranslation
 
   # for destroyable?  See {DEPENDENT_CHILDREN}
   include ModuleDestroyable
+
+  # Minimum requirements for editing Translation (see BaseWithTranslation).
+  TRANSLATION_EDITABLE_IF_AT_LEAST = :an_admin?
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = %i(mname)

@@ -10,6 +10,7 @@
 #  iso3166_n3_code(ISO-3166-1 Numeric code, JIS X 0304) :integer
 #  iso3166_remark(Remarks in ISO-3166-1, 2, 3)          :text
 #  note                                                 :text
+#  orig_locale(locale of original title)                :string(2)
 #  orig_note(Remarks by HirMtsd)                        :text
 #  start_date                                           :date
 #  territory(Territory name in ISO-3166-1)              :text
@@ -38,6 +39,7 @@ country_world:
 #  note: MyTextEarth
 
 japan:
+  orig_locale: ja
   iso3166_a2_code: JP
   iso3166_a3_code: JPN
   iso3166_n3_code: 392
@@ -46,6 +48,7 @@ japan:
   country_master: japan_master
 
 uk:
+  orig_locale: en
   iso3166_a2_code: GB
   iso3166_a3_code: GBR
   iso3166_n3_code: 826
@@ -57,6 +60,7 @@ uk:
   country_master: uk_master
 
 france:
+  orig_locale: fr
   iso3166_a2_code: FR
   iso3166_a3_code: FRA
   iso3166_n3_code: 250
@@ -68,6 +72,7 @@ france:
   country_master: france_master
 
 aus:
+  orig_locale: en
   iso3166_a2_code: AU
   iso3166_a3_code: AUS
   iso3166_n3_code: 36

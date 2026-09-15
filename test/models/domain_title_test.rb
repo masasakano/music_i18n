@@ -5,6 +5,7 @@
 #  id                                         :bigint           not null, primary key
 #  memo_editor(Internal-use memo for Editors) :text
 #  note                                       :text
+#  orig_locale(locale of original title)      :string(2)
 #  weight(weight to sort this model index)    :float
 #  created_at                                 :datetime         not null
 #  updated_at                                 :datetime         not null

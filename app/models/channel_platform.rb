@@ -6,6 +6,7 @@
 #  id                                                 :bigint           not null, primary key
 #  mname(machine name (alphanumeric characters only)) :string           not null
 #  note                                               :text
+#  orig_locale(locale of original title)              :string(2)
 #  created_at                                         :datetime         not null
 #  updated_at                                         :datetime         not null
 #  create_user_id                                     :bigint
@@ -35,6 +36,9 @@ class ChannelPlatform < BaseWithTranslation
 
   # for destroyable?
   include ModuleDestroyable
+
+  # Minimum requirements for editing Translation (see BaseWithTranslation).
+  TRANSLATION_EDITABLE_IF_AT_LEAST = :moderator?
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []

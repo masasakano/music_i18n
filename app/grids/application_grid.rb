@@ -562,6 +562,8 @@ class ApplicationGrid < Datagrid::Base
     column(:other_lang, header: Proc.new{I18n.t('layouts.Other_language_short')}) do |record|
       titles_other_langs(record, is_orig_char: "*")
     end
+
+    column(:orig_locale, header: "Orig LC", tag_options: {class: ["editor_only", "text-center"]}, if: Proc.new{ApplicationGrid.qualified_as?(:editor)})
   end
 
   # Add a column for a Model of BaseWithTranslation, which the original model belongs_to

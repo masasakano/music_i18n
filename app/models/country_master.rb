@@ -58,11 +58,21 @@ class CountryMaster < ApplicationRecord
   # @return [Hash] to feed to create {Translation} associated to the corresponding {Country}
   #   e.g., {ja: {title: "英領インド洋地域", alt_title: nil, is_orig: false, weight: 0}, en: {...}, ...}
   def construct_hs_trans
+    orig_locale = 
+      case iso3166_a2_code
+      when "JP"
+        "ja"
+      when "FR"
+        "fr"
+      else
+        "en"
+      end
+
     hstrans = {}.with_indifferent_access
     %w(ja en fr).each do |lc|
       hstrans[lc] = {
         langcode: lc,
-        is_orig: true,
+        is_orig: (orig_locale == lc.to_s),
         weight: 0,
       }.with_indifferent_access
       hstrans[lc][:title]     = send('name_'+lc+'_full')

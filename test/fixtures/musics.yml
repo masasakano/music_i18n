@@ -5,6 +5,7 @@
 #  id                                         :bigint           not null, primary key
 #  memo_editor(Internal-use memo for Editors) :text
 #  note                                       :text
+#  orig_locale(locale of original title)      :string(2)
 #  year                                       :integer
 #  created_at                                 :datetime         not null
 #  updated_at                                 :datetime         not null
@@ -23,6 +24,7 @@
 #
 
 music1:
+  orig_locale: en
   year: 
   place: unknown_place_unknown_prefecture_japan
   genre: genre_pop
@@ -30,54 +32,63 @@ music1:
   memo_editor: Music1MemoEditor
 
 music2:
+  orig_locale: en
   year: 1
   place: unknown_place_unknown_prefecture_uk
   genre: genre_classic
   note: Music2
 
 music3:
+  orig_locale: en
   year: 1
   place: unknown_place_unknown_prefecture_uk
   genre: genre_classic
   note: Music3
 
 music99:
+  orig_locale: en
   year: 99
   place: unknown_place_unknown_prefecture_uk
   genre: genre_unknown
   note: Music99 with no artists no harami_vids
 
 music999:
+  orig_locale: en
   year: 
   place: unknown_place_unknown_prefecture_world
   genre: genre_unknown
   note: Music999 in UnknownPlace with no artists no harami_vids
 
 music_unknown:
+  orig_locale: 
   year: 
   place: unknown_place_unknown_prefecture_world
   genre: genre_unknown
   note: MusicUnknown with no artists no harami_vids
 
 music_how:
+  orig_locale: en
   year: 1971
   place: unknown_place_unknown_prefecture_world
   genre: genre_pop
   note: MusicHow with no harami_vids
 
 music_story:
+  orig_locale: en
   year: 
   place: unknown_place_unknown_prefecture_world
   genre: genre_unknown
   note: Story by AI
 
 music_kampai:
+  orig_locale: ja
   year: 
   place: unknown_place_unknown_prefecture_japan
   genre: genre_pop
   note: MusicKampai with no artists no harami_vids
 
 music_ihojin1:
+  orig_locale: ja
   year: 1969
   place: unknown_place_unknown_prefecture_japan
   genre: genre_unknown
@@ -85,54 +96,63 @@ music_ihojin1:
   memo_editor: MemoEditor_Music_Ihojin1
 
 music_ihojin2:
+  orig_locale: ja
   year: 1981
   place: unknown_place_kagawa_japan
   genre: genre_pop
   note: MusicIhojin2
 
 music_robinson:
+  orig_locale: en
   year: 
   place: unknown_place_kagawa_japan
   genre: genre_pop
   note: MusicRobinson
 
 music_light:
+  orig_locale: en
   year: 1994
   place: unknown_place_unknown_prefecture_uk
   genre: genre_pop
   note: MusicLight with no harami_vids
 
 music_rain:
+  orig_locale: ja
   year: 2021
   place: unknown_place_unknown_prefecture_japan
   genre: genre_pop
   note: MusicRain with no harami_vids
 
 music_all_i_want_for_christmas_mariah:
+  orig_locale: en
   year: 1994
   place: unknown_place_unknown_prefecture_world
   genre: genre_pop
   note: MusicAllIWantForChristmasMariah with no harami_vids
 
 music_gerende:
+  orig_locale: ja
   year: 1995
   place: unknown_place_unknown_prefecture_japan
   genre: genre_pop
   note: MusicGerende with no harami_vids
 
 music_koibito_santa:
+  orig_locale: ja
   year: 1980
   place: unknown_place_unknown_prefecture_japan
   genre: genre_pop
   note: MusicKoibitoSanta with no harami_vids
 
 music_koi_hoshino:
+  orig_locale: ja
   year: 2016
   place: unknown_place_unknown_prefecture_japan
   genre: genre_pop
   note: MusicKoiHoshino with no harami_vids
 
 music_shiroi_koibitotachi:
+  orig_locale: ja
   year: 2001
   place: unknown_place_unknown_prefecture_japan
   genre: genre_pop

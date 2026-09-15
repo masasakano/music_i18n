@@ -4,11 +4,12 @@
 #
 # Table name: sexes
 #
-#  id         :bigint           not null, primary key
-#  iso5218    :integer          not null
-#  note       :text
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
+#  id                                    :bigint           not null, primary key
+#  iso5218                               :integer          not null
+#  note                                  :text
+#  orig_locale(locale of original title) :string(2)
+#  created_at                            :datetime         not null
+#  updated_at                            :datetime         not null
 #
 # Indexes
 #

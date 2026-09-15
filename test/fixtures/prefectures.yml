@@ -6,6 +6,7 @@
 #  end_date                                                     :date
 #  iso3166_loc_code(ISO 3166-2:JP (etc) code (JIS X 0401:1973)) :integer
 #  note                                                         :text
+#  orig_locale(locale of original title)                        :string(2)
 #  orig_note(Remarks by HirMtsd)                                :text
 #  start_date                                                   :date
 #  created_at                                                   :datetime         not null
@@ -23,54 +24,66 @@
 #
 
 unknown_prefecture_world:
+  orig_locale:
   country: country_world
   note: UnknownPrefectureWorld
 
 prefecture_tokyo_in_world:
+  orig_locale:
   country: country_world
   note: TokyoInWorld ie NotInJapan
 
 unknown_prefecture_japan:
+  orig_locale:
   country: japan
   note: NoteJapan
 
 tokyo:
+  orig_locale: ja
   country: japan
   note: NoteTokyo
   iso3166_loc_code: 13
 
 kagawa:
+  orig_locale: ja
   country: japan
   note: NoteKagawa
   iso3166_loc_code: 37
 
 shimane:
+  orig_locale: ja
   country: japan
   note: NoteShimane
   iso3166_loc_code: 32
 
 unknown_prefecture_uk:
+  orig_locale: 
   country: uk
   note: NoteUk
 
 liverpool:
+  orig_locale: en
   country: uk
   note: NoteLiverpool
 
 greater_london:
+  orig_locale: en
   iso3166_loc_code: 12000007
   country: uk
   note: GreaterLondonUk
 
 unknown_prefecture_france:
+  orig_locale: 
   country: france
   note: PrefFrance
 
 prefecture_paris:
+  orig_locale: fr
   country: france
   note: PrefectureParisFrance
 
 unknown_prefecture_aus:
+  orig_locale: 
   country: aus
   note: NoteAus
 

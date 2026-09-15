@@ -7,6 +7,7 @@
 #  id_at_platform(Channel-ID at the remote platform)                      :string
 #  id_human_at_platform(Human-readable Channel-ID at remote prefixed <@>) :string
 #  note                                                                   :text
+#  orig_locale(locale of original title)                                  :string(2)
 #  created_at                                                             :datetime         not null
 #  updated_at                                                             :datetime         not null
 #  channel_owner_id                                                       :bigint           not null

@@ -8,6 +8,7 @@
 #  end_date                                                     :date
 #  iso3166_loc_code(ISO 3166-2:JP (etc) code (JIS X 0401:1973)) :integer
 #  note                                                         :text
+#  orig_locale(locale of original title)                        :string(2)
 #  orig_note(Remarks by HirMtsd)                                :text
 #  start_date                                                   :date
 #  created_at                                                   :datetime         not null

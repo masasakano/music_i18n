@@ -8,6 +8,7 @@
 #  end_date                                                     :date
 #  iso3166_loc_code(ISO 3166-2:JP (etc) code (JIS X 0401:1973)) :integer
 #  note                                                         :text
+#  orig_locale(locale of original title)                        :string(2)
 #  orig_note(Remarks by HirMtsd)                                :text
 #  start_date                                                   :date
 #  created_at                                                   :datetime         not null
@@ -32,6 +33,9 @@ class Prefecture < BaseWithTranslation
 
   # for set_singleton_unknown
   include ModuleSetSingletonUnknown
+
+  # Minimum requirements for editing Translation (see BaseWithTranslation).
+  TRANSLATION_EDITABLE_IF_AT_LEAST = :moderator?
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = [:country_id, :iso3166_loc_code]

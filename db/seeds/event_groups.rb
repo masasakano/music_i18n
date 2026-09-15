@@ -68,7 +68,7 @@ module Seeds::EventGroups
       ja: 'その他のイベント類',
       en: 'UncategorizedEventGroup',
       fr: "Groupe d'événements non classé",
-      orig_langcode: 'en',
+      orig_langcode: nil,
       start_date: TimeAux::DEF_FIRST_DATE_TIME,
       start_date_err: max_error_day,
       end_date:   TimeAux::DEF_LAST_DATE_TIME,

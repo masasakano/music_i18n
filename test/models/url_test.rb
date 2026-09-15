@@ -7,6 +7,7 @@
 #  last_confirmed_date                             :date
 #  memo_editor                                     :text
 #  note                                            :text
+#  orig_locale(locale of original title)           :string(2)
 #  published_date                                  :date
 #  url(valid URL/URI including https://)           :string           not null
 #  url_langcode(2-letter locale code)              :string

@@ -9,6 +9,7 @@
 #  birth_year                                 :integer
 #  memo_editor(Internal-use memo for Editors) :text
 #  note                                       :text
+#  orig_locale(locale of original title)      :string(2)
 #  created_at                                 :datetime         not null
 #  updated_at                                 :datetime         not null
 #  place_id                                   :bigint           not null
@@ -53,6 +54,9 @@ class Artist < BaseWithTranslation
   include ModulePrimaryArtist
 
   include ModuleDefaultPlace # add_default_place (callback) etc
+
+  # Minimum requirements for editing Translation (see BaseWithTranslation).
+  TRANSLATION_EDITABLE_IF_AT_LEAST = :editor?
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = %i(birth_day birth_month birth_year place_id sex_id)

@@ -5,6 +5,7 @@
 #  id                                                  :bigint           not null, primary key
 #  mname(unique machine name)                          :string           not null
 #  note                                                :text
+#  orig_locale(locale of original title)               :string(2)
 #  weight(weight to sort entries in Index for Editors) :float            default(999.0), not null
 #  created_at                                          :datetime         not null
 #  updated_at                                          :datetime         not null
@@ -17,6 +18,7 @@
 
 <% Seeds::PlayRoles::SEED_DATA.each_pair do |ekey, edata| %>
 play_role_<%= ekey %>:
+  orig_locale: <%= edata[:orig_langcode] %>
   mname: <%= edata[:mname] %>
   weight: <%= edata[:weight] %>
   note: PlayRole<%= ekey.to_s.camelize %>

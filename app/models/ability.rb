@@ -112,9 +112,12 @@ class Ability
       can :read, [Country, EngageHow, Genre, EventGroup, Event, EventItem]
       can :show,  Translation
       can :ud,     Translation, create_user_id: user.id #, update_user_id: user.id
-      can [:edit, :update], Translation, is_orig: true # can update the original_language one (though cannot neccesarily destroy).
-      can :ud,     Translation, langcode: 'ja' # can update/delete if JA
-      cannot(:ud,  Translation){|trans| !trans.translatable || Ability.new(user).cannot?(:update, trans.translatable)}  # "can?" statement works?
+      can([:edit, :update], Translation){|trans|
+        # if the original_language one, :editor can update it in principle, unless "cannot" defined far below
+        (trans.langcode == trans.translatable.orig_locale)
+      }
+      can :ud,     Translation, langcode: 'ja' # can update/delete if JA, unless "cannot" defined far below
+      cannot(:ud,  Translation){|trans| !trans.translatable || Ability.new(user).cannot?(:update, trans.translatable)} if !user.moderator?  # "can?" statement works?
       #cannot(:ud,  Translation){|trans| !trans.translatable || %w(Sex Country).include?(trans.translatable_type)}  # I think "can?" statement does not work.
       #cannot(:ud,  Translation){|trans| true}
 #    cannot :show, Users::DeactivateUser, id: user.id
@@ -259,5 +262,12 @@ class Ability
     cannot(:destroy, [ChannelPlatform, ChannelOwner, ChannelType]){|mdl| mdl.unknown? || mdl.channels.exists?}  # ChannelPlatform.unknown can be managed by only sysadmin
     cannot(:destroy, [Artist, Music, SiteCategory, Domain, DomainTitle, EventGroup, Event, EventItem, Instrument, Country, Prefecture, Place]){|mdl| mdl.unknown?}  # NOTE: in fact, they should never be managed by even sysadmin via U/I due to Rails-level constraints.  You may check it with record.destroyable? in addition to can?()
     cannot(:destroy, [Artist]){ |mdl| mdl == Artist.primary }
-  end
+    cannot([:edit, :update], Translation){ |tra|
+      parent = tra.translatable.class
+      c = :TRANSLATION_EDITABLE_IF_AT_LEAST
+      metho = (parent.const_defined?(c) ? parent.const_get(c) : :an_admin?)
+      tra.create_user_id != user.id &&
+        (metho.respond_to?(:call) ? !metho.call(user, model) : !user.send(metho))
+    }
+  end # def initialize(user)
 end

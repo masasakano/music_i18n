@@ -6,6 +6,7 @@
 #  id                                                  :bigint           not null, primary key
 #  mname(unique machine name)                          :string           not null
 #  note                                                :text
+#  orig_locale(locale of original title)               :string(2)
 #  weight(weight to sort entries in Index for Editors) :float            default(999.0), not null
 #  created_at                                          :datetime         not null
 #  updated_at                                          :datetime         not null

@@ -5,6 +5,7 @@
 #  id                                         :bigint           not null, primary key
 #  memo_editor(Internal-use memo for Editors) :text
 #  note                                       :text
+#  orig_locale(locale of original title)      :string(2)
 #  created_at                                 :datetime         not null
 #  updated_at                                 :datetime         not null
 #  prefecture_id                              :bigint           not null
@@ -47,6 +48,7 @@ unknown_place_unknown_prefecture_aus:
   note: MyTextUnknownPlaceAus
 
 harami_home_unknown_prefecture_japan:
+  orig_locale: ja
   prefecture: unknown_prefecture_japan
   note: HARAMIchanHomeUnknownPrefectureJapan
 
@@ -55,19 +57,23 @@ unknown_place_tokyo_japan:
   note: UnknownPlaceInTokyo
 
 tocho:
+  orig_locale: ja
   prefecture: tokyo
   note: MyTextTocho
   memo_editor: MyMemoEditorTocho
 
 akihabara:
+  orig_locale: ja
   prefecture: tokyo
   note: PlaceAkihabara
 
 place_harami_vid3:
+  orig_locale: ja
   prefecture: tokyo
   note: PlaceHaramiVid3
 
 shinagawa_station:
+  orig_locale: ja
   prefecture: tokyo
   note: MyTextShinagawa
 
@@ -80,10 +86,12 @@ unknown_place_shimane_japan:
   note: MyTextShimane
 
 takamatsu_station:
+  orig_locale: ja
   prefecture: kagawa
   note: MyTextTakamatsuStation
 
 kawaramachi_station:
+  orig_locale: ja
   prefecture: kagawa
   note: MyTextKawaramachiStation
 
@@ -92,6 +100,7 @@ unknown_place_liverpool_uk:
   note: MyTextUnknownPlaceLiverpoolUk
 
 liverpool_street:
+  orig_locale: en
   prefecture: liverpool 
   note: MyTextLiverpoolStreet
 
@@ -100,18 +109,22 @@ unknown_place_greater_london:
   note: UnknownPlaceGreaterLondon
 
 perth_uk:
+  orig_locale: en
   prefecture: unknown_prefecture_uk
   note: MyTextPerthUk
 
 perth_aus:
+  orig_locale: en
   prefecture: unknown_prefecture_aus
   note: MyTextPerthAus
 
 montparnasse_france:
+  orig_locale: fr
   prefecture: prefecture_paris
   note: MyTextMontparnasse
 
 gare_lyon_france:
+  orig_locale: fr
   prefecture: prefecture_paris
   note: MyTextGareLyon
   memo_editor: MyMemoEditorGareLyon

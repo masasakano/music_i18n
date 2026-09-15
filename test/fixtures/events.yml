@@ -2,17 +2,18 @@
 #
 # Table name: events(Event such as a solo concert)
 #
-#  id                        :bigint           not null, primary key
-#  duration_hour             :float
-#  memo_editor               :text
-#  note                      :text
-#  start_time                :datetime
-#  start_time_err(in second) :bigint
-#  weight                    :float
-#  created_at                :datetime         not null
-#  updated_at                :datetime         not null
-#  event_group_id            :bigint           not null
-#  place_id                  :bigint
+#  id                                    :bigint           not null, primary key
+#  duration_hour                         :float
+#  memo_editor                           :text
+#  note                                  :text
+#  orig_locale(locale of original title) :string(2)
+#  start_time                            :datetime
+#  start_time_err(in second)             :bigint
+#  weight                                :float
+#  created_at                            :datetime         not null
+#  updated_at                            :datetime         not null
+#  event_group_id                        :bigint           not null
+#  place_id                              :bigint
 #
 # Indexes
 #

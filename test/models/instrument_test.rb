@@ -5,6 +5,7 @@
 #
 #  id                                    :bigint           not null, primary key
 #  note                                  :text
+#  orig_locale(locale of original title) :string(2)
 #  weight(weight for sorting for index.) :float            default(999.0), not null
 #  created_at                            :datetime         not null
 #  updated_at                            :datetime         not null

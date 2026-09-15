@@ -3,11 +3,12 @@
 #
 # Table name: model_summaries
 #
-#  id         :bigint           not null, primary key
-#  modelname  :string           not null
-#  note       :text
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
+#  id                                    :bigint           not null, primary key
+#  modelname                             :string           not null
+#  note                                  :text
+#  orig_locale(locale of original title) :string(2)
+#  created_at                            :datetime         not null
+#  updated_at                            :datetime         not null
 #
 # Indexes
 #

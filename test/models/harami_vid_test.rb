@@ -7,6 +7,7 @@
 #  duration(Total duration in seconds)                 :float
 #  memo_editor(Internal-use memo for Editors)          :text
 #  note                                                :text
+#  orig_locale(locale of original title)               :string(2)
 #  release_date(Published date of the video)           :date
 #  uri((YouTube) URI of the video)                     :text
 #  created_at                                          :datetime         not null

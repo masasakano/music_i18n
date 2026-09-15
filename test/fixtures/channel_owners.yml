@@ -4,6 +4,7 @@
 #
 #  id                                         :bigint           not null, primary key
 #  note                                       :text
+#  orig_locale(locale of original title)      :string(2)
 #  themselves(true if identical to an Artist) :boolean          default(FALSE)
 #  created_at                                 :datetime         not null
 #  updated_at                                 :datetime         not null
@@ -28,6 +29,7 @@
 <% Seeds::ChannelOwners::SEED_DATA.each_pair do |ekey, edata| %>
 channel_owner_<%= ekey %>:
   themselves: <%= edata[:themselves] %>
+  orig_locale: <%= edata[:orig_langcode] %>
   artist: <%= edata[:themselves] ? "artist_"+ekey.to_s.sub(/chan$/,"") : "" %>
   create_user: user_syshelper
   update_user: user_syshelper
@@ -35,6 +37,7 @@ channel_owner_<%= ekey %>:
 <% end %>
 
 channel_owner_saki_kubota:
+  orig_locale: ja
   themselves: true
   artist: artist_saki_kubota
   create_user: user_editor_general_ja
@@ -43,9 +46,11 @@ channel_owner_saki_kubota:
   # Artist: artist_saki_kubota
 
 one:
+  orig_locale: en
   themselves: false
   note: MyText
 
 two:
+  orig_locale: en
   themselves: false
   note: MyText

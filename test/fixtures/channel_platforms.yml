@@ -5,6 +5,7 @@
 #  id                                                 :bigint           not null, primary key
 #  mname(machine name (alphanumeric characters only)) :string           not null
 #  note                                               :text
+#  orig_locale(locale of original title)              :string(2)
 #  created_at                                         :datetime         not null
 #  updated_at                                         :datetime         not null
 #  create_user_id                                     :bigint
@@ -24,23 +25,27 @@
 
 <% Seeds::ChannelPlatforms::SEED_DATA.each_pair do |ekey, edata| %>
 channel_platform_<%= ekey %>:
+  orig_locale: <%= edata[:orig_langcode] %>
   mname: <%= edata[:mname] %>
   note: ChannelPlatform<%= ekey.to_s.camelize %>
 <% end %>
 
 channel_platform_oricon:
+  orig_locale: ja
   mname: oricon
   note: ChannelPlatformOricon
   create_user: user_editor_general_ja
   update_user: user_editor_general_ja
 
 one:
+  orig_locale: en
   mname: MyString1
   note: MyText
   create_user: user_syshelper
   update_user: user_syshelper
 
 two:
+  orig_locale: en
   mname: MyString2
   note: MyText
   create_user: user_syshelper

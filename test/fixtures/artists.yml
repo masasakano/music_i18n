@@ -8,6 +8,7 @@
 #  birth_year                                 :integer
 #  memo_editor(Internal-use memo for Editors) :text
 #  note                                       :text
+#  orig_locale(locale of original title)      :string(2)
 #  created_at                                 :datetime         not null
 #  updated_at                                 :datetime         not null
 #  place_id                                   :bigint           not null
@@ -26,6 +27,7 @@
 #
 
 artist1:
+  orig_locale: en
   sex_id: 1
   place: unknown_place_unknown_prefecture_japan
   birth_year: 1
@@ -37,6 +39,7 @@ artist1:
   memo_editor: Artist-1-MemoEditor
 
 artist2:
+  orig_locale: en
   sex_id: 2
   place: unknown_place_unknown_prefecture_uk
   birth_year: 
@@ -45,6 +48,7 @@ artist2:
   note: Artist-2-UnknownPlaceUnknownPrefectureUk-Lennon
 
 artist3:
+  orig_locale: ja
   sex_id: 2
   place: unknown_place_unknown_prefecture_japan
   birth_year: 
@@ -54,6 +58,7 @@ artist3:
   note: Artist-3-UnknownPlaceUnknownPrefectureJapan-Harami
 
 artist4:
+  orig_locale: en
   sex_id: 9
   place: unknown_place_unknown_prefecture_japan
   birth_year: 
@@ -62,11 +67,13 @@ artist4:
   note: Artist-4-UnknownPlaceUnknownPrefectureJapan
 
 artist99:
+  orig_locale: en
   sex_id: 9
   place: unknown_place_unknown_prefecture_uk
   note: Artist-99-UnknownPlaceUnknownPrefectureUk
 
 artist_unknown:
+  orig_locale: 
   birth_year:
   birth_month:
   birth_day: 
@@ -75,6 +82,7 @@ artist_unknown:
   note: ArtistUnknown
 
 artist_harami:
+  orig_locale: ja
   sex_id: 2
   place: unknown_place_tokyo_japan
   birth_year: 1990
@@ -83,6 +91,7 @@ artist_harami:
   note: Artist-HARAMIchan
 
 artist_kohmi:
+  orig_locale: ja
   sex_id: 2
   place: unknown_place_unknown_prefecture_japan
   birth_year: 1966
@@ -91,6 +100,7 @@ artist_kohmi:
   note: Artist-KohmiHirose
 
 artist_ai:
+  orig_locale: ja
   sex_id: 9
   place: unknown_place_unknown_prefecture_world
   birth_year: 1990
@@ -99,11 +109,13 @@ artist_ai:
   note: Artist-AI
 
 artist_rcsuccession:
+  orig_locale: ja
   sex_id: 9
   place: unknown_place_unknown_prefecture_japan
   note: Artist-RCサクセション
 
 artist_saki_kubota:
+  orig_locale: ja
   sex_id: 2
   place: unknown_place_unknown_prefecture_japan
   birth_month: 9
@@ -111,6 +123,7 @@ artist_saki_kubota:
   memo_editor: MemoEditorArtistSakiKubota
 
 artist_mariah:
+  orig_locale: en
   sex_id: 2
   place: unknown_place_unknown_prefecture_world
   birth_year: 1969
@@ -119,23 +132,27 @@ artist_mariah:
   note: Artist-Mariah
 
 artist_spitz:
+  orig_locale: en
   sex_id: 1
   place: unknown_place_unknown_prefecture_japan
   note: Artist-Spitz
 
 artist_proclaimers:
+  orig_locale: en
   sex_id: 9
   birth_year: 1983
   place: unknown_place_unknown_prefecture_uk
   note: Artist-The-Proclaimers
 
 artist_psy:
+  orig_locale: ko
   sex_id: 1
   birth_year: 1977
   place: unknown_place_unknown_prefecture_world
   note: Artist-Psy
 
 artist_hoshino:
+  orig_locale: ja
   sex_id: 1
   birth_year: 1981
   birth_month: 1
@@ -144,6 +161,7 @@ artist_hoshino:
   note: Artist-Hoshino
 
 artist_kuwata:
+  orig_locale: ja
   sex_id: 1
   birth_year: 1956
   birth_month: 2
@@ -152,6 +170,7 @@ artist_kuwata:
   note: Artist-Kuwata
 
 artist_yuming:
+  orig_locale: ja
   sex_id: 2
   birth_year: 1976
   birth_month: 11
@@ -160,12 +179,14 @@ artist_yuming:
   note: Artist-Yuming
 
 artist_zombies:
+  orig_locale: en
   sex_id: 9
   birth_year: 
   place: unknown_place_unknown_prefecture_uk
   note: Artist-The-Zombies
 
 artist_zedd:
+  orig_locale: en
   sex_id: 0
   birth_year: 
   place: unknown_place_unknown_prefecture_uk

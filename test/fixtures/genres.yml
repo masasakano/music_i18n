@@ -4,6 +4,7 @@
 #
 #  id                                        :bigint           not null, primary key
 #  note                                      :text
+#  orig_locale(locale of original title)     :string(2)
 #  weight(Smaller means higher in priority.) :float
 #  created_at                                :datetime         not null
 #  updated_at                                :datetime         not null

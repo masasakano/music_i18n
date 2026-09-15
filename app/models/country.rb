@@ -104,6 +104,7 @@
 #  iso3166_n3_code(ISO-3166-1 Numeric code, JIS X 0304) :integer
 #  iso3166_remark(Remarks in ISO-3166-1, 2, 3)          :text
 #  note                                                 :text
+#  orig_locale(locale of original title)                :string(2)
 #  orig_note(Remarks by HirMtsd)                        :text
 #  start_date                                           :date
 #  territory(Territory name in ISO-3166-1)              :text
@@ -128,6 +129,9 @@ class Country < BaseWithTranslation
 
   # for set_singleton_unknown
   include ModuleSetSingletonUnknown
+
+  # Minimum requirements for editing Translation (see BaseWithTranslation).
+  TRANSLATION_EDITABLE_IF_AT_LEAST = :moderator?
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = %i(iso3166_a2_code iso3166_a3_code iso3166_n3_code)

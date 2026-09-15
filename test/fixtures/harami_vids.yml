@@ -6,6 +6,7 @@
 #  duration(Total duration in seconds)                 :float
 #  memo_editor(Internal-use memo for Editors)          :text
 #  note                                                :text
+#  orig_locale(locale of original title)               :string(2)
 #  release_date(Published date of the video)           :date
 #  uri((YouTube) URI of the video)                     :text
 #  created_at                                          :datetime         not null
@@ -27,6 +28,7 @@
 #
 
 harami_vid1:
+  orig_locale: ja
   release_date: 2020-10-29
   duration: 
   uri: youtu.be/harami_vid1
@@ -38,6 +40,7 @@ harami_vid1:
   memo_editor: MemoEditorHaramiVid1
 
 harami_vid2:
+  orig_locale: ja
   release_date: 2020-10-30
   duration: 180.0
   uri: youtu.be/harami_vid2
@@ -46,6 +49,7 @@ harami_vid2:
   note: HaramiVid2
 
 harami_vid3:
+  orig_locale: ja
   release_date: 2020-10-31
   duration: 180.0
   uri: youtu.be/harami_vid3
@@ -54,6 +58,7 @@ harami_vid3:
   note: HaramiVid3
 
 harami_vid4:
+  orig_locale: ja
   release_date: 2022-01-23
   duration: 400.0
   uri: youtu.be/harami_vid4
@@ -62,6 +67,7 @@ harami_vid4:
   note: HaramiVid4
 
 harami_vid5:
+  orig_locale: ja
   release_date: 2020-11-11
   duration: 
   uri: youtu.be/harami_vid5
@@ -70,6 +76,7 @@ harami_vid5:
   note: HaramiVid5 for testing seeds with no HaramiVidEventItemAssoc or channel
 
 harami_vid_ihojin1:
+  orig_locale: ja
   release_date: 2022-01-07
   duration: 170.0
   uri: youtu.be/ABCD_iho
@@ -78,6 +85,7 @@ harami_vid_ihojin1:
   note: HaramiVidIhojin1 with three HaramiVidEventItemAssocs
 
 harami_vid_50anni:
+  orig_locale: ja
   release_date: 
   duration: 
   uri: youtu.be/RrJqQ789
@@ -86,6 +94,7 @@ harami_vid_50anni:
   note: HaramiVid50anniversary, title modified
 
 harami_vid_paris1:
+  orig_locale: ja
   release_date: 2023-02-28
   duration: 
   uri: youtu.be/xxx_harami_vid_paris_pirates
@@ -94,6 +103,7 @@ harami_vid_paris1:
   note: HaramiVidInParis1
 
 one:
+  orig_locale: ja
   release_date: 2021-01-01
   duration: 
   uri: youtu.be/one
@@ -102,6 +112,7 @@ one:
   note: HaramiVidOne
 
 two:
+  orig_locale: ja
   release_date: 2021-01-02
   duration: 
   uri: youtu.be/two
@@ -110,6 +121,7 @@ two:
   note: HaramiVidTwo
 
 three:
+  orig_locale: ja
   release_date: 2024-05-06
   duration: 
   uri: youtu.be/three
@@ -118,6 +130,7 @@ three:
   note: HaramiVidThree for street-piano single shot with 1 music
 
 four:
+  orig_locale: ja
   release_date: 2024-05-08
   duration: 
   uri: youtu.be/four

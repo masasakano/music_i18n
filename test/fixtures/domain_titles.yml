@@ -5,6 +5,7 @@
 #  id                                         :bigint           not null, primary key
 #  memo_editor(Internal-use memo for Editors) :text
 #  note                                       :text
+#  orig_locale(locale of original title)      :string(2)
 #  weight(weight to sort this model index)    :float
 #  created_at                                 :datetime         not null
 #  updated_at                                 :datetime         not null
@@ -23,6 +24,7 @@
 <% Seeds::DomainTitles::SEED_DATA.each_pair do |ekey, edata| %>
 domain_title_<%= ekey %>:
   <%# site_category_id: %= (pro=edata[:site_category]) ? pro.call.id : nil %>
+  orig_locale: <%= edata[:orig_langcode] %>
   site_category: site_category_<%= (pro=edata[:site_category_key]) ? pro.to_s : "unknown" %>
   weight: <%= edata[:weight] %>
   note: DomainTitle<%= ekey.to_s.camelize %>
@@ -30,12 +32,14 @@ domain_title_<%= ekey %>:
 <% end %>
 
 one:
+  orig_locale: en
   site_category: one
   weight: 123.45
   note: MyText
   memo_editor: MyText
 
 two:
+  orig_locale: en
   site_category: two
   weight: 
   note: MyText

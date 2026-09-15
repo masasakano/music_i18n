@@ -6,6 +6,7 @@
 #  id                                         :bigint           not null, primary key
 #  memo_editor(Internal-use memo for Editors) :text
 #  note                                       :text
+#  orig_locale(locale of original title)      :string(2)
 #  weight(weight to sort this model index)    :float
 #  created_at                                 :datetime         not null
 #  updated_at                                 :datetime         not null
@@ -32,6 +33,9 @@ class DomainTitle < BaseWithTranslation
   include ModuleWeight  # adds a validation
 
   include ModuleWasFound # defines attr_writers @was_found, @was_created and their questioned-readers. (4 methods)
+
+  # Minimum requirements for editing Translation (see BaseWithTranslation).
+  TRANSLATION_EDITABLE_IF_AT_LEAST = :editor?
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []

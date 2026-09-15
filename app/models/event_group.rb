@@ -9,6 +9,7 @@
 #  end_date_err(Error of end-date in day. 182 or 183 days for one with only a known year.)     :integer
 #  memo_editor(Internal memo for Editors)                                                      :text
 #  note                                                                                        :text
+#  orig_locale(locale of original title)                                                       :string(2)
 #  start_date(if null, start date is undefined.)                                               :date
 #  start_date_err(Error of start-date in day. 182 or 183 days for one with only a known year.) :integer
 #  created_at                                                                                  :datetime         not null
@@ -47,6 +48,9 @@ class EventGroup < BaseWithTranslation
 
   before_destroy :delete_remaining_unknwon_event_callback  # must come before has_many
   # NOTE: after_first_translation_hook
+
+  # Minimum requirements for editing Translation (see BaseWithTranslation).
+  TRANSLATION_EDITABLE_IF_AT_LEAST = :moderator?
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []

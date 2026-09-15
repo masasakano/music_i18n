@@ -6,6 +6,7 @@
 #  id                                         :bigint           not null, primary key
 #  memo_editor(Internal-use memo for Editors) :text
 #  note                                       :text
+#  orig_locale(locale of original title)      :string(2)
 #  year                                       :integer
 #  created_at                                 :datetime         not null
 #  updated_at                                 :datetime         not null

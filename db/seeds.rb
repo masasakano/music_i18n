@@ -44,10 +44,11 @@ sexes = [0, 1, 2, 9].map{ |cid|
   else
     nrec += 1
     ret ||= true
-    Sex.new do |p| 
-      p.id      = cid
-      p.iso5218 = cid
-      p.save!
+    Sex.new do |em| 
+      em.id      = cid
+      em.iso5218 = cid
+      em.orig_locale = nil
+      em.save!
     end
   end
 }
@@ -76,7 +77,7 @@ ret = (rescue_rnu{ sexes[2].with_orig_translation(**hstmpl.merge({title: 'female
 ret = (rescue_rnu{ sexes[3].with_orig_translation(**hstmpl.merge({title: 'not applicable', alt_title: 'N/A',     langcode: 'en'}))} || ret)
 
 hstmpl[:langcode] = 'ja'
-hstmpl[:is_orig]  = false
+hstmpl[:is_orig]  = nil
 ret = (rescue_rnu{ sexes[0].create_translation!(**hstmpl.merge({title: '不明',     ruby: 'フメイ',         romaji: 'fumei'}))} || ret)
 ret = (rescue_rnu{ sexes[1].create_translation!(**hstmpl.merge({title: '男',       ruby: 'オトコ',         romaji: 'otoko'}))} || ret)
 ret = (rescue_rnu{ sexes[2].create_translation!(**hstmpl.merge({title: '女',       ruby: 'オンナ',         romaji: 'onna'}))} || ret)
@@ -216,9 +217,9 @@ else
     world = Country.create!(iso3166_n3_code: 0, id: 0)
   end
   hsworld = {
-    ja: {title: '世界',  ruby: 'セカイ', romaji: 'sekai', weight: 0},
-    en: {title: 'World', is_orig: true, weight: 0},
-    fr: {title: 'Monde', weight: 0},
+    ja: {title: '世界',  ruby: 'セカイ', romaji: 'sekai', is_orig: nil, weight: 0},
+    en: {title: 'World', is_orig: nil, weight: 0},
+    fr: {title: 'Monde', is_orig: nil, weight: 0},
   }
   world.reload.with_translations(**hsworld)
   nrec += 12  # Country, Unknown-Prefecture/Place + 3 languages
@@ -621,6 +622,7 @@ nrec += n_artists*2  # Artist + 2 languages (In fact, this is not accurate... no
 gen_inst = Genre[/instrumental/i, 'en']
 gen_pop = Genre[/ポップス/, 'ja']
 gen_other = Genre[/^other/i, 'en']
+place_unk_japan = Place.unknown(country: japan)
 artrans = [
   { note: nil, genre: Genre.unknown,
     place: Place.unknown, translations:
@@ -628,35 +630,35 @@ artrans = [
     'en' => {title: Music::UnknownMusic['en'], weight: 0, },
     'fr' => {title: Music::UnknownMusic['fr'], weight: 0, }}},
   { note: nil, year: 2019, genre: gen_other,
-    place: Place.unknown(country: japan), translations:
+    place: place_unk_japan, translations:
    {'ja' => {title: 'ハラミ体操', ruby: 'ハラミタイソウ', romaji: 'Harami taiso', weight: 0, is_orig: true},
     'en' => {title: 'Harami Exercise Theme Music', weight: 1000, }}},
   { note: nil, year: 2020, genre: gen_inst,
-    place: Place.unknown(country: japan), translations:
+    place: place_unk_japan, translations:
    {'ja' => {title: 'ファンファーレ', ruby: 'ファンファーレ', romaji: 'Fanfaare', weight: 0, is_orig: true},
     'en' => {title: 'Fanfare', weight: 100, }}},
   { note: nil, year: 2021, genre: gen_inst,
-    place: Place.unknown(country: japan), translations:
+    place: place_unk_japan, translations:
    {'ja' => {title: '雨', ruby: 'アメ', romaji: 'Ame', weight: 0, is_orig: true},
     'en' => {title: 'Rain', weight: 100, }}},
   { note: nil, year: 2021, genre: gen_inst,
-    place: Place.unknown(country: japan), translations:
+    place: place_unk_japan, translations:
    {'ja' => {title: '947', ruby: '947', romaji: '947', weight: 0, is_orig: true},
     'en' => {title: '947', weight: 100, }}},
   { note: nil, year: 2022, genre: gen_inst,
-    place: Place.unknown(country: japan), translations:
+    place: place_unk_japan, translations:
    {'ja' => {title: 'ひとり', ruby: 'ヒトリ', romaji: 'Hitori', weight: 0, is_orig: true},
     'en' => {title: 'Alone', weight: 100, }}},
   { note: nil, year: 2023, genre: gen_inst,
-    place: Place.unknown(country: japan), translations:
+    place: place_unk_japan, translations:
    {'ja' => {title: '祈りのワルツ', ruby: 'イノリノワルツ', romaji: 'Inori no warutsutori', weight: 0, is_orig: true},
     'en' => {title: 'Waltz of a prayer', weight: 100, }}},
   { note: nil, year: 1993, genre: gen_pop,
-    place: Place.unknown(country: japan), translations:
+    place: place_unk_japan, translations:
    {'ja' => {title: 'ロマンスの神様', ruby: 'ロマンスノカミサマ', romaji: 'Romansu no kamisama', weight: 0, is_orig: true},
     'en' => {title: 'God of Romance', weight: 100, }}},
   { note: nil, year: 2020, genre: gen_pop,
-    place: Place.unknown(country: japan), translations:
+    place: place_unk_japan, translations:
    {'ja' => {title: '裸の心', ruby: 'ハダカノココロ', romaji: 'Hadaka no kokoro', weight: 0, is_orig: true},
     'en' => {title: 'Naked Heart', weight: 100, }}},
 ]

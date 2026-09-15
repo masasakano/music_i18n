@@ -7,6 +7,7 @@
 #  id                                         :bigint           not null, primary key
 #  memo_editor(Internal-use memo for Editors) :text
 #  note                                       :text
+#  orig_locale(locale of original title)      :string(2)
 #  created_at                                 :datetime         not null
 #  updated_at                                 :datetime         not null
 #  prefecture_id                              :bigint           not null
@@ -30,6 +31,9 @@ class Place < BaseWithTranslation
 
   # for set_singleton_unknown
   include ModuleSetSingletonUnknown
+
+  # Minimum requirements for editing Translation (see BaseWithTranslation).
+  TRANSLATION_EDITABLE_IF_AT_LEAST = :editor?
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = [:prefecture, :prefecture_id]

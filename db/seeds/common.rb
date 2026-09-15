@@ -111,7 +111,9 @@ module Seeds
           end
         model.send(metho_w, val)
       end
-  
+
+      model.orig_locale = seed1[:orig_langcode]
+
       proc_b4validate.call(model) if proc_b4validate.respond_to?(:call)
 
       do_validate = true

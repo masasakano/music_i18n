@@ -23,7 +23,7 @@ module Seeds::Channels
       ja: RECORD_CLASS::UNKNOWN_TITLES['ja'],
       en: RECORD_CLASS::UNKNOWN_TITLES['en'],
       fr: RECORD_CLASS::UNKNOWN_TITLES['fr'],
-      orig_langcode: 'en',
+      orig_langcode: nil,  # used to be 'en',
       channel_owner:    Proc.new{ChannelOwner.unknown(reload: true)},
       channel_type:     Proc.new{ChannelType.unknown(reload: true)},
       channel_platform: Proc.new{ChannelPlatform.unknown(reload: true)},

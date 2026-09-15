@@ -3,11 +3,12 @@
 #
 # Table name: engage_hows
 #
-#  id         :bigint           not null, primary key
-#  note       :text
-#  weight     :float            default(999.0)
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
+#  id                                    :bigint           not null, primary key
+#  note                                  :text
+#  orig_locale(locale of original title) :string(2)
+#  weight                                :float            default(999.0)
+#  created_at                            :datetime         not null
+#  updated_at                            :datetime         not null
 #
 class EngageHow < BaseWithTranslation
   # defines {#unknown?} and +self.class.unknown+
@@ -18,6 +19,9 @@ class EngageHow < BaseWithTranslation
 
   ## Commented out because this contradicts:   validates_presence_of :weight
   # include ModuleWeight  # adds a validation
+
+  # Minimum requirements for editing Translation (see BaseWithTranslation).
+  TRANSLATION_EDITABLE_IF_AT_LEAST = :an_admin?
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []

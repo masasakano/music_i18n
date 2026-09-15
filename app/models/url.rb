@@ -7,6 +7,7 @@
 #  last_confirmed_date                             :date
 #  memo_editor                                     :text
 #  note                                            :text
+#  orig_locale(locale of original title)           :string(2)
 #  published_date                                  :date
 #  url(valid URL/URI including https://)           :string           not null
 #  url_langcode(2-letter locale code)              :string
@@ -56,6 +57,9 @@ class Url < BaseWithTranslation
   include ModuleWasFound # defines attr_writers @was_found, @was_created and their questioned-readers. (8 methods)
   define_was_found_for("domain")       # defined in ModuleWasFound; defines domain_found? etc. (8 methods)
   define_was_found_for("domain_title") # defined in ModuleWasFound; defines domain_title_found? etc. (8 methods)
+
+  # Minimum requirements for editing Translation (see BaseWithTranslation).
+  TRANSLATION_EDITABLE_IF_AT_LEAST = :editor?
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []

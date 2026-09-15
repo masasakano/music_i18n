@@ -5,6 +5,7 @@
 #
 #  id                                         :bigint           not null, primary key
 #  note                                       :text
+#  orig_locale(locale of original title)      :string(2)
 #  themselves(true if identical to an Artist) :boolean          default(FALSE)
 #  created_at                                 :datetime         not null
 #  updated_at                                 :datetime         not null
@@ -43,6 +44,9 @@ class ChannelOwner < BaseWithTranslation
 
   PARAMS_KEY_AC = BaseMerges::BaseWithIdsController.formid_autocomplete_with_id(Artist).to_sym
   attr_accessor PARAMS_KEY_AC  # :artist_with_id
+
+  # Minimum requirements for editing Translation (see BaseWithTranslation).
+  TRANSLATION_EDITABLE_IF_AT_LEAST = :editor?
 
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = []

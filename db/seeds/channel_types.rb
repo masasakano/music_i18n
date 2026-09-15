@@ -19,7 +19,7 @@ module Seeds::ChannelTypes
       ja: RECORD_CLASS::UNKNOWN_TITLES['ja'],
       en: RECORD_CLASS::UNKNOWN_TITLES['en'],
       fr: RECORD_CLASS::UNKNOWN_TITLES['fr'],
-      orig_langcode: 'en',
+      orig_langcode: nil,  # used to be 'en',
       weight: 999,  # DB default
       note: nil,
       #regex: Proc.new{RECORD_CLASS.unknown}  # to check potential duplicates for ChannelTypes

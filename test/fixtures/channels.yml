@@ -6,6 +6,7 @@
 #  id_at_platform(Channel-ID at the remote platform)                      :string
 #  id_human_at_platform(Human-readable Channel-ID at remote prefixed <@>) :string
 #  note                                                                   :text
+#  orig_locale(locale of original title)                                  :string(2)
 #  created_at                                                             :datetime         not null
 #  updated_at                                                             :datetime         not null
 #  channel_owner_id                                                       :bigint           not null
@@ -36,6 +37,7 @@
 #
 
 one:
+  orig_locale: en
   channel_owner: one
   channel_type: one
   channel_platform: one
@@ -46,6 +48,7 @@ one:
   note: MyText
 
 two:
+  orig_locale: en
   channel_owner: two
   channel_type: two
   channel_platform: two
@@ -72,6 +75,7 @@ two:
 #<% end %>
 
 channel_unknown:
+  orig_locale: 
   channel_owner: channel_owner_unknown
   channel_type: channel_type_unknown
   channel_platform: channel_platform_unknown
@@ -82,6 +86,7 @@ channel_unknown:
   note: ChannelUnknown
 
 channel_haramichan_youtube_main:
+  orig_locale: ja
   channel_owner: channel_owner_haramichan
   channel_type: channel_type_main
   channel_platform: channel_platform_youtube
@@ -92,6 +97,7 @@ channel_haramichan_youtube_main:
   note: ChannelHaramichanYoutubeMain
 
 channel_haramichan_youtube_sub:
+  orig_locale: ja
   channel_owner: channel_owner_haramichan
   channel_type: channel_type_sub
   channel_platform: channel_platform_youtube
@@ -102,6 +108,7 @@ channel_haramichan_youtube_sub:
   note: ChannelHaramichanYoutubeSub
 
 channel_haramichan_instagram_main:
+  orig_locale: ja
   channel_owner: channel_owner_haramichan
   channel_type: channel_type_main
   channel_platform: channel_platform_instagram
@@ -112,6 +119,7 @@ channel_haramichan_instagram_main:
   note: ChannelHaramichanYoutubeMain
 
 channel_kohmi_youtube_main:
+  orig_locale: ja
   channel_owner: channel_owner_kohmi
   channel_type: channel_type_main
   channel_platform: channel_platform_youtube

@@ -4,14 +4,26 @@
 #
 # == Usage
 #
-# The child model of this class should define two constants of
-# +MAIN_UNIQUE_COLS+ and +ARTICLE_TO_TAIL+ (see farther down for detail) like this:
+# The child model of this class should define three constants of
+# +EDITABLE_IF_AT_LEAST+, +MAIN_UNIQUE_COLS+ and +ARTICLE_TO_TAIL+, and optionally
+# +ALLOW_IDENTICAL_TITLE_ALT+ (Boolean) and +TRANSLATION_UNIQUE_SCOPES+,
+# and +TRANSLATION_STRICTLY_UNIQUE_TITLES+ like this:
 #
 #   class MyChildKlass < BaseWithTranslation
+#     TRANSLATION_EDITABLE_IF_AT_LEAST = :editor?
 #     MAIN_UNIQUE_COLS = []
 #     ARTICLE_TO_TAIL = true
+#     #ALLOW_IDENTICAL_TITLE_ALT = false
 #     #TRANSLATION_UNIQUE_SCOPES = :default   # ==nil  # or :disable or %i(prefecture_id birth_year)
 #     #TRANSLATION_STRICTLY_UNIQUE_TITLES = true  # (Default)
+#
+# Here, +TRANSLATION_EDITABLE_IF_AT_LEAST+ defines either a Symbole indicating a method of {User} (e.g., {User#editor?})
+# or Proc, which should accept the two main arguments of +User+ and +Translation+, called
+# from `ability.rb` for CanCanCan.  This just sets the potentially lowest-qualified users,
+# and more strict conditions are usually applied in ability.rb .
+# For example, if +Sex::TRANSLATION_EDITABLE_IF_AT_LEAST+ is +:sysadmin?+,
+# the Translations of Sex are basically fixed and not editable except by sysadmin.
+# (NOTE: If you want to allow editing by anyone authenticated, specify +:present?+, AND edit ability.rb accordingly.)
 #
 # They can also define the following to bypass the validation by Translation
 # to check the identicalness of title and alt_title and raise an alert:
@@ -878,6 +890,8 @@ class BaseWithTranslation < ApplicationRecord
   #   May include slim_opts (Hash).  Default: {COMMON_DEF_SLIM_OPTIONS}
   # @return [BaseWithTranslation]
   def self.create_with_translations!(hsmain={}, unique_trans_keys=nil, *args, reload: true, **hs_trans)
+    hs_with_is_orig = hs_trans[:translations].values.flatten.find{|hs| hs[:is_orig]}
+    hs_trans = {orig_locale: (hs_with_is_orig ? hs_with_is_orig[:langcode] : nil)}.merge(hs_trans)
     ret = update_or_create_with_translations_core!(:translations, hsmain, unique_trans_keys, nil, false, *args, **hs_trans)
     ret.reload if reload
     ret
@@ -920,6 +934,8 @@ class BaseWithTranslation < ApplicationRecord
   # @return [BaseWithTranslation]
   # @raise [ActiveRecord::RecordInvalid, ActiveModel::UnknownAttributeError] etc
   def self.update_or_create_with_translations!(hsmain={}, unique_trans_keys=nil, mainkeys=nil, *args, reload: true, **hs_trans)
+    hs_with_is_orig = hs_trans[:translations].values.flatten.find{|hs| hs[:is_orig]}
+    hs_trans = {orig_locale: (hs_with_is_orig ? hs_with_is_orig[:langcode] : nil)}.merge(hs_trans)
     ret = update_or_create_with_translations_core!(:translations, hsmain, unique_trans_keys, mainkeys, true, *args, **hs_trans)
     ret.reload if reload
     ret
@@ -971,6 +987,8 @@ class BaseWithTranslation < ApplicationRecord
   #   May include slim_opts (Hash).  Default: {COMMON_DEF_SLIM_OPTIONS}
   # @return [BaseWithTranslation]
   def self.create_with_translation!(hsmain={}, unique_trans_keys=nil, *args, reload: true, **hs_trans)
+    orig_locale = (hs_trans[:translation][:is_orig] ? hs_trans[:translation][:langcode] : nil)
+    hs_trans = {orig_locale: orig_locale}.merge(hs_trans)
     ret = update_or_create_with_translations_core!(:translation, hsmain, unique_trans_keys, false, *args, **hs_trans)
     ret.reload if reload   # For some reason, the (optional) argument is not recognized...
     ret
@@ -998,6 +1016,7 @@ class BaseWithTranslation < ApplicationRecord
   # @param (see BaseWithTranslation.create_with_translation!)
   # @return [BaseWithTranslation]
   def self.create_with_orig_translation!(hsmain={}, unique_trans_keys=nil, *args, reload: true, **hs_trans)
+    hs_trans = {orig_locale: true}.merge(hs_trans)
     ret = update_or_create_with_translations_core!(:orig_translation, hsmain, unique_trans_keys, nil, false, *args, **hs_trans)
     ret.reload if reload
     ret
@@ -1010,6 +1029,7 @@ class BaseWithTranslation < ApplicationRecord
   # @param (see BaseWithTranslation.create_with_translation!)
   # @return [BaseWithTranslation]
   def self.update_or_create_with_orig_translation!(hsmain={}, unique_trans_keys=nil, mainkeys=nil, *args, reload: true, **hs_trans)
+    hs_trans = {orig_locale: true}.merge(hs_trans)
     ret = update_or_create_with_translations_core!(:orig_translation, hsmain, unique_trans_keys, mainkeys, true, *args, **hs_trans)
     ret.reload if reload
     ret

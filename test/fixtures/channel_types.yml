@@ -5,6 +5,7 @@
 #  id                                                 :bigint           not null, primary key
 #  mname(machine name (alphanumeric characters only)) :string           not null
 #  note                                               :text
+#  orig_locale(locale of original title)              :string(2)
 #  weight(weight for sorting within this model)       :integer          default(999), not null
 #  created_at                                         :datetime         not null
 #  updated_at                                         :datetime         not null
@@ -26,6 +27,7 @@
 
 <% Seeds::ChannelTypes::SEED_DATA.each_pair do |ekey, edata| %>
 channel_type_<%= ekey %>:
+  orig_locale: <%= edata[:orig_langcode] %>
   mname: <%= edata[:mname] %>
   weight: <%= edata[:weight] %>
   create_user: user_syshelper
@@ -34,6 +36,7 @@ channel_type_<%= ekey %>:
 <% end %>
 
 channel_type_dictionary:
+  orig_locale: ja
   mname: dictionary
   weight: 830.8
   create_user: user_moderator_general_ja
@@ -41,6 +44,7 @@ channel_type_dictionary:
   note: ChannelTypeDictionary
 
 one:
+  orig_locale: en
   mname: MyString1
   weight: 840.1
   create_user: user_syshelper
@@ -48,6 +52,7 @@ one:
   note: MyText
 
 two:
+  orig_locale: en
   mname: MyString2
   weight: 850.4
   create_user: 

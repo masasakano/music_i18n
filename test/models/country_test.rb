@@ -12,6 +12,7 @@
 #  iso3166_n3_code(ISO-3166-1 Numeric code, JIS X 0304) :integer
 #  iso3166_remark(Remarks in ISO-3166-1, 2, 3)          :text
 #  note                                                 :text
+#  orig_locale(locale of original title)                :string(2)
 #  orig_note(Remarks by HirMtsd)                        :text
 #  start_date                                           :date
 #  territory(Territory name in ISO-3166-1)              :text

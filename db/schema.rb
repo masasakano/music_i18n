@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_14_145902) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -80,6 +80,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
     t.datetime "created_at", null: false
     t.text "memo_editor", comment: "Internal-use memo for Editors"
     t.text "note"
+    t.string "orig_locale", limit: 2, comment: "locale of original title"
     t.bigint "place_id", null: false
     t.bigint "sex_id", null: false
     t.datetime "updated_at", null: false
@@ -96,6 +97,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
     t.bigint "create_user_id"
     t.datetime "created_at", null: false
     t.text "note"
+    t.string "orig_locale", limit: 2, comment: "locale of original title"
     t.boolean "themselves", default: false, comment: "true if identical to an Artist"
     t.bigint "update_user_id"
     t.datetime "updated_at", null: false
@@ -110,6 +112,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
     t.datetime "created_at", null: false
     t.string "mname", null: false, comment: "machine name (alphanumeric characters only)"
     t.text "note"
+    t.string "orig_locale", limit: 2, comment: "locale of original title"
     t.bigint "update_user_id"
     t.datetime "updated_at", null: false
     t.index ["create_user_id"], name: "index_channel_platforms_on_create_user_id"
@@ -122,6 +125,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
     t.datetime "created_at", null: false
     t.string "mname", null: false, comment: "machine name (alphanumeric characters only)"
     t.text "note"
+    t.string "orig_locale", limit: 2, comment: "locale of original title"
     t.bigint "update_user_id"
     t.datetime "updated_at", null: false
     t.integer "weight", default: 999, null: false, comment: "weight for sorting within this model"
@@ -140,6 +144,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
     t.string "id_at_platform", comment: "Channel-ID at the remote platform"
     t.string "id_human_at_platform", comment: "Human-readable Channel-ID at remote prefixed <@>"
     t.text "note"
+    t.string "orig_locale", limit: 2, comment: "locale of original title"
     t.bigint "update_user_id"
     t.datetime "updated_at", null: false
     t.index ["channel_owner_id", "channel_type_id", "channel_platform_id"], name: "index_unique_all3", unique: true
@@ -163,6 +168,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
     t.integer "iso3166_n3_code", comment: "ISO-3166-1 Numeric code, JIS X 0304"
     t.text "iso3166_remark", comment: "Remarks in ISO-3166-1, 2, 3"
     t.text "note"
+    t.string "orig_locale", limit: 2, comment: "locale of original title"
     t.text "orig_note", comment: "Remarks by HirMtsd"
     t.date "start_date"
     t.text "territory", comment: "Territory name in ISO-3166-1"
@@ -201,6 +207,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
     t.datetime "created_at", null: false
     t.text "memo_editor", comment: "Internal-use memo for Editors"
     t.text "note"
+    t.string "orig_locale", limit: 2, comment: "locale of original title"
     t.bigint "site_category_id", null: false
     t.datetime "updated_at", null: false
     t.float "weight", comment: "weight to sort this model index"
@@ -222,6 +229,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
   create_table "engage_hows", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.text "note"
+    t.string "orig_locale", limit: 2, comment: "locale of original title"
     t.datetime "updated_at", null: false
     t.float "weight", default: 999.0
   end
@@ -249,6 +257,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
     t.integer "end_date_err", comment: "Error of end-date in day. 182 or 183 days for one with only a known year."
     t.text "memo_editor", comment: "Internal memo for Editors"
     t.text "note"
+    t.string "orig_locale", limit: 2, comment: "locale of original title"
     t.bigint "place_id"
     t.date "start_date", comment: "if null, start date is undefined."
     t.integer "start_date_err", comment: "Error of start-date in day. 182 or 183 days for one with only a known year."
@@ -287,6 +296,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
     t.bigint "event_group_id", null: false
     t.text "memo_editor"
     t.text "note"
+    t.string "orig_locale", limit: 2, comment: "locale of original title"
     t.bigint "place_id"
     t.datetime "start_time", precision: nil
     t.bigint "start_time_err", comment: "in second"
@@ -302,6 +312,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
   create_table "genres", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.text "note"
+    t.string "orig_locale", limit: 2, comment: "locale of original title"
     t.datetime "updated_at", null: false
     t.float "weight", comment: "Smaller means higher in priority."
   end
@@ -396,6 +407,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
     t.float "duration", comment: "Total duration in seconds"
     t.text "memo_editor", comment: "Internal-use memo for Editors"
     t.text "note"
+    t.string "orig_locale", limit: 2, comment: "locale of original title"
     t.bigint "place_id", comment: "The main place where the video was set in"
     t.date "release_date", comment: "Published date of the video"
     t.datetime "updated_at", null: false
@@ -409,6 +421,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
   create_table "instruments", comment: "(Music) Instruments for ArtistMusicPlay to go with PlayRole", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.text "note"
+    t.string "orig_locale", limit: 2, comment: "locale of original title"
     t.datetime "updated_at", null: false
     t.float "weight", default: 999.0, null: false, comment: "weight for sorting for index."
     t.index ["weight"], name: "index_instruments_on_weight"
@@ -418,6 +431,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
     t.datetime "created_at", null: false
     t.string "modelname", null: false
     t.text "note"
+    t.string "orig_locale", limit: 2, comment: "locale of original title"
     t.datetime "updated_at", null: false
     t.index ["modelname"], name: "index_model_summaries_on_modelname", unique: true
   end
@@ -620,6 +634,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
     t.bigint "genre_id", null: false
     t.text "memo_editor", comment: "Internal-use memo for Editors"
     t.text "note"
+    t.string "orig_locale", limit: 2, comment: "locale of original title"
     t.bigint "place_id", null: false
     t.datetime "updated_at", null: false
     t.integer "year"
@@ -641,6 +656,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
     t.datetime "created_at", null: false
     t.text "memo_editor", comment: "Internal-use memo for Editors"
     t.text "note"
+    t.string "orig_locale", limit: 2, comment: "locale of original title"
     t.bigint "prefecture_id", null: false
     t.datetime "updated_at", null: false
     t.index ["prefecture_id"], name: "index_places_on_prefecture_id"
@@ -650,6 +666,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
     t.datetime "created_at", null: false
     t.string "mname", null: false, comment: "unique machine name"
     t.text "note"
+    t.string "orig_locale", limit: 2, comment: "locale of original title"
     t.datetime "updated_at", null: false
     t.float "weight", default: 999.0, null: false, comment: "weight to sort entries in Index for Editors"
     t.index ["mname"], name: "index_play_roles_on_mname", unique: true
@@ -662,6 +679,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
     t.date "end_date"
     t.integer "iso3166_loc_code", comment: "ISO 3166-2:JP (etc) code (JIS X 0401:1973)"
     t.text "note"
+    t.string "orig_locale", limit: 2, comment: "locale of original title"
     t.text "orig_note", comment: "Remarks by HirMtsd"
     t.date "start_date"
     t.datetime "updated_at", null: false
@@ -723,6 +741,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
     t.datetime "created_at", null: false
     t.integer "iso5218", null: false
     t.text "note"
+    t.string "orig_locale", limit: 2, comment: "locale of original title"
     t.datetime "updated_at", null: false
     t.index ["iso5218"], name: "index_sexes_on_iso5218", unique: true
   end
@@ -732,6 +751,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
     t.text "memo_editor", comment: "Internal-use memo for Editors"
     t.string "mname", null: false, comment: "Unique machine name"
     t.text "note"
+    t.string "orig_locale", limit: 2, comment: "locale of original title"
     t.text "summary", comment: "Short summary"
     t.datetime "updated_at", null: false
     t.float "weight", comment: "weight to sort this model in index"
@@ -797,6 +817,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
     t.date "last_confirmed_date"
     t.text "memo_editor"
     t.text "note"
+    t.string "orig_locale", limit: 2, comment: "locale of original title"
     t.date "published_date"
     t.bigint "update_user_id"
     t.datetime "updated_at", null: false
@@ -861,7 +882,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_02_143500) do
     t.text "object"
     t.text "object_changes"
     t.string "whodunnit"
-    t.string "{null: false}"
+    t.string "{:null=>false}"
     t.index ["item_type", "item_id"], name: "index_versions_on_item_type_and_item_id"
   end
 
