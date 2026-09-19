@@ -2,7 +2,7 @@ module Translatable
   extend ActiveSupport::Concern
 
   included do
-    has_many :translations, as: :translatable, dependent: :destroy
+    has_many :translations, as: :translatable, inverse_of: :translatable, dependent: :destroy  # inverse_of is essential for in-memory handling
   end
 
   # Returns message if both title and alt_title are nulls

@@ -66,8 +66,15 @@ class InstrumentTest < ActiveSupport::TestCase
 
     tra.title = hsin[:title]
     refute tra.valid?
-    assert inst4.valid?
-    assert_nothing_raised{ inst4.update!(note: 'something44') }
+    record4 = inst4
+    if record4.respond_to?(:translations_attributes=)  # i.e., if `accepts_nested_attributes_for :translations` is declared.
+      refute record4.valid?
+      assert_raises(ActiveRecord::RecordInvalid, "In-memory Translation-s should be considered in validation, but..."){
+        record4.update!(note: 'something44') }
+    else
+      assert inst4.valid?
+      assert_nothing_raised{ inst4.update!(note: 'something44') }
+    end
   end
 
   test "associations via ArtistMusicPlayTest" do

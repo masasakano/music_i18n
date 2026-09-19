@@ -71,7 +71,7 @@ class Translation < ApplicationRecord
 
   after_create :call_after_first_translation_hook
 
-  belongs_to :translatable, polymorphic: true
+  belongs_to :translatable, polymorphic: true, touch: false  # Parent's timestamp NOT updated when Translation is updated
   #belongs_to :sex, -> { where(translations: { translatable_type: 'Sex' }) }, foreign_key: 'translatable_id'  # This for some reason invalidates "<<" ...  # cf. https://veelenga.github.io/joining-polymorphic-associations/
 
   # See {BaseWithTranslation#ordered_translations}

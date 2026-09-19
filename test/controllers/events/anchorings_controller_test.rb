@@ -159,8 +159,8 @@ class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
     url_unk.translations.reset
     assert_equal 1, url_unk.translations.count, "sanity check: #{url_unk.translations.inspect}"
     newlc = "pt"
-    url_unk.translations.first.update!(langcode: newlc, is_orig: true)
-    url_unk.update!(orig_locale: newlc)
+    url_unk.translations.load.first.assign_attributes(langcode: newlc, is_orig: true)  # .load is the key to ensure in-memory operation
+    url_unk.update!(orig_locale: newlc)  # Updating both parent Url and Translation simultaneously
     url_unk.translations.reset
     assert((url_unk.orig_locale == newlc && 1 == url_unk.translations.count && url_unk.translations.first.is_orig), "sanity check..."+[url_unk.orig_locale, url_unk.translations.count, url_unk.translations.first.is_orig].inspect)
     assert_equal [newlc], url_unk.translations.pluck(:langcode).flatten

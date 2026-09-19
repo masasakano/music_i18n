@@ -469,6 +469,8 @@ class BaseWithTranslation < ApplicationRecord
   after_create :save_unsaved_translations  # callback to create(-only) @unsaved_translations
 
   include Translatable  # Key relation - polymorphic with Translation; defined in /app/models/concerns/translatable.rb
+  accepts_nested_attributes_for :translations, allow_destroy: true
+
   include SlimString
   extend  ModuleCommon  # for split_hash_with_keys and update_or_create_by_with_notouch!()
   include ModuleCommon  # for split_hash_with_keys
@@ -2151,9 +2153,20 @@ class BaseWithTranslation < ApplicationRecord
   # instant methods
   ################################################
 
-  # Returning Ordered Translation relation
+  # Returning Ordered Translation relation where all Translations are laded in-memory in default
   #
   # Referring to scope {Translation.ordered_by_priority}
+  #
+  # == Note about in-memory loading
+  #
+  # Considering most BaseWithTranslation records have only a few associated Translation-s, 
+  # in-memory loading (+do_load: true+) is usually more efficient; for example,
+  #   tras = ordered_translations
+  #   t = tras.first
+  # would execute +LIMIT 1+ in SQL, so subsequent uses of +tras+ would enquire DB again(!).
+  #
+  # More importantly, +ordered_translations.last+ would raise +ActiveRecord::IrreversibleOrderError+,
+  # which no clean ways could prevent (as of Rails-8.1).
   #
   # @example Default order ({#orig_locale} matters most)
   #   artist = Artist.first
@@ -2167,9 +2180,11 @@ class BaseWithTranslation < ApplicationRecord
   #    Then, the original language ({#orig_locale}) has the second highest priority.
   #    Then, I18n.available_locales is referred to.
   #    Once the order of the locales has been determined, the rest is sorted by {Translation#weight}
+  # @param do_load: [Boolean] If true (Def), all Translations are loaded in-memory.
   # @return [ActiveRecord::Relation<Translation>]
-  def ordered_translations(preferred_langcode = nil)
-    translations.ordered_by_priority(orig_locale, preferred_langcode)
+  def ordered_translations(preferred_langcode = nil, do_load: true)
+    ret = translations.ordered_by_priority(orig_locale, preferred_langcode)
+    do_load ? ret.load : ret
   end
 
 

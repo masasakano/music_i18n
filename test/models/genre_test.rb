@@ -69,9 +69,15 @@ class GenreTest < ActiveSupport::TestCase
     tra = record4.translations.first
     assert tra.valid?
 
-    tra.title = hsin[:title]
+    tra.title = hsin[:title]  # made its :title identical to that of record3's Translation.
     refute tra.valid?
-    assert record4.valid?
-    assert_nothing_raised{ record4.update!(note: 'something44') }
+    if record4.respond_to?(:translations_attributes=)  # i.e., if `accepts_nested_attributes_for :translations` is declared.
+      refute record4.valid?
+      assert_raises(ActiveRecord::RecordInvalid, "In-memory Translation-s should be considered in validation, but..."){
+        record4.update!(note: 'something44') }
+    else
+      assert record4.valid?
+      assert_nothing_raised{ record4.update!(note: 'something44') }
+    end
   end
 end

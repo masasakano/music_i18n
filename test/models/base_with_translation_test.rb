@@ -2323,6 +2323,94 @@ end
     assert act.all?{|ar| ar[0].include?(" < ") }  # defined in module_common.rb  (included at the top)
   end
 
+  test "accepts_nested_attributes_for :translations" do
+    genre = Genre.first
+    assert genre.respond_to?(:translations_attributes=), "should be defined, but..."
+    assert genre.class.method_defined?(:translations_attributes=)
+
+    unique_genre_weight = (1234..9999).find{ |trial| !Genre.find_by(weight: trial) }
+    unique_weights = (1..3).map{ 1000+_1 }  # Translation weight
+    unique_titles  = (1..3).map{ "test-"+__method__.to_s+"-#{_1}" }
+    ar_hstras = (0..2).map{  # Array of Hash
+      {title:  unique_titles[_1],
+       weight: 100 + _1,
+       note: "testnote-#{_1}",
+       langcode: "en",
+       is_orig: (_1 == 0),
+       note: "testnote-1"}
+    }
+
+    record = Genre.new(orig_locale: "en", weight: unique_genre_weight, translations_attributes: ar_hstras)
+    assert record.valid?
+    # assert_equal 3, record.translations_attributes.size  # NoMethodError b/c only writer is defined!
+    assert_equal 3, record.translations.size
+    tras = record.translations
+    assert tras.first.translatable, "should be true because of inverse_of option in translatable association, but..."
+
+    assert_difference('Genre.count*10 + Translation.count', 13, "Should create 1 Genre and 3 Translations at the same time, but..."){
+      assert record.save
+    }
+
+    tras = record.ordered_translations
+    tra1 = tras.first
+    tra3 = tras.last
+    assert_equal unique_titles.first, tra1.title  # sanity check for ordered_translations; see ar_hstras
+    title_be4  = tra1.title  # to store
+
+    tra1.title = tra3.title
+    refute tra1.valid?    # due to unique constraint
+    #refute record.valid?  # in-memory validation should work ... not??
+    ar_traupdate = [{id: tra1.id.to_s, title: tra1.title}]  # to update 1 Translation
+    record.translations_attributes = ar_hstras
+    refute record.valid?  # in-memory validation should work ... not??
+    assert_raises(ActiveRecord::RecordInvalid, "Saving with an identical title Translation in-memory should fail, but..."){
+      record.save! }
+
+    tra_updated_at_be4 = tra1.updated_at
+    rec_updated_at_be4 = record.updated_at
+    tra1.title = title_be4+"-99"
+    assert tra1.valid?    # Now all associated Translation-s are unique
+    refute record.valid?  # in-memory validation should work ... not??
+    # record.translations_attributes = []  # This does NOTHING (!)
+    # assert record.valid?
+    record.translations.reset
+    ar_traupdate = [{id: tra1.id.to_s, title: tra1.title}]  # to update 1 Translation
+    record.translations_attributes = ar_traupdate
+    assert record.valid?, "Error: "+record.errors.inspect
+    assert_difference('Genre.count*10 + Translation.count', 0){
+      assert record.save
+    }
+
+    tra1.reload
+    assert_operator tra_updated_at_be4, :<, tra1.updated_at
+    assert_equal rec_updated_at_be4, record.updated_at, "should not be updated due to 'touch: false' in Translation association definition"
+    tra_updated_at_be4 = tra1.updated_at
+
+    note_new = "3rd? update"
+    ar_hsupdate = [{id: tra1.id.to_s, note: note_new}, {id: tra3.id.to_s, _destroy: "1"}]  # to update 1 Translation and destroy 1
+    assert_difference('Genre.count*10 + Translation.count', -1, "should update 1 Translation and destroy but..."){
+      record.update!(translations_attributes: ar_hsupdate)
+    }
+    tra1.reload
+    assert_operator tra_updated_at_be4, :<, tra1.updated_at
+    assert_equal rec_updated_at_be4, record.updated_at, "should not be updated due to 'touch: false' in Translation association definition"
+
+    assert_difference('Genre.count*10 + Translation.count', -12, "cascade-destroy should work but..."){
+      record.destroy!
+    }
+
+    ## Testing :translations_attributes=
+
+    # record = Genre.new(weight: unique_genre_weight)
+    # refute record.valid?
+    record = Genre.new(orig_locale: "en", weight: unique_genre_weight)
+    assert record.valid?, "errors= "+record.errors.inspect
+    record.translations_attributes = ar_hstras
+    assert record.valid?, "errors= "+record.errors.inspect
+    assert_difference('Genre.count*10 + Translation.count', 13){
+      record.save }
+  end
+
   test "inspect" do
     str = (cntry=Country["GB"]).inspect
     assert_match(/\(en:Orig\)>\z/, str, "Trans="+cntry.translations.inspect)
