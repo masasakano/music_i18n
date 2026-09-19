@@ -272,8 +272,8 @@ class Channel < BaseWithTranslation
 end
 
 class << Channel
-  alias_method :create_basic_bwt!, :create_basic! if !self.method_defined?(:create_basic_bwt!)
-  alias_method :initialize_basic_bwt, :initialize_basic if !self.method_defined?(:initialize_basic_bwt!)
+  alias_method :create_basic_bwt!,    :create_basic!    if !self.method_defined?(:create_basic_bwt!)
+  alias_method :initialize_basic_bwt, :initialize_basic if !self.method_defined?(:initialize_basic_bwt)
 
   # Finds a combination that does not exist (to circumvent a validation violation).
   def _find_creatable_channel_combinations

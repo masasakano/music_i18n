@@ -66,7 +66,7 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
   # @param anchoring [Anchoring]
   def _refute_public_accesses_to_anchorables(anchoring)
     %i(new edit).each do |action|
-      _assert_login_demanded(path_anchoring(anchoring, action: action)) # defined in /test/helpers/controller_helper.rb / base_anchorables_helper.rb
+      _assert_login_demanded(path_anchoring(anchoring, action: action)) # defined in /test/test_controller_helper.rb , base_anchorables_helper.rb
     end
   end
 
@@ -78,7 +78,7 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
     raise ArgumentError, "At least one user must be specified." if fail_users.empty? && success_users.empty?
     parent = (anchoring.respond_to?(:anchorable) ? anchoring.anchorable : anchoring)
     #path = Rails.application.routes.url_helpers.polymorphic_path(parent)
-    #_assert_authorized_get_set(path, parent, model_record, fail_users: fail_users, success_users: success_users, h1_title_regex: nil) # defined in /test/helpers/controller_helper.rb
+    #_assert_authorized_get_set(path, parent, model_record, fail_users: fail_users, success_users: success_users, h1_title_regex: nil) # defined in /test/test_controller_helper.rb
     if !h1_title_regex
       title_core = Regexp.quote(parent.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, article_to_head: true))
       h1_title_regex = /\b#{title_core}\b/
@@ -104,7 +104,7 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
       end
       path = path_anchoring(anchoring, action: action)  # defined in base_anchorables_helper.rb
       model_record = ((:new == action) ? Anchoring : anchoring) 
-      _assert_authorized_get_set(path, model_record, fail_users: fail_users, success_users: success_users, h1_title_regex: nil, &bl) # defined in /test/helpers/controller_helper.rb
+      _assert_authorized_get_set(path, model_record, fail_users: fail_users, success_users: success_users, h1_title_regex: nil, &bl) # defined in /test/test_controller_helper.rb
       n_asserts += fail_users.size + success_users.size
     end
     return n_asserts
@@ -195,7 +195,7 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
 
     newa = _assert_create_anchoring_url_existing_domain(parent_record, url_str: chronicle,
               fail_users: fail_users, success_users: success_users, note: note, is_debug: is_debug)
-    #action, new_mdl5 = assert_authorized_post(Anchoring, user: @moderator_ja, path_or_action: path_create, redirected_to: proc_art0_path, params: hschronicle, method: :post, diff_count_command: EQUATION_MODEL_COUNT, diff_num: 10011){ |user, record| # defined in /test/helpers/controller_helper.rb
+    #action, new_mdl5 = assert_authorized_post(Anchoring, user: @moderator_ja, path_or_action: path_create, redirected_to: proc_art0_path, params: hschronicle, method: :post, diff_count_command: EQUATION_MODEL_COUNT, diff_num: 10011){ |user, record| # defined in /test/test_controller_helper.rb
 
     assert_equal chronicle, newa.url.url
     assert_equal "ja",      newa.url.url_langcode.to_s
@@ -381,7 +381,7 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
     allopts = (yield(allopts) || allopts) if block_given?
 
     fail_users.each do |euser|
-      assert_unauthorized_post(Anchoring, **(allopts.merge({user: euser}))) # defined in /test/helpers/controller_helper.rb
+      assert_unauthorized_post(Anchoring, **(allopts.merge({user: euser}))) # defined in /test/test_controller_helper.rb
     end
 
     allopts.merge!({
@@ -396,7 +396,7 @@ module ActiveSupport::TestCase::ControllerAnchorableHelper
     re = Regexp.new(%r@https?://@)
     model_record = ((:create == action) ? Anchoring : anchoring) 
 
-    action, new_mdl = assert_authorized_post(model_record, **allopts){ |_, record| # defined in /test/helpers/controller_helper.rb
+    action, new_mdl = assert_authorized_post(model_record, **allopts){ |_, record| # defined in /test/test_controller_helper.rb
       if record.respond_to?(:url) && (:unprocessable_content != exp_response)  # this is the Anchoring class when failing.
         assert_match(re, record.url.url)  # NOTE: url_form becomes nil after "reload"; hence you would either check it here in the yield block or include it in updated_attrs as a Hash like {url: nerurl3}
         assert_equal url_str.sub(re, ""), record.url.url.sub(re, ""), "#{_get_caller_info_message(prefix: true)} URLs are inconsistent..." if :youtube != ApplicationHelper.guess_site_platform(url_str)  # Youtube links are custom modified

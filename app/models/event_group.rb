@@ -282,8 +282,8 @@ end
 class << EventGroup 
   alias_method :uncategorized, :unknown if ! self.method_defined?(:uncategorized)
 
-  alias_method :create_basic_bwt!, :create_basic! if !self.method_defined?(:create_basic_bwt!)
-  alias_method :initialize_basic_bwt, :initialize_basic if !self.method_defined?(:initialize_basic_bwt!)
+  alias_method :create_basic_bwt!,    :create_basic!    if !self.method_defined?(:create_basic_bwt!)
+  alias_method :initialize_basic_bwt, :initialize_basic if !self.method_defined?(:initialize_basic_bwt)
 
   # Wrapper of {BaseWithTranslation.create_basic!}
   def create_basic!(*args, start_date: TimeAux::DEF_FIRST_DATE_TIME, start_date_err: nil, end_date: TimeAux::DEF_LAST_DATE_TIME, end_date_err: nil, **kwds, &blok)

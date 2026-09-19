@@ -47,7 +47,7 @@ class Anchoring < ApplicationRecord
 
   # Form keys that are not the attributes of Url, nor the original method of Anchoring (== :note)
   # fetch_h1 is a checkbox to load H1 from the remote URL to initialize or update the title
-  NATIVE_FORM_ACCESSORS = %i(site_category_id title langcode is_orig fetch_h1 url_form)
+  NATIVE_FORM_ACCESSORS = %i(site_category_id title langcode is_orig orig_locale fetch_h1 url_form)
 
   # Required methods for the sake of forms. Except for those in {NATIVE_FORM_ACCESSORS} and
   # {NATIVE_ATTRIBUTES}, they are from the parent Url (= {URL_ATTRIBUTES}).

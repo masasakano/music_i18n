@@ -214,6 +214,7 @@ class Url < BaseWithTranslation
     newurl = self.new(url: (encode ? ModuleUrlUtil::encoded_urlstr_if_decoded(urlstr) : urlstr),
                      url_langcode: url_langcode,
                      weight: weight,
+                     # orig_locale: nil,
                      published_date: published_date,
                      last_confirmed_date: last_confirmed_date,
                      note: note,
@@ -223,7 +224,9 @@ class Url < BaseWithTranslation
     newurl.was_created = true  # domain_found will be set in find_or_create_and_reset_domain_id
     newurl.original_path = urlstr  # as given (without encode/unencode processing here)
 
-    newurl.unsaved_translations << def_translation_from_url(newurl, title: title, langcode: langcode, is_orig: is_orig, alt_title: alt_title)
+    trans_new = def_translation_from_url(newurl, title: title, langcode: langcode, is_orig: is_orig, alt_title: alt_title)
+    newurl.unsaved_translations << trans_new
+    newurl.orig_locale = (trans_new.is_orig ? trans_new.langcode : nil)
 
     ret = newurl.find_or_create_and_reset_domain_id(site_category_id: site_category_id)
     return newurl if !ret  # "newurl.errors" should have been set.  "newurl.id" is nil.
@@ -673,8 +676,8 @@ end
 
 
 class << Url
-  alias_method :create_basic_bwt!, :create_basic! if !self.method_defined?(:create_basic_bwt!)
-  alias_method :initialize_basic_bwt, :initialize_basic if !self.method_defined?(:initialize_basic_bwt!)
+  alias_method :create_basic_bwt!,    :create_basic!    if !self.method_defined?(:create_basic_bwt!)
+  alias_method :initialize_basic_bwt, :initialize_basic if !self.method_defined?(:initialize_basic_bwt)
 
   # Wrapper of {BaseWithTranslation.create_basic!}
   #
@@ -691,7 +694,7 @@ class << Url
   end
 
     def _get_options_for_create_basic(domain, domain_id, kwds)
-      opts = {}.merge(kwds).with_indifferent_access
+      opts = {}.merge(kwds)
       if !opts.has_key?(:title) || opts[:title].blank?
         opts[:title] = "create-basic-"+(opts[:url] || "blank-domain-#{rand.to_s}")
       end

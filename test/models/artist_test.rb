@@ -316,11 +316,11 @@ class ArtistTest < ActiveSupport::TestCase
     assert_equal 2, art.translations.where(langcode: "en").size, 'sanity check'
 
     chan1 = ChannelOwner.create_basic!(title: "dummy", langcode: "en", is_orig: false, themselves: true, artist: art, note: "chan1-dayo")
-    # only 1 Translation should be imported.
+    # All two Translation-s should be imported.
 
     assert_equal chan1, art.channel_owner, 'sanity check'
     assert_equal chan1.title(langcode: :en), art.title(langcode: :en), 'sanity check'
-    assert_equal 1, chan1.translations.where(langcode: "en").size
+    assert_equal 2, chan1.translations.where(langcode: "en").size
 
     ## Now update Translation of Artist, which should be propagated to ChannelOwner!
     art_tra_en = art.best_translations["en"]
@@ -330,7 +330,7 @@ class ArtistTest < ActiveSupport::TestCase
     assert_equal new_wei, art.best_translations["en"].weight, 'sanity check'
 
     chan1.reload
-    assert_equal 1, chan1.translations.where(langcode: "en").size
+    assert_equal 2, chan1.translations.where(langcode: "en").size
     assert_equal new_alt, chan1.alt_title(langcode: "en")
     assert_equal new_rom, chan1.romaji(langcode: "en")
     assert_equal new_wei, chan1.best_translations["en"].weight

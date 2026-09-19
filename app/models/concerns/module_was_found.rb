@@ -21,24 +21,51 @@ module ModuleWasFound
 
   module ClassMethods
     #
-    # Defines 8 instance methods including "*_found(=|?)" and "*_created(=|?)"
+    # Defines 8 instance methods including "*_found?" and "*_created?"
     #
-    # Basically defines writers and readers (with a postfix of a question mark) and related utitlity methods.
-    # Eight methods:
+    # Basically this method defines setters and getters (writers and readers) and
+    # related utitlity methods for the given parameter, as well as setting the default 8 methods like `was_found?`.
+    # Although 8 methods are defined, you should use only 4 of them, as follows
     #
-    # * "*_found(=|?)"  (writer & reader)
-    # * "*_created(=|?)"
-    # * "set_*_(found|created)_true"  (Synonym of self.*_**=true)
-    # * "set_*_found_if_true(either_arg){ or_block }"  (setting both *_found and *_created)
+    # The purpose is that if you use the dedicated setter of
+    # +set_was_found_if_true{false}+ (or +set_was_found_if_true(false)+),
+    # "was_found?" and "was_created?" return +false+ and +true+, respectively,
+    # namely always the opposite Boolean values so that the developers can
+    # write readable code.  In other words, this Module provides a set of
+    # human-readable instance methods.
+    #
+    # == Four recommended methods:
+    #
+    # * "*_found?"    # (getter)
+    # * "*_created?"  # (getter)
+    # * "set_*_found_if_true(Treated_as_Boolean=nil){ optional_block }" # (setting both *_found and *_created)
+    # * "reset_*_found_created"  # (resets both instance variables)
+    #
+    # == All 8 methods for the sake of completeness, though 4 of them are obsolete:
+    #
+    # * "*_found(=|?)"  (setter & getter)  # Use Getter, but do NOT use this setter method, for it beats the point of this Module!
+    # * "*_created(=|?)"                   # Do NOT use this setter method.
+    # * "set_*_(found|created)_true"  (Synonym of self.*_**=true) # Do NOT use these setter methods!! Left due to historic reason.
+    # * "set_*_found_if_true(either_arg){ or_block }"  (setting both *_found and *_created)  # Recommended Setter
     # * "reset_*_found_created"  (resets both instances)
     #
-    # Suppose "*" is "group".  Then,
+    # Although you can set them manually, any inconsistency setting would raise
+    # {HaramiMusicI18n::ModuleWasFounds::InconsistencyInWasFoundError}
+    #
+    # == Detail
+    #
+    # Suppose
+    #
+    #   define_was_found_for("group")
+    #
+    # has been called.  Internally, this set 2 instance variables of 
+    # `@group_found` and `@group_created`.
     #
     # 1. if "@group_found" is falsy AND
     # 2. if "@group_created" is truthy,
-    # 3. "group_found?" returns false and "group_created?" returns true,
-    #    or if it is the reverse, they return the reverse,
-    #    or if neither is the case (i.e., both are falthy are both are truthy),
+    # 3. "group_found?" returns false and "group_created?" returns true;
+    #    or if it is the reverse, they return the reverse;
+    #    or if neither is the case (i.e., both are falthy or both are truthy),
     #    this raises HaramiMusicI18n::ModuleWasFounds::InconsistencyInWasFoundError
     #
     # In other words, you MUST set either of them truthy to get either true/false
@@ -50,20 +77,26 @@ module ModuleWasFound
     #      include ModuleWasFound  # define attr_writers @was_found, @was_created and their questioned-readers.
     #      define_was_found_for("group")  # defined in ModuleWasFound; define #group_found, #group_found? etc
     #
-    # @example  How to use the methods (for the default +was_found?+)
-    #    def abc(x)
-    #      self.was_found   = nil
-    #      self.was_created = false
+    # @example  Just to show an errorneous way
+    #    def raise_always_warning
     #      begin
     #        was_found? rescue was_created?
     #      rescue HaramiMusicI18n::ModuleWasFounds::InconsistencyInWasFoundError => er
-    #        warn "You must set either of them truethy."
+    #        warn "You must set either of them truthy or falthy."
     #      end
-    #      self.was_created = true
+    #    end
+    #
+    # @example  How to use the methods (for the default +was_found?+)
+    #    def an_example_use(any_object)
+    #      set_was_found_if_true(false)
     #      was_found?    # => false
     #      was_created?  # => true
+    #      reset_*_found_created"  # (resets both instance variables)
+    #      set_was_found_if_true{ any_object }
+    #      was_found?    # => Boolean: !!any_object 
+    #      was_created?  # => Boolean:  !any_object 
     #
-    # @example  A tip to use set_group_found_true
+    # @example  A tip to use set_was_found_true
     #    existing_or_nil = MyClass.find_by(some: 5)&.tap(&:set_was_found_true)
     #
     def define_was_found_for(was)

@@ -2931,6 +2931,16 @@ channel_owner_saki_kubota_en1:
   update_user_id: user_translator
   note: ChannelOwnerSakiKubotaEn1
 
+channel_owner_saki_kubota_en2:
+  translatable: channel_owner_saki_kubota (ChannelOwner)
+  langcode: en
+  title: "Saaaki Kubota"
+  is_orig: false
+  weight: 101
+  create_user_id: user_translator2
+  update_user_id: user_translator2
+  note: Artist-SakiKubotaEn2-Saaki consistent with Artist
+
 channel_owner_one_en:
   translatable: one (ChannelOwner)
   langcode: en

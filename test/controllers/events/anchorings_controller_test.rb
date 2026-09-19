@@ -150,7 +150,7 @@ class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
     assert_operator 1, :<, url_unk.translations.count, 'tests fixtures'
     css_checkbox = "#anchoring_fetch_h1"
 
-    ## Preparation - destroying most Translations but one from the Url (Url.unknown)
+    ## Preparation - destroying most Translations but the best one from the Url (Url.unknown)
     url_unk.translations.find_by(langcode: "ja").destroy
     url_unk.translations.reset
     Translation.sort(url_unk.translations).reverse[1..-1].each do |etra|
@@ -158,9 +158,12 @@ class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
     end
     url_unk.translations.reset
     assert_equal 1, url_unk.translations.count, "sanity check: #{url_unk.translations.inspect}"
-    url_unk.translations.first.update!(langcode: "pt")
+    newlc = "pt"
+    url_unk.translations.first.update!(langcode: newlc, is_orig: true)
+    url_unk.update!(orig_locale: newlc)
     url_unk.translations.reset
-    assert_equal ["pt"], url_unk.translations.pluck(:langcode).flatten
+    assert((url_unk.orig_locale == newlc && 1 == url_unk.translations.count && url_unk.translations.first.is_orig), "sanity check..."+[url_unk.orig_locale, url_unk.translations.count, url_unk.translations.first.is_orig].inspect)
+    assert_equal [newlc], url_unk.translations.pluck(:langcode).flatten
 
     ## First Anchoring creation for an existing Url succeeds, but fetch_h1 must be ignored for an existing Url.
     #
@@ -216,10 +219,12 @@ class Events::AnchoringsControllerTest < ActionDispatch::IntegrationTest
     refute_equal tit_orig,         tra.title, 'should have changed, but...'
     assert_equal "Example Domain", tra.title, 'should have been updated to this, fetched H1, but...'
     assert_equal "pt",             tra.langcode, 'langcode should remain, but...'
+    assert_equal "pt", url_unk.orig_locale
 
     ## Another Preparation - adding a Translation to Url (Url.unknown)
     assert_includes  url_unk.translations.pluck(:title), "Example Domain", "should have one"
     url_unk.translations.first.update!(title: "back-to-original")
+    assert_equal "pt", url_unk.orig_locale
     url_unk.translations << Translation.new(title: "dummy10", langcode: "fr", is_orig: false)
     url_unk.translations.reset
     assert_equal 2, url_unk.translations.count, 'sanity check'

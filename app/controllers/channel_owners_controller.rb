@@ -45,7 +45,7 @@ class ChannelOwnersController < ApplicationController
 
     if artist_in
       @channel_owner.artist = artist_in
-      @channel_owner.set_unsaved_translations_from_artist  # set @unsaved_translations referring to the Artist
+      @channel_owner.set_unsaved_translations_from_artist  # set ChannelOwner#translations referring to the associated Artist
       #@channel_owner.unsaved_translations = _unsaved_translations_equivalent_artist(artist_in)
     else
       # Even if @channel_owner.errors.any?, it is better to set unsaved_translation so the input strings in the forms are preserved.

@@ -74,6 +74,37 @@ class Translation < ApplicationRecord
   belongs_to :translatable, polymorphic: true
   #belongs_to :sex, -> { where(translations: { translatable_type: 'Sex' }) }, foreign_key: 'translatable_id'  # This for some reason invalidates "<<" ...  # cf. https://veelenga.github.io/joining-polymorphic-associations/
 
+  # See {BaseWithTranslation#ordered_translations}
+  # Priority: 1. preferred_langcode (if present) -> 2. orig_locale (if present) -> 3. I18n.available_locales -> 4. weight
+  scope :ordered_by_priority, ->(orig_locale = nil, preferred_langcode = nil) {
+    clauses = []
+
+    # 1. Highest Priority: Explicitly requested preferred_langcode (if specified)
+    if preferred_langcode.present?
+      quoted_pref = connection.quote(preferred_langcode.to_s)
+      clauses << Arel.sql("CASE WHEN translations.langcode = #{quoted_pref} THEN 0 ELSE 1 END")
+    end
+
+    # 2. Second Priority: Parent BaseWithTranslation's orig_locale
+    if orig_locale.present?
+      quoted_orig = connection.quote(orig_locale.to_s)
+      clauses << Arel.sql("CASE WHEN translations.langcode = #{quoted_orig} THEN 0 ELSE 1 END")
+    end
+
+    # 3. Fallback: I18n.available_locales positional order
+    locales_sql = I18n.available_locales.map { |l| connection.quote(l.to_s) }.join(", ")
+    pg_array = "ARRAY[#{locales_sql}]::text[]"
+    clauses << Arel.sql("ARRAY_POSITION(#{pg_array}, translations.langcode::text) ASC NULLS LAST")
+
+    # 4. Translation#weight
+    clauses << Arel.sql("translations.weight NULLS LAST")
+
+    # 5. (Redundant) Translation#created_at (DESC); should be unnecessary because weight should be unique within langcode
+    clauses << Arel.sql("translations.created_at DESC")
+
+    order(*clauses)
+  }
+
   class OneSignificanceValidator < ActiveModel::Validator
     def validate(record)
       if options[:fields].all?{|field| record.send(field).blank? }
@@ -2204,16 +2235,30 @@ class Translation < ApplicationRecord
   #
   # regardless of their translatable_type
   #
+  # @param tra1 [Translation]
+  # @param tra2 [Translation]
+  # @param additional_cols: [Array<Symbol, String>] Additional column names if any
+  def self.identical_contents?(tra1, tra2, additional_cols: [])
+    find_unequal_content(tra1, tra2, additional_cols: additional_cols).empty?
+  end
+
+  # Returns a single-element or empty Hash of {ek => [value1, value2]} where values differ between 2 Translation-s
+  #
+  # regardless of their translatable_type
+  #
   # This calls {#hs_key_attributes}
   #
   # @param tra1 [Translation]
   # @param tra2 [Translation]
   # @param additional_cols: [Array<Symbol, String>] Additional column names if any
-  def self.identical_contents?(tra1, tra2, additional_cols: [])
-    tra1.hs_key_attributes.each_pair do |ek, ev|
-      return false if ev != tra2.send(ek)
+  # @return [Hash] Single element of {ek => [value1, value2]} if any; else +{}+
+  def self.find_unequal_content(tra1, tra2, additional_cols: [])
+    tra1.hs_key_attributes(*additional_cols).each_pair do |ek, ev|
+      if ev != (ev2=tra2.send(ek))
+        return ({ek => [ev, ev2]}.with_indifferent_access)
+      end
     end
-    true
+    {}.with_indifferent_access
   end
 
   # Returns a Hash of the 9 (or more) key column values of self.

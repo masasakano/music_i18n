@@ -464,6 +464,7 @@
 #
 class BaseWithTranslation < ApplicationRecord
   self.abstract_class = true
+  before_validation :orig_locale_consistent_with_translations
   after_validation :capture_validation_context  # callback. Save validation_context for :after_create
   after_create :save_unsaved_translations  # callback to create(-only) @unsaved_translations
 
@@ -635,7 +636,6 @@ class BaseWithTranslation < ApplicationRecord
     ret
   end
 
-
   # Improved inspect, where DB accesses only once (for Translation)
   #
   # The "title" displayed is either title or alt_title; in the latter case '[alt]' is appended.
@@ -660,7 +660,8 @@ class BaseWithTranslation < ApplicationRecord
     if depth > Consts::MAX_INSPECT_DEPTH
       return sprintf("<%s: %s>", self.class.name, self.id)
     end
-    artrans = (Translation.sort(translations).to_a rescue nil)   # just one-time DB access
+    artrans = ((ordered_translations rescue Translation.sort(translations)).to_a rescue nil)   # just one-time DB access
+    artrans = translations if artrans.blank? && (self.new_record? || self.id.nil?) && translations.present?  # if new_record?, Translation-s (none of which is saved) is NOT sorted and the random first one is displayed.
     n_trans = (artrans.size rescue nil) # Number of total translations
     l_trans = (n_trans ? (artrans.map(&:langcode).uniq.size rescue nil) : nil)  # Number of unique languages; it should never fail but playing safe.
     if n_trans && n_trans > 0
@@ -678,7 +679,7 @@ class BaseWithTranslation < ApplicationRecord
     end
     extra =
       if is_orig_str && tit && lc
-        "; Translation(id=#{tran.id rescue 'nil'}/L=#{l_trans}/N=#{n_trans}): #{tit} (#{lc}:#{is_orig_str})"
+        "; Translation(id=#{(tran.id || 'nil') rescue 'nil'}/L=#{l_trans}/N=#{n_trans}): #{tit} (#{lc}:#{is_orig_str})"
       elsif ((unsaved_translations && unsaved_translations.size > 0) rescue nil) # It should never be nil, except those of fixtures called through #all??
         unsa = unsaved_translations
         "; Translation(unsaved(n=#{unsa.size})[0]): #{inspect_internal(unsa[0].title, depth)} (#{unsa[0].langcode rescue 'nil'})"
@@ -2149,6 +2150,28 @@ class BaseWithTranslation < ApplicationRecord
   ################################################
   # instant methods
   ################################################
+
+  # Returning Ordered Translation relation
+  #
+  # Referring to scope {Translation.ordered_by_priority}
+  #
+  # @example Default order ({#orig_locale} matters most)
+  #   artist = Artist.first
+  #   artist.ordered_translations
+  # 
+  # @example In the current user locale, combined with further filtering (usually visible Translations only)
+  #   artist.ordered_translations(I18n.locale).where("weight <= ?", Translation::THRESHOLD_WEIGHT_VISIBLE)
+  # 
+  # @param preferred_langcode [String, Symbol, NilClass] Either a locale String/Symbol (typically I18n.locale) or nil.
+  #    If significant, the language of its value has the highest priority.
+  #    Then, the original language ({#orig_locale}) has the second highest priority.
+  #    Then, I18n.available_locales is referred to.
+  #    Once the order of the locales has been determined, the rest is sorted by {Translation#weight}
+  # @return [ActiveRecord::Relation<Translation>]
+  def ordered_translations(preferred_langcode = nil)
+    translations.ordered_by_priority(orig_locale, preferred_langcode)
+  end
+
 
   # The matched String to be used to select or generate self.
   #
@@ -4791,6 +4814,27 @@ tra_orig.save!
     raise # should not come
   end
 
+  # before_validation callback/hook
+  def orig_locale_consistent_with_translations
+    return true if orig_locale.blank?
+    tras =
+      if translations.present?
+        translations
+      elsif new_record?
+        unsaved_translations
+      else
+        []
+      end
+
+    return true if tras.map{_1[:langcode]}.uniq.include?(orig_locale.to_s)  # Note: pluck() is inappropriate for new_record?, because self.translations.pluck() returns always an empty Array as Translations do not exist on DB
+
+    # Having no associated Translation-s does not raise a validation error IN THIS VALIDATION (though maybe it should here or in another validation?)
+    return true if (new_record? && translations.blank? && unsaved_translations.blank?) || (!new_record? && translations.blank?)  
+
+    errors.add(:orig_locale, " no associated Translations have the locale #{orig_locale.inspect}")
+  end
+  private :orig_locale_consistent_with_translations
+
   # Captures :create, :create!, or any custom context symbol for the use in after_create
   def capture_validation_context
     @saved_validation_context = validation_context
@@ -4826,12 +4870,6 @@ tra_orig.save!
   # @raise [ActiveRecord::RecordInvalid]
   def save_unsaved_translations
     return if new_record? || changed?
-
-    # This should be redundant as self.translations for new_record (but changed)
-    # should always return an empty relation [].
-    translations.each do |ea_t|
-      ea_t.save! if ea_t.new_record? || ea_t.changed?
-    end
 
     if @unsaved_translations.blank?
       if respond_to?(:fallback_non_existent_unsaved_translations)
@@ -5176,7 +5214,7 @@ tra_orig.save!
     translations.each do |et|
       errors.add :base, "one of (unsaved) translations is invalid" if !et.valid?
     end
-    errors.add :base, "no translations are defined" if unsaved_translations.empty? && !translations.exists?
+    errors.add :base, "no translations are defined" if unsaved_translations.empty? && !translations.present?  # exists? is inappropriate for new_record?
   end
 
   private
@@ -5200,6 +5238,12 @@ class << BaseWithTranslation
 
   # Modifies {ApplicationRecord.create_basic!} to automatically add a unique translation
   #
+  # The idea is that the developer does not need to consider a unique combination of :title etc
+  # so that, for example, +Music.create_basic!+ should return a unique Music, primarily for testing purposes.
+  # If a child class requires an extra constraint, e.g., Artist instances require unique :sex_id
+  # and EngageHow instances require unique :weight, it should redefine this method, inheriting
+  # this method as in the example below.
+  #
   # Original is defined in /app/models/concerns/module_application_base.rb
   #
   # @example HaramiVid
@@ -5218,48 +5262,82 @@ class << BaseWithTranslation
   #
   #    record = Artist.create_basic!  # => ok.
   #
+  # @note
+  #    This method does NOT use {ModuleApplicationBase#create_basic!}
+  #    The original idea of {ModuleApplicationBase#create_basic!} is that it bypasses save!
+  #    but this method is a simple wrapper of {#initialize_basic}
+  #
   # @param translation: [Translation, Nilclass] if given, this (unsaved) Translation is used instead
   #    on the condition of none of the translation-related parameters like :title or :alt_title
   #    (defined in Translation::TRANSLATION_PARAM_KEYS) being specified.
   #    You can give an existing Translation as long as it belongs to a different parent class
   #    (if it belongs to the same class, it is likely to raise a unique-violation-related Exception).
   def create_basic!(*args, translation: nil, **kwds, &blok)
-    model = create_basic_application_original!(*args, **kwds, &blok)
-    model.reload
-    if model.translations.exists?
-      # If any of the translation-related parameters like :title is specified, this should
-      # be always the case.  See {#put_a_title}, which defines +title=+ etc, where
-      # @unsaved_translations are set accordingly.
-      if 1 == model.translations.size  # This should be always the case, but playing safe.
-        tra =model.translations.first
-        tra.update!(note: "Trans-"+(kwds[:note] || "")) if tra.note.blank?  # This should be always blank, but playing safe.
-      end
-      model
-    else
-      # i.e., if none of the translation-related parameters like :title is specified.
-      if translation
-        translation.translatable = nil
-        model.translations << translation
-      else
-        model.with_translation(**_prepare_hash_basic_translation(translation, note: (kwds[:note] || "")))
-      end
-      model
-    end
+    record = initialize_basic(*args, translation: translation, **kwds, &blok)
+    record.save!
+    record
   end
 
   # Initialize version.
   #
   # @note Other related models are not likely to be created, but existing ones should be used.
   def initialize_basic(*args, translation: nil, **kwds, &blok)
-    model = super(*args, **kwds, &blok)
-    if model.unsaved_translations.empty? && model.instance_variable_get(:@title).blank? && model.instance_variable_get(:@langcode).blank?
-      model.unsaved_translations << Translation.new(_prepare_hash_basic_translation(translation, note: (kwds[:note] || "")))
-    end
+    trans, hs_for_bwt = _translation_for_initialize_basic(translation, **kwds)
+    model = super(*args, **hs_for_bwt, &blok)
+    model.translations << trans
     model
   end
 
   private
-  def _prepare_hash_basic_translation(translation, note: "")
+    # @return [Array<Translation, Hash>] new_record Translation and Hash to initialize BaseWithTranslation
+    def _translation_for_initialize_basic(translation, **opts)
+      hsret =
+        if translation
+          translation.attributes.except(*(%w(id translatable_type translatable_id created_at updated_at)))
+        else
+          {langcode: "en", title: name+"-basic-"+rand(0.429).to_s, is_orig: true, note: "Trans-"+(opts[:note] || __method__).to_s}
+        end
+
+      hs_given = {}
+      hs_for_bwt = opts.filter{|k,v|
+        if %i(langcode is_orig title ruby romaji alt_title alt_ruby alt_romaji).include?(k)
+          hs_given[k] = v
+          false
+        elsif /^translation_(.+)/ =~ k.to_s
+          hs_given[$1.to_sym] = v  # translation_weight => weight
+          false
+        elsif %i(weight create_user create_user_id update_user update_user_id).include?(k)
+          # Note that when BaseWithTranslation#weight is defined, this would be ALSO used for Translation#weight,
+          # which can be overwritten with :translation_weight if specified.
+          hs_given[k] ||= v
+          self.has_attribute? k  # n.b., :method_defined? does not work for column-based methods!
+        else
+          # n.b., "note" is defined in hsret (which may be overwritten with :translation_note)
+          true
+        end
+      }
+
+      if hs_for_bwt.has_key?(:orig_locale)
+        if hs_for_bwt[:orig_locale].present?
+          hsret[:langcode] = hs_for_bwt[:orig_locale]
+        else  # i.e., if :orig_locale is explicitly nil
+          hsret[:is_orig] = nil
+        end
+      end
+      hs4trans = hsret.merge(hs_given)
+      hs4trans[:weight] ||= rand(0.429)
+ 
+      # Ensure :orig_locale is present for BaseWithTranslation,
+      # which may be imported from the given :is_orig argument
+      if !hs_for_bwt.has_key?(:orig_locale)
+        hs_for_bwt[:orig_locale] = hs4trans[:langcode]
+      end
+
+      [Translation.new(**hs4trans), hs_for_bwt]
+    end
+
+  ## OBSOLETE !!!!!!!!!!!
+  def _prepare_hash_basic_translation(translation, note: "", **opts)
     if translation 
       translation.attributes.except(*(%w(id translatable_type translatable_id created_at updated_at)))
     else

@@ -894,6 +894,7 @@ class TranslationTest < ActiveSupport::TestCase
     tra = Translation.find_by_a_title(:titles, 'T', translatable: sex)
     assert_equal     ts[10], tra, Translation.sort(sex.translations).pluck(:title, :is_orig, :weight).inspect
     assert_equal     ts[10], Translation.sort(sex.translations).first, Translation.sort(sex.translations).pluck(:title, :is_orig, :weight).inspect
+    ## NOTE: the above will become irrelevant once is_orig is removed
 
     t_alias = "tras"
     tmpjoins = "INNER JOIN translations #{t_alias} ON #{t_alias}.translatable_type = 'Sex' AND #{t_alias}.translatable_id = #{sex.id}"

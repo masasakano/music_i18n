@@ -47,7 +47,7 @@ class ChannelOwners::CreateWithArtistsControllerTest < ActionDispatch::Integrati
     refute  @artist.channel_owner
     assert_nil  ChannelOwner.select_regex(:title, zombies_tit).first, 'sanity check of fixtures'
 
-    n_trans = @artist.best_translations.size
+    n_trans = @artist.translations.size
 
     # should succeed
     assert_difference('Translation.count', n_trans){

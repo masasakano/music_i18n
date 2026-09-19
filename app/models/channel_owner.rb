@@ -121,6 +121,7 @@ class ChannelOwner < BaseWithTranslation
     synchronize_translations_to_artist
   end
 
+  # OBSOLETE !!!!!!!!!!!
   # @return [Array<Translations>] initialized (unsaved) Translations with identical contents to the best ones of the given Artist
   def initialize_from_artist_translations
     return if !artist
@@ -135,7 +136,14 @@ class ChannelOwner < BaseWithTranslation
     raise if !new_record?
     return unsaved_translations if !artist
 
-    unsaved_translations.replace( initialize_from_artist_translations )
+    translations.clear
+    artist.translations.each do |etra|
+      tra = etra.dup
+      tra.translatable = nil
+      translations << tra
+    end
+    self.orig_locale = artist.orig_locale
+    unsaved_translations.replace( [] ) if @unsaved_translations.present?
   end
 
   # For update, this method synchronizes translations with those of the artist
@@ -207,14 +215,16 @@ class ChannelOwner < BaseWithTranslation
   def presence_of_valid_translations
     return if !artist
     msg_trans = (new_record? ? "unsaved_" : "")+"translations"
-    artrans = (new_record? ? unsaved_translations : translations)
+    artrans = translations
+    artrans = unsaved_translations if new_record? && translations.blank?
     all_lcodes = []
     artist.best_translations.each_pair do |langcode, tra|
       all_lcodes << langcode
+      n_parent_trans = artist.translations.where(langcode: langcode).count
       cands = artrans.find_all{|et| langcode == et.langcode}
-      if 1 != cands.size
-        s_num = ((0 == cands.size) ? "zero" : "multiple")
-        errors.add :base, "must have exact #{msg_trans} corresponding to the parent Artist but has #{s_num} Translations for language #{langcode.inspect}"
+      if n_parent_trans != cands.size
+        # s_num = ((0 == cands.size) ? "zero" : "multiple")
+        errors.add :base, "must have exact #{n_parent_trans} #{msg_trans} for langcode=#{langcode.inspect} corresponding to the parent Artist but has #{cands.size} Translations"
         return
       end
 
@@ -224,7 +234,7 @@ class ChannelOwner < BaseWithTranslation
       end
     end
 
-    if all_lcodes.sort.map(&:to_s) != artrans.map{|i| i.langcode}.sort.map(&:to_s)
+    if all_lcodes.sort.map(&:to_s) != artrans.map{|i| i.langcode}.sort.uniq.map(&:to_s)
       errors.add :base, "has the #{msg_trans} with a langcode absent in the parent Artist's counterparts"
       return
     end
@@ -291,28 +301,29 @@ class ChannelOwner < BaseWithTranslation
 
     # Now, guaranteed it is for create and ChannelOwner has a parent Artist
     # A new Translation can be added only for initialization, i.e, when
-    #  (1) the parent Artist has the corresponding-language Translation,
+    #  (1) the parent Artist has the corresponding Translation,
     #  (2) yet self does not have one, and
     #  (3) all the main columns are identical to the parent Artist's Translation.
 
     lcode = trans.langcode.to_s
 
-    if best_translations[lcode]
-      arret << "cannot be added as the corresponding [#{lcode}] Translation for the parent Artist (#{artist.best_translations[lcode].inspect}) already exists."
-      return arret
+    hs2search = {langcode: trans.langcode.presence}
+    [:title, :alt_title].each do |ek|
+      val = trans.send(ek)
+      hs2search[ek] = val if val.present?
     end
 
-    art_trans = artist.best_translations[lcode]
+    art_trans = artist.translations.find_by(**hs2search)
+
     if !art_trans
-      arret << "cannot be added as the parent Artist does not have a Translation for langcode=#{lcode.inspect}"
+      arret << "cannot be added as the parent Artist does not have a Translation for #{hs2search.inspect}"
       return arret
     end
 
-    hs_templates = art_trans.hs_key_attributes
-
-    hs_templates.each_pair do |ecol, eaval|
-      if (val=trans.send(ecol)) != eaval
-        arret << "has a different #{ecol.to_s}=#{val.inspect} from the parent Artist's Translation (#{eaval.inspect})."
+    hs = Translation.find_unequal_content(trans, art_trans)
+    if hs.present?
+      hs.each_pair do |ek, two_values|
+        arret << "has different values for #{ek} for this and parent Artist's Translation: #{two_values[0].inspect} <=> #{two_values[1].inspect}."
         return arret
       end
     end
@@ -339,8 +350,8 @@ class ChannelOwner < BaseWithTranslation
 end
 
 class << ChannelOwner
-  alias_method :create_basic_bwt!, :create_basic! if !self.method_defined?(:create_basic_bwt!)
-  alias_method :initialize_basic_bwt, :initialize_basic if !self.method_defined?(:initialize_basic_bwt!)
+  alias_method :create_basic_bwt!,    :create_basic!    if !self.method_defined?(:create_basic_bwt!)
+  alias_method :initialize_basic_bwt, :initialize_basic if !self.method_defined?(:initialize_basic_bwt)
 
   # Wrapper of {BaseWithTranslation.create_basic!}
   #

@@ -66,7 +66,7 @@ class Channels::FetchYoutubeChannelControllerTest < ActionDispatch::IntegrationT
     assert hvid.uri.present?
     hvid.reload
     assert_equal 2, @channel.translations.size, 'sanity check'
-    tra_be4 = @channel.translations.first
+    tra_be4 = @channel.translations.where(langcode: @channel.orig_locale).first
     assert_equal "ja", tra_be4.langcode
 
     channel_platform_be4 = @channel.channel_platform

@@ -355,6 +355,7 @@ class UrlTest < ActiveSupport::TestCase
     assert_equal 1, parent1.translations.count
 
     defurl="example.com/new-poly/"
+
     arclasses.each do |model|
       url = nil
       assert_difference('Translation.count*10 + Url.count', 11){

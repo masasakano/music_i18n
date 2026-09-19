@@ -75,16 +75,17 @@ class ChannelOwnerTest < ActiveSupport::TestCase
     chan1.set_unsaved_translations_from_artist
     assert chan1.valid?
 
-    chan1.unsaved_translations << Translation.new(title: art.title(langcode: :en), langcode: "en", is_orig: false)
+    # chan1.unsaved_translations << Translation.new(title: art.title(langcode: :en), langcode: "en", is_orig: false)
+    chan1.translations << (tra=Translation.new(title: art.title(langcode: :en), langcode: "en", is_orig: false))
     refute chan1.valid? # must have exact unsaved_translations corresponding to the parent Artist but has zero (or multiple) Translations for language "en"
 
-    chan1.unsaved_translations.pop
+    chan1.translations.destroy tra
     assert chan1.valid?
 
-    chan1.unsaved_translations << Translation.new(title: "naiyo", langcode: "zh", is_orig: false)
+    chan1.translations << (tra=Translation.new(title: "naiyo", langcode: "zh", is_orig: false))
     refute chan1.valid? # has the unsaved_translations with a langcode absent in the parent Artist's counterparts # <= cannot be added as the parent Artist does not have a Translation for langcode="zh"
 
-    chan1.unsaved_translations.pop
+    chan1.translations.destroy tra
     assert chan1.valid?
 
     chan1.save!

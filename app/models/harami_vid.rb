@@ -1740,7 +1740,7 @@ end # class HaramiVid < BaseWithTranslation
 
 class << HaramiVid
   alias_method :create_basic_bwt!, :create_basic! if !self.method_defined?(:create_basic_bwt!)
-  alias_method :initialize_basic_bwt, :initialize_basic if !self.method_defined?(:initialize_basic_bwt!)
+  alias_method :initialize_basic_bwt, :initialize_basic if !self.method_defined?(:initialize_basic_bwt)
 
   # Wrapper of {BaseWithTranslation.create_basic!}
   def create_basic!(*args, **kwds, &blok)
@@ -1754,7 +1754,7 @@ class << HaramiVid
 
   private
     def _core_initialize_create_basic(*args, is_create: true, uri: nil, form_new_event_id: nil, **kwds, &blok)
-      metho = (is_create ? "create" : "initialize") + "_basic_bwt!"
+      metho = (is_create ? "create_basic_bwt!" : "initialize_basic_bwt")
       uri ||= "https://example.com/"+(0...8).map{(65 + rand(26)).chr}.join
       form_new_event_id ||= Event.unknown.id
       send(metho, *args, uri: uri, form_new_event_id: form_new_event_id, **kwds, &blok)

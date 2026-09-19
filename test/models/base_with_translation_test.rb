@@ -2357,7 +2357,7 @@ end
     record = channel_types(:channel_type_main)
     assert_nil record.orig_langcode, 'testing fixtures'
     str = record.inspect
-    assert_match(/\b(Translation.+\bchannel.+)/, str)  # ...; Translation(id=nil/L=3/N=3): "Primary channel" (en:NoOrig)>
+    assert_match(/\b(Translation.+(\bchannel|チャンネル\b).+)/, str)  # ...; Translation(id=12345/L=3/N=3): "Primary channel" (en:NoOrig)>
     refute_match(/(nil|none)/i, $1)
 
     sex = Sex.new
@@ -2378,6 +2378,60 @@ end
     sex.valid?  # => false because iso5218 is undefined.
     str = sex.inspect
     assert_match(/\berrors?\b/i, str)
+  end
+
+  test "(initialize|create)_basic" do
+    tit = "Some1"+__method__.to_s
+    roma = "samu1"
+    weight = 888
+    note = "SomeNote"
+
+    eh = EngageHow.initialize_basic(title: tit, romaji: roma, weight: weight, note: note)
+    assert_equal weight, eh.weight
+    assert_equal note,   eh.note
+    assert_equal "en",   eh.orig_locale  # Default one adopted automatically from :langcode which is set "en" in default in BaseWithTranslation.send_private(:_translation_for_initialize_basic)
+    assert_equal 1,     eh.translations.size
+    assert_equal tit,   eh.translations.first.title
+    assert_equal roma,  eh.translations.first.romaji
+    assert_equal "en",  eh.translations.first.langcode
+    assert_includes     eh.translations.first.note, note
+    assert_operator 0, :<=, eh.translations.first.weight  # non-nil
+
+    eh = EngageHow.initialize_basic(title: tit, langcode: "fr", weight: weight, translation_weight: 5, note: note, translation_note: "abc")
+    assert_equal weight, eh.weight
+    assert_equal note,   eh.note
+    assert_equal "fr",   eh.orig_locale  # Adopted automatically from :langcode
+    assert_equal 5,     eh.translations.first.weight
+    assert_equal "fr",  eh.translations.first.langcode
+    assert_equal "abc", eh.translations.first.note
+
+    eh = EngageHow.initialize_basic(title: tit, langcode: "fr", orig_locale: nil, weight: weight, note: note, translation_note: "abc")
+    assert_equal weight, eh.weight
+    assert_equal note,   eh.note
+    assert_nil           eh.orig_locale  # explicitly specified orig_locale
+    assert_operator 0, :<=, eh.translations.first.weight  # non-nil
+    assert_equal "fr",  eh.translations.first.langcode
+    assert_equal "abc", eh.translations.first.note
+    assert_nil          eh.translations.first.is_orig  # NOTE: This assertion should be removed once is_orig has been removed.
+
+    eh = EngageHow.create_basic!(title: tit, langcode: "fr", weight: weight, note: note, translation_note: "abc")
+    assert_equal weight, eh.weight
+    assert_equal note,   eh.note
+    assert_equal "fr",   eh.orig_locale  # Adopted automatically from :langcode
+    assert_equal 1,     eh.translations.count
+    assert_operator 0, :<=, eh.translations.first.weight  # non-nil
+    assert_equal "fr",  eh.translations.first.langcode
+    assert_equal "abc", eh.translations.first.note
+    assert              eh.translations.first.is_orig  # NOTE: This assertion should be removed once is_orig has been removed.
+
+    eh = EngageHow.create_basic!(weight: weight+3)  # minimum creation should avoid constraints
+    assert_equal weight+3, eh.weight
+
+    eh = EngageHow.create_basic!(weight: weight+4)  # minimum creation should avoid constraints
+    assert_equal weight+4, eh.weight
+
+    eh = EngageHow.initialize_basic(title: tit+"-naiyo", langcode: "fr", orig_locale: "ja", weight: weight+5)
+    refute   eh.valid?, "should be invalid because langcode and orig_locale are inconsistent, but..."
   end
 
   ################################################
