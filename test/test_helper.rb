@@ -995,12 +995,12 @@ class ActiveSupport::TestCase
     assert_selector :xpath, xpath_for_flash(type, category: category), text: text, **kwds
   end
 
-  # Reverse of get_bool_from_params in Application.helper
+  # Reverse of {ApplicationHelper#get_bool_from_params} to get the HTTP expressions of nil, true, etc.
   #
-  # The input should be String.
+  # The input should be a Ruby value, so "nil" (String) would yield +true+
   #
-  # My reverse method +convert_param_bool+ defined in application_controller.rb
-  # works in the opposite way in default...  So, you may calle it, explicitly specifying +true_int+ optional parameter like:
+  # Also, see {ApplicationController.convert_param_bool}, which
+  # works in the opposite way in default...  So, you may call it, explicitly specifying +true_int+ optional parameter like:
   #
   #    convert_param_bool(params[:models][my_param], true_int: 1)
   #

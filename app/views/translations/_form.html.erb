@@ -20,7 +20,7 @@
 
   <div class="field">
     <%= form.label :langcode %>
-    <%= form.text_field :langcode, class: "input_shortest" %>
+    <%= form.text_field :langcode, class: "input_shortest", readonly: cannot?(:create, Translation.new) && translation.langcode.present? %><%# translation.langcode.present? should be always true if the former condition passes, but playing safe %>
       <span class="small">"es" (Spanish), "it" (Italian), "de" (German), "ko" (Korean), "zh" (Chinese), etc</span>
   </div>
 

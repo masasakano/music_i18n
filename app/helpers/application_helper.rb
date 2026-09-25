@@ -761,20 +761,25 @@ module ApplicationHelper
     (1..num).to_a.map{|i| [sprintf("#{s_kwd}(%di)", i), dtoa[i-1]]}.to_h.with_indifferent_access
   end
 
-  # Returns a Boolean value from params value
+  # Returns a Boolean value from params value obtained with either HPPT or JSON
   #
-  # The input should be String.
+  # The input should be String (or nil if JSON).
   #
-  # @param prmval [String, NilClass] params['is_ok']
+  # See also {ApplicationController.convert_param_bool}, which does alsmot an identical job... (except lazyly-set checkboxes/radio-buttons)
+  # See +get_params_from_bool+ in test_helper.rb for the reverse action (for testing).
+  #
+  # @param prmval [String, Boolean, NilClass]
   # @return [Boolean, NilClass]
   def get_bool_from_params(prmval)
     case prmval
-    when "", nil  # This should not be the case if params()
-      nil
-    when "0", 0, "false", false  # TrueClass, FalseClass are not the values in params.  But playing safe...
-      false
-    when "1", 1, "true", true
-      true
+    when "", nil,  "0", 0, false, "1", 1, true, /\Atrue|false\z/i
+      ActiveModel::Type::Boolean.new.cast(prmval)
+    # when "", nil  # This should not be the case if params()
+    #   nil
+    # when "0", 0, "false", false  # TrueClass, FalseClass are not the values in params.  But playing safe...
+    #   false
+    # when "1", 1, "true", true
+    #   true
     else
       raise "Unexpected params value=(#{prmval})."
     end

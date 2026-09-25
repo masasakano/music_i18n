@@ -35,22 +35,7 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
 
   test "should get index" do
     user_moderator = users(:user_moderator)
-if false
-    get '/users/sign_in'
-    sign_in users(:user_moderator)  # Harami moderator
-    #post user_session_url
 
-    ## If you want to test that things are working correctly, uncomment this below:
-    #follow_redirect!
-    #assert_response :success
-
-    get translations_url
-    assert_redirected_to root_url
-
-    sign_in @translator
-    get translations_url
-    assert_response :success
-else
     ### This practically tests assert_controller_index_fail_succeed in test_helper.rb
     assert_controller_index_fail_succeed(translations_url, user_fail: nil, user_succeed: nil)  # defined in test_helper.rb
     assert_controller_index_fail_succeed(translations_url, user_fail: user_moderator, user_succeed: @translator)  # defined in test_helper.rb
@@ -58,7 +43,6 @@ else
     assert_controller_index_fail_succeed(Translation,      user_fail: user_moderator, user_succeed: @translator)  # defined in test_helper.rb
     sign_out @translator
     assert_controller_index_fail_succeed(Translation.second, user_fail: users(:user_no_role), user_succeed: @translator)  # defined in test_helper.rb
-end
   end
 
   test "should fail get new" do
@@ -66,6 +50,12 @@ end
     assert_redirected_to new_user_session_path
   end
 
+  # == NOTE ==
+  #
+  #  "should create channel_owner" in ChannelOwner's Contoller tests test
+  #  a case where an editor with no Translation permission can :new/:create/:edit
+  #  Translaiton-s on some conditions.
+  #
   test "translator should get new" do
     [@general_moderator].each do |euser|
       sign_in euser
@@ -117,9 +107,11 @@ end
     end
 
     ## preparation of music
-    music = Music.new(year: 1987, place: places(:unknown_place_unknown_prefecture_japan), orig_locale: "ja")
-    music.translations << Translation.new(title: "Initial-日本語のtranslation", langcode: "ja", is_orig: true, weight: 3000000)
+    loc = "ja"
+    music = Music.new(year: 1987, place: places(:unknown_place_unknown_prefecture_japan), orig_locale: loc)
+    music.translations << Translation.new(title: "Initial-日本語のtranslation", langcode: loc, is_orig: true, weight: 3000000)
     music.save!
+    tra_ja = music.translations.first
 
     # 1st creation  by Editor: auto-weight => 500=1000/2 (no existing "en" Translation (Existing(ja) 3000000(Orig) is irrelevant))
     assert_difference('Translation.count', 1) do
@@ -191,12 +183,43 @@ end
       #<h2>2 errors prohibited this translation from being saved:</h2>
       #  <li>Title has already been taken
       #  <li>Combination of (title, alt_title) must be unique: [nil, &quot;abcd4&quot;]</li>  # => This may be not issued not anymore...?
+    sign_out @translator
+
+    # STATUS: tra4.translatable.ordered_translations.pluck(:langcode, :is_orig, :title, :alt_title, :weight, :note)
+    #  => [["ja", true, "Initial-日本語のtranslation", nil, 3000000.0, nil],
+    #      ["en", false, nil, "abcd2", 50.0, nil],   # = tra3
+    #      ["en", false, nil, "abcd4", 100.5, nil],
+    #      ["en", false, nil, "abcd3", 101.0, nil],
+    #      ["en", false, nil, "abcde", 500.0, nil]]
+
+    sign_in @trans_moderator
+
+    assert  tra_ja.reload.is_orig, "sanity-check: "+[:langcode, :is_orig, :title, :alt_title, :weight, :note].map{tra_ja.send _1}.inspect
+    assert_equal "ja", music.orig_locale, "sanity-check"
+    assert_equal music, tra3.translatable, "sanity-check"
+    hsbase = {title: tra3.title, alt_title: tra3.alt_title, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id}.with_indifferent_access
+
+    ## Changing (practically) orig_locale "ja" => "en"
+    patch translation_url(tra3), params: { translation: hsbase.merge({ is_orig: get_params_from_bool(true) }) }
+    assert_redirected_to translation_url(tra3)
+
+    assert_equal "en", music.reload.orig_locale
+    assert_equal false, tra_ja.reload.is_orig, "should have cascade-changed, but..."
+
+    ## Changing (practically) orig_locale "en" => nil
+    patch translation_url(tra3), params: { translation: hsbase.merge({ is_orig: get_params_from_bool(nil) }) }
+    assert_redirected_to translation_url(tra3)
+
+    assert_nil   tra_ja.reload.is_orig, "should have cascade-changed, but..."
+    assert_nil   music.reload.orig_locale
+    assert_empty music.translations.pluck(:is_orig).flatten.compact
+    sign_out @trans_moderator
   end
 
   test "should gracefully fail to create translation with a very long text" do
     sign_in @trans_moderator
     assert_difference('Translation.count', 1, 'sanity check') do
-      post translations_url, params: { translation: { title: 'sanity-check creation', is_orig: true, langcode: 'es', translatable_type: @music.class.name, translatable_id: @music.id } }
+      post translations_url, params: { translation: { title: 'sanity-check creation', is_orig: get_params_from_bool(true), langcode: 'es', translatable_type: @music.class.name, translatable_id: @music.id } }
     end
     tra4edit = Translation.last
 

@@ -93,4 +93,42 @@ module TranslationsHelper
       trans.weight > Translation::THRESHOLD_WEIGHT_VISIBLE &&
       trans.weight != Float::INFINITY
   end
+
+  # Common String part of Parent/Child Translation link in Translation-Show
+  #
+  # @param target_trans [Translation] Parent/Child Translation of the current Translation (self-reference)
+  def anchor_to_sync_target(target_trans)
+    parent_bws = target_trans.translatable
+    return if !parent_bws
+
+    klass_name = parent_bws.class.name
+    link_to_model =
+      if can?(:show, parent_bws)
+        link_to klass_name, parent_bws
+      else
+        klass_name
+      end
+
+    link_to_id = 
+      if can?(:show, target_trans)
+        sprintf(" (pID=%s)", link_to("#{target_trans.id}", target_trans)).html_safe
+      else
+        target_trans.id.to_s
+      end
+
+    (link_to_model + " Translation" + link_to_id).html_safe
+  end
+
+  # Anchor-String of Parent/Child Translation link in Translation Table cells
+  #
+  # @param translation [Translation] Current {Translation}
+  def word_to_sync_target(translation)
+    if (tgt=translation.sync_parent).present?
+      link_to "From", tgt, title: "Parent Translation"
+    elsif (tgt=translation.sync_child).present?
+      link_to "To",   tgt, title: "Child Translation"
+    else
+      "".html_safe
+    end
+  end
 end

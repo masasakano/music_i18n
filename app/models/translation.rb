@@ -588,6 +588,7 @@ class Translation < ApplicationRecord
   # @param user: [User]
   def editable?(user:)
     return false if !user
+    return false if sync_parent.present?
     rc_tra = RoleCategory[RoleCategory::MNAME_TRANSLATION]
     return true if user.qualified_as? :moderator, rc_tra
     cuser = create_user

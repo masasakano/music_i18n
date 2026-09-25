@@ -1,9 +1,22 @@
-<h1>A Translation for <%= link_to @translation.translatable_type, @translation.translatable %>
-  <% if can_promote_gen=can?(:update, Translations::PromotesController) %>
+<% parent_trans = @translation.sync_parent %>
+<h1>
+  <% is_uneditable = (parent_trans.present? && can?(:edit, Translation)) %><%# NOTE: you may, instead of the former condition, use @translation.translatable.translation_updatable_at_all? %>
+  <%= editor_only_safe_html(:pass, method: is_uneditable, tag: "span", class: "text-red", title: "Uneditable because this is synchoronzed from a Parent") do %>
+    <strong>[UNEDITABLE]</strong>
+  <% end %>
+  A Translation for <%= link_to @translation.translatable_type, @translation.translatable %><%# NOTE: :show page must be always accessible for those who can view :show %>
+  <% can_promote_gen = can?(:update, Translations::PromotesController) %>
+  <%= editor_only_safe_html(:pass, method: can_promote_gen, only: :moderator, tag: "span") do %>
     ID=<%= @translation.translatable.id %>
     (Translation ID=<%= @translation.id %>)
   <% end %>
 </h1>
+
+<% if @translation.sync_translation_id && (!parent_trans || !parent_trans.translatable) %>
+  <p>
+    <span class="text-red"><strong>[STRANGE INCONSISTENCY] sync_translation_id=<%= @translation.sync_translation_id %> with no Parent!!</strong></span>
+  </p>
+<% end %>
 
 <dl>
  <%= tag.div do %>
@@ -11,8 +24,22 @@
   <dd><%= link_to @translation.translatable_type, @translation.translatable %></dd>
  <% end %>
  <%= tag.div do %>
-  <dt> Langcode:</dt>
-  <dd><%= @translation.langcode %></dd>
+  <dt class="item_synced">Synchronized Parent/Child Translation:</dt>
+  <dd class="item_synced">
+    <% if    (tra=parent_trans).present? %>
+      Synced from parent <%= anchor_to_sync_target(tra) %><%# defined in translations_helper.rb %>
+      <%= editor_only_safe_html(:pass, method: can?(:edit, tra), tag: "span", class: "lead text-red", title: "Editing this parent will be automatically reflected") do %>
+        (← Edit this if necessary)
+      <% end %>
+    <% elsif (tra=@translation.sync_child).present? %>
+      Synced to child <%= anchor_to_sync_target(tra) %>
+    <% end %>
+  </dd>
+ <% end %>
+ <%= tag.div do %>
+   <% original_locale = @translation.translatable&.orig_locale %>
+  <dt> Langcode:
+  <dd><%= @translation.langcode %> &nbsp; &nbsp;  <%= (original_locale == @translation.langcode) ? "⇔" : "&mdash; Translation of".html_safe %>  (Original-locale: <%= (original_locale ? original_locale.inspect : "UNDEFINED") %>):</dt></dd>
  <% end %>
  <%= tag.div do %>
   <dt> Title:</dt>

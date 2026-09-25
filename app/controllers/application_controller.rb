@@ -148,7 +148,7 @@ class ApplicationController < ActionController::Base
   def self.returned_str_from_form(val)
     case val
     when nil
-      "ok"
+      "ok"  # This is the browser default for lazily-set checkboxes/radio-buttons
     else  # including true, false
       val.to_s
     end
@@ -624,6 +624,9 @@ class ApplicationController < ActionController::Base
   # For a checkbox, a form returns "1" when checked. Therefore, true_int is usually "1" (!!).  So, you should explicitly specify true_int!
   # My reverse method +get_params_from_bool+ defined in test_helper.rb defines it so, indeed.
   #
+  # This works in an extended way of {ApplicationHelper#get_bool_from_params}
+  # This utilizes {ApplicationController.returned_str_from_form}
+  #
   # @param val [String, NilClass]
   # @param true_int: [Integer] Integer meaning true
   # @return [Boolean, Nilclass]
@@ -631,11 +634,13 @@ class ApplicationController < ActionController::Base
     false_int_str = ((true_int == 0) ? '1' : '0')
     val = val.downcase if val.respond_to?(:downcase)
     case val
-    when 'true', true, true_int.to_s, self.class.returned_str_from_form(true)
-      true
-    when 'false', false, false_int_str, self.class.returned_str_from_form(true)
-      false
-    when 'nil', 'on', nil, "", self.class.returned_str_from_form(FORM_TERNARY_UNDEFINED_VALUE)  # if nil is specified in radio_button in html.erb, 'on' is returned.
+    when "", nil,  "0", 0, false, "1", 1, true, /\Atrue|false\z/i
+      ActiveModel::Type::Boolean.new.cast(val)
+    #when 'true', true, true_int.to_s, self.class.returned_str_from_form(true)
+    #  true
+    #when 'false', false, false_int_str, self.class.returned_str_from_form(false)
+    #  false
+    when 'nil', 'on', nil, "", self.class.returned_str_from_form(FORM_TERNARY_UNDEFINED_VALUE)  # if nil is specified in radio_button as a value in html.erb (please don't to avoid confusion!!), 'on' is returned, which is the browser's default.
       nil
     else
       raise "ERROR(#{__method__}): unexpected input (#{val.inspect})"

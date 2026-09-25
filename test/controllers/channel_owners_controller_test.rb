@@ -98,7 +98,6 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
     assert_equal @def_orig_locale, chow1st.orig_locale, "sanity-check"  # 
     tra1 = chow1st.best_translation
     assert_operator tra1.weight, :<, 10000000
-
     follow_redirect!
     flash_regex_assert(/\bsuccessfully created\b/, type: :success, system_test: false)  # defined in test_helper.rb
     assert_add_translation_button_present?(size: 1)  # only for Japanese; defined in test_helper.rb 
@@ -109,6 +108,9 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
     end
 
     ## Creates another Translation of the original locale/langcode
+    #
+    # This user @editor_ja does not have general permissions to :create general Translation-s,
+    # but they can add ones in the original locale if they can edit the original translatable
     chow = chow1st
     assert_equal @editor_ja, chow.create_user
     assert_equal @hs_create_lang["langcode"], chow.orig_locale
@@ -141,7 +143,8 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
 
     get channel_owner_url(@channel_owner)
     assert_response :success
-    assert_add_translation_button_present?(size: 1)  # only for Japanese; defined in test_helper.rb 
+    refute @channel_owner.translation_updatable_at_all?
+    assert_add_translation_button_present?(size: 0)  # Translation not editable because of themselves=true => @channel_owner.translation_updatable_at_all?
 
     # Test of :artist_with_id
     art_lennon = artists(:artist2) # John Lennon
@@ -175,6 +178,9 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
     assert_equal art_lennon.translations.ids.sort, co_transs.map(&:sync_parent).map(&:id).sort
 
     _verify_assimilate_artist(art_lennon, mdl_last1)
+
+    follow_redirect!
+    assert_add_translation_button_present?(size: 0)  # Translation not editable because of themselves=true / ChannelOwner#translation_updatable_at_all?
 
     # 2nd time of identical :artist_with_id  - fails
     assert_no_difference("ChannelOwner.count") do

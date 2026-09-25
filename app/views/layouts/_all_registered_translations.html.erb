@@ -30,6 +30,7 @@
   t_alt_title = t([prefix+"AltTitle", title_kwd].compact.join("_"), default: "AltTitle")
 %>
 
+<% editable_any_at_all = (user_signed_in? && model.translation_updatable_at_all?) %>
 <% can_edit_gen = can?(:edit, HaramiVid) %>
 <% can_show = can?(:show, Translation) %>
 <% 
@@ -59,7 +60,7 @@
      can_demote_gen  = can?(:update,  Translations::DemotesController) %>
   <% allcolspan += ((can_edit=can?(:edit, Translation)) ? 1 : 0)
      allcolspan += ((can_index=can?(:index, Translation)) ? 1 : 0) # showing SELF or not
-     allcolspan += (can_promote_gen ? 1 : 0)  # showing Weight column
+     allcolspan += (can_promote_gen ? 2 : 0)  # showing Weight and Sync columns
      allcolspan += (can_show  ? 1 : 0)  # showing Note column
      action_colspan = (can_show  ? (with_edit_links ? 2 : 1) : 0)  # At least, "Show"+"Edit", plus optionally demotable, promotable, destroyable, unless add_buttons==false
 
@@ -67,7 +68,9 @@
        demotable:   can_demote_gen,
        promotable:  can_promote_gen,
        destroyable: can?(:destroy, Translation) && model.translations.any?{|tra| can? :destroy, tra},
-     }
+     }.map{ |k, v|
+       [k, editable_any_at_all && v]
+     }.to_h
      if !with_edit_links
        flag_ables = flag_ables.map{|k, v| [k, false]}.to_h
      end
@@ -97,8 +100,9 @@
       <% if can_show %>
         <% if can_promote_gen %>
           <th class="moderator_only">Weight</th>
+          <th class="moderator_only" title="Synchronized from/to if any">Sync</th>
         <% end %>
-        <th class="editor_only"><%= t("tables.note") %></th>
+        <th class="editor_only" title="Note for Translators"><%= t("tables.note") %></th>
         <th colspan="<%= action_colspan %>" class="editor_only"></th> <%# action_colspan == 5 for moderators %>
       <% end %>
     </tr>
@@ -114,7 +118,7 @@
     <tr class="lang_banner lang_banner_<%= lcode %>"><th colspan="<%= allcolspan %>" class="middle_row"><%= get_language_name(lcode) %> <%# defined in module_common.rb %>
       <%= sprintf("(%s)", get_language_name(lcode, in_locale: I18n.locale)) if I18n.locale.to_s != lcode %>
       <%= sprintf("[%s]", t("datagrid.footnote.is_original")) if model.orig_locale == lcode %>
-      <% if add_buttons && (tra1 && model.translation_creatable?(lcode, user: current_user) || (!tra1 && flag_ables[:destroyable])) %><%# NOTE: Translation#creatable_other? takes into account can?(:create, Translation.new) %>
+      <% if editable_any_at_all && add_buttons && (tra1 && model.translation_creatable?(lcode, user: current_user) || (!tra1 && flag_ables[:destroyable])) %><%# NOTE: Translation#creatable_other? takes into account can?(:create, Translation.new) %>
         <%= link_to t("layouts.add_"+((model.orig_locale == lcode) ? "alt_title" : "translation")), new_translation_path(langcode: lcode, translatable_type: model.class.name, translatable_id: model.id), class: "button_like "+Consts::Csses::Layouts::ADD_TRANSLATION_ANCHOR, style: "margin-left: 1em" %><%# alternative: "btn btn-primary btn-sm" %>
       <% end %>
       </th></tr>
@@ -146,6 +150,7 @@
       <% end %>
       <% if can_promote_gen %>
         <td class="align-r trans_weight moderator_only"><%= tra.weight%></td>
+        <td class="align-r trans_weight moderator_only"><%= word_to_sync_target(tra) %></td><%# defined in translations_helper.rb %>
       <% end %>
       <% if can_show %>
         <td class="editor_only"><%= ModuleRedcarpetAux.md2safehtml(tra.note) %></td>
@@ -198,7 +203,7 @@
   <% end %>
   </tbody>
 </table>
-<% should_show_add_trans = (add_buttons && can_create_gen && can?(:edit, model)) %>
+<% should_show_add_trans = (editable_any_at_all && add_buttons && can_create_gen && can?(:edit, model)) %>
 <%= editor_only_safe_html(:pass, method: should_show_add_trans, class: ["add_other_language"]) do %>
  <%= t("layouts.Other_language") %>:
    <%= tag.span class: "lead" do %>
