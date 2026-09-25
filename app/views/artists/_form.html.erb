@@ -7,7 +7,7 @@
 <% end %>
 <section id="sec_primary">
 <% if ! artist.new_record? %>
-<%= render partial: 'layouts/all_registered_translations', locals: {model: artist, add_buttons: true} %>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: artist, add_buttons: false} %>
 <hr>
 <% end %>
 

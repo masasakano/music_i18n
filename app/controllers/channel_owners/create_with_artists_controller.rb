@@ -7,7 +7,7 @@ class ChannelOwners::CreateWithArtistsController < ApplicationController
 
     @channel_owner = ChannelOwner.new(artist: @artist)
     @channel_owner.themselves = true  # essential.
-    @channel_owner.set_unsaved_translations_from_artist  # set ChannelOwner#translations referring to the associated Artist
+    @channel_owner.reset_by_artist  # critical!
 
     result = def_respond_to_format(@channel_owner, created_updated: :created, back_html: "&ldquo;ChannelOwner&rdquo; page") # defined in application_controller.rb
 

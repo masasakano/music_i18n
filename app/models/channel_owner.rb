@@ -49,7 +49,9 @@ class ChannelOwner < BaseWithTranslation
   TRANSLATION_EDITABLE_IF_AT_LEAST = :editor?
 
   # For the translations to be unique (required by BaseWithTranslation).
-  MAIN_UNIQUE_COLS = []
+  #
+  # See also {TRANSLATION_UNIQUE_SCOPES}
+  MAIN_UNIQUE_COLS = [:artist_id]
 
   # Each subclass of {BaseWithTranslation} should define this constant; if this is true,
   # the definite article in each {Translation} is moved to the tail when saved in the DB,
@@ -59,17 +61,32 @@ class ChannelOwner < BaseWithTranslation
   ARTICLE_TO_TAIL = true
 
   # Optional constant for a subclass of {BaseWithTranslation} to define the scope
-  # of required uniqueness of title and alt_title.
-  # Disabled because a custom +validate_translation_callback+ is implemented instead.
-  TRANSLATION_UNIQUE_SCOPES = :disable
+  # of required uniqueness of :title and :alt_title.
+  # Alternatively you may set +:disable+ ant instead write a custom +validate_translation_callback+
+  # (This class does have +validate_translation_callback+ ...)
+  # Multiple ChannelOwner-s can have the same Translations if they belongs_to
+  # separate Artists.
+  TRANSLATION_UNIQUE_SCOPES = %w(artist_id)
+
+  # Optional constant for a subclass of {BaseWithTranslation}, when TRANSLATION_UNIQUE_SCOPES is defined.
+  # If true (Default), a word used in +title+ should not appear even in +alt_title+ and vice versa.
+  # If false, the uniquewness is based on the combination of both.  For the sub-classes where many editors may work on,
+  # false would be more appropriate so that other editors can propose similar but partially different Translations.
+  TRANSLATION_STRICTLY_UNIQUE_TITLES = false
 
   validates_presence_of :artist_id, if: :themselves, message: " can't be blank when 'themselves?' is checked."
 
-  # Only 1 ChannelOwner has themselves==true per the parent Artist.
+  validate :no_artist_no_sync, unless: :themselves
+
+  # Only 1 ChannelOwner has themselves==true per the parent Artist. (Actually, it is now :has_one for Artist)
   validate :sole_themselves_per_artist?
 
+  validate :orig_locale_must_match_artist, if: -> { themselves? && artist.present? && !skip_orig_locale_validation }  # In fact, artist.present? is guaranteed if themselves? (see a validation above)
+
+  validate :synced_all_translations, if: -> { themselves? && artist.present? && !skip_orig_locale_validation }
+
   # If themselves==true, a valid unsaved_translations must be supplied.
-  validate :presence_of_valid_translations, if: :themselves  # if: [:themselves, :artist_id]  # not works?
+  validate :presence_of_valid_translations, if: -> { themselves? && artist.present? && !skip_orig_locale_validation }
 
   # Translation has to be unique per "themselves"
   validate :combination_themselves_unique_translation
@@ -108,17 +125,47 @@ class ChannelOwner < BaseWithTranslation
     self.select_regex(:titles, /^(ハラミちゃん|HARAMIchan|Harami-chan)$/i, sql_regexp: true).first || self.unknown
   end
 
+  # Overwriting the parent method.
+  #
+  # Child of this class may overwrite this method, e.g., {ChannelOwner}
+  # some of instances of which have synchronized Translations with their parent Artist
+  #
+  # @return [Boolean] true if any of {#translations} can be updated
+  def translation_updatable_at_all?
+    !(themselves && artist)
+  end
+
+  # Resets (some attributes of) self and {#translations} according to {#artist} already set
+  #
+  # Basically, Controller SHOULD always call this method before validation,
+  # regardless of {#artist_id} and {#themselves} in params.
+  #
+  # Accordingly, this is called also from /db/seeds/channel_owners.rb
+  #
+  # @param artist [Artist]
+  # @param force: [Boolean] if true, {#themselves} is set according to {#artist}
+  # @return [void]
+  def reset_by_artist(force: false)
+    self.themselves = !!artist if force
+    unsaved_translations.clear if themselves && unsaved_translations.present?
+
+    if translation_updatable_at_all?
+      nullify_sync_translations
+    else  ## e.g., if artist && themselves
+      synchronize_translations_to_artist
+    end
+  end
+
   # (Re)set artist_id
   #
-  # The record is not saved, yet. However, Translation-s are updated!
+  # The record is not saved, yet, with in-memory Translations.
   # The caller may enclose the calling routine inside Transaction.
   #
   # @param artist [Artist]
   # @param force: [Boolean] if true, {#themselves} is set true regardless of the current value.
   def reset_to_artist(artist, force: false)
     self.artist = artist
-    self.themselves = true if force # This should already be set.
-    synchronize_translations_to_artist
+    reset_by_artist(force: force)
   end
 
   # OBSOLETE !!!!!!!!!!!
@@ -146,35 +193,126 @@ class ChannelOwner < BaseWithTranslation
     unsaved_translations.replace( [] ) if @unsaved_translations.present?
   end
 
-  # For update, this method synchronizes translations with those of the artist
+  # This method synchronizes {#orig_locale} and {#translations} with those of the {#artist}
   #
-  # This method actually updates or creates a Translation.
+  # This method basically builds in-memory associated Translation,
+  # including mark-for-destroy, whether for :create or :update, so that
+  # the child Translation-s of self will be aligned to those of parent Artist
+  # when self is saved.
   #
-  # *WARNING*: The caller should enclose the call to this method with transaction for update.
+  # *Note*:
+  # This method used to actually update or create Translation-s, and therefore,
+  # the caller MUST have enclosed the call to this method with transaction for update.
   #
+  # @note If a new Translation for ChannelOwner is created (not updated),
+  #   its timestamps will be +updated_at < created_at+
+  #   See {#_hash_for_synchronization} for justification and detail.
+  #
+  # @return [void]
   def synchronize_translations_to_artist
-    raise if new_record?
+    # raise if new_record?
     return if !artist
 
-    valid_tras = []
-    artist.best_translations.each_pair do |lc_art, tra_art|
-      if (tra=best_translations[lc_art])
-        tra.update!(tra_art.hs_key_attributes)
+    self.orig_locale = artist.orig_locale
+
+    ### to completely reset...
+    ### NOTE: this would not work well if there is a racing condition where
+    ###   you destroy one and create an almost identical one; e.g.,
+    ###   if you associate a Translation, decouple it, and re-associate it.
+    # translations.each(&:mark_for_destruction)
+
+    matched_children = Set.new
+
+    artist.translations.each do |art_tran|
+      child = find_child_translation_of(art_tran, excludes: matched_children, strict: false)
+
+      if child
+        # Updates existing record in-place & attach/confirm sync_parent
+        child.assign_attributes(
+          _hash_for_synchronization(art_tran, to_update: true)  # sets title, ..., sync_parent, update_user_id
+        )
+        child.syncing_from_parent = true  # mark to bypass a Translation validation (which is to prevent editing Translation of ChannelOwner having a parent Artist)
+        matched_children.add(child)
       else
-        translations << (tra=Translation.new(tra_art.hs_key_attributes))
-        tra.reload
+        # Builds new child translation linked to parent
+        new_child = translations.build(
+          _hash_for_synchronization(art_tran, to_update: false)
+        )
+        new_child.syncing_from_parent = true  # mark to bypass a Translation validation
+        matched_children.add(new_child)
       end
-      valid_tras << tra
-    end
+    end  # artist.translations.each do |art_tran|
 
-    # Now destroy surplus Translations if there is any.
-    # no need of reload-ing here
-    translations.each do |tra|
-      tra.destroy! if !valid_tras.include?(tra)
+    # Mark orphan child translations for destruction
+    active_translations.each do |c|
+      unless matched_children.include?(c)
+        c.sync_translation_id = nil  # or "tran.sync_parent=nil";  Without this, destroy-validation would prevent destroying (because the Translation has a parent Translation), raising ActiveRecord::RecordNotDestroyed
+        c.mark_for_destruction 
+      end
     end
+  end
 
-    update_user_for_equivalent_artist
-    translations.reset
+    # @note For :create (but NOT for :update), updated_at is manualy set
+    #   while created_at will be set in default (the current time), meaning this makes
+    #   updated_at < created_at because the Translation(s) for ChannelOwner
+    #   was newly created whereas the corresponding Translation for Artist
+    #   must have been last updated some (long) time ago.
+    #
+    # @param trans [Translation] parent Artist's Translation
+    # @return [Hash] build from trans to create/update ChannelOwner's Translation by synchronization
+    def _hash_for_synchronization(trans, to_update: false)
+      attrs = Translation::SYNC_ATTRIBUTES.index_with { |attr| trans.public_send(attr) }
+      if !to_update
+        attrs.merge!( {update_user_id: trans.update_user_id,
+                       updated_at:     trans.updated_at } )
+      end
+      attrs.merge( {sync_parent: trans} )
+    end
+    private :_hash_for_synchronization
+
+  # Finds and returns the child Translation (likely) corresponding to the given Translation (of Artist)
+  #
+  # If everything is perfect, +translation.sync_child+ for the given Translation
+  # would return it.  However, this method works on the basis of potentially
+  # a far more chaotic situation; for example,
+  #
+  # 1. even if one of self's Translations has {#sync_translation_id}, that may not
+  #    reference the Artist which the given Translation +belongs_to+.
+  # 2. {#sync_translation_id} may be nil, but you must find a Translation whose
+  #    contents are close, if there is any, as they would pose a risk of causing
+  #    a unique-constraint violation during subsequent in-memory operations.
+  # 3. if the given Translation exists only in-memory
+  #    in the Artist, the DB-type referencing does not work.
+  #
+  # @param art_tran [Translation] of (the parent) Artist
+  # @param excludes: [#include?] Usually Set or Array or Translation, the members of which are not considered as a candidate
+  # @param strict: [Boolean] if false (Def: true), also performs matching based on columns (for finding a similar one to avoid unique-column violations)
+  # @return [Translation, NilClass]
+  def find_child_translation_of(art_tran, excludes: [], strict: false)
+      current_translations = active_translations
+      if new_record? && translations.blank?
+        cur_translations = unsaved_translations
+      end
+
+      # Tier 1: Match by explicit lineage (In-memory reference OR DB foreign key)
+      child = current_translations.find { |c|
+        !excludes.include?(c) &&
+          ((c.sync_parent.present? && c.sync_parent == art_tran) ||  # IF art_tran was ever in-memory (just for future-proof!), this would be the only way as c.sync_translation_id is always nil.
+           (c.sync_translation_id.present? && c.sync_translation_id == art_tran.id))  # to avoid multiple DB calls
+      }
+      return child if strict || child
+
+      # Tier 2: Match by composite key
+      #   This step is necessary because otherwise a race condition may
+      #   result in a unique-constraint violation where you destroy one and
+      #   create an almost identical one in one transaction, e.g.,
+      #   if you associate a Translation, decouple it, and re-associate it.
+      child ||= current_translations.find { |c|
+        !excludes.include?(c) &&
+          Translation::TRANSLATION_UNIQUE_COLUMNS_PER_PARENT.all? { |col|
+            c.public_send(col) == art_tran.public_send(col)
+          }
+      }
   end
 
   # Adjusts each Translation's update_user and updated_at
@@ -196,7 +334,26 @@ class ChannelOwner < BaseWithTranslation
     end
   end
 
+  # Decouples from Artist's translations.
+  #
+  # @return [void]
+  def nullify_sync_translations
+    translations.each do |trans|
+      trans.sync_translation_id = nil
+    end
+  end
+
   ###################
+
+  # Custom validation
+  #
+  # No {Translation#sync_translation_id} if no Artist (and themselves==false)
+  def no_artist_no_sync
+    if active_translations.map(&:sync_parent).compact.present?
+      errors.add :themselves, "Translation#sync_translation_id should be nil when themselves==false."
+    end
+  end
+  private :no_artist_no_sync
 
   # Custom validation
   #
@@ -208,34 +365,93 @@ class ChannelOwner < BaseWithTranslation
   end
   private :sole_themselves_per_artist?
 
+  # Custom validation (called when artist.present?, themselves==true)
+  #
+  def orig_locale_must_match_artist
+    return true if skip_orig_locale_validation
+    if orig_locale != (exp=artist.orig_locale)
+      errors.add(:orig_locale, "must match the parent artist's orig_locale #{exp.inspect} when themselves is true")
+    end
+  end
+  private :orig_locale_must_match_artist
+
+  # Custom validation (called when artist.present?, themselves==true)
+  #
+  # {Translation#sync_translation_id} must be set for all the children Translation
+  def presence_of_sync_parent
+    errmsgs = active_translations.map{ |etra|
+      etra.sync_parent.blank? ? sprintf("%s [%s]", (etra.id || "NEW"), etra.langcode) : nil
+    }.compact
+    if errmsgs.present?
+      errors.add(:base, "sync_translation_id in associated Translations is missing in "+errmsgs.inspect)
+    end
+  end
+  private :presence_of_sync_parent
+
+  # Custom validation (called when artist.present?, themselves==true)
+  #
+  # {Translation#sync_translation_id} must be set for all the children Translation
+  def synced_all_translations
+    cho_tras = active_translations
+    art_tras = artist.translations.load
+
+    if (nall=cho_tras.size) != (nsync=cho_tras.map(&:sync_parent).compact.size)
+      errors.add(:base, ":sync_translation_id are missing in #{nall-nsync} out of #{nall} Translations")  # NOTE: this checks not only the total number but also its one-to-one correspondence.
+      return
+    elsif art_tras.select(&:persisted?).map(&:id).sort != cho_tras.map(&:sync_parent).compact.map(&:id).sort
+      errors.add(:base, "associated #{cho_tras.size} Translations do not match with #{art_tras.size} Translations of parent Artist")  # NOTE: this checks not only the total number but also its one-to-one correspondence.
+      return
+    end
+
+    errmsgs = []
+    cho_tras.each_with_index do |etra, i_tra|
+      tra_parent = etra.sync_parent
+      Translation::SYNC_ATTRIBUTES.each do |eatt|
+        if tra_parent.send(eatt).presence != etra.send(eatt).presence
+          errmsgs.push sprintf("(ID=%s):%s[%s]", [etra.id, tra_parent.id].inspect, eatt.t_s, etra.langcode.to_s)
+        end
+      end
+    end
+
+    if errmsgs.present?
+      errors.add(:base, "Translation column values differ between ChannelOwner and Artist"+errmsgs.inspect)
+    end
+  end
+  private :synced_all_translations
+
   # Custom validation
   #
   # If themselves==true, a valid (unsaved_)translations, which are basically
   # identical to those of the parent Artist for all the languages, must be supplied.
+  #
+  # If this fails, you may run {#synchronize_translations_to_artist}
   def presence_of_valid_translations
-    return if !artist
-    msg_trans = (new_record? ? "unsaved_" : "")+"translations"
-    artrans = translations
-    artrans = unsaved_translations if new_record? && translations.blank?
-    all_lcodes = []
-    artist.best_translations.each_pair do |langcode, tra|
-      all_lcodes << langcode
-      n_parent_trans = artist.translations.where(langcode: langcode).count
-      cands = artrans.find_all{|et| langcode == et.langcode}
-      if n_parent_trans != cands.size
-        # s_num = ((0 == cands.size) ? "zero" : "multiple")
-        errors.add :base, "must have exact #{n_parent_trans} #{msg_trans} for langcode=#{langcode.inspect} corresponding to the parent Artist but has #{cands.size} Translations"
+    return if !artist  # separately validated.
+    msg_trans = (new_record? ? "in-memory-" : "")+"translations"
+    artrans = active_translations
+    if new_record? && translations.blank?
+      artrans = unsaved_translations
+      msg_trans = "unsaved_translations"
+    end
+
+    artist_valid_translations = artist.active_translations.select(&:persisted?)
+    artist_valid_translations.each do |art_tra|
+      child_tra = find_child_translation_of(art_tra, strict: true)
+      if !child_tra
+        content = Translation::TRANSLATION_UNIQUE_COLUMNS_PER_PARENT.index_with { |att| art_tra.public_send(att) }.inspect
+        errors.add :base, "does not have #{content} in #{msg_trans} synced from parent Artist's counterpart (pID=#{art_tra.id})"
         return
       end
 
-      if !Translation.identical_contents?(tra, cands.first)
-        errors.add :base, "has a different #{msg_trans} from the parent Artist's counterpart for language #{langcode.inspect}"
+      # if !Translation.identical_contents?(child_tra, art_tra)  # => Boolean with no error information.
+      if (hsdiff=Translation.find_unequal_content(child_tra, art_tra)).present?
+        errors.add :base, "has different #{msg_trans} from the parent Artist's counterpart for language #{art_tra.langcode.inspect}: #{hsdiff.symbolize_keys.inspect}"
         return
       end
     end
 
-    if all_lcodes.sort.map(&:to_s) != artrans.map{|i| i.langcode}.sort.uniq.map(&:to_s)
-      errors.add :base, "has the #{msg_trans} with a langcode absent in the parent Artist's counterparts"
+    if artist_valid_translations.size != artrans.size
+      errors.add :base, "has #{msg_trans} that are not present in parent Artist's children"
       return
     end
   end
@@ -251,7 +467,7 @@ class ChannelOwner < BaseWithTranslation
       end
     col = (themselves_changed? ? :themselves : PARAMS_KEY_AC)
 
-    translations.each do |trans|
+    active_translations.each do |trans|
       armsg = validate_translation_callback(trans)
       next if armsg.empty?
       armsg.each do |em|
@@ -281,6 +497,7 @@ class ChannelOwner < BaseWithTranslation
   # @param record [Translation]
   # @return [Array] of Error messages, or empty Array if everything passes
   def validate_translation_callback(trans)
+    # return [] if trans.marked_for_destruction?  # NOTE: those marked_for_destruction? should not be passed here.
     arret = []
     if find_all_same_trans(trans).exists?
       return [" ChannelOnwer with an equivalent Translation "+(themselves ? "for the same Artist" : "among those related to no Artists")+" already exists (language=#{trans.langcode})."]
@@ -338,7 +555,7 @@ class ChannelOwner < BaseWithTranslation
   # @param trans [Translation]
   # @return [ActiveRecord::Relation]
   def find_all_same_trans(trans)
-    base = self.class.joins(:translations).where(themselves: themselves).where.not("translations.id" => trans.id)
+    base = self.class.joins(:translations).where(themselves: themselves, artist_id: artist_id).where.not("translations.id" => trans.id)
     rela = base
     cols = %w(langcode title alt_title)
     hs = trans.attributes.slice(*(cols))
@@ -371,10 +588,7 @@ class << ChannelOwner
   def initialize_basic(*args, artist: nil, artist_id: nil, **kwds, &blok)
     artist, artist_id = artist_artist_id(artist, artist_id)
     record = initialize_basic_bwt(*args, artist_id: artist_id, **kwds, &blok)
-
-    if record.themselves && artist_id.present?
-      record.set_unsaved_translations_from_artist
-    end
+    record.reset_by_artist(force: true)  # ignores inconsistent themselves when artist(_id) is specified.
     record
   end
 

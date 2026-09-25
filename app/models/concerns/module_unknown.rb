@@ -78,6 +78,27 @@ module ModuleUnknown
     (respond_to?(:mname) && "unknown" == mname.to_s) || (self == self.class.unknown)
   end
 
+
+  # True if self does not disagree with other.
+  #
+  # This returns true if one of them is {#unknown?}
+  #
+  # If allow_nil=true this returns false when other is nil.
+  # Else (Default), it returns true when other is nil.
+  #
+  # @note Some models ({Sex}, {Place} etc) overwrite this method.
+  #
+  # @param other [Genre]
+  # @param allow_nil [Boolean] the combination of (Something, nil) would return true in Default, unless this is false
+  # @raise [TypeError] if other is non-nil and not Genre
+  def not_disagree?(other, allow_nil: true)
+    return allow_nil if other.nil?
+    raise TypeError, "other is not a kind of #{self.class.name}: #{other.inspect}" if !other.is_a?(self.class)
+    return true if [self, other].any?(&:unknown?)
+    self == other
+  end
+
+
   # Core routine to add multiple Translation for the after_create callback
   #
   # @param child_class [Class<ActiveRecord>] e.g., Prefecture when called from Country's after_create

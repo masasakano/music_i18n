@@ -1,9 +1,9 @@
-<h2>A Translation for <%= link_to @translation.translatable_type, @translation.translatable %>
-  <% if cancrud=can?(:crud, Translation) %>
+<h1>A Translation for <%= link_to @translation.translatable_type, @translation.translatable %>
+  <% if can_promote_gen=can?(:update, Translations::PromotesController) %>
     ID=<%= @translation.translatable.id %>
     (Translation ID=<%= @translation.id %>)
   <% end %>
-</h2>
+</h1>
 
 <dl>
  <%= tag.div do %>
@@ -43,7 +43,7 @@
   <dd><%= @translation.is_orig %></dd>
  <% end %>
 
-  <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @translation, model4ability: cancrud} %>
+  <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @translation, model4ability: can_promote_gen, show_weight: :moderator} %><%# not showing weight for low-rank Translators %>
 </dl>
 
 <% if user_signed_in? && @translation.editable?(user: current_user) %>

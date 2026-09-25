@@ -48,7 +48,7 @@ class ActiveSupport::TestCase
 
     css = css_select('h2')[0]
     assert css, "(#{__method__}) called from #{caller_info}): H2 does not seem to exist."
-    assert_equal "All registered translated names", (css && css.text), "(#{__method__}) called from #{caller_info}): No Translation table seems to exist."
+    assert_includes (css && css.text), "All registered translated names", "(#{__method__}) called from #{caller_info}): No Translation table seems to exist."
   end
 
 

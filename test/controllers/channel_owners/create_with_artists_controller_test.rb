@@ -53,7 +53,6 @@ class ChannelOwners::CreateWithArtistsControllerTest < ActionDispatch::Integrati
     assert_difference('Translation.count', n_trans){
       assert_difference('ChannelOwner.count'){
         get channel_owners_create_with_artists_new_url, params: {channel_owner: {artist_id: @artist.id}}
-       #get channel_owners_create_with_artists_new_url( params: {channel_owner: {artist_id: @artist.id}})
         assert_response :redirect
         #refute_redirected_to new_user_session_path  # method not found...
       }

@@ -85,6 +85,9 @@ class Artist < BaseWithTranslation
   before_validation :add_default_place  # defined in ModuleDefaultPlace
   before_validation :add_sex_for_validation
 
+  # works on the child ChannelOwner
+  after_save :sync_orig_locale_to_channel_owner, if: :saved_change_to_orig_locale?
+
   belongs_to :sex   # Withtout allowing nil, this prohibits nil in validation
   belongs_to :place
   has_one :prefecture, through: :place
@@ -399,43 +402,29 @@ class Artist < BaseWithTranslation
     self.sex = guess_sex(ar_titles)  # defined in ModuleCommon
   end
 
-
   # Callback called by Translation after_save callback/hook
-  #
-  # Basically, the best Translation for the langcode for an Artist
-  # has to be synchronized with the counterpart for a ChannelOwner
-  # if there is any.  This after_save callback for Translation does it.
   #
   # This method has to be public!
   #
-  # @todo
-  #   callback after one of the best Translation-s is destroyed to destroy the counterpart of ChannelOwner
-  #
   # @paran trans [Translation] which was just saved
-  def after_save_translatable_callback(trans)
-    return if !channel_owner
-    return if !channel_owner.themselves
-
-    reload
-    return if best_translations[trans.langcode] != trans  # nothing is done if the saved Translation is not the best one for the langcode.
-
-    tra_other = channel_owner.best_translations[trans.langcode]
-    if !tra_other
-      # No Translation for the langcode is defined in the corresponding ChannelOwner.  Create one, copying this Translation.
-      new_trans = trans.dup
-      new_trans.translatable = nil
-      channel_owner.translations << new_trans
-      return
-    end
-    
-    hsoverwrite = self.class.hs_best_trans_params(trans: trans, additional_cols: %i(update_user_id updated_at))
-    tra_other.update_columns(**hsoverwrite)  # Synchronize this translation with the one for ChannelOwner (skipping validations/callbacks)
-    # tra_other.update_columns( updated_at: trans.updated_at )
-  end
+  #def after_save_translatable_callback(trans)
+  #end
 
   ##############################
   private
   ##############################
+
+    # after_save callback
+    def sync_orig_locale_to_channel_owner
+      return unless channel_owner&.themselves?
+
+      if channel_owner.orig_locale != orig_locale
+        channel_owner.orig_locale = orig_locale
+        channel_owner.skip_orig_locale_validation = true  # to circumvent a circular validation.
+        channel_owner.save!
+      end
+    end
+
     def is_birth_date_valid?
       if birth_year && birth_month && birth_day
         begin
@@ -474,10 +463,10 @@ class Artist < BaseWithTranslation
     # an Artist from unknown place in the UK with the same name
     # (and same birth-day) would be invalid.
     def unique_combination?
-      ar_titles = get_ary_titles(with_langcode: true)
-      return if ar_titles.empty?  # No Translations are (or will be in create) defiend.
+      ar_titles = get_ary_titles(with_langcode: true)  # Existing (and in-memory) titles like +[["en", "Tit1", nil], ...]+
+      return if ar_titles.empty?  # No Translations are (or will be on create) defiend.
 
-      hs_titles = {}  # {"en" => ['Queen', 'Queener', 'Kings'], "ja" => [...]}
+      hs_titles = {}  # => {"en" => ['Queen', 'Queener', 'Kings'], "ja" => [...]}  # including both :title and :alt_title
       ar_titles.each do |ea|
         hs_titles[ea[0]] ||= []
         hs_titles[ea[0]] += ea[1..2].map{|i| i.blank? ? nil : i}.compact
@@ -486,14 +475,22 @@ class Artist < BaseWithTranslation
       # Gets the Artists with the same name (for at least one of its translated names
       # in the corresponding language).
       candidates = hs_titles.map{ |ek, ev|
-        cands = self.class.find_all_by_title_plus(
-          ev,
-          :titles,
-          uniq: true,
-          match_method_upto: :optional_article_ilike,
-          langcode: ek
-        )
-      }.flatten.uniq.select{|artist| (self == artist) ? false : true}
+        ev.map{ |eword|
+          find_others_by_a_title(:titles, eword, return_array: false, uniq: true, match_method_upto: :optional_article_ilike, langcode: ek).to_a
+          # NOTE: "accept_match_methods: [:optional_article_ilike]" should be better, but somehow the result differs when an exact String is given...
+        }
+      }.flatten.uniq
+
+      ### older way unnecessarily SQL-heavy for the purpose.
+      # candidates = hs_titles.map{ |ek, ev|
+      #   cands = self.class.find_all_by_title_plus(
+      #     ev,
+      #     :titles,
+      #     uniq: true,
+      #     match_method_upto: :optional_article_ilike,
+      #     langcode: ek
+      #   )
+      # }.flatten.uniq.select{|artist| (self == artist) ? false : true}
 
       return if candidates.empty?
 
@@ -501,9 +498,9 @@ class Artist < BaseWithTranslation
         prms = [ecan, self].map{|model|
           model.slice(:birth_year, :birth_month, :birth_day).values
         }
-        if birth_day_not_disagree?(*prms) && ecan.place.not_disagree?(place)
+        if birth_day_not_disagree?(*prms) && ecan.place.not_disagree?(place) && ecan.sex.not_disagree?(sex)
           # Violation of the custom unique constraint.
-          msg = ": Artist is not unique in the combination of Title/AltTitle, BirthDate, and Place."
+          msg = ": Artist is not unique in the combination of Title/AltTitle, BirthDate, and Place."  ## TODO: Add Sex to the condition
           errors.add(:unique_combination, msg)
           return false
         end
@@ -512,15 +509,18 @@ class Artist < BaseWithTranslation
 
     # Returns all the title and alt_titles from both {#translations} and {#unsaved_translations}
     #
+    # The returned Array potentially contains those for +marked_for_destruction?+
+    # (because they still exist on the DB until the very end of the DB transaction).
+    #
     # @param with_langcode: [Boolean] if true (Def: false), langcode is the 1st element
-    # @return [Array]
+    # @return [Array] e.g., +[["en", "Tit1", nil], ...]+ if langcode is true, else each element is a 2-element Array
     def get_ary_titles(with_langcode: false)
       ary2pass = [:title, :alt_title]
       ary2pass.unshift :langcode if with_langcode
 
       ar_titles = []
-      ar_titles += translations.pluck(*ary2pass) if translations && translations.exists?
-      ar_titles += unsaved_translations.pluck(*ary2pass) if unsaved_translations && !unsaved_translations.empty?
+      ar_titles += translations.map{|etra| ary2pass.map{etra.send(_1)}} if translations.present?  # NOTE: Neither pluck nor translations.exists?  would work with in-memory Translation(!)
+      ar_titles += unsaved_translations.map{|etra| ary2pass.map{etra.send(_1)}} if unsaved_translations && !unsaved_translations.empty?
       # unsaved_translations is referred to only in before_create. However, it can be
       # used for validation during Translation#create (to be implemented in the future).
       ar_titles

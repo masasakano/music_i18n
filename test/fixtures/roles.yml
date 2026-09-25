@@ -62,7 +62,7 @@ helper:
   name: $LABEL
   uname: harami_$LABEL
   role_category: rolecattwo
-  weight: 100000
+  weight: 10000
   note: 
 
 role_captain:
@@ -104,7 +104,7 @@ translation_helper:
   name: $LABEL
   uname: translation_helper
   role_category: rc_translation
-  weight: 100000
+  weight: 10000
   note: 
 
 general_ja_moderator:

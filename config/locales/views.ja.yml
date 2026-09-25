@@ -87,6 +87,7 @@ ja:
 
   layouts:
     add_translation: '翻訳追加'
+    add_alt_title: '別名追加'
     all_registered: 'すべての登録'
     translations: '訳語'
     translated_names: '翻訳名称'

@@ -363,6 +363,7 @@ EOF
 
       mus = reths[:musics][1]
       mus_ito = mus
+      assert_equal 'ja', mus.orig_locale
       assert_equal 'Thread', mus.title(langcode: 'en')
       assert_equal '糸',     mus.title(langcode: 'ja')
       assert_equal 'Ito',    mus.romaji(langcode: 'ja')
@@ -385,6 +386,7 @@ EOF
 
       mus = reths[:musics][2]
       mus_shake = mus
+      assert_equal 'en', mus.orig_locale
       assert_equal 'Shake', mus.title(langcode: 'en')
       assert_equal 'Shake', mus.title(langcode: 'ja')
       assert_nil            mus.romaji(langcode: 'ja')
@@ -405,12 +407,13 @@ EOF
 
       mus = reths[:musics][3]
       mus.reload
+      assert_nil mus.orig_locale
       assert_nil             mus.title(langcode: 'en', lang_fallback: false)
       assert_equal '子守唄', mus.title(langcode: 'en')
       assert_equal '子守唄', mus.title(langcode: 'ja')
       assert_equal '子守唄', mus.title
       tras = mus.best_translations
-      assert_equal false,  tras['ja'].is_orig
+      # assert_equal false,  tras['ja'].is_orig  # nil
       assert_equal 'コモリウタ', tras['ja'].ruby
       assert_equal 'Komoriuta',  tras['ja'].romaji
       assert_equal genres(:genre_pop),  mus.genre

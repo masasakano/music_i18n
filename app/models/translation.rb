@@ -4,23 +4,24 @@
 #
 # Table name: translations
 #
-#  id                :bigint           not null, primary key
-#  alt_romaji        :text
-#  alt_ruby          :text
-#  alt_title         :text
-#  is_orig           :boolean
-#  langcode          :string           not null
-#  note              :text
-#  romaji            :text
-#  ruby              :text
-#  title             :text
-#  translatable_type :string           not null
-#  weight            :float
-#  created_at        :datetime         not null
-#  updated_at        :datetime         not null
-#  create_user_id    :bigint
-#  translatable_id   :bigint           not null
-#  update_user_id    :bigint
+#  id                  :bigint           not null, primary key
+#  alt_romaji          :text
+#  alt_ruby            :text
+#  alt_title           :text
+#  is_orig             :boolean
+#  langcode            :string           not null
+#  note                :text
+#  romaji              :text
+#  ruby                :text
+#  title               :text
+#  translatable_type   :string           not null
+#  weight              :float
+#  created_at          :datetime         not null
+#  updated_at          :datetime         not null
+#  create_user_id      :bigint
+#  sync_translation_id :bigint
+#  translatable_id     :bigint           not null
+#  update_user_id      :bigint
 #
 # Indexes
 #
@@ -34,6 +35,7 @@
 #  index_translations_on_langcode                               (langcode)
 #  index_translations_on_romaji                                 (romaji)
 #  index_translations_on_ruby                                   (ruby)
+#  index_translations_on_sync_translation_id                    (sync_translation_id) UNIQUE
 #  index_translations_on_title                                  (title)
 #  index_translations_on_translatable_id                        (translatable_id)
 #  index_translations_on_translatable_type                      (translatable_type)
@@ -44,13 +46,14 @@
 # Foreign Keys
 #
 #  fk_rails_...  (create_user_id => users.id)
+#  fk_rails_...  (sync_translation_id => translations.id) ON DELETE => cascade
 #  fk_rails_...  (update_user_id => users.id)
 #
 class Translation < ApplicationRecord
   include ModuleCommon
   extend  ModuleCommon
 
-  # handles create_user, update_user attributes
+  # handles create_user, update_user attributes. This introduces +before_create :set_create_user+ which also sets :weight (/app/models/concerns/module_whodunnit.rb) and +before_save :set_update_user+
   include ModuleCreateUpdateUser
   #include ModuleWhodunnit # for set_create_user, set_update_user
 
@@ -66,13 +69,22 @@ class Translation < ApplicationRecord
   after_validation  :revert_articles
   before_save       :move_articles_to_tail
   after_save        :reset_backup_6params  # to reset the temporary instance variable
-  after_save        :singularize_is_orig   # If is_orig==true, makes all the other is_orig false.  If nil, nullifies all the others.
+  after_save        :singularize_is_orig   # If is_orig==true, makes all the other is_orig false and maybe updates parent's orig_locale.  If nil, nullifies all the others.
   after_save        :call_after_save_translatable_callback  # to call after_save_translatable_callback in translatable if present
+  after_save        :sync_attributes_to_child  # Propagates changes down to sync_child
 
   after_create :call_after_first_translation_hook
+  after_create :create_child_translation_if_synced, if: :should_sync_to_child?  # In practice, used for Artist's Translation only.
+
+  # Prevents direct destruction of synced child translations
+  before_destroy :prevent_direct_destroy, prepend: true
 
   belongs_to :translatable, polymorphic: true, touch: false  # Parent's timestamp NOT updated when Translation is updated
   #belongs_to :sex, -> { where(translations: { translatable_type: 'Sex' }) }, foreign_key: 'translatable_id'  # This for some reason invalidates "<<" ...  # cf. https://veelenga.github.io/joining-polymorphic-associations/
+
+  # Self-referential sync associations
+  belongs_to :sync_parent, class_name: "Translation", foreign_key: "sync_translation_id", optional: true
+  has_one    :sync_child,  class_name: "Translation", foreign_key: "sync_translation_id", dependent: :destroy
 
   # See {BaseWithTranslation#ordered_translations}
   # Priority: 1. preferred_langcode (if present) -> 2. orig_locale (if present) -> 3. I18n.available_locales -> 4. weight
@@ -150,12 +162,33 @@ class Translation < ApplicationRecord
     #
     def validate(record)
       # return if !record.translatable_type || !record.translatable_id
+      return if record.marked_for_destruction?  # NOTE: should be redundant, but playing safe...
 
-      _validate_unique_tit_alt_tit_pair(record)
-
-      ## Custom callback of the parent
       parent = (record.translatable || (record.translatable_type.constantize rescue nil)) # This returns either a model OR for a new record, a model class.  For the latter, validate_translation_callback must be defined as a class method in the model class to be executed.
-      return if !parent
+
+      if !parent
+        _validate_unique_tit_alt_tit_pair(record)
+        return
+      end
+
+      scope_prms = []
+      if parent.class.const_defined?(:TRANSLATION_UNIQUE_SCOPES)
+        ar = parent.class::TRANSLATION_UNIQUE_SCOPES
+        scope_prms = 
+          case ar
+          when :disable
+            nil  # ..will return before the main validation
+          when :default 
+            []
+          else
+            ar
+          end
+      end
+
+      if !scope_prms.nil?
+        root_scope = _build_parent_based_scope(record, scope_prms)
+        _validate_unique_tit_alt_tit_pair(record, root_scope: root_scope) # if scope_prms.blank?
+      end
 
       #if parent.respond_to? :validate_translation_for_new_base_callback
       #  # for new record, defined in base_with_translation.rb
@@ -175,19 +208,7 @@ class Translation < ApplicationRecord
       return if record.translatable.blank?
       # now, parent == record.translatable (guaranteed)
 
-      scope_prms = nil
-      if parent.class.const_defined?(:TRANSLATION_UNIQUE_SCOPES)
-        scope_prms = 
-          case (ar = parent.class::TRANSLATION_UNIQUE_SCOPES)
-          when :disable
-            return
-          when :default
-            nil
-          else
-            ar
-          end
-      end
-      scope_prms ||= []
+      return if scope_prms.nil?
 
       scope, ar_titles = _build_unique_scope(record, scope_prms)
 
@@ -198,6 +219,23 @@ class Translation < ApplicationRecord
       end
     end
 
+
+    # Returns a scope
+    #
+    # @param record [Translation]
+    # @param scope_prms [Array] attributes to take into account
+    # @return [ActiveRecord::AssociationRelation<Translation>]
+    def _build_parent_based_scope(record, scope_prms)
+      parent = record.translatable
+      tbl_name = record.translatable_type.constantize.table_name
+
+      scope_hash = (BASE_TRANSLATION_UNIQUE_SCOPES.map{|i| [sprintf("%s.%s", record.class.table_name, i.to_s), record.send(i)]} +
+                    scope_prms.map{|i| _build_optional_unique_pair(parent, i, tbl_name: tbl_name)}).to_h
+      # scope = Translation.joins(tbl_name.singularize).where(scope_hash).where.not(id: record.id)  # With an added belongs_to with an explicit foreign_key etc, this should work, but it didn't...
+      # scope = Translation.includes(tbl_name.singularize).where(scope_hash).where.not(id: record.id)  # This should work, but it didn't...
+      Translation.joins(sprintf("INNER JOIN %s ON translations.translatable_id = %s.id", *([tbl_name]*2))).where(scope_hash).where.not(id: record.id)
+    end
+
     # Returns a scope
     #
     # @param record [Translation]
@@ -205,16 +243,11 @@ class Translation < ApplicationRecord
     # @return [ActiveRecord::AssociationRelation<Translation>]
     def _build_unique_scope(record, scope_prms)
       parent = record.translatable
-      tbl_name = record.translatable_type.constantize.table_name
 
       strictly_unique = true
       strictly_unique = parent.class::TRANSLATION_STRICTLY_UNIQUE_TITLES if parent.class.const_defined?(:TRANSLATION_STRICTLY_UNIQUE_TITLES)
 
-      scope_hash = (BASE_TRANSLATION_UNIQUE_SCOPES.map{|i| [sprintf("%s.%s", record.class.table_name, i.to_s), record.send(i)]} +
-                    scope_prms.map{|i| _build_optional_unique_pair(parent, i, tbl_name: tbl_name)}).to_h
-      # scope = Translation.joins(tbl_name.singularize).where(scope_hash).where.not(id: record.id)  # With an added belongs_to with an explicit foreign_key etc, this should work, but it didn't...
-      # scope = Translation.includes(tbl_name.singularize).where(scope_hash).where.not(id: record.id)  # This should work, but it didn't...
-      scope = Translation.joins(sprintf("INNER JOIN %s ON translations.translatable_id = %s.id", *([tbl_name]*2))).where(scope_hash).where.not(id: record.id)
+      scope = _build_parent_based_scope(record, scope_prms)
 
       tit, alt_tit = %i(title alt_title).map{|i| (s=record.send(i)) ? s.strip : nil }
       artit = [tit, alt_tit]
@@ -257,7 +290,7 @@ class Translation < ApplicationRecord
     # This works on nil and empty string, treating them identical.
     #
     # @see https://stackoverflow.com/questions/74403065/how-to-find-records-in-postgresql-matching-a-combination-of-a-pair-of-nullable-s
-    def _validate_unique_tit_alt_tit_pair(record)
+    def _validate_unique_tit_alt_tit_pair(record, root_scope: nil)
       title, alt_title = %i(title alt_title).map{|i| record.send(i).to_s}
       if title.present? && title == alt_title && (!record.translatable || !record.translatable.class.const_defined?(:ALLOW_IDENTICAL_TITLE_ALT) || !record.translatable.class::ALLOW_IDENTICAL_TITLE_ALT)
         record.errors.add :base, "title and alt_title must differ."
@@ -265,8 +298,11 @@ class Translation < ApplicationRecord
       end
       hsbase = %i(langcode translatable_type translatable_id).map{|i| [i, record.send(i)]}.to_h
 
-      rel = record.class.where(hsbase)
-      rel = rel.where.not(id: record.id) unless record.new_record?  # For update
+      rel = root_scope
+      if !rel
+        rel = record.class.where(hsbase)
+        rel = rel.where.not(id: record.id) unless record.new_record?  # For update
+      end
       raise if "translations" != Translation.table_name  # sanity check.
 
       ## An attempt of direct "single" query to the database, which is still not right.  Too complicated and not worth it...
@@ -293,11 +329,14 @@ class Translation < ApplicationRecord
   #ALLOW_IDENTICAL_TITLE_ALT = true/false
 
   # Column names (Symbols) of the translation String
-  TRANSLATED_KEYS = %i(title alt_title ruby alt_ruby romaji alt_romaji)
+  TRANSLATED_KEYS = %i(title alt_title ruby alt_ruby romaji alt_romaji).freeze
 
   # Column names (Symbols) of the translation String
   # Basically this excludes ID, weight, translatable, *_user_id, and Rails default time columns, but everything else.
-  TRANSLATION_PARAM_KEYS = %i(langcode is_orig) + TRANSLATED_KEYS
+  TRANSLATION_PARAM_KEYS = (%i(langcode is_orig) + TRANSLATED_KEYS).freeze
+
+  # Used to sync Translations between Artist and ChannelOwner
+  SYNC_ATTRIBUTES = (TRANSLATION_PARAM_KEYS + %i(weight)).freeze
 
   # Match method lists. Usually examined in this order.
   # For example, if there is an exact match, :exact.
@@ -335,6 +374,9 @@ class Translation < ApplicationRecord
   # (least requirement, though maybe insufficient, e.g., two Artists with an identical name with separate birthdays are allowed).
   BASE_TRANSLATION_UNIQUE_SCOPES = %i(translatable_type langcode)
 
+  # Minimum condition of the combination of keys for a Parent record to prohibit duplicates.
+  TRANSLATION_UNIQUE_COLUMNS_PER_PARENT = %i(langcode title alt_title).freeze
+
   # If {Translation#weight} is larger than this value but not INFINITE (because INFINITE means
   # auto-generated, and NOT with U/I) and if there are multiple Translations
   # for the {Translation#translatable} for the {Translation#langcode},
@@ -346,6 +388,9 @@ class Translation < ApplicationRecord
   # NOTE: PostgreSQL does not validate the values when one of any values (whether
   #   existing or new) is null.  But Rails does.
 
+  # has_one <=> belongs_to ensured.  See DB constraint.
+  validates :sync_translation_id, uniqueness: true, allow_nil: true
+
   validates :langcode, presence: true, length: {is: 2}, format: {with: /\A[a-z]{2}\z/i}  # ISO 639-1 only
   #validates :langcode, presence: true, length: {in: (2..5)}, format: {with: /\A[a-z]{2}(\-[a-z]{2})?\z/i}  # Limited set of IETF language tag (ISO 639-1 + optional region subtag; e.g., en-GB)
 
@@ -354,6 +399,9 @@ class Translation < ApplicationRecord
   validate :asian_char_validator
   validates_with OneSignificanceValidator, fields: %w(title alt_title)  # TRANSLATED_KEYS
   validates_with UniqueCombiValidator
+
+  # Prevent manual changes to synced attributes (on ChannelOwner's Translation synced from Artist's)
+  validate :prevent_synced_attributes_change, if: -> { sync_translation_id.present? && !syncing_from_parent }
 
   #### After much thought, this validation is removed, because such Translation-s should never be directly saved in reality.
   #
@@ -379,6 +427,9 @@ class Translation < ApplicationRecord
   # [Hash] Options to pass to {SlimString.slim_string} in a callback
   # and {#preprocess_6params} etc.
   attr_accessor :slim_opts
+
+  # Flag to indicate change/destroy propagated from a parent's callback
+  attr_accessor :syncing_from_parent
 
   # Skip move_articles_to_tail (before_validation and before_save) callbacks,
   # meaning the 6 columns like "title" are saved as they are.
@@ -559,7 +610,7 @@ class Translation < ApplicationRecord
   #
   # This algorithm is NOT implemented in the Controller, yet!
   # So, if user fails in
-  #   can?(:create, Translation)
+  #   can?(:create, Translation.new)
   # they cannot create a Translation with UI.
   #
   # == the two edge cases
@@ -577,11 +628,12 @@ class Translation < ApplicationRecord
     return false if !user
     # return true if user.qualified_as? :editor, RoleCategory[RoleCategory::MNAME_TRANSLATION]
     ability = Ability.new(user)
-    return true if ability.can?(:create, Translation)
+    return true if ability.can?(:create, Translation.new)
 
     # Edge cases
     #olc = original_langcode
-    return true if lc == 'ja' && translatable && ability.can?(:create, translatable.class)
+    return true if orig_locale? && translatable && ability.can?(:edit, translatable)
+    return true if lc == 'ja' && translatable && (ability.can?(:create, translatable.class) || ability.can?(:edit, translatable))
     return true if siblings(lc, exclude_self: false).pluck(:create_user_id).include? user.id
     false
   end
@@ -1011,17 +1063,18 @@ class Translation < ApplicationRecord
   #    Example: to join {Engage} for the translatable {Music}
   #       joins: 'INNER JOIN engages ON translations.translatable_id = engages.music_id'
   # @param not_clause: [String, Array<String, Hash, Array>, NilClass] Rails not.where clause. See #{Translation.select_regex} for detail.
+  # @param t_alias: [String, NilClass] SQL-query alias for Translation table. Default: "translations"
+  # @param parent [Translation::ActiveRecord_Relation, NilClass]
   # @param **restkeys: [Hash] Any other (exact) constraints to pass to {Translation}, including
   #    langcode: [String, NilClass] Optional argument, e.g., 'ja'. If nil, all languages.
   #    translatable_type: [Class, String] that is, the corresponding Class of the translation,
   #      which you most likely want to specify.
   #    translatable_id: [Integer, Array] To find a Translation for a particular object(s).
-  #    t_alias: SQL-query alias for Translation table.
   # @return [Relation] an empty Relation if not found. If found, the singleton
   #    methods {#match_method}, value_searched and common_sql are defined
   #    for the returned Relation to allow the caller to access these values.
   #    Note that as an exception, if no methods are given, the returned value will be an empty Array.
-  def self.find_all_by_a_title(kwd, value_in, accept_match_methods: MATCH_METHODS, match_method_from: nil, match_method_upto: nil, where: nil, joins: nil, not_clause: nil, **restkeys)
+  def self.find_all_by_a_title(kwd, value_in, accept_match_methods: MATCH_METHODS, match_method_from: nil, match_method_upto: nil, where: nil, joins: nil, not_clause: nil, t_alias: nil, parent: nil, **restkeys)
     i_from = (match_method_from ? accept_match_methods.find_index(match_method_from) : 0)
     i_last = (match_method_upto ? accept_match_methods.find_index(match_method_upto) : -1)
     if !i_from || !i_last
@@ -1057,8 +1110,7 @@ class Translation < ApplicationRecord
 
     res = []  # if no methods are given in the arguments, this will be returned.
     accept_match_methods.each do |method|
-      t_alias = restkeys[:t_alias]
-      res = build_sql_match(method, allkeys, value, common_sql, where: where, joins: joins, not_clause: not_clause, t_alias: restkeys[:t_alias])
+      res = build_sql_match(method, allkeys, value, common_sql, where: where, joins: joins, not_clause: not_clause, t_alias: t_alias, parent: parent)
       if res.exists?
         ret = sort(res)
 
@@ -1088,11 +1140,12 @@ class Translation < ApplicationRecord
   # @param joins: [String, Array<String, Hash, Array>, NilClass] Rails joins clause. See #{Translation.select_regex} for detail.
   # @param not_clause: [String, Array<String, Hash, Array>, NilClass] Rails not.where clause. See #{Translation.select_regex} for detail.
   # @param t_alias: [String, NilClass] SQL-query alias for Translation table. Default: "translations"
+  # @param parent [Translation::ActiveRecord_Relation, NilClass]
   # @return [ActiveRecord::QueryMethods::WhereChain] Resultant WHERE
-  def self.build_sql_match(method, allkeys, value, common_sql, where: nil, joins: nil, not_clause: nil, t_alias: nil)
+  def self.build_sql_match(method, allkeys, value, common_sql, where: nil, joins: nil, not_clause: nil, t_alias: nil, parent: nil)
     ary = allkeys.map{|i| build_sql_match_one(method, i, value, t_alias: t_alias)}
     # self.where(common_sql + ' AND ('+ary.join(' OR ')+')')
-    make_joins_where(where, joins, not_clause).where(common_sql + ' AND ('+ary.join(' OR ')+')')
+    make_joins_where(where, joins, not_clause, parent: parent).where(common_sql + ' AND ('+ary.join(' OR ')+')')
   end
   private_class_method :build_sql_match
 
@@ -1166,10 +1219,11 @@ class Translation < ApplicationRecord
   # @param value [String] Title to query for. This has to be String.
   # @param common_sql [String] Common SQL query string
   # @param t_alias: [String, NilClass] SQL-query alias for Translation table. Default: "translations"
+  # @param parent [Translation::ActiveRecord_Relation, NilClass]
   # @return [Symbol]
-  def self.find_matched_attribute_after_find_by_a_title(method, allkeys, value, common_sql, t_alias: nil)
+  def self.find_matched_attribute_after_find_by_a_title(method, allkeys, value, common_sql, t_alias: nil, parent: nil)
     allkeys.each do |key|
-      return key if build_sql_match(method, [key], value, common_sql, t_alias: t_alias).exists?
+      return key if build_sql_match(method, [key], value, common_sql, t_alias: t_alias, parent: parent).exists?
     end
     raise 'Strange...'
   end
@@ -2254,8 +2308,8 @@ class Translation < ApplicationRecord
   # @return [Hash] Single element of {ek => [value1, value2]} if any; else +{}+
   def self.find_unequal_content(tra1, tra2, additional_cols: [])
     tra1.hs_key_attributes(*additional_cols).each_pair do |ek, ev|
-      if ev != (ev2=tra2.send(ek))
-        return ({ek => [ev, ev2]}.with_indifferent_access)
+      if (ev1=ev.presence) != (ev2=(tra2.send(ek).presence))
+        return ({ek => [ev1, ev2]}.with_indifferent_access)
       end
     end
     {}.with_indifferent_access
@@ -2266,8 +2320,10 @@ class Translation < ApplicationRecord
   # @param *additional_cols [Array<Symbol, String>] Additional column names if any
   # @return [Hash<Symbol, Object>] 
   def hs_key_attributes(*additional_cols)
-    (%i(title ruby romaji alt_title alt_ruby alt_romaji langcode is_orig weight)+additional_cols).map{|eattr|
-      [eattr, send(eattr)]
+    # (%i(title ruby romaji alt_title alt_ruby alt_romaji langcode is_orig weight)+additional_cols).map{|eattr|
+    (SYNC_ATTRIBUTES+additional_cols).map{|eattr|
+      ret = [eattr, send(eattr)]
+      (:is_orig == eattr) ? ret : ret.map(&:presence)
     }.to_h
   end
 
@@ -2279,6 +2335,20 @@ class Translation < ApplicationRecord
   # True if the original translation
   def original?
     !!is_orig
+  end
+
+  # @return [Boolean, NilClass] nil if orig_locale is nil
+  def orig_locale?
+    return nil if !translatable
+    return nil if translatable.orig_locale.nil?
+    translatable.orig_locale == langcode
+  end
+
+  # @return [Boolean] NOTE: Returns false if orig_locale.nil? Returns true only if orig_locale is defined and inconsistent with {#langcode}
+  def differ_from_orig_locale?
+    return nil if !translatable
+    return false if translatable.orig_locale.nil?
+    translatable.orig_locale != langcode
   end
 
   # Returns [title, alt_title]
@@ -2433,7 +2503,7 @@ class Translation < ApplicationRecord
     translatable.best_translation(locale, fallback: fallback) # if locale is nil, fallback is ignored.
   end
 
-  # Returns the {Translation#weight} to set in create.
+  # Returns the {Translation#weight} to set in create when the given {#weight} is blank?
   #
   # It is the current best-score {Translation} in current_user's role minus 1.
   # However, the value has to be larger than the senior-role's (highest, i.e. worst) weight.
@@ -2449,31 +2519,50 @@ class Translation < ApplicationRecord
   # @return [Numeric] Default weight for the user. Float::INFINITY if no user or if user has no {Role} for Translation.
   def def_weight(user=ModuleWhodunnit.whodunnit)
     return Float::INFINITY if !user
-    role = user.highest_role_in(RoleCategory[RoleCategory::MNAME_TRANSLATION])  # see also Translation.def_init_weight
-    return Float::INFINITY if !role  # If the user has no Role in Translation, this is returned.
     return Float::INFINITY if !translatable  # only possible when this is a new_record. This used to be role.weight but then it may violate the unique constraint.
 
-    immediate_superior = role.superiors[-1]  # If current_user is sysadmin, it is nil
+    role = user.highest_role_in(RoleCategory[RoleCategory::MNAME_TRANSLATION])  # see also Translation.def_init_weight
+    # return Float::INFINITY if !role  # If the user has no Role in Translation, this is returned.
+
+    immediate_superior =
+      if role
+        role.superiors[-1]  # If current_user is sysadmin, it is nil
+      else
+        Role.lowest_subordinate_roles_in_line(RoleCategory::MNAME_TRANSLATION).last
+      end
+
     higher_than = (immediate_superior ? immediate_superior.weight : 0)  # returned weight is guaranteed to be higher than this value
-    best_trans = self.class.sort(self.class.where(translatable: translatable, langcode: langcode).where('weight > ?', higher_than).where.not(id: id)).first   ############## This should be simplified with method siblings()
-    if !best_trans  # i.e., if there are no other translations for the term in the language by people including current_user at the same rank as current_user
-      return ((role.weight > 0) ? role.weight : 1) # the latter is for sysadmin only (role.weight might be 0).
+
+    role_weight = (role ? role.weight : immediate_superior.weight*8).abs  # The factor 8 is arbitrary, except the resultant value should be smaller than THRESHOLD_WEIGHT_VISIBLE (please refer to the constant and Role#weight)
+    role_weight = 1 if 0 == role_weight  # should never happen, but playing safe.
+    if !role_weight
+      logger.error "ERROR: role=#{role.inspect} seems to have no weight defined!"
+      role_weight = Float::INFINITY
     end
+    # NOTE: role_weight is guaranteed to be larger than higher_than because the latter was taken from a superior Role.
+
+    # Best Translation among those whose weight is higher than higher_than
+    best_trans = self.class.sort(siblings(exclude_self: true, reset: false).where('weight > ? AND weight < ?', higher_than, THRESHOLD_WEIGHT_VISIBLE)).first
+
+    half_role_weight = (((val=role_weight.quo(2)) > higher_than) ? val : role_weight)
+    if !best_trans  # i.e., if there are no other translations for the term in the language by people including current_user at the same rank as current_user
+      return half_role_weight
+    end
+
     btw =
       case best_trans.weight
       when nil, Float::INFINITY
-        role.weight
+        role_weight
       else
         best_trans.weight
       end
 
-    if !btw
-      logger.error "role=#{role.inspect} seems to have no weight defined!"
-      btw = Float::INFINITY
-    end
-
     # Note: DEF_WEIGHT_INCREMENT_NEGATIVE is a negative value.
-    ((btw+DEF_WEIGHT_INCREMENT_NEGATIVE > higher_than) ? [(role.weight || Float::INFINITY), (btw+DEF_WEIGHT_INCREMENT_NEGATIVE)].min : (higher_than + btw).quo(2))
+    if ((trial=btw+DEF_WEIGHT_INCREMENT_NEGATIVE) > higher_than)
+      [half_role_weight, trial].min  # both are guaranteed to be larger than higher_than
+    else
+      (higher_than + btw).quo(2)
+    end
   end
 
   # See also the instance method {Translation#def_weight}
@@ -2530,6 +2619,22 @@ class Translation < ApplicationRecord
     [new_weight, hsbest]
   end
 
+  # @return [Hash] to feed to :assign_attributes (:new, :create, :update), like {langcode: "en", title: "abc", ...}
+  def hash_attributes_to_sync
+    #SYNC_ATTRIBUTES.index_with { |attr| public_send(attr) }  # An alternative way that works.
+    attributes.slice(*(SYNC_ATTRIBUTES.map(&:to_s)))
+  end
+
+  # True if its parent has a child with which all Translations should be synced
+  #
+  # This method is used to judge whether the after_create callback {#create_child_translation_if_synced}
+  # is initiated.
+  def should_sync_to_child?
+    translatable_type == "Artist" && sync_parent.nil?
+  end
+
+  ######################### Callbacks
+
   # Callback before_validation and before_save
   #
   # {#slim_opts} is taken into account.
@@ -2556,9 +2661,18 @@ class Translation < ApplicationRecord
     case is_orig
     when true
       siblings(langcode: :all, exclude_self: true).update_all(is_orig: false)
+      # translatable&.update!(orig_locale: langcode)
+      if (parent=translatable) && parent.orig_locale != langcode
+        parent.orig_locale = langcode
+        parent.skip_orig_locale_validation = true  # to circumvent a circular validation.
+        parent.save!
+      end
     when nil
-      # NOTE: update_all skips callbacks, so this would not cause an infinite loop.
+      # NOTE: update_all and update_columns skip callbacks, so the following would not cause an infinite loop.
       siblings(langcode: :all, exclude_self: true).update_all(is_orig: nil)
+      if translatable && !translatable.orig_locale.nil?
+        translatable.update_columns(orig_locale: nil, touch: true)
+      end
     else
       # do nothing
     end
@@ -2569,6 +2683,21 @@ class Translation < ApplicationRecord
     if translatable && translatable.respond_to?(:after_save_translatable_callback)
       translatable.after_save_translatable_callback(self)
     end
+  end
+
+  # after_create callback to create a child Translation (of ChannelOwner if required)
+  def create_child_translation_if_synced
+    channel_owner = ChannelOwner.find_by(artist_id: translatable_id, themselves: true)
+    return unless channel_owner
+
+    child_attributes = hash_attributes_to_sync.merge(
+      translatable: channel_owner,
+      sync_parent: self
+    )
+
+    child_translation = Translation.new(child_attributes)
+    child_translation.syncing_from_parent = true if child_translation.respond_to?(:syncing_from_parent=)
+    child_translation.save!
   end
 
   # Callback after_validation
@@ -2600,6 +2729,29 @@ class Translation < ApplicationRecord
       if (Translation.where(translatable: parent).count == 1) && parent.respond_to?(:after_first_translation_hook)
           parent.after_first_translation_hook
       end
+    end
+
+    # before_destroy callback
+    def prevent_direct_destroy
+      if sync_translation_id.present? && destroyed_by_association.blank? && !syncing_from_parent
+        errors.add(:base, "Cannot directly destroy a synchronized translation. Destroy the parent translation instead.")
+        throw(:abort)
+      end
+    end
+
+    # after_save callback
+    def sync_attributes_to_child
+      return if sync_child.blank?
+
+      sync_attrs_changed = SYNC_ATTRIBUTES.any? { |attr| saved_change_to_attribute?(attr) }
+      return unless sync_attrs_changed
+
+      updates = hash_attributes_to_sync
+
+      sync_child.syncing_from_parent = true
+      sync_child.update!(updates)
+    ensure
+      sync_child&.syncing_from_parent = false
     end
 
     # @return [Float, NilClass] nil if a user is not logged in or weight is not defined.
@@ -2637,5 +2789,16 @@ class Translation < ApplicationRecord
       mat = self.class.contained_kanjis(ruby)
       errors.add :ruby,   sprintf(fmt, 'Kanji', mat[0]) if mat
     end
+
+    # validation
+    def prevent_synced_attributes_change
+      # Allow attribute assignment during new record initialization
+      return if new_record?
+
+      changed_sync_attrs = SYNC_ATTRIBUTES.select { |attr| will_save_change_to_attribute?(attr) }
+      if changed_sync_attrs.any?
+        errors.add(:base, "Cannot directly modify synchronized attributes #{changed_sync_attrs.inspect}")
+      end
+    end    
 end
 

@@ -70,7 +70,7 @@
 
 <br>
 
-<% if can? :create, Translation %>
+<% if can? :create, Translation.new %>
  <div class="button_new">
   <%= button_to 'Create New Translation', new_translation_path, method: :get %>
   <%# link_to 'New Translation', new_translation_path %>

@@ -1293,7 +1293,7 @@ module ApplicationHelper
   # with the editor-only style once it has become public.
   #
   # @example
-  #    <%= editor_only_safe_html(@place, method: :edit, tag: "span", class: "lead", title: "not for public") do %>
+  #    <%= editor_only_safe_html(@place, method: :edit, only: :moderator, tag: "span", class: "lead", title: "not for public") do %>
   #      <%= link_to 'Edit', edit_place_path(@place) %>
   #      <br>
   #    <% end %>

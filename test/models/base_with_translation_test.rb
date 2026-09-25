@@ -1064,9 +1064,8 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 2, art1.translations.size, "Should have decreased by 1, becoming 3-1=2"
       assert_equal 0, art1.translations.where(langcode: "en").count  # en in art1 has disappeared.
       assert_equal tras[0][:en].title, art0.orig_translation.title
-      assert_equal Float::INFINITY, art0.orig_translation.weight
+      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight
       assert_nil                       art1.orig_translation  # en translation (orig_translation) in art1 has disappeared.
-      assert_empty    art1.translations.where(is_orig: nil)
 
     #  raise ActiveRecord::Rollback, "Force rollback."
     #end
@@ -1090,8 +1089,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 0, art1.translations.where(langcode: "en").count  # en in art1 has disappeared (transferred).
       assert_equal tras[1][:en].title, art0.orig_translation.title, "orig-trans should have been transferred"
       assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset; this only sometime fails strangely....."  # See get_unique_weight() for the number (where priority==:highest is given, because of orig_translation): = 100000
-      assert_nil                       art1.orig_translation  # en translation (orig_translation) in art1 has disappeared.
-      assert_empty    art1.translations.where(is_orig: nil)
+      assert_nil                       art1.orig_translation  # en translation (orig_translation) in art1 now has is_orig=nil
 
     #  raise ActiveRecord::Rollback, "Force rollback."
     #end
@@ -1120,11 +1118,10 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 3, art1.translations.size, "No change"
       assert_equal 1, art1.translations.where(langcode: "en").count
       assert_equal tras[0][:ja].title, art0.orig_translation.title
-      assert_equal Float::INFINITY, art0.orig_translation.weight
+      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight  # weight for original Translation after merged will never be Infinity.
       assert_nil                       art1.orig_translation  # is_orig becomes false.
       art1_orig_tr.reload
-      assert_equal false,  art1_orig_tr.is_orig
-      assert_empty    art1.translations.where(is_orig: nil)
+      assert_nil      art1_orig_tr.is_orig  # is_orig nullified in _reset_reassign_orig_langcode_self_other() 
 
     #  raise ActiveRecord::Rollback, "Force rollback."
     #end
@@ -1148,8 +1145,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal tras[1][:en].title, art0.orig_translation.title, "inspect="+art0.translations.where(is_orig: true).inspect
       assert_equal false, art0.best_translations[:ja].is_orig
       assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset.  For some reason, this sometimes fails but only sometimes..... ('setup do' should circumvent it now) art0.orig_translation="+art0.orig_translation.inspect  # See above
-      assert_nil                       art1.orig_translation  # orig_translation should have disappeared
-      assert_empty    art1.translations.where(is_orig: nil)
+      assert_nil                       art1.orig_translation  # orig_translation should have is_org=nil now
 
     #  raise ActiveRecord::Rollback, "Force rollback."
     #end
@@ -1169,7 +1165,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       art1.reload
       assert_empty    ret.values.flatten.compact
       assert_empty    art0.translations.where(is_orig: true)
-      assert_empty    art1.translations.where(is_orig: nil)
+      # assert_empty    art1.translations.where(is_orig: nil)  # is_orig nullified, so they should stay. (NOTE: The initial state is highly undesirable one anyway.)
 
       raise ActiveRecord::Rollback, "Force rollback."
     end
@@ -1277,10 +1273,9 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 1, art0.translations.where(is_orig: true).count
       assert_equal tras[0][:en].title, art0.orig_translation.title, "inspect="+art0.translations.where(is_orig: true).inspect
       assert_equal false, art0.best_translations[:ja].is_orig
-      assert_equal Float::INFINITY, art0.orig_translation.weight  ## This is the case (b/c untouched?).
-      #assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset"  # See above
+      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight  ## This is the case (b/c untouched?).
       assert_nil                       art1.orig_translation  # orig_translation should have disappeared
-      assert_empty    art1.translations.where(is_orig: nil)
+      assert_empty    art1.translations.where(is_orig: nil)  # Identical orig-Translation should have disappeared.
 
     #  raise ActiveRecord::Rollback, "Force rollback."
     #end
@@ -1315,10 +1310,9 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 1, art0.translations.where(is_orig: true).count
       assert_equal tras[0][:en].title, art0.orig_translation.title, "inspect="+art0.translations.where(is_orig: true).inspect
       assert_equal false, art0.best_translations[:ja].is_orig
-      assert_equal Float::INFINITY, art0.orig_translation.weight
-      #assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset"  # See above
+      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight
       assert_nil                       art1.orig_translation  # orig_translation should have disappeared
-      assert_empty    art1.translations.where(is_orig: nil)
+      # assert_empty    art1.translations.where(is_orig: nil)  # This fails as art1 DOES have one because the original is_orig of art1 is not destroyed in merging but stays (because of different orig_locale from art0), and then its is_orig is nullified in _reset_reassign_orig_langcode_self_other() for subesquent processing
 
     #  raise ActiveRecord::Rollback, "Force rollback."
     #end
@@ -1353,7 +1347,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 1, art0.translations.where(is_orig: true).count
       assert_equal tras[0][:en].title, art0.orig_translation.title, "inspect="+art0.translations.where(is_orig: true).inspect
       assert_equal false, art0.best_translations[:ja].is_orig
-      assert_equal Float::INFINITY, art0.orig_translation.weight
+      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight
       #assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset"  # See above
       assert_nil                       art1.orig_translation  # orig_translation should have disappeared
       assert_empty    art1.translations.where(is_orig: nil)
@@ -1403,10 +1397,10 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal art1_ja1, art0.best_translations[:ja]
       assert_equal art1_ja2, art0.translations.where(langcode: "ja", title: new_self_tit).first, "to_compare=#{tras[0][:ja].inspect} tras="+art0.translations.where(langcode: "ja").inspect
       assert_equal false, art0.best_translations[:ja].is_orig
-      assert_equal Float::INFINITY, art0.orig_translation.weight
+      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight
       #assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset"  # See above
-      assert_nil                       art1.orig_translation  # orig_translation should have disappeared
-      assert_empty    art1.translations.where(is_orig: nil)
+      assert_nil                       art1.orig_translation  # there should be no more orig_translation
+      assert_empty    art1.translations.where(is_orig: nil)  # original identical orig_translation should have disappeared
 
       raise ActiveRecord::Rollback, "Force rollback."
     end
@@ -1460,10 +1454,9 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal art1_ja1, art0.best_translations[:ja]
       assert_equal art1_ja2, art0.translations.where(langcode: "ja", title: new_self_tit).first, "to_compare=#{tras[0][:ja].inspect} tras="+art0.translations.where(langcode: "ja").inspect
       assert_equal false, art0.best_translations[:ja].is_orig
-      assert_equal Float::INFINITY, art0.orig_translation.weight
-      #assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset"  # See above
-      assert_nil                       art1.orig_translation  # orig_translation should have disappeared
-      assert_empty    art1.translations.where(is_orig: nil)
+      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight
+      assert_nil                       art1.orig_translation  # there should be no more orig_translation
+      assert_empty    art1.translations.where(is_orig: nil)  # original identical orig_translation should have disappeared
 
       raise ActiveRecord::Rollback, "Force rollback."
     end
@@ -1819,6 +1812,41 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     end
   end
 
+  test "merge_other both weight=0 both=en but different titles" do
+    ## Test of "priority_orig,other: :self,:other". self(en-is_orig, ja, ja), other(en-is_orig-alt_title, ja1, ja2-identical_to_self_2)
+    #ActiveRecord::Base.transaction(requires_new: true) do
+      best_notes = ["Note-art0", "Note-art1"]
+
+      art0, art1, tras = _prepare_artists_with_trans
+      # n_transs = tras.map(&:keys).flatten.size  # tras: [{"ja" => Trans, ...}, {"ja" => Trans}]
+      n_transs = [art0, art1].map(&:translations).map(&:count).sum
+
+      best_tras = [art0, art1].map(&:best_translation)
+      orig_tit = best_tras[0].title 
+      assert_equal [true, true], best_tras.map(&:is_orig), "fixture-test"
+      assert_equal %w(en en),    best_tras.map(&:langcode), "fixture-test"
+      refute_equal( *best_tras.map(&:title)) # fixture-test
+      best_tras.map.with_index{ |etra, i| etra.update!(weight: 0, note: best_notes[i]) }  # Both original have weight=0, different notes
+
+      priorities = {default: :self, year: :self, note: :self}
+      hsmodel = art0.merge_other(art1, priorities: priorities, save_destroy: true)
+
+      art0.reload
+      refute  Artist.exists?(art1.id)
+      assert_includes  hsmodel[:destroyed], art1
+      assert_equal 1,  hsmodel[:destroyed].find_all{ Translation == _1.class && "Artist" == _1.translatable_type }.size
+
+      assert_equal n_transs-1,    art0.translations.count, "1 Translation should have disappeared"
+      merged_best_tra = art0.best_translation
+      assert_equal tras[0]["en"], merged_best_tra, "pID should unchange"
+      assert_equal orig_tit,      merged_best_tra.best_translation.title
+      assert_includes merged_best_tra.note, best_notes[0]
+      assert_includes merged_best_tra.note, best_notes[1], "note should be merged (before another one has disappeared)"
+
+    #  raise ActiveRecord::Rollback, "Force rollback."
+    #end
+  end
+
   test "merge_other all" do
     iho1 = musics(:music_ihojin1) # year: 1969
     iho2 = musics(:music_ihojin2) # year: 1981
@@ -2036,11 +2064,24 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     hsmdl[:artists][0].with_translation(title: "オーーア", langcode: "ja", weight: 22, note: "Added dummy Japanese Trans for 0")
     t0_0 = hsmdl[:artists][0].translations.find_by(title: "オーーア")
     hsmdl[:artists][0].with_translation(title: "オアシス", langcode: "ja", note: "Added Japanese Trans for 0", is_orig: true)
-    t0_1 = hsmdl[:artists][0].translations.find_by(title: "オアシス")
-    hsmdl[:artists][1].translations << Translation.new(title: "オアシス", langcode: "ja", is_orig: false, weight: 11, note: "Added Japanese Trans for 1", skip_singularize_is_orig_callback: true)
-    t1_1 = hsmdl[:artists][1].translations.find_by(title: "オアシス")  # => will be destroyed
-    hsmdl[:artists][0].reset_orig_langcode(t0_1)
+    hsmdl[:artists][0].reload
+    hsmdl[:artists][1].reload
 
+    t0_1 = hsmdl[:artists][0].translations.find_by(title: "オアシス")
+    tra = hsmdl[:artists][1].translations.build title: "オアシス", langcode: "ja", is_orig: false, weight: 11, note: "Added Japanese Trans for 1"
+    chow = hsmdl[:artists][1].channel_owner
+
+    assert_difference('Translation.count', 2, "Translatons should be added to Artist, then automatically ChannelOwner, but..."){
+      begin
+        assert hsmdl[:artists][1].save!
+      rescue ActiveRecord::RecordInvalid
+        print "DEBUG:ChOw-erro2=: "; p chow.errors
+        raise
+      end
+    }
+    t1_1 = hsmdl[:artists][1].translations.find_by(title: "オアシス")  # => will be destroyed
+    ## print "DEBUG(#{__method__}):04: t1_1=="; p [:langcode, :is_orig, :title, :weight].map{t1_1.send _1}
+    hsmdl[:artists][0].reset_orig_langcode(t0_1)
     hsmdl[:artists][1].translations << Translation.new(title: "Oaiis", langcode: "fr", note: "Added French Trans for 1", skip_singularize_is_orig_callback: true)
     cur_locale = I18n.locale
     begin
@@ -2065,19 +2106,19 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     hspri = {default: :other, lang_orig: :other, lang_trans: :self, engages: :self, sex: :self, prefecture_place: :self, note: :other}
       # =>Selected: Orig(:other(Specified)), Trans(:self(Def)), engage(:self(Def)), sex(:self(Forced)), birth(:other(Def)), place(:self(Specified))
 
-    ## Run (dryrun) - merging Artists
+    ## Run (dryrun) - merging Artists (though this may still actually affects ChannelOwner)
     hsret = nil
     #ActiveRecord::Base.transaction(requires_new: true) do
    assert_no_difference('ArtistMusicPlay.count'){
     assert_difference('Channel.count', -2){   # this ignores dryrun.
      assert_difference('ChannelOwner.count', -1){
+      ## print "DEBUG(#{__method__}):10: [0,1]=="; pp [0, 1].map{|i| [hsmdl[:artists][i].id]+hsmdl[:artists][i].translations.reset.pluck(:langcode, :is_orig, :title, :weight)}  # is_orig=false for ALL translations for hsmdl[:artists][0]
       hsret = hsmdl[:artists][0].merge_other(hsmdl[:artists][1], priorities: hspri, save_destroy: false)
       # This only SOMETIMES fails with
       #   ActiveRecord::RecordInvalid: Validation failed: cannot be added as the corresponding [ja] Translation for the parent Artist (#<Translation ... langcode: "ja", title: "オーーア", ... >) already exists.
    }}}
 
       new_art = hsmdl[:artists][0] #.reload  # self not yet saved!
-#puts "DEBUG(orig-art901): artist-ID="+new_art.id.to_s
 
       assert_empty hsret[:destroyed]
       assert_equal 5, hsret[:trans][ :remained].size,    '5 Translations remain (2en, 2ja, fr)'
@@ -2337,7 +2378,7 @@ end
        note: "testnote-#{_1}",
        langcode: "en",
        is_orig: (_1 == 0),
-       note: "testnote-1"}
+      }
     }
 
     record = Genre.new(orig_locale: "en", weight: unique_genre_weight, translations_attributes: ar_hstras)

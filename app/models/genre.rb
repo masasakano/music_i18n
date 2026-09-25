@@ -56,16 +56,4 @@ class Genre < BaseWithTranslation
     self == self.class.default
   end
 
-  # If allow_nil=true this returns false when other is nil.
-  # Else, this returns true when other is nil.
-  #
-  # @param other [Genre]
-  # @param allow_nil [Boolean] if nil, (nil, male) would return false.
-  # @raise [TypeError] if other is non-nil and not Genre
-  def not_disagree?(other, allow_nil: true)
-    return allow_nil if other.nil?
-    raise TypeError, "other is not Genre: #{other.inspect}" if !(Genre === other)
-    return true if [self, other].any?(&:unknown?)
-    self == other
-  end
 end

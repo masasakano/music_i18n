@@ -35,6 +35,30 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     assert_response :success
     exp = sprintf "Artist: %s", "The Proclaimers"  # "The" should be moved to the head
     assert_equal exp, css_select('h1')[0].text
+    assert_add_translation_button_present?(size: 0)  # defined in test_helper.rb 
+    refute_includes css_select("#sec_primary_trans").text, "orig_locale"
+
+    user = users(:user_moderator_all)
+    sign_in(user)
+    get path
+    assert_response :success
+    csssel = css_select("#sec_primary_trans")
+    assert_includes csssel.text, "orig_locale"
+    assert_match(/orig_locale\s*=\s*.?\ben\b.?/, csssel.text)
+
+    csssel = css_select('table tbody th')
+    assert_add_translation_button_present?  # defined in test_helper.rb 
+    assert_includes csssel[0].text, '日本語'
+    assert_match(/add translation/i, csssel[0].css("."+Consts::Csses::Layouts::ADD_TRANSLATION_ANCHOR)[0].text)  # Rails-8.1
+    assert_includes csssel[1].text, 'English'
+    assert_match(/add alt\-(name|title)/i, csssel[1].css("."+Consts::Csses::Layouts::ADD_TRANSLATION_ANCHOR)[0].text)  # Rails-8.1
+    ### up to Rails-7.1 (or maybe due to config.load_defaults 6.1)
+    # assert_match(/add translation/i, csssel[1].css('form input')[0].attributes['value'].text)
+
+    csssel = css_select("#sec_primary_trans tbody tr")
+    assert_not   csssel[2].css('td a').empty?
+    assert_includes csssel[2].css('td a').text, 'Edit'  # English
+    sign_out(user)
   end
 
   test "can edit an artist as superuser" do
@@ -49,6 +73,7 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     #user = users(:user_sysadmin)
     user = users(:user_syshelper)
     sign_in(user)
+
     get path
     assert_response :success
 
@@ -57,18 +82,14 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     assert_includes css_navbar.text, "Admin"  # signed in as an admin
 
     csssel = css_select('table tbody th')
+    assert_add_translation_button_present?(size: 0)  # No "add-translation" buttons in :edit screen  # defined in test_helper.rb 
     assert_includes csssel[0].text, '日本語'
-    assert_match(/add translation/i, csssel[0].css("."+Consts::Csses::Layouts::ADD_TRANSLATION_ANCHOR)[0].text)  # Rails-8.1
-
     assert_includes csssel[1].text, 'English'
-    assert_match(/add translation/i, csssel[1].css("."+Consts::Csses::Layouts::ADD_TRANSLATION_ANCHOR)[0].text)  # Rails-8.1
-    ### up to Rails-7.1 (or maybe due to config.load_defaults 6.1)
-    # assert_match(/add translation/i, csssel[1].css('form input')[0].attributes['value'].text)
 
     csssel = css_select('table tbody tr')
     assert_not   csssel[1].css('td a').empty?
-    assert_includes csssel[1].css('td a').text, 'Edit'  # Japanese
-    assert_includes csssel[3].css('td a').text, 'Edit'  # English
+    refute_includes csssel[1].css('td a').text, 'Edit'  # Japanese
+    refute_includes csssel[3].css('td a').text, 'Edit'  # English
     w3c_validate("Edit Artist")  # defined in test_helper.rb (see for debugging help)
   end
 
@@ -87,17 +108,13 @@ class ArtistsIntegrationTest < ActionDispatch::IntegrationTest
     assert_response :success, "path (#{path}) should be accessible but?"
 
     csssel = css_select('table tbody th')
+    assert_add_translation_button_present?(size: 0)  # No "add-translation" buttons in :edit screen  # defined in test_helper.rb 
     assert_includes csssel[0].text, '日本語'
-    assert_empty csssel[0].css("."+Consts::Csses::Layouts::ADD_TRANSLATION_ANCHOR)  # Rails-8.1
-    #assert_match(/add translation/i, csssel[0].css("."+Consts::Csses::Layouts::ADD_TRANSLATION_ANCHOR)[0].text)  # Rails-8.1
-    ### worked up to Rails-7.1 (or maybe due to config.load_defaults 6.1)
-    # assert_match(/add translation/i, csssel[0].css('form input')[0].attributes['value'].text)
     assert_includes csssel[1].text, 'English'
     assert   csssel[1].css('form').empty?
 
     csssel = css_select('table tbody tr')
-    assert_includes     csssel[1].css('td a').text, 'Edit'  # Japanese
-    assert_not_includes csssel[3].css('td a').text, 'Edit', "Should be no 'Edit' by #{user.display_name}, but?"  # English
+    assert_includes     csssel[1].css('td a').text, 'Show'  # Japanese  # no "Edit" link in :edit screen
     sign_out(user)
   end
 

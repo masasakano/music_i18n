@@ -87,6 +87,7 @@ en:
 
   layouts:
     add_translation: 'Add translation'
+    add_alt_title: 'Add alt-name'
     all_registered: 'All registered '
     translations: translations
     translated_names: translated names
@@ -188,7 +189,7 @@ en:
       columns:
         title_ja: "Title (Ja)"
     footnote:
-      is_original: "Original language."
+      is_original: "Original language"
 
   show:
     h2_artist: Artist

@@ -18,6 +18,7 @@ module Consts
       DESTROY_LINK_CONTAINER = "destroy_link_container"
       DESTROY_LINK           = "destroy_link"
 
+      ALL_REGISTERED_TRANSLATIONS = "all_registered_translations"  # class for the table and root-name for its HTML ID
       ADD_TRANSLATION_ANCHOR = "add_translation_anchor" # Button or button-like link in Translation tables
       ###
       freeze_all

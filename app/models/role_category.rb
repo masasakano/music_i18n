@@ -197,6 +197,22 @@
 # the website are the company's staff members only (like Intranet),
 # this type of symple authorization would be suffice.
 #
+# ==== Tree-node implementation
+#
+# RoleCategory utilizes a single instance of {RoleCategoryNode} accessible
+# with {RoleCategory.tree}.  Each (tree) node of it has:
+#
+# * name: {RoleCategory#mname}
+# * content: {RoleCategory}
+#
+# The node of self ({RoleCategory}} is obtained with {#category_node}
+# (or its alias {{#role_category_node}), if need be, though class and
+# instance methods of {RoleCategory} should suffice in most cases.
+#
+# Constants like {MNAME_ROOT} are defined.  They are supposed to be
+# consistent with the contents of RoleCategory instances on DB,
+# which should be set up by seeding in initialization.
+#
 # == Schema Information
 #
 # Table name: role_categories
@@ -256,7 +272,7 @@ class RoleCategory < ApplicationRecord
   end
 
   # Class method to return the root {RoleCategory} ('ROOT')
-  # 
+  #
   # @return [RoleCategory, NilClass] nil only if no row is defined (unlikely).
   def self.root_category
     begin
@@ -283,20 +299,28 @@ class RoleCategory < ApplicationRecord
   #
   # == Caching mechanism ==
   #
-  # **NOTE**: This caching mechanism does not seem to work well
+  # Once this has been called a class instance {RoleCategory.tree_root} is set and
+  # in any subsequent calls, the (practically cached) class instance is returned,
+  # unless force_update is given true in calling.
+  #
+  # Note that the +after_commit+ callback {#update_tree} is defined
+  # so the class instance is automatically updated if it has been
+  # already set.
+  #
+  # === NOTE about testing ===
+  #
+  # This caching mechanism does not seem to work well
   # according to tests (+test_editor_should_get_update_for_himself+ in
   # +test/controllers/user_role_assoc_controller_test.rb+).
   # As a result {UserRoleAssocController#update} now does NOT use cache,
   # specifying +force_update=true+ .  Note that there is a good chance
   # that it may happen only during testing.
   #
-  # Once this has been called a class instance {RoleCategory.tree_root} is set and
-  # in any subsequent calls, the (practically cached) class instance is returned,
-  # unless force_update is given true in calling.
+  # You should include
   #
-  # Note that the after_commit hook {#update_tree} is defined
-  # so the class instance is automatically updated if it has been
-  # already set.
+  #    RoleCategory.tree(force_update: true)
+  #
+  # in every test.
   #
   # @param force_update: [Boolean] if true and if this has never been called before
   # @return [RoleCategoryNode]
@@ -426,6 +450,14 @@ class RoleCategory < ApplicationRecord
     end
   end
 
+  # Returns a {RoleCategoryNode} corresponding to self
+  #
+  # @return [RoleCategoryNode]
+  def category_node
+    self.class.tree.find_by_mname(mname)
+  end
+  alias_method :role_category_node, :category_node if ! self.method_defined?(:role_category_node)
+
   # True if they are in "superior <=> subordinates" relation
   def related?(other)
     !compare_core?(other).nil?
@@ -437,7 +469,7 @@ class RoleCategory < ApplicationRecord
   end
 
   # return the root {RoleCategory} ('ROOT')
-  # 
+  #
   # @return [RoleCategory]
   def root_category
     root_category? ? self : superiors[0]
@@ -447,7 +479,7 @@ class RoleCategory < ApplicationRecord
   #
   # For the root category ('ROOT'), an empty Array is returned.
   #
-  # @return [Array] 
+  # @return [Array]
   def superiors
     arret = [self]
     while nex = arret[0].superior

@@ -3,7 +3,7 @@ class TranslationsController < ApplicationController
   include ModuleGridController # for set_grid
 
   before_action :set_translation, only: [:show, :edit, :update, :destroy]
-  load_and_authorize_resource
+  load_and_authorize_resource except: [:new, :create]
 
   # GET /translations
   # GET /translations.json
@@ -24,6 +24,7 @@ class TranslationsController < ApplicationController
     hsparam = stripped_params(params.permit(:translatable_id, :translatable_type, :langcode, :title, :alt_title, :ruby, :alt_ruby, :romaji, :alt_romaji, :is_orig, :weight, :note)) # stripped_params defiend in Parent
 
     @translation = Translation.new(**hsparam)
+    authorize! :create, @translation
   end
 
   # GET /translations/1/edit
@@ -36,6 +37,8 @@ class TranslationsController < ApplicationController
     hsparam = stripped_params(translation_params) # stripped_params defiend in Parent
     hsparam = convert_params_bool(hsparam, :is_orig)  # is_orig can be nil, e.g., a general noun like car/voiture
     @translation = Translation.new hsparam
+    authorize! __method__, @translation
+
     # @translation = Translation.new(translation_params)
     if @translation.langcode.present? && 2 == @translation.langcode.size
       begin

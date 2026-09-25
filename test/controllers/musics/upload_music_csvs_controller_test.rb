@@ -65,9 +65,9 @@ class Musics::UploadMusicCsvsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 'Komoriuta',  trans_last.romaji
     assert_equal '香川県',     Music.order(created_at: :desc).first.place.prefecture.title(langcode: "ja")
     assert_equal 'ja',         trans_last.langcode
-    assert_equal false,        trans_last.is_orig, 'ja-title with no en-title but with "en" means ja-title should be is_orig=false, but...'
+    # assert_equal false,        trans_last.is_orig, 'ja-title with no en-title but with "en" means ja-title should be is_orig=false, but...'  # => nil because the input langcode="en" does not accept JA chars.
     assert_equal @editor,      trans_last.create_user, "(NOTE: for some reason, created_user_id is nil?): Previous=#{previous_str} User=#{[@editor.id,@editor.email.sub(/@.+/,'')].inspect} #{((whod=ModuleWhodunnit.whodunnit).nil? || whod.id != @editor.id) ? '(!!)!=' : '=='} ModuleWhodunnit.whodunnit=#{ModuleWhodunnit.whodunnit.inspect} / PaperTrail.request.whodunnit=#{PaperTrail.request.whodunnit.inspect} / (last-)Translation=#{trans_last.inspect}"
-    assert_equal Float::INFINITY, trans_last.weight
+    assert_equal 40000.0, trans_last.weight  # ==10000*8/2 NOT Float::INFINITY; see Translation#def_weight and (role.rb for 10000.0)
 
     # Repeated "creation" success, doing nothing
     assert_difference('Translation.count*1000 + Music.count*100 + Artist.count*10 + Engage.count*1', 0) do

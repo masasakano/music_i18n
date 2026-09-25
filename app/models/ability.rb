@@ -110,7 +110,12 @@ class Ability
       can :crud, [Artist, Music, Engage, Prefecture]
       can :create, Musics::UploadMusicCsvsController
       can :read, [Country, EngageHow, Genre, EventGroup, Event, EventItem]
-      can :show,  Translation
+      can [:show], Translation  # Permission for :new has an exception when :translatable is specified, i.e., non-Translators can add a Translation for the orig_local language if the translatable has their Translation.  Therefore, it is globally allowed here for any editors.
+      can([:new, :create], Translation){ |trans|
+        # NOTE: **Never** use `can?(:new, Translation)` but `can?(:new, Translation.new)`
+        parent = trans.translatable
+        Ability.new(user).can?(:update, parent) && trans.langcode && parent.orig_locale == trans.langcode
+      }
       can :ud,     Translation, create_user_id: user.id #, update_user_id: user.id
       can([:edit, :update], Translation){|trans|
         # if the original_language one, :editor can update it in principle, unless "cannot" defined far below
@@ -161,7 +166,7 @@ class Ability
 
     ## Translation editor only
     if user.qualified_as?(:editor, rc_trans)
-      can :cr, Translation
+      can :cr, Translation  # NOTE: **Never** use `can?(:new, Translation)` but always `can?(:new, Translation.new)` (see above)
       #cannot(:create, Translation){|trans| !trans.translatable_type || !trans.translatable_type.constantize || Ability.new(user).cannot?(:create, trans.translatable_type.constantize) }
       #can(:new, Translation){|trans| !trans.translatable_type || !trans.translatable_type.constantize || Ability.new(user).can?(:create, trans.translatable_type.constantize) }
       can :manage, [Musics::MergesController, Artists::MergesController]
@@ -224,8 +229,8 @@ class Ability
 
     ## Translation moderator only
     if user.qualified_as?(:moderator, rc_trans)
-      can :crud, Translation  # except when they cannot update translatable
-      can(  :ud, Translation){|trans| !trans.translatable || can?(:update, trans.translatable) && can?(:destroy, trans.translatable)}  # Seems this is needed in addition to :crud; Also, even when this is true, can?(:ud, trans.translatable) may return false!
+      can :cr, Translation  # except when they cannot update translatable
+      can(:ud, Translation){|trans| !trans.translatable || can?(:update, trans.translatable) && can?(:destroy, trans.translatable)}  # Seems this is needed in addition to :crud; Also, even when this is true, can?(:ud, trans.translatable) may return false!
       can(:update, Translations::PromotesController)
     end
 
@@ -242,7 +247,7 @@ class Ability
       can :crud, PlayRole  # an admin may be allowed to destroy one only IF destroyable? (with no dependent children)
       can(:ud, [ChannelPlatform, ChannelOwner, Channel]){|mdl| !mdl.unknown?}  # ChannelPlatform.unknown can be managed by only sysadmin # (unless there's a dependent HaramiVid or Channel)
       can(:cru, SiteCategory){|mdl| !mdl.unknown? }  # admin can create/edit even mname==:main (but still NOT unknown).
-    else
+    else  ####### non-admin!
       #can(:update, Country)  # There is nothing (but note) to update in Country as the ISO-numbers are definite. Translation for Country is a different story, though.
       cannot :manage_prefecture_jp, Prefecture  # cannot edit Country in Prefecture to Japan
       cannot(:ud, [Prefecture]){|i| i.country == Country['JPN']}

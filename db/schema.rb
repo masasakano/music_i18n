@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_14_145902) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_19_210447) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -786,6 +786,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_145902) do
     t.text "note"
     t.text "romaji"
     t.text "ruby"
+    t.bigint "sync_translation_id"
     t.text "title"
     t.bigint "translatable_id", null: false
     t.string "translatable_type", null: false
@@ -801,6 +802,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_145902) do
     t.index ["langcode"], name: "index_translations_on_langcode"
     t.index ["romaji"], name: "index_translations_on_romaji"
     t.index ["ruby"], name: "index_translations_on_ruby"
+    t.index ["sync_translation_id"], name: "index_translations_on_sync_translation_id", unique: true
     t.index ["title"], name: "index_translations_on_title"
     t.index ["translatable_id", "translatable_type", "langcode", "title", "alt_title", "ruby", "alt_ruby", "romaji", "alt_romaji"], name: "index_translations_on_9_cols", unique: true
     t.index ["translatable_id"], name: "index_translations_on_translatable_id"
@@ -942,6 +944,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_145902) do
   add_foreign_key "prefectures", "countries", on_delete: :cascade
   add_foreign_key "roles", "role_categories", on_delete: :cascade
   add_foreign_key "static_pages", "page_formats", on_delete: :restrict
+  add_foreign_key "translations", "translations", column: "sync_translation_id", on_delete: :cascade
   add_foreign_key "translations", "users", column: "create_user_id"
   add_foreign_key "translations", "users", column: "update_user_id"
   add_foreign_key "urls", "domains"

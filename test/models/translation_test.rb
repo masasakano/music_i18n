@@ -4,23 +4,24 @@
 #
 # Table name: translations
 #
-#  id                :bigint           not null, primary key
-#  alt_romaji        :text
-#  alt_ruby          :text
-#  alt_title         :text
-#  is_orig           :boolean
-#  langcode          :string           not null
-#  note              :text
-#  romaji            :text
-#  ruby              :text
-#  title             :text
-#  translatable_type :string           not null
-#  weight            :float
-#  created_at        :datetime         not null
-#  updated_at        :datetime         not null
-#  create_user_id    :bigint
-#  translatable_id   :bigint           not null
-#  update_user_id    :bigint
+#  id                  :bigint           not null, primary key
+#  alt_romaji          :text
+#  alt_ruby            :text
+#  alt_title           :text
+#  is_orig             :boolean
+#  langcode            :string           not null
+#  note                :text
+#  romaji              :text
+#  ruby                :text
+#  title               :text
+#  translatable_type   :string           not null
+#  weight              :float
+#  created_at          :datetime         not null
+#  updated_at          :datetime         not null
+#  create_user_id      :bigint
+#  sync_translation_id :bigint
+#  translatable_id     :bigint           not null
+#  update_user_id      :bigint
 #
 # Indexes
 #
@@ -34,6 +35,7 @@
 #  index_translations_on_langcode                               (langcode)
 #  index_translations_on_romaji                                 (romaji)
 #  index_translations_on_ruby                                   (ruby)
+#  index_translations_on_sync_translation_id                    (sync_translation_id) UNIQUE
 #  index_translations_on_title                                  (title)
 #  index_translations_on_translatable_id                        (translatable_id)
 #  index_translations_on_translatable_type                      (translatable_type)
@@ -44,6 +46,7 @@
 # Foreign Keys
 #
 #  fk_rails_...  (create_user_id => users.id)
+#  fk_rails_...  (sync_translation_id => translations.id) ON DELETE => cascade
 #  fk_rails_...  (update_user_id => users.id)
 #
 require 'test_helper'
@@ -138,6 +141,36 @@ class TranslationTest < ActiveSupport::TestCase
       Translation.create!(title: "", alt_title: tit, romaji: "different", **hsbase)
     }
 #end
+
+    # Unique violation for title-alt_title
+    sex1 = Sex[1]
+    tit1 = "AbcDef1"
+    tit2 = "VwuXyz2"
+    art1 = Artist.new(sex: sex1)
+    tra1 = art1.translations.build(langcode: "en", is_orig: true, title: tit1, alt_title: tit2, weight: 100)
+    art1.save!
+
+    art2 = Artist.new(sex: sex1)
+    prms = art1.best_translation.attributes.slice(*%w(langcode is_orig title alt_title))  # copied from Artist-1's translation
+    prms[:weight] = 200
+    tra2 = Translation.new( prms )
+    art2.translations << tra2
+    refute art2.valid?, "Identical Translations but weight should be disallowed"
+
+    art2 = Artist.new(sex: sex1)
+    tra2 = Translation.new( prms )
+    tra2.title     = tit2
+    tra2.alt_title = tit1
+    art2.translations << tra2
+    refute art2.valid?, "Identical Translations except reverse title<->alt_title (and weight) should be disallowed"
+
+    art2 = Artist.new
+    tra2 = Translation.new( prms )
+    tra2.title     = tit2
+    tra2.alt_title = tit1
+    art2.sex = Sex[2]
+    art2.translations << tra2
+    assert art2.valid?, "Should allow, if Sexes differ, identical Translations except reverse title<->alt_title (and weight), but..."
   end
 
   test "validations" do
@@ -1004,27 +1037,61 @@ class TranslationTest < ActiveSupport::TestCase
     sex = Sex.create_basic!(iso5218: 999, title: "abc", langcode: "en", is_orig: true)
     tra_en1 = sex.translations.first
     tra_en1.update!(weight: 100)
+    assert_equal "en", sex.orig_locale
 
     sex.translations << Translation.new(title: "日本語の1", langcode: "ja", is_orig: true, weight: 100)
     tra_ja1 = sex.translations.order(created_at: :desc).first
     assert tra_ja1.is_orig
-    refute tra_en1.reload.is_orig
+    assert_equal false, tra_en1.reload.is_orig
+    assert_equal "ja", sex.reload.orig_locale
 
     sex.translations << Translation.new(title: "日本語の2", langcode: "ja", is_orig: true, weight: 90)
     tra_ja2 = sex.translations.order(created_at: :desc).first
     assert tra_ja2.is_orig
-    refute tra_ja1.reload.is_orig
-    refute tra_en1.reload.is_orig
+    assert_equal false, tra_ja1.reload.is_orig
+    assert_equal false, tra_en1.reload.is_orig
+    assert_equal "ja", sex.reload.orig_locale
 
     tra_en1.update!(is_orig: true)
     assert tra_en1.is_orig
-    refute tra_ja1.reload.is_orig
-    refute tra_ja2.reload.is_orig
+    assert_equal false, tra_ja1.reload.is_orig
+    assert_equal false, tra_ja2.reload.is_orig
+    assert_equal "en", sex.reload.orig_locale
 
     tra_ja1.update!(is_orig: nil)
     assert_nil tra_en1.reload.is_orig
     assert_nil tra_ja1.reload.is_orig
     assert_nil tra_ja2.reload.is_orig
+    assert_nil sex.reload.orig_locale
+
+    tra_ja1.update!(is_orig: true)
+    assert_equal false, tra_en1.reload.is_orig
+    assert_equal false, tra_ja1.reload.is_orig  # is_orig has to be set true for that with the lowest weight in the langcode.
+    assert_equal true,  tra_ja2.reload.is_orig  # This has the lowest weight for langcode=="ja"
+    assert_equal "ja", sex.reload.orig_locale
+
+    sex.update!(orig_locale: "en")
+    assert_equal true,  tra_en1.reload.is_orig
+    assert_equal false, tra_ja1.reload.is_orig
+    assert_equal false, tra_ja2.reload.is_orig
+
+    sex.update!(orig_locale: "ja")
+    assert_equal false, tra_en1.reload.is_orig
+    assert_equal false, tra_ja1.reload.is_orig
+    assert_equal true,  tra_ja2.reload.is_orig
+
+    sex.update!(orig_locale: nil)
+    assert_nil tra_en1.reload.is_orig
+    assert_nil tra_ja1.reload.is_orig
+    assert_nil tra_ja2.reload.is_orig
+
+    sex.orig_locale = "pt"
+    tra_pt = sex.translations.build(title: "tra_pt", langcode: "pt", is_orig: true)
+    sex.save!
+    assert_equal false, tra_en1.reload.is_orig
+    assert_equal false, tra_ja1.reload.is_orig
+    assert_equal false, tra_ja2.reload.is_orig
+    assert_equal true,  tra_pt.reload.is_orig
   end
 
   test "save_with_guard" do

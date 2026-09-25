@@ -41,15 +41,29 @@ class TranslationIntegrationTest < ActionDispatch::IntegrationTest
     w3c_validate(user.display_name)  # defined in test_helper.rb (see for debugging help)
   end
 
-  test "editor can view all of a page in show" do
-    user  = users(:user_moderator_translation)
+  test "moderator can view all including weight in show" do
     trans = translations(:music_kampai_en1)
     music = musics(:music_kampai)
+
+    user  = users(:user_translator)
 
     sign_in(user)
     get translation_url(trans)
     assert_response :success
 
+    refute_match(/Translation p?ID\s*=\s*\d+/i, css_select('h1').text)
+    csssel = css_select('div#body_main dl')
+    css2 = csssel[0].css('dt')
+    refute css2.any?{|i| i.text.include? 'Weight'}, "Weight should not be displayed for a low-rank Translator"
+    sign_out(user)
+    
+    user  = users(:user_moderator_translation)
+
+    sign_in(user)
+    get translation_url(trans)
+    assert_response :success
+
+    assert_match(/Translation p?ID\s*=\s*\d+/i, css_select('h1').text)
     csssel = css_select('div#body_main dl')
     css2 = csssel[0].css('dt')
     assert css2.any?{|i| i.text.include? 'Weight'}

@@ -184,13 +184,15 @@ class FixtureTest < ActiveSupport::TestCase
     assert_nil((m=ChannelOwner.where(themselves: false).where.not(artist: nil).first), "Allowed, but not good for fixtures: model=#{m}")
 
     ChannelOwner.where(themselves: true).each do |eco|
-      eco_tras = eco.ordered_translations
+      eco_tras = eco.ordered_translations  # loaded in-memory
       art_tras = eco.artist.ordered_translations
+      assert_equal eco_tras.size, art_tras.size  # All Translations of ChannelOwner (themselves=true) should match those of Artist
       cols = [:title, :alt_title, :ruby, :romaji, :alt_ruby, :alt_romaji, :is_orig, :langcode]
       eco_tras.each_with_index do |etra, i|
       #%w(en ja).each do |lc|
         assert_equal etra.slice(*cols), art_tras[i].slice(*cols), "ChannelOwner (#{str2identify_fixture(etra, note_label: "trans.note=")}) has inconsistent Translation with Artist (#{str2identify_fixture(art_tras[i], note_label: "trans.note=")})"  # str2identify_fixture() defined in model_helper.rb
         assert Translation.identical_contents?(etra, art_tras[i])  # Same meaning as above.
+        assert_equal art_tras[i], etra.sync_parent
       end
     end
   end

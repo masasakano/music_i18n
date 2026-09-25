@@ -1,12 +1,12 @@
-<%# local variables: model, (optional) title_kwd=(|name|title), add_button, show_single [Boolean] (Def: false), with_alt (Def: true), with_ruby (Def: true) %>
+<%# local variables: model, (optional) title_kwd=(|name|title), add_buttons, show_single [Boolean] (Def: false), with_alt (Def: true), with_ruby (Def: true) %>
   <%# for example, if title_kwd=="name", t('translations.table_head.Title_name') is used %>
   <%# If show_single is true (Def: false), only a single entry per language is displayed for public (but all entries are still displayed for Harami-Editors). %>
   <%# For general Publics, translation tables in HaramiVid and Event should not show alt_* or ruby/romaji, so both with_alt and with_ruby should be given false. Both with_alt and with_ruby are ignored for Editors. %>
 <% if !defined?(title_kwd)
      title_kwd = nil
    end %>  <%# This has to be in multi-line (or in the ";" syntax), as opposed to the post-placed "if", because of "defined?" %>
-<% if !defined?(add_button)
-     add_button = true
+<% if !defined?(add_buttons)
+     add_buttons = true
    end %>
 <% if !defined?(show_single)
      show_single = false
@@ -17,7 +17,7 @@
 <% if !defined?(with_ruby)
      with_ruby = true
    end %>
-<% with_edit_links = add_button %> <%# for the unified naming convention %>
+<% with_edit_links = add_buttons %> <%# for the unified naming convention %>
 <%
   title_kwd =
     if title_kwd.blank?
@@ -30,8 +30,8 @@
   t_alt_title = t([prefix+"AltTitle", title_kwd].compact.join("_"), default: "AltTitle")
 %>
 
-<% can_create = can?(:create, Translation) %>
 <% can_edit_gen = can?(:edit, HaramiVid) %>
+<% can_show = can?(:show, Translation) %>
 <% 
    with_alt_orig  = with_alt
    with_ruby_orig = with_ruby
@@ -43,22 +43,29 @@
 %>
 
   <section id="sec_primary_trans">
-<h2><%= t("layouts.all_registered") %><%= t("layouts."+(defined?(myself) ? 'translations' : 'translated_names')) %></h2>
+    <h2><%= t("layouts.all_registered") %><%= t("layouts."+(defined?(myself) ? 'translations' : 'translated_names')) %>
+      <%= editor_only_safe_html(:pass, method: can_show, tag: :span) do %>
+        (orig_locale=<%= model.orig_locale.inspect %>)
+      <% end %>
+    </h2>
 
-<table id="all_registered_translations_<%= get_modelname(model) %>" class="all_registered_translations">
+<table id="<%= Consts::Csses::Layouts::ALL_REGISTERED_TRANSLATIONS %>_<%= get_modelname(model) %>" class="<%= Consts::Csses::Layouts::ALL_REGISTERED_TRANSLATIONS %>">
   <% allcolspan = 2
      allcolspan += 1 if with_ruby
      allcolspan += (with_ruby ? 2 : 1) if with_alt
   %>
+  <% can_create_gen  = can?(:create, Translation.new)
+     can_promote_gen = can?(:update,  Translations::PromotesController)
+     can_demote_gen  = can?(:update,  Translations::DemotesController) %>
   <% allcolspan += ((can_edit=can?(:edit, Translation)) ? 1 : 0)
      allcolspan += ((can_index=can?(:index, Translation)) ? 1 : 0) # showing SELF or not
-     allcolspan += ((can_crud=can?(:crud, Translation))  ? 1 : 0)  # showing Weight column
-     allcolspan += ((can_show=can?(:show, Translation))  ? 1 : 0)  # showing Note column
-     action_colspan = ((can_show=can?(:show, Translation))  ? (with_edit_links ? 2 : 1) : 0)  # At least, "Show"+"Edit", plus optionally demotable, promotable, destroyable, unless add_button==false
+     allcolspan += (can_promote_gen ? 1 : 0)  # showing Weight column
+     allcolspan += (can_show  ? 1 : 0)  # showing Note column
+     action_colspan = (can_show  ? (with_edit_links ? 2 : 1) : 0)  # At least, "Show"+"Edit", plus optionally demotable, promotable, destroyable, unless add_buttons==false
 
      flag_ables = {
-       demotable:   can?(:update,  Translations::DemotesController),
-       promotable:  can?(:update,  Translations::PromotesController),
+       demotable:   can_demote_gen,
+       promotable:  can_promote_gen,
        destroyable: can?(:destroy, Translation) && model.translations.any?{|tra| can? :destroy, tra},
      }
      if !with_edit_links
@@ -88,7 +95,7 @@
         <th class="editor_only">You?</th>
       <% end %>
       <% if can_show %>
-        <% if can_crud %>
+        <% if can_promote_gen %>
           <th class="moderator_only">Weight</th>
         <% end %>
         <th class="editor_only"><%= t("tables.note") %></th>
@@ -106,8 +113,9 @@
 
     <tr class="lang_banner lang_banner_<%= lcode %>"><th colspan="<%= allcolspan %>" class="middle_row"><%= get_language_name(lcode) %> <%# defined in module_common.rb %>
       <%= sprintf("(%s)", get_language_name(lcode, in_locale: I18n.locale)) if I18n.locale.to_s != lcode %>
-      <% if add_button && (tra1 && can_create && tra1.creatable_other?(user: current_user, langcode: lcode) || (!tra1 && flag_ables[:destroyable])) %>
-        <%= link_to t('layouts.add_translation'), new_translation_path(langcode: lcode, translatable_type: model.class.name, translatable_id: model.id), class: "button_like "+Consts::Csses::Layouts::ADD_TRANSLATION_ANCHOR, style: "margin-left: 1em" %><%# alternative: "btn btn-primary btn-sm" %>
+      <%= sprintf("[%s]", t("datagrid.footnote.is_original")) if model.orig_locale == lcode %>
+      <% if add_buttons && (tra1 && model.translation_creatable?(lcode, user: current_user) || (!tra1 && flag_ables[:destroyable])) %><%# NOTE: Translation#creatable_other? takes into account can?(:create, Translation.new) %>
+        <%= link_to t("layouts.add_"+((model.orig_locale == lcode) ? "alt_title" : "translation")), new_translation_path(langcode: lcode, translatable_type: model.class.name, translatable_id: model.id), class: "button_like "+Consts::Csses::Layouts::ADD_TRANSLATION_ANCHOR, style: "margin-left: 1em" %><%# alternative: "btn btn-primary btn-sm" %>
       <% end %>
       </th></tr>
     <% alltra.each_with_index do |tra, i| %>
@@ -136,7 +144,7 @@
       <% if can_index %>
         <td class="align-c trans_you editor_only"><%= [tra.create_user_id, tra.update_user_id].include?(current_user.id) ? "Yes" : "" %></td>
       <% end %>
-      <% if can_crud %>
+      <% if can_promote_gen %>
         <td class="align-r trans_weight moderator_only"><%= tra.weight%></td>
       <% end %>
       <% if can_show %>
@@ -190,13 +198,12 @@
   <% end %>
   </tbody>
 </table>
-<% if add_button && can_edit && can?(:edit, model) %>
-<div class="editor_only">
+<% should_show_add_trans = (add_buttons && can_create_gen && can?(:edit, model)) %>
+<%= editor_only_safe_html(:pass, method: should_show_add_trans, class: ["add_other_language"]) do %>
  <%= t("layouts.Other_language") %>:
-   <span class="lead">
+   <%= tag.span class: "lead" do %>
     <%= link_to t('layouts.add_translation'), new_translation_path(params: { a_token: nil, translatable_type: model.class.name, translatable_id: model.id }), class: Consts::Csses::Layouts::NEW_LINK %>
-   </span>
-</div>
+   <% end %>
 <% end %>
 
   </section> <!-- section id="sec_primary_trans" -->

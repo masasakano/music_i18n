@@ -4,7 +4,7 @@
 
 <% canupdate = can?(:update, @event_group) %>
 
-<% if can?(:create, Translation) %>
+<% if can?(:create, Translation.new) %>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: @event_group, add_buttons: true} %>
 <hr>
 <% else %>

@@ -51,7 +51,7 @@ class Role < ApplicationRecord
   RNAME_MODERATOR = 'moderator'
   RNAME_EDITOR    = 'editor'
   RNAME_HELPER    = 'helper'
-  DEF_WEIGHT = {
+  DEF_WEIGHT = {  # These should be consistent with the weights of the Roles in DB...
     RNAME_SYSADMIN  => 1,
     RNAME_MODERATOR => 100,
     RNAME_EDITOR    => 1000,
@@ -67,7 +67,7 @@ class Role < ApplicationRecord
     RoleCategory.root_category.roles.sort[0]
   end
 
-  
+
   # Returns {Role} for a given (name, role_category) or uname(machine-name)
   #
   # If catname is not specified, returns the first one.
@@ -194,6 +194,36 @@ class Role < ApplicationRecord
       arret.push enode.content.roles.sort
     end
     arret
+  end
+
+  # Returns an Array of Roles of the subordinates in line, potentially spanning multiple RoleCategories
+  #
+  # If the given {RoleCategory} (=+rc+) has no subordinate {RoleCategory},
+  # this searches the given +rc+ for Roles and returnes a single-element Array.
+  # If +rc+ has subordinate {RoleCategory}(s), this searches the leaf of every branch
+  # of (lower-rank) RoleCategory, but not the given +rc+ itself, and returns
+  # an Array containing the lowest-rank Roles of all leaf RoleCategories.
+  # If none of the leaf RoleCategories have {Role}s, the returned Array is empty/blank.
+  #
+  # The order of Roles in the returned Array is arbitrary because {Role#weight}
+  # is unique only within a {RoleCategory}
+  #
+  # @example Gets the Role with the lowest weight in the line (weights in Role-s in separate RoleCategory can be independent, though)
+  #    Role.lowest_subordinate_roles_in_line(RoleCategory::MNAME_TRANSLATION).compact.sort_by(&:weight).last
+  #
+  # @param role_category_or_mname [RoleCategory, String] {RoleCategory#mname} is preferable to RoleCategory.
+  # @return [Array<Role, NilClass>] May contain nil if one or more leaf {RoleCategory} contain no {Role}-s.
+  def self.lowest_subordinate_roles_in_line(role_category_or_mname=RoleCategory::MNAME_ROOT)
+    rcn = RoleCategory.tree.find_by_mname(role_category_or_mname)
+    raise ArgumentError, "No RoleCategory is registered with the given parameter (#{role_category_or_mname}). Either the given mname is wrong or the tree-node is not up-to-date, in which case you should refresh the tree with RoleCategory.tree(force_update: false) and call this again." if !rcn
+    rcn.each_leaf.map{ |ea| ea.content.roles.sort.last }
+  end
+
+  # Lowest weight of {Role}-s in or below the given {RoleCategory} (or preferably {RoleCategory#mname})
+  #
+  # @return [Integer, NilClass] nil only if none of leaf RoleCategory contain Role-s.
+  def self.lowest_weight_in_line(*, **)
+    lowest_subordinate_roles_in_line(*, **).compact.map(&:weight).sort.last
   end
 
   # Common routine for {Role}.create_*
@@ -613,7 +643,7 @@ class Role < ApplicationRecord
   #
   # @return [RoleCategoryNode]
   def category_node
-    RoleCategory.tree.find_by_mname(role_category)
+    role_category.category_node
   end
 
   # All the roles in the same {RoleCategory} that have greater (or commonly undefined) {#weight}

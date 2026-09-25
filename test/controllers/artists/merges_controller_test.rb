@@ -156,12 +156,13 @@ class Artists::MergesControllerTest < ActionDispatch::IntegrationTest
 
     sign_in @editor
     assert_difference('Artist.count', -1) do
-      assert_difference('Translation.count', -1) do # 
+      assert_difference('Translation.count', 0) do # @other's "ja"(is_orig=true) Translation will disappear but @artist.channel_owner will have a new Translations synced with @other's "en" Translation merged.
         assert_difference('HaramiVidMusicAssoc.count', 0) do
           assert_difference('Engage.count', 0) do
             assert_difference('Music.count', 0) do
               assert_difference('Place.count', 0) do
                 patch artists_update_merges_url(@artist), params: { artist: prm_artist }
+                  # {other_artist_id: "33552973", to_index: "1", lang_orig: "1", lang_trans: nil, engage: "1", prefecture_place: "0", sex: "1", birthday: "0"}
               end
             end
           end

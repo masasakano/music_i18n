@@ -27,19 +27,19 @@ module Seeds::ChannelOwners
     haramichan: {
       ja: ['ハラミちゃん', 'ハラミ'],
       en: ['HARAMIchan', 'Harami-chan'],
-      orig_langcode: 'ja',
       themselves: true,
       artist: Proc.new{Artist.default(:HaramiVid)},  # Artist and its Translations must be defined before this is executed.
+      orig_langcode: "ja",  # Proc{} is not supported for orig_langcode(!), so make sure this to be consistent with Artist
       note: nil,
       regex: /^(ハラミ|harami(chan)?\b)/i,
     },
     kohmi: {
       ja: '広瀬香美',
       en: 'Kohmi Hirose',
-      orig_langcode: 'ja',
       themselves: true,
       regex: (rege=(/^広瀬\s*香美/i)),
       artist: Proc.new{Artist.select_regex(:title, rege, langcode: 'ja', sql_regexp: true).distinct.first},
+      orig_langcode: "ja",  # Proc{} is not supported for orig_langcode(!), so make sure this to be consistent with Artist
       note: nil,
     },
   }.with_indifferent_access  # SEED_DATA
@@ -55,7 +55,8 @@ module Seeds::ChannelOwners
   # @return [Integer] Number of created/updated entries
   def load_seeds
     proc_b4validate = Proc.new{ |model|
-      model.set_unsaved_translations_from_artist if model.themselves
+      model.reset_by_artist if model.themselves
+      # model.set_unsaved_translations_from_artist if model.themselves
     }
     _load_seeds_core(%i(themselves artist note), proc_b4validate: proc_b4validate)  # defined in seeds_common.rb, using RECORD_CLASS
   end

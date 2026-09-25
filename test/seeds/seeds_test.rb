@@ -99,7 +99,7 @@ class SeedsSeedsTest < ActiveSupport::TestCase
     assert_equal 1, User.count
     assert_equal 1, _total_entry, "Positive entries (Expectation: [User:1] only): "+_pair_entries.reject{|i| i[1] < 1}.inspect.gsub(/"/, "")
 
-    # run seeding (1st time)
+    #### run seeding (1st time) ####
     implant_seeds  # defined in /db/seeds.rb"
     # NOTE: if NoMethodError is rasied with "undefined method `best_translations'", your model may not be defined as a subclass of BaseWithTranslation?
 
@@ -122,9 +122,14 @@ class SeedsSeedsTest < ActiveSupport::TestCase
 
     assert(defar = Artist.default(:HaramiVid))
     assert_equal defar.title(langcode: :en), ChannelOwner.select_regex(:title, /ハラミちゃん/, langcode: 'ja', sql_regexp: true).distinct.first.title(langcode: :en)
-    assert_equal defar, ChannelOwner.select_regex(:title, /ハラミちゃん/, langcode: 'ja', sql_regexp: true).distinct.first.artist
+    chow = ChannelOwner.select_regex(:title, /ハラミちゃん/, langcode: 'ja', sql_regexp: true).distinct.first
+    assert_equal defar, chow.artist
+    ar = [ defar.translations,
+           chow.translations.map(&:sync_parent) ]
+    assert_equal( *(ar.map{|a| a.sort_by{[_1.langcode,_1.weight]}}) )
 
-    # run seeding (2nd time)
+
+    #### run seeding (2nd time) ####
     def_title = [ChannelOwner::UNKNOWN_TITLES[:ja]].flatten.first
     replaced = def_title.sub(/$/, "-altered")
     Translation.find_by(title: def_title, langcode: "ja", translatable_type: "ChannelOwner").translatable.translations.find_by(langcode: "ja").update!(title: replaced)

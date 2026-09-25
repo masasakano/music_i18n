@@ -48,7 +48,7 @@ module TranslationsHelper
   end
 
   # @param model [BaseWithTranslation]
-  # @return [String] checked for select in Form
+  # @return [String] checked for select in Form.
   def langcode_checked(model)
     if defined?(@hstra) && @hstra["langcode"].present?
       # set in set_hsparams_main_tra in application_controller.rb providing the Controller uses it.
@@ -58,8 +58,10 @@ module TranslationsHelper
       @hstra["langcode"]
     elsif model.respond_to?(:langcode) && model.langcode.present?
       model.langcode
-    elsif (tras=model.best_translation).present?
-      tras.langcode
+    elsif (tra_langcode=model.best_translation&.langcode).present?
+      # Note that the caller (in View) might raise ActionView::Template::Error if nil was ever returned.
+      # For this reason, the return must be always significant.
+      tra_langcode
     else
       I18n.available_locales.first.to_s  # "ja"
     end

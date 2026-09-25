@@ -77,6 +77,7 @@ class ActiveSupport::TestCase
   #   end
   setup do
     self.default_url_options = { locale: I18n.default_locale } if respond_to?(:default_url_options=)
+    RoleCategory.tree(force_update: true)  # to clear a custom cache - quite essential! (to execute many tests in one go)
   end
 
   ## Disable routing-filter in testing  / for (now obsolete) routing-filter Gem
@@ -312,7 +313,7 @@ class ActiveSupport::TestCase
   # Prepare Array of Harami1129
   #
   # @example
-  #   h1129_prms, assc_prms, hsmdl = prepare_h1129s1  # defined in test/models/base_with_translation_test.rb
+  #   h1129_prms, assc_prms, hsmdl = prepare_h1129s1  # defined in test_helper.rb
   #   h1129_prms, assc_prms, hsmdl = prepare_h1129s1(release_dates: [Date.new(2020, 2, 5), Date.new(2021, 3, 6)])
   #   # hsmdl.keys == %i(h1129s musics artists hvmas engages
   #   #                  mu_anchorings art_anchorings ch_owners channels
@@ -691,6 +692,28 @@ class ActiveSupport::TestCase
     [%r@^(/#{loc})?#{quoted_exp}#{suffix}\z@, act]  # defined in test_helper.rb
   end
 
+  # @example
+  #    assert_add_translation_button_present?  # defined in test_helper.rb 
+  #
+  # @example if should have only 1 button.
+  #    assert_add_translation_button_present?(size: 1)  # defined in test_helper.rb
+  #
+  # @example if should have no buttons!
+  #    assert_add_translation_button_present?(size: 0)  # defined in test_helper.rb
+  #
+  # @param size [Integer, NilClass] Number of buttons. nil (Def) means "exists?"
+  def assert_add_translation_button_present?(system_test: false, size: nil)
+    raise "Unsupported yet..." if system_test
+    errmsg_prefix = _get_caller_info_message(bind_offset: -1, prefix: true)
+    act_size = css_select("."+Consts::Csses::Layouts::ADD_TRANSLATION_ANCHOR).size
+    msg = errmsg_prefix+" #{size} ADD_TRANSLATION anchor(s) should be visible, but... " # + css_select("."+Consts::Csses::Layouts::ALL_REGISTERED_TRANSLATIONS).to_s
+    if size
+      assert_equal size, act_size, msg
+    else
+      assert_operator 1, :<=, act_size, msg
+      assert_equal 1, css_select("div.add_other_language").size, "Add-other lanaugage link should be available, but..."
+    end
+  end
 
   # performs log on and assertion to see if the HTTP response is :success
   #
@@ -829,7 +852,7 @@ class ActiveSupport::TestCase
     privileges = {url: false, new: false, edit: false, destroy: false}.with_indifferent_access.merge(in_privileges)
     raise ArgumentError, "extra keys #{privileges.inspect}" if 4 != privileges.keys.size  # foolproof for developers
 
-    errmsg_prefix = "("+_get_caller_info_message(bind_offset: -1, prefix: true)+")"
+    errmsg_prefix = _get_caller_info_message(bind_offset: -1, prefix: true)
 
     xpath_section = sprintf(XPATHS[:anchoring][:section_fmt], record.class.name)
     assert noko.xpath(xpath_section).present?, errmsg_prefix+" No visible section"
@@ -916,6 +939,14 @@ class ActiveSupport::TestCase
   #   print "DEBUG:for-flash0: #{css_select(css_for_flash).to_s}\n"
   #   print "DEBUG:for-flash1: #{css_select('div#error_explanation').to_html}\n"
   #   print "DEBUG:for-flash2: #{css_select('p.alert').to_html}\n"
+  #
+  # @example in Controller test
+  #    assert_response :redirect
+  #    follow_redirect!
+  #    flash_regex_assert(/\bArtist is ignored\b/, type: :warning, system_test: false) # defined in test_helper.rb
+  #
+  # @example in System test
+  #    flash_regex_assert(/\bwas successfully created\b/, type: [:notice, :success], system_test: true) # defined in test_helper.rb
   #
   # @param regex [Regexp] 
   # @param msg [String] 

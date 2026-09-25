@@ -45,8 +45,7 @@ class ChannelOwnersController < ApplicationController
 
     if artist_in
       @channel_owner.artist = artist_in
-      @channel_owner.set_unsaved_translations_from_artist  # set ChannelOwner#translations referring to the associated Artist
-      #@channel_owner.unsaved_translations = _unsaved_translations_equivalent_artist(artist_in)
+      @channel_owner.reset_by_artist
     else
       # Even if @channel_owner.errors.any?, it is better to set unsaved_translation so the input strings in the forms are preserved.
       add_unsaved_trans_to_model(@channel_owner, @hstra) # defined in application_controller.rb
@@ -73,12 +72,9 @@ class ChannelOwnersController < ApplicationController
     elsif !@channel_owner.themselves
       @channel_owner.artist = nil
     end
+    @channel_owner.reset_by_artist(force: false)
 
-    result = def_respond_to_format(@channel_owner, :updated){
-      #@channel_owner.update(@hsmain)
-      @channel_owner.synchronize_translations_to_artist
-      @channel_owner.save
-    } # defined in application_controller.rb
+    result = def_respond_to_format(@channel_owner, :updated) # defined in application_controller.rb
 
     # Here (synchronize_translations_to_artist), assigned the equivalent user if there is any and adjusts each Translation's update_user and updated_at
   end
@@ -109,8 +105,7 @@ class ChannelOwnersController < ApplicationController
       #if @hsmain[PARAMS_KEY_AC].present?   # @channel_owner.send(PARAMS_KEY_AC) is defined for create but NOT for update
       if @channel_owner.send(PARAMS_KEY_AC).present?   # is defined for create but NOT for update
         if !@channel_owner.themselves  # convert_param_bool(@prms_all[:themselves], true_int: 1)
-          flash[:warning] ||= []
-          flash[:warning] << "Specified equivalent Artist is ignored because they are specified to be not equivalent."
+          add_flash_message(:warning, "Specified equivalent Artist is ignored because they are specified to be not equivalent.", now: false)
         else
           artist = BaseMergesController.other_model_from_ac(Artist.new, @prms_all[PARAMS_KEY_AC], controller: self)
           if !artist
@@ -122,17 +117,7 @@ class ChannelOwnersController < ApplicationController
       end
       artist
     end
-  
-    # @return [Array<Translation>] Unsaved translations copied from the those of the equivalent Artist
-    def _unsaved_translations_equivalent_artist(artist)
-      # a set of nearly identical translations
-      artist.translations.map{|etrans|
-        new_trans = etrans.dup
-        new_trans.translatable = nil
-        new_trans
-      }
-    end
-  
+
 end
 
 # Parameters: {"authenticity_token"=>"[FILTERED]", "channel_owner"=>{"langcode"=>"ja", "title"=>"", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "themselves"=>"0", "artist_with_id"=>"", "artist_id"=>"", "note"=>""}, "commit"=>"Submit", "locale"=>"en"}

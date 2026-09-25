@@ -467,6 +467,7 @@ class BaseWithTranslation < ApplicationRecord
   before_validation :orig_locale_consistent_with_translations
   after_validation :capture_validation_context  # callback. Save validation_context for :after_create
   after_create :save_unsaved_translations  # callback to create(-only) @unsaved_translations
+  after_save   :singularize_is_orig   # callback to normalize the associated Translation#is_orig
 
   include Translatable  # Key relation - polymorphic with Translation; defined in /app/models/concerns/translatable.rb
   accepts_nested_attributes_for :translations, allow_destroy: true
@@ -484,7 +485,7 @@ class BaseWithTranslation < ApplicationRecord
   class UnsavedTranslationsValidator < ActiveModel::Validator
     # Validate unsaved_translations if defined.
     def validate(record)
-      return if record.unsaved_translations.blank?
+      return if record.unsaved_translations.blank? || record.skip_orig_locale_validation
 
       if !record.new_record?
         msg_base = "unsaved_translations has to be blank for an existing entity. Contact the code developer: #{record.inspect}"
@@ -493,7 +494,7 @@ class BaseWithTranslation < ApplicationRecord
           if ModuleWhodunnit.whodunnit && ModuleWhodunnit.whodunnit.an_admin?
             "[admin-message] "+msg_base
           else
-            "internal error re #{record.class.name}#unsaved_translations. Contact the code developer."
+            "internal error re #{record.class.name}#unsaved_translations. Contact the code developer. "+record.unsaved_translations.inspect
           end
         record.errors.add :base, msg
         return
@@ -623,6 +624,10 @@ class BaseWithTranslation < ApplicationRecord
   # to avoid the situation where such invalid Translation-s can never be updated (to fix the inconsistency).
   # This prevents the skipping.
   attr_accessor :force_validate_translation
+
+  # Skip {#orig_locale_consistent_with_translations} if true.
+  # Mainly used by an after_save callback in Translation.
+  attr_accessor :skip_orig_locale_validation
 
   # Initialization of {BaseWithTranslation#unsaved_translations}
   # in{BaseWithTranslation#new} (in any of its child classes).
@@ -1139,12 +1144,39 @@ class BaseWithTranslation < ApplicationRecord
 
   # Wrapper of {Translation.find_all_by_a_title}
   #
-  # To find the first {Translation} that matches a String and maybe
-  # other conditions in {#translations}.
+  # To find all BaseWithTranslation-s that have {Translation}-s that match
+  # a String and maybe other conditions in {#translations}.
+  # The input String is automatically pre-processed, depending on the specified methods for search.
   # That with (is_orig: true) would come first.
   #
+  # In default, this method returns an Array (+return_array: true+) of
+  # BaseWithTranslation, each of which has defined attributes of
+  #
+  # * +matched_translation+
+  # * +matched_attribute+
+  # * +match_method+ (common in all resuls and the least permissive selection method)
+  #
+  # though setting them is very SQL-heavy.
+  #
+  # If you specify +return_array: false+, memory-loaded Relation of BaseWithTranslation
+  # is returned so that you can apply further SQL operation if you want.
+  # The ORDER is considered in the returned Relation in default; however, if +uniq: true+ option
+  # is combined, the ORDER is completely discarded (necessary to apply +DISTINCT+).
+  #
+  # Each in-memory BaseWithTranslation has a common attribute of
+  # +match_method+ but not the other two defined (because marking them is too SQL heavy).
+  # If you ever need the information, specify +return_array: true+ option.
+  #
+  # == Note to Developers
+  #
+  # In +return_array: false+ option, the returned relation Ruby-Object itself
+  # has +match_method+ defined.  Each in-memory BaseWithTranslation simply copies
+  # the value, which is a waste, especially if the caller applies further SQL operations.
+  # For this reason, the routine to set +BaseWithTranslation#match_method+
+  # should be discarded...
+  #
   # @example
-  #   Artist.find_all_by_a_title(:alt_title, 'the Proclaimers')
+  #   Artist.find_all_by_a_title(:alt_title, 'the Proclaimers', return_array: false)
   #    # => matches Artist having "Proclaimers, The" in Translation
   #
   # See {Translation.find_all_by_a_title} for options.
@@ -1153,27 +1185,90 @@ class BaseWithTranslation < ApplicationRecord
   #    or Array of Symbol|String to evaluate. Note :titles is the alias
   #    for [:title, :alt_title], and :all means all the 6 columns.
   #    If nil, this parameter, as well as value, is not used.
-  # @param *args: [Array] key, value (e.g., :titles, 'Lennon')
+  # @param *args: [Array] value (e.g., 'Lennon')
   # @param uniq: [Boolean] If true, the returned Array is uniq-ed based on <BaseWithTranslation#id>
+  # @param return_array: [Boolean] If true (Def), returns Array, each member of which has 3 attributes
+  #    of +match*+ defined. Else, returns ActiveRecord::Relation, where +match*+ is NOT defined.
+  #    Either case, +ret.match_method+ is defined, and equal to +ret[ANY].match_method+ in the former.
+  # @param parent [ActiveRecord::Relation, NilClass] Must be Translation's relation if +return_array+ is true,
+  #    else the form of +BaseWithTranslation.joins(:translations)+ is also accepted.  In the latter case,
+  #    {Translation} is still included in the returned Relation regardless of its model.
   # @param **transkeys: [Hash] e.g., match_method_upto: :optional_article_ilike, langcode: 'en'. See {Translation.find_all_by_a_title} for detail.
   # @return [Array<BaseWithTranslation>] Can be empty. For each element, {BaseWithTranslation#matched_translation}, {BaseWithTranslation#match_method} and {BaseWithTranslation#matched_attribute} are set.
-  def self.find_all_by_a_title(kwd, *args, uniq: false, **transkeys)
+  def self.find_all_by_a_title(kwd, *args, uniq: false, return_array: true, parent: nil, **transkeys)
+    if return_array && parent && Translation != parent.model
+      raise ArgumentError, "(#{__method__}) `parent` must be Translation's Relation when return_array=true (you may intend false?)"
+    end
+
     rela = Translation.send(__method__,
       kwd, *args,
       translatable_type: self.name,
+      parent: parent,
       **transkeys
     )
 
-    ret = rela.map{|trans|
-      trans.set_matched_method_attribute(kwd, rela)
-      ret = trans.translatable
-      ret.matched_translation = trans
-      ret.matched_attribute   = trans.matched_attribute
-      ret.match_method        = trans.match_method
-      ret
-    }
+    if return_array
+      ret = rela.map{|trans|
+        trans.set_matched_method_attribute(kwd, rela)
+        ret = trans.translatable
+        ret.matched_translation = trans
+        ret.matched_attribute   = trans.matched_attribute
+        ret.match_method        = trans.match_method
+        ret
+      }
+      uniq ? ret.uniq : ret  # equality based on BaseWithTranslation#id
+    else
+      uniq ? rela.reorder(nil).distinct : rela  # Order is cancelled!
+    end
+  end
 
-    uniq ? ret.uniq : ret  # equality based on BaseWithTranslation#id
+  # Wrapper of {BaseWithTranslation.find_all_by_a_title}, returning the result not including self
+  #
+  # == Bugs
+  #
+  # If you want to just check the presense of BaseWithTranslation of a particular name,
+  # as opposed to finding and narrowing down the most likely candidate, you should specify,
+  #
+  # * like +accept_match_methods: [:optional_article_ilike]+
+  # * NOT +match_method_upto: :optional_article_ilike+
+  #
+  # because the latter invokes multiple SQL querries from +exact+ match to +:optional_article_ilike+
+  # until one is sound.  HOWEVER, it would not work when the exact-matching String is supplied
+  # for some reason.
+  # Anyway, this method should be refactored to call more modern {Translation.find_all_by_partial_str}
+  # So, no change is made.
+  #
+  # @example If you are only interested in the presence of duplicates in English
+  #    art = Artist.first
+  #    art.translations.where(langcode: "en").pluck(:title, :alt_title).flatten.any? { |tit| 
+  #      art.find_others_by_a_title(:titles, tit, return_array: false, match_method_upto: :optional_article_ilike, langcode: "en").exists?
+  #    }  # => true/false
+  #    # Each result may contain multiple instances of Artist(title=AI)
+  #    # unless +uniq: true+ is specified (though in this particular case, there should be
+  #    # no multiples per Artist due to Translation constraints, unless +langcode: "en"+ was omitted).
+  #
+  # @example If you want to know the distribution of Sexes of the matching Artists: +uniq: true+ is the key
+  #    ret = art.find_others_by_a_title(:titles, "Spitz", return_array: false, uniq: true, match_method_upto: :optional_article_ilike).pluck(:sex)
+  #    p ret.pluck(:sex)   # => Sexes
+  #    p ret.match_method  # => maybe :exact, maybe :optional_article_ilike
+  #
+  # @example If you want to know the detail of the matches.
+  #    ret = art.find_others_by_a_title(:titles, "Spitz", return_array: true, match_method_upto: :optional_article_ilike)
+  #    ret.match_method  # => maybe :exact, maybe :optional_article_ilike
+  #    ret.each do |artist|
+  #      p artist.matched_translation # => Translation
+  #      p artist.matched_attribute   # => :romaji etc
+  #    end
+  #
+  # @param return_array: [Boolean] See {BaseWithTranslation.find_all_by_a_title}
+  # @param parent [ActiveRecord::Relation, NilClass] if supplied, it MUST contain BaseWithTranslation and Translation in Relation
+  # @param **opts [Hash] e.g., return_array and uniq, and match_method_upto: :optional_article_ilike, langcode: 'en'. See {Translation.find_all_by_a_title} for detail.
+  # @return [Array<BaseWithTranslation>] Can be empty. For each element, {BaseWithTranslation#matched_translation}, {BaseWithTranslation#match_method} and {BaseWithTranslation#matched_attribute} are set.
+  def find_others_by_a_title(*args, return_array: true, parent: nil, **opts)
+    raise ArgumentError, "(#{__method__}) return_array must be false if parent is nil" if return_array && !parent
+    parent  ||= self.class.joins(:translations)
+    parent = parent.where.not("#{self.class.table_name}.id": id)
+    self.class.find_all_by_a_title(*args, return_array: return_array, parent: parent, **opts)
   end
 
   # [**OBSOLETE**] Wrapper of {Translation.find_by_a_title}
@@ -1242,7 +1337,7 @@ class BaseWithTranslation < ApplicationRecord
   #    own processing in the callback block while not providing non-nil "place"
   #    in the argument to this method.
   # @param uniq: [Boolean] If true, the returned Array is uniq-ed based on <BaseWithTranslation#id>
-  # @param **transkeys: [Hash] e.g., match_method_upto, langcode. Passed to {Translation.find_all_by_a_title} for detail.
+  # @param **transkeys: [Hash] e.g., match_method_upto, langcode, where. Passed to {Translation.find_all_by_a_title} for detail.
   # @return [Array] maybe empty.
   #   It is sorted according to is_orig so that {BaseWithTranslation} that has the {Translation}
   #   with {Translation#is_orig} of true comes first.
@@ -3125,80 +3220,96 @@ class BaseWithTranslation < ApplicationRecord
   end
   alias_method :original_langcode, :orig_langcode if ! self.method_defined?(:original_langcode)
 
-  # Reset the original langcode
+  # Reset the original langcode accroding to the given Translation or langcode
   #
   # If there are multiple candidates for the given langcode, that of the best (=lowest)
   # weight is chosen.  To eliminate the uncertainty, give a {Translation} as the 1st arg.
   #
   # All the other {Translation#is_orig} becomes false.
   #
-  # @param langcodearg [Translation, String, Symbol, NilClass] Translation to become Original. Alternatively, same as the optional argument and has a higher priority.
+  # @param trans_or_langcode [Translation, String, Symbol, NilClass] Translation to become Original. Alternatively, same as the optional argument and has a higher priority.
   # @param langcode [String, Symbol, NilClass] if nil, the same as the entry of is_orig==TRUE
-  # @param to_nil: [Symbol] If true (Def: false), is_orig in any of them is nil. In some method, "orig_valid" is the opposit option name.
+  # @param to_nil: [Symbol] If true (Def: false), synonym to {#reset_orig_langcode_to_nil}, setting all is_orig nil. In some method, "orig_valid" is the opposit option name.
   # @return [Translation, NilClass] Original Tanslation. If to_nil==true, nil is returned. Or, if no Translation is found for the langcode, nil is returned, in which case is_orig of any of {Translation} is not modified at all. Or, if 
-  def reset_orig_langcode(langcodearg=nil, langcode: nil, to_nil: false)  # langcode given both in the main argument and option to be in line with {#titles} etc.
+  def reset_orig_langcode(trans_or_langcode=nil, langcode: nil, to_nil: false)  # langcode given both in the main argument and option to be in line with {#titles} etc.
     return  reset_orig_langcode_to_nil if to_nil
-    return _reset_orig_langcode_to_trans(langcodearg) if langcodearg.respond_to?(:is_orig)
+    return _reset_orig_langcode_to_trans(trans_or_langcode) if trans_or_langcode.respond_to?(:is_orig)
 
-    langcode = (langcodearg || langcode).to_s
+    langcode = (trans_or_langcode || langcode).to_s
     raise ArgumentError, "No langcode specified" if !langcode
-
-    origtran = nil
-    best_translations.each_pair do |lcode, trans|
-      if lcode.to_s == langcode
-        trans.update!(is_orig: true)
-        origtran = trans
-        break
-      end
-    end
-
-    if !origtran
-      logger.warn "(#{__FILE__}:#{__method__}) No Translation if found for langcode=#{langcode} for #{self.class.name}: #{self.inspect}"
-      return
-    end
-
-    _reset_orig_langcode_to_trans(origtran, set_true: false)
+    _reset_orig_langcode_to_langcode(langcode)
   end
   alias_method :reset_is_orig, :reset_orig_langcode if ! self.method_defined?(:reset_is_orig)
 
-  # Reset orig_langcode to nil (or false if specified so) for all {#translations}
+  def _reset_orig_langcode_to_langcode(langcode)  # langcode given both in the main argument and option to be in line with {#titles} etc.
+    best_translations.each_pair do |lcode, trans|
+      if lcode.to_s == langcode
+        self.orig_locale = langcode
+        trans.update!(is_orig: true)  # This fires Translation#singularize_is_orig
+        return trans
+      end
+    end
+
+    logger.warn "(#{__FILE__}:#{__method__}) No Translation is found for langcode=#{langcode} for #{self.class.name}: #{self.inspect}"
+    self.orig_locale = langcode
+    nil
+  end
+  private :_reset_orig_langcode_to_langcode
+
+  # Reset {Translation#is_orig} to nil (or false if specified so) for all {#translations}, and #{orig_locale}
+  #
+  # This bypasses callbacks and validations(!).
+  # Existing records on DB will be updated on DB, while in-memory ones change only in-memory.
+  #
+  # @note
+  #   To make all is_orig=false should not be allowed, except temporarily.
   #
   # @param to_value [NilClass, FalseClass] is_orig is set to either nil (Def) or false.
   # @return [NilClass]
   def reset_orig_langcode_to_nil(to_value: nil)
+    raise ArgumentError, "to_value (=#{to_value.inspect}) should be either nil or false." if to_value
     translations.update_all(is_orig: to_value)
-    return
+    translations.map{ |tra| tra.is_orig = to_value }  # to work on in-memory Translation-s if any
+    self.orig_locale = nil
+    nil
   end
 
-  # Reset orig_langcode to the given {Translation}
+  # Reset #{orig_locale} to {Translation#langcode} of the given {Translation}, regardless of the given one's is_orig
+  #
+  # The given one's is_orig is updated to true (if not yet).
+  # All the other associated Translations' is_orig are set false.
+  #
+  # **NOTE**: if the given Translation is not associated to self, chances are
+  #           none of associated Translation have #{orig_locale} - make sure to sort it out!
   #
   # @param origtran [Translation] Translation whose is_orig is (going to be) set true.
-  # @param set_true: [Boolean] if true (Def), is_orig is set true. False can be specified just to avoid the unnecessary update action.
   # @return [Translation] Original Tanslation.
-  def _reset_orig_langcode_to_trans(origtran, set_true: true)
+  def _reset_orig_langcode_to_trans(origtran)
     translations.where.not(id: origtran).update!(is_orig: false)
-    origtran.update!(is_orig: true) if !set_true
+    translations.select{ _1.id != origtran.id }.map{ |tra| tra.is_orig = false }  # to work on in-memory Translation-s if any
+    origtran.update!(is_orig: true)
+    self.orig_locale = origtran.langcode
     origtran
   end
   private :_reset_orig_langcode_to_trans
 
-  # Reset orig_langcode for both self and other
+  # Reset orig_langcode (#{orig_locale}) for both self and other
   #
   # Wrapper method for internal use.
   #
   # @param other [BaseWithTranslation]
   # @param trans [Translation] original one
-  # @param priority: [Symbol] eithr :self or :other
+  # @param priority: [Symbol] eithr :self or :other / Parameter of which is prioritized to merge into self
   # @return [void]
   def _reset_orig_langcode_self_other(other, trans, priority: )
     raise if ![:self, :other].include? priority
+    raise "should never happen 1..." if !trans.is_orig
     case priority 
     when :self
-        reset_orig_langcode(trans)  # In case there are multiple Translations of is_orig=true for a single BaseWithTranslation, i.e., self.
-        other.reset_orig_langcode_to_nil(to_value: false)
+        # In case there are multiple Translations of is_orig=true for a single BaseWithTranslation, i.e., self.
+        reset_orig_langcode(trans)        # => _reset_orig_langcode_to_trans()
     when :other
-        reset_orig_langcode_to_nil(to_value: false)
-        other.reset_orig_langcode(trans)
+        other.reset_orig_langcode(trans)  # => _reset_orig_langcode_to_trans()
     else
       raise
     end
@@ -3212,11 +3323,13 @@ class BaseWithTranslation < ApplicationRecord
   #
   # @param other [BaseWithTranslation]
   # @param trans [Translation] original one
-  # @param priority: [Symbol] eithr :self or :other
   # @return [Hash<Array<Engage>>, NilClass] nil only if it is not Music/Artist; else {remain: [Engage...], destroy: [...]}
-  def _reset_reassign_orig_langcode_self_other(other, trans, priority: )
-    _reset_orig_langcode_self_other(other, trans, priority: priority)
-    _reassign_translation(trans, priority: :highest, force: true)
+  def _reset_reassign_orig_langcode_self_other(other, trans)
+    self.orig_locale = trans.langcode
+    self.skip_orig_locale_validation = true
+    hsret = _reassign_translation(trans, priority: :highest, force: true)  # save on DB
+    other.reset_orig_langcode_to_nil  # nullifying is_orig requires so that all remaining Translations of others to be processed in the subsequent calls of _reassign_translation ; n.b., all remaining ones (regardless of its is_orig) should and will be (attempted to be) imported b/c the one conflicting, if any, has been already destroyed.
+    hsret
   end
   private :_reset_reassign_orig_langcode_self_other
 
@@ -3290,7 +3403,7 @@ class BaseWithTranslation < ApplicationRecord
   def best_translation(langcodearg=nil, langcode: nil, fallback: true)  # langcode given both in the main argument and option to be in line with {#titles} etc.
     langcode = (langcodearg || langcode).to_s
     langcode = String.new if "all" == langcode
-    tras = ((new_record? && @unsaved_translations.present?) ? unsaved_translations : translations)
+    tras = ((new_record? && translations.blank? && @unsaved_translations.present?) ? unsaved_translations : translations)
     return Translation.sort(tras).first if langcode.blank?
 
     tra = translations_with_lang(langcode: langcode)  # this is necessary because langcode is determined from is_orig when nil langcode is given
@@ -3623,27 +3736,40 @@ class BaseWithTranslation < ApplicationRecord
   end
 
   ######################
-  
+
   # Returns a unique weight
   #
   # If (:priority == :highest) or (:priority == :high and tra_other.weight is 0),
   # existing Translations (there should be at most one but there is no validation for it so far)
   # with weight=0 if any are set in the given Array +to_destroy+.  The caller may destroy them.
   #
-  # @param tra_other [Translation]
+  # c.f. {Translation#def_weight}
+  #
+  # == TODO ==
+  #
+  # The prioritized Translation-s should have higher weights than the others.
+  # For example, if (user's specified) priority tells :other's Translations have a higher priority,
+  # all the Translation-s (but the original one?) of :other's should have lower weights
+  # than any of self's Translations.
+  #
+  # @param tra_other [Translation] The Translation that is probably currently associated to another
+  #    record but will be assigned to self; this method returns a safe (=unique) weight to set to it,
+  #    before it assigned to self.
   # @param priority: [Symbol] :highest, :high (Def), :low, :lowest in assigning a new weight
   #    :highest and :lowest guarantee the new weight will be lowest/highest, respectively
-  #    (NOTE: when +priority+ is high, +weight+ is low!  So it is reversed).
+  #    (NOTE: when +priority+ is high, +weight+ is low!  So it is reversed) in {#translations}.
   #    :high and :low means unless there is a collision in weight, you leave it;
   #    otherwise the returned weight is shifted slightly.
-  # @param to_destroy: [Array] For returning. Existing Translations with weight=0 if (:priority is :highest or :high). They are set.
+  # @param to_destroy: [Array] For returning. The elements are the existing Translations with weight=0
+  #    if (:priority is :highest or :high).  When this is non-nil, the returned value must be 0.
+  #    Basically, they will need to be destroyed before setting the returned weight of 0.
   # @return [Float] unique weight
   def get_unique_weight(tra_other, priority: :high, to_destroy: [])
     weight_def = Role::DEF_WEIGHT.values.max
     weight_t = tra_other.weight 
 
     # Maybe there is a collision in weight.
-    sorted_tras = Translation.sort(translations.where(langcode: tra_other.langcode), consider_is_orig: false)
+    sorted_tras = Translation.sort(translations.where(langcode: tra_other.langcode).where.not(id: tra_other.id), consider_is_orig: false)
 
     if (:highest == priority || (:high == priority && weight_t && weight_t <= 0)) && (origs = sorted_tras.where('weight <= 0')).exists?
       to_destroy.concat origs
@@ -3693,7 +3819,7 @@ class BaseWithTranslation < ApplicationRecord
 
   # @param priorities [Hash<Symbol, Symbol>] an element is like :birthday => :other. Usually :default is recommended.
   # @param kwd [Symbol] Keyword, e.g., :prefecture_place
-  # @return [Symbol] either :self or :other
+  # @return [Symbol] either :self or :other / Parameter of which is prioritized to merge into self
   # @raise [RuntimeError] if neither kwd nor :default is defined for priorities
   def _priority2pass(priorities, kwd)
     retsym = (priorities[kwd] || priorities[:default])
@@ -3713,6 +3839,11 @@ class BaseWithTranslation < ApplicationRecord
   # for processing self or +{:default => :self|:other}+.  Otherwise,
   # BaseWithTranslation::MissingRequirementError is raised
   #
+  # The +priorities+ hash expresses which parameters between self and other are prioritized.
+  # For example, if Artists' Sexes are (male, female) for (self, other), and 
+  # if +priorities[:sex]==:other+ or if +priorities[:default]==:other+ and no :sex is defined (or nil),
+  # +self.sex+ will become +female+.
+  #
   # originally existed in app/controllers/base_merges_controller.rb
   #
   # == Returned Hash
@@ -3720,7 +3851,8 @@ class BaseWithTranslation < ApplicationRecord
   #   trans:  Hash{remained: [Translation...], destroy: [Translation...], original: Translation}
   #     n.b., remained Array includes the original-Translation, too. Keys :tr_html and :tr_orig_html will be added.
   #   engage: Hash{remained: [Engage...],      destroy: [Engage...]}
-  #   harami1129: Hash{remained: [Harami1129...], destroy: []}  # Harami1129 would be never destroyed.
+  #   harami1129: Hash{remained: [Harami1129...], destroy: []}  # Harami1129 would be never destroyed. Related through Engage
+  #   harami1129_review: Hash{remained: [], destroy: []}
   #   bday3s: Hash{birth_year: Integer, birth_month: Integer, birth_day: Integer}
   #     n.b., Missing Birthday part in one is ALWAYS supplemented by the other if there is any.
   #     e.g., (Y,M,S)=(1999,nil,3)&(2000,5,nil) => (1999,5,3) or (2000,5,3)
@@ -3729,6 +3861,9 @@ class BaseWithTranslation < ApplicationRecord
   #   year: Integer
   #   sex: Sex
   #   harami_vid_music_assocs: Hash{remained: [HaramiVidMusicAssocs...], destroy: [HaramiVidMusicAssocs...], n_destroyed: Integer}
+  #   artist_music_play: Hash{changed_in_remained: [ArtistMusicPlays...], remained: [ArtistMusicPlays...], destroy: [ArtistMusicPlays...], n_destroyed: Integer}
+  #   channel_owner: Hash{remained: [ChannelOwner...], destroy: [ChannelOwner...], n_destroyed: Integer}
+  #   channel: Hash{remained: [Channel...], destroy: [Channel...], n_destroyed: Integer}
   #   anchorings: Hash{remained: [Anchoring...], destroy: [Anchoring...], n_destroyed: Integer}
   #   note: String
   #   memo_editor: String
@@ -3753,13 +3888,15 @@ class BaseWithTranslation < ApplicationRecord
   #    end
   #
   # @param other [BaseWithTranslation] of the same class
-  # @param priorities: [Hash<Symbol => Symbol>] e.g., :year => :other (or :self). A key may be :default .
+  # @param priorities: [Hash<Symbol => Symbol>] e.g., :year => :other (or :self). The key is
+  #   the attribute or associated model, and the value is either :year or :self.
+  #   A special key is +:default+.
   #   Other than standard attribute/method names, including :engages, :harami_vid_music_assocs, and :note,
   #   the folloing special keys are accepted:
   #    :lang_orig, :lang_trans, :prefecture_place, :birthday
   # @param save_destroy: [Boolean] If true (Def), self is saved and the other is destroyed. If one fails, the entire transaction rollbacks.
   # @param user: [ApplicationRecord, NilClass] current_user
-  # @return [Hash<Object, Hash<Array, Integer>>] See above.
+  # @return [Hash<Object, Hash<Array, Integer>>] See above. .with_indifferent_access
   # @raise [BaseWithTranslation::MissingRequirementError] if +priorities+ is incomplete (see above).
   def merge_other(other, priorities: {}, save_destroy: true, user: nil)
     hsmodel = {engage: nil, harami1129: nil}
@@ -3795,7 +3932,7 @@ class BaseWithTranslation < ApplicationRecord
         hsmodel = merge_save_destroy(other, hsmodel)
       end
     end
-    _uniq_hsmodel!(hsmodel)
+    _uniq_hsmodel!(hsmodel).with_indifferent_access
   end # def merge_other(other, priorities: {}, save_destroy: true)
 
   # run unique for child/grand-child components
@@ -3817,6 +3954,34 @@ class BaseWithTranslation < ApplicationRecord
     hsmodel
   end
   private :_uniq_hsmodel!
+
+  # For validation etc.
+  #
+  # @return [ActiveRecord::Relation<Translation>]
+  def active_translations
+    translations.reject(&:marked_for_destruction?)
+  end
+
+  # true if any of {#translations} can be updated
+  #
+  # Child of this class may overwrite this method, e.g., {ChannelOwner}
+  # some of instances of which have synchronized Translations with their parent Artist
+  def translation_updatable_at_all?
+    true
+  end
+
+  # Can the user add a {Translation}?
+  #
+  def translation_creatable?(locale, user:)
+    tra = translations.build(langcode: locale)
+    begin
+      return tra.creatable_other?(user: user)
+    ensure
+      translations.destroy(tra)
+    end
+  end
+
+  ################################# merge/merging-related #############################
 
   # Save&Destroy for #{merge_other}
   #
@@ -3865,7 +4030,7 @@ class BaseWithTranslation < ApplicationRecord
     hsmodel[:trans][:destroy] = []  # reset
 
     other.reload
-    other.destroy
+    other.destroy!
     hsmodel[:other] = other
     hsmodel[:destroyed] << other
     hsmodel
@@ -3882,7 +4047,7 @@ class BaseWithTranslation < ApplicationRecord
   #
   # @param other [BaseWithTranslation] of the same class as self
   # @param metho [Symbol]
-  # @param priority: [Symbol] (:self(Def)|:other)
+  # @param priority: [Symbol] (:self(Def)|:other) Parameter of which is prioritized to merge into self
   # @return [Object] the updated value (like Place)
   def _merge_overwrite(other, metho, priority: :self)
     attrstr = ((metho == :prefecture_place) ? :place : metho).to_s
@@ -3929,7 +4094,7 @@ class BaseWithTranslation < ApplicationRecord
   # e.g., (Y,M,S)=(1999,nil,3)&(2000,5,nil) => (1999,5,3) or (2000,5,3)
   #
   # @param other [BaseWithTranslation] of the same class as self
-  # @param priority: [Symbol] (:self(Def)|:other)
+  # @param priority: [Symbol] (:self(Def)|:other) Parameter of which is prioritized to merge into self
   # @return [Hash<Integer>] {birth_year: 1980, ...}
   def _merge_birthday(other, priority: :self)
     return if !respond_to?(:birth_year)
@@ -3958,7 +4123,7 @@ class BaseWithTranslation < ApplicationRecord
   # may be used instead of this method.
   #
   # @param other [BaseWithTranslation] of the same class as self
-  # @param priority: [Symbol] (:self(Def)|:other)
+  # @param priority: [Symbol] (:self(Def)|:other) Parameter of which is prioritized to merge into self
   # @param att: [String, Symbol] :note (Def) or :memo_editor
   # @param target: [ActiveRecord] for which notes (or else) are merged (Def: self)
   # @return [String]
@@ -3997,7 +4162,7 @@ class BaseWithTranslation < ApplicationRecord
   # If there are multiple is_orig=true, those except for the true one are set false.
   #
   # @param other [BaseWithTranslation] of the same class as self
-  # @param priority: [Symbol] (:self(Def)|:other)
+  # @param priority: [Symbol] (:self(Def)|:other) Parameter of which is prioritized to merge into self
   # @param orig_valid: [Symbol] If false (Def: true), is_orig in any of them is nil.
   # @return [Hash<Array<Translation>>, NilClass] nil only if it is not Music/Artist; else {remain: [Translation...], destroy: [...]}
   def _merge_lang_orig(other, priority: :self, orig_valid: true)
@@ -4007,18 +4172,15 @@ class BaseWithTranslation < ApplicationRecord
     case transs.size
     when 0   # None has is_orig=true
       if orig_valid
-        reset_orig_langcode_to_nil(to_value: false)
-        other.reset_orig_langcode_to_nil(to_value: false)
+        self.orig_locale = nil
+        reset_orig_langcode_to_nil
+        other.reset_orig_langcode_to_nil
       end
       return {remained: [], destroy: []}
     when 1   # Only one of them has is_orig=true
       tra_orig = transs.first
       raise "Contact the code developer (translatable mismatch)." if tra_orig.translatable.class != self.class
-      if tra_orig.translatable == self  # self.orig_translation is the only one with is_orig==true
-        _reset_orig_langcode_self_other(other, tra_orig, priority: :self)
-        return {remained: [tra_orig], destroy: []}
-      end
-      return _reset_reassign_orig_langcode_self_other(other, tra_orig, priority: :other)
+      return _reset_reassign_orig_langcode_self_other(other, tra_orig)  # => Hash; orig_locale is set
     when 2
       # skip
     else
@@ -4028,37 +4190,26 @@ class BaseWithTranslation < ApplicationRecord
     # Both have orig_translation
     raise "Contact the code developer (translatable_type mismatch: #{transs.map(&:translatable_type).inspect})." if transs.map(&:translatable_type).uniq.size > 1
 
-    (tra_orig, tra_other) = transs  # tra_orig is the new original Translation (it may belong to self or other!)
+    (tra_orig, tra2demote) = transs  # tra_orig is the new original Translation (it may belong to self or other!)
 
     if transs.map(&:langcode).uniq.size != 1 # langcode-s are different
-      if tra_orig.translatable == self
-        # Basically does nothing but adjusts is_orig .
-        _reset_orig_langcode_self_other(other, tra_orig, priority: :self)
-        return {remained: [tra_orig], destroy: []}
-      else
-        # Condition: Both have orig && langcode-s differ && priority==:other
-        return _reset_reassign_orig_langcode_self_other(other, tra_orig, priority: :other)
-      end
+      return _reset_reassign_orig_langcode_self_other(other, tra_orig)  # => Hash; orig_locale is set
     end
 
     # langcode-s are common
     # alt_title can be copied if existent. note-s are merged.
-    if tra_orig.alt_title.blank? && tra_other.title.present? && tra_other.alt_title.present? 
-      tra_orig.alt_title = tra_other.alt_title
-      _append_note!(tra_orig, tra_other)
-      tra_orig.created_at = _older_created_at(tra_orig, tra_other)
-tra_orig.save!
+    if tra_orig.alt_title.blank? && tra2demote.title.present? && tra2demote.alt_title.present? 
+      tra_orig.alt_title = tra2demote.alt_title
     end
+    _append_note!(tra_orig, tra2demote)
+    tra_orig.created_at = _older_created_at(tra_orig, tra2demote) if tra_orig.changed?
+tra_orig.save!  # should be fine because nothing has been altered so far.
 
-    tra_other.destroy  # has to be destroyed before the new one is assigned.
-    if tra_orig.translatable == self
-      _reset_orig_langcode_self_other(other, tra_orig, priority: :self)
-      return {remained: [tra_orig], destroy: [tra_other]}
-    else
-      reths = _reset_reassign_orig_langcode_self_other(other, tra_orig, priority: :other)
-      reths[:destroy].push tra_other
-      return reths
-    end
+    tra2demote.destroy  # has to be destroyed before the new one is assigned to avoid potential unique-constraint violation.  Note tra2demote may or may not belong to self.
+
+    reths = _reset_reassign_orig_langcode_self_other(other, tra_orig)  # => Hash; orig_locale is set
+    reths[:destroy].push tra2demote
+    reths
   end
   private :_merge_lang_orig
 
@@ -4071,10 +4222,10 @@ tra_orig.save!
   # unifying their parent into one {BaseWithTranslation}.
   #
   # This ignores any Translation with is_orig=true. So,
-  # {#_merge_lang_orig} should be called before this method, though technically not mandatory.
+  # {#_merge_lang_orig} should be called before this method, though technically not enforced.
   #
   # @param other [BaseWithTranslation] of the same class as self
-  # @param priority: [Symbol] (:self(Def)|:other)
+  # @param priority: [Symbol] (:self(Def)|:other) Parameter of which is prioritized to merge into self
   # @param orig_valid: [Symbol] If false, is_orig in any of them is nil.
   # @return [Hash<Array<Translation>>, NilClass] nil only if it is not Music/Artist; else {remained: [Translation...], destroy: [...]}
   def _merge_lang_trans(other, priority: :self, orig_valid: true)
@@ -4091,12 +4242,11 @@ tra_orig.save!
           hscand = {remained: [], destroy: []}
           hscand[:remained] << etra if Translation.exists?(etra.id)  # Only if it is present; the Translation may have already been destroyed (in order to add a conflicting one from other). Note "etra.present?" is affected by cache and so is unsuitable.
         else
-          if (hscand = _attempt_add_other_trans(etra, prio: prio, other_comes_first: (:other == priority)))
-            # skip
-          else
-            hscand = nil
+          opts = { prio: prio, other_comes_first: (:other == priority) }
+          hscand = _attempt_add_other_trans(etra, **opts)
+          if !hscand
             translations.where(langcode: etra.langcode).where.not(is_orig: true).each do |etra_self|
-              hscand = _attempt_add_other_trans(etra, tra_self: etra_self, prio: prio, other_comes_first: (:other == priority))
+              hscand = _attempt_add_other_trans(etra, tra_self: etra_self, **opts)
               break if hscand
             end
           end
@@ -4134,7 +4284,7 @@ tra_orig.save!
     hsret = nil
     ActiveRecord::Base.transaction(requires_new: true) do  # "requires_new" option necessary for testing; otherwise testing would not properly handle rollbacks. Also, don't return from inside the transaction as it would rollback!
       tra_self.destroy if tra_self && other_comes_first
-      hsret = _reassign_translation(tra_other, priority: prio, force: false)
+      hsret = _reassign_translation(tra_other, priority: prio, force: false) # opts: merged_to
       if !other_comes_first
         # Skip  # Don't return from inside Transactino.
       elsif !hsret[:destroy].include? tra_other
@@ -4153,9 +4303,12 @@ tra_orig.save!
 
   # Merge Translations from other to self (both original-language and others)
   #
+  # This works only on the translations of the two main BaseWithTranslation-s and
+  # NOT those of any associated ones, like ChannelOwner or grandchild Channel.
+  #
   # @param other [BaseWithTranslation] of the same class as self
-  # @param priority_orig: [Symbol] (:self(Def)|:other)
-  # @param priority_others: [Symbol] (:self(Def)|:other)
+  # @param priority_orig: [Symbol] (:self(Def)|:other) Parameter of which is prioritized to merge into self
+  # @param priority_others: [Symbol] (:self(Def)|:other) Parameters of which are prioritized to merge into self
   # @param orig_valid: [Symbol] If false, is_orig in any of them is nil.
   # @return [Hash<Array<Translation>>, NilClass] nil only if it is not Music/Artist; else {remained: [Translation...], destroy: [...], original: Translation}
   #    Also, it contains the key :original with the value of the original Translation if any.
@@ -4221,7 +4374,7 @@ tra_orig.save!
   # the related Harami1129-s can be easily retrieved from the remaining Engage-s, should you wish).
   #
   # @param other [BaseWithTranslation] of the same class as self. This method makes sense only for Music/Artist (not Harami1129)
-  # @param priority: [Symbol] (:self(Def)|:other)
+  # @param priority: [Symbol] (:self(Def)|:other) Parameter of which is prioritized to merge into self
   # @return [Hash<Hash<Array<Engage>>>, NilClass] nil only if it is not Music/Artist; else {engage: {remained: [Engage...], destroy: [...]}, harami1129: {...}}
   def _merge_engages(other, priority: :self)
     return if !respond_to?(:engages)
@@ -4329,7 +4482,7 @@ tra_orig.save!
   #       2. Now reduced to case 3; follow it for Cow(L)
   #
   # @param other [BaseWithTranslation] of the same class as self. For this method, it makes sense only for Artist
-  # @param priority: [Symbol] (:self(Def)|:other)
+  # @param priority: [Symbol] (:self(Def)|:other) Parameter of which is prioritized to merge into self
   # @return [Hash<Array<ArtistMusicPlay>>, NilClass] nil only if self is not Artist; else {channel_owner: {remained: [ChannelOwner], destroy: [ChannelOwner]}, channel: {...}, harami_vid: {...}} (up to 1 element each for channel_owner and potentially many for the others; no destroy for harami_vid)
   def _merge_channel_owners(other, priority: :self)
     return if !respond_to?(:channel_owner)  # because it is a singular, Artist is the only relevant one?
@@ -4469,8 +4622,7 @@ tra_orig.save!
   # @param allcols [Array<String>] All unique column names to identify the other model
   # @param mykeyid [String] "*_id" for the model so that {mykey_id => other.id} would characterize the DB query.
   # @param cols [Array<String>] columns to possibly update, loading values from other model
-  # @param cols, priority: :self)
-  # @param cols, priority: :self)
+  # @param priority: [Symbol] (:self(Def)|:other) Parameter of which is prioritized to merge into self
   # @return [ActiveRecord] of the given model
   def _adjust_prms_according_priority(model, other, allcols, mykeyid, cols, priority: :self)
     hstmp = model.attributes.slice(*allcols)
@@ -4505,7 +4657,7 @@ tra_orig.save!
   #   end
   #
   # @param other [BaseWithTranslation] of the same class as self. This method makes sense only for Music and HaramiVid
-  # @param priority: [Symbol] (:self(Def)|:other)
+  # @param priority: [Symbol] (:self(Def)|:other) Parameter of which is prioritized to merge into self
   # @return [Hash<Array<ArtistMusicPlay>>, NilClass] nil only if it is not Artist/Music; else {remained: [ArtistMusicPlay...], destroy: [...]}
   def _merge_artist_music_plays(other, priority: :self)
     return if !respond_to?(:artist_music_plays)
@@ -4573,7 +4725,7 @@ tra_orig.save!
   #   end
   #
   # @param other [BaseWithTranslation] of the same class as self. This method makes sense only for Music and HaramiVid
-  # @param priority: [Symbol] (:self(Def)|:other)
+  # @param priority: [Symbol] (:self(Def)|:other) Parameter of which is prioritized to merge into self
   # @return [Hash<Array<HaramiVidMusicAssoc>>, NilClass] nil only if it is not Music/HaramiVid; else {remained: [HaramiVidMusicAssoc...], destroy: [...]}
   def _merge_harami_vid_music_assocs(other, priority: :self)
     return if !respond_to?(:harami_vid_music_assocs)
@@ -4622,7 +4774,7 @@ tra_orig.save!
   # be cascade-destroyed once the parent anchorable (namely, +other+) is destroyed.
   #
   # @param other [BaseWithTranslation] of the same class as self. This method makes sense only for anchorable (maybe Url in the future but not now)
-  # @param priority: [Symbol] (:self(Def)|:other)
+  # @param priority: [Symbol] (:self(Def)|:other) Parameter of which is prioritized to merge into self
   # @return [Hash<Array<Anchoring>>, NilClass] nil if self does not have anchorings method (never happen so far)
   def _merge_anchorings(other, priority: :self)
     return if !respond_to?(:anchorings)
@@ -4733,7 +4885,7 @@ tra_orig.save!
   #    _prioritized_models(other, priority, __method__)
   #
   # @param other [BaseWithTranslation] of the same class as self
-  # @param priority [Symbol] (:self(Def)|:other)
+  # @param priority [Symbol] (:self(Def)|:other) Parameter of which is prioritized to merge into self
   # @param caller_method [String] Caller's name for error output
   # @return [Array<BaseWithTranslation>] [self, other] or [other, self]
   def _prioritized_models(other, priority, caller_method)
@@ -4742,38 +4894,58 @@ tra_orig.save!
     return ((:other == priority) ? [other, self] : [self, other])
   end
 
-
-  # Assign a Translation to self, which belonged to another.
+  # Set {Translation.is_orig} either nil or false according to {#orig_locale}
   #
-  # @param tra_other [Translation]
+  # This assumes the given Translation will never have is_orig=true (assuming those with is_orig=true should have been set elsewhere)
+  #
+  # @param translation [Translation]
+  # @param locale2set: [String] Def: self.orig_locale
+  def nullify_or_falsify_is_orig(translation, locale2set: orig_locale)
+    translation.is_orig = 
+      case locale2set
+      when nil
+        nil
+      else
+        false 
+      end
+  end
+
+  # Assign and save a Translation to self, which belonged to another.
+  #
+  # @param tra_other [Translation] Translation associated to other (though best one may to self)
   # @param priority: [Symbol] :highest, :high (Def), :low, :lowest in assigning a new weight
   #          :highest and :lowest guarantee the new weight will be highest/lowest, respectively.
   #          :high and :low means unless there is a collision in weight, you leave it.
   # @param force: [Symbol] if true (Def: false), the given tra_other has a higher priority than others (like is_orig==true).
   #     Else, if the first attempt to save tra_other fails, tra_other is destroyed.
-  # @return [Hash<Array<Engage>>, NilClass] nil only if it is not Music/Artist; else {remain: [Engage...], destroy: [...]}
+  # @param orig_locale_refs: [Hash<Symbol => String>] e.g., {orig: "ja", others: "en"}
+  # @return [Hash<Array<Engage>>, NilClass] nil only if it is not Music/Artist; else {remained: [Translation...], destroy: [...]}
   def _reassign_translation(tra_other, priority: :high, force: false)
     destroyed_first = []
-    tra_other.translatable_id = self.id
+    tra_other.translatable_id = self.id  # This may be already set.
     tra_other.weight = get_unique_weight(tra_other, priority: priority, to_destroy: destroyed_first)
 
-    # destroyed_first was set above only when they have to be destroyed before self.save!
+    nullify_or_falsify_is_orig(tra_other) if !tra_other.is_orig  # if is_orig is true, it stays.
+
+    # destroyed_first was set above only when they have to be destroyed before self.save! (like duplicate weight=0)
     destroyed_first.each do |et|
       et.destroy
     end
 
     if tra_other.valid?
-      tra_other.save!  # may raise an Error, if validation misses a DB-level validation and if it fails at DB.
+      tra_other.save!  # may raise an Error, if it fails at DB level for the cause which Rails validation misses
       return {remained: [tra_other], destroy: destroyed_first}
     end
 
     if !force
-      # tra_other.destroy  # Destroy tra_other  --- it will be cascade-destroyed.
+      logger.warn "(#{File.basename __FILE__}:#{__method__}) translation validation failure during merging due to similar ones: trans=#{tra_other.inspect} self.translations=#{translations.inspect}"
       return {remained: [], destroy: destroyed_first+[tra_other]}
     end
 
+    #### FROM HERE: force mode (which should not be needed, but is used at the moment...)
+
     # Now, Translation validation has failed maybe because, such as, a (title, alt_title) combination already exists.
-    logger.info "(#{__FILE__}:#{__method__}) Handling a rare case of translaiton validation failure during merging due to similar ones: other-other=#{tra_other.inspect} self.translations=#{translations.inspect}"
+    logger.info "(#{__FILE__}:#{__method__}) Handling a rare case of translation validation failure during merging due to similar ones: other-other=#{tra_other.inspect} self.translations=#{translations.inspect}"
 
     destroyed = []
     translations.where(langcode: tra_other.langcode).each do |etra|
@@ -4831,6 +5003,7 @@ tra_orig.save!
 
   # before_validation callback/hook
   def orig_locale_consistent_with_translations
+    return true if skip_orig_locale_validation
     return true if orig_locale.blank?
     tras =
       if translations.present?
@@ -4950,6 +5123,30 @@ tra_orig.save!
   end
   private :_prepare_record_not_saved_message
 
+  # Callback after_save
+  #
+  # Sets {Translation#is_orig} according to {#orig_locale}
+  # This callback fires regardless of {#orig_locale.changed?} (to correct potential inconsistencies in the existing DB)
+  #
+  # See {Translation#singularize_is_orig}
+  #
+  # @note
+  #   if self.skip_singularize_is_orig_callback is true (ChannelOwner only?), this is skipped.
+  def singularize_is_orig
+    return if respond_to?(:skip_singularize_is_orig_callback) && skip_singularize_is_orig_callback
+    return if !translation_updatable_at_all?
+
+    # NOTE: once is_orig in one Translation has (attempted to) changed, {Translation#singularize_is_orig} will fire to modify {Translation#siblings}
+    if orig_locale
+      # This will always run validations and callbacks of Translation, but it does not *touch* it if is_orig is already true.
+      # To avoid a potetial crash (though should never happen) when its is_orig does not change, "udpate" is employed as opposed to "#update!"
+      translations.select{ orig_locale == _1.langcode }
+                  .sort_by{ |t| [t.weight ? 0 : 1, t.weight || 0] }
+                  .first&.update(is_orig: true)
+    else
+      translations.where.not(is_orig: nil).first&.update!(is_orig: nil)
+    end
+  end
 
   # Translation-related validation
   #
@@ -5282,11 +5479,11 @@ class << BaseWithTranslation
   #    The original idea of {ModuleApplicationBase#create_basic!} is that it bypasses save!
   #    but this method is a simple wrapper of {#initialize_basic}
   #
-  # @param translation: [Translation, Nilclass] if given, this (unsaved) Translation is used instead
-  #    on the condition of none of the translation-related parameters like :title or :alt_title
-  #    (defined in Translation::TRANSLATION_PARAM_KEYS) being specified.
-  #    You can give an existing Translation as long as it belongs to a different parent class
-  #    (if it belongs to the same class, it is likely to raise a unique-violation-related Exception).
+  # @param translation: [Translation, Nilclass] if given, the parameters of this (existing or unsaved) Translation
+  #    is used instead on the condition of none of the translation-related parameters like :title or :alt_title
+  #    (defined in Translation::TRANSLATION_PARAM_KEYS) being directly specified.
+  #    You can give an existing Translation; only some (most) of the column values are used anyway.
+  #    Obviously, you should be careful with unique constraints, though.
   def create_basic!(*args, translation: nil, **kwds, &blok)
     record = initialize_basic(*args, translation: translation, **kwds, &blok)
     record.save!

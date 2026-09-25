@@ -1,7 +1,7 @@
-<%# local vars: model, (optional) model4ability (Model or Boolean), show_weight(Boolean (Def: true)), show_timestamp(Boolean) %>
+<%# local vars: model, (optional) model4ability (Model or Boolean), show_weight(Symbol or Boolean(:editor(Def)|:moderator) or false), show_timestamp(Boolean) %>
 <%#   NOTE: model4ability may be a model instance or model class or Boolean, used for an Ability check. In default (if not given), model is used.  If TrueClass, the boolean value is used, skipping the ability check, where the value is interpreted as the permission to display Editor's Note. %>
 <%#   NOTE: If the model does not have "memo_editor" it is simply not displayed. %>
-<%#   NOTE: If the model has a weight, unless show_weight is given false, it is displayed as editor-only. %>
+<%#   NOTE: If the model has a weight, unless show_weight is given false, it is displayed according to "show_weight"-only. %>
 <%#   NOTE: This also shows create/update_user column if the model has them. %>
 <%#   NOTE: If show_timestamp (Boolean) is not given, the same check for model4ability is applied. %>
 
@@ -15,14 +15,18 @@
   <% show_timestamp = show_editor_note %>
 <% end %>
 <% if !defined?(show_weight) %>
-  <% show_weight = true %>
+  <% show_weight = :editor %>
 <% end %>
 
-<% if show_weight && show_editor_note && model.has_attribute?(:weight) %>
-  <div class="editor_only weight">
+<% if show_weight && !ApplicationHelper::PERMITTED_CSS_ONLY_ROLES.include?(show_weight)
+     show_weight = :editor
+   end %><%# show_weight can be a Boolean true %>
+
+<% if show_weight %>
+ <%= editor_only_safe_html(:pass, method: (show_editor_note && model.has_attribute?(:weight)), only: show_weight, class: ["weight"]) do %>
   <dt class="<%=   Consts::Csses::Shows::ITEM_WEIGHT %>">Weight:</dt>
     <dd class="<%= Consts::Csses::Shows::ITEM_WEIGHT %>"><%= model.weight %></dd>
-  </div>
+ <% end %>
 <% end %>
 
   <div> <%# Once dt is inside a div, all other dt-s must be inside a div, apparently. %>

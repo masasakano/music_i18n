@@ -90,14 +90,26 @@ class ArtistTest < ActiveSupport::TestCase
   test "create with translation" do
     tit = 'a random new music'
     #assert_raises(ActiveRecord::RecordInvalid, ActiveRecord::NotNullViolation){ # the latter for DB level.
+    hstra = {title: tit, langcode: 'en'}
     assert_raises(ActiveRecord::RecordInvalid, "Sex must exist"){
-      Artist.create_with_orig_translation!({}, translation: {title: tit, langcode: 'en'})}
-    bwt_new = Artist.create_with_orig_translation!({sex: Sex.first}, translation: {title: tit, langcode: 'en'})
-    assert_equal tit, bwt_new.title
+      Artist.create_with_orig_translation!({}, translation: hstra)}
+    sex = Sex[1]
+    bwt1 = Artist.create_with_orig_translation!({sex: sex}, translation: hstra)
+    assert_equal tit, bwt1.title
 
-    title_existing = Translation.where(translatable_type: "Artist", langcode: "en", is_orig: true).first.title_or_alt
-    bwt_new = Artist.create_with_orig_translation!({sex: Sex.first}, translation: {title: title_existing, langcode: 'en'})
-    assert_equal title_existing, bwt_new.title, "Artist can have an existing title, as long as the Place differs, but..."
+    bwt2 = nil
+    assert_raises(ActiveRecord::RecordInvalid){
+      bwt2 = Artist.create_with_orig_translation!({sex: sex}, translation: hstra) }
+    assert_raises(ActiveRecord::RecordInvalid, "should fail because bwt1's place is unknown, encompassing every place"){
+      bwt2 = Artist.create_with_orig_translation!({sex: sex, place: places(:tocho)}, translation: hstra) }
+
+    bwt1.update!(place: places(:unknown_place_tokyo_japan))
+    assert_raises(ActiveRecord::RecordInvalid, "should fail because bwt1's place is unknown in Tokyo, encompassing Tocho"){
+      bwt2 = Artist.create_with_orig_translation!({sex: sex, place: places(:tocho)}, translation: hstra) }
+
+    bwt1.update!(place: places(:unknown_place_kagawa_japan))
+    bwt2 = Artist.create_with_orig_translation!({sex: sex, place: places(:tocho)}, translation: hstra)  # Kagawa's unknown Place differs from Tocho (in Tokyo)
+    assert_equal tit, bwt2.title, "Artist can have an existing title, as long as the Place SIGNIFICANTLY differs, but..."
   end
 
   test "custom unique constraints" do
@@ -114,13 +126,18 @@ class ArtistTest < ActiveSupport::TestCase
     assert     art1.valid?
 
     hs_tmpl = %i(place birth_year birth_month birth_day).map{|i| [i, art1.send(i)]}.to_h
-    art2 = Artist.new(sex: Sex[2], **hs_tmpl)  # Only Sex differs.
+    sex = Sex[2]
+    refute sex.not_disagree?(art1.sex)
+    art2 = Artist.new(sex: sex, **hs_tmpl)  # Only Sex differs significantly.
     assert_not_equal art1.sex, art2.sex
     assert     art2.valid?
 
     art2.unsaved_translations << art1.translations[0].dup
     art2.unsaved_translations[0].translatable_id = nil
-    assert_not art2.valid?  # Different Sexes do not matter; unsaved_translations are inconsistent.
+    assert     art2.valid?  # Different Sexes mean different Artists.
+
+    art2.sex = art1.sex
+    refute     art2.valid?  # Same Sexes, so identical => invalid
 
     assert_equal Place.unknown(country: Country['JPN']), art1.place  # Sanity check of Fixture
     art2.place = places(:unknown_place_tokyo_japan)
@@ -150,6 +167,14 @@ class ArtistTest < ActiveSupport::TestCase
     assert_nothing_raised{
       art4 = Artist.create_basic!(**(hsin.merge({birth_year: 1999, note: "art4"}))) }
     refute art4.update(birth_year: art3.birth_year)  # should fail as only the difference is "note"
+
+    tran = art4.best_translation
+    assert tran.update(langcode: "fr")  # now, birth_year and langcode differ from art3, but with the identical title
+    art4.translations.reset
+    art4.birth_year = art3.birth_year   # now, only langcode differs from art3
+    art4.valid?
+    assert art4.save, art4.errors.inspect  # should succeed because langcode still differs for the identical title
+    refute tran.update(langcode: "en"), "should fail, but..."
   end
 
   test "callback before_validation add_place_for_validation" do
@@ -361,10 +386,22 @@ class ArtistTest < ActiveSupport::TestCase
     art.reload
     assert art.best_translation.present?
 
+    # tra = translations(:artist_kohmi_en).dup  # This succeeds
     tra = Artist.first.best_translation.dup
+
+    sex = Sex[1]
+    place = places(:tocho)
+    tit = "test-#{__method__}-xy-3"
+    tra = Translation.new(title: tit, langcode: "en", is_orig: true)
+    hs_common = {sex: sex, place: place}
+    art3 = Artist.create_basic!(translation: tra, birth_year: nil, birth_month: 12, birth_day: 7, **hs_common)  # Identical Translation for an existing Artist with a different birth_year is accepted.
+    #print "DEBUG: tra="; p tra
+    art4 = Artist.initialize_basic(translation: tra, birth_year: 1907, **hs_common)  # Identical Translation for an existing Artist with a different birth_year is accepted.
+    refute art4.valid?  # Because if either of birth_year/month/day is nil, it is regarded as a wildcard.
+
     assert_nothing_raised{
-      art = Artist.create_basic!(translation: tra, birth_year: 1907)}  # Identical Translation for an existing Artist with a different birth_year is accepted.
-    assert_equal 1907, art.birth_year
+      art = Artist.create_basic!(translation: tra, birth_month: 5, **hs_common)}  # Identical Translation for an existing Artist with a different birth_year is accepted.
+    assert_equal 5, art.birth_month, "sanity-check"
   end
 end
 

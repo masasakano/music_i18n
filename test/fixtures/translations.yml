@@ -2,23 +2,24 @@
 #
 # Table name: translations
 #
-#  id                :bigint           not null, primary key
-#  alt_romaji        :text
-#  alt_ruby          :text
-#  alt_title         :text
-#  is_orig           :boolean
-#  langcode          :string           not null
-#  note              :text
-#  romaji            :text
-#  ruby              :text
-#  title             :text
-#  translatable_type :string           not null
-#  weight            :float
-#  created_at        :datetime         not null
-#  updated_at        :datetime         not null
-#  create_user_id    :bigint
-#  translatable_id   :bigint           not null
-#  update_user_id    :bigint
+#  id                  :bigint           not null, primary key
+#  alt_romaji          :text
+#  alt_ruby            :text
+#  alt_title           :text
+#  is_orig             :boolean
+#  langcode            :string           not null
+#  note                :text
+#  romaji              :text
+#  ruby                :text
+#  title               :text
+#  translatable_type   :string           not null
+#  weight              :float
+#  created_at          :datetime         not null
+#  updated_at          :datetime         not null
+#  create_user_id      :bigint
+#  sync_translation_id :bigint
+#  translatable_id     :bigint           not null
+#  update_user_id      :bigint
 #
 # Indexes
 #
@@ -32,6 +33,7 @@
 #  index_translations_on_langcode                               (langcode)
 #  index_translations_on_romaji                                 (romaji)
 #  index_translations_on_ruby                                   (ruby)
+#  index_translations_on_sync_translation_id                    (sync_translation_id) UNIQUE
 #  index_translations_on_title                                  (title)
 #  index_translations_on_translatable_id                        (translatable_id)
 #  index_translations_on_translatable_type                      (translatable_type)
@@ -42,6 +44,7 @@
 # Foreign Keys
 #
 #  fk_rails_...  (create_user_id => users.id)
+#  fk_rails_...  (sync_translation_id => translations.id) ON DELETE => cascade
 #  fk_rails_...  (update_user_id => users.id)
 #
 
@@ -2869,6 +2872,7 @@ channel_owner_haramichan_ja:
   alt_romaji: harami
   is_orig: true
   weight: 0
+  sync_parent: artist_harami_ja
   create_user: user_moderator_translation
   update_user: user_moderator_translation
   note: ChannelOwnerHaramiJa
@@ -2884,6 +2888,7 @@ channel_owner_haramichan_en:
   alt_romaji:  haramichan
   is_orig: false
   weight: 0
+  sync_parent: artist_harami_en
   create_user: user_moderator_translation
   update_user: user_moderator_translation
   note: ChannelOwnerHaramiEn
@@ -2896,6 +2901,7 @@ channel_owner_kohmi_ja:
   romaji: HIROSE Kohmi
   is_orig: true
   weight: 0
+  sync_parent: artist_kohmi_ja
   create_user: user_moderator_translation
   update_user: user_moderator_translation
   note: ChannelOwnerKohmiJa
@@ -2906,6 +2912,7 @@ channel_owner_kohmi_en:
   title: Kohmi Hirose
   is_orig: false
   weight: 0
+  sync_parent: artist_kohmi_en
   create_user: user_moderator_translation
   update_user: user_moderator_translation
   note: ChannelOwnerKohmiEn
@@ -2916,6 +2923,7 @@ channel_owner_saki_kubota_ja:
   title: "久保田早紀"
   is_orig: true
   weight: 0
+  sync_parent: artist_saki_kubota_ja
   create_user_id: user_translator
   update_user_id: user_translator
   note: ChannelOwnerSakiKubotaJa
@@ -2927,6 +2935,7 @@ channel_owner_saki_kubota_en1:
   title: "Saki Kubota"
   is_orig: false
   weight: 100
+  sync_parent: artist_saki_kubota_en1
   create_user_id: user_translator
   update_user_id: user_translator
   note: ChannelOwnerSakiKubotaEn1
@@ -2937,6 +2946,7 @@ channel_owner_saki_kubota_en2:
   title: "Saaaki Kubota"
   is_orig: false
   weight: 101
+  sync_parent: artist_saki_kubota_en2
   create_user_id: user_translator2
   update_user_id: user_translator2
   note: Artist-SakiKubotaEn2-Saaki consistent with Artist

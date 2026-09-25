@@ -21,8 +21,9 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
     @editor_ja       = users(:user_editor_general_ja)     # Same as Harami-editor
 
     str_form_for_nil = ApplicationController.returned_str_from_form(ApplicationController::FORM_TERNARY_UNDEFINED_VALUE)
+    @def_orig_locale = "ja"
     @hs_create_lang = {
-      "langcode"=>"ja",
+      "langcode"=>@def_orig_locale,
       "title"=>"The Tｅst7",
       "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
       #"best_translation_is_orig"=>str_form_for_nil,  # radio-button returns "on" for nil
@@ -89,50 +90,119 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
       post channel_owners_url, params: { channel_owner: hs2pass }
       assert_response :redirect
     end
-    eeih_last = ChannelOwner.last
-    assert_redirected_to channel_owner_url(eeih_last)
-    assert_equal "newno", eeih_last.note
-    refute_equal @hs_create_lang[:title], eeih_last.title
-    assert_equal preprocess_space_zenkaku(@hs_create_lang[:title]), definite_article_to_head(eeih_last.title) # defined in 
+    chow1st = ChannelOwner.last
+    assert_redirected_to channel_owner_url(chow1st)
+    assert_equal "newno", chow1st.note
+    refute_equal @hs_create_lang[:title], chow1st.title
+    assert_equal preprocess_space_zenkaku(@hs_create_lang[:title]), definite_article_to_head(chow1st.title) # defined in 
+    assert_equal @def_orig_locale, chow1st.orig_locale, "sanity-check"  # 
+    tra1 = chow1st.best_translation
+    assert_operator tra1.weight, :<, 10000000
+
+    follow_redirect!
+    flash_regex_assert(/\bsuccessfully created\b/, type: :success, system_test: false)  # defined in test_helper.rb
+    assert_add_translation_button_present?(size: 1)  # only for Japanese; defined in test_helper.rb 
 
     assert_no_difference("ChannelOwner.count") do
       post channel_owners_url, params: { channel_owner: hs2pass.merge({ note: "same translation. should fail", themselves: true }) }
       assert_response :unprocessable_content
     end
 
+    ## Creates another Translation of the original locale/langcode
+    chow = chow1st
+    assert_equal @editor_ja, chow.create_user
+    assert_equal @hs_create_lang["langcode"], chow.orig_locale
+    assert_equal @hs_create_lang["langcode"], chow.best_translation.langcode
+    get new_translation_path(langcode: @hs_create_lang["langcode"], translatable_type: chow.class,  translatable_id: chow.id)
+    assert_response :success, "Gen-Editor should be able to access :new for orig_locale language of an editable :translatable. but..."
+
+    translatable = chow
+    hs2pass = @hs_create_lang.merge({title: '2nd-name-'+__method__.to_s, alt_title: "", is_orig: false, weight: "",
+                                     translatable_type: translatable.class.name, translatable_id: translatable.id, } )
+    assert             hs2pass[:langcode].present?, "sanity-check"  # should be "ja"
+    refute_equal "ko", hs2pass[:langcode], "sanity-check to ensure a different langcode will be passed"
+    assert_no_difference('Translation.count', "this user should not be able to add a Translation in 'ko', but...") do
+      post translations_url, params: { translation: hs2pass.merge({langcode: "ko"}) }
+      assert_response :redirect
+    end
+
+    assert_difference('Translation.count', 1) do
+      post translations_url, params: { translation: hs2pass }
+      assert_response :redirect
+    end
+    # assert_redirected_to translation_url(tra)  # This works at the time of writing, but may change in future
+    follow_redirect!
+    flash_regex_assert(/\bsuccessfully created\b/, type: :success, system_test: false)  # defined in test_helper.rb
+
+    tra2 = Translation.order(:created_at).last  # Translation.last sorts in order of primary ID
+    assert_equal @editor_ja, tra2.create_user, "(For some reason tra.create_user may return nil very oocasionally) tra2=#{tra2.inspect}"
+    assert_equal @editor_ja, tra2.update_user
+    assert_operator tra1.weight, :>, tra2.weight
+
+    get channel_owner_url(@channel_owner)
+    assert_response :success
+    assert_add_translation_button_present?(size: 1)  # only for Japanese; defined in test_helper.rb 
+
     # Test of :artist_with_id
     art_lennon = artists(:artist2) # John Lennon
     art_with_id = BaseWithTranslation.base_with_translation_with_id_str art_lennon
-    # hs = {langcode: "ja", title: "dummy", themselves: true, artist_with_id: art_with_id, note: "a007"}
-    hs = {themselves: true, artist_with_id: art_with_id, note: "a007"}
+    # hs_in = {langcode: "ja", title: "dummy", themselves: true, artist_with_id: art_with_id, note: "a007"}
+    hs_in = {themselves: true, artist_with_id: art_with_id, note: "a007"}
+
+    # inconsistent :themselves and :artist_with_id - Artist is ignored in Controller with a warning issued (at the time of writing)
+    tit = "inconsistent but ignored"+__method__.to_s
     assert_difference("ChannelOwner.count") do
-      post channel_owners_url, params: { channel_owner: hs }
+      post channel_owners_url, params: { channel_owner: hs_in.merge({themselves: false, title: tit, langcode: "en"}) }
+      assert_response :redirect
+    end
+    follow_redirect!
+    flash_regex_assert(/\bArtist is ignored\b/, type: :warning, system_test: false)  # defined in test_helper.rb  # =>  "because they are specified to be not equivalent"
+    mdl = ChannelOwner.last
+    assert_equal tit, mdl.title
+
+    # should successfully create ChannelOwner associated with Artist
+    assert_difference("ChannelOwner.count") do
+      post channel_owners_url, params: { channel_owner: hs_in }
       assert_response :redirect
     end
     mdl_last1 = ChannelOwner.last
     assert_equal "a007", mdl_last1.note, 'sanity check'
-    assert_equal 3, art_lennon.translations.size, 'fixtures check'
+    n_exp_trans = 3
+    assert_equal n_exp_trans, art_lennon.translations.size, 'fixtures check'
     assert_equal %w(en ja), (ks=art_lennon.best_translations.keys).map(&:to_s).sort, 'fixtures check'
+    co_transs = mdl_last1.translations.load
+    assert_equal n_exp_trans, co_transs.map(&:sync_parent).uniq.compact.size
+    assert_equal art_lennon.translations.ids.sort, co_transs.map(&:sync_parent).map(&:id).sort
 
     _verify_assimilate_artist(art_lennon, mdl_last1)
 
-    # 2nd time of :artist_with_id  - fails
+    # 2nd time of identical :artist_with_id  - fails
     assert_no_difference("ChannelOwner.count") do
-      post channel_owners_url, params: { channel_owner: hs }
+      post channel_owners_url, params: { channel_owner: hs_in }
       assert_response :unprocessable_content
     end
 
-    # Change the status of JohnLennon Channel Owner to not-themselves.
-    assert mdl_last1.update(themselves: false)
+    # Change the status of JohnLennon Channel Owner to not-themselves, decoupling from Artist.
+    assert mdl_last1.themselves
+    assert_no_difference("ChannelOwner.count") do
+      patch channel_owner_url(mdl_last1), params: { channel_owner: hs_in.merge({themselves: false, artist_with_id: ""}) }
+      assert_response :redirect #, " Error-message: "+css_select('div#error_explanation').to_s
+      assert_redirected_to channel_owner_url(mdl_last1)
+    end
 
-    # 3rd time of :artist_with_id  - success
+    mdl_last1.reload
+    refute mdl_last1.themselves
+    assert_equal n_exp_trans, art_lennon.translations.size, 'fixtures check'
+
+    # 3rd time of :artist_with_id  - success (because the created one with the Artist has been decoupled)
     assert_difference("ChannelOwner.count") do
-      post channel_owners_url, params: { channel_owner: hs }
+      post channel_owners_url, params: { channel_owner: hs_in }
       assert_response :redirect #, " Error-message: "+css_select('div#error_explanation').to_s
     end
     mdl_last2 = ChannelOwner.last
     assert mdl_last2.themselves
     _verify_assimilate_artist(art_lennon, mdl_last2)
+    refute_empty co_transs.map(&:sync_parent).uniq.compact
 
     assert_equal mdl_last1.title, mdl_last2.title, "titles should be identical."
         
@@ -177,6 +247,7 @@ end
     get channel_owner_url(@channel_owner)
     assert_response :success, "Any editor should be able to read, but..."
     assert_base_with_translation_show_h2  # defined in test_controller_helper.rb
+    sign_out @translator
   end
 
   test "should get edit" do
@@ -275,7 +346,8 @@ end
       hs_ai = {themselves: true, artist_with_id: art_with_id, note: "a007",
                                   artist_id: ((i=@channel_owner2.artist_id) ? i.to_s : ""),}  # artist_id: hidden
       patch channel_owner_url(@channel_owner2), params: { channel_owner: hs_ai }
-      assert_response :redirect, "should not be able to update an entry, but..."
+      # print "DEBUG: error_explanation: "; puts css_select("#error_explanation")
+      assert_response :redirect #, "should not be able to update an entry, but..."
       @channel_owner2.reload
       assert_equal "a007", @channel_owner2.note, 'sanity check'
 

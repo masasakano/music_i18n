@@ -116,42 +116,44 @@ end
       assert_equal @sex.translations.where(langcode: 'it').order(:weight).first.weight, @sex.translations.order("translations.created_at").last.weight
     end
 
-    ## preparation of @music
-    @music = Music.new(year: 1987, place: places(:unknown_place_unknown_prefecture_japan))
-    @music.unsaved_translations << Translation.new(title: "Initial-日本語のtranslation", langcode: "ja", is_orig: true, weight: 3000000)
-    @music.save!
+    ## preparation of music
+    music = Music.new(year: 1987, place: places(:unknown_place_unknown_prefecture_japan), orig_locale: "ja")
+    music.translations << Translation.new(title: "Initial-日本語のtranslation", langcode: "ja", is_orig: true, weight: 3000000)
+    music.save!
 
-    # 1st creation
+    # 1st creation  by Editor: auto-weight => 500=1000/2 (no existing "en" Translation (Existing(ja) 3000000(Orig) is irrelevant))
     assert_difference('Translation.count', 1) do
-      post translations_url, params: { translation: { alt_title: 'abcde', is_orig: false, langcode: 'en', translatable_type: @music.class.name, translatable_id: @music.id, } }
+      post translations_url, params: { translation: { alt_title: 'abcde', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
     end
     tra = Translation.order(:created_at).last  # Translation.last sorts in order of primary ID, which may not work well with fixtures!
     assert_redirected_to translation_url(tra)
 
     assert_equal @translator, tra.create_user, "(For some reason tra.create_user may return nil very oocasionally) tra=#{tra.inspect}"
     assert_equal @translator, tra.update_user
-    assert_equal @translator.roles.first.weight, tra.weight
+    assert_equal @translator.roles.first.weight/2.0, tra.weight
 
-    # 2nd creation by Moderator-Translator
+    # 2nd creation by Moderator-Translator: auto-weight => 50=100/2 (Existing(en): [500])
     sign_out @translator
     @trans_moderator = users(:user_moderator_translation)
     sign_in @trans_moderator
     assert_difference('Translation.count', 1) do
-      post translations_url, params: { translation: { alt_title: 'abcd2', is_orig: false, langcode: 'en', translatable_type: @music.class.name, translatable_id: @music.id, } }
+      post translations_url, params: { translation: { alt_title: 'abcd2', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
     end
     tra2 = Translation.order(:created_at).last
     assert_redirected_to translation_url(tra2)
+    w_moderator = @trans_moderator.roles.first.weight
+    assert_equal w_moderator, tra2.weight*2  # according to Translation#def_weight
 
     assert_equal @trans_moderator, tra2.create_user
     assert_equal @trans_moderator, tra2.update_user
-    assert_equal @trans_moderator.roles.first.weight, tra2.weight, tra2.inspect + @music.translations.pluck(:weight).inspect
+    assert_equal @trans_moderator.roles.first.weight/2.0, tra2.weight, tra2.inspect + music.translations.pluck().inspect
 
-    # 3nd creation by another Translator at the same rank
+    # 3nd creation by another Translator (Editor): auto-weight => 492-500-8 (Existing(en): [500]; & ja-3000000)
     sign_out @trans_moderator
     @translator2 = users(:user_translator2)
     sign_in @translator2
     assert_difference('Translation.count', 1) do
-      post translations_url, params: { translation: { alt_title: 'abcd3', is_orig: false, langcode: 'en', translatable_type: @music.class.name, translatable_id: @music.id, } }
+      post translations_url, params: { translation: { alt_title: 'abcd3', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
     end
     tra3 = Translation.order(:created_at).last
     assert_redirected_to translation_url(tra3)
@@ -161,14 +163,14 @@ end
     assert_operator tra3.weight, '<', tra.weight
     assert_operator tra2.weight, '<', tra3.weight, 'weight should be larger than that by a moderator, but?'
 
-    # 4th creation by the 1st Translator
+    # 4th creation by the original Translator: auto-weight => 100.5=(100+101)/2.0 (Existing(en): [101, 500]; & ja-3000000)
     sign_out @translator2
     sign_in @translator
-    tra3.update!(weight: @trans_moderator.roles.first.weight + 1)
+    tra3.update!(weight: w_moderator + 1)
     tra3.reload
 
     assert_difference('Translation.count', 1, 'failed: response='+@response.body) do
-      post translations_url, params: { translation: { alt_title: 'abcd4', is_orig: false, langcode: 'en', translatable_type: @music.class.name, translatable_id: @music.id, } }
+      post translations_url, params: { translation: { alt_title: 'abcd4', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
     end
     tra4 = Translation.order(:created_at).last
     assert_redirected_to translation_url(tra4)
@@ -176,18 +178,19 @@ end
     assert_equal @translator, tra4.create_user
     assert_equal @translator, tra4.update_user
     assert_operator tra4.weight, '<', tra3.weight
-    assert_operator tra2.weight, '<', tra4.weight, 'weight should be larger than that by a moderator, but?'
-    assert_operator tra2.weight+1, '>', tra4.weight, 'weight should be a float, but?'
+    assert_operator tra2.weight, '<', tra4.weight, 'weight should be larger than that by Translaiton by a moderator, but...'
+    assert_operator w_moderator, '<', tra4.weight, 'weight should be larger than that by a moderator weight, but...'
+    assert_operator w_moderator+1, '>', tra4.weight, 'weight should be the half value between the two thresholds, but...'
 
     # 5th creation attempt with an identical translation should fail.
     assert_difference('Translation.count', 0, 'failed: response='+@response.body) do
-      post translations_url, params: { translation: { alt_title: 'abcd4', is_orig: false, langcode: 'en', translatable_type: @music.class.name, translatable_id: @music.id, } }
+      post translations_url, params: { translation: { alt_title: 'abcd4', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
     end
     assert_response :unprocessable_content
-    assert_includes css_select('div#error_explanation ul li').map(&:text).join(" "), 'must be unique'
+    assert_includes css_select('div#error_explanation ul li').map(&:text).join(" "), "Title has already been taken" # 'must be unique'
       #<h2>2 errors prohibited this translation from being saved:</h2>
       #  <li>Title has already been taken
-      #  <li>Combination of (title, alt_title) must be unique: [nil, &quot;abcd4&quot;]</li>
+      #  <li>Combination of (title, alt_title) must be unique: [nil, &quot;abcd4&quot;]</li>  # => This may be not issued not anymore...?
   end
 
   test "should gracefully fail to create translation with a very long text" do

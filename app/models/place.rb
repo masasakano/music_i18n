@@ -336,8 +336,8 @@ class Place < BaseWithTranslation
   # Else, this returns true when other is nil.
   #
   # @param other [Genre]
-  # @param allow_nil [Boolean] if nil, (nil, male) would return false.
-  # @raise [TypeError] if other is non-nil and not Genre
+  # @param allow_nil [Boolean] the combination of (Tocho, nil) would return true in Default, unless this is false
+  # @raise [TypeError] if other is non-nil and not Place
   def not_disagree?(other, allow_nil: true)
     return allow_nil if other.nil?
     raise TypeError, "other is not a kind of Place (Prefecture/Country): #{other.inspect}" if !((Place === other) || (Prefecture === other) || (Country === other))

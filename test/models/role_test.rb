@@ -395,5 +395,30 @@ class RoleTest < ActiveSupport::TestCase
     assert_raises(ArgumentError, TypeError) { # ArgumentError (though it should be ideally TypeError)
       p r_editor.superior_to?( ?a ) }
   end
+
+  test "lowest_weight_in_line" do
+    #### NOTE ###
+    # The following assumes the current fixture structure at the time of writing!
+    # If any of the following tests fails, you should check the fixture structure with:
+    #
+    #   puts RoleCategory.tree.print_tree
+    #
+    rc_subsystem = role_categories(:subsystem)
+              a0 =  Role.lowest_subordinate_roles_in_line(RoleCategory::MNAME_ROOT)
+    assert_equal 6, a0.size
+    assert_equal 3, a0.compact.size
+    assert_equal 2, Role.lowest_subordinate_roles_in_line(rc_subsystem).size
+    assert          Role.lowest_subordinate_roles_in_line(rc_subsystem).compact.empty?
+
+    # The following tests assume the consistency between the constants defined in model role.rb and fixtures...
+    role_helper = roles(:translation_helper)
+              a1 =  Role.lowest_subordinate_roles_in_line(RoleCategory::MNAME_TRANSLATION)
+    assert_equal 1, a1.size
+    assert_equal a1.first.weight, (weight=Role.lowest_weight_in_line(RoleCategory::MNAME_TRANSLATION)), "consistency check.. "
+    assert_equal role_helper.weight, weight
+    assert_equal Role::DEF_WEIGHT[Role::RNAME_HELPER], weight
+    role_max = roles(:helper10000000)
+    assert_equal role_max.weight, Role.lowest_weight_in_line(RoleCategory::MNAME_ROOT)
+  end
 end
 
