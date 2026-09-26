@@ -19,7 +19,7 @@ class Channels::FetchYoutubeChannelsController < ApplicationController
     authorize! __method__, @channel
 
     ActiveRecord::Base.transaction(requires_new: true) do
-      update_channel_with_youtube_api
+      update_channel_with_youtube_api  # @channel.errors may be set
       result = def_respond_to_format(@channel, :updated, render_err_path: "channels") # No update is run if @channel.errors.any? ; defined in application_controller.rb
       raise ActiveRecord::Rollback, "Force rollback." if !result
     end

@@ -637,11 +637,15 @@ end
       rlc.country[0] &&= Place.find(rlc.country[0]).country.title
     end
 
-    orig_lc = hsrow[:langcode]
+    orig_lc = hsrow[:langcode]&.downcase
     orig_lc ||= guess_lang_code(tit[:ja]) if tit[:ja]
     orig_lc ||= guess_lang_code(tit[:en]) if tit[:en]
     if orig_lc == 'ja' && (!model.place || model.place == Place.unknown)
       model.place = Place.unknown(country: Country['JPN'])
+    end
+
+    if model.new_record?
+      model.orig_locale = orig_lc
     end
 
     %w(ja en).each do |elc|
@@ -655,7 +659,8 @@ end
         end
         hs2passs.merge! hsruby
         if model.new_record?
-          model.unsaved_translations << Translation.new(is_orig: (elc == orig_lc), **hs2passs)
+          # model.unsaved_translations << Translation.new(is_orig: (elc == orig_lc), **hs2passs)
+          model.translations << Translation.new(is_orig: (model.orig_locale && (elc == orig_lc)), **hs2passs)
         else
           if (tra = model.find_translation_by_a_title(:titles, word, langcode: elc))
             next if hsruby.empty? || tra.matched_string != preprocess_space_zenkaku(word)
@@ -666,9 +671,17 @@ end
             end
             next
           end
-          model.translations         << Translation.new(is_orig: false, **hs2passs)
+          model.translations << Translation.new(is_orig: (model.orig_locale && false), **hs2passs)
         end
         rlc.send ek.to_s+'=', [nil, word]
+      end
+    end
+
+    if !model.translations.map(&:langcode).include?(model.orig_locale)
+      logger.warn "WARNING: Specified orig_locale #{model.orig_locale.inspect} is inconsistent with the given Translation-s, so orig_locale is nullified."
+      model.orig_locale = nil
+      model.translations.each do |t|
+        t.is_orig = nil
       end
     end
 

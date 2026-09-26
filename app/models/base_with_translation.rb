@@ -516,6 +516,11 @@ class BaseWithTranslation < ApplicationRecord
     end
   end
 
+  # This validation is similar to that for {Translation#langcode}, except for +allow_nil: true+ (instead of +presence: true+)
+  normalizes :orig_locale, with: ->(locale) { locale.strip.downcase.presence }  # Ensuring no empty String but nil; Rails 7.1+
+  validates  :orig_locale, format: { with: /\A[a-z]{2}\z/ }, allow_nil: true  # ISO 639-1 only. +length: {is: 2}` would be redundant.
+  # NOTE: (if extended) {with: /\A[a-z]{2}(\-[a-z]{2})?\z/i}  # Limited set of IETF language tag (ISO 639-1 + optional region subtag; e.g., en-GB)
+
   validates_with UnsavedTranslationsValidator
   validate  :validate_translation_base
 

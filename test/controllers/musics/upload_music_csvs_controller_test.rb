@@ -59,12 +59,44 @@ class Musics::UploadMusicCsvsControllerTest < ActionDispatch::IntegrationTest
       post musics_upload_music_csvs_url, params: { file: fixture_file_upload('music_artists_3rows.csv', 'text/csv') }
       assert_response :success
     end
+     ## See test/fixtures/files/music_artists_3rows.csv
+    mu_ito     = Music.order(created_at: :desc)[2]  # ,糸,,Ito,Thread,1992,,,Miyuki Nakajima,ja,クラシック,compo,
+    mu_smap    = Music.order(created_at: :desc)[1]
+    mu_last    = Music.order(created_at: :desc).first
+    art_last  = Artist.order(created_at: :desc).first
+    art_smap  = art_last  # Because the last row in CSV does not specify Artist => Artist.unknown
     trans_last = Translation.order(created_at: :desc).first
+    eng_smap  = Engage.order(created_at: :desc)[1]
+    mu_last_ja  =  mu_last.best_translation(:ja)
+    art_last_en = art_last.best_translation(:en)
+    art_smap_en = art_last_en
     assert_equal '子守唄',     trans_last.title
     assert_equal 'コモリウタ', trans_last.ruby
     assert_equal 'Komoriuta',  trans_last.romaji
-    assert_equal '香川県',     Music.order(created_at: :desc).first.place.prefecture.title(langcode: "ja")
     assert_equal 'ja',         trans_last.langcode
+    assert_equal  trans_last,  mu_last_ja
+    assert_nil    mu_last_ja.is_orig  # complicated case, where the CSV specifies the language of "en" with no English title provided.
+    assert_nil    mu_last.orig_locale
+
+    assert_equal 'SMAP', art_smap_en.title
+    assert_equal 'en',   art_smap_en.langcode
+    assert_equal "en",   art_smap.orig_locale
+
+    assert_equal 'Thread', mu_ito.best_translation(:en).title
+    assert_equal '糸',     mu_ito.best_translation(:ja).title
+    assert_equal 'Ito',    mu_ito.best_translation(:ja).romaji
+    assert_equal "ja",     mu_ito.orig_locale  # from CSV line
+
+    assert_equal '香川県',     mu_last.place.prefecture.title(langcode: "ja")
+    assert_equal Genre.select_regex(:title, /クラシック/).first, mu_ito.genre
+    assert_equal 1992,  mu_ito.year
+    mu_it_eng = mu_ito.engages.first
+    assert_equal 1992,  mu_it_eng.year
+    assert_equal EngageHow.select_regex(:title, /compo/i).first, mu_it_eng.engage_how  # case-insensitive search!
+
+    assert_equal art_smap, eng_smap.artist
+    assert_equal mu_smap,  eng_smap.music
+
     # assert_equal false,        trans_last.is_orig, 'ja-title with no en-title but with "en" means ja-title should be is_orig=false, but...'  # => nil because the input langcode="en" does not accept JA chars.
     assert_equal @editor,      trans_last.create_user, "(NOTE: for some reason, created_user_id is nil?): Previous=#{previous_str} User=#{[@editor.id,@editor.email.sub(/@.+/,'')].inspect} #{((whod=ModuleWhodunnit.whodunnit).nil? || whod.id != @editor.id) ? '(!!)!=' : '=='} ModuleWhodunnit.whodunnit=#{ModuleWhodunnit.whodunnit.inspect} / PaperTrail.request.whodunnit=#{PaperTrail.request.whodunnit.inspect} / (last-)Translation=#{trans_last.inspect}"
     assert_equal 40000.0, trans_last.weight  # ==10000*8/2 NOT Float::INFINITY; see Translation#def_weight and (role.rb for 10000.0)

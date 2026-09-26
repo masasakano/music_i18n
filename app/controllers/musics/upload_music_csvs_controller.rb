@@ -12,7 +12,7 @@ class Musics::UploadMusicCsvsController < ApplicationController
     params.permit!
     uploaded_io = params[:file]
 
-    hsret = populate_csv_file(uploaded_io, in_redirect_path: new_music_url, in_redirect_path_invalid_encoding: musics_path){ |csv_str|
+    hsret = populate_csv_file(uploaded_io, in_redirect_path: new_music_url, in_redirect_path_invalid_encoding: musics_path){ |csv_str|  # defined in module_upload_csv.rb
       # the latter path should be new_music_url, too; but leaving it as musics_path for now for the sake of testing...
       Music.populate_csv(csv_str)
     }

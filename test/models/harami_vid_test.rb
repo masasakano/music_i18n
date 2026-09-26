@@ -193,8 +193,7 @@ class HaramiVidTest < ActiveSupport::TestCase
     assert_nil harami_vid.release_date_was
     assert     harami_vid.uri_changed?
     assert_equal h1129.ins_release_date, harami_vid.release_date
-    assert     harami_vid.translations.empty?  # No Translation associated, yet.
-    assert_equal h1129.ins_title, harami_vid.unsaved_translations.first.title # but an unsaved one.
+    assert_equal h1129.ins_title, harami_vid.translations.first&.title, harami_vid.translations.inspect
     # :harami1129_ewf
     #:artist_rcsuccession
     #:artist_rcsuccession_ja

@@ -57,8 +57,9 @@ class PopulatesControllerTest < ActionDispatch::IntegrationTest
     # _weight_user_id_nil?(Translation.last)  # Tha last translation is related to Event with weight of 0, once event_item_id is introduced.
 
     @harami1129.reload
-    assert       @harami1129.harami_vid
+    assert   (hv=@harami1129.harami_vid)
     assert       @harami1129.engage
+    assert_equal @harami1129.ins_title, hv.best_translation.title
     # Music place is unknown in the world
     assert_equal Place.unknown, @harami1129.engage.music.place
     assert_equal Place.unknown(country: Country.unknown), @harami1129.engage.music.place

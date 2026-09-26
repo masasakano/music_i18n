@@ -106,6 +106,7 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
     assert @h1129.ins_song.present?
     hvid = @h1129.harami_vid
     assert hvid
+    assert_equal "ja", (orig_orig_locale=hvid.orig_locale)
 
     hvid.update!(note: "Test-note" + (hvid.note || ""))
     note_be4 = hvid.note
@@ -191,6 +192,7 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
     end
 
     hvid.reload
+    assert_equal orig_orig_locale, hvid.orig_locale
     assert_equal note_be4, hvid.note
     assert_equal channel_be4,      hvid.channel
     assert_equal release_date_be4, hvid.release_date
@@ -246,6 +248,7 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
       assert_operator 3, :<=, chan.send(att).size, "#{att} should have been set, but..."
 
       hvid.reload
+      assert_equal orig_orig_locale, hvid.orig_locale
       assert_equal hv_dura0, (hv_dura2=hvid.duration)
 
       ev.reload
@@ -332,9 +335,9 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
       end
 
       flash_regex_assert(/\bURI\b.+\bwrong/i, msg=nil, type: :alert)
-  
-      sign_out @editor_harami
     end # if is_env_set_positive?("SKIP_YOUTUBE_MARSHAL")
+
+    sign_out @editor_harami
   end
 
   private

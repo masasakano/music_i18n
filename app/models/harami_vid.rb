@@ -407,7 +407,8 @@ class HaramiVid < BaseWithTranslation
       trans = Translation.new(translation)
     end
 
-    newmdl.unsaved_translations << trans
+    # newmdl.unsaved_translations << trans
+    newmdl.translations << trans
 
     harami_vid_music_assocs.order(:timing).each do |assoc|
       new_assoc = assoc.dup
@@ -729,7 +730,7 @@ class HaramiVid < BaseWithTranslation
   # @param updates: [Array<Symbol>] Updated columns in Symbol; n.b., :uri is redundant b/c it is always read regardless.
   # @param force: [Boolean] if true, all the record values are forcibly updated (Def: false).
   # @param dryrun: [Boolean] If true (Def: false), nothing is saved but {HaramiVid#columns_for_harami1129} for the returned value is set.
-  # @return [Harami1129] {Translation} is associated via either {#translations} or {#unsaved_translations}
+  # @return [Harami1129] {Translation} is associated via (maybe new) {#translations}
   #   Note the caller has no need to receive the return as the contents of self is modified anyway, though not saved, yet.
   # @raise [HaramiMusicI18n::MultiTranslationError::InsufficientInformationError] if a new record cannot be created.
   def set_with_harami1129(harami1129, updates: [], force: false, dryrun: false)
@@ -822,13 +823,10 @@ class HaramiVid < BaseWithTranslation
     # a new Translation is now created, which will be saved when the instance is saved.
     trans = Translation.preprocessed_new(title: harami1129.ins_title, is_orig: true, translatable_type: self.class.name)
     trans.langcode = guess_lang_code(trans.title)
-    #if unsaved_translations
-    #  self.unsaved_translations.push trans
-    #else
-    #  self.unsaved_translations = [trans]
-    #end
-    self.unsaved_translations << trans
-    self.unsaved_translations[-1].matched_attribute = :title
+
+    trans.matched_attribute = :title
+    self.orig_locale = trans.langcode  # The Translation to add has is_orig=true
+    self.translations << trans  # new Translation
     self.matched_translation = trans
     self.matched_attribute   = :title
     self.columns_for_harami1129[:be4][:ins_title] ||= nil
@@ -1645,7 +1643,7 @@ class HaramiVid < BaseWithTranslation
     #
     # If EN lang is not is_orig and if Music has no EN translation
     # and if :music_en in CSV is significant, the first EN Translation for Music
-    # is createdhere.
+    # is created here.
     #
     # @param record [ActiveRecord] Music or ActiveRecord instance
     # @param tit_en [String, NilClass] note in the input CSV
@@ -1663,6 +1661,7 @@ class HaramiVid < BaseWithTranslation
 
       tra = Translation.new(title: definite_article_to_tail(tit_en), langcode: "en") 
       record.translations << tra  # save
+      # NOTE: record.orig_locale should differ from "en", when this routine is called in the first place...
 
       if tra.errors.any?
         transfer_errors(tra, prefix: "[Translation(EN)] #{definite_article_to_tail(tit_en).inspect} for Music #{mu_tit.inspect} (pID=#{record.id}): ")

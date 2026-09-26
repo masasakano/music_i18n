@@ -440,7 +440,7 @@ class HaramiVidsController < ApplicationController
     # @param chan [Channel] all parameters but translations should be filled.
     # @return [Channel, NilClass] nil if failed to save.
     def _save_new_channel_or_error(chan)
-      chan.unsaved_translations = chan.def_initial_translations
+      chan.translations = chan.def_initial_translations
       _save_or_add_error(chan, form_attr: :base)
     end
     private :_save_new_channel_or_error
@@ -817,15 +817,20 @@ end
       end
       pla ||= Place.unknown
 
-      # if "{xyz}" is given, the pair of curly brackets is removed. So, a new Music like "M" can be created without "finding" a match.
+      locale = (contain_asian_char?(@hsmain[prm_key]) ? "ja" : "en")
       hs2pass = {
-        title: (@hsmain[prm_key] ? @hsmain[prm_key].strip.sub(/\A\{(.+)\}\z/, '\1') : nil),
-        langcode: (contain_asian_char?(@hsmain[prm_key]) ? "ja" : "en"),
-        is_orig: true,
+        orig_locale: locale,
         place: pla,
+        translations_attributes: [
+          { langcode: locale,
+            ## if "{xyz}" is given, the pair of curly brackets is removed. So, a new Music like "M" can be created without "finding" a match.
+            title: (@hsmain[prm_key] ? @hsmain[prm_key].strip.sub(/\A\{(.+)\}\z/, '\1') : nil),
+            is_orig: true }
+        ]
       }
 
-      new_record = klass.new(**(hs2pass.merge(extra_prms_for_new)))   # eg: Music.new
+      # new_record = klass.new(**(hs2pass.merge(extra_prms_for_new)))   # eg: Music.new
+      new_record = klass.new(**(hs2pass.merge(extra_prms_for_new.symbolize_keys)))   # eg: Music.new
       ret = _save_or_add_error(new_record, form_attr: prm_key.to_sym) # eg: music
       (ret || new_record)
     end

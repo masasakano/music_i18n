@@ -391,7 +391,9 @@ class Translation < ApplicationRecord
   # has_one <=> belongs_to ensured.  See DB constraint.
   validates :sync_translation_id, uniqueness: true, allow_nil: true
 
-  validates :langcode, presence: true, length: {is: 2}, format: {with: /\A[a-z]{2}\z/i}  # ISO 639-1 only
+  # See also validates for BaseWithTranslation#orig_locale
+  normalizes :langcode, with: ->(locale) { locale.strip.downcase.presence }  # Ensuring no empty String but nil; Rails 7.1+
+  validates :langcode, presence: true, length: {is: 2}, format: {with: /\A[a-z]{2}\z/}  # ISO 639-1 only
   #validates :langcode, presence: true, length: {in: (2..5)}, format: {with: /\A[a-z]{2}(\-[a-z]{2})?\z/i}  # Limited set of IETF language tag (ISO 639-1 + optional region subtag; e.g., en-GB)
 
   validates :weight, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true

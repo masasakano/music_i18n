@@ -223,6 +223,12 @@ module ModuleYoutubeApiAux
   #
   # Wrapper of {ApplicationHelper.get_id_youtube_video}
   #
+  # @note
+  #   +get_id_youtube_video+ should not be in ApplicationHelper,
+  #   but a significant restructuring is required to move it somewhere else,
+  #   partly because the method utilizes URI-normalization algorithm defined in
+  #   ApplicationHelper.
+  #
   # If the given argument is not for Youtube, the directory part is returned,
   # and the returned String has a singleton method platform so that
   #   ret = get_yt_video_id("https://www.eample.com/xyz")
@@ -390,8 +396,17 @@ module ModuleYoutubeApiAux
     raise if !current_user  # should never happen in normal calls.
     ret_msgs = []
     titles = get_youtube_titles(snippet)  # duplication is already eliminated if present. # defined in module_youtube_api_aux.rb
-    [snippet.default_language, "ja", "en"].uniq.find_all(&:present?).each do |elc|  # snippet.default_language can be nil for some reason...
+
+    if snippet.default_language.present?
+      # Even if the record (BaseWithTranslation) already exists, its orig_locale is updated according to Youtube
+      model.orig_locale = snippet.default_language.presence
+    end
+
+    first_locale = nil
+    prioritized_locales = [snippet.default_language, "ja", "en"].uniq.find_all(&:present?)
+    prioritized_locales.each do |elc|  # snippet.default_language can be nil for some reason...
       next if titles[elc].blank?
+      first_locale ||= elc
       tras = model.translations.where(langcode: elc)
       next if tras.where(title: titles[elc]).or(tras.where(alt_title: titles[elc])).exists?  # Skip if an identical Translation exists whoever owns it.
 
@@ -421,14 +436,25 @@ module ModuleYoutubeApiAux
         result = tra.update(title: titles[elc], weight: weight_updated)
         ret_msgs << "Title[#{elc}] updated."
       else
-        tra = Translation.preprocessed_new(title: titles[elc], langcode: elc, is_orig: (elc == (snippet.default_language || "ja")), weight: weight_updated)
-        model.translations << tra
+        tra = Translation.preprocessed_new(title: titles[elc], langcode: elc, is_orig: (elc == first_locale), weight: weight_updated)
+        model.orig_locale = elc if (elc == first_locale) # NOTE: elc is the locale of the highest priority that definitely has a Translation.  This may or may not set the attribute of the model in memory (which the caller should save later), regardless of whether model is new_record? or persisted?
+        model.translations << tra  # model (BaseWithTranslation) is not saved.  Translation is saved if model already exists.
+        # NOTE: This is not the safest in the sense that even if model fails to be saved later
+        #   (or the caller does not perform save), the Translation persists with the langcode,
+        #   which might leave an inconsistency between the model's `orig_locale` and its `translations`.
+        #   Safer way is (uncheced...):
+        #     model.assign_attributes(
+        #       orig_locale: elc,  # redundant because it was set immediately above
+        #       translations_attributes: [
+        #         translation.slice(:id, :title, :langcode, :is_orig, :weight)
+        #       ] )
+        #     # model.save  # Later in upstream!!
         ret_msgs << "New Title[#{elc}] added."
         result = tra.id  # Integer or nil if failed to save and associate.
       end
 
       if !result
-        # Failed to save a Translation. The parent should rollback everything.
+        # Failed to save a Translation. The caller should rollback everything (based on model.errors).
         msg_err = tra.errors.full_messages.join("; ") # +" / "+titles.inspect
         msg = [sprintf("ERROR: Failed to save a Translation[%s]: %s", elc, titles[elc]), msg_err].join(" / ")
         model.errors.add :base, msg

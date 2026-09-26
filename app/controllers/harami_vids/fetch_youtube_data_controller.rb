@@ -41,8 +41,8 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
     authorize! __method__, @harami_vid
 
     ActiveRecord::Base.transaction(requires_new: true) do
-      update_harami_vid_with_youtube_api
-      result = def_respond_to_format(@harami_vid, :updated, render_err_path: "harami_vids")      # No update is run if @harami_vid.errors.any? ; defined in application_controller.rb
+      update_harami_vid_with_youtube_api  # @harami_vid.errors may be set
+      result = def_respond_to_format(@harami_vid, :updated, render_err_path: "harami_vids") # No update is run if @harami_vid.errors.any? ; defined in application_controller.rb
       raise ActiveRecord::Rollback, "Force rollback." if !result
     end
   end
@@ -90,7 +90,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
       snippet = @yt_video.snippet
       _check_and_set_channel(snippet)
 
-      ret_msg = adjust_youtube_titles(snippet, model: @harami_vid)  # Translation(s) updated or created.
+      ret_msg = adjust_youtube_titles(snippet, model: @harami_vid)  # Translation(s) updated or created.  @harami_vid.errors may be set
       return if !ret_msg  # Error has been raised in saving/updating Translation(s)
       flash[:notice] ||= []
       flash[:notice] << ret_msg if ret_msg.present?

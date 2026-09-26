@@ -133,6 +133,8 @@ class Musics::UploadHvmaCsvsControllerTest < ActionDispatch::IntegrationTest
 #debugger
     assert_equal musics(:music_light),    hvma_light.music
     assert_equal amp_light.music,         hvma_light.music
+    assert_equal "en",                    hvma_light.music.orig_locale
+    assert                                hvma_light.music.best_translation(:en).is_orig
     assert_equal 142,                     hvma_light.timing  # 02:22
     assert_equal amp_exist.artist,     amp_light.artist
     assert_equal amp_exist.event_item, amp_light.event_item
@@ -233,6 +235,7 @@ class Musics::UploadHvmaCsvsControllerTest < ActionDispatch::IntegrationTest
     assert_difference(@count_eq, 111) do
       post harami_vid_upload_hvma_csv_url(harami_vid_id: @hvids.first.id),
          params: {upload_hvma_csv: { csv_direct: csv_direct } }  # "file" (for uploaded file) is NOT even included in params (according to Log)
+      assert_response :redirect
     end
     sign_out @editor
   end
@@ -391,6 +394,25 @@ class Musics::UploadHvmaCsvsControllerTest < ActionDispatch::IntegrationTest
         hvma_note: "HMVA-7-note",
         year: nil,
       )
+
+      arret
+      ######## Returning
+      # [["0. Populated from H1129",
+      #     17,     1053724571,     nil,                           1039544043,         "HMVA-0-note", 1994, "mu-note0"],
+      #  ["1. Manually added Kampai",
+      #    "01:10", "乾杯",         "Toast to you",                "Tsuyoshi",         "HMVA-1-note", 1901, "Music-Note-music_kampai"],
+      #  ["2. Manually added The Light",
+      #    "02:22", nil,            "Light",                       "Proclaimers, The", "HMVA-2-note", nil,  "Music-Note-music_light"],
+      #  ["3. Manually added Give Peace a Chance Music3 with the wrong year",
+      #    "02:22", nil,            "Give Peace a Chance Music3",  "Artist No 4",      "HMVA-3-note", 6,    nil],
+      #  ["4. Manually added Music1 with a different Artist",
+      #    "03:33", nil,            "Music1 by Madonna",           "Spitz",            "HMVA-4-note", nil,  "Music1", nil, "No.4-memo"],
+      #  ["5. Manually added new Music with an existing Artist",
+      #    "04:44", "ある新曲候補", "A certain candiate song",     "Spitz",            "HMVA-5-note", nil,  nil],
+      #  ["6. Existing Music/Artist to add the first English title",
+      #    "05:55", "雨",           "This-is-Test-title-for-RAIN", "ハラミちゃん",     "HMVA-6-note", nil,  "Music-Note-music_rain"],
+      #  ["7. mal-formatted CSV causing Error",
+      #    "06:10",  nil,           "Give Peace a Chance Music2",  "John Lennon",      "HMVA-7-note", nil,  nil]]
     end
 
     # @return [File] +ret.path+ would give the path.
