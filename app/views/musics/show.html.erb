@@ -8,11 +8,10 @@
  <section id="sec_primary_show">
 <div id="<%= dom_id @music %>">
 <dl>
-  <% if (can_update=can?(:update, Music)) %>
-    <div class="editor_only">
-      <dt>pID (<%= @music.class.name %>)</dt>
-      <dd> <%= @music.id %></dd>
-    </div>
+  <% can_update_gen = can?(:update, Music) %>
+  <%= editor_only_safe_html(:pass, method: can_update_gen) do %> <%# defined in application_helper.rb %>
+    <dt class="<%= Consts::Csses::Shows::ITEM_PID %>">pID (<%= @music.class.name %>)</dt>
+    <dd class="<%= Consts::Csses::Shows::ITEM_PID %>"> <%= @music.id %></dd>
   <% end %>
 
   <div>
@@ -35,7 +34,7 @@
   <dt title="HaramiVid"><strong><%= link_to t(:HaramiVid), "#sec_harami_vids_for" %>:</strong></dt>
     <dd><%= t(:times, count: @music.harami_vids.count) %></dd>
   </div>
-  <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @music, model4ability: can_update} %>
+  <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @music, model4ability: can_update_gen} %>
 </dl>
 </div>
  </section> <%# closing section id="sec_primary_show" %>
@@ -62,7 +61,7 @@
 
 <% if (rela=@music.find_all_harami_vids_lacking_hvma).exists? %>
   <%= tag.section id: "sec_inconsistent_harami_vids" do %>
-    <%= editor_only_safe_html(:pass, method: can_update, tag: "div", class: "inconsistent_harami_vids") do %>
+    <%= editor_only_safe_html(:pass, method: can_update_gen, tag: "div", class: "inconsistent_harami_vids") do %>
       <h4>Inconsistent HaramiVids</h4>
       <%= tag.span class: "lead text-warning-regular" do %>
         WARNING: 

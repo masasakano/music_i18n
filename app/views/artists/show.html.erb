@@ -10,39 +10,38 @@
  <section id="sec_primary_show">
 <div id="<%= dom_id @artist %>" class="show_unique_parameters">
 <dl>
-  <% if (can_update=can?(:update, Artist)) %>
-   <div class="editor_only">
+  <% can_update_gen = can?(:update, Music) %>
+  <%= editor_only_safe_html(:pass, method: can_update_gen) do %> <%# defined in application_helper.rb %>
     <dt class="<%= Consts::Csses::Shows::ITEM_PID %>">pID (<%= @artist.class.name %>)</dt>
     <dd class="<%= Consts::Csses::Shows::ITEM_PID %>"> <%= @artist.id %></dd>
-   </div>
   <% end %>
   <div>
   <dt class="item_place"> <%= t("tables.place_country", default: "Place (Country)") %>:</dt>
     <dd class="item_place"><%= show_pref_place_country(@artist.place) %></dd>  <%# defined in places_helper.rb %>
   </div>
   <div>
-  <dt title="Birthday"><strong><%= t("artists.show.birthday", default: "Birthday") %>:</strong></dt>
-    <dd><%= @artist.birthday_string %></dd>
+    <dt class="item_birthday" title="Birthday"><strong><%= t("artists.show.birthday", default: "Birthday") %>:</strong></dt>
+    <dd class="item_birthday"><%= @artist.birthday_string %></dd>
   </div>
   <div>
-  <dt title="Sex"><strong><%= t("Sex") %>:</strong></dt>
-    <dd><%= @artist.sex.title langcode: I18n.locale, lang_fallback: true %></dd>
+    <dt class="item_sex" title="Sex"><strong><%= t("Sex") %>:</strong></dt>
+    <dd class="item_sex"><%= @artist.sex.title langcode: I18n.locale, lang_fallback: true %></dd>
   </div>
   <div>
-  <dt title="ChannelOwner"><strong><%= t("ChannelOwner") %>:</strong></dt>
-    <dd>
+    <dt class="item_channel_owner" title="ChannelOwner"><strong><%= t("ChannelOwner") %>:</strong></dt>
+    <dd class="item_channel_owner">
       <% if (owner=@artist.channel_owner) %>
         <% if can?(:show, owner) %>
           <%= link_to t(:ChannelOwner), owner %>: 
         <% end %>
         <% ch_str = channels2displayed_list(owner.channels) %>  <%# defined in artists_helper.rb %>
         <%= ch_str.blank? ? "(no channels registered)" : ch_str %>  <%# defined in artists_helper.rb %>
-      <% elsif can?(:create, ChannelOwner) && can_update %>
+      <% elsif can?(:create, ChannelOwner) && can_update_gen %>
         → <%= link_to t("layouts.create_model", model: t(:ChannelOwner)), channel_owners_create_with_artists_new_url( params: {channel_owner: {artist_id: @artist.id}}) %>
       <% end %>
     </dd>
   </div>
-  <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @artist, model4ability: can_update} %>
+  <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @artist, model4ability: can_update_gen} %>
 </dl>
 
 <%= turbo_frame_tag "artists_anchorings_"+dom_id(@artist) do %>

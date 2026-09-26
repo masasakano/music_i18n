@@ -113,9 +113,21 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     music.save!
     tra_ja = music.translations.first
 
+    hstrans = { alt_title: 'abcde', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, }
+
+    # Varidation failure in attempted creation  by Editor:
+    assert_no_difference('Translation.count') do
+      post translations_url, params: { translation: hstrans.merge({langcode: "naiyo"}) }
+      assert_response :unprocessable_content
+    end
+    assert_includes css_select("h1").text, "New Translation", "Should render in :new of Translation, but..."
+    assert_equal music.class.name, css_select("#translation_translatable_type")[0]["value"], "translatable_type should remain, but..."
+    assert_equal music.id.to_s,    css_select("#translation_translatable_id")[0]["value"]
+    assert_equal 1,                css_select(".field_with_errors #translation_langcode").size, "error-indication should be present, but..."  # This assumes Rails' default form, NOT simple_form
+
     # 1st creation  by Editor: auto-weight => 500=1000/2 (no existing "en" Translation (Existing(ja) 3000000(Orig) is irrelevant))
     assert_difference('Translation.count', 1) do
-      post translations_url, params: { translation: { alt_title: 'abcde', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
+      post translations_url, params: { translation: hstrans }
     end
     tra = Translation.order(:created_at).last  # Translation.last sorts in order of primary ID, which may not work well with fixtures!
     # assert_redirected_to translation_url(tra)
@@ -125,6 +137,11 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal @translator, tra.create_user, "(For some reason tra.create_user may return nil very oocasionally) tra=#{tra.inspect}"
     assert_equal @translator, tra.update_user
     assert_equal @translator.roles.first.weight/2.0, tra.weight
+
+    follow_redirect!
+    assert_response :success
+    flash_regex_assert(/\bsuccessfully created\b/, type: :success, system_test: false)  # defined in test_helper.rb
+    assert_equal music.id, css_select("dd."+Consts::Csses::Shows::ITEM_PID).text.to_i
 
     # 2nd creation by Moderator-Translator: auto-weight => 50=100/2 (Existing(en): [500])
     sign_out @translator
