@@ -262,7 +262,7 @@ class ApplicationController < ActionController::Base
         (!failed && (block_given? ? yield : mdl.save))
       end
     inopts = inopts.map{|k,v| [k, (v.respond_to?(:call) ? v.call(mdl) : v)]}.to_h
-    alert = (alert.respond_to?(:call) ? alert.call(mdl) : alert)
+    alert = ((alert.respond_to?(:call) ? alert.call(mdl) : alert).presence || flash[:alert])
     hsflash = {}
     %i(warning notice).each do |ek|
       hsflash[ek] = flash[ek] if flash[ek].present?
@@ -271,7 +271,7 @@ class ApplicationController < ActionController::Base
 
     respond_to do |format|
       if result
-        msg = sprintf '%s was successfully %s.', mdl.class.name, created_updated.to_s  # e.g., Article was successfully created.
+        msg = message_successfully_done(mdl, created_updated)  # e.g., Article was successfully created.
         msg << sprintf('  Return to %s.', (back_html.html_safe? ? back_html : sanitized_html_fragment(back_html))) if back_html
         opts = get_html_safe_flash_hash(success: msg.html_safe, alert: alert, **hsflash)
         format.html { redirect_to (redirected_path || mdl), **opts }
@@ -288,6 +288,11 @@ class ApplicationController < ActionController::Base
     result
   end
 
+  # @param record [ActiveRecord]
+  # @param done [String, Symbol] Usually either "created" or "udated"
+  def message_successfully_done(record, created_updated="created")
+    sprintf '%s was successfully %s.', record.class.name, created_updated.to_s  # e.g., Article was successfully created.
+  end
 
   # Default respond_to to format algorithm for destroy
   #

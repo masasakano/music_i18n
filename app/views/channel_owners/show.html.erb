@@ -1,4 +1,4 @@
-
+<%= @channel_owner ||= @translatable %>
 <h1>Channel Owner: <%= coname=@channel_owner.title_or_alt(langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "", article_to_head: true) %></h1>
 
 <hr>

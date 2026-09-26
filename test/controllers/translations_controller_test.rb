@@ -96,9 +96,9 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     min_weight = @sex.translations.where(langcode: 'en').order(:weight).first.weight
     assert_difference('Translation.count') do
       post translations_url, params: { translation: { alt_title: 'abcde', is_orig: false, langcode: 'en', translatable_type: @sex.class.name, translatable_id: @sex.id, } }  # translator can add Translation for a record that is not editable for themselves.
-      @sex.translations.reset
-      assert_operator min_weight, :<, @sex.translations.order("translations.created_at").last.weight
     end
+    @sex.translations.reset
+    assert_operator min_weight, :<, @sex.translations.order("translations.created_at").last.weight
 
     assert_difference('Translation.count') do
       post translations_url, params: { translation: { alt_title: 'abcde', is_orig: false, langcode: 'it', translatable_type: @sex.class.name, translatable_id: @sex.id, } }  # translator can add Translation (of any language, let alone a new language like here) for a record that is not editable for themselves.
@@ -118,7 +118,9 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
       post translations_url, params: { translation: { alt_title: 'abcde', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
     end
     tra = Translation.order(:created_at).last  # Translation.last sorts in order of primary ID, which may not work well with fixtures!
-    assert_redirected_to translation_url(tra)
+    # assert_redirected_to translation_url(tra)
+    assert_redirected_to music_url(tra.translatable)
+    assert_redirected_to Rails.application.routes.url_helpers.polymorphic_path(tra.translatable, locale: :en)
 
     assert_equal @translator, tra.create_user, "(For some reason tra.create_user may return nil very oocasionally) tra=#{tra.inspect}"
     assert_equal @translator, tra.update_user
@@ -132,7 +134,7 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
       post translations_url, params: { translation: { alt_title: 'abcd2', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
     end
     tra2 = Translation.order(:created_at).last
-    assert_redirected_to translation_url(tra2)
+    assert_redirected_to Rails.application.routes.url_helpers.polymorphic_path(tra2.translatable, locale: :en)
     w_moderator = @trans_moderator.roles.first.weight
     assert_equal w_moderator, tra2.weight*2  # according to Translation#def_weight
 
@@ -148,7 +150,7 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
       post translations_url, params: { translation: { alt_title: 'abcd3', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
     end
     tra3 = Translation.order(:created_at).last
-    assert_redirected_to translation_url(tra3)
+    assert_redirected_to Rails.application.routes.url_helpers.polymorphic_path(tra3.translatable, locale: :en)
 
     assert_equal @translator2, tra3.create_user
     assert_equal @translator2, tra3.update_user
@@ -165,7 +167,7 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
       post translations_url, params: { translation: { alt_title: 'abcd4', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
     end
     tra4 = Translation.order(:created_at).last
-    assert_redirected_to translation_url(tra4)
+    assert_redirected_to Rails.application.routes.url_helpers.polymorphic_path(tra4.translatable, locale: :en)
 
     assert_equal @translator, tra4.create_user
     assert_equal @translator, tra4.update_user
@@ -179,7 +181,7 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
       post translations_url, params: { translation: { alt_title: 'abcd4', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
     end
     assert_response :unprocessable_content
-    assert_includes css_select('div#error_explanation ul li').map(&:text).join(" "), "Title has already been taken" # 'must be unique'
+    assert_includes css_select('div#error_explanation ul li').map(&:text).join(" "), "Title has already been taken", "DEBUG: "+css_select("#body_main").to_s # 'must be unique'
       #<h2>2 errors prohibited this translation from being saved:</h2>
       #  <li>Title has already been taken
       #  <li>Combination of (title, alt_title) must be unique: [nil, &quot;abcd4&quot;]</li>  # => This may be not issued not anymore...?

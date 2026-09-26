@@ -49,10 +49,50 @@ class TranslationsController < ApplicationController
       end
     end
 
-    def_respond_to_format(@translation)  # defined in application_controller.rb
-    #    # format.html { redirect_back fallback_location: translations_url, success: 'Translation was successfully created.' }
-    #    #### This is wrong because in this case it goes back to "new" page with the original parameters.
+    respond_to do |format|
+      if _set_save_translatable
+        format.html { redirect_to @translatable, success: message_successfully_done(@translatable, "created") }  # defined in application_controller.rb
+        format.json { render @translatable.class.name.underscore.pluralize+"/show", status: :created, location: @translation }
+      else
+        hsstatus = {status: :unprocessable_content}
+        format.html { render :new, **hsstatus }
+        format.json { render json: @translatable.errors, **hsstatus }
+      end
+    end
   end
+
+    # @translation must be set.
+    #
+    # This sets @translatable
+    #
+    # @return [Boolean] the result of a save attempt
+    def _set_save_translatable
+      @translatable = @translation.translatable
+      @translatable.translations << @translation  # Appends @translation (ID nil) to the in-memory Array
+      if @translatable
+        case @translation.is_orig
+        when nil
+          @translatable.orig_locale = nil
+        when false
+          if !@translatable.orig_locale
+            add_flash_message(:alert, "is_orig is forcibly converted to nil", now: false)
+          else
+            # do nothing  # NOTE: if this Translation is the last one, is_orig should never be false. But if you implement a validation, you must consider the first Translation to save among multiple ones on :create, which is a bit complicated. I do nothing about it for now and leave it for operation.
+          end
+        else
+          @translatable.orig_locale = @translation.langcode
+        end
+        return @translatable.save
+      else
+print "DEBUG: "; p @translation
+        if @translation.valid?
+          raise "translation with null translatable should fail in validation, but... "+@translation.inspect
+        else
+          return false
+        end
+      end
+    end
+    private :_set_save_translatable
 
   # PATCH/PUT /translations/1
   # PATCH/PUT /translations/1.json
