@@ -507,7 +507,12 @@ EOF
       ### Row 1 (0th line is skipped)
       art = reths[:artists][1]
       assert  art.new_record?, "art="+art.inspect
-      assert_match(/Asian char/,  art.errors.full_messages_for(:title)[0]) # "Translation(1st): contains Asian characters (英語であるべき)"
+
+      ### Old-school
+      # assert_match(/Asian char/,  art.errors.full_messages_for(:title)[0]) # "Translation(1st): contains Asian characters (英語であるべき)"
+      ### New way with accepts_nested_attributes_for
+      assert_match(/Asian char/,  art.errors.full_messages_for("translations.title")[0]) # "Translation(1st): contains Asian characters (英語であるべき)"
+
       assert_nil reths[:musics][1] # b/c Artist raises an Error
 
       ### Row 2 (0th line is skipped)
@@ -541,7 +546,7 @@ EOF
 
       mus = reths[:musics][3]
       assert  mus.errors.present?
-      assert_match(/Asian char/,  mus.errors.full_messages_for(:title)[0]) # "Translation(1st): contains Asian characters (英語であるべき)"
+      assert_match(/Asian char/,  mus.errors.full_messages_for("translations.title")[0]) # "Translation(1st): contains Asian characters (英語であるべき)"
       #assert_nil   mus.title(langcode: 'en'), "mus = #{mus.inspect}"
       assert_equal "En Title contains 日本語", mus.title(langcode: 'en') # unsaved_translations
 

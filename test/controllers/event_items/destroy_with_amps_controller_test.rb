@@ -175,7 +175,7 @@ class EventItems::DestroyWithAmpsControllerTest < ActionDispatch::IntegrationTes
 
     def _should_reject_in_ability(evit=@evit, user: nil)
       assert_no_difference("Harami1129.count*100 + HaramiVid.count*10 + Engage.count") do
-        assert_no_difference("Event.count*1000 + EventItem.count*100 + HaramiVidEventItemAssoc.count*10 + ArtistMusicPlay.count") do
+        assert_no_difference("Event.count*1000 + EventItem.count*100 + HaramiVidEventItemAssoc.count*10 + ArtistMusicPlay.count", "(NOTE: in some cases this fails with no reason... Strange!)") do
           delete event_items_destroy_with_amp_url(evit)
           assert_response :redirect
         end

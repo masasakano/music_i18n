@@ -162,6 +162,10 @@ class Ability
       can :destroy, HaramiVidMusicAssoc
       can :crud,  [Event, EventItem]  # Event can be destroyed only if there are no significant associated EventItem-s or HaramiVid-s anyway.
       can :crud,  ArtistMusicPlay  # This is used also for ArtistMusicPlays::EditMultisController
+
+      ## NOTE: These two are repeated below for General-JA moderators
+      can :destroy, EventItems::DestroyWithAmpsController
+      can(:destroy_with_amps, EventItem){|mdl| !mdl.unknown? && mdl.harami_vids.count <= 1 && mdl.associated_amps_all_duplicated?}  # OR if (!mdl.unknown? && mdl.artist_music_plays.blank?)  # should be also implemented... (but not yet because not yet tested)
     end
 
     ## Translation editor only
@@ -222,9 +226,11 @@ class Ability
     if user.qualified_as?(:moderator, rc_general_ja) || user.qualified_as?(:moderator, rc_harami)
       can :crud, [EventGroup, Event, EventItem, Instrument, Anchoring]  # later excluded for "unknown?"
       can :cr, ChannelType
-      can :destroy, EventItems::DestroyWithAmpsController
-      can(:destroy_with_amps, EventItem){|mdl| mdl.harami1129s.empty? && mdl.harami_vids.count <= 1 && mdl.associated_amps_all_duplicated?}
       can :index, DiagnoseController
+      if !user.qualified_as?(:editor, rc_harami)  # Already(!) defined (enabled) for HaramiVid editor
+        can :destroy, EventItems::DestroyWithAmpsController
+        can(:destroy_with_amps, EventItem){|mdl| !mdl.unknown? && mdl.harami_vids.count <= 1 && mdl.associated_amps_all_duplicated?}  # OR if (!mdl.unknown? && mdl.artist_music_plays.blank?)  # should be also implemented... (but not yet because not yet tested)
+      end
     end
 
     ## Translation moderator only

@@ -10,7 +10,7 @@ class HaramiVids::UploadHvmaCsvsController < ApplicationController
   # POST /harami_vid_music_assocs/upload_hvma_csvs
   def create
     render_path = 'harami_vids/show'
-    uploaded_io, csv_direct = upload_hvma_csvs_params.slice(:file, :csv_direct).values  # IO object, String.
+    uploaded_io, csv_direct = upload_hvma_csvs_params.values_at(:file, :csv_direct)  # IO object, String.
 
     if uploaded_io.blank? && csv_direct.blank? || uploaded_io.present? && csv_direct.present?
       @harami_vid.errors.add :csv_direct, " Either of uploading file or direct-input must be present, NOT neither or both."
@@ -26,10 +26,10 @@ class HaramiVids::UploadHvmaCsvsController < ApplicationController
       # the latter path should be new_music_url, too; but leaving it as musics_path for now for the sake of testing...
       @harami_vid.populate_hvma_csv(csv_str)
     }
-    return if !hsret
+    return if !hsret  # if hsre.nil? (as in very erroneous cases), +respond_to do |format|+ should have been processed inside populate_csv_file
 
     # Here, @changes is either (nil, false, base::ResultLoadCsv); nil if not evaluated and false for CSV-format error; RLC#music_ja returns an Array
-    @input_lines, @changes, @csv, @artists, @musics, @hvmas, @amps, @stats = hsret.slice(*(%i(input_lines changes csv artists musics hvmas amps stats))).values
+    @input_lines, @changes, @csv, @artists, @musics, @hvmas, @amps, @stats = hsret.values_at(*(%i(input_lines changes csv artists musics hvmas amps stats)))
     @unimported_csvs     = get_unimported_csvs
     @missing_musics_csv  = get_missing_musics_csv  # always String, maybe ""
 

@@ -25,6 +25,7 @@ class HaramiVidsTest < ApplicationSystemTestCase
     @channel2= channels(:channel_haramichan_youtube_main)
     #@channel_owner = channel_owners(:channel_owner_saki_kubota)
     #@channel_owner2= channel_owners(:channel_owner_haramichan)
+    @music  = musics(:music1)
     @artist = artists(:artist_saki_kubota)
     @moderator_all   = users(:user_moderator_all)         # General-JA Moderator can manage.
     @editor_harami   = users(:user_editor)                # Harami Editor can manage.
@@ -196,6 +197,10 @@ class HaramiVidsTest < ApplicationSystemTestCase
   end
 
   test "minimum creating HaramiVid" do
+    # Practically testing the 2 utility basic functions:
+    #    hvid = _create_a_harami_vid_manual(jump_to_edit: true)
+    #    _add_music_to_harami_vid_manual(music2, harami_vid=hvid, jump_to_edit: false)
+
     visit harami_vids_path
     assert_selector "h1", text: "HARAMIchan's Videos"
     ensure_page_load_in_full_load  # defined in test_system_helper.rb
@@ -240,6 +245,63 @@ class HaramiVidsTest < ApplicationSystemTestCase
     }
     assert_selector "h1", text: "-featured Video"
     assert_selector "#main_link_edit_merge_destroy a", text: "Edit"
+
+    css_evit_list  = c = ".item_event .list_event_items"
+    css_dup_button = c + " .link_duplicate_event_item"
+    refute_selector css_evit_list, text: "Duplicate"
+    refute_selector css_dup_button
+
+    ## Associates an existing Music.
+
+    hvid = HaramiVid.find retrieve_pid_in_show  # defined in test_helper.rb
+    hvid.best_translation.update!(title: SecureRandom.alphanumeric(5) + " " + SecureRandom.alphanumeric(10))
+
+    _add_music_to_harami_vid_manual(@music, hvid)
+
+  end
+
+  test "EventItem/Event handling after creation" do
+    login_at_root_path(user=@editor_harami, with_visit: true, new_h1: nil)
+    hvid = _create_a_harami_vid_manual(jump_to_edit: true)
+
+    css_evit_list  = c = ".item_event .list_event_items"
+    css_dup_button = c + " .link_duplicate_event_item"
+    css_destroy_tail = " .destory_event_item_and_associations"
+    refute_selector css_evit_list, text: "Duplicate"
+    refute_selector css_dup_button
+
+    _add_music_to_harami_vid_manual(@music, harami_vid=hvid, jump_to_edit: false)
+    refute_selector css_evit_list, text: "Duplicate"  # At the moment, if EventItem has only 1 Amp, Controller does not provide "Duplicate"
+    refute_selector css_dup_button
+
+    music2 = musics(:music_light)
+    _add_music_to_harami_vid_manual(music2, harami_vid=hvid, jump_to_edit: false)
+    assert_selector css_evit_list, text: "Duplicate"  # With 2 Amps, Controller provides "Duplicate" EventItem anchor (button).
+    assert_selector css_dup_button, count: 1
+    refute_selector css_evit_list+css_destroy_tail
+
+    find(css_dup_button).click
+
+    css_evit_list_2nd = css_evit_list+" > li:nth-child(2)"
+    assert_selector css_evit_list_2nd
+    flash_regex_assert(/EventItem .* successfully created/, type: [:notice, :success], system_test: true)  # defined in test_helper.rb
+    close_flash_windows([:notice, :success])
+
+    assert_selector     css_evit_list,    text: "Duplicate"
+    assert_selector     css_evit_list_2nd, text: "Duplicate"
+    assert_selector (c=(css_evit_list_2nd+" a.link_event_item")), count: 1
+    assert_match(/^[^a-z]*?copy\-/i, find(c).text)
+    assert_selector (c=(css_evit_list+    css_destroy_tail)), count: 2
+    assert_selector     css_evit_list_2nd+css_destroy_tail,   count: 1
+    assert_difference('HaramiVid.count*10000 + Translation.count*1000 + HaramiVidEventItemAssoc.count*100 + ArtistMusicPlay.count*10 + HaramiVidMusicAssoc.count', -120){
+      accept_confirm do
+        click_on "Destroy EventItem AND its associations", match: :first  # EventItem "copy-*" will remain.
+        # find(c).click
+      end
+      refute_selector css_evit_list_2nd
+      flash_regex_assert(/EventItem .* successfully destroyed/, type: [:notice, :success], system_test: true)  # defined in test_helper.rb
+      close_flash_windows([:notice, :success])
+    }
   end
 
   test "visiting HaramiVid index and then creating one" do
@@ -362,6 +424,8 @@ class HaramiVidsTest < ApplicationSystemTestCase
 
     ## Associated Music/Artist
     fill_autocomplete('Associated Artist name', with: 'Lennon', select: (vid_prms[:engage_artist_text]="John Lennon"))  # defined in test_helper.rb # calling BaseMerges::BaseWithIdsController
+
+
     find_field("Way of engagement").select(vid_prms[:engage_how_text]="Singer (Cover)")
     fill_in "Year of engagement", with: (vid_prms[:engage_year]=2009)
     fill_in "Contribution",       with: (vid_prms[:engage_contribution]=0.5)
@@ -607,6 +671,11 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_raises(Capybara::ElementNotFound){
       trs[0].find('form') }
 
+    css_evit_list  = c = ".item_event .list_event_items"
+    css_dup_button = c + " .link_duplicate_event_item"
+    refute_selector css_evit_list, text: "Duplicate"
+    refute_selector css_dup_button
+
     # HaramiEditor
     login_at_root_path(user=@editor_harami)  # defined in test_system_helper.rb
 
@@ -749,6 +818,20 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_selector css, text: hvid2.country.title_or_alt(langcode: :en, lang_fallback_option: :either)
     assert_includes page.find(css).text, hvid2.place.title_or_alt(langcode: :en, lang_fallback_option: :either)
     assert_includes page.find(css).text, "INCONSISTENT"  # b/c its Place is inconsistent with the now associated EventItem
+    close_flash_windows([:notice, :success])
+
+    ## Testing EventItem handling ###
+    css_evit_list  = c = ".item_event .list_event_items"
+    css_dup_button = c + " .link_duplicate_event_item"
+    css_music_table= "#harami_vids_show_musics"  # to ensure loading the main part
+
+    assert_selector css_evit_list, text: "Duplicate"
+    assert_selector css_dup_button, count: 1
+    assert_selector css_music_table
+    assert_equal 1, find_all(css_evit_list).size,       "should have only 1 associated Event"
+    assert_equal 1, find_all(css_evit_list+" li").size, "should have only 1 associated EventItem"
+
+    ## NOTE: Now, the EventItem has 3 harami_vids of "ハラミのテストVideo (2|3|4)" (so cannot be easily destroyed).
   end
 
   test "visiting-HaramiVid#edit" do
@@ -1016,6 +1099,92 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_selector "h1", text: "EventItem: "
     assert_text tit2  # HaramiVid should be included in a table.
   end
+
+
+    # Create a new HaramiVid
+    #
+    # Make sure a user is logged in!
+    #
+    # @param title [String, NilClass] if nil, unique one is automatically created with a prefix: "New-Harami-Video "
+    # @param jump_to_edit: [Boolean] if true, jump directly to :new screen
+    # @return [HaramiVid] a new HaramiVid just created
+    def _create_a_harami_vid_manual(title=nil, length: nil, jump_to_edit: false, debug: false)
+      title ||= "New-Harami-Video "+SecureRandom.alphanumeric(8) if title.blank?
+      print "DEBUG(#{__method__}): Creating a HaramiVid for Youtube with a title=#{title.inspect}\n" if debug
+
+      if jump_to_edit
+        visit new_harami_vid_path
+      else
+        # Assuming you are on :index
+        clickable_text = "Create a new HaramiVid"
+        assert_selector "div#new_harami_vid_link", text: clickable_text
+        click_on clickable_text
+      end
+
+      assert_selector "h1", text: "New Harami"
+      clickable_text = "Create Harami vid"
+      assert_selector sprintf('input[type="submit"][value="%s"]', clickable_text)
+
+      fill_in "Full Title", with: title
+      choose("English")
+      ## Alternative
+      # page_find_sys(:trans_new, :langcode_radio, model: HaramiVid).choose("English")  # defined in test_system_helper
+
+      fill_in "Uri", match: :first, with: "https://youtu.be/"+SecureRandom.alphanumeric(8)
+      fill_in "Video length", with: length if length
+
+      ## If you select a Channel
+      # select channel_owners(:channel_owner_haramichan).title(langcode: "en"), from: "Channel Owner"
+      # select channel_platforms(:channel_platform_youtube).title(langcode: "en"), from: "Channel Platform"
+
+      assert_difference('HaramiVid.count*10 + Translation.count', 11){
+        click_on clickable_text, match: :first
+        flash_text_system_assert("successfully created", type: [:notice, :success], category: :div)  # defined in test_helper.rb
+      }
+      assert_selector "h1", text: "-featured Video"
+      assert_selector "#main_link_edit_merge_destroy a", text: "Edit"
+
+      HaramiVid.find retrieve_pid_in_show  # defined in test_helper.rb
+    rescue Selenium::WebDriver::Error::UnknownError
+      puts _get_caller_info_message(bind_offset: -1, prefix: true) # if is_env_set_positive?("PRINT_DEBUG_INFO") # defined in test_helper.rb
+      raise
+    end
+    private :_create_a_harami_vid_manual
+
+    # Associate an existing Music to HaramiVid and to the default EventItem in :edit screen
+    #
+    # Make sure a user is logged in!
+    # Make sure the best Music title is unique in Music.all
+    #
+    # @param music [Music] Existing one!
+    # @param jump_to_edit: [Boolean] if true, jump directly to :edit screen
+    def _add_music_to_harami_vid_manual(music, harami_vid=nil, jump_to_edit: false, debug: false)
+      print "DEBUG(#{__method__}): Adding a Music #{music.inspect} to HaramiVid #{harami_vid.inspect}\n" if debug
+      if jump_to_edit
+        visit edit_harami_vid_path(havmi_vid)  # harami_vid.present?
+      else
+        find("#main_link_edit_merge_destroy a#main_edit_button").click
+      end
+
+      assert_selector "h1", text: "Editing Harami"
+      ensure_page_load_in_full_load  # defined in test_system_helper.rb
+
+      mu_tit = music.best_translation.title_or_alt
+      fill_autocomplete("#harami_vid_music_name", use_find: true, with: mu_tit, select: mu_tit)  # defined in test_helper.rb # calling BaseMerges::BaseWithIdsController
+
+      assert_difference('HaramiVid.count*10000 + Translation.count*1000 + HaramiVidEventItemAssoc.count*100 + ArtistMusicPlay.count*10 + HaramiVidMusicAssoc.count', 11){
+        click_button "Update Harami", match: :first  # Or this should work:  find("#main_edit_button").click
+
+        assert_current_path harami_vid_path(harami_vid) if harami_vid
+        assert_selector "h1", text: "-featured Video"
+      }
+      flash_regex_assert(/Harami\s*Vid.* successfully updated/, type: [:notice, :success], system_test: true)  # defined in test_helper.rb
+      close_flash_windows([:notice, :success])
+    rescue Selenium::WebDriver::Error::UnknownError
+      puts _get_caller_info_message(bind_offset: -1, prefix: true) # if is_env_set_positive?("PRINT_DEBUG_INFO") # defined in test_helper.rb
+      raise
+    end
+    private :_add_music_to_harami_vid_manual
 
   # test "destroying a Harami vid" do
   #   visit harami_vids_url

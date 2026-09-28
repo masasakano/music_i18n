@@ -45,6 +45,9 @@
               <% klass = model_name.constantize %>
               <% msg_detail = (klass.const_defined?(:DEPENDENT_CHILDREN) ? " "+klass.const_get(:DEPENDENT_CHILDREN).inspect  : "") %>
               (<%= model_name %> has dependent children<%= msg_detail %> or is "unknown?", so cannot be destroyed.)
+              <% if EventItem == klass && !record.artist_music_plays.exists? && record.harami_vids.exists? %>
+                <br>(To destroy this EventItem, first edit HaramiVid to disassociate this EventItem.)
+              <% end %>
             <% end %>
           <% end %> <!--  div class="actions-destroy actions-destroy-align-r" -->
         <% elsif can_merge %>

@@ -19,7 +19,7 @@
 <% given_ref_id = harami_vid.reference_harami_vid_id %>
 <% given_ref = (given_ref_id.present? ? HaramiVid.find(given_ref_id) : nil) %>
 
-<%= simple_form_for(harami_vid) do |f| %>
+<%= simple_form_for(harami_vid, html: {data: { turbo: false }}) do |f| %>
  <section id="sec_primary_input">
   <% if harami_vid.new_record? %>
     <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: harami_vid, trans: Translation.new, disable_is_orig: true, is_simple_form: true, only_title: true } %>

@@ -230,12 +230,16 @@ class Musics::UploadHvmaCsvsControllerTest < ActionDispatch::IntegrationTest
     # Second row is valid for Artist, but the Music does not exist.
     # Third row contains Music and Artist neither of which is on DB
     # Fourth row's pID for Music does not exist, while its pID for Artist exists.
-    csv_direct = " # abc.csv これはコメント行です。\r\n1:1/20,,糸,Thread,中島みゆき,この日だけのスペシャルコラボ,1992,ロングヒット,,タイミングは空欄でも良い\r\n2:2/20,240,シェイク,,SMAP,,1996,SMAPの代表曲,12345,EventItemのpIDはもし分かればで十分\r\n(3),5:20,レット・イット・ビー,Let It Be,\"Beatles, The\",,1969,,,曲名や人名にコンマが入る時は二重引用符で囲うこと\r\n4曲目,8:30,#{Music.order(:id).last.id+1},,#{art_miyuki.id},,,,1234,曲名のpIDを記述するのは和名曲名欄で英語名曲名は空欄に"
+    csv_direct =
+      " # abc.csv これはコメント行です。\r\n" +
+      "1:1/20,,糸,Thread,中島みゆき,この日だけのスペシャルコラボ,1992,ロングヒット,,タイミングは空欄でも良い\r\n" +
+      "2:2/20,240,シェイク,,SMAP,,1996,SMAPの代表曲,12345,EventItemのpIDはもし分かればで十分\r\n" +
+      "(3),5:20,レット・イット・ビー,Let It Be,\"Beatles, The\",,1969,,,曲名や人名にコンマが入る時は二重引用符で囲うこと\r\n4曲目,8:30,#{Music.order(:id).last.id+1},,#{art_miyuki.id},,,,1234,曲名のpIDを記述するのは和名曲名欄で英語名曲名は空欄に"
 
     assert_difference(@count_eq, 111) do
       post harami_vid_upload_hvma_csv_url(harami_vid_id: @hvids.first.id),
          params: {upload_hvma_csv: { csv_direct: csv_direct } }  # "file" (for uploaded file) is NOT even included in params (according to Log)
-      assert_response :redirect
+      assert_response :success
     end
     sign_out @editor
   end

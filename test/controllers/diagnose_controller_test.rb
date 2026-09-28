@@ -52,11 +52,13 @@ class DiagnoseControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_redirected_to new_user_session_path
 
-    sign_in @editor_ja
-    get diagnose_index_url
-    assert_response :redirect
-    assert_redirected_to root_path
-    sign_out @translator
+    [@editor_ja, @trans_moderator].each do |user|
+       sign_in user
+       get diagnose_index_url
+       assert_response :redirect, "ERROR by user=#{user.inspect}"
+       assert_redirected_to root_path
+       sign_out user
+    end
 
     sign_in @moderator_all
     get diagnose_index_url

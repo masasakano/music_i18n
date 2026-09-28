@@ -274,7 +274,7 @@ class ApplicationController < ActionController::Base
         msg = message_successfully_done(mdl, created_updated)  # e.g., Article was successfully created.
         msg << sprintf('  Return to %s.', (back_html.html_safe? ? back_html : sanitized_html_fragment(back_html))) if back_html
         opts = get_html_safe_flash_hash(success: msg.html_safe, alert: alert, **hsflash)
-        format.html { redirect_to (redirected_path || mdl), **opts }
+        format.html { redirect_to (redirected_path || mdl), **opts }  # Turbo may require - (status: :see_other)
         format.json { render :show, status: ret_status, location: mdl }
       else
         mdl.errors.add :base, alert if alert.present? # alert is, if present, included in the instance
