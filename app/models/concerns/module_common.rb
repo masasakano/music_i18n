@@ -1783,14 +1783,18 @@ module ModuleCommon
   # HTML/XPath/URL/scraping related
   ################################################################
 
+  # Fetches either H1 or TITLE of a URL.  H1 has a priority.
+  #
+  # If H1 exists but blank?, H1 is still looked up, not TITLE.
+  #
   # @example
   #    fetch_url_h1("http://example.com", css: "h1")
   #
   # @param url [String] URL string
   # @param css: [String, NilClass] "h1" in default.
-  # @return [String, NilClass] nil if something goes wrong (Error is captured inside).
+  # @return [String] String#message is defined for the returned String, which may contain an Error message.
   def fetch_url_h1(url, css: nil, capture_exception: false, **opts)
-    css = "h1" if css.blank?
+    css = "h1,head title" if css.blank?
     retstr = String.new
     set_singleton_method_val(:message, nil, target: retstr, clobber: true)  # defined in module_common.rb
 
@@ -1806,7 +1810,6 @@ module ModuleCommon
     cand = nodes.first&.text&.strip    # most likely H1 element (as nodes have been already sorted)
 
     if cand
-      cand ||= "" #String.new
       cand_nosp = cand.gsub(/[[:space:]]/, "")
       ssiz = cand_nosp.strip.size
       if (/^[\p{Punctuation}\p{InCJKSymbolsAndPunctuation}]+$/ !~ cand_nosp) &&
@@ -1943,8 +1946,8 @@ module ModuleCommon
   # @example alias
   #    ModuleCommon.ordered_xml_nodes("http://example.com", css: "h1")&.first&.to_s&.strip
   #
-  # @param [Nokogiri::XML::NodeSet, String, NilClass] Either NodeSet or String (of URL).  In the case of the latter, "css" option is mandatory; see {ModuleCommon.fetch_url_node}
-  # @return [Array<Nokogiri::XML::Element>, NilClass] nil only when nil is given
+  # @param node [Nokogiri::XML::NodeSet, String, NilClass] Either NodeSet or String (of URL).  In the case of the latter, "css" option is mandatory; see {ModuleCommon.fetch_url_node}
+  # @return [Array<Nokogiri::XML::Element>, NilClass] nil if nil is given or if fails to access the given URL-String
   def self.ordered_xml_nodes(node, **opts)
     return  if !node
     node = fetch_url_node(node, **opts)

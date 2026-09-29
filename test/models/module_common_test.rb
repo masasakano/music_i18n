@@ -1,7 +1,5 @@
 # coding: utf-8
 
-# coding: utf-8
-
 require 'test_helper'
 
 class ModuleCommonTest < ActiveSupport::TestCase
@@ -479,7 +477,9 @@ class ModuleCommonTest < ActiveSupport::TestCase
   end
 
   test "fetch_url_h1" do
-    assert_equal "Example Domain", fetch_url_h1("http://example.com"), "This may fail if the network connection is unsable..."
+    # NOTE: https://mockbin.org is an alternative website.
+    # WARNING: Do not use http://example.com (although it may contain +<title>Example Domain</title>+)
+    assert_equal "httpbin.org", fetch_url_h1("https://httpbin.org"), "This may fail if the network connection is unsable..."
   end
 
   test "transfer_errors" do
