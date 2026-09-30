@@ -639,11 +639,27 @@ class ApplicationGrid < Datagrid::Base
   #
   # @param model_sym [Symbol] e.g., :n_musics
   # @param metho [Symbol] e.g., :musics
+  # @param distinct: [Boolean] (Ruby's) uniq if true (Def: false)
   # @param header [Proc, String, NilClass, FalseClass] if nil (Def), replaced with a guessed Default. If false, no header is passed.
-  # @param order [Proc, NilClass, FalseClass] if nil (Def), sorted by Translation. If false, no order is defined.
+  # @param order [Proc, NilClass, FalseClass] if nil (Def), sorted by the number of counts. If false, no order is defined.
   # @param editor_only: [Boolean] if true (Def: false), editor-only.
-  def self.column_n_models_belongs_to(model_sym, metho, distinct: false, header: nil, order: nil, editor_only: false, tag_options: {class: ["align-cr", "align-r-padding3"]}, **opts)
-    header = Proc.new{I18n.t('tables.'+model_sym.to_s)} if header.nil?
+  # @param title_i18n: [String, Symbol] I18n translation Symbol/String for title attribute for th, considered only when header.nil?
+  # @param tag_options: [Hash]
+  # @param opts: [Hash] e.g., +{mandatory: true}+
+  # @param yield [ActiveRecord, Integer] Optionally, you can give a block to add an anchor.
+  #    The block receives the record and count, and should return +[link_txt, record, postfix]+;
+  #    the parameters are passed to +link_to+, where postfix is an optional anchor text to the link, such as "+#list_of_videos+"
+  def self.column_n_models_belongs_to(model_sym, metho, distinct: false, header: nil, order: nil, editor_only: false, title_i18n: nil, tag_options: {class: ["align-cr", "align-r-padding3"]}, **opts)
+    if header.nil?
+      header = Proc.new{
+        head_txt = I18n.t('tables.'+model_sym.to_s)
+        if title_i18n
+          ActionController::Base.helpers.tag.span(head_txt, title: I18n.t(title_i18n))
+        else
+          head_txt
+        end
+      }
+    end
     opts = opts.merge({header: header}) if header
     opts = opts.merge({if: Proc.new{ApplicationGrid.qualified_as?(:editor)}}) if editor_only
 

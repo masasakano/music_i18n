@@ -103,6 +103,7 @@ class Artist < BaseWithTranslation
     has_many esym, -> {distinct}, through: :artist_music_plays
   end
   has_many :play_musics, -> {distinct}, through: :artist_music_plays, source: "music"
+  has_many :events, -> {distinct}, through: :event_items, source: :event  # event_collabs
 
   has_one :channel_owner, dependent: :restrict_with_exception  # dependent is a key; by default, optional: true 
   has_many :channels, through: :channel_owner

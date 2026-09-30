@@ -64,8 +64,9 @@ class ArtistsGrid < ApplicationGrid
   ### Here, this method below is not called so that the link-text is special and it is not sortable
   # column_model_trans_belongs_to(:channel_owner, header: Proc.new{I18n.t('ChannelOwner')}, with_link: :class)  # defined in application_grid.rb
 
-  column_n_models_belongs_to(:n_musics, :musics, distinct: false, header: Proc.new{I18n.t('tables.n_musics')})
-  column_n_harami_vids(:n_harami_vids_short, mandatory: true) # defined in application_grid.rb
+  column_n_models_belongs_to(:n_musics_short, :musics, distinct: false, title_i18n: "tables.n_musics_by_artist") #header: Proc.new{I18n.t('tables.n_musics')
+  column_n_models_belongs_to(:n_events_short, :events, distinct: false, title_i18n: "tables.n_events_by_artist", mandatory: true, order: false) # defined in application_grid.rb
+  column_n_harami_vids(:n_harami_vids_short, mandatory: true, title_i18n: "tables.n_harami_vids_with_music_by_artist", order: false) # defined in application_grid.rb
 
   column_wiki_url         # defined in application_grid.rb
   column_note             # defined in application_grid.rb

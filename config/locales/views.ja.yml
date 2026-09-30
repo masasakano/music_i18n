@@ -35,12 +35,15 @@ ja:
     n_events: "イベントの数"
     n_events_short: "イベント数"
     n_events_long: "登録イベントの数"
+    n_events_by_artist: "登録イベントの数(大半は何らかの形で動画に登場)"
     n_musics: 登録曲数
     n_musics_short: "曲数"
     n_musics_long: 登録曲数
+    n_musics_by_artist: "本サイト登録楽曲でアーティストによる(持ち歌、作詞作曲編曲他の貢献)曲の数"
     n_harami_vids: 登録ハラミ動画数
     n_harami_vids_short: "動画数"
     n_harami_vids_long: "登録ハラミ(関連)動画数"
+    n_harami_vids_with_music_by_artist: "アーティストによる楽曲(持ち歌、作詞作曲編曲他の貢献)を含む登録ハラミ動画数"
     note: 注記
     updated_at: 最終更新日時
     created_at: 生成日時
