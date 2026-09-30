@@ -176,6 +176,10 @@ class TranslationTest < ActiveSupport::TestCase
   test "validations" do
     mdl = translations(:gare_lyon_france_fr)
     user_assert_model_weight(mdl, allow_nil: true)  # defined in test_helper.rb
+
+    assert mdl.title.present?, 'checking fixtures'
+    mdl.ruby   = "りよんえき"
+    assert_equal "リヨンエキ", mdl.ruby  # testing: normalizes
   end
 
   test "class method preprocessed_6params" do

@@ -750,7 +750,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     assert_nil                 mdl0.title
     assert_nil                 mdl0.ruby
     assert_equal "翻訳-0",     mdlt.title(langcode: "ja")
-    assert_equal "ほんやく-0", mdlt.ruby(langcode: "ja")
+    assert_equal "ホンヤク-0", mdlt.ruby(langcode: "ja")
     assert_equal "tra-1-alt",  mdlt.alt_title
     assert_equal "翻訳-0",     mdlt.title
     assert                     mdlt.title(lang_fallback: false).blank?

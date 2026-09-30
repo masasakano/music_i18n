@@ -384,6 +384,9 @@ class Translation < ApplicationRecord
   # should not be displayed for general public.
   THRESHOLD_WEIGHT_VISIBLE = Role::DEF_WEIGHT.values.max*10 + [DEF_WEIGHT_INCREMENT_POSITIVE, 100].max * 10  # = 101000
 
+  normalizes :ruby,     with: ->(str) { NKF.nkf('-w -h2', str.to_s) }  # Ensures katakana (h1 to ensure hiragana); nil is ignored.
+  normalizes :alt_ruby, with: ->(str) { NKF.nkf('-w -h2', str.to_s) }
+
   validates :title, uniqueness: { scope: [:alt_title, :ruby, :alt_ruby, :romaji, :alt_romaji, :langcode, :translatable_type, :translatable_id] }
   # NOTE: PostgreSQL does not validate the values when one of any values (whether
   #   existing or new) is null.  But Rails does.
