@@ -304,6 +304,7 @@ class ApplicationGrid < Datagrid::Base
     _hide_translation_rows_from_public(artit, rela, is_editor: is_editor).join("<br>").html_safe
   end
 
+  # @param artit [Array<String>] Array of :title (String) to display in a cell in Grids tables
   # @return [Array] where too-high-weight Translations are either removed (for the public) or HTML-marked for Editors
   def self._hide_translation_rows_from_public(artit, rela, is_editor: nil)
     is_editor = CURRENT_USER && CURRENT_USER.editor? if is_editor.nil? # Ability is not used as it would be too DB-heavy.
@@ -313,11 +314,15 @@ class ApplicationGrid < Datagrid::Base
     arret = artit[0..(first_exclude_index-1)] if first_exclude_index && !is_editor  # remove Translations with too high weight for the public
     (arret || artit).map.with_index{|val, i|
       if first_exclude_index && i >= first_exclude_index
-        ('<span class="editor_only" title="Hidden from public display due to a too high weight">' + val + '</span>').html_safe
+        tag.span(
+          val.presence,  # This should be automatically HTML-sanitized, if not yet marked html_safe
+          class: "editor_only",
+          title: "Hidden from public display due to a too high weight"
+        )
       else
         val
       end
-    }
+    }.compact  # I don't expect this `compact` to ever do something significant, but playing safe...
   end
   private_class_method :_hide_translation_rows_from_public
 
