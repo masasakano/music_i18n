@@ -354,7 +354,7 @@ class ApplicationGrid < Datagrid::Base
 
     artit = cols.map{|i| record.send(i, langcode: langcode, lang_fallback: false, str_fallback: "")}
     retstr =
-      if artit[1..2].all?(&:blank?)
+      if artit[-2..-1].all?(&:blank?)
         ((col == :alt_title) ? ERB::Util.html_escape(sprintf(fmt1, artit[0])) : String.new)
       else
         ERB::Util.html_escape(sprintf(fmt1+fmt2, *artit))

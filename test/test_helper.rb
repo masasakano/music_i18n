@@ -145,13 +145,17 @@ class ActiveSupport::TestCase
     pagenation_stats: "/*[#{ModuleCommon.xpath_contain_css(ApplicationGrid::CSS_CLASSES[:pagenation_stats])}]",  # unique to this app as defined in app/views/layouts/_grid_table_tail.html.erb
   }.with_indifferent_access
   XPATHGRIDS.merge!({
-    th_tr: XPATHGRIDS[:table]+'//thead//tr',
-    tb_tr: XPATHGRIDS[:table]+'//tbody//tr',
+    ## NOTE: tr must be a direct child of either thead or tbody.
+    #    Even if an HTML is invalid and contains a div pair, Browser (behind Capybara) will remove it, so system tests work.
+    #    If you directly deals with a raw HTML in Controller tests, it can be a different story, but then failing tests would prompt the developer to fix the app (so it is good)!
+    th_tr: XPATHGRIDS[:table]+'//thead/tr',
+    tb_tr: XPATHGRIDS[:table]+'//tbody/tr',
   })
   XPATHGRIDS.merge!({
-    td_title:    XPATHGRIDS[:tb_tr]+"//td[@data-column='title']",  # for Harami1129
-    td_title_ja: XPATHGRIDS[:tb_tr]+"//td[@data-column='title_ja']",
-    td_title_en: XPATHGRIDS[:tb_tr]+"//td[@data-column='title_en']",
+    # NOTE: td is a strictly direct child of "tr"
+    td_title:    XPATHGRIDS[:tb_tr]+"/td[@data-column='title']",  # for Harami1129
+    td_title_ja: XPATHGRIDS[:tb_tr]+"/td[@data-column='title_ja']",
+    td_title_en: XPATHGRIDS[:tb_tr]+"/td[@data-column='title_en']",
   })
 
   # XPATH-related parameters
@@ -1565,6 +1569,47 @@ class ActiveSupport::TestCase
             XPATHGRIDS[:pagenation_stats],
             ModuleCommon.xpath_contain_text(exp_txt, case_insensitive: false))  # CSS is case-sensitive.
     # "//*[contains(concat(' ', normalize-space(@class), ' '), ' pagenation_stats ')][contains(., 'MY_TEXT_XXX')]"
+  end
+
+  # Returns an XPath for "tr" in Grid table that contains specific td-s (with specified text)
+  #
+  # @example with no text constraints
+  #    xpath_grid_rows_contain(title_en: nil, prefix: "//tr")  # defined in test_helper.rb
+  #     # => "//tr[td[@data-column='title_en']]"
+  #
+  # @example tr containing title_en="Light" and ruby="ライト"  (In the actual Grids, it is perhaps +ruby_romaji_ja+)
+  #    assert_selector :xpath, xpath_grid_rows_contain(title_en: "Light", ruby: "ライト")  # defined in test_helper.rb
+  #     # => "//table[contains(@class, 'datagrid-table')]//tbody/tr[" \
+  #           "td[@data-column='title_en' and contains(., 'Light')] and " \
+  #           "td[@data-column='ruby' and contains(., 'ライト')]]"
+  #
+  # @example Node "td" of :weight in the "tr" containing specific title_en and title_ja
+  #    xpath_tr = xpath_grid_rows_contain(title_en: "Light", title_ja: "ライト")  # defined in test_helper.rb
+  #    xpath_td = xpath_grid_rows_contain(weight: nil, prefix: "")[1..-2]  # Only the last part of XPath
+  #    xpath = xpath_tr + xpath_td
+  #    assert_selector :xpath, xpath
+  #    node_td = page.find( xpath )
+  #
+  # @example System test of non-existence of a column "memo_editor_exists" in table-Header th
+  #    refute_selector :xpath, xpath_grid_rows_contain(memo_editor_exists: nil, prefix: "/"+XPATHGRIDS[:th_tr])  # defined in test_helper.rb
+  #
+  # @param prefix: [String] Preceding XPath up to +tr+. In default, +tbody+ in a Grid table is assumed. This must end with "tr" (unless a blank String "" deliberately given).
+  #    Note that although an expression like "body[td[...]]" is a perfectly valid HTML, you should narrow it down in testing, hence an error raised.
+  # @param **opts [Hash] key (Symbol) is for the exact +data-column+ attribute
+  #    and value is for the text contained in the cell (not exact but case-sensitive).
+  #    If value is blank? (nil), no constraints for the text is given.
+  # @return [String]
+  def xpath_grid_rows_contain(prefix: "/"+XPATHGRIDS[:tb_tr], **opts)
+    raise ArgumentError, "Specify options!" if opts.blank?
+    raise ArgumentError, "Wrong prefix #{prefix}" if !prefix.empty? && prefix[-2..-1] != "tr"
+
+    tr_constraints = opts.map{ |ek, ev|
+      former = sprintf("td[@data-column='%s'", ek.to_s)
+      latter = (ev.blank? ? "" : " and "+ModuleCommon.xpath_contain_text(ev.to_s, case_insensitive: false))
+      former + latter + "]"  # => e.g., "td[@data-column='title_en' and contains(., "Light")]"
+    }
+
+    prefix + "[" + tr_constraints.join(" and ") + "]"
   end
   
   ################################################################

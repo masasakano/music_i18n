@@ -49,5 +49,22 @@ class TestHelperTest < ActiveSupport::TestCase
     exp = "//*[contains(concat(' ', normalize-space(@class), ' '), ' pagenation_stats ')][contains(., '#{exp_txt}')]"  # see XPATHGRIDS in test_helper.rb for the CSS @class name
     assert_equal exp,     xpath_grid_pagenation_stats_with(n_filtered_entries: n_filtered_entries, text_only: false, n_all_entries: n_filtered_entries)
   end
+
+  test "xpath_grid_rows_contain" do
+    assert_raises(ArgumentError){
+                      xpath_grid_rows_contain(prefix: "//div", title_en: "some") }  # prefix must end with "tr"
+
+    exp = "//tr[td[@data-column='title_en']]"
+    assert_equal exp, xpath_grid_rows_contain(prefix: "//tr", title_en: nil)
+
+    exp = "/" + XPATHGRIDS[:tb_tr] + "[td[@data-column='title_en']]"
+    assert_equal exp, xpath_grid_rows_contain(title_en: "")
+
+    exp = "/" + XPATHGRIDS[:tb_tr] + "[td[@data-column='title_en' and contains(., 'Light')]]"
+    assert_equal exp, xpath_grid_rows_contain(title_en: "Light")
+
+    exp = "/" + XPATHGRIDS[:tb_tr] + "[td[@data-column='title_en' and contains(., 'Light')] and td[@data-column='ruby' and contains(., 'ライト')]]"
+    assert_equal exp, xpath_grid_rows_contain(title_en: "Light", ruby: "ライト")
+  end
 end
 

@@ -1377,12 +1377,11 @@ music_robinson_en:
   note: MusicRobingonEn
 
 music_light_en:
-  translatable: music_light
-  translatable_type: Music
+  translatable: music_light (Music)
   langcode: en
   title: "Light, The"
   alt_title: 
-  ruby: 
+  ruby: "ザ・ライト"
   alt_ruby: 
   romaji: 
   alt_romaji: 
@@ -1391,8 +1390,19 @@ music_light_en:
   create_user_id: 1
   update_user: user_two
   note: MusicLightEn
-# create_user: user_sysadmin   not working....
-    
+
+music_light_it:
+  translatable: music_light (Music)
+  langcode: it
+  title: "Luce, La"
+  ruby: "ラ・ルーチェ"
+  romaji: 
+  is_orig: false
+  weight: 100
+  create_user_id: 1
+  update_user: user_two
+  note: MusicLightIt
+
 music_rain_ja:
   translatable: music_rain (Music)
   langcode: ja
@@ -1449,7 +1459,27 @@ music_all_i_want_for_christmas_mariah_ja:
   weight: 0
   create_user: user_moderator_translation
   update_user: user_moderator_translation
-  note: MusicAllIWantForChristmasMariahJa-恋人たちのクリスマス
+  note: MusicAllIWantForChristmasMariahJa-恋人たちXmas-orig0
+
+music_all_i_want_for_christmas_mariah_ja2:
+  translatable: music_all_i_want_for_christmas_mariah (Music)
+  langcode: ja
+  title: "恋人たちのクリスマス"
+  is_orig: false
+  weight: 100
+  create_user: user_moderator_translation
+  update_user: user_moderator_translation
+  note: MusicAllIWantForChristmasMariahJa-恋人たちのクリスマス-weight100
+
+music_all_i_want_for_christmas_mariah_ja99:
+  translatable: music_all_i_want_for_christmas_mariah (Music)
+  langcode: ja
+  title: "Internal恋人たちだよXmas"
+  is_orig: false
+  weight: 5000000000
+  create_user: user_moderator_translation
+  update_user: user_moderator_translation
+  note: MusicAllIWantForChristmasMariahJa-Internal恋人たちだよXmas-weight_billion
 
 music_koibito_santa_ja:
   translatable: music_koibito_santa (Music)
@@ -1479,6 +1509,7 @@ music_shiroi_koibitotachi_ja:
   translatable: music_shiroi_koibitotachi (Music)
   langcode: ja
   title: "白い恋人達"
+  ruby: "シロイコイビトタチ"
   is_orig: true
   weight: 0
   create_user: user_moderator_translation

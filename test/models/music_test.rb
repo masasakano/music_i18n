@@ -107,7 +107,7 @@ class MusicTest < ActiveSupport::TestCase
     assert_equal moderator_tr.id, tr_kampai_en3.create_user_id, sprintf('moderator ID=%d is not assigned to create_id=%d.', moderator_tr.id, tr_kampai_en3.create_user_id)
 
     sysadmin = users( :user_sysadmin )
-    tra_en = music_light.translations.first
+    tra_en = music_light.best_translation
     assert_equal music_light_en, tra_en             # sanity check of Fixture
     assert_equal 'en',        tra_en.langcode       # sanity check of Fixture
     assert_equal sysadmin.id, tra_en.create_user_id # sanity check of Fixture
@@ -116,7 +116,7 @@ class MusicTest < ActiveSupport::TestCase
     assert_difference('Translation.count', 1) do
       tra_jp.save!
     end
-    # Now there are 2 Translations (en and ja) with identical information.
+    # Now there are 2 Translations (en and ja) with identical information, in addition to an independent "it" (Italian) translation.
 
     #sign_in @editor
     rela = Music.find_all_by_title_plus(["The Light"])

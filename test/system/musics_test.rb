@@ -20,6 +20,8 @@ class MusicsTest < ApplicationSystemTestCase
     # Music#index
     visit musics_url
     assert_selector "h1", text: (h1tit="Musics")
+    assert_selector :xpath, xpath_grid_rows_contain(title_ja: nil)  # defined in test_helper.rb
+    ensure_page_load_in_full_load
     assert_no_selector 'form.button_to'  # No button if not logged-in.
 
     hsinfo = get_grid_pagenation_stats  # defined in test_helper.rb
@@ -38,6 +40,67 @@ class MusicsTest < ApplicationSystemTestCase
     (title_jas+[title_ihojin]).each do |ew|
       assert_selector :xpath, "/"+XPATHGRIDS[:td_title_ja]+"[text()='#{ew}']"
     end
+
+    ### Showing optional columns
+    check "Ruby/Romaji"
+    check "Other lang"
+    check "Genre"
+    click_on "Apply"
+
+    assert_selector CSSGRIDS[:th_tr]+' th[data-column="ruby_romaji_ja"]', text: "Ruby"
+    assert_selector CSSGRIDS[:th_tr]+' th[data-column="other_lang"]',     text: "Other"
+    assert_selector CSSGRIDS[:th_tr]+' th[data-column="genre"]',          text: "Genre"
+    assert_selector :xpath, xpath_grid_rows_contain(genre: nil)  # defined in test_helper.rb
+    ensure_page_load_in_full_load
+    refute_selector :xpath, xpath_grid_rows_contain(memo_editor_exists: nil, prefix: "/"+XPATHGRIDS[:th_tr])  # defined in test_helper.rb
+    refute_selector :xpath, xpath_grid_rows_contain(memo_editor_exists: nil)  # Confirms no column "Note/Memo?" in tbody, either
+
+    css_tr    = "table.datagrid-table tbody tr"
+    assert_selector css_tr+' td[data-column="genre"]', text: "Pop"
+
+    ## checking assumed fixtures
+    mu_shiroi = musics(:music_shiroi_koibitotachi)
+    mu_shiroi_trans = mu_shiroi.best_translation
+    assert_equal "ja", mu_shiroi_trans.langcode, "fixture sanity checks"
+    assert             mu_shiroi_trans.ruby.present?, "fixture sanity checks (Ruby should exist)"
+    mu_light = musics(:music_light)
+    mu_light_trans_en = mu_light.best_translation
+    assert_equal "en", mu_light_trans_en.langcode, "fixture sanity checks"
+    assert             mu_light_trans_en.ruby.present?, "fixture sanity checks (Ruby should exist)"
+    mu_light_trans_it = mu_light.best_translation(:it)
+    assert             mu_light_trans_it, "fixture sanity checks"
+
+    mu_xmas = musics(:music_all_i_want_for_christmas_mariah)
+    mu_xmas_trans_ja = mu_xmas.best_translation(:ja)
+    rela_trans_ja = mu_xmas.translations.where(langcode: "ja")
+    n_rela_trans_ja         = rela_trans_ja.count
+    n_rela_trans_ja_visible = rela_trans_ja.where("weight < ?", Translation::THRESHOLD_WEIGHT_VISIBLE).count
+    assert_operator 3, :<=, n_rela_trans_ja, "fixture sanity checks (should have multiple (visible) JA Translations)"
+    assert_operator n_rela_trans_ja_visible, :<, n_rela_trans_ja, "fixture sanity checks (should have at least 1 invisible JA Translations)"
+
+    ## checking table cells
+    # Japanese Ruby
+    assert_selector :xpath, xpath_grid_rows_contain(title_ja: nil)  # defined in test_helper.rb
+    assert_selector :xpath, xpath_grid_rows_contain(title_ja:       mu_shiroi_trans.title,
+                                                    ruby_romaji_ja: mu_shiroi_trans.ruby)  # defined in test_helper.rb
+
+    # English Ruby and other lang
+    assert_selector :xpath, xpath_grid_rows_contain(title_en: nil)  # defined in test_helper.rb
+    assert_selector :xpath, xpath_grid_rows_contain(title_en: mu_light_trans_en.title,
+                                                    title_en: mu_light_trans_en.ruby)  # English Ruby should be in Title cell. defined in test_helper.rb
+    assert_selector :xpath, xpath_grid_rows_contain(title_en:   mu_light_trans_en.title,
+                                                    other_lang: mu_light_trans_it.title)  # Another language
+
+    # Invisible (not-displayed) Transation
+    xpath_td = xpath_grid_rows_contain(title_ja: mu_xmas_trans_ja.title, prefix: "")[1..-2]  # Only the last part of XPath
+    xpath = "/"+XPATHGRIDS[:tb_tr]+"/" + xpath_td
+      # => "//table[contains(@class, 'datagrid-table')]//tbody/tr/td[@data-column='title_ja' and contains(., '恋人たちXmas')]"
+      # NOTE: xpath_grid_rows_contain(title_ja: nil)+"/"+xpath_td  is equivalent, though a bit redundant.
+    assert_selector :xpath, xpath
+    content = find(:xpath, xpath)[:innerHTML]
+    titles = content.split(/<br>/).map(&:strip)  # displayed titles
+    assert_includes titles, mu_xmas_trans_ja.title, "sanity-check"
+    assert_equal n_rela_trans_ja_visible, titles.size, "Public visitors should not see an invisible Translation(s), but..."+titles.inspect
 
     ### Music-search: "恋"
     n_ac_rows_exp = Music.select_regex(:titles, "恋", sql_regexp: true, exact_match: true).distinct.count  # likely 1 (unless fixtures are updated as such).
@@ -60,6 +123,7 @@ class MusicsTest < ApplicationSystemTestCase
     assert_equal n_tbl_rows_exp, find_all(CSSGRIDS[:tb_tr]).size
 
     ### Music-search: "恋人"
+    translations(:music_all_i_want_for_christmas_mariah_ja2).destroy!  # to remove an extra Translation (for the tests below)
     n_rows_exp = Music.select_regex(:titles, "恋人", sql_regexp: true, exact_match: false).distinct.count  # likely 3 (unless fixtures are updated as such).
     assert_operator n_rows_exp, :<, n_tbl_rows_exp, "Number of Musics including '恋人' should be smaller than those including '恋', but..."
     all_cands = fill_autocomplete('#musics_grid_title_ja', use_find: true, with: "恋人", select: "恋人", ignore_suggestion: true){ |elements|  # input "恋人" (NOT "恋人はサンタクロース" etc); defined in test_helper.rb
