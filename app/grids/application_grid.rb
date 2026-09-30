@@ -314,7 +314,7 @@ class ApplicationGrid < Datagrid::Base
     arret = artit[0..(first_exclude_index-1)] if first_exclude_index && !is_editor  # remove Translations with too high weight for the public
     (arret || artit).map.with_index{|val, i|
       if first_exclude_index && i >= first_exclude_index
-        tag.span(
+        ActionController::Base.helpers.tag.span(
           val.presence,  # This should be automatically HTML-sanitized, if not yet marked html_safe
           class: "editor_only",
           title: "Hidden from public display due to a too high weight"

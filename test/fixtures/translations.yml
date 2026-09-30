@@ -1828,6 +1828,17 @@ artist_hoshino_ja:
   update_user_id: user_translator
   note: Artist-HoshinoJa
 
+artist_hoshino_internal_ja:
+  translatable: artist_hoshino (Artist)
+  translatable_type: Artist
+  langcode: ja
+  title: "星野源internal"
+  is_orig: false
+  weight: 500000000
+  create_user_id: user_translator
+  update_user_id: user_translator
+  note: Artist-HoshinoJa-internal_use-with_high_weight
+
 artist_yuming_ja:
   translatable: artist_yuming (Artist)
   translatable_type: Artist
