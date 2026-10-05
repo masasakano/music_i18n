@@ -2,24 +2,34 @@
 #
 # Table name: translations
 #
-#  id                  :bigint           not null, primary key
-#  alt_romaji          :text
-#  alt_ruby            :text
-#  alt_title           :text
-#  is_orig             :boolean
-#  langcode            :string           not null
-#  note                :text
-#  romaji              :text
-#  ruby                :text
-#  title               :text
-#  translatable_type   :string           not null
-#  weight              :float
-#  created_at          :datetime         not null
-#  updated_at          :datetime         not null
-#  create_user_id      :bigint
-#  sync_translation_id :bigint
-#  translatable_id     :bigint           not null
-#  update_user_id      :bigint
+#  id                                  :bigint           not null, primary key
+#  alt_romaji                          :text
+#  alt_ruby                            :text
+#  alt_title                           :text
+#  end_year                            :integer
+#  is_for_record(Rarely used)          :boolean          default(FALSE), not null
+#  is_formal(Most formal for langcode) :boolean
+#  is_internal(Internal use only)      :boolean          default(FALSE), not null
+#  is_literal(Literan translation)     :boolean          default(FALSE), not null
+#  is_official(Ofiicial translation)   :boolean
+#  is_orig                             :boolean
+#  is_true_name(Person's true name)    :boolean
+#  kind                                :string           default("alt"), not null
+#  langcode                            :string           not null
+#  memo_editor                         :text
+#  note                                :text
+#  romaji                              :text
+#  ruby                                :text
+#  start_year                          :integer
+#  title                               :text
+#  translatable_type                   :string           not null
+#  weight                              :float
+#  created_at                          :datetime         not null
+#  updated_at                          :datetime         not null
+#  create_user_id                      :bigint
+#  sync_translation_id                 :bigint
+#  translatable_id                     :bigint           not null
+#  update_user_id                      :bigint
 #
 # Indexes
 #
@@ -29,10 +39,21 @@
 #  index_translations_on_alt_title                              (alt_title)
 #  index_translations_on_create_user_id                         (create_user_id)
 #  index_translations_on_create_user_id_and_update_user_id      (create_user_id,update_user_id)
+#  index_translations_on_end_year                               (end_year)
+#  index_translations_on_is_for_record                          (is_for_record)
+#  index_translations_on_is_formal                              (is_formal)
+#  index_translations_on_is_internal                            (is_internal)
+#  index_translations_on_is_literal                             (is_literal)
+#  index_translations_on_is_official                            (is_official)
 #  index_translations_on_is_orig                                (is_orig)
+#  index_translations_on_is_true_name                           (is_true_name)
+#  index_translations_on_kind                                   (kind)
 #  index_translations_on_langcode                               (langcode)
+#  index_translations_on_memo_editor                            (memo_editor)
+#  index_translations_on_note                                   (note)
 #  index_translations_on_romaji                                 (romaji)
 #  index_translations_on_ruby                                   (ruby)
+#  index_translations_on_start_year                             (start_year)
 #  index_translations_on_sync_translation_id                    (sync_translation_id) UNIQUE
 #  index_translations_on_title                                  (title)
 #  index_translations_on_translatable_id                        (translatable_id)
@@ -59,11 +80,21 @@ sextrans0ja:
   alt_ruby: 
   alt_romaji: 
   is_orig: false
+  kind: full
+  start_year:
+  end_year:
+  is_formal: true
+  is_official: true
+  is_true_name:
+  is_for_record: false
+  is_internal: false
+  is_literal: false
   weight: 0
-  note: 
+  note:
+  memo_editor:
+  sync_translation_id:
   create_user_id: 
   update_user_id: 
-
 #  ref1: ja.wikipedia.org/wiki/ISO_5218
 
 sextrans1ja:
@@ -77,6 +108,7 @@ sextrans1ja:
   alt_ruby: 
   alt_romaji: 
   is_orig: false
+  kind: full
   weight: 0
   note: 
   create_user_id: 
@@ -94,6 +126,7 @@ sextrans2ja:
   alt_ruby: 
   alt_romaji: 
   is_orig: false
+  kind: full
   weight: 0
   note: 
   create_user_id: 
@@ -111,6 +144,7 @@ sextrans9ja:
   alt_ruby: 
   alt_romaji: 
   is_orig: false
+  kind: full
   weight: 0
   note: 
   create_user_id: 
@@ -128,6 +162,7 @@ sextrans0en:
   alt_ruby: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   note: 
   create_user_id: 
@@ -145,6 +180,7 @@ sextrans1en:
   alt_ruby: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   note: 
   create_user_id: 
@@ -162,6 +198,7 @@ sextrans2en:
   alt_ruby: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   note: 
   create_user_id: 
@@ -179,6 +216,7 @@ sextrans9en:
   alt_ruby: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   note: 
   create_user_id: 
@@ -192,6 +230,7 @@ country_world_en:
   title: World
   alt_title: 
   is_orig: 
+  kind: full
   weight: 0
   create_user_id: 
   update_user_id: 
@@ -205,6 +244,7 @@ country_world_ja:
   ruby: セカイ
   romaji: sekai
   is_orig: 
+  kind: full
   weight: 0
   create_user_id: 
   update_user_id: 
@@ -216,6 +256,7 @@ country_world_fr:
   langcode: fr
   title: Monde
   is_orig: 
+  kind: full
   weight: 0
   create_user_id: 
   update_user_id: 
@@ -285,20 +326,34 @@ babel_tower_world_en:
   note: BabelTowerWorldEn
 
 japan_ja:
-  translatable: japan
-  translatable_type: Country
+  translatable: japan (Country)
   langcode: ja
   title: 日本国
-  alt_title: 日本
   ruby: ニホンコク
-  alt_ruby: ニッポン
   romaji: Nihonkoku
-  alt_romaji: Nippon
-  is_orig: true
-  weight: 0
+  is_orig: false
+  kind: full
+  is_formal: true
+  is_official: true
+  weight: 2
   create_user_id: 
   update_user_id: 
   note: JapanJa
+
+japan_ja_short:
+  translatable: japan (Country)
+  langcode: ja
+  title: 日本
+  ruby: ニッポン
+  romaji: Nippon
+  is_orig: true
+  kind: alt
+  is_formal: false
+  is_official: true
+  weight: 1
+  create_user_id: 
+  update_user_id: 
+  note: JapanJaShort
 
 japan_en:
   translatable: japan
@@ -311,6 +366,7 @@ japan_en:
   romaji: 
   alt_romaji: 
   is_orig: false
+  kind: full
   weight: 0
   create_user_id: 1
   update_user: user_two
@@ -323,6 +379,7 @@ japan_fr:
   title: Japon
   alt_title: 
   is_orig: false
+  kind: full
   weight: 0
   create_user_id: 1
   update_user: user_two
@@ -382,6 +439,7 @@ harami_home_unknown_prefecture_japan_en:
   translatable: harami_home_unknown_prefecture_japan (Place)
   langcode: en
   is_orig: false
+  kind: full
   title: "HARAMIchan's home"
   weight: 0
   create_user_id: 
@@ -392,6 +450,7 @@ harami_home_unknown_prefecture_japan_ja:
   translatable: harami_home_unknown_prefecture_japan (Place)
   langcode: ja
   is_orig: true
+  kind: full
   title: "ハラミちゃん自宅"
   alt_title: "ハラミ自宅"
   weight: 0
@@ -440,6 +499,7 @@ uk_en:
   romaji: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 
   update_user: 
@@ -451,6 +511,7 @@ unkown_prefecture_uk_en:
   langcode: en
   title: UnknownPrefecture
   is_orig: 
+  kind: full
   weight: 0
   create_user_id: 
   update_user: 
@@ -460,6 +521,7 @@ greater_london_en:
   translatable: greater_london (Prefecture)
   langcode: en
   is_orig: true
+  kind: full
   title: Greater London
   weight: 0
   create_user_id: 
@@ -471,6 +533,7 @@ greater_london_ja:
   langcode: ja
   title: グレーター・ロンドン
   is_orig: false
+  kind: full
   weight: 0
   create_user_id: 
   update_user: 
@@ -487,6 +550,7 @@ unknown_place_unknown_prefecture_uk_en:
   romaji: 
   alt_romaji: 
   is_orig: 
+  kind: full
   weight: 0
   create_user_id: 
   update_user: 
@@ -498,6 +562,7 @@ unknown_place_liverpool_uk_en:
   langcode: en
   title: UnknownPlace
   is_orig: 
+  kind: full
   weight: 0
   create_user_id: 
   update_user: 
@@ -508,6 +573,7 @@ unknown_place_greater_london_en:
   langcode: en
   title: UnknownPlace
   is_orig: 
+  kind: full
   weight: 0
   create_user_id: 1
   update_user_id: 1
@@ -517,6 +583,7 @@ unknown_place_greater_london_ja:
   translatable: unknown_place_greater_london (Place)
   langcode: ja
   title: どこかの場所
+  kind: full
   weight: 0
   create_user_id: 1
   update_user_id: 1
@@ -534,6 +601,7 @@ france_en:
   romaji: 
   alt_romaji: 
   is_orig: false
+  kind: full
   weight: 0
   create_user_id: 
   update_user: 
@@ -551,6 +619,7 @@ france_fr:
   romaji: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 
   update_user: 
@@ -567,6 +636,7 @@ unkown_prefecture_france_en:
   romaji: 
   alt_romaji: 
   is_orig: 
+  kind: full
   weight: 0
   create_user_id: 
   update_user: 
@@ -577,6 +647,7 @@ prefecture_paris_fr:
   langcode: fr
   title: Paris
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 
   update_user: 
@@ -587,6 +658,7 @@ prefecture_paris_en:
   langcode: en
   title: Paris
   is_orig: false
+  kind: full
   weight: 0
   create_user_id: 
   update_user: 
@@ -597,6 +669,7 @@ prefecture_paris_ja:
   langcode: ja
   title: パリ
   is_orig: false
+  kind: full
   weight: 0
   create_user_id: 
   update_user: 
@@ -608,6 +681,7 @@ unknown_place_unknown_prefecture_france_en:
   langcode: en
   title: UnknownPlace
   is_orig: 
+  kind: full
   weight: 0
   create_user_id: 
   update_user: 
@@ -618,6 +692,7 @@ unknown_place_prefecture_paris_en:
   langcode: en
   title: UnknownPlace
   is_orig: 
+  kind: full
   weight: 0
   create_user_id: 1
   update_user_id: 1
@@ -638,6 +713,7 @@ montparnasse_france_fr:
   langcode: fr
   title: Gare Montparnasse
   is_orig: true
+  kind: full
   weight: 10
   create_user_id: 
   update_user: 
@@ -649,6 +725,7 @@ gare_lyon_france_fr:
   langcode: fr
   title: Gare de Lyon
   is_orig: true
+  kind: full
   weight: 10
   create_user_id: 
   update_user: 
@@ -666,6 +743,7 @@ unkown_prefecture_aus_en:
   romaji: 
   alt_romaji: 
   is_orig: 
+  kind: full
   weight: 0
   create_user_id: 
   update_user: 
@@ -682,6 +760,7 @@ unknown_place_unknown_prefecture_aus_en:
   romaji: 
   alt_romaji: 
   is_orig: 
+  kind: full
   weight: 0
   create_user_id: 
   update_user: 
@@ -698,6 +777,7 @@ prefecture_tokyo_in_world_en:
   romaji: 
   alt_romaji: 
   is_orig: 
+  kind: full
   weight: 0
   create_user_id: 1
   update_user_id: 1
@@ -714,6 +794,7 @@ tokyo_ja:
   romaji: Tokyo-to
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 
   update_user_id: 
@@ -730,6 +811,7 @@ tokyo_en:
   romaji: 
   alt_romaji: 
   is_orig: false
+  kind: full
   weight: 0
   create_user_id: 
   update_user_id: 
@@ -746,6 +828,7 @@ kagawa_ja:
   romaji: Kagawa-ken
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 
   update_user_id: 
@@ -762,6 +845,7 @@ kagawa_en:
   romaji: 
   alt_romaji: 
   is_orig: false
+  kind: full
   weight: 0
   create_user_id:
   update_user_id:
@@ -778,6 +862,7 @@ shimane_ja:
   romaji: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 
   update_user_id: 
@@ -794,6 +879,7 @@ shimane_en:
   romaji: 
   alt_romaji: 
   is_orig: false
+  kind: full
   weight: 0
   create_user_id:
   update_user_id:
@@ -810,6 +896,7 @@ liverpool_en:
   romaji: Libapuuru
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 1
   update_user_id: 1
@@ -826,6 +913,7 @@ tocho_ja:
   romaji: 
   alt_romaji: Tocho
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 
   update_user_id: 
@@ -841,6 +929,7 @@ tocho_en:
   romaji: 
   alt_romaji: 
   is_orig: false
+  kind: full
   weight: 100
   create_user_id: user_moderator
   update_user_id: user_moderator
@@ -853,6 +942,7 @@ akihabara_ja:
   ruby: アキハバラ
   romaji: Akihabara
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_moderator_translation
   update_user_id: user_moderator_translation
@@ -869,6 +959,7 @@ place_harami_vid3_ja:
   romaji: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 1
   update_user_id: 1
@@ -885,6 +976,7 @@ shinagawa_station_ja:
   romaji: shinagawa eki
   alt_romaji: ShinagawaStation
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 1
   update_user_id: 1
@@ -901,6 +993,7 @@ takamatsu_station_ja:
   romaji: Takamatsu Eki
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 
   update_user_id: 
@@ -912,6 +1005,7 @@ takamatsu_station_en:
   langcode: en
   title: Takamatsu Station
   is_orig: false
+  kind: full
   weight: 0
   create_user_id: 
   update_user_id: 
@@ -927,6 +1021,7 @@ kawaramachi_station_ja:
   romaji: Kawaramachi Eki
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 
   update_user_id: 
@@ -937,6 +1032,7 @@ kawaramachi_station_en:
   langcode: en
   title: Kawaramachi Station
   is_orig: false
+  kind: full
   weight: 0
   create_user_id: 
   update_user_id: 
@@ -953,6 +1049,7 @@ liverpool_street_en:
   romaji: Libapuuru sutoriito
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 1
   update_user_id: 1
@@ -969,6 +1066,7 @@ aus_en:
   romaji: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 
   update_user_id: 
@@ -985,6 +1083,7 @@ aus_ja:
   romaji: 
   alt_romaji: 
   is_orig: false
+  kind: full
   weight: 0
   create_user_id: 
   update_user_id: 
@@ -1001,6 +1100,7 @@ aus_fr:
   romaji: 
   alt_romaji: 
   is_orig: false
+  kind: full
   weight: 0
   create_user_id: 
   update_user_id: 
@@ -1017,6 +1117,7 @@ perth_aus_en:
   romaji: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 1
   update_user_id: 1
@@ -1033,6 +1134,7 @@ perth_uk_en:
   romaji: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 1
   update_user_id: 1
@@ -1049,6 +1151,7 @@ music_unknown_en:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -1065,6 +1168,7 @@ music1_en:
   romaji: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 1
   update_user_id: 1
@@ -1082,6 +1186,7 @@ music2_en:
   romaji: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 1
   update_user_id: 1
@@ -1098,6 +1203,7 @@ music3_en:
   romaji: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 1
   update_user_id: 1
@@ -1108,6 +1214,7 @@ music99_en:
   langcode: en
   title: Give Peace a Chance Music99
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_moderator
   update_user_id: user_moderator
@@ -1118,6 +1225,7 @@ music999_en:
   langcode: en
   title: Give Peace a Chance Music999
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_moderator
   update_user_id: user_moderator
@@ -1134,6 +1242,7 @@ music_how_en:
   romaji: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 1
   update_user_id: 1
@@ -1149,6 +1258,7 @@ music_story_en:
   romaji: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 1
   update_user_id: 1
@@ -1160,6 +1270,7 @@ music_story_ja:
   title: ストーリー
   alt_title: 
   is_orig: false
+  kind: full
   weight: 1000
   create_user: user_editor
   update_user: user_editor
@@ -1177,6 +1288,7 @@ music_kampai_ja1:
   romaji: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user: user_editor
   update_user: user_editor
@@ -1225,6 +1337,7 @@ music_kampai_en3:
   romaji: 
   alt_romaji: 
   is_orig: false
+  kind: full
   weight: 10
   create_user: user_moderator_translation
   update_user: user_moderator_translation
@@ -1257,6 +1370,7 @@ music_ihojin1_ja1:
   romaji: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user: user_translator
   update_user: user_translator
@@ -1279,6 +1393,7 @@ music_ihojin1_en1:
   langcode: en
   title: Alien person
   is_orig: false
+  kind: full
   weight: 10
   create_user: user_moderator_translation
   update_user: user_moderator_translation
@@ -1317,6 +1432,7 @@ music_ihojin2_ja1:
   romaji: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 1
   create_user: user_translator2
   update_user: user_translator2
@@ -1328,6 +1444,7 @@ music_ihojin2_en1:
   langcode: en
   title: Aliens
   is_orig: false
+  kind: full
   weight: 10
   create_user: user_moderator_translation
   update_user: user_moderator_translation
@@ -1371,6 +1488,7 @@ music_robinson_en:
   langcode: en
   title: Robinson
   is_orig: true
+  kind: full
   weight: 100
   create_user: user_translator2
   update_user: user_translator2
@@ -1386,6 +1504,7 @@ music_light_en:
   romaji: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 1
   update_user: user_two
@@ -1398,6 +1517,7 @@ music_light_it:
   ruby: "ラ・ルーチェ"
   romaji: 
   is_orig: false
+  kind: full
   weight: 100
   create_user_id: 1
   update_user: user_two
@@ -1413,6 +1533,7 @@ music_rain_ja:
   romaji: "Ame"
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 1
   update_user_id: 1
@@ -1423,6 +1544,7 @@ music_rain_en:
   langcode: en
   title: "Rain"
   is_orig: false
+  kind: full
   weight: 100
   create_user_id: 1
   update_user_id: 1
@@ -1436,6 +1558,7 @@ music_gerende_ja:
   ruby: "ゲレンデガトケルホドコイシタイ"
   romaji: "Gerende ga tokeru hodo koishitai"
   is_orig: true
+  kind: full
   weight: 0
   create_user: user_moderator_translation
   update_user: user_moderator_translation
@@ -1446,6 +1569,7 @@ music_all_i_want_for_christmas_mariah_en:
   langcode: en
   title: "All I Want for Christmas Is You"
   is_orig: true
+  kind: full
   weight: 0
   create_user: user_moderator_translation
   update_user: user_moderator_translation
@@ -1456,6 +1580,7 @@ music_all_i_want_for_christmas_mariah_ja:
   langcode: ja
   title: "恋人たちXmas"
   is_orig: false
+  kind: full
   weight: 0
   create_user: user_moderator_translation
   update_user: user_moderator_translation
@@ -1488,6 +1613,7 @@ music_koibito_santa_ja:
   ruby: 
   romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user: user_moderator_translation
   update_user: user_moderator_translation
@@ -1500,6 +1626,7 @@ music_koi_hoshino_ja:
   ruby: 
   romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user: user_moderator_translation
   update_user: user_moderator_translation
@@ -1511,6 +1638,7 @@ music_shiroi_koibitotachi_ja:
   title: "白い恋人達"
   ruby: "シロイコイビトタチ"
   is_orig: true
+  kind: full
   weight: 0
   create_user: user_moderator_translation
   update_user: user_moderator_translation
@@ -1527,6 +1655,7 @@ artist_unknown_en:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -1543,6 +1672,7 @@ artist_unknown_ja:
   romaji: "fumei no ongakuka"
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -1559,6 +1689,7 @@ artist_unknown_fr:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -1575,6 +1706,7 @@ artist1_en:
   romaji: Madonna
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 1
   update_user_id: 1
@@ -1591,6 +1723,7 @@ artist2_en:
   romaji: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 1
   update_user_id: 1
@@ -1602,6 +1735,7 @@ artist2_ja:
   title: ジョン・レノン
   romaji: jon renon
   is_orig: false
+  kind: full
   weight: 100
   create_user_id: 1
   update_user_id: 1
@@ -1628,6 +1762,7 @@ artist3_ja:
   romaji: akarichan
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 
   update_user_id: 
@@ -1644,6 +1779,7 @@ artist3_en:
   romaji: 
   alt_romaji: akari chan
   is_orig: false
+  kind: full
   weight: 10
   create_user_id: 
   update_user_id: 
@@ -1654,6 +1790,7 @@ artist4_en:
   langcode: en
   title: Artist No 4
   is_orig: true
+  kind: full
   weight: 10
   note: Artist4En
 
@@ -1662,6 +1799,7 @@ artist99_en:
   langcode: en
   title: Artist No 99
   is_orig: true
+  kind: full
   weight: 10
   note: Artist99En
 
@@ -1676,6 +1814,7 @@ artist_rcsuccession_ja:
   romaji: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 100
   create_user: user_editor
   update_user: 
@@ -1691,6 +1830,7 @@ artist_harami_ja:
   romaji: haramichan
   alt_romaji: harami
   is_orig: true
+  kind: full
   weight: 0
   create_user: user_moderator_translation
   update_user: user_moderator_translation
@@ -1706,6 +1846,7 @@ artist_harami_en:
   romaji: haramichan
   alt_romaji:  haramichan
   is_orig: false
+  kind: full
   weight: 0
   create_user: user_moderator_translation
   update_user: user_moderator_translation
@@ -1718,6 +1859,7 @@ artist_kohmi_ja:
   ruby: ヒロセコウミ
   romaji: HIROSE Kohmi
   is_orig: true
+  kind: full
   weight: 0
   create_user: user_moderator_translation
   update_user: user_moderator_translation
@@ -1728,6 +1870,7 @@ artist_kohmi_en:
   langcode: en
   title: Kohmi Hirose
   is_orig: false
+  kind: full
   weight: 0
   create_user: user_moderator_translation
   update_user: user_moderator_translation
@@ -1744,6 +1887,7 @@ artist_ai:
   romaji: ai
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user: user_translator
   update_user: user_moderator_translation
@@ -1760,6 +1904,7 @@ artist_ai_en:
   romaji: 
   alt_romaji: 
   is_orig: false
+  kind: full
   weight: 0
   create_user: user_translator
   update_user: user_moderator_translation
@@ -1776,6 +1921,7 @@ artist_proclaimers_en:
   romaji: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 1
   update_user_id: 1
@@ -1789,6 +1935,7 @@ artist_psy_kr:
   ruby: サイ
   alt_ruby: パク・チェサン
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: 1
   update_user_id: 1
@@ -1800,6 +1947,7 @@ artist_saki_kubota_ja:
   langcode: ja
   title: "久保田早紀"
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_translator
   update_user_id: user_translator
@@ -1811,6 +1959,7 @@ artist_saki_kubota_en1:
   langcode: en
   title: "Saki Kubota"
   is_orig: false
+  kind: full
   weight: 100
   create_user_id: user_translator
   update_user_id: user_translator
@@ -1832,6 +1981,7 @@ artist_spitz_en:
   langcode: en
   title: Spitz
   is_orig: true
+  kind: full
   weight: 100
   create_user_id: user_translator2
   update_user_id: user_translator2
@@ -1843,6 +1993,7 @@ artist_kuwata_ja:
   langcode: ja
   title: "桑田佳祐"
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_translator
   update_user_id: user_translator
@@ -1854,6 +2005,7 @@ artist_hoshino_ja:
   langcode: ja
   title: "星野源"
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_translator
   update_user_id: user_translator
@@ -1865,6 +2017,8 @@ artist_hoshino_internal_ja:
   langcode: ja
   title: "星野源internal"
   is_orig: false
+  kind: alt
+  is_internal: true
   weight: 500000000
   create_user_id: user_translator
   update_user_id: user_translator
@@ -1876,6 +2030,7 @@ artist_yuming_ja:
   langcode: ja
   title: "松任谷由実"
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_translator
   update_user_id: user_translator
@@ -1887,6 +2042,7 @@ artist_mariah_en:
   langcode: en
   title: Mariah Carey
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_translator
   update_user_id: user_translator
@@ -1898,6 +2054,7 @@ artist_zombies_en1:
   langcode: en
   title: "Zombies, The"
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_translator
   update_user_id: user_translator
@@ -1909,6 +2066,7 @@ artist_zombies_en2:
   langcode: en
   title: "TheZombies"
   is_orig: false
+  kind: alt
   weight: 100
   create_user_id: user_translator2
   update_user_id: user_translator2
@@ -1920,6 +2078,7 @@ artist_zedd_en1:
   langcode: en
   title: Zedd
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_translator
   update_user_id: user_translator
@@ -1936,6 +2095,7 @@ harami_vid1_ja:
   romaji: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user: user_editor
   update_user_id: 1
@@ -1947,6 +2107,7 @@ harami_vid2_ja:
   langcode: ja
   title: ハラミのテストVideo 2
   is_orig: true
+  kind: full
   weight: 0
   create_user: user_two
   update_user: user_moderator
@@ -1958,6 +2119,7 @@ harami_vid3_ja:
   langcode: ja
   title: ハラミのテストVideo 3
   is_orig: true
+  kind: full
   weight: 0
   create_user: user_two
   update_user: user_moderator
@@ -1968,6 +2130,7 @@ harami_vid4_ja:
   langcode: ja
   title: ハラミのテストVideo 4
   is_orig: true
+  kind: full
   weight: 0
   create_user: user_two
   update_user: user_moderator
@@ -1978,6 +2141,7 @@ harami_vid5_ja:
   langcode: ja
   title: ハラミのテストVideo 5
   is_orig: true
+  kind: full
   weight: 0
   create_user: user_two
   update_user: user_moderator
@@ -1989,6 +2153,7 @@ harami_vid_ihojin1_ja:
   langcode: ja
   title: ハラミの異邦人1
   is_orig: true
+  kind: full
   weight: 0
   create_user: user_two
   update_user: user_moderator
@@ -2005,6 +2170,7 @@ harami_vid_50anni_ja:
   romaji: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user: user_two
   update_user: user_moderator
@@ -2021,6 +2187,7 @@ harami_vid_paris1_ja:
   romaji: 
   alt_romaji: 
   is_orig: true
+  kind: full
   weight: 0
   create_user: user_two
   update_user: user_moderator
@@ -2032,6 +2199,7 @@ harami_vid_paris1_en:
   langcode: en
   title: First vid for the Paris series
   is_orig: false
+  kind: full
   weight: 0
   create_user: user_two
   update_user: user_moderator
@@ -2042,6 +2210,7 @@ harami_vid_one_ja:
   langcode: ja
   title: 一番
   is_orig: true
+  kind: full
   weight: 100
   create_user: user_two
   update_user: user_moderator
@@ -2052,6 +2221,7 @@ harami_vid_two_ja:
   langcode: ja
   title: Number Two Vid Ja 2つ目
   is_orig: true
+  kind: full
   weight: 100
   create_user: user_two
   update_user: user_moderator
@@ -2062,6 +2232,7 @@ harami_vid_two_en:
   langcode: en
   title: Number Two Vid En
   is_orig: false
+  kind: full
   weight: 100
   create_user: user_two
   update_user: user_moderator
@@ -2072,6 +2243,7 @@ harami_vid_three_ja:
   langcode: ja
   title: "【田中ストリートピアノ】Number Three Vid Ja 3つ目"
   is_orig: true
+  kind: full
   weight: 100
   create_user: user_two
   update_user: user_moderator
@@ -2082,6 +2254,7 @@ harami_vid_four_ja:
   langcode: ja
   title: "【山下ストリートピアノ】Number Four Vid Ja 4つ目"
   is_orig: true
+  kind: full
   weight: 100
   create_user: user_two
   update_user: user_moderator
@@ -2091,6 +2264,7 @@ engage_how1_en:
   translatable: engage_how_1 (EngageHow)
   langcode: en
   title: EngageHow1 tmp
+  kind: full
   weight: 0
   note: EngageHow1En
 
@@ -2098,6 +2272,7 @@ engage_how2_en:
   translatable: engage_how_2 (EngageHow)
   langcode: en
   title: EngageHow2 tmp
+  kind: full
   weight: 0
   note: EngageHow2En
 
@@ -2105,6 +2280,7 @@ engage_how3_en:
   translatable: engage_how_3 (EngageHow)
   langcode: en
   title: EngageHow3 tmp
+  kind: full
   weight: 0
   note: EngageHow3En
 
@@ -2119,6 +2295,7 @@ engage_how_unknown_en:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2135,6 +2312,7 @@ engage_how_unknown_ja:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2151,6 +2329,7 @@ engage_how_singer_original_en:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2167,6 +2346,7 @@ engage_how_singer_original_ja:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2183,6 +2363,7 @@ engage_how_singer_cover_en:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2199,6 +2380,7 @@ engage_how_singer_cover_ja:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2215,6 +2397,7 @@ engage_how_lyricist_en:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2231,6 +2414,7 @@ engage_how_lyricist_ja:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2247,6 +2431,7 @@ engage_how_translator_en:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2263,6 +2448,7 @@ engage_how_translator_ja:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2279,6 +2465,7 @@ engage_how_composer_en:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2295,6 +2482,7 @@ engage_how_composer_ja:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2311,6 +2499,7 @@ engage_how_arranger_en:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2327,6 +2516,7 @@ engage_how_arranger_ja:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2343,6 +2533,7 @@ engage_how_conductor_en:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2359,6 +2550,7 @@ engage_how_conductor_ja:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2375,6 +2567,7 @@ engage_how_player_en:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2391,6 +2584,7 @@ engage_how_player_ja:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2407,6 +2601,7 @@ engage_how_accompanist_en:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2423,6 +2618,7 @@ engage_how_accompanist_ja:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2439,6 +2635,7 @@ engage_how_producer_en:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2455,6 +2652,7 @@ engage_how_producer_ja:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2471,6 +2669,7 @@ engage_how_assistant_en:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2487,6 +2686,7 @@ engage_how_assistant_ja:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2503,6 +2703,7 @@ engage_other_en:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2519,6 +2720,7 @@ engage_other_ja:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2535,6 +2737,7 @@ genre_unknown_en:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2551,6 +2754,7 @@ genre_unknown_ja:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 0
   create_user: 
   update_user: 
@@ -2567,6 +2771,7 @@ genre_pop_en:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 10
   create_user: 
   update_user: 
@@ -2583,6 +2788,7 @@ genre_pop_ja:
   romaji: poppusu
   alt_romaji:
   is_orig:
+  kind: full
   weight: 10
   create_user: 
   update_user: 
@@ -2599,6 +2805,7 @@ genre_classic_en:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 10
   create_user: 
   update_user: 
@@ -2615,6 +2822,7 @@ genre_classic_ja:
   romaji: poppusu
   alt_romaji:
   is_orig:
+  kind: full
   weight: 10
   create_user: 
   update_user: 
@@ -2631,6 +2839,7 @@ genre_modern_inst_en:
   romaji: 
   alt_romaji: 
   is_orig:
+  kind: full
   weight: 10
   create_user_id: 
   update_user_id: 
@@ -2647,6 +2856,7 @@ genre_modern_inst_ja:
   romaji:
   alt_romaji:
   is_orig:
+  kind: full
   weight: 10
   create_user_id: 
   update_user_id: 
@@ -2663,6 +2873,7 @@ genre_modern_inst_ja:
   is_orig: <%= (edata[:orig_langcode].nil? ? "" : ((edata[:orig_langcode] == langcode.to_s) ? "true" : "false")) %>
   title:     <%= Seeds::Common.yaml_title(edata[langcode], :title) %>
   alt_title: <%= Seeds::Common.yaml_title(edata[langcode], :alt_title) %>
+  kind: full
   weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
   create_user_id: user_moderator
   update_user_id: user_moderator
@@ -2702,6 +2913,7 @@ evgr_<%= ekey %>_<%= langcode %>:
   translatable: evgr_<%= ekey %> (EventGroup)
   langcode: <%= langcode %>
   is_orig: <%= (edata[:orig_langcode].nil? ? "" : ((edata[:orig_langcode] == langcode.to_s) ? "true" : "false")) %>
+  kind: full
   title:     <%= Seeds::Common.yaml_title(edata[langcode], :title) %>
   weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
   note: EventGroup<%= ekey.to_s.camelize %><%= langcode.to_s.capitalize %>
@@ -2717,6 +2929,7 @@ evgr_lucky2023own_en:
   translatable_type: EventGroup
   langcode: en
   is_orig: 
+  kind: full
   title: LuckyFes 2023
   weight: 100
   create_user_id: user_moderator
@@ -2827,6 +3040,7 @@ channel_platform_oricon_ja:
   langcode: ja
   title:     オリコン
   is_orig:  true
+  kind: full
   weight: 1000
   create_user_id: translator
   update_user_id: translator
@@ -2837,6 +3051,7 @@ channel_platform_one_en:
   langcode: en
   title: ChannelPlatformOne
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_translator
   update_user_id: user_translator
@@ -2847,6 +3062,7 @@ channel_platform_two_en:
   langcode: en
   title: ChannelPlatformTwo
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_translator
   update_user_id: user_translator
@@ -2859,6 +3075,7 @@ channel_type_dictionary_ja:
   langcode: ja
   title:    辞書
   is_orig:  true
+  kind: full
   weight: 4000
   create_user_id: user_moderator_general_ja
   update_user_id: user_moderator_general_ja
@@ -2869,6 +3086,7 @@ channel_type_one_en:
   langcode: en
   title: ChannelTypeOne
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_translator
   update_user_id: user_translator
@@ -2879,6 +3097,7 @@ channel_type_two_en:
   langcode: en
   title: ChannelTypeTwo
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_translator
   update_user_id: user_translator
@@ -2894,6 +3113,7 @@ channel_type_two_en:
   translatable: <%= klass_str.underscore %>_<%= ekey %> (<%= klass_str %>)
   langcode: <%= langcode %>
   is_orig: <%= (edata[:orig_langcode].nil? ? "" : ((edata[:orig_langcode] == langcode.to_s) ? "true" : "false")) %>
+  kind: full
   title:     <%= Seeds::Common.yaml_title(edata[langcode], :title) %>
   alt_title: <%= Seeds::Common.yaml_title(edata[langcode], :alt_title) %>
   weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
@@ -2913,6 +3133,7 @@ channel_owner_haramichan_ja:
   romaji: haramichan
   alt_romaji: harami
   is_orig: true
+  kind: full
   weight: 0
   sync_parent: artist_harami_ja
   create_user: user_moderator_translation
@@ -2929,6 +3150,7 @@ channel_owner_haramichan_en:
   romaji: haramichan
   alt_romaji:  haramichan
   is_orig: false
+  kind: full
   weight: 0
   sync_parent: artist_harami_en
   create_user: user_moderator_translation
@@ -2942,6 +3164,7 @@ channel_owner_kohmi_ja:
   ruby: ヒロセコウミ
   romaji: HIROSE Kohmi
   is_orig: true
+  kind: full
   weight: 0
   sync_parent: artist_kohmi_ja
   create_user: user_moderator_translation
@@ -2953,6 +3176,7 @@ channel_owner_kohmi_en:
   langcode: en
   title: Kohmi Hirose
   is_orig: false
+  kind: full
   weight: 0
   sync_parent: artist_kohmi_en
   create_user: user_moderator_translation
@@ -2964,6 +3188,7 @@ channel_owner_saki_kubota_ja:
   langcode: ja
   title: "久保田早紀"
   is_orig: true
+  kind: full
   weight: 0
   sync_parent: artist_saki_kubota_ja
   create_user_id: user_translator
@@ -2976,6 +3201,7 @@ channel_owner_saki_kubota_en1:
   langcode: en
   title: "Saki Kubota"
   is_orig: false
+  kind: full
   weight: 100
   sync_parent: artist_saki_kubota_en1
   create_user_id: user_translator
@@ -2998,6 +3224,7 @@ channel_owner_one_en:
   langcode: en
   title: ChannelOwnerOne
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_translator
   update_user_id: user_translator
@@ -3008,6 +3235,7 @@ channel_owner_two_en:
   langcode: en
   title: ChannelOwnerTwo
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_translator
   update_user_id: user_translator
@@ -3021,6 +3249,7 @@ channel_owner_two_en:
   translatable: <%= klass_str.underscore %>_<%= ekey %> (<%= klass_str %>)
   langcode: <%= langcode %>
   is_orig: <%= (edata[:orig_langcode].nil? ? "" : ((edata[:orig_langcode] == langcode.to_s) ? "true" : "false")) %>
+  kind: full
   title:     <%= Seeds::Common.yaml_title(edata[langcode], :title) %>
   alt_title: <%= Seeds::Common.yaml_title(edata[langcode], :alt_title) %>
   weight: <%= Seeds::Common::DEF_TRANSLATION_WEIGHT %>
@@ -3035,6 +3264,7 @@ channel_one_en:
   langcode: en
   title: ChannelOne
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_translator
   update_user_id: user_translator
@@ -3045,6 +3275,7 @@ channel_two_en:
   langcode: en
   title: ChannelTwo
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_translator
   update_user_id: user_translator
@@ -3055,6 +3286,7 @@ channel_haramichan_youtube_sub_en:
   langcode: en
   title: "HARAMI_PIANO 2ND"
   is_orig: false
+  kind: full
   weight: 0
   create_user: user_syshelper
   update_user_id: 
@@ -3065,6 +3297,7 @@ channel_haramichan_youtube_sub_ja:
   langcode: ja
   title: "ハラミちゃんの日常"
   is_orig: true
+  kind: full
   weight: 0
   create_user: user_syshelper
   update_user_id: 
@@ -3075,6 +3308,7 @@ channel_haramichan_instagram_main_ja:
   langcode: ja
   title: "ハラミちゃん"
   is_orig: true
+  kind: full
   weight: 0
   create_user: user_syshelper
   update_user_id: 
@@ -3088,6 +3322,7 @@ site_category_one_en:
   langcode: en
   title: SiteCategoryOne
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_moderator
   update_user_id: user_moderator
@@ -3098,6 +3333,7 @@ site_category_two_en:
   langcode: en
   title: SiteCategoryTwo
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_moderator
   update_user_id: user_moderator
@@ -3110,6 +3346,7 @@ domain_title_one_en:
   langcode: en
   title: DomainTitleOne
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_moderator
   update_user_id: user_moderator
@@ -3120,6 +3357,7 @@ domain_title_two_en:
   langcode: en
   title: DomainTitleTwo
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_moderator
   update_user_id: user_moderator
@@ -3132,6 +3370,7 @@ url_one_en:
   langcode: en
   title: UrlOne
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_moderator
   update_user_id: user_moderator
@@ -3142,6 +3381,7 @@ url_two_en:
   langcode: en
   title: "www.mydomain.org:80/def?myquery=5&other=6"
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_moderator
   update_user_id: user_moderator
@@ -3152,6 +3392,7 @@ url_artist1_wiki_en_en:
   langcode: en
   title: "Madonna Wikipedia (en)"
   is_orig: true
+  kind: full
   weight: 0
   create_user_id: user_moderator
   update_user_id: user_moderator

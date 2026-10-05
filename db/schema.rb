@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_19_210447) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_05_163809) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -781,11 +781,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_210447) do
     t.text "alt_title"
     t.bigint "create_user_id"
     t.datetime "created_at", null: false
+    t.integer "end_year"
+    t.boolean "is_for_record", default: false, null: false, comment: "Rarely used"
+    t.boolean "is_formal", comment: "Most formal for langcode"
+    t.boolean "is_internal", default: false, null: false, comment: "Internal use only"
+    t.boolean "is_literal", default: false, null: false, comment: "Literan translation"
+    t.boolean "is_official", comment: "Ofiicial translation"
     t.boolean "is_orig"
+    t.boolean "is_true_name", comment: "Person's true name"
+    t.string "kind", default: "alt", null: false
     t.string "langcode", null: false
+    t.text "memo_editor"
     t.text "note"
     t.text "romaji"
     t.text "ruby"
+    t.integer "start_year"
     t.bigint "sync_translation_id"
     t.text "title"
     t.bigint "translatable_id", null: false
@@ -798,10 +808,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_210447) do
     t.index ["alt_title"], name: "index_translations_on_alt_title"
     t.index ["create_user_id", "update_user_id"], name: "index_translations_on_create_user_id_and_update_user_id"
     t.index ["create_user_id"], name: "index_translations_on_create_user_id"
+    t.index ["end_year"], name: "index_translations_on_end_year"
+    t.index ["is_for_record"], name: "index_translations_on_is_for_record"
+    t.index ["is_formal"], name: "index_translations_on_is_formal"
+    t.index ["is_internal"], name: "index_translations_on_is_internal"
+    t.index ["is_literal"], name: "index_translations_on_is_literal"
+    t.index ["is_official"], name: "index_translations_on_is_official"
     t.index ["is_orig"], name: "index_translations_on_is_orig"
+    t.index ["is_true_name"], name: "index_translations_on_is_true_name"
+    t.index ["kind"], name: "index_translations_on_kind"
     t.index ["langcode"], name: "index_translations_on_langcode"
+    t.index ["memo_editor"], name: "index_translations_on_memo_editor"
+    t.index ["note"], name: "index_translations_on_note"
     t.index ["romaji"], name: "index_translations_on_romaji"
     t.index ["ruby"], name: "index_translations_on_ruby"
+    t.index ["start_year"], name: "index_translations_on_start_year"
     t.index ["sync_translation_id"], name: "index_translations_on_sync_translation_id", unique: true
     t.index ["title"], name: "index_translations_on_title"
     t.index ["translatable_id", "translatable_type", "langcode", "title", "alt_title", "ruby", "alt_ruby", "romaji", "alt_romaji"], name: "index_translations_on_9_cols", unique: true
@@ -884,7 +905,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_210447) do
     t.text "object"
     t.text "object_changes"
     t.string "whodunnit"
-    t.string "{null: false}"
+    t.string "{:null=>false}"
     t.index ["item_type", "item_id"], name: "index_versions_on_item_type_and_item_id"
   end
 

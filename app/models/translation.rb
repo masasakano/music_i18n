@@ -4,24 +4,34 @@
 #
 # Table name: translations
 #
-#  id                  :bigint           not null, primary key
-#  alt_romaji          :text
-#  alt_ruby            :text
-#  alt_title           :text
-#  is_orig             :boolean
-#  langcode            :string           not null
-#  note                :text
-#  romaji              :text
-#  ruby                :text
-#  title               :text
-#  translatable_type   :string           not null
-#  weight              :float
-#  created_at          :datetime         not null
-#  updated_at          :datetime         not null
-#  create_user_id      :bigint
-#  sync_translation_id :bigint
-#  translatable_id     :bigint           not null
-#  update_user_id      :bigint
+#  id                                  :bigint           not null, primary key
+#  alt_romaji                          :text
+#  alt_ruby                            :text
+#  alt_title                           :text
+#  end_year                            :integer
+#  is_for_record(Rarely used)          :boolean          default(FALSE), not null
+#  is_formal(Most formal for langcode) :boolean
+#  is_internal(Internal use only)      :boolean          default(FALSE), not null
+#  is_literal(Literan translation)     :boolean          default(FALSE), not null
+#  is_official(Ofiicial translation)   :boolean
+#  is_orig                             :boolean
+#  is_true_name(Person's true name)    :boolean
+#  kind                                :string           default("alt"), not null
+#  langcode                            :string           not null
+#  memo_editor                         :text
+#  note                                :text
+#  romaji                              :text
+#  ruby                                :text
+#  start_year                          :integer
+#  title                               :text
+#  translatable_type                   :string           not null
+#  weight                              :float
+#  created_at                          :datetime         not null
+#  updated_at                          :datetime         not null
+#  create_user_id                      :bigint
+#  sync_translation_id                 :bigint
+#  translatable_id                     :bigint           not null
+#  update_user_id                      :bigint
 #
 # Indexes
 #
@@ -31,10 +41,21 @@
 #  index_translations_on_alt_title                              (alt_title)
 #  index_translations_on_create_user_id                         (create_user_id)
 #  index_translations_on_create_user_id_and_update_user_id      (create_user_id,update_user_id)
+#  index_translations_on_end_year                               (end_year)
+#  index_translations_on_is_for_record                          (is_for_record)
+#  index_translations_on_is_formal                              (is_formal)
+#  index_translations_on_is_internal                            (is_internal)
+#  index_translations_on_is_literal                             (is_literal)
+#  index_translations_on_is_official                            (is_official)
 #  index_translations_on_is_orig                                (is_orig)
+#  index_translations_on_is_true_name                           (is_true_name)
+#  index_translations_on_kind                                   (kind)
 #  index_translations_on_langcode                               (langcode)
+#  index_translations_on_memo_editor                            (memo_editor)
+#  index_translations_on_note                                   (note)
 #  index_translations_on_romaji                                 (romaji)
 #  index_translations_on_ruby                                   (ruby)
+#  index_translations_on_start_year                             (start_year)
 #  index_translations_on_sync_translation_id                    (sync_translation_id) UNIQUE
 #  index_translations_on_title                                  (title)
 #  index_translations_on_translatable_id                        (translatable_id)
@@ -384,6 +405,18 @@ class Translation < ApplicationRecord
   # should not be displayed for general public.
   THRESHOLD_WEIGHT_VISIBLE = Role::DEF_WEIGHT.values.max*10 + [DEF_WEIGHT_INCREMENT_POSITIVE, 100].max * 10  # = 101000
 
+  # Permitted {#kind} column values
+  KIND_FULL     = "full".freeze
+  KIND_ALT      = "alt".freeze
+  KIND_NICKNAME = "nickname".freeze
+
+  # This adds validation, method +Translation#full?+ etc, and scope +Translation.full+
+  enum :kind, {
+         full:     KIND_FULL,
+         alt:      KIND_ALT,
+         nickname: KIND_NICKNAME
+       }, validate: true
+
   normalizes :ruby,     with: ->(str) { NKF.nkf('-w -h2', str.to_s) }  # Ensures katakana (h1 to ensure hiragana); nil is ignored.
   normalizes :alt_ruby, with: ->(str) { NKF.nkf('-w -h2', str.to_s) }
 
@@ -407,6 +440,11 @@ class Translation < ApplicationRecord
 
   # Prevent manual changes to synced attributes (on ChannelOwner's Translation synced from Artist's)
   validate :prevent_synced_attributes_change, if: -> { sync_translation_id.present? && !syncing_from_parent }
+
+  validate :validate_official_and_literal, if: :is_official?
+  validate :validate_formal_requirements,  if: :is_formal?
+  validate :validate_start_and_end_years
+  validate :validate_no_formal_period_overlap, if: :is_formal?
 
   #### After much thought, this validation is removed, because such Translation-s should never be directly saved in reality.
   #
@@ -640,7 +678,7 @@ class Translation < ApplicationRecord
     #olc = original_langcode
     return true if orig_locale? && translatable && ability.can?(:edit, translatable)
     return true if lc == 'ja' && translatable && (ability.can?(:create, translatable.class) || ability.can?(:edit, translatable))
-    return true if siblings(lc, exclude_self: false).pluck(:create_user_id).include? user.id
+    return true if siblings(lc, exclude_self: false).map(&:create_user_id).include? user.id  ## pluck(:create_user_id) does NOT apply to Array
     false
   end
 
@@ -2397,14 +2435,32 @@ class Translation < ApplicationRecord
   def siblings(lcode=nil, langcode: nil, exclude_self: true, reset: true)
     lcode ||= langcode
     lcode = (lcode || self.langcode).to_s if :all != lcode
+    skip_langcode_selection = (lcode == :all || lcode.nil?)
 
     return self.class.none if !translatable.respond_to? :translations  # Practically: translatable.nil?
     translatable.translations.reset if reset
     ret = translatable.translations
-    ret = ret.where(langcode: lcode) if !lcode.blank? && :all != lcode
-    ret = ret.where.not(id: id) if exclude_self
+
+    if (!ret.loaded? && translatable.persisted?)
+      # DB branch: only query DB if the parent is saved on disk
+      ret = ret.where.not(id: id) if exclude_self && persisted?
+      ret = ret.where(langcode: lcode) if !skip_langcode_selection
+    else
+      # In-memory branch: returns Array excluding self
+      if !ret.loaded?
+        # Fallback for unpersisted translatable where association was not loaded,
+        # i.e., Translation.new(translatable: Artist.new):
+        # Accessing .target inspects in-memory array without hitting SQL
+        ret = ret.target
+      end
+      ret = ret.reject { |t| t.equal?(self) } if exclude_self
+      ret = ret.reject { |t| t.marked_for_destruction? }
+      ret = ret.select { |t| t.langcode == lcode } if !skip_langcode_selection
+    end
+
     ret = self.class.sort(ret)
   end
+
 
   # true if self is the last_remaining translation for the self's or given or any langcode.
   #
@@ -2417,7 +2473,7 @@ class Translation < ApplicationRecord
   # @param langcode: [String, Symbol, NilClass] e.g., 'ja'. Here, :all means any language.
   def last_remaining?(lcode=nil, langcode: nil)
     lcode = (lcode || langcode || self.langcode)
-    !siblings(lcode, exclude_self: true).exists?
+    siblings(lcode, exclude_self: true).empty?
   end
 
   # Wrapper of {#last_remaining?}
@@ -2548,7 +2604,7 @@ class Translation < ApplicationRecord
     # NOTE: role_weight is guaranteed to be larger than higher_than because the latter was taken from a superior Role.
 
     # Best Translation among those whose weight is higher than higher_than
-    best_trans = self.class.sort(siblings(exclude_self: true, reset: false).where('weight > ? AND weight < ?', higher_than, THRESHOLD_WEIGHT_VISIBLE)).first
+    best_trans = self.class.sort(siblings(exclude_self: true, reset: false).filter{|t| t.weight > higher_than && t.weight < THRESHOLD_WEIGHT_VISIBLE}).first  ## .where('weight > ? AND weight < ?', higher_than, THRESHOLD_WEIGHT_VISIBLE)  (if Relation)
 
     half_role_weight = (((val=role_weight.quo(2)) > higher_than) ? val : role_weight)
     if !best_trans  # i.e., if there are no other translations for the term in the language by people including current_user at the same rank as current_user
@@ -2600,7 +2656,7 @@ class Translation < ApplicationRecord
   def weight_after_next
     dbkeys = [:id, :title, :alt_title, :weight]
     hsi_pluck = self.class.array_to_hash(dbkeys).with_indifferent_access  # HaSh-Index_PLUCK
-    arpluck = siblings(exclude_self: false).pluck(*dbkeys)
+    arpluck = siblings(exclude_self: false).map{|t| dbkeys.map{|metho| t.metho}}  ## .pluck(*dbkeys) does not apply to Array
     i_mine = arpluck.find_index{|ea| ea[hsi_pluck[:id]] == id}
 
     raise "This should never happen... arpluck=#{arpluck.inspect}; self={@translation.inspect}" if i_mine >= arpluck.size-1 || is_orig # should have been caught and raised CanCanCan::AccessDenied
@@ -2666,7 +2722,8 @@ class Translation < ApplicationRecord
     return if skip_singularize_is_orig_callback  # skipping this callback
     case is_orig
     when true
-      siblings(langcode: :all, exclude_self: true).update_all(is_orig: false)
+      ##siblings(langcode: :all, exclude_self: true).update_all(is_orig: false)
+      _update_is_orig_all_with(false)
       # translatable&.update!(orig_locale: langcode)
       if (parent=translatable) && parent.orig_locale != langcode
         parent.orig_locale = langcode
@@ -2675,12 +2732,23 @@ class Translation < ApplicationRecord
       end
     when nil
       # NOTE: update_all and update_columns skip callbacks, so the following would not cause an infinite loop.
-      siblings(langcode: :all, exclude_self: true).update_all(is_orig: nil)
+      ## siblings(langcode: :all, exclude_self: true).update_all(is_orig: nil)
+      _update_is_orig_all_with(nil)
       if translatable && !translatable.orig_locale.nil?
         translatable.update_columns(orig_locale: nil, touch: true)
       end
     else
       # do nothing
+    end
+  end
+
+  def _update_is_orig_all_with(value)
+    siblings(langcode: :all, exclude_self: true).each do |et|
+      if et.persisted? && !et.changed?
+        et.update_column(:is_orig, value)  # This skips callbacks, so would not cause an infinite loop.
+      else
+        et.is_orig = value
+      end
     end
   end
 
@@ -2806,5 +2874,56 @@ class Translation < ApplicationRecord
         errors.add(:base, "Cannot directly modify synchronized attributes #{changed_sync_attrs.inspect}")
       end
     end    
+
+    # validation: If is_official is true, is_literal must be falsy
+    def validate_official_and_literal
+      if is_official? && is_literal?
+        errors.add(:is_literal, "must be false or nil when is_official is true")
+      end
+    end
+
+    # validation: If is_formal is true, is_official must be true, is_literal falsy, and kind = 'full'
+    def validate_formal_requirements
+      errors.add(:is_official, "must be true when is_formal is true") unless is_official == true
+      errors.add(:is_literal, "must be false or nil when is_formal is true") if is_literal?
+      errors.add(:kind, "must be 'full' when is_formal is true") unless kind == "full"
+    end
+
+    # validation: start_year <= end_year if both are present
+    def validate_start_and_end_years
+      return unless start_year.present? && end_year.present?
+
+      if start_year > end_year
+        errors.add(:start_year, "cannot be later than end_year")
+      end
+    end
+
+    # validation: No overlapping formal periods for the same translatable record and langcode
+    # Permitting single boundary touching points (e.g., T1 end_year == 2010 and T2 start_year == 2010)
+    def validate_no_formal_period_overlap
+      return unless is_formal? && langcode.present?
+
+      # siblings defaults to filtering by self.langcode, excluding self,
+      # and ignoring records marked for destruction.
+      # The return of siblings is either Array (for in-memory relation) or Relation<Translation>.
+      siblings(reset: false).each do |other|
+        next unless other.is_formal?
+
+        if _periods_overlap?(start_year, end_year, other.start_year, other.end_year)
+          errors.add(:is_formal, "period overlaps with another formal translation for the same language")
+          break
+        end
+      end
+    end
+
+    def _periods_overlap?(s1, e1, s2, e2)
+      s1_eff = s1 || -Float::INFINITY
+      e1_eff = e1 || Float::INFINITY
+      s2_eff = s2 || -Float::INFINITY
+      e2_eff = e2 || Float::INFINITY
+
+      [s1_eff, s2_eff].max < [e1_eff, e2_eff].min
+    end
+
 end
 

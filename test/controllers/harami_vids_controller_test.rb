@@ -1044,7 +1044,7 @@ end
     hvid = harami_vids(:harami_vid5)
     refute  hvid.event_items.exists?, 'test fixtures'  # no EventItem defiend(!)
     refute  hvid.artist_music_plays.exists?, 'test fixtures'
-    refute  hvid.channel, 'test fixtures'
+    # refute  hvid.channel, 'test fixtures'  # This violates validation, so the fixture has changed now.
 
     assert_equal 0, hvid.musics.size, 'test fixtures'
     refute_equal Music.first, Music.last

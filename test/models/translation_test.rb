@@ -4,24 +4,34 @@
 #
 # Table name: translations
 #
-#  id                  :bigint           not null, primary key
-#  alt_romaji          :text
-#  alt_ruby            :text
-#  alt_title           :text
-#  is_orig             :boolean
-#  langcode            :string           not null
-#  note                :text
-#  romaji              :text
-#  ruby                :text
-#  title               :text
-#  translatable_type   :string           not null
-#  weight              :float
-#  created_at          :datetime         not null
-#  updated_at          :datetime         not null
-#  create_user_id      :bigint
-#  sync_translation_id :bigint
-#  translatable_id     :bigint           not null
-#  update_user_id      :bigint
+#  id                                  :bigint           not null, primary key
+#  alt_romaji                          :text
+#  alt_ruby                            :text
+#  alt_title                           :text
+#  end_year                            :integer
+#  is_for_record(Rarely used)          :boolean          default(FALSE), not null
+#  is_formal(Most formal for langcode) :boolean
+#  is_internal(Internal use only)      :boolean          default(FALSE), not null
+#  is_literal(Literan translation)     :boolean          default(FALSE), not null
+#  is_official(Ofiicial translation)   :boolean
+#  is_orig                             :boolean
+#  is_true_name(Person's true name)    :boolean
+#  kind                                :string           default("alt"), not null
+#  langcode                            :string           not null
+#  memo_editor                         :text
+#  note                                :text
+#  romaji                              :text
+#  ruby                                :text
+#  start_year                          :integer
+#  title                               :text
+#  translatable_type                   :string           not null
+#  weight                              :float
+#  created_at                          :datetime         not null
+#  updated_at                          :datetime         not null
+#  create_user_id                      :bigint
+#  sync_translation_id                 :bigint
+#  translatable_id                     :bigint           not null
+#  update_user_id                      :bigint
 #
 # Indexes
 #
@@ -31,10 +41,21 @@
 #  index_translations_on_alt_title                              (alt_title)
 #  index_translations_on_create_user_id                         (create_user_id)
 #  index_translations_on_create_user_id_and_update_user_id      (create_user_id,update_user_id)
+#  index_translations_on_end_year                               (end_year)
+#  index_translations_on_is_for_record                          (is_for_record)
+#  index_translations_on_is_formal                              (is_formal)
+#  index_translations_on_is_internal                            (is_internal)
+#  index_translations_on_is_literal                             (is_literal)
+#  index_translations_on_is_official                            (is_official)
 #  index_translations_on_is_orig                                (is_orig)
+#  index_translations_on_is_true_name                           (is_true_name)
+#  index_translations_on_kind                                   (kind)
 #  index_translations_on_langcode                               (langcode)
+#  index_translations_on_memo_editor                            (memo_editor)
+#  index_translations_on_note                                   (note)
 #  index_translations_on_romaji                                 (romaji)
 #  index_translations_on_ruby                                   (ruby)
+#  index_translations_on_start_year                             (start_year)
 #  index_translations_on_sync_translation_id                    (sync_translation_id) UNIQUE
 #  index_translations_on_title                                  (title)
 #  index_translations_on_translatable_id                        (translatable_id)
@@ -55,6 +76,22 @@ class TranslationTest < ActiveSupport::TestCase
   setup do
     # Without this, current_user may(!) exist if you run Controller or Integration tests at the same time.
     ModuleWhodunnit.whodunnit = nil
+
+    @title_counter = 0
+    @sex = Sex[0]
+    @artist = Artist.create!(
+      orig_locale: nil,
+      sex: @sex,
+      translations_attributes: [
+        {
+          title: "Initial Artist Name",
+          langcode: "ja",
+          is_orig: nil,
+          weight: 47.0,
+          kind: "full"
+        }
+      ]
+    )
   end
 
   test "has_many" do
@@ -1037,6 +1074,172 @@ class TranslationTest < ActiveSupport::TestCase
     assert tra.update(title: "A・RA・SHI", alt_title:  "A・RA・SHI")
   end
 
+
+  # --- Official-Literal Requirements ---
+  test "is_official=true permits falsy is_literal" do
+    t1 = _build_translation(is_official: true, is_literal: false)
+    t2 = _build_translation(is_official: true, is_literal: nil)
+
+    assert t1.valid?, t1.errors.full_messages.join(", ")
+    assert t2.valid?, t2.errors.full_messages.join(", ")
+  end
+
+  test "is_official=true fails when is_literal is true" do
+    translation = _build_translation(is_official: true, is_literal: true)
+
+    assert_not translation.valid?
+    assert_includes translation.errors[:is_literal], "must be false or nil when is_official is true"
+  end
+
+  # --- "Formal" Requirements ---
+  test "is_formal=true passes with valid formal attributes" do
+    translation = _build_translation(
+      is_formal: true,
+      is_official: true,
+      is_literal: false,
+      kind: "full"
+    )
+
+    assert translation.valid?, translation.errors.full_messages.join(", ")
+  end
+
+  test "is_formal=true fails when required conditions are violated" do
+    translation = _build_translation(
+      is_formal: true,
+      is_official: false,
+      is_literal: true,
+      kind: "alt"
+    )
+
+    assert_not translation.valid?
+    assert_includes translation.errors[:is_official], "must be true when is_formal is true"
+    assert_includes translation.errors[:is_literal], "must be false or nil when is_formal is true"
+    assert_includes translation.errors[:kind], "must be 'full' when is_formal is true"
+  end
+
+  # --- Start Year <= End Year ---
+  test "start_year must not be later than end_year" do
+    valid_range   = _build_translation(start_year: 2010, end_year: 2020)
+    same_year     = _build_translation(start_year: 2020, end_year: 2020)
+    invalid_range = _build_translation(start_year: 2021, end_year: 2020)
+
+    assert valid_range.valid?
+    assert same_year.valid?
+
+    assert_not invalid_range.valid?
+    assert_includes invalid_range.errors[:start_year], "cannot be later than end_year"
+  end
+
+  # --- Overlapping Formal Periods ---
+  test "rejects overlapping formal periods for the same translatable and language" do
+    hscommon = {
+      is_formal: true,
+      is_official: true,
+      is_literal: false,
+      kind: "full",
+      langcode: "en"
+    }
+
+    _build_translation(
+      start_year: 2000,
+      end_year: 2010,
+      **hscommon
+    ).save!
+
+    overlapping = _build_translation(
+      start_year: 2005,
+      end_year: 2015,
+      **hscommon
+    )
+
+    assert_not overlapping.valid?
+    assert_includes overlapping.errors[:is_formal], "period overlaps with another formal translation for the same language"
+  end
+
+  test "allows boundary touching where start_year equals previous end_year (switching year)" do
+    hscommon = {
+      is_formal: true,
+      is_official: true,
+      is_literal: false,
+      kind: "full",
+      langcode: "en"
+    }
+
+    _build_translation(
+      start_year: 2000,
+      end_year: 2010,
+      **hscommon
+    ).save!
+
+    switching = _build_translation(
+      start_year: 2010,
+      end_year: 2020,
+      **hscommon
+    )
+
+    assert switching.valid?, switching.errors.full_messages.join(", ")
+  end
+
+  test "allows overlapping formal periods when langcodes are different" do
+    hscommon = {
+      is_formal: true,
+      is_official: true,
+      is_literal: false,
+      kind: "full",
+    }
+
+    _build_translation(
+      langcode: "en",
+      start_year: 2000,
+      end_year: 2010,
+      **hscommon
+    ).save!
+
+    different_lang = _build_translation(
+      langcode: "ja",
+      start_year: 2005,
+      end_year: 2015,
+      **hscommon
+    )
+
+    assert different_lang.valid?, different_lang.errors.full_messages.join(", ")
+  end
+
+  test "validates formal overlap when passing nested attributes on parent Artist" do
+    hscommon = {
+          langcode: "en",
+          is_orig: nil,
+          is_formal: true,
+          is_official: true,
+          is_literal: false,
+          kind: "full",
+    }
+    artist = Artist.new(
+      orig_locale: nil,
+      sex: @sex,
+      translations_attributes: [
+        {
+          title: "Period 1",
+          weight: 2.0,
+          start_year: 2000,
+          end_year: 2010,
+          **hscommon
+        },
+        {
+          title: "Period 2 Overlapping",
+          weight: 3.0,
+          kind: "full",
+          start_year: 2005,
+          end_year: 2015,
+          **hscommon
+        }
+      ]
+    )
+
+    assert_not artist.valid?
+    assert artist.errors["translations.is_formal"].any? { |msg| msg.include?("period overlaps") }
+  end
+
   test "singularize_is_orig callback" do
     sex = Sex.create_basic!(iso5218: 999, title: "abc", langcode: "en", is_orig: true)
     tra_en1 = sex.translations.first
@@ -1167,5 +1370,23 @@ class TranslationTest < ActiveSupport::TestCase
     assert_equal mu_ja, mu_ja_plural  # to confirm it is NOT "楽曲s"
     refute_equal "s",   mu_ja_plural
   end
+
+
+  private
+    # Helper method to generate valid Translation instances with unique titles
+    def _build_translation(translatable: @artist, **custom_attrs)
+      @title_counter += 1
+      defaults = {
+        translatable: translatable,
+        title: "Unique Title #{@title_counter}",
+        langcode: "en",
+        is_orig: nil,
+        weight: 1.0 + @title_counter,
+        kind: "alt"
+      }
+      Translation.new(defaults.merge(custom_attrs))
+    end
+    private :_build_translation
+
 end
 

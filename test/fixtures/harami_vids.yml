@@ -72,8 +72,8 @@ harami_vid5:
   duration: 
   uri: youtu.be/harami_vid5
   place: 
-  channel: 
-  note: HaramiVid5 for testing seeds with no HaramiVidEventItemAssoc or channel
+  channel: channel_haramichan_youtube_main
+  note: HaramiVid5 for testing seeds with no HaramiVidEventItemAssoc but mandatory channel
 
 harami_vid_ihojin1:
   orig_locale: ja
