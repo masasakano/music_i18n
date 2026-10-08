@@ -25,6 +25,9 @@ module ModuleCommon
   # I18n related
   # HTML/XPath/URL/scraping related
 
+  # Default place holder (used when nil is not an appropriate initial value)
+  DEF_PLACE_HOLDER = :def_place_holder
+
   # A set of options having special meanings and their default values
   # used in #{create_translation!} and #{create_translations!}
   # They are removed before being passed to #{Translation.create!} etc.

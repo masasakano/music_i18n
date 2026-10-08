@@ -348,17 +348,17 @@ class ArtistTest < ActiveSupport::TestCase
     assert_equal 2, chan1.translations.where(langcode: "en").size
 
     ## Now update Translation of Artist, which should be propagated to ChannelOwner!
-    art_tra_en = art.best_translations["en"]
+    art_tra_en = art.best_translation(:en)
     art_tra_en.update!(alt_title: (new_alt="NewAlt"), romaji: (new_rom="NewRom"), weight: (new_wei=12.3))
     art.reload
     assert_equal new_alt, art.alt_title(langcode: "en"), 'sanity check'
-    assert_equal new_wei, art.best_translations["en"].weight, 'sanity check'
+    assert_equal new_wei, art.best_translation(:en).weight, 'sanity check'
 
     chan1.reload
     assert_equal 2, chan1.translations.where(langcode: "en").size
     assert_equal new_alt, chan1.alt_title(langcode: "en")
     assert_equal new_rom, chan1.romaji(langcode: "en")
-    assert_equal new_wei, chan1.best_translations["en"].weight
+    assert_equal new_wei, chan1.best_translation(:en).weight
   end
 
   test "create_basic!" do

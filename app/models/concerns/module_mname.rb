@@ -112,7 +112,8 @@ module ModuleMname
       if ea_re.class == self.class
         return ek.to_s if ea_re == self
       else
-        (alltras = best_translations).values.each do |tra|
+        best_translations.values.each do |tra|
+          tra = Array(tra).first
           %i(title alt_title).each do |metho|
             return ek.to_s if (s=tra.send(metho)).present? && ea_re =~ s
           end
@@ -121,7 +122,7 @@ module ModuleMname
     end
 
     # mname is not found. Returns the English title (or alt_title) instead
-    (best_translations["en"] || best_translations["ja"]).slice(:title, :alt_title).values.map{|i| (i.present? && i.strip.present?) ? i : nil}.compact.first || ""  # should never be an empty String in normal operations, but playing safe.
+    (best_translations["en"].presence || best_translations["ja"].presence).first.slice(:title, :alt_title).values.map{|i| (i.present? && i.strip.present?) ? i : nil}.compact.first || ""  # should never be an empty String in normal operations, but playing safe.
   end
 end
 

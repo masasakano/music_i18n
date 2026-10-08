@@ -49,14 +49,14 @@ class ChannelTest < ActiveSupport::TestCase
 
     mdl = channels(:channel_haramichan_youtube_main)
     assert        mdl.create_user
-    assert_equal "HARAMIchan", mdl.best_translations[:en].title
+    assert_equal "HARAMIchan", mdl.best_translation(:en).title
 
     mdl = channels(:channel_haramichan_youtube_main)
     assert mdl.valid?, "mdl=#{mdl.inspect}"
 
     #mdl = channels(:channel_saki_kubota)
     #assert        mdl.themselves
-    #assert_equal artists(:artist_saki_kubota).title, mdl.best_translations[:ja].title
+    #assert_equal artists(:artist_saki_kubota).title, mdl.best_translation(:ja).title
 
     assert ChannelType.default(:HaramiVid), "ChannelType.default(:HaramiVid)"
     assert_equal ChannelType.find_by(mname: :main), ChannelType.default(:HaramiVid)

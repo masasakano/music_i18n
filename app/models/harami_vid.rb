@@ -806,7 +806,7 @@ class HaramiVid < BaseWithTranslation
     if all_trans.size > 0 && dryrun
       # A corresponding HaramiVid exists but the translation does not agree.
       best_tra = best_translations
-      ea_tra = (best_tra['ja'] || best_tra['en'] || all_trans.first)
+      ea_tra = Array(best_tra['ja'] || best_tra['en'] || all_trans).compact.first
       self.matched_translation = ea_tra
       ea_tra.matched_attribute = :title
       self.matched_attribute   = :title

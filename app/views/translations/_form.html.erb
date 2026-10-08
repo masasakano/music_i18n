@@ -1,110 +1,215 @@
 
 <%= render partial: 'layouts/form_print_errors', locals: {model: translation} %>
 
-<%= form_with(model: translation, local: true) do |form| %>
-  <% if ! translation.new_record? %>
-    <p>
-      ID=<%= translation.id %>
-    </p>
-  <% end %>
+<%= tag.div id: "form_main" do %>
 
-  <div class="field">
-    <%= form.label :translatable_type %>
-    <%= form.text_field :translatable_type, readonly: !!translation.translatable_type, class: "input_middle" %>
-  </div>
+  <%= simple_form_for translation do |f| %>
+    <%= tag.section id: "sec_primary_input" do %>
+      <% if ! translation.new_record? %>
+        <p class="item_pid">
+          ID=<%= translation.id %>
+        </p>
+      <% end %>
 
-  <div class="field">
-    <%= form.label :translatable_id %>
-    <%= form.text_field :translatable_id, readonly: !!translation.translatable_id, class: "input_int" %>
-  </div>
+      <%= tag.div class: "field field_group_translatable_type" do %>
+        <% if translation.translatable_type %>
+          <%= f.input :translatable_type, readonly: true, input_html: {class: "input_middle"} %>
+        <% else %>
+          <% Rails.application.eager_load! unless Rails.application.config.eager_load %>
+          <% ary = BaseWithTranslation.descendants.reject(&:abstract_class?).reject { |klass| klass.name.include?('::') }.map(&:name) %>
+          <%= f.input :translatable_type, collection: ary %>
+        <% end %>
+      <% end %>
 
-  <div class="field">
-    <%= form.label :langcode %>
-    <%= form.text_field :langcode, class: "input_shortest", readonly: cannot?(:create, Translation.new) && translation.langcode.present? %><%# translation.langcode.present? should be always true if the former condition passes, but playing safe %>
-      <span class="small">"es" (Spanish), "it" (Italian), "de" (German), "ko" (Korean), "zh" (Chinese), etc</span>
-  </div>
+      <div class="field">
+        <%= f.input :translatable_id, as: :integer, readonly: !!translation.translatable_id, input_html: {class: "input_int"} %>
+      </div>
 
-  <div class="field">
-    <%= form.label :title %>
-    <%= form.text_area :title %>
-  </div>
+      <div class="field">
+        <%= f.input :langcode, as: :string, input_html: {class: "input_shortest"}, hint: '"es" (Spanish), "it" (Italian), "de" (German), "ko" (Korean), "zh" (Chinese), etc', readonly: cannot?(:create, Translation.new) && translation.langcode.present? %><%# translation.langcode.present? should be always true if the former condition passes, but playing safe %>
+      </div>
 
-  <div class="field">
-    <%= form.label :ruby %>
-    <%= form.text_area :ruby %>
-  </div>
+     <% %i(title ruby romaji alt_title alt_ruby alt_romaji).each do |metho| %>
+      <div class="field">
+        <%= f.input metho, as: :text, required: (:title == metho) %>
+      </div>
+     <% end %>
 
-  <div class="field">
-    <%= form.label :romaji %>
-    <%= form.text_area :romaji %>
-  </div>
-
-  <div class="field">
-    <%= form.label :alt_title %>
-    <%= form.text_area :alt_title %>
-  </div>
-
-  <div class="field">
-    <%= form.label :alt_ruby %>
-    <%= form.text_area :alt_ruby %>
-  </div>
-
-  <div class="field">
-    <%= form.label :alt_romaji %>
-    <%= form.text_area :alt_romaji %>
-  </div>
-
-  <div class="field">
-    <% if translation.is_orig
-         checked = :original
-       else
-         translat = translation.translatable
-         checked =
-           if translat && translat.translations.where(is_orig: true).exists?
-             :translation
+      <div class="field">
+        <% if translation.is_orig
+             checked = :original
            else
-             :undefined
+             translat = translation.translatable
+             checked =
+               if translat && translat.translations.where(is_orig: true).exists?
+                 :translation
+               else
+                 :undefined
+               end
            end
-       end
-      %>
-    <%= form.label :is_orig, 'Translation category' %>
-    <%= form.radio_button(:is_orig, true, checked: (:original == checked)) %>
-    <%= form.label :is_orig, '原語', :value => true %>
-    <%= form.radio_button(:is_orig, false, checked: (:translation == checked)) %>
-    <%= form.label :is_orig, '翻訳', :value => false %>
-    <%= form.radio_button(:is_orig, "nil", checked: (:undefined == checked)) %>
-    <%= form.label :is_orig, '定義不能 (例:「太陽⇔Sun」)', :value => "nil" %>
-  </div>
+          %>
+        <%= f.label :is_orig, 'Translation category' %>
+        <%= f.radio_button(:is_orig, true, checked: (:original == checked)) %>
+        <%= f.label :is_orig, '原語', :value => true %>
+        <%= f.radio_button(:is_orig, false, checked: (:translation == checked)) %>
+        <%= f.label :is_orig, '翻訳', :value => false %>
+        <%= f.radio_button(:is_orig, "nil", checked: (:undefined == checked)) %>
+        <%= f.label :is_orig, '定義不能 (例:「太陽⇔Sun」)', :value => "nil" %>
+      </div>
 
-  <% if (user_signed_in? && current_user.qualified_as?(:moderator, RoleCategory[RoleCategory::MNAME_TRANSLATION])) %>
-  <div class="field">
-    <% str_table = (translation.translatable.respond_to?(:translations) ? 'See table below for reference. ' : '') %>
-    <%= form.label :weight, "Weight (#{str_table}Set it under 100 to promote this permanently, 0 for the definitive word like the original one.)" %>
-    <%= form.text_field :weight, class: "input_float" %>
-  </div>
-  <% end %>
-
-  <% if user_signed_in? && current_user.an_admin? %>
-  <div class="field">
-    <%= form.label :create_user_id %>
-    <%= form.text_field :create_user_id %>
-  </div>
-
-  <div class="field">
-    <%= form.label :update_user_id %>
-    <%= form.text_field :update_user_id %>
-  </div>
-  <% end %>
-
-  <div class="field">
-    <%= form.label :note %>
-    <%= form.text_area :note %>
-  </div>
-
-  <div class="actions">
-    <%= form.submit %>
-  </div>
+      <%= tag.div class: "field field_group_kind" do %>
+        <%= f.input :kind, as: :radio_buttons,
+                    # item_wrapper_class: "form-check-inline",
+                    collection: Translation.kinds.keys.map { |k| [k.humanize, k] },
+                    include_blank: false,
+                    required: true
+                     %>
+<% if false %>
+        <%= f.label :kind, "Kind" %>
+        <%= f.select :kind,
+            Translation.kinds.keys.map { |k| [k.humanize, k] },
+            { include_blank: false },
+            { class: "form-select" } %>
 <% end %>
+      <% end %>
+
+      <div class="form-group row">
+        <%= tag.div class: "col field_group_start_year" do %>
+          <%= f.label :start_year, "Start Year (usually leave it blank)" %>
+          <%= f.number_field :start_year,
+                min: 1800,
+                max: Time.current.year + 5,
+                placeholder: "e.g. 2010 (Optional)",
+                class: "form-control" %>
+        <% end %>
+
+        <%= tag.div class: "col field_group_end_year" do %>
+          <%= f.label :end_year, "End Year" %>
+          <%= f.number_field :end_year,
+                min: 1800,
+                max: Time.current.year + 5,
+                placeholder: "e.g. 2020 (Optional)",
+                class: "form-control" %>
+        <% end %>
+      </div>
+
+      <%= tag.div class: "field field_group_is_formal" do %>
+        <%= f.input :is_formal, as: :radio_buttons,
+                    label: "Is Formal name? (unique)",
+                    item_wrapper_class: "form-check-inline",
+                    collection: [
+                      ["Unspecified", ""],
+                      ["Yes (Formal)", "true"],
+                      ["No (Informal)", "false"]
+                    ] %>
+      <% end %>
+
+      <%= tag.div class: "field field_group_is_official" do %>
+        <%= f.input :is_official, as: :radio_buttons,
+                    label: "Official translation?",
+                    item_wrapper_class: "form-check-inline",
+                    collection: [
+                      ["Unspecified", ""],
+                      ["Yes (Official)", "true"],
+                      ["No (Unofficial)", "false"]
+                    ] %>
+      <% end %>
+
+      <%= tag.div class: "field field_group_is_literal" do %>
+        <%= f.input :is_literal, as: :radio_buttons,
+                    label: "Literal translation? (mainly for Music titles)",
+                    item_wrapper_class: "form-check-inline",
+                    collection: [
+                      ["Yes (Literal)", "true"],
+                      ["No (More official translation)", "false"]
+                    ] %>
+      <% end %>
+
+      <%= tag.div class: "field field_group_is_true_name" do %>
+        <%= f.input :is_true_name, as: :radio_buttons,
+                    label: "True name like birth-name?",
+                    item_wrapper_class: "form-check-inline",
+                    collection: [
+                      ["Unspecified", ""],
+                      ["Yes (True name)", "true"],
+                      ["No (Stage name etc)", "false"]
+                    ] %>
+      <% end %>
+      <% if false %><%# ###### (for reference) Without SimpleForm .... ###### %>
+        <span class="form-label">True name like birth-name?</span>
+        <div class="radio-group">
+          <label class="radio-label">
+            <%= f.radio_button :is_true_name, "", checked: f.object.is_true_name.nil? %>
+            Unspecified
+          </label>
+          <label class="radio-label">
+            <%= f.radio_button :is_true_name, "true", checked: f.object.is_true_name == true %>
+            Yes (True name)
+          </label>
+          <label class="radio-label">
+            <%= f.radio_button :is_true_name, "false", checked: f.object.is_true_name == false %>
+            No (Stage name etc)
+          </label>
+        </div>
+      <% end %>
+
+      <%= tag.div class: "field field_group_is_for_record" do %>
+        <%= f.input :is_for_record, as: :radio_buttons,
+                    label: "Name is for record only? (e.g., known but rarely used true name)",
+                    item_wrapper_class: "form-check-inline",
+                    collection: [
+                      ["Yes (For record only)", "true"],
+                      ["No (Default)", "false"]
+                    ] %>
+      <% end %>
+
+      <%= tag.div class: "field field_group_is_internal" do %>
+        <%= f.input :is_internal, as: :radio_buttons,
+                    label: "Internal use only? (e.g., typical mis-spelling)",
+                    item_wrapper_class: "form-check-inline",
+                    collection: [
+                      ["Yes (Internal use only)", "true"],
+                      ["No (Publicly viewable)", "false"]
+                    ] %>
+      <% end %>
+
+      <% is_admin = (user_signed_in? && current_user.an_admin?) %>
+      <%= editor_only_safe_html(:pass, method: is_admin, only: :admin, class: "field") do %>
+        <%= f.label :create_user_id %>
+        <%= f.text_field :create_user_id %>
+      <% end %>
+
+      <%= editor_only_safe_html(:pass, method: is_admin, only: :admin, class: "field") do %>
+        <%= f.label :update_user_id %>
+        <%= f.text_field :update_user_id %>
+      <% end %>
+<% if false %>
+      <%= tag.div class: "field" do %>
+        <%= f.label :note %>
+        <%= f.text_area :note %>
+      <% end %>
+
+      <%= editor_only_safe_html(:pass, method: true, class: "field") do %><%# Anyone who can see this page should be able to see this field; nevertheless it is highlighted to emphasize the fact the content of this field is for :editor_only %>
+        <%= f.label :memo_editor %>
+        <%= f.text_area :memo_editor %>
+      <% end %>
+<% end %>
+
+      <% str_table = (translation.translatable.respond_to?(:translations) ? 'See table below for reference. ' : '') %>
+      <% weight_hint = "Weight (#{str_table}Set it under 100 to promote this permanently, 0 for the definitive word like the original one.)" %>
+      <% weight_placeholder = sprintf("Def: %s", translation.def_weight(current_user)) if translation.new_record? %>
+      <% whether_shows = {weight: can?(:update, Translations::PromotesController), memo_editor: true}.with_indifferent_access %>
+      <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: Translation, show_weight: true, whether_shows: whether_shows, weight_hint: weight_hint, weight_placeholder: weight_placeholder} %><%# See above for the weight selection %>
+      <%# NOTE: the following would show a smaller, white-background field:  f.text_field :weight, class: "input_float" %>
+
+      <%= f.submit %>
+      <%= tag.div class: "actions" do %>
+        <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
+      <% end %>
+
+    <% end %><!-- section id="sec_primary_input" -->
+  <% end %>
+<% end %><!-- div id="form_main" -->
 
 <% if ! translation.new_record? && can?(:destroy, translation) %>
   <div class="actions-destroy" style="margin-right: 1em;">

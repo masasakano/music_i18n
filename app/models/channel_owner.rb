@@ -48,6 +48,9 @@ class ChannelOwner < BaseWithTranslation
   # Minimum requirements for editing Translation (see BaseWithTranslation).
   TRANSLATION_EDITABLE_IF_AT_LEAST = :editor?
 
+  # {Translation#is_true_name} makes sense.
+  TRANSLATION_ACCEPT_TRUE_NAME = true
+
   # For the translations to be unique (required by BaseWithTranslation).
   #
   # See also {TRANSLATION_UNIQUE_SCOPES}
@@ -166,15 +169,6 @@ class ChannelOwner < BaseWithTranslation
   def reset_to_artist(artist, force: false)
     self.artist = artist
     reset_by_artist(force: force)
-  end
-
-  # OBSOLETE !!!!!!!!!!!
-  # @return [Array<Translations>] initialized (unsaved) Translations with identical contents to the best ones of the given Artist
-  def initialize_from_artist_translations
-    return if !artist
-    artist.best_translations.values.map{ |tra|
-      Translation.new tra.hs_key_attributes
-    }
   end
 
   # For a new record, set (actually replace) {#unsaved_translations} based on Artist
@@ -325,12 +319,13 @@ class ChannelOwner < BaseWithTranslation
   # @return [void]
   def update_user_for_equivalent_artist
     return if !artist
-    translations.reset
-    artist.best_translations.each_pair do |lc, etrans|
+    translations.reset  ######## NOTE: not working on in-memory translations!
+
+    translations.each do |etra|
       hs = %w(update_user_id updated_at).map{ |metho|
-        [metho, etrans.send(metho)]
+        [metho, etra.sync_parent.send(metho)]
       }.to_h
-      best_translations[lc].update_columns(hs)  # skips all validations AND callbacks
+      etra.update_columns(hs)  # skips all validations AND callbacks
     end
   end
 

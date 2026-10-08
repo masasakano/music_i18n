@@ -58,6 +58,9 @@ class Artist < BaseWithTranslation
   # Minimum requirements for editing Translation (see BaseWithTranslation).
   TRANSLATION_EDITABLE_IF_AT_LEAST = :editor?
 
+  # {Translation#is_true_name} makes sense.
+  TRANSLATION_ACCEPT_TRUE_NAME = true
+
   # For the translations to be unique (required by BaseWithTranslation).
   MAIN_UNIQUE_COLS = %i(birth_day birth_month birth_year place_id sex_id)
 
@@ -385,7 +388,7 @@ class Artist < BaseWithTranslation
   def self.hs_best_trans_params(trans: nil, langcode: nil, additional_cols: [])
     if !trans
       raise ArgumentError if langcode.blank?
-      trans = best_translations[langcode.to_s]
+      trans = [best_translations[langcode.to_s]].flatten.compact.first
       return nil if !trans
     end
 

@@ -7,7 +7,7 @@
 # The child model of this class should define three constants of
 # +EDITABLE_IF_AT_LEAST+, +MAIN_UNIQUE_COLS+ and +ARTICLE_TO_TAIL+, and optionally
 # +ALLOW_IDENTICAL_TITLE_ALT+ (Boolean) and +TRANSLATION_UNIQUE_SCOPES+,
-# and +TRANSLATION_STRICTLY_UNIQUE_TITLES+ like this:
+# +TRANSLATION_STRICTLY_UNIQUE_TITLES+ and +TRANSLATION_ACCEPT_TRUE_NAME+ like:
 #
 #   class MyChildKlass < BaseWithTranslation
 #     TRANSLATION_EDITABLE_IF_AT_LEAST = :editor?
@@ -16,6 +16,7 @@
 #     #ALLOW_IDENTICAL_TITLE_ALT = false
 #     #TRANSLATION_UNIQUE_SCOPES = :default   # ==nil  # or :disable or %i(prefecture_id birth_year)
 #     #TRANSLATION_STRICTLY_UNIQUE_TITLES = true  # (Default)
+#     TRANSLATION_ACCEPT_TRUE_NAME = false
 #
 # Here, +TRANSLATION_EDITABLE_IF_AT_LEAST+ defines either a Symbole indicating a method of {User} (e.g., {User#editor?})
 # or Proc, which should accept the two main arguments of +User+ and +Translation+, called
@@ -28,6 +29,11 @@
 # They can also define the following to bypass the validation by Translation
 # to check the identicalness of title and alt_title and raise an alert:
 #     ALLOW_IDENTICAL_TITLE_ALT = true/false
+#
+# +TRANSLATION_ACCEPT_TRUE_NAME+ (Boolean) indicates whether {Translation#is_true_name} and 
+# {Translation#is_for_record} make sense; yes, only if it is true.  They make
+# sense with only human-name related modles: {Artist} and {ChannelOwner}.
+# If the model does not define this constant, it is regarded as falsy.
 #
 # Also, they can optionaly define +TRANSLATION_UNIQUE_SCOPES+, which is looked at regardless of +ALLOW_IDENTICAL_TITLE_ALT+
 # and is one of nil and +:disable+ and an Array of parameters to pass Relation#where
@@ -380,7 +386,7 @@
 #
 # Language priority and fallback are not trivial.
 #
-# The core alrorithm to determine the priority is #{BaseWithTranslation.sorted_langcodes}.
+# The core alrorithm to determine the priority is {#sorted_langcodes}.
 # In short,
 #
 # 1. Caller-specified (NOT WEB-browser's implicit request)
@@ -810,6 +816,12 @@ class BaseWithTranslation < ApplicationRecord
     raise NoMethodError if !has_attribute?(:weight)
     # EngageHow.all.order(:weight).first
     self.order(Arel.sql('CASE WHEN weight IS NULL THEN 1 ELSE 0 END, weight')).first # valid in any SQL database systems
+  end
+
+  # Wrapper to get self::TRANSLATION_ACCEPT_TRUE_NAME
+  def self.translation_accept_true_name? 
+    self.const_defined?(:TRANSLATION_ACCEPT_TRUE_NAME) && 
+    self.const_get(     :TRANSLATION_ACCEPT_TRUE_NAME)
   end
 
   # Sorts the translation part in the argument so the one with
@@ -2068,19 +2080,28 @@ class BaseWithTranslation < ApplicationRecord
   # traditional ones, Japanese kanjis, or Japanese katakanas, or even alphabet letters?
   #
   # @example
-  #   Country.sorted_langcodes(first_lang: nil,  hstrans: cntr.best_translations)
+  #   sorted_langcodes(first_lang: nil,  hstrans: cntr.best_translations)
   #     #=> ['en', 'ja', 'fr']
-  #   Country.sorted_langcodes(first_lang: 'it', hstrans: cntr.best_translations)
+  #   sorted_langcodes(first_lang: 'it', hstrans: cntr.best_translations)
   #     #=> ['it', 'en', 'ja', 'fr', 'kr'] (providing hstrans has 'kr' with is_orig=false)
   #     # NOTE: hstrans may not include Translation in "it".  This method does not care
   #     #       in default unless +remove_invalid: true+ is specified.
   #
-  # @param hstrans: [Hash<String => Translation>] Returns of {#best_translations}
+  # @param hstrans: [Hash<String => Translation or [Translation-s]>] Returns of {#best_translations}
   # @param first_lang: [String, NilClass] user-specified langcode that has the highest priority
   # @param prioritize_orig: [Boolean] If true, is_orig has a higher priority than first_lang (Def: false)
   # @param remove_invalid: [Boolean] If true (Def: false), langcode-s that do not have Translation are removed in the returne Array. {Place#title_or_alt_ascendants}, which is widely used in the app, depends on this default setting. Specifically, the option +lang_fallback_option: :never+ would not work well if +remove_invalid+ here was true (because the method's behaviour of potentially returning nil depends on it?).
   # @return [Array<String>]
-  def self.sorted_langcodes(hstrans: , first_lang: nil, prioritize_orig: false, remove_invalid: false)
+  def sorted_langcodes(hstrans: , first_lang: nil, prioritize_orig: false, remove_invalid: false)
+if true  #######################
+    ret_locales = AVAILABLE_LOCALES.map{|i| i.to_s} + hstrans.keys(&:to_s)
+    ret_locales.unshift( orig_locale )    if orig_locale.present?
+    ret_locales.unshift( first_lang.to_s) if first_lang.present?
+    ret_locales.unshift( orig_locale )    if orig_locale.present? && (prioritize_orig || first_lang.blank?)
+    ret_locales.uniq!
+    return ret_locales if !remove_invalid
+    ret_locales.reject{|ec| hstrans[ec].blank?}  # (maybe?) should never happen(?), if hstrans is a valid one.
+else
     first_lang = first_lang.to_s if first_lang
     def_locales = AVAILABLE_LOCALES.map{|i| i.to_s}
     hsind = 
@@ -2100,6 +2121,7 @@ class BaseWithTranslation < ApplicationRecord
       ar[3] = lcode
       ar
     }.compact.sort.map{|i| i[3]}
+end
   end
     ### Original, more intuitive sorting algorithm
     #
@@ -2352,16 +2374,19 @@ class BaseWithTranslation < ApplicationRecord
       tra = find_translation_by_regex(:titles, str_or_re)
       break if tra
     end
-    tra ||= (best_translations['ja'] || best_translations['en'] || best_translations.first) 
-    if !tra.matched_attribute
-      # NOTE: this happens basically when tra is from best_translations rather than 
-      # find_translation_by_regex(), which happens when no Translation
-      # matches the given title_str, i.e., when the DB entry has
-      # been manually modified since the first creation.
-      tra.matched_attribute = (!tra.title.blank? ? :title : :alt_title)
+
+    trass = Array(tra || (best_translations['ja'].presence || best_translations['en'].presence || best_translations.first)).compact
+    trass.each do |etra|
+      if !etra.matched_attribute
+        # NOTE: this happens basically when tra is from best_translations rather than
+        # find_translation_by_regex(), which happens when no Translation
+        # matches the given title_str, i.e., when the DB entry has
+        # been manually modified since the first creation.
+        etra.matched_attribute = (!etra.title.blank? ? :title : :alt_title)
+      end
     end
-    self.matched_translation = tra
-    self.matched_attribute   = tra.matched_attribute
+    self.matched_translation = trass.first
+    self.matched_attribute   = trass.first.matched_attribute
     self
   end
 
@@ -2546,6 +2571,106 @@ class BaseWithTranslation < ApplicationRecord
     tit + tail
   end
 
+  # Returns a Hash for +translations_attributes+ converted from legacy-style Hash
+  #
+  # @param hsorig [Hash<Array<Hash>, Hash>] the child Hash is for Translation parameters: {ja: {title: ?a, ...}, en: [{title: ?b, ...}, {alt_title: ?c, ...}]}
+  # @return [Array<Hash>] to be fed to +translations_attributes+. Singleton method +orig_locale+ is set.  If +orig_locale == :not_touch+, this means no constraint on +orig_locale+, and the caller should handle it accordingly.
+  def self.convert_to_translations_attributes(hsorig)
+    ret_locale = DEF_PLACE_HOLDER  # defined in module_common.rb
+    arret = []
+    hsorig.with_indifferent_access.each_pair do |eloc, trans_obj|
+      next if !trans_obj  # playing safe
+      [trans_obj].flatten.each do |hstra|
+        ary = _convert_to_translations_attributes_core(hstra, set_weight: true)
+        arret += ary
+        ret_locale = ary.orig_locale if ret_locale == DEF_PLACE_HOLDER
+      end
+    end
+
+    set_singleton_method_val(:orig_locale, ret_locale, target: arret, clobber: true)  # defined in module_common.rb
+    validate_is_orig_translations_attributes(arret, orig_locale: ret_locale)  # This will print and log an error message if there is any inconsistency with regard to is_orig in the input +hsorig+ (though does nothing practical)
+    arret
+  end
+
+  #
+  # @param artrans [Array<Hash>]
+  # @param orig_locale: [String, NilClass, Symbol] String of locale or nil or {DEF_PLACE_HOLDER} (meaning unconstrained, so this will check self-inconsistency only)
+  # @return [NilClass, String] nil if nothing is wrong; else String of error message
+  def self.validate_is_orig_translations_attributes(artrans, orig_locale: DEF_PLACE_HOLDER)
+    all_is_origs = artrans.map{_1[:is_orig]}
+    slice_is_orig = artrans.map{_1.slice(:is_orig, :langcode, :title)}
+
+    case orig_locale
+    when DEF_PLACE_HOLDER
+      return if all_is_origs.compact.empty?
+      return if all_is_origs.uniq == [false]
+      return if all_is_origs.count(true) == 1 && all_is_origs.count(false) == all_is_origs.size - 1
+    when nil
+      return if all_is_origs.compact.empty?
+    else
+      return if all_is_origs.count(false) == all_is_origs.size ||
+                all_is_origs.count(false) == all_is_origs.size - 1 &&
+                slice_is_orig.find_all{ |ehs| ehs[:is_orig] && ehs[:langcode] == orig_locale }.size == 1
+    end
+
+    msg = "ERROR(#{File.basename __FILE__}:#{__method__}): Inconsistent is_orig for input Translation: "+slice_is_orig.inspect
+    warn msg
+    Rails.logger.error msg
+    msg
+  end
+
+  # Core routine to convert a legacy-style Translation Hash
+  #
+  # @param set_weight: [Boolean] if true, weight is always set.
+  # @return [Array<Hash>] Either 1 or 2 elements.  If +hstra+ has both :title and :alt_title, it is 2 elements. Singleton method +orig_locale+ is set.  If +orig_locale == :not_touch+, this means no constraint is given on +orig_locale+ with the input +hstra+, and the caller should handle it accordingly.
+  def self._convert_to_translations_attributes_core(hstra, set_weight: true)
+    ret_locale = DEF_PLACE_HOLDER  # defined in module_common.rb
+    hsret1 = {}.with_indifferent_access
+    hsret2 = {}.with_indifferent_access
+    hsret1[:weight] = Role.lowest_subordinate_roles_in_line(RoleCategory::MNAME_TRANSLATION).last.weight*(1.1+rand/300) if set_weight
+
+    hstra.each_pair do |ek, ecol|
+      case ek.to_s
+      when "title", "ruby", "romaji"
+        hsret1[ek] = ecol
+      when "alt_title", "alt_ruby", "alt_romaji"
+        hsret2[ek.to_s.sub(/^alt_/, "")] = ecol
+      when "weight"
+        hsret1[ek] = ecol
+      when "is_formal"
+        hsret1[ek] = ecol
+        hsret2[ek] = false
+      when "is_orig"
+        if ecol
+          ret_locale = hstra.with_indifferent_access[:langcode]
+          if Translation.column_names.include?("is_orig")
+            hsret1[ek] = true
+            hsret2[ek] = false
+          end
+        else
+          if ecol.nil?
+            ret_locale = nil
+          end
+          hsret1[ek] = hsret2[ek] = ecol if Translation.column_names.include?("is_orig")
+        end
+      else
+        hsret1[ek] = hsret2[ek] = ecol
+      end
+    end
+
+    hsret2[:weight] = hsret1[:weight].to_f + 7.7 + rand/300 if hsret1[:weight] 
+    hsret1[:kind] ||= Translation::KIND_FULL
+    hsret2[:kind] = ((Translation::KIND_NICKNAME == hsret1[:kind]) ? Translation::KIND_NICKNAME : Translation::KIND_ALT)
+
+    arret = []
+    [hsret1, hsret2].each do |eh|
+      arret << eh if eh[:title].present?
+    end
+    set_singleton_method_val(:orig_locale, ret_locale, target: arret, clobber: true)  # defined in module_common.rb
+    arret
+  end
+  private_class_method :_convert_to_translations_attributes_core
+
   # Decomposing a "Model+lcode+ID" string
   #
   # In +update+ (not +edit+) after auto-complete for a Model, a string query
@@ -2707,12 +2832,29 @@ class BaseWithTranslation < ApplicationRecord
     arret = [nil, str_fallback]
 
     # Fallback
-    sorted_langs = self.class.sorted_langcodes(first_lang: langcode, hstrans: hstrans, prioritize_orig: prioritize_orig, remove_invalid: false) # ["ja", "en"] etc.
+    sorted_langs = sorted_langcodes(first_lang: langcode, hstrans: hstrans, prioritize_orig: prioritize_orig, remove_invalid: false) # ["ja", "en"] etc.
     sorted_langs.each do |ecode|
-      artmp = (hstrans[ecode] && hstrans[ecode].titles(**kwd))
+      artmp = (hstrans[ecode].present? && Array(hstrans[ecode]).map{|etra| etra.present? ? etra.titles(**kwd) : [nil, nil]}.flatten)  # up to 4 elements (title, alt_title, title, alt_title), where the last one should be nil.  First two might be both nil.
       if !artmp
         return arret if lang_fallback_option == :never
         next
+      end
+      if artmp.size >= 3
+        # Basically, if kind="alt" exists; in this case, alt_title should not be present? in any translations of the parent.
+        if artmp[0].blank? && artmp[1].blank?  # no :full Translation
+           if artmp[3].present?  # :alt Translation has alt_title (This should never happen...)
+             warn "(#{File.basename __FILE__}:#{__method__}) This should never happen... #{self.inspect}"
+             artmp = [artmp[2], artmp[3]]
+           else
+             artmp = [nil,      artmp[2]]
+           end
+        elsif artmp[1].blank? && artmp[2].present?
+             artmp = [artmp[0], artmp[2]]
+        else
+          warn "WARNING(#{File.basename __FILE__}:#{__method__}): This should never happen!  artmp=#{artmp.inspect}"
+          logger.warn
+          artmp = artmp[0..1]
+        end
       end
       artmp.each do |str|
         next if !str
@@ -3039,14 +3181,20 @@ class BaseWithTranslation < ApplicationRecord
     return str_fallback if !lang_fallback
 
     ## Falback after no translations are found for the specified language.
-    hstrans = best_translations(except: fallback_except)
+    hstranss = best_translations(except: fallback_except)
     fallback_langcodes(except: fallback_except).each do |elc|
-      ret = hstrans[elc].public_send(method)
-      if !ret.blank?
-        set_singleton_method_val(:lcode, elc, target: ret) # Define Singleton method String#lcode # defined in module_common.rb
-        return ret
+      Array(hstranss[elc]).compact.each do |etra|
+        ret = etra.public_send(method) if etra.respond_to?(method)
+        if ret.blank? && /^alt_(.+)/ =~ method.to_s && etra.alt?  # Translation::KIND_ALT
+          ret = etra.public_send($1)
+        end
+        if !ret.blank?
+          set_singleton_method_val(:lcode, elc, target: ret) # Define Singleton method String#lcode # defined in module_common.rb
+          return ret
+        end
       end
     end
+
     str_fallback
   end
   private :get_a_title
@@ -3250,7 +3398,7 @@ class BaseWithTranslation < ApplicationRecord
     best_translations.each_pair do |lcode, trans|
       if lcode.to_s == langcode
         self.orig_locale = langcode
-        trans.update!(is_orig: true)  # This fires Translation#singularize_is_orig
+        Array(trans).compact.first.update!(is_orig: true)  # This fires Translation#singularize_is_orig
         return trans
       end
     end
@@ -3370,14 +3518,8 @@ class BaseWithTranslation < ApplicationRecord
       return Translation.sort(tras)  # This is not a duplicated call of DB for existing records with orig_translation above, which imposed a finer condition.
     end
 
-    #### retracted because we should accept any language at this level!
-    # if !AVAILABLE_LOCALES.include? langcode.to_sym
-    #   logger.warn "(#{__method__}) langcode=#{langcode} unavailable in the environment (available=#{I18n.available_locales.inspect})."
-    #   # HaramiMusicI18n::MultiTranslationError::UnavailableLocaleError
-    # end
-
     mdls =
-      if new_record?
+      if new_record? || tras.loaded?
         tras.select{|et| et.langcode == langcode.to_s}
       else
         tras.where(langcode: langcode.to_s)
@@ -3412,7 +3554,7 @@ class BaseWithTranslation < ApplicationRecord
     return Translation.sort(tras).first if langcode.blank?
 
     tra = translations_with_lang(langcode: langcode)  # this is necessary because langcode is determined from is_orig when nil langcode is given
-    return tra.first if !fallback || tra.exists?
+    return tra.first if !fallback || tra.present?
 
     # Translation for the specified langcode has not been found.
     # Fallback is now searched for.
@@ -3469,7 +3611,7 @@ class BaseWithTranslation < ApplicationRecord
   # Gets Hash of best {Translation}-s with keys of langcodes
   #
   # @param except: [NilClass, String, Symbol, Array<String, Symbol>] e.g., 'ja', then the returned Array does not include 'ja'
-  # @return [Hash<Translation>] like {ja: <Translation>, en: <Translation>} (with_indifferent_access). All keys have exactly 1 Translation per each (never nil).
+  # @return [Hash<Array<Translation>>] like {ja: [Translation, Translation], en: [Translation], fr: [nil, Translation]} (with_indifferent_access). All keys have 1 or 2 Translations per each (never nil or 0). The two elements are for +kind="full"+ and +"alt"+, respectively.  The caller may select one according to their weights or other properties (like length).
   def best_translations(except: nil)
     return best_unsaved_translations(except: except) if new_record? # && unsaved_translations.present?
 
@@ -3477,12 +3619,33 @@ class BaseWithTranslation < ApplicationRecord
     except ||= []
 
     hsret = {}.with_indifferent_access
+if true  #######################
+    tras = lowest_weight_translations_by_kind(kinds: [Translation::KIND_FULL, Translation::KIND_ALT])
+    tras.each do |etra|
+      next if except.include? etra.langcode
+      hsret[etra.langcode] ||= []
+      hsret[etra.langcode][0] ||= etra if Translation::KIND_FULL == etra.kind
+      hsret[etra.langcode][1] ||= etra if Translation::KIND_ALT  == etra.kind # || etra.alt_title.present?
+    end
+else
     all_lcodes = translations.pluck(:langcode) - except # => e.g., ["en", "fr", "ja"]
     all_lcodes.each do |ea_k|
       hsret[ea_k] = Translation.sort(translations.where(langcode: ea_k), langcode: nil)[0]
     end
+end
 
     hsret
+  end
+
+  # @return [ActiveRecord::Relation] with at most 1 record per requested kind
+  def lowest_weight_translations_by_kind(langcode: nil, kinds: [Translation::KIND_FULL, Translation::KIND_ALT]) # maybe also Translation::KIND_NICKNAME
+    hswhere = {kind: kinds}
+    hswhere.merge!({langcode: langcode}) if langcode.present?
+    subquery = translations
+      .where(**hswhere)
+      .select("translations.*",
+              "ROW_NUMBER() OVER (PARTITION BY langcode, kind ORDER BY weight ASC, id ASC) AS rn")
+    Translation.from(subquery, :translations).where(rn: 1)
   end
 
   ######################################################################################################################################################
@@ -3497,13 +3660,28 @@ class BaseWithTranslation < ApplicationRecord
     hsret = {}.with_indifferent_access
     (translations.present? ? translations : unsaved_translations).each do |ea_t|  # either unsaved_translations or (Rails default) translations
       next if except && except.include?(ea_t.langcode)
-      hsret[ea_t.langcode] ||= []
-      hsret[ea_t.langcode].push(ea_t)
+      next if ![Translation::KIND_FULL, Translation::KIND_ALT].include?(ea_t.kind)
+      hsret[ea_t.langcode] ||= {full: [], alt: []}.with_indifferent_access
+      hsret[ea_t.langcode][ea_t.kind].push(ea_t)
     end
-    hsret.each_key do |ea_k|
-      hsret[ea_k] = Translation.sort(hsret[ea_k])[0]
+
+    hsarret = {}.with_indifferent_access
+    hsret.each_pair do |elcode, ehs|
+      hsarret[elcode] ||= []
+      ehs.each_pair do |ekind, eary|
+        eary.each do |etra|
+          case ekind
+          when Translation::KIND_FULL
+            hsarret[elcode][0] = etra if hsarret[elcode][0].blank? || etra.weight < hsarret[elcode][0].weight
+          when Translation::KIND_ALT
+            hsarret[elcode][1] = etra if hsarret[elcode][1].blank? || etra.weight < hsarret[elcode][1].weight
+          else
+            raise "should never happen..."
+          end
+        end
+      end
     end
-    hsret
+    hsarret
   end
   private :best_unsaved_translations
 

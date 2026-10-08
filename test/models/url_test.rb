@@ -433,7 +433,7 @@ class UrlTest < ActiveSupport::TestCase
     assert_equal "example.com", url_unk_norm, 'sanity check'
 
     url_unk_tit = url_unk.title(langcode: "en")
-    tra_best = Translation.sort(url_unk.best_translations.values).first
+    tra_best = Translation.sort([url_unk.best_translations.values].flatten).first
     url_unk.translations.each do |tra|
       next if tra_best == tra
       tra.destroy

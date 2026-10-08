@@ -40,7 +40,7 @@ class ChannelTypeTest < ActiveSupport::TestCase
 
     mdl = channel_types(:channel_type_main)
     assert_equal "main", mdl.mname
-    assert_match(/^Primary\b/, mdl.best_translations[:en].title)
+    assert_match(/^Primary\b/, mdl.best_translation(:en).title)
 
     assert_operator 101, :>, ChannelType.order(:weight).first.weight
     assert_operator 901, :<, ChannelType.order(:weight).last.weight

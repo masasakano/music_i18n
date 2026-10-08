@@ -129,7 +129,7 @@ class PrefectureTest < ActiveSupport::TestCase
     c12.update!(note: 'new-t2')
     t12f = Translation.create!(title: '江戸城下', langcode: 'ko', translatable: c12)
     t12f.update!(note: 'updated-ko')
-    c12.best_translations['ja'].update!(note: 'updated-ja')
+    c12.best_translation('ja').update!(note: 'updated-ja')
     p22 = Prefecture.create_with_orig_translation!({country: c12.country}, translation: {title: 'some pref22', langcode: 'ja'})
     assert_raises(ActiveRecord::RecordInvalid,
                  "French translated title for Japan exists and hence it should not be allowed") {
@@ -199,10 +199,10 @@ class PrefectureTest < ActiveSupport::TestCase
     assert_raises(ActiveRecord::RecordInvalid){ newp.with_orig_translation(langcode: 'en', title: '') }  # One of the columns must be non-blank.
     newp.reload
     assert_equal 'Catalonia', newp.with_orig_translation(langcode: 'en', title: 'Catalonia').orig_translation.title
-    place_trans = newp.places[0].orig_translation
+    place_trans = newp.places[0].best_translation(:en)
     assert_equal 'UnknownPlace', place_trans.title
     assert_equal 'en',           place_trans.langcode
-    assert                       place_trans.original?
+    refute                       place_trans.original?
     assert_equal 0,              place_trans.weight
 
     newp = Prefecture.new(country: countries(:japan))
@@ -211,10 +211,10 @@ class PrefectureTest < ActiveSupport::TestCase
     assert_raises(ActiveRecord::RecordInvalid){ newp.with_orig_translation(langcode: 'en', title: '') }  # One of the columns must be non-blank.
     newp.reload
     assert_equal '高知', newp.with_orig_translation(langcode: 'ja', title: '高知').orig_translation.title
-    place_trans = newp.places[0].orig_translation
+    place_trans = newp.places[0].best_translation(:ja)
     assert_equal 'どこかの場所', place_trans.title
     assert_equal 'ja',           place_trans.langcode
-    assert                       place_trans.original?
+    refute                       place_trans.original?
     assert_equal 0,              place_trans.weight
     assert_equal newp.places[0], newp.unknown_place
     assert_equal places(:unknown_place_tokyo_japan), prefectures(:tokyo).unknown_place, "Test of unknown_place where Prefecture has more than one Places"
@@ -228,8 +228,8 @@ class PrefectureTest < ActiveSupport::TestCase
     assert_equal Prefecture::UnknownPrefecture['en'], plauj.title(langcode: 'en')
     assert plauj.unknown?
     assert_not_equal plau0, plauj
-    assert_equal 0, plau0.best_translations['en'].weight
-    assert_equal 0, plau0.best_translations['ja'].weight
+    assert_equal 0, plau0.best_translation('en').weight
+    assert_equal 0, plau0.best_translation('ja').weight
   end
 
   test "translation at save" do

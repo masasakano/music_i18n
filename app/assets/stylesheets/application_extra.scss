@@ -318,8 +318,8 @@ form div.memo_editor {
 
 form div.field, form div.form-inputs, form.simple_form {
   input[type="text"].input_shortest {
-    min-width: 5em;
-    max-width: 6em;
+    min-width: 6em;
+    max-width: 7em;
   }  /* SimpleForm may add a large tick-mark in the box. This width is just enough for 2 letters in such a case. */
 
   input[type="text"].input_year, input[type="text"].input_shorter {
@@ -603,7 +603,12 @@ fieldset.form-group.radio_buttons.harami_vid_form_new_artist_collab_event_item, 
     max-width: 500em;
 }
 
-fieldset.form-group.radio_buttons legend {
+fieldset.form-group.radio_buttons legend,
+fieldset.form-group.check_boxes legend {
+  display: block;  /* In Bootstrap (and some browser defaults), <legend> elements often have float: left or lack explicit display: block; width: 100%;  As a result, without explicit specifications, the first radio button only might start at the same line as the legend */
+  width: 100%;
+  float: none;
+  clear: both;
   background-color: #2f93c4;
   opacity: 1.0;
   padding-bottom: 0.1em;

@@ -1,4 +1,14 @@
 module TranslationsHelper
+  # HTML title elements for Flag-display
+  FLAG_TITLES = {
+    is_formal:   "Most formal name? (unique per language)",
+    is_official: "Official Translation?",
+    is_literal:  "Literal Translation? (mostly for Music titles)",
+    is_true_name:  "True name like birth-name? (for persons)",
+    is_for_record: "For record only? (while rarely used, like the true name of some artists)",
+    is_internal: "For internal use only? (e.g., typical mis-spelling, used for auto-complete)",
+  }
+
   # @example
   #    <td><%= cell_ruby_romaji(modelx) %></td> <%# defined in translations_helper.rb %>
   #
@@ -131,4 +141,31 @@ module TranslationsHelper
       "".html_safe
     end
   end
+
+  # @return [String] re start_year and end_year
+  def period_translation(translation, null_if_nil: false)
+    return (null_if_nil ? "" : "&mdash;").html_safe if !translation.start_year && !translation.end_year
+    sprintf("%s &ndash; %s", translation.start_year, translation.end_year).html_safe
+  end
+
+  def flags_translation(translation)
+    arret = []
+
+    FLAG_TITLES.map{|em, etext|
+      sprintf('<span title="%s: %s" class="%s">%s</span>', em, etext, "flag_"+em.to_s, _ternary_flag_display(translation.send(em)))
+    }.join(" / ").html_safe
+  end
+
+    def _ternary_flag_display(value)
+      ret = 
+        if false == value
+          "F"
+        elsif value.blank?
+          "&ndash;"
+        else
+          "T"
+        end
+      ret.html_safe
+    end
+    private :_ternary_flag_display
 end

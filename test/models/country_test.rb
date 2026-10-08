@@ -110,7 +110,7 @@ class CountryTest < ActiveSupport::TestCase
     assert_nothing_raised{
       c2.with_updated_translation(     title: nil, alt_title: 'NZer', langcode: 'en') }
 
-    t2 = c2.best_translations['en']
+    t2 = c2.best_translation('en')
     assert_equal 'NZer', t2.alt_title
     assert_nothing_raised{
       t2.update!(note: 'new-t2')
@@ -196,10 +196,10 @@ class CountryTest < ActiveSupport::TestCase
     assert_raises(ActiveRecord::RecordInvalid){ newp.with_orig_translation(langcode: 'en', title: '') }  # One of the columns must be non-blank.
     newp.reload
     assert_equal 'Catalonia', newp.with_orig_translation(langcode: 'en', title: 'Catalonia').orig_translation.title
-    prefecture_trans = newp.prefectures[0].orig_translation
+    prefecture_trans = newp.prefectures[0].best_translation(:en)
     assert_equal 'UnknownPrefecture', prefecture_trans.title, "prefs="+newp.prefectures.inspect
     assert_equal 'en',                prefecture_trans.langcode
-    assert                            prefecture_trans.original?
+    refute                            prefecture_trans.original?
     assert_equal 0,                   prefecture_trans.weight
 
     newc = Country.new
@@ -210,13 +210,13 @@ class CountryTest < ActiveSupport::TestCase
     country_trans = newc.with_orig_translation(langcode: 'ja', title: '高麗').orig_translation
     assert_equal '高麗', country_trans.title
     child_prefecture = newc.prefectures[0]
-    prefecture_trans = child_prefecture.orig_translation
+    prefecture_trans = child_prefecture.best_translation(:ja)
     assert_equal 'どこかの都道府県', prefecture_trans.title
     assert_equal 'ja',               prefecture_trans.langcode
-    assert                           prefecture_trans.original?
+    refute                           prefecture_trans.original?
     child_place = child_prefecture.places[0]
     # place_trans = child_place.orig_translation  # NOTE: I can't figure out how this differs from prefecture above...  This started to happen since the order in the definitions of Unknown languages have changed ("en" comes first; 2024-05-12).
-    place_trans = child_place.best_translations[:ja]
+    place_trans = child_place.best_translation(:ja)
     assert_equal 'どこかの場所',     place_trans.title
     assert_equal 'ja',               place_trans.langcode
     #assert                           place_trans.original?
@@ -244,7 +244,7 @@ class CountryTest < ActiveSupport::TestCase
 
     # tests of callback (on_delete)
     pref = Prefecture.find(ids[:child_prefecture])
-    assert_equal 'どこかの都道府県', pref.title, "ERROR: id = #{ids[:child_prefecture]}"
+    assert_equal 'どこかの都道府県', pref.title(langcode: :ja), "ERROR: id = #{ids[:child_prefecture]}"
     assert_equal pref, Translation.find(ids[:prefecture_trans]).translatable
 
     #tr= Translation.find(ids[:prefecture_trans]);
@@ -272,8 +272,8 @@ class CountryTest < ActiveSupport::TestCase
     plau0 = Country.unknown
     assert_equal Country::UnknownCountry['en'], plau0.title
     assert plau0.unknown?
-    assert_equal 0, plau0.best_translations['en'].weight
-    assert_equal 0, plau0.best_translations['ja'].weight
+    assert_equal 0, plau0.best_translation('en').weight
+    assert_equal 0, plau0.best_translation('ja').weight
 
     ## encompass? covered_by? ##########
     con3 = countries(:japan)

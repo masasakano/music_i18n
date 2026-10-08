@@ -1586,9 +1586,9 @@ class ActiveSupport::TestCase
   # @example Node "td" of :weight in the "tr" containing specific title_en and title_ja
   #    xpath_tr = xpath_grid_rows_contain(title_en: "Light", title_ja: "ライト")  # defined in test_helper.rb
   #    xpath_td = xpath_grid_rows_contain(weight: nil, prefix: "")[1..-2]  # Only the last part of XPath
-  #    xpath = xpath_tr + xpath_td
+  #    xpath = xpath_tr + "/" + xpath_td
   #    assert_selector :xpath, xpath
-  #    node_td = page.find( xpath )
+  #    node_td = page.find(:xpath, xpath)
   #
   # @example System test of non-existence of a column "memo_editor_exists" in table-Header th
   #    refute_selector :xpath, xpath_grid_rows_contain(memo_editor_exists: nil, prefix: "/"+XPATHGRIDS[:th_tr])  # defined in test_helper.rb

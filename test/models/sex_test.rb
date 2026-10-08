@@ -48,7 +48,7 @@ class SexTest < ActiveSupport::TestCase
     assert_equal tit, bwt_new.title
 
     male = Sex.where(iso5218: 1).first
-    title_existing = male.best_translations['en']
+    title_existing = male.best_translation('en')
     assert_raises(ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique, "Title should be unique."){
       Sex.create_with_orig_translation!({iso5218: 1}, translation: {title: title_existing, langcode: 'en'}) }
   end

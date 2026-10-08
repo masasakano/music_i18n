@@ -124,6 +124,7 @@
 #  fk_rails_...  (country_master_id => country_masters.id) ON DELETE => restrict
 #
 class Country < BaseWithTranslation
+  # defines {#unknown?} and +self.class.unknown+, +add_translations_after_first_create+
   include ModuleUnknown
   include ModuleCountryLayered  # for more_significant_than?
 
@@ -339,19 +340,24 @@ class Country < BaseWithTranslation
     hs_trans ||= country_master.construct_hs_trans
     hs_trans = Country.modify_masters_trans(hs_trans) # title/alt_title modified, e.g., => UK
 
+    country = new(country_master: country_master, **hs_main)
+    ar_tras = convert_to_translations_attributes(hs_trans)
+    country.translations_attributes = ar_tras
+    country.orig_locale = ar_tras.orig_locale
+
     begin
-      ret = Country.create_with_translations!(hs_main.merge({country_master_id: country_master.id}), translations: hs_trans) # {country_master: cm} is not accepted, likely due to a problem in create_with_translations!()
+      country.save!
     rescue ActiveRecord::RecordInvalid
       msg = sprintf("ERROR in the input Country, maybe in Translations (CountryMaster-pID=%d). Contact the code developer: [Hash, Trans]=%s", country_master.id, [hs_main, hs_trans].inspect)
       print msg if Object.const_defined?(:FLAG_SEEDING)
       begin
-        logger.error msg
-      rescue  # b/c I am not sure if logger is defined is in seeding.
+        Rails.logger.error msg
+      rescue  # to play safe re logger
       end
       raise
     end
 
-    ret
+    country
   end
 
   # Here, the caller may override country_master_id
@@ -477,7 +483,11 @@ class Country < BaseWithTranslation
   # @return [Prefecture]
   def after_first_translation_hook
     pref = Prefecture.new(country: self)
-    pref.unsaved_translations = add_translations_after_first_create(Prefecture)
+
+    add_translations_after_first_create(Prefecture).each do |etra|
+      pref.translations << etra
+    end
+
     pref.save!
     prefectures.reset
     pref

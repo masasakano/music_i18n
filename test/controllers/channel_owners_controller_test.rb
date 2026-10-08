@@ -236,12 +236,12 @@ end
   def _verify_assimilate_artist(art, mdl)
     assert_equal art.title,             mdl.title, "mdl=#{mdl.inspect}"
     assert_equal art.romaji(langcode: 'ja'), mdl.romaji(langcode: 'ja'), "All best-translations (but not minor translations) should be copied but..."
-    tra_ai  = art.best_translations[:en]
-    tra_mdl = mdl.best_translations[:en]
+    tra_ai  = Array(art.best_translations[:en]).compact.first
+    tra_mdl = Array(mdl.best_translations[:en]).compact.first
     %i(title weight update_user updated_at).each do |metho|
       assert_equal tra_ai.send(metho), tra_mdl.send(metho), "tra_mdl=#{tra_mdl.inspect}"
     end
-    assert_equal art.best_translations.size, mdl.best_translations.size
+    assert_equal art.translations.size, mdl.translations.size
   end
 
   test "should show channel_owner" do

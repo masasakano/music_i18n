@@ -1,27 +1,28 @@
-<%# local vars: form, model4ability, (optional) skip_ability_check (Def: false), show_weight(Boolean (Def: true)) %>
-<%#   NOTE: form for SimpleForm. model4ability may be a model instance or model class, used for an Ability check.  Former is recommended. %>
-<%#   NOTE: You may specify skip_ability_check=true because if the user has a priviledge to edit the model, they are likely to be allowed to edit memo_editor (and weight). %>
-<%#   NOTE: If the model has a weight, unless show_weight is given false, it is displayed as editor-only. %>
-<%# USAGE:  render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: Artist.first, skip_ability_check: true, , show_weight: false} %>
+<%# locals: (form: , model4ability: , show_weight: true, whether_shows: nil, skip_ability_check: false, weight_hint: "Smaller value (> 0) means a higher priority in display.", weight_placeholder: nil) %>
 
-<% if !defined?(skip_ability_check) %>
-  <% skip_ability_check = false %>
-<% end %>
-<% if !defined?(show_weight) %>
-  <% show_weight = true %>
-<% end %>
+<%#   NOTE: form for SimpleForm. model4ability may be a model instance or model class, used for an Ability check.  Former is recommended unless whether_shows is given or skip_ability_check=true. %>
+      <%# : If the model has no weight or memo_editor, the field is not displayed. %>
+      <%# : If :show_weight=false, :weight field is not displayed regardless of other parameters.  If true (Def), it may be displayed if all the other checks are passed. %>
+      <%# : You can explicitly specify +whether_shows+ as Hash with two keys of :weight and :memo_editor and values of Boolean, where true means showing their respective fields.  In default, +whether_shows+ is nil, so are ignored.  Note that if :show_weight=false, +whether_shows[:weight]+ is ignored %>
+      <%# : Providing show_weight and whether_shows are the default values, unless skip_ability_check=true (which you may prefer in most cases actually), ability-check (with :update) will be performed for :weight and :memo_editor fields to determine whether showing them. %>
+<%# Example1:  render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: record=Artist.first, show_weight: false, skip_ability_check: true} %>
+<%# Example2:  render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: Translation, whether_shows: {weight: false, memo_editor: true}} %>
 
-<% if show_weight && model4ability.has_attribute?(:weight) && (skip_ability_check || canupdate=can?(:update, model4ability)) %>
-  <div class="editor_only weight">
-  <%= form.input :weight, hint: "Smaller value (> 0) means a higher priority in display." %>
-  </div>
+<% do_show = (show_weight && model4ability.has_attribute?(:weight) &&
+              (  whether_shows && whether_shows[:weight] ||
+               (!whether_shows && (skip_ability_check || canupdate=can?(:update, model4ability))))) %>
+<%= editor_only_safe_html(:pass, method: do_show, only: :moderator, class: "field weight") do %>
+  <%= form.input :weight, hint: weight_hint, placeholder: weight_placeholder, as: :float %>
 <% end %>
 
+<div class="field note">
   <%= form.input :note %>
+</div>
 
-<% if model4ability.has_attribute?(:memo_editor) && (skip_ability_check || canupdate || canupdate.nil? && can?(:update, model4ability)) %>
-  <div class="editor_only memo_editor">
+<% do_show = (model4ability.has_attribute?(:memo_editor) &&
+              (  whether_shows && whether_shows[:memo_editor] ||
+               (!whether_shows && (skip_ability_check || canupdate || canupdate.nil? && can?(:update, model4ability))))) %>
+<%= editor_only_safe_html(:pass, method: do_show, only: :editor, class: "field memo_editor") do %>
   <%= form.input :memo_editor, hint: "Non-public memo/note viewable only for editors" %>
-  </div>
 <% end %>
 

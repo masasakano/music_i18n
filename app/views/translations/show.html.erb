@@ -7,10 +7,12 @@
   A Translation for <%= link_to @translation.translatable_type, @translation.translatable %><%# NOTE: :show page must be always accessible for those who can view :show %>
   <% can_promote_gen = can?(:update, Translations::PromotesController) %>
   <%= editor_only_safe_html(:pass, method: can_promote_gen, only: :moderator, tag: "span") do %>
-    ID=<%= @translation.translatable.id %>
-    (Translation ID=<%= @translation.id %>)
+    ID=<%= tag.span @translation.translatable.id, class: [Consts::Csses::Shows::ITEM_PID, "item_translatable"] %>
+    (Translation ID=<%= tag.span @translation.id, class: [Consts::Csses::Shows::ITEM_PID, "item_translation"] %>)
   <% end %>
 </h1>
+
+<section id="sec_primary">
 
 <% if @translation.sync_translation_id && (!parent_trans || !parent_trans.translatable) %>
   <p>
@@ -18,12 +20,13 @@
   </p>
 <% end %>
 
+ <section id="sec_primary_show" class="show_unique_parameters">
 <dl>
- <%= tag.div do %>
+ <%= tag.div class: ["item_translatable"] do %>
   <dt>Translatable:</dt>
   <dd><%= link_to @translation.translatable_type, @translation.translatable %></dd>
  <% end %>
- <%= tag.div do %>
+ <%= tag.div class: ["item_synced"] do %>
   <dt class="item_synced">Synchronized Parent/Child Translation:</dt>
   <dd class="item_synced">
     <% if    (tra=parent_trans).present? %>
@@ -36,12 +39,12 @@
     <% end %>
   </dd>
  <% end %>
- <%= tag.div do %>
+ <%= tag.div class: ["item_langcode", "item_orig_locale"] do %>
    <% original_locale = @translation.translatable&.orig_locale %>
   <dt> Langcode:
   <dd><%= @translation.langcode %> &nbsp; &nbsp;  <%= (original_locale == @translation.langcode) ? "⇔" : "&mdash; Translation of".html_safe %>  (Original-locale: <%= (original_locale ? original_locale.inspect : "UNDEFINED") %>):</dt></dd>
  <% end %>
- <%= tag.div do %>
+ <%= tag.div class: [Consts::Csses::Shows::ITEM_TITLE] do %>
   <dt> Title:</dt>
   <dd><%= @translation.title %></dd>
  <% end %>
@@ -67,17 +70,39 @@
  <% end %>
  <%= tag.div do %>
   <dt><%= t(".is_orig") %>:</dt>
-  <dd><%= @translation.is_orig %></dd>
+  <dd><%= @translation.is_orig %><%= @translation.str_consistent_is_orig_with_orig_locale %></dd>
  <% end %>
 
+ <%= tag.div class: ["item_kind"] do %>
+  <dt>kind (<%=  Translation.kinds.keys.join("|") %>):</dt>
+  <dd><%= @translation.kind.inspect %></dd>
+ <% end %>
+ <% [:start_year, :end_year].each do |ek| %>
+   <%= tag.div class: ["item_"+ek.to_s] do %>
+     <dt><%= ek %>:</dt>
+     <dd><%= @translation.send(ek).inspect %></dd>
+   <% end %>
+ <% end %>
+ <% TranslationsHelper::FLAG_TITLES.each_pair do |ek, etext| %>
+   <%= tag.div class: ["item_"+ek.to_s] do %>
+     <dt><%= ek %> &mdash; <%= etext %>:</dt>
+     <dd><%= @translation.send(ek).inspect %></dd>
+   <% end %>
+ <% end %>
+ 
+ 
   <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @translation, model4ability: can_promote_gen, show_weight: :moderator} %><%# not showing weight for low-rank Translators %>
 </dl>
+ </section><!-- section id="sec_primary_show" -->
 
-<% if user_signed_in? && @translation.editable?(user: current_user) %>
-  <%= button_to 'Edit', edit_translation_path(@translation), method: :get %>
+<%= editor_only_safe_html(:pass, method: can?(:edit, @translation) && @translation.editable?(user: current_user), class: [Consts::Csses::Layouts::EDIT_LINK_PRIMARY, Consts::Csses::Layouts::EDIT_LINK, "lead"]) do %>
+  <%# button_to 'Edit', edit_translation_path(@translation), method: :get %>
+  <%= link_to 'Edit', edit_translation_path(@translation), class: "button_like" %>
+<br>
 <br>
 <% end %>
 <%= link_to 'Back to Index', translations_path %>
+</section><!-- section id="sec_primary" -->
 
 <hr>
 

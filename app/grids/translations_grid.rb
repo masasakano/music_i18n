@@ -1,9 +1,11 @@
 # coding: utf-8
 class TranslationsGrid < ApplicationGrid
 
+  extend TranslationsHelper # for flags_translation and period_translation
+
   begin
-  TransModerator = Role['moderator', 'translation']
-  Translator     = Role['editor',    'translation']
+    TransModerator = Role['moderator', 'translation']
+    Translator     = Role['editor',    'translation']
   rescue ActiveRecord::StatementInvalid
     # This happens only at the first deploy when DB records are not yet seeded.
   end
@@ -40,6 +42,8 @@ class TranslationsGrid < ApplicationGrid
     ar[0] <=> ar[1]
   }.map{|c| [c, c]} }) # ja, en, cn, fr, it, kr, ...
   filter(:is_orig, :xboolean, header: 'Orig?')
+  filter(:start_year, :integer, range: true)
+  filter(:end_year,   :integer, range: true)
   filter(:weight, :float, range: true, if: Proc.new{ApplicationGrid.qualified_as?(TransModerator)})
 
   filter(:create_user, header: 'Create/Update User ("SELF" for yourself)') do |value|
@@ -74,17 +78,26 @@ class TranslationsGrid < ApplicationGrid
   column(:alt_ruby)
   column(:alt_romaji)
 
-  column(:is_orig, mandatory: true, header: "Orig?") do |record|
-    record.is_orig ? 'T' : (record.is_orig.nil? ? '' : 'F')
+  column(:is_orig, mandatory: true, header: '<span title="(* means consistent with orig_locale)">Orig?</span>'.html_safe, tag_options: {class: ["text-center"]}) do |record|
+    ((record.is_orig ? 'T' : (record.is_orig.nil? ? '' : 'F')) +
+      record.str_consistent_is_orig_with_orig_locale).html_safe
   end
 
-  column(:weight, mandatory: true, tag_options: {class: ["editor_only"]}, if: Proc.new{ApplicationGrid.qualified_as?(TransModerator)})
+  column(:kind, mandatory: true, tag_options: {class: ["text-center"]})
+  column(:period, mandatory: true, header: "Period", tag_options: {class: ["text-center"]}) do |record|
+    period_translation(record, null_if_nil: true) # defined in translations_helper.rb
+  end
+  column(:flags, mandatory: true, header: ('<span title="' + TranslationsHelper::FLAG_TITLES.keys.map{ _1.to_s+"?" }.join(" | ") +'">Flags</span>').html_safe, tag_options: {class: ["text-center"]}) do |record|
+    flags_translation(record) # defined in translations_helper.rb
+  end
+
+  column(:weight, mandatory: true, tag_options: {class: ["editor_only", "align-r"]}, if: Proc.new{ApplicationGrid.qualified_as?(TransModerator)})
 
   column_display_user(:update_user, tag_options: {class: ["editor_only"]})  # defined in application_grid.rb
   column_display_user(:create_user, tag_options: {class: ["editor_only"]})  # defined in application_grid.rb
 
   column_note             # defined in application_grid.rb
-  columns_upd_created_at  # defined in application_grid.rb
+  columns_upd_created_at(Translation)  # defined in application_grid.rb
 
   column_actions(with_destroy: true) #do |record| # defined in application_grid.rb
 end

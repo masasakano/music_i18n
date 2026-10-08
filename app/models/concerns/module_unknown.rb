@@ -104,18 +104,30 @@ module ModuleUnknown
   # @param child_class [Class<ActiveRecord>] e.g., Prefecture when called from Country's after_create
   # @return [Array<Translation>] unsaved Translations
   def add_translations_after_first_create(child_class)
-    hstrans = best_translations
     is_orig_exist = !!orig_translation
 
     unsaved_transs = []
     child_class.const_get(:UNKNOWN_TITLES).each_pair do |lc, ea_title|
+      ar_titles = [ea_title].flatten
       unsaved_transs << Translation.new(
-        title: [ea_title].flatten.first,
-        alt_title: [ea_title].flatten[1],  # maybe nil
+        title: ar_titles.first,
         langcode: lc,
-        is_orig:  (hstrans.key?(lc) && hstrans[lc].respond_to?(:is_orig) ? hstrans[lc].is_orig : (is_orig_exist ? false : nil)),
+        is_orig: (orig_locale.blank? ? nil : (orig_locale == lc)),
+### hstrans = best_translations
+# is_orig:  (hstrans.key?(lc) && hstrans[lc].respond_to?(:is_orig) ? hstrans[lc].is_orig : (is_orig_exist ? false : nil)),
         weight: 0,
+        kind: Translation::KIND_FULL
       )
+
+      if ar_titles[1].present?
+        unsaved_transs << Translation.new(
+          title: ar_titles[1],
+          langcode: lc,
+          is_orig: (orig_locale.blank? ? nil : false),
+          weight: 2.0,
+          kind: Translation::KIND_ALT
+        )
+      end
     end
 
     unsaved_transs

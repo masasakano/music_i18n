@@ -685,7 +685,7 @@ class Harami1129Test < ActiveSupport::TestCase
     hvid = h1129.harami_vid
 
     evit = h1129.event_item
-    assert_match(/\bstreamings?\b/,  h1129.event_item.event_group.best_translations["en"].title)
+    assert_match(/\bstreamings?\b/,  h1129.event_item.event_group.best_translation("en").title)
     assert_equal EventGroup.find_by_mname(:live_streamings),  h1129.event_item.event_group
     assert_equal h1129.release_date, h1129.event_item.start_time.to_date
     assert_equal 1,    hvid.event_items.count

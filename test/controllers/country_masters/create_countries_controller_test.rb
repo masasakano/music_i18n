@@ -50,7 +50,10 @@ class CountryMasters::CreateCountriesControllerTest < ActionDispatch::Integratio
     assert_redirected_to cntry_new
 
     assert_equal @country_master.iso3166_a2_code, cntry_new.iso3166_a2_code
-    assert_equal @country_master.name_ja_full,    cntry_new.best_translations["ja"].title, "Trans: "+cntry_new.best_translations["ja"].inspect
+    assert_equal @country_master.name_ja_full,    Array(cntry_new.best_translations["ja"]).compact.first.title, "Trans: "+cntry_new.best_translations["ja"].inspect
+    assert_equal "en",      cntry_new.orig_locale
+    assert_operator 3, :<=, cntry_new.translations.size
+
     follow_redirect!
     flash_regex_assert(/successfully created/, msg="CountryMaster to Country...")
 

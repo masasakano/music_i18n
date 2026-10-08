@@ -353,11 +353,11 @@ class Translation < ApplicationRecord
   TRANSLATED_KEYS = %i(title alt_title ruby alt_ruby romaji alt_romaji).freeze
 
   # Column names (Symbols) of the translation String
-  # Basically this excludes ID, weight, translatable, *_user_id, and Rails default time columns, but everything else.
-  TRANSLATION_PARAM_KEYS = (%i(langcode is_orig) + TRANSLATED_KEYS).freeze
+  # Basically this excludes ID, weight (which other models may have), start/end_year, translatable, sync_translation_id, *_user_id, and Rails default time columns, but everything else.
+  TRANSLATION_PARAM_KEYS = (%i(langcode is_orig kind is_formal is_official is_literal is_true_name is_for_record is_internal) + TRANSLATED_KEYS).freeze
 
   # Used to sync Translations between Artist and ChannelOwner
-  SYNC_ATTRIBUTES = (TRANSLATION_PARAM_KEYS + %i(weight)).freeze
+  SYNC_ATTRIBUTES = (TRANSLATION_PARAM_KEYS + %i(weight start_year end_year)).freeze
 
   # Match method lists. Usually examined in this order.
   # For example, if there is an exact match, :exact.
@@ -445,6 +445,7 @@ class Translation < ApplicationRecord
   validate :validate_formal_requirements,  if: :is_formal?
   validate :validate_start_and_end_years
   validate :validate_no_formal_period_overlap, if: :is_formal?
+  validate :validate_accept_is_true_name
 
   #### After much thought, this validation is removed, because such Translation-s should never be directly saved in reality.
   #
@@ -2517,14 +2518,16 @@ class Translation < ApplicationRecord
   #
   # @return [String]
   def is_orig_str
-    case is_orig
-    when nil
-      "&mdash;".html_safe
-    when false
-      "No"
-    else
-      "Yes"
-    end
+    ret = 
+      case is_orig
+      when nil
+        "&mdash;"
+      when false
+        "No"
+      else
+        "Yes"
+      end
+    (ret + str_consistent_is_orig_with_orig_locale).html_safe
   end
 
   # Returns weight only, a wrapper of {#best_translation_with_weight}
@@ -2693,6 +2696,23 @@ class Translation < ApplicationRecord
   # is initiated.
   def should_sync_to_child?
     translatable_type == "Artist" && sync_parent.nil?
+  end
+
+  # @return [Boolean, NilClass] nil if +translatable.orig_locale+ is nil. true only if this is the best translation in orig_locale else false.
+  def is_best_translation_or_nil
+    return if translatable.blank?  # should be invalid
+    return if translatable.orig_locale.nil?
+    return false if langcode != translatable.orig_locale
+    (self == translatable.translations.where(langcode: langcode).order(:weight).first)
+  end
+
+  # @return [String] to display, compared with self.is_orig
+  def str_consistent_is_orig_with_orig_locale
+    if is_orig == (should_be=is_best_translation_or_nil)
+      "<sup>*</sup>".html_safe
+    else
+      sprintf('<span class="text-red"><strong>(Inconsistent! ⇔ %s)</strong></span>', should_be.inspect).html_safe
+    end
   end
 
   ######################### Callbacks
@@ -2923,6 +2943,23 @@ class Translation < ApplicationRecord
       e2_eff = e2 || Float::INFINITY
 
       [s1_eff, s2_eff].max < [e1_eff, e2_eff].min
+    end
+
+    # validation: Neither is_true_name nor is_for_record should be set positive
+    #  for most translatable (BaseWithTranslation)
+    def validate_accept_is_true_name
+      return if !is_true_name && !is_for_record
+
+      begin
+        return if translatable.class.translation_accept_true_name? 
+      rescue
+        # translatable must be invalid, which should have been validated elsewhere.
+        return
+      end
+
+      [:is_true_name, :is_for_record].each do |metho|
+        errors.add(metho, "cannot be set positive for this model #{translatable_type}") if send(metho)
+      end
     end
 
 end

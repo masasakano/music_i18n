@@ -73,7 +73,7 @@ class CountryMaster < ApplicationRecord
       hstrans[lc] = {
         langcode: lc,
         is_orig: (orig_locale == lc.to_s),
-        weight: 0,
+        weight: 1.0,
       }.with_indifferent_access
       hstrans[lc][:title]     = send('name_'+lc+'_full')
       hstrans[lc][:alt_title] = send('name_'+lc+'_short')

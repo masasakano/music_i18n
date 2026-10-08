@@ -320,7 +320,10 @@ class Prefecture < BaseWithTranslation
   # Called by an after_create callback in translation.rb
   def after_first_translation_hook
     plac = Place.new(prefecture: self)
-    plac.unsaved_translations = add_translations_after_first_create(Place)
+    add_translations_after_first_create(Place).each do |etra|
+      plac.translations << etra
+    end
+
     plac.save!
     places.reset
     plac

@@ -19,9 +19,9 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     #mtras[2] = Translation.create!(translatable: mus, langcode: 'ja', is_orig: true, title: "日本語音楽02", weight: Float::INFINITY)
     mus.translations.reset
 
-    assert_equal mtras[1], mus.best_translation
-    assert_equal mtras[1], mus.best_translations[:ja], "best_translations=#{mus.best_translations.inspect}"
-    assert_nil             mus.best_translations[:en]
+    assert_equal mtras[1],       mus.best_translation
+    assert_equal mtras[1], Array(mus.best_translations[:ja]).compact.first, "best_translations=#{mus.best_translations.inspect}"
+    assert_nil                   mus.best_translations[:en]
     assert_equal mtras[1], mus.orig_translation
   end
 
@@ -39,21 +39,21 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
 
     sex = Sex[1]  # male  # Below, modifying some parameters for testing.
     best_transs = sex.best_translations
-    best_transs['ja'].update!(is_orig: true)
-    best_transs['en'].update!(is_orig: false)
+    Array(best_transs['ja']).compact.first.update!(is_orig: true)
+    Array(best_transs['en']).compact.first.update!(is_orig: false)
     if !best_transs.has_key?('fr')
       sex.translations << Translation.new(title: "homme", langcode: "fr", is_orig: false, weight: 100)
     end
     sex.translations.reset
     best_transs = sex.best_translations
-    best_transs['fr'].update!(is_orig: false)
+    Array(best_transs['fr']).compact.first.update!(is_orig: false)
     assert_equal 3, best_transs.size  # %w(ja en fr)
     assert_equal 2, sex.best_translations(except: "ja").size
     assert_equal 1, sex.best_translations(except: %i(ja en)).size
     assert_nil                            sex.title(langcode: "de", lang_fallback: false, str_fallback: nil)
-    assert_equal best_transs['en'].title, sex.title(langcode: "de", lang_fallback: true)
+    assert_equal Array(best_transs['en']).compact.first.title, sex.title(langcode: "de", lang_fallback: true)
     assert_equal 'en',                    sex.title(langcode: "de", lang_fallback: true).lcode
-    ar_title = best_transs.slice('ja', 'fr').values.map(&:title)
+    ar_title = Array(best_transs.slice('ja', 'fr').values).flatten.compact.map(&:title)
     assert_includes ar_title,             sex.title(langcode: "de", lang_fallback: true, fallback_except: 'en')
     assert_includes ['ja', 'fr'],         sex.title(langcode: "de", lang_fallback: true, fallback_except: 'en').lcode
 
@@ -162,10 +162,12 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
   test "class and instance methods of find_by_a_title" do
     artist = artists( :artist_proclaimers )
     art = Artist.find_by_a_title :titles, 'proclaimers'
-    assert_equal artist.best_translations['en'], art.matched_translation
-    assert_equal artist.best_translations[:en], art.matched_translation  # .with_indifferent_access activated (after v.0.6)
+    assert_equal       artist.best_translation('en'),         art.matched_translation
+    assert_equal       artist.best_translation(:en),          art.matched_translation
+    assert_equal Array(artist.best_translations['en']).compact.first, art.matched_translation
+    assert_equal Array(artist.best_translations[:en]).compact.first,  art.matched_translation  # .with_indifferent_access activated (after v.0.6)
     assert_equal :title,   art.matched_attribute
-    assert_equal artist.best_translations['en'].title, art.matched_string
+    assert_equal artist.best_translation('en').title, art.matched_string
     assert_equal :optional_article_ilike, art.match_method
 
     amm = [:exact, :exact_ilike]
@@ -177,7 +179,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_equal :include_ilike, art.match_method
 
     tra = artist.find_translation_by_a_title(:titles, 'proclaimers')
-    assert_equal artist.best_translations['en'], tra
+    assert_equal artist.best_translation('en'), tra
     assert_equal tra.title, tra.matched_string
   end
 
@@ -258,19 +260,21 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     trans = s3.translations
     assert_equal 2,      trans.size
     bests = s3.best_translations
-    assert_equal 'ja',   bests['ja'].langcode
-    assert_equal s3namej,bests['ja'].title
-    assert_not           bests['ja'].is_orig
-    assert_equal 'en',   bests['en'].langcode
-    assert_equal s3name, bests['en'].title
-    assert               bests['en'].is_orig
-    assert_equal s3.best_translation('ja'), bests['ja']
-    assert_equal s3.best_translation('en'), bests['en']
-    assert_equal s3.best_translation(),     bests['en']  # is_orig == true
-    assert_equal s3.best_translation(:all), bests['en']
-    assert_equal s3.best_translation('kr'), bests['en']
+    bests_ja = Array(bests['ja']).compact.first
+    bests_en = Array(bests['en']).compact.first
+    assert_equal 'ja',   bests_ja.langcode
+    assert_equal s3namej,bests_ja.title
+    assert_not           bests_ja.is_orig
+    assert_equal 'en',   bests_en.langcode
+    assert_equal s3name, bests_en.title
+    assert               bests_en.is_orig
+    assert_equal s3.best_translation('ja'), bests_ja
+    assert_equal s3.best_translation('en'), bests_en
+    assert_equal s3.best_translation(),     bests_en # is_orig == true
+    assert_equal s3.best_translation(:all), bests_en
+    assert_equal s3.best_translation('kr'), bests_en
     assert_nil   s3.best_translation('kr', fallback: false)
-    assert_equal s3.best_translation('kr', fallback: ['ja']), bests['ja']
+    assert_equal s3.best_translation('kr', fallback: ['ja']), bests_ja
 
     ## Error testing
     s4name = 'f4'
@@ -294,10 +298,10 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     n_orig_pla = Place.count
     c5 = Country.create_with_translations!({note: 'random'}, {trim: true}, translations: {ja: {title: s5name}, en: [{title: c5name, is_orig: true}]})
     c5trans = c5.best_translations
-    assert_equal s5name, c5trans['ja'].title
-    assert_not           c5trans['ja'].is_orig
-    assert_equal c5name, c5trans['en'].title
-    assert               c5trans['en'].is_orig
+    assert_equal s5name, Array(c5trans['ja']).compact.first.title
+    assert_not           Array(c5trans['ja']).compact.first.is_orig
+    assert_equal c5name, Array(c5trans['en']).compact.first.title
+    assert               Array(c5trans['en']).compact.first.is_orig
 
     assert_equal n_orig_cnt+1, Country.count
     assert_equal n_orig_pre+1, Prefecture.count
@@ -403,7 +407,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     # update_or, create
     tr1 = {title: 'Random A1', langcode: 'en'}
     a1 = Country.update_or_create_with_orig_translation!({note: 'n0'}, translation: tr1.merge({note: 't0'}))
-    atmp = a1.best_translations['en']
+    atmp = a1.best_translation('en')
     assert       atmp.is_orig, "message: Translations="+a1.translations.inspect
     assert_equal 'Random A1', atmp.title
     assert_equal 'n0',        a1.note
@@ -415,7 +419,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
          Country.update_or_create_with_translation!(     {note: 'n1'}, translation: tr1.merge({is_orig: false})) }
     assert_nothing_raised{
          Country.update_or_create_with_orig_translation!({note: 'n1'}, translation: tr1) }
-    atmp = a1.best_translations['en']
+    atmp = a1.best_translation('en')
     assert       atmp.is_orig
     assert_equal 'Random A1', atmp.title
     a1.reload
@@ -430,10 +434,10 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_equal a1.id, a2.id  # has to be update as opposed to create
     atmp = a2.orig_translation
     assert_equal 'Random A1', atmp.title
-    atmp = a2.best_translations['en']
+    atmp = a2.best_translation('en')
     assert       atmp.is_orig
     assert_equal 'Random A1', atmp.title
-    atmp = a2.best_translations['ja']
+    atmp = a2.best_translation('ja')
     assert_not   atmp.is_orig
     assert_equal 'ランダム-A1', atmp.title
 
@@ -441,7 +445,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     tr3 = {ja: {title: 'ランダム-B3'}, en: {title: 'Random B3', is_orig: true}}
     a3 = Country.update_or_create_with_translations!({note: 'n3'}, translations: tr3)
     assert_not_equal a1.id, a3.id  # has to be create
-    atmp = a3.best_translations['en']
+    atmp = a3.best_translation('en')
     assert_equal 'Random B3', atmp.title
 
     # plural, update, restricted
@@ -455,7 +459,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     a4 = Place.update_or_create_with_translations!({prefecture: preunkaus}, translations: tr4) }
     assert_equal     perth_aus.id, a4.id  # Perth, Australia (not UK)
     assert_equal     'Perth',      a4.title
-    a4_en = a4.best_translations['en']
+    a4_en = a4.best_translation('en')
     assert_not_equal perth_aus_en.note, a4_en.note
     assert_equal     'new perth',       a4_en.note, "perth_aus_en.note=#{perth_aus_en.note.inspect}, a4_en.note=#{a4_en.note.inspect}"
 
@@ -498,36 +502,60 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_equal 'ja', countries(:japan).orig_langcode
     assert_nil prefectures(:unknown_prefecture_world).orig_langcode
 
-    # Mimic returns of best_translations()
-    class TmpObj
-      attr_accessor :is_orig
-      def initialize(is_orig)
-        @is_orig = is_orig
-      end
-    end
-    ten = TmpObj.new(true)
-    tja = TmpObj.new(false)
-    tfr = TmpObj.new(nil)
+    hscommon = {
+      weight: 2.0,
+      kind: "full",
+    }
+    artist = Artist.new(
+      orig_locale: "en",
+      sex: Sex.first,
+      translations_attributes: [
+        {is_orig: true,  langcode: "en", title: "Title-en", **hscommon},
+        {is_orig: false, langcode: "ja", title: "Title-ja", **hscommon},
+        {is_orig: false, langcode: "fr", title: "Title-fr", **hscommon} ]
+    )
+    artist.save!
+    hs = {fr: artist.translations.find_by(langcode: "fr"),
+          en: artist.translations.find_by(langcode: "en"),
+          ja: artist.translations.find_by(langcode: "ja")}.with_indifferent_access
 
-    hs = {"fr" => tfr, "en" => ten, "ja" => tja}
-    assert_equal %w(en ja fr), BaseWithTranslation.sorted_langcodes(hstrans: hs, first_lang: nil)
-    assert_equal %w(ja en fr), BaseWithTranslation.sorted_langcodes(hstrans: hs, first_lang: 'ja')
-    assert_equal %w(en fr ja), BaseWithTranslation.sorted_langcodes(hstrans: hs, first_lang: 'fr', prioritize_orig: true)
-    assert_equal %w(it en ja fr), BaseWithTranslation.sorted_langcodes(hstrans: hs, first_lang: 'it', remove_invalid: false)
-    assert_equal %w(en it ja fr), BaseWithTranslation.sorted_langcodes(hstrans: hs, first_lang: 'it', remove_invalid: false, prioritize_orig: true)
-    assert_equal %w(it en ja fr kr), BaseWithTranslation.sorted_langcodes(hstrans: hs.merge({'kr'=>TmpObj.new(false)}), first_lang: 'it', remove_invalid: false)
-    assert_equal    %w(en ja fr kr), BaseWithTranslation.sorted_langcodes(hstrans: hs.merge({'kr'=>TmpObj.new(false)}), first_lang: 'it', remove_invalid: true)
+    ## Mimic returns of best_translations()
+    #class TmpObj
+    #  attr_accessor :is_orig
+    #  def initialize(is_orig)
+    #    @is_orig = is_orig
+    #  end
+    #end
+    #ten = TmpObj.new(true)
+    #tja = TmpObj.new(false)
+    ## tfr = TmpObj.new(nil)  # invalid now
+    #tfr = TmpObj.new(false)
+    #hs = {"fr" => tfr, "en" => ten, "ja" => tja}
+    assert_equal %w(en ja fr),    artist.sorted_langcodes(hstrans: hs, first_lang: nil)
+    assert_equal %w(ja en fr),    artist.sorted_langcodes(hstrans: hs, first_lang: 'ja')
+    assert_equal %w(en fr ja),    artist.sorted_langcodes(hstrans: hs, first_lang: 'fr', prioritize_orig: true)
+    assert_equal %w(it en ja fr), artist.sorted_langcodes(hstrans: hs, first_lang: 'it', remove_invalid: false)
+    assert_equal %w(en it ja fr), artist.sorted_langcodes(hstrans: hs, first_lang: 'it', remove_invalid: false, prioritize_orig: true)
+
+    tra_ko = Translation.new(
+         is_orig: false, langcode: "ko", title: "Title-ko", **hscommon)
+    artist.translations << tra_ko
+    hs[:ko] = tra_ko
+    assert_equal %w(it en ja fr ko), artist.sorted_langcodes(hstrans: hs, first_lang: 'it', remove_invalid: false)
+    assert_equal    %w(en ja fr ko), artist.sorted_langcodes(hstrans: hs, first_lang: 'it', remove_invalid: true)
 
     male = Sex['male']
-    assert_equal "male",      male.title_or_alt_tuple_str
-    assert_equal "male",      male.title_or_alt_tuple_str(langcode: "naiyo")
-    assert_equal "male (男)", male.title_or_alt_tuple_str(langcode: "ja") # No need of prioritize_orig
+    assert_includes %w(male 男), male.title_or_alt_tuple_str  # The result depends on male.orig_locale and I18n.available_locales; the specification may vary, hence the use of assert_includes as opposed to assert_equal
+    assert_includes %w(male 男), male.title_or_alt_tuple_str(langcode: "naiyo")
     assert_equal %w(男),      male.title_or_alt_tuple(    langcode: "ja") # Would Need prioritize_orig
-    assert_equal %w(male 男), male.title_or_alt_tuple(    langcode: "ja", prioritize_orig: true)
-    assert_equal "male (男)", male.title_or_alt_tuple_str(langcode: "ja")
+    assert_equal %w(男), male.title_or_alt_tuple(    langcode: "ja", prioritize_orig: true)
     assert_equal  "",   male.title_or_alt(      langcode: "zo", prioritize_orig: false, lang_fallback_option: :never)
     assert_equal [""],  male.title_or_alt_tuple(langcode: "zo", prioritize_orig: false, lang_fallback_option: :never)
     assert_equal [nil], male.title_or_alt_tuple(langcode: "zo", prioritize_orig: false, lang_fallback_option: :never, str_fallback: nil)
+
+    male.update!(orig_locale: "en")
+    assert_equal %w(male 男), male.title_or_alt_tuple(    langcode: "ja", prioritize_orig: true)
+    assert_equal "male (男)", male.title_or_alt_tuple_str(langcode: "ja") # No need of prioritize_orig
 
     art = artists(:artist_proclaimers)  # "Proclaimers, The"
     assert_equal "The Proclaimers",  art.title_or_alt_tuple_str(langcode: "ja")
@@ -556,7 +584,9 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_equal 'M',    sexes(:sex1).title_or_alt(langcode: 'en', prefer_alt: true)
     assert_equal 'M',    sexes(:sex1).title_or_alt(langcode: 'en', prefer_alt: false, prefer_shorter: true)
 
-    se99 = Sex.create!(iso5218: 99, title: "short", alt_title: "much longer", langcode: "en", is_orig: true)
+    se99 = Sex.create!(iso5218: 99, orig_locale: "en", translations_attributes: [
+                         {langcode: "en", is_orig: true,  title: "short",       kind: "full", weight: 2.0},
+                         {langcode: "en", is_orig: false, title: "much longer", kind: "alt",  weight: 7.0} ])
     se99.translations.reset
     assert_equal "much longer", se99.alt_title, 'sanity check'
     assert_equal 'short',       se99.title_or_alt
@@ -1143,7 +1173,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 0, art1.translations.where(langcode: "en").count
       assert_equal 1, art0.translations.where(is_orig: true).count
       assert_equal tras[1][:en].title, art0.orig_translation.title, "inspect="+art0.translations.where(is_orig: true).inspect
-      assert_equal false, art0.best_translations[:ja].is_orig
+      assert_equal false, art0.best_translation(:ja).is_orig
       assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset.  For some reason, this sometimes fails but only sometimes..... ('setup do' should circumvent it now) art0.orig_translation="+art0.orig_translation.inspect  # See above
       assert_nil                       art1.orig_translation  # orig_translation should have is_org=nil now
 
@@ -1212,8 +1242,8 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     ## In base_with_translation.rb: "# Condition: Both have orig && langcode-s differ && priority==:other"
     #ActiveRecord::Base.transaction(requires_new: true) do
       art0, art1, tras = _prepare_artists_with_trans
-      art0.best_translations["ja"].update!(is_orig: true, skip_singularize_is_orig_callback: true)
-      art0.best_translations["en"].update!(is_orig: true, skip_singularize_is_orig_callback: true)
+      art0.best_translation(:ja).update!(is_orig: true, skip_singularize_is_orig_callback: true)
+      art0.best_translation(:en).update!(is_orig: true, skip_singularize_is_orig_callback: true)
       art1.best_translation("fr").update!(is_orig: nil, skip_singularize_is_orig_callback: true)
       art1.orig_translation.update!(weight: 67, skip_singularize_is_orig_callback: true)  # :en
       art1.with_translation(langcode: "en", title: "Something011", is_orig: true, weight: 89, skip_singularize_is_orig_callback: true)
@@ -1272,7 +1302,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 1, art0.translations.where(langcode: "fr").count
       assert_equal 1, art0.translations.where(is_orig: true).count
       assert_equal tras[0][:en].title, art0.orig_translation.title, "inspect="+art0.translations.where(is_orig: true).inspect
-      assert_equal false, art0.best_translations[:ja].is_orig
+      assert_equal false, art0.best_translation(:ja).is_orig
       assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight  ## This is the case (b/c untouched?).
       assert_nil                       art1.orig_translation  # orig_translation should have disappeared
       assert_empty    art1.translations.where(is_orig: nil)  # Identical orig-Translation should have disappeared.
@@ -1309,7 +1339,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 1, art0.translations.where(langcode: "fr").count
       assert_equal 1, art0.translations.where(is_orig: true).count
       assert_equal tras[0][:en].title, art0.orig_translation.title, "inspect="+art0.translations.where(is_orig: true).inspect
-      assert_equal false, art0.best_translations[:ja].is_orig
+      assert_equal false, art0.best_translation(:ja).is_orig
       assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight
       assert_nil                       art1.orig_translation  # orig_translation should have disappeared
       # assert_empty    art1.translations.where(is_orig: nil)  # This fails as art1 DOES have one because the original is_orig of art1 is not destroyed in merging but stays (because of different orig_locale from art0), and then its is_orig is nullified in _reset_reassign_orig_langcode_self_other() for subesquent processing
@@ -1346,7 +1376,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 1, art0.translations.where(langcode: "fr").count
       assert_equal 1, art0.translations.where(is_orig: true).count
       assert_equal tras[0][:en].title, art0.orig_translation.title, "inspect="+art0.translations.where(is_orig: true).inspect
-      assert_equal false, art0.best_translations[:ja].is_orig
+      assert_equal false, art0.best_translation(:ja).is_orig
       assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight
       #assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset"  # See above
       assert_nil                       art1.orig_translation  # orig_translation should have disappeared
@@ -1394,9 +1424,9 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 2, art0.translations.where(langcode: "ja").count
       assert_equal 1, art0.translations.where(langcode: "fr").count
       assert_equal 1, art0.translations.where(is_orig: true).count
-      assert_equal art1_ja1, art0.best_translations[:ja]
+      assert_equal art1_ja1, art0.best_translation(:ja)
       assert_equal art1_ja2, art0.translations.where(langcode: "ja", title: new_self_tit).first, "to_compare=#{tras[0][:ja].inspect} tras="+art0.translations.where(langcode: "ja").inspect
-      assert_equal false, art0.best_translations[:ja].is_orig
+      assert_equal false, art0.best_translation(:ja).is_orig
       assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight
       #assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset"  # See above
       assert_nil                       art1.orig_translation  # there should be no more orig_translation
@@ -1451,9 +1481,9 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 3, art0.translations.where(langcode: "ja").count
       assert_equal 1, art0.translations.where(langcode: "fr").count
       assert_equal 1, art0.translations.where(is_orig: true).count
-      assert_equal art1_ja1, art0.best_translations[:ja]
+      assert_equal art1_ja1, art0.best_translation(:ja)
       assert_equal art1_ja2, art0.translations.where(langcode: "ja", title: new_self_tit).first, "to_compare=#{tras[0][:ja].inspect} tras="+art0.translations.where(langcode: "ja").inspect
-      assert_equal false, art0.best_translations[:ja].is_orig
+      assert_equal false, art0.best_translation(:ja).is_orig
       assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight
       assert_nil                       art1.orig_translation  # there should be no more orig_translation
       assert_empty    art1.translations.where(is_orig: nil)  # original identical orig_translation should have disappeared
@@ -2224,7 +2254,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     assert_equal 2, new_mu.engages.size, 'should decrease by 1 to become 2'
     assert_equal best_tras[0],           new_mu.orig_translation
     assert_equal h1129_prms[:song][0],   new_mu.orig_translation.title
-    assert_equal false,                  new_mu.best_translations[:ja].is_orig
+    assert_equal false,                  new_mu.best_translation(:ja).is_orig
 
     assert_equal assc_prms[:mu_genre][1],      new_mu.genre
     assert_equal assc_prms[:mu_year][0],       new_mu.year
@@ -2452,6 +2482,65 @@ end
       record.save }
   end
 
+  test "self._convert_to_translations_attributes_core" do
+    hs = {title: "abc", langcode: "en", is_orig: true, weight: 1.0}
+    act = Artist.send(:_convert_to_translations_attributes_core, hs)
+    assert_equal 1,      act.size
+    assert_equal "en",   act.orig_locale
+    assert_equal "en",   act[0][:langcode]
+    assert_equal "abc",  act[0][:title]
+    assert_equal "full", act[0][:kind]
+    assert_equal 1.0,    act[0][:weight]
+    assert_equal 4, act[0].keys.reject{ _1 == "is_orig"}.size  # ["weight", "title", "langcode", "kind"] and "is_orig"
+
+    hs = {title: "abc", alt_title: "def", langcode: "en", is_orig: true, weight: 1.0}
+    act = Artist.send(:_convert_to_translations_attributes_core, hs)
+    assert_equal 2,      act.size
+    assert_equal "en",   act.orig_locale
+    assert_equal "en",   act[0][:langcode]
+    assert_equal "en",   act[1][:langcode]
+    assert_equal "abc",  act[0][:title]
+    assert_equal "def",  act[1][:title]
+    assert_equal "full", act[0][:kind]
+    assert_equal "alt",  act[1][:kind]
+    assert               act[0].has_key?("is_orig")
+    assert_equal true,   act[0][:is_orig]
+    assert_equal false,  act[1][:is_orig]
+    assert_equal 1.0,    act[0][:weight]
+    assert_operator act[0][:weight], :<, act[1][:weight]
+    assert_equal 4, act[0].keys.reject{ _1 == "is_orig"}.size
+    assert_equal act[0].keys.size, act[1].keys.size
+
+    hs = {alt_title: "def", langcode: "en"}
+    act = Artist.send(:_convert_to_translations_attributes_core, hs)
+    assert_equal 1,      act.size
+    assert_equal ModuleCommon::DEF_PLACE_HOLDER, act.orig_locale
+    assert_equal "en",   act[0][:langcode]
+    assert_equal "def",  act[0][:title]
+    assert_equal "alt",  act[0][:kind]
+    refute               act[0].has_key?("is_orig")
+    assert_operator 0, :<, act[0][:weight]
+    assert_equal 4, act[0].keys.reject{ _1 == "is_orig"}.size
+
+    hs = {title: "abc", alt_title: "def", langcode: "en", is_orig: nil, kind: "nickname"}
+    act = Artist.send(:_convert_to_translations_attributes_core, hs)
+    assert_equal 2,      act.size
+    assert_nil           act.orig_locale
+    assert_equal "en",   act[0][:langcode]
+    assert_equal "en",   act[1][:langcode]
+    assert_equal "abc",  act[0][:title]
+    assert_equal "def",  act[1][:title]
+    assert_equal "nickname", act[0][:kind]
+    assert_equal "nickname", act[1][:kind]
+    assert               act[0].has_key?("is_orig")
+    assert_nil           act[0][:is_orig]
+    assert_nil           act[1][:is_orig]
+    assert_operator 0, :<, act[0][:weight]
+    assert_operator act[0][:weight], :<, act[1][:weight]
+    assert_equal 4, act[0].keys.reject{ _1 == "is_orig"}.size
+    assert_equal act[0].keys.size, act[1].keys.size
+  end
+
   test "inspect" do
     str = (cntry=Country["GB"]).inspect
     assert_match(/\(en:Orig\)>\z/, str, "Trans="+cntry.translations.inspect)
@@ -2459,9 +2548,9 @@ end
     jp = Country["JP"]
     str = jp.inspect
     assert_match(/\(ja:Orig\)>\z/, str)
-    assert_equal 3, jp.translations.count, "fixture testing: 'Japan' has 3 Translations (ja, en, fr)"
+    assert_equal 4, jp.translations.count, "fixture testing: 'Japan' has 3 Translations (ja, en, fr)"
     assert_equal 3, jp.translations.pluck(:langcode).flatten.uniq.size, "fixture testing: 'Japan' has 3-language Translations"
-    assert_match(%r@/L=3/N=3\b@, str)  # ...; Translation(id=12345/L=3/N=3): "日本国" (ja:Orig)>
+    assert_match(%r@/L=3/N=4\b@, str)  # ...; Translation(id=12345/L=3/N=3): "日本国" (ja:Orig)>
     assert_match(%r@\b日本@, str)      # The word "日本" must appear somewhere (because it is the original language)
     assert_match(%r@[oO]rig@, str)     # The word "orig" (i.e., original language) should appear somewhere
 
@@ -2477,7 +2566,7 @@ end
       jp_en.update!(title: nil, alt_title: "Japan")
     end
     ## Now, destroys Translaton-Ja.  Then, Translation-en (with no title but alt_title) should be the first priority.
-    jp.translations.find_by(langcode: "ja").destroy
+    jp.translations.where(langcode: "ja").destroy_all
     jp.translations.reset
     assert_equal jp_en, Translation.sort(jp.translations).first, 'sanity check'
     str = jp.inspect

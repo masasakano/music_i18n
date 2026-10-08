@@ -25,6 +25,12 @@ class TranslationsController < ApplicationController
 
     @translation = Translation.new(**hsparam)
     authorize! :create, @translation
+
+    if @translation.translatable.present?
+      if @translation.langcode.blank? || @translation.siblings.blank?
+        @translation.kind = Translation::KIND_FULL
+      end
+    end
   end
 
   # GET /translations/1/edit
@@ -134,6 +140,6 @@ print "DEBUG: "; p @translation
 
     # Only allow a list of trusted parameters through.
     def translation_params
-      params.require(:translation).permit(:translatable_id, :translatable_type, :langcode, :title, :alt_title, :ruby, :alt_ruby, :romaji, :alt_romaji, :is_orig, :weight, :create_user_id, :update_user_id, :note)
+      params.require(:translation).permit(:translatable_id, :translatable_type, :langcode, :title, :alt_title, :ruby, :alt_ruby, :romaji, :alt_romaji, :is_orig, :weight, :kind, :start_year, :end_year, :is_formal, :is_official, :is_true_name, :is_literal, :is_for_record, :is_internal, :create_user_id, :update_user_id, :note, :memo_editor)
     end
 end

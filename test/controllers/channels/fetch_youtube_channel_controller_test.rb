@@ -112,7 +112,7 @@ class Channels::FetchYoutubeChannelControllerTest < ActionDispatch::IntegrationT
 
     ## No change in the 1st run, except the EN Translation.
     # preparation
-    @channel.best_translations["en"].destroy!
+    @channel.best_translation(:en).destroy!
     @channel.reload
     assert_empty @channel.translations.where(langcode: 'en'), "sanity check... Size=#{@channel.translations.where(langcode: 'en').size}"
     assert_equal 1, @channel.translations.size, 'sanity check'

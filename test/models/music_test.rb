@@ -371,8 +371,8 @@ EOF
       assert_equal genres(:genre_classic), mus.genre, 'Regexp match should work for Genre, but?'
       mus.reload  # Essential!
       tras = mus.best_translations
-      assert_equal true,  tras['ja'].is_orig
-      assert_equal false, tras['en'].is_orig
+      assert_equal true,  Array(tras['ja']).compact.first.is_orig
+      assert_equal false, Array(tras['en']).compact.first.is_orig
       assert_equal places(:unknown_place_unknown_prefecture_japan), mus.place
 
       art = reths[:artists][1]
@@ -393,8 +393,8 @@ EOF
       assert_nil   mus.note
       mus.reload  # Essential!
       tras = mus.best_translations
-      assert_equal false, tras['ja'].is_orig
-      assert_equal true,  tras['en'].is_orig
+      assert_equal false, Array(tras['ja']).compact.first.is_orig
+      assert_equal true,  Array(tras['en']).compact.first.is_orig
       assert_equal Place.unknown, mus.place
 
       art = reths[:artists][2]
@@ -414,8 +414,8 @@ EOF
       assert_equal '子守唄', mus.title
       tras = mus.best_translations
       # assert_equal false,  tras['ja'].is_orig  # nil
-      assert_equal 'コモリウタ', tras['ja'].ruby
-      assert_equal 'Komoriuta',  tras['ja'].romaji
+      assert_equal 'コモリウタ', Array(tras['ja']).compact.first.ruby
+      assert_equal 'Komoriuta',  Array(tras['ja']).compact.first.romaji
       assert_equal genres(:genre_pop),  mus.genre
       assert_equal places(:unknown_place_kagawa_japan), mus.place
       assert_nil   mus.year
@@ -433,7 +433,7 @@ EOF
       mus_ito.reload
       assert_equal Place.unknown, mus_ito.place
       mus_shake.reload
-      mus_shake.best_translations['en'].destroy!
+      mus_shake.best_translation(:en).destroy!
 
       reths = Music.populate_csv(strin.sub(/Thread/, 'The thread'))
       mus_ito.reload
@@ -441,7 +441,7 @@ EOF
       assert_equal places(:unknown_place_unknown_prefecture_japan), mus_ito.place, 'World-Unknown place should be updated, but?'
       mus = reths[:musics][2]
       mus.reload
-      tra = mus.best_translations['en']
+      tra = mus.best_translation(:en)
       assert_equal 'Shake', tra.title
       assert_equal false,   tra.is_orig, 'is_orig should not be updated, but?'
     end
@@ -531,7 +531,7 @@ EOF
       assert_equal 'Shake', mus.title
       mus.reload
       tras = mus.best_translations
-      assert_equal true,  tras['en'].is_orig
+      assert_equal true,  Array(tras['en']).compact.first.is_orig
       assert_equal Genre.unknown,  mus.genre
       assert_equal places(:unknown_place_unknown_prefecture_world), mus.place
       assert_nil   mus.year

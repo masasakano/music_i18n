@@ -61,7 +61,7 @@
   <% allcolspan += ((can_edit=can?(:edit, Translation)) ? 1 : 0)
      allcolspan += ((can_index=can?(:index, Translation)) ? 1 : 0) # showing SELF or not
      allcolspan += (can_promote_gen ? 2 : 0)  # showing Weight and Sync columns
-     allcolspan += (can_show  ? 1 : 0)  # showing Note column
+     allcolspan += (can_show  ? 5 : 0)  # showing Note, memo_editor, kind, years, flags columns
      action_colspan = (can_show  ? (with_edit_links ? 2 : 1) : 0)  # At least, "Show"+"Edit", plus optionally demotable, promotable, destroyable, unless add_buttons==false
 
      flag_ables = {
@@ -82,7 +82,8 @@
     <tr>
       <th></th>
       <% if can_edit %>
-        <th title="<%= t('translations.show.is_orig') %>" class="editor_only"><%= t(prefix+'Is_orig') %></th>
+        <th title="<%= t('translations.show.is_orig') %> (* means consistent)" class="editor_only"><%= t(prefix+'Is_orig') %></th>
+        <th title="Kind of Translation (<%= Translation.kinds.keys.join("|") %>)" class="editor_only">Kind</th>
       <% end %>
       <th class="border-end-0"><%= t_title %></th>
      <% if with_ruby %>
@@ -98,11 +99,14 @@
         <th class="editor_only">You?</th>
       <% end %>
       <% if can_show %>
+        <th class="editor_only" title="Effective period of the Translation">Period</th>
+        <th class="editor_only" title="<%= TranslationsHelper::FLAG_TITLES.keys.map{ _1.to_s+"?" }.join(" | ") %>">Flags</th>
         <% if can_promote_gen %>
           <th class="moderator_only">Weight</th>
           <th class="moderator_only" title="Synchronized from/to if any">Sync</th>
         <% end %>
-        <th class="editor_only" title="Note for Translators"><%= t("tables.note") %></th>
+        <th class="editor_only" title="Note re Translation"><%= t("tables.note") %></th>
+        <th class="moderator_only" title="Memo exclusive for Translators">Memo</th>
         <th colspan="<%= action_colspan %>" class="editor_only"></th> <%# action_colspan == 5 for moderators %>
       <% end %>
     </tr>
@@ -133,6 +137,7 @@
       <td><%= i+1 %><%= ('<span title="'+t("datagrid.footnote.is_original")+'">*</span>').html_safe if tra.is_orig %></td>
       <% if can_edit %>
       <td class="trans_is_orig editor_only"><%= tra.is_orig_str %></td>
+      <td class="trans_kind editor_only align-c"><%= tra.kind.capitalize %></td>
       <% end %>
       <td class="trans_title border-end-0"><%= tra.title %></td>
      <% if with_ruby %>
@@ -148,18 +153,23 @@
       <% if can_index %>
         <td class="align-c trans_you editor_only"><%= [tra.create_user_id, tra.update_user_id].include?(current_user.id) ? "Yes" : "" %></td>
       <% end %>
+      <% if can_show %>
+        <td class="align-c trans_period editor_only"><%= period_translation(tra) %></td><%# defined in translations_helper.rb %>
+        <td class="align-c trans_flags editor_only"><%= flags_translation(tra) %></td><%# defined in translations_helper.rb %>
+      <% end %>
       <% if can_promote_gen %>
         <td class="align-r trans_weight moderator_only"><%= tra.weight%></td>
         <td class="align-r trans_weight moderator_only"><%= word_to_sync_target(tra) %></td><%# defined in translations_helper.rb %>
       <% end %>
       <% if can_show %>
         <td class="editor_only"><%= ModuleRedcarpetAux.md2safehtml(tra.note) %></td>
+        <td class="moderator_only"><%= ModuleRedcarpetAux.md2safehtml(tra.memo_editor) %></td>
       <% end %>
       <% if defined?(myself) && tra == myself %>
         <td colspan="2" class="align-c trans_action editor_only" style="<%= (flag_ables[:demotable] || flag_ables[:promotable]) ? 'border-right-style: none;' : ''  %>"><strong>SELF</strong></td>  <%# Called from Translation-Edit %>
       <% else %>
         <% if can_show %>
-          <td class="trans_action trans_show editor_only" style="border-right-style: none;"><%= link_to 'Show', tra %></td>
+          <td class="trans_action trans_show editor_only" style="border-right-style: none;"><%= link_to 'Show', tra, class: Consts::Csses::Layouts::SHOW_LINK %></td>
           <% class2add = ((current_user && can?(:update, tra) && ![tra.create_user, tra.update_user].include?(current_user)) ? "moderator_only" : "editor_only") %>  <%# For one's own Translation (or not editable), it is for "editor_only", else "moderator_only" in order to prompt the user to be more careful %>
          <% if with_edit_links %>
           <td class="trans_action trans_edit <%= class2add %> <%= Consts::Csses::Layouts::EDIT_LINK_CONTAINER %>" style="border-left-style: none;<%= (flag_ables[:demotable] || flag_ables[:promotable]) ? 'border-right-style: none;' : ''  %>">

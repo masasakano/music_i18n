@@ -38,12 +38,12 @@ class ChannelOwnerTest < ActiveSupport::TestCase
 
     mdl = channel_owners(:channel_owner_haramichan)
     assert        mdl.themselves
-    assert_equal "HARAMIchan", (tit=mdl.best_translations[:en].title), "Failed with #{mdl.inspect}"
-    assert_equal mdl.artist.best_translations[:en].title, tit
+    assert_equal "HARAMIchan", (tit=mdl.best_translation(:en).title), "Failed with #{mdl.inspect}"
+    assert_equal mdl.artist.best_translation(:en).title, tit
 
     mdl = channel_owners(:channel_owner_saki_kubota)
     assert        mdl.themselves
-    assert_equal artists(:artist_saki_kubota).title, mdl.best_translations[:ja].title
+    assert_equal artists(:artist_saki_kubota).title, mdl.best_translation(:ja).title
   end
 
   test "uniqueness and validation" do
@@ -216,7 +216,6 @@ class ChannelOwnerTest < ActiveSupport::TestCase
     assert_equal art.title, chow1.title
 
     _verify_assimilate_artist(chow1)
-    #assert_equal %w(en ja), chow1.best_translations.keys.sort
 
     etra = tras.first
     assert_operator etra.updated_at, :<, etra.created_at, "Timestamp should have been modified when synced with Artist's but ..."
@@ -376,8 +375,8 @@ class ChannelOwnerTest < ActiveSupport::TestCase
     art.reload
     tra.reload
     assert_equal tra, art.translations.where(note: tmpnote).first, 'sanity check'
-    assert_equal tra, art.best_translations["fr"], 'sanity check'
+    assert_equal tra, art.best_translation(:fr), 'sanity check'
     chan1.reload
-    assert_equal tra.title, chan1.best_translations["fr"]&.title, chan1.best_translations
+    assert_equal tra.title, chan1.best_translation(:fr)&.title, chan1.best_translation(:fr)
   end
 end

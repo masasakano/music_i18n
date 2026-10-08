@@ -82,7 +82,7 @@ class PlaceTest < ActiveSupport::TestCase
     c12.update!(note: 'new-t2')
     t12f = Translation.create!(title: '江戸城下', langcode: 'ko', translatable: c12)
     t12f.update!(note: 'updated-ko')
-    c12.best_translations['ja'].update!(note: 'updated-ja')
+    c12.best_translation('ja').update!(note: 'updated-ja')
     p22 = Place.create_with_orig_translation!({prefecture: c12.prefecture}, translation: {title: 'some plac22', langcode: 'ja'})
     assert_raises(ActiveRecord::RecordInvalid,
                  "Korean translated title for Japan exists and hence it should not be allowed") {
@@ -93,8 +93,8 @@ class PlaceTest < ActiveSupport::TestCase
     plau0 = Place.unknown
     assert_equal Place::UnknownPlace['en'], plau0.title
     assert plau0.unknown?
-    assert_equal 0, plau0.best_translations['en'].weight
-    assert_equal 0, plau0.best_translations['ja'].weight
+    assert_equal 0, plau0.best_translation('en').weight
+    assert_equal 0, plau0.best_translation('ja').weight
 
     ## Test of unknown
     plau0 = Place.unknown

@@ -2,6 +2,7 @@ require "application_system_test_case"
 
 class TranslationsTest < ApplicationSystemTestCase
   setup do
+    @artist = artists(:artist_saki_kubota)
     @moderator_all   = users(:user_moderator_all)         # General-JA Moderator can manage.
     @editor_harami   = users(:user_editor)                # Harami Editor can manage.
     @moderator_harami= users(:user_moderator)             # Harami Moderator can manage.
@@ -57,53 +58,226 @@ class TranslationsTest < ApplicationSystemTestCase
     # assert_equal 0, page.all(CSSGRIDS[:tb_tr]).size  # An empty row with "---" is displayed when the table has no rows.
   end
 
-  #test "creating a Translation" do
-  #  visit translations_url
-  #  click_on "New Translation"
+  test "updating a Translation and creating a sibling in a different language" do
+    visit new_user_session_path  # already on this page.
+    assert_text "Password"
+    login_or_fail_index(@trans_moderator, succeed: true) # defined in test_system_helper.rb
 
-  #  fill_in "Alt romaji", with: @translation.alt_romaji
-  #  fill_in "Alt ruby", with: @translation.alt_ruby
-  #  fill_in "Alt title", with: @translation.alt_title
-  #  fill_in "Create user", with: @translation.create_user_id
-  #  check "Is orig" if @translation.is_orig
-  #  fill_in "Langcode", with: @translation.langcode
-  #  fill_in "Note", with: @translation.note
-  #  fill_in "Romaji", with: @translation.romaji
-  #  fill_in "Ruby", with: @translation.ruby
-  #  fill_in "Title", with: @translation.title
-  #  fill_in "Translatable", with: @translation.translatable_id
-  #  fill_in "Translatable type", with: @translation.translatable_type
-  #  fill_in "Update user", with: @translation.update_user_id
-  #  fill_in "Weight", with: @translation.weight
-  #  click_on "Create Translation"
+    assert_selector "#language_switcher_top"
+    page.find("#navbarColor02 li", text: "Translations").click
 
-  #  assert_text "Translation was successfully created"
-  #  click_on "Back"
-  #end
+    ## Index page
+    assert_selector "h1", text: "Translations"
+    assert_selector 'input[value="Apply"]'
+    assert_selector "table.datagrid-table"
 
-  #test "updating a Translation" do
-  #  visit translations_url
-  #  click_on "Edit", match: :first
+    tra_ja = translations(:artist_saki_kubota_ja)
+    assert_includes @artist.translations, tra_ja, "fixuture check"
+    page.find("#translations_grid_title").fill_in(with: tra_ja.title)
+    check "Artist"
+    check "ID"  # extra column
+    n_filtered_entries = Artist.select_regex(:titles, /#{Regexp.quote(tra_ja.title)}/).size
+    # click_on "Apply"
+    user_assert_grid_index_apply_to(n_filtered_entries: n_filtered_entries) # defined in test_system_helper.rb
 
-  #  fill_in "Alt romaji", with: @translation.alt_romaji
-  #  fill_in "Alt ruby", with: @translation.alt_ruby
-  #  fill_in "Alt title", with: @translation.alt_title
-  #  fill_in "Create user", with: @translation.create_user_id
-  #  check "Is orig" if @translation.is_orig
-  #  fill_in "Langcode", with: @translation.langcode
-  #  fill_in "Note", with: @translation.note
-  #  fill_in "Romaji", with: @translation.romaji
-  #  fill_in "Ruby", with: @translation.ruby
-  #  fill_in "Title", with: @translation.title
-  #  fill_in "Translatable", with: @translation.translatable_id
-  #  fill_in "Translatable type", with: @translation.translatable_type
-  #  fill_in "Update user", with: @translation.update_user_id
-  #  fill_in "Weight", with: @translation.weight
-  #  click_on "Update Translation"
+    ## now, filtered Index page
+    xpath_tr = xpath_grid_rows_contain(title: tra_ja.title)  # defined in test_helper.rb
+    xpath_td = xpath_grid_rows_contain(id: nil, prefix: "")[1..-2]  # Only the last part of XPath
+    xpath = xpath_tr + "/" + xpath_td
+    assert_selector :xpath, xpath
+    node_tds = page.find_all(:xpath, xpath)
+    assert  node_tds.any?{ tra_ja.id.to_s == _1.text }, "pID row should match the Translation"
 
-  #  assert_text "Translation was successfully updated"
-  #  click_on "Back"
-  #end
+    node_tds.first.click  # pID should be clickable.
+    assert_selector "h1", text: "A Translation for Artist"
+    assert_selector "h1 .authorized_only", text: tra_ja.id.to_s  # Translation-pID should be in H1
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+
+    ## now, Show page
+    css = "div.item_langcode dd"
+    assert_selector css
+    assert_equal tra_ja.langcode, page.find(css).text.strip[0..1]
+
+    css = "div.item_title dd"
+    assert_selector css
+    assert_equal tra_ja.title, page.find(css).text.strip
+
+    css = "div.item_kind dd"
+    assert_selector css
+    assert_match(/^"?#{Regexp.quote tra_ja.kind}"?$/i, page.find(css).text.strip)
+
+    TranslationsHelper::FLAG_TITLES.each_pair do |ek, etext|
+      css = "div.item_#{ek.to_s} dd"
+      assert_selector css
+      assert_equal tra_ja.send(ek).inspect, page.find(css).text.strip
+    end
+
+    find("#sec_primary .edit_link a", text: "Edit").click
+    assert_selector "h1", text: "Editing Translation"
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+
+    ## now, Edit page
+
+    assert_selector 'input#translation_translatable_type[value="Artist"]'  # Translatable should be un-editable
+    assert_selector 'input#translation_translatable_type[readonly="readonly"]'
+    assert_selector 'input#translation_translatable_id[readonly="readonly"]'
+
+    assert_selector "textarea#translation_title", text: tra_ja.title
+    new_title = tra_ja.title + "_new_test_title_1"
+    new_memo = "New_Memo_1"
+    new_weight = 0.12
+    fill_in "Title",       with: new_title
+    fill_in "Weight",      with: new_weight
+    fill_in "Memo editor", with: new_memo
+    %w(is_formal is_official is_true_name).each do |ecol|
+      within("div.field_group_#{ecol}") do
+        choose "Yes"
+      end
+    end
+
+    click_on "Update Translation"
+    assert_text "Translation was successfully updated"
+    flash_regex_assert(/\bwas successfully updated\b/, type: [:notice, :success], system_test: true) # defined in test_helper.rb
+    close_flash_windows([:notice, :success])  # defined in test_system_helper.rb
+
+    ## now, back to Translation-Show page
+
+    assert_selector "h1", text: "A Translation for Artist"
+    assert_selector "h1 .authorized_only", text: tra_ja.id.to_s  # Translation-pID should be in H1
+
+    css = "div.item_title dd"
+    assert_selector css
+    assert_equal new_title, page.find(css).text.strip
+
+    css = "div dd.item_weight"
+    assert_selector css
+    assert_equal new_weight, page.find(css).text.to_f
+
+    css = "div dd.item_memo_editor"
+    assert_selector css
+    assert_equal new_memo, page.find(css).text.strip
+
+    %w(is_formal is_official is_true_name).each do |ecol|
+      css = "div.item_#{ecol} dd"
+      assert_selector css
+      assert_equal "true", page.find(css).text.strip
+    end
+
+    tra_ja.reload
+    TranslationsHelper::FLAG_TITLES.each_pair do |ek, etext|
+      css = "div.item_#{ek.to_s} dd"
+      assert_selector css
+      assert_equal tra_ja.send(ek).inspect, page.find(css).text.strip
+    end
+
+    assert_selector "#sec_primary_trans"
+    assert_selector "table.all_registered_translations"
+
+    css = "#sec_primary_trans div.add_other_language"
+    assert_selector css
+    within(css) do
+      click_on "Add translation"
+    end
+
+    assert_selector "h1", text: "New Translation"
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+
+    ## now, :new page
+
+    assert_selector 'input#translation_translatable_type[value="Artist"]'  # Translatable should be un-editable
+    assert_selector 'input#translation_translatable_type[readonly="readonly"]'
+    assert_selector 'input#translation_translatable_id[readonly="readonly"]'
+
+    assert_selector 'input#translation_kind_full[value="full"][checked="checked"]'  # on :create of the first Translation of +langcode+ for a parent, Default kind should be "full"
+
+    es_title = "Spanish test title 1"
+    within("div.field_group_is_true_name") do
+      choose "No"
+    end
+    %w(is_literal is_internal).each do |ecol|
+      within("div.field_group_#{ecol}") do
+        choose "Yes"
+      end
+    end
+
+    click_on "Create Translation"
+
+    ## first try of :create should fail because neither :title nor :langcode has been specified.
+    flash_regex_assert(/\berrors prohibited\b/, type: [:alert], system_test: true) # defined in test_helper.rb  (NOTE this is not a flash message but ActiveRecord#errors displayed.)
+    flash_regex_assert(/\bLangcode can't be blank\b/i, type: [:alert], system_test: true)
+    flash_regex_assert(/\b(blank\b.+\btitle|title\b.+\bblank)\b/i, type: [:alert], system_test: true)
+    assert_selector "#form_main div.translation_langcode div.invalid-feedback", text: "can't be blank"
+
+    assert_selector 'input#translation_is_true_name_false[checked="checked"]'  # input value should be preserved.
+    assert_selector 'input#translation_is_literal_true[checked="checked"]'  # input value should be preserved.
+    assert_selector 'input#translation_is_internal_true[checked="checked"]'  # input value should be preserved.
+
+    assert_selector 'input#translation_is_formal_[checked="checked"]'  # Default value should remain.
+    assert_selector 'input#translation_kind_full[value="full"][checked="checked"]'  # on :create of the first Translation of +langcode+ for a parent, Default kind should be "full"
+
+    ## second try should succeed
+    fill_in "Langcode",    with: "es"
+    fill_in "Title",       with: es_title
+    choose "Nickname"  # from "Kind"
+    fill_in "Note",        with: new_memo
+
+    click_on "Create Translation"
+
+    assert_text "was successfully created"  # This may be "Artist was", opposed to "Translation was"...
+    flash_regex_assert(/\bwas successfully created\b/, type: [:notice, :success], system_test: true) # defined in test_helper.rb
+    close_flash_windows([:notice, :success])  # defined in test_system_helper.rb
+
+    ## back to parent Artist-Show page (NOT Translation-Show page, as intended!)
+
+    assert_selector "h1", text: "Artist: "+@artist.best_translation.title
+    css = "#sec_primary_trans table.all_registered_translations tbody tr.lang_banner.lang_banner_es"
+    assert_selector css
+    assert_selector css, text: "Spanish"  # because the current locale is English
+
+    css = "#sec_primary_trans table.all_registered_translations tbody tr:last-child td.trans_action.trans_show a.show_link"
+    assert_selector css
+    find(css).click
+
+    ## move to Translation-Show page
+
+    assert_selector "h1", text: "A Translation for Artist"
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+    # assert_selector "h1 .authorized_only", text: tra_ja.id.to_s  # Translation-pID should be in H1
+
+    # pid = retrieve_pid_in_show  # defined in test_helper.rb  ## Does not work for Translation#show!
+    tra_es = Translation.where(translatable_type: "Artist").order(created_at: :desc).first  # The "where" clause is required because :sync_child Translation of ChannelOwner's has been also created!
+    /Translation.p?ID ?= ?(\d+)/ =~ find("h1").text
+    assert_equal tra_es.id, $1.to_i, tra_es.inspect
+
+    css = "div.item_langcode dd"
+    assert_selector css
+    assert_equal "es", (txt=page.find(css).text.strip)[0..1], txt
+
+    css = "div dd.item_note"  ## CSS class is for <dd>, not for <div>
+    assert_selector css
+    assert_equal new_memo, (txt=page.find(css).text.strip), txt
+
+    # Other input parameters should appear in :show page.
+    [[:title, es_title], [:kind, '"nickname"'],
+     [:is_true_name, "false"], [:is_literal, "true"], [:is_internal, "true"]].each do |ea|
+      css = "div.item_#{ea[0]} dd"
+      assert_selector css
+      assert_equal ea[1], page.find(css).text.strip, ea.inspect+" does not match..."
+    end
+
+    css = "div dd.item_weight"
+    assert_selector css
+    def_weight = Translation.new(translatable: @artist, langcode: "ru", is_orig: false).def_weight(@trans_moderator)
+    assert_equal def_weight, page.find(css).text.to_f
+
+    TranslationsHelper::FLAG_TITLES.each_pair do |ek, etext|
+      css = "div.item_#{ek.to_s} dd"
+      assert_selector css
+      assert_equal tra_es.send(ek).inspect, page.find(css).text.strip
+    end
+
+    click_on "Back", match: :first
+  end
 
   #test "destroying a Translation" do
   #  visit translations_url

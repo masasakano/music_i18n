@@ -97,13 +97,13 @@ class HaramiVidTest < ActiveSupport::TestCase
         assert     hvid.changed?
         assert     hvid.release_date_changed?
         assert_nil hvid.release_date_was
-        refute_equal h1129.ins_title, hvid.best_translations.first[1].title  # Hash#first => 2-element Array
+        refute_equal h1129.ins_title, Array(hvid.best_translations.first[1]).first.title  # Hash#first => 2-element Array
         #refute     hvid.event_items.exists?  # Because Harami1129's record does not include it.
       when :harami1129_ihojin1
         refute     hvid.changed?
         refute     hvid.release_date_changed?
         assert     hvid.release_date_was
-        assert_equal h1129.ins_title, hvid.best_translations.first[1].title
+        assert_equal h1129.ins_title, Array(hvid.best_translations.first[1]).first.title
         assert_includes hvid.event_items, h1129.event_item  # HaramiVid#event_items includes Harami1129's EventItem
       else
         raise
@@ -182,7 +182,7 @@ class HaramiVidTest < ActiveSupport::TestCase
     assert_nil harami_vid.release_date_was
     assert     harami_vid.uri_changed?
     assert_not_equal h1129.ins_release_date, harami_vid.release_date
-    assert     harami_vid.best_translations.empty?  # No Translation associated, yet.
+    assert     harami_vid.translations.empty?  # No Translation associated, yet.
     assert     harami_vid.unsaved_translations.blank?    # No unsaved because it is not specified in "updates"
 
     # 3rd try

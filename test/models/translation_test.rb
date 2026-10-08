@@ -217,6 +217,33 @@ class TranslationTest < ActiveSupport::TestCase
     assert mdl.title.present?, 'checking fixtures'
     mdl.ruby   = "りよんえき"
     assert_equal "リヨンエキ", mdl.ruby  # testing: normalizes
+
+    hs_common = {title: "#{__method__}-1-#{rand}", langcode: "it", kind: Translation::KIND_FULL, weight: 2.0,
+                 is_official: true }
+    translation = @sex.translations.build(**hs_common)
+    assert @sex.valid?
+
+    translation.is_true_name = true
+    refute @sex.valid?, "Translations for Sex should not define is_true_name, but..."
+    assert @sex.errors["translations.is_true_name"].any? { |msg| msg.include?("set positive") }, @sex.errors.inspect
+    translation.is_true_name = nil
+    assert @sex.valid?, "sanity check"
+    translation.is_for_record = true
+    refute @sex.valid?
+    assert @sex.errors["translations.is_for_record"].any? { |msg| msg.include?("set positive") }, @sex.errors.inspect
+    translation.is_for_record = false
+    assert @sex.valid?, "sanity check"
+
+    translation = @artist.translations.build(**hs_common)
+    assert @artist.valid?, "sanity check"
+
+    translation.is_true_name = true
+    assert @artist.valid?
+    translation.is_for_record = true
+    assert @artist.valid?
+    assert_difference('Translation.count'){
+      @artist.save!
+    }
   end
 
   test "class method preprocessed_6params" do
@@ -325,8 +352,8 @@ class TranslationTest < ActiveSupport::TestCase
     sex6.create_translations!(**hs2)
     # sex6.reload  # key!!
     bests = sex6.best_translations  # => empty...
-    assert_equal "Age, The", bests['en'].title
-    assert_equal lalala,     bests['fr'].title, "special case"
+    assert_equal "Age, The", Array(bests['en']).compact.first.title
+    assert_equal lalala,     Array(bests['fr']).compact.first.title, "special case"
   end
 
   test "Rails-level unique constraints on title*alt_title" do

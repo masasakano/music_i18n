@@ -160,7 +160,7 @@ raise if @event.id
     # @param lang_fallback_option: [Symbol] :never (Dev), :eitheretc. See BaseWithTranslation
     # @return [Translation, NilClass] If the title of the Translation for the language is not found, returns nil.
     def _new_evt_tra(langcode, lang_fallback_option: :never)
-      tra = @harami_vid.best_translations[langcode]
+      tra = [@harami_vid.best_translations[langcode]].flatten.compact.first
       str_fallback = ((:never == lang_fallback_option) ? nil : FALLBACK_EVENT_TITLE)
       str = @harami_vid.title_or_alt(prefer_shorter: true, langcode: langcode, lang_fallback_option: lang_fallback_option, str_fallback: str_fallback, article_to_head: true)
       return nil if !str

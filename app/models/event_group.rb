@@ -34,7 +34,7 @@ class EventGroup < BaseWithTranslation
   # polymorphic many-to-many with Url
   include Anchorable
 
-  # defines {#unknown?} and +self.class.unknown+
+  # defines {#unknown?} and +self.class.unknown+, +add_translations_after_first_create+
   include ModuleUnknown
 
   # define method "mname" et
@@ -253,7 +253,11 @@ class EventGroup < BaseWithTranslation
   # @return [Event]
   def after_first_translation_hook
     evt = Event.initialize_with_def_time(event_group: self)
-    evt.unsaved_translations = add_translations_after_first_create(Event)
+    # evt.unsaved_translations = add_translations_after_first_create(Event)
+    add_translations_after_first_create(Event).each do |etra|
+      evt.translations << etra
+    end
+
     evt.save!
     evt
   end

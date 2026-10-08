@@ -53,18 +53,21 @@ class CountryMasterTest < ActiveSupport::TestCase
     cntry = cm.create_child_country
     assert cntry
     refute cntry.errors.any?
-    tran = cntry.best_translations["ja"]
+    tran = cntry.best_translation("ja")
     assert_equal cm.name_ja_full,              tran.title
     assert_equal "シリア・アラブ共和国",       tran.title
     assert_equal "シリア・アラブキョウワコク", tran.ruby
 
-    tran = cntry.best_translations["en"]
+    tran = cntry.best_translation("en")
     assert_match(/^Syrian /,  tran.title)
     assert_match(/, the$/,    tran.title)
-    assert_match(/^Syria/,    tran.alt_title)
-    assert_match(/, the$/,    tran.alt_title)
+   #assert_match(/^Syria/,    tran.alt_title)
+   #assert_match(/, the$/,    tran.alt_title)
+    tran = cntry.best_translations["en"][1]
+    assert_match(/^Syria/,    tran.title)
+    assert_match(/, the$/,    tran.title)
 
-    tran = cntry.best_translations["fr"]
+    tran = cntry.best_translation("fr")
     assert_match(/^République/, tran.title)
     assert_match(/, la$/,       tran.title)
 
@@ -91,18 +94,23 @@ class CountryMasterTest < ActiveSupport::TestCase
     cntry = cm.create_child_country
     assert cntry
     refute cntry.errors.any?
-    tran = cntry.best_translations["ja"]
+    tran = cntry.best_translation("ja")
     assert_equal cm.name_ja_full,              tran.title
     assert_equal "エイリョウバージンショトウ", tran.ruby
 
-    tran = cntry.best_translations["en"]
-    assert_equal cm.name_en_short,             tran.alt_title
+    #tran = cntry.best_translation("en")
+    #assert_equal cm.name_en_short,             tran.alt_title
+    tran = cntry.best_translations[:en][1]
+    assert_equal cm.name_en_short,             tran.title
 
-    tran = cntry.best_translations["fr"]
+    tran = cntry.best_translation("fr")
     assert_match(/^Îles Vierges/,      tran.title)
     assert_match(/britanniques, les$/, tran.title)
-    assert_match(/^Vierges/,           tran.alt_title)
-    assert_match(/britanniques$/,      tran.alt_title)
+   #assert_match(/^Vierges/,           tran.alt_title)
+   #assert_match(/britanniques$/,      tran.alt_title)
+    tran = cntry.best_translations[:fr][1]
+    assert_match(/^Vierges/,           tran.title)
+    assert_match(/britanniques$/,      tran.title)
 
     # French translation 1
     cm = country_masters(:angola_master)
@@ -113,11 +121,11 @@ class CountryMasterTest < ActiveSupport::TestCase
     cntry = cm.create_child_country
     assert cntry
     refute cntry.errors.any?
-    tran = cntry.best_translations["ja"]
+    tran = cntry.best_translation("ja")
     assert_equal cm.name_ja_full,              tran.title
     assert_equal "アンゴラキョウワコク", tran.ruby
 
-    tran = cntry.best_translations["fr"]
+    tran = cntry.best_translation("fr")
     assert_equal("Angola, l'",      tran.title, "tran=#{tran.inspect}")
 
     # French translation 2
@@ -130,9 +138,10 @@ class CountryMasterTest < ActiveSupport::TestCase
     assert cntry
     refute cntry.errors.any?
 
-    tran = cntry.best_translations["fr"]
+    tran = cntry.best_translations[:fr][0] # == cntry.best_translation("fr")
     assert_equal("Île Christmas, l'", tran.title, "tran=#{tran.inspect}")
-    assert_equal("Christmas",         tran.alt_title, "tran=#{tran.inspect}")
+    tran = cntry.best_translations[:fr][1]
+    assert_equal("Christmas",         tran.title, "tran=#{tran.inspect}")
   end
 end
 

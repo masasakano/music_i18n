@@ -79,7 +79,7 @@ sextrans0ja:
   romaji: fumei
   alt_ruby: 
   alt_romaji: 
-  is_orig: false
+  is_orig: 
   kind: full
   start_year:
   end_year:
@@ -107,7 +107,7 @@ sextrans1ja:
   romaji: otoko
   alt_ruby: 
   alt_romaji: 
-  is_orig: false
+  is_orig: 
   kind: full
   weight: 0
   note: 
@@ -125,7 +125,7 @@ sextrans2ja:
   romaji: onna
   alt_ruby: 
   alt_romaji: 
-  is_orig: false
+  is_orig: 
   kind: full
   weight: 0
   note: 
@@ -143,7 +143,7 @@ sextrans9ja:
   romaji: tekiyoufunou
   alt_ruby: 
   alt_romaji: 
-  is_orig: false
+  is_orig: 
   kind: full
   weight: 0
   note: 
@@ -161,7 +161,7 @@ sextrans0en:
   romaji: 
   alt_ruby: 
   alt_romaji: 
-  is_orig: true
+  is_orig: 
   kind: full
   weight: 0
   note: 
@@ -179,7 +179,7 @@ sextrans1en:
   romaji: 
   alt_ruby: 
   alt_romaji: 
-  is_orig: true
+  is_orig: 
   kind: full
   weight: 0
   note: 
@@ -197,7 +197,7 @@ sextrans2en:
   romaji: 
   alt_ruby: 
   alt_romaji: 
-  is_orig: true
+  is_orig: 
   kind: full
   weight: 0
   note: 
@@ -215,7 +215,7 @@ sextrans9en:
   romaji: tekiyoufunou
   alt_ruby: 
   alt_romaji: 
-  is_orig: true
+  is_orig: 
   kind: full
   weight: 0
   note: 

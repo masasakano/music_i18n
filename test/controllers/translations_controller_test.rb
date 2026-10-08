@@ -109,11 +109,12 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     ## preparation of music
     loc = "ja"
     music = Music.new(year: 1987, place: places(:unknown_place_unknown_prefecture_japan), orig_locale: loc)
-    music.translations << Translation.new(title: "Initial-日本語のtranslation", langcode: loc, is_orig: true, weight: 3000000)
+    music.translations << Translation.new(title: "Initial-日本語のtranslation", langcode: loc, is_orig: true, kind: "full", weight: 3000000)
     music.save!
     tra_ja = music.translations.first
+    assert_equal "full", tra_ja.kind
 
-    hstrans = { alt_title: 'abcde', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, }
+    hstrans = { kind: "full", title: 'abcde', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, }
 
     # Varidation failure in attempted creation  by Editor:
     assert_no_difference('Translation.count') do
@@ -123,7 +124,8 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     assert_includes css_select("h1").text, "New Translation", "Should render in :new of Translation, but..."
     assert_equal music.class.name, css_select("#translation_translatable_type")[0]["value"], "translatable_type should remain, but..."
     assert_equal music.id.to_s,    css_select("#translation_translatable_id")[0]["value"]
-    assert_equal 1,                css_select(".field_with_errors #translation_langcode").size, "error-indication should be present, but..."  # This assumes Rails' default form, NOT simple_form
+    # assert_equal 1,   css_select(".field_with_errors #translation_langcode").size, "error-indication should be present, but..."  # This assumes Rails' default form, NOT simple_form
+    assert_equal 1,   css_select("#form_main div.translation_langcode div.invalid-feedback").size, "div.invalid-feedback should be present, but..."  # This assumes simple_form
 
     # 1st creation  by Editor: auto-weight => 500=1000/2 (no existing "en" Translation (Existing(ja) 3000000(Orig) is irrelevant))
     assert_difference('Translation.count', 1) do
@@ -133,6 +135,7 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     # assert_redirected_to translation_url(tra)
     assert_redirected_to music_url(tra.translatable)
     assert_redirected_to Rails.application.routes.url_helpers.polymorphic_path(tra.translatable, locale: :en)
+    assert_equal "full", tra.kind
 
     assert_equal @translator, tra.create_user, "(For some reason tra.create_user may return nil very oocasionally) tra=#{tra.inspect}"
     assert_equal @translator, tra.update_user
@@ -148,7 +151,7 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     @trans_moderator = users(:user_moderator_translation)
     sign_in @trans_moderator
     assert_difference('Translation.count', 1) do
-      post translations_url, params: { translation: { alt_title: 'abcd2', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
+      post translations_url, params: { translation: { kind: "alt", title: 'abcd2', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
     end
     tra2 = Translation.order(:created_at).last
     assert_redirected_to Rails.application.routes.url_helpers.polymorphic_path(tra2.translatable, locale: :en)
@@ -164,7 +167,7 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     @translator2 = users(:user_translator2)
     sign_in @translator2
     assert_difference('Translation.count', 1) do
-      post translations_url, params: { translation: { alt_title: 'abcd3', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
+      post translations_url, params: { translation: { kind: "alt", title: 'abcd3', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
     end
     tra3 = Translation.order(:created_at).last
     assert_redirected_to Rails.application.routes.url_helpers.polymorphic_path(tra3.translatable, locale: :en)
@@ -181,7 +184,7 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     tra3.reload
 
     assert_difference('Translation.count', 1, 'failed: response='+@response.body) do
-      post translations_url, params: { translation: { alt_title: 'abcd4', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
+      post translations_url, params: { translation: { kind: "alt", title: 'abcd4', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
     end
     tra4 = Translation.order(:created_at).last
     assert_redirected_to Rails.application.routes.url_helpers.polymorphic_path(tra4.translatable, locale: :en)
@@ -195,7 +198,7 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
 
     # 5th creation attempt with an identical translation should fail.
     assert_difference('Translation.count', 0, 'failed: response='+@response.body) do
-      post translations_url, params: { translation: { alt_title: 'abcd4', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
+      post translations_url, params: { translation: { kind: "alt", title: 'abcd4', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
     end
     assert_response :unprocessable_content
     assert_includes css_select('div#error_explanation ul li').map(&:text).join(" "), "Title has already been taken", "DEBUG: "+css_select("#body_main").to_s # 'must be unique'

@@ -11,7 +11,8 @@
 <h2><%= t(:title).upcase %></h2>
 
 <dl>
-  <% @event_group.best_translations.each_pair do |ek, etra| %>
+  <% @event_group.best_translations.each_pair do |ek, etras| %>
+    <% etra = etras.compact.first %>
     <dt>[<%= t("locale.long."+ek.to_s) %><%= '<span title="original language">*</span>'.html_safe if etra.is_orig %>]</dt>
     <dd><%= [etra.title, etra.alt_title].map(&:presence).compact.join(" / ") %></dd>
   <% end %>
