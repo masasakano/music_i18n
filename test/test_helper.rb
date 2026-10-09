@@ -78,6 +78,7 @@ class ActiveSupport::TestCase
   setup do
     self.default_url_options = { locale: I18n.default_locale } if respond_to?(:default_url_options=)
     RoleCategory.tree(force_update: true)  # to clear a custom cache - quite essential! (to execute many tests in one go)
+    ModuleWhodunnit.whodunnit = nil
   end
 
   ## Disable routing-filter in testing  / for (now obsolete) routing-filter Gem

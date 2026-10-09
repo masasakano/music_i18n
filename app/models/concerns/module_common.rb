@@ -87,8 +87,8 @@ module ModuleCommon
   # If a period is longer than this number (no units here), it is regarded as infinite.
   #
   # @example
-  #    raise "Strange." if period > THRESHODL_INFINITE_PERIOD = 1000.days
-  THRESHOLD_INFINITE_PERIOD = 1000
+  #    raise "Strange." if period > MIN_PERIOD_VIRTUALLY_INFINITE = 1000
+  MIN_PERIOD_VIRTUALLY_INFINITE = 1000.days
 
   extend ActiveSupport::Concern
   module ClassMethods
@@ -1228,7 +1228,7 @@ module ModuleCommon
     du = time
     du = time.seconds if time && !time.respond_to?(:in_seconds)
 
-    if !du || du > THRESHOLD_INFINITE_PERIOD.days
+    if !du || du > MIN_PERIOD_VIRTUALLY_INFINITE
       ret =  ERB::Util.html_escape(sprintf(fmteach, I18n.t(:infinity), I18n.t(:days, locale: langcode)))
       if for_editor
         return ret.sub(/ /, sprintf('<span class="editor_only">([Editor] %s) </span>', ERB::Util.html_escape(du.respond_to?(:in_days) ? du.in_days.to_s : du.inspect))).html_safe

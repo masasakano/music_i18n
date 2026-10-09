@@ -100,7 +100,7 @@ module TranslationsHelper
   def self.should_hide_for_public?(trans, all_trans_of_langcode)
     all_trans_of_langcode.size > 1 &&
       trans.weight &&
-      trans.weight > Translation::THRESHOLD_WEIGHT_VISIBLE &&
+      trans.weight > Translation::MAX_WEIGHT_VISIBLE &&
       trans.weight != Float::INFINITY
   end
 

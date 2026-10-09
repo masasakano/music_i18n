@@ -74,9 +74,10 @@ require 'test_helper'
 
 class TranslationTest < ActiveSupport::TestCase
   setup do
-    # Without this, current_user may(!) exist if you run Controller or Integration tests at the same time.
-    ModuleWhodunnit.whodunnit = nil
+    ## Without this, current_user may(!) exist if you run Controller or Integration tests at the same time.
+    # ModuleWhodunnit.whodunnit = nil  # now, moved to test_helper.rb
 
+    @trans_moderator = users(:user_moderator_translation)
     @title_counter = 0
     @sex = Sex[0]
     @artist = Artist.create!(
@@ -221,6 +222,25 @@ class TranslationTest < ActiveSupport::TestCase
     hs_common = {title: "#{__method__}-1-#{rand}", langcode: "it", kind: Translation::KIND_FULL, weight: 2.0,
                  is_official: true }
     translation = @sex.translations.build(**hs_common)
+    assert @sex.valid?
+
+    translation.kind = "naiyo"
+    refute @sex.valid?
+    assert_equal 1, @sex.errors.size
+    assert          @sex.errors.where("translations.kind", :inclusion)  # modern Rails way to test an error
+
+    ## traditional tests...
+      assert_equal ActiveRecord::Associations::NestedError, @sex.errors.first.class
+      assert_equal :"translations.kind", @sex.errors.first.attribute
+      assert_equal :inclusion,           @sex.errors.first.type
+      assert_equal "naiyo",              @sex.errors.first.options[:value]
+      assert_equal "naiyo",              @sex.errors.first.details[:value]
+      assert_includes @sex.errors.first.message,      "is not included in the list"
+      assert_includes @sex.errors.first.full_message, "is not included in the list"
+      assert @sex.errors["translations.kind"].any? { |msg| msg.include?("is not included in the list") }, @sex.errors.inspect
+      assert @sex.errors.messages_for("translations.kind").any? { |msg| msg.include?("is not included in the list") }, @sex.errors.inspect
+
+    translation.kind = Translation::KIND_FULL
     assert @sex.valid?
 
     translation.is_true_name = true
@@ -1230,6 +1250,85 @@ class TranslationTest < ActiveSupport::TestCase
     )
 
     assert different_lang.valid?, different_lang.errors.full_messages.join(", ")
+  end
+
+  test "def_weight" do
+    artist = Artist.new(sex: @sex, orig_locale: "ja")
+
+    trass = {
+      ja_1: Translation.new(langcode: "ja", kind: Translation::KIND_FULL, is_orig: true, weight: 50.0, title: "title-ja_1")
+    }.with_indifferent_access
+    trass.each_value do |etra|
+      artist.translations << etra
+    end
+
+    artist.save!
+
+    #assert .....
+    #@trans_moderator = users(:user_moderator_translation)
+  end
+
+  test "next_unique_weight" do
+    artist = Artist.new(sex: @sex, orig_locale: "ja")
+    trass = {
+      ja_0: Translation.new(langcode: "ja", kind: Translation::KIND_FULL, is_orig:  true, weight:     0, title: "title-ja_0", is_formal: true),
+      ja_1: Translation.new(langcode: "ja", kind: Translation::KIND_ALT,  is_orig: false, weight: 500.0, title: "title-ja_1"),
+      ja_2: Translation.new(langcode: "ja", kind: Translation::KIND_ALT,  is_orig: false, weight: 800.0, title: "title-ja_2"),
+      ja_inf: Translation.new(langcode: "ja", kind: Translation::KIND_ALT,is_orig: false, weight: Float::INFINITY, title: "title-ja_inf"),
+      en_1: Translation.new(langcode: "en", kind: Translation::KIND_FULL, is_orig: false, weight:  50.0, title: "title-en_1"),
+    }.with_indifferent_access
+    trass.each_value do |etra|
+      artist.translations << etra
+    end
+
+    etra = trass[:ja_1]
+    assert_equal 400, etra.next_unique_weight(400, def_offset: 100, upper_threshold: 10000, try_reference: true)
+    assert_equal 450, etra.next_unique_weight(400, def_offset: 100, upper_threshold: 10000, try_reference: false) # b/c weight=500 is attempted, which exists
+    assert_equal 500, etra.next_unique_weight(400, def_offset: 100, upper_threshold: 10000, try_reference: false, exclude_self: true)
+    assert_equal 410, etra.next_unique_weight(400, def_offset: 100, upper_threshold:   420, try_reference: false)
+    assert_equal 900, etra.next_unique_weight(800, def_offset: 100, upper_threshold: Float::INFINITY, try_reference: true) # only 1st try fails.
+    assert_equal 850, etra.next_unique_weight(800, def_offset: 100, upper_threshold:   900, try_reference: false)
+    assert_equal 850, etra.next_unique_weight(800, def_offset: 100, upper_threshold:   900, try_reference: true) # 2nd try reaches the upper-threshold
+    assert_equal 650, etra.next_unique_weight(500, def_offset: 300, upper_threshold: 10000, try_reference: true) # both 500 and 800 unfit
+    assert_equal Translation::MAX_WEIGHT_VISIBLE+300, etra.next_unique_weight(500, def_offset: 300, lower_threshold: Translation::MAX_WEIGHT_VISIBLE, upper_threshold: Float::INFINITY, try_reference: false)  # initial trial value is lower than lower_threshold.
+    assert_equal Float::INFINITY, etra.next_unique_weight(Float::INFINITY, def_offset: 300, upper_threshold: 1000, try_reference: true)
+
+    assert_equal 390, etra.next_unique_weight(400, def_offset: -100, lower_threshold: 380,   try_reference: false)
+    assert_equal   5, etra.next_unique_weight(  0, def_offset:  -5, lower_threshold: 0, upper_threshold: Float::INFINITY, try_reference: true)
+    assert_equal 250, etra.next_unique_weight(  0, def_offset: -500,lower_threshold: 0, upper_threshold: Float::INFINITY, try_reference: true)
+    assert_equal 250, etra.next_unique_weight(  0, def_offset: -900,lower_threshold: 0, upper_threshold: Float::INFINITY, try_reference: true)
+    assert_equal 950, etra.next_unique_weight(Float::INFINITY, def_offset:  -50, lower_threshold: 0, upper_threshold: 1000, try_reference: true)
+    assert_equal 900, etra.next_unique_weight(Float::INFINITY, def_offset: -500, lower_threshold: 0, upper_threshold: 1000, try_reference: true)
+
+    etra = trass[:en_1]
+    assert_equal 400, etra.next_unique_weight(400, def_offset: 100, upper_threshold: 10000, try_reference: true)
+    assert_equal 500, etra.next_unique_weight(400, def_offset: 100, upper_threshold: 10000, try_reference: false) # b/c langcode differs
+    assert_equal  40, etra.next_unique_weight( 50, def_offset: -10, lower_threshold:     1, try_reference: true)
+    assert_equal   5, etra.next_unique_weight( 10, def_offset: -90, lower_threshold:     0, try_reference: false) # Unreasonable def_offset is allowed because lower_threshold anyway gives a hard lower limit.
+    assert_equal   0, etra.next_unique_weight(  0, def_offset: -90, lower_threshold:     0, try_reference: true)
+    assert_equal  25, etra.next_unique_weight(  0, def_offset: -90, lower_threshold:     0, try_reference: false) # Unreasonable def_offset is allowed because lower_threshold anyway gives a hard lower limit.
+
+    tra_it1 = artist.translations.build(title: "naiyo", langcode: "it", kind: Translation::KIND_ALT,
+                                        weight: nil, is_internal: true, is_orig: false)
+    act = tra_it1.next_unique_weight(0, def_offset: Translation::MAX_WEIGHT_VISIBLE/10.0,
+                                     lower_threshold: Translation::MAX_WEIGHT_VISIBLE,
+                                     upper_threshold: Float::INFINITY, try_reference: false)
+    assert_in_epsilon Translation::MAX_WEIGHT_VISIBLE*1.1, act, 0.000001
+    tra_it1.weight = act
+
+    tra_it2 = artist.translations.build(title: "naiyo", langcode: "it", kind: Translation::KIND_ALT,
+                                        weight: nil, is_internal: true, is_orig: false)
+    act = tra_it1.next_unique_weight(0, def_offset: Translation::MAX_WEIGHT_VISIBLE/10.0,
+                                     lower_threshold: Translation::MAX_WEIGHT_VISIBLE,
+                                     upper_threshold: Float::INFINITY, try_reference: true)  # try_reference is irrelevant.
+    assert_in_epsilon Translation::MAX_WEIGHT_VISIBLE*1.05, act, 0.000001
+    tra_it2.weight = act
+
+    existing_max = tra_it1.translatable.translations.select{_1.langcode == tra_it1.langcode}.map(&:weight).compact.reject{_1 == Float::INFINITY}.max
+    act = tra_it1.next_unique_weight(existing_max, def_offset: Translation::MAX_WEIGHT_VISIBLE/10.0,
+                                     lower_threshold: Translation::MAX_WEIGHT_VISIBLE,
+                                     upper_threshold: Float::INFINITY, try_reference: false)
+    assert_in_epsilon Translation::MAX_WEIGHT_VISIBLE*1.2, act, 0.000001
   end
 
   test "validates formal overlap when passing nested attributes on parent Artist" do

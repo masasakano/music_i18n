@@ -74,7 +74,7 @@ class MusicsTest < ApplicationSystemTestCase
     mu_xmas_trans_ja = mu_xmas.best_translation(:ja)
     rela_trans_ja = mu_xmas.translations.where(langcode: "ja")
     n_rela_trans_ja         = rela_trans_ja.count
-    n_rela_trans_ja_visible = rela_trans_ja.where("weight < ?", Translation::THRESHOLD_WEIGHT_VISIBLE).count
+    n_rela_trans_ja_visible = rela_trans_ja.where("weight < ?", Translation::MAX_WEIGHT_VISIBLE).count
     assert_operator 3, :<=, n_rela_trans_ja, "fixture sanity checks (should have multiple (visible) JA Translations)"
     assert_operator n_rela_trans_ja_visible, :<, n_rela_trans_ja, "fixture sanity checks (should have at least 1 invisible JA Translations)"
 

@@ -2295,7 +2295,7 @@ end
   #   artist.ordered_translations
   # 
   # @example In the current user locale, combined with further filtering (usually visible Translations only)
-  #   artist.ordered_translations(I18n.locale).where("weight <= ?", Translation::THRESHOLD_WEIGHT_VISIBLE)
+  #   artist.ordered_translations(I18n.locale).where("weight <= ?", Translation::MAX_WEIGHT_VISIBLE)
   # 
   # @param preferred_langcode [String, Symbol, NilClass] Either a locale String/Symbol (typically I18n.locale) or nil.
   #    If significant, the language of its value has the highest priority.
