@@ -2,6 +2,13 @@ class Translations::PromotesController < ApplicationController
 
   before_action :set_translation, only: [:update]
 
+  # Default weight for the original Translation after promoted is: Role.superuser.weight*0.5
+  # NOTE: {Role.superuser} accesses DB, so it is not used to define a constant to avoid unnecessary DB accesses.
+  DEF_WEIGHT_FACTOR_PROMOTED_ORIGINAL_REFERENCE = 0.5
+
+  # Default weight increment for the original Translation after promoted is: Role.superuser.weight*0.1 (this must be very rarely used).
+  DEF_WEIGHT_FACTOR_PROMOTED_ORIGINAL_POSITIVE_INCREMENT = 0.1
+
   # True if promote is allowed.
   #
   # Essentially, this Controller (but this class method) is only accessible 
@@ -39,7 +46,20 @@ class Translations::PromotesController < ApplicationController
     end
 
     best_tra, best_weight = @translation.best_translation_with_weight
-    new_weight = (@translation.is_orig ? 0 : @translation.def_weight(current_user))
+    new_weight =
+      if @translation.is_orig
+        base_weight = Role.superuser.weight
+        @translation.new_tra.next_unique_weight(
+          base_weight * DEF_WEIGHT_FACTOR_PROMOTED_ORIGINAL_REFERENCE,  # == 0.5 (nominal weight of Translation in orig_locale after promoted)
+          def_increment: -(base_weight * DEF_WEIGHT_FACTOR_PROMOTED_ORIGINAL_POSITIVE_INCREMENT),
+          lower_threshold: 0,
+          upper_threshold: base_weight,
+          try_reference: true
+        )
+      else
+        @translation.def_weight(current_user)
+      end
+
 
     opts = {}
     if @translation.weight && new_weight >= @translation.weight

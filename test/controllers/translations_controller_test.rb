@@ -151,52 +151,52 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     @trans_moderator = users(:user_moderator_translation)
     sign_in @trans_moderator
     assert_difference('Translation.count', 1) do
-      post translations_url, params: { translation: { kind: "alt", title: 'abcd2', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
+      post translations_url, params: { translation: { kind: "alt", is_literal: true, title: 'abcd2', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
     end
     tra2 = Translation.order(:created_at).last
     assert_redirected_to Rails.application.routes.url_helpers.polymorphic_path(tra2.translatable, locale: :en)
     w_moderator = @trans_moderator.roles.first.weight
-    assert_equal w_moderator, tra2.weight*2  # according to Translation#def_weight
+    # assert_equal w_moderator, tra2.weight*2  # according to Translation#def_weight
+    assert_equal tra.weight*1.5, tra2.weight  # Translation#def_weight  sets a weight; in this case, larger than "tra" (weight=500 according to @translator's role's weight); specifically, (500+1000)/2==750
 
     assert_equal @trans_moderator, tra2.create_user
     assert_equal @trans_moderator, tra2.update_user
-    assert_equal @trans_moderator.roles.first.weight/2.0, tra2.weight, tra2.inspect + music.translations.pluck().inspect
 
     # 3nd creation by another Translator (Editor): auto-weight => 492-500-8 (Existing(en): [500]; & ja-3000000)
     sign_out @trans_moderator
     @translator2 = users(:user_translator2)
     sign_in @translator2
     assert_difference('Translation.count', 1) do
-      post translations_url, params: { translation: { kind: "alt", title: 'abcd3', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
+      post translations_url, params: { translation: { kind: "alt", is_literal: true, title: 'abcd3', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
     end
     tra3 = Translation.order(:created_at).last
     assert_redirected_to Rails.application.routes.url_helpers.polymorphic_path(tra3.translatable, locale: :en)
 
     assert_equal @translator2, tra3.create_user
     assert_equal @translator2, tra3.update_user
-    assert_operator tra3.weight, '<', tra.weight
-    assert_operator tra2.weight, '<', tra3.weight, 'weight should be larger than that by a moderator, but?'
+    assert_operator tra3.weight, :>, tra.weight
+    assert_operator tra2.weight, :>, tra3.weight, "Since the tra2.weight is larger than 100 and tra2.is_literal==true && tra3.is_literal==true, update by @translator still gives a lower weight to tra3 than tra2 after v.2.14.2" # 'weight should be larger than that by a moderator, but?'
 
     # 4th creation by the original Translator: auto-weight => 100.5=(100+101)/2.0 (Existing(en): [101, 500]; & ja-3000000)
     sign_out @translator2
     sign_in @translator
-    tra3.update!(weight: w_moderator + 1)
+    tra3.update!(weight: w_moderator + 1)  # => 101
     tra3.reload
 
     assert_difference('Translation.count', 1, 'failed: response='+@response.body) do
-      post translations_url, params: { translation: { kind: "alt", title: 'abcd4', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
+      post translations_url, params: { translation: { kind: "alt", is_literal: true, title: 'abcd4', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
     end
     tra4 = Translation.order(:created_at).last
     assert_redirected_to Rails.application.routes.url_helpers.polymorphic_path(tra4.translatable, locale: :en)
 
     assert_equal @translator, tra4.create_user
     assert_equal @translator, tra4.update_user
-    assert_operator tra4.weight, '<', tra3.weight
-    assert_operator tra2.weight, '<', tra4.weight, 'weight should be larger than that by Translaiton by a moderator, but...'
+    assert_operator tra4.weight, '>', tra3.weight
+    assert_operator tra2.weight, '>', tra4.weight, 'weight should be larger than that by Translaiton by a moderator, but...'
     assert_operator w_moderator, '<', tra4.weight, 'weight should be larger than that by a moderator weight, but...'
-    assert_operator w_moderator+1, '>', tra4.weight, 'weight should be the half value between the two thresholds, but...'
+    assert_operator w_moderator+1, '<', tra4.weight, 'weight should be the half value between the two thresholds, but...'
 
-    # 5th creation attempt with an identical translation should fail.
+    # 5th creation attempt with an identical translation should fail.  (regardless of is_literal)
     assert_difference('Translation.count', 0, 'failed: response='+@response.body) do
       post translations_url, params: { translation: { kind: "alt", title: 'abcd4', is_orig: false, langcode: 'en', translatable_type: music.class.name, translatable_id: music.id, } }
     end

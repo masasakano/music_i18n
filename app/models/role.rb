@@ -63,8 +63,9 @@ class Role < ApplicationRecord
   ### Class methods ###
 
   # @return [Role] Superuser (the most privileged user)
-  def self.superuser
-    RoleCategory.root_category.roles.sort[0]
+  def self.superuser(reload: Rails.env.test?)
+    return @superuser if @superuser && !reload
+    @superuser = RoleCategory.root_category.roles.sort[0]
   end
 
 

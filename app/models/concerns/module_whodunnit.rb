@@ -37,7 +37,7 @@ module ModuleWhodunnit
 
     if self.respond_to?(:weight) && self.respond_to?(:def_weight)
       # Translation
-      self.weight ||= def_weight  # nil-weight -> Float::INFINITY if !Translation.whodunnit (i.e., current_user.nil?)
+      self.weight ||= def_weight  # NOTE: if !Translation.whodunnit (i.e., current_user.nil?), nil-weight -> a large weight, typically (Translation::MAX_WEIGHT_LOWEST_ROLE + Translation::MAX_WEIGHT_NO_ROLE)/2 (=15000), which used to be (up to v.2.14.2) Float::INFINITY
     end
   end
 
