@@ -1576,37 +1576,37 @@ class TranslationTest < ActiveSupport::TestCase
     end
 
     etra = trass[:ja_1]
-    assert_equal 400, etra.next_unique_weight(400, def_offset: 100, upper_threshold: 10000, try_reference: true)
-    assert_equal 450, etra.next_unique_weight(400, def_offset: 100, upper_threshold: 10000, try_reference: false) # b/c weight=500 is attempted, which exists
-    assert_equal 500, etra.next_unique_weight(400, def_offset: 100, upper_threshold: 10000, try_reference: false, exclude_self: true)
-    assert_equal 410, etra.next_unique_weight(400, def_offset: 100, upper_threshold:   420, try_reference: false)
-    assert_equal 900, etra.next_unique_weight(800, def_offset: 100, upper_threshold: Float::INFINITY, try_reference: true) # only 1st try fails.
-    assert_equal 850, etra.next_unique_weight(800, def_offset: 100, upper_threshold:   900, try_reference: false)
-    assert_equal 850, etra.next_unique_weight(800, def_offset: 100, upper_threshold:   900, try_reference: true) # 2nd try reaches the upper-threshold
-    assert_equal 650, etra.next_unique_weight(500, def_offset: 300, upper_threshold: 10000, try_reference: true) # both 500 and 800 unfit
-    assert_equal 650, etra.next_unique_weight(500, def_offset: 300, lower_threshold: 500, upper_threshold: 10000, try_reference: true) # an edge case! both 500 and 800 unfit AND lower_threshold agrees with 500
-    assert_equal 1100,etra.next_unique_weight(500, def_offset: 300, lower_threshold: 800, upper_threshold: 10000, try_reference: true) # an edge case! both 500 and 800 unfit AND lower_threshold agrees with 800
-    assert_equal Translation::MAX_WEIGHT_VISIBLE+300, etra.next_unique_weight(500, def_offset: 300, lower_threshold: Translation::MAX_WEIGHT_VISIBLE, upper_threshold: Float::INFINITY, try_reference: false)  # initial trial value is lower than lower_threshold.
-    assert_equal Float::INFINITY, etra.next_unique_weight(Float::INFINITY, def_offset: 300, upper_threshold: 1000, try_reference: true)
+    assert_equal 400, etra.next_unique_weight(400, def_increment: 100, upper_threshold: 10000, try_reference: true)
+    assert_equal 450, etra.next_unique_weight(400, def_increment: 100, upper_threshold: 10000, try_reference: false) # b/c weight=500 is attempted, which exists
+    assert_equal 500, etra.next_unique_weight(400, def_increment: 100, upper_threshold: 10000, try_reference: false, exclude_self: true)
+    assert_equal 410, etra.next_unique_weight(400, def_increment: 100, upper_threshold:   420, try_reference: false)
+    assert_equal 900, etra.next_unique_weight(800, def_increment: 100, upper_threshold: Float::INFINITY, try_reference: true) # only 1st try fails.
+    assert_equal 850, etra.next_unique_weight(800, def_increment: 100, upper_threshold:   900, try_reference: false)
+    assert_equal 850, etra.next_unique_weight(800, def_increment: 100, upper_threshold:   900, try_reference: true) # 2nd try reaches the upper-threshold
+    assert_equal 650, etra.next_unique_weight(500, def_increment: 300, upper_threshold: 10000, try_reference: true) # both 500 and 800 unfit
+    assert_equal 650, etra.next_unique_weight(500, def_increment: 300, lower_threshold: 500, upper_threshold: 10000, try_reference: true) # an edge case! both 500 and 800 unfit AND lower_threshold agrees with 500
+    assert_equal 1100,etra.next_unique_weight(500, def_increment: 300, lower_threshold: 800, upper_threshold: 10000, try_reference: true) # an edge case! both 500 and 800 unfit AND lower_threshold agrees with 800
+    assert_equal Translation::MAX_WEIGHT_VISIBLE+300, etra.next_unique_weight(500, def_increment: 300, lower_threshold: Translation::MAX_WEIGHT_VISIBLE, upper_threshold: Float::INFINITY, try_reference: false)  # initial trial value is lower than lower_threshold.
+    assert_equal Float::INFINITY, etra.next_unique_weight(Float::INFINITY, def_increment: 300, upper_threshold: 1000, try_reference: true)
 
-    assert_equal 390, etra.next_unique_weight(400, def_offset: -100, lower_threshold: 380,   try_reference: false)
-    assert_equal   5, etra.next_unique_weight(  0, def_offset:  -5, lower_threshold: 0, upper_threshold: Float::INFINITY, try_reference: true)
-    assert_equal 250, etra.next_unique_weight(  0, def_offset: -500,lower_threshold: 0, upper_threshold: Float::INFINITY, try_reference: true)
-    assert_equal 250, etra.next_unique_weight(  0, def_offset: -900,lower_threshold: 0, upper_threshold: Float::INFINITY, try_reference: true)
-    assert_equal 950, etra.next_unique_weight(Float::INFINITY, def_offset:  -50, lower_threshold: 0, upper_threshold: 1000, try_reference: true)
-    assert_equal 900, etra.next_unique_weight(Float::INFINITY, def_offset: -500, lower_threshold: 0, upper_threshold: 1000, try_reference: true)
+    assert_equal 390, etra.next_unique_weight(400, def_increment: -100, lower_threshold: 380,   try_reference: false)
+    assert_equal   5, etra.next_unique_weight(  0, def_increment:  -5, lower_threshold: 0, upper_threshold: Float::INFINITY, try_reference: true)
+    assert_equal 250, etra.next_unique_weight(  0, def_increment: -500,lower_threshold: 0, upper_threshold: Float::INFINITY, try_reference: true)
+    assert_equal 250, etra.next_unique_weight(  0, def_increment: -900,lower_threshold: 0, upper_threshold: Float::INFINITY, try_reference: true)
+    assert_equal 950, etra.next_unique_weight(Float::INFINITY, def_increment:  -50, lower_threshold: 0, upper_threshold: 1000, try_reference: true)
+    assert_equal 900, etra.next_unique_weight(Float::INFINITY, def_increment: -500, lower_threshold: 0, upper_threshold: 1000, try_reference: true)
 
     etra = trass[:en_1]
-    assert_equal 400, etra.next_unique_weight(400, def_offset: 100, upper_threshold: 10000, try_reference: true)
-    assert_equal 500, etra.next_unique_weight(400, def_offset: 100, upper_threshold: 10000, try_reference: false) # b/c langcode differs
-    assert_equal  40, etra.next_unique_weight( 50, def_offset: -10, lower_threshold:     1, try_reference: true)
-    assert_equal   5, etra.next_unique_weight( 10, def_offset: -90, lower_threshold:     0, try_reference: false) # Unreasonable def_offset is allowed because lower_threshold anyway gives a hard lower limit.
-    assert_equal   0, etra.next_unique_weight(  0, def_offset: -90, lower_threshold:     0, try_reference: true)  # an edge case
-    assert_equal  25, etra.next_unique_weight(  0, def_offset: -90, lower_threshold:     0, try_reference: false) # Unreasonable def_offset is allowed because lower_threshold anyway gives a hard lower limit.
+    assert_equal 400, etra.next_unique_weight(400, def_increment: 100, upper_threshold: 10000, try_reference: true)
+    assert_equal 500, etra.next_unique_weight(400, def_increment: 100, upper_threshold: 10000, try_reference: false) # b/c langcode differs
+    assert_equal  40, etra.next_unique_weight( 50, def_increment: -10, lower_threshold:     1, try_reference: true)
+    assert_equal   5, etra.next_unique_weight( 10, def_increment: -90, lower_threshold:     0, try_reference: false) # Unreasonable def_increment is allowed because lower_threshold anyway gives a hard lower limit.
+    assert_equal   0, etra.next_unique_weight(  0, def_increment: -90, lower_threshold:     0, try_reference: true)  # an edge case
+    assert_equal  25, etra.next_unique_weight(  0, def_increment: -90, lower_threshold:     0, try_reference: false) # Unreasonable def_increment is allowed because lower_threshold anyway gives a hard lower limit.
 
     tra_it1 = artist.translations.build(title: "naiyo", langcode: "it", kind: Translation::KIND_ALT,
                                         weight: nil, is_internal: true, is_orig: false)
-    act = tra_it1.next_unique_weight(0, def_offset: Translation::MAX_WEIGHT_VISIBLE/10.0,
+    act = tra_it1.next_unique_weight(0, def_increment: Translation::MAX_WEIGHT_VISIBLE/10.0,
                                      lower_threshold: Translation::MAX_WEIGHT_VISIBLE,
                                      upper_threshold: Float::INFINITY, try_reference: false)
     assert_in_epsilon Translation::MAX_WEIGHT_VISIBLE*1.1, act, 0.000001
@@ -1614,14 +1614,14 @@ class TranslationTest < ActiveSupport::TestCase
 
     tra_it2 = artist.translations.build(title: "naiyo", langcode: "it", kind: Translation::KIND_ALT,
                                         weight: nil, is_internal: true, is_orig: false)
-    act = tra_it1.next_unique_weight(0, def_offset: Translation::MAX_WEIGHT_VISIBLE/10.0,
+    act = tra_it1.next_unique_weight(0, def_increment: Translation::MAX_WEIGHT_VISIBLE/10.0,
                                      lower_threshold: Translation::MAX_WEIGHT_VISIBLE,
                                      upper_threshold: Float::INFINITY, try_reference: true)  # try_reference is irrelevant.
     assert_in_epsilon Translation::MAX_WEIGHT_VISIBLE*1.05, act, 0.000001
     tra_it2.weight = act
 
     existing_max = tra_it1.translatable.translations.select{_1.langcode == tra_it1.langcode}.map(&:weight).compact.reject{_1 == Float::INFINITY}.max
-    act = tra_it1.next_unique_weight(existing_max, def_offset: Translation::MAX_WEIGHT_VISIBLE/10.0,
+    act = tra_it1.next_unique_weight(existing_max, def_increment: Translation::MAX_WEIGHT_VISIBLE/10.0,
                                      lower_threshold: Translation::MAX_WEIGHT_VISIBLE,
                                      upper_threshold: Float::INFINITY, try_reference: false)
     assert_in_epsilon Translation::MAX_WEIGHT_VISIBLE*1.2, act, 0.000001

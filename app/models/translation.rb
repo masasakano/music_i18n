@@ -2691,7 +2691,7 @@ class Translation < ApplicationRecord
   #    whereas +upper_threshold+ is Infinity.
   #    If there is no existing Translation in this category (i.e., weight higher than
   #    {Translation::MAX_WEIGHT_VISIBLE} for the {#translatable} and {#langcode}),
-  #    the default increment (or called offset) ({Translation::MAX_WEIGHT_VISIBLE}/10)
+  #    the default increment (or maybe called offset) ({Translation::MAX_WEIGHT_VISIBLE}/10)
   #    is added to the threshold for the weight.
   #    Any subsequent ones in this category will have a higher weight by the increment/offset than the current highest weight.
   #    Note that the inclusive-exclusive relation loosely follows the fact that
@@ -2700,15 +2700,15 @@ class Translation < ApplicationRecord
   #    the absolute +lower_threshold+={Translation::MAX_WEIGHT_USED} (inclusive) and
   #    the absolute +upper_threshold+={Translation::MAX_WEIGHT_VISIBLE} (exclusive).
   #    A newly added weight should be higher than the maximum weight in this category (or
-  #    the above-mentioned lower threshold) by the default increment/offset of
+  #    the above-mentioned lower threshold) by the default increment of
   #      (MAX_WEIGHT_VISIBLE - MAX_WEIGHT_USED)/10.0
-  #    unless adding the default increment/offset would result in a weight falling beyond
-  #    the above-mentioned range, in which case the increment/offset is a half of the difference
+  #    unless adding the default increment would result in a weight falling beyond
+  #    the above-mentioned range, in which case the increment is a half of the difference
   #    between the maximum weight in this category and the upper threshold.
   # 3. If {#kind}=="nickname", the weight should fall between
   #    the absolute +lower_threshold+={MAX_WEIGHT_NO_ROLE} (inclusive) and
   #    the absolute +upper_threshold+={Translation::MAX_WEIGHT_USED} (exclusive).  The concrete value is calculated
-  #    in the same way as (2), replacing the range and default increment/offset according to
+  #    in the same way as (2), replacing the range and default increment according to
   #    the lower and upper thresholds.
   # 4. Any other's weight should fall between
   #    the absolute +lower_threshold+=0 (inclusive though exceptional) and 
@@ -2720,7 +2720,7 @@ class Translation < ApplicationRecord
   #    The first default weight of this type (i.e., all but (1)(2)(4)) is
   #      Role's_weight/2 (if it is larger than Immediate-superior's-weight), else
   #      Average between (Immediate-superior's-weight || 0) and Role's weight
-  #    The default increment/offset for subsequent weights is
+  #    The default increment for subsequent weights is
   #      (Role's_weight - FirstDefWeight)/5.0
   #    The lower_threshold is Immediate-superior's-role's weight, or if that does not work,
   #    further superior's weight.
@@ -2792,7 +2792,7 @@ class Translation < ApplicationRecord
     ## 1. Internal use
     if is_internal
       existing_max = _existing_translatable_weights(exclude: exclude_self).reject{_1 == Float::INFINITY}.max
-      return next_unique_weight((existing_max || 0), def_offset: MAX_WEIGHT_VISIBLE/10.0,
+      return next_unique_weight((existing_max || 0), def_increment: MAX_WEIGHT_VISIBLE/10.0,
                                 lower_threshold: MAX_WEIGHT_VISIBLE,
                                 upper_threshold: Float::INFINITY, try_reference: false, exclude_self: exclude_self)
     end
@@ -2800,8 +2800,8 @@ class Translation < ApplicationRecord
     ## 2. For record only
     if is_for_record
       existing_max = _existing_translatable_weights(exclude: exclude_self).select{(MAX_WEIGHT_USED...MAX_WEIGHT_VISIBLE).cover? _1}.max
-      def_offset = (MAX_WEIGHT_VISIBLE - MAX_WEIGHT_USED).abs/10.0
-      return next_unique_weight((existing_max || 0), def_offset: def_offset,
+      def_increment = (MAX_WEIGHT_VISIBLE - MAX_WEIGHT_USED).abs/10.0
+      return next_unique_weight((existing_max || 0), def_increment: def_increment,
                                 lower_threshold: MAX_WEIGHT_USED,
                                 upper_threshold: MAX_WEIGHT_VISIBLE, try_reference: false, exclude_self: exclude_self)
     end
@@ -2809,13 +2809,13 @@ class Translation < ApplicationRecord
     ## 3. (kind == KIND_NICKNAME)
     if ![KIND_FULL, KIND_ALT].include?(kind)
       existing_max = _existing_translatable_weights(exclude: exclude_self).select{(MAX_WEIGHT_NO_ROLE...MAX_WEIGHT_USED).cover? _1}.max
-      def_offset = (MAX_WEIGHT_USED - MAX_WEIGHT_NO_ROLE).abs/10.0
-      return next_unique_weight((existing_max || 0), def_offset: def_offset,
+      def_increment = (MAX_WEIGHT_USED - MAX_WEIGHT_NO_ROLE).abs/10.0
+      return next_unique_weight((existing_max || 0), def_increment: def_increment,
                                 lower_threshold: MAX_WEIGHT_NO_ROLE,
                                 upper_threshold: MAX_WEIGHT_USED, try_reference: false, exclude_self: exclude_self)
     end
 
-    ## 4. Default reference-weight and def_offset
+    ## 4. Default reference-weight and def_increment
     if user && (role = user.highest_role_in(RoleCategory[RoleCategory::MNAME_TRANSLATION]))  # see also Translation.def_init_weight
       immediate_superior = role.superiors[-1]  # If current_user is sysadmin, it is nil
 
@@ -2830,7 +2830,7 @@ class Translation < ApplicationRecord
       ## return Float::INFINITY if !user  # NOTE: This used to be the case
     end
 
-    def_reference, def_positive_offset = _get_reference_offset(def_lower_threshold...def_upper_threshold)
+    def_reference, def_positive_increment = _get_reference_increment(def_lower_threshold...def_upper_threshold)
 
     ## 5. if (langcode == translatable.orig_locale)
 
@@ -2838,10 +2838,10 @@ class Translation < ApplicationRecord
       case kind
       when KIND_FULL  ## Case 5.1
         existing_min = _existing_translatable_weights(exclude: exclude_self).min
-        return _get_smaller_or_equal_weight(def_reference, def_positive_offset, def_lower_threshold, def_upper_threshold, exclude_self, existing_min: existing_min, with_fallback: true)
+        return _get_smaller_or_equal_weight(def_reference, def_positive_increment, def_lower_threshold, def_upper_threshold, exclude_self, existing_min: existing_min, with_fallback: true)
       when KIND_ALT  ## Case 5.1
         existing_max = _existing_translatable_weights(exclude: exclude_self).select{ _1 < MAX_WEIGHT_NO_ROLE }.max
-        return _get_larger_or_equal_weight(def_reference, def_positive_offset, def_lower_threshold, def_upper_threshold, exclude_self, existing_max: existing_max, with_fallback: true)
+        return _get_larger_or_equal_weight(def_reference, def_positive_increment, def_lower_threshold, def_upper_threshold, exclude_self, existing_max: existing_max, with_fallback: true)
       else
         raise  # should never happen
       end
@@ -2878,7 +2878,7 @@ class Translation < ApplicationRecord
         ### => slightly higher (1) if there is any (1):
         existing_max = _existing_translatable_weights(exclude: exclude_self, is_literal: false, is_official: true, **conds).select{ _1 < MAX_WEIGHT_NO_ROLE }.max  # for "full" (if kind=="alt") or "alt" (else)
         if existing_max  # NOTE: This 3 lines are equivalent to:  (ret=_get_larger_or_equal_weight;  return(ret) if ret)
-          return _get_larger_or_equal_weight(def_reference, def_positive_offset, def_lower_threshold, def_upper_threshold, exclude_self, existing_max: existing_max, with_fallback: false)
+          return _get_larger_or_equal_weight(def_reference, def_positive_increment, def_lower_threshold, def_upper_threshold, exclude_self, existing_max: existing_max, with_fallback: false)
         end
 
         ## If there are no Translation with is_official=true for up to self.kind,
@@ -2886,7 +2886,7 @@ class Translation < ApplicationRecord
         existing_max = _existing_translatable_weights(exclude: exclude_self, is_literal: false, is_official: true).select{ _1 < MAX_WEIGHT_NO_ROLE }.max  # existing max weight of is_official=true regardless of kind (though kind="nickname" is filtered out due to MAX_WEIGHT_NO_ROLE) # This condition matters only if self.kind=="full" and if there are Translations with kind=="alt" and is_official==true
         existing_min = _existing_translatable_weights(exclude: exclude_self, **conds).select{ _1 < MAX_WEIGHT_NO_ROLE }.min
         existing_min = [existing_min, existing_max].compact.max
-        return _get_smaller_or_equal_weight(def_reference, def_positive_offset, def_lower_threshold, def_upper_threshold, exclude_self, existing_min: existing_min, with_fallback: true)
+        return _get_smaller_or_equal_weight(def_reference, def_positive_increment, def_lower_threshold, def_upper_threshold, exclude_self, existing_min: existing_min, with_fallback: true)
 
       else  # (i.e., if !is_official)
         # 6. else (i.e., if {#langcode}!=+translatable.orig_locale+), where always lower than (1)(2)(3),
@@ -2918,7 +2918,7 @@ class Translation < ApplicationRecord
         }.select{ _1 < MAX_WEIGHT_NO_ROLE }.max  # for "full" (if kind=="alt") or "alt" (else)
 
         if existing_max  # NOTE: This 3 lines are equivalent to:  (ret=_get_larger_or_equal_weight;  return(ret) if ret)
-          return _get_larger_or_equal_weight(def_reference, def_positive_offset, def_lower_threshold, def_upper_threshold, exclude_self, existing_max: existing_max, with_fallback: false)
+          return _get_larger_or_equal_weight(def_reference, def_positive_increment, def_lower_threshold, def_upper_threshold, exclude_self, existing_max: existing_max, with_fallback: false)
         end
 
         ## If there are no Translation with is_official=true (etc), maybe kind="full" (if self.kind=="full")
@@ -2933,7 +2933,7 @@ class Translation < ApplicationRecord
 
         existing_min = _existing_translatable_weights(exclude: exclude_self).select{ _1 < MAX_WEIGHT_NO_ROLE }.min
         existing_min = [existing_min, existing_max].compact.max
-        return _get_smaller_or_equal_weight(def_reference, def_positive_offset, def_lower_threshold, def_upper_threshold, exclude_self, existing_min: existing_min, with_fallback: true)
+        return _get_smaller_or_equal_weight(def_reference, def_positive_increment, def_lower_threshold, def_upper_threshold, exclude_self, existing_min: existing_min, with_fallback: true)
       end # if is_official
     end  # if !is_literal
 
@@ -2965,14 +2965,14 @@ class Translation < ApplicationRecord
       [larger_than, lower_threshold].compact.max < _1 && _1 < upper_threshold
     }.min
 
-    range ||=  # defines a range if not yet.  This is used to derive the default "reference" and "offset" (increment)
+    range ||=  # defines a range if not yet.  This is used to derive the default "reference" and "increment" (offset)
       if smaller_than_for_role
         self.class.low_high_role_weight_thresholds(smaller_than_for_role)
       else
         (lower_threshold...upper_threshold)  # "lower_than" here is preferably a nice round number than the derived "larger_than"
       end
 
-    reference, positive_offset = _get_reference_offset(range)
+    reference, positive_increment = _get_reference_increment(range)
     lower_threshold = [larger_than, lower_threshold].compact.max  # Now, "lower_than" becomes more strict and is less likely to be a nice round number
 
     if smaller_than_for_role
@@ -2985,7 +2985,7 @@ class Translation < ApplicationRecord
       try_reference = true
     end
 
-    return next_unique_weight(reference, def_offset: -positive_offset,
+    return next_unique_weight(reference, def_increment: -positive_increment,
                        lower_threshold: lower_threshold,
                        upper_threshold: upper_threshold,
                        try_reference: try_reference,
@@ -3029,26 +3029,26 @@ end
   end
 
     # @param range [Range] lower and upper thresholds weight for the Role; e.g., [100...1000]
-    # @return [Array<Float, Float>] 2-element Array of default trial weight value and default positive offset
-    def _get_reference_offset(range)
+    # @return [Array<Float, Float>] 2-element Array of default trial weight value and default positive increment
+    def _get_reference_increment(range)
       lower, upper = range.begin, range.end
       reference = upper/2.0
       reference = (upper+lower).abs/2.0 if reference <= lower  # "=" is important (b/c MAX_WEIGHT_NO_ROLE/2 == MAX_WEIGHT_LOWEST_ROLE); "abs" is redundant but playing safe
-      positive_offset = (upper - reference).abs/5.0  # i.e., likely 10% of Role's Weight
-      [reference, positive_offset]
+      positive_increment = (upper - reference).abs/5.0  # i.e., likely 10% of Role's Weight
+      [reference, positive_increment]
     end
-    private :_get_reference_offset
+    private :_get_reference_increment
 
     # Utitily function
     # @return [Float, NilClass] weight. Or nil, if !with_fallback and existing_min does not satisfy the easiest condition, in which case the caller is expected to continue processing.
-    def _get_smaller_or_equal_weight(def_reference, def_positive_offset, def_lower_threshold, def_upper_threshold, exclude_self, existing_min: , with_fallback: true)
+    def _get_smaller_or_equal_weight(def_reference, def_positive_increment, def_lower_threshold, def_upper_threshold, exclude_self, existing_min: , with_fallback: true)
       if (with_fallback && !existing_min) || def_lower_threshold < existing_min
-        next_unique_weight(def_reference, def_offset: -def_positive_offset,
+        next_unique_weight(def_reference, def_increment: -def_positive_increment,
                         lower_threshold: def_lower_threshold,
                         upper_threshold: (existing_min || def_upper_threshold),  # maybe: (existing_min < def_reference)
                         try_reference: (existing_min != def_reference), exclude_self: exclude_self)
       else
-        _get_next_unique_weight_out_of_range(def_reference, def_positive_offset, def_lower_threshold, def_upper_threshold, exclude_self, existing_min, with_fallback,
+        _get_next_unique_weight_out_of_range(def_reference, def_positive_increment, def_lower_threshold, def_upper_threshold, exclude_self, existing_min, with_fallback,
                                              is_positive: false)  # this may return nil
       end
     end
@@ -3056,28 +3056,28 @@ end
 
     # Utitily function
     # @return [Float, NilClass] weight. Or nil, if !with_fallback and existing_max does not satisfy the easiest condition, in which case the caller is expected to continue processing.
-    def _get_larger_or_equal_weight(def_reference, def_positive_offset, def_lower_threshold, def_upper_threshold, exclude_self, existing_max: , with_fallback: true)
+    def _get_larger_or_equal_weight(def_reference, def_positive_increment, def_lower_threshold, def_upper_threshold, exclude_self, existing_max: , with_fallback: true)
       if (with_fallback && !existing_max) || (def_lower_threshold...def_upper_threshold).cover?(existing_max)
-        next_unique_weight(def_reference, def_offset: def_positive_offset,
+        next_unique_weight(def_reference, def_increment: def_positive_increment,
                         lower_threshold: (existing_max || def_lower_threshold),  # maybe: (def_reference < existing_max)
                         upper_threshold: def_upper_threshold,
                         try_reference: (existing_max != def_reference), exclude_self: exclude_self)
       else
-        _get_next_unique_weight_out_of_range(def_reference, def_positive_offset, def_lower_threshold, def_upper_threshold, exclude_self, existing_max, with_fallback,
+        _get_next_unique_weight_out_of_range(def_reference, def_positive_increment, def_lower_threshold, def_upper_threshold, exclude_self, existing_max, with_fallback,
                                              is_positive: true)  # this may return nil
       end
     end
     private :_get_larger_or_equal_weight
 
     # @return [Float, NilClass] weight when the reference value falls out of the range
-    def _get_next_unique_weight_out_of_range(def_reference, def_positive_offset, def_lower_threshold, def_upper_threshold, exclude_self, existing_minmax, with_fallback, is_positive: )
+    def _get_next_unique_weight_out_of_range(def_reference, def_positive_increment, def_lower_threshold, def_upper_threshold, exclude_self, existing_minmax, with_fallback, is_positive: )
       if !with_fallback && !existing_minmax
         nil
       else
         range = self.class.low_high_role_weight_thresholds(existing_minmax)
-        _, positive_offset = _get_reference_offset(range)
+        _, positive_increment = _get_reference_increment(range)
         next_unique_weight(existing_minmax,
-                           def_offset: (is_positive ? 1 : -1)*positive_offset,  # existing_min or existing_max may be 0
+                           def_increment: (is_positive ? 1 : -1)*positive_increment,  # existing_min or existing_max may be 0
                            lower_threshold: range.begin,
                            upper_threshold: range.end,
                            try_reference: false,
@@ -3180,7 +3180,7 @@ end
   #    new_tra = artist.translations.build(title: "some", langcode: "en", kind: Translation::KIND_FULL,
   #                                        weight: nil, is_formal: true, is_official: true, is_orig: true)
   #    existing_min = new_tra.translatable.translations.select{_1.langcode == new_tra.langcode}.map(&:weight).compact.min || 50
-  #    new_tra.next_unique_weight(existing_min, def_offset: -10, lower_threshold: 0, upper_threshold: 50, try_reference: true)
+  #    new_tra.next_unique_weight(existing_min, def_increment: -10, lower_threshold: 0, upper_threshold: 50, try_reference: true)
   #      # => a unique weight slightly *lower* than +[existing_minimum, 50].min+, excluding weight=0, or possibly equal to 50 if unique.
   #      #    If there is weight=0, the returned weight will be +[existing_minimum_except_0, 50].min/2.0+
   #
@@ -3188,41 +3188,41 @@ end
   #    new_tra = artist.translations.build(title: "some", langcode: "en", kind: Translation::KIND_ALT,
   #                                        weight: nil, is_literal: false, is_orig: true)
   #    existing_max = new_tra.translatable.translations.select{...}.map(&:weight).compact.max || 50  # excluding is_internal etc
-  #    new_tra.next_unique_weight(existing_max, def_offset: 10, lower_threshold: 0, upper_threshold: MAX_WEIGHT_NO_ROLE, try_reference: true)
+  #    new_tra.next_unique_weight(existing_max, def_increment: 10, lower_threshold: 0, upper_threshold: MAX_WEIGHT_NO_ROLE, try_reference: true)
   #      # => a unique weight slightly *higher* than +[existing_max, 50].max+, or possibly equal to 50 if unique.
   #
   # @param example new weight for {#is_internal}
   #    new_tra = artist.translations.build(title: "some", langcode: "en", kind: Translation::KIND_ALT,
   #                                        weight: nil, is_internal: true, is_orig: false)
   #    existing_max = new_tra.translatable.translations.select{_1.langcode == new_tra.langcode}.map(&:weight).compact.reject{_1 == Float::INFINITY}.max
-  #    new_tra.next_unique_weight((existing_max || 0), def_offset: Translation::MAX_WEIGHT_VISIBLE/10.0,
+  #    new_tra.next_unique_weight((existing_max || 0), def_increment: Translation::MAX_WEIGHT_VISIBLE/10.0,
   #                                  lower_threshold: Translation::MAX_WEIGHT_VISIBLE,
   #                                  upper_threshold: Float::INFINITY)
   #      # => a unique and highest (except for Infinity) weight, guranteed to be higher than MAX_WEIGHT_VISIBLE
   #      # NOTE: 
   #
-  #    new_tra.next_unique_weight(0, def_offset: Translation::MAX_WEIGHT_VISIBLE/10.0,
+  #    new_tra.next_unique_weight(0, def_increment: Translation::MAX_WEIGHT_VISIBLE/10.0,
   #                                  lower_threshold: Translation::MAX_WEIGHT_VISIBLE,
   #                                  upper_threshold: Float::INFINITY, try_reference: false)
   #      # => a unique weight larger than Translation::MAX_WEIGHT_VISIBLE but smallest among them.
   #      # NOTE: {try_reference: false} is not required, but may help reduce DB accesses
   #
   # @param reference [Numeric]
-  # @param def_offset: [Numeric] positive or negative
+  # @param def_increment: [Numeric] positive or negative
   # @param lower_threshold: [Numeric] hard limit like 0.
   # @param upper_threshold: [Numeric] hard limit like Float::INFINITY or {MAX_WEIGHT_VISIBLE}
   # @param exclude_self: [Boolean] if true, self.{#weight} is excluded - used only when self.{#weight} will be modified.
   # @param try_reference: [Boolean] The given +reference+ is the first candidate weight.  If it is unique,
   #     and if it does not contradict +lower_threshold+ and +upper_threshold+, the value is returned.
   # @return [Numeric] Usually Float but can be Integer
-  def next_unique_weight(reference=weight, def_offset: , lower_threshold: nil, upper_threshold: nil, exclude_self: false, try_reference: true)
+  def next_unique_weight(reference=weight, def_increment: , lower_threshold: nil, upper_threshold: nil, exclude_self: false, try_reference: true)
     raise ArgumentError "At least either of thresholds must be specified" if !lower_threshold && !upper_threshold
-    raise ArgumentError if 0 == def_offset
+    raise ArgumentError if 0 == def_increment
     lower_threshold ||= 0
     upper_threshold ||= Float::INFINITY
-    def_offset = def_offset.abs if 0 == reference  # b/c a negative weight is forbidden.
+    def_increment = def_increment.abs if 0 == reference  # b/c a negative weight is forbidden.
 
-    cand_weight = reference + (try_reference ? 0 : def_offset)
+    cand_weight = reference + (try_reference ? 0 : def_increment)
     return cand_weight if translatable.blank?
 
     other_transs = translatable.translations
@@ -3233,22 +3233,22 @@ end
     # If try_reference: if there is no weight collision, return the value, or else call this method recursively with (try_reference: false)
     if try_reference
       if existing_weights.include?(reference)
-        return send(__method__, reference, def_offset: def_offset, lower_threshold: lower_threshold, upper_threshold: upper_threshold, exclude_self: exclude_self, try_reference: false)
+        return send(__method__, reference, def_increment: def_increment, lower_threshold: lower_threshold, upper_threshold: upper_threshold, exclude_self: exclude_self, try_reference: false)
       end
     end
 
-    if def_offset > 0
+    if def_increment > 0
       if try_reference && (reference == 0 && lower_threshold == 0 || (lower_threshold...upper_threshold).cover?(reference))# edge cases
         return reference
       elsif cand_weight <= lower_threshold
-        return send(__method__, lower_threshold, def_offset: def_offset, lower_threshold: lower_threshold, upper_threshold: upper_threshold, exclude_self: exclude_self, try_reference: false)
+        return send(__method__, lower_threshold, def_increment: def_increment, lower_threshold: lower_threshold, upper_threshold: upper_threshold, exclude_self: exclude_self, try_reference: false)
       end
       next_existing = existing_weights.select{ _1 > reference }.min
       threshold = [next_existing, upper_threshold].compact.min || Float::INFINITY
       return cand_weight if cand_weight < threshold && !existing_weights.include?(cand_weight) && cand_weight != lower_threshold
     else
       if cand_weight > upper_threshold
-        return send(__method__, upper_threshold, def_offset: def_offset, lower_threshold: lower_threshold, upper_threshold: upper_threshold, exclude_self: exclude_self, try_reference: false)
+        return send(__method__, upper_threshold, def_increment: def_increment, lower_threshold: lower_threshold, upper_threshold: upper_threshold, exclude_self: exclude_self, try_reference: false)
       elsif try_reference && cand_weight != upper_threshold  # i.e., (reference != upper_threshold)
         return reference # i.e., if "reference" is examined, unique AND smaller than upper_threshold
       end
