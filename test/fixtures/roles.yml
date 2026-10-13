@@ -36,6 +36,7 @@ syshelper:
   role_category_id: 1
   weight: 2
   note: 
+# weight is deliberately 2 (not 10) to make it slightly arbitrary.  This Role is not created in seeding (at the time of writing).
 
 moderator:
   name: moderator
@@ -51,11 +52,11 @@ editor:
   weight: 1000
   note: 
 
-helper10000000:
+helper10100:
   name: $LABEL
   uname: harami_$LABEL
   role_category: rolecattwo
-  weight: 10000000
+  weight: 10100
   note: 
 
 helper:

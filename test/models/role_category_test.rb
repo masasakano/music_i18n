@@ -21,8 +21,8 @@ class RoleCategoryTest < ActiveSupport::TestCase
     assert_equal 'admin', RoleCategory.find(1).roles[0].name
     rc_harami = RoleCategory[:harami]
     r_last = rc_harami.roles.last
-    assert_equal 10000000,         r_last.weight # test of sorted
-    assert_equal 'helper10000000', r_last.name   # test of sorted
+    assert_equal 10100,         r_last.weight # test of sorted
+    assert_equal 'helper10100', r_last.name   # test of sorted
 
     # on_delete: cascade
     rol = Role[:moderator, :harami]

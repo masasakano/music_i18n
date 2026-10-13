@@ -1253,19 +1253,313 @@ class TranslationTest < ActiveSupport::TestCase
   end
 
   test "def_weight" do
+    trans_moderator = users(:user_moderator_translation)
+    trans_editor    = users(:user_translator)
+    user_syshelper  = users(:user_syshelper)
+
+    assert_operator Role.all.pluck(:weight).max,     :<, Translation::MAX_WEIGHT_NO_ROLE, "sanity-check of constants"
+    assert_operator Translation::MAX_WEIGHT_NO_ROLE, :<, Translation::MAX_WEIGHT_USED,    "sanity-check of constants"
+    assert_operator Translation::MAX_WEIGHT_USED,    :<, Translation::MAX_WEIGHT_VISIBLE, "sanity-check of constants"
+
     artist = Artist.new(sex: @sex, orig_locale: "ja")
 
+    weight_init = 50.0
     trass = {
-      ja_1: Translation.new(langcode: "ja", kind: Translation::KIND_FULL, is_orig: true, weight: 50.0, title: "title-ja_1")
+      ja_1:          Translation.new(langcode: "ja", kind: Translation::KIND_FULL, is_orig: true, weight: weight_init, title: "title-ja_1"),
+      ja_2:          Translation.new(langcode: "ja", kind: Translation::KIND_FULL, is_orig: false, weight: nil, title: "title-ja_2"),
+      ja_internal_1: Translation.new(langcode: "ja", kind: Translation::KIND_ALT, is_orig: false, title: "title-internal_1"),
+      ja_record_1:   Translation.new(langcode: "ja", kind: Translation::KIND_ALT, is_orig: false, title: "title-record_1"),
+      ja_nickname_1: Translation.new(langcode: "ja", kind: Translation::KIND_NICKNAME, is_orig: false, title: "title-nickname_1"),
+      ja_alt_1:      Translation.new(langcode: "ja", kind: Translation::KIND_ALT, is_orig: false, title: "title-alt_1"),
+      en_1:          Translation.new(langcode: "en", kind: Translation::KIND_FULL, is_orig: false, weight: nil, title: "title-en_1"),
+      en_2:          Translation.new(langcode: "en", kind: Translation::KIND_FULL, is_orig: false, weight: nil, title: "title-en_2"),
+      en_alt_1:      Translation.new(langcode: "en", kind: Translation::KIND_ALT,  is_orig: false, weight: nil, title: "title-en_alt_1"),
+      en_alt_2:      Translation.new(langcode: "en", kind: Translation::KIND_ALT,  is_orig: false, weight: nil, title: "title-en_alt_2"),
+      en_alt_3:      Translation.new(langcode: "en", kind: Translation::KIND_ALT,  is_orig: false, weight: nil, title: "title-en_alt_3"),
+      en_alt_4:      Translation.new(langcode: "en", kind: Translation::KIND_ALT,  is_orig: false, weight: nil, title: "title-en_alt_4"),
     }.with_indifferent_access
     trass.each_value do |etra|
       artist.translations << etra
     end
 
-    artist.save!
+    ## 1. If {#is_internal}=true
+    tra1 = trass[:ja_internal_1]
+    tra1.is_internal = true
+    assert_in_epsilon Translation::MAX_WEIGHT_VISIBLE*1.1, (w=tra1.def_weight(exclude_self: false)), 0.000001
+    tra1.weight = w
+    # weights(ja): [50(Full), 110000(:internal)]
 
-    #assert .....
-    #@trans_moderator = users(:user_moderator_translation)
+    ## 2. If {#is_for_record}=true
+    tra1 = trass[:ja_record_1]
+    tra1.is_internal = true
+    tra1.is_for_record = true
+#debugger
+    assert_in_epsilon Translation::MAX_WEIGHT_VISIBLE*1.2, tra1.def_weight(exclude_self: false), 0.000001
+    tra1.is_internal = false
+    assert_in_epsilon Translation::MAX_WEIGHT_USED/8*8.2, (w=tra1.def_weight(exclude_self: false)), 0.000001  # 80000+(20000*5-20000)/10
+    tra1.weight = w
+    # weights(ja): [50(Full), 82000(:record), 110000(:internal)]
+
+    ## 3. If {#kind}=="nickname"
+    tra1 = trass[:ja_nickname_1]
+    tra1.is_for_record = true
+    assert_in_epsilon Translation::MAX_WEIGHT_USED/8*8.4, tra1.def_weight(exclude_self: false), 0.000001
+    tra1.is_for_record = false
+    assert_in_epsilon Translation::MAX_WEIGHT_NO_ROLE/2*2.6, (w=tra1.def_weight(exclude_self: false)), 0.000001  # 20000+(20000*4-20000)/10
+    tra1.weight = w
+    # weights(ja): [50(ja_1=Full), 26000(ja_nickname_1), 82000(:record), 110000(:internal)]
+
+    ## 4. Any other's weight should fall between...
+    ## 5. if {#langcode}==+translatable.orig_locale+
+    ## 5.1. if {#kind}=="full",
+    tra1 = trass[:ja_2]
+    tra1.is_literal = true  # This should be ignored for original language.
+    assert_in_epsilon weight_init*0.8, (w40=tra1.def_weight(exclude_self: false)), 0.000001  # 50*0.8 = 50-100/10 (but 45 should be also fine...)  # regardless of User
+    tra1.weight = w40  # == 40
+    tra1.is_orig = true          # just to ensure the consistency among in-memory Translation
+    trass[:ja_2].is_orig = false # just to ensure the consistency among in-memory Translation
+    assert_in_epsilon weight_init*0.8, tra1.def_weight(exclude_self: true),  0.000001
+    assert_in_epsilon weight_init*0.6, tra1.def_weight(exclude_self: false), 0.000001
+    assert_equal 2, user_syshelper.highest_role_in(RoleCategory[RoleCategory::MNAME_TRANSLATION]).weight, "checking fixuture - for the superior's weight"
+    assert             (39..46).cover?(tra1.def_weight(trans_moderator, exclude_self: false))  # =~ 45
+    assert         (1.49..1.51).cover?(tra1.def_weight(user_syshelper,  exclude_self: false))
+    assert_in_epsilon 1.5,             tra1.def_weight(user_syshelper,  exclude_self: false), 0.000001
+    tra1.weight = 2.6
+    assert_in_epsilon 2.3, tra1.def_weight(exclude_self: false), 0.000001  # higher than 2 (syshelper's default weight)
+    tra1.weight = 1.4
+    # assert_in_epsilon 1.2,    tra1.def_weight(exclude_self: false), 0.000001  # higher than 1 (sysadmin's default weight)
+    assert  (1.0...1.4).cover?(tra1.def_weight(exclude_self: false))        # higher than 1 (sysadmin's default weight)
+    tra1.weight = 0.6
+    # assert_in_epsilon 0.3,  tra1.def_weight(exclude_self: false), 0.000001  # 0.5(???) higher than 0 (absolute lower limit)
+    assert  (0...0.6).cover?(tra1.def_weight(exclude_self: false))        # higher than 0 (absolute lower limit)
+    tra1.weight = 0
+    assert_in_epsilon 0.1, tra1.def_weight(exclude_self: false), 0.000001  # Delta of (1-0)/10=0.1 is added.
+    tra1.weight = nil
+    trass[:ja_2].is_orig = true # just to ensure the consistency among in-memory Translation
+    tra1.is_orig = false        # just to ensure the consistency among in-memory Translation
+    # weights(ja): [50(ja_1=Full), 26000(ja_nickname_1), 82000(:record), 110000(:internal), nil(ja_2)]
+
+    ## 5.2. if {#kind}=="alt"  / if {#langcode}==+translatable.orig_locale+
+
+    tra1 = trass[:ja_alt_1]
+    tra1.is_literal = true  # This should be ignored for original language.
+    assert_operator weight_init, :<, tra1.def_weight(exclude_self: false), 0.000001  # => 60 (50+100/10) # regardless of User
+    assert_in_epsilon weight_init*1.2, (w60=tra1.def_weight(trans_moderator, exclude_self: false)), 0.000001  # 50*0.8 = 50-100/10 (but 45 should be also fine...)  # regardless of User
+    tra1.weight = w60  # == 60
+    assert_equal        w60,           tra1.def_weight(exclude_self: true)
+    assert_in_epsilon weight_init*1.4, tra1.def_weight(exclude_self: false),  0.000001
+    assert           (64...71).cover?( tra1.def_weight(trans_moderator, exclude_self: false))
+    assert_in_epsilon weight_init*1.4, tra1.def_weight(user_syshelper,  exclude_self: false),  0.000001  # should be the same for even admin
+    tra1.weight = 16000
+    assert_in_epsilon 17000, tra1.def_weight(exclude_self: false),  0.000001
+    assert_in_epsilon 17000, tra1.def_weight(trans_moderator, exclude_self: false),  0.000001  # should be higher than any existing "alt"
+    tra1.weight = Translation::MAX_WEIGHT_USED + 80
+    assert_equal w60, tra1.def_weight(exclude_self: false)  # unreasonably high ones should be ignored.
+    assert_equal w60, tra1.def_weight(trans_moderator, exclude_self: false)
+    tra1.weight = Float::INFINITY
+    assert_equal w60, tra1.def_weight(exclude_self: false)  # Infinity should be ignored.
+    assert_equal w60, tra1.def_weight(trans_moderator, exclude_self: false)
+    tra1.weight = w60
+    # weights(ja): [50(ja_1=Full), 60(alt), 26000(ja_nickname_1), 82000(:record), 110000(:internal), nil(ja_2)]
+
+    ## 6. else (i.e., if langcode != translatable.orig_locale (where always lower than (1)(2)(3))
+    #  6.1 {#is_literal}=(falsy|true), {#is_official}=(true|falsy), {#kind}==["full", "alt"]
+    #  6.2. If {#is_literal}=false,
+    #       1. if {#is_official}=true,
+    #          and if {#kind}=="full"
+
+    tra1 = trass[:en_1]
+    assert_equal Translation::KIND_FULL, tra1.kind, "sanity-check" 
+    tra1.is_literal = false
+    tra1.is_official = true
+    tra1.weight = weight_init
+    # weights(ja): [50(en_1=Full), nil, nil, nil]
+
+    w = tra1.def_weight(exclude_self: true)  # firt weight in langcode (b/c exclude_self: true)
+    refute_equal 0, w
+    assert  (0...Translation::MAX_WEIGHT_NO_ROLE).cover?(w), "Weight=#{w.inspect} <=> #{tra1.translatable.translations.select{_1.langcode == 'en'}.map(&:weight).inspect}"  # 15000 = (10000+20000)/2
+
+    # new is_official=true should follow existing ones:
+    assert_in_epsilon weight_init*1.2, tra1.def_weight(exclude_self: false), 0.000001  # 50*1.2 = 50+100/10  # regardless of User
+
+    trass[:en_alt_2].weight = (w90=weight_init*1.8)  # =90
+    trass[:en_alt_2].is_literal = false
+    trass[:en_alt_2].is_official = true
+    # weights(ja): [50(en_1=Full), nil, 90(en_alt_2), nil] (all-official)
+
+    trass[:en_alt_2].weight = nil
+    trass[:en_alt_1].weight = weight_init/2.0
+    trass[:en_alt_1].is_literal = false
+    trass[:en_alt_1].is_official = true  # This would contradict tra1's default weight but well accepted
+    # weights(ja): [50(en_1=Full;official), 25(en_alt_1;official), nil, nil]
+
+    w = tra1.def_weight(exclude_self: false)
+    assert  (weight_init*1.09...Translation::MAX_WEIGHT_NO_ROLE).cover?(w)
+    assert  (weight_init*1.09...100                            ).cover?(w)  # existing_max weight 50 falls between 2 (sys-helper's weight) and 100 (Moderator's weight)
+    assert_in_epsilon weight_init*1.2, w, 0.000001  # = 50+10
+    assert_in_epsilon weight_init*1.2, tra1.def_weight(trans_moderator, exclude_self: false), 0.000001  # = 50+10
+
+    trass[:en_alt_2].weight = (w90=weight_init*1.8)  # =90
+    trass[:en_alt_2].is_literal = false
+    trass[:en_alt_2].is_official = true
+    # weights(ja): [50(en_1=Full), 25(en_alt_1), 90(en_alt_2), nil] (all-official)
+
+    # new is_official=true,kind="full" should not be affected with is_official=true,kind="alt"
+    assert_in_epsilon weight_init*1.2, tra1.def_weight(exclude_self: false), 0.000001  # 50*1.2 = 50+100/10  # regardless of User
+
+    ## 6.2.1.2  if {#kind}=="alt"  (AND the same conditions: ({#is_literal}==false && {#is_official}==true))
+
+    tra1 = trass[:en_alt_1]
+      # No upper limit so far; i.e., no combination of :alt, either is_literal=true or is_official=false
+    assert  (weight_init*1.81...100).cover?(val=tra1.def_weight(exclude_self: false)), "Weight=#{val} <=> #{tra1.translatable.translations.select{_1.langcode == 'en'}.map(&:weight).inspect}"
+    assert_in_epsilon weight_init*1.9, tra1.def_weight(exclude_self: false), 0.000001  # = 95
+    assert_in_epsilon weight_init*1.9, tra1.def_weight(trans_moderator, exclude_self: false), 0.000001  # = 95
+
+    trass[:en_alt_3].weight = (w110=weight_init*2.2)  # This weight is the upper limit
+    trass[:en_alt_3].is_literal = false
+    trass[:en_alt_3].is_official = false  # false !
+    # weights(ja): [50(en_1=Full), 25(en_alt_1), 90(en_alt_2), 110(en_alt_3(only-non_official)] (all-official)
+
+    assert  (weight_init*1.9...w110).cover?(w=tra1.def_weight(exclude_self: false)), "Weight=#{w} <=> #{tra1.translatable.translations.select{_1.langcode == 'en'}.map(&:weight).inspect}"  # =95 (though 105 would be fine)
+    assert  (weight_init*1.9...100).cover?(w=tra1.def_weight(trans_moderator, exclude_self: false))  # =(90+100)/2
+    assert_in_epsilon  95, w, 0.000001  # = 50+10
+
+    #  6.2.2 If langcode != translatable.orig_locale && {#is_literal}=false && {#is_official}=false,
+    #          and if {#kind}=="full"
+    #          1. higher than any ({#is_literal}=false && {#is_official}=true), and
+    #          2. if {#kind}=="full",
+    #             1. higher than the identical category, but
+    #             2. lower than any others.
+    #          3. else (i.e., if {#kind}=="alt"),
+    #             1. higher than {#kind}=="full" ({#is_literal}=false), but
+    # Checking {#kind}=="full"
+    tra1 = trass[:en_2]
+    trass[:en_alt_1].is_literal  = false
+    trass[:en_alt_1].is_official = false
+    trass[:en_alt_2].weight = (w70=weight_init*1.4)  # =70
+    trass[:en_alt_3].weight = (w130=weight_init*2.6) # =130
+    tra1.is_literal = false
+    tra1.is_official = false
+    tra1.weight = (w120=120)
+
+    w_en_1 = trass[:en_1].weight
+    trass[:en_1].weight = 78
+    trass[:en_1].is_literal = true
+    trass[:en_1].is_official = true  # this literal/official combination is iinvalid, but for testing sake...
+    trass[:en_2].weight = nil
+    # weights(en): [78(en_1=Full/Official/Literal), 25(en_alt_1/official), 70(en_alt_2;official), nil(en_2/unofficial), 130(en_alt_3(unofficial)]
+
+    assert  (w70...w120).cover?(w=tra1.def_weight(exclude_self: false)), "Weight=#{w} <=> #{tra1.translatable.translations.select{_1.langcode == 'en'}.map(&:weight).inspect}"  # =95 (though 105 would be fine)
+    assert  (w70...100).cover?(w=tra1.def_weight(trans_moderator, exclude_self: false))  # =(90+100)/2
+    assert_in_epsilon  74, w, 0.000001, "Weight=#{w} <=> #{tra1.translatable.translations.select{_1.langcode == 'en'}.map(&:weight).inspect}"  # = 70+10  # Full/unofficial is higher than (is_NOT_literal&&is_official)
+
+    trass[:en_1].weight = w_en_1
+    # weights(en): [50(en_1=Full/Official/Literal), 25(en_alt_1/official), 70(en_alt_2;official), nil(en_2/unofficial), 130(en_alt_3(only-unofficial)]
+    assert  (w70...w120).cover?(w=tra1.def_weight(exclude_self: false)), "Weight=#{w} <=> #{tra1.translatable.translations.select{_1.langcode == 'en'}.map(&:weight).inspect}"  # =95 (though 105 would be fine)
+    assert  (w70...100).cover?(w=tra1.def_weight(trans_moderator, exclude_self: false))  # =(90+100)/2
+    assert_in_epsilon  80, w, 0.000001  # = 70+10  # Full/unofficial is higher than (is_NOT_literal&&is_official)
+
+    ## checking the case with no is_official=true
+    assert tra1.translatable.translations.select{_1.langcode == 'en'}.any?{_1.official? && !_1.literal?}, "sanity-check"
+    trass[:en_alt_1].is_official = false
+    trass[:en_alt_2].is_official = false
+    refute tra1.translatable.translations.select{_1.langcode == 'en'}.any?{_1.official? && !_1.literal?}, "sanity-check"
+    trass[:en_1].weight = 24
+    # weights(ja): [24(en_1=Full/Official/Literal), 25(en_alt_1/unofficial), 70(en_alt_2;unofficial),nil(en_2/unofficial), 130(en_alt_3(unofficial)]
+    assert_equal 24, tra1.translatable.translations.select{_1.langcode == 'en'}.map(&:weight).compact.min, "sanity-check"
+    assert_in_epsilon 14, (w=tra1.def_weight(                 exclude_self: false)), 0.000001, "Weight=#{w} <=> #{tra1.translatable.translations.select{_1.langcode == 'en'}.map(&:weight).inspect}"  # =(50-10)
+    assert_in_epsilon 14, (w=tra1.def_weight(trans_moderator, exclude_self: false)), 0.000001  # =(50-10)
+
+    trass[:en_1].weight = nil
+    # weights(en): [nil(en_1=Full/Official/Literal), 25(en_alt_1/unofficial), 70(en_alt_2;unofficial), 120(en_2/unofficial), 130(en_alt_3(unofficial/Literal)]
+    assert_in_epsilon 15, (w=tra1.def_weight(trans_moderator, exclude_self: false)), 0.000001  # =(120+130)/2
+
+    trass[:en_alt_1].is_official = true
+    trass[:en_alt_2].is_official = true
+    trass[:en_1].weight = w_en_1
+
+    trass[:en_2].weight = 120
+    # weights(en): [50(en_1=Full/Official/Literal), 25(en_alt_1/official), 70(en_alt_2;official), 120(en_2/unofficial), 130(en_alt_3(unofficial/Literal)]
+    assert_in_epsilon 125, (w=tra1.def_weight(trans_moderator, exclude_self: false)), 0.000001  # =(120+130)/2
+
+    trass[:en_alt_3].is_literal = true
+    refute tra1.is_official, "sanity-check"
+    # weights(en): [50(en_1=Full/Official/Literal), 25(en_alt_1/official), 70(en_alt_2;official), 120(en_2/unofficial), 130(en_alt_3(unofficial/Literal)]
+
+    # Checking {#kind}=="alt"
+    tra1 = trass[:en_alt_4]
+    trass[:en_alt_4].is_literal  = false
+    trass[:en_alt_4].is_official = false
+    trass[:en_alt_4].weight = nil
+    assert_in_epsilon 125, (w=tra1.def_weight(                 exclude_self: false)), 0.000001, "Weight=#{w} <=> #{tra1.translatable.translations.select{_1.langcode == 'en'}.map(&:weight).inspect}"  # =(50-10)
+    assert_in_epsilon 125, (w=tra1.def_weight(trans_moderator, exclude_self: false)), 0.000001  # =(50-10)
+
+    ## checking the case with no is_official=true
+    trass[:en_alt_1].is_official = false
+    trass[:en_alt_2].is_official = false
+    trass[:en_alt_3].is_official = false  # already the case.
+    w_en_2  = trass[:en_2].weight
+    w_alt_1 = trass[:en_alt_1].weight
+    w_alt_2 = trass[:en_alt_2].weight
+    w_alt_3 = trass[:en_alt_3].weight
+    trass[:en_alt_3].weight = nil
+    # weights(en): [50(en_1=Full/Official/Literal), 25(en_alt_1/official), 70(en_alt_2;official), 120(en_2/unofficial), nil(en_alt_3(unofficial/Literal)]
+    assert_in_epsilon 220, (w=tra1.def_weight(                 exclude_self: false)), 0.000001, "Weight=#{w} <=> #{tra1.translatable.translations.select{_1.langcode == 'en'}.map(&:weight).inspect}"  # =(120+10)
+    assert_in_epsilon 220, (w=tra1.def_weight(trans_moderator, exclude_self: false)), 0.000001  # =(120+10)
+
+    trass[:en_2].weight = nil
+    trass[:en_alt_1].weight = nil
+    trass[:en_alt_2].weight = nil
+    # weights(en): [50(en_1=Full/Official/Literal), nil(en_alt_1/official), nil(en_alt_2;official), nil(en_2/unofficial), nil(en_alt_3(unofficial/Literal)]
+    assert_in_epsilon 40, (w=tra1.def_weight(trans_moderator, exclude_self: false)), 0.000001  # =(120+10)
+    trass[:en_alt_1].is_official = true
+    trass[:en_alt_2].is_official = true
+    trass[:en_2].weight     = w_en_2
+    trass[:en_alt_1].weight = w_alt_1
+    trass[:en_alt_2].weight = w_alt_2
+    trass[:en_alt_3].weight = w_alt_3
+    # weights(en): [50(en_1=Full/Official/Literal), 25(en_alt_1/official), 70(en_alt_2;official), 120(en_2/unofficial), 130(en_alt_3(unofficial/Literal)]
+
+    ## 6.3. else (i.e., if langcode != translatable.orig_locale && {#is_literal}=true)
+    #       1. higher than any {#is_literal}=false,
+    #       2. lower than any {#is_literal}=true in the default weight range by User's Translation Role ({Translation.low_high_role_weight_thresholds}).
+    #       3. If none satisfies (2), Role's default weight is used, meaning the weight may be neither lowest nor highest, although it will be the lowest among the same Role's Translation with {#is_literal}=true.
+    #       4. {#kind}=="full"/"alt" is not considered(!)  (*TODO*)
+    #
+    trass[:en_alt_4].is_literal = true
+    trass[:en_alt_4].is_official = false
+    tra1 = trass[:en_alt_4]
+#debugger
+    assert_in_epsilon 15000, (w=tra1.def_weight(                 exclude_self: false)), 0.000001  # =(120+130)/2
+    assert_in_epsilon   125, (w=tra1.def_weight(trans_editor,    exclude_self: false)), 0.000001
+    assert_in_epsilon   125, (w=tra1.def_weight(trans_moderator, exclude_self: false)), 0.000001
+
+    trass[:en_alt_3].weight = nil
+    # weights(en): [50(en_1=Full/Official/Literal), 25(en_alt_1/official), 70(en_alt_2;official), 120(en_2/unofficial), nil(en_alt_3(unofficial/Literal)]
+    assert_in_epsilon 15000, (w=tra1.def_weight(                 exclude_self: false)), 0.000001  # =(10000+20000)/2
+    assert_in_epsilon   500, (w=tra1.def_weight(trans_editor,    exclude_self: false)), 0.000001  # =1000/2
+    assert_in_epsilon   500, (w=tra1.def_weight(trans_moderator, exclude_self: false)), 0.000001  # =1000/2
+
+    trass[:en_alt_3].weight = 94  # unusually low weight is irrelevant
+    # weights(en): [50(en_1=Full/Official/Literal), 25(en_alt_1/official), 70(en_alt_2;official), 120(en_2/unofficial), 94(en_alt_3(unofficial/Literal)]
+    assert_in_epsilon 15000, (w=tra1.def_weight(                 exclude_self: false)), 0.000001  # =(10000+20000)/2
+    assert_in_epsilon   500, (w=tra1.def_weight(trans_editor,    exclude_self: false)), 0.000001  # =
+    assert_in_epsilon   500, (w=tra1.def_weight(trans_moderator, exclude_self: false)), 0.000001  # =
+
+    trass[:en_2].is_literal = true
+    trass[:en_2].weight = 130
+    # weights(en): [50(en_1=Full/Official/Literal), 25(en_alt_1/official), 70(en_alt_2;official), 130(en_2/unofficial/Literal), 94(en_alt_3(unofficial/Literal)]
+    assert_in_epsilon 15000, (w=tra1.def_weight(                 exclude_self: false)), 0.000001  # =(10000+20000)/2
+    assert_in_epsilon   115, (w=tra1.def_weight(trans_editor,    exclude_self: false)), 0.000001  # =(100+130)/2  # The code does NOT take into account kind="full"/"alt".  If it does, this result will differ and will be 500!
+   #assert_in_epsilon    85, (w=tra1.def_weight(trans_moderator, exclude_self: false)), 0.000001, "Weight=#{w} <=> #{tra1.translatable.translations.select{_1.langcode == 'en'}.map(&:weight).inspect}"  # =(120+10) 
+    assert_includes  (83.9...90.1), (w=tra1.def_weight(trans_moderator, exclude_self: false))     # =84  (not sure why...)
+
+    ####
+    trass[:en_2].is_literal = false
+    trass[:en_alt_3].weight = w_alt_3
+    trass[:en_1].is_official = false
+    artist.save!  ## should succeed...
+    assert_equal trass.size, artist.translations.count
   end
 
   test "next_unique_weight" do
@@ -1290,6 +1584,8 @@ class TranslationTest < ActiveSupport::TestCase
     assert_equal 850, etra.next_unique_weight(800, def_offset: 100, upper_threshold:   900, try_reference: false)
     assert_equal 850, etra.next_unique_weight(800, def_offset: 100, upper_threshold:   900, try_reference: true) # 2nd try reaches the upper-threshold
     assert_equal 650, etra.next_unique_weight(500, def_offset: 300, upper_threshold: 10000, try_reference: true) # both 500 and 800 unfit
+    assert_equal 650, etra.next_unique_weight(500, def_offset: 300, lower_threshold: 500, upper_threshold: 10000, try_reference: true) # an edge case! both 500 and 800 unfit AND lower_threshold agrees with 500
+    assert_equal 1100,etra.next_unique_weight(500, def_offset: 300, lower_threshold: 800, upper_threshold: 10000, try_reference: true) # an edge case! both 500 and 800 unfit AND lower_threshold agrees with 800
     assert_equal Translation::MAX_WEIGHT_VISIBLE+300, etra.next_unique_weight(500, def_offset: 300, lower_threshold: Translation::MAX_WEIGHT_VISIBLE, upper_threshold: Float::INFINITY, try_reference: false)  # initial trial value is lower than lower_threshold.
     assert_equal Float::INFINITY, etra.next_unique_weight(Float::INFINITY, def_offset: 300, upper_threshold: 1000, try_reference: true)
 
@@ -1305,7 +1601,7 @@ class TranslationTest < ActiveSupport::TestCase
     assert_equal 500, etra.next_unique_weight(400, def_offset: 100, upper_threshold: 10000, try_reference: false) # b/c langcode differs
     assert_equal  40, etra.next_unique_weight( 50, def_offset: -10, lower_threshold:     1, try_reference: true)
     assert_equal   5, etra.next_unique_weight( 10, def_offset: -90, lower_threshold:     0, try_reference: false) # Unreasonable def_offset is allowed because lower_threshold anyway gives a hard lower limit.
-    assert_equal   0, etra.next_unique_weight(  0, def_offset: -90, lower_threshold:     0, try_reference: true)
+    assert_equal   0, etra.next_unique_weight(  0, def_offset: -90, lower_threshold:     0, try_reference: true)  # an edge case
     assert_equal  25, etra.next_unique_weight(  0, def_offset: -90, lower_threshold:     0, try_reference: false) # Unreasonable def_offset is allowed because lower_threshold anyway gives a hard lower limit.
 
     tra_it1 = artist.translations.build(title: "naiyo", langcode: "it", kind: Translation::KIND_ALT,

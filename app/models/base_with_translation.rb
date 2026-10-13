@@ -3273,7 +3273,7 @@ end
   end
   private :put_a_title
 
-  # Defines %i(title= alt_title= ruby= alt_ruby= romaji= alt_romaji= langcode= is_orig= weight=) as in attr_writer
+  # Defines %i(title= alt_title= ruby= alt_ruby= romaji= alt_romaji= langcode= is_orig=) as in attr_writer
   #
   # See #{put_a_title} and its comment lines for detail.
   Translation::TRANSLATION_PARAM_KEYS.each do |metho|

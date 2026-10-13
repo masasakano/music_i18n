@@ -196,6 +196,22 @@ class Role < ApplicationRecord
     arret
   end
 
+  # Returns an Array of all Roles in line, potentially spanning multiple RoleCategories, ordered by {#weight}
+  #
+  # Note that the last element is a Role in **a** leaf with the highest weight in the given {RoleCategory}.
+  # Theoretically, a {RoleCategory} can have multiple branches with common (highest) weights for Roles.
+  # This method returns only one of those branches.
+  #
+  # @example
+  #   Role.roles_in_line(RoleCategory::MNAME_TRANSLATION).map(&:weight)
+  #    # => [1, 10, 100, 1000, 10000]
+  #
+  # @return [Array] Most senior comes first
+  def self.roles_in_line(*, **)
+    lowest_role = lowest_subordinate_roles_in_line(*, **).compact.sort_by(&:weight).last
+    lowest_role.superiors + [lowest_role]
+  end
+
   # Returns an Array of Roles of the subordinates in line, potentially spanning multiple RoleCategories
   #
   # If the given {RoleCategory} (=+rc+) has no subordinate {RoleCategory},

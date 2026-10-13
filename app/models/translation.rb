@@ -435,7 +435,10 @@ class Translation < ApplicationRecord
   #  in most cases to avoid null results in case Translations in the requested language
   #  are not available.
   #
-  MAX_WEIGHT_NO_ROLE = (max_tmp=Role::DEF_WEIGHT.values.max) * 2
+  MAX_WEIGHT_LOWEST_ROLE = Role.lowest_weight_in_line(RoleCategory::MNAME_TRANSLATION)
+
+  # In case of no User (unauthenticated user like during seeding) or no Role.
+  MAX_WEIGHT_NO_ROLE = MAX_WEIGHT_LOWEST_ROLE * 2
 
   # This is the minimum weight (exclusive) for the Translation with {#is_for_record}=true,
   #
@@ -452,9 +455,14 @@ class Translation < ApplicationRecord
   MAX_WEIGHT_VISIBLE = MAX_WEIGHT_NO_ROLE * 5  # = 100000
 
   # Permitted {#kind} column values
-  KIND_FULL     = "full".freeze
-  KIND_ALT      = "alt".freeze
-  KIND_NICKNAME = "nickname".freeze
+  KINDS = [
+    KIND_FULL="full".freeze,
+    KIND_ALT="alt".freeze,
+    KIND_NICKNAME="nickname".freeze
+  ]
+
+  # Hash to return a priority [0..2] of +KIND_*+ (String key); e.g., KINDS_PRIORITY["kind"] == 0
+  KINDS_PRIORITY = array_to_hash(KINDS)  # defined in module_common.rb
 
   # This adds validation, method +Translation#full?+ etc, and scope +Translation.full+
   enum :kind, {
@@ -535,6 +543,30 @@ class Translation < ApplicationRecord
   # @return [String]
   def inspect(depth: 0)
     inspect_orig
+  end
+
+  def formal?
+    !!is_formal
+  end
+
+  def official?
+    !!is_official
+  end
+
+  def literal?
+    !!is_literal
+  end
+
+  def true_name?
+    !!is_true_name
+  end
+
+  def for_record?
+    !!is_for_record
+  end
+
+  def internal?
+    !!is_internal
   end
 
   # Returns Array for "where" clause, in which Collation is specified.
@@ -2616,88 +2648,351 @@ class Translation < ApplicationRecord
 
   # Returns the unique {Translation#weight} to set when {#weight} is blank?
   #
+  # == Summary
+  #
+  # 1. {#is_internal}:      +[MAX_WEIGHT_VISIBLE...]+
+  # 2. {#is_for_record}:    +[MAX_WEIGHT_USED...MAX_WEIGHT_VISIBLE]
+  # 3. {#kind}=="nickname": +[MAX_WEIGHT_NO_ROLE...MAX_WEIGHT_USED]
+  # 4. Others: Defalt-range +[Superior_Role#weight...Role#weight]+ (Def: +Role#weight/2+) : < +MAX_WEIGHT_LOWEST_ROLE+ < +MAX_WEIGHT_NO_ROLE+ (n.b., the range varies, depending on other conditions, in competing editing situations)
+  #    1. {#langcode}==+translatable.orig_locale+ -
+  #       1. {#kind}=="full"  (new-comers have a priority) 
+  #       2. {#kind}=="alt"   (predecessors have a priority) 
+  #    2. else 
+  #       1. {#is_literal}=(falsy|true)
+  #       2. {#is_official}=(true|falsy)
+  #       3. {#kind}==["full", "alt"]
+  #       4. **role-dependent** predecessors (if is_literal=falsy) or new-comers (if not)
+  #
+  # == Description
+  #
   # This is the algorighm.  Note that in the following, if any of the preceding items
   # satisfies the condtion, the rest will be ignored in principle.  Also any *category*
   # is within a scope of {#translatable} and {#langcode}; note that {#weight} is unique
   # only within the scope.  In the following, Translation with weight=0 have to be ignored
   # due to the unique constraint.
   #
+  # Here, Role ranks (superiors, subordinates) are in the context of Translator {RoleCategory}.
+  # {#start_year} and {#end_year} are not considered in this routine.
+  #
+  # Note that in an unlikely case where some Translations have abnormal weights for their properties,
+  # e.g., a very low (and lowest for {#translatable} and {#langcode}) weight (say, 0.5) for {#is_internal}=true
+  # given to a Translation, this routine usually does not (though sometimes does) take it into account
+  # in the following calculation;
+  # i.e., this rouine may return a weight much higher than 0.5 though much lower than 100,000
+  # (lower threshold for {#is_internal}=true) for a given Translation with {#is_internal}=false.
+  # The anomaly Translation of {#is_internal}=true, {#weight}=0.5 remains on DB.  In methods
+  # that use sorting, all Translations with {#is_internal}=true may be filtered out,
+  # including the anomaly, or may be not, depending on the methods.  Only moderators
+  # can manually set the weights of Translations — be extra careful if you do!
+  #
   # 0. Any existing Translations with weight of nil of Infinity should be handled beforehands... 
   #    This routine does nothing about them, though.
-  # 1. If {#is_internal}=true, the weight is higher than {Translation::MAX_WEIGHT_VISIBLE} (technically inclusive).
+  # 1. If {#is_internal}=true, the absolute +lower_threshold+ is {Translation::MAX_WEIGHT_VISIBLE} (technically inclusive),
+  #    whereas +upper_threshold+ is Infinity.
   #    If there is no existing Translation in this category (i.e., weight higher than
   #    {Translation::MAX_WEIGHT_VISIBLE} for the {#translatable} and {#langcode}),
-  #    the default offset ({Translation::MAX_WEIGHT_VISIBLE}/10)
+  #    the default increment (or called offset) ({Translation::MAX_WEIGHT_VISIBLE}/10)
   #    is added to the threshold for the weight.
-  #    Any subsequent ones in this category will have a higher weight by the offset than the current highest weight.
+  #    Any subsequent ones in this category will have a higher weight by the increment/offset than the current highest weight.
+  #    Note that the inclusive-exclusive relation loosely follows the fact that
+  #    Ruby's Range has `exclusive_end` but no `exclusive_begin` .
   # 2. If {#is_for_record}=true (and {#is_internal} is falthy), the weight falls between
-  #    {Translation::MAX_WEIGHT_USED} (inclusive) and {Translation::MAX_WEIGHT_VISIBLE} (exclusive).
-  #    If there is no existing Translation in this category (i.e., the weight falling in the range among those
-  #    of the same {#translatable} and {#langcode}), the default offset is added to the lower threshold for the weight,
-  #    where the default offset is:
-  #      [{Translation::MAX_WEIGHT_VISIBLE}/10 ,
-  #       ({Translation::MAX_WEIGHT_USED}+{Translation::MAX_WEIGHT_VISIBLE})/10].max
-  #    Any subsequent ones in this category will have a higher weight by the default offset than the current highest weight
-  #    in this category.
-  #    If adding the default offset would result in a weight higher than the upper threshold,
-  #    the average of the current highest in this category and the upper threshold is adopted.
-  # 3. {#start_year} and {#end_year} are not considered in this routine.
-  # 4. If {#kind}=="nickname", the weight should fall between {MAX_WEIGHT_NO_ROLE} (inclusive) and
-  #    {Translation::MAX_WEIGHT_USED} (exclusive).  If there are no Translations in this category
-  #    ({#weight} range), its weight should be higher than
-  #    {MAX_WEIGHT_NO_ROLE} by the default offset, which is
-  #    1/10 of the difference between the lowest Role's weight and {Translation::MAX_WEIGHT_USED}.
-  #    For subsequent weights in this category, add the default offset to the existing higest weight.
-  #    In case where adding the default offset would result in beyond the permitted range,
-  #    follow the same principle as in (2) - make it the mid-point in the remaining range.
-  # 5. Any other's weight should fall between 0 (inclusive though exceptional) and 
-  #    the lowest Role's weight (exclusive).
-  # 6. If {#is_literal}=true, the weight should fall between the lowest Role's weight and
-  #    {Translation::MAX_WEIGHT_USED}.  If there are no Translations in this category
-  #    ({#weight} range, {#translatable} and {#langcode}), the first default weight is
-  #      [Role's-weight/2, Average between (Immediate-superior's-weight || 0) and Role's weight].max
-  #    1. if {#kind}=="full" and {#is_official}=true (and if there are no other ones that satisfy the same),
-  #       the Role should be replaced with Moderator.
-  # 7. For subsequent Translations in this category, the default offset (whether positive or negative) is
-  #      [Role's-weight, ((Immediate-superior's-weight || 0)+Role's weight)].max/10
+  #    the absolute +lower_threshold+={Translation::MAX_WEIGHT_USED} (inclusive) and
+  #    the absolute +upper_threshold+={Translation::MAX_WEIGHT_VISIBLE} (exclusive).
+  #    A newly added weight should be higher than the maximum weight in this category (or
+  #    the above-mentioned lower threshold) by the default increment/offset of
+  #      (MAX_WEIGHT_VISIBLE - MAX_WEIGHT_USED)/10.0
+  #    unless adding the default increment/offset would result in a weight falling beyond
+  #    the above-mentioned range, in which case the increment/offset is a half of the difference
+  #    between the maximum weight in this category and the upper threshold.
+  # 3. If {#kind}=="nickname", the weight should fall between
+  #    the absolute +lower_threshold+={MAX_WEIGHT_NO_ROLE} (inclusive) and
+  #    the absolute +upper_threshold+={Translation::MAX_WEIGHT_USED} (exclusive).  The concrete value is calculated
+  #    in the same way as (2), replacing the range and default increment/offset according to
+  #    the lower and upper thresholds.
+  # 4. Any other's weight should fall between
+  #    the absolute +lower_threshold+=0 (inclusive though exceptional) and 
+  #    the absolute +upper_threshold+={MAX_WEIGHT_NO_ROLE} (exclusive), both of which are hard limits.
   #    The default upper threshold is Role's-weight.
   #    The default lower threshold is Immediate-superior's-weight (or 0 for sysadmin)
   #    If the upper/lower thresholds contradict another condition, they should be replaced with
   #    futher superior's/subordinate's weight until the condition is satisfied.
-  # 8. if {#kind}=="full" and {#is_official}=true AND if there are no other ones that satisfy the same,
-  #    meaning if it is the first "full" and "offiial" one in the scope,
-  #    its default weight will be lower than any other for {#langcode} and {#translatable};
-  #    it is the lower one between the existing one minus the default offset and (7).
-  #    Note that this is just a default!  For example, "United Kingdom of ..." should
-  #    be given a *higher* weight than "UK"; in other words, {#weight} for the first {#is_official}
-  #    is lower by default but it can be modified or set differently by a Moderator.
-  # 9. If {#is_literal}=true, weight should be higher than any other in the same {#kind} and {#is_literal}=true
-  #    by User's superiors but (as the second priority) lower than those by the subordinates.
-  #    The difference should be minimum.
-  #    As the third priority (this matters most when there are no other {#is_literal}=true),
-  #    the default weight is higher than any other one in the same {#kind}
-  #    with {#is_literal}=false, regardless of Role, with minimum offset.  In the boundary condition,
-  #    it should be lower than the next lowest weight in different {#kind} and the default upper weight.
-  # 10. If {#kind}="full" and {#langcode}==+translatable.orig_locale+, the default weight is lower than any others.
-  # 11. If {#kind}="full", the default weight is lower than any others by the same or subordinate Role but higher than superior Roles.
-  #     In the next priority, it should be higher than any other  {#kind}="alt"
-  # 12. Else, i.e., {#kind}="alt", the default weight is higher than any others in the same {#kind}.
+  #    The first default weight of this type (i.e., all but (1)(2)(4)) is
+  #      Role's_weight/2 (if it is larger than Immediate-superior's-weight), else
+  #      Average between (Immediate-superior's-weight || 0) and Role's weight
+  #    The default increment/offset for subsequent weights is
+  #      (Role's_weight - FirstDefWeight)/5.0
+  #    The lower_threshold is Immediate-superior's-role's weight, or if that does not work,
+  #    further superior's weight.
+  #    See below for the cases where another Translation of this type exists.
+  # 5. if {#langcode}==+translatable.orig_locale+; n.b., although {#is_official}==true should be prioritized in principle, in the real world, moderators are likely to be careful about them, e.g., if they later find an official kind="full" title (aka Translation) in the original language, they will likely *replace* (or update accordingly) the existing "full" one instead of *adding* a new official {Translation}, and for this reason, {#is_official} is simply ignored in the following algorithm.
+  #    1. if {#kind}=="full",
+  #       1. Note that {#is_literal} is always ignored when {#langcode}==+translatable.orig_locale+.
+  #       2. Note that this is just a default!  For example, "United Kingdom of ..." should
+  #          be given a *higher* weight than "UK"; in other words, {#weight} for the first {#is_official}
+  #          is lower by default but it can be modified or set differently by a Moderator.
+  #       3. its default weight is lower than any other's.
+  #    2. else (i.e., if {#kind}=="alt")
+  #       its default weight is higher than any others (except (1)(2)(3)).
+  # 6. else (i.e., if {#langcode}!=+translatable.orig_locale+), where always lower than (1)(2)(3),
+  #    1. the priority is basically in the order of
+  #       1. {#is_literal}=(falsy|true), {#is_official}=(true|falsy), {#kind}==["full", "alt"]
+  #       2. for the identical categories, a priority (i.e., lower weight) is given to
+  #          1. the new-comers, if {#is_literal}=true, regardless of {#is_official}). {#kind} counts for the order. See (6.1.1).
+  #          2. the predecessors, if {#is_official}=true.
+  #          3. the predecessors, if {#is_literal}=false.
+  #          4. **role-dependent** predecessors, if {#is_literal}=true.
+  #    2. If {#is_literal}=false,
+  #       1. if {#is_official}=true, weight is
+  #          1. higher (low-prirority) than the identical category with identical kind with a same or lower-rank kind
+  #          2. lower than the identical category with a higher-rank kind (i.e., if self.kind=="alt" and if there are (kind="full" && is_official=true))
+  #          3. lower than any others.
+  #       2. else (i.e., {#is_official}=false), its default weight is always
+  #          1. higher than any ({#is_literal}=false && {#is_official}=true), obviously (see (6.1.1)), and
+  #          2. if {#kind}=="full",
+  #             1. higher than the existing identical category, but
+  #             2. lower than any others; i.e., {#is_official}=falsy && {#kind}=="alt" || {#is_literal}=true
+  #          3. else (i.e., if {#kind}=="alt"),
+  #             1. higher than {#kind}=="full" ({#is_literal}=false), but
+  #             2. lower than any others, i.e., except (1)(2)(3), and {#is_literal}=true.
+  #    3. else (i.e., if {#is_literal}=true) (NOTE: {#is_official} is ignored - it is usually conceptually falsy, unless the "author" explicitly explains it),
+  #       that is, for a literal Translation, when a translator submits a new one,
+  #       it must be an improvement to their own and same-rank user's ones, though
+  #       perhaps inferior to more skilled translator's Translation-s, but Translation-Moderator may approve and promote it later;
+  #       the default weight is
+  #       1. higher than any {#is_literal}=false,
+  #       2. lower than any {#is_literal}=true in the default weight range by User's Translation Role ({Translation.low_high_role_weight_thresholds}).
+  #       3. If none satisfies (2), Role's default weight is used, meaning the weight may be neither lowest nor highest, although it will be the lowest among the same Role's Translation with {#is_literal}=true.
+  #       4. {#kind}=="full"/"alt" is not considered(!)  (*TODO*)
   #
+  # @param user [User]
+  # @param exclude_self: [Boolean] if true (Def false), ignores self.weight
   # @return [Numeric] Default weight for the user. Float::INFINITY if no user or if user has no {Role} for Translation.
-  def def_weight(user=ModuleWhodunnit.whodunnit)
-    return Float::INFINITY if !user
+  def def_weight(user=ModuleWhodunnit.whodunnit, exclude_self: false)
     return Float::INFINITY if !translatable  # only possible when this is a new_record. This used to be role.weight but then it may violate the unique constraint.
 
-    role = user.highest_role_in(RoleCategory[RoleCategory::MNAME_TRANSLATION])  # see also Translation.def_init_weight
-    # return Float::INFINITY if !role  # If the user has no Role in Translation, this is returned.
+    # @param **conds [Hash] Hash of additional conditions; e.g., +{is_official: true}+ (keys can be (Symbol|String))
+    #    As a special case, if the value==false (e.g., +{is_official: true}+), both false and nil are used for filtering.
+    #    If nil, only nil is tested.
+    # @yield with a parameter of {Translation}; should return true if Translation should be included in the returning weights;
+    #    if specified, this is evaluated in addition to other conditions.
+    # @return [Array<Float(weight)>] NOT sorted, maybe empty; nil is removed. If exlude is true, self is ignored.
+    def _existing_translatable_weights(exclude: false, **conds)
+      translatable.translations.select{ |etra|
+        etra.langcode == langcode &&
+          (exclude ? (etra != self) : true) &&
+          conds.with_indifferent_access.all?{|metho, value|
+            result = etra.public_send(metho)
+            ((false == value) ? !result : (result == value))
+          } &&
+          (block_given? ? yield(etra) : true)
+      }.map(&:weight).compact
+    end
 
-    immediate_superior =
-      if role
-        role.superiors[-1]  # If current_user is sysadmin, it is nil
+    ## 1. Internal use
+    if is_internal
+      existing_max = _existing_translatable_weights(exclude: exclude_self).reject{_1 == Float::INFINITY}.max
+      return next_unique_weight((existing_max || 0), def_offset: MAX_WEIGHT_VISIBLE/10.0,
+                                lower_threshold: MAX_WEIGHT_VISIBLE,
+                                upper_threshold: Float::INFINITY, try_reference: false, exclude_self: exclude_self)
+    end
+
+    ## 2. For record only
+    if is_for_record
+      existing_max = _existing_translatable_weights(exclude: exclude_self).select{(MAX_WEIGHT_USED...MAX_WEIGHT_VISIBLE).cover? _1}.max
+      def_offset = (MAX_WEIGHT_VISIBLE - MAX_WEIGHT_USED).abs/10.0
+      return next_unique_weight((existing_max || 0), def_offset: def_offset,
+                                lower_threshold: MAX_WEIGHT_USED,
+                                upper_threshold: MAX_WEIGHT_VISIBLE, try_reference: false, exclude_self: exclude_self)
+    end
+
+    ## 3. (kind == KIND_NICKNAME)
+    if ![KIND_FULL, KIND_ALT].include?(kind)
+      existing_max = _existing_translatable_weights(exclude: exclude_self).select{(MAX_WEIGHT_NO_ROLE...MAX_WEIGHT_USED).cover? _1}.max
+      def_offset = (MAX_WEIGHT_USED - MAX_WEIGHT_NO_ROLE).abs/10.0
+      return next_unique_weight((existing_max || 0), def_offset: def_offset,
+                                lower_threshold: MAX_WEIGHT_NO_ROLE,
+                                upper_threshold: MAX_WEIGHT_USED, try_reference: false, exclude_self: exclude_self)
+    end
+
+    ## 4. Default reference-weight and def_offset
+    if user && (role = user.highest_role_in(RoleCategory[RoleCategory::MNAME_TRANSLATION]))  # see also Translation.def_init_weight
+      immediate_superior = role.superiors[-1]  # If current_user is sysadmin, it is nil
+
+      def_lower_threshold = (immediate_superior ? (immediate_superior.weight || 0) : 0)  # returned weight is guaranteed to be higher than this value
+      def_upper_threshold = (role.weight || MAX_WEIGHT_NO_ROLE)
+    else
+      # If the user either is not logged in (like during seeding)) or
+      # has no Role in Translation (e.g., when non-translator creating a new HaramiVid).
+      immediate_superior = Role.lowest_subordinate_roles_in_line(RoleCategory::MNAME_TRANSLATION).last
+      def_lower_threshold = MAX_WEIGHT_LOWEST_ROLE # second-lowest priority (lowest-rank Role)
+      def_upper_threshold = MAX_WEIGHT_NO_ROLE     # lowest priority (for no Role)
+      ## return Float::INFINITY if !user  # NOTE: This used to be the case
+    end
+
+    def_reference, def_positive_offset = _get_reference_offset(def_lower_threshold...def_upper_threshold)
+
+    ## 5. if (langcode == translatable.orig_locale)
+
+    if langcode == translatable.orig_locale
+      case kind
+      when KIND_FULL  ## Case 5.1
+        existing_min = _existing_translatable_weights(exclude: exclude_self).min
+        return _get_smaller_or_equal_weight(def_reference, def_positive_offset, def_lower_threshold, def_upper_threshold, exclude_self, existing_min: existing_min, with_fallback: true)
+      when KIND_ALT  ## Case 5.1
+        existing_max = _existing_translatable_weights(exclude: exclude_self).select{ _1 < MAX_WEIGHT_NO_ROLE }.max
+        return _get_larger_or_equal_weight(def_reference, def_positive_offset, def_lower_threshold, def_upper_threshold, exclude_self, existing_max: existing_max, with_fallback: true)
       else
-        Role.lowest_subordinate_roles_in_line(RoleCategory::MNAME_TRANSLATION).last
+        raise  # should never happen
+      end
+    end
+
+    # 6. else (i.e., if {#langcode}!=+translatable.orig_locale+), where always lower than (1)(2)(3),
+    #    1. the order is basically in the order of
+    #       1. {#is_literal}=(falsy|true), {#is_official}=(true|falsy), {#kind}==["full", "alt"]
+    #       2. for the identical categories, a priority (i.e., lower weight) is given to
+    #          1. the new-comers, if {#is_literal}=true, regardless of {#is_official}). {#kind} counts for the order. See (6.1.1).
+    #          2. the predecessors, if {#is_official}=true.
+    #          3. the predecessors, if {#is_literal}=false.
+    #          4. **role-dependent** predecessors, if {#is_literal}=true.
+    if !is_literal
+      # 6.2. If {#is_literal}=false,
+      #     1. if {#is_official}=true, weight is
+      #        1. higher (low-prirority) than the identical category with identical kind with a same or lower-rank kind
+      #        2. lower than the identical category with a higher-rank kind (i.e., if self.kind=="alt" and if there are (kind="full" && is_official=true))
+      #        3. lower than any others.
+      if is_official
+        conds = 
+          case kind
+          when KIND_FULL
+            {kind: kind}  # new one should be higher than only kind="full" && official
+          when KIND_ALT
+            {}            # new one should be higher than any official
+          else
+            raise  # should never happen
+          end
+
+        ## (1) higher than those with KINDS_PRIORITY[kind_of_existing_is_official_is_true] < KINDS_PRIORITY[self.kind]
+        ##     Here, if such one exists, and...
+        ## (2) Plus, lower than any other Translations with kind satisfying KINDS_PRIORITY[its_kind] < KINDS_PRIORITY[self.kind]
+        ### => slightly higher (1) if there is any (1):
+        existing_max = _existing_translatable_weights(exclude: exclude_self, is_literal: false, is_official: true, **conds).select{ _1 < MAX_WEIGHT_NO_ROLE }.max  # for "full" (if kind=="alt") or "alt" (else)
+        if existing_max  # NOTE: This 3 lines are equivalent to:  (ret=_get_larger_or_equal_weight;  return(ret) if ret)
+          return _get_larger_or_equal_weight(def_reference, def_positive_offset, def_lower_threshold, def_upper_threshold, exclude_self, existing_max: existing_max, with_fallback: false)
+        end
+
+        ## If there are no Translation with is_official=true for up to self.kind,
+        ## (2) Plus, lower than any other Translations with kind satisfying KINDS_PRIORITY[its_kind] < KINDS_PRIORITY[self.kind]
+        existing_max = _existing_translatable_weights(exclude: exclude_self, is_literal: false, is_official: true).select{ _1 < MAX_WEIGHT_NO_ROLE }.max  # existing max weight of is_official=true regardless of kind (though kind="nickname" is filtered out due to MAX_WEIGHT_NO_ROLE) # This condition matters only if self.kind=="full" and if there are Translations with kind=="alt" and is_official==true
+        existing_min = _existing_translatable_weights(exclude: exclude_self, **conds).select{ _1 < MAX_WEIGHT_NO_ROLE }.min
+        existing_min = [existing_min, existing_max].compact.max
+        return _get_smaller_or_equal_weight(def_reference, def_positive_offset, def_lower_threshold, def_upper_threshold, exclude_self, existing_min: existing_min, with_fallback: true)
+
+      else  # (i.e., if !is_official)
+        # 6. else (i.e., if {#langcode}!=+translatable.orig_locale+), where always lower than (1)(2)(3),
+        # 6.2.2. if {#is_official}=false, its default weight is always
+        #       1. higher than any ({#is_literal}=false && {#is_official}=true), obviously (see (6.1.1)), and
+        #       2. if {#kind}=="full",
+        #          1. higher than the existing identical category, but
+        #          2. lower than any others; i.e., {#is_official}=falsy && {#kind}=="alt" || {#is_literal}=true
+        #       3. else (i.e., if {#kind}=="alt"),
+        #          1. higher than {#kind}=="full" ({#is_literal}=false), but
+        #          2. lower than any others, i.e., except (1)(2)(3), and {#is_literal}=true.
+        cond_higher_thans, cond_lower_thans = 
+          case kind
+          when KIND_FULL
+            [{kind: KIND_FULL}, {}]
+          when KIND_ALT
+            [{}, {kind: kind}]
+          else
+            raise  # should never happen
+          end
+
+        existing_max = _existing_translatable_weights(exclude: exclude_self, is_literal: false){|etra|
+          etra.is_official ||
+          cond_higher_thans.blank? ||  # this is true if kind=="alt"; i.e., any etra.official? is accepted (NOTE: is_literal=true has been already filtered out)
+          cond_higher_thans.with_indifferent_access.all?{|metho, value|
+            result = etra.public_send(metho)
+            ((false == value) ? !result : (result == value))
+          }  # equivalent to:  (conds.empty? || etra.kind == KIND_FULL)
+        }.select{ _1 < MAX_WEIGHT_NO_ROLE }.max  # for "full" (if kind=="alt") or "alt" (else)
+
+        if existing_max  # NOTE: This 3 lines are equivalent to:  (ret=_get_larger_or_equal_weight;  return(ret) if ret)
+          return _get_larger_or_equal_weight(def_reference, def_positive_offset, def_lower_threshold, def_upper_threshold, exclude_self, existing_max: existing_max, with_fallback: false)
+        end
+
+        ## If there are no Translation with is_official=true (etc), maybe kind="full" (if self.kind=="full")
+        # No lower limit.
+        # The upper limit is the minimum weight of is_literal=="true", and if kind=="alt", un-literal kind="full"
+        existing_max =
+          if cond_lower_thans.blank?
+            nil  # === if(KIND_FULL==kind)[
+          else
+            _existing_translatable_weights(exclude: exclude_self, is_literal: false, **cond_lower_thans).select{ _1 < MAX_WEIGHT_NO_ROLE }.max  # maximum of kind=="full" (if self.kind=="alt")
+          end
+
+        existing_min = _existing_translatable_weights(exclude: exclude_self).select{ _1 < MAX_WEIGHT_NO_ROLE }.min
+        existing_min = [existing_min, existing_max].compact.max
+        return _get_smaller_or_equal_weight(def_reference, def_positive_offset, def_lower_threshold, def_upper_threshold, exclude_self, existing_min: existing_min, with_fallback: true)
+      end # if is_official
+    end  # if !is_literal
+
+    ## Now: if is_literal
+    # 6. else (i.e., if {#langcode}!=+translatable.orig_locale+), where always lower than (1)(2)(3),
+    #    3. else (i.e., if {#is_literal}=true) (NOTE: {#is_official} is ignored - it is usually conceptually falsy, unless the "author" explicitly explains it),
+    #       the default weight is
+    #       1. higher than any {#is_literal}=false,
+    #       2. lower than any {#is_literal}=true in the default weight range by User's Translation Role ({Translation.low_high_role_weight_thresholds}).
+    #       3. If none satisfies (2), Role's default weight is used, meaning the weight may be neither lowest nor highest, although it will be the lowest among the same Role's Translation with {#is_literal}=true.
+    #       4. {#kind}=="full"/"alt" is not considered(!)  (*TODO*)
+
+    # weight must be higher than any (is_literal: false); maybe nil
+    larger_than = _existing_translatable_weights(exclude: exclude_self, is_literal: false).select{ _1 < MAX_WEIGHT_NO_ROLE }.max  # referred to as "existing_max" in other parts
+
+    range = nil
+    lower_threshold = def_lower_threshold
+    upper_threshold = def_upper_threshold
+
+    if larger_than && def_upper_threshold < larger_than
+      # the above-condition on the lower limit exceeds the default upper threshold (of user's role's range)
+      range = self.class.low_high_role_weight_thresholds(larger_than)  # "range" is defined in this case
+      lower_threshold = larger_than
+      upper_threshold = range.end
+    end
+
+    # search for the minimum weight among any (is_literal: true) by the *same* Role, which may be nil.
+    smaller_than_for_role = _existing_translatable_weights(exclude: exclude_self, is_literal: true).select{
+      [larger_than, lower_threshold].compact.max < _1 && _1 < upper_threshold
+    }.min
+
+    range ||=  # defines a range if not yet.  This is used to derive the default "reference" and "offset" (increment)
+      if smaller_than_for_role
+        self.class.low_high_role_weight_thresholds(smaller_than_for_role)
+      else
+        (lower_threshold...upper_threshold)  # "lower_than" here is preferably a nice round number than the derived "larger_than"
       end
 
+    reference, positive_offset = _get_reference_offset(range)
+    lower_threshold = [larger_than, lower_threshold].compact.max  # Now, "lower_than" becomes more strict and is less likely to be a nice round number
+
+    if smaller_than_for_role
+      reference = smaller_than_for_role
+      try_reference = false
+    elsif lower_threshold < reference
+      try_reference = true
+    else
+      reference = (lower_threshold + upper_threshold)/2.0  # guaranteed to be larger than "larger_than" (so often not a round number)
+      try_reference = true
+    end
+
+    return next_unique_weight(reference, def_offset: -positive_offset,
+                       lower_threshold: lower_threshold,
+                       upper_threshold: upper_threshold,
+                       try_reference: try_reference,
+                       exclude_self: exclude_self)
+
+########################################
+if false ########################################
     higher_than = (immediate_superior ? immediate_superior.weight : 0)  # returned weight is guaranteed to be higher than this value
 
     role_weight = (role ? role.weight : immediate_superior.weight*8).abs  # The factor 8 is arbitrary, except the resultant value should be smaller than MAX_WEIGHT_VISIBLE (please refer to the constant and Role#weight)
@@ -2730,6 +3025,83 @@ class Translation < ApplicationRecord
     else
       (higher_than + btw).quo(2)
     end
+end
+  end
+
+    # @param range [Range] lower and upper thresholds weight for the Role; e.g., [100...1000]
+    # @return [Array<Float, Float>] 2-element Array of default trial weight value and default positive offset
+    def _get_reference_offset(range)
+      lower, upper = range.begin, range.end
+      reference = upper/2.0
+      reference = (upper+lower).abs/2.0 if reference <= lower  # "=" is important (b/c MAX_WEIGHT_NO_ROLE/2 == MAX_WEIGHT_LOWEST_ROLE); "abs" is redundant but playing safe
+      positive_offset = (upper - reference).abs/5.0  # i.e., likely 10% of Role's Weight
+      [reference, positive_offset]
+    end
+    private :_get_reference_offset
+
+    # Utitily function
+    # @return [Float, NilClass] weight. Or nil, if !with_fallback and existing_min does not satisfy the easiest condition, in which case the caller is expected to continue processing.
+    def _get_smaller_or_equal_weight(def_reference, def_positive_offset, def_lower_threshold, def_upper_threshold, exclude_self, existing_min: , with_fallback: true)
+      if (with_fallback && !existing_min) || def_lower_threshold < existing_min
+        next_unique_weight(def_reference, def_offset: -def_positive_offset,
+                        lower_threshold: def_lower_threshold,
+                        upper_threshold: (existing_min || def_upper_threshold),  # maybe: (existing_min < def_reference)
+                        try_reference: (existing_min != def_reference), exclude_self: exclude_self)
+      else
+        _get_next_unique_weight_out_of_range(def_reference, def_positive_offset, def_lower_threshold, def_upper_threshold, exclude_self, existing_min, with_fallback,
+                                             is_positive: false)  # this may return nil
+      end
+    end
+    private :_get_smaller_or_equal_weight
+
+    # Utitily function
+    # @return [Float, NilClass] weight. Or nil, if !with_fallback and existing_max does not satisfy the easiest condition, in which case the caller is expected to continue processing.
+    def _get_larger_or_equal_weight(def_reference, def_positive_offset, def_lower_threshold, def_upper_threshold, exclude_self, existing_max: , with_fallback: true)
+      if (with_fallback && !existing_max) || (def_lower_threshold...def_upper_threshold).cover?(existing_max)
+        next_unique_weight(def_reference, def_offset: def_positive_offset,
+                        lower_threshold: (existing_max || def_lower_threshold),  # maybe: (def_reference < existing_max)
+                        upper_threshold: def_upper_threshold,
+                        try_reference: (existing_max != def_reference), exclude_self: exclude_self)
+      else
+        _get_next_unique_weight_out_of_range(def_reference, def_positive_offset, def_lower_threshold, def_upper_threshold, exclude_self, existing_max, with_fallback,
+                                             is_positive: true)  # this may return nil
+      end
+    end
+    private :_get_larger_or_equal_weight
+
+    # @return [Float, NilClass] weight when the reference value falls out of the range
+    def _get_next_unique_weight_out_of_range(def_reference, def_positive_offset, def_lower_threshold, def_upper_threshold, exclude_self, existing_minmax, with_fallback, is_positive: )
+      if !with_fallback && !existing_minmax
+        nil
+      else
+        range = self.class.low_high_role_weight_thresholds(existing_minmax)
+        _, positive_offset = _get_reference_offset(range)
+        next_unique_weight(existing_minmax,
+                           def_offset: (is_positive ? 1 : -1)*positive_offset,  # existing_min or existing_max may be 0
+                           lower_threshold: range.begin,
+                           upper_threshold: range.end,
+                           try_reference: false,
+                           exclude_self: exclude_self)
+      end
+    end
+    private :_get_larger_or_equal_weight
+
+  # Range of Role weights that "covers" the given weight
+  #
+  # @return [Range] exclude_end? is true
+  def self.low_high_role_weight_thresholds(ref_weight)
+    # Gets all Role weights in Translation RoleCategory
+    role_weights = (Role.roles_in_line(RoleCategory::MNAME_TRANSLATION).map(&:weight) + [MAX_WEIGHT_NO_ROLE]).sort  # sort should be redundant
+    prev = 0
+    raise "should never happen... #{role_weights.inspect}" if role_weights.first <= prev
+    role_weights.each do |eaw| 
+      retr = (prev...eaw)
+      if retr.cover?(ref_weight)
+        return retr
+      end
+      prev = eaw
+    end
+    role_weights.last...Float::INFINITY
   end
 
   # See also the instance method {Translation#def_weight}
@@ -2746,7 +3118,7 @@ class Translation < ApplicationRecord
   #
   # == Algorithm
   #
-  # Returns a weight constant (Integer) offset from the next higher weight.
+  # Returns a weight constant (Integer) offset from the next higher weight by an increment.
   # However, that is not always aplicable. So, some amount of adjustment
   # is required.
   #
@@ -2797,7 +3169,9 @@ class Translation < ApplicationRecord
   #
   # Note that this method ignores {#marked_for_destruction?} because deletion happens
   # after saving, where saving might fail due to unique constraints re {#weight}
-  # with persisting instances at the timing of saving.
+  # with persisting instances at the timing of saving.  Anyway, the exact absolute weight
+  # value does not matter (except for 0 and Infinity), and only their relative relations matter,
+  # so this constraint affects nothing.
   #
   # At least either of thresholds must be given.
   # (Note for Developers: there is no default set in order to enforce the caller to explicitly give one of them.)
@@ -2820,8 +3194,8 @@ class Translation < ApplicationRecord
   # @param example new weight for {#is_internal}
   #    new_tra = artist.translations.build(title: "some", langcode: "en", kind: Translation::KIND_ALT,
   #                                        weight: nil, is_internal: true, is_orig: false)
-  #    existing_max = new_tra.translatable.translations.select{_1.langcode == new_tra.langcode}.map(&:weight).compact.reject{_1 == Float::INFINITY}.max || 0
-  #    new_tra.next_unique_weight(existing_max, def_offset: Translation::MAX_WEIGHT_VISIBLE/10.0,
+  #    existing_max = new_tra.translatable.translations.select{_1.langcode == new_tra.langcode}.map(&:weight).compact.reject{_1 == Float::INFINITY}.max
+  #    new_tra.next_unique_weight((existing_max || 0), def_offset: Translation::MAX_WEIGHT_VISIBLE/10.0,
   #                                  lower_threshold: Translation::MAX_WEIGHT_VISIBLE,
   #                                  upper_threshold: Float::INFINITY)
   #      # => a unique and highest (except for Infinity) weight, guranteed to be higher than MAX_WEIGHT_VISIBLE
@@ -2864,10 +3238,10 @@ class Translation < ApplicationRecord
     end
 
     if def_offset > 0
-      if cand_weight < lower_threshold
+      if try_reference && (reference == 0 && lower_threshold == 0 || (lower_threshold...upper_threshold).cover?(reference))# edge cases
+        return reference
+      elsif cand_weight <= lower_threshold
         return send(__method__, lower_threshold, def_offset: def_offset, lower_threshold: lower_threshold, upper_threshold: upper_threshold, exclude_self: exclude_self, try_reference: false)
-      elsif try_reference && (0 == reference || cand_weight != lower_threshold) # i.e., (reference != lower_threshold)
-        return reference # i.e., if "reference" is examined, unique AND greater than lower_threshold
       end
       next_existing = existing_weights.select{ _1 > reference }.min
       threshold = [next_existing, upper_threshold].compact.min || Float::INFINITY

@@ -417,7 +417,7 @@ class RoleTest < ActiveSupport::TestCase
     assert_equal a1.first.weight, (weight=Role.lowest_weight_in_line(RoleCategory::MNAME_TRANSLATION)), "consistency check.. "
     assert_equal role_helper.weight, weight
     assert_equal Role::DEF_WEIGHT[Role::RNAME_HELPER], weight
-    role_max = roles(:helper10000000)
+    role_max = roles(:helper10100)
     assert_equal role_max.weight, Role.lowest_weight_in_line(RoleCategory::MNAME_ROOT)
   end
 end
