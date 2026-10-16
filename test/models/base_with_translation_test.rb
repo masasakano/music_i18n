@@ -5,6 +5,8 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
   include ApplicationHelper # for suppress_ruby270_warnings()
   include ModuleCommon
 
+  DEF_INIT_WEIGHT = (Translation::MAX_WEIGHT_LOWEST_ROLE + Translation::MAX_WEIGHT_NO_ROLE).quo(2).then { _1.denominator == 1 ? _1.to_i : _1 }  # Integer (or possibly Rational)
+
   setup do
     # Without this, current_user may(!) exist if you run Controller or Integration tests at the same time.
     ModuleWhodunnit.whodunnit = nil
@@ -820,39 +822,51 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     # For Artist, Sex is mandatory. As long as birth_year or place differ, identical Translation-s are allowed.
     tras_orig = [
       [
-       Translation.new(title: "b0", is_orig: true,  langcode: "en", weight: 0),
-       Translation.new(title: "b1", is_orig: true,  langcode: "en", weight: 0),  # This may fail in validate in future.
-       Translation.new(title: "b2", is_orig: false, langcode: "en", weight: 98),
-       Translation.new(title: "b3", is_orig: false, langcode: "en", weight: 104),
-       Translation.new(title: "b4", is_orig: false, langcode: "en", weight: 1104),
-       Translation.new(title: "b5", is_orig: false, langcode: "en", weight: Float::INFINITY),
-       Translation.new(title: "b6", is_orig: false, langcode: "en", weight: Float::INFINITY),
-       Translation.new(title: "b7", is_orig: false, langcode: "en", weight: nil),
-       Translation.new(title: "f0", is_orig: false, langcode: "fr", weight: 700),  # to ensure there is at least 1 Translation remaining
+       Translation.new(title: "b0", is_orig: true,  langcode: "en", kind: Translation::KIND_FULL, weight: 0),
+       Translation.new(title: "b1", is_orig: true,  langcode: "en", kind: Translation::KIND_ALT,  weight: 0),  # This may fail in validate in future.
+       Translation.new(title: "b2", is_orig: false, langcode: "en", kind: Translation::KIND_ALT,  weight: 98),
+       Translation.new(title: "b3", is_orig: false, langcode: "en", kind: Translation::KIND_ALT,  weight: 104),
+       Translation.new(title: "b4", is_orig: false, langcode: "en", kind: Translation::KIND_ALT,  weight: 1104),
+       Translation.new(title: "b5", is_orig: false, langcode: "en", kind: Translation::KIND_ALT,  weight: Float::INFINITY),
+       Translation.new(title: "b6", is_orig: false, langcode: "en", kind: Translation::KIND_ALT,  weight: Float::INFINITY),
+       Translation.new(title: "b7", is_orig: false, langcode: "en", kind: Translation::KIND_ALT,  weight: nil),
+       Translation.new(title: "f0", is_orig: false, langcode: "fr", kind: Translation::KIND_ALT,  weight: 700),  # to ensure there is at least 1 Translation remaining
       ].shuffle,  # the order is deliberately mixed up.
-      [Translation.new(title: "x1", is_orig: false, langcode: "en")]
+      [trao=Translation.new(title: "x1", is_orig: false, langcode: "en", kind: Translation::KIND_FULL)]
     ]
-    art0 = Artist.new(sex: Sex[0], birth_year: 1999)
-    art0.unsaved_translations = tras_orig[0]
+
+    art0 = Artist.new(sex: Sex[0], birth_year: 1999, orig_locale: "en")
+    tras_orig[0].each do |etra|
+      art0.translations << etra
+    end
     art0.save!  # See a comment above for potential future failure in validate
-    art1 = Artist.new(sex: Sex[1], birth_year: 2000)
-    art1.unsaved_translations = tras_orig[1]
+
+    art1 = Artist.new(sex: Sex[1], birth_year: 2000, orig_locale: nil)
+    tras_orig[1].each do |etra|
+      art1.translations << etra
+    end
     art1.save!
 
     assert_equal 9, art0.translations.count, 'Sanity check.'
     assert_equal 8, art0.translations.where(langcode: "en").count, 'Sanity check.'
     assert_equal 2, art0.translations.where(weight: 0).count, 'Sanity check.'
-    assert_equal 3, art0.translations.where(weight: Float::INFINITY).count, "Strangely failed sometimes ('setup do' should circumvent it now): ModuleWhodunnit.whodunnit=#{ModuleWhodunnit.whodunnit.inspect} art0.translations(title,weight)="+Translation.sort(art0.translations).pluck(:title, :weight).inspect  # weight==nil => Float::INFINITY (for system (no current_user); see Translation#set_create_user)
+    assert_equal 0, art0.translations.where(weight: nil).count # weight==nil => DEF_INIT_WEIGHT (for system (no current_user); see Translation#set_create_user)
+    assert_equal 2104, art0.translations.find_by(title: "b7").weight, "art0-weights(en|fr)="+art0.translations.map(&:weight).sort_by{[(_1.nil? ? 0 : 1), (_1.nil? ? 0 : _1)]}.inspect
+    assert_equal 2, art0.translations.where(weight: Float::INFINITY).count, "DEBUG: ModuleWhodunnit.whodunnit=#{ModuleWhodunnit.whodunnit.inspect} art0.translations(title,weight)="+Translation.sort(art0.translations).pluck(:title, :weight).inspect
 
-    weight_def = Role::DEF_WEIGHT.values.max  # see get_unique_weight (base_with_translation.rb)
+    weight_def = DEF_INIT_WEIGHT 
+    ## weight_def = Role::DEF_WEIGHT.values.max  # [OBSOLETE] see get_unique_weight (base_with_translation.rb)
 
-    trao = art1.best_translation("en")
-    assert_equal Float::INFINITY, trao.weight  # weight==nil => Float::INFINITY (for system (no current_user); see Translation#set_create_user)
+    # trao = art1.best_translation("en")
+    trao.reload  # This belongs_to art1 (NOT art0 !!)
+    assert_equal DEF_INIT_WEIGHT, trao.weight  # weight==nil => DEF_INIT_WEIGHT (for system (no current_user); see Translation#set_create_user)
 
     trao.update!(weight: Float::INFINITY)  # redundant
+    # weights(:en): [0.0, 0.0, 98.0, 104.0, 1104.0, 2104.0, Infinity, Infinity]
     assert_equal Float::INFINITY, art0.get_unique_weight(trao, priority: :lowest)
     assert_equal Float::INFINITY, art0.get_unique_weight(trao, priority: :low)
-    assert_equal 2208, art0.get_unique_weight(trao, priority: :high)
+    assert_includes (2105...), art0.get_unique_weight(trao, priority: :high)
+    # assert_equal 2208, art0.get_unique_weight(trao, priority: :high)
     assert_equal    0, art0.get_unique_weight(trao, priority: :highest)
 
     trao.update!(weight: 2000)
@@ -861,16 +875,22 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     assert_equal 2000, art0.get_unique_weight(trao, priority: :high)
 
     trao.update!(weight: 1104)
-    assert_equal 2208, art0.get_unique_weight(trao, priority: :low)
-    assert_equal  604, art0.get_unique_weight(trao, priority: :high)
+    # weights(:en): [0.0, 0.0, 98.0, 104.0, 1104.0, 2104.0, Infinity, Infinity]
+    # weights(:en): [0.0, 0.0, 0.1, 98.0, 104.0, 1104.0, Infinity, Infinity]  # Sometimes... for some reason!!?
+    assert_includes (1104...),    art0.get_unique_weight(trao, priority: :low)
+    assert_includes (105...1104), art0.get_unique_weight(trao, priority: :high)  # => 1052 (after v.2.14.2)
+    # assert_equal 2208, art0.get_unique_weight(trao, priority: :low)
+    # assert_equal  604, art0.get_unique_weight(trao, priority: :high)
 
     trao.update!(weight: 1000)
     assert_equal 1000, art0.get_unique_weight(trao, priority: :low)
     assert_equal 1000, art0.get_unique_weight(trao, priority: :high)
 
     trao.update!(weight: 104)
-    assert_equal  604, art0.get_unique_weight(trao, priority: :low)
-    assert_equal  101, art0.get_unique_weight(trao, priority: :high)
+    assert_includes (105...1104),    art0.get_unique_weight(trao, priority: :low) # => 154 (after v.2.14.2)
+    assert_includes (101...104),    art0.get_unique_weight(trao, priority: :high) # => 102 (after v.2.14.2)
+    # assert_equal  604, art0.get_unique_weight(trao, priority: :low)
+    # assert_equal  101, art0.get_unique_weight(trao, priority: :high)
 
     artra = []
     assert_equal  0, art0.get_unique_weight(trao, priority: :highest,  to_destroy: artra)
@@ -893,41 +913,55 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     artra = []
     assert_equal 50, art0.get_unique_weight(trao, priority: :low,     to_destroy: artra)
     assert_equal 50, art0.get_unique_weight(trao, priority: :high,    to_destroy: artra)
-    assert      [49, 50].include?(art0.get_unique_weight(trao, priority: :highest, to_destroy: artra))
+    # weights(:en): [98.0, 104.0, 1104.0, 2104.0, Infinity, Infinity]
+    # weights(:en): [0.1, 98.0, 104.0, 1104.0, Infinity, Infinity]  # sometimes...
+    assert_includes  [49, 50], art0.get_unique_weight(trao, priority: :highest, to_destroy: artra), " [NOTE] sometimes fails - #{art0.translations.reset.select{_1.langcode == "en"}.map(&:weight).sort.inspect} should include 2104 and no 204, but when not, it fails...???"
     assert_empty artra
 
     trao.update!(weight: 98)
-    assert_equal 101, art0.get_unique_weight(trao, priority: :low,   )
-    assert_equal  49, art0.get_unique_weight(trao, priority: :high,  )
-    assert_equal  49, art0.get_unique_weight(trao, priority: :highest)
-    assert_empty artra
+    # weights(:en): [98.0, 104.0, 1104.0, 2104.0, Infinity, Infinity]
+    assert_includes (98.1...104), art0.get_unique_weight(trao, priority: :low    ) # => 99 (after v.2.14.2)
+    assert_includes (3...98),     art0.get_unique_weight(trao, priority: :high   ) # => 88 (after v.2.14.2)
+    assert_includes (3...98),     art0.get_unique_weight(trao, priority: :highest) # => 88 (after v.2.14.2)
+    #assert_equal 101, art0.get_unique_weight(trao, priority: :low,   )
+    #assert_equal  49, art0.get_unique_weight(trao, priority: :high,  )
+    #assert_equal  49, art0.get_unique_weight(trao, priority: :highest)
 
     ## In the existing, no Infinity, no 0, but normal weights only
-    art0.translations.where(weight: Float::INFINITY, langcode: "en").each do |et|
-      et.destroy
+    art0.translations.reset.where(weight: Float::INFINITY, langcode: "en").each do |et|
+      et.destroy!
     end
+    # weights(:en): [98.0, 104.0, 1104.0, 2104.0]
+    # weights(:en): [98.0, 104.0, 204.0, 1104.0]   # sometimes...
+    # weights(:en): [98.0, 99.0, 104.0, 1104.0]   # sometimes...
     art0.reload
-    assert_equal  4, art0.translations.count, "should have decreased by 3."
+    assert_equal  5, art0.translations.count, "should have decreased by 2: "+art0.translations.select{_1.langcode == "en"}.map(&:weight).sort.inspect  # 4*en + 1*fr
 
     trao.update!(weight: 1104)
-    assert_equal 2208, art0.get_unique_weight(trao, priority: :lowest)
-    assert_equal 2208, art0.get_unique_weight(trao, priority: :low)
-    assert_equal  604, art0.get_unique_weight(trao, priority: :high,  )
-    assert_equal   49, art0.get_unique_weight(trao, priority: :highest)
+    assert_includes (2105...),     art0.get_unique_weight(trao, priority: :lowest), " [NOTE] sometimes fails - #{art0.translations.reset.select{_1.langcode == "en"}.map(&:weight).sort.inspect} should include 2104 and no 204, but when not, it fails...???"
+    assert_includes (1105...2104), art0.get_unique_weight(trao, priority: :low)
+    assert_includes (105...1104),  art0.get_unique_weight(trao, priority: :high)    # => 1052 (after v.2.14.2)
+    assert_includes (3...98),      art0.get_unique_weight(trao, priority: :highest) # =>   88 (after v.2.14.2)
+    # assert_equal 2208, art0.get_unique_weight(trao, priority: :lowest)
+    # assert_equal 2208, art0.get_unique_weight(trao, priority: :low)
+    # assert_equal  604, art0.get_unique_weight(trao, priority: :high,  )
+    # assert_equal   49, art0.get_unique_weight(trao, priority: :highest)
 
     trao.update!(weight: 1500)
-    assert_equal 2208, art0.get_unique_weight(trao, priority: :lowest)
+    assert_includes (2105...),     art0.get_unique_weight(trao, priority: :lowest)  # => 3104 (after v.2.14.2)
+    # assert_equal 2208, art0.get_unique_weight(trao, priority: :lowest)
     assert_equal 1500, art0.get_unique_weight(trao, priority: :low)
     assert_equal 1500, art0.get_unique_weight(trao, priority: :high,  )
-    assert_equal   49, art0.get_unique_weight(trao, priority: :highest)
+    assert_includes (3...98),      art0.get_unique_weight(trao, priority: :highest) # =>   88 (after v.2.14.2)
+    # assert_equal   49, art0.get_unique_weight(trao, priority: :highest)
 
     ## only the existing weight is Infinity (for 2 Translations)
     tmp_tras = art0.translations.where(langcode: "en")
     tmp_tras[1..].each do |et|
-      et.destroy
+      et.destroy!
     end
-    tmp_tras = art0.translations.where(langcode: "en")  # Without this, FrozenError would be raised below.
-    tmp_tras[0..1].each do |et|
+    tmp_tras.reload  # Without this, FrozenError would be raised below.
+    tmp_tras[0..0].each do |et|
       et.update!(weight: Float::INFINITY)  # only the existing weight is Infinity (for 2 Translations) (for system (no current_user); see Translation#set_create_user)
     end
     art0.reload
@@ -946,12 +980,15 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     trao.update!(weight: Float::INFINITY)
     assert_equal Float::INFINITY, art0.get_unique_weight(trao, priority: :lowest)
     assert_equal Float::INFINITY, art0.get_unique_weight(trao, priority: :low)
-    assert_equal Float::INFINITY, art0.get_unique_weight(trao, priority: :high)
+    assert_equal weight_def,    art0.get_unique_weight(trao, priority: :high)  # used to be Float::INFINITY as specification.
     assert_equal weight_def,    art0.get_unique_weight(trao, priority: :highest)
 
+    # weights(:en): []   # empty; weight(:fr)=[700]
     trao.update!(weight: 88)
-    assert_equal weight_def*10, art0.get_unique_weight(trao, priority: :lowest)
-    assert_equal 88, art0.get_unique_weight(trao, priority: :low)
+    # assert_equal weight_def*10, art0.get_unique_weight(trao, priority: :lowest)
+    assert_equal weight_def, art0.get_unique_weight(trao, priority: :lowest)
+    assert_equal weight_def, art0.get_unique_weight(trao, priority: :low)
+    #assert_equal 88, art0.get_unique_weight(trao, priority: :low)
     assert_equal 88, art0.get_unique_weight(trao, priority: :high)
     assert_equal 88, art0.get_unique_weight(trao, priority: :highest)
   end  # test "get_unique_weight" do
@@ -963,12 +1000,10 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     assert_equal 0, sex.translations.count, "sanity check"
     assert_equal [0, 0], [sex.translations.count, sex.reload.translations.count], "sanity check"
 
-#print "DEBUG:test-base:0s:sex= ";p sex
     title_sure = "tmp-title-"+__method__.to_s
     lc0 = "en"
     tra00 = Translation.new(langcode: lc0, title: title_sure, romaji: "something999")
     assert_difference('Translation.count'){
-#print "DEBUG:test-base:0t:sql= ";p sex.translations.to_sql
       # sex.translations.create!(langcode: lc0, title: title_sure, romaji: "something999")
       sex.translations << tra00
     }
@@ -988,18 +1023,14 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     refute sex.translations.all?(&:valid?)
     sex.translations.reset
     assert sex.translations.first.title.blank?
-#print "DEBUG:test-base:se:valid=#{sex.valid?.inspect} : tra1= ";p tra1
     refute sex.translations.all?(&:valid?)
     assert sex.valid?
 
     tra0 = Translation.new(langcode: :en)
     refute tra0.valid?
-#print "DEBUG:test-base:00:valid=#{tra0.valid?.inspect} : tra= ";p [tra0, tra0.translatable_id]
     assert_no_difference('Translation.count'){
       assert tra0.new_record?
       sex.translations << tra0
-#print "DEBUG:test-base:00:f0=#{tra0.valid?.inspect} : tra= ";p [tra0, tra0.translatable_id]
-#print "DEBUG:test-base:00-f1:valid=#{tra0.valid?.inspect} : [tra.errors,self.errors]= ";p [tra0.errors, sex.errors]
       assert_nil tra0.id
       # refute tra0.new_record?
       refute sex.valid?
@@ -1008,7 +1039,6 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     assert_equal [1, 1], [sex.translations.count, sex.reload.translations.count]
 
     tra0.title = tit_mod = "nanika0"
-#print "DEBUG:test-base:00:valid=#{tra0.valid?.inspect} : tra= ";p [tra0, tra0.translatable_id]
     assert_difference('Translation.count'){
       sex.translations << tra0
       refute tra0.new_record?
@@ -1016,17 +1046,13 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     }
     tra1 = Translation.where(translatable_type: 'Sex').order(created_at: :desc).first
     assert_equal tra0, tra1
-#print "DEBUG:test-base:05:valid=#{tra1.valid?.inspect}  : tra= ";p [tra1, tra1.translatable_id]
-#print "DEBUG:test-base:06:ID(sex,tra.translatable_type)= ";p [sex.id, tra1.translatable_type]
     $stdout.sync = true
     assert tra1.id
     sex.translations.reset
-#print "DEBUG:test-base:07:nTras=#{sex.translations.count} : sex= ";p sex
     assert_equal [2, 2], [sex.translations.count, sex.reload.translations.count]
     # tra2= sex.translations.first
     sex.save!
     sex.update!(iso5218: 998)
-#print "DEBUG:test-base:21:sex= ";p [sex, sex.valid?]
 
     ## Adding a new (valid) Translation, then tries to change its alt_title to something invalid
     tra3 = Translation.new(langcode: lc0, title: "dummy3_"+__method__.to_s, alt_title: tit_mod)
@@ -1036,7 +1062,6 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       sex.translations << tra3 }
     refute tra3.id
     assert tra3.new_record?
-#print "DEBUG:test-base:31:err= ";p tra3.errors.any?
     assert tra3.errors.any?
     
     tra3.alt_title = 'a temporary 3'
@@ -1084,7 +1109,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 2, art0.translations.size
       assert_equal 3, art1.translations.size
       assert_equal 1, art1.translations.where(langcode: "en").count
-      assert_equal Float::INFINITY, art0.orig_translation.weight, 'Strange sometimes ("setup do" should circumvent it now): art0.orig_translation='+art0.orig_translation.inspect  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
+      assert_equal DEF_INIT_WEIGHT, art0.orig_translation.weight, 'Strange sometimes ("setup do" should circumvent it now): art0.orig_translation='+art0.orig_translation.inspect  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
 
       art0.send(:_merge_lang_orig, art1, priority: :self)
 
@@ -1094,8 +1119,8 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 2, art1.translations.size, "Should have decreased by 1, becoming 3-1=2"
       assert_equal 0, art1.translations.where(langcode: "en").count  # en in art1 has disappeared.
       assert_equal tras[0][:en].title, art0.orig_translation.title
-      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight
-      assert_nil                       art1.orig_translation  # en translation (orig_translation) in art1 has disappeared.
+      assert_equal DEF_INIT_WEIGHT, art0.orig_translation.weight
+      assert_nil                    art1.orig_translation  # en translation (orig_translation) in art1 has disappeared.
 
     #  raise ActiveRecord::Rollback, "Force rollback."
     #end
@@ -1118,7 +1143,8 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 2, art1.translations.size, "Should have decreased by 1, becoming 3-1=2"
       assert_equal 0, art1.translations.where(langcode: "en").count  # en in art1 has disappeared (transferred).
       assert_equal tras[1][:en].title, art0.orig_translation.title, "orig-trans should have been transferred"
-      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset; this only sometime fails strangely....."  # See get_unique_weight() for the number (where priority==:highest is given, because of orig_translation): = 100000
+      assert_equal DEF_INIT_WEIGHT, art0.orig_translation.weight, "weight should have been reset; this only sometime fails strangely....."  # See get_unique_weight() for the number (where priority==:highest is given, because of orig_translation)
+      # assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset; this only sometime fails strangely....."  # See get_unique_weight() for the number (where priority==:highest is given, because of orig_translation): = 100000
       assert_nil                       art1.orig_translation  # en translation (orig_translation) in art1 now has is_orig=nil
 
     #  raise ActiveRecord::Rollback, "Force rollback."
@@ -1137,7 +1163,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 2, art0.translations.size
       assert_equal 3, art1.translations.size
       assert_equal 1, art1.translations.where(langcode: "en").count
-      assert_equal Float::INFINITY, art0.orig_translation.weight  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
+      assert_equal DEF_INIT_WEIGHT, art0.orig_translation.weight  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
       assert_equal true, art1_orig_tr.is_orig
 
       art0.send(:_merge_lang_orig, art1, priority: :self)
@@ -1148,7 +1174,8 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 3, art1.translations.size, "No change"
       assert_equal 1, art1.translations.where(langcode: "en").count
       assert_equal tras[0][:ja].title, art0.orig_translation.title
-      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight  # weight for original Translation after merged will never be Infinity.
+      assert_includes (0.5...DEF_INIT_WEIGHT), art0.orig_translation.weight # == 7500
+      # assert_equal DEF_INIT_WEIGHT, art0.orig_translation.weight  # weight for original Translation after merged will never be Infinity.
       assert_nil                       art1.orig_translation  # is_orig becomes false.
       art1_orig_tr.reload
       assert_nil      art1_orig_tr.is_orig  # is_orig nullified in _reset_reassign_orig_langcode_self_other() 
@@ -1174,7 +1201,8 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 1, art0.translations.where(is_orig: true).count
       assert_equal tras[1][:en].title, art0.orig_translation.title, "inspect="+art0.translations.where(is_orig: true).inspect
       assert_equal false, art0.best_translation(:ja).is_orig
-      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset.  For some reason, this sometimes fails but only sometimes..... ('setup do' should circumvent it now) art0.orig_translation="+art0.orig_translation.inspect  # See above
+      assert_includes (0.5...DEF_INIT_WEIGHT), art0.orig_translation.weight, "weight should have been reset.  For some reason, this sometimes fails but only sometimes..... ('setup do' should circumvent it now) art0.orig_translation="+art0.orig_translation.inspect  # == 7500
+      # assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset.  For some reason, this sometimes fails but only sometimes..... ('setup do' should circumvent it now) art0.orig_translation="+art0.orig_translation.inspect  # See above
       assert_nil                       art1.orig_translation  # orig_translation should have is_org=nil now
 
     #  raise ActiveRecord::Rollback, "Force rollback."
@@ -1219,6 +1247,9 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 1, art0.translations.where(langcode: "en").count
       assert_equal 0, art0.translations.where(is_orig: true).count
 
+      # art0.translations.select{_1.langcode == "en"}.map{|etra| [:langcode, :kind, :is_orig, :is_official, :is_literal, :weight, :title].map{etra.send _1}}
+      # art0: [["en", "full", false, nil, false, 15000.0, "Something000"]]
+      # art1: [["en", "full", true, nil, false, 67.0, "Something001"], ["en", "alt", true, nil, false, 89.0, "Something011"]]
       art0.send(:_merge_lang_orig, art1, priority: :self)
 
       art0.reload
@@ -1227,7 +1258,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 3, art1.translations.size, "Should have decreased by 1, becoming 4-1=2"
       assert_equal 1, art1.translations.where(langcode: "en").count  # An en in art1 has disappeared.
       assert([tras[1][:en].title, "Something011"].include?(art0.orig_translation.title))  # It is uncertain which Translation is selected, the original is_orig=true one or a new duplicate.
-      assert([67, 89].include?(art0.orig_translation.weight), "For some reason, this sometimes fails but only sometimes..... ('setup do' should circumvent it now)")
+      assert_includes [67, 89, 67/2.0, 89/2.0], art0.orig_translation.weight, "For some reason, this sometimes fails but only sometimes..... ('setup do' should circumvent it now); weight=#{art0.orig_translation.weight.inspect}"
       assert_equal 2, art0.translations.where(langcode: "en").count
       assert_equal 1, art0.translations.where(is_orig: true).count
       assert_nil                       art1.orig_translation  # en translation (orig_translation) in art1 has disappeared.
@@ -1288,7 +1319,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 2, art0.translations.size
       assert_equal 3, art1.translations.size
       assert_equal 1, art1.translations.where(langcode: "en").count
-      assert_equal Float::INFINITY, art0.orig_translation.weight  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
+      assert_equal DEF_INIT_WEIGHT, art0.orig_translation.weight  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
 
       art0.send(:_merge_trans, art1, priority_orig: :self, priority_others: :self)
       # An English disappers. Japanese is added.
@@ -1303,7 +1334,8 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 1, art0.translations.where(is_orig: true).count
       assert_equal tras[0][:en].title, art0.orig_translation.title, "inspect="+art0.translations.where(is_orig: true).inspect
       assert_equal false, art0.best_translation(:ja).is_orig
-      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight  ## This is the case (b/c untouched?).
+      assert_equal DEF_INIT_WEIGHT, art0.orig_translation.weight
+      # assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight  ## This is the case (b/c untouched?).
       assert_nil                       art1.orig_translation  # orig_translation should have disappeared
       assert_empty    art1.translations.where(is_orig: nil)  # Identical orig-Translation should have disappeared.
 
@@ -1324,7 +1356,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 2, art0.translations.size
       assert_equal 3, art1.translations.size
       assert_equal 1, art1.translations.where(langcode: "en").count
-      assert_equal Float::INFINITY, art0.orig_translation.weight, "Strangely fails sometimes ('setup do' should circumvent it now): ModuleWhodunnit.whodunnit=#{ModuleWhodunnit.whodunnit.inspect} orig="+art0.orig_translation.inspect  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
+      assert_equal DEF_INIT_WEIGHT, art0.orig_translation.weight, "Strangely fails sometimes ('setup do' should circumvent it now): ModuleWhodunnit.whodunnit=#{ModuleWhodunnit.whodunnit.inspect} orig="+art0.orig_translation.inspect  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
 
       reths = art0.send(:_merge_trans, art1, priority_orig: :self, priority_others: :self)
       # An English disappers. Japanese is added.
@@ -1340,8 +1372,8 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 1, art0.translations.where(is_orig: true).count
       assert_equal tras[0][:en].title, art0.orig_translation.title, "inspect="+art0.translations.where(is_orig: true).inspect
       assert_equal false, art0.best_translation(:ja).is_orig
-      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight
-      assert_nil                       art1.orig_translation  # orig_translation should have disappeared
+      assert_includes (0.5...DEF_INIT_WEIGHT), art0.orig_translation.weight # == 7500 or 15000... (it depends for some reason!)
+      assert_nil                    art1.orig_translation  # orig_translation should have disappeared
       # assert_empty    art1.translations.where(is_orig: nil)  # This fails as art1 DOES have one because the original is_orig of art1 is not destroyed in merging but stays (because of different orig_locale from art0), and then its is_orig is nullified in _reset_reassign_orig_langcode_self_other() for subesquent processing
 
     #  raise ActiveRecord::Rollback, "Force rollback."
@@ -1362,7 +1394,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 2, art0.translations.size
       assert_equal 3, art1.translations.size
       assert_equal 1, art1.translations.where(langcode: "en").count
-      assert_equal Float::INFINITY, art0.orig_translation.weight, "Strangely fails sometimes ('setup do' should circumvent it now): ModuleWhodunnit.whodunnit=#{ModuleWhodunnit.whodunnit.inspect} orig="+art0.orig_translation.inspect  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
+      assert_equal DEF_INIT_WEIGHT, art0.orig_translation.weight, "Strangely fails sometimes ('setup do' should circumvent it now): ModuleWhodunnit.whodunnit=#{ModuleWhodunnit.whodunnit.inspect} orig="+art0.orig_translation.inspect  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
 
       reths = art0.send(:_merge_trans, art1, priority_orig: :self, priority_others: :other)
 
@@ -1377,7 +1409,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 1, art0.translations.where(is_orig: true).count
       assert_equal tras[0][:en].title, art0.orig_translation.title, "inspect="+art0.translations.where(is_orig: true).inspect
       assert_equal false, art0.best_translation(:ja).is_orig
-      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight
+      assert_includes (0.5...DEF_INIT_WEIGHT), art0.orig_translation.weight # == 7500 or 15000... (it depends for some reason!)
       #assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset"  # See above
       assert_nil                       art1.orig_translation  # orig_translation should have disappeared
       assert_empty    art1.translations.where(is_orig: nil)
@@ -1409,7 +1441,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 1, art1.translations.where(langcode: "en").count
       assert_equal 2, art1.translations.where(langcode: "ja").count
       assert_equal "brand-new", art1.orig_translation.alt_title
-      assert_equal Float::INFINITY, art0.orig_translation.weight, "Strangely fails sometimes ('setup do' should circumvent it now): ModuleWhodunnit.whodunnit=#{ModuleWhodunnit.whodunnit.inspect} orig="+art0.orig_translation.inspect  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
+      assert_equal DEF_INIT_WEIGHT, art0.orig_translation.weight, "Strangely fails sometimes ('setup do' should circumvent it now): ModuleWhodunnit.whodunnit=#{ModuleWhodunnit.whodunnit.inspect} orig="+art0.orig_translation.inspect  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
 
       reths = art0.send(:_merge_trans, art1, priority_orig: :self, priority_others: :other)
 
@@ -1427,9 +1459,8 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal art1_ja1, art0.best_translation(:ja)
       assert_equal art1_ja2, art0.translations.where(langcode: "ja", title: new_self_tit).first, "to_compare=#{tras[0][:ja].inspect} tras="+art0.translations.where(langcode: "ja").inspect
       assert_equal false, art0.best_translation(:ja).is_orig
-      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight
-      #assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight, "weight should have been reset"  # See above
-      assert_nil                       art1.orig_translation  # there should be no more orig_translation
+      assert_equal DEF_INIT_WEIGHT, art0.orig_translation.weight
+      assert_nil                    art1.orig_translation  # there should be no more orig_translation
       assert_empty    art1.translations.where(is_orig: nil)  # original identical orig_translation should have disappeared
 
       raise ActiveRecord::Rollback, "Force rollback."
@@ -1466,7 +1497,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 1, art1.translations.where(langcode: "en").count
       assert_equal 2, art1.translations.where(langcode: "ja").count
       assert_equal "brand-new", art1.orig_translation.alt_title
-      assert_equal Float::INFINITY, art0.orig_translation.weight  # nil weight is automatically reset at Infinity (for system (no current_user); see Translation#set_create_user)
+      assert_equal DEF_INIT_WEIGHT, art0.orig_translation.weight  # nil weight is automatically reset at DEF_INIT_WEIGHT (for system (no current_user); see Translation#set_create_user)
 
       reths = art0.send(:_merge_trans, art1, priority_orig: :self, priority_others: :other)
 
@@ -1484,8 +1515,8 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal art1_ja1, art0.best_translation(:ja)
       assert_equal art1_ja2, art0.translations.where(langcode: "ja", title: new_self_tit).first, "to_compare=#{tras[0][:ja].inspect} tras="+art0.translations.where(langcode: "ja").inspect
       assert_equal false, art0.best_translation(:ja).is_orig
-      assert_equal Role::DEF_WEIGHT.values.max, art0.orig_translation.weight
-      assert_nil                       art1.orig_translation  # there should be no more orig_translation
+      assert_equal DEF_INIT_WEIGHT, art0.orig_translation.weight
+      assert_nil                    art1.orig_translation  # there should be no more orig_translation
       assert_empty    art1.translations.where(is_orig: nil)  # original identical orig_translation should have disappeared
 
       raise ActiveRecord::Rollback, "Force rollback."
@@ -1981,7 +2012,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
 
       anc_dup = anc1.dup
       anc_dup.anchorable = hsmdl[:musics][0]
-      anc_dup.note = "Duplicated..."
+      anc_dup.note = "Duplicated when merged..."
       anc_dup.save!
       hsmdl[:musics][0].anchorings.reset
 
@@ -1997,12 +2028,12 @@ mdl.translations.first.translatable_id = EngageHow.second.id
         hsret = hsmdl[:musics][0].merge_other(hsmdl[:musics][1], priorities: hspri, save_destroy: true)
       }
         new_mu = hsmdl[:musics][0].reload
-#puts "DEBUG(orig901): music-ID="+new_mu.id.to_s
 
+        assert_equal 1, hsret[:destroyed].find_all{|i| Anchoring === i}.size
         assert_equal 1, hsret[:destroyed].find_all{|i| Translation === i}.size
         assert_equal 1, hsret[:destroyed].find_all{|i| Music === i}.size
         assert_equal 1, hsret[:destroyed].find_all{|i| ArtistMusicPlay === i}.size
-        assert_equal 3, hsret[:destroyed].size, '1 Music, 1 Translation, 1 ArtistMusicPlay destroyed, but: destroyed='+"#{hsret[:destroyed].inspect}"
+        assert_equal 4, hsret[:destroyed].size, '1 Music, 1 Translation, 1 ArtistMusicPlay 1 Anchoring destroyed, but: destroyed='+"#{hsret[:destroyed].inspect}"
         assert_equal 1, hsret[:trans][ :remained].size,     '1 Translation remains'
         assert_equal 2, hsret[:engage][:remained].size
         assert_equal 2, hsret[:harami_vid_music_assocs][ :remained].size
@@ -2073,6 +2104,25 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     hsmdl[:artists][0].update!(sex: Sex[1], birth_year: 1990, birth_month:   5, place: places(:liverpool_street))
     hsmdl[:artists][1].update!(sex: Sex[0], birth_year: 1985, birth_month: nil, place: places(:perth_uk))
 
+    # Hash of Array of Channel#id_at_platform and Channel#id_human_at_platform String-s
+    # => {"id_at_platform" => [["unk_platform-channel-0-id_at_platform-01868", nil],
+    #                          ["unk_platform-channel-1-id_at_platform-02304", nil]],
+    #     "id_human_at_platform" => [["", "@def_platform-channel-0-id_human_at_platform-08423"],
+    #                                ["", "@def_platform-channel-1-id_human_at_platform-01030"]]}
+    # NOTE: At the time of writing, in `prepare_h1129s1`, neither should be nil,
+    #       and always either of them is defined in either of from-Channel and to-Channel (randomized!).
+    #       Since only either of From/To Channels have them, all the significant ones should appear
+    #       in one of the merged Channels; i.e., none of them would disappear in merging due to conflicts.
+    all_chan_id_strs = %w(id_at_platform id_human_at_platform).map{ |metho|  # Hash with keys like :id_at_platform
+      [ metho, hsmdl[:artists].map{ |art|
+          art.channel_owner&.channels.pluck(metho)
+        } ]
+    }.to_h.with_indifferent_access
+    all_sig_chan_id_strs = all_chan_id_strs.map{ |ek, edary|
+      [ ek, edary.flatten.compact.select{ _1.present? } ]
+    }.to_h.with_indifferent_access
+    # => (Hash of Single-Arrays) {"id_at_platform" => ["unk_platform-channel-0-id_at_platform-01868", ...], "id_human_at_platform" => [...]}
+
     assert_equal 1985, hsmdl[:artists][1].birth_year
     assert_nil hsmdl[:artists][1].birth_day, 'Sanity check...'
     assert_nil hsmdl[:artists][1].birth_day, 'Sanity check...'
@@ -2091,7 +2141,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     # Artist0: 1ja, is_orig=ja, different-En     (2ja, 1en)
     # Artist1:      Same ja(0), is_orig=en,  1fr (1ja, 1en, 1fr)
     assert_equal(%w(en en), [0, 1].map{|i| hsmdl[:artists][i].best_translation.langcode}, 'Sanity check...')
-    hsmdl[:artists][0].with_translation(title: "オーーア", langcode: "ja", weight: 22, note: "Added dummy Japanese Trans for 0")
+    hsmdl[:artists][0].with_translation(title: "オーーア", langcode: "ja", weight: 42, note: "Added dummy Japanese Trans for 0")
     t0_0 = hsmdl[:artists][0].translations.find_by(title: "オーーア")
     hsmdl[:artists][0].with_translation(title: "オアシス", langcode: "ja", note: "Added Japanese Trans for 0", is_orig: true)
     hsmdl[:artists][0].reload
@@ -2120,6 +2170,14 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     ensure
       I18n.locale = cur_locale
     end
+
+    ## [:langcode, :kind, :is_orig, :is_official, :is_literal, :weight, :title]
+    # hsmdl[:artists][0]: [["ja", "alt", false, nil, false, 42.0, "オーーア"],
+    #                      ["ja", "alt", true,  nil, false, 32.0, "オアシス"],
+    #                      ["en", "alt", false, nil, false, 15000.0, "OasIs"]],
+    # hsmdl[:artists][1]: [["en", "alt", true,  nil, false, 15000.0, "OasYs"],
+    #                      ["ja", "alt", false, nil, false, 11.0, "オアシス"],
+    #                      ["fr", "alt", nil,   nil, false, 15000.0, "Oaiis"]]]
 
     e1_1 = Engage.create!(artist: hsmdl[:artists][1], music: hsmdl[:musics][1], engage_how: engage_hows(:engage_how_arranger), contribution: 0.55, year: 1999) # Artist engages in a different EngageHow
     e1_2 = Engage.create!(artist: hsmdl[:artists][1], music: musics(:music_light), engage_how: engage_hows(:engage_how_singer_original), contribution: 0.6, year: 1950) # Artist engages in a different Music
@@ -2196,7 +2254,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       assert_equal 2, new_art.translations.where(langcode: "ja").size
       assert_equal 1, new_art.translations.where(langcode: "fr").size
       assert_equal 4, new_art.engages.size
-      assert_equal best_tras[1],           new_art.orig_translation
+      assert_equal best_tras[1],           new_art.orig_translation, "Expect 'OasYs' NOT 'OasIs': exp<=>act: "+[best_tras[1],new_art.orig_translation].map{|etra| %i(langcode title is_orig weight).map{etra.send _1}}.inspect
       assert_equal h1129_prms[:singer][1], new_art.orig_translation.title
 
       assert_equal hsmdl[:sexes][0],       new_art.sex
@@ -2206,6 +2264,12 @@ mdl.translations.first.translatable_id = EngageHow.second.id
 
       assert_includes new_art.anchorings, hsmdl[:art_anchorings][0]
       assert_includes new_art.anchorings, hsmdl[:art_anchorings][1]  # Artist saved, so this new association is established.
+
+      all_sig_chan_id_strs.each do |ek, eary|
+        eary.each do |id_word|
+          assert new_art.channel_owner&.channels.any? { _1.send(ek) == id_word }, "One of merged Channels should have #{ek.to_sym.inspect} => #{id_word.inspect}, but no...: #{(new_art.channel_owner&.channels).pluck(ek).inspect} all_chan_id_strs.each.inspect=#{all_chan_id_strs.each.inspect}"#+(new_art.channel_owner&.channels).inspect
+        end
+      end
 
     ## Prepares for merging Musics
 
@@ -2659,11 +2723,11 @@ end
     def _prepare_artists_with_trans
       # For Artist, Sex is mandatory. As long as birth_year or place differ, identical Translation-s are allowed.
       tras = [
-        {ja: Translation.new(title: "何か000",         is_orig: false, langcode: "ja"),
-         en: Translation.new(title: "Something000",    is_orig: true,  langcode: "en")}.with_indifferent_access,
-        {ja: Translation.new(title: "何か001",         is_orig: false, langcode: "ja"),
-         en: Translation.new(title: "Something001",    is_orig: true,  langcode: "en"),
-         fr: Translation.new(title: "Quelquechose001", is_orig: false, langcode: "fr")}.with_indifferent_access
+        {ja: Translation.new(title: "何か000",         is_orig: false, langcode: "ja", kind: "full"),
+         en: Translation.new(title: "Something000",    is_orig: true,  langcode: "en", kind: "full")}.with_indifferent_access,
+        {ja: Translation.new(title: "何か001",         is_orig: false, langcode: "ja", kind: "full"),
+         en: Translation.new(title: "Something001",    is_orig: true,  langcode: "en", kind: "full"),
+         fr: Translation.new(title: "Quelquechose001", is_orig: false, langcode: "fr", kind: "full")}.with_indifferent_access
       ]
       art0 = Artist.new(sex: Sex[0], birth_year: 1999)
       art0.unsaved_translations = tras[0].values

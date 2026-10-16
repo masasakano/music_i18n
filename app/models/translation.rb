@@ -89,6 +89,12 @@ class Translation < ApplicationRecord
   before_validation :move_articles_to_tail
   after_validation  :revert_articles
   before_save       :move_articles_to_tail
+
+  # Fired only when save is an isolated action independent of its parent
+  # because {BaseWithTranslation#assign_translation_weights} usually fires on `before_validation`.
+  # NOTE: make sure this comes AFTER +include {ModuleCreateUpdateUser}+ because `set_update_user` must fire beforehand.
+  before_save :assign_fallback_weight, if: -> { weight.nil? }
+
   after_save        :reset_backup_6params  # to reset the temporary instance variable
   after_save        :singularize_is_orig   # If is_orig==true, makes all the other is_orig false and maybe updates parent's orig_locale.  If nil, nullifies all the others.
   after_save        :call_after_save_translatable_callback  # to call after_save_translatable_callback in translatable if present
@@ -336,7 +342,7 @@ class Translation < ApplicationRecord
       s1 = "COALESCE(#{Translation.table_name}.title, '') = ? AND COALESCE(#{Translation.table_name}.alt_title, '') = ?"
       relcombi = rel.where(s1, title, alt_title).or(rel.where(s1, alt_title, title))
       if relcombi.count > 0
-        msg = "Combination of (title, alt_title) must be unique: #{[title, alt_title]}"
+        msg = "Combination of (title, alt_title) must be unique within locale=#{record.langcode.inspect}: #{[title, alt_title]}"
         if Rails.env.development? ||  Rails.env.test?
           trans = relcombi.first
           msg << sprintf(" [Development/Test] ID=%s Other(1)(ID=%s)[title/alt_title]=%s", record.id.inspect, trans.id.inspect, [trans.title, trans.alt_title].inspect)
@@ -453,6 +459,13 @@ class Translation < ApplicationRecord
   # the Translation should be for internal use only (like for typo matches) and
   # should not be displayed for general public.
   MAX_WEIGHT_VISIBLE = MAX_WEIGHT_NO_ROLE * 5  # = 100000
+
+  # Lower thresholds in the range of extra-large weights
+  WEIGHT_UPPER_END_RANGES = [
+    (MAX_WEIGHT_NO_ROLE...MAX_WEIGHT_USED),
+    (MAX_WEIGHT_USED...MAX_WEIGHT_VISIBLE),
+    (MAX_WEIGHT_VISIBLE..Float::INFINITY)   # NOTE: Only this is !exclude_end? so that this should cover anything large
+  ]
 
   # Permitted {#kind} column values
   KINDS = [
@@ -2792,7 +2805,8 @@ class Translation < ApplicationRecord
     ## 1. Internal use
     if is_internal
       existing_max = _existing_translatable_weights(exclude: exclude_self).reject{_1 == Float::INFINITY}.max
-      return next_unique_weight((existing_max || 0), def_increment: MAX_WEIGHT_VISIBLE/10.0,
+      _, def_increment = self.class.get_reference_increment(MAX_WEIGHT_VISIBLE...Float::INFINITY)  # 10000
+      return next_unique_weight((existing_max || 0), def_increment: def_increment,
                                 lower_threshold: MAX_WEIGHT_VISIBLE,
                                 upper_threshold: Float::INFINITY, try_reference: false, exclude_self: exclude_self)
     end
@@ -2800,7 +2814,7 @@ class Translation < ApplicationRecord
     ## 2. For record only
     if is_for_record
       existing_max = _existing_translatable_weights(exclude: exclude_self).select{(MAX_WEIGHT_USED...MAX_WEIGHT_VISIBLE).cover? _1}.max
-      def_increment = (MAX_WEIGHT_VISIBLE - MAX_WEIGHT_USED).abs/10.0
+      _, def_increment = self.class.get_reference_increment(MAX_WEIGHT_USED...MAX_WEIGHT_VISIBLE)  # 2000
       return next_unique_weight((existing_max || 0), def_increment: def_increment,
                                 lower_threshold: MAX_WEIGHT_USED,
                                 upper_threshold: MAX_WEIGHT_VISIBLE, try_reference: false, exclude_self: exclude_self)
@@ -2809,7 +2823,7 @@ class Translation < ApplicationRecord
     ## 3. (kind == KIND_NICKNAME)
     if ![KIND_FULL, KIND_ALT].include?(kind)
       existing_max = _existing_translatable_weights(exclude: exclude_self).select{(MAX_WEIGHT_NO_ROLE...MAX_WEIGHT_USED).cover? _1}.max
-      def_increment = (MAX_WEIGHT_USED - MAX_WEIGHT_NO_ROLE).abs/10.0
+      _, def_increment = self.class.get_reference_increment(MAX_WEIGHT_NO_ROLE...MAX_WEIGHT_USED)  # 6000
       return next_unique_weight((existing_max || 0), def_increment: def_increment,
                                 lower_threshold: MAX_WEIGHT_NO_ROLE,
                                 upper_threshold: MAX_WEIGHT_USED, try_reference: false, exclude_self: exclude_self)
@@ -2830,7 +2844,7 @@ class Translation < ApplicationRecord
       ## return Float::INFINITY if !user  # NOTE: This used to be the case
     end
 
-    def_reference, def_positive_increment = _get_reference_increment(def_lower_threshold...def_upper_threshold)
+    def_reference, def_positive_increment = self.class.get_reference_increment(def_lower_threshold...def_upper_threshold)
 
     ## 5. if (langcode == translatable.orig_locale)
 
@@ -2972,7 +2986,7 @@ class Translation < ApplicationRecord
         (lower_threshold...upper_threshold)  # "lower_than" here is preferably a nice round number than the derived "larger_than"
       end
 
-    reference, positive_increment = _get_reference_increment(range)
+    reference, positive_increment = self.class.get_reference_increment(range)
     lower_threshold = [larger_than, lower_threshold].compact.max  # Now, "lower_than" becomes more strict and is less likely to be a nice round number
 
     if smaller_than_for_role
@@ -3028,16 +3042,40 @@ if false ########################################
 end
   end
 
-    # @param range [Range] lower and upper thresholds weight for the Role; e.g., [100...1000]
-    # @return [Array<Float, Float>] 2-element Array of default trial weight value and default positive increment
-    def _get_reference_increment(range)
-      lower, upper = range.begin, range.end
-      reference = upper/2.0
-      reference = (upper+lower).abs/2.0 if reference <= lower  # "=" is important (b/c MAX_WEIGHT_NO_ROLE/2 == MAX_WEIGHT_LOWEST_ROLE); "abs" is redundant but playing safe
-      positive_increment = (upper - reference).abs/5.0  # i.e., likely 10% of Role's Weight
-      [reference, positive_increment]
+  # Wrapper of {#def_weight}
+  #
+  # @return [Float] Default weight of a given Translation that perhaps belongs_to another BaseWithTranslation
+  #    or for trying with another parameter like a different {#langcode}
+  def self.def_weight(user=ModuleWhodunnit.whodunnit, translation: , translatable: nil, langcode: nil, weight: nil)
+    begin
+      tmp_trans = translation.dup
+      tmp_trans.id = nil
+      tmp_trans.translatable = translatable if translatable
+      tmp_trans.langcode = langcode if langcode 
+      tmp_trans.weight = weight if weight 
+      ret = tmp_trans.send(__method__, user, exclude_self: true)
+    ensure
+      tmp_trans.destroy!
     end
-    private :_get_reference_increment
+    ret
+  end
+
+  # Returns the nominal weight and positive increment for the given Range
+  #
+  # @param range [Range] lower and upper thresholds weight for the Role; e.g., [100...1000]
+  # @return [Array<Float, Float>] 2-element Array of default trial weight value and default positive increment
+  def self.get_reference_increment(range)
+    lower, upper = range.begin, range.end
+    if lower < MAX_WEIGHT_NO_ROLE
+      reference = upper.quo(2)
+      reference = (upper+lower).abs.quo(2) if reference <= lower  # "=" is important (b/c MAX_WEIGHT_NO_ROLE/2 == MAX_WEIGHT_LOWEST_ROLE); "abs" is redundant but playing safe
+      positive_increment = (upper - reference).abs.quo(5)  # i.e., likely 10% of Role's Weight
+    else
+      positive_increment = (((Float::INFINITY == upper) ? 0 : upper)-lower).abs.quo(10)
+      reference = lower + positive_increment
+    end
+    [reference, positive_increment]
+  end
 
     # Utitily function
     # @return [Float, NilClass] weight. Or nil, if !with_fallback and existing_min does not satisfy the easiest condition, in which case the caller is expected to continue processing.
@@ -3075,7 +3113,7 @@ end
         nil
       else
         range = self.class.low_high_role_weight_thresholds(existing_minmax)
-        _, positive_increment = _get_reference_increment(range)
+        _, positive_increment = self.class.get_reference_increment(range)
         next_unique_weight(existing_minmax,
                            def_increment: (is_positive ? 1 : -1)*positive_increment,  # existing_min or existing_max may be 0
                            lower_threshold: range.begin,
@@ -3101,7 +3139,28 @@ end
       end
       prev = eaw
     end
-    role_weights.last...Float::INFINITY
+
+    WEIGHT_UPPER_END_RANGES.each do |eran|
+      return eran if eran.cover?(ref_weight)
+    end
+    raise "should never happen"  # because the last one is Infinity and !exclude_end?
+  end
+
+  # Returns Range, Increment, and nominal weight
+  #
+  # @example
+  #    Translation.range_weight_and_increment(120.0)
+  #      # => [(100...1000), 100.0, 500.0]
+  #      # b/c the reference weight falls in Editor's range.
+  #
+  # @param ref_weight [Float] reference weight.
+  # @return [Array<Range, Float, Float>] three elements of exclude_end? Range (lower/upper thresholds),
+  #    default increment, and default nominal weight (usually mid-point),
+  #    for the given reference weight
+  def self.range_weight_and_increment(ref_weight)
+    range = low_high_role_weight_thresholds(ref_weight)
+    nominal_weight, increment = get_reference_increment(range)
+    [range, increment, nominal_weight]
   end
 
   # See also the instance method {Translation#def_weight}
@@ -3214,10 +3273,12 @@ end
   # @param exclude_self: [Boolean] if true, self.{#weight} is excluded - used only when self.{#weight} will be modified.
   # @param try_reference: [Boolean] The given +reference+ is the first candidate weight.  If it is unique,
   #     and if it does not contradict +lower_threshold+ and +upper_threshold+, the value is returned.
+  # @param exclude_weights: [Array] of weights that should be avoided to use; this is used in merging.
   # @return [Numeric] Usually Float but can be Integer
-  def next_unique_weight(reference=weight, def_increment: , lower_threshold: nil, upper_threshold: nil, exclude_self: false, try_reference: true)
+  def next_unique_weight(reference=weight, def_increment: , lower_threshold: nil, upper_threshold: nil, exclude_self: false, try_reference: true, exclude_weights: [])
     raise ArgumentError "At least either of thresholds must be specified" if !lower_threshold && !upper_threshold
     raise ArgumentError if 0 == def_increment
+    raise ArgumentError, "lower_threshold can't be Infinity" if Float::INFINITY == lower_threshold
     lower_threshold ||= 0
     upper_threshold ||= Float::INFINITY
     def_increment = def_increment.abs if 0 == reference  # b/c a negative weight is forbidden.
@@ -3228,7 +3289,7 @@ end
     other_transs = translatable.translations
     other_transs = other_transs.reject{_1 == self} if exclude_self
     other_transs = other_transs.select{_1.langcode == langcode} if langcode.present?
-    existing_weights = other_transs.map(&:weight).compact  # excluding nil weight just in case
+    existing_weights = other_transs.map(&:weight).compact + exclude_weights   # excluding nil weight just in case
 
     # If try_reference: if there is no weight collision, return the value, or else call this method recursively with (try_reference: false)
     if try_reference
@@ -3298,6 +3359,15 @@ end
   def move_articles_to_tail
     return if defined?(@skip_preprocess_callback) && @skip_preprocess_callback
     @backup_6params = preprocess_6params(article_to_tail: :check)
+  end
+
+  # Callback before_save
+  #
+  # NOTE: Usulally, {BaseWithTranslation#assign_translation_weights} fires on `before_validation` before this.
+  def assign_fallback_weight
+    # +{exclude_self: true}+ is desirable; without it, {Translation#update(weight: nil)}
+    # would be affected by self's weight on DB.
+    self.weight ||= def_weight(exclude_self: true)  # NOTE: if !Translation.whodunnit (i.e., current_user.nil?), nil-weight -> a large weight, typically (Translation::MAX_WEIGHT_LOWEST_ROLE + Translation::MAX_WEIGHT_NO_ROLE)/2 (=15000), which used to be (up to v.2.14.2) Float::INFINITY
   end
 
   # Callback after_save

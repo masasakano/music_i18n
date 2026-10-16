@@ -93,8 +93,11 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
 
     assert_equal channels(:channel_haramichan_youtube_main).channel_owner.id, css_select('#harami_vid_form_channel_owner option[selected="selected"]').first["value"].to_i
 
+    hvid = HaramiVid.last_created  # defined in application_record.rb
+    assert_equal Translation::KIND_FULL, hvid.best_translation.kind
+    # assert_empty hvid.musics  # a Music is associated...
+
     sign_out @editor_harami
-    #assert_empty hvid.musics
     #assert_equal @h1129.song,   hvid.musics.first.title
     #assert_equal @h1129.singer, hvid.artists.first.title
   end

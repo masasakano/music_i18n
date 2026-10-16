@@ -48,6 +48,25 @@ class ApplicationRecord < ActiveRecord::Base
     false
   end
 
+  # Last-created model record
+  #
+  # @note
+  #    ActiveRecord.last sorts in order of primary ID, which would not work well
+  #    with fixtures in testing, while this method does regardless of the environment.
+  #
+  # @example
+  #    record = Translation.last_created  # defined in application_record.rb
+  #
+  # @return [ActiveRecord]
+  def self.last_created
+    order(created_at: :desc).first
+  end
+
+  # @return [ActiveRecord]
+  def self.last_updated
+    order(updated_at: :desc).first
+  end
+
   # Wrapper of {ApplicationRecord.utf8collation}
   #
   # You can specify the locale like "en_GB" as it is.

@@ -344,7 +344,7 @@ class ChannelOwner < BaseWithTranslation
   #
   # No {Translation#sync_translation_id} if no Artist (and themselves==false)
   def no_artist_no_sync
-    if active_translations.map(&:sync_parent).compact.present?
+    if active_translations.map(&:sync_translation_id).compact.present?
       errors.add :themselves, "Translation#sync_translation_id should be nil when themselves==false."
     end
   end

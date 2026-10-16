@@ -20,7 +20,7 @@ module ModuleWhodunnit
     attr_accessor :skip_set_user_callback
   end
 
-  # Callback before_create
+  # Callback usually on before_create; c.f., {ModuleCreateUpdateUser}
   #
   # Set create_user_id
   # Skipped if {Translation.skip_set_user_callback} is true.
@@ -32,16 +32,12 @@ module ModuleWhodunnit
       self.weight ||= (klass.const_defined?("DEF_WEIGHT") ? klass::DEF_WEIGHT : Float::INFINITY) if self.respond_to?(:weight) 
       return
     end
+    ## Translation model handles weight on its own, user-dependent way: {Translation#assign_fallback_weight}
 
     self.create_user ||= ModuleWhodunnit.whodunnit
-
-    if self.respond_to?(:weight) && self.respond_to?(:def_weight)
-      # Translation
-      self.weight ||= def_weight  # NOTE: if !Translation.whodunnit (i.e., current_user.nil?), nil-weight -> a large weight, typically (Translation::MAX_WEIGHT_LOWEST_ROLE + Translation::MAX_WEIGHT_NO_ROLE)/2 (=15000), which used to be (up to v.2.14.2) Float::INFINITY
-    end
   end
 
-  # Callback before_save
+  # Callback usually on before_save
   #
   # Set update_user_id
   # Skipped if {Translation.skip_set_user_callback} is true.

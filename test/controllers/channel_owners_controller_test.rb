@@ -139,7 +139,7 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
     tra2 = Translation.order(:created_at).last  # Translation.last sorts in order of primary ID
     assert_equal @editor_ja, tra2.create_user, "(For some reason tra.create_user may return nil very oocasionally) tra2=#{tra2.inspect}"
     assert_equal @editor_ja, tra2.update_user
-    assert_operator tra1.weight, :>, tra2.weight
+    assert_operator tra1.weight, :<, tra2.weight  # b/c both are kind=="alt" in orig_langcode, the newer one has a higher weight
 
     get channel_owner_url(@channel_owner)
     assert_response :success

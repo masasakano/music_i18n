@@ -324,7 +324,7 @@ class RoleCategory < ApplicationRecord
   #
   # @param force_update: [Boolean] if true and if this has never been called before
   # @return [RoleCategoryNode]
-  def self.tree(force_update: false)
+  def self.tree(force_update: Rails.env.test?)
     return @tree_root if @tree_root && !force_update
     ret = trees(klass: RoleCategoryNode)
     logger.error "(#{__FILE__}.{__method__}) RoleCategory Tree has more than one root node: #{ret}." if ret.size != 1

@@ -471,6 +471,12 @@
 class BaseWithTranslation < ApplicationRecord
   self.abstract_class = true
   before_validation :orig_locale_consistent_with_translations
+
+  # To ensure no nil weight.
+  # This may alter weights of the in-memory assosicated Translations.
+  # This should come after {#orig_locale_consistent_with_translations}
+  before_validation :assign_translation_weights
+
   after_validation :capture_validation_context  # callback. Save validation_context for :after_create
   after_create :save_unsaved_translations  # callback to create(-only) @unsaved_translations
   after_save   :singularize_is_orig   # callback to normalize the associated Translation#is_orig
@@ -1395,16 +1401,16 @@ class BaseWithTranslation < ApplicationRecord
 
   # Find or initialize a model.
   #
-  # After that, any null columns that are specified by the caller
+  # In returning, any null columns that are specified by the caller
   # are filled, though unsaved, yet.
   # Translations are unchange or not created at all.
   #
   # @param mainprms: [Hash] {birth_day: 31} etc
   # @param titles [Array<String>] Array of "title"-s of the singer (maybe in many languages) to search for.
   # @param **opts: [Hash] e.g., match_method_upto, langcode. Passed to {Translation.find_all_by_a_title} for detail.
-  # @param prms_to_find: [Hash] Similar to mainprms, but those that are NOT used in updating/initializing but only in identifying/findin
+  # @param prms_to_find: [Hash] Similar to mainprms, but those that are NOT used in updating/initializing but only in identifying/finding
   # @return [BaseWithTranslation]
-  #   If found, a single Artist is returned, where
+  #   If found, a single BaseWithTranslation (eg. Artist) is returned, where
   #   {BaseWithTranslation#match_method} and {BaseWithTranslation#matched_attribute} are set
   #   and so {BaseWithTranslation#matched_string} can be used, and where
   #   the parameters are updated but *unsaved*.
@@ -3421,8 +3427,8 @@ end
   # @return [NilClass]
   def reset_orig_langcode_to_nil(to_value: nil)
     raise ArgumentError, "to_value (=#{to_value.inspect}) should be either nil or false." if to_value
-    translations.update_all(is_orig: to_value)
-    translations.map{ |tra| tra.is_orig = to_value }  # to work on in-memory Translation-s if any
+    translations.update_all(is_orig: to_value)  # This does not touch updated_at
+    translations.map{ |tra| tra.is_orig = to_value }  # to work on in-memory Translation-s if any.
     self.orig_locale = nil
     nil
   end
@@ -3476,15 +3482,43 @@ end
   #
   # @param other [BaseWithTranslation]
   # @param trans [Translation] original one
+  # @param assign_weight: [Boolean] if true, a new unique weight may be assigned.
+  #    This should be false when both with is_orig=true have a common langcode
   # @return [Hash<Array<Engage>>, NilClass] nil only if it is not Music/Artist; else {remain: [Engage...], destroy: [...]}
-  def _reset_reassign_orig_langcode_self_other(other, trans)
+  def _reset_reassign_orig_langcode_self_other(other, trans, assign_weight: true)
     self.orig_locale = trans.langcode
     self.skip_orig_locale_validation = true
-    hsret = _reassign_translation(trans, priority: :highest, force: true)  # save on DB
+
+    trans.weight = _unique_orig_langcode_weight_to_merge(other, trans) if assign_weight  # may or may not change
+    hsret = _reassign_translation(trans, priority: :highest, force: true, skip_weight_assignment: true)  # save on DB
     other.reset_orig_langcode_to_nil  # nullifying is_orig requires so that all remaining Translations of others to be processed in the subsequent calls of _reassign_translation ; n.b., all remaining ones (regardless of its is_orig) should and will be (attempted to be) imported b/c the one conflicting, if any, has been already destroyed.
     hsret
   end
   private :_reset_reassign_orig_langcode_self_other
+
+  # @param other [BaseWithTranslation]
+  # @param trans [Translation] original one
+  # @return [Float] weight
+  def _unique_orig_langcode_weight_to_merge(other, trans)
+    other_weights = other.translations.select{_1.langcode == trans.langcode}.map(&:weight).compact
+    ref_weight_cands = [trans.weight, other_weights.min].compact
+    cand = ref_weight_cands.first.then{ _1 == Float::INFINITY ? Translation::MAX_WEIGHT_NO_ROLE : _1}  # possibly nil (though should never)
+
+    if ref_weight_cands.blank?  # if weight is nil for both (should never happen, but playing safe)
+      return trans.def_weight(exclude_self: true)
+    elsif 1 == ref_weight_cands.size
+      return cand  # maybe no change. Weight is definitely unique b/c the weight should be the minimum one (providine is_orig=true means the minimum weight)
+    else
+      self_weights = translations.select{_1.langcode == trans.langcode}.map(&:weight).compact
+      excludes = (self_weights + other_weights).uniq.compact
+      upper = ((cand > 0) ? cand : (excludes[1] || Translation::MAX_WEIGHT_NO_ROLE))  # to guarantee lower_threshold > upper_threshold
+      increment = cand/2.0.then{ (_1 > 0) ? _1 : Role.superuser.weight/2.0 }  # in case cand (weight) is 0
+
+      # This always updates trans.weight with a lower value than the current one or higher if currently 0.
+      trans.next_unique_weight(cand, def_increment: -increment, lower_threshold: 0, upper_threshold: upper, exclude_self: false, try_reference: false, exclude_weights: (self_weights + other_weights))
+    end
+  end
+  private :_unique_orig_langcode_weight_to_merge
 
   # Gets the sorted {Translation}-s of a specific language
   #
@@ -3948,9 +3982,59 @@ end
   #    Basically, they will need to be destroyed before setting the returned weight of 0.
   # @return [Float] unique weight
   def get_unique_weight(tra_other, priority: :high, to_destroy: [])
+    return tra_other.weight if self == tra_other.translatable
     weight_def = Role::DEF_WEIGHT.values.max
     weight_t = tra_other.weight 
 
+if true
+    sorted_tras = translations.select{_1.langcode == tra_other.langcode && _1.id != tra_other.id}.sort_by{[(_1.nil? ? 1 : 0), (_1.nil? ? 0 : _1)]} # nil comes after Infinity
+    return (((:lowest != priority) && weight_t) || Translation.def_weight(translation: tra_other, translatable: self)) if sorted_tras.empty? || weight_t.nil?  # can easily happen for some languages.  # Case for :lowest is legacy specification in test files (though not sure if it is necessary?)...
+
+    if (:highest == priority || (:high == priority && weight_t && weight_t <= 0)) && (origs = sorted_tras.select{ _1.weight <= 0 }).present?
+      to_destroy.concat origs
+      return 0
+    end
+
+    def_opts = {exclude_self: false, try_reference: false}
+    arweight = sorted_tras.map(&:weight).compact.uniq
+
+    if Float::INFINITY == arweight.first && ((is_low=[:lowest, :low].include?(priority)) || !weight_t || Float::INFINITY == weight_t)
+      if !is_low || (weight_t && Float::INFINITY != weight_t)
+        # i.e., if either :high(est) (and therefore weight_t is abnormal) or :low(est) && weight_t is a normal value
+        # NOTE: for :high(est), if tra_other.weight is normal, tra_other.weight has been already returned above.
+        return Translation.def_weight(translation: tra_other, translatable: self)  # => 15000
+      else  # i.e., if :low(est) && weight_t is either nil or Infinity
+        return Float::INFINITY
+      end
+    end
+
+    case priority
+    when :high, :low
+      index = arweight.find_index(weight_t)
+      return weight_t if !index  # There is no existing weight that agrees with
+      ref_tra = sorted_tras.find{ _1.weight == weight_t }
+      range, increment, nominal_weight = Translation.range_weight_and_increment(ref_tra.weight)
+      if :high == priority
+        return ref_tra.next_unique_weight(def_increment: -increment, lower_threshold: range.begin, upper_threshold: ref_tra.weight, **def_opts)
+      else  ## :low
+        lower = ref_tra.weight.then{ (Float::INFINITY == _1) ? range.begin : _1 }
+        return ref_tra.next_unique_weight(def_increment: increment, lower_threshold: lower, upper_threshold: range.end, **def_opts)
+      end
+    when :highest
+      return weight_t if weight_t && weight_t < arweight.first
+      ref_tra = sorted_tras.first
+      range, increment, nominal_weight = Translation.range_weight_and_increment(ref_tra.weight)
+      return ref_tra.next_unique_weight(def_increment: -increment, lower_threshold: range.begin, upper_threshold: ref_tra.weight, **def_opts)
+    when :lowest
+      return weight_t if weight_t && weight_t > arweight.last
+      ref_tra = sorted_tras.last
+      range, increment, nominal_weight = Translation.range_weight_and_increment(ref_tra.weight)
+      lower = ref_tra.weight.then{ (Float::INFINITY == _1) ? range.begin : _1 }
+      return ref_tra.next_unique_weight(def_increment: increment, lower_threshold: lower, upper_threshold: range.end, **def_opts)
+    else
+      raise ArgumentError
+    end
+else
     # Maybe there is a collision in weight.
     sorted_tras = Translation.sort(translations.where(langcode: tra_other.langcode).where.not(id: tra_other.id), consider_is_orig: false)
 
@@ -3958,6 +4042,7 @@ end
       to_destroy.concat origs
       return 0
     end
+end
 
     # there should be no nil, as Translation#weight should be always defined.
     # uniq is necessary to eliminate multiple Float::INFINITY
@@ -4047,7 +4132,7 @@ end
   #   artist_music_play: Hash{changed_in_remained: [ArtistMusicPlays...], remained: [ArtistMusicPlays...], destroy: [ArtistMusicPlays...], n_destroyed: Integer}
   #   channel_owner: Hash{remained: [ChannelOwner...], destroy: [ChannelOwner...], n_destroyed: Integer}
   #   channel: Hash{remained: [Channel...], destroy: [Channel...], n_destroyed: Integer}
-  #   anchorings: Hash{remained: [Anchoring...], destroy: [Anchoring...], n_destroyed: Integer}
+  #   anchoring: Hash{remained: [Anchoring...], destroy: [Anchoring...], n_destroyed: Integer}
   #   note: String
   #   memo_editor: String
   #   created_at: DateTime(?)
@@ -4082,7 +4167,8 @@ end
   # @return [Hash<Object, Hash<Array, Integer>>] See above. .with_indifferent_access
   # @raise [BaseWithTranslation::MissingRequirementError] if +priorities+ is incomplete (see above).
   def merge_other(other, priorities: {}, save_destroy: true, user: nil)
-    hsmodel = {engage: nil, harami1129: nil}
+    hsmodel = {engage: nil, harami1129: nil, destroyed: [] }
+    hsmodel[:anchoring] = {remained: [], destroy: []}
     ActiveRecord::Base.transaction(requires_new: true) do  # "requires_new" option necessary for testing.
       hsmodel[:trans]  = _merge_trans(other, priority_orig: _priority2pass(priorities, :lang_orig), priority_others: _priority2pass(priorities, :lang_trans)) # , orig_valid: true)
       hsmodel[:engage] = hsmodel[:harami1129] = nil
@@ -4097,17 +4183,17 @@ end
         _merge_harami_vid_music_assocs(other, priority: _priority2pass(priorities, :harami_vid_music_assocs))
       hsmodel[:artist_music_play] = _merge_artist_music_plays(other, priority: _priority2pass(priorities, :artist_music_play))
       hs = _merge_channel_owners(other, priority: _priority2pass(priorities, :channel_owner))  # nil if for Music
-      hsmodel.merge!(hs) if hs  # keys of :channel_owner, :channel, and maybe :harami_vid
-      hsmodel[:anchorings] = 
-        _merge_anchorings(other, priority: _priority2pass(priorities, :anchorings))
-
+      hsmodel.merge!(hs) if hs  # keys of :channel_owner, :channel, :anchoring, and maybe :harami_vid
+      hs = _merge_anchorings(other, priority: _priority2pass(priorities, :anchoring))
+      [:remained, :destroy].each do |ek|
+        hsmodel[:anchoring][ek].concat hs[ek]
+      end
       hsmodel[:note]        = _merge_note_type(other, priority: _priority2pass(priorities, :note))
       hsmodel[:memo_editor] = _merge_note_type(other, priority: _priority2pass(priorities, :memo_editor), att: :memo_editor) if respond_to?(:memo_editor)
       hsmodel[:created_at] = _merge_created_at(other)
 
       hsmodel[:harami1129_review] = _update_harami1129_review_after_merge(hsmodel, user: user)
 
-      hsmodel[:destroyed] ||= []
       hsmodel[:other] = other
 
       other.artist_music_plays.reset if other.respond_to? :artist_music_plays
@@ -4172,21 +4258,45 @@ end
   # @param hsmodel [Hash] See merge_other for description
   # @return [self]
   def merge_save_destroy(other, hsmodel)
+    hsmodel = hsmodel.with_indifferent_access
     hsmodel[:channel_owner][:destroy].first.destroy! if hsmodel[:channel_owner] && hsmodel[:channel_owner][:destroy].present? && !hsmodel[:channel_owner][:destroy].first.destroyed?  # ChannelOwner must be destroyed first.
 
     artist_music_plays.reset if respond_to? :artist_music_plays  # for some reason, this has to be placed here...
     self.save!
 
     # Channel, ChannelOwner
-    %i(:channel :channel_owner).each do |klass|
-      if hsmodel[klass] && hsmodel[klass].respond_to?(:keys)
-        hsmodel[klass][:destroy].each do |mdl|
-          # Most of them have been either already destroyed or cascade-destroyed.
-          mdl.destroy if !mdl.destroyed?
-          hsmodel[:destroyed] << mdl
+    if hsmodel[:channel_owner] && hsmodel[:channel_owner].respond_to?(:keys)
+      raise "should never happen - "+hsmodel[:channel_owner][:remained].inspect if hsmodel[:channel_owner][:remained].size > 1
+      if (chow=hsmodel[:channel_owner][:remained].first)
+        %i(:channel :channel_owner).each do |klass|
+          if hsmodel[klass] && hsmodel[klass].respond_to?(:keys)
+            hsmodel[klass][:destroy].each do |mdl|
+              # Most of them have been either already destroyed or cascade-destroyed.
+              mdl.destroy if !mdl.destroyed?
+              hsmodel[:destroyed] << mdl
+            end
+            hsmodel[klass][:destroy] = []  # reset
+          end
         end
-        hsmodel[klass][:destroy] = []  # reset
+
+        # The ChannelOwner used to be self's child, but the association was temporarily nullified.
+        # Here, reassociates self (Artist) to ChannelOwner
+        chow.themselves = true
+        chow.artist = self
+        chow.synchronize_translations_to_artist
+        chow.orig_locale = self.orig_locale
+        chow.save!
+
+        hsmodel[:channel][:remained].each do |chan|
+          chan.save! if chan.changed?
+        end
       end
+    end
+
+    # Anchorings
+    if hsmodel[:anchoring] && hsmodel[:anchoring].respond_to?(:keys)
+      hsmodel[:destroyed].concat hsmodel[:anchoring][:destroy]  # These should be cascade-destroyed.
+      hsmodel[:anchoring][:destroy] = []  # reset
     end
 
     # HaramiVidMusicAssocs
@@ -4363,7 +4473,7 @@ end
     when 1   # Only one of them has is_orig=true
       tra_orig = transs.first
       raise "Contact the code developer (translatable mismatch)." if tra_orig.translatable.class != self.class
-      return _reset_reassign_orig_langcode_self_other(other, tra_orig)  # => Hash; orig_locale is set
+      return _reset_reassign_orig_langcode_self_other(other, tra_orig, assign_weight: true)  # => Hash; orig_locale is set
     when 2
       # skip
     else
@@ -4376,21 +4486,22 @@ end
     (tra_orig, tra2demote) = transs  # tra_orig is the new original Translation (it may belong to self or other!)
 
     if transs.map(&:langcode).uniq.size != 1 # langcode-s are different
-      return _reset_reassign_orig_langcode_self_other(other, tra_orig)  # => Hash; orig_locale is set
+      return _reset_reassign_orig_langcode_self_other(other, tra_orig, assign_weight: true)  # => Hash; orig_locale is set
     end
 
-    # langcode-s are common
+    # langcode-s of original-Translations are common
     # alt_title can be copied if existent. note-s are merged.
     if tra_orig.alt_title.blank? && tra2demote.title.present? && tra2demote.alt_title.present? 
       tra_orig.alt_title = tra2demote.alt_title
     end
     _append_note!(tra_orig, tra2demote)
     tra_orig.created_at = _older_created_at(tra_orig, tra2demote) if tra_orig.changed?
-tra_orig.save!  # should be fine because nothing has been altered so far.
+    tra_orig.weight = [tra_orig.weight, tra2demote.weight].compact.min
 
     tra2demote.destroy  # has to be destroyed before the new one is assigned to avoid potential unique-constraint violation.  Note tra2demote may or may not belong to self.
+tra_orig.save!  # should be fine because its weight is the lowest between the two BaseWithTranslations and the other one that may have the weight (in 50:50 chance) was destroyed above.
 
-    reths = _reset_reassign_orig_langcode_self_other(other, tra_orig)  # => Hash; orig_locale is set
+    reths = _reset_reassign_orig_langcode_self_other(other, tra_orig, assign_weight: false)  # => Hash; orig_locale is set
     reths[:destroy].push tra2demote
     reths
   end
@@ -4632,41 +4743,59 @@ tra_orig.save!  # should be fine because nothing has been altered so far.
   #
   # === Visualization of the the most complicated situation
   #
-  # The following is for Case 4. Here, Left-hand one has a higher priority than Right. There are 2 cases:
+  # The following is for Case 4. Here, Left-hand one has a higher priority than Right.
+  # Technically, there can be 2 cases, i.e., (where Artist-other is merged to Artist-self)
   #
-  #   Cow(art=self)  Cow(art=other) | Cow(art=other) Cow(art=self)
-  #    |              |     ->DEL   |  | 4:Art-self  |  (3)->DEL
-  #   Channels..<--  Channels..     | Channels..<--  Channels..
-  #    | updat \      | ->DEL/upd   |  | 2-1  \      | ->(1)Upd/(2-3)DEL
-  #   HVids..  +---- HVids..        | HVids..  +---- HVids..(2-2)
+  #   1. ChannelOwner that belongs_to Artist-self remains (with its pID) in merging from ChannelOwner that belongs_to Artist-other
+  #   2. ChannelOwner that belongs_to Artist-other remains (with its pID) in merging from ChannelOwner that belongs_to Artist-self
+  #
+  # Although it is possible to provide an option of which to choose with U/I
+  # and, also independently, an option of which ChannelOwner's parameters are given a priority,
+  # this app provides neither option and processes so that ChannelOwner that belongs_to
+  # Artist-self in the same way as Artist-self remains and that its parameters
+  # are given a higher priority, e.g., ChannelOwner-other's note is appended to  ChannelOwner-self's.
+  #
+  # === Diagram
+  #
+  #    Artist(self) <-- Artist(other)(6)merge
+  #     |   |            |   |
+  #     | Tra..(paren) <-- Tra..(paren)(5)merge
+  #     |   ||           |   ||
+  #     | Tra..(child)   | Tra..(child)
+  #     |   |            |   |
+  #    Cow(art=other)   Cow(art=self)
+  #     | (4):de-sync    |  (3)->DEL
+  #     | (7):re-sync    |
+  #    Channels.. <---- Channels..
+  #     | 2-1  \         | ->(1)Upd/(2-3)DEL
+  #    HVids..  +------ HVids..(2-2)
   #
   # === Procedure
   #
-  # 1. If not Artist, return nil
+  # 1. If not Artist (but Music etc), returns nil
   # 2. If no ChannelOWners (=Cows), returns (viatually empty) Hash.
   # 3. If only one Cow exists [regardless of higher/lower priority],
-  #    1. update Cow#artist=self  [which may or may not be already the case]
-  #    2. update Cow#themselves=true  [redundant, but playing safe]
-  #    3. Cow#synchronize_translations_to_artist  End.
-  # 4. If Cows exist for both, do as follows (also see the figure above):
-  #    1. Left-hand case (Merge-Destroy Cow(R), taking care of Channels(R) and HaramiVids(R))
-  #       1. if no Channels(R),
-  #          1. merge Cow(R)-note to Cow(L)
-  #          2. Destroy Cow(R). End.
-  #       2. Else, update Channels(R)#CoW = Cow(L)  (multiple)  # => _merge_channel_owners_with_artist_with_channels
-  #          1. If successful, fine.
-  #          2. Else, find the Channel(L)                       # => _merge_channel_owners_with_artist_merge_channels
-  #             1. merge note to the_Channel(L)
-  #             2. HVids(R)#channel = the_Channel(L)  (multiple, if any)
-  #             3. Destroy the_Channels(R)
-  #       3. Destroy Cow(R)
-  #    2. Right-hand case (Same as Left-hand case, except case 3 is then followed).
-  #       1. Follow 4-1
-  #       2. Now reduced to case 3; follow it for Cow(L)
+  #    1. update Cow#themselves=false, Cow#artist=nil (needs on DB)
+  #    2. perform Artist-Translation & Artist merges (needs on DB)
+  #    3. Cow#themselves=true, Cow#artist=Artist, Cow#synchronize_translations_to_artist, save! End
+  # 4. If Cows exist for both, merge-destroy Cow(R), taking care of Channels(R) and HaramiVids(R)):
+  #    0. merge Cow(R)-note (and maybe anchorings in future) to Cow(L)
+  #    1. if no Channels(R),
+  #       1. Destroy Cow(R).
+  #    2. Else, update Channels(R)#CoW = Cow(L)  (multiple)  # => _merge_channel_owners_with_artist_with_channels
+  #       1. If successful, fine.
+  #       2. Else, nees merging Channels; find the conflicting Channel(L) # => _merge_channel_owners_with_artist_merge_channels
+  #          1. merge note, id_* (if L's are blank), to the_Channel(L), ignoring Translations
+  #          2. HVids(R)#channel = the_Channel(L)  (potentially multiple HVids)
+  #          3. Destroy the_Channels(R)
+  #    3. Destroy Cow(R)
+  #    4. update Cow(L)#themselves=false, Cow(L)#artist=nil (needs on DB)
+  #    5. perform Artist-Translation & Artist merges (needs on DB)
+  #    6. Cow(L)#themselves=true, Cow(L)#artist=Artist, Cow(L)#synchronize_translations_to_artist, save! End
   #
   # @param other [BaseWithTranslation] of the same class as self. For this method, it makes sense only for Artist
   # @param priority: [Symbol] (:self(Def)|:other) Parameter of which is prioritized to merge into self
-  # @return [Hash<Array<ArtistMusicPlay>>, NilClass] nil only if self is not Artist; else {channel_owner: {remained: [ChannelOwner], destroy: [ChannelOwner]}, channel: {...}, harami_vid: {...}} (up to 1 element each for channel_owner and potentially many for the others; no destroy for harami_vid)
+  # @return [Hash<Array<ArtistMusicPlay>>, NilClass] nil only if self is not Artist; else {channel_owner: {remained: [ChannelOwner], destroy: [ChannelOwner]}, channel: {...}, harami_vid: {...}, anchoring: {...}} (up to 1 element each for channel_owner and potentially many for the others; no destroy for harami_vid)
   def _merge_channel_owners(other, priority: :self)
     return if !respond_to?(:channel_owner)  # because it is a singular, Artist is the only relevant one?
     raise "Should not happen Contact the code developer." if !other.respond_to?(:channel_owner)
@@ -4675,6 +4804,8 @@ tra_orig.save!  # should be fine because nothing has been altered so far.
     hsret = {
       channel_owner: {remained: [], destroy: []},
       channel:       {remained: [], destroy: []},
+      harami_vid:    {remained: [], destroy: []},
+      anchoring:     {remained: [], destroy: []},
     }.map{|ek, ev| [ek, ev.with_indifferent_access]}.to_h.with_indifferent_access
 
     remains = _prioritized_models(other, priority, __method__).map(&:channel_owner)
@@ -4682,22 +4813,31 @@ tra_orig.save!  # should be fine because nothing has been altered so far.
     if (ary=remains.compact).empty?
       # Case 2
       return hsret
-    elsif 1 == ary.size
+    end
+
+    chow2remain = ary.first  # ChannelOwner to remain
+    if 1 == ary.size
       # Case 3
-      _merge_channel_owners_set_artist(ary.first)
-      hsret[:channel_owner][:remained] << ary.first
-      hsret[:channel][:remained].concat ary.first.channels.to_a
-      return hsret
+      hsret[:channel_owner][:remained] << chow2remain
+      hsret[:channel][:remained].concat chow2remain.channels.to_a
     else
       # Case 4
-      if self == remains[0].artist
-        _merge_channel_owners_with_artist(*remains, hsret: hsret)
-      else
-        _merge_channel_owners_with_artist(*remains, hsret: hsret)  # This sets hsret
-        _merge_channel_owners_set_artist(remains.first)
-      end
-      return hsret
+      _merge_channel_owners_with_artist(*remains, hsret: hsret)  # This modifies hsret
     end
+
+    # _merge_channel_owners_set_artist(chow2remain) if self == chow2remain.artist  # unnecessary because of the following
+    chow2remain.themselves = false
+    chow2remain.artist = nil  # To developers: please make sure to reassociate to the Artist and run synchronize_translations_to_artist at a later stage!
+    chow2remain.translations.each do |etra|
+      # etra.translatable = chow2remain  # to make Translation aware of this change (if callback in Translation is called).
+      etra.sync_translation_id = nil
+      etra.skip_singularize_is_orig_callback = true
+    end
+    chow2remain.orig_locale = nil  # will be synced to Artist later
+    result = chow2remain.save
+    raise if !result
+    #chow2remain.save!  # This is necessary in case some of the parent Artist's Translations are destroyed - specifically, the original or duplicated Translation can be destroyed.  Without this, Translations that have {#sync_child} would be prohibited from being destroyed.
+    hsret
   end
   private :_merge_channel_owners
 
@@ -4717,28 +4857,37 @@ tra_orig.save!  # should be fine because nothing has been altered so far.
   end
   private :_merge_channel_owners_set_artist
 
-  # Case 4-1 in _merge_channel_owners
+  # Case 4 in _merge_channel_owners
   #
   # @param chow_l [ChannelOwner] "Left" ChannelOwner, meaning higher-priority. Its Artist is self.
-  # @param chow_r [ChannelOwner] "Right" ChannelOwner, meaning lower-priority. Either updated or destroyed (after merging)
+  # @param chow_r [ChannelOwner] "Right" ChannelOwner, meaning lower-priority. Always destroyed (after merging)
   # @return [Hash<Array<ArtistMusicPlay>>] See #_merge_channel_owners
   def _merge_channel_owners_with_artist(chow_l, chow_r, hsret: {})
+    hs = chow_l.run_merge_anchorings!(chow_r, priority: :self)  # nil if ChannelOwner#anchorings is undefined.
+    if hs
+      [:remained, :destroy].each do |ek|
+        hsret[:anchoring][ek] += hs[ek]
+      end
+    end
+
+    _append_note!(chow_l, chow_r)  # Case 4-0; merge notes (no memo_editor at the time of writing)
+
     if !chow_r.channels.exists?
-      # Case 4-1-1
-      _append_note!(chow_l, chow_r)  # merge notes
+      # Case 4-1
       chow_l.save!
+      hs_anchorings = chow_l.run_merge_anchorings!(chow_r, priority: :self)  # nil if ChannelOwner#anchorings is undefined.
     else
-      # Case 4-1-2
+      # Case 4-2
       _merge_channel_owners_with_artist_with_channels(chow_l, chow_r, hsret: hsret)  # modifies hsret, adding {channel: {}}
     end
     chow_r.channels.reset
-    chow_r.destroy!   #### later, may delegate to the later process.
+    chow_r.destroy!   #### TODO: You may delegate to a later process?
     hsret[:channel_owner][:remained] << chow_l
     hsret[:channel_owner][:destroy]  << chow_r
   end
   private :_merge_channel_owners_with_artist
 
-  # Case 4-1-2 in _merge_channel_owners
+  # Case 4-2 in _merge_channel_owners
   #
   # @param chow_l [ChannelOwner] "Left" ChannelOwner, meaning higher-priority. Its Artist is self.
   # @param chow_r [ChannelOwner] "Right" ChannelOwner, meaning lower-priority. Either updated or destroyed (after merging)
@@ -4747,45 +4896,84 @@ tra_orig.save!  # should be fine because nothing has been altered so far.
     chow_r.channels.each do |ea_cha|
       ea_cha.channel_owner = chow_l
       if ea_cha.valid?
-        # Case 4-1-2-1
+        # Case 4-2-1
         ea_cha.save!
         hsret[:channel][:remained] << ea_cha
       else
-        # Case 4-1-2-2
-        _merge_channel_owners_with_artist_merge_channels(chow_l.channels, ea_cha, hsret: hsret)  # hsret is modified; one of Channel(L) is added to :remained
+        # Case 4-2-2
+        _merge_channel_owners_with_artist_merge_channels(chow_l.channels, ea_cha, hsret: hsret)
+        # This hsret is modified; one of Channel(L) is added to :remained
+        # (1) saves HaramiVid-s on DB
+        # (2) destorys ea_cha (a Channel(R)) on DB
+        # (3) merges and saves the merged Channel(L) on DB
+        # (4) sets hsret
       end
     end
     hsret
   end
   private :_merge_channel_owners_with_artist_with_channels
 
-  # Case 4-1-2-2 in _merge_channel_owners
+  # Case 4-2-2 in _merge_channel_owners
   #
   # 1. Two ChannelOwners exist for both Artists to merge
-  # 2. ChannelOwner with Artist-to-merge should (at least) remain
-  # 3. The other ChannelOwner have_many (significant) Channels
-  # 4. The other ChannelOwner cannot accept Artist to associate (presumanbly) due to unique constraints
-  # 5. The other ChannelOwner cannot accept Artist to associate (presumanbly) due to unique constraints
+  #    * ChannelOwner with Artist-to-merge should (at least) remain
+  # 2. Both ChannelOwners have_many (non-nil) Channels
+  # 3. A Channel (of merged-from) cannot be simply transferred to the merged-to ChennelOwner due to unique constraints (on ChannelOnwer, Type, Platform)
   #
-  # Therefore, the other ChannelOwner has to be merged to the remaining ChannelOwner
-  # where its contents (specifically, note only) AND the associated HaramiVid-s
-  # must be updated appropriately.
+  # This method receives
+  #  1. all Channel-s associated to merged-to ChannelOwner (destination Channel chandidates), and
+  #  2. the Channel of merged-from ChannelOwner that conflicts: Chan(ToBeDestroyed)
+  # to perform
+  #
+  #  A. Identifies the Channel in the destination candidate Channes that conflicts
+  #  B. merges Chan(ToBeDestroyed) to the identified Channel: Chan(Survive)
+  #     1. reassociates HaramiVid-s that belongs_to Chan(ToBeDestroyed) to Chan(Survive)
+  #     2. merges Anchorings (on DB)
+  #     3. merges note and ID-strings to Chan(Survive)
+  #     4. destroys Chan(ToBeDestroyed)
+  #     5. save! Chan(Survive) on DB (this is likely unnecessary as a later process will save it, but playing safe...; anyway this method may save HaramiVid-s on DB)
+  #  C. sets Hash hsret
   #
   # @param chan_to_cands [Channel::Relation]
   # @param chan_from [Channel]
   # @param hsret: [Hash] to modify and return
-  # @return [Hash<Array<ArtistMusicPlay>>, NilClass] nil only if self is not Artist; else {channel_owner: {remained: [ChannelOwner], destroy: [ChannelOwner]}, channel: {...}, harami_vid: {...}} (up to 1 element each for channel_owner and potentially many for the others; no destroy for harami_vid)
+  # @return [Hash<Array<ArtistMusicPlay>>, NilClass] nil only if self is not Artist; else {channel_owner: {remained: [ChannelOwner], destroy: [ChannelOwner]}, channel: {...}, harami_vid: {...}, anchoring: {...}} (up to 1 element each for channel_owner and potentially many for the others; no destroy for harami_vid)
   def _merge_channel_owners_with_artist_merge_channels(chan_to_cands, chan_from, hsret: {})
     # Case 4-1-2-2
+    # A. Identifying the conflicting Channel
     chan_to = chan_to_cands.find_by(chan_from.attributes.slice(*%w(channel_type_id channel_platform_id channel_owner_id)))
     raise "Equivalent Channel for #{chan_from.inspect} is not found despite it is invalid. Strange. Contact the code developer." if !chan_to
-    _append_note!(chan_to, chan_from)  # merge notes
+
+    # B-1. reassociates HaraiVids to Chan(Survive)
     chan_from.harami_vids.each do |ehvid|
-      # Case 4-1-2-2-2
-      ehvid.update!(channel: chan_to)
+      # Case 4-2-2-2
+      ehvid.update!(channel: chan_to)  # on DB
+      hsret[:harami_vid][:remained] << ehvid
     end
     chan_from.harami_vids.reset
+
+    # B-2. merges Anchorings (on DB)
+    hs = chan_to.run_merge_anchorings!(chan_from, priority: :self)  # nil if ChannelOwner#anchorings is undefined.
+    if hs
+      [:remained, :destroy].each do |ek|
+        hsret[:anchoring][ek] += hs[ek]
+      end
+    end
+
+    # B-3. merges note and ID-Strings (in-memory only so far)
+    [:id_at_platform, :id_human_at_platform].each do |metho|
+      if chan_to.send(metho).blank?
+        chan_to.send(metho.to_s+"=", chan_from.send(metho))  # may remain blank
+      end
+    end
+    _append_note!(chan_to, chan_from)  # merge notes
+
+    # B-4. destroys Chan(ToBeDestroyed)
     chan_from.destroy!   ## delegation of deletion to the later process may not work well, because otherwise you cannot update another existing Channel, violating a unique constraint!
+
+    # B-5. save! Chan(Survive) on DB (likely unnecessary...)
+    chan_to.save!
+
     hsret[:channel][:remained] << chan_to
     hsret[:channel][:destroy]  << chan_from
     hsret
@@ -4958,7 +5146,7 @@ tra_orig.save!  # should be fine because nothing has been altered so far.
   #
   # @param other [BaseWithTranslation] of the same class as self. This method makes sense only for anchorable (maybe Url in the future but not now)
   # @param priority: [Symbol] (:self(Def)|:other) Parameter of which is prioritized to merge into self
-  # @return [Hash<Array<Anchoring>>, NilClass] nil if self does not have anchorings method (never happen so far)
+  # @return [Hash<Array<Anchoring>>, NilClass] nil if self does not have anchorings method
   def _merge_anchorings(other, priority: :self)
     return if !respond_to?(:anchorings)
     raise "Should not happen. Contact the code developer." if !other.respond_to?(:anchorings)
@@ -4984,6 +5172,22 @@ tra_orig.save!  # should be fine because nothing has been altered so far.
   end
   private :_merge_anchorings
 
+  # Public method to run {#_merge_anchorings} and save {Anchoring}-s on DB.
+  #
+  # @param other [BaseWithTranslation] of the same class as self. This method makes sense only for anchorable (maybe Url in the future but not now)
+  # @param priority: [Symbol] (:self(Def)|:other) Parameter of which is prioritized to merge into self
+  # @return [Hash<Array<Anchoring>>, NilClass] nil if self does not have anchorings method
+  def run_merge_anchorings!(*, **)
+    hsret = _merge_anchorings(*, **)
+    return if !hsret
+    hsret[:destroy].each do |record|
+      record.destroy!
+    end
+    hsret[:remained].each do |record|
+      record.save!  # maybe unnecessary
+    end
+    hsret
+  end
 
   # Update/Create {Harami1129Review} after merging Artist/Music
   #
@@ -5102,11 +5306,16 @@ tra_orig.save!  # should be fine because nothing has been altered so far.
   # @param force: [Symbol] if true (Def: false), the given tra_other has a higher priority than others (like is_orig==true).
   #     Else, if the first attempt to save tra_other fails, tra_other is destroyed.
   # @param orig_locale_refs: [Hash<Symbol => String>] e.g., {orig: "ja", others: "en"}
+  # @param skip_weight_assignment: [Boolean] if true (Def: false), skipping weight assignment
+  #    (the case where tra_other is the original best Translation, which may or may not associate to self.)
   # @return [Hash<Array<Engage>>, NilClass] nil only if it is not Music/Artist; else {remained: [Translation...], destroy: [...]}
-  def _reassign_translation(tra_other, priority: :high, force: false)
+  def _reassign_translation(tra_other, priority: :high, force: false, skip_weight_assignment: false)
     destroyed_first = []
+    bwt_other = tra_other.translatable
+    bwt_other = nil if self == bwt_other
+
     tra_other.translatable_id = self.id  # This may be already set.
-    tra_other.weight = get_unique_weight(tra_other, priority: priority, to_destroy: destroyed_first)
+    tra_other.weight = get_unique_weight(tra_other, priority: priority, to_destroy: destroyed_first) unless skip_weight_assignment
 
     nullify_or_falsify_is_orig(tra_other) if !tra_other.is_orig  # if is_orig is true, it stays.
 
@@ -5116,12 +5325,24 @@ tra_orig.save!  # should be fine because nothing has been altered so far.
     end
 
     if tra_other.valid?
+      translations.load unless translations.loaded?
+      translations.target << tra_other  # unless artist2.translations.target.include?(tra_other)  # "target" is the key to work on strictly in-memory!
+
       tra_other.save!  # may raise an Error, if it fails at DB level for the cause which Rails validation misses
+    
+      # Evicts from other's BaseWithTranslation's memory so `BaseWithTranslation#destroy!` later won't delete +tra_other+
+      bwt_other.translations.target.delete(tra_other) if bwt_other && bwt_other.association(:translations).loaded?
+
       return {remained: [tra_other], destroy: destroyed_first}
+    else
+      ### Roll back the in-memory changes cleanly:
+      #translations.target.delete(tra_other)
+      #tra.translatable = bwt_other if bwt_other
     end
 
     if !force
       logger.warn "(#{File.basename __FILE__}:#{__method__}) translation validation failure during merging due to similar ones: trans=#{tra_other.inspect} self.translations=#{translations.inspect}"
+      tra_other.translatable = bwt_other
       return {remained: [], destroy: destroyed_first+[tra_other]}
     end
 
@@ -5131,7 +5352,7 @@ tra_orig.save!  # should be fine because nothing has been altered so far.
     logger.info "(#{__FILE__}:#{__method__}) Handling a rare case of translation validation failure during merging due to similar ones: other-other=#{tra_other.inspect} self.translations=#{translations.inspect}"
 
     destroyed = []
-    translations.where(langcode: tra_other.langcode).each do |etra|
+    translations.where(langcode: tra_other.langcode).each do |etra|  # working on DB, not in-memory
       # Destroy self.translations with the same langcode one by one. When the "tra_orig" to save becomes valid, do it.
       # NOTE: Some Translations that are unrelated to the validation failure may be destroyed.
       #   However, given this situation rarely happens anyway, I ignore the downsides.
@@ -5190,7 +5411,7 @@ tra_orig.save!  # should be fine because nothing has been altered so far.
     return true if orig_locale.blank?
     tras =
       if translations.present?
-        translations
+        translations.reject { _1.marked_for_destruction? }
       elsif new_record?
         unsaved_translations
       else
@@ -5205,6 +5426,36 @@ tra_orig.save!  # should be fine because nothing has been altered so far.
     errors.add(:orig_locale, " no associated Translations have the locale #{orig_locale.inspect}")
   end
   private :orig_locale_consistent_with_translations
+
+
+  # before_validation callback/hook
+  #
+  # Originally, +before_save+ callback of {Translation#assign_fallback_weight}
+  # used to do the job, and it still works as a fallback in case of isolated Translatio save.
+  #
+  # However, when multiple Translations are attempted to save simultaneously
+  # on :create, +loaded?+ status may change to false and in-memory Translation
+  # may not be accessed from a new (to-be-child) Translation partly because
+  # {BaseWithTranslation#id} was not assigned before save.
+  # Default weight assignment depends on the siblings, so it is not ideal.
+  #
+  # For this reason, it is safer to do the job here in the parent.
+  #
+  # In an unlikely case of self being already not {#valid?} (which can happen
+  # because of {#orig_locale_consistent_with_translations}), this does nothing.
+  #
+  # @note this is a public method as Controllers may call this.
+  def assign_translation_weights(user=ModuleWhodunnit.whodunnit)
+    return if errors.any?
+
+    translations.group_by(&:langcode).each do |_lang, group|
+      group.each do |etra|
+        etra.weight ||= etra.def_weight(user, exclude_self: true) # `exclude_self: true` is perhaps redundant (even when a Translation#weight is nil in-memory but significant on DB on update), but plyaing safe
+        # NOTE: if !Translation.whodunnit (i.e., current_user.nil?), nil-weight -> a large weight, typically (Translation::MAX_WEIGHT_LOWEST_ROLE + Translation::MAX_WEIGHT_NO_ROLE)/2 (=15000), which used to be (up to v.2.14.2) Float::INFINITY
+            # +{+ is necessary; without it, {Translation#update(weight: nil)}
+      end
+    end
+  end
 
   # Captures :create, :create!, or any custom context symbol for the use in after_create
   def capture_validation_context

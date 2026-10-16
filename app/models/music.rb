@@ -660,7 +660,7 @@ end
         hs2passs.merge! hsruby
         if model.new_record?
           # model.unsaved_translations << Translation.new(is_orig: (elc == orig_lc), **hs2passs)
-          model.translations << Translation.new(is_orig: (model.orig_locale && (elc == orig_lc)), **hs2passs)
+          model.translations << Translation.new(is_orig: (model.orig_locale && (elc == orig_lc)), kind: Translation::KIND_FULL, **hs2passs)
         else
           if (tra = model.find_translation_by_a_title(:titles, word, langcode: elc))
             next if hsruby.empty? || tra.matched_string != preprocess_space_zenkaku(word)

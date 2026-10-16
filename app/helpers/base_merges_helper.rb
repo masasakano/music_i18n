@@ -49,7 +49,7 @@ module BaseMergesHelper
   # @param merged [ActiveRecord] merged record 
   # @return [String] html_safe
   def base_merges_anchoring_merged_content(merged)
-    ary = merged.hsmerged[:anchorings][:remained].map{|em|
+    ary = merged.hsmerged[:anchoring][:remained].map{|em|
       sprintf('%d', em.id.to_s) + h(em.note.present? ? sprintf("(%s)", em.note) : "")
     }.join(", ").html_safe
   end

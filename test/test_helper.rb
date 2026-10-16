@@ -377,18 +377,18 @@ class ActiveSupport::TestCase
     }  # Array of Hash
 
     hsmdl = {
-      h1129s: [],
-      hvids: [],
-      musics:  [],
-      artists: [],
-      hvmas: [], # HaramiVidMusicAssoc
+      h1129s: [],  # single Array
+      hvids: [],    # double Array
+      musics:  [], # single Array
+      artists: [], # single Array
+      hvmas: [], # HaramiVidMusicAssoc # single Array
       mu_anchorings: [],
       art_anchorings: [],
-      engages: [],
+      engages: [], # single Array
       ch_owners: [],
-      channels: [],
+      channels: [], # double Array
       ev_its: [], # EventItem
-      amps: [],  # ArtistMusicPlay (Array of Arrays)
+      amps: [],  # ArtistMusicPlay (Array of Arrays) # double Array
       urls: assc_prms[:url], 
     }
       
@@ -432,6 +432,12 @@ class ActiveSupport::TestCase
       hsmdl[:artists][i].anchorings.reset
     end
 
+    # Array of randomized (but mutuall-exclusive) ID-Strings for Channels.
+    channel_str_ids = _get_channel_str_ids
+    # => channel_str_ids[0][:unk|:def][:id_at_platform] => (nil|def_platform-channel-0-id_at_platform-07558) etc
+    #    NOTE: other keyword is: :id_human_at_platform
+    #    NOTE: Only one of [0] or [1]
+
     hsmdl[:h1129s].each_index do |i|
       j = (i-1).abs  # to use j, this has to come after all other models are set.
       hsmdl[:musics][i].artist_music_plays << ArtistMusicPlay.new(artist: hsmdl[:artists][i], event_item: hsmdl[:ev_its][i], play_role: PlayRole.default(:HaramiVid), instrument: Instrument.default(:HaramiVid), cover_ratio: 0.5+i*0.1)
@@ -449,17 +455,68 @@ class ActiveSupport::TestCase
 
       hsmdl[:ch_owners][i] = ChannelOwner.create_basic!(themselves: true, artist: hsmdl[:artists][i])
       hsmdl[:channels][i] ||= []
-      hsmdl[:channels][i] << Channel.create_basic!(title: "chan_h1_#{i}", langcode: :en, channel_owner: hsmdl[:ch_owners][i], channel_type: ChannelType.default(:HaramiVid), channel_platform: ChannelPlatform.default(:HaramiVid))
-      hsmdl[:channels][i] << Channel.create_basic!(title: "chan_h1_#{i+5}", langcode: :en, channel_owner: hsmdl[:ch_owners][i], channel_type: ChannelType.unknown, channel_platform: ChannelPlatform.unknown)
-      
+      hs_ids = channel_str_ids[i][:def]
+      hsmdl[:channels][i] << Channel.create_basic!(title: "chan_h1_#{i}", langcode: :en, orig_locale: "en", channel_owner: hsmdl[:ch_owners][i], channel_type: ChannelType.default(:HaramiVid), channel_platform: ChannelPlatform.default(:HaramiVid), id_at_platform: hs_ids[:id_at_platform], id_human_at_platform: hs_ids[:id_human_at_platform])
+      hs_ids = channel_str_ids[i][:unk]
+begin
+      hsmdl[:channels][i] << Channel.create_basic!(title: "chan_h1_#{i+5}", langcode: :en, orig_locale: "en", channel_owner: hsmdl[:ch_owners][i], channel_type: ChannelType.unknown, channel_platform: ChannelPlatform.unknown, id_at_platform: hs_ids[:id_at_platform], id_human_at_platform: hs_ids[:id_human_at_platform])
+rescue ActiveRecord::RecordInvalid
+  print "DEBUG: (when :id_at_platform contains both id and 'unk' this should never happen but...): [i,:id_at_platform]="; p [i, hs_ids[:id_at_platform]]
+  raise
+end
       hsmdl[:hvids][i] ||= []
-      hsmdl[:hvids][i] << hsmdl[:hvmas][i].harami_vid.update!(channel: hsmdl[:channels][i][1])
-      hsmdl[:hvids][i] << HaramiVid.create_basic!(title: "hvid_h1_#{i}", langcode: :en, channel: hsmdl[:channels][i][0], note: "new test HVid")
+      hvid = hsmdl[:hvmas][i].harami_vid
+      hvid.update!(channel: hsmdl[:channels][i][1])
+      hsmdl[:hvids][i] << hvid
+      hsmdl[:hvids][i] << HaramiVid.create_basic!(title: "hvid_h1_#{i}", langcode: :en, orig_locale: "en", channel: hsmdl[:channels][i][0], note: "new test HVid")
+    end
+
+    hsmdl.each_pair do |ek, emodel|
+      emodel.each do |eobj|
+        if eobj.respond_to? :each
+          eobj.each do |erec|
+            erec.reload
+          end
+        else
+            eobj.reload
+        end
+      end
     end
 
     [h1129_prms, assc_prms, hsmdl]
   end # def prepare_h1129s1(release_dates: nil)
 
+    # Returns an Array(0,1) of Hash(unk|kwd) of Hash(id_*) of one of unique String or nil,
+    # all randomized, but always mutually exclusive between [0, 1] about present? or blank?
+    # @return [Array<Hash<Hash<Symbol: String|nil>>>]
+    def _get_channel_str_ids
+      kwds  = %i[unk def]
+      roots = %i[id_at_platform id_human_at_platform]
+
+      # Initializes a 2-element Array of Hashes
+      channel_str_ids = [{}, {}]
+
+      kwds.each do |kwd|
+        channel_str_ids[0][kwd] = {}
+        channel_str_ids[1][kwd] = {}
+
+        roots.each do |root|
+          # Randomly assigns 0 or 1 to be the 'present' index; the other is 'blank'
+          present_i = rand(2)
+          blank_i   = 1 - present_i
+
+          channel_str_ids[present_i][kwd][root] =
+            "#{kwd}_platform-channel-#{present_i}-#{root}-#{'%05d' % rand(9999)}"
+
+          channel_str_ids[blank_i][kwd][root] = nil  # ['', nil].sample
+          # NOTE: the ID-string is NOT allow_blank but only allo_nil (to fully use DB-level constraints if there is any in future).
+        end
+      end
+
+      # Recursively convert outer and inner hashes to HashWithIndifferentAccess
+      channel_str_ids.map(&:with_indifferent_access)
+    end
+    private :_get_channel_str_ids
 
   # collection of basic model-testings of weight like a negative value.
   #
@@ -967,7 +1024,7 @@ class ActiveSupport::TestCase
   def flash_regex_assert(regex, msg=nil, type: nil, with_html: false, system_test: false, is_debug: false, **kwds)
     caller_info = _get_caller_info_message(bind_offset: 0)
 
-    printf "DEBUG(#{__method__}): css_for_flash(ARG=#{[type, kwds].inspect})=( %s )\n", css_for_flash(type, **kwds) if is_debug && !system_test
+    printf "DEBUG(#{__method__}):(#{caller_info}) css_for_flash(ARG=#{[type, kwds].inspect})=( %s )\n", css_for_flash(type, **kwds) if is_debug && !system_test
     noko =
       if system_test
         assert_selector :xpath, xpath_for_flash(type, **kwds)  # to make sure the flash part is loaded
@@ -1378,7 +1435,7 @@ class ActiveSupport::TestCase
     end
 
     prefix = (with_slashes ? "//" : "") 
-    enclosed = prefix + ModuleCommon.xpath_contain_css(only.to_s+"_only", complete_for: tag.to_s)
+    prefix + ModuleCommon.xpath_contain_css(only.to_s+"_only", complete_for: tag.to_s)
   end
 
   # Returns the XPATH string to extract the flash messages.

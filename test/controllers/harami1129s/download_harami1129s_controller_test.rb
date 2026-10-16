@@ -144,6 +144,6 @@ class DownloadHarami1129sControllerTest < ActionDispatch::IntegrationTest
   def _weight_user_id_nil?(translation)
     assert_nil  translation.create_user
     assert_nil  translation.update_user
-    assert_equal Float::INFINITY, translation.weight
+    assert_includes (0.1...Float::INFINITY), translation.weight
   end
 end
