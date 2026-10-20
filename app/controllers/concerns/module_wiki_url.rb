@@ -71,7 +71,7 @@ module ModuleWikiUrl
     end
 
     #url = Url.find_or_create_url_from_wikipedia_str(@record.wiki_url, anchorable: @record, assess_host_part: true, fetch_h1: convert_param_bool(@record.fetch_h1_wiki))  # convert_param_bool defined in application_controller.rb
-    url = Url.find_or_create_url_from_wikipedia_str(@record.wiki_url, anchorable: @record, assess_host_part: true, fetch_h1: @record.fetch_h1_wiki)  # convert_param_bool defined in application_controller.rb
+    url = Url.find_or_create_url_from_wikipedia_str(@record.wiki_url, anchorable: @record, assess_host_part: true, fetch_h1: @record.fetch_h1_wiki)
     if !url
       add_flash_message(:alert, "Input Wikipedia URL seems invalid: "+@record.wiki_url.strip)  # defined in application_controller.rb
       return

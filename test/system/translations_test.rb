@@ -267,8 +267,8 @@ class TranslationsTest < ApplicationSystemTestCase
 
     css = "div dd.item_weight"
     assert_selector css
-    def_weight = Translation.new(translatable: @artist, langcode: "ru", is_orig: false).def_weight(@trans_moderator)
-    assert_equal def_weight, page.find(css).text.to_f
+    # def_weight = Translation.new(translatable: @artist, langcode: "ru", is_orig: false).def_weight(@trans_moderator)
+    assert_equal Translation::MAX_WEIGHT_VISIBLE.quo(10)*11, page.find(css).text.to_f  # because of [:is_internal, "true"]; see also Translation.get_reference_increment about the 10% increment
 
     TranslationsHelper::FLAG_TITLES.each_pair do |ek, etext|
       css = "div.item_#{ek.to_s} dd"

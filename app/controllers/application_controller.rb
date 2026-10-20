@@ -190,12 +190,29 @@ class ApplicationController < ActionController::Base
       if force_is_orig_true || !hsprm_tra.has_key?("best_translation_is_orig")
         true
       else
-        convert_param_bool hsprm_tra[:best_translation_is_orig]
+        self.class.convert_param_bool hsprm_tra[:best_translation_is_orig]
       end
     tra = Translation.preprocessed_new(**(hsprm_tra.slice(*Translation.attribute_names)))
 
     mdl.unsaved_translations << tra
   end
+
+#  def adjust_unsaved_trans_on_create(record) # , prms=nil, force_is_orig_true: true)
+#    if record.translations.all? { _1.is_orig.nil? }
+#    elsif record.translations.all? { _1.is_orig.nil? }
+#
+#    record.translations.each_with_index do |etra, i|
+#      ## sets BaseWithTranslation#orig_locale
+#      etra.skip_singularize_is_orig_callback = true  # to suppress a callback altering orig_locale
+#
+#      ## sets Translation#kind
+#      if etra.kind.blank?
+#        etra.kind = Translation::KIND_FULL
+#      else
+#        etra.kind = Translation::KIND_ALT
+#      end
+#    end
+#  end
 
   # Default respond_to to format algorithm
   #
@@ -546,7 +563,7 @@ class ApplicationController < ActionController::Base
   # * +PARAMS_MAIN_KEYS+: The attributes input in the form that agree with the form keywords
   # * +MAIN_FORM_KEYS+: The form keywords that do not exist in the attributes like :is_this_form_used
   # * +PARAMS_ARRAY_KEYS+: Key for a 1-level nested Array in params, eg., +{music: {..., engage_hows: [1,2,3]}}+.  This key **must** exist in either of the above Array constants.
-  # * +MAIN_FORM_BOOL_KEYS+: (optional) List of keys for which the attributes should be converted into a boolean or nil (from "0", "1", "", or true, "true" etc; the latters may appear in testing). Ideally, Controllers should call {#convert_param_bool} to get a boolean value and Controller-test scripts should call get_params_from_bool (defiend in test_helper.rb) for the reverse action, but we may forget...
+  # * +MAIN_FORM_BOOL_KEYS+: (optional) List of keys for which the attributes should be converted into a boolean or nil (from "0", "1", "", or true, "true" etc; the latters may appear in testing). Ideally, Controllers should call {ApplicationController.convert_param_bool} to get a boolean value and Controller-test scripts should call get_params_from_bool (defiend in test_helper.rb) for the reverse action, but we may forget...
   #
   # @note
   #    This routine does not handle Date/Time parameters very well.
@@ -582,7 +599,7 @@ class ApplicationController < ActionController::Base
     if self.class.const_defined?(:MAIN_FORM_BOOL_KEYS)
       self.class::MAIN_FORM_BOOL_KEYS.each do |ek|
         next if !@hsmain.has_key?(ek)
-        @hsmain[ek] = convert_param_bool(@hsmain[ek], true_int: 1)
+        @hsmain[ek] = self.class.convert_param_bool(@hsmain[ek], true_int: 1)
       end
     end
     @prms_all
@@ -612,14 +629,14 @@ class ApplicationController < ActionController::Base
   #
   # @param hash [Hash]
   # @param *keys [Array<Symbol,String>]
-  # @param **opts [Hash] specify true_int (see {#convert_param_bool})
+  # @param **opts [Hash] specify true_int (see {ApplicationController.convert_param_bool})
   # @return [Hash]
   def convert_params_bool(hash, *keys, **opts)
     reths = hash.dup
     keys.each do |ek|
       raise ArgumentError, "(#{File.basename __FILE__}) key=#{ek} not exists. Contact the code developer." if !reths.has_key? ek
       reths[ek] =
-        convert_param_bool(reths[ek], **opts)
+        self.class.convert_param_bool(reths[ek], **opts)
     end
     reths
   end
@@ -635,7 +652,7 @@ class ApplicationController < ActionController::Base
   # @param val [String, NilClass]
   # @param true_int: [Integer] Integer meaning true
   # @return [Boolean, Nilclass]
-  def convert_param_bool(val, true_int: 0)
+  def self.convert_param_bool(val, true_int: 0)
     false_int_str = ((true_int == 0) ? '1' : '0')
     val = val.downcase if val.respond_to?(:downcase)
     case val

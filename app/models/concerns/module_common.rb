@@ -1680,7 +1680,7 @@ module ModuleCommon
     mat ? [mat.pre_match, mat[1]] : [instr, String.new]
   end
 
-  # Standard preprocess method of an input, mainly for {Translation}
+  # Standard normalization preprocess method of an input, mainly for {Translation}
   #
   # Similar to {#any_zenkaku_to_ascii} but combine SlimString
   # to strip extra spaces. Note that in default any newlines are converted

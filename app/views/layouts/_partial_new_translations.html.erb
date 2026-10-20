@@ -1,3 +1,4 @@
+<%# locals: (form:, model:, trans:, disable_is_orig: false, is_simple_form: true, only_title: false, as_text: false, use_form_attributes: false, n_translation_sets: 2) %>
 
 <%# valiables: form, model, trans, disable_is_orig(Boolean), is_simple_form(Boolean), only_title(Boolean), as_text(Boolean; if true, the type is "text" else "string") %>
   <% modelname = model.class.name %>
@@ -7,7 +8,114 @@
    end %>
 <% as_txt = (as_text ? :text : :string)  %>
 
-<% if defined?(is_simple_form) && is_simple_form  %>
+<%
+  f = form
+  #n_sets = local_assigns.fetch(:n_translation_sets, 2)
+  needed = n_translation_sets - f.object.translations.size
+  needed.times { f.object.translations.build(langcode: "en", kind: nil) } if needed.positive?
+  f.object.translations.first.kind = Translation::KIND_FULL if f.object.translations.first.kind.nil?
+%>
+
+<% if use_form_attributes %>
+<section id="form_edit_translation" class="<%= (defined?(only_title) && only_title) ? 'longtext' : '' %>">
+<div class="translations-wrapper">
+  <%= f.simple_fields_for :translations do |tf| %>
+    <fieldset class="translation-fields border rounded p-3 mb-4">
+      <legend class="w-auto px-2 fs-6 fw-bold">Translation #<%= tf.index + 1 %></legend>
+
+      <%= tf.input :title,
+                   as: :text,
+                   required: true,
+                   input_html: { rows: 2, class: "translation-title" },
+                   label: "Title" %>
+
+      <div class="row">
+        <div class="col-md-6">
+          <%= tf.input :ruby, as: :string, label: "Ruby (Furigana)" %>
+        </div>
+        <div class="col-md-6">
+          <%= tf.input :romaji, as: :string, label: "Romaji" %>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-3">
+          <%= tf.input :langcode,
+                       collection: BaseWithTranslation::AVAILABLE_LOCALES.map(&:to_s),
+                       selected: (tf.object.langcode.presence || "en"),
+                       include_blank: false,
+                       label: "Language" %><%# NOTE: Do NOT include `required: true` as the co-existence with `include_blank: false` would violate HTML5 standards - SimpleForm anyway marks it as if required when no nil option is given in collection %>
+        </div>
+        <div class="col-md-3">
+          <%= tf.input :kind,
+                       collection: Translation::KINDS,
+                       include_blank: "(auto)",
+                       readonly: ((0 == tf.index) ? true : false),
+                       hint: ((0 == tf.index) ? "Should be full" : "full if 1st in langcode"),
+                       label: "Kind" %>
+        </div>
+        <% if !disable_is_orig %>
+        <div class="col-md-3">
+          <%= tf.input :is_orig,
+                       as: :radio_buttons,
+                       collection: [["Yes", true], ["No", false], ["nil", ""]],
+                       item_wrapper_class: "form-check-inline",
+                       hint: ((0 == tf.index) ? "Either Yes/nil" : "Either No/nil"),
+                       label: "Is Original?" %>
+        </div>
+        <% end %>
+      </div>
+
+      <div class="row">
+        <div class="col-md-3">
+          <%= tf.input :is_formal,
+                       as: :radio_buttons,
+                       collection: [["Yes", true], ["No", false], ["(Default:nil)", ""]],
+                       item_wrapper_class: "form-check-inline",
+                       label: "Is Formal?" %>
+        </div>
+        <div class="col-md-3">
+          <%= tf.input :is_official,
+                       as: :radio_buttons,
+                       collection: [["Yes", true], ["No", false], ["(Default:nil)", ""]],
+                       item_wrapper_class: "form-check-inline",
+                       label: "Is Official?" %>
+        </div>
+
+        <div class="col-md-3">
+          <%= tf.input :start_year, as: :integer, input_html: { min: 0 }, label: "Start Year" %>
+        </div>
+        <div class="col-md-3">
+          <%= tf.input :end_year, as: :integer, input_html: { min: 0 }, label: "End Year" %>
+        </div>
+      </div>
+
+      <div class="row my-2">
+       <% if model.class.translation_accept_true_name? %>
+        <div class="col-md-2">
+          <%= tf.input :is_true_name, as: :boolean, label: "True Name" %>
+        </div>
+        <div class="col-md-2">
+          <%= tf.input :is_for_record, as: :boolean, label: "For Record" %>
+        </div>
+        <div class="col-md-1">
+        </div>
+       <% end %>
+        <div class="col-md-3">
+          <%= tf.input :is_literal, as: :boolean, label: "Literal" %>
+        </div>
+        <div class="col-md-3">
+          <%= tf.input :is_internal, as: :boolean, label: "Internal" %>
+        </div>
+      </div>
+
+      <%= tf.input :note, as: :text, input_html: { rows: 2 }, label: "Note" %>
+    </fieldset>
+  <% end %>
+</div>
+</section><!-- section id="form_edit_translation -->
+
+<% elsif defined?(is_simple_form) && is_simple_form  %>
   <%# form.error_notification %>  <%# Rails scaffolding default, but the errors should be printed above this in this app. %>
   <%# form.error_notification message: form.object.errors[:base].to_sentence if form.object.errors[:base].present? %>  <%# here printing :base errors only %>
 

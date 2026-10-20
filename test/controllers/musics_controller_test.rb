@@ -81,7 +81,7 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "should create" do
+  test "should create with translations" do
     sign_in @editor
     ModuleWhodunnit.whodunnit  #  just to (potentially) suppress mal-functioning in setting this...
     get musics_url
@@ -90,43 +90,193 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     engage_how_composer = engage_hows( :engage_how_composer )
     engage_how_player   = engage_hows( :engage_how_player   )
 
+    # --- Translation Set 1 ---
+    tit1 = preprocess_space_zenkaku("試験的楽曲その１")  # "試験的楽曲その1"
+    transs = [
+      { title: "試験的楽曲その１",  # including ZENKAKU
+        ruby: "シケンテキガッキョクソノイチ",
+        romaji: "Shikentekigakkyokusonoichi",
+        langcode: "ja",
+        kind: "full",
+        is_orig: false,  # is_orig field is disabled for Music, so this should be ignored.
+        start_year: 1998,
+        end_year: "",
+        is_formal: "true",
+        is_official: "true",
+        is_true_name:  get_params_from_bool(false),  # defined in test_helper.rb,
+        is_for_record: get_params_from_bool(false),
+        is_literal:    get_params_from_bool(false),
+        is_internal:   get_params_from_bool(false),
+        note: "Original Japanese music name"
+      }.with_indifferent_access,
+      { title: "TestMusic No.2-1",  # including ZENKAKU
+        ruby: "",
+        romaji: "",
+        langcode: "en",
+        kind: "",  # displayed as "(auto)"
+        is_orig: true,  # is_orig field is disabled for Music, so this should be ignored.
+        start_year: "",
+        end_year: "",
+        is_formal: "",
+        is_official: "false",
+        is_true_name:  get_params_from_bool(false),  # defined in test_helper.rb,
+        is_for_record: get_params_from_bool(false),
+        is_literal:    get_params_from_bool(true),
+        is_internal:   get_params_from_bool(true),
+        note: "International release name"
+      }.with_indifferent_access
+    ]
+
     memoe = "my random memo"
     music = nil
     hstmpl = {
-      "langcode"=>"en",
-      "is_orig"=>"en",
-      "title"=>"The Lｕnch Time",
-      "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
       "genre_id"=>Genre.unknown.id.to_s, "year"=>"1984",
       @f_artist_name=>"ＡI  ", "year_engage"=>"",
       "engage_hows"=>["", engage_how_composer.id.to_s, engage_how_player.id.to_s],
       "contribution"=>"",
-      "note"=>"", "memo_editor" => memoe}
+      "note"=>"",
+      "memo_editor" => memoe,
+      "place_id" => Country['AUS'].unknown_place.id.to_s
+    }.with_indifferent_access
 
     # Creation success
-    assert_difference('Music.count*10 + Engage.count', 12) do
-      post musics_url, params: params_to_give_with_place(:music, hstmpl, place_id: Country['AUS'].unknown_place) # defined in test_helper.rb
+    assert_difference('Translation.count*100 + Music.count*10 + Engage.count', 212) do
+      hs2pass = hstmpl.merge({translations_attributes: transs})
+      # post musics_url, params: params_to_give_with_place(:music, hs2pass) # defined in test_helper.rb
+      post musics_url, params: { music: hs2pass }
       assert_response :redirect
-      music = Music.order(:created_at).last
+      music = Music.last_created
       assert_redirected_to music_url music
       my_assert_no_alert_issued  # defined in /test/test_helper.rb
     end
 
-    assert_equal 'Lunch Time, The', music.title
-    assert_equal 'en', music.orig_langcode
-    assert music.place.covered_by? Country['AUS']
+    follow_redirect!
+    assert_response :success  # redirect success
+    flash_regex_assert(/Music was successfully created\b/, "flash message should exist, but...", type: [:success, :notice]) # defined in test_helper.rb
+
+    assert_equal tit1, music.best_translation.title
+    assert_equal "ja", music.orig_langcode
+    assert_equal "ja", music.orig_locale
+    assert music.place.covered_by?(Country['AUS']), "place=#{music.place.inspect} in Country #{music.place.country.title.inspect}"
     assert_equal Genre.unknown,  music.genre
     engs = music.engages
     assert_equal 2, engs.size
-    assert_equal artists(:artist_ai).title, engs.first.artist.title  # It is "Ai" in the fixutre (not "AI")
+    assert_equal artist_ai.title, engs.first.artist.title  # It is "Ai" in the fixutre (not "AI")
+
+    tra1 = music.translations.find_by(title: tit1)
+    tra2 = music.translations.find_by(title: preprocess_space_zenkaku(transs[1][:title])) # defined in module_common.rb
+    assert_equal Translation::KIND_FULL, tra1.kind
+    assert_equal Translation::KIND_FULL, tra2.kind  # because langcode-s differ, both are "full"
+    assert              tra1.is_orig
+    assert_equal false, tra2.is_orig
+    assert_equal 15000, tra1.weight  # (Translation::MAX_WEIGHT_LOWEST_ROLE + Translation::MAX_WEIGHT_NO_ROLE)/2 # b/c @editor has no roles in Translation RoleCategory
+    assert_operator Translation::MAX_WEIGHT_VISIBLE, :<, tra2.weight
+
+    def _get_exp_act_msg(transs, i, etra, metho)
+      exp = transs[i][metho]
+      exp = yield(exp) if block_given?
+      msg = "index[#{i}] - #{metho.inspect}: exp=#{exp.inspect}"
+      act = etra.public_send(metho)
+      [exp, act, msg]
+    end
+
+    [tra1, tra2].each_with_index do |etra, i|
+      %i(langcode ruby romaji start_year end_year note).each do |metho|
+        exp, act, msg = _get_exp_act_msg(transs, i, etra, metho)
+        if exp.blank?
+          assert       exp.blank?, msg
+        else
+          assert_equal exp, act, msg
+        end
+      end
+
+      # testing nil|true|false
+      %i(is_formal is_official).each do |metho|
+        exp, act, msg = _get_exp_act_msg(transs, i, etra, metho){ |exp| ApplicationController.convert_param_bool(exp) }
+        if exp.nil?
+          assert_nil act, msg
+        elsif !exp
+          refute     act, msg
+        else
+          assert     act, msg
+        end
+      end
+
+      # testing true|false
+      %i(is_true_name is_for_record is_literal is_internal).each do |metho|
+        exp, act, msg = _get_exp_act_msg(transs, i, etra, metho){ |exp| ApplicationController.convert_param_bool(exp) }
+        assert_equal !!exp, act, msg
+      end
+    end
+
     assert_equal @editor, music.translations.first.create_user, "(NOTE: for some reason, created_user_id is nil) User=#{@editor.inspect} / ModuleWhodunnit.whodunnit=#{ModuleWhodunnit.whodunnit.inspect} / PaperTrail.request.whodunnit=#{PaperTrail.request.whodunnit.inspect} / Translation(=music.translations.first)="+music.translations.first.inspect
     assert_equal memoe,   music.memo_editor
 
-    # Failure due to non-existent Artist
+
+    ### Tests of the same-language Translation.
+    tit21 = tit1.gsub(/[１1]/, "2")
+    transs2 = transs.map{ |ehs|
+      hs = {}.merge(ehs).with_indifferent_access
+      hs[:langcode] = "ja"  # both "ja"
+      hs[:title] = hs[:title].gsub(/[１1]/, "2")
+      hs[:is_literal]  = get_params_from_bool(false)
+      hs[:is_internal] = get_params_from_bool(false)
+      hs
+    }
+
+    musi2 = nil
+    assert_difference('Translation.count*100 + Music.count*10 + Engage.count', 212) do
+      hs2pass = hstmpl.merge({year: 2014, translations_attributes: transs2})
+      post musics_url, params: { music: hs2pass }
+      assert_response :redirect
+      musi2 = Music.last_created
+      assert_redirected_to music_url musi2
+      my_assert_no_alert_issued  # defined in /test/test_helper.rb
+    end
+
+    follow_redirect!
+    assert_response :success  # redirect success
+    flash_regex_assert(/Music was successfully created\b/, "flash message should exist, but...", type: [:success, :notice]) # defined in test_helper.rb
+
+    assert_equal 2, musi2.translations.size
+    assert_equal tit21, musi2.best_translation.title
+    assert_equal "ja", musi2.orig_langcode
+    assert_equal "ja", musi2.orig_locale
+    assert musi2.place.covered_by?(Country['AUS']), "place=#{musi2.place.inspect} in Country #{musi2.place.country.title.inspect}"
+    assert_equal Genre.unknown,  musi2.genre
+    engs = musi2.engages
+    assert_equal 2, engs.size
+    assert_equal artists(:artist_ai).title, engs.first.artist.title  # It is "Ai" in the fixutre (not "AI")
+
+    tra1 = musi2.translations.find_by(title: tit21)
+    tra2 = musi2.translations.find_by(title: preprocess_space_zenkaku(transs2[1][:title])) # defined in module_common.rb
+    assert_equal Translation::KIND_FULL, tra1.kind
+    assert_equal Translation::KIND_ALT,  tra2.kind  # because langcode-s are the same, kind-s differ, too.
+    assert              tra1.is_orig
+    assert_equal false, tra2.is_orig
+    assert_equal false, tra1.is_literal
+    assert_equal false, tra2.is_literal
+    assert_equal false, tra1.is_internal
+    assert_equal false, tra2.is_internal
+
+    assert_operator tra1.weight, :<, tra2.weight  # b/c tra1.kind=="full" and tra2.kind=="alt"
+
+    ### Failure due to non-existent Artist
+    hs2add = {
+      @f_artist_name => 'naiyo',
+      translations_attributes: [{
+        title: "some 2 #{__method__}",
+        langcode: "en",
+        kind: ""
+      }]
+    }.with_indifferent_access
+    hs2pass = hstmpl.merge(hs2add) ## {@f_artist_name=>'naiyo', :translations_attributes => transs})
     assert_difference('Music.count', 0) do
-      post musics_url, params: params_to_give_with_place(:music, hstmpl.merge({@f_artist_name=>'naiyo'}), place_id: Country['AUS'].unknown_place) # defined in test_helper.rb
+      post musics_url, params: { music: hs2pass }
       assert_response :success
     end
+    flash_regex_assert(/\berror prohibited this Music from being saved\b/, type: :alert, system_test: false) # defined in test_helper.rb
+    flash_regex_assert(/\bArtist is not registered\b/, type: :alert, system_test: false) # defined in test_helper.rb
     sign_out @editor
   end
 

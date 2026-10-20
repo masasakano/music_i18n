@@ -159,7 +159,7 @@
       <% end %>
       <% if can_promote_gen %>
         <td class="align-r trans_weight moderator_only"><%= tra.weight%></td>
-        <td class="align-r trans_weight moderator_only"><%= word_to_sync_target(tra) %></td><%# defined in translations_helper.rb %>
+        <td class="align-r trans_weight_sync moderator_only"><%= word_to_sync_target(tra) %></td><%# defined in translations_helper.rb %>
       <% end %>
       <% if can_show %>
         <td class="editor_only"><%= ModuleRedcarpetAux.md2safehtml(tra.note) %></td>

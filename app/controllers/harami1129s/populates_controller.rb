@@ -16,7 +16,7 @@ class Harami1129s::PopulatesController < ApplicationController
 
     if params.has_key?("harami1129")
       prms = params.require(:harami1129).permit(:recreate_harami_vid)
-      kwds[:recreate_harami_vid] = convert_param_bool(prms[:recreate_harami_vid], true_int: 1)
+      kwds[:recreate_harami_vid] = self.class.convert_param_bool(prms[:recreate_harami_vid], true_int: 1)
       ## or...
       # 
       # if (prm = params.permit(harami1129: {})[:harami1129])

@@ -5,6 +5,7 @@ class MusicsTest < ApplicationSystemTestCase
   setup do
     #@music = musics(:one)
     @moderator = users(:user_moderator_general_ja)
+    @moderator_all   = users(:user_moderator_all)    # Allmighty Moderator can manage.
     @editor_ja       = users(:user_editor_general_ja)
   end
 
@@ -86,8 +87,8 @@ class MusicsTest < ApplicationSystemTestCase
 
     # English Ruby and other lang
     assert_selector :xpath, xpath_grid_rows_contain(title_en: nil)  # defined in test_helper.rb
-    assert_selector :xpath, xpath_grid_rows_contain(title_en: mu_light_trans_en.title,
-                                                    title_en: mu_light_trans_en.ruby)  # English Ruby should be in Title cell. defined in test_helper.rb
+    assert_selector :xpath, xpath_grid_rows_contain(title_en: mu_light_trans_en.title)
+    assert_selector :xpath, xpath_grid_rows_contain(title_en: mu_light_trans_en.ruby)  # English Ruby should be in Title cell. defined in test_helper.rb
     assert_selector :xpath, xpath_grid_rows_contain(title_en:   mu_light_trans_en.title,
                                                     other_lang: mu_light_trans_it.title)  # Another language
 
@@ -256,36 +257,73 @@ class MusicsTest < ApplicationSystemTestCase
     assert_selector "h1", text: "Musics"
     click_on "Create New Music"
 
+    # Music#new page
+    assert_selector "h1", text: "New Music"
+
     # Test of dropdown-menu
     assert_selector 'div#div_select_country', text: "Country"
     #assert_selector 'div#div_select_prefecture', visible: :hidden
     assert_selector CSSHS[:prefecture_option], text: "UnknownPrefecture"  # defined in test_helper.rb
     assert_selector CSSHS[:place_option],      text: "UnknownPlace"
     assert Prefecture.find_by_a_title(:title, "Liverpool"), "fixture test to confirm Liverpool Prefecture"
-    refute_selector CSSHS[:prefecture_option], text: "Liverpool"
+    refute_selector CSSHS[:prefecture_option], text: "Liverpool"  # should not be visible when the selected Country is "World"
     #assert_selector 'div#div_select_place div.form-group.music_place', visible: :hidden  # if with client-side Cascading-Dropdown
 
-    # Music#new page
-    assert_selector "h1", text: "New Music"
+    translation_fieldsets = all(".translation-fields")
+    assert_equal 2, translation_fieldsets.size
 
-    fill_autocomplete('Associated Artist name', with: 'RCサクセ', select: 'RCサクセション')  # defined in test_helper.rb
-    assert_equal 'RCサクセション', find_field('Artist name').value
+    # --- Translation Set 1 ---
+    tit1 = ruby1 = romaji1 = note1 = nil
+    within(translation_fieldsets[0]) do
+      fill_in "Title", with: (tit1="試験的楽曲その1")
+      fill_in "Ruby (Furigana)", with: (ruby1="シケンテキガッキョクソノイチ")
+      fill_in "Romaji", with: (romaji1="Shikentekigakkyokusonoichi")
+      select "ja", from: "Language"
+      select "full", from: "Kind"
+      # choose "Yes", name: /\[translations_attributes\]\[0\]\[is_orig\]/  # is_orig field is disable for Music
 
-    # select_form_eh = page.find('form div.field select#music_engage_hows')
-    # select_form_eh.select('Arranger')
-    # select_form_eh.select('Conductor')
-    check_form_eh = page.find('form fieldset.form-group.music_engage_hows')
-    # html body div#body_main section#sec_primary form#new_music.simple_form.new_music section#sec_primary_input div.register_assoc_artist div.register_assoc_artist_field fieldset.form-group.check_boxes.required.music_engage_hows div.inline input#music_engage_hows_77.form-check-input.check_boxes.required
-    check('Arranger')
-    check('Conductor')
+      fill_in "Start Year", with: 1998
+      fill_in "End Year", with: ""
 
-    # label_str = I18n.t('layouts.new_translations.model_language', model: 'Music')
-    # find_field(label_str).choose('English')  ## Does not work b/c the label is just a <span>!
-    # page.find(PAGECSS[:new_trans_lang_radios]).choose('English')  # defined in test_helper.rb  # only for old-fashioned forms
-    page.find("section#form_edit_translation fieldset.form-group.radio_buttons.music_langcode").choose('English')  # for siple_form
+      choose "Yes", name: /\[translations_attributes\]\[0\]\[is_formal\]/
+      choose "Yes", name: /\[translations_attributes\]\[0\]\[is_official\]/
 
-    tit1 = 'Tekitoh___1'
-    fill_in_new_title_with(Music, tit1)  # defined in test_system_helper.rb
+      refute_selector "input#music_translations_attributes_0_is_true_name"
+      refute_selector "input#music_translations_attributes_0_is_for_record"
+      # uncheck "True Name"
+      # uncheck "For Record"
+      assert_selector "input#music_translations_attributes_0_is_literal"
+      assert_selector "input#music_translations_attributes_0_is_internal"
+      uncheck "Literal"
+      uncheck "Internal"
+
+      fill_in "Note", with: (note1="Original Japanese stage name")
+    end
+
+    # --- Translation Set 2 ---
+    tit2 = ruby2 = romaji2 = note2 = nil
+    within(translation_fieldsets[1]) do
+      fill_in "Title", with: (tit2="TestMusic No.2-1")
+      fill_in "Ruby (Furigana)", with: ""
+      fill_in "Romaji", with: ""
+      # select "en", from: "Language"  # should be Default
+      select "(auto)", from: "Kind"
+      # choose "No", name: /\[translations_attributes\]\[1\]\[is_orig\]/  # is_orig field is disable for Music
+
+      #fill_in "Start Year", with: 2000
+      #fill_in "End Year", with: 2020
+
+      choose "(Default:nil)", name: /\[translations_attributes\]\[1\]\[is_formal\]/
+      choose "No", name: /\[translations_attributes\]\[1\]\[is_official\]/
+
+      check "Literal"
+      check "Internal"
+
+      fill_in "Note", with: (note2="International release name")
+    end
+
+    #tit1 = 'Tekitoh___1'
+    #fill_in_new_title_with(Music, tit1)  # defined in test_system_helper.rb
 
     assert     find_field('Country')
     assert_selector    'form div#div_select_country'
@@ -298,15 +336,117 @@ class MusicsTest < ApplicationSystemTestCase
     #page.execute_script %Q{ $('#{selector}').trigger('mouseenter').click() }
 
     select('Japan',  from: 'Country')
-    assert_selector    'form div#div_select_prefecture'  # Now JS made it appear
+    assert_selector    'form '+CSSHS[:prefecture_select_div]   # Now JS made it appear: 'div#div_select_prefecture'
     assert     find_field('Prefecture')                  # Now JS made it appear
+    prefecture_title = prefectures(:kagawa).best_translation(:en).title_or_alt # 'Kagawa'
+    assert_predicate prefecture_title, :present?
+    within('form '+CSSHS[:prefecture_select_div]) do
+      select(prefecture_title, from: 'Prefecture')
+    end
 
+    genre_title = Genre.third.best_translation(:en).title
     # select('Modern instrumental',  from: 'Genre')
+    select(genre_title,  from: 'Genre')
     find_field(I18n.t('Year_Title', locale: "en")).fill_in with: '1250'  # 'Year'; see /app/views/musics/_form.html.erb
+
+    fill_autocomplete('Associated Artist name', with: 'RCサクセ', select: 'RCサクセション')  # defined in test_helper.rb
+    assert_equal 'RCサクセション', find_field('Artist name').value
+
+    # select_form_eh = page.find('form div.field select#music_engage_hows')
+    # select_form_eh.select('Arranger')
+    # select_form_eh.select('Conductor')
+    check_form_eh = page.find('form fieldset.form-group.music_engage_hows')
+    # html body div#body_main section#sec_primary form#new_music.simple_form.new_music section#sec_primary_input div.register_assoc_artist div.register_assoc_artist_field fieldset.form-group.check_boxes.required.music_engage_hows div.inline input#music_engage_hows_77.form-check-input.check_boxes.required
+    check('Arranger')
+    check('Conductor')
+
+    ## label_str = I18n.t('layouts.new_translations.model_language', model: 'Music')
+    ## find_field(label_str).choose('English')  ## Does not work b/c the label is just a <span>!
+    ## page.find(PAGECSS[:new_trans_lang_radios]).choose('English')  # defined in test_helper.rb  # only for old-fashioned forms
+    #page.find("section#form_edit_translation fieldset.form-group.radio_buttons.music_langcode").choose('English')  # for siple_form
 
     click_on "Create Music"
 
     assert_text "Music was successfully created"
+    flash_text_system_assert("successfully created", type: [:notice, :success], category: :div)  # defined in test_helper.rb
+    close_flash_windows([:notice, :success])
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+
+    music = Music.last_created  # defined in application_record.rb
+
+    assert_equal genre_title, music.genre.best_translation(:en).title
+    assert                         music.place.unknown?
+    assert_equal "Japan",          music.place.country.best_translation(:en).title
+    assert_equal prefecture_title, music.place.prefecture.best_translation(:en).title_or_alt
+
+    assert_equal 2, music.translations.count
+
+    # Verify Translation 1 attributes
+    t1 = music.translations.find_by(title: tit1)
+    assert_not_nil t1
+    assert_equal ruby1, t1.ruby
+    assert_equal romaji1, t1.romaji
+    assert_equal "ja", t1.langcode
+    assert_equal "full", t1.kind
+    assert_equal true, t1.is_orig
+    assert_equal 1998, t1.start_year
+    assert_nil t1.end_year
+    assert_equal true, t1.is_formal
+    assert_equal true, t1.is_official
+    assert_nil          t1.is_true_name  # default
+    assert_equal false, t1.is_for_record # default
+    assert_equal false, t1.is_literal
+    assert_equal false, t1.is_internal
+    assert_equal note1, t1.note
+
+    # Verify Translation 2 attributes
+    t2 = music.translations.find_by(title: tit2)
+    assert_not_nil t2
+    assert_equal "en", t2.langcode
+    assert_equal "full", t2.kind
+    assert_equal false, t2.is_orig
+    #assert_equal 2000, t2.start_year
+    #assert_equal 2020, t2.end_year
+    assert_nil t2.is_formal
+    assert_equal false, t2.is_official
+    assert_nil          t2.is_true_name  # default
+    assert_equal false, t2.is_for_record # default
+    assert_equal true, t2.is_literal
+    assert_equal true, t2.is_internal
+    assert_equal note2, t2.note
+
+    assert_includes find(:xpath, sprintf(XPATHS[:all_translation_table][:banner_row_lang_fmt], "ja")).text, "Original language"
+      
+    xpath = xpath_all_translation_table(langcode: "ja", column: "trans_kind")  # defined in test_helper.rb
+    assert_equal Translation::KIND_FULL.downcase, find(:xpath, xpath).text.strip.downcase
+    xpath = xpath_all_translation_table(langcode: "ja", column: "trans_period")  # defined in test_helper.rb
+    assert_equal t1.start_year.to_s, find(:xpath, xpath).text.strip.split.first    # start_year
+    refute_match(/[0-9]/,            find(:xpath, xpath).text.strip.split[2].to_s) # end_year
+    xpath = xpath_all_translation_table(langcode: "ja", flag: "is_literal")  # defined in test_helper.rb
+    assert_equal "F", find(:xpath, xpath).text.strip
+    xpath = xpath_all_translation_table(langcode: "ja", flag: "is_internal")  # defined in test_helper.rb
+    assert_equal "F", find(:xpath, xpath).text.strip
+
+    assert_equal 2, page.find_all(:xpath, XPATHS[:all_translation_table][:trans_row]).size
+    assert_includes page.find(:xpath, sprintf(XPATHS[:all_translation_table][:trans_row_lang_fmt], "en")).text, tit2
+    xpath = xpath_all_translation_table(langcode: "en", column: "trans_kind")  # defined in test_helper.rb
+    assert_equal Translation::KIND_FULL.downcase, find(:xpath, xpath).text.downcase
+
+    xpath = xpath_all_translation_table(langcode: "en", flag: "is_formal")  # defined in test_helper.rb
+    assert_equal "–", find(:xpath, xpath).text.strip  # See _ternary_flag_display in translations_helper.rb
+    xpath = xpath_all_translation_table(langcode: "en", flag: "is_official")  # defined in test_helper.rb
+    assert_equal "F", find(:xpath, xpath).text.strip
+    xpath = xpath_all_translation_table(langcode: "en", flag: "is_true_name")  # defined in test_helper.rb
+    assert_equal "–", find(:xpath, xpath).text.strip
+    xpath = xpath_all_translation_table(langcode: "en", flag: "is_for_record")  # defined in test_helper.rb
+    assert_equal "F", find(:xpath, xpath).text.strip
+    xpath = xpath_all_translation_table(langcode: "en", flag: "is_literal")  # defined in test_helper.rb
+    assert_equal "T", find(:xpath, xpath).text.strip
+    xpath = xpath_all_translation_table(langcode: "en", flag: "is_internal")  # defined in test_helper.rb
+    assert_equal "T", find(:xpath, xpath).text.strip
+
+    xpath = xpath_all_translation_table(column: "trans_weight")  # defined in test_helper.rb
+    refute_selector :xpath, xpath
 
     click_on "Back to Index", match: :first  # there may be 2 matches, which would raise Capybara::Ambiguous
 
@@ -326,7 +466,37 @@ class MusicsTest < ApplicationSystemTestCase
     assert_selector css_to+"[value='1299']"  # The field should keep the input value
     assert_equal 1, (trs=page.find_all("tbody tr")).size, "The number of table-body rows for Musics in the 13th century should be one (just created), but..."
     assert_includes trs[0].text, tit1
-#take_screenshot
+    assert_selector (css="tbody tr td.#{Consts::Csses::Layouts::ACTION_LINKS_CONTAINER} a.#{Consts::Csses::Layouts::SHOW_LINK}"), text: "Detail"
+    find(css).click
+
+    assert_selector "h1", text: tit1
+    cpath = current_path
+
+    logout_from_menu # defined in test_system_helper.rb
+    # This jumpt back to Home
+
+    login_from_somewhere(@moderator_all, from: :home)  # defined in test_system_helper.rb
+    visit cpath  # jump to the Music-instance path
+    
+    xpath_weight = xpath_all_translation_table(langcode: "ja", column: "trans_weight")  # defined in test_helper.rb
+    assert_selector :xpath, xpath_weight, count: 1
+    assert_in_epsilon t1.weight, find(:xpath, xpath_weight).text.to_f, 0.00001
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+
+    xpath_promote = xpath_all_translation_table(langcode: "ja", column: "trans_promote")  # defined in test_helper.rb
+    assert_selector :xpath, xpath_promote, text: "romote", count: 1
+    within(:xpath, xpath_promote) do
+      click_on "Promote"
+    end
+
+    assert_text (msg="Successfully promoted the Translation")
+    flash_text_system_assert(msg, type: [:notice, :success], category: :div)  # defined in test_helper.rb
+    close_flash_windows([:notice, :success])
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+    refute_selector :xpath, xpath_promote, text: "romote"  # no "Promote" visible anymore.
+
+    promoted_weight = find(:xpath, xpath_weight).text.to_f
+    assert_operator promoted_weight, :<, Role.superuser.weight  # (==0.5), should be smaller than 1.0; cf. /app/controllers/translations/promotes_controller.rb
   end
 
   test "Music#destroyable?" do

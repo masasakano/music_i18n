@@ -28,6 +28,11 @@
 require 'test_helper'
 
 class ArtistTest < ActiveSupport::TestCase
+  test "self.translation_accept_true_name?" do
+    assert Artist.translation_accept_true_name?
+    refute Music.translation_accept_true_name?
+  end
+
   test "CHECK constraints and on_delete dependency" do
     sexi = Sex.create!(iso5218: 99)
     placei = Place.create!(prefecture: Prefecture.last)

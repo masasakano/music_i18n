@@ -104,7 +104,7 @@ class ChannelOwnersController < ApplicationController
     def _get_equivalent_artist
       #if @hsmain[PARAMS_KEY_AC].present?   # @channel_owner.send(PARAMS_KEY_AC) is defined for create but NOT for update
       if @channel_owner.send(PARAMS_KEY_AC).present?   # is defined for create but NOT for update
-        if !@channel_owner.themselves  # convert_param_bool(@prms_all[:themselves], true_int: 1)
+        if !@channel_owner.themselves
           add_flash_message(:warning, "Specified equivalent Artist is ignored because they are specified to be not equivalent.", now: false)
         else
           artist = BaseMergesController.other_model_from_ac(Artist.new, @prms_all[PARAMS_KEY_AC], controller: self)

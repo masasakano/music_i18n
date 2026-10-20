@@ -161,7 +161,7 @@ module TranslationsHelper
         if false == value
           "F"
         elsif value.blank?
-          "&ndash;"
+          "&ndash;"  # => "–"
         else
           "T"
         end

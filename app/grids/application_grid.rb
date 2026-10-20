@@ -778,11 +778,11 @@ class ApplicationGrid < Datagrid::Base
   #   The returned HTML String is automatically enclosed with *span* of +tag_class+.
   def self.column_actions(tag_class: "editor_only", with_destroy: false, edit_path_method: nil, &block)
     column(:actions, tag_options: {class: ["actions"]}, html: true, mandatory: true, order: false, header: "") do |record| # Proc.new{I18n.t("tables.actions", default: "Actions")}
-      retstr = link_to(I18n.t('layouts.Show'), polymorphic_path(record), data: { turbolinks: false })
+      retstr = link_to(I18n.t('layouts.Show'), polymorphic_path(record), class: Consts::Csses::Layouts::SHOW_LINK, data: { turbolinks: false })
       next retstr if !can?(:update, record)
 
       edit_path = (edit_path_method ? send(edit_path_method, record) : polymorphic_path(record, action: :edit))
-      ar4editors = [ link_to('Edit', edit_path) ]
+      ar4editors = [ link_to('Edit', edit_path, class: Consts::Csses::Layouts::EDIT_LINK) ]
 
       if block_given?
         #artmp = yield(record)  # Standard yield would fail if can?() is used in the given block.
@@ -793,7 +793,7 @@ class ApplicationGrid < Datagrid::Base
 
       if with_destroy && can?(:destroy, record)
         ar4editors.push link_to('Destroy', polymorphic_path(record),
-                                class: "destroy_link",
+                                class: Consts::Csses::Layouts::DESTROY_LINK,
                                 data: { 
                                   turbo: true,
                                   turbo_method: :delete,

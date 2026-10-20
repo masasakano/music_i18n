@@ -46,6 +46,11 @@ class ChannelOwnerTest < ActiveSupport::TestCase
     assert_equal artists(:artist_saki_kubota).title, mdl.best_translation(:ja).title
   end
 
+  test "self.translation_accept_true_name?" do
+    assert ChannelOwner.translation_accept_true_name?
+    refute Genre.translation_accept_true_name?
+  end
+
   test "uniqueness and validation" do
     #assert_raises(ActiveRecord::RecordInvalid){
     #  ChannelOwner.create!( note: "") }     # When no entries have the default value, this passes!

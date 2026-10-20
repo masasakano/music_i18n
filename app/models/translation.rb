@@ -365,6 +365,12 @@ class Translation < ApplicationRecord
   # Used to sync Translations between Artist and ChannelOwner
   SYNC_ATTRIBUTES = (TRANSLATION_PARAM_KEYS + %i(weight start_year end_year)).freeze
 
+  # Used in +params.permit+ for Controllers of BaseWithTranslation
+  #
+  # :id is essential. Neither :weight nor :memo_editor may be provided in Views.
+  # NOTE: for Translation Controllers for admin, further add [:translatable_type, :translatable_id, :create_user_id, :update_user_id]
+  PERMITTED_NESTED_ATTRIBUTES = (SYNC_ATTRIBUTES + %i(id note memo_editor)).freeze
+
   # Match method lists. Usually examined in this order.
   # For example, if there is an exact match, :exact.
   # Note the DB converts "The Beatles" into "Beatles, The" when save.
@@ -823,7 +829,7 @@ class Translation < ApplicationRecord
   # @raises [ActiveRecord::StatementInvalid] raised if t_alias is not specified when it is mandatory (because the table-alias for Translation differs in rela from the default "translations")
   def self.sort(rela, consider_is_orig: true, langcode: I18n.locale, prioritize_is_orig: true, t_alias: nil)
     t_alias ||= table_name
-    return sort_array(rela, consider_is_orig: consider_is_orig) if !rela.respond_to?(:order)
+    return sort_array(rela, consider_is_orig: consider_is_orig) if !rela.respond_to?(:order) || (rela.respond_to?(:loaded?) && rela.loaded?)
 
     arsql = build_sql_order(consider_is_orig: consider_is_orig, langcode: langcode, prioritize_is_orig: prioritize_is_orig, t_alias: t_alias)
     rela.order( Arel.sql(arsql.join(",")) )
@@ -2545,7 +2551,7 @@ class Translation < ApplicationRecord
         # Accessing .target inspects in-memory array without hitting SQL
         ret = ret.target
       end
-      ret = ret.reject { |t| t.equal?(self) } if exclude_self
+      ret = ret.reject { |t| t.equal?(self) || (persisted? && t.id == id) } if exclude_self  # dealing with both new and persisted-record cases.
       ret = ret.reject { |t| t.marked_for_destruction? }
       ret = ret.select { |t| t.langcode == lcode } if !skip_langcode_selection
     end
@@ -2632,12 +2638,12 @@ class Translation < ApplicationRecord
   #
   # A wrapper of {#best_translation}
   #
-  # @param locale [String, Symbol, NilClass] search only for the langcode. If unspecified, {#langcode} is used. If :all, langcode is not considered. 
-  # @param raw_weight [Boolean] If true (Def: false), when the {#is_orig} of the best {Translation} is true, its {#weight} on the DB is returned, whatever it is.  Otherwise, in such a case, 0 is returned.
-  # @param fallback [Boolean, Array] See {BaseWithTranslation#best_translation}
+  # @param locale: [String, Symbol, NilClass] search only for the langcode. If unspecified, {#langcode} is used. If :all, langcode is not considered. 
+  # @param raw_weight: [Boolean] If true (Def: false), when the {#is_orig} of the best {Translation} is true, its {#weight} on the DB is returned, whatever it is.  Otherwise, in such a case, 0 is returned.
+  # @param fallback: [Boolean, Array] See {BaseWithTranslation#best_translation}
   # @return [Float] 0 if {#is_orig} of true exists in one of the Translation-s AND raw_weight is false (Def), Float::INFINITY if translatable is not defined (which may happen only in an unsaved new record of Translation)
-  def best_translation_with_weight(locale: nil, raw_weight: false, fallback: false)
-    tra = best_translation(locale: locale, fallback: fallback) # if locale is nil, fallback is ignored.
+  def best_translation_with_weight(locale: nil, raw_weight: false, exclude_zero_weight: false, fallback: false)
+    tra = best_translation(locale: locale, exclude_zero_weight: exclude_zero_weight, fallback: fallback) # if locale is nil, fallback is ignored.
     return [tra, Float::INFINITY] if !tra
     [tra, (tra ? ((!raw_weight && tra.is_orig) ? 0 : tra.weight) : nil)]
   end
@@ -2651,12 +2657,17 @@ class Translation < ApplicationRecord
   # implementation of +fallback+ needs thinking.
   #
   # @param locale [String, Symbol, NilClass] search only for the langcode. If unspecified, {#langcode} is used. If :all, langcode is not considered. 
-  # @param fallback [Boolean, Array] See {BaseWithTranslation#best_translation}
-  # @return [Translation, NilClass] nil if translatable is not defined (which may happen only in an unsaved new record of Translation)
-  def best_translation(locale: nil, fallback: false)
+  # @param exclude_zero_weight: [Boolean] if true (Def: false), one with weight==0 is ignored (if any).
+  # @param fallback [Boolean, Array] (**OBSOLETE**) NOT USED ANYMORE. See {BaseWithTranslation#best_translation}. The default is the opposite.
+  # @return [Translation, NilClass] nil if translatable is not defined (which may happen only in an unsaved new record of Translation) or if exclude_zero_weight is true and there are no Translation-s with the same langcode but self having weight==0
+  def best_translation(locale: nil, exclude_zero_weight: false, fallback: false)
     locale ||= langcode
     return nil if !translatable
-    translatable.best_translation(locale, fallback: fallback) # if locale is nil, fallback is ignored.
+    # translatable.best_translation(locale, fallback: fallback) # if locale is nil, fallback is ignored.
+    artry = translatable.translations
+    artry = artry.select{ |t| t.langcode == locale } unless :all == locale
+    artry = artry.reject{ |t| t.weight == 0 } if exclude_zero_weight
+    ret = Translation.sort(artry).first
   end
 
   # Returns the unique {Translation#weight} to set when {#weight} is blank?
@@ -2744,7 +2755,7 @@ class Translation < ApplicationRecord
   #       2. Note that this is just a default!  For example, "United Kingdom of ..." should
   #          be given a *higher* weight than "UK"; in other words, {#weight} for the first {#is_official}
   #          is lower by default but it can be modified or set differently by a Moderator.
-  #       3. its default weight is lower than any other's.
+  #       3. its default weight is lower than any other's. (**TODO**: those below an admin weight should stay as proiritized!)
   #    2. else (i.e., if {#kind}=="alt")
   #       its default weight is higher than any others (except (1)(2)(3)).
   # 6. else (i.e., if {#langcode}!=+translatable.orig_locale+), where always lower than (1)(2)(3),
@@ -3269,7 +3280,7 @@ end
   # @param reference [Numeric]
   # @param def_increment: [Numeric] positive or negative
   # @param lower_threshold: [Numeric] hard limit like 0.
-  # @param upper_threshold: [Numeric] hard limit like Float::INFINITY or {MAX_WEIGHT_VISIBLE}
+  # @param upper_threshold: [Numeric] hard limit like Float::INFINITY or {MAX_WEIGHT_VISIBLE}. Should never be equal to lower_threshold (except when (try_reference && reference == upper_threshold) && reference is unique).
   # @param exclude_self: [Boolean] if true, self.{#weight} is excluded - used only when self.{#weight} will be modified.
   # @param try_reference: [Boolean] The given +reference+ is the first candidate weight.  If it is unique,
   #     and if it does not contradict +lower_threshold+ and +upper_threshold+, the value is returned.
@@ -3279,6 +3290,7 @@ end
     raise ArgumentError "At least either of thresholds must be specified" if !lower_threshold && !upper_threshold
     raise ArgumentError if 0 == def_increment
     raise ArgumentError, "lower_threshold can't be Infinity" if Float::INFINITY == lower_threshold
+    raise ArgumentError, "lower and upper_threshold-s can't be equal" if upper_threshold == lower_threshold && (!try_reference || reference != lower_threshold)
     lower_threshold ||= 0
     upper_threshold ||= Float::INFINITY
     def_increment = def_increment.abs if 0 == reference  # b/c a negative weight is forbidden.
@@ -3296,6 +3308,7 @@ end
       if existing_weights.include?(reference)
         return send(__method__, reference, def_increment: def_increment, lower_threshold: lower_threshold, upper_threshold: upper_threshold, exclude_self: exclude_self, try_reference: false)
       end
+      raise ArgumentError, "lower and upper_threshold-s can't be equal" if upper_threshold == lower_threshold
     end
 
     if def_increment > 0
@@ -3345,7 +3358,7 @@ end
   # @return [String] to display, compared with self.is_orig
   def str_consistent_is_orig_with_orig_locale
     if is_orig == (should_be=is_best_translation_or_nil)
-      "<sup>*</sup>".html_safe
+      '<span title="Consistent with orig_locale"><sup>◎</sup></span>'.html_safe
     else
       sprintf('<span class="text-red"><strong>(Inconsistent! ⇔ %s)</strong></span>', should_be.inspect).html_safe
     end

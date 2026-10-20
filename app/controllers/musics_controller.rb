@@ -1,5 +1,6 @@
 # coding: utf-8
 class MusicsController < ApplicationController
+  include BaseWithTranslationControllerMethods
   include ModuleCommon # for split_hash_with_keys
   include ModuleGridController # for set_grid
   include ModuleMemoEditor   # for memo_editor attribute
@@ -64,11 +65,15 @@ class MusicsController < ApplicationController
   # POST /musics
   # POST /musics.json
   def create
-    # Parameters: {"authenticity_token"=>"[FILTERED]", "country_id"=>"123", "prefecture_id"=>"456", "place_id"=>"789", "music"=>{"langcode"=>"ja", "is_orig"=>"nil", "title"=>"The Lunch Time", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "genre_id"=>"", "year"=>"", "note"=>"", "artist_name"=>"", "year_engage"=>"", "engage_hows"=>["", "592497512", "746859435"], "contribution"=>""}, "commit"=>"Create Music"}
+    # Parameters: {"music" => {"genre_id" => "379794497", "year" => "1984", "artist_name" => "ＡI  ", "year_engage" => "", "engage_hows" => ["", "592497512", "746859435"], "contribution" => "", "note" => "", "memo_editor" => "my random memo", "translations_attributes" => [{"title" => "Yesterday", "ruby" => "イエスタデイ", "romaji" => "Iesutadei", "langcode" => "ja", "kind" => "full", "start_year" => "1998", "end_year" => "", "is_formal" => "true", "is_official" => "true", "is_true_name" => "0", "is_for_record" => "0", "is_literal" => "0", "is_internal" => "0", "note" => "Original Japanese music name"}, {"title" => "TestMusic No.2-1", "ruby" => "", "romaji" => "", "langcode" => "en", "kind" => "", "start_year" => "", "end_year" => "", "is_formal" => "true", "is_official" => "false", "is_true_name" => "0", "is_for_record" => "0", "is_literal" => "1", "is_internal" => "1", "note" => "International release name"}]}, "place_id" => "10877227", "prefecture_id" => "647877836", "country_id" => "756077872", "locale" => "en"}
+    # No "is_orig" or "weight" on :create
 
-    @record = @music = Music.new(@hsmain)
+    # @record = @music = Music.new(@hsmain)
+    @record = @music = Music.new(music_params)
     authorize! __method__, @music
-    add_unsaved_trans_to_model(@music, @hstra) # defined in application_controller.rb
+    # add_unsaved_trans_to_model(@music, @hstra) # defined in application_controller.rb
+    set_non_nil_orig_locale_from_params(@music, permitted_params: music_params)  # defined in base_with_translation_controller_methods.rb
+    set_kind_from_params(@music, permitted_params: music_params[:translations_attributes])  # defined in base_with_translation_controller_methods.rb
 
     # @music.errors would be added if something goes wrong.
     artist = helpers.get_artist_from_params @prms_all['artist_name'], @music
@@ -87,7 +92,7 @@ class MusicsController < ApplicationController
         # Something goes seriously wrong (which should never happen when called from UI).
         respond_to do |format|
           msg = [(flash[:alert] || ""), @msg_alerts.join(" "), "Consequently, although Music was successfully created, the creation of one (or more) of Music-Artist links failed for an unknown reason. You may try again later. If the problem persists, contact the site administrator."].join(" ")
-          format.html { redirect_to @music, notice: msg, alert: msg }
+          format.html { redirect_to @music, success: 'Music was successfully created.', alert: msg }
         end
         return
       end
@@ -97,12 +102,7 @@ class MusicsController < ApplicationController
       if !@music.errors.present? && save_return
         extra_str = " / Artists=#{ApplicationRecord.logger_titles(@music.artists.uniq)}"
         logger_after_create(@music, extra_str: extra_str, method_txt: __method__)  # defined in application_controller.rb
-        if @msg_alerts.empty?
-          format.html { redirect_to @music, notice: 'Music was successfully created.', alert: flash[:alert]} # alert may be set by an external process
-        else
-          msg = flash[:alert]+" "+@msg_alerts.join(" ")
-          format.html { redirect_to @music, notice: msg, alert: msg }
-        end
+        format.html { redirect_to @music, success: 'Music was successfully created.', alert: (flash[:alert] || [])+@msg_alerts} # alert may be set by an external process
         format.json { render :show, status: :created, location: @music }
       else
         format.html { render :new }
@@ -163,9 +163,14 @@ class MusicsController < ApplicationController
     end
 
     ## Only allow a list of trusted parameters through.
-    ## This is automatically read for :new in load_and_authorize_resource
+    #
+    # This is automatically read for :new in load_and_authorize_resource
+    # Note that `params[:country_id]` and `params[:prefecture_id]` as well as `params[:place_id]`
+    # are also available at the top level.
     def music_params
-      params.require(:music).permit(MAIN_FORM_KEYS.map(&:to_sym)+[:place_id])
+      params.require(:music).permit(*(MAIN_FORM_KEYS.map(&:to_sym)+[:place_id]),
+                                    translations_attributes: Translation::PERMITTED_NESTED_ATTRIBUTES )
+                            .with_defaults(place_id: params[:place_id])
     end
 
     # set @artist, @artist_name, @artist_title from a given URL parameter

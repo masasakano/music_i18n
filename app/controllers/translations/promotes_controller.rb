@@ -11,32 +11,38 @@ class Translations::PromotesController < ApplicationController
 
   # True if promote is allowed.
   #
+  # +promote+ indicates that the Translation is officially approved by a senior
+  # and does not mean much else because a new weight calculation takes into
+  # account flag information and the calculated will not exceed the most likely
+  # best Translation among the siblings.
+  #
   # Essentially, this Controller (but this class method) is only accessible 
   # by translation-moderators and admins.  They are allowed to promote
   # almost any Translations, created by whomever, unless the {#weight} is
-  # already zero.
+  # already zero or smaller than superuser's weight with no other Translation-s
+  # of the same langcode having a smaller weight (excepting 0).
   #
   # Note that if the Translation with the highest weight score among sibling Translations
   # is created by a senior person (admin), the promoted weight would not exceed it.
-  # Mind you, most of admin-created translations should have a weight of either
-  # 0 (i.e., {#is_orig}==true or definitive translation) or Infinity
-  # and nothing in between, although admin's default Translation weight is 1.
   def self.allowed?(tra)
     # return false if !can?(:update, Translations::PromotesController)  # This check should be done in UI (View). Besides, it is a bit awkward to use "can?" here.
-    return false if tra.weight  && tra.weight <= 0
-    return true  if tra.is_orig && (!tra.weight || tra.weight > 0)
+    return true  if tra.weight.nil? || Float::INFINITY == tra.weight
+    return false if tra.weight <= 0
 
-    # If the sibling of the same langcode has is_orig==true
-    # and if this translation has the second highest weight,
-    # there is no point to promote it.
-    best_tra, best_weight = tra.best_translation_with_weight
-    return false if [best_weight, Float::INFINITY].include?(tra.weight)
-    return false if tra.siblings(exclude_self: true).blank?
-    return false if best_tra.is_orig && tra == tra.siblings(exclude_self: false)[1]
+    # return true  if tra.is_orig && (!tra.weight || tra.weight > 0)
+
+    best_tra, best_weight = tra.best_translation_with_weight(raw_weight: true, exclude_zero_weight: true)
+    return false if !best_weight  # i.e., !best_tra  (b/c the best AND ONLY weight is zero)
+    return false if best_weight == tra.weight && tra.weight < Role.superuser.weight  # A sibling with weight=0 may still exist, but you anway cannot promote tra higher than that.
+
+    ## return false if [best_weight, Float::INFINITY].include?(tra.weight)
+    # return false if tra.siblings(exclude_self: true).blank?  # should be redundant.
+    # return false if best_tra.is_orig && tra == tra.siblings(exclude_self: false)[1]
 
     return true
   end
 
+  # If promotable, the new weight will be 0.5 (== +Role.superuser.weight/2+), or smaller if another Translation already has it.
   def update
     authorize! :update, Translations::PromotesController
 
@@ -45,15 +51,15 @@ class Translations::PromotesController < ApplicationController
       raise CanCanCan::AccessDenied.new("Not authorized to promote Translation=#{@translation.title_or_alt.inspect}", :update, Translations::PromotesController)
     end
 
-    best_tra, best_weight = @translation.best_translation_with_weight
+    best_tra, best_weight = @translation.best_translation_with_weight(raw_weight: true)
     new_weight =
       if @translation.is_orig
-        base_weight = Role.superuser.weight
-        @translation.new_tra.next_unique_weight(
+        base_weight = [(superuser_weight=Role.superuser.weight), best_weight].min
+        @translation.next_unique_weight(
           base_weight * DEF_WEIGHT_FACTOR_PROMOTED_ORIGINAL_REFERENCE,  # == 0.5 (nominal weight of Translation in orig_locale after promoted)
-          def_increment: -(base_weight * DEF_WEIGHT_FACTOR_PROMOTED_ORIGINAL_POSITIVE_INCREMENT),
+          def_increment: -([base_weight * DEF_WEIGHT_FACTOR_PROMOTED_ORIGINAL_POSITIVE_INCREMENT, superuser_weight.quo(10)].max), # max is required in case of base_weight being 0
           lower_threshold: 0,
-          upper_threshold: base_weight,
+          upper_threshold: [base_weight, superuser_weight].max,  # in case of base_weight being 0
           try_reference: true
         )
       else
@@ -80,7 +86,7 @@ class Translations::PromotesController < ApplicationController
         format.json { render json: [msg1, msg2].compact, status: :ok, location: (request.referrer || @translation) }
       end
     else
-      # This should not happen in general (unless DB behaves funny.)
+      # This should never happen in general (unless DB behaves funny or some validations went wrong, which should never happen).
       opts[:alert] = @translation.errors.full_messages if !@translation.errors.empty?
       msg = (opts[:alert] || opts[:warning])
       respond_to do |format|

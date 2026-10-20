@@ -533,6 +533,9 @@ class BaseWithTranslation < ApplicationRecord
   validates  :orig_locale, format: { with: /\A[a-z]{2}\z/ }, allow_nil: true  # ISO 639-1 only. +length: {is: 2}` would be redundant.
   # NOTE: (if extended) {with: /\A[a-z]{2}(\-[a-z]{2})?\z/i}  # Limited set of IETF language tag (ISO 639-1 + optional region subtag; e.g., en-GB)
 
+  # before_validation of :assign_auto_kinds and :sync_orig_locale, validate :validate_is_orig_consistency
+  include TranslationLifecycle
+
   validates_with UnsavedTranslationsValidator
   validate  :validate_translation_base
 
@@ -3706,9 +3709,9 @@ end
         eary.each do |etra|
           case ekind
           when Translation::KIND_FULL
-            hsarret[elcode][0] = etra if hsarret[elcode][0].blank? || etra.weight < hsarret[elcode][0].weight
+            hsarret[elcode][0] = etra if hsarret[elcode][0].blank? || hsarret[elcode][0].weight.blank? || etra.weight && etra.weight < hsarret[elcode][0].weight
           when Translation::KIND_ALT
-            hsarret[elcode][1] = etra if hsarret[elcode][1].blank? || etra.weight < hsarret[elcode][1].weight
+            hsarret[elcode][1] = etra if hsarret[elcode][1].blank? || hsarret[elcode][1].weight.blank? || etra.weight && etra.weight < hsarret[elcode][1].weight
           else
             raise "should never happen..."
           end
@@ -5653,7 +5656,7 @@ tra_orig.save!  # should be fine because its weight is the lowest between the tw
     hs_prms = TEMPLATE_VALIDATE_TRANSLATION_PRMS
     hs_prms = hs_prms.merge(self.class::VALIDATE_TRANSLATION_PRMS) if self.class.const_defined?(:VALIDATE_TRANSLATION_PRMS)
 
-    if !translations.exists?
+    if translations.blank?
       if !hs_prms[:allow_absence] && (!hs_prms[:allow_absence_on_create] || !new_record?)
         errors.add(:title, " (Tanslation) must exist.")
       end

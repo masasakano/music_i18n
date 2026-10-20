@@ -1005,9 +1005,10 @@ end
   # @example in Controller test
   #    assert_response :redirect
   #    follow_redirect!
-  #    flash_regex_assert(/\bArtist is ignored\b/, type: :warning, system_test: false) # defined in test_helper.rb
+  #    flash_regex_assert(/\bArtist is ignored\b/, type: [:warning, :alert], system_test: false) # defined in test_helper.rb
   #
   # @example in System test
+  #    assert_text "was successfully created"  # essential because flash_regex_assert() does not wait
   #    flash_regex_assert(/\bwas successfully created\b/, type: [:notice, :success], system_test: true) # defined in test_helper.rb
   #
   # @param regex [Regexp] 
@@ -1021,6 +1022,7 @@ end
   #    maybe using {#flash_text_system_assert}
   # @param is_debug: [Boolean] if true (Def: false), prints the CSS selector information. Valid only for Controller tests
   # @param kwds: [Hash] Optional hash to be passed to {#css_for_flash} or {#xpath_for_flash}, notably +category+ and +extra+
+  # @return [MatchData] returned value of assert_match (which usually is not used)
   def flash_regex_assert(regex, msg=nil, type: nil, with_html: false, system_test: false, is_debug: false, **kwds)
     caller_info = _get_caller_info_message(bind_offset: 0)
 
@@ -1062,11 +1064,14 @@ end
   # The input should be a Ruby value, so "nil" (String) would yield +true+
   #
   # Also, see {ApplicationController.convert_param_bool}, which
-  # works in the opposite way in default...  So, you may call it, explicitly specifying +true_int+ optional parameter like:
+  # works in the opposite way in default (with or without the explicit option +true_int: 1+):
   #
-  #    convert_param_bool(params[:models][my_param], true_int: 1)
+  #    ApplicationController.convert_param_bool(params[:models][my_param])
   #
-  # @param prmval [String, NilClass] params['is_ok']
+  # @example
+  #   get_params_from_bool(true)  # defined in test_helper.rb
+  #
+  # @param val [Boolean, NilClass] true|false|nil
   # @return [Boolean, NilClass]
   def get_params_from_bool(val)
     return "" if val.nil?
@@ -1099,7 +1104,7 @@ end
   def my_assert_no_alert_issued(screen_test_only: false)
     caller_info = _get_caller_info_message(bind_offset: 0)
 
-    assert  flash[:alert].blank?, "Failed(#{caller_info}) with Flash-alert: "+(flash[:alert] || "") if !screen_test_only
+    assert  flash[:alert].blank?, "Failed(#{caller_info}) with Flash-alert: "+flash[:alert].inspect if !screen_test_only
     msg_alert = css_select(".alert").text.strip
     assert_empty msg_alert, "(#{caller_info}):Alert: #{msg_alert}"
   end
@@ -1670,6 +1675,36 @@ end
     prefix + "[" + tr_constraints.join(" and ") + "]"
   end
   
+  # Returns an XPath for td (or tr if no options are given)
+  #
+  # @example
+  #   xpath_all_translation_table  # => XPATH for tr # defined in test_helper.rb
+  #     # == XPATHS[:all_translation_table][:trans_row]
+  #
+  # @example
+  #   xpath_all_translation_table(langcode: "en", column: "trans_kind")  # defined in test_helper.rb
+  #   xpath_all_translation_table(langcode: "en", flag: "is_internal")  # defined in test_helper.rb
+  #
+  # @param langcode: [String, Symbol, NilClass] if nil, all tbody rows
+  # @param column: [String, NilClass] to specify a column class, e.g., "trans_kind". If flag is non-nil, this is "trans_flags" if nil
+  # @param flag: [String, Symbol, NilClass] "is_internal" etc.  If specified, this sets (column="trans_flags")
+  # @return [String]
+  def xpath_all_translation_table(langcode: nil, column: nil, flag: nil)
+    column ||= "trans_flags" if flag.present?
+    ret =
+      if langcode.present?
+        sprintf(XPATHS[:all_translation_table][:trans_row_lang_fmt], langcode.to_s)
+      else
+        XPATHS[:all_translation_table][:trans_row]
+      end
+
+    return ret if column.blank?
+    ret += "/" + ModuleCommon.xpath_contain_css(column, complete_for: "td")
+
+    return ret if flag.blank?
+    ret += "//" + ModuleCommon.xpath_contain_css("flag_"+flag.to_s, complete_for: "span")
+  end
+
   ################################################################
   # Gem related
   ################################################################
