@@ -1,5 +1,6 @@
 # coding: utf-8
 class EventGroupsController < ApplicationController
+  include BaseWithTranslationControllerMethods  # for model_params, set_kind_from_params etc
   include ModuleMemoEditor   # for memo_editor attribute
 
   skip_before_action :authenticate_user!, only: [:index, :show]  # Revert application_controller.rb so Index is viewable by anyone.
@@ -80,6 +81,15 @@ class EventGroupsController < ApplicationController
     # Use callbacks to share common setup or constraints between actions.
     def set_event_group
       @event_group = EventGroup.find(params[:id])
+    end
+
+    # Overwrites (modifies) that in {BaseWithTranslationControllerMethods}
+    #
+    # This accepts +:place_id+ whether it appears at the top level or under :music
+    # and incorporates it into the permitted {#model_params}
+    def model_params
+      extracted_place_id = params[:place_id].presence || params.dig(:music, :place_id)
+      super.with_defaults(place_id: extracted_place_id)
     end
 
     # Sets @hsmain and @hstra and @prms_all from params

@@ -1,5 +1,6 @@
 # coding: utf-8
 class ChannelOwnersController < ApplicationController
+  include BaseWithTranslationControllerMethods  # for model_params, set_kind_from_params etc
   include ModuleMemoEditor   # for memo_editor attribute; this includes ModuleRedcarpetAux; NOTE ChannelOwner does not have the memo_editor column at the time of writing.
 
   #before_action :set_channel_owner, only: %i[ show edit update destroy ]

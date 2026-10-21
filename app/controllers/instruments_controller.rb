@@ -1,4 +1,6 @@
 class InstrumentsController < ApplicationController
+  include BaseWithTranslationControllerMethods  # for model_params, set_kind_from_params etc
+
   #before_action :set_instrument, only: %i[ show edit update destroy ]
   load_and_authorize_resource except: [:create] # This sets @instrument
   before_action :instrument_params_three, only: [:create, :update]
@@ -30,10 +32,18 @@ class InstrumentsController < ApplicationController
 
   # POST /instruments or /instruments.json
   def create
-    @instrument = Instrument.new(@hsmain)
+    # @instrument = Instrument.new(@hsmain)
+    @record = @instrument = Instrument.new(model_params)
     authorize! __method__, @instrument
+    if set_kind_from_params(@record, permitted_params: model_params[:translations_attributes])  # defined in base_with_translation_controller_methods.rb
+      @record.translations.each do |etra|
+        etra.is_orig = nil  # should be already the case through U/I
+      end
+    else
+      @record.errors.add(:base, "No Translation is specified.")
+    end
 
-    add_unsaved_trans_to_model(@instrument, @hstra) # defined in application_controller.rb
+    # add_unsaved_trans_to_model(@instrument, @hstra) # defined in application_controller.rb
     def_respond_to_format(@instrument)              # defined in application_controller.rb
   end
 

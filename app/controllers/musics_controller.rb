@@ -1,6 +1,6 @@
 # coding: utf-8
 class MusicsController < ApplicationController
-  include BaseWithTranslationControllerMethods
+  include BaseWithTranslationControllerMethods  # for model_params, set_kind_from_params etc
   include ModuleCommon # for split_hash_with_keys
   include ModuleGridController # for set_grid
   include ModuleMemoEditor   # for memo_editor attribute
@@ -69,11 +69,14 @@ class MusicsController < ApplicationController
     # No "is_orig" or "weight" on :create
 
     # @record = @music = Music.new(@hsmain)
-    @record = @music = Music.new(music_params)
+    @record = @music = Music.new(music_params)  # or model_params ; see "private" section below and BaseWithTranslationControllerMethods
     authorize! __method__, @music
     # add_unsaved_trans_to_model(@music, @hstra) # defined in application_controller.rb
-    set_non_nil_orig_locale_from_params(@music, permitted_params: music_params)  # defined in base_with_translation_controller_methods.rb
-    set_kind_from_params(@music, permitted_params: music_params[:translations_attributes])  # defined in base_with_translation_controller_methods.rb
+    if set_non_nil_orig_locale_from_params(@record, permitted_params: music_params)  # defined in base_with_translation_controller_methods.rb
+      set_kind_from_params(@record, permitted_params: music_params[:translations_attributes])  # defined in base_with_translation_controller_methods.rb
+    else
+      @record.errors.add(:base, "No Translation is specified.")
+    end
 
     # @music.errors would be added if something goes wrong.
     artist = helpers.get_artist_from_params @prms_all['artist_name'], @music
@@ -162,15 +165,13 @@ class MusicsController < ApplicationController
       @music = Music.find(params[:id])
     end
 
-    ## Only allow a list of trusted parameters through.
+    # Overwrites (modifies) that in {BaseWithTranslationControllerMethods}
     #
-    # This is automatically read for :new in load_and_authorize_resource
-    # Note that `params[:country_id]` and `params[:prefecture_id]` as well as `params[:place_id]`
-    # are also available at the top level.
-    def music_params
-      params.require(:music).permit(*(MAIN_FORM_KEYS.map(&:to_sym)+[:place_id]),
-                                    translations_attributes: Translation::PERMITTED_NESTED_ATTRIBUTES )
-                            .with_defaults(place_id: params[:place_id])
+    # This accepts +:place_id+ whether it appears at the top level or under :music
+    # and incorporates it into the permitted {#model_params}
+    def model_params
+      extracted_place_id = params[:place_id].presence || params.dig(:music, :place_id)
+      super.with_defaults(place_id: extracted_place_id)
     end
 
     # set @artist, @artist_name, @artist_title from a given URL parameter

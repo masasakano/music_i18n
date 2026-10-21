@@ -1,5 +1,6 @@
 # coding: utf-8
 class HaramiVidsController < ApplicationController
+  include BaseWithTranslationControllerMethods  # for model_params, set_kind_from_params etc
   include ModuleCommon  # for contain_asian_char, txt_place_pref_ctry
   include ModuleHaramiVidEventAux # some constants and methods common with HaramiVids::FetchYoutubeDataController
   include HaramiVidsHelper # for set_event_event_items (common with HaramiVids::FetchYoutubeDataController) and collection_musics_with_evit
@@ -186,15 +187,13 @@ class HaramiVidsController < ApplicationController
       @harami_vid = HaramiVid.find(params[:id])
     end
 
-    # Only allow a list of trusted parameters through.
-    def harami_vid_params
-      params.require(:harami_vid).permit(:release_date, :duration, :uri, :place_id, :artist, :engage_how2, :music, :music_timing, :channel, :note, :memo_editor)  #  :"place.prefecture_id.country_id", :"place.prefecture_id", :place,
-    end
-
-    # Only those that are direct parameters of HaramiVid
-    def sliced_harami_vid_params
-      prmret = harami_vid_params.slice(:release_date, :duration, :uri, :note, :memo_editor)
-      {place_id: harami_vid_params[:place]}.merge prmret
+    # Overwrites (modifies) that in {BaseWithTranslationControllerMethods}
+    #
+    # This accepts +:place_id+ whether it appears at the top level or under :music
+    # and incorporates it into the permitted {#model_params}
+    def model_params
+      extracted_place_id = params[:place_id].presence || params.dig(:music, :place_id)
+      super.with_defaults(place_id: extracted_place_id)
     end
 
     # Sets @hsmain and @hstra and @prms_all from params

@@ -1,4 +1,6 @@
 class PrefecturesController < ApplicationController
+  include BaseWithTranslationControllerMethods  # for model_params, set_kind_from_params etc
+
   skip_before_action :authenticate_user!, :only => [:show]  # Revert application_controller.rb so Show is viewable by anyone. (but not Index so far...)
   before_action :set_prefecture, only: [:show, :edit, :update, :destroy]
   before_action :set_cp_all, only: [:index, :new, :edit, :create, :update]

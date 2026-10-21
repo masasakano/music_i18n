@@ -1,4 +1,5 @@
 class UrlsController < ApplicationController
+  include BaseWithTranslationControllerMethods  # for model_params, set_kind_from_params etc
   include ModuleCommon  # for contain_asian_char, txt_place_pref_ctry
   include ModuleGridController # for set_grid
   include ModuleMemoEditor   # for memo_editor attribute
@@ -43,10 +44,16 @@ class UrlsController < ApplicationController
 
   # POST /urls or /urls.json
   def create
-    @url = Url.new(@hsmain)
+    # @url = Url.new(@hsmain)
+    @record = @url = Url.new(model_params)
     authorize! __method__, @url
+    if set_non_nil_orig_locale_from_params(@record, permitted_params: model_params)  # defined in base_with_translation_controller_methods.rb
+      set_kind_from_params(@record, permitted_params: model_params)  # defined in base_with_translation_controller_methods.rb
+    else
+      @record.errors.add(:base, "No Translation is specified.")
+    end
 
-    add_unsaved_trans_to_model(@url, @hstra, force_is_orig_true: false) # defined in application_controller.rb
+    #add_unsaved_trans_to_model(@url, @hstra, force_is_orig_true: false) # defined in application_controller.rb
     def_respond_to_format(@url, :created){              # defined in application_controller.rb
       find_or_create_and_assign_domain(@url)
       @url.errors.any? ? false : @url.save
@@ -107,11 +114,6 @@ class UrlsController < ApplicationController
     ## Use callbacks to share common setup or constraints between actions.
     #def set_url
     #  @url = Url.find(params[:id])
-    #end
-
-    ## Only allow a list of trusted parameters through.
-    #def url_params
-    #  params.require(:url).permit(:url, :url_normalized, :url_langcode, :domain_title_id, :weight, :published_date, :last_confirmed_date, :create_user_id, :update_user_id, :note, :memo_editor)
     #end
 
     # Sets @hsmain and @hstra and @prms_all from params

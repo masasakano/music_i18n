@@ -15,11 +15,41 @@ class InstrumentsControllerTest < ActionDispatch::IntegrationTest
     @trans_moderator = users(:user_moderator_translation) # Translator cannot create/delete but edit (maybe!).
     @translator      = users(:user_translator)            # Translator can read but not create/delete.
     @moderator_ja    = users(:user_moderator_general_ja)  # Same as Translator.
-    @hs_create_lang = {
-      "langcode"=>"ja",
-      "title"=>"The Tｅst7",
-      "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
-    }
+    # @hs_create_lang = {
+    #   "langcode"=>"ja",
+    #   "title"=>"The Tｅst7",
+    #   "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
+    # }
+    @ar_create_trans = [
+      { langcode: "ja",
+        title: "The Tｅst7",  # including ZENKAKU
+        ruby: "", romaji: "",
+        kind: "full",
+        is_orig: true,  # is_orig field is disabled for Instrument, so this should be ignored.
+        start_year: "", end_year: "",
+        is_formal: "true",
+        is_official: "true",
+        is_true_name:  get_params_from_bool(false),  # ignored
+        is_for_record: get_params_from_bool(false),  # ignored
+        is_literal:    get_params_from_bool(false),  # defined in test_helper.rb
+        is_internal:   get_params_from_bool(false),  # defined in test_helper.rb
+        note: "Trans-note Japanese name"
+      }.with_indifferent_access,
+      { title: "The Test7 in English",
+        ruby: "", romaji: "",
+        langcode: "en",
+        kind: "",  # displayed as "(auto)"
+        is_orig: false,  # is_orig field is disabled for Music, so this should be ignored.
+        start_year: "", end_year: "",
+        is_formal: "true",
+        is_official: "true",
+        is_true_name:  get_params_from_bool(false),  # ignored
+        is_for_record: get_params_from_bool(false),  # ignored
+        is_literal:    get_params_from_bool(false),  # defined in test_helper.rb
+        is_internal:   get_params_from_bool(false),  # defined in test_helper.rb
+        note: "Trans-note English name"
+      }.with_indifferent_access
+    ]
   end
 
   teardown do
@@ -54,7 +84,7 @@ class InstrumentsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should create instrument" do
-    hs2pass = @hs_create_lang.merge({ note: "", weight: 54 })
+    hs2pass = { note: "", weight: 54, translations_attributes: @ar_create_trans }.with_indifferent_access
     assert_no_difference("Instrument.count") do
       post instruments_url, params: { instrument: hs2pass }
     end
@@ -72,15 +102,24 @@ class InstrumentsControllerTest < ActionDispatch::IntegrationTest
     #sign_in @syshelper
     assert_difference("Instrument.count") do
       post instruments_url, params: { instrument: hs2pass }
+      assert_response :redirect
     end
-    eeih_last = Instrument.last
-    assert_redirected_to instrument_url(eeih_last)
-    assert_equal 54, eeih_last.weight
+
+    inst_last = Instrument.last_created # defined in application_record.rb
+    assert_redirected_to instrument_url(inst_last)
+    follow_redirect!
+    assert_response :success  # redirect success
+    flash_regex_assert(/Instrument was successfully created\b/, "flash message should exist, but...", type: [:success, :notice]) # defined in test_helper.rb
+
+    assert_equal 54, inst_last.weight
+    assert  inst_last.translations.pluck(:is_orig).all? { _1.nil? }
 
     assert_no_difference("Instrument.count") do
       post instruments_url, params: { instrument: { note: "", weight: 12345 } }
     end
     assert_response :unprocessable_content
+    flash_regex_assert(/errors? prohibited this [^\s]* from being saved\b/i, "flash message should exist, but...", type: :alert, system_test: false) # defined in test_helper.rb
+    flash_regex_assert(/No Translation is\b/i, "flash message should exist, but...", type: :alert, system_test: false) # defined in test_helper.rb
   end
 
   test "should show instrument" do

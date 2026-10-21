@@ -103,13 +103,13 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
         end_year: "",
         is_formal: "true",
         is_official: "true",
-        is_true_name:  get_params_from_bool(false),  # defined in test_helper.rb,
-        is_for_record: get_params_from_bool(false),
-        is_literal:    get_params_from_bool(false),
-        is_internal:   get_params_from_bool(false),
+        is_true_name:  get_params_from_bool(false),  # ignored
+        is_for_record: get_params_from_bool(false),  # ignored
+        is_literal:    get_params_from_bool(false),  # defined in test_helper.rb
+        is_internal:   get_params_from_bool(false),  # defined in test_helper.rb
         note: "Original Japanese music name"
       }.with_indifferent_access,
-      { title: "TestMusic No.2-1",  # including ZENKAKU
+      { title: "TestMusic No.2-1",
         ruby: "",
         romaji: "",
         langcode: "en",
@@ -145,7 +145,7 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
       # post musics_url, params: params_to_give_with_place(:music, hs2pass) # defined in test_helper.rb
       post musics_url, params: { music: hs2pass }
       assert_response :redirect
-      music = Music.last_created
+      music = Music.last_created # defined in application_record.rb
       assert_redirected_to music_url music
       my_assert_no_alert_issued  # defined in /test/test_helper.rb
     end
@@ -229,7 +229,7 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
       hs2pass = hstmpl.merge({year: 2014, translations_attributes: transs2})
       post musics_url, params: { music: hs2pass }
       assert_response :redirect
-      musi2 = Music.last_created
+      musi2 = Music.last_created # defined in application_record.rb
       assert_redirected_to music_url musi2
       my_assert_no_alert_issued  # defined in /test/test_helper.rb
     end
@@ -273,7 +273,7 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
     hs2pass = hstmpl.merge(hs2add) ## {@f_artist_name=>'naiyo', :translations_attributes => transs})
     assert_difference('Music.count', 0) do
       post musics_url, params: { music: hs2pass }
-      assert_response :success
+      assert_response :success  # NOT :unprocessable_content
     end
     flash_regex_assert(/\berror prohibited this Music from being saved\b/, type: :alert, system_test: false) # defined in test_helper.rb
     flash_regex_assert(/\bArtist is not registered\b/, type: :alert, system_test: false) # defined in test_helper.rb

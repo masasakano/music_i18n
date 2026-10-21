@@ -1,4 +1,6 @@
 class SexesController < ApplicationController
+  include BaseWithTranslationControllerMethods  # for model_params, set_kind_from_params etc
+
   before_action :set_sex, only: [:show, :edit, :update, :destroy]
   load_and_authorize_resource
 

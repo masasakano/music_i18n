@@ -1,4 +1,6 @@
 class GenresController < ApplicationController
+  include BaseWithTranslationControllerMethods  # for model_params, set_kind_from_params etc
+
   before_action :set_genre, only: [:show, :edit, :update, :destroy]
   load_and_authorize_resource
 

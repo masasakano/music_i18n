@@ -662,7 +662,7 @@ class ApplicationController < ActionController::Base
     #  true
     #when 'false', false, false_int_str, self.class.returned_str_from_form(false)
     #  false
-    when 'nil', 'on', nil, "", self.class.returned_str_from_form(FORM_TERNARY_UNDEFINED_VALUE)  # if nil is specified in radio_button as a value in html.erb (please don't to avoid confusion!!), 'on' is returned, which is the browser's default.
+    when 'nil', 'on', nil, "", returned_str_from_form(FORM_TERNARY_UNDEFINED_VALUE)  # if nil is specified in radio_button as a value in html.erb (please don't to avoid confusion!!), 'on' is returned, which is the browser's default.
       nil
     else
       raise "ERROR(#{__method__}): unexpected input (#{val.inspect})"

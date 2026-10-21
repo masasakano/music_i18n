@@ -1,5 +1,7 @@
 # coding: utf-8
 class EventsController < ApplicationController
+  include BaseWithTranslationControllerMethods  # for model_params, set_kind_from_params etc
+
   include ModuleCommon
   include ApplicationHelper  # for get_params_from_date_time
   include ModuleGridController # for set_grid
@@ -88,6 +90,15 @@ class EventsController < ApplicationController
     # Use callbacks to share common setup or constraints between actions.
     def set_event
       @event = Event.find(params[:id])
+    end
+
+    # Overwrites (modifies) that in {BaseWithTranslationControllerMethods}
+    #
+    # This accepts +:place_id+ whether it appears at the top level or under :music
+    # and incorporates it into the permitted {#model_params}
+    def model_params
+      extracted_place_id = params[:place_id].presence || params.dig(:music, :place_id)
+      super.with_defaults(place_id: extracted_place_id)
     end
 
     # Sets @hsmain and @hstra and @prms_all from params

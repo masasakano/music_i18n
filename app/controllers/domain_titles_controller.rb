@@ -1,4 +1,6 @@
 class DomainTitlesController < ApplicationController
+  include BaseWithTranslationControllerMethods  # for model_params, set_kind_from_params etc
+
   include ModuleCommon  # for contain_asian_char, txt_place_pref_ctry
   include ModuleMemoEditor   # for memo_editor attribute
 

@@ -1,5 +1,6 @@
 # coding: utf-8
 class PlacesController < ApplicationController
+  include BaseWithTranslationControllerMethods  # for model_params, set_kind_from_params etc
   include ModuleCommon
   include ApplicationHelper
   include ModuleGridController # for set_grid
@@ -100,13 +101,22 @@ class PlacesController < ApplicationController
       @place = Place.find(params[:id])
     end
 
-    # Only allow a list of trusted parameters through.
+    # Overwrites (modifies) that in {BaseWithTranslationControllerMethods}
     #
-    # The top-level :prefecture_id has a priority over (the standard) +place[prefecture_id]+
-    def place_params
-      top_level_pref = params.permit(:prefecture_id).compact_blank  # to ignore in the case where the parameter is present but "" is passed.
-      params.require(:place).permit(:prefecture_id, :prev_model_name, :prev_model_id, *MAIN_FORM_KEYS).merge(top_level_pref)  # WARNING: adding "prefecture.country_id" would cause <400: Bad Request>
+    # This accepts +:place_id+ whether it appears at the top level or under :music
+    # and incorporates it into the permitted {#model_params}
+    def model_params
+      extracted_place_id = params[:place_id].presence || params.dig(:music, :place_id)
+      super.with_defaults(place_id: extracted_place_id)
     end
+
+    # # Only allow a list of trusted parameters through.
+    # #
+    # # The top-level :prefecture_id has a priority over (the standard) +place[prefecture_id]+
+    # def place_params
+    #   top_level_pref = params.permit(:prefecture_id).compact_blank  # to ignore in the case where the parameter is present but "" is passed.
+    #   params.require(:place).permit(:prefecture_id, :prev_model_name, :prev_model_id, *MAIN_FORM_KEYS).merge(top_level_pref)  # WARNING: adding "prefecture.country_id" would cause <400: Bad Request>
+    # end
 
     # set @country and @place.prefecture from a given URL parameter
     #

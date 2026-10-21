@@ -1,5 +1,6 @@
 # coding: utf-8
 class ChannelsController < ApplicationController
+  include BaseWithTranslationControllerMethods  # for model_params, set_kind_from_params etc
   include ModuleCommon
   include ApplicationHelper
   include ModuleGridController # for set_grid
@@ -68,6 +69,7 @@ class ChannelsController < ApplicationController
   end
 
   private
+
     # Use callbacks to share common setup or constraints between actions.
     def set_channel
       @channel = Channel.find(params[:id])

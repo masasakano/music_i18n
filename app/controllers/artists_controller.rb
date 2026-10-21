@@ -1,5 +1,6 @@
 # coding: utf-8
 class ArtistsController < ApplicationController
+  include BaseWithTranslationControllerMethods  # for model_params, set_kind_from_params etc
   include ModuleCommon # for split_hash_with_keys
   include ModuleGridController # for set_grid
   include ModuleMemoEditor   # for memo_editor attribute
@@ -118,10 +119,13 @@ class ArtistsController < ApplicationController
       @artist = Artist.find(params[:id])
     end
 
-    # Only allow a list of trusted parameters through.
+    # Overwrites (modifies) that in {BaseWithTranslationControllerMethods}
     #
-    # @note This is automatically read for :new in load_and_authorize_resource
-    def artist_params
-      params.require(:artist).permit(:sex_id, :place_id, :birth_year, :birth_month, :birth_day, :note)
+    # This accepts +:place_id+ whether it appears at the top level or under :music
+    # and incorporates it into the permitted {#model_params}
+    def model_params
+      extracted_place_id = params[:place_id].presence || params.dig(:music, :place_id)
+      super.with_defaults(place_id: extracted_place_id)
     end
+
 end

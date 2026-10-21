@@ -94,12 +94,16 @@ class ActiveSupport::TestCase
   #
   # @param model [Class] ActiveRecord
   # @yield [User, ActiveRecord] Anything while the user is successfully authorized, i.e., only for viewings by success_users
-  def assert_authorized_new(model, fail_users: [], success_users: [], h1_title_regex: nil, &bl)
+  def assert_authorized_new(model, fail_users: [], success_users: [], h1_title_regex: nil, new_trans_style: false, &bl)
     new_path = Rails.application.routes.url_helpers.polymorphic_path(model, action: :new, locale: I18n.locale)
     h1_title_regex ||= /^New #{Regexp.quote(model.name)}/
 
     base_proc = proc{|user|
-      assert css_select("section#form_edit_translation input##{model.name.underscore}_alt_title").present?, "#{_get_caller_info_message(prefix: true)} New should have a field for alt_title, but..." if model.method_defined?(:alt_title)  # used in BaseWithTranslation only
+      if new_trans_style
+        assert css_select("section#form_edit_translation ##{model.name.underscore}_translations_attributes_0_title").present?, "#{_get_caller_info_message(prefix: true)} New should have a field for title, but..." if model.method_defined?(:alt_title)  # used in BaseWithTranslation only
+      else
+        assert css_select("section#form_edit_translation input##{model.name.underscore}_alt_title").present?, "#{_get_caller_info_message(prefix: true)} New should have a field for alt_title, but..." if model.method_defined?(:alt_title)  # used in BaseWithTranslation only
+      end
       assert css_select("section#sec_primary textarea##{model.name.underscore}_note").present?, "#{_get_caller_info_message(prefix: true)} New should have a field for note, but..."  # "note" is applicable in any model of this framework
     }
 

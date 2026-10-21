@@ -3,20 +3,21 @@
 <% if ! @url.new_record? %>
 <hr>
 <% end %>
-<section id="sec_primary">
+<%= tag.section id: "sec_primary" do %>
 <% if ! @url.new_record? %>
-<%= render partial: 'layouts/all_registered_translations', locals: {model: @url, add_buttons: true} %>
+    <%= render partial: 'layouts/all_registered_translations', locals: {model: @url, add_buttons: false} %>
 <hr>
-
-<h2>Unique parameters</h2>
 <% end %>
 
-<div id="form_main">
+  <%= tag.div id: "form_main" do %>
+    <% if ! @url.new_record? %>
+<h2>Unique parameters</h2>
+    <% end %>
 
 <%= simple_form_for(@url) do |f| %>
- <section id="sec_primary_input">
+      <%= tag.section id: "sec_primary_input" do %>
   <% if @url.new_record? %>
-    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: @url, trans: Translation.new, disable_is_orig: false, is_simple_form: true} %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: @url, disable_is_orig: false, is_simple_form: true, use_form_attributes: true} %>
   <% end %>
   <%= f.error_notification %>
   <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
@@ -39,10 +40,8 @@
   <div class="actions">
   <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
   </div>
- </section> <!-- section id="sec_primary_input" -->
-<% end %>
-
-</div> <!-- div id="form_main" -->
-
-</section> <!-- section id="sec_primary" -->
+      <% end %> <!-- section id="sec_primary_input" -->
+    <% end %> <%# simple_form_for(@url) do |f| %>
+  <% end %> <!-- div id="form_main" -->
+<% end %> <!-- section id="sec_primary" -->
 

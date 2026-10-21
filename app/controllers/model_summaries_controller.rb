@@ -1,4 +1,5 @@
 class ModelSummariesController < ApplicationController
+  include BaseWithTranslationControllerMethods  # for model_params, set_kind_from_params etc
   include ModuleCommon # for split_hash_with_keys
 
   # before_action :set_model_summary, only: %i[ show edit update destroy ]

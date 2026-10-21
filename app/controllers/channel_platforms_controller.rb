@@ -1,4 +1,6 @@
 class ChannelPlatformsController < ApplicationController
+  include BaseWithTranslationControllerMethods  # for model_params, set_kind_from_params etc
+
   #before_action :set_channel_platform, only: %i[ show edit update destroy ]
   load_and_authorize_resource except: [:create] # This sets @channel_platform
   before_action :channel_platform_params_multi, only: [:create, :update]
@@ -50,6 +52,7 @@ class ChannelPlatformsController < ApplicationController
   end
 
   private
+
     # Use callbacks to share common setup or constraints between actions.
     def set_channel_platform
       @channel_platform = ChannelPlatform.find(params[:id])

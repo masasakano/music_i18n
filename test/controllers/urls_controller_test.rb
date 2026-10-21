@@ -20,12 +20,42 @@ class UrlsControllerTest < ActionDispatch::IntegrationTest
     @editor_ja       = users(:user_editor_general_ja)     # Same as Harami-editor
 
     str_form_for_nil = ApplicationController.returned_str_from_form(ApplicationController::FORM_TERNARY_UNDEFINED_VALUE)
-    @hs_create_lang = {
-      "langcode"=>"ja",
-      "title"=>"The Tｅst12",
-      "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
-      "best_translation_is_orig"=>str_form_for_nil,  # radio-button returns "on" for nil
-    }.with_indifferent_access
+    #@hs_create_lang = {
+    #  "langcode"=>"ja",
+    #  "title"=>"The Tｅst12",
+    #  "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
+    #  "best_translation_is_orig"=>str_form_for_nil,  # radio-button returns "on" for nil
+    #}.with_indifferent_access
+    @ar_create_trans = [
+      { langcode: "ja",
+        title: "The Tｅst12",  # including ZENKAKU
+        ruby: "", romaji: "",
+        kind: "full",
+        is_orig: str_form_for_nil,  # radio-button may return "on" for nil
+        start_year: "", end_year: "",
+        is_formal: "true",
+        is_official: "true",
+        is_true_name:  get_params_from_bool(false),  # ignored
+        is_for_record: get_params_from_bool(false),  # ignored
+        is_literal:    get_params_from_bool(false),  # defined in test_helper.rb
+        is_internal:   get_params_from_bool(false),  # defined in test_helper.rb
+        note: "Trans-note Japanese name"
+      }.with_indifferent_access,
+      { title: "The Test7 in English",
+        ruby: "", romaji: "",
+        langcode: "en",
+        kind: "",  # displayed as "(auto)"
+        is_orig: str_form_for_nil,  # radio-button may return "on" for nil
+        start_year: "", end_year: "",
+        is_formal: "true",
+        is_official: "true",
+        is_true_name:  get_params_from_bool(false),  # ignored
+        is_for_record: get_params_from_bool(false),  # ignored
+        is_literal:    get_params_from_bool(false),  # defined in test_helper.rb
+        is_internal:   get_params_from_bool(false),  # defined in test_helper.rb
+        note: "Trans-note English name"
+      }.with_indifferent_access
+    ]
     @hs_base = {
       url: "",  # mandatory
       url_langcode: "",
@@ -55,7 +85,7 @@ class UrlsControllerTest < ActionDispatch::IntegrationTest
   test "should show/new/edit url" do
     assert_authorized_show(@url, fail_users: [@translator], success_users: [@editor_ja, @editor_harami], h1_title_regex: nil)
 
-    assert_authorized_new(  Url, fail_users: [@translator], success_users: [@editor_ja, @editor_harami], h1_title_regex: nil)
+    assert_authorized_new(  Url, fail_users: [@translator], success_users: [@editor_ja, @editor_harami], h1_title_regex: nil, new_trans_style: true)
 
     assert_authorized_edit(@url, fail_users: [@translator], success_users: [@editor_ja, @editor_harami], h1_title_regex: nil)
   end
@@ -66,7 +96,8 @@ class UrlsControllerTest < ActionDispatch::IntegrationTest
 
     newurl = @domain.domain+"/newabc.html?q=123&r=456#anch"
     hs2add = { url: newurl, domain_id: @domain.id.to_s, note: "test-create", memo_editor: "test-editor", weight: 111.24}
-    hs2pass = @hs_create_lang.merge(@hs_base).merge( hs2add )
+    # hs2pass = @hs_create_lang.merge(@hs_base).merge( hs2add )
+    hs2pass = @hs_base.merge({ translations_attributes: @ar_create_trans }).merge( hs2add )
 
     [nil, @translator].each do |ea_user|  # @trans_moderator may be pviviledged?
       assert_equal :create, assert_unauthorized_post(Url, user: ea_user, params: hs2pass) # defined in test_controller_helper.rb
@@ -74,13 +105,15 @@ class UrlsControllerTest < ActionDispatch::IntegrationTest
 
     sign_in @moderator_ja
     ## Successful creation of Url with existing Domain and DomainTitle
-    action, new_mdl2 = assert_authorized_post(Url, params: hs2pass, diff_count_command: calc_count_exp, diff_num: 1001) # defined in test_controller_helper.rb
+    action, new_mdl2 = assert_authorized_post(Url, params: hs2pass, diff_count_command: calc_count_exp, diff_num: 2001) # defined in test_controller_helper.rb
     assert_equal :create, action
 
-    hs2pass2 = hs2pass.merge(title: "new 2 pass")  # makes title be different in default.
+    #hs2pass2 = hs2pass.merge(title: "new 2 pass")  # makes title be different in default.
+    hs2pass2 = _updated_hash_with_title(hs2pass, "new 2 pass")
     assert_equal :create, assert_authorized_post(Url, params: hs2pass2, diff_num: 0, err_msg: "should have failed due to unique constraint of url, but Response is...").first # defined in test_controller_helper.rb
 
-    assert_equal :create, assert_authorized_post(Url, params: hs2pass.merge({title: ""}), diff_num: 0, err_msg: "null title should not be allowed, but Response is...").first # defined in test_controller_helper.rb
+    hstmp = _updated_hash_with_title(hs2pass, "")
+    assert_equal :create, assert_authorized_post(Url, params: hstmp, diff_num: 0, err_msg: "null title should not be allowed, but Response is...").first # defined in test_controller_helper.rb
 
     assert_equal :create, assert_authorized_post(Url, params: hs2pass2.merge({url: "abc.x/invalid" }), diff_num: 0, err_msg: "should have failed due to the invalid URI, but Response is...").first
 
@@ -88,8 +121,9 @@ class UrlsControllerTest < ActionDispatch::IntegrationTest
     new_dom = "very-new.com"
     path = "/ab.html?q=3"
     note3 = "note3"
-    hs2pass3 = hs2pass.merge(title: "new 3 pass", url: new_dom+path, domain_id: "", note: note3)
-    action, new_mdl3 = assert_authorized_post(Url, params: hs2pass3, diff_count_command: calc_count_exp, diff_num: 2111, updated_attrs: [:note]){ |user, record| # defined in test_controller_helper.rb
+    #hs2pass3 = hs2pass.merge(title: "new 3 pass", url: new_dom+path, domain_id: "", note: note3)
+    hs2pass3 = _updated_hash_with_title(hs2pass, "new 3 pass").merge(url: new_dom+path, domain_id: "", note: note3)
+    action, new_mdl3 = assert_authorized_post(Url, params: hs2pass3, diff_count_command: calc_count_exp, diff_num: 3111, updated_attrs: [:note]){ |user, record| # defined in test_controller_helper.rb
       assert_equal new_dom, record.domain.domain
       assert_equal new_dom, record.domain_title.title
       assert_equal "new 3 pass", record.title
@@ -99,8 +133,9 @@ class UrlsControllerTest < ActionDispatch::IntegrationTest
     ## Should create Domain but NOT DomainTitle
     path4 = "/ab.html?q=3&r=6"
     note4 = "note4"
-    hs2pass4 = hs2pass.merge(title: "new 4 pass", url: "www."+new_dom+path4, domain_id: "", note: note4)
-    action, new_mdl4 = assert_authorized_post(Url, params: hs2pass4, diff_count_command: calc_count_exp, diff_num: 1011, updated_attrs: {url: "https://www."+new_dom+path4, note: note4}){ |user, record| # defined in test_controller_helper.rb
+    #hs2pass4 = hs2pass.merge(title: "new 4 pass", url: "www."+new_dom+path4, domain_id: "", note: note4)
+    hs2pass4 = _updated_hash_with_title(hs2pass, "new 4 pass").merge(url: "www."+new_dom+path4, domain_id: "", note: note4)
+    action, new_mdl4 = assert_authorized_post(Url, params: hs2pass4, diff_count_command: calc_count_exp, diff_num: 2011, updated_attrs: {url: "https://www."+new_dom+path4, note: note4}){ |user, record| # defined in test_controller_helper.rb
       assert_equal "www."+new_dom, record.domain.domain, "Domain prefix 'www'?"
       assert_equal new_mdl3.domain_title, record.domain_title
     }
@@ -161,4 +196,11 @@ class UrlsControllerTest < ActionDispatch::IntegrationTest
     assert_equal :destroy, action
 
   end
+
+  private
+    def _updated_hash_with_title(hs2pass, title)
+      transs = hs2pass[:translations_attributes]
+      newary = [transs[0].merge({title: title}), transs[1]]
+      hs2pass.merge( {translations_attributes: newary} )
+    end
 end
