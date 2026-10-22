@@ -47,9 +47,8 @@ class UrlsController < ApplicationController
     # @url = Url.new(@hsmain)
     @record = @url = Url.new(model_params)
     authorize! __method__, @url
-    if set_non_nil_orig_locale_from_params(@record, permitted_params: model_params)  # defined in base_with_translation_controller_methods.rb
-      set_kind_from_params(@record, permitted_params: model_params)  # defined in base_with_translation_controller_methods.rb
-    else
+    set_orig_locale_from_params(@record, permitted_params: model_params)  # defined in base_with_translation_controller_methods.rb
+    if !set_kind_from_params(@record, permitted_params: model_params)  # defined in base_with_translation_controller_methods.rb
       @record.errors.add(:base, "No Translation is specified.")
     end
 
@@ -62,6 +61,8 @@ class UrlsController < ApplicationController
 
   # PATCH/PUT /urls/1 or /urls/1.json
   def update
+    @record = @url
+    @record.attributes = model_params  # sets orig_locale *if* Controller gives one.
     def_respond_to_format(@url, :updated){
       if !@hsmain[:domain_id].nil? && @hsmain[:domain_id].blank?  # If nil, it is not from Web HTTP, but artificial testing, so we ignore it.  Note that since we use @hsmain, I am not sure if the key exists in the passed params or not.
         @url.domain_id = nil

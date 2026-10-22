@@ -482,9 +482,10 @@ class Country < BaseWithTranslation
   #
   # @return [Prefecture]
   def after_first_translation_hook
-    pref = Prefecture.new(country: self)
+    pref = Prefecture.new(country: self, orig_locale: nil)
 
-    add_translations_after_first_create(Prefecture).each do |etra|
+    add_translations_after_first_create(pref).each do |etra|
+      etra.skip_singularize_is_orig_callback = true
       pref.translations << etra
     end
 

@@ -15,6 +15,7 @@ module Consts
       EDIT_LINK_CONTAINER    = "edit_link_container" # for Table <td> or <div> or <span> or <p>
       EDIT_LINK_PRIMARY      = "edit_link_primary"   # for the primary link or button for Edit of the main contents
       EDIT_LINK              = "edit_link"           # for link or button; n.b., for naming, I suggest EDIT_ANCHOR for <a> and EDIT_BUTTON for <button>
+      UPDATE_LINK            = "update_link"         # for link or button for any kind of update action of a DB record (but :create), corresponding to HTTP :patch.
       DESTROY_LINK_CONTAINER = "destroy_link_container"
       DESTROY_LINK           = "destroy_link"
 

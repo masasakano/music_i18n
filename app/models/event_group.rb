@@ -253,8 +253,10 @@ class EventGroup < BaseWithTranslation
   # @return [Event]
   def after_first_translation_hook
     evt = Event.initialize_with_def_time(event_group: self)
-    # evt.unsaved_translations = add_translations_after_first_create(Event)
-    add_translations_after_first_create(Event).each do |etra|
+    evt.orig_locale = nil
+    # evt.unsaved_translations = add_translations_after_first_create(evt)
+    add_translations_after_first_create(evt).each do |etra|
+      etra.skip_singularize_is_orig_callback = true
       evt.translations << etra
     end
 

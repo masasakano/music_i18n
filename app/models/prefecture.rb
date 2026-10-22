@@ -319,8 +319,9 @@ class Prefecture < BaseWithTranslation
   #
   # Called by an after_create callback in translation.rb
   def after_first_translation_hook
-    plac = Place.new(prefecture: self)
-    add_translations_after_first_create(Place).each do |etra|
+    plac = Place.new(prefecture: self, orig_locale: nil)
+    add_translations_after_first_create(plac).each do |etra|
+      etra.skip_singularize_is_orig_callback = true
       plac.translations << etra
     end
 

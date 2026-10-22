@@ -51,27 +51,116 @@ class UrlsTest < ApplicationSystemTestCase
     click_on newh1
     assert_selector "h1", text: newh1
 
-    page_find_sys(:trans_new, :langcode_radio, model: model.class).choose('English')  # defined in test_system_helper
-    str_form_for_nil = ApplicationController.returned_str_from_form(ApplicationController::FORM_TERNARY_UNDEFINED_VALUE)
-    assert_equal str_form_for_nil, page_get_val(:trans_new, :is_orig, model: model.class), "Selection of is_orig should be presented and is Undefined in Default, but... #{str_form_for_nil.inspect} != #{page_get_val(:trans_new, :is_orig, model: model.class).inspect}}"  # NOTE: if Capybara::ElementNotFound appears, check the form for the option "disable_is_orig" passed to a layout.
-    page_find_sys(:trans_new, :is_orig_radio, model: model).choose('Yes')
-    assert_equal ApplicationController.returned_str_from_form(true), page_get_val(:trans_new, :is_orig, model: model.class), "is_orig should be true, but..."
-    page_find_sys(:trans_new, :is_orig_radio, model: model).choose('Undefined')
-    assert_equal str_form_for_nil, page_get_val(:trans_new, :is_orig, model: model.class), "is_orig should become Undefined, but..."
+    #page_find_sys(:trans_new, :langcode_radio, model: model.class).choose('English')  # defined in test_system_helper
+    #str_form_for_nil = ApplicationController.returned_str_from_form(ApplicationController::FORM_TERNARY_UNDEFINED_VALUE)
+    #assert_equal str_form_for_nil, page_get_val(:trans_new, :is_orig, model: model.class), "Selection of is_orig should be presented and is Undefined in Default, but... #{str_form_for_nil.inspect} != #{page_get_val(:trans_new, :is_orig, model: model.class).inspect}}"  # NOTE: if Capybara::ElementNotFound appears, check the form for the option "disable_is_orig" passed to a layout.
+    #page_find_sys(:trans_new, :is_orig_radio, model: model).choose('Yes')
+    #assert_equal ApplicationController.returned_str_from_form(true), page_get_val(:trans_new, :is_orig, model: model.class), "is_orig should be true, but..."
+    #page_find_sys(:trans_new, :is_orig_radio, model: model).choose('Undefined')
+    #assert_equal str_form_for_nil, page_get_val(:trans_new, :is_orig, model: model.class), "is_orig should become Undefined, but..."
 
-    page.find('input#url_title').fill_in with: 'Tekito title.....oh'  # This is unique!
+    assert_selector "fieldset.form-group.url_translations_is_orig"  # is_orig selection is available on :create for Url
+    translation_fieldsets = all(".translation-fields")
+
+    # --- Translation Set 1 ---
+    #page.find('input#url_title').fill_in with: 'Tekito title.....oh'  # This is unique!
+    within(translation_fieldsets[0]) do
+      fill_in "Title", with: 'Tekito JA-title.....oh'
+      select "ja", from: "Language"
+      # is_orig => nil
+    end
+
+    # --- Translation Set 2 ---
+    within(translation_fieldsets[1]) do
+      fill_in "Title", with: 'Tekito FR-title.....oh'
+      select "fr", from: "Language"
+      # is_orig => nil
+    end
 
     page.find('input#url_url').fill_in with: 'https://Tekitoh.com/abc'  # This is unique!
     select "(Automatically assigned)", from: "Domain"  # Japanese is displayed even in English environment (b/c simple_form default etc)...
-    fill_in "Note", with: @url.note
+    within("div.url_note") do
+      fill_in "Note", with: @url.note
+    end
     fill_in "Memo editor", with: @url.memo_editor
     fill_in "Weight", with: @url.weight
-
+#debugger
     click_on @button_text[:create]
 
-    assert_text "Url was successfully created"
+    assert_selector "h1", text: "Url: "
+    assert_text "Url was "+(str="successfully created")
+    flash_text_system_assert(str, type: [:notice, :success], category: :div)  # defined in test_helper.rb
+    flash_text_system_assert("Domain created", type: :notice, category: :div)  # defined in test_helper.rb
     close_flash_windows([:notice, :success])  # defined in test_system_helper.rb
 
+    ## checking orig_locale modifications
+    css_editor_only = ApplicationController.helpers.get_only_css_class(:editor)  # defined in application_helper.rb
+    css_orig_locale_span = "#sec_primary_trans h2 ." + css_editor_only 
+    assert_selector css_orig_locale_span
+    assert_match(/orig_locale.+\bnil/, find_all(css_orig_locale_span).first.text)
+    assert_selector :xpath, xpath_all_translation_table(langcode: "ja")
+    refute_selector :xpath, xpath_all_translation_table(langcode: "en")  # no English Translation
+    assert_selector :xpath, xpath_all_translation_table(langcode: "fr")
+
+    assert_selector :xpath, xpath_all_translation_table(langcode: "ja", banner: true)+"//a", text: "Add translation"
+    refute_selector :xpath, xpath_all_translation_table(langcode: "en", banner: true)+"//a", text: "Add translation"  # Since the user is NOT a Translator, "Add translation" button for extra languages (except for Japanese) does not appear.
+    assert_selector :xpath, xpath_all_translation_table(langcode: "fr", banner: true)+"//a", text: "Add translation"
+
+    xpath_tail = "/th//*" + ModuleCommon.xpath_contain_css(css_editor_only, complete_for: "") +
+                 "//" + ModuleCommon.xpath_contain_css(Consts::Csses::Layouts::UPDATE_LINK, complete_for: "a")
+    xpath_ja = xpath_all_translation_table(langcode: "ja", banner: true) + xpath_tail  # defined in test_helper.rb
+    xpath_en = xpath_all_translation_table(langcode: "en", banner: true) + xpath_tail  # defined in test_helper.rb
+    xpath_fr = xpath_all_translation_table(langcode: "fr", banner: true) + xpath_tail  # defined in test_helper.rb
+    assert_selector :xpath, xpath_ja, text: "locale"
+    refute_selector :xpath, xpath_en, text: "locale"  # no "orig_locale" in English 
+    assert_selector :xpath, xpath_fr, text: "locale"
+
+    xpath_ja_is_orig = xpath_all_translation_table(langcode: "ja", column: "trans_is_orig")  # defined in test_helper.rb
+    xpath_fr_is_orig = xpath_all_translation_table(langcode: "fr", column: "trans_is_orig")  # defined in test_helper.rb
+
+    # orig_locale => "fr"
+    find(:xpath, xpath_fr).click
+    assert_text "Url was "+(str="successfully updated")
+    flash_text_system_assert(str, type: [:notice, :success], category: :div)  # defined in test_helper.rb
+    close_flash_windows([:notice, :success])  # defined in test_system_helper.rb
+    assert_selector css_orig_locale_span
+    assert_selector css_orig_locale_span, text: "fr"
+    assert_match(/orig_locale.+\bfr/, find_all(css_orig_locale_span).first.text)
+    assert_selector :xpath, xpath_ja, text: "locale"
+    refute_selector :xpath, xpath_en, text: "locale"
+    assert_selector :xpath, xpath_fr, text: "ullif"  # nullify
+    assert_selector :xpath, xpath_ja_is_orig, text: "No"
+    assert_selector :xpath, xpath_fr_is_orig, text: "Yes"
+
+    # orig_locale => nil
+    find(:xpath, xpath_fr).click
+    assert_text "Url was "+(str="successfully updated")
+    flash_text_system_assert(str, type: [:notice, :success], category: :div)  # defined in test_helper.rb
+    # close_flash_windows([:notice, :success])  # defined in test_system_helper.rb  # Sometimes raises Selenium::WebDriver::Error::StaleElementReferenceError
+    assert_selector css_orig_locale_span
+    assert_selector css_orig_locale_span, text: "nil"
+    assert_match(/orig_locale.+\bnil/, find_all(css_orig_locale_span).first.text)
+    assert_selector :xpath, xpath_ja, text: "locale"
+    refute_selector :xpath, xpath_en, text: "locale"
+    assert_selector :xpath, xpath_fr, text: "locale"
+    refute_selector :xpath, xpath_ja_is_orig, text: "No"
+    refute_selector :xpath, xpath_fr_is_orig, text: "Yes"
+
+    # orig_locale => "ja"
+    find(:xpath, xpath_ja).click
+    assert_text "Url was "+(str="successfully updated")
+    flash_text_system_assert(str, type: [:notice, :success], category: :div)  # defined in test_helper.rb
+    # close_flash_windows([:notice, :success])  # defined in test_system_helper.rb  # Sometimes raises Selenium::WebDriver::Error::StaleElementReferenceError
+    assert_selector css_orig_locale_span
+    assert_selector css_orig_locale_span, text: "ja"
+    assert_match(/orig_locale.+\bja/, find_all(css_orig_locale_span).first.text)
+    assert_selector :xpath, xpath_ja, text: "ullif"  # nullify
+    refute_selector :xpath, xpath_en, text: "locale"
+    assert_selector :xpath, xpath_fr, text: "locale"
+    assert_selector :xpath, xpath_ja_is_orig, text: "Yes"
+    assert_selector :xpath, xpath_fr_is_orig, text: "No"
+
+    ## Destory
     xp = "div.link-edit-destroy form.button_to button.destroy_link"
     assert_selector xp, text: "Destroy"
     assert_destroy_with_text(find(xp), just_click: true, chk_flash: true)  # defined in test_system_helper.rb

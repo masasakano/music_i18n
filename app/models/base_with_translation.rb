@@ -1050,7 +1050,7 @@ class BaseWithTranslation < ApplicationRecord
   # @param (see BaseWithTranslation.create_with_translation!)
   # @return [BaseWithTranslation]
   def self.create_with_orig_translation!(hsmain={}, unique_trans_keys=nil, *args, reload: true, **hs_trans)
-    hs_trans = {orig_locale: true}.merge(hs_trans)
+    hs_trans = {is_orig: true}.merge(hs_trans)
     ret = update_or_create_with_translations_core!(:orig_translation, hsmain, unique_trans_keys, nil, false, *args, **hs_trans)
     ret.reload if reload
     ret
@@ -1063,7 +1063,7 @@ class BaseWithTranslation < ApplicationRecord
   # @param (see BaseWithTranslation.create_with_translation!)
   # @return [BaseWithTranslation]
   def self.update_or_create_with_orig_translation!(hsmain={}, unique_trans_keys=nil, mainkeys=nil, *args, reload: true, **hs_trans)
-    hs_trans = {orig_locale: true}.merge(hs_trans)
+    hs_trans = {is_orig: true}.merge(hs_trans)
     ret = update_or_create_with_translations_core!(:orig_translation, hsmain, unique_trans_keys, mainkeys, true, *args, **hs_trans)
     ret.reload if reload
     ret
@@ -1131,6 +1131,11 @@ class BaseWithTranslation < ApplicationRecord
         logger.error msg+".  existings="+existings.inspect
         raise HaramiMusicI18n::MultiTranslationError::AmbiguousError, msg
       end
+
+      if existings.present? && [:orig_translation, :translation].include?(keytrans)
+        # if :translations, multiple translations have to be considered - very complicated... so, skips that case.
+        tra2work = existings[0].translations.find_by(build_or_where_translations(unique_trans_keys, *args, **trans))
+      end
     end
 
     obj = nil
@@ -1139,11 +1144,21 @@ class BaseWithTranslation < ApplicationRecord
       obj, msg_opts2pass =
         if updated && !existings.empty? 
           # logger.info "(#{__FILE__}:#{__method__}) for update: hsmain=#{hsmain.inspect}, mainkeys=#{mainkeys}" if updating_cols.empty?
+          record = existings[0]
+          if tra2work
+            tra2work.attributes = trans.first.last  # trans == {ja: {title: ...}}
+            record = tra2work.translatable
+          end
           if updating_cols.empty?
-            [existings[0], nil]
+            if tra2work
+              tra2work.save! 
+              [record, nil]
+            else
+              [record, ""]  # 2nd parameter is not nil to run with_updated_translations
+            end
           else
-            existings[0].update!(**updating_cols)
-            [existings[0],         "update!(#{updating_cols.inspect})"]
+            record.update!(**updating_cols)
+            [record, (tra2work ? nil : "update!(#{updating_cols.inspect})")]
             # NOTE: In Ruby 2.7, update!(updating_cols) raises a warning (i.e., without '**' in the arg).
             #     : In Ruby 3.0, update!(updating_cols) *is* the correct way because
             #     : activerecord-6.1.4/lib/active_record/persistence.rb accepts a Hash object
@@ -1152,16 +1167,26 @@ class BaseWithTranslation < ApplicationRecord
             #     : when updating_cols is empty. But then, it should not be called when empty anyway.
           end
         else
-          [self.create!(**hsmain), "create!(#{hsmain.inspect})"]
+          record = self.new(**hsmain)
+          trans.each_pair do |ek, eary|
+            [eary].flatten.each do |ehs|
+              record.translations.build(ehs.merge({langcode: ek}))
+            end
+          end
+          record.save!
+          # [self.create!(**hsmain), "create!(#{hsmain.inspect})"]
+          [record, nil]
         end
 
-      begin
-        obj.send(method, **trans)
-      rescue #=> err
-        armsg = ["Failed to create translations with param=#{trans.inspect}"]
-        armsg << "hence #{msg_opts2pass} for #{self.name} rolls back." if msg_opts2pass
-        logger.error armsg.join(" ")
-        raise
+      if msg_opts2pass
+        begin
+          obj.send(method, **trans)
+        rescue #=> err
+          armsg = ["Failed to create translations with param=#{trans.inspect}"]
+          armsg << "hence #{msg_opts2pass} for #{self.name} rolls back." if msg_opts2pass
+          logger.error armsg.join(" ")
+          raise
+        end
       end
     end
     obj
@@ -4231,7 +4256,37 @@ end
   #
   # @return [ActiveRecord::Relation<Translation>]
   def active_translations
-    translations.reject(&:marked_for_destruction?)
+    translations.reject(&:marked_for_destruction?).reject(&:destroyed?)
+  end
+
+  # Updates {Translation#is_orig} of all associated based on {#orig_locale}
+  #
+  # This does NOT save Translations on DB.
+  # When self is saved, they will be cascade-saved.
+  #
+  # See {#reset_orig_langcode_to_nil} and {#reset_orig_langcode}
+  #
+  # @return [NilClass, String] orig_locale
+  def set_all_is_orig
+    if orig_locale.blank?
+      # NOTE: reset_orig_langcode_to_nil(to_value: nil)
+      #   would be too aggresive as it executes on DB
+      active_translations.each do |etra|
+        etra.is_orig = nil
+        etra.skip_singularize_is_orig_callback = true
+      end
+      return orig_locale
+    end
+
+    # NOTE: reset_orig_langcode("ja")
+    #   would be too aggresive as it executes on DB
+    active_translations.group_by(&:langcode).each do |_lang, group|
+      group.sort_by{|t| [[t.nil? ? 1 : 0], [t.nil? ? 0 : t.weight]]}.each_with_index do |etra, i|  # Infinity comes before nil
+        etra.is_orig = ((i == 0) && etra.langcode == orig_locale)
+        etra.skip_singularize_is_orig_callback = true
+      end
+    end
+    orig_locale
   end
 
   # true if any of {#translations} can be updated
@@ -4265,6 +4320,7 @@ end
     hsmodel[:channel_owner][:destroy].first.destroy! if hsmodel[:channel_owner] && hsmodel[:channel_owner][:destroy].present? && !hsmodel[:channel_owner][:destroy].first.destroyed?  # ChannelOwner must be destroyed first.
 
     artist_music_plays.reset if respond_to? :artist_music_plays  # for some reason, this has to be placed here...
+    set_all_is_orig  # normalizes all is_orig of Translation-s in memory
     self.save!
 
     # Channel, ChannelOwner
@@ -4500,9 +4556,44 @@ end
     _append_note!(tra_orig, tra2demote)
     tra_orig.created_at = _older_created_at(tra_orig, tra2demote) if tra_orig.changed?
     tra_orig.weight = [tra_orig.weight, tra2demote.weight].compact.min
+    tra_orig.translatable = self  # This may or may not be already the case.
+    association(:translations).add_to_target(tra_orig) unless tra_orig.translatable == self
+    # NOTE: weight of tra_orig may need to be adjusted.
 
-    tra2demote.destroy  # has to be destroyed before the new one is assigned to avoid potential unique-constraint violation.  Note tra2demote may or may not belong to self.
-tra_orig.save!  # should be fine because its weight is the lowest between the two BaseWithTranslations and the other one that may have the weight (in 50:50 chance) was destroyed above.
+    if self == tra2demote.translatable
+      tra2demote.destroy!
+      # translations.each do |etra|
+      #   if etra == tra2demote
+      #     etra.mark_for_destruction  # Actually destroying may be risky due to validation etc.
+      #     break
+      #   end
+      # end
+    else
+      begin
+        tra2demote.destroy!  # This is dangerous.
+      rescue
+        tra2demote.delete
+      end
+      # other.translations.each do |etra|
+      #   if etra == tra2demote
+      #     etra.mark_for_destruction  # Actually destroying may be risky due to validation etc.
+      #     break
+      #   end
+      # end
+    end
+    # tra2demote.destroy  # has to be destroyed before the new one is assigned to avoid potential unique-constraint violation.  Note tra2demote may or may not belong to self.
+
+    # To destroy a conflicting Translation, if any, when is_orig Translation has been imported from other.
+    # There should be only one at most.
+    translations.each do |etra|
+      next if etra.langcode != tra_orig.langcode || etra == tra_orig
+      if etra.title == tra_orig.title
+        etra.destroy!
+        # etra.mark_for_destruction  # Actually destroying may be risky due to validation etc.
+        break
+      end
+    end
+#tra_orig.save!  # should be fine because its weight is the lowest between the two BaseWithTranslations and the other one that may have the weight (in 50:50 chance) was destroyed above.
 
     reths = _reset_reassign_orig_langcode_self_other(other, tra_orig, assign_weight: false)  # => Hash; orig_locale is set
     reths[:destroy].push tra2demote
@@ -4528,13 +4619,16 @@ tra_orig.save!  # should be fine because its weight is the lowest between the tw
   def _merge_lang_trans(other, priority: :self, orig_valid: true)
     prio = ((:self == priority) ? :low : :high)
     reths = {remained: [], destroy: [], errors: []}
-    (self.translations.pluck(:langcode)+other.translations.pluck(:langcode)).uniq.each do |lcode|
-      artrans_self  = Translation.sort(translations.where(langcode: lcode))
-      artrans_other = Translation.sort(other.translations.where(langcode: lcode))
+    (self.active_translations.map(&:langcode)+other.active_translations.map(&:langcode)).uniq.each do |lcode|
+      artrans_self  = Translation.sort(active_translations.select{ _1.langcode == lcode})
+      artrans_other = Translation.sort(other.active_translations.select{ _1.langcode == lcode && !_1.marked_for_destruction? })
       artrans = ((:self == priority) ? artrans_self+artrans_other : artrans_other+artrans_self)
 
       artrans.each_with_index do |etra, ind|  # etra: Each_TRAnslation
-        next if etra.is_orig  # ignores any Translation with is_orig=true
+        if etra.is_orig  # ignores any Translation with is_orig=true
+          reths[:remained] << etra
+          next
+        end
         if etra.translatable == self
           hscand = {remained: [], destroy: []}
           hscand[:remained] << etra if Translation.exists?(etra.id)  # Only if it is present; the Translation may have already been destroyed (in order to add a conflicting one from other). Note "etra.present?" is affected by cache and so is unsuitable.
@@ -4542,7 +4636,7 @@ tra_orig.save!  # should be fine because its weight is the lowest between the tw
           opts = { prio: prio, other_comes_first: (:other == priority) }
           hscand = _attempt_add_other_trans(etra, **opts)
           if !hscand
-            translations.where(langcode: etra.langcode).where.not(is_orig: true).each do |etra_self|
+            active_translations.select { _1.langcode == etra.langcode && !_1.is_orig }.each do |etra_self|
               hscand = _attempt_add_other_trans(etra, tra_self: etra_self, **opts)
               break if hscand
             end
@@ -4593,7 +4687,7 @@ tra_orig.save!  # should be fine because its weight is the lowest between the tw
     end
     return hsret if hsret
 
-    tra_self.reload if tra_self
+    #tra_self.reload if tra_self  ##### this starts to fail for some reason I haven't figured out...
     nil
   end
   private :_attempt_add_other_trans

@@ -1682,20 +1682,26 @@ end
   #     # == XPATHS[:all_translation_table][:trans_row]
   #
   # @example
+  #   xpath_all_translation_table(langcode: "ja", banner: true)+"/th"  # defined in test_helper.rb
+  #     # <th> for the "ja" banner (b/c of "/th")
+  #
+  # @example
   #   xpath_all_translation_table(langcode: "en", column: "trans_kind")  # defined in test_helper.rb
   #   xpath_all_translation_table(langcode: "en", flag: "is_internal")  # defined in test_helper.rb
   #
   # @param langcode: [String, Symbol, NilClass] if nil, all tbody rows
   # @param column: [String, NilClass] to specify a column class, e.g., "trans_kind". If flag is non-nil, this is "trans_flags" if nil
   # @param flag: [String, Symbol, NilClass] "is_internal" etc.  If specified, this sets (column="trans_flags")
+  # @param banner: [Boolean] if true (Def: false), XPath for a banner row(s) is returned.
   # @return [String]
-  def xpath_all_translation_table(langcode: nil, column: nil, flag: nil)
+  def xpath_all_translation_table(langcode: nil, column: nil, flag: nil, banner: false)
     column ||= "trans_flags" if flag.present?
+    trans_or_banner = (banner ? "banner" : "trans")
     ret =
       if langcode.present?
-        sprintf(XPATHS[:all_translation_table][:trans_row_lang_fmt], langcode.to_s)
+        sprintf(XPATHS[:all_translation_table][trans_or_banner+"_row_lang_fmt"], langcode.to_s)
       else
-        XPATHS[:all_translation_table][:trans_row]
+        XPATHS[:all_translation_table][trans_or_banner+":trans_row"]
       end
 
     return ret if column.blank?

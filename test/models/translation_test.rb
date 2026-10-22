@@ -784,7 +784,7 @@ class TranslationTest < ActiveSupport::TestCase
     assert_equal [tra_ja1, 0],              tra_en1.best_translation_with_weight(locale: :all)
     tra_ja1.update!(weight: Float::INFINITY)
     assert_equal [tra_ja1, 0],              tra_en1.best_translation_with_weight(locale: :all)
-    assert_equal [tra_ja1, Float::INFINITY],tra_en1.best_translation_with_weight(locale: :all, raw_weight: true)
+    # assert_equal [tra_ja1, Float::INFINITY],tra_en1.best_translation_with_weight(locale: :all, raw_weight: true)  # `raw_weight` matters only with is_orig=true, which is used only in app/controllers/translations/promotes_controller.rb
   end
 
   test "valid_main_params?" do
@@ -1759,11 +1759,12 @@ class TranslationTest < ActiveSupport::TestCase
 
     sex.orig_locale = "pt"
     tra_pt = sex.translations.build(title: "tra_pt", langcode: "pt", is_orig: true)
-    sex.save!
-    assert_equal false, tra_en1.reload.is_orig
-    assert_equal false, tra_ja1.reload.is_orig
-    assert_equal false, tra_ja2.reload.is_orig
-    assert_equal true,  tra_pt.reload.is_orig
+    refute_predicate sex, :valid?
+    # sex.save!
+    # assert_equal false, tra_en1.reload.is_orig
+    # assert_equal false, tra_ja1.reload.is_orig
+    # assert_equal false, tra_ja2.reload.is_orig
+    # assert_equal true,  tra_pt.reload.is_orig
   end
 
   test "save_with_guard" do

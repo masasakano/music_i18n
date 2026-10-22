@@ -101,9 +101,13 @@ module ModuleUnknown
 
   # Core routine to add multiple Translation for the after_create callback
   #
-  # @param child_class [Class<ActiveRecord>] e.g., Prefecture when called from Country's after_create
+  # @param child_record [BaseWithTranslation, Class<ActiveRecord>] e.g., Prefecture instance (preferable), or Prefecture class when called from Country's after_create
+  #    Instance is preferable for setting up is_orig
   # @return [Array<Translation>] unsaved Translations
-  def add_translations_after_first_create(child_class)
+  def add_translations_after_first_create(child_record)
+    child_class = child_record.class unless child_record.is_a?(Class)
+    locale = (child_record.respond_to?(:orig_locale) ? child_record.orig_locale : orig_locale)
+
     is_orig_exist = !!orig_translation
 
     unsaved_transs = []
@@ -112,7 +116,7 @@ module ModuleUnknown
       unsaved_transs << Translation.new(
         title: ar_titles.first,
         langcode: lc,
-        is_orig: (orig_locale.blank? ? nil : (orig_locale == lc)),
+        is_orig: (locale.blank? ? nil : (locale == lc)),
 ### hstrans = best_translations
 # is_orig:  (hstrans.key?(lc) && hstrans[lc].respond_to?(:is_orig) ? hstrans[lc].is_orig : (is_orig_exist ? false : nil)),
         weight: 0,
@@ -123,7 +127,7 @@ module ModuleUnknown
         unsaved_transs << Translation.new(
           title: ar_titles[1],
           langcode: lc,
-          is_orig: (orig_locale.blank? ? nil : false),
+          is_orig: (locale.blank? ? nil : false),
           weight: 2.0,
           kind: Translation::KIND_ALT
         )

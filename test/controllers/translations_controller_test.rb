@@ -348,6 +348,125 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to translation_url(@tra_mu)
   end
 
+  test "should update consistently with orig_locale" do
+    css_editor_only = ApplicationController.helpers.get_only_css_class(:editor)  # defined in application_helper.rb
+    ary4 = [:title, :langcode, :kind, :is_orig]
+    hsbase = {
+      # titlle: "...",
+      ruby: "",
+      romaji: "",
+      # langcode: "ja",
+      # kind: "full",
+      # is_orig: false,
+      start_year: "",
+      end_year: "",
+      is_formal: "",    # "true" | "false"
+      is_official: "",  # "true" | "false"
+      is_true_name:  get_params_from_bool(false),  # defined in test_helper.rb
+      is_for_record: get_params_from_bool(false),
+      is_literal:    get_params_from_bool(false),
+      is_internal:   get_params_from_bool(false),
+    }.with_indifferent_access
+
+    sign_in @moderator_all
+    url = Url.new(orig_locale: nil, url: "https://www.example.com/my_test1", domain: Domain.unknown)
+    tras = []
+    tras << url.translations.build(title: (tit0="0-"+__method__.to_s), langcode: "ja", kind: Translation::KIND_FULL, is_orig: nil)
+    assert_predicate url, :valid?, "sanity check"
+    url.save!
+
+    assert [tras[0].is_orig, url.orig_locale].all?(&:nil?), "sanity check"
+    updated_at_url   = url.updated_at
+    updated_at_tras0 = tras[0].reload.updated_at
+
+    ## should :show
+    get translation_url(tras[0])
+    assert_response :success
+
+    xpath_tail = "/th//*" + ModuleCommon.xpath_contain_css(css_editor_only, complete_for: "") +
+                 "//" + ModuleCommon.xpath_contain_css(Consts::Csses::Layouts::UPDATE_LINK, complete_for: "a")
+    xpath_ja = xpath_all_translation_table(langcode: "ja", banner: true) + xpath_tail  # defined in test_helper.rb
+    assert_predicate (node=html_document.xpath(xpath_ja)), :present?, "Link to 'orig_locale' should exist, but..."
+    assert_match(/orig.+locale/i, node.text)
+
+    ## update: "is_orig => true" should change parent's orig_locale
+    hs2pass = hsbase.merge(tras[0].slice(ary4)).merge({is_orig: "true"})
+    patch translation_url(tras[0]), params: { translation: hs2pass }
+    assert_response :redirect
+    assert_redirected_to translation_url(tras[0])
+    assert_equal     tras[0].reload.langcode, url.reload.orig_locale
+    assert_predicate tras[0], :is_orig
+    # assert_operator updated_at_url,   :<, url.updated_at  # This may be the case now, but the specification may change in future
+    assert_operator updated_at_tras0, :<, tras[0].updated_at
+    updated_at_url   = url.updated_at
+    updated_at_tras0 = tras[0].updated_at
+
+    follow_redirect!
+    assert_response :success
+    flash_regex_assert(/\bsuccessfully updated\b/, type: :success, system_test: false)  # defined in test_helper.rb
+    assert_predicate (node=html_document.xpath(xpath_ja)), :present?, "Link to 'nullify' should exist, but..."
+    assert_match(/\bnullif/i, node.text)
+
+    ## update: (langcode: "ja" => "fr") should change parent's orig_locale
+    hs2pass = hsbase.merge(tras[0].slice(ary4)).merge({langcode: "fr"})
+    patch translation_url(tras[0]), params: { translation: hs2pass }
+    assert_response :redirect
+    assert_redirected_to translation_url(tras[0])
+    assert_equal tras[0].reload.langcode, url.reload.orig_locale
+    assert_equal  "fr", tras[0].langcode
+    assert_predicate    tras[0], :is_orig
+    # assert_operator updated_at_url,   :<, url.updated_at  # This may be the case now, but the specification may change in future
+    assert_operator updated_at_tras0, :<, tras[0].updated_at
+    updated_at_url   = url.updated_at
+    updated_at_tras0 = tras[0].updated_at
+
+    follow_redirect!
+    assert_response :success
+    flash_regex_assert(/\bsuccessfully updated\b/, type: :success, system_test: false)  # defined in test_helper.rb
+    assert_predicate (node=html_document.xpath(xpath_ja)), :blank?, "Link to 'orig_locale' or 'nullify' should NOT exist for :ja, but..."
+    xpath_fr = xpath_all_translation_table(langcode: "fr", banner: true) + xpath_tail  # defined in test_helper.rb
+    assert_predicate (node=html_document.xpath(xpath_fr)), :present?, "Link to 'nullify' should exist, but..."
+    assert_match(/\bnullif/i, node.text)
+
+    # tras[0]=>("fr", full), tras[1]=>("fr", alt), tras[2]=>("en", alt)
+    tras << url.translations.build(title: (tit1="1-"+__method__.to_s), langcode: "fr", kind: Translation::KIND_ALT, is_orig: false)
+    tras << url.translations.build(title: (tit2="2-"+__method__.to_s), langcode: "en", kind: Translation::KIND_ALT, is_orig: false)
+    url.save!
+
+    ## should :show
+    get translation_url(tras[0])
+    assert_response :success
+
+    assert_predicate (node=html_document.xpath(xpath_fr)), :present?, "Link to 'nullify' should exist, but..."
+    assert_match(/\bnullif/i, node.text)
+    xpath_en = xpath_all_translation_table(langcode: "en", banner: true) + xpath_tail  # defined in test_helper.rb
+    assert_predicate (node=html_document.xpath(xpath_en)), :present?, "Link to 'orig_locale' should exist, but..."
+    assert_match(/orig.+locale/i, node.text)
+
+    ## update: (langcode: "fr" => "es") of tras[0] should not change parent's orig_locale because of tras[1](fr)
+    ## NOTE: The specification is up to interpretation because tras[0].is_orig is still true...
+    #
+    #hs2pass = hsbase.merge(tras[0].slice(ary4)).merge({langcode: "es"})
+    #patch translation_url(tras[0]), params: { translation: hs2pass }
+    #assert_response :redirect
+    #assert_redirected_to translation_url(tras[0])
+    #assert_equal tras[0].reload.langcode, url.reload.orig_locale
+    #assert_equal  "fr", tras[0].langcode
+    #assert_predicate    tras[0], :is_orig
+    ## assert_operator updated_at_url,   :<, url.updated_at  # This may be the case now, but the specification may change in future
+    #assert_operator updated_at_tras0, :<, tras[0].updated_at
+    #updated_at_url   = url.updated_at
+    #updated_at_tras0 = tras[0].updated_at
+
+    sign_out @moderator_all
+  end
+
+    # @param arcols [Array] of attributes to export
+    def _build_current_attr_hash(ref, arcols=[:title, :langcode, :kind, :is_orig])
+      arcols = Array.wrap(arcols)
+    end
+    private :_build_current_attr_hash
+
   test "All-mighty Moderator fails to update Sex Translation" do
     # preparation
     @sex.orig_locale = "en"

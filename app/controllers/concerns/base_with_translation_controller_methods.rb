@@ -18,10 +18,78 @@ module BaseWithTranslationControllerMethods
 
   # Generic params method shared across Controllers for the BaseWithTranslation child model classes
   def model_params
+    # filters out second (or later) Translations with a blank title
+    filter_empty_secondary_translations!
+
     params.require(model_param_key).permit(
       *permitted_main_form_keys,
       translations_attributes: Translation::PERMITTED_NESTED_ATTRIBUTES
     )
+  end
+
+  # If orig_locale (BaseWithTranslation) is given in params, sets all is_orig (Translation), else sets orig_locale if on :create
+  #
+  # This is applicable to Url, Event etc where orig_locale can either be significant or nil
+  # but NOT suitable for Genre, EngageHow, Sex etc, where orig_locale is always nil.
+  #
+  # @note {BaseWithTranslation#sync_orig_locale} (in {TranslationLifecycle}) is too crude, not considering the order.
+  #
+  # @example on :create
+  #   @record = @url = Url.new(model_params)
+  #   authorize! __method__, @record
+  #   set_orig_locale_from_params(@record, permitted_params: model_params)  # defined in base_with_translation_controller_methods.rb
+  #   if !set_kind_from_params(@record, permitted_params: model_params)  # defined in base_with_translation_controller_methods.rb
+  #     @record.errors.add(:base, "No Translation is specified.")
+  #   end
+  #
+  # @example on :update / this handle the case where orig_locale is directly specified by Controller
+  #   set_record
+  #   @record.attributes = model_params
+  #   set_orig_locale_from_params(@record, permitted_params: model_params)  # defined in base_with_translation_controller_methods.rb
+  #
+  # @param record [BaseWithTranslation]
+  # @param permitted_params: [ActionController::Parameters, Array<Hash>] mandatory. Either params[:musics] etc or its +:translations_attributes+
+  # @return [void]
+  def set_orig_locale_from_params(record, permitted_params: )
+    return set_all_is_orig_from_orig_locale(record, permitted_params) if permitted_params.has_key?(:orig_locale)
+    return if !record.new_record?
+
+    arhs = translations_attributes_array(permitted_params)
+    return if arhs.empty?
+
+    if !arhs[0].has_key?(:is_orig)
+      return  # record.orig_locale should be always nil (like Genre)
+    elsif arhs[0][:is_orig]
+      record.orig_locale = arhs[0][:langcode]&.strip
+    else
+      record.orig_locale = nil
+    end
+  end
+
+  # Updates {Translation#is_orig} of all associated based on {BaseWithTranslation#orig_locale}
+  #
+  # @param record [BaseWithTranslation]
+  # @return [NilClass, String] orig_locale
+  def set_all_is_orig_from_orig_locale(record, permitted_params)
+    record.set_all_is_orig
+    return if record.orig_locale.blank?
+
+    ## Now, checking if this is called on :create, where
+    #  (up to) two Translation-s with the same langcode
+    #  with nil weight (as usual on :create, though never otherwise)
+    #  are given AND if the second one gets is_orig=true; if so,
+    #  the first one should get is_orig=true.
+    arhs = translations_attributes_array(permitted_params)
+    return if arhs.size <= 1
+
+    if arhs[1][:is_orig] && arhs[0][:langcode] == arhs[1][:langcode] && !arhs[0][:weight]
+      tra1 = record.translations.find(&:is_orig)
+      tra0 = record.translations.find{ |t| !t.is_orig && t.langcode == record.orig_locale }
+      if tra0 && tra1  # Should be always the case, but playing safe...
+        tra0.is_orig = true
+        tra1.is_orig = false
+      end
+    end
   end
 
   # Set orig_locale (BaseWithTranslation) and is_orig (Translation) when orig_locale=nil is not allowed.
@@ -29,7 +97,7 @@ module BaseWithTranslationControllerMethods
   # This is applicable to Artist, Music, HaramiVid, Place, where orig_locale is never nil
   # (except unknown), but not Event, Genre, EngageHow, Sex etc, where orig_locale is nil either always or sometimes.
   #
-  # @note If orig_local=nil is allowed, call {BaseWithTranslation#sync_orig_locale}
+  # @note If orig_local=nil is allowed, call {BaseWithTranslation#sync_orig_locale} defined in {TranslationLifecycle}
   #
   # @example on :create
   #   @record = @music = Music.new(music_params)
@@ -96,47 +164,78 @@ module BaseWithTranslationControllerMethods
 
   private
 
-  # Defaults to :url, :music, etc. Can be overridden in a controller if needed.
-  #
-  # @return [Symbol]
-  def model_param_key
-    controller_name.singularize.to_sym
-  end
-
-  # Reads MAIN_FORM_KEYS from the host controller at runtime
-  #
-  # @return [Array<Symbol>]
-  def permitted_main_form_keys
-    if self.class.const_defined?(:MAIN_FORM_KEYS)
-      self.class::MAIN_FORM_KEYS.map(&:to_sym)
-    else
-      []
+    # Defaults to :url, :music, etc. Can be overridden in a controller if needed.
+    #
+    # @return [Symbol]
+    def model_param_key
+      controller_name.singularize.to_sym
     end
-  end
 
-  def translation_attributes
-    Translation::PERMITTED_NESTED_ATTRIBUTES
-  end
-
-  # Converts translations_attributes (whether Hash, Array, or nil) into a clean Array
-  #
-  # @example
-  #   array_of_translation_like_hashes = translations_attributes_array(music_params)
-  #
-  # @param permitted_params [ActionController::Parameters, Hash, Array]
-  # @return [Array]
-  def translations_attributes_array(permitted_params)
-    tra_params =
-      if permitted_params.respond_to?(:has_key?)
-        permitted_params[:translations_attributes] 
+    # Reads MAIN_FORM_KEYS from the host controller at runtime
+    #
+    # @return [Array<Symbol>]
+    def permitted_main_form_keys
+      if self.class.const_defined?(:MAIN_FORM_KEYS)
+        (self.class::MAIN_FORM_KEYS.map(&:to_sym) + [:orig_locale]).uniq
       else
-        permitted_params
+        [:orig_locale]
       end
-
-    if tra_params.respond_to?(:values)
-      tra_params.values
-    else
-      Array.wrap(tra_params)
     end
-  end
+
+    def translation_attributes
+      Translation::PERMITTED_NESTED_ATTRIBUTES
+    end
+
+    # Converts translations_attributes (whether Hash, Array, or nil) into a clean Array
+    #
+    # @example
+    #   array_of_translation_like_hashes = translations_attributes_array(music_params)
+    #
+    # @param permitted_params [ActionController::Parameters, Hash, Array]
+    # @return [Array]
+    def translations_attributes_array(permitted_params)
+      tra_params =
+        if permitted_params.respond_to?(:has_key?)
+          permitted_params[:translations_attributes] 
+        else
+          permitted_params
+        end
+
+      if tra_params.respond_to?(:values)
+        tra_params.values
+      else
+        Array.wrap(tra_params)
+      end
+    end
+
+    def filter_empty_secondary_translations!
+      trans_attrs = params.dig(model_param_key, :translations_attributes)
+      return if trans_attrs.blank?
+
+      if trans_attrs.is_a?(ActionController::Parameters) || trans_attrs.respond_to?(:each_pair) # Hash-like
+        # HTML forms send a hash/parameters with String keys like "0", "1"
+        sorted_keys = trans_attrs.keys.sort_by(&:to_s)
+
+        # Skips the first slot (sorted_keys[0]); inspect index 1 and beyond
+        sorted_keys[1..]&.each do |key|
+          entry = trans_attrs[key]
+
+          # Deletes from params/Hash if a new record slot (no :id) and title is blank
+          # and NOT marked for deletion via _destroy
+          if entry[:title].blank? && entry[:id].blank? && entry[:_destroy].blank?
+            trans_attrs.delete(key)
+          end
+        end
+
+      elsif trans_attrs.is_a?(Array)
+        # Controller tests or APIs might pass an Array of Hashes
+        first = trans_attrs[0]
+        rest = (trans_attrs[1..] || []).reject do |entry|
+          entry[:title].blank? && entry[:id].blank? && entry[:_destroy].blank?
+        end
+
+        # Reconstructs the params parameter
+        params[model_param_key][:translations_attributes] = [first, *rest].compact
+      end
+    end
 end

@@ -77,11 +77,11 @@ class BaseWithTranslation < ApplicationRecord
 
       return if all_nil || exactly_one_true_and_rest_false
 
-      errors.add(:base, "is_orig of Translation-s are invalid: either all must be nil, or exactly one must be 'Yes' and all others 'No'.")
+      errors.add(:base, "is_orig of Translation-s are invalid: either all must be nil, or exactly one must be true and all others false.")
 
       # Attaches errors to individual Translation records so SimpleForm highlights the fields
       tras.each do |tra|
-        tra.errors.add(:is_orig, "inconsistent across sibling Translations (must be all nil, or exactly one 'Yes' with all others 'No')")
+        tra.errors.add(:is_orig, "inconsistent across sibling Translations (must be all nil, or exactly one true with all others false)")
       end
     end
   end # module TranslationLifecycle

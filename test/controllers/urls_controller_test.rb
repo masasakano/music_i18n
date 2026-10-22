@@ -31,7 +31,7 @@ class UrlsControllerTest < ActionDispatch::IntegrationTest
         title: "The Tｅst12",  # including ZENKAKU
         ruby: "", romaji: "",
         kind: "full",
-        is_orig: str_form_for_nil,  # radio-button may return "on" for nil
+        is_orig: "", #str_form_for_nil,  # radio-button may return "on" for nil
         start_year: "", end_year: "",
         is_formal: "true",
         is_official: "true",
@@ -45,7 +45,7 @@ class UrlsControllerTest < ActionDispatch::IntegrationTest
         ruby: "", romaji: "",
         langcode: "en",
         kind: "",  # displayed as "(auto)"
-        is_orig: str_form_for_nil,  # radio-button may return "on" for nil
+        is_orig: "", #str_form_for_nil,  # radio-button may return "on" for nil
         start_year: "", end_year: "",
         is_formal: "true",
         is_official: "true",
@@ -104,9 +104,12 @@ class UrlsControllerTest < ActionDispatch::IntegrationTest
     end
 
     sign_in @moderator_ja
+
     ## Successful creation of Url with existing Domain and DomainTitle
     action, new_mdl2 = assert_authorized_post(Url, params: hs2pass, diff_count_command: calc_count_exp, diff_num: 2001) # defined in test_controller_helper.rb
     assert_equal :create, action
+    assert_nil   new_mdl2.orig_locale
+    assert_empty new_mdl2.reload.translations.map(&:is_orig).compact
 
     #hs2pass2 = hs2pass.merge(title: "new 2 pass")  # makes title be different in default.
     hs2pass2 = _updated_hash_with_title(hs2pass, "new 2 pass")
@@ -126,7 +129,9 @@ class UrlsControllerTest < ActionDispatch::IntegrationTest
     action, new_mdl3 = assert_authorized_post(Url, params: hs2pass3, diff_count_command: calc_count_exp, diff_num: 3111, updated_attrs: [:note]){ |user, record| # defined in test_controller_helper.rb
       assert_equal new_dom, record.domain.domain
       assert_equal new_dom, record.domain_title.title
-      assert_equal "new 3 pass", record.title
+      assert_nil   record.orig_locale
+      assert_empty record.translations.map(&:is_orig).compact
+      assert_equal "new 3 pass", record.title(langcode: :ja)
     }
     assert_equal :create, action
 

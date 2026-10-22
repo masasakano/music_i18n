@@ -261,6 +261,21 @@ class MusicsControllerTest < ActionDispatch::IntegrationTest
 
     assert_operator tra1.weight, :<, tra2.weight  # b/c tra1.kind=="full" and tra2.kind=="alt"
 
+    ### Another creation success without specifying second Translation
+    transs2 = transs.map.with_index{|ehs, i|
+      hs = {}.merge ehs
+      hs.merge({title: ((0 == i) ? "second-creation-with-one-Translaiton only" : "")})
+    }
+    hs2pass = hstmpl.merge({translations_attributes: transs2})
+
+    assert_difference('Translation.count*100 + Music.count*10 + Engage.count', 112) do
+      post musics_url, params: { music: hs2pass }
+      assert_response :redirect
+      music = Music.last_created # defined in application_record.rb
+      assert_redirected_to music_url music
+      my_assert_no_alert_issued  # defined in /test/test_helper.rb
+    end
+
     ### Failure due to non-existent Artist
     hs2add = {
       @f_artist_name => 'naiyo',

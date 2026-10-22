@@ -256,7 +256,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
 
     s3namej= s1name='3'
     s3name = 'en3'
-    s3 = Sex.create_with_translations!({iso5218: 83}, {trim: true}, translations: {ja: {title: s3namej}, en: [{title: s3name, is_orig: true}]})
+    s3 = Sex.create_with_translations!({iso5218: 83}, {trim: true}, translations: {ja: {title: s3namej, is_orig: false}, en: [{title: s3name, is_orig: true}]})
     assert_equal n_orig_sex+3,   Sex.count
     assert_equal n_orig_trans+4, Translation.count
     trans = s3.translations
@@ -298,7 +298,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     n_orig_cnt = Country.count
     n_orig_pre = Prefecture.count
     n_orig_pla = Place.count
-    c5 = Country.create_with_translations!({note: 'random'}, {trim: true}, translations: {ja: {title: s5name}, en: [{title: c5name, is_orig: true}]})
+    c5 = Country.create_with_translations!({note: 'random'}, {trim: true}, translations: {ja: {title: s5name, is_orig: false}, en: [{title: c5name, is_orig: true}]})
     c5trans = c5.best_translations
     assert_equal s5name, Array(c5trans['ja']).compact.first.title
     assert_not           Array(c5trans['ja']).compact.first.is_orig
@@ -417,7 +417,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
 
     assert_raises(ActiveRecord::RecordInvalid){  # Unique constraint
       p  Country.create_with_orig_translation!(          {note: 'n1'}, translation: tr1) }
-    assert_nothing_raised{
+    assert_nothing_raised{  # This should not be allowed now in principle, or certainly undesirable.
          Country.update_or_create_with_translation!(     {note: 'n1'}, translation: tr1.merge({is_orig: false})) }
     assert_nothing_raised{
          Country.update_or_create_with_orig_translation!({note: 'n1'}, translation: tr1) }
@@ -444,7 +444,7 @@ class BaseWithTranslationTest < ActiveSupport::TestCase
     assert_equal 'ランダム-A1', atmp.title
 
     # plural, create
-    tr3 = {ja: {title: 'ランダム-B3'}, en: {title: 'Random B3', is_orig: true}}
+    tr3 = {ja: {title: 'ランダム-B3', is_orig: false}, en: {title: 'Random B3', is_orig: true}}  # {is_orig: false} can't be omitted
     a3 = Country.update_or_create_with_translations!({note: 'n3'}, translations: tr3)
     assert_not_equal a1.id, a3.id  # has to be create
     atmp = a3.best_translation('en')
@@ -823,7 +823,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
     tras_orig = [
       [
        Translation.new(title: "b0", is_orig: true,  langcode: "en", kind: Translation::KIND_FULL, weight: 0),
-       Translation.new(title: "b1", is_orig: true,  langcode: "en", kind: Translation::KIND_ALT,  weight: 0),  # This may fail in validate in future.
+       Translation.new(title: "b1", is_orig: false, langcode: "en", kind: Translation::KIND_ALT,  weight: 0),  # This may fail in validate in future.
        Translation.new(title: "b2", is_orig: false, langcode: "en", kind: Translation::KIND_ALT,  weight: 98),
        Translation.new(title: "b3", is_orig: false, langcode: "en", kind: Translation::KIND_ALT,  weight: 104),
        Translation.new(title: "b4", is_orig: false, langcode: "en", kind: Translation::KIND_ALT,  weight: 1104),
@@ -832,7 +832,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
        Translation.new(title: "b7", is_orig: false, langcode: "en", kind: Translation::KIND_ALT,  weight: nil),
        Translation.new(title: "f0", is_orig: false, langcode: "fr", kind: Translation::KIND_ALT,  weight: 700),  # to ensure there is at least 1 Translation remaining
       ].shuffle,  # the order is deliberately mixed up.
-      [trao=Translation.new(title: "x1", is_orig: false, langcode: "en", kind: Translation::KIND_FULL)]
+      [trao=Translation.new(title: "x1", is_orig: true, langcode: "en", kind: Translation::KIND_FULL)]
     ]
 
     art0 = Artist.new(sex: Sex[0], birth_year: 1999, orig_locale: "en")
@@ -1116,11 +1116,11 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       art0.reload
       art1.reload
       assert_equal 2, art0.translations.size  # only orig-translation is transferred.
-      assert_equal 2, art1.translations.size, "Should have decreased by 1, becoming 3-1=2"
-      assert_equal 0, art1.translations.where(langcode: "en").count  # en in art1 has disappeared.
+      #assert_equal 2, art1.translations.size, "Should have decreased by 1, becoming 3-1=2"  ## now delegates to art1.destroy
+      #assert_equal 0, art1.translations.where(langcode: "en").count  # en in art1 has disappeared.
       assert_equal tras[0][:en].title, art0.orig_translation.title
       assert_equal DEF_INIT_WEIGHT, art0.orig_translation.weight
-      assert_nil                    art1.orig_translation  # en translation (orig_translation) in art1 has disappeared.
+      #assert_nil                    art1.orig_translation  # en translation (orig_translation) in art1 has disappeared.
 
     #  raise ActiveRecord::Rollback, "Force rollback."
     #end
@@ -1889,8 +1889,11 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       refute_equal( *best_tras.map(&:title)) # fixture-test
       best_tras.map.with_index{ |etra, i| etra.update!(weight: 0, note: best_notes[i]) }  # Both original have weight=0, different notes
 
+      hsmodel = nil
       priorities = {default: :self, year: :self, note: :self}
-      hsmodel = art0.merge_other(art1, priorities: priorities, save_destroy: true)
+#debugger
+      assert_difference('Artist.count*10 + Translation.count', -11) {
+        hsmodel = art0.merge_other(art1, priorities: priorities, save_destroy: true) }
 
       art0.reload
       refute  Artist.exists?(art1.id)
@@ -1983,6 +1986,9 @@ mdl.translations.first.translatable_id = EngageHow.second.id
 
   test "merge_other music trans-engage01" do
     # cf. test "create_manual"  in harami1129_test.rb
+    #
+    # Merging Translations:
+    # [["Digsy's Dinner0", w=15000.0, is_orig=true, "en", "alt"], ["Digsy's Dinner1", w=15000.0, is_orig=true, "en", "alt"]]
 
     #ActiveRecord::Base.transaction(requires_new: true) do
       h1129_prms, assc_prms, hsmdl = prepare_h1129s1  # defined in test_helper.rb
@@ -2034,7 +2040,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
         assert_equal 1, hsret[:destroyed].find_all{|i| Music === i}.size
         assert_equal 1, hsret[:destroyed].find_all{|i| ArtistMusicPlay === i}.size
         assert_equal 4, hsret[:destroyed].size, '1 Music, 1 Translation, 1 ArtistMusicPlay 1 Anchoring destroyed, but: destroyed='+"#{hsret[:destroyed].inspect}"
-        assert_equal 1, hsret[:trans][ :remained].size,     '1 Translation remains'
+        assert_equal 1, hsret[:trans][ :remained].size,     '1 Translation should remain, but...'
         assert_equal 2, hsret[:engage][:remained].size
         assert_equal 2, hsret[:harami_vid_music_assocs][ :remained].size
         assert_equal hsret[:trans][:remained].first, hsret[:trans][:original]
@@ -2209,7 +2215,7 @@ mdl.translations.first.translatable_id = EngageHow.second.id
       new_art = hsmdl[:artists][0] #.reload  # self not yet saved!
 
       assert_empty hsret[:destroyed]
-      assert_equal 5, hsret[:trans][ :remained].size,    '5 Translations remain (2en, 2ja, fr)'
+      assert_equal 5, hsret[:trans][ :remained].size,    '5 Translations should remain (2en, 2ja, fr)'
       assert_equal 4, hsret[:engage][:remained].size
       assert_equal 1, hsret[:trans][ :destroy].size,     '1 Translation  destroyed'
       assert_equal 0, hsret[:engage][:destroy].size
@@ -2603,6 +2609,34 @@ end
     assert_operator act[0][:weight], :<, act[1][:weight]
     assert_equal 4, act[0].keys.reject{ _1 == "is_orig"}.size
     assert_equal act[0].keys.size, act[1].keys.size
+  end
+
+  test "set_all_is_orig" do
+    sex = Sex.new(iso5218: 99, orig_locale: nil)
+    trass = []
+    trass << sex.translations.build(title: "j9", langcode: "ja", is_orig: true,  weight: 9, kind: Translation::KIND_ALT)
+    trass << sex.translations.build(title: "j2", langcode: "ja", is_orig: nil,   weight: 2, kind: Translation::KIND_FULL)
+    trass << sex.translations.build(title: "e1", langcode: "en", is_orig: false, weight: 1, kind: Translation::KIND_FULL)
+
+    # refute_predicate sex, :valid?  # => true; But this will invoke before_validation sync_orig_locale, which will set orig_locale.
+    sex.set_all_is_orig
+    assert_predicate sex, :valid?
+    assert_empty sex.active_translations.map(&:is_orig).compact
+    assert_empty trass.map(&:is_orig).compact
+
+    trass[0].is_orig = true
+    sex.orig_locale = "ja"
+    # refute_predicate sex, :valid?
+    sex.set_all_is_orig
+    assert_predicate sex, :valid?
+    assert_equal [false, true, false], trass.map(&:is_orig)
+
+    trass[0].is_orig = true
+    sex.orig_locale = "en"
+    # refute_predicate sex, :valid?
+    sex.set_all_is_orig
+    assert_predicate sex, :valid?
+    assert_equal [false, false, true], trass.map(&:is_orig)
   end
 
   test "inspect" do
