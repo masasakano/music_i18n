@@ -1701,7 +1701,7 @@ end
       if langcode.present?
         sprintf(XPATHS[:all_translation_table][trans_or_banner+"_row_lang_fmt"], langcode.to_s)
       else
-        XPATHS[:all_translation_table][trans_or_banner+":trans_row"]
+        XPATHS[:all_translation_table][trans_or_banner+"_row"]
       end
 
     return ret if column.blank?

@@ -27,6 +27,9 @@ class MusicsController < ApplicationController
   # Permitted main parameters for params() that are (1-level nested) Array
   PARAMS_ARRAY_KEYS = [:engage_hows]
 
+  # Required in {BaseWithTranslationControllerMethods}: +[:disallow_nil, :allow_nil, :always_nil]+
+  ORIG_LOCALE_TYPE_ON_CREATE = :disallow_nil
+
   # GET /musics
   # GET /musics.json
   def index
@@ -68,15 +71,9 @@ class MusicsController < ApplicationController
     # Parameters: {"music" => {"genre_id" => "379794497", "year" => "1984", "artist_name" => "ＡI  ", "year_engage" => "", "engage_hows" => ["", "592497512", "746859435"], "contribution" => "", "note" => "", "memo_editor" => "my random memo", "translations_attributes" => [{"title" => "Yesterday", "ruby" => "イエスタデイ", "romaji" => "Iesutadei", "langcode" => "ja", "kind" => "full", "start_year" => "1998", "end_year" => "", "is_formal" => "true", "is_official" => "true", "is_true_name" => "0", "is_for_record" => "0", "is_literal" => "0", "is_internal" => "0", "note" => "Original Japanese music name"}, {"title" => "TestMusic No.2-1", "ruby" => "", "romaji" => "", "langcode" => "en", "kind" => "", "start_year" => "", "end_year" => "", "is_formal" => "true", "is_official" => "false", "is_true_name" => "0", "is_for_record" => "0", "is_literal" => "1", "is_internal" => "1", "note" => "International release name"}]}, "place_id" => "10877227", "prefecture_id" => "647877836", "country_id" => "756077872", "locale" => "en"}
     # No "is_orig" or "weight" on :create
 
-    # @record = @music = Music.new(@hsmain)
-    @record = @music = Music.new(music_params)  # or model_params ; see "private" section below and BaseWithTranslationControllerMethods
-    authorize! __method__, @music
-    # add_unsaved_trans_to_model(@music, @hstra) # defined in application_controller.rb
-    if set_non_nil_orig_locale_from_params(@record, permitted_params: music_params)  # defined in base_with_translation_controller_methods.rb
-      set_kind_from_params(@record, permitted_params: music_params[:translations_attributes])  # defined in base_with_translation_controller_methods.rb
-    else
-      @record.errors.add(:base, "No Translation is specified.")
-    end
+    ## @record = @music = Music.new(@hsmain)
+    mparams = set_record_and_authorize  # sets @record, @music and authorize; defined in base_with_translation_controller_methods.rb
+    set_orig_locale_on_create(mparams)  # defined in base_with_translation_controller_methods.rb
 
     # @music.errors would be added if something goes wrong.
     artist = helpers.get_artist_from_params @prms_all['artist_name'], @music

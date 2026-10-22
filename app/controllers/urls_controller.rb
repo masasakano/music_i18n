@@ -23,6 +23,9 @@ class UrlsController < ApplicationController
   PARAMS_MAIN_KEYS = MAIN_FORM_KEYS
   # these will be handled in channel_type_params_multi()
 
+  # Required in {BaseWithTranslationControllerMethods}: +[:disallow_nil, :allow_nil, :always_nil]+
+  ORIG_LOCALE_TYPE_ON_CREATE = :allow_nil
+
   # GET /urls or /urls.json
   def index
     @urls = Url.left_joins(:domain).left_joins(:domain_title).order("domain_titles.weight", "domain_titles.created_at", "domains.weight", "domains.created_at", "urls.weight", "urls.created_at")
@@ -44,19 +47,9 @@ class UrlsController < ApplicationController
 
   # POST /urls or /urls.json
   def create
-    # @url = Url.new(@hsmain)
-    @record = @url = Url.new(model_params)
-    authorize! __method__, @url
-    set_orig_locale_from_params(@record, permitted_params: model_params)  # defined in base_with_translation_controller_methods.rb
-    if !set_kind_from_params(@record, permitted_params: model_params)  # defined in base_with_translation_controller_methods.rb
-      @record.errors.add(:base, "No Translation is specified.")
+    super do |record|  # sets @record, @url and authorize; defined in base_with_translation_controller_methods.rb
+      find_or_create_and_assign_domain(record)
     end
-
-    #add_unsaved_trans_to_model(@url, @hstra, force_is_orig_true: false) # defined in application_controller.rb
-    def_respond_to_format(@url, :created){              # defined in application_controller.rb
-      find_or_create_and_assign_domain(@url)
-      @url.errors.any? ? false : @url.save
-    }
   end
 
   # PATCH/PUT /urls/1 or /urls/1.json

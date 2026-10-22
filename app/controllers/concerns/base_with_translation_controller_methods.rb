@@ -2,6 +2,8 @@ module BaseWithTranslationControllerMethods
   extend ActiveSupport::Concern
 
   included do
+    helper_method :model_class, :model_param_key if respond_to?(:helper_method)
+
     # 1. Derives the parameter name (e.g., UrlsController -> "url", MusicsController -> "music")
     param_key = controller_name.singularize
     alias_method_name = "#{param_key}_params"
@@ -15,6 +17,75 @@ module BaseWithTranslationControllerMethods
       end
     end
   end
+
+  # POST /my_models or /my_models.json
+  #
+  # This assumes the Controller class defines the constant `ORIG_LOCALE_TYPE_ON_CREATE`
+  # which should be one of +[:disallow_nil, :allow_nil, :always_nil]+
+  def create(&block)
+    ## equivalent to, e.g., @record = @url = Url.new(model_params)
+    mparams = set_record_and_authorize(__method__)
+    set_orig_locale_on_create(mparams)
+
+    block.call(@record) if block_given?
+
+    def_respond_to_format(@record, :created)    # defined in application_controller.rb
+  end
+
+    # Adjust orig_locale and Translation if necessary
+    #
+    # @return [Object] it depends which one is called
+    def set_orig_locale_on_create(mparams = model_params)
+      case self.class::ORIG_LOCALE_TYPE_ON_CREATE.to_sym
+      when :disallow_nil
+        create_when_nil_locale_not_allowed(mparams)
+      when :allow_nil
+        create_when_nil_locale_allowed(mparams)
+      when :always_nil
+        create_when_nil_locale_always
+      else
+        raise
+      end
+    end
+    private :set_orig_locale_on_create
+
+    # @return [ActionController::Parameters]
+    def set_record_and_authorize(method=:create)
+      ## equivalent to, e.g., @record = @url = Url.new(model_params)
+      mparams = model_params
+      @record = build_record(mparams)
+      set_model_instance_variable(@record)
+      authorize! method, @record
+      mparams
+    end
+    private :set_record_and_authorize
+
+    def create_when_nil_locale_not_allowed(mparams = model_params)
+      if set_non_nil_orig_locale_from_params(@record, permitted_params: mparams)
+        set_kind_from_params(@record, permitted_params: mparams)  # or mparams[:translations_attributes]
+      else
+        @record.errors.add(:base, "No Translation is specified.")
+      end
+    end
+    private :create_when_nil_locale_not_allowed
+
+    def create_when_nil_locale_allowed(mparams = model_params)
+      set_orig_locale_from_params(@record, permitted_params: mparams)
+      if !set_kind_from_params(@record, permitted_params: mparams)
+        @record.errors.add(:base, "No Translation is specified.")
+      end
+    end
+    private :create_when_nil_locale_allowed
+
+    def create_when_nil_locale_always(mparams = nil)
+      @record.orig_locale = nil
+      @record.set_all_is_orig
+
+      if @record.translations.blank?
+        @record.errors.add(:base, "No Translation is specified.")
+      end
+    end
+    private :create_when_nil_locale_always
 
   # Generic params method shared across Controllers for the BaseWithTranslation child model classes
   def model_params
@@ -164,11 +235,27 @@ module BaseWithTranslationControllerMethods
 
   private
 
+    # Infers the model class (e.g. UrlsController -> Url, MusicsController -> Music)
+    def model_class
+      @model_class ||= controller_name.classify.constantize
+    end
+
     # Defaults to :url, :music, etc. Can be overridden in a controller if needed.
     #
-    # @return [Symbol]
+    # @return [Symbol] the singular symbol/string parameter key (e.g. "url", "music")
     def model_param_key
-      controller_name.singularize.to_sym
+      ## Equivalent to: controller_name.singularize.to_sym
+      @model_param_key ||= model_class.model_name.param_key
+    end
+
+    # Assigns @record to @url, @music, etc. so existing views/forms continue to work
+    def set_model_instance_variable(record)
+      instance_variable_set("@#{model_param_key}", record)
+    end
+
+    # Extracted hook: allows specific controllers to customize record instantiation
+    def build_record(attributes = {})
+      model_class.new(attributes)
     end
 
     # Reads MAIN_FORM_KEYS from the host controller at runtime
