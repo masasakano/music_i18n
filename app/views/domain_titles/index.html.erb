@@ -1,25 +1,27 @@
 <h1>Domain Titles</h1>
 
+<% canedit_gen    = can?(:edit,    DomainTitle) %>
+<% candestroy_gen = can?(:destroy, DomainTitle) %>
 <div id="domain_titles">
 <section id="domain_titles_index_table">
 
   <table>
   <thead>
     <tr>
-     <% if (caneditgen=can?(:edit, DomainTitle))  %>
+     <% if canedit_gen  %>
       <th class="editor_only">ID</th>
      <% end %>
        <%= render "layouts/title_alt_ja_en_table", model: nil, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
-     <% if caneditgen %>
+     <% if canedit_gen %>
       <th class="editor_only" title="Weight for sorting.">Weight</th>
      <% end %>
       <th title="SiteCategory"><%= t(:SiteCategory) %></th>
       <th title="Number of registered Domains">#Domains</th>
       <th title="Number of registered Urls">#Urls</th>
       <th title="Note in this DB">Note</th>
-      <% if caneditgen %>
+      <% if canedit_gen %>
         <th class="editor_only" title="Whether editor's memo exists">Memo?</th>
-        <th class="editor_only" colspan="3"></th>
+        <th colspan="<%= 1 + [canedit_gen, candestroy_gen].count(true) %>"></th>
       <% else %>
         <th></th>
       <% end %>
@@ -29,34 +31,22 @@
   <tbody>
     <% @domain_titles.joins(:translations).joins(:site_category).order("site_categories.weight", "domain_titles.weight", "translations.title").uniq.each do |model| %>
       <tr>
-        <% if caneditgen  %>
+        <% if canedit_gen  %>
           <td class="editor_only"><%= link_to(model.id, model) %></td>
         <% end %>
        <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
-        <% if caneditgen  %>
+        <% if canedit_gen  %>
           <td class="editor_only item_weight"><%= model.weight %></td>
         <% end %>
           <td class="item_site_category"><%= link_to((sc=model.site_category).title_or_alt(prefer_shorter: true, langcode: I18n.locale, lang_fallback_option: :either, str_fallback: "CO", article_to_head: true), sc, title: sc.mname) if model.site_category %></td>
           <td class="item_ndomains text-end"><%= model.domains.count %></td>
           <td class="item_nurls text-end"><%= model.urls.distinct.count %></td>
           <td class="item_note"><%= model.note %></td>
-        <% if caneditgen  %>
+        <% if canedit_gen  %>
           <td class="editor_only item_memo_editor_present"><%= "Y" if model.memo_editor.present? %></td>
         <% end %>
 
-        <td><%= link_to t("tables.Show"), model %></td>
-        <% if caneditgen= %>
-          <td class="editor_only">
-           <% if can?(:update, model)  %>
-             <%= link_to 'Edit', edit_domain_title_path(model) %>
-           <% end %>
-          </td>
-          <td class="editor_only">
-           <% if model.destroyable? && can?(:destroy, model) %>
-             <%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %>
-           <% end %>
-          </td>
-        <% end %>
+        <%= render "layouts/show_edit_destroy_in_table", record: model, canedit_gen: canedit_gen, candestroy_gen: candestroy_gen %>
       </tr>
     <% end %>
   </tbody>

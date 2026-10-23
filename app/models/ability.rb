@@ -208,9 +208,9 @@ class Ability
     if user.qualified_as?(:moderator, rc_general_ja)
       can :read, [CountryMaster]
       can(:update, CountryMasters::CreateCountriesController)
-      can(:ud, ChannelType){|mdl| (cruser=mdl.create_user) && ((cruser == user) || (!mdl.unknown? && !cruser.superior_to?(user, rc_general_ja))) }  # can update/destroy unless the record was created by a superior in General-JA (i.e., an admin) (though cannot if there's a dependent Channel).
       can([:crud], SiteCategory){|mdl| (!mdl.unknown? && "main" != mdl.mname) }  # can create/update/destroy except for "unknown" (though cannot destroy if there's a dependent DomainTitle).  At the time of writing, SiteCategory.default(:HaramiVid) returns SiteCategory.unknown.
       can([:crud], [Domain, DomainTitle]){|mdl| !mdl.unknown? }  # can create/update/destroy except for "unknown" (though cannot destroy if there's a dependent Uri or Domain).
+      can(:ud, ChannelType){|mdl| (cruser=mdl.create_user) && ((cruser == user) || (!mdl.unknown? && !cruser.superior_to?(user, rc_general_ja))) }  # can update/destroy unless the record was created by a superior in General-JA (i.e., an admin) (though cannot if there's a dependent Channel).
     end
 
     ## HaramiVid moderator only
@@ -219,7 +219,7 @@ class Ability
       can :update, [Harami1129]
       can :cru,  [Harami1129Review]  # Harami1129Review rarely needs to be destroyed.
       can :read, PlayRole
-      can(:ud, ChannelType){|mdl| mdl.create_user && mdl.create_user == user }  # can update/destroy only those self has created (though cannot if there's a dependent Channel).
+      can(:ud, ChannelType){|mdl| user == mdl.create_user && !mdl.unknown? }  # can update/destroy unless the record was created by a superior in General-JA (i.e., an admin) (though cannot if there's a dependent Channel).
     end
 
     ## General-JA or HaramiVid moderator only

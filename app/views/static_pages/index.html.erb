@@ -1,4 +1,4 @@
-<h1>Static Pages</h1>
+<%= editor_only_safe_html(:pass, method: true, only: :admin, tag: "h1", text: "Static Pages") %>
 
 <table>
   <thead>
@@ -25,13 +25,7 @@
         <td><%= static_page.content ? static_page.content[0..200] : nil %></td>
         <td><%= auto_link50(static_page.note) %></td>
         <td><%= link_to 'Public', StaticPagesController.public_path(static_page) %></td>
-        <td><%= link_to 'Show', static_page %></td>
-        <% if can? :update, static_page %>
-          <td><%= link_to 'Edit', edit_static_page_path(static_page) %></td>
-        <% end %>
-        <% if can? :destroy, static_page %>
-          <td><%= link_to 'Destroy', static_page, method: :delete, data: { confirm: t('are_you_sure') } %></td>
-        <% end %>
+        <%= render "layouts/show_edit_destroy_in_table", record: static_page, canedit_gen: true, candestroy_gen: true, only: :moderator, destroyable: true %>
       </tr>
     <% end %>
   </tbody>
@@ -39,7 +33,7 @@
 
 <br>
 
-<% if can? :create, StaticPage %>
+<%= editor_only_safe_html(StaticPage, method: :create, only: :admin) do %>
   <%= link_to 'New Static Page', new_static_page_path %>
 <% end %>
 

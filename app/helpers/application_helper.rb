@@ -1410,7 +1410,7 @@ module ApplicationHelper
     if is_button
       turbohs[:turbo_confirm] = confirm_message if with_confirm
       opts = { form: {data: turbohs} }
-      classes_str = [classes_str, (link_like ? "btn btn-link p-0 align-baseline" : "")].join(" ")
+      classes_str = [classes_str, (link_like ? "btn btn-link p-0 align-baseline" : "")].join(" ").split.uniq.join(" ")
       opts[:class] = classes_str if !classes_str.empty?
       opts[:form_class] = "d-inline" if inline
       opts.merge! kwds

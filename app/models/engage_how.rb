@@ -14,6 +14,9 @@ class EngageHow < BaseWithTranslation
   # defines {#unknown?} and +self.class.unknown+
   include ModuleUnknown
 
+  # for destroyable?  See {DEPENDENT_CHILDREN}
+  include ModuleDestroyable
+
   # Class-method helpers
   include ClassMethodHelper
 
@@ -47,6 +50,9 @@ class EngageHow < BaseWithTranslation
     "en" => 'UnknownEngaging',
     #"fr" => 'ArtisteInconnu',
   }
+
+  # essential for ModuleDestroyable
+  DEPENDENT_CHILDREN = [:engages]
 
   def <(other)
     raise TypeError, "cannot compare with non-#{self.class.name}" if !other.respond_to?(:engages) || !other.respond_to?(:weight)

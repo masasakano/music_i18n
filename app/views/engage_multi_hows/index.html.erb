@@ -112,7 +112,7 @@
           <td></td>
           <td><%= link_to 'Show', engage %></td>
           <% if current_user.sysadmin? %>
-            <td><%= link_to 'Destroy(Admin)', engage, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+            <td><%= destroy_link engage, destroy_text='Destroy(Admin)', inline: true, is_button: true, extra_classes: [Consts::Csses::Layouts::DESTROY_LINK] %></td> <%# defined in application_helper.rb %>
           <% end %>
         </tr>
       <% end %>

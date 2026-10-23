@@ -91,7 +91,8 @@
           <td class="actions editor_only">
           <% if can? :destroy, event_item %>
            <% if event_item.destroyable? %>
-            <%= link_to 'Destroy', event_item, method: :delete, data: { confirm: t('are_you_sure') } %>
+             <%= destroy_link event_item, inline: true, is_button: false, extra_classes: [Consts::Csses::Layouts::DESTROY_LINK] %>
+             <%# link_to 'Destroy', event_item, method: :delete, data: { confirm: t('are_you_sure') } %>
            <% else %>
             <span class="cell_disable_link destroy">Destroy</span>
            <% end %>

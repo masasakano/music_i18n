@@ -7,6 +7,11 @@ require "test_helper"
 class PlacesIntegrationTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
+  setup do
+    @place = places(:tocho)
+    @transs = sample_translation_params(with_true_name: false)  # defined in test_helper.rb
+  end
+
   # called after every single test
   teardown do
     # when controller is using cache it may be a good idea to reset it afterwards
@@ -36,22 +41,20 @@ class PlacesIntegrationTest < ActionDispatch::IntegrationTest
   end
 
   test "can create" do
-    hs2pass = {
-      "langcode"=>"en",
-      "title"=>"The Tｅst",
-      "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
+    hsbase = {
       # "prefecture.country_id"=>Country['JPN'].id.to_s,  ## old, obsoletestyle
       # "prefecture"=>prefectures(:kagawa).id.to_s,
       "note"=>"test-create-place",
     }
+    hs2pass = {place: hsbase.merge({translations_attributes: @transs})}.merge({prefecture_id: prefectures(:kagawa).id.to_s})  # prefecture_id at the top level
 
     sign_in( users(:user_editor_general_ja) )
 
     # Creation success
     place = nil
     assert_difference('Place.count', 1) do
-      # post places_url, params: { place: hs2pass }
-      post places_url, params: params_to_give_with_place(Place, hs2pass, place_id: prefectures(:kagawa).unknown_place, with_place: false)  # defined in test_helper.rb
+      post places_url, params: hs2pass
+      # post places_url, params: params_to_give_with_place(Place, hs2pass, place_id: prefectures(:kagawa).unknown_place, with_place: false)  # defined in test_helper.rb
       assert_response :redirect
     end
 
@@ -65,15 +68,6 @@ class PlacesIntegrationTest < ActionDispatch::IntegrationTest
   end
 
   test "can edit" do
-    hs2pass = {
-      "langcode"=>"en",
-      "title"=>"The Tｅst",
-      "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
-      "prefecture.country_id"=>Country['JPN'].id.to_s,
-      "prefecture"=>prefectures(:kagawa).id.to_s,
-      "note"=>"test-create-place",
-    }
-
     tocho = places(:tocho)
 
     sign_in( users(:user_editor_general_ja) )
@@ -84,11 +78,6 @@ class PlacesIntegrationTest < ActionDispatch::IntegrationTest
   end
 
   test "can update" do
-    hs2pass = {
-      #"prefecture.country_id"=>Country['JPN'].id.to_s,
-      "prefecture"=>prefectures(:kagawa).id.to_s,
-      "note"=>"test-create-place",
-    }
     note2 = 'Edited new place note'
     tocho = places(:tocho)
     tocho_id   = tocho.id

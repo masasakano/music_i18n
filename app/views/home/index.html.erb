@@ -68,7 +68,7 @@
 </p>
 
 <% if user_signed_in? %>
-    <%= link_to destroy_user_session_path, method: :delete do %><%= t('log_out') %><% end %>
+  <%= destroy_link(destroy_user_session_path, t('log_out'), is_button: false, inline: true, link_like: true, extra_classes: "sign_out", with_confirm: false) %><%# defined in application_helper.rb %>
 <% else %>
     <%= link_to new_user_session_path, class: 'login-button' do %><%= t("devise.sessions.new.sign_in") %><% end %> (<%= t('or') %> <%= link_to new_user_registration_path, class: 'register-button' do %><%= t("devise.registrations.new.sign_up") %><% end %>)
 <% end %>

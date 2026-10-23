@@ -15,6 +15,9 @@ class Genre < BaseWithTranslation
   include ModuleUnknown
   include ModuleWeight  # adds a validation
 
+  # for destroyable?  See {DEPENDENT_CHILDREN}
+  include ModuleDestroyable
+
   # Minimum requirements for editing Translation (see BaseWithTranslation).
   TRANSLATION_EDITABLE_IF_AT_LEAST = :an_admin?
 
@@ -40,6 +43,9 @@ class Genre < BaseWithTranslation
     "en" => 'UnknownGenre',
     "fr" => 'GenreInconnu',
   }.with_indifferent_access
+
+  # essential for ModuleDestroyable
+  DEPENDENT_CHILDREN = [:musics]
 
   # Returning a default Model in the given context
   #

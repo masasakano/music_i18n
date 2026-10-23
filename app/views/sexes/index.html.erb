@@ -1,10 +1,11 @@
-<h1>Sexes</h1>
+<%= editor_only_safe_html(:pass, method: true, only: :admin, tag: "h1", text: "Sexes") %>
 
 <table>
   <thead>
     <tr>
       <th>Iso5218</th>
        <%= render "layouts/title_alt_ja_en_table", model: nil, langcodes: %w(ja en fr) %>  <%# class="title_alt_ja" etc %>
+      <th>#Artists</th>
       <th>Note</th>
       <th colspan="3"></th>
     </tr>
@@ -15,10 +16,9 @@
       <tr>
         <td><%= sex.iso5218 %></td>
        <%= render "layouts/title_alt_ja_en_table", model: sex, langcodes: %w(ja en fr) %>  <%# class="title_alt_ja" etc %>
+        <td><%= sex.artists.size %></td>
         <td><%= auto_link50(sex.note) %></td>
-        <td><%= link_to 'Show', sex %></td>
-        <td><%= link_to('Edit', edit_sex_path(sex)) if can?(:update, sex) %></td>
-        <td><%= link_to( 'Destroy', sex, method: :delete, data: { confirm: t('are_you_sure') }) if can?(:destroy, sex) %></td>
+        <%= render "layouts/show_edit_destroy_in_table", record: sex, canedit_gen: true, candestroy_gen: true, only: :moderator, destroyable: sex.artists.blank? %>
       </tr>
     <% end %>
   </tbody>

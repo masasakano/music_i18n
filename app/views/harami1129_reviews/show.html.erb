@@ -8,6 +8,6 @@
   <%= link_to "Back to Index", harami1129_reviews_path %>
 
   <% if can? :destroy, @harami1129_review %>
-    <%= button_to "Destroy this Harami1129Review", @harami1129_review, method: :delete %>
+    <%= destroy_link @harami1129_review, destroy_text="Destroy this Harami1129Review", inline: true, is_button: true, extra_classes: [Consts::Csses::Layouts::DESTROY_LINK] %>
   <% end %>
 </div>

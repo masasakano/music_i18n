@@ -19,33 +19,17 @@
       <%= tag.section id: "sec_primary_input" do %>
 <%# form_with(model: channel_platform, local: true) do |form| %>
 
-  <% if channel_platform.new_record? %>
-          <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: channel_platform, disable_is_orig: true, is_simple_form: true, use_form_attributes: true} %>
-  <% end %>
+        <% if channel_platform.new_record? %>
+          <%= render partial: 'layouts/partial_new_translations', locals: {form: f, is_simple_form: true, use_form_attributes: true} %>
+        <% end %>
         <%= f.error_notification %>
         <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
 
   <%= f.input :mname, placeholder: "Unique name (内部使用用途の空白を含まない短い名前)" %>
-<% if false %>
-  <div class="field">
-    <%= form.label :mname, "mname" %>
-    <%= form.text_field :mname, value: channel_platform.mname, placeholder: "Unique name (内部使用用途の空白を含まない短い名前)" %>
-  </div>
-<% end %>
 
-  <div class="field">
-    <%= form.label :note %>
-    <%= form.text_area :note %>
-  </div>
-
-        <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: Instrument, skip_ability_check: true} %>
+        <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, skip_ability_check: true} %>
         <%= f.submit(channel_platform.new_record? ? "Create ChannelPlatform" :  "Update ChannelPlatform") %>
 
-<% if false %>
-  <div class="actions">
-    <%= form.submit(channel_platform.new_record? ? "Create ChannelPlatform" :  "Update ChannelPlatform")%>
-  </div>
-<% end %>
   <div class="actions">
   <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
   </div>

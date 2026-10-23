@@ -35,7 +35,7 @@
       <dt>Orphan: <%= em.modelname %> </dt>
       <dd>
         <%= em.title %>
-         (<%= link_to "Show", em %> / <%= link_to "Edit?", edit_model_summary_path(em) %> / <strong><%= link_to "Destroy", em, method: :delete, data: { confirm: t('are_you_sure') } %></strong>)
+         (<%= link_to "Show", em %> / <%= link_to "Edit?", edit_model_summary_path(em) %> / <strong><%= destroy_link em, inline: true, is_button: true, extra_classes: [Consts::Csses::Layouts::DESTROY_LINK] %></strong>)
       </dd>
     <% end %>
     <% end %>

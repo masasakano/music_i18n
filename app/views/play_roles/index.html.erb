@@ -47,7 +47,7 @@
         <% end %>
         <% if false %> <%# No destroy with this UI %>
          <% if can? :destroy, model %>
-          <td><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+          <td><%= destroy_link model, inline: true, is_button: true, extra_classes: [Consts::Csses::Layouts::DESTROY_LINK] %></td>
          <% end %>
         <% end %>
       </tr>

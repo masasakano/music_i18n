@@ -1,12 +1,12 @@
 <h1>Prefectures <%= h1_note_editor_only(Prefecture, method: :index) %></h1>
 
-<% canedit=can?(:edit, Prefecture) %>
-<% candestroy=can?(:destroy, Prefecture) %>
+<% canedit_gen=can?(:edit, Prefecture) %>
+<% candestroy_gen=can?(:destroy, Prefecture) %>
 <% can_create_pla = can?(:create, Place) %>
 <table class="table_index table_string">
   <thead>
     <tr>
-     <% if canedit %>
+     <% if canedit_gen %>
       <th class="editor_only">pID</th>
      <% end %>
       <th>Country-pID(alt名称)</th>
@@ -23,7 +23,7 @@
       <th title="<%= t("event_groups.n_events_long") %>"><%= t("event_groups.n_events") %></th>
       <th title="<%= t("tables.n_artists_long") %>"><%= t("tables.n_artists_short") %></th>
       <th>Note</th>
-     <% colspan = (canedit ? 3 : 1) %>
+     <% colspan = (canedit_gen ? 3 : 1) %>
       <th colspan="<%= colspan %>">Action</th>
     </tr>
   </thead>
@@ -31,7 +31,7 @@
   <tbody>
     <% @prefectures.each do |model| %>
       <tr>
-       <% if canedit %>
+       <% if canedit_gen %>
         <td class="editor_only"><%= link_to model.id, model %></td>
        <% end %>
         <td><%= cntr=model.country; link_to(sprintf('%d', cntr.id), cntr)+sprintf('(%s)', cntr.title_or_alt(langcode: I18n.locale, prefer_alt: true, lang_fallback_option: :either)) %></td>
@@ -49,21 +49,7 @@
         <td class="text-end"><%= model.events.distinct.count %></td>
         <td class="text-end"><%= model.artists.count %></td>
         <td><%= ModuleRedcarpetAux.md2safehtml(model.note) %></td>
-        <td><%= link_to 'Show', model %></td>
-       <% if canedit %>
-        <% if (can? :edit, model) %>
-         <td class="editor_only"><%= link_to('Edit', edit_prefecture_path(model)) if (can? :update, model) %></td>
-         <%= editor_only_safe_html(:pass, method: candestroy, only: :moderator, tag: "td", show_always: true, class: "text-end") do %>
-           <% if can?(:destroy, model) && model.destroyable?(with_msg: false) %>
-             <%= destroy_link model, inline: true, is_button: true, extra_classes: ["destroy_link"] %> <%# defined in application_helper.rb %>
-           <% else %>
-             <s title="Cannot destroy by anyone due to data-integration constraints">Destroy</s>
-           <% end %>
-         <% end %>
-        <% else %>
-         <td colspan="2" class="editor_only"></td>
-        <% end %>
-       <% end %>
+        <%= render "layouts/show_edit_destroy_in_table", record: model, canedit_gen: canedit_gen, candestroy_gen: candestroy_gen %>
       </tr>
     <% end %>
   </tbody>

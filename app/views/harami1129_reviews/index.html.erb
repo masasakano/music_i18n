@@ -54,7 +54,7 @@
         <td><%= link_to 'Show', harami1129_review %></td>
         <td><%= link_to('Edit', edit_harami1129_review_path(harami1129_review)) if (can? :update, harami1129_review) %></td>
         <% if can?(:destroy, harami1129_review) %>
-          <td><%= link_to('Destroy', harami1129_review, method: :delete, data: { confirm: t('are_you_sure') }) %></td>
+          <td><%= destroy_link harami1129_review, inline: true, is_button: true, extra_classes: [Consts::Csses::Layouts::DESTROY_LINK] %></td>
         <% end %>
       </tr>
     <% end %>

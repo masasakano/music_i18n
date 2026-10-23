@@ -1,5 +1,7 @@
 <h1>Countries <%= h1_note_editor_only(Country, method: :index) %></h1>
 
+<% canedit_gen    = can?(:edit,    Country) %>
+<% candestroy_gen = can?(:destroy, Country) %>
 <table class="table_index table_string">
   <thead>
     <tr>
@@ -18,8 +20,8 @@
       <th>Start date</th>
       <th>End date</th>
       <th title="Note in this DB">Note</th>
-      <% if can? :update, Country %>
-        <th colspan="3"></th>
+      <% if canedit_gen %>
+        <th colspan="<%= 1 + [canedit_gen, candestroy_gen].count(true) %>"></th>
       <% else %>
         <th></th>
       <% end %>
@@ -44,13 +46,7 @@
         <td><%= model.start_date %></td>
         <td><%= model.end_date %></td>
         <td><%= ModuleRedcarpetAux.md2safehtml(model.note) %></td>
-        <td><%= link_to 'Show', model %></td>
-        <% if can? :update, model  %>
-          <td><%= link_to 'Edit', edit_country_path(model) %></td>
-        <% end %>
-        <% if can? :destroy, model %>
-          <td><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
-        <% end %>
+        <%= render "layouts/show_edit_destroy_in_table", record: model, canedit_gen: canedit_gen, candestroy_gen: candestroy_gen %>
       </tr>
     <% end %>
   </tbody>

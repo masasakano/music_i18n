@@ -121,7 +121,7 @@
   <%= f.input :year,  label: t('Year_Title'), placeholder: 'e.g., 1999',  as: :integer, input_html: {class: ['input_year']} %>
 
   <%= render partial: 'layouts/form_wiki_url', locals: {form: f, record: music} %>
-  <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: Music, skip_ability_check: true} %>
+  <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, skip_ability_check: true} %>
 
 
   <% if music.new_record? %>

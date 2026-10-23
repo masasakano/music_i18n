@@ -3,11 +3,13 @@
 
 <div id="event_groups">
 <table id="event_groups_index_table">
-    <% can_edit_event_group = can?(:edit, EventGroup) %>
-    <% can_create_event     = can?(:create, Event) %>
+    <% canedit_gen = can_edit_event_group = can?(:edit, EventGroup) %>
+    <% candestroy_gen = can?(:destroy, EventGroup) %>
+    <% can_create_event = can?(:create, Event) %>
+    <% can_edit_event   = can?(:edit,   Event) %>
+  
   <thead>
     <tr>
-     <% can_edit_event_group = can?(:edit, EventGroup) %>
       <th><%= can_edit_event_group ? "ID" : "" %></th>
       <% if can_edit_event_group %>
        <%= render "layouts/title_alt_ja_en_table", model: nil, langcodes: %w(ja en) %>  <%# class="title_alt_ja" etc %>
@@ -24,7 +26,7 @@
       <% end %>
       <th><%= t(:Place) %></th>
       <th title="Note in this DB"><%= t("tables.note") %></th>
-      <% if can?(:edit, Event) %>
+      <% if can_edit_event %>
         <th class="editor_only text-center" title="memo_editor present?">Memo?</th>
       <% end %>
       <th title="<%= t("tables.n_harami_vids_long") %>"><%= t("tables.n_harami_vids_short") %></th>
@@ -45,16 +47,16 @@
        <%= render "layouts/title_alt_ja_en_table", model: model, langcodes: [I18n.locale] %>  <%# class="title_alt_ja" etc %>
       <% end %>
         <td><%= da = model.start_date; str = (da ? date2text(da.year, da.month, da.day, lower_end_str: "", upper_end_str: "") : (can?(:edit, model) ? date2text(nil, nil, nil) : "")) %></td>
-      <% if can? :update, EventGroup %>
+      <% if canedit_gen %>
         <td class="editor_only align-cr"><%= s=model.start_date_err; (str.blank? ? "" : s) %></td>
       <% end %>
         <td><%= da = model.end_date;   str = (da ? date2text(da.year, da.month, da.day, lower_end_str: "", upper_end_str: "") : (can?(:edit, model) ? date2text(nil, nil, nil) : "")) %></td>
-      <% if can? :update, EventGroup %>
+      <% if canedit_gen %>
         <td class="editor_only align-cr"><%= s=model.end_date_err; (str.blank? ? "" : s) %></td>
       <% end %>
         <td><%= model.place ? h(model.txt_place_pref_ctry) : "" %></td>
         <td><%= ModuleRedcarpetAux.md2safehtml(model.note) %></td>
-      <% if can?(:edit, Event) %>
+      <% if can_edit_event %>
         <td class="editor_only text-center"><%= model.memo_editor.present? && (memo_editor_txt=model.memo_editor.strip).present? ? ('<span title="'+h(memo_editor_txt)+'">Y</span>').html_safe : nil %></td>
       <% end %>
 
@@ -73,17 +75,17 @@
           <td class="editor_only"><%= link_to 'Add Event', new_event_path(event_group_id: model.id) %></td>
         <% end %>
 
-        <% if false %> <%# ==================== %>
+<% if false %> <%# ======================================== %>
         <% if can?(:destroy, model) %>
           <td class="editor_only">
          <% if model.destroyable? %>
-          <%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %>
+           <%= destroy_link model, inline: true, is_button: true, extra_classes: [Consts::Csses::Layouts::DESTROY_LINK] %> <%# defined in application_helper.rb %>
          <% else %>
           <span class="cell_disable_link">Destroy</span>
          <% end %>
          </td>
         <% end %>
-        <% end %>
+<% end %>
       </tr>
     <% end %>
   </tbody>

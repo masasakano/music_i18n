@@ -1,4 +1,4 @@
-<%# locals: (form: , model4ability: , show_weight: true, whether_shows: nil, skip_ability_check: false, weight_hint: "Smaller value (> 0) means a higher priority in display.", weight_placeholder: nil) %>
+<%# locals: (form: , model4ability: nil, show_weight: true, whether_shows: nil, skip_ability_check: false, weight_hint: "Smaller value (> 0) means a higher priority in display.", weight_placeholder: nil) %>
 
 <%#   NOTE: form for SimpleForm. model4ability may be a model instance or model class, used for an Ability check.  Former is recommended unless whether_shows is given or skip_ability_check=true. %>
       <%# : If the model has no weight or memo_editor, the field is not displayed. %>
@@ -8,6 +8,7 @@
 <%# Example1:  render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: record=Artist.first, show_weight: false, skip_ability_check: true} %>
 <%# Example2:  render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: Translation, whether_shows: {weight: false, memo_editor: true}} %>
 
+<% model4ability ||= form.object %>
 <% do_show = (show_weight && model4ability.has_attribute?(:weight) &&
               (  whether_shows && whether_shows[:weight] ||
                (!whether_shows && (skip_ability_check || canupdate=can?(:update, model4ability))))) %>

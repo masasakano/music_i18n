@@ -12,6 +12,8 @@
 <%= render "layouts/grid_table_tail", klass: Event %>
 
 <% else %>
+<% canedit_gen    = can?(:edit,    Event) %>
+<% candestroy_gen = can?(:destroy, Event) %>
 <table id="events_index_table">
   <thead>
     <tr>
@@ -63,13 +65,7 @@
         <% end %>
         <td><%= auto_link50(model.note) %></td>
 
-        <td><%= link_to "Show", model %></td>
-        <% if can? :update, model  %>
-          <td><%= link_to 'Edit', edit_event_path(model) %></td>
-        <% end %>
-        <% if can? :destroy, model %>
-          <td><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
-        <% end %>
+        <%= render "layouts/show_edit_destroy_in_table", record: model, canedit_gen: canedit_gen, candestroy_gen: candestroy_gen %>
       </tr>
     <% end %>
   </tbody>

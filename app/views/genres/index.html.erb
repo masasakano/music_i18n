@@ -1,9 +1,7 @@
 <h1>Genres</h1>
 
-<% allcolspan = 1
-   allcolspan += 1 if can?(:update,  Genre)
-   allcolspan += 1 if can?(:destroy, Genre)
-%>
+<% canedit_gen    = can?(:update,  Genre)
+   candestroy_gen = can?(:destroy, Genre) %>
 <table>
   <thead>
     <tr>
@@ -16,7 +14,7 @@
       <th><%= link_to '登録曲', musics_url %>数</th>
       <th>Weight</th>
       <th>Note</th>
-      <th colspan="<%= allcolspan %>"></th>
+      <th colspan="<%= 1 + [canedit_gen, candestroy_gen].count(true) %>"></th>
     </tr>
   </thead>
 
@@ -32,13 +30,7 @@
         <td class="align-r"><%= genre.musics.count %></td>
         <td class="align-r"><%= genre.weight %></td>
         <td><%= auto_link50(genre.note) %></td>
-        <td><%= link_to 'Show', genre %></td>
-        <% if can?(:update, genre) %>
-          <td><%= link_to 'Edit', edit_genre_path(genre) %></td>
-        <% end %>
-        <% if can?(:destroy, genre) %>
-          <td><%= link_to 'Destroy', genre, method: :delete, data: { confirm: t('are_you_sure') } %></td>
-        <% end %>
+        <%= render "layouts/show_edit_destroy_in_table", record: genre, canedit_gen: canedit_gen, candestroy_gen: candestroy_gen %>
       </tr>
     <% end %>
   </tbody>

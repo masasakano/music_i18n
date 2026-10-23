@@ -22,15 +22,7 @@
         <td><%= role.weight %></td>
         <td><%= role.users.count %></td>
         <td><%= auto_link50(role.note) %></td>
-        <td><%= link_to 'Show', role %></td>
-        <td><%= tag.span link_to('Edit', edit_role_path(role)), class: "admin_only" %></td>
-        <td>&nbsp;&nbsp;&nbsp;
-          <% if role.destroyable? %>
-            <%= link_to 'Destroy', role, method: :delete, data: { confirm: t('are_you_sure') } %>
-          <% else %>
-            <%= tag.span "Destroy", class: "cell_disable_link", title: "NOT destroyable because Users exist" %>
-          <% end %>
-        </td>
+        <%= render "layouts/show_edit_destroy_in_table", record: role, canedit_gen: true, candestroy_gen: true, only: :moderator %>
       </tr>
     <% end %>
   </tbody>

@@ -37,7 +37,7 @@
   <div class="align-r"> 
     <% label_str = ((current_user == @user) ? t("devise.registrations.edit.cancel_my_account") : "Deactivate this account") %>
     <% if @user.destroyable? && (current_user == @user) %>
-      <%= link_to(label_str+"(!)", user_path(@user), method: :delete, data: { turbo_method: :delete, turbo_confirm: t('are_you_sure'), confirm: t('are_you_sure') }) %>  <%# Turbo may not work in some cases... %>
+      <%= destroy_link user_path(@user), destroy_text=label_str+"(!)", inline: true, is_button: false, extra_classes: [Consts::Csses::Layouts::DESTROY_LINK] %> <%# defined in application_helper.rb %>
     <% else %>
       <%= link_to(label_str, users_do_deactivate_users_path(@user), data: { turbo_method: :delete, turbo_confirm: t('are_you_sure') }) %> <%# Rails-8.1.  Previous: data: { confirm: t('are_you_sure') }, method: :delete %>
     <% end %>

@@ -16,9 +16,7 @@
         <td><%= page_format.mname %></td>
         <td><%= page_format.description %></td>
         <td><%= auto_link50(page_format.note) %></td>
-        <td><%= link_to 'Show', page_format %></td>
-        <td><%= link_to 'Edit', edit_page_format_path(page_format) %></td>
-        <td><%= link_to 'Destroy', page_format, method: :delete, data: { confirm: t('are_you_sure') } %></td>
+        <%= render "layouts/show_edit_destroy_in_table", record: page_format, canedit_gen: true, candestroy_gen: true, destroyable: page_format.static_pages.blank? %>
       </tr>
     <% end %>
   </tbody>

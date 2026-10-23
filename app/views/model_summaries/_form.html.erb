@@ -20,24 +20,17 @@
 <%# form_with(model: model_summary, local: true) do |form| %>
 
   <% if model_summary.new_record? %>
-          <%= render partial: 'layouts/partial_new_translations', locals: {form: form, model: model_summary, disable_is_orig: true, is_simple_form: true, use_form_attributes: true} %>
+          <%= render partial: 'layouts/partial_new_translations', locals: {form: f, is_simple_form: true, use_form_attributes: true} %>
   <% end %>
         <%= f.error_notification %>
         <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
 
   <%= f.input :modelname %>
-<% if false %>
-  <div class="field">
-    <%= form.label :modelname %>
-    <%= form.text_field :modelname %>
-  </div>
-<% end %>
 
-        <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: ModelSummary, skip_ability_check: true} %>
+        <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, skip_ability_check: true} %>
 
   <div class="actions">
         <%= f.submit %>
-    <%= form.submit %>
   </div>
   <div class="actions">
   <%= submit_tag("Reset (Start Over)", { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>

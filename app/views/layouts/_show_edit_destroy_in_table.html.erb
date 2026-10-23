@@ -1,0 +1,52 @@
+<%# locals: (record: , canshow_gen: true, canshow: true, canedit_gen: true, canedit: nil, candestroy_gen: true, candestroy: nil, destroyable: nil, only: ApplicationHelper::SYMBOL_MIN_PERMITTED_ROLE, is_button: true, label_show: t("tables.Show")) %>
+ <%# Description: %>
+ <%#  In default, the "Edit" link is not highlighted.  Specify +only: :editor+ (or :moderator) to highlight it. %>
+ <%#   Destroy link is alwasy highlighted. %>
+ <%#  In default, :show is always displayed unconditionally.  Give canshow=nil to perform ability check inside. %>
+ <%#  If can(show|edit|destroy)_gen determines whether the table cell is displayed or not regardless of the case with this specific record.  True in default. %>
+ <%#  If canedit or candestroy is not given, ability (:edit|:destroy) is checked. %>
+ <%#  +destroyable+ indicates the DB-constraint.  If not given, +destroyable?+ is run if respond_to?. %>
+ <%#  +is_button+ is true (Def), button HTML tag is used for :destroy; else "a" tag is used. %>
+
+<% if canshow_gen %>
+  <% if canshow || (canshow.nil? && can?(:show, record)) %>
+    <td class="actions"><%= link_to label_show, record, class: Consts::Csses::Layouts::SHOW_LINK %></td>
+
+    <% if canedit_gen %>
+      <% display_edit = canedit || (canedit.nil? && can?(:edit, record)) %>
+      <% colspan = ((!display_edit && candestroy_gen) ? 2 : 1) %>
+      <% klass = ["actions", Consts::Csses::Layouts::EDIT_LINK_CONTAINER, get_only_css_class(only)] %><%# defined in application_helper.rb %>
+      <%= tag.td class: klass, colspan: colspan do %>
+        <%= link_to('Edit', edit_polymorphic_path(record), class: Consts::Csses::Layouts::EDIT_LINK) if display_edit %>
+      <% end %>
+
+      <% if candestroy_gen %>
+        <% only_for_destroy =
+          case only
+          when :editor
+            :moderator
+          when :moderator
+            :admin
+          else
+            :editor
+          end
+        %>
+        <% if display_edit %>
+          <%# NOTE: if :edit link is not displayed, colspan=2 has been already set, so, no td should be displayed. %>
+          <%= editor_only_safe_html(:pass, method: true, only: only_for_destroy, tag: "td", show_always: true, class: "actions text-end "+Consts::Csses::Layouts::DESTROY_LINK_CONTAINER) do %>
+            <% db_allow_destroy = (destroyable || (destroyable.nil? && record.respond_to?(:destroyable?) && (explicit=record.destroyable?))) %>
+            <% db_forbid_destroy = (false == destroyable || false == explicit) %>
+            <% display_destroy = display_edit && db_allow_destroy & (candestroy || (candestroy.nil? && can?(:destroy, record))) %>
+            <% if display_destroy %>
+              <%= destroy_link record, inline: true, is_button: is_button, extra_classes: Consts::Csses::Layouts::DESTROY_LINK %> <%# defined in application_helper.rb %>
+            <% else %>
+              <% msg = (db_forbid_destroy ? "Cannot destroy by anyone due to data-integration constraints" : "Cannot destroy") %>
+              <s title="<%= msg %>">Destroy</s>
+            <% end %> <%# if display_destroy %>
+          <% end %>   <%# editor_only_safe_html(:pass, ... Consts::Csses::Layouts::DESTROY_LINK_CONTAINER) do %>
+        <% end %>   <%# if display_edit %>
+      <% end %>   <%# if candestroy_gen %>
+    <% end %>   <%# if canedit_gen %>
+  <% end %> <%# if canshow || (canshow.nil? && can?(:show, record)) %>
+<% end %>   <%# if canshow_gen %>
+

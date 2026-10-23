@@ -4,10 +4,10 @@
 <%#   destroy_text: Text for Destroy Button (if nil (Def), it depends on is_to_edit - "Destroy" in Show) %>
 <%#   with_index_link: Link for Index is inserted if true; in default (nil), true if !is_to_edit (namely if in Show page). %>
 <%#   with_destroy: if true (Def: false), destroyable has a priority over record.destroyable? %>
-<%#   destroyable: Read only when with_destroy is truthy.  Specify true if the record is destroyable by the user with the model-constraint also considered(!). This basically overwrites the result of record.destroyable? %>
+<%#   destroyable: Read only when with_destroy is truthy.  Specify true if the record is technically destroyable in terms of Rails/DB model constraints. This basically overwrites the result of record.destroyable? (!), while User's permission is still taken into account, i.e., if a user is not priviledge enouth, Destroy button would not appear regardless of this parameter. %>
 
 <% destroy_text = (is_to_edit ? "Destroy this "+record.class.name : "Destroy") if destroy_text.blank? %>
-<% destroy_link_opts = {extra_classes: ["destroy_link"], confirm_message: confirm_message} %>
+<% destroy_link_opts = {extra_classes: [Consts::Csses::Layouts::DESTROY_LINK], confirm_message: confirm_message} %>
 <% with_index_link = !is_to_edit if with_index_link.nil? %>
 
 <% model_name = record.class.name %>

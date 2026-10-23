@@ -1,5 +1,8 @@
 <h1>Channels <%= h1_note_editor_only(Channel, method: :index) %></h1>
 
+<% canshow_gen    = can?(:show,    Channel) %>
+<% canedit_gen    = can?(:edit,    Channel) %>
+<% candestroy_gen = can?(:destroy, Channel) %>
 <div id="channels">
 <% if true %>
 <%= datagrid_form_with model: @grid, url: channels_path %>
@@ -27,8 +30,8 @@
         <th class="moderator_only">Created</th>
         <th class="moderator_only">Updated</th>
       <% end %>
-      <% if can? :update, Channel %>
-        <th colspan="3"></th>
+      <% if canshow_gen %>
+        <th colspan="<%= 1 + [canedit_gen, candestroy_gen].count(true) %>"></th>
       <% else %>
         <th></th>
       <% end %>
@@ -60,17 +63,7 @@
         <td class="moderator_only"><%= ur = model.update_user; link_to(ur.display_name, ur) if ur %></th>
       <% end %>
 
-        <td><%= link_to t("tables.Show"), model %></td>
-        <% if can? :update, model  %>
-          <td class="editor_only"><%= link_to 'Edit', edit_channel_path(model) %></td>
-         <% if can? :destroy, model %>
-          <td class="editor_only"><%= link_to 'Destroy', model, method: :delete, data: { confirm: t('are_you_sure') } %></td>
-         <% else %>
-          <td class="editor_only"></td>
-         <% end %>
-        <% else %>
-          <td colspan="2" class="editor_only"></td>
-        <% end %>
+        <%= render "layouts/show_edit_destroy_in_table", record: model, canshow_gen: canshow_gen, canedit_gen: canedit_gen, candestroy_gen: candestroy_gen %>
       </tr>
     <% end %>
   </tbody>

@@ -51,7 +51,7 @@
    <% end %>
   </div>
 
-  <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: Prefecture, skip_ability_check: true} %>
+  <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, skip_ability_check: true} %>
 
   <%= f.submit %>
   <div class="actions">
@@ -77,7 +77,7 @@
           msg = "This should not be destroyed because #{msg}. If you are sure you want to proceed, check this:"
        %>
          <!-- input id="force_destroy" type="checkbox" name="force_destroy" value="1" / -->
-     <%= button_to 'Destroy', prefecture, method: :delete, data: { confirm: t('are_you_sure') } %>
+     <%= destroy_link prefecture, inline: true, is_button: true, extra_classes: [Consts::Csses::Layouts::DESTROY_LINK] %> <%# defined in application_helper.rb %>
    </div>
   </div>
 <% end %>

@@ -63,7 +63,7 @@
 <% end %>
 
   <h3 class="visually-hidden">Edit panels for Note</h3>
-    <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: HaramiVid, skip_ability_check: true} %>
+    <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, skip_ability_check: true} %>
 
   <div class="form-actions submit_first">
     <%= f.submit %>
@@ -126,10 +126,8 @@
 
 </section> <!-- section id="sec_primary" -->
 
-  <% if can? :destroy, harami_vid %>
-    <div class="actions text-end">
-      <%= button_to "Destroy", harami_vid, method: :delete, data: { confirm: t('are_you_sure') } %>
-    </div>
+  <%= editor_only_safe_html(harami_vid, method: :destroy, only: :moderator, show_always: true, class: "actions text-end "+Consts::Csses::Layouts::DESTROY_LINK_CONTAINER) do %>
+    <%= destroy_link harami_vid, inline: true, is_button: true, extra_classes: [Consts::Csses::Layouts::DESTROY_LINK] %> <%# defined in application_helper.rb %>
   <% end %>
 
 <% if ! harami_vid.new_record? %>

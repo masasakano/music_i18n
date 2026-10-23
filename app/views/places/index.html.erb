@@ -51,7 +51,7 @@
           <% elsif place.unknown? %>
           <span class="text_thinner2"><%= 'Destroy' %></span>
           <% else %>
-          <%= link_to 'Destroy', place, method: :delete, data: { confirm: t('are_you_sure') } %>
+            <%= destroy_link place, inline: true, is_button: true, extra_classes: [Consts::Csses::Layouts::DESTROY_LINK] %> <%# defined in application_helper.rb %>
           <% end %>
           </td>
       </tr>

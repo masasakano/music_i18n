@@ -38,7 +38,7 @@
  </div>
 
   <%= render partial: 'layouts/form_wiki_url', locals: {form: f, record: artist} %>
-  <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: Artist, skip_ability_check: true} %>
+  <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, skip_ability_check: true} %>
 
   <%= f.submit %>
   <div class="actions">

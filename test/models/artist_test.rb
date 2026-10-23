@@ -93,13 +93,20 @@ class ArtistTest < ActiveSupport::TestCase
   end
 
   test "create with translation" do
+    art = nil
     tit = 'a random new music'
     #assert_raises(ActiveRecord::RecordInvalid, ActiveRecord::NotNullViolation){ # the latter for DB level.
     hstra = {title: tit, langcode: 'en'}
-    assert_raises(ActiveRecord::RecordInvalid, "Sex must exist"){
-      Artist.create_with_orig_translation!({}, translation: hstra)}
+    assert_nothing_raised{  # "Sex now can be blank on save"
+      art = Artist.create_with_orig_translation!({}, translation: hstra)}
+    assert_equal Sex.unknown, art.sex
+
     sex = Sex[1]
-    bwt1 = Artist.create_with_orig_translation!({sex: sex}, translation: hstra)
+    assert_raises(ActiveRecord::RecordInvalid, "Sex.unknown accommodates :female and so this should violate unique constraint"){
+      bwt1 = Artist.create_with_orig_translation!({sex: sex}, translation: hstra)}
+
+    art.destroy!
+    bwt1 = Artist.create_with_orig_translation!({sex: sex}, translation: hstra)  # This now should be fine.
     assert_equal tit, bwt1.title
 
     bwt2 = nil

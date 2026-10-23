@@ -10,5 +10,7 @@
   <%= link_to "Edit this ModelSummary", edit_model_summary_path(@model_summary) %> |
   <%= link_to "Back to Index", model_summaries_path %>
 
-  <%= button_to "Destroy this ModelSummary", @model_summary, method: :delete %>
+  <% if can?(:destroy, @model_summary) %>
+    <%= destroy_link @model_summary, inline: true, is_button: true, extra_classes: [Consts::Csses::Layouts::DESTROY_LINK] %> <%# defined in application_helper.rb %>
+  <% end %>
 </div>

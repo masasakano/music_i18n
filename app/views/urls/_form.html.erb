@@ -31,7 +31,7 @@
       <%= f.input eat, start_year: get_form_start_year(@url.send(eat))-10, end_year: Date.current.year %>
     <% end %>
 
-    <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: Url, skip_ability_check: true} %> <%# weight, note, memo_editor %>
+    <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, skip_ability_check: true} %> <%# weight, note, memo_editor %>
   </div>
 
   <div class="form-actions">

@@ -17,17 +17,54 @@ class InstrumentsTest < ApplicationSystemTestCase
   end
 
   test "visiting Instrument index" do
-    visit instruments_url
-    assert_text "You need to sign in or sign up"
+    new_title = "CompleteNewInst"
+    new_inst = Instrument.new(orig_locale: nil, weight: Instrument.order(weight: :desc).first.weight + 1)
+    new_inst.translations.build(title: new_title, langcode: "en", kind: Translation::KIND_FULL, is_orig: nil, create_user: @moderator_gen)
+    new_inst.save!
+    assert_equal @moderator_gen.id, new_inst.translations.first.create_user_id
 
-    #visit new_user_session_path  # already on this page.
-    fill_in "Email", with: @translator.email
-    fill_in "Password", with: '123456'  # from users.yml
-    click_on "Log in"
+    newh1 = "Instruments"
+    assert_index_fail_succeed(instruments_url, newh1, user_fail: @translator, user_succeed: @moderator_gen)  # defined in test_system_helper.rb
 
-    assert_selector "h1", text: "Music-i18n.org for HARAMIchan (ハラミちゃん)"  # Home
-    assert_text "Signed in successfully"
+    assert_selector :xpath, (xpath_link=_xpath_destroy_link(new_title))
+    refute_selector :xpath, _xpath_destroy_link("Piano")
+
+    assert_difference("Instrument.count", -1){
+      accept_confirm do
+        page.find(:xpath, xpath_link).click
+      end
+      assert_text "Instrument was "+(str="successfully destroyed")
+      flash_text_system_assert(str, type: [:notice, :success], category: :div)  # defined in test_helper.rb
+      close_flash_windows([:notice, :success])  # defined in test_system_helper.rb
+    }
+    refute_selector :xpath, xpath_link
+
+    ## Testing logout from Home footer
+    within("#navbar_upper_any") do 
+      click_link "Home"
+    end
+    assert_selector "h1", text: "Music-i18n.org"
+    assert_selector (css_user="#navbar_top .navbar_top_display_name"), text: @moderator_gen.display_name
+    assert_selector (css_footer="div#home_bottom"), text: "Log out"
+
+    within(css_footer) do 
+      click_link "Log out"
+    end
+    refute_selector css_user
+    assert_text "Signed "+(str="out successfully")
+    flash_text_system_assert(str, type: [:notice, :success], category: :div)  # defined in test_helper.rb
+    close_flash_windows([:notice, :success])  # defined in test_system_helper.rb
   end
+
+    def _xpath_destroy_link(new_title)
+      "//*[@id='body_main']//" +
+        ModuleCommon.xpath_contain_css(["table_index"], complete_for: "table") +
+        "/tbody/tr[" +
+        ModuleCommon.xpath_contain_text(new_title, case_insensitive: false) +
+        "]/td//" +
+        ModuleCommon.xpath_contain_css(Consts::Csses::Layouts::DESTROY_LINK, complete_for: "*")
+    end
+    private :_xpath_destroy_link
 
   test "should create Instrument and destroy" do
     newh1 = "New Instrument"

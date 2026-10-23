@@ -31,9 +31,11 @@
 
 <h3><%= t(".cancel_my_account") %></h3>
 
-<p><%= t(".unhappy") %> <%= link_to t(".cancel_my_account"), users_do_deactivate_users_path(current_user), data: { confirm: t('are_you_sure') }, method: :patch %></p>
+<p><%= t(".unhappy") %> <%= link_to t(".cancel_my_account"), users_do_deactivate_users_path(current_user), data: {turbo: true, turbo_method: :patch, turbo_confirm: t(".are_you_sure")} %></p>
 <% if false %>
-<p><%= t(".unhappy") %> <%= link_to t(".cancel_my_account"), registration_path(resource_name), data: { confirm: t(".are_you_sure") }, method: :delete %></p>
+  <p><%= t(".unhappy") %> <%= link_to t(".cancel_my_account"), registration_path(resource_name),
+         data: {turbo: true, turbo_method: :delete, turbo_confirm: t(".are_you_sure")} %></p>
+  <%# NOTE[OLD FORM]:  data: { confirm: t(".are_you_sure") }, method: :delete %>
 <% end %>
 
 <%= link_to t("devise.shared.links.back"), :back %>

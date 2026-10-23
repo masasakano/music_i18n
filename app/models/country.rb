@@ -131,6 +131,9 @@ class Country < BaseWithTranslation
   # for set_singleton_unknown
   include ModuleSetSingletonUnknown
 
+  # for destroyable?
+  include ModuleDestroyable
+
   # Minimum requirements for editing Translation (see BaseWithTranslation).
   TRANSLATION_EDITABLE_IF_AT_LEAST = :moderator?
 
@@ -160,6 +163,10 @@ class Country < BaseWithTranslation
   has_many :prefectures, dependent: :destroy
   has_many :places, through: :prefectures
   has_many :musics, through: :places
+  has_many :artists, through: :places
+  has_many :events, through: :places
+  has_many :event_items, through: :places
+  has_many :harami_vids, through: :places
 
   validates_uniqueness_of :iso3166_n3_code, allow_nil: true
 
@@ -172,6 +179,9 @@ class Country < BaseWithTranslation
     config.primary_country = (ENV['MUSIC_I18N_DEFAULT_COUNTRY'] || "JPN")
     (hash.keys.include? key.to_s) ? hash[key.to_s] : nil  # Symbol keys (langcode) are acceptable.
   end
+
+  # essential for ModuleDestroyable
+  DEPENDENT_CHILDREN = [:musics, :artists, :events, :event_items, :harami_vids]
 
   class << self
     alias_method :bracket_orig, :[] if ! self.method_defined?(:bracket_orig)

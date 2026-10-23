@@ -46,14 +46,7 @@
   <%= render partial: 'layouts/show_note_memo_timestamps', locals: {model: @prefecture, model4ability: canedit} %>
 </dl>
 
-<p>
-  <%= editor_only_safe_html(@prefecture, method: :update, only: :moderator, tag: "span") do %> <%# defined in application_helper.rb %>
-    <%= link_to 'Edit', edit_prefecture_path(@prefecture) %> | 
-  <% end %>
-  <%= editor_only_safe_html(Prefecture, method: :index, tag: "span") do %> <%# defined in application_helper.rb %>
-    <%= link_to t('layouts.back_to_index'), prefectures_path %>
-  <% end %>
-</p>
+<%= render partial: 'layouts/link_edit_destroy_index', locals: {record: @prefecture, is_to_edit: false, only: :editor} %>
 
 <hr>
 
