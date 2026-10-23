@@ -154,6 +154,46 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
 
   test "should create" do
     sign_in @editor
+    ModuleWhodunnit.whodunnit  #  just to (potentially) suppress mal-functioning in setting this...
+    get artists_url
+
+
+    # --- Translation Set 1 ---
+    tit1 = preprocess_space_zenkaku("試験的楽曲その１")  # "試験的楽曲その1"
+    transs = [
+      { title: "The Tｅst",
+        ruby: "ザ・てすと",
+        romaji: "Za Tesuto",
+        langcode: "ja",
+        kind: "full",
+        is_orig: false,  # is_orig field is disabled for this model, so this should be ignored.
+        start_year: 2022,
+        end_year: "",
+        is_formal: "true",
+        is_official: "true",
+        is_true_name:  get_params_from_bool(false),  # defined in test_helper.rb
+        is_for_record: get_params_from_bool(false),
+        is_literal:    get_params_from_bool(false),
+        is_internal:   get_params_from_bool(false),
+        note: "Original Japanese Artist name"
+      }.with_indifferent_access,
+      { title: "試験音子",  # True name, though only for record
+        ruby: "しけんおとこ",
+        romaji: "ShikenOtoko",
+        langcode: "ja",
+        kind: "full",  # displayed as "(auto)" if nil
+        is_orig: true,  # is_orig field is disabled for this model, so this should be ignored.
+        start_year: "",
+        end_year: "",
+        is_formal: "false",
+        is_official: "true",
+        is_true_name:  get_params_from_bool(true),  # defined in test_helper.rb,
+        is_for_record: get_params_from_bool(true),
+        is_literal:    get_params_from_bool(false),
+        is_internal:   get_params_from_bool(false),
+        note: "True birthname though not used widely"
+      }.with_indifferent_access
+    ]
 
     # Creation success
     memoe = "my random memo"
@@ -161,12 +201,12 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     wiki_lcode = "pt"
     wiki_test = "https://"+wiki_lcode+".wikipedia.org/wiki/Test_Entry_(Singer_name)"
     wiki_test_tit = "Test Entry (Singer name)"
-    hs = {
-      "langcode"=>"en",
-      "title"=>"The Tｅst",
-      "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
-      # "place.prefecture_id.country_id"=>Country['JPN'].id.to_s,
-      # "place.prefecture_id"=>"", "place_id"=>"",
+    hsbase = {
+      #"langcode"=>"en",
+      #"title"=>"The Tｅst",
+      #"ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
+      ## "place.prefecture_id.country_id"=>Country['JPN'].id.to_s,
+      ## "place.prefecture_id"=>"", "place_id"=>"",
       "sex_id"=>Sex.unknown.id.to_s,
       "birth_year"=>"", "birth_month"=>"", "birth_day"=>"",
       "wiki_url"=>wiki_test,  # used on create only
@@ -176,17 +216,18 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
 
     assert_equal Country["JP"], Country.primary, "sanity check of initializer"
 
+    hs2pass = params_to_give_with_place(:artist, hsbase.merge({translations_attributes: transs}), place_id: Country.primary.unknown_place)  # defined in test_helper.rb
     assert_difference('DomainTitle.count*10000 + Domain.count*1000 + Url.count*100 + Anchoring.count*10 + Artist.count', 11111) do
-      post artists_url, params: params_to_give_with_place(:artist, hs, place_id: Country.primary.unknown_place)  # defined in test_helper.rb
+      post artists_url, params: hs2pass
       assert_response :redirect
-      artist = Artist.last
+      artist = Artist.last_created
       assert_equal "Test, The", artist.title, "Artist: "+artist.inspect
       assert_redirected_to artist_url(artist)
       assert_equal memoe,   artist.memo_editor
     end
 
     assert_equal 'Test, The', artist.title
-    assert_equal 'en', artist.orig_langcode
+    assert_equal 'ja', artist.orig_langcode
     assert artist.place.covered_by? Country['JPN']
 
     follow_redirect!
@@ -198,26 +239,31 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     assert_equal wiki_lcode,    url.url_langcode
     assert_equal wiki_test_tit, url.title
 
-    # should fail gracefully in an attempt to create an identical-looking Artist
+    # should fail gracefully in an attempt to create an identical-looking Artist (except lacking the first Translation)
     # Note: Although places differ, they do NOT disagree (Japan's unknown (existing) and World's unknown (new to create))
-    post artists_url, params: params_to_give_with_place(:artist, hs)  # defined in test_helper.rb
+    transs2 = [transs.last, transs.first.merge({title: "", ruby: "", romaji: ""})]
+    hs2pass = params_to_give_with_place(:artist, hsbase.merge({translations_attributes: transs2}))  # defined in test_helper.rb
+    post artists_url, params: hs2pass
     assert_response :unprocessable_content
 
-    # should succeed because Country differs even though the rest is identical.
+    # should succeed because Country differs even though the rest is identical to the first one.
+    hs2pass = params_to_give_with_place(:artist, hsbase.merge({translations_attributes: transs}), place_id: Country["AUS"].unknown_place)  # defined in test_helper.rb
     assert_difference('DomainTitle.count*10000 + Domain.count*1000 + Url.count*100 + Anchoring.count*10 + Artist.count', 11) do
-      post artists_url, params: params_to_give_with_place(:artist, hs, place_id: Country["AUS"].unknown_place)  # defined in test_helper.rb
+      post artists_url, params: hs2pass
       assert_response :redirect
-      artist2 = Artist.last
+      artist2 = Artist.last_created
       assert_redirected_to artist_url(artist2)
       refute artist.place.not_disagree?(artist2.place)
     end
 
     # should Place automatically modified to Japan because of Japanese title and Place.unknown
-    hs3 = hs.merge({title: "3番目だよ", langcode: "ja", is_orig: true, wiki_url: ""})
+    transs3 = [transs.last.merge({title: "3番目だよ", ruby: "", romaji: "", langcode: "ja"}), transs.first.merge({title: "", ruby: "", romaji: ""})]
+    # hs3 = hsbase.merge({title: "3番目だよ", langcode: "ja", is_orig: true, wiki_url: ""})
+    hs3 = params_to_give_with_place(:artist, hsbase.merge({translations_attributes: transs3, wiki_url: ""}), place_id: Place.unknown)  # defined in test_helper.rb
     assert_difference('DomainTitle.count*10000 + Domain.count*1000 + Url.count*100 + Anchoring.count*10 + Artist.count', 1) do
-      post artists_url, params: params_to_give_with_place(:artist, hs3, place_id: Place.unknown)  # defined in test_helper.rb
+      post artists_url, params: hs3
       assert_response :redirect
-      artist3 = Artist.last
+      artist3 = Artist.last_created
       assert_redirected_to artist_url(artist3)
       assert_equal Country.primary.unknown_place, artist3.place
     end

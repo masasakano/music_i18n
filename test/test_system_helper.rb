@@ -193,6 +193,96 @@ class ActiveSupport::TestCase
     find_field(label_str, match: :first).fill_in with: title_str
   end
 
+  # Wrapper of {#fill_in_new_translation_single}, accepting multiple Translations on :new
+  #
+  # @example 
+  #   fill_in_new_translations([{title: "Some", langcode: "en", is_formal: true, is_official: true},
+  #                             {title: "何か", langcode: "ja", start_year 2021, is_literal: true} ]) # defined in test_system_helper.rb
+  # @param aryhs [Array<Hash>] up to 2-element Array of Hash for Translations to fill-in
+  # @return [void]
+  def fill_in_new_translations(aryhs)
+    aryhs.each_with_index do |ehs, i|
+      fill_in_new_translation_single(index: i, **ehs)
+    end
+  end
+
+  # Fill in a set of Translation-related parameters on :new for {BaseWithTranslation} in English (:en) environment
+  #
+  # nil means "not touching".  When you want to input NULL (in selection or radio-buttons),
+  # either do not include the keywor or specify +""+ as the value.
+  #
+  # @example First one (kind="full" in default)
+  #   fill_in_new_translation(index: 0, title: "Some", langcode: "en", is_formal: true, is_official: true) # defined in test_system_helper.rb
+  #
+  # @example Second one (kind="full" or "alt" in default, automatically selected according to langcode)
+  #   fill_in_new_translation(index: 1, title: "何か", langcode: "ja", start_year 2021, is_literal: true) # defined in test_system_helper.rb
+  #
+  # @param index: [Integer] Either 0 or 1 on :new
+  # @param view_locale: [String] (unsupported)
+  # @param **trans_opts [Hash] Translation-related parameters. No :weight or :memo_editor
+  # @return [void]
+  def fill_in_new_translation_single(index: 0, **trans_opts)
+    # assert_selector (csstmp=".translation-fields")  # If this is placed here and fails, it is very hard to pin-point which test caused failing.  Without this, a full error trace information would be printed at "within" below.
+    translation_fieldsets = all(".translation-fields")
+    systest_kwds = {  # see: /app/views/layouts/_partial_new_translations.html.erb
+      title: {fill_in: "Title"},
+      ruby: {fill_in: "Ruby (Furigana)"},
+      romaji: {fill_in: "Romaji"},
+      langcode: {from: "Language"},
+      kind: {from: "Kind"},
+      is_orig: {name: /\[translations_attributes\]\[#{index}\]\[is_orig\]/},
+      start_year: {fill_in: "Start Year"},
+      end_year: {fill_in: "End Year"},
+      is_formal: {name: /\[translations_attributes\]\[#{index}\]\[is_formal\]/},
+      is_official: {name: /\[translations_attributes\]\[#{index}\]\[is_official\]/},
+      is_true_name: "True Name",
+      is_for_record: "For Record",
+      is_literal: "Literal",
+      is_internal: "Internal",
+      note: {fill_in: "Note"},
+    }
+
+    within(translation_fieldsets[index]) do
+      trans_opts.each_pair do |tra_key, tra_val|
+        next if tra_val.nil?
+        hs = systest_kwds[tra_key]
+        if hs.respond_to? :each_pair
+          kwd, label = hs.first
+        else
+          kwd, label = [:boolean, hs]  # hs is_a? String
+        end
+        case kwd
+        when :fill_in
+          fill_in label, with: tra_val
+        when :from
+          select tra_val, from: label
+        when :name, :boolean
+          val2pass =
+            case tra_val
+            when true, /yes/i
+              "Yes"
+            when false, /no/i
+              "No"
+            when "", /nil/i
+              "nil"
+            else
+              raise ArgumentError, [tra_key, tra_val].inspect
+            end
+
+          if :name == kwd  # Radio-buttons
+            choose val2pass, name: label
+          elsif "Yes" == tra_val
+            check label    # Checkbox
+          else
+            uncheck label  # Checkbox
+          end
+        else
+          raise ArgumentError, "Unsupported and likely non-existent component specified: "+[tra_key, tra_val].inspect
+        end
+      end
+    end
+  end
+
   # assert_selector to ensure the full-page load up to the footer.
   #
   # @note This does not work with Turbo!
@@ -592,6 +682,7 @@ class ActiveSupport::TestCase
   # @param user_fail: [User, NilClass] who fails to see the index page. if nil, the non-authorized user.
   # @param user_user_succeed: [User, NilClass] who succcessfully sees the index page
   def assert_index_fail_succeed(model, h1_title=nil, user_fail: nil, user_succeed: nil)
+    raise ArgumentError, "You must specify either user_fail or user_succeed" if !user_fail && !user_succeed
     index_path = model
     index_path = Rails.application.routes.url_helpers.polymorphic_path(model.class) if model.respond_to?(:destroy!) 
     h1_title ||= model.class.name.underscore.pluralize.split("_").map(&:capitalize).join(" ") if user_succeed.present?  # e.g., "Event Items"
@@ -616,8 +707,9 @@ class ActiveSupport::TestCase
 
     return if !user_succeed
 
-    ## Succeeding
+    ## Failing by non-logged-in user
     visit index_path  # should be redirected to new_user_session_path
+    assert_selector "h2", text: "Log in"
     mat, _ = two_prms_redirected_to_fuzzy_locale(new_user_session_path, act: true, locale: "en") # defined in test_helper.rb
     assert_match(mat, current_path, "New_user_session_path is unexpected...")
     # assert_current_path new_user_session_path
@@ -625,7 +717,10 @@ class ActiveSupport::TestCase
     assert_selector :xpath, xpath_for_flash(:alert, category: :div), text: TEXT_ASSERTED[:login][:need]
                 # "//div[@id='body_main']/p[contains(@class, 'alert-danger')][1]" (and more)
     # assert page.find(:xpath, xpath_for_flash(:alert, category: :div)).text.strip.include?("need to sign in")  # redundant
+    # flash_text_system_assert(TEXT_ASSERTED[:login][:need], type: [:alert], category: :div)  # defined in test_helper.rb  # Similar but does not wait
+    #close_flash_windows([:alert])
 
+    ## Succeeding
     login_or_fail_index(user_succeed, succeed: true)
 
     assert_selector "h1", text: h1_title

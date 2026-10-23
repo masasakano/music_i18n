@@ -2,9 +2,11 @@
 <%= render partial: 'layouts/form_print_errors', locals: {model: prefecture} %>
 
 <% if ! prefecture.new_record? %>
-
 <hr>
-<%= render partial: 'layouts/all_registered_translations', locals: {model: prefecture, add_buttons: true} %>
+<% end %>
+<section id="sec_primary">
+<% if ! prefecture.new_record? %>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: prefecture, add_buttons: false} %>
 <hr>
 
 <h2>Unique parameters</h2>
@@ -38,8 +40,9 @@
 <% else %> <%# ################################################# %>
 
 <%= simple_form_for prefecture do |f| %>
+ <section id="sec_primary_input">
   <% if prefecture.new_record? %>
-    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: prefecture, trans: Translation.new, disable_is_orig: true, is_simple_form: true} %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, is_simple_form: true, use_form_attributes: true} %>
   <% end %>
 
   <div class="field" id="<%= ApplicationController::HTML_KEYS[:ids][:div_sel_country] %>"> <%# div_select_country %>
@@ -48,16 +51,17 @@
    <% end %>
   </div>
 
-  <%= f.input :note %>
+  <%= render partial: 'layouts/form_note_memo_editor', locals: {form: f, model4ability: Prefecture, skip_ability_check: true} %>
 
   <%= f.submit %>
   <div class="actions">
   <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
   </div>
+ </section> <!-- section id="sec_primary_input" -->
 <% end %>
 
 <% end %> <%# ################################################# %>
-</div>
+</div> <!-- div id="form_main" -->
 
 <% if ! prefecture.new_record? && can?(:destroy, prefecture) %>
   <div class="actions-destroy" style="margin-right: 1em;">

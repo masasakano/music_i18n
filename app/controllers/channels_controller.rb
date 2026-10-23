@@ -21,6 +21,9 @@ class ChannelsController < ApplicationController
   PARAMS_MAIN_KEYS = MAIN_FORM_KEYS #+ [PARAMS_KEY_AC] # == :artist_with_id
   # these will be handled in model_params_multi()
 
+  # Required in {BaseWithTranslationControllerMethods}: +[:disallow_nil, :allow_nil, :always_nil]+
+  ORIG_LOCALE_TYPE_ON_CREATE = :allow_nil
+
   # GET /channels or /channels.json
   def index
     @channels = Channel.all

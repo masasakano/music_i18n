@@ -13,6 +13,9 @@ class EngageHowsController < ApplicationController
   PARAMS_MAIN_KEYS = MAIN_FORM_KEYS
   # these will be handled in channel_type_params_multi()
 
+  # Required in {BaseWithTranslationControllerMethods}: +[:disallow_nil, :allow_nil, :always_nil]+
+  ORIG_LOCALE_TYPE_ON_CREATE = :always_nil
+
   # GET /engage_hows or /engage_hows.json
   def index
     @engage_hows = EngageHow.order(:weight) # Same as EngageHow.all.sort, but DB-level sort

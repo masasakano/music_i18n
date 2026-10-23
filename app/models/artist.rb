@@ -120,8 +120,9 @@ class Artist < BaseWithTranslation
   validate :unique_combination?
 
   # for controller's sake
-  attr_accessor :wiki_url
-  attr_accessor :fetch_h1_wiki
+  attribute :fetch_h1_wiki, :boolean, default: false
+  attribute :wiki_url, :string
+  #normalizes :wiki_url, with: ->(val) { val.presence }  # not to allow an empty String
 
   # Default Artist names (titles). Used in {Artist.default}
   DEF_ARTIST_TITLES = %w(ハラミちゃん HARAMIchan Harami-chan)

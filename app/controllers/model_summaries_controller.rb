@@ -8,6 +8,9 @@ class ModelSummariesController < ApplicationController
   # String of the main parameters in the Form (except "place_id")
   MAIN_FORM_KEYS = %w(modelname note)
 
+  # Required in {BaseWithTranslationControllerMethods}: +[:disallow_nil, :allow_nil, :always_nil]+
+  ORIG_LOCALE_TYPE_ON_CREATE = :allow_nil
+
   # GET /model_summaries or /model_summaries.json
   def index
     @model_summaries = ModelSummary.all

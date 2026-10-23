@@ -3,7 +3,8 @@ require "application_system_test_case"
 
 class ArtistsTest < ApplicationSystemTestCase
   setup do
-    @artist = artists(:artist_ai)
+    @record = @artist = artists(:artist_ai)
+    @model_underscore = @record.class.name.underscore
     @moderator = users(:user_moderator_general_ja)
     @moderator_all   = users(:user_moderator_all)         # General-JA Moderator can manage.
     @editor_harami   = users(:user_editor)                # Harami Editor can manage.
@@ -274,16 +275,20 @@ class ArtistsTest < ApplicationSystemTestCase
 
     visit artists_url
     assert_selector "input#artists_grid_id"
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
 
     n_records_be4 = page.all("div#artists table tr").size - 1
     click_on "New Artist"
 
     assert_selector "head title", visible: :all, text: "Artist new"  # Singular with action_name
     assert_selector "h1", text: new_model_title
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
     assert_no_selector css_query(:trans_new, :is_orig_radio, model: Prefecture)  # "is_orig selection should not be provided, but..."  # css_query defined in test_system_helper
-    page_find_sys(:trans_new, :langcode_radio, model: Artist).choose('English')  # defined in test_system_helper
+    refute_selector  'input[name="artist[translations_attributes][0][is_orig]"]'
 
-    page.find('input#artist_title').fill_in with: @artist.title  # This is a duplicate.
+    fill_in_new_translation_single(index: 0, title: @artist.title, langcode: "en", is_formal: true, is_official: true) # defined in test_system_helper.rb
+    # page_find_sys(:trans_new, :langcode_radio, model: Artist).choose('English')  # defined in test_system_helper
+    # page.find('input#artist_title').fill_in with: @artist.title  # This is a duplicate.
 
     new_btyear = 1150
     choose("female")
@@ -322,7 +327,9 @@ class ArtistsTest < ApplicationSystemTestCase
     markd_text = "1st-Artist"
     markd_link = sprintf("/artists/%d", Artist.first.id)
     markd = sprintf("See [%s](%s).", markd_text, markd_link)
-    fill_in 'Note', with: markd
+    within("div.#{@model_underscore}_note") do
+      fill_in 'Note', with: markd
+    end
 
     click_on @button_text[:create]
 
@@ -470,8 +477,9 @@ class ArtistsTest < ApplicationSystemTestCase
 
     new_music_title = 'My Tekitoh'
     new_music_year = 2021
-    page.find(PAGECSS[:new_trans_lang_radios]).choose('英語')  # defined in test_helper.rb
-    fill_in_new_title_with(Music, new_music_title, locale: "ja")  # defined in test_system_helper.rb
+    fill_in_new_translation_single(index: 0, title: new_music_title, langcode: "en") # defined in test_system_helper.rb
+    #page.find(PAGECSS[:new_trans_lang_radios]).choose('英語')  # defined in test_helper.rb
+    #fill_in_new_title_with(Music, new_music_title, locale: "ja")  # defined in test_system_helper.rb
     find_field(I18n.t('Year_Title', locale: "ja")).fill_in with: new_music_year.to_s  # see ./musics_test.rb
 
     # submission fails

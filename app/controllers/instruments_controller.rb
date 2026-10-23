@@ -12,6 +12,9 @@ class InstrumentsController < ApplicationController
   PARAMS_MAIN_KEYS = MAIN_FORM_KEYS
   # these will be handled in instrument_params_three()
 
+  # Required in {BaseWithTranslationControllerMethods}: +[:disallow_nil, :allow_nil, :always_nil]+
+  ORIG_LOCALE_TYPE_ON_CREATE = :always_nil
+
   # GET /instruments or /instruments.json
   def index
     @instruments = Instrument.order(:weight)
@@ -30,22 +33,10 @@ class InstrumentsController < ApplicationController
   def edit
   end
 
-  # POST /instruments or /instruments.json
-  def create
-    # @instrument = Instrument.new(@hsmain)
-    @record = @instrument = Instrument.new(model_params)
-    authorize! __method__, @instrument
-    if set_kind_from_params(@record, permitted_params: model_params[:translations_attributes])  # defined in base_with_translation_controller_methods.rb
-      @record.translations.each do |etra|
-        etra.is_orig = nil  # should be already the case through U/I
-      end
-    else
-      @record.errors.add(:base, "No Translation is specified.")
-    end
-
-    # add_unsaved_trans_to_model(@instrument, @hstra) # defined in application_controller.rb
-    def_respond_to_format(@instrument)              # defined in application_controller.rb
-  end
+  # Now defined in base_with_translation_controller_methods.rb
+  ## POST /instruments or /instruments.json
+  #def create
+  #end
 
   # PATCH/PUT /instruments/1 or /instruments/1.json
   def update

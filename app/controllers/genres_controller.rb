@@ -4,6 +4,9 @@ class GenresController < ApplicationController
   before_action :set_genre, only: [:show, :edit, :update, :destroy]
   load_and_authorize_resource
 
+  # Required in {BaseWithTranslationControllerMethods}: +[:disallow_nil, :allow_nil, :always_nil]+
+  ORIG_LOCALE_TYPE_ON_CREATE = :always_nil
+
   # GET /genres
   # GET /genres.json
   def index

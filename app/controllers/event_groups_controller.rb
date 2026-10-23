@@ -26,6 +26,9 @@ class EventGroupsController < ApplicationController
   ] + MAIN_FORM_KEYS + PARAMS_PLACE_KEYS).uniq  # PARAMS_PLACE_KEYS defined in application_controller.rb
   # they, including place_id, will be handled in event_params_two()
 
+  # Required in {BaseWithTranslationControllerMethods}: +[:disallow_nil, :allow_nil, :always_nil]+
+  ORIG_LOCALE_TYPE_ON_CREATE = :allow_nil
+
   # GET /event_groups or /event_groups.json
   def index
   end
@@ -81,15 +84,6 @@ class EventGroupsController < ApplicationController
     # Use callbacks to share common setup or constraints between actions.
     def set_event_group
       @event_group = EventGroup.find(params[:id])
-    end
-
-    # Overwrites (modifies) that in {BaseWithTranslationControllerMethods}
-    #
-    # This accepts +:place_id+ whether it appears at the top level or under :music
-    # and incorporates it into the permitted {#model_params}
-    def model_params
-      extracted_place_id = params[:place_id].presence || params.dig(:music, :place_id)
-      super.with_defaults(place_id: extracted_place_id)
     end
 
     # Sets @hsmain and @hstra and @prms_all from params

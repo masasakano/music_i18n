@@ -3,11 +3,17 @@ require "application_system_test_case"
 
 class InstrumentsTest < ApplicationSystemTestCase
   setup do
-    @instrument = instruments(:instrument_piano)
+    @record = @instrument = instruments(:instrument_piano)
+    @model_underscore = @record.class.name.underscore
     @moderator_all   = users(:user_moderator_all)         # General-JA Moderator can manage.
     @moderator_gen = users(:user_moderator_general_ja)
     @translator      = users(:user_translator)            # Translator can read but not create/delete.
     @h1_title = "Instruments"
+    but_text = @record.class.name.underscore.gsub(/_/, ' ').capitalize # "Instrument" (SimpleForm default)
+    @button_text = {
+      create: "Create #{but_text}",
+      update: "Update #{but_text}",
+    }
   end
 
   test "visiting Instrument index" do
@@ -24,41 +30,46 @@ class InstrumentsTest < ApplicationSystemTestCase
   end
 
   test "should create Instrument and destroy" do
-    visit new_instrument_url  # direct jump -> fail
-    refute_text "New Instrument"
-    assert_text "You need to sign in or sign up"
-
-    #visit new_user_session_path  # already on this page.
-    fill_in "Email", with: @moderator_gen.email
-    fill_in "Password", with: '123456'  # from users.yml
-    click_on "Log in"
-    assert_text "New Instrument"
+    newh1 = "New Instrument"
+    assert_index_fail_succeed(new_instrument_url, newh1, user_fail: nil, user_succeed: @moderator_gen)  # defined in test_system_helper.rb
 
     visit instruments_url
-    assert_selector "h1", text: "Instruments"
+    assert_selector "h1", text: @h1_title
     n_records_be4 = page.all("div#instruments table tr").size - 1
 
-    click_on "New Instrument"
-    assert_text "New Instrument"
+    click_on newh1
+    assert_selector "h1", text: newh1
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
 
-    page.find('form div.field.radio_langcode').choose('English')
-    page.find('input#instrument_title').fill_in with: 'Tekitoh'  # This is unique!
+    refute_selector "fieldset.form-group.#{@model_underscore}_translations_is_orig"  # is_orig selection is NOT available on :create for Instrument
+    translation_fieldsets = all(".translation-fields")
+
+    # --- Translation Set 1 ---
+    within(translation_fieldsets[0]) do
+      fill_in "Title", with: 'Tekitoh'
+      select "ja", from: "Language"
+    end
 
     fill_in "Weight", with: @instrument.weight
-    fill_in "Note", with: @instrument.note
+    within("div.#{@model_underscore}_note") do
+      fill_in "Note", with: @record.note
+    end
     click_on "Create Instrument"
 
     assert_text "prohibited"
-    assert_text "Weight has already been taken"
+    assert_text (str="Weight has already been taken")
+    flash_text_system_assert(str, type: [:alert], category: :div)  # defined in test_helper.rb  # This is NOT a flash message.
     assert_selector "h1", text: "New Instrument"
 
-    ############ Language-related values in the form have disappered after failed save!
-    page.find('form div.field.radio_langcode').choose('English')
-    page.find('input#instrument_title').fill_in with: 'Tekitoh'  # This is unique!
+    ## Language-related values should be preserved in the relevant fields
     fill_in "Weight", with: 13579.2
-    click_on "Create Instrument"
 
-    assert_text "Instrument was successfully created"
+    click_on @button_text[:create]
+
+    assert_selector "h1", text: "Instrument: "
+    assert_text "Instrument was "+(str="successfully created")
+    flash_text_system_assert(str, type: [:notice, :success], category: :div)  # defined in test_helper.rb
+
     click_on "Back"
 
     n_records = page.all("div#instruments table tr").size - 1

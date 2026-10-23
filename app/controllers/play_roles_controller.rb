@@ -1,6 +1,9 @@
 class PlayRolesController < ApplicationController
   include BaseWithTranslationControllerMethods  # for model_params, set_kind_from_params etc
 
+  # Required in {BaseWithTranslationControllerMethods}: +[:disallow_nil, :allow_nil, :always_nil]+
+  ORIG_LOCALE_TYPE_ON_CREATE = :always_nil
+
   #before_action :set_play_role, only: %i[ show edit update destroy ]
   load_and_authorize_resource  # except: [:index, :show]  # This sets @play_roles.
 

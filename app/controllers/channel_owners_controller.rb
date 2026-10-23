@@ -19,6 +19,9 @@ class ChannelOwnersController < ApplicationController
   PARAMS_MAIN_KEYS = MAIN_FORM_KEYS
   # these will be handled in model_params_multi()
 
+  # Required in {BaseWithTranslationControllerMethods}: +[:disallow_nil, :allow_nil, :always_nil]+
+  ORIG_LOCALE_TYPE_ON_CREATE = :disallow_nil
+
   # GET /channel_owners or /channel_owners.json
   def index
     @channel_owners = ChannelOwner.all

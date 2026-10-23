@@ -12,6 +12,7 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
     @moderator = roles(:general_ja_moderator).users.first  # (General) Moderator can manage some of them.
     @editor = roles(:general_ja_editor).users.first  # (General) Editor can manage some of them.
     @syshelper = users(:user_syshelper) #User.roots.first   # an admin can manage.
+    @transs = sample_translation_params(with_true_name: false)  # defined in test_helper.rb
   end
 
   teardown do
@@ -75,16 +76,14 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
 
   test "should create prefecture" do
     note1 = "test-create-prefecture"
-    hs2pass = {
-      "langcode"=>"en",
-      "title"=>"The Tｅst",
-      "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
+    hsbase = {
       "country_id"=>countries(:uk).id.to_s,
-      "note"=>note1}
+      "note"=>note1 }
+    hscore = hsbase.merge({translations_attributes: @transs})
 
     assert_no_difference('Prefecture.count') do
       #post prefectures_url, params: { prefecture: { country_id: Country['AUS'].id.to_s, note: note1 } }
-      post prefectures_url, params: { prefecture: hs2pass }
+      post prefectures_url, params: { prefecture: hscore }
       assert_response :redirect
       assert_redirected_to new_user_session_path
     end
@@ -93,7 +92,7 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
 
     # Creation success
     assert_difference('Prefecture.count') do
-      post prefectures_url, params: { prefecture: hs2pass }
+      post prefectures_url, params: { prefecture: hscore }
       assert_response :redirect #, "message is : "+flash.inspect
     end
 
@@ -106,17 +105,16 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
     assert_equal note1, pref.note
 
     # Translation-related tests (duplication etc)
-    controller_trans_common(:prefecture, hs2pass)  # defined in translation_common.rb
+    controller_trans_common(:prefecture, hscore)  # defined in translation_common.rb
   end
 
   test "should create prefecture with an existing name in a different country" do
     note1 = "test-create-prefecture"
-    hs2pass = {
-      "langcode"=>"en",
-      "title"=>"The Tｅst",
-      "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
+    hsbase = {
       "country_id"=>countries(:uk).id.to_s,
-      "note"=>note1}
+      "note"=>note1 }
+    new_title = prefectures(:tokyo).title(langcode: 'en')
+    hscore = hsbase.merge({translations_attributes: params_translation_array_with_new_title([@transs.first], new_title)})
 
     sign_in @editor
 
@@ -126,7 +124,7 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
       assert_difference('Place.count') do
         ntrans_unknown = Prefecture::UnknownPrefecture.size
         assert_difference('Translation.count', 1+ntrans_unknown) do  # 4 = 1 Trans(En) and 3 UnknownPlace-s(En,Ja,Fr)
-          post prefectures_url, params: { prefecture: hs2pass.merge({"title" => prefectures(:tokyo).title(langcode: 'en')}) }
+          post prefectures_url, params: { prefecture: hscore }
           assert_response :redirect, sprintf("Expected response to be a <3XX: redirect>, but was <%s> with flash message: %s", response.code, flash.inspect)
         end
       end
@@ -281,7 +279,7 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
 
     pref_url = prefecture_url(liverpool.places[-1].prefecture)
     assert_difference('Place.count', -1) do
-      assert_difference('Translation.count', -1) do
+      assert_difference('Translation.count', -1, "(NOTE: This has failed with no reason in the past... Repeated tests solved it.)") do
         delete place_url(liverpool.places[-1])
         assert_response :redirect
       end

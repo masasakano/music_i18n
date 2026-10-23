@@ -11,6 +11,7 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
     @place = places(:tocho)
     @editor    = roles(:general_ja_editor).users.first     # (General) Editor can manage.
     @moderator = roles(:general_ja_moderator).users.first  # (General) Moderator can manage.
+    @transs = sample_translation_params(with_true_name: false)  # defined in test_helper.rb
   end
 
   teardown do
@@ -96,34 +97,27 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
     assert_equal Country.find(country_id), pref.country
   end
 
-  test "should NOT create if not privileged" do
-    hs2pass = {
-      "langcode"=>"en",
-      "title"=>"The Tｅst",
-      "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
-      "note"=>"test-create-place"}
-
-    post places_url, params: params_to_give_with_place(Place, hs2pass, place_id: prefectures(:kagawa).unknown_place, with_place: false)  # defined in test_helper.rb
-    assert_response :redirect
-    assert_redirected_to new_user_session_path
-  end
-
-  test "should create" do
+  test "should NOT create if not privileged but should if privileged" do
     note1 = "test-create-place"
-    hs2pass = {
-      "langcode"=>"en",
-      "title"=>"The Tｅst",
-      "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
+    hsbase = {
       # "prefecture.country_id"=>Country['JPN'].id.to_s,
       # "prefecture"=>prefectures(:kagawa).id.to_s,
       "note"=>note1}
+
+    hs2pass = {place: hsbase.merge({translations_attributes: @transs})}.merge({prefecture_id: prefectures(:kagawa).id.to_s})  # prefecture_id at the top level
+
+    assert_no_difference('Place.count') {
+      post places_url, params: hs2pass
+      assert_response :redirect
+    }
+    assert_redirected_to new_user_session_path
 
     sign_in @editor
 
     # Creation success
     assert_difference('Place.count', 1) do
-      # post places_url, params: { place: hs2pass }
-      post places_url, params: params_to_give_with_place(Place, hs2pass, place_id: prefectures(:kagawa).unknown_place, with_place: false)  # defined in test_helper.rb
+      post places_url, params: hs2pass
+      # post places_url, params: params_to_give_with_place(Place, hs2pass, place_id: prefectures(:kagawa).unknown_place, with_place: false)  # defined in test_helper.rb
       assert_response :redirect #, "message is : "+flash.inspect
     end
 
@@ -149,14 +143,23 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
   test "should create with the same name if Country is different" do
     note1 = "test-create-place"
     prefecture = prefectures(:kagawa)
-    hs2pass = {
-      "langcode"=>"en",
-      "title"=>"The Tｅst",
-      "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
-      "note"=>note1,
+    #hs2pass = {
+    #  "langcode"=>"en",
+    #  "title"=>"The Tｅst",
+    #  "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
+    #  "note"=>note1,
+    #  "prev_model_name"=>'Prefecture',  # suppose the prefecture value is already given.
+    #  "prev_model_id"=>prefecture.id.to_s,
+    #}
+    hsbase = {
       "prev_model_name"=>'Prefecture',  # suppose the prefecture value is already given.
       "prev_model_id"=>prefecture.id.to_s,
-    }
+      # "prefecture.country_id"=>Country['JPN'].id.to_s,
+      # "prefecture"=>prefectures(:kagawa).id.to_s,
+      "note"=>note1}
+
+    existing_place_title = places(:liverpool_street).title(langcode: 'en')
+    hs2pass = {place: hsbase.merge({ translations_attributes: params_translation_array_with_new_title(@transs, existing_place_title) })}.merge({prefecture_id: prefecture.id.to_s})  # prefecture_id at the top level  # defined in test_helper.rb
 
     sign_in @editor
 
@@ -164,9 +167,9 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
     # Tokyo[title, alt_title]: (ja)["東京都", nil], (en)["Tokyo", "Tôkyô"]
     assert_difference('Place.count') do
       assert_difference('Translation.count') do
-        # post places_url, params: { place: hs2pass.merge({"title" => places(:liverpool_street).title(langcode: 'en')}) }
-        hs = params_to_give_with_place(Place, hs2pass.merge({"title" => places(:liverpool_street).title(langcode: 'en')}), place_id: prefecture.unknown_place, with_place: false)  # defined in test_helper.rb
-        post places_url, params: hs
+        post places_url, params: hs2pass
+        #hs = params_to_give_with_place(Place, hs2pass.merge({"title" => places(:liverpool_street).title(langcode: 'en')}), place_id: prefecture.unknown_place, with_place: false)  # defined in test_helper.rb
+        #post places_url, params: hs
         assert_response :redirect, sprintf("Expected response to be a <3XX: redirect>, but was <%s> with flash message: %s", response.code, flash.inspect)
       end
     end
@@ -176,6 +179,8 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
     ## It displays Place#show, with a flash message containing a link to the original Prefecture
     follow_redirect!
     assert_response :success
+    
+    flash_regex_assert(/was successfully created/, type: :success, with_html: true) # defined in test_helper.rb
     flash_regex_assert(/Prefecture \(<a.+>Kagawa\b<\/a>\)/, "Should be 'Prefecture: Kagawa', but...", type: :success, with_html: true) # defined in test_helper.rb
 
     css4flash = css_for_flash(:success, extra: "a") # defined in test_helper.rb

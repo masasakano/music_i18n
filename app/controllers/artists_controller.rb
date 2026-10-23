@@ -15,6 +15,7 @@ class ArtistsController < ApplicationController
   # Symbol of the main parameters in the Form (except "place_id")
   MAIN_FORM_KEYS ||= []
   MAIN_FORM_KEYS.concat(%w(sex_id birth_year birth_month birth_day note))
+                .concat(MODULE_WIKI_URL_ATTRIBUTES)
 
   # Permitted main parameters for params(), used for update
   PARAMS_MAIN_KEYS = ([
@@ -22,6 +23,9 @@ class ArtistsController < ApplicationController
 
   # Permitted main parameters for params() that are (1-level nested) Array
   #PARAMS_ARRAY_KEYS = []
+
+  # Required in {BaseWithTranslationControllerMethods}: +[:disallow_nil, :allow_nil, :always_nil]+
+  ORIG_LOCALE_TYPE_ON_CREATE = :disallow_nil
 
   # GET /artists
   # GET /artists.json
@@ -44,8 +48,7 @@ class ArtistsController < ApplicationController
     }
   end
 
-  # GET /artists/1
-  # GET /artists/1.json
+  # GET /artists/1 or /artists/1.json
   def show
   end
 
@@ -60,24 +63,18 @@ class ArtistsController < ApplicationController
   def edit
   end
 
-  # POST /artists
-  # POST /artists.json
+  # POST /artists or /artists.json
   def create
-    # Parameters: {"authenticity_token"=>"[FILTERED]", "artist"=>{"langcode"=>"en", "title"=>"AI", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "place_id"=>"123", "sex_id"=>"0", "birth_year"=>"", "birth_month"=>"", "birth_day"=>"", "note"=>""}, "commit"=>"Create Artist"}  # used to have "place.prefecture_id.country_id"=>"3153", "place.prefecture_id"=>""
-
-    @record = @artist = Artist.new(@hsmain)
-    authorize! __method__, @artist
-
-    add_unsaved_trans_to_model(@artist, @hstra) # defined in application_controller.rb
-    if Place.unknown == @artist.place &&
-       "ja" == (tra=@artist.unsaved_translations.first)&.langcode &&
-       tra.is_orig &&
-       "ja" == guess_lang_code(tra.title || "") &&
-       jpn=Country.find_by(iso3166_n3_code: 392)  # or (iso3166_a2_code: "JP")
-      @artist.place = jpn.unknown_place
-      add_flash_message(:warning, "WARNING: Country (Place) is altered to Japan on :create due to Artist title.")  # defined in application_controller.rb
+    result = super do |record|  # sets @record, @artist and authorize; defined in base_with_translation_controller_methods.rb
+      tra = record.translations.first  # in-memory
+      if Place.unknown == record.place &&
+         "ja" == tra&.langcode &&
+         "ja" == guess_lang_code(tra&.title || "") &&
+         jpn=Country.find_by(iso3166_n3_code: 392)  # or (iso3166_a2_code: "JP")
+        record.place = jpn.unknown_place
+        add_flash_message(:warning, "WARNING: Country (Place) is altered to Japan on :create due to Artist title.")  # defined in application_controller.rb
+      end
     end
-    result = def_respond_to_format(@artist)      # defined in application_controller.rb
 
     if result
       extra_str = " / Sex="+@artist.sex.title_or_alt(prefer_shorter: true, langcode: 'en', lang_fallback_option: :either, str_fallback: '')
@@ -94,8 +91,7 @@ class ArtistsController < ApplicationController
     } # defined in application_controller.rb
   end
 
-  # DELETE /artists/1
-  # DELETE /artists/1.json
+  # DELETE /artists/1 or /artists/1.json
   def destroy
     @artist.destroy
     respond_to do |format|
@@ -117,15 +113,6 @@ class ArtistsController < ApplicationController
     # Use callbacks to share common setup or constraints between actions.
     def set_artist
       @artist = Artist.find(params[:id])
-    end
-
-    # Overwrites (modifies) that in {BaseWithTranslationControllerMethods}
-    #
-    # This accepts +:place_id+ whether it appears at the top level or under :music
-    # and incorporates it into the permitted {#model_params}
-    def model_params
-      extracted_place_id = params[:place_id].presence || params.dig(:music, :place_id)
-      super.with_defaults(place_id: extracted_place_id)
     end
 
 end

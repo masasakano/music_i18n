@@ -16,7 +16,7 @@
 <%= simple_form_for artist do |f| %>
  <section id="sec_primary_input">
   <% if artist.new_record? %>
-    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: artist, trans: Translation.new, disable_is_orig: true, is_simple_form: true} %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, is_simple_form: true, use_form_attributes: true} %>
   <% end %>
 
   <%= render partial: "layouts/form_select_place", locals: {form: f, record: artist} %>
@@ -57,6 +57,4 @@
 <% end %>
 </p>
 </section> <!-- section id="sec_primary" -->
-
-<%# javascript_pack_tag 'dropdown_artist' %>
 

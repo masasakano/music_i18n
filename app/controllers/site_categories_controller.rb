@@ -17,6 +17,9 @@ class SiteCategoriesController < ApplicationController
   PARAMS_MAIN_KEYS = MAIN_FORM_KEYS
   # these will be handled in channel_type_params_multi()
 
+  # Required in {BaseWithTranslationControllerMethods}: +[:disallow_nil, :allow_nil, :always_nil]+
+  ORIG_LOCALE_TYPE_ON_CREATE = :allow_nil
+
 # GET /site_categories or /site_categories.json
   def index
     @site_categories = SiteCategory.order(:weight)

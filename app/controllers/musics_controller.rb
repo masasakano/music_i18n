@@ -15,7 +15,8 @@ class MusicsController < ApplicationController
   # Symbol of the main parameters in the Form (except "place_id"), which exist in DB
   MAIN_FORM_KEYS ||= []
   MAIN_FORM_KEYS.concat(%w(year genre_id note))
-  MAIN_FORM_KEYS.concat(%w(artist_name engage_hows year_engage contribution))
+                .concat(%w(artist_name engage_hows year_engage contribution))
+                .concat(MODULE_WIKI_URL_ATTRIBUTES)
 
   # Permitted main parameters for params(), used for update and create
   PARAMS_MAIN_KEYS = ([
@@ -166,10 +167,10 @@ class MusicsController < ApplicationController
     #
     # This accepts +:place_id+ whether it appears at the top level or under :music
     # and incorporates it into the permitted {#model_params}
-    def model_params
-      extracted_place_id = params[:place_id].presence || params.dig(:music, :place_id)
-      super.with_defaults(place_id: extracted_place_id)
-    end
+#    def model_params
+#      extracted_place_id = params[:place_id].presence || params.dig(:music, :place_id)
+#      super.with_defaults(place_id: extracted_place_id)
+#    end
 
     # set @artist, @artist_name, @artist_title from a given URL parameter
     def set_artist_prms

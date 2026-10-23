@@ -36,6 +36,24 @@
      <% end %>
 
       <div class="field">
+        <% parent = f.object.translatable
+           hint =
+             if parent
+               case "#{parent.class.name.pluralize}Controller".safe_constantize::ORIG_LOCALE_TYPE_ON_CREATE
+               when :disallow_nil
+                 "(Should never be 定義不能(=nil) for this model)"
+               when :allow_nil
+                 "(Choose one)"
+               when :always_nil
+                 "(Should be 定義不能(=nil) for this model)"
+               else
+                 "(Contact the code developper re ORIG_LOCALE_TYPE_ON_CREATE...)"
+               end
+             else
+               ""
+             end
+        %>
+
         <% if translation.is_orig
              checked = :original
            else
@@ -48,7 +66,7 @@
                end
            end
           %>
-        <%= f.label :is_orig, 'Translation category' %>
+        <%= f.label :is_orig, 'Translation category '+hint %>
         <%= f.radio_button(:is_orig, true, checked: (:original == checked)) %>
         <%= f.label :is_orig, '原語', :value => true %>
         <%= f.radio_button(:is_orig, false, checked: (:translation == checked)) %>

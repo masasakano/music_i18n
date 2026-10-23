@@ -1,7 +1,11 @@
-<%# locals: (form:, model:, trans: Translation.new, disable_is_orig: false, is_simple_form: true, only_title: false, as_text: false, use_form_attributes: false, n_translation_sets: 2) %>
+<%# locals: (form:, model: nil, trans: Translation.new, disable_is_orig: nil, is_simple_form: true, only_title: false, as_text: false, use_form_attributes: false, n_translation_sets: 2) %>
 
 <%# valiables: form, model, trans(Translation [OBSOLETE]), disable_is_orig(Boolean), is_simple_form(Boolean), only_title(Boolean), as_text(Boolean; if true, the type is "text" else "string") %>
-  <% modelname = model.class.name %>
+<% f = form %>
+<% model ||= f.object %>
+<% modelname = model.class.name %>
+
+<% disable_is_orig = (:allow_nil != "#{model.class.name.pluralize}Controller".safe_constantize::ORIG_LOCALE_TYPE_ON_CREATE) if disable_is_orig.nil? %>
 
 <%
   f = form
@@ -22,14 +26,15 @@
                    as: (as_text ? :text : :string),
                    required: true,
                    input_html: { rows: 2, class: "translation-title w-100" },
+                   placeholder: (('Artist'==model.class.name) ? ' ('+t('layouts.new_translations.note_re_group')+') ' : "")+t('eg_independent')+'The '+(('Artist'==model.class.name) ? 'Beatles' : 'Ocean'),
                    label: "Title" %>
 
       <div class="row">
         <div class="col-md-6">
-          <%= tf.input :ruby, as: :string, label: "Ruby (Furigana)" %>
+          <%= tf.input :ruby, as: :string, label: "Ruby (Furigana)", placeholder: '(全角片仮名で)'+t('eg_independent')+(('Artist'==model.class.name) ? 'ザ・ビートルズ' : 'ジ・オーシャン') %>
         </div>
         <div class="col-md-6">
-          <%= tf.input :romaji, as: :string, label: "Romaji" %>
+          <%= tf.input :romaji, as: :string, label: "Romaji", placeholder: "(ヘボン式推奨: chi, shi等)" %>
         </div>
       </div>
 

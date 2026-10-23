@@ -2,7 +2,8 @@ require "application_system_test_case"
 
 class UrlsTest < ApplicationSystemTestCase
   setup do
-    model = @url = urls(:one)
+    @record = @url = urls(:one)
+    @model_underscore = @record.class.name.underscore
     @moderator_all   = users(:user_moderator_all)         # General-JA Moderator can manage.
     @editor_harami   = users(:user_editor)                # Harami Editor can manage.
     @moderator_harami= users(:user_moderator)             # Harami Moderator can manage.
@@ -11,7 +12,7 @@ class UrlsTest < ApplicationSystemTestCase
     @editor_ja       = users(:user_editor_general_ja)     # Same as Harami-editor
     @moderator_gen   = users(:user_moderator_general_ja)
     @h1_title = "Urls"
-    but_text = model.class.name.underscore.gsub(/_/, ' ').capitalize # "Url" (SimpleForm default)
+    but_text = @record.class.name.underscore.gsub(/_/, ' ').capitalize # "Url" (SimpleForm default)
     @button_text = {
       create: "Create #{but_text}",
       update: "Update #{but_text}",
@@ -59,32 +60,20 @@ class UrlsTest < ApplicationSystemTestCase
     #page_find_sys(:trans_new, :is_orig_radio, model: model).choose('Undefined')
     #assert_equal str_form_for_nil, page_get_val(:trans_new, :is_orig, model: model.class), "is_orig should become Undefined, but..."
 
-    assert_selector "fieldset.form-group.url_translations_is_orig"  # is_orig selection is available on :create for Url
+    assert_selector "fieldset.form-group.#{@model_underscore}_translations_is_orig"  # is_orig selection is available on :create for Url
     translation_fieldsets = all(".translation-fields")
 
-    # --- Translation Set 1 ---
-    #page.find('input#url_title').fill_in with: 'Tekito title.....oh'  # This is unique!
-    within(translation_fieldsets[0]) do
-      fill_in "Title", with: 'Tekito JA-title.....oh'
-      select "ja", from: "Language"
-      # is_orig => nil
-    end
-
-    # --- Translation Set 2 ---
-    within(translation_fieldsets[1]) do
-      fill_in "Title", with: 'Tekito FR-title.....oh'
-      select "fr", from: "Language"
-      # is_orig => nil
-    end
+    fill_in_new_translations([{title: 'Tekito JA-title.....oh', langcode: "ja", is_formal: false},
+                              {title: 'Tekito FR-title.....oh', langcode: "fr", is_literal: true}]) # defined in test_system_helper.rb
 
     page.find('input#url_url').fill_in with: 'https://Tekitoh.com/abc'  # This is unique!
     select "(Automatically assigned)", from: "Domain"  # Japanese is displayed even in English environment (b/c simple_form default etc)...
-    within("div.url_note") do
-      fill_in "Note", with: @url.note
+    within("div.#{@model_underscore}_note") do
+      fill_in "Note", with: @record.note
     end
     fill_in "Memo editor", with: @url.memo_editor
     fill_in "Weight", with: @url.weight
-#debugger
+
     click_on @button_text[:create]
 
     assert_selector "h1", text: "Url: "

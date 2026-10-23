@@ -2,7 +2,8 @@ require "application_system_test_case"
 
 class PlacesTest < ApplicationSystemTestCase
   setup do
-    #@place = places(:one)
+    @record = @place = places(:tocho) # places(:one)
+    @model_underscore = @record.class.name.underscore
     @moderator = users(:user_moderator_general_ja)
   end
 
@@ -36,10 +37,13 @@ class PlacesTest < ApplicationSystemTestCase
 
     assert_selector "#sec_primary_input div.place_note"  # to ensure most fields have been loaded.
 
-    # label_str = I18n.t('layouts.new_translations.model_language', model: 'Place')
-    # find_field(label_str).choose('English')  ## Does not work b/c the label is just a <span>!
-    page_find_sys(:trans_new, :langcode_radio, model: Place).choose('English')  # defined in test_system_helper
-    #page.find('form div.field.radio_langcode').choose('English')
+    ## label_str = I18n.t('layouts.new_translations.model_language', model: 'Place')
+    ## find_field(label_str).choose('English')  ## Does not work b/c the label is just a <span>!
+    #page_find_sys(:trans_new, :langcode_radio, model: Place).choose('English')  # defined in test_system_helper
+    ##page.find('form div.field.radio_langcode').choose('English')
+    assert_selector 'input#place_translations_attributes_0_is_formal_[checked="checked"]'  # Default is nil
+    assert_selector 'input#place_translations_attributes_0_is_official_[checked="checked"]'  # Default is nil
+    fill_in_new_translation_single(index: 0, title: nil, langcode: "en", is_formal: true, is_official: true) # defined in test_system_helper.rb
 
     assert     find_field('Country')
     assert_selector CSSHS[:country_select_div]  # defined in test_helper.rb
@@ -87,11 +91,17 @@ class PlacesTest < ApplicationSystemTestCase
 
     click_on "Create Place"
 
-    assert_text "AltTitle must exist"   # This would wait.
+    assert_text (str="prohibited this")+" Place from being saved"
+    flash_text_system_assert(str, type: [:alert], category: :div)  # defined in test_helper.rb
+    flash_text_system_assert("must be non-blank", type: [:alert], category: :div)  # defined in test_helper.rb
+    #assert_text "AltTitle must exist"   # This would wait.
     # assert_text "Prefecture must exist"  # NOTE: this used to be the case when client-side cascading-dropdown was employed.
     mat, _ = two_prms_redirected_to_fuzzy_locale(path2place_index, act: true, locale: I18n.locale) # defined in test_helper.rb
     assert_match(mat, current_path, "Should be on Index path after erroneous input.")  # NOT "new/" according to Rails convention.
     # assert_equal path2place_index, current_path, 'Should be on Index path after erroneous input.'  # NOT "new/" according to Rails convention.
+
+    assert_selector 'input#place_translations_attributes_0_is_formal_true[checked="checked"]'    # true(Yes) should remain checked
+    assert_selector 'input#place_translations_attributes_0_is_official_true[checked="checked"]'  # true(Yes) should remain checked
 
     css = CSSHS[:prefecture_option]+'[selected="selected"]'
     assert_selector css
@@ -105,18 +115,30 @@ class PlacesTest < ApplicationSystemTestCase
     # #page.find('select#place_prefecture').find(:option, 'Kagawa').select_option  # This works! (more verbose way)
 
     place_tit = 'Tekitoh77'
-    label_str = I18n.t('layouts.new_translations.title', model: 'Place')
-    find_field(label_str, match: :first).fill_in with: place_tit
-    page.find('form input#place_alt_title').fill_in with: 'MyNew_place_Alt2'
+    #label_str = I18n.t('layouts.new_translations.title', model: 'Place')
+    #find_field(label_str, match: :first).fill_in with: place_tit
+    #page.find('form input#place_alt_title').fill_in with: 'MyNew_place_Alt2'
+    fill_in_new_translations([{ title: place_tit },
+                              { title: 'MyNew_place_Alt2', langcode: "en" }]) # defined in test_system_helper.rb
 
-    find_field('Note').fill_in with: 'Note place 2-A'
+    within("div.#{@model_underscore}_note") do
+      find_field('Note').fill_in with: 'Note place 2-A'
+    end
     click_on "Create Place"
 
-    assert_text "Place was successfully created" #, maximum: 1  ## After the introduction of Flash-display for Turbo, 2 of them appear. Not ideal.
+    assert_text "Place was "+(str="successfully created") #, maximum: 1  ## After the introduction of Flash-display for Turbo, 2 of them appear. Not ideal.
+    flash_text_system_assert(str, type: [:notice, :success], category: :div)  # defined in test_helper.rb
+    close_flash_windows([:notice, :success])  # defined in test_system_helper.rb
     assert_selector "h1", text: place_tit
     assert_selector "dd."+Consts::Csses::Shows::ITEM_NOTE
     css = "dd."+Consts::Csses::Shows::ITEM_PREFIX+"prefecture"
     assert_match(/Kagawa|香川県/, page.find(css).text)
+
+    refute_selector :xpath, xpath_all_translation_table(langcode: "ja")  # defined in test_helper.rb
+    refute_selector :xpath, xpath_all_translation_table(langcode: "fr")
+    xpath_en = xpath_all_translation_table(langcode: "en")
+    assert_selector :xpath, xpath_en   # English Translations only.
+    assert_equal 2, all(:xpath, xpath_en).size
 
     ## Edit and :update
     css = "."+Consts::Csses::Layouts::EDIT_LINK_PRIMARY
@@ -133,12 +155,15 @@ class PlacesTest < ApplicationSystemTestCase
     # print "DEBUG:pref: "; puts find_all(CSSHS[:prefecture_option]).map{_1[:innerHTML]}.join("\n")
     select "Simane", from: "Prefecture", visible: true  # "Simane" is alt_title, whereas title is "Shimane"
     note2add = "Provincial change made."
-    fill_in "Note", with: note2add
+    within("div.#{@model_underscore}_note") do
+      fill_in "Note", with: note2add
+    end
 
     click_on "Update Place"
 
     assert_text (msg="Place was successfully updated") #, maximum: 1
     flash_regex_assert(Regexp.new(msg), type: [:success, :notice], system_test: true)
+    close_flash_windows([:notice, :success])  # defined in test_system_helper.rb
     assert_text note2add
     css = "dd."+Consts::Csses::Shows::ITEM_PREFIX+"prefecture"
     assert_match(/Sh?imane|島根県/, page.find(css).text)

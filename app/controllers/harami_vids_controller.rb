@@ -41,6 +41,9 @@ class HaramiVidsController < ApplicationController
   # See {#create} for description of "place_id" and "place".  In short, the best strategy is
   # to use @hsmain["place_id"] (or @hamsin[:place_id]), while that in params is "place".
 
+  # Required in {BaseWithTranslationControllerMethods}: +[:disallow_nil, :allow_nil, :always_nil]+
+  ORIG_LOCALE_TYPE_ON_CREATE = :disallow_nil
+
   # Form-ID for the new EventItem in the EventItem selection for a new collab-Artist
   DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW = 0
 
@@ -185,15 +188,6 @@ class HaramiVidsController < ApplicationController
     # Use callbacks to share common setup or constraints between actions.
     def set_harami_vid
       @harami_vid = HaramiVid.find(params[:id])
-    end
-
-    # Overwrites (modifies) that in {BaseWithTranslationControllerMethods}
-    #
-    # This accepts +:place_id+ whether it appears at the top level or under :music
-    # and incorporates it into the permitted {#model_params}
-    def model_params
-      extracted_place_id = params[:place_id].presence || params.dig(:music, :place_id)
-      super.with_defaults(place_id: extracted_place_id)
     end
 
     # Sets @hsmain and @hstra and @prms_all from params

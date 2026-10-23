@@ -18,6 +18,9 @@ class DomainTitlesController < ApplicationController
   PARAMS_MAIN_KEYS = MAIN_FORM_KEYS
   # these will be handled in channel_type_params_multi()
 
+  # Required in {BaseWithTranslationControllerMethods}: +[:disallow_nil, :allow_nil, :always_nil]+
+  ORIG_LOCALE_TYPE_ON_CREATE = :allow_nil
+
   # GET /domain_titles or /domain_titles.json
   def index
     @domain_titles = DomainTitle.all  # not sorted/ordered!  You may use: joins(:translations).joins(:site_category).order("site_categories.weight", "domain_titles.weight", "translations.title").uniq  (distinct would raise an error.)

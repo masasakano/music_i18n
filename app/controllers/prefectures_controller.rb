@@ -6,8 +6,11 @@ class PrefecturesController < ApplicationController
   before_action :set_cp_all, only: [:index, :new, :edit, :create, :update]
   load_and_authorize_resource except: [:show]
 
-  # String of the main parameters in the Form (except place-related)
-  MAIN_FORM_KEYS = %w(note)
+  # String of the main parameters in the Form
+  MAIN_FORM_KEYS = %w(country_id note)
+
+  # Required in {BaseWithTranslationControllerMethods}: +[:disallow_nil, :allow_nil, :always_nil]+
+  ORIG_LOCALE_TYPE_ON_CREATE = :disallow_nil
 
   # GET /prefectures
   # GET /prefectures.json
@@ -32,21 +35,20 @@ class PrefecturesController < ApplicationController
     @places = @prefecture.places
   end
 
-  # POST /prefectures
-  # POST /prefectures.json
-  def create
-    params.permit!
-    params.require(:prefecture).permit(
-      :note,
-      :country, :country_id,  # **NOTE**: redundant...
-      *Translation::TRANSLATION_PARAM_KEYS)
-      # :langcode, :is_orig, :title, :ruby, :romaji, :alt_title, :alt_ruby, :alt_romaji,
+  ## POST /prefectures or /prefectures.json
+  #def create
+  #  params.permit!
+  #  params.require(:prefecture).permit(
+  #    :note,
+  #    :country, :country_id,  # **NOTE**: redundant...
+  #    *Translation::TRANSLATION_PARAM_KEYS)
+  #    # :langcode, :is_orig, :title, :ruby, :romaji, :alt_title, :alt_ruby, :alt_romaji,
 
-    hsmain = params[:prefecture].slice(*MAIN_FORM_KEYS)
-    @prefecture = Prefecture.new(**(hsmain.merge({country_id: params[:prefecture][:country_id].to_i})))
-    add_unsaved_trans_to_model(@prefecture) # defined in application_controller.rb
-    def_respond_to_format(@prefecture)      # defined in application_controller.rb
-  end
+  #  hsmain = params[:prefecture].slice(*MAIN_FORM_KEYS)
+  #  @prefecture = Prefecture.new(**(hsmain.merge({country_id: params[:prefecture][:country_id].to_i})))
+  #  add_unsaved_trans_to_model(@prefecture) # defined in application_controller.rb
+  #  def_respond_to_format(@prefecture)      # defined in application_controller.rb
+  #end
 
   # PATCH/PUT /prefectures/1
   # PATCH/PUT /prefectures/1.json

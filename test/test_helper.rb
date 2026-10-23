@@ -1207,12 +1207,85 @@ end
     { model_snake => hs_main.with_indifferent_access }.with_indifferent_access.merge(place_opts)
   end
 
+  # @return [Array] Single-element Array of (with_indifferent_access) Hash of parameters used to create a single Translation
+  def params_translation_array_with_new_title(ary, new_title)
+    [ ary[0].with_indifferent_access.merge({ title: new_title }) ]
+  end
+
+  # @example
+  #    post @artist, params: { artist: hsbase }
+  #    post @artist, params: { artist: params_hash_translation_array_with_new_title(hsbase, "MyNewTitle") }  # defined in test_helper.rb
+  #
+  # @example
+  #    post @artist, params: hs2pass
+  #    post @artist, params: { artist: params_hash_translation_array_with_new_title(hs2pass[:artist], "MyNewTitle") }  # defined in test_helper.rb
+  #
+  # @return [Hash] Hash containing a Single-element Array of (with_indifferent_access) Hash of parameters used to create a single Translation
+  def params_hash_translation_array_with_new_title(hsparam, new_title)
+    ary = params_translation_array_with_new_title(hsparam[:translations_attributes], new_title)
+    hsparam.with_indifferent_access.merge({ translations_attributes: ary })
+  end
+
   # This is usually called by a Controller test after GET/PATCH etc.
   #
   # @return [String] e.g., "<404: Not Found>"
   def response_status_text(status_code=response.status)
     sprintf(" <%s: %s>", status_code, Rack::Utils::HTTP_STATUS_CODES[status_code])
   end
+
+  # @example
+  #   sample_translation_params(with_true_name: false)  # defined in test_helper.rb
+  #
+  # @return [Array<Hash>] for creating two Translation-s
+  def sample_translation_params(with_true_name: false, with_is_orig: true)
+    arret = [
+      { title: "The Tｅst",
+        ruby: "ザ・てすと",
+        romaji: "Za Tesuto",
+        langcode: "en",
+        kind: "full",
+        is_orig: true,  # is_orig field may be disabled for some models, in which case this this should be ignored.
+        start_year: "",
+        end_year: "",
+        is_formal: "true",
+        is_official: "true",
+        is_true_name:  get_params_from_bool(false),  # defined in test_helper.rb
+        is_for_record: get_params_from_bool(false),
+        is_literal:    get_params_from_bool(false),  # defined in test_helper.rb,
+        is_internal:   get_params_from_bool(false),
+        note: "Original Japanese Place name"
+      }.with_indifferent_access,
+      { title: "",  # True name, though only for record
+        ruby: "",
+        romaji: "",
+        langcode: "ja",
+        kind: "full",  # displayed as "(auto)" if nil
+        is_orig: false,  # is_orig field may be disabled for some models, in which case this this should be ignored.
+        start_year: "",
+        end_year: "",
+        is_formal: "",
+        is_official: "",
+        is_true_name:  get_params_from_bool(false),  # defined in test_helper.rb,
+        is_for_record: get_params_from_bool(false),
+        is_literal:    get_params_from_bool(false),  # defined in test_helper.rb,
+        is_internal:   get_params_from_bool(false),
+        note: ""
+      }.with_indifferent_access
+    ]
+
+    arret.each do |ehs|
+      if !with_true_name
+        ehs.delete :is_true_name
+        ehs.delete :is_for_record
+      end
+      if !with_is_orig
+        ehs.delete :is_orig
+      end
+      ehs.freeze
+    end
+    arret.freeze
+  end
+
 
   ################################################################
   # System-test related (auto-complete)

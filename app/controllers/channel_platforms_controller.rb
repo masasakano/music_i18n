@@ -12,6 +12,9 @@ class ChannelPlatformsController < ApplicationController
   PARAMS_MAIN_KEYS = MAIN_FORM_KEYS
   # these will be handled in channel_platform_params_multi()
 
+  # Required in {BaseWithTranslationControllerMethods}: +[:disallow_nil, :allow_nil, :always_nil]+
+  ORIG_LOCALE_TYPE_ON_CREATE = :allow_nil
+
   # GET /channel_platforms or /channel_platforms.json
   def index
     @channel_platforms = ChannelPlatform.all

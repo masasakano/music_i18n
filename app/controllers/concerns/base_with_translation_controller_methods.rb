@@ -22,12 +22,15 @@ module BaseWithTranslationControllerMethods
   #
   # This assumes the Controller class defines the constant `ORIG_LOCALE_TYPE_ON_CREATE`
   # which should be one of +[:disallow_nil, :allow_nil, :always_nil]+
-  def create(&block)
+  #
+  # @result [Boolean, Object] The result of save, which is usually Boolean
+  # @yield [ActiveRecord] takes ActiveRecord, and processes ActiveRecord before save after params are substituted.
+  def create
     ## equivalent to, e.g., @record = @url = Url.new(model_params)
     mparams = set_record_and_authorize(__method__)
     set_orig_locale_on_create(mparams)
 
-    block.call(@record) if block_given?
+    yield(@record) if block_given?
 
     def_respond_to_format(@record, :created)    # defined in application_controller.rb
   end
@@ -88,14 +91,29 @@ module BaseWithTranslationControllerMethods
     private :create_when_nil_locale_always
 
   # Generic params method shared across Controllers for the BaseWithTranslation child model classes
+  #
+  # This can handle Controllers that contain :place_id at the top level in params.
+  #
+  # @example to overwrite/modify in a Controller class to include the top-level +:country_id+; e.g., PlacesController
+  #    def model_params
+  #      super.with_defaults(country_id: params[:country_id])
+  #    end
+  #
+  # @return [ActionController::Parameters] permitted
   def model_params
     # filters out second (or later) Translations with a blank title
     filter_empty_secondary_translations!
 
-    params.require(model_param_key).permit(
+    ret = params.require(model_param_key).permit(
       *permitted_main_form_keys,
       translations_attributes: Translation::PERMITTED_NESTED_ATTRIBUTES
     )
+
+    return ret if !model_class.has_attribute?(:place_id)
+
+    # To ensure both cases where :place_id is specified at the top level or inside +{model_name: {}}+
+    extracted_place_id = params[:place_id].presence || params.dig(:music, :place_id)
+    ret.with_defaults(place_id: extracted_place_id)
   end
 
   # If orig_locale (BaseWithTranslation) is given in params, sets all is_orig (Translation), else sets orig_locale if on :create
@@ -235,7 +253,6 @@ module BaseWithTranslationControllerMethods
 
   private
 
-    # Infers the model class (e.g. UrlsController -> Url, MusicsController -> Music)
     def model_class
       @model_class ||= controller_name.classify.constantize
     end
@@ -257,6 +274,17 @@ module BaseWithTranslationControllerMethods
     def build_record(attributes = {})
       model_class.new(attributes)
     end
+
+    # @return [BaseWithTranslation, NilClass] @record if set here, or nil if @record has been already set and not reset here.
+    def set_record
+      if @record
+        nil
+      else
+        @record = model_class.find(params[:id])
+        set_model_instance_variable(@record)
+        @record
+      end
+    end    # Infers the model class (e.g. UrlsController -> Url, MusicsController -> Music)
 
     # Reads MAIN_FORM_KEYS from the host controller at runtime
     #

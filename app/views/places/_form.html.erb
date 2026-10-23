@@ -2,8 +2,10 @@
 <%= render partial: 'layouts/form_print_errors', locals: {model: place} %>
 
 <% if ! place.new_record? %>
-
 <hr>
+<% end %>
+<section id="sec_primary">
+<% if ! place.new_record? %>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: place, add_buttons: true} %>
 <hr>
 
@@ -52,7 +54,7 @@
 <%= simple_form_for place do |f| %>
  <section id="sec_primary_input">
   <% if place.new_record? %>
-    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: place, trans: Translation.new, disable_is_orig: true, is_simple_form: true} %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, is_simple_form: true, use_form_attributes: true} %>
   <% end %>
 
  <% if true %>
@@ -90,9 +92,9 @@
 <% end %>
 
 <% end %> <%# ################################################# %>
-</div>
+</div> <!-- div id="form_main" -->
 
 <%= render partial: 'layouts/link_edit_destroy_index', locals: {record: place, is_to_edit: true } %>
 
-<%# javascript_pack_tag 'dropdown_place' %>
+</section> <!-- section id="sec_primary" -->
 

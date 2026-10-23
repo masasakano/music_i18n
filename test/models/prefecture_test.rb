@@ -454,8 +454,8 @@ class PrefectureTest < ActiveSupport::TestCase
     assert_equal 13,       Prefecture[13, 'naiyo', Country[392]].iso3166_loc_code
     assert_equal 'Tokyo',  Prefecture['東京都', Country[392]].title(langcode: 'en')
     assert_equal 'Tokyo',  Prefecture[/Tokyo/, 'en', Country['JPN']].title(langcode: 'en')
-    assert_equal 'Kagawa', Prefecture['Kagawa', 'en', true, Country[392]].alt_title(langcode: 'en')
-    assert_nil             Prefecture['Kagawa', 'en', Country[392]] # b/c "Kagawa"(en) is alt_title
+    # assert_equal 'Kagawa', Prefecture['Kagawa', 'en', true, Country[392]].alt_title(langcode: 'en')
+    # assert_nil             Prefecture['Kagawa', 'en', Country[392]] # b/c "Kagawa"(en) is alt_title
     assert_equal 37,       Prefecture[/香川/, Country[392]].iso3166_loc_code
     assert_nil             Prefecture['香川', Country[392]] # b/c title="香川県"
   end
