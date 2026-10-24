@@ -5,7 +5,7 @@
 <% model ||= f.object %>
 <% modelname = model.class.name %>
 
-<% disable_is_orig = (:allow_nil != "#{model.class.name.pluralize}Controller".safe_constantize::ORIG_LOCALE_TYPE_ON_CREATE) if disable_is_orig.nil? %>
+<% disable_is_orig = (:allow_nil != get_dry_controller(model)::ORIG_LOCALE_TYPE_ON_CREATE) if disable_is_orig.nil? %><%# defined in application_helper.rb %>
 
 <%
   f = form

@@ -932,6 +932,21 @@ module ApplicationHelper
     (model.respond_to?(:name) ? model.name : (model.class.respond_to?(:name) ? model.class.name : model.to_s)).underscore.singularize
   end
 
+  # @example
+  #   get_dry_controller(record)::ORIG_LOCALE_TYPE_ON_CREATE  # defined in application_helper.rb
+  #
+  # @param record [ActiveRecord, Class] e.g., Artist, Artist.first
+  # @return [ApplicationController] e.g., ArtistsController
+  def get_dry_controller(record)
+    get_dry_controller_name(record).safe_constantize
+  end
+
+  # @param record [ActiveRecord, Class] e.g., Artist, Artist.first
+  # @return [String] "ArtistsController"
+  def get_dry_controller_name(record)
+    (record.respond_to?(:name) ? record : record.class).name.pluralize + "Controller"
+  end
+
   # plural snake-case name of the model or any String (which usually agrees with table_name but no guarantee)
   #
   # @param model [Class, ApplicationRecord, String, Symbol]

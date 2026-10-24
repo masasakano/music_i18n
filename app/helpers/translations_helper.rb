@@ -168,4 +168,69 @@ module TranslationsHelper
       ret.html_safe
     end
     private :_ternary_flag_display
+
+  # @param record [BaseWithTranslation] NOT Translation(!!)
+  # @param lcode [String] locale (for the language banner)
+  # @param should_show_add_trans [Boolean]
+  # @return [String] Language banner's content except for the "add-button" of another Translation
+  def table_banner_content(record, lcode, should_show_add_trans)
+    arret = []
+    arret << get_language_name(lcode)  # defined in module_common.rb
+    arret << sprintf("(%s)", get_language_name(lcode, in_locale: I18n.locale)) if I18n.locale.to_s != lcode.to_s
+
+    label_orig_lang = t("datagrid.footnote.is_original")
+    if !should_show_add_trans
+      if record.orig_locale == lcode
+        arret << sprintf("[%s]", label_orig_lang)
+      end
+      return arret.join(" ").html_safe
+    end
+
+    orig_locale_anchor = table_banner_orig_locale_anchor(record, lcode)
+
+    prefix = postfix = ""
+    prefix, postfix = ["[" + label_orig_lang, "]"] if record.orig_locale == lcode
+    arret << prefix + orig_locale_anchor + postfix
+
+    arret.join(" ").html_safe
+  end # def table_banner_content(record, lcode, should_show_add_trans)
+
+
+  # @param record [BaseWithTranslation] NOT Translation(!!)
+  # @param lcode [String] locale (for the language banner)
+  # @return [String] Anchor (link) for :patch request to Controller to change orig_locale
+  def table_banner_orig_locale_anchor(record, lcode)
+    css_visual = "text-half_opacity"
+    caution_str = "[Caution!]"
+    if record.orig_locale == lcode
+      label_base = "Nullify"
+      title_base = "Change orig_locale to nil"
+      labelstr, title = [label_base, title_base]
+      if :disallow_nil == get_dry_controller(record)::ORIG_LOCALE_TYPE_ON_CREATE
+        labelstr = (tag.span(label_base, class: css_visual) + caution_str).html_safe
+        title += ": which should never be the case with this model in priinciple"
+      end
+      to_locale = nil
+      css_extra = "nullify_orig_locale"
+    else
+      label_base = "orig_locale"
+      title_base = "Change orig_locale to #{lcode.inspect}"
+      labelstr, title = [label_base, title_base]
+      if :always_nil == get_dry_controller(record)::ORIG_LOCALE_TYPE_ON_CREATE
+        labelstr = (tag.span(label_base, class: css_visual) + caution_str).html_safe
+        title += ", but it should be always nil with this model in priinciple"
+      end
+      to_locale = lcode
+      css_extra = "change_orig_locale"
+    end
+
+    editor_only_safe_html(:pass, method: true, tag: :span) {
+      sprintf "(→%s)",
+              link_to(labelstr,
+                      polymorphic_path(record, record.model_name.param_key => { orig_locale: to_locale }),
+                      data: { turbo: true, turbo_method: :patch },
+                      title: title,
+                      class: [Consts::Csses::Layouts::UPDATE_LINK, css_extra])
+    }
+  end
 end

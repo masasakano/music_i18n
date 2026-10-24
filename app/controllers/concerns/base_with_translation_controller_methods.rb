@@ -98,6 +98,7 @@ module BaseWithTranslationControllerMethods
   #    def model_params
   #      super.with_defaults(country_id: params[:country_id])
   #    end
+  #     # See below to consider both the top-level and inside inclusion cases
   #
   # @return [ActionController::Parameters] permitted
   def model_params
@@ -112,7 +113,7 @@ module BaseWithTranslationControllerMethods
     return ret if !model_class.has_attribute?(:place_id)
 
     # To ensure both cases where :place_id is specified at the top level or inside +{model_name: {}}+
-    extracted_place_id = params[:place_id].presence || params.dig(:music, :place_id)
+    extracted_place_id = params[:place_id].presence || params.dig(model_param_key, :place_id)
     ret.with_defaults(place_id: extracted_place_id)
   end
 

@@ -4931,6 +4931,12 @@ end
       etra.skip_singularize_is_orig_callback = true
     end
     chow2remain.orig_locale = nil  # will be synced to Artist later
+    chow2remain.translations.each do |t|
+      chow2remain.nullify_or_falsify_is_orig(t)
+    end
+    ## NOTE: In fact, the surest way would be to replace Translation-s completely with a random one guaranteed to be unique;
+    #    Translation-s will be synced to Artist anyway, so what ChannelOwner has during the merging process
+    #    does not matter.
     result = chow2remain.save
     raise if !result
     #chow2remain.save!  # This is necessary in case some of the parent Artist's Translations are destroyed - specifically, the original or duplicated Translation can be destroyed.  Without this, Translations that have {#sync_child} would be prohibited from being destroyed.

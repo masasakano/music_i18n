@@ -120,33 +120,14 @@
     <% alltra = model.translations_with_lang(langcode: lcode) %>
     <% next if !%w(ja en).include?(lcode) && alltra.empty? %>
 
-    <tr class="lang_banner lang_banner_<%= lcode %>"><th colspan="<%= allcolspan %>" class="middle_row"><%= get_language_name(lcode) %> <%# defined in module_common.rb %>
-      <%= sprintf("(%s)", get_language_name(lcode, in_locale: I18n.locale)) if I18n.locale.to_s != lcode %>
-      <% if model.orig_locale == lcode %>
-        <% labe = t("datagrid.footnote.is_original") %>
-        <% if !should_show_add_trans %>
-          <%= sprintf("[%s]", labe) %>
-        <% else %>
-          [<%= labe %>
-          <%= editor_only_safe_html(:pass, method: true, tag: :span) do %>
-            (→ <%= link_to "Nullify",
-                      polymorphic_path(model, model.model_name.param_key => { orig_locale: nil }),
-                      data: { turbo: true, turbo_method: :patch },
-                      class: [Consts::Csses::Layouts::UPDATE_LINK, "nullify_orig_locale"] %>)
-          <% end %>]
-        <% end %>
-      <% elsif should_show_add_trans && alltra.present? %>
-          <%= editor_only_safe_html(:pass, method: true, tag: :span) do %>
-            (→ <%= link_to "orig_locale",
-                      polymorphic_path(model, model.model_name.param_key => { orig_locale: lcode }),
-                      data: { turbo: true, turbo_method: :patch },
-                      class: [Consts::Csses::Layouts::UPDATE_LINK, "change_orig_locale"] %>)
-          <% end %>
-      <% end %>
+    <tr class="lang_banner lang_banner_<%= lcode %>">
+      <th colspan="<%= allcolspan %>" class="middle_row">
+        <%= table_banner_content(model, lcode, should_show_add_trans) %>
       <% if editable_any_at_all && add_buttons && (tra1 && model.translation_creatable?(lcode, user: current_user) || (!tra1 && flag_ables[:destroyable])) %><%# NOTE: Translation#creatable_other? takes into account can?(:create, Translation.new) %>
         <%= link_to t("layouts.add_"+((model.orig_locale == lcode) ? "alt_title" : "translation")), new_translation_path(langcode: lcode, translatable_type: model.class.name, translatable_id: model.id), class: "button_like "+Consts::Csses::Layouts::ADD_TRANSLATION_ANCHOR, style: "margin-left: 1em" %><%# alternative: "btn btn-primary btn-sm" %>
       <% end %>
       </th></tr>
+
     <% alltra.each_with_index do |tra, i| %>
       <% is_hidden_trans = false %>
       <% if TranslationsHelper.should_hide_for_public?(tra, alltra) %>

@@ -39,7 +39,7 @@
         <% parent = f.object.translatable
            hint =
              if parent
-               case "#{parent.class.name.pluralize}Controller".safe_constantize::ORIG_LOCALE_TYPE_ON_CREATE
+               case get_dry_controller(parent)::ORIG_LOCALE_TYPE_ON_CREATE
                when :disallow_nil
                  "(Should never be 定義不能(=nil) for this model)"
                when :allow_nil

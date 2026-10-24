@@ -454,6 +454,7 @@ class ChannelOwner < BaseWithTranslation
 
   # This is relevant on update, when themselves is changed (because other callbacks take care of create)
   def combination_themselves_unique_translation
+    return if themselves  # if themselves==true, validation of Translation-s should be delegated to Artist (which is very complecated!)
     msg2add =
       if themselves_changed?
         " So, you cannot alter 'themselves?' status - you may consider merging ChannelOwners or associate this to another Artist first."
