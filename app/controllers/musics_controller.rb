@@ -1,6 +1,6 @@
 # coding: utf-8
 class MusicsController < ApplicationController
-  include BaseWithTranslationControllerMethods  # for model_params, set_kind_from_params etc
+  include BaseWithTranslationControllerMethods  # for update, model_params, set_record_and_authorize etc
   include ModuleCommon # for split_hash_with_keys
   include ModuleGridController # for set_grid
   include ModuleMemoEditor   # for memo_editor attribute
@@ -112,14 +112,14 @@ class MusicsController < ApplicationController
     end
   end
 
-  # PATCH/PUT /musics/1
-  # PATCH/PUT /musics/1.json
-  def update
-    @record = @music
-    def_respond_to_format(@music, :updated){
-      @music.update(@hsmain)
-    } # defined in application_controller.rb
-  end
+  # -> defined in BaseWithTranslationControllerMethods
+  ## PATCH/PUT /musics/1 or /musics/1.json
+  #def update
+  #  @record = @music
+  #  def_respond_to_format(@music, :updated){
+  #    @music.update(@hsmain)
+  #  } # defined in application_controller.rb
+  #end
 
   # DELETE /musics/1
   # DELETE /musics/1.json
@@ -162,15 +162,6 @@ class MusicsController < ApplicationController
     def set_music
       @music = Music.find(params[:id])
     end
-
-    # Overwrites (modifies) that in {BaseWithTranslationControllerMethods}
-    #
-    # This accepts +:place_id+ whether it appears at the top level or under :music
-    # and incorporates it into the permitted {#model_params}
-#    def model_params
-#      extracted_place_id = params[:place_id].presence || params.dig(:music, :place_id)
-#      super.with_defaults(place_id: extracted_place_id)
-#    end
 
     # set @artist, @artist_name, @artist_title from a given URL parameter
     def set_artist_prms

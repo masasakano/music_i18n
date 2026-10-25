@@ -8,7 +8,9 @@
 <% if ! music.new_record? %>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: music, add_buttons: false} %>
 <hr>
-
+<% end %>
+<%= tag.div id: "form_main" do %>
+<% if ! music.new_record? %>
 <h2>Unique parameters</h2>
 <% end %>
 
@@ -168,6 +170,8 @@
 <% end %>
 
 <% end %> <%# ################################################# %>
+
+<% end %> <!-- div id="form_main" -->
 
 <%= render partial: 'layouts/link_edit_merge_destroy_index', locals: {record: music, is_to_edit: !music.new_record? } %>
 </section> <%# Closing section id="sec_primary" %>

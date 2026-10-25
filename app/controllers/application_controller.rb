@@ -293,6 +293,7 @@ class ApplicationController < ActionController::Base
         opts = get_html_safe_flash_hash(success: msg.html_safe, alert: alert, **hsflash)
         format.html { redirect_to (redirected_path || mdl), **opts }  # Turbo may require - (status: :see_other)
         format.json { render :show, status: ret_status, location: mdl }
+        # format.turbo_stream   # TODO: should need modification...
       else
         mdl.errors.add :base, alert if alert.present? # alert is, if present, included in the instance
         opts = get_html_safe_flash_hash(alert: alert, **hsflash)
@@ -300,6 +301,7 @@ class ApplicationController < ActionController::Base
         hsstatus = {status: :unprocessable_content}
         format.html { render render_err,       **(hsstatus.merge opts) } # notice (and/or warning) is, if any, passed as an option.
         format.json { render json: mdl.errors, **hsstatus }
+        # format.turbo_stream { render render_err, **(hsstatus.merge opts) }
       end
     end
     result

@@ -208,7 +208,7 @@ module TranslationsHelper
       label_base = "Nullify"
       title_base = "Change orig_locale to nil"
       labelstr, title = [label_base, title_base]
-      if :disallow_nil == get_dry_controller(record)::ORIG_LOCALE_TYPE_ON_CREATE
+      if :disallow_nil == get_dry_controller(record)::ORIG_LOCALE_TYPE_ON_CREATE  # defined in application_helper.rb
         with_confirm = true
         title += ": which should never be the case with this model in priinciple"
       end
@@ -218,7 +218,7 @@ module TranslationsHelper
       label_base = "orig_locale"
       title_base = "Change orig_locale to #{lcode.inspect}"
       labelstr, title = [label_base, title_base]
-      if :always_nil == get_dry_controller(record)::ORIG_LOCALE_TYPE_ON_CREATE
+      if :always_nil == get_dry_controller(record)::ORIG_LOCALE_TYPE_ON_CREATE  # defined in application_helper.rb
         with_confirm = true
         title += ", but it should be always nil with this model in priinciple"
       end
@@ -236,7 +236,7 @@ module TranslationsHelper
       sprintf("(→%s)",
               link_to(labelstr,
                       polymorphic_path(record, record.model_name.param_key => { orig_locale: to_locale }),
-                      data: { turbo: true, turbo_method: :patch },
+                      data: turbohs,
                       title: title,
                       class: [Consts::Csses::Layouts::UPDATE_LINK, css_extra])).html_safe
     }

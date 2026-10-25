@@ -49,29 +49,18 @@ class PlacesController < ApplicationController
     set_orig_locale_on_create(mparams)
     ## 2 lines copied from ./concerns/base_with_translation_controller_methods.rb
 
-    ## Parameters: {"authenticity_token"=>"[FILTERED]", "place"=>{"langcode"=>"ja", "title"=>"", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "note"=>""}, "country_id"=>"123", prefecture_id"=>"456", "commit"=>"Create Place", "controller"=>"places", "action"=>"create", "locale"=>"en"}  # Used to have "prefecture.country_id"=>"5798", "prefecture"=>"" within "place" when client-side cascading dropdown
-    #params.permit!
-
-    #hsmain = params[:place].slice(*MAIN_FORM_KEYS)
-    #@place = Place.new(**hsmain)  # Needed for separation of Translation-related parameters
-    #place_params.each_pair do |metho, ev|
-    #  @place.send( metho+"=", ev )
-    #end
-    #@record = @place
-    #add_unsaved_trans_to_model(@place) # defined in application_controller.rb
-
     ## Here, parameters prev_model_name and prev_model_id note matter:
     def_respond_to_format(@place, back_html: prev_redirect_str(@place, get_link: true)) # both defined in application_controller.rb
   end
 
-  # PATCH/PUT /places/1
-  # PATCH/PUT /places/1.json
-  def update
-    @record = @place
-    def_respond_to_format(@place, :updated){
-      @place.update(place_params)  # This takes into account of the top-level params[:prefecture_id]  # alias of model_params as defined in BaseWithTranslationControllerMethods (inside "included")
-    } # defined in application_controller.rb
-  end
+  # -> defined in BaseWithTranslationControllerMethods (n.b., model_params is modified below for Place)
+  ## PATCH/PUT /places/1 or /places/1.json
+  #def update
+  #  @record = @place
+  #  def_respond_to_format(@place, :updated){
+  #    @place.update(place_params)  # This takes into account of the top-level params[:prefecture_id]  # alias of model_params as defined in BaseWithTranslationControllerMethods (inside "included")
+  #  } # defined in application_controller.rb
+  #end
 
   # DELETE /places/1
   # DELETE /places/1.json
@@ -105,11 +94,15 @@ class PlacesController < ApplicationController
 
     # Overwrites (modifies) that in {BaseWithTranslationControllerMethods}
     #
-    # This accepts +:place_id+ whether it appears at the top level or under :music
+    # This accepts +:prefecture_id+ whether it appears at the top level or under :music
     # and incorporates it into the permitted {#model_params}
     def model_params
       extracted_prefecture_id = params[:prefecture_id].presence || params.dig(:place, :prefecture_id)
-      super.with_defaults(prefecture_id: extracted_prefecture_id)
+      if extracted_prefecture_id
+        super.with_defaults(prefecture_id: extracted_prefecture_id)
+      else
+        super
+      end
     end
 
     # # Only allow a list of trusted parameters through.

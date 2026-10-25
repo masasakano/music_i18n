@@ -1,6 +1,6 @@
 # coding: utf-8
 class ArtistsController < ApplicationController
-  include BaseWithTranslationControllerMethods  # for model_params, set_kind_from_params etc
+  include BaseWithTranslationControllerMethods  # for update, model_params, set_kind_from_params etc
   include ModuleCommon # for split_hash_with_keys
   include ModuleGridController # for set_grid
   include ModuleMemoEditor   # for memo_editor attribute
@@ -82,14 +82,14 @@ class ArtistsController < ApplicationController
     end
   end
 
-  # PATCH/PUT /artists/1
-  # PATCH/PUT /artists/1.json
-  def update
-    @record = @artist
-    def_respond_to_format(@artist, :updated){
-      @artist.update(@hsmain)
-    } # defined in application_controller.rb
-  end
+  # -> defined in BaseWithTranslationControllerMethods
+  ## PATCH/PUT /artists/1 or /artists/1.json
+  #def update
+  #  @record = @artist
+  #  def_respond_to_format(@artist, :updated){
+  #    @artist.update(@hsmain)
+  #  } # defined in application_controller.rb
+  #end
 
   # DELETE /artists/1 or /artists/1.json
   def destroy

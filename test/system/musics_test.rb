@@ -449,6 +449,11 @@ class MusicsTest < ApplicationSystemTestCase
     xpath = xpath_all_translation_table(column: "trans_weight")  # defined in test_helper.rb
     refute_selector :xpath, xpath
 
+    ## testing switching locale
+    assert_equal :with_confirm, assert_switch_orig_locale(music, browser_locale=:en, to_locale: nil)  # defined in test_system_helper.rb
+    assert assert_switch_orig_locale(music, browser_locale=:en, to_locale: :en)  # defined in test_system_helper.rb
+    assert assert_switch_orig_locale(music, browser_locale=:en, to_locale: :ja)  # defined in test_system_helper.rb
+
     click_on "Back to Index", match: :first  # there may be 2 matches, which would raise Capybara::Ambiguous
 
     assert_selector "h1", text: "Musics"

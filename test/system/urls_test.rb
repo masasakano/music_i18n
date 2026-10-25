@@ -173,6 +173,10 @@ class UrlsTest < ApplicationSystemTestCase
     assert_equal :ja, switch_orig_locale(:ja)  # success
     assert_equal :ja, get_orig_locale_from_translation_table(browser_locale=:en)  # success confirmed
 
+    # Duplicated tests (for testing assert_switch_orig_locale())
+    assert_equal :nil, assert_switch_orig_locale(url_last, browser_locale=:en, to_locale: nil)  # defined in test_system_helper.rb
+    assert_equal :ja,  assert_switch_orig_locale(url_last, browser_locale=:en, to_locale: :ja)  # defined in test_system_helper.rb
+
     ## Destory
     xp = "div.link-edit-destroy form.button_to button.destroy_link"
     assert_selector xp, text: "Destroy"

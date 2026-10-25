@@ -389,7 +389,7 @@ class ArtistsTest < ApplicationSystemTestCase
 
     # Artificially creates another Translation (in fr) for the created Artist and revisits the page
     title_fr = "Dummy2"
-    art_trans2 = Translation.create!(title: title_fr, langcode: "fr", is_orig: false, weight: 1000, translatable: new_artist)
+    art_trans2 = Translation.create!(title: title_fr, langcode: "fr", is_orig: false, weight: 1000, translatable: new_artist, kind: Translation::KIND_FULL)
     assert_equal 2, new_artist.translations.reset.count
     assert_equal user, art_trans2.create_user
     assert_equal user, art_trans2.update_user
@@ -424,10 +424,41 @@ class ArtistsTest < ApplicationSystemTestCase
       assert_equal title_fr, act_text
     }
 
+    ## checking orig_locale
+    close_flash_windows([:notice, :success], do_assert: false)  # or page.refresh
+    assert_equal "en", new_artist.orig_locale, "sanity check"
+    assert_orig_locale(:en, record: new_artist)  # defined in test_system_helper.rb
+    assert_predicate new_artist.translations.where(langcode: "fr"), :present?, "sanity check"
+    assert_predicate new_artist.translations.where(langcode: "ja"), :blank?, "sanity check"
+    assert_equal :en, get_orig_locale_from_translation_table(browser_locale=:en)  # defined in test_system_helper.rb
+    assert_equal :with_confirm, switch_orig_locale(nil, dryrun: true)  # Confirmation pop-up should be present
+    assert_equal :with_confirm, switch_orig_locale(nil)  # successfully switching locale
+    assert_nil  get_orig_locale_from_translation_table(browser_locale=:en)  # success confirmed
+    assert_equal :en, (ret=switch_orig_locale(:en, dryrun: true)), ((:with_confirm == ret) ? "Confirmation pop-up should not be present, but..." : "Translation for :en should exist but...")
+    assert_equal :en, switch_orig_locale(:en)  # successfully switching locale to :en. Because the above assertion has passed, if this fails, something has gone wrong with either Controller structure or flash-messaging.
+
+    # Duplicated tests (for testing assert_switch_orig_locale())
+    assert_equal :with_confirm, assert_switch_orig_locale(new_artist, browser_locale=:en, to_locale: nil)  # defined in test_system_helper.rb
+    assert assert_switch_orig_locale(new_artist, browser_locale=:en, to_locale: :fr)  # defined in test_system_helper.rb
+    assert assert_switch_orig_locale(new_artist, browser_locale=:en, to_locale: :en)  # defined in test_system_helper.rb
+    assert_equal false, assert_switch_orig_locale(new_artist, to_locale: :en)  # to test assert_switch_orig_locale()
+    xpath_ko = switch_orig_locale(:ko)  # should fail b/c no Korean Translation
+    refute_selector :xpath, xpath_ko
+
+    # now needs reloading the Node containing the destroy link... (b/c the page has been refreshed, repeatedly)
+    nodes = find_all :xpath, XPATHS[:all_translation_table][:td_action]
+    arnode = nodes.select {|en| en.matches_css?(".trans_destroy") }
+    desroyable_tds = arnode.select { |en2|
+      clickable_inside?(en2)  # defined in test_system_helper.rb
+    }
+    destroy_link_td = desroyable_tds.first
+
     # Tests destroying (the newly added French) Translation through U/I
     assert_difference("Translation.count", -1){
       assert_destroy_with_text(destroy_link_td, just_click: true, chk_flash: true)  # defined in test_system_helper.rb
-      assert_no_selector :xpath, xpath_fr_row
+      assert_text "Translation was "+(str="successfully destroyed")
+      flash_text_system_assert(str, type: [:notice, :success], category: :div)  # defined in test_helper.rb
+      # This may be on Translation :index
     }
     assert_equal 1, new_artist.translations.reset.count
 
@@ -436,7 +467,7 @@ class ArtistsTest < ApplicationSystemTestCase
     assert_selector "h1", text: "Artist: "+@artist.title  # Same title as the existing Artist
     assert_no_selector "h1", text: "A Translation"  # Confirms it is NOT Translation-show
     assert_selector    "dt", text: "Channel Owner"  # Confirms it is Artist-show
-
+    assert_no_selector :xpath, xpath_fr_row
 
     ## Edit Artist  ##############
 

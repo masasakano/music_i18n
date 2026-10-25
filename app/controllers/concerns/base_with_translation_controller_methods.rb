@@ -41,20 +41,7 @@ module BaseWithTranslationControllerMethods
 
     yield(@record) if block_given?
 
-    def_respond_to_format(@url, :updated) # defined in application_controller.rb
-
-    #if @record.update(model_params)
-    #  respond_to do |format|
-    #    # 1. If using Turbo Frame, re-rendering the partial replaces the frame in-place:
-    #    format.turbo_stream
-    #    format.html { redirect_back fallback_location: @record, notice: "Original locale updated." }
-    #  end
-    #else
-    #  respond_to do |format|
-    #    format.turbo_stream { render :edit, status: :unprocessable_entity }
-    #    format.html { render :edit, status: :unprocessable_entity }
-    #  end
-    #end
+    def_respond_to_format(@record, :updated) # defined in application_controller.rb
   end
 
     # Adjust orig_locale and Translation if necessary
@@ -132,11 +119,11 @@ module BaseWithTranslationControllerMethods
       translations_attributes: Translation::PERMITTED_NESTED_ATTRIBUTES
     )
 
-    return ret if !model_class.has_attribute?(:place_id)
+    return ret unless model_class.has_attribute?(:place_id)
 
     # To ensure both cases where :place_id is specified at the top level or inside +{model_name: {}}+
     extracted_place_id = params[:place_id].presence || params.dig(model_param_key, :place_id)
-    ret.with_defaults(place_id: extracted_place_id)
+    extracted_place_id.present? ? ret.with_defaults(place_id: extracted_place_id) : ret
   end
 
   # If orig_locale (BaseWithTranslation) is given in params, sets all is_orig (Translation), else sets orig_locale if on :create
@@ -302,6 +289,10 @@ module BaseWithTranslationControllerMethods
     def set_record
       if @record
         nil
+      elsif (obj=instance_variable_get("@#{model_param_key}"))
+        # If the model-specific instance (e.g., @music) has been already set, simply alias @record to it.
+        # This is usually the case where +load_and_authorize_resource+ (from CanCanCan) is set in Controller.
+        @record = obj
       else
         @record = model_class.find(params[:id])
         set_model_instance_variable(@record)

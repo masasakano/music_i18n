@@ -89,7 +89,7 @@ class PlacesTest < ApplicationSystemTestCase
     refute_selector CSSHS[:place_select_div]+" select"  # to ensure Place select does not appear
     select "Kagawa", from: "Prefecture", visible: true
 
-    click_on "Create Place"
+    click_on "Create Place"  # => should fail due to blank title
 
     assert_text (str="prohibited this")+" Place from being saved"
     flash_text_system_assert(str, type: [:alert], category: :div)  # defined in test_helper.rb
@@ -139,6 +139,13 @@ class PlacesTest < ApplicationSystemTestCase
     xpath_en = xpath_all_translation_table(langcode: "en")
     assert_selector :xpath, xpath_en   # English Translations only.
     assert_equal 2, all(:xpath, xpath_en).size
+
+    ## testing switching locale
+    record = Place.last_created
+    assert_equal :with_confirm, assert_switch_orig_locale(record, browser_locale=:en, to_locale: nil)  # defined in test_system_helper.rb
+    assert assert_switch_orig_locale(record, browser_locale=:en, to_locale: :en)  # defined in test_system_helper.rb
+    xpath_ja = switch_orig_locale(:ja)  # should fail to switch b/c no :ja Translation (but no exception or assertion failure)
+    refute_selector :xpath, xpath_ja
 
     ## Edit and :update
     css = "."+Consts::Csses::Layouts::EDIT_LINK_PRIMARY
