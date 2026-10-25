@@ -365,6 +365,7 @@ class MusicsTest < ApplicationSystemTestCase
     ## page.find(PAGECSS[:new_trans_lang_radios]).choose('English')  # defined in test_helper.rb  # only for old-fashioned forms
     #page.find("section#form_edit_translation fieldset.form-group.radio_buttons.music_langcode").choose('English')  # for siple_form
 
+    refute_nested_forms  # defined in test_system_helper.rb
     click_on "Create Music"
 
     assert_text "Music was successfully created"

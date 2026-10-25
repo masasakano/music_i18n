@@ -77,6 +77,7 @@ class InstrumentsTest < ApplicationSystemTestCase
     click_on newh1
     assert_selector "h1", text: newh1
     ensure_page_load_in_full_load  # defined in test_system_helper.rb
+    refute_nested_forms  # defined in test_system_helper.rb
 
     refute_selector "fieldset.form-group.#{@model_underscore}_translations_is_orig"  # is_orig selection is NOT available on :create for Instrument
     translation_fieldsets = all(".translation-fields")

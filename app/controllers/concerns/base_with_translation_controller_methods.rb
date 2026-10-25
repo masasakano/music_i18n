@@ -35,6 +35,28 @@ module BaseWithTranslationControllerMethods
     def_respond_to_format(@record, :created)    # defined in application_controller.rb
   end
 
+  def update
+    set_record  # e.g. @record = @music = Music.find(params[:id])
+    @record.attributes = model_params  # sets orig_locale *if* Controller gives one.
+
+    yield(@record) if block_given?
+
+    def_respond_to_format(@url, :updated) # defined in application_controller.rb
+
+    #if @record.update(model_params)
+    #  respond_to do |format|
+    #    # 1. If using Turbo Frame, re-rendering the partial replaces the frame in-place:
+    #    format.turbo_stream
+    #    format.html { redirect_back fallback_location: @record, notice: "Original locale updated." }
+    #  end
+    #else
+    #  respond_to do |format|
+    #    format.turbo_stream { render :edit, status: :unprocessable_entity }
+    #    format.html { render :edit, status: :unprocessable_entity }
+    #  end
+    #end
+  end
+
     # Adjust orig_locale and Translation if necessary
     #
     # @return [Object] it depends which one is called

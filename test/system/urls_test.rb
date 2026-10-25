@@ -81,12 +81,15 @@ class UrlsTest < ApplicationSystemTestCase
     flash_text_system_assert(str, type: [:notice, :success], category: :div)  # defined in test_helper.rb
     flash_text_system_assert("Domain created", type: :notice, category: :div)  # defined in test_helper.rb
     close_flash_windows([:notice, :success])  # defined in test_system_helper.rb
+    url_last = Url.last_created
+    assert_orig_locale(nil, record: url_last)  # defined in test_system_helper.rb
 
     ## checking orig_locale modifications
     css_editor_only = ApplicationController.helpers.get_only_css_class(:editor)  # defined in application_helper.rb
     css_orig_locale_span = "#sec_primary_trans h2 ." + css_editor_only 
     assert_selector css_orig_locale_span
     assert_match(/orig_locale.+\bnil/, find_all(css_orig_locale_span).first.text)
+
     assert_selector :xpath, xpath_all_translation_table(langcode: "ja")
     refute_selector :xpath, xpath_all_translation_table(langcode: "en")  # no English Translation
     assert_selector :xpath, xpath_all_translation_table(langcode: "fr")
@@ -120,6 +123,7 @@ class UrlsTest < ApplicationSystemTestCase
     assert_selector :xpath, xpath_fr, text: "ullif"  # nullify
     assert_selector :xpath, xpath_ja_is_orig, text: "No"
     assert_selector :xpath, xpath_fr_is_orig, text: "Yes"
+    assert_orig_locale(:fr, record: url_last.reload)  # defined in test_system_helper.rb
 
     # orig_locale => nil
     find(:xpath, xpath_fr).click
@@ -134,6 +138,7 @@ class UrlsTest < ApplicationSystemTestCase
     assert_selector :xpath, xpath_fr, text: "locale"
     refute_selector :xpath, xpath_ja_is_orig, text: "No"
     refute_selector :xpath, xpath_fr_is_orig, text: "Yes"
+    assert_orig_locale(nil, record: url_last.reload)  # defined in test_system_helper.rb
 
     # orig_locale => "ja"
     find(:xpath, xpath_ja).click
@@ -148,6 +153,30 @@ class UrlsTest < ApplicationSystemTestCase
     assert_selector :xpath, xpath_fr, text: "locale"
     assert_selector :xpath, xpath_ja_is_orig, text: "Yes"
     assert_selector :xpath, xpath_fr_is_orig, text: "No"
+
+    # orig_locale => "fr" again
+    page.refresh
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+    assert_orig_locale(:ja, record: url_last.reload)  # defined in test_system_helper.rb
+    assert_equal :ja, get_orig_locale_from_translation_table(browser_locale=:en)  # defined in test_system_helper.rb
+    assert_equal :fr, (ret=switch_orig_locale(:fr, dryrun: true)), ((:with_confirm == ret) ? "Confirmation pop-up should not be present, but..." : "Translation for :fr should exist but...")
+    assert_equal :fr, switch_orig_locale(:fr)  # success
+    assert_equal :fr, get_orig_locale_from_translation_table(browser_locale=:en)  # success confirmed
+
+    # orig_locale => nil again
+    page.refresh
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+    assert_nil (ret=switch_orig_locale(nil, dryrun: true)), ((:with_confirm == ret) ? "Confirmation pop-up should not be present, but..." : "Nullify link should exist but...")
+    assert_nil switch_orig_locale(nil)  # success (nil is returned on success when nil is given) # defined in test_system_helper.rb
+    assert_nil get_orig_locale_from_translation_table(browser_locale=:en)  # success confirmed
+    xpath = switch_orig_locale(:ko)  # should fail b/c no Korean Translation
+    refute_selector :xpath, xpath  # => so, run assert_no_selector in the caller side.
+
+    # orig_locale => "ja" again
+    page.refresh
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+    assert_equal :ja, switch_orig_locale(:ja)  # success
+    assert_equal :ja, get_orig_locale_from_translation_table(browser_locale=:en)  # success confirmed
 
     ## Destory
     xp = "div.link-edit-destroy form.button_to button.destroy_link"

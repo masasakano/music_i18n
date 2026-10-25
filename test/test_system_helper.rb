@@ -815,6 +815,41 @@ class ActiveSupport::TestCase
     refute_selector "form form"  # Essential to avoid mal-format and Rails' confusion
   end
 
+  # Tests if orig_locale is the expected one in :show
+  #
+  # This method waits, so you can call this anytime as long as the page has been started to refresh.
+  #
+  # @note
+  #   This method is tested in "## checking orig_locale modifications" in urls_test.rb
+  #
+  # @example Simplest cases when orig_locale should be nil and "en", respectively
+  #    assert_orig_locale(nil)  # defined in test_system_helper.rb
+  #    assert_orig_locale(:en)  # defined in test_system_helper.rb
+  #
+  # @example
+  #    assert_text "Music was "+(str="successfully created")
+  #    flash_text_system_assert(str, type: [:notice, :success], category: :div)  # defined in test_helper.rb
+  #    record_last = Music.last_created
+  #    assert_orig_locale(:en, record: record_last)  # defined in test_system_helper.rb
+  #    ### edit...
+  #    assert_orig_locale(nil, record: record_last.reload)  # defined in test_system_helper.rb
+  #
+  # @param locale [String, Symbol, NilClass]
+  # @param record: [BaseWithTranslation, NilClass] is specified (optional), its orig_locale is tested (asserted) first.
+  # @return [void]
+  def assert_orig_locale(locale, record: nil)
+    locale_str = locale.to_s
+    css1 = "#sec_primary_trans    .authorized_only.orig_locale"
+    css2 = "#sec_primary_trans h2 .authorized_only.orig_locale"
+    assert_selector css1  # If this fails, the current page is not on :show (e.g., after a failed save!) or not for BaseWithTranslation
+    assert_selector css2  # If this fails, the diplay place of orig_locale has changed; see /app/views/layouts/_all_registered_translations.html.erb
+
+    assert_equal locale_str, record.orig_locale.to_s, _get_caller_info_message(bind_offset: -1, prefix: true)+"(#{__method__}): record" if record
+    retrieved_locale = find(css2).text.split(/[=:]/).last.strip.gsub(/[()"]/, "")
+    retrieved_locale = "" if "nil" == retrieved_locale
+    assert_equal locale_str, retrieved_locale, _get_caller_info_message(bind_offset: -1, prefix: true)+"(#{__method__}: retrieved_locale"
+  end
+
   # Tests if a Destroy button exists
   #
   # This should need updates (after the migration to Propshaft from Sprockets)...
@@ -874,6 +909,121 @@ class ActiveSupport::TestCase
       end
     end
   end
+
+  # @note tested in urls_test.rb in a complete way.
+  #
+  # @example
+  #   assert_selector "h1", text: "MyClass"
+  #   assert_orig_locale(:ja, record: nil)
+  #   assert_equal :ja get_orig_locale_from_translation_table(browser_locale=:en)
+  #
+  # @param browser_locale [String, Symbol] Current brower-environment locale
+  # @return [Symbol, NilClass] Obtained locale from Table, either Symbol or nil
+  def get_orig_locale_from_translation_table(browser_locale=:en)
+    label_orig_lang = I18n.t("datagrid.footnote.is_original", locale: browser_locale)
+    xpath_en_banner = xpath_all_translation_table(langcode: "en", banner: true)  # defined in test_helper.rb
+    assert_selector :xpath, xpath_en_banner
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+
+    xpath_banner_containing_orig = xpath_all_translation_table(banner: true) +  # defined in test_helper.rb
+                                   "[" + ModuleCommon.xpath_contain_text(label_orig_lang, case_insensitive: false) + "]"
+
+    nodes = find_all(:xpath, xpath_banner_containing_orig)
+    return nil if nodes.blank?
+
+    raise "Multiple orig_locale=true which should never happen..." if nodes.size > 1
+    nodes.first[:class].split.each do |eklass|
+      mat = /^lang_banner_(..)$/.match(eklass)  # See for the CSS class /app/views/layouts/_all_registered_translations.html.erb
+      return mat[1].to_sym if mat
+    end
+    raise "no CSS Class which should never happen..."
+  end
+
+  # Switch orig_locale to the specified one (including nil)
+  #
+  # This runs assert of flash, providing the link is found at least.
+  # "Confirm" button is pressed if required, in which case +:with_confirm+ is returned.
+  #
+  # @note tested in urls_test.rb in a complete way.
+  #
+  # @note page.refresh is often needed if attempting succession of switching locale
+  #    because {#close_flash_windows} sometiems does not work...
+  #
+  # @example Url class, where orig_locale can be anything.
+  #   assert_selector "h1", text: "MyClass"
+  #   record = MyClass.last_created
+  #   assert_orig_locale(:ja, record: record)  # defined in test_system_helper.rb
+  #   assert_equal :ja, get_orig_locale_from_translation_table(browser_locale=:en)  # defined in test_system_helper.rb
+  #   assert_equal :fr, (ret=switch_orig_locale(:fr, dryrun: true)), ((:with_confirm == ret) ? "Confirmation pop-up should not be present, but..." : "Translation for :fr should exist but...")
+  #   assert_equal :fr, switch_orig_locale(:fr)  # success # defined in test_system_helper.rb
+  #   assert_equal :fr, get_orig_locale_from_translation_table(browser_locale=:en)  # success confirmed
+  #   page.refresh  # needed to clear the flash message b/c close_flash_windows sometiems does not work...
+  #   assert_nil (ret=switch_orig_locale(nil, dryrun: true)), ((:with_confirm == ret) ? "Confirmation pop-up should not be present, but..." : "Nullify link should exist but...")
+  #   assert_nil switch_orig_locale(nil)  # success (nil is returned on success when nil is given) # defined in test_system_helper.rb
+  #   assert_nil get_orig_locale_from_translation_table(browser_locale=:en)  # success confirmed
+  #   xpath = switch_orig_locale(:ko)  # should fail b/c no Korean Translation
+  #   refute_selector :xpath, xpath  # => so, run assert_no_selector in the caller side.
+  #
+  # @example Artist class, where orig_locale should not be nil (so switching attempt to nil invokes confirmation pop-up)
+  #   assert_selector "h1", text: "Artist: "
+  #   record = Artist.last_created
+  #   assert_orig_locale(:ja, record: record)  # defined in test_system_helper.rb
+  #   assert_equal :ja, get_orig_locale_from_translation_table(browser_locale=:en)  # defined in test_system_helper.rb
+  #   assert_equal :with_confirm, switch_orig_locale(nil, dryrun: true)  # Confirmation pop-up shoud be present
+  #   assert_equal :with_confirm, switch_orig_locale(nil)  # successfully switching locale
+  #   assert_nil  get_orig_locale_from_translation_table(browser_locale=:en)  # success confirmed
+  #   page.refresh  # needed to clear the flash message b/c close_flash_windows sometiems does not work...
+  #   assert_equal :en, (ret=switch_orig_locale(:en, dryrun: true)), ((:with_confirm == ret) ? "Confirmation pop-up should not be present, but..." : "Translation for :en should exist but...")
+  #   assert_equal :en, switch_orig_locale(:en)  # successfully switching locale to :en. Because the above assertion has passed, if this fails, something has gone wrong with either Controller structure or flash-messaging.
+  #
+  # @param to_locale [String, Symbol, NilClass] locale or nil
+  # @param dryrun: [Boolean] if true (Def: false), not executes +click+
+  # @return [String, Symbol, NilClass] +to_locale+ equivalent (nil or Symbol) if normal ends without needing JavaScript confirm pop-up.
+  #    Symbol :with_confirm if confirm-dialog appears. String of XPath if fails to find the link for the specified +to_locale+
+  def switch_orig_locale(to_locale, dryrun: false)
+    ret_confirm = :with_confirm
+    ret = (to_locale ? to_locale.to_sym : nil)
+    xpath_en_banner = xpath_all_translation_table(langcode: "en", banner: true)  # defined in test_helper.rb
+    assert_selector :xpath, xpath_en_banner
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+
+    css_only = ApplicationController.helpers.get_only_css_class(:authorized)
+    xpath_tail = "/th//*" + ModuleCommon.xpath_contain_css(css_only, complete_for: "") +
+                 "//" + ModuleCommon.xpath_contain_css(Consts::Csses::Layouts::UPDATE_LINK, complete_for: "a")
+    if to_locale.present?
+      xpath_anc = xpath_all_translation_table(langcode: to_locale.to_s, banner: true) + xpath_tail  # defined in test_helper.rb
+    else
+      xpath_anc = xpath_all_translation_table(banner: true) + xpath_tail +  # defined in test_helper.rb
+                  "[" + ModuleCommon.xpath_contain_text("Nullify", case_insensitive: true) + "]"  # "Nullify" defined in table_banner_orig_locale_anchor in translations_helper.rb
+    end
+
+    nodes = find_all(:xpath, xpath_anc)
+    return xpath_anc if nodes.blank?
+    raise "Multiple anchors found which should never happen..." if nodes.size > 1
+
+    with_confirm = false
+    if nodes.first["data-turbo-confirm"].present?
+      return ret_confirm if dryrun
+      with_confirm = true
+      accept_confirm do
+        nodes.first.click
+      end
+    else
+      return ret if dryrun
+      nodes.first.click
+    end
+
+    msg = "was successfully updated"
+    assert_text msg
+    flash_text_system_assert(msg, type: [:notice, :success], category: :div)  # defined in test_helper.rb
+    begin
+      close_flash_windows([:notice, :success])  # Sometimes raises Selenium::WebDriver::Error::StaleElementReferenceError
+    rescue Selenium::WebDriver::Error::StaleElementReferenceError
+    end
+
+    with_confirm ? ret_confirm : ret
+  end
+
 
   # Returns true if there is no clickable links/forms/buttons inside the given element
   #

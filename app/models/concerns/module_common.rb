@@ -2031,10 +2031,10 @@ module ModuleCommon
   # Problematic characters (single quotes) are properly escaped.
   #
   # @example
-  #    "//a[" + ModuleCommon.xpath_contain_text("Click", "Button", case_insensitive: false) + "]"
+  #    "//a[" + ModuleCommon.xpath_contain_text("Click", "button", case_insensitive: false) + "]"
   #      # => "//a[contains(., 'Click') and contains(., 'button')]"
   #
-  # @param texts [String, Array<String>] "Click", "Button"
+  # @param texts [String, Array<String>] "Click", "Button" (multiple keywords are allowed)
   # @param case_insensitive: [Boolean] if true (Default), basic case-insensitive search is made (only for ASCII alphabets)
   # @return [String] e.g., `[contains(., 'Click') and contains(., 'button')]`
   def self.xpath_contain_text(*texts, **opts)

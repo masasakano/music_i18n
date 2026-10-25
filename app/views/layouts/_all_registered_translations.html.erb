@@ -44,7 +44,7 @@
 
   <section id="sec_primary_trans">
     <h2><%= t("layouts.all_registered") %><%= t("layouts."+(defined?(myself) ? 'translations' : 'translated_names')) %>
-      <%= editor_only_safe_html(:pass, method: can_show, tag: :span) do %>
+      <%= editor_only_safe_html(:pass, method: can_show, tag: :span, class: "orig_locale") do %>
         (orig_locale=<%= model.orig_locale.inspect %>)
       <% end %>
     </h2>
@@ -122,7 +122,7 @@
 
     <tr class="lang_banner lang_banner_<%= lcode %>">
       <th colspan="<%= allcolspan %>" class="middle_row">
-        <%= table_banner_content(model, lcode, should_show_add_trans) %>
+        <%= table_banner_content(model, lcode, (should_show_add_trans && alltra.present?)) %>
       <% if editable_any_at_all && add_buttons && (tra1 && model.translation_creatable?(lcode, user: current_user) || (!tra1 && flag_ables[:destroyable])) %><%# NOTE: Translation#creatable_other? takes into account can?(:create, Translation.new) %>
         <%= link_to t("layouts.add_"+((model.orig_locale == lcode) ? "alt_title" : "translation")), new_translation_path(langcode: lcode, translatable_type: model.class.name, translatable_id: model.id), class: "button_like "+Consts::Csses::Layouts::ADD_TRANSLATION_ANCHOR, style: "margin-left: 1em" %><%# alternative: "btn btn-primary btn-sm" %>
       <% end %>
@@ -203,7 +203,7 @@
           <% class2add = ((current_user && current_user.qualified_as?(Role::RNAME_MODERATOR, RoleCategory::MNAME_TRANSLATION)) ? "moderator_only" : "editor_only") %> <%# One's own Translation can be destroyed by themselves even if they are Editors. It is the same for Moderators, but Moderators do have more responsibility and so the style of "moderator_only" is used for Destroy regardless of the Translation owned by themselves or not. %>
           <% class2add = "admin_only" if tra.last_remaining_in_any_languages? %>
           <td class="trans_action trans_destroy <%= class2add %>" style="border-left-style: none;">
-            <%= destroy_link(tra, is_button: true, inline: true, link_like: true) %>
+            <%= destroy_link(tra, is_button: true, inline: true, link_like: true) %><%# defined in application_helper.rb %>
           </td>
         <% else %>
           <td><span class="cell_disable_link destroy">Destroy</span></td>

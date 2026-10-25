@@ -1419,11 +1419,10 @@ module ApplicationHelper
   # @return [String]
   def non_get_link(link_text, path, method: , is_button: true, inline: false, link_like: false, to_top: true, extra_classes: [], with_confirm: true, confirm_message: t('are_you_sure'), **kwds)
     classes_str = [extra_classes].flatten.join(" ")
-    confirm_message ||= t('are_you_sure')
     turbohs = { turbo: true }
     turbohs[:turbo_frame] = "_top"
+    turbohs[:turbo_confirm] = (confirm_message || t('are_you_sure')) if with_confirm
     if is_button
-      turbohs[:turbo_confirm] = confirm_message if with_confirm
       opts = { form: {data: turbohs} }
       classes_str = [classes_str, (link_like ? "btn btn-link p-0 align-baseline" : "")].join(" ").split.uniq.join(" ")
       opts[:class] = classes_str if !classes_str.empty?
@@ -1432,7 +1431,6 @@ module ApplicationHelper
       button_to link_text, path, method: method, **opts
     else  # normal link anchor text
       turbohs[:turbo_method] = method
-      turbohs[:turbo_confirm] = t('are_you_sure') if with_confirm
       opts = {data: turbohs}
       opts[:class] = classes_str if !classes_str.empty?
       opts.merge! kwds

@@ -331,6 +331,7 @@ class ArtistsTest < ApplicationSystemTestCase
       fill_in 'Note', with: markd
     end
 
+    refute_nested_forms  # defined in test_system_helper.rb
     click_on @button_text[:create]
 
     # assert_match(/ prohibited /, page_find_sys(:error_div, :title).text)  # Artist with the same name is OK unless other information is identical.
@@ -456,6 +457,8 @@ class ArtistsTest < ApplicationSystemTestCase
     select montparnasse_tit, from: "Place"
 
     page.find_field(name: 'artist[birth_day]').fill_in with: 31
+
+    refute_nested_forms  # defined in test_system_helper.rb
     click_on @button_text[:update]
 
     assert_text "successfully updated."

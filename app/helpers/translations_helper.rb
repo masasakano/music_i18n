@@ -171,7 +171,7 @@ module TranslationsHelper
 
   # @param record [BaseWithTranslation] NOT Translation(!!)
   # @param lcode [String] locale (for the language banner)
-  # @param should_show_add_trans [Boolean]
+  # @param should_show_add_trans [Boolean] Caller should give falthy if no Translations are present for the language
   # @return [String] Language banner's content except for the "add-button" of another Translation
   def table_banner_content(record, lcode, should_show_add_trans)
     arret = []
@@ -202,12 +202,14 @@ module TranslationsHelper
   def table_banner_orig_locale_anchor(record, lcode)
     css_visual = "text-half_opacity"
     caution_str = "[Caution!]"
+    with_confirm = false
+
     if record.orig_locale == lcode
       label_base = "Nullify"
       title_base = "Change orig_locale to nil"
       labelstr, title = [label_base, title_base]
       if :disallow_nil == get_dry_controller(record)::ORIG_LOCALE_TYPE_ON_CREATE
-        labelstr = (tag.span(label_base, class: css_visual) + caution_str).html_safe
+        with_confirm = true
         title += ": which should never be the case with this model in priinciple"
       end
       to_locale = nil
@@ -217,20 +219,26 @@ module TranslationsHelper
       title_base = "Change orig_locale to #{lcode.inspect}"
       labelstr, title = [label_base, title_base]
       if :always_nil == get_dry_controller(record)::ORIG_LOCALE_TYPE_ON_CREATE
-        labelstr = (tag.span(label_base, class: css_visual) + caution_str).html_safe
+        with_confirm = true
         title += ", but it should be always nil with this model in priinciple"
       end
       to_locale = lcode
       css_extra = "change_orig_locale"
     end
 
+    turbohs = { turbo: true, turbo_method: :patch }
+    if with_confirm
+      turbohs[:turbo_confirm] = t('are_you_sure')
+      labelstr = (tag.span(label_base, class: css_visual) + caution_str).html_safe
+    end
+
     editor_only_safe_html(:pass, method: true, tag: :span) {
-      sprintf "(→%s)",
+      sprintf("(→%s)",
               link_to(labelstr,
                       polymorphic_path(record, record.model_name.param_key => { orig_locale: to_locale }),
                       data: { turbo: true, turbo_method: :patch },
                       title: title,
-                      class: [Consts::Csses::Layouts::UPDATE_LINK, css_extra])
+                      class: [Consts::Csses::Layouts::UPDATE_LINK, css_extra])).html_safe
     }
   end
 end
