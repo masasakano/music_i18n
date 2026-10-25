@@ -155,8 +155,7 @@ class UrlsTest < ApplicationSystemTestCase
     assert_selector :xpath, xpath_fr_is_orig, text: "No"
 
     # orig_locale => "fr" again
-    page.refresh
-    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+    close_flash_windows([:notice, :success], do_assert: false)
     assert_orig_locale(:ja, record: url_last.reload)  # defined in test_system_helper.rb
     assert_equal :ja, get_orig_locale_from_translation_table(browser_locale=:en)  # defined in test_system_helper.rb
     assert_equal :fr, (ret=switch_orig_locale(:fr, dryrun: true)), ((:with_confirm == ret) ? "Confirmation pop-up should not be present, but..." : "Translation for :fr should exist but...")
@@ -164,8 +163,6 @@ class UrlsTest < ApplicationSystemTestCase
     assert_equal :fr, get_orig_locale_from_translation_table(browser_locale=:en)  # success confirmed
 
     # orig_locale => nil again
-    page.refresh
-    ensure_page_load_in_full_load  # defined in test_system_helper.rb
     assert_nil (ret=switch_orig_locale(nil, dryrun: true)), ((:with_confirm == ret) ? "Confirmation pop-up should not be present, but..." : "Nullify link should exist but...")
     assert_nil switch_orig_locale(nil)  # success (nil is returned on success when nil is given) # defined in test_system_helper.rb
     assert_nil get_orig_locale_from_translation_table(browser_locale=:en)  # success confirmed
@@ -173,8 +170,6 @@ class UrlsTest < ApplicationSystemTestCase
     refute_selector :xpath, xpath  # => so, run assert_no_selector in the caller side.
 
     # orig_locale => "ja" again
-    page.refresh
-    ensure_page_load_in_full_load  # defined in test_system_helper.rb
     assert_equal :ja, switch_orig_locale(:ja)  # success
     assert_equal :ja, get_orig_locale_from_translation_table(browser_locale=:en)  # success confirmed
 

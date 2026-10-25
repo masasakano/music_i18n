@@ -424,23 +424,51 @@ class ActiveSupport::TestCase
 
   # Closes/Clears all the Flash windows (of the specified types if specified)
   #
-  # Assertion fails if there is no Flash window of the specified type.
+  # Assertion fails if there is no Flash window of the specified type,
+  # unless +do_assert=false+ is specified.
   #
   # @example 
   #     close_flash_windows  # defined in test_system_helper.rb
   #     close_flash_windows([:notice, :success])  # defined in test_system_helper.rb
   #
   # @param type [NilClass, Symbol, Array]
+  # @param do_assert: [Boolean]
   # @return
-  def close_flash_windows(type=nil)
+  def close_flash_windows(type=nil, do_assert: true)
     xp = xpath_for_flash(type, category: :div)
-    assert_selector :xpath, xp
-    # find_all(:xpath, xp).first.find(".btn-close").click
-    find_all(:xpath, xp).each do |en|
-      en.find(".btn-close").click
-    end
-    # find("##{Consts::HtmlIds::FLASH} .btn-close").click  would do (for a random type of alert!)
-    # assert_no_selector Consts::HtmlIds::FLASH
+    assert_selector :xpath, xp if do_assert
+
+    ## Direct removal of the part as opposed to by actually clicking a cross to remove it.
+    # This is better because 
+    #    node.find(".btn-close").click
+    # would sometimes cause +Selenium::WebDriver::Error::StaleElementReferenceError+
+    # especially in or after multiple-clicking actions due to JavaScript's behaviour,
+    # potentially including Bootstrap's animated transition (taking 150ms)
+    #
+    # NOTE: using standard XPath iterators (XPathResult.ANY_TYPE or XPathResult.ORDERED_NODE_ITERATOR_TYPE)
+    #  would throw "Error: The document has been mutated since the result was returned",
+    #  hence the use of Snapshot below.
+    execute_script(<<~JS, xp)
+      const xpath = arguments[0];
+      const snapshot = document.evaluate(
+        xpath,
+        document,
+        null,
+        XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+        null
+      );
+
+      for (let i = 0; i < snapshot.snapshotLength; i++) {
+        snapshot.snapshotItem(i).remove();
+      }
+    JS
+
+    ### This would fail sometimes due to JavaScript's behaviour, potentially including Bootstrap's animated transition (taking 150ms)
+    #find_all(:xpath, xp).each do |en|
+    #  en.find(".btn-close").click
+    #end
+    ## find("##{Consts::HtmlIds::FLASH} .btn-close").click  would do (for a random type of alert!)
+    ## assert_no_selector Consts::HtmlIds::FLASH
   end
 
   # Tests CRUD of Anchoring in Show page
@@ -946,18 +974,17 @@ class ActiveSupport::TestCase
   #
   # @note tested in urls_test.rb in a complete way.
   #
-  # @note page.refresh is often needed if attempting succession of switching locale
-  #    because {#close_flash_windows} sometiems does not work...
+  # @note Make sure to clear flahs messages with {#close_flash_windows} before calling this.
   #
   # @example Url class, where orig_locale can be anything.
   #   assert_selector "h1", text: "MyClass"
+  #   close_flash_windows([:notice, :success], do_assert: false)  # or page.refresh
   #   record = MyClass.last_created
   #   assert_orig_locale(:ja, record: record)  # defined in test_system_helper.rb
   #   assert_equal :ja, get_orig_locale_from_translation_table(browser_locale=:en)  # defined in test_system_helper.rb
   #   assert_equal :fr, (ret=switch_orig_locale(:fr, dryrun: true)), ((:with_confirm == ret) ? "Confirmation pop-up should not be present, but..." : "Translation for :fr should exist but...")
   #   assert_equal :fr, switch_orig_locale(:fr)  # success # defined in test_system_helper.rb
   #   assert_equal :fr, get_orig_locale_from_translation_table(browser_locale=:en)  # success confirmed
-  #   page.refresh  # needed to clear the flash message b/c close_flash_windows sometiems does not work...
   #   assert_nil (ret=switch_orig_locale(nil, dryrun: true)), ((:with_confirm == ret) ? "Confirmation pop-up should not be present, but..." : "Nullify link should exist but...")
   #   assert_nil switch_orig_locale(nil)  # success (nil is returned on success when nil is given) # defined in test_system_helper.rb
   #   assert_nil get_orig_locale_from_translation_table(browser_locale=:en)  # success confirmed
@@ -966,13 +993,13 @@ class ActiveSupport::TestCase
   #
   # @example Artist class, where orig_locale should not be nil (so switching attempt to nil invokes confirmation pop-up)
   #   assert_selector "h1", text: "Artist: "
+  #   close_flash_windows([:notice, :success], do_assert: false)  # or page.refresh
   #   record = Artist.last_created
   #   assert_orig_locale(:ja, record: record)  # defined in test_system_helper.rb
   #   assert_equal :ja, get_orig_locale_from_translation_table(browser_locale=:en)  # defined in test_system_helper.rb
   #   assert_equal :with_confirm, switch_orig_locale(nil, dryrun: true)  # Confirmation pop-up shoud be present
   #   assert_equal :with_confirm, switch_orig_locale(nil)  # successfully switching locale
   #   assert_nil  get_orig_locale_from_translation_table(browser_locale=:en)  # success confirmed
-  #   page.refresh  # needed to clear the flash message b/c close_flash_windows sometiems does not work...
   #   assert_equal :en, (ret=switch_orig_locale(:en, dryrun: true)), ((:with_confirm == ret) ? "Confirmation pop-up should not be present, but..." : "Translation for :en should exist but...")
   #   assert_equal :en, switch_orig_locale(:en)  # successfully switching locale to :en. Because the above assertion has passed, if this fails, something has gone wrong with either Controller structure or flash-messaging.
   #
@@ -1016,10 +1043,10 @@ class ActiveSupport::TestCase
     msg = "was successfully updated"
     assert_text msg
     flash_text_system_assert(msg, type: [:notice, :success], category: :div)  # defined in test_helper.rb
-    begin
-      close_flash_windows([:notice, :success])  # Sometimes raises Selenium::WebDriver::Error::StaleElementReferenceError
-    rescue Selenium::WebDriver::Error::StaleElementReferenceError
-    end
+   #begin
+    close_flash_windows([:notice, :success])
+   #rescue Selenium::WebDriver::Error::StaleElementReferenceError  # This used to be sometimes raised this error when close_flash_windows  performed actual clicking. (See comments in {#close_flash_windows})
+   #end
 
     with_confirm ? ret_confirm : ret
   end
