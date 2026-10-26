@@ -11,7 +11,7 @@ class PlacesControllerTest < ActionDispatch::IntegrationTest
     @place = places(:tocho)
     @editor    = roles(:general_ja_editor).users.first     # (General) Editor can manage.
     @moderator = roles(:general_ja_moderator).users.first  # (General) Moderator can manage.
-    @transs = sample_translation_params(with_true_name: false)  # defined in test_helper.rb
+    @transs = sample_translation_params(with_true_name: false)  # defined in test_helper.rb (title etc)
   end
 
   teardown do

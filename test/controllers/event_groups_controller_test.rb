@@ -11,10 +11,8 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     @trans_moderator = users(:user_translator)
     @editor_ja       = users(:user_editor_general_ja)
     @editor_harami   = users(:user_editor)
+    @transs = sample_translation_params(title: "The Tｅst7", langcode: "ja", kind: Translation::KIND_FULL)[0..0]  # defined in test_helper.rb (title etc)
     @hs_create = {
-      "langcode"=>"ja",
-      "title"=>"The Tｅst7",
-      "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
       "start_date(1i)"=>"1999", "start_date(2i)"=>"1", "start_date(3i)"=>"11",
       "end_date(1i)"=>(Date.current.end_of_year+80.year).year.to_s,
       "end_date(2i)"=>"12", "end_date(3i)"=>"31",
@@ -68,33 +66,39 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should create event_group" do
+    params2succeed = _params2give(hs_trans: @transs)
     assert_no_difference("EventGroup.count") do
-      post event_groups_url, params: _params2give()
+      post event_groups_url, params: params2succeed
     end
 
     editor = roles(:general_ja_editor).users.first
     sign_in editor
     assert_not Ability.new(editor).can?(:create, EventGroup)
     assert_no_difference("EventGroup.count") do
-      post event_groups_url, params: _params2give()
+      post event_groups_url, params: params2succeed
     end
 
     sign_in @trans_moderator  # cannot create
     assert_not Ability.new(@trans_moderator).can?(:create, EventGroup)
     assert_no_difference("EventGroup.count") do
-      post event_groups_url, params: _params2give()
+      post event_groups_url, params: params2succeed
     end
 
     #sign_in users(:user_sysadmin)  # for DEBUG
     sign_in @moderator
     assert_difference("EventGroup.count") do
-      post event_groups_url, params: _params2give()
+      post event_groups_url, params: params2succeed
+      assert_response :redirect
     end
     assert_redirected_to event_group_url(EventGroup.last)
     new_evgr = EventGroup.order(:created_at).last
     assert_equal "Test7, The", new_evgr.title, "EventGroup: "+EventGroup.order(:created_at).last.inspect
     assert  new_evgr.end_date, "end_date should be defined, but...: EventGroup=#{new_evgr.inspect}"
     assert_equal TimeAux::DEF_LAST_DATE_TIME.year, new_evgr.end_date.year, "Unreasonably late date (large year) should be replaced with the default, but...: EventGroup=#{new_evgr.inspect}"
+
+    follow_redirect!
+    assert_response :success
+    flash_regex_assert(/Group was successfully created/, type: :success, with_html: true) # defined in test_helper.rb
   end
 
   test "should show event_group" do
@@ -249,10 +253,13 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
     #    patch event_group_url(@event_group), params: _params2give(hs_extra: {"weight" => 0.98})
     #
     # @param hsmain [Hash] Main Hash (Def: @hs_create), the value for the key :event_group
+    # @param hs_trans: [Hash] Translation Array to merge to hsmain
     # @param hs_extra: [Hash] to merge to hsmain
     # @param place_id: [Integer, String, ActiveRecord<Place>]
     # @return [Hash] with_indifferent_access
-    def _params2give(hsmain=@hs_create, hs_extra: {}, place_id: @place.id)
-      params_to_give_with_place(EventGroup, hsmain.with_indifferent_access.merge(hs_extra), place_id: place_id)  # defined in test_helper.rb
+    def _params2give(hsmain=@hs_create, hs_extra: {}, hs_trans: {}, place_id: @place.id)
+      hs = hsmain.with_indifferent_access.merge(hs_extra)
+      hs = hs.merge({translations_attributes: @transs}) if hs_trans.present?
+      params_to_give_with_place(EventGroup, hs, place_id: place_id)  # defined in test_helper.rb
     end
 end

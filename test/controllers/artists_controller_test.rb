@@ -157,7 +157,7 @@ class ArtistsControllerTest < ActionDispatch::IntegrationTest
     ModuleWhodunnit.whodunnit  #  just to (potentially) suppress mal-functioning in setting this...
     get artists_url
 
-
+    ### NOTE: Unless specific, usually you may use instead sample_translation_params()  # defined in test_helper.rb (title etc)
     # --- Translation Set 1 ---
     tit1 = preprocess_space_zenkaku("試験的楽曲その１")  # "試験的楽曲その1"
     transs = [

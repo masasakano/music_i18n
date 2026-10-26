@@ -1236,15 +1236,20 @@ end
   # @example
   #   sample_translation_params(with_true_name: false)  # defined in test_helper.rb
   #
+  # @param with_true_name: [Boolean] if true (Def: false), is_true_name is included (usually only for {Artist} and {ChannelOwner})
+  # @param with_is_orig: [Boolean] if true (Def), is_orig is included.
+  # @param title: [String, NilClass] to modify the tilte of the first Translation. If significant, ruby and romaji are nil. Else, they are specified.
+  # @param langcode: [String, NilClass] to modify the langcode of the first Translation.
+  # @param kind: [String, NilClass] to modify the kind of the first Translation.
   # @return [Array<Hash>] for creating two Translation-s
-  def sample_translation_params(with_true_name: false, with_is_orig: true)
+  def sample_translation_params(with_true_name: false, with_is_orig: true, title: nil, langcode: nil, kind: nil, is_orig: :untouched)
     arret = [
-      { title: "The Tｅst",
-        ruby: "ザ・てすと",
-        romaji: "Za Tesuto",
-        langcode: "en",
-        kind: "full",
-        is_orig: true,  # is_orig field may be disabled for some models, in which case this this should be ignored.
+      { title:  (title.presence || "The Tｅst"),
+        ruby:   (title.presence ? "" : "ザ・てすと"),
+        romaji: (title.presence ? "" : "Za Tesuto"),
+        langcode: (langcode.presence || "en").to_s,
+        kind: (kind.presence || Translation::KIND_FULL),
+        is_orig: (is_orig1=((:untouched == is_orig) ? true : is_orig)),  # is_orig field may be disabled for some models, in which case this this should be ignored.
         start_year: "",
         end_year: "",
         is_formal: "true",
@@ -1260,7 +1265,7 @@ end
         romaji: "",
         langcode: "ja",
         kind: "full",  # displayed as "(auto)" if nil
-        is_orig: false,  # is_orig field may be disabled for some models, in which case this this should be ignored.
+        is_orig: (is_orig1.nil? ? nil : !is_orig1),  # is_orig field may be disabled for some models, in which case this this should be ignored.
         start_year: "",
         end_year: "",
         is_formal: "",

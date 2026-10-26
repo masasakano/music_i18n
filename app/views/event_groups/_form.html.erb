@@ -5,14 +5,18 @@
 <hr>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: event_group, add_buttons: true} %>
 <hr>
+<% end %>
+<%= tag.section id: "sec_primary" do %>
+<% if ! event_group.new_record? %>
 
 <h2>Unique parameters</h2>
 <% end %>
 
-<div id="form_main">
+  <%= tag.div id: "form_main" do %>
 <%= simple_form_for event_group do |f| %>
+ <section id="sec_primary_input">
   <% if event_group.new_record? %>
-    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: event_group, trans: Translation.new, disable_is_orig: false, is_simple_form: true} %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, is_simple_form: true, use_form_attributes: true} %>
   <% end %>
 
   <%= render partial: "layouts/form_select_place", locals: {form: f, record: event_group} %>
@@ -31,7 +35,9 @@
   <div class="actions">
   <%= submit_tag(t("layouts.reset_button"), { :name => 'reset', :id => 'reset_button', :type => "reset" }) %>
   </div>
+ </section> <!-- section id="sec_primary_input" -->
 <% end %>
 
-</div>
+  <% end %> <!-- div id="form_main" -->
+<% end %> <!-- tag.section id: "sec_primary" do -->
 

@@ -5,15 +5,20 @@
 <hr>
 <%= render partial: 'layouts/all_registered_translations', locals: {model: event, add_buttons: true} %>
 <hr>
+<% end %>
+<%= tag.section id: "sec_primary" do %>
+<% if ! event.new_record? %>
 
 <h2>Unique parameters</h2>
 <% end %>
+
+<%= tag.div id: "form_main" do %>
 
 <%= simple_form_for event do |f| %>
  <section id="sec_primary_input">
 
   <% if event.new_record? %>
-    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: event, trans: Translation.new, disable_is_orig: true, is_simple_form: true, only_title: true } %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, is_simple_form: true, only_title: true, use_form_attributes: true, n_translation_sets: 1} %>
   <% end %>
 
   <%= f.association :event_group, label: t(:EventGroup),
@@ -38,6 +43,7 @@
   </div>
  </section> <!-- section id="sec_primary_input" -->
 <% end %>
+  <% end %> <!-- div id="form_main" -->
 
 <% if !event.new_record? %>
   <%#= render partial: 'events_table', locals: {event: event, add_buttons: true} %>
@@ -49,5 +55,5 @@
   <% end %>
 <% end %>
 
-
+<% end %> <!-- tag.section id: "sec_primary" do -->
 

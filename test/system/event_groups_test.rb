@@ -5,11 +5,12 @@ class EventGroupsTest < ApplicationSystemTestCase
   setup do
     @moderator = users(:user_moderator_general_ja)
     @editor_ja = users(:user_editor_general_ja)
-    @event_group = event_groups(:evgr_lucky2023)
+    @record = @event_group = event_groups(:evgr_lucky2023)
     @button_text = {
       create: "Create Event group",
       update: "Update Event group",
     }
+    @model_underscore = @record.class.name.underscore
   end
 
   ######## For now, it is prohibited for public to view EventGroup#index
@@ -30,10 +31,12 @@ class EventGroupsTest < ApplicationSystemTestCase
     click_on "Create EventGroup"
 
     assert_selector "h1", text: "New EventGroup"
-    page_find_sys(:trans_new, :langcode_radio, model: EventGroup).choose('English')  # defined in test_system_helper
+    #page_find_sys(:trans_new, :langcode_radio, model: EventGroup).choose('English')  # defined in test_system_helper
 
     # label_str = I18n.t('layouts.new_translations.title', model: 'EventGroup')
-    page.find('input#event_group_title').fill_in with: 'Tekitoh'  # This is unique!
+    new_tit = 'Tekitoh'
+    #page.find('input#event_group_title').fill_in with: 'Tekitoh'  # This is unique!
+    fill_in_new_translations([{ title: new_tit, is_orig: nil }])  # => orig_locale will be nil
 
     # Test of dropdown-menu
     assert_selector 'div#div_select_country', text: "Country"
@@ -65,11 +68,30 @@ class EventGroupsTest < ApplicationSystemTestCase
     select @event_group.end_date.strftime('%B'), from: "event_group_end_date_2i"
     select @event_group.end_date.strftime('%-d'), from: "event_group_end_date_3i"
     fill_in "± days (End)", with: ""
-    fill_in "Note", with: @event_group.note
+    within("div.#{@model_underscore}_note") do
+      fill_in "Note", with: @event_group.note
+    end
     #fill_in "Place", with: @event_group.place_id  # Dropdown described above
     click_on  @button_text[:create]
 
-    assert_text "EventGroup was successfully created"
+    assert_text "EventGroup "+(str="was successfully created")
+    flash_text_system_assert(str, type: [:notice, :success], category: :div)  # defined in test_helper.rb
+    close_flash_windows([:notice, :success])  # defined in test_system_helper.rb
+
+    record = EventGroup.last_created
+    assert_equal new_tit, record.best_translation.title
+
+    visit event_group_url(record, locale: I18n.locale)
+    assert_selector "h1", text: new_tit
+
+    # testing switch orig_locale
+    cur_locale = record.orig_locale
+    assert_nil record.orig_locale, "sanity-check"
+    assert_equal :en,  assert_switch_orig_locale(record, browser_locale=:en, to_locale: :en)  # defined in test_system_helper.rb
+    assert_equal :nil, assert_switch_orig_locale(record, browser_locale=:en, to_locale: nil)  # defined in test_system_helper.rb
+    xpath_ko = switch_orig_locale(:ko)  # should fail b/c no Korean Translation
+    refute_selector :xpath, xpath_ko
+
     assert_selector "section#section_event_group_show_footer a", text: "Back"
     page.find("section#section_event_group_show_footer a").click  # "Back to Index"
     #click_on "Back"
@@ -88,7 +110,9 @@ class EventGroupsTest < ApplicationSystemTestCase
     select @event_group.start_date.year,  from: "event_group_start_date_1i"
     select @event_group.start_date.strftime('%B'), from: "event_group_start_date_2i"
     select @event_group.start_date.strftime('%-d'), from: "event_group_start_date_3i"
-    fill_in "Note", with: @event_group.note
+    within("div.#{@model_underscore}_note") do
+      fill_in "Note", with: @event_group.note
+    end
     #fill_in "Place", with: @event_group.place_id  # Dropdown described above
     endyear = Date.current.year + 5
     select endyear, from: "event_group_end_date_1i"  # This is updated!

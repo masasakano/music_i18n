@@ -16,7 +16,7 @@
 %>
 
 <% if use_form_attributes %>
-<section id="form_edit_translation" class="<%= (defined?(only_title) && only_title) ? 'longtext' : '' %>">
+<section id="form_edit_translation" class="<%= only_title ? 'longtext' : '' %>">
 <div class="translations-wrapper">
   <%= f.simple_fields_for :translations do |tf| %>
     <fieldset class="translation-fields border rounded p-3 mb-4">

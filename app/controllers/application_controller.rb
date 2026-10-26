@@ -353,7 +353,7 @@ class ApplicationController < ActionController::Base
     end
   end
 
-  # For Event and EventItem Controllers
+  # For (Event and) EventItem Controllers
   #
   # @param mdl [ApplicationRecord] Either Event or EventItem
   # @return [void]
@@ -367,7 +367,7 @@ class ApplicationController < ActionController::Base
     transfer_error_to_form(mdl, mdl_attr: :start_time_err, form_attr: :form_start_err)
   end
 
-  # For Event and EventItem Controllers
+  # For (Event and) EventItem Controllers
   #
   # @param mdl [ApplicationRecord] Either Event or EventItem
   # @return [void]

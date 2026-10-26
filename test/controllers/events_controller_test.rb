@@ -15,11 +15,12 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
     @moderator_ja    = users(:user_moderator_general_ja)  # Same as Translator.
     @editor_ja       = users(:user_editor_general_ja)
     @moderator = @moderator_all 
+    @transs = sample_translation_params(title: "The Tｅst7", langcode: "ja", kind: Translation::KIND_FULL)[0..0]  # defined in test_helper.rb (title etc)
     pla = places(:unknown_place_unknown_prefecture_japan)
     @hs_create = {
-      "langcode"=>"ja",
-      "title"=>"The Tｅst7",
-      "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
+      #"langcode"=>"ja",
+      #"title"=>"The Tｅst7",
+      #"ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
       "event_group_id"=>@event.event_group.id.to_s,
       "start_year"=>"2024", "start_month"=>"", "start_day"=>"", "start_hour"=>"", "start_minute"=>"",
       "start_err"=>"3", "start_err_unit"=>"hours",
@@ -93,15 +94,17 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should create event" do
+    memo1 = "new-memo-editor"
+    params2succeed = _params2give(hs_trans: @transs, hs_extra: {memo_editor: memo1})
     assert_no_difference("Event.count") do
-      post events_url, params: _params2give()
+      post events_url, params: params2succeed
     end
 
     editor = roles(:general_ja_editor).users.first
     sign_in editor
     assert_not Ability.new(editor).can?(:create, Event)
     assert_no_difference("Event.count") do
-      post events_url, params: _params2give()
+      post events_url, params: params2succeed
     end
 
     sign_in @trans_moderator  # cannot create
@@ -113,9 +116,8 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
 
     #sign_in users(:user_sysadmin)  # for DEBUG
     sign_in @moderator_all
-    memo1 = "new-memo-editor"
     assert_difference("Event.count") do
-      post events_url, params: _params2give(hs_extra: {memo_editor: memo1})
+      post events_url, params: params2succeed
       my_assert_no_alert_issued screen_test_only: true  # defined in /test/test_helper.rb
     end
     assert_redirected_to event_url(Event.last)
@@ -123,6 +125,10 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Test7, The", Event.order(:created_at).last.title, "Event: "+ev_last.inspect
     assert_equal @hs_create["form_start_err"].to_i*3600, ev_last.start_time_err
     assert_equal memo1, ev_last.memo_editor
+
+    follow_redirect!
+    assert_response :success
+    flash_regex_assert(/was successfully created/, type: :success, with_html: true) # defined in test_helper.rb
   end
 
   test "should show event" do
@@ -243,10 +249,13 @@ class EventsControllerTest < ActionDispatch::IntegrationTest
     #    patch event_url(@event), params: _params2give(hs_extra: {"weight" => 0.98})
     #
     # @param hsmain [Hash] Main Hash (Def: @hs_create), the value for the key :event
+    # @param hs_trans: [Hash] Translation Array to merge to hsmain
     # @param hs_extra: [Hash] to merge to hsmain
     # @param place_id: [Integer, String, ActiveRecord<Place>]
     # @return [Hash] with_indifferent_access
-    def _params2give(hsmain=@hs_create, hs_extra: {}, place_id: @place4create.id)
-      params_to_give_with_place(Event, hsmain.with_indifferent_access.merge(hs_extra), place_id: place_id)  # defined in test_helper.rb
+    def _params2give(hsmain=@hs_create, hs_extra: {}, hs_trans: {}, place_id: @place4create.id)
+      hs = hsmain.with_indifferent_access.merge(hs_extra)
+      hs = hs.merge({translations_attributes: @transs}) if hs_trans.present?
+      params_to_give_with_place(Event, hs, place_id: place_id)  # defined in test_helper.rb
     end
 end

@@ -35,13 +35,14 @@ module BaseWithTranslationControllerMethods
     def_respond_to_format(@record, :created)    # defined in application_controller.rb
   end
 
-  def update
+  # @param respond_opts: [Hash] optional arguments passed to {ApplicationController#def_respond_to_format}
+  def update(respond_opts: {})
     set_record  # e.g. @record = @music = Music.find(params[:id])
     @record.attributes = model_params  # sets orig_locale *if* Controller gives one.
 
     yield(@record) if block_given?
 
-    def_respond_to_format(@record, :updated) # defined in application_controller.rb
+    def_respond_to_format(@record, :updated, **respond_opts) # defined in application_controller.rb
   end
 
     # Adjust orig_locale and Translation if necessary

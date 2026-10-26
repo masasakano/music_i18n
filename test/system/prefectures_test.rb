@@ -38,6 +38,13 @@ class PrefecturesTest < ApplicationSystemTestCase
     flash_text_system_assert(str, type: [:notice, :success], category: :div)  # defined in test_helper.rb
     close_flash_windows([:notice, :success])  # defined in test_system_helper.rb
 
+    ## testing switching locale
+    record = Prefecture.last_created
+    assert_equal :with_confirm, assert_switch_orig_locale(record, browser_locale=:en, to_locale: nil)  # defined in test_system_helper.rb
+    assert assert_switch_orig_locale(record, browser_locale=:en, to_locale: :en)  # defined in test_system_helper.rb
+    xpath_ja = switch_orig_locale(:ja)  # should fail to switch b/c no :ja Translation (but no exception or assertion failure)
+    refute_selector :xpath, xpath_ja
+
     # Destroy button should be visible.
     assert_selector "#main_link_edit_merge_destroy .#{Consts::Csses::Layouts::DESTROY_LINK}"  # either <button> or <a>
 

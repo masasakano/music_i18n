@@ -6,8 +6,9 @@ class EventsTest < ApplicationSystemTestCase
     @moderator_all   = users(:user_moderator_all)         # General-JA Moderator can manage.
     @moderator = users(:user_moderator_general_ja)
     @event_group = event_groups(:evgr_lucky2023)  # Already has one child Event.
-    @event = events(:ev_harami_lucky2023)
+    @record = @event = events(:ev_harami_lucky2023)
     @h1_title = "Events"
+    @model_underscore = @record.class.name.underscore
   end
 
   test "visiting the Event#index, show, then HaramiVid#show" do
@@ -42,6 +43,7 @@ class EventsTest < ApplicationSystemTestCase
     assert_includes find_all('table#harami_vids_index_table td a').map(&:text), "Detail"
     click_on "Detail", match: :first
 
+    assert_selector "h1", text: "HARAMIchan-featured Video"
     css_link = "section#harami_vids_show_unique_parameters dl dd.item_event a"
     assert_selector(css_link, text: ev_title)
     assert_text "featuring Artists"  # shown below Event
@@ -68,10 +70,14 @@ class EventsTest < ApplicationSystemTestCase
     n_events_be4 = page.all("div#events table tr").size - 1
     click_on "Create Event"
 
-    page.find('form section#form_edit_translation fieldset.form-group.radio_buttons.event_langcode').choose('English')
+    assert_selector "h1", text: "New Event"
+    #page.find('form section#form_edit_translation fieldset.form-group.radio_buttons.event_langcode').choose('English')
 
     # label_str = I18n.t('layouts.new_translations.title', model: 'EventGroup')
-    page.find('input#event_title').fill_in with: 'Tekitoh'  # This is unique!
+    new_tit = 'Tekitoh'
+    #page.find('input#event_title').fill_in with: 'Tekitoh'  # This is unique!
+    fill_in_new_translations([{ title: new_tit, is_orig: nil }])  # => orig_locale will be nil
+    assert_equal 1, all(".translation-fields").size  # should have only 1 field on UK on fresh :create
 
     # Test of dropdown-menu
     assert_selector 'div#div_select_country', text: "Country"
@@ -99,14 +105,30 @@ class EventsTest < ApplicationSystemTestCase
     #select "Error Unit" ...
     fill_in "Duration [hour]", with: 5 # @event.duration_hour
     # select('Single-shot street playing', from: 'Event Group')
-    fill_in "Note", with: @event.note
+    within("div.#{@model_underscore}_note") do
+      fill_in "Note", with: @event.note
+    end
     #fill_in "Place", with: @event.place_id
     fill_in "Weight", with: @event.weight
     click_on "Create Event"
 
-    assert_text "Event was successfully created"
+    assert_text "Event was "+(str="successfully created") #, maximum: 1  ## After the introduction of Flash-display for Turbo, 2 of them appear. Not ideal.
+    flash_text_system_assert(str, type: [:notice, :success], category: :div)  # defined in test_helper.rb
+    close_flash_windows([:notice, :success])  # defined in test_system_helper.rb
+    assert_selector "h1", text: new_tit
     assert_text "Number of EventItems"
     assert_text "Editor's memo"
+
+    record = Event.last_created
+    assert_equal new_tit, record.best_translation.title
+
+    # testing switch orig_locale
+    cur_locale = record.orig_locale
+    assert_nil record.orig_locale, "sanity-check"
+    assert_equal :en,  assert_switch_orig_locale(record, browser_locale=:en, to_locale: :en)  # defined in test_system_helper.rb
+    assert_equal :nil, assert_switch_orig_locale(record, browser_locale=:en, to_locale: nil)  # defined in test_system_helper.rb
+    xpath_ko = switch_orig_locale(:ko)  # should fail b/c no Korean Translation
+    refute_selector :xpath, xpath_ko
 
     click_on "Back", match: :first
 

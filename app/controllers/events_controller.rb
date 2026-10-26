@@ -74,14 +74,21 @@ class EventsController < ApplicationController
   # POST /events or /events.json
   # @see EventItemsController#craete
   def create
-    @event = Event.new(@hsmain)
-    authorize! __method__, @event
-    event_create_to_format(@event) # defined in application_controller.rb
+    #event_create_to_format(@event) # defined in application_controller.rb
+    super do |record|  # sets @record, @url and authorize; defined in base_with_translation_controller_methods.rb
+      set_start_err_from_form(record)  # defined in module_common.rb
+    end
+    transfer_error_to_form(@record, mdl_attr: :start_time_err, form_attr: :form_start_err)
   end
 
   # PATCH/PUT /events/1 or /events/1.json
   def update
-    event_update_to_format(@event)  # defined in application_controller.rb
+    # event_update_to_format(@event)  # defined in application_controller.rb
+    super do |record|  # sets @record, @url and authorize; defined in base_with_translation_controller_methods.rb
+      start_err = set_start_err_from_form(@hsmain, with_model: false)  # @hsmain is set in set_hsparams_main; defined in module_common.rb
+      record.start_time_err = start_err
+    end
+    transfer_error_to_form(@record, mdl_attr: :start_time_err, form_attr: :form_start_err)
   end
 
   # DELETE /events/1 or /events/1.json

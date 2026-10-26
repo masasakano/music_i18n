@@ -52,22 +52,23 @@ class EventGroupsController < ApplicationController
     @event_group.end_date = (Date.current+(OFFSET_LARGE_YEAR+1).year).end_of_year if !@event_group.end_date || (@event_group.end_date > Date.current + OFFSET_LARGE_YEAR.year)
   end
 
-  # POST /event_groups or /event_groups.json
+  ## POST /event_groups or /event_groups.json
   def create
-    # Parameters: {"event_group"=>{"langcode"=>"ja", "title"=>"The Test7", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "place_id"=>"123", "start_date(1i)" =>"1999", "start_date(2i)"=>"12", "start_date(3i)"=>"23", "end_date(1i)"=>"1999", "end_date(2i)"=>"12", "end_date(3i)"=>"29", "start_date_err"=>"", "end_date_err"=>"", "note"=>""}, "locale"=>"en"}
+    # Parameters: {"event_group"=>{"langcode"=>"ja", "title"=>"The Test7", "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"", "start_date(1i)" =>"1999", "start_date(2i)"=>"12", "start_date(3i)"=>"23", "end_date(1i)"=>"1999", "end_date(2i)"=>"12", "end_date(3i)"=>"29", "start_date_err"=>"", "end_date_err"=>"", "note"=>""}, "place_id"=>"123", "prefecture_id"=>"123", "country_id"=>"123", "locale"=>"en"}
 
-    @event_group = EventGroup.new(@hsmain)
-    authorize! __method__, @event_group
+    #add_unsaved_trans_to_model(@event_group, @hstra, force_is_orig_true: false) # defined in application_controller.rb
+    #def_respond_to_format(@event_group)              # defined in application_controller.rb
 
-    add_unsaved_trans_to_model(@event_group, @hstra, force_is_orig_true: false) # defined in application_controller.rb
-    def_respond_to_format(@event_group)              # defined in application_controller.rb
+    super do |record| # -> defined in BaseWithTranslationControllerMethods
+      update_end_date_if_too_large
+    end
   end
 
   # PATCH/PUT /event_groups/1 or /event_groups/1.json
   def update
-    def_respond_to_format(@event_group, :updated){
-      @event_group.update(@hsmain)
-    } # defined in application_controller.rb
+    super do |record| # -> defined in BaseWithTranslationControllerMethods
+      update_end_date_if_too_large
+    end
   end
 
   # DELETE /event_groups/1 or /event_groups/1.json
@@ -100,4 +101,17 @@ class EventGroupsController < ApplicationController
       end
       # _set_dates_to_hsmain(hsall)  # defined in application_controller.rb
     end
+
+    # This modifies Year for {#end_date} to the default one if it is unreasonably large.
+    #
+    # c.f., {#event_params_two}
+    #
+    # @return [void]
+    def update_end_date_if_too_large(record=@record)
+      if record.end_date.year >= (Date.current.year + OFFSET_LARGE_YEAR)
+        record.end_date = record.end_date.change(year: 9999)
+        # i.e.,:  record.end_date = Date.new(9999, record.end_date.month, record.end_date.day)
+      end
+    end
+
 end

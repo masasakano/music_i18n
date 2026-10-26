@@ -222,8 +222,8 @@ class ActiveSupport::TestCase
   # @param **trans_opts [Hash] Translation-related parameters. No :weight or :memo_editor
   # @return [void]
   def fill_in_new_translation_single(index: 0, **trans_opts)
-    # assert_selector (csstmp=".translation-fields")  # If this is placed here and fails, it is very hard to pin-point which test caused failing.  Without this, a full error trace information would be printed at "within" below.
     translation_fieldsets = all(".translation-fields")
+    # assert_predicate translation_fieldsets, :present?, _get_caller_info_message(bind_offset: -1, prefix: true)+" Translation-input fields not present?"  # sanity-check; if this fails, Translation-input fields not present?
     systest_kwds = {  # see: /app/views/layouts/_partial_new_translations.html.erb
       title: {fill_in: "Title"},
       ruby: {fill_in: "Ruby (Furigana)"},
@@ -242,7 +242,14 @@ class ActiveSupport::TestCase
       note: {fill_in: "Note"},
     }
 
-    within(translation_fieldsets[index]) do
+    begin
+      within(translation_fieldsets[index]){}  # Just to catch an error.
+    rescue Selenium::WebDriver::Error::InvalidSelectorError
+      warn "\nERROR: If this fails, Translation-input fields not present? ========="
+      raise
+    end
+
+    within(translation_fieldsets[index]) do  # If this fails, Translation-input fields not present?
       trans_opts.each_pair do |tra_key, tra_val|
         next if tra_val.nil?
         hs = systest_kwds[tra_key]
@@ -710,7 +717,8 @@ class ActiveSupport::TestCase
   # @param user_fail: [User, NilClass] who fails to see the index page. if nil, the non-authorized user.
   # @param user_user_succeed: [User, NilClass] who succcessfully sees the index page
   def assert_index_fail_succeed(model, h1_title=nil, user_fail: nil, user_succeed: nil)
-    raise ArgumentError, "You must specify either user_fail or user_succeed" if !user_fail && !user_succeed
+    ## If neither of user_fail and user_succeed is specified, this method just checks the unauthenticated's failure.
+    # raise ArgumentError, "You must specify either user_fail or user_succeed" if !user_fail && !user_succeed
     index_path = model
     index_path = Rails.application.routes.url_helpers.polymorphic_path(model.class) if model.respond_to?(:destroy!) 
     h1_title ||= model.class.name.underscore.pluralize.split("_").map(&:capitalize).join(" ") if user_succeed.present?  # e.g., "Event Items"

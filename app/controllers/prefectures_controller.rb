@@ -7,7 +7,7 @@ class PrefecturesController < ApplicationController
   load_and_authorize_resource except: [:show]
 
   # String of the main parameters in the Form
-  MAIN_FORM_KEYS = %w(country_id note)
+  MAIN_FORM_KEYS = %w(country_id iso3166_loc_code start_date end_date note)  # syshelper can update iso3166_loc_code (in principle though View may not be ready)
 
   # Required in {BaseWithTranslationControllerMethods}: +[:disallow_nil, :allow_nil, :always_nil]+
   ORIG_LOCALE_TYPE_ON_CREATE = :disallow_nil
@@ -50,13 +50,10 @@ class PrefecturesController < ApplicationController
   #  def_respond_to_format(@prefecture)      # defined in application_controller.rb
   #end
 
-  # PATCH/PUT /prefectures/1
-  # PATCH/PUT /prefectures/1.json
+  # PATCH/PUT /prefectures/1 or /prefectures/1.json
   def update
     opts = _get_warning_msg(:updated)
-    def_respond_to_format(@prefecture, :updated, **opts){ 
-      @prefecture.update(prefecture_params)
-    } # defined in application_controller.rb
+    super(respond_opts: opts)  # defined in /app/controllers/concerns/base_with_translation_controller_methods.rb
   end
 
   # DELETE /prefectures/1
@@ -135,7 +132,7 @@ class PrefecturesController < ApplicationController
     # @param created_updated [Symbol]
     # @return [Hash]
     def _get_warning_msg(created_updated)
-      jpn = Country['JPN']
+      jpn = Country.find_by(iso3166_a3_code: "JPN")  # Country['JPN']
       if jpn &&
          ((jpn == @prefecture.country) || (jpn.id == prefecture_params[:country_id].to_i))
         if can?(:manage_prefecture_jp, Prefecture)
