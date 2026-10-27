@@ -31,12 +31,14 @@ class HaramiVidsController < ApplicationController
     "music_collab", "music_name", "music_timing", "music_genre", "music_year",
     "reference_harami_vid_kwd", "reference_harami_vid_id",  # these two for GET in new
     "release_date(1i)", "release_date(2i)", "release_date(3i)",  # Date-related parameters
+    "event_item_ids",
+    PARAMS_KEY_AC.to_s
   ])
 
   # Permitted main parameters for params(), used for update and create
   PARAMS_MAIN_KEYS = MAIN_FORM_KEYS + [
     # "event_item_ids",  # This is a key for an Array, hence defined in model_params_multi()
-  ] + [PARAMS_KEY_AC] + PARAMS_PLACE_KEYS
+  ] + PARAMS_PLACE_KEYS
   # these will be handled in model_params_multi()
   # See {#create} for description of "place_id" and "place".  In short, the best strategy is
   # to use @hsmain["place_id"] (or @hamsin[:place_id]), while that in params is "place".
@@ -47,15 +49,13 @@ class HaramiVidsController < ApplicationController
   # Form-ID for the new EventItem in the EventItem selection for a new collab-Artist
   DEF_FORM_NEW_ARTIST_COLLAB_EVENT_ITEM_NEW = 0
 
-  # GET /harami_vids
-  # GET /harami_vids.json
+  # GET /harami_vids or /harami_vids.json
   def index
     @harami_vids = HaramiVid.all
     set_grid(HaramiVid, hs_def: {order: :release_date, descending: true})  # setting @grid; defined in concerns/module_grid_controller.rb
   end
 
-  # GET /harami_vids/1
-  # GET /harami_vids/1.json
+  # GET /harami_vids/1 or /harami_vids/1.json
   def show
   end
 
@@ -126,11 +126,14 @@ class HaramiVidsController < ApplicationController
     end
   end
 
-  # POST /harami_vids
-  # POST /harami_vids.json
+  # POST /harami_vids or /harami_vids.json
   def create
-    @harami_vid = HaramiVid.new(@hsmain)  # This sets most of the form parameters
-    authorize! __method__, @harami_vid
+    ## 2 lines copied from :create in ./concerns/base_with_translation_controller_methods.rb
+    ## equivalent to, e.g., @record = @harami_vid = HaramiVid.new(model_params)
+    mparams = set_record_and_authorize(__method__)
+    set_orig_locale_on_create(mparams)
+    #@harami_vid = HaramiVid.new(@hsmain)  # This sets most of the form parameters
+    #authorize! __method__, @harami_vid
     ## "place" is tricky
     # The original form ID is "place".  To change it is tricky, as everything, including JavaScript
     # must be consistent throughout.
@@ -149,7 +152,7 @@ class HaramiVidsController < ApplicationController
     _import_reference  # Sets reference_harami_vid_kwd, @event_event_items, @ref_harami_vid
 
     @harami_vid.skip_validate_form_new_event_id = true if @event_event_items.present?
-    add_unsaved_trans_to_model(@harami_vid, @hstra) # defined in application_controller.rb
+    #add_unsaved_trans_to_model(@harami_vid, @hstra) # defined in application_controller.rb
     result = def_respond_to_format(@harami_vid){  # defined in application_controller.rb
       create_update_core{
         @harami_vid.save
@@ -162,16 +165,25 @@ class HaramiVidsController < ApplicationController
     end
   end
 
-  # PATCH/PUT /harami_vids/1
-  # PATCH/PUT /harami_vids/1.json
+  # PATCH/PUT /harami_vids/1 or /harami_vids/1.json
   def update
+    ## 2 lines copied from :update in ./concerns/base_with_translation_controller_methods.rb
+    ## Equivalent to:  @record = @harami_vid = HaramiVid.find(params[:id])
+    set_record
+    @record.attributes = model_params  # sets orig_locale *if* Controller gives one.
+
     @music_collab_collection = collection_musics_with_evit(@harami_vid)  # collection used in Form to select a Music to add a collab-Artist
     _import_reference  # Sets reference_harami_vid_kwd, @event_event_items, @ref_harami_vid
 
     def_respond_to_format(@harami_vid, :updated){
-      create_update_core{
-        @harami_vid.update(@hsmain)
-      }
+      if model_params.has_key?(:orig_locale) && !model_params.has_key?(:uri)
+        # For changing only "orig_locale"
+        @harami_vid.save
+      else
+        create_update_core{
+          @harami_vid.update(@hsmain)
+        }
+      end
     } # defined in application_controller.rb
   end
 

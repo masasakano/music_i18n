@@ -220,24 +220,31 @@ class HaramiVidsTest < ApplicationSystemTestCase
     assert_selector sprintf('input[type="submit"][value="%s"]', clickable_text)
 
     # HaramiVid-new - testing an extremely-long title bound to fail to save
-    choose('French')
-    # page_find_sys(:trans_new, :langcode_radio, model: HaramiVid).choose('English')  # defined in test_system_helper
+    #choose('French')
+    ## page_find_sys(:trans_new, :langcode_radio, model: HaramiVid).choose('English')  # defined in test_system_helper
+    hvid_tit = SecureRandom.alphanumeric(2000) + " " + SecureRandom.alphanumeric(1000)
+    #page.find('input#harami_vid_title').fill_in with: hvid_tit  # This is unique!
+    fill_in_new_translation_single( title: hvid_tit, langcode: "fr" )  # defined in test_system_helper.rb
+
+    fill_in "Uri", match: :first, with: "https://www.instagram/something/abcdefg"
     select channel_owners(:channel_owner_haramichan).title(langcode: "en"), from: "Channel Owner"
     select channel_platforms(:channel_platform_instagram).title(langcode: "en"), from: "Channel Platform"
-    fill_in "Uri", match: :first, with: "https://www.instagram/something/abcdefg"
 
-    hvid_tit = SecureRandom.alphanumeric(2000) + " " + SecureRandom.alphanumeric(1000)
-    page.find('input#harami_vid_title').fill_in with: hvid_tit  # This is unique!
     assert_no_difference('HaramiVid.count'){
       click_on clickable_text, match: :first
       flash_text_system_assert("prohibited this HaramiVid", type: :alert, category: :div)  # defined in test_helper.rb
       flash_text_system_assert("Too large size", type: :alert, category: :div)  # defined in test_helper.rb
     }
 
-    assert_field "Full Title", with: hvid_tit  # The title should be preserved in the form.
+    assert_selector 'select#harami_vid_translations_attributes_0_langcode option[selected="selected"][value="fr"]'  # The langcode should be preserved in the form.
+    # assert_field "Full Title", with: hvid_tit  # The title should be preserved in the form.
+    assert_field "Title", with: hvid_tit  # The title should be preserved in the form.
+    close_flash_windows([:alert])
 
     # Successful :create a HaramiVid
-    fill_in "Full Title", with: hvid_tit[0..249]  # 250 characters
+    new_tit = hvid_tit[0..249]  # Limits to 250 characters - saving should succeed
+    fill_in_new_translation_single( title: new_tit )  # defined in test_system_helper.rb
+    #fill_in "Full Title", with: hvid_tit[0..249]  # 250 characters
 
     assert_difference('HaramiVid.count*10 + Translation.count', 11){
       click_on clickable_text, match: :first
@@ -250,6 +257,22 @@ class HaramiVidsTest < ApplicationSystemTestCase
     css_dup_button = c + " .link_duplicate_event_item"
     refute_selector css_evit_list, text: "Duplicate"
     refute_selector css_dup_button
+
+    record = HaramiVid.last_created
+    assert_equal new_tit, record.best_translation.title
+
+    shorter_tit = new_tit[0..20]+"ZZZ"
+    record.best_translation.update!(title: shorter_tit)
+    visit harami_vid_path(record)
+    assert_text shorter_tit
+
+    # testing switch orig_locale
+    cur_locale = record.orig_locale
+    assert_equal "fr", cur_locale, "sanity-check"
+    assert_equal :with_confirm, assert_switch_orig_locale(record, browser_locale=:en, to_locale: nil)  # defined in test_system_helper.rb
+    assert_equal :fr,           assert_switch_orig_locale(record, browser_locale=:en, to_locale: :fr)  # defined in test_system_helper.rb
+    xpath_ko = switch_orig_locale(:ko)  # should fail b/c no Korean Translation
+    refute_selector :xpath, xpath_ko
 
     ## Associates an existing Music.
 
@@ -320,9 +343,10 @@ class HaramiVidsTest < ApplicationSystemTestCase
     click_on exp
 
     vid_prms = {}
-    page_find_sys(:trans_new, :langcode_radio, model: HaramiVid).choose('English')  # defined in test_system_helper
+    #page_find_sys(:trans_new, :langcode_radio, model: HaramiVid).choose('English')  # defined in test_system_helper
     vid_prms[:title] = 'NewEnglishHaramiVid37'
-    page.find('input#harami_vid_title').fill_in with: vid_prms[:title]  # This is unique!
+    #page.find('input#harami_vid_title').fill_in with: vid_prms[:title]  # This is unique!
+    fill_in_new_translation_single( title: vid_prms[:title], langcode: "en" )  # defined in test_system_helper.rb
     vid_prms[:uri] = "youtu.be/anexample37"
     fill_in "Uri", match: :first, with: vid_prms[:uri]
     vid_prms[:date] = Date.new(2021, 2, 3)
@@ -1125,10 +1149,11 @@ class HaramiVidsTest < ApplicationSystemTestCase
       clickable_text = "Create Harami vid"
       assert_selector sprintf('input[type="submit"][value="%s"]', clickable_text)
 
-      fill_in "Full Title", with: title
-      choose("English")
-      ## Alternative
-      # page_find_sys(:trans_new, :langcode_radio, model: HaramiVid).choose("English")  # defined in test_system_helper
+      fill_in_new_translation_single( title: title, langcode: "en" )  # defined in test_system_helper.rb
+      #fill_in "Full Title", with: title
+      #choose("English")
+      ### Alternative
+      ## page_find_sys(:trans_new, :langcode_radio, model: HaramiVid).choose("English")  # defined in test_system_helper
 
       fill_in "Uri", match: :first, with: "https://youtu.be/"+SecureRandom.alphanumeric(8)
       fill_in "Video length", with: length if length

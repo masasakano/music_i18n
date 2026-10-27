@@ -247,19 +247,17 @@ class EventGroupsControllerTest < ActionDispatch::IntegrationTest
 
   private
 
-    # Returns Hash to pass the params option
+    # Returns Hash to pass the params option (Wrapper of {#params_to_give_with_place})
     #
     # @example
     #    patch event_group_url(@event_group), params: _params2give(hs_extra: {"weight" => 0.98})
     #
     # @param hsmain [Hash] Main Hash (Def: @hs_create), the value for the key :event_group
-    # @param hs_trans: [Hash] Translation Array to merge to hsmain
-    # @param hs_extra: [Hash] to merge to hsmain
     # @param place_id: [Integer, String, ActiveRecord<Place>]
+    # @param hs_extra: [Hash] to merge to hsmain
+    # @param hs_trans: [Hash] Translation Array to merge to hsmain
     # @return [Hash] with_indifferent_access
-    def _params2give(hsmain=@hs_create, hs_extra: {}, hs_trans: {}, place_id: @place.id)
-      hs = hsmain.with_indifferent_access.merge(hs_extra)
-      hs = hs.merge({translations_attributes: @transs}) if hs_trans.present?
-      params_to_give_with_place(EventGroup, hs, place_id: place_id)  # defined in test_helper.rb
+    def _params2give(hsmain=@hs_create, place_id: @place.id, **opts)
+      params_to_give_with_place(EventGroup, hsmain, place_id: place_id, **opts)  # defined in test_helper.rb
     end
 end

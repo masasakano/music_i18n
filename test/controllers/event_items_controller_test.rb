@@ -173,16 +173,16 @@ class EventItemsControllerTest < ActionDispatch::IntegrationTest
 
   private
 
-    # Returns Hash to pass the params option
+    # Returns Hash to pass the params option (Wrapper of {#params_to_give_with_place})
     #
     # @example
     #    patch event_item_url(@event_item), params: _params2give(hs_extra: {"weight" => 0.98})
     #
     # @param hsmain [Hash] Main Hash (Def: @hs_create), the value for the key :event_item
-    # @param hs_extra: [Hash] to merge to hsmain
     # @param place_id: [Integer, String, ActiveRecord<Place>]
+    # @param hs_extra: [Hash] to merge to hsmain
     # @return [Hash] with_indifferent_access
-    def _params2give(hsmain=@hs_create, hs_extra: {}, place_id: @place.id)
-      params_to_give_with_place(EventItem, hsmain.with_indifferent_access.merge(hs_extra), place_id: place_id)  # defined in test_helper.rb
+    def _params2give(hsmain=@hs_create, place_id: @place.id, **opts)
+      params_to_give_with_place(EventItem, hsmain, place_id: place_id, **opts)  # defined in test_helper.rb
     end
 end

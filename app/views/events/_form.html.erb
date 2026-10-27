@@ -2,17 +2,17 @@
 <%= render partial: 'layouts/form_print_errors', locals: {model: event} %>
 
 <% if ! event.new_record? %>
-<hr>
-<%= render partial: 'layouts/all_registered_translations', locals: {model: event, add_buttons: true} %>
-<hr>
+  <hr>
+  <%= render partial: 'layouts/all_registered_translations', locals: {model: event, add_buttons: true} %>
+  <hr>
 <% end %>
 <%= tag.section id: "sec_primary" do %>
-<% if ! event.new_record? %>
+  <% if ! event.new_record? %>
 
-<h2>Unique parameters</h2>
-<% end %>
+    <h2>Unique parameters</h2>
+  <% end %>
 
-<%= tag.div id: "form_main" do %>
+  <%= tag.div id: Consts::HtmlIds::FORM_MAIN do %>
 
 <%= simple_form_for event do |f| %>
  <section id="sec_primary_input">
@@ -43,7 +43,7 @@
   </div>
  </section> <!-- section id="sec_primary_input" -->
 <% end %>
-  <% end %> <!-- div id="form_main" -->
+  <% end %> <!-- div id="form_main" --><%# Consts::HtmlIds::FORM_MAIN %>
 
 <% if !event.new_record? %>
   <%#= render partial: 'events_table', locals: {event: event, add_buttons: true} %>

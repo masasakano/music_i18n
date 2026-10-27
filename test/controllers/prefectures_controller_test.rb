@@ -322,12 +322,12 @@ class PrefecturesControllerTest < ActionDispatch::IntegrationTest
     # destroy the child Place first.
     pref_url = prefecture_url(shimane.places[-1].prefecture)
     assert_difference('Place.count', -1) do
-      assert_difference('Translation.count', -1) do
+      assert_difference('Translation.count', -1, "NOTE: For an unknown reason this sometimes fails...") do
         delete place_url(shimane.places[-1])
         assert_response :redirect
+        assert_redirected_to pref_url
       end
     end
-    assert_redirected_to pref_url
 
     # Now the Prefecture has only Place.unknown. Hence an admin can destroy it, even though it is in Japan.
     assert_difference('Prefecture.count', -1) do

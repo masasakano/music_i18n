@@ -781,6 +781,37 @@ class BaseWithTranslation < ApplicationRecord
     inspect_orig[0..-2]+extra+errmsg+">"
   end
 
+  # Transfers Translations' errors to BaseWithTranslation if the errors are not caught by Translation's validation (e.g., {SaveIndexGuard}) and that is the only cause
+  def save(...)
+    result = super(...)
+    promote_translation_errors if !result
+    result
+  end
+
+  # Transfers Translations' errors to BaseWithTranslation if the errors are not caught by Translation's validation (e.g., {SaveIndexGuard}) and that is the only cause
+  def save!(...)
+    super(...)
+  rescue ActiveRecord::RecordNotSaved, ActiveRecord::RecordInvalid => e
+    promote_translation_errors
+    raise e
+  end
+
+  # @return [void]
+  def promote_translation_errors
+    return if errors.any?  # Bails out immediately if standard validations already reported errors
+
+    translations.each do |etra|
+      next if etra.errors.empty?
+
+      lang = etra.langcode.presence || "no_langcode"
+      etra.errors.each do |error|
+        msg = "Translation (#{lang}:ID=#{etra.id.inspect}) #{error.attribute.to_s.humanize}: #{error.message}"
+        # Avoid duplicating messages if already added
+        errors.add(:base, msg) unless errors.messages[:base]&.include?(msg)
+      end
+    end
+  end
+
   # Wrapper of {BaseWithTranslation.select_regex}
   #
   # Returns the first match of {BaseWithTranslation} or nil if no match

@@ -85,7 +85,7 @@ class FetchYoutubeDataControllerTest < ActionDispatch::IntegrationTest
     assert_equal "New Harami Vid", css_select("h1").text
 
     assert_equal @h1129.link_root, File.basename(css_select("#harami_vid_uri").first["value"])
-    assert_equal @h1129.title, css_select("#harami_vid_title").first["value"]
+    assert_equal @h1129.title, css_select("#harami_vid_translations_attributes_0_title").first["value"]
 
     act_year, act_day = ["1", "3"].map{ css_select('#harami_vid_release_date_'+_1+'i option[selected="selected"]').first["value"].to_i }
     assert_equal @h1129.release_date.year, act_year

@@ -1,9 +1,10 @@
-<%# locals: (form:, model: nil, trans: Translation.new, disable_is_orig: nil, is_simple_form: true, only_title: false, as_text: false, use_form_attributes: false, n_translation_sets: 2) %>
+<%# locals: (form:, model: nil, trans: Translation.new, disable_is_orig: nil, is_simple_form: true, only_title: false, as_text: false, use_form_attributes: false, n_translation_sets: 2, compact: nil) %>
 
-<%# valiables: form, model, trans(Translation [OBSOLETE]), disable_is_orig(Boolean), is_simple_form(Boolean), only_title(Boolean), as_text(Boolean; if true, the type is "text" else "string") %>
+<%# valiables: form, model, trans(Translation [OBSOLETE]), disable_is_orig(Boolean), is_simple_form(Boolean), only_title(Boolean), as_text(Boolean; if true, the type is "text" else "string"), n_translation_sets: 2(Def; default number of forms for Translations; this is ignored if more Translations are already associated to the record) %>
 <% f = form %>
 <% model ||= f.object %>
 <% modelname = model.class.name %>
+<% compact = (1 == n_translation_sets) if compact.nil? %>
 
 <% disable_is_orig = (:allow_nil != get_dry_controller(model)::ORIG_LOCALE_TYPE_ON_CREATE) if disable_is_orig.nil? %><%# defined in application_helper.rb %>
 
@@ -20,7 +21,9 @@
 <div class="translations-wrapper">
   <%= f.simple_fields_for :translations do |tf| %>
     <fieldset class="translation-fields border rounded p-3 mb-4">
-      <legend class="w-auto px-2 fs-6 fw-bold">Translation #<%= tf.index + 1 %></legend>
+      <% unless compact %>
+        <legend class="w-auto px-2 fs-6 fw-bold">Translation #<%= tf.index + 1 %></legend>
+      <% end %>
 
       <%= tf.input :title,
                    as: (as_text ? :text : :string),
@@ -29,14 +32,16 @@
                    placeholder: (('Artist'==model.class.name) ? ' ('+t('layouts.new_translations.note_re_group')+') ' : "")+t('eg_independent')+'The '+(('Artist'==model.class.name) ? 'Beatles' : 'Ocean'),
                    label: "Title" %>
 
-      <div class="row">
-        <div class="col-md-6">
-          <%= tf.input :ruby, as: :string, label: "Ruby (Furigana)", placeholder: '(全角片仮名で)'+t('eg_independent')+(('Artist'==model.class.name) ? 'ザ・ビートルズ' : 'ジ・オーシャン') %>
+      <% unless compact %>
+        <div class="row">
+          <div class="col-md-6">
+            <%= tf.input :ruby, as: :string, label: "Ruby (Furigana)", placeholder: '(全角片仮名で)'+t('eg_independent')+(('Artist'==model.class.name) ? 'ザ・ビートルズ' : 'ジ・オーシャン') %>
+          </div>
+          <div class="col-md-6">
+            <%= tf.input :romaji, as: :string, label: "Romaji", placeholder: "(ヘボン式推奨: chi, shi等)" %>
+          </div>
         </div>
-        <div class="col-md-6">
-          <%= tf.input :romaji, as: :string, label: "Romaji", placeholder: "(ヘボン式推奨: chi, shi等)" %>
-        </div>
-      </div>
+      <% end %>
 
       <div class="row">
         <div class="col-md-3">
@@ -90,26 +95,30 @@
         </div>
       </div>
 
-      <div class="row my-2">
-       <% if model.class.translation_accept_true_name? %>
-        <div class="col-md-2">
-          <%= tf.input :is_true_name, as: :boolean, label: "True Name" %>
+      <% unless compact %>
+        <div class="row my-2">
+            <% if model.class.translation_accept_true_name? %>
+            <div class="col-md-2">
+              <%= tf.input :is_true_name, as: :boolean, label: "True Name" %>
+            </div>
+            <div class="col-md-2">
+              <%= tf.input :is_for_record, as: :boolean, label: "For Record" %>
+            </div>
+            <div class="col-md-1">
+            </div>
+          <% end %>
+          <div class="col-md-3">
+            <%= tf.input :is_literal, as: :boolean, label: "Literal" %>
+          </div>
+          <div class="col-md-3">
+            <%= tf.input :is_internal, as: :boolean, label: "Internal" %>
+          </div>
         </div>
-        <div class="col-md-2">
-          <%= tf.input :is_for_record, as: :boolean, label: "For Record" %>
-        </div>
-        <div class="col-md-1">
-        </div>
-       <% end %>
-        <div class="col-md-3">
-          <%= tf.input :is_literal, as: :boolean, label: "Literal" %>
-        </div>
-        <div class="col-md-3">
-          <%= tf.input :is_internal, as: :boolean, label: "Internal" %>
-        </div>
-      </div>
+      <% end %>
 
-      <%= tf.input :note, as: :text, input_html: { rows: 1 }, label: "Note" %>
+      <% unless compact %>
+        <%= tf.input :note, as: :text, input_html: { rows: 1 }, label: "Note" %>
+      <% end %>
     </fieldset>
   <% end %>
 </div>

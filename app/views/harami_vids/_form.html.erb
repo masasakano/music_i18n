@@ -22,7 +22,7 @@
 <%= simple_form_for(harami_vid, html: {data: { turbo: false }}) do |f| %>
  <section id="sec_primary_input">
   <% if harami_vid.new_record? %>
-    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: harami_vid, trans: Translation.new, disable_is_orig: true, is_simple_form: true, only_title: true } %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, is_simple_form: true, only_title: true, use_form_attributes: true, n_translation_sets: 1} %>
   <% end %>
   <div class="form-inputs">
 

@@ -33,9 +33,9 @@ module Seeds::Instruments
     },
     voice_percussion: {
       ja: ["ボイスパーカッション", "ボイパ"],
-      en: "Voice percussion",
+      en: ["Vocal percussion", "beatboxing"],
       weight: 20,
-      regex: /ボイスパーカッション|voice percussion/i,
+      regex: /ボイスパーカッション|vo(cal|ice) percussion/i,
     },
     piano: {
       ja: "ピアノ",

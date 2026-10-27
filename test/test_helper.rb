@@ -1191,10 +1191,17 @@ end
   #
   # @param model_snake [String, Symbol, Class] e.g., {EventGroup} or +EventGroup.name.underscore+
   # @param hs_main [Hash] to give
+  # @param hs_extra: [Hash] to merge to hsmain
+  # @param hs_trans: [Array<Hash>, Hash] Translation Array of Hash to merge to hsmain (or a double hash - see below).
+  #    Browsers usually send a double Hash like +{"0"=>{"title"=>"abc",...},{"1"=>{"title"=>"def",...}}+.
+  #    Controller should accept both the double-Hash form and an Array of Hashes,
+  #    which standard substitutions like {ActiveRecord#assign_attributes} and {ActiveRecord#attributes=}
+  #    handle well, or see {BaseWithTranslationControllerMethods#filter_empty_secondary_translations!}
+  #    NOTE: This option is provided because Symbol-String key combinations in merging of Hashes need care.
   # @param place_id: [Integer, String, ActiveRecord<Place>, NilClass] pID of Place, though Place is accepted. Def: +Place.unknown+
   # @param with_place: [Boolean] if true (Def), place_id is included; else only prefecture_id and country_id (basically for Place :new|:edit)
   # @return [Hash] with_indifferent_access
-  def params_to_give_with_place(model_snake, hs_main, place_id: Place.unknown, with_place: true)
+  def params_to_give_with_place(model_snake, hs_main, hs_extra: {}, hs_trans: [], place_id: Place.unknown, with_place: true)
     model_snake = model_snake.name.underscore if model_snake.respond_to?(:name)
     place_id = place_id.id if place_id.respond_to?(:prefecture)
     place_opts = (with_place ? { place_id: place_id&.to_s } : {}).with_indifferent_access
@@ -1203,8 +1210,10 @@ end
       place_opts[:prefecture_id] = place.prefecture_id.to_s
       place_opts[:country_id]    = place.country.id.to_s   # This should never fail except for badly seeded Places
     end
+    hs = hs_main.with_indifferent_access.merge(hs_extra)
+    hs = hs.merge({translations_attributes: hs_trans}) if hs_trans.present?
 
-    { model_snake => hs_main.with_indifferent_access }.with_indifferent_access.merge(place_opts)
+    { model_snake => hs }.with_indifferent_access.merge(place_opts)
   end
 
   # @return [Array] Single-element Array of (with_indifferent_access) Hash of parameters used to create a single Translation
