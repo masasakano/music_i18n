@@ -90,7 +90,7 @@ class HaramiVids::FetchYoutubeDataController < ApplicationController
       snippet = @yt_video.snippet
       _check_and_set_channel(snippet)
 
-      ret_msg = adjust_youtube_titles(snippet, model: @harami_vid)  # Translation(s) updated or created.  @harami_vid.errors may be set
+      ret_msg = adjust_youtube_titles(@yt_video, model: @harami_vid)  # Translation(s) updated or created.  @harami_vid.errors may be set
       return if !ret_msg  # Error has been raised in saving/updating Translation(s)
       flash[:notice] ||= []
       flash[:notice] << ret_msg if ret_msg.present?

@@ -55,7 +55,7 @@ class PrmChannelRemote
   # Alternative constructor of {PrmChannelRemote}, determines the ID from URI etc.
   #
   # This is a simple constructor, which does NOT access or use Youtube API.
-  # kind is deetrmined solely based on the given String.
+  # kind is determined solely based on the given String.
   #
   # If the given argument is not for Youtube, the directory part is returned,
   # and the returned String has a singleton method platform so that

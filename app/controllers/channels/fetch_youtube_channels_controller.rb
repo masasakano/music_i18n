@@ -56,11 +56,9 @@ class Channels::FetchYoutubeChannelsController < ApplicationController
       get_yt_channel((pcr || @channel), set_instance_var: true, use_cache_test: @use_cache_test) if !@yt_channel  # sets @yt_channel # defined in module_youtube_api_aux.rb
       return if !@yt_channel
 
-      #snippet = api.items[0].snippet
-      snippet = @yt_channel.snippet
       _adjust_ids
 
-      ret_msg = adjust_youtube_titles(snippet, model: @channel)  # Translation(s) updated or created. # defined in ModuleYoutubeApiAux
+      ret_msg = adjust_youtube_titles(@yt_channel, model: @channel)  # Translation(s) updated or created. # defined in ModuleYoutubeApiAux
       return if !ret_msg  # Error has been raised in saving/updating Translation(s)
       flash[:notice] ||= []
       flash[:notice] << ret_msg

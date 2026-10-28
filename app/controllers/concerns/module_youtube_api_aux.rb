@@ -8,6 +8,8 @@
 #   include ModuleYoutubeApiAux
 #   set_youtube                   # sets @youtube. ENV["YOUTUBE_API_KEY"] has to be set appropriately beforehand.
 #   get_yt_video(HaramiVid.last)  # sets @yt_video
+#   @yt_video.snippet
+#   @yt_video.localizations  # either nil or iteratable (if the channel owner sets so)
 #   ActiveSupport::Duration.parse(@yt_video.content_details.duration).in_seconds  # => Float
 #
 # == Marshal (cache mechanism)
@@ -35,6 +37,12 @@
 #   1. you must first modify the file (look-up table)
 #   2. Second, run the rake task: `lib/tasks/save_marshal_youtube.rake`  (use is like: bin/rails save_marshal_youtube)
 # * If you want to *update* the cache, either run the rake task or seet +ENV["UPDATE_YOUTUBE_MARSHAL"]+ and run your standard test routines that use the cached data.
+#   * To perform manual update from Rails Console,
+#         ENV["UPDATE_YOUTUBE_MARSHAL"]="1"
+#         require Rails.root.join("test/helpers/marshaled")
+#         include ModuleYoutubeApiAux
+#         set_youtube
+#         get_yt_channel("UCPkjL7jAJhrZ3e4-NlsGt-Q", kind: :id_at_platform, use_cache_test: true)
 # * In some testing, if you do not want to use caching, set +ENV["SKIP_YOUTUBE_MARSHAL"]+ and run the test.
 # * The main module for Youtube-API interface, including caching, is +/app/controllers/concerns/module_youtube_api_aux.rbmodule_youtube_api_aux.rb+,
 #   whereas the main front-end controller for it is +/app/controllers/harami_vids/fetch_youtube_data_controller.rb+
@@ -70,6 +78,7 @@ module ModuleYoutubeApiAux
   #end
   extend ActiveSupport::Concern  # In Rails, the 3 lines above can be replaced with this.
 
+  include ModuleCommon  # for guess_lang_code, normalized_locale
   include ApplicationHelper
   include ModuleGuessPlace  # for guess_place
 
@@ -208,11 +217,13 @@ module ModuleYoutubeApiAux
     filters.each do |eaf|
       Rails.logger.debug("DEBUG: accesses Google/Youtube API for Channel #{pcr.val.inspect}")
       hsopts = {:hl => "en", eaf.to_sym => pcr.val}
-      yt_channels = youtube.list_channels("snippet", **hsopts)
+      yt_channels = youtube.list_channels(%w(snippet localizations), **hsopts)
       msg = "DEBUG: Info of Channel #{pcr.val.inspect} was retrieved with Google/Youtube API; result=#{yt_channels.inspect}"
       Rails.logger.debug msg
       if (yt_channels && yt_channels.items.present? && (yt_channels.page_info.total_results > 0))
-        return yt_channels.items[0]
+        ret_yt = yt_channels.items[0]
+        _may_update_youtube_marshal(ret_yt, fullpath) if fullpath ## i.e., updated if use_cache_test is true AND ENV["UPDATE_YOUTUBE_MARSHAL"] is positive AND Youtube-ID satisfies the condition AND fullpath has been obtained.
+        return ret_yt
       end
       Rails.logger.debug("DEBUG: No significant channel was retrieved for #{pcr.val.inspect}")
     end
@@ -289,7 +300,7 @@ module ModuleYoutubeApiAux
     if !ytret
       # i.e.,, either not for testing or marshal-ed data are not found
       Rails.logger.debug("DEBUG: accesses Google/Youtube API for Video #{yid.inspect}")
-      yt = youtube.list_videos(%w(snippet contentDetails), id: yid, hl: "en")  # maxResults is invalid with "id"
+      yt = youtube.list_videos(%w(snippet localizations contentDetails), id: yid, hl: "en")  # maxResults is invalid with "id"
       ytret = ((yt && yt.items.present? && (yt.page_info.total_results > 0)) ? yt.items[0] : nil)
       # NOTE: yt is ALYWAS non-nil (== Google::Apis::YoutubeV3::...)
       #   @youtube.list_videos.items[0] returns nil or significant.
@@ -303,7 +314,7 @@ module ModuleYoutubeApiAux
       Rails.logger.debug msg
     end
 
-    _may_update_youtube_marshal(ytret, fullpath) ## i.e., updated if use_cache_test is true AND ENV["UPDATE_YOUTUBE_MARSHAL"] is positive AND Youtube-ID satisfies the condition AND fullpath has been obtained.
+    _may_update_youtube_marshal(ytret, fullpath) if fullpath ## i.e., updated if use_cache_test is true AND ENV["UPDATE_YOUTUBE_MARSHAL"] is positive AND Youtube-ID satisfies the condition AND fullpath has been obtained.
     @yt_video = ytret if set_instance_var
     ytret
   end
@@ -366,21 +377,52 @@ module ModuleYoutubeApiAux
   # If the default language is English, the existence of Japanese title is not checked.
   # Also, "en-GB" etc are not taken into account (though Youtube's fallback mechanism should work).
   #
-  # @param snippet [#default_language, #localized] e.g., Google::Apis::YoutubeV3::ChannelSnippet
-  # @return [Hash] e.g., {"ja" => "Some1", "en" => nil} (with_indifferent_access)
-  def get_youtube_titles(snippet)
+  # In return, duplication is already eliminated if present and 99% of cases because
+  # the curretn Youtube API enforces +default_language+ should be present when
+  # +localizations+ is present, although old API did not work like that.
+  # Duplication would not be a serious trouble in this module, so I leave it.
+  #
+  # @param yt_obj [Google::Apis::YoutubeV3::Video, Google::Apis::YoutubeV3::Channel, NilClass] This is +Google::Apis::YoutubeV3::ListVideosResponse#items[0]+
+  # @return [Hash] e.g., {"ja" => "Some1", "en" => "abc", "zh" => "xyz" } (with_indifferent_access) no value should be nil.
+  def get_youtube_titles(yt_obj, fallback_locale: "ja")
+    snippet = yt_obj.snippet # [#default_language, #localized] e.g., Google::Apis::YoutubeV3::ChannelSnippet
     # titles = {"ja" => nil, "en" => nil}.with_indifferent_access
     titles = {}.with_indifferent_access
-    titles[(snippet.default_language || "ja")] = preprocess_space_zenkaku(snippet.title)
-    
-    if "en" == snippet.default_language || snippet.localized.title == snippet.title
-      # do nothing
-    else
-      titles["en"] = preprocess_space_zenkaku(snippet.localized.title)
+
+    # 1. Base / primary title is always present on snippet
+    base_title = snippet.title
+    base_lang = detect_primary_locale(yt_obj, fallback_locale: fallback_locale)
+    titles[base_lang] = preprocess_space_zenkaku(base_title, article_to_tail: false)  # defined in module_common.rb
+
+    # 2. Extracts any creator-provided localizations (guarded against nil)
+    if yt_obj.localizations.present?
+      yt_obj.localizations.each do |elc, edata| # |locale_key, localized_data|
+        lang = normalized_locale(elc)  # to hande BCP-47 codes like "en-US" # defined in module_common.rb
+        titles[lang] = preprocess_space_zenkaku(edata.title, article_to_tail: false) if edata.title.present?
+      end
     end
+
     titles
   end
 
+  # Deduces the language of snippet.title
+  #
+  # @return [String] unless you explicitly specify fallback_locale=nil
+  def detect_primary_locale(yt_obj, fallback_locale: "ja")
+    snippet = yt_obj.snippet
+    # Priority 1: Explicit metadata language (if the Channel owner specifies, which is almost always the case when localizations is present, but not so if not)
+    if snippet.default_language.present?
+      return normalized_locale(snippet.default_language)
+    end
+
+    # Priority 2: Audio track language
+    if snippet.respond_to?(:default_audio_language) && snippet.default_audio_language.present?
+      return normalized_locale(snippet.default_audio_language)
+    end
+
+    # Priority 3: Crude Unicode script inspection
+    guess_lang_code(snippet.title, return_nil_on_fail: true) || fallback_locale
+  end
 
   # update or add {Channel#translations} or {HaramiVid#translations} according to Youtube.
   #
@@ -389,24 +431,21 @@ module ModuleYoutubeApiAux
   # the translation is updated.  Otherwise, either the user's best translation is updated
   # or a new one with the lowest weight is created.
   #
-  # @param snippet [#default_language, #localized] e.g., Google::Apis::YoutubeV3::ChannelSnippet
+  # @param yt_obj [Google::Apis::YoutubeV3::Video, Google::Apis::YoutubeV3::Channel, NilClass] This is +Google::Apis::YoutubeV3::ListVideosResponse#items[0]+
   # @param model: [ActiveRecord] Channel or HaramiVid
   # @return [String, NilClass]
-  def adjust_youtube_titles(snippet, model: )
+  def adjust_youtube_titles(yt_obj, model: )
     raise if !current_user  # should never happen in normal calls.
     ret_msgs = []
-    titles = get_youtube_titles(snippet)  # duplication is already eliminated if present. # defined in module_youtube_api_aux.rb
+    titles = get_youtube_titles(yt_obj)  # Hash<locale=>String> # (blank and) duplication are already eliminated if present and 99% of cases
 
-    if snippet.default_language.present?
-      # Even if the record (BaseWithTranslation) already exists, its orig_locale is updated according to Youtube
-      model.orig_locale = snippet.default_language.presence
-    end
+    # Even if the record (BaseWithTranslation) already exists, its orig_locale is updated according to Youtube
+    model.orig_locale = detect_primary_locale(yt_obj)  # This is never nil.
 
-    first_locale = nil
-    prioritized_locales = [snippet.default_language, "ja", "en"].uniq.find_all(&:present?)
-    prioritized_locales.each do |elc|  # snippet.default_language can be nil for some reason...
-      next if titles[elc].blank?
-      first_locale ||= elc
+    # prioritized_locales = [snippet.default_language, "ja", "en"].uniq.find_all(&:present?)
+    prioritized_locales = [model.orig_locale, titles.keys].flatten.uniq
+    prioritized_locales.each_with_index do |elc, itra|  # snippet.default_language can be nil for some reason...
+      next if titles[elc].blank?  # should never happen, but playing safe
       tras = model.translations.where(langcode: elc)
       next if tras.where(title: titles[elc]).or(tras.where(alt_title: titles[elc])).exists?  # Skip if an identical Translation exists whoever owns it.
 
@@ -418,26 +457,23 @@ module ModuleYoutubeApiAux
           tras.where(create_user_id: current_user.id).or(tras.where(update_user_id: current_user.id)).order(:weight).first
         end
 
-      def_weight = Role::DEF_WEIGHT[Role::RNAME_MODERATOR]
-      weight_updated =
-        if !tra0
-          ((tra_best && tra_best.weight) ? tra_best.weight/2.0 : def_weight)
-        elsif (tra0.weight == tra_best.weight)
-          ((!tra0.weight || tra0.weight > def_weight*10) ? def_weight : tra0.weight)
-        elsif (tra0.weight > tra_best.weight)
-          tra_best.weight/2.0
-        else
-          tra0.weight 
-        end
-      weight_updated = [weight_updated, def_weight, Translation.def_init_weight(current_user)].min
-
       if tra0
+        weight_updated =
+          if !tra_best
+            nil
+          elsif tra_best == tra0
+            tra_best.weight
+          else
+            # User's current Translation is not the best one, but will be promoted best.
+            _, increment, _ = Translation.range_weight_and_increment(tra_best.weight)
+            next_unique_weight(tra_best, def_increment: -increment, lower_threshold: 0, upper_threshold: tra0.weight, exclude_self: false, try_reference: false)
+          end
+
         tra = tra0
         result = tra.update(title: titles[elc], weight: weight_updated)
         ret_msgs << "Title[#{elc}] updated."
       else
-        tra = Translation.preprocessed_new(title: titles[elc], langcode: elc, is_orig: (elc == first_locale), weight: weight_updated)
-        model.orig_locale = elc if (elc == first_locale) # NOTE: elc is the locale of the highest priority that definitely has a Translation.  This may or may not set the attribute of the model in memory (which the caller should save later), regardless of whether model is new_record? or persisted?
+        tra = Translation.preprocessed_new(title: titles[elc], langcode: elc, is_orig: (0 == itra), weight: nil, kind: Translation::KIND_FULL, is_literal: false)
         model.translations << tra  # model (BaseWithTranslation) is not saved.  Translation is saved if model already exists.
         # NOTE: This is not the safest in the sense that even if model fails to be saved later
         #   (or the caller does not perform save), the Translation persists with the langcode,
@@ -450,14 +486,12 @@ module ModuleYoutubeApiAux
         #       ] )
         #     # model.save  # Later in upstream!!
         ret_msgs << "New Title[#{elc}] added."
-        result = tra.id  # Integer or nil if failed to save and associate.
+        result = !tra.errors.any?
       end
 
       if !result
         # Failed to save a Translation. The caller should rollback everything (based on model.errors).
-        msg_err = tra.errors.full_messages.join("; ") # +" / "+titles.inspect
-        msg = [sprintf("ERROR: Failed to save a Translation[%s]: %s", elc, titles[elc]), msg_err].join(" / ")
-        model.errors.add :base, msg
+        model.promote_translation_errors
         return nil
       end
     end
@@ -499,8 +533,11 @@ module ModuleYoutubeApiAux
     harami_vid.duration = ActiveSupport::Duration.parse(@yt_video.content_details.duration).in_seconds
     _adjust_date(snippet, harami_vid)
 
-    titles, tras = _set_titles_translations(snippet, flash_on_error: flash_on_error)
-    harami_vid.unsaved_translations = tras
+    titles, tras = _set_titles_translations(@yt_video)
+    # harami_vid.unsaved_translations = tras
+    tras.each do |etra|
+      harami_vid.translations << etra
+    end
     harami_vid.place = (place || self.class.guess_place(titles["ja"] || ""))
 
     flash[:notice] ||= []
@@ -511,7 +548,6 @@ module ModuleYoutubeApiAux
   #################
   private 
   #################
-
 
     # @param snippet
     # @param model [ActiveRecord] usually HaramiVid
@@ -543,28 +579,19 @@ module ModuleYoutubeApiAux
       nil
     end
 
-    # @param snippet
-    # @param flash_on_error: [Boolean] If false (Def), this is for create. Else for new. Flash message are set accordingly if more than 1 Translation is registered on Youtube.
+    # @param yt_obj [Google::Apis::YoutubeV3::Video, Google::Apis::YoutubeV3::Channel, NilClass] This is +Google::Apis::YoutubeV3::ListVideosResponse#items[0]+
     # @return [Array<Array<String>, Array<Translation>>]
-    def _set_titles_translations(snippet, flash_on_error: false)
-      titles = get_youtube_titles(snippet)
+    def _set_titles_translations(yt_obj)
+      titles = get_youtube_titles(yt_obj)
+      priimary_locale = detect_primary_locale(yt_obj)
 
       tras = []
       titles.each_pair do |lc, tit|
         next if tit.blank? || tit.strip.blank?
-        tras << Translation.preprocessed_new(title: tit, langcode: lc.to_s, is_orig: (lc.to_s == snippet.default_language))
+        tras << Translation.preprocessed_new(title: tit, langcode: lc.to_s, is_orig: (lc.to_s == priimary_locale), weight: nil, kind: Translation::KIND_FULL, is_literal: false)
       end
 
-      if (tras_size=tras.size) > 1
-        severity, msg =
-          if flash_on_error
-            [:warning, sprintf("More than one (=%d) Translations are registered on Youtube, but only one of them is loaded so far. You may import them later after save.", tras_size)]
-          else
-            [:notice, sprintf("%d Translations are defined.", tras_size)]
-          end
-        flash[severity] ||= []
-        flash[severity] << msg
-      end
+      add_flash_message(:notice, sprintf("%d Translations are defined.", tras.size))  # defined in application_controller.rb
 
       [titles, tras]
     end

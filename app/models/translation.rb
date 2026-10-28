@@ -3137,6 +3137,7 @@ end
 
   # Range of Role weights that "covers" the given weight
   #
+  # @param ref_weight [Numeric] reference weight (can be 0 or Infinity but never negative or nil)
   # @return [Range] exclude_end? is true
   def self.low_high_role_weight_thresholds(ref_weight)
     # Gets all Role weights in Translation RoleCategory
@@ -3160,11 +3161,11 @@ end
   # Returns Range, Increment, and nominal weight
   #
   # @example
-  #    Translation.range_weight_and_increment(120.0)
+  #    range, increment, nominal_weight = Translation.range_weight_and_increment(120.0)
   #      # => [(100...1000), 100.0, 500.0]
   #      # b/c the reference weight falls in Editor's range.
   #
-  # @param ref_weight [Float] reference weight.
+  # @param ref_weight [Float] reference weight (can be 0 or Infinity but never negative or nil)
   # @return [Array<Range, Float, Float>] three elements of exclude_end? Range (lower/upper thresholds),
   #    default increment, and default nominal weight (usually mid-point),
   #    for the given reference weight

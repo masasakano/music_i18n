@@ -1654,9 +1654,36 @@ module ModuleCommon
   # are converted into ASCII before the judgement.
   #
   # @param instr [String]
-  # @return [String] "ja" or "en"
-  def guess_lang_code(instr)
-    match_kanji_kana(zenkaku_to_ascii(instr || "", Z: 1)) ? 'ja' : 'en'
+  # @param allow_chinese: [Boolean] if true (Def: false), text that contains kanji but no kana is guessed as Chiinese ("zh").
+  #    In default, anything that contains kanji is Japanese ("ja")
+  #    In short, except for a long String like a video title, specify this as false for Japanese websites.
+  # @param return_nil_on_fail: [Boolean] if true (Def: false), when all guessing fails, nil is returned; elase usually "ja" except when blank? (in which case "en")
+  # @return [String] "ja", "en", "ko", "zh", etc
+  def guess_lang_code(instr, allow_chinese: false, return_nil_on_fail: false)
+    return (return_nil_on_fail ? nil : "en") if instr.blank?
+
+    case instr
+    when /\p{Hiragana}|\p{Katakana}/
+      return "ja"
+    when /\p{Hangul}/
+      return "ko"
+    when /\p{Han}/
+      return (allow_chinese ? "zh" : "ja")
+    end
+
+    normalized_str = zenkaku_to_ascii(instr || "", Z: 1)
+    return "ja" if match_kanji_kana(normalized_str)  # Japanese text may contain Cyrilic characters (usually for emoji purposes)
+
+    case normalized_str
+    when /\p{Cyrillic}/
+      "ru"  # Can be :uk (Ukrainian), :bg (Bulgarian), :sr (Serbian), :ky (Kyrgyz) etc.
+    when /\p{Arabic}/
+      "ar"  # Can be :fa (Persian), :ur (Urdu) etc.
+    when /\A[\p{Latin}\p{Punct}\p{Digit}\s]+\z/
+      "en" # Pure Latin text fallback
+    else
+      (return_nil_on_fail ? nil : "ja")
+    end
   end
 
   # @return [MatchData, NilClass] of the first sequence of kanji, kana (zenkaku/hankaku), but NOT zenkaku-punct
@@ -1667,6 +1694,13 @@ module ModuleCommon
   # @return [MatchData, NilClass] of the first sequence of hankaku-kana. nil if no match.
   def match_hankaku_kana(instr)
     /[｡-ﾟ]+/.match instr  # [\uff61-\uff9f]
+  end
+
+  # Normalizes BCP-47 codes (e.g., "en-US" -> "en", "ja-JP" -> "ja") and old POSIX ("ja_JP" etc)
+  #
+  # @return [String] normalized langcode to 2-letters
+  def normalized_locale(code)
+    code.to_s.split(/[_\-]/).first&.downcase
   end
 
   # Returns root and definite article, e.g., ["Beatles", "The"], ["Queen", ""]

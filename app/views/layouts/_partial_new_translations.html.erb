@@ -46,7 +46,7 @@
       <div class="row">
         <div class="col-md-3">
           <%= tf.input :langcode,
-                       collection: BaseWithTranslation::AVAILABLE_LOCALES.map(&:to_s),
+                       collection: (BaseWithTranslation::AVAILABLE_LOCALES.map(&:to_s)+model.translations.map(&:langcode)).uniq,
                        selected: (tf.object.langcode.presence || "en"),
                        include_blank: false,
                        label: "Language" %><%# NOTE: Do NOT include `required: true` as the co-existence with `include_blank: false` would violate HTML5 standards - SimpleForm anyway marks it as if required when no nil option is given in collection %>

@@ -14,6 +14,7 @@ class Channels::FetchYoutubeChannelControllerTest < ActionDispatch::IntegrationT
 
   setup do
     @channel = channels(:channel_haramichan_youtube_main)
+    #@channel_kohmi = channels(:channel_kohmi_youtube_main)
     @sysadmin  = users(:user_sysadmin)
     @syshelper = users(:user_syshelper)
     @moderator_all   = users(:user_moderator_all)         # General-JA Moderator can manage.
@@ -204,11 +205,11 @@ class Channels::FetchYoutubeChannelControllerTest < ActionDispatch::IntegrationT
     sign_in (user=@editor_harami)
 
     ## 8th run (DESTRUCTIVE!!) (checking Translation update, esp. weight)
-    def_weight = 100
-    assert_equal def_weight, Role::DEF_WEIGHT[Role::RNAME_MODERATOR], "sanity check; see role.rb for definition"
+    def_weight = 15000  # see Translation#def_weight ; basically (10000+20000)
+    #assert_equal def_weight, Role::DEF_WEIGHT[Role::RNAME_MODERATOR], "sanity check; see role.rb for definition"
 
     @channel.update!(create_user: @editor_ja)
-    [[Float::INFINITY, def_weight], [98, 49], [0, 0]].each do |w_be4, w_aft|
+    [[Float::INFINITY, (11000...Translation::MAX_WEIGHT_NO_ROLE)], [98, (10...98)], [0, 0]].each do |w_be4, w_aft_range|
       tra_ja_best = _destroy_all_trans_but_best_ja(@channel)
       tra_ja_best.update!(title: "naiyo-8th-run", weight: w_be4, update_user: @editor_ja, create_user: @editor_ja)  # Because it is by a different user, after accessing Youtube API, a new Translation should be created, except for the last trial, where Translation#weight is 0.
 
@@ -222,7 +223,11 @@ class Channels::FetchYoutubeChannelControllerTest < ActionDispatch::IntegrationT
 
       tra = @channel.best_translation(langcode: :ja, fallback: false)
       assert_equal tra, @channel.translations.where(langcode: :ja).order(updated_at: :desc).first, "sanity check"
-      assert_equal w_aft, tra.weight
+      if w_aft_range.respond_to? :cover?
+        assert_includes w_aft_range, tra.weight
+      else
+        assert_equal w_aft_range, tra.weight  # 0 => 0 (simple :update by replacing the existing)
+      end
     end
 
     sign_out (user=@editor_harami)

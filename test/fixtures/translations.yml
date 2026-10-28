@@ -3298,7 +3298,7 @@ channel_haramichan_youtube_sub_ja:
   title: "ハラミちゃんの日常"
   is_orig: true
   kind: full
-  weight: 0
+  weight: 0.5
   create_user: user_syshelper
   update_user_id: 
   note: ChannelHaramiSubJa
@@ -3314,6 +3314,16 @@ channel_haramichan_instagram_main_ja:
   update_user_id: 
   note: ChannelHaramiInstagramJa
 
+channel_kohmi_youtube_main_ja:
+  translatable: channel_kohmi_youtube_main (Channel)
+  langcode: ja
+  title: "広瀬 香美 Official YouTube channel"
+  is_orig: true
+  kind: full
+  weight: 0.5
+  create_user: user_syshelper
+  update_user_id: 
+  note: ChannelKohmiYoutubeMainJa
 
 ## SiteCategory specific
 
