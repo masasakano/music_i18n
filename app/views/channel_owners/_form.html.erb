@@ -5,10 +5,13 @@
 <hr>
 <% end %>
 <section id="sec_primary">
-<% if ! channel_owner.new_record? %>
-<%= render partial: 'layouts/all_registered_translations', locals: {model: channel_owner, add_buttons: true} %>
+<% if channel_owner.new_record? %>
+  <h2 class="visually-hidden">Editing ChannelOwner information</h2>
+<% else %>
+<%= render partial: 'layouts/all_registered_translations', locals: {model: channel_owner, add_buttons: false} %>
 <hr>
-
+<% end %>
+    <% if ! channel_owner.new_record? %>
 <h2>Unique parameters</h2>
 <% end %>
 <% if channel_owner.new_record? %>
@@ -19,9 +22,9 @@
 <%= simple_form_for(@channel_owner) do |f| %>
  <section id="sec_primary_input">
   <% if channel_owner.new_record? %>
-    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: channel_owner, trans: Translation.new, disable_is_orig: true, is_simple_form: true} %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, is_simple_form: true, use_form_attributes: true} %>
   <% end %>
-<hr>
+
   <div class="form-inputs">
     <%= f.input :themselves, label: "Themselves?", hint: ' Whether this Channel is basically identical to an Artist.' %>
     <%= f.input BaseMerges::BaseWithIdsController.formid_autocomplete_with_id(Artist), label: 'Artist name', placeholder: '('+t('eg_independent')+'"欅坂46", "The Beatles", "Beatles, The")', required: false, input_html: {"data-1p-ignore" => true} %>

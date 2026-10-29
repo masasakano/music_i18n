@@ -28,9 +28,7 @@ class PrefecturesTest < ApplicationSystemTestCase
     new_title = "No place in World"
     fill_in_new_translations([{ title: new_title }])
 
-    within("div.#{@model_underscore}_note") do
-      find_field('Note').fill_in with: 'Note prefecture 2-A'
-    end
+    fill_in_main_note_with('Note prefecture 2-A')  # defined in test_system_helper.rb
     click_on "Create Prefecture"
 
     assert_selector "h1", text: new_title

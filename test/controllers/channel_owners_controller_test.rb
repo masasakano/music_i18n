@@ -20,13 +20,18 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
     @moderator_ja    = users(:user_moderator_general_ja)  # 
     @editor_ja       = users(:user_editor_general_ja)     # Same as Harami-editor
 
-    str_form_for_nil = ApplicationController.returned_str_from_form(ApplicationController::FORM_TERNARY_UNDEFINED_VALUE)
     @def_orig_locale = "ja"
+    @transs = sample_translation_params(title: "The Tｅst7", langcode: @def_orig_locale, with_true_name: true)  # defined in test_helper.rb
+    str_form_for_nil = ApplicationController.returned_str_from_form(ApplicationController::FORM_TERNARY_UNDEFINED_VALUE)
     @hs_create_lang = {
-      "langcode"=>@def_orig_locale,
-      "title"=>"The Tｅst7",
-      "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
-      #"best_translation_is_orig"=>str_form_for_nil,  # radio-button returns "on" for nil
+      #"langcode"=>@def_orig_locale,
+      #"title"=>"The Tｅst7",
+      #"ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
+      ##"best_translation_is_orig"=>str_form_for_nil,  # radio-button returns "on" for nil
+      themselves: get_params_from_bool(false),  # defined in test_helper.rb
+      artist_id: "",  # hidden parameter
+      artist_with_id: "",
+      note: "",
     }.with_indifferent_access
   end
 
@@ -67,7 +72,7 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should create channel_owner" do
-    hs2pass = @hs_create_lang.merge({ artist_id: "", artist_with_id: "", note: "newno", themselves: false })
+    hs2pass = @hs_create_lang.merge({ artist_id: "", artist_with_id: "", note: "newno", themselves: false, translations_attributes: @transs})
     assert_no_difference("ChannelOwner.count") do
       post channel_owners_url, params: { channel_owner: hs2pass }
     end
@@ -93,8 +98,9 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
     chow1st = ChannelOwner.last
     assert_redirected_to channel_owner_url(chow1st)
     assert_equal "newno", chow1st.note
-    refute_equal @hs_create_lang[:title], chow1st.title
-    assert_equal preprocess_space_zenkaku(@hs_create_lang[:title]), definite_article_to_head(chow1st.title) # defined in 
+    input_title = @transs[0][:title]
+    refute_equal input_title, chow1st.title
+    assert_equal preprocess_space_zenkaku(input_title), definite_article_to_head(chow1st.title) # defined in module_common.rb
     assert_equal @def_orig_locale, chow1st.orig_locale, "sanity-check"  # 
     tra1 = chow1st.best_translation
     assert_operator tra1.weight, :<, 10000000
@@ -113,13 +119,15 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
     # but they can add ones in the original locale if they can edit the original translatable
     chow = chow1st
     assert_equal @editor_ja, chow.create_user
-    assert_equal @hs_create_lang["langcode"], chow.orig_locale
-    assert_equal @hs_create_lang["langcode"], chow.best_translation.langcode
-    get new_translation_path(langcode: @hs_create_lang["langcode"], translatable_type: chow.class,  translatable_id: chow.id)
+    assert_equal @def_orig_locale, chow.orig_locale
+    assert_equal @def_orig_locale, chow.best_translation.langcode
+    get new_translation_path(langcode: @def_orig_locale, translatable_type: chow.class,  translatable_id: chow.id)
     assert_response :success, "Gen-Editor should be able to access :new for orig_locale language of an editable :translatable. but..."
 
     translatable = chow
-    hs2pass = @hs_create_lang.merge({title: '2nd-name-'+__method__.to_s, alt_title: "", is_orig: false, weight: "",
+    hs2pass = @transs[0].merge({title: '2nd-name-'+__method__.to_s, alt_title: "", is_orig: false, weight: "",
+                                kind: Translation::KIND_ALT,
+                                is_formal: get_params_from_bool(false), is_official: get_params_from_bool(false),
                                      translatable_type: translatable.class.name, translatable_id: translatable.id, } )
     assert             hs2pass[:langcode].present?, "sanity-check"  # should be "ja"
     refute_equal "ko", hs2pass[:langcode], "sanity-check to ensure a different langcode will be passed"
@@ -136,10 +144,12 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
     follow_redirect!
     flash_regex_assert(/\bsuccessfully created\b/, type: :success, system_test: false)  # defined in test_helper.rb
 
-    tra2 = Translation.order(:created_at).last  # Translation.last sorts in order of primary ID
+    tra2 = Translation.last_created  # Translation.last sorts in order of primary ID  # defined in application_record.rb
     assert_equal @editor_ja, tra2.create_user, "(For some reason tra.create_user may return nil very oocasionally) tra2=#{tra2.inspect}"
     assert_equal @editor_ja, tra2.update_user
-    assert_operator tra1.weight, :<, tra2.weight  # b/c both are kind=="alt" in orig_langcode, the newer one has a higher weight
+    assert_equal Translation::KIND_FULL, tra1.kind
+    assert_equal Translation::KIND_ALT,  tra2.kind
+    assert_operator tra1.weight, :<, tra2.weight  # b/c tra1.kind=="full and tra2.kind=="at" in orig_langcode, the newer one has a higher weight
 
     get channel_owner_url(@channel_owner)
     assert_response :success
@@ -149,13 +159,13 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
     # Test of :artist_with_id
     art_lennon = artists(:artist2) # John Lennon
     art_with_id = BaseWithTranslation.base_with_translation_with_id_str art_lennon
-    # hs_in = {langcode: "ja", title: "dummy", themselves: true, artist_with_id: art_with_id, note: "a007"}
     hs_in = {themselves: true, artist_with_id: art_with_id, note: "a007"}
 
     # inconsistent :themselves and :artist_with_id - Artist is ignored in Controller with a warning issued (at the time of writing)
     tit = "inconsistent but ignored"+__method__.to_s
+    tra_in = [@transs[0].merge({title: tit, langcode: "en"})]
     assert_difference("ChannelOwner.count") do
-      post channel_owners_url, params: { channel_owner: hs_in.merge({themselves: false, title: tit, langcode: "en"}) }
+      post channel_owners_url, params: { channel_owner: hs_in.merge({themselves: false, translations_attributes: tra_in}) }
       assert_response :redirect
     end
     follow_redirect!
@@ -165,7 +175,7 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
 
     # should successfully create ChannelOwner associated with Artist
     assert_difference("ChannelOwner.count") do
-      post channel_owners_url, params: { channel_owner: hs_in }
+      post channel_owners_url, params: { channel_owner: hs_in.merge({translations_attributes: tra_in}) }  # themselves: true etc.
       assert_response :redirect
     end
     mdl_last1 = ChannelOwner.last
@@ -184,7 +194,7 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
 
     # 2nd time of identical :artist_with_id  - fails
     assert_no_difference("ChannelOwner.count") do
-      post channel_owners_url, params: { channel_owner: hs_in }
+      post channel_owners_url, params: { channel_owner: hs_in.merge({translations_attributes: tra_in}) }
       assert_response :unprocessable_content
     end
 
@@ -202,7 +212,7 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
 
     # 3rd time of :artist_with_id  - success (because the created one with the Artist has been decoupled)
     assert_difference("ChannelOwner.count") do
-      post channel_owners_url, params: { channel_owner: hs_in }
+      post channel_owners_url, params: { channel_owner: hs_in.merge({translations_attributes: tra_in}) }
       assert_response :redirect #, " Error-message: "+css_select('div#error_explanation').to_s
     end
     mdl_last2 = ChannelOwner.last
@@ -214,7 +224,7 @@ class ChannelOwnersControllerTest < ActionDispatch::IntegrationTest
         
     # 4th time with title etc for an identical one with themselves==false - fails (because it is identical to mdl_last1 (with themselves=false)
     hs4th = {themselves: false, artist_id: "", artist_with_id: "", note: "a407"}
-    hs4th.merge!(art_lennon.best_translation.attributes.slice(*%w(langcode title ruby romaji alt_title alt_ruby alt_romaji)))
+    hs4th.merge!({translations_attributes: [art_lennon.best_translation.attributes.slice(*%w(langcode title ruby romaji alt_title alt_ruby alt_romaji))]})
     assert_no_difference("ChannelOwner.count") do
       post channel_owners_url, params: { channel_owner: hs4th }
       assert_response :unprocessable_content

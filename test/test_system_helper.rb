@@ -193,6 +193,24 @@ class ActiveSupport::TestCase
     find_field(label_str, match: :first).fill_in with: title_str
   end
 
+  # Fill in a "note" of the main ActiveRecord (NOT of an associated Translation)
+  #
+  # In an unlikely case of not finding the CSS (maybe because in a delay
+  # in loading the page?), this raises an Error, so the backtrace is displayed.
+  #
+  # @example
+  #    fill_in_main_note_with("My new note")  # defined in test_system_helper.rb
+  #    fill_in_main_note_with("My new note", model_underscore: "channel_owner")  # defined in test_system_helper.rb
+  #
+  # @param text [String] to input
+  # @param model_underscore: [String] e.g., "channel_owner"
+  # @return [void]
+  def fill_in_main_note_with(text, model_underscore: @model_underscore) # , locale: I18n.locale)
+    within("div.#{model_underscore}_note") do
+      fill_in "Note", with: text
+    end
+  end
+
   # Wrapper of {#fill_in_new_translation_single}, accepting multiple Translations on :new
   #
   # @example 

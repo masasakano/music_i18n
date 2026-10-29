@@ -77,7 +77,7 @@ module BaseWithTranslationControllerMethods
       if set_non_nil_orig_locale_from_params(@record, permitted_params: mparams)
         set_kind_from_params(@record, permitted_params: mparams)  # or mparams[:translations_attributes]
       else
-        @record.errors.add(:base, "No Translation is specified.")
+        _add_error_of_no_translation
       end
     end
     private :create_when_nil_locale_not_allowed
@@ -85,7 +85,7 @@ module BaseWithTranslationControllerMethods
     def create_when_nil_locale_allowed(mparams = model_params)
       set_orig_locale_from_params(@record, permitted_params: mparams)
       if !set_kind_from_params(@record, permitted_params: mparams)
-        @record.errors.add(:base, "No Translation is specified.")
+        _add_error_of_no_translation
       end
     end
     private :create_when_nil_locale_allowed
@@ -95,7 +95,7 @@ module BaseWithTranslationControllerMethods
       @record.set_all_is_orig
 
       if @record.translations.blank?
-        @record.errors.add(:base, "No Translation is specified.")
+        _add_error_of_no_translation
       end
     end
     private :create_when_nil_locale_always
@@ -367,5 +367,16 @@ module BaseWithTranslationControllerMethods
         # Reconstructs the params parameter
         params[model_param_key][:translations_attributes] = [first, *rest].compact
       end
+    end
+
+    # on :create, Translations must be specified unless Controller defines
+    # a callback {#allow_no_translation_on_create?} and it returns true.
+    def _add_error_of_no_translation
+      @record.errors.add(:base, "No Translation is specified.") unless allow_no_translation_on_create?
+    end
+
+    # Default hook/callback: override in specific controllers (e.g., ChannelOwner) when translation is optional
+    def allow_no_translation_on_create?
+      false
     end
 end

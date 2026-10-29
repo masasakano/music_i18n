@@ -3,7 +3,8 @@ require "application_system_test_case"
 
 class ChannelsTest < ApplicationSystemTestCase
   setup do
-    @channel1 = @channel = channels(:one)
+    @record = @channel1 = @channel = channels(:one)
+    @model_underscore = @record.class.name.underscore
     @channel2= channels(:channel_haramichan_youtube_main)
     #@channel_owner = channel_owners(:channel_owner_saki_kubota)
     #@channel_owner2= channel_owners(:channel_owner_haramichan)
@@ -29,81 +30,100 @@ class ChannelsTest < ApplicationSystemTestCase
   # ---------------------------------------------
 
   test "visiting Channel#index" do
-    visit channels_url
-    assert_text "You need to sign in or sign up"
-
-    #visit new_user_session_path  # already on this page.
-    fill_in "Email", with: @editor_ja.email
-    fill_in "Password", with: '123456'  # from users.yml
-    click_on "Log in"
-
-    assert_selector "h1", text: @h1_title
-    assert_text "Signed in successfully"
+    assert_index_fail_succeed(channels_url, @h1_title, user_fail: nil, user_succeed: @editor_ja)  # defined in test_system_helper.rb
   end
 
   test "should create Channel" do
     newchan = "New Channel"
-    visit channels_url  # direct jump -> fail
-    refute_text newchan
-    assert_text "You need to sign in or sign up"
+    assert_index_fail_succeed(new_channel_url, newchan, user_fail: nil, user_succeed: @moderator_gen)  # defined in test_system_helper.rb
 
-    #visit new_user_session_path  # already on this page.
-    fill_in "Email", with: @moderator_gen.email
-    fill_in "Password", with: '123456'  # from users.yml
-    click_on "Log in"
-
-    #visit channels_url
+    ## Now logged in as @moderator_gen
+    visit channels_url
     assert_selector "h1", text: @h1_title
-    n_records_be4 = page.all("div#channels table tr").size - 1
+    css = "div#channels table tr"
+    assert_selector css
+    n_records_be4 = page.all(css).size - 1
+    ensure_page_load_in_full_load  # defined in test_system_helper.rb
+
     click_on "New Channel"
 
-    page_find_sys(:trans_new, :langcode_radio, model: Channel).choose('English')  # defined in test_system_helper
+    #page_find_sys(:trans_new, :langcode_radio, model: Channel).choose('English')  # defined in test_system_helper
+    ##page.find('input#channel_title').fill_in with: 'Tekitoh'  # This is unique!
+    #fill_in "Channel Full Title - romaji", with: "dummy"  # This should be ignored.
 
-    page.find('input#channel_title').fill_in with: 'Tekitoh'  # This is unique!
+    new_title = 'Tekitoh'
+    fill_in_new_translations([{ title: new_title, romaji: "tekitou", langcode: "en", is_orig: true },
+                              { title: new_title+"-ja", langcode: "ja", is_orig: false }])  # defined in test_system_helper
 
-    fill_in "Channel Full Title - romaji", with: "dummy"  # This should be ignored.
-#puts  page.find('select#channel_channel_owner_id')['outerHTML']
     #select "HARAMIchan", from: "Channel owner"  # If unknown, "Channel is already taken".  TODO: Test it?
     select "ハラミちゃん", from: "Channel owner"  # Japanese is displayed even in English environment (b/c simple_form default etc)...
     select "Unknown", from: "Channel platform"
     select "Unknown", from: "Channel type"
-    fill_in "Note", with: "new-note"
+    new_note = "new-note"
+    fill_in_main_note_with(new_note)  # defined in test_system_helper.rb
+    refute_nested_forms  # defined in test_system_helper.rb
 
-    click_on "Create Channel"
+    click_on @button_text[:create]
 
-    assert_text "Channel was successfully created"
+    assert_text "Channel was "+(str="successfully created")
+    flash_text_system_assert(str, type: [:notice, :success], category: :div)  # defined in test_helper.rb
+    close_flash_windows([:notice, :success])  # defined in test_system_helper.rb
+
+    mdl2 = record = Channel.last_created
+    assert_selector "dd.item_note", text: new_note
+    assert_equal new_note,  record.note
+    assert_equal new_title,       (tra_en=record.best_translation).title
+    assert_equal new_title+"-ja", (tra_ja=record.best_translation(:ja)).title
+    assert_equal Translation::KIND_FULL, tra_en.kind
+    assert_equal Translation::KIND_FULL, tra_ja.kind
+
+    ## testing switching locale
+    assert_equal "en", record.orig_locale
+    assert_equal :nil, assert_switch_orig_locale(record, browser_locale=:en, to_locale: nil)  # defined in test_system_helper.rb
+    assert_equal :ja,  assert_switch_orig_locale(record, browser_locale=:en, to_locale: :ja)  # defined in test_system_helper.rb
+    record.reload
+    assert_equal new_title+"-ja", record.best_translation.title
+    assert_equal :en,  assert_switch_orig_locale(record, browser_locale=:en, to_locale: :en)  # defined in test_system_helper.rb
+    xpath_ko = switch_orig_locale(:ko)  # should fail to switch b/c no :ja Translation (but no exception or assertion failure)
+    refute_selector :xpath, xpath_ko
 
     click_on "Back", match: :first
 
     n_records = page.all("div#channels table tr").size - 1
     assert_equal(n_records_be4+1, n_records)
 
-
     ## "should update Channel" do
-    mdl2 = Channel.last
     visit channel_url(mdl2, locale: I18n.locale)
     assert_selector "h1", text: "Channel:"
+    assert_selector "h1", text: new_title
 
     click_on "Edit this Channel", match: :first
     assert_selector "h1", text: "Editing Channel"
 
-    fill_in "Note", with: "something_else"
+    fill_in "Note", with: (note2="something_else")
+    refute_nested_forms  # defined in test_system_helper.rb
+
     click_on @button_text[:update]
 
-    assert_text "Channel was successfully updated"
+    assert_text "Channel was "+(str="successfully updated")
+    flash_text_system_assert(str, type: [:notice, :success], category: :div)  # defined in test_helper.rb
+    close_flash_windows([:notice, :success])  # defined in test_system_helper.rb
+    assert_selector "h1", text: new_title
 
     # Confirming the record has been updated.
-    ### todo...
+    record.reload
+    assert_equal note2, record.note
 
     ## test "should destroy Channel" do
-    visit channel_url(mdl2, locale: I18n.locale)
-    assert_selector "h1", text: "Channel:"
-    assert_match(/\AChannel:/, page.find("h1").text)
+
+    #visit channel_url(mdl2, locale: I18n.locale)
+    #assert_selector "h1", text: "Channel:"
+    #assert_match(/\AChannel:/, page.find("h1").text)
 
     # xp = "div.link-edit-destroy form.button_to button.destroy_link"
     xpath = assert_find_destroy_button  # defined in test_system_helper.rb
     assert_difference("Channel.count", -1){
-      assert_destroy_with_text(find(:xpath, xpath), "Channel", just_click: true, chk_flash: true)  # defined in test_system_helper.rb
+      assert_destroy_with_text(find(:xpath, xpath), "Channel", just_click: true, chk_flash: true)  # defined in test_system_helper.rb  # This asserts and closes the flash window.
     }
 
     # should be in the Index page

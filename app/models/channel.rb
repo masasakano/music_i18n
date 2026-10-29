@@ -95,6 +95,7 @@ class Channel < BaseWithTranslation
   #validates_presence_of :channel_owner, :channel_type, :channel_platform  # unnecessary as automatically checked.
   validates :channel_owner, uniqueness: { scope: [:channel_type, :channel_platform] }
 
+  normalizes :id_at_platform, :id_human_at_platform, with: -> { _1.strip.presence }
   validates :id_at_platform,       uniqueness: { scope: [:channel_platform] }, allow_nil: true
   validates :id_at_platform,       length: {minimum: 3}, allow_nil: true  # 3 is rather random...
   validates :id_at_platform,       format: {with: /\A[[:ascii:]]+\z/i}, allow_nil: true

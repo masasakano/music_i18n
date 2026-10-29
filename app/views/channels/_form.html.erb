@@ -5,19 +5,20 @@
 <hr>
 <% end %>
 <section id="sec_primary">
-<% if ! channel.new_record? %>
-<%= render partial: 'layouts/all_registered_translations', locals: {model: channel, add_buttons: true} %>
-<hr>
+  <% if channel.new_record? %>
+    <h2 class="visually-hidden">Editing Channel information</h2>
+  <% else %>
+    <%= render partial: 'layouts/all_registered_translations', locals: {model: channel, add_buttons: false} %>
+    <hr>
+    <h2>Unique parameters</h2>
+  <% end %>
 
-<h2>Unique parameters</h2>
-<% end %>
-
-<div id="form_main">
+  <%= tag.div id: "form_main" do %>
 
 <%= simple_form_for(@channel) do |f| %>
  <section id="sec_primary_input">
   <% if channel.new_record? %>
-    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, model: channel, trans: Translation.new, disable_is_orig: true, is_simple_form: true} %>
+    <%= render partial: 'layouts/partial_new_translations', locals: {form: f, is_simple_form: true, use_form_attributes: true} %>
   <% end %>
   <%= f.error_notification %>
   <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
@@ -40,7 +41,7 @@
  </section> <!-- section id="sec_primary_input" -->
 <% end %>
 
-</div> <!-- div id="form_main" -->
+  <% end %> <!-- div id="form_main" -->
 
 </section> <!-- section id="sec_primary" -->
 

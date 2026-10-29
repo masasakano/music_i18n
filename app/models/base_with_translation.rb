@@ -5506,39 +5506,6 @@ end
 
   ######################
 
-  # Logs a warning if is_orig is undefined in any of them.
-  #
-  # @param ar_trans [ActiveRecord::Associations::CollectionProxy] practially an Array
-  # @param mend: [Boolean] If true, and if the DB record is simply fixable, do so.
-  # @return [Symbol, NilClass] nil if perfect. Symbol if a problem is found.
-  def _check_and_log_is_orig(mend: true)
-    originals = translations.select{|i| i.is_orig}
-
-    if originals.size == 1
-      tra = originals[0]
-      return if tra.weight == 0
-
-      logger.warn "Updated weight=(#{tra.weight.inspect}) to 0 because is_orig is true for "+tran_inspect_msg(tra)+" in Table: #{originals[0].class.table_name}"
-      if mend
-        tra.weight = 0
-        tra.save!
-      end
-      return :weight_nonzero
-    end
-
-    if originals.size == 0
-      logger.warn "No translation is original for "+tran_inspect_msg(ar_trans[0])+" in Table: #{originals[0].class.table_name}"
-      return :non_is_orig
-    end
-
-    if originals.size > 1
-      # More than 1 original.
-      return :multiple_is_orig
-    end
-
-    raise # should not come
-  end
-
   # before_validation callback/hook
   def orig_locale_consistent_with_translations
     return true if skip_orig_locale_validation

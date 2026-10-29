@@ -89,10 +89,9 @@ class InstrumentsTest < ApplicationSystemTestCase
     end
 
     fill_in "Weight", with: @instrument.weight
-    within("div.#{@model_underscore}_note") do
-      fill_in "Note", with: @record.note
-    end
-    click_on "Create Instrument"
+    fill_in_main_note_with(@record.note)  # defined in test_system_helper.rb
+
+    click_on @button_text[:create]
 
     assert_text "prohibited"
     assert_text (str="Weight has already been taken")
@@ -114,17 +113,30 @@ class InstrumentsTest < ApplicationSystemTestCase
     assert_equal(n_records_be4+1, n_records)
 
     ## "should update Instrument" do
-    mdl2 = Instrument.last
+    mdl2 = record = Instrument.last_created
     visit instrument_url(mdl2, locale: I18n.locale)
+    assert_selector "h1", text: "Instrument:"
+
+    ## testing switching locale
+    assert_nil  record.orig_locale, "orig_locale should be nil, but..."
+    assert_equal :with_confirm, assert_switch_orig_locale(record, browser_locale=:en, to_locale: "ja")  # defined in test_system_helper.rb
+    assert_equal :nil,          assert_switch_orig_locale(record, browser_locale=:en, to_locale: nil)  # defined in test_system_helper.rb
+    xpath_ko = switch_orig_locale(:ko)  # should fail to switch b/c no :ja Translation (but no exception or assertion failure)
+    refute_selector :xpath, xpath_ko
+
+    ## Editing Instrument
     click_on "Edit this Instrument", match: :first
 
     assert_selector "h1", text: "Editing Instrument"
 
+    refute_includes Instrument.all.pluck(:weight), 123.94, "fixture testing just in case..."
     fill_in "Weight", with: 123.94
 
-    click_on "Update Instrument"
+    click_on @button_text[:update]
 
-    assert_text "Instrument was successfully updated"
+    assert_text "Instrument was "+(str="successfully updated")
+    flash_text_system_assert(str, type: [:notice, :success], category: :div)  # defined in test_helper.rb
+    close_flash_windows([:notice, :success])  # defined in test_system_helper.rb
     #click_on "Back"
 
     ## test "should destroy Instrument" ##

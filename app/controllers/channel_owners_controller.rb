@@ -12,8 +12,8 @@ class ChannelOwnersController < ApplicationController
 
   # Symbol of the main parameters in the Form (except "place_id"), which exist in DB
   MAIN_FORM_KEYS ||= []
-  MAIN_FORM_KEYS.concat(%i(themselves artist_id artist_with_id note))  # artist_id is hidden
-  MAIN_FORM_KEYS.concat([PARAMS_KEY_AC])
+  MAIN_FORM_KEYS.concat(%i(themselves artist_id note))  # artist_id is hidden
+  MAIN_FORM_KEYS.concat([PARAMS_KEY_AC])  # artist_with_id
 
   # Permitted main parameters for params(), used for update and create
   PARAMS_MAIN_KEYS = MAIN_FORM_KEYS
@@ -42,20 +42,19 @@ class ChannelOwnersController < ApplicationController
 
   # POST /channel_owners or /channel_owners.json
   def create
-    @channel_owner = ChannelOwner.new(@hsmain)
-    authorize! __method__, @channel_owner
+    result = super do |record|  # sets @record, @channel_owner and authorize; defined in base_with_translation_controller_methods.rb
+      artist_in = _get_equivalent_artist
 
-    artist_in = _get_equivalent_artist
-
-    if artist_in
-      @channel_owner.artist = artist_in
-      @channel_owner.reset_by_artist
-    else
-      # Even if @channel_owner.errors.any?, it is better to set unsaved_translation so the input strings in the forms are preserved.
-      add_unsaved_trans_to_model(@channel_owner, @hstra) # defined in application_controller.rb
+      if artist_in
+        record.artist = artist_in
+        record.reset_by_artist
+      #else
+      #  # Even if @channel_owner.errors.any?, it is better to set unsaved_translation so the input strings in the forms are preserved.
+      #  add_unsaved_trans_to_model(@channel_owner, @hstra) # defined in application_controller.rb
+      end
     end
 
-    result = def_respond_to_format(@channel_owner)       # defined in application_controller.rb
+    # result = def_respond_to_format(@channel_owner)       # defined in application_controller.rb
 
     # Adjusts each Translation's update_user and updated_at if there is an equivalent user.
     # These are not critical and so not included in DB-Transaction in the save above.
@@ -66,19 +65,26 @@ class ChannelOwnersController < ApplicationController
 
   # PATCH/PUT /channel_owners/1 or /channel_owners/1.json
   def update
-      @hsmain.each_pair do |ek, ev|
-        next if "artist_id" == ek.to_s
-        @channel_owner.send(ek.to_s+"=", ev)
-      end
-    artist_in = _get_equivalent_artist
-    if artist_in
-      @channel_owner.artist = artist_in
-    elsif !@channel_owner.themselves
-      @channel_owner.artist = nil
-    end
-    @channel_owner.reset_by_artist(force: false)
+    ## Equivalent to:  @record = @harami_vid = HaramiVid.find(params[:id])
+    set_record  # defined in ./concerns/base_with_translation_controller_methods.rb
 
-    result = def_respond_to_format(@channel_owner, :updated) # defined in application_controller.rb
+    @record.attributes = model_params.reject{|k, _| "artist_id" == k.to_s }  # sets orig_locale *if* Controller gives one.
+
+     #@hsmain.each_pair do |ek, ev|
+     #  next if "artist_id" == ek.to_s
+     #  @channel_owner.send(ek.to_s+"=", ev)
+     #end
+    if %i(artist_id artist_with_id).any?{ model_params.has_key?(_1) }  # i.e., if !model_params.has_key?(:orig_locale)
+      artist_in = _get_equivalent_artist
+      if artist_in
+        @record.artist = artist_in
+      elsif !@record.themselves
+        @record.artist = nil
+      end
+      @record.reset_by_artist(force: false)
+    end
+
+    result = def_respond_to_format(@record, :updated) # defined in application_controller.rb
 
     # Here (synchronize_translations_to_artist), assigned the equivalent user if there is any and adjusts each Translation's update_user and updated_at
   end
@@ -89,6 +95,13 @@ class ChannelOwnersController < ApplicationController
   end
 
   private
+    # Overwrites the callback called from BaseWithTranslationControllerMethods on :create
+    #
+    # Basically, if themselves==true and PARAMS_KEY_AC(=artist_with_id) is truthy, Translation is not require to be given, which will be anyway overwritten immediately.
+    def allow_no_translation_on_create?
+      @record.themselves.present? && @record.send(PARAMS_KEY_AC).present?
+    end
+
     # Use callbacks to share common setup or constraints between actions.
     def set_channel_owner
       @channel_owner = ChannelOwner.find(params[:id])

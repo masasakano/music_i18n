@@ -45,21 +45,22 @@ class ChannelsController < ApplicationController
   def edit
   end
 
-  # POST /channels or /channels.json
-  def create
-    @channel = Channel.new(@hsmain)
-    authorize! __method__, @channel
+  # -> defined in BaseWithTranslationControllerMethods
+  ## POST /channels or /channels.json
+  #def create
+  #  @channel = Channel.new(@hsmain)
+  #  authorize! __method__, @channel
+  #  add_unsaved_trans_to_model(@channel, @hstra, force_is_orig_true: false) # defined in application_controller.rb
+  #  def_respond_to_format(@channel)              # defined in application_controller.rb
+  #end
 
-    add_unsaved_trans_to_model(@channel, @hstra, force_is_orig_true: false) # defined in application_controller.rb
-    def_respond_to_format(@channel)              # defined in application_controller.rb
-  end
-
-  # PATCH/PUT /channels/1 or /channels/1.json
-  def update
-    def_respond_to_format(@channel, :updated){
-      @channel.update(@hsmain)
-    } # defined in application_controller.rb
-  end
+  # -> defined in BaseWithTranslationControllerMethods
+  ## PATCH/PUT /channels/1 or /channels/1.json
+  #def update
+  #  def_respond_to_format(@channel, :updated){
+  #    @channel.update(@hsmain)
+  #  } # defined in application_controller.rb
+  #end
 
   # DELETE /channels/1 or /channels/1.json
   def destroy

@@ -121,9 +121,7 @@ class PlacesTest < ApplicationSystemTestCase
     fill_in_new_translations([{ title: place_tit },
                               { title: 'MyNew_place_Alt2', langcode: "en" }]) # defined in test_system_helper.rb
 
-    within("div.#{@model_underscore}_note") do
-      find_field('Note').fill_in with: 'Note place 2-A'
-    end
+    fill_in_main_note_with('Note place 2-A')  # defined in test_system_helper.rb
     click_on "Create Place"
 
     assert_text "Place was "+(str="successfully created") #, maximum: 1  ## After the introduction of Flash-display for Turbo, 2 of them appear. Not ideal.
@@ -162,9 +160,7 @@ class PlacesTest < ApplicationSystemTestCase
     # print "DEBUG:pref: "; puts find_all(CSSHS[:prefecture_option]).map{_1[:innerHTML]}.join("\n")
     select "Simane", from: "Prefecture", visible: true  # "Simane" is alt_title, whereas title is "Shimane"
     note2add = "Provincial change made."
-    within("div.#{@model_underscore}_note") do
-      fill_in "Note", with: note2add
-    end
+    fill_in_main_note_with(note2add)  # defined in test_system_helper.rb
 
     click_on "Update Place"
 
@@ -193,18 +189,6 @@ class PlacesTest < ApplicationSystemTestCase
     ## Test of CRUD of Anchoring in Show
     assert_anchoring_crud_in_show(place, h1_title, skip_login: true)  # defined in test_system_helper.rb
   end
-
-  #test "updating a Place" do
-  #  visit places_url
-  #  click_on "Edit", match: :first
-
-  #  fill_in "Note", with: @place.note
-  #  fill_in "Prefecture", with: @place.prefecture_id
-  #  click_on "Update Place"
-
-  #  assert_text "Place was successfully updated"
-  #  click_on "Back"
-  #end
 
   #test "destroying a Place" do
   #  visit places_url

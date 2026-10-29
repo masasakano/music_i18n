@@ -20,12 +20,13 @@ class ChannelsControllerTest < ActionDispatch::IntegrationTest
     @moderator_ja    = users(:user_moderator_general_ja)  # 
     @editor_ja       = users(:user_editor_general_ja)     # Same as Harami-editor
 
+    @transs = sample_translation_params(title: "The Tｅst7", langcode: "ja", kind: Translation::KIND_FULL)  # defined in test_helper.rb (title etc)
     str_form_for_nil = ApplicationController.returned_str_from_form(ApplicationController::FORM_TERNARY_UNDEFINED_VALUE)
     @hs_create_lang = {
-      "langcode"=>"ja",
-      "title"=>"The Tｅst7",
-      "ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
-      #"best_translation_is_orig"=>str_form_for_nil,  # radio-button returns "on" for nil
+      #"langcode"=>"ja",
+      #"title"=>"The Tｅst7",
+      #"ruby"=>"", "romaji"=>"", "alt_title"=>"", "alt_ruby"=>"", "alt_romaji"=>"",
+      ##"best_translation_is_orig"=>str_form_for_nil,  # radio-button returns "on" for nil
     }.with_indifferent_access
 
     @hs_basics = {
@@ -71,7 +72,7 @@ class ChannelsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should create channel" do
-    hs2pass = @hs_create_lang.merge(@hs_basics).merge({ channel_owner_id: @channel.channel_owner.id, channel_platform_id: ChannelPlatform.unknown.id, channel_type_id: @channel.channel_type.id, note: "newno", })
+    hs2pass = @hs_create_lang.merge(@hs_basics).merge({ channel_owner_id: @channel.channel_owner.id, channel_platform_id: ChannelPlatform.unknown.id, channel_type_id: @channel.channel_type.id, note: "newno", translations_attributes: @transs})  # already .with_indifferent_access
     assert_no_difference("Channel.count") do
       post channels_url, params: { channel: hs2pass }
     end
@@ -92,6 +93,7 @@ class ChannelsControllerTest < ActionDispatch::IntegrationTest
 
     assert_difference("Channel.count") do
       post channels_url, params: { channel: hs2pass }
+      assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
     end
     eeih_last = Channel.last
     assert_redirected_to channel_url(eeih_last)
@@ -99,12 +101,13 @@ class ChannelsControllerTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("Channel.count") do
       post channels_url, params: { channel: hs2pass.merge({ note: "same parameters. should fail" }) }
+      assert_response :unprocessable_content
     end
-    assert_response :unprocessable_content
 
+    trans2 = [@transs[0].merge({title: @channel2.title(langcode: :en)}), @transs[1]]
     platform_fb = channel_platforms(:channel_platform_facebook)
     assert_difference("Channel.count", 1, "An existing translation should be allowed as long as the combination of the main three parameters is unique, but...") do
-      post channels_url, params: { channel: hs2pass.merge({title: @channel2.title(langcode: :en), channel_platform_id: platform_fb.id }.with_indifferent_access) }
+      post channels_url, params: { channel: hs2pass.merge({channel_platform_id: platform_fb.id, translations_attributes: trans2 }.with_indifferent_access) }
       assert_response :redirect  # this should be put inside assert_difference block to detect potential 422
     end
     eeih_last = Channel.last

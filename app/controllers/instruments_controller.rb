@@ -38,12 +38,13 @@ class InstrumentsController < ApplicationController
   #def create
   #end
 
-  # PATCH/PUT /instruments/1 or /instruments/1.json
-  def update
-    def_respond_to_format(@instrument, :updated){
-      @instrument.update(@hsmain)
-    } # defined in application_controller.rb
-  end
+  # Now defined in base_with_translation_controller_methods.rb
+  ## PATCH/PUT /instruments/1 or /instruments/1.json
+  #def update
+  #  def_respond_to_format(@instrument, :updated){
+  #    @instrument.update(@hsmain)
+  #  } # defined in application_controller.rb
+  #end
 
   # DELETE /instruments/1 or /instruments/1.json
   def destroy

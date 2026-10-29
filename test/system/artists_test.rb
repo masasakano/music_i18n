@@ -327,9 +327,7 @@ class ArtistsTest < ApplicationSystemTestCase
     markd_text = "1st-Artist"
     markd_link = sprintf("/artists/%d", Artist.first.id)
     markd = sprintf("See [%s](%s).", markd_text, markd_link)
-    within("div.#{@model_underscore}_note") do
-      fill_in 'Note', with: markd
-    end
+    fill_in_main_note_with(markd)  # defined in test_system_helper.rb
 
     refute_nested_forms  # defined in test_system_helper.rb
     click_on @button_text[:create]
