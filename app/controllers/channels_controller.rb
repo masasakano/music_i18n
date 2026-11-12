@@ -57,9 +57,6 @@ class ChannelsController < ApplicationController
   # -> defined in BaseWithTranslationControllerMethods
   ## PATCH/PUT /channels/1 or /channels/1.json
   #def update
-  #  def_respond_to_format(@channel, :updated){
-  #    @channel.update(@hsmain)
-  #  } # defined in application_controller.rb
   #end
 
   # DELETE /channels/1 or /channels/1.json

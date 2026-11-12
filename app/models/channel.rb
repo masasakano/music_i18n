@@ -254,7 +254,7 @@ class Channel < BaseWithTranslation
     self.id_human_at_platform.sub!(/\A@?/, "@") if id_human_at_platform.present?
   end
 
-  ## Callback invoed by {BaseWithTranslation#save_unsaved_translations}
+  ## Callback invoked by {BaseWithTranslation#save_unsaved_translations}
   ## which is an after_create callback.
   ##
   ## This ensures a newly created record always has a {Translation}

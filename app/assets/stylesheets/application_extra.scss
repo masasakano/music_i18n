@@ -490,7 +490,6 @@ div.add_missing_musics {
 /* ********************************************************* */
 /*   Simple_form    */
 /* ********************************************************* */
-/* input[type="text"] { */
 :root {
   --form-bg-color: navy;
   --form-bg-color-focus: blue;
@@ -512,8 +511,8 @@ select.form-control-select  {
   background-color: darkblue;
   background-color: hsl(from var(--form-bg-color) h s calc(l + 10));
   border-width: var(--form-border-width);
-    min-width: 10em;
-    max-width: 40em;
+  min-width: 10em;
+  max-width: 40em;
 }
 select.form-control-select:focus  {
   /* background: dodgerblue; */
@@ -529,7 +528,7 @@ form .cascade_select {
 }
 
 input.form-control  {
-    min-width: 10em;
+  min-width: 10em;
   background: var(--form-bg-color);  /* without this, the fields would be transparent */
   border-width: var(--form-border-width);
 }
@@ -542,23 +541,22 @@ input.form-control.is-invalid {
   border-width: var(--form-border-width-focus);
 }
 input[type="number"].form-control, input[type="color"].form-control, input[type="tel"].form-control, select.form-control.date {
-    max-width: 20em;
+  max-width: 20em;
 }
 input[type="text"].form-control.string {
-    max-width: 50em;
+  max-width: 50em;
 }
 input[type="text"].form-control.string.translation-title {
-    max-width: none;
-    height: 3em;  /* 3.5 lines */
+  max-width: none;
+  height: 3em;  /* 1 line */
 }
 .longtext input[type="text"].form-control {
-    height: 5em;  /* 3.5 lines */
-    max-width: 5000em;
+  height: 5em;  /* 3.5 lines */
+  max-width: 5000em;
 }
 
 input[type="radio"].form-check-input {
 }
-
 /*
  <div class="form-group float required engage_how_weight form-group-valid">
    <label title="Lower means a higher priority." class="float required" for="engage_how_weight">Weight <abbr title="必須">*</abbr></label>
@@ -581,17 +579,17 @@ textarea.form-control:focus {
  */
 
 select.form-control  {
-    min-width: 10em;
-    max-width: 50em;
+  min-width: 10em;
+  max-width: 50em;
   background: var(--form-bg-color);
 }
 select.form-control.input_shorter {
-    min-width: 9em;
-    max-width: 10em;
+  min-width: 9em;
+  max-width: 10em;
 }
 select.form-control.input_middle {
-    min-width: 10em;
-    max-width: 15em;
+  min-width: 10em;
+  max-width: 15em;
 }
 
 select.form-control:focus  {
@@ -600,7 +598,7 @@ select.form-control:focus  {
 }
 
 fieldset.form-group.radio_buttons, fieldset.form-group.check_boxes {
-    max-width: 40em;
+  max-width: 40em;
   /* border-width: thick;
      border-color: red; */ /* not working... */
   background-color: var(--form-bg-color);
@@ -608,7 +606,7 @@ fieldset.form-group.radio_buttons, fieldset.form-group.check_boxes {
   margin-top: 0.5em;
 }
 fieldset.form-group.radio_buttons.harami_vid_form_new_artist_collab_event_item, fieldset.form-group.check_boxes.harami_vid_event_items {
-    max-width: 500em;
+  max-width: 500em;
 }
 
 fieldset.form-group.radio_buttons legend,
@@ -649,8 +647,8 @@ a.button_like {
 }
 
 .disp-inline {
-    display: inline;
-    display: inline-block;
+  display: inline;
+  display: inline-block;
 }
 
 .editor_only, label[for*="_grid_id"], label[for*="_grid_n_inconsistent"], label[for*="_grid_n_inconsistent"]+input, label[for*="_grid_n_inconsistent"]+input+span, label[for*="_grid_column_names_id"], label[for*="_grid_column_names_orig_locale"], label[for*="_grid_column_names_n_amps"], label[for*="_grid_column_names_event_item"], label[for*="_grid_column_names_weight"], label[for*="_grid_column_names_n_inconsistent"], label[for*="_grid_column_names_memo_editor"], label[for*="_grid_column_names_update_user"], label[for*="_grid_column_names_create_user"], label[for*="_grid_column_names_updated_at"], label[for*="_grid_column_names_created_at"], section#sec_harami1129s_for {
@@ -674,8 +672,8 @@ a.button_like {
 }
 
 .channel_part {
-    padding-top: 1em;
-    margin-bottom: 0.2em;
+  padding-top: 1em;
+  margin-bottom: 0.2em;
 }
 
 /* For Anchoring */

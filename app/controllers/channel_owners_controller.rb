@@ -48,13 +48,8 @@ class ChannelOwnersController < ApplicationController
       if artist_in
         record.artist = artist_in
         record.reset_by_artist
-      #else
-      #  # Even if @channel_owner.errors.any?, it is better to set unsaved_translation so the input strings in the forms are preserved.
-      #  add_unsaved_trans_to_model(@channel_owner, @hstra) # defined in application_controller.rb
       end
     end
-
-    # result = def_respond_to_format(@channel_owner)       # defined in application_controller.rb
 
     # Adjusts each Translation's update_user and updated_at if there is an equivalent user.
     # These are not critical and so not included in DB-Transaction in the save above.
@@ -70,10 +65,6 @@ class ChannelOwnersController < ApplicationController
 
     @record.attributes = model_params.reject{|k, _| "artist_id" == k.to_s }  # sets orig_locale *if* Controller gives one.
 
-     #@hsmain.each_pair do |ek, ev|
-     #  next if "artist_id" == ek.to_s
-     #  @channel_owner.send(ek.to_s+"=", ev)
-     #end
     if %i(artist_id artist_with_id).any?{ model_params.has_key?(_1) }  # i.e., if !model_params.has_key?(:orig_locale)
       artist_in = _get_equivalent_artist
       if artist_in
